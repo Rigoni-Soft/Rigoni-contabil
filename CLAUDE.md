@@ -1,5 +1,15 @@
 @AGENTS.md
 
+## Agent skills
+
+### Issue tracker
+
+Issues e specs vivem como GitHub issues neste repositório (Rigoni-Soft/Rigoni-contabil). Ver `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` na raiz + `docs/adr/` (ainda não criado — nenhuma ADR registrada). Ver `docs/agents/domain.md`.
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
