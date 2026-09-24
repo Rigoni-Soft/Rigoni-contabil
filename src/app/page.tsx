@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
+import { LogOut } from "lucide-react";
 
 import { ShellHeader } from "@/presentation/components/organisms/shell-header.component";
+import { Button } from "@/presentation/components/ui/button";
 import { logoutAction } from "@/presentation/view-models/shell/logout.actions";
 import { carregarSessao } from "@/presentation/view-models/shell/shell.server";
 
@@ -15,9 +17,10 @@ export default async function Home() {
       setor={sessao.setor}
       sair={
         <form action={logoutAction}>
-          <button type="submit" className="text-sm underline">
+          <Button type="submit" variant="ghost" size="sm">
+            <LogOut aria-hidden="true" />
             Sair
-          </button>
+          </Button>
         </form>
       }
     />

@@ -1,4 +1,10 @@
+import { AlertTriangle, Loader2 } from "lucide-react";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
+
+import { Button } from "@/presentation/components/ui/button";
+import { FieldError } from "@/presentation/components/ui/field-error";
+import { Input } from "@/presentation/components/ui/input";
+import { Label } from "@/presentation/components/ui/label";
 
 type LoginFormValues = { email: string; senha: string };
 
@@ -12,44 +18,44 @@ type LoginFormProps = {
 
 export function LoginForm({ register, errors, onSubmit, pendente, erroServidor }: LoginFormProps) {
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
-      <div className="flex flex-col gap-1">
-        <label htmlFor="email" className="text-sm font-medium">
-          E-mail
-        </label>
-        <input
+    <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="email">E-mail</Label>
+        <Input
           id="email"
           type="email"
           autoComplete="email"
-          className="rounded-md border px-3 py-2"
+          aria-invalid={!!errors.email}
           {...register("email")}
         />
-        {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
+        {errors.email && <FieldError>{errors.email.message}</FieldError>}
       </div>
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="senha" className="text-sm font-medium">
-          Senha
-        </label>
-        <input
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="senha">Senha</Label>
+        <Input
           id="senha"
           type="password"
           autoComplete="current-password"
-          className="rounded-md border px-3 py-2"
+          aria-invalid={!!errors.senha}
           {...register("senha")}
         />
-        {errors.senha && <p className="text-sm text-red-600">{errors.senha.message}</p>}
+        {errors.senha && <FieldError>{errors.senha.message}</FieldError>}
       </div>
 
-      {erroServidor && <p className="text-sm text-red-600">{erroServidor}</p>}
+      {erroServidor && (
+        <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2.5">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden="true" />
+          <p role="alert" className="text-sm text-destructive">
+            {erroServidor}
+          </p>
+        </div>
+      )}
 
-      <button
-        type="submit"
-        disabled={pendente}
-        className="rounded-md bg-black px-3 py-2 text-white disabled:opacity-50"
-      >
+      <Button type="submit" disabled={pendente} className="w-full">
+        {pendente && <Loader2 className="motion-safe:animate-spin" aria-hidden="true" />}
         {pendente ? "Entrando…" : "Entrar"}
-      </button>
+      </Button>
     </form>
   );
 }
