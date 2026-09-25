@@ -17,7 +17,7 @@ describe("RegistroAcaoBuilder", () => {
     expect(resultado.ok).toBe(true);
     if (resultado.ok) {
       expect(resultado.value.acao).toBe("usuario.criar");
-      expect(resultado.value.resultado.ehSucesso()).toBe(true);
+      expect(resultado.value.resultado.valor).toBe("sucesso");
       expect(resultado.value.dataHora).toEqual(DATA_HORA);
     }
   });

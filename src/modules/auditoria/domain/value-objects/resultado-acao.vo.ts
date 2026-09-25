@@ -17,8 +17,4 @@ export class ResultadoAcao {
   get valor(): ResultadoAcaoValor {
     return this.props.valor;
   }
-
-  ehSucesso(): boolean {
-    return this.props.valor === "sucesso";
-  }
 }

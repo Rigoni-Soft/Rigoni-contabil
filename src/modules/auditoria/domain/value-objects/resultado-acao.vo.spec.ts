@@ -13,11 +13,11 @@ describe("ResultadoAcao", () => {
     expect(resultado.ok).toBe(false);
   });
 
-  it("ehSucesso é verdadeiro só para sucesso", () => {
+  it("expõe o valor validado (sucesso/falha)", () => {
     const sucesso = ResultadoAcao.criar("sucesso");
     const falha = ResultadoAcao.criar("falha");
 
-    expect(sucesso.ok && sucesso.value.ehSucesso()).toBe(true);
-    expect(falha.ok && falha.value.ehSucesso()).toBe(false);
+    expect(sucesso.ok && sucesso.value.valor).toBe("sucesso");
+    expect(falha.ok && falha.value.valor).toBe("falha");
   });
 });
