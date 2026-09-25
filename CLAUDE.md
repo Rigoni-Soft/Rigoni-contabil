@@ -8,7 +8,7 @@ Issues e specs vivem como GitHub issues neste repositório (Rigoni-Soft/Rigoni-c
 
 ### Domain docs
 
-Single-context: `CONTEXT.md` na raiz + `docs/adr/` (ainda não criado — nenhuma ADR registrada). Ver `docs/agents/domain.md`.
+Single-context: `CONTEXT.md` na raiz + `docs/adr/`. Ver `docs/agents/domain.md`.
 
 ## graphify
 
