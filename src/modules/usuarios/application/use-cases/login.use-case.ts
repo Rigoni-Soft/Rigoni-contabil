@@ -29,8 +29,16 @@ export class Login implements LoginPort {
       return this.abortarSessaoOrfa("Falha ao carregar seu perfil. Tente novamente.", perfil.error);
     }
     if (!perfil.value) return this.abortarSessaoOrfa("Usuário autenticado sem perfil cadastrado.");
+    const usuario = perfil.value;
 
-    return ok(usuarioParaDto(perfil.value));
+    // #31/ADR 0002: expirada sem troca também bloqueia — Admin recadastra a
+    // conta (não há endpoint de "regenerar" ainda, YAGNI até virar pedido real).
+    if (usuario.senhaProvisoriaVencida(new Date())) {
+      await this.sessao.encerrar();
+      return err(new ForbiddenError("Senha provisória expirada. Peça ao Admin uma nova conta."));
+    }
+
+    return ok(usuarioParaDto(usuario));
   }
 
   // Supabase já autenticou nesse ponto: qualquer falha daqui em diante precisa

@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Entrar" };
 
 export default async function Page() {
   const sessao = await carregarSessao();
-  if (sessao) redirect("/");
+  if (sessao) redirect(sessao.precisaTrocarSenha ? "/trocar-senha" : "/");
 
   return <LoginPage formulario={<LoginContainer />} />;
 }

@@ -10,6 +10,7 @@ import { carregarFeedAuditoria } from "@/modules/auditoria/presentation/view-mod
 export default async function Page() {
   const [sessao, feed] = await Promise.all([carregarSessao(), carregarFeedAuditoria()]);
   if (!sessao) redirect("/login");
+  if (sessao.precisaTrocarSenha) redirect("/trocar-senha");
   if (!feed.ok) redirect("/");
 
   return (

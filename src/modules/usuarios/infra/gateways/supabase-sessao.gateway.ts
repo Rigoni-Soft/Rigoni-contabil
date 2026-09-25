@@ -52,4 +52,13 @@ export class SupabaseSessaoGateway implements SessaoPort {
     } = await this.supabase.auth.getUser();
     return (user?.id as UsuarioId | undefined) ?? null;
   }
+
+  async trocarSenha(novaSenha: string): Promise<Result<void, AppError>> {
+    const { error } = await this.supabase.auth.updateUser({ password: novaSenha });
+    if (error) {
+      console.error("Falha técnica ao trocar senha no Supabase:", error.message);
+      return err(new AutenticacaoIndisponivelError("Não foi possível trocar a senha agora."));
+    }
+    return ok(undefined);
+  }
 }

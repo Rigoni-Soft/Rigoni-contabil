@@ -8,12 +8,14 @@ import type { ListarSetoresPort } from "@/modules/usuarios/application/ports/in/
 import type { LoginPort } from "@/modules/usuarios/application/ports/in/login.provider";
 import type { LogoutPort } from "@/modules/usuarios/application/ports/in/logout.provider";
 import type { ObterSessaoPort } from "@/modules/usuarios/application/ports/in/obter-sessao.provider";
+import type { TrocarSenhaPort } from "@/modules/usuarios/application/ports/in/trocar-senha.provider";
 import type { AuditoriaPort } from "@/modules/usuarios/application/ports/out/auditoria.provider";
 import { CriarUsuario } from "@/modules/usuarios/application/use-cases/criar-usuario.use-case";
 import { ListarSetores } from "@/modules/usuarios/application/use-cases/listar-setores.use-case";
 import { Login } from "@/modules/usuarios/application/use-cases/login.use-case";
 import { Logout } from "@/modules/usuarios/application/use-cases/logout.use-case";
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
+import { TrocarSenha } from "@/modules/usuarios/application/use-cases/trocar-senha.use-case";
 import { AutorizacaoService } from "@/modules/usuarios/domain/services/autorizacao.service";
 import { SupabaseAuthAdminGateway } from "@/modules/usuarios/infra/gateways/supabase-auth-admin.gateway";
 import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabase-sessao.gateway";
@@ -67,6 +69,15 @@ export async function makeCriarUsuario(): Promise<CriarUsuarioPort> {
     new SupabaseSessaoGateway(supabase),
     new SupabaseUsuarioRepository(supabase),
     new SupabaseAuthAdminGateway(createSupabaseAdmin()),
+    auditoriaViaModuloAuditoria(),
+  );
+}
+
+export async function makeTrocarSenha(): Promise<TrocarSenhaPort> {
+  const supabase = await createSupabaseServer();
+  return new TrocarSenha(
+    new SupabaseSessaoGateway(supabase),
+    new SupabaseUsuarioRepository(supabase),
     auditoriaViaModuloAuditoria(),
   );
 }

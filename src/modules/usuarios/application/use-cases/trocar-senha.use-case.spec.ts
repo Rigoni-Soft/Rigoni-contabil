@@ -1,0 +1,136 @@
+import type {
+  AuditoriaPort,
+  RegistrarAcaoAuditoria,
+} from "@/modules/usuarios/application/ports/out/auditoria.provider";
+import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
+import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
+import { Usuario, type UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
+import type { AppError } from "@/shared/errors/app.error";
+import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { err, ok, type Result } from "@/shared/kernel/result";
+
+import { TrocarSenha } from "./trocar-senha.use-case";
+
+function usuarioFalso(id: string, senhaTrocadaEm: string | null): Usuario {
+  const resultado = Usuario.builder()
+    .comId(id)
+    .comNome("Jéssica Souza")
+    .comEmail("jessica@rigonicontabil.local")
+    .comPapel("funcionario")
+    .comSetor("simples_nacional")
+    .comSenhaTrocadaEm(senhaTrocadaEm)
+    .comSenhaProvisoriaExpiraEm(new Date(Date.now() + 1000 * 60 * 60).toISOString())
+    .build();
+  if (!resultado.ok) throw new Error("setup inválido");
+  return resultado.value;
+}
+
+class SessaoFalsa implements SessaoPort {
+  id: UsuarioId | null = "11111111-1111-1111-1111-111111111111" as UsuarioId;
+  erroAoTrocar: AppError | null = null;
+  senhaTrocadaPara: string | null = null;
+
+  async autenticar(): Promise<Result<void, AppError>> {
+    return ok(undefined);
+  }
+  async encerrar(): Promise<Result<void, AppError>> {
+    return ok(undefined);
+  }
+  async usuarioAtualId(): Promise<UsuarioId | null> {
+    return this.id;
+  }
+  async trocarSenha(novaSenha: string): Promise<Result<void, AppError>> {
+    if (this.erroAoTrocar) return err(this.erroAoTrocar);
+    this.senhaTrocadaPara = novaSenha;
+    return ok(undefined);
+  }
+}
+
+class UsuarioRepositoryFalso implements UsuarioRepository {
+  usuario: Usuario | null = null;
+  marcada = false;
+
+  async buscarPorId(): Promise<Usuario | null> {
+    return this.usuario;
+  }
+  async criar(): Promise<Result<void, AppError>> {
+    return ok(undefined);
+  }
+  async marcarSenhaTrocada(): Promise<Result<void, AppError>> {
+    this.marcada = true;
+    return ok(undefined);
+  }
+}
+
+class AuditoriaFalsa implements AuditoriaPort {
+  registros: RegistrarAcaoAuditoria[] = [];
+  async registrar(input: RegistrarAcaoAuditoria): Promise<void> {
+    this.registros.push(input);
+  }
+}
+
+describe("TrocarSenha", () => {
+  it("troca a senha, marca no perfil e registra 'primeiro_acesso' na auditoria quando ainda não tinha trocado", async () => {
+    const sessao = new SessaoFalsa();
+    const usuarios = new UsuarioRepositoryFalso();
+    usuarios.usuario = usuarioFalso("11111111-1111-1111-1111-111111111111", null);
+    const auditoria = new AuditoriaFalsa();
+
+    const resultado = await new TrocarSenha(sessao, usuarios, auditoria).execute({
+      novaSenha: "nova-senha-123",
+    });
+
+    expect(resultado.ok).toBe(true);
+    expect(sessao.senhaTrocadaPara).toBe("nova-senha-123");
+    expect(usuarios.marcada).toBe(true);
+    expect(auditoria.registros).toEqual([
+      expect.objectContaining({ acao: "usuario.trocar_senha_primeiro_acesso" }),
+    ]);
+  });
+
+  it("registra 'trocar_senha' (sem 'primeiro_acesso') quando é uma troca voluntária posterior", async () => {
+    const sessao = new SessaoFalsa();
+    const usuarios = new UsuarioRepositoryFalso();
+    usuarios.usuario = usuarioFalso(
+      "11111111-1111-1111-1111-111111111111",
+      new Date().toISOString(),
+    );
+    const auditoria = new AuditoriaFalsa();
+
+    await new TrocarSenha(sessao, usuarios, auditoria).execute({ novaSenha: "outra-senha-456" });
+
+    expect(auditoria.registros).toEqual([
+      expect.objectContaining({ acao: "usuario.trocar_senha" }),
+    ]);
+  });
+
+  it("nega sem sessão", async () => {
+    const sessao = new SessaoFalsa();
+    sessao.id = null;
+    const usuarios = new UsuarioRepositoryFalso();
+    const auditoria = new AuditoriaFalsa();
+
+    const resultado = await new TrocarSenha(sessao, usuarios, auditoria).execute({
+      novaSenha: "nova-senha-123",
+    });
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error).toBeInstanceOf(ForbiddenError);
+  });
+
+  it("propaga a falha e não marca troca quando o gateway de sessão falha", async () => {
+    const sessao = new SessaoFalsa();
+    sessao.erroAoTrocar = new ForbiddenError("falha ao trocar");
+    const usuarios = new UsuarioRepositoryFalso();
+    usuarios.usuario = usuarioFalso("11111111-1111-1111-1111-111111111111", null);
+    const auditoria = new AuditoriaFalsa();
+
+    const resultado = await new TrocarSenha(sessao, usuarios, auditoria).execute({
+      novaSenha: "nova-senha-123",
+    });
+
+    expect(resultado.ok).toBe(false);
+    expect(usuarios.marcada).toBe(false);
+    expect(auditoria.registros).toEqual([]);
+  });
+});

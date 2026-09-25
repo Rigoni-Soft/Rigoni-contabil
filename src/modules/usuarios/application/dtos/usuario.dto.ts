@@ -4,4 +4,5 @@ export type UsuarioDto = {
   email: string;
   papel: string;
   setor: string;
+  precisaTrocarSenha: boolean;
 };

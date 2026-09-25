@@ -20,6 +20,9 @@ class SessaoFalsa implements SessaoPort {
   async usuarioAtualId(): Promise<UsuarioId | null> {
     return null;
   }
+  async trocarSenha(): Promise<Result<void, AppError>> {
+    return ok(undefined);
+  }
 }
 
 describe("Logout", () => {

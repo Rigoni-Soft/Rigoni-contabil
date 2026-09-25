@@ -11,6 +11,8 @@ export type UsuarioProps = {
   email: string;
   papel: Papel;
   setor: Setor;
+  senhaTrocadaEm: Date | null;
+  senhaProvisoriaExpiraEm: Date;
 };
 
 export class Usuario {
@@ -38,5 +40,14 @@ export class Usuario {
 
   get setor(): Setor {
     return this.props.setor;
+  }
+
+  // Só a troca (não o cadastro) zera isso — decisão do #31.
+  precisaTrocarSenha(): boolean {
+    return this.props.senhaTrocadaEm === null;
+  }
+
+  senhaProvisoriaVencida(agora: Date): boolean {
+    return this.precisaTrocarSenha() && agora > this.props.senhaProvisoriaExpiraEm;
   }
 }

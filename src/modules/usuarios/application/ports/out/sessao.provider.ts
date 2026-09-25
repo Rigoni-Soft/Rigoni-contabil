@@ -6,4 +6,5 @@ export interface SessaoPort {
   autenticar(email: string, senha: string): Promise<Result<void, AppError>>;
   encerrar(): Promise<Result<void, AppError>>;
   usuarioAtualId(): Promise<UsuarioId | null>;
+  trocarSenha(novaSenha: string): Promise<Result<void, AppError>>;
 }
