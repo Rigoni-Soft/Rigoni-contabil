@@ -2,8 +2,8 @@ import { expect, test } from "@playwright/test";
 
 // Cobre o cenário principal do ticket #29 (Registro de auditoria): a tela de
 // feed bruto em /admin/auditoria é acessível só por Admin.
-// Usuários: supabase/seed.sql (Admin de Teste e Funcionário de Teste, ambiente Dev local).
-test.use({ baseURL: `http://localhost:${process.env.PORT ?? 8800}` });
+// Usuários: supabase/seed.sql (Admin de Teste e Funcionário Simples Nacional,
+// ambiente Dev local; baseURL vem de playwright.config.ts).
 
 async function login(page: import("@playwright/test").Page, email: string, senha: string) {
   await page.goto("/login");
@@ -21,11 +21,11 @@ test.describe("Feed de auditoria (Admin only)", () => {
 
     await expect(page).toHaveURL(/\/admin\/auditoria$/);
     await expect(page.getByText("usuario.criar")).toBeVisible();
-    await expect(page.getByText("funcionario@rigonicontabil.local")).toBeVisible();
+    await expect(page.getByText("funcionario.sn@rigonicontabil.local")).toBeVisible();
   });
 
   test("Funcionário é redirecionado pra fora do feed de auditoria", async ({ page }) => {
-    await login(page, "funcionario@rigonicontabil.local", "func123");
+    await login(page, "funcionario.sn@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
 
     await page.goto("/admin/auditoria");

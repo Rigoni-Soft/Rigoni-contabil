@@ -26,7 +26,7 @@ async function clienteAutenticadoComoAdminSeed(): Promise<SupabaseClient> {
 async function clienteAutenticadoComoFuncionarioSeed(): Promise<SupabaseClient> {
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const { error } = await supabase.auth.signInWithPassword({
-    email: "funcionario@rigonicontabil.local",
+    email: "funcionario.sn@rigonicontabil.local",
     password: "func123",
   });
   if (error) throw new Error(`Falha ao autenticar o funcionário do seed: ${error.message}`);
@@ -74,7 +74,7 @@ describe("SupabaseRegistroAcaoRepository (integração)", () => {
 
     const registros = await repositorio.listar({ limite: 50 });
 
-    expect(registros.some((r) => r.alvo === "funcionario@rigonicontabil.local")).toBe(true);
+    expect(registros.some((r) => r.alvo === "funcionario.sn@rigonicontabil.local")).toBe(true);
   });
 
   it("Funcionário não vê nenhum registro (RLS: só Admin)", async () => {
