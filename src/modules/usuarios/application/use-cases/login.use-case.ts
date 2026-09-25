@@ -18,10 +18,16 @@ export class Login implements LoginPort {
     if (!autenticado.ok) return autenticado;
 
     const id = await this.sessao.usuarioAtualId();
-    if (!id) return err(new ForbiddenError("Sessão inválida após autenticação."));
+    if (!id) {
+      await this.sessao.encerrar();
+      return err(new ForbiddenError("Sessão inválida após autenticação."));
+    }
 
     const usuario = await this.usuarios.buscarPorId(id);
-    if (!usuario) return err(new ForbiddenError("Usuário autenticado sem perfil cadastrado."));
+    if (!usuario) {
+      await this.sessao.encerrar();
+      return err(new ForbiddenError("Usuário autenticado sem perfil cadastrado."));
+    }
 
     return ok(usuarioParaDto(usuario));
   }

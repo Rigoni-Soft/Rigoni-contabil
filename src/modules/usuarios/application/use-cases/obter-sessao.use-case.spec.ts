@@ -11,7 +11,9 @@ class SessaoFalsa implements SessaoPort {
   async autenticar(): Promise<Result<void, AppError>> {
     return ok(undefined);
   }
-  async encerrar(): Promise<void> {}
+  async encerrar(): Promise<Result<void, AppError>> {
+    return ok(undefined);
+  }
   async usuarioAtualId(): Promise<UsuarioId | null> {
     return this.id;
   }

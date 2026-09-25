@@ -22,13 +22,17 @@ function usuarioFalso(id: string): Usuario {
 class SessaoFalsa implements SessaoPort {
   credenciaisValidas = true;
   idAposLogin: UsuarioId | null = "11111111-1111-1111-1111-111111111111" as UsuarioId;
+  encerrada = false;
 
   async autenticar(): Promise<Result<void, AppError>> {
     return this.credenciaisValidas
       ? ok(undefined)
       : err(new ForbiddenError("credenciais inválidas"));
   }
-  async encerrar(): Promise<void> {}
+  async encerrar(): Promise<Result<void, AppError>> {
+    this.encerrada = true;
+    return ok(undefined);
+  }
   async usuarioAtualId(): Promise<UsuarioId | null> {
     return this.idAposLogin;
   }
@@ -80,5 +84,44 @@ describe("Login", () => {
     });
 
     expect(resultado.ok).toBe(false);
+  });
+
+  it("encerra a sessão do Supabase quando o perfil não existe (não deixa sessão autenticada órfã)", async () => {
+    const sessao = new SessaoFalsa();
+    const repositorio = new UsuarioRepositoryFalso();
+    repositorio.usuario = null;
+
+    await new Login(sessao, repositorio).execute({
+      email: "sem-perfil@rigonicontabil.local",
+      senha: "123456",
+    });
+
+    expect(sessao.encerrada).toBe(true);
+  });
+
+  it("encerra a sessão do Supabase quando não consegue obter o id após autenticar", async () => {
+    const sessao = new SessaoFalsa();
+    sessao.idAposLogin = null;
+    const repositorio = new UsuarioRepositoryFalso();
+
+    await new Login(sessao, repositorio).execute({
+      email: "admin@rigonicontabil.local",
+      senha: "admin123",
+    });
+
+    expect(sessao.encerrada).toBe(true);
+  });
+
+  it("não encerra a sessão quando o login é bem-sucedido", async () => {
+    const sessao = new SessaoFalsa();
+    const repositorio = new UsuarioRepositoryFalso();
+    repositorio.usuario = usuarioFalso("11111111-1111-1111-1111-111111111111");
+
+    await new Login(sessao, repositorio).execute({
+      email: "admin@rigonicontabil.local",
+      senha: "admin123",
+    });
+
+    expect(sessao.encerrada).toBe(false);
   });
 });

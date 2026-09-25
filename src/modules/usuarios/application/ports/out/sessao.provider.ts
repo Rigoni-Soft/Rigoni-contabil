@@ -4,6 +4,6 @@ import type { Result } from "@/shared/kernel/result";
 
 export interface SessaoPort {
   autenticar(email: string, senha: string): Promise<Result<void, AppError>>;
-  encerrar(): Promise<void>;
+  encerrar(): Promise<Result<void, AppError>>;
   usuarioAtualId(): Promise<UsuarioId | null>;
 }
