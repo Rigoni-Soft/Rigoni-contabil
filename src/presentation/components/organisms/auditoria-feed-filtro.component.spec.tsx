@@ -1,0 +1,50 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { useForm } from "react-hook-form";
+
+import { AuditoriaFeedFiltro, type FiltroValues } from "./auditoria-feed-filtro.component";
+
+function Wrapper({ onSubmit }: { onSubmit: (v: FiltroValues) => void }) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FiltroValues>();
+
+  return (
+    <AuditoriaFeedFiltro
+      register={register}
+      errors={errors}
+      onSubmit={handleSubmit(onSubmit)}
+      onLimpar={() => {}}
+    />
+  );
+}
+
+describe("AuditoriaFeedFiltro", () => {
+  it("submete os valores preenchidos", async () => {
+    const onSubmit = jest.fn();
+    const usuario = userEvent.setup();
+    render(<Wrapper onSubmit={onSubmit} />);
+
+    await usuario.type(screen.getByLabelText("Ação"), "usuario.criar");
+    await usuario.selectOptions(screen.getByLabelText("Resultado"), "sucesso");
+    await usuario.click(screen.getByRole("button", { name: "Filtrar" }));
+
+    expect(onSubmit.mock.calls[0][0]).toEqual(
+      expect.objectContaining({ acao: "usuario.criar", resultado: "sucesso" }),
+    );
+  });
+
+  it("tem os campos de período, setor, ator, ação, alvo e resultado", () => {
+    render(<Wrapper onSubmit={jest.fn()} />);
+
+    expect(screen.getByLabelText("De")).toBeInTheDocument();
+    expect(screen.getByLabelText("Até")).toBeInTheDocument();
+    expect(screen.getByLabelText("Setor")).toBeInTheDocument();
+    expect(screen.getByLabelText("Ator")).toBeInTheDocument();
+    expect(screen.getByLabelText("Ação")).toBeInTheDocument();
+    expect(screen.getByLabelText("Alvo")).toBeInTheDocument();
+    expect(screen.getByLabelText("Resultado")).toBeInTheDocument();
+  });
+});

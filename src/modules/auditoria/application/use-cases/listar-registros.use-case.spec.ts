@@ -1,5 +1,8 @@
 import type { RegistroAcaoDto } from "@/modules/auditoria/application/dtos/registro-acao.dto";
-import type { RegistroAcaoRepository } from "@/modules/auditoria/application/ports/out/registro-acao.repository";
+import type {
+  RegistroAcaoFiltro,
+  RegistroAcaoRepository,
+} from "@/modules/auditoria/application/ports/out/registro-acao.repository";
 import type {
   AtorSessaoDto,
   SessaoPort,
@@ -18,10 +21,13 @@ class SessaoFalsa implements SessaoPort {
 
 class RegistroAcaoRepositoryFalso implements RegistroAcaoRepository {
   registros: RegistroAcaoDto[] = [];
+  filtroRecebido?: RegistroAcaoFiltro;
+
   async salvar(): Promise<Result<void, AppError>> {
     return ok(undefined);
   }
-  async listarRecentes(): Promise<RegistroAcaoDto[]> {
+  async listar(filtro: RegistroAcaoFiltro): Promise<RegistroAcaoDto[]> {
+    this.filtroRecebido = filtro;
     return this.registros;
   }
 }
@@ -66,5 +72,49 @@ describe("ListarRegistros", () => {
     const resultado = await new ListarRegistros(repositorio, sessao).execute();
 
     expect(resultado.ok).toBe(false);
+  });
+
+  it("repassa setor, ator, ação, alvo e resultado ao repositório", async () => {
+    const sessao = new SessaoFalsa();
+    const repositorio = new RegistroAcaoRepositoryFalso();
+
+    await new ListarRegistros(repositorio, sessao).execute({
+      setor: "administrativo",
+      ator: "admin-1",
+      acao: "usuario.criar",
+      alvo: "jessica",
+      resultado: "sucesso",
+    });
+
+    expect(repositorio.filtroRecebido).toMatchObject({
+      setor: "administrativo",
+      ator: "admin-1",
+      acao: "usuario.criar",
+      alvo: "jessica",
+      resultado: "sucesso",
+    });
+  });
+
+  it("converte o período (yyyy-mm-dd) no dia inteiro, início e fim inclusive", async () => {
+    const sessao = new SessaoFalsa();
+    const repositorio = new RegistroAcaoRepositoryFalso();
+
+    await new ListarRegistros(repositorio, sessao).execute({
+      dataInicio: "2026-09-01",
+      dataFim: "2026-09-22",
+    });
+
+    expect(repositorio.filtroRecebido?.dataInicio).toBe("2026-09-01T00:00:00.000Z");
+    expect(repositorio.filtroRecebido?.dataFim).toBe("2026-09-22T23:59:59.999Z");
+  });
+
+  it("sem período informado, não filtra por data", async () => {
+    const sessao = new SessaoFalsa();
+    const repositorio = new RegistroAcaoRepositoryFalso();
+
+    await new ListarRegistros(repositorio, sessao).execute();
+
+    expect(repositorio.filtroRecebido?.dataInicio).toBeUndefined();
+    expect(repositorio.filtroRecebido?.dataFim).toBeUndefined();
   });
 });

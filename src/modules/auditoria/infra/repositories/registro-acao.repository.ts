@@ -1,7 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { RegistroAcaoDto } from "@/modules/auditoria/application/dtos/registro-acao.dto";
-import type { RegistroAcaoRepository } from "@/modules/auditoria/application/ports/out/registro-acao.repository";
+import type {
+  RegistroAcaoFiltro,
+  RegistroAcaoRepository,
+} from "@/modules/auditoria/application/ports/out/registro-acao.repository";
 import type { RegistroAcao } from "@/modules/auditoria/domain/entities/registro-acao.entity";
 import { registroAcaoRowSchema } from "@/modules/auditoria/infra/dtos/registro-acao-row.dto";
 import { registroAcaoRowParaDto } from "@/modules/auditoria/infra/mappers/registro-acao-row-para-dto.mapper";
@@ -30,12 +33,24 @@ export class SupabaseRegistroAcaoRepository implements RegistroAcaoRepository {
     return ok(undefined);
   }
 
-  async listarRecentes(limite: number): Promise<RegistroAcaoDto[]> {
-    const { data, error } = await this.supabase
+  async listar(filtro: RegistroAcaoFiltro): Promise<RegistroAcaoDto[]> {
+    let query = this.supabase
       .from("registros_auditoria")
       .select("*")
       .order("criado_em", { ascending: false })
-      .limit(limite);
+      .limit(filtro.limite);
+
+    // ator é uuid: filtra por igualdade exata (sem busca textual, RigoniContabil ainda
+    // não guarda nome legível do ator na auditoria).
+    if (filtro.ator) query = query.eq("ator", filtro.ator);
+    if (filtro.setor) query = query.eq("setor", filtro.setor);
+    if (filtro.resultado) query = query.eq("resultado", filtro.resultado);
+    if (filtro.acao) query = query.ilike("acao", `%${filtro.acao}%`);
+    if (filtro.alvo) query = query.ilike("alvo", `%${filtro.alvo}%`);
+    if (filtro.dataInicio) query = query.gte("criado_em", filtro.dataInicio);
+    if (filtro.dataFim) query = query.lte("criado_em", filtro.dataFim);
+
+    const { data, error } = await query;
 
     if (error) throw new Error(`Falha ao listar auditoria: ${error.message}`);
 

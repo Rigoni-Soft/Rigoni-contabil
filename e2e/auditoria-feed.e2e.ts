@@ -32,4 +32,21 @@ test.describe("Feed de auditoria (Admin only)", () => {
 
     await expect(page).toHaveURL("/");
   });
+
+  test("Admin filtra o feed por resultado e vê só o que combina", async ({ page }) => {
+    await login(page, "admin@rigonicontabil.local", "admin123");
+    await expect(page).toHaveURL("/");
+    await page.goto("/admin/auditoria");
+    await expect(page.getByText("cliente.editar")).toBeVisible();
+    await expect(page.getByText("usuario.criar")).toBeVisible();
+
+    await page.getByLabel("Resultado").selectOption("falha");
+    await page.getByRole("button", { name: "Filtrar" }).click();
+
+    await expect(page.getByText("cliente.editar")).toBeVisible();
+    await expect(page.getByText("usuario.criar")).not.toBeVisible();
+
+    await page.getByRole("button", { name: "Limpar" }).click();
+    await expect(page.getByText("usuario.criar")).toBeVisible();
+  });
 });

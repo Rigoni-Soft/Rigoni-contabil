@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 import { LogOut } from "lucide-react";
 
-import { AuditoriaFeed } from "@/presentation/components/organisms/auditoria-feed.component";
 import { ShellHeader } from "@/presentation/components/organisms/shell-header.component";
 import { AuditoriaFeedPage } from "@/presentation/components/pages/auditoria-feed.page";
 import { Button } from "@/presentation/components/ui/button";
 import { logoutAction } from "@/presentation/view-models/shell/logout.actions";
 import { carregarSessao } from "@/presentation/view-models/shell/shell.server";
+import { FeedContainer } from "@/modules/auditoria/presentation/view-models/feed/feed.container";
 import { carregarFeedAuditoria } from "@/modules/auditoria/presentation/view-models/feed/feed.server";
 
 export default async function Page() {
@@ -31,7 +31,7 @@ export default async function Page() {
           }
         />
       }
-      feed={<AuditoriaFeed registros={feed.value} />}
+      feed={<FeedContainer initialData={feed.value} />}
     />
   );
 }

@@ -33,14 +33,16 @@ async function clienteAutenticadoComoFuncionarioSeed(): Promise<SupabaseClient> 
   return supabase;
 }
 
-function registroValido(id: string, ator: string) {
+type RegistroOverrides = { setor?: string; acao?: string; resultado?: string };
+
+function registroValido(id: string, ator: string, overrides: RegistroOverrides = {}) {
   const resultado = RegistroAcao.builder()
     .comId(id)
     .comAtor(ator)
-    .comSetor("administrativo")
-    .comAcao("usuario.criar")
+    .comSetor(overrides.setor ?? "administrativo")
+    .comAcao(overrides.acao ?? "usuario.criar")
     .comAlvo("usuário de teste")
-    .comResultado("sucesso")
+    .comResultado(overrides.resultado ?? "sucesso")
     .comDataHora(new Date())
     .build();
   if (!resultado.ok) throw new Error("setup inválido");
@@ -70,7 +72,7 @@ describe("SupabaseRegistroAcaoRepository (integração)", () => {
     const supabase = await clienteAutenticadoComoAdminSeed();
     const repositorio = new SupabaseRegistroAcaoRepository(supabase);
 
-    const registros = await repositorio.listarRecentes(50);
+    const registros = await repositorio.listar({ limite: 50 });
 
     expect(registros.some((r) => r.alvo === "funcionario@rigonicontabil.local")).toBe(true);
   });
@@ -79,7 +81,43 @@ describe("SupabaseRegistroAcaoRepository (integração)", () => {
     const supabase = await clienteAutenticadoComoFuncionarioSeed();
     const repositorio = new SupabaseRegistroAcaoRepository(supabase);
 
-    const registros = await repositorio.listarRecentes(50);
+    const registros = await repositorio.listar({ limite: 50 });
+
+    expect(registros).toEqual([]);
+  });
+
+  it("filtra por setor, ação (busca parcial) e resultado", async () => {
+    const supabase = await clienteAutenticadoComoAdminSeed();
+    const repositorio = new SupabaseRegistroAcaoRepository(supabase);
+    await repositorio.salvar(
+      registroValido(crypto.randomUUID(), ADMIN_ID, {
+        setor: "financeiro",
+        acao: "cliente.editar",
+        resultado: "falha",
+      }),
+    );
+
+    const porSetor = await repositorio.listar({ limite: 50, setor: "financeiro" });
+    expect(porSetor.every((r) => r.setor === "financeiro")).toBe(true);
+    expect(porSetor.length).toBeGreaterThan(0);
+
+    const porAcaoParcial = await repositorio.listar({ limite: 50, acao: "cliente" });
+    expect(porAcaoParcial.some((r) => r.acao === "cliente.editar")).toBe(true);
+
+    const porResultado = await repositorio.listar({ limite: 50, resultado: "falha" });
+    expect(porResultado.every((r) => r.resultado === "falha")).toBe(true);
+    expect(porResultado.length).toBeGreaterThan(0);
+  });
+
+  it("filtra por período (dataInicio/dataFim), excluindo o que está fora da janela", async () => {
+    const supabase = await clienteAutenticadoComoAdminSeed();
+    const repositorio = new SupabaseRegistroAcaoRepository(supabase);
+
+    const registros = await repositorio.listar({
+      limite: 50,
+      dataInicio: "2099-01-01T00:00:00.000Z",
+      dataFim: "2099-01-02T23:59:59.999Z",
+    });
 
     expect(registros).toEqual([]);
   });
