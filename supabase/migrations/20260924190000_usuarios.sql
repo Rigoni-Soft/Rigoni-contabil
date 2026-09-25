@@ -4,7 +4,7 @@ create type public.papel as enum ('admin', 'lider_setor', 'funcionario');
 
 -- Setores do organograma real, exceto Patriki (raiz, nao e setor) e Expedicao.
 -- Presumido/Real renomeado para Tributario. Zeladoria (subtime de Financeiro)
--- nao vira setor proprio de login nesta rodada -- decisao a confirmar com o usuario.
+-- nao vira setor proprio de login -- decisao definitiva, confirmada na revisao do #28.
 create type public.setor_slug as enum (
   'rh',
   'tributario',
