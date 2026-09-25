@@ -1,9 +1,7 @@
 /**
  * Integração infra ↔ Supabase (testes.md, seção 3): requer `npx supabase start`
  * rodando localmente com as migrations e o seed aplicados. Usa o Admin de
- * `supabase/seed.sql`. NÃO executado neste ambiente — Docker indisponível no
- * sandbox onde o ticket #28 foi implementado; roda normalmente em CI/dev com
- * Docker disponível.
+ * `supabase/seed.sql`.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 

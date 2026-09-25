@@ -1,7 +1,6 @@
 /**
  * Integração infra ↔ Supabase Auth (testes.md, seção 3): requer `npx supabase start`
- * rodando localmente com o seed aplicado. NÃO executado neste ambiente — Docker
- * indisponível no sandbox onde o ticket #28 foi implementado.
+ * rodando localmente com o seed aplicado.
  */
 import { createClient } from "@supabase/supabase-js";
 
