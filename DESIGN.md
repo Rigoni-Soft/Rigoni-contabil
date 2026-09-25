@@ -27,11 +27,11 @@ sobrepor "dark é o padrão" com a preferência de SO do visitante.
 | Token | Dark (padrão) | Light | Uso |
 |---|---|---|---|
 | `background` / `foreground` | `#23221f` / `#ece7d8` | `#f4f1e8` / `#16231f` | tela |
-| `card` / `card-foreground` | `#2c2a26` / `#ece7d8` | `#faf8f1` / `#16231f` | superfícies elevadas (cartão de login) |
-| `primary` / `primary-foreground` | `#54a292` / `#0a1613` | `#0d3b36` / `#f4f1e8` | verde-cheque — ação principal |
+| `card` / `card-foreground` | `#2c2a26` / `#ece7d8` | `#faf8f1` / `#16231f` | superfícies elevadas (cartão de login, painel de filtro) |
+| `primary` / `primary-foreground` | `#54a292` / `#0a1613` | `#0d3b36` / `#f4f1e8` | verde-cheque — ação principal, e estado "sucesso" em listas/feeds |
 | `secondary`, `muted`, `accent` | tons de papel/verde desaturados | idem | hierarquia secundária, hover |
-| `destructive` / `destructive-foreground` | `#e0968c` / `#2a0f0c` | `#7a2b2b` / `#f4f1e8` | erro/atenção — sempre com ícone, nunca só cor |
-| `success` / `success-foreground` | `#d9bd7c` / `#2a1f0c` | `#96742f` / `#2a1f0c` | selo "em dia" — reservado para telas de status (ainda não usado no login/shell) |
+| `destructive` / `destructive-foreground` | `#e0968c` / `#2a0f0c` | `#7a2b2b` / `#f4f1e8` | erro/atenção — sempre com ícone, nunca só cor; também estado "falha" em listas/feeds |
+| `success` / `success-foreground` | `#d9bd7c` / `#2a1f0c` | `#96742f` / `#2a1f0c` | selo dourado "em dia" — reservado especificamente para as telas de status do Simples Nacional (#35–#37); não usar para resultado sucesso/falha genérico (isso é `primary`/`destructive`, ver Componentes → Indicadores de estado) |
 | `border` / `input` / `ring` | `#47453e` | tons de contorno derivados do verde | bordas, campos, foco |
 
 **Dark "leve" (revisão de 28/09/2026, duas rodadas):** a paleta dark original
@@ -78,6 +78,23 @@ sem asset de imagem, tileable, 100% CSS. Usada com moderação: hoje só no
 cartão de login; o painel de cliente do dashboard Simples Nacional é o
 próximo consumidor natural.
 
+## Layout
+
+Telas Operate autenticadas (`ShellHeader` + conteúdo) usam um container
+centralizado com padding lateral (`px-4 sm:px-6`); a largura máxima segue a
+densidade real do conteúdo, não um valor único fixo do produto:
+
+- Formulário isolado (ex.: cartão de login): `max-w-*` estreito, conteúdo
+  único centralizado.
+- Feed/tabela com filtro (ex.: `/admin/auditoria`): `max-w-6xl` — largura
+  suficiente para a grade de filtro de 4 colunas e as 6 colunas da tabela
+  sem espremer nem forçar rolagem horizontal prematura.
+
+Painel de filtro: campos em grid (`grid-cols-2 sm:grid-cols-4`), e as ações
+(Limpar/Filtrar) ficam numa linha própria abaixo dos campos, separada por
+`border-t` — nunca misturadas na mesma linha de grid que um campo de
+entrada (ação e dado de filtro são grupos distintos).
+
 ## Componentes
 
 `src/presentation/components/ui/` — primitivas estilo shadcn (kebab-case,
@@ -89,6 +106,11 @@ sem sufixo `.component`, isentas de teste por convenção —
   para bater o alvo de toque de 44px em controles primários.
 - `input.tsx` — 44px de altura; `aria-invalid` troca borda/anel para
   `destructive` automaticamente.
+- `select.tsx` — mesmo tratamento visual do `input.tsx` (44px, mesmas
+  bordas/foco), para `<select>` nativo. Introduzido no feed de auditoria
+  para eliminar classes Tailwind duplicadas entre os dois `<select>` do
+  filtro (Setor, Resultado); qualquer novo select do produto reusa este
+  componente em vez de repetir as classes inline.
 - `label.tsx`, `field-error.tsx` — erro de campo sempre ícone (`AlertCircle`)
   + texto + cor, nunca só cor (contrato "Talão de Cheque": estado por
   padrão/ícone além de cor).
@@ -97,7 +119,16 @@ sem sufixo `.component`, isentas de teste por convenção —
   do pipeline).
 
 Ícones: `lucide-react`, traço único consistente — nunca emoji/glyph Unicode
-como ícone.
+como ícone (ex.: link "Voltar" usa `ArrowLeft`, não o caractere "←").
+
+### Indicadores de estado (sucesso/falha em listas)
+
+O mesmo contrato do `field-error.tsx` (ícone + texto + cor, nunca só cor) se
+estende a qualquer indicador de resultado, não só erro de formulário. No
+feed de auditoria, a coluna "Resultado" combina `CheckCircle2`/`XCircle` +
+o texto (`sucesso`/`falha`) + `text-primary`/`text-destructive`. `success`
+(dourado) fica reservado ao selo "em dia" do Simples Nacional — não se usa
+aqui para não sobrepor dois significados no mesmo token.
 
 ## Estados e motion
 
@@ -111,5 +142,6 @@ como ícone.
 
 - Selo dourado "em dia" (`success`) definido como token mas sem uso visual
   ainda — pertence às telas do setor Simples Nacional (#35–#37).
-- Componentes `ui/` adicionais (Select, Dialog, Table…) — adicionar sob
-  demanda, seguindo os mesmos tokens.
+- Componentes `ui/` adicionais além de `select.tsx` (Dialog, uma `Table`
+  estilizada para reuso — hoje o feed de auditoria usa `<table>` nativo com
+  classes inline) — adicionar sob demanda, seguindo os mesmos tokens.
