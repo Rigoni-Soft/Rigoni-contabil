@@ -2,8 +2,8 @@ import { expect, test } from "@playwright/test";
 
 // Cobre o cenário principal do ticket #30 (Admin cadastra Líder/Funcionário):
 // cadastro com senha provisória gerada automaticamente, mostrada na hora.
-// Usuários: supabase/seed.sql (Admin de Teste e Funcionário de Teste, ambiente Dev local).
-test.use({ baseURL: `http://localhost:${process.env.PORT ?? 8800}` });
+// Usuários: supabase/seed.sql (Admin de Teste e Funcionário Simples Nacional,
+// ambiente Dev local; baseURL vem de playwright.config.ts).
 
 async function login(page: import("@playwright/test").Page, email: string, senha: string) {
   await page.goto("/login");
@@ -32,7 +32,7 @@ test.describe("Cadastro de Líder/Funcionário (Admin only)", () => {
   });
 
   test("Funcionário é redirecionado pra fora do cadastro de usuário", async ({ page }) => {
-    await login(page, "funcionario@rigonicontabil.local", "func123");
+    await login(page, "funcionario.sn@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
 
     await page.goto("/admin/usuarios/novo");
