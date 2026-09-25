@@ -7,12 +7,15 @@
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-import type { UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
+import { Usuario, type UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
 
 import { SupabaseUsuarioRepository } from "./usuario.repository";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+const SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ??
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
 const ADMIN_ID = "11111111-1111-1111-1111-111111111111" as UsuarioId;
 const FUNCIONARIO_SN_ID = "22222222-2222-2222-2222-222222222222" as UsuarioId;
@@ -34,6 +37,34 @@ const comoFuncionarioFinanceiro = () =>
   clienteAutenticado("funcionario.financeiro@rigonicontabil.local", "func123");
 const comoLiderContabil = () =>
   clienteAutenticado("lider.contabil@rigonicontabil.local", "lider123");
+
+// perfis.id referencia auth.users(id): precisa de um auth.users real (service_role,
+// docs/adr/0001) antes de testar o INSERT em perfis.
+async function criarContaAuthDeTeste(): Promise<string> {
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const email = `teste-${crypto.randomUUID()}@rigonicontabil.local`;
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    password: "senha-de-teste-123",
+    email_confirm: true,
+  });
+  if (error || !data.user) throw new Error(`Falha ao criar conta de teste: ${error?.message}`);
+  return data.user.id;
+}
+
+function usuarioValido(id: string): Usuario {
+  const resultado = Usuario.builder()
+    .comId(id)
+    .comNome("Usuário de Teste")
+    .comEmail(`usuario-${id}@rigonicontabil.local`)
+    .comPapel("funcionario")
+    .comSetor("simples_nacional")
+    .build();
+  if (!resultado.ok) throw new Error("setup inválido");
+  return resultado.value;
+}
 
 describe("SupabaseUsuarioRepository (integração)", () => {
   it("busca o próprio perfil (RLS: perfis_select_proprio) e reconstitui o Usuario", async () => {
@@ -134,5 +165,27 @@ describe("SupabaseUsuarioRepository (integração)", () => {
       expect(resultado.ok).toBe(true);
       if (resultado.ok) expect(resultado.value?.setor.slug).toBe("financeiro");
     });
+  });
+
+  it("Admin cria um perfil novo (RLS: perfis_insert_admin)", async () => {
+    const supabase = await comoAdmin();
+    const repositorio = new SupabaseUsuarioRepository(supabase);
+    const id = await criarContaAuthDeTeste();
+
+    const resultado = await repositorio.criar(usuarioValido(id));
+
+    expect(resultado.ok).toBe(true);
+    const salvo = await repositorio.buscarPorId(id as UsuarioId);
+    expect(salvo?.papel.valor).toBe("funcionario");
+  });
+
+  it("Funcionário não pode criar perfil (RLS)", async () => {
+    const supabase = await comoFuncionarioSN();
+    const repositorio = new SupabaseUsuarioRepository(supabase);
+    const id = await criarContaAuthDeTeste();
+
+    const resultado = await repositorio.criar(usuarioValido(id));
+
+    expect(resultado.ok).toBe(false);
   });
 });

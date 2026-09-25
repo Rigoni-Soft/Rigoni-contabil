@@ -1,17 +1,35 @@
 import "server-only";
 
+import { makeRegistrarAcao } from "@/main/auditoria.factory";
+import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
+import type { CriarUsuarioPort } from "@/modules/usuarios/application/ports/in/criar-usuario.provider";
 import type { ListarSetoresPort } from "@/modules/usuarios/application/ports/in/listar-setores.provider";
 import type { LoginPort } from "@/modules/usuarios/application/ports/in/login.provider";
 import type { LogoutPort } from "@/modules/usuarios/application/ports/in/logout.provider";
 import type { ObterSessaoPort } from "@/modules/usuarios/application/ports/in/obter-sessao.provider";
+import type { AuditoriaPort } from "@/modules/usuarios/application/ports/out/auditoria.provider";
+import { CriarUsuario } from "@/modules/usuarios/application/use-cases/criar-usuario.use-case";
 import { ListarSetores } from "@/modules/usuarios/application/use-cases/listar-setores.use-case";
 import { Login } from "@/modules/usuarios/application/use-cases/login.use-case";
 import { Logout } from "@/modules/usuarios/application/use-cases/logout.use-case";
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
 import { AutorizacaoService } from "@/modules/usuarios/domain/services/autorizacao.service";
+import { SupabaseAuthAdminGateway } from "@/modules/usuarios/infra/gateways/supabase-auth-admin.gateway";
 import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabase-sessao.gateway";
 import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories/usuario.repository";
+
+// Adapta a porta IN RegistrarAcao (módulo auditoria) à porta própria de usuarios
+// (arquitetura.md, seção 3.11) — best-effort: falha ao auditar não derruba o cadastro.
+function auditoriaViaModuloAuditoria(): AuditoriaPort {
+  return {
+    registrar: async (input) => {
+      const registrarAcao = await makeRegistrarAcao();
+      const resultado = await registrarAcao.execute(input);
+      if (!resultado.ok) console.error("Falha ao registrar auditoria:", resultado.error.message);
+    },
+  };
+}
 
 export async function makeLogin(): Promise<LoginPort> {
   const supabase = await createSupabaseServer();
@@ -37,5 +55,15 @@ export async function makeListarSetores(): Promise<ListarSetoresPort> {
     new SupabaseSessaoGateway(supabase),
     new SupabaseUsuarioRepository(supabase),
     new AutorizacaoService(),
+  );
+}
+
+export async function makeCriarUsuario(): Promise<CriarUsuarioPort> {
+  const supabase = await createSupabaseServer();
+  return new CriarUsuario(
+    new SupabaseSessaoGateway(supabase),
+    new SupabaseUsuarioRepository(supabase),
+    new SupabaseAuthAdminGateway(createSupabaseAdmin()),
+    auditoriaViaModuloAuditoria(),
   );
 }

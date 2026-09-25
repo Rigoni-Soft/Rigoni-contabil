@@ -49,4 +49,17 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
 
     return ok(resultado.value);
   }
+
+  async criar(usuario: Usuario): Promise<Result<void, AppError>> {
+    const { error } = await this.supabase.from("perfis").insert({
+      id: usuario.id,
+      nome: usuario.nome,
+      email: usuario.email,
+      papel: usuario.papel.valor,
+      setor: usuario.setor.slug,
+    });
+
+    if (error) return err(new PersistenciaError(`Falha ao salvar perfil: ${error.message}`));
+    return ok(undefined);
+  }
 }
