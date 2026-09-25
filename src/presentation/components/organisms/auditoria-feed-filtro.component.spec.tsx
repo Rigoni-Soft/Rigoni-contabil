@@ -36,6 +36,21 @@ describe("AuditoriaFeedFiltro", () => {
     );
   });
 
+  it("mostra o aviso de período incompleto no campo correspondente", () => {
+    render(
+      <AuditoriaFeedFiltro
+        register={(() => ({})) as unknown as ReturnType<typeof useForm<FiltroValues>>["register"]}
+        errors={{
+          dataFim: { type: "custom", message: "Informe as duas datas do período (De e Até)." },
+        }}
+        onSubmit={() => {}}
+        onLimpar={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("Informe as duas datas do período (De e Até).")).toBeInTheDocument();
+  });
+
   it("tem os campos de período, setor, ator, ação, alvo e resultado", () => {
     render(<Wrapper onSubmit={jest.fn()} />);
 

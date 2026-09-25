@@ -15,9 +15,28 @@ export const filtroFeedSchema = z
     dataInicio: dataOuVazio.optional(),
     dataFim: dataOuVazio.optional(),
   })
-  .refine((v) => !v.dataInicio || !v.dataFim || v.dataInicio <= v.dataFim, {
-    error: "O início do período não pode ser depois do fim.",
-    path: ["dataFim"],
+  .superRefine((v, ctx) => {
+    const temInicio = !!v.dataInicio;
+    const temFim = !!v.dataFim;
+
+    // Período é as duas pontas juntas ou nenhuma — uma só vira intervalo aberto
+    // ambíguo (o usuário quis "a partir de" ou esqueceu a outra data?).
+    if (temInicio !== temFim) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Informe as duas datas do período (De e Até).",
+        path: [temInicio ? "dataFim" : "dataInicio"],
+      });
+      return;
+    }
+
+    if (temInicio && temFim && v.dataInicio! > v.dataFim!) {
+      ctx.addIssue({
+        code: "custom",
+        message: "O início do período não pode ser depois do fim.",
+        path: ["dataFim"],
+      });
+    }
   });
 
 export type FiltroFeedValues = z.infer<typeof filtroFeedSchema>;

@@ -50,7 +50,13 @@ export function AuditoriaFeedFiltro({
     >
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="dataInicio">De</Label>
-        <Input id="dataInicio" type="date" {...register("dataInicio")} />
+        <Input
+          id="dataInicio"
+          type="date"
+          aria-invalid={!!errors.dataInicio}
+          {...register("dataInicio")}
+        />
+        {errors.dataInicio && <FieldError>{errors.dataInicio.message}</FieldError>}
       </div>
 
       <div className="flex flex-col gap-1.5">

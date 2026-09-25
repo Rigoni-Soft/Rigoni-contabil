@@ -49,4 +49,17 @@ test.describe("Feed de auditoria (Admin only)", () => {
     await page.getByRole("button", { name: "Limpar" }).click();
     await expect(page.getByText("usuario.criar")).toBeVisible();
   });
+
+  test("preencher só uma ponta do período mostra aviso e não filtra", async ({ page }) => {
+    await login(page, "admin@rigonicontabil.local", "admin123");
+    await expect(page).toHaveURL("/");
+    await page.goto("/admin/auditoria");
+
+    await page.getByLabel("De", { exact: true }).fill("2026-09-01");
+    await page.getByRole("button", { name: "Filtrar" }).click();
+
+    await expect(page.getByText("Informe as duas datas do período (De e Até).")).toBeVisible();
+    await expect(page.getByText("cliente.editar")).toBeVisible();
+    await expect(page.getByText("usuario.criar")).toBeVisible();
+  });
 });

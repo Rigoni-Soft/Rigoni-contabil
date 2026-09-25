@@ -40,4 +40,18 @@ describe("filtroFeedSchema", () => {
 
     expect(resultado.success).toBe(false);
   });
+
+  it("rejeita só dataInicio preenchida, com aviso no campo dataFim", () => {
+    const resultado = filtroFeedSchema.safeParse({ dataInicio: "2026-09-01" });
+
+    expect(resultado.success).toBe(false);
+    if (!resultado.success) expect(resultado.error.issues[0].path).toEqual(["dataFim"]);
+  });
+
+  it("rejeita só dataFim preenchida, com aviso no campo dataInicio", () => {
+    const resultado = filtroFeedSchema.safeParse({ dataFim: "2026-09-22" });
+
+    expect(resultado.success).toBe(false);
+    if (!resultado.success) expect(resultado.error.issues[0].path).toEqual(["dataInicio"]);
+  });
 });
