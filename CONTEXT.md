@@ -14,6 +14,10 @@ _Avoid_: Departamento, área.
 O nível de acesso de um usuário logado: Admin, Líder de setor ou Funcionário. Determina o que o usuário pode ver e alterar, restrito ao seu Setor exceto para Admin.
 _Avoid_: Role, perfil.
 
+**Senha provisória**:
+A senha gerada automaticamente quando Admin/Líder cadastra uma conta. Expira em 48h se não trocada; a troca é obrigatória no primeiro login, bloqueando qualquer tela até acontecer. Não elimina o risco de quem autenticar primeiro com ela definir a senha definitiva da conta — ver `docs/adr/0002`.
+_Avoid_: Senha temporária, senha padrão.
+
 **Atendente**:
 Quem está conduzindo um Atendimento no momento — pode ser a URA ou um Funcionário. Termo genérico usado quando a distinção entre os dois não importa.
 _Avoid_: Operador.
