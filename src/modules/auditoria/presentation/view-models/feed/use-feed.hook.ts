@@ -9,6 +9,18 @@ import {
   type FiltroFeedValues,
 } from "@/modules/auditoria/presentation/view-models/feed/feed.schema";
 
+// reset({}) não limpa inputs não controlados sem defaultValues no useForm — precisa
+// do valor "" explícito por campo (o vazio real de input/select nativos).
+const FILTRO_VAZIO: FiltroFeedValues = {
+  setor: "",
+  ator: "",
+  acao: "",
+  alvo: "",
+  resultado: "",
+  dataInicio: "",
+  dataFim: "",
+};
+
 export function useFeed(initialData: RegistroAcaoDto[]) {
   const [filtroAplicado, setFiltroAplicado] = useState<FiltroFeedValues>({});
 
@@ -30,7 +42,7 @@ export function useFeed(initialData: RegistroAcaoDto[]) {
   });
 
   const aoLimpar = () => {
-    reset({});
+    reset(FILTRO_VAZIO);
     setFiltroAplicado({});
   };
 
