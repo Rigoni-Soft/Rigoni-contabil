@@ -25,16 +25,22 @@ export function LoginContainer() {
     setPendente(true);
     setErroServidor(undefined);
 
-    const resultado = await loginAction(valores);
+    try {
+      const resultado = await loginAction(valores);
+      if (!resultado.ok) {
+        setErroServidor(resultado.error.message);
+        return;
+      }
 
-    setPendente(false);
-    if (!resultado.ok) {
-      setErroServidor(resultado.error.message);
-      return;
+      router.push("/");
+      router.refresh();
+    } catch {
+      // A Server Action deveria sempre devolver ActionResult; isso é rede de
+      // segurança contra falha inesperada, pra não travar o botão em "Entrando…".
+      setErroServidor("Falha inesperada. Tente novamente.");
+    } finally {
+      setPendente(false);
     }
-
-    router.push("/");
-    router.refresh();
   });
 
   return (
