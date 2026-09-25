@@ -22,6 +22,10 @@ jobs:
       - run: yarn lint
       - run: yarn check:naming
       - run: yarn check:deps
+
+      - name: Gera os tipos ambient do Next.js (LayoutProps etc.) antes do typecheck
+        run: yarn next typegen
+
       - run: yarn tsc --noEmit
       - run: yarn format:check
       - run: yarn test
@@ -46,13 +50,13 @@ jobs:
       - name: Sobe o Supabase local (migrations + seed)
         run: supabase start
 
-      - name: Exporta URL e chaves do Supabase local pro ambiente do job
-        run: supabase status -o env | tee -a "$GITHUB_ENV"
-
-      - name: Renomeia as chaves pro nome que o app espera
+      - name: Exporta URL e chave do Supabase local pro ambiente do job
+        # `supabase status -o env` sai como KEY="valor" (aspas literais), que o
+        # $GITHUB_ENV não remove — a URL vira "http://..." com aspas incluídas
+        # e o createClient rejeita como inválida. `-o json` + jq evita isso.
         run: |
-          echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
-          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_URL=$(supabase status -o json | jq -r '.API_URL')" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(supabase status -o json | jq -r '.ANON_KEY')" >> "$GITHUB_ENV"
 
       - run: yarn test:int
 
