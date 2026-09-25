@@ -69,3 +69,13 @@ A ação de mover um Atendimento de um Atendente/Setor para outro.
 
 **Balanceamento mensal**:
 A regra de distribuição de novos Atendimentos entre os Funcionários de um Setor, de forma equilibrada ao longo do mês. Não se aplica à ordem de saída da Fila, que é sempre por antiguidade.
+
+### Auditoria
+
+**Registro de auditoria**:
+Evento imutável gravado quando uma ação muda estado no sistema — grava Ator, Setor, ação, alvo e resultado. Nunca registra leituras.
+_Avoid_: Log de auditoria, histórico.
+
+**Período**:
+Um intervalo de datas sempre com início e fim definidos juntos; não existe Período com só uma ponta preenchida — isso é rejeitado, não interpretado como "a partir de" ou "até". Vale em qualquer filtro por data do sistema, não só no de auditoria.
+_Avoid_: Intervalo aberto (não existe nesse domínio).
