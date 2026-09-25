@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, homolog, develop]
+
+jobs:
+  qualidade:
+    name: Lint, naming, deps, types, format, unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - run: yarn install --frozen-lockfile
+
+      - run: yarn lint
+      - run: yarn check:naming
+      - run: yarn check:deps
+      - run: yarn tsc --noEmit
+      - run: yarn format:check
+      - run: yarn test
+
+  integracao-e2e:
+    name: Integração + E2E (Supabase local)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - run: yarn install --frozen-lockfile
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Sobe o Supabase local (migrations + seed)
+        run: supabase start
+
+      - name: Exporta URL e chaves do Supabase local pro ambiente do job
+        run: supabase status -o env | tee -a "$GITHUB_ENV"
+
+      - name: Renomeia as chaves pro nome que o app espera
+        run: |
+          echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+
+      - run: yarn test:int
+
+      - name: Instala os browsers do Playwright
+        run: npx playwright install --with-deps chromium
+
+      - run: yarn test:e2e
+
+      - name: Encerra o Supabase local
+        if: always()
+        run: supabase stop
