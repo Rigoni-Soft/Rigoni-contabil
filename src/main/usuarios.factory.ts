@@ -9,6 +9,7 @@ import { ListarSetores } from "@/modules/usuarios/application/use-cases/listar-s
 import { Login } from "@/modules/usuarios/application/use-cases/login.use-case";
 import { Logout } from "@/modules/usuarios/application/use-cases/logout.use-case";
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
+import { AutorizacaoService } from "@/modules/usuarios/domain/services/autorizacao.service";
 import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabase-sessao.gateway";
 import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories/usuario.repository";
 
@@ -30,6 +31,11 @@ export async function makeObterSessao(): Promise<ObterSessaoPort> {
   );
 }
 
-export function makeListarSetores(): ListarSetoresPort {
-  return new ListarSetores();
+export async function makeListarSetores(): Promise<ListarSetoresPort> {
+  const supabase = await createSupabaseServer();
+  return new ListarSetores(
+    new SupabaseSessaoGateway(supabase),
+    new SupabaseUsuarioRepository(supabase),
+    new AutorizacaoService(),
+  );
 }
