@@ -27,13 +27,22 @@ export class SupabaseSessaoGateway implements SessaoPort {
     if (error.code && CODIGOS_CREDENCIAL_INVALIDA.has(error.code)) {
       return err(new ForbiddenError("E-mail ou senha inválidos."));
     }
-    return err(new AutenticacaoIndisponivelError(`Falha ao autenticar: ${error.message}`));
+    // Detalhe fica só no log do servidor: login.actions.ts devolve error.message
+    // direto pro navegador, então a mensagem do AppError nunca pode carregar o
+    // texto cru do Supabase (poderia expor detalhe interno pra um visitante
+    // não autenticado).
+    console.error("Falha técnica ao autenticar no Supabase:", error.message);
+    return err(
+      new AutenticacaoIndisponivelError("Não foi possível autenticar agora. Tente novamente."),
+    );
   }
 
   async encerrar(): Promise<Result<void, AppError>> {
     const { error } = await this.supabase.auth.signOut();
-    if (error)
-      return err(new AutenticacaoIndisponivelError(`Falha ao encerrar sessão: ${error.message}`));
+    if (error) {
+      console.error("Falha técnica ao encerrar sessão no Supabase:", error.message);
+      return err(new AutenticacaoIndisponivelError("Não foi possível encerrar a sessão agora."));
+    }
     return ok(undefined);
   }
 
