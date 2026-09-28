@@ -85,7 +85,7 @@ centralizado com padding lateral (`px-4 sm:px-6`); a largura máxima segue a
 densidade real do conteúdo, não um valor único fixo do produto:
 
 - Formulário isolado (ex.: cartão de login, cadastro de Líder/Funcionário
-  pelo Admin): `max-w-md`, conteúdo único centralizado.
+  pelo Admin, troca de senha): `max-w-md`, conteúdo único centralizado.
 - Feed/tabela com filtro (ex.: `/admin/auditoria`): `max-w-6xl` — largura
   suficiente para a grade de filtro de 4 colunas e as 6 colunas da tabela
   sem espremer nem forçar rolagem horizontal prematura.
@@ -103,7 +103,13 @@ sem sufixo `.component`, isentas de teste por convenção —
 
 - `button.tsx` — variantes `default`/`destructive`/`outline`/`ghost`,
   tamanhos `default` (44px), `sm` (40px), `icon` (44px). Alturas escolhidas
-  para bater o alvo de toque de 44px em controles primários.
+  para bater o alvo de toque de 44px em controles primários. Exporta
+  `buttonVariants` (a função `cva` por trás do componente) para qualquer
+  elemento que precise da mesma aparência sem ser um `<button>` de verdade —
+  o link "Trocar senha" do `ShellHeader` é o primeiro consumidor
+  (`buttonVariants({ variant: "ghost", size: "sm" })` num `<Link>`), evitando
+  reimplementar as classes do ghost/sm à mão. Qualquer link estilizado como
+  botão reusa `buttonVariants` em vez de duplicar classes.
 - `input.tsx` — 44px de altura; `aria-invalid` troca borda/anel para
   `destructive` automaticamente.
 - `select.tsx` — mesmo tratamento visual do `input.tsx` (44px, mesmas
@@ -145,8 +151,9 @@ sobrepor dois significados no mesmo token.
 - Loading do formulário de login: label muda para "Entrando…" e um
   `Loader2` gira (`motion-safe:animate-spin`) — o estado real (texto +
   `disabled`) não depende da animação, então `prefers-reduced-motion` apenas
-  remove o giro sem perder informação. O cadastro de Líder/Funcionário segue
-  o mesmo padrão ("Cadastrando…").
+  remove o giro sem perder informação. O cadastro de Líder/Funcionário e a
+  troca de senha (#31) seguem o mesmo padrão ("Cadastrando…" /
+  "Trocando…").
 - Erro de servidor: bloco com borda/ícone `destructive`, `role="alert"`.
 
 ## O que ainda não existe
