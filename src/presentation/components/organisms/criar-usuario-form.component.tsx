@@ -5,6 +5,7 @@ import { Button } from "@/presentation/components/ui/button";
 import { FieldError } from "@/presentation/components/ui/field-error";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
+import { SETORES } from "@/shared/kernel/setores";
 
 export type CriarUsuarioFormValues = {
   nome: string;
@@ -14,20 +15,6 @@ export type CriarUsuarioFormValues = {
 };
 
 type ContaCriada = { nome: string; email: string; senhaProvisoria: string };
-
-const SETORES = [
-  "rh",
-  "tributario",
-  "simples_nacional",
-  "contabil",
-  "societario",
-  "condominios",
-  "financeiro",
-  "administrativo",
-  "contabil_externo",
-  "ti",
-  "recepcao",
-] as const;
 
 type CriarUsuarioFormProps = {
   register: UseFormRegister<CriarUsuarioFormValues>;
