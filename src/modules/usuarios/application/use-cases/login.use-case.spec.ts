@@ -23,6 +23,7 @@ class SessaoFalsa implements SessaoPort {
   credenciaisValidas = true;
   idAposLogin: UsuarioId | null = "11111111-1111-1111-1111-111111111111" as UsuarioId;
   encerrada = false;
+  falhaAoEncerrar = false;
 
   async autenticar(): Promise<Result<void, AppError>> {
     return this.credenciaisValidas
@@ -31,6 +32,7 @@ class SessaoFalsa implements SessaoPort {
   }
   async encerrar(): Promise<Result<void, AppError>> {
     this.encerrada = true;
+    if (this.falhaAoEncerrar) return err(new ForbiddenError("falha ao encerrar no Supabase"));
     return ok(undefined);
   }
   async usuarioAtualId(): Promise<UsuarioId | null> {
@@ -109,6 +111,21 @@ describe("Login", () => {
       senha: "admin123",
     });
 
+    expect(sessao.encerrada).toBe(true);
+  });
+
+  it("mesmo quando o próprio encerrar() falha, devolve erro seguro em vez de travar", async () => {
+    const sessao = new SessaoFalsa();
+    sessao.idAposLogin = null;
+    sessao.falhaAoEncerrar = true;
+    const repositorio = new UsuarioRepositoryFalso();
+
+    const resultado = await new Login(sessao, repositorio).execute({
+      email: "admin@rigonicontabil.local",
+      senha: "admin123",
+    });
+
+    expect(resultado.ok).toBe(false);
     expect(sessao.encerrada).toBe(true);
   });
 

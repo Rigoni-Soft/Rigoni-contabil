@@ -39,7 +39,7 @@ Ferramenta interna proprietária, não um produto de mercado. O que a diferencia
 ## Brand Commitments
 
 - Nome do produto/empresa: **Rigoni Contábil**.
-- Identidade visual: **"Talão de Cheque"** — ver `docs/DESIGN.md` para tokens, tipografia e o padrão de guilhochê. Uma primeira paleta (teal + sand, dark mode verde-oliva) foi prototipada e depois rejeitada pelo usuário; "Talão de Cheque" é a direção vigente, já aplicada ao login/shell (#28) e ao contrato de `.impeccable/surfaces/dashboard-simples-nacional.md`.
+- Identidade visual: **"Talão de Cheque"** — ver `DESIGN.md` (raiz do repositório) para tokens, tipografia e o padrão de guilhochê. Uma primeira paleta (teal + sand, dark mode verde-oliva) foi prototipada e depois rejeitada pelo usuário; "Talão de Cheque" é a direção vigente desde 25/09/2026 (confirmada por Cledson na revisão do #28, substituindo a paleta anterior aprovada na issue #22), já aplicada ao login/shell (#28) e ao contrato de `.impeccable/surfaces/dashboard-simples-nacional.md`.
 - Fonte obrigatória por convenção técnica do time (não é decisão de marca, é regra de arquitetura já fixada): Roboto, única família do projeto (`docs/arquitetura.md` §5.3). Paleta e demais tokens visuais seguem tokens semânticos, tons pastel e temas dark/light obrigatórios (mesma seção) — dentro dessas regras técnicas, a direção de cor específica está aberta pro redesign.
 
 ## Evidence on Hand

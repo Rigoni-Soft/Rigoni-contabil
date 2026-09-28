@@ -57,6 +57,15 @@ describe("SupabaseUsuarioRepository (integração)", () => {
     expect(usuario).toBeNull();
   });
 
+  it("devolve null (não lança) quando o Postgres rejeita a consulta, ex.: id malformado", async () => {
+    const supabase = await comoAdmin();
+    const repositorio = new SupabaseUsuarioRepository(supabase);
+
+    await expect(
+      repositorio.buscarPorId("id-nao-e-um-uuid" as UsuarioId),
+    ).resolves.toBeNull();
+  });
+
   describe("isolamento por setor (RLS)", () => {
     it("Admin → outro setor: permitido", async () => {
       const supabase = await comoAdmin();

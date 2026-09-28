@@ -15,7 +15,14 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
       .eq("id", id)
       .maybeSingle();
 
-    if (error) throw new Error(`Falha ao buscar perfil (id=${id}): ${error.message}`);
+    // Erro do Postgres (rede, indisponibilidade, id malformado) nunca vira exceção
+    // aqui: quem chama (Login, ObterSessao) trata ausência de perfil como sessão
+    // inválida e precisa poder reagir sem try/catch (arquitetura.md, seção 3.8).
+    // Detalhe fica só no log do servidor, mesmo contrato do SupabaseSessaoGateway.
+    if (error) {
+      console.error(`Falha ao buscar perfil (id=${id}):`, error.message);
+      return null;
+    }
     if (!data) return null;
 
     const row = perfilRowSchema.parse(data);

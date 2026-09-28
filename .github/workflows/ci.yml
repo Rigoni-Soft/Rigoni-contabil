@@ -30,6 +30,27 @@ jobs:
       - run: yarn format:check
       - run: yarn test
 
+  build:
+    name: Build de produção
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - run: yarn install --frozen-lockfile
+
+      # env.ts só exige formato válido (URL + chave não vazia) pra passar no Zod;
+      # `next build` não precisa de um Supabase real de pé, só compilar.
+      - name: Build de produção
+        run: yarn build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: build-placeholder-key
+
   integracao-e2e:
     name: Integração + E2E (Supabase local)
     runs-on: ubuntu-latest
