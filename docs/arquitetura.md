@@ -159,7 +159,8 @@ src/
 │  └─ api/webhooks/<provedor>/route.ts   única exceção: webhooks de terceiros (seção 3.13)
 ├─ middleware.ts                 (proxy.ts no Next 16) somente refresh de sessão do Supabase
 ├─ shared/                       TypeScript puro, sem framework e sem biblioteca
-│  ├─ kernel/    result.ts · preconditions.ts · id.types.ts (Brand, Id)
+│  ├─ kernel/    result.ts · preconditions.ts · id.types.ts (Brand, Id) · setores.ts (SETORES,
+│  │             fonte única do organograma — domain e Views importam daqui, seção 3.4)
 │  ├─ errors/    app.error.ts · domain.error.ts · validation.error.ts · forbidden.error.ts
 │  └─ dtos/      action-result.dto.ts · error.dto.ts · paginated.dto.ts
 ├─ modules/
