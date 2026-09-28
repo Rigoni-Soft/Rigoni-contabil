@@ -1,10 +1,11 @@
-import { Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 
 import { Button } from "@/presentation/components/ui/button";
 import { FieldError } from "@/presentation/components/ui/field-error";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
+import { Select } from "@/presentation/components/ui/select";
 import { SETORES } from "@/shared/kernel/setores";
 
 export type CriarUsuarioFormValues = {
@@ -36,7 +37,8 @@ export function CriarUsuarioForm({
   if (criado) {
     return (
       <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
-        <p className="text-sm text-foreground">
+        <p className="flex items-center gap-1.5 text-sm text-primary">
+          <CheckCircle2 className="size-3.5 shrink-0" aria-hidden="true" />
           Conta de <strong>{criado.nome}</strong> ({criado.email}) criada.
         </p>
         <p className="text-sm text-muted-foreground">
@@ -65,31 +67,19 @@ export function CriarUsuarioForm({
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="papel">Papel</Label>
-        <select
-          id="papel"
-          aria-invalid={!!errors.papel}
-          className="h-11 rounded-md border border-input bg-background px-3 text-sm text-foreground"
-          defaultValue=""
-          {...register("papel")}
-        >
+        <Select id="papel" aria-invalid={!!errors.papel} defaultValue="" {...register("papel")}>
           <option value="" disabled>
             Selecione
           </option>
           <option value="lider_setor">Líder de setor</option>
           <option value="funcionario">Funcionário</option>
-        </select>
+        </Select>
         {errors.papel && <FieldError>{errors.papel.message}</FieldError>}
       </div>
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="setor">Setor</Label>
-        <select
-          id="setor"
-          aria-invalid={!!errors.setor}
-          className="h-11 rounded-md border border-input bg-background px-3 text-sm text-foreground"
-          defaultValue=""
-          {...register("setor")}
-        >
+        <Select id="setor" aria-invalid={!!errors.setor} defaultValue="" {...register("setor")}>
           <option value="" disabled>
             Selecione
           </option>
@@ -98,7 +88,7 @@ export function CriarUsuarioForm({
               {setor}
             </option>
           ))}
-        </select>
+        </Select>
         {errors.setor && <FieldError>{errors.setor.message}</FieldError>}
       </div>
 
