@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { KeyRound } from "lucide-react";
+import { KeyRound, UserPlus } from "lucide-react";
 
 import { buttonVariants } from "@/presentation/components/ui/button";
 import { ThemeToggle } from "@/presentation/components/ui/theme-toggle";
@@ -17,9 +17,17 @@ const PAPEL_LABEL: Record<string, string> = {
   funcionario: "Funcionário",
 };
 
+// Quem cada papel cadastra (#30/#32) — Funcionário não cadastra ninguém, por
+// isso não entra neste mapa (o link de cadastro simplesmente não aparece pra ele).
+const CADASTRAR_LABEL: Record<string, string> = {
+  admin: "Cadastrar Líder",
+  lider_setor: "Cadastrar Funcionário",
+};
+
 export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
   const escopo = papel === "admin" ? "acesso a todos os setores" : `Setor: ${setor}`;
   const inicial = nome.charAt(0).toUpperCase();
+  const rotuloCadastrar = CADASTRAR_LABEL[papel];
 
   return (
     <header className="flex items-center justify-between gap-4 border-b border-border bg-card px-4 py-3 sm:px-6">
@@ -39,6 +47,18 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
       </div>
 
       <div className="flex shrink-0 items-center gap-1">
+        {/* Único caminho de navegação até /admin/usuarios/novo — Admin e Líder
+            cadastram (escopado por papel no próprio caso de uso, #30/#32);
+            Funcionário não cadastra ninguém, então não vê o link. */}
+        {rotuloCadastrar && (
+          <Link
+            href="/admin/usuarios/novo"
+            className={buttonVariants({ variant: "ghost", size: "sm" })}
+          >
+            <UserPlus aria-hidden="true" />
+            {rotuloCadastrar}
+          </Link>
+        )}
         {/* Único caminho de navegação até /trocar-senha fora do redirecionamento
             obrigatório de senha provisória — sem isso a troca voluntária só era
             alcançável digitando a URL direto (achado da revisão manual em 28/09/2026). */}
