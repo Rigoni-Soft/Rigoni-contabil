@@ -64,6 +64,7 @@ test.describe("Cadastro de Funcionário (Líder de setor)", () => {
 
   test("Líder não vê opção de cadastrar Líder nem de escolher outro Setor", async ({ page }) => {
     await login(page, "lider.contabil@rigonicontabil.local", "lider123");
+    await expect(page).toHaveURL("/");
     await page.goto("/admin/usuarios/novo");
 
     const papel = page.getByLabel("Papel");
