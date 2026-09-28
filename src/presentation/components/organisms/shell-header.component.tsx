@@ -53,18 +53,23 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
         {rotuloCadastrar && (
           <Link
             href="/admin/usuarios/novo"
+            aria-label={rotuloCadastrar}
             className={buttonVariants({ variant: "ghost", size: "sm" })}
           >
             <UserPlus aria-hidden="true" />
-            {rotuloCadastrar}
+            <span className="hidden sm:inline">{rotuloCadastrar}</span>
           </Link>
         )}
         {/* Único caminho de navegação até /trocar-senha fora do redirecionamento
             obrigatório de senha provisória — sem isso a troca voluntária só era
             alcançável digitando a URL direto (achado da revisão manual em 28/09/2026). */}
-        <Link href="/trocar-senha" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+        <Link
+          href="/trocar-senha"
+          aria-label="Trocar senha"
+          className={buttonVariants({ variant: "ghost", size: "sm" })}
+        >
           <KeyRound aria-hidden="true" />
-          Trocar senha
+          <span className="hidden sm:inline">Trocar senha</span>
         </Link>
         <ThemeToggle />
         {sair}
