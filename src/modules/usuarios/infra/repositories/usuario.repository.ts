@@ -65,9 +65,8 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
 
   // Via RPC (função SECURITY DEFINER `marcar_senha_trocada`, não UPDATE direto):
   // não existe policy de UPDATE em perfis — abrir uma deixaria papel/setor
-  // editáveis pelo próprio usuário (ver migration do #31).
-  // `id` não é usado aqui: a função RPC opera sobre auth.uid(), então só marca
-  // a si mesmo — mantido na assinatura pra bater com a porta (buscarPorId/criar).
+  // editáveis pelo próprio usuário (ver migration do #31). A RPC opera sobre
+  // auth.uid(), então marca sempre o próprio usuário da sessão — sem parâmetro.
   async marcarSenhaTrocada(): Promise<Result<void, AppError>> {
     const { error } = await this.supabase.rpc("marcar_senha_trocada");
 

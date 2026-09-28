@@ -29,7 +29,7 @@ export class TrocarSenha implements TrocarSenhaPort {
     const trocada = await this.sessao.trocarSenha(novaSenha);
     if (!trocada.ok) return trocada;
 
-    const marcado = await this.usuarios.marcarSenhaTrocada(id);
+    const marcado = await this.usuarios.marcarSenhaTrocada();
     if (!marcado.ok) return marcado;
 
     await this.auditoria.registrar({
