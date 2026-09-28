@@ -9,6 +9,8 @@ import type { AuthAdminPort } from "@/modules/usuarios/application/ports/out/aut
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
 import { Usuario } from "@/modules/usuarios/domain/entities/usuario.entity";
+import type { AutorizacaoService } from "@/modules/usuarios/domain/services/autorizacao.service";
+import { Setor } from "@/modules/usuarios/domain/value-objects/setor.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
@@ -20,6 +22,7 @@ export class CriarUsuario implements CriarUsuarioPort {
     private readonly usuarios: UsuarioRepository,
     private readonly authAdmin: AuthAdminPort,
     private readonly auditoria: AuditoriaPort,
+    private readonly autorizacao: AutorizacaoService,
   ) {}
 
   async execute(input: CriarUsuarioInput): Promise<Result<CriarUsuarioOutput, AppError>> {
@@ -91,11 +94,14 @@ export class CriarUsuario implements CriarUsuarioPort {
     });
   }
 
+  // "Admin ou mesmo Setor" já é regra do AutorizacaoService (domain service, mesma
+  // instância usada por ListarSetores) — aqui só soma a restrição específica deste
+  // caso de uso: Líder só cadastra Funcionário, nunca outro Líder/Admin.
   private podeCadastrar(ator: Usuario, input: CriarUsuarioInput): boolean {
     if (ator.papel.ehAdmin()) return true;
-    return (
-      ator.papel.ehLiderSetor() && input.papel === "funcionario" && input.setor === ator.setor.slug
-    );
+    if (!ator.papel.ehLiderSetor() || input.papel !== "funcionario") return false;
+    const setor = Setor.criar(input.setor);
+    return setor.ok && this.autorizacao.podeAcessarSetor(ator, setor.value);
   }
 
   // Devolutiva técnica PR #61, ponto 1: qualquer falha depois da conta Auth já

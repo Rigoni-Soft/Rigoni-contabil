@@ -6,6 +6,7 @@ import type { AuthAdminPort } from "@/modules/usuarios/application/ports/out/aut
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
 import { Usuario, type UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
+import { AutorizacaoService } from "@/modules/usuarios/domain/services/autorizacao.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
@@ -103,9 +104,13 @@ describe("CriarUsuario", () => {
     const authAdmin = new AuthAdminFalso();
     const auditoria = new AuditoriaFalsa();
 
-    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
-      INPUT_VALIDO,
-    );
+    const resultado = await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
 
     expect(resultado.ok).toBe(true);
     if (resultado.ok) {
@@ -132,9 +137,13 @@ describe("CriarUsuario", () => {
     const authAdmin = new AuthAdminFalso();
     const auditoria = new AuditoriaFalsa();
 
-    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
-      INPUT_VALIDO,
-    );
+    const resultado = await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
 
     expect(resultado.ok).toBe(true);
     expect(usuarios.criado?.id).toBe("novo-usuario-1");
@@ -147,9 +156,13 @@ describe("CriarUsuario", () => {
     const authAdmin = new AuthAdminFalso();
     const auditoria = new AuditoriaFalsa();
 
-    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
-      INPUT_VALIDO,
-    );
+    const resultado = await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
 
     expect(resultado.ok).toBe(false);
     if (!resultado.ok) expect(resultado.error).toBeInstanceOf(ForbiddenError);
@@ -163,7 +176,13 @@ describe("CriarUsuario", () => {
     const authAdmin = new AuthAdminFalso();
     const auditoria = new AuditoriaFalsa();
 
-    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute({
+    const resultado = await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute({
       ...INPUT_VALIDO,
       papel: "lider_setor",
     });
@@ -180,9 +199,13 @@ describe("CriarUsuario", () => {
     const authAdmin = new AuthAdminFalso();
     const auditoria = new AuditoriaFalsa();
 
-    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
-      INPUT_VALIDO,
-    );
+    const resultado = await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
 
     expect(resultado.ok).toBe(false);
     if (!resultado.ok) expect(resultado.error).toBeInstanceOf(ForbiddenError);
@@ -213,6 +236,7 @@ describe("CriarUsuario", () => {
       new UsuarioRepositoryFalso(),
       new AuthAdminFalso(),
       new AuditoriaFalsa(),
+      new AutorizacaoService(),
     ).execute(INPUT_VALIDO);
 
     expect(resultado.ok).toBe(false);
@@ -225,9 +249,13 @@ describe("CriarUsuario", () => {
     authAdmin.erro = new ValidationError("E-mail já cadastrado.", { email: ["já cadastrado"] });
     const auditoria = new AuditoriaFalsa();
 
-    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
-      INPUT_VALIDO,
-    );
+    const resultado = await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
 
     expect(resultado.ok).toBe(false);
     expect(usuarios.criado).toBeNull();
@@ -241,9 +269,13 @@ describe("CriarUsuario", () => {
     const authAdmin = new AuthAdminFalso();
     const auditoria = new AuditoriaFalsa();
 
-    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
-      INPUT_VALIDO,
-    );
+    const resultado = await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
 
     expect(resultado.ok).toBe(false);
     expect(auditoria.registros).toEqual([expect.objectContaining({ resultado: "falha" })]);

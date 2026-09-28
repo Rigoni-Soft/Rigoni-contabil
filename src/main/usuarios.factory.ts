@@ -71,6 +71,7 @@ export async function makeCriarUsuario(): Promise<CriarUsuarioPort> {
     new SupabaseUsuarioRepository(supabase),
     new SupabaseAuthAdminGateway(createSupabaseAdmin()),
     auditoriaViaModuloAuditoria(),
+    new AutorizacaoService(),
   );
 }
 
