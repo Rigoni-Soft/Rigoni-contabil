@@ -8,6 +8,7 @@ import {
   carregarSetoresDaNavegacao,
 } from "@/presentation/view-models/shell/shell.server";
 import { CriarUsuarioContainer } from "@/modules/usuarios/presentation/view-models/criar-usuario/criar-usuario.container";
+import type { PapelCadastravel } from "@/shared/kernel/papeis";
 
 export default async function Page() {
   const sessao = await carregarSessao();
@@ -17,7 +18,7 @@ export default async function Page() {
 
   // Já escopado por RBAC no caso de uso (Admin vê tudo, Líder só o próprio Setor).
   const setores = await carregarSetoresDaNavegacao();
-  const papeisDisponiveis: Array<"lider_setor" | "funcionario"> =
+  const papeisDisponiveis: PapelCadastravel[] =
     sessao.papel === "admin" ? ["lider_setor", "funcionario"] : ["funcionario"];
 
   return (

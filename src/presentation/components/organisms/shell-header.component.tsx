@@ -3,18 +3,13 @@ import { KeyRound, UserPlus } from "lucide-react";
 
 import { buttonVariants } from "@/presentation/components/ui/button";
 import { ThemeToggle } from "@/presentation/components/ui/theme-toggle";
+import { PAPEL_LABEL } from "@/shared/kernel/papeis";
 
 type ShellHeaderProps = {
   nome: string;
   papel: string;
   setor: string;
   sair: React.ReactNode;
-};
-
-const PAPEL_LABEL: Record<string, string> = {
-  admin: "Admin",
-  lider_setor: "Líder de setor",
-  funcionario: "Funcionário",
 };
 
 // Quem cada papel cadastra (#30/#32) — Funcionário não cadastra ninguém, por

@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
 import { CriarUsuarioForm } from "@/presentation/components/organisms/criar-usuario-form.component";
+import type { PapelCadastravel } from "@/shared/kernel/papeis";
 
 import { criarUsuarioAction } from "./criar-usuario.actions";
 import { criarUsuarioSchema, type CriarUsuarioFormValues } from "./criar-usuario.schema";
@@ -12,14 +13,14 @@ import { criarUsuarioSchema, type CriarUsuarioFormValues } from "./criar-usuario
 type ContaCriada = { nome: string; email: string; senhaProvisoria: string };
 
 type CriarUsuarioContainerProps = {
-  papeisDisponiveis?: Array<"lider_setor" | "funcionario">;
-  setoresDisponiveis?: string[];
+  papeisDisponiveis: PapelCadastravel[];
+  setoresDisponiveis: string[];
 };
 
 export function CriarUsuarioContainer({
   papeisDisponiveis,
   setoresDisponiveis,
-}: CriarUsuarioContainerProps = {}) {
+}: CriarUsuarioContainerProps) {
   const [pendente, setPendente] = useState(false);
   const [erroServidor, setErroServidor] = useState<string | undefined>();
   const [criado, setCriado] = useState<ContaCriada | undefined>();

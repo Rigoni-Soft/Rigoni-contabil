@@ -6,21 +6,16 @@ import { FieldError } from "@/presentation/components/ui/field-error";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
 import { Select } from "@/presentation/components/ui/select";
-import { SETORES } from "@/shared/kernel/setores";
+import { PAPEL_LABEL, type PapelCadastravel } from "@/shared/kernel/papeis";
 
 export type CriarUsuarioFormValues = {
   nome: string;
   email: string;
-  papel: "lider_setor" | "funcionario";
+  papel: PapelCadastravel;
   setor: string;
 };
 
 type ContaCriada = { nome: string; email: string; senhaProvisoria: string };
-
-const PAPEL_ROTULOS: Record<"lider_setor" | "funcionario", string> = {
-  lider_setor: "Líder de setor",
-  funcionario: "Funcionário",
-};
 
 type CriarUsuarioFormProps = {
   register: UseFormRegister<CriarUsuarioFormValues>;
@@ -29,10 +24,10 @@ type CriarUsuarioFormProps = {
   pendente: boolean;
   erroServidor?: string;
   criado?: ContaCriada;
-  // Admin vê tudo (default); Líder de setor recebe já escopado por quem monta a página
-  // (RBAC decidido no caso de uso, aqui só reflete o que já é permitido).
-  papeisDisponiveis?: Array<"lider_setor" | "funcionario">;
-  setoresDisponiveis?: readonly string[];
+  // Escopado por RBAC em quem monta a página (Admin vê tudo, Líder de setor só o
+  // próprio Setor) — o formulário só reflete o que já é permitido, não decide.
+  papeisDisponiveis: PapelCadastravel[];
+  setoresDisponiveis: readonly string[];
 };
 
 export function CriarUsuarioForm({
@@ -42,8 +37,8 @@ export function CriarUsuarioForm({
   pendente,
   erroServidor,
   criado,
-  papeisDisponiveis = ["lider_setor", "funcionario"],
-  setoresDisponiveis = SETORES,
+  papeisDisponiveis,
+  setoresDisponiveis,
 }: CriarUsuarioFormProps) {
   if (criado) {
     return (
@@ -84,7 +79,7 @@ export function CriarUsuarioForm({
           </option>
           {papeisDisponiveis.map((papel) => (
             <option key={papel} value={papel}>
-              {PAPEL_ROTULOS[papel]}
+              {PAPEL_LABEL[papel]}
             </option>
           ))}
         </Select>

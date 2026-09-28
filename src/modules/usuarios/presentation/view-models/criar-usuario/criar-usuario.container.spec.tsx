@@ -28,7 +28,12 @@ describe("CriarUsuarioContainer", () => {
       }),
     );
     const usuario = userEvent.setup();
-    render(<CriarUsuarioContainer />);
+    render(
+      <CriarUsuarioContainer
+        papeisDisponiveis={["lider_setor", "funcionario"]}
+        setoresDisponiveis={["simples_nacional"]}
+      />,
+    );
 
     await usuario.type(screen.getByLabelText("Nome"), "Jéssica Souza");
     await usuario.type(screen.getByLabelText("E-mail"), "jessica@rigonicontabil.local");

@@ -2,6 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useForm } from "react-hook-form";
 
+import { SETORES } from "@/shared/kernel/setores";
+
 import { CriarUsuarioForm, type CriarUsuarioFormValues } from "./criar-usuario-form.component";
 
 function Wrapper({
@@ -24,6 +26,8 @@ function Wrapper({
       onSubmit={handleSubmit(onSubmit)}
       pendente={false}
       criado={criado}
+      papeisDisponiveis={["lider_setor", "funcionario"]}
+      setoresDisponiveis={SETORES}
     />
   );
 }
