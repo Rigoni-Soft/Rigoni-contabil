@@ -2,6 +2,10 @@ type SetorNav = { slug: string };
 
 type ShellNavProps = { setores: SetorNav[] };
 
+// Record<string, ...> solto (não Record<SetorSlug, ...>) de propósito: `setor.slug`
+// vem de um Output DTO (string crua), então indexar com SetorSlug exigiria um cast
+// no ponto de leitura sem ganho real — a exaustividade já é garantida no validador
+// de domínio (shared/kernel/setores.ts), não precisa duplicar aqui.
 const SETOR_LABEL: Record<string, string> = {
   rh: "RH",
   tributario: "Tributário",
@@ -11,8 +15,6 @@ const SETOR_LABEL: Record<string, string> = {
   condominios: "Condomínios",
   financeiro: "Financeiro",
   administrativo: "Administrativo",
-  contabil_externo: "Contábil Externo",
-  ti: "T.I.",
   recepcao: "Recepção",
 };
 

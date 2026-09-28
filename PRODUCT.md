@@ -25,7 +25,7 @@ Ferramenta interna proprietária, não um produto de mercado. O que a diferencia
 - Escritório de contabilidade brasileiro, atendendo clientes majoritariamente do regime Simples Nacional nesta rodada (Regime também aceita Lucro Presumido/Lucro Real/MEI para uso futuro).
 - Atendimento via WhatsApp Business API (Meta Cloud API direta, ou 360dialog como BSP fino — ver `docs/pesquisa/whatsapp-bsp.md`), com templates Utility aprovados pela Meta para disparos fora da janela de 24h.
 - Integração com o Serpro via produto Integra Contador (DAS, parcelamento, CND), autenticada com certificado digital e-CNPJ do escritório; depende de procuração eletrônica e-CAC vigente por cliente (processo manual da equipe, fora do sistema).
-- Setores do sistema seguem o organograma real do escritório (RH, Tributário, Simples Nacional, Contábil, Societário, Condomínios, Financeiro, Administrativo, Contábil Externo, T.I., Recepção), excluindo Patriki e Expedição.
+- Setores do sistema seguem o organograma real do escritório (RH, Tributário, Simples Nacional, Contábil, Societário, Condomínios, Financeiro, Administrativo, Recepção), excluindo Patriki e Expedição; Contábil Externo é o mesmo Setor que Contábil, T.I. cai dentro de Administrativo — nenhum dos dois é Setor próprio (ver `CONTEXT.md`, termo "Setor").
 
 ## Capabilities and Constraints
 
