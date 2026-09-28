@@ -1,11 +1,13 @@
-import { CheckCircle2, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { Check, CheckCircle2, Loader2, UserPlus } from "lucide-react";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 
-import { Button } from "@/presentation/components/ui/button";
+import { Button, buttonVariants } from "@/presentation/components/ui/button";
 import { FieldError } from "@/presentation/components/ui/field-error";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
 import { Select } from "@/presentation/components/ui/select";
+import { cn } from "@/presentation/lib/utils";
 import { PAPEL_LABEL, type PapelCadastravel } from "@/shared/kernel/papeis";
 
 export type CriarUsuarioFormValues = {
@@ -24,6 +26,9 @@ type CriarUsuarioFormProps = {
   pendente: boolean;
   erroServidor?: string;
   criado?: ContaCriada;
+  // Chamado ao clicar "Cadastrar outro" na tela de confirmação — quem monta a
+  // página decide o que isso significa (aqui: limpar o formulário e continuar).
+  onCadastrarNovo: () => void;
   // Escopado por RBAC em quem monta a página (Admin vê tudo, Líder de setor só o
   // próprio Setor) — o formulário só reflete o que já é permitido, não decide.
   papeisDisponiveis: PapelCadastravel[];
@@ -37,6 +42,7 @@ export function CriarUsuarioForm({
   pendente,
   erroServidor,
   criado,
+  onCadastrarNovo,
   papeisDisponiveis,
   setoresDisponiveis,
 }: CriarUsuarioFormProps) {
@@ -58,6 +64,18 @@ export function CriarUsuarioForm({
         <p className="rounded-md bg-muted px-3 py-2 font-mono text-lg tracking-wider">
           {criado.senhaProvisoria}
         </p>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button type="button" onClick={onCadastrarNovo} className="sm:flex-1">
+            <UserPlus aria-hidden="true" />
+            Cadastrar outro
+          </Button>
+          {/* Provisório: leva pra home, ainda não existe uma tela própria do
+              Setor pra voltar. */}
+          <Link href="/" className={cn(buttonVariants({ variant: "outline" }), "sm:flex-1")}>
+            <Check aria-hidden="true" />
+            Finalizar
+          </Link>
+        </div>
       </div>
     );
   }

@@ -9,11 +9,13 @@ import { CriarUsuarioForm, type CriarUsuarioFormValues } from "./criar-usuario-f
 function Wrapper({
   onSubmit,
   criado,
+  onCadastrarNovo = jest.fn(),
   papeisDisponiveis = ["lider_setor", "funcionario"],
   setoresDisponiveis = SETORES,
 }: {
   onSubmit: (v: CriarUsuarioFormValues) => void;
   criado?: { nome: string; email: string; senhaProvisoria: string };
+  onCadastrarNovo?: () => void;
   papeisDisponiveis?: Array<"lider_setor" | "funcionario">;
   setoresDisponiveis?: readonly string[];
 }) {
@@ -30,6 +32,7 @@ function Wrapper({
       onSubmit={handleSubmit(onSubmit)}
       pendente={false}
       criado={criado}
+      onCadastrarNovo={onCadastrarNovo}
       papeisDisponiveis={papeisDisponiveis}
       setoresDisponiveis={setoresDisponiveis}
     />
@@ -104,5 +107,26 @@ describe("CriarUsuarioForm", () => {
 
     expect(screen.getByText("ABCDEFGHJKLM")).toBeInTheDocument();
     expect(screen.queryByLabelText("Nome")).not.toBeInTheDocument();
+  });
+
+  it("depois de criado, 'Cadastrar outro' chama onCadastrarNovo e 'Finalizar' linka pra home", async () => {
+    const onCadastrarNovo = jest.fn();
+    const usuario = userEvent.setup();
+    render(
+      <Wrapper
+        onSubmit={jest.fn()}
+        onCadastrarNovo={onCadastrarNovo}
+        criado={{
+          nome: "Jéssica Souza",
+          email: "jessica@rigonicontabil.local",
+          senhaProvisoria: "ABCDEFGHJKLM",
+        }}
+      />,
+    );
+
+    await usuario.click(screen.getByRole("button", { name: "Cadastrar outro" }));
+    expect(onCadastrarNovo).toHaveBeenCalledTimes(1);
+
+    expect(screen.getByRole("link", { name: "Finalizar" })).toHaveAttribute("href", "/");
   });
 });

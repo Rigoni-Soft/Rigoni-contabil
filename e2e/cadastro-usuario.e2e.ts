@@ -31,6 +31,38 @@ test.describe("Cadastro de Líder/Funcionário (Admin only)", () => {
     await expect(page.getByText(/^[A-HJ-NP-Z2-9]{12}$/)).toBeVisible();
   });
 
+  test("'Cadastrar outro' volta pro formulário limpo; 'Finalizar' leva pra home", async ({
+    page,
+  }) => {
+    await login(page, "admin@rigonicontabil.local", "admin123");
+    await expect(page).toHaveURL("/");
+    await page.goto("/admin/usuarios/novo");
+
+    await page.getByLabel("Nome").fill("Funcionário E2E 2");
+    await page.getByLabel("E-mail").fill(`e2e-2-${Date.now()}@rigonicontabil.local`);
+    await page.getByLabel("Papel").selectOption("funcionario");
+    await page.getByLabel("Setor").selectOption("financeiro");
+    await page.getByRole("button", { name: "Cadastrar" }).click();
+    await expect(page.getByText(`Funcionário E2E 2`)).toBeVisible();
+
+    await page.getByRole("button", { name: "Cadastrar outro" }).click();
+    await expect(page.getByLabel("Nome")).toHaveValue("");
+    await expect(page.getByLabel("E-mail")).toHaveValue("");
+    await expect(page.getByText(`Funcionário E2E 2`)).not.toBeVisible();
+
+    // Formulário limpo confirmado — cadastra um segundo, aí sim testa "Finalizar"
+    // (só existe na tela de confirmação, não no formulário recém-resetado).
+    await page.getByLabel("Nome").fill("Funcionário E2E 3");
+    await page.getByLabel("E-mail").fill(`e2e-3-${Date.now()}@rigonicontabil.local`);
+    await page.getByLabel("Papel").selectOption("funcionario");
+    await page.getByLabel("Setor").selectOption("financeiro");
+    await page.getByRole("button", { name: "Cadastrar" }).click();
+    await expect(page.getByText(`Funcionário E2E 3`)).toBeVisible();
+
+    await page.getByRole("link", { name: "Finalizar" }).click();
+    await expect(page).toHaveURL("/");
+  });
+
   test("Funcionário é redirecionado pra fora do cadastro de usuário", async ({ page }) => {
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");

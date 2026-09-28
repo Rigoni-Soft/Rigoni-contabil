@@ -28,8 +28,27 @@ export function CriarUsuarioContainer({
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<CriarUsuarioFormValues>({ resolver: zodResolver(criarUsuarioSchema) });
+
+  // Únicos valores possíveis quando só há 1 opção (Líder) — mesma regra do
+  // formulário, pra "Cadastrar outro" devolver os campos travados corretos
+  // em vez de limpá-los.
+  const valorInicial: CriarUsuarioFormValues = {
+    nome: "",
+    email: "",
+    papel: (papeisDisponiveis.length === 1
+      ? papeisDisponiveis[0]
+      : "") as CriarUsuarioFormValues["papel"],
+    setor: setoresDisponiveis.length === 1 ? setoresDisponiveis[0] : "",
+  };
+
+  const aoCadastrarNovo = () => {
+    setCriado(undefined);
+    setErroServidor(undefined);
+    reset(valorInicial);
+  };
 
   const aoSubmeter = handleSubmit(async (valores) => {
     setPendente(true);
@@ -66,6 +85,7 @@ export function CriarUsuarioContainer({
       pendente={pendente}
       erroServidor={erroServidor}
       criado={criado}
+      onCadastrarNovo={aoCadastrarNovo}
       papeisDisponiveis={papeisDisponiveis}
       setoresDisponiveis={setoresDisponiveis}
     />
