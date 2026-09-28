@@ -61,9 +61,7 @@ describe("SupabaseUsuarioRepository (integração)", () => {
     const supabase = await comoAdmin();
     const repositorio = new SupabaseUsuarioRepository(supabase);
 
-    await expect(
-      repositorio.buscarPorId("id-nao-e-um-uuid" as UsuarioId),
-    ).resolves.toBeNull();
+    await expect(repositorio.buscarPorId("id-nao-e-um-uuid" as UsuarioId)).resolves.toBeNull();
   });
 
   describe("isolamento por setor (RLS)", () => {
