@@ -18,5 +18,5 @@ export type RegistroAcaoFiltro = {
 export interface RegistroAcaoRepository {
   salvar(registro: RegistroAcao): Promise<Result<void, AppError>>;
   // Read model (testes.md, seção 3.6): DTOs de leitura direto, sem reconstruir entidade.
-  listar(filtro: RegistroAcaoFiltro): Promise<RegistroAcaoDto[]>;
+  listar(filtro: RegistroAcaoFiltro): Promise<Result<RegistroAcaoDto[], AppError>>;
 }

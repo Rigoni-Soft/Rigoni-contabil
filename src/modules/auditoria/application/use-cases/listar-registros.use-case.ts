@@ -7,7 +7,7 @@ import type { RegistroAcaoRepository } from "@/modules/auditoria/application/por
 import type { SessaoPort } from "@/modules/auditoria/application/ports/out/sessao.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
-import { err, ok, type Result } from "@/shared/kernel/result";
+import { err, type Result } from "@/shared/kernel/result";
 
 const LIMITE_FEED = 50;
 
@@ -31,17 +31,15 @@ export class ListarRegistros implements ListarRegistrosPort {
       return err(new ForbiddenError("Só Admin acessa o feed de auditoria."));
     }
 
-    return ok(
-      await this.registros.listar({
-        limite: LIMITE_FEED,
-        setor: input.setor,
-        ator: input.ator,
-        acao: input.acao,
-        alvo: input.alvo,
-        resultado: input.resultado,
-        dataInicio: input.dataInicio ? inicioDoDia(input.dataInicio) : undefined,
-        dataFim: input.dataFim ? fimDoDia(input.dataFim) : undefined,
-      }),
-    );
+    return this.registros.listar({
+      limite: LIMITE_FEED,
+      setor: input.setor,
+      ator: input.ator,
+      acao: input.acao,
+      alvo: input.alvo,
+      resultado: input.resultado,
+      dataInicio: input.dataInicio ? inicioDoDia(input.dataInicio) : undefined,
+      dataFim: input.dataFim ? fimDoDia(input.dataFim) : undefined,
+    });
   }
 }

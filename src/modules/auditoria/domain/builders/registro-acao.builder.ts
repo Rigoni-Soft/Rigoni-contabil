@@ -60,8 +60,11 @@ export class RegistroAcaoBuilder {
 
   comResultado(entrada: string): this {
     const resultado = ResultadoAcao.criar(entrada);
-    if (resultado.ok) this.resultado = resultado.value;
-    else this.camposInvalidos.resultado = [resultado.error.message];
+    if (!resultado.ok) {
+      this.camposInvalidos.resultado = [resultado.error.message];
+      return this;
+    }
+    this.resultado = resultado.value;
     return this;
   }
 

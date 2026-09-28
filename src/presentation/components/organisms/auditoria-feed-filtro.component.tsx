@@ -5,6 +5,7 @@ import { FieldError } from "@/presentation/components/ui/field-error";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
 import { Select } from "@/presentation/components/ui/select";
+import { SETORES } from "@/shared/kernel/setores";
 
 export type FiltroValues = {
   dataInicio?: string;
@@ -15,24 +16,6 @@ export type FiltroValues = {
   alvo?: string;
   resultado?: "sucesso" | "falha" | "";
 };
-
-// Mesma lista de usuarios/domain/value-objects/setor.vo.ts (SETORES), duplicada de
-// proposito: presentation global nao pode importar de dentro de um modulo
-// (dependency-cruiser: presentation-global-sem-modulos). Organograma muda raramente
-// (comentario de setor.vo.ts) -- se mudar, atualize os dois lugares.
-const SETORES = [
-  "rh",
-  "tributario",
-  "simples_nacional",
-  "contabil",
-  "societario",
-  "condominios",
-  "financeiro",
-  "administrativo",
-  "contabil_externo",
-  "ti",
-  "recepcao",
-] as const;
 
 type AuditoriaFeedFiltroProps = {
   register: UseFormRegister<FiltroValues>;

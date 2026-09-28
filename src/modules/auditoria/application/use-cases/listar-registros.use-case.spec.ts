@@ -26,9 +26,9 @@ class RegistroAcaoRepositoryFalso implements RegistroAcaoRepository {
   async salvar(): Promise<Result<void, AppError>> {
     return ok(undefined);
   }
-  async listar(filtro: RegistroAcaoFiltro): Promise<RegistroAcaoDto[]> {
+  async listar(filtro: RegistroAcaoFiltro): Promise<Result<RegistroAcaoDto[], AppError>> {
     this.filtroRecebido = filtro;
-    return this.registros;
+    return ok(this.registros);
   }
 }
 

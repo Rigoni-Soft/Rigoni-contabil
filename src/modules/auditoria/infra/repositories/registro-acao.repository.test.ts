@@ -74,7 +74,12 @@ describe("SupabaseRegistroAcaoRepository (integração)", () => {
 
     const registros = await repositorio.listar({ limite: 50 });
 
-    expect(registros.some((r) => r.alvo === "funcionario.sn@rigonicontabil.local")).toBe(true);
+    expect(registros.ok).toBe(true);
+    if (registros.ok) {
+      expect(registros.value.some((r) => r.alvo === "funcionario.sn@rigonicontabil.local")).toBe(
+        true,
+      );
+    }
   });
 
   it("Funcionário não vê nenhum registro (RLS: só Admin)", async () => {
@@ -83,7 +88,8 @@ describe("SupabaseRegistroAcaoRepository (integração)", () => {
 
     const registros = await repositorio.listar({ limite: 50 });
 
-    expect(registros).toEqual([]);
+    expect(registros.ok).toBe(true);
+    if (registros.ok) expect(registros.value).toEqual([]);
   });
 
   it("filtra por setor, ação (busca parcial) e resultado", async () => {
@@ -98,15 +104,24 @@ describe("SupabaseRegistroAcaoRepository (integração)", () => {
     );
 
     const porSetor = await repositorio.listar({ limite: 50, setor: "financeiro" });
-    expect(porSetor.every((r) => r.setor === "financeiro")).toBe(true);
-    expect(porSetor.length).toBeGreaterThan(0);
+    expect(porSetor.ok).toBe(true);
+    if (porSetor.ok) {
+      expect(porSetor.value.every((r) => r.setor === "financeiro")).toBe(true);
+      expect(porSetor.value.length).toBeGreaterThan(0);
+    }
 
     const porAcaoParcial = await repositorio.listar({ limite: 50, acao: "cliente" });
-    expect(porAcaoParcial.some((r) => r.acao === "cliente.editar")).toBe(true);
+    expect(porAcaoParcial.ok).toBe(true);
+    if (porAcaoParcial.ok) {
+      expect(porAcaoParcial.value.some((r) => r.acao === "cliente.editar")).toBe(true);
+    }
 
     const porResultado = await repositorio.listar({ limite: 50, resultado: "falha" });
-    expect(porResultado.every((r) => r.resultado === "falha")).toBe(true);
-    expect(porResultado.length).toBeGreaterThan(0);
+    expect(porResultado.ok).toBe(true);
+    if (porResultado.ok) {
+      expect(porResultado.value.every((r) => r.resultado === "falha")).toBe(true);
+      expect(porResultado.value.length).toBeGreaterThan(0);
+    }
   });
 
   it("filtra por período (dataInicio/dataFim), excluindo o que está fora da janela", async () => {
@@ -119,6 +134,7 @@ describe("SupabaseRegistroAcaoRepository (integração)", () => {
       dataFim: "2099-01-02T23:59:59.999Z",
     });
 
-    expect(registros).toEqual([]);
+    expect(registros.ok).toBe(true);
+    if (registros.ok) expect(registros.value).toEqual([]);
   });
 });

@@ -52,7 +52,7 @@ export function AuditoriaFeed({ registros }: AuditoriaFeedProps) {
             return (
               <tr key={registro.id} className="border-b border-border last:border-0">
                 <td className="px-3 py-2 whitespace-nowrap text-muted-foreground tabular-nums">
-                  {new Date(registro.dataHora).toLocaleString("pt-BR")}
+                  {registro.dataHora}
                 </td>
                 <td className="px-3 py-2">{registro.ator}</td>
                 <td className="px-3 py-2">{registro.setor}</td>

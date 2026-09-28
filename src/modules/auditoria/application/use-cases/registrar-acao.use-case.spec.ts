@@ -14,8 +14,8 @@ class RegistroAcaoRepositoryFalso implements RegistroAcaoRepository {
     return ok(undefined);
   }
 
-  async listar(): Promise<RegistroAcaoDto[]> {
-    return [];
+  async listar(): Promise<Result<RegistroAcaoDto[], AppError>> {
+    return ok([]);
   }
 }
 

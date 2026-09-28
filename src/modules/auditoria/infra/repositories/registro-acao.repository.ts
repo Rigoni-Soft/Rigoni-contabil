@@ -33,7 +33,7 @@ export class SupabaseRegistroAcaoRepository implements RegistroAcaoRepository {
     return ok(undefined);
   }
 
-  async listar(filtro: RegistroAcaoFiltro): Promise<RegistroAcaoDto[]> {
+  async listar(filtro: RegistroAcaoFiltro): Promise<Result<RegistroAcaoDto[], AppError>> {
     let query = this.supabase
       .from("registros_auditoria")
       .select("*")
@@ -52,8 +52,8 @@ export class SupabaseRegistroAcaoRepository implements RegistroAcaoRepository {
 
     const { data, error } = await query;
 
-    if (error) throw new Error(`Falha ao listar auditoria: ${error.message}`);
+    if (error) return err(new PersistenciaError(`Falha ao listar auditoria: ${error.message}`));
 
-    return (data ?? []).map((row) => registroAcaoRowParaDto(registroAcaoRowSchema.parse(row)));
+    return ok((data ?? []).map((row) => registroAcaoRowParaDto(registroAcaoRowSchema.parse(row))));
   }
 }
