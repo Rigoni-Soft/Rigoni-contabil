@@ -147,6 +147,16 @@ sem sufixo `.component`, isentas de teste por convenção —
   campo de formulário futuro com esse mesmo formato (opções decididas por
   RBAC, às vezes reduzidas a 1) segue o mesmo padrão em vez de forçar uma
   seleção sem escolha real.
+
+  **Sem opacidade de desabilitado (revisão impeccable, 28/09/2026):** o
+  `disabled:opacity-50` padrão de `select.tsx` existe pra sinalizar "campo
+  indisponível" — o oposto do que esse padrão precisa comunicar ("aqui está
+  o que vai ser cadastrado", uma confirmação, não uma ausência). Por isso
+  esses dois `<select>` passam `className="disabled:opacity-100"` pra
+  sobrescrever a opacidade herdada e manter o texto na cor plena — o cursor
+  `not-allowed` (herdado, mantido) já basta pra sinalizar "sem interação
+  aqui". Qualquer campo futuro que reuse o padrão de campo travado acima
+  reusa também esse override.
 - `label.tsx`, `field-error.tsx` — erro de campo sempre ícone (`AlertCircle`)
   + texto + cor, nunca só cor (contrato "Talão de Cheque": estado por
   padrão/ícone além de cor).

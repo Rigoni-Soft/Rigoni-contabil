@@ -101,6 +101,7 @@ export function CriarUsuarioForm({
           aria-invalid={!!errors.papel}
           defaultValue={papelUnico ?? ""}
           disabled={!!papelUnico}
+          className={papelUnico ? "disabled:opacity-100" : undefined}
           {...register("papel")}
         >
           {!papelUnico && (
@@ -124,6 +125,7 @@ export function CriarUsuarioForm({
           aria-invalid={!!errors.setor}
           defaultValue={setorUnico ?? ""}
           disabled={!!setorUnico}
+          className={setorUnico ? "disabled:opacity-100" : undefined}
           {...register("setor")}
         >
           {!setorUnico && (
