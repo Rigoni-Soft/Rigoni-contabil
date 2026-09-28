@@ -8,6 +8,7 @@ import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
 import { Select } from "@/presentation/components/ui/select";
 import { cn } from "@/presentation/lib/utils";
+import { opcaoUnica } from "@/shared/kernel/opcoes";
 import { PAPEL_LABEL, type PapelCadastravel } from "@/shared/kernel/papeis";
 
 export type CriarUsuarioFormValues = {
@@ -48,8 +49,8 @@ export function CriarUsuarioForm({
 }: CriarUsuarioFormProps) {
   // Quando só há 1 opção possível (Líder de setor: só "funcionario" no próprio
   // Setor), não faz sentido pedir pra escolher — já vem selecionado e travado.
-  const papelUnico = papeisDisponiveis.length === 1 ? papeisDisponiveis[0] : undefined;
-  const setorUnico = setoresDisponiveis.length === 1 ? setoresDisponiveis[0] : undefined;
+  const papelUnico = opcaoUnica(papeisDisponiveis);
+  const setorUnico = opcaoUnica(setoresDisponiveis);
 
   if (criado) {
     return (

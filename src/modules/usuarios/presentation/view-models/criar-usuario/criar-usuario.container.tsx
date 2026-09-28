@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
 import { CriarUsuarioForm } from "@/presentation/components/organisms/criar-usuario-form.component";
+import { opcaoUnica } from "@/shared/kernel/opcoes";
 import type { PapelCadastravel } from "@/shared/kernel/papeis";
 
 import { criarUsuarioAction } from "./criar-usuario.actions";
@@ -38,10 +39,8 @@ export function CriarUsuarioContainer({
   const valorInicial: CriarUsuarioFormValues = {
     nome: "",
     email: "",
-    papel: (papeisDisponiveis.length === 1
-      ? papeisDisponiveis[0]
-      : "") as CriarUsuarioFormValues["papel"],
-    setor: setoresDisponiveis.length === 1 ? setoresDisponiveis[0] : "",
+    papel: (opcaoUnica(papeisDisponiveis) ?? "") as CriarUsuarioFormValues["papel"],
+    setor: opcaoUnica(setoresDisponiveis) ?? "",
   };
 
   const aoCadastrarNovo = () => {
