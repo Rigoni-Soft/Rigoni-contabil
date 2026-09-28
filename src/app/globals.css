@@ -11,29 +11,30 @@
 :root {
   --radius: 0.375rem;
 
-  /* Dark (padrão) — "soft dark": mesma família verde-carvão de antes, só que
-   * ~2.5x mais clara (L~6% -> ~15%) em vez de quase-preta. Ver DESIGN.md,
-   * seção Tokens, para o porquê e os contrastes AA verificados. */
-  --background: #1c2622;
+  /* Dark (padrão) — "grafite": neutros no mesmo matiz quente do papel da
+   * light (~47°, contra 45° da light) só que quase sem saturação (~7%, contra
+   * os 15-16% da primeira tentativa, que lia verde-carvão pesado demais).
+   * Ver DESIGN.md, seção Tokens, para o porquê e os contrastes AA verificados. */
+  --background: #23221f;
   --foreground: #ece7d8;
-  --card: #233029;
+  --card: #2c2a26;
   --card-foreground: #ece7d8;
-  --popover: #233029;
+  --popover: #2c2a26;
   --popover-foreground: #ece7d8;
   --primary: #54a292;
   --primary-foreground: #0a1613;
-  --secondary: #283630;
+  --secondary: #31302b;
   --secondary-foreground: #ece7d8;
-  --muted: #212b26;
+  --muted: #292824;
   --muted-foreground: #a6b3ab;
-  --accent: #2c3a34;
+  --accent: #37352f;
   --accent-foreground: #d7ece6;
   --destructive: #e0968c;
   --destructive-foreground: #2a0f0c;
   --success: #d9bd7c;
   --success-foreground: #2a1f0c;
-  --border: #3a4b41;
-  --input: #3a4b41;
+  --border: #47453e;
+  --input: #47453e;
   --ring: #54a292;
 }
 
