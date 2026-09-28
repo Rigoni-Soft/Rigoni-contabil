@@ -1,0 +1,124 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+
+import { ok } from "@/shared/kernel/result";
+
+import { CriarClienteContainer } from "./criar-cliente.container";
+
+const executeMock = jest.fn();
+
+jest.mock("@/main/clientes.factory", () => ({
+  makeCriarCliente: () => ({ execute: executeMock }),
+}));
+
+function arquivo(nome: string): File {
+  return new File(["conteúdo"], nome, { type: "application/pdf" });
+}
+
+async function preencherCamposObrigatorios(usuario: ReturnType<typeof userEvent.setup>) {
+  await usuario.type(screen.getByLabelText("Empresa"), "Padaria Pão Quente Ltda");
+  await usuario.type(screen.getByLabelText("CNPJ"), "11.444.777/0001-61");
+  await usuario.selectOptions(screen.getByLabelText("Regime"), "simples_nacional");
+  await usuario.upload(screen.getByLabelText("Contrato social"), arquivo("contrato-social.pdf"));
+}
+
+describe("CriarClienteContainer", () => {
+  beforeEach(() => executeMock.mockReset());
+
+  it("submete o formulário preenchido, sem alteração contratual, e mostra a confirmação", async () => {
+    executeMock.mockResolvedValue(
+      ok({
+        cliente: {
+          id: "1",
+          empresa: "Padaria Pão Quente Ltda",
+          cnpj: "11444777000161",
+          regime: "simples_nacional",
+          contratoSocialCaminho: "1/contrato-social/doc.pdf",
+          alteracoesContratuais: [],
+        },
+      }),
+    );
+    const usuario = userEvent.setup();
+    render(<CriarClienteContainer />);
+
+    await preencherCamposObrigatorios(usuario);
+    await usuario.click(screen.getByRole("button", { name: "Cadastrar" }));
+
+    expect(await screen.findByText(/cadastrado/)).toBeInTheDocument();
+    expect(executeMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("adiciona e remove uma linha de alteração contratual", async () => {
+    const usuario = userEvent.setup();
+    render(<CriarClienteContainer />);
+
+    await usuario.click(screen.getByRole("button", { name: "Adicionar" }));
+    expect(screen.getByText("Alteração 1")).toBeInTheDocument();
+
+    await usuario.click(screen.getByRole("button", { name: "Remover alteração 1" }));
+    expect(screen.queryByText("Alteração 1")).not.toBeInTheDocument();
+  });
+
+  it("submete com uma alteração contratual preenchida (data + arquivo)", async () => {
+    executeMock.mockResolvedValue(
+      ok({
+        cliente: {
+          id: "1",
+          empresa: "Padaria Pão Quente Ltda",
+          cnpj: "11444777000161",
+          regime: "simples_nacional",
+          contratoSocialCaminho: "1/contrato-social/doc.pdf",
+          alteracoesContratuais: [{ data: "2026-02-01", arquivoCaminho: "1/alteracoes/0-doc.pdf" }],
+        },
+      }),
+    );
+    const usuario = userEvent.setup();
+    render(<CriarClienteContainer />);
+
+    await preencherCamposObrigatorios(usuario);
+    await usuario.click(screen.getByRole("button", { name: "Adicionar" }));
+    // input type=date: userEvent.type digita por segmento (ano/mês/dia) e é
+    // instável em jsdom — fireEvent.change atribui o valor ISO direto.
+    fireEvent.change(screen.getByLabelText("Data da alteração 1"), {
+      target: { value: "2026-02-01" },
+    });
+    await usuario.upload(
+      screen.getByLabelText("Arquivo da alteração 1"),
+      arquivo("alteracao-1.pdf"),
+    );
+    await usuario.click(screen.getByRole("button", { name: "Cadastrar" }));
+
+    expect(await screen.findByText(/cadastrado/)).toBeInTheDocument();
+    expect(executeMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        alteracoesContratuais: [expect.objectContaining({ data: "2026-02-01" })],
+      }),
+    );
+  });
+
+  it("'Cadastrar outro' volta pro formulário limpo", async () => {
+    executeMock.mockResolvedValue(
+      ok({
+        cliente: {
+          id: "1",
+          empresa: "Padaria Pão Quente Ltda",
+          cnpj: "11444777000161",
+          regime: "simples_nacional",
+          contratoSocialCaminho: "1/contrato-social/doc.pdf",
+          alteracoesContratuais: [],
+        },
+      }),
+    );
+    const usuario = userEvent.setup();
+    render(<CriarClienteContainer />);
+
+    await preencherCamposObrigatorios(usuario);
+    await usuario.click(screen.getByRole("button", { name: "Cadastrar" }));
+    await screen.findByText(/cadastrado/);
+
+    await usuario.click(screen.getByRole("button", { name: "Cadastrar outro" }));
+
+    expect(screen.queryByText(/cadastrado/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Empresa")).toHaveValue("");
+  });
+});
