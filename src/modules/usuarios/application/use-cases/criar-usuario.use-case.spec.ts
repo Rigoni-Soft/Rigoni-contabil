@@ -14,13 +14,13 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { CriarUsuario } from "./criar-usuario.use-case";
 
-function usuarioFalso(id: string, papel: string): Usuario {
+function usuarioFalso(id: string, papel: string, setor = "administrativo"): Usuario {
   const resultado = Usuario.builder()
     .comId(id)
     .comNome("Alguém")
     .comEmail("alguem@rigonicontabil.local")
     .comPapel(papel)
-    .comSetor("administrativo")
+    .comSetor(setor)
     .build();
   if (!resultado.ok) throw new Error("setup inválido");
   return resultado.value;
@@ -123,6 +123,54 @@ describe("CriarUsuario", () => {
         resultado: "sucesso",
       }),
     ]);
+  });
+
+  it("Líder de setor cria Funcionário do próprio Setor", async () => {
+    const sessao = new SessaoFalsa();
+    const usuarios = new UsuarioRepositoryFalso();
+    usuarios.ator = usuarioFalso("lider-1", "lider_setor", "simples_nacional");
+    const authAdmin = new AuthAdminFalso();
+    const auditoria = new AuditoriaFalsa();
+
+    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
+      INPUT_VALIDO,
+    );
+
+    expect(resultado.ok).toBe(true);
+    expect(usuarios.criado?.id).toBe("novo-usuario-1");
+  });
+
+  it("nega quando Líder tenta cadastrar em outro Setor", async () => {
+    const sessao = new SessaoFalsa();
+    const usuarios = new UsuarioRepositoryFalso();
+    usuarios.ator = usuarioFalso("lider-1", "lider_setor", "administrativo");
+    const authAdmin = new AuthAdminFalso();
+    const auditoria = new AuditoriaFalsa();
+
+    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
+      INPUT_VALIDO,
+    );
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error).toBeInstanceOf(ForbiddenError);
+    expect(usuarios.criado).toBeNull();
+  });
+
+  it("nega quando Líder tenta cadastrar outro Líder", async () => {
+    const sessao = new SessaoFalsa();
+    const usuarios = new UsuarioRepositoryFalso();
+    usuarios.ator = usuarioFalso("lider-1", "lider_setor", "simples_nacional");
+    const authAdmin = new AuthAdminFalso();
+    const auditoria = new AuditoriaFalsa();
+
+    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute({
+      ...INPUT_VALIDO,
+      papel: "lider_setor",
+    });
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error).toBeInstanceOf(ForbiddenError);
+    expect(usuarios.criado).toBeNull();
   });
 
   it("nega quando quem chama não é Admin", async () => {

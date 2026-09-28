@@ -11,7 +11,15 @@ import { criarUsuarioSchema, type CriarUsuarioFormValues } from "./criar-usuario
 
 type ContaCriada = { nome: string; email: string; senhaProvisoria: string };
 
-export function CriarUsuarioContainer() {
+type CriarUsuarioContainerProps = {
+  papeisDisponiveis?: Array<"lider_setor" | "funcionario">;
+  setoresDisponiveis?: string[];
+};
+
+export function CriarUsuarioContainer({
+  papeisDisponiveis,
+  setoresDisponiveis,
+}: CriarUsuarioContainerProps = {}) {
   const [pendente, setPendente] = useState(false);
   const [erroServidor, setErroServidor] = useState<string | undefined>();
   const [criado, setCriado] = useState<ContaCriada | undefined>();
@@ -57,6 +65,8 @@ export function CriarUsuarioContainer() {
       pendente={pendente}
       erroServidor={erroServidor}
       criado={criado}
+      papeisDisponiveis={papeisDisponiveis}
+      setoresDisponiveis={setoresDisponiveis}
     />
   );
 }

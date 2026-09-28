@@ -31,8 +31,12 @@ export class CriarUsuario implements CriarUsuarioPort {
     // AppError original em vez de mascará-lo como Forbidden.
     if (!perfilAtor.ok) return perfilAtor;
     const ator = perfilAtor.value;
-    if (!ator || !ator.papel.ehAdmin()) {
-      return err(new ForbiddenError("Só Admin cadastra Líder/Funcionário."));
+    if (!ator || !this.podeCadastrar(ator, input)) {
+      return err(
+        new ForbiddenError(
+          "Só Admin cadastra Líder/Funcionário; Líder só cadastra Funcionário do próprio Setor.",
+        ),
+      );
     }
 
     const conta = await this.authAdmin.criarConta(input.email);
@@ -85,6 +89,13 @@ export class CriarUsuario implements CriarUsuarioPort {
       usuario: usuarioParaDto(construido.value),
       senhaProvisoria: conta.value.senhaProvisoria,
     });
+  }
+
+  private podeCadastrar(ator: Usuario, input: CriarUsuarioInput): boolean {
+    if (ator.papel.ehAdmin()) return true;
+    return (
+      ator.papel.ehLiderSetor() && input.papel === "funcionario" && input.setor === ator.setor.slug
+    );
   }
 
   // Devolutiva técnica PR #61, ponto 1: qualquer falha depois da conta Auth já

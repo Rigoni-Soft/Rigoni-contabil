@@ -17,6 +17,11 @@ export type CriarUsuarioFormValues = {
 
 type ContaCriada = { nome: string; email: string; senhaProvisoria: string };
 
+const PAPEL_ROTULOS: Record<"lider_setor" | "funcionario", string> = {
+  lider_setor: "Líder de setor",
+  funcionario: "Funcionário",
+};
+
 type CriarUsuarioFormProps = {
   register: UseFormRegister<CriarUsuarioFormValues>;
   errors: FieldErrors<CriarUsuarioFormValues>;
@@ -24,6 +29,10 @@ type CriarUsuarioFormProps = {
   pendente: boolean;
   erroServidor?: string;
   criado?: ContaCriada;
+  // Admin vê tudo (default); Líder de setor recebe já escopado por quem monta a página
+  // (RBAC decidido no caso de uso, aqui só reflete o que já é permitido).
+  papeisDisponiveis?: Array<"lider_setor" | "funcionario">;
+  setoresDisponiveis?: readonly string[];
 };
 
 export function CriarUsuarioForm({
@@ -33,6 +42,8 @@ export function CriarUsuarioForm({
   pendente,
   erroServidor,
   criado,
+  papeisDisponiveis = ["lider_setor", "funcionario"],
+  setoresDisponiveis = SETORES,
 }: CriarUsuarioFormProps) {
   if (criado) {
     return (
@@ -71,8 +82,11 @@ export function CriarUsuarioForm({
           <option value="" disabled>
             Selecione
           </option>
-          <option value="lider_setor">Líder de setor</option>
-          <option value="funcionario">Funcionário</option>
+          {papeisDisponiveis.map((papel) => (
+            <option key={papel} value={papel}>
+              {PAPEL_ROTULOS[papel]}
+            </option>
+          ))}
         </Select>
         {errors.papel && <FieldError>{errors.papel.message}</FieldError>}
       </div>
@@ -83,7 +97,7 @@ export function CriarUsuarioForm({
           <option value="" disabled>
             Selecione
           </option>
-          {SETORES.map((setor) => (
+          {setoresDisponiveis.map((setor) => (
             <option key={setor} value={setor}>
               {setor}
             </option>

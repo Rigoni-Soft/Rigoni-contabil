@@ -3,14 +3,22 @@ import { redirect } from "next/navigation";
 import { ShellHeader } from "@/presentation/components/organisms/shell-header.component";
 import { CriarUsuarioPage } from "@/presentation/components/pages/criar-usuario.page";
 import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-button.container";
-import { carregarSessao } from "@/presentation/view-models/shell/shell.server";
+import {
+  carregarSessao,
+  carregarSetoresDaNavegacao,
+} from "@/presentation/view-models/shell/shell.server";
 import { CriarUsuarioContainer } from "@/modules/usuarios/presentation/view-models/criar-usuario/criar-usuario.container";
 
 export default async function Page() {
   const sessao = await carregarSessao();
   if (!sessao) redirect("/login");
   if (sessao.precisaTrocarSenha) redirect("/trocar-senha");
-  if (sessao.papel !== "admin") redirect("/");
+  if (sessao.papel !== "admin" && sessao.papel !== "lider_setor") redirect("/");
+
+  // Já escopado por RBAC no caso de uso (Admin vê tudo, Líder só o próprio Setor).
+  const setores = await carregarSetoresDaNavegacao();
+  const papeisDisponiveis: Array<"lider_setor" | "funcionario"> =
+    sessao.papel === "admin" ? ["lider_setor", "funcionario"] : ["funcionario"];
 
   return (
     <CriarUsuarioPage
@@ -22,7 +30,12 @@ export default async function Page() {
           sair={<LogoutButtonContainer />}
         />
       }
-      formulario={<CriarUsuarioContainer />}
+      formulario={
+        <CriarUsuarioContainer
+          papeisDisponiveis={papeisDisponiveis}
+          setoresDisponiveis={setores.map((setor) => setor.slug)}
+        />
+      }
     />
   );
 }

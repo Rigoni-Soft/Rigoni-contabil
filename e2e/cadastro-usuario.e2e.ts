@@ -40,3 +40,36 @@ test.describe("Cadastro de Líder/Funcionário (Admin only)", () => {
     await expect(page).toHaveURL("/");
   });
 });
+
+// Ticket #32: Líder cadastra Funcionário só do próprio Setor, sem opção de
+// escolher outro Setor nem de cadastrar Líder/Admin.
+test.describe("Cadastro de Funcionário (Líder de setor)", () => {
+  test("Líder cadastra um Funcionário do próprio Setor e vê a senha provisória", async ({
+    page,
+  }) => {
+    await login(page, "lider.contabil@rigonicontabil.local", "lider123");
+    await expect(page).toHaveURL("/");
+    await page.goto("/admin/usuarios/novo");
+
+    const email = `e2e-lider-${Date.now()}@rigonicontabil.local`;
+    await page.getByLabel("Nome").fill("Funcionário Contábil E2E");
+    await page.getByLabel("E-mail").fill(email);
+    await page.getByLabel("Papel").selectOption("funcionario");
+    await page.getByLabel("Setor").selectOption("contabil");
+    await page.getByRole("button", { name: "Cadastrar" }).click();
+
+    await expect(page.getByText(`Funcionário Contábil E2E`)).toBeVisible();
+    await expect(page.getByText(email)).toBeVisible();
+  });
+
+  test("Líder não vê opção de cadastrar Líder nem de escolher outro Setor", async ({ page }) => {
+    await login(page, "lider.contabil@rigonicontabil.local", "lider123");
+    await page.goto("/admin/usuarios/novo");
+
+    const papel = page.getByLabel("Papel");
+    await expect(papel.locator("option")).toHaveText(["Selecione", "Funcionário"]);
+
+    const setor = page.getByLabel("Setor");
+    await expect(setor.locator("option")).toHaveText(["Selecione", "contabil"]);
+  });
+});
