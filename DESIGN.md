@@ -26,17 +26,31 @@ sobrepor "dark é o padrão" com a preferência de SO do visitante.
 
 | Token | Dark (padrão) | Light | Uso |
 |---|---|---|---|
-| `background` / `foreground` | `#0c1512` / `#ece7d8` | `#f4f1e8` / `#16231f` | tela |
-| `card` / `card-foreground` | `#12201c` / `#ece7d8` | `#faf8f1` / `#16231f` | superfícies elevadas (cartão de login) |
-| `primary` / `primary-foreground` | `#4a9686` / `#0a1613` | `#0d3b36` / `#f4f1e8` | verde-cheque — ação principal |
+| `background` / `foreground` | `#1c2622` / `#ece7d8` | `#f4f1e8` / `#16231f` | tela |
+| `card` / `card-foreground` | `#233029` / `#ece7d8` | `#faf8f1` / `#16231f` | superfícies elevadas (cartão de login) |
+| `primary` / `primary-foreground` | `#54a292` / `#0a1613` | `#0d3b36` / `#f4f1e8` | verde-cheque — ação principal |
 | `secondary`, `muted`, `accent` | tons de papel/verde desaturados | idem | hierarquia secundária, hover |
 | `destructive` / `destructive-foreground` | `#e0968c` / `#2a0f0c` | `#7a2b2b` / `#f4f1e8` | erro/atenção — sempre com ícone, nunca só cor |
 | `success` / `success-foreground` | `#d9bd7c` / `#2a1f0c` | `#96742f` / `#2a1f0c` | selo "em dia" — reservado para telas de status (ainda não usado no login/shell) |
-| `border` / `input` / `ring` | tons de contorno derivados do verde | idem | bordas, campos, foco |
+| `border` / `input` / `ring` | `#3a4b41` | tons de contorno derivados do verde | bordas, campos, foco |
+
+**Dark "leve" (revisão de 28/09/2026):** a paleta dark original (`background`
+`#0c1512`, luminância relativa ~0,6%) lia como sombria demais — pedido do
+usuário foi uma dark mais leve/suave, na mesma identidade da light. A
+correção manteve os neutros do dark na mesma família verde-carvão (não virou
+literalmente cor de papel/creme — isso ficaria "sujo", não "dark") mas subiu
+a luminância de fundo pra ~1,75% (`#1c2622`), quase 3x mais clara mantendo
+"dark" de verdade (bem abaixo dos ~20% de um tema "dim"/cinza). `primary`
+ficou um pouco mais claro/fresco (`#4a9686` → `#54a292`) por ser o elo real
+entre os dois temas. `destructive` e `success` não mudaram: já eram tons
+claros/suaves e sobrou contraste de sobra no fundo mais claro. Todos os
+pares texto/fundo reverificados (WCAG): o pior caso (`primary` como texto
+sobre `background`) ficou em 5,16:1, folgado acima do mínimo AA de 4,5:1
+pra texto de corpo.
 
 `primary-foreground` do dark theme usa tinta quase-preta (não branco): o
-verde-cheque claro (#4a9686) só atinge ~6:1 de contraste com texto escuro
-contra ~3.5:1 com branco — medido e escolhido por esse motivo, não por
+verde-cheque claro (#54a292) atinge ~6,1:1 de contraste com texto escuro
+contra bem menos com branco — medido e escolhido por esse motivo, não por
 hábito.
 
 `--radius` = `0.375rem` — deliberadamente mais quadrado que o padrão do

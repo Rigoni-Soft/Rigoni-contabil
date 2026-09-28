@@ -11,28 +11,30 @@
 :root {
   --radius: 0.375rem;
 
-  /* Dark (padrão) */
-  --background: #0c1512;
+  /* Dark (padrão) — "soft dark": mesma família verde-carvão de antes, só que
+   * ~2.5x mais clara (L~6% -> ~15%) em vez de quase-preta. Ver DESIGN.md,
+   * seção Tokens, para o porquê e os contrastes AA verificados. */
+  --background: #1c2622;
   --foreground: #ece7d8;
-  --card: #12201c;
+  --card: #233029;
   --card-foreground: #ece7d8;
-  --popover: #12201c;
+  --popover: #233029;
   --popover-foreground: #ece7d8;
-  --primary: #4a9686;
+  --primary: #54a292;
   --primary-foreground: #0a1613;
-  --secondary: #1c2b26;
+  --secondary: #283630;
   --secondary-foreground: #ece7d8;
-  --muted: #182521;
-  --muted-foreground: #9aa89f;
-  --accent: #1f3a33;
+  --muted: #212b26;
+  --muted-foreground: #a6b3ab;
+  --accent: #2c3a34;
   --accent-foreground: #d7ece6;
   --destructive: #e0968c;
   --destructive-foreground: #2a0f0c;
   --success: #d9bd7c;
   --success-foreground: #2a1f0c;
-  --border: #24352f;
-  --input: #24352f;
-  --ring: #4a9686;
+  --border: #3a4b41;
+  --input: #3a4b41;
+  --ring: #54a292;
 }
 
 .light {
