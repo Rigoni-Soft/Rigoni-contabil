@@ -17,7 +17,7 @@ Funcionário do setor Simples Nacional, checando a saúde de ~342 clientes (docu
 
 THESIS: O dashboard trata cada cliente como uma folha de talão bancário — o guilhochê que prova autenticidade em documentos financeiros vira a moldura visual da confiança, recusando o clichê de "SaaS financeiro" com ícone de cofre/escudo.
 
-OWN-WORLD: Verde-cheque profundo (#0d3b36) como base/acento, papel de segurança creme (#f4f1e8) nas superfícies, selo dourado (#b08d3f) marcando "em dia". Bordas finas de guilhochê (linha de segurança, não decoração) emolduram cards e o painel de cliente. Roboto, números em tabular-nums. Estado sempre marcado por padrão de selo/traço além da cor (raise do Jackfield) — nunca só a cor carrega o significado. Acento de atenção/urgente reservado, nunca espalhado (raise do Cassete).
+OWN-WORLD: Verde-cheque profundo (#0d3b36) como base/acento, papel de segurança creme (#f4f1e8) nas superfícies, selo dourado (#96742f claro / #d9bd7c escuro — token `success`) marcando "em dia". Bordas finas de guilhochê (linha de segurança, não decoração) emolduram cards e o painel de cliente. Roboto, números em tabular-nums. Estado sempre marcado por padrão de selo/traço além da cor (raise do Jackfield) — nunca só a cor carrega o significado. Acento de atenção/urgente reservado, nunca espalhado (raise do Cassete).
 
 STORY: O funcionário abre o dashboard e reconhece, sem precisar pensar, "isso é sério, isso passou por verificação" — cada anel de status é um selo carimbado, nunca um ícone genérico de painel.
 
@@ -29,5 +29,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
 ## Unresolved decisions
 
-- Exato tom de verde-cheque e dourado ainda não validado contra os tokens shadcn (dark/light) — a construir.
-- Como o guilhochê é desenhado tecnicamente (SVG pattern gerado vs. asset) — decisão de implementação, não de direção.
+Nenhuma — as duas abaixo foram resolvidas durante a implementação do #28 (e a paleta dark foi revisada de novo em 28/09/2026). `DESIGN.md` é a fonte da verdade corrente; atualize aqui só se a direção em si mudar, não os valores.
+
+- ~~Exato tom de verde-cheque e dourado ainda não validado contra os tokens shadcn (dark/light) — a construir.~~ Validado e documentado em `DESIGN.md` (seção Tokens).
+- ~~Como o guilhochê é desenhado tecnicamente (SVG pattern gerado vs. asset) — decisão de implementação, não de direção.~~ CSS puro via `mask-composite: exclude`, documentado em `DESIGN.md` (seção Guilhochê).
