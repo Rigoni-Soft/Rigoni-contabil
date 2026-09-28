@@ -54,23 +54,28 @@ test.describe("Cadastro de Funcionário (Líder de setor)", () => {
     const email = `e2e-lider-${Date.now()}@rigonicontabil.local`;
     await page.getByLabel("Nome").fill("Funcionário Contábil E2E");
     await page.getByLabel("E-mail").fill(email);
-    await page.getByLabel("Papel").selectOption("funcionario");
-    await page.getByLabel("Setor").selectOption("contabil");
+    // Papel e Setor já vêm pré-selecionados e travados (só há 1 opção pro Líder).
     await page.getByRole("button", { name: "Cadastrar" }).click();
 
     await expect(page.getByText(`Funcionário Contábil E2E`)).toBeVisible();
     await expect(page.getByText(email)).toBeVisible();
   });
 
-  test("Líder não vê opção de cadastrar Líder nem de escolher outro Setor", async ({ page }) => {
+  test("Líder não vê opção de cadastrar Líder nem de escolher outro Setor — campos já vêm travados", async ({
+    page,
+  }) => {
     await login(page, "lider.contabil@rigonicontabil.local", "lider123");
     await expect(page).toHaveURL("/");
     await page.goto("/admin/usuarios/novo");
 
     const papel = page.getByLabel("Papel");
-    await expect(papel.locator("option")).toHaveText(["Selecione", "Funcionário"]);
+    await expect(papel.locator("option")).toHaveText(["Funcionário"]);
+    await expect(papel).toBeDisabled();
+    await expect(papel).toHaveValue("funcionario");
 
     const setor = page.getByLabel("Setor");
-    await expect(setor.locator("option")).toHaveText(["Selecione", "contabil"]);
+    await expect(setor.locator("option")).toHaveText(["contabil"]);
+    await expect(setor).toBeDisabled();
+    await expect(setor).toHaveValue("contabil");
   });
 });

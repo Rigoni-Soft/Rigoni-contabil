@@ -9,9 +9,13 @@ import { CriarUsuarioForm, type CriarUsuarioFormValues } from "./criar-usuario-f
 function Wrapper({
   onSubmit,
   criado,
+  papeisDisponiveis = ["lider_setor", "funcionario"],
+  setoresDisponiveis = SETORES,
 }: {
   onSubmit: (v: CriarUsuarioFormValues) => void;
   criado?: { nome: string; email: string; senhaProvisoria: string };
+  papeisDisponiveis?: Array<"lider_setor" | "funcionario">;
+  setoresDisponiveis?: readonly string[];
 }) {
   const {
     register,
@@ -26,8 +30,8 @@ function Wrapper({
       onSubmit={handleSubmit(onSubmit)}
       pendente={false}
       criado={criado}
-      papeisDisponiveis={["lider_setor", "funcionario"]}
-      setoresDisponiveis={SETORES}
+      papeisDisponiveis={papeisDisponiveis}
+      setoresDisponiveis={setoresDisponiveis}
     />
   );
 }
@@ -50,6 +54,38 @@ describe("CriarUsuarioForm", () => {
         email: "jessica@rigonicontabil.local",
         papel: "funcionario",
         setor: "simples_nacional",
+      }),
+    );
+  });
+
+  it("Papel e Setor vêm pré-selecionados e travados quando só há 1 opção (Líder), e submetem sem precisar escolher", async () => {
+    const onSubmit = jest.fn();
+    const usuario = userEvent.setup();
+    render(
+      <Wrapper
+        onSubmit={onSubmit}
+        papeisDisponiveis={["funcionario"]}
+        setoresDisponiveis={["contabil"]}
+      />,
+    );
+
+    const papel = screen.getByLabelText("Papel");
+    const setor = screen.getByLabelText("Setor");
+    expect(papel).toBeDisabled();
+    expect(papel).toHaveValue("funcionario");
+    expect(setor).toBeDisabled();
+    expect(setor).toHaveValue("contabil");
+
+    await usuario.type(screen.getByLabelText("Nome"), "Jéssica Souza");
+    await usuario.type(screen.getByLabelText("E-mail"), "jessica@rigonicontabil.local");
+    await usuario.click(screen.getByRole("button", { name: "Cadastrar" }));
+
+    expect(onSubmit.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        nome: "Jéssica Souza",
+        email: "jessica@rigonicontabil.local",
+        papel: "funcionario",
+        setor: "contabil",
       }),
     );
   });

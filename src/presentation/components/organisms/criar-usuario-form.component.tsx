@@ -40,6 +40,11 @@ export function CriarUsuarioForm({
   papeisDisponiveis,
   setoresDisponiveis,
 }: CriarUsuarioFormProps) {
+  // Quando só há 1 opção possível (Líder de setor: só "funcionario" no próprio
+  // Setor), não faz sentido pedir pra escolher — já vem selecionado e travado.
+  const papelUnico = papeisDisponiveis.length === 1 ? papeisDisponiveis[0] : undefined;
+  const setorUnico = setoresDisponiveis.length === 1 ? setoresDisponiveis[0] : undefined;
+
   if (criado) {
     return (
       <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
@@ -73,10 +78,18 @@ export function CriarUsuarioForm({
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="papel">Papel</Label>
-        <Select id="papel" aria-invalid={!!errors.papel} defaultValue="" {...register("papel")}>
-          <option value="" disabled>
-            Selecione
-          </option>
+        <Select
+          id="papel"
+          aria-invalid={!!errors.papel}
+          defaultValue={papelUnico ?? ""}
+          disabled={!!papelUnico}
+          {...register("papel")}
+        >
+          {!papelUnico && (
+            <option value="" disabled>
+              Selecione
+            </option>
+          )}
           {papeisDisponiveis.map((papel) => (
             <option key={papel} value={papel}>
               {PAPEL_LABEL[papel]}
@@ -88,10 +101,18 @@ export function CriarUsuarioForm({
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="setor">Setor</Label>
-        <Select id="setor" aria-invalid={!!errors.setor} defaultValue="" {...register("setor")}>
-          <option value="" disabled>
-            Selecione
-          </option>
+        <Select
+          id="setor"
+          aria-invalid={!!errors.setor}
+          defaultValue={setorUnico ?? ""}
+          disabled={!!setorUnico}
+          {...register("setor")}
+        >
+          {!setorUnico && (
+            <option value="" disabled>
+              Selecione
+            </option>
+          )}
           {setoresDisponiveis.map((setor) => (
             <option key={setor} value={setor}>
               {setor}
