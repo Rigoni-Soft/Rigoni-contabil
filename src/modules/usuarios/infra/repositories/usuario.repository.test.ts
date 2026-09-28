@@ -40,7 +40,7 @@ const comoLiderContabil = () =>
 
 // perfis.id referencia auth.users(id): precisa de um auth.users real (service_role,
 // docs/adr/0001) antes de testar o INSERT em perfis.
-async function criarContaAuthDeTeste(): Promise<string> {
+async function criarContaAuthDeTeste(): Promise<{ id: string; email: string }> {
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
@@ -51,7 +51,7 @@ async function criarContaAuthDeTeste(): Promise<string> {
     email_confirm: true,
   });
   if (error || !data.user) throw new Error(`Falha ao criar conta de teste: ${error?.message}`);
-  return data.user.id;
+  return { id: data.user.id, email };
 }
 
 function usuarioValido(id: string): Usuario {
@@ -170,7 +170,7 @@ describe("SupabaseUsuarioRepository (integração)", () => {
   it("Admin cria um perfil novo (RLS: perfis_insert_admin)", async () => {
     const supabase = await comoAdmin();
     const repositorio = new SupabaseUsuarioRepository(supabase);
-    const id = await criarContaAuthDeTeste();
+    const { id } = await criarContaAuthDeTeste();
 
     const resultado = await repositorio.criar(usuarioValido(id));
 
@@ -183,10 +183,27 @@ describe("SupabaseUsuarioRepository (integração)", () => {
   it("Funcionário não pode criar perfil (RLS)", async () => {
     const supabase = await comoFuncionarioSN();
     const repositorio = new SupabaseUsuarioRepository(supabase);
-    const id = await criarContaAuthDeTeste();
+    const { id } = await criarContaAuthDeTeste();
 
     const resultado = await repositorio.criar(usuarioValido(id));
 
     expect(resultado.ok).toBe(false);
+  });
+
+  it("marca a senha trocada (RPC marcar_senha_trocada, #31) e reflete em buscarPorId", async () => {
+    const admin = await comoAdmin();
+    const repositorioAdmin = new SupabaseUsuarioRepository(admin);
+    const { id, email } = await criarContaAuthDeTeste();
+    await repositorioAdmin.criar(usuarioValido(id));
+    const antes = await repositorioAdmin.buscarPorId(id as UsuarioId);
+    expect(antes?.precisaTrocarSenha()).toBe(true);
+
+    const comoNovoUsuario = await clienteAutenticado(email, "senha-de-teste-123");
+    const repositorioNovoUsuario = new SupabaseUsuarioRepository(comoNovoUsuario);
+    const resultado = await repositorioNovoUsuario.marcarSenhaTrocada();
+
+    expect(resultado.ok).toBe(true);
+    const depois = await repositorioAdmin.buscarPorId(id as UsuarioId);
+    expect(depois?.precisaTrocarSenha()).toBe(false);
   });
 });

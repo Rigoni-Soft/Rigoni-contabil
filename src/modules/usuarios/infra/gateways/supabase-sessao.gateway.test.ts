@@ -8,6 +8,26 @@ import { SupabaseSessaoGateway } from "./supabase-sessao.gateway";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+const SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ??
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
+
+// Conta descartável (não os usuários do seed): #31 muda a senha de verdade, e um
+// teste que mutasse um usuário do seed deixaria a suíte dependente de ordem.
+async function criarContaAuthDeTeste(): Promise<{ email: string; senha: string }> {
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const email = `teste-troca-senha-${crypto.randomUUID()}@rigonicontabil.local`;
+  const senha = "senha-provisoria-123";
+  const { error } = await admin.auth.admin.createUser({
+    email,
+    password: senha,
+    email_confirm: true,
+  });
+  if (error) throw new Error(`Falha ao criar conta de teste: ${error.message}`);
+  return { email, senha };
+}
 
 describe("SupabaseSessaoGateway (integração)", () => {
   it("autentica com credenciais válidas e expõe o id do usuário logado", async () => {
@@ -38,5 +58,19 @@ describe("SupabaseSessaoGateway (integração)", () => {
     await gateway.encerrar();
 
     expect(await gateway.usuarioAtualId()).toBeNull();
+  });
+
+  it("troca a senha do usuário autenticado (#31) e a nova senha passa a autenticar", async () => {
+    const { email, senha } = await criarContaAuthDeTeste();
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const gateway = new SupabaseSessaoGateway(supabase);
+    await gateway.autenticar(email, senha);
+
+    const resultado = await gateway.trocarSenha("nova-senha-definitiva-123");
+
+    expect(resultado.ok).toBe(true);
+    await gateway.encerrar();
+    const reautenticado = await gateway.autenticar(email, "nova-senha-definitiva-123");
+    expect(reautenticado.ok).toBe(true);
   });
 });

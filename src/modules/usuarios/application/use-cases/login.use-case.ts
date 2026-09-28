@@ -34,8 +34,7 @@ export class Login implements LoginPort {
     // #31/ADR 0002: expirada sem troca também bloqueia — Admin recadastra a
     // conta (não há endpoint de "regenerar" ainda, YAGNI até virar pedido real).
     if (usuario.senhaProvisoriaVencida(new Date())) {
-      await this.sessao.encerrar();
-      return err(new ForbiddenError("Senha provisória expirada. Peça ao Admin uma nova conta."));
+      return this.abortarSessaoOrfa("Senha provisória expirada. Peça ao Admin uma nova conta.");
     }
 
     return ok(usuarioParaDto(usuario));
