@@ -135,6 +135,18 @@ sem sufixo `.component`, isentas de teste por convenção —
   ajuste local, para qualquer select de formulário futuro herdar o mesmo
   contrato de erro do `input.tsx`. Qualquer novo select do produto reusa
   este componente em vez de repetir as classes inline.
+
+  **Campo travado quando só há 1 opção válida (28/09/2026, #32):** no
+  cadastro de Líder/Funcionário, quando quem está logado é Líder de setor,
+  o caso de uso só aceita `papel = "funcionario"` no próprio Setor — ou
+  seja, os `<select>` de Papel e Setor têm exatamente 1 opção possível.
+  Nesse caso o campo vem `disabled` com essa opção já selecionada
+  (`defaultValue`), sem o placeholder "Selecione": não existe escolha real
+  a fazer, só confirmação visual do que vai ser cadastrado. Só aparece a
+  lista completa + placeholder quando há mais de 1 opção (Admin). Qualquer
+  campo de formulário futuro com esse mesmo formato (opções decididas por
+  RBAC, às vezes reduzidas a 1) segue o mesmo padrão em vez de forçar uma
+  seleção sem escolha real.
 - `label.tsx`, `field-error.tsx` — erro de campo sempre ícone (`AlertCircle`)
   + texto + cor, nunca só cor (contrato "Talão de Cheque": estado por
   padrão/ícone além de cor).
@@ -158,6 +170,21 @@ de conta criada, fora de uma lista — confirma que o contrato é de indicador
 de resultado em geral, não específico de tabela. `success` (dourado) fica
 reservado ao selo "em dia" do Simples Nacional — não se usa aqui para não
 sobrepor dois significados no mesmo token.
+
+### Ações pós-sucesso (confirmação de cadastro)
+
+**"Cadastrar outro" / "Finalizar" (28/09/2026, #32):** a tela de
+confirmação do cadastro de Líder/Funcionário (senha provisória exibida)
+ganhou duas ações lado a lado — `Button` primário "Cadastrar outro"
+(ícone `UserPlus`, limpa Nome/E-mail e devolve o formulário pronto pra um
+novo cadastro, mantendo Papel/Setor travados quando aplicável) e um
+`<Link>` estilizado com `buttonVariants({ variant: "outline" })` "Finalizar"
+(ícone `Check`) que leva pra `/`. `/` é provisório: ainda não existe uma
+tela própria do Setor pra voltar (mesma situação já registrada para o link
+"Trocar senha" do `ShellHeader`, #31) — trocar o destino quando essa tela
+existir, sem mudar o padrão dos dois botões em si. Vale pra qualquer tela
+futura de cadastro em lote (ex.: Cadastro de Cliente, #33): oferecer
+continuar sem sair, e um jeito explícito de encerrar.
 
 ## Estados e motion
 
