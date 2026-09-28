@@ -28,7 +28,7 @@ test.describe("Cadastro de Líder/Funcionário (Admin only)", () => {
     await expect(page.getByText(`Funcionário E2E`)).toBeVisible();
     await expect(page.getByText(email)).toBeVisible();
     // 12 caracteres do alfabeto sem 0/O/1/I (supabase-auth-admin.gateway.ts)
-    await expect(page.locator("p.font-mono")).toHaveText(/^[A-HJ-NP-Z2-9]{12}$/);
+    await expect(page.getByText(/^[A-HJ-NP-Z2-9]{12}$/)).toBeVisible();
   });
 
   test("Funcionário é redirecionado pra fora do cadastro de usuário", async ({ page }) => {
