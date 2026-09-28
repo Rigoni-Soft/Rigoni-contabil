@@ -3,8 +3,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
 import type { RegistroAcaoDto } from "@/modules/auditoria/application/dtos/registro-acao.dto";
-import { useFeedAuditoria } from "@/modules/auditoria/presentation/view-models/feed/feed.queries";
 import { registroAcaoParaView } from "@/modules/auditoria/presentation/view-models/feed/feed.presenter";
+import { useFeedAuditoria } from "@/modules/auditoria/presentation/view-models/feed/feed.queries";
 import {
   filtroFeedSchema,
   type FiltroFeedValues,

@@ -1,6 +1,6 @@
-import { SETORES, type SetorSlug } from "@/shared/kernel/setores";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
+import { SETORES, type SetorSlug } from "@/shared/kernel/setores";
 
 export { SETORES, type SetorSlug };
 
