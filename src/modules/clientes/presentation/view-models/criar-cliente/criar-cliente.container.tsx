@@ -16,6 +16,8 @@ export function CriarClienteContainer() {
   const [pendente, setPendente] = useState(false);
   const [erroServidor, setErroServidor] = useState<string | undefined>();
   const [criado, setCriado] = useState<ClienteCriado | undefined>();
+  const [avisoCnpj, setAvisoCnpj] = useState<string | undefined>();
+  const [avisoRegime, setAvisoRegime] = useState<string | undefined>();
   const { consultar: consultarCnpj } = useConsultarCnpj();
 
   const {
@@ -47,19 +49,43 @@ export function CriarClienteContainer() {
 
   // Autopreenche Empresa/Regime via API pública ao sair do campo CNPJ, sem
   // sobrescrever o que o Admin já tiver digitado à mão (ponto 4 do feedback
-  // manual, 2026-09-29).
+  // manual, 2026-09-29). Avisa e libera preenchimento manual quando o CNPJ
+  // não é encontrado, ou quando é encontrado mas o Regime não dá pra
+  // confirmar automaticamente (feedback manual, 2026-09-29).
   const aoDesfocarCnpj = async (cnpjMascarado: string) => {
+    setAvisoCnpj(undefined);
+    setAvisoRegime(undefined);
+
     const digitos = cnpjMascarado.replace(/\D/g, "");
     const dados = await consultarCnpj(digitos);
-    if (!dados) return;
 
-    if (dados.empresa && !getValues("empresa")) {
-      setValue("empresa", dados.empresa, { shouldValidate: true });
-    }
-    if (dados.regime && !getValues("regime")) {
-      setValue("regime", dados.regime, { shouldValidate: true });
-    }
+    // setTimeout: nunca deixa esses setState caírem no mesmo lote de render
+    // de uma ação síncrona concorrente (ex.: clicar "Adicionar" bem quando a
+    // resposta chega) — mesma causa raiz do bug de corrida com
+    // useFieldArray.append() já corrigido nesta tela (ver use-consultar-cnpj.hook.ts).
+    setTimeout(() => {
+      if (!dados) {
+        setAvisoCnpj(
+          "CNPJ não encontrado. Confirme a numeração ou preencha Empresa e Regime manualmente.",
+        );
+        return;
+      }
+
+      if (dados.empresa && !getValues("empresa")) {
+        setValue("empresa", dados.empresa, { shouldValidate: true });
+      }
+
+      if (dados.regime) {
+        if (!getValues("regime")) setValue("regime", dados.regime, { shouldValidate: true });
+      } else {
+        setAvisoRegime(
+          "Não foi possível confirmar o Regime automaticamente. Selecione manualmente.",
+        );
+      }
+    }, 0);
   };
+
+  const aoAlterarRegime = () => setAvisoRegime(undefined);
 
   const aoSubmeter = handleSubmit(async (valores) => {
     setPendente(true);
@@ -90,6 +116,9 @@ export function CriarClienteContainer() {
       onAdicionarAlteracao={aoAdicionarAlteracao}
       onRemoverAlteracao={remove}
       onCnpjBlur={aoDesfocarCnpj}
+      avisoCnpj={avisoCnpj}
+      avisoRegime={avisoRegime}
+      onRegimeChange={aoAlterarRegime}
     />
   );
 }

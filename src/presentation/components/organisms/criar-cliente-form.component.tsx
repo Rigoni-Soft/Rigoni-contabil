@@ -46,6 +46,11 @@ type CriarClienteFormProps = {
   // CNPJ→autopreenchimento de Empresa/Regime via API pública (ponto 4 do
   // feedback manual, 2026-09-29) — a consulta em si mora no Container.
   onCnpjBlur: (cnpjMascarado: string) => void;
+  // Avisos da consulta de CNPJ (não são erro de validação — o Zod não sabe
+  // se um CNPJ bem formado existe de verdade — por isso ficam fora de `errors`).
+  avisoCnpj?: string;
+  avisoRegime?: string;
+  onRegimeChange: () => void;
 };
 
 export function CriarClienteForm({
@@ -61,6 +66,9 @@ export function CriarClienteForm({
   onAdicionarAlteracao,
   onRemoverAlteracao,
   onCnpjBlur,
+  avisoCnpj,
+  avisoRegime,
+  onRegimeChange,
 }: CriarClienteFormProps) {
   if (criado) {
     return (
@@ -118,6 +126,7 @@ export function CriarClienteForm({
           )}
         />
         {errors.cnpj && <FieldError>{errors.cnpj.message}</FieldError>}
+        {!errors.cnpj && avisoCnpj && <FieldError>{avisoCnpj}</FieldError>}
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -144,7 +153,7 @@ export function CriarClienteForm({
           aria-required="true"
           aria-invalid={!!errors.regime}
           defaultValue=""
-          {...register("regime")}
+          {...register("regime", { onChange: onRegimeChange })}
         >
           <option value="" disabled>
             Selecione
@@ -156,6 +165,7 @@ export function CriarClienteForm({
           ))}
         </Select>
         {errors.regime && <FieldError>{errors.regime.message}</FieldError>}
+        {!errors.regime && avisoRegime && <FieldError>{avisoRegime}</FieldError>}
       </div>
 
       {/* Seção de documentos separada da identificação do Cliente — mais espaço

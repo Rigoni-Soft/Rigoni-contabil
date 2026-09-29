@@ -68,6 +68,53 @@ describe("CriarClienteContainer", () => {
     expect(screen.getByLabelText(/^Empresa/)).toHaveValue("Nome digitado à mão");
   });
 
+  it("avisa e libera Empresa/Regime pra preenchimento manual quando o CNPJ não é encontrado", async () => {
+    consultarMock.mockResolvedValue(null);
+    const usuario = userEvent.setup();
+    render(<CriarClienteContainer />);
+
+    await usuario.type(screen.getByLabelText(/^CNPJ/), "11.444.777/0001-61");
+    await usuario.tab();
+
+    expect(
+      await screen.findByText(/CNPJ não encontrado.*preencha Empresa e Regime manualmente/i),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Empresa/)).not.toBeDisabled();
+    expect(screen.getByLabelText(/^Regime/)).not.toBeDisabled();
+
+    // segue preenchível à mão depois do aviso
+    await usuario.type(screen.getByLabelText(/^Empresa/), "Padaria Pão Quente Ltda");
+    expect(screen.getByLabelText(/^Empresa/)).toHaveValue("Padaria Pão Quente Ltda");
+  });
+
+  it("avisa e libera Regime pra seleção manual quando o CNPJ é encontrado mas o regime não é confirmado", async () => {
+    consultarMock.mockResolvedValue({ empresa: "Padaria Pão Quente Ltda", regime: undefined });
+    const usuario = userEvent.setup();
+    render(<CriarClienteContainer />);
+
+    await usuario.type(screen.getByLabelText(/^CNPJ/), "11.444.777/0001-61");
+    await usuario.tab();
+
+    expect(await screen.findByLabelText(/^Empresa/)).toHaveValue("Padaria Pão Quente Ltda");
+    expect(screen.getByText(/Não foi possível confirmar o Regime/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Regime/)).not.toBeDisabled();
+    expect(screen.getByLabelText(/^Regime/)).toHaveValue("");
+  });
+
+  it("some o aviso de Regime assim que o usuário seleciona manualmente", async () => {
+    consultarMock.mockResolvedValue({ empresa: "Padaria Pão Quente Ltda", regime: undefined });
+    const usuario = userEvent.setup();
+    render(<CriarClienteContainer />);
+
+    await usuario.type(screen.getByLabelText(/^CNPJ/), "11.444.777/0001-61");
+    await usuario.tab();
+    await screen.findByText(/Não foi possível confirmar o Regime/i);
+
+    await usuario.selectOptions(screen.getByLabelText(/^Regime/), "simples_nacional");
+
+    expect(screen.queryByText(/Não foi possível confirmar o Regime/i)).not.toBeInTheDocument();
+  });
+
   it("aplica a máscara de CNPJ enquanto digita", async () => {
     const usuario = userEvent.setup();
     render(<CriarClienteContainer />);
