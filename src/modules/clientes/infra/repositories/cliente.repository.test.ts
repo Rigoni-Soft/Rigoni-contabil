@@ -61,6 +61,30 @@ describe("SupabaseClienteRepository (integração)", () => {
     expect(alteracoes).toHaveLength(1);
   });
 
+  it("Admin cadastra um Cliente sem contrato social (campo opcional, decisão de produto 2026-09-29)", async () => {
+    const supabase = await comoAdmin();
+    const repositorio = new SupabaseClienteRepository(supabase);
+    const resultado_construcao = Cliente.builder()
+      .comId(crypto.randomUUID())
+      .comEmpresa("Padaria Pão Quente Ltda")
+      .comCnpj("20045044000145")
+      .comRegime("simples_nacional")
+      .comContratoSocialCaminho(null)
+      .comAlteracoesContratuais([])
+      .build();
+    if (!resultado_construcao.ok) throw new Error("setup inválido");
+
+    const resultado = await repositorio.criar(resultado_construcao.value);
+
+    expect(resultado.ok).toBe(true);
+    const { data: linha } = await supabase
+      .from("clientes")
+      .select("*")
+      .eq("id", resultado_construcao.value.id)
+      .maybeSingle();
+    expect(linha?.contrato_social_caminho).toBeNull();
+  });
+
   it("rejeita CNPJ duplicado (constraint unique)", async () => {
     const supabase = await comoAdmin();
     const repositorio = new SupabaseClienteRepository(supabase);

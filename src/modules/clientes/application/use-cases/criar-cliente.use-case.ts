@@ -33,11 +33,17 @@ export class CriarCliente implements CriarClientePort {
 
     const id = crypto.randomUUID();
 
-    const contratoSocial = await this.storage.enviar(
-      `${id}/contrato-social/${input.contratoSocial.name}`,
-      input.contratoSocial,
-    );
-    if (!contratoSocial.ok) return this.falhar(ator, input, contratoSocial);
+    // Opcional (decisão de produto 2026-09-29): só envia ao Storage quando o
+    // Admin anexou um arquivo.
+    let contratoSocialCaminho: string | null = null;
+    if (input.contratoSocial) {
+      const contratoSocial = await this.storage.enviar(
+        `${id}/contrato-social/${input.contratoSocial.name}`,
+        input.contratoSocial,
+      );
+      if (!contratoSocial.ok) return this.falhar(ator, input, contratoSocial);
+      contratoSocialCaminho = contratoSocial.value.caminho;
+    }
 
     const alteracoes = await this.enviarAlteracoes(id, input.alteracoesContratuais);
     if (!alteracoes.ok) return this.falhar(ator, input, alteracoes);
@@ -47,7 +53,7 @@ export class CriarCliente implements CriarClientePort {
       .comEmpresa(input.empresa)
       .comCnpj(input.cnpj)
       .comRegime(input.regime)
-      .comContratoSocialCaminho(contratoSocial.value.caminho)
+      .comContratoSocialCaminho(contratoSocialCaminho)
       .comAlteracoesContratuais(alteracoes.value)
       .build();
     if (!construido.ok) return this.falhar(ator, input, construido);

@@ -11,7 +11,9 @@ export type ClienteProps = {
   empresa: string;
   cnpj: Cnpj;
   regime: Regime;
-  contratoSocialCaminho: string;
+  // Opcional (decisão de produto 2026-09-29, atualiza a spec #24): nem todo
+  // Cliente tem o contrato social anexado no momento do cadastro.
+  contratoSocialCaminho: string | null;
   alteracoesContratuais: readonly AlteracaoContratual[];
 };
 
@@ -38,7 +40,7 @@ export class Cliente {
     return this.props.regime;
   }
 
-  get contratoSocialCaminho(): string {
+  get contratoSocialCaminho(): string | null {
     return this.props.contratoSocialCaminho;
   }
 

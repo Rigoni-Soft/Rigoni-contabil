@@ -16,7 +16,7 @@ export type ClienteRestaurar = {
   empresa: string;
   cnpj: string;
   regime: string;
-  contratoSocialCaminho: string;
+  contratoSocialCaminho: string | null;
   alteracoesContratuais: AlteracaoContratualRestaurar[];
 };
 
@@ -25,7 +25,9 @@ export class ClienteBuilder {
   private empresa?: string;
   private cnpj?: Cnpj;
   private regime?: Regime;
-  private contratoSocialCaminho?: string;
+  // Opcional (decisão de produto 2026-09-29) — sem sentinela `undefined` pra
+  // distinguir "setter nunca chamado" porque não há mais checagem de presença.
+  private contratoSocialCaminho: string | null = null;
   private alteracoesContratuais: AlteracaoContratual[] = [];
   private readonly camposInvalidos: Record<string, string[]> = {};
 
@@ -56,8 +58,7 @@ export class ClienteBuilder {
     return this;
   }
 
-  comContratoSocialCaminho(caminho: string): this {
-    if (!caminho.trim()) this.camposInvalidos.contratoSocial = ["obrigatório"];
+  comContratoSocialCaminho(caminho: string | null): this {
     this.contratoSocialCaminho = caminho;
     return this;
   }
@@ -106,8 +107,6 @@ export class ClienteBuilder {
       this.camposInvalidos.cnpj = ["obrigatório"];
     if (this.regime === undefined && !this.camposInvalidos.regime)
       this.camposInvalidos.regime = ["obrigatório"];
-    if (this.contratoSocialCaminho === undefined)
-      this.camposInvalidos.contratoSocial = ["obrigatório"];
 
     if (Object.keys(this.camposInvalidos).length > 0) {
       return err(new ValidationError("Dados de cliente inválidos", { ...this.camposInvalidos }));
@@ -119,7 +118,7 @@ export class ClienteBuilder {
         empresa: this.empresa!,
         cnpj: this.cnpj!,
         regime: this.regime!,
-        contratoSocialCaminho: this.contratoSocialCaminho!,
+        contratoSocialCaminho: this.contratoSocialCaminho,
         alteracoesContratuais: this.alteracoesContratuais,
       }),
     );

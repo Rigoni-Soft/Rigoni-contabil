@@ -110,6 +110,25 @@ describe("CriarCliente", () => {
     ]);
   });
 
+  it("cadastra sem contrato social (campo opcional, decisão de produto 2026-09-29)", async () => {
+    const sessao = new SessaoFalsa();
+    const clientes = new ClienteRepositoryFalso();
+    const storage = new ArquivoStorageFalso();
+    const auditoria = new AuditoriaFalsa();
+
+    const resultado = await new CriarCliente(sessao, clientes, storage, auditoria).execute({
+      ...INPUT_VALIDO,
+      contratoSocial: undefined,
+    });
+
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) expect(resultado.value.cliente.contratoSocialCaminho).toBeNull();
+    expect(clientes.criado?.contratoSocialCaminho).toBeNull();
+    expect(storage.enviados).not.toEqual(
+      expect.arrayContaining([expect.stringContaining("contrato-social")]),
+    );
+  });
+
   it("Cadastra sem nenhuma alteração contratual", async () => {
     const sessao = new SessaoFalsa();
     const clientes = new ClienteRepositoryFalso();

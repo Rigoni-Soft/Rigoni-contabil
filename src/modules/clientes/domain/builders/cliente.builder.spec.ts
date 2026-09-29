@@ -38,22 +38,36 @@ describe("ClienteBuilder", () => {
     if (resultado.ok) expect(resultado.value.alteracoesContratuais).toEqual([]);
   });
 
-  it("acumula erros de empresa vazia, CNPJ e regime inválidos, e contrato social ausente", () => {
+  it("acumula erros de empresa vazia, CNPJ e regime inválidos", () => {
     const resultado = Cliente.builder()
       .comId("11111111-1111-1111-1111-111111111111")
       .comEmpresa("")
       .comCnpj("123")
       .comRegime("lucro_arbitrado")
-      .comContratoSocialCaminho("")
+      .comContratoSocialCaminho(null)
       .comAlteracoesContratuais([])
       .build();
 
     expect(resultado.ok).toBe(false);
     if (!resultado.ok) {
       expect(Object.keys(resultado.error.fields ?? {})).toEqual(
-        expect.arrayContaining(["empresa", "cnpj", "regime", "contratoSocial"]),
+        expect.arrayContaining(["empresa", "cnpj", "regime"]),
       );
     }
+  });
+
+  it("aceita Cliente sem contrato social (campo opcional, decisão de produto 2026-09-29)", () => {
+    const resultado = Cliente.builder()
+      .comId("11111111-1111-1111-1111-111111111111")
+      .comEmpresa("Padaria Pão Quente Ltda")
+      .comCnpj(CNPJ_VALIDO)
+      .comRegime("simples_nacional")
+      .comContratoSocialCaminho(null)
+      .comAlteracoesContratuais([])
+      .build();
+
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) expect(resultado.value.contratoSocialCaminho).toBeNull();
   });
 
   it("acumula erro quando uma alteração contratual tem data inválida", () => {
@@ -78,7 +92,7 @@ describe("ClienteBuilder", () => {
     expect(resultado.ok).toBe(false);
     if (!resultado.ok) {
       expect(Object.keys(resultado.error.fields ?? {})).toEqual(
-        expect.arrayContaining(["empresa", "cnpj", "regime", "contratoSocial"]),
+        expect.arrayContaining(["empresa", "cnpj", "regime"]),
       );
     }
   });
