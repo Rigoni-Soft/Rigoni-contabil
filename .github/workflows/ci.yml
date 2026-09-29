@@ -81,6 +81,13 @@ jobs:
 
       - run: yarn test:int
 
+      - name: Reseta o Supabase local (migrations + seed) antes do E2E
+        # test:int persiste registros reais no banco (ex.: SupabaseRegistroAcaoRepository
+        # salva `acao: "usuario.criar"`/"cliente.editar" sem limpeza). Sem reset aqui, o
+        # E2E roda sobre estado sujo e getByText exato bate 2+ elementos com o mesmo texto
+        # do seed. Mesma disciplina já usada localmente (docs/testes.md).
+        run: supabase db reset
+
       - name: Instala os browsers do Playwright
         run: npx playwright install --with-deps chromium
 
