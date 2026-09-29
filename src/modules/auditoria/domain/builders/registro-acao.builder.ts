@@ -84,7 +84,23 @@ export class RegistroAcaoBuilder {
   }
 
   build(): Result<RegistroAcao, ValidationError> {
+    // Presença checada aqui, não nos setters: um setter nunca chamado não deixa
+    // rastro em camposInvalidos, e os `!` abaixo mascarariam undefined em runtime
+    // (mesmo achado da devolutiva #55, ponto 03, aplicado ao builder de Usuario).
+    // O guard `!this.camposInvalidos.X` evita sobrescrever a mensagem específica
+    // que o setter já registrou quando FOI chamado com um valor inválido (ex.:
+    // comResultado("parcial")) — só entra quando o setter nunca rodou.
     if (!this.id) this.camposInvalidos.id = ["obrigatório"];
+    if (this.ator === undefined && !this.camposInvalidos.ator)
+      this.camposInvalidos.ator = ["obrigatório"];
+    if (this.setor === undefined && !this.camposInvalidos.setor)
+      this.camposInvalidos.setor = ["obrigatório"];
+    if (this.acao === undefined && !this.camposInvalidos.acao)
+      this.camposInvalidos.acao = ["obrigatório"];
+    if (this.alvo === undefined && !this.camposInvalidos.alvo)
+      this.camposInvalidos.alvo = ["obrigatório"];
+    if (this.resultado === undefined && !this.camposInvalidos.resultado)
+      this.camposInvalidos.resultado = ["obrigatório"];
     if (!this.dataHora) this.camposInvalidos.dataHora = ["obrigatório"];
 
     if (Object.keys(this.camposInvalidos).length > 0) {

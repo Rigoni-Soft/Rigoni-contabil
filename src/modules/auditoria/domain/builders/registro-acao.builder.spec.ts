@@ -41,6 +41,32 @@ describe("RegistroAcaoBuilder", () => {
     }
   });
 
+  it("rejeita quando um campo obrigatório nunca teve seu setter chamado (devolutiva #55, ponto 03)", () => {
+    const resultado = RegistroAcao.builder().comId("11111111-1111-1111-1111-111111111111").build();
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) {
+      expect(Object.keys(resultado.error.fields ?? {})).toEqual(
+        expect.arrayContaining(["ator", "setor", "acao", "alvo", "resultado", "dataHora"]),
+      );
+    }
+  });
+
+  it("preserva a mensagem específica de resultado inválido em vez do genérico 'obrigatório'", () => {
+    const resultado = RegistroAcao.builder()
+      .comId("11111111-1111-1111-1111-111111111111")
+      .comAtor("11111111-1111-1111-1111-111111111111")
+      .comSetor("administrativo")
+      .comAcao("usuario.criar")
+      .comAlvo("alvo")
+      .comResultado("parcial")
+      .comDataHora(DATA_HORA)
+      .build();
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error.fields?.resultado).not.toEqual(["obrigatório"]);
+  });
+
   it("restaurar reconstitui a partir de dados persistidos", () => {
     const resultado = RegistroAcao.builder()
       .restaurar({
