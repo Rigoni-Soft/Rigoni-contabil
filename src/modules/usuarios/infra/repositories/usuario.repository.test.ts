@@ -176,7 +176,8 @@ describe("SupabaseUsuarioRepository (integração)", () => {
 
     expect(resultado.ok).toBe(true);
     const salvo = await repositorio.buscarPorId(id as UsuarioId);
-    expect(salvo?.papel.valor).toBe("funcionario");
+    expect(salvo.ok).toBe(true);
+    if (salvo.ok) expect(salvo.value?.papel.valor).toBe("funcionario");
   });
 
   it("Funcionário não pode criar perfil (RLS)", async () => {

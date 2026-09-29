@@ -42,9 +42,11 @@ class UsuarioRepositoryFalso implements UsuarioRepository {
   ator: Usuario | null = usuarioFalso("admin-1", "admin");
   criado: Usuario | null = null;
   erroAoCriar = false;
+  erroTecnicoAoBuscarAtor: AppError | null = null;
 
-  async buscarPorId(id: UsuarioId): Promise<Usuario | null> {
-    return id === "admin-1" ? this.ator : null;
+  async buscarPorId(id: UsuarioId): Promise<Result<Usuario | null, AppError>> {
+    if (this.erroTecnicoAoBuscarAtor) return err(this.erroTecnicoAoBuscarAtor);
+    return ok(id === "admin-1" ? this.ator : null);
   }
   async criar(usuario: Usuario): Promise<Result<void, AppError>> {
     if (this.erroAoCriar) return err(new ValidationError("falha ao salvar"));
@@ -120,6 +122,22 @@ describe("CriarUsuario", () => {
 
     expect(resultado.ok).toBe(false);
     if (!resultado.ok) expect(resultado.error).toBeInstanceOf(ForbiddenError);
+    expect(usuarios.criado).toBeNull();
+  });
+
+  it("propaga o erro tecnico (nao 'sem permissao') quando buscarPorId do ator falha (devolutiva #55, ponto 02)", async () => {
+    const sessao = new SessaoFalsa();
+    const usuarios = new UsuarioRepositoryFalso();
+    usuarios.erroTecnicoAoBuscarAtor = new ForbiddenError("Falha ao buscar perfil: indisponível");
+    const authAdmin = new AuthAdminFalso();
+    const auditoria = new AuditoriaFalsa();
+
+    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
+      INPUT_VALIDO,
+    );
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error.message).not.toMatch(/Admin cadastra/);
     expect(usuarios.criado).toBeNull();
   });
 

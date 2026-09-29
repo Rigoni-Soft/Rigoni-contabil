@@ -25,7 +25,11 @@ export class CriarUsuario implements CriarUsuarioPort {
     const atorId = await this.sessao.usuarioAtualId();
     if (!atorId) return err(new ForbiddenError("Sessão inválida."));
 
-    const ator = await this.usuarios.buscarPorId(atorId);
+    const perfilAtor = await this.usuarios.buscarPorId(atorId);
+    // Erro técnico não vira "sem permissão" (devolutiva #55, ponto 02): propaga o
+    // AppError original em vez de mascará-lo como Forbidden.
+    if (!perfilAtor.ok) return perfilAtor;
+    const ator = perfilAtor.value;
     if (!ator || !ator.papel.ehAdmin()) {
       return err(new ForbiddenError("Só Admin cadastra Líder/Funcionário."));
     }
