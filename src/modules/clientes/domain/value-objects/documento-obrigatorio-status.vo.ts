@@ -12,7 +12,9 @@ export class DocumentoObrigatorioStatus {
     if (!DOCUMENTO_OBRIGATORIO_STATUSES.includes(entrada as DocumentoObrigatorioStatusValor)) {
       return err(new ValidationError(`Status de documento obrigatório inválido: ${entrada}`));
     }
-    return ok(new DocumentoObrigatorioStatus({ valor: entrada as DocumentoObrigatorioStatusValor }));
+    return ok(
+      new DocumentoObrigatorioStatus({ valor: entrada as DocumentoObrigatorioStatusValor }),
+    );
   }
 
   get valor(): DocumentoObrigatorioStatusValor {

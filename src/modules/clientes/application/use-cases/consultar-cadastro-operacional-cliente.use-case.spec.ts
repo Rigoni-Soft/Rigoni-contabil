@@ -25,7 +25,9 @@ const DTO: CadastroOperacionalClienteDto = {
 
 class ClienteQueryPortFalso implements ClienteQueryPort {
   constructor(private dto: CadastroOperacionalClienteDto | null) {}
-  async buscarCadastroOperacional(): Promise<Result<CadastroOperacionalClienteDto | null, AppError>> {
+  async buscarCadastroOperacional(): Promise<
+    Result<CadastroOperacionalClienteDto | null, AppError>
+  > {
     return ok(this.dto);
   }
 }

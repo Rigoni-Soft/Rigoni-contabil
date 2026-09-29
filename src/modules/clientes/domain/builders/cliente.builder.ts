@@ -129,7 +129,9 @@ export class ClienteBuilder {
 
   comContatos(entradas: ContatoRestaurar[]): this {
     const erros: string[] = [];
-    this.contatos = entradas.flatMap((entrada, indice) => this.validarContato(entrada, indice, erros));
+    this.contatos = entradas.flatMap((entrada, indice) =>
+      this.validarContato(entrada, indice, erros),
+    );
     if (erros.length > 0) this.camposInvalidos.contatos = erros;
     return this;
   }
@@ -210,13 +212,15 @@ export class ClienteBuilder {
       .comAlteracoesContratuais(dados.alteracoesContratuais);
     if (dados.formaEnvio !== undefined) this.comFormaEnvio(dados.formaEnvio);
     if (dados.contatos !== undefined) this.comContatos(dados.contatos);
-    if (dados.documentoObrigatorio !== undefined) this.comDocumentoObrigatorio(dados.documentoObrigatorio);
+    if (dados.documentoObrigatorio !== undefined)
+      this.comDocumentoObrigatorio(dados.documentoObrigatorio);
     if (dados.dasStatus !== undefined) this.comDasStatus(dados.dasStatus);
     if (dados.dataEnvioDas !== undefined) {
       this.comDataEnvioDas(dados.dataEnvioDas ? new Date(dados.dataEnvioDas) : null);
     }
     if (dados.temParcelamento !== undefined) this.comTemParcelamento(dados.temParcelamento);
-    if (dados.parcelamentoStatus !== undefined) this.comParcelamentoStatus(dados.parcelamentoStatus);
+    if (dados.parcelamentoStatus !== undefined)
+      this.comParcelamentoStatus(dados.parcelamentoStatus);
     if (dados.observacoesGerais !== undefined) this.comObservacoesGerais(dados.observacoesGerais);
     if (dados.atividadeMesAtual !== undefined) this.comAtividadeMesAtual(dados.atividadeMesAtual);
     return this;
