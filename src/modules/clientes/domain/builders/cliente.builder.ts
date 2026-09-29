@@ -4,12 +4,25 @@ import type {
   ClienteProps,
 } from "@/modules/clientes/domain/entities/cliente.entity";
 import { AlteracaoContratual } from "@/modules/clientes/domain/value-objects/alteracao-contratual.vo";
+import { AtividadeMensal } from "@/modules/clientes/domain/value-objects/atividade-mensal.vo";
 import { Cnpj } from "@/modules/clientes/domain/value-objects/cnpj.vo";
+import { Contato } from "@/modules/clientes/domain/value-objects/contato.vo";
+import { DasStatus } from "@/modules/clientes/domain/value-objects/das-status.vo";
+import { DocumentoObrigatorioStatus } from "@/modules/clientes/domain/value-objects/documento-obrigatorio-status.vo";
+import { FormaEnvio } from "@/modules/clientes/domain/value-objects/forma-envio.vo";
+import { ParcelamentoStatus } from "@/modules/clientes/domain/value-objects/parcelamento-status.vo";
 import { Regime } from "@/modules/clientes/domain/value-objects/regime.vo";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 export type AlteracaoContratualRestaurar = { data: string; arquivoCaminho: string };
+export type ContatoRestaurar = { id?: string; nome: string; telefone: string; padrao: boolean };
+export type AtividadeMensalRestaurar = {
+  anoMes: string;
+  industria: boolean;
+  comercio: boolean;
+  servico: boolean;
+};
 
 export type ClienteRestaurar = {
   id: string;
@@ -18,6 +31,15 @@ export type ClienteRestaurar = {
   regime: string;
   contratoSocialCaminho: string | null;
   alteracoesContratuais: AlteracaoContratualRestaurar[];
+  formaEnvio?: string;
+  contatos?: ContatoRestaurar[];
+  documentoObrigatorio?: string | null;
+  dasStatus?: string | null;
+  dataEnvioDas?: string | null;
+  temParcelamento?: boolean;
+  parcelamentoStatus?: string | null;
+  observacoesGerais?: string;
+  atividadeMesAtual?: AtividadeMensalRestaurar | null;
 };
 
 export class ClienteBuilder {
@@ -29,6 +51,19 @@ export class ClienteBuilder {
   // distinguir "setter nunca chamado" porque não há mais checagem de presença.
   private contratoSocialCaminho: string | null = null;
   private alteracoesContratuais: AlteracaoContratual[] = [];
+  // Campos operacionais do Simples Nacional (#34) — todos opcionais/com
+  // default, igual a contratoSocialCaminho: um Cliente recém-criado pelo #33
+  // ainda não tem nenhum deles preenchido. formaEnvio só vira VO no build()
+  // (default "whatsapp" quando o setter nunca foi chamado).
+  private formaEnvio: FormaEnvio | null = null;
+  private contatos: Contato[] = [];
+  private documentoObrigatorio: DocumentoObrigatorioStatus | null = null;
+  private dasStatus: DasStatus | null = null;
+  private dataEnvioDas: Date | null = null;
+  private temParcelamento = false;
+  private parcelamentoStatus: ParcelamentoStatus | null = null;
+  private observacoesGerais = "";
+  private atividadeMesAtual: AtividadeMensal | null = null;
   private readonly camposInvalidos: Record<string, string[]> = {};
 
   constructor(private readonly criar: (props: ClienteProps) => Cliente) {}
@@ -85,13 +120,106 @@ export class ClienteBuilder {
     return [resultado.value];
   }
 
+  comFormaEnvio(entrada: string): this {
+    const resultado = FormaEnvio.criar(entrada);
+    if (resultado.ok) this.formaEnvio = resultado.value;
+    else this.camposInvalidos.formaEnvio = [resultado.error.message];
+    return this;
+  }
+
+  comContatos(entradas: ContatoRestaurar[]): this {
+    const erros: string[] = [];
+    this.contatos = entradas.flatMap((entrada, indice) => this.validarContato(entrada, indice, erros));
+    if (erros.length > 0) this.camposInvalidos.contatos = erros;
+    return this;
+  }
+
+  private validarContato(entrada: ContatoRestaurar, indice: number, erros: string[]): Contato[] {
+    const resultado = Contato.criar(entrada);
+    if (!resultado.ok) {
+      erros.push(`item ${indice + 1}: ${resultado.error.message}`);
+      return [];
+    }
+    return [resultado.value];
+  }
+
+  comDocumentoObrigatorio(entrada: string | null): this {
+    if (entrada === null) {
+      this.documentoObrigatorio = null;
+      return this;
+    }
+    const resultado = DocumentoObrigatorioStatus.criar(entrada);
+    if (resultado.ok) this.documentoObrigatorio = resultado.value;
+    else this.camposInvalidos.documentoObrigatorio = [resultado.error.message];
+    return this;
+  }
+
+  comDasStatus(entrada: string | null): this {
+    if (entrada === null) {
+      this.dasStatus = null;
+      return this;
+    }
+    const resultado = DasStatus.criar(entrada);
+    if (resultado.ok) this.dasStatus = resultado.value;
+    else this.camposInvalidos.dasStatus = [resultado.error.message];
+    return this;
+  }
+
+  comDataEnvioDas(data: Date | null): this {
+    this.dataEnvioDas = data;
+    return this;
+  }
+
+  comTemParcelamento(valor: boolean): this {
+    this.temParcelamento = valor;
+    return this;
+  }
+
+  comParcelamentoStatus(entrada: string | null): this {
+    if (entrada === null) {
+      this.parcelamentoStatus = null;
+      return this;
+    }
+    const resultado = ParcelamentoStatus.criar(entrada);
+    if (resultado.ok) this.parcelamentoStatus = resultado.value;
+    else this.camposInvalidos.parcelamentoStatus = [resultado.error.message];
+    return this;
+  }
+
+  comObservacoesGerais(texto: string): this {
+    this.observacoesGerais = texto;
+    return this;
+  }
+
+  comAtividadeMesAtual(entrada: AtividadeMensalRestaurar | null): this {
+    if (entrada === null) {
+      this.atividadeMesAtual = null;
+      return this;
+    }
+    const resultado = AtividadeMensal.criar(entrada);
+    this.atividadeMesAtual = resultado.ok ? resultado.value : null;
+    return this;
+  }
+
   restaurar(dados: ClienteRestaurar): this {
-    return this.comId(dados.id)
+    this.comId(dados.id)
       .comEmpresa(dados.empresa)
       .comCnpj(dados.cnpj)
       .comRegime(dados.regime)
       .comContratoSocialCaminho(dados.contratoSocialCaminho)
       .comAlteracoesContratuais(dados.alteracoesContratuais);
+    if (dados.formaEnvio !== undefined) this.comFormaEnvio(dados.formaEnvio);
+    if (dados.contatos !== undefined) this.comContatos(dados.contatos);
+    if (dados.documentoObrigatorio !== undefined) this.comDocumentoObrigatorio(dados.documentoObrigatorio);
+    if (dados.dasStatus !== undefined) this.comDasStatus(dados.dasStatus);
+    if (dados.dataEnvioDas !== undefined) {
+      this.comDataEnvioDas(dados.dataEnvioDas ? new Date(dados.dataEnvioDas) : null);
+    }
+    if (dados.temParcelamento !== undefined) this.comTemParcelamento(dados.temParcelamento);
+    if (dados.parcelamentoStatus !== undefined) this.comParcelamentoStatus(dados.parcelamentoStatus);
+    if (dados.observacoesGerais !== undefined) this.comObservacoesGerais(dados.observacoesGerais);
+    if (dados.atividadeMesAtual !== undefined) this.comAtividadeMesAtual(dados.atividadeMesAtual);
+    return this;
   }
 
   build(): Result<Cliente, ValidationError> {
@@ -108,6 +236,17 @@ export class ClienteBuilder {
     if (this.regime === undefined && !this.camposInvalidos.regime)
       this.camposInvalidos.regime = ["obrigatório"];
 
+    // Invariante do agregado (#34): se há contatos, exatamente 1 é padrão —
+    // checado aqui (não em comContatos) pelo mesmo motivo do resto do build():
+    // é uma regra sobre o conjunto final, não sobre um item isolado.
+    if (
+      !this.camposInvalidos.contatos &&
+      this.contatos.length > 0 &&
+      this.contatos.filter((c) => c.padrao).length !== 1
+    ) {
+      this.camposInvalidos.contatos = ["Deve haver exatamente um contato marcado como padrão"];
+    }
+
     if (Object.keys(this.camposInvalidos).length > 0) {
       return err(new ValidationError("Dados de cliente inválidos", { ...this.camposInvalidos }));
     }
@@ -120,7 +259,22 @@ export class ClienteBuilder {
         regime: this.regime!,
         contratoSocialCaminho: this.contratoSocialCaminho,
         alteracoesContratuais: this.alteracoesContratuais,
+        formaEnvio: this.formaEnvio ?? formaEnvioPadrao(),
+        contatos: this.contatos,
+        documentoObrigatorio: this.documentoObrigatorio,
+        dasStatus: this.dasStatus,
+        dataEnvioDas: this.dataEnvioDas,
+        temParcelamento: this.temParcelamento,
+        parcelamentoStatus: this.parcelamentoStatus,
+        observacoesGerais: this.observacoesGerais,
+        atividadeMesAtual: this.atividadeMesAtual,
       }),
     );
   }
+}
+
+function formaEnvioPadrao(): FormaEnvio {
+  const resultado = FormaEnvio.criar("whatsapp");
+  if (!resultado.ok) throw new Error("valor padrão de FormaEnvio inválido — bug no VO");
+  return resultado.value;
 }
