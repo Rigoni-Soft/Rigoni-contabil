@@ -94,7 +94,20 @@ export class ClienteBuilder {
   }
 
   build(): Result<Cliente, ValidationError> {
+    // Presença checada aqui, não nos setters: um setter nunca chamado não deixa
+    // rastro em camposInvalidos, e os `!` abaixo mascarariam undefined em runtime
+    // (mesmo achado da devolutiva #55, ponto 03, aplicado ao builder de Usuario).
+    // O guard `!this.camposInvalidos.X` evita sobrescrever a mensagem específica
+    // que comCnpj/comRegime já registraram quando FORAM chamados com um valor
+    // inválido — só entra quando o setter nunca rodou.
     if (!this.id) this.camposInvalidos.id = ["obrigatório"];
+    if (this.empresa === undefined) this.camposInvalidos.empresa = ["obrigatório"];
+    if (this.cnpj === undefined && !this.camposInvalidos.cnpj)
+      this.camposInvalidos.cnpj = ["obrigatório"];
+    if (this.regime === undefined && !this.camposInvalidos.regime)
+      this.camposInvalidos.regime = ["obrigatório"];
+    if (this.contratoSocialCaminho === undefined)
+      this.camposInvalidos.contratoSocial = ["obrigatório"];
 
     if (Object.keys(this.camposInvalidos).length > 0) {
       return err(new ValidationError("Dados de cliente inválidos", { ...this.camposInvalidos }));

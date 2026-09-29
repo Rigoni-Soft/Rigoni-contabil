@@ -72,6 +72,34 @@ describe("ClienteBuilder", () => {
     }
   });
 
+  it("rejeita quando um campo obrigatório nunca teve seu setter chamado (devolutiva #55, ponto 03)", () => {
+    const resultado = Cliente.builder().comId("11111111-1111-1111-1111-111111111111").build();
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) {
+      expect(Object.keys(resultado.error.fields ?? {})).toEqual(
+        expect.arrayContaining(["empresa", "cnpj", "regime", "contratoSocial"]),
+      );
+    }
+  });
+
+  it("preserva a mensagem específica de CNPJ/regime inválidos em vez do genérico 'obrigatório'", () => {
+    const resultado = Cliente.builder()
+      .comId("11111111-1111-1111-1111-111111111111")
+      .comEmpresa("Padaria Pão Quente Ltda")
+      .comCnpj("123")
+      .comRegime("lucro_arbitrado")
+      .comContratoSocialCaminho("clientes/1/contrato-social/doc.pdf")
+      .comAlteracoesContratuais([])
+      .build();
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) {
+      expect(resultado.error.fields?.cnpj).not.toEqual(["obrigatório"]);
+      expect(resultado.error.fields?.regime).not.toEqual(["obrigatório"]);
+    }
+  });
+
   it("restaurar reconstitui a partir de dados persistidos", () => {
     const resultado = Cliente.builder()
       .restaurar({
