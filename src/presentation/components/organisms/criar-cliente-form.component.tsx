@@ -6,15 +6,22 @@ import { Button, buttonVariants } from "@/presentation/components/ui/button";
 import { FieldError } from "@/presentation/components/ui/field-error";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
+import { RequiredMark } from "@/presentation/components/ui/required-mark";
 import { Select } from "@/presentation/components/ui/select";
+import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
 import { cn } from "@/presentation/lib/utils";
 import { REGIME_LABEL, REGIMES } from "@/shared/kernel/regimes";
+
+// PDF ou DOCX (ponto 2 do feedback manual, 2026-09-29) — dica do navegador;
+// a validação de verdade fica no schema Zod (não confia só no `accept`).
+const ACCEPT_DOCUMENTO =
+  ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 export type CriarClienteFormValues = {
   empresa: string;
   cnpj: string;
   regime: (typeof REGIMES)[number];
-  contratoSocial: File;
+  contratoSocial?: File;
   alteracoesContratuais: { data: string; arquivo: File }[];
 };
 
@@ -35,6 +42,9 @@ type CriarClienteFormProps = {
   alteracoes: { id: string }[];
   onAdicionarAlteracao: () => void;
   onRemoverAlteracao: (indice: number) => void;
+  // CNPJ→autopreenchimento de Empresa/Regime via API pública (ponto 4 do
+  // feedback manual, 2026-09-29) — a consulta em si mora no Container.
+  onCnpjBlur: (cnpjMascarado: string) => void;
 };
 
 export function CriarClienteForm({
@@ -49,6 +59,7 @@ export function CriarClienteForm({
   alteracoes,
   onAdicionarAlteracao,
   onRemoverAlteracao,
+  onCnpjBlur,
 }: CriarClienteFormProps) {
   if (criado) {
     return (
@@ -73,21 +84,67 @@ export function CriarClienteForm({
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="empresa">Empresa</Label>
-        <Input id="empresa" aria-invalid={!!errors.empresa} {...register("empresa")} />
-        {errors.empresa && <FieldError>{errors.empresa.message}</FieldError>}
-      </div>
+      <p className="text-xs text-muted-foreground">
+        Campos com <span className="text-destructive">*</span> são obrigatórios.
+      </p>
 
+      {/* CNPJ primeiro (ponto 4 do feedback manual): autopreenche Empresa/Regime
+          ao perder o foco, antes do resto do formulário ser preenchido à mão. */}
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="cnpj">CNPJ</Label>
-        <Input id="cnpj" aria-invalid={!!errors.cnpj} {...register("cnpj")} />
+        <Label htmlFor="cnpj">
+          CNPJ
+          <RequiredMark />
+        </Label>
+        <Controller
+          control={control}
+          name="cnpj"
+          render={({ field: { onChange, onBlur, value, name } }) => (
+            <Input
+              id="cnpj"
+              name={name}
+              inputMode="numeric"
+              placeholder="00.000.000/0000-00"
+              maxLength={18}
+              value={value ?? ""}
+              aria-required="true"
+              aria-invalid={!!errors.cnpj}
+              onChange={(evento) => onChange(formatarCnpj(evento.target.value))}
+              onBlur={(evento) => {
+                onBlur();
+                onCnpjBlur(evento.target.value);
+              }}
+            />
+          )}
+        />
         {errors.cnpj && <FieldError>{errors.cnpj.message}</FieldError>}
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="regime">Regime</Label>
-        <Select id="regime" aria-invalid={!!errors.regime} defaultValue="" {...register("regime")}>
+        <Label htmlFor="empresa">
+          Empresa
+          <RequiredMark />
+        </Label>
+        <Input
+          id="empresa"
+          aria-required="true"
+          aria-invalid={!!errors.empresa}
+          {...register("empresa")}
+        />
+        {errors.empresa && <FieldError>{errors.empresa.message}</FieldError>}
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="regime">
+          Regime
+          <RequiredMark />
+        </Label>
+        <Select
+          id="regime"
+          aria-required="true"
+          aria-invalid={!!errors.regime}
+          defaultValue=""
+          {...register("regime")}
+        >
           <option value="" disabled>
             Selecione
           </option>
@@ -110,6 +167,7 @@ export function CriarClienteForm({
               id="contratoSocial"
               type="file"
               name={name}
+              accept={ACCEPT_DOCUMENTO}
               onBlur={onBlur}
               aria-invalid={!!errors.contratoSocial}
               onChange={(evento) => onChange(evento.target.files?.[0])}
@@ -170,6 +228,7 @@ export function CriarClienteForm({
                   id={`alteracoesContratuais.${indice}.arquivo`}
                   type="file"
                   name={name}
+                  accept={ACCEPT_DOCUMENTO}
                   onBlur={onBlur}
                   aria-invalid={!!errors.alteracoesContratuais?.[indice]?.arquivo}
                   onChange={(evento) => onChange(evento.target.files?.[0])}
