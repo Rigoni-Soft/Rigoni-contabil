@@ -5,6 +5,7 @@ import { z } from "zod";
 import { makeTrocarSenha } from "@/main/usuarios.factory";
 import { trocarSenhaSchema } from "@/modules/usuarios/presentation/view-models/trocar-senha/trocar-senha.schema";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
+import { toActionResult } from "@/shared/kernel/to-action-result";
 
 export async function trocarSenhaAction(input: unknown): Promise<ActionResult<void>> {
   const parsed = trocarSenhaSchema.safeParse(input);
@@ -20,11 +21,5 @@ export async function trocarSenhaAction(input: unknown): Promise<ActionResult<vo
   }
 
   const trocarSenha = await makeTrocarSenha();
-  const resultado = await trocarSenha.execute({ novaSenha: parsed.data.novaSenha });
-
-  if (!resultado.ok) {
-    return { ok: false, error: { code: resultado.error.code, message: resultado.error.message } };
-  }
-
-  return { ok: true, data: undefined };
+  return toActionResult(await trocarSenha.execute({ novaSenha: parsed.data.novaSenha }));
 }

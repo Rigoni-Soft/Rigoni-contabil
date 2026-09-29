@@ -6,6 +6,7 @@ import { makeListarRegistros } from "@/main/auditoria.factory";
 import type { RegistroAcaoDto } from "@/modules/auditoria/application/dtos/registro-acao.dto";
 import { filtroFeedSchema } from "@/modules/auditoria/presentation/view-models/feed/feed.schema";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
+import { toActionResult } from "@/shared/kernel/to-action-result";
 
 export async function listarRegistrosAction(
   input: unknown,
@@ -23,11 +24,5 @@ export async function listarRegistrosAction(
   }
 
   const listarRegistros = await makeListarRegistros();
-  const resultado = await listarRegistros.execute(parsed.data);
-
-  if (!resultado.ok) {
-    return { ok: false, error: { code: resultado.error.code, message: resultado.error.message } };
-  }
-
-  return { ok: true, data: resultado.value };
+  return toActionResult(await listarRegistros.execute(parsed.data));
 }

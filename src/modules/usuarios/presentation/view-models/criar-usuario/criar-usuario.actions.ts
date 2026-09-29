@@ -6,6 +6,7 @@ import { makeCriarUsuario } from "@/main/usuarios.factory";
 import type { CriarUsuarioOutput } from "@/modules/usuarios/application/ports/in/criar-usuario.provider";
 import { criarUsuarioSchema } from "@/modules/usuarios/presentation/view-models/criar-usuario/criar-usuario.schema";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
+import { toActionResult } from "@/shared/kernel/to-action-result";
 
 export async function criarUsuarioAction(
   input: unknown,
@@ -23,11 +24,5 @@ export async function criarUsuarioAction(
   }
 
   const criarUsuario = await makeCriarUsuario();
-  const resultado = await criarUsuario.execute(parsed.data);
-
-  if (!resultado.ok) {
-    return { ok: false, error: { code: resultado.error.code, message: resultado.error.message } };
-  }
-
-  return { ok: true, data: resultado.value };
+  return toActionResult(await criarUsuario.execute(parsed.data));
 }

@@ -6,6 +6,7 @@ import { makeLogin } from "@/main/usuarios.factory";
 import type { UsuarioDto } from "@/modules/usuarios/application/dtos/usuario.dto";
 import { loginSchema } from "@/modules/usuarios/presentation/view-models/login/login.schema";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
+import { toActionResult } from "@/shared/kernel/to-action-result";
 
 export async function loginAction(input: unknown): Promise<ActionResult<UsuarioDto>> {
   const parsed = loginSchema.safeParse(input);
@@ -21,11 +22,5 @@ export async function loginAction(input: unknown): Promise<ActionResult<UsuarioD
   }
 
   const login = await makeLogin();
-  const resultado = await login.execute(parsed.data);
-
-  if (!resultado.ok) {
-    return { ok: false, error: { code: resultado.error.code, message: resultado.error.message } };
-  }
-
-  return { ok: true, data: resultado.value };
+  return toActionResult(await login.execute(parsed.data));
 }
