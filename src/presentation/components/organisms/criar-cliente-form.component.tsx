@@ -159,15 +159,18 @@ export function CriarClienteForm({
               <FieldError>{errors.alteracoesContratuais[indice]?.data?.message}</FieldError>
             )}
 
+            <Label
+              htmlFor={`alteracoesContratuais.${indice}.arquivo`}
+            >{`Arquivo da alteração ${indice + 1}`}</Label>
             <Controller
               control={control}
               name={`alteracoesContratuais.${indice}.arquivo` as const}
               render={({ field: { onChange, onBlur, name } }) => (
                 <Input
+                  id={`alteracoesContratuais.${indice}.arquivo`}
                   type="file"
                   name={name}
                   onBlur={onBlur}
-                  aria-label={`Arquivo da alteração ${indice + 1}`}
                   aria-invalid={!!errors.alteracoesContratuais?.[indice]?.arquivo}
                   onChange={(evento) => onChange(evento.target.files?.[0])}
                 />

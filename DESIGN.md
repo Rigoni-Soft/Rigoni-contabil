@@ -123,8 +123,23 @@ sem sufixo `.component`, isentas de teste por convenção —
   o ícone sozinho nunca carrega o significado sem esse rótulo. Qualquer novo
   link de ação no header segue o mesmo padrão em vez de forçar o texto
   sempre visível.
+
+  **Extensão (29/09/2026, #33):** o link "Cadastrar Cliente" (ícone
+  `Building2`, visível só pro papel Admin) segue exatamente esse padrão —
+  confirma que a regra vale para qualquer novo link, não só os três
+  documentados em #32.
 - `input.tsx` — 44px de altura; `aria-invalid` troca borda/anel para
   `destructive` automaticamente.
+
+  **Campo de arquivo sempre com `Label` visível (29/09/2026, #33):** o
+  cadastro de Cliente introduziu os primeiros `<Input type="file">` do
+  produto (contrato social e cada alteração contratual). O primeiro rascunho
+  usava `aria-label` sozinho no arquivo de cada alteração contratual, sem
+  `Label` visível — inconsistente com todo outro campo do formulário, que
+  sempre tem rótulo visível emparelhado por `htmlFor`/`id`. Corrigido na
+  revisão impeccable: todo campo de arquivo usa `Label htmlFor` + `Input id`
+  como qualquer outro campo, sem depender só de `aria-label`. Qualquer campo
+  de arquivo futuro segue o mesmo contrato.
 - `select.tsx` — mesmo tratamento visual do `input.tsx` (44px, mesmas
   bordas/foco, e o mesmo `aria-invalid` para borda/anel `destructive`).
   Introduzido no feed de auditoria para eliminar classes Tailwind duplicadas
@@ -195,6 +210,28 @@ tela própria do Setor pra voltar (mesma situação já registrada para o link
 existir, sem mudar o padrão dos dois botões em si. Vale pra qualquer tela
 futura de cadastro em lote (ex.: Cadastro de Cliente, #33): oferecer
 continuar sem sair, e um jeito explícito de encerrar.
+
+**Confirmado em #33:** o cadastro de Cliente reusa o mesmo par de botões
+sem alteração — `Button` primário "Cadastrar outro" (ícone `UserPlus`,
+limpa o formulário e reseta a lista de alterações contratuais) e `<Link>`
+"Finalizar" pra `/`, mesma justificativa provisória do destino.
+
+### Lista de itens repetíveis (campo dinâmico)
+
+**Alterações contratuais (29/09/2026, #33):** primeiro uso de
+`useFieldArray` (react-hook-form) no produto — uma lista de itens do
+formulário que o próprio usuário adiciona/remove (aqui: data + arquivo por
+alteração contratual). Padrão: cabeçalho da seção com `Label` da seção +
+`Button` `outline`/`sm` "Adicionar" (ícone `Plus`) alinhados nas pontas
+(`justify-between`); cada item vira um bloco próprio com borda
+(`rounded-md border border-border p-3`), um cabeçalho interno "Item N" +
+botão `ghost`/`sm` "Remover item N" (ícone `Trash2`, `aria-label` explícito
+porque o botão só tem ícone) e os campos do item abaixo, no mesmo espaçamento
+vertical dos campos do formulário principal. O bloco com borda existe só
+para diferenciar visualmente item de campo simples — não é um cartão
+elevado (`bg-card`), fica no mesmo plano do formulário. Qualquer lista
+dinâmica futura (Data + arquivo, ou qualquer par de campos repetível) reusa
+este padrão em vez de inventar um novo.
 
 ## Estados e motion
 
