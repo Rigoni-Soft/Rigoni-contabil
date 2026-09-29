@@ -84,13 +84,13 @@ export function CriarClienteContainer() {
         setValue("empresa", dados.empresa, { shouldValidate: true });
       }
 
-      if (dados.regime) {
-        if (!getValues("regime")) setValue("regime", dados.regime, { shouldValidate: true });
-      } else {
+      if (!dados.regime) {
         setAvisoRegime(
           "Não foi possível confirmar o Regime automaticamente. Selecione manualmente.",
         );
+        return;
       }
+      if (!getValues("regime")) setValue("regime", dados.regime, { shouldValidate: true });
     }, 0);
   };
 
