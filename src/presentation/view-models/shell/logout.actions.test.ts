@@ -26,16 +26,17 @@ describe("logoutAction (integração)", () => {
   it("redireciona pro login quando encerrar a sessão funciona", async () => {
     executeMock.mockResolvedValue(ok(undefined));
 
-    await logoutAction();
+    await logoutAction(null, new FormData());
 
     expect(redirect).toHaveBeenCalledWith("/login");
   });
 
-  it("não finge logout: não redireciona pro login quando encerrar a sessão falha", async () => {
+  it("não finge logout: devolve estado de erro visível em vez de redirecionar quando encerrar a sessão falha (devolutiva #55, ponto 04)", async () => {
     executeMock.mockResolvedValue(err(new ForbiddenError("falha ao encerrar")));
 
-    await logoutAction();
+    const estado = await logoutAction(null, new FormData());
 
     expect(redirect).not.toHaveBeenCalledWith("/login");
+    expect(estado?.erro).toBeTruthy();
   });
 });

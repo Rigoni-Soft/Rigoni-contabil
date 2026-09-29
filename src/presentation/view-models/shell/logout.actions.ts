@@ -4,7 +4,15 @@ import { redirect } from "next/navigation";
 
 import { makeLogout } from "@/main/usuarios.factory";
 
-export async function logoutAction() {
+export type LogoutState = { erro: string } | null;
+
+// Assinatura (estado, FormData) por causa do useActionState em LogoutButton
+// (devolutiva #55, ponto 04): falha de encerramento precisa de um estado pra
+// interface mostrar aviso visível, não só logar e redirecionar às cegas.
+export async function logoutAction(
+  _estadoAnterior: LogoutState,
+  _formData: FormData,
+): Promise<LogoutState> {
   const logout = await makeLogout();
   const resultado = await logout.execute();
 
@@ -12,8 +20,7 @@ export async function logoutAction() {
     // Não finge logout: se a sessão pode continuar válida, não manda pro
     // /login (passaria a impressão de que saiu quando não saiu de verdade).
     console.error("Falha ao encerrar sessão:", resultado.error.message);
-    redirect("/");
-    return;
+    return { erro: "Não foi possível sair. Tente novamente." };
   }
 
   redirect("/login");
