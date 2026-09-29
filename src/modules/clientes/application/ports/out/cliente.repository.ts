@@ -4,4 +4,6 @@ import type { Result } from "@/shared/kernel/result";
 
 export interface ClienteRepository {
   criar(cliente: Cliente): Promise<Result<void, AppError>>;
+  buscarPorId(id: string): Promise<Result<Cliente | null, AppError>>;
+  atualizarOperacional(cliente: Cliente): Promise<Result<void, AppError>>;
 }
