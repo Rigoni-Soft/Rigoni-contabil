@@ -46,6 +46,22 @@ describe("UsuarioBuilder", () => {
     }
   });
 
+  it("preserva a mensagem específica de papel/setor inválidos em vez do genérico 'obrigatório'", () => {
+    const resultado = Usuario.builder()
+      .comId("11111111-1111-1111-1111-111111111111")
+      .comNome("Jéssica Souza")
+      .comEmail("jessica@rigonicontabil.local")
+      .comPapel("gerente")
+      .comSetor("patriki")
+      .build();
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) {
+      expect(resultado.error.fields?.papel).not.toEqual(["obrigatório"]);
+      expect(resultado.error.fields?.setor).not.toEqual(["obrigatório"]);
+    }
+  });
+
   it("restaurar reconstitui a partir de dados persistidos", () => {
     const resultado = Usuario.builder()
       .restaurar({
