@@ -66,7 +66,14 @@ export class UsuarioBuilder {
   }
 
   build(): Result<Usuario, ValidationError> {
+    // Presença checada aqui, não nos setters: um setter nunca chamado não deixa
+    // rastro em camposInvalidos, e os `!` abaixo mascarariam undefined em runtime
+    // (devolutiva #55, ponto 03 — builder aceitava usuário incompleto).
     if (!this.id) this.camposInvalidos.id = ["obrigatório"];
+    if (this.nome === undefined) this.camposInvalidos.nome = ["obrigatório"];
+    if (this.email === undefined) this.camposInvalidos.email = ["obrigatório"];
+    if (this.papel === undefined) this.camposInvalidos.papel = ["obrigatório"];
+    if (this.setor === undefined) this.camposInvalidos.setor = ["obrigatório"];
 
     if (Object.keys(this.camposInvalidos).length > 0) {
       return err(new ValidationError("Dados de usuário inválidos", { ...this.camposInvalidos }));

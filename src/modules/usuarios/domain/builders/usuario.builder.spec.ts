@@ -35,6 +35,17 @@ describe("UsuarioBuilder", () => {
     }
   });
 
+  it("rejeita quando um campo obrigatório nunca teve seu setter chamado (devolutiva #55, ponto 03)", () => {
+    const resultado = Usuario.builder().comId("11111111-1111-1111-1111-111111111111").build();
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) {
+      expect(Object.keys(resultado.error.fields ?? {})).toEqual(
+        expect.arrayContaining(["nome", "email", "papel", "setor"]),
+      );
+    }
+  });
+
   it("restaurar reconstitui a partir de dados persistidos", () => {
     const resultado = Usuario.builder()
       .restaurar({
