@@ -18,8 +18,13 @@ export class ListarSetores implements ListarSetoresPort {
     const id = await this.sessao.usuarioAtualId();
     if (!id) return [];
 
-    const usuario = await this.usuarios.buscarPorId(id);
-    if (!usuario) return [];
+    const perfil = await this.usuarios.buscarPorId(id);
+    if (!perfil.ok) {
+      console.error("Falha ao carregar perfil para listar setores:", perfil.error.message);
+      return [];
+    }
+    if (!perfil.value) return [];
+    const usuario = perfil.value;
 
     return SETORES.filter((slug) => {
       const setor = Setor.criar(slug);

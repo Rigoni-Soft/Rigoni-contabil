@@ -14,7 +14,14 @@ export class ObterSessao implements ObterSessaoPort {
     const id = await this.sessao.usuarioAtualId();
     if (!id) return null;
 
-    const usuario = await this.usuarios.buscarPorId(id);
-    return usuario ? usuarioParaDto(usuario) : null;
+    const perfil = await this.usuarios.buscarPorId(id);
+    // Leitura best-effort da própria sessão: falha técnica também vira "sem sessão"
+    // pra quem chama (mesmo contrato de hoje), mas fica registrada no log — antes
+    // sumia dentro do `null` sem deixar rastro (devolutiva #55, ponto 02).
+    if (!perfil.ok) {
+      console.error("Falha ao carregar perfil da sessão:", perfil.error.message);
+      return null;
+    }
+    return perfil.value ? usuarioParaDto(perfil.value) : null;
   }
 }

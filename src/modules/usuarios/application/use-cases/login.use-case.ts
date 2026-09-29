@@ -20,17 +20,30 @@ export class Login implements LoginPort {
     const id = await this.sessao.usuarioAtualId();
     if (!id) return this.abortarSessaoOrfa("Sessão inválida após autenticação.");
 
-    const usuario = await this.usuarios.buscarPorId(id);
-    if (!usuario) return this.abortarSessaoOrfa("Usuário autenticado sem perfil cadastrado.");
+    const perfil = await this.usuarios.buscarPorId(id);
+    // Falha técnica (banco indisponível) e falha de reconstrução de domínio (nome/
+    // e-mail inválidos salvos no banco) passam pelo mesmo cleanup que "sem perfil",
+    // mas com mensagem própria — não apresentam indisponibilidade como ausência
+    // cadastral (devolutiva #55, pontos 01 e 02).
+    if (!perfil.ok) {
+      return this.abortarSessaoOrfa("Falha ao carregar seu perfil. Tente novamente.", perfil.error);
+    }
+    if (!perfil.value) return this.abortarSessaoOrfa("Usuário autenticado sem perfil cadastrado.");
 
-    return ok(usuarioParaDto(usuario));
+    return ok(usuarioParaDto(perfil.value));
   }
 
   // Supabase já autenticou nesse ponto: qualquer falha daqui em diante precisa
   // encerrar a sessão pra não deixá-la órfã. O resultado do próprio encerrar()
   // nunca é descartado — se ele falhar, o log do servidor registra (nunca afirma
   // "sessão encerrada" quando não foi); o navegador só recebe o erro seguro.
-  private async abortarSessaoOrfa(mensagem: string): Promise<Result<UsuarioDto, AppError>> {
+  private async abortarSessaoOrfa(
+    mensagem: string,
+    detalheTecnico?: AppError,
+  ): Promise<Result<UsuarioDto, AppError>> {
+    if (detalheTecnico) {
+      console.error("Falha ao carregar perfil durante login:", detalheTecnico.message);
+    }
     const encerrado = await this.sessao.encerrar();
     if (!encerrado.ok) {
       console.error("Falha ao encerrar sessão órfã após login:", encerrado.error.message);

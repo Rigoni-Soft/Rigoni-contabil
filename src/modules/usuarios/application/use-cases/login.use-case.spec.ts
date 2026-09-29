@@ -42,8 +42,9 @@ class SessaoFalsa implements SessaoPort {
 
 class UsuarioRepositoryFalso implements UsuarioRepository {
   usuario: Usuario | null = null;
-  async buscarPorId(): Promise<Usuario | null> {
-    return this.usuario;
+  erroTecnico: AppError | null = null;
+  async buscarPorId(): Promise<Result<Usuario | null, AppError>> {
+    return this.erroTecnico ? err(this.erroTecnico) : ok(this.usuario);
   }
 }
 
@@ -98,6 +99,21 @@ describe("Login", () => {
       senha: "123456",
     });
 
+    expect(sessao.encerrada).toBe(true);
+  });
+
+  it("encerra a sessão e devolve erro sem mencionar 'sem perfil cadastrado' quando buscarPorId falha por erro técnico (devolutiva #55, pontos 01 e 02)", async () => {
+    const sessao = new SessaoFalsa();
+    const repositorio = new UsuarioRepositoryFalso();
+    repositorio.erroTecnico = new ForbiddenError("Falha ao buscar perfil: conexão recusada");
+
+    const resultado = await new Login(sessao, repositorio).execute({
+      email: "admin@rigonicontabil.local",
+      senha: "admin123",
+    });
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error.message).not.toMatch(/sem perfil cadastrado/);
     expect(sessao.encerrada).toBe(true);
   });
 

@@ -40,28 +40,33 @@ describe("SupabaseUsuarioRepository (integração)", () => {
     const supabase = await comoAdmin();
     const repositorio = new SupabaseUsuarioRepository(supabase);
 
-    const usuario = await repositorio.buscarPorId(ADMIN_ID);
+    const resultado = await repositorio.buscarPorId(ADMIN_ID);
 
-    expect(usuario?.papel.ehAdmin()).toBe(true);
-    expect(usuario?.setor.slug).toBe("administrativo");
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) {
+      expect(resultado.value?.papel.ehAdmin()).toBe(true);
+      expect(resultado.value?.setor.slug).toBe("administrativo");
+    }
   });
 
-  it("devolve null para um id inexistente", async () => {
+  it("devolve ok(null) para um id inexistente — ausência, não erro", async () => {
     const supabase = await comoAdmin();
     const repositorio = new SupabaseUsuarioRepository(supabase);
 
-    const usuario = await repositorio.buscarPorId(
+    const resultado = await repositorio.buscarPorId(
       "00000000-0000-0000-0000-000000000000" as UsuarioId,
     );
 
-    expect(usuario).toBeNull();
+    expect(resultado).toEqual({ ok: true, value: null });
   });
 
-  it("devolve null (não lança) quando o Postgres rejeita a consulta, ex.: id malformado", async () => {
+  it("devolve erro (não ausência) quando o Postgres rejeita a consulta, ex.: id malformado (devolutiva #55, ponto 02)", async () => {
     const supabase = await comoAdmin();
     const repositorio = new SupabaseUsuarioRepository(supabase);
 
-    await expect(repositorio.buscarPorId("id-nao-e-um-uuid" as UsuarioId)).resolves.toBeNull();
+    const resultado = await repositorio.buscarPorId("id-nao-e-um-uuid" as UsuarioId);
+
+    expect(resultado.ok).toBe(false);
   });
 
   describe("isolamento por setor (RLS)", () => {
@@ -69,54 +74,65 @@ describe("SupabaseUsuarioRepository (integração)", () => {
       const supabase = await comoAdmin();
       const repositorio = new SupabaseUsuarioRepository(supabase);
 
-      const usuario = await repositorio.buscarPorId(FUNCIONARIO_SN_ID);
+      const resultado = await repositorio.buscarPorId(FUNCIONARIO_SN_ID);
 
-      expect(usuario?.setor.slug).toBe("simples_nacional");
+      expect(resultado.ok).toBe(true);
+      if (resultado.ok) expect(resultado.value?.setor.slug).toBe("simples_nacional");
     });
 
     it("Funcionário → próprio setor (o próprio perfil): permitido", async () => {
       const supabase = await comoFuncionarioSN();
       const repositorio = new SupabaseUsuarioRepository(supabase);
 
-      const usuario = await repositorio.buscarPorId(FUNCIONARIO_SN_ID);
+      const resultado = await repositorio.buscarPorId(FUNCIONARIO_SN_ID);
 
-      expect(usuario?.papel.valor).toBe("funcionario");
+      expect(resultado.ok).toBe(true);
+      if (resultado.ok) expect(resultado.value?.papel.valor).toBe("funcionario");
     });
 
+    // Consulta sem erro (resultado.ok) E ausência da linha (value === null): a
+    // combinação prova bloqueio de RLS, não uma falha técnica mascarada de
+    // ausência (devolutiva #55, ponto 02 — "reforçar os testes de RLS"). O
+    // controle positivo de que a linha existe e é alcançável por um viewer
+    // autorizado está no teste "Admin → outro setor: permitido" acima, mesmo alvo.
     it("Funcionário → outro setor: negado", async () => {
       const supabase = await comoFuncionarioSN();
       const repositorio = new SupabaseUsuarioRepository(supabase);
 
-      const usuario = await repositorio.buscarPorId(FUNCIONARIO_FINANCEIRO_ID);
+      const resultado = await repositorio.buscarPorId(FUNCIONARIO_FINANCEIRO_ID);
 
-      expect(usuario).toBeNull();
+      expect(resultado).toEqual({ ok: true, value: null });
     });
 
     it("Líder → próprio setor (o próprio perfil): permitido", async () => {
       const supabase = await comoLiderContabil();
       const repositorio = new SupabaseUsuarioRepository(supabase);
 
-      const usuario = await repositorio.buscarPorId(LIDER_CONTABIL_ID);
+      const resultado = await repositorio.buscarPorId(LIDER_CONTABIL_ID);
 
-      expect(usuario?.papel.ehLiderSetor()).toBe(true);
+      expect(resultado.ok).toBe(true);
+      if (resultado.ok) expect(resultado.value?.papel.ehLiderSetor()).toBe(true);
     });
 
+    // Mesma lógica do teste do Funcionário acima: controle positivo do mesmo
+    // alvo está em "Admin → outro setor: permitido".
     it("Líder → outro setor: negado", async () => {
       const supabase = await comoLiderContabil();
       const repositorio = new SupabaseUsuarioRepository(supabase);
 
-      const usuario = await repositorio.buscarPorId(FUNCIONARIO_SN_ID);
+      const resultado = await repositorio.buscarPorId(FUNCIONARIO_SN_ID);
 
-      expect(usuario).toBeNull();
+      expect(resultado).toEqual({ ok: true, value: null });
     });
 
     it("Funcionário → outro Funcionário do mesmo setor: permitido (perfis_select_mesmo_setor)", async () => {
       const supabase = await comoFuncionarioFinanceiro();
       const repositorio = new SupabaseUsuarioRepository(supabase);
 
-      const colega = await repositorio.buscarPorId(FUNCIONARIO_FINANCEIRO_2_ID);
+      const resultado = await repositorio.buscarPorId(FUNCIONARIO_FINANCEIRO_2_ID);
 
-      expect(colega?.setor.slug).toBe("financeiro");
+      expect(resultado.ok).toBe(true);
+      if (resultado.ok) expect(resultado.value?.setor.slug).toBe("financeiro");
     });
   });
 });

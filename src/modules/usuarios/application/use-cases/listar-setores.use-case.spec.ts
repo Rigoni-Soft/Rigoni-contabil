@@ -3,7 +3,8 @@ import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out
 import { Usuario, type UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
 import { AutorizacaoService } from "@/modules/usuarios/domain/services/autorizacao.service";
 import type { AppError } from "@/shared/errors/app.error";
-import { ok, type Result } from "@/shared/kernel/result";
+import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { ListarSetores } from "./listar-setores.use-case";
 
@@ -34,8 +35,9 @@ class SessaoFalsa implements SessaoPort {
 
 class UsuarioRepositoryFalso implements UsuarioRepository {
   usuario: Usuario | null = null;
-  async buscarPorId(): Promise<Usuario | null> {
-    return this.usuario;
+  erroTecnico: AppError | null = null;
+  async buscarPorId(): Promise<Result<Usuario | null, AppError>> {
+    return this.erroTecnico ? err(this.erroTecnico) : ok(this.usuario);
   }
 }
 
@@ -80,6 +82,16 @@ describe("ListarSetores", () => {
     const sessao = new SessaoFalsa();
     sessao.id = null;
     const usuarios = new UsuarioRepositoryFalso();
+
+    const setores = await new ListarSetores(sessao, usuarios, new AutorizacaoService()).execute();
+
+    expect(setores).toEqual([]);
+  });
+
+  it("devolve lista vazia (sem lançar) quando buscarPorId falha por erro técnico (devolutiva #55, ponto 02)", async () => {
+    const sessao = new SessaoFalsa();
+    const usuarios = new UsuarioRepositoryFalso();
+    usuarios.erroTecnico = new ForbiddenError("Falha ao buscar perfil: conexão recusada");
 
     const setores = await new ListarSetores(sessao, usuarios, new AutorizacaoService()).execute();
 
