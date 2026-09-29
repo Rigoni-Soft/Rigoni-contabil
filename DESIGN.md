@@ -138,8 +138,33 @@ sem sufixo `.component`, isentas de teste por convenção —
   `Label` visível — inconsistente com todo outro campo do formulário, que
   sempre tem rótulo visível emparelhado por `htmlFor`/`id`. Corrigido na
   revisão impeccable: todo campo de arquivo usa `Label htmlFor` + `Input id`
-  como qualquer outro campo, sem depender só de `aria-label`. Qualquer campo
-  de arquivo futuro segue o mesmo contrato.
+  como qualquer outro campo, sem depender só de `aria-label`. **Superado
+  pelo `file-input.tsx` abaixo** (feedback manual do usuário, mesma data) —
+  o contrato de `Label htmlFor`/`id` continua valendo, só o controle em si
+  deixou de ser um `<input type="file">` nu.
+- `file-input.tsx` (29/09/2026, #33, feedback manual do usuário — "o layout
+  está muito simples"): `<input type="file">` nativo não aceita ser
+  estilizado diretamente ("Choose File / No file chosen" do navegador era o
+  único controle do produto fora do sistema de design). Substituído por um
+  `<label>` do tamanho de `input.tsx`/`select.tsx` (44px, borda, raio, cores
+  do tema) envolvendo o input real como `sr-only` — mesmo padrão acessível
+  de sempre (o label aciona o seletor de arquivo do SO; foco por teclado no
+  input escondido acende o anel via `has-[:focus-visible]` no label). Ícone
+  `Upload` cinza + "Selecionar arquivo…" no estado vazio; `FileText` verde
+  (`text-primary`) + nome do arquivo depois de selecionado — mesmo
+  vocabulário de ícone-substitui-estado já usado em Indicadores de estado.
+  Qualquer novo campo de arquivo do produto reusa este componente em vez de
+  um `<Input type="file">` cru.
+
+  **Seção "Documentos" (29/09/2026, #33):** contrato social e alterações
+  contratuais ganharam um agrupamento visual próprio — `border-t` +
+  `pt-6` + heading `text-sm font-semibold uppercase text-muted-foreground`
+  ("DOCUMENTOS"), separando os campos de identificação do Cliente (CNPJ,
+  Empresa, Regime) dos campos de documento. Mais espaço acima do heading que
+  abaixo, mesma cadência do resto do produto. Qualquer formulário futuro com
+  dois grupos de campos claramente distintos (identificação vs. anexos, por
+  exemplo) reusa esse padrão de divisor em vez de um `<hr>` genérico ou um
+  segundo cartão.
 - `select.tsx` — mesmo tratamento visual do `input.tsx` (44px, mesmas
   bordas/foco, e o mesmo `aria-invalid` para borda/anel `destructive`).
   Introduzido no feed de auditoria para eliminar classes Tailwind duplicadas

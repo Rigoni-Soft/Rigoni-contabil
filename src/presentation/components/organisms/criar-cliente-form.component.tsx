@@ -4,6 +4,7 @@ import { Controller, type Control, type FieldErrors, type UseFormRegister } from
 
 import { Button, buttonVariants } from "@/presentation/components/ui/button";
 import { FieldError } from "@/presentation/components/ui/field-error";
+import { FileInput } from "@/presentation/components/ui/file-input";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
 import { RequiredMark } from "@/presentation/components/ui/required-mark";
@@ -157,89 +158,97 @@ export function CriarClienteForm({
         {errors.regime && <FieldError>{errors.regime.message}</FieldError>}
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="contratoSocial">Contrato social</Label>
-        <Controller
-          control={control}
-          name="contratoSocial"
-          render={({ field: { onChange, onBlur, name } }) => (
-            <Input
-              id="contratoSocial"
-              type="file"
-              name={name}
-              accept={ACCEPT_DOCUMENTO}
-              onBlur={onBlur}
-              aria-invalid={!!errors.contratoSocial}
-              onChange={(evento) => onChange(evento.target.files?.[0])}
-            />
-          )}
-        />
-        {errors.contratoSocial && <FieldError>{errors.contratoSocial.message}</FieldError>}
-      </div>
+      {/* Seção de documentos separada da identificação do Cliente — mais espaço
+          acima do heading que abaixo, mesma cadência de arquitetura.md/DESIGN.md. */}
+      <div className="mt-2 flex flex-col gap-5 border-t border-border pt-6">
+        <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+          Documentos
+        </h2>
 
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <Label>Alterações contratuais</Label>
-          <Button type="button" variant="outline" size="sm" onClick={onAdicionarAlteracao}>
-            <Plus aria-hidden="true" />
-            Adicionar
-          </Button>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="contratoSocial">Contrato social</Label>
+          <Controller
+            control={control}
+            name="contratoSocial"
+            render={({ field: { onChange, onBlur, name, value } }) => (
+              <FileInput
+                id="contratoSocial"
+                name={name}
+                accept={ACCEPT_DOCUMENTO}
+                file={value}
+                onBlur={onBlur}
+                aria-invalid={!!errors.contratoSocial}
+                onChange={onChange}
+              />
+            )}
+          />
+          {errors.contratoSocial && <FieldError>{errors.contratoSocial.message}</FieldError>}
         </div>
 
-        {alteracoes.map((alteracao, indice) => (
-          <div
-            key={alteracao.id}
-            className="flex flex-col gap-2 rounded-md border border-border p-3"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-medium text-foreground">{`Alteração ${indice + 1}`}</span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                aria-label={`Remover alteração ${indice + 1}`}
-                onClick={() => onRemoverAlteracao(indice)}
-              >
-                <Trash2 aria-hidden="true" />
-              </Button>
-            </div>
-
-            <Label
-              htmlFor={`alteracoesContratuais.${indice}.data`}
-            >{`Data da alteração ${indice + 1}`}</Label>
-            <Input
-              id={`alteracoesContratuais.${indice}.data`}
-              type="date"
-              aria-invalid={!!errors.alteracoesContratuais?.[indice]?.data}
-              {...register(`alteracoesContratuais.${indice}.data` as const)}
-            />
-            {errors.alteracoesContratuais?.[indice]?.data && (
-              <FieldError>{errors.alteracoesContratuais[indice]?.data?.message}</FieldError>
-            )}
-
-            <Label
-              htmlFor={`alteracoesContratuais.${indice}.arquivo`}
-            >{`Arquivo da alteração ${indice + 1}`}</Label>
-            <Controller
-              control={control}
-              name={`alteracoesContratuais.${indice}.arquivo` as const}
-              render={({ field: { onChange, onBlur, name } }) => (
-                <Input
-                  id={`alteracoesContratuais.${indice}.arquivo`}
-                  type="file"
-                  name={name}
-                  accept={ACCEPT_DOCUMENTO}
-                  onBlur={onBlur}
-                  aria-invalid={!!errors.alteracoesContratuais?.[indice]?.arquivo}
-                  onChange={(evento) => onChange(evento.target.files?.[0])}
-                />
-              )}
-            />
-            {errors.alteracoesContratuais?.[indice]?.arquivo && (
-              <FieldError>{errors.alteracoesContratuais[indice]?.arquivo?.message}</FieldError>
-            )}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <Label>Alterações contratuais</Label>
+            <Button type="button" variant="outline" size="sm" onClick={onAdicionarAlteracao}>
+              <Plus aria-hidden="true" />
+              Adicionar
+            </Button>
           </div>
-        ))}
+
+          {alteracoes.map((alteracao, indice) => (
+            <div
+              key={alteracao.id}
+              className="flex flex-col gap-2 rounded-md border border-border p-3"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium text-foreground">{`Alteração ${indice + 1}`}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-label={`Remover alteração ${indice + 1}`}
+                  onClick={() => onRemoverAlteracao(indice)}
+                >
+                  <Trash2 aria-hidden="true" />
+                </Button>
+              </div>
+
+              <Label
+                htmlFor={`alteracoesContratuais.${indice}.data`}
+              >{`Data da alteração ${indice + 1}`}</Label>
+              <Input
+                id={`alteracoesContratuais.${indice}.data`}
+                type="date"
+                aria-invalid={!!errors.alteracoesContratuais?.[indice]?.data}
+                {...register(`alteracoesContratuais.${indice}.data` as const)}
+              />
+              {errors.alteracoesContratuais?.[indice]?.data && (
+                <FieldError>{errors.alteracoesContratuais[indice]?.data?.message}</FieldError>
+              )}
+
+              <Label
+                htmlFor={`alteracoesContratuais.${indice}.arquivo`}
+              >{`Arquivo da alteração ${indice + 1}`}</Label>
+              <Controller
+                control={control}
+                name={`alteracoesContratuais.${indice}.arquivo` as const}
+                render={({ field: { onChange, onBlur, name, value } }) => (
+                  <FileInput
+                    id={`alteracoesContratuais.${indice}.arquivo`}
+                    name={name}
+                    accept={ACCEPT_DOCUMENTO}
+                    file={value}
+                    onBlur={onBlur}
+                    aria-invalid={!!errors.alteracoesContratuais?.[indice]?.arquivo}
+                    onChange={onChange}
+                  />
+                )}
+              />
+              {errors.alteracoesContratuais?.[indice]?.arquivo && (
+                <FieldError>{errors.alteracoesContratuais[indice]?.arquivo?.message}</FieldError>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       {erroServidor && (
