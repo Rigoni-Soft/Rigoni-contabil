@@ -221,6 +221,20 @@ de resultado em geral, não específico de tabela. `success` (dourado) fica
 reservado ao selo "em dia" do Simples Nacional — não se usa aqui para não
 sobrepor dois significados no mesmo token.
 
+**Aviso (não é erro de validação, mas usa o mesmo componente):** o feed de
+auditoria já usava `field-error.tsx` pra avisar período incompleto mesmo sem
+ser um erro de schema — o cadastro de Cliente (29/09/2026, #33) confirma que
+isso é um padrão, não uma exceção. Quando a interface precisa dizer "isso não
+está errado, mas você precisa fazer algo a respeito" (CNPJ com formato válido
+mas não encontrado na consulta pública; Regime que a consulta não conseguiu
+confirmar automaticamente), o produto **não tem uma variante visual
+"aviso"** separada — reusa `FieldError` (ícone + texto +
+`text-destructive`) com uma mensagem que orienta a ação manual, em vez de
+inventar uma cor/ícone intermediário. O aviso é state do Container (não do
+schema Zod: `avisoCnpj`/`avisoRegime` em `criar-cliente.container.tsx`), e
+some assim que o usuário edita o campo correspondente a mão — nunca fica
+preso na tela depois que a pessoa já agiu sobre ele.
+
 ### Ações pós-sucesso (confirmação de cadastro)
 
 **"Cadastrar outro" / "Finalizar" (28/09/2026, #32):** a tela de
@@ -257,6 +271,63 @@ para diferenciar visualmente item de campo simples — não é um cartão
 elevado (`bg-card`), fica no mesmo plano do formulário. Qualquer lista
 dinâmica futura (Data + arquivo, ou qualquer par de campos repetível) reusa
 este padrão em vez de inventar um novo.
+
+### Campo obrigatório e máscara de entrada
+
+**`RequiredMark` (29/09/2026, #33, feedback manual do usuário):** asterisco
+`text-destructive` depois do texto do `Label`, com `aria-hidden="true"` —
+fica fora do nome acessível do campo de propósito (screen readers já
+anunciam "obrigatório" via `aria-required="true"` no próprio input, não
+precisa duplicar em texto). Um parágrafo no topo do formulário
+(`text-xs text-muted-foreground`) explica a convenção uma vez:
+*"Campos com \* são obrigatórios."*. Qualquer campo obrigatório novo usa
+`<RequiredMark />` + `aria-required="true"` no input, em vez de confiar só
+na mensagem de erro do submit pra sinalizar isso.
+
+**Máscara de exibição (29/09/2026, #33):** quando um campo tem um formato
+canônico bem definido (CNPJ: `00.000.000/0000-00`), a formatação acontece
+progressivamente enquanto o usuário digita, via `Controller` controlado
+(não `register` — precisa interceptar `onChange` pra reformatar o valor).
+A máscara é puramente visual (`src/presentation/lib/cnpj-mask.ts`); a
+validação de formato de verdade (dígito verificador) é uma função separada
+(`cnpj-validation.ts`, mesmo `presentation/lib/`) rodada via
+`.refine()` no schema Zod — `view-models` não podem importar `domain`
+(`arquitetura.md`, regra de dependência), então a checagem client-side
+duplica de propósito o algoritmo do domínio só pra dar feedback cedo; a
+validação que vale de verdade continua do lado do servidor.
+
+### Autopreenchimento a partir de API pública
+
+**CNPJ → Empresa/Regime via BrasilAPI (29/09/2026, #33, feedback manual do
+usuário):** ao perder o foco de um campo que serve de chave pra uma consulta
+externa, autopreencher os campos derivados sem nunca sobrescrever o que o
+usuário já digitou à mão (checagem `!getValues(campo)` antes de cada
+`setValue`). Três desfechos possíveis, cada um com tratamento explícito:
+sucesso silencioso (campo some preenchido, sem aviso — não precisa
+comemorar um autopreenchimento que deu certo); "não encontrado" (aviso,
+ver Indicadores de estado → Aviso); "encontrado mas com um dado que a API
+não confirma com certeza" (mesmo tratamento de aviso, escopado só ao campo
+sem confirmação — aqui, Regime: a API distingue Simples Nacional/MEI com
+segurança, mas não Lucro Presumido de Lucro Real, que não é dado público
+estruturado). Nunca deixar a consulta travar o preenchimento manual:
+`AbortSignal.timeout` curto na chamada, e nenhum estado de "carregando"
+visível — ver a nota de corrida de `useFieldArray` abaixo antes de
+adicionar um indicador de loading a um fluxo parecido.
+
+**Corrida com `useFieldArray.append()` (29/09/2026, #33) — não repetir:** a
+primeira versão deste autopreenchimento rastreava um estado `pendente` pra
+mostrar "Buscando…". Como a resposta chega enquanto o usuário ainda pode
+estar preenchendo o resto do formulário, o re-render provocado por esse
+estado colidiu com `useFieldArray.append()` de uma linha dinâmica sendo
+adicionada quase ao mesmo tempo — reproduzido de forma determinística em
+E2E (o clique registrava, a linha nunca aparecia). Removido o indicador de
+loading (a API responde em ~100ms na prática, o ganho de UX não pagava o
+risco); os `setState` que sobraram (avisos) entram num `setTimeout(0)` pra
+nunca cair no mesmo lote de render de uma ação síncrona concorrente.
+Qualquer nova integração assíncrona que atualiza estado dentro de um
+formulário com `useFieldArray` segue essa mesma cautela — testar em E2E de
+verdade, não só unitário com a chamada externa mockada, antes de considerar
+pronto.
 
 ## Estados e motion
 
