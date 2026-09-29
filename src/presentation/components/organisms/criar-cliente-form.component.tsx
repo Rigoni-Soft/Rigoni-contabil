@@ -51,6 +51,7 @@ type CriarClienteFormProps = {
   avisoCnpj?: string;
   avisoRegime?: string;
   onRegimeChange: () => void;
+  onEmpresaChange: () => void;
 };
 
 export function CriarClienteForm({
@@ -69,6 +70,7 @@ export function CriarClienteForm({
   avisoCnpj,
   avisoRegime,
   onRegimeChange,
+  onEmpresaChange,
 }: CriarClienteFormProps) {
   if (criado) {
     return (
@@ -138,7 +140,7 @@ export function CriarClienteForm({
           id="empresa"
           aria-required="true"
           aria-invalid={!!errors.empresa}
-          {...register("empresa")}
+          {...register("empresa", { onChange: onEmpresaChange })}
         />
         {errors.empresa && <FieldError>{errors.empresa.message}</FieldError>}
       </div>

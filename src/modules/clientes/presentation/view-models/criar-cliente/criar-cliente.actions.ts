@@ -6,6 +6,7 @@ import { makeCriarCliente } from "@/main/clientes.factory";
 import type { CriarClienteOutput } from "@/modules/clientes/application/ports/in/criar-cliente.provider";
 import { criarClienteSchema } from "@/modules/clientes/presentation/view-models/criar-cliente/criar-cliente.schema";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
+import { toActionResult } from "@/shared/kernel/to-action-result";
 
 export async function criarClienteAction(
   input: unknown,
@@ -23,11 +24,5 @@ export async function criarClienteAction(
   }
 
   const criarCliente = await makeCriarCliente();
-  const resultado = await criarCliente.execute(parsed.data);
-
-  if (!resultado.ok) {
-    return { ok: false, error: { code: resultado.error.code, message: resultado.error.message } };
-  }
-
-  return { ok: true, data: resultado.value };
+  return toActionResult(await criarCliente.execute(parsed.data));
 }

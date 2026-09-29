@@ -1,7 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import { ok } from "@/shared/kernel/result";
+import { ValidationError } from "@/shared/errors/validation.error";
+import { err, ok } from "@/shared/kernel/result";
 
 import { CriarClienteContainer } from "./criar-cliente.container";
 
@@ -113,6 +114,31 @@ describe("CriarClienteContainer", () => {
     await usuario.selectOptions(screen.getByLabelText(/^Regime/), "simples_nacional");
 
     expect(screen.queryByText(/Não foi possível confirmar o Regime/i)).not.toBeInTheDocument();
+  });
+
+  it("mostra 'CNPJ inválido' no blur quando o dígito verificador não bate, sem consultar a API (achado real, 2026-09-29)", async () => {
+    const usuario = userEvent.setup();
+    render(<CriarClienteContainer />);
+
+    await usuario.type(screen.getByLabelText(/^CNPJ/), "01.010.101/0101-01");
+    await usuario.tab();
+
+    expect(await screen.findByText("CNPJ inválido")).toBeInTheDocument();
+    expect(consultarMock).not.toHaveBeenCalled();
+    expect(screen.queryByText(/CNPJ não encontrado/)).not.toBeInTheDocument();
+  });
+
+  it("mapeia erro de campo devolvido pelo servidor pro input certo (não fica só um aviso genérico)", async () => {
+    executeMock.mockResolvedValue(
+      err(new ValidationError("Dados de cliente inválidos", { cnpj: ["CNPJ já cadastrado"] })),
+    );
+    const usuario = userEvent.setup();
+    render(<CriarClienteContainer />);
+
+    await preencherCamposObrigatorios(usuario);
+    await usuario.click(screen.getByRole("button", { name: "Cadastrar" }));
+
+    expect(await screen.findByText("CNPJ já cadastrado")).toBeInTheDocument();
   });
 
   it("aplica a máscara de CNPJ enquanto digita", async () => {

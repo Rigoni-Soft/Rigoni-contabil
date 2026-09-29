@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { cnpjValido } from "@/presentation/lib/cnpj-validation";
 import { REGIMES } from "@/shared/kernel/regimes";
 
 // PDF ou DOCX (ponto 2 do feedback manual, 2026-09-29) — restringe tanto no
@@ -20,7 +21,7 @@ const arquivoDocumento = (mensagem: string) =>
 
 export const criarClienteSchema = z.object({
   empresa: z.string().min(1, "Empresa obrigatória"),
-  cnpj: z.string().min(1, "CNPJ obrigatório"),
+  cnpj: z.string().min(1, "CNPJ obrigatório").refine(cnpjValido, "CNPJ inválido"),
   regime: z.enum(REGIMES, "Regime obrigatório"),
   // Opcional (decisão de produto 2026-09-29, atualiza a spec #24).
   contratoSocial: arquivoDocumento("Arquivo inválido").optional(),

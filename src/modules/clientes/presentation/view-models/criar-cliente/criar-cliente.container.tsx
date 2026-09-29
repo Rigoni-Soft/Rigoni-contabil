@@ -27,6 +27,8 @@ export function CriarClienteContainer() {
     reset,
     getValues,
     setValue,
+    setError,
+    trigger,
     formState: { errors },
   } = useForm<CriarClienteFormValues>({
     resolver: zodResolver(criarClienteSchema),
@@ -55,6 +57,13 @@ export function CriarClienteContainer() {
   const aoDesfocarCnpj = async (cnpjMascarado: string) => {
     setAvisoCnpj(undefined);
     setAvisoRegime(undefined);
+
+    // Formato inválido (dígito verificador não bate) não faz sentido consultar
+    // a API pública — "não encontrado" seria enganoso pra um CNPJ que nem é
+    // válido. `trigger` roda o schema (inclui o refine de dígito verificador)
+    // e já preenche `errors.cnpj` com "CNPJ inválido" quando falha.
+    const formatoValido = await trigger("cnpj");
+    if (!formatoValido) return;
 
     const digitos = cnpjMascarado.replace(/\D/g, "");
     const dados = await consultarCnpj(digitos);
@@ -86,6 +95,7 @@ export function CriarClienteContainer() {
   };
 
   const aoAlterarRegime = () => setAvisoRegime(undefined);
+  const aoAlterarEmpresa = () => setAvisoCnpj(undefined);
 
   const aoSubmeter = handleSubmit(async (valores) => {
     setPendente(true);
@@ -96,6 +106,15 @@ export function CriarClienteContainer() {
     setPendente(false);
     if (!resultado.ok) {
       setErroServidor(resultado.error.message);
+      // Erro de validação do domínio (ex.: CNPJ inválido escapou do schema
+      // por algum motivo) aponta pro campo certo, não só um aviso genérico no
+      // rodapé — achado real: "Dados de cliente inválidos" sem dizer qual
+      // campo (2026-09-29).
+      for (const [campo, mensagens] of Object.entries(resultado.error.fields ?? {})) {
+        if (mensagens[0]) {
+          setError(campo as keyof CriarClienteFormValues, { message: mensagens[0] });
+        }
+      }
       return;
     }
 
@@ -119,6 +138,7 @@ export function CriarClienteContainer() {
       avisoCnpj={avisoCnpj}
       avisoRegime={avisoRegime}
       onRegimeChange={aoAlterarRegime}
+      onEmpresaChange={aoAlterarEmpresa}
     />
   );
 }
