@@ -7,7 +7,7 @@ Domínio de atendimento a clientes (empresas contábeis) via WhatsApp e de gest�
 ### Organização e acesso
 
 **Setor**:
-Unidade organizacional do escritório (ex.: Simples Nacional, Tributário), com um líder. Fonte da lista de setores: `organograma.pdf`.
+Unidade organizacional do escritório (ex.: Simples Nacional, Tributário), com um líder. Fonte da lista de setores: `organograma.pdf`. Zeladoria é subtime de Financeiro, não é Setor próprio — decisão definitiva, confirmada por Cledson em 25/09/2026 na revisão do #28.
 _Avoid_: Departamento, área.
 
 **Papel**:

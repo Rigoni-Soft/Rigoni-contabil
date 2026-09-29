@@ -50,6 +50,8 @@ export default defineConfig([
   { files: ["**/*.server.ts"], rules: rule(CLIENT, SERVER) },
   {
     files: ["src/presentation/components/{atoms,molecules,organisms,templates,pages}/**/*.tsx"],
+    // spec.tsx testa a View com um wrapper (ex.: useForm) por fora dela; não é a própria View com hook.
+    ignores: ["**/*.spec.tsx"],
     rules: rule(CLIENT, SERVER, CACHE, HOOK_CALL, HOOK_IMPORT),
   },
   prettier,
