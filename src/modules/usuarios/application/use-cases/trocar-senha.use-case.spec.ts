@@ -49,9 +49,10 @@ class SessaoFalsa implements SessaoPort {
 class UsuarioRepositoryFalso implements UsuarioRepository {
   usuario: Usuario | null = null;
   marcada = false;
+  erroTecnico: AppError | null = null;
 
-  async buscarPorId(): Promise<Usuario | null> {
-    return this.usuario;
+  async buscarPorId(): Promise<Result<Usuario | null, AppError>> {
+    return this.erroTecnico ? err(this.erroTecnico) : ok(this.usuario);
   }
   async criar(): Promise<Result<void, AppError>> {
     return ok(undefined);
@@ -116,6 +117,20 @@ describe("TrocarSenha", () => {
 
     expect(resultado.ok).toBe(false);
     if (!resultado.ok) expect(resultado.error).toBeInstanceOf(ForbiddenError);
+  });
+
+  it("propaga o erro tecnico (nao 'sem perfil cadastrado') quando buscarPorId falha (devolutiva #55, ponto 02)", async () => {
+    const sessao = new SessaoFalsa();
+    const usuarios = new UsuarioRepositoryFalso();
+    usuarios.erroTecnico = new ForbiddenError("Falha ao buscar perfil: indisponível");
+    const auditoria = new AuditoriaFalsa();
+
+    const resultado = await new TrocarSenha(sessao, usuarios, auditoria).execute({
+      novaSenha: "nova-senha-123",
+    });
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error.message).not.toMatch(/sem perfil cadastrado/);
   });
 
   it("propaga a falha e não marca troca quando o gateway de sessão falha", async () => {

@@ -20,8 +20,12 @@ export class TrocarSenha implements TrocarSenhaPort {
     const id = await this.sessao.usuarioAtualId();
     if (!id) return err(new ForbiddenError("Sessão inválida."));
 
-    const usuario = await this.usuarios.buscarPorId(id);
-    if (!usuario) return err(new ForbiddenError("Usuário autenticado sem perfil cadastrado."));
+    const perfil = await this.usuarios.buscarPorId(id);
+    // Erro técnico não vira "sem perfil cadastrado" (devolutiva #55, ponto 02):
+    // propaga o AppError original em vez de mascará-lo.
+    if (!perfil.ok) return perfil;
+    if (!perfil.value) return err(new ForbiddenError("Usuário autenticado sem perfil cadastrado."));
+    const usuario = perfil.value;
 
     // Decide antes de marcar a troca, senão precisaTrocarSenha() já viraria false.
     const primeiroAcesso = usuario.precisaTrocarSenha();

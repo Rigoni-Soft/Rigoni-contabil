@@ -196,7 +196,8 @@ describe("SupabaseUsuarioRepository (integração)", () => {
     const { id, email } = await criarContaAuthDeTeste();
     await repositorioAdmin.criar(usuarioValido(id));
     const antes = await repositorioAdmin.buscarPorId(id as UsuarioId);
-    expect(antes?.precisaTrocarSenha()).toBe(true);
+    expect(antes.ok).toBe(true);
+    if (antes.ok) expect(antes.value?.precisaTrocarSenha()).toBe(true);
 
     const comoNovoUsuario = await clienteAutenticado(email, "senha-de-teste-123");
     const repositorioNovoUsuario = new SupabaseUsuarioRepository(comoNovoUsuario);
@@ -204,6 +205,7 @@ describe("SupabaseUsuarioRepository (integração)", () => {
 
     expect(resultado.ok).toBe(true);
     const depois = await repositorioAdmin.buscarPorId(id as UsuarioId);
-    expect(depois?.precisaTrocarSenha()).toBe(false);
+    expect(depois.ok).toBe(true);
+    if (depois.ok) expect(depois.value?.precisaTrocarSenha()).toBe(false);
   });
 });
