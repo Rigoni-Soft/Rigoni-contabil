@@ -24,6 +24,30 @@ describe("listarRegistrosAction (integração)", () => {
     expect(executeMock).not.toHaveBeenCalled();
   });
 
+  // Devolutiva técnica PR #60, ajuste 03: ator não-UUID rejeitado antes de
+  // chegar no caso de uso/repositório.
+  it("devolve VALIDATION_ERROR sem chamar o caso de uso quando o ator não é UUID", async () => {
+    const resultado = await listarRegistrosAction({ ator: "joão" });
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) {
+      expect(resultado.error.code).toBe("VALIDATION_ERROR");
+      expect(resultado.error.fields?.ator).toBeDefined();
+    }
+    expect(executeMock).not.toHaveBeenCalled();
+  });
+
+  it("repassa um ator UUID válido ao caso de uso", async () => {
+    executeMock.mockResolvedValue(ok([]));
+
+    const resultado = await listarRegistrosAction({
+      ator: "11111111-1111-1111-1111-111111111111",
+    });
+
+    expect(resultado).toEqual({ ok: true, data: [] });
+    expect(executeMock).toHaveBeenCalledWith({ ator: "11111111-1111-1111-1111-111111111111" });
+  });
+
   it("repassa o filtro validado ao caso de uso e devolve os dados", async () => {
     executeMock.mockResolvedValue(ok([]));
 
