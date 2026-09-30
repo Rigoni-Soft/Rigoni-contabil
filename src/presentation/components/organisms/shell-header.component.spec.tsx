@@ -120,6 +120,22 @@ describe("ShellHeader", () => {
     expect(screen.queryByRole("link", { name: /cadastrar cliente/i })).not.toBeInTheDocument();
   });
 
+  it("tem o link temporário 'Ir p/ cliente (dev)' (#34, remover quando #35 existir)", () => {
+    render(
+      <ShellHeader
+        nome="Jéssica"
+        papel="funcionario"
+        setor="simples_nacional"
+        sair={<button>Sair</button>}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: /ir pra cliente \(dev\)/i })).toHaveAttribute(
+      "href",
+      "/dev/ir-para-cliente",
+    );
+  });
+
   it("Funcionário não vê link de cadastro (não cadastra ninguém)", () => {
     render(
       <ShellHeader

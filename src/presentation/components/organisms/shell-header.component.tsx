@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, KeyRound, UserPlus } from "lucide-react";
+import { Building2, KeyRound, UserPlus, Wrench } from "lucide-react";
 
 import { buttonVariants } from "@/presentation/components/ui/button";
 import { ThemeToggle } from "@/presentation/components/ui/theme-toggle";
@@ -78,6 +78,16 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
         >
           <KeyRound aria-hidden="true" />
           <span className="hidden sm:inline">Trocar senha</span>
+        </Link>
+        {/* Temporário (#34) — remover quando #35 (Busca de cliente) existir:
+            só assim se chega em /clientes/[id] pra testar manualmente. */}
+        <Link
+          href="/dev/ir-para-cliente"
+          aria-label="Ir pra cliente (dev)"
+          className={buttonVariants({ variant: "ghost", size: "sm" })}
+        >
+          <Wrench aria-hidden="true" />
+          <span className="hidden sm:inline">Ir p/ cliente (dev)</span>
         </Link>
         <ThemeToggle />
         {sair}
