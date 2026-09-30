@@ -4,10 +4,9 @@
 // Contábil Externo é o mesmo setor que Contábil (não dois setores) e T.I. não é setor
 // próprio (cai dentro de Administrativo, mesmo padrão da Zeladoria) — decisão definitiva,
 // confirmada com o usuário em 28/09/2026.
-// ponytail: o enum `setor_slug` do Postgres (migration do #28) ainda lista
-// `contabil_externo`/`ti` porque essa correção não tocou o #28 (já em revisão externa);
-// são valores mortos, nunca aceitos por este validador — remover do enum quando o #28
-// puder ser editado de novo (após merge).
+// O enum `setor_slug` do Postgres foi alinhado a esta lista pela migration
+// 20260929180000_setor_slug_remove_setores_mortos.sql (ajuste 04 da devolutiva
+// técnica da PR #60) — `contabil_externo`/`ti` removidos do banco também.
 // Fica em shared (não em usuarios/domain) porque Views globais também precisam da lista
 // e não podem importar de dentro de um módulo (arquitetura.md, seção 3.4).
 export const SETORES = [

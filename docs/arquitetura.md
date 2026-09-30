@@ -426,6 +426,7 @@ Detalhes em `seguranca.md`. Aqui ficam as que a estrutura garante:
 - Nenhuma Server Action sem validação de input e sem checagem de sessão.
 - Nenhum dado por usuário, papel ou filial em cache compartilhado (seção 6.3).
 - RLS ativa em toda tabela exposta.
+- Tabela de log/trilha imutável (ex.: auditoria): sem policy de INSERT liberada ao cliente, mesmo restrita ao próprio `auth.uid()` — a única escrita é por função `SECURITY DEFINER` que decide ator e timestamp no próprio banco, nunca a partir do que o chamador envia (devolutiva técnica da PR #60, bloqueador 01).
 
 ---
 
