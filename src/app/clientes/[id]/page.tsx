@@ -6,6 +6,7 @@ import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-b
 import { carregarSessao } from "@/presentation/view-models/shell/shell.server";
 import { EditarCadastroOperacionalContainer } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.container";
 import { carregarCadastroOperacionalCliente } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.server";
+import { podeEditarCadastroOperacional } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/pode-editar-cadastro-operacional";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -20,13 +21,8 @@ export default async function Page({ params }: Props) {
   if (!resultado.ok) redirect("/");
 
   // Só Admin ou Funcionário do setor Simples Nacional edita — qualquer outro
-  // perfil autenticado só visualiza (critério de aceite do #34). Espelha a
-  // regra de EditarCadastroOperacionalCliente.podeEditar (não pode importar
-  // de lá — módulos não se importam, arquitetura.md §3.4).
-  const readOnly = !(
-    sessao.papel === "admin" ||
-    (sessao.papel === "funcionario" && sessao.setor === "simples_nacional")
-  );
+  // perfil autenticado só visualiza (critério de aceite do #34).
+  const readOnly = !podeEditarCadastroOperacional(sessao.papel, sessao.setor);
 
   return (
     <EditarCadastroOperacionalPage

@@ -11,6 +11,7 @@ import type {
   SugestaoClienteDto,
 } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { EditarCadastroOperacionalContainer } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.container";
+import { podeEditarCadastroOperacional } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/pode-editar-cadastro-operacional";
 
 import { buscarClientesAction, carregarCadastroOperacionalAction } from "./buscar-cliente.actions";
 
@@ -51,10 +52,7 @@ export function BuscarClienteContainer({ papel, setor }: Props) {
     setTermo("");
   };
 
-  const readOnly = !(
-    papel === "admin" ||
-    (papel === "funcionario" && setor === "simples_nacional")
-  );
+  const readOnly = !podeEditarCadastroOperacional(papel, setor);
 
   // Mesma ação por trás de "Nova busca" (topo) e "Cancelar" (dentro do form,
   // #35 corrige: sem isso o <Link href="/"> do form não fazia nada, já que a

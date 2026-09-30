@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
 import { expect, test } from "./fixtures";
+import { criarClienteComoAdmin, login } from "./support/criar-cliente";
 
 // Cobre os cenários do ticket #34 (Funcionário SN edita campos operacionais
 // do cliente): edição, persistência, somente-leitura pra outro Setor e
@@ -14,56 +15,10 @@ const SUPABASE_ANON_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
 
-async function login(page: import("@playwright/test").Page, email: string, senha: string) {
-  await page.goto("/login");
-  await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill(senha);
-  await page.getByRole("button", { name: "Entrar" }).click();
-}
-
 async function logout(page: import("@playwright/test").Page) {
   await page.getByRole("button", { name: "Sair" }).click();
   await expect(page).toHaveURL(/\/login$/);
 }
-
-function pdf(nome: string) {
-  return { name: nome, mimeType: "application/pdf", buffer: Buffer.from("conteúdo de teste") };
-}
-
-const PESOS_PRIMEIRO_DIGITO = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-const PESOS_SEGUNDO_DIGITO = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-
-function digitoVerificador(base: string, pesos: number[]): string {
-  const soma = base
-    .split("")
-    .reduce((acumulado, digito, indice) => acumulado + Number(digito) * pesos[indice], 0);
-  const resto = soma % 11;
-  return String(resto < 2 ? 0 : 11 - resto);
-}
-
-function cnpjUnico(): string {
-  const raiz = `${Date.now()}`.slice(-8) + "0001";
-  const d1 = digitoVerificador(raiz, PESOS_PRIMEIRO_DIGITO);
-  const d2 = digitoVerificador(raiz + d1, PESOS_SEGUNDO_DIGITO);
-  return raiz + d1 + d2;
-}
-
-async function criarClienteComoAdmin(page: import("@playwright/test").Page, empresa: string) {
-  const cnpjDigits = cnpjUnico();
-  await login(page, "admin@rigonicontabil.local", "admin123");
-  await expect(page).toHaveURL("/");
-  await page.goto("/admin/clientes/novo");
-
-  await page.getByLabel("Empresa").fill(empresa);
-  await page.getByLabel("CNPJ").fill(cnpjDigits);
-  await page.getByLabel("Regime").selectOption("simples_nacional");
-  await page.getByLabel("Contrato social").setInputFiles(pdf("contrato-social.pdf"));
-  await page.getByRole("button", { name: "Cadastrar" }).click();
-
-  await expect(page.getByText(empresa)).toBeVisible();
-  return cnpjDigits;
-}
-
 async function buscarClienteIdPorCnpj(cnpjDigits: string): Promise<string> {
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const { error: erroLogin } = await supabase.auth.signInWithPassword({
