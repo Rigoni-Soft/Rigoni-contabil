@@ -4,6 +4,10 @@ import type {
   CadastroOperacionalClienteDto,
   ClienteQueryPort,
 } from "@/modules/clientes/application/ports/out/cliente-query.provider";
+import {
+  operacionalUnico,
+  type CadastroOperacionalRow,
+} from "@/modules/clientes/infra/mappers/cadastro-operacional-row";
 import { AppError } from "@/shared/errors/app.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
@@ -13,15 +17,6 @@ class ConsultaError extends AppError {
 
 type ContatoRow = { id: string; nome: string; telefone: string; padrao: boolean };
 type AtividadeMensalRow = { industria: boolean; comercio: boolean; servico: boolean };
-type CadastroOperacionalRow = {
-  forma_envio: string;
-  documento_obrigatorio: string | null;
-  das_status: string | null;
-  data_envio_das: string | null;
-  tem_parcelamento: boolean;
-  parcelamento_status: string | null;
-  observacoes_gerais: string;
-};
 
 type ClienteBasicoRow = {
   id: string;
@@ -32,13 +27,6 @@ type ClienteBasicoRow = {
   cliente_contatos: ContatoRow[] | null;
   cliente_atividades_mensais: AtividadeMensalRow[] | null;
 };
-
-function operacionalUnico(
-  valor: CadastroOperacionalRow | CadastroOperacionalRow[] | null,
-): CadastroOperacionalRow | null {
-  if (!valor) return null;
-  return Array.isArray(valor) ? (valor[0] ?? null) : valor;
-}
 
 // Select explícito: nunca inclui contrato_social_caminho/alterações — a
 // confidencialidade desta consulta é garantida pelas colunas pedidas, não só

@@ -1,4 +1,8 @@
 import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
+import {
+  operacionalUnico,
+  type CadastroOperacionalRow,
+} from "@/modules/clientes/infra/mappers/cadastro-operacional-row";
 
 type AlteracaoRow = { data: string; arquivo_caminho: string };
 type ContatoRow = { id: string; nome: string; telefone: string; padrao: boolean };
@@ -7,15 +11,6 @@ type AtividadeMensalRow = {
   industria: boolean;
   comercio: boolean;
   servico: boolean;
-};
-type CadastroOperacionalRow = {
-  forma_envio: string;
-  documento_obrigatorio: string | null;
-  das_status: string | null;
-  data_envio_das: string | null;
-  tem_parcelamento: boolean;
-  parcelamento_status: string | null;
-  observacoes_gerais: string;
 };
 
 export type ClienteRow = {
@@ -29,16 +24,6 @@ export type ClienteRow = {
   cliente_contatos?: ContatoRow[] | null;
   cliente_atividades_mensais?: AtividadeMensalRow[] | null;
 };
-
-// PostgREST devolve embed 1:1 (FK também é PK, como cliente_cadastro_operacional_sn)
-// ora como objeto, ora como array de 1 elemento, dependendo da versão/config
-// do schema cache — normaliza os dois formatos aqui.
-function operacionalUnico(
-  valor: CadastroOperacionalRow | CadastroOperacionalRow[] | null | undefined,
-): CadastroOperacionalRow | null {
-  if (!valor) return null;
-  return Array.isArray(valor) ? (valor[0] ?? null) : valor;
-}
 
 export function clienteDoRow(row: ClienteRow): Cliente {
   const operacional = operacionalUnico(row.cliente_cadastro_operacional_sn);
