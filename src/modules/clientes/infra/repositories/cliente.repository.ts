@@ -4,6 +4,7 @@ import type { ClienteRepository } from "@/modules/clientes/application/ports/out
 import type { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
 import { clienteDoRow, type ClienteRow } from "@/modules/clientes/infra/mappers/cliente.mapper";
 import { AppError } from "@/shared/errors/app.error";
+import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 const SELECT_CLIENTE_COMPLETO = `
@@ -38,7 +39,20 @@ export class SupabaseClienteRepository implements ClienteRepository {
       })),
     });
 
-    if (error) return err(new PersistenciaError(`Falha ao salvar cliente: ${error.message}`));
+    if (error) {
+      // Mesmo padrão de SupabaseAuthAdminGateway pro email_exists: erro de
+      // negócio conhecido vira ValidationError amigável, apontando o campo —
+      // nunca a mensagem crua do driver Postgres direto pro usuário.
+      if (error.code === "23505" && error.message.includes("clientes_cnpj_key")) {
+        return err(
+          new ValidationError("CNPJ já cadastrado para outro Cliente.", {
+            cnpj: ["já cadastrado"],
+          }),
+        );
+      }
+      console.error("Falha ao salvar cliente:", error.message);
+      return err(new PersistenciaError("Não foi possível salvar o Cliente. Tente novamente."));
+    }
     return ok(undefined);
   }
 
@@ -52,7 +66,10 @@ export class SupabaseClienteRepository implements ClienteRepository {
       .eq("cliente_atividades_mensais.ano_mes", anoMesAtual)
       .maybeSingle();
 
-    if (error) return err(new PersistenciaError(`Falha ao buscar cliente: ${error.message}`));
+    if (error) {
+      console.error("Falha ao buscar cliente:", error.message);
+      return err(new PersistenciaError("Não foi possível carregar o Cliente. Tente novamente."));
+    }
     if (!data) return ok(null);
     return ok(clienteDoRow(data as unknown as ClienteRow));
   }
@@ -88,7 +105,14 @@ export class SupabaseClienteRepository implements ClienteRepository {
       p_servico: cliente.atividadeMesAtual?.servico ?? false,
     });
 
-    if (error) return err(new PersistenciaError(`Falha ao atualizar cliente: ${error.message}`));
+    if (error) {
+      console.error("Falha ao atualizar cliente:", error.message);
+      return err(
+        new PersistenciaError(
+          "Não foi possível atualizar o cadastro operacional. Tente novamente.",
+        ),
+      );
+    }
     return ok(undefined);
   }
 }
