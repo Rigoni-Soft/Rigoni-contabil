@@ -82,7 +82,13 @@ export function AuditoriaFeedFiltro({
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="ator">Ator</Label>
-          <Input id="ator" placeholder="id do usuário" {...register("ator")} />
+          <Input
+            id="ator"
+            placeholder="id do usuário"
+            aria-invalid={!!errors.ator}
+            {...register("ator")}
+          />
+          {errors.ator && <FieldError>{errors.ator.message}</FieldError>}
         </div>
 
         <div className="flex flex-col gap-1.5">

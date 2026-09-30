@@ -54,4 +54,21 @@ describe("filtroFeedSchema", () => {
     expect(resultado.success).toBe(false);
     if (!resultado.success) expect(resultado.error.issues[0].path).toEqual(["dataInicio"]);
   });
+
+  // Devolutiva técnica PR #60, ajuste 03: coluna `ator` é UUID; texto livre
+  // deve ser rejeitado no schema, antes de chegar na consulta.
+  it("rejeita um ator que não é UUID, com aviso no campo ator", () => {
+    const resultado = filtroFeedSchema.safeParse({ ator: "joão" });
+
+    expect(resultado.success).toBe(false);
+    if (!resultado.success) expect(resultado.error.issues[0].path).toEqual(["ator"]);
+  });
+
+  it("aceita um ator UUID válido", () => {
+    const resultado = filtroFeedSchema.safeParse({
+      ator: "11111111-1111-1111-1111-111111111111",
+    });
+
+    expect(resultado.success).toBe(true);
+  });
 });

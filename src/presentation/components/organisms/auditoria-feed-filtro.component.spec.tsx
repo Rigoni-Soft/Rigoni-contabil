@@ -51,6 +51,23 @@ describe("AuditoriaFeedFiltro", () => {
     expect(screen.getByText("Informe as duas datas do período (De e Até).")).toBeInTheDocument();
   });
 
+  // Devolutiva técnica PR #60, ajuste 03: erro de UUID inválido no ator
+  // precisa aparecer no campo, mesmo padrão do aviso de período.
+  it("mostra o aviso de ator inválido no campo correspondente", () => {
+    render(
+      <AuditoriaFeedFiltro
+        register={(() => ({})) as unknown as ReturnType<typeof useForm<FiltroValues>>["register"]}
+        errors={{
+          ator: { type: "custom", message: "Identificador de ator inválido." },
+        }}
+        onSubmit={() => {}}
+        onLimpar={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("Identificador de ator inválido.")).toBeInTheDocument();
+  });
+
   it("tem os campos de período, setor, ator, ação, alvo e resultado", () => {
     render(<Wrapper onSubmit={jest.fn()} />);
 
