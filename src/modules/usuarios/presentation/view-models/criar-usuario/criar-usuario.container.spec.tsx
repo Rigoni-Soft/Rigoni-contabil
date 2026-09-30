@@ -39,4 +39,21 @@ describe("CriarUsuarioContainer", () => {
     expect(await screen.findByText("ABCDEFGHJKLM")).toBeInTheDocument();
     expect(executeMock).toHaveBeenCalledTimes(1);
   });
+
+  // Devolutiva técnica PR #61, ponto 5: Promise rejeitada (erro de rede/transporte,
+  // não um ActionResult de erro) não pode deixar o botão preso em "Cadastrando...".
+  it("Promise rejeitada limpa o estado pendente e mostra erro genérico", async () => {
+    executeMock.mockRejectedValue(new Error("falha de rede"));
+    const usuario = userEvent.setup();
+    render(<CriarUsuarioContainer />);
+
+    await usuario.type(screen.getByLabelText("Nome"), "Jéssica Souza");
+    await usuario.type(screen.getByLabelText("E-mail"), "jessica@rigonicontabil.local");
+    await usuario.selectOptions(screen.getByLabelText("Papel"), "funcionario");
+    await usuario.selectOptions(screen.getByLabelText("Setor"), "simples_nacional");
+    await usuario.click(screen.getByRole("button", { name: "Cadastrar" }));
+
+    expect(await screen.findByText("Falha inesperada. Tente novamente.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cadastrar" })).toBeEnabled();
+  });
 });

@@ -26,19 +26,27 @@ export function CriarUsuarioContainer() {
     setPendente(true);
     setErroServidor(undefined);
 
-    const resultado = await criarUsuarioAction(valores);
+    try {
+      const resultado = await criarUsuarioAction(valores);
+      if (!resultado.ok) {
+        setErroServidor(resultado.error.message);
+        return;
+      }
 
-    setPendente(false);
-    if (!resultado.ok) {
-      setErroServidor(resultado.error.message);
-      return;
+      setCriado({
+        nome: resultado.data.usuario.nome,
+        email: resultado.data.usuario.email,
+        senhaProvisoria: resultado.data.senhaProvisoria,
+      });
+    } catch {
+      // Devolutiva técnica PR #61, ponto 5: sem isso, uma Promise rejeitada
+      // (erro de rede/transporte) travava o botão em "Cadastrando..." pra
+      // sempre, porque setPendente(false) só rodava depois do await. Mesma
+      // rede de segurança já usada em login.container.tsx.
+      setErroServidor("Falha inesperada. Tente novamente.");
+    } finally {
+      setPendente(false);
     }
-
-    setCriado({
-      nome: resultado.data.usuario.nome,
-      email: resultado.data.usuario.email,
-      senhaProvisoria: resultado.data.senhaProvisoria,
-    });
   });
 
   return (
