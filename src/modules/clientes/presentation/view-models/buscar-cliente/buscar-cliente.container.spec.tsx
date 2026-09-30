@@ -1,4 +1,5 @@
-import { act, render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
@@ -33,6 +34,17 @@ const CADASTRO: CadastroOperacionalClienteDto = {
   atividadeMes: { industria: false, comercio: false, servico: false },
 };
 
+// Sem retry: com fake timers, o backoff de retry do React Query enfileira
+// setTimeout extras que os testes não avançam, travando o findBy.
+function renderComQueryClient() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={client}>
+      <BuscarClienteContainer papel="admin" setor="administrativo" />
+    </QueryClientProvider>,
+  );
+}
+
 describe("BuscarClienteContainer", () => {
   beforeEach(() => {
     buscarClientesActionMock.mockReset();
@@ -46,7 +58,7 @@ describe("BuscarClienteContainer", () => {
 
   it("digitar menos de 3 caracteres não chama a action", async () => {
     const usuario = userEvent.setup({ delay: null });
-    render(<BuscarClienteContainer papel="admin" setor="administrativo" />);
+    renderComQueryClient();
 
     await usuario.type(screen.getByLabelText(/empresa ou cnpj/i), "Pã");
     act(() => jest.advanceTimersByTime(500));
@@ -57,7 +69,7 @@ describe("BuscarClienteContainer", () => {
   it("digitar 3+ caracteres chama buscarClientesAction após o debounce", async () => {
     buscarClientesActionMock.mockResolvedValue({ ok: true, data: [] });
     const usuario = userEvent.setup({ delay: null });
-    render(<BuscarClienteContainer papel="admin" setor="administrativo" />);
+    renderComQueryClient();
 
     await usuario.type(screen.getByLabelText(/empresa ou cnpj/i), "Pão");
     await act(async () => {
@@ -67,6 +79,75 @@ describe("BuscarClienteContainer", () => {
     expect(buscarClientesActionMock).toHaveBeenCalledWith({ termo: "Pão" });
   });
 
+  it("mostra 'Buscando...' enquanto a query está em andamento", async () => {
+    let resolver: (value: { ok: true; data: [] }) => void = () => {};
+    buscarClientesActionMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolver = resolve;
+      }),
+    );
+    const usuario = userEvent.setup({ delay: null });
+    renderComQueryClient();
+
+    await usuario.type(screen.getByLabelText(/empresa ou cnpj/i), "Pão");
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+
+    expect(screen.getAllByText("Buscando...").length).toBeGreaterThan(0);
+
+    await act(async () => {
+      resolver({ ok: true, data: [] });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryAllByText("Buscando...")).toHaveLength(0);
+    });
+  });
+
+  it("buscar o mesmo termo de novo usa o cache do React Query e não duplica a chamada", async () => {
+    buscarClientesActionMock.mockResolvedValue({
+      ok: true,
+      data: [{ id: CADASTRO.id, empresa: CADASTRO.empresa, cnpj: CADASTRO.cnpj }],
+    });
+    const usuario = userEvent.setup({ delay: null });
+    renderComQueryClient();
+    const input = screen.getByLabelText(/empresa ou cnpj/i);
+
+    await usuario.type(input, "Pão");
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+    expect(buscarClientesActionMock).toHaveBeenCalledTimes(1);
+
+    await usuario.clear(input);
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+    await usuario.type(input, "Pão");
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+
+    expect(buscarClientesActionMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("quando a action falha, as sugestões ficam vazias e a tela não quebra", async () => {
+    buscarClientesActionMock.mockResolvedValue({
+      ok: false,
+      error: { code: "INTERNAL_ERROR", message: "falhou" },
+    });
+    const usuario = userEvent.setup({ delay: null });
+    renderComQueryClient();
+
+    await usuario.type(screen.getByLabelText(/empresa ou cnpj/i), "Pão");
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+
+    expect(screen.queryByRole("list")).not.toBeInTheDocument();
+  });
+
   it("clicar numa sugestão chama carregarCadastroOperacionalAction e renderiza o form de edição", async () => {
     buscarClientesActionMock.mockResolvedValue({
       ok: true,
@@ -74,7 +155,7 @@ describe("BuscarClienteContainer", () => {
     });
     carregarCadastroOperacionalActionMock.mockResolvedValue({ ok: true, data: CADASTRO });
     const usuario = userEvent.setup({ delay: null });
-    render(<BuscarClienteContainer papel="admin" setor="administrativo" />);
+    renderComQueryClient();
 
     await usuario.type(screen.getByLabelText(/empresa ou cnpj/i), "Pão");
     await act(async () => {
@@ -94,7 +175,7 @@ describe("BuscarClienteContainer", () => {
     });
     carregarCadastroOperacionalActionMock.mockResolvedValue({ ok: true, data: CADASTRO });
     const usuario = userEvent.setup({ delay: null });
-    render(<BuscarClienteContainer papel="admin" setor="administrativo" />);
+    renderComQueryClient();
 
     await usuario.type(screen.getByLabelText(/empresa ou cnpj/i), "Pão");
     await act(async () => {

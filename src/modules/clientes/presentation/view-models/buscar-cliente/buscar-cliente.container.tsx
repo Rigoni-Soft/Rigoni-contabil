@@ -1,63 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 import { Button } from "@/presentation/components/ui/button";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
 import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
-import type {
-  CadastroOperacionalClienteDto,
-  SugestaoClienteDto,
-} from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { EditarCadastroOperacionalContainer } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.container";
-import { podeEditarCadastroOperacional } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.presenter";
 
-import { buscarClientesAction, carregarCadastroOperacionalAction } from "./buscar-cliente.actions";
-import { TAMANHO_MINIMO_TERMO } from "./buscar-cliente.schema";
+import { useBuscarCliente } from "./use-buscar-cliente.hook";
 
 type Props = { papel: string; setor: string };
 
-const DEBOUNCE_MS = 300;
-
 export function BuscarClienteContainer({ papel, setor }: Props) {
-  const [termo, setTermo] = useState("");
-  const [sugestoes, setSugestoes] = useState<SugestaoClienteDto[]>([]);
-  const [clienteSelecionado, setClienteSelecionado] =
-    useState<CadastroOperacionalClienteDto | null>(null);
-  const [buscando, setBuscando] = useState(false);
-
-  // Debounce simples (stdlib) — evita disparar a action a cada tecla digitada.
-  // Abaixo do mínimo, nenhum timer dispara: a lista permanece escondida (ver
-  // sugestoesVisiveis abaixo) sem precisar resetar estado dentro do efeito.
-  useEffect(() => {
-    if (termo.trim().length < TAMANHO_MINIMO_TERMO) return;
-
-    const timer = setTimeout(async () => {
-      setBuscando(true);
-      const resultado = await buscarClientesAction({ termo: termo.trim() });
-      setBuscando(false);
-      setSugestoes(resultado.ok ? resultado.data : []);
-    }, DEBOUNCE_MS);
-
-    return () => clearTimeout(timer);
-  }, [termo]);
-
-  const sugestoesVisiveis = termo.trim().length >= TAMANHO_MINIMO_TERMO ? sugestoes : [];
-
-  const selecionarCliente = async (id: string) => {
-    const resultado = await carregarCadastroOperacionalAction(id);
-    setClienteSelecionado(resultado.ok ? resultado.data : null);
-    setSugestoes([]);
-    setTermo("");
-  };
-
-  const readOnly = !podeEditarCadastroOperacional(papel, setor);
-
-  // Mesma ação por trás de "Nova busca" (topo) e "Cancelar" (dentro do form,
-  // #35 corrige: sem isso o <Link href="/"> do form não fazia nada, já que a
-  // busca já está em "/") — fecha o painel e volta pro campo de busca.
-  const fecharPainel = () => setClienteSelecionado(null);
+  const {
+    termo,
+    setTermo,
+    buscando,
+    sugestoesVisiveis,
+    clienteSelecionado,
+    selecionarCliente,
+    fecharPainel,
+    readOnly,
+  } = useBuscarCliente(papel, setor);
 
   if (clienteSelecionado) {
     return (
