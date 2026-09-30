@@ -367,9 +367,13 @@ describe("CriarUsuario", () => {
     const authAdmin = new AuthAdminFalso();
     const auditoria = new AuditoriaFalsa();
 
-    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
-      INPUT_VALIDO,
-    );
+    const resultado = await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
 
     expect(resultado.ok).toBe(false);
     if (!resultado.ok) expect(resultado.error.message).toBe("falha ao salvar");
