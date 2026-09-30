@@ -7,6 +7,13 @@
 --
 -- Postgres não tem "ALTER TYPE ... DROP VALUE" (drop de enum não é suportado):
 -- a técnica padrão é recriar o tipo sem os valores mortos e migrar as colunas.
+--
+-- Timestamp deliberadamente logo após 20260925120000_auditoria.sql (não na
+-- data real desta devolutiva, 29/09): tickets futuros que criem policies
+-- dependentes de meu_setor() (ex. #32, #34) rodam depois desta migration na
+-- ordem de aplicação e simplesmente chamam a versão já corrigida da função —
+-- sem isso, o DROP FUNCTION abaixo falharia contra qualquer policy dessas
+-- que já exista na sequência de migrations no momento em que esta rodar.
 
 -- 1) A policy "perfis_select_mesmo_setor", a função meu_setor() e a função
 --    registrar_acao_auditoria (#29/PR #60) dependem do tipo antigo — precisam
