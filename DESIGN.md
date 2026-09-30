@@ -325,6 +325,28 @@ validação de formato de verdade (dígito verificador) é uma função separada
 duplica de propósito o algoritmo do domínio só pra dar feedback cedo; a
 validação que vale de verdade continua do lado do servidor.
 
+**Confirmado em #34 (Telefone):** segundo consumidor do padrão de máscara —
+`telefone-mask.ts` formata progressivamente `(00) 0000-0000` (fixo, 10
+dígitos) ou `(00) 00000-0000` (celular, 11 dígitos), mesma técnica
+(`Controller` controlado, não `register`). Diferença do CNPJ: Telefone não
+tem VO próprio com dígito verificador no domínio (`Contato.criar` só exige
+presença) — a máscara aqui é só visual, sem contraparte de validação de
+formato/checksum no domínio ou no schema.
+
+### Ações do formulário (Salvar/Limpar/Cancelar)
+
+**#34, feedback manual do usuário:** formulário de edição (não de cadastro
+em lote, ver "Ações pós-sucesso" acima) ganha três ações lado a lado, só em
+modo edição (nenhuma aparece em modo somente-leitura, já que não há o que
+salvar/desfazer/cancelar): `Button` primário "Salvar"; `Button`
+`outline` "Limpar", que reverte o formulário pro que veio do servidor
+(`reset()` do react-hook-form com os mesmos valores do `defaultValues`) —
+**não esvazia campos**, porque campos `enum` obrigatórios (ex.: Forma de
+envio) não têm opção em branco no `Select`, então "limpar de verdade"
+quebraria a validação; e `<Link>` `ghost` "Cancelar" pro mesmo destino do
+"Voltar" do topo da página. Qualquer tela de edição futura (distinta de
+cadastro em lote) reusa este trio em vez do par "Cadastrar outro"/"Finalizar".
+
 ### Autopreenchimento a partir de API pública
 
 **CNPJ → Empresa/Regime via BrasilAPI (29/09/2026, #33, feedback manual do
