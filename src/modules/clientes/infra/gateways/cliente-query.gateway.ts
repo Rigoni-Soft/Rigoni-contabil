@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   CadastroOperacionalClienteDto,
   ClienteQueryPort,
+  SugestaoClienteDto,
 } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import {
   operacionalUnico,
@@ -86,5 +87,22 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
         servico: atividade?.servico ?? false,
       },
     });
+  }
+
+  async buscarPorTermo(termo: string): Promise<Result<SugestaoClienteDto[], AppError>> {
+    // `,`/`()` têm significado especial na sintaxe de filtro `.or()` do
+    // PostgREST — sem escapar, um termo com vírgula (ex. "Pão, Quente Ltda")
+    // vira duas condições em vez de texto literal. Envolver em aspas duplas
+    // (com `"`/`\` escapados) trata o valor inteiro como literal.
+    const valor = `%${termo}%`.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    const { data, error } = await this.supabase
+      .from("clientes")
+      .select("id, empresa, cnpj")
+      .or(`cnpj.ilike."${valor}",empresa.ilike."${valor}"`)
+      .order("empresa")
+      .limit(10);
+
+    if (error) return err(new ConsultaError(`Erro ao buscar clientes: ${error.message}`));
+    return ok((data as SugestaoClienteDto[]) ?? []);
   }
 }

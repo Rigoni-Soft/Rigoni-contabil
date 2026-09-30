@@ -36,6 +36,10 @@ class ClienteQueryPortFalso implements ClienteQueryPort {
   > {
     return ok(this.dto);
   }
+
+  async buscarPorTermo() {
+    return ok([]);
+  }
 }
 
 describe("ConsultarCadastroOperacionalCliente", () => {

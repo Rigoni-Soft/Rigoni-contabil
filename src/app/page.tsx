@@ -7,6 +7,7 @@ import {
   carregarSessao,
   carregarSetoresDaNavegacao,
 } from "@/presentation/view-models/shell/shell.server";
+import { BuscarClienteContainer } from "@/modules/clientes/presentation/view-models/buscar-cliente/buscar-cliente.container";
 
 export default async function Home() {
   const sessao = await carregarSessao();
@@ -24,6 +25,9 @@ export default async function Home() {
         sair={<LogoutButtonContainer />}
       />
       <ShellNav setores={setores} />
+      <main className="px-4 py-6 sm:px-6">
+        <BuscarClienteContainer papel={sessao.papel} setor={sessao.setor} />
+      </main>
     </>
   );
 }

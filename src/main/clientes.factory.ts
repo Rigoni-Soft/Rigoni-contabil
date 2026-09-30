@@ -11,6 +11,7 @@ import type {
   AtorSessaoDto,
   SessaoPort,
 } from "@/modules/clientes/application/ports/out/sessao.provider";
+import { BuscarClientes } from "@/modules/clientes/application/use-cases/buscar-clientes.use-case";
 import { ConsultarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/consultar-cadastro-operacional-cliente.use-case";
 import { CriarCliente } from "@/modules/clientes/application/use-cases/criar-cliente.use-case";
 import { EditarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/editar-cadastro-operacional-cliente.use-case";
@@ -73,4 +74,9 @@ export async function makeConsultarCadastroOperacionalCliente(): Promise<Consult
     sessaoViaUsuarios(supabase),
     new SupabaseClienteQueryGateway(supabase),
   );
+}
+
+export async function makeBuscarClientes(): Promise<BuscarClientes> {
+  const supabase = await createSupabaseServer();
+  return new BuscarClientes(new SupabaseClienteQueryGateway(supabase));
 }

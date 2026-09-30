@@ -21,8 +21,14 @@ export type CadastroOperacionalClienteDto = {
   atividadeMes: { industria: boolean; comercio: boolean; servico: boolean };
 };
 
+// Resultado leve da busca (#35) — não é o cadastro operacional completo, só
+// o necessário pra listar sugestões (empresa + CNPJ) antes de escolher um cliente.
+export type SugestaoClienteDto = { id: string; empresa: string; cnpj: string };
+
 export interface ClienteQueryPort {
   buscarCadastroOperacional(
     clienteId: string,
   ): Promise<Result<CadastroOperacionalClienteDto | null, AppError>>;
+
+  buscarPorTermo(termo: string): Promise<Result<SugestaoClienteDto[], AppError>>;
 }

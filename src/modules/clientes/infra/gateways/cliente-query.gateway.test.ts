@@ -21,12 +21,40 @@ async function clienteAutenticado(email: string, senha: string): Promise<Supabas
 
 const comoAdmin = () => clienteAutenticado("admin@rigonicontabil.local", "admin123");
 
-async function criarClienteComContratoSocial(admin: SupabaseClient): Promise<Cliente> {
+// CNPJ único e válido (timestamp + contador, dígitos verificadores calculados
+// pelo mesmo algoritmo mod 11 dos outros arquivos de teste de integração/e2e)
+// — evita colisão de unique constraint quando mais de um teste cria cliente
+// na mesma execução.
+const PESOS_PRIMEIRO_DIGITO = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+const PESOS_SEGUNDO_DIGITO = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+let contadorCnpj = 0;
+
+function digitoVerificador(base: string, pesos: number[]): string {
+  const soma = base
+    .split("")
+    .reduce((acumulado, digito, indice) => acumulado + Number(digito) * pesos[indice], 0);
+  const resto = soma % 11;
+  return String(resto < 2 ? 0 : 11 - resto);
+}
+
+function cnpjUnico(): string {
+  contadorCnpj += 1;
+  const raiz = `${Date.now()}`.slice(-8) + String(contadorCnpj).padStart(4, "0");
+  const d1 = digitoVerificador(raiz, PESOS_PRIMEIRO_DIGITO);
+  const d2 = digitoVerificador(raiz + d1, PESOS_SEGUNDO_DIGITO);
+  return raiz + d1 + d2;
+}
+
+async function criarClienteComContratoSocial(
+  admin: SupabaseClient,
+  empresa = "Padaria Pão Quente Ltda",
+  cnpj = "11444777000676",
+): Promise<Cliente> {
   const repositorio = new SupabaseClienteRepository(admin);
   const construido = Cliente.builder()
     .comId(crypto.randomUUID())
-    .comEmpresa("Padaria Pão Quente Ltda")
-    .comCnpj("11444777000676")
+    .comEmpresa(empresa)
+    .comCnpj(cnpj)
     .comRegime("simples_nacional")
     .comContratoSocialCaminho("clientes/x/contrato-social/doc.pdf")
     .comAlteracoesContratuais([])
@@ -60,5 +88,51 @@ describe("SupabaseClienteQueryGateway (#34, integração)", () => {
 
     expect(resultado.ok).toBe(true);
     if (resultado.ok) expect(resultado.value).toBeNull();
+  });
+});
+
+describe("SupabaseClienteQueryGateway.buscarPorTermo (#35, integração)", () => {
+  it("encontra o cliente por um trecho do CNPJ e por um trecho do nome da empresa", async () => {
+    const admin = await comoAdmin();
+    const cliente = await criarClienteComContratoSocial(
+      admin,
+      "Padaria Pão Quente Busca Ltda",
+      cnpjUnico(),
+    );
+    const gateway = new SupabaseClienteQueryGateway(admin);
+
+    const porCnpj = await gateway.buscarPorTermo(cliente.cnpj.digitos.slice(0, 6));
+    const porNome = await gateway.buscarPorTermo("Pão Quente");
+
+    expect(porCnpj.ok).toBe(true);
+    if (porCnpj.ok) expect(porCnpj.value.some((s) => s.id === cliente.id)).toBe(true);
+
+    expect(porNome.ok).toBe(true);
+    if (porNome.ok) expect(porNome.value.some((s) => s.id === cliente.id)).toBe(true);
+  });
+
+  it("devolve lista vazia quando o termo não casa com nenhum cliente", async () => {
+    const admin = await comoAdmin();
+    const gateway = new SupabaseClienteQueryGateway(admin);
+
+    const resultado = await gateway.buscarPorTermo("termo-sem-match-nenhum-xyz");
+
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) expect(resultado.value).toEqual([]);
+  });
+
+  it("trata vírgula no termo como texto literal, sem quebrar a sintaxe do filtro", async () => {
+    const admin = await comoAdmin();
+    const cliente = await criarClienteComContratoSocial(
+      admin,
+      "Pão, Quente e Companhia Ltda",
+      cnpjUnico(),
+    );
+    const gateway = new SupabaseClienteQueryGateway(admin);
+
+    const resultado = await gateway.buscarPorTermo("Pão, Quente");
+
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) expect(resultado.value.some((s) => s.id === cliente.id)).toBe(true);
   });
 });
