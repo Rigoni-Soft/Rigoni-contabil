@@ -6,6 +6,7 @@ import { Button, buttonVariants } from "@/presentation/components/ui/button";
 import { FieldError } from "@/presentation/components/ui/field-error";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
+import { RequiredMark } from "@/presentation/components/ui/required-mark";
 import { Select } from "@/presentation/components/ui/select";
 import { formatarTelefone } from "@/presentation/lib/telefone-mask";
 import { DAS_STATUS_LABEL, DAS_STATUSES, type DasStatusValor } from "@/shared/kernel/das-status";
@@ -77,6 +78,12 @@ export function EditarCadastroOperacionalForm({
       onSubmit={onSubmit}
       className="space-y-6 rounded-lg border border-border bg-card p-6 shadow-sm"
     >
+      {!readOnly && (
+        <p className="text-xs text-muted-foreground">
+          Campos com <span className="text-destructive">*</span> são obrigatórios.
+        </p>
+      )}
+
       <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-3" disabled>
         <div className="space-y-1">
           <Label>Empresa</Label>
@@ -175,14 +182,24 @@ export function EditarCadastroOperacionalForm({
               className="flex flex-wrap items-end gap-3 rounded-md border border-border p-3"
             >
               <div className="min-w-[10rem] flex-1 space-y-1">
-                <Label htmlFor={`contatos.${indice}.nome`}>Nome</Label>
-                <Input id={`contatos.${indice}.nome`} {...register(`contatos.${indice}.nome`)} />
+                <Label htmlFor={`contatos.${indice}.nome`}>
+                  Nome
+                  <RequiredMark />
+                </Label>
+                <Input
+                  id={`contatos.${indice}.nome`}
+                  aria-required="true"
+                  {...register(`contatos.${indice}.nome`)}
+                />
                 {errors.contatos?.[indice]?.nome && (
                   <FieldError>{errors.contatos[indice]?.nome?.message}</FieldError>
                 )}
               </div>
               <div className="min-w-[10rem] flex-1 space-y-1">
-                <Label htmlFor={`contatos.${indice}.telefone`}>Telefone</Label>
+                <Label htmlFor={`contatos.${indice}.telefone`}>
+                  Telefone
+                  <RequiredMark />
+                </Label>
                 <Controller
                   control={control}
                   name={`contatos.${indice}.telefone`}
@@ -193,6 +210,7 @@ export function EditarCadastroOperacionalForm({
                       id={`contatos.${indice}.telefone`}
                       name={name}
                       value={value}
+                      aria-required="true"
                       onBlur={onBlur}
                       onChange={(evento) => onChange(formatarTelefone(evento.target.value))}
                     />
@@ -211,7 +229,7 @@ export function EditarCadastroOperacionalForm({
                 variant="ghost"
                 size="icon"
                 onClick={() => onRemoverContato(indice)}
-                aria-label="Remover contato"
+                aria-label={`Remover contato ${indice + 1}`}
               >
                 <Trash2 className="size-4" aria-hidden="true" />
               </Button>

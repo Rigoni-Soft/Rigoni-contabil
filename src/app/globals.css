@@ -107,6 +107,11 @@ body {
   scrollbar-color: var(--border) transparent;
 }
 
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--primary);
+}
+
 /*
  * Guilhochê — moldura fina de linhas de segurança emprestada do talão de
  * cheque. Aplicada com moderação (cards de destaque, painel do cliente),

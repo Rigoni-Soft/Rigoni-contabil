@@ -91,6 +91,14 @@ densidade real do conteúdo, não um valor único fixo do produto:
 - Feed/tabela com filtro (ex.: `/admin/auditoria`): `max-w-6xl` — largura
   suficiente para a grade de filtro de 4 colunas e as 6 colunas da tabela
   sem espremer nem forçar rolagem horizontal prematura.
+- Formulário com elevação em 2 colunas (ex.: edição do cadastro operacional
+  do Simples Nacional, #34, feedback manual do usuário): `max-w-2xl` dentro
+  de um cartão `rounded-lg border bg-card shadow-sm` — mais largo que o
+  formulário isolado de coluna única porque o conteúdo é denso (Forma de
+  envio, Documento, DAS, parcelamento, Atividade do mês, Contatos), mas sem
+  chegar na largura de feed/tabela. Qualquer formulário operacional futuro
+  com essa mesma densidade (vários grupos de campo relacionados, não um
+  fluxo linear único) reusa essa largura em vez de forçar `max-w-md`.
 
 Painel de filtro: campos em grid (`grid-cols-2 sm:grid-cols-4`), e as ações
 (Limpar/Filtrar) ficam numa linha própria abaixo dos campos, separada por
@@ -102,6 +110,15 @@ entrada (ação e dado de filtro são grupos distintos).
 `src/presentation/components/ui/` — primitivas estilo shadcn (kebab-case,
 sem sufixo `.component`, isentas de teste por convenção —
 `docs/testes.md`):
+
+Checkboxes/radios nativos (`src/app/globals.css`): `accent-color:
+var(--primary)` global — sem isso, o navegador pinta o azul padrão do SO,
+brigando com o verde-cheque do resto do produto. Primeiro uso real em
+`editar-cadastro-operacional-form.component.tsx` (#34: "Tem parcelamento",
+"Atividade do mês", "Padrão" de cada Contato); a regra é global porque
+`accent-color` é herdado por elemento nativo, não por componente — qualquer
+`<input type="checkbox">`/`type="radio"` futuro herda o token automaticamente,
+sem precisar de classe.
 
 - `button.tsx` — variantes `default`/`destructive`/`outline`/`ghost`,
   tamanhos `default` (44px), `sm` (40px), `icon` (44px). Alturas escolhidas
@@ -273,6 +290,12 @@ elevado (`bg-card`), fica no mesmo plano do formulário. Qualquer lista
 dinâmica futura (Data + arquivo, ou qualquer par de campos repetível) reusa
 este padrão em vez de inventar um novo.
 
+**Confirmado em #34:** o cadastro operacional (Contatos) reusa o mesmo
+padrão sem alteração — bloco com borda por contato, "Remover contato N"
+com `aria-label` numerado, botão "Adicionar contato" nas mesmas
+variante/tamanho. Segundo consumidor confirma que o padrão vale para
+qualquer lista dinâmica de campos, não só o par data+arquivo do #33.
+
 ### Campo obrigatório e máscara de entrada
 
 **`RequiredMark` (29/09/2026, #33, feedback manual do usuário):** asterisco
@@ -284,6 +307,11 @@ precisa duplicar em texto). Um parágrafo no topo do formulário
 *"Campos com \* são obrigatórios."*. Qualquer campo obrigatório novo usa
 `<RequiredMark />` + `aria-required="true"` no input, em vez de confiar só
 na mensagem de erro do submit pra sinalizar isso.
+
+**Confirmado em #34:** os campos Nome e Telefone de cada Contato (únicos
+campos obrigatórios do cadastro operacional — os demais são `enum`/`select`
+com valor sempre presente ou opcionais) usam `<RequiredMark />` +
+`aria-required="true"`, mesmo padrão do #33.
 
 **Máscara de exibição (29/09/2026, #33):** quando um campo tem um formato
 canônico bem definido (CNPJ: `00.000.000/0000-00`), a formatação acontece
