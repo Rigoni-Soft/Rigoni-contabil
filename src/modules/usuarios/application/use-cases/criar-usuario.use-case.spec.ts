@@ -59,17 +59,26 @@ class AuthAdminFalso implements AuthAdminPort {
   idGerado = "novo-usuario-1";
   senhaGerada = "AAAAAAAAAAAA";
   erro: AppError | null = null;
+  erroAoRemover: AppError | null = null;
+  contasRemovidas: string[] = [];
   async criarConta(): Promise<Result<{ id: string; senhaProvisoria: string }, AppError>> {
     return this.erro
       ? err(this.erro)
       : ok({ id: this.idGerado, senhaProvisoria: this.senhaGerada });
   }
+  async removerConta(id: string): Promise<Result<void, AppError>> {
+    this.contasRemovidas.push(id);
+    return this.erroAoRemover ? err(this.erroAoRemover) : ok(undefined);
+  }
 }
 
 class AuditoriaFalsa implements AuditoriaPort {
   registros: RegistrarAcaoAuditoria[] = [];
-  async registrar(input: RegistrarAcaoAuditoria): Promise<void> {
+  erroNoSucesso: AppError | null = null;
+  async registrar(input: RegistrarAcaoAuditoria): Promise<Result<void, AppError>> {
     this.registros.push(input);
+    if (input.resultado === "sucesso" && this.erroNoSucesso) return err(this.erroNoSucesso);
+    return ok(undefined);
   }
 }
 
@@ -183,5 +192,59 @@ describe("CriarUsuario", () => {
 
     expect(resultado.ok).toBe(false);
     expect(auditoria.registros).toEqual([expect.objectContaining({ resultado: "falha" })]);
+  });
+
+  // Devolutiva técnica PR #61, ponto 1: nenhum destes 3 casos pode deixar a
+  // conta Auth (id "novo-usuario-1", gerada por AuthAdminFalso) sem compensação.
+  it("compensa (remove a conta Auth) quando o INSERT em perfis falha depois da conta já criada", async () => {
+    const sessao = new SessaoFalsa();
+    const usuarios = new UsuarioRepositoryFalso();
+    usuarios.erroAoCriar = true;
+    const authAdmin = new AuthAdminFalso();
+    const auditoria = new AuditoriaFalsa();
+
+    await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(INPUT_VALIDO);
+
+    expect(authAdmin.contasRemovidas).toEqual(["novo-usuario-1"]);
+  });
+
+  it("compensa quando a auditoria de sucesso falha (auditoria deixou de ser best-effort no caminho feliz)", async () => {
+    const sessao = new SessaoFalsa();
+    const usuarios = new UsuarioRepositoryFalso();
+    const authAdmin = new AuthAdminFalso();
+    const auditoria = new AuditoriaFalsa();
+    auditoria.erroNoSucesso = new ValidationError("falha ao gravar auditoria");
+
+    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
+      INPUT_VALIDO,
+    );
+
+    expect(resultado.ok).toBe(false);
+    expect(authAdmin.contasRemovidas).toEqual(["novo-usuario-1"]);
+    // O perfil já tinha sido salvo antes da auditoria falhar — a compensação real
+    // (delete no Auth, testada no gateway/integração) cascateia pro perfil via FK;
+    // aqui, no unit test com fakes, só garantimos que a compensação foi acionada.
+  });
+
+  it("não mascara falha da própria compensação: loga, mas ainda devolve o erro original ao chamador", async () => {
+    const sessao = new SessaoFalsa();
+    const usuarios = new UsuarioRepositoryFalso();
+    usuarios.erroAoCriar = true;
+    const authAdmin = new AuthAdminFalso();
+    authAdmin.erroAoRemover = new ValidationError("falha ao remover conta");
+    const auditoria = new AuditoriaFalsa();
+    const erroConsole = jest.spyOn(console, "error").mockImplementation(() => {});
+
+    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
+      INPUT_VALIDO,
+    );
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error.message).toBe("falha ao salvar");
+    expect(erroConsole).toHaveBeenCalledWith(
+      expect.stringContaining("Falha ao compensar conta Auth órfã"),
+      "falha ao remover conta",
+    );
+    erroConsole.mockRestore();
   });
 });

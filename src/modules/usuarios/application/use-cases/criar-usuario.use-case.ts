@@ -36,7 +36,7 @@ export class CriarUsuario implements CriarUsuarioPort {
 
     const conta = await this.authAdmin.criarConta(input.email);
     if (!conta.ok) {
-      await this.registrarAuditoria(ator.id, input, "falha");
+      await this.registrarAuditoriaBestEffort(ator.id, input, "falha");
       return conta;
     }
 
@@ -47,18 +47,24 @@ export class CriarUsuario implements CriarUsuarioPort {
       .comPapel(input.papel)
       .comSetor(input.setor)
       .build();
-    if (!construido.ok) {
-      await this.registrarAuditoria(ator.id, input, "falha");
-      return construido;
-    }
+    if (!construido.ok)
+      return this.falharComCompensacao(ator.id, input, conta.value.id, construido);
 
     const salvo = await this.usuarios.criar(construido.value);
-    if (!salvo.ok) {
-      await this.registrarAuditoria(ator.id, input, "falha");
-      return salvo;
-    }
+    if (!salvo.ok) return this.falharComCompensacao(ator.id, input, conta.value.id, salvo);
 
-    await this.registrarAuditoria(ator.id, input, "sucesso");
+    // Devolutiva técnica PR #61, ponto 2: auditoria de sucesso deixa de ser
+    // best-effort — se não fica registrada, a operação inteira é revertida
+    // (conta Auth + perfil, via compensação do ponto 1), porque o critério de
+    // aceite do #30 ("Ação fica registrada na auditoria") não é opcional.
+    const auditoria = await this.auditoria.registrar({
+      ator: ator.id,
+      setor: input.setor,
+      acao: "usuario.criar",
+      alvo: input.email,
+      resultado: "sucesso",
+    });
+    if (!auditoria.ok) return this.falharComCompensacao(ator.id, input, conta.value.id, auditoria);
 
     return ok({
       usuario: usuarioParaDto(construido.value),
@@ -66,17 +72,45 @@ export class CriarUsuario implements CriarUsuarioPort {
     });
   }
 
-  private async registrarAuditoria(
+  // Devolutiva técnica PR #61, ponto 1: qualquer falha depois da conta Auth já
+  // criada compensa removendo-a — `perfis.id` referencia `auth.users(id) on
+  // delete cascade`, então isso limpa o perfil junto se ele chegou a existir.
+  // Falha da própria compensação não é mascarada (log observável), mas também
+  // não interrompe: o resultado devolvido ao chamador é sempre o erro
+  // original, nunca o erro de uma compensação que o chamador não pediu.
+  private async falharComCompensacao(
     atorId: string,
     input: CriarUsuarioInput,
-    resultado: "sucesso" | "falha",
+    contaId: string,
+    resultadoComErro: { ok: false; error: AppError },
+  ): Promise<Result<CriarUsuarioOutput, AppError>> {
+    const removido = await this.authAdmin.removerConta(contaId);
+    if (!removido.ok) {
+      console.error(
+        `Falha ao compensar conta Auth órfã (id=${contaId}) após erro original (${resultadoComErro.error.message}):`,
+        removido.error.message,
+      );
+    }
+    await this.registrarAuditoriaBestEffort(atorId, input, "falha");
+    return resultadoComErro;
+  }
+
+  // Auditoria do caminho de FALHA continua best-effort de propósito: se a
+  // operação já falhou, não vale a pena um segundo modo de falha em cima da
+  // tentativa de registrar que ela falhou — o critério de aceite do #30 é
+  // sobre o sucesso ficar auditável, não sobre blindar a auditoria de falhas.
+  private async registrarAuditoriaBestEffort(
+    atorId: string,
+    input: CriarUsuarioInput,
+    resultado: "falha",
   ): Promise<void> {
-    await this.auditoria.registrar({
+    const registrado = await this.auditoria.registrar({
       ator: atorId,
       setor: input.setor,
       acao: "usuario.criar",
       alvo: input.email,
       resultado,
     });
+    if (!registrado.ok) console.error("Falha ao registrar auditoria:", registrado.error.message);
   }
 }

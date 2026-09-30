@@ -18,15 +18,18 @@ import { AutorizacaoService } from "@/modules/usuarios/domain/services/autorizac
 import { SupabaseAuthAdminGateway } from "@/modules/usuarios/infra/gateways/supabase-auth-admin.gateway";
 import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabase-sessao.gateway";
 import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories/usuario.repository";
+import { err, ok } from "@/shared/kernel/result";
 
 // Adapta a porta IN RegistrarAcao (módulo auditoria) à porta própria de usuarios
-// (arquitetura.md, seção 3.11) — best-effort: falha ao auditar não derruba o cadastro.
+// (arquitetura.md, seção 3.11). Devolutiva técnica PR #61, ponto 2: devolve o
+// Result de verdade — quem chama (CriarUsuario) decide se trata como fatal.
 function auditoriaViaModuloAuditoria(): AuditoriaPort {
   return {
     registrar: async (input) => {
       const registrarAcao = await makeRegistrarAcao();
       const resultado = await registrarAcao.execute(input);
-      if (!resultado.ok) console.error("Falha ao registrar auditoria:", resultado.error.message);
+      if (!resultado.ok) return err(resultado.error);
+      return ok(undefined);
     },
   };
 }

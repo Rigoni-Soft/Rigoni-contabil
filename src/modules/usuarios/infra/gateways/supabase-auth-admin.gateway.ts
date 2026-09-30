@@ -46,4 +46,10 @@ export class SupabaseAuthAdminGateway implements AuthAdminPort {
 
     return ok({ id: data.user.id, senhaProvisoria });
   }
+
+  async removerConta(id: string): Promise<Result<void, AppError>> {
+    const { error } = await this.supabaseAdmin.auth.admin.deleteUser(id);
+    if (error) return err(new PersistenciaError(`Falha ao remover conta órfã: ${error.message}`));
+    return ok(undefined);
+  }
 }
