@@ -67,15 +67,26 @@ export function EditarCadastroOperacionalForm({
   onRemoverContato,
 }: EditarCadastroOperacionalFormProps) {
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
-      <fieldset className="space-y-1" disabled>
-        <Label>Empresa</Label>
-        <Input value={cabecalho.empresa} disabled readOnly />
-        <Label>CNPJ</Label>
-        <Input value={cabecalho.cnpj} disabled readOnly />
+    <form
+      onSubmit={onSubmit}
+      className="space-y-6 rounded-lg border border-border bg-card p-6 shadow-sm"
+    >
+      <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-3" disabled>
+        <div className="space-y-1">
+          <Label>Empresa</Label>
+          <Input value={cabecalho.empresa} disabled readOnly />
+        </div>
+        <div className="space-y-1">
+          <Label>CNPJ</Label>
+          <Input value={cabecalho.cnpj} disabled readOnly />
+        </div>
+        <div className="space-y-1">
+          <Label>Regime</Label>
+          <Input value={cabecalho.regime} disabled readOnly />
+        </div>
       </fieldset>
 
-      <fieldset disabled={readOnly || pendente} className="space-y-6">
+      <fieldset disabled={readOnly || pendente} className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="space-y-1">
           <Label htmlFor="formaEnvio">Forma de envio</Label>
           <Select id="formaEnvio" {...register("formaEnvio")}>
@@ -87,53 +98,8 @@ export function EditarCadastroOperacionalForm({
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label>Contatos</Label>
-          {contatos.map((campo, indice) => (
-            <div key={campo.id} className="flex items-end gap-2 rounded-md border p-2">
-              <div className="flex-1 space-y-1">
-                <Label htmlFor={`contatos.${indice}.nome`}>Nome</Label>
-                <Input id={`contatos.${indice}.nome`} {...register(`contatos.${indice}.nome`)} />
-                {errors.contatos?.[indice]?.nome && (
-                  <FieldError>{errors.contatos[indice]?.nome?.message}</FieldError>
-                )}
-              </div>
-              <div className="flex-1 space-y-1">
-                <Label htmlFor={`contatos.${indice}.telefone`}>Telefone</Label>
-                <Input
-                  id={`contatos.${indice}.telefone`}
-                  {...register(`contatos.${indice}.telefone`)}
-                />
-                {errors.contatos?.[indice]?.telefone && (
-                  <FieldError>{errors.contatos[indice]?.telefone?.message}</FieldError>
-                )}
-              </div>
-              <label className="flex items-center gap-1.5 pb-2 text-sm">
-                <input type="checkbox" {...register(`contatos.${indice}.padrao`)} />
-                Padrão
-              </label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => onRemoverContato(indice)}
-                aria-label="Remover contato"
-              >
-                <Trash2 className="size-4" aria-hidden="true" />
-              </Button>
-            </div>
-          ))}
-          {errors.contatos && typeof errors.contatos.message === "string" && (
-            <FieldError>{errors.contatos.message}</FieldError>
-          )}
-          <Button type="button" variant="outline" onClick={onAdicionarContato}>
-            <Plus className="size-4" aria-hidden="true" />
-            Adicionar contato
-          </Button>
-        </div>
-
         <div className="space-y-1">
-          <Label htmlFor="documentoObrigatorio">Documento obrigatório</Label>
+          <Label htmlFor="documentoObrigatorio">Documento recebido</Label>
           <Select id="documentoObrigatorio" {...register("documentoObrigatorio")}>
             <option value="">Não definido</option>
             {DOCUMENTO_OBRIGATORIO_STATUSES.map((valor) => (
@@ -144,22 +110,20 @@ export function EditarCadastroOperacionalForm({
           </Select>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <Label htmlFor="dasStatus">DAS</Label>
-            <Select id="dasStatus" {...register("dasStatus")}>
-              <option value="">Não definido</option>
-              {DAS_STATUSES.map((valor) => (
-                <option key={valor} value={valor}>
-                  {DAS_STATUS_LABEL[valor]}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="dataEnvioDas">Data de envio</Label>
-            <Input id="dataEnvioDas" type="date" {...register("dataEnvioDas")} />
-          </div>
+        <div className="space-y-1">
+          <Label htmlFor="dasStatus">DAS</Label>
+          <Select id="dasStatus" {...register("dasStatus")}>
+            <option value="">Não definido</option>
+            {DAS_STATUSES.map((valor) => (
+              <option key={valor} value={valor}>
+                {DAS_STATUS_LABEL[valor]}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="dataEnvioDas">Data de envio</Label>
+          <Input id="dataEnvioDas" type="date" {...register("dataEnvioDas")} />
         </div>
 
         <div className="space-y-1">
@@ -197,7 +161,55 @@ export function EditarCadastroOperacionalForm({
           </div>
         </div>
 
-        <div className="space-y-1">
+        <div className="space-y-3 sm:col-span-2">
+          <Label className="block">Contatos</Label>
+          {contatos.map((campo, indice) => (
+            <div
+              key={campo.id}
+              className="flex flex-wrap items-end gap-3 rounded-md border border-border p-3"
+            >
+              <div className="min-w-[10rem] flex-1 space-y-1">
+                <Label htmlFor={`contatos.${indice}.nome`}>Nome</Label>
+                <Input id={`contatos.${indice}.nome`} {...register(`contatos.${indice}.nome`)} />
+                {errors.contatos?.[indice]?.nome && (
+                  <FieldError>{errors.contatos[indice]?.nome?.message}</FieldError>
+                )}
+              </div>
+              <div className="min-w-[10rem] flex-1 space-y-1">
+                <Label htmlFor={`contatos.${indice}.telefone`}>Telefone</Label>
+                <Input
+                  id={`contatos.${indice}.telefone`}
+                  {...register(`contatos.${indice}.telefone`)}
+                />
+                {errors.contatos?.[indice]?.telefone && (
+                  <FieldError>{errors.contatos[indice]?.telefone?.message}</FieldError>
+                )}
+              </div>
+              <label className="flex items-center gap-1.5 pb-2 text-sm">
+                <input type="checkbox" {...register(`contatos.${indice}.padrao`)} />
+                Padrão
+              </label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => onRemoverContato(indice)}
+                aria-label="Remover contato"
+              >
+                <Trash2 className="size-4" aria-hidden="true" />
+              </Button>
+            </div>
+          ))}
+          {errors.contatos && typeof errors.contatos.message === "string" && (
+            <FieldError>{errors.contatos.message}</FieldError>
+          )}
+          <Button type="button" variant="outline" onClick={onAdicionarContato}>
+            <Plus className="size-4" aria-hidden="true" />
+            Adicionar contato
+          </Button>
+        </div>
+
+        <div className="space-y-1 sm:col-span-2">
           <Label htmlFor="observacoesGerais">Observações gerais</Label>
           <textarea
             id="observacoesGerais"
@@ -207,7 +219,11 @@ export function EditarCadastroOperacionalForm({
           />
         </div>
 
-        {!readOnly && <Button type="submit">{pendente ? "Salvando..." : "Salvar"}</Button>}
+        {!readOnly && (
+          <Button type="submit" className="sm:col-span-2 sm:w-fit">
+            {pendente ? "Salvando..." : "Salvar"}
+          </Button>
+        )}
       </fieldset>
 
       {erroServidor && <FieldError>{erroServidor}</FieldError>}

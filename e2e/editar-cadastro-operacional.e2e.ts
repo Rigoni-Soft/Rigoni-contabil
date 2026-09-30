@@ -99,7 +99,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await page.getByRole("button", { name: "Adicionar contato" }).click();
     await page.getByLabel("Nome").fill("Maria Contato");
     await page.getByLabel("Telefone").fill("11999998888");
-    await page.getByLabel("Documento obrigatório").selectOption("positivo");
+    await page.getByLabel("Documento recebido").selectOption("positivo");
     await page.getByLabel("DAS").selectOption("pronto");
     await page.getByRole("checkbox", { name: "Comércio" }).check();
     await page.getByLabel("Observações gerais").fill("Observação de teste E2E.");
@@ -113,7 +113,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await expect(page.getByLabel("Forma de envio")).toHaveValue("email");
     await expect(page.getByLabel("Nome")).toHaveValue("Maria Contato");
     await expect(page.getByLabel("Telefone")).toHaveValue("11999998888");
-    await expect(page.getByLabel("Documento obrigatório")).toHaveValue("positivo");
+    await expect(page.getByLabel("Documento recebido")).toHaveValue("positivo");
     await expect(page.getByLabel("DAS")).toHaveValue("pronto");
     await expect(page.getByRole("checkbox", { name: "Comércio" })).toBeChecked();
     await expect(page.getByLabel("Observações gerais")).toHaveValue("Observação de teste E2E.");
