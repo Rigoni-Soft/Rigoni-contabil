@@ -168,6 +168,73 @@ describe("BuscarClienteContainer", () => {
     expect(await screen.findByLabelText(/forma de envio/i)).toBeInTheDocument();
   });
 
+  it("o campo de busca é um combobox acessível ligado à lista de sugestões", async () => {
+    buscarClientesActionMock.mockResolvedValue({
+      ok: true,
+      data: [{ id: CADASTRO.id, empresa: CADASTRO.empresa, cnpj: CADASTRO.cnpj }],
+    });
+    const usuario = userEvent.setup({ delay: null });
+    renderComQueryClient();
+    const input = screen.getByLabelText(/empresa ou cnpj/i);
+
+    expect(input).toHaveAttribute("aria-expanded", "false");
+
+    await usuario.type(input, "Pão");
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+    await screen.findByText(CADASTRO.empresa);
+
+    expect(input).toHaveAttribute("aria-expanded", "true");
+    expect(input).toHaveAttribute("aria-controls", "buscar-cliente-lista");
+    expect(screen.getByRole("listbox")).toHaveAttribute("id", "buscar-cliente-lista");
+    expect(screen.getByRole("option")).toBeInTheDocument();
+  });
+
+  it("ArrowDown destaca a sugestão e Enter seleciona o cliente destacado", async () => {
+    buscarClientesActionMock.mockResolvedValue({
+      ok: true,
+      data: [{ id: CADASTRO.id, empresa: CADASTRO.empresa, cnpj: CADASTRO.cnpj }],
+    });
+    carregarCadastroOperacionalActionMock.mockResolvedValue({ ok: true, data: CADASTRO });
+    const usuario = userEvent.setup({ delay: null });
+    renderComQueryClient();
+    const input = screen.getByLabelText(/empresa ou cnpj/i);
+
+    await usuario.type(input, "Pão");
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+    await screen.findByText(CADASTRO.empresa);
+
+    await usuario.keyboard("{ArrowDown}");
+    expect(screen.getByRole("option")).toHaveAttribute("aria-selected", "true");
+
+    await usuario.keyboard("{Enter}");
+
+    expect(carregarCadastroOperacionalActionMock).toHaveBeenCalledWith(CADASTRO.id);
+    expect(await screen.findByLabelText(/forma de envio/i)).toBeInTheDocument();
+  });
+
+  it("selecionar um cliente move o foco pro título do painel", async () => {
+    buscarClientesActionMock.mockResolvedValue({
+      ok: true,
+      data: [{ id: CADASTRO.id, empresa: CADASTRO.empresa, cnpj: CADASTRO.cnpj }],
+    });
+    carregarCadastroOperacionalActionMock.mockResolvedValue({ ok: true, data: CADASTRO });
+    const usuario = userEvent.setup({ delay: null });
+    renderComQueryClient();
+
+    await usuario.type(screen.getByLabelText(/empresa ou cnpj/i), "Pão");
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+    await usuario.click(await screen.findByText(CADASTRO.empresa));
+
+    const titulo = await screen.findByRole("heading", { name: "Editar cadastro operacional" });
+    await waitFor(() => expect(titulo).toHaveFocus());
+  });
+
   it("clicar em Cancelar dentro do form fecha o painel e volta pro campo de busca", async () => {
     buscarClientesActionMock.mockResolvedValue({
       ok: true,

@@ -402,6 +402,27 @@ formulário com `useFieldArray` segue essa mesma cautela — testar em E2E de
 verdade, não só unitário com a chamada externa mockada, antes de considerar
 pronto.
 
+### Busca com sugestões (combobox)
+
+**"Buscar cliente" do dashboard (#35):** primeiro typeahead do produto —
+padrão pra qualquer busca-com-sugestões futura. `Input` ganha
+`role="combobox"`, `aria-expanded`, `aria-controls` apontando pro
+`id` da `<ul role="listbox">`, e `aria-autocomplete="list"`; cada
+sugestão é um `<li role="option">` (não um `<button>` dentro do
+`<li>` — ARIA não permite elemento interativo aninhado num `option`).
+Teclado: `ArrowUp`/`ArrowDown` movem um destaque visual (`bg-accent`
++ `aria-selected`) calculado no render a partir do índice guardado em
+`useState` — nunca resetado dentro de um `useEffect` (React desaconselha
+`setState` síncrono em efeito pelo cascading render; o índice só é válido
+se ainda cabe na lista atual do resultado, verificado direto no render);
+`Enter` seleciona a sugestão destacada, `Escape` limpa o campo.
+Contagem de resultados e estado de carregamento vão num
+`role="status" aria-live="polite"` `sr-only` (nunca só o texto visível,
+que só ajuda quem enxerga a tela). Ao selecionar um resultado, o foco move
+pro título do painel que abre (`ref` + `tabIndex={-1}` + `.focus()`
+num `useEffect`) — sem isso, navegação por teclado/leitor de tela perde o
+contexto da troca de tela.
+
 ## Estados e motion
 
 - Loading do formulário de login: label muda para "Entrando…" e um
