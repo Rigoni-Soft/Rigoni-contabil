@@ -7,7 +7,14 @@ create table public.clientes (
   empresa text not null,
   cnpj text not null unique,
   regime public.regime not null,
-  contrato_social_caminho text not null,
+  -- Opcional (decisao de produto, 2026-09-29, testado manualmente via yarn
+  -- dev): atualiza a spec #24 ("Campos obrigatorios: Empresa, CNPJ, Regime,
+  -- contrato social"), registrada em comentario na issue #24. Consolidado
+  -- aqui (era uma migration separada, 20260929140000) porque nao ha nenhuma
+  -- dependencia entre a criacao da tabela e essa relaxacao de constraint --
+  -- ambas nasceram na mesma branch (#33), e declarar nullable desde o
+  -- inicio e equivalente a criar not-null e relaxar duas migrations depois.
+  contrato_social_caminho text,
   criado_em timestamptz not null default now()
 );
 
