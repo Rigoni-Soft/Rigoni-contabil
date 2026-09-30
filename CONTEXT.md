@@ -7,7 +7,7 @@ Domínio de atendimento a clientes (empresas contábeis) via WhatsApp e de gest�
 ### Organização e acesso
 
 **Setor**:
-Unidade organizacional do escritório (ex.: Simples Nacional, Tributário), com um líder. Fonte da lista de setores: `organograma.pdf`. Zeladoria é subtime de Financeiro, não é Setor próprio — decisão definitiva, confirmada por Cledson em 25/09/2026 na revisão do #28.
+Unidade organizacional do escritório (ex.: Simples Nacional, Tributário), com um líder. Fonte da lista de setores: `organograma.pdf`. Zeladoria é subtime de Financeiro, não é Setor próprio — decisão definitiva, confirmada por Cledson em 25/09/2026 na revisão do #28. Contábil Externo é o mesmo Setor que Contábil (não dois Setores) e T.I. não é Setor próprio — cai dentro de Administrativo, mesmo padrão da Zeladoria — decisão definitiva, confirmada por Cledson em 28/09/2026.
 _Avoid_: Departamento, área.
 
 **Papel**:
@@ -69,3 +69,13 @@ A ação de mover um Atendimento de um Atendente/Setor para outro.
 
 **Balanceamento mensal**:
 A regra de distribuição de novos Atendimentos entre os Funcionários de um Setor, de forma equilibrada ao longo do mês. Não se aplica à ordem de saída da Fila, que é sempre por antiguidade.
+
+### Auditoria
+
+**Registro de auditoria**:
+Evento imutável gravado quando uma ação muda estado no sistema — grava Ator, Setor, ação, alvo e resultado. Nunca registra leituras.
+_Avoid_: Log de auditoria, histórico.
+
+**Período**:
+Um intervalo de datas sempre com início e fim definidos juntos; não existe Período com só uma ponta preenchida — isso é rejeitado, não interpretado como "a partir de" ou "até". Vale em qualquer filtro por data do sistema, não só no de auditoria.
+_Avoid_: Intervalo aberto (não existe nesse domínio).

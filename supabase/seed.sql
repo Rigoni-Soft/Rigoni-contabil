@@ -190,3 +190,27 @@ values (
   'lider_setor',
   'contabil'
 );
+
+-- Exemplos pro feed de auditoria (ticket #29): um sucesso e uma falha, pra exercitar
+-- os filtros (setor, ação, alvo, resultado, período) no E2E e no `yarn dev`. IDs em
+-- 7xxx pra não colidir visualmente com os ids de usuário acima (tabelas diferentes,
+-- sem risco real de PK, mas evita confusão ao ler o seed).
+insert into public.registros_auditoria (id, ator, setor, acao, alvo, resultado)
+values (
+  '77777777-7777-7777-7777-777777777777',
+  '11111111-1111-1111-1111-111111111111',
+  'simples_nacional',
+  'usuario.criar',
+  'funcionario.sn@rigonicontabil.local',
+  'sucesso'
+);
+
+insert into public.registros_auditoria (id, ator, setor, acao, alvo, resultado)
+values (
+  '66666666-6666-6666-6666-666666666666',
+  '11111111-1111-1111-1111-111111111111',
+  'financeiro',
+  'cliente.editar',
+  'CNPJ de teste',
+  'falha'
+);

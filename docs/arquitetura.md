@@ -159,7 +159,8 @@ src/
 │  └─ api/webhooks/<provedor>/route.ts   única exceção: webhooks de terceiros (seção 3.13)
 ├─ middleware.ts                 (proxy.ts no Next 16) somente refresh de sessão do Supabase
 ├─ shared/                       TypeScript puro, sem framework e sem biblioteca
-│  ├─ kernel/    result.ts · preconditions.ts · id.types.ts (Brand, Id)
+│  ├─ kernel/    result.ts · preconditions.ts · id.types.ts (Brand, Id) · setores.ts (SETORES,
+│  │             fonte única do organograma — domain e Views importam daqui, seção 3.4)
 │  ├─ errors/    app.error.ts · domain.error.ts · validation.error.ts · forbidden.error.ts
 │  └─ dtos/      action-result.dto.ts · error.dto.ts · paginated.dto.ts
 ├─ modules/
@@ -345,6 +346,7 @@ export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: ErrorD
 - **Realtime também passa pela `infra`.** Um caso de uso `ObservarXxx` (porta IN, devolve uma função de cancelamento) usa uma porta OUT `XxxMudancasPort`, implementada em `infra/realtime/` sobre o canal do Supabase. A composição roda em `main/client/`, e o ViewModel a consome em `<tela>.realtime.ts`, que alimenta o React Query com `setQueryData`. `infra/realtime/` e `main/client/` não importam nada `server-only`; a assinatura roda com a sessão do usuário, então a RLS continua valendo. O que sai da porta são Output DTOs, nunca linhas cruas do banco.
 - **Exceção: autenticação.** O cliente Supabase do navegador (`createBrowserClient`) existe só em `presentation/auth/`, para o que apenas o navegador consegue fazer (fluxos OAuth, magic link, escuta de mudança de sessão). Login e logout por e-mail e senha, e todo o resto, acontecem por Server Action + `SessaoPort`. Nenhuma consulta de dados passa por esse cliente.
 - Consultas de busca são um módulo à parte (`busca.md`).
+- **Redefinir uma função `SECURITY DEFINER` usada por RLS de vários módulos** (ex.: `meu_setor()`, `meu_papel()`) exige `DROP FUNCTION` antes de recriar com assinatura diferente — e o Postgres recusa o drop se qualquer policy já criada até aquele ponto da sequência de migrations ainda a referencia. Timestampe a migration para rodar **antes** de qualquer migration futura que passe a depender dela, em vez de a migration tentar prever e recriar RLS de módulos que ainda não existem (lição da devolutiva técnica da PR #60, ajuste 04).
 
 ### 3.10 `main` (injeção de dependências)
 
@@ -425,6 +427,7 @@ Detalhes em `seguranca.md`. Aqui ficam as que a estrutura garante:
 - Nenhuma Server Action sem validação de input e sem checagem de sessão.
 - Nenhum dado por usuário, papel ou filial em cache compartilhado (seção 6.3).
 - RLS ativa em toda tabela exposta.
+- Tabela de log/trilha imutável (ex.: auditoria): sem policy de INSERT liberada ao cliente, mesmo restrita ao próprio `auth.uid()` — a única escrita é por função `SECURITY DEFINER` que decide ator e timestamp no próprio banco, nunca a partir do que o chamador envia (devolutiva técnica da PR #60, bloqueador 01).
 
 ---
 
