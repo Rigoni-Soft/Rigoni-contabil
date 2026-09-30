@@ -49,13 +49,14 @@ async function criarClienteComContratoSocial(
   admin: SupabaseClient,
   empresa = "Padaria Pão Quente Ltda",
   cnpj = "11444777000676",
+  regime = "simples_nacional",
 ): Promise<Cliente> {
   const repositorio = new SupabaseClienteRepository(admin);
   const construido = Cliente.builder()
     .comId(crypto.randomUUID())
     .comEmpresa(empresa)
     .comCnpj(cnpj)
-    .comRegime("simples_nacional")
+    .comRegime(regime)
     .comContratoSocialCaminho("clientes/x/contrato-social/doc.pdf")
     .comAlteracoesContratuais([])
     .build();
@@ -131,6 +132,30 @@ describe("SupabaseClienteQueryGateway.buscarPorTermo (#35, integração)", () =>
     const gateway = new SupabaseClienteQueryGateway(admin);
 
     const resultado = await gateway.buscarPorTermo("Pão, Quente");
+
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) expect(resultado.value.some((s) => s.id === cliente.id)).toBe(true);
+  });
+
+  it("nunca traz Cliente de Lucro Presumido/Real — esta busca é a do dashboard do SN, só Simples Nacional/MEI têm cadastro operacional", async () => {
+    const admin = await comoAdmin();
+    const empresa = "Padaria Busca Presumido Ltda";
+    await criarClienteComContratoSocial(admin, empresa, cnpjUnico(), "lucro_presumido");
+    const gateway = new SupabaseClienteQueryGateway(admin);
+
+    const resultado = await gateway.buscarPorTermo("Busca Presumido");
+
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) expect(resultado.value).toEqual([]);
+  });
+
+  it("encontra Cliente MEI normalmente", async () => {
+    const admin = await comoAdmin();
+    const empresa = "Oficina Busca MEI Ltda";
+    const cliente = await criarClienteComContratoSocial(admin, empresa, cnpjUnico(), "mei");
+    const gateway = new SupabaseClienteQueryGateway(admin);
+
+    const resultado = await gateway.buscarPorTermo("Busca MEI");
 
     expect(resultado.ok).toBe(true);
     if (resultado.ok) expect(resultado.value.some((s) => s.id === cliente.id)).toBe(true);

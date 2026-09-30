@@ -98,6 +98,11 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
     const { data, error } = await this.supabase
       .from("clientes")
       .select("id, empresa, cnpj")
+      // Esta busca é a seção "Buscar cliente" do dashboard do setor Simples
+      // Nacional (#35/#36) — só Regime Simples Nacional/MEI tem cadastro
+      // operacional de verdade (nasce automático só pra esses dois no #34);
+      // Presumido/Real não aparecem aqui, mesmo que o cliente exista.
+      .in("regime", ["simples_nacional", "mei"])
       .or(`cnpj.ilike."${valor}",empresa.ilike."${valor}"`)
       .order("empresa")
       .limit(10);
