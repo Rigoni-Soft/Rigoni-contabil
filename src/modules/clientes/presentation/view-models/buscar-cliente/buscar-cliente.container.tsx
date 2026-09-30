@@ -11,13 +11,13 @@ import type {
   SugestaoClienteDto,
 } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { EditarCadastroOperacionalContainer } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.container";
-import { podeEditarCadastroOperacional } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/pode-editar-cadastro-operacional";
+import { podeEditarCadastroOperacional } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.presenter";
 
 import { buscarClientesAction, carregarCadastroOperacionalAction } from "./buscar-cliente.actions";
+import { TAMANHO_MINIMO_TERMO } from "./buscar-cliente.schema";
 
 type Props = { papel: string; setor: string };
 
-const TAMANHO_MINIMO_TERMO = 3;
 const DEBOUNCE_MS = 300;
 
 export function BuscarClienteContainer({ papel, setor }: Props) {
