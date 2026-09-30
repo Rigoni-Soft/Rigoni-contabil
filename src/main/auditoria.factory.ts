@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
 import type { ListarRegistrosPort } from "@/modules/auditoria/application/ports/in/listar-registros.provider";
 import type { RegistrarAcaoPort } from "@/modules/auditoria/application/ports/in/registrar-acao.provider";
@@ -25,9 +26,13 @@ function sessaoViaUsuarios(supabase: SupabaseClient): SessaoPort {
   return { usuarioAtual: () => obterSessao.execute() };
 }
 
+// Devolutiva técnica PR #61, ponto 3: client service_role, não o da sessão do
+// usuário -- a RPC registrar_acao_auditoria só aceita service_role agora
+// (migration 20260930170000), justamente pra um usuário comum não conseguir
+// chamá-la direto e fabricar eventos. Mesmo padrão do SupabaseAuthAdminGateway
+// (ADR 0001): privilégio elevado confinado a um único ponto.
 export async function makeRegistrarAcao(): Promise<RegistrarAcaoPort> {
-  const supabase = await createSupabaseServer();
-  return new RegistrarAcao(new SupabaseRegistroAcaoRepository(supabase));
+  return new RegistrarAcao(new SupabaseRegistroAcaoRepository(createSupabaseAdmin()));
 }
 
 export async function makeListarRegistros(): Promise<ListarRegistrosPort> {
