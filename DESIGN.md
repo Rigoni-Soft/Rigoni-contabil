@@ -75,9 +75,14 @@ técnica não negociável), carregada via `next/font/google` em
 `.rc-guilloche-frame` (`src/app/globals.css`) é a moldura de segurança do
 mundo "Talão de Cheque": duas grades de linhas finas em ângulos opostos,
 recortadas para viver só na faixa de borda via `mask-composite: exclude` —
-sem asset de imagem, tileable, 100% CSS. Usada com moderação: hoje só no
-cartão de login; o painel de cliente do dashboard Simples Nacional é o
-próximo consumidor natural.
+sem asset de imagem, tileable, 100% CSS. Usada com moderação: cartão de
+login e, desde #35, o próprio formulário de cadastro operacional
+(`editar-cadastro-operacional-form.component.tsx`) — o painel de cliente
+do dashboard Simples Nacional, tanto na página dedicada `/clientes/[id]`
+quanto no uso inline da busca (`/`), lê como a folha do talão preenchida,
+conforme o contrato de `.impeccable/surfaces/dashboard-simples-nacional.md`.
+Qualquer outro painel de cliente futuro reusa a mesma moldura em vez de um
+`border` simples.
 
 ## Layout
 
@@ -99,6 +104,13 @@ densidade real do conteúdo, não um valor único fixo do produto:
   chegar na largura de feed/tabela. Qualquer formulário operacional futuro
   com essa mesma densidade (vários grupos de campo relacionados, não um
   fluxo linear único) reusa essa largura em vez de forçar `max-w-md`.
+- Seção de página inicial com busca + painel de resultado embutido (ex.:
+  "Buscar cliente" do dashboard, `/`, #35): a mesma largura `max-w-2xl`
+  do formulário com elevação, centralizada (`mx-auto`), tanto no estado
+  de busca (campo + lista de sugestões) quanto no estado com o painel do
+  cliente aberto — evita que o campo de busca abra largo e o painel depois
+  encolha de volta pra `max-w-2xl`, uma mudança de largura perceptível
+  entre os dois estados da mesma seção.
 
 Painel de filtro: campos em grid (`grid-cols-2 sm:grid-cols-4`), e as ações
 (Limpar/Filtrar) ficam numa linha própria abaixo dos campos, separada por

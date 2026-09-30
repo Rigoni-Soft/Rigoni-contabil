@@ -82,7 +82,7 @@ export function EditarCadastroOperacionalForm({
   return (
     <form
       onSubmit={onSubmit}
-      className="space-y-6 rounded-lg border border-border bg-card p-6 shadow-sm"
+      className="rc-guilloche-frame space-y-6 rounded-lg border border-border bg-card p-6 shadow-sm"
     >
       {!readOnly && (
         <p className="text-xs text-muted-foreground">

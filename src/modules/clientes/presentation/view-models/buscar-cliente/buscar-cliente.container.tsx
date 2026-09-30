@@ -94,6 +94,9 @@ export function BuscarClienteContainer({ papel, setor }: Props) {
         />
       </div>
 
+      <p className="sr-only" role="status" aria-live="polite">
+        {buscando ? "Buscando..." : ""}
+      </p>
       {buscando && <p className="text-sm text-muted-foreground">Buscando...</p>}
 
       {sugestoesVisiveis.length > 0 && (

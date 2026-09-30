@@ -26,7 +26,9 @@ export default async function Home() {
       />
       <ShellNav setores={setores} />
       <main className="px-4 py-6 sm:px-6">
-        <BuscarClienteContainer papel={sessao.papel} setor={sessao.setor} />
+        <div className="mx-auto max-w-2xl">
+          <BuscarClienteContainer papel={sessao.papel} setor={sessao.setor} />
+        </div>
       </main>
     </>
   );
