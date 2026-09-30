@@ -148,4 +148,73 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
     expect(resultado.ok).toBe(true);
     if (resultado.ok) expect(resultado.value).toBeNull();
   });
+
+  // Feedback de teste manual do #34: cadastrar um Cliente Simples Nacional/MEI
+  // já cria a linha do cadastro SN (RPC criar_cliente), em vez de só nascer no
+  // primeiro upsert de EditarCadastroOperacionalCliente.
+  it("criar Cliente Simples Nacional já cria o cadastro operacional com os defaults negativos/pendentes", async () => {
+    const admin = await comoAdmin();
+    const clienteBase = await criarClienteBase(admin, "92773334000116");
+
+    const { data: linha } = await admin
+      .from("cliente_cadastro_operacional_sn")
+      .select("*")
+      .eq("cliente_id", clienteBase.id)
+      .maybeSingle();
+
+    expect(linha).toMatchObject({
+      forma_envio: "whatsapp",
+      documento_obrigatorio: "negativo",
+      das_status: "pendente",
+      tem_parcelamento: false,
+      parcelamento_status: "pendente",
+      observacoes_gerais: "",
+    });
+  });
+
+  it("criar Cliente MEI também já cria o cadastro operacional", async () => {
+    const admin = await comoAdmin();
+    const repositorio = new SupabaseClienteRepository(admin);
+    const construido = Cliente.builder()
+      .comId(crypto.randomUUID())
+      .comEmpresa("Oficina do Zé MEI")
+      .comCnpj("92773111000159")
+      .comRegime("mei")
+      .comContratoSocialCaminho(null)
+      .comAlteracoesContratuais([])
+      .build();
+    if (!construido.ok) throw new Error("setup inválido");
+    await repositorio.criar(construido.value);
+
+    const { data: linha } = await admin
+      .from("cliente_cadastro_operacional_sn")
+      .select("cliente_id")
+      .eq("cliente_id", construido.value.id)
+      .maybeSingle();
+
+    expect(linha).not.toBeNull();
+  });
+
+  it("criar Cliente de outro Regime (Lucro Presumido) NÃO cria cadastro SN — não se aplica", async () => {
+    const admin = await comoAdmin();
+    const repositorio = new SupabaseClienteRepository(admin);
+    const construido = Cliente.builder()
+      .comId(crypto.randomUUID())
+      .comEmpresa("Indústria Lucro Presumido Ltda")
+      .comCnpj("92773222000165")
+      .comRegime("lucro_presumido")
+      .comContratoSocialCaminho(null)
+      .comAlteracoesContratuais([])
+      .build();
+    if (!construido.ok) throw new Error("setup inválido");
+    await repositorio.criar(construido.value);
+
+    const { data: linha } = await admin
+      .from("cliente_cadastro_operacional_sn")
+      .select("cliente_id")
+      .eq("cliente_id", construido.value.id)
+      .maybeSingle();
+
+    expect(linha).toBeNull();
+  });
 });
