@@ -40,7 +40,7 @@ export function CriarUsuarioContainer({
     nome: "",
     email: "",
     papel: (opcaoUnica(papeisDisponiveis) ?? "") as CriarUsuarioFormValues["papel"],
-    setor: opcaoUnica(setoresDisponiveis) ?? "",
+    setor: (opcaoUnica(setoresDisponiveis) ?? "") as CriarUsuarioFormValues["setor"],
   };
 
   const aoCadastrarNovo = () => {

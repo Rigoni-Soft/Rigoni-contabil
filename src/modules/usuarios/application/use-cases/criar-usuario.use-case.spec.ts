@@ -294,7 +294,13 @@ describe("CriarUsuario", () => {
     const authAdmin = new AuthAdminFalso();
     const auditoria = new AuditoriaFalsa();
 
-    await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(INPUT_VALIDO);
+    await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
 
     expect(authAdmin.contasRemovidas).toEqual(["novo-usuario-1"]);
   });
@@ -306,9 +312,13 @@ describe("CriarUsuario", () => {
     const auditoria = new AuditoriaFalsa();
     auditoria.erroNoSucesso = new ValidationError("falha ao gravar auditoria");
 
-    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
-      INPUT_VALIDO,
-    );
+    const resultado = await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
 
     expect(resultado.ok).toBe(false);
     expect(authAdmin.contasRemovidas).toEqual(["novo-usuario-1"]);
@@ -329,9 +339,13 @@ describe("CriarUsuario", () => {
     const auditoria = new AuditoriaFalsa();
     const erroConsole = jest.spyOn(console, "error").mockImplementation(() => {});
 
-    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
-      INPUT_VALIDO,
-    );
+    const resultado = await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
 
     expect(resultado.ok).toBe(false);
     if (!resultado.ok) {
