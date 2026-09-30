@@ -112,7 +112,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
 
     await expect(page.getByLabel("Forma de envio")).toHaveValue("email");
     await expect(page.getByLabel("Nome")).toHaveValue("Maria Contato");
-    await expect(page.getByLabel("Telefone")).toHaveValue("11999998888");
+    await expect(page.getByLabel("Telefone")).toHaveValue("(11) 99999-8888");
     await expect(page.getByLabel("Documento recebido")).toHaveValue("positivo");
     await expect(page.getByLabel("DAS")).toHaveValue("pronto");
     await expect(page.getByRole("checkbox", { name: "Comércio" })).toBeChecked();

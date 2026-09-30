@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
-import { type FieldErrors, type UseFormRegister } from "react-hook-form";
+import { Controller, type Control, type FieldErrors, type UseFormRegister } from "react-hook-form";
 
 import { Button, buttonVariants } from "@/presentation/components/ui/button";
 import { FieldError } from "@/presentation/components/ui/field-error";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
 import { Select } from "@/presentation/components/ui/select";
+import { formatarTelefone } from "@/presentation/lib/telefone-mask";
 import { DAS_STATUS_LABEL, DAS_STATUSES, type DasStatusValor } from "@/shared/kernel/das-status";
 import {
   DOCUMENTO_OBRIGATORIO_STATUS_LABEL,
@@ -40,6 +41,7 @@ type CabecalhoCliente = { empresa: string; cnpj: string; regime: string };
 type EditarCadastroOperacionalFormProps = {
   cabecalho: CabecalhoCliente;
   register: UseFormRegister<EditarCadastroOperacionalFormValues>;
+  control: Control<EditarCadastroOperacionalFormValues>;
   errors: FieldErrors<EditarCadastroOperacionalFormValues>;
   onSubmit: React.FormEventHandler<HTMLFormElement>;
   pendente: boolean;
@@ -57,6 +59,7 @@ type EditarCadastroOperacionalFormProps = {
 export function EditarCadastroOperacionalForm({
   cabecalho,
   register,
+  control,
   errors,
   onSubmit,
   pendente,
@@ -180,9 +183,20 @@ export function EditarCadastroOperacionalForm({
               </div>
               <div className="min-w-[10rem] flex-1 space-y-1">
                 <Label htmlFor={`contatos.${indice}.telefone`}>Telefone</Label>
-                <Input
-                  id={`contatos.${indice}.telefone`}
-                  {...register(`contatos.${indice}.telefone`)}
+                <Controller
+                  control={control}
+                  name={`contatos.${indice}.telefone`}
+                  render={({ field: { onChange, onBlur, value, name } }) => (
+                    // Input (ui/) não usa forwardRef — sem ref aqui, mesmo ajuste do #33
+                    // (criar-cliente.schema.ts): só perde o foco automático em erro.
+                    <Input
+                      id={`contatos.${indice}.telefone`}
+                      name={name}
+                      value={value}
+                      onBlur={onBlur}
+                      onChange={(evento) => onChange(formatarTelefone(evento.target.value))}
+                    />
+                  )}
                 />
                 {errors.contatos?.[indice]?.telefone && (
                   <FieldError>{errors.contatos[indice]?.telefone?.message}</FieldError>

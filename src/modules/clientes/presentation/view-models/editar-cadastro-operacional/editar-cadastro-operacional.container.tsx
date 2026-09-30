@@ -98,6 +98,7 @@ export function EditarCadastroOperacionalContainer({ dados, readOnly }: Props) {
     <EditarCadastroOperacionalForm
       cabecalho={{ empresa: dados.empresa, cnpj: dados.cnpj, regime: dados.regime }}
       register={register}
+      control={control}
       errors={errors}
       onSubmit={aoSubmeter}
       pendente={pendente}
