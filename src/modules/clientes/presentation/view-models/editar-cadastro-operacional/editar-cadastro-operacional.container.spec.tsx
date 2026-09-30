@@ -32,19 +32,35 @@ describe("EditarCadastroOperacionalContainer", () => {
     executeMock.mockReset();
   });
 
-  it("modo readOnly: nunca renderiza contrato social/alterações e não mostra botão Salvar", () => {
+  it("modo readOnly: nunca renderiza contrato social/alterações e não mostra Salvar/Limpar/Cancelar", () => {
     render(<EditarCadastroOperacionalContainer dados={dados} readOnly />);
 
     expect(screen.queryByText(/contrato social/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/alteraç(ão|ões) contratua/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /salvar/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /limpar/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /cancelar/i })).not.toBeInTheDocument();
   });
 
-  it("modo edição: campos ficam habilitados e o botão Salvar aparece", () => {
+  it("modo edição: campos ficam habilitados e os botões Salvar/Limpar/Cancelar aparecem", () => {
     render(<EditarCadastroOperacionalContainer dados={dados} readOnly={false} />);
 
     expect(screen.getByLabelText(/forma de envio/i)).toBeEnabled();
     expect(screen.getByRole("button", { name: /salvar/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /limpar/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /cancelar/i })).toHaveAttribute("href", "/");
+  });
+
+  it("'Limpar' desfaz uma edição não salva, voltando ao valor carregado do servidor", async () => {
+    const usuario = userEvent.setup();
+    render(<EditarCadastroOperacionalContainer dados={dados} readOnly={false} />);
+
+    await usuario.clear(screen.getByLabelText(/observações gerais/i));
+    await usuario.type(screen.getByLabelText(/observações gerais/i), "Rascunho não salvo.");
+    await usuario.click(screen.getByRole("button", { name: /limpar/i }));
+
+    expect(screen.getByLabelText(/observações gerais/i)).toHaveValue("Cliente pontual.");
+    expect(executeMock).not.toHaveBeenCalled();
   });
 
   it("submete os dados editados e mostra confirmação", async () => {

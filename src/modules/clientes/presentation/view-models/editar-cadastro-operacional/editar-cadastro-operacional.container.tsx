@@ -23,30 +23,36 @@ export function EditarCadastroOperacionalContainer({ dados, readOnly }: Props) {
   const [erroServidor, setErroServidor] = useState<string | undefined>();
   const [sucesso, setSucesso] = useState(false);
 
+  // Extraído pra reusar no reset() do botão "Limpar" — reverte pro que veio
+  // do servidor, não esvazia campos (formaEnvio é enum obrigatório, sem opção
+  // em branco no Select; "limpar" um form de edição significa desfazer, não zerar).
+  const valoresIniciais = dados
+    ? {
+        formaEnvio:
+          (dados.formaEnvio as EditarCadastroOperacionalFormValues["formaEnvio"]) ?? "whatsapp",
+        contatos: dados.contatos,
+        documentoObrigatorio:
+          dados.documentoObrigatorio as EditarCadastroOperacionalFormValues["documentoObrigatorio"],
+        dasStatus: dados.dasStatus as EditarCadastroOperacionalFormValues["dasStatus"],
+        dataEnvioDas: dados.dataEnvioDas,
+        temParcelamento: dados.temParcelamento,
+        parcelamentoStatus:
+          dados.parcelamentoStatus as EditarCadastroOperacionalFormValues["parcelamentoStatus"],
+        observacoesGerais: dados.observacoesGerais,
+        atividadeMes: dados.atividadeMes,
+      }
+    : undefined;
+
   const {
     register,
     control,
     handleSubmit,
+    reset,
     setError,
     formState: { errors },
   } = useForm<EditarCadastroOperacionalFormValues>({
     resolver: zodResolver(editarCadastroOperacionalFormSchema),
-    defaultValues: dados
-      ? {
-          formaEnvio:
-            (dados.formaEnvio as EditarCadastroOperacionalFormValues["formaEnvio"]) ?? "whatsapp",
-          contatos: dados.contatos,
-          documentoObrigatorio:
-            dados.documentoObrigatorio as EditarCadastroOperacionalFormValues["documentoObrigatorio"],
-          dasStatus: dados.dasStatus as EditarCadastroOperacionalFormValues["dasStatus"],
-          dataEnvioDas: dados.dataEnvioDas,
-          temParcelamento: dados.temParcelamento,
-          parcelamentoStatus:
-            dados.parcelamentoStatus as EditarCadastroOperacionalFormValues["parcelamentoStatus"],
-          observacoesGerais: dados.observacoesGerais,
-          atividadeMes: dados.atividadeMes,
-        }
-      : undefined,
+    defaultValues: valoresIniciais,
   });
 
   const temParcelamento = useWatch({
@@ -78,6 +84,12 @@ export function EditarCadastroOperacionalContainer({ dados, readOnly }: Props) {
     setSucesso(true);
   });
 
+  const aoLimpar = () => {
+    reset(valoresIniciais);
+    setErroServidor(undefined);
+    setSucesso(false);
+  };
+
   if (!dados) {
     return <p className="text-sm text-muted-foreground">Cliente não encontrado.</p>;
   }
@@ -96,6 +108,7 @@ export function EditarCadastroOperacionalContainer({ dados, readOnly }: Props) {
       contatos={fields}
       onAdicionarContato={() => append({ nome: "", telefone: "", padrao: fields.length === 0 })}
       onRemoverContato={remove}
+      onLimpar={aoLimpar}
     />
   );
 }

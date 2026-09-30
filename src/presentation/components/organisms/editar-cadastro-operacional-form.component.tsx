@@ -1,7 +1,8 @@
+import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
 import { type FieldErrors, type UseFormRegister } from "react-hook-form";
 
-import { Button } from "@/presentation/components/ui/button";
+import { Button, buttonVariants } from "@/presentation/components/ui/button";
 import { FieldError } from "@/presentation/components/ui/field-error";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
@@ -50,6 +51,7 @@ type EditarCadastroOperacionalFormProps = {
   contatos: { id: string }[];
   onAdicionarContato: () => void;
   onRemoverContato: (indice: number) => void;
+  onLimpar: () => void;
 };
 
 export function EditarCadastroOperacionalForm({
@@ -65,6 +67,7 @@ export function EditarCadastroOperacionalForm({
   contatos,
   onAdicionarContato,
   onRemoverContato,
+  onLimpar,
 }: EditarCadastroOperacionalFormProps) {
   return (
     <form
@@ -220,9 +223,15 @@ export function EditarCadastroOperacionalForm({
         </div>
 
         {!readOnly && (
-          <Button type="submit" className="sm:col-span-2 sm:w-fit">
-            {pendente ? "Salvando..." : "Salvar"}
-          </Button>
+          <div className="flex flex-wrap gap-2 sm:col-span-2">
+            <Button type="submit">{pendente ? "Salvando..." : "Salvar"}</Button>
+            <Button type="button" variant="outline" onClick={onLimpar} disabled={pendente}>
+              Limpar
+            </Button>
+            <Link href="/" className={buttonVariants({ variant: "ghost" })}>
+              Cancelar
+            </Link>
+          </div>
         )}
       </fieldset>
 
