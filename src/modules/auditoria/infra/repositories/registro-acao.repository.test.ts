@@ -12,6 +12,7 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:5
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
 const ADMIN_ID = "11111111-1111-1111-1111-111111111111";
+const FUNCIONARIO_ID = "22222222-2222-2222-2222-222222222222";
 
 async function clienteAutenticadoComoAdminSeed(): Promise<SupabaseClient> {
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -50,7 +51,7 @@ function registroValido(id: string, ator: string, overrides: RegistroOverrides =
 }
 
 describe("SupabaseRegistroAcaoRepository (integração)", () => {
-  it("salva um registro em nome do próprio ator (RLS: registros_auditoria_insert_proprio_ator)", async () => {
+  it("salva um registro em nome do próprio ator (RPC registrar_acao_auditoria)", async () => {
     const supabase = await clienteAutenticadoComoAdminSeed();
     const repositorio = new SupabaseRegistroAcaoRepository(supabase);
 
@@ -59,13 +60,42 @@ describe("SupabaseRegistroAcaoRepository (integração)", () => {
     expect(resultado.ok).toBe(true);
   });
 
-  it("rejeita salvar um registro em nome de outro ator (RLS)", async () => {
+  // Devolutiva técnica PR #60, bloqueador 01 — caminho legítimo: mesmo que o
+  // domínio monte o RegistroAcao com um `ator` diferente (ex.: um bug ou uma
+  // tentativa de manipulação antes de chegar no repositório), a RPC ignora
+  // esse valor e grava sempre o auth.uid() de quem está autenticado de
+  // verdade. Não é mais "RLS rejeita" — é "o valor forjado nem chega a ser
+  // usado".
+  it("grava sempre o ator autenticado de verdade, mesmo se o RegistroAcao carregar outro id (RPC ignora o ator do chamador)", async () => {
     const supabase = await clienteAutenticadoComoFuncionarioSeed();
     const repositorio = new SupabaseRegistroAcaoRepository(supabase);
+    const id = crypto.randomUUID();
 
-    const resultado = await repositorio.salvar(registroValido(crypto.randomUUID(), ADMIN_ID));
+    const resultado = await repositorio.salvar(registroValido(id, ADMIN_ID));
 
-    expect(resultado.ok).toBe(false);
+    expect(resultado.ok).toBe(true);
+    const admin = await clienteAutenticadoComoAdminSeed();
+    const { data } = await admin.from("registros_auditoria").select("ator").eq("id", id).single();
+    expect(data?.ator).toBe(FUNCIONARIO_ID);
+  });
+
+  // Devolutiva técnica PR #60, bloqueador 01 — caminho indevido: sem policy
+  // de INSERT na tabela, um usuário autenticado não consegue mais fabricar
+  // um evento chamando a Data API diretamente (bypassando a RPC/a aplicação).
+  it("rejeita insert direto na tabela via Data API, bypassando a RPC", async () => {
+    const supabase = await clienteAutenticadoComoFuncionarioSeed();
+
+    const { error } = await supabase.from("registros_auditoria").insert({
+      id: crypto.randomUUID(),
+      ator: FUNCIONARIO_ID,
+      setor: "administrativo",
+      acao: "usuario.criar",
+      alvo: "evento forjado",
+      resultado: "sucesso",
+      criado_em: "2020-01-01T00:00:00.000Z",
+    });
+
+    expect(error).not.toBeNull();
   });
 
   it("Admin lista os registros recentes, incluindo o do seed (RLS: registros_auditoria_select_admin)", async () => {
