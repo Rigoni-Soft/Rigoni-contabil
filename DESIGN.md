@@ -343,9 +343,19 @@ salvar/desfazer/cancelar): `Button` primário "Salvar"; `Button`
 (`reset()` do react-hook-form com os mesmos valores do `defaultValues`) —
 **não esvazia campos**, porque campos `enum` obrigatórios (ex.: Forma de
 envio) não têm opção em branco no `Select`, então "limpar de verdade"
-quebraria a validação; e `<Link>` `ghost` "Cancelar" pro mesmo destino do
-"Voltar" do topo da página. Qualquer tela de edição futura (distinta de
-cadastro em lote) reusa este trio em vez do par "Cadastrar outro"/"Finalizar".
+quebraria a validação; e "Cancelar" `destructive` (vermelho — revisado no
+#35, era `ghost` na entrega original do #34 e o usuário pediu destaque de
+cor pra uma ação que descarta a edição). Qualquer tela de edição futura
+(distinta de cadastro em lote) reusa este trio em vez do par "Cadastrar
+outro"/"Finalizar".
+
+**#35, reuso inline:** o mesmo form passou a abrir embutido na seção
+"Buscar cliente" do dashboard (`/`), não só na página dedicada
+`/clientes/[id]`. Como `/` já é o próprio destino do "Cancelar", um
+`<Link href="/">` ali dentro não navega pra lugar nenhum — o form ganhou
+uma prop opcional `onCancelar`: quando informada (uso inline), "Cancelar"
+vira `Button` que fecha o painel e volta pro campo de busca; sem ela (uso
+em `/clientes/[id]`), continua `<Link href="/">`.
 
 ### Autopreenchimento a partir de API pública
 

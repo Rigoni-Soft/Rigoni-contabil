@@ -55,6 +55,11 @@ type EditarCadastroOperacionalFormProps = {
   onAdicionarContato: () => void;
   onRemoverContato: (indice: number) => void;
   onLimpar: () => void;
+  // Sem callback (uso em /clientes/[id]): "Cancelar" navega pro mesmo destino
+  // do "Voltar" do topo. Com callback (uso inline na busca do dashboard, #35):
+  // já está em "/" — um <Link href="/"> não dispara navegação nem reseta nada,
+  // então o Container que abriu o form inline fecha o painel diretamente.
+  onCancelar?: () => void;
 };
 
 export function EditarCadastroOperacionalForm({
@@ -72,6 +77,7 @@ export function EditarCadastroOperacionalForm({
   onAdicionarContato,
   onRemoverContato,
   onLimpar,
+  onCancelar,
 }: EditarCadastroOperacionalFormProps) {
   return (
     <form
@@ -260,9 +266,15 @@ export function EditarCadastroOperacionalForm({
             <Button type="button" variant="outline" onClick={onLimpar} disabled={pendente}>
               Limpar
             </Button>
-            <Link href="/" className={buttonVariants({ variant: "ghost" })}>
-              Cancelar
-            </Link>
+            {onCancelar ? (
+              <Button type="button" variant="destructive" onClick={onCancelar} disabled={pendente}>
+                Cancelar
+              </Button>
+            ) : (
+              <Link href="/" className={buttonVariants({ variant: "destructive" })}>
+                Cancelar
+              </Link>
+            )}
           </div>
         )}
       </fieldset>

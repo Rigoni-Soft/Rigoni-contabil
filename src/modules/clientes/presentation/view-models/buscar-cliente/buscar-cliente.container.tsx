@@ -56,6 +56,11 @@ export function BuscarClienteContainer({ papel, setor }: Props) {
     (papel === "funcionario" && setor === "simples_nacional")
   );
 
+  // Mesma ação por trás de "Nova busca" (topo) e "Cancelar" (dentro do form,
+  // #35 corrige: sem isso o <Link href="/"> do form não fazia nada, já que a
+  // busca já está em "/") — fecha o painel e volta pro campo de busca.
+  const fecharPainel = () => setClienteSelecionado(null);
+
   if (clienteSelecionado) {
     return (
       <section className="space-y-3">
@@ -63,16 +68,15 @@ export function BuscarClienteContainer({ papel, setor }: Props) {
           <h2 className="text-lg font-semibold text-foreground">
             {readOnly ? "Visualizar cadastro operacional" : "Editar cadastro operacional"}
           </h2>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setClienteSelecionado(null)}
-          >
+          <Button type="button" variant="ghost" size="sm" onClick={fecharPainel}>
             Nova busca
           </Button>
         </div>
-        <EditarCadastroOperacionalContainer dados={clienteSelecionado} readOnly={readOnly} />
+        <EditarCadastroOperacionalContainer
+          dados={clienteSelecionado}
+          readOnly={readOnly}
+          onCancelar={fecharPainel}
+        />
       </section>
     );
   }

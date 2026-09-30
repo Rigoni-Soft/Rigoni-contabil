@@ -17,9 +17,10 @@ import { editarCadastroOperacionalFormSchema } from "./editar-cadastro-operacion
 type Props = {
   dados: CadastroOperacionalClienteDto | null;
   readOnly: boolean;
+  onCancelar?: () => void;
 };
 
-export function EditarCadastroOperacionalContainer({ dados, readOnly }: Props) {
+export function EditarCadastroOperacionalContainer({ dados, readOnly, onCancelar }: Props) {
   const [pendente, setPendente] = useState(false);
   const [erroServidor, setErroServidor] = useState<string | undefined>();
   const [sucesso, setSucesso] = useState(false);
@@ -127,6 +128,7 @@ export function EditarCadastroOperacionalContainer({ dados, readOnly }: Props) {
       onAdicionarContato={() => append({ nome: "", telefone: "", padrao: fields.length === 0 })}
       onRemoverContato={remove}
       onLimpar={aoLimpar}
+      onCancelar={onCancelar}
     />
   );
 }

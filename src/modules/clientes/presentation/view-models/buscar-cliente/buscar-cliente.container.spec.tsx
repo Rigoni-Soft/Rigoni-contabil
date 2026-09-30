@@ -86,4 +86,26 @@ describe("BuscarClienteContainer", () => {
     expect(carregarCadastroOperacionalActionMock).toHaveBeenCalledWith(CADASTRO.id);
     expect(await screen.findByLabelText(/forma de envio/i)).toBeInTheDocument();
   });
+
+  it("clicar em Cancelar dentro do form fecha o painel e volta pro campo de busca", async () => {
+    buscarClientesActionMock.mockResolvedValue({
+      ok: true,
+      data: [{ id: CADASTRO.id, empresa: CADASTRO.empresa, cnpj: CADASTRO.cnpj }],
+    });
+    carregarCadastroOperacionalActionMock.mockResolvedValue({ ok: true, data: CADASTRO });
+    const usuario = userEvent.setup({ delay: null });
+    render(<BuscarClienteContainer papel="admin" setor="administrativo" />);
+
+    await usuario.type(screen.getByLabelText(/empresa ou cnpj/i), "Pão");
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+    await usuario.click(await screen.findByText(CADASTRO.empresa));
+    await screen.findByLabelText(/forma de envio/i);
+
+    await usuario.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(screen.getByLabelText(/empresa ou cnpj/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/forma de envio/i)).not.toBeInTheDocument();
+  });
 });
