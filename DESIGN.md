@@ -19,12 +19,13 @@ para ação e estado — nunca decoração.
 
 Definidos como CSS variables em `src/app/globals.css`, no formato exigido
 pelo shadcn (`docs/arquitetura.md` §5.1). `:root` carrega os valores do tema
-**dark** (padrão do produto); a classe `.light` sobrescreve para o tema
-claro. `next-themes` (`src/presentation/providers/theme.provider.tsx`)
-alterna a classe em `<html>`; `enableSystem` fica desligado para não
-sobrepor "dark é o padrão" com a preferência de SO do visitante.
+dark; a classe `.light` sobrescreve para o tema **claro (padrão do produto,
+decisão revisada em 2026-09-30)**. `next-themes`
+(`src/presentation/providers/theme.provider.tsx`) alterna a classe em
+`<html>`; `enableSystem` fica desligado para não sobrepor "light é o padrão"
+com a preferência de SO do visitante.
 
-| Token | Dark (padrão) | Light | Uso |
+| Token | Dark | Light (padrão) | Uso |
 |---|---|---|---|
 | `background` / `foreground` | `#23221f` / `#ece7d8` | `#f4f1e8` / `#16231f` | tela |
 | `card` / `card-foreground` | `#2c2a26` / `#ece7d8` | `#faf8f1` / `#16231f` | superfícies elevadas (cartão de login, painel de filtro, cartão de confirmação) |

@@ -667,7 +667,7 @@ O design system vive em `presentation/components` e em `app/globals.css` (tokens
 - Toda cor vem de **tokens semânticos** definidos em CSS variables (`--primary`, `--success`, `--warning`, `--destructive`, `--muted`…), no formato exigido pelo shadcn. Cor crua do Tailwind (`bg-blue-500`) não aparece em componente.
 - A paleta é escolhida pela **teoria da psicologia das cores**, de acordo com o sentimento que o produto deve transmitir, registrado na descrição do produto.
 - Paleta em **tons pastel**.
-- Dois temas obrigatórios, **dark e light**, ambos adaptados aos tokens do shadcn. **Dark é o padrão.**
+- Dois temas obrigatórios, **dark e light**, ambos adaptados aos tokens do shadcn. **Light é o padrão** (decisão revisada em 2026-09-30, `DESIGN.md`).
 - Novas intenções de cor (sucesso, alerta, informação) entram como tokens; se precisarem de variante em um componente, adicione uma variante ao `cva` do arquivo do `ui/`.
 
 ### 5.2 Toggle de tema
