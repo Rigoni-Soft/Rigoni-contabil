@@ -14,7 +14,7 @@ export type FiltroValues = {
   ator?: string;
   acao?: string;
   alvo?: string;
-  resultado?: "sucesso" | "falha" | "";
+  resultado?: "sucesso" | "falha" | "falha_compensacao" | "";
 };
 
 type AuditoriaFeedFiltroProps = {
@@ -77,6 +77,7 @@ export function AuditoriaFeedFiltro({
             <option value="">Todos</option>
             <option value="sucesso">sucesso</option>
             <option value="falha">falha</option>
+            <option value="falha_compensacao">falha_compensacao</option>
           </Select>
         </div>
 

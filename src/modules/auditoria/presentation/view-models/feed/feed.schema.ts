@@ -3,7 +3,7 @@ import { z } from "zod";
 // input type="date" e <select> desmarcado mandam "" (não undefined) quando vazios —
 // aceita "" aqui; o hook (use-feed.hook.ts) remove os campos "" antes de filtrar de verdade.
 const dataOuVazio = z.iso.date().or(z.literal(""));
-const resultadoOuVazio = z.enum(["sucesso", "falha"]).or(z.literal(""));
+const resultadoOuVazio = z.enum(["sucesso", "falha", "falha_compensacao"]).or(z.literal(""));
 // Devolutiva técnica PR #60, ajuste 03: a coluna `ator` é UUID — texto livre
 // (ex. "João") chegaria ao Postgres e viraria erro de query em vez de "nenhum
 // resultado". Rejeita aqui, antes da consulta.

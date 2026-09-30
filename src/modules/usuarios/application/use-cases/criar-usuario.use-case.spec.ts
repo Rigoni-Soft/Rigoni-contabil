@@ -7,6 +7,7 @@ import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
 import { Usuario, type UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
 import type { AppError } from "@/shared/errors/app.error";
+import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
@@ -226,7 +227,10 @@ describe("CriarUsuario", () => {
     // aqui, no unit test com fakes, só garantimos que a compensação foi acionada.
   });
 
-  it("não mascara falha da própria compensação: loga, mas ainda devolve o erro original ao chamador", async () => {
+  // Ajuste residual da devolutiva PR #61: falha da própria compensação deixa de
+  // ser mascarada como o erro original — vira erro específico + registro de
+  // auditoria próprio, distinguível de "rollback funcionou".
+  it("distingue falha da própria compensação: erro específico, registro de auditoria próprio e log sem senha", async () => {
     const sessao = new SessaoFalsa();
     const usuarios = new UsuarioRepositoryFalso();
     usuarios.erroAoCriar = true;
@@ -240,11 +244,31 @@ describe("CriarUsuario", () => {
     );
 
     expect(resultado.ok).toBe(false);
-    if (!resultado.ok) expect(resultado.error.message).toBe("falha ao salvar");
-    expect(erroConsole).toHaveBeenCalledWith(
-      expect.stringContaining("Falha ao compensar conta Auth órfã"),
-      "falha ao remover conta",
-    );
+    if (!resultado.ok) {
+      expect(resultado.error).toBeInstanceOf(EstadoInconsistenteError);
+      expect(resultado.error.code).toBe("INCONSISTENT_STATE");
+    }
+    expect(auditoria.registros).toEqual([
+      expect.objectContaining({ resultado: "falha_compensacao" }),
+    ]);
+    const [, ...mensagensLogadas] = erroConsole.mock.calls[0] as unknown as string[];
+    expect(mensagensLogadas.join(" ")).not.toContain(authAdmin.senhaGerada);
     erroConsole.mockRestore();
+  });
+
+  it("quando a compensação tem sucesso, devolve o erro original (não o de estado inconsistente) e audita 'falha'", async () => {
+    const sessao = new SessaoFalsa();
+    const usuarios = new UsuarioRepositoryFalso();
+    usuarios.erroAoCriar = true;
+    const authAdmin = new AuthAdminFalso();
+    const auditoria = new AuditoriaFalsa();
+
+    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
+      INPUT_VALIDO,
+    );
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error.message).toBe("falha ao salvar");
+    expect(auditoria.registros).toEqual([expect.objectContaining({ resultado: "falha" })]);
   });
 });
