@@ -65,8 +65,9 @@ class UsuarioRepositoryFalso implements UsuarioRepository {
 
 class AuditoriaFalsa implements AuditoriaPort {
   registros: RegistrarAcaoAuditoria[] = [];
-  async registrar(input: RegistrarAcaoAuditoria): Promise<void> {
+  async registrar(input: RegistrarAcaoAuditoria): Promise<Result<void, AppError>> {
     this.registros.push(input);
+    return ok(undefined);
   }
 }
 
