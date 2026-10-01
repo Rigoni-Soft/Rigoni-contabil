@@ -2,36 +2,25 @@
 -- Auth, uma falha na auditoria ou na finalizacao do perfil precisa ser
 -- recuperavel SEM pedir nova troca de senha e SEM auditoria duplicada.
 --
--- 1) senha_troca_iniciada_em: marcador gravado ANTES de updateUser(). Perfil
---    ainda em primeiro acesso + marcador presente = "o Auth pode ja ter a senha
---    nova"; so nesse estado um `same_password` do Auth e tratado como retry
---    legitimo (sem o marcador, same_password = usuario reenviou a provisoria).
+-- 1) senha_auth_alterada_em: prova de que updateUser() teve sucesso. Gravado
+--    DEPOIS da troca no Auth (nunca antes, nunca por "tentativa iniciada"), via
+--    registrar_auth_senha_alterada. Perfil em primeiro acesso + prova presente =
+--    so falta perfil + auditoria, e o retry pula updateUser() por completo.
 -- 2) finalizar_troca_senha: auditoria + senha_trocada_em na MESMA transacao e
 --    idempotente (linha travada; se ja finalizada, nao faz nada) -- exatamente
 --    1 evento de auditoria por troca, mesmo com N retries.
-alter table public.perfis add column senha_troca_iniciada_em timestamptz;
+alter table public.perfis add column senha_auth_alterada_em timestamptz;
 
 drop function if exists public.marcar_senha_trocada(uuid);
 
-create function public.iniciar_troca_senha(usuario_id uuid)
+create function public.registrar_auth_senha_alterada(usuario_id uuid)
 returns void
 language sql
 security definer
 set search_path = public
 as $$
   update public.perfis
-  set senha_troca_iniciada_em = coalesce(senha_troca_iniciada_em, now())
-  where id = usuario_id and senha_trocada_em is null;
-$$;
-
-create function public.cancelar_troca_senha(usuario_id uuid)
-returns void
-language sql
-security definer
-set search_path = public
-as $$
-  update public.perfis
-  set senha_troca_iniciada_em = null
+  set senha_auth_alterada_em = coalesce(senha_auth_alterada_em, now())
   where id = usuario_id and senha_trocada_em is null;
 $$;
 
@@ -59,14 +48,12 @@ begin
   );
 
   update public.perfis
-  set senha_trocada_em = now(), senha_troca_iniciada_em = null
+  set senha_trocada_em = now(), senha_auth_alterada_em = null
   where id = v_perfil.id;
 end;
 $$;
 
-revoke all on function public.iniciar_troca_senha(uuid) from public, anon, authenticated;
-revoke all on function public.cancelar_troca_senha(uuid) from public, anon, authenticated;
+revoke all on function public.registrar_auth_senha_alterada(uuid) from public, anon, authenticated;
 revoke all on function public.finalizar_troca_senha(uuid) from public, anon, authenticated;
-grant execute on function public.iniciar_troca_senha(uuid) to service_role;
-grant execute on function public.cancelar_troca_senha(uuid) to service_role;
+grant execute on function public.registrar_auth_senha_alterada(uuid) to service_role;
 grant execute on function public.finalizar_troca_senha(uuid) to service_role;

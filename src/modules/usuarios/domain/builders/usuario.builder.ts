@@ -15,7 +15,7 @@ export type UsuarioRestaurar = {
   papel: string;
   setor: string;
   senhaTrocadaEm: string | null;
-  senhaTrocaIniciadaEm?: string | null;
+  senhaAuthAlteradaEm?: string | null;
   senhaProvisoriaExpiraEm: string;
 };
 
@@ -28,7 +28,7 @@ export class UsuarioBuilder {
   private papel?: Papel;
   private setor?: Setor;
   private senhaTrocadaEm: Date | null = null;
-  private senhaTrocaIniciadaEm: Date | null = null;
+  private senhaAuthAlteradaEm: Date | null = null;
   private senhaProvisoriaExpiraEm?: Date;
   private readonly camposInvalidos: Record<string, string[]> = {};
 
@@ -70,8 +70,8 @@ export class UsuarioBuilder {
     return this;
   }
 
-  comSenhaTrocaIniciadaEm(data: string | null): this {
-    this.senhaTrocaIniciadaEm = data ? new Date(data) : null;
+  comSenhaAuthAlteradaEm(data: string | null): this {
+    this.senhaAuthAlteradaEm = data ? new Date(data) : null;
     return this;
   }
 
@@ -87,7 +87,7 @@ export class UsuarioBuilder {
       .comPapel(dados.papel)
       .comSetor(dados.setor)
       .comSenhaTrocadaEm(dados.senhaTrocadaEm)
-      .comSenhaTrocaIniciadaEm(dados.senhaTrocaIniciadaEm ?? null)
+      .comSenhaAuthAlteradaEm(dados.senhaAuthAlteradaEm ?? null)
       .comSenhaProvisoriaExpiraEm(dados.senhaProvisoriaExpiraEm);
   }
 
@@ -118,7 +118,7 @@ export class UsuarioBuilder {
         papel: this.papel!,
         setor: this.setor!,
         senhaTrocadaEm: this.senhaTrocadaEm,
-        senhaTrocaIniciadaEm: this.senhaTrocaIniciadaEm,
+        senhaAuthAlteradaEm: this.senhaAuthAlteradaEm,
         // Cadastro novo (#30) não chama comSenhaProvisoriaExpiraEm: default aqui
         // espelha o default da coluna na migration do #31.
         senhaProvisoriaExpiraEm:

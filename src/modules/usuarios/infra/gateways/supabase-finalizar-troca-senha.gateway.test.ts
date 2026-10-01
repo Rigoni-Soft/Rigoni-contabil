@@ -62,8 +62,8 @@ describe("SupabaseFinalizarTrocaSenhaGateway (integração)", () => {
     expect(antes.data?.senha_trocada_em).toBeNull();
 
     const gateway = new SupabaseFinalizarTrocaSenhaGateway(admin);
-    const iniciada = await gateway.iniciar(id as UsuarioId);
-    expect(iniciada.ok).toBe(true);
+    const prova = await gateway.registrarAuthAlterado(id as UsuarioId);
+    expect(prova.ok).toBe(true);
     const resultado = await gateway.finalizar(id as UsuarioId);
     // Idempotente: segunda chamada não duplica auditoria nem falha.
     expect((await gateway.finalizar(id as UsuarioId)).ok).toBe(true);

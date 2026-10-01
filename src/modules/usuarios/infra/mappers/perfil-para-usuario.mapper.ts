@@ -8,7 +8,7 @@ export function perfilParaUsuario(row: PerfilRowDto): Result<Usuario, Validation
     .restaurar({
       ...row,
       senhaTrocadaEm: row.senha_trocada_em,
-      senhaTrocaIniciadaEm: row.senha_troca_iniciada_em,
+      senhaAuthAlteradaEm: row.senha_auth_alterada_em,
       senhaProvisoriaExpiraEm: row.senha_provisoria_expira_em,
     })
     .build();

@@ -33,40 +33,43 @@ export class TrocarSenha implements TrocarSenhaPort {
 
     // Decide antes de qualquer escrita, senão precisaTrocarSenha() já viraria false.
     const primeiroAcesso = usuario.precisaTrocarSenha();
-    // Devolutiva técnica PR #62 (retry): marcador gravado numa tentativa anterior
-    // = o Auth pode já ter a senha nova, só a finalização ficou pendente.
-    const retomada = usuario.trocaSenhaPendente();
+    // Devolutiva PR #62 (retry): o marcador só é gravado DEPOIS de updateUser()
+    // ter sucesso — prova que o Auth já tem a senha nova. Com ele, o estado
+    // pendente é só perfil + auditoria e o retry pula o Auth por completo.
+    const authJaAlterado = primeiroAcesso && usuario.authJaAlterado();
 
-    if (primeiroAcesso && !retomada) {
-      const iniciada = await this.finalizarTrocaSenha.iniciar(id);
-      if (!iniciada.ok) return iniciada;
-    }
+    if (!authJaAlterado) {
+      const trocada = await this.sessao.trocarSenha(novaSenha);
+      if (!trocada.ok) {
+        const senhaJaDefinida = trocada.error.code === "SENHA_JA_DEFINIDA";
+        // Fora do primeiro acesso, same_password é reenvio legítimo (a auditoria
+        // é o último passo e nada ficou gravado). Em primeiro acesso, sem prova
+        // de Auth alterado, só pode ser o usuário reenviando a senha provisória.
+        if (!senhaJaDefinida || primeiroAcesso) {
+          return senhaJaDefinida
+            ? err(
+                new ValidationError("A nova senha não pode ser igual à senha atual.", {
+                  novaSenha: ["não pode repetir a senha provisória atual"],
+                }),
+              )
+            : trocada;
+        }
+      }
 
-    const trocada = await this.sessao.trocarSenha(novaSenha);
-    if (!trocada.ok) {
-      const senhaJaDefinida = trocada.error.code === "SENHA_JA_DEFINIDA";
-      // "same_password" só é reenvio legítimo (updateUser() já teve sucesso numa
-      // tentativa cuja finalização falhou) com marcador de tentativa anterior
-      // (retomada) ou fora do primeiro acesso. Em primeiro acesso sem marcador,
-      // só pode ser o usuário mandando a própria senha provisória.
-      if (!senhaJaDefinida || (primeiroAcesso && !retomada)) {
-        // Marcador desta chamada não vale mais: o Auth não mudou. Best-effort —
-        // se falhar, o pior caso é um retry aceitar same_password sem troca real.
-        if (primeiroAcesso && !retomada) await this.finalizarTrocaSenha.cancelar(id);
-        return senhaJaDefinida
-          ? err(
-              new ValidationError("A nova senha não pode ser igual à senha atual.", {
-                novaSenha: ["não pode repetir a senha provisória atual"],
-              }),
-            )
-          : trocada;
+      if (primeiroAcesso) {
+        // Best-effort: se falhar, finalizar() abaixo ainda tenta concluir; se
+        // ambos falharem o retry cai em same_password e é recusado (seguro —
+        // nunca finaliza sem prova), pedindo outra senha.
+        const registrada = await this.finalizarTrocaSenha.registrarAuthAlterado(id);
+        if (!registrada.ok) {
+          console.error("Falha ao registrar prova de Auth alterado:", registrada.error.message);
+        }
       }
     }
 
-    // A partir daqui a senha já mudou de verdade no Auth (ou já tinha mudado
-    // numa tentativa anterior) — não existe compensação possível: a aplicação não
-    // guarda a credencial anterior pra "desfazer" (ADR 0002). Falha daqui em
-    // diante vira EstadoInconsistenteError, recuperável por retry.
+    // A partir daqui a senha já mudou no Auth — não existe compensação possível:
+    // a aplicação não guarda a credencial anterior pra "desfazer" (ADR 0002).
+    // Falha daqui em diante vira EstadoInconsistenteError, recuperável por retry.
     if (primeiroAcesso) {
       // Perfil + auditoria numa única transação idempotente (migration
       // 20261001090000): retry conclui só o que falta, sem nova troca no Auth e

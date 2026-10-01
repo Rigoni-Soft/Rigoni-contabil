@@ -12,7 +12,7 @@ export type UsuarioProps = {
   papel: Papel;
   setor: Setor;
   senhaTrocadaEm: Date | null;
-  senhaTrocaIniciadaEm: Date | null;
+  senhaAuthAlteradaEm: Date | null;
   senhaProvisoriaExpiraEm: Date;
 };
 
@@ -48,10 +48,10 @@ export class Usuario {
     return this.props.senhaTrocadaEm === null;
   }
 
-  // Auth já pode ter recebido a nova senha sem a finalização (perfil + auditoria)
-  // ter concluído — o marcador é gravado ANTES de updateUser() (PR #62, retry).
-  trocaSenhaPendente(): boolean {
-    return this.precisaTrocarSenha() && this.props.senhaTrocaIniciadaEm !== null;
+  // Auth já tem a nova senha (prova gravada só DEPOIS de updateUser() ter sucesso);
+  // falta apenas perfil + auditoria (PR #62, retry).
+  authJaAlterado(): boolean {
+    return this.precisaTrocarSenha() && this.props.senhaAuthAlteradaEm !== null;
   }
 
   senhaProvisoriaVencida(agora: Date): boolean {

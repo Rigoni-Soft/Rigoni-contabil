@@ -15,12 +15,8 @@ class PersistenciaError extends AppError {
 export class SupabaseFinalizarTrocaSenhaGateway implements FinalizarTrocaSenhaPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 
-  iniciar(usuarioId: UsuarioId): Promise<Result<void, AppError>> {
-    return this.chamar("iniciar_troca_senha", usuarioId);
-  }
-
-  cancelar(usuarioId: UsuarioId): Promise<Result<void, AppError>> {
-    return this.chamar("cancelar_troca_senha", usuarioId);
+  registrarAuthAlterado(usuarioId: UsuarioId): Promise<Result<void, AppError>> {
+    return this.chamar("registrar_auth_senha_alterada", usuarioId);
   }
 
   finalizar(usuarioId: UsuarioId): Promise<Result<void, AppError>> {

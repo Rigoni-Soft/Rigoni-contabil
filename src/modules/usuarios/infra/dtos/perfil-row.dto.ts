@@ -10,7 +10,7 @@ export const perfilRowSchema = z.object({
   papel: z.enum(PAPEIS),
   setor: z.enum(SETORES),
   senha_trocada_em: z.string().nullable(),
-  senha_troca_iniciada_em: z.string().nullable(),
+  senha_auth_alterada_em: z.string().nullable(),
   senha_provisoria_expira_em: z.string(),
 });
 
