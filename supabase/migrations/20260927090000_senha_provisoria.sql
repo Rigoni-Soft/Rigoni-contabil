@@ -13,6 +13,32 @@ alter table public.perfis
 -- pega exatamente -- e so -- as linhas que ja existiam antes da regra do #31
 -- comecar a valer; contas criadas depois deste ponto continuam nascendo com
 -- NULL de verdade (criar-usuario.use-case.ts nunca passa essa coluna).
+--
+-- PREFLIGHT obrigatorio antes de aplicar esta migration em homolog/producao
+-- (devolutiva tecnica complementar PR #62, ajuste 1): o UPDATE abaixo so e
+-- seguro se, no momento em que esta migration roda, NAO existir nenhuma conta
+-- criada pelo #30 que ainda esteja de fato esperando o primeiro acesso (Admin
+-- cadastrou, funcionario real ainda nao usou a senha provisoria nenhuma vez).
+-- Uma conta assim e indistinguivel de uma conta antiga "ja em uso" so pela
+-- coluna senha_trocada_em (as duas tem NULL) -- o UPDATE marcaria as duas como
+-- "senha ja trocada", deixando a conta nova pular a troca obrigatoria por
+-- engano. Rodar esta consulta ANTES do deploy desta migration e confirmar com
+-- o time de Admin que toda linha devolvida corresponde a uma conta antiga
+-- (funcionario ja usa a senha no dia a dia), nunca a uma recem-criada ainda
+-- nao entregue:
+--
+--   select p.id, p.email, p.created_at, u.last_sign_in_at
+--   from public.perfis p
+--   join auth.users u on u.id = p.id
+--   where p.senha_trocada_em is null
+--   order by p.created_at desc;
+--
+-- Se alguma linha for de fato uma conta recem-criada ainda nao entregue:
+-- 1) adiar o deploy desta migration até o Admin confirmar a entrega, OU
+-- 2) apos o deploy, resetar manualmente so essa conta pro estado correto de
+--    "primeiro acesso pendente" (mesmo procedimento de duas etapas do ADR
+--    0002 -- reset no Studio + UPDATE de senha_trocada_em/senha_provisoria_
+--    expira_em), já que o UPDATE abaixo ja a marcou como trocada por engano.
 update public.perfis set senha_trocada_em = now() where senha_trocada_em is null;
 
 -- Sem policy de UPDATE em perfis (nenhuma foi criada ate aqui): em vez de abrir

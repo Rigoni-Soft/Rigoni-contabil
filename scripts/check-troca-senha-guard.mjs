@@ -9,12 +9,22 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const APP_DIR = "src/app";
-// /login redireciona pra cá; /trocar-senha é o próprio destino do redirect —
-// as duas têm motivo pra não checar precisaTrocarSenha.
-const ALLOWLIST = new Set(["login/page.tsx", "trocar-senha/page.tsx"]);
+export const APP_DIR = "src/app";
 
-function paginas(dir, prefixo = "") {
+// Páginas públicas de verdade: não exigem sessão pra existir, então ficam de
+// fora de qualquer checagem (nem carregarSessao, nem precisaTrocarSenha).
+// Devolutiva técnica complementar PR #62, ajuste 2: antes este script só
+// pegava quem chamava carregarSessao e esquecia precisaTrocarSenha — uma
+// página nova que esquecesse de chamar carregarSessao passava batido. Agora
+// toda página fora desta lista é obrigada a chamar carregarSessao; só entra
+// aqui quem é public de propósito (login é o único caso hoje).
+export const PAGINAS_PUBLICAS = new Set(["login/page.tsx"]);
+
+// /trocar-senha é o próprio destino do redirect: carrega sessão (pra saber o
+// estado), mas não pode checar precisaTrocarSenha contra si mesma.
+export const ISENTAS_DO_REDIRECT = new Set(["trocar-senha/page.tsx"]);
+
+export function paginas(dir, prefixo = "") {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entrada) => {
     const relativo = prefixo ? `${prefixo}/${entrada.name}` : entrada.name;
     if (entrada.isDirectory()) return paginas(join(dir, entrada.name), relativo);
@@ -22,15 +32,33 @@ function paginas(dir, prefixo = "") {
   });
 }
 
-const erros = paginas(APP_DIR)
-  .filter((pagina) => !ALLOWLIST.has(pagina))
-  .filter((pagina) => {
-    const conteudo = readFileSync(join(APP_DIR, pagina), "utf8");
-    return conteudo.includes("carregarSessao") && !conteudo.includes("precisaTrocarSenha");
-  });
+// Pura (sem tocar em disco) pra poder ser testada por unidade sem precisar
+// montar uma árvore de arquivos de verdade.
+export function classificarPagina(pagina, conteudo) {
+  if (PAGINAS_PUBLICAS.has(pagina)) return null;
 
-erros.forEach((e) =>
-  console.error(`${APP_DIR}/${e}: carrega a sessão mas não checa precisaTrocarSenha`),
-);
-if (erros.length) process.exit(1);
-console.log("guard de troca de senha ok");
+  if (!conteudo.includes("carregarSessao")) {
+    return `${pagina}: não carrega a sessão (carregarSessao) — se for pública de propósito, adicione a PAGINAS_PUBLICAS`;
+  }
+  if (!ISENTAS_DO_REDIRECT.has(pagina) && !conteudo.includes("precisaTrocarSenha")) {
+    return `${pagina}: carrega a sessão mas não checa precisaTrocarSenha`;
+  }
+  return null;
+}
+
+function main() {
+  const erros = paginas(APP_DIR)
+    .map((pagina) => classificarPagina(pagina, readFileSync(join(APP_DIR, pagina), "utf8")))
+    .filter((erro) => erro !== null)
+    .map((erro) => `${APP_DIR}/${erro}`);
+
+  erros.forEach((e) => console.error(e));
+  if (erros.length) process.exit(1);
+  console.log("guard de troca de senha ok");
+}
+
+// Só roda a varredura real quando chamado como script (yarn check:guard-senha);
+// o teste de unidade importa classificarPagina sem disparar isso.
+if (process.argv[1] && process.argv[1].endsWith("check-troca-senha-guard.mjs")) {
+  main();
+}
