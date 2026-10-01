@@ -35,22 +35,22 @@ export default async function Home() {
         sair={<LogoutButtonContainer />}
       />
       <ShellNav setores={setores} />
-      <main className="space-y-8 px-4 py-6 sm:px-6">
-        {vePainelSn && (
-          <div className="mx-auto max-w-4xl">
-            {resumo?.ok ? (
-              <ResumoSetorSn
-                cards={resumo.value.cards}
-                totalClientes={resumo.value.totalClientes}
-              />
-            ) : (
-              <p role="alert" className="text-sm text-destructive">
-                Falha ao carregar o resumo do setor. Tente novamente.
-              </p>
-            )}
-          </div>
-        )}
-        <div className="mx-auto max-w-2xl">
+      <main className="px-4 py-6 sm:px-6">
+        <div className="mx-auto w-[90%] space-y-8">
+          {vePainelSn && (
+            <div>
+              {resumo?.ok ? (
+                <ResumoSetorSn
+                  cards={resumo.value.cards}
+                  totalClientes={resumo.value.totalClientes}
+                />
+              ) : (
+                <p role="alert" className="text-sm text-destructive">
+                  Falha ao carregar o resumo do setor. Tente novamente.
+                </p>
+              )}
+            </div>
+          )}
           <BuscarClienteContainer papel={sessao.papel} setor={sessao.setor} />
         </div>
       </main>

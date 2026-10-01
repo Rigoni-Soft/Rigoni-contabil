@@ -87,30 +87,30 @@ Qualquer outro painel de cliente futuro reusa a mesma moldura em vez de um
 ## Layout
 
 Telas Operate autenticadas (`ShellHeader` + conteúdo) usam um container
-centralizado com padding lateral (`px-4 sm:px-6`); a largura máxima segue a
-densidade real do conteúdo, não um valor único fixo do produto:
+centralizado com padding lateral (`px-4 sm:px-6`); a largura é relativa à
+tela (`%`, não `max-w-*` fixo), definida pela categoria da tela, não um
+valor único fixo do produto (decisão revisada em 2026-10-01, feedback
+manual do #36 — `max-w-*` fixo deixava a tela "sobrando" em monitores
+largos, abaixo do que o usuário queria ver ocupado):
 
-- Formulário isolado (ex.: cartão de login, cadastro de Líder/Funcionário
-  pelo Admin ou pelo Líder de setor — escopado por RBAC no caso de uso, #32
-  —, troca de senha): `max-w-md`, conteúdo único centralizado.
-- Feed/tabela com filtro (ex.: `/admin/auditoria`): `max-w-6xl` — largura
-  suficiente para a grade de filtro de 4 colunas e as 6 colunas da tabela
-  sem espremer nem forçar rolagem horizontal prematura.
-- Formulário com elevação em 2 colunas (ex.: edição do cadastro operacional
-  do Simples Nacional, #34, feedback manual do usuário): `max-w-2xl` dentro
-  de um cartão `rounded-lg border bg-card shadow-sm` — mais largo que o
-  formulário isolado de coluna única porque o conteúdo é denso (Forma de
-  envio, Documento, DAS, parcelamento, Atividade do mês, Contatos), mas sem
-  chegar na largura de feed/tabela. Qualquer formulário operacional futuro
-  com essa mesma densidade (vários grupos de campo relacionados, não um
-  fluxo linear único) reusa essa largura em vez de forçar `max-w-md`.
-- Seção de página inicial com busca + painel de resultado embutido (ex.:
-  "Buscar cliente" do dashboard, `/`, #35): a mesma largura `max-w-2xl`
-  do formulário com elevação, centralizada (`mx-auto`), tanto no estado
-  de busca (campo + lista de sugestões) quanto no estado com o painel do
-  cliente aberto — evita que o campo de busca abra largo e o painel depois
-  encolha de volta pra `max-w-2xl`, uma mudança de largura perceptível
-  entre os dois estados da mesma seção.
+- **Login e troca de senha**: ficam de fora da regra — `max-w-sm`/`max-w-md`,
+  conteúdo único centralizado, por serem telas de entrada/bloqueio, não de
+  trabalho. Decisão explícita do usuário: nunca ocupam a tela toda.
+- **Formulário de criar algo** (ex.: cadastro de Cliente, cadastro de
+  Líder/Funcionário): `w-[80%]` — mais largo que antes, mas ainda contido,
+  porque continua sendo um fluxo de preenchimento linear único, não uma
+  grade densa de múltiplos grupos.
+- **Conteúdo/listagem** (dashboard `/`, resumo do setor e seu drill-down
+  `/clientes/resumo/[bucket]`, feed de auditoria `/admin/auditoria`, edição
+  do cadastro operacional `/clientes/[id]`): `w-[90%]` — telas de trabalho
+  contínuo (ver, filtrar, navegar entre registros), ocupam a maior parte da
+  largura livre da tela.
+
+Formulário com elevação em 2 colunas (ex.: edição do cadastro operacional
+do Simples Nacional, #34): cartão `rounded-lg border bg-card shadow-sm`
+dentro do container de 90% acima — mais denso que um formulário isolado
+(Forma de envio, Documento, DAS, parcelamento, Atividade do mês, Contatos),
+por isso fica na categoria "conteúdo", não "formulário de criar".
 
 Painel de filtro: campos em grid (`grid-cols-2 sm:grid-cols-4`), e as ações
 (Limpar/Filtrar) ficam numa linha própria abaixo dos campos, separada por

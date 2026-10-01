@@ -27,9 +27,7 @@ test.describe("Resumo do setor (#36)", () => {
     await expect(linha).toBeVisible();
     await linha.click();
 
-    await expect(
-      page.getByRole("heading", { name: "Editar cadastro operacional" }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Editar cadastro operacional" })).toBeVisible();
 
     await page.getByRole("link", { name: "Voltar" }).click();
     await expect(page.getByRole("heading", { name: "Resumo do setor" })).toBeVisible();

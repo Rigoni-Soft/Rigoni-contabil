@@ -7,7 +7,7 @@ export function CriarClientePage({ header, formulario }: CriarClientePageProps) 
   return (
     <main className="min-h-screen bg-background">
       {header}
-      <div className="mx-auto max-w-md px-4 py-8 sm:px-6">
+      <div className="mx-auto w-[80%] px-4 py-8 sm:px-6">
         <Link
           href="/"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline"
