@@ -7,7 +7,7 @@ import type {
 import {
   operacionalUnico,
   type CadastroOperacionalRow,
-} from "@/modules/clientes/infra/mappers/cadastro-operacional-row";
+} from "@/modules/clientes/infra/mappers/cadastro-operacional-row.mapper";
 import { AppError } from "@/shared/errors/app.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 

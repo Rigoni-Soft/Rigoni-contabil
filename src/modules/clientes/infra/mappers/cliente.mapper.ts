@@ -2,7 +2,7 @@ import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
 import {
   operacionalUnico,
   type CadastroOperacionalRow,
-} from "@/modules/clientes/infra/mappers/cadastro-operacional-row";
+} from "@/modules/clientes/infra/mappers/cadastro-operacional-row.mapper";
 
 type AlteracaoRow = { data: string; arquivo_caminho: string };
 type ContatoRow = { id: string; nome: string; telefone: string; padrao: boolean };
