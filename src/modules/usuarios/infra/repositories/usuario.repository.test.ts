@@ -189,23 +189,4 @@ describe("SupabaseUsuarioRepository (integração)", () => {
 
     expect(resultado.ok).toBe(false);
   });
-
-  it("marca a senha trocada (RPC marcar_senha_trocada, #31) e reflete em buscarPorId", async () => {
-    const admin = await comoAdmin();
-    const repositorioAdmin = new SupabaseUsuarioRepository(admin);
-    const { id, email } = await criarContaAuthDeTeste();
-    await repositorioAdmin.criar(usuarioValido(id));
-    const antes = await repositorioAdmin.buscarPorId(id as UsuarioId);
-    expect(antes.ok).toBe(true);
-    if (antes.ok) expect(antes.value?.precisaTrocarSenha()).toBe(true);
-
-    const comoNovoUsuario = await clienteAutenticado(email, "senha-de-teste-123");
-    const repositorioNovoUsuario = new SupabaseUsuarioRepository(comoNovoUsuario);
-    const resultado = await repositorioNovoUsuario.marcarSenhaTrocada();
-
-    expect(resultado.ok).toBe(true);
-    const depois = await repositorioAdmin.buscarPorId(id as UsuarioId);
-    expect(depois.ok).toBe(true);
-    if (depois.ok) expect(depois.value?.precisaTrocarSenha()).toBe(false);
-  });
 });

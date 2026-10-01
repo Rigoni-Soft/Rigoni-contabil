@@ -62,16 +62,4 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
     if (error) return err(new PersistenciaError(`Falha ao salvar perfil: ${error.message}`));
     return ok(undefined);
   }
-
-  // Via RPC (função SECURITY DEFINER `marcar_senha_trocada`, não UPDATE direto):
-  // não existe policy de UPDATE em perfis — abrir uma deixaria papel/setor
-  // editáveis pelo próprio usuário (ver migration do #31). A RPC opera sobre
-  // auth.uid(), então marca sempre o próprio usuário da sessão — sem parâmetro.
-  async marcarSenhaTrocada(): Promise<Result<void, AppError>> {
-    const { error } = await this.supabase.rpc("marcar_senha_trocada");
-
-    if (error)
-      return err(new PersistenciaError(`Falha ao marcar troca de senha: ${error.message}`));
-    return ok(undefined);
-  }
 }

@@ -22,6 +22,16 @@ export class ObterSessao implements ObterSessaoPort {
       console.error("Falha ao carregar perfil da sessão:", perfil.error.message);
       return null;
     }
-    return perfil.value ? usuarioParaDto(perfil.value) : null;
+    if (!perfil.value) return null;
+
+    // Devolutiva técnica PR #62, ponto 3: Login.execute() já bloqueia entrada
+    // com senha provisória vencida, mas uma sessão aberta ANTES do vencimento
+    // seguia válida depois dele — só a troca obrigatória (precisaTrocarSenha)
+    // era checada por página, nunca o vencimento em si. Toda página autenticada
+    // passa por carregarSessao() → aqui, então tratar como "sem sessão" fecha
+    // esse caminho sem precisar duplicar a checagem em cada rota.
+    if (perfil.value.senhaProvisoriaVencida(new Date())) return null;
+
+    return usuarioParaDto(perfil.value);
   }
 }

@@ -10,3 +10,16 @@ O ticket #30 cria a conta com senha provisória ativa na hora (`email_confirm: t
 4. **Expiração em 48h** (decisão revisada no #19, substitui "sem expiração de tempo"): reduz a janela em que uma senha vazada continua utilizável, sem exigir nada novo do fluxo de cadastro do Admin (#30). O #31 checa o vencimento no login.
 
 **Decisão sobre conta vencida sem troca (fechada na implementação do #31):** o login é bloqueado com uma mensagem pedindo pra falar com o Admin; o Admin resolve manualmente (Supabase Studio/Dashboard → Authentication → Users → Reset password), já que a API de criação de conta (`SupabaseAuthAdminGateway.criarConta`) falha com `email_exists` pra um e-mail já cadastrado — "recriar" não é literal, é resetar a senha da conta existente. Não foi criado nenhum endpoint de auto-regeneração no app: não era critério de aceite do #31, e o risco residual já é aceito por este ADR. Se isso virar operação frequente o bastante pra doer, é candidato a um ticket novo (ação de Admin "resetar senha provisória" reaproveitando `AuthAdminPort`/`admin.updateUserById`).
+
+**Correção (devolutiva técnica PR #62, ponto 6): o passo acima, sozinho, não desbloqueia a conta.** Resetar a senha pelo Studio só muda o Auth — `perfis.senha_trocada_em` continua `NULL` e `senha_provisoria_expira_em` continua no passado, então o próximo login é rejeitado de novo como "senha provisória expirada" (`Login.execute`/`senhaProvisoriaVencida`), mesmo com a senha nova certa. O procedimento manual tem **duas etapas**, as duas obrigatórias:
+
+1. Supabase Studio/Dashboard → Authentication → Users → Reset password (reseta o Auth, como já descrito acima).
+2. SQL Editor do mesmo projeto, resetando o estado de senha provisória do perfil pra uma nova janela de 48h:
+   ```sql
+   update public.perfis
+   set senha_trocada_em = null,
+       senha_provisoria_expira_em = now() + interval '48 hours'
+   where id = '<uuid do usuário>';
+   ```
+
+Continua sem endpoint no app pelo mesmo motivo de antes (risco aceito, não era critério de aceite) — a mudança aqui é só deixar as duas etapas explícitas, já que a ausência da segunda é um bug de documentação, não uma escolha consciente.

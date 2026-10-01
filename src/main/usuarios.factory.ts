@@ -18,6 +18,7 @@ import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sess
 import { TrocarSenha } from "@/modules/usuarios/application/use-cases/trocar-senha.use-case";
 import { AutorizacaoService } from "@/modules/usuarios/domain/services/autorizacao.service";
 import { SupabaseAuthAdminGateway } from "@/modules/usuarios/infra/gateways/supabase-auth-admin.gateway";
+import { SupabaseFinalizarTrocaSenhaGateway } from "@/modules/usuarios/infra/gateways/supabase-finalizar-troca-senha.gateway";
 import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabase-sessao.gateway";
 import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories/usuario.repository";
 import { err, ok } from "@/shared/kernel/result";
@@ -78,6 +79,7 @@ export async function makeTrocarSenha(): Promise<TrocarSenhaPort> {
   return new TrocarSenha(
     new SupabaseSessaoGateway(supabase),
     new SupabaseUsuarioRepository(supabase),
+    new SupabaseFinalizarTrocaSenhaGateway(createSupabaseAdmin()),
     auditoriaViaModuloAuditoria(),
   );
 }

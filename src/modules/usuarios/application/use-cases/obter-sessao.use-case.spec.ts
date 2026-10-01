@@ -32,18 +32,17 @@ class UsuarioRepositoryFalso implements UsuarioRepository {
   async criar(): Promise<Result<void, AppError>> {
     return ok(undefined);
   }
-  async marcarSenhaTrocada(): Promise<Result<void, AppError>> {
-    return ok(undefined);
-  }
 }
 
-function usuarioFalso(): Usuario {
+function usuarioFalso(senhaProvisoriaExpiraEm = new Date(Date.now() + 1000 * 60 * 60)): Usuario {
   const resultado = Usuario.builder()
     .comId("11111111-1111-1111-1111-111111111111")
     .comNome("Jéssica")
     .comEmail("jessica@rigonicontabil.local")
     .comPapel("funcionario")
     .comSetor("simples_nacional")
+    .comSenhaTrocadaEm(null)
+    .comSenhaProvisoriaExpiraEm(senhaProvisoriaExpiraEm.toISOString())
     .build();
   if (!resultado.ok) throw new Error("setup inválido");
   return resultado.value;
@@ -75,6 +74,21 @@ describe("ObterSessao", () => {
     sessao.id = "11111111-1111-1111-1111-111111111111" as UsuarioId;
     const repositorio = new UsuarioRepositoryFalso();
     repositorio.erroTecnico = new ForbiddenError("Falha ao buscar perfil: conexão recusada");
+
+    const resultado = await new ObterSessao(sessao, repositorio).execute();
+
+    expect(resultado).toBeNull();
+  });
+
+  // Devolutiva técnica PR #62, ponto 3: Login.execute() checava o vencimento
+  // só na hora de entrar — uma sessão aberta antes do vencimento (48h) seguia
+  // válida depois dele, porque nenhuma página checava isso de novo, só
+  // precisaTrocarSenha(). Toda página passa por carregarSessao() → aqui.
+  it("devolve null quando a senha provisória da sessão já venceu, mesmo com sessão ativa", async () => {
+    const sessao = new SessaoFalsa();
+    sessao.id = "11111111-1111-1111-1111-111111111111" as UsuarioId;
+    const repositorio = new UsuarioRepositoryFalso();
+    repositorio.usuario = usuarioFalso(new Date(Date.now() - 1000 * 60 * 60));
 
     const resultado = await new ObterSessao(sessao, repositorio).execute();
 

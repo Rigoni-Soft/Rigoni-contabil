@@ -22,6 +22,7 @@ jobs:
       - run: yarn lint
       - run: yarn check:naming
       - run: yarn check:deps
+      - run: yarn check:guard-senha
 
       - name: Gera os tipos ambient do Next.js (LayoutProps etc.) antes do typecheck
         run: yarn next typegen

@@ -12,6 +12,7 @@
     "format:check": "prettier --check .",
     "check:deps": "depcruise src --config .dependency-cruiser.cjs",
     "check:naming": "node scripts/check-naming.mjs",
+    "check:guard-senha": "node scripts/check-troca-senha-guard.mjs",
     "new:module": "node scripts/new-module.mjs",
     "test": "jest --selectProjects unit",
     "test:int": "jest --selectProjects integration",
