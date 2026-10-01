@@ -6,12 +6,20 @@ import type { FinalizarTrocaSenhaPort } from "@/modules/usuarios/application/por
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
 import { Usuario, type UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
-import type { AppError } from "@/shared/errors/app.error";
+import { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { TrocarSenha } from "./trocar-senha.use-case";
+
+// Mesmo code que SupabaseSessaoGateway devolve pro "same_password" do Auth
+// (devolutiva técnica PR #62, ponto 1) — sem importar infra no teste da
+// application (regra "so-main-importa-infra" do dependency-cruiser).
+class SenhaJaDefinidaFalsa extends AppError {
+  readonly code = "SENHA_JA_DEFINIDA";
+}
 
 function usuarioFalso(id: string, senhaTrocadaEm: string | null): Usuario {
   const resultado = Usuario.builder()
@@ -170,7 +178,7 @@ describe("TrocarSenha", () => {
   // Devolutiva técnica PR #62, pontos 4 e 5: a senha já mudou no Auth nesse
   // ponto (ADR 0002, não existe "desfazer") — a falha não pode virar sucesso
   // silencioso nem um erro indistinguível de "nada aconteceu".
-  it("devolve EstadoInconsistenteError (não sucesso) quando a finalização falha depois da senha já trocada no Auth", async () => {
+  it("devolve EstadoInconsistenteError (não sucesso) quando a finalização falha depois da senha já trocada e auditada", async () => {
     const sessao = new SessaoFalsa();
     const usuarios = new UsuarioRepositoryFalso();
     usuarios.usuario = usuarioFalso("11111111-1111-1111-1111-111111111111", null);
@@ -185,10 +193,12 @@ describe("TrocarSenha", () => {
     expect(sessao.senhaTrocadaPara).toBe("nova-senha-123");
     expect(resultado.ok).toBe(false);
     if (!resultado.ok) expect(resultado.error).toBeInstanceOf(EstadoInconsistenteError);
-    expect(auditoria.registros).toEqual([]);
+    expect(auditoria.registros).toEqual([
+      expect.objectContaining({ acao: "usuario.trocar_senha_primeiro_acesso" }),
+    ]);
   });
 
-  it("devolve EstadoInconsistenteError (não sucesso) quando a auditoria falha depois da senha já trocada e marcada", async () => {
+  it("devolve EstadoInconsistenteError (não sucesso) quando a auditoria falha depois da senha já trocada no Auth, sem marcar (devolutiva PR #62, ponto 2)", async () => {
     const sessao = new SessaoFalsa();
     const usuarios = new UsuarioRepositoryFalso();
     usuarios.usuario = usuarioFalso("11111111-1111-1111-1111-111111111111", null);
@@ -201,8 +211,56 @@ describe("TrocarSenha", () => {
     });
 
     expect(sessao.senhaTrocadaPara).toBe("nova-senha-123");
-    expect(finalizar.marcada).toBe(true);
+    expect(finalizar.marcada).toBe(false);
     expect(resultado.ok).toBe(false);
     if (!resultado.ok) expect(resultado.error).toBeInstanceOf(EstadoInconsistenteError);
+  });
+
+  // Devolutiva técnica PR #62, ponto 1: same_password não pode virar sucesso
+  // genérico — senão o próprio usuário consegue "trocar" a senha pra ela mesma
+  // (a provisória) e o sistema marca a troca como concluída sem nada mudar.
+  it("rejeita quando a nova senha é igual à senha provisória atual (ainda em primeiro acesso)", async () => {
+    const sessao = new SessaoFalsa();
+    sessao.erroAoTrocar = new SenhaJaDefinidaFalsa("A nova senha é igual à senha atual.");
+    const usuarios = new UsuarioRepositoryFalso();
+    usuarios.usuario = usuarioFalso("11111111-1111-1111-1111-111111111111", null);
+    const finalizar = new FinalizarTrocaSenhaFalsa();
+    const auditoria = new AuditoriaFalsa();
+
+    const resultado = await new TrocarSenha(sessao, usuarios, finalizar, auditoria).execute({
+      novaSenha: "senha-provisoria-123",
+    });
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error).toBeInstanceOf(ValidationError);
+    expect(finalizar.marcada).toBe(false);
+    expect(auditoria.registros).toEqual([]);
+  });
+
+  // Devolutiva técnica PR #62, ponto 1 (reenvio legítimo continua funcionando):
+  // quando o perfil já não está mais em primeiro acesso, same_password só pode
+  // significar que updateUser() já tinha sucedido numa tentativa anterior cuja
+  // finalização falhou — reenviar o mesmo formulário precisa concluir, não
+  // travar pedindo uma senha diferente.
+  it("trata same_password como reenvio legítimo quando o perfil já não está em primeiro acesso", async () => {
+    const sessao = new SessaoFalsa();
+    sessao.erroAoTrocar = new SenhaJaDefinidaFalsa("A nova senha é igual à senha atual.");
+    const usuarios = new UsuarioRepositoryFalso();
+    usuarios.usuario = usuarioFalso(
+      "11111111-1111-1111-1111-111111111111",
+      new Date().toISOString(),
+    );
+    const finalizar = new FinalizarTrocaSenhaFalsa();
+    const auditoria = new AuditoriaFalsa();
+
+    const resultado = await new TrocarSenha(sessao, usuarios, finalizar, auditoria).execute({
+      novaSenha: "nova-senha-definitiva-123",
+    });
+
+    expect(resultado.ok).toBe(true);
+    expect(finalizar.marcada).toBe(true);
+    expect(auditoria.registros).toEqual([
+      expect.objectContaining({ acao: "usuario.trocar_senha" }),
+    ]);
   });
 });

@@ -15,25 +15,31 @@ alter table public.perfis
 -- NULL de verdade (criar-usuario.use-case.ts nunca passa essa coluna).
 --
 -- PREFLIGHT obrigatorio antes de aplicar esta migration em homolog/producao
--- (devolutiva tecnica complementar PR #62, ajuste 1): o UPDATE abaixo so e
--- seguro se, no momento em que esta migration roda, NAO existir nenhuma conta
--- criada pelo #30 que ainda esteja de fato esperando o primeiro acesso (Admin
--- cadastrou, funcionario real ainda nao usou a senha provisoria nenhuma vez).
--- Uma conta assim e indistinguivel de uma conta antiga "ja em uso" so pela
--- coluna senha_trocada_em (as duas tem NULL) -- o UPDATE marcaria as duas como
--- "senha ja trocada", deixando a conta nova pular a troca obrigatoria por
--- engano. Rodar esta consulta ANTES do deploy desta migration e confirmar com
--- o time de Admin que toda linha devolvida corresponde a uma conta antiga
--- (funcionario ja usa a senha no dia a dia), nunca a uma recem-criada ainda
--- nao entregue:
+-- (devolutiva tecnica PR #62, ponto 3 -- correcao sobre o ajuste 1 anterior):
+-- o UPDATE abaixo so e seguro se, no momento em que esta migration roda, NAO
+-- existir nenhuma conta criada pelo #30 que ainda esteja de fato esperando o
+-- primeiro acesso (Admin cadastrou, funcionario real ainda nao usou a senha
+-- provisoria nenhuma vez). Uma conta assim e indistinguivel de uma conta
+-- antiga "ja em uso" -- o UPDATE marcaria as duas como "senha ja trocada",
+-- deixando a conta nova pular a troca obrigatoria por engano.
+--
+-- A consulta NAO pode usar p.senha_trocada_em: essa coluna so passa a existir
+-- com o ADD COLUMN desta propria migration, entao no schema pre-deploy (onde
+-- o preflight precisa rodar) ela nem existe ainda. O sinal disponivel antes da
+-- migration e auth.users.last_sign_in_at: uma conta que nunca autenticou
+-- nenhuma vez ainda esta, por definicao, esperando o primeiro acesso -- e
+-- exatamente essa a candidata a ser marcada errado pelo UPDATE abaixo. Rodar
+-- esta consulta ANTES do deploy e confirmar com o time de Admin que toda linha
+-- devolvida corresponde a uma conta recem-criada ainda nao entregue (nunca a
+-- uma conta antiga "ja em uso" -- essas sempre tem last_sign_in_at preenchido):
 --
 --   select p.id, p.email, p.created_at, u.last_sign_in_at
 --   from public.perfis p
 --   join auth.users u on u.id = p.id
---   where p.senha_trocada_em is null
+--   where u.last_sign_in_at is null
 --   order by p.created_at desc;
 --
--- Se alguma linha for de fato uma conta recem-criada ainda nao entregue:
+-- Se alguma linha devolvida for de fato uma conta ainda nao entregue:
 -- 1) adiar o deploy desta migration até o Admin confirmar a entrega, OU
 -- 2) apos o deploy, resetar manualmente so essa conta pro estado correto de
 --    "primeiro acesso pendente" (mesmo procedimento de duas etapas do ADR

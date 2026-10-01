@@ -74,7 +74,7 @@ describe("SupabaseSessaoGateway (integração)", () => {
     expect(reautenticado.ok).toBe(true);
   });
 
-  it("reenvio com a mesma senha (devolutiva PR #62, bloqueio 1) continua ok, não quebra a reconciliação", async () => {
+  it("reenvio com a mesma senha (devolutiva PR #62, ponto 1) vira erro distinguível, não sucesso cego", async () => {
     const { email, senha } = await criarContaAuthDeTeste();
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const gateway = new SupabaseSessaoGateway(supabase);
@@ -82,12 +82,17 @@ describe("SupabaseSessaoGateway (integração)", () => {
 
     // Simula o cenário real: updateUser() já teve sucesso numa primeira
     // submissão (finalização/auditoria falhou depois, por algum motivo), e o
-    // usuário reenvia o mesmo formulário — mesma senha nova de antes.
+    // usuário reenvia o mesmo formulário — mesma senha nova de antes. O
+    // gateway não decide mais se isso é reenvio legítimo ou a própria senha
+    // provisória sendo reenviada (ponto 1) — quem decide é TrocarSenha.execute(),
+    // que conhece precisaTrocarSenha() do perfil. Aqui só garantimos que o
+    // gateway devolve um erro reconhecível, não ok() cego.
     const primeira = await gateway.trocarSenha("nova-senha-definitiva-123");
     expect(primeira.ok).toBe(true);
 
     const reenvio = await gateway.trocarSenha("nova-senha-definitiva-123");
 
-    expect(reenvio.ok).toBe(true);
+    expect(reenvio.ok).toBe(false);
+    if (!reenvio.ok) expect(reenvio.error.code).toBe("SENHA_JA_DEFINIDA");
   });
 });
