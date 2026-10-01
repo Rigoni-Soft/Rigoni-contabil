@@ -10,6 +10,9 @@ import { SupabaseRegistroAcaoRepository } from "./registro-acao.repository";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+const SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ??
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
 const ADMIN_ID = "11111111-1111-1111-1111-111111111111";
 const FUNCIONARIO_ID = "22222222-2222-2222-2222-222222222222";
@@ -34,6 +37,15 @@ async function clienteAutenticadoComoFuncionarioSeed(): Promise<SupabaseClient> 
   return supabase;
 }
 
+// Devolutiva técnica PR #61, ponto 3: registrar_acao_auditoria só aceita
+// service_role agora (migration 20260930170000) — mesmo client que
+// `main/auditoria.factory.ts` usa de verdade em produção.
+function clienteServiceRole(): SupabaseClient {
+  return createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
 type RegistroOverrides = { setor?: string; acao?: string; resultado?: string };
 
 function registroValido(id: string, ator: string, overrides: RegistroOverrides = {}) {
@@ -51,24 +63,8 @@ function registroValido(id: string, ator: string, overrides: RegistroOverrides =
 }
 
 describe("SupabaseRegistroAcaoRepository (integração)", () => {
-  it("salva um registro em nome do próprio ator (RPC registrar_acao_auditoria)", async () => {
-    const supabase = await clienteAutenticadoComoAdminSeed();
-    const repositorio = new SupabaseRegistroAcaoRepository(supabase);
-
-    const resultado = await repositorio.salvar(registroValido(crypto.randomUUID(), ADMIN_ID));
-
-    expect(resultado.ok).toBe(true);
-  });
-
-  // Devolutiva técnica PR #60, bloqueador 01 — caminho legítimo: mesmo que o
-  // domínio monte o RegistroAcao com um `ator` diferente (ex.: um bug ou uma
-  // tentativa de manipulação antes de chegar no repositório), a RPC ignora
-  // esse valor e grava sempre o auth.uid() de quem está autenticado de
-  // verdade. Não é mais "RLS rejeita" — é "o valor forjado nem chega a ser
-  // usado".
-  it("grava sempre o ator autenticado de verdade, mesmo se o RegistroAcao carregar outro id (RPC ignora o ator do chamador)", async () => {
-    const supabase = await clienteAutenticadoComoFuncionarioSeed();
-    const repositorio = new SupabaseRegistroAcaoRepository(supabase);
+  it("salva um registro via service_role, com o ator explícito que o servidor já validou", async () => {
+    const repositorio = new SupabaseRegistroAcaoRepository(clienteServiceRole());
     const id = crypto.randomUUID();
 
     const resultado = await repositorio.salvar(registroValido(id, ADMIN_ID));
@@ -76,7 +72,22 @@ describe("SupabaseRegistroAcaoRepository (integração)", () => {
     expect(resultado.ok).toBe(true);
     const admin = await clienteAutenticadoComoAdminSeed();
     const { data } = await admin.from("registros_auditoria").select("ator").eq("id", id).single();
-    expect(data?.ator).toBe(FUNCIONARIO_ID);
+    expect(data?.ator).toBe(ADMIN_ID);
+  });
+
+  // Devolutiva técnica PR #61, ponto 3 — fecha a brecha herdada da PR #60:
+  // antes, um usuário autenticado comum ainda conseguia chamar a RPC direto
+  // (fora da UI) e fabricar um evento em seu próprio nome, já que EXECUTE
+  // estava liberado pra `authenticated`. Agora só `service_role` tem EXECUTE
+  // — um usuário comum (mesmo o Admin, autenticado pela sessão normal, não
+  // pelo client privilegiado) não consegue mais chamar a RPC de jeito nenhum.
+  it("rejeita a chamada da RPC por um usuário autenticado comum (EXECUTE revogado, só service_role chama)", async () => {
+    const supabase = await clienteAutenticadoComoFuncionarioSeed();
+    const repositorio = new SupabaseRegistroAcaoRepository(supabase);
+
+    const resultado = await repositorio.salvar(registroValido(crypto.randomUUID(), FUNCIONARIO_ID));
+
+    expect(resultado.ok).toBe(false);
   });
 
   // Devolutiva técnica PR #60, bloqueador 01 — caminho indevido: sem policy
@@ -123,15 +134,17 @@ describe("SupabaseRegistroAcaoRepository (integração)", () => {
   });
 
   it("filtra por setor, ação (busca parcial) e resultado", async () => {
-    const supabase = await clienteAutenticadoComoAdminSeed();
-    const repositorio = new SupabaseRegistroAcaoRepository(supabase);
-    await repositorio.salvar(
+    // salvar() precisa de service_role (ponto 3); listar() continua no client
+    // da sessão do Admin (RLS de leitura não mudou).
+    await new SupabaseRegistroAcaoRepository(clienteServiceRole()).salvar(
       registroValido(crypto.randomUUID(), ADMIN_ID, {
         setor: "financeiro",
         acao: "cliente.editar",
         resultado: "falha",
       }),
     );
+    const supabase = await clienteAutenticadoComoAdminSeed();
+    const repositorio = new SupabaseRegistroAcaoRepository(supabase);
 
     const porSetor = await repositorio.listar({ limite: 50, setor: "financeiro" });
     expect(porSetor.ok).toBe(true);

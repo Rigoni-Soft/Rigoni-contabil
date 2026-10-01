@@ -1,0 +1,42 @@
+import { expect, test } from "@playwright/test";
+
+// Cobre o cenário principal do ticket #30 (Admin cadastra Líder/Funcionário):
+// cadastro com senha provisória gerada automaticamente, mostrada na hora.
+// Usuários: supabase/seed.sql (Admin de Teste e Funcionário Simples Nacional,
+// ambiente Dev local; baseURL vem de playwright.config.ts).
+
+async function login(page: import("@playwright/test").Page, email: string, senha: string) {
+  await page.goto("/login");
+  await page.getByLabel("E-mail").fill(email);
+  await page.getByLabel("Senha").fill(senha);
+  await page.getByRole("button", { name: "Entrar" }).click();
+}
+
+test.describe("Cadastro de Líder/Funcionário (Admin only)", () => {
+  test("Admin cadastra um Funcionário e vê a senha provisória", async ({ page }) => {
+    await login(page, "admin@rigonicontabil.local", "admin123");
+    await expect(page).toHaveURL("/");
+    await page.goto("/admin/usuarios/novo");
+
+    const email = `e2e-${Date.now()}@rigonicontabil.local`;
+    await page.getByLabel("Nome").fill("Funcionário E2E");
+    await page.getByLabel("E-mail").fill(email);
+    await page.getByLabel("Papel").selectOption("funcionario");
+    await page.getByLabel("Setor").selectOption("financeiro");
+    await page.getByRole("button", { name: "Cadastrar" }).click();
+
+    await expect(page.getByText(`Funcionário E2E`)).toBeVisible();
+    await expect(page.getByText(email)).toBeVisible();
+    // 12 caracteres do alfabeto sem 0/O/1/I (supabase-auth-admin.gateway.ts)
+    await expect(page.getByText(/^[A-HJ-NP-Z2-9]{12}$/)).toBeVisible();
+  });
+
+  test("Funcionário é redirecionado pra fora do cadastro de usuário", async ({ page }) => {
+    await login(page, "funcionario.sn@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL("/");
+
+    await page.goto("/admin/usuarios/novo");
+
+    await expect(page).toHaveURL("/");
+  });
+});

@@ -46,6 +46,9 @@ class UsuarioRepositoryFalso implements UsuarioRepository {
   async buscarPorId(): Promise<Result<Usuario | null, AppError>> {
     return this.erroTecnico ? err(this.erroTecnico) : ok(this.usuario);
   }
+  async criar(): Promise<Result<void, AppError>> {
+    return ok(undefined);
+  }
 }
 
 describe("Login", () => {

@@ -26,7 +26,12 @@ module.exports = {
       severity: "error",
       from: { path: `${MOD}/infra/` },
       to: {
-        pathNot: ["^src/shared/", "^src/modules/$1/(domain|application|infra)/", "node_modules/"],
+        pathNot: [
+          "^src/shared/",
+          "^src/modules/$1/(domain|application|infra)/",
+          "node_modules/",
+          "^(node:)?crypto$",
+        ],
       },
     },
 

@@ -18,16 +18,18 @@ class PersistenciaError extends AppError {
 export class SupabaseRegistroAcaoRepository implements RegistroAcaoRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
-  // Devolutiva tecnica PR #60, bloqueador 01: grava via RPC (SECURITY DEFINER),
-  // nunca via insert direto -- ator/criado_em sao decididos pelo banco
-  // (auth.uid()/now()), nao pelo que este metodo passaria. registro.ator e
-  // registro.dataHora continuam existindo no dominio (o retorno do caso de
-  // uso mostra esses campos pra quem chamou), mas nao sao enviados aqui: o
-  // valor que importa pra autenticidade e o que o banco decide, nao o que o
-  // app calculou antes de chamar.
+  // Devolutiva técnica PR #61, ponto 3 (correção sobre o que a PR #60 fechou
+  // pela metade): a RPC só aceita `service_role` agora (migration
+  // 20260930170000) -- só o servidor, que já validou a sessão antes de
+  // chamar `RegistrarAcao`, tem acesso; um usuário comum não consegue mais
+  // fabricar eventos chamando a RPC direto do browser. Como chamadas com
+  // `service_role` não carregam JWT de usuário, `auth.uid()` deixa de
+  // existir nesse contexto -- `p_ator` vai explícito (confiável porque só o
+  // servidor chega aqui). `criado_em` continua decidido pelo banco (now()).
   async salvar(registro: RegistroAcao): Promise<Result<void, AppError>> {
     const { error } = await this.supabase.rpc("registrar_acao_auditoria", {
       p_id: registro.id,
+      p_ator: registro.ator,
       p_setor: registro.setor,
       p_acao: registro.acao,
       p_alvo: registro.alvo,

@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 
 type RegistroAcaoView = {
   id: string;
@@ -49,6 +49,10 @@ export function AuditoriaFeed({ registros }: AuditoriaFeedProps) {
         <tbody>
           {registros.map((registro) => {
             const sucesso = registro.resultado === "sucesso";
+            // "falha_compensacao" (devolutiva PR #61): além de destructive, ganha um
+            // ícone próprio — sinaliza que, ao contrário de uma falha comum, esta
+            // pode ter deixado estado inconsistente exigindo reconciliação manual.
+            const compensacaoFalhou = registro.resultado === "falha_compensacao";
             return (
               <tr key={registro.id} className="border-b border-border last:border-0">
                 <td className="px-3 py-2 whitespace-nowrap text-muted-foreground tabular-nums">
@@ -64,6 +68,8 @@ export function AuditoriaFeed({ registros }: AuditoriaFeedProps) {
                   >
                     {sucesso ? (
                       <CheckCircle2 className="size-3.5 shrink-0" aria-hidden="true" />
+                    ) : compensacaoFalhou ? (
+                      <AlertTriangle className="size-3.5 shrink-0" aria-hidden="true" />
                     ) : (
                       <XCircle className="size-3.5 shrink-0" aria-hidden="true" />
                     )}

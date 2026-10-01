@@ -8,7 +8,7 @@ export type RegistrarAcaoInput = {
   setor: string;
   acao: string;
   alvo: string;
-  resultado: "sucesso" | "falha";
+  resultado: "sucesso" | "falha" | "falha_compensacao";
 };
 
 export interface RegistrarAcaoPort {
