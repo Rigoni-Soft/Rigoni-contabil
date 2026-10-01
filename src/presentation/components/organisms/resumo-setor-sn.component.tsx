@@ -80,7 +80,10 @@ function Grupo({
                 className="flex h-full flex-col items-center gap-3 rounded-xl border border-border bg-card p-4 text-center shadow-sm transition-colors hover:border-ring hover:bg-accent/50"
               >
                 <Anel quantidade={card.quantidade} total={totalClientes} classe={anel} />
-                <p className="text-sm font-semibold text-foreground">{card.titulo}</p>
+                <p className="text-sm font-semibold text-foreground">
+                  {card.titulo}
+                  <span className="sr-only"> — {card.quantidade} de {totalClientes} clientes</span>
+                </p>
               </Link>
             </li>
           );
@@ -99,7 +102,7 @@ function Grupo({
 export function ResumoSetorSn({ cards, totalClientes, busca }: Props) {
   return (
     <section className="space-y-6">
-      <h2 className="text-xl font-bold text-foreground">Resumo do setor</h2>
+      <h1 className="text-xl font-bold text-foreground">Resumo do setor</h1>
       {busca}
       <Grupo titulo="Documentos e DAS" cards={cards.slice(0, 5)} totalClientes={totalClientes} />
       <Grupo titulo="Parcelamento" cards={cards.slice(5, 9)} totalClientes={totalClientes} />

@@ -454,6 +454,52 @@ pro título do painel que abre (`ref` + `tabIndex={-1}` + `.focus()`
 num `useEffect`) — sem isso, navegação por teclado/leitor de tela perde o
 contexto da troca de tela.
 
+### Resumo do setor (anéis de status, #36)
+
+**`ResumoSetorSn` / `ResumoSetorSnLista` (/simples-nacional):**
+9 cards fixos (invariante do mapper, ordem garantida por teste) divididos em
+dois grupos — "Documentos e DAS" (5) e "Parcelamento" (4) — cada card é um
+`Link` inteiro (não botão + link separados) pra
+`/clientes/resumo/<bucket>`, que abre a lista filtrada
+daquele status como tela própria (não modal, não accordion inline — mesma
+razão de qualquer outra navegação do produto: estado via URL, não só client
+state). Cada card é um selo circular SVG (anel de progresso, raio 26,
+`stroke-linecap: round`, girado -90° pra começar no topo
+como um relógio) com a contagem em número grande (`tabular-nums`)
+no centro — a cor do traço reusa os tokens semânticos já existentes
+(`stroke-primary`/`stroke-success`/`stroke-destructive`/`stroke-muted-foreground`,
+mapeados 1:1 com as cores do protótipo aprovado na spec #24), sem introduzir
+nenhum token novo. É o primeiro uso visual real do token `success`
+(dourado) desde que foi definido — deixa de ser "token sem uso" (ver "O que
+ainda não existe" abaixo).
+
+**Título do card e contagem total via sr-only:** a proporção visual do anel
+(fração preenchida do círculo) não tem equivalente textual pra quem usa
+leitor de tela — corrigido na revisão impeccable (01/10/2026): cada card
+carrega um `<span className="sr-only">` depois do título com
+"— N de M clientes", garantindo que o nome acessível do link expresse a
+mesma proporção que o anel mostra visualmente, não só a contagem isolada.
+Qualquer novo indicador em anel/gráfico futuro reusa esse padrão (contexto
+textual completo em sr-only, nunca só o número visível).
+
+**`<h1>` da página, não `<h2>` (01/10/2026):** desde que
+"Resumo do setor" ganhou página própria (`/simples-nacional`, decisão
+registrada na seção Layout acima), seu título é o heading de nível 1 do
+conteúdo da página — corrigido na revisão impeccable (era `<h2>` de
+quando ainda vivia embutido em `/` ao lado de outras seções).
+`ShellHeader` não tem heading próprio (mostra nome/papel de
+sessão, não título de página), então cada página de conteúdo é responsável
+pelo próprio `<h1>` — `ResumoSetorSnListaPage` (drill-down de
+bucket) já seguia essa regra desde a implementação original.
+
+**Lista de drill-down (`ResumoSetorSnLista`):** linhas simples
+(`divide-y` + borda, sem o tratamento de card elevado) — empresa em
+destaque, CNPJ mascarado abaixo em texto secundário, "Ver cadastro →" como
+affordance textual de navegação (não ícone sozinho). Cada linha leva pra
+`/clientes/[id]` (#34, tela de edição/consulta já existente) com
+`?voltarPara=` apontando de volta pra própria lista — "Voltar" na
+tela de edição retorna pro bucket, não pro resumo geral.
+
 ## Estados e motion
 
 - Loading do formulário de login: label muda para "Entrando…" e um
@@ -466,8 +512,9 @@ contexto da troca de tela.
 
 ## O que ainda não existe
 
-- Selo dourado "em dia" (`success`) definido como token mas sem uso visual
-  ainda — pertence às telas do setor Simples Nacional (#35–#37).
+- ~~Selo dourado "em dia" (`success`) definido como token mas sem uso visual
+  ainda.~~ Em uso desde #36 (ver Componentes → Resumo do setor) — o anel
+  "atenção" usa `stroke-success`.
 - Componentes `ui/` adicionais além de `select.tsx` (Dialog, uma `Table`
   estilizada para reuso — hoje o feed de auditoria usa `<table>` nativo com
   classes inline) — adicionar sob demanda, seguindo os mesmos tokens.
