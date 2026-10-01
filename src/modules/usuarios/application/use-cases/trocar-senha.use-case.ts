@@ -31,19 +31,29 @@ export class TrocarSenha implements TrocarSenhaPort {
     if (!perfil.value) return err(new ForbiddenError("Usuário autenticado sem perfil cadastrado."));
     const usuario = perfil.value;
 
-    // Decide antes de marcar a troca, senão precisaTrocarSenha() já viraria false.
+    // Decide antes de qualquer escrita, senão precisaTrocarSenha() já viraria false.
     const primeiroAcesso = usuario.precisaTrocarSenha();
+    // Devolutiva técnica PR #62 (retry): marcador gravado numa tentativa anterior
+    // = o Auth pode já ter a senha nova, só a finalização ficou pendente.
+    const retomada = usuario.trocaSenhaPendente();
+
+    if (primeiroAcesso && !retomada) {
+      const iniciada = await this.finalizarTrocaSenha.iniciar(id);
+      if (!iniciada.ok) return iniciada;
+    }
 
     const trocada = await this.sessao.trocarSenha(novaSenha);
     if (!trocada.ok) {
-      // Devolutiva técnica PR #62, ponto 1: "same_password" só é reenvio
-      // legítimo (updateUser() já teve sucesso numa tentativa anterior cuja
-      // finalização falhou) quando o perfil JÁ NÃO está mais em primeiro
-      // acesso — nesse caso a troca real nunca teria rodado antes, e
-      // "same_password" só pode significar que o usuário mandou a própria
-      // senha provisória (ainda vigente) como "nova senha".
-      if (trocada.error.code !== "SENHA_JA_DEFINIDA" || primeiroAcesso) {
-        return trocada.error.code === "SENHA_JA_DEFINIDA"
+      const senhaJaDefinida = trocada.error.code === "SENHA_JA_DEFINIDA";
+      // "same_password" só é reenvio legítimo (updateUser() já teve sucesso numa
+      // tentativa cuja finalização falhou) com marcador de tentativa anterior
+      // (retomada) ou fora do primeiro acesso. Em primeiro acesso sem marcador,
+      // só pode ser o usuário mandando a própria senha provisória.
+      if (!senhaJaDefinida || (primeiroAcesso && !retomada)) {
+        // Marcador desta chamada não vale mais: o Auth não mudou. Best-effort —
+        // se falhar, o pior caso é um retry aceitar same_password sem troca real.
+        if (primeiroAcesso && !retomada) await this.finalizarTrocaSenha.cancelar(id);
+        return senhaJaDefinida
           ? err(
               new ValidationError("A nova senha não pode ser igual à senha atual.", {
                 novaSenha: ["não pode repetir a senha provisória atual"],
@@ -54,30 +64,36 @@ export class TrocarSenha implements TrocarSenhaPort {
     }
 
     // A partir daqui a senha já mudou de verdade no Auth (ou já tinha mudado
-    // numa tentativa anterior) — diferente do fluxo de CriarUsuario
-    // (devolutiva PR #61), não existe compensação possível: a aplicação não
-    // guarda a credencial anterior pra "desfazer" (ADR 0002). Qualquer falha a
-    // partir daqui vira EstadoInconsistenteError em vez de sucesso silencioso
-    // (devolutiva técnica PR #62, pontos 4 e 5).
-    //
-    // Devolutiva técnica PR #62, ponto 2: a auditoria roda ANTES de marcar() —
-    // de propósito. `acao` é decidido a partir de `primeiroAcesso`, lido do
-    // perfil antes de qualquer escrita; se marcar() rodasse primeiro e
-    // falhasse só a auditoria, o retry recalcularia precisaTrocarSenha() já
-    // como false (marcar já tinha sucedido) e trocaria o evento original
-    // (usuario.trocar_senha_primeiro_acesso) por usuario.trocar_senha. Nessa
-    // ordem, enquanto marcar() não suceder, todo retry recalcula o mesmo
-    // `primeiroAcesso` de antes — preservando o evento original.
-    // ponytail: se marcar() falhar depois da auditoria já ter sido escrita, o
-    // retry registra a auditoria de novo (duplicata) — UPDATE idempotente em
-    // perfis cobre marcar(), auditoria não. Aceitável: marcar() é um UPDATE
-    // local trivial, bem menos provável de falhar que a chamada ao Auth. Se
-    // isso se mostrar um problema real, mover marcar()+auditoria pra uma RPC
-    // única (transação atômica) remove a janela.
+    // numa tentativa anterior) — não existe compensação possível: a aplicação não
+    // guarda a credencial anterior pra "desfazer" (ADR 0002). Falha daqui em
+    // diante vira EstadoInconsistenteError, recuperável por retry.
+    if (primeiroAcesso) {
+      // Perfil + auditoria numa única transação idempotente (migration
+      // 20261001090000): retry conclui só o que falta, sem nova troca no Auth e
+      // sem auditoria duplicada.
+      const finalizada = await this.finalizarTrocaSenha.finalizar(id);
+      if (!finalizada.ok) {
+        console.error(
+          "Falha ao finalizar troca de senha (senha já alterada no Auth):",
+          finalizada.error.message,
+        );
+        return err(
+          new EstadoInconsistenteError(
+            "Sua senha foi alterada, mas houve uma falha ao concluir. Tente novamente — a senha " +
+              "nova já vale pra entrar.",
+            id,
+          ),
+        );
+      }
+      return ok(undefined);
+    }
+
+    // Troca voluntária: sem perfil a finalizar, a auditoria é o último passo —
+    // se falhar, nada foi escrito e o retry (same_password tolerado) registra 1x.
     const auditoria = await this.auditoria.registrar({
       ator: id,
       setor: usuario.setor.slug,
-      acao: primeiroAcesso ? "usuario.trocar_senha_primeiro_acesso" : "usuario.trocar_senha",
+      acao: "usuario.trocar_senha",
       alvo: usuario.email,
       resultado: "sucesso",
     });
@@ -89,21 +105,6 @@ export class TrocarSenha implements TrocarSenhaPort {
       return err(
         new EstadoInconsistenteError(
           "Sua senha foi alterada, mas a auditoria da ação falhou. Tente novamente.",
-          id,
-        ),
-      );
-    }
-
-    const marcado = await this.finalizarTrocaSenha.marcar(id);
-    if (!marcado.ok) {
-      console.error(
-        "Falha ao finalizar troca de senha (senha já alterada no Auth):",
-        marcado.error.message,
-      );
-      return err(
-        new EstadoInconsistenteError(
-          "Sua senha foi alterada, mas houve uma falha ao concluir. Tente novamente — a senha " +
-            "nova já vale pra entrar.",
           id,
         ),
       );

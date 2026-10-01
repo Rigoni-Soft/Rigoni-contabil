@@ -46,7 +46,7 @@ function usuarioValido(id: string): Usuario {
 }
 
 describe("SupabaseFinalizarTrocaSenhaGateway (integração)", () => {
-  it("marca a senha trocada via service_role e reflete no perfil", async () => {
+  it("finaliza a troca via service_role: perfil + exatamente 1 auditoria, idempotente", async () => {
     const admin = clienteAdmin();
     const { id } = await criarContaAuthDeTeste();
     const { error: erroInsert } = await admin.from("perfis").insert({
@@ -62,11 +62,17 @@ describe("SupabaseFinalizarTrocaSenhaGateway (integração)", () => {
     expect(antes.data?.senha_trocada_em).toBeNull();
 
     const gateway = new SupabaseFinalizarTrocaSenhaGateway(admin);
-    const resultado = await gateway.marcar(id as UsuarioId);
+    const iniciada = await gateway.iniciar(id as UsuarioId);
+    expect(iniciada.ok).toBe(true);
+    const resultado = await gateway.finalizar(id as UsuarioId);
+    // Idempotente: segunda chamada não duplica auditoria nem falha.
+    expect((await gateway.finalizar(id as UsuarioId)).ok).toBe(true);
 
     expect(resultado.ok).toBe(true);
     const depois = await admin.from("perfis").select("senha_trocada_em").eq("id", id).single();
     expect(depois.data?.senha_trocada_em).not.toBeNull();
+    const auditorias = await admin.from("registros_auditoria").select("acao").eq("ator", id);
+    expect(auditorias.data).toEqual([{ acao: "usuario.trocar_senha_primeiro_acesso" }]);
   });
 
   // Devolutiva técnica PR #62, ponto 2: antes, `grant execute ... to authenticated`
@@ -83,7 +89,7 @@ describe("SupabaseFinalizarTrocaSenhaGateway (integração)", () => {
     });
     if (erroLogin) throw new Error(`setup inválido: ${erroLogin.message}`);
 
-    const { error } = await comoUsuario.rpc("marcar_senha_trocada", { usuario_id: id });
+    const { error } = await comoUsuario.rpc("finalizar_troca_senha", { usuario_id: id });
 
     expect(error).not.toBeNull();
     expect(error?.message).toMatch(/permission denied/i);

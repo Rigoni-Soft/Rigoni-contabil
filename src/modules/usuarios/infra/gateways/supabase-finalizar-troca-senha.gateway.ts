@@ -10,18 +10,26 @@ class PersistenciaError extends AppError {
 }
 
 // Só esta classe usa o client service_role (ver docs/adr/0001) pra finalizar a
-// troca — a RPC não aceita mais EXECUTE de `authenticated`/`anon` (devolutiva
-// técnica PR #62, ponto 2), então só um client service_role consegue chamá-la.
+// troca — as RPCs não aceitam EXECUTE de `authenticated`/`anon` (devolutiva
+// técnica PR #62, ponto 2), então só um client service_role consegue chamá-las.
 export class SupabaseFinalizarTrocaSenhaGateway implements FinalizarTrocaSenhaPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 
-  async marcar(usuarioId: UsuarioId): Promise<Result<void, AppError>> {
-    const { error } = await this.supabaseAdmin.rpc("marcar_senha_trocada", {
-      usuario_id: usuarioId,
-    });
+  iniciar(usuarioId: UsuarioId): Promise<Result<void, AppError>> {
+    return this.chamar("iniciar_troca_senha", usuarioId);
+  }
 
-    if (error)
-      return err(new PersistenciaError(`Falha ao marcar troca de senha: ${error.message}`));
+  cancelar(usuarioId: UsuarioId): Promise<Result<void, AppError>> {
+    return this.chamar("cancelar_troca_senha", usuarioId);
+  }
+
+  finalizar(usuarioId: UsuarioId): Promise<Result<void, AppError>> {
+    return this.chamar("finalizar_troca_senha", usuarioId);
+  }
+
+  private async chamar(rpc: string, usuarioId: UsuarioId): Promise<Result<void, AppError>> {
+    const { error } = await this.supabaseAdmin.rpc(rpc, { usuario_id: usuarioId });
+    if (error) return err(new PersistenciaError(`Falha em ${rpc}: ${error.message}`));
     return ok(undefined);
   }
 }

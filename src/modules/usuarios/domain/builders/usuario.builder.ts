@@ -15,6 +15,7 @@ export type UsuarioRestaurar = {
   papel: string;
   setor: string;
   senhaTrocadaEm: string | null;
+  senhaTrocaIniciadaEm?: string | null;
   senhaProvisoriaExpiraEm: string;
 };
 
@@ -27,6 +28,7 @@ export class UsuarioBuilder {
   private papel?: Papel;
   private setor?: Setor;
   private senhaTrocadaEm: Date | null = null;
+  private senhaTrocaIniciadaEm: Date | null = null;
   private senhaProvisoriaExpiraEm?: Date;
   private readonly camposInvalidos: Record<string, string[]> = {};
 
@@ -68,6 +70,11 @@ export class UsuarioBuilder {
     return this;
   }
 
+  comSenhaTrocaIniciadaEm(data: string | null): this {
+    this.senhaTrocaIniciadaEm = data ? new Date(data) : null;
+    return this;
+  }
+
   comSenhaProvisoriaExpiraEm(data: string): this {
     this.senhaProvisoriaExpiraEm = new Date(data);
     return this;
@@ -80,6 +87,7 @@ export class UsuarioBuilder {
       .comPapel(dados.papel)
       .comSetor(dados.setor)
       .comSenhaTrocadaEm(dados.senhaTrocadaEm)
+      .comSenhaTrocaIniciadaEm(dados.senhaTrocaIniciadaEm ?? null)
       .comSenhaProvisoriaExpiraEm(dados.senhaProvisoriaExpiraEm);
   }
 
@@ -110,6 +118,7 @@ export class UsuarioBuilder {
         papel: this.papel!,
         setor: this.setor!,
         senhaTrocadaEm: this.senhaTrocadaEm,
+        senhaTrocaIniciadaEm: this.senhaTrocaIniciadaEm,
         // Cadastro novo (#30) não chama comSenhaProvisoriaExpiraEm: default aqui
         // espelha o default da coluna na migration do #31.
         senhaProvisoriaExpiraEm:
