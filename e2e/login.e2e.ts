@@ -39,7 +39,7 @@ test.describe("Login e shell autenticado", () => {
     await expect(page).toHaveURL("/");
   });
 
-  test("Admin: login, shell mostra papel/setor, nav lista todos os setores, logout", async ({
+  test("Admin: login, shell mostra papel/setor, nav lista todos os setores, logout @smoke", async ({
     page,
   }) => {
     await login(page, EMAIL, SENHA);

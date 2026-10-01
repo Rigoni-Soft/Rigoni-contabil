@@ -8,7 +8,7 @@ import { criarClienteComoAdmin, login } from "./support/criar-cliente";
 // Usuários: supabase/seed.sql, ambiente Dev local.
 
 test.describe("Busca de cliente no dashboard (#35)", () => {
-  test("Funcionário SN encontra um cliente pela busca e edita o cadastro operacional inline", async ({
+  test("Funcionário SN encontra um cliente pela busca e edita o cadastro operacional inline @smoke", async ({
     page,
   }) => {
     const empresa = "Busca Dashboard E2E Ltda";
