@@ -1,6 +1,7 @@
 import type {
   CadastroOperacionalClienteDto,
   ClienteQueryPort,
+  ResumoOperacionalRow,
   SugestaoClienteDto,
 } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import type { AppError } from "@/shared/errors/app.error";
@@ -25,6 +26,9 @@ class ClienteQueryPortFalso implements ClienteQueryPort {
   }
   async buscarPorTermo(): Promise<Result<SugestaoClienteDto[], AppError>> {
     return ok(this.sugestoes);
+  }
+  async listarResumoOperacional(): Promise<Result<ResumoOperacionalRow[], AppError>> {
+    return ok([]);
   }
 }
 

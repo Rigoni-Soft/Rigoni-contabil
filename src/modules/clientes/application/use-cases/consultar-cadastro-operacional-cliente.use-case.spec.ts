@@ -40,6 +40,9 @@ class ClienteQueryPortFalso implements ClienteQueryPort {
   async buscarPorTermo() {
     return ok([]);
   }
+  async listarResumoOperacional() {
+    return ok([]);
+  }
 }
 
 describe("ConsultarCadastroOperacionalCliente", () => {

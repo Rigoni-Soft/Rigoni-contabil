@@ -178,3 +178,38 @@ describe("SupabaseClienteQueryGateway.buscarPorTermo (#35, integração)", () =>
     if (resultado.ok) expect(resultado.value.some((s) => s.id === cliente.id)).toBe(true);
   });
 });
+
+describe("SupabaseClienteQueryGateway.listarResumoOperacional (#36, integração)", () => {
+  it("inclui o cliente recém-criado com os campos operacionais ainda nulos (cadastro automático do #34 sem edição)", async () => {
+    const admin = await comoAdmin();
+    const empresa = "Padaria Resumo Setor Ltda";
+    const cliente = await criarClienteComContratoSocial(admin, empresa, cnpjUnico());
+    const gateway = new SupabaseClienteQueryGateway(admin);
+
+    const resultado = await gateway.listarResumoOperacional();
+
+    expect(resultado.ok).toBe(true);
+    if (!resultado.ok) return;
+    const linha = resultado.value.find((l) => l.clienteId === cliente.id);
+    expect(linha).toBeDefined();
+    expect(linha).toMatchObject({
+      empresa,
+      documentoObrigatorio: "negativo",
+      dasStatus: "pendente",
+      temParcelamento: false,
+      parcelamentoStatus: "pendente",
+    });
+  });
+
+  it("nunca traz Cliente de Lucro Presumido/Real", async () => {
+    const admin = await comoAdmin();
+    const empresa = "Padaria Resumo Presumido Ltda";
+    await criarClienteComContratoSocial(admin, empresa, cnpjUnico(), "lucro_presumido");
+    const gateway = new SupabaseClienteQueryGateway(admin);
+
+    const resultado = await gateway.listarResumoOperacional();
+
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) expect(resultado.value.some((l) => l.empresa === empresa)).toBe(false);
+  });
+});

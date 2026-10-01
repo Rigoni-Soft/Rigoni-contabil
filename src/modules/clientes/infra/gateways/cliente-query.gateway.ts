@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   CadastroOperacionalClienteDto,
   ClienteQueryPort,
+  ResumoOperacionalRow,
   SugestaoClienteDto,
 } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import {
@@ -111,5 +112,32 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
 
     if (error) return err(new ConsultaError(`Erro ao buscar clientes: ${error.message}`));
     return ok((data as SugestaoClienteDto[]) ?? []);
+  }
+
+  async listarResumoOperacional(): Promise<Result<ResumoOperacionalRow[], AppError>> {
+    const { data, error } = await this.supabase
+      .from("clientes")
+      .select("id, empresa, cnpj, cliente_cadastro_operacional_sn(*)")
+      // Mesmo escopo da busca (#35): só Regime com cadastro operacional de
+      // verdade (nasce automático só pra Simples Nacional/MEI, #34).
+      .in("regime", ["simples_nacional", "mei"]);
+
+    if (error) return err(new ConsultaError(`Erro ao listar resumo operacional: ${error.message}`));
+
+    const linhas = (data ?? []) as unknown as (ClienteBasicoRow & { id: string })[];
+    return ok(
+      linhas.map((linha) => {
+        const operacional = operacionalUnico(linha.cliente_cadastro_operacional_sn);
+        return {
+          clienteId: linha.id,
+          empresa: linha.empresa,
+          cnpj: linha.cnpj,
+          documentoObrigatorio: operacional?.documento_obrigatorio ?? null,
+          dasStatus: operacional?.das_status ?? null,
+          temParcelamento: operacional?.tem_parcelamento ?? false,
+          parcelamentoStatus: operacional?.parcelamento_status ?? null,
+        };
+      }),
+    );
   }
 }
