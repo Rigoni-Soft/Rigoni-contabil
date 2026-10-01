@@ -65,11 +65,14 @@ test.describe("Cadastro de Líder/Funcionário (Admin only)", () => {
 
   test("Funcionário é redirecionado pra fora do cadastro de usuário", async ({ page }) => {
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");
-    await expect(page).toHaveURL("/");
+    // Simples Nacional é a página principal do próprio setor (#36).
+    await expect(page).toHaveURL("/simples-nacional");
 
     await page.goto("/admin/usuarios/novo");
 
-    await expect(page).toHaveURL("/");
+    // Guard da página redireciona pra "/", que por sua vez redireciona
+    // Funcionário SN de volta pra própria página principal.
+    await expect(page).toHaveURL("/simples-nacional");
   });
 });
 

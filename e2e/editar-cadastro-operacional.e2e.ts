@@ -46,7 +46,8 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
 
     await logout(page);
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");
-    await expect(page).toHaveURL("/");
+    // Simples Nacional é a página principal do próprio setor (#36).
+    await expect(page).toHaveURL("/simples-nacional");
     await page.goto(`/clientes/${clienteId}`);
 
     await expect(page.getByRole("heading", { name: "Editar cadastro operacional" })).toBeVisible();
@@ -102,7 +103,8 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
 
     await logout(page);
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");
-    await expect(page).toHaveURL("/");
+    // Simples Nacional é a página principal do próprio setor (#36).
+    await expect(page).toHaveURL("/simples-nacional");
     await page.goto(`/clientes/${clienteId}`);
     await expect(page.getByText(/contrato social/i)).not.toBeVisible();
 

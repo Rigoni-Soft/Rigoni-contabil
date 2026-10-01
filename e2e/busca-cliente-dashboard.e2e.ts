@@ -15,9 +15,11 @@ test.describe("Busca geral (sem restrição de Regime) — feedback do #36, pont
 });
 
 // Cobre o cenário principal do ticket #35 (Busca de cliente no dashboard):
-// encontrar um cliente pelo nome na seção de busca do corpo da página `/` e
-// editar o cadastro operacional inline, sem navegar pra /clientes/[id].
-// Usuários: supabase/seed.sql, ambiente Dev local.
+// encontrar um cliente pelo nome na seção de busca embutida no dashboard do
+// Simples Nacional e editar o cadastro operacional inline, sem navegar pra
+// /clientes/[id]. Funcionário SN cai direto em /simples-nacional ao logar —
+// é a página principal do setor dele (feedback de teste manual do #36, ponto
+// 1), "/" deixou de ser essa tela. Usuários: supabase/seed.sql, ambiente Dev local.
 
 test.describe("Busca de cliente no dashboard (#35)", () => {
   test("Funcionário SN encontra um cliente pela busca e edita o cadastro operacional inline @smoke", async ({
@@ -30,7 +32,7 @@ test.describe("Busca de cliente no dashboard (#35)", () => {
     await expect(page).toHaveURL(/\/login$/);
 
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");
-    await expect(page).toHaveURL("/");
+    await expect(page).toHaveURL("/simples-nacional");
 
     await page.getByLabel(/empresa ou cnpj/i).fill(empresa.slice(0, 10));
     await expect(page.getByText(empresa)).toBeVisible();
@@ -38,6 +40,6 @@ test.describe("Busca de cliente no dashboard (#35)", () => {
     await page.getByText(empresa).click();
 
     await expect(page.getByRole("heading", { name: "Editar cadastro operacional" })).toBeVisible();
-    await expect(page).toHaveURL("/");
+    await expect(page).toHaveURL("/simples-nacional");
   });
 });

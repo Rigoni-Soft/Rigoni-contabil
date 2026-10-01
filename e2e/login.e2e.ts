@@ -62,7 +62,9 @@ test.describe("Login e shell autenticado", () => {
   }) => {
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");
 
-    await expect(page).toHaveURL("/");
+    // Simples Nacional é a página principal do próprio setor (#36, feedback
+    // de teste manual) — login cai direto lá, não em "/".
+    await expect(page).toHaveURL("/simples-nacional");
     await expect(page.getByText(/Setor: simples_nacional/)).toBeVisible();
 
     const nav = page.getByRole("navigation", { name: "Setores" });
