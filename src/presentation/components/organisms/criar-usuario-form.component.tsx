@@ -54,7 +54,7 @@ export function CriarUsuarioForm({
 
   if (criado) {
     return (
-      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
+      <div className="mx-auto flex max-w-md flex-col gap-3 rounded-lg border border-border bg-card p-4">
         <p className="flex items-center gap-1.5 text-sm text-primary">
           <CheckCircle2 className="size-3.5 shrink-0" aria-hidden="true" />
           Conta de <strong>{criado.nome}</strong> ({criado.email}) criada.
@@ -83,64 +83,69 @@ export function CriarUsuarioForm({
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="nome">Nome</Label>
-        <Input id="nome" aria-invalid={!!errors.nome} {...register("nome")} />
-        {errors.nome && <FieldError>{errors.nome.message}</FieldError>}
-      </div>
+      {/* Nome/E-mail/Papel/Setor cabem lado a lado — 2 colunas aproveita melhor
+          a largura do formulário (80% da tela, #36) do que empilhar tudo numa
+          coluna só. */}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="nome">Nome</Label>
+          <Input id="nome" aria-invalid={!!errors.nome} {...register("nome")} />
+          {errors.nome && <FieldError>{errors.nome.message}</FieldError>}
+        </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email">E-mail</Label>
-        <Input id="email" type="email" aria-invalid={!!errors.email} {...register("email")} />
-        {errors.email && <FieldError>{errors.email.message}</FieldError>}
-      </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="email">E-mail</Label>
+          <Input id="email" type="email" aria-invalid={!!errors.email} {...register("email")} />
+          {errors.email && <FieldError>{errors.email.message}</FieldError>}
+        </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="papel">Papel</Label>
-        <Select
-          id="papel"
-          aria-invalid={!!errors.papel}
-          defaultValue={papelUnico ?? ""}
-          disabled={!!papelUnico}
-          className={papelUnico ? "disabled:opacity-100" : undefined}
-          {...register("papel")}
-        >
-          {!papelUnico && (
-            <option value="" disabled>
-              Selecione
-            </option>
-          )}
-          {papeisDisponiveis.map((papel) => (
-            <option key={papel} value={papel}>
-              {PAPEL_LABEL[papel]}
-            </option>
-          ))}
-        </Select>
-        {errors.papel && <FieldError>{errors.papel.message}</FieldError>}
-      </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="papel">Papel</Label>
+          <Select
+            id="papel"
+            aria-invalid={!!errors.papel}
+            defaultValue={papelUnico ?? ""}
+            disabled={!!papelUnico}
+            className={papelUnico ? "disabled:opacity-100" : undefined}
+            {...register("papel")}
+          >
+            {!papelUnico && (
+              <option value="" disabled>
+                Selecione
+              </option>
+            )}
+            {papeisDisponiveis.map((papel) => (
+              <option key={papel} value={papel}>
+                {PAPEL_LABEL[papel]}
+              </option>
+            ))}
+          </Select>
+          {errors.papel && <FieldError>{errors.papel.message}</FieldError>}
+        </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="setor">Setor</Label>
-        <Select
-          id="setor"
-          aria-invalid={!!errors.setor}
-          defaultValue={setorUnico ?? ""}
-          disabled={!!setorUnico}
-          className={setorUnico ? "disabled:opacity-100" : undefined}
-          {...register("setor")}
-        >
-          {!setorUnico && (
-            <option value="" disabled>
-              Selecione
-            </option>
-          )}
-          {setoresDisponiveis.map((setor) => (
-            <option key={setor} value={setor}>
-              {setor}
-            </option>
-          ))}
-        </Select>
-        {errors.setor && <FieldError>{errors.setor.message}</FieldError>}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="setor">Setor</Label>
+          <Select
+            id="setor"
+            aria-invalid={!!errors.setor}
+            defaultValue={setorUnico ?? ""}
+            disabled={!!setorUnico}
+            className={setorUnico ? "disabled:opacity-100" : undefined}
+            {...register("setor")}
+          >
+            {!setorUnico && (
+              <option value="" disabled>
+                Selecione
+              </option>
+            )}
+            {setoresDisponiveis.map((setor) => (
+              <option key={setor} value={setor}>
+                {setor}
+              </option>
+            ))}
+          </Select>
+          {errors.setor && <FieldError>{errors.setor.message}</FieldError>}
+        </div>
       </div>
 
       {erroServidor && (

@@ -285,6 +285,37 @@ sem alteração — `Button` primário "Cadastrar outro" (ícone `UserPlus`,
 limpa o formulário e reseta a lista de alterações contratuais) e `<Link>`
 "Finalizar" pra `/`, mesma justificativa provisória do destino.
 
+**Largura compacta (feedback de teste manual do #36):** depois que o
+container da página virou `w-[80%]`/`w-[90%]` (#36, seção Layout), a
+confirmação de cadastro (senha provisória, ou só o aviso de sucesso) parou
+de fazer sentido esticada pra largura inteira — vira uma caixa pequena,
+`max-w-md mx-auto` (cadastro de usuário, tem mais conteúdo: senha provisória
+em bloco mono) ou `max-w-sm mx-auto` (cadastro de Cliente, só uma linha de
+texto), cada uma só um pouco mais larga que os dois botões lado a lado.
+
+### Formulários de criar: campos lado a lado (#36, feedback de teste manual)
+
+Com o container da página em `w-[80%]` (seção Layout acima), empilhar cada
+campo numa linha própria (`flex flex-col gap-5`) deixa o formulário raso e
+alongado sem aproveitar a largura. Campos de identificação simples (texto
+curto, `Select` de poucas opções) agora ficam num `grid` — 2 ou 3 colunas
+conforme o número de campos do grupo, nunca mais que isso (texto longo tipo
+Observações, upload de arquivo e listas repetíveis continuam em coluna
+única, não cabem bem num grid raso):
+
+- `CriarUsuarioForm`: Nome/E-mail/Papel/Setor em `grid-cols-1 sm:grid-cols-2`.
+- `CriarClienteForm`: CNPJ/Empresa/Regime em `grid-cols-1 sm:grid-cols-3`
+  (identificação do Cliente); dentro de cada "Alteração contratual", Data e
+  Arquivo da alteração em `grid-cols-1 sm:grid-cols-2`. A seção "Documentos"
+  (Contrato social + lista de Alterações) continua fora do grid — upload de
+  arquivo e lista dinâmica não comprimem bem lado a lado.
+- `EditarCadastroOperacionalForm` já seguia esse padrão desde o #34 (3 e 2
+  colunas, conforme o grupo de campos) — nenhuma mudança necessária lá.
+
+Formulário isolado de coluna única (login, troca de senha) fica de fora
+dessa regra — container estreito (`max-w-sm`/`max-w-md`, não entra na
+regra de 80%/90%), poucos campos, grid não ajudaria.
+
 ### Lista de itens repetíveis (campo dinâmico)
 
 **Alterações contratuais (29/09/2026, #33):** primeiro uso de

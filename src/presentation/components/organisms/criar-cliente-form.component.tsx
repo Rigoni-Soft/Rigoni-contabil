@@ -74,7 +74,7 @@ export function CriarClienteForm({
 }: CriarClienteFormProps) {
   if (criado) {
     return (
-      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
+      <div className="mx-auto flex max-w-sm flex-col gap-3 rounded-lg border border-border bg-card p-4">
         <p className="flex items-center gap-1.5 text-sm text-primary">
           <CheckCircle2 className="size-3.5 shrink-0" aria-hidden="true" />
           Cliente <strong>{criado.empresa}</strong> (CNPJ {criado.cnpj}) cadastrado.
@@ -100,74 +100,78 @@ export function CriarClienteForm({
       </p>
 
       {/* CNPJ primeiro (ponto 4 do feedback manual): autopreenche Empresa/Regime
-          ao perder o foco, antes do resto do formulário ser preenchido à mão. */}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="cnpj">
-          CNPJ
-          <RequiredMark />
-        </Label>
-        <Controller
-          control={control}
-          name="cnpj"
-          render={({ field: { onChange, onBlur, value, name } }) => (
-            <Input
-              id="cnpj"
-              name={name}
-              inputMode="numeric"
-              placeholder="00.000.000/0000-00"
-              maxLength={18}
-              value={value ?? ""}
-              aria-required="true"
-              aria-invalid={!!errors.cnpj}
-              onChange={(evento) => onChange(formatarCnpj(evento.target.value))}
-              onBlur={(evento) => {
-                onBlur();
-                onCnpjBlur(evento.target.value);
-              }}
-            />
-          )}
-        />
-        {errors.cnpj && <FieldError>{errors.cnpj.message}</FieldError>}
-        {!errors.cnpj && avisoCnpj && <FieldError>{avisoCnpj}</FieldError>}
-      </div>
+          ao perder o foco, antes do resto do formulário ser preenchido à mão.
+          3 colunas aproveita a largura do formulário (80% da tela, #36) em vez
+          de empilhar os 3 campos de identificação numa coluna só. */}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="cnpj">
+            CNPJ
+            <RequiredMark />
+          </Label>
+          <Controller
+            control={control}
+            name="cnpj"
+            render={({ field: { onChange, onBlur, value, name } }) => (
+              <Input
+                id="cnpj"
+                name={name}
+                inputMode="numeric"
+                placeholder="00.000.000/0000-00"
+                maxLength={18}
+                value={value ?? ""}
+                aria-required="true"
+                aria-invalid={!!errors.cnpj}
+                onChange={(evento) => onChange(formatarCnpj(evento.target.value))}
+                onBlur={(evento) => {
+                  onBlur();
+                  onCnpjBlur(evento.target.value);
+                }}
+              />
+            )}
+          />
+          {errors.cnpj && <FieldError>{errors.cnpj.message}</FieldError>}
+          {!errors.cnpj && avisoCnpj && <FieldError>{avisoCnpj}</FieldError>}
+        </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="empresa">
-          Empresa
-          <RequiredMark />
-        </Label>
-        <Input
-          id="empresa"
-          aria-required="true"
-          aria-invalid={!!errors.empresa}
-          {...register("empresa", { onChange: onEmpresaChange })}
-        />
-        {errors.empresa && <FieldError>{errors.empresa.message}</FieldError>}
-      </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="empresa">
+            Empresa
+            <RequiredMark />
+          </Label>
+          <Input
+            id="empresa"
+            aria-required="true"
+            aria-invalid={!!errors.empresa}
+            {...register("empresa", { onChange: onEmpresaChange })}
+          />
+          {errors.empresa && <FieldError>{errors.empresa.message}</FieldError>}
+        </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="regime">
-          Regime
-          <RequiredMark />
-        </Label>
-        <Select
-          id="regime"
-          aria-required="true"
-          aria-invalid={!!errors.regime}
-          defaultValue=""
-          {...register("regime", { onChange: onRegimeChange })}
-        >
-          <option value="" disabled>
-            Selecione
-          </option>
-          {REGIMES.map((regime) => (
-            <option key={regime} value={regime}>
-              {REGIME_LABEL[regime]}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="regime">
+            Regime
+            <RequiredMark />
+          </Label>
+          <Select
+            id="regime"
+            aria-required="true"
+            aria-invalid={!!errors.regime}
+            defaultValue=""
+            {...register("regime", { onChange: onRegimeChange })}
+          >
+            <option value="" disabled>
+              Selecione
             </option>
-          ))}
-        </Select>
-        {errors.regime && <FieldError>{errors.regime.message}</FieldError>}
-        {!errors.regime && avisoRegime && <FieldError>{avisoRegime}</FieldError>}
+            {REGIMES.map((regime) => (
+              <option key={regime} value={regime}>
+                {REGIME_LABEL[regime]}
+              </option>
+            ))}
+          </Select>
+          {errors.regime && <FieldError>{errors.regime.message}</FieldError>}
+          {!errors.regime && avisoRegime && <FieldError>{avisoRegime}</FieldError>}
+        </div>
       </div>
 
       {/* Seção de documentos separada da identificação do Cliente — mais espaço
@@ -224,40 +228,48 @@ export function CriarClienteForm({
                 </Button>
               </div>
 
-              <Label
-                htmlFor={`alteracoesContratuais.${indice}.data`}
-              >{`Data da alteração ${indice + 1}`}</Label>
-              <Input
-                id={`alteracoesContratuais.${indice}.data`}
-                type="date"
-                aria-invalid={!!errors.alteracoesContratuais?.[indice]?.data}
-                {...register(`alteracoesContratuais.${indice}.data` as const)}
-              />
-              {errors.alteracoesContratuais?.[indice]?.data && (
-                <FieldError>{errors.alteracoesContratuais[indice]?.data?.message}</FieldError>
-              )}
-
-              <Label
-                htmlFor={`alteracoesContratuais.${indice}.arquivo`}
-              >{`Arquivo da alteração ${indice + 1}`}</Label>
-              <Controller
-                control={control}
-                name={`alteracoesContratuais.${indice}.arquivo` as const}
-                render={({ field: { onChange, onBlur, name, value } }) => (
-                  <FileInput
-                    id={`alteracoesContratuais.${indice}.arquivo`}
-                    name={name}
-                    accept={ACCEPT_DOCUMENTO}
-                    file={value}
-                    onBlur={onBlur}
-                    aria-invalid={!!errors.alteracoesContratuais?.[indice]?.arquivo}
-                    onChange={onChange}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label
+                    htmlFor={`alteracoesContratuais.${indice}.data`}
+                  >{`Data da alteração ${indice + 1}`}</Label>
+                  <Input
+                    id={`alteracoesContratuais.${indice}.data`}
+                    type="date"
+                    aria-invalid={!!errors.alteracoesContratuais?.[indice]?.data}
+                    {...register(`alteracoesContratuais.${indice}.data` as const)}
                   />
-                )}
-              />
-              {errors.alteracoesContratuais?.[indice]?.arquivo && (
-                <FieldError>{errors.alteracoesContratuais[indice]?.arquivo?.message}</FieldError>
-              )}
+                  {errors.alteracoesContratuais?.[indice]?.data && (
+                    <FieldError>{errors.alteracoesContratuais[indice]?.data?.message}</FieldError>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label
+                    htmlFor={`alteracoesContratuais.${indice}.arquivo`}
+                  >{`Arquivo da alteração ${indice + 1}`}</Label>
+                  <Controller
+                    control={control}
+                    name={`alteracoesContratuais.${indice}.arquivo` as const}
+                    render={({ field: { onChange, onBlur, name, value } }) => (
+                      <FileInput
+                        id={`alteracoesContratuais.${indice}.arquivo`}
+                        name={name}
+                        accept={ACCEPT_DOCUMENTO}
+                        file={value}
+                        onBlur={onBlur}
+                        aria-invalid={!!errors.alteracoesContratuais?.[indice]?.arquivo}
+                        onChange={onChange}
+                      />
+                    )}
+                  />
+                  {errors.alteracoesContratuais?.[indice]?.arquivo && (
+                    <FieldError>
+                      {errors.alteracoesContratuais[indice]?.arquivo?.message}
+                    </FieldError>
+                  )}
+                </div>
+              </div>
             </div>
           ))}
         </div>
