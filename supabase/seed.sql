@@ -224,19 +224,22 @@ values (
 
 -- Clientes de exemplo pro Resumo do setor (ticket #36): um por card da tabela
 -- da spec #24, pra `yarn dev`/E2E já nascerem com os 9 buckets populados em
--- vez de zerados. IDs em c1xxxxxx pra não colidir com nenhuma outra tabela.
+-- vez de zerados. IDs gerados com `crypto.randomUUID()` (uuid v4 de verdade:
+-- a primeira leva usava "c1000000-...-000000000001", que falha
+-- `z.string().uuid()` no form de edição — versão/variante inválidas, não é
+-- um formato aceito, achado em teste manual: "dados inválidos" ao salvar).
 -- CNPJs válidos (dígitos verificadores mod-11 reais), sem contrato social
 -- (coluna opcional desde o #33).
 insert into public.clientes (id, empresa, cnpj, regime) values
-  ('c1000000-0000-0000-0000-000000000001', 'Padaria Selo Dourado DAS Emitida Ltda', '90000001000129', 'simples_nacional'),
-  ('c1000000-0000-0000-0000-000000000002', 'Confecções Sem Documento Ltda', '90000002000173', 'simples_nacional'),
-  ('c1000000-0000-0000-0000-000000000003', 'Oficina DAS Pendente Urgente Ltda', '90000003000118', 'simples_nacional'),
-  ('c1000000-0000-0000-0000-000000000004', 'Mercadinho Sem Movimento Ltda', '90000004000162', 'simples_nacional'),
-  ('c1000000-0000-0000-0000-000000000005', 'Papelaria Esperando Envio Ltda', '90000005000107', 'simples_nacional'),
-  ('c1000000-0000-0000-0000-000000000006', 'Auto Peças Parcelamento Pendente Ltda', '90000006000151', 'simples_nacional'),
-  ('c1000000-0000-0000-0000-000000000007', 'Floricultura Parcelamento Interno Ltda', '90000007000104', 'simples_nacional'),
-  ('c1000000-0000-0000-0000-000000000008', 'Lanchonete Parcelamento Enviado Ltda', '90000008000140', 'simples_nacional'),
-  ('c1000000-0000-0000-0000-000000000009', 'Marcenaria MEI Selo Dourado Ltda', '90000009000195', 'mei');
+  ('078a3aae-80fc-4df7-b113-657873d96176', 'Padaria Selo Dourado DAS Emitida Ltda', '90000001000129', 'simples_nacional'),
+  ('9238058c-cc25-4300-890e-93ca86288d41', 'Confecções Sem Documento Ltda', '90000002000173', 'simples_nacional'),
+  ('68195e6c-03f6-4b15-8362-171a98175e13', 'Oficina DAS Pendente Urgente Ltda', '90000003000118', 'simples_nacional'),
+  ('2d0b7e0a-f1f1-410f-bdbc-a16e34e4c215', 'Mercadinho Sem Movimento Ltda', '90000004000162', 'simples_nacional'),
+  ('eec94956-1450-4ff1-b317-96546d30dd0e', 'Papelaria Esperando Envio Ltda', '90000005000107', 'simples_nacional'),
+  ('ef2c35e9-00b9-4fbc-8f8d-06b9d1aa20e8', 'Auto Peças Parcelamento Pendente Ltda', '90000006000151', 'simples_nacional'),
+  ('168178df-7d67-4925-b293-66e0ec2def9d', 'Floricultura Parcelamento Interno Ltda', '90000007000104', 'simples_nacional'),
+  ('3e999809-f99b-4b51-9fb9-07d37a5b3c23', 'Lanchonete Parcelamento Enviado Ltda', '90000008000140', 'simples_nacional'),
+  ('99ad8a31-1450-454f-8b5a-75c14fa77498', 'Marcenaria MEI Selo Dourado Ltda', '90000009000195', 'mei');
 
 -- Cada linha abaixo corresponde a exatamente 1 card da tabela da spec #24
 -- (ver resumo-setor-sn.mapper.ts) — documento_obrigatorio aqui é o campo que
@@ -244,21 +247,21 @@ insert into public.clientes (id, empresa, cnpj, regime) values
 insert into public.cliente_cadastro_operacional_sn
   (cliente_id, documento_obrigatorio, das_status, tem_parcelamento, parcelamento_status) values
   -- DAS emitidas (em dia/verde): DAS já enviada.
-  ('c1000000-0000-0000-0000-000000000001', 'positivo', 'enviado', false, null),
+  ('078a3aae-80fc-4df7-b113-657873d96176', 'positivo', 'enviado', false, null),
   -- Sem documento (atenção): documento ainda não recebido.
-  ('c1000000-0000-0000-0000-000000000002', 'negativo', 'pendente', false, null),
+  ('9238058c-cc25-4300-890e-93ca86288d41', 'negativo', 'pendente', false, null),
   -- DAS pendente (urgente): documento já recebido, DAS ainda não gerada.
-  ('c1000000-0000-0000-0000-000000000003', 'positivo', 'pendente', false, null),
+  ('68195e6c-03f6-4b15-8362-171a98175e13', 'positivo', 'pendente', false, null),
   -- Sem movimento (informativo): não se aplica gerar DAS este mês.
-  ('c1000000-0000-0000-0000-000000000004', 'nao_se_aplica', 'sem_movimento', false, null),
+  ('2d0b7e0a-f1f1-410f-bdbc-a16e34e4c215', 'nao_se_aplica', 'sem_movimento', false, null),
   -- Esperando envio DAS (andamento): DAS pronta, aguardando o job de envio.
-  ('c1000000-0000-0000-0000-000000000005', 'positivo', 'pronto', false, null),
+  ('eec94956-1450-4ff1-b317-96546d30dd0e', 'positivo', 'pronto', false, null),
   -- Com parcelamento + Parcelamento pendente (urgente).
-  ('c1000000-0000-0000-0000-000000000006', 'positivo', 'enviado', true, 'pendente'),
+  ('ef2c35e9-00b9-4fbc-8f8d-06b9d1aa20e8', 'positivo', 'enviado', true, 'pendente'),
   -- Com parcelamento + Parcelamento interno (informativo).
-  ('c1000000-0000-0000-0000-000000000007', 'positivo', 'enviado', true, 'interno'),
+  ('168178df-7d67-4925-b293-66e0ec2def9d', 'positivo', 'enviado', true, 'interno'),
   -- Com parcelamento + Parcelamento enviado (em dia/verde).
-  ('c1000000-0000-0000-0000-000000000008', 'positivo', 'enviado', true, 'enviado'),
+  ('3e999809-f99b-4b51-9fb9-07d37a5b3c23', 'positivo', 'enviado', true, 'enviado'),
   -- MEI também aparece no resumo (#35 já cobre isso na busca) — mais um
   -- exemplo de "DAS emitidas".
-  ('c1000000-0000-0000-0000-000000000009', 'positivo', 'enviado', false, null);
+  ('99ad8a31-1450-454f-8b5a-75c14fa77498', 'positivo', 'enviado', false, null);
