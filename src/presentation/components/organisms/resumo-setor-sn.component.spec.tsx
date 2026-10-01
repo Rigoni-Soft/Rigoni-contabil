@@ -16,7 +16,7 @@ const CARDS = [
 
 describe("ResumoSetorSn", () => {
   it("separa os 9 cards em 'Documentos e DAS' (5) e 'Parcelamento' (4)", () => {
-    render(<ResumoSetorSn cards={CARDS} totalClientes={9} />);
+    render(<ResumoSetorSn cards={CARDS} totalClientes={9} busca={<div>busca</div>} />);
 
     expect(screen.getByText("Documentos e DAS")).toBeInTheDocument();
     expect(screen.getByText("Parcelamento")).toBeInTheDocument();
@@ -24,15 +24,28 @@ describe("ResumoSetorSn", () => {
   });
 
   it("cada card é um link pra /clientes/resumo/<id do bucket>", () => {
-    render(<ResumoSetorSn cards={CARDS} totalClientes={9} />);
+    render(<ResumoSetorSn cards={CARDS} totalClientes={9} busca={<div>busca</div>} />);
 
     const link = screen.getByRole("link", { name: /DAS pendente/ });
     expect(link).toHaveAttribute("href", "/clientes/resumo/das_pendente");
   });
 
   it("mostra a quantidade de cada card", () => {
-    render(<ResumoSetorSn cards={CARDS} totalClientes={9} />);
+    render(<ResumoSetorSn cards={CARDS} totalClientes={9} busca={<div>busca</div>} />);
 
     expect(screen.getAllByText("3")).toHaveLength(2); // das_emitidas e com_parcelamento
+  });
+
+  it("mostra a busca entre o título e os grupos de cards", () => {
+    render(<ResumoSetorSn cards={CARDS} totalClientes={9} busca={<div>Buscar cliente</div>} />);
+
+    const secao = screen.getByText("Resumo do setor").closest("section")!;
+    const filhos = Array.from(secao.children).map((el) => el.textContent?.slice(0, 20));
+    const indiceTitulo = filhos.findIndex((t) => t?.includes("Resumo do setor"));
+    const indiceBusca = filhos.findIndex((t) => t?.includes("Buscar cliente"));
+    const indiceGrupo = filhos.findIndex((t) => t?.includes("Documentos e DAS"));
+
+    expect(indiceTitulo).toBeLessThan(indiceBusca);
+    expect(indiceBusca).toBeLessThan(indiceGrupo);
   });
 });

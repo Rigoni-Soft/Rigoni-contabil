@@ -37,21 +37,23 @@ export default async function Home() {
       <ShellNav setores={setores} />
       <main className="px-4 py-6 sm:px-6">
         <div className="mx-auto w-[90%] space-y-8">
-          {vePainelSn && (
-            <div>
-              {resumo?.ok ? (
-                <ResumoSetorSn
-                  cards={resumo.value.cards}
-                  totalClientes={resumo.value.totalClientes}
-                />
-              ) : (
-                <p role="alert" className="text-sm text-destructive">
-                  Falha ao carregar o resumo do setor. Tente novamente.
-                </p>
-              )}
-            </div>
+          {vePainelSn ? (
+            resumo?.ok ? (
+              <ResumoSetorSn
+                cards={resumo.value.cards}
+                totalClientes={resumo.value.totalClientes}
+                busca={<BuscarClienteContainer papel={sessao.papel} setor={sessao.setor} />}
+              />
+            ) : (
+              <p role="alert" className="text-sm text-destructive">
+                Falha ao carregar o resumo do setor. Tente novamente.
+              </p>
+            )
+          ) : (
+            // Fora do setor Simples Nacional não tem resumo, mas a busca
+            // continua disponível (qualquer setor pode consultar um cliente).
+            <BuscarClienteContainer papel={sessao.papel} setor={sessao.setor} />
           )}
-          <BuscarClienteContainer papel={sessao.papel} setor={sessao.setor} />
         </div>
       </main>
     </>

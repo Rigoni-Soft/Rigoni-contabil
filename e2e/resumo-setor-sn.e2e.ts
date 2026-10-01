@@ -29,7 +29,12 @@ test.describe("Resumo do setor (#36)", () => {
 
     await expect(page.getByRole("heading", { name: "Editar cadastro operacional" })).toBeVisible();
 
+    // "Voltar" leva pra lista do bucket de onde veio, não pro dashboard.
     await page.getByRole("link", { name: "Voltar" }).click();
+    await expect(page.getByRole("heading", { name: "Sem documento" })).toBeVisible();
+    await expect(page).toHaveURL(/\/clientes\/resumo\/sem_documento$/);
+
+    await page.getByRole("link", { name: "Voltar ao resumo" }).click();
     await expect(page.getByRole("heading", { name: "Resumo do setor" })).toBeVisible();
   });
 });

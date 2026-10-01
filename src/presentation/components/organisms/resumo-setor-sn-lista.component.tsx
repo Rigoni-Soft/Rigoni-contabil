@@ -4,13 +4,15 @@ import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
 
 type Cliente = { clienteId: string; empresa: string; cnpj: string };
 
-type Props = { clientes: Cliente[] };
+type Props = { clientes: Cliente[]; bucket: string };
 
 // Lista filtrada de um bucket do resumo (#36) — abre como tela própria
 // (/clientes/resumo/[bucket]), não mais inline no dashboard. Cada linha leva
 // pra /clientes/[id] (#34), que já é a tela de edição/consulta do cadastro
 // operacional — reusada em vez de duplicar o formulário aqui.
-export function ResumoSetorSnLista({ clientes }: Props) {
+// voltarPara manda a própria URL desta lista, pra "Voltar" na tela de
+// edição trazer de volta pra cá, não pro dashboard.
+export function ResumoSetorSnLista({ clientes, bucket }: Props) {
   if (clientes.length === 0) {
     return <p className="text-sm text-muted-foreground">Nenhum cliente neste status.</p>;
   }
@@ -20,7 +22,7 @@ export function ResumoSetorSnLista({ clientes }: Props) {
       {clientes.map((cliente) => (
         <li key={cliente.clienteId}>
           <Link
-            href={`/clientes/${cliente.clienteId}`}
+            href={`/clientes/${cliente.clienteId}?voltarPara=/clientes/resumo/${bucket}`}
             className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-accent/50"
           >
             <div>
