@@ -73,4 +73,21 @@ describe("SupabaseSessaoGateway (integração)", () => {
     const reautenticado = await gateway.autenticar(email, "nova-senha-definitiva-123");
     expect(reautenticado.ok).toBe(true);
   });
+
+  it("reenvio com a mesma senha (devolutiva PR #62, bloqueio 1) continua ok, não quebra a reconciliação", async () => {
+    const { email, senha } = await criarContaAuthDeTeste();
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const gateway = new SupabaseSessaoGateway(supabase);
+    await gateway.autenticar(email, senha);
+
+    // Simula o cenário real: updateUser() já teve sucesso numa primeira
+    // submissão (finalização/auditoria falhou depois, por algum motivo), e o
+    // usuário reenvia o mesmo formulário — mesma senha nova de antes.
+    const primeira = await gateway.trocarSenha("nova-senha-definitiva-123");
+    expect(primeira.ok).toBe(true);
+
+    const reenvio = await gateway.trocarSenha("nova-senha-definitiva-123");
+
+    expect(reenvio.ok).toBe(true);
+  });
 });

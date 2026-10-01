@@ -41,3 +41,37 @@ $$;
 
 revoke all on function public.marcar_senha_trocada(uuid) from public, anon, authenticated;
 grant execute on function public.marcar_senha_trocada(uuid) to service_role;
+
+-- Devolutiva tecnica PR #62, bloqueio 2: a expiracao de 48h so era checada no
+-- app (ObterSessao) -- um JWT ainda valido (refresh token nao expirado)
+-- continuava lendo/escrevendo direto via Data API/RPC do Supabase mesmo apos
+-- o vencimento, porque meu_papel()/meu_setor() nunca olhavam pra
+-- senha_provisoria_expira_em. Em vez de replicar o check em cada policy
+-- (existente e futura) de cada modulo, o endurecimento entra nessas duas
+-- funcoes, que toda policy de papel/setor do projeto ja reusa: com a senha
+-- provisoria vencida, ambas passam a devolver NULL, e nenhuma comparacao
+-- (`= 'admin'`, `= meu_setor()`) fecha como verdadeira -- RLS nega por padrao,
+-- sem tocar em nenhuma policy individualmente.
+create or replace function public.meu_papel()
+returns public.papel
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select papel from public.perfis
+  where id = auth.uid()
+    and (senha_trocada_em is not null or senha_provisoria_expira_em > now());
+$$;
+
+create or replace function public.meu_setor()
+returns public.setor_slug
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select setor from public.perfis
+  where id = auth.uid()
+    and (senha_trocada_em is not null or senha_provisoria_expira_em > now());
+$$;

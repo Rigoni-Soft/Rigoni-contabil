@@ -54,6 +54,40 @@ async function criarContaAuthDeTeste(): Promise<{ id: string; email: string }> {
   return { id: data.user.id, email };
 }
 
+// Devolutiva técnica PR #62, bloqueio 2: cria uma conta com senha provisória já
+// vencida (sem passar pelo fluxo normal de #30/#31, direto via service_role),
+// pra provar que meu_papel()/meu_setor() -- endurecidos na mesma migration do
+// #31 (20260927090000) -- negam acesso via Data API mesmo com um JWT válido.
+async function criarContaComSenhaVencida(
+  papel: "admin" | "funcionario",
+  setor: string,
+): Promise<{ id: string; email: string; senha: string }> {
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const email = `teste-vencido-${crypto.randomUUID()}@rigonicontabil.local`;
+  const senha = "senha-provisoria-vencida-123";
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    password: senha,
+    email_confirm: true,
+  });
+  if (error || !data.user) throw new Error(`Falha ao criar conta de teste: ${error?.message}`);
+
+  const { error: erroPerfil } = await admin.from("perfis").insert({
+    id: data.user.id,
+    nome: "Usuário Senha Vencida",
+    email,
+    papel,
+    setor,
+    senha_trocada_em: null,
+    senha_provisoria_expira_em: new Date(Date.now() - 1000).toISOString(),
+  });
+  if (erroPerfil) throw new Error(`Falha ao salvar perfil de teste: ${erroPerfil.message}`);
+
+  return { id: data.user.id, email, senha };
+}
+
 function usuarioValido(id: string): Usuario {
   const resultado = Usuario.builder()
     .comId(id)
@@ -188,5 +222,38 @@ describe("SupabaseUsuarioRepository (integração)", () => {
     const resultado = await repositorio.criar(usuarioValido(id));
 
     expect(resultado.ok).toBe(false);
+  });
+
+  describe("senha provisória vencida (RLS: meu_papel()/meu_setor() endurecidos, devolutiva PR #62 bloqueio 2)", () => {
+    it("papel 'admin' com senha vencida perde o bypass de admin (meu_papel() devolve NULL)", async () => {
+      const { email, senha } = await criarContaComSenhaVencida("admin", "administrativo");
+      const supabase = await clienteAutenticado(email, senha);
+      const repositorio = new SupabaseUsuarioRepository(supabase);
+
+      const resultado = await repositorio.buscarPorId(FUNCIONARIO_SN_ID);
+
+      expect(resultado).toEqual({ ok: true, value: null });
+    });
+
+    it("mesmo setor com senha vencida perde o acesso a colegas (meu_setor() devolve NULL)", async () => {
+      const { email, senha } = await criarContaComSenhaVencida("funcionario", "financeiro");
+      const supabase = await clienteAutenticado(email, senha);
+      const repositorio = new SupabaseUsuarioRepository(supabase);
+
+      const resultado = await repositorio.buscarPorId(FUNCIONARIO_FINANCEIRO_ID);
+
+      expect(resultado).toEqual({ ok: true, value: null });
+    });
+
+    it("mesmo com a senha vencida, o próprio perfil continua legível (perfis_select_proprio não usa meu_papel/meu_setor)", async () => {
+      const { id, email, senha } = await criarContaComSenhaVencida("funcionario", "financeiro");
+      const supabase = await clienteAutenticado(email, senha);
+      const repositorio = new SupabaseUsuarioRepository(supabase);
+
+      const resultado = await repositorio.buscarPorId(id as UsuarioId);
+
+      expect(resultado.ok).toBe(true);
+      if (resultado.ok) expect(resultado.value?.email).toBe(email);
+    });
   });
 });
