@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/presentation/components/ui/button";
 import { Input } from "@/presentation/components/ui/input";
@@ -16,6 +17,7 @@ const ID_LISTA = "buscar-cliente-lista";
 const idOpcao = (indice: number) => `buscar-cliente-opcao-${indice}`;
 
 export function BuscarClienteContainer({ papel, setor, apenasSnMei = false }: Props) {
+  const router = useRouter();
   const {
     termo,
     setTermo,
@@ -85,6 +87,14 @@ export function BuscarClienteContainer({ papel, setor, apenasSnMei = false }: Pr
           dados={clienteSelecionado}
           readOnly={readOnly}
           onCancelar={fecharPainel}
+          // Salvar fecha o painel (volta pra busca) e atualiza os dados da
+          // página — se esta busca estiver embutida no resumo do setor
+          // (/simples-nacional), os cards refletem a mudança na hora
+          // (feedback de teste manual do #36).
+          aoSalvarComSucesso={() => {
+            fecharPainel();
+            router.refresh();
+          }}
         />
       </section>
     );

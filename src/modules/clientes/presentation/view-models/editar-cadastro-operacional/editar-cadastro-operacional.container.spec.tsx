@@ -5,6 +5,11 @@ import type { CadastroOperacionalClienteDto } from "@/modules/clientes/applicati
 
 import { EditarCadastroOperacionalContainer } from "./editar-cadastro-operacional.container";
 
+const routerPush = jest.fn();
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push: routerPush, refresh: jest.fn() }),
+}));
+
 const executeMock = jest.fn();
 
 jest.mock("@/main/clientes.factory", () => ({
@@ -30,6 +35,7 @@ const dados: CadastroOperacionalClienteDto = {
 describe("EditarCadastroOperacionalContainer", () => {
   beforeEach(() => {
     executeMock.mockReset();
+    routerPush.mockReset();
   });
 
   it.each([
@@ -97,6 +103,48 @@ describe("EditarCadastroOperacionalContainer", () => {
 
     expect(await screen.findByText(/Não foi possível salvar agora/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /salvar/i })).toBeEnabled();
+  });
+
+  // Feedback de teste manual do #36: tela própria (/clientes/[id]) navega de
+  // volta pro lugar certo depois de salvar, em vez de ficar parada no form.
+  it("com voltarHrefAoSalvar, navega pra lá depois de salvar com sucesso", async () => {
+    executeMock.mockResolvedValue({ ok: true, value: { clienteId: dados.id } });
+    const usuario = userEvent.setup();
+    render(
+      <EditarCadastroOperacionalContainer
+        dados={dados}
+        readOnly={false}
+        voltarHrefAoSalvar="/clientes/resumo/sem_documento"
+      />,
+    );
+
+    await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+
+    await screen.findByText(/atualizado/i);
+    expect(routerPush).toHaveBeenCalledWith("/clientes/resumo/sem_documento");
+  });
+
+  // Painel embutido no dashboard (busca do /simples-nacional): quem decide o
+  // "fechar/voltar" é o consumidor (fecha o painel + atualiza a página), não
+  // uma navegação fixa — aoSalvarComSucesso tem prioridade sobre voltarHref.
+  it("com aoSalvarComSucesso, chama o callback em vez de navegar", async () => {
+    executeMock.mockResolvedValue({ ok: true, value: { clienteId: dados.id } });
+    const aoSalvarComSucesso = jest.fn();
+    const usuario = userEvent.setup();
+    render(
+      <EditarCadastroOperacionalContainer
+        dados={dados}
+        readOnly={false}
+        voltarHrefAoSalvar="/nunca-deveria-navegar-pra-ca"
+        aoSalvarComSucesso={aoSalvarComSucesso}
+      />,
+    );
+
+    await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+
+    await screen.findByText(/atualizado/i);
+    expect(aoSalvarComSucesso).toHaveBeenCalled();
+    expect(routerPush).not.toHaveBeenCalled();
   });
 
   it("cliente não encontrado: mostra mensagem em vez do formulário", () => {

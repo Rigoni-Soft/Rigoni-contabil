@@ -38,7 +38,7 @@ async function buscarClienteIdPorCnpj(cnpjDigits: string): Promise<string> {
 }
 
 test.describe("Editar cadastro operacional do Cliente (#34)", () => {
-  test("Funcionário SN edita o cadastro operacional e a alteração persiste após recarregar", async ({
+  test("Funcionário SN edita o cadastro operacional, salvar fecha a tela e a alteração persiste", async ({
     page,
   }) => {
     const cnpjDigits = await criarClienteComoAdmin(page, "Cadastro Operacional E2E Ltda");
@@ -63,9 +63,13 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
 
     await page.getByRole("button", { name: "Salvar" }).click();
 
-    await expect(page.getByText("Cadastro operacional atualizado.")).toBeVisible();
+    // Salvar fecha a tela e volta pro destino certo (sem ?voltarPara= nesta
+    // navegação, cai em "/", que redireciona Funcionário SN de volta pra
+    // página principal do próprio setor — feedback de teste manual do #36).
+    await expect(page).toHaveURL("/simples-nacional");
 
-    await page.reload();
+    // Reabre a tela do cliente pra conferir que a alteração persistiu.
+    await page.goto(`/clientes/${clienteId}`);
 
     await expect(page.getByLabel("Forma de envio")).toHaveValue("email");
     await expect(page.getByLabel("Nome")).toHaveValue("Maria Contato");

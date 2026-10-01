@@ -6,6 +6,11 @@ import type { CadastroOperacionalClienteDto } from "@/modules/clientes/applicati
 
 import { BuscarClienteContainer } from "./buscar-cliente.container";
 
+const routerRefresh = jest.fn();
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push: jest.fn(), refresh: routerRefresh }),
+}));
+
 const buscarClientesActionMock = jest.fn();
 const carregarCadastroOperacionalActionMock = jest.fn();
 
@@ -14,8 +19,9 @@ jest.mock("./buscar-cliente.actions", () => ({
   carregarCadastroOperacionalAction: (id: string) => carregarCadastroOperacionalActionMock(id),
 }));
 
+const editarExecuteMock = jest.fn();
 jest.mock("@/main/clientes.factory", () => ({
-  makeEditarCadastroOperacionalCliente: () => ({ execute: jest.fn() }),
+  makeEditarCadastroOperacionalCliente: () => ({ execute: editarExecuteMock }),
 }));
 
 const CADASTRO: CadastroOperacionalClienteDto = {
@@ -49,6 +55,8 @@ describe("BuscarClienteContainer", () => {
   beforeEach(() => {
     buscarClientesActionMock.mockReset();
     carregarCadastroOperacionalActionMock.mockReset();
+    editarExecuteMock.mockReset();
+    routerRefresh.mockReset();
     jest.useFakeTimers();
   });
 
@@ -273,5 +281,32 @@ describe("BuscarClienteContainer", () => {
 
     expect(screen.getByLabelText(/empresa ou cnpj/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/forma de envio/i)).not.toBeInTheDocument();
+  });
+
+  // Feedback de teste manual do #36: salvar precisa fechar o painel (volta
+  // pra busca) e atualizar os dados da página — se esta busca estiver
+  // embutida no resumo do setor, os cards refletem a mudança na hora.
+  it("salvar fecha o painel, volta pro campo de busca e atualiza a página (router.refresh)", async () => {
+    buscarClientesActionMock.mockResolvedValue({
+      ok: true,
+      data: [{ id: CADASTRO.id, empresa: CADASTRO.empresa, cnpj: CADASTRO.cnpj }],
+    });
+    carregarCadastroOperacionalActionMock.mockResolvedValue({ ok: true, data: CADASTRO });
+    editarExecuteMock.mockResolvedValue({ ok: true, value: { clienteId: CADASTRO.id } });
+    const usuario = userEvent.setup({ delay: null });
+    renderComQueryClient();
+
+    await usuario.type(screen.getByLabelText(/empresa ou cnpj/i), "Pão");
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+    await usuario.click(await screen.findByText(CADASTRO.empresa));
+    await screen.findByLabelText(/forma de envio/i);
+
+    await usuario.click(screen.getByRole("button", { name: "Salvar" }));
+
+    expect(await screen.findByLabelText(/empresa ou cnpj/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/forma de envio/i)).not.toBeInTheDocument();
+    expect(routerRefresh).toHaveBeenCalled();
   });
 });

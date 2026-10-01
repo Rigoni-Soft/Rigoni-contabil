@@ -50,7 +50,11 @@ export default async function Page({ params, searchParams }: Props) {
       titulo={readOnly ? "Visualizar cadastro operacional" : "Editar cadastro operacional"}
       voltarHref={voltarHrefSeguro(voltarPara)}
       formulario={
-        <EditarCadastroOperacionalContainer dados={resultado.value} readOnly={readOnly} />
+        <EditarCadastroOperacionalContainer
+          dados={resultado.value}
+          readOnly={readOnly}
+          voltarHrefAoSalvar={voltarHrefSeguro(voltarPara)}
+        />
       }
     />
   );

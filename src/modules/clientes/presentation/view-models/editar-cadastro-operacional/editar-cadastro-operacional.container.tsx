@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 
@@ -18,9 +19,24 @@ type Props = {
   dados: CadastroOperacionalClienteDto | null;
   readOnly: boolean;
   onCancelar?: () => void;
+  // Depois de salvar com sucesso, o painel precisa fechar/voltar — o "que o
+  // caso exigir" (feedback de teste manual do #36): painel embutido no
+  // dashboard (busca do /simples-nacional) fecha de volta pra busca e
+  // atualiza os cards; tela própria (/clientes/[id]) navega de volta pra
+  // onde a lista do bucket (ou o próprio dashboard) ficou. Só um dos dois é
+  // passado por consumidor — `aoSalvarComSucesso` tem prioridade.
+  aoSalvarComSucesso?: () => void;
+  voltarHrefAoSalvar?: string;
 };
 
-export function EditarCadastroOperacionalContainer({ dados, readOnly, onCancelar }: Props) {
+export function EditarCadastroOperacionalContainer({
+  dados,
+  readOnly,
+  onCancelar,
+  aoSalvarComSucesso,
+  voltarHrefAoSalvar,
+}: Props) {
+  const router = useRouter();
   const [pendente, setPendente] = useState(false);
   const [erroServidor, setErroServidor] = useState<string | undefined>();
   const [sucesso, setSucesso] = useState(false);
@@ -86,6 +102,11 @@ export function EditarCadastroOperacionalContainer({ dados, readOnly, onCancelar
       }
 
       setSucesso(true);
+      if (aoSalvarComSucesso) {
+        aoSalvarComSucesso();
+      } else if (voltarHrefAoSalvar) {
+        router.push(voltarHrefAoSalvar);
+      }
     } catch {
       setErroServidor("Não foi possível salvar agora. Verifique a conexão e tente novamente.");
     } finally {
