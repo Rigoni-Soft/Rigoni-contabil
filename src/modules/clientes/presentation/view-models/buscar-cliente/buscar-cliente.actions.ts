@@ -30,7 +30,7 @@ export async function buscarClientesAction(
   }
 
   const buscar = await makeBuscarClientes();
-  return toActionResult(await buscar.execute(parsed.data.termo));
+  return toActionResult(await buscar.execute(parsed.data.termo, parsed.data.apenasSnMei));
 }
 
 // Sem schema de validação de input: clienteId já vem de um resultado de busca

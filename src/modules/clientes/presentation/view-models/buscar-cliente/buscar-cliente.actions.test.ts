@@ -29,11 +29,11 @@ describe("buscarClientesAction (integração)", () => {
     const sugestoes = [{ id: "1", empresa: "Padaria Pão Quente Ltda", cnpj: "11444777000161" }];
     buscarExecuteMock.mockResolvedValue(ok(sugestoes));
 
-    const resultado = await buscarClientesAction({ termo: "Pão" });
+    const resultado = await buscarClientesAction({ termo: "Pão", apenasSnMei: true });
 
     expect(resultado.ok).toBe(true);
     if (resultado.ok) expect(resultado.data).toEqual(sugestoes);
-    expect(buscarExecuteMock).toHaveBeenCalledWith("Pão");
+    expect(buscarExecuteMock).toHaveBeenCalledWith("Pão", true);
   });
 });
 

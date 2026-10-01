@@ -7,7 +7,7 @@ import { podeEditarCadastroOperacional } from "@/modules/clientes/presentation/v
 
 const DEBOUNCE_MS = 300;
 
-export function useBuscarCliente(papel: string, setor: string) {
+export function useBuscarCliente(papel: string, setor: string, apenasSnMei: boolean) {
   const [termo, setTermo] = useState("");
   const [termoDebounced, setTermoDebounced] = useState("");
   const [clienteSelecionado, setClienteSelecionado] =
@@ -21,7 +21,7 @@ export function useBuscarCliente(papel: string, setor: string) {
     return () => clearTimeout(timer);
   }, [termo]);
 
-  const query = useBuscarClientes(termoDebounced);
+  const query = useBuscarClientes(termoDebounced, apenasSnMei);
 
   const selecionarCliente = async (id: string) => {
     const resultado = await carregarCadastroOperacionalAction(id);

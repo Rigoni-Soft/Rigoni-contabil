@@ -104,8 +104,8 @@ describe("SupabaseClienteQueryGateway.buscarPorTermo (#35, integração)", () =>
     );
     const gateway = new SupabaseClienteQueryGateway(admin);
 
-    const porCnpj = await gateway.buscarPorTermo(cliente.cnpj.valor.slice(0, 6));
-    const porNome = await gateway.buscarPorTermo("Pão Quente");
+    const porCnpj = await gateway.buscarPorTermo(cliente.cnpj.valor.slice(0, 6), true);
+    const porNome = await gateway.buscarPorTermo("Pão Quente", true);
 
     expect(porCnpj.ok).toBe(true);
     if (porCnpj.ok) expect(porCnpj.value.some((s) => s.id === cliente.id)).toBe(true);
@@ -133,7 +133,7 @@ describe("SupabaseClienteQueryGateway.buscarPorTermo (#35, integração)", () =>
     const admin = await comoAdmin();
     const gateway = new SupabaseClienteQueryGateway(admin);
 
-    const resultado = await gateway.buscarPorTermo("termo-sem-match-nenhum-xyz");
+    const resultado = await gateway.buscarPorTermo("termo-sem-match-nenhum-xyz", true);
 
     expect(resultado.ok).toBe(true);
     if (resultado.ok) expect(resultado.value).toEqual([]);
@@ -148,31 +148,50 @@ describe("SupabaseClienteQueryGateway.buscarPorTermo (#35, integração)", () =>
     );
     const gateway = new SupabaseClienteQueryGateway(admin);
 
-    const resultado = await gateway.buscarPorTermo("Pão, Quente");
+    const resultado = await gateway.buscarPorTermo("Pão, Quente", true);
 
     expect(resultado.ok).toBe(true);
     if (resultado.ok) expect(resultado.value.some((s) => s.id === cliente.id)).toBe(true);
   });
 
-  it("nunca traz Cliente de Lucro Presumido/Real — esta busca é a do dashboard do SN, só Simples Nacional/MEI têm cadastro operacional", async () => {
+  it("com apenasSnMei=true, nunca traz Cliente de Lucro Presumido/Real — esta é a busca embutida no dashboard do SN, só Simples Nacional/MEI têm cadastro operacional", async () => {
     const admin = await comoAdmin();
     const empresa = "Padaria Busca Presumido Ltda";
     await criarClienteComContratoSocial(admin, empresa, cnpjUnico(), "lucro_presumido");
     const gateway = new SupabaseClienteQueryGateway(admin);
 
-    const resultado = await gateway.buscarPorTermo("Busca Presumido");
+    const resultado = await gateway.buscarPorTermo("Busca Presumido", true);
 
     expect(resultado.ok).toBe(true);
     if (resultado.ok) expect(resultado.value).toEqual([]);
   });
 
-  it("encontra Cliente MEI normalmente", async () => {
+  it("encontra Cliente MEI normalmente com apenasSnMei=true", async () => {
     const admin = await comoAdmin();
     const empresa = "Oficina Busca MEI Ltda";
     const cliente = await criarClienteComContratoSocial(admin, empresa, cnpjUnico(), "mei");
     const gateway = new SupabaseClienteQueryGateway(admin);
 
-    const resultado = await gateway.buscarPorTermo("Busca MEI");
+    const resultado = await gateway.buscarPorTermo("Busca MEI", true);
+
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) expect(resultado.value.some((s) => s.id === cliente.id)).toBe(true);
+  });
+
+  // Devolutiva de teste manual do #36, ponto 3: Admin (ou qualquer busca fora
+  // do dashboard do SN) precisa achar Cliente de qualquer Regime.
+  it("com apenasSnMei=false, encontra Cliente de Lucro Presumido/Real também", async () => {
+    const admin = await comoAdmin();
+    const empresa = "Padaria Busca Geral Presumido Ltda";
+    const cliente = await criarClienteComContratoSocial(
+      admin,
+      empresa,
+      cnpjUnico(),
+      "lucro_presumido",
+    );
+    const gateway = new SupabaseClienteQueryGateway(admin);
+
+    const resultado = await gateway.buscarPorTermo("Busca Geral Presumido", false);
 
     expect(resultado.ok).toBe(true);
     if (resultado.ok) expect(resultado.value.some((s) => s.id === cliente.id)).toBe(true);

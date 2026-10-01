@@ -11,7 +11,10 @@ import type { Result } from "@/shared/kernel/result";
 export class BuscarClientes {
   constructor(private readonly query: ClienteQueryPort) {}
 
-  async execute(termo: string): Promise<Result<SugestaoClienteDto[], AppError>> {
-    return this.query.buscarPorTermo(termo);
+  async execute(
+    termo: string,
+    apenasSnMei: boolean,
+  ): Promise<Result<SugestaoClienteDto[], AppError>> {
+    return this.query.buscarPorTermo(termo, apenasSnMei);
   }
 }

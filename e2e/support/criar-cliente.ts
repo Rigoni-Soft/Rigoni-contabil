@@ -34,7 +34,11 @@ export function cnpjUnico(): string {
   return raiz + d1 + d2;
 }
 
-export async function criarClienteComoAdmin(page: Page, empresa: string) {
+export async function criarClienteComoAdmin(
+  page: Page,
+  empresa: string,
+  regime: "simples_nacional" | "mei" | "lucro_presumido" | "lucro_real" = "simples_nacional",
+) {
   const cnpjDigits = cnpjUnico();
   await login(page, "admin@rigonicontabil.local", "admin123");
   await expect(page).toHaveURL("/");
@@ -42,7 +46,7 @@ export async function criarClienteComoAdmin(page: Page, empresa: string) {
 
   await page.getByLabel("Empresa").fill(empresa);
   await page.getByLabel("CNPJ").fill(cnpjDigits);
-  await page.getByLabel("Regime").selectOption("simples_nacional");
+  await page.getByLabel("Regime").selectOption(regime);
   await page.getByLabel("Contrato social").setInputFiles(pdf("contrato-social.pdf"));
   await page.getByRole("button", { name: "Cadastrar" }).click();
 

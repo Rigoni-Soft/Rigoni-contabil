@@ -90,7 +90,10 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
     });
   }
 
-  async buscarPorTermo(termo: string): Promise<Result<SugestaoClienteDto[], AppError>> {
+  async buscarPorTermo(
+    termo: string,
+    apenasSnMei: boolean,
+  ): Promise<Result<SugestaoClienteDto[], AppError>> {
     // `,`/`()` têm significado especial na sintaxe de filtro `.or()` do
     // PostgREST — sem escapar, um termo com vírgula (ex. "Pão, Quente Ltda")
     // vira duas condições em vez de texto literal. Envolver em aspas duplas
@@ -98,14 +101,12 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
     const valor = `%${termo}%`.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
     // View `clientes_basico`, não `clientes`: o dashboard é de qualquer Funcionário
     // do setor, e só Admin lê a tabela (devolutiva PR #69, contrato social).
-    const { data, error } = await this.supabase
-      .from("clientes_basico")
-      .select("id, empresa, cnpj")
-      // Esta busca é a seção "Buscar cliente" do dashboard do setor Simples
-      // Nacional (#35/#36) — só Regime Simples Nacional/MEI tem cadastro
-      // operacional de verdade (nasce automático só pra esses dois no #34);
-      // Presumido/Real não aparecem aqui, mesmo que o cliente exista.
-      .in("regime", ["simples_nacional", "mei"])
+    let query = this.supabase.from("clientes_basico").select("id, empresa, cnpj");
+    // Só a busca embutida no dashboard do Simples Nacional restringe o
+    // Regime (#35/#36) — Admin/qualquer setor fora dessa tela busca em
+    // qualquer Cliente (feedback de teste manual, ponto 3 do #36).
+    if (apenasSnMei) query = query.in("regime", ["simples_nacional", "mei"]);
+    const { data, error } = await query
       .or(`cnpj.ilike."${valor}",empresa.ilike."${valor}"`)
       .order("empresa")
       .limit(10);

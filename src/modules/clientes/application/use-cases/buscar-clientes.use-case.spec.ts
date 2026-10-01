@@ -18,13 +18,18 @@ const SUGESTOES: SugestaoClienteDto[] = [
 ];
 
 class ClienteQueryPortFalso implements ClienteQueryPort {
+  apenasSnMeiRecebido: boolean | null = null;
   constructor(private sugestoes: SugestaoClienteDto[]) {}
   async buscarCadastroOperacional(): Promise<
     Result<CadastroOperacionalClienteDto | null, AppError>
   > {
     return ok(null);
   }
-  async buscarPorTermo(): Promise<Result<SugestaoClienteDto[], AppError>> {
+  async buscarPorTermo(
+    _termo: string,
+    apenasSnMei: boolean,
+  ): Promise<Result<SugestaoClienteDto[], AppError>> {
+    this.apenasSnMeiRecebido = apenasSnMei;
     return ok(this.sugestoes);
   }
   async listarResumoOperacional(): Promise<Result<ResumoOperacionalRow[], AppError>> {
@@ -36,7 +41,7 @@ describe("BuscarClientes", () => {
   it("devolve as sugestões encontradas pelo termo", async () => {
     const query = new ClienteQueryPortFalso(SUGESTOES);
 
-    const resultado = await new BuscarClientes(query).execute("Pão Quente");
+    const resultado = await new BuscarClientes(query).execute("Pão Quente", false);
 
     expect(resultado.ok).toBe(true);
     if (resultado.ok) expect(resultado.value).toEqual(SUGESTOES);
@@ -45,9 +50,17 @@ describe("BuscarClientes", () => {
   it("devolve lista vazia quando nada casa com o termo", async () => {
     const query = new ClienteQueryPortFalso([]);
 
-    const resultado = await new BuscarClientes(query).execute("inexistente");
+    const resultado = await new BuscarClientes(query).execute("inexistente", false);
 
     expect(resultado.ok).toBe(true);
     if (resultado.ok) expect(resultado.value).toEqual([]);
+  });
+
+  it("repassa apenasSnMei pra porta de query sem alterar", async () => {
+    const query = new ClienteQueryPortFalso(SUGESTOES);
+
+    await new BuscarClientes(query).execute("Pão Quente", true);
+
+    expect(query.apenasSnMeiRecebido).toBe(true);
   });
 });

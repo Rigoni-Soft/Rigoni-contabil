@@ -76,7 +76,25 @@ describe("BuscarClienteContainer", () => {
       jest.advanceTimersByTime(300);
     });
 
-    expect(buscarClientesActionMock).toHaveBeenCalledWith({ termo: "Pão" });
+    expect(buscarClientesActionMock).toHaveBeenCalledWith({ termo: "Pão", apenasSnMei: false });
+  });
+
+  it("com apenasSnMei=true (busca do dashboard do SN), repassa a flag pra action", async () => {
+    buscarClientesActionMock.mockResolvedValue({ ok: true, data: [] });
+    const usuario = userEvent.setup({ delay: null });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <BuscarClienteContainer papel="funcionario" setor="simples_nacional" apenasSnMei />
+      </QueryClientProvider>,
+    );
+
+    await usuario.type(screen.getByLabelText(/empresa ou cnpj/i), "Pão");
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+
+    expect(buscarClientesActionMock).toHaveBeenCalledWith({ termo: "Pão", apenasSnMei: true });
   });
 
   it("mostra 'Buscando...' enquanto a query está em andamento", async () => {

@@ -5,14 +5,15 @@ import { buscarClientesAction } from "@/modules/clientes/presentation/view-model
 import { TAMANHO_MINIMO_TERMO } from "@/modules/clientes/presentation/view-models/buscar-cliente/buscar-cliente.schema";
 
 export const buscarClientesKeys = {
-  lista: (termo: string) => ["clientes", "buscar", termo] as const,
+  lista: (termo: string, apenasSnMei: boolean) =>
+    ["clientes", "buscar", termo, apenasSnMei] as const,
 };
 
-export function useBuscarClientes(termo: string) {
+export function useBuscarClientes(termo: string, apenasSnMei: boolean) {
   return useQuery<SugestaoClienteDto[]>({
-    queryKey: buscarClientesKeys.lista(termo),
+    queryKey: buscarClientesKeys.lista(termo, apenasSnMei),
     queryFn: async () => {
-      const resultado = await buscarClientesAction({ termo });
+      const resultado = await buscarClientesAction({ termo, apenasSnMei });
       if (!resultado.ok) throw new Error(resultado.error.message);
       return resultado.data;
     },

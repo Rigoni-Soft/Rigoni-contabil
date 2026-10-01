@@ -10,12 +10,12 @@ import { EditarCadastroOperacionalContainer } from "@/modules/clientes/presentat
 
 import { useBuscarCliente } from "./use-buscar-cliente.hook";
 
-type Props = { papel: string; setor: string };
+type Props = { papel: string; setor: string; apenasSnMei?: boolean };
 
 const ID_LISTA = "buscar-cliente-lista";
 const idOpcao = (indice: number) => `buscar-cliente-opcao-${indice}`;
 
-export function BuscarClienteContainer({ papel, setor }: Props) {
+export function BuscarClienteContainer({ papel, setor, apenasSnMei = false }: Props) {
   const {
     termo,
     setTermo,
@@ -25,7 +25,7 @@ export function BuscarClienteContainer({ papel, setor }: Props) {
     selecionarCliente,
     fecharPainel,
     readOnly,
-  } = useBuscarCliente(papel, setor);
+  } = useBuscarCliente(papel, setor, apenasSnMei);
 
   // Destaque de teclado (ArrowUp/ArrowDown/Enter) na lista de sugestões —
   // estado puramente visual/efêmero, então fica no Container, não no hook

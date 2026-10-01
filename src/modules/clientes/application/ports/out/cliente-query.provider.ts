@@ -43,7 +43,14 @@ export interface ClienteQueryPort {
     clienteId: string,
   ): Promise<Result<CadastroOperacionalClienteDto | null, AppError>>;
 
-  buscarPorTermo(termo: string): Promise<Result<SugestaoClienteDto[], AppError>>;
+  // apenasSnMei: a busca embutida no dashboard do Simples Nacional (#36) só
+  // mostra Cliente com cadastro operacional (regime simples_nacional/mei,
+  // #34); a busca geral do Admin/qualquer setor (ponto 3 do feedback do #36)
+  // não tem essa restrição — Admin precisa achar cliente de qualquer Regime.
+  buscarPorTermo(
+    termo: string,
+    apenasSnMei: boolean,
+  ): Promise<Result<SugestaoClienteDto[], AppError>>;
 
   listarResumoOperacional(): Promise<Result<ResumoOperacionalRow[], AppError>>;
 }
