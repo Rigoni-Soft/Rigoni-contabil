@@ -1,3 +1,4 @@
+import { calcularComparativosSn } from "@/modules/clientes/application/mappers/comparativos-sn.mapper";
 import { classificarResumoSetorSn } from "@/modules/clientes/application/mappers/resumo-setor-sn.mapper";
 import type { ResumoSetorSnDto } from "@/modules/clientes/application/ports/in/obter-resumo-setor-sn.provider";
 import type { ClienteQueryPort } from "@/modules/clientes/application/ports/out/cliente-query.provider";
@@ -16,6 +17,7 @@ export class ObterResumoSetorSn {
     return ok({
       totalClientes: linhas.value.length,
       cards: classificarResumoSetorSn(linhas.value),
+      comparativos: calcularComparativosSn(linhas.value),
     });
   }
 }

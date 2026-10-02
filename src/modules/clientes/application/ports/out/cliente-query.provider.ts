@@ -36,6 +36,8 @@ export type ResumoOperacionalRow = {
   dasStatus: string | null;
   temParcelamento: boolean;
   parcelamentoStatus: string | null;
+  // Atividade do mês corrente (#37); tudo false quando ainda não há registro.
+  atividadeMes: { industria: boolean; comercio: boolean; servico: boolean };
 };
 
 export interface ClienteQueryPort {

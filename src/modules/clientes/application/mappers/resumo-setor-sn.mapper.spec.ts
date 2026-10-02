@@ -11,6 +11,7 @@ function linha(sobrescritas: Partial<ResumoOperacionalRow> = {}): ResumoOperacio
     dasStatus: null,
     temParcelamento: false,
     parcelamentoStatus: null,
+    atividadeMes: { industria: false, comercio: false, servico: false },
     ...sobrescritas,
   };
 }

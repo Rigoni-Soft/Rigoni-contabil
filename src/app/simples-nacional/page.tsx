@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { ComparativosSn } from "@/presentation/components/organisms/comparativos-sn.component";
 import { ResumoSetorSn } from "@/presentation/components/organisms/resumo-setor-sn.component";
 import { ShellHeader } from "@/presentation/components/organisms/shell-header.component";
 import { ShellNav } from "@/presentation/components/organisms/shell-nav.component";
@@ -38,15 +39,21 @@ export default async function Page() {
       />
       <ShellNav setores={setores} />
       <main className="px-4 py-6 sm:px-6">
-        <div className="mx-auto w-[90%]">
+        <div className="mx-auto w-[90%] space-y-8">
           {resumo.ok ? (
-            <ResumoSetorSn
-              cards={resumo.value.cards}
-              totalClientes={resumo.value.totalClientes}
-              busca={
-                <BuscarClienteContainer papel={sessao.papel} setor={sessao.setor} apenasSnMei />
-              }
-            />
+            <>
+              <ResumoSetorSn
+                cards={resumo.value.cards}
+                totalClientes={resumo.value.totalClientes}
+                busca={
+                  <BuscarClienteContainer papel={sessao.papel} setor={sessao.setor} apenasSnMei />
+                }
+              />
+              <ComparativosSn
+                comparativos={resumo.value.comparativos}
+                totalClientes={resumo.value.totalClientes}
+              />
+            </>
           ) : (
             <p role="alert" className="text-sm text-destructive">
               Falha ao carregar o resumo do setor. Tente novamente.

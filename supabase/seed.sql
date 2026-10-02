@@ -265,3 +265,12 @@ insert into public.cliente_cadastro_operacional_sn
   -- MEI também aparece no resumo (#35 já cobre isso na busca) — mais um
   -- exemplo de "DAS emitidas".
   ('99ad8a31-1450-454f-8b5a-75c14fa77498', 'positivo', 'enviado', false, null);
+
+-- Atividade do mês corrente (ticket #37) pro gráfico "Atividade do mês" já
+-- nascer populado; flags independentes (um cliente pode ter mais de uma).
+insert into public.cliente_atividades_mensais (id, cliente_id, ano_mes, industria, comercio, servico) values
+  (gen_random_uuid(), '078a3aae-80fc-4df7-b113-657873d96176', date_trunc('month', current_date)::date, true, true, false),
+  (gen_random_uuid(), '9238058c-cc25-4300-890e-93ca86288d41', date_trunc('month', current_date)::date, true, false, false),
+  (gen_random_uuid(), '68195e6c-03f6-4b15-8362-171a98175e13', date_trunc('month', current_date)::date, false, false, true),
+  (gen_random_uuid(), '2d0b7e0a-f1f1-410f-bdbc-a16e34e4c215', date_trunc('month', current_date)::date, false, true, false),
+  (gen_random_uuid(), 'ef2c35e9-00b9-4fbc-8f8d-06b9d1aa20e8', date_trunc('month', current_date)::date, false, true, true);

@@ -117,9 +117,13 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
 
   async listarResumoOperacional(): Promise<Result<ResumoOperacionalRow[], AppError>> {
     // View `clientes_basico` (PR #69): o dashboard é de qualquer Funcionário do setor.
+    const anoMesAtual = primeiroDiaDoMesAtual();
     const { data, error } = await this.supabase
       .from("clientes_basico")
-      .select("id, empresa, cnpj, cliente_cadastro_operacional_sn(*)")
+      .select(
+        "id, empresa, cnpj, cliente_cadastro_operacional_sn(*), cliente_atividades_mensais(*)",
+      )
+      .eq("cliente_atividades_mensais.ano_mes", anoMesAtual)
       // Mesmo escopo da busca (#35): só Regime com cadastro operacional de
       // verdade (nasce automático só pra Simples Nacional/MEI, #34).
       .in("regime", ["simples_nacional", "mei"]);
@@ -130,6 +134,7 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
     return ok(
       linhas.map((linha) => {
         const operacional = operacionalUnico(linha.cliente_cadastro_operacional_sn);
+        const atividade = (linha.cliente_atividades_mensais ?? [])[0];
         return {
           clienteId: linha.id,
           empresa: linha.empresa,
@@ -138,6 +143,11 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
           dasStatus: operacional?.das_status ?? null,
           temParcelamento: operacional?.tem_parcelamento ?? false,
           parcelamentoStatus: operacional?.parcelamento_status ?? null,
+          atividadeMes: {
+            industria: atividade?.industria ?? false,
+            comercio: atividade?.comercio ?? false,
+            servico: atividade?.servico ?? false,
+          },
         };
       }),
     );

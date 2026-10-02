@@ -220,6 +220,45 @@ describe("SupabaseClienteQueryGateway.listarResumoOperacional (#36, integração
     });
   });
 
+  it("traz a atividade do mês corrente (e tudo false sem registro)", async () => {
+    const admin = await comoAdmin();
+    const comAtividade = await criarClienteComContratoSocial(
+      admin,
+      "Resumo Atividade Ltda",
+      cnpjUnico(),
+    );
+    const semAtividade = await criarClienteComContratoSocial(
+      admin,
+      "Resumo Sem Atividade Ltda",
+      cnpjUnico(),
+    );
+    const anoMes = `${new Date().toISOString().slice(0, 7)}-01`;
+    const { error } = await admin.from("cliente_atividades_mensais").insert({
+      id: crypto.randomUUID(),
+      cliente_id: comAtividade.id,
+      ano_mes: anoMes,
+      industria: true,
+      comercio: true,
+      servico: false,
+    });
+    expect(error).toBeNull();
+
+    const resultado = await new SupabaseClienteQueryGateway(admin).listarResumoOperacional();
+
+    expect(resultado.ok).toBe(true);
+    if (!resultado.ok) return;
+    expect(resultado.value.find((l) => l.clienteId === comAtividade.id)?.atividadeMes).toEqual({
+      industria: true,
+      comercio: true,
+      servico: false,
+    });
+    expect(resultado.value.find((l) => l.clienteId === semAtividade.id)?.atividadeMes).toEqual({
+      industria: false,
+      comercio: false,
+      servico: false,
+    });
+  });
+
   it("nunca traz Cliente de Lucro Presumido/Real", async () => {
     const admin = await comoAdmin();
     const empresa = "Padaria Resumo Presumido Ltda";

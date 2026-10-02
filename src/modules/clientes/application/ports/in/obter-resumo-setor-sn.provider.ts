@@ -12,4 +12,18 @@ export type CardResumoSnDto = {
   clientes: ClienteBucketDto[];
 };
 
-export type ResumoSetorSnDto = { totalClientes: number; cards: CardResumoSnDto[] };
+// Fatia de um gráfico comparativo (#37): id estável + rótulo pt-BR + contagem.
+export type FatiaComparativoDto = { id: string; rotulo: string; quantidade: number };
+
+export type ComparativosSnDto = {
+  das: FatiaComparativoDto[];
+  parcelamento: FatiaComparativoDto[];
+  atividade: FatiaComparativoDto[];
+  procuracao: FatiaComparativoDto[];
+};
+
+export type ResumoSetorSnDto = {
+  totalClientes: number;
+  cards: CardResumoSnDto[];
+  comparativos: ComparativosSnDto;
+};

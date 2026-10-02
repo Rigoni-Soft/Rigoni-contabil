@@ -39,6 +39,7 @@ describe("ObterResumoSetorSn", () => {
         dasStatus: "enviado",
         temParcelamento: false,
         parcelamentoStatus: null,
+        atividadeMes: { industria: true, comercio: false, servico: false },
       },
       {
         clienteId: "2",
@@ -48,6 +49,7 @@ describe("ObterResumoSetorSn", () => {
         dasStatus: null,
         temParcelamento: false,
         parcelamentoStatus: null,
+        atividadeMes: { industria: true, comercio: false, servico: false },
       },
     ];
 
@@ -57,6 +59,10 @@ describe("ObterResumoSetorSn", () => {
     if (!resultado.ok) return;
     expect(resultado.value.totalClientes).toBe(2);
     expect(resultado.value.cards).toHaveLength(9);
+    expect(resultado.value.comparativos.das.find((f) => f.id === "enviado")?.quantidade).toBe(1);
+    expect(
+      resultado.value.comparativos.atividade.find((f) => f.id === "industria")?.quantidade,
+    ).toBe(2);
     expect(resultado.value.cards.find((c) => c.id === "das_emitidas")?.quantidade).toBe(1);
     expect(resultado.value.cards.find((c) => c.id === "sem_documento")?.quantidade).toBe(1);
   });
