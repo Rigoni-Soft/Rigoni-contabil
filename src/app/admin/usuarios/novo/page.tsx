@@ -9,6 +9,7 @@ import { CriarUsuarioContainer } from "@/modules/usuarios/presentation/view-mode
 export default async function Page() {
   const sessao = await carregarSessao();
   if (!sessao) redirect("/login");
+  if (sessao.precisaTrocarSenha) redirect("/trocar-senha");
   if (sessao.papel !== "admin") redirect("/");
 
   return (

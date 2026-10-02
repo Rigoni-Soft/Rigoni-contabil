@@ -1,3 +1,7 @@
+import Link from "next/link";
+import { KeyRound } from "lucide-react";
+
+import { buttonVariants } from "@/presentation/components/ui/button";
 import { ThemeToggle } from "@/presentation/components/ui/theme-toggle";
 
 type ShellHeaderProps = {
@@ -35,6 +39,13 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
       </div>
 
       <div className="flex shrink-0 items-center gap-1">
+        {/* Único caminho de navegação até /trocar-senha fora do redirecionamento
+            obrigatório de senha provisória — sem isso a troca voluntária só era
+            alcançável digitando a URL direto (achado da revisão manual em 28/09/2026). */}
+        <Link href="/trocar-senha" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+          <KeyRound aria-hidden="true" />
+          Trocar senha
+        </Link>
         <ThemeToggle />
         {sair}
       </div>

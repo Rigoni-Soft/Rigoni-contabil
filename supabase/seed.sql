@@ -33,13 +33,16 @@ insert into auth.identities (
   now(), now(), now()
 );
 
-insert into public.perfis (id, nome, email, papel, setor)
+-- senha_trocada_em = now(): contas de seed já usam senha "definitiva" (não
+-- provisória) pros e2e existentes (#28/#29/#30) não caírem em /trocar-senha.
+insert into public.perfis (id, nome, email, papel, setor, senha_trocada_em)
 values (
   '11111111-1111-1111-1111-111111111111',
   'Admin de Teste',
   'admin@rigonicontabil.local',
   'admin',
-  'administrativo'
+  'administrativo',
+  now()
 );
 
 -- Funcionário Simples Nacional
@@ -70,13 +73,14 @@ insert into auth.identities (
   '22222222-2222-2222-2222-222222222222',
   now(), now(), now()
 );
-insert into public.perfis (id, nome, email, papel, setor)
+insert into public.perfis (id, nome, email, papel, setor, senha_trocada_em)
 values (
   '22222222-2222-2222-2222-222222222222',
   'Funcionário Simples Nacional',
   'funcionario.sn@rigonicontabil.local',
   'funcionario',
-  'simples_nacional'
+  'simples_nacional',
+  now()
 );
 
 -- Funcionário Financeiro
@@ -107,13 +111,14 @@ insert into auth.identities (
   '33333333-3333-3333-3333-333333333333',
   now(), now(), now()
 );
-insert into public.perfis (id, nome, email, papel, setor)
+insert into public.perfis (id, nome, email, papel, setor, senha_trocada_em)
 values (
   '33333333-3333-3333-3333-333333333333',
   'Funcionário Financeiro',
   'funcionario.financeiro@rigonicontabil.local',
   'funcionario',
-  'financeiro'
+  'financeiro',
+  now()
 );
 
 -- Segundo Funcionário Financeiro (mesmo setor do anterior) — prova a policy
@@ -145,13 +150,14 @@ insert into auth.identities (
   '55555555-5555-5555-5555-555555555555',
   now(), now(), now()
 );
-insert into public.perfis (id, nome, email, papel, setor)
+insert into public.perfis (id, nome, email, papel, setor, senha_trocada_em)
 values (
   '55555555-5555-5555-5555-555555555555',
   'Segundo Funcionário Financeiro',
   'funcionario2.financeiro@rigonicontabil.local',
   'funcionario',
-  'financeiro'
+  'financeiro',
+  now()
 );
 
 -- Líder Contábil
@@ -182,13 +188,14 @@ insert into auth.identities (
   '44444444-4444-4444-4444-444444444444',
   now(), now(), now()
 );
-insert into public.perfis (id, nome, email, papel, setor)
+insert into public.perfis (id, nome, email, papel, setor, senha_trocada_em)
 values (
   '44444444-4444-4444-4444-444444444444',
   'Líder Contábil',
   'lider.contabil@rigonicontabil.local',
   'lider_setor',
-  'contabil'
+  'contabil',
+  now()
 );
 
 -- Exemplos pro feed de auditoria (ticket #29): um sucesso e uma falha, pra exercitar

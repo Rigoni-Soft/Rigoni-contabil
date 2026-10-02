@@ -17,6 +17,19 @@ class AutenticacaoIndisponivelError extends AppError {
 // código (ou nenhum, típico de falha de rede) é tratado como falha técnica.
 const CODIGOS_CREDENCIAL_INVALIDA = new Set(["invalid_credentials"]);
 
+// Devolutiva técnica PR #62, bloqueio 1 (correção): o Auth rejeita updateUser()
+// com esse código tanto no reenvio legítimo (updateUser() já teve sucesso numa
+// tentativa anterior, só a finalização falhou) quanto no caso malicioso/
+// enganado (usuário manda a própria senha provisória como "nova senha"). Esse
+// gateway não sabe distinguir os dois — quem sabe é TrocarSenha.execute(), que
+// conhece precisaTrocarSenha() do perfil. Por isso o código vira um erro
+// próprio em vez de ok() cego; a decisão fica na camada de aplicação.
+const CODIGO_SENHA_JA_DEFINIDA = "same_password";
+
+export class SenhaJaDefinidaError extends AppError {
+  readonly code = "SENHA_JA_DEFINIDA";
+}
+
 export class SupabaseSessaoGateway implements SessaoPort {
   constructor(private readonly supabase: SupabaseClient) {}
 
@@ -51,5 +64,17 @@ export class SupabaseSessaoGateway implements SessaoPort {
       data: { user },
     } = await this.supabase.auth.getUser();
     return (user?.id as UsuarioId | undefined) ?? null;
+  }
+
+  async trocarSenha(novaSenha: string): Promise<Result<void, AppError>> {
+    const { error } = await this.supabase.auth.updateUser({ password: novaSenha });
+    if (error) {
+      if (error.code === CODIGO_SENHA_JA_DEFINIDA) {
+        return err(new SenhaJaDefinidaError("A nova senha é igual à senha atual."));
+      }
+      console.error("Falha técnica ao trocar senha no Supabase:", error.message);
+      return err(new AutenticacaoIndisponivelError("Não foi possível trocar a senha agora."));
+    }
+    return ok(undefined);
   }
 }

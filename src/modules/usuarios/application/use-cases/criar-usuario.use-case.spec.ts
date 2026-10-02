@@ -37,6 +37,9 @@ class SessaoFalsa implements SessaoPort {
   async usuarioAtualId(): Promise<UsuarioId | null> {
     return this.atorId;
   }
+  async trocarSenha(): Promise<Result<void, AppError>> {
+    return ok(undefined);
+  }
 }
 
 class UsuarioRepositoryFalso implements UsuarioRepository {
@@ -52,6 +55,9 @@ class UsuarioRepositoryFalso implements UsuarioRepository {
   async criar(usuario: Usuario): Promise<Result<void, AppError>> {
     if (this.erroAoCriar) return err(new ValidationError("falha ao salvar"));
     this.criado = usuario;
+    return ok(undefined);
+  }
+  async marcarSenhaTrocada(): Promise<Result<void, AppError>> {
     return ok(undefined);
   }
 }

@@ -11,6 +11,7 @@ import {
 export default async function Home() {
   const sessao = await carregarSessao();
   if (!sessao) redirect("/login");
+  if (sessao.precisaTrocarSenha) redirect("/trocar-senha");
 
   const setores = await carregarSetoresDaNavegacao();
 

@@ -9,6 +9,9 @@ export const perfilRowSchema = z.object({
   email: z.string(),
   papel: z.enum(PAPEIS),
   setor: z.enum(SETORES),
+  senha_trocada_em: z.string().nullable(),
+  senha_auth_alterada_em: z.string().nullable(),
+  senha_provisoria_expira_em: z.string(),
 });
 
 export type PerfilRowDto = z.infer<typeof perfilRowSchema>;

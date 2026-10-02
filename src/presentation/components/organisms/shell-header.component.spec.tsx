@@ -42,4 +42,20 @@ describe("ShellHeader", () => {
 
     expect(screen.getByRole("button", { name: "Sair" })).toBeInTheDocument();
   });
+
+  it("tem um link pra trocar senha voluntariamente (único caminho de navegação até lá)", () => {
+    render(
+      <ShellHeader
+        nome="Jéssica"
+        papel="funcionario"
+        setor="simples_nacional"
+        sair={<button>Sair</button>}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: /trocar senha/i })).toHaveAttribute(
+      "href",
+      "/trocar-senha",
+    );
+  });
 });

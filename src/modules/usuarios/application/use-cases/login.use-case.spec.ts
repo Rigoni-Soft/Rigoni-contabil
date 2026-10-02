@@ -38,6 +38,9 @@ class SessaoFalsa implements SessaoPort {
   async usuarioAtualId(): Promise<UsuarioId | null> {
     return this.idAposLogin;
   }
+  async trocarSenha(): Promise<Result<void, AppError>> {
+    return ok(undefined);
+  }
 }
 
 class UsuarioRepositoryFalso implements UsuarioRepository {
@@ -49,6 +52,23 @@ class UsuarioRepositoryFalso implements UsuarioRepository {
   async criar(): Promise<Result<void, AppError>> {
     return ok(undefined);
   }
+  async marcarSenhaTrocada(): Promise<Result<void, AppError>> {
+    return ok(undefined);
+  }
+}
+
+function usuarioComSenhaProvisoria(id: string, expiraEm: Date): Usuario {
+  const resultado = Usuario.builder()
+    .comId(id)
+    .comNome("Admin")
+    .comEmail("admin@rigonicontabil.local")
+    .comPapel("admin")
+    .comSetor("administrativo")
+    .comSenhaTrocadaEm(null)
+    .comSenhaProvisoriaExpiraEm(expiraEm.toISOString())
+    .build();
+  if (!resultado.ok) throw new Error("setup inválido");
+  return resultado.value;
 }
 
 describe("Login", () => {
@@ -159,5 +179,41 @@ describe("Login", () => {
     });
 
     expect(sessao.encerrada).toBe(false);
+  });
+
+  it("bloqueia e encerra a sessão quando a senha provisória está vencida", async () => {
+    const sessao = new SessaoFalsa();
+    const repositorio = new UsuarioRepositoryFalso();
+    const vencida = new Date(Date.now() - 1000);
+    repositorio.usuario = usuarioComSenhaProvisoria(
+      "11111111-1111-1111-1111-111111111111",
+      vencida,
+    );
+
+    const resultado = await new Login(sessao, repositorio).execute({
+      email: "admin@rigonicontabil.local",
+      senha: "admin123",
+    });
+
+    expect(resultado.ok).toBe(false);
+    expect(sessao.encerrada).toBe(true);
+  });
+
+  it("autentica normalmente quando a senha provisória ainda não venceu", async () => {
+    const sessao = new SessaoFalsa();
+    const repositorio = new UsuarioRepositoryFalso();
+    const noPrazo = new Date(Date.now() + 1000 * 60 * 60);
+    repositorio.usuario = usuarioComSenhaProvisoria(
+      "11111111-1111-1111-1111-111111111111",
+      noPrazo,
+    );
+
+    const resultado = await new Login(sessao, repositorio).execute({
+      email: "admin@rigonicontabil.local",
+      senha: "admin123",
+    });
+
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) expect(resultado.value.precisaTrocarSenha).toBe(true);
   });
 });

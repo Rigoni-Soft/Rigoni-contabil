@@ -14,7 +14,12 @@ export type UsuarioRestaurar = {
   email: string;
   papel: string;
   setor: string;
+  senhaTrocadaEm: string | null;
+  senhaAuthAlteradaEm?: string | null;
+  senhaProvisoriaExpiraEm: string;
 };
+
+const HORAS_VALIDADE_SENHA_PROVISORIA = 48;
 
 export class UsuarioBuilder {
   private id?: UsuarioId;
@@ -22,6 +27,9 @@ export class UsuarioBuilder {
   private email?: string;
   private papel?: Papel;
   private setor?: Setor;
+  private senhaTrocadaEm: Date | null = null;
+  private senhaAuthAlteradaEm: Date | null = null;
+  private senhaProvisoriaExpiraEm?: Date;
   private readonly camposInvalidos: Record<string, string[]> = {};
 
   constructor(private readonly criar: (props: UsuarioProps) => Usuario) {}
@@ -57,12 +65,30 @@ export class UsuarioBuilder {
     return this;
   }
 
+  comSenhaTrocadaEm(data: string | null): this {
+    this.senhaTrocadaEm = data ? new Date(data) : null;
+    return this;
+  }
+
+  comSenhaAuthAlteradaEm(data: string | null): this {
+    this.senhaAuthAlteradaEm = data ? new Date(data) : null;
+    return this;
+  }
+
+  comSenhaProvisoriaExpiraEm(data: string): this {
+    this.senhaProvisoriaExpiraEm = new Date(data);
+    return this;
+  }
+
   restaurar(dados: UsuarioRestaurar): this {
     return this.comId(dados.id)
       .comNome(dados.nome)
       .comEmail(dados.email)
       .comPapel(dados.papel)
-      .comSetor(dados.setor);
+      .comSetor(dados.setor)
+      .comSenhaTrocadaEm(dados.senhaTrocadaEm)
+      .comSenhaAuthAlteradaEm(dados.senhaAuthAlteradaEm ?? null)
+      .comSenhaProvisoriaExpiraEm(dados.senhaProvisoriaExpiraEm);
   }
 
   build(): Result<Usuario, ValidationError> {
@@ -91,6 +117,13 @@ export class UsuarioBuilder {
         email: this.email!,
         papel: this.papel!,
         setor: this.setor!,
+        senhaTrocadaEm: this.senhaTrocadaEm,
+        senhaAuthAlteradaEm: this.senhaAuthAlteradaEm,
+        // Cadastro novo (#30) não chama comSenhaProvisoriaExpiraEm: default aqui
+        // espelha o default da coluna na migration do #31.
+        senhaProvisoriaExpiraEm:
+          this.senhaProvisoriaExpiraEm ??
+          new Date(Date.now() + HORAS_VALIDADE_SENHA_PROVISORIA * 60 * 60 * 1000),
       }),
     );
   }

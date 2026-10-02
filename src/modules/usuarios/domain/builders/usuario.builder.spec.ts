@@ -70,9 +70,32 @@ describe("UsuarioBuilder", () => {
         email: "admin@rigonicontabil.local",
         papel: "admin",
         setor: "administrativo",
+        senhaTrocadaEm: "2026-01-01T00:00:00.000Z",
+        senhaProvisoriaExpiraEm: "2026-01-03T00:00:00.000Z",
       })
       .build();
 
     expect(resultado.ok).toBe(true);
+    if (resultado.ok) expect(resultado.value.precisaTrocarSenha()).toBe(false);
+  });
+
+  it("sem comSenhaProvisoriaExpiraEm, um cadastro novo (#30) recebe 48h de validade por padrão", () => {
+    const antes = Date.now();
+    const resultado = Usuario.builder()
+      .comId("11111111-1111-1111-1111-111111111111")
+      .comNome("Jéssica Souza")
+      .comEmail("jessica@rigonicontabil.local")
+      .comPapel("funcionario")
+      .comSetor("simples_nacional")
+      .build();
+
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) {
+      expect(resultado.value.precisaTrocarSenha()).toBe(true);
+      expect(resultado.value.senhaProvisoriaVencida(new Date())).toBe(false);
+      expect(resultado.value.senhaProvisoriaVencida(new Date(antes + 49 * 60 * 60 * 1000))).toBe(
+        true,
+      );
+    }
   });
 });

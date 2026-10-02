@@ -8,5 +8,6 @@ export function usuarioParaDto(usuario: Usuario): UsuarioDto {
     email: usuario.email,
     papel: usuario.papel.valor,
     setor: usuario.setor.slug,
+    precisaTrocarSenha: usuario.precisaTrocarSenha(),
   };
 }
