@@ -10,6 +10,7 @@ import { Select } from "@/presentation/components/ui/select";
 import { cn } from "@/presentation/lib/utils";
 import { opcaoUnica } from "@/shared/kernel/opcoes";
 import { PAPEL_LABEL, type PapelCadastravel } from "@/shared/kernel/papeis";
+import { SETOR_LABEL } from "@/shared/kernel/setores";
 
 export type CriarUsuarioFormValues = {
   nome: string;
@@ -140,7 +141,7 @@ export function CriarUsuarioForm({
             )}
             {setoresDisponiveis.map((setor) => (
               <option key={setor} value={setor}>
-                {setor}
+                {SETOR_LABEL[setor] ?? setor}
               </option>
             ))}
           </Select>

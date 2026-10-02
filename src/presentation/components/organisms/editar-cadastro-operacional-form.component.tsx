@@ -21,6 +21,7 @@ import {
   PARCELAMENTO_STATUSES,
   type ParcelamentoStatusValor,
 } from "@/shared/kernel/parcelamento-status";
+import { REGIME_LABEL } from "@/shared/kernel/regimes";
 
 // View global não importa módulos (arquitetura.md §3.4) — o shape espelha
 // EditarCadastroOperacionalFormValues (módulo clientes) por estrutura, não
@@ -101,7 +102,7 @@ export function EditarCadastroOperacionalForm({
         </div>
         <div className="space-y-1">
           <Label>Regime</Label>
-          <Input value={cabecalho.regime} disabled readOnly />
+          <Input value={REGIME_LABEL[cabecalho.regime] ?? cabecalho.regime} disabled readOnly />
         </div>
       </fieldset>
 

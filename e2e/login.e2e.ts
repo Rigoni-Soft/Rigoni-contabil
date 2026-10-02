@@ -65,7 +65,7 @@ test.describe("Login e shell autenticado", () => {
     // Simples Nacional é a página principal do próprio setor (#36, feedback
     // de teste manual) — login cai direto lá, não em "/".
     await expect(page).toHaveURL("/simples-nacional");
-    await expect(page.getByText(/Setor: simples_nacional/)).toBeVisible();
+    await expect(page.getByText(/Setor: Simples Nacional/)).toBeVisible();
 
     const nav = page.getByRole("navigation", { name: "Setores" });
     await expect(nav.getByText("Simples Nacional")).toBeVisible();
@@ -79,7 +79,7 @@ test.describe("Login e shell autenticado", () => {
     await login(page, "lider.contabil@rigonicontabil.local", "lider123");
 
     await expect(page).toHaveURL("/");
-    await expect(page.getByText(/Setor: contabil/)).toBeVisible();
+    await expect(page.getByText(/Setor: Contábil/)).toBeVisible();
 
     const nav = page.getByRole("navigation", { name: "Setores" });
     await expect(nav.getByText("Contábil")).toBeVisible();

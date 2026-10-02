@@ -1,24 +1,10 @@
 import Link from "next/link";
 
+import { SETOR_LABEL } from "@/shared/kernel/setores";
+
 type SetorNav = { slug: string };
 
 type ShellNavProps = { setores: SetorNav[] };
-
-// Record<string, ...> solto (não Record<SetorSlug, ...>) de propósito: `setor.slug`
-// vem de um Output DTO (string crua), então indexar com SetorSlug exigiria um cast
-// no ponto de leitura sem ganho real — a exaustividade já é garantida no validador
-// de domínio (shared/kernel/setores.ts), não precisa duplicar aqui.
-const SETOR_LABEL: Record<string, string> = {
-  rh: "RH",
-  tributario: "Tributário",
-  simples_nacional: "Simples Nacional",
-  contabil: "Contábil",
-  societario: "Societário",
-  condominios: "Condomínios",
-  financeiro: "Financeiro",
-  administrativo: "Administrativo",
-  recepcao: "Recepção",
-};
 
 // Única aba com tela de verdade por trás (#36) — as demais seguem como
 // placeholder desabilitado até ganharem painel próprio.

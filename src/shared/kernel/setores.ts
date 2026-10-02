@@ -21,3 +21,16 @@ export const SETORES = [
   "recepcao",
 ] as const;
 export type SetorSlug = (typeof SETORES)[number];
+
+// Rótulos de exibição dos Setores — os slugs são identificadores do banco, nunca texto de UI.
+export const SETOR_LABEL: Record<string, string> = {
+  rh: "RH",
+  tributario: "Tributário",
+  simples_nacional: "Simples Nacional",
+  contabil: "Contábil",
+  societario: "Societário",
+  condominios: "Condomínios",
+  financeiro: "Financeiro",
+  administrativo: "Administrativo",
+  recepcao: "Recepção",
+};
