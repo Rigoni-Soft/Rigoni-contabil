@@ -500,6 +500,23 @@ affordance textual de navegação (não ícone sozinho). Cada linha leva pra
 `?voltarPara=` apontando de volta pra própria lista — "Voltar" na
 tela de edição retorna pro bucket, não pro resumo geral.
 
+**Comparativos (`ComparativosSn`, #37):** seção abaixo do resumo do setor,
+grid `md:grid-cols-2 lg:grid-cols-3`; cada gráfico é um cartão
+`rounded-xl border bg-card` (mesma superfície dos cards do resumo, sem
+guilhochê) com `role="group"` + título. DAS e parcelamento são donuts SVG
+(sem biblioteca de gráfico, anel de fundo `stroke-border`); Atividade do mês
+é lista de barras proporcionais ao total de clientes e ocupa a largura toda
+no tablet (`md:col-span-2`). Só tokens existentes: `primary` (enviado/
+vigente), `destructive` (pendente/vencida), `success` (pronto),
+`muted-foreground` (sem movimento/interno/ausente). A cor nunca é o único
+canal: toda fatia tem legenda com rótulo e número. Sem barra de procuração
+eletrônica — não há dado de procuração no banco (decisão do usuário,
+virará issue própria).
+
+**Rótulos de Setor/Regime:** slugs do banco nunca aparecem como texto de UI;
+usar `SETOR_LABEL` (`shared/kernel/setores.ts`) e `REGIME_LABEL`.
+`ThemeToggle` mostra o ícone do tema de destino (sol no dark, lua no light).
+
 ## Estados e motion
 
 - Loading do formulário de login: label muda para "Entrando…" e um
