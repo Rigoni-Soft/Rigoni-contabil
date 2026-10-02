@@ -9,13 +9,10 @@ type Props = {
 // A cor nunca é o único canal: toda fatia aparece na legenda com rótulo e número.
 const COR_POR_ID: Record<string, { fundo: string; traco: string }> = {
   enviado: { fundo: "bg-primary", traco: "stroke-primary" },
-  vigente: { fundo: "bg-primary", traco: "stroke-primary" },
   pendente: { fundo: "bg-destructive", traco: "stroke-destructive" },
-  vencida: { fundo: "bg-destructive", traco: "stroke-destructive" },
   pronto: { fundo: "bg-success", traco: "stroke-success" },
   sem_movimento: { fundo: "bg-muted-foreground", traco: "stroke-muted-foreground" },
   interno: { fundo: "bg-muted-foreground", traco: "stroke-muted-foreground" },
-  ausente: { fundo: "bg-muted-foreground", traco: "stroke-muted-foreground" },
 };
 const COR_PADRAO = { fundo: "bg-primary", traco: "stroke-primary" };
 const cor = (id: string) => COR_POR_ID[id] ?? COR_PADRAO;

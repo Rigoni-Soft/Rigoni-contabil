@@ -506,12 +506,10 @@ grid `md:grid-cols-2 lg:grid-cols-3`; cada gráfico é um cartão
 guilhochê) com `role="group"` + título. DAS e parcelamento são donuts SVG
 (sem biblioteca de gráfico, anel de fundo `stroke-border`); Atividade do mês
 é lista de barras proporcionais ao total de clientes e ocupa a largura toda
-no tablet (`md:col-span-2`). Só tokens existentes: `primary` (enviado/
-vigente), `destructive` (pendente/vencida), `success` (pronto),
-`muted-foreground` (sem movimento/interno/ausente). A cor nunca é o único
-canal: toda fatia tem legenda com rótulo e número. Sem barra de procuração
-eletrônica — não há dado de procuração no banco (decisão do usuário,
-virará issue própria).
+no tablet (`md:col-span-2`). Só tokens existentes: `primary` (enviado),
+`destructive` (pendente), `success` (pronto), `muted-foreground` (sem
+movimento/interno). A cor nunca é o único
+canal: toda fatia tem legenda com rótulo e número.
 
 **Rótulos de Setor/Regime:** slugs do banco nunca aparecem como texto de UI;
 usar `SETOR_LABEL` (`shared/kernel/setores.ts`) e `REGIME_LABEL`.
