@@ -6,7 +6,7 @@ import { criarClienteComoAdmin } from "./support/criar-cliente";
 // gráficos aparecem no dashboard do SN com dados reais. Cliente novo nasce com
 // DAS "pendente" (#34), então a contagem do DAS sobe sem depender de edição.
 test.describe("Comparativos do dashboard (#37)", () => {
-  test("o dashboard do SN mostra os 4 gráficos comparativos", async ({ page }) => {
+  test("o dashboard do SN mostra os 3 gráficos comparativos", async ({ page }) => {
     await criarClienteComoAdmin(page, "Comparativos E2E Ltda");
 
     await page.goto("/");
@@ -19,7 +19,5 @@ test.describe("Comparativos do dashboard (#37)", () => {
     await expect(das.getByText("Pendente")).toBeVisible();
     await expect(page.getByRole("group", { name: "Status do parcelamento" })).toBeVisible();
     await expect(page.getByRole("group", { name: "Atividade do mês" })).toBeVisible();
-    const procuracao = page.getByRole("group", { name: "Procuração eletrônica" });
-    await expect(procuracao.getByText("Ausente")).toBeVisible();
   });
 });

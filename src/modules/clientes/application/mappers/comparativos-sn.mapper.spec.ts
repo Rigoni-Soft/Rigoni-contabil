@@ -26,12 +26,9 @@ describe("calcularComparativosSn", () => {
     expect(c.das.map((f) => f.id)).toEqual(["enviado", "pendente", "sem_movimento", "pronto"]);
     expect(c.parcelamento.map((f) => f.id)).toEqual(["enviado", "pendente", "interno"]);
     expect(c.atividade.map((f) => f.id)).toEqual(["industria", "comercio", "servico"]);
-    expect(c.procuracao.map((f) => f.id)).toEqual(["vigente", "vencida", "ausente"]);
-    expect(
-      [...c.das, ...c.parcelamento, ...c.atividade, ...c.procuracao].every(
-        (f) => f.quantidade === 0,
-      ),
-    ).toBe(true);
+    expect([...c.das, ...c.parcelamento, ...c.atividade].every((f) => f.quantidade === 0)).toBe(
+      true,
+    );
   });
 
   it("conta o status bruto do DAS (sem os buckets compostos dos cards) e ignora nulo", () => {
@@ -63,11 +60,5 @@ describe("calcularComparativosSn", () => {
     ]);
 
     expect(qtd(c.atividade)).toEqual({ industria: 1, comercio: 2, servico: 1 });
-  });
-
-  it("procuração é placeholder: todos ausentes até o #12", () => {
-    const c = calcularComparativosSn([linha(), linha(), linha()]);
-
-    expect(qtd(c.procuracao)).toEqual({ vigente: 0, vencida: 0, ausente: 3 });
   });
 });

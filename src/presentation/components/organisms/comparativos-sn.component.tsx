@@ -1,7 +1,7 @@
 // Tipo estrutural local (view burra, arquitetura.md §3.4).
 type Fatia = { id: string; rotulo: string; quantidade: number };
 type Props = {
-  comparativos: { das: Fatia[]; parcelamento: Fatia[]; atividade: Fatia[]; procuracao: Fatia[] };
+  comparativos: { das: Fatia[]; parcelamento: Fatia[]; atividade: Fatia[] };
   totalClientes: number;
 };
 
@@ -130,21 +130,6 @@ function Barras({
   );
 }
 
-function BarraSegmentada({ titulo, fatias }: { titulo: string; fatias: Fatia[] }) {
-  return (
-    <Grafico titulo={titulo}>
-      <div aria-hidden className="flex h-4 overflow-hidden rounded-full bg-border">
-        {fatias
-          .filter((f) => f.quantidade > 0)
-          .map((f) => (
-            <div key={f.id} className={cor(f.id).fundo} style={{ flexGrow: f.quantidade }} />
-          ))}
-      </div>
-      <Legenda fatias={fatias} />
-    </Grafico>
-  );
-}
-
 export function ComparativosSn({ comparativos, totalClientes }: Props) {
   return (
     <section aria-labelledby="comparativos-titulo" className="space-y-4">
@@ -159,7 +144,6 @@ export function ComparativosSn({ comparativos, totalClientes }: Props) {
           fatias={comparativos.atividade}
           totalClientes={totalClientes}
         />
-        <BarraSegmentada titulo="Procuração eletrônica" fatias={comparativos.procuracao} />
       </div>
     </section>
   );

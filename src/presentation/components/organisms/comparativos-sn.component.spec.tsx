@@ -19,15 +19,10 @@ const DADOS = {
     { id: "comercio", rotulo: "Comércio", quantidade: 5 },
     { id: "servico", rotulo: "Serviço", quantidade: 3 },
   ],
-  procuracao: [
-    { id: "vigente", rotulo: "Vigente", quantidade: 0 },
-    { id: "vencida", rotulo: "Vencida", quantidade: 0 },
-    { id: "ausente", rotulo: "Ausente", quantidade: 8 },
-  ],
 };
 
 describe("ComparativosSn", () => {
-  it("mostra os 4 gráficos com título e a contagem de cada fatia em texto", () => {
+  it("mostra os 3 gráficos com título e a contagem de cada fatia em texto", () => {
     render(<ComparativosSn comparativos={DADOS} totalClientes={8} />);
 
     expect(screen.getByRole("heading", { name: "Comparativos" })).toBeInTheDocument();
@@ -39,9 +34,6 @@ describe("ComparativosSn", () => {
     const ativ = screen.getByRole("group", { name: "Atividade do mês" });
     expect(within(ativ).getByText("Comércio")).toBeInTheDocument();
     expect(within(ativ).getByText("5")).toBeInTheDocument();
-    const proc = screen.getByRole("group", { name: "Procuração eletrônica" });
-    expect(within(proc).getByText("Ausente")).toBeInTheDocument();
-    expect(within(proc).getByText("8")).toBeInTheDocument();
   });
 
   it("não quebra com todas as contagens zeradas", () => {

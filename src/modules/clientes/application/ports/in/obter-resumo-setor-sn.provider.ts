@@ -19,7 +19,6 @@ export type ComparativosSnDto = {
   das: FatiaComparativoDto[];
   parcelamento: FatiaComparativoDto[];
   atividade: FatiaComparativoDto[];
-  procuracao: FatiaComparativoDto[];
 };
 
 export type ResumoSetorSnDto = {

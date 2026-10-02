@@ -44,15 +44,5 @@ export function calcularComparativosSn(linhas: ResumoOperacionalRow[]) {
       ],
       atividades,
     ),
-    // ponytail: procuração e-CAC só existe a partir do #12; até lá todo
-    // cliente é "ausente". Trocar por contagem real quando o dado existir.
-    procuracao: contar(
-      [
-        ["vigente", "Vigente"],
-        ["vencida", "Vencida"],
-        ["ausente", "Ausente"],
-      ],
-      linhas.map(() => "ausente"),
-    ),
   };
 }
