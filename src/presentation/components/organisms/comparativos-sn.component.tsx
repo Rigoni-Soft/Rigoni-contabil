@@ -37,12 +37,20 @@ function Legenda({ fatias }: { fatias: Fatia[] }) {
   );
 }
 
-function Grafico({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+function Grafico({
+  titulo,
+  className = "",
+  children,
+}: {
+  titulo: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div
       role="group"
       aria-label={titulo}
-      className="space-y-3 rounded-xl border border-border bg-card p-4 shadow-sm"
+      className={`space-y-3 rounded-xl border border-border bg-card p-4 shadow-sm ${className}`}
     >
       <p className="text-sm font-bold tracking-wide text-foreground uppercase">{titulo}</p>
       {children}
@@ -101,7 +109,7 @@ function Barras({
   totalClientes: number;
 }) {
   return (
-    <Grafico titulo={titulo}>
+    <Grafico titulo={titulo} className="md:col-span-2 lg:col-span-1">
       <ul className="space-y-3">
         {fatias.map((f) => {
           const pct = totalClientes === 0 ? 0 : Math.min(100, (f.quantidade / totalClientes) * 100);
@@ -136,7 +144,7 @@ export function ComparativosSn({ comparativos, totalClientes }: Props) {
       <h2 id="comparativos-titulo" className="text-xl font-bold text-foreground">
         Comparativos
       </h2>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Donut titulo="Status do DAS" fatias={comparativos.das} />
         <Donut titulo="Status do parcelamento" fatias={comparativos.parcelamento} />
         <Barras
