@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { criarClienteComoAdmin } from "./support/criar-cliente";
 
-// Cobre o cenário principal do ticket #37 (Dashboard — Comparativos): os 4
+// Cobre o cenário principal do ticket #37 (Dashboard — Comparativos): os 3
 // gráficos aparecem no dashboard do SN com dados reais. Cliente novo nasce com
 // DAS "pendente" (#34), então a contagem do DAS sobe sem depender de edição.
 test.describe("Comparativos do dashboard (#37)", () => {
