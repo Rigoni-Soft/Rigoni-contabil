@@ -16,16 +16,27 @@ const resultado = z
     OBRIGACOES_FISCAIS_URL: z.url().default("http://127.0.0.1:4010"),
     // Adapter de mensageria (docs/contratos/mensageria.md): falso por padrão.
     MENSAGERIA_MODO: z.enum(["falso", "real"]).default("falso"),
+    // Segredos do webhook (assinatura HMAC e handshake de verificação). Valores
+    // falsos de dev; em produção vêm do painel do provedor.
+    MENSAGERIA_SEGREDO_ASSINATURA: z.string().min(1).default("segredo-falso"),
+    MENSAGERIA_TOKEN_VERIFICACAO: z.string().min(1).default("token-falso"),
   })
   .safeParse({
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     OBRIGACOES_FISCAIS_URL: process.env.OBRIGACOES_FISCAIS_URL || undefined,
     MENSAGERIA_MODO: process.env.MENSAGERIA_MODO || undefined,
+    MENSAGERIA_SEGREDO_ASSINATURA: process.env.MENSAGERIA_SEGREDO_ASSINATURA || undefined,
+    MENSAGERIA_TOKEN_VERIFICACAO: process.env.MENSAGERIA_TOKEN_VERIFICACAO || undefined,
   });
 
 if (!resultado.success) {
   throw new Error(`Variáveis de ambiente inválidas:\n${z.prettifyError(resultado.error)}`);
 }
 
-export const { SUPABASE_SERVICE_ROLE_KEY, OBRIGACOES_FISCAIS_URL, MENSAGERIA_MODO } =
-  resultado.data;
+export const {
+  SUPABASE_SERVICE_ROLE_KEY,
+  OBRIGACOES_FISCAIS_URL,
+  MENSAGERIA_MODO,
+  MENSAGERIA_SEGREDO_ASSINATURA,
+  MENSAGERIA_TOKEN_VERIFICACAO,
+} = resultado.data;
