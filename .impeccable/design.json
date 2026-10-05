@@ -7,272 +7,92 @@
       "background": {
         "role": "neutral",
         "displayName": "Papel Grafite (tema escuro)",
-        "canonical": "#23221f",
-        "tonalRamp": [
-          "#0c0b09",
-          "#262522",
-          "#43423f",
-          "#62615e",
-          "#83827e",
-          "#a6a5a1",
-          "#cac9c5",
-          "#f0eeea"
-        ]
+        "canonical": "#23221f"
       },
       "foreground": {
         "role": "neutral",
         "displayName": "Tinta Creme (tema escuro)",
-        "canonical": "#ece7d8",
-        "tonalRamp": [
-          "#0e0b03",
-          "#29251a",
-          "#464236",
-          "#656154",
-          "#878275",
-          "#aaa597",
-          "#cec9ba",
-          "#f3eedf"
-        ]
+        "canonical": "#ece7d8"
       },
       "card": {
         "role": "neutral",
         "displayName": "Superfície Elevada (tema escuro)",
-        "canonical": "#2c2a26",
-        "tonalRamp": [
-          "#0d0b08",
-          "#272521",
-          "#44423d",
-          "#63615c",
-          "#84827d",
-          "#a7a5a0",
-          "#cbc9c4",
-          "#f1eee9"
-        ]
+        "canonical": "#2c2a26"
       },
       "primary": {
         "role": "primary",
         "displayName": "Verde-Cheque (tema escuro)",
-        "canonical": "#54a292",
-        "tonalRamp": [
-          "#00140c",
-          "#003125",
-          "#005042",
-          "#1b7062",
-          "#449283",
-          "#68b6a6",
-          "#8ddbca",
-          "#b2ffef"
-        ]
+        "canonical": "#54a292"
       },
       "primary-foreground": {
         "role": "primary",
         "displayName": "Tinta Sobre Verde (tema escuro)",
-        "canonical": "#0a1613",
-        "tonalRamp": [
-          "#040e0b",
-          "#1c2825",
-          "#384542",
-          "#576561",
-          "#778682",
-          "#9aa9a5",
-          "#bdcdc9",
-          "#e2f3ee"
-        ]
+        "canonical": "#0a1613"
       },
       "muted-foreground": {
         "role": "neutral",
         "displayName": "Cinza Secundário (tema escuro)",
-        "canonical": "#a6b3ab",
-        "tonalRamp": [
-          "#050e08",
-          "#1e2822",
-          "#3a453e",
-          "#59655d",
-          "#7a867e",
-          "#9ca9a1",
-          "#c0cdc5",
-          "#e5f2ea"
-        ]
+        "canonical": "#a6b3ab"
       },
       "destructive": {
         "role": "secondary",
         "displayName": "Tinta de Atenção (tema escuro)",
-        "canonical": "#e0968c",
-        "tonalRamp": [
-          "#260000",
-          "#480b08",
-          "#6a2c25",
-          "#8e4b44",
-          "#b36d64",
-          "#d88f85",
-          "#ffb3a8",
-          "#ffd8cd"
-        ]
+        "canonical": "#e0968c"
       },
       "success": {
         "role": "tertiary",
         "displayName": "Selo Dourado (tema escuro)",
-        "canonical": "#d9bd7c",
-        "tonalRamp": [
-          "#1a0500",
-          "#372000",
-          "#563e00",
-          "#775d19",
-          "#997f3f",
-          "#bda261",
-          "#e2c685",
-          "#ffeba9"
-        ]
+        "canonical": "#d9bd7c"
       },
       "border": {
         "role": "neutral",
         "displayName": "Contorno (tema escuro)",
-        "canonical": "#47453e",
-        "tonalRamp": [
-          "#0d0b06",
-          "#27251f",
-          "#44423b",
-          "#63615a",
-          "#84827b",
-          "#a7a59d",
-          "#cbc9c1",
-          "#f1eee6"
-        ]
+        "canonical": "#47453e"
       },
       "background-light": {
         "role": "neutral",
         "displayName": "Papel de Segurança (tema claro)",
-        "canonical": "#f4f1e8",
-        "tonalRamp": [
-          "#0d0b06",
-          "#27251e",
-          "#44423b",
-          "#646159",
-          "#85827a",
-          "#a8a59c",
-          "#ccc9c0",
-          "#f1eee5"
-        ]
+        "canonical": "#f4f1e8"
       },
       "foreground-light": {
         "role": "neutral",
         "displayName": "Tinta Verde-Escura (tema claro)",
-        "canonical": "#16231f",
-        "tonalRamp": [
-          "#030e0a",
-          "#1b2824",
-          "#384641",
-          "#566560",
-          "#778681",
-          "#99a9a4",
-          "#bdcec8",
-          "#e2f3ed"
-        ]
+        "canonical": "#16231f"
       },
       "card-light": {
         "role": "neutral",
         "displayName": "Papel Claro (tema claro)",
-        "canonical": "#faf8f1",
-        "tonalRamp": [
-          "#0c0b07",
-          "#262520",
-          "#44423c",
-          "#63615b",
-          "#84827c",
-          "#a7a59e",
-          "#cbc9c2",
-          "#f0eee7"
-        ]
+        "canonical": "#faf8f1"
       },
       "primary-light": {
         "role": "primary",
         "displayName": "Verde-Cheque Profundo (tema claro)",
-        "canonical": "#0d3b36",
-        "tonalRamp": [
-          "#00110e",
-          "#002d28",
-          "#1f4b45",
-          "#3f6b65",
-          "#608c86",
-          "#82b0a9",
-          "#a6d4cd",
-          "#cbfaf2"
-        ]
+        "canonical": "#0d3b36"
       },
       "primary-foreground-light": {
         "role": "primary",
         "displayName": "Papel Sobre Verde (tema claro)",
-        "canonical": "#f4f1e8",
-        "tonalRamp": [
-          "#0d0b06",
-          "#27251e",
-          "#44423b",
-          "#646159",
-          "#85827a",
-          "#a8a59c",
-          "#ccc9c0",
-          "#f1eee5"
-        ]
+        "canonical": "#f4f1e8"
       },
       "muted-foreground-light": {
         "role": "neutral",
         "displayName": "Cinza Quente (tema claro)",
-        "canonical": "#6b6555",
-        "tonalRamp": [
-          "#0f0b01",
-          "#2a2517",
-          "#474233",
-          "#676151",
-          "#888271",
-          "#aba593",
-          "#cfc9b7",
-          "#f5eedc"
-        ]
+        "canonical": "#6b6555"
       },
       "destructive-light": {
         "role": "secondary",
         "displayName": "Vinho de Atenção (tema claro)",
-        "canonical": "#7a2b2b",
-        "tonalRamp": [
-          "#2b0000",
-          "#4e0007",
-          "#712324",
-          "#964442",
-          "#bc6662",
-          "#e28884",
-          "#ffaca7",
-          "#ffd1cb"
-        ]
+        "canonical": "#7a2b2b"
       },
       "success-light": {
         "role": "tertiary",
         "displayName": "Selo Dourado Fosco (tema claro)",
-        "canonical": "#96742f",
-        "tonalRamp": [
-          "#1d0200",
-          "#3b1d00",
-          "#5b3b00",
-          "#7c5b0f",
-          "#9f7c38",
-          "#c39f5c",
-          "#e8c47f",
-          "#ffe9a4"
-        ]
+        "canonical": "#96742f"
       },
       "border-light": {
         "role": "neutral",
         "displayName": "Contorno de Papel (tema claro)",
-        "canonical": "#ddd6c0",
-        "tonalRamp": [
-          "#100b00",
-          "#2a2513",
-          "#48422f",
-          "#67614e",
-          "#89826e",
-          "#aca590",
-          "#d0c9b3",
-          "#f6eed8"
-        ]
+        "canonical": "#ddd6c0"
       }
     },
     "typographyMeta": {
