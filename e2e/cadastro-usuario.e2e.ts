@@ -109,7 +109,7 @@ test.describe("Cadastro de Funcionário (Líder de setor)", () => {
     await expect(papel).toHaveValue("funcionario");
 
     const setor = page.getByLabel("Setor");
-    await expect(setor.locator("option")).toHaveText(["contabil"]);
+    await expect(setor.locator("option")).toHaveText(["Contábil"]);
     await expect(setor).toBeDisabled();
     await expect(setor).toHaveValue("contabil");
   });

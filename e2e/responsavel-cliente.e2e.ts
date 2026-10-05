@@ -31,8 +31,11 @@ test.describe("Responsável por Cliente (#65)", () => {
     await entrarEm(page, "lider.sn@rigonicontabil.local", "lider123");
     await page.getByLabel(/empresa ou cnpj/i).fill(empresa.slice(0, 12));
     await page.getByText(empresa).click();
-    await expect(page.getByLabel("Responsável")).toHaveValue("");
-    await page.getByLabel("Responsável").selectOption({ label: "Funcionário Simples Nacional" });
+    await expect(page.getByLabel("Responsável", { exact: true })).toHaveValue("");
+    // A lista de Funcionários só é buscada quando o Select recebe foco (lazy).
+    const responsavel = page.getByLabel("Responsável", { exact: true });
+    await responsavel.focus();
+    await responsavel.selectOption({ label: "Funcionário Simples Nacional" });
     await page.getByRole("button", { name: "Salvar" }).click();
     await expect(page.getByRole("heading", { name: "Editar cadastro operacional" })).toBeHidden();
     await sair(page);
@@ -41,8 +44,10 @@ test.describe("Responsável por Cliente (#65)", () => {
     await page.getByLabel(/empresa ou cnpj/i).fill(empresa.slice(0, 12));
     await page.getByText(empresa).click();
     // Funcionário vê o Responsável, mas não edita.
-    await expect(page.getByLabel("Responsável")).toBeDisabled();
-    await expect(page.getByLabel("Responsável")).toHaveValue("Funcionário Simples Nacional");
+    await expect(page.getByLabel("Responsável", { exact: true })).toBeDisabled();
+    await expect(page.getByLabel("Responsável", { exact: true })).toHaveValue(
+      "Funcionário Simples Nacional",
+    );
     await sair(page);
 
     await entrarEm(page, "funcionario2.sn@rigonicontabil.local", "func123");
