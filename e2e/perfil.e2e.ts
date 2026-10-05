@@ -48,7 +48,7 @@ test.describe("Perfil do usuário", () => {
     await expect(page.getByRole("heading", { name: "Meu perfil" })).toBeVisible();
     await expect(page.getByText("Funcionário Perfil E2E", { exact: true }).last()).toBeVisible();
     await expect(page.getByText(email, { exact: true })).toBeVisible();
-    await expect(page.getByText("financeiro", { exact: true })).toBeVisible();
+    await expect(page.getByText("Financeiro", { exact: true })).toBeVisible();
 
     await page.getByLabel("Nova senha", { exact: true }).fill("senha-nova-456");
     await page.getByLabel("Confirmar nova senha").fill("senha-nova-456");

@@ -1,4 +1,5 @@
 import { PAPEL_LABEL } from "@/shared/kernel/papeis";
+import { SETOR_LABEL } from "@/shared/kernel/setores";
 
 type PerfilPageProps = {
   header: React.ReactNode;
@@ -14,7 +15,7 @@ export function PerfilPage({ header, formulario, nome, email, papel, setor }: Pe
     ["Nome", nome],
     ["E-mail", email],
     ["Papel", PAPEL_LABEL[papel] ?? papel],
-    ["Setor", setor],
+    ["Setor", papel === "admin" ? "Todos os setores" : (SETOR_LABEL[setor] ?? setor)],
   ];
 
   return (
