@@ -106,7 +106,7 @@ export function EditarCadastroOperacionalForm({
         </p>
       )}
 
-      <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-3" disabled>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1.5fr]">
         <div className="space-y-1">
           <Label>Empresa</Label>
           <Input value={cabecalho.empresa} disabled readOnly />
@@ -119,7 +119,28 @@ export function EditarCadastroOperacionalForm({
           <Label>Regime</Label>
           <Input value={REGIME_LABEL[cabecalho.regime] ?? cabecalho.regime} disabled readOnly />
         </div>
-      </fieldset>
+        <div className="space-y-1">
+          <Label htmlFor="responsavelId">Responsável</Label>
+          {responsavel.editavel ? (
+            <Select
+              id="responsavelId"
+              disabled={pendente}
+              {...register("responsavelId")}
+              onFocus={responsavel.onAbrir}
+            >
+              <option value="">Sem responsável</option>
+              {responsavel.mensagemOpcoes && <option disabled>{responsavel.mensagemOpcoes}</option>}
+              {responsavel.opcoes.map((opcao) => (
+                <option key={opcao.id} value={opcao.id}>
+                  {opcao.nome}
+                </option>
+              ))}
+            </Select>
+          ) : (
+            <Input id="responsavelId" value={responsavel.nomeAtual} disabled readOnly />
+          )}
+        </div>
+      </div>
 
       <fieldset disabled={readOnly || pendente} className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="space-y-1">
@@ -194,23 +215,6 @@ export function EditarCadastroOperacionalForm({
               Serviço
             </label>
           </div>
-        </div>
-
-        <div className="space-y-1">
-          <Label htmlFor="responsavelId">Responsável</Label>
-          {responsavel.editavel ? (
-            <Select id="responsavelId" {...register("responsavelId")} onFocus={responsavel.onAbrir}>
-              <option value="">Sem responsável</option>
-              {responsavel.mensagemOpcoes && <option disabled>{responsavel.mensagemOpcoes}</option>}
-              {responsavel.opcoes.map((opcao) => (
-                <option key={opcao.id} value={opcao.id}>
-                  {opcao.nome}
-                </option>
-              ))}
-            </Select>
-          ) : (
-            <Input id="responsavelId" value={responsavel.nomeAtual} disabled readOnly />
-          )}
         </div>
 
         <div className="space-y-3 sm:col-span-2">
