@@ -8,7 +8,7 @@ function renderizar(props: Partial<React.ComponentProps<typeof AlterarPapel>> = 
   render(
     <AlterarPapel
       nome="Jéssica"
-      papel="funcionario"
+      papelAlvo="lider_setor"
       pendente={false}
       aoAlterar={aoAlterar}
       {...props}
@@ -29,7 +29,7 @@ describe("AlterarPapel", () => {
   });
 
   it("Líder mostra Rebaixar", () => {
-    renderizar({ papel: "lider_setor" });
+    renderizar({ papelAlvo: "funcionario" });
 
     expect(screen.getByRole("button", { name: "Rebaixar Jéssica a Funcionário" })).toBeEnabled();
   });

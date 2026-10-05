@@ -19,7 +19,7 @@ describe("AlterarPapelContainer", () => {
       screen.getByRole("button", { name: "Promover Jéssica a Líder de setor" }),
     );
 
-    expect(useHookMock).toHaveBeenCalledWith("u1", "funcionario");
+    expect(useHookMock).toHaveBeenCalledWith("u1", "lider_setor");
     expect(aoAlterar).toHaveBeenCalled();
   });
 });

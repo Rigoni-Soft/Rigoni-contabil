@@ -4,16 +4,16 @@ import { Button } from "@/presentation/components/ui/button";
 
 type AlterarPapelProps = {
   nome: string;
-  papel: string;
+  papelAlvo: "lider_setor" | "funcionario";
   pendente: boolean;
   erro?: string;
   aoAlterar: () => void;
 };
 
-// Líder -> rebaixa a Funcionário; Funcionário -> promove a Líder (#57). Admin não
+// Alvo Funcionário = rebaixa o Líder; alvo Líder = promove o Funcionário (#57). Admin não
 // tem ação (a página nem monta este componente pra ele).
-export function AlterarPapel({ nome, papel, pendente, erro, aoAlterar }: AlterarPapelProps) {
-  const ehLider = papel === "lider_setor";
+export function AlterarPapel({ nome, papelAlvo, pendente, erro, aoAlterar }: AlterarPapelProps) {
+  const promove = papelAlvo === "lider_setor";
   return (
     <div className="flex shrink-0 flex-col items-end gap-1">
       <Button
@@ -22,11 +22,11 @@ export function AlterarPapel({ nome, papel, pendente, erro, aoAlterar }: Alterar
         size="sm"
         disabled={pendente}
         aria-label={
-          ehLider ? `Rebaixar ${nome} a Funcionário` : `Promover ${nome} a Líder de setor`
+          promove ? `Promover ${nome} a Líder de setor` : `Rebaixar ${nome} a Funcionário`
         }
         onClick={aoAlterar}
       >
-        {ehLider ? "Rebaixar" : "Promover"}
+        {promove ? "Promover" : "Rebaixar"}
       </Button>
       {erro && (
         <p role="alert" className="flex max-w-64 items-start gap-1 text-sm text-destructive">

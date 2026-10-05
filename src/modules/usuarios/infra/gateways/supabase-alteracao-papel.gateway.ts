@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { AlteracaoPapelPort } from "@/modules/usuarios/application/ports/out/alteracao-papel.provider";
+import {
+  ORIENTACAO_SETOR_COM_LIDER,
+  type AlteracaoPapelPort,
+  type PapelAlteravel,
+} from "@/modules/usuarios/application/ports/out/alteracao-papel.provider";
 import type { UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
 import type { AppError } from "@/shared/errors/app.error";
 import { PersistenciaError } from "@/shared/errors/persistencia.error";
@@ -15,7 +19,7 @@ export class SupabaseAlteracaoPapelGateway implements AlteracaoPapelPort {
   async alterar(
     alvoId: UsuarioId,
     atorId: UsuarioId,
-    papel: "lider_setor" | "funcionario",
+    papel: PapelAlteravel,
   ): Promise<Result<void, AppError>> {
     const { error } = await this.supabaseAdmin.rpc("alterar_papel_usuario", {
       alvo_id: alvoId,
@@ -23,11 +27,7 @@ export class SupabaseAlteracaoPapelGateway implements AlteracaoPapelPort {
       novo_papel: papel,
     });
     if (error?.message.includes("setor_com_lider")) {
-      return err(
-        new ValidationError(
-          "O setor já tem Líder ativo. Rebaixe-o a Funcionário antes de promover outro.",
-        ),
-      );
+      return err(new ValidationError(`O setor já tem Líder ativo. ${ORIENTACAO_SETOR_COM_LIDER}`));
     }
     if (error)
       return err(new PersistenciaError(`Falha em alterar_papel_usuario: ${error.message}`));

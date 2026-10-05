@@ -18,7 +18,7 @@ describe("useAlterarPapel", () => {
 
   it("Funcionário é promovido a Líder e a lista recarrega", async () => {
     actionMock.mockResolvedValue({ ok: true, data: null });
-    const { result } = renderHook(() => useAlterarPapel("u1", "funcionario"));
+    const { result } = renderHook(() => useAlterarPapel("u1", "lider_setor"));
 
     await act(() => result.current.aoAlterar());
 
@@ -29,7 +29,7 @@ describe("useAlterarPapel", () => {
 
   it("Líder é rebaixado a Funcionário", async () => {
     actionMock.mockResolvedValue({ ok: true, data: null });
-    const { result } = renderHook(() => useAlterarPapel("u1", "lider_setor"));
+    const { result } = renderHook(() => useAlterarPapel("u1", "funcionario"));
 
     await act(() => result.current.aoAlterar());
 
@@ -41,7 +41,7 @@ describe("useAlterarPapel", () => {
       ok: false,
       error: { code: "VALIDATION_ERROR", message: "O setor já tem Líder ativo." },
     });
-    const { result } = renderHook(() => useAlterarPapel("u1", "funcionario"));
+    const { result } = renderHook(() => useAlterarPapel("u1", "lider_setor"));
 
     await act(() => result.current.aoAlterar());
 
@@ -51,7 +51,7 @@ describe("useAlterarPapel", () => {
 
   it("exceção da action vira mensagem genérica", async () => {
     actionMock.mockRejectedValue(new Error("rede"));
-    const { result } = renderHook(() => useAlterarPapel("u1", "funcionario"));
+    const { result } = renderHook(() => useAlterarPapel("u1", "lider_setor"));
 
     await act(() => result.current.aoAlterar());
 

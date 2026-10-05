@@ -2,7 +2,10 @@ import type {
   AlterarPapelUsuarioInput,
   AlterarPapelUsuarioPort,
 } from "@/modules/usuarios/application/ports/in/alterar-papel-usuario.provider";
-import type { AlteracaoPapelPort } from "@/modules/usuarios/application/ports/out/alteracao-papel.provider";
+import {
+  ORIENTACAO_SETOR_COM_LIDER,
+  type AlteracaoPapelPort,
+} from "@/modules/usuarios/application/ports/out/alteracao-papel.provider";
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
 import { exigirAdmin } from "@/modules/usuarios/application/use-cases/exigir-admin.use-case";
@@ -54,7 +57,7 @@ export class AlterarPapelUsuario implements AlterarPapelUsuarioPort {
       if (lider.value) {
         return err(
           new ValidationError(
-            `O setor já tem Líder ativo (${lider.value.nome}). Rebaixe-o a Funcionário antes de promover outro.`,
+            `O setor já tem Líder ativo (${lider.value.nome}). ${ORIENTACAO_SETOR_COM_LIDER}`,
           ),
         );
       }
