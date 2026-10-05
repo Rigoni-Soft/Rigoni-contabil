@@ -19,4 +19,19 @@ export class SupabaseArquivoStorageGateway implements ArquivoStoragePort {
     if (error) return err(new ArmazenamentoError(`Falha ao enviar arquivo: ${error.message}`));
     return ok({ caminho });
   }
+
+  async remover(caminhos: string[]): Promise<Result<void, AppError>> {
+    if (caminhos.length === 0) return ok(undefined);
+    const { data, error } = await this.supabase.storage.from(BUCKET).remove(caminhos);
+    // Sem policy de DELETE o Storage não erra: devolve lista vazia. Conferir a
+    // contagem evita tratar "nada removido" como sucesso.
+    if (error || data?.length !== caminhos.length) {
+      return err(
+        new ArmazenamentoError(
+          `Falha ao remover arquivos: ${error?.message ?? "nem todos removidos"}`,
+        ),
+      );
+    }
+    return ok(undefined);
+  }
 }

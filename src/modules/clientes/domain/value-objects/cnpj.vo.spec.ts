@@ -1,31 +1,26 @@
 import { Cnpj } from "./cnpj.vo";
 
 describe("Cnpj", () => {
-  it("cria a partir de um CNPJ válido, com ou sem pontuação", () => {
+  it("cria a partir de um CNPJ numérico válido, com ou sem pontuação", () => {
     const semPontuacao = Cnpj.criar("11444777000161");
     const comPontuacao = Cnpj.criar("11.444.777/0001-61");
 
-    expect(semPontuacao.ok).toBe(true);
-    expect(comPontuacao.ok).toBe(true);
-    if (semPontuacao.ok) expect(semPontuacao.value.digitos).toBe("11444777000161");
-    if (comPontuacao.ok) expect(comPontuacao.value.digitos).toBe("11444777000161");
+    expect(semPontuacao.ok && semPontuacao.value.valor).toBe("11444777000161");
+    expect(comPontuacao.ok && comPontuacao.value.valor).toBe("11444777000161");
   });
 
-  it("rejeita dígitos verificadores errados", () => {
-    const resultado = Cnpj.criar("11444777000162");
+  it("cria a partir do CNPJ alfanumérico oficial, preservando as letras em maiúsculas", () => {
+    const resultado = Cnpj.criar("00.000.000/e08g-12");
 
-    expect(resultado.ok).toBe(false);
+    expect(resultado.ok && resultado.value.valor).toBe("00000000E08G12");
   });
 
-  it("rejeita quantidade de dígitos diferente de 14", () => {
-    const resultado = Cnpj.criar("1234");
-
-    expect(resultado.ok).toBe(false);
-  });
-
-  it("rejeita todos os dígitos iguais, mesmo que passasse no cálculo", () => {
-    const resultado = Cnpj.criar("00000000000000");
-
-    expect(resultado.ok).toBe(false);
+  it.each([
+    ["dígitos verificadores errados", "11444777000162"],
+    ["alfanumérico com DV inválido", "00.000.000/E08G-13"],
+    ["quantidade de caracteres diferente de 14", "1234"],
+    ["todos os caracteres iguais", "00000000000000"],
+  ])("rejeita %s", (_, entrada) => {
+    expect(Cnpj.criar(entrada).ok).toBe(false);
   });
 });

@@ -18,7 +18,7 @@ describe("ClienteBuilder", () => {
     expect(resultado.ok).toBe(true);
     if (resultado.ok) {
       expect(resultado.value.empresa).toBe("Padaria Pão Quente Ltda");
-      expect(resultado.value.cnpj.digitos).toBe(CNPJ_VALIDO);
+      expect(resultado.value.cnpj.valor).toBe(CNPJ_VALIDO);
       expect(resultado.value.regime.valor).toBe("simples_nacional");
       expect(resultado.value.alteracoesContratuais).toHaveLength(1);
     }

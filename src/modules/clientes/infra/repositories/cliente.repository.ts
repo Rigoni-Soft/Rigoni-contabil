@@ -19,7 +19,7 @@ export class SupabaseClienteRepository implements ClienteRepository {
     const { error } = await this.supabase.rpc("criar_cliente", {
       p_id: cliente.id,
       p_empresa: cliente.empresa,
-      p_cnpj: cliente.cnpj.digitos,
+      p_cnpj: cliente.cnpj.valor,
       p_regime: cliente.regime.valor,
       p_contrato_social_caminho: cliente.contratoSocialCaminho,
       p_alteracoes: cliente.alteracoesContratuais.map((alteracao) => ({

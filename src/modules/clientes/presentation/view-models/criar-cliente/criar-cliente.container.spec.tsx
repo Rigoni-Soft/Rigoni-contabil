@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { ValidationError } from "@/shared/errors/validation.error";
@@ -139,6 +139,53 @@ describe("CriarClienteContainer", () => {
     await usuario.click(screen.getByRole("button", { name: "Cadastrar" }));
 
     expect(await screen.findByText("CNPJ já cadastrado")).toBeInTheDocument();
+  });
+
+  it("preserva as letras do CNPJ alfanumérico ao digitar e consulta com a forma canônica (PR #64, ponto 1)", async () => {
+    const usuario = userEvent.setup();
+    render(<CriarClienteContainer />);
+
+    await usuario.type(screen.getByLabelText(/^CNPJ/), "00000000e08g12");
+    await usuario.tab();
+
+    expect(screen.getByLabelText(/^CNPJ/)).toHaveValue("00.000.000/E08G-12");
+    expect(consultarMock).toHaveBeenCalledWith("00000000E08G12");
+    expect(screen.queryByText("CNPJ inválido")).not.toBeInTheDocument();
+  });
+
+  it("não aplica Empresa/Regime de uma resposta que chega depois de o CNPJ ter mudado (PR #64, ponto 6)", async () => {
+    let responderA: (dados: unknown) => void = () => undefined;
+    consultarMock
+      .mockImplementationOnce(() => new Promise((resolver) => (responderA = resolver)))
+      .mockResolvedValueOnce({}); // B não traz Empresa nem Regime: ficam vazios
+    const usuario = userEvent.setup();
+    render(<CriarClienteContainer />);
+    const campo = screen.getByLabelText(/^CNPJ/);
+
+    await usuario.type(campo, "11.444.777/0001-61");
+    await usuario.tab(); // consulta A fica pendente
+    await usuario.clear(campo);
+    await usuario.type(campo, "00.000.000/E08G-12");
+    await usuario.tab(); // consulta B responde antes
+    expect(await screen.findByText(/Não foi possível confirmar o Regime/)).toBeInTheDocument();
+
+    await act(async () => responderA({ empresa: "Empresa A", regime: "simples_nacional" }));
+    await new Promise((resolver) => setTimeout(resolver, 10)); // folga pro setTimeout(0) interno
+
+    expect(screen.getByLabelText(/^Empresa/)).toHaveValue("");
+    expect(screen.getByLabelText(/^Regime/)).toHaveValue("");
+  });
+
+  it("Promise rejeitada da Server Action não prende o botão em 'Cadastrando...' (PR #64, ponto 5)", async () => {
+    executeMock.mockRejectedValue(new Error("falha de rede"));
+    const usuario = userEvent.setup();
+    render(<CriarClienteContainer />);
+
+    await preencherCamposObrigatorios(usuario);
+    await usuario.click(screen.getByRole("button", { name: "Cadastrar" }));
+
+    expect(await screen.findByText(/Não foi possível cadastrar agora/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cadastrar" })).toBeEnabled();
   });
 
   it("aplica a máscara de CNPJ enquanto digita", async () => {

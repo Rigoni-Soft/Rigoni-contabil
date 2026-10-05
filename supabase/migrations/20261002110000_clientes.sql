@@ -82,8 +82,18 @@ $$;
 -- social e alterações contratuais). Sem acesso público — só Admin, via as
 -- policies de storage.objects abaixo (arquitetura.md, seção 3.9: Storage é
 -- porta OUT como qualquer outra, com RLS defendendo em profundidade).
-insert into storage.buckets (id, name, public)
-values ('documentos-clientes', 'documentos-clientes', false)
+-- Devolutiva PR #64, ponto 7: PDF/DOCX e 10 MB também no próprio bucket (mesma
+-- regra do Zod e do limite da Server Action), pra um upload direto ao Storage
+-- por uma sessão Admin não contornar a validação da aplicação.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'documentos-clientes', 'documentos-clientes', false, 10485760,
+  array[
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ]
+)
 on conflict (id) do nothing;
 
 create policy "documentos_clientes_insert_admin"
@@ -93,3 +103,36 @@ create policy "documentos_clientes_insert_admin"
 create policy "documentos_clientes_select_admin"
   on storage.objects for select
   using (bucket_id = 'documentos-clientes' and public.meu_papel() = 'admin');
+
+-- Devolutiva PR #64, ponto 3: compensação do cadastro (remove uploads quando
+-- uma etapa posterior falha) usa a sessão do próprio Admin, sem service_role.
+create policy "documentos_clientes_delete_admin"
+  on storage.objects for delete
+  using (bucket_id = 'documentos-clientes' and public.meu_papel() = 'admin');
+
+-- Devolutiva PR #64, ponto 4: a auditoria de sucesso nasce na mesma transação
+-- do INSERT em `clientes`. Se o evento não puder ser gravado, o cadastro inteiro
+-- é desfeito: não existe Cliente sem `cliente.criar`. Ator e setor vêm da sessão
+-- do banco (nunca do chamador), e o gatilho vale pra qualquer caminho de INSERT —
+-- inclusive as versões futuras de `criar_cliente`. Sem sessão (auth.uid() nulo:
+-- seed, migration, service_role) não há ator a registrar.
+create function public.auditar_cliente_criado()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is not null then
+    insert into public.registros_auditoria (id, ator, setor, acao, alvo, resultado, criado_em)
+    values (gen_random_uuid(), auth.uid(), public.meu_setor(), 'cliente.criar', new.cnpj, 'sucesso', now());
+  end if;
+  return new;
+end;
+$$;
+
+revoke execute on function public.auditar_cliente_criado() from public, anon, authenticated;
+
+create trigger clientes_auditar_criacao
+  after insert on public.clientes
+  for each row execute function public.auditar_cliente_criado();

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { cnpjValido } from "@/presentation/lib/cnpj-validation";
+import { cnpjValido } from "@/shared/kernel/cnpj";
 import { REGIMES } from "@/shared/kernel/regimes";
 
 // PDF ou DOCX (ponto 2 do feedback manual, 2026-09-29) — restringe tanto no

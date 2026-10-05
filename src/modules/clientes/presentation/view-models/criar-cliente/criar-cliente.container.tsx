@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
 
 import { CriarClienteForm } from "@/presentation/components/organisms/criar-cliente-form.component";
+import { normalizarCnpj } from "@/shared/kernel/cnpj";
 
 import { criarClienteAction } from "./criar-cliente.actions";
 import { criarClienteSchema, type CriarClienteFormValues } from "./criar-cliente.schema";
@@ -65,8 +66,12 @@ export function CriarClienteContainer() {
     const formatoValido = await trigger("cnpj");
     if (!formatoValido) return;
 
-    const digitos = cnpjMascarado.replace(/\D/g, "");
-    const dados = await consultarCnpj(digitos);
+    const cnpj = normalizarCnpj(cnpjMascarado);
+    const dados = await consultarCnpj(cnpj);
+    // Resposta obsoleta: o Admin já trocou o CNPJ enquanto a consulta voava
+    // (devolutiva PR #64, ponto 6). Aplicar Empresa/Regime de outro CNPJ seria
+    // preencher o formulário com dados que não são desse cadastro.
+    if (normalizarCnpj(getValues("cnpj")) !== cnpj) return;
 
     // setTimeout: nunca deixa esses setState caírem no mesmo lote de render
     // de uma ação síncrona concorrente (ex.: clicar "Adicionar" bem quando a
@@ -101,24 +106,27 @@ export function CriarClienteContainer() {
     setPendente(true);
     setErroServidor(undefined);
 
-    const resultado = await criarClienteAction(valores);
-
-    setPendente(false);
-    if (!resultado.ok) {
-      setErroServidor(resultado.error.message);
-      // Erro de validação do domínio (ex.: CNPJ inválido escapou do schema
-      // por algum motivo) aponta pro campo certo, não só um aviso genérico no
-      // rodapé — achado real: "Dados de cliente inválidos" sem dizer qual
-      // campo (2026-09-29).
-      for (const [campo, mensagens] of Object.entries(resultado.error.fields ?? {})) {
-        if (mensagens[0]) {
-          setError(campo as keyof CriarClienteFormValues, { message: mensagens[0] });
+    // try/finally: rejeição de transporte da Server Action não pode deixar o
+    // botão preso em "Cadastrando..." (devolutiva PR #64, ponto 5).
+    try {
+      const resultado = await criarClienteAction(valores);
+      if (!resultado.ok) {
+        setErroServidor(resultado.error.message);
+        // Erro de validação do domínio aponta pro campo certo, não só um aviso
+        // genérico no rodapé.
+        for (const [campo, mensagens] of Object.entries(resultado.error.fields ?? {})) {
+          if (mensagens[0]) {
+            setError(campo as keyof CriarClienteFormValues, { message: mensagens[0] });
+          }
         }
+        return;
       }
-      return;
+      setCriado({ empresa: resultado.data.cliente.empresa, cnpj: resultado.data.cliente.cnpj });
+    } catch {
+      setErroServidor("Não foi possível cadastrar agora. Verifique a conexão e tente novamente.");
+    } finally {
+      setPendente(false);
     }
-
-    setCriado({ empresa: resultado.data.cliente.empresa, cnpj: resultado.data.cliente.cnpj });
   });
 
   return (

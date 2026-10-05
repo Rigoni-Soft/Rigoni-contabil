@@ -5,10 +5,12 @@ export type RegistrarAcaoAuditoria = {
   setor: string;
   acao: string;
   alvo: string;
-  resultado: "sucesso" | "falha";
+  resultado: "sucesso" | "falha" | "falha_compensacao";
 };
 
 export interface AuditoriaPort {
-  // Best-effort: falha ao registrar não deve derrubar a operação principal.
+  // Best-effort, só pra "falha" e "falha_compensacao" (tentativas sem estado a
+  // preservar). O "sucesso" do cadastro é auditado pelo próprio banco, na mesma
+  // transação do INSERT em `clientes` (trigger): não existe Cliente sem evento.
   registrar(input: RegistrarAcaoAuditoria): Promise<void>;
 }

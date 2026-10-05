@@ -85,6 +85,43 @@ describe("SupabaseClienteRepository (integração)", () => {
     expect(linha?.contrato_social_caminho).toBeNull();
   });
 
+  it("cadastro e auditoria de sucesso nascem juntos; CNPJ alfanumérico persiste (PR #64, pontos 1 e 4)", async () => {
+    const supabase = await comoAdmin();
+    const repositorio = new SupabaseClienteRepository(supabase);
+    const cliente = clienteValido("00000000E08G12");
+
+    const resultado = await repositorio.criar(cliente);
+
+    expect(resultado.ok).toBe(true);
+    const { data: linha } = await supabase
+      .from("clientes")
+      .select("cnpj")
+      .eq("id", cliente.id)
+      .maybeSingle();
+    expect(linha?.cnpj).toBe("00000000E08G12");
+    const { data: eventos } = await supabase
+      .from("registros_auditoria")
+      .select("acao, resultado, setor")
+      .eq("alvo", "00000000E08G12");
+    expect(eventos).toEqual([
+      { acao: "cliente.criar", resultado: "sucesso", setor: "administrativo" },
+    ]);
+  });
+
+  it("cadastro rejeitado (CNPJ duplicado) não deixa evento de sucesso: mesma transação (PR #64, ponto 4)", async () => {
+    const supabase = await comoAdmin();
+    const repositorio = new SupabaseClienteRepository(supabase);
+    const cnpj = "11222333000181";
+    await repositorio.criar(clienteValido(cnpj));
+    const antes = await supabase.from("registros_auditoria").select("id").eq("alvo", cnpj);
+
+    const resultado = await repositorio.criar(clienteValido(cnpj));
+
+    expect(resultado.ok).toBe(false);
+    const depois = await supabase.from("registros_auditoria").select("id").eq("alvo", cnpj);
+    expect(depois.data).toHaveLength(antes.data?.length ?? 0);
+  });
+
   it("rejeita CNPJ duplicado (constraint unique)", async () => {
     const supabase = await comoAdmin();
     const repositorio = new SupabaseClienteRepository(supabase);

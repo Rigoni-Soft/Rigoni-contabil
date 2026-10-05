@@ -5,7 +5,7 @@ export function clienteParaDto(cliente: Cliente): ClienteDto {
   return {
     id: cliente.id,
     empresa: cliente.empresa,
-    cnpj: cliente.cnpj.digitos,
+    cnpj: cliente.cnpj.valor,
     regime: cliente.regime.valor,
     contratoSocialCaminho: cliente.contratoSocialCaminho,
     alteracoesContratuais: cliente.alteracoesContratuais.map((alteracao) => ({
