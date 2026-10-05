@@ -15,6 +15,7 @@ const COR_POR_ID: Record<string, { fundo: string; traco: string }> = {
   pronto: { fundo: "bg-success", traco: "stroke-success" },
   sem_movimento: { fundo: "bg-muted-foreground", traco: "stroke-muted-foreground" },
   interno: { fundo: "bg-muted-foreground", traco: "stroke-muted-foreground" },
+  sem_responsavel: { fundo: "bg-muted-foreground", traco: "stroke-muted-foreground" },
 };
 const COR_PADRAO = { fundo: "bg-primary", traco: "stroke-primary" };
 const cor = (id: string) => COR_POR_ID[id] ?? COR_PADRAO;
@@ -113,14 +114,19 @@ function Barras({
 }) {
   return (
     <Grafico titulo={titulo} className={className}>
+      {fatias.length === 0 && (
+        <p className="text-sm text-muted-foreground">Nenhum cliente atribuído ainda.</p>
+      )}
       <ul className="space-y-3">
         {fatias.map((f) => {
           const pct = totalClientes === 0 ? 0 : Math.min(100, (f.quantidade / totalClientes) * 100);
           return (
             <li key={f.id} className="space-y-1">
-              <div className="flex text-sm">
-                <span className="text-foreground">{f.rotulo}</span>
-                <span className="ml-auto font-semibold text-foreground tabular-nums">
+              <div className="flex gap-2 text-sm">
+                <span className="truncate text-foreground" title={f.rotulo}>
+                  {f.rotulo}
+                </span>
+                <span className="ml-auto shrink-0 font-semibold text-foreground tabular-nums">
                   {f.quantidade}
                 </span>
               </div>
