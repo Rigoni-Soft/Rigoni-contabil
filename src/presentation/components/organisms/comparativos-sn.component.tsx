@@ -147,9 +147,7 @@ export function ComparativosSn({ comparativos, responsaveis, totalClientes }: Pr
       </h2>
       <div
         className={
-          responsaveis
-            ? "grid gap-4 md:grid-cols-2 xl:grid-cols-4"
-            : "grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+          responsaveis ? "grid gap-4 md:grid-cols-2" : "grid gap-4 md:grid-cols-2 lg:grid-cols-3"
         }
       >
         <Donut titulo="Status do DAS" fatias={comparativos.das} />

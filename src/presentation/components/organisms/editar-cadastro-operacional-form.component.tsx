@@ -118,22 +118,6 @@ export function EditarCadastroOperacionalForm({
       </fieldset>
 
       <fieldset disabled={readOnly || pendente} className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <div className="space-y-1 sm:col-span-2">
-          <Label htmlFor="responsavelId">Responsável</Label>
-          {responsavel.editavel ? (
-            <Select id="responsavelId" {...register("responsavelId")}>
-              <option value="">Sem responsável</option>
-              {responsavel.opcoes.map((opcao) => (
-                <option key={opcao.id} value={opcao.id}>
-                  {opcao.nome}
-                </option>
-              ))}
-            </Select>
-          ) : (
-            <Input id="responsavelId" value={responsavel.nomeAtual} disabled readOnly />
-          )}
-        </div>
-
         <div className="space-y-1">
           <Label htmlFor="formaEnvio">Forma de envio</Label>
           <Select id="formaEnvio" {...register("formaEnvio")}>
@@ -206,6 +190,22 @@ export function EditarCadastroOperacionalForm({
               Serviço
             </label>
           </div>
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor="responsavelId">Responsável</Label>
+          {responsavel.editavel ? (
+            <Select id="responsavelId" {...register("responsavelId")}>
+              <option value="">Sem responsável</option>
+              {responsavel.opcoes.map((opcao) => (
+                <option key={opcao.id} value={opcao.id}>
+                  {opcao.nome}
+                </option>
+              ))}
+            </Select>
+          ) : (
+            <Input id="responsavelId" value={responsavel.nomeAtual} disabled readOnly />
+          )}
         </div>
 
         <div className="space-y-3 sm:col-span-2">

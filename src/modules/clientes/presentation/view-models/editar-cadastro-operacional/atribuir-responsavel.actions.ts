@@ -9,7 +9,9 @@ import { toActionResult } from "@/shared/kernel/to-action-result";
 
 const schema = z.object({
   clienteId: z.string().uuid(),
-  responsavelId: z.string().uuid().nullable(),
+  // guid, não uuid: ids do seed (2222…, 8888…) não são v4/variante válida e o
+  // z.uuid() os recusava com "Dados inválidos" (mesmo problema já visto no #36).
+  responsavelId: z.guid().nullable(),
 });
 
 export async function atribuirResponsavelAction(
