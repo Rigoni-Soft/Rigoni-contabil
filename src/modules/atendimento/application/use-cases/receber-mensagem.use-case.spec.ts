@@ -11,6 +11,10 @@ import type {
   ContatoIdentificado,
   IdentificacaoContatoPort,
 } from "@/modules/atendimento/application/ports/out/identificacao-contato.provider";
+import type {
+  SessaoAtendimento,
+  SessaoAtendimentoPort,
+} from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
@@ -29,16 +33,6 @@ const CONTRATO: DocumentoContratual = {
   data: null,
   caminho: "c1/contrato.pdf",
 };
-const ALTERACAO_2020: DocumentoContratual = {
-  tipo: "alteracao",
-  data: "2020-03-12",
-  caminho: "c1/alt-2020.pdf",
-};
-const ALTERACAO_2022: DocumentoContratual = {
-  tipo: "alteracao",
-  data: "2022-11-01",
-  caminho: "c1/alt-2022.docx",
-};
 
 function montar(
   opcoes: {
@@ -46,12 +40,30 @@ function montar(
     envioFalha?: boolean;
     documentos?: DocumentoContratual[];
     listagemFalha?: boolean;
+    sessaoFalha?: boolean;
   } = {},
 ) {
   const buscados: string[] = [];
   const enviadas: MensagemEnviada[] = [];
   const documentosEnviados: DocumentoEnviado[] = [];
   const listados: string[] = [];
+  const sessoes = new Map<string, SessaoAtendimento>();
+  const gravadas: SessaoAtendimento[] = [];
+  const sessao: SessaoAtendimentoPort = {
+    obter: async (telefone) =>
+      opcoes.sessaoFalha
+        ? err(new ServicoExternoError("banco"))
+        : ok(sessoes.get(telefone) ?? null),
+    salvar: async (telefone, nova) => {
+      sessoes.set(telefone, nova);
+      gravadas.push(nova);
+      return ok(undefined);
+    },
+    limpar: async (telefone) => {
+      sessoes.delete(telefone);
+      return ok(undefined);
+    },
+  };
   const identificacao: IdentificacaoContatoPort = {
     identificar: async (telefone): Promise<Result<ContatoIdentificado | null, AppError>> => {
       buscados.push(telefone);
@@ -79,7 +91,9 @@ function montar(
     linkTemporario: async (caminho) => ok(`https://storage.test/${caminho}?token=x`),
   };
   return {
-    caso: new ReceberMensagem(identificacao, envio, documentos),
+    caso: new ReceberMensagem(identificacao, envio, documentos, sessao),
+    sessoes,
+    gravadas,
     buscados,
     enviadas,
     documentosEnviados,
@@ -147,6 +161,11 @@ describe("ReceberMensagem", () => {
         enviarDocumento: async () => ok(undefined),
       },
       { listar: async () => ok([]), linkTemporario: async () => ok("x") },
+      {
+        obter: async () => ok(null),
+        salvar: async () => ok(undefined),
+        limpar: async () => ok(undefined),
+      },
     );
     const r = await caso.execute({ telefone: "11912345678", texto: "oi" });
     expect(r.ok).toBe(false);
@@ -154,95 +173,216 @@ describe("ReceberMensagem", () => {
   });
 });
 
+function alteracoes(quantidade: number): DocumentoContratual[] {
+  // Datas crescentes: a alteração i é mais recente que a i-1.
+  return Array.from({ length: quantidade }, (_, i) => ({
+    tipo: "alteracao" as const,
+    data: `2020-${String(i + 1).padStart(2, "0")}-15`,
+    caminho: `c1/alt-${i + 1}.pdf`,
+  }));
+}
+
+const nomes = (docs: DocumentoEnviado[]) => docs.map((d) => d.nomeArquivo);
+const FONE = "5511912345678";
+const CHAVE = "11912345678";
+
 describe("ReceberMensagem — contrato social e alterações (opção 1)", () => {
-  it("com um único documento, entrega o arquivo direto, do Cliente identificado", async () => {
-    const { caso, listados, documentosEnviados, enviadas } = montar({ documentos: [CONTRATO] });
-    const r = await caso.execute({ telefone: "5511912345678", texto: "1" });
-    expect(r.ok).toBe(true);
-    expect(listados).toEqual(["cliente-1"]);
+  it("opção 1 pergunta contrato, alterações ou ambos e guarda só a etapa", async () => {
+    const { caso, enviadas, documentosEnviados, gravadas } = montar({ documentos: [CONTRATO] });
+    await caso.execute({ telefone: FONE, texto: "1" });
+    expect(documentosEnviados).toHaveLength(0);
+    for (const opcao of ["Contrato social", "Alterações", "Ambos"]) {
+      expect(enviadas[0].texto).toContain(opcao);
+    }
+    expect(gravadas).toEqual([{ etapa: "tipo_documento" }]);
+  });
+
+  it("escolher contrato envia o contrato e encerra a sessão", async () => {
+    const { caso, documentosEnviados, sessoes } = montar({ documentos: [CONTRATO] });
+    await caso.execute({ telefone: FONE, texto: "1" });
+    await caso.execute({ telefone: FONE, texto: "1" });
     expect(documentosEnviados).toEqual([
       {
-        telefone: "5511912345678",
+        telefone: FONE,
         url: "https://storage.test/c1/contrato.pdf?token=x",
         nomeArquivo: "Contrato social.pdf",
       },
     ]);
-    expect(enviadas).toHaveLength(0);
+    expect(sessoes.size).toBe(0);
   });
 
-  it("com mais de um documento, lista as opções por data sem enviar arquivo", async () => {
-    const { caso, documentosEnviados, enviadas } = montar({
-      documentos: [CONTRATO, ALTERACAO_2020, ALTERACAO_2022],
-    });
-    await caso.execute({ telefone: "11912345678", texto: "1" });
+  it("escolher contrato sem contrato cadastrado avisa", async () => {
+    const { caso, documentosEnviados, enviadas } = montar({ documentos: alteracoes(2) });
+    await caso.execute({ telefone: FONE, texto: "1" });
+    await caso.execute({ telefone: FONE, texto: "1" });
     expect(documentosEnviados).toHaveLength(0);
-    expect(enviadas[0].texto).toContain("1.1 - Contrato social");
-    expect(enviadas[0].texto).toContain("1.2 - Alteração de 12/03/2020");
-    expect(enviadas[0].texto).toContain("1.3 - Alteração de 01/11/2022");
+    expect(enviadas[1].texto).toContain("Não encontramos");
   });
 
-  it("escolher '1.3' entrega a alteração correspondente", async () => {
-    const { caso, documentosEnviados } = montar({
-      documentos: [CONTRATO, ALTERACAO_2020, ALTERACAO_2022],
+  it("alterações com uma só: envia direto", async () => {
+    const { caso, documentosEnviados, sessoes } = montar({
+      documentos: [CONTRATO, ...alteracoes(1)],
     });
-    await caso.execute({ telefone: "11912345678", texto: " 1.3 " });
-    expect(documentosEnviados).toEqual([
-      {
-        telefone: "11912345678",
-        url: "https://storage.test/c1/alt-2022.docx?token=x",
-        nomeArquivo: "Alteração de 01/11/2022.docx",
-      },
+    await caso.execute({ telefone: FONE, texto: "1" });
+    await caso.execute({ telefone: FONE, texto: "2" });
+    expect(nomes(documentosEnviados)).toEqual(["Alteração de 15/01/2020.pdf"]);
+    expect(sessoes.size).toBe(0);
+  });
+
+  it("alterações sem nenhuma cadastrada avisa", async () => {
+    const { caso, documentosEnviados, enviadas } = montar({ documentos: [CONTRATO] });
+    await caso.execute({ telefone: FONE, texto: "1" });
+    await caso.execute({ telefone: FONE, texto: "2" });
+    expect(documentosEnviados).toHaveLength(0);
+    expect(enviadas[1].texto).toContain("Não encontramos");
+  });
+
+  it("várias alterações: lista da mais recente à mais antiga e envia a escolhida", async () => {
+    const { caso, documentosEnviados, enviadas } = montar({
+      documentos: [CONTRATO, ...alteracoes(3)],
+    });
+    await caso.execute({ telefone: FONE, texto: "1" });
+    await caso.execute({ telefone: FONE, texto: "2" });
+    const lista = enviadas[1].texto;
+    expect(lista.indexOf("15/03/2020")).toBeLessThan(lista.indexOf("15/02/2020"));
+    expect(lista.indexOf("15/02/2020")).toBeLessThan(lista.indexOf("15/01/2020"));
+    await caso.execute({ telefone: FONE, texto: "1" });
+    expect(nomes(documentosEnviados)).toEqual(["Alteração de 15/03/2020.pdf"]);
+  });
+
+  it("pagina de 10 em 10 com 'mais' e escolhe pelo número da página corrente", async () => {
+    const { caso, documentosEnviados, enviadas, gravadas } = montar({
+      documentos: alteracoes(12),
+    });
+    await caso.execute({ telefone: FONE, texto: "1" });
+    await caso.execute({ telefone: FONE, texto: "2" });
+    expect(enviadas[1].texto).toContain("mais");
+    expect(enviadas[1].texto.match(/^\d+ - /gm)).toHaveLength(10);
+
+    await caso.execute({ telefone: FONE, texto: "mais" });
+    expect(enviadas[2].texto.match(/^\d+ - /gm)).toHaveLength(2);
+    expect(enviadas[2].texto).not.toContain("mais");
+    expect(gravadas.at(-1)).toEqual({ etapa: "alteracao", modo: "alteracoes", pagina: 2 });
+
+    await caso.execute({ telefone: FONE, texto: "2" });
+    expect(nomes(documentosEnviados)).toEqual(["Alteração de 15/01/2020.pdf"]);
+  });
+
+  it("'mais' na última página e número fora da lista reapresentam a página", async () => {
+    const { caso, documentosEnviados, enviadas } = montar({ documentos: alteracoes(3) });
+    await caso.execute({ telefone: FONE, texto: "1" });
+    await caso.execute({ telefone: FONE, texto: "2" });
+    await caso.execute({ telefone: FONE, texto: "mais" });
+    await caso.execute({ telefone: FONE, texto: "9" });
+    expect(documentosEnviados).toHaveLength(0);
+    expect(enviadas).toHaveLength(4);
+    expect(enviadas[3].texto).toContain("15/03/2020");
+  });
+
+  it("ambos com várias alterações: após escolher, envia o contrato e a alteração", async () => {
+    const { caso, documentosEnviados, gravadas } = montar({
+      documentos: [CONTRATO, ...alteracoes(3)],
+    });
+    await caso.execute({ telefone: FONE, texto: "1" });
+    await caso.execute({ telefone: FONE, texto: "3" });
+    expect(gravadas.at(-1)).toEqual({ etapa: "alteracao", modo: "ambos", pagina: 1 });
+    await caso.execute({ telefone: FONE, texto: "2" });
+    expect(nomes(documentosEnviados)).toEqual([
+      "Contrato social.pdf",
+      "Alteração de 15/02/2020.pdf",
     ]);
   });
 
-  it("escolha fora da lista reapresenta as opções", async () => {
-    const { caso, documentosEnviados, enviadas } = montar({
-      documentos: [CONTRATO, ALTERACAO_2020],
-    });
-    await caso.execute({ telefone: "11912345678", texto: "1.9" });
+  it("ambos com uma única alteração envia os dois direto", async () => {
+    const { caso, documentosEnviados } = montar({ documentos: [CONTRATO, ...alteracoes(1)] });
+    await caso.execute({ telefone: FONE, texto: "1" });
+    await caso.execute({ telefone: FONE, texto: "3" });
+    expect(nomes(documentosEnviados)).toEqual([
+      "Contrato social.pdf",
+      "Alteração de 15/01/2020.pdf",
+    ]);
+  });
+
+  it("ambos sem contrato cadastrado avisa e envia a alteração escolhida", async () => {
+    const { caso, documentosEnviados, enviadas } = montar({ documentos: alteracoes(3) });
+    await caso.execute({ telefone: FONE, texto: "1" });
+    await caso.execute({ telefone: FONE, texto: "3" });
+    await caso.execute({ telefone: FONE, texto: "1" });
+    expect(enviadas.at(-1)?.texto).toContain("Não encontramos o contrato");
+    expect(nomes(documentosEnviados)).toEqual(["Alteração de 15/03/2020.pdf"]);
+  });
+
+  it("sessão numa página que deixou de existir volta à última página", async () => {
+    const { caso, enviadas, sessoes } = montar({ documentos: alteracoes(12) });
+    sessoes.set(CHAVE, { etapa: "alteracao", modo: "alteracoes", pagina: 5 });
+    await caso.execute({ telefone: FONE, texto: "mais" });
+    expect(enviadas[0].texto).toContain("página 2 de 2");
+    expect(enviadas[0].texto.match(/^\d+ - /gm)).toHaveLength(2);
+  });
+
+  it("ambos sem alterações envia só o contrato", async () => {
+    const { caso, documentosEnviados } = montar({ documentos: [CONTRATO] });
+    await caso.execute({ telefone: FONE, texto: "1" });
+    await caso.execute({ telefone: FONE, texto: "3" });
+    expect(nomes(documentosEnviados)).toEqual(["Contrato social.pdf"]);
+  });
+
+  it("opção inválida na pergunta repete a pergunta e mantém a sessão", async () => {
+    const { caso, enviadas, sessoes } = montar({ documentos: [CONTRATO] });
+    await caso.execute({ telefone: FONE, texto: "1" });
+    await caso.execute({ telefone: FONE, texto: "banana" });
+    expect(enviadas[1].texto).toContain("Ambos");
+    expect(sessoes.get(CHAVE)).toEqual({ etapa: "tipo_documento" });
+  });
+
+  it("'menu' abandona a sessão e reabre o menu", async () => {
+    const { caso, enviadas, sessoes } = montar({ documentos: alteracoes(3) });
+    await caso.execute({ telefone: FONE, texto: "1" });
+    await caso.execute({ telefone: FONE, texto: "2" });
+    await caso.execute({ telefone: FONE, texto: " Menu " });
+    expect(sessoes.size).toBe(0);
+    expect(enviadas[2].texto).toContain("Olá, Ana");
+  });
+
+  it("a sessão nunca guarda dado do Cliente, só etapa, modo e página", async () => {
+    const { caso, gravadas } = montar({ documentos: [CONTRATO, ...alteracoes(12)] });
+    await caso.execute({ telefone: FONE, texto: "1" });
+    await caso.execute({ telefone: FONE, texto: "3" });
+    await caso.execute({ telefone: FONE, texto: "mais" });
+    for (const g of gravadas) {
+      expect(Object.keys(g).every((k) => ["etapa", "modo", "pagina"].includes(k))).toBe(true);
+    }
+  });
+
+  it("falha ao listar os documentos propaga o erro e mantém a sessão", async () => {
+    const { caso, documentosEnviados, sessoes } = montar({ listagemFalha: true });
+    sessoes.set(CHAVE, { etapa: "tipo_documento" });
+    const r = await caso.execute({ telefone: FONE, texto: "1" });
+    expect(r.ok).toBe(false);
     expect(documentosEnviados).toHaveLength(0);
-    expect(enviadas[0].texto).toContain("1.2 - Alteração de 12/03/2020");
+    expect(sessoes.size).toBe(1);
   });
 
-  it("com um único documento, '1.7' reapresenta a lista em vez de entregar", async () => {
-    const { caso, documentosEnviados, enviadas } = montar({ documentos: [CONTRATO] });
-    await caso.execute({ telefone: "11912345678", texto: "1.7" });
-    expect(documentosEnviados).toHaveLength(0);
-    expect(enviadas[0].texto).toContain("1.1 - Contrato social");
+  it("falha do adapter ao enviar o documento vira erro de serviço externo e mantém a sessão", async () => {
+    const { caso, sessoes } = montar({ documentos: [CONTRATO], envioFalha: true });
+    sessoes.set(CHAVE, { etapa: "tipo_documento" });
+    const r = await caso.execute({ telefone: FONE, texto: "1" });
+    expect(r).toEqual({ ok: false, error: expect.any(ServicoExternoError) });
+    expect(sessoes.size).toBe(1);
   });
 
-  it("caminho sem extensão não corrompe o nome do arquivo", async () => {
-    const { caso, documentosEnviados } = montar({
-      documentos: [{ tipo: "contrato", data: null, caminho: "c1.v2/contrato" }],
-    });
-    await caso.execute({ telefone: "11912345678", texto: "1" });
-    expect(documentosEnviados[0].nomeArquivo).toBe("Contrato social");
-  });
-
-  it("Cliente sem documento cadastrado recebe aviso", async () => {
-    const { caso, documentosEnviados, enviadas } = montar({ documentos: [] });
-    await caso.execute({ telefone: "11912345678", texto: "1" });
-    expect(documentosEnviados).toHaveLength(0);
-    expect(enviadas[0].texto).toContain("Não encontramos");
-  });
-
-  it("falha ao listar os documentos propaga o erro sem enviar nada", async () => {
-    const { caso, enviadas, documentosEnviados } = montar({ listagemFalha: true });
-    const r = await caso.execute({ telefone: "11912345678", texto: "1" });
+  it("falha ao consultar a sessão propaga o erro sem enviar nada", async () => {
+    const { caso, enviadas } = montar({ sessaoFalha: true });
+    const r = await caso.execute({ telefone: FONE, texto: "1" });
     expect(r.ok).toBe(false);
     expect(enviadas).toHaveLength(0);
-    expect(documentosEnviados).toHaveLength(0);
   });
 
-  it("falha do adapter ao enviar o documento vira erro de serviço externo", async () => {
-    const { caso } = montar({ documentos: [CONTRATO], envioFalha: true });
-    const r = await caso.execute({ telefone: "11912345678", texto: "1" });
-    expect(r).toEqual({ ok: false, error: expect.any(ServicoExternoError) });
-  });
-
-  it("número desconhecido não acessa documento algum", async () => {
-    const { caso, listados } = montar({ contato: null });
-    await caso.execute({ telefone: "11900000000", texto: "1" });
+  it("número desconhecido não acessa sessão nem documento", async () => {
+    const { caso, listados, sessoes } = montar({ contato: null, sessaoFalha: true });
+    const r = await caso.execute({ telefone: "11900000000", texto: "1" });
+    expect(r.ok).toBe(true);
     expect(listados).toHaveLength(0);
+    expect(sessoes.size).toBe(0);
   });
 });

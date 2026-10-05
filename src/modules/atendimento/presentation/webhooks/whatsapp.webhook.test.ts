@@ -5,6 +5,7 @@
  */
 import { createHmac } from "node:crypto";
 
+import type { SessaoAtendimento } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
 import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/receber-mensagem.use-case";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
 import { HmacAutenticacaoWebhookGateway } from "@/modules/atendimento/infra/gateways/hmac-autenticacao-webhook.gateway";
@@ -22,8 +23,21 @@ const documentos: ConstructorParameters<typeof ReceberMensagem>[2] = {
   linkTemporario: async (caminho) => ok(`https://storage.test/${caminho}`),
 };
 
+const sessoesEmMemoria = new Map<string, SessaoAtendimento>();
+const sessoes: ConstructorParameters<typeof ReceberMensagem>[3] = {
+  obter: async (telefone) => ok(sessoesEmMemoria.get(telefone) ?? null),
+  salvar: async (telefone, sessao) => {
+    sessoesEmMemoria.set(telefone, sessao);
+    return ok(undefined);
+  },
+  limpar: async (telefone) => {
+    sessoesEmMemoria.delete(telefone);
+    return ok(undefined);
+  },
+};
+
 jest.mock("@/main/atendimento.factory", () => ({
-  makeReceberMensagem: () => new ReceberMensagem(identificacao, envio, documentos),
+  makeReceberMensagem: () => new ReceberMensagem(identificacao, envio, documentos, sessoes),
   makeAutenticacaoWebhook: () => new HmacAutenticacaoWebhookGateway(SEGREDO, TOKEN),
 }));
 
@@ -74,6 +88,7 @@ const verificar = (query: string) =>
 
 beforeEach(() => {
   envio = new EnvioMensagemFalsoGateway();
+  sessoesEmMemoria.clear();
   identificacao = {
     identificar: async () => ok({ clienteId: "c1", nome: "Ana", empresa: "Padaria", padrao: true }),
   };
@@ -120,9 +135,10 @@ describe("POST /api/webhooks/whatsapp (notificação)", () => {
     expect(envio.enviadas[1].texto).toContain("em construção");
   });
 
-  it("opção 1 do menu entrega o contrato social como documento", async () => {
-    const r = await enviar(notificacao([texto("1")]));
+  it("opção 1 do menu pergunta o tipo e, ao escolher contrato, entrega o documento", async () => {
+    const r = await enviar(notificacao([texto("1"), texto("1")]));
     expect(r.status).toBe(200);
+    expect(envio.enviadas[0].texto).toContain("Ambos");
     expect(envio.documentosEnviados).toEqual([
       {
         telefone: "5511912345678",

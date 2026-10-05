@@ -15,6 +15,7 @@ import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/
 import { HmacAutenticacaoWebhookGateway } from "@/modules/atendimento/infra/gateways/hmac-autenticacao-webhook.gateway";
 import { SupabaseDocumentosContratuaisGateway } from "@/modules/atendimento/infra/gateways/supabase-documentos-contratuais.gateway";
 import { SupabaseIdentificacaoContatoGateway } from "@/modules/atendimento/infra/gateways/supabase-identificacao-contato.gateway";
+import { SupabaseSessaoAtendimentoGateway } from "@/modules/atendimento/infra/gateways/supabase-sessao-atendimento.gateway";
 
 // Instância única: o falso guarda em memória o que "enviou".
 const envioFalso = new EnvioMensagemFalsoGateway();
@@ -32,6 +33,7 @@ export function makeReceberMensagem(): ReceberMensagemPort {
     new SupabaseIdentificacaoContatoGateway(supabaseAdmin),
     makeEnvioMensagem(),
     new SupabaseDocumentosContratuaisGateway(supabaseAdmin),
+    new SupabaseSessaoAtendimentoGateway(supabaseAdmin, MENSAGERIA_SEGREDO_ASSINATURA),
   );
 }
 

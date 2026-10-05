@@ -64,11 +64,21 @@ Número de um Contato (padrão ou outro) de um Cliente recebe saudação nominal
 alterações, 2 guia de imposto, 3 guia de parcelamento, 4 CND, 5 falar com atendente). `2` a `5` devolve "em
 construção" (stub); qualquer outro texto reenvia o menu.
 
-**Opção 1 (#41):** busca o contrato social e as alterações do Cliente do contato. Um único documento é enviado direto;
-com mais de um, a URA lista `1.1 - Contrato social`, `1.2 - Alteração de 12/03/2020`… (alterações por data, da mais
-antiga à mais nova) e o cliente responde com o código (`1.2`) para receber o arquivo. Código fora da lista reenvia a
-lista; Cliente sem documento recebe aviso. Número não identificado nunca chega aos documentos. A lista é recalculada a
-cada mensagem (sem sessão até o #42+), então um documento novo entre a lista e a escolha desloca os códigos.
+**Opção 1 (#41):** pergunta `1 - Contrato social`, `2 - Alterações`, `3 - Ambos`.
+- `1` envia o contrato; sem contrato cadastrado, avisa.
+- `2` envia a alteração; `3` envia o contrato **e** a alteração escolhida. Com uma só alteração, envia direto; sem
+  nenhuma, avisa (`3` ainda entrega o contrato).
+- Com várias alterações, lista da **mais recente à mais antiga**, 10 por página (`1 - Alteração de 15/03/2020`…);
+  `mais` avança a página e o cliente responde com o número da página corrente. Número fora da lista ou `mais` na última
+  página reapresenta a página.
+- `menu` abandona o fluxo a qualquer momento. Número não identificado nunca chega aos documentos.
+
+**Sessão (`atendimento_sessoes`):** guarda só a posição no menu (`etapa`, `modo`, `pagina`), nunca dado do Cliente:
+nome, empresa, CNPJ e caminhos são relidos a cada mensagem. A chave é um HMAC-SHA256 do telefone (segredo
+`MENSAGERIA_SEGREDO_ASSINATURA`), nunca o número; expira em 10 min (ignorada na leitura, varrida a cada gravação);
+RLS ligada sem policy (só `service_role`). A sessão só é encerrada depois do envio: se falhar, a Meta reenvia e o
+cliente retoma do mesmo ponto. Limite: se uma alteração for cadastrada com a sessão aberta, o número escolhido pode
+apontar para outra.
 
 ## Ainda não coberto (vai com a #68)
 
