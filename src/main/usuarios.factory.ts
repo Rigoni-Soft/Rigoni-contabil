@@ -3,6 +3,7 @@ import "server-only";
 import { makeRegistrarAcao } from "@/main/auditoria.factory";
 import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
+import type { AlterarPapelUsuarioPort } from "@/modules/usuarios/application/ports/in/alterar-papel-usuario.provider";
 import type { CriarUsuarioPort } from "@/modules/usuarios/application/ports/in/criar-usuario.provider";
 import type { DesativarUsuarioPort } from "@/modules/usuarios/application/ports/in/desativar-usuario.provider";
 import type { ListarSetoresPort } from "@/modules/usuarios/application/ports/in/listar-setores.provider";
@@ -12,6 +13,7 @@ import type { LogoutPort } from "@/modules/usuarios/application/ports/in/logout.
 import type { ObterSessaoPort } from "@/modules/usuarios/application/ports/in/obter-sessao.provider";
 import type { TrocarSenhaPort } from "@/modules/usuarios/application/ports/in/trocar-senha.provider";
 import type { AuditoriaPort } from "@/modules/usuarios/application/ports/out/auditoria.provider";
+import { AlterarPapelUsuario } from "@/modules/usuarios/application/use-cases/alterar-papel-usuario.use-case";
 import { CriarUsuario } from "@/modules/usuarios/application/use-cases/criar-usuario.use-case";
 import { DesativarUsuario } from "@/modules/usuarios/application/use-cases/desativar-usuario.use-case";
 import { ListarSetores } from "@/modules/usuarios/application/use-cases/listar-setores.use-case";
@@ -21,6 +23,7 @@ import { Logout } from "@/modules/usuarios/application/use-cases/logout.use-case
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
 import { TrocarSenha } from "@/modules/usuarios/application/use-cases/trocar-senha.use-case";
 import { AutorizacaoService } from "@/modules/usuarios/domain/services/autorizacao.service";
+import { SupabaseAlteracaoPapelGateway } from "@/modules/usuarios/infra/gateways/supabase-alteracao-papel.gateway";
 import { SupabaseAuthAdminGateway } from "@/modules/usuarios/infra/gateways/supabase-auth-admin.gateway";
 import { SupabaseDesativacaoGateway } from "@/modules/usuarios/infra/gateways/supabase-desativacao.gateway";
 import { SupabaseFinalizarTrocaSenhaGateway } from "@/modules/usuarios/infra/gateways/supabase-finalizar-troca-senha.gateway";
@@ -106,5 +109,14 @@ export async function makeDesativarUsuario(): Promise<DesativarUsuarioPort> {
     new SupabaseUsuarioRepository(supabase),
     new SupabaseDesativacaoGateway(supabaseAdmin),
     new SupabaseAuthAdminGateway(supabaseAdmin),
+  );
+}
+
+export async function makeAlterarPapelUsuario(): Promise<AlterarPapelUsuarioPort> {
+  const supabase = await createSupabaseServer();
+  return new AlterarPapelUsuario(
+    new SupabaseSessaoGateway(supabase),
+    new SupabaseUsuarioRepository(supabase),
+    new SupabaseAlteracaoPapelGateway(createSupabaseAdmin()),
   );
 }

@@ -5,6 +5,7 @@ import { UsuariosLista } from "@/presentation/components/organisms/usuarios-list
 import { UsuariosListaPage } from "@/presentation/components/pages/usuarios-lista.page";
 import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-button.container";
 import { carregarSessao } from "@/presentation/view-models/shell/shell.server";
+import { AlterarPapelContainer } from "@/modules/usuarios/presentation/view-models/alterar-papel/alterar-papel.container";
 import { DesativarUsuarioContainer } from "@/modules/usuarios/presentation/view-models/desativar-usuario/desativar-usuario.container";
 import { carregarUsuarios } from "@/modules/usuarios/presentation/view-models/listar-usuarios/listar-usuarios.server";
 
@@ -27,10 +28,13 @@ export default async function Page() {
       lista={
         <UsuariosLista
           usuarios={usuarios.value}
-          // Admin nunca é desativado pela UI (#58): a linha dele fica sem ação.
+          // Admin nunca é desativado nem muda de papel pela UI (#57/#58): a linha dele fica sem ação.
           acoes={(u) =>
             u.papel === "admin" ? null : (
-              <DesativarUsuarioContainer usuarioId={u.id} nome={u.nome} />
+              <div className="flex items-start gap-2">
+                <AlterarPapelContainer usuarioId={u.id} nome={u.nome} papel={u.papel} />
+                <DesativarUsuarioContainer usuarioId={u.id} nome={u.nome} />
+              </div>
             )
           }
         />
