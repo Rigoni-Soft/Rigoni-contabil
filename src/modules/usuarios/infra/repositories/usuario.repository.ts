@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
 import type { Usuario, UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
+import type { Setor } from "@/modules/usuarios/domain/value-objects/setor.vo";
 import { perfilRowSchema } from "@/modules/usuarios/infra/dtos/perfil-row.dto";
 import { perfilParaUsuario } from "@/modules/usuarios/infra/mappers/perfil-para-usuario.mapper";
 import type { AppError } from "@/shared/errors/app.error";
@@ -50,6 +51,21 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
       usuarios.push(usuario.value);
     }
     return ok(usuarios);
+  }
+
+  async buscarLiderAtivoDoSetor(setor: Setor): Promise<Result<Usuario | null, AppError>> {
+    const { data, error } = await this.supabase
+      .from("perfis")
+      .select("*")
+      .eq("setor", setor.slug)
+      .eq("papel", "lider_setor")
+      .is("desativado_em", null)
+      .maybeSingle();
+    if (error) {
+      console.error(`Falha ao buscar líder do setor ${setor.slug}: ${error.message}`);
+      return err(new PersistenciaError("Falha ao verificar o líder do setor."));
+    }
+    return data ? this.paraUsuario(data) : ok(null);
   }
 
   // Row DTO: formato exato da tabela, validado por Zod — falha alto se o banco

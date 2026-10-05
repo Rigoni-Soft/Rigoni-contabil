@@ -8,6 +8,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { Usuario, type UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
+import { Setor } from "@/modules/usuarios/domain/value-objects/setor.vo";
 
 import { SupabaseUsuarioRepository } from "./usuario.repository";
 
@@ -286,5 +287,18 @@ describe("SupabaseUsuarioRepository (integração)", () => {
       expect(resultado.ok).toBe(true);
       if (resultado.ok) expect(resultado.value?.email).toBe(email);
     });
+  });
+
+  it("buscarLiderAtivoDoSetor devolve o Líder do Setor (seed: contabil) e null onde não há", async () => {
+    const repositorio = new SupabaseUsuarioRepository(await comoAdmin());
+    const contabil = Setor.criar("contabil");
+    const recepcao = Setor.criar("recepcao");
+    if (!contabil.ok || !recepcao.ok) throw new Error("setup inválido");
+
+    const comLider = await repositorio.buscarLiderAtivoDoSetor(contabil.value);
+    const semLider = await repositorio.buscarLiderAtivoDoSetor(recepcao.value);
+
+    expect(comLider.ok && comLider.value?.id).toBe(LIDER_CONTABIL_ID);
+    expect(semLider).toEqual({ ok: true, value: null });
   });
 });
