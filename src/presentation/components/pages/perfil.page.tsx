@@ -27,13 +27,19 @@ export function PerfilPage({ header, formulario, nome, email, papel, setor }: Pe
           {dados.map(([rotulo, valor]) => (
             <div key={rotulo} className="contents">
               <dt className="text-muted-foreground">{rotulo}</dt>
-              <dd className="font-medium text-foreground">{valor}</dd>
+              <dd className="min-w-0 font-medium break-words text-foreground">{valor}</dd>
             </div>
           ))}
         </dl>
-        <h2 className="mb-2 text-lg font-semibold text-foreground">Trocar senha</h2>
-        <p className="mb-6 text-sm text-muted-foreground">Defina uma nova senha para sua conta.</p>
-        {formulario}
+        <section aria-labelledby="trocar-senha-titulo" className="border-t border-border pt-8">
+          <h2 id="trocar-senha-titulo" className="mb-2 text-lg font-semibold text-foreground">
+            Trocar senha
+          </h2>
+          <p className="mb-6 text-sm text-muted-foreground">
+            Defina uma nova senha para sua conta.
+          </p>
+          {formulario}
+        </section>
       </div>
     </main>
   );
