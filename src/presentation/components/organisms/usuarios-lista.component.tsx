@@ -1,4 +1,5 @@
 import { PAPEL_LABEL } from "@/shared/kernel/papeis";
+import { SETOR_LABEL } from "@/shared/kernel/setores";
 
 export type UsuarioListado = {
   id: string;
@@ -23,7 +24,8 @@ export function UsuariosLista({ usuarios, acoes }: UsuariosListaProps) {
           <div className="min-w-0">
             <p className="truncate font-medium text-foreground">{usuario.nome}</p>
             <p className="truncate text-sm text-muted-foreground">
-              {usuario.email} · {PAPEL_LABEL[usuario.papel] ?? usuario.papel} · {usuario.setor}
+              {usuario.email} · {PAPEL_LABEL[usuario.papel] ?? usuario.papel} ·{" "}
+              {SETOR_LABEL[usuario.setor] ?? usuario.setor}
             </p>
           </div>
           {acoes(usuario)}

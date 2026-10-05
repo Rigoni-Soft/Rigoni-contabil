@@ -12,7 +12,7 @@ describe("UsuariosLista", () => {
     render(<UsuariosLista usuarios={usuarios} acoes={() => null} />);
 
     expect(screen.getByText("Jéssica")).toBeInTheDocument();
-    expect(screen.getByText(/j@x\.local · Funcionário · financeiro/)).toBeInTheDocument();
+    expect(screen.getByText(/j@x\.local · Funcionário · Financeiro/)).toBeInTheDocument();
   });
 
   it("renderiza a ação de cada linha vinda do slot", () => {

@@ -51,7 +51,7 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
           <Link
             href="/admin/usuarios/novo"
             aria-label={rotuloCadastrar}
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
+            className={buttonVariants({ variant: "ghost" })}
           >
             <UserPlus aria-hidden="true" />
             <span className="hidden sm:inline">{rotuloCadastrar}</span>
@@ -74,7 +74,7 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
           <Link
             href="/admin/usuarios"
             aria-label="Usuários"
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
+            className={buttonVariants({ variant: "ghost" })}
           >
             <Users aria-hidden="true" />
             <span className="hidden sm:inline">Usuários</span>
@@ -85,7 +85,7 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
         <Link
           href="/perfil"
           aria-label="Meu perfil"
-          className={buttonVariants({ variant: "ghost", size: "sm" })}
+          className={buttonVariants({ variant: "ghost" })}
         >
           <CircleUser aria-hidden="true" />
           <span className="hidden sm:inline">Meu perfil</span>
