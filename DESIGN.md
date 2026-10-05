@@ -567,6 +567,17 @@ clicar, troca no próprio lugar por "Confirmar" (`destructive`) + "Cancelar"
 ação. `ShellHeader` ganhou o link "Usuários" (ícone `Users`, rótulo oculto
 abaixo de `sm`, mesmo padrão dos demais links de ação).
 
+### Troca de papel inline (#57)
+
+Na mesma linha, ao lado de "Desativar", um `Button` `outline`/`sm`: "Promover"
+(Funcionário → Líder de setor) ou "Rebaixar" (Líder → Funcionário), com
+`aria-label` completo ("Promover Fulana a Líder de setor"). Sem confirmação (a
+troca é reversível e auditada). Se o Setor já tem Líder ativo, o erro explícito
+aparece abaixo do botão (`AlertTriangle` + `text-destructive`, `role="alert"`,
+`max-w-64`) pedindo para rebaixar o atual antes — nunca há troca automática. Os
+dois botões ficam num `flex gap-2`; a linha do Admin segue sem ação. Nenhum token
+novo.
+
 ## Estados e motion
 
 - Loading do formulário de login: label muda para "Entrando…" e um
