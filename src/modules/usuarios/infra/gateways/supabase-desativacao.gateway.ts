@@ -2,12 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { DesativacaoPort } from "@/modules/usuarios/application/ports/out/desativacao.provider";
 import type { UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
-import { AppError } from "@/shared/errors/app.error";
+import type { AppError } from "@/shared/errors/app.error";
+import { PersistenciaError } from "@/shared/errors/persistencia.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
-
-class PersistenciaError extends AppError {
-  readonly code = "PERSISTENCIA_ERROR";
-}
 
 // Só um client service_role chama a RPC (ver docs/adr/0001): ela não aceita
 // EXECUTE de `authenticated`/`anon`, então a checagem "só Admin" fica no caso de uso.

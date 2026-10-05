@@ -4,12 +4,9 @@ import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out
 import type { Usuario, UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
 import { perfilRowSchema } from "@/modules/usuarios/infra/dtos/perfil-row.dto";
 import { perfilParaUsuario } from "@/modules/usuarios/infra/mappers/perfil-para-usuario.mapper";
-import { AppError } from "@/shared/errors/app.error";
+import type { AppError } from "@/shared/errors/app.error";
+import { PersistenciaError } from "@/shared/errors/persistencia.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
-
-class PersistenciaError extends AppError {
-  readonly code = "PERSISTENCIA_ERROR";
-}
 
 export class SupabaseUsuarioRepository implements UsuarioRepository {
   constructor(private readonly supabase: SupabaseClient) {}
@@ -34,20 +31,7 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
 
     // Row DTO: formato exato da tabela, validado por Zod — falha alto se o banco
     // divergir do schema esperado (arquitetura.md §3.7, bug/estado impossível).
-    const row = perfilRowSchema.parse(data);
-
-    // Diferente do `parse` acima: aqui é regra de negócio (nome/e-mail válidos),
-    // não formato da coluna — dado sujo é falha esperada, não bug (arquitetura.md
-    // §3.8), e precisa devolver Result pra quem chama poder limpar a sessão sem
-    // depender de try/catch (devolutiva #55, ponto 01).
-    const resultado = perfilParaUsuario(row);
-    if (!resultado.ok) {
-      const mensagem = `Perfil salvo com dados inválidos (id=${id}): ${resultado.error.message}`;
-      console.error(mensagem);
-      return err(new PersistenciaError(mensagem));
-    }
-
-    return ok(resultado.value);
+    return this.paraUsuario(data);
   }
 
   async listarAtivos(): Promise<Result<Usuario[], AppError>> {
@@ -62,17 +46,28 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
     }
 
     const usuarios: Usuario[] = [];
-    for (const row of data.map((r) => perfilRowSchema.parse(r))) {
-      const resultado = perfilParaUsuario(row);
-      if (!resultado.ok) {
-        console.error(
-          `Perfil salvo com dados inválidos (id=${row.id}): ${resultado.error.message}`,
-        );
-        return err(new PersistenciaError("Falha ao listar usuários."));
-      }
-      usuarios.push(resultado.value);
+    for (const row of data) {
+      const usuario = this.paraUsuario(row);
+      if (!usuario.ok) return err(new PersistenciaError("Falha ao listar usuários."));
+      usuarios.push(usuario.value);
     }
     return ok(usuarios);
+  }
+
+  // Row DTO: formato exato da tabela, validado por Zod — falha alto se o banco
+  // divergir do schema esperado (arquitetura.md §3.7, bug/estado impossível).
+  // Já a reconstrução de domínio (nome/e-mail válidos) é regra de negócio: dado
+  // sujo é falha esperada, não bug (§3.8), e devolve Result pra quem chama poder
+  // limpar a sessão sem try/catch (devolutiva #55, ponto 01).
+  private paraUsuario(data: unknown): Result<Usuario, AppError> {
+    const row = perfilRowSchema.parse(data);
+    const resultado = perfilParaUsuario(row);
+    if (!resultado.ok) {
+      const mensagem = `Perfil salvo com dados inválidos (id=${row.id}): ${resultado.error.message}`;
+      console.error(mensagem);
+      return err(new PersistenciaError(mensagem));
+    }
+    return ok(resultado.value);
   }
 
   async criar(usuario: Usuario): Promise<Result<void, AppError>> {

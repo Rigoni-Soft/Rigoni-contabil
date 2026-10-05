@@ -31,7 +31,7 @@ begin
   end if;
 
   insert into public.registros_auditoria (id, ator, setor, acao, alvo, resultado, criado_em)
-  values (gen_random_uuid(), v_ator.id, v_ator.setor, 'usuario.desativar', v_alvo.email, 'sucesso', now());
+  values (gen_random_uuid(), v_ator.id, v_alvo.setor, 'usuario.desativar', v_alvo.email, 'sucesso', now());
 
   update public.perfis set desativado_em = now() where id = alvo_id;
 end;

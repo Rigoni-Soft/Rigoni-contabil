@@ -8,12 +8,9 @@ import type {
 import type { RegistroAcao } from "@/modules/auditoria/domain/entities/registro-acao.entity";
 import { registroAcaoRowSchema } from "@/modules/auditoria/infra/dtos/registro-acao-row.dto";
 import { registroAcaoRowParaDto } from "@/modules/auditoria/infra/mappers/registro-acao-row-para-dto.mapper";
-import { AppError } from "@/shared/errors/app.error";
+import type { AppError } from "@/shared/errors/app.error";
+import { PersistenciaError } from "@/shared/errors/persistencia.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
-
-class PersistenciaError extends AppError {
-  readonly code = "PERSISTENCIA_ERROR";
-}
 
 export class SupabaseRegistroAcaoRepository implements RegistroAcaoRepository {
   constructor(private readonly supabase: SupabaseClient) {}

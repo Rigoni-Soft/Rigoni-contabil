@@ -2,12 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { FinalizarTrocaSenhaPort } from "@/modules/usuarios/application/ports/out/finalizar-troca-senha.provider";
 import type { UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
-import { AppError } from "@/shared/errors/app.error";
+import type { AppError } from "@/shared/errors/app.error";
+import { PersistenciaError } from "@/shared/errors/persistencia.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
-
-class PersistenciaError extends AppError {
-  readonly code = "PERSISTENCIA_ERROR";
-}
 
 // Só esta classe usa o client service_role (ver docs/adr/0001) pra finalizar a
 // troca — as RPCs não aceitam EXECUTE de `authenticated`/`anon` (devolutiva

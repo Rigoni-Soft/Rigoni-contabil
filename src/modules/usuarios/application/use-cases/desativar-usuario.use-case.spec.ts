@@ -138,6 +138,9 @@ describe("DesativarUsuario", () => {
     const resultado = await casoDeUso.execute({ usuarioId: "func-1" });
 
     expect(resultado.ok).toBe(false);
-    if (!resultado.ok) expect(resultado.error.code).toBe("PERSISTENCIA_ERROR");
+    if (!resultado.ok) {
+      expect(resultado.error.code).toBe("INCONSISTENT_STATE");
+      expect(resultado.error.message).toMatch(/Usuário desativado, mas o bloqueio da conta falhou/);
+    }
   });
 });

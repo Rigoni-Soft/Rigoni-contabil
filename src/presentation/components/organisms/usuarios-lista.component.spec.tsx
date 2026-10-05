@@ -1,5 +1,4 @@
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 
 import { UsuariosLista } from "./usuarios-lista.component";
 
@@ -8,46 +7,23 @@ const usuarios = [
   { id: "f1", nome: "Jéssica", email: "j@x.local", papel: "funcionario", setor: "financeiro" },
 ];
 
-function renderizar(props: Partial<React.ComponentProps<typeof UsuariosLista>> = {}) {
-  const callbacks = {
-    aoPedirConfirmacao: jest.fn(),
-    aoCancelar: jest.fn(),
-    aoConfirmar: jest.fn(),
-  };
-  render(<UsuariosLista usuarios={usuarios} {...callbacks} {...props} />);
-  return callbacks;
-}
-
 describe("UsuariosLista", () => {
-  it("não oferece desativar para Admin", () => {
-    renderizar();
+  it("mostra nome, e-mail, papel e setor de cada usuário", () => {
+    render(<UsuariosLista usuarios={usuarios} acoes={() => null} />);
 
-    expect(screen.queryByRole("button", { name: /Desativar Cledson/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Desativar Jéssica" })).toBeInTheDocument();
+    expect(screen.getByText("Jéssica")).toBeInTheDocument();
+    expect(screen.getByText(/j@x\.local · Funcionário · financeiro/)).toBeInTheDocument();
   });
 
-  it("Desativar só pede confirmação, não desativa", async () => {
-    const { aoPedirConfirmacao, aoConfirmar } = renderizar();
+  it("renderiza a ação de cada linha vinda do slot", () => {
+    render(
+      <UsuariosLista
+        usuarios={usuarios}
+        acoes={(u) => (u.papel === "admin" ? null : <button>Ação {u.nome}</button>)}
+      />,
+    );
 
-    await userEvent.click(screen.getByRole("button", { name: "Desativar Jéssica" }));
-
-    expect(aoPedirConfirmacao).toHaveBeenCalledWith("f1");
-    expect(aoConfirmar).not.toHaveBeenCalled();
-  });
-
-  it("em confirmação, mostra Confirmar e Cancelar do usuário alvo", async () => {
-    const { aoConfirmar, aoCancelar } = renderizar({ confirmandoId: "f1" });
-
-    await userEvent.click(screen.getByRole("button", { name: "Confirmar desativação de Jéssica" }));
-    await userEvent.click(screen.getByRole("button", { name: "Cancelar" }));
-
-    expect(aoConfirmar).toHaveBeenCalledWith("f1");
-    expect(aoCancelar).toHaveBeenCalled();
-  });
-
-  it("mostra o erro recebido num alerta", () => {
-    renderizar({ erro: "Falhou." });
-
-    expect(screen.getByRole("alert")).toHaveTextContent("Falhou.");
+    expect(screen.getByRole("button", { name: "Ação Jéssica" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Ação Cledson/ })).not.toBeInTheDocument();
   });
 });

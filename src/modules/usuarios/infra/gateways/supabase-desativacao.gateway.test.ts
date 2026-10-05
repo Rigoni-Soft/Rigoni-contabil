@@ -54,10 +54,15 @@ describe("desativação de usuário (integração)", () => {
     expect(perfil.data?.desativado_em).not.toBeNull();
     const auditorias = await admin
       .from("registros_auditoria")
-      .select("acao, alvo, resultado")
+      .select("acao, alvo, resultado, setor")
       .eq("ator", ator.id);
     expect(auditorias.data).toEqual([
-      { acao: "usuario.desativar", alvo: alvo.email, resultado: "sucesso" },
+      {
+        acao: "usuario.desativar",
+        alvo: alvo.email,
+        resultado: "sucesso",
+        setor: "simples_nacional",
+      },
     ]);
   });
 
