@@ -103,7 +103,7 @@ function Barras({
   fatias,
   totalClientes,
   nota,
-  className = "md:col-span-2 lg:col-span-1",
+  className = "",
 }: {
   titulo: string;
   fatias: Fatia[];
@@ -157,7 +157,7 @@ export function ComparativosSn({ comparativos, responsaveis, totalClientes }: Pr
           fatias={comparativos.atividade}
           totalClientes={totalClientes}
           nota="Um cliente pode estar em mais de uma atividade no mês."
-          className={responsaveis ? "" : undefined}
+          className={responsaveis ? "" : "md:col-span-2 lg:col-span-1"}
         />
         {responsaveis && (
           <Barras
@@ -165,7 +165,6 @@ export function ComparativosSn({ comparativos, responsaveis, totalClientes }: Pr
             fatias={responsaveis}
             totalClientes={totalClientes}
             nota="Clientes com DAS enviada, por Funcionário."
-            className=""
           />
         )}
       </div>
