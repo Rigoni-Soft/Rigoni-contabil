@@ -1,5 +1,6 @@
 import type { FatiaComparativoDto } from "@/modules/clientes/application/ports/in/obter-resumo-setor-sn.provider";
 import type { ResumoOperacionalRow } from "@/modules/clientes/application/ports/out/cliente-query.provider";
+import { RESPONSAVEL_OUTRO_SETOR_LABEL } from "@/shared/kernel/papeis";
 
 function contar(
   definicao: readonly (readonly [string, string])[],
@@ -23,7 +24,7 @@ function porResponsavel(linhas: ResumoOperacionalRow[]): FatiaComparativoDto[] {
     const grupo = grupos.get(id) ?? {
       id,
       rotulo: l.responsavelId
-        ? (l.responsavelNome ?? "Responsável de outro setor")
+        ? (l.responsavelNome ?? RESPONSAVEL_OUTRO_SETOR_LABEL)
         : "Sem responsável",
       quantidade: 0,
     };

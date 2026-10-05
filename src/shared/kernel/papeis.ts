@@ -4,6 +4,9 @@
 // motivo de SETORES: mais de um componente de presentation/ global precisa
 // da mesma lista, sem poder importar de dentro do módulo usuarios
 // (arquitetura.md, seção 3.4).
+// Responsável cujo perfil a RLS esconde de quem lê (leitor de outro Setor, #65).
+export const RESPONSAVEL_OUTRO_SETOR_LABEL = "Responsável de outro setor";
+
 export const PAPEL_LABEL: Record<string, string> = {
   admin: "Admin",
   lider_setor: "Líder de setor",

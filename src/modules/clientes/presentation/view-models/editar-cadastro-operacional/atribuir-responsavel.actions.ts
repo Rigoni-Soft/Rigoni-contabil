@@ -6,7 +6,6 @@ import {
   makeAtribuirResponsavelCliente,
   makeListarResponsaveisElegiveis,
 } from "@/main/clientes.factory";
-import type { AtribuirResponsavelClienteOutput } from "@/modules/clientes/application/ports/in/atribuir-responsavel-cliente.provider";
 import type { ResponsavelOpcaoDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
 import { toActionResult } from "@/shared/kernel/to-action-result";
@@ -18,9 +17,7 @@ const schema = z.object({
   responsavelId: z.guid().nullable(),
 });
 
-export async function atribuirResponsavelAction(
-  input: unknown,
-): Promise<ActionResult<AtribuirResponsavelClienteOutput>> {
+export async function atribuirResponsavelAction(input: unknown): Promise<ActionResult<void>> {
   const parsed = schema.safeParse(input);
   if (!parsed.success) {
     return {

@@ -10,6 +10,7 @@ import {
   type EditarCadastroOperacionalFormValues,
 } from "@/presentation/components/organisms/editar-cadastro-operacional-form.component";
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
+import { RESPONSAVEL_OUTRO_SETOR_LABEL } from "@/shared/kernel/papeis";
 import { REGIME_LABEL, regimeTemCadastroOperacionalSn } from "@/shared/kernel/regimes";
 
 import { atribuirResponsavelAction } from "./atribuir-responsavel.actions";
@@ -180,7 +181,7 @@ export function EditarCadastroOperacionalContainer({
       responsavel={{
         editavel: podeAtribuirResponsavel,
         nomeAtual: dados.responsavelId
-          ? (dados.responsavelNome ?? "Responsável de outro setor")
+          ? (dados.responsavelNome ?? RESPONSAVEL_OUTRO_SETOR_LABEL)
           : "Sem responsável",
         opcoes: opcoesResponsavel(dados, elegiveis.data ?? []),
         onAbrir: () => setListaAberta(true),

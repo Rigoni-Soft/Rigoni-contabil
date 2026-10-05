@@ -1,6 +1,5 @@
 import type {
   AtribuirResponsavelClienteInput,
-  AtribuirResponsavelClienteOutput,
   AtribuirResponsavelClientePort,
 } from "@/modules/clientes/application/ports/in/atribuir-responsavel-cliente.provider";
 import type { AuditoriaPort } from "@/modules/clientes/application/ports/out/auditoria.provider";
@@ -28,9 +27,7 @@ export class AtribuirResponsavelCliente implements AtribuirResponsavelClientePor
     private readonly auditoria: AuditoriaPort,
   ) {}
 
-  async execute(
-    input: AtribuirResponsavelClienteInput,
-  ): Promise<Result<AtribuirResponsavelClienteOutput, AppError>> {
+  async execute(input: AtribuirResponsavelClienteInput): Promise<Result<void, AppError>> {
     const ator = await this.sessao.usuarioAtual();
     if (!ator || ator.papel !== "lider_setor" || ator.setor !== "simples_nacional") {
       return err(new ForbiddenError("Só o Líder do Simples Nacional atribui o Responsável."));
@@ -52,7 +49,7 @@ export class AtribuirResponsavelCliente implements AtribuirResponsavelClientePor
     const salvo = await this.responsaveis.atribuir(input.clienteId, input.responsavelId);
     await this.registrarAuditoria(ator, cliente.value.cnpj.digitos, salvo.ok ? "sucesso" : "falha");
     if (!salvo.ok) return salvo;
-    return ok({ clienteId: input.clienteId });
+    return ok(undefined);
   }
 
   private async validarElegivel(responsavelId: string | null): Promise<Result<void, AppError>> {

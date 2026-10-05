@@ -45,10 +45,7 @@ export function cnpjUnico(): string {
 // #65: Funcionário SN só enxerga/edita Cliente do qual é Responsável, e só o
 // Líder do SN atribui — este helper faz o papel do Líder direto no banco
 // (mesmo caminho que a UI usa), pra e2e de outros tickets não dependerem da tela.
-export async function atribuirResponsavelComoLider(
-  cnpjDigits: string,
-  emailFuncionario = "funcionario.sn@rigonicontabil.local",
-): Promise<string> {
+export async function atribuirResponsavelComoLider(cnpjDigits: string): Promise<string> {
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const { error: erroLogin } = await supabase.auth.signInWithPassword({
     email: "lider.sn@rigonicontabil.local",
@@ -66,7 +63,7 @@ export async function atribuirResponsavelComoLider(
   const { data: funcionario, error: erroFuncionario } = await supabase
     .from("perfis")
     .select("id")
-    .eq("email", emailFuncionario)
+    .eq("email", "funcionario.sn@rigonicontabil.local")
     .single();
   if (erroFuncionario || !funcionario) {
     throw new Error(`Funcionário não encontrado: ${erroFuncionario?.message}`);
