@@ -38,4 +38,34 @@ describe("EnvioMensagemFalsoGateway (Cloud API simulada)", () => {
       expect(gateway.enviadas).toHaveLength(0);
     },
   );
+
+  it("monta o corpo de envio de documento no formato da Cloud API e registra o envio", async () => {
+    const gateway = new EnvioMensagemFalsoGateway();
+    const documento = {
+      telefone: "5511912345678",
+      url: "https://storage.test/contrato.pdf",
+      nomeArquivo: "Contrato social.pdf",
+    };
+    const r = await gateway.enviarDocumento(documento);
+    expect(r.ok).toBe(true);
+    expect(gateway.requisicoes[0]).toEqual({
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: "5511912345678",
+      type: "document",
+      document: { link: documento.url, filename: documento.nomeArquivo },
+    });
+    expect(gateway.documentosEnviados).toEqual([documento]);
+  });
+
+  it("erro da Cloud API no envio de documento não registra o envio", async () => {
+    const gateway = new EnvioMensagemFalsoGateway({ "5511900000000": 133010 });
+    const r = await gateway.enviarDocumento({
+      telefone: "5511900000000",
+      url: "https://storage.test/x.pdf",
+      nomeArquivo: "x.pdf",
+    });
+    expect(r).toEqual({ ok: false, error: expect.any(ValidationError) });
+    expect(gateway.documentosEnviados).toHaveLength(0);
+  });
 });

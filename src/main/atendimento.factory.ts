@@ -13,6 +13,7 @@ import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/
 import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/receber-mensagem.use-case";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
 import { HmacAutenticacaoWebhookGateway } from "@/modules/atendimento/infra/gateways/hmac-autenticacao-webhook.gateway";
+import { SupabaseDocumentosContratuaisGateway } from "@/modules/atendimento/infra/gateways/supabase-documentos-contratuais.gateway";
 import { SupabaseIdentificacaoContatoGateway } from "@/modules/atendimento/infra/gateways/supabase-identificacao-contato.gateway";
 
 // Instância única: o falso guarda em memória o que "enviou".
@@ -26,9 +27,11 @@ function makeEnvioMensagem(): EnvioMensagemPort {
 }
 
 export function makeReceberMensagem(): ReceberMensagemPort {
+  const supabaseAdmin = createSupabaseAdmin();
   return new ReceberMensagem(
-    new SupabaseIdentificacaoContatoGateway(createSupabaseAdmin()),
+    new SupabaseIdentificacaoContatoGateway(supabaseAdmin),
     makeEnvioMensagem(),
+    new SupabaseDocumentosContratuaisGateway(supabaseAdmin),
   );
 }
 

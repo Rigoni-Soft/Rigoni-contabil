@@ -17,7 +17,11 @@ export class SupabaseIdentificacaoContatoGateway implements IdentificacaoContato
       p_telefone: telefone,
     });
     if (error) return err(new ServicoExternoError("Falha ao identificar o contato."));
-    const linha = (data as ContatoIdentificado[] | null)?.[0];
-    return ok(linha ?? null);
+    const linha = (
+      data as { cliente_id: string; nome: string; empresa: string; padrao: boolean }[] | null
+    )?.[0];
+    if (!linha) return ok(null);
+    const { cliente_id: clienteId, ...resto } = linha;
+    return ok({ clienteId, ...resto } satisfies ContatoIdentificado);
   }
 }

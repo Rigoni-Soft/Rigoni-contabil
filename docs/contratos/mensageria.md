@@ -1,6 +1,6 @@
 # Contrato: mensageria com o Contato (WhatsApp Cloud API)
 
-A **porta** do sistema é neutra (`ReceberMensagemPort`, `EnvioMensagemPort`: `{ telefone, texto }`), mas a borda
+A **porta** do sistema é neutra (`ReceberMensagemPort`, `EnvioMensagemPort`: `{ telefone, texto }` e `{ telefone, url, nomeArquivo }` para documentos), mas a borda
 HTTP e o adapter falso reproduzem a **WhatsApp Cloud API da Meta**, pra que o adapter real (#68) só troque a
 implementação. Fonte: documentação oficial da Meta (webhooks, Messages API, códigos de erro). Ver ADR 0004.
 
@@ -55,11 +55,20 @@ ou erro `{ error: { message, type, code, fbtrace_id } }` com o status HTTP da ta
 viram `ValidationError` (permanentes); os demais, `ServicoExternoError`. O adapter nunca envia de verdade; o construtor
 aceita `{ telefone: código }` pra simular uma falha.
 
+Documento (#41): corpo `{ messaging_product, recipient_type, to, type: "document", document: { link, filename } }`, mesma
+resposta/erros do texto. O `link` é uma URL assinada do Storage (bucket privado `documentos-clientes`) válida por 5 min.
+
 ## Fluxo
 
 Número de um Contato (padrão ou outro) de um Cliente recebe saudação nominal + menu (1 contrato social e
-alterações, 2 guia de imposto, 3 guia de parcelamento, 4 CND, 5 falar com atendente). `1` a `5` devolve "em
+alterações, 2 guia de imposto, 3 guia de parcelamento, 4 CND, 5 falar com atendente). `2` a `5` devolve "em
 construção" (stub); qualquer outro texto reenvia o menu.
+
+**Opção 1 (#41):** busca o contrato social e as alterações do Cliente do contato. Um único documento é enviado direto;
+com mais de um, a URA lista `1.1 - Contrato social`, `1.2 - Alteração de 12/03/2020`… (alterações por data, da mais
+antiga à mais nova) e o cliente responde com o código (`1.2`) para receber o arquivo. Código fora da lista reenvia a
+lista; Cliente sem documento recebe aviso. Número não identificado nunca chega aos documentos. A lista é recalculada a
+cada mensagem (sem sessão até o #42+), então um documento novo entre a lista e a escolha desloca os códigos.
 
 ## Ainda não coberto (vai com a #68)
 

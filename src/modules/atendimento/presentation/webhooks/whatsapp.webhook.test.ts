@@ -17,9 +17,13 @@ const SEGREDO = "segredo-teste";
 const TOKEN = "token-teste";
 let envio: EnvioMensagemFalsoGateway;
 let identificacao: ConstructorParameters<typeof ReceberMensagem>[0];
+const documentos: ConstructorParameters<typeof ReceberMensagem>[2] = {
+  listar: async () => ok([{ tipo: "contrato", data: null, caminho: "c1/contrato.pdf" }]),
+  linkTemporario: async (caminho) => ok(`https://storage.test/${caminho}`),
+};
 
 jest.mock("@/main/atendimento.factory", () => ({
-  makeReceberMensagem: () => new ReceberMensagem(identificacao, envio),
+  makeReceberMensagem: () => new ReceberMensagem(identificacao, envio, documentos),
   makeAutenticacaoWebhook: () => new HmacAutenticacaoWebhookGateway(SEGREDO, TOKEN),
 }));
 
@@ -71,7 +75,7 @@ const verificar = (query: string) =>
 beforeEach(() => {
   envio = new EnvioMensagemFalsoGateway();
   identificacao = {
-    identificar: async () => ok({ nome: "Ana", empresa: "Padaria", padrao: true }),
+    identificar: async () => ok({ clienteId: "c1", nome: "Ana", empresa: "Padaria", padrao: true }),
   };
   jest.spyOn(console, "info").mockImplementation(() => undefined);
   jest.spyOn(console, "error").mockImplementation(() => undefined);
@@ -110,10 +114,22 @@ describe("POST /api/webhooks/whatsapp (notificação)", () => {
   });
 
   it("processa todas as mensagens de um lote", async () => {
-    const r = await enviar(notificacao([texto("oi"), texto("1", "5511999990000")]));
+    const r = await enviar(notificacao([texto("oi"), texto("2", "5511999990000")]));
     expect(r.status).toBe(200);
     expect(envio.enviadas).toHaveLength(2);
     expect(envio.enviadas[1].texto).toContain("em construção");
+  });
+
+  it("opção 1 do menu entrega o contrato social como documento", async () => {
+    const r = await enviar(notificacao([texto("1")]));
+    expect(r.status).toBe(200);
+    expect(envio.documentosEnviados).toEqual([
+      {
+        telefone: "5511912345678",
+        url: "https://storage.test/c1/contrato.pdf",
+        nomeArquivo: "Contrato social.pdf",
+      },
+    ]);
   });
 
   it("mensagem sem texto (ex.: áudio) reabre o menu", async () => {

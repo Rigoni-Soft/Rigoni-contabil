@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type {
+  DocumentoEnviado,
   EnvioMensagemPort,
   MensagemEnviada,
 } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
@@ -10,13 +11,14 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 // Formato de `POST /{phone-number-id}/messages` da WhatsApp Cloud API (Meta).
+type ParteCorpo = { to: string } & (
+  | { type: "text"; text: { body: string } }
+  | { type: "document"; document: { link: string; filename: string } }
+);
 type CorpoEnvioCloudApi = {
   messaging_product: "whatsapp";
   recipient_type: "individual";
-  to: string;
-  type: "text";
-  text: { body: string };
-};
+} & ParteCorpo;
 
 type RespostaCloudApi =
   | {
@@ -72,24 +74,47 @@ function paraAppError(
 // alguém precisar auditar o que "foi enviado" fora de testes.
 export class EnvioMensagemFalsoGateway implements EnvioMensagemPort {
   readonly enviadas: MensagemEnviada[] = [];
+  readonly documentosEnviados: DocumentoEnviado[] = [];
   readonly requisicoes: CorpoEnvioCloudApi[] = [];
 
   constructor(private readonly falhas: Record<string, number> = {}) {}
 
   async enviar(mensagem: MensagemEnviada): Promise<Result<void, AppError>> {
-    const corpo: CorpoEnvioCloudApi = {
-      messaging_product: "whatsapp",
-      recipient_type: "individual",
+    const enviado = this.despachar({
       to: mensagem.telefone,
       type: "text",
       text: { body: mensagem.texto },
+    });
+    if (!enviado.ok) return enviado;
+    this.enviadas.push(mensagem);
+    console.info(`[mensageria falsa] para ${mensagem.telefone}: ${mensagem.texto}`);
+    return enviado;
+  }
+
+  async enviarDocumento(documento: DocumentoEnviado): Promise<Result<void, AppError>> {
+    const enviado = this.despachar({
+      to: documento.telefone,
+      type: "document",
+      document: { link: documento.url, filename: documento.nomeArquivo },
+    });
+    if (!enviado.ok) return enviado;
+    this.documentosEnviados.push(documento);
+    console.info(
+      `[mensageria falsa] para ${documento.telefone}: documento ${documento.nomeArquivo}`,
+    );
+    return enviado;
+  }
+
+  private despachar(parte: ParteCorpo): Result<void, AppError> {
+    const corpo: CorpoEnvioCloudApi = {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      ...parte,
     };
     this.requisicoes.push(corpo);
 
     const resposta = this.responder(corpo);
     if ("error" in resposta.corpo) return err(paraAppError(resposta.status, resposta.corpo.error));
-    this.enviadas.push(mensagem);
-    console.info(`[mensageria falsa] para ${mensagem.telefone}: ${mensagem.texto}`);
     return ok(undefined);
   }
 
