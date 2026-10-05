@@ -12,13 +12,16 @@ export * from "./env.client";
 const resultado = z
   .object({
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+    // Adapter do Serpro (#38): "falso" é o padrão; "real" chega com a #66.
+    SERPRO_ADAPTER: z.enum(["falso", "real"]).default("falso"),
   })
   .safeParse({
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    SERPRO_ADAPTER: process.env.SERPRO_ADAPTER || undefined,
   });
 
 if (!resultado.success) {
   throw new Error(`Variáveis de ambiente inválidas:\n${z.prettifyError(resultado.error)}`);
 }
 
-export const { SUPABASE_SERVICE_ROLE_KEY } = resultado.data;
+export const { SUPABASE_SERVICE_ROLE_KEY, SERPRO_ADAPTER } = resultado.data;
