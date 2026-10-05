@@ -18,6 +18,7 @@ import type {
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
+import { cnpjValido } from "@/shared/kernel/cnpj";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 const OPCOES_MENU = [
@@ -28,9 +29,14 @@ const OPCOES_MENU = [
   "Falar com atendente",
 ];
 
+const PERGUNTA_CLIENTE =
+  "Olá! Não identificamos este número entre os contatos dos nossos clientes. Você já é cliente da Rigoni Contábil? Responda *sim* ou *não*.";
+const SIM_OU_NAO = "Responda *sim* ou *não*.";
+const PEDIR_CNPJ = "Ótimo! Informe o CNPJ da sua empresa.";
+const CNPJ_INVALIDO = "Esse CNPJ não parece válido. Confira e envie novamente (ou digite *menu*).";
 // ponytail: só avisa; a Transferência real para a recepção entra com a Fila (#44/#45).
-const NAO_IDENTIFICADO =
-  "Olá! Não identificamos este número entre os contatos dos nossos clientes. Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
+const PARA_RECEPCAO =
+  "Não encontramos você entre os contatos cadastrados. Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
 
 const PERGUNTA_TIPO =
   "O que você deseja receber?\n1 - Contrato social\n2 - Alterações\n3 - Ambos (contrato social e uma alteração)\nDigite *menu* para voltar.";
@@ -94,13 +100,14 @@ export class ReceberMensagem implements ReceberMensagemPort {
 
     const contato = await this.contatos.identificar(chave);
     if (!contato.ok) return contato;
-    if (!contato.value) return this.enviar(mensagem.telefone, NAO_IDENTIFICADO);
-
-    const conversa: Conversa = { contato: contato.value, telefone: mensagem.telefone, chave };
     const texto = mensagem.texto.trim().toLowerCase();
 
     const sessao = await this.sessoes.obter(chave);
     if (!sessao.ok) return sessao;
+    if (!contato.value) {
+      return this.identificarNovo(mensagem.telefone, chave, texto, sessao.value);
+    }
+    const conversa: Conversa = { contato: contato.value, telefone: mensagem.telefone, chave };
     if (texto === "menu") {
       const limpa = await this.sessoes.limpar(chave);
       if (!limpa.ok) return limpa;
@@ -110,6 +117,48 @@ export class ReceberMensagem implements ReceberMensagemPort {
       return this.escolherAlteracao(conversa, sessao.value, texto);
     }
     return this.responderMenu(conversa, texto);
+  }
+
+  // Número sem Contato: "já é cliente?" → CNPJ → recepção. Mesmo com o CNPJ o número não é um
+  // Contato (já foi buscado em todos os Clientes), então o fim é sempre a recepção; sessão
+  // ausente/expirada/de outro fluxo ou "menu" recomeça pela pergunta.
+  private async identificarNovo(
+    telefone: string,
+    chave: string,
+    texto: string,
+    sessao: SessaoAtendimento | null,
+  ): Promise<Result<void, AppError>> {
+    const etapa = texto === "menu" ? null : sessao?.etapa;
+    const resposta = texto.normalize("NFD").replace(/\p{M}/gu, "");
+
+    if (etapa === "ja_cliente") {
+      if (["sim", "s"].includes(resposta)) return this.avancar(telefone, chave, "cnpj", PEDIR_CNPJ);
+      if (["nao", "n"].includes(resposta)) return this.encaminharRecepcao(telefone, chave);
+      return this.enviar(telefone, SIM_OU_NAO);
+    }
+    if (etapa === "cnpj") {
+      if (!cnpjValido(texto)) return this.enviar(telefone, CNPJ_INVALIDO);
+      return this.encaminharRecepcao(telefone, chave);
+    }
+    return this.avancar(telefone, chave, "ja_cliente", PERGUNTA_CLIENTE);
+  }
+
+  private async avancar(
+    telefone: string,
+    chave: string,
+    etapa: "ja_cliente" | "cnpj",
+    texto: string,
+  ): Promise<Result<void, AppError>> {
+    const salva = await this.sessoes.salvar(chave, { etapa });
+    return salva.ok ? this.enviar(telefone, texto) : salva;
+  }
+
+  private async encaminharRecepcao(
+    telefone: string,
+    chave: string,
+  ): Promise<Result<void, AppError>> {
+    const limpa = await this.sessoes.limpar(chave);
+    return limpa.ok ? this.enviar(telefone, PARA_RECEPCAO) : limpa;
   }
 
   private async responderMenu(

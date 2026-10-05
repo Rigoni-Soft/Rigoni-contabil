@@ -43,7 +43,7 @@ export class SupabaseSessaoAtendimentoGateway implements SessaoAtendimentoPort {
         pagina: linha.pagina as number,
       });
     }
-    return ok({ etapa: "tipo_documento" });
+    return ok({ etapa: linha.etapa as "ja_cliente" | "cnpj" | "tipo_documento" });
   }
 
   async salvar(telefone: string, sessao: SessaoAtendimento): Promise<Result<void, AppError>> {

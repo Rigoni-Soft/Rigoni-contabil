@@ -130,14 +130,6 @@ describe("ReceberMensagem", () => {
     expect(enviadas[0].texto).toContain("em construção");
   });
 
-  it("número desconhecido é encaminhado à recepção, sem menu", async () => {
-    const { caso, enviadas } = montar({ contato: null });
-    const r = await caso.execute({ telefone: "11900000000", texto: "oi" });
-    expect(r.ok).toBe(true);
-    expect(enviadas[0].texto).toContain("recepção");
-    expect(enviadas[0].texto).not.toContain("1 -");
-  });
-
   it("telefone sem dígitos é rejeitado", async () => {
     const { caso, enviadas } = montar();
     const r = await caso.execute({ telefone: "abc", texto: "oi" });
@@ -391,11 +383,70 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     expect(enviadas).toHaveLength(0);
   });
 
-  it("número desconhecido não acessa sessão nem documento", async () => {
-    const { caso, listados, sessoes } = montar({ contato: null, sessaoFalha: true });
+  it("número desconhecido nunca chega aos documentos, nem com sessão de documento sobrando", async () => {
+    const { caso, listados, sessoes } = montar({ contato: null });
+    sessoes.set("11900000000", { etapa: "tipo_documento" });
     const r = await caso.execute({ telefone: "11900000000", texto: "1" });
     expect(r.ok).toBe(true);
     expect(listados).toHaveLength(0);
-    expect(sessoes.size).toBe(0);
+    expect(sessoes.get("11900000000")).toEqual({ etapa: "ja_cliente" });
+  });
+});
+
+describe("ReceberMensagem — número não cadastrado (#43)", () => {
+  const TEL = "11900000000";
+  const dizer = (caso: ReturnType<typeof montar>["caso"], texto: string) =>
+    caso.execute({ telefone: TEL, texto });
+
+  it("recebe a pergunta 'você já é cliente?' e não vê o menu", async () => {
+    const { caso, enviadas, sessoes } = montar({ contato: null });
+    expect((await dizer(caso, "oi")).ok).toBe(true);
+    expect(enviadas[0].texto).toContain("já é cliente");
+    expect(enviadas[0].texto).not.toContain("1 - Contrato");
+    expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente" });
+  });
+
+  it("resposta negativa transfere pra recepção com aviso amigável e encerra a sessão", async () => {
+    const { caso, enviadas, sessoes } = montar({ contato: null });
+    await dizer(caso, "oi");
+    await dizer(caso, "Não");
+    expect(enviadas[1].texto).toContain("recepção");
+    expect(sessoes.has(TEL)).toBe(false);
+  });
+
+  it("resposta fora de sim/não repete a pergunta", async () => {
+    const { caso, enviadas, sessoes } = montar({ contato: null });
+    await dizer(caso, "oi");
+    await dizer(caso, "talvez");
+    expect(enviadas[1].texto).toContain("*sim*");
+    expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente" });
+  });
+
+  it("resposta positiva pede o CNPJ", async () => {
+    const { caso, enviadas, sessoes } = montar({ contato: null });
+    await dizer(caso, "oi");
+    await dizer(caso, "sim");
+    expect(enviadas[1].texto).toContain("CNPJ");
+    expect(sessoes.get(TEL)).toEqual({ etapa: "cnpj" });
+  });
+
+  it("CNPJ inválido pede de novo, sem transferir", async () => {
+    const { caso, enviadas, sessoes } = montar({ contato: null });
+    for (const t of ["oi", "sim", "123"]) await dizer(caso, t);
+    expect(enviadas[2].texto).toContain("CNPJ");
+    expect(sessoes.get(TEL)).toEqual({ etapa: "cnpj" });
+  });
+
+  it("CNPJ válido sem o contato transfere pra recepção e encerra a sessão", async () => {
+    const { caso, enviadas, sessoes } = montar({ contato: null });
+    for (const t of ["oi", "sim", "90.000.001/0001-29"]) await dizer(caso, t);
+    expect(enviadas[2].texto).toContain("recepção");
+    expect(sessoes.has(TEL)).toBe(false);
+  });
+
+  it("'menu' recomeça pela pergunta", async () => {
+    const { caso, sessoes } = montar({ contato: null });
+    for (const t of ["oi", "sim", "menu"]) await dizer(caso, t);
+    expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente" });
   });
 });

@@ -4,6 +4,8 @@ import type { Result } from "@/shared/kernel/result";
 // Só a posição do cliente no menu. Nunca nome, empresa, CNPJ, caminho de arquivo ou
 // qualquer dado do Cliente: o que for preciso é recalculado a cada mensagem.
 export type SessaoAtendimento =
+  | { etapa: "ja_cliente" }
+  | { etapa: "cnpj" }
   | { etapa: "tipo_documento" }
   | { etapa: "alteracao"; modo: "alteracoes" | "ambos"; pagina: number };
 

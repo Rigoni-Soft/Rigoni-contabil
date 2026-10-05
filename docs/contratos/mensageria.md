@@ -64,9 +64,12 @@ Número de um Contato (padrão ou outro) de um Cliente recebe saudação nominal
 alterações, 2 guia de imposto, 3 guia de parcelamento, 4 CND, 5 falar com atendente). `2` a `5` devolve "em
 construção" (stub); qualquer outro texto reenvia o menu.
 
-**Número não cadastrado (#43):** o atendimento pela URA só existe para Contato (padrão ou outro) já cadastrado. Qualquer outro
-número recebe o aviso amigável de que será encaminhado à recepção — sem auto-cadastro. Limite: é só o aviso; a Transferência
-real vem com a Fila.
+**Número não cadastrado (#43):** o atendimento pela URA só existe para Contato (padrão ou outro) já cadastrado. Quem não é
+Contato recebe "você já é cliente?" (`sim`/`não`, com ou sem acento; outra resposta repete a pergunta). `não` → aviso
+amigável de que será encaminhado à recepção. `sim` → pede o CNPJ (validado pelos dígitos verificadores; inválido pede de
+novo). Com CNPJ válido, o número continua sem ser Contato (já foi buscado em todos os Clientes), então vai para a recepção.
+Não há auto-cadastro. Sessão (`ja_cliente`/`cnpj`) ausente, expirada ou `menu` recomeça pela pergunta. Limite: "encaminhar
+à recepção" é só o aviso; a Transferência real vem com a Fila (#44/#45).
 
 **Opção 1 (#41):** pergunta `1 - Contrato social`, `2 - Alterações`, `3 - Ambos`.
 - `1` envia o contrato; sem contrato cadastrado, avisa.
