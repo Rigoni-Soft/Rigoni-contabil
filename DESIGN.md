@@ -501,7 +501,13 @@ affordance textual de navegação (não ícone sozinho). Cada linha leva pra
 tela de edição retorna pro bucket, não pro resumo geral.
 
 **Comparativos (`ComparativosSn`, #37):** seção abaixo do resumo do setor,
-grid `md:grid-cols-2 lg:grid-cols-3`; cada gráfico é um cartão
+grid `md:grid-cols-2 lg:grid-cols-3` (3 gráficos) — o Líder do SN ganha um 4º
+(#65, abaixo) e a grade vira `md:grid-cols-2` (2×2, duas linhas de dois: em
+4 colunas os cartões ficavam apertados). O título da seção é `<h2>`
+`text-lg font-semibold` (mesmo papel de "Buscar cliente"); o `<h1>` da página
+("Resumo do setor") segue o padrão de título de página do app
+(`text-xl font-bold tracking-tight text-primary`) — h1 e h2 nunca com o mesmo
+tamanho; cada gráfico é um cartão
 `rounded-xl border bg-card` (mesma superfície dos cards do resumo, sem
 guilhochê) com `role="group"` + título. DAS e parcelamento são donuts SVG
 (sem biblioteca de gráfico, anel de fundo `stroke-border`); Atividade do mês
@@ -510,6 +516,42 @@ no tablet (`md:col-span-2`). Só tokens existentes: `primary` (enviado),
 `destructive` (pendente), `success` (pronto), `muted-foreground` (sem
 movimento/interno). A cor nunca é o único
 canal: toda fatia tem legenda com rótulo e número.
+
+**4º comparativo — "Envio de DAS por Responsável" (#65, só Líder):** barras
+proporcionais ao total de clientes, mesmo layout de "Atividade do mês"
+(`Barras` recebe a nota como prop; sem `col-span` quando são 4 cartões).
+Conta Clientes com DAS **Enviado** por Responsável; "Sem responsável" usa o
+tom neutro (`bg-muted-foreground`, mesmo de "Sem movimento"/"Interno"), cada
+Funcionário o tom primário. Nome longo trunca com reticências + `title` e o
+número fica `shrink-0`. Sem nenhum cliente atribuído: texto "Nenhum cliente
+atribuído ainda." no lugar da lista. Funcionário (e Admin) continuam vendo só
+os 3 gráficos originais.
+
+**Estado vazio do resumo (#65):** Funcionário sem clientes atribuídos vê o
+dashboard normal (cards zerados) mais um aviso neutro,
+`text-sm text-muted-foreground` ("Nenhum cliente no resumo ainda. Os clientes
+atribuídos a você aparecem aqui.") — a RLS esconde os clientes dos outros, não
+há tela de "sem acesso".
+
+**Campo Responsável no cadastro operacional (#65):** fica no cabeçalho de
+identidade do formulário, não no fim — a linha Empresa · CNPJ · Regime ·
+Responsável é uma grade `grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1.5fr]`
+(Empresa mais larga pra nomes longos). Os 3 primeiros são `Input`
+`disabled readOnly`; o Responsável é o único editável dessa linha, por isso o
+bloco deixou de ser um `fieldset disabled` (cada campo carrega o próprio
+`disabled`). Líder do SN vê um `Select` ("Sem responsável" + Funcionários do
+SN); quem só visualiza (Funcionário, Admin, outros Setores) vê um `Input`
+desabilitado com o nome — "Sem responsável" sem atribuição, "Responsável de
+outro setor" quando a RLS esconde o perfil. A lista de Funcionários é
+carregada **só quando o Select recebe foco** (React Query, `enabled` ligado
+no `onFocus`); antes disso só o Responsável atual está nas opções. Estados:
+"Carregando…" como `<option disabled>`; falha de carga vira
+`FieldError` ("Não foi possível carregar a lista de Funcionários.") com botão
+ghost "Tentar de novo" ao lado (nunca só uma opção desabilitada, que não tem
+saída). Salvar grava o cadastro e depois a atribuição; se só a segunda
+falhar, a mensagem diz que os dados foram salvos
+("Os dados foram salvos, mas não foi possível atribuir o Responsável. …") e
+reenviar repete só a atribuição.
 
 **Rótulos de Setor/Regime:** slugs do banco nunca aparecem como texto de UI;
 usar `SETOR_LABEL` (`shared/kernel/setores.ts`) e `REGIME_LABEL`.
@@ -524,6 +566,8 @@ usar `SETOR_LABEL` (`shared/kernel/setores.ts`) e `REGIME_LABEL`.
   troca de senha (#31) seguem o mesmo padrão ("Cadastrando…" /
   "Trocando…").
 - Erro de servidor: bloco com borda/ícone `destructive`, `role="alert"`.
+- Sucesso de salvar no cadastro operacional: `role="status"` (anunciado por
+  leitor de tela, ao contrário de um `<p>` mudo).
 
 ## O que ainda não existe
 
