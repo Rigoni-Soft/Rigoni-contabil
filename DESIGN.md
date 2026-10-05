@@ -557,6 +557,16 @@ reenviar repete só a atribuição.
 usar `SETOR_LABEL` (`shared/kernel/setores.ts`) e `REGIME_LABEL`.
 `ThemeToggle` mostra o ícone do tema de destino (sol no dark, lua no light).
 
+### Lista de usuários e desativação inline (#58)
+
+`/admin/usuarios` (só Admin) lista usuários ativos num `<ul>` de linhas sobre
+`card` com `divide-border`. A ação "Desativar" é um `Button` `outline`/`sm`; ao
+clicar, troca no próprio lugar por "Confirmar" (`destructive`) + "Cancelar"
+(`ghost`) — confirmação inline, sem modal. Erro aparece abaixo com
+`AlertTriangle` + `text-destructive` (`role="alert"`). A linha do Admin não tem
+ação. `ShellHeader` ganhou o link "Usuários" (ícone `Users`, rótulo oculto
+abaixo de `sm`, mesmo padrão dos demais links de ação).
+
 ## Estados e motion
 
 - Loading do formulário de login: label muda para "Entrando…" e um
