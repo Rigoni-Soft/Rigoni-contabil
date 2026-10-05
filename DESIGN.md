@@ -85,7 +85,8 @@ centralizado com padding lateral (`px-4 sm:px-6`); a largura máxima segue a
 densidade real do conteúdo, não um valor único fixo do produto:
 
 - Formulário isolado (ex.: cartão de login, cadastro de Líder/Funcionário
-  pelo Admin, troca de senha): `max-w-md`, conteúdo único centralizado.
+  pelo Admin ou pelo Líder de setor — escopado por RBAC no caso de uso, #32
+  —, troca de senha): `max-w-md`, conteúdo único centralizado.
 - Feed/tabela com filtro (ex.: `/admin/auditoria`): `max-w-6xl` — largura
   suficiente para a grade de filtro de 4 colunas e as 6 colunas da tabela
   sem espremer nem forçar rolagem horizontal prematura.
@@ -110,6 +111,18 @@ sem sufixo `.component`, isentas de teste por convenção —
   (`buttonVariants({ variant: "ghost", size: "sm" })` num `<Link>`), evitando
   reimplementar as classes do ghost/sm à mão. Qualquer link estilizado como
   botão reusa `buttonVariants` em vez de duplicar classes.
+
+  **Rótulo de ação oculto abaixo de `sm` (revisão de 28/09/2026, #32):** os
+  links de ação do `ShellHeader` (hoje "Cadastrar Líder"/"Cadastrar
+  Funcionário" e "Trocar senha") escondem o texto do rótulo em telas
+  estreitas (`<span className="hidden sm:inline">`) mantendo só o ícone —
+  necessário porque o header ganhou um terceiro link de ação neste ticket, e
+  o rótulo completo dos três (mais o toggle de tema e "Sair") não cabe em
+  larguras de celular sem rolagem horizontal. `aria-label` no próprio
+  `<Link>` preserva o nome acessível igual ao texto visível em telas largas;
+  o ícone sozinho nunca carrega o significado sem esse rótulo. Qualquer novo
+  link de ação no header segue o mesmo padrão em vez de forçar o texto
+  sempre visível.
 - `input.tsx` — 44px de altura; `aria-invalid` troca borda/anel para
   `destructive` automaticamente.
 - `select.tsx` — mesmo tratamento visual do `input.tsx` (44px, mesmas
@@ -122,6 +135,28 @@ sem sufixo `.component`, isentas de teste por convenção —
   ajuste local, para qualquer select de formulário futuro herdar o mesmo
   contrato de erro do `input.tsx`. Qualquer novo select do produto reusa
   este componente em vez de repetir as classes inline.
+
+  **Campo travado quando só há 1 opção válida (28/09/2026, #32):** no
+  cadastro de Líder/Funcionário, quando quem está logado é Líder de setor,
+  o caso de uso só aceita `papel = "funcionario"` no próprio Setor — ou
+  seja, os `<select>` de Papel e Setor têm exatamente 1 opção possível.
+  Nesse caso o campo vem `disabled` com essa opção já selecionada
+  (`defaultValue`), sem o placeholder "Selecione": não existe escolha real
+  a fazer, só confirmação visual do que vai ser cadastrado. Só aparece a
+  lista completa + placeholder quando há mais de 1 opção (Admin). Qualquer
+  campo de formulário futuro com esse mesmo formato (opções decididas por
+  RBAC, às vezes reduzidas a 1) segue o mesmo padrão em vez de forçar uma
+  seleção sem escolha real.
+
+  **Sem opacidade de desabilitado (revisão impeccable, 28/09/2026):** o
+  `disabled:opacity-50` padrão de `select.tsx` existe pra sinalizar "campo
+  indisponível" — o oposto do que esse padrão precisa comunicar ("aqui está
+  o que vai ser cadastrado", uma confirmação, não uma ausência). Por isso
+  esses dois `<select>` passam `className="disabled:opacity-100"` pra
+  sobrescrever a opacidade herdada e manter o texto na cor plena — o cursor
+  `not-allowed` (herdado, mantido) já basta pra sinalizar "sem interação
+  aqui". Qualquer campo futuro que reuse o padrão de campo travado acima
+  reusa também esse override.
 - `label.tsx`, `field-error.tsx` — erro de campo sempre ícone (`AlertCircle`)
   + texto + cor, nunca só cor (contrato "Talão de Cheque": estado por
   padrão/ícone além de cor).
@@ -145,6 +180,21 @@ de conta criada, fora de uma lista — confirma que o contrato é de indicador
 de resultado em geral, não específico de tabela. `success` (dourado) fica
 reservado ao selo "em dia" do Simples Nacional — não se usa aqui para não
 sobrepor dois significados no mesmo token.
+
+### Ações pós-sucesso (confirmação de cadastro)
+
+**"Cadastrar outro" / "Finalizar" (28/09/2026, #32):** a tela de
+confirmação do cadastro de Líder/Funcionário (senha provisória exibida)
+ganhou duas ações lado a lado — `Button` primário "Cadastrar outro"
+(ícone `UserPlus`, limpa Nome/E-mail e devolve o formulário pronto pra um
+novo cadastro, mantendo Papel/Setor travados quando aplicável) e um
+`<Link>` estilizado com `buttonVariants({ variant: "outline" })` "Finalizar"
+(ícone `Check`) que leva pra `/`. `/` é provisório: ainda não existe uma
+tela própria do Setor pra voltar (mesma situação já registrada para o link
+"Trocar senha" do `ShellHeader`, #31) — trocar o destino quando essa tela
+existir, sem mudar o padrão dos dois botões em si. Vale pra qualquer tela
+futura de cadastro em lote (ex.: Cadastro de Cliente, #33): oferecer
+continuar sem sair, e um jeito explícito de encerrar.
 
 ## Estados e motion
 

@@ -58,4 +58,49 @@ describe("ShellHeader", () => {
       "/trocar-senha",
     );
   });
+
+  it("Admin vê 'Cadastrar Líder' apontando pro cadastro de usuário", () => {
+    render(
+      <ShellHeader
+        nome="Cledson"
+        papel="admin"
+        setor="administrativo"
+        sair={<button>Sair</button>}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: /cadastrar líder/i })).toHaveAttribute(
+      "href",
+      "/admin/usuarios/novo",
+    );
+  });
+
+  it("Líder vê 'Cadastrar Funcionário' apontando pro mesmo cadastro (já escopado no #32)", () => {
+    render(
+      <ShellHeader
+        nome="Jéssica"
+        papel="lider_setor"
+        setor="contabil"
+        sair={<button>Sair</button>}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: /cadastrar funcionário/i })).toHaveAttribute(
+      "href",
+      "/admin/usuarios/novo",
+    );
+  });
+
+  it("Funcionário não vê link de cadastro (não cadastra ninguém)", () => {
+    render(
+      <ShellHeader
+        nome="Jéssica"
+        papel="funcionario"
+        setor="simples_nacional"
+        sair={<button>Sair</button>}
+      />,
+    );
+
+    expect(screen.queryByRole("link", { name: /cadastrar/i })).not.toBeInTheDocument();
+  });
 });

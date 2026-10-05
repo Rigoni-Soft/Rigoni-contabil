@@ -1,17 +1,20 @@
-import { CheckCircle2, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { Check, CheckCircle2, Loader2, UserPlus } from "lucide-react";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 
-import { Button } from "@/presentation/components/ui/button";
+import { Button, buttonVariants } from "@/presentation/components/ui/button";
 import { FieldError } from "@/presentation/components/ui/field-error";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
 import { Select } from "@/presentation/components/ui/select";
-import { SETORES } from "@/shared/kernel/setores";
+import { cn } from "@/presentation/lib/utils";
+import { opcaoUnica } from "@/shared/kernel/opcoes";
+import { PAPEL_LABEL, type PapelCadastravel } from "@/shared/kernel/papeis";
 
 export type CriarUsuarioFormValues = {
   nome: string;
   email: string;
-  papel: "lider_setor" | "funcionario";
+  papel: PapelCadastravel;
   setor: string;
 };
 
@@ -24,6 +27,13 @@ type CriarUsuarioFormProps = {
   pendente: boolean;
   erroServidor?: string;
   criado?: ContaCriada;
+  // Chamado ao clicar "Cadastrar outro" na tela de confirmação — quem monta a
+  // página decide o que isso significa (aqui: limpar o formulário e continuar).
+  onCadastrarNovo: () => void;
+  // Escopado por RBAC em quem monta a página (Admin vê tudo, Líder de setor só o
+  // próprio Setor) — o formulário só reflete o que já é permitido, não decide.
+  papeisDisponiveis: PapelCadastravel[];
+  setoresDisponiveis: readonly string[];
 };
 
 export function CriarUsuarioForm({
@@ -33,7 +43,15 @@ export function CriarUsuarioForm({
   pendente,
   erroServidor,
   criado,
+  onCadastrarNovo,
+  papeisDisponiveis,
+  setoresDisponiveis,
 }: CriarUsuarioFormProps) {
+  // Quando só há 1 opção possível (Líder de setor: só "funcionario" no próprio
+  // Setor), não faz sentido pedir pra escolher — já vem selecionado e travado.
+  const papelUnico = opcaoUnica(papeisDisponiveis);
+  const setorUnico = opcaoUnica(setoresDisponiveis);
+
   if (criado) {
     return (
       <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
@@ -47,6 +65,18 @@ export function CriarUsuarioForm({
         <p className="rounded-md bg-muted px-3 py-2 font-mono text-lg tracking-wider">
           {criado.senhaProvisoria}
         </p>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button type="button" onClick={onCadastrarNovo} className="sm:flex-1">
+            <UserPlus aria-hidden="true" />
+            Cadastrar outro
+          </Button>
+          {/* Provisório: leva pra home, ainda não existe uma tela própria do
+              Setor pra voltar. */}
+          <Link href="/" className={cn(buttonVariants({ variant: "outline" }), "sm:flex-1")}>
+            <Check aria-hidden="true" />
+            Finalizar
+          </Link>
+        </div>
       </div>
     );
   }
@@ -67,23 +97,44 @@ export function CriarUsuarioForm({
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="papel">Papel</Label>
-        <Select id="papel" aria-invalid={!!errors.papel} defaultValue="" {...register("papel")}>
-          <option value="" disabled>
-            Selecione
-          </option>
-          <option value="lider_setor">Líder de setor</option>
-          <option value="funcionario">Funcionário</option>
+        <Select
+          id="papel"
+          aria-invalid={!!errors.papel}
+          defaultValue={papelUnico ?? ""}
+          disabled={!!papelUnico}
+          className={papelUnico ? "disabled:opacity-100" : undefined}
+          {...register("papel")}
+        >
+          {!papelUnico && (
+            <option value="" disabled>
+              Selecione
+            </option>
+          )}
+          {papeisDisponiveis.map((papel) => (
+            <option key={papel} value={papel}>
+              {PAPEL_LABEL[papel]}
+            </option>
+          ))}
         </Select>
         {errors.papel && <FieldError>{errors.papel.message}</FieldError>}
       </div>
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="setor">Setor</Label>
-        <Select id="setor" aria-invalid={!!errors.setor} defaultValue="" {...register("setor")}>
-          <option value="" disabled>
-            Selecione
-          </option>
-          {SETORES.map((setor) => (
+        <Select
+          id="setor"
+          aria-invalid={!!errors.setor}
+          defaultValue={setorUnico ?? ""}
+          disabled={!!setorUnico}
+          className={setorUnico ? "disabled:opacity-100" : undefined}
+          {...register("setor")}
+        >
+          {!setorUnico && (
+            <option value="" disabled>
+              Selecione
+            </option>
+          )}
+          {setoresDisponiveis.map((setor) => (
             <option key={setor} value={setor}>
               {setor}
             </option>

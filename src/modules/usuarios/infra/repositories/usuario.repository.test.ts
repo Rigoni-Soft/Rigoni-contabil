@@ -224,6 +224,37 @@ describe("SupabaseUsuarioRepository (integração)", () => {
     expect(resultado.ok).toBe(false);
   });
 
+  // Devolutiva técnica PR #63: INSERT direto via Data API (sem passar pelo caso de uso),
+  // provando que a policy perfis_insert_lider_proprio_setor nega no Postgres o que o
+  // CriarUsuario já nega na aplicação.
+  describe("Líder insere perfil direto na Data API (RLS: perfis_insert_lider_proprio_setor, devolutiva PR #63)", () => {
+    async function inserirComoLiderContabil(papel: string, setor: string) {
+      const { id, email } = await criarContaAuthDeTeste();
+      const supabase = await comoLiderContabil();
+      return supabase
+        .from("perfis")
+        .insert({ id, nome: "Perfil de teste RLS", email, papel, setor });
+    }
+
+    it("Funcionário do próprio setor: permitido", async () => {
+      const { error } = await inserirComoLiderContabil("funcionario", "contabil");
+
+      expect(error).toBeNull();
+    });
+
+    it("outro Líder (papel lider_setor) no próprio setor: negado", async () => {
+      const { error } = await inserirComoLiderContabil("lider_setor", "contabil");
+
+      expect(error?.message).toMatch(/row-level security/i);
+    });
+
+    it("Funcionário de outro setor: negado", async () => {
+      const { error } = await inserirComoLiderContabil("funcionario", "financeiro");
+
+      expect(error?.message).toMatch(/row-level security/i);
+    });
+  });
+
   describe("senha provisória vencida (RLS: meu_papel()/meu_setor() endurecidos, devolutiva PR #62 bloqueio 2)", () => {
     it("papel 'admin' com senha vencida perde o bypass de admin (meu_papel() devolve NULL)", async () => {
       const { email, senha } = await criarContaComSenhaVencida("admin", "administrativo");

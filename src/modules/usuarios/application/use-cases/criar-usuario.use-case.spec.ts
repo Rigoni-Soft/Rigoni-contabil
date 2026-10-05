@@ -6,6 +6,7 @@ import type { AuthAdminPort } from "@/modules/usuarios/application/ports/out/aut
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
 import { Usuario, type UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
+import { AutorizacaoService } from "@/modules/usuarios/domain/services/autorizacao.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
@@ -14,13 +15,13 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { CriarUsuario } from "./criar-usuario.use-case";
 
-function usuarioFalso(id: string, papel: string): Usuario {
+function usuarioFalso(id: string, papel: string, setor = "administrativo"): Usuario {
   const resultado = Usuario.builder()
     .comId(id)
     .comNome("Alguém")
     .comEmail("alguem@rigonicontabil.local")
     .comPapel(papel)
-    .comSetor("administrativo")
+    .comSetor(setor)
     .build();
   if (!resultado.ok) throw new Error("setup inválido");
   return resultado.value;
@@ -103,9 +104,13 @@ describe("CriarUsuario", () => {
     const authAdmin = new AuthAdminFalso();
     const auditoria = new AuditoriaFalsa();
 
-    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
-      INPUT_VALIDO,
-    );
+    const resultado = await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
 
     expect(resultado.ok).toBe(true);
     if (resultado.ok) {
@@ -125,6 +130,68 @@ describe("CriarUsuario", () => {
     ]);
   });
 
+  it("Líder de setor cria Funcionário do próprio Setor", async () => {
+    const sessao = new SessaoFalsa();
+    const usuarios = new UsuarioRepositoryFalso();
+    usuarios.ator = usuarioFalso("lider-1", "lider_setor", "simples_nacional");
+    const authAdmin = new AuthAdminFalso();
+    const auditoria = new AuditoriaFalsa();
+
+    const resultado = await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
+
+    expect(resultado.ok).toBe(true);
+    expect(usuarios.criado?.id).toBe("novo-usuario-1");
+  });
+
+  it("nega quando Líder tenta cadastrar em outro Setor", async () => {
+    const sessao = new SessaoFalsa();
+    const usuarios = new UsuarioRepositoryFalso();
+    usuarios.ator = usuarioFalso("lider-1", "lider_setor", "administrativo");
+    const authAdmin = new AuthAdminFalso();
+    const auditoria = new AuditoriaFalsa();
+
+    const resultado = await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error).toBeInstanceOf(ForbiddenError);
+    expect(usuarios.criado).toBeNull();
+  });
+
+  it("nega quando Líder tenta cadastrar outro Líder", async () => {
+    const sessao = new SessaoFalsa();
+    const usuarios = new UsuarioRepositoryFalso();
+    usuarios.ator = usuarioFalso("lider-1", "lider_setor", "simples_nacional");
+    const authAdmin = new AuthAdminFalso();
+    const auditoria = new AuditoriaFalsa();
+
+    const resultado = await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute({
+      ...INPUT_VALIDO,
+      papel: "lider_setor",
+    });
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error).toBeInstanceOf(ForbiddenError);
+    expect(usuarios.criado).toBeNull();
+  });
+
   it("nega quando quem chama não é Admin", async () => {
     const sessao = new SessaoFalsa();
     const usuarios = new UsuarioRepositoryFalso();
@@ -132,9 +199,13 @@ describe("CriarUsuario", () => {
     const authAdmin = new AuthAdminFalso();
     const auditoria = new AuditoriaFalsa();
 
-    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
-      INPUT_VALIDO,
-    );
+    const resultado = await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
 
     expect(resultado.ok).toBe(false);
     if (!resultado.ok) expect(resultado.error).toBeInstanceOf(ForbiddenError);
@@ -148,9 +219,13 @@ describe("CriarUsuario", () => {
     const authAdmin = new AuthAdminFalso();
     const auditoria = new AuditoriaFalsa();
 
-    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
-      INPUT_VALIDO,
-    );
+    const resultado = await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
 
     expect(resultado.ok).toBe(false);
     if (!resultado.ok) expect(resultado.error.message).not.toMatch(/Admin cadastra/);
@@ -165,6 +240,7 @@ describe("CriarUsuario", () => {
       new UsuarioRepositoryFalso(),
       new AuthAdminFalso(),
       new AuditoriaFalsa(),
+      new AutorizacaoService(),
     ).execute(INPUT_VALIDO);
 
     expect(resultado.ok).toBe(false);
@@ -177,9 +253,13 @@ describe("CriarUsuario", () => {
     authAdmin.erro = new ValidationError("E-mail já cadastrado.", { email: ["já cadastrado"] });
     const auditoria = new AuditoriaFalsa();
 
-    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
-      INPUT_VALIDO,
-    );
+    const resultado = await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
 
     expect(resultado.ok).toBe(false);
     expect(usuarios.criado).toBeNull();
@@ -193,9 +273,13 @@ describe("CriarUsuario", () => {
     const authAdmin = new AuthAdminFalso();
     const auditoria = new AuditoriaFalsa();
 
-    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
-      INPUT_VALIDO,
-    );
+    const resultado = await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
 
     expect(resultado.ok).toBe(false);
     expect(auditoria.registros).toEqual([expect.objectContaining({ resultado: "falha" })]);
@@ -210,7 +294,13 @@ describe("CriarUsuario", () => {
     const authAdmin = new AuthAdminFalso();
     const auditoria = new AuditoriaFalsa();
 
-    await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(INPUT_VALIDO);
+    await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
 
     expect(authAdmin.contasRemovidas).toEqual(["novo-usuario-1"]);
   });
@@ -222,9 +312,13 @@ describe("CriarUsuario", () => {
     const auditoria = new AuditoriaFalsa();
     auditoria.erroNoSucesso = new ValidationError("falha ao gravar auditoria");
 
-    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
-      INPUT_VALIDO,
-    );
+    const resultado = await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
 
     expect(resultado.ok).toBe(false);
     expect(authAdmin.contasRemovidas).toEqual(["novo-usuario-1"]);
@@ -245,9 +339,13 @@ describe("CriarUsuario", () => {
     const auditoria = new AuditoriaFalsa();
     const erroConsole = jest.spyOn(console, "error").mockImplementation(() => {});
 
-    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
-      INPUT_VALIDO,
-    );
+    const resultado = await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
 
     expect(resultado.ok).toBe(false);
     if (!resultado.ok) {
@@ -269,9 +367,13 @@ describe("CriarUsuario", () => {
     const authAdmin = new AuthAdminFalso();
     const auditoria = new AuditoriaFalsa();
 
-    const resultado = await new CriarUsuario(sessao, usuarios, authAdmin, auditoria).execute(
-      INPUT_VALIDO,
-    );
+    const resultado = await new CriarUsuario(
+      sessao,
+      usuarios,
+      authAdmin,
+      auditoria,
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
 
     expect(resultado.ok).toBe(false);
     if (!resultado.ok) expect(resultado.error.message).toBe("falha ao salvar");
