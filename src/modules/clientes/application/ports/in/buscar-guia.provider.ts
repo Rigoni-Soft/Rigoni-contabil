@@ -2,7 +2,7 @@ import type {
   CndDto,
   GuiaDasDto,
   GuiaParcelamentoDto,
-} from "@/modules/clientes/application/ports/out/serpro.provider";
+} from "@/modules/clientes/application/ports/out/obrigacoes-fiscais.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 

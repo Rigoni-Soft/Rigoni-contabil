@@ -2,7 +2,7 @@ import type {
   BuscarGuiaOutput,
   BuscarGuiaPort,
 } from "@/modules/clientes/application/ports/in/buscar-guia.provider";
-import type { SerproPort } from "@/modules/clientes/application/ports/out/serpro.provider";
+import type { ObrigacoesFiscaisPort } from "@/modules/clientes/application/ports/out/obrigacoes-fiscais.provider";
 import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
 import { Cnpj } from "@/modules/clientes/domain/value-objects/cnpj.vo";
 import type { AppError } from "@/shared/errors/app.error";
@@ -11,12 +11,12 @@ import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Sem procuração e-CAC vigente a chamada falharia só pra esse CNPJ: falha
-// esperada por cliente, devolvida de forma acionável (serpro-api.md §4).
+// Sem autorização vigente a consulta falharia só pra esse CNPJ: falha
+// esperada por cliente, devolvida de forma acionável (contrato em docs/contratos).
 export class BuscarGuia implements BuscarGuiaPort {
   constructor(
     private readonly sessao: SessaoPort,
-    private readonly serpro: SerproPort,
+    private readonly fontes: ObrigacoesFiscaisPort,
   ) {}
 
   async execute(entrada: string): Promise<Result<BuscarGuiaOutput, AppError>> {
@@ -29,7 +29,7 @@ export class BuscarGuia implements BuscarGuiaPort {
       return await this.buscar(entrada, cnpj.value.digitos);
     } catch {
       // Adapter real (timeout/rede) pode lançar: nunca derruba o sistema.
-      return err(new ServicoExternoError("Falha ao consultar o Serpro."));
+      return err(new ServicoExternoError("Falha ao consultar as obrigações fiscais."));
     }
   }
 
@@ -37,20 +37,20 @@ export class BuscarGuia implements BuscarGuiaPort {
     entrada: string,
     digitos: string,
   ): Promise<Result<BuscarGuiaOutput, AppError>> {
-    const procuracao = await this.serpro.consultarProcuracao(digitos);
-    if (!procuracao.ok) return procuracao;
-    if (!procuracao.value.vigente) {
+    const autorizacao = await this.fontes.consultarAutorizacao(digitos);
+    if (!autorizacao.ok) return autorizacao;
+    if (!autorizacao.value.vigente) {
       return err(
         new ValidationError(
-          `Cliente ${entrada} sem procuração eletrônica vigente para o escritório.`,
+          `Cliente ${entrada} sem autorização vigente para consulta das obrigações fiscais.`,
         ),
       );
     }
 
     const [das, parcelamento, cnd] = await Promise.all([
-      this.serpro.buscarDas(digitos),
-      this.serpro.buscarGuiaParcelamento(digitos),
-      this.serpro.buscarCnd(digitos),
+      this.fontes.buscarDas(digitos),
+      this.fontes.buscarGuiaParcelamento(digitos),
+      this.fontes.buscarCnd(digitos),
     ]);
     if (!das.ok) return das;
     if (!parcelamento.ok) return parcelamento;

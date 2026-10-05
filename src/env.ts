@@ -12,16 +12,16 @@ export * from "./env.client";
 const resultado = z
   .object({
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-    // Adapter do Serpro (#38): "falso" é o padrão; "real" chega com a #66.
-    SERPRO_ADAPTER: z.enum(["falso", "real"]).default("falso"),
+    // Fonte das obrigações fiscais (docs/contratos): por padrão o mock de mock-api/.
+    OBRIGACOES_FISCAIS_URL: z.url().default("http://127.0.0.1:4010"),
   })
   .safeParse({
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    SERPRO_ADAPTER: process.env.SERPRO_ADAPTER || undefined,
+    OBRIGACOES_FISCAIS_URL: process.env.OBRIGACOES_FISCAIS_URL || undefined,
   });
 
 if (!resultado.success) {
   throw new Error(`Variáveis de ambiente inválidas:\n${z.prettifyError(resultado.error)}`);
 }
 
-export const { SUPABASE_SERVICE_ROLE_KEY, SERPRO_ADAPTER } = resultado.data;
+export const { SUPABASE_SERVICE_ROLE_KEY, OBRIGACOES_FISCAIS_URL } = resultado.data;

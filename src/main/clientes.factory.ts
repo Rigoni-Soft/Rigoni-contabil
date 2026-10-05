@@ -1,6 +1,6 @@
 import "server-only";
 
-import { SERPRO_ADAPTER } from "@/env";
+import { OBRIGACOES_FISCAIS_URL } from "@/env";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { makeRegistrarAcao } from "@/main/auditoria.factory";
@@ -10,7 +10,6 @@ import type { BuscarGuiaPort } from "@/modules/clientes/application/ports/in/bus
 import type { CriarClientePort } from "@/modules/clientes/application/ports/in/criar-cliente.provider";
 import type { EditarCadastroOperacionalClientePort } from "@/modules/clientes/application/ports/in/editar-cadastro-operacional-cliente.provider";
 import type { AuditoriaPort } from "@/modules/clientes/application/ports/out/auditoria.provider";
-import type { SerproPort } from "@/modules/clientes/application/ports/out/serpro.provider";
 import type {
   AtorSessaoDto,
   SessaoPort,
@@ -24,7 +23,7 @@ import { EditarCadastroOperacionalCliente } from "@/modules/clientes/application
 import { ListarResponsaveisElegiveis } from "@/modules/clientes/application/use-cases/listar-responsaveis-elegiveis.use-case";
 import { ObterResumoSetorSn } from "@/modules/clientes/application/use-cases/obter-resumo-setor-sn.use-case";
 import { SupabaseClienteQueryGateway } from "@/modules/clientes/infra/gateways/cliente-query.gateway";
-import { SerproFalsoGateway } from "@/modules/clientes/infra/gateways/serpro-falso.gateway";
+import { ObrigacoesFiscaisHttpGateway } from "@/modules/clientes/infra/gateways/obrigacoes-fiscais-http.gateway";
 import { SupabaseArquivoStorageGateway } from "@/modules/clientes/infra/gateways/supabase-arquivo-storage.gateway";
 import { SupabaseClienteRepository } from "@/modules/clientes/infra/repositories/cliente.repository";
 import { SupabaseResponsavelClienteRepository } from "@/modules/clientes/infra/repositories/responsavel-cliente.repository";
@@ -117,13 +116,10 @@ export async function makeObterResumoSetorSn(): Promise<ObterResumoSetorSn> {
   );
 }
 
-// ponytail: o real (OAuth2 + e-CNPJ) vem na #66; até lá "real" falha alto em vez de cair no falso.
-function serproPorEnv(): SerproPort {
-  if (SERPRO_ADAPTER === "real") throw new Error("Adapter real do Serpro ainda não existe (#66).");
-  return new SerproFalsoGateway();
-}
-
 export async function makeBuscarGuia(): Promise<BuscarGuiaPort> {
   const supabase = await createSupabaseServer();
-  return new BuscarGuia(sessaoViaUsuarios(supabase), serproPorEnv());
+  return new BuscarGuia(
+    sessaoViaUsuarios(supabase),
+    new ObrigacoesFiscaisHttpGateway(OBRIGACOES_FISCAIS_URL),
+  );
 }

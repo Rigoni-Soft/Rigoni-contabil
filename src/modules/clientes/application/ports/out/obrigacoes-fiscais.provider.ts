@@ -1,10 +1,10 @@
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
-// Contrato espelhando docs/pesquisa/serpro-api.md (Integra Contador): JSON,
-// PDFs em base64, CNPJ do cliente consultado em nome do escritório contratante.
+// Contrato neutro (docs/contratos/obrigacoes-fiscais.md): nada aqui conhece um
+// provedor específico. Quem traduz pro Serpro (ou outro) é o adapter real.
 
-// PDF devolvido pelo Serpro (guia/certidão), em base64.
+// PDF devolvido pelo provedor (guia/certidão), em base64.
 export type DocumentoPdfDto = { nomeArquivo: string; pdfBase64: string };
 
 export type GuiaDasDto = DocumentoPdfDto & {
@@ -21,12 +21,13 @@ export type GuiaParcelamentoDto = DocumentoPdfDto & {
 
 export type CndDto = DocumentoPdfDto & { validade: string }; // AAAA-MM-DD
 
-// Integra-Procurações (OBTERPROCURACAO41): a API só consulta, nunca concede.
-export type ProcuracaoDto = { vigente: true; dataExpiracao: string } | { vigente: false }; // AAAA-MM-DD
+// O Cliente autorizou o escritório a consultar os dados dele? O sistema só
+// reflete esse estado, nunca o concede.
+export type AutorizacaoDto = { vigente: true; dataExpiracao: string } | { vigente: false }; // AAAA-MM-DD
 
-export interface SerproPort {
+export interface ObrigacoesFiscaisPort {
   buscarDas(cnpj: string): Promise<Result<GuiaDasDto, AppError>>;
   buscarGuiaParcelamento(cnpj: string): Promise<Result<GuiaParcelamentoDto, AppError>>;
   buscarCnd(cnpj: string): Promise<Result<CndDto, AppError>>;
-  consultarProcuracao(cnpj: string): Promise<Result<ProcuracaoDto, AppError>>;
+  consultarAutorizacao(cnpj: string): Promise<Result<AutorizacaoDto, AppError>>;
 }
