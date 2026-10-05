@@ -1,0 +1,375 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-05T17:55:50Z",
+  "title": "Design System: Rigoni Contábil",
+  "extensions": {
+    "colorMeta": {
+      "background": {
+        "role": "neutral",
+        "displayName": "Papel Grafite (tema escuro)",
+        "canonical": "#23221f",
+        "tonalRamp": [
+          "#0c0b09",
+          "#262522",
+          "#43423f",
+          "#62615e",
+          "#83827e",
+          "#a6a5a1",
+          "#cac9c5",
+          "#f0eeea"
+        ]
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "Tinta Creme (tema escuro)",
+        "canonical": "#ece7d8",
+        "tonalRamp": [
+          "#0e0b03",
+          "#29251a",
+          "#464236",
+          "#656154",
+          "#878275",
+          "#aaa597",
+          "#cec9ba",
+          "#f3eedf"
+        ]
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "Superfície Elevada (tema escuro)",
+        "canonical": "#2c2a26",
+        "tonalRamp": [
+          "#0d0b08",
+          "#272521",
+          "#44423d",
+          "#63615c",
+          "#84827d",
+          "#a7a5a0",
+          "#cbc9c4",
+          "#f1eee9"
+        ]
+      },
+      "primary": {
+        "role": "primary",
+        "displayName": "Verde-Cheque (tema escuro)",
+        "canonical": "#54a292",
+        "tonalRamp": [
+          "#00140c",
+          "#003125",
+          "#005042",
+          "#1b7062",
+          "#449283",
+          "#68b6a6",
+          "#8ddbca",
+          "#b2ffef"
+        ]
+      },
+      "primary-foreground": {
+        "role": "primary",
+        "displayName": "Tinta Sobre Verde (tema escuro)",
+        "canonical": "#0a1613",
+        "tonalRamp": [
+          "#040e0b",
+          "#1c2825",
+          "#384542",
+          "#576561",
+          "#778682",
+          "#9aa9a5",
+          "#bdcdc9",
+          "#e2f3ee"
+        ]
+      },
+      "muted-foreground": {
+        "role": "neutral",
+        "displayName": "Cinza Secundário (tema escuro)",
+        "canonical": "#a6b3ab",
+        "tonalRamp": [
+          "#050e08",
+          "#1e2822",
+          "#3a453e",
+          "#59655d",
+          "#7a867e",
+          "#9ca9a1",
+          "#c0cdc5",
+          "#e5f2ea"
+        ]
+      },
+      "destructive": {
+        "role": "secondary",
+        "displayName": "Tinta de Atenção (tema escuro)",
+        "canonical": "#e0968c",
+        "tonalRamp": [
+          "#260000",
+          "#480b08",
+          "#6a2c25",
+          "#8e4b44",
+          "#b36d64",
+          "#d88f85",
+          "#ffb3a8",
+          "#ffd8cd"
+        ]
+      },
+      "success": {
+        "role": "tertiary",
+        "displayName": "Selo Dourado (tema escuro)",
+        "canonical": "#d9bd7c",
+        "tonalRamp": [
+          "#1a0500",
+          "#372000",
+          "#563e00",
+          "#775d19",
+          "#997f3f",
+          "#bda261",
+          "#e2c685",
+          "#ffeba9"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Contorno (tema escuro)",
+        "canonical": "#47453e",
+        "tonalRamp": [
+          "#0d0b06",
+          "#27251f",
+          "#44423b",
+          "#63615a",
+          "#84827b",
+          "#a7a59d",
+          "#cbc9c1",
+          "#f1eee6"
+        ]
+      },
+      "background-light": {
+        "role": "neutral",
+        "displayName": "Papel de Segurança (tema claro)",
+        "canonical": "#f4f1e8",
+        "tonalRamp": [
+          "#0d0b06",
+          "#27251e",
+          "#44423b",
+          "#646159",
+          "#85827a",
+          "#a8a59c",
+          "#ccc9c0",
+          "#f1eee5"
+        ]
+      },
+      "foreground-light": {
+        "role": "neutral",
+        "displayName": "Tinta Verde-Escura (tema claro)",
+        "canonical": "#16231f",
+        "tonalRamp": [
+          "#030e0a",
+          "#1b2824",
+          "#384641",
+          "#566560",
+          "#778681",
+          "#99a9a4",
+          "#bdcec8",
+          "#e2f3ed"
+        ]
+      },
+      "card-light": {
+        "role": "neutral",
+        "displayName": "Papel Claro (tema claro)",
+        "canonical": "#faf8f1",
+        "tonalRamp": [
+          "#0c0b07",
+          "#262520",
+          "#44423c",
+          "#63615b",
+          "#84827c",
+          "#a7a59e",
+          "#cbc9c2",
+          "#f0eee7"
+        ]
+      },
+      "primary-light": {
+        "role": "primary",
+        "displayName": "Verde-Cheque Profundo (tema claro)",
+        "canonical": "#0d3b36",
+        "tonalRamp": [
+          "#00110e",
+          "#002d28",
+          "#1f4b45",
+          "#3f6b65",
+          "#608c86",
+          "#82b0a9",
+          "#a6d4cd",
+          "#cbfaf2"
+        ]
+      },
+      "primary-foreground-light": {
+        "role": "primary",
+        "displayName": "Papel Sobre Verde (tema claro)",
+        "canonical": "#f4f1e8",
+        "tonalRamp": [
+          "#0d0b06",
+          "#27251e",
+          "#44423b",
+          "#646159",
+          "#85827a",
+          "#a8a59c",
+          "#ccc9c0",
+          "#f1eee5"
+        ]
+      },
+      "muted-foreground-light": {
+        "role": "neutral",
+        "displayName": "Cinza Quente (tema claro)",
+        "canonical": "#6b6555",
+        "tonalRamp": [
+          "#0f0b01",
+          "#2a2517",
+          "#474233",
+          "#676151",
+          "#888271",
+          "#aba593",
+          "#cfc9b7",
+          "#f5eedc"
+        ]
+      },
+      "destructive-light": {
+        "role": "secondary",
+        "displayName": "Vinho de Atenção (tema claro)",
+        "canonical": "#7a2b2b",
+        "tonalRamp": [
+          "#2b0000",
+          "#4e0007",
+          "#712324",
+          "#964442",
+          "#bc6662",
+          "#e28884",
+          "#ffaca7",
+          "#ffd1cb"
+        ]
+      },
+      "success-light": {
+        "role": "tertiary",
+        "displayName": "Selo Dourado Fosco (tema claro)",
+        "canonical": "#96742f",
+        "tonalRamp": [
+          "#1d0200",
+          "#3b1d00",
+          "#5b3b00",
+          "#7c5b0f",
+          "#9f7c38",
+          "#c39f5c",
+          "#e8c47f",
+          "#ffe9a4"
+        ]
+      },
+      "border-light": {
+        "role": "neutral",
+        "displayName": "Contorno de Papel (tema claro)",
+        "canonical": "#ddd6c0",
+        "tonalRamp": [
+          "#100b00",
+          "#2a2513",
+          "#48422f",
+          "#67614e",
+          "#89826e",
+          "#aca590",
+          "#d0c9b3",
+          "#f6eed8"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Título de página",
+        "purpose": "h1 das telas Operate (text-xl, 700)."
+      },
+      "title": {
+        "displayName": "Título de seção",
+        "purpose": "h2 dentro de uma tela (text-lg, 600)."
+      },
+      "body": {
+        "displayName": "Corpo",
+        "purpose": "Texto corrido e dados (text-sm, 400)."
+      },
+      "label": {
+        "displayName": "Rótulo",
+        "purpose": "Botões e rótulos de campo (text-sm, 500)."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "transition-colors",
+        "value": "color/background/border 150ms (padrão Tailwind)",
+        "purpose": "Hover e foco de controles; sem animação decorativa."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ação principal da tela (Entrar, Trocar senha, Cadastrar); uma por formulário.",
+      "html": "<button class=\"ds-btn-primary\">Trocar senha</button>",
+      "css": ".ds-btn-primary{height:44px;padding:8px 16px;border:0;border-radius:4px;background:var(--primary,#54a292);color:var(--primary-foreground,#0a1613);font:500 14px Roboto,sans-serif;cursor:pointer;transition:background .15s}.ds-btn-primary:hover{background:color-mix(in oklab,var(--primary,#54a292) 90%,transparent)}.ds-btn-primary:focus-visible{outline:2px solid var(--ring,#54a292);outline-offset:2px}"
+    },
+    {
+      "name": "Ghost Button (ação do header)",
+      "kind": "button",
+      "refersTo": "button-ghost-sm",
+      "description": "Links de ação do ShellHeader (Meu perfil, Usuários, Cadastrar): ícone + rótulo que some abaixo de sm.",
+      "html": "<a class=\"ds-btn-ghost\" href=\"#\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg><span>Meu perfil</span></a>",
+      "css": ".ds-btn-ghost{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 12px;border-radius:4px;color:var(--foreground,#ece7d8);font:500 14px Roboto,sans-serif;text-decoration:none;transition:background .15s}.ds-btn-ghost:hover{background:var(--accent,#37352f);color:var(--accent-foreground,#d7ece6)}.ds-btn-ghost:focus-visible{outline:2px solid var(--ring,#54a292);outline-offset:2px}"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo de texto de 44px; aria-invalid troca borda e anel para destructive.",
+      "html": "<input class=\"ds-input\" placeholder=\"E-mail\" />",
+      "css": ".ds-input{box-sizing:border-box;width:100%;height:44px;padding:8px 12px;border:1px solid var(--input,#47453e);border-radius:4px;background:var(--background,#23221f);color:var(--foreground,#ece7d8);font:400 14px Roboto,sans-serif;outline:none;transition:border-color .15s}.ds-input:focus-visible{outline:2px solid var(--ring,#54a292);outline-offset:2px}.ds-input[aria-invalid=true]{border-color:var(--destructive,#e0968c)}"
+    },
+    {
+      "name": "Password Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Input com botão de olho (44×44) que exibe/oculta o valor; usado no login e na troca de senha.",
+      "html": "<div class=\"ds-pw\"><input class=\"ds-pw-input\" type=\"password\" value=\"abc12345\" /><button class=\"ds-pw-btn\" aria-label=\"Mostrar caracteres\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg></button></div>",
+      "css": ".ds-pw{position:relative}.ds-pw-input{box-sizing:border-box;width:100%;height:44px;padding:8px 44px 8px 12px;border:1px solid var(--input,#47453e);border-radius:4px;background:var(--background,#23221f);color:var(--foreground,#ece7d8);font:400 14px Roboto,sans-serif;outline:none}.ds-pw-input:focus-visible{outline:2px solid var(--ring,#54a292);outline-offset:2px}.ds-pw-btn{position:absolute;top:0;right:0;bottom:0;width:44px;display:flex;align-items:center;justify-content:center;border:0;border-radius:4px;background:transparent;color:var(--muted-foreground,#a6b3ab);cursor:pointer}.ds-pw-btn:hover{color:var(--foreground,#ece7d8)}.ds-pw-btn:focus-visible{outline:2px solid var(--ring,#54a292)}"
+    },
+    {
+      "name": "Dados da conta (dl)",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "Perfil: pares rótulo/valor em grid de duas colunas, sem cartão; valores longos quebram linha.",
+      "html": "<dl class=\"ds-dl\"><dt>Nome</dt><dd>Funcionário Simples Nacional</dd><dt>Setor</dt><dd>Simples Nacional</dd></dl>",
+      "css": ".ds-dl{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:0;font:400 14px Roboto,sans-serif}.ds-dl dt{color:var(--muted-foreground,#a6b3ab)}.ds-dl dd{margin:0;min-width:0;overflow-wrap:break-word;font-weight:500;color:var(--foreground,#ece7d8)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Talão de Cheque",
+    "overview": "Cada tela trata a confiança como o guilhochê de um talão de cheque — a moldura de segurança de um documento financeiro, não o clichê de cofre/escudo de SaaS financeiro. Modo Operate: densidade previsível, hierarquia estável, cor reservada para ação e estado, nunca decoração.",
+    "keyCharacteristics": [
+      "Dark grafite como tema padrão; light em papel creme",
+      "Verde-cheque como único acento de ação",
+      "Cantos quase retos (radius 0.375rem)",
+      "Roboto como única família",
+      "Erro e atenção sempre com ícone, nunca só cor"
+    ],
+    "rules": [],
+    "dos": [],
+    "donts": []
+  }
+}
