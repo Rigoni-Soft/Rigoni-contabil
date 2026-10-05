@@ -28,8 +28,9 @@ const OPCOES_MENU = [
   "Falar com atendente",
 ];
 
+// ponytail: só avisa; a Transferência real para a recepção entra com a Fila (#44/#45).
 const NAO_IDENTIFICADO =
-  "Olá! Não identificamos este número entre os contatos dos nossos clientes. Fale com o escritório para atualizar o cadastro.";
+  "Olá! Não identificamos este número entre os contatos dos nossos clientes. Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
 
 const PERGUNTA_TIPO =
   "O que você deseja receber?\n1 - Contrato social\n2 - Alterações\n3 - Ambos (contrato social e uma alteração)\nDigite *menu* para voltar.";
