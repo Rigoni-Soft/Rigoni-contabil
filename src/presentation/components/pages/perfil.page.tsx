@@ -1,3 +1,5 @@
+import { Fragment } from "react";
+
 import { PAPEL_LABEL } from "@/shared/kernel/papeis";
 import { SETOR_LABEL } from "@/shared/kernel/setores";
 
@@ -25,10 +27,10 @@ export function PerfilPage({ header, formulario, nome, email, papel, setor }: Pe
         <h1 className="mb-6 text-xl font-bold tracking-tight text-primary">Meu perfil</h1>
         <dl className="mb-8 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
           {dados.map(([rotulo, valor]) => (
-            <div key={rotulo} className="contents">
+            <Fragment key={rotulo}>
               <dt className="text-muted-foreground">{rotulo}</dt>
               <dd className="min-w-0 font-medium break-words text-foreground">{valor}</dd>
-            </div>
+            </Fragment>
           ))}
         </dl>
         <section aria-labelledby="trocar-senha-titulo" className="border-t border-border pt-8">
