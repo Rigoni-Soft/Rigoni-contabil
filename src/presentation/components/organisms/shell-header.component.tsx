@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, KeyRound, UserPlus, Users } from "lucide-react";
+import { Building2, CircleUser, UserPlus, Users } from "lucide-react";
 
 import { buttonVariants } from "@/presentation/components/ui/button";
 import { ThemeToggle } from "@/presentation/components/ui/theme-toggle";
@@ -80,16 +80,15 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
             <span className="hidden sm:inline">Usuários</span>
           </Link>
         )}
-        {/* Único caminho de navegação até /trocar-senha fora do redirecionamento
-            obrigatório de senha provisória — sem isso a troca voluntária só era
-            alcançável digitando a URL direto (achado da revisão manual em 28/09/2026). */}
+        {/* Único caminho de navegação até /perfil (#56), onde mora a troca voluntária
+            de senha — a /trocar-senha fica só pro redirecionamento obrigatório (#31). */}
         <Link
-          href="/trocar-senha"
-          aria-label="Trocar senha"
+          href="/perfil"
+          aria-label="Meu perfil"
           className={buttonVariants({ variant: "ghost", size: "sm" })}
         >
-          <KeyRound aria-hidden="true" />
-          <span className="hidden sm:inline">Trocar senha</span>
+          <CircleUser aria-hidden="true" />
+          <span className="hidden sm:inline">Meu perfil</span>
         </Link>
         <ThemeToggle />
         {sair}
