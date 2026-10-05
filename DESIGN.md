@@ -162,6 +162,13 @@ sem precisar de classe.
   `Building2`, visível só pro papel Admin) segue exatamente esse padrão —
   confirma que a regra vale para qualquer novo link, não só os três
   documentados em #32.
+
+  **Identidade do usuário no header (#56):** abaixo de `sm` o nome e o escopo
+  (`Papel · Setor: <rótulo>`) quebram linha em vez de truncar, e o avatar da
+  inicial (decorativo, `aria-hidden`) some para liberar largura — truncar
+  escondia o Setor do usuário no celular. De `sm` pra cima voltam o avatar e o
+  `truncate`. O Setor é sempre o rótulo legível (`SETOR_LABEL`, em
+  `shared/kernel/setores.ts`), nunca o slug.
 - `input.tsx` — 44px de altura; `aria-invalid` troca borda/anel para
   `destructive` automaticamente.
 

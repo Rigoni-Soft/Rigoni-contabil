@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
 import { Input } from "@/presentation/components/ui/input";
+import { cn } from "@/presentation/lib/utils";
 
 // Rótulo fixo + aria-pressed (o estado vai no atributo, não no nome) e sem a
 // palavra "senha" de propósito: os e2e localizam os campos por getByLabel("Senha"),
@@ -18,7 +19,7 @@ export function PasswordInput(props: Omit<React.ComponentProps<typeof Input>, "t
       <Input
         {...props}
         type={visivel ? "text" : "password"}
-        className="pr-11 [&::-ms-reveal]:hidden"
+        className={cn("pr-11 [&::-ms-reveal]:hidden", props.className)}
       />
       <button
         type="button"

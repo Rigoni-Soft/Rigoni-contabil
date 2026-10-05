@@ -26,4 +26,10 @@ describe("PasswordInput", () => {
 
     expect(screen.getByRole("button", { name: "Mostrar caracteres" })).toBeDisabled();
   });
+
+  it("preserva a className recebida junto com o recuo do botão", () => {
+    render(<PasswordInput aria-label="Campo" className="extra" />);
+
+    expect(screen.getByLabelText("Campo")).toHaveClass("pr-11", "extra");
+  });
 });
