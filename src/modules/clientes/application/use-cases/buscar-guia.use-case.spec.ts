@@ -33,6 +33,17 @@ describe("BuscarGuia", () => {
     expect(!r.ok && r.error.message).toMatch(/sem procuração/);
   });
 
+  it("adapter que lança exceção vira erro de domínio", async () => {
+    const gateway = new SerproFalsoGateway();
+    gateway.buscarCnd = async () => {
+      throw new Error("timeout");
+    };
+
+    const r = await new BuscarGuia(logado, gateway).execute(CNPJ);
+
+    expect(!r.ok && r.error.code).toBe("EXTERNAL_SERVICE_ERROR");
+  });
+
   it("rejeita CNPJ inválido", async () => {
     const r = await new BuscarGuia(logado, new SerproFalsoGateway()).execute("123");
 

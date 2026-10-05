@@ -7,6 +7,7 @@ import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao
 import { Cnpj } from "@/modules/clientes/domain/value-objects/cnpj.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
@@ -24,8 +25,18 @@ export class BuscarGuia implements BuscarGuiaPort {
     }
     const cnpj = Cnpj.criar(entrada);
     if (!cnpj.ok) return cnpj;
-    const { digitos } = cnpj.value;
+    try {
+      return await this.buscar(entrada, cnpj.value.digitos);
+    } catch {
+      // Adapter real (timeout/rede) pode lançar: nunca derruba o sistema.
+      return err(new ServicoExternoError("Falha ao consultar o Serpro."));
+    }
+  }
 
+  private async buscar(
+    entrada: string,
+    digitos: string,
+  ): Promise<Result<BuscarGuiaOutput, AppError>> {
     const procuracao = await this.serpro.consultarProcuracao(digitos);
     if (!procuracao.ok) return procuracao;
     if (!procuracao.value.vigente) {
