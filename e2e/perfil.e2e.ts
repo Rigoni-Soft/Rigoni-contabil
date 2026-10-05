@@ -42,11 +42,16 @@ test.describe("Perfil do usuário", () => {
   }) => {
     const email = await criarFuncionarioComSenhaDefinitiva(page);
 
+    // Sem senha provisória, /trocar-senha (fluxo obrigatório do #31) leva ao perfil.
+    await page.goto("/trocar-senha");
+    await expect(page).toHaveURL("/perfil");
+
+    await page.goto("/");
     await page.getByRole("link", { name: "Meu perfil" }).click();
     await expect(page).toHaveURL("/perfil");
 
     await expect(page.getByRole("heading", { name: "Meu perfil" })).toBeVisible();
-    await expect(page.getByText("Funcionário Perfil E2E", { exact: true }).last()).toBeVisible();
+    await expect(page.locator("dd", { hasText: "Funcionário Perfil E2E" })).toBeVisible();
     await expect(page.getByText(email, { exact: true })).toBeVisible();
     await expect(page.getByText("Financeiro", { exact: true })).toBeVisible();
 
