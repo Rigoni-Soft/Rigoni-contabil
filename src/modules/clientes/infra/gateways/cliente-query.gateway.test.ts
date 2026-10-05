@@ -102,7 +102,7 @@ describe("SupabaseClienteQueryGateway.buscarPorTermo (#35, integração)", () =>
     );
     const gateway = new SupabaseClienteQueryGateway(admin);
 
-    const porCnpj = await gateway.buscarPorTermo(cliente.cnpj.digitos.slice(0, 6));
+    const porCnpj = await gateway.buscarPorTermo(cliente.cnpj.valor.slice(0, 6));
     const porNome = await gateway.buscarPorTermo("Pão Quente");
 
     expect(porCnpj.ok).toBe(true);
