@@ -39,7 +39,9 @@ export class AtribuirResponsavelCliente implements AtribuirResponsavelClientePor
     const cliente = await this.clientes.buscarPorId(input.clienteId);
     if (!cliente.ok) return cliente;
     if (!cliente.value)
-      return err(new ForbiddenError(`Cliente ${input.clienteId} não encontrado.`));
+      return err(
+        new ForbiddenError("Não encontramos este cliente. Atualize a página e tente novamente."),
+      );
 
     const elegivel = await this.validarElegivel(input.responsavelId);
     if (!elegivel.ok) {

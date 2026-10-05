@@ -23,8 +23,6 @@ export type CadastroOperacionalClienteDto = {
   // esconde o perfil (leitor de outro Setor) — o id continua conhecido.
   responsavelId: string | null;
   responsavelNome: string | null;
-  // Funcionários do SN que o Líder pode escolher como Responsável.
-  responsaveisElegiveis: ResponsavelOpcaoDto[];
 };
 
 export type ResponsavelOpcaoDto = { id: string; nome: string };

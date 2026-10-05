@@ -17,6 +17,7 @@ import { BuscarClientes } from "@/modules/clientes/application/use-cases/buscar-
 import { ConsultarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/consultar-cadastro-operacional-cliente.use-case";
 import { CriarCliente } from "@/modules/clientes/application/use-cases/criar-cliente.use-case";
 import { EditarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/editar-cadastro-operacional-cliente.use-case";
+import { ListarResponsaveisElegiveis } from "@/modules/clientes/application/use-cases/listar-responsaveis-elegiveis.use-case";
 import { ObterResumoSetorSn } from "@/modules/clientes/application/use-cases/obter-resumo-setor-sn.use-case";
 import { SupabaseClienteQueryGateway } from "@/modules/clientes/infra/gateways/cliente-query.gateway";
 import { SupabaseArquivoStorageGateway } from "@/modules/clientes/infra/gateways/supabase-arquivo-storage.gateway";
@@ -94,6 +95,11 @@ export async function makeConsultarCadastroOperacionalCliente(): Promise<Consult
 export async function makeBuscarClientes(): Promise<BuscarClientes> {
   const supabase = await createSupabaseServer();
   return new BuscarClientes(new SupabaseClienteQueryGateway(supabase));
+}
+
+export async function makeListarResponsaveisElegiveis(): Promise<ListarResponsaveisElegiveis> {
+  const supabase = await createSupabaseServer();
+  return new ListarResponsaveisElegiveis(new SupabaseClienteQueryGateway(supabase));
 }
 
 export async function makeObterResumoSetorSn(): Promise<ObterResumoSetorSn> {

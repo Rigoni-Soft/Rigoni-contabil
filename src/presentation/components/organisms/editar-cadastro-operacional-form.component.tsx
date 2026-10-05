@@ -45,6 +45,10 @@ type ResponsavelCampo = {
   editavel: boolean;
   nomeAtual: string;
   opcoes: { id: string; nome: string }[];
+  // Lista carrega só quando o Select é aberto; enquanto isso (ou se falhar)
+  // aparece como opção desabilitada.
+  onAbrir: () => void;
+  mensagemOpcoes?: string;
 };
 
 type CabecalhoCliente = { empresa: string; cnpj: string; regime: string };
@@ -195,8 +199,9 @@ export function EditarCadastroOperacionalForm({
         <div className="space-y-1">
           <Label htmlFor="responsavelId">Responsável</Label>
           {responsavel.editavel ? (
-            <Select id="responsavelId" {...register("responsavelId")}>
+            <Select id="responsavelId" {...register("responsavelId")} onFocus={responsavel.onAbrir}>
               <option value="">Sem responsável</option>
+              {responsavel.mensagemOpcoes && <option disabled>{responsavel.mensagemOpcoes}</option>}
               {responsavel.opcoes.map((opcao) => (
                 <option key={opcao.id} value={opcao.id}>
                   {opcao.nome}

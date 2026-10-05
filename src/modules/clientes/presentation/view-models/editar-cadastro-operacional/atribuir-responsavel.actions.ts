@@ -2,8 +2,12 @@
 
 import { z } from "zod";
 
-import { makeAtribuirResponsavelCliente } from "@/main/clientes.factory";
+import {
+  makeAtribuirResponsavelCliente,
+  makeListarResponsaveisElegiveis,
+} from "@/main/clientes.factory";
 import type { AtribuirResponsavelClienteOutput } from "@/modules/clientes/application/ports/in/atribuir-responsavel-cliente.provider";
+import type { ResponsavelOpcaoDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
 import { toActionResult } from "@/shared/kernel/to-action-result";
 
@@ -31,4 +35,11 @@ export async function atribuirResponsavelAction(
 
   const atribuir = await makeAtribuirResponsavelCliente();
   return toActionResult(await atribuir.execute(parsed.data));
+}
+
+export async function listarResponsaveisElegiveisAction(): Promise<
+  ActionResult<ResponsavelOpcaoDto[]>
+> {
+  const listar = await makeListarResponsaveisElegiveis();
+  return toActionResult(await listar.execute());
 }

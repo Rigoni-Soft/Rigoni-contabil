@@ -65,9 +65,6 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
     const operacional = operacionalUnico(row.cliente_cadastro_operacional_sn);
     const atividade = (row.cliente_atividades_mensais ?? [])[0] ?? null;
 
-    const elegiveis = await this.listarResponsaveisElegiveis();
-    if (!elegiveis.ok) return elegiveis;
-
     return ok({
       id: row.id,
       empresa: row.empresa,
@@ -93,7 +90,6 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
       },
       responsavelId: operacional?.responsavel_id ?? null,
       responsavelNome: operacional?.responsavel?.nome ?? null,
-      responsaveisElegiveis: elegiveis.value,
     });
   }
 

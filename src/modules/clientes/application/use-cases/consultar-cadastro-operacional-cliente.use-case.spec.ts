@@ -24,7 +24,6 @@ const DTO: CadastroOperacionalClienteDto = {
   atividadeMes: { industria: false, comercio: false, servico: false },
   responsavelId: null,
   responsavelNome: null,
-  responsaveisElegiveis: [],
 };
 
 const sessaoCom = (autenticado: boolean): SessaoPort => ({

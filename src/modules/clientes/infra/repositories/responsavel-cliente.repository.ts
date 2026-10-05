@@ -30,7 +30,9 @@ export class SupabaseResponsavelClienteRepository implements ResponsavelClienteR
     }
     // RLS filtra silenciosamente: 0 linhas = Cliente sem cadastro operacional ou invisível.
     if (!data?.length) {
-      return err(new ForbiddenError("Cliente sem cadastro operacional do Simples Nacional."));
+      return err(
+        new ForbiddenError("Este cliente não tem cadastro operacional do Simples Nacional."),
+      );
     }
     return ok(undefined);
   }

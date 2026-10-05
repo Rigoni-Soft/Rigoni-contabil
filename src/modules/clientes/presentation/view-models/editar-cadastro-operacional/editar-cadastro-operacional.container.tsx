@@ -15,6 +15,7 @@ import { REGIME_LABEL, regimeTemCadastroOperacionalSn } from "@/shared/kernel/re
 import { atribuirResponsavelAction } from "./atribuir-responsavel.actions";
 import { editarCadastroOperacionalAction } from "./editar-cadastro-operacional.actions";
 import { editarCadastroOperacionalFormSchema } from "./editar-cadastro-operacional.schema";
+import { useResponsaveisElegiveis } from "./responsaveis.queries";
 
 type Props = {
   dados: CadastroOperacionalClienteDto | null;
@@ -31,6 +32,18 @@ type Props = {
   aoSalvarComSucesso?: () => void;
   voltarHrefAoSalvar?: string;
 };
+
+// Antes de abrir o Select só o Responsável atual é conhecido; depois soma a lista carregada.
+function opcoesResponsavel(
+  dados: CadastroOperacionalClienteDto,
+  carregadas: { id: string; nome: string }[],
+) {
+  const atual =
+    dados.responsavelId && dados.responsavelNome
+      ? [{ id: dados.responsavelId, nome: dados.responsavelNome }]
+      : [];
+  return [...atual.filter((a) => !carregadas.some((c) => c.id === a.id)), ...carregadas];
+}
 
 export function EditarCadastroOperacionalContainer({
   dados,
@@ -83,6 +96,9 @@ export function EditarCadastroOperacionalContainer({
     name: "temParcelamento",
     defaultValue: dados?.temParcelamento ?? false,
   });
+  // Lista de Funcionários só é buscada quando o Líder abre o Select (#65).
+  const [listaAberta, setListaAberta] = useState(false);
+  const elegiveis = useResponsaveisElegiveis(podeAtribuirResponsavel && listaAberta);
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
 
   const aoSubmeter = handleSubmit(async (valores) => {
@@ -163,7 +179,13 @@ export function EditarCadastroOperacionalContainer({
         nomeAtual: dados.responsavelId
           ? (dados.responsavelNome ?? "Responsável de outro setor")
           : "Sem responsável",
-        opcoes: dados.responsaveisElegiveis,
+        opcoes: opcoesResponsavel(dados, elegiveis.data ?? []),
+        onAbrir: () => setListaAberta(true),
+        mensagemOpcoes: elegiveis.isError
+          ? "Não foi possível carregar a lista"
+          : elegiveis.isLoading
+            ? "Carregando…"
+            : undefined,
       }}
       temParcelamento={temParcelamento}
       erroServidor={erroServidor}

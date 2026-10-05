@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render as renderRtl, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
@@ -15,9 +16,11 @@ jest.mock("next/navigation", () => ({
 const executeMock = jest.fn();
 
 const atribuirMock = jest.fn();
+const listarMock = jest.fn();
 jest.mock("@/main/clientes.factory", () => ({
   makeEditarCadastroOperacionalCliente: () => ({ execute: executeMock }),
   makeAtribuirResponsavelCliente: () => ({ execute: atribuirMock }),
+  makeListarResponsaveisElegiveis: () => ({ execute: listarMock }),
 }));
 
 const dados: CadastroOperacionalClienteDto = {
@@ -36,13 +39,22 @@ const dados: CadastroOperacionalClienteDto = {
   atividadeMes: { industria: false, comercio: true, servico: false },
   responsavelId: null,
   responsavelNome: null,
-  responsaveisElegiveis: [{ id: "f1111111-1111-4111-8111-111111111111", nome: "Funcionário SN" }],
 };
+
+// Sem retry: o backoff do React Query travaria os findBy.
+function render(ui: React.ReactElement) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return renderRtl(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
 
 describe("EditarCadastroOperacionalContainer", () => {
   beforeEach(() => {
     executeMock.mockReset();
     atribuirMock.mockReset();
+    listarMock.mockReset();
+    listarMock.mockResolvedValue(
+      ok([{ id: "f1111111-1111-4111-8111-111111111111", nome: "Funcionário SN" }]),
+    );
     routerPush.mockReset();
   });
 
@@ -74,6 +86,11 @@ describe("EditarCadastroOperacionalContainer", () => {
         voltarHrefAoSalvar="/simples-nacional"
       />,
     );
+    // Lista só é buscada quando o Select recebe foco/abre.
+    expect(listarMock).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByLabelText("Responsável"));
+    await screen.findByRole("option", { name: "Funcionário SN" });
+    expect(listarMock).toHaveBeenCalledTimes(1);
     await userEvent.selectOptions(
       screen.getByLabelText("Responsável"),
       "f1111111-1111-4111-8111-111111111111",
@@ -100,6 +117,8 @@ describe("EditarCadastroOperacionalContainer", () => {
         voltarHrefAoSalvar="/simples-nacional"
       />,
     );
+    await userEvent.click(screen.getByLabelText("Responsável"));
+    await screen.findByRole("option", { name: "Funcionário SN" });
     await userEvent.selectOptions(
       screen.getByLabelText("Responsável"),
       "f1111111-1111-4111-8111-111111111111",
