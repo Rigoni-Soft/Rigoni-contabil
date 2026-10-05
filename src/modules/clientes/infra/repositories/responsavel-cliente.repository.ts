@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ResponsavelClienteRepository } from "@/modules/clientes/application/ports/out/responsavel-cliente.repository";
 import { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { NotFoundError } from "@/shared/errors/not-found.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 class PersistenciaError extends AppError {
@@ -31,7 +32,7 @@ export class SupabaseResponsavelClienteRepository implements ResponsavelClienteR
     // RLS filtra silenciosamente: 0 linhas = Cliente sem cadastro operacional ou invisível.
     if (!data?.length) {
       return err(
-        new ForbiddenError("Este cliente não tem cadastro operacional do Simples Nacional."),
+        new NotFoundError("Este cliente não tem cadastro operacional do Simples Nacional."),
       );
     }
     return ok(undefined);

@@ -1,3 +1,5 @@
+import { SEM_RESPONSAVEL_ID } from "@/shared/kernel/papeis";
+
 // Tipo estrutural local (view burra, arquitetura.md §3.4).
 type Fatia = { id: string; rotulo: string; quantidade: number };
 type Props = {
@@ -15,7 +17,7 @@ const COR_POR_ID: Record<string, { fundo: string; traco: string }> = {
   pronto: { fundo: "bg-success", traco: "stroke-success" },
   sem_movimento: { fundo: "bg-muted-foreground", traco: "stroke-muted-foreground" },
   interno: { fundo: "bg-muted-foreground", traco: "stroke-muted-foreground" },
-  sem_responsavel: { fundo: "bg-muted-foreground", traco: "stroke-muted-foreground" },
+  [SEM_RESPONSAVEL_ID]: { fundo: "bg-muted-foreground", traco: "stroke-muted-foreground" },
 };
 const COR_PADRAO = { fundo: "bg-primary", traco: "stroke-primary" };
 const cor = (id: string) => COR_POR_ID[id] ?? COR_PADRAO;

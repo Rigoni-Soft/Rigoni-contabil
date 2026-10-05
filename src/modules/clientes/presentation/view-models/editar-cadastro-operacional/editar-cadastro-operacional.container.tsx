@@ -10,11 +10,11 @@ import {
   type EditarCadastroOperacionalFormValues,
 } from "@/presentation/components/organisms/editar-cadastro-operacional-form.component";
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
-import { RESPONSAVEL_OUTRO_SETOR_LABEL } from "@/shared/kernel/papeis";
 import { REGIME_LABEL, regimeTemCadastroOperacionalSn } from "@/shared/kernel/regimes";
 
 import { atribuirResponsavelAction } from "./atribuir-responsavel.actions";
 import { editarCadastroOperacionalAction } from "./editar-cadastro-operacional.actions";
+import { nomeResponsavelAtual, opcoesResponsavel } from "./editar-cadastro-operacional.presenter";
 import { editarCadastroOperacionalFormSchema } from "./editar-cadastro-operacional.schema";
 import { useResponsaveisElegiveis } from "./responsaveis.queries";
 
@@ -33,18 +33,6 @@ type Props = {
   aoSalvarComSucesso?: () => void;
   voltarHrefAoSalvar?: string;
 };
-
-// Antes de abrir o Select só o Responsável atual é conhecido; depois soma a lista carregada.
-function opcoesResponsavel(
-  dados: CadastroOperacionalClienteDto,
-  carregadas: { id: string; nome: string }[],
-) {
-  const atual =
-    dados.responsavelId && dados.responsavelNome
-      ? [{ id: dados.responsavelId, nome: dados.responsavelNome }]
-      : [];
-  return [...atual.filter((a) => !carregadas.some((c) => c.id === a.id)), ...carregadas];
-}
 
 export function EditarCadastroOperacionalContainer({
   dados,
@@ -180,13 +168,10 @@ export function EditarCadastroOperacionalContainer({
       readOnly={readOnly}
       responsavel={{
         editavel: podeAtribuirResponsavel,
-        nomeAtual: dados.responsavelId
-          ? (dados.responsavelNome ?? RESPONSAVEL_OUTRO_SETOR_LABEL)
-          : "Sem responsável",
+        nomeAtual: nomeResponsavelAtual(dados),
         opcoes: opcoesResponsavel(dados, elegiveis.data ?? []),
         onAbrir: () => setListaAberta(true),
-        mensagemOpcoes: elegiveis.isLoading ? "Carregando…" : undefined,
-        erroOpcoes: elegiveis.isError,
+        estadoLista: elegiveis.isError ? "erro" : elegiveis.isLoading ? "carregando" : "ok",
         onTentarNovamente: () => void elegiveis.refetch(),
       }}
       temParcelamento={temParcelamento}

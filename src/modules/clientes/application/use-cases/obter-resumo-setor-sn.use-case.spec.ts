@@ -4,6 +4,7 @@ import type {
   ResumoOperacionalRow,
   SugestaoClienteDto,
 } from "@/modules/clientes/application/ports/out/cliente-query.provider";
+import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
@@ -29,6 +30,11 @@ class ClienteQueryPortFalso implements ClienteQueryPort {
     return ok([]);
   }
 }
+
+const sessaoDe = (papel: string, setor: string): SessaoPort => ({
+  usuarioAtual: async () => ({ id: "u1", papel, setor }),
+});
+const SEM_SESSAO: SessaoPort = { usuarioAtual: async () => null };
 
 describe("ObterResumoSetorSn", () => {
   it("devolve o total de clientes e os 9 cards classificados", async () => {
@@ -60,7 +66,10 @@ describe("ObterResumoSetorSn", () => {
       },
     ];
 
-    const resultado = await new ObterResumoSetorSn(query).execute();
+    const resultado = await new ObterResumoSetorSn(
+      sessaoDe("funcionario", "simples_nacional"),
+      query,
+    ).execute();
 
     expect(resultado.ok).toBe(true);
     if (!resultado.ok) return;
@@ -74,11 +83,31 @@ describe("ObterResumoSetorSn", () => {
     expect(resultado.value.cards.find((c) => c.id === "sem_documento")?.quantidade).toBe(1);
   });
 
+  it("o 4º comparativo (Responsáveis) só vai pro Líder do Simples Nacional", async () => {
+    const query = new ClienteQueryPortFalso();
+    const comparativosPara = async (sessao: SessaoPort) => {
+      const r = await new ObterResumoSetorSn(sessao, query).execute();
+      if (!r.ok) throw new Error("falha inesperada");
+      return r.value.comparativos;
+    };
+
+    expect(
+      (await comparativosPara(sessaoDe("lider_setor", "simples_nacional"))).responsaveis,
+    ).toEqual([]);
+    for (const sessao of [
+      sessaoDe("funcionario", "simples_nacional"),
+      sessaoDe("admin", "administrativo"),
+      SEM_SESSAO,
+    ]) {
+      expect("responsaveis" in (await comparativosPara(sessao))).toBe(false);
+    }
+  });
+
   it("propaga o erro técnico quando a consulta falha", async () => {
     const query = new ClienteQueryPortFalso();
     query.erro = new ForbiddenError("Falha ao listar");
 
-    const resultado = await new ObterResumoSetorSn(query).execute();
+    const resultado = await new ObterResumoSetorSn(SEM_SESSAO, query).execute();
 
     expect(resultado.ok).toBe(false);
   });

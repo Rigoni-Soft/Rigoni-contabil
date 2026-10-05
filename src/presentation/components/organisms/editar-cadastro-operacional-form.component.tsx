@@ -16,6 +16,7 @@ import {
   type DocumentoObrigatorioStatusValor,
 } from "@/shared/kernel/documento-obrigatorio-status";
 import { FORMA_ENVIO_LABEL, FORMAS_ENVIO, type FormaEnvioValor } from "@/shared/kernel/forma-envio";
+import { SEM_RESPONSAVEL_LABEL } from "@/shared/kernel/papeis";
 import {
   PARCELAMENTO_STATUS_LABEL,
   PARCELAMENTO_STATUSES,
@@ -48,9 +49,8 @@ type ResponsavelCampo = {
   // Lista carrega só quando o Select é aberto; enquanto isso (ou se falhar)
   // aparece como opção desabilitada.
   onAbrir: () => void;
-  mensagemOpcoes?: string;
-  // Falha ao carregar a lista: aviso próprio com saída (tentar de novo).
-  erroOpcoes?: boolean;
+  // "erro": aviso próprio com saída (tentar de novo), nunca só uma opção.
+  estadoLista: "ok" | "carregando" | "erro";
   onTentarNovamente: () => void;
 };
 
@@ -131,8 +131,8 @@ export function EditarCadastroOperacionalForm({
               {...register("responsavelId")}
               onFocus={responsavel.onAbrir}
             >
-              <option value="">Sem responsável</option>
-              {responsavel.mensagemOpcoes && <option disabled>{responsavel.mensagemOpcoes}</option>}
+              <option value="">{SEM_RESPONSAVEL_LABEL}</option>
+              {responsavel.estadoLista === "carregando" && <option disabled>Carregando…</option>}
               {responsavel.opcoes.map((opcao) => (
                 <option key={opcao.id} value={opcao.id}>
                   {opcao.nome}
@@ -142,7 +142,7 @@ export function EditarCadastroOperacionalForm({
           ) : (
             <Input id="responsavelId" value={responsavel.nomeAtual} disabled readOnly />
           )}
-          {responsavel.erroOpcoes && (
+          {responsavel.estadoLista === "erro" && (
             <div className="flex flex-wrap items-center gap-x-2">
               <FieldError>Não foi possível carregar a lista de Funcionários.</FieldError>
               <Button

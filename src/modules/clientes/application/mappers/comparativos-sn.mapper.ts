@@ -1,6 +1,6 @@
 import type { FatiaComparativoDto } from "@/modules/clientes/application/ports/in/obter-resumo-setor-sn.provider";
 import type { ResumoOperacionalRow } from "@/modules/clientes/application/ports/out/cliente-query.provider";
-import { RESPONSAVEL_OUTRO_SETOR_LABEL } from "@/shared/kernel/papeis";
+import { rotuloResponsavel, SEM_RESPONSAVEL_ID } from "@/shared/kernel/papeis";
 
 function contar(
   definicao: readonly (readonly [string, string])[],
@@ -13,19 +13,15 @@ function contar(
   }));
 }
 
-const SEM_RESPONSAVEL = "sem_responsavel";
-
 // Um grupo por Responsável presente nos Clientes (mais "Sem responsável" quando
 // existe algum Cliente sem atribuição), contando os com DAS enviada.
 function porResponsavel(linhas: ResumoOperacionalRow[]): FatiaComparativoDto[] {
   const grupos = new Map<string, FatiaComparativoDto>();
   for (const l of linhas) {
-    const id = l.responsavelId ?? SEM_RESPONSAVEL;
+    const id = l.responsavelId ?? SEM_RESPONSAVEL_ID;
     const grupo = grupos.get(id) ?? {
       id,
-      rotulo: l.responsavelId
-        ? (l.responsavelNome ?? RESPONSAVEL_OUTRO_SETOR_LABEL)
-        : "Sem responsável",
+      rotulo: rotuloResponsavel(l.responsavelId, l.responsavelNome),
       quantidade: 0,
     };
     if (l.dasStatus === "enviado") grupo.quantidade += 1;

@@ -5,11 +5,8 @@ import { EditarCadastroOperacionalPage } from "@/presentation/components/pages/e
 import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-button.container";
 import { carregarSessao } from "@/presentation/view-models/shell/shell.server";
 import { EditarCadastroOperacionalContainer } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.container";
-import {
-  podeAtribuirResponsavel,
-  podeEditarCadastroOperacional,
-} from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.presenter";
 import { carregarCadastroOperacionalCliente } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.server";
+import { podeAtribuirResponsavel, podeEditarCadastroOperacional } from "@/shared/kernel/papeis";
 
 type Props = {
   params: Promise<{ id: string }>;

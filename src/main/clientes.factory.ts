@@ -77,7 +77,6 @@ export async function makeAtribuirResponsavelCliente(): Promise<AtribuirResponsa
   const supabase = await createSupabaseServer();
   return new AtribuirResponsavelCliente(
     sessaoViaUsuarios(supabase),
-    new SupabaseClienteRepository(supabase),
     new SupabaseClienteQueryGateway(supabase),
     new SupabaseResponsavelClienteRepository(supabase),
     auditoriaViaModuloAuditoria(),
@@ -99,10 +98,16 @@ export async function makeBuscarClientes(): Promise<BuscarClientes> {
 
 export async function makeListarResponsaveisElegiveis(): Promise<ListarResponsaveisElegiveis> {
   const supabase = await createSupabaseServer();
-  return new ListarResponsaveisElegiveis(new SupabaseClienteQueryGateway(supabase));
+  return new ListarResponsaveisElegiveis(
+    sessaoViaUsuarios(supabase),
+    new SupabaseClienteQueryGateway(supabase),
+  );
 }
 
 export async function makeObterResumoSetorSn(): Promise<ObterResumoSetorSn> {
   const supabase = await createSupabaseServer();
-  return new ObterResumoSetorSn(new SupabaseClienteQueryGateway(supabase));
+  return new ObterResumoSetorSn(
+    sessaoViaUsuarios(supabase),
+    new SupabaseClienteQueryGateway(supabase),
+  );
 }

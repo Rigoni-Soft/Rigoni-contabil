@@ -3,16 +3,15 @@ import type {
   RegistrarAcaoAuditoria,
 } from "@/modules/clientes/application/ports/out/auditoria.provider";
 import type {
+  CadastroOperacionalClienteDto,
   ClienteQueryPort,
   ResponsavelOpcaoDto,
 } from "@/modules/clientes/application/ports/out/cliente-query.provider";
-import type { ClienteRepository } from "@/modules/clientes/application/ports/out/cliente.repository";
 import type { ResponsavelClienteRepository } from "@/modules/clientes/application/ports/out/responsavel-cliente.repository";
 import type {
   AtorSessaoDto,
   SessaoPort,
 } from "@/modules/clientes/application/ports/out/sessao.provider";
-import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
 import type { AppError } from "@/shared/errors/app.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
@@ -21,18 +20,26 @@ import { AtribuirResponsavelCliente } from "./atribuir-responsavel-cliente.use-c
 
 const CLIENTE_ID = "11111111-1111-1111-1111-111111111111";
 const FUNC_ID = "22222222-2222-2222-2222-222222222222";
+const OUTRO_FUNC_ID = "33333333-3333-3333-3333-333333333333";
 
-function clienteBase(): Cliente {
-  const resultado = Cliente.builder()
-    .comId(CLIENTE_ID)
-    .comEmpresa("Padaria Pão Quente Ltda")
-    .comCnpj("11444777000161")
-    .comRegime("simples_nacional")
-    .comContratoSocialCaminho(null)
-    .comAlteracoesContratuais([])
-    .build();
-  if (!resultado.ok) throw new Error("setup inválido");
-  return resultado.value;
+function cadastro(responsavelId: string | null): CadastroOperacionalClienteDto {
+  return {
+    id: CLIENTE_ID,
+    empresa: "Padaria Pão Quente Ltda",
+    cnpj: "11444777000161",
+    regime: "simples_nacional",
+    formaEnvio: "whatsapp",
+    contatos: [],
+    documentoObrigatorio: null,
+    dasStatus: null,
+    dataEnvioDas: null,
+    temParcelamento: false,
+    parcelamentoStatus: null,
+    observacoesGerais: "",
+    atividadeMes: { industria: false, comercio: false, servico: false },
+    responsavelId,
+    responsavelNome: null,
+  };
 }
 
 class SessaoFalsa implements SessaoPort {
@@ -42,20 +49,13 @@ class SessaoFalsa implements SessaoPort {
   }
 }
 
-class ClientesFalso implements ClienteRepository {
-  cliente: Cliente | null = clienteBase();
-  async criar(): Promise<Result<void, AppError>> {
-    throw new Error("não usado");
-  }
-  async buscarPorId(): Promise<Result<Cliente | null, AppError>> {
+class QueryFalsa implements Partial<ClienteQueryPort> {
+  cliente: CadastroOperacionalClienteDto | null = cadastro(null);
+  async buscarCadastroOperacional(): Promise<
+    Result<CadastroOperacionalClienteDto | null, AppError>
+  > {
     return ok(this.cliente);
   }
-  async atualizarOperacional(): Promise<Result<void, AppError>> {
-    throw new Error("não usado");
-  }
-}
-
-class QueryFalsa implements Partial<ClienteQueryPort> {
   async listarResponsaveisElegiveis(): Promise<Result<ResponsavelOpcaoDto[], AppError>> {
     return ok([{ id: FUNC_ID, nome: "Funcionário SN" }]);
   }
@@ -80,21 +80,20 @@ class AuditoriaFalsa implements AuditoriaPort {
 
 function montar() {
   const sessao = new SessaoFalsa();
-  const clientes = new ClientesFalso();
+  const query = new QueryFalsa();
   const responsaveis = new ResponsaveisFalso();
   const auditoria = new AuditoriaFalsa();
   const useCase = new AtribuirResponsavelCliente(
     sessao,
-    clientes,
-    new QueryFalsa() as ClienteQueryPort,
+    query as unknown as ClienteQueryPort,
     responsaveis,
     auditoria,
   );
-  return { sessao, clientes, responsaveis, auditoria, useCase };
+  return { sessao, query, responsaveis, auditoria, useCase };
 }
 
 describe("AtribuirResponsavelCliente", () => {
-  it("Líder do SN atribui Funcionário do SN e audita sucesso", async () => {
+  it("Líder do SN atribui Funcionário do SN e audita como atribuir", async () => {
     const { useCase, responsaveis, auditoria } = montar();
 
     const r = await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: FUNC_ID });
@@ -108,13 +107,17 @@ describe("AtribuirResponsavelCliente", () => {
     });
   });
 
-  it("remove o Responsável com null", async () => {
-    const { useCase, responsaveis } = montar();
+  it("audita trocar quando já havia Responsável e remover quando vira null", async () => {
+    const { useCase, query, auditoria } = montar();
+    query.cliente = cadastro(OUTRO_FUNC_ID);
 
-    const r = await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: null });
+    await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: FUNC_ID });
+    await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: null });
 
-    expect(r.ok).toBe(true);
-    expect(responsaveis.chamadas).toEqual([[CLIENTE_ID, null]]);
+    expect(auditoria.registros.map((r) => r.acao)).toEqual([
+      "cliente.trocar-responsavel",
+      "cliente.remover-responsavel",
+    ]);
   });
 
   it.each([
@@ -134,10 +137,7 @@ describe("AtribuirResponsavelCliente", () => {
   it("recusa quem não é Funcionário do SN e audita falha", async () => {
     const { useCase, responsaveis, auditoria } = montar();
 
-    const r = await useCase.execute({
-      clienteId: CLIENTE_ID,
-      responsavelId: "99999999-9999-9999-9999-999999999999",
-    });
+    const r = await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: OUTRO_FUNC_ID });
 
     expect(r.ok).toBe(false);
     expect(responsaveis.chamadas).toEqual([]);
@@ -154,12 +154,13 @@ describe("AtribuirResponsavelCliente", () => {
     expect(auditoria.registros[0]?.resultado).toBe("falha");
   });
 
-  it("recusa Cliente inexistente (ou invisível pro ator)", async () => {
-    const { useCase, clientes } = montar();
-    clientes.cliente = null;
+  it("Cliente inexistente (ou invisível pro ator) devolve NOT_FOUND com mensagem amigável", async () => {
+    const { useCase, query } = montar();
+    query.cliente = null;
 
     const r = await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: FUNC_ID });
 
-    expect(r.ok).toBe(false);
+    expect(!r.ok && r.error.code).toBe("NOT_FOUND");
+    expect(!r.ok && r.error.message).toMatch(/Não encontramos este cliente/);
   });
 });

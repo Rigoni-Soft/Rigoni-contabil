@@ -14,6 +14,7 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { mesAtual } from "@/shared/kernel/mes-atual";
+import { podeEditarCadastroOperacional } from "@/shared/kernel/papeis";
 import { regimeTemCadastroOperacionalSn } from "@/shared/kernel/regimes";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
@@ -28,7 +29,7 @@ export class EditarCadastroOperacionalCliente implements EditarCadastroOperacion
     input: EditarCadastroOperacionalClienteInput,
   ): Promise<Result<EditarCadastroOperacionalClienteOutput, AppError>> {
     const ator = await this.sessao.usuarioAtual();
-    if (!ator || !this.podeEditar(ator)) {
+    if (!ator || !podeEditarCadastroOperacional(ator.papel, ator.setor)) {
       return err(
         new ForbiddenError(
           "Só Admin, Líder ou Funcionário do Simples Nacional editam este cadastro.",

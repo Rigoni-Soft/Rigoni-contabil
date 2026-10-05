@@ -118,9 +118,6 @@ language plpgsql
 set search_path = public
 as $$
 begin
-  if auth.uid() is null then
-    return new;
-  end if;
   if tg_op = 'UPDATE' and new.responsavel_id is not distinct from old.responsavel_id then
     return new;
   end if;
@@ -128,8 +125,11 @@ begin
     return new;
   end if;
 
-  if public.meu_papel() is distinct from 'lider_setor'
-     or public.meu_setor() is distinct from 'simples_nacional' then
+  -- Sem auth.uid() (service_role/migrations) o chamador é o servidor confiável:
+  -- pula a checagem de papel, mas a elegibilidade abaixo vale pra todos.
+  if auth.uid() is not null
+     and (public.meu_papel() is distinct from 'lider_setor'
+          or public.meu_setor() is distinct from 'simples_nacional') then
     raise exception 'Só o Líder do Simples Nacional atribui o Responsável.' using errcode = '42501';
   end if;
 

@@ -1,16 +1,16 @@
-// Espelha EditarCadastroOperacionalCliente.podeEditar (use-case, não
-// exportado) — módulos não se importam entre si (arquitetura.md §3.4), mas a
-// tela (`/clientes/[id]` e a busca inline do dashboard, #35) precisa da mesma
-// regra pra decidir modo leitura/edição sem esperar o submit. Extraído pra
-// não duplicar entre os dois consumidores (ponytail-review).
-export function podeEditarCadastroOperacional(papel: string, setor: string): boolean {
-  return (
-    papel === "admin" ||
-    ((papel === "lider_setor" || papel === "funcionario") && setor === "simples_nacional")
-  );
+import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
+import { rotuloResponsavel } from "@/shared/kernel/papeis";
+
+type Opcao = { id: string; nome: string };
+
+// Antes de abrir o Select só o Responsável atual é conhecido; depois soma a lista carregada.
+export function opcoesResponsavel(dados: CadastroOperacionalClienteDto, carregadas: Opcao[]) {
+  const atual =
+    dados.responsavelId && dados.responsavelNome
+      ? [{ id: dados.responsavelId, nome: dados.responsavelNome }]
+      : [];
+  return [...atual.filter((a) => !carregadas.some((c) => c.id === a.id)), ...carregadas];
 }
 
-// Só o Líder do SN atribui o Responsável (#65); espelha AtribuirResponsavelCliente.
-export function podeAtribuirResponsavel(papel: string, setor: string): boolean {
-  return papel === "lider_setor" && setor === "simples_nacional";
-}
+export const nomeResponsavelAtual = (dados: CadastroOperacionalClienteDto) =>
+  rotuloResponsavel(dados.responsavelId, dados.responsavelNome);

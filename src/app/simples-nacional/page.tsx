@@ -51,11 +51,7 @@ export default async function Page() {
               />
               <ComparativosSn
                 comparativos={resumo.value.comparativos}
-                responsaveis={
-                  sessao.papel === "lider_setor"
-                    ? resumo.value.comparativos.responsaveis
-                    : undefined
-                }
+                responsaveis={resumo.value.comparativos.responsaveis}
                 totalClientes={resumo.value.totalClientes}
               />
             </>

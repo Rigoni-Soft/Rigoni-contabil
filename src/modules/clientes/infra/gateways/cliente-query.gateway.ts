@@ -35,9 +35,17 @@ type ClienteBasicoRow = {
 // Lê da view `clientes_basico`, que não tem contrato_social_caminho: a
 // confidencialidade é garantida no banco (PR #69), não só pelo select ou pelo
 // shape do DTO de saída.
+const EMBED_OPERACIONAL =
+  "cliente_cadastro_operacional_sn(*, responsavel:perfis!responsavel_id(nome))";
+
+const responsavelDe = (operacional: CadastroOperacionalRow | null) => ({
+  responsavelId: operacional?.responsavel_id ?? null,
+  responsavelNome: operacional?.responsavel?.nome ?? null,
+});
+
 const SELECT_CADASTRO_BASICO = `
   id, empresa, cnpj, regime,
-  cliente_cadastro_operacional_sn(*, responsavel:perfis!responsavel_id(nome)),
+  ${EMBED_OPERACIONAL},
   cliente_contatos(*),
   cliente_atividades_mensais(*)
 `;
@@ -88,8 +96,7 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
         comercio: atividade?.comercio ?? false,
         servico: atividade?.servico ?? false,
       },
-      responsavelId: operacional?.responsavel_id ?? null,
-      responsavelNome: operacional?.responsavel?.nome ?? null,
+      ...responsavelDe(operacional),
     });
   }
 
@@ -134,9 +141,7 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
     const anoMesAtual = primeiroDiaDoMesAtual();
     const { data, error } = await this.supabase
       .from("clientes_basico")
-      .select(
-        "id, empresa, cnpj, cliente_cadastro_operacional_sn(*, responsavel:perfis!responsavel_id(nome)), cliente_atividades_mensais(*)",
-      )
+      .select(`id, empresa, cnpj, ${EMBED_OPERACIONAL}, cliente_atividades_mensais(*)`)
       .eq("cliente_atividades_mensais.ano_mes", anoMesAtual)
       // Mesmo escopo da busca (#35): só Regime com cadastro operacional de
       // verdade (nasce automático só pra Simples Nacional/MEI, #34).
@@ -162,8 +167,7 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
             comercio: atividade?.comercio ?? false,
             servico: atividade?.servico ?? false,
           },
-          responsavelId: operacional?.responsavel_id ?? null,
-          responsavelNome: operacional?.responsavel?.nome ?? null,
+          ...responsavelDe(operacional),
         };
       }),
     );

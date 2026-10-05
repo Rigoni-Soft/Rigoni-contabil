@@ -3,10 +3,7 @@ import { useEffect, useState } from "react";
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { carregarCadastroOperacionalAction } from "@/modules/clientes/presentation/view-models/buscar-cliente/buscar-cliente.actions";
 import { useBuscarClientes } from "@/modules/clientes/presentation/view-models/buscar-cliente/buscar-cliente.queries";
-import {
-  podeAtribuirResponsavel,
-  podeEditarCadastroOperacional,
-} from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.presenter";
+import { podeAtribuirResponsavel, podeEditarCadastroOperacional } from "@/shared/kernel/papeis";
 
 const DEBOUNCE_MS = 300;
 
