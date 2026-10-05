@@ -3,6 +3,7 @@ import "server-only";
 import {
   MENSAGERIA_MODO,
   MENSAGERIA_SEGREDO_ASSINATURA,
+  MENSAGERIA_SEGREDO_SESSAO,
   MENSAGERIA_TOKEN_VERIFICACAO,
 } from "@/env";
 
@@ -33,7 +34,7 @@ export function makeReceberMensagem(): ReceberMensagemPort {
     new SupabaseIdentificacaoContatoGateway(supabaseAdmin),
     makeEnvioMensagem(),
     new SupabaseDocumentosContratuaisGateway(supabaseAdmin),
-    new SupabaseSessaoAtendimentoGateway(supabaseAdmin, MENSAGERIA_SEGREDO_ASSINATURA),
+    new SupabaseSessaoAtendimentoGateway(supabaseAdmin, MENSAGERIA_SEGREDO_SESSAO),
   );
 }
 

@@ -20,6 +20,9 @@ const resultado = z
     // falsos de dev; em produção vêm do painel do provedor.
     MENSAGERIA_SEGREDO_ASSINATURA: z.string().min(1).default("segredo-falso"),
     MENSAGERIA_TOKEN_VERIFICACAO: z.string().min(1).default("token-falso"),
+    // Chave do HMAC que pseudonimiza o telefone na sessão da URA. Própria (não reaproveita o
+    // segredo do webhook): trocar um não invalida o outro. Valor falso só pra dev.
+    MENSAGERIA_SEGREDO_SESSAO: z.string().min(1).default("segredo-sessao-falso"),
   })
   .safeParse({
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -27,6 +30,7 @@ const resultado = z
     MENSAGERIA_MODO: process.env.MENSAGERIA_MODO || undefined,
     MENSAGERIA_SEGREDO_ASSINATURA: process.env.MENSAGERIA_SEGREDO_ASSINATURA || undefined,
     MENSAGERIA_TOKEN_VERIFICACAO: process.env.MENSAGERIA_TOKEN_VERIFICACAO || undefined,
+    MENSAGERIA_SEGREDO_SESSAO: process.env.MENSAGERIA_SEGREDO_SESSAO || undefined,
   });
 
 if (!resultado.success) {
@@ -39,4 +43,5 @@ export const {
   MENSAGERIA_MODO,
   MENSAGERIA_SEGREDO_ASSINATURA,
   MENSAGERIA_TOKEN_VERIFICACAO,
+  MENSAGERIA_SEGREDO_SESSAO,
 } = resultado.data;

@@ -5,7 +5,7 @@ HTTP e o adapter falso reproduzem a **WhatsApp Cloud API da Meta**, pra que o ad
 implementação. Fonte: documentação oficial da Meta (webhooks, Messages API, códigos de erro). Ver ADR 0004.
 
 Configuração: `MENSAGERIA_MODO` = `falso` (padrão) | `real` (ainda não existe, #68);
-`MENSAGERIA_SEGREDO_ASSINATURA` (app secret) e `MENSAGERIA_TOKEN_VERIFICACAO` (padrões falsos em dev).
+`MENSAGERIA_SEGREDO_ASSINATURA` (app secret) e `MENSAGERIA_TOKEN_VERIFICACAO` e `MENSAGERIA_SEGREDO_SESSAO` (chave do HMAC da sessão da URA, separada da assinatura; padrões falsos em dev).
 
 ## Entrada: `/api/webhooks/whatsapp`
 
@@ -75,9 +75,9 @@ construção" (stub); qualquer outro texto reenvia o menu.
 
 **Sessão (`atendimento_sessoes`):** guarda só a posição no menu (`etapa`, `modo`, `pagina`), nunca dado do Cliente:
 nome, empresa, CNPJ e caminhos são relidos a cada mensagem. A chave é um HMAC-SHA256 do telefone (segredo
-`MENSAGERIA_SEGREDO_ASSINATURA`), nunca o número; expira em 10 min (ignorada na leitura, varrida a cada gravação);
-RLS ligada sem policy (só `service_role`). A sessão só é encerrada depois do envio: se falhar, a Meta reenvia e o
-cliente retoma do mesmo ponto. Limite: se uma alteração for cadastrada com a sessão aberta, o número escolhido pode
+`MENSAGERIA_SEGREDO_SESSAO`), nunca o número; expira em 10 min (ignorada na leitura, varrida a cada gravação);
+RLS ligada sem policy (só `service_role`). A sessão só é encerrada depois do envio: se o envio falhar, a Meta reenvia e o
+cliente retoma do mesmo ponto; se só o encerramento falhar, o erro é ignorado (não duplica o documento) e a sessão expira sozinha. Limite: se uma alteração for cadastrada com a sessão aberta, o número escolhido pode
 apontar para outra.
 
 ## Ainda não coberto (vai com a #68)

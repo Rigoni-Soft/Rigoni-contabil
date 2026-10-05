@@ -41,6 +41,7 @@ function montar(
     documentos?: DocumentoContratual[];
     listagemFalha?: boolean;
     sessaoFalha?: boolean;
+    limparFalha?: boolean;
   } = {},
 ) {
   const buscados: string[] = [];
@@ -60,6 +61,7 @@ function montar(
       return ok(undefined);
     },
     limpar: async (telefone) => {
+      if (opcoes.limparFalha) return err(new ServicoExternoError("banco"));
       sessoes.delete(telefone);
       return ok(undefined);
     },
@@ -369,6 +371,17 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     const r = await caso.execute({ telefone: FONE, texto: "1" });
     expect(r).toEqual({ ok: false, error: expect.any(ServicoExternoError) });
     expect(sessoes.size).toBe(1);
+  });
+
+  it("falha ao encerrar a sessão depois da entrega não faz a Meta reenviar o documento", async () => {
+    const { caso, documentosEnviados, sessoes } = montar({
+      documentos: [CONTRATO],
+      limparFalha: true,
+    });
+    sessoes.set(CHAVE, { etapa: "tipo_documento" });
+    const r = await caso.execute({ telefone: FONE, texto: "1" });
+    expect(r.ok).toBe(true);
+    expect(documentosEnviados).toHaveLength(1);
   });
 
   it("falha ao consultar a sessão propaga o erro sem enviar nada", async () => {

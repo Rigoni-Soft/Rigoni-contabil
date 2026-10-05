@@ -213,7 +213,10 @@ export class ReceberMensagem implements ReceberMensagemPort {
         : await this.enviar(telefone, SEM_CONTRATO);
       if (!enviado.ok) return enviado;
     }
-    return this.sessoes.limpar(chave);
+    // Já entregou: falhar aqui faria a Meta reenviar a mensagem e duplicar o documento. A
+    // sessão que sobrar expira sozinha (10 min) ou some com "menu".
+    await this.sessoes.limpar(chave);
+    return ok(undefined);
   }
 
   private async enviarDocumento(
