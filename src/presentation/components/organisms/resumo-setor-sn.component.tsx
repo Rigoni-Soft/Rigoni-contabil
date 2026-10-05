@@ -105,7 +105,7 @@ function Grupo({
 export function ResumoSetorSn({ cards, totalClientes, busca }: Props) {
   return (
     <section className="space-y-6">
-      <h1 className="text-xl font-bold text-foreground">Resumo do setor</h1>
+      <h1 className="text-xl font-bold tracking-tight text-primary">Resumo do setor</h1>
       {busca}
       {totalClientes === 0 && (
         <p className="text-sm text-muted-foreground">

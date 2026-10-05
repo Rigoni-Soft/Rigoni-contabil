@@ -142,7 +142,7 @@ function Barras({
 export function ComparativosSn({ comparativos, responsaveis, totalClientes }: Props) {
   return (
     <section aria-labelledby="comparativos-titulo" className="space-y-4">
-      <h2 id="comparativos-titulo" className="text-xl font-bold text-foreground">
+      <h2 id="comparativos-titulo" className="text-lg font-semibold text-foreground">
         Comparativos
       </h2>
       <div
