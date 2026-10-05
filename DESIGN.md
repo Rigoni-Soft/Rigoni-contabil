@@ -1,6 +1,6 @@
 ---
 name: Rigoni Contábil
-description: "Talão de Cheque" — sistema Operate em verde-cheque sobre papel grafite (escuro, padrão) ou creme (claro), Roboto e cantos quase retos.
+description: 'Talão de Cheque — sistema Operate em verde-cheque sobre papel grafite (escuro, padrão) ou creme (claro), Roboto e cantos quase retos.'
 colors:
   background: "#23221f"
   foreground: "#ece7d8"
