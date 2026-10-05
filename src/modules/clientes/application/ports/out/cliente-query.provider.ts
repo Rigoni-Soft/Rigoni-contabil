@@ -19,7 +19,15 @@ export type CadastroOperacionalClienteDto = {
   parcelamentoStatus: string | null;
   observacoesGerais: string;
   atividadeMes: { industria: boolean; comercio: boolean; servico: boolean };
+  // Responsável (#65): null = "Sem responsável". Nome vem null quando o RLS
+  // esconde o perfil (leitor de outro Setor) — o id continua conhecido.
+  responsavelId: string | null;
+  responsavelNome: string | null;
+  // Funcionários do SN que o Líder pode escolher como Responsável.
+  responsaveisElegiveis: ResponsavelOpcaoDto[];
 };
+
+export type ResponsavelOpcaoDto = { id: string; nome: string };
 
 // Resultado leve da busca (#35) — não é o cadastro operacional completo, só
 // o necessário pra listar sugestões (empresa + CNPJ) antes de escolher um cliente.
@@ -38,6 +46,8 @@ export type ResumoOperacionalRow = {
   parcelamentoStatus: string | null;
   // Atividade do mês corrente (#37); tudo false quando ainda não há registro.
   atividadeMes: { industria: boolean; comercio: boolean; servico: boolean };
+  responsavelId: string | null;
+  responsavelNome: string | null;
 };
 
 export interface ClienteQueryPort {
@@ -55,4 +65,7 @@ export interface ClienteQueryPort {
   ): Promise<Result<SugestaoClienteDto[], AppError>>;
 
   listarResumoOperacional(): Promise<Result<ResumoOperacionalRow[], AppError>>;
+
+  // Funcionários do Setor Simples Nacional visíveis a quem chama (#65).
+  listarResponsaveisElegiveis(): Promise<Result<ResponsavelOpcaoDto[], AppError>>;
 }

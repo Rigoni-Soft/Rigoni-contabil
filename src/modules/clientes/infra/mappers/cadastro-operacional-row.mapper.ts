@@ -6,6 +6,8 @@ export type CadastroOperacionalRow = {
   tem_parcelamento: boolean;
   parcelamento_status: string | null;
   observacoes_gerais: string;
+  responsavel_id: string | null;
+  responsavel: { nome: string } | null;
 };
 
 // PostgREST devolve embed 1:1 (FK também é PK, como cliente_cadastro_operacional_sn)

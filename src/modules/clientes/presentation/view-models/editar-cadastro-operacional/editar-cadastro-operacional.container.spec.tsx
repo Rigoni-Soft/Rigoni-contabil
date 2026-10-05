@@ -1,7 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
+import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { err, ok } from "@/shared/kernel/result";
 
 import { EditarCadastroOperacionalContainer } from "./editar-cadastro-operacional.container";
 
@@ -12,8 +14,10 @@ jest.mock("next/navigation", () => ({
 
 const executeMock = jest.fn();
 
+const atribuirMock = jest.fn();
 jest.mock("@/main/clientes.factory", () => ({
   makeEditarCadastroOperacionalCliente: () => ({ execute: executeMock }),
+  makeAtribuirResponsavelCliente: () => ({ execute: atribuirMock }),
 }));
 
 const dados: CadastroOperacionalClienteDto = {
@@ -30,11 +34,15 @@ const dados: CadastroOperacionalClienteDto = {
   parcelamentoStatus: null,
   observacoesGerais: "Cliente pontual.",
   atividadeMes: { industria: false, comercio: true, servico: false },
+  responsavelId: null,
+  responsavelNome: null,
+  responsaveisElegiveis: [{ id: "f1111111-1111-4111-8111-111111111111", nome: "Funcionário SN" }],
 };
 
 describe("EditarCadastroOperacionalContainer", () => {
   beforeEach(() => {
     executeMock.mockReset();
+    atribuirMock.mockReset();
     routerPush.mockReset();
   });
 
@@ -46,6 +54,60 @@ describe("EditarCadastroOperacionalContainer", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent(`não se aplica ao Regime ${rotulo}`);
     expect(screen.queryByRole("button", { name: /salvar/i })).not.toBeInTheDocument();
+  });
+
+  it("Responsável: sem permissão mostra o nome (campo desabilitado); Líder escolhe e salva via atribuir", async () => {
+    const { unmount } = render(
+      <EditarCadastroOperacionalContainer dados={dados} readOnly={false} />,
+    );
+    expect(screen.getByLabelText("Responsável")).toBeDisabled();
+    expect(screen.getByLabelText("Responsável")).toHaveValue("Sem responsável");
+    unmount();
+
+    executeMock.mockResolvedValue(ok({ clienteId: dados.id }));
+    atribuirMock.mockResolvedValue(ok({ clienteId: dados.id }));
+    render(
+      <EditarCadastroOperacionalContainer
+        dados={dados}
+        readOnly={false}
+        podeAtribuirResponsavel
+        voltarHrefAoSalvar="/simples-nacional"
+      />,
+    );
+    await userEvent.selectOptions(
+      screen.getByLabelText("Responsável"),
+      "f1111111-1111-4111-8111-111111111111",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Salvar" }));
+
+    await waitFor(() =>
+      expect(atribuirMock).toHaveBeenCalledWith({
+        clienteId: dados.id,
+        responsavelId: "f1111111-1111-4111-8111-111111111111",
+      }),
+    );
+    expect(routerPush).toHaveBeenCalledWith("/simples-nacional");
+  });
+
+  it("Responsável: erro ao atribuir mostra a mensagem e não navega", async () => {
+    executeMock.mockResolvedValue(ok({ clienteId: dados.id }));
+    atribuirMock.mockResolvedValue(err(new ForbiddenError("Só o Líder atribui.")));
+    render(
+      <EditarCadastroOperacionalContainer
+        dados={dados}
+        readOnly={false}
+        podeAtribuirResponsavel
+        voltarHrefAoSalvar="/simples-nacional"
+      />,
+    );
+    await userEvent.selectOptions(
+      screen.getByLabelText("Responsável"),
+      "f1111111-1111-4111-8111-111111111111",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Salvar" }));
+
+    expect(await screen.findByText("Só o Líder atribui.")).toBeInTheDocument();
+    expect(routerPush).not.toHaveBeenCalled();
   });
 
   it("modo readOnly: nunca renderiza contrato social/alterações e não mostra Salvar/Limpar/Cancelar", () => {

@@ -27,6 +27,7 @@ export function BuscarClienteContainer({ papel, setor, apenasSnMei = false }: Pr
     selecionarCliente,
     fecharPainel,
     readOnly,
+    podeAtribuirResponsavel,
   } = useBuscarCliente(papel, setor, apenasSnMei);
 
   // Destaque de teclado (ArrowUp/ArrowDown/Enter) na lista de sugestões —
@@ -86,6 +87,7 @@ export function BuscarClienteContainer({ papel, setor, apenasSnMei = false }: Pr
         <EditarCadastroOperacionalContainer
           dados={clienteSelecionado}
           readOnly={readOnly}
+          podeAtribuirResponsavel={podeAtribuirResponsavel}
           onCancelar={fecharPainel}
           // Salvar fecha o painel (volta pra busca) e atualiza os dados da
           // página — se esta busca estiver embutida no resumo do setor

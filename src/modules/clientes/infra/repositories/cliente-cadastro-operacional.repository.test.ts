@@ -8,6 +8,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
+import { SupabaseResponsavelClienteGateway } from "@/modules/clientes/infra/gateways/supabase-responsavel-cliente.gateway";
 import { mesAtual } from "@/shared/kernel/mes-atual";
 
 import { SupabaseClienteRepository } from "./cliente.repository";
@@ -27,6 +28,22 @@ const comoFuncionarioSN = () =>
   clienteAutenticado("funcionario.sn@rigonicontabil.local", "func123");
 const comoFuncionarioFinanceiro = () =>
   clienteAutenticado("funcionario.financeiro@rigonicontabil.local", "func123");
+const comoLiderSN = () => clienteAutenticado("lider.sn@rigonicontabil.local", "lider123");
+const comoFuncionario2SN = () =>
+  clienteAutenticado("funcionario2.sn@rigonicontabil.local", "func123");
+
+const FUNCIONARIO_SN_ID = "22222222-2222-2222-2222-222222222222";
+const FUNCIONARIO_FINANCEIRO_ID = "33333333-3333-3333-3333-333333333333";
+
+// #65: Funcionário SN só edita Cliente do qual é Responsável — quem atribui é o Líder.
+async function atribuirComoLider(clienteId: string, responsavelId: string | null) {
+  const lider = await comoLiderSN();
+  const resultado = await new SupabaseResponsavelClienteGateway(lider).atribuir(
+    clienteId,
+    responsavelId,
+  );
+  if (!resultado.ok) throw new Error("falha ao atribuir: " + resultado.error.message);
+}
 
 async function criarClienteBase(admin: SupabaseClient, cnpj: string): Promise<Cliente> {
   const repositorio = new SupabaseClienteRepository(admin);
@@ -75,6 +92,7 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
   it("Funcionário SN edita e persiste o cadastro operacional (RPC editar_cadastro_operacional_cliente)", async () => {
     const admin = await comoAdmin();
     const clienteBase = await criarClienteBase(admin, "11444777000242");
+    await atribuirComoLider(clienteBase.id, FUNCIONARIO_SN_ID);
     const funcionarioSN = await comoFuncionarioSN();
     const repositorio = new SupabaseClienteRepository(funcionarioSN);
 
@@ -110,6 +128,7 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
   it("Funcionário de outro Setor CONSEGUE visualizar o cadastro básico (RLS de SELECT libera qualquer perfil)", async () => {
     const admin = await comoAdmin();
     const clienteBase = await criarClienteBase(admin, "11444777000404");
+    await atribuirComoLider(clienteBase.id, FUNCIONARIO_SN_ID);
     const funcionarioSN = await comoFuncionarioSN();
     await new SupabaseClienteRepository(funcionarioSN).atualizarOperacional(
       comCadastroOperacional(clienteBase),
@@ -126,6 +145,7 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
   it("buscarPorId reconstitui a entidade Cliente com os campos operacionais salvos", async () => {
     const admin = await comoAdmin();
     const clienteBase = await criarClienteBase(admin, "11444777000595");
+    await atribuirComoLider(clienteBase.id, FUNCIONARIO_SN_ID);
     const funcionarioSN = await comoFuncionarioSN();
     const repositorio = new SupabaseClienteRepository(funcionarioSN);
     await repositorio.atualizarOperacional(comCadastroOperacional(clienteBase));
@@ -138,6 +158,88 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
     expect(resultado.value.dasStatus?.valor).toBe("pronto");
     expect(resultado.value.contatos).toHaveLength(1);
     expect(resultado.value.atividadeMesAtual?.comercio).toBe(true);
+  });
+
+  describe("Responsável por Cliente (#65)", () => {
+    it("Líder do SN atribui um Funcionário do SN; Funcionário não-Responsável não enxerga nem edita o Cliente", async () => {
+      const admin = await comoAdmin();
+      const clienteBase = await criarClienteBase(admin, "11444777000838");
+      await atribuirComoLider(clienteBase.id, FUNCIONARIO_SN_ID);
+
+      const outro = new SupabaseClienteRepository(await comoFuncionario2SN());
+      const visto = await outro.buscarPorId(clienteBase.id);
+      const edicao = await outro.atualizarOperacional(comCadastroOperacional(clienteBase));
+
+      expect(visto.ok && visto.value).toBeNull();
+      expect(edicao.ok).toBe(false);
+      const responsavel = new SupabaseClienteRepository(await comoFuncionarioSN());
+      const doResponsavel = await responsavel.buscarPorId(clienteBase.id);
+      expect(doResponsavel.ok && doResponsavel.value?.id).toBe(clienteBase.id);
+    });
+
+    it("Funcionário NÃO consegue atribuir/alterar o Responsável nem por update direto (trigger)", async () => {
+      const admin = await comoAdmin();
+      const clienteBase = await criarClienteBase(admin, "11444777000919");
+      await atribuirComoLider(clienteBase.id, FUNCIONARIO_SN_ID);
+      const funcionarioSN = await comoFuncionarioSN();
+
+      const direto = await funcionarioSN
+        .from("cliente_cadastro_operacional_sn")
+        .update({ responsavel_id: null })
+        .eq("cliente_id", clienteBase.id);
+      const viaGateway = await new SupabaseResponsavelClienteGateway(funcionarioSN).atribuir(
+        clienteBase.id,
+        null,
+      );
+
+      expect(direto.error).not.toBeNull();
+      expect(viaGateway.ok).toBe(false);
+    });
+
+    it("Admin também NÃO atribui o Responsável (só o Líder do SN)", async () => {
+      const admin = await comoAdmin();
+      const clienteBase = await criarClienteBase(admin, "11444777001052");
+
+      const resultado = await new SupabaseResponsavelClienteGateway(admin).atribuir(
+        clienteBase.id,
+        FUNCIONARIO_SN_ID,
+      );
+
+      expect(resultado.ok).toBe(false);
+    });
+
+    it("Líder não atribui Funcionário de outro Setor como Responsável", async () => {
+      const admin = await comoAdmin();
+      const clienteBase = await criarClienteBase(admin, "11444777001133");
+      const lider = await comoLiderSN();
+
+      const resultado = await new SupabaseResponsavelClienteGateway(lider).atribuir(
+        clienteBase.id,
+        FUNCIONARIO_FINANCEIRO_ID,
+      );
+
+      expect(resultado.ok).toBe(false);
+    });
+
+    it("Líder enxerga e edita qualquer Cliente do SN, e remover o Responsável deixa 'Sem responsável'", async () => {
+      const admin = await comoAdmin();
+      const clienteBase = await criarClienteBase(admin, "11444777001214");
+      await atribuirComoLider(clienteBase.id, FUNCIONARIO_SN_ID);
+      const repositorioLider = new SupabaseClienteRepository(await comoLiderSN());
+
+      const edicao = await repositorioLider.atualizarOperacional(
+        comCadastroOperacional(clienteBase),
+      );
+      await atribuirComoLider(clienteBase.id, null);
+
+      expect(edicao.ok).toBe(true);
+      const { data } = await admin
+        .from("cliente_cadastro_operacional_sn")
+        .select("responsavel_id")
+        .eq("cliente_id", clienteBase.id)
+        .single();
+      expect(data?.responsavel_id).toBeNull();
+    });
   });
 
   it("buscarPorId devolve null quando o Cliente não existe", async () => {

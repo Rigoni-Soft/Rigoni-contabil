@@ -12,12 +12,15 @@ import {
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { REGIME_LABEL, regimeTemCadastroOperacionalSn } from "@/shared/kernel/regimes";
 
+import { atribuirResponsavelAction } from "./atribuir-responsavel.actions";
 import { editarCadastroOperacionalAction } from "./editar-cadastro-operacional.actions";
 import { editarCadastroOperacionalFormSchema } from "./editar-cadastro-operacional.schema";
 
 type Props = {
   dados: CadastroOperacionalClienteDto | null;
   readOnly: boolean;
+  // Só o Líder do SN (#65): troca o Select de Responsável editável.
+  podeAtribuirResponsavel?: boolean;
   onCancelar?: () => void;
   // Depois de salvar com sucesso, o painel precisa fechar/voltar — o "que o
   // caso exigir" (feedback de teste manual do #36): painel embutido no
@@ -32,6 +35,7 @@ type Props = {
 export function EditarCadastroOperacionalContainer({
   dados,
   readOnly,
+  podeAtribuirResponsavel = false,
   onCancelar,
   aoSalvarComSucesso,
   voltarHrefAoSalvar,
@@ -58,6 +62,7 @@ export function EditarCadastroOperacionalContainer({
           dados.parcelamentoStatus as EditarCadastroOperacionalFormValues["parcelamentoStatus"],
         observacoesGerais: dados.observacoesGerais,
         atividadeMes: dados.atividadeMes,
+        responsavelId: dados.responsavelId ?? "",
       }
     : undefined;
 
@@ -101,6 +106,17 @@ export function EditarCadastroOperacionalContainer({
         return;
       }
 
+      if (podeAtribuirResponsavel && valores.responsavelId !== (dados.responsavelId ?? "")) {
+        const atribuicao = await atribuirResponsavelAction({
+          clienteId: dados.id,
+          responsavelId: valores.responsavelId || null,
+        });
+        if (!atribuicao.ok) {
+          setErroServidor(atribuicao.error.message);
+          return;
+        }
+      }
+
       setSucesso(true);
       if (aoSalvarComSucesso) {
         aoSalvarComSucesso();
@@ -142,6 +158,13 @@ export function EditarCadastroOperacionalContainer({
       onSubmit={aoSubmeter}
       pendente={pendente}
       readOnly={readOnly}
+      responsavel={{
+        editavel: podeAtribuirResponsavel,
+        nomeAtual: dados.responsavelId
+          ? (dados.responsavelNome ?? "Funcionário de outro setor")
+          : "Sem responsável",
+        opcoes: dados.responsaveisElegiveis,
+      }}
       temParcelamento={temParcelamento}
       erroServidor={erroServidor}
       sucesso={sucesso}

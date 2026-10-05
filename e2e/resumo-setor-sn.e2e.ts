@@ -1,6 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-import { criarClienteComoAdmin, login } from "./support/criar-cliente";
+import {
+  atribuirResponsavelComoLider,
+  criarClienteComoAdmin,
+  login,
+} from "./support/criar-cliente";
 
 // Cobre o cenário principal do ticket #36 (Resumo do setor, 9 cards):
 // cliente novo nasce com documento_obrigatorio='negativo' (#34, cadastro
@@ -48,7 +52,8 @@ test.describe("Resumo do setor (#36)", () => {
     page,
   }) => {
     const empresa = "Resumo Setor Realtime E2E Ltda";
-    await criarClienteComoAdmin(page, empresa);
+    const cnpjDigits = await criarClienteComoAdmin(page, empresa);
+    await atribuirResponsavelComoLider(cnpjDigits);
 
     await page.getByRole("button", { name: "Sair" }).click();
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");

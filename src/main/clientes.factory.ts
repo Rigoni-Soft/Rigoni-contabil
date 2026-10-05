@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { makeRegistrarAcao } from "@/main/auditoria.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
+import type { AtribuirResponsavelClientePort } from "@/modules/clientes/application/ports/in/atribuir-responsavel-cliente.provider";
 import type { CriarClientePort } from "@/modules/clientes/application/ports/in/criar-cliente.provider";
 import type { EditarCadastroOperacionalClientePort } from "@/modules/clientes/application/ports/in/editar-cadastro-operacional-cliente.provider";
 import type { AuditoriaPort } from "@/modules/clientes/application/ports/out/auditoria.provider";
@@ -11,6 +12,7 @@ import type {
   AtorSessaoDto,
   SessaoPort,
 } from "@/modules/clientes/application/ports/out/sessao.provider";
+import { AtribuirResponsavelCliente } from "@/modules/clientes/application/use-cases/atribuir-responsavel-cliente.use-case";
 import { BuscarClientes } from "@/modules/clientes/application/use-cases/buscar-clientes.use-case";
 import { ConsultarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/consultar-cadastro-operacional-cliente.use-case";
 import { CriarCliente } from "@/modules/clientes/application/use-cases/criar-cliente.use-case";
@@ -18,6 +20,7 @@ import { EditarCadastroOperacionalCliente } from "@/modules/clientes/application
 import { ObterResumoSetorSn } from "@/modules/clientes/application/use-cases/obter-resumo-setor-sn.use-case";
 import { SupabaseClienteQueryGateway } from "@/modules/clientes/infra/gateways/cliente-query.gateway";
 import { SupabaseArquivoStorageGateway } from "@/modules/clientes/infra/gateways/supabase-arquivo-storage.gateway";
+import { SupabaseResponsavelClienteGateway } from "@/modules/clientes/infra/gateways/supabase-responsavel-cliente.gateway";
 import { SupabaseClienteRepository } from "@/modules/clientes/infra/repositories/cliente.repository";
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
 import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabase-sessao.gateway";
@@ -65,6 +68,17 @@ export async function makeEditarCadastroOperacionalCliente(): Promise<EditarCada
   return new EditarCadastroOperacionalCliente(
     sessaoViaUsuarios(supabase),
     new SupabaseClienteRepository(supabase),
+    auditoriaViaModuloAuditoria(),
+  );
+}
+
+export async function makeAtribuirResponsavelCliente(): Promise<AtribuirResponsavelClientePort> {
+  const supabase = await createSupabaseServer();
+  return new AtribuirResponsavelCliente(
+    sessaoViaUsuarios(supabase),
+    new SupabaseClienteRepository(supabase),
+    new SupabaseClienteQueryGateway(supabase),
+    new SupabaseResponsavelClienteGateway(supabase),
     auditoriaViaModuloAuditoria(),
   );
 }

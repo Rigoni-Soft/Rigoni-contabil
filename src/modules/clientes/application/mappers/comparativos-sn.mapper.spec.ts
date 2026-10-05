@@ -12,6 +12,8 @@ function linha(sobrescritas: Partial<ResumoOperacionalRow> = {}): ResumoOperacio
     temParcelamento: false,
     parcelamentoStatus: null,
     atividadeMes: { industria: false, comercio: false, servico: false },
+    responsavelId: null,
+    responsavelNome: null,
     ...sobrescritas,
   };
 }
@@ -51,6 +53,24 @@ describe("calcularComparativosSn", () => {
     ]);
 
     expect(qtd(c.parcelamento)).toEqual({ enviado: 1, pendente: 0, interno: 1 });
+  });
+
+  it("compara Responsáveis pela quantidade de DAS pronta (mais Sem responsável)", () => {
+    const c = calcularComparativosSn([
+      linha({ responsavelId: "a", responsavelNome: "Ana", dasStatus: "pronto" }),
+      linha({ responsavelId: "a", responsavelNome: "Ana", dasStatus: "pronto" }),
+      linha({ responsavelId: "b", responsavelNome: "Bia", dasStatus: "pronto" }),
+      linha({ responsavelId: "b", responsavelNome: "Bia", dasStatus: "enviado" }),
+      linha({ responsavelId: null, dasStatus: "pronto" }),
+      linha({ responsavelId: "c", responsavelNome: "Caio", dasStatus: "pendente" }),
+    ]);
+
+    expect(c.responsaveis.map((f) => [f.rotulo, f.quantidade])).toEqual([
+      ["Ana", 2],
+      ["Bia", 1],
+      ["Sem responsável", 1],
+      ["Caio", 0],
+    ]);
   });
 
   it("atividade do mês não é mutuamente exclusiva", () => {

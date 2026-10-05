@@ -35,6 +35,9 @@ class ClienteQueryPortFalso implements ClienteQueryPort {
   async listarResumoOperacional(): Promise<Result<ResumoOperacionalRow[], AppError>> {
     return ok([]);
   }
+  async listarResponsaveisElegiveis() {
+    return ok([]);
+  }
 }
 
 describe("BuscarClientes", () => {

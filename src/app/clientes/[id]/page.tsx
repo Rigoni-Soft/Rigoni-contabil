@@ -5,7 +5,10 @@ import { EditarCadastroOperacionalPage } from "@/presentation/components/pages/e
 import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-button.container";
 import { carregarSessao } from "@/presentation/view-models/shell/shell.server";
 import { EditarCadastroOperacionalContainer } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.container";
-import { podeEditarCadastroOperacional } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.presenter";
+import {
+  podeAtribuirResponsavel,
+  podeEditarCadastroOperacional,
+} from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.presenter";
 import { carregarCadastroOperacionalCliente } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.server";
 
 type Props = {
@@ -31,7 +34,7 @@ export default async function Page({ params, searchParams }: Props) {
   ]);
   if (!sessao) redirect("/login");
   if (sessao.precisaTrocarSenha) redirect("/trocar-senha");
-  if (!resultado.ok) redirect("/");
+  if (!resultado.ok || !resultado.value) redirect("/");
 
   // Só Admin ou Funcionário do setor Simples Nacional edita — qualquer outro
   // perfil autenticado só visualiza (critério de aceite do #34).
@@ -53,6 +56,7 @@ export default async function Page({ params, searchParams }: Props) {
         <EditarCadastroOperacionalContainer
           dados={resultado.value}
           readOnly={readOnly}
+          podeAtribuirResponsavel={podeAtribuirResponsavel(sessao.papel, sessao.setor)}
           voltarHrefAoSalvar={voltarHrefSeguro(voltarPara)}
         />
       }

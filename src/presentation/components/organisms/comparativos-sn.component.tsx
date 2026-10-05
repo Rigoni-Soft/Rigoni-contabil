@@ -2,6 +2,8 @@
 type Fatia = { id: string; rotulo: string; quantidade: number };
 type Props = {
   comparativos: { das: Fatia[]; parcelamento: Fatia[]; atividade: Fatia[] };
+  // Só o Líder recebe (#65): 4º comparativo, Funcionários por DAS pronta.
+  responsaveis?: Fatia[];
   totalClientes: number;
 };
 
@@ -100,13 +102,17 @@ function Barras({
   titulo,
   fatias,
   totalClientes,
+  nota,
+  className = "md:col-span-2 lg:col-span-1",
 }: {
   titulo: string;
   fatias: Fatia[];
   totalClientes: number;
+  nota: string;
+  className?: string;
 }) {
   return (
-    <Grafico titulo={titulo} className="md:col-span-2 lg:col-span-1">
+    <Grafico titulo={titulo} className={className}>
       <ul className="space-y-3">
         {fatias.map((f) => {
           const pct = totalClientes === 0 ? 0 : Math.min(100, (f.quantidade / totalClientes) * 100);
@@ -128,27 +134,42 @@ function Barras({
           );
         })}
       </ul>
-      <p className="text-xs text-muted-foreground">
-        Um cliente pode estar em mais de uma atividade no mês.
-      </p>
+      <p className="text-xs text-muted-foreground">{nota}</p>
     </Grafico>
   );
 }
 
-export function ComparativosSn({ comparativos, totalClientes }: Props) {
+export function ComparativosSn({ comparativos, responsaveis, totalClientes }: Props) {
   return (
     <section aria-labelledby="comparativos-titulo" className="space-y-4">
       <h2 id="comparativos-titulo" className="text-xl font-bold text-foreground">
         Comparativos
       </h2>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div
+        className={
+          responsaveis
+            ? "grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+            : "grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+        }
+      >
         <Donut titulo="Status do DAS" fatias={comparativos.das} />
         <Donut titulo="Status do parcelamento" fatias={comparativos.parcelamento} />
         <Barras
           titulo="Atividade do mês"
           fatias={comparativos.atividade}
           totalClientes={totalClientes}
+          nota="Um cliente pode estar em mais de uma atividade no mês."
+          className={responsaveis ? "" : undefined}
         />
+        {responsaveis && (
+          <Barras
+            titulo="Envio de DAS por Responsável"
+            fatias={responsaveis}
+            totalClientes={totalClientes}
+            nota="Clientes com DAS pronta aguardando envio, por Funcionário."
+            className=""
+          />
+        )}
       </div>
     </section>
   );

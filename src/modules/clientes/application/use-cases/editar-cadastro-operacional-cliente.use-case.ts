@@ -30,7 +30,9 @@ export class EditarCadastroOperacionalCliente implements EditarCadastroOperacion
     const ator = await this.sessao.usuarioAtual();
     if (!ator || !this.podeEditar(ator)) {
       return err(
-        new ForbiddenError("Só Admin ou Funcionário do Simples Nacional editam este cadastro."),
+        new ForbiddenError(
+          "Só Admin, Líder ou Funcionário do Simples Nacional editam este cadastro.",
+        ),
       );
     }
 
@@ -67,7 +69,9 @@ export class EditarCadastroOperacionalCliente implements EditarCadastroOperacion
 
   private podeEditar(ator: AtorSessaoDto): boolean {
     return (
-      ator.papel === "admin" || (ator.papel === "funcionario" && ator.setor === "simples_nacional")
+      ator.papel === "admin" ||
+      ((ator.papel === "lider_setor" || ator.papel === "funcionario") &&
+        ator.setor === "simples_nacional")
     );
   }
 

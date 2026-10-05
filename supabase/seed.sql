@@ -274,3 +274,81 @@ insert into public.cliente_atividades_mensais (id, cliente_id, ano_mes, industri
   (gen_random_uuid(), '68195e6c-03f6-4b15-8362-171a98175e13', date_trunc('month', current_date)::date, false, false, true),
   (gen_random_uuid(), '2d0b7e0a-f1f1-410f-bdbc-a16e34e4c215', date_trunc('month', current_date)::date, false, true, false),
   (gen_random_uuid(), 'ef2c35e9-00b9-4fbc-8f8d-06b9d1aa20e8', date_trunc('month', current_date)::date, false, true, true);
+
+-- Líder e 2º Funcionário do Simples Nacional (ticket #65: Responsável por Cliente).
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password,
+  email_confirmed_at, recovery_sent_at, last_sign_in_at,
+  created_at, updated_at,
+  raw_app_meta_data, raw_user_meta_data,
+  confirmation_token, email_change, email_change_token_new, recovery_token
+) values (
+  '00000000-0000-0000-0000-000000000000',
+  '88888888-8888-8888-8888-888888888888',
+  'authenticated', 'authenticated', 'lider.sn@rigonicontabil.local',
+  crypt('lider123', gen_salt('bf')),
+  now(), now(), now(),
+  now(), now(),
+  '{"provider":"email","providers":["email"]}', '{}',
+  '', '', '', ''
+);
+insert into auth.identities (
+  id, user_id, identity_data, provider, provider_id,
+  last_sign_in_at, created_at, updated_at
+) values (
+  gen_random_uuid(),
+  '88888888-8888-8888-8888-888888888888',
+  jsonb_build_object('sub', '88888888-8888-8888-8888-888888888888', 'email', 'lider.sn@rigonicontabil.local'),
+  'email',
+  '88888888-8888-8888-8888-888888888888',
+  now(), now(), now()
+);
+insert into public.perfis (id, nome, email, papel, setor, senha_trocada_em)
+values (
+  '88888888-8888-8888-8888-888888888888',
+  'Líder Simples Nacional',
+  'lider.sn@rigonicontabil.local',
+  'lider_setor',
+  'simples_nacional',
+  now()
+);
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password,
+  email_confirmed_at, recovery_sent_at, last_sign_in_at,
+  created_at, updated_at,
+  raw_app_meta_data, raw_user_meta_data,
+  confirmation_token, email_change, email_change_token_new, recovery_token
+) values (
+  '00000000-0000-0000-0000-000000000000',
+  '99999999-9999-9999-9999-999999999999',
+  'authenticated', 'authenticated', 'funcionario2.sn@rigonicontabil.local',
+  crypt('func123', gen_salt('bf')),
+  now(), now(), now(),
+  now(), now(),
+  '{"provider":"email","providers":["email"]}', '{}',
+  '', '', '', ''
+);
+insert into auth.identities (
+  id, user_id, identity_data, provider, provider_id,
+  last_sign_in_at, created_at, updated_at
+) values (
+  gen_random_uuid(),
+  '99999999-9999-9999-9999-999999999999',
+  jsonb_build_object('sub', '99999999-9999-9999-9999-999999999999', 'email', 'funcionario2.sn@rigonicontabil.local'),
+  'email',
+  '99999999-9999-9999-9999-999999999999',
+  now(), now(), now()
+);
+insert into public.perfis (id, nome, email, papel, setor, senha_trocada_em)
+values (
+  '99999999-9999-9999-9999-999999999999',
+  'Funcionário 2 Simples Nacional',
+  'funcionario2.sn@rigonicontabil.local',
+  'funcionario',
+  'simples_nacional',
+  now()
+);
+-- Funcionário SN (22222222...) é Responsável pelos clientes de exemplo, pra
+-- continuar enxergando o resumo populado (ticket #65: Funcionário só vê o que é dele).
+update public.cliente_cadastro_operacional_sn
+set responsavel_id = '22222222-2222-2222-2222-222222222222';

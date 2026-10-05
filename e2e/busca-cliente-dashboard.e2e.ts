@@ -1,6 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-import { criarClienteComoAdmin, login } from "./support/criar-cliente";
+import {
+  atribuirResponsavelComoLider,
+  criarClienteComoAdmin,
+  login,
+} from "./support/criar-cliente";
 
 test.describe("Busca geral (sem restrição de Regime) — feedback do #36, ponto 3", () => {
   test("Admin encontra um cliente de Lucro Presumido na busca de '/'", async ({ page }) => {
@@ -26,7 +30,8 @@ test.describe("Busca de cliente no dashboard (#35)", () => {
     page,
   }) => {
     const empresa = "Busca Dashboard E2E Ltda";
-    await criarClienteComoAdmin(page, empresa);
+    const cnpjDigits = await criarClienteComoAdmin(page, empresa);
+    await atribuirResponsavelComoLider(cnpjDigits);
 
     await page.getByRole("button", { name: "Sair" }).click();
     await expect(page).toHaveURL(/\/login$/);

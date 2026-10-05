@@ -36,6 +36,15 @@ export type EditarCadastroOperacionalFormValues = {
   parcelamentoStatus: ParcelamentoStatusValor | null;
   observacoesGerais: string;
   atividadeMes: { industria: boolean; comercio: boolean; servico: boolean };
+  // "" = Sem responsável (#65).
+  responsavelId: string;
+};
+
+// Responsável (#65): só o Líder do SN edita (Select); os demais veem o nome.
+type ResponsavelCampo = {
+  editavel: boolean;
+  nomeAtual: string;
+  opcoes: { id: string; nome: string }[];
 };
 
 type CabecalhoCliente = { empresa: string; cnpj: string; regime: string };
@@ -48,6 +57,7 @@ type EditarCadastroOperacionalFormProps = {
   onSubmit: React.FormEventHandler<HTMLFormElement>;
   pendente: boolean;
   readOnly: boolean;
+  responsavel: ResponsavelCampo;
   temParcelamento: boolean;
   erroServidor?: string;
   sucesso?: boolean;
@@ -71,6 +81,7 @@ export function EditarCadastroOperacionalForm({
   onSubmit,
   pendente,
   readOnly,
+  responsavel,
   temParcelamento,
   erroServidor,
   sucesso,
@@ -107,6 +118,22 @@ export function EditarCadastroOperacionalForm({
       </fieldset>
 
       <fieldset disabled={readOnly || pendente} className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div className="space-y-1 sm:col-span-2">
+          <Label htmlFor="responsavelId">Responsável</Label>
+          {responsavel.editavel ? (
+            <Select id="responsavelId" {...register("responsavelId")}>
+              <option value="">Sem responsável</option>
+              {responsavel.opcoes.map((opcao) => (
+                <option key={opcao.id} value={opcao.id}>
+                  {opcao.nome}
+                </option>
+              ))}
+            </Select>
+          ) : (
+            <Input id="responsavelId" value={responsavel.nomeAtual} disabled readOnly />
+          )}
+        </div>
+
         <div className="space-y-1">
           <Label htmlFor="formaEnvio">Forma de envio</Label>
           <Select id="formaEnvio" {...register("formaEnvio")}>

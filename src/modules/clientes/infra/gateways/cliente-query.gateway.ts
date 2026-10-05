@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   CadastroOperacionalClienteDto,
   ClienteQueryPort,
+  ResponsavelOpcaoDto,
   ResumoOperacionalRow,
   SugestaoClienteDto,
 } from "@/modules/clientes/application/ports/out/cliente-query.provider";
@@ -36,7 +37,7 @@ type ClienteBasicoRow = {
 // shape do DTO de saída.
 const SELECT_CADASTRO_BASICO = `
   id, empresa, cnpj, regime,
-  cliente_cadastro_operacional_sn(*),
+  cliente_cadastro_operacional_sn(*, responsavel:perfis!responsavel_id(nome)),
   cliente_contatos(*),
   cliente_atividades_mensais(*)
 `;
@@ -64,6 +65,9 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
     const operacional = operacionalUnico(row.cliente_cadastro_operacional_sn);
     const atividade = (row.cliente_atividades_mensais ?? [])[0] ?? null;
 
+    const elegiveis = await this.listarResponsaveisElegiveis();
+    if (!elegiveis.ok) return elegiveis;
+
     return ok({
       id: row.id,
       empresa: row.empresa,
@@ -87,7 +91,21 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
         comercio: atividade?.comercio ?? false,
         servico: atividade?.servico ?? false,
       },
+      responsavelId: operacional?.responsavel_id ?? null,
+      responsavelNome: operacional?.responsavel?.nome ?? null,
+      responsaveisElegiveis: elegiveis.value,
     });
+  }
+
+  async listarResponsaveisElegiveis(): Promise<Result<ResponsavelOpcaoDto[], AppError>> {
+    const { data, error } = await this.supabase
+      .from("perfis")
+      .select("id, nome")
+      .eq("papel", "funcionario")
+      .eq("setor", "simples_nacional")
+      .order("nome");
+    if (error) return err(new ConsultaError(`Erro ao listar Responsáveis: ${error.message}`));
+    return ok((data as ResponsavelOpcaoDto[]) ?? []);
   }
 
   async buscarPorTermo(
@@ -121,7 +139,7 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
     const { data, error } = await this.supabase
       .from("clientes_basico")
       .select(
-        "id, empresa, cnpj, cliente_cadastro_operacional_sn(*), cliente_atividades_mensais(*)",
+        "id, empresa, cnpj, cliente_cadastro_operacional_sn(*, responsavel:perfis!responsavel_id(nome)), cliente_atividades_mensais(*)",
       )
       .eq("cliente_atividades_mensais.ano_mes", anoMesAtual)
       // Mesmo escopo da busca (#35): só Regime com cadastro operacional de
@@ -148,6 +166,8 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
             comercio: atividade?.comercio ?? false,
             servico: atividade?.servico ?? false,
           },
+          responsavelId: operacional?.responsavel_id ?? null,
+          responsavelNome: operacional?.responsavel?.nome ?? null,
         };
       }),
     );

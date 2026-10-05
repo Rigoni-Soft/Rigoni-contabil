@@ -1,7 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 
 import { expect, test } from "./fixtures";
-import { criarClienteComoAdmin, login } from "./support/criar-cliente";
+import {
+  atribuirResponsavelComoLider,
+  criarClienteComoAdmin,
+  login,
+} from "./support/criar-cliente";
 
 // Cobre os cenários do ticket #34 (Funcionário SN edita campos operacionais
 // do cliente): edição, persistência, somente-leitura pra outro Setor e
@@ -43,6 +47,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
   }) => {
     const cnpjDigits = await criarClienteComoAdmin(page, "Cadastro Operacional E2E Ltda");
     const clienteId = await buscarClienteIdPorCnpj(cnpjDigits);
+    await atribuirResponsavelComoLider(cnpjDigits);
 
     await logout(page);
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");

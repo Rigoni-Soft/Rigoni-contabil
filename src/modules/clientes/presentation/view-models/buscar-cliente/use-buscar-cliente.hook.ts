@@ -3,7 +3,10 @@ import { useEffect, useState } from "react";
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { carregarCadastroOperacionalAction } from "@/modules/clientes/presentation/view-models/buscar-cliente/buscar-cliente.actions";
 import { useBuscarClientes } from "@/modules/clientes/presentation/view-models/buscar-cliente/buscar-cliente.queries";
-import { podeEditarCadastroOperacional } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.presenter";
+import {
+  podeAtribuirResponsavel,
+  podeEditarCadastroOperacional,
+} from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.presenter";
 
 const DEBOUNCE_MS = 300;
 
@@ -44,5 +47,6 @@ export function useBuscarCliente(papel: string, setor: string, apenasSnMei: bool
     selecionarCliente,
     fecharPainel,
     readOnly: !podeEditarCadastroOperacional(papel, setor),
+    podeAtribuirResponsavel: podeAtribuirResponsavel(papel, setor),
   };
 }

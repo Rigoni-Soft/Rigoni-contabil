@@ -38,6 +38,9 @@ const CADASTRO: CadastroOperacionalClienteDto = {
   parcelamentoStatus: null,
   observacoesGerais: "",
   atividadeMes: { industria: false, comercio: false, servico: false },
+  responsavelId: null,
+  responsavelNome: null,
+  responsaveisElegiveis: [],
 };
 
 // Sem retry: com fake timers, o backoff de retry do React Query enfileira

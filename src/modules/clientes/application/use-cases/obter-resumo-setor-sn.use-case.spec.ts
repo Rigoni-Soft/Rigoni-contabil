@@ -25,6 +25,9 @@ class ClienteQueryPortFalso implements ClienteQueryPort {
   async listarResumoOperacional(): Promise<Result<ResumoOperacionalRow[], AppError>> {
     return this.erro ? err(this.erro) : ok(this.linhas);
   }
+  async listarResponsaveisElegiveis() {
+    return ok([]);
+  }
 }
 
 describe("ObterResumoSetorSn", () => {
@@ -40,6 +43,8 @@ describe("ObterResumoSetorSn", () => {
         temParcelamento: false,
         parcelamentoStatus: null,
         atividadeMes: { industria: true, comercio: false, servico: false },
+        responsavelId: null,
+        responsavelNome: null,
       },
       {
         clienteId: "2",
@@ -50,6 +55,8 @@ describe("ObterResumoSetorSn", () => {
         temParcelamento: false,
         parcelamentoStatus: null,
         atividadeMes: { industria: true, comercio: false, servico: false },
+        responsavelId: null,
+        responsavelNome: null,
       },
     ];
 

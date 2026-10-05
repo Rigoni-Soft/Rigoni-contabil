@@ -22,6 +22,11 @@ async function clienteAutenticado(email: string, senha: string): Promise<Supabas
 const comoAdmin = () => clienteAutenticado("admin@rigonicontabil.local", "admin123");
 const comoFuncionarioSN = () =>
   clienteAutenticado("funcionario.sn@rigonicontabil.local", "func123");
+const comoLiderSN = () => clienteAutenticado("lider.sn@rigonicontabil.local", "lider123");
+const comoFuncionario2SN = () =>
+  clienteAutenticado("funcionario2.sn@rigonicontabil.local", "func123");
+
+const FUNCIONARIO_SN_ID = "22222222-2222-2222-2222-222222222222";
 
 // CNPJ único e válido (timestamp + contador, dígitos verificadores calculados
 // pelo mesmo algoritmo mod 11 dos outros arquivos de teste de integração/e2e)
@@ -284,5 +289,43 @@ describe("SupabaseClienteQueryGateway.listarResumoOperacional (#36, integração
 
     expect(resultado.ok).toBe(true);
     if (resultado.ok) expect(resultado.value.some((l) => l.clienteId === cliente.id)).toBe(true);
+  });
+
+  // #65: Responsável por Cliente.
+  it("lista os Funcionários do SN como Responsáveis elegíveis (nunca Líder nem outro Setor)", async () => {
+    const lider = await comoLiderSN();
+
+    const resultado = await new SupabaseClienteQueryGateway(lider).listarResponsaveisElegiveis();
+
+    expect(resultado.ok).toBe(true);
+    if (!resultado.ok) return;
+    const ids = resultado.value.map((r) => r.id);
+    expect(ids).toContain(FUNCIONARIO_SN_ID);
+    expect(ids).not.toContain("33333333-3333-3333-3333-333333333333");
+    expect(ids).not.toContain("88888888-8888-8888-8888-888888888888");
+  });
+
+  it("traz o Responsável (id e nome) no cadastro operacional e no resumo; Funcionário só vê o que é dele", async () => {
+    const admin = await comoAdmin();
+    const cliente = await criarClienteComContratoSocial(admin, "Resp Query Ltda", cnpjUnico());
+    const lider = await comoLiderSN();
+    await lider
+      .from("cliente_cadastro_operacional_sn")
+      .update({ responsavel_id: FUNCIONARIO_SN_ID })
+      .eq("cliente_id", cliente.id);
+
+    const comoLider = new SupabaseClienteQueryGateway(lider);
+    const cadastro = await comoLider.buscarCadastroOperacional(cliente.id);
+    const resumo = await comoLider.listarResumoOperacional();
+    const doOutro = await new SupabaseClienteQueryGateway(
+      await comoFuncionario2SN(),
+    ).listarResumoOperacional();
+
+    expect(cadastro.ok && cadastro.value?.responsavelId).toBe(FUNCIONARIO_SN_ID);
+    expect(cadastro.ok && cadastro.value?.responsavelNome).toBe("Funcionário Simples Nacional");
+    expect(resumo.ok && resumo.value.find((l) => l.clienteId === cliente.id)?.responsavelId).toBe(
+      FUNCIONARIO_SN_ID,
+    );
+    expect(doOutro.ok && doOutro.value.some((l) => l.clienteId === cliente.id)).toBe(false);
   });
 });
