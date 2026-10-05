@@ -5,6 +5,7 @@ import { Button } from "@/presentation/components/ui/button";
 import { FieldError } from "@/presentation/components/ui/field-error";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
+import { PasswordInput } from "@/presentation/components/ui/password-input";
 
 type LoginFormValues = { email: string; senha: string };
 
@@ -33,9 +34,8 @@ export function LoginForm({ register, errors, onSubmit, pendente, erroServidor }
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="senha">Senha</Label>
-        <Input
+        <PasswordInput
           id="senha"
-          type="password"
           autoComplete="current-password"
           aria-invalid={!!errors.senha}
           {...register("senha")}
