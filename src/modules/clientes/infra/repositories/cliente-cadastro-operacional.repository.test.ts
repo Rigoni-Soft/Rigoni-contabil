@@ -47,7 +47,7 @@ function comCadastroOperacional(clienteBase: Cliente): Cliente {
   const reconstruido = Cliente.builder()
     .comId(clienteBase.id)
     .comEmpresa(clienteBase.empresa)
-    .comCnpj(clienteBase.cnpj.digitos)
+    .comCnpj(clienteBase.cnpj.valor)
     .comRegime(clienteBase.regime.valor)
     .comContratoSocialCaminho(clienteBase.contratoSocialCaminho)
     .comAlteracoesContratuais([])

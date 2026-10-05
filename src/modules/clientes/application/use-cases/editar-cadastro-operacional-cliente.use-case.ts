@@ -67,7 +67,7 @@ export class EditarCadastroOperacionalCliente implements EditarCadastroOperacion
       .restaurar({
         id: clienteAtual.id,
         empresa: clienteAtual.empresa,
-        cnpj: clienteAtual.cnpj.digitos,
+        cnpj: clienteAtual.cnpj.valor,
         regime: clienteAtual.regime.valor,
         contratoSocialCaminho: clienteAtual.contratoSocialCaminho,
         alteracoesContratuais: clienteAtual.alteracoesContratuais.map((alteracao) => ({
@@ -101,7 +101,7 @@ export class EditarCadastroOperacionalCliente implements EditarCadastroOperacion
       ator: ator.id,
       setor: ator.setor,
       acao: "cliente.editar-operacional",
-      alvo: cliente.cnpj.digitos,
+      alvo: cliente.cnpj.valor,
       resultado,
     });
   }
