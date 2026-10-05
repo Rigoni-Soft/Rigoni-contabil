@@ -19,7 +19,6 @@ const notificacaoSchema = z.object({
                 z.object({
                   from: z.string().min(1),
                   id: z.string(),
-                  type: z.string(),
                   text: z.object({ body: z.string() }).optional(),
                 }),
               )

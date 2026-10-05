@@ -10,7 +10,7 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 // Formato de `POST /{phone-number-id}/messages` da WhatsApp Cloud API (Meta).
-export type CorpoEnvioCloudApi = {
+type CorpoEnvioCloudApi = {
   messaging_product: "whatsapp";
   recipient_type: "individual";
   to: string;
@@ -18,7 +18,7 @@ export type CorpoEnvioCloudApi = {
   text: { body: string };
 };
 
-export type RespostaCloudApi =
+type RespostaCloudApi =
   | {
       status: 200;
       corpo: {
@@ -35,7 +35,7 @@ export type RespostaCloudApi =
     };
 
 // Códigos de erro da Cloud API (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes).
-export const ERROS_CLOUD_API: Record<number, { status: number; titulo: string }> = {
+const ERROS_CLOUD_API: Record<number, { status: number; titulo: string }> = {
   0: { status: 401, titulo: "AuthException" },
   3: { status: 403, titulo: "Permission Error" },
   4: { status: 429, titulo: "Rate Limit" },
