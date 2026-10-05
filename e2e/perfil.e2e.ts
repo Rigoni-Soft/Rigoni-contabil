@@ -65,4 +65,32 @@ test.describe("Perfil do usuário", () => {
     await login(page, email, "senha-nova-456");
     await expect(page).toHaveURL("/");
   });
+
+  for (const { papel, email, senha, setor } of [
+    {
+      papel: "Admin",
+      email: "admin@rigonicontabil.local",
+      senha: "admin123",
+      setor: "Todos os setores",
+    },
+    {
+      papel: "Líder de setor",
+      email: "lider.contabil@rigonicontabil.local",
+      senha: "lider123",
+      setor: "Contábil",
+    },
+  ]) {
+    test(`${papel} abre o perfil e vê o próprio papel e Setor`, async ({ page }) => {
+      await login(page, email, senha);
+      await expect(page).toHaveURL("/");
+
+      await page.getByRole("link", { name: "Meu perfil" }).click();
+      await expect(page).toHaveURL("/perfil");
+
+      // Texto exato: "Admin" é substring do e-mail e "Contábil" do nome do Líder.
+      for (const valor of [email, papel, setor]) {
+        await expect(page.locator("dd").getByText(valor, { exact: true })).toBeVisible();
+      }
+    });
+  }
 });

@@ -12,7 +12,10 @@ _Avoid_: Departamento, área.
 
 **Papel**:
 O nível de acesso de um usuário logado: Admin, Líder de setor ou Funcionário. Determina o que o usuário pode ver e alterar, restrito ao seu Setor exceto para Admin.
-_Avoid_: Role, perfil.
+_Avoid_: Role, perfil (como sinônimo de Papel — "perfil" é a tela abaixo).
+
+**Perfil**:
+A tela "Meu perfil" (`/perfil`), acessível a qualquer usuário logado: mostra a própria conta (nome, e-mail, Papel, Setor) e permite trocar a própria senha por escolha. Não confundir com Papel nem com a troca obrigatória de Senha provisória (`/trocar-senha`).
 
 **Senha provisória**:
 A senha gerada automaticamente quando Admin/Líder cadastra uma conta. Expira em 48h se não trocada; a troca é obrigatória no primeiro login, bloqueando qualquer tela até acontecer. Não elimina o risco de quem autenticar primeiro com ela definir a senha definitiva da conta — ver `docs/adr/0002`.
