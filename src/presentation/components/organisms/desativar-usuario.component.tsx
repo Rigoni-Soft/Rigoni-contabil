@@ -29,6 +29,7 @@ export function DesativarUsuario({
             type="button"
             variant="destructive"
             size="sm"
+            autoFocus
             aria-label={`Confirmar desativação de ${nome}`}
             onClick={aoConfirmar}
           >

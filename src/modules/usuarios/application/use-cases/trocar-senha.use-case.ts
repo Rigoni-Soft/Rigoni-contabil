@@ -30,6 +30,8 @@ export class TrocarSenha implements TrocarSenhaPort {
     if (!perfil.ok) return perfil;
     if (!perfil.value) return err(new ForbiddenError("Usuário autenticado sem perfil cadastrado."));
     const usuario = perfil.value;
+    // #58: JWT de quem foi desativado vale até expirar; o perfil é a fonte da verdade.
+    if (usuario.estaDesativado()) return err(new ForbiddenError("Conta desativada."));
 
     // Decide antes de qualquer escrita, senão precisaTrocarSenha() já viraria false.
     const primeiroAcesso = usuario.precisaTrocarSenha();

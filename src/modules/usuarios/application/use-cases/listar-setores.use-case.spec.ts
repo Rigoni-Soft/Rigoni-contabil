@@ -54,6 +54,26 @@ class UsuarioRepositoryFalso implements UsuarioRepository {
 }
 
 describe("ListarSetores", () => {
+  // #58: JWT de quem foi desativado vale até expirar; o perfil é a fonte da verdade.
+  it("devolve lista vazia quando o usuário foi desativado, mesmo com sessão ativa", async () => {
+    const sessao = new SessaoFalsa();
+    const usuarios = new UsuarioRepositoryFalso();
+    const resultado = Usuario.builder()
+      .comId("11111111-1111-1111-1111-111111111111")
+      .comNome("Alguém")
+      .comEmail("alguem@rigonicontabil.local")
+      .comPapel("admin")
+      .comSetor("administrativo")
+      .comDesativadoEm(new Date().toISOString())
+      .build();
+    if (!resultado.ok) throw new Error("setup inválido");
+    usuarios.usuario = resultado.value;
+
+    const setores = await new ListarSetores(sessao, usuarios, new AutorizacaoService()).execute();
+
+    expect(setores).toEqual([]);
+  });
+
   it("Admin vê todos os setores do organograma, exceto Patriki e Expedição", async () => {
     const sessao = new SessaoFalsa();
     const usuarios = new UsuarioRepositoryFalso();

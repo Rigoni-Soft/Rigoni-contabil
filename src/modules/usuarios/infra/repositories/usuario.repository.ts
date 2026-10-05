@@ -29,8 +29,6 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
     }
     if (!data) return ok(null);
 
-    // Row DTO: formato exato da tabela, validado por Zod — falha alto se o banco
-    // divergir do schema esperado (arquitetura.md §3.7, bug/estado impossível).
     return this.paraUsuario(data);
   }
 

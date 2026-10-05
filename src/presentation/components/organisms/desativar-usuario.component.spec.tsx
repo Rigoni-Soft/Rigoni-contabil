@@ -41,6 +41,12 @@ describe("DesativarUsuario", () => {
     expect(aoCancelar).toHaveBeenCalled();
   });
 
+  it("move o foco do teclado para Confirmar ao pedir confirmação", () => {
+    renderizar({ confirmando: true });
+
+    expect(screen.getByRole("button", { name: "Confirmar desativação de Jéssica" })).toHaveFocus();
+  });
+
   it("desabilita Desativar enquanto pendente", () => {
     renderizar({ pendente: true });
 
