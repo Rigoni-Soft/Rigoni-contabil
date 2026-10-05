@@ -34,7 +34,8 @@ export class CriarUsuario implements CriarUsuarioPort {
     // AppError original em vez de mascará-lo como Forbidden.
     if (!perfilAtor.ok) return perfilAtor;
     const ator = perfilAtor.value;
-    if (!ator || !this.podeCadastrar(ator, input)) {
+    // #58: JWT de quem foi desativado vale até expirar; o perfil é a fonte da verdade.
+    if (!ator || ator.estaDesativado() || !this.podeCadastrar(ator, input)) {
       return err(
         new ForbiddenError(
           "Só Admin cadastra Líder/Funcionário; Líder só cadastra Funcionário do próprio Setor.",

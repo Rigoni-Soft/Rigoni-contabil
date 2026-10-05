@@ -218,6 +218,32 @@ describe("CriarUsuario", () => {
     expect(usuarios.criado).toBeNull();
   });
 
+  it("nega quando o Líder foi desativado mas a sessão ainda vale (#58)", async () => {
+    const usuarios = new UsuarioRepositoryFalso();
+    const lider = Usuario.builder()
+      .comId("admin-1")
+      .comNome("Alguém")
+      .comEmail("alguem@rigonicontabil.local")
+      .comPapel("lider_setor")
+      .comSetor("simples_nacional")
+      .comDesativadoEm("2026-10-01T00:00:00Z")
+      .build();
+    if (!lider.ok) throw new Error("setup inválido");
+    usuarios.ator = lider.value;
+
+    const resultado = await new CriarUsuario(
+      new SessaoFalsa(),
+      usuarios,
+      new AuthAdminFalso(),
+      new AuditoriaFalsa(),
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error).toBeInstanceOf(ForbiddenError);
+    expect(usuarios.criado).toBeNull();
+  });
+
   it("propaga o erro tecnico (nao 'sem permissao') quando buscarPorId do ator falha (devolutiva #55, ponto 02)", async () => {
     const sessao = new SessaoFalsa();
     const usuarios = new UsuarioRepositoryFalso();
