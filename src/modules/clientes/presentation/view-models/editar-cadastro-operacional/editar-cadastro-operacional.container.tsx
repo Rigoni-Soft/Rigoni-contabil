@@ -128,7 +128,10 @@ export function EditarCadastroOperacionalContainer({
           responsavelId: valores.responsavelId || null,
         });
         if (!atribuicao.ok) {
-          setErroServidor(atribuicao.error.message);
+          // O cadastro já foi salvo; reenviar o formulário repete só a atribuição.
+          setErroServidor(
+            `Os dados foram salvos, mas não foi possível atribuir o Responsável. ${atribuicao.error.message}`,
+          );
           return;
         }
       }
@@ -181,11 +184,9 @@ export function EditarCadastroOperacionalContainer({
           : "Sem responsável",
         opcoes: opcoesResponsavel(dados, elegiveis.data ?? []),
         onAbrir: () => setListaAberta(true),
-        mensagemOpcoes: elegiveis.isError
-          ? "Não foi possível carregar a lista"
-          : elegiveis.isLoading
-            ? "Carregando…"
-            : undefined,
+        mensagemOpcoes: elegiveis.isLoading ? "Carregando…" : undefined,
+        erroOpcoes: elegiveis.isError,
+        onTentarNovamente: () => void elegiveis.refetch(),
       }}
       temParcelamento={temParcelamento}
       erroServidor={erroServidor}

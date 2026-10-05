@@ -106,6 +106,20 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(routerPush).toHaveBeenCalledWith("/simples-nacional");
   });
 
+  it("Responsável: falha ao carregar a lista mostra aviso com Tentar de novo, que busca de novo", async () => {
+    listarMock.mockResolvedValueOnce(err(new ForbiddenError("falhou")));
+    render(
+      <EditarCadastroOperacionalContainer dados={dados} readOnly={false} podeAtribuirResponsavel />,
+    );
+
+    await userEvent.click(screen.getByLabelText("Responsável"));
+    expect(await screen.findByText(/Não foi possível carregar a lista/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Tentar de novo" }));
+
+    expect(await screen.findByRole("option", { name: "Funcionário SN" })).toBeInTheDocument();
+    expect(listarMock).toHaveBeenCalledTimes(2);
+  });
+
   it("Responsável: erro ao atribuir mostra a mensagem e não navega", async () => {
     executeMock.mockResolvedValue(ok({ clienteId: dados.id }));
     atribuirMock.mockResolvedValue(err(new ForbiddenError("Só o Líder atribui.")));
@@ -125,7 +139,10 @@ describe("EditarCadastroOperacionalContainer", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "Salvar" }));
 
-    expect(await screen.findByText("Só o Líder atribui.")).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Os dados foram salvos, mas não foi possível atribuir/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Só o Líder atribui./)).toBeInTheDocument();
     expect(routerPush).not.toHaveBeenCalled();
   });
 

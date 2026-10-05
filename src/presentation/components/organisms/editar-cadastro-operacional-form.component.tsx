@@ -49,6 +49,9 @@ type ResponsavelCampo = {
   // aparece como opção desabilitada.
   onAbrir: () => void;
   mensagemOpcoes?: string;
+  // Falha ao carregar a lista: aviso próprio com saída (tentar de novo).
+  erroOpcoes?: boolean;
+  onTentarNovamente: () => void;
 };
 
 type CabecalhoCliente = { empresa: string; cnpj: string; regime: string };
@@ -138,6 +141,19 @@ export function EditarCadastroOperacionalForm({
             </Select>
           ) : (
             <Input id="responsavelId" value={responsavel.nomeAtual} disabled readOnly />
+          )}
+          {responsavel.erroOpcoes && (
+            <div className="flex flex-wrap items-center gap-x-2">
+              <FieldError>Não foi possível carregar a lista de Funcionários.</FieldError>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={responsavel.onTentarNovamente}
+              >
+                Tentar de novo
+              </Button>
+            </div>
           )}
         </div>
       </div>
@@ -317,7 +333,11 @@ export function EditarCadastroOperacionalForm({
       </fieldset>
 
       {erroServidor && <FieldError>{erroServidor}</FieldError>}
-      {sucesso && <p className="text-sm text-primary">Cadastro operacional atualizado.</p>}
+      {sucesso && (
+        <p role="status" className="text-sm text-primary">
+          Cadastro operacional atualizado.
+        </p>
+      )}
     </form>
   );
 }
