@@ -48,7 +48,7 @@ createServer((req, res) => {
     return;
   }
 
-  const rota = /^\/clientes\/(\d{14})\/(\w+)$/.exec(req.url ?? "");
+  const rota = /^\/clientes\/([0-9A-Z]{14})\/(\w+)$/.exec(req.url ?? "");
   const recurso = rota && recursos[rota[2]];
   if (req.method !== "GET" || !recurso) return responder(res, 404, { erro: "não encontrado" });
   if (modo === "falha") return responder(res, 503, { erro: "indisponível (simulado)" });

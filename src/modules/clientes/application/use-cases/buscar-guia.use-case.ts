@@ -26,18 +26,15 @@ export class BuscarGuia implements BuscarGuiaPort {
     const cnpj = Cnpj.criar(entrada);
     if (!cnpj.ok) return cnpj;
     try {
-      return await this.buscar(entrada, cnpj.value.digitos);
+      return await this.buscar(entrada, cnpj.value.valor);
     } catch {
       // Adapter real (timeout/rede) pode lançar: nunca derruba o sistema.
       return err(new ServicoExternoError("Falha ao consultar as obrigações fiscais."));
     }
   }
 
-  private async buscar(
-    entrada: string,
-    digitos: string,
-  ): Promise<Result<BuscarGuiaOutput, AppError>> {
-    const autorizacao = await this.fontes.consultarAutorizacao(digitos);
+  private async buscar(entrada: string, cnpj: string): Promise<Result<BuscarGuiaOutput, AppError>> {
+    const autorizacao = await this.fontes.consultarAutorizacao(cnpj);
     if (!autorizacao.ok) return autorizacao;
     if (!autorizacao.value.vigente) {
       return err(
@@ -48,9 +45,9 @@ export class BuscarGuia implements BuscarGuiaPort {
     }
 
     const [das, parcelamento, cnd] = await Promise.all([
-      this.fontes.buscarDas(digitos),
-      this.fontes.buscarGuiaParcelamento(digitos),
-      this.fontes.buscarCnd(digitos),
+      this.fontes.buscarDas(cnpj),
+      this.fontes.buscarGuiaParcelamento(cnpj),
+      this.fontes.buscarCnd(cnpj),
     ]);
     if (!das.ok) return das;
     if (!parcelamento.ok) return parcelamento;

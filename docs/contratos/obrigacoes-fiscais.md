@@ -7,7 +7,7 @@ possíveis (#66), traduzido pra este formato. Em desenvolvimento quem responde �
 Configuração: `OBRIGACOES_FISCAIS_URL` (padrão `http://127.0.0.1:4010`). Porta no código:
 `ObrigacoesFiscaisPort`; adapter: `ObrigacoesFiscaisHttpGateway`.
 
-`{cnpj}` = 14 dígitos, sem máscara. Datas `AAAA-MM-DD`; valores em centavos; PDFs em base64.
+`{cnpj}` = 14 caracteres `[0-9A-Z]` (CNPJ numérico ou alfanumérico), sem máscara. Datas `AAAA-MM-DD`; valores em centavos; PDFs em base64.
 
 | Recurso | Resposta 200 |
 |---|---|
