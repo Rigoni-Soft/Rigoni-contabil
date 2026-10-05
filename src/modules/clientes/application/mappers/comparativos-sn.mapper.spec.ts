@@ -55,13 +55,13 @@ describe("calcularComparativosSn", () => {
     expect(qtd(c.parcelamento)).toEqual({ enviado: 1, pendente: 0, interno: 1 });
   });
 
-  it("compara Responsáveis pela quantidade de DAS pronta (mais Sem responsável)", () => {
+  it("compara Responsáveis pela quantidade de DAS enviada (mais Sem responsável)", () => {
     const c = calcularComparativosSn([
-      linha({ responsavelId: "a", responsavelNome: "Ana", dasStatus: "pronto" }),
-      linha({ responsavelId: "a", responsavelNome: "Ana", dasStatus: "pronto" }),
-      linha({ responsavelId: "b", responsavelNome: "Bia", dasStatus: "pronto" }),
+      linha({ responsavelId: "a", responsavelNome: "Ana", dasStatus: "enviado" }),
+      linha({ responsavelId: "a", responsavelNome: "Ana", dasStatus: "enviado" }),
       linha({ responsavelId: "b", responsavelNome: "Bia", dasStatus: "enviado" }),
-      linha({ responsavelId: null, dasStatus: "pronto" }),
+      linha({ responsavelId: "b", responsavelNome: "Bia", dasStatus: "pronto" }),
+      linha({ responsavelId: null, dasStatus: "enviado" }),
       linha({ responsavelId: "c", responsavelNome: "Caio", dasStatus: "pendente" }),
     ]);
 

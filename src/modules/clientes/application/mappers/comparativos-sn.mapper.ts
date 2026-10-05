@@ -15,7 +15,7 @@ function contar(
 const SEM_RESPONSAVEL = "sem_responsavel";
 
 // Um grupo por Responsável presente nos Clientes (mais "Sem responsável" quando
-// existe algum Cliente sem atribuição), contando os com DAS pronta pra envio.
+// existe algum Cliente sem atribuição), contando os com DAS enviada.
 function porResponsavel(linhas: ResumoOperacionalRow[]): FatiaComparativoDto[] {
   const grupos = new Map<string, FatiaComparativoDto>();
   for (const l of linhas) {
@@ -27,7 +27,7 @@ function porResponsavel(linhas: ResumoOperacionalRow[]): FatiaComparativoDto[] {
         : "Sem responsável",
       quantidade: 0,
     };
-    if (l.dasStatus === "pronto") grupo.quantidade += 1;
+    if (l.dasStatus === "enviado") grupo.quantidade += 1;
     grupos.set(id, grupo);
   }
   return [...grupos.values()].sort(

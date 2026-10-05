@@ -2,7 +2,7 @@
 type Fatia = { id: string; rotulo: string; quantidade: number };
 type Props = {
   comparativos: { das: Fatia[]; parcelamento: Fatia[]; atividade: Fatia[] };
-  // Só o Líder recebe (#65): 4º comparativo, Funcionários por DAS pronta.
+  // Só o Líder recebe (#65): 4º comparativo, Funcionários por DAS enviada.
   responsaveis?: Fatia[];
   totalClientes: number;
 };
@@ -164,7 +164,7 @@ export function ComparativosSn({ comparativos, responsaveis, totalClientes }: Pr
             titulo="Envio de DAS por Responsável"
             fatias={responsaveis}
             totalClientes={totalClientes}
-            nota="Clientes com DAS pronta aguardando envio, por Funcionário."
+            nota="Clientes com DAS enviada, por Funcionário."
             className=""
           />
         )}
