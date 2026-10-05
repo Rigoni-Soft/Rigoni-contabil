@@ -1,12 +1,12 @@
+// Responsável cujo perfil a RLS esconde de quem lê (leitor de outro Setor, #65).
+export const RESPONSAVEL_OUTRO_SETOR_LABEL = "Responsável de outro setor";
+
 // Rótulos de Papel em português, reusados por qualquer tela que precise
 // exibi-los (ShellHeader) ou listá-los como opção de formulário
 // (cadastro de Líder/Funcionário) — extraído para shared/kernel pelo mesmo
 // motivo de SETORES: mais de um componente de presentation/ global precisa
 // da mesma lista, sem poder importar de dentro do módulo usuarios
 // (arquitetura.md, seção 3.4).
-// Responsável cujo perfil a RLS esconde de quem lê (leitor de outro Setor, #65).
-export const RESPONSAVEL_OUTRO_SETOR_LABEL = "Responsável de outro setor";
-
 export const PAPEL_LABEL: Record<string, string> = {
   admin: "Admin",
   lider_setor: "Líder de setor",
@@ -37,6 +37,11 @@ export function podeEditarCadastroOperacional(papel: string, setor: string): boo
     papel === "admin" ||
     ((papel === "lider_setor" || papel === "funcionario") && setor === "simples_nacional")
   );
+}
+
+// Quem enxerga o dashboard do Simples Nacional: Admin (suporte) ou qualquer perfil do setor.
+export function podeVerDashboardSn(papel: string, setor: string): boolean {
+  return papel === "admin" || setor === "simples_nacional";
 }
 
 // Só o Líder do Simples Nacional atribui/troca/remove o Responsável (#65).

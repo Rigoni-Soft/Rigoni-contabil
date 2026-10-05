@@ -32,6 +32,10 @@ const comoLiderSN = () => clienteAutenticado("lider.sn@rigonicontabil.local", "l
 const comoFuncionario2SN = () =>
   clienteAutenticado("funcionario2.sn@rigonicontabil.local", "func123");
 
+const SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ??
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
+
 const FUNCIONARIO_SN_ID = "22222222-2222-2222-2222-222222222222";
 const FUNCIONARIO_FINANCEIRO_ID = "33333333-3333-3333-3333-333333333333";
 
@@ -219,6 +223,38 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
       );
 
       expect(resultado.ok).toBe(false);
+    });
+
+    it("excluir o Funcionário Responsável deixa o Cliente 'Sem responsável' (ON DELETE SET NULL)", async () => {
+      const servico = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
+      const email = `resp-excluido-${Date.now()}@rigonicontabil.local`;
+      const { data: conta, error } = await servico.auth.admin.createUser({
+        email,
+        password: "Senha-temporaria-123",
+        email_confirm: true,
+      });
+      if (error || !conta.user) throw new Error("falha ao criar conta de teste");
+      await servico.from("perfis").insert({
+        id: conta.user.id,
+        nome: "Funcionário Temporário",
+        email,
+        papel: "funcionario",
+        setor: "simples_nacional",
+      });
+      const admin = await comoAdmin();
+      const clienteBase = await criarClienteBase(admin, "11444777001303");
+      await atribuirComoLider(clienteBase.id, conta.user.id);
+
+      await servico.auth.admin.deleteUser(conta.user.id);
+
+      const { data } = await admin
+        .from("cliente_cadastro_operacional_sn")
+        .select("responsavel_id")
+        .eq("cliente_id", clienteBase.id)
+        .single();
+      expect(data?.responsavel_id).toBeNull();
     });
 
     it("Líder enxerga e edita qualquer Cliente do SN, e remover o Responsável deixa 'Sem responsável'", async () => {

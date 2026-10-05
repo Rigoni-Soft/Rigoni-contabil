@@ -41,6 +41,9 @@ export class AtribuirResponsavelCliente implements AtribuirResponsavelClientePor
       );
     }
 
+    // Sem mudança: nada a gravar nem a auditar.
+    if (cliente.value.responsavelId === input.responsavelId) return ok(undefined);
+
     const acao = this.nomeDaAcao(cliente.value.responsavelId, input.responsavelId);
     const elegivel = await this.validarElegivel(input.responsavelId);
     if (!elegivel.ok) {

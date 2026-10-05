@@ -120,6 +120,19 @@ describe("AtribuirResponsavelCliente", () => {
     ]);
   });
 
+  it("reatribuir o mesmo Responsável (ou remover sem ter) não grava nem audita", async () => {
+    const { useCase, query, responsaveis, auditoria } = montar();
+    query.cliente = cadastro(FUNC_ID);
+
+    const igual = await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: FUNC_ID });
+    query.cliente = cadastro(null);
+    const semNada = await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: null });
+
+    expect(igual.ok && semNada.ok).toBe(true);
+    expect(responsaveis.chamadas).toEqual([]);
+    expect(auditoria.registros).toEqual([]);
+  });
+
   it.each([
     ["funcionario", "simples_nacional"],
     ["admin", "administrativo"],

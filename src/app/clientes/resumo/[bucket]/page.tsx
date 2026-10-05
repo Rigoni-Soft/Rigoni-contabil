@@ -6,6 +6,7 @@ import { ResumoSetorSnListaPage } from "@/presentation/components/pages/resumo-s
 import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-button.container";
 import { carregarSessao } from "@/presentation/view-models/shell/shell.server";
 import { carregarResumoSetorSn } from "@/modules/clientes/presentation/view-models/resumo-setor-sn/resumo-setor-sn.server";
+import { podeVerDashboardSn } from "@/shared/kernel/papeis";
 
 type Props = { params: Promise<{ bucket: string }> };
 
@@ -17,7 +18,7 @@ export default async function Page({ params }: Props) {
 
   // Resumo do setor é exclusivo do Simples Nacional (#36) — mesmo critério
   // de acesso de app/page.tsx.
-  if (sessao.papel !== "admin" && sessao.setor !== "simples_nacional") redirect("/");
+  if (!podeVerDashboardSn(sessao.papel, sessao.setor)) redirect("/");
 
   const resumo = await carregarResumoSetorSn();
   if (!resumo.ok) redirect("/");

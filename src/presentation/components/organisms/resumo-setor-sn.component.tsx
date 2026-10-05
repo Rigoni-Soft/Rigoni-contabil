@@ -109,7 +109,8 @@ export function ResumoSetorSn({ cards, totalClientes, busca }: Props) {
       {busca}
       {totalClientes === 0 && (
         <p className="text-sm text-muted-foreground">
-          Nenhum cliente no resumo ainda. Os clientes atribuídos a você aparecem aqui.
+          Nenhum cliente para mostrar ainda. Os clientes do setor aparecem aqui assim que forem
+          cadastrados e atribuídos.
         </p>
       )}
       <Grupo titulo="Documentos e DAS" cards={cards.slice(0, 5)} totalClientes={totalClientes} />

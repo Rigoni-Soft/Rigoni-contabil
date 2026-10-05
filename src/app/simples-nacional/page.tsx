@@ -11,6 +11,7 @@ import {
 } from "@/presentation/view-models/shell/shell.server";
 import { BuscarClienteContainer } from "@/modules/clientes/presentation/view-models/buscar-cliente/buscar-cliente.container";
 import { carregarResumoSetorSn } from "@/modules/clientes/presentation/view-models/resumo-setor-sn/resumo-setor-sn.server";
+import { podeVerDashboardSn } from "@/shared/kernel/papeis";
 
 // Dashboard exclusivo do Simples Nacional (#36, feedback de teste manual,
 // ponto 1): deixou de ser embutido em "/" — só aparece aqui, alcançado pela
@@ -22,7 +23,7 @@ export default async function Page() {
 
   // Admin vê (acesso de suporte a qualquer setor, mesmo raciocínio de
   // podeEditarCadastroOperacional); qualquer outro setor fora do SN não.
-  if (sessao.papel !== "admin" && sessao.setor !== "simples_nacional") redirect("/");
+  if (!podeVerDashboardSn(sessao.papel, sessao.setor)) redirect("/");
 
   const [setores, resumo] = await Promise.all([
     carregarSetoresDaNavegacao(),
