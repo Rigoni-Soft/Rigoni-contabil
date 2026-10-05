@@ -9,7 +9,18 @@ export type DocumentoEnviado = { telefone: string; nomeArquivo: string } & (
   { url: string } | { pdfBase64: string }
 );
 
+// Mensagem de template aprovado pela Meta; `variaveis` seguem a ordem {{1}}, {{2}}...
+// `documento` vai no cabeçalho (templates de guia).
+export type TemplateEnviado = {
+  telefone: string;
+  nome: string;
+  idioma: string;
+  variaveis: string[];
+  documento?: { url: string; nomeArquivo: string };
+};
+
 export interface EnvioMensagemPort {
   enviar(mensagem: MensagemEnviada): Promise<Result<void, AppError>>;
   enviarDocumento(documento: DocumentoEnviado): Promise<Result<void, AppError>>;
+  enviarTemplate(template: TemplateEnviado): Promise<Result<void, AppError>>;
 }

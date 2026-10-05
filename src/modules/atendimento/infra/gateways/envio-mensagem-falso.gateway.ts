@@ -4,6 +4,7 @@ import type {
   DocumentoEnviado,
   EnvioMensagemPort,
   MensagemEnviada,
+  TemplateEnviado,
 } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -14,6 +15,20 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 type ParteCorpo = { to: string } & (
   | { type: "text"; text: { body: string } }
   | { type: "document"; document: ({ link: string } | { id: string }) & { filename: string } }
+  | {
+      type: "template";
+      template: {
+        name: string;
+        language: { code: string };
+        components: (
+          | {
+              type: "header";
+              parameters: { type: "document"; document: { link: string; filename: string } }[];
+            }
+          | { type: "body"; parameters: { type: "text"; text: string }[] }
+        )[];
+      };
+    }
 );
 type CorpoEnvioCloudApi = {
   messaging_product: "whatsapp";
@@ -75,6 +90,7 @@ function paraAppError(
 export class EnvioMensagemFalsoGateway implements EnvioMensagemPort {
   readonly enviadas: MensagemEnviada[] = [];
   readonly documentosEnviados: DocumentoEnviado[] = [];
+  readonly templatesEnviados: TemplateEnviado[] = [];
   readonly requisicoes: CorpoEnvioCloudApi[] = [];
 
   constructor(private readonly falhas: Record<string, number> = {}) {}
@@ -105,6 +121,41 @@ export class EnvioMensagemFalsoGateway implements EnvioMensagemPort {
     console.info(
       `[mensageria falsa] para ${documento.telefone}: documento ${documento.nomeArquivo}`,
     );
+    return enviado;
+  }
+
+  async enviarTemplate(template: TemplateEnviado): Promise<Result<void, AppError>> {
+    const { documento } = template;
+    const enviado = this.despachar({
+      to: template.telefone,
+      type: "template",
+      template: {
+        name: template.nome,
+        language: { code: template.idioma },
+        components: [
+          ...(documento
+            ? [
+                {
+                  type: "header" as const,
+                  parameters: [
+                    {
+                      type: "document" as const,
+                      document: { link: documento.url, filename: documento.nomeArquivo },
+                    },
+                  ],
+                },
+              ]
+            : []),
+          {
+            type: "body",
+            parameters: template.variaveis.map((text) => ({ type: "text" as const, text })),
+          },
+        ],
+      },
+    });
+    if (!enviado.ok) return enviado;
+    this.templatesEnviados.push(template);
+    console.info(`[mensageria falsa] para ${template.telefone}: template ${template.nome}`);
     return enviado;
   }
 

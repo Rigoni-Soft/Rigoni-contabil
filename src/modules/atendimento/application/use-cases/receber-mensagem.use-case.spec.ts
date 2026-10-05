@@ -123,6 +123,7 @@ function montar(
       documentosEnviados.push(d);
       return ok(undefined);
     },
+    enviarTemplate: async () => ok(undefined),
   };
   const documentos: DocumentosContratuaisPort = {
     listar: async (clienteId) => {
@@ -302,6 +303,7 @@ describe("ReceberMensagem", () => {
           return ok(undefined);
         },
         enviarDocumento: async () => ok(undefined),
+        enviarTemplate: async () => ok(undefined),
       },
       { listar: async () => ok([]), linkTemporario: async () => ok("x") },
       {
