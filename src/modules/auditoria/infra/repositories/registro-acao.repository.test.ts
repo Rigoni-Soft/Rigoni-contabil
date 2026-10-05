@@ -130,7 +130,10 @@ describe("SupabaseRegistroAcaoRepository (integração)", () => {
     const supabase = await clienteAutenticadoComoFuncionarioSeed();
     const repositorio = new SupabaseRegistroAcaoRepository(supabase);
 
-    const registros = await repositorio.listar({ limite: 50 });
+    const registros = await repositorio.listar({
+      limite: 50,
+      alvo: "funcionario.sn@rigonicontabil.local",
+    });
 
     expect(registros.ok).toBe(true);
     if (registros.ok) expect(registros.value).toEqual([]);
