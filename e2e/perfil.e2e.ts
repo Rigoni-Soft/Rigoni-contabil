@@ -66,21 +66,23 @@ test.describe("Perfil do usuário", () => {
     await expect(page).toHaveURL("/");
   });
 
-  for (const { papel, email, senha, setor } of [
+  for (const { nome, papelLabel, email, senha, setorLabel } of [
     {
-      papel: "Admin",
+      nome: "Admin de Teste",
+      papelLabel: "Admin",
       email: "admin@rigonicontabil.local",
       senha: "admin123",
-      setor: "Todos os setores",
+      setorLabel: "Todos os setores",
     },
     {
-      papel: "Líder de setor",
+      nome: "Líder Contábil",
+      papelLabel: "Líder de setor",
       email: "lider.contabil@rigonicontabil.local",
       senha: "lider123",
-      setor: "Contábil",
+      setorLabel: "Contábil",
     },
   ]) {
-    test(`${papel} abre o perfil e vê o próprio papel e Setor`, async ({ page }) => {
+    test(`${papelLabel} abre o perfil e vê a própria conta`, async ({ page }) => {
       await login(page, email, senha);
       await expect(page).toHaveURL("/");
 
@@ -88,7 +90,7 @@ test.describe("Perfil do usuário", () => {
       await expect(page).toHaveURL("/perfil");
 
       // Texto exato: "Admin" é substring do e-mail e "Contábil" do nome do Líder.
-      for (const valor of [email, papel, setor]) {
+      for (const valor of [nome, email, papelLabel, setorLabel]) {
         await expect(page.locator("dd").getByText(valor, { exact: true })).toBeVisible();
       }
     });

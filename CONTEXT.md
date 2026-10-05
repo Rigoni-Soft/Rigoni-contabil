@@ -15,7 +15,7 @@ O nível de acesso de um usuário logado: Admin, Líder de setor ou Funcionário
 _Avoid_: Role, perfil (como sinônimo de Papel — "perfil" é a tela abaixo).
 
 **Perfil**:
-A tela "Meu perfil" (`/perfil`), acessível a qualquer usuário logado: mostra a própria conta (nome, e-mail, Papel, Setor) e permite trocar a própria senha por escolha. Não confundir com Papel nem com a troca obrigatória de Senha provisória (`/trocar-senha`).
+A tela "Meu perfil" (`/perfil`), acessível a qualquer usuário logado, exceto enquanto a troca obrigatória de Senha provisória estiver pendente (que bloqueia qualquer tela): mostra a própria conta (nome, e-mail, Papel, Setor) e permite trocar a própria senha por escolha. Não confundir com Papel nem com a troca obrigatória de Senha provisória (`/trocar-senha`).
 
 **Senha provisória**:
 A senha gerada automaticamente quando Admin/Líder cadastra uma conta. Expira em 48h se não trocada; a troca é obrigatória no primeiro login, bloqueando qualquer tela até acontecer. Não elimina o risco de quem autenticar primeiro com ela definir a senha definitiva da conta — ver `docs/adr/0002`.
