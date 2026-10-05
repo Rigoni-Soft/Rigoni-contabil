@@ -170,7 +170,7 @@ export function ComparativosSn({ comparativos, responsaveis, totalClientes }: Pr
             titulo="Envio de DAS por Responsável"
             fatias={responsaveis}
             totalClientes={totalClientes}
-            nota="Clientes com DAS enviada, por Funcionário."
+            nota="Clientes com DAS enviada, por Responsável."
           />
         )}
       </div>
