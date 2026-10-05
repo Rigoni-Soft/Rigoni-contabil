@@ -53,6 +53,9 @@ class UsuarioRepositoryFalso implements UsuarioRepository {
     if (this.erroTecnicoAoBuscarAtor) return err(this.erroTecnicoAoBuscarAtor);
     return ok(id === "admin-1" ? this.ator : null);
   }
+  async listarAtivos(): Promise<Result<Usuario[], AppError>> {
+    return ok([]);
+  }
   async criar(usuario: Usuario): Promise<Result<void, AppError>> {
     if (this.erroAoCriar) return err(new ValidationError("falha ao salvar"));
     this.criado = usuario;
@@ -73,6 +76,9 @@ class AuthAdminFalso implements AuthAdminPort {
     return this.erro
       ? err(this.erro)
       : ok({ id: this.idGerado, senhaProvisoria: this.senhaGerada });
+  }
+  async banirConta(): Promise<Result<void, AppError>> {
+    return ok(undefined);
   }
   async removerConta(id: string): Promise<Result<void, AppError>> {
     this.contasRemovidas.push(id);

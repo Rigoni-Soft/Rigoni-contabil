@@ -47,6 +47,15 @@ export class SupabaseAuthAdminGateway implements AuthAdminPort {
     return ok({ id: data.user.id, senhaProvisoria });
   }
 
+  // ~100 anos: o Auth só aceita duração, não "banido pra sempre".
+  async banirConta(id: string): Promise<Result<void, AppError>> {
+    const { error } = await this.supabaseAdmin.auth.admin.updateUserById(id, {
+      ban_duration: "876000h",
+    });
+    if (error) return err(new PersistenciaError(`Falha ao bloquear conta: ${error.message}`));
+    return ok(undefined);
+  }
+
   async removerConta(id: string): Promise<Result<void, AppError>> {
     const { error } = await this.supabaseAdmin.auth.admin.deleteUser(id);
     if (error) return err(new PersistenciaError(`Falha ao remover conta órfã: ${error.message}`));

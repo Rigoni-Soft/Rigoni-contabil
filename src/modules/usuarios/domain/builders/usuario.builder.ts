@@ -17,6 +17,7 @@ export type UsuarioRestaurar = {
   senhaTrocadaEm: string | null;
   senhaAuthAlteradaEm?: string | null;
   senhaProvisoriaExpiraEm: string;
+  desativadoEm?: string | null;
 };
 
 const HORAS_VALIDADE_SENHA_PROVISORIA = 48;
@@ -30,6 +31,7 @@ export class UsuarioBuilder {
   private senhaTrocadaEm: Date | null = null;
   private senhaAuthAlteradaEm: Date | null = null;
   private senhaProvisoriaExpiraEm?: Date;
+  private desativadoEm: Date | null = null;
   private readonly camposInvalidos: Record<string, string[]> = {};
 
   constructor(private readonly criar: (props: UsuarioProps) => Usuario) {}
@@ -80,6 +82,11 @@ export class UsuarioBuilder {
     return this;
   }
 
+  comDesativadoEm(data: string | null): this {
+    this.desativadoEm = data ? new Date(data) : null;
+    return this;
+  }
+
   restaurar(dados: UsuarioRestaurar): this {
     return this.comId(dados.id)
       .comNome(dados.nome)
@@ -88,7 +95,8 @@ export class UsuarioBuilder {
       .comSetor(dados.setor)
       .comSenhaTrocadaEm(dados.senhaTrocadaEm)
       .comSenhaAuthAlteradaEm(dados.senhaAuthAlteradaEm ?? null)
-      .comSenhaProvisoriaExpiraEm(dados.senhaProvisoriaExpiraEm);
+      .comSenhaProvisoriaExpiraEm(dados.senhaProvisoriaExpiraEm)
+      .comDesativadoEm(dados.desativadoEm ?? null);
   }
 
   build(): Result<Usuario, ValidationError> {
@@ -119,6 +127,7 @@ export class UsuarioBuilder {
         setor: this.setor!,
         senhaTrocadaEm: this.senhaTrocadaEm,
         senhaAuthAlteradaEm: this.senhaAuthAlteradaEm,
+        desativadoEm: this.desativadoEm,
         // Cadastro novo (#30) não chama comSenhaProvisoriaExpiraEm: default aqui
         // espelha o default da coluna na migration do #31.
         senhaProvisoriaExpiraEm:

@@ -10,6 +10,7 @@ export function perfilParaUsuario(row: PerfilRowDto): Result<Usuario, Validation
       senhaTrocadaEm: row.senha_trocada_em,
       senhaAuthAlteradaEm: row.senha_auth_alterada_em,
       senhaProvisoriaExpiraEm: row.senha_provisoria_expira_em,
+      desativadoEm: row.desativado_em,
     })
     .build();
 }

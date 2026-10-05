@@ -14,6 +14,7 @@ export type UsuarioProps = {
   senhaTrocadaEm: Date | null;
   senhaAuthAlteradaEm: Date | null;
   senhaProvisoriaExpiraEm: Date;
+  desativadoEm: Date | null;
 };
 
 export class Usuario {
@@ -52,6 +53,11 @@ export class Usuario {
   // falta apenas perfil + auditoria (PR #62, retry).
   authJaAlterado(): boolean {
     return this.precisaTrocarSenha() && this.props.senhaAuthAlteradaEm !== null;
+  }
+
+  // Soft delete (#58): o perfil continua no banco pra preservar o histórico de auditoria.
+  estaDesativado(): boolean {
+    return this.props.desativadoEm !== null;
   }
 
   senhaProvisoriaVencida(agora: Date): boolean {

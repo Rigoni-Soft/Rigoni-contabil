@@ -32,6 +32,9 @@ export class ObterSessao implements ObterSessaoPort {
     // esse caminho sem precisar duplicar a checagem em cada rota.
     if (perfil.value.senhaProvisoriaVencida(new Date())) return null;
 
+    // #58: sessão aberta antes da desativação para de valer na próxima página.
+    if (perfil.value.estaDesativado()) return null;
+
     return usuarioParaDto(perfil.value);
   }
 }

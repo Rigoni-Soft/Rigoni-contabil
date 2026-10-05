@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, KeyRound, UserPlus } from "lucide-react";
+import { Building2, KeyRound, UserPlus, Users } from "lucide-react";
 
 import { buttonVariants } from "@/presentation/components/ui/button";
 import { ThemeToggle } from "@/presentation/components/ui/theme-toggle";
@@ -68,6 +68,16 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
           >
             <Building2 aria-hidden="true" />
             <span className="hidden sm:inline">Cadastrar Cliente</span>
+          </Link>
+        )}
+        {papel === "admin" && (
+          <Link
+            href="/admin/usuarios"
+            aria-label="Usuários"
+            className={buttonVariants({ variant: "ghost", size: "sm" })}
+          >
+            <Users aria-hidden="true" />
+            <span className="hidden sm:inline">Usuários</span>
           </Link>
         )}
         {/* Único caminho de navegação até /trocar-senha fora do redirecionamento

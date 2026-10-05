@@ -50,6 +50,31 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
     return ok(resultado.value);
   }
 
+  async listarAtivos(): Promise<Result<Usuario[], AppError>> {
+    const { data, error } = await this.supabase
+      .from("perfis")
+      .select("*")
+      .is("desativado_em", null)
+      .order("nome");
+    if (error) {
+      console.error(`Falha ao listar perfis: ${error.message}`);
+      return err(new PersistenciaError("Falha ao listar usuários."));
+    }
+
+    const usuarios: Usuario[] = [];
+    for (const row of data.map((r) => perfilRowSchema.parse(r))) {
+      const resultado = perfilParaUsuario(row);
+      if (!resultado.ok) {
+        console.error(
+          `Perfil salvo com dados inválidos (id=${row.id}): ${resultado.error.message}`,
+        );
+        return err(new PersistenciaError("Falha ao listar usuários."));
+      }
+      usuarios.push(resultado.value);
+    }
+    return ok(usuarios);
+  }
+
   async criar(usuario: Usuario): Promise<Result<void, AppError>> {
     const { error } = await this.supabase.from("perfis").insert({
       id: usuario.id,

@@ -37,6 +37,9 @@ export class Login implements LoginPort {
       return this.abortarSessaoOrfa("Senha provisória expirada. Peça ao Admin uma nova conta.");
     }
 
+    // #58: o ban no Auth já barra o login; isto cobre o caso do ban ter falhado.
+    if (usuario.estaDesativado()) return this.abortarSessaoOrfa("Conta desativada.");
+
     return ok(usuarioParaDto(usuario));
   }
 

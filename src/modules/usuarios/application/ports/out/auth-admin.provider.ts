@@ -14,4 +14,7 @@ export interface AuthAdminPort {
   // obrigatória) — `perfis.id` referencia `auth.users(id) on delete cascade`,
   // então remover a conta aqui já limpa o perfil junto, se ele chegou a existir.
   removerConta(id: string): Promise<Result<void, AppError>>;
+  // #58: bloqueia login/refresh de token da conta (soft delete — a conta e o perfil
+  // continuam existindo). Idempotente.
+  banirConta(id: string): Promise<Result<void, AppError>>;
 }

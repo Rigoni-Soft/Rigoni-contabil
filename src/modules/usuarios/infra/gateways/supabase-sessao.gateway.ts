@@ -40,6 +40,7 @@ export class SupabaseSessaoGateway implements SessaoPort {
     if (error.code && CODIGOS_CREDENCIAL_INVALIDA.has(error.code)) {
       return err(new ForbiddenError("E-mail ou senha inválidos."));
     }
+    if (error.code === "user_banned") return err(new ForbiddenError("Conta desativada."));
     // Detalhe fica só no log do servidor: login.actions.ts devolve error.message
     // direto pro navegador, então a mensagem do AppError nunca pode carregar o
     // texto cru do Supabase (poderia expor detalhe interno pra um visitante
