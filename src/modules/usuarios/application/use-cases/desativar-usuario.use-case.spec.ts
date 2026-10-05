@@ -85,6 +85,27 @@ describe("DesativarUsuario", () => {
       },
       "func-1",
     ],
+    [
+      "ator Admin desativado",
+      {
+        perfis: [
+          (() => {
+            const r = Usuario.builder()
+              .comId("admin-1")
+              .comNome("Nome admin-1")
+              .comEmail("admin-1@rigonicontabil.local")
+              .comPapel("admin")
+              .comSetor("simples_nacional")
+              .comDesativadoEm(new Date().toISOString())
+              .build();
+            if (!r.ok) throw new Error("setup inválido");
+            return r.value;
+          })(),
+          usuario("func-1", "funcionario"),
+        ],
+      },
+      "func-1",
+    ],
     ["alvo é a própria conta", {}, "admin-1"],
     [
       "alvo é outro Admin",

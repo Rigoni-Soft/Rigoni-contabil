@@ -18,6 +18,8 @@ export async function exigirAdmin(
 
   const perfil = await usuarios.buscarPorId(atorId);
   if (!perfil.ok) return perfil;
-  if (!perfil.value?.papel.ehAdmin()) return err(new ForbiddenError(mensagemForbidden));
+  // #58: JWT de conta desativada vale até expirar; o perfil é a fonte da verdade.
+  if (!perfil.value?.papel.ehAdmin() || perfil.value.estaDesativado())
+    return err(new ForbiddenError(mensagemForbidden));
   return ok(perfil.value);
 }
