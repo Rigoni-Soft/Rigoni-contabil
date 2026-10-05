@@ -107,6 +107,12 @@ export function ResumoSetorSn({ cards, totalClientes, busca }: Props) {
     <section className="space-y-6">
       <h1 className="text-xl font-bold text-foreground">Resumo do setor</h1>
       {busca}
+      {totalClientes === 0 && (
+        <p className="text-sm text-muted-foreground">
+          Nenhum cliente por aqui ainda. Quando o Líder atribuir clientes a você, eles aparecem
+          neste resumo.
+        </p>
+      )}
       <Grupo titulo="Documentos e DAS" cards={cards.slice(0, 5)} totalClientes={totalClientes} />
       <Grupo titulo="Parcelamento" cards={cards.slice(5, 9)} totalClientes={totalClientes} />
     </section>

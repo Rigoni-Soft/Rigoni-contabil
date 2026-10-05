@@ -161,7 +161,7 @@ export function EditarCadastroOperacionalContainer({
       responsavel={{
         editavel: podeAtribuirResponsavel,
         nomeAtual: dados.responsavelId
-          ? (dados.responsavelNome ?? "Funcionário de outro setor")
+          ? (dados.responsavelNome ?? "Responsável de outro setor")
           : "Sem responsável",
         opcoes: dados.responsaveisElegiveis,
       }}

@@ -20,8 +20,8 @@ import { EditarCadastroOperacionalCliente } from "@/modules/clientes/application
 import { ObterResumoSetorSn } from "@/modules/clientes/application/use-cases/obter-resumo-setor-sn.use-case";
 import { SupabaseClienteQueryGateway } from "@/modules/clientes/infra/gateways/cliente-query.gateway";
 import { SupabaseArquivoStorageGateway } from "@/modules/clientes/infra/gateways/supabase-arquivo-storage.gateway";
-import { SupabaseResponsavelClienteGateway } from "@/modules/clientes/infra/gateways/supabase-responsavel-cliente.gateway";
 import { SupabaseClienteRepository } from "@/modules/clientes/infra/repositories/cliente.repository";
+import { SupabaseResponsavelClienteRepository } from "@/modules/clientes/infra/repositories/responsavel-cliente.repository";
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
 import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabase-sessao.gateway";
 import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories/usuario.repository";
@@ -78,7 +78,7 @@ export async function makeAtribuirResponsavelCliente(): Promise<AtribuirResponsa
     sessaoViaUsuarios(supabase),
     new SupabaseClienteRepository(supabase),
     new SupabaseClienteQueryGateway(supabase),
-    new SupabaseResponsavelClienteGateway(supabase),
+    new SupabaseResponsavelClienteRepository(supabase),
     auditoriaViaModuloAuditoria(),
   );
 }

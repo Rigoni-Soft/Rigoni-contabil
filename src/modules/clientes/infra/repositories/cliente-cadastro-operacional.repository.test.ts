@@ -8,7 +8,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
-import { SupabaseResponsavelClienteGateway } from "@/modules/clientes/infra/gateways/supabase-responsavel-cliente.gateway";
+import { SupabaseResponsavelClienteRepository } from "@/modules/clientes/infra/repositories/responsavel-cliente.repository";
 import { mesAtual } from "@/shared/kernel/mes-atual";
 
 import { SupabaseClienteRepository } from "./cliente.repository";
@@ -38,7 +38,7 @@ const FUNCIONARIO_FINANCEIRO_ID = "33333333-3333-3333-3333-333333333333";
 // #65: Funcionário SN só edita Cliente do qual é Responsável — quem atribui é o Líder.
 async function atribuirComoLider(clienteId: string, responsavelId: string | null) {
   const lider = await comoLiderSN();
-  const resultado = await new SupabaseResponsavelClienteGateway(lider).atribuir(
+  const resultado = await new SupabaseResponsavelClienteRepository(lider).atribuir(
     clienteId,
     responsavelId,
   );
@@ -187,7 +187,7 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
         .from("cliente_cadastro_operacional_sn")
         .update({ responsavel_id: null })
         .eq("cliente_id", clienteBase.id);
-      const viaGateway = await new SupabaseResponsavelClienteGateway(funcionarioSN).atribuir(
+      const viaGateway = await new SupabaseResponsavelClienteRepository(funcionarioSN).atribuir(
         clienteBase.id,
         null,
       );
@@ -200,7 +200,7 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
       const admin = await comoAdmin();
       const clienteBase = await criarClienteBase(admin, "11444777001052");
 
-      const resultado = await new SupabaseResponsavelClienteGateway(admin).atribuir(
+      const resultado = await new SupabaseResponsavelClienteRepository(admin).atribuir(
         clienteBase.id,
         FUNCIONARIO_SN_ID,
       );
@@ -213,7 +213,7 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
       const clienteBase = await criarClienteBase(admin, "11444777001133");
       const lider = await comoLiderSN();
 
-      const resultado = await new SupabaseResponsavelClienteGateway(lider).atribuir(
+      const resultado = await new SupabaseResponsavelClienteRepository(lider).atribuir(
         clienteBase.id,
         FUNCIONARIO_FINANCEIRO_ID,
       );

@@ -11,7 +11,7 @@ class PersistenciaError extends AppError {
 
 // Só mexe em responsavel_id; o banco (trigger + RLS, migration #65) é a última
 // barreira — Funcionário nem chega a gravar por este caminho.
-export class SupabaseResponsavelClienteGateway implements ResponsavelClienteRepository {
+export class SupabaseResponsavelClienteRepository implements ResponsavelClienteRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
   async atribuir(clienteId: string, responsavelId: string | null): Promise<Result<void, AppError>> {

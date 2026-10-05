@@ -147,3 +147,11 @@ $$;
 create trigger cliente_cadastro_operacional_proteger_responsavel
   before insert or update on public.cliente_cadastro_operacional_sn
   for each row execute function public.proteger_responsavel_cliente();
+
+-- Helpers só pra quem está logado (as policies rodam como `authenticated`).
+revoke execute on function public.sou_responsavel_do_cliente(uuid) from public, anon;
+revoke execute on function public.pode_ver_cliente(uuid) from public, anon;
+revoke execute on function public.pode_editar_cadastro_operacional(uuid) from public, anon;
+grant execute on function public.sou_responsavel_do_cliente(uuid) to authenticated;
+grant execute on function public.pode_ver_cliente(uuid) to authenticated;
+grant execute on function public.pode_editar_cadastro_operacional(uuid) to authenticated;
