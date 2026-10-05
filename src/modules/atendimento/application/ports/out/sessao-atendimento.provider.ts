@@ -2,8 +2,13 @@ import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
 // Só a posição do cliente no menu. Nunca nome, empresa, CNPJ, caminho de arquivo ou
-// qualquer dado do Cliente: o que for preciso é recalculado a cada mensagem.
+// qualquer dado do Cliente: o que for preciso é recalculado a cada mensagem. Única exceção: o
+// `clienteId` (uuid opaco) do cadastro de contato novo (#43), que não dá pra recalcular sem CNPJ.
 export type SessaoAtendimento =
+  | { etapa: "ja_cliente" }
+  | { etapa: "cnpj" }
+  | { etapa: "aceite_cadastro"; clienteId: string }
+  | { etapa: "nome_cadastro"; clienteId: string }
   | { etapa: "tipo_documento" }
   | { etapa: "alteracao"; modo: "alteracoes" | "ambos"; pagina: number };
 

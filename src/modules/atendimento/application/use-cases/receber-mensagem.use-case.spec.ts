@@ -1,4 +1,8 @@
 import type {
+  CadastroContatoPort,
+  ClienteEncontrado,
+} from "@/modules/atendimento/application/ports/out/cadastro-contato.provider";
+import type {
   DocumentoContratual,
   DocumentosContratuaisPort,
 } from "@/modules/atendimento/application/ports/out/documentos-contratuais.provider";
@@ -42,6 +46,8 @@ function montar(
     listagemFalha?: boolean;
     sessaoFalha?: boolean;
     limparFalha?: boolean;
+    clientes?: Record<string, ClienteEncontrado>;
+    cadastroFalha?: boolean;
   } = {},
 ) {
   const buscados: string[] = [];
@@ -92,8 +98,19 @@ function montar(
     },
     linkTemporario: async (caminho) => ok(`https://storage.test/${caminho}?token=x`),
   };
+  const cadastrados: { clienteId: string; nome: string; telefone: string }[] = [];
+  const cadastro: CadastroContatoPort = {
+    buscarCliente: async (cnpj) => ok(opcoes.clientes?.[cnpj] ?? null),
+    cadastrar: async (c) => {
+      if (opcoes.cadastroFalha) return err(new ServicoExternoError("banco"));
+      cadastrados.push(c);
+      const cliente = Object.values(opcoes.clientes ?? {}).find((x) => x.clienteId === c.clienteId);
+      return ok({ empresa: cliente?.empresa ?? "", padrao: !cliente?.temPadrao });
+    },
+  };
   return {
-    caso: new ReceberMensagem(identificacao, envio, documentos, sessao),
+    caso: new ReceberMensagem(identificacao, envio, documentos, sessao, cadastro),
+    cadastrados,
     sessoes,
     gravadas,
     buscados,
@@ -130,14 +147,6 @@ describe("ReceberMensagem", () => {
     expect(enviadas[0].texto).toContain("em construção");
   });
 
-  it("número desconhecido recebe aviso sem menu", async () => {
-    const { caso, enviadas } = montar({ contato: null });
-    const r = await caso.execute({ telefone: "11900000000", texto: "oi" });
-    expect(r.ok).toBe(true);
-    expect(enviadas[0].texto).toContain("Não identificamos");
-    expect(enviadas[0].texto).not.toContain("1 -");
-  });
-
   it("telefone sem dígitos é rejeitado", async () => {
     const { caso, enviadas } = montar();
     const r = await caso.execute({ telefone: "abc", texto: "oi" });
@@ -167,6 +176,10 @@ describe("ReceberMensagem", () => {
         obter: async () => ok(null),
         salvar: async () => ok(undefined),
         limpar: async () => ok(undefined),
+      },
+      {
+        buscarCliente: async () => ok(null),
+        cadastrar: async () => err(new ServicoExternoError("x")),
       },
     );
     const r = await caso.execute({ telefone: "11912345678", texto: "oi" });
@@ -391,11 +404,137 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     expect(enviadas).toHaveLength(0);
   });
 
-  it("número desconhecido não acessa sessão nem documento", async () => {
-    const { caso, listados, sessoes } = montar({ contato: null, sessaoFalha: true });
+  it("número desconhecido nunca chega aos documentos, nem com sessão de documento sobrando", async () => {
+    const { caso, listados, sessoes } = montar({ contato: null });
+    sessoes.set("11900000000", { etapa: "tipo_documento" });
     const r = await caso.execute({ telefone: "11900000000", texto: "1" });
     expect(r.ok).toBe(true);
     expect(listados).toHaveLength(0);
-    expect(sessoes.size).toBe(0);
+    expect(sessoes.get("11900000000")).toEqual({ etapa: "ja_cliente" });
+  });
+});
+
+describe("ReceberMensagem — contato não reconhecido (#43)", () => {
+  const TEL = "11900000000";
+  const CNPJ = "90000001000129";
+  const sem = { clienteId: "c9", empresa: "Padaria Selo Dourado", temPadrao: false };
+  const com = { ...sem, temPadrao: true };
+  const dizer = (caso: ReturnType<typeof montar>["caso"], texto: string) =>
+    caso.execute({ telefone: TEL, texto });
+
+  it("número não cadastrado recebe a pergunta 'você já é cliente?' e não vê o menu", async () => {
+    const { caso, enviadas, sessoes } = montar({ contato: null });
+    const r = await dizer(caso, "oi");
+    expect(r.ok).toBe(true);
+    expect(enviadas[0].texto).toContain("já é cliente");
+    expect(enviadas[0].texto).not.toContain("1 - Contrato");
+    expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente" });
+  });
+
+  it("resposta negativa transfere pra recepção com aviso amigável e encerra a sessão", async () => {
+    const { caso, enviadas, sessoes } = montar({ contato: null });
+    await dizer(caso, "oi");
+    await dizer(caso, "Não");
+    expect(enviadas[1].texto).toContain("recepção");
+    expect(sessoes.has(TEL)).toBe(false);
+  });
+
+  it("resposta fora de sim/não repete a pergunta", async () => {
+    const { caso, enviadas, sessoes } = montar({ contato: null });
+    await dizer(caso, "oi");
+    await dizer(caso, "talvez");
+    expect(enviadas[1].texto).toContain("*sim*");
+    expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente" });
+  });
+
+  it("resposta positiva pede o CNPJ", async () => {
+    const { caso, enviadas, sessoes } = montar({ contato: null });
+    await dizer(caso, "oi");
+    await dizer(caso, "sim");
+    expect(enviadas[1].texto).toContain("CNPJ");
+    expect(sessoes.get(TEL)).toEqual({ etapa: "cnpj" });
+  });
+
+  it("CNPJ inválido pede de novo, sem buscar", async () => {
+    const { caso, enviadas, sessoes } = montar({ contato: null, clientes: { [CNPJ]: sem } });
+    await dizer(caso, "oi");
+    await dizer(caso, "sim");
+    await dizer(caso, "123");
+    expect(enviadas[2].texto).toContain("CNPJ");
+    expect(sessoes.get(TEL)).toEqual({ etapa: "cnpj" });
+  });
+
+  it("CNPJ sem cadastro transfere pra recepção", async () => {
+    const { caso, enviadas, sessoes } = montar({ contato: null });
+    await dizer(caso, "oi");
+    await dizer(caso, "sim");
+    await dizer(caso, "90.000.001/0001-29");
+    expect(enviadas[2].texto).toContain("recepção");
+    expect(sessoes.has(TEL)).toBe(false);
+  });
+
+  it("CNPJ sem contato padrão oferece cadastro como contato padrão", async () => {
+    const { caso, enviadas, sessoes } = montar({ contato: null, clientes: { [CNPJ]: sem } });
+    await dizer(caso, "oi");
+    await dizer(caso, "sim");
+    await dizer(caso, "90.000.001/0001-29");
+    expect(enviadas[2].texto).toContain("Padaria Selo Dourado");
+    expect(enviadas[2].texto).toContain("contato padrão");
+    expect(sessoes.get(TEL)).toEqual({ etapa: "aceite_cadastro", clienteId: "c9" });
+  });
+
+  it("CNPJ com contato padrão diferente oferece cadastro como outro contato", async () => {
+    const { caso, enviadas } = montar({ contato: null, clientes: { [CNPJ]: com } });
+    await dizer(caso, "oi");
+    await dizer(caso, "sim");
+    await dizer(caso, CNPJ);
+    expect(enviadas[2].texto).toContain("outro contato");
+    expect(enviadas[2].texto).not.toContain("contato padrão");
+  });
+
+  it("recusa do cadastro transfere pra recepção", async () => {
+    const { caso, enviadas, sessoes, cadastrados } = montar({
+      contato: null,
+      clientes: { [CNPJ]: sem },
+    });
+    for (const t of ["oi", "sim", CNPJ, "não"]) await dizer(caso, t);
+    expect(enviadas[3].texto).toContain("recepção");
+    expect(sessoes.has(TEL)).toBe(false);
+    expect(cadastrados).toHaveLength(0);
+  });
+
+  it("aceite pede o nome e cadastra com o telefone normalizado", async () => {
+    const { caso, enviadas, sessoes, cadastrados } = montar({
+      contato: null,
+      clientes: { [CNPJ]: sem },
+    });
+    for (const t of ["oi", "sim", CNPJ, "sim"]) await dizer(caso, t);
+    expect(enviadas[3].texto).toContain("nome");
+    expect(sessoes.get(TEL)).toEqual({ etapa: "nome_cadastro", clienteId: "c9" });
+
+    await caso.execute({ telefone: "5511900000000", texto: "  Maria  " });
+    expect(cadastrados).toEqual([{ clienteId: "c9", nome: "Maria", telefone: TEL }]);
+    expect(enviadas[4].texto).toContain("Padaria Selo Dourado");
+    expect(sessoes.has(TEL)).toBe(false);
+  });
+
+  it("falha ao cadastrar mantém a sessão e devolve o erro", async () => {
+    const { caso, sessoes } = montar({
+      contato: null,
+      clientes: { [CNPJ]: sem },
+      cadastroFalha: true,
+    });
+    for (const t of ["oi", "sim", CNPJ, "sim"]) await dizer(caso, t);
+    const r = await dizer(caso, "Maria");
+    expect(r.ok).toBe(false);
+    expect(sessoes.get(TEL)).toEqual({ etapa: "nome_cadastro", clienteId: "c9" });
+  });
+
+  it("'menu' recomeça a identificação", async () => {
+    const { caso, sessoes } = montar({ contato: null });
+    await dizer(caso, "oi");
+    await dizer(caso, "sim");
+    await dizer(caso, "menu");
+    expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente" });
   });
 });

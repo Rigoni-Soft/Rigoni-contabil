@@ -73,8 +73,17 @@ construção" (stub); qualquer outro texto reenvia o menu.
   página reapresenta a página.
 - `menu` abandona o fluxo a qualquer momento. Número não identificado nunca chega aos documentos.
 
+**Número não reconhecido (#43):** pergunta "você já é cliente?" (`sim`/`não`, com ou sem acento; outra resposta repete a
+pergunta). `não` → aviso amigável de que será encaminhado à recepção. `sim` → pede o CNPJ (validado com dígitos
+verificadores; inválido pede de novo). CNPJ não cadastrado → recepção. CNPJ de um Cliente **sem** contato padrão oferece
+cadastrar o número como contato padrão; com contato padrão, como "outro contato". Recusa → recepção; aceite → pede o nome
+e cadastra o Contato (o adapter decide padrão/outro de forma atômica pelo índice único parcial). Sessão ausente, expirada
+ou `menu` recomeça pela pergunta. Depois do cadastro o número já é reconhecido e a próxima mensagem abre o menu.
+Limite: "encaminhar à recepção" é só o aviso — a Transferência real vem com a Fila. Limite de segurança: quem souber o CNPJ
+de um Cliente consegue se cadastrar como contato dele (é o que a spec #43 pede; conferir antes de ir pra produção).
+
 **Sessão (`atendimento_sessoes`):** guarda só a posição no menu (`etapa`, `modo`, `pagina`), nunca dado do Cliente:
-nome, empresa, CNPJ e caminhos são relidos a cada mensagem. A chave é um HMAC-SHA256 do telefone (segredo
+nome, empresa, CNPJ e caminhos são relidos a cada mensagem (única exceção: o `cliente_id`, uuid opaco, no cadastro do #43). A chave é um HMAC-SHA256 do telefone (segredo
 `MENSAGERIA_SEGREDO_SESSAO`), nunca o número; expira em 10 min (ignorada na leitura, varrida a cada gravação);
 RLS ligada sem policy (só `service_role`). A sessão só é encerrada depois do envio: se o envio falhar, a Meta reenvia e o
 cliente retoma do mesmo ponto; se só o encerramento falhar, o erro é ignorado (não duplica o documento) e a sessão expira sozinha. Limite: se uma alteração for cadastrada com a sessão aberta, o número escolhido pode

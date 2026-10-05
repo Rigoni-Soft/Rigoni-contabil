@@ -28,6 +28,10 @@ describe("SupabaseSessaoAtendimentoGateway", () => {
   it.each([
     [{ etapa: "tipo_documento" as const }],
     [{ etapa: "alteracao" as const, modo: "ambos" as const, pagina: 2 }],
+    [{ etapa: "ja_cliente" as const }],
+    [{ etapa: "cnpj" as const }],
+    [{ etapa: "aceite_cadastro" as const, clienteId: "5b0c2f5e-6a3e-4d3a-9d2e-2f6f0f5a1a11" }],
+    [{ etapa: "nome_cadastro" as const, clienteId: "5b0c2f5e-6a3e-4d3a-9d2e-2f6f0f5a1a11" }],
   ])("grava e lê a sessão %j", async (sessao) => {
     expect((await gateway.salvar(TELEFONE, sessao)).ok).toBe(true);
     expect(await gateway.obter(TELEFONE)).toEqual({ ok: true, value: sessao });

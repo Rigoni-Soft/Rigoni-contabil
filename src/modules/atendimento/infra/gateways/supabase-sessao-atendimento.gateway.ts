@@ -12,7 +12,12 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const VALIDADE_MS = 10 * 60 * 1000;
 
-type Linha = { etapa: string; modo: string | null; pagina: number | null };
+type Linha = {
+  etapa: string;
+  modo: string | null;
+  pagina: number | null;
+  cliente_id: string | null;
+};
 
 function falha(acao: string): Result<never, AppError> {
   return err(new ServicoExternoError(`Falha ao ${acao} a sessão de atendimento.`));
@@ -29,7 +34,7 @@ export class SupabaseSessaoAtendimentoGateway implements SessaoAtendimentoPort {
   async obter(telefone: string): Promise<Result<SessaoAtendimento | null, AppError>> {
     const { data, error } = await this.supabaseAdmin
       .from("atendimento_sessoes")
-      .select("etapa, modo, pagina")
+      .select("etapa, modo, pagina, cliente_id")
       .eq("chave", this.chave(telefone))
       .gt("atualizado_em", this.limite())
       .maybeSingle();
@@ -43,7 +48,10 @@ export class SupabaseSessaoAtendimentoGateway implements SessaoAtendimentoPort {
         pagina: linha.pagina as number,
       });
     }
-    return ok({ etapa: "tipo_documento" });
+    if (linha.etapa === "aceite_cadastro" || linha.etapa === "nome_cadastro") {
+      return ok({ etapa: linha.etapa, clienteId: linha.cliente_id as string });
+    }
+    return ok({ etapa: linha.etapa as "ja_cliente" | "cnpj" | "tipo_documento" });
   }
 
   async salvar(telefone: string, sessao: SessaoAtendimento): Promise<Result<void, AppError>> {
@@ -59,6 +67,7 @@ export class SupabaseSessaoAtendimentoGateway implements SessaoAtendimentoPort {
       etapa: sessao.etapa,
       modo: sessao.etapa === "alteracao" ? sessao.modo : null,
       pagina: sessao.etapa === "alteracao" ? sessao.pagina : null,
+      cliente_id: "clienteId" in sessao ? sessao.clienteId : null,
       atualizado_em: new Date().toISOString(),
     });
     return error ? falha("gravar") : ok(undefined);

@@ -2,6 +2,7 @@ import type {
   MensagemRecebida,
   ReceberMensagemPort,
 } from "@/modules/atendimento/application/ports/in/receber-mensagem.provider";
+import type { CadastroContatoPort } from "@/modules/atendimento/application/ports/out/cadastro-contato.provider";
 import type {
   DocumentoContratual,
   DocumentosContratuaisPort,
@@ -18,6 +19,7 @@ import type {
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
+import { cnpjValido, normalizarCnpj } from "@/shared/kernel/cnpj";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 const OPCOES_MENU = [
@@ -28,8 +30,19 @@ const OPCOES_MENU = [
   "Falar com atendente",
 ];
 
-const NAO_IDENTIFICADO =
-  "Olá! Não identificamos este número entre os contatos dos nossos clientes. Fale com o escritório para atualizar o cadastro.";
+const PERGUNTA_CLIENTE =
+  "Olá! Não identificamos este número entre os contatos dos nossos clientes. Você já é cliente da Rigoni Contábil? Responda *sim* ou *não*.";
+const PEDIR_CNPJ = "Ótimo! Informe o CNPJ da sua empresa.";
+const CNPJ_INVALIDO = "Esse CNPJ não parece válido. Confira e envie novamente (ou digite *menu*).";
+const SIM_OU_NAO = "Responda *sim* ou *não*.";
+const PEDIR_NOME = "Para finalizar, qual é o seu nome?";
+const NOME_INVALIDO = "Envie seu nome (até 80 caracteres).";
+// ponytail: só avisa; a Transferência real para a recepção entra com o #44/#45 (Fila).
+const PARA_RECEPCAO =
+  "Sem problemas! Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
+const CNPJ_NAO_ENCONTRADO =
+  "Não encontramos esse CNPJ em nosso cadastro. Vamos te encaminhar para a nossa recepção, que já vai te atender.";
+const TAMANHO_MAX_NOME = 80;
 
 const PERGUNTA_TIPO =
   "O que você deseja receber?\n1 - Contrato social\n2 - Alterações\n3 - Ambos (contrato social e uma alteração)\nDigite *menu* para voltar.";
@@ -50,6 +63,13 @@ type Documentos = { contrato: DocumentoContratual | null; alteracoes: DocumentoC
 function soDigitosNacionais(telefone: string): string {
   const digitos = telefone.replace(/\D/g, "");
   return digitos.length > 11 && digitos.startsWith("55") ? digitos.slice(2) : digitos;
+}
+
+function respostaSimNao(texto: string): boolean | null {
+  const t = texto.normalize("NFD").replace(/\p{M}/gu, "");
+  if (["sim", "s"].includes(t)) return true;
+  if (["nao", "n"].includes(t)) return false;
+  return null;
 }
 
 function formatarData(iso: string): string {
@@ -85,6 +105,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
     private readonly envio: EnvioMensagemPort,
     private readonly documentos: DocumentosContratuaisPort,
     private readonly sessoes: SessaoAtendimentoPort,
+    private readonly cadastro: CadastroContatoPort,
   ) {}
 
   async execute(mensagem: MensagemRecebida): Promise<Result<void, AppError>> {
@@ -93,13 +114,14 @@ export class ReceberMensagem implements ReceberMensagemPort {
 
     const contato = await this.contatos.identificar(chave);
     if (!contato.ok) return contato;
-    if (!contato.value) return this.enviar(mensagem.telefone, NAO_IDENTIFICADO);
-
-    const conversa: Conversa = { contato: contato.value, telefone: mensagem.telefone, chave };
     const texto = mensagem.texto.trim().toLowerCase();
 
     const sessao = await this.sessoes.obter(chave);
     if (!sessao.ok) return sessao;
+    if (!contato.value) {
+      return this.identificarNovo(mensagem, chave, texto, sessao.value);
+    }
+    const conversa: Conversa = { contato: contato.value, telefone: mensagem.telefone, chave };
     if (texto === "menu") {
       const limpa = await this.sessoes.limpar(chave);
       if (!limpa.ok) return limpa;
@@ -109,6 +131,89 @@ export class ReceberMensagem implements ReceberMensagemPort {
       return this.escolherAlteracao(conversa, sessao.value, texto);
     }
     return this.responderMenu(conversa, texto);
+  }
+
+  // Número que não é Contato de ninguém: "já é cliente?" → CNPJ → oferta de cadastro → nome.
+  // Qualquer desvio (sessão ausente/expirada/de outro fluxo, ou "menu") recomeça pela pergunta.
+  private async identificarNovo(
+    { telefone, texto: original }: MensagemRecebida,
+    chave: string,
+    texto: string,
+    sessao: SessaoAtendimento | null,
+  ): Promise<Result<void, AppError>> {
+    const passo = texto === "menu" ? null : sessao;
+    const sim = respostaSimNao(texto);
+
+    if (passo?.etapa === "ja_cliente" && sim !== null) {
+      if (!sim) return this.encaminharRecepcao(telefone, chave, PARA_RECEPCAO);
+      return this.avancar(telefone, chave, { etapa: "cnpj" }, PEDIR_CNPJ);
+    }
+    if (passo?.etapa === "ja_cliente") return this.enviar(telefone, SIM_OU_NAO);
+
+    if (passo?.etapa === "cnpj") {
+      if (!cnpjValido(texto)) return this.enviar(telefone, CNPJ_INVALIDO);
+      const cliente = await this.cadastro.buscarCliente(normalizarCnpj(texto));
+      if (!cliente.ok) return cliente;
+      if (!cliente.value) return this.encaminharRecepcao(telefone, chave, CNPJ_NAO_ENCONTRADO);
+      const { clienteId, empresa, temPadrao } = cliente.value;
+      const como = temPadrao ? "outro contato" : "contato padrão";
+      return this.avancar(
+        telefone,
+        chave,
+        { etapa: "aceite_cadastro", clienteId },
+        `Encontramos a empresa ${empresa}. Deseja cadastrar este número como ${como} dela? Responda *sim* ou *não*.`,
+      );
+    }
+
+    if (passo?.etapa === "aceite_cadastro") {
+      if (sim === null) return this.enviar(telefone, SIM_OU_NAO);
+      if (!sim) return this.encaminharRecepcao(telefone, chave, PARA_RECEPCAO);
+      return this.avancar(
+        telefone,
+        chave,
+        { etapa: "nome_cadastro", clienteId: passo.clienteId },
+        PEDIR_NOME,
+      );
+    }
+
+    if (passo?.etapa === "nome_cadastro") {
+      const nome = original.trim().replace(/\s+/g, " ");
+      if (!nome || nome.length > TAMANHO_MAX_NOME) return this.enviar(telefone, NOME_INVALIDO);
+      const criado = await this.cadastro.cadastrar({
+        clienteId: passo.clienteId,
+        nome,
+        telefone: chave,
+      });
+      if (!criado.ok) return criado;
+      // Já cadastrou: falhar na limpeza faria a Meta reenviar; o número agora é reconhecido.
+      await this.sessoes.limpar(chave);
+      const como = criado.value.padrao ? "contato padrão" : "contato";
+      return this.enviar(
+        telefone,
+        `Pronto, ${nome}! Este número agora é ${como} de ${criado.value.empresa}. Envie qualquer mensagem para ver o menu.`,
+      );
+    }
+
+    return this.avancar(telefone, chave, { etapa: "ja_cliente" }, PERGUNTA_CLIENTE);
+  }
+
+  private async avancar(
+    telefone: string,
+    chave: string,
+    sessao: SessaoAtendimento,
+    texto: string,
+  ): Promise<Result<void, AppError>> {
+    const salva = await this.sessoes.salvar(chave, sessao);
+    return salva.ok ? this.enviar(telefone, texto) : salva;
+  }
+
+  private async encaminharRecepcao(
+    telefone: string,
+    chave: string,
+    texto: string,
+  ): Promise<Result<void, AppError>> {
+    const limpa = await this.sessoes.limpar(chave);
+    return limpa.ok ? this.enviar(telefone, texto) : limpa;
   }
 
   private async responderMenu(
