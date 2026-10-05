@@ -1,10 +1,10 @@
-import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import {
   janelaAberta,
   montarMensagemLivre,
   montarTemplate,
   type ComunicacaoProativa,
-} from "@/modules/atendimento/domain/comunicacao-proativa";
+} from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
+import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ok, type Result } from "@/shared/kernel/result";
 

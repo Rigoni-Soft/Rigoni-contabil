@@ -1,4 +1,4 @@
-import type { ComunicacaoProativa } from "@/modules/atendimento/domain/comunicacao-proativa";
+import type { ComunicacaoProativa } from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
 
 import { EnviarComunicacaoProativa } from "./enviar-comunicacao-proativa.use-case";
