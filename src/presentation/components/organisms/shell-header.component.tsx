@@ -31,13 +31,13 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
       <div className="flex min-w-0 items-center gap-3">
         <span
           aria-hidden="true"
-          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground"
+          className="hidden size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground sm:flex"
         >
           {inicial}
         </span>
         <div className="min-w-0">
-          <p className="truncate font-medium text-foreground">{nome}</p>
-          <p className="truncate text-sm text-muted-foreground">
+          <p className="font-medium break-words text-foreground sm:truncate">{nome}</p>
+          <p className="text-sm break-words text-muted-foreground sm:truncate">
             {PAPEL_LABEL[papel] ?? papel} · {escopo}
           </p>
         </div>
