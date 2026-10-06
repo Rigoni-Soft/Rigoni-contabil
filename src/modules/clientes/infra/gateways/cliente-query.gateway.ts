@@ -41,8 +41,6 @@ const SELECT_CADASTRO_BASICO = `
   cliente_atividades_mensais(*)
 `;
 
-// Mesmo critério (UTC) de quem grava a atividade do mês no use case de edição.
-
 export class SupabaseClienteQueryGateway implements ClienteQueryPort {
   constructor(private readonly supabase: SupabaseClient) {}
 
