@@ -18,6 +18,7 @@ const repositorio = new SupabaseAtendimentoRepository(admin);
 const TELEFONE = "61955550001";
 const TELEFONE_SEM_CLIENTE = "61955550002";
 const TELEFONE_FILA = "61955550003";
+const TELEFONE_PROPRIO = "61955550004";
 const clienteId = crypto.randomUUID();
 const CNPJ = `8${Date.now()}`.slice(0, 14);
 const usuarios: string[] = [];
@@ -77,7 +78,7 @@ afterAll(async () => {
   await admin
     .from("atendimentos")
     .delete()
-    .in("telefone", [TELEFONE, TELEFONE_SEM_CLIENTE, TELEFONE_FILA]);
+    .in("telefone", [TELEFONE, TELEFONE_SEM_CLIENTE, TELEFONE_FILA, TELEFONE_PROPRIO]);
   await admin.from("clientes").delete().eq("id", clienteId);
   for (const id of usuarios) await admin.auth.admin.deleteUser(id);
 });
@@ -275,5 +276,26 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       fila_funcionario_id: destinoId,
       assumido_em: null,
     });
+  });
+
+  it("destino fixo que já é o dono do próprio Atendimento: não conta como ocupado, fica com ele", async () => {
+    const dono = await criarFuncionario("Dono 45", "recepcao", "admin");
+    const meu = await abrir(TELEFONE_PROPRIO, null, dono);
+    const r = await repositorio.transferir({
+      atendimentoId: meu,
+      origemFuncionarioId: dono,
+      setorDestino: "contabil",
+      funcionarioDestinoId: dono,
+      enfileirarSeOcupado: true,
+      resumo: "eu mesmo",
+      ator: { id: dono, setor: "recepcao" },
+    });
+    expect(r.ok && r.value.status === "transferido" && r.value.naFila).toBe(false);
+    const { data } = await admin
+      .from("atendimentos")
+      .select("funcionario_id, fila_funcionario_id")
+      .eq("id", meu)
+      .single();
+    expect(data).toEqual({ funcionario_id: dono, fila_funcionario_id: null });
   });
 });

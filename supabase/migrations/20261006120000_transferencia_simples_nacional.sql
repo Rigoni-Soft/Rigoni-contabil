@@ -53,6 +53,7 @@ begin
   if p_funcionario_destino_id is not null and exists (
     select 1 from public.atendimentos
     where funcionario_id = p_funcionario_destino_id and status = 'em_andamento'
+      and id <> p_atendimento_id
   ) then
     if not p_enfileirar_se_ocupado then
       return jsonb_build_object('status', 'conflito');
