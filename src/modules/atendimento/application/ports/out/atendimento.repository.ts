@@ -57,6 +57,25 @@ export type ResultadoTransferencia =
 // Regime e Responsável do Cliente, para decidir a Transferência ao Simples Nacional.
 export type RoteamentoDoCliente = { regime: RegimeValor; responsavelId: string | null };
 
+// Atendimento sem Funcionário: fila do Setor (`filaFuncionarioId` null) ou de um usuário (destino
+// fixo ocupado). `filaDesde` ordena a saída (mais antigo primeiro).
+export type ItemDaFila = {
+  id: string;
+  filaFuncionarioId: string | null;
+  filaDesde: Date;
+  telefone: string;
+  contato: DadosDoContato;
+  resumo: string | null;
+};
+
+// O Atendimento que o Funcionário liberado assumiu da Fila.
+export type AtendimentoAssumido = {
+  id: string;
+  telefone: string;
+  chave: string;
+  funcionarioNome: string | null;
+};
+
 export interface AtendimentoRepositoryPort {
   funcionariosDoSetor(setor: SetorSlug): Promise<Result<FuncionarioDoSetor[], AppError>>;
   abrir(atendimento: NovoAtendimento): Promise<Result<ResultadoAbertura, AppError>>;
@@ -68,4 +87,18 @@ export interface AtendimentoRepositoryPort {
   roteamentoDoCliente(clienteId: string): Promise<Result<RoteamentoDoCliente | null, AppError>>;
   liderDoSetor(setor: SetorSlug): Promise<Result<string | null, AppError>>;
   transferir(transferencia: NovaTransferencia): Promise<Result<ResultadoTransferencia, AppError>>;
+  // 1 = próximo da Fila em que está; null se não está em Fila.
+  posicaoNaFila(atendimentoId: string): Promise<Result<number | null, AppError>>;
+  filaDoSetor(setor: SetorSlug): Promise<Result<ItemDaFila[], AppError>>;
+  // false = não está em andamento com esse dono (`funcionarioId` null = Atendimento da Fila).
+  encerrar(
+    atendimentoId: string,
+    funcionarioId: string | null,
+    ator: { id: string; setor: SetorSlug },
+  ): Promise<Result<boolean, AppError>>;
+  // Funcionário livre assume o mais antigo da Fila (do Setor ou a sua); null = ocupado ou Fila vazia.
+  liberarFuncionario(
+    funcionarioId: string,
+    setor: SetorSlug,
+  ): Promise<Result<AtendimentoAssumido | null, AppError>>;
 }

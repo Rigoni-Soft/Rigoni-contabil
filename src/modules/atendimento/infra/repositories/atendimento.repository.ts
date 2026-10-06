@@ -4,9 +4,11 @@ import { z } from "zod";
 import type { NovaMensagem } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type { AnexarMensagemOutput } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
 import type {
+  AtendimentoAssumido,
   AtendimentoEmAndamento,
   AtendimentoRepositoryPort,
   FuncionarioDoSetor,
+  ItemDaFila,
   NovaTransferencia,
   NovoAtendimento,
   ResultadoAbertura,
@@ -17,7 +19,11 @@ import {
   aberturaRowSchema,
   anexoRowSchema,
   atendimentoEmAndamentoRowSchema,
+  encerramentoRowSchema,
+  filaRowSchema,
+  liberacaoRowSchema,
   liderRowSchema,
+  posicaoRowSchema,
   roteamentoDoClienteRowSchema,
   transferenciaRowSchema,
 } from "@/modules/atendimento/infra/dtos/atendimento-rpc-row.dto";
@@ -147,6 +153,67 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       destinatarioNome: linha.destinatario_nome,
       origemNome: linha.origem_nome,
       contato: { contatoNome: linha.contato_nome, empresa: linha.empresa, cnpj: linha.cnpj },
+    });
+  }
+
+  async posicaoNaFila(atendimentoId: string): Promise<Result<number | null, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("posicao_na_fila", {
+      p_atendimento_id: atendimentoId,
+    });
+    if (error) return err(new ServicoExternoError("Falha ao consultar a posição na Fila."));
+    const posicao = posicaoRowSchema.parse(data);
+    return ok(posicao === 0 ? null : posicao);
+  }
+
+  async filaDoSetor(setor: SetorSlug): Promise<Result<ItemDaFila[], AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("fila_do_setor", { p_setor: setor });
+    if (error) return err(new ServicoExternoError("Falha ao consultar a Fila do Setor."));
+    return ok(
+      z
+        .array(filaRowSchema)
+        .parse(data)
+        .map((linha) => ({
+          id: linha.id,
+          filaFuncionarioId: linha.fila_funcionario_id,
+          filaDesde: new Date(linha.fila_desde),
+          telefone: linha.telefone,
+          contato: { contatoNome: linha.contato_nome, empresa: linha.empresa, cnpj: linha.cnpj },
+          resumo: linha.resumo,
+        })),
+    );
+  }
+
+  async encerrar(
+    atendimentoId: string,
+    funcionarioId: string | null,
+    ator: { id: string; setor: SetorSlug },
+  ): Promise<Result<boolean, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("encerrar_atendimento", {
+      p_atendimento_id: atendimentoId,
+      p_funcionario_id: funcionarioId,
+      p_ator: ator.id,
+      p_ator_setor: ator.setor,
+    });
+    if (error) return err(new ServicoExternoError("Falha ao encerrar o Atendimento."));
+    return ok(encerramentoRowSchema.parse(data));
+  }
+
+  async liberarFuncionario(
+    funcionarioId: string,
+    setor: SetorSlug,
+  ): Promise<Result<AtendimentoAssumido | null, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("liberar_funcionario", {
+      p_funcionario_id: funcionarioId,
+      p_setor: setor,
+    });
+    if (error) return err(new ServicoExternoError("Falha ao atribuir o próximo da Fila."));
+    const linha = liberacaoRowSchema.parse(data);
+    if (!linha) return ok(null);
+    return ok({
+      id: linha.id,
+      telefone: linha.telefone,
+      chave: linha.chave,
+      funcionarioNome: linha.funcionario_nome,
     });
   }
 }

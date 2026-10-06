@@ -51,6 +51,7 @@ function montar(
     limparFalha?: boolean;
     aberturaFalha?: boolean;
     emAndamento?: boolean;
+    posicaoNaFila?: number;
   } = {},
 ) {
   const buscados: string[] = [];
@@ -105,8 +106,10 @@ function montar(
   };
   const abertos: AberturaAtendimento[] = [];
   const anexadas: NovaMensagem[] = [];
+  const tentativasDeAnexar: NovaMensagem[] = [];
   const mensagens: AnexarMensagemAtendimentoPort = {
     execute: async ({ mensagem }) => {
+      tentativasDeAnexar.push(mensagem);
       if (!opcoes.emAndamento) return ok({ anexada: false });
       anexadas.push(mensagem);
       return ok({ anexada: true });
@@ -116,11 +119,16 @@ function montar(
     execute: async (a) => {
       if (opcoes.aberturaFalha) return err(new ServicoExternoError("banco"));
       abertos.push(a);
-      return ok({ id: "at-1", funcionarioId: null });
+      return ok({
+        id: "at-1",
+        funcionarioId: null,
+        ...(opcoes.posicaoNaFila ? { posicao: opcoes.posicaoNaFila } : {}),
+      });
     },
   };
   return {
     anexadas,
+    tentativasDeAnexar,
     abertos,
     caso: new ReceberMensagem(identificacao, envio, documentos, sessao, atendimentos, mensagens),
     sessoes,
@@ -503,6 +511,25 @@ describe("ReceberMensagem — número não cadastrado (#43)", () => {
     expect(abertos[0]).toMatchObject({ telefone: TEL, clienteId: null, setor: "recepcao" });
     expect(abertos[0].mensagens.map((m) => m.autor)).toEqual(["contato", "ura"]);
     expect(abertos[0].mensagens[0].texto).toBe("90.000.001/0001-29");
+  });
+
+  it("sem Funcionário livre o cliente recebe a posição na Fila, depois do aviso da recepção", async () => {
+    const { caso, enviadas, tentativasDeAnexar } = montar({ contato: null, posicaoNaFila: 3 });
+    for (const t of ["oi", "sim", "90.000.001/0001-29"]) await dizer(caso, t);
+    const texto = "Você está na posição 3 da fila de atendimento. Aguarde, por favor.";
+    expect(enviadas.map((e) => e.texto)).toEqual([
+      expect.stringContaining("Você já é cliente"),
+      expect.stringContaining("Informe o CNPJ"),
+      expect.stringContaining("recepção"),
+      texto,
+    ]);
+    expect(tentativasDeAnexar.filter((m) => m.autor === "ura")).toEqual([{ autor: "ura", texto }]);
+  });
+
+  it("com Funcionário livre não manda posição de Fila", async () => {
+    const { caso, enviadas } = montar({ contato: null });
+    for (const t of ["oi", "sim", "90.000.001/0001-29"]) await dizer(caso, t);
+    expect(enviadas).toHaveLength(3);
   });
 
   it("falha ao abrir o Atendimento devolve o erro e mantém a sessão", async () => {

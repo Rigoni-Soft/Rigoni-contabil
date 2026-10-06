@@ -76,7 +76,7 @@ Uma única troca dentro de um Atendimento (um "balão"), enviada pelo Contato ou
 _Avoid_: Balão (usar só informalmente), texto.
 
 **Fila**:
-O estado de um Atendimento aguardando um Funcionário disponível no Setor, depois de uma Transferência sem Atendente livre. Não é uma entidade separada do Atendimento — é um estado dele. A fila pode ser do Setor ou de um usuário específico (destino fixo ocupado, ex.: Responsável do Cliente).
+O estado de um Atendimento aguardando um Funcionário disponível no Setor — ao abrir, ou depois de uma Transferência, sem Atendente livre. Não é uma entidade separada do Atendimento — é um estado dele. A fila pode ser do Setor ou de um usuário específico (destino fixo ocupado, ex.: Responsável do Cliente). O cliente recebe sua posição; o Setor vê quem espera, com o que já foi coletado e o tempo de espera (mm:ss, h:mm:ss a partir de 1h). Quando um Funcionário fica livre (encerra ou transfere o Atendimento), assume o cliente mais antigo da fila do Setor ou da sua própria, sempre por antiguidade de entrada na fila e não pela ordem do Balanceamento; esse Atendimento ainda conta no Balanceamento mensal dele.
 _Avoid_: Fila de espera (como entidade própria).
 
 **Transferência**:

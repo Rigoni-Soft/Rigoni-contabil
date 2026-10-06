@@ -9,7 +9,7 @@ import { err, ok } from "@/shared/kernel/result";
 
 import { AbrirAtendimento } from "./abrir-atendimento.use-case";
 
-function montar(funcionarios: FuncionarioDoSetor[] | "falha", recusasIniciais = 0) {
+function montar(funcionarios: FuncionarioDoSetor[] | "falha", recusasIniciais = 0, posicao = 1) {
   const abertos: NovoAtendimento[] = [];
   const tentativas: NovoAtendimento[] = [];
   const repo = {
@@ -22,6 +22,7 @@ function montar(funcionarios: FuncionarioDoSetor[] | "falha", recusasIniciais = 
       return ok({ status: "aberto", id: "at-1" });
     },
     anexarMensagem: async () => ok({ anexada: false }),
+    posicaoNaFila: async () => ok(posicao),
   } as unknown as AtendimentoRepositoryPort;
   return { abertos, tentativas, caso: new AbrirAtendimento(repo) };
 }
@@ -55,10 +56,10 @@ describe("AbrirAtendimento", () => {
     expect(r.ok && r.value.funcionarioId).toBe("f1");
   });
 
-  it("sem Funcionário livre abre o Atendimento sem atribuição", async () => {
-    const { abertos, caso } = montar([{ id: "f1", atendimentosNoMes: 0, livre: false }]);
+  it("sem Funcionário livre o Atendimento entra na Fila e o cliente recebe a posição", async () => {
+    const { abertos, caso } = montar([{ id: "f1", atendimentosNoMes: 0, livre: false }], 0, 4);
     const r = await caso.execute(abertura);
-    expect(r.ok && r.value.funcionarioId).toBeNull();
+    expect(r).toEqual({ ok: true, value: { id: "at-1", funcionarioId: null, posicao: 4 } });
     expect(abertos[0].funcionarioId).toBeNull();
   });
 

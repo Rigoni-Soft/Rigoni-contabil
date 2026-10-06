@@ -40,3 +40,29 @@ export const roteamentoDoClienteRowSchema = z.object({
 });
 
 export const liderRowSchema = z.object({ id: z.string() });
+
+// `posicao_na_fila`: null se o Atendimento não está em Fila.
+export const posicaoRowSchema = z.number().int().nullable();
+// `encerrar_atendimento`: true se estava em andamento com o dono informado.
+export const encerramentoRowSchema = z.boolean();
+
+export const filaRowSchema = z.object({
+  id: z.string(),
+  fila_funcionario_id: z.string().nullable(),
+  fila_desde: z.string(),
+  telefone: z.string(),
+  contato_nome: z.string().nullable(),
+  empresa: z.string().nullable(),
+  cnpj: z.string().nullable(),
+  resumo: z.string().nullable(),
+});
+
+// `liberar_funcionario`: o Atendimento assumido, ou null.
+export const liberacaoRowSchema = z
+  .object({
+    id: z.string(),
+    telefone: z.string(),
+    chave: z.string(),
+    funcionario_nome: z.string().nullable(),
+  })
+  .nullable();

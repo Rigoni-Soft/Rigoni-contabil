@@ -1,3 +1,4 @@
+import type { PromoverDaFilaPort } from "@/modules/atendimento/application/ports/in/promover-da-fila.provider";
 import type {
   TransferenciaConcluida,
   TransferirAtendimentoInput,
@@ -39,23 +40,34 @@ const RESUMO_TAMANHO_MAXIMO = 1000; // repetido na CHECK de `transferencias.resu
 
 type Transferido = Extract<ResultadoTransferencia, { status: "transferido" }>;
 
-function avisoAoCliente(setor: SetorSlug, atendente: string | null, naFila: boolean): string {
+// `posicao` só existe quando o Atendimento ficou numa Fila.
+function avisoAoCliente(
+  setor: SetorSlug,
+  atendente: string | null,
+  naFila: boolean,
+  posicao: number | null,
+): string {
+  const ondeNaFila = posicao ? `, na posição ${posicao}` : "";
   if (naFila) {
-    return `Você está na fila de atendimento de ${atendente} no setor ${SETOR_LABEL[setor]}. Aguarde, por favor.`;
+    return `Você está na fila de atendimento de ${atendente} no setor ${SETOR_LABEL[setor]}${ondeNaFila}. Aguarde, por favor.`;
   }
-  if (!atendente) return `Você está na fila do setor ${SETOR_LABEL[setor]}. Aguarde, por favor.`;
+  if (!atendente) {
+    return `Você está na fila do setor ${SETOR_LABEL[setor]}${ondeNaFila}. Aguarde, por favor.`;
+  }
   return `Estamos transferindo você para o setor ${SETOR_LABEL[setor]}, com ${atendente}. Aguarde um instante, por favor.`;
 }
 
 // Setores que recebem já são só os cliente-facing (SETORES exclui Patriki, Expedição e T.I.),
 // então o tipo do destino basta. O Funcionário de destino sai do Balanceamento mensal; sem
-// ninguém livre o Atendimento fica sem atribuição (a Fila é do #46).
+// ninguém livre o Atendimento entra na Fila. O Funcionário de origem fica livre: o cliente mais
+// antigo da Fila dele assume o lugar.
 export class TransferirAtendimento implements TransferirAtendimentoPort {
   constructor(
     private readonly sessao: SessaoPort,
     private readonly repositorio: AtendimentoRepositoryPort,
     private readonly envio: EnvioMensagemPort,
     private readonly auditoria: AuditoriaPort,
+    private readonly fila: PromoverDaFilaPort,
   ) {}
 
   async execute(
@@ -89,10 +101,17 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
     // Transferido: falhar daqui em diante não desfaz nada; o erro diz que o Atendimento já está
     // com o destino e o cliente não foi avisado.
     const { destinatarioNome, naFila, origemNome, contato } = gravada.value;
+    const posicao =
+      destinatarioNome === null || naFila ? await this.posicaoNaFila(input.atendimentoId) : null;
     const aviso = await this.avisarCliente(
       atendimento.value,
-      avisoAoCliente(input.setorDestino, destinatarioNome, naFila),
+      avisoAoCliente(input.setorDestino, destinatarioNome, naFila, posicao),
     );
+    // A origem foi liberada mesmo se o aviso falhou: a Fila dela não pode esperar por isso.
+    const origemId = atendimento.value.funcionarioId;
+    const promovido = origemId
+      ? await this.fila.execute({ funcionarioId: origemId, setor: atendimento.value.setor })
+      : ok(null);
     if (!aviso.ok) {
       await this.auditarFalha(ator, input.atendimentoId);
       return err(
@@ -102,6 +121,7 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
         ),
       );
     }
+    if (!promovido.ok) return promovido;
     return ok({
       destinatarioNome,
       naFila,
@@ -200,6 +220,12 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
         enfileirarSeOcupado: false,
       }),
     );
+  }
+
+  // Só enfeita o aviso: sem a posição o cliente ainda é avisado de que está na fila.
+  private async posicaoNaFila(atendimentoId: string): Promise<number | null> {
+    const posicao = await this.repositorio.posicaoNaFila(atendimentoId);
+    return posicao.ok ? posicao.value : null;
   }
 
   private async escolherDestino(setor: SetorSlug): Promise<Result<string | null, AppError>> {

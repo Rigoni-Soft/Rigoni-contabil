@@ -14,8 +14,9 @@ export type AberturaAtendimento = {
   mensagens: NovaMensagem[];
 };
 
-// `funcionarioId` null = nenhum Funcionário livre no Setor (a Fila é do #45).
-export type AtendimentoAberto = { id: string; funcionarioId: string | null };
+// `funcionarioId` null = nenhum Funcionário livre no Setor: o Atendimento entrou na Fila e
+// `posicao` (1 = próximo) diz onde.
+export type AtendimentoAberto = { id: string; funcionarioId: string | null; posicao?: number };
 
 export interface AbrirAtendimentoPort {
   execute(abertura: AberturaAtendimento): Promise<Result<AtendimentoAberto, AppError>>;

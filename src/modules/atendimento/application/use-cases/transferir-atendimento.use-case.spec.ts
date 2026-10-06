@@ -9,6 +9,7 @@ import type {
 import type { RegistrarAcaoAuditoria } from "@/modules/atendimento/application/ports/out/auditoria.provider";
 import type { MensagemEnviada } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type { AtorSessaoDto } from "@/modules/atendimento/application/ports/out/sessao.provider";
+import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok } from "@/shared/kernel/result";
 
@@ -41,6 +42,8 @@ function montar(
     roteamento?: RoteamentoDoCliente | null;
     lider?: string | null;
     envioFalha?: boolean;
+    posicao?: number | null;
+    promocaoFalha?: boolean;
   } = {},
 ) {
   const ator =
@@ -52,7 +55,9 @@ function montar(
   const anexadas: string[] = [];
   const enviadas: MensagemEnviada[] = [];
   const auditadas: RegistrarAcaoAuditoria[] = [];
+  const promovidos: { funcionarioId: string; setor: string }[] = [];
   const repo = {
+    posicaoNaFila: async () => ok(opcoes.posicao === undefined ? null : opcoes.posicao),
     buscarEmAndamento: async () =>
       ok(opcoes.atendimento === undefined ? ATENDIMENTO : opcoes.atendimento),
     roteamentoDoCliente: async () =>
@@ -89,8 +94,17 @@ function montar(
         auditadas.push(a);
       },
     },
+    {
+      execute: async (p) => {
+        promovidos.push(p);
+        if (opcoes.promocaoFalha) {
+          return err(new EstadoInconsistenteError("aviso da fila falhou", "at-2"));
+        }
+        return ok(null);
+      },
+    },
   );
-  return { caso, transferencias, anexadas, enviadas, auditadas };
+  return { caso, transferencias, anexadas, enviadas, auditadas, promovidos };
 }
 
 describe("TransferirAtendimento", () => {
@@ -143,6 +157,49 @@ describe("TransferirAtendimento", () => {
     await caso.execute(INPUT);
     expect(transferencias[0].funcionarioDestinoId).toBeNull();
     expect(enviadas[0].texto).toBe("Você está na fila do setor Contábil. Aguarde, por favor.");
+  });
+
+  it("sem Funcionário livre o aviso diz a posição na Fila do Setor", async () => {
+    const { caso, enviadas } = montar({
+      funcionarios: [],
+      resultados: [{ ...TRANSFERIDO, destinatarioNome: null }],
+      posicao: 3,
+    });
+    await caso.execute(INPUT);
+    expect(enviadas[0].texto).toBe(
+      "Você está na fila do setor Contábil, na posição 3. Aguarde, por favor.",
+    );
+  });
+
+  describe("Fila do Funcionário de origem", () => {
+    it("a origem liberada puxa o mais antigo da Fila do Setor onde estava", async () => {
+      const { caso, promovidos } = montar();
+      await caso.execute(INPUT);
+      expect(promovidos).toEqual([{ funcionarioId: "func-origem", setor: "recepcao" }]);
+    });
+
+    it("Atendimento da Fila (sem dono) não libera ninguém", async () => {
+      const { caso, promovidos } = montar({
+        ator: { id: "lider", papel: "lider_setor", setor: "recepcao" },
+        atendimento: { ...ATENDIMENTO, funcionarioId: null },
+      });
+      await caso.execute(INPUT);
+      expect(promovidos).toEqual([]);
+    });
+
+    it("libera a origem mesmo se o aviso ao cliente falhou", async () => {
+      const { caso, promovidos } = montar({ envioFalha: true });
+      const r = await caso.execute(INPUT);
+      expect(!r.ok && r.error.code).toBe("INCONSISTENT_STATE");
+      expect(promovidos).toHaveLength(1);
+    });
+
+    it("falha ao avisar o cliente da Fila da origem devolve o erro, já transferido", async () => {
+      const { caso, transferencias } = montar({ promocaoFalha: true });
+      const r = await caso.execute(INPUT);
+      expect(!r.ok && r.error.code).toBe("INCONSISTENT_STATE");
+      expect(transferencias).toHaveLength(1);
+    });
   });
 
   it("relista e tenta de novo no conflito; esgotadas as tentativas transfere sem atribuição", async () => {
@@ -264,11 +321,12 @@ describe("TransferirAtendimento", () => {
       const { caso, enviadas } = montar({
         roteamento: { regime: "simples_nacional", responsavelId: "resp-1" },
         resultados: [{ ...TRANSFERIDO, naFila: true }],
+        posicao: 2,
       });
       const r = await caso.execute(INPUT_SN);
       expect(r.ok && r.value.naFila).toBe(true);
       expect(enviadas[0].texto).toBe(
-        "Você está na fila de atendimento de Ana no setor Simples Nacional. Aguarde, por favor.",
+        "Você está na fila de atendimento de Ana no setor Simples Nacional, na posição 2. Aguarde, por favor.",
       );
     });
 

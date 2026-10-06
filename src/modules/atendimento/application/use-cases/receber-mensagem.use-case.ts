@@ -214,7 +214,16 @@ export class ReceberMensagem implements ReceberMensagemPort {
       ],
     });
     if (!aberto.ok) return aberto;
-    return this.sessoes.limpar(chave);
+    const limpa = await this.sessoes.limpar(chave);
+    if (!limpa.ok) return limpa;
+    // Sem Funcionário livre o Atendimento entrou na Fila: o cliente fica sabendo a posição. O aviso
+    // vem depois de abrir porque a posição só existe com o Atendimento criado.
+    if (aberto.value.posicao === undefined) return ok(undefined);
+    const texto = `Você está na posição ${aberto.value.posicao} da fila de atendimento. Aguarde, por favor.`;
+    const enviado = await this.enviar(telefone, texto);
+    if (!enviado.ok) return enviado;
+    const registrada = await this.mensagens.execute({ chave, mensagem: { autor: "ura", texto } });
+    return registrada.ok ? ok(undefined) : registrada;
   }
 
   private async responderMenu(

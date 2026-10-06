@@ -14,8 +14,9 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 // Só Atendimento com Funcionário humano conta pro Balanceamento mensal: a contagem vem
 // dos Atendimentos já atribuídos, a URA sozinha nunca aparece nela.
+// Sem Funcionário livre o Atendimento entra na Fila (a saída é por antiguidade, ver PromoverDaFila).
 // ponytail: "livre" = sem Atendimento em andamento (decidido no repositório); a regra fina de
-// disponibilidade/presença e a Fila entram no #45.
+// disponibilidade/presença não existe ainda.
 export class AbrirAtendimento implements AbrirAtendimentoPort {
   constructor(private readonly repositorio: AtendimentoRepositoryPort) {}
 
@@ -28,7 +29,7 @@ export class AbrirAtendimento implements AbrirAtendimentoPort {
       const funcionarioId = menosCarregado(funcionarios.value)?.id ?? null;
       const aberto = await this.repositorio.abrir({ ...abertura, funcionarioId });
       if (!aberto.ok) return aberto;
-      if (aberto.value.status === "aberto") return ok({ id: aberto.value.id, funcionarioId });
+      if (aberto.value.status === "aberto") return this.concluir(aberto.value.id, funcionarioId);
     }
     const semAtribuicao = await this.repositorio.abrir({ ...abertura, funcionarioId: null });
     if (!semAtribuicao.ok) return semAtribuicao;
@@ -41,6 +42,16 @@ export class AbrirAtendimento implements AbrirAtendimentoPort {
         ),
       );
     }
-    return ok({ id: semAtribuicao.value.id, funcionarioId: null });
+    return this.concluir(semAtribuicao.value.id, null);
+  }
+
+  private async concluir(
+    id: string,
+    funcionarioId: string | null,
+  ): Promise<Result<AtendimentoAberto, AppError>> {
+    if (funcionarioId) return ok({ id, funcionarioId });
+    const posicao = await this.repositorio.posicaoNaFila(id);
+    if (!posicao.ok) return posicao;
+    return ok({ id, funcionarioId, ...(posicao.value ? { posicao: posicao.value } : {}) });
   }
 }
