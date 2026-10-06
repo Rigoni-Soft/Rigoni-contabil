@@ -4,7 +4,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 
-import { SupabaseAtendimentoGateway } from "./supabase-atendimento.gateway";
+import { SupabaseAtendimentoRepository } from "./atendimento.repository";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const SERVICE_KEY =
@@ -12,7 +12,7 @@ const SERVICE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
-const gateway = new SupabaseAtendimentoGateway(admin);
+const gateway = new SupabaseAtendimentoRepository(admin);
 const TELEFONE = "61977776666";
 let funcionarioId: string;
 
@@ -37,7 +37,7 @@ afterAll(async () => {
   await admin.auth.admin.deleteUser(funcionarioId);
 });
 
-describe("SupabaseAtendimentoGateway", () => {
+describe("SupabaseAtendimentoRepository", () => {
   it("abre Atendimento sem Funcionário e guarda as Mensagens em ordem", async () => {
     const r = await gateway.abrir({
       telefone: TELEFONE,
@@ -79,5 +79,25 @@ describe("SupabaseAtendimentoGateway", () => {
       atendimentosNoMes: 1,
       livre: false,
     });
+  });
+
+  it("recusa (null) atribuir a Funcionário já ocupado, sem gravar nada", async () => {
+    const { count: antes } = await admin
+      .from("atendimentos")
+      .select("*", { count: "exact", head: true })
+      .eq("telefone", TELEFONE);
+    const r = await gateway.abrir({
+      telefone: TELEFONE,
+      clienteId: null,
+      setor: "recepcao",
+      funcionarioId,
+      mensagens: [{ autor: "contato", texto: "outro" }],
+    });
+    expect(r).toEqual({ ok: true, value: null });
+    const { count: depois } = await admin
+      .from("atendimentos")
+      .select("*", { count: "exact", head: true })
+      .eq("telefone", TELEFONE);
+    expect(depois).toBe(antes);
   });
 });

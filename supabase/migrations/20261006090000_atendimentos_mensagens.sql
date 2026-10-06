@@ -54,7 +54,9 @@ as $$
 $$;
 revoke all on function public.funcionarios_do_setor(public.setor_slug) from public, anon, authenticated;
 
--- Atendimento + Mensagens numa transação só.
+-- Atendimento + Mensagens numa transação só. O lock por Setor serializa as atribuições: se o
+-- Funcionário escolhido já foi ocupado por outro Atendimento, devolve null sem gravar nada
+-- (quem chama escolhe de novo).
 create or replace function public.abrir_atendimento(
   p_telefone text,
   p_cliente_id uuid,
@@ -69,6 +71,14 @@ as $$
 declare
   v_id uuid;
 begin
+  perform pg_advisory_xact_lock(hashtext('atendimento:' || p_setor::text));
+  if p_funcionario_id is not null and exists (
+    select 1 from public.atendimentos
+    where funcionario_id = p_funcionario_id and status = 'em_andamento'
+  ) then
+    return null;
+  end if;
+
   insert into public.atendimentos (telefone, cliente_id, setor, funcionario_id, assumido_em)
   values (
     p_telefone, p_cliente_id, p_setor, p_funcionario_id,

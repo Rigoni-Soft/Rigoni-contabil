@@ -9,6 +9,7 @@ import {
 
 import { exigirSegredosReais } from "@/main/segredos-mensageria.factory";
 import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
+import type { AbrirAtendimentoPort } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type { ReceberMensagemPort } from "@/modules/atendimento/application/ports/in/receber-mensagem.provider";
 import type { AutenticacaoWebhookPort } from "@/modules/atendimento/application/ports/out/autenticacao-webhook.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
@@ -16,10 +17,10 @@ import { AbrirAtendimento } from "@/modules/atendimento/application/use-cases/ab
 import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/receber-mensagem.use-case";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
 import { HmacAutenticacaoWebhookGateway } from "@/modules/atendimento/infra/gateways/hmac-autenticacao-webhook.gateway";
-import { SupabaseAtendimentoGateway } from "@/modules/atendimento/infra/gateways/supabase-atendimento.gateway";
 import { SupabaseDocumentosContratuaisGateway } from "@/modules/atendimento/infra/gateways/supabase-documentos-contratuais.gateway";
 import { SupabaseIdentificacaoContatoGateway } from "@/modules/atendimento/infra/gateways/supabase-identificacao-contato.gateway";
 import { SupabaseSessaoAtendimentoGateway } from "@/modules/atendimento/infra/gateways/supabase-sessao-atendimento.gateway";
+import { SupabaseAtendimentoRepository } from "@/modules/atendimento/infra/repositories/atendimento.repository";
 
 // Instância única: o falso guarda em memória o que "enviou".
 const envioFalso = new EnvioMensagemFalsoGateway();
@@ -44,6 +45,10 @@ function exigirSegredosDeProducao(): void {
   );
 }
 
+export function makeAbrirAtendimento(): AbrirAtendimentoPort {
+  return new AbrirAtendimento(new SupabaseAtendimentoRepository(createSupabaseAdmin()));
+}
+
 export function makeReceberMensagem(): ReceberMensagemPort {
   exigirSegredosDeProducao();
   const supabaseAdmin = createSupabaseAdmin();
@@ -52,7 +57,7 @@ export function makeReceberMensagem(): ReceberMensagemPort {
     makeEnvioMensagem(),
     new SupabaseDocumentosContratuaisGateway(supabaseAdmin),
     new SupabaseSessaoAtendimentoGateway(supabaseAdmin, MENSAGERIA_SEGREDO_SESSAO),
-    new AbrirAtendimento(new SupabaseAtendimentoGateway(supabaseAdmin)),
+    makeAbrirAtendimento(),
   );
 }
 

@@ -1,3 +1,4 @@
+import type { AberturaAtendimento } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type {
   AtendimentoRepositoryPort,
   FuncionarioDoSetor,
@@ -8,20 +9,23 @@ import { err, ok } from "@/shared/kernel/result";
 
 import { AbrirAtendimento } from "./abrir-atendimento.use-case";
 
-function montar(funcionarios: FuncionarioDoSetor[] | "falha") {
+function montar(funcionarios: FuncionarioDoSetor[] | "falha", recusasIniciais = 0) {
   const abertos: NovoAtendimento[] = [];
+  const tentativas: NovoAtendimento[] = [];
   const repo: AtendimentoRepositoryPort = {
     funcionariosDoSetor: async () =>
       funcionarios === "falha" ? err(new ServicoExternoError("banco")) : ok(funcionarios),
     abrir: async (a) => {
+      tentativas.push(a);
+      if (tentativas.length <= recusasIniciais) return ok(null);
       abertos.push(a);
       return ok({ id: "at-1" });
     },
   };
-  return { abertos, caso: new AbrirAtendimento(repo) };
+  return { abertos, tentativas, caso: new AbrirAtendimento(repo) };
 }
 
-const abertura = {
+const abertura: AberturaAtendimento = {
   telefone: "61988887777",
   clienteId: "c1",
   setor: "recepcao",
@@ -60,5 +64,26 @@ describe("AbrirAtendimento", () => {
     const { abertos, caso } = montar("falha");
     expect((await caso.execute(abertura)).ok).toBe(false);
     expect(abertos).toHaveLength(0);
+  });
+
+  it("se o escolhido foi ocupado no meio, relista e atribui ao próximo livre", async () => {
+    const { abertos, tentativas, caso } = montar(
+      [
+        { id: "f1", atendimentosNoMes: 0, livre: true },
+        { id: "f2", atendimentosNoMes: 1, livre: true },
+      ],
+      1,
+    );
+    const r = await caso.execute(abertura);
+    expect(tentativas.map((t) => t.funcionarioId)).toEqual(["f1", "f1"]);
+    expect(r.ok && r.value.id).toBe("at-1");
+    expect(abertos).toHaveLength(1);
+  });
+
+  it("recusas em todas as tentativas terminam abrindo sem atribuição", async () => {
+    const { abertos, caso } = montar([{ id: "f1", atendimentosNoMes: 0, livre: true }], 3);
+    const r = await caso.execute(abertura);
+    expect(r.ok && r.value.funcionarioId).toBeNull();
+    expect(abertos[0].funcionarioId).toBeNull();
   });
 });

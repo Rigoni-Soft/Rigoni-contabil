@@ -150,7 +150,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
   // Contato (já foi buscado em todos os Clientes), então o fim é sempre a recepção; sessão
   // ausente/expirada/de outro fluxo ou "menu" recomeça pela pergunta.
   private async identificarNovo(
-    { telefone, texto: original }: MensagemRecebida,
+    { telefone, texto: textoDoContato }: MensagemRecebida,
     chave: string,
     texto: string,
     sessao: SessaoAtendimento | null,
@@ -161,12 +161,12 @@ export class ReceberMensagem implements ReceberMensagemPort {
     if (etapa === "ja_cliente") {
       if (["sim", "s"].includes(resposta)) return this.avancar(telefone, chave, "cnpj", PEDIR_CNPJ);
       if (["nao", "n"].includes(resposta))
-        return this.encaminharRecepcao(telefone, chave, original);
+        return this.encaminharRecepcao(telefone, chave, textoDoContato);
       return this.enviar(telefone, SIM_OU_NAO);
     }
     if (etapa === "cnpj") {
       if (!cnpjValido(texto)) return this.enviar(telefone, CNPJ_INVALIDO);
-      return this.encaminharRecepcao(telefone, chave, original);
+      return this.encaminharRecepcao(telefone, chave, textoDoContato);
     }
     return this.avancar(telefone, chave, "ja_cliente", PERGUNTA_CLIENTE);
   }
