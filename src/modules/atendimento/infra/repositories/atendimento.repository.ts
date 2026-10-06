@@ -112,16 +112,13 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     });
   }
 
-  // Mais de um Líder no Setor: o primeiro por nome (ordem estável).
+  // Cada Setor tem um só Líder (regra de domínio); se o banco devolver dois, falha em vez de escolher.
   async liderDoSetor(setor: SetorSlug): Promise<Result<string | null, AppError>> {
     const { data, error } = await this.supabaseAdmin
       .from("perfis")
       .select("id")
       .eq("setor", setor)
       .eq("papel", "lider_setor")
-      .order("nome")
-      .order("id")
-      .limit(1)
       .maybeSingle();
     if (error) return err(new ServicoExternoError("Falha ao consultar o Líder do Setor."));
     return ok(data ? liderRowSchema.parse(data).id : null);

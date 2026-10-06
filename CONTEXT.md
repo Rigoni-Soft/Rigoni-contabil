@@ -81,7 +81,7 @@ _Avoid_: Fila de espera (como entidade própria).
 
 **Transferência**:
 A ação de mover um Atendimento de um Atendente/Setor para outro.
-Para o Setor Simples Nacional só vale para Cliente do Simples Nacional ou MEI e ignora o Balanceamento mensal: vai ao Responsável do Cliente ou, sem Responsável, ao Líder do Setor; se o destino estiver ocupado, o Atendimento entra na fila dele.
+Para o Setor Simples Nacional só vale para Cliente do Simples Nacional ou MEI e ignora o Balanceamento mensal: vai ao Responsável do Cliente ou, sem Responsável, ao Líder do Setor; se o destino estiver ocupado, o Atendimento entra na fila dele. Responsável inativo (usuário desativado, #58) não conta: o Atendimento vai ao Líder.
 
 **Balanceamento mensal**:
 A regra de distribuição de novos Atendimentos entre os usuários de um Setor (Admin, Líder de setor e Funcionário — todos podem assumir Atendimento), de forma equilibrada ao longo do mês. Não se aplica à ordem de saída da Fila, que é sempre por antiguidade.
