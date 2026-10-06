@@ -1,9 +1,14 @@
+import type { Papel } from "@/shared/kernel/papeis";
+import type { SetorSlug } from "@/shared/kernel/setores";
+
 import { podeTransferir } from "./transferencia.service";
 
-const atendimento = { setor: "recepcao", funcionarioId: "dono" };
+type Ator = { id: string; papel: Papel; setor: SetorSlug };
+
+const atendimento = { setor: "recepcao" as const, funcionarioId: "dono" };
 
 describe("podeTransferir", () => {
-  it.each([
+  it.each<[Ator, boolean]>([
     [{ id: "x", papel: "admin", setor: "contabil" }, true],
     [{ id: "x", papel: "lider_setor", setor: "recepcao" }, true],
     [{ id: "dono", papel: "funcionario", setor: "recepcao" }, true],
@@ -14,7 +19,7 @@ describe("podeTransferir", () => {
   });
 
   it("Atendimento sem dono só é transferido por Admin ou Líder", () => {
-    const semDono = { setor: "recepcao", funcionarioId: null };
+    const semDono = { setor: "recepcao" as const, funcionarioId: null };
     expect(podeTransferir({ id: "x", papel: "funcionario", setor: "recepcao" }, semDono)).toBe(
       false,
     );
