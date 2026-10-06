@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { makeAutenticacaoWebhook, makeReceberMensagem } from "@/main/atendimento.factory";
+import { makeAutenticarWebhook, makeReceberMensagem } from "@/main/atendimento.factory";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 
 // Payload de notificação da WhatsApp Cloud API (Meta). Só o que o sistema lê; o
@@ -39,7 +39,7 @@ export async function GET(request: Request): Promise<Response> {
   const challenge = params.get("hub.challenge");
   const token = params.get("hub.verify_token");
   if (!modo || !challenge || !token) return resposta("Parâmetros hub.* ausentes.", 400);
-  if (modo !== "subscribe" || !makeAutenticacaoWebhook().tokenValido(token)) {
+  if (modo !== "subscribe" || !makeAutenticarWebhook().verificarToken(token).ok) {
     return resposta("Verificação recusada.", 403);
   }
   return resposta(challenge, 200);
@@ -52,7 +52,7 @@ export async function GET(request: Request): Promise<Response> {
 export async function POST(request: Request): Promise<Response> {
   const corpoCru = await request.text();
   const assinatura = request.headers.get("x-hub-signature-256");
-  if (!makeAutenticacaoWebhook().assinaturaValida(corpoCru, assinatura)) {
+  if (!makeAutenticarWebhook().verificarAssinatura(corpoCru, assinatura).ok) {
     return resposta("Assinatura inválida.", 403);
   }
 

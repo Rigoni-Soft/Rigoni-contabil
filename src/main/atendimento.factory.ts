@@ -14,6 +14,7 @@ import { makeRegistrarAcao } from "@/main/auditoria.factory";
 import { exigirSegredosReais } from "@/main/segredos-mensageria.factory";
 import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
+import type { AutenticarWebhookPort } from "@/modules/atendimento/application/ports/in/autenticar-webhook.provider";
 import type { AvisarClientePort } from "@/modules/atendimento/application/ports/in/avisar-cliente.provider";
 import type { EncerrarAtendimentoPort } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
 import type {
@@ -27,7 +28,6 @@ import type { TransferirAtendimentoPort } from "@/modules/atendimento/applicatio
 import type { VerificarInatividadePort } from "@/modules/atendimento/application/ports/in/verificar-inatividade.provider";
 import type { AuditoriaPort } from "@/modules/atendimento/application/ports/out/auditoria.provider";
 import type { AutenticacaoJobPort } from "@/modules/atendimento/application/ports/out/autenticacao-job.provider";
-import type { AutenticacaoWebhookPort } from "@/modules/atendimento/application/ports/out/autenticacao-webhook.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type {
   AtorSessaoDto,
@@ -35,6 +35,7 @@ import type {
 } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { AbrirAtendimento } from "@/modules/atendimento/application/use-cases/abrir-atendimento.use-case";
 import { AnexarMensagemAtendimento } from "@/modules/atendimento/application/use-cases/anexar-mensagem-atendimento.use-case";
+import { AutenticarWebhook } from "@/modules/atendimento/application/use-cases/autenticar-webhook.use-case";
 import { AvisarCliente } from "@/modules/atendimento/application/use-cases/avisar-cliente.use-case";
 import { CadastrarFeriado } from "@/modules/atendimento/application/use-cases/cadastrar-feriado.use-case";
 import { EncerrarAtendimento } from "@/modules/atendimento/application/use-cases/encerrar-atendimento.use-case";
@@ -72,7 +73,7 @@ function makeEnvioMensagem(): EnvioMensagemPort {
   return envioFalso;
 }
 
-// Chamada por makeAutenticacaoWebhook e makeReceberMensagem: nenhum caminho da rota pública
+// Chamada por makeAutenticarWebhook e makeReceberMensagem: nenhum caminho da rota pública
 // (GET/POST) chega ao client privilegiado nem valida HMAC com segredo de desenvolvimento.
 function exigirSegredosDeProducao(): void {
   exigirSegredosReais(
@@ -113,11 +114,10 @@ export function makeAutenticacaoJob(): AutenticacaoJobPort {
   return new BearerAutenticacaoJobGateway(CRON_SECRET);
 }
 
-export function makeAutenticacaoWebhook(): AutenticacaoWebhookPort {
+export function makeAutenticarWebhook(): AutenticarWebhookPort {
   exigirSegredosDeProducao();
-  return new HmacAutenticacaoWebhookGateway(
-    MENSAGERIA_SEGREDO_ASSINATURA,
-    MENSAGERIA_TOKEN_VERIFICACAO,
+  return new AutenticarWebhook(
+    new HmacAutenticacaoWebhookGateway(MENSAGERIA_SEGREDO_ASSINATURA, MENSAGERIA_TOKEN_VERIFICACAO),
   );
 }
 

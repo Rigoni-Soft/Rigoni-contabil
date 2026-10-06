@@ -6,6 +6,7 @@
 import { createHmac } from "node:crypto";
 
 import type { SessaoAtendimento } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
+import { AutenticarWebhook } from "@/modules/atendimento/application/use-cases/autenticar-webhook.use-case";
 import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/receber-mensagem.use-case";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
 import { HmacAutenticacaoWebhookGateway } from "@/modules/atendimento/infra/gateways/hmac-autenticacao-webhook.gateway";
@@ -52,7 +53,8 @@ jest.mock("@/main/atendimento.factory", () => ({
       { listarDatas: async () => ok([]) },
       { buscar: async () => ok({ nomeArquivo: "DAS.pdf", pdfBase64: "JVBERi0=" }) },
     ),
-  makeAutenticacaoWebhook: () => new HmacAutenticacaoWebhookGateway(SEGREDO, TOKEN),
+  makeAutenticarWebhook: () =>
+    new AutenticarWebhook(new HmacAutenticacaoWebhookGateway(SEGREDO, TOKEN)),
 }));
 
 const notificacao = (mensagens: object[], extra: object = {}) =>

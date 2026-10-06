@@ -34,7 +34,7 @@ describe("atendimento.factory em produção", () => {
       MENSAGERIA_TOKEN_VERIFICACAO: undefined,
       MENSAGERIA_SEGREDO_SESSAO: undefined,
     });
-    expect(() => factory.makeAutenticacaoWebhook()).toThrow(/bloqueado em produção/);
+    expect(() => factory.makeAutenticarWebhook()).toThrow(/bloqueado em produção/);
     expect(() => factory.makeReceberMensagem()).toThrow(/bloqueado em produção/);
     expect(criarAdmin).not.toHaveBeenCalled();
   });
@@ -46,12 +46,12 @@ describe("atendimento.factory em produção", () => {
       MENSAGERIA_TOKEN_VERIFICACAO: "token-falso",
       MENSAGERIA_SEGREDO_SESSAO: "segredo-sessao-falso",
     });
-    expect(() => factory.makeAutenticacaoWebhook()).toThrow(/bloqueado em produção/);
+    expect(() => factory.makeAutenticarWebhook()).toThrow(/bloqueado em produção/);
   });
 
   it("com segredos reais monta autenticação e caso de uso", () => {
     const { factory, criarAdmin } = carregarFactory({ NODE_ENV: "production", ...REAIS });
-    expect(factory.makeAutenticacaoWebhook().tokenValido("token-real")).toBe(true);
+    expect(factory.makeAutenticarWebhook().verificarToken("token-real").ok).toBe(true);
     expect(() => factory.makeReceberMensagem()).not.toThrow();
     expect(criarAdmin).toHaveBeenCalled();
   });
@@ -63,6 +63,6 @@ describe("atendimento.factory em produção", () => {
       MENSAGERIA_TOKEN_VERIFICACAO: undefined,
       MENSAGERIA_SEGREDO_SESSAO: undefined,
     });
-    expect(factory.makeAutenticacaoWebhook().tokenValido("token-falso")).toBe(true);
+    expect(factory.makeAutenticarWebhook().verificarToken("token-falso").ok).toBe(true);
   });
 });
