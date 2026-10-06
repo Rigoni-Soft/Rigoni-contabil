@@ -66,7 +66,7 @@ describe("SupabaseAtendimentoRepository — desconexão do Funcionário", () => 
     expect((await sessao.auth.signInWithPassword({ email, password: SENHA })).error).toBeNull();
     expect((await sessao.auth.signOut()).error).toBeNull();
 
-    // Atendimento novo no mesmo Setor: o dono offline segue ocupado, então ele vai pra Fila.
+    // Atendimento novo no mesmo Setor, sem atribuicao livre: nao herda o dono offline.
     const novo = await repositorio.abrir({
       telefone: TELEFONES[1],
       chave: TELEFONES[1],
@@ -77,6 +77,7 @@ describe("SupabaseAtendimentoRepository — desconexão do Funcionário", () => 
     });
     if (!novo.ok || novo.value.status !== "aberto") throw new Error("abertura falhou");
     expect(novo.value.funcionarioId).toBeNull();
+    expect(await repositorio.posicaoNaFila(novo.value.id)).toEqual({ ok: true, value: 1 });
 
     // Continua atribuído a ele, em andamento.
     expect(await repositorio.buscarEmAndamento(atendimentoId)).toMatchObject({
@@ -84,8 +85,13 @@ describe("SupabaseAtendimentoRepository — desconexão do Funcionário", () => 
       value: { id: atendimentoId, funcionarioId },
     });
 
-    // Ao voltar, a conversa está lá, na ordem.
+    // Ao voltar, retoma a conversa: o histórico está lá e a nova mensagem entra na ordem.
     expect((await sessao.auth.signInWithPassword({ email, password: SENHA })).error).toBeNull();
+    const anexada = await repositorio.anexarMensagem(TELEFONES[0], {
+      autor: "funcionario",
+      texto: "voltei",
+    });
+    expect(anexada.ok).toBe(true);
     const historico = await admin
       .from("mensagens")
       .select("autor, texto")
@@ -94,6 +100,7 @@ describe("SupabaseAtendimentoRepository — desconexão do Funcionário", () => 
     expect(historico.data).toEqual([
       { autor: "contato", texto: "oi" },
       { autor: "funcionario", texto: "bom dia" },
+      { autor: "funcionario", texto: "voltei" },
     ]);
     await sessao.auth.signOut();
   });
