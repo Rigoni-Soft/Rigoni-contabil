@@ -1,6 +1,7 @@
 import type {
   AberturaAtendimento,
   AbrirAtendimentoPort,
+  NovaMensagem,
 } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type {
   DocumentoContratual,
@@ -48,6 +49,7 @@ function montar(
     sessaoFalha?: boolean;
     limparFalha?: boolean;
     aberturaFalha?: boolean;
+    emAndamento?: boolean;
   } = {},
 ) {
   const buscados: string[] = [];
@@ -101,7 +103,13 @@ function montar(
     linkTemporario: async (caminho) => ok(`https://storage.test/${caminho}?token=x`),
   };
   const abertos: AberturaAtendimento[] = [];
+  const anexadas: NovaMensagem[] = [];
   const atendimentos: AbrirAtendimentoPort = {
+    anexarSeEmAndamento: async (_chave, mensagem) => {
+      if (!opcoes.emAndamento) return ok(false);
+      anexadas.push(mensagem);
+      return ok(true);
+    },
     execute: async (a) => {
       if (opcoes.aberturaFalha) return err(new ServicoExternoError("banco"));
       abertos.push(a);
@@ -109,6 +117,7 @@ function montar(
     },
   };
   return {
+    anexadas,
     abertos,
     caso: new ReceberMensagem(identificacao, envio, documentos, sessao, atendimentos),
     sessoes,
@@ -177,7 +186,10 @@ describe("ReceberMensagem", () => {
         salvar: async () => ok(undefined),
         limpar: async () => ok(undefined),
       },
-      { execute: async () => ok({ id: "at-1", funcionarioId: null }) },
+      {
+        execute: async () => ok({ id: "at-1", funcionarioId: null }),
+        anexarSeEmAndamento: async () => ok(false),
+      },
     );
     const r = await caso.execute({ telefone: "11912345678", texto: "oi" });
     expect(r.ok).toBe(false);
@@ -497,6 +509,25 @@ describe("ReceberMensagem — número não cadastrado (#43)", () => {
     await dizer(caso, "oi");
     expect((await dizer(caso, "não")).ok).toBe(false);
     expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente" });
+  });
+
+  it("número com Atendimento em andamento tem a Mensagem anexada e a URA não recomeça", async () => {
+    const { caso, enviadas, anexadas, abertos, sessoes } = montar({
+      contato: null,
+      emAndamento: true,
+    });
+    const r = await caso.execute({ telefone: "5511900000000", texto: "alguém aí?" });
+    expect(r.ok).toBe(true);
+    expect(anexadas).toEqual([{ autor: "contato", texto: "alguém aí?" }]);
+    expect(enviadas).toHaveLength(0);
+    expect(abertos).toHaveLength(0);
+    expect(sessoes.size).toBe(0);
+  });
+
+  it("a abertura leva a chave nacional do telefone", async () => {
+    const { caso, abertos } = montar({ contato: null });
+    for (const t of ["oi", "não"]) await caso.execute({ telefone: "5511900000000", texto: t });
+    expect(abertos[0]).toMatchObject({ telefone: "5511900000000", chave: "11900000000" });
   });
 });
 

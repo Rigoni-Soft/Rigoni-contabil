@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
+import type { NovaMensagem } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type {
   AtendimentoRepositoryPort,
   FuncionarioDoSetor,
@@ -36,6 +37,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
   async abrir(atendimento: NovoAtendimento): Promise<Result<{ id: string } | null, AppError>> {
     const { data, error } = await this.supabaseAdmin.rpc("abrir_atendimento", {
       p_telefone: atendimento.telefone,
+      p_chave: atendimento.chave,
       p_cliente_id: atendimento.clienteId,
       p_setor: atendimento.setor,
       p_funcionario_id: atendimento.funcionarioId,
@@ -43,5 +45,15 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     });
     if (error) return err(new ServicoExternoError("Falha ao abrir o Atendimento."));
     return ok(data ? { id: z.string().parse(data) } : null);
+  }
+
+  async anexarMensagem(chave: string, mensagem: NovaMensagem): Promise<Result<boolean, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("anexar_mensagem_atendimento", {
+      p_chave: chave,
+      p_autor: mensagem.autor,
+      p_texto: mensagem.texto,
+    });
+    if (error) return err(new ServicoExternoError("Falha ao registrar a Mensagem."));
+    return ok(data === true);
   }
 }

@@ -121,6 +121,15 @@ export class ReceberMensagem implements ReceberMensagemPort {
     const chave = soDigitosNacionais(mensagem.telefone);
     if (!chave) return err(new ValidationError("Telefone da mensagem é obrigatório"));
 
+    // Quem já tem Atendimento em andamento continua nele; a URA não recomeça.
+    // ponytail: sem resposta automática, quem responde é o Funcionário (#46).
+    const anexada = await this.atendimentos.anexarSeEmAndamento(chave, {
+      autor: "contato",
+      texto: mensagem.texto,
+    });
+    if (!anexada.ok) return anexada;
+    if (anexada.value) return ok(undefined);
+
     const contato = await this.contatos.identificar(chave);
     if (!contato.ok) return contato;
     const texto = mensagem.texto.trim().toLowerCase();
@@ -193,6 +202,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
     // ponytail: número sem Contato abre sem cliente; a recepção identifica na conversa.
     const aberto = await this.atendimentos.execute({
       telefone,
+      chave,
       clienteId: null,
       setor: "recepcao",
       mensagens: [

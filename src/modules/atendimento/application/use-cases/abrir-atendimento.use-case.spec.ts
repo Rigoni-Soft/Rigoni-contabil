@@ -21,12 +21,14 @@ function montar(funcionarios: FuncionarioDoSetor[] | "falha", recusasIniciais = 
       abertos.push(a);
       return ok({ id: "at-1" });
     },
+    anexarMensagem: async () => ok(true),
   };
   return { abertos, tentativas, caso: new AbrirAtendimento(repo) };
 }
 
 const abertura: AberturaAtendimento = {
   telefone: "61988887777",
+  chave: "61988887777",
   clienteId: "c1",
   setor: "recepcao",
   mensagens: [{ autor: "contato" as const, texto: "oi" }],
@@ -85,5 +87,11 @@ describe("AbrirAtendimento", () => {
     const r = await caso.execute(abertura);
     expect(r.ok && r.value.funcionarioId).toBeNull();
     expect(abertos[0].funcionarioId).toBeNull();
+  });
+
+  it("anexar delega ao repositório e devolve se havia Atendimento em andamento", async () => {
+    const { caso } = montar([]);
+    const r = await caso.anexarSeEmAndamento("61988887777", { autor: "contato", texto: "oi" });
+    expect(r).toEqual({ ok: true, value: true });
   });
 });

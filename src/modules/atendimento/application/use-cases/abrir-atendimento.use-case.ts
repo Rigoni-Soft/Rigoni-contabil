@@ -2,13 +2,15 @@ import type {
   AberturaAtendimento,
   AbrirAtendimentoPort,
   AtendimentoAberto,
+  NovaMensagem,
 } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type {
   AtendimentoRepositoryPort,
   FuncionarioDoSetor,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { AppError } from "@/shared/errors/app.error";
-import { ok, type Result } from "@/shared/kernel/result";
+import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
+import { err, ok, type Result } from "@/shared/kernel/result";
 
 const TENTATIVAS = 3;
 
@@ -32,17 +34,22 @@ export class AbrirAtendimento implements AbrirAtendimentoPort {
   async execute(abertura: AberturaAtendimento): Promise<Result<AtendimentoAberto, AppError>> {
     // O repositório recusa (null) se outro Atendimento ocupou o escolhido entre a listagem e a
     // gravação; relista e escolhe de novo. Esgotadas as tentativas, abre sem atribuição.
-    for (let tentativa = 0; tentativa <= TENTATIVAS; tentativa++) {
-      let funcionarioId: string | null = null;
-      if (tentativa < TENTATIVAS) {
-        const funcionarios = await this.repositorio.funcionariosDoSetor(abertura.setor);
-        if (!funcionarios.ok) return funcionarios;
-        funcionarioId = menosCarregado(funcionarios.value)?.id ?? null;
-      }
+    for (let tentativa = 0; tentativa < TENTATIVAS; tentativa++) {
+      const funcionarios = await this.repositorio.funcionariosDoSetor(abertura.setor);
+      if (!funcionarios.ok) return funcionarios;
+      const funcionarioId = menosCarregado(funcionarios.value)?.id ?? null;
       const aberto = await this.repositorio.abrir({ ...abertura, funcionarioId });
       if (!aberto.ok) return aberto;
       if (aberto.value) return ok({ id: aberto.value.id, funcionarioId });
     }
-    throw new Error("inalcançável: abrir sem Funcionário nunca devolve null");
+    const semAtribuicao = await this.repositorio.abrir({ ...abertura, funcionarioId: null });
+    if (!semAtribuicao.ok) return semAtribuicao;
+    // Sem Funcionário não há o que disputar: null aqui só existe no tipo.
+    if (!semAtribuicao.value) return err(new ServicoExternoError("Falha ao abrir o Atendimento."));
+    return ok({ id: semAtribuicao.value.id, funcionarioId: null });
+  }
+
+  anexarSeEmAndamento(chave: string, mensagem: NovaMensagem): Promise<Result<boolean, AppError>> {
+    return this.repositorio.anexarMensagem(chave, mensagem);
   }
 }

@@ -40,6 +40,7 @@ jest.mock("@/main/atendimento.factory", () => ({
   makeReceberMensagem: () =>
     new ReceberMensagem(identificacao, envio, documentos, sessoes, {
       execute: async () => ok({ id: "at-1", funcionarioId: null }),
+      anexarSeEmAndamento: async () => ok(false),
     }),
   makeAutenticacaoWebhook: () => new HmacAutenticacaoWebhookGateway(SEGREDO, TOKEN),
 }));

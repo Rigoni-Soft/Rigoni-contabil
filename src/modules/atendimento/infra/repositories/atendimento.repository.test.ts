@@ -41,6 +41,7 @@ describe("SupabaseAtendimentoRepository", () => {
   it("abre Atendimento sem Funcionário e guarda as Mensagens em ordem", async () => {
     const r = await gateway.abrir({
       telefone: TELEFONE,
+      chave: TELEFONE,
       clienteId: null,
       setor: "recepcao",
       funcionarioId: null,
@@ -68,6 +69,7 @@ describe("SupabaseAtendimentoRepository", () => {
 
     await gateway.abrir({
       telefone: TELEFONE,
+      chave: TELEFONE,
       clienteId: null,
       setor: "recepcao",
       funcionarioId,
@@ -88,6 +90,7 @@ describe("SupabaseAtendimentoRepository", () => {
       .eq("telefone", TELEFONE);
     const r = await gateway.abrir({
       telefone: TELEFONE,
+      chave: TELEFONE,
       clienteId: null,
       setor: "recepcao",
       funcionarioId,
@@ -99,5 +102,18 @@ describe("SupabaseAtendimentoRepository", () => {
       .select("*", { count: "exact", head: true })
       .eq("telefone", TELEFONE);
     expect(depois).toBe(antes);
+  });
+
+  it("anexa Mensagem ao Atendimento em andamento do número e ignora número sem Atendimento", async () => {
+    expect(await gateway.anexarMensagem(TELEFONE, { autor: "contato", texto: "mais uma" })).toEqual(
+      {
+        ok: true,
+        value: true,
+      },
+    );
+    expect(await gateway.anexarMensagem("00000000000", { autor: "contato", texto: "x" })).toEqual({
+      ok: true,
+      value: false,
+    });
   });
 });

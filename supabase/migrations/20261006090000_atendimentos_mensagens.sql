@@ -6,6 +6,8 @@ create type public.autor_mensagem as enum ('contato', 'ura', 'funcionario');
 create table public.atendimentos (
   id uuid primary key default gen_random_uuid(),
   telefone text not null,
+  -- só dígitos nacionais: identifica o Atendimento em andamento do número, em qualquer formato.
+  chave_telefone text not null,
   cliente_id uuid references public.clientes (id),
   setor public.setor_slug not null,
   funcionario_id uuid references public.perfis (id),
@@ -14,6 +16,8 @@ create table public.atendimentos (
   assumido_em timestamptz,
   check ((funcionario_id is null) = (assumido_em is null))
 );
+create index atendimentos_em_andamento_telefone on public.atendimentos (chave_telefone)
+  where status = 'em_andamento';
 create index atendimentos_funcionario_mes on public.atendimentos (funcionario_id, assumido_em);
 
 create table public.mensagens (
@@ -59,6 +63,7 @@ revoke all on function public.funcionarios_do_setor(public.setor_slug) from publ
 -- (quem chama escolhe de novo).
 create or replace function public.abrir_atendimento(
   p_telefone text,
+  p_chave text,
   p_cliente_id uuid,
   p_setor public.setor_slug,
   p_funcionario_id uuid,
@@ -79,9 +84,9 @@ begin
     return null;
   end if;
 
-  insert into public.atendimentos (telefone, cliente_id, setor, funcionario_id, assumido_em)
+  insert into public.atendimentos (telefone, chave_telefone, cliente_id, setor, funcionario_id, assumido_em)
   values (
-    p_telefone, p_cliente_id, p_setor, p_funcionario_id,
+    p_telefone, p_chave, p_cliente_id, p_setor, p_funcionario_id,
     case when p_funcionario_id is null then null else now() end
   )
   returning id into v_id;
@@ -94,5 +99,32 @@ begin
   return v_id;
 end;
 $$;
-revoke all on function public.abrir_atendimento(text, uuid, public.setor_slug, uuid, jsonb)
+revoke all on function public.abrir_atendimento(text, text, uuid, public.setor_slug, uuid, jsonb)
+  from public, anon, authenticated;
+
+-- Mensagem de quem já tem Atendimento em andamento entra nele (o mais recente). false = não há.
+create or replace function public.anexar_mensagem_atendimento(
+  p_chave text,
+  p_autor public.autor_mensagem,
+  p_texto text
+) returns boolean
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  v_id uuid;
+begin
+  select id into v_id from public.atendimentos
+  where chave_telefone = p_chave and status = 'em_andamento'
+  order by criado_em desc
+  limit 1;
+  if v_id is null then
+    return false;
+  end if;
+  insert into public.mensagens (atendimento_id, autor, texto) values (v_id, p_autor, p_texto);
+  return true;
+end;
+$$;
+revoke all on function public.anexar_mensagem_atendimento(text, public.autor_mensagem, text)
   from public, anon, authenticated;
