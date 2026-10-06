@@ -1,4 +1,8 @@
 import type {
+  AberturaAtendimento,
+  AbrirAtendimentoPort,
+} from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
+import type {
   DocumentoContratual,
   DocumentosContratuaisPort,
 } from "@/modules/atendimento/application/ports/out/documentos-contratuais.provider";
@@ -43,6 +47,7 @@ function montar(
     listagemFalha?: boolean;
     sessaoFalha?: boolean;
     limparFalha?: boolean;
+    aberturaFalha?: boolean;
   } = {},
 ) {
   const buscados: string[] = [];
@@ -95,8 +100,17 @@ function montar(
     },
     linkTemporario: async (caminho) => ok(`https://storage.test/${caminho}?token=x`),
   };
+  const abertos: AberturaAtendimento[] = [];
+  const atendimentos: AbrirAtendimentoPort = {
+    execute: async (a) => {
+      if (opcoes.aberturaFalha) return err(new ServicoExternoError("banco"));
+      abertos.push(a);
+      return ok({ id: "at-1", funcionarioId: null });
+    },
+  };
   return {
-    caso: new ReceberMensagem(identificacao, envio, documentos, sessao),
+    abertos,
+    caso: new ReceberMensagem(identificacao, envio, documentos, sessao, atendimentos),
     sessoes,
     gravadas,
     buscados,
@@ -163,6 +177,7 @@ describe("ReceberMensagem", () => {
         salvar: async () => ok(undefined),
         limpar: async () => ok(undefined),
       },
+      { execute: async () => ok({ id: "at-1", funcionarioId: null }) },
     );
     const r = await caso.execute({ telefone: "11912345678", texto: "oi" });
     expect(r.ok).toBe(false);
@@ -467,13 +482,29 @@ describe("ReceberMensagem — número não cadastrado (#43)", () => {
     for (const t of ["oi", "sim", "menu"]) await dizer(caso, t);
     expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente" });
   });
+
+  it("a transferência abre Atendimento na recepção com as Mensagens da conversa", async () => {
+    const { caso, abertos } = montar({ contato: null });
+    for (const t of ["oi", "sim", "90.000.001/0001-29"]) await dizer(caso, t);
+    expect(abertos).toHaveLength(1);
+    expect(abertos[0]).toMatchObject({ telefone: TEL, clienteId: null, setor: "recepcao" });
+    expect(abertos[0].mensagens.map((m) => m.autor)).toEqual(["contato", "ura"]);
+    expect(abertos[0].mensagens[0].texto).toBe("90.000.001/0001-29");
+  });
+
+  it("falha ao abrir o Atendimento devolve o erro e mantém a sessão", async () => {
+    const { caso, sessoes } = montar({ contato: null, aberturaFalha: true });
+    await dizer(caso, "oi");
+    expect((await dizer(caso, "não")).ok).toBe(false);
+    expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente" });
+  });
 });
 
 describe("ReceberMensagem — mesmo número em mais de um Cliente (PR #76, B2)", () => {
   it.each(["oi", "1", "menu", "3"])(
     "'%s' vai pra recepção, sem menu nem documento, mesmo havendo contratos",
     async (texto) => {
-      const { caso, enviadas, documentosEnviados, listados, sessoes } = montar({
+      const { caso, enviadas, documentosEnviados, listados, sessoes, abertos } = montar({
         contato: "ambiguo",
         documentos: [CONTRATO],
       });
@@ -488,6 +519,8 @@ describe("ReceberMensagem — mesmo número em mais de um Cliente (PR #76, B2)",
       expect(documentosEnviados).toEqual([]);
       expect(listados).toEqual([]);
       expect(sessoes.has(CHAVE)).toBe(false);
+      expect(abertos).toHaveLength(1);
+      expect(abertos[0]).toMatchObject({ clienteId: null, setor: "recepcao" });
     },
   );
 });
