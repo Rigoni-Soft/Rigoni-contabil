@@ -37,15 +37,13 @@ describe("SupabaseAtendimentoRepository — desconexão do Funcionário", () => 
     });
     const funcionarioId = data.user!.id;
     usuarios.push(funcionarioId);
-    await admin
-      .from("perfis")
-      .insert({
-        id: funcionarioId,
-        nome: "Desconecta 48",
-        email,
-        papel: "funcionario",
-        setor: SETOR,
-      });
+    await admin.from("perfis").insert({
+      id: funcionarioId,
+      nome: "Desconecta 48",
+      email,
+      papel: "funcionario",
+      setor: SETOR,
+    });
 
     const aberto = await repositorio.abrir({
       telefone: TELEFONES[0],
