@@ -46,7 +46,7 @@ const PARA_RECEPCAO_CNPJ =
   "Não encontramos esse CNPJ entre os nossos clientes. Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
 // Palavras que, num número não reconhecido, pedem uma pessoa em vez de seguir o fluxo.
 const PEDIDO_DE_ATENDENTE =
-  /\b(atendente|humano|recepcao|recepcionista|(falar|conversar) com (alguem|uma pessoa|gente))\b/;
+  /\b(atendente|humano|recepcao|recepcionista|suporte|(falar|conversar) com (alguem|uma pessoa|gente|o contador|a contadora))\b/;
 const PARA_RECEPCAO =
   "Não encontramos você entre os contatos cadastrados. Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
 
