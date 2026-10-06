@@ -72,7 +72,7 @@ em nenhum cadastro → 1 nova tentativa (sessão `cnpj_nova_tentativa`; CNPJ inv
 vai à recepção com aviso de que o CNPJ não foi encontrado. **Fallback (#50):** em qualquer etapa, texto com palavra-chave de
 atendente (`atendente`, `humano`, `recepção`, `recepcionista`, "falar/conversar com alguém/uma pessoa/gente"; palavras soltas como "pessoa" ou "atendimento" não contam) vai direto à recepção. Não há
 auto-cadastro. Sessão (`ja_cliente`/`cnpj`/`cnpj_nova_tentativa`) ausente, expirada ou `menu` recomeça pela pergunta.
-"Encaminhar à recepção" abre um Atendimento no Setor recepção (entra na Fila se não houver Funcionário livre).
+O 3º CNPJ inválido seguido (contador `invalidos` na sessão) também vão à recepção. "Encaminhar à recepção" abre um Atendimento no Setor recepção (entra na Fila se não houver Funcionário livre).
 
 **Opção 1 (#41):** pergunta `1 - Contrato social`, `2 - Alterações`, `3 - Ambos`.
 - `1` envia o contrato; sem contrato cadastrado, avisa.
@@ -94,6 +94,8 @@ Número que consta como Contato de mais de um Cliente é ambíguo: a URA não of
 
 Em produção (`NODE_ENV=production`) a rota recusa qualquer segredo ausente ou igual ao placeholder de desenvolvimento
 (`src/main/segredos-mensageria.factory.ts`), antes de validar HMAC ou criar o client privilegiado.
+
+Sem e2e de browser para a identificação (#50): o fluxo é só pelo WhatsApp e é coberto pelos testes do webhook.
 
 ## Ainda não coberto (vai com a #68)
 

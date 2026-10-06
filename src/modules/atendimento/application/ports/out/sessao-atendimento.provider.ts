@@ -6,8 +6,7 @@ import type { Result } from "@/shared/kernel/result";
 // da lista de alterações exibida, só para detectar que ela mudou antes de a escolha valer.
 export type SessaoAtendimento =
   | { etapa: "ja_cliente" }
-  | { etapa: "cnpj" }
-  | { etapa: "cnpj_nova_tentativa" }
+  | { etapa: "cnpj" | "cnpj_nova_tentativa"; invalidos?: number }
   | { etapa: "tipo_documento" }
   | { etapa: "alteracao"; modo: "alteracoes" | "ambos"; pagina: number; lista: string };
 

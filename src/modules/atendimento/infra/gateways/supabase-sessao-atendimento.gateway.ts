@@ -17,6 +17,7 @@ type Linha = {
   modo: string | null;
   pagina: number | null;
   lista: string | null;
+  invalidos: number;
 };
 
 function falha(acao: string): Result<never, AppError> {
@@ -34,7 +35,7 @@ export class SupabaseSessaoAtendimentoGateway implements SessaoAtendimentoPort {
   async obter(telefone: string): Promise<Result<SessaoAtendimento | null, AppError>> {
     const { data, error } = await this.supabaseAdmin
       .from("atendimento_sessoes")
-      .select("etapa, modo, pagina, lista")
+      .select("etapa, modo, pagina, lista, invalidos")
       .eq("chave", this.chave(telefone))
       .gt("atualizado_em", this.limite())
       .maybeSingle();
@@ -49,9 +50,10 @@ export class SupabaseSessaoAtendimentoGateway implements SessaoAtendimentoPort {
         lista: linha.lista as string,
       });
     }
-    return ok({
-      etapa: linha.etapa as "ja_cliente" | "cnpj" | "cnpj_nova_tentativa" | "tipo_documento",
-    });
+    if (linha.etapa === "cnpj" || linha.etapa === "cnpj_nova_tentativa") {
+      return ok({ etapa: linha.etapa, ...(linha.invalidos > 0 && { invalidos: linha.invalidos }) });
+    }
+    return ok({ etapa: linha.etapa as "ja_cliente" | "tipo_documento" });
   }
 
   async salvar(telefone: string, sessao: SessaoAtendimento): Promise<Result<void, AppError>> {
@@ -68,6 +70,7 @@ export class SupabaseSessaoAtendimentoGateway implements SessaoAtendimentoPort {
       modo: sessao.etapa === "alteracao" ? sessao.modo : null,
       pagina: sessao.etapa === "alteracao" ? sessao.pagina : null,
       lista: sessao.etapa === "alteracao" ? sessao.lista : null,
+      invalidos: "invalidos" in sessao ? (sessao.invalidos ?? 0) : 0,
       atualizado_em: new Date().toISOString(),
     });
     return error ? falha("gravar") : ok(undefined);

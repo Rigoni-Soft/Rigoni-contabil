@@ -7,7 +7,6 @@ import type {
 } from "@/modules/atendimento/application/ports/out/identificacao-contato.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
-import { normalizarCnpj } from "@/shared/kernel/cnpj";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 // Usa o client service_role (docs/adr/0001): quem escreve pelo WhatsApp não tem sessão.
@@ -32,11 +31,12 @@ export class SupabaseIdentificacaoContatoGateway implements IdentificacaoContato
     return ok({ clienteId, ...resto } satisfies ContatoIdentificado);
   }
 
+  // Só existência: não há linha de Cliente a mapear, então não passa por Row DTO.
   async cnpjCadastrado(cnpj: string): Promise<Result<boolean, AppError>> {
     const { data, error } = await this.supabaseAdmin
       .from("clientes")
       .select("id")
-      .eq("cnpj", normalizarCnpj(cnpj))
+      .eq("cnpj", cnpj)
       .maybeSingle();
     if (error) return err(new ServicoExternoError("Falha ao consultar o CNPJ."));
     return ok(data !== null);

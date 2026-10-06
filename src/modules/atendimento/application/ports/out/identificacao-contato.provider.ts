@@ -16,6 +16,6 @@ export interface IdentificacaoContatoPort {
   identificar(
     telefone: string,
   ): Promise<Result<ContatoIdentificado | ContatoAmbiguo | null, AppError>>;
-  // O CNPJ (qualquer formatação) pertence a algum Cliente cadastrado?
+  // O CNPJ (já normalizado, ver `normalizarCnpj`) pertence a algum Cliente cadastrado?
   cnpjCadastrado(cnpj: string): Promise<Result<boolean, AppError>>;
 }

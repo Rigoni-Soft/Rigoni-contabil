@@ -20,7 +20,7 @@ import type {
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
-import { cnpjValido } from "@/shared/kernel/cnpj";
+import { cnpjValido, normalizarCnpj } from "@/shared/kernel/cnpj";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 const OPCOES_MENU = [
@@ -35,6 +35,7 @@ const PERGUNTA_CLIENTE =
   "Olá! Não identificamos este número entre os contatos dos nossos clientes. Você já é cliente da Rigoni Contábil? Responda *sim* ou *não*.";
 const SIM_OU_NAO = "Responda *sim* ou *não*.";
 const PEDIR_CNPJ = "Ótimo! Informe o CNPJ da sua empresa.";
+const MAX_CNPJ_INVALIDOS = 3;
 const CNPJ_INVALIDO = "Esse CNPJ não parece válido. Confira e envie novamente (ou digite *menu*).";
 const NUMERO_AMBIGUO =
   "Seu número está cadastrado em mais de uma empresa e não conseguimos confirmar qual delas você quer consultar. Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
@@ -188,8 +189,16 @@ export class ReceberMensagem implements ReceberMensagemPort {
       return this.enviar(telefone, SIM_OU_NAO);
     }
     if (etapa === "cnpj" || etapa === "cnpj_nova_tentativa") {
-      if (!cnpjValido(texto)) return this.enviar(telefone, CNPJ_INVALIDO);
-      const cadastrado = await this.contatos.cnpjCadastrado(texto);
+      if (!cnpjValido(texto)) {
+        // Sem contador o cliente ficaria preso em CNPJ inválido: ao passar do limite vai à recepção.
+        const invalidos = (sessao && "invalidos" in sessao ? (sessao.invalidos ?? 0) : 0) + 1;
+        if (invalidos >= MAX_CNPJ_INVALIDOS) {
+          return this.encaminharRecepcao(telefone, chave, textoDoContato);
+        }
+        const salva = await this.sessoes.salvar(chave, { etapa, invalidos });
+        return salva.ok ? this.enviar(telefone, CNPJ_INVALIDO) : salva;
+      }
+      const cadastrado = await this.contatos.cnpjCadastrado(normalizarCnpj(texto));
       if (!cadastrado.ok) return cadastrado;
       if (cadastrado.value) return this.encaminharRecepcao(telefone, chave, textoDoContato);
       if (etapa === "cnpj")

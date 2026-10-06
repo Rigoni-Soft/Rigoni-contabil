@@ -506,7 +506,7 @@ describe("ReceberMensagem — número não cadastrado (#43)", () => {
     const { caso, enviadas, sessoes } = montar({ contato: null });
     for (const t of ["oi", "sim", "123"]) await dizer(caso, t);
     expect(enviadas[2].texto).toContain("CNPJ");
-    expect(sessoes.get(TEL)).toEqual({ etapa: "cnpj" });
+    expect(sessoes.get(TEL)).toEqual({ etapa: "cnpj", invalidos: 1 });
   });
 
   it("CNPJ válido sem o contato transfere pra recepção e encerra a sessão", async () => {
@@ -695,11 +695,21 @@ describe("ReceberMensagem — fallback para a recepção (#50)", () => {
     expect(sessoes.has(TEL)).toBe(false);
   });
 
+  it("CNPJs inválidos seguidos levam à recepção no terceiro", async () => {
+    const { caso, abertos, sessoes } = montar({ contato: null });
+    for (const t of ["oi", "sim", "123", "456"]) await dizer(caso, t);
+    expect(abertos).toHaveLength(0);
+    expect(sessoes.get(TEL)).toEqual({ etapa: "cnpj", invalidos: 2 });
+    await dizer(caso, "789");
+    expect(abertos).toHaveLength(1);
+    expect(sessoes.has(TEL)).toBe(false);
+  });
+
   it("CNPJ inválido não gasta a nova tentativa", async () => {
     const { caso, abertos, sessoes } = montar({ contato: null });
     for (const t of ["oi", "sim", CNPJ_DESCONHECIDO, "123"]) await dizer(caso, t);
     expect(abertos).toHaveLength(0);
-    expect(sessoes.get(TEL)).toEqual({ etapa: "cnpj_nova_tentativa" });
+    expect(sessoes.get(TEL)).toEqual({ etapa: "cnpj_nova_tentativa", invalidos: 1 });
   });
 
   it("CNPJ cadastrado na nova tentativa vai à recepção com o aviso padrão", async () => {
