@@ -59,16 +59,13 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
     if (!atendimento.ok) return atendimento;
     const resumo = input.resumo.trim();
 
-    const gravada = await this.gravar(
-      {
-        atendimentoId: input.atendimentoId,
-        origemFuncionarioId: atendimento.value.funcionarioId,
-        setorDestino: input.setorDestino,
-        resumo,
-        ator: { id: ator.id, setor: ator.setor },
-      },
-      TENTATIVAS_DE_ATRIBUICAO,
-    );
+    const gravada = await this.gravar({
+      atendimentoId: input.atendimentoId,
+      origemFuncionarioId: atendimento.value.funcionarioId,
+      setorDestino: input.setorDestino,
+      resumo,
+      ator: { id: ator.id, setor: ator.setor },
+    });
     if (!gravada.ok) {
       await this.auditarFalha(ator, input.atendimentoId);
       return gravada;
@@ -125,19 +122,21 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
   // gravação; relista e escolhe de novo. Esgotadas as tentativas, transfere sem atribuição.
   private async gravar(
     dados: Omit<NovaTransferencia, "funcionarioDestinoId">,
-    tentativas: number,
   ): Promise<Result<Transferido, AppError>> {
-    const escolhido =
-      tentativas > 0 ? await this.escolherDestino(dados.setorDestino) : ok<string | null>(null);
-    if (!escolhido.ok) return escolhido;
-    const resultado = await this.repositorio.transferir({
-      ...dados,
-      funcionarioDestinoId: escolhido.value,
-    });
-    if (resultado.ok && resultado.value.status === "conflito" && tentativas > 0) {
-      return this.gravar(dados, tentativas - 1);
+    for (let tentativa = 0; tentativa < TENTATIVAS_DE_ATRIBUICAO; tentativa++) {
+      const escolhido = await this.escolherDestino(dados.setorDestino);
+      if (!escolhido.ok) return escolhido;
+      const resultado = await this.repositorio.transferir({
+        ...dados,
+        funcionarioDestinoId: escolhido.value,
+      });
+      if (!resultado.ok || resultado.value.status !== "conflito") {
+        return this.exigirTransferido(resultado);
+      }
     }
-    return this.exigirTransferido(resultado);
+    return this.exigirTransferido(
+      await this.repositorio.transferir({ ...dados, funcionarioDestinoId: null }),
+    );
   }
 
   private async escolherDestino(setor: SetorSlug): Promise<Result<string | null, AppError>> {
