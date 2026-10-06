@@ -53,7 +53,7 @@ describe("SupabaseAtendimentoRepository", () => {
     const { data } = await admin
       .from("mensagens")
       .select("autor, texto")
-      .eq("atendimento_id", r.ok ? r.value.id : "")
+      .eq("atendimento_id", r.ok && r.value ? r.value.id : "")
       .order("criado_em");
     expect(data).toEqual([
       { autor: "contato", texto: "oi" },
