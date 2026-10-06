@@ -12,6 +12,7 @@ import type {
 import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { mesAtual } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 export class EditarCadastroOperacionalCliente implements EditarCadastroOperacionalClientePort {
@@ -49,7 +50,9 @@ export class EditarCadastroOperacionalCliente implements EditarCadastroOperacion
       return salvo;
     }
 
-    await this.registrarAuditoria(ator, clienteAtual.value, "sucesso");
+    // Sucesso é auditado pelo banco, na mesma transação da RPC (gatilho em
+    // cliente_atividades_mensais, PR #69): aqui só as falhas, que não têm
+    // estado a preservar.
     return ok({ clienteId: input.clienteId });
   }
 
@@ -83,7 +86,7 @@ export class EditarCadastroOperacionalCliente implements EditarCadastroOperacion
         parcelamentoStatus: input.parcelamentoStatus,
         observacoesGerais: input.observacoesGerais,
         atividadeMesAtual: {
-          anoMes: new Date().toISOString().slice(0, 7),
+          anoMes: mesAtual(),
           industria: input.atividadeMes.industria,
           comercio: input.atividadeMes.comercio,
           servico: input.atividadeMes.servico,
@@ -95,7 +98,7 @@ export class EditarCadastroOperacionalCliente implements EditarCadastroOperacion
   private async registrarAuditoria(
     ator: AtorSessaoDto,
     cliente: Cliente,
-    resultado: "sucesso" | "falha",
+    resultado: "falha",
   ): Promise<void> {
     await this.auditoria.registrar({
       ator: ator.id,

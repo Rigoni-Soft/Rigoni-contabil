@@ -2,6 +2,7 @@ import type {
   CadastroOperacionalClienteDto,
   ClienteQueryPort,
 } from "@/modules/clientes/application/ports/out/cliente-query.provider";
+import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ok, type Result } from "@/shared/kernel/result";
 
@@ -23,6 +24,11 @@ const DTO: CadastroOperacionalClienteDto = {
   atividadeMes: { industria: false, comercio: false, servico: false },
 };
 
+const sessaoCom = (autenticado: boolean): SessaoPort => ({
+  usuarioAtual: async () =>
+    autenticado ? { id: "u1", papel: "funcionario", setor: "financeiro" } : null,
+});
+
 class ClienteQueryPortFalso implements ClienteQueryPort {
   constructor(private dto: CadastroOperacionalClienteDto | null) {}
   async buscarCadastroOperacional(): Promise<
@@ -36,7 +42,9 @@ describe("ConsultarCadastroOperacionalCliente", () => {
   it("devolve o cadastro operacional, nunca com contrato social/alterações no DTO", async () => {
     const query = new ClienteQueryPortFalso(DTO);
 
-    const resultado = await new ConsultarCadastroOperacionalCliente(query).execute(DTO.id);
+    const resultado = await new ConsultarCadastroOperacionalCliente(sessaoCom(true), query).execute(
+      DTO.id,
+    );
 
     expect(resultado.ok).toBe(true);
     if (resultado.ok) {
@@ -49,9 +57,24 @@ describe("ConsultarCadastroOperacionalCliente", () => {
   it("devolve null quando o Cliente não existe", async () => {
     const query = new ClienteQueryPortFalso(null);
 
-    const resultado = await new ConsultarCadastroOperacionalCliente(query).execute("inexistente");
+    const resultado = await new ConsultarCadastroOperacionalCliente(sessaoCom(true), query).execute(
+      "inexistente",
+    );
 
     expect(resultado.ok).toBe(true);
     if (resultado.ok) expect(resultado.value).toBeNull();
+  });
+
+  it("sem sessão devolve erro e não consulta o Cliente", async () => {
+    const query = new ClienteQueryPortFalso(DTO);
+    const buscar = jest.spyOn(query, "buscarCadastroOperacional");
+
+    const resultado = await new ConsultarCadastroOperacionalCliente(
+      sessaoCom(false),
+      query,
+    ).execute(DTO.id);
+
+    expect(resultado.ok).toBe(false);
+    expect(buscar).not.toHaveBeenCalled();
   });
 });

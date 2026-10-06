@@ -18,7 +18,7 @@ export type ClienteRow = {
   empresa: string;
   cnpj: string;
   regime: string;
-  contrato_social_caminho: string | null;
+  contrato_social_caminho?: string | null;
   cliente_alteracoes_contratuais?: AlteracaoRow[] | null;
   cliente_cadastro_operacional_sn?: CadastroOperacionalRow | CadastroOperacionalRow[] | null;
   cliente_contatos?: ContatoRow[] | null;
@@ -34,7 +34,7 @@ export function clienteDoRow(row: ClienteRow): Cliente {
     empresa: row.empresa,
     cnpj: row.cnpj,
     regime: row.regime,
-    contratoSocialCaminho: row.contrato_social_caminho,
+    contratoSocialCaminho: row.contrato_social_caminho ?? null,
     alteracoesContratuais: (row.cliente_alteracoes_contratuais ?? []).map((alteracao) => ({
       data: alteracao.data,
       arquivoCaminho: alteracao.arquivo_caminho,

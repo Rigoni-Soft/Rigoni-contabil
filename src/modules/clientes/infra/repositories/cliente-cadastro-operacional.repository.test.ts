@@ -8,6 +8,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
+import { mesAtual } from "@/shared/kernel/mes-atual";
 
 import { SupabaseClienteRepository } from "./cliente.repository";
 
@@ -60,7 +61,7 @@ function comCadastroOperacional(clienteBase: Cliente): Cliente {
     .comParcelamentoStatus(null)
     .comObservacoesGerais("Cliente pontual.")
     .comAtividadeMesAtual({
-      anoMes: new Date().toISOString().slice(0, 7),
+      anoMes: mesAtual(),
       industria: false,
       comercio: true,
       servico: false,

@@ -78,6 +78,17 @@ describe("EditarCadastroOperacionalContainer", () => {
     );
   });
 
+  it("Promise rejeitada da Server Action não prende o botão em 'Salvando...' (PR #69, ponto 6)", async () => {
+    executeMock.mockRejectedValue(new Error("falha de rede"));
+    const usuario = userEvent.setup();
+    render(<EditarCadastroOperacionalContainer dados={dados} readOnly={false} />);
+
+    await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+
+    expect(await screen.findByText(/Não foi possível salvar agora/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /salvar/i })).toBeEnabled();
+  });
+
   it("cliente não encontrado: mostra mensagem em vez do formulário", () => {
     render(<EditarCadastroOperacionalContainer dados={null} readOnly={false} />);
 

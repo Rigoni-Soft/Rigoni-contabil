@@ -9,6 +9,7 @@ import {
   type CadastroOperacionalRow,
 } from "@/modules/clientes/infra/mappers/cadastro-operacional-row.mapper";
 import { AppError } from "@/shared/errors/app.error";
+import { primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 class ConsultaError extends AppError {
@@ -28,9 +29,9 @@ type ClienteBasicoRow = {
   cliente_atividades_mensais: AtividadeMensalRow[] | null;
 };
 
-// Select explícito: nunca inclui contrato_social_caminho/alterações — a
-// confidencialidade desta consulta é garantida pelas colunas pedidas, não só
-// pelo shape do DTO de saída (defesa em profundidade dupla).
+// Lê da view `clientes_basico`, que não tem contrato_social_caminho: a
+// confidencialidade é garantida no banco (PR #69), não só pelo select ou pelo
+// shape do DTO de saída.
 const SELECT_CADASTRO_BASICO = `
   id, empresa, cnpj, regime,
   cliente_cadastro_operacional_sn(*),
@@ -44,10 +45,10 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
   async buscarCadastroOperacional(
     clienteId: string,
   ): Promise<Result<CadastroOperacionalClienteDto | null, AppError>> {
-    const anoMesAtual = `${new Date().toISOString().slice(0, 7)}-01`;
+    const anoMesAtual = primeiroDiaDoMesAtual();
 
     const { data, error } = await this.supabase
-      .from("clientes")
+      .from("clientes_basico")
       .select(SELECT_CADASTRO_BASICO)
       .eq("id", clienteId)
       .eq("cliente_atividades_mensais.ano_mes", anoMesAtual)

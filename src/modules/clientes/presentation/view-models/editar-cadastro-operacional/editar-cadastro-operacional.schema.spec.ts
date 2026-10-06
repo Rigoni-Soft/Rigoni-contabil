@@ -59,4 +59,13 @@ describe("editarCadastroOperacionalSchema", () => {
 
     expect(resultado.success).toBe(false);
   });
+
+  it("rejeita dataEnvioDas que não é data ISO (PR #69)", () => {
+    const resultado = editarCadastroOperacionalSchema.safeParse({
+      ...payloadValido(),
+      dataEnvioDas: "ontem",
+    });
+
+    expect(resultado.success).toBe(false);
+  });
 });

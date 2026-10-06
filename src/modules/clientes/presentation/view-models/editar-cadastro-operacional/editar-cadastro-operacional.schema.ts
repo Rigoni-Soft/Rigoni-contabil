@@ -18,7 +18,7 @@ export const editarCadastroOperacionalSchema = z.object({
   ),
   documentoObrigatorio: z.enum(DOCUMENTO_OBRIGATORIO_STATUSES).nullable(),
   dasStatus: z.enum(DAS_STATUSES).nullable(),
-  dataEnvioDas: z.string().nullable(),
+  dataEnvioDas: z.iso.date().nullable(),
   temParcelamento: z.boolean(),
   parcelamentoStatus: z.enum(PARCELAMENTO_STATUSES).nullable(),
   observacoesGerais: z.string().max(2000),

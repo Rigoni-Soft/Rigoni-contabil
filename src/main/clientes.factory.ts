@@ -69,5 +69,8 @@ export async function makeEditarCadastroOperacionalCliente(): Promise<EditarCada
 
 export async function makeConsultarCadastroOperacionalCliente(): Promise<ConsultarCadastroOperacionalCliente> {
   const supabase = await createSupabaseServer();
-  return new ConsultarCadastroOperacionalCliente(new SupabaseClienteQueryGateway(supabase));
+  return new ConsultarCadastroOperacionalCliente(
+    sessaoViaUsuarios(supabase),
+    new SupabaseClienteQueryGateway(supabase),
+  );
 }

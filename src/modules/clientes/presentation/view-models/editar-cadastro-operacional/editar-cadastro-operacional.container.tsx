@@ -68,20 +68,27 @@ export function EditarCadastroOperacionalContainer({ dados, readOnly }: Props) {
     setErroServidor(undefined);
     setSucesso(false);
 
-    const resultado = await editarCadastroOperacionalAction({ ...valores, clienteId: dados.id });
+    // try/finally: rejeição de transporte da Server Action não pode deixar o
+    // botão preso em "Salvando..." (devolutiva PR #69, ponto 6).
+    try {
+      const resultado = await editarCadastroOperacionalAction({ ...valores, clienteId: dados.id });
 
-    setPendente(false);
-    if (!resultado.ok) {
-      setErroServidor(resultado.error.message);
-      for (const [campo, mensagens] of Object.entries(resultado.error.fields ?? {})) {
-        if (mensagens[0] && campo !== "clienteId") {
-          setError(campo as keyof EditarCadastroOperacionalFormValues, { message: mensagens[0] });
+      if (!resultado.ok) {
+        setErroServidor(resultado.error.message);
+        for (const [campo, mensagens] of Object.entries(resultado.error.fields ?? {})) {
+          if (mensagens[0] && campo !== "clienteId") {
+            setError(campo as keyof EditarCadastroOperacionalFormValues, { message: mensagens[0] });
+          }
         }
+        return;
       }
-      return;
-    }
 
-    setSucesso(true);
+      setSucesso(true);
+    } catch {
+      setErroServidor("Não foi possível salvar agora. Verifique a conexão e tente novamente.");
+    } finally {
+      setPendente(false);
+    }
   });
 
   const aoLimpar = () => {

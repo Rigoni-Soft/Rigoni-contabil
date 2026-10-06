@@ -5,11 +5,15 @@ import type { Cliente } from "@/modules/clientes/domain/entities/cliente.entity"
 import { clienteDoRow, type ClienteRow } from "@/modules/clientes/infra/mappers/cliente.mapper";
 import { AppError } from "@/shared/errors/app.error";
 import { ValidationError } from "@/shared/errors/validation.error";
+import { primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-const SELECT_CLIENTE_COMPLETO = `
+// Lê da view `clientes_basico` (sem contrato social/alterações): quem edita o
+// cadastro operacional (Funcionário SN) não tem SELECT em `clientes` (PR #69).
+// O Cliente reconstituído aqui não carrega os documentos jurídicos — só o Admin
+// os lê, e `atualizarOperacional` não os grava.
+const SELECT_CLIENTE_BASICO = `
   *,
-  cliente_alteracoes_contratuais(*),
   cliente_cadastro_operacional_sn(*),
   cliente_contatos(*),
   cliente_atividades_mensais(*)
@@ -57,11 +61,11 @@ export class SupabaseClienteRepository implements ClienteRepository {
   }
 
   async buscarPorId(id: string): Promise<Result<Cliente | null, AppError>> {
-    const anoMesAtual = `${new Date().toISOString().slice(0, 7)}-01`;
+    const anoMesAtual = primeiroDiaDoMesAtual();
 
     const { data, error } = await this.supabase
-      .from("clientes")
-      .select(SELECT_CLIENTE_COMPLETO)
+      .from("clientes_basico")
+      .select(SELECT_CLIENTE_BASICO)
       .eq("id", id)
       .eq("cliente_atividades_mensais.ano_mes", anoMesAtual)
       .maybeSingle();
@@ -80,7 +84,7 @@ export class SupabaseClienteRepository implements ClienteRepository {
   async atualizarOperacional(cliente: Cliente): Promise<Result<void, AppError>> {
     const anoMes = cliente.atividadeMesAtual
       ? `${cliente.atividadeMesAtual.anoMes}-01`
-      : `${new Date().toISOString().slice(0, 7)}-01`;
+      : primeiroDiaDoMesAtual();
 
     const { error } = await this.supabase.rpc("editar_cadastro_operacional_cliente", {
       p_cliente_id: cliente.id,

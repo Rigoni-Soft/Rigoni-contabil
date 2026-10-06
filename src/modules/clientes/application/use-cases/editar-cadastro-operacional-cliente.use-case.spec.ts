@@ -77,7 +77,7 @@ const INPUT_VALIDO: EditarCadastroOperacionalClienteInput = {
 };
 
 describe("EditarCadastroOperacionalCliente", () => {
-  it("Funcionário do setor Simples Nacional edita e salva, registrando sucesso na auditoria", async () => {
+  it("Funcionário do setor Simples Nacional edita e salva; o sucesso é auditado pelo banco (não pelo caso de uso)", async () => {
     const sessao = new SessaoFalsa();
     const clientes = new ClienteRepositoryFalso();
     const auditoria = new AuditoriaFalsa();
@@ -91,15 +91,7 @@ describe("EditarCadastroOperacionalCliente", () => {
     expect(resultado.ok).toBe(true);
     expect(clientes.atualizado?.formaEnvio.valor).toBe("email");
     expect(clientes.atualizado?.contatos).toHaveLength(1);
-    expect(auditoria.registros).toEqual([
-      expect.objectContaining({
-        ator: "func-sn-1",
-        setor: "simples_nacional",
-        acao: "cliente.editar-operacional",
-        alvo: CNPJ_VALIDO,
-        resultado: "sucesso",
-      }),
-    ]);
+    expect(auditoria.registros).toEqual([]);
   });
 
   it("Admin também edita", async () => {
