@@ -89,6 +89,8 @@ describe("SupabaseClienteRepository (integração)", () => {
     const supabase = await comoAdmin();
     const repositorio = new SupabaseClienteRepository(supabase);
     const cliente = clienteValido("00000000E08G12");
+    // A auditoria é imutável e guarda eventos de execuções anteriores: só conta o desta.
+    const inicio = new Date().toISOString();
 
     const resultado = await repositorio.criar(cliente);
 
@@ -102,7 +104,8 @@ describe("SupabaseClienteRepository (integração)", () => {
     const { data: eventos } = await supabase
       .from("registros_auditoria")
       .select("acao, resultado, setor")
-      .eq("alvo", "00000000E08G12");
+      .eq("alvo", "00000000E08G12")
+      .gte("criado_em", inicio);
     expect(eventos).toEqual([
       { acao: "cliente.criar", resultado: "sucesso", setor: "administrativo" },
     ]);
