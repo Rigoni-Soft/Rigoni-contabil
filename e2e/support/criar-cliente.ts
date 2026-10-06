@@ -54,7 +54,7 @@ export async function atribuirResponsavelComoLider(cnpjDigits: string): Promise<
   if (erroLogin) throw new Error(`Falha ao autenticar Líder SN: ${erroLogin.message}`);
 
   const { data: cliente, error: erroCliente } = await supabase
-    .from("clientes")
+    .from("clientes_basico")
     .select("id")
     .eq("cnpj", cnpjDigits)
     .single();
