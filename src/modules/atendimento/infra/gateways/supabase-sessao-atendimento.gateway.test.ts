@@ -38,7 +38,7 @@ describe("SupabaseSessaoAtendimentoGateway", () => {
     expect(await gateway.obter(TELEFONE)).toEqual({ ok: true, value: sessao });
   });
 
-  it("regravar a sessão sem contador volta invalidos a 0", async () => {
+  it("regravar a sessão em outra etapa substitui o contador de invalidos", async () => {
     await gateway.salvar(TELEFONE, { etapa: "cnpj", invalidos: 2 });
     await gateway.salvar(TELEFONE, { etapa: "cnpj_nova_tentativa", invalidos: 0 });
     expect(await gateway.obter(TELEFONE)).toEqual({

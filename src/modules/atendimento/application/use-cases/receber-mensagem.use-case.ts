@@ -191,7 +191,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
     if (etapa === "cnpj" || etapa === "cnpj_nova_tentativa") {
       if (!cnpjValido(texto)) {
         const anteriores = sessao && "invalidos" in sessao ? sessao.invalidos : 0;
-        return this.cnpjInvalido(telefone, chave, textoDoContato, etapa, anteriores + 1);
+        return this.tratarCnpjInvalido(telefone, chave, textoDoContato, etapa, anteriores + 1);
       }
       const cadastrado = await this.contatos.cnpjCadastrado(normalizarCnpj(texto));
       if (!cadastrado.ok) return cadastrado;
@@ -204,7 +204,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
   }
 
   // Sem contador o cliente ficaria preso em CNPJ inválido: ao passar do limite vai à recepção.
-  private async cnpjInvalido(
+  private async tratarCnpjInvalido(
     telefone: string,
     chave: string,
     textoDoContato: string,
