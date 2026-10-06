@@ -24,6 +24,8 @@ revoke all on table public.transferencias from anon, authenticated;
 --  - 'conflito': o Funcionário de destino foi ocupado por outro Atendimento (quem chama escolhe
 --    de novo);
 --  - 'transferido': com os nomes e dados do Contato/Cliente para o destino.
+-- `p_ator`/`p_ator_setor` vêm do chamador porque só o service_role executa a função (mesmo
+-- contrato de `registrar_acao_auditoria`); ele já validou a sessão do ator.
 -- ponytail: o Atendimento é uma linha só, então a contagem do Balanceamento mensal passa do
 -- Funcionário de origem para o de destino; se a origem precisar manter o crédito, contar também
 -- pela tabela `transferencias`.

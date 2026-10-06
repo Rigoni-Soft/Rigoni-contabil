@@ -83,7 +83,8 @@ export function makeAutenticacaoWebhook(): AutenticacaoWebhookPort {
 }
 
 // Adapta a sessão do módulo usuarios à porta própria de atendimento (arquitetura.md, seção 3.11);
-// monta o ObterSessao direto, sem chamar usuarios.factory, pra não criar import circular.
+// monta o ObterSessao direto, sem chamar usuarios.factory, pra não criar import circular. O adapter
+// fica no `main` (não em infra) pelo mesmo motivo e padrão do clientes.factory.
 function sessaoViaUsuarios(supabase: SupabaseClient): SessaoPort {
   const obterSessao = new ObterSessao(
     new SupabaseSessaoGateway(supabase),

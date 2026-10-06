@@ -83,7 +83,7 @@ _Avoid_: Fila de espera (como entidade própria).
 A ação de mover um Atendimento de um Atendente/Setor para outro.
 
 **Balanceamento mensal**:
-A regra de distribuição de novos Atendimentos entre os Funcionários de um Setor, de forma equilibrada ao longo do mês. Não se aplica à ordem de saída da Fila, que é sempre por antiguidade.
+A regra de distribuição de novos Atendimentos entre os usuários de um Setor (Admin, Líder de setor e Funcionário — todos podem assumir Atendimento), de forma equilibrada ao longo do mês. Não se aplica à ordem de saída da Fila, que é sempre por antiguidade.
 
 ### Auditoria
 

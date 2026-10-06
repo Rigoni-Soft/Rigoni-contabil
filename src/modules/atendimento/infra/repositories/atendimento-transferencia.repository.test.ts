@@ -24,7 +24,11 @@ let origemId: string;
 let destinoId: string;
 let atendimentoId: string;
 
-async function criarFuncionario(nome: string, setor: string): Promise<string> {
+async function criarFuncionario(
+  nome: string,
+  setor: string,
+  papel = "funcionario",
+): Promise<string> {
   const { data } = await admin.auth.admin.createUser({
     email: `transferencia-45-${nome.replace(/\W/g, "")}-${Date.now()}@teste.local`,
     password: "senha-de-teste-123",
@@ -32,9 +36,7 @@ async function criarFuncionario(nome: string, setor: string): Promise<string> {
   });
   const id = data.user!.id;
   usuarios.push(id);
-  await admin
-    .from("perfis")
-    .insert({ id, nome, email: data.user!.email, papel: "funcionario", setor });
+  await admin.from("perfis").insert({ id, nome, email: data.user!.email, papel, setor });
   return id;
 }
 
@@ -76,6 +78,14 @@ afterAll(async () => {
 });
 
 describe("SupabaseAtendimentoRepository — Transferência", () => {
+  it("Líder e Admin do Setor também entram no balanceamento, como qualquer Funcionário", async () => {
+    const lider = await criarFuncionario("Lider 45", "condominios", "lider_setor");
+    const admin = await criarFuncionario("Admin 45", "condominios", "admin");
+    const r = await repositorio.funcionariosDoSetor("condominios");
+    const ids = r.ok ? r.value.map((f) => f.id) : [];
+    expect(ids).toEqual(expect.arrayContaining([lider, admin]));
+  });
+
   it("lê o Atendimento em andamento e devolve null para id desconhecido", async () => {
     expect(await repositorio.buscarEmAndamento(atendimentoId)).toEqual({
       ok: true,
