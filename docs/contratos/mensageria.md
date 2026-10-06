@@ -55,6 +55,9 @@ ou erro `{ error: { message, type, code, fbtrace_id } }` com o status HTTP da ta
 viram `ValidationError` (permanentes); os demais, `ServicoExternoError`. O adapter nunca envia de verdade; o construtor
 aceita `{ telefone: código }` pra simular uma falha.
 
+Template (#51): corpo `{ ..., type: "template", template: { name, language: { code }, components } }`; `components` leva um
+`header` com `document` (templates de guia) e um `body` com as variáveis na ordem `{{1}}`, `{{2}}`…
+
 Documento (#41): corpo `{ messaging_product, recipient_type, to, type: "document", document: { link, filename } }`, mesma
 resposta/erros do texto. O `link` é uma URL assinada do Storage (bucket privado `documentos-clientes`) válida por 5 min.
 
@@ -65,7 +68,7 @@ alterações, 2 guia de imposto, 3 guia de parcelamento, 4 CND, 5 falar com aten
 construção" (stub); qualquer outro texto reenvia o menu.
 
 **Número não cadastrado (#43):** o atendimento pela URA só existe para Contato (padrão ou outro) já cadastrado. Quem não é
-Contato recebe "você já é cliente?" (`sim`/`não`, com ou sem acento; outra resposta repete a pergunta). `não` → aviso
+Contato recebe "você já é cliente?" (`sim`/`não`, com ou sem acento; outra resposta repete a instrução `Responda *sim* ou *não*.`). `não` → aviso
 amigável de que será encaminhado à recepção. `sim` → pede o CNPJ (validado pelos dígitos verificadores; inválido pede de
 novo). CNPJ válido que pertence a um Cliente → recepção (o número continua sem ser Contato). CNPJ válido que **não** existe
 em nenhum cadastro → 1 nova tentativa (sessão `cnpj_nova_tentativa`; CNPJ inválido não gasta a tentativa); errando de novo,
@@ -103,4 +106,4 @@ e um lote parcialmente processado, com 502 numa mensagem posterior, repete as an
 alteração repete o contrato). Exige teste de lote parcial + retry. Hoje o modo real lança erro, então não há reenvio
 real.
 
-Também com a #68: janela de 24h e templates, credenciais reais, observabilidade e o adapter HTTP real.
+Também com a #68: credenciais reais, observabilidade e o adapter HTTP real. A decisão janela/template (#51) já existe em `EnviarComunicacaoProativa`, mas ainda não tem chamador nem composição em `main`.
