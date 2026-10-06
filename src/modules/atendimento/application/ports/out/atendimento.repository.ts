@@ -18,6 +18,7 @@ export type NovoAtendimento = AberturaAtendimento & { funcionarioId: string | nu
 
 export type AtendimentoEmAndamento = {
   id: string;
+  clienteId: string | null;
   setor: SetorSlug;
   funcionarioId: string | null;
   telefone: string;
@@ -30,6 +31,9 @@ export type NovaTransferencia = {
   origemFuncionarioId: string | null;
   setorDestino: SetorSlug;
   funcionarioDestinoId: string | null;
+  // Destino fixo (não escolhido pelo Balanceamento): ocupado, o Atendimento entra na fila dele
+  // em vez de ser recusado ("conflito").
+  enfileirarSeOcupado: boolean;
   resumo: string;
   ator: { id: string; setor: SetorSlug };
 };
@@ -39,12 +43,16 @@ export type NovaTransferencia = {
 export type ResultadoTransferencia =
   | {
       status: "transferido";
+      naFila: boolean;
       destinatarioNome: string | null;
       origemNome: string | null;
       contato: DadosDoContato;
     }
   | { status: "conflito" }
   | { status: "inexistente" };
+
+// Regime e Responsável do Cliente, para decidir a Transferência ao Simples Nacional.
+export type RoteamentoDoCliente = { regime: string; responsavelId: string | null };
 
 export interface AtendimentoRepositoryPort {
   funcionariosDoSetor(setor: SetorSlug): Promise<Result<FuncionarioDoSetor[], AppError>>;
@@ -54,5 +62,7 @@ export interface AtendimentoRepositoryPort {
     mensagem: NovaMensagem,
   ): Promise<Result<AnexarMensagemOutput, AppError>>;
   buscarEmAndamento(id: string): Promise<Result<AtendimentoEmAndamento | null, AppError>>;
+  roteamentoDoCliente(clienteId: string): Promise<Result<RoteamentoDoCliente | null, AppError>>;
+  liderDoSetor(setor: SetorSlug): Promise<Result<string | null, AppError>>;
   transferir(transferencia: NovaTransferencia): Promise<Result<ResultadoTransferencia, AppError>>;
 }

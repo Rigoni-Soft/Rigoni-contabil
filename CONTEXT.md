@@ -76,11 +76,12 @@ Uma única troca dentro de um Atendimento (um "balão"), enviada pelo Contato ou
 _Avoid_: Balão (usar só informalmente), texto.
 
 **Fila**:
-O estado de um Atendimento aguardando um Funcionário disponível no Setor, depois de uma Transferência sem Atendente livre. Não é uma entidade separada do Atendimento — é um estado dele.
+O estado de um Atendimento aguardando um Funcionário disponível no Setor, depois de uma Transferência sem Atendente livre. Não é uma entidade separada do Atendimento — é um estado dele. A fila pode ser do Setor ou de um usuário específico (destino fixo ocupado, ex.: Responsável do Cliente).
 _Avoid_: Fila de espera (como entidade própria).
 
 **Transferência**:
 A ação de mover um Atendimento de um Atendente/Setor para outro.
+Para o Setor Simples Nacional só vale para Cliente do Simples Nacional ou MEI e ignora o Balanceamento mensal: vai ao Responsável do Cliente ou, sem Responsável, ao Líder do Setor; se o destino estiver ocupado, o Atendimento entra na fila dele.
 
 **Balanceamento mensal**:
 A regra de distribuição de novos Atendimentos entre os usuários de um Setor (Admin, Líder de setor e Funcionário — todos podem assumir Atendimento), de forma equilibrada ao longo do mês. Não se aplica à ordem de saída da Fila, que é sempre por antiguidade.

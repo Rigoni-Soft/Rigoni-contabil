@@ -17,12 +17,14 @@ const repositorio = new SupabaseAtendimentoRepository(admin);
 // Números e CNPJ desta suíte, longe do seed e das outras.
 const TELEFONE = "61955550001";
 const TELEFONE_SEM_CLIENTE = "61955550002";
+const TELEFONE_FILA = "61955550003";
 const clienteId = crypto.randomUUID();
 const CNPJ = `8${Date.now()}`.slice(0, 14);
 const usuarios: string[] = [];
 let origemId: string;
 let destinoId: string;
 let atendimentoId: string;
+let liderCondominios: string;
 
 async function criarFuncionario(
   nome: string,
@@ -72,7 +74,10 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await admin.from("atendimentos").delete().in("telefone", [TELEFONE, TELEFONE_SEM_CLIENTE]);
+  await admin
+    .from("atendimentos")
+    .delete()
+    .in("telefone", [TELEFONE, TELEFONE_SEM_CLIENTE, TELEFONE_FILA]);
   await admin.from("clientes").delete().eq("id", clienteId);
   for (const id of usuarios) await admin.auth.admin.deleteUser(id);
 });
@@ -80,6 +85,7 @@ afterAll(async () => {
 describe("SupabaseAtendimentoRepository — Transferência", () => {
   it("Líder e Admin do Setor também entram no balanceamento, como qualquer Funcionário", async () => {
     const lider = await criarFuncionario("Lider 45", "condominios", "lider_setor");
+    liderCondominios = lider;
     const admin = await criarFuncionario("Admin 45", "condominios", "admin");
     const r = await repositorio.funcionariosDoSetor("condominios");
     const ids = r.ok ? r.value.map((f) => f.id) : [];
@@ -91,6 +97,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       ok: true,
       value: {
         id: atendimentoId,
+        clienteId,
         setor: "recepcao",
         funcionarioId: origemId,
         telefone: TELEFONE,
@@ -109,6 +116,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       origemFuncionarioId: destinoId,
       setorDestino: "simples_nacional",
       funcionarioDestinoId: destinoId,
+      enfileirarSeOcupado: false,
       resumo: "x",
       ator: { id: origemId, setor: "recepcao" },
     });
@@ -126,6 +134,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       origemFuncionarioId: origemId,
       setorDestino: "simples_nacional",
       funcionarioDestinoId: destinoId,
+      enfileirarSeOcupado: false,
       resumo: "  DAS em atraso  ",
       ator: { id: origemId, setor: "recepcao" },
     });
@@ -133,6 +142,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       ok: true,
       value: {
         status: "transferido",
+        naFila: false,
         destinatarioNome: "Destino 45",
         origemNome: "Origem 45",
         contato: { contatoNome: "Dona Lia", empresa: "Transfere Ltda", cnpj: CNPJ },
@@ -176,6 +186,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       origemFuncionarioId: null,
       setorDestino: "simples_nacional",
       funcionarioDestinoId: destinoId,
+      enfileirarSeOcupado: false,
       resumo: "x",
       ator: { id: origemId, setor: "recepcao" },
     });
@@ -195,6 +206,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       origemFuncionarioId: null,
       setorDestino: "contabil",
       funcionarioDestinoId: null,
+      enfileirarSeOcupado: false,
       resumo: "dúvida",
       ator: { id: origemId, setor: "recepcao" },
     });
@@ -202,10 +214,66 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       ok: true,
       value: {
         status: "transferido",
+        naFila: false,
         destinatarioNome: null,
         origemNome: null,
         contato: { contatoNome: null, empresa: null, cnpj: null },
       },
+    });
+  });
+
+  it("lê Regime e Responsável do Cliente e o Líder do Setor", async () => {
+    expect(await repositorio.roteamentoDoCliente(clienteId)).toEqual({
+      ok: true,
+      value: { regime: "simples_nacional", responsavelId: null },
+    });
+    const op = await admin
+      .from("cliente_cadastro_operacional_sn")
+      .insert({ cliente_id: clienteId, responsavel_id: destinoId });
+    if (op.error) throw op.error;
+    expect(await repositorio.roteamentoDoCliente(clienteId)).toEqual({
+      ok: true,
+      value: { regime: "simples_nacional", responsavelId: destinoId },
+    });
+    expect(await repositorio.roteamentoDoCliente(crypto.randomUUID())).toEqual({
+      ok: true,
+      value: null,
+    });
+    const lider = await repositorio.liderDoSetor("condominios");
+    expect(lider.ok && lider.value).toBeTruthy();
+    const { data } = await admin
+      .from("perfis")
+      .select("papel, setor")
+      .eq("id", lider.ok ? (lider.value ?? "") : "")
+      .single();
+    expect(data).toEqual({ papel: "lider_setor", setor: "condominios" });
+    expect(liderCondominios).toBeTruthy();
+  });
+
+  it("destino fixo ocupado: o Atendimento entra na fila dele, sem dono", async () => {
+    // `destinoId` já está com o Atendimento transferido nos testes acima.
+    const novo = await abrir(TELEFONE_FILA, null, null);
+    const r = await repositorio.transferir({
+      atendimentoId: novo,
+      origemFuncionarioId: null,
+      setorDestino: "contabil",
+      funcionarioDestinoId: destinoId,
+      enfileirarSeOcupado: true,
+      resumo: "fila",
+      ator: { id: origemId, setor: "recepcao" },
+    });
+    expect(r.ok && r.value.status === "transferido" && r.value.naFila).toBe(true);
+    expect(r.ok && r.value.status === "transferido" && r.value.destinatarioNome).toBe("Destino 45");
+    const { data } = await admin
+      .from("atendimentos")
+      .select("setor, funcionario_id, fila_funcionario_id, assumido_em")
+      .eq("id", novo)
+      .single();
+    expect(data).toEqual({
+      setor: "contabil",
+      funcionario_id: null,
+      fila_funcionario_id: destinoId,
+      assumido_em: null,
     });
   });
 });

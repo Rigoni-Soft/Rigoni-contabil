@@ -4,6 +4,7 @@ import type {
   FuncionarioDoSetor,
   NovaTransferencia,
   ResultadoTransferencia,
+  RoteamentoDoCliente,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { RegistrarAcaoAuditoria } from "@/modules/atendimento/application/ports/out/auditoria.provider";
 import type { MensagemEnviada } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
@@ -15,18 +16,21 @@ import { TransferirAtendimento } from "./transferir-atendimento.use-case";
 
 const ATENDIMENTO: AtendimentoEmAndamento = {
   id: "at-1",
+  clienteId: "cli-1",
   setor: "recepcao",
   funcionarioId: "func-origem",
   telefone: "5561988887777",
   chave: "61988887777",
 };
-const TRANSFERIDO: ResultadoTransferencia = {
-  status: "transferido",
+const TRANSFERIDO = {
+  status: "transferido" as const,
+  naFila: false,
   destinatarioNome: "Ana",
   origemNome: "Beto",
   contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
 };
-const INPUT = { atendimentoId: "at-1", setorDestino: "simples_nacional" as const, resumo: " DAS " };
+const INPUT = { atendimentoId: "at-1", setorDestino: "contabil" as const, resumo: " DAS " };
+const INPUT_SN = { ...INPUT, setorDestino: "simples_nacional" as const };
 
 function montar(
   opcoes: {
@@ -34,6 +38,8 @@ function montar(
     atendimento?: AtendimentoEmAndamento | null;
     funcionarios?: FuncionarioDoSetor[];
     resultados?: ResultadoTransferencia[];
+    roteamento?: RoteamentoDoCliente | null;
+    lider?: string | null;
     envioFalha?: boolean;
   } = {},
 ) {
@@ -49,6 +55,13 @@ function montar(
   const repo = {
     buscarEmAndamento: async () =>
       ok(opcoes.atendimento === undefined ? ATENDIMENTO : opcoes.atendimento),
+    roteamentoDoCliente: async () =>
+      ok(
+        opcoes.roteamento === undefined
+          ? { regime: "simples_nacional", responsavelId: null }
+          : opcoes.roteamento,
+      ),
+    liderDoSetor: async () => ok(opcoes.lider === undefined ? "lider-sn" : opcoes.lider),
     funcionariosDoSetor: async () =>
       ok(opcoes.funcionarios ?? [{ id: "func-destino", atendimentosNoMes: 0, livre: true }]),
     transferir: async (t: NovaTransferencia) => {
@@ -94,6 +107,7 @@ describe("TransferirAtendimento", () => {
       ok: true,
       value: {
         destinatarioNome: "Ana",
+        naFila: false,
         contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
         origemSetor: "recepcao",
         origemNome: "Beto",
@@ -103,8 +117,9 @@ describe("TransferirAtendimento", () => {
     expect(transferencias[0]).toMatchObject({
       atendimentoId: "at-1",
       origemFuncionarioId: "func-origem",
-      setorDestino: "simples_nacional",
+      setorDestino: "contabil",
       funcionarioDestinoId: "b",
+      enfileirarSeOcupado: false,
       resumo: "DAS",
       ator: { id: "func-origem", setor: "recepcao" },
     });
@@ -114,7 +129,7 @@ describe("TransferirAtendimento", () => {
     const { caso, anexadas, enviadas } = montar();
     await caso.execute(INPUT);
     const texto =
-      "Estamos transferindo você para o setor Simples Nacional, com Ana. Aguarde um instante, por favor.";
+      "Estamos transferindo você para o setor Contábil, com Ana. Aguarde um instante, por favor.";
     expect(enviadas).toEqual([{ telefone: "5561988887777", texto }]);
     expect(anexadas).toEqual([texto]);
   });
@@ -126,7 +141,7 @@ describe("TransferirAtendimento", () => {
     });
     await caso.execute(INPUT);
     expect(transferencias[0].funcionarioDestinoId).toBeNull();
-    expect(enviadas[0].texto).toContain("o setor Simples Nacional.");
+    expect(enviadas[0].texto).toContain("o setor Contábil.");
   });
 
   it("relista e tenta de novo no conflito; esgotadas as tentativas transfere sem atribuição", async () => {
@@ -200,5 +215,58 @@ describe("TransferirAtendimento", () => {
   it("transferido mas aviso falhou: estado inconsistente apontando o Atendimento", async () => {
     const r = await montar({ envioFalha: true }).caso.execute(INPUT);
     expect(!r.ok && r.error).toMatchObject({ code: "INCONSISTENT_STATE", referenciaId: "at-1" });
+  });
+
+  describe("para o Simples Nacional", () => {
+    it("vai direto ao Responsável do Cliente, ignorando o Balanceamento", async () => {
+      const { caso, transferencias } = montar({
+        roteamento: { regime: "mei", responsavelId: "resp-1" },
+        funcionarios: [{ id: "livre", atendimentosNoMes: 0, livre: true }],
+      });
+      const r = await caso.execute(INPUT_SN);
+      expect(r.ok).toBe(true);
+      expect(transferencias).toHaveLength(1);
+      expect(transferencias[0]).toMatchObject({
+        funcionarioDestinoId: "resp-1",
+        enfileirarSeOcupado: true,
+      });
+    });
+
+    it("sem Responsável vai ao Líder do Setor", async () => {
+      const { caso, transferencias } = montar();
+      await caso.execute(INPUT_SN);
+      expect(transferencias[0]).toMatchObject({
+        funcionarioDestinoId: "lider-sn",
+        enfileirarSeOcupado: true,
+      });
+    });
+
+    it("sem Responsável nem Líder fica na fila do Setor (sem destino)", async () => {
+      const { caso, transferencias } = montar({ lider: null });
+      await caso.execute(INPUT_SN);
+      expect(transferencias[0]).toMatchObject({ funcionarioDestinoId: null });
+    });
+
+    it("destino ocupado: entra na fila dele e o aviso diz isso", async () => {
+      const { caso, enviadas } = montar({
+        roteamento: { regime: "simples_nacional", responsavelId: "resp-1" },
+        resultados: [{ ...TRANSFERIDO, naFila: true }],
+      });
+      const r = await caso.execute(INPUT_SN);
+      expect(r.ok && r.value.naFila).toBe(true);
+      expect(enviadas[0].texto).toBe(
+        "Você está na fila de atendimento de Ana no setor Simples Nacional. Aguarde, por favor.",
+      );
+    });
+
+    it("recusa Cliente de outro Regime e Atendimento sem Cliente, sem gravar", async () => {
+      const outroRegime = montar({ roteamento: { regime: "lucro_real", responsavelId: null } });
+      const r1 = await outroRegime.caso.execute(INPUT_SN);
+      expect(!r1.ok && r1.error.code).toBe("VALIDATION_ERROR");
+      const semCliente = montar({ atendimento: { ...ATENDIMENTO, clienteId: null } });
+      const r2 = await semCliente.caso.execute(INPUT_SN);
+      expect(!r2.ok && r2.error.code).toBe("VALIDATION_ERROR");
+      expect([...outroRegime.transferencias, ...semCliente.transferencias]).toEqual([]);
+    });
   });
 });

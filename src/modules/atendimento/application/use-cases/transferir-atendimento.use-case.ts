@@ -19,7 +19,10 @@ import {
   menosCarregado,
   TENTATIVAS_DE_ATRIBUICAO,
 } from "@/modules/atendimento/domain/services/balanceamento.service";
-import { podeTransferir } from "@/modules/atendimento/domain/services/transferencia.service";
+import {
+  atendidoPeloSimplesNacional,
+  podeTransferir,
+} from "@/modules/atendimento/domain/services/transferencia.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
@@ -29,9 +32,15 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import { SETOR_LABEL, type SetorSlug } from "@/shared/kernel/setores";
 
+// Destino que não passa pelo Balanceamento (`funcionarioId` null = fila do Setor).
+type DestinoFixo = { funcionarioId: string | null };
+
 type Transferido = Extract<ResultadoTransferencia, { status: "transferido" }>;
 
-function avisoAoCliente(setor: SetorSlug, atendente: string | null): string {
+function avisoAoCliente(setor: SetorSlug, atendente: string | null, naFila: boolean): string {
+  if (naFila) {
+    return `Você está na fila de atendimento de ${atendente} no setor ${SETOR_LABEL[setor]}. Aguarde, por favor.`;
+  }
   const destino = atendente
     ? `o setor ${SETOR_LABEL[setor]}, com ${atendente}`
     : `o setor ${SETOR_LABEL[setor]}`;
@@ -57,15 +66,20 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
 
     const atendimento = await this.validar(ator, input);
     if (!atendimento.ok) return atendimento;
+    const fixo = await this.destinoFixo(atendimento.value, input.setorDestino);
+    if (!fixo.ok) return fixo;
     const resumo = input.resumo.trim();
 
-    const gravada = await this.gravar({
-      atendimentoId: input.atendimentoId,
-      origemFuncionarioId: atendimento.value.funcionarioId,
-      setorDestino: input.setorDestino,
-      resumo,
-      ator: { id: ator.id, setor: ator.setor },
-    });
+    const gravada = await this.gravar(
+      {
+        atendimentoId: input.atendimentoId,
+        origemFuncionarioId: atendimento.value.funcionarioId,
+        setorDestino: input.setorDestino,
+        resumo,
+        ator: { id: ator.id, setor: ator.setor },
+      },
+      fixo.value,
+    );
     if (!gravada.ok) {
       await this.auditarFalha(ator, input.atendimentoId);
       return gravada;
@@ -73,10 +87,10 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
 
     // Transferido: falhar daqui em diante não desfaz nada; o erro diz que o Atendimento já está
     // com o destino e o cliente não foi avisado.
-    const { destinatarioNome, origemNome, contato } = gravada.value;
+    const { destinatarioNome, naFila, origemNome, contato } = gravada.value;
     const aviso = await this.avisarCliente(
       atendimento.value,
-      avisoAoCliente(input.setorDestino, destinatarioNome),
+      avisoAoCliente(input.setorDestino, destinatarioNome, naFila),
     );
     if (!aviso.ok) {
       await this.auditarFalha(ator, input.atendimentoId);
@@ -89,6 +103,7 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
     }
     return ok({
       destinatarioNome,
+      naFila,
       contato,
       origemSetor: atendimento.value.setor,
       origemNome,
@@ -118,24 +133,64 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
     return ok(atendimento);
   }
 
-  // O repositório recusa ("conflito") se outro Atendimento ocupou o escolhido entre a listagem e a
+  // Setor Simples Nacional: só Cliente do Simples Nacional/MEI; vai direto ao Responsável do
+  // Cliente, ou ao Líder se não houver, ignorando o Balanceamento. Outros Setores: null.
+  private async destinoFixo(
+    atendimento: AtendimentoEmAndamento,
+    setorDestino: SetorSlug,
+  ): Promise<Result<DestinoFixo | null, AppError>> {
+    if (setorDestino !== "simples_nacional") return ok(null);
+    const roteamento = atendimento.clienteId
+      ? await this.repositorio.roteamentoDoCliente(atendimento.clienteId)
+      : ok(null);
+    if (!roteamento.ok) return roteamento;
+    if (!roteamento.value || !atendidoPeloSimplesNacional(roteamento.value.regime)) {
+      return err(
+        new ValidationError("Só Cliente do Simples Nacional ou MEI vai para o Simples Nacional.", {
+          setorDestino: ["Cliente fora do Simples Nacional/MEI"],
+        }),
+      );
+    }
+    if (roteamento.value.responsavelId)
+      return ok({ funcionarioId: roteamento.value.responsavelId });
+    const lider = await this.repositorio.liderDoSetor(setorDestino);
+    return lider.ok ? ok({ funcionarioId: lider.value }) : lider;
+  }
+
+  // Destino fixo ocupado: o Atendimento entra na fila dele (o repositório faz). Sem destino fixo,
+  // o repositório recusa ("conflito") se outro Atendimento ocupou o escolhido entre a listagem e a
   // gravação; relista e escolhe de novo. Esgotadas as tentativas, transfere sem atribuição.
   private async gravar(
-    dados: Omit<NovaTransferencia, "funcionarioDestinoId">,
+    dados: Omit<NovaTransferencia, "funcionarioDestinoId" | "enfileirarSeOcupado">,
+    fixo: DestinoFixo | null,
   ): Promise<Result<Transferido, AppError>> {
+    if (fixo) {
+      return this.exigirTransferido(
+        await this.repositorio.transferir({
+          ...dados,
+          funcionarioDestinoId: fixo.funcionarioId,
+          enfileirarSeOcupado: true,
+        }),
+      );
+    }
     for (let tentativa = 0; tentativa < TENTATIVAS_DE_ATRIBUICAO; tentativa++) {
       const escolhido = await this.escolherDestino(dados.setorDestino);
       if (!escolhido.ok) return escolhido;
       const resultado = await this.repositorio.transferir({
         ...dados,
         funcionarioDestinoId: escolhido.value,
+        enfileirarSeOcupado: false,
       });
       if (!resultado.ok || resultado.value.status !== "conflito") {
         return this.exigirTransferido(resultado);
       }
     }
     return this.exigirTransferido(
-      await this.repositorio.transferir({ ...dados, funcionarioDestinoId: null }),
+      await this.repositorio.transferir({
+        ...dados,
+        funcionarioDestinoId: null,
+        enfileirarSeOcupado: false,
+      }),
     );
   }
 

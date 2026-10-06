@@ -1,7 +1,7 @@
 import type { Papel } from "@/shared/kernel/papeis";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
-import { podeTransferir } from "./transferencia.service";
+import { atendidoPeloSimplesNacional, podeTransferir } from "./transferencia.service";
 
 type Ator = { id: string; papel: Papel; setor: SetorSlug };
 
@@ -23,5 +23,16 @@ describe("podeTransferir", () => {
     expect(podeTransferir({ id: "x", papel: "funcionario", setor: "recepcao" }, semDono)).toBe(
       false,
     );
+  });
+});
+
+describe("atendidoPeloSimplesNacional", () => {
+  it.each([
+    ["simples_nacional", true],
+    ["mei", true],
+    ["lucro_presumido", false],
+    ["lucro_real", false],
+  ])("%s → %s", (regime, esperado) => {
+    expect(atendidoPeloSimplesNacional(regime)).toBe(esperado);
   });
 });

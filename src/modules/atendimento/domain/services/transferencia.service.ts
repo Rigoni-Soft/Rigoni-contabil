@@ -12,3 +12,8 @@ export function podeTransferir(
     ator.id === atendimento.funcionarioId
   );
 }
+
+// Só Cliente do Simples Nacional ou MEI é atendido (e transferido) pelo setor Simples Nacional.
+export function atendidoPeloSimplesNacional(regime: string): boolean {
+  return regime === "simples_nacional" || regime === "mei";
+}

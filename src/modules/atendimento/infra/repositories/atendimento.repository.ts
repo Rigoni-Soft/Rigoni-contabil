@@ -11,11 +11,14 @@ import type {
   NovoAtendimento,
   ResultadoAbertura,
   ResultadoTransferencia,
+  RoteamentoDoCliente,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import {
   aberturaRowSchema,
   anexoRowSchema,
   atendimentoEmAndamentoRowSchema,
+  liderRowSchema,
+  roteamentoDoClienteRowSchema,
   transferenciaRowSchema,
 } from "@/modules/atendimento/infra/dtos/atendimento-rpc-row.dto";
 import { funcionarioDoSetorRowSchema } from "@/modules/atendimento/infra/dtos/funcionario-do-setor-row.dto";
@@ -75,7 +78,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
   async buscarEmAndamento(id: string): Promise<Result<AtendimentoEmAndamento | null, AppError>> {
     const { data, error } = await this.supabaseAdmin
       .from("atendimentos")
-      .select("id, setor, funcionario_id, telefone, chave_telefone")
+      .select("id, cliente_id, setor, funcionario_id, telefone, chave_telefone")
       .eq("id", id)
       .eq("status", "em_andamento")
       .maybeSingle();
@@ -84,11 +87,44 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     const linha = atendimentoEmAndamentoRowSchema.parse(data);
     return ok({
       id: linha.id,
+      clienteId: linha.cliente_id,
       setor: linha.setor,
       funcionarioId: linha.funcionario_id,
       telefone: linha.telefone,
       chave: linha.chave_telefone,
     });
+  }
+
+  async roteamentoDoCliente(
+    clienteId: string,
+  ): Promise<Result<RoteamentoDoCliente | null, AppError>> {
+    const { data, error } = await this.supabaseAdmin
+      .from("clientes")
+      .select("regime, cliente_cadastro_operacional_sn(responsavel_id)")
+      .eq("id", clienteId)
+      .maybeSingle();
+    if (error) return err(new ServicoExternoError("Falha ao consultar o Cliente."));
+    if (!data) return ok(null);
+    const linha = roteamentoDoClienteRowSchema.parse(data);
+    return ok({
+      regime: linha.regime,
+      responsavelId: linha.cliente_cadastro_operacional_sn?.responsavel_id ?? null,
+    });
+  }
+
+  // Mais de um Líder no Setor: o primeiro por nome (ordem estável).
+  async liderDoSetor(setor: SetorSlug): Promise<Result<string | null, AppError>> {
+    const { data, error } = await this.supabaseAdmin
+      .from("perfis")
+      .select("id")
+      .eq("setor", setor)
+      .eq("papel", "lider_setor")
+      .order("nome")
+      .order("id")
+      .limit(1)
+      .maybeSingle();
+    if (error) return err(new ServicoExternoError("Falha ao consultar o Líder do Setor."));
+    return ok(data ? liderRowSchema.parse(data).id : null);
   }
 
   async transferir(
@@ -102,12 +138,14 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       p_resumo: transferencia.resumo,
       p_ator: transferencia.ator.id,
       p_ator_setor: transferencia.ator.setor,
+      p_enfileirar_se_ocupado: transferencia.enfileirarSeOcupado,
     });
     if (error) return err(new ServicoExternoError("Falha ao transferir o Atendimento."));
     const linha = transferenciaRowSchema.parse(data);
     if (linha.status !== "transferido") return ok(linha);
     return ok({
       status: "transferido",
+      naFila: linha.na_fila,
       destinatarioNome: linha.destinatario_nome,
       origemNome: linha.origem_nome,
       contato: { contatoNome: linha.contato_nome, empresa: linha.empresa, cnpj: linha.cnpj },

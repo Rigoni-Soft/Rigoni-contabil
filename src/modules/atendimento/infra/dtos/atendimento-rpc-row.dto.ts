@@ -11,6 +11,7 @@ export const anexoRowSchema = z.boolean();
 export const transferenciaRowSchema = z.discriminatedUnion("status", [
   z.object({
     status: z.literal("transferido"),
+    na_fila: z.boolean(),
     destinatario_nome: z.string().nullable(),
     origem_nome: z.string().nullable(),
     contato_nome: z.string().nullable(),
@@ -24,8 +25,17 @@ export const transferenciaRowSchema = z.discriminatedUnion("status", [
 // Linha de `atendimentos` lida para decidir a Transferência.
 export const atendimentoEmAndamentoRowSchema = z.object({
   id: z.string(),
+  cliente_id: z.string().nullable(),
   setor: z.enum(SETORES),
   funcionario_id: z.string().nullable(),
   telefone: z.string(),
   chave_telefone: z.string(),
 });
+
+// `clientes` com o cadastro operacional embutido (1:1; só MEI/Simples Nacional têm linha).
+export const roteamentoDoClienteRowSchema = z.object({
+  regime: z.string(),
+  cliente_cadastro_operacional_sn: z.object({ responsavel_id: z.string().nullable() }).nullable(),
+});
+
+export const liderRowSchema = z.object({ id: z.string() });
