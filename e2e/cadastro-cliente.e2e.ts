@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 // Cobre o cenário principal do ticket #33 (Admin cadastra Cliente): Empresa,
 // CNPJ, Regime, contrato social e alterações contratuais anexados no Storage,

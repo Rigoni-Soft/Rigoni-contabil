@@ -1,4 +1,6 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+
+import { expect, test } from "./fixtures";
 
 // Cobre o cenário principal do ticket #31 (troca obrigatória de senha no
 // primeiro login): usa o cadastro do #30 pra gerar uma conta com senha

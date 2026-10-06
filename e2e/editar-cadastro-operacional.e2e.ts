@@ -1,5 +1,6 @@
-import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
+
+import { expect, test } from "./fixtures";
 
 // Cobre os cenários do ticket #34 (Funcionário SN edita campos operacionais
 // do cliente): edição, persistência, somente-leitura pra outro Setor e
