@@ -123,7 +123,7 @@ describe("SupabaseClienteQueryGateway.buscarPorTermo (#35, integração)", () =>
     );
     const gateway = new SupabaseClienteQueryGateway(await comoFuncionarioSN());
 
-    const resultado = await gateway.buscarPorTermo("Busca Funcionario");
+    const resultado = await gateway.buscarPorTermo("Busca Funcionario", false);
 
     expect(resultado.ok).toBe(true);
     if (resultado.ok) expect(resultado.value.some((s) => s.id === cliente.id)).toBe(true);
@@ -230,5 +230,20 @@ describe("SupabaseClienteQueryGateway.listarResumoOperacional (#36, integração
 
     expect(resultado.ok).toBe(true);
     if (resultado.ok) expect(resultado.value.some((l) => l.empresa === empresa)).toBe(false);
+  });
+
+  it("Funcionário SN (não-Admin) também lista o resumo, pela view sem contrato social (PR #69)", async () => {
+    const admin = await comoAdmin();
+    const cliente = await criarClienteComContratoSocial(
+      admin,
+      "Padaria Resumo Funcionario Ltda",
+      cnpjUnico(),
+    );
+    const gateway = new SupabaseClienteQueryGateway(await comoFuncionarioSN());
+
+    const resultado = await gateway.listarResumoOperacional();
+
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) expect(resultado.value.some((l) => l.clienteId === cliente.id)).toBe(true);
   });
 });

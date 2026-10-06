@@ -116,8 +116,9 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
   }
 
   async listarResumoOperacional(): Promise<Result<ResumoOperacionalRow[], AppError>> {
+    // View `clientes_basico` (PR #69): o dashboard é de qualquer Funcionário do setor.
     const { data, error } = await this.supabase
-      .from("clientes")
+      .from("clientes_basico")
       .select("id, empresa, cnpj, cliente_cadastro_operacional_sn(*)")
       // Mesmo escopo da busca (#35): só Regime com cadastro operacional de
       // verdade (nasce automático só pra Simples Nacional/MEI, #34).

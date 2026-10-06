@@ -82,7 +82,10 @@ function Grupo({
                 <Anel quantidade={card.quantidade} total={totalClientes} classe={anel} />
                 <p className="text-sm font-semibold text-foreground">
                   {card.titulo}
-                  <span className="sr-only"> — {card.quantidade} de {totalClientes} clientes</span>
+                  <span className="sr-only">
+                    {" "}
+                    — {card.quantidade} de {totalClientes} clientes
+                  </span>
                 </p>
               </Link>
             </li>
