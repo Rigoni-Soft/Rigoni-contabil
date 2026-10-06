@@ -27,7 +27,7 @@ function menosCarregado(funcionarios: FuncionarioDoSetor[]): FuncionarioDoSetor 
 // ponytail: "livre" = sem Atendimento em andamento (decidido no repositório); a regra fina de
 // disponibilidade/presença e a Fila entram no #45.
 export class AbrirAtendimento implements AbrirAtendimentoPort {
-  constructor(private readonly atendimentos: AtendimentoRepositoryPort) {}
+  constructor(private readonly repositorio: AtendimentoRepositoryPort) {}
 
   async execute(abertura: AberturaAtendimento): Promise<Result<AtendimentoAberto, AppError>> {
     // O repositório recusa (null) se outro Atendimento ocupou o escolhido entre a listagem e a
@@ -35,11 +35,11 @@ export class AbrirAtendimento implements AbrirAtendimentoPort {
     for (let tentativa = 0; tentativa <= TENTATIVAS; tentativa++) {
       let funcionarioId: string | null = null;
       if (tentativa < TENTATIVAS) {
-        const funcionarios = await this.atendimentos.funcionariosDoSetor(abertura.setor);
+        const funcionarios = await this.repositorio.funcionariosDoSetor(abertura.setor);
         if (!funcionarios.ok) return funcionarios;
         funcionarioId = menosCarregado(funcionarios.value)?.id ?? null;
       }
-      const aberto = await this.atendimentos.abrir({ ...abertura, funcionarioId });
+      const aberto = await this.repositorio.abrir({ ...abertura, funcionarioId });
       if (!aberto.ok) return aberto;
       if (aberto.value) return ok({ id: aberto.value.id, funcionarioId });
     }

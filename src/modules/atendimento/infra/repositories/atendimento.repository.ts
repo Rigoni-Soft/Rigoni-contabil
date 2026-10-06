@@ -1,16 +1,16 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
 
 import type {
   AtendimentoRepositoryPort,
   FuncionarioDoSetor,
   NovoAtendimento,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
+import { funcionarioDoSetorRowSchema } from "@/modules/atendimento/infra/dtos/funcionario-do-setor-row.dto";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
-
-type LinhaFuncionario = { id: string; atendimentos_no_mes: number | string; livre: boolean };
 
 // Usa o client service_role (docs/adr/0001); a tabela não tem policy para usuário logado.
 export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort {
@@ -22,11 +22,14 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     });
     if (error) return err(new ServicoExternoError("Falha ao consultar os Funcionários do Setor."));
     return ok(
-      (data as LinhaFuncionario[]).map((l) => ({
-        id: l.id,
-        atendimentosNoMes: Number(l.atendimentos_no_mes),
-        livre: l.livre,
-      })),
+      z
+        .array(funcionarioDoSetorRowSchema)
+        .parse(data)
+        .map((l) => ({
+          id: l.id,
+          atendimentosNoMes: Number(l.atendimentos_no_mes),
+          livre: l.livre,
+        })),
     );
   }
 
@@ -39,6 +42,6 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       p_mensagens: atendimento.mensagens,
     });
     if (error) return err(new ServicoExternoError("Falha ao abrir o Atendimento."));
-    return ok(data ? { id: data as string } : null);
+    return ok(data ? { id: z.string().parse(data) } : null);
   }
 }
