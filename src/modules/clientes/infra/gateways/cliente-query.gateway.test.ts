@@ -20,6 +20,8 @@ async function clienteAutenticado(email: string, senha: string): Promise<Supabas
 }
 
 const comoAdmin = () => clienteAutenticado("admin@rigonicontabil.local", "admin123");
+const comoFuncionarioSN = () =>
+  clienteAutenticado("funcionario.sn@rigonicontabil.local", "func123");
 
 // CNPJ único e válido (timestamp + contador, dígitos verificadores calculados
 // pelo mesmo algoritmo mod 11 dos outros arquivos de teste de integração/e2e)
@@ -110,6 +112,21 @@ describe("SupabaseClienteQueryGateway.buscarPorTermo (#35, integração)", () =>
 
     expect(porNome.ok).toBe(true);
     if (porNome.ok) expect(porNome.value.some((s) => s.id === cliente.id)).toBe(true);
+  });
+
+  it("Funcionário SN (não-Admin) também encontra o cliente, pela view sem contrato social (PR #69)", async () => {
+    const admin = await comoAdmin();
+    const cliente = await criarClienteComContratoSocial(
+      admin,
+      "Padaria Busca Funcionario Ltda",
+      cnpjUnico(),
+    );
+    const gateway = new SupabaseClienteQueryGateway(await comoFuncionarioSN());
+
+    const resultado = await gateway.buscarPorTermo("Busca Funcionario");
+
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) expect(resultado.value.some((s) => s.id === cliente.id)).toBe(true);
   });
 
   it("devolve lista vazia quando o termo não casa com nenhum cliente", async () => {

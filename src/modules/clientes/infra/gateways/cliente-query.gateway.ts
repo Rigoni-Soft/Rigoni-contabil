@@ -95,8 +95,10 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
     // vira duas condições em vez de texto literal. Envolver em aspas duplas
     // (com `"`/`\` escapados) trata o valor inteiro como literal.
     const valor = `%${termo}%`.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    // View `clientes_basico`, não `clientes`: o dashboard é de qualquer Funcionário
+    // do setor, e só Admin lê a tabela (devolutiva PR #69, contrato social).
     const { data, error } = await this.supabase
-      .from("clientes")
+      .from("clientes_basico")
       .select("id, empresa, cnpj")
       // Esta busca é a seção "Buscar cliente" do dashboard do setor Simples
       // Nacional (#35/#36) — só Regime Simples Nacional/MEI tem cadastro
