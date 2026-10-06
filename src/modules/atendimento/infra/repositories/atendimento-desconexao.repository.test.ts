@@ -16,8 +16,8 @@ const SERVICE_KEY =
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 const repositorio = new SupabaseAtendimentoRepository(admin);
 
-// Setor só desta suíte: a Fila é do Setor inteiro, então nenhuma outra suíte pode usá-lo.
-const SETOR = "condominios" as const;
+// Setor só desta suíte (nenhuma outra suíte cria Atendimentos nele): a Fila é do Setor inteiro.
+const SETOR = "financeiro" as const;
 const TELEFONES = ["61955580001", "61955580002"];
 const SENHA = "senha-de-teste-123";
 const usuarios: string[] = [];
