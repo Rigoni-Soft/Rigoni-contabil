@@ -106,7 +106,7 @@ function montar(
   const abertos: AberturaAtendimento[] = [];
   const anexadas: NovaMensagem[] = [];
   const mensagens: AnexarMensagemAtendimentoPort = {
-    execute: async (_chave, mensagem) => {
+    execute: async ({ mensagem }) => {
       if (!opcoes.emAndamento) return ok({ anexada: false });
       anexadas.push(mensagem);
       return ok({ anexada: true });

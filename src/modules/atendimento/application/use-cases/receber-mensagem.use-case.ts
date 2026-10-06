@@ -125,9 +125,9 @@ export class ReceberMensagem implements ReceberMensagemPort {
 
     // Quem já tem Atendimento em andamento continua nele; a URA não recomeça.
     // ponytail: sem resposta automática, quem responde é o Funcionário (#46).
-    const anexada = await this.mensagens.execute(chave, {
-      autor: "contato",
-      texto: mensagem.texto,
+    const anexada = await this.mensagens.execute({
+      chave,
+      mensagem: { autor: "contato", texto: mensagem.texto },
     });
     if (!anexada.ok) return anexada;
     if (anexada.value.anexada) return ok(undefined);
@@ -167,11 +167,12 @@ export class ReceberMensagem implements ReceberMensagemPort {
     sessao: SessaoAtendimento | null,
   ): Promise<Result<void, AppError>> {
     const etapa = texto === "menu" ? null : sessao?.etapa;
-    const resposta = texto.normalize("NFD").replace(/\p{M}/gu, "");
+    const semAcento = texto.normalize("NFD").replace(/\p{M}/gu, "");
 
     if (etapa === "ja_cliente") {
-      if (["sim", "s"].includes(resposta)) return this.avancar(telefone, chave, "cnpj", PEDIR_CNPJ);
-      if (["nao", "n"].includes(resposta))
+      if (["sim", "s"].includes(semAcento))
+        return this.avancar(telefone, chave, "cnpj", PEDIR_CNPJ);
+      if (["nao", "n"].includes(semAcento))
         return this.encaminharRecepcao(telefone, chave, textoDoContato);
       return this.enviar(telefone, SIM_OU_NAO);
     }

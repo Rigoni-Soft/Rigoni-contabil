@@ -31,7 +31,7 @@ export class AbrirAtendimento implements AbrirAtendimentoPort {
   constructor(private readonly repositorio: AtendimentoRepositoryPort) {}
 
   async execute(abertura: AberturaAtendimento): Promise<Result<AtendimentoAberto, AppError>> {
-    // O repositório recusa (null) se outro Atendimento ocupou o escolhido entre a listagem e a
+    // O repositório recusa ("conflito") se outro Atendimento ocupou o escolhido entre a listagem e a
     // gravação; relista e escolhe de novo. Esgotadas as tentativas, abre sem atribuição.
     for (let tentativa = 0; tentativa < TENTATIVAS; tentativa++) {
       const funcionarios = await this.repositorio.funcionariosDoSetor(abertura.setor);

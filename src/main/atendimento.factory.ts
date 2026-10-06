@@ -9,8 +9,6 @@ import {
 
 import { exigirSegredosReais } from "@/main/segredos-mensageria.factory";
 import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
-import type { AbrirAtendimentoPort } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
-import type { AnexarMensagemAtendimentoPort } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
 import type { ReceberMensagemPort } from "@/modules/atendimento/application/ports/in/receber-mensagem.provider";
 import type { AutenticacaoWebhookPort } from "@/modules/atendimento/application/ports/out/autenticacao-webhook.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
@@ -47,24 +45,17 @@ function exigirSegredosDeProducao(): void {
   );
 }
 
-export function makeAbrirAtendimento(): AbrirAtendimentoPort {
-  return new AbrirAtendimento(new SupabaseAtendimentoRepository(createSupabaseAdmin()));
-}
-
-export function makeAnexarMensagemAtendimento(): AnexarMensagemAtendimentoPort {
-  return new AnexarMensagemAtendimento(new SupabaseAtendimentoRepository(createSupabaseAdmin()));
-}
-
 export function makeReceberMensagem(): ReceberMensagemPort {
   exigirSegredosDeProducao();
   const supabaseAdmin = createSupabaseAdmin();
+  const atendimentos = new SupabaseAtendimentoRepository(supabaseAdmin);
   return new ReceberMensagem(
     new SupabaseIdentificacaoContatoGateway(supabaseAdmin),
     makeEnvioMensagem(),
     new SupabaseDocumentosContratuaisGateway(supabaseAdmin),
     new SupabaseSessaoAtendimentoGateway(supabaseAdmin, MENSAGERIA_SEGREDO_SESSAO),
-    makeAbrirAtendimento(),
-    makeAnexarMensagemAtendimento(),
+    new AbrirAtendimento(atendimentos),
+    new AnexarMensagemAtendimento(atendimentos),
   );
 }
 

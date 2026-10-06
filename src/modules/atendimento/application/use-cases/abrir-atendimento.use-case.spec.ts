@@ -21,7 +21,7 @@ function montar(funcionarios: FuncionarioDoSetor[] | "falha", recusasIniciais = 
       abertos.push(a);
       return ok({ status: "aberto", id: "at-1" });
     },
-    anexarMensagem: async () => ok({ status: "sem_atendimento" }),
+    anexarMensagem: async () => ok({ anexada: false }),
   };
   return { abertos, tentativas, caso: new AbrirAtendimento(repo) };
 }

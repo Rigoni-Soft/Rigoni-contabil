@@ -16,8 +16,8 @@ create table public.atendimentos (
   assumido_em timestamptz,
   check ((funcionario_id is null) = (assumido_em is null))
 );
--- Único: um número só tem um Atendimento em andamento; a corrida entre dois webhooks falha aqui
--- e a reentrega cai no caminho de anexar.
+-- Único: um número só tem um Atendimento em andamento. Na corrida entre dois webhooks o segundo
+-- insert falha (erro nessa chamada); a reentrega da Meta já encontra o Atendimento e anexa.
 create unique index atendimentos_em_andamento_telefone on public.atendimentos (chave_telefone)
   where status = 'em_andamento';
 create index atendimentos_funcionario_mes on public.atendimentos (funcionario_id, assumido_em);
@@ -38,6 +38,8 @@ revoke all on table public.atendimentos, public.mensagens from anon, authenticat
 
 -- Funcionários do Setor com a contagem do mês (fuso de Brasília) e se estão livres
 -- (nenhum Atendimento em andamento). Ordem estável: nome, id.
+-- ponytail: o left join lê todo o histórico de cada Funcionário; se crescer, limitar ao mês e
+-- ao em_andamento (dois agregados) ou guardar um contador por mês.
 create or replace function public.funcionarios_do_setor(p_setor public.setor_slug)
 returns table (id uuid, atendimentos_no_mes bigint, livre boolean)
 language sql

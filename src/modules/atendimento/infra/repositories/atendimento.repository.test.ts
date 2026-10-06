@@ -121,12 +121,12 @@ describe("SupabaseAtendimentoRepository", () => {
     expect(await gateway.anexarMensagem(TELEFONE, { autor: "contato", texto: "mais uma" })).toEqual(
       {
         ok: true,
-        value: { status: "anexada" },
+        value: { anexada: true },
       },
     );
     expect(await gateway.anexarMensagem("00000000000", { autor: "contato", texto: "x" })).toEqual({
       ok: true,
-      value: { status: "sem_atendimento" },
+      value: { anexada: false },
     });
   });
 });

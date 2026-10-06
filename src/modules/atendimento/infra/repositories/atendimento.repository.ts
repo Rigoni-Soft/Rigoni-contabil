@@ -2,12 +2,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import type { NovaMensagem } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
+import type { AnexarMensagemOutput } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
 import type {
   AtendimentoRepositoryPort,
   FuncionarioDoSetor,
   NovoAtendimento,
   ResultadoAbertura,
-  ResultadoAnexo,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import {
   aberturaRowSchema,
@@ -32,10 +32,10 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       z
         .array(funcionarioDoSetorRowSchema)
         .parse(data)
-        .map((l) => ({
-          id: l.id,
-          atendimentosNoMes: l.atendimentos_no_mes,
-          livre: l.livre,
+        .map((linha) => ({
+          id: linha.id,
+          atendimentosNoMes: linha.atendimentos_no_mes,
+          livre: linha.livre,
         })),
     );
   }
@@ -57,13 +57,13 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
   async anexarMensagem(
     chave: string,
     mensagem: NovaMensagem,
-  ): Promise<Result<ResultadoAnexo, AppError>> {
+  ): Promise<Result<AnexarMensagemOutput, AppError>> {
     const { data, error } = await this.supabaseAdmin.rpc("anexar_mensagem_atendimento", {
       p_chave: chave,
       p_autor: mensagem.autor,
       p_texto: mensagem.texto,
     });
     if (error) return err(new ServicoExternoError("Falha ao registrar a Mensagem."));
-    return ok(anexoRowSchema.parse(data) ? { status: "anexada" } : { status: "sem_atendimento" });
+    return ok({ anexada: anexoRowSchema.parse(data) });
   }
 }
