@@ -139,6 +139,16 @@ describe("POST /api/webhooks/whatsapp (notificação)", () => {
     expect(envio.enviadas[0].texto).toContain("Olá, Ana");
   });
 
+  it("número desconhecido: CNPJ não encontrado ganha nova tentativa e, errando de novo, vai à recepção", async () => {
+    identificacao = { identificar: async () => ok(null), cnpjCadastrado: async () => ok(false) };
+    for (const t of ["oi", "sim", "11.222.333/0001-81", "11.222.333/0001-81"]) {
+      expect((await enviar(notificacao([texto(t)]))).status).toBe(200);
+    }
+    const textos = envio.enviadas.map((e) => e.texto);
+    expect(textos[2]).toContain("Confira e envie novamente");
+    expect(textos[3]).toContain("recepção");
+  });
+
   it("processa todas as mensagens de um lote", async () => {
     const r = await enviar(notificacao([texto("oi"), texto("2", "5511999990000")]));
     expect(r.status).toBe(200);

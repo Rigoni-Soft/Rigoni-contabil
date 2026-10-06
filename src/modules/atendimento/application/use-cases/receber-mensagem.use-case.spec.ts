@@ -24,6 +24,7 @@ import type {
 } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
+import { normalizarCnpj } from "@/shared/kernel/cnpj";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { ReceberMensagem } from "./receber-mensagem.use-case";
@@ -92,7 +93,11 @@ function montar(
     cnpjCadastrado: async (cnpj) =>
       opcoes.cnpjFalha
         ? err(new ServicoExternoError("banco"))
-        : ok((opcoes.cnpjsCadastrados ?? [CNPJ_CADASTRADO]).includes(cnpj)),
+        : ok(
+            (opcoes.cnpjsCadastrados ?? [CNPJ_CADASTRADO]).some(
+              (c) => normalizarCnpj(c) === normalizarCnpj(cnpj),
+            ),
+          ),
   };
   const envio: EnvioMensagemPort = {
     enviar: async (m) => {
@@ -645,9 +650,25 @@ describe("ReceberMensagem — fallback para a recepção (#50)", () => {
 
   it("pedido de atendente na primeira mensagem já vai à recepção, sem a pergunta", async () => {
     const { caso, enviadas, abertos } = montar({ contato: null });
-    await dizer(caso, "preciso de uma pessoa, por favor");
+    await dizer(caso, "quero falar com uma pessoa, por favor");
     expect(abertos).toHaveLength(1);
     expect(enviadas[0].texto).toContain("recepção");
+  });
+
+  it.each(["sou pessoa física", "preciso de atendimento fiscal"])(
+    "frase comum sem pedido de atendente ('%s') segue o fluxo",
+    async (frase) => {
+      const { caso, abertos, sessoes } = montar({ contato: null });
+      for (const t of ["oi", frase]) await dizer(caso, t);
+      expect(abertos).toHaveLength(0);
+      expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente" });
+    },
+  );
+
+  it("CNPJ cadastrado digitado só com dígitos também é reconhecido", async () => {
+    const { caso, abertos } = montar({ contato: null });
+    for (const t of ["oi", "sim", "90000001000129"]) await dizer(caso, t);
+    expect(abertos).toHaveLength(1);
   });
 
   it("'menu' continua recomeçando, mesmo com palavra-chave no texto", async () => {

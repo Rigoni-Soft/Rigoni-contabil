@@ -94,7 +94,9 @@ describe("SupabaseIdentificacaoContatoGateway", () => {
   it("cnpjCadastrado acha o Cliente por CNPJ com ou sem pontuação e nega o desconhecido", async () => {
     const { data } = await admin.from("clientes").select("cnpj").eq("id", clienteId).single();
     const cnpj = (data as { cnpj: string }).cnpj;
+    const pontuado = `${cnpj.slice(0, 2)}.${cnpj.slice(2, 5)}.${cnpj.slice(5, 8)}/${cnpj.slice(8, 12)}-${cnpj.slice(12)}`;
     expect(await gateway.cnpjCadastrado(cnpj)).toEqual({ ok: true, value: true });
+    expect(await gateway.cnpjCadastrado(pontuado)).toEqual({ ok: true, value: true });
     expect(await gateway.cnpjCadastrado("00.000.000/0001-91")).toEqual({ ok: true, value: false });
   });
 
