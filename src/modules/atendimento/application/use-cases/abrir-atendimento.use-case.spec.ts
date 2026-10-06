@@ -12,17 +12,17 @@ import { AbrirAtendimento } from "./abrir-atendimento.use-case";
 function montar(funcionarios: FuncionarioDoSetor[] | "falha", recusasIniciais = 0) {
   const abertos: NovoAtendimento[] = [];
   const tentativas: NovoAtendimento[] = [];
-  const repo: AtendimentoRepositoryPort = {
+  const repo = {
     funcionariosDoSetor: async () =>
       funcionarios === "falha" ? err(new ServicoExternoError("banco")) : ok(funcionarios),
-    abrir: async (a) => {
+    abrir: async (a: NovoAtendimento) => {
       tentativas.push(a);
       if (tentativas.length <= recusasIniciais) return ok({ status: "conflito" });
       abertos.push(a);
       return ok({ status: "aberto", id: "at-1" });
     },
     anexarMensagem: async () => ok({ anexada: false }),
-  };
+  } as unknown as AtendimentoRepositoryPort;
   return { abertos, tentativas, caso: new AbrirAtendimento(repo) };
 }
 

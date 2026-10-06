@@ -15,6 +15,38 @@ export type ResultadoAbertura = { status: "aberto"; id: string } | { status: "co
 
 export type NovoAtendimento = AberturaAtendimento & { funcionarioId: string | null };
 
+export type AtendimentoEmAndamento = {
+  id: string;
+  setor: SetorSlug;
+  funcionarioId: string | null;
+  telefone: string;
+  chave: string;
+};
+
+export type NovaTransferencia = {
+  atendimentoId: string;
+  // Dono do Atendimento quando foi lido: se mudou até a gravação, a Transferência é recusada.
+  origemFuncionarioId: string | null;
+  setorDestino: SetorSlug;
+  funcionarioDestinoId: string | null;
+  resumo: string;
+  ator: { id: string; setor: SetorSlug };
+};
+
+// "conflito": o Funcionário de destino foi ocupado no meio (como em ResultadoAbertura).
+// "inexistente": o Atendimento não está mais em andamento com o dono lido.
+export type ResultadoTransferencia =
+  | {
+      status: "transferido";
+      destinatarioNome: string | null;
+      origemNome: string | null;
+      contatoNome: string | null;
+      empresa: string | null;
+      cnpj: string | null;
+    }
+  | { status: "conflito" }
+  | { status: "inexistente" };
+
 export interface AtendimentoRepositoryPort {
   funcionariosDoSetor(setor: SetorSlug): Promise<Result<FuncionarioDoSetor[], AppError>>;
   abrir(atendimento: NovoAtendimento): Promise<Result<ResultadoAbertura, AppError>>;
@@ -22,4 +54,6 @@ export interface AtendimentoRepositoryPort {
     chave: string,
     mensagem: NovaMensagem,
   ): Promise<Result<AnexarMensagemOutput, AppError>>;
+  buscarEmAndamento(id: string): Promise<Result<AtendimentoEmAndamento | null, AppError>>;
+  transferir(transferencia: NovaTransferencia): Promise<Result<ResultadoTransferencia, AppError>>;
 }

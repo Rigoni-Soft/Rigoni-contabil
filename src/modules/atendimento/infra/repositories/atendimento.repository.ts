@@ -4,14 +4,19 @@ import { z } from "zod";
 import type { NovaMensagem } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type { AnexarMensagemOutput } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
 import type {
+  AtendimentoEmAndamento,
   AtendimentoRepositoryPort,
   FuncionarioDoSetor,
+  NovaTransferencia,
   NovoAtendimento,
   ResultadoAbertura,
+  ResultadoTransferencia,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import {
   aberturaRowSchema,
   anexoRowSchema,
+  atendimentoEmAndamentoRowSchema,
+  transferenciaRowSchema,
 } from "@/modules/atendimento/infra/dtos/atendimento-rpc-row.dto";
 import { funcionarioDoSetorRowSchema } from "@/modules/atendimento/infra/dtos/funcionario-do-setor-row.dto";
 import type { AppError } from "@/shared/errors/app.error";
@@ -65,5 +70,49 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     });
     if (error) return err(new ServicoExternoError("Falha ao registrar a Mensagem."));
     return ok({ anexada: anexoRowSchema.parse(data) });
+  }
+
+  async buscarEmAndamento(id: string): Promise<Result<AtendimentoEmAndamento | null, AppError>> {
+    const { data, error } = await this.supabaseAdmin
+      .from("atendimentos")
+      .select("id, setor, funcionario_id, telefone, chave_telefone")
+      .eq("id", id)
+      .eq("status", "em_andamento")
+      .maybeSingle();
+    if (error) return err(new ServicoExternoError("Falha ao consultar o Atendimento."));
+    if (!data) return ok(null);
+    const linha = atendimentoEmAndamentoRowSchema.parse(data);
+    return ok({
+      id: linha.id,
+      setor: linha.setor,
+      funcionarioId: linha.funcionario_id,
+      telefone: linha.telefone,
+      chave: linha.chave_telefone,
+    });
+  }
+
+  async transferir(
+    transferencia: NovaTransferencia,
+  ): Promise<Result<ResultadoTransferencia, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("transferir_atendimento", {
+      p_atendimento_id: transferencia.atendimentoId,
+      p_origem_funcionario_id: transferencia.origemFuncionarioId,
+      p_setor_destino: transferencia.setorDestino,
+      p_funcionario_destino_id: transferencia.funcionarioDestinoId,
+      p_resumo: transferencia.resumo,
+      p_ator: transferencia.ator.id,
+      p_ator_setor: transferencia.ator.setor,
+    });
+    if (error) return err(new ServicoExternoError("Falha ao transferir o Atendimento."));
+    const linha = transferenciaRowSchema.parse(data);
+    if (linha.status !== "transferido") return ok(linha);
+    return ok({
+      status: "transferido",
+      destinatarioNome: linha.destinatario_nome,
+      origemNome: linha.origem_nome,
+      contatoNome: linha.contato_nome,
+      empresa: linha.empresa,
+      cnpj: linha.cnpj,
+    });
   }
 }
