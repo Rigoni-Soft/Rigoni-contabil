@@ -6,6 +6,7 @@ import type {
 import type {
   AtendimentoEmAndamento,
   AtendimentoRepositoryPort,
+  NovaTransferencia,
   ResultadoTransferencia,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { AuditoriaPort } from "@/modules/atendimento/application/ports/out/auditoria.provider";
@@ -14,7 +15,11 @@ import type {
   AtorSessaoDto,
   SessaoPort,
 } from "@/modules/atendimento/application/ports/out/sessao.provider";
-import { menosCarregado } from "@/modules/atendimento/domain/services/balanceamento.service";
+import {
+  menosCarregado,
+  TENTATIVAS_DE_ATRIBUICAO,
+} from "@/modules/atendimento/domain/services/balanceamento.service";
+import { podeTransferir } from "@/modules/atendimento/domain/services/transferencia.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
@@ -24,18 +29,7 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import { SETOR_LABEL, type SetorSlug } from "@/shared/kernel/setores";
 
-const TENTATIVAS = 3;
-
 type Transferido = Extract<ResultadoTransferencia, { status: "transferido" }>;
-
-// Quem transfere: o Funcionário dono do Atendimento, o Líder do Setor onde ele está, ou o Admin.
-function podeTransferir(ator: AtorSessaoDto, atendimento: AtendimentoEmAndamento): boolean {
-  return (
-    ator.papel === "admin" ||
-    (ator.papel === "lider_setor" && ator.setor === atendimento.setor) ||
-    ator.id === atendimento.funcionarioId
-  );
-}
 
 function avisoAoCliente(setor: SetorSlug, atendente: string | null): string {
   const destino = atendente
@@ -55,14 +49,60 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
     private readonly auditoria: AuditoriaPort,
   ) {}
 
-  async execute({
-    atendimentoId,
-    setorDestino,
-    resumo,
-  }: TransferirAtendimentoInput): Promise<Result<TransferenciaConcluida, AppError>> {
+  async execute(
+    input: TransferirAtendimentoInput,
+  ): Promise<Result<TransferenciaConcluida, AppError>> {
     const ator = await this.sessao.usuarioAtual();
     if (!ator) return err(new ForbiddenError("Faça login para transferir o Atendimento."));
 
+    const atendimento = await this.validar(ator, input);
+    if (!atendimento.ok) return atendimento;
+    const resumo = input.resumo.trim();
+
+    const gravada = await this.gravar(
+      {
+        atendimentoId: input.atendimentoId,
+        origemFuncionarioId: atendimento.value.funcionarioId,
+        setorDestino: input.setorDestino,
+        resumo,
+        ator: { id: ator.id, setor: ator.setor },
+      },
+      TENTATIVAS_DE_ATRIBUICAO,
+    );
+    if (!gravada.ok) {
+      await this.auditarFalha(ator, input.atendimentoId);
+      return gravada;
+    }
+
+    // Transferido: falhar daqui em diante não desfaz nada; o erro diz que o Atendimento já está
+    // com o destino e o cliente não foi avisado.
+    const { destinatarioNome, origemNome, contato } = gravada.value;
+    const aviso = await this.avisarCliente(
+      atendimento.value,
+      avisoAoCliente(input.setorDestino, destinatarioNome),
+    );
+    if (!aviso.ok) {
+      await this.auditarFalha(ator, input.atendimentoId);
+      return err(
+        new EstadoInconsistenteError(
+          "Atendimento transferido, mas o aviso ao cliente falhou.",
+          input.atendimentoId,
+        ),
+      );
+    }
+    return ok({
+      destinatarioNome,
+      contato,
+      origemSetor: atendimento.value.setor,
+      origemNome,
+      resumo,
+    });
+  }
+
+  private async validar(
+    ator: AtorSessaoDto,
+    { atendimentoId, setorDestino, resumo }: TransferirAtendimentoInput,
+  ): Promise<Result<AtendimentoEmAndamento, AppError>> {
     const encontrado = await this.repositorio.buscarEmAndamento(atendimentoId);
     if (!encontrado.ok) return encontrado;
     const atendimento = encontrado.value;
@@ -75,91 +115,59 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
         new ValidationError("Escolha outro Setor.", { setorDestino: ["Setor de origem"] }),
       );
     }
-    const textoResumo = resumo.trim();
-    if (!textoResumo) {
+    if (!resumo.trim()) {
       return err(new ValidationError("Informe o resumo do assunto.", { resumo: ["Obrigatório"] }));
     }
-
-    const feita = await this.gravar(ator, atendimento, setorDestino, textoResumo);
-    if (!feita.ok) {
-      await this.auditoria.registrar({
-        ator: ator.id,
-        setor: ator.setor,
-        acao: "atendimento.transferir",
-        alvo: atendimentoId,
-        resultado: "falha",
-      });
-      return feita;
-    }
-    const { destinatarioNome, origemNome, contatoNome, empresa, cnpj } = feita.value;
-
-    // Transferido: falhar daqui em diante não desfaz nada; o erro diz que o Atendimento já está
-    // com o destino e o cliente não foi avisado.
-    const aviso = await this.avisarCliente(
-      atendimento,
-      avisoAoCliente(setorDestino, destinatarioNome),
-    );
-    if (!aviso.ok) {
-      return err(
-        new EstadoInconsistenteError(
-          "Atendimento transferido, mas o aviso ao cliente falhou.",
-          atendimentoId,
-        ),
-      );
-    }
-    return ok({
-      destinatarioNome,
-      contatoNome,
-      empresa,
-      cnpj,
-      origemSetor: atendimento.setor,
-      origemNome,
-      resumo: textoResumo,
-    });
+    return ok(atendimento);
   }
 
   // O repositório recusa ("conflito") se outro Atendimento ocupou o escolhido entre a listagem e a
   // gravação; relista e escolhe de novo. Esgotadas as tentativas, transfere sem atribuição.
   private async gravar(
-    ator: AtorSessaoDto,
-    atendimento: AtendimentoEmAndamento,
-    setorDestino: SetorSlug,
-    resumo: string,
+    dados: Omit<NovaTransferencia, "funcionarioDestinoId">,
+    tentativas: number,
   ): Promise<Result<Transferido, AppError>> {
-    const base = {
-      atendimentoId: atendimento.id,
-      origemFuncionarioId: atendimento.funcionarioId,
-      setorDestino,
-      resumo,
-      ator: { id: ator.id, setor: ator.setor as SetorSlug },
-    };
-    for (let tentativa = 0; tentativa < TENTATIVAS; tentativa++) {
-      const funcionarios = await this.repositorio.funcionariosDoSetor(setorDestino);
-      if (!funcionarios.ok) return funcionarios;
-      const feita = await this.repositorio.transferir({
-        ...base,
-        funcionarioDestinoId: menosCarregado(funcionarios.value)?.id ?? null,
-      });
-      if (!feita.ok) return feita;
-      if (feita.value.status !== "conflito") return this.transferido(feita.value);
-    }
-    const semAtribuicao = await this.repositorio.transferir({
-      ...base,
-      funcionarioDestinoId: null,
+    const escolhido =
+      tentativas > 0 ? await this.escolherDestino(dados.setorDestino) : ok<string | null>(null);
+    if (!escolhido.ok) return escolhido;
+    const resultado = await this.repositorio.transferir({
+      ...dados,
+      funcionarioDestinoId: escolhido.value,
     });
-    if (!semAtribuicao.ok) return semAtribuicao;
-    return this.transferido(semAtribuicao.value);
+    if (resultado.ok && resultado.value.status === "conflito" && tentativas > 0) {
+      return this.gravar(dados, tentativas - 1);
+    }
+    return this.exigirTransferido(resultado);
+  }
+
+  private async escolherDestino(setor: SetorSlug): Promise<Result<string | null, AppError>> {
+    const funcionarios = await this.repositorio.funcionariosDoSetor(setor);
+    if (!funcionarios.ok) return funcionarios;
+    return ok(menosCarregado(funcionarios.value)?.id ?? null);
   }
 
   // "conflito" sem Funcionário não existe: quebra o contrato do repositório.
-  private transferido(resultado: ResultadoTransferencia): Result<Transferido, AppError> {
-    if (resultado.status === "transferido") return ok(resultado);
-    if (resultado.status === "inexistente") {
+  private exigirTransferido(
+    resultado: Result<ResultadoTransferencia, AppError>,
+  ): Result<Transferido, AppError> {
+    if (!resultado.ok) return resultado;
+    if (resultado.value.status === "transferido") return ok(resultado.value);
+    if (resultado.value.status === "inexistente") {
       return err(
         new NotFoundError("O Atendimento mudou ou foi encerrado. Atualize e tente novamente."),
       );
     }
     return err(new ServicoExternoError("Não foi possível escolher o Funcionário de destino."));
+  }
+
+  private async auditarFalha(ator: AtorSessaoDto, atendimentoId: string): Promise<void> {
+    await this.auditoria.registrar({
+      ator: ator.id,
+      setor: ator.setor,
+      acao: "atendimento.transferir",
+      alvo: atendimentoId,
+      resultado: "falha",
+    });
   }
 
   private async avisarCliente(
@@ -171,8 +179,12 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
       texto,
     });
     if (!registrada.ok) return registrada;
+    return this.enviarAviso(atendimento.telefone, texto);
+  }
+
+  private async enviarAviso(telefone: string, texto: string): Promise<Result<void, AppError>> {
     try {
-      return await this.envio.enviar({ telefone: atendimento.telefone, texto });
+      return await this.envio.enviar({ telefone, texto });
     } catch {
       return err(new ServicoExternoError("Falha ao enviar a mensagem."));
     }

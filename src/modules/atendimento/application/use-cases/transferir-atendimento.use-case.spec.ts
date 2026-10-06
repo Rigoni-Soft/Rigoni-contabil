@@ -24,9 +24,7 @@ const TRANSFERIDO: ResultadoTransferencia = {
   status: "transferido",
   destinatarioNome: "Ana",
   origemNome: "Beto",
-  contatoNome: "Maria",
-  empresa: "Padaria Ltda",
-  cnpj: "11444777000161",
+  contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
 };
 const INPUT = { atendimentoId: "at-1", setorDestino: "simples_nacional" as const, resumo: " DAS " };
 
@@ -41,7 +39,7 @@ function montar(
 ) {
   const ator =
     opcoes.ator === undefined
-      ? { id: "func-origem", papel: "funcionario", setor: "recepcao" }
+      ? { id: "func-origem", papel: "funcionario" as const, setor: "recepcao" as const }
       : opcoes.ator;
   const resultados = [...(opcoes.resultados ?? [TRANSFERIDO])];
   const transferencias: NovaTransferencia[] = [];
@@ -96,9 +94,7 @@ describe("TransferirAtendimento", () => {
       ok: true,
       value: {
         destinatarioNome: "Ana",
-        contatoNome: "Maria",
-        empresa: "Padaria Ltda",
-        cnpj: "11444777000161",
+        contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
         origemSetor: "recepcao",
         origemNome: "Beto",
         resumo: "DAS",
@@ -147,9 +143,9 @@ describe("TransferirAtendimento", () => {
   });
 
   it("Líder do Setor do Atendimento e Admin transferem; outro Funcionário não", async () => {
-    const lider = { id: "l", papel: "lider_setor", setor: "recepcao" };
-    const admin = { id: "ad", papel: "admin", setor: "administrativo" };
-    const outro = { id: "x", papel: "funcionario", setor: "recepcao" };
+    const lider = { id: "l", papel: "lider_setor" as const, setor: "recepcao" as const };
+    const admin = { id: "ad", papel: "admin" as const, setor: "administrativo" as const };
+    const outro = { id: "x", papel: "funcionario" as const, setor: "recepcao" as const };
     expect((await montar({ ator: lider }).caso.execute(INPUT)).ok).toBe(true);
     expect((await montar({ ator: admin }).caso.execute(INPUT)).ok).toBe(true);
     const negado = montar({ ator: outro });
@@ -160,7 +156,7 @@ describe("TransferirAtendimento", () => {
 
   it("Líder de outro Setor não transfere", async () => {
     const r = await montar({
-      ator: { id: "l", papel: "lider_setor", setor: "contabil" },
+      ator: { id: "l", papel: "lider_setor" as const, setor: "contabil" as const },
     }).caso.execute(INPUT);
     expect(!r.ok && r.error.code).toBe("FORBIDDEN");
   });

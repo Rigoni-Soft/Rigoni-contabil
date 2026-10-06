@@ -125,9 +125,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
         status: "transferido",
         destinatarioNome: "Destino 45",
         origemNome: "Origem 45",
-        contatoNome: "Dona Lia",
-        empresa: "Transfere Ltda",
-        cnpj: CNPJ,
+        contato: { contatoNome: "Dona Lia", empresa: "Transfere Ltda", cnpj: CNPJ },
       },
     });
 
@@ -196,9 +194,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
         status: "transferido",
         destinatarioNome: null,
         origemNome: null,
-        contatoNome: null,
-        empresa: null,
-        cnpj: null,
+        contato: { contatoNome: null, empresa: null, cnpj: null },
       },
     });
   });

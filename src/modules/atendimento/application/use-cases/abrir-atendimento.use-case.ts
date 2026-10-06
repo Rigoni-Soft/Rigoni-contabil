@@ -4,12 +4,13 @@ import type {
   AtendimentoAberto,
 } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type { AtendimentoRepositoryPort } from "@/modules/atendimento/application/ports/out/atendimento.repository";
-import { menosCarregado } from "@/modules/atendimento/domain/services/balanceamento.service";
+import {
+  menosCarregado,
+  TENTATIVAS_DE_ATRIBUICAO,
+} from "@/modules/atendimento/domain/services/balanceamento.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
-
-const TENTATIVAS = 3;
 
 // Só Atendimento com Funcionário humano conta pro Balanceamento mensal: a contagem vem
 // dos Atendimentos já atribuídos, a URA sozinha nunca aparece nela.
@@ -21,7 +22,7 @@ export class AbrirAtendimento implements AbrirAtendimentoPort {
   async execute(abertura: AberturaAtendimento): Promise<Result<AtendimentoAberto, AppError>> {
     // O repositório recusa ("conflito") se outro Atendimento ocupou o escolhido entre a listagem e a
     // gravação; relista e escolhe de novo. Esgotadas as tentativas, abre sem atribuição.
-    for (let tentativa = 0; tentativa < TENTATIVAS; tentativa++) {
+    for (let tentativa = 0; tentativa < TENTATIVAS_DE_ATRIBUICAO; tentativa++) {
       const funcionarios = await this.repositorio.funcionariosDoSetor(abertura.setor);
       if (!funcionarios.ok) return funcionarios;
       const funcionarioId = menosCarregado(funcionarios.value)?.id ?? null;

@@ -8,14 +8,19 @@ export type TransferirAtendimentoInput = {
   resumo: string;
 };
 
-// O que o Funcionário de destino recebe. Campos do Contato/Cliente são null quando o número
-// ainda não foi identificado (ex.: Atendimento aberto na recepção sem Cliente).
-// `destinatarioNome` null = nenhum Funcionário livre no Setor (a Fila é do #46).
-export type TransferenciaConcluida = {
-  destinatarioNome: string | null;
+// Campos null quando o número ainda não foi identificado (ex.: Atendimento aberto na recepção
+// sem Cliente).
+export type DadosDoContato = {
   contatoNome: string | null;
   empresa: string | null;
   cnpj: string | null;
+};
+
+// O que o Funcionário de destino recebe.
+// `destinatarioNome` null = nenhum Funcionário livre no Setor (a Fila é do #46).
+export type TransferenciaConcluida = {
+  destinatarioNome: string | null;
+  contato: DadosDoContato;
   origemSetor: SetorSlug;
   origemNome: string | null;
   resumo: string;

@@ -34,6 +34,8 @@ import { SupabaseAtendimentoRepository } from "@/modules/atendimento/infra/repos
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
 import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabase-sessao.gateway";
 import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories/usuario.repository";
+import type { Papel } from "@/shared/kernel/papeis";
+import type { SetorSlug } from "@/shared/kernel/setores";
 
 // Instância única: o falso guarda em memória o que "enviou".
 const envioFalso = new EnvioMensagemFalsoGateway();
@@ -90,7 +92,14 @@ function sessaoViaUsuarios(supabase: SupabaseClient): SessaoPort {
   return {
     usuarioAtual: async (): Promise<AtorSessaoDto | null> => {
       const usuario = await obterSessao.execute();
-      return usuario ? { id: usuario.id, papel: usuario.papel, setor: usuario.setor } : null;
+      // O módulo usuarios só devolve Papel e Setor já validados (builder); o cast é a única fronteira.
+      return usuario
+        ? {
+            id: usuario.id,
+            papel: usuario.papel as Papel,
+            setor: usuario.setor as SetorSlug,
+          }
+        : null;
     },
   };
 }

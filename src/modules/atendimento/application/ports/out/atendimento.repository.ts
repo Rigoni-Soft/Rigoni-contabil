@@ -3,6 +3,7 @@ import type {
   NovaMensagem,
 } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type { AnexarMensagemOutput } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
+import type { DadosDoContato } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
@@ -40,9 +41,7 @@ export type ResultadoTransferencia =
       status: "transferido";
       destinatarioNome: string | null;
       origemNome: string | null;
-      contatoNome: string | null;
-      empresa: string | null;
-      cnpj: string | null;
+      contato: DadosDoContato;
     }
   | { status: "conflito" }
   | { status: "inexistente" };

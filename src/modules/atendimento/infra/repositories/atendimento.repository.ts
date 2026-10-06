@@ -110,9 +110,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       status: "transferido",
       destinatarioNome: linha.destinatario_nome,
       origemNome: linha.origem_nome,
-      contatoNome: linha.contato_nome,
-      empresa: linha.empresa,
-      cnpj: linha.cnpj,
+      contato: { contatoNome: linha.contato_nome, empresa: linha.empresa, cnpj: linha.cnpj },
     });
   }
 }
