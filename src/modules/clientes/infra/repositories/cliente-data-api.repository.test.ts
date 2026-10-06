@@ -270,6 +270,7 @@ describe("Data API — revalidação da PR #69 (B1, B2, I1, I2)", () => {
 
   it("B1: clientes_basico é só leitura — INSERT, UPDATE e DELETE falham para qualquer Funcionário e o Cliente fica intacto", async () => {
     const cliente = await criarClienteComContrato("11444777001486");
+    await tornarResponsavel(cliente.id, FUNCIONARIO_SN_ID);
 
     for (const supabase of [await comoFuncionarioSN(), await comoFuncionarioFinanceiro()]) {
       const insercao = await supabase
@@ -297,6 +298,7 @@ describe("Data API — revalidação da PR #69 (B1, B2, I1, I2)", () => {
   it("B2: escrita direta nas tabelas operacionais também gera o evento, e o cadastro do Cliente não gera evento de edição", async () => {
     const cnpj = "11444777001648";
     const cliente = await criarClienteComContrato(cnpj);
+    await tornarResponsavel(cliente.id, FUNCIONARIO_SN_ID);
     const supabase = await comoFuncionarioSN();
     expect(await eventos(cnpj)).toBe(0);
 
@@ -346,6 +348,7 @@ describe("Data API — revalidação da PR #69 (B1, B2, I1, I2)", () => {
   it("I1: RPC e DML direto rejeitam mês passado/futuro; a atividade histórica não é alterada nem movida, mas continua legível", async () => {
     const cnpj = "11444777001800";
     const cliente = await criarClienteComContrato(cnpj);
+    await tornarResponsavel(cliente.id, FUNCIONARIO_SN_ID);
     const supabase = await comoFuncionarioSN();
     const mesCorrente = primeiroDiaDoMesAtual();
     const passado = "2020-01-01";
@@ -427,6 +430,7 @@ describe("Data API — revalidação da PR #69 (B1, B2, I1, I2)", () => {
       const salvo = await new SupabaseClienteRepository(admin).criar(construido.value);
       expect(salvo.ok).toBe(true);
       const id = construido.value.id;
+      if (aplica) await tornarResponsavel(id, FUNCIONARIO_SN_ID);
 
       // criação automática só para MEI/Simples Nacional
       const automatico = await serviceRole()
