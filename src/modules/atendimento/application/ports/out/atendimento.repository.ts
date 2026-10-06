@@ -5,6 +5,7 @@ import type {
 import type { AnexarMensagemOutput } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
 import type { DadosDoContato } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
 import type { AppError } from "@/shared/errors/app.error";
+import type { RegimeValor } from "@/shared/kernel/regimes";
 import type { Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
@@ -29,6 +30,8 @@ export type NovaTransferencia = {
   atendimentoId: string;
   // Dono do Atendimento quando foi lido: se mudou até a gravação, a Transferência é recusada.
   origemFuncionarioId: string | null;
+  // Setor em que o Atendimento estava quando foi lido: se mudou até a gravação, é recusada.
+  setorOrigem: SetorSlug;
   setorDestino: SetorSlug;
   funcionarioDestinoId: string | null;
   // Destino fixo (não escolhido pelo Balanceamento): ocupado, o Atendimento entra na fila dele
@@ -52,7 +55,7 @@ export type ResultadoTransferencia =
   | { status: "inexistente" };
 
 // Regime e Responsável do Cliente, para decidir a Transferência ao Simples Nacional.
-export type RoteamentoDoCliente = { regime: string; responsavelId: string | null };
+export type RoteamentoDoCliente = { regime: RegimeValor; responsavelId: string | null };
 
 export interface AtendimentoRepositoryPort {
   funcionariosDoSetor(setor: SetorSlug): Promise<Result<FuncionarioDoSetor[], AppError>>;

@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { REGIMES } from "@/shared/kernel/regimes";
 import { SETORES } from "@/shared/kernel/setores";
 
 // `abrir_atendimento`: uuid do Atendimento, ou null se o Funcionário escolhido foi ocupado.
@@ -34,7 +35,7 @@ export const atendimentoEmAndamentoRowSchema = z.object({
 
 // `clientes` com o cadastro operacional embutido (1:1; só MEI/Simples Nacional têm linha).
 export const roteamentoDoClienteRowSchema = z.object({
-  regime: z.string(),
+  regime: z.enum(REGIMES),
   cliente_cadastro_operacional_sn: z.object({ responsavel_id: z.string().nullable() }).nullable(),
 });
 

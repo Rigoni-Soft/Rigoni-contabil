@@ -74,6 +74,7 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
       {
         atendimentoId: input.atendimentoId,
         origemFuncionarioId: atendimento.value.funcionarioId,
+        setorOrigem: atendimento.value.setor,
         setorDestino: input.setorDestino,
         resumo,
         ator: { id: ator.id, setor: ator.setor },

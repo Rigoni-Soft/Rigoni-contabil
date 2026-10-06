@@ -117,6 +117,7 @@ describe("TransferirAtendimento", () => {
     expect(transferencias[0]).toMatchObject({
       atendimentoId: "at-1",
       origemFuncionarioId: "func-origem",
+      setorOrigem: "recepcao",
       setorDestino: "contabil",
       funcionarioDestinoId: "b",
       enfileirarSeOcupado: false,

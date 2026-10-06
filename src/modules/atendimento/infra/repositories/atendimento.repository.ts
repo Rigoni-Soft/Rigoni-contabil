@@ -135,6 +135,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       p_resumo: transferencia.resumo,
       p_ator: transferencia.ator.id,
       p_ator_setor: transferencia.ator.setor,
+      p_setor_origem: transferencia.setorOrigem,
       p_enfileirar_se_ocupado: transferencia.enfileirarSeOcupado,
     });
     if (error) return err(new ServicoExternoError("Falha ao transferir o Atendimento."));

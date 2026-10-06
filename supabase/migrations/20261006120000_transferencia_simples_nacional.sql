@@ -10,7 +10,7 @@ drop function public.transferir_atendimento(
 -- Move o Atendimento para o Setor/Funcionário de destino, grava a Transferência e a auditoria de
 -- sucesso numa transação só. O lock por Setor de destino é o mesmo de `abrir_atendimento`: as
 -- atribuições do Setor se serializam. Devolve jsonb com `status`:
---  - 'inexistente': o Atendimento não está em andamento, ou o dono mudou desde a leitura;
+--  - 'inexistente': o Atendimento não está em andamento, ou o dono ou o Setor mudou desde a leitura;
 --  - 'conflito': o Funcionário de destino foi ocupado por outro Atendimento (quem chama escolhe
 --    de novo), salvo `p_enfileirar_se_ocupado` (destino fixo, ex.: Responsável do Cliente):
 --    aí o Atendimento entra na fila dele (`na_fila` true);
@@ -28,7 +28,8 @@ create function public.transferir_atendimento(
   p_resumo text,
   p_ator uuid,
   p_ator_setor public.setor_slug,
-  p_enfileirar_se_ocupado boolean
+  p_enfileirar_se_ocupado boolean,
+  p_setor_origem public.setor_slug
 ) returns jsonb
 language plpgsql
 security invoker
@@ -46,7 +47,9 @@ begin
   select * into v_atendimento from public.atendimentos
   where id = p_atendimento_id and status = 'em_andamento'
   for update;
-  if not found or v_atendimento.funcionario_id is distinct from p_origem_funcionario_id then
+  if not found
+     or v_atendimento.funcionario_id is distinct from p_origem_funcionario_id
+     or v_atendimento.setor is distinct from p_setor_origem then
     return jsonb_build_object('status', 'inexistente');
   end if;
 
@@ -108,5 +111,5 @@ begin
 end;
 $$;
 revoke all on function public.transferir_atendimento(
-  uuid, uuid, public.setor_slug, uuid, text, uuid, public.setor_slug, boolean
+  uuid, uuid, public.setor_slug, uuid, text, uuid, public.setor_slug, boolean, public.setor_slug
 ) from public, anon, authenticated;

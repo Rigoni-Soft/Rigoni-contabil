@@ -19,6 +19,7 @@ const TELEFONE = "61955550001";
 const TELEFONE_SEM_CLIENTE = "61955550002";
 const TELEFONE_FILA = "61955550003";
 const TELEFONE_RESUMO = "61955550005";
+const TELEFONE_SETOR = "61955550006";
 const TELEFONE_PROPRIO = "61955550004";
 const clienteId = crypto.randomUUID();
 const CNPJ = `8${Date.now()}`.slice(0, 14);
@@ -85,6 +86,7 @@ afterAll(async () => {
       TELEFONE_FILA,
       TELEFONE_PROPRIO,
       TELEFONE_RESUMO,
+      TELEFONE_SETOR,
     ]);
   await admin.from("clientes").delete().eq("id", clienteId);
   for (const id of usuarios) await admin.auth.admin.deleteUser(id);
@@ -122,6 +124,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
     const r = await repositorio.transferir({
       atendimentoId,
       origemFuncionarioId: destinoId,
+      setorOrigem: "recepcao",
       setorDestino: "simples_nacional",
       funcionarioDestinoId: destinoId,
       enfileirarSeOcupado: false,
@@ -140,6 +143,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
     const r = await repositorio.transferir({
       atendimentoId,
       origemFuncionarioId: origemId,
+      setorOrigem: "recepcao",
       setorDestino: "simples_nacional",
       funcionarioDestinoId: destinoId,
       enfileirarSeOcupado: false,
@@ -192,6 +196,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
     const r = await repositorio.transferir({
       atendimentoId: outro,
       origemFuncionarioId: null,
+      setorOrigem: "recepcao",
       setorDestino: "simples_nacional",
       funcionarioDestinoId: destinoId,
       enfileirarSeOcupado: false,
@@ -212,6 +217,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
     const r = await repositorio.transferir({
       atendimentoId: data!.id,
       origemFuncionarioId: null,
+      setorOrigem: "recepcao",
       setorDestino: "contabil",
       funcionarioDestinoId: null,
       enfileirarSeOcupado: false,
@@ -264,6 +270,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
     const r = await repositorio.transferir({
       atendimentoId: novo,
       origemFuncionarioId: null,
+      setorOrigem: "recepcao",
       setorDestino: "contabil",
       funcionarioDestinoId: destinoId,
       enfileirarSeOcupado: true,
@@ -291,6 +298,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
     const r = await repositorio.transferir({
       atendimentoId: meu,
       origemFuncionarioId: dono,
+      setorOrigem: "recepcao",
       setorDestino: "contabil",
       funcionarioDestinoId: dono,
       enfileirarSeOcupado: true,
@@ -312,6 +320,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       const r = await repositorio.transferir({
         atendimentoId: id,
         origemFuncionarioId: null,
+        setorOrigem: "recepcao",
         setorDestino: "contabil",
         funcionarioDestinoId: null,
         enfileirarSeOcupado: false,
@@ -320,6 +329,23 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       });
       expect(r.ok).toBe(false);
     }
+    const { data } = await admin.from("atendimentos").select("setor").eq("id", id).single();
+    expect(data).toEqual({ setor: "recepcao" });
+  });
+
+  it("recusa (inexistente) quando o Setor mudou desde a leitura, mesmo sem dono, sem gravar nada", async () => {
+    const id = await abrir(TELEFONE_SETOR, null, null);
+    const r = await repositorio.transferir({
+      atendimentoId: id,
+      origemFuncionarioId: null,
+      setorOrigem: "financeiro",
+      setorDestino: "contabil",
+      funcionarioDestinoId: null,
+      enfileirarSeOcupado: false,
+      resumo: "x",
+      ator: { id: origemId, setor: "recepcao" },
+    });
+    expect(r).toEqual({ ok: true, value: { status: "inexistente" } });
     const { data } = await admin.from("atendimentos").select("setor").eq("id", id).single();
     expect(data).toEqual({ setor: "recepcao" });
   });
