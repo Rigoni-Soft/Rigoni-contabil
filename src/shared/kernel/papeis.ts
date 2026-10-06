@@ -1,7 +1,8 @@
 // Responsável cujo perfil a RLS esconde de quem lê (leitor de outro Setor, #65).
 export const RESPONSAVEL_OUTRO_SETOR_LABEL = "Responsável de outro setor";
 
-export type Papel = "admin" | "lider_setor" | "funcionario";
+export const PAPEIS = ["admin", "lider_setor", "funcionario"] as const;
+export type Papel = (typeof PAPEIS)[number];
 
 // Rótulos de Papel em português, reusados por qualquer tela que precise
 // exibi-los (ShellHeader) ou listá-los como opção de formulário

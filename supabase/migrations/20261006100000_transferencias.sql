@@ -8,7 +8,7 @@ create table public.transferencias (
   funcionario_origem_id uuid references public.perfis (id),
   setor_destino public.setor_slug not null,
   funcionario_destino_id uuid references public.perfis (id),
-  resumo text not null check (length(btrim(resumo)) > 0),
+  resumo text not null check (length(btrim(resumo)) between 1 and 1000),
   criado_em timestamptz not null default now()
 );
 create index transferencias_atendimento on public.transferencias (atendimento_id, criado_em);

@@ -141,7 +141,7 @@ describe("TransferirAtendimento", () => {
     });
     await caso.execute(INPUT);
     expect(transferencias[0].funcionarioDestinoId).toBeNull();
-    expect(enviadas[0].texto).toContain("o setor Contábil.");
+    expect(enviadas[0].texto).toBe("Você está na fila do setor Contábil. Aguarde, por favor.");
   });
 
   it("relista e tenta de novo no conflito; esgotadas as tentativas transfere sem atribuição", async () => {
@@ -212,9 +212,21 @@ describe("TransferirAtendimento", () => {
     ]);
   });
 
-  it("transferido mas aviso falhou: estado inconsistente apontando o Atendimento", async () => {
-    const r = await montar({ envioFalha: true }).caso.execute(INPUT);
+  it("transferido mas aviso falhou: estado inconsistente apontando o Atendimento, sem gravar Mensagem que o cliente não recebeu", async () => {
+    const { caso, anexadas } = montar({ envioFalha: true });
+    const r = await caso.execute(INPUT);
     expect(!r.ok && r.error).toMatchObject({ code: "INCONSISTENT_STATE", referenciaId: "at-1" });
+    expect(anexadas).toEqual([]);
+  });
+
+  it("recusa resumo acima de 1000 caracteres, sem gravar; aceita exatamente 1000", async () => {
+    const longo = montar();
+    const r1 = await longo.caso.execute({ ...INPUT, resumo: "a".repeat(1001) });
+    expect(!r1.ok && r1.error.code).toBe("VALIDATION_ERROR");
+    expect(longo.transferencias).toEqual([]);
+
+    const limite = montar();
+    expect((await limite.caso.execute({ ...INPUT, resumo: "a".repeat(1000) })).ok).toBe(true);
   });
 
   describe("para o Simples Nacional", () => {

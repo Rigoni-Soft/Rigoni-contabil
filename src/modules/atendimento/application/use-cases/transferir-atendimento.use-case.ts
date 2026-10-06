@@ -35,16 +35,16 @@ import { SETOR_LABEL, type SetorSlug } from "@/shared/kernel/setores";
 // Destino que não passa pelo Balanceamento (`funcionarioId` null = fila do Setor).
 type DestinoFixo = { funcionarioId: string | null };
 
+const RESUMO_TAMANHO_MAXIMO = 1000; // repetido na CHECK de `transferencias.resumo`
+
 type Transferido = Extract<ResultadoTransferencia, { status: "transferido" }>;
 
 function avisoAoCliente(setor: SetorSlug, atendente: string | null, naFila: boolean): string {
   if (naFila) {
     return `Você está na fila de atendimento de ${atendente} no setor ${SETOR_LABEL[setor]}. Aguarde, por favor.`;
   }
-  const destino = atendente
-    ? `o setor ${SETOR_LABEL[setor]}, com ${atendente}`
-    : `o setor ${SETOR_LABEL[setor]}`;
-  return `Estamos transferindo você para ${destino}. Aguarde um instante, por favor.`;
+  if (!atendente) return `Você está na fila do setor ${SETOR_LABEL[setor]}. Aguarde, por favor.`;
+  return `Estamos transferindo você para o setor ${SETOR_LABEL[setor]}, com ${atendente}. Aguarde um instante, por favor.`;
 }
 
 // Setores que recebem já são só os cliente-facing (SETORES exclui Patriki, Expedição e T.I.),
@@ -129,6 +129,13 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
     }
     if (!resumo.trim()) {
       return err(new ValidationError("Informe o resumo do assunto.", { resumo: ["Obrigatório"] }));
+    }
+    if (resumo.trim().length > RESUMO_TAMANHO_MAXIMO) {
+      return err(
+        new ValidationError(`O resumo aceita até ${RESUMO_TAMANHO_MAXIMO} caracteres.`, {
+          resumo: ["Muito longo"],
+        }),
+      );
     }
     return ok(atendimento);
   }
@@ -228,12 +235,14 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
     atendimento: AtendimentoEmAndamento,
     texto: string,
   ): Promise<Result<void, AppError>> {
+    // Só vira Mensagem do Atendimento o que o cliente de fato recebeu.
+    const enviada = await this.enviarAviso(atendimento.telefone, texto);
+    if (!enviada.ok) return enviada;
     const registrada = await this.repositorio.anexarMensagem(atendimento.chave, {
       autor: "ura",
       texto,
     });
-    if (!registrada.ok) return registrada;
-    return this.enviarAviso(atendimento.telefone, texto);
+    return registrada.ok ? ok(undefined) : registrada;
   }
 
   private async enviarAviso(telefone: string, texto: string): Promise<Result<void, AppError>> {

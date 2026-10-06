@@ -18,6 +18,7 @@ const repositorio = new SupabaseAtendimentoRepository(admin);
 const TELEFONE = "61955550001";
 const TELEFONE_SEM_CLIENTE = "61955550002";
 const TELEFONE_FILA = "61955550003";
+const TELEFONE_RESUMO = "61955550005";
 const TELEFONE_PROPRIO = "61955550004";
 const clienteId = crypto.randomUUID();
 const CNPJ = `8${Date.now()}`.slice(0, 14);
@@ -78,7 +79,13 @@ afterAll(async () => {
   await admin
     .from("atendimentos")
     .delete()
-    .in("telefone", [TELEFONE, TELEFONE_SEM_CLIENTE, TELEFONE_FILA, TELEFONE_PROPRIO]);
+    .in("telefone", [
+      TELEFONE,
+      TELEFONE_SEM_CLIENTE,
+      TELEFONE_FILA,
+      TELEFONE_PROPRIO,
+      TELEFONE_RESUMO,
+    ]);
   await admin.from("clientes").delete().eq("id", clienteId);
   for (const id of usuarios) await admin.auth.admin.deleteUser(id);
 });
@@ -297,5 +304,23 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       .eq("id", meu)
       .single();
     expect(data).toEqual({ funcionario_id: dono, fila_funcionario_id: null });
+  });
+
+  it("resumo vazio ou acima de 1000 caracteres é recusado pelo banco", async () => {
+    const id = await abrir(TELEFONE_RESUMO, null, null);
+    for (const resumo of ["   ", "a".repeat(1001)]) {
+      const r = await repositorio.transferir({
+        atendimentoId: id,
+        origemFuncionarioId: null,
+        setorDestino: "contabil",
+        funcionarioDestinoId: null,
+        enfileirarSeOcupado: false,
+        resumo,
+        ator: { id: origemId, setor: "recepcao" },
+      });
+      expect(r.ok).toBe(false);
+    }
+    const { data } = await admin.from("atendimentos").select("setor").eq("id", id).single();
+    expect(data).toEqual({ setor: "recepcao" });
   });
 });

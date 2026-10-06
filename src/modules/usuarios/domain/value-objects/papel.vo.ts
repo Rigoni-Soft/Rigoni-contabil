@@ -1,8 +1,8 @@
 import { ValidationError } from "@/shared/errors/validation.error";
+import { PAPEIS, type Papel as PapelValor } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-export const PAPEIS = ["admin", "lider_setor", "funcionario"] as const;
-export type PapelValor = (typeof PAPEIS)[number];
+export { PAPEIS, type PapelValor };
 
 export class Papel {
   private constructor(private readonly props: { valor: PapelValor }) {}
