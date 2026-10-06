@@ -216,7 +216,8 @@ revoke execute on function public.regime_tem_cadastro_operacional_sn(uuid) from 
 grant execute on function public.regime_tem_cadastro_operacional_sn(uuid) to authenticated;
 
 -- I1 + I2 em qualquer DML de sessão (RPC ou Data API direta): Cadastro operacional só para
--- SN/MEI; Atividade só do mês corrente, e a de mês passado não pode ser alterada nem movida.
+-- SN/MEI (inclusive Contatos, INSERT e DELETE: no DELETE o Cliente vem de OLD); Atividade só do
+-- mês corrente, e a de mês passado não pode ser alterada nem movida.
 -- Sem auth.uid() (service_role/migrations/seed) o chamador é o servidor confiável.
 create function public.proteger_cadastro_operacional()
 returns trigger
@@ -224,13 +225,15 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  v_cliente_id uuid := case when tg_op = 'DELETE' then old.cliente_id else new.cliente_id end;
 begin
   if auth.uid() is null then
-    return new;
+    return coalesce(new, old);
   end if;
   if not exists (
     select 1 from public.clientes
-    where id = new.cliente_id and regime in ('simples_nacional', 'mei')
+    where id = v_cliente_id and regime in ('simples_nacional', 'mei')
   ) then
     raise exception 'Cadastro operacional SN não se aplica a este Regime.' using errcode = '23514';
   end if;
@@ -240,7 +243,7 @@ begin
       raise exception 'Só a Atividade do mês corrente é editável.' using errcode = '23514';
     end if;
   end if;
-  return new;
+  return coalesce(new, old);
 end;
 $$;
 
@@ -248,6 +251,10 @@ revoke execute on function public.proteger_cadastro_operacional() from public, a
 
 create trigger cliente_cadastro_operacional_proteger
   before insert or update on public.cliente_cadastro_operacional_sn
+  for each row execute function public.proteger_cadastro_operacional();
+
+create trigger cliente_contatos_proteger
+  before insert or delete on public.cliente_contatos
   for each row execute function public.proteger_cadastro_operacional();
 
 create trigger cliente_atividades_proteger

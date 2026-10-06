@@ -413,12 +413,51 @@ describe("Data API — revalidação da PR #69 (B1, B2, I1, I2)", () => {
       expect(automatico.data).toHaveLength(aplica ? 1 : 0);
 
       const funcionario = await comoFuncionarioSN();
-      const rpc = await funcionario.rpc("editar_cadastro_operacional_cliente", paramsEdicao(id));
+      const contatoDireto = (contatoId: string) => ({
+        id: contatoId,
+        cliente_id: id,
+        nome: "Contato Direto",
+        telefone: "61999990000",
+        padrao: false,
+      });
+      const existente = crypto.randomUUID();
+      const semente = await serviceRole().from("cliente_contatos").insert(contatoDireto(existente));
+      expect(semente.error).toBeNull();
+      const contatosDoCliente = async () =>
+        (await serviceRole().from("cliente_contatos").select("id").eq("cliente_id", id)).data ?? [];
+
       if (aplica) {
-        expect(rpc.error).toBeNull();
+        // Contato direto (INSERT/DELETE) continua permitido a Admin e Funcionário SN, com auditoria.
+        for (const supabase of [admin, funcionario]) {
+          const novo = crypto.randomUUID();
+          expect(
+            (await supabase.from("cliente_contatos").insert(contatoDireto(novo))).error,
+          ).toBeNull();
+          expect(
+            (await supabase.from("cliente_contatos").delete().eq("id", novo)).error,
+          ).toBeNull();
+        }
+        expect(await eventos(cnpj)).toBeGreaterThan(0);
+        const rpcOk = await funcionario.rpc(
+          "editar_cadastro_operacional_cliente",
+          paramsEdicao(id),
+        );
+        expect(rpcOk.error).toBeNull();
         return;
       }
+      const rpc = await funcionario.rpc("editar_cadastro_operacional_cliente", paramsEdicao(id));
       expect(rpc.error?.message).toMatch(/não se aplica/);
+
+      // Contato também é Cadastro operacional SN: INSERT e DELETE diretos são negados
+      for (const supabase of [admin, funcionario]) {
+        const insercao = await supabase
+          .from("cliente_contatos")
+          .insert(contatoDireto(crypto.randomUUID()));
+        expect(insercao.error?.message).toMatch(/não se aplica/);
+        // Sem erro ou com erro conforme a RLS do Setor enxergue a linha: o que vale é nada ser removido.
+        await supabase.from("cliente_contatos").delete().eq("id", existente);
+      }
+      expect((await contatosDoCliente()).map((c) => c.id)).toEqual([existente]);
 
       // DML direto de Admin e de Funcionário SN também não cria o cadastro
       for (const supabase of [admin, funcionario]) {
