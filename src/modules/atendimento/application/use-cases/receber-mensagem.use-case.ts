@@ -1,4 +1,5 @@
 import type { AbrirAtendimentoPort } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
+import type { AnexarMensagemAtendimentoPort } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
 import type {
   MensagemRecebida,
   ReceberMensagemPort,
@@ -115,6 +116,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
     private readonly documentos: DocumentosContratuaisPort,
     private readonly sessoes: SessaoAtendimentoPort,
     private readonly atendimentos: AbrirAtendimentoPort,
+    private readonly mensagens: AnexarMensagemAtendimentoPort,
   ) {}
 
   async execute(mensagem: MensagemRecebida): Promise<Result<void, AppError>> {
@@ -123,12 +125,12 @@ export class ReceberMensagem implements ReceberMensagemPort {
 
     // Quem já tem Atendimento em andamento continua nele; a URA não recomeça.
     // ponytail: sem resposta automática, quem responde é o Funcionário (#46).
-    const anexada = await this.atendimentos.anexarSeEmAndamento(chave, {
+    const anexada = await this.mensagens.execute(chave, {
       autor: "contato",
       texto: mensagem.texto,
     });
     if (!anexada.ok) return anexada;
-    if (anexada.value) return ok(undefined);
+    if (anexada.value.anexada) return ok(undefined);
 
     const contato = await this.contatos.identificar(chave);
     if (!contato.ok) return contato;

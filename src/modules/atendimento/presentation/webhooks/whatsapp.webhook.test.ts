@@ -38,10 +38,16 @@ const sessoes: ConstructorParameters<typeof ReceberMensagem>[3] = {
 
 jest.mock("@/main/atendimento.factory", () => ({
   makeReceberMensagem: () =>
-    new ReceberMensagem(identificacao, envio, documentos, sessoes, {
-      execute: async () => ok({ id: "at-1", funcionarioId: null }),
-      anexarSeEmAndamento: async () => ok(false),
-    }),
+    new ReceberMensagem(
+      identificacao,
+      envio,
+      documentos,
+      sessoes,
+      {
+        execute: async () => ok({ id: "at-1", funcionarioId: null }),
+      },
+      { execute: async () => ok({ anexada: false }) },
+    ),
   makeAutenticacaoWebhook: () => new HmacAutenticacaoWebhookGateway(SEGREDO, TOKEN),
 }));
 

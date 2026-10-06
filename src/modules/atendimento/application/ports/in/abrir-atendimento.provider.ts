@@ -19,7 +19,4 @@ export type AtendimentoAberto = { id: string; funcionarioId: string | null };
 
 export interface AbrirAtendimentoPort {
   execute(abertura: AberturaAtendimento): Promise<Result<AtendimentoAberto, AppError>>;
-  // Mensagem de um número que já tem Atendimento em andamento entra nele, sem recomeçar a URA.
-  // true = havia Atendimento em andamento e a Mensagem foi anexada.
-  anexarSeEmAndamento(chave: string, mensagem: NovaMensagem): Promise<Result<boolean, AppError>>;
 }

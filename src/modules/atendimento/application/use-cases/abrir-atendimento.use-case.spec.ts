@@ -17,11 +17,11 @@ function montar(funcionarios: FuncionarioDoSetor[] | "falha", recusasIniciais = 
       funcionarios === "falha" ? err(new ServicoExternoError("banco")) : ok(funcionarios),
     abrir: async (a) => {
       tentativas.push(a);
-      if (tentativas.length <= recusasIniciais) return ok(null);
+      if (tentativas.length <= recusasIniciais) return ok({ status: "conflito" });
       abertos.push(a);
-      return ok({ id: "at-1" });
+      return ok({ status: "aberto", id: "at-1" });
     },
-    anexarMensagem: async () => ok(true),
+    anexarMensagem: async () => ok({ status: "sem_atendimento" }),
   };
   return { abertos, tentativas, caso: new AbrirAtendimento(repo) };
 }
@@ -87,11 +87,5 @@ describe("AbrirAtendimento", () => {
     const r = await caso.execute(abertura);
     expect(r.ok && r.value.funcionarioId).toBeNull();
     expect(abertos[0].funcionarioId).toBeNull();
-  });
-
-  it("anexar delega ao repositório e devolve se havia Atendimento em andamento", async () => {
-    const { caso } = montar([]);
-    const r = await caso.anexarSeEmAndamento("61988887777", { autor: "contato", texto: "oi" });
-    expect(r).toEqual({ ok: true, value: true });
   });
 });

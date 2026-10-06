@@ -10,10 +10,12 @@ import {
 import { exigirSegredosReais } from "@/main/segredos-mensageria.factory";
 import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import type { AbrirAtendimentoPort } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
+import type { AnexarMensagemAtendimentoPort } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
 import type { ReceberMensagemPort } from "@/modules/atendimento/application/ports/in/receber-mensagem.provider";
 import type { AutenticacaoWebhookPort } from "@/modules/atendimento/application/ports/out/autenticacao-webhook.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import { AbrirAtendimento } from "@/modules/atendimento/application/use-cases/abrir-atendimento.use-case";
+import { AnexarMensagemAtendimento } from "@/modules/atendimento/application/use-cases/anexar-mensagem-atendimento.use-case";
 import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/receber-mensagem.use-case";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
 import { HmacAutenticacaoWebhookGateway } from "@/modules/atendimento/infra/gateways/hmac-autenticacao-webhook.gateway";
@@ -49,6 +51,10 @@ export function makeAbrirAtendimento(): AbrirAtendimentoPort {
   return new AbrirAtendimento(new SupabaseAtendimentoRepository(createSupabaseAdmin()));
 }
 
+export function makeAnexarMensagemAtendimento(): AnexarMensagemAtendimentoPort {
+  return new AnexarMensagemAtendimento(new SupabaseAtendimentoRepository(createSupabaseAdmin()));
+}
+
 export function makeReceberMensagem(): ReceberMensagemPort {
   exigirSegredosDeProducao();
   const supabaseAdmin = createSupabaseAdmin();
@@ -58,6 +64,7 @@ export function makeReceberMensagem(): ReceberMensagemPort {
     new SupabaseDocumentosContratuaisGateway(supabaseAdmin),
     new SupabaseSessaoAtendimentoGateway(supabaseAdmin, MENSAGERIA_SEGREDO_SESSAO),
     makeAbrirAtendimento(),
+    makeAnexarMensagemAtendimento(),
   );
 }
 

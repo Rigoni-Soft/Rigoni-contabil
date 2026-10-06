@@ -6,7 +6,13 @@ import type {
   AtendimentoRepositoryPort,
   FuncionarioDoSetor,
   NovoAtendimento,
+  ResultadoAbertura,
+  ResultadoAnexo,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
+import {
+  aberturaRowSchema,
+  anexoRowSchema,
+} from "@/modules/atendimento/infra/dtos/atendimento-rpc-row.dto";
 import { funcionarioDoSetorRowSchema } from "@/modules/atendimento/infra/dtos/funcionario-do-setor-row.dto";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -28,13 +34,13 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
         .parse(data)
         .map((l) => ({
           id: l.id,
-          atendimentosNoMes: Number(l.atendimentos_no_mes),
+          atendimentosNoMes: l.atendimentos_no_mes,
           livre: l.livre,
         })),
     );
   }
 
-  async abrir(atendimento: NovoAtendimento): Promise<Result<{ id: string } | null, AppError>> {
+  async abrir(atendimento: NovoAtendimento): Promise<Result<ResultadoAbertura, AppError>> {
     const { data, error } = await this.supabaseAdmin.rpc("abrir_atendimento", {
       p_telefone: atendimento.telefone,
       p_chave: atendimento.chave,
@@ -44,16 +50,20 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       p_mensagens: atendimento.mensagens,
     });
     if (error) return err(new ServicoExternoError("Falha ao abrir o Atendimento."));
-    return ok(data ? { id: z.string().parse(data) } : null);
+    const id = aberturaRowSchema.parse(data);
+    return ok(id ? { status: "aberto", id } : { status: "conflito" });
   }
 
-  async anexarMensagem(chave: string, mensagem: NovaMensagem): Promise<Result<boolean, AppError>> {
+  async anexarMensagem(
+    chave: string,
+    mensagem: NovaMensagem,
+  ): Promise<Result<ResultadoAnexo, AppError>> {
     const { data, error } = await this.supabaseAdmin.rpc("anexar_mensagem_atendimento", {
       p_chave: chave,
       p_autor: mensagem.autor,
       p_texto: mensagem.texto,
     });
     if (error) return err(new ServicoExternoError("Falha ao registrar a Mensagem."));
-    return ok(data === true);
+    return ok(anexoRowSchema.parse(data) ? { status: "anexada" } : { status: "sem_atendimento" });
   }
 }

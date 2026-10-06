@@ -16,7 +16,9 @@ create table public.atendimentos (
   assumido_em timestamptz,
   check ((funcionario_id is null) = (assumido_em is null))
 );
-create index atendimentos_em_andamento_telefone on public.atendimentos (chave_telefone)
+-- Único: um número só tem um Atendimento em andamento; a corrida entre dois webhooks falha aqui
+-- e a reentrega cai no caminho de anexar.
+create unique index atendimentos_em_andamento_telefone on public.atendimentos (chave_telefone)
   where status = 'em_andamento';
 create index atendimentos_funcionario_mes on public.atendimentos (funcionario_id, assumido_em);
 

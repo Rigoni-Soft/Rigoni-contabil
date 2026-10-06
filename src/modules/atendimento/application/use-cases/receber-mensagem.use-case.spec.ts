@@ -3,6 +3,7 @@ import type {
   AbrirAtendimentoPort,
   NovaMensagem,
 } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
+import type { AnexarMensagemAtendimentoPort } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
 import type {
   DocumentoContratual,
   DocumentosContratuaisPort,
@@ -104,12 +105,14 @@ function montar(
   };
   const abertos: AberturaAtendimento[] = [];
   const anexadas: NovaMensagem[] = [];
-  const atendimentos: AbrirAtendimentoPort = {
-    anexarSeEmAndamento: async (_chave, mensagem) => {
-      if (!opcoes.emAndamento) return ok(false);
+  const mensagens: AnexarMensagemAtendimentoPort = {
+    execute: async (_chave, mensagem) => {
+      if (!opcoes.emAndamento) return ok({ anexada: false });
       anexadas.push(mensagem);
-      return ok(true);
+      return ok({ anexada: true });
     },
+  };
+  const atendimentos: AbrirAtendimentoPort = {
     execute: async (a) => {
       if (opcoes.aberturaFalha) return err(new ServicoExternoError("banco"));
       abertos.push(a);
@@ -119,7 +122,7 @@ function montar(
   return {
     anexadas,
     abertos,
-    caso: new ReceberMensagem(identificacao, envio, documentos, sessao, atendimentos),
+    caso: new ReceberMensagem(identificacao, envio, documentos, sessao, atendimentos, mensagens),
     sessoes,
     gravadas,
     buscados,
@@ -186,10 +189,8 @@ describe("ReceberMensagem", () => {
         salvar: async () => ok(undefined),
         limpar: async () => ok(undefined),
       },
-      {
-        execute: async () => ok({ id: "at-1", funcionarioId: null }),
-        anexarSeEmAndamento: async () => ok(false),
-      },
+      { execute: async () => ok({ id: "at-1", funcionarioId: null }) },
+      { execute: async () => ok({ anexada: false }) },
     );
     const r = await caso.execute({ telefone: "11912345678", texto: "oi" });
     expect(r.ok).toBe(false);

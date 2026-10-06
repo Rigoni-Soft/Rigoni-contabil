@@ -2,14 +2,13 @@ import type {
   AberturaAtendimento,
   AbrirAtendimentoPort,
   AtendimentoAberto,
-  NovaMensagem,
 } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type {
   AtendimentoRepositoryPort,
   FuncionarioDoSetor,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { AppError } from "@/shared/errors/app.error";
-import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
+import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 const TENTATIVAS = 3;
@@ -40,16 +39,19 @@ export class AbrirAtendimento implements AbrirAtendimentoPort {
       const funcionarioId = menosCarregado(funcionarios.value)?.id ?? null;
       const aberto = await this.repositorio.abrir({ ...abertura, funcionarioId });
       if (!aberto.ok) return aberto;
-      if (aberto.value) return ok({ id: aberto.value.id, funcionarioId });
+      if (aberto.value.status === "aberto") return ok({ id: aberto.value.id, funcionarioId });
     }
     const semAtribuicao = await this.repositorio.abrir({ ...abertura, funcionarioId: null });
     if (!semAtribuicao.ok) return semAtribuicao;
-    // Sem Funcionário não há o que disputar: null aqui só existe no tipo.
-    if (!semAtribuicao.value) return err(new ServicoExternoError("Falha ao abrir o Atendimento."));
+    // Sem Funcionário não há o que disputar: "conflito" aqui quebra o contrato do repositório.
+    if (semAtribuicao.value.status !== "aberto") {
+      return err(
+        new EstadoInconsistenteError(
+          "Repositório recusou abrir Atendimento sem Funcionário.",
+          abertura.chave,
+        ),
+      );
+    }
     return ok({ id: semAtribuicao.value.id, funcionarioId: null });
-  }
-
-  anexarSeEmAndamento(chave: string, mensagem: NovaMensagem): Promise<Result<boolean, AppError>> {
-    return this.repositorio.anexarMensagem(chave, mensagem);
   }
 }
