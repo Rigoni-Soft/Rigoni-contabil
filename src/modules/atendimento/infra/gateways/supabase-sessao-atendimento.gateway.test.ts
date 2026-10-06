@@ -29,12 +29,22 @@ describe("SupabaseSessaoAtendimentoGateway", () => {
     [{ etapa: "tipo_documento" as const }],
     [{ etapa: "alteracao" as const, modo: "ambos" as const, pagina: 2, lista: "abc123" }],
     [{ etapa: "ja_cliente" as const }],
-    [{ etapa: "cnpj" as const }],
-    [{ etapa: "cnpj_nova_tentativa" as const }],
+    [{ etapa: "cnpj" as const, invalidos: 0 }],
+    [{ etapa: "cnpj_nova_tentativa" as const, invalidos: 0 }],
+    [{ etapa: "cnpj_nova_tentativa" as const, invalidos: 1 }],
     [{ etapa: "cnpj" as const, invalidos: 2 }],
   ])("grava e lê a sessão %j", async (sessao) => {
     expect((await gateway.salvar(TELEFONE, sessao)).ok).toBe(true);
     expect(await gateway.obter(TELEFONE)).toEqual({ ok: true, value: sessao });
+  });
+
+  it("regravar a sessão sem contador volta invalidos a 0", async () => {
+    await gateway.salvar(TELEFONE, { etapa: "cnpj", invalidos: 2 });
+    await gateway.salvar(TELEFONE, { etapa: "cnpj_nova_tentativa", invalidos: 0 });
+    expect(await gateway.obter(TELEFONE)).toEqual({
+      ok: true,
+      value: { etapa: "cnpj_nova_tentativa", invalidos: 0 },
+    });
   });
 
   it("salvar de novo substitui; limpar remove", async () => {

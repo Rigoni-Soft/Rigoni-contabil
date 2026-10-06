@@ -499,7 +499,7 @@ describe("ReceberMensagem — número não cadastrado (#43)", () => {
     await dizer(caso, "oi");
     await dizer(caso, "sim");
     expect(enviadas[1].texto).toContain("CNPJ");
-    expect(sessoes.get(TEL)).toEqual({ etapa: "cnpj" });
+    expect(sessoes.get(TEL)).toEqual({ etapa: "cnpj", invalidos: 0 });
   });
 
   it("CNPJ inválido pede de novo, sem transferir", async () => {
@@ -682,7 +682,7 @@ describe("ReceberMensagem — fallback para a recepção (#50)", () => {
     for (const t of ["oi", "sim", CNPJ_DESCONHECIDO]) await dizer(caso, t);
     expect(enviadas[2].texto).toContain("Não encontramos esse CNPJ");
     expect(abertos).toHaveLength(0);
-    expect(sessoes.get(TEL)).toEqual({ etapa: "cnpj_nova_tentativa" });
+    expect(sessoes.get(TEL)).toEqual({ etapa: "cnpj_nova_tentativa", invalidos: 0 });
   });
 
   it("segundo CNPJ não cadastrado transfere pra recepção com aviso", async () => {
@@ -723,6 +723,6 @@ describe("ReceberMensagem — fallback para a recepção (#50)", () => {
     const { caso, sessoes } = montar({ contato: null, cnpjFalha: true });
     for (const t of ["oi", "sim"]) await dizer(caso, t);
     expect((await dizer(caso, CNPJ_DESCONHECIDO)).ok).toBe(false);
-    expect(sessoes.get(TEL)).toEqual({ etapa: "cnpj" });
+    expect(sessoes.get(TEL)).toEqual({ etapa: "cnpj", invalidos: 0 });
   });
 });
