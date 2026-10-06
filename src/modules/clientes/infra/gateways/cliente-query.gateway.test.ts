@@ -20,8 +20,6 @@ async function clienteAutenticado(email: string, senha: string): Promise<Supabas
 }
 
 const comoAdmin = () => clienteAutenticado("admin@rigonicontabil.local", "admin123");
-const comoFuncionarioSN = () =>
-  clienteAutenticado("funcionario.sn@rigonicontabil.local", "func123");
 const comoLiderSN = () => clienteAutenticado("lider.sn@rigonicontabil.local", "lider123");
 const comoFuncionario2SN = () =>
   clienteAutenticado("funcionario2.sn@rigonicontabil.local", "func123");
@@ -119,14 +117,14 @@ describe("SupabaseClienteQueryGateway.buscarPorTermo (#35, integração)", () =>
     if (porNome.ok) expect(porNome.value.some((s) => s.id === cliente.id)).toBe(true);
   });
 
-  it("Funcionário SN (não-Admin) também encontra o cliente, pela view sem contrato social (PR #69)", async () => {
+  it("Líder do SN (não-Admin) também encontra o cliente, pela view sem contrato social (PR #69)", async () => {
     const admin = await comoAdmin();
     const cliente = await criarClienteComContratoSocial(
       admin,
       "Padaria Busca Funcionario Ltda",
       cnpjUnico(),
     );
-    const gateway = new SupabaseClienteQueryGateway(await comoFuncionarioSN());
+    const gateway = new SupabaseClienteQueryGateway(await comoLiderSN());
 
     const resultado = await gateway.buscarPorTermo("Busca Funcionario", false);
 
@@ -276,14 +274,14 @@ describe("SupabaseClienteQueryGateway.listarResumoOperacional (#36, integração
     if (resultado.ok) expect(resultado.value.some((l) => l.empresa === empresa)).toBe(false);
   });
 
-  it("Funcionário SN (não-Admin) também lista o resumo, pela view sem contrato social (PR #69)", async () => {
+  it("Líder do SN (não-Admin) também lista o resumo, pela view sem contrato social (PR #69)", async () => {
     const admin = await comoAdmin();
     const cliente = await criarClienteComContratoSocial(
       admin,
       "Padaria Resumo Funcionario Ltda",
       cnpjUnico(),
     );
-    const gateway = new SupabaseClienteQueryGateway(await comoFuncionarioSN());
+    const gateway = new SupabaseClienteQueryGateway(await comoLiderSN());
 
     const resultado = await gateway.listarResumoOperacional();
 

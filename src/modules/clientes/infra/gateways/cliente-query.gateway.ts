@@ -32,9 +32,6 @@ type ClienteBasicoRow = {
   cliente_atividades_mensais: AtividadeMensalRow[] | null;
 };
 
-// Lê da view `clientes_basico`, que não tem contrato_social_caminho: a
-// confidencialidade é garantida no banco (PR #69), não só pelo select ou pelo
-// shape do DTO de saída.
 const EMBED_OPERACIONAL =
   "cliente_cadastro_operacional_sn(*, responsavel:perfis!responsavel_id(nome))";
 
@@ -43,6 +40,9 @@ const responsavelDe = (operacional: CadastroOperacionalRow | null) => ({
   responsavelNome: operacional?.responsavel?.nome ?? null,
 });
 
+// Lê da view `clientes_basico`, que não tem contrato_social_caminho: a
+// confidencialidade é garantida no banco (PR #69), não só pelo select ou pelo
+// shape do DTO de saída.
 const SELECT_CADASTRO_BASICO = `
   id, empresa, cnpj, regime,
   ${EMBED_OPERACIONAL},

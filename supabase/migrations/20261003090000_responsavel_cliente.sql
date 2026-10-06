@@ -29,7 +29,8 @@ security definer
 stable
 set search_path = public
 as $$
-  select case
+  -- acesso_liberado(): primeiro acesso finalizado (PR #69, ADR 0002).
+  select public.acesso_liberado() and case
     when public.meu_papel() is null then false
     when public.meu_papel() = 'funcionario' and public.meu_setor() = 'simples_nacional'
       then public.sou_responsavel_do_cliente(p_cliente_id)
@@ -44,20 +45,23 @@ security definer
 stable
 set search_path = public
 as $$
-  select case public.meu_papel()
+  select public.acesso_liberado() and coalesce(case public.meu_papel()
     when 'admin' then true
     when 'lider_setor' then public.meu_setor() = 'simples_nacional'
     when 'funcionario' then
       public.meu_setor() = 'simples_nacional' and public.sou_responsavel_do_cliente(p_cliente_id)
     else false
-  end;
+  end, false);
 $$;
 
 -- SELECT: substitui "qualquer perfil" (#34) — Funcionário SN só vê o que é dele.
-drop policy "clientes_select_qualquer_perfil" on public.clientes;
-create policy "clientes_select_qualquer_perfil"
-  on public.clientes for select
-  using (public.pode_ver_cliente(id));
+-- `clientes` segue só Admin (PR #69, contrato social): a visibilidade por
+-- Responsável vale na projeção `clientes_basico`, que é o que não-Admin lê.
+create or replace view public.clientes_basico
+with (security_invoker = false) as
+select id, empresa, cnpj, regime
+from public.clientes
+where public.pode_ver_cliente(id);
 
 drop policy "cliente_cadastro_operacional_select_qualquer_perfil"
   on public.cliente_cadastro_operacional_sn;
