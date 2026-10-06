@@ -7,6 +7,7 @@ import type { Result } from "@/shared/kernel/result";
 export type SessaoAtendimento =
   | { etapa: "ja_cliente" }
   | { etapa: "cnpj" }
+  | { etapa: "cnpj_nova_tentativa" }
   | { etapa: "tipo_documento" }
   | { etapa: "alteracao"; modo: "alteracoes" | "ambos"; pagina: number; lista: string };
 

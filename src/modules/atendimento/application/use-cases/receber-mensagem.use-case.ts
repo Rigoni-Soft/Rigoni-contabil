@@ -39,6 +39,12 @@ const CNPJ_INVALIDO = "Esse CNPJ não parece válido. Confira e envie novamente 
 const NUMERO_AMBIGUO =
   "Seu número está cadastrado em mais de uma empresa e não conseguimos confirmar qual delas você quer consultar. Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
 
+const CNPJ_NAO_ENCONTRADO =
+  "Não encontramos esse CNPJ entre os nossos clientes. Confira e envie novamente (ou digite *menu*).";
+const PARA_RECEPCAO_CNPJ =
+  "Não encontramos esse CNPJ entre os nossos clientes. Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
+// Palavras que, num número não reconhecido, pedem uma pessoa em vez de seguir o fluxo.
+const PEDIDO_DE_ATENDENTE = /\b(atendente|atendimento|humano|pessoa|recepcao|recepcionista)\b/;
 const PARA_RECEPCAO =
   "Não encontramos você entre os contatos cadastrados. Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
 
@@ -158,8 +164,9 @@ export class ReceberMensagem implements ReceberMensagemPort {
   }
 
   // Número sem Contato: "já é cliente?" → CNPJ → recepção. Mesmo com o CNPJ o número não é um
-  // Contato (já foi buscado em todos os Clientes), então o fim é sempre a recepção; sessão
-  // ausente/expirada/de outro fluxo ou "menu" recomeça pela pergunta.
+  // Contato (já foi buscado em todos os Clientes), então o fim é sempre a recepção; CNPJ que não
+  // existe em nenhum cadastro tem 1 nova tentativa antes. Pedido de atendente em qualquer etapa
+  // vai direto à recepção; sessão ausente/expirada/de outro fluxo ou "menu" recomeça pela pergunta.
   private async identificarNovo(
     { telefone, texto: textoDoContato }: MensagemRecebida,
     chave: string,
@@ -169,6 +176,9 @@ export class ReceberMensagem implements ReceberMensagemPort {
     const etapa = texto === "menu" ? null : sessao?.etapa;
     const semAcento = texto.normalize("NFD").replace(/\p{M}/gu, "");
 
+    if (texto !== "menu" && PEDIDO_DE_ATENDENTE.test(semAcento)) {
+      return this.encaminharRecepcao(telefone, chave, textoDoContato);
+    }
     if (etapa === "ja_cliente") {
       if (["sim", "s"].includes(semAcento))
         return this.avancar(telefone, chave, "cnpj", PEDIR_CNPJ);
@@ -176,9 +186,14 @@ export class ReceberMensagem implements ReceberMensagemPort {
         return this.encaminharRecepcao(telefone, chave, textoDoContato);
       return this.enviar(telefone, SIM_OU_NAO);
     }
-    if (etapa === "cnpj") {
+    if (etapa === "cnpj" || etapa === "cnpj_nova_tentativa") {
       if (!cnpjValido(texto)) return this.enviar(telefone, CNPJ_INVALIDO);
-      return this.encaminharRecepcao(telefone, chave, textoDoContato);
+      const cadastrado = await this.contatos.cnpjCadastrado(texto);
+      if (!cadastrado.ok) return cadastrado;
+      if (cadastrado.value) return this.encaminharRecepcao(telefone, chave, textoDoContato);
+      if (etapa === "cnpj")
+        return this.avancar(telefone, chave, "cnpj_nova_tentativa", CNPJ_NAO_ENCONTRADO);
+      return this.encaminharRecepcao(telefone, chave, textoDoContato, PARA_RECEPCAO_CNPJ);
     }
     return this.avancar(telefone, chave, "ja_cliente", PERGUNTA_CLIENTE);
   }
@@ -186,7 +201,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
   private async avancar(
     telefone: string,
     chave: string,
-    etapa: "ja_cliente" | "cnpj",
+    etapa: "ja_cliente" | "cnpj" | "cnpj_nova_tentativa",
     texto: string,
   ): Promise<Result<void, AppError>> {
     const salva = await this.sessoes.salvar(chave, { etapa });
@@ -197,10 +212,10 @@ export class ReceberMensagem implements ReceberMensagemPort {
     telefone: string,
     chave: string,
     textoDoContato: string,
-    texto = PARA_RECEPCAO,
+    textoAviso = PARA_RECEPCAO,
   ): Promise<Result<void, AppError>> {
     // Aviso antes de abrir: se o envio falhar e a Meta reenviar, não nasce Atendimento duplicado.
-    const aviso = await this.enviar(telefone, texto);
+    const aviso = await this.enviar(telefone, textoAviso);
     if (!aviso.ok) return aviso;
     // ponytail: número sem Contato abre sem cliente; a recepção identifica na conversa.
     const aberto = await this.atendimentos.execute({
@@ -210,7 +225,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
       setor: "recepcao",
       mensagens: [
         { autor: "contato", texto: textoDoContato },
-        { autor: "ura", texto },
+        { autor: "ura", texto: textoAviso },
       ],
     });
     if (!aberto.ok) return aberto;

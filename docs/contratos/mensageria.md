@@ -67,9 +67,12 @@ construção" (stub); qualquer outro texto reenvia o menu.
 **Número não cadastrado (#43):** o atendimento pela URA só existe para Contato (padrão ou outro) já cadastrado. Quem não é
 Contato recebe "você já é cliente?" (`sim`/`não`, com ou sem acento; outra resposta repete a pergunta). `não` → aviso
 amigável de que será encaminhado à recepção. `sim` → pede o CNPJ (validado pelos dígitos verificadores; inválido pede de
-novo). Com CNPJ válido, o número continua sem ser Contato (já foi buscado em todos os Clientes), então vai para a recepção.
-Não há auto-cadastro. Sessão (`ja_cliente`/`cnpj`) ausente, expirada ou `menu` recomeça pela pergunta. Limite: "encaminhar
-à recepção" é só o aviso; a Transferência real vem com a Fila (#44/#45).
+novo). CNPJ válido que pertence a um Cliente → recepção (o número continua sem ser Contato). CNPJ válido que **não** existe
+em nenhum cadastro → 1 nova tentativa (sessão `cnpj_nova_tentativa`; CNPJ inválido não gasta a tentativa); errando de novo,
+vai à recepção com aviso de que o CNPJ não foi encontrado. **Fallback (#50):** em qualquer etapa, texto com palavra-chave de
+atendente (`atendente`, `atendimento`, `humano`, `pessoa`, `recepção`, `recepcionista`) vai direto à recepção. Não há
+auto-cadastro. Sessão (`ja_cliente`/`cnpj`/`cnpj_nova_tentativa`) ausente, expirada ou `menu` recomeça pela pergunta.
+"Encaminhar à recepção" abre um Atendimento no Setor recepção (entra na Fila se não houver Funcionário livre).
 
 **Opção 1 (#41):** pergunta `1 - Contrato social`, `2 - Alterações`, `3 - Ambos`.
 - `1` envia o contrato; sem contrato cadastrado, avisa.

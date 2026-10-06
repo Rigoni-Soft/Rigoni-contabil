@@ -30,6 +30,7 @@ describe("SupabaseSessaoAtendimentoGateway", () => {
     [{ etapa: "alteracao" as const, modo: "ambos" as const, pagina: 2, lista: "abc123" }],
     [{ etapa: "ja_cliente" as const }],
     [{ etapa: "cnpj" as const }],
+    [{ etapa: "cnpj_nova_tentativa" as const }],
   ])("grava e lê a sessão %j", async (sessao) => {
     expect((await gateway.salvar(TELEFONE, sessao)).ok).toBe(true);
     expect(await gateway.obter(TELEFONE)).toEqual({ ok: true, value: sessao });

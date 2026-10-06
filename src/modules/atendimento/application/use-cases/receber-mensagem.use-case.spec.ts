@@ -35,6 +35,9 @@ const ana: ContatoIdentificado = {
   padrao: true,
 };
 
+const CNPJ_CADASTRADO = "90.000.001/0001-29";
+const CNPJ_DESCONHECIDO = "11.222.333/0001-81";
+
 const CONTRATO: DocumentoContratual = {
   tipo: "contrato",
   data: null,
@@ -52,6 +55,8 @@ function montar(
     aberturaFalha?: boolean;
     emAndamento?: boolean;
     posicaoNaFila?: number;
+    cnpjsCadastrados?: string[];
+    cnpjFalha?: boolean;
   } = {},
 ) {
   const buscados: string[] = [];
@@ -83,6 +88,11 @@ function montar(
       buscados.push(telefone);
       return ok(opcoes.contato === undefined ? ana : opcoes.contato);
     },
+    // Por padrão o CNPJ de teste existe em um Cliente (o número é que não é Contato).
+    cnpjCadastrado: async (cnpj) =>
+      opcoes.cnpjFalha
+        ? err(new ServicoExternoError("banco"))
+        : ok((opcoes.cnpjsCadastrados ?? [CNPJ_CADASTRADO]).includes(cnpj)),
   };
   const envio: EnvioMensagemPort = {
     enviar: async (m) => {
@@ -183,7 +193,10 @@ describe("ReceberMensagem", () => {
   it("propaga erro da identificação sem enviar nada", async () => {
     const enviadas: MensagemEnviada[] = [];
     const caso = new ReceberMensagem(
-      { identificar: async () => err(new ServicoExternoError("banco")) },
+      {
+        identificar: async () => err(new ServicoExternoError("banco")),
+        cnpjCadastrado: async () => err(new ServicoExternoError("banco")),
+      },
       {
         enviar: async (m) => {
           enviadas.push(m);
@@ -610,4 +623,75 @@ describe("ReceberMensagem — lista de alterações mudou com a sessão aberta (
       expect(documentosEnviados).toHaveLength(1);
     },
   );
+});
+
+describe("ReceberMensagem — fallback para a recepção (#50)", () => {
+  const TEL = "11900000000";
+  const dizer = (caso: ReturnType<typeof montar>["caso"], texto: string) =>
+    caso.execute({ telefone: TEL, texto });
+
+  it.each(["oi", "sim"])(
+    "pedido de atendente fora do fluxo (%s antes) transfere pra recepção",
+    async (antes) => {
+      const { caso, abertos, sessoes } = montar({ contato: null });
+      await dizer(caso, "oi");
+      if (antes === "sim") await dizer(caso, "sim");
+      await dizer(caso, "Quero falar com um ATENDENTE");
+      expect(abertos).toHaveLength(1);
+      expect(abertos[0]).toMatchObject({ clienteId: null, setor: "recepcao" });
+      expect(sessoes.has(TEL)).toBe(false);
+    },
+  );
+
+  it("pedido de atendente na primeira mensagem já vai à recepção, sem a pergunta", async () => {
+    const { caso, enviadas, abertos } = montar({ contato: null });
+    await dizer(caso, "preciso de uma pessoa, por favor");
+    expect(abertos).toHaveLength(1);
+    expect(enviadas[0].texto).toContain("recepção");
+  });
+
+  it("'menu' continua recomeçando, mesmo com palavra-chave no texto", async () => {
+    const { caso, abertos } = montar({ contato: null });
+    for (const t of ["oi", "menu"]) await dizer(caso, t);
+    expect(abertos).toHaveLength(0);
+  });
+
+  it("CNPJ não cadastrado permite uma nova tentativa, sem transferir", async () => {
+    const { caso, enviadas, abertos, sessoes } = montar({ contato: null });
+    for (const t of ["oi", "sim", CNPJ_DESCONHECIDO]) await dizer(caso, t);
+    expect(enviadas[2].texto).toContain("Não encontramos esse CNPJ");
+    expect(abertos).toHaveLength(0);
+    expect(sessoes.get(TEL)).toEqual({ etapa: "cnpj_nova_tentativa" });
+  });
+
+  it("segundo CNPJ não cadastrado transfere pra recepção com aviso", async () => {
+    const { caso, enviadas, abertos, sessoes } = montar({ contato: null });
+    for (const t of ["oi", "sim", CNPJ_DESCONHECIDO, "00.000.000/0001-91"]) await dizer(caso, t);
+    expect(enviadas[3].texto).toContain("Não encontramos esse CNPJ");
+    expect(enviadas[3].texto).toContain("recepção");
+    expect(abertos).toHaveLength(1);
+    expect(abertos[0].mensagens[1].texto).toBe(enviadas[3].texto);
+    expect(sessoes.has(TEL)).toBe(false);
+  });
+
+  it("CNPJ inválido não gasta a nova tentativa", async () => {
+    const { caso, abertos, sessoes } = montar({ contato: null });
+    for (const t of ["oi", "sim", CNPJ_DESCONHECIDO, "123"]) await dizer(caso, t);
+    expect(abertos).toHaveLength(0);
+    expect(sessoes.get(TEL)).toEqual({ etapa: "cnpj_nova_tentativa" });
+  });
+
+  it("CNPJ cadastrado na nova tentativa vai à recepção com o aviso padrão", async () => {
+    const { caso, enviadas, abertos } = montar({ contato: null });
+    for (const t of ["oi", "sim", CNPJ_DESCONHECIDO, CNPJ_CADASTRADO]) await dizer(caso, t);
+    expect(abertos).toHaveLength(1);
+    expect(enviadas[3].texto).not.toContain("Não encontramos esse CNPJ");
+  });
+
+  it("falha ao consultar o CNPJ devolve o erro e mantém a sessão", async () => {
+    const { caso, sessoes } = montar({ contato: null, cnpjFalha: true });
+    for (const t of ["oi", "sim"]) await dizer(caso, t);
+    expect((await dizer(caso, CNPJ_DESCONHECIDO)).ok).toBe(false);
+    expect(sessoes.get(TEL)).toEqual({ etapa: "cnpj" });
+  });
 });

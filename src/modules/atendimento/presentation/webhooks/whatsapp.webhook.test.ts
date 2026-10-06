@@ -101,6 +101,7 @@ beforeEach(() => {
   sessoesEmMemoria.clear();
   identificacao = {
     identificar: async () => ok({ clienteId: "c1", nome: "Ana", empresa: "Padaria", padrao: true }),
+    cnpjCadastrado: async () => ok(true),
   };
   jest.spyOn(console, "info").mockImplementation(() => undefined);
   jest.spyOn(console, "error").mockImplementation(() => undefined);
@@ -200,7 +201,10 @@ describe("POST /api/webhooks/whatsapp (notificação)", () => {
   });
 
   it("502 quando falha transitória (identificação) pra Meta reenviar", async () => {
-    identificacao = { identificar: async () => err(new ServicoExternoError("banco")) };
+    identificacao = {
+      identificar: async () => err(new ServicoExternoError("banco")),
+      cnpjCadastrado: async () => err(new ServicoExternoError("banco")),
+    };
     expect((await enviar(notificacao([texto("oi")]))).status).toBe(502);
   });
 
