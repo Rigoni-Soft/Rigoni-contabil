@@ -5,7 +5,6 @@ export type ContatoIdentificado = {
   clienteId: string;
   nome: string;
   empresa: string;
-  padrao: boolean;
 };
 
 // O número consta como Contato de mais de um Cliente: nenhum é escolhido automaticamente.

@@ -21,14 +21,11 @@ export class SupabaseIdentificacaoContatoGateway implements IdentificacaoContato
     });
     if (error) return err(new ServicoExternoError("Falha ao identificar o contato."));
     // Ordenadas por padrão e antiguidade: vários Contatos do mesmo Cliente não são ambiguidade.
-    const linhas =
-      (data as { cliente_id: string; nome: string; empresa: string; padrao: boolean }[] | null) ??
-      [];
+    const linhas = (data as { cliente_id: string; nome: string; empresa: string }[] | null) ?? [];
     if (new Set(linhas.map((l) => l.cliente_id)).size > 1) return ok("ambiguo");
     const linha = linhas[0];
     if (!linha) return ok(null);
-    const { cliente_id: clienteId, ...resto } = linha;
-    return ok({ clienteId, ...resto } satisfies ContatoIdentificado);
+    return ok({ clienteId: linha.cliente_id, nome: linha.nome, empresa: linha.empresa });
   }
 
   // Só existência: não há linha de Cliente a mapear, então não passa por Row DTO.

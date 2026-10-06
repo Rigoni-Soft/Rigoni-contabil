@@ -42,7 +42,6 @@ const ana: ContatoIdentificado = {
   clienteId: "cliente-1",
   nome: "Ana",
   empresa: "Padaria Pão Quente",
-  padrao: true,
 };
 
 const CNPJ_CADASTRADO = "90.000.001/0001-29";

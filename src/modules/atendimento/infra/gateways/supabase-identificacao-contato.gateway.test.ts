@@ -71,7 +71,7 @@ describe("SupabaseIdentificacaoContatoGateway", () => {
     const r = await gateway.identificar("61991112233");
     expect(r).toEqual({
       ok: true,
-      value: { clienteId, nome: "Bia", empresa: "Contato Teste Ltda", padrao: true },
+      value: { clienteId, nome: "Bia", empresa: "Contato Teste Ltda" },
     });
   });
 
@@ -79,7 +79,7 @@ describe("SupabaseIdentificacaoContatoGateway", () => {
     const r = await gateway.identificar("6132224455");
     expect(r).toEqual({
       ok: true,
-      value: { clienteId, nome: "Caio", empresa: "Contato Teste Ltda", padrao: false },
+      value: { clienteId, nome: "Caio", empresa: "Contato Teste Ltda" },
     });
   });
 

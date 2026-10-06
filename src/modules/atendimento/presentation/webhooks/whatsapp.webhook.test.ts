@@ -104,7 +104,7 @@ beforeEach(() => {
   envio = new EnvioMensagemFalsoGateway();
   sessoesEmMemoria.clear();
   identificacao = {
-    identificar: async () => ok({ clienteId: "c1", nome: "Ana", empresa: "Padaria", padrao: true }),
+    identificar: async () => ok({ clienteId: "c1", nome: "Ana", empresa: "Padaria" }),
     cnpjCadastrado: async () => ok(true),
   };
   jest.spyOn(console, "info").mockImplementation(() => undefined);

@@ -12,6 +12,13 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 // Formato de `POST /{phone-number-id}/messages` da WhatsApp Cloud API (Meta).
+type TemplateComponents = (
+  | {
+      type: "header";
+      parameters: { type: "document"; document: { link: string; filename: string } }[];
+    }
+  | { type: "body"; parameters: { type: "text"; text: string }[] }
+)[];
 type ParteCorpo = { to: string } & (
   | { type: "text"; text: { body: string } }
   | { type: "document"; document: ({ link: string } | { id: string }) & { filename: string } }
@@ -20,13 +27,7 @@ type ParteCorpo = { to: string } & (
       template: {
         name: string;
         language: { code: string };
-        components: (
-          | {
-              type: "header";
-              parameters: { type: "document"; document: { link: string; filename: string } }[];
-            }
-          | { type: "body"; parameters: { type: "text"; text: string }[] }
-        )[];
+        components: TemplateComponents;
       };
     }
 );
@@ -126,32 +127,19 @@ export class EnvioMensagemFalsoGateway implements EnvioMensagemPort {
 
   async enviarTemplate(template: TemplateEnviado): Promise<Result<void, AppError>> {
     const { documento } = template;
+    const components: TemplateComponents = [];
+    if (documento) {
+      const document = { link: documento.url, filename: documento.nomeArquivo };
+      components.push({ type: "header", parameters: [{ type: "document", document }] });
+    }
+    components.push({
+      type: "body",
+      parameters: template.variaveis.map((text) => ({ type: "text", text })),
+    });
     const enviado = this.despachar({
       to: template.telefone,
       type: "template",
-      template: {
-        name: template.nome,
-        language: { code: template.idioma },
-        components: [
-          ...(documento
-            ? [
-                {
-                  type: "header" as const,
-                  parameters: [
-                    {
-                      type: "document" as const,
-                      document: { link: documento.url, filename: documento.nomeArquivo },
-                    },
-                  ],
-                },
-              ]
-            : []),
-          {
-            type: "body",
-            parameters: template.variaveis.map((text) => ({ type: "text" as const, text })),
-          },
-        ],
-      },
+      template: { name: template.nome, language: { code: template.idioma }, components },
     });
     if (!enviado.ok) return enviado;
     this.templatesEnviados.push(template);
