@@ -9,7 +9,13 @@ import { err, ok } from "@/shared/kernel/result";
 
 import { AbrirAtendimento } from "./abrir-atendimento.use-case";
 
-function montar(funcionarios: FuncionarioDoSetor[] | "falha", recusasIniciais = 0, posicao = 1) {
+function montar(
+  funcionarios: FuncionarioDoSetor[] | "falha",
+  recusasIniciais = 0,
+  posicao = 1,
+  // Quem o repositório diz que ficou com o Atendimento, se não for o pedido.
+  assumidoPeloRepositorio?: string,
+) {
   const abertos: NovoAtendimento[] = [];
   const tentativas: NovoAtendimento[] = [];
   const repo = {
@@ -19,7 +25,11 @@ function montar(funcionarios: FuncionarioDoSetor[] | "falha", recusasIniciais = 
       tentativas.push(a);
       if (tentativas.length <= recusasIniciais) return ok({ status: "conflito" });
       abertos.push(a);
-      return ok({ status: "aberto", id: "at-1" });
+      return ok({
+        status: "aberto",
+        id: "at-1",
+        funcionarioId: assumidoPeloRepositorio ?? a.funcionarioId,
+      });
     },
     anexarMensagem: async () => ok({ anexada: false }),
     posicaoNaFila: async () => ok(posicao),
@@ -44,7 +54,13 @@ describe("AbrirAtendimento", () => {
     ]);
     const r = await caso.execute(abertura);
     expect(r).toEqual({ ok: true, value: { id: "at-1", funcionarioId: "f2" } });
-    expect(abertos[0]).toEqual({ ...abertura, funcionarioId: "f2" });
+    expect(abertos[0]).toEqual({ ...abertura, funcionarioId: "f2", atribuirLivreSeVazia: false });
+  });
+
+  it("vale o Funcionário que o repositório diz ter ficado com o Atendimento (liberado no meio)", async () => {
+    const { caso } = montar([{ id: "f1", atendimentosNoMes: 0, livre: false }], 0, 1, "f9");
+    const r = await caso.execute(abertura);
+    expect(r).toEqual({ ok: true, value: { id: "at-1", funcionarioId: "f9" } });
   });
 
   it("empate na contagem fica com o primeiro da lista", async () => {

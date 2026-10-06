@@ -62,10 +62,15 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       p_setor: atendimento.setor,
       p_funcionario_id: atendimento.funcionarioId,
       p_mensagens: atendimento.mensagens,
+      p_atribuir_livre: atendimento.atribuirLivreSeVazia ?? false,
     });
     if (error) return err(new ServicoExternoError("Falha ao abrir o Atendimento."));
-    const id = aberturaRowSchema.parse(data);
-    return ok(id ? { status: "aberto", id } : { status: "conflito" });
+    const linha = aberturaRowSchema.parse(data);
+    return ok(
+      linha
+        ? { status: "aberto", id: linha.id, funcionarioId: linha.funcionario_id }
+        : { status: "conflito" },
+    );
   }
 
   async anexarMensagem(
@@ -143,6 +148,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       p_ator_setor: transferencia.ator.setor,
       p_setor_origem: transferencia.setorOrigem,
       p_enfileirar_se_ocupado: transferencia.enfileirarSeOcupado,
+      p_atribuir_livre: transferencia.atribuirLivreSeVazia ?? false,
     });
     if (error) return err(new ServicoExternoError("Falha ao transferir o Atendimento."));
     const linha = transferenciaRowSchema.parse(data);

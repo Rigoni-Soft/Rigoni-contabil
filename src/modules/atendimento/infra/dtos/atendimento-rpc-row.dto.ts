@@ -3,8 +3,11 @@ import { z } from "zod";
 import { REGIMES } from "@/shared/kernel/regimes";
 import { SETORES } from "@/shared/kernel/setores";
 
-// `abrir_atendimento`: uuid do Atendimento, ou null se o Funcionário escolhido foi ocupado.
-export const aberturaRowSchema = z.string().nullable();
+// `abrir_atendimento`: o Atendimento e o Funcionário que ficou com ele (null = Fila), ou null se o
+// Funcionário escolhido foi ocupado.
+export const aberturaRowSchema = z
+  .object({ id: z.string(), funcionario_id: z.string().nullable() })
+  .nullable();
 // `anexar_mensagem_atendimento`: true se havia Atendimento em andamento.
 export const anexoRowSchema = z.boolean();
 

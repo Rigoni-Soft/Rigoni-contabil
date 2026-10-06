@@ -11,11 +11,19 @@ import type { SetorSlug } from "@/shared/kernel/setores";
 
 export type FuncionarioDoSetor = { id: string; atendimentosNoMes: number; livre: boolean };
 
+// "aberto": `funcionarioId` é quem ficou com o Atendimento (null = Fila). Pode não ser o escolhido
+// por quem chamou: sem escolhido e sem ninguém na frente, um Funcionário liberado no meio é assumido.
 // "conflito": o Funcionário escolhido foi ocupado por outro Atendimento no meio (concorrência);
 // nada é gravado e quem chama escolhe de novo.
-export type ResultadoAbertura = { status: "aberto"; id: string } | { status: "conflito" };
+export type ResultadoAbertura =
+  { status: "aberto"; id: string; funcionarioId: string | null } | { status: "conflito" };
 
-export type NovoAtendimento = AberturaAtendimento & { funcionarioId: string | null };
+// `atribuirLivreSeVazia`: sem Funcionário escolhido e sem Fila, o banco entrega o Atendimento a um
+// Funcionário livre do Setor (liberado depois da listagem de quem chama) em vez de enfileirar.
+export type NovoAtendimento = AberturaAtendimento & {
+  funcionarioId: string | null;
+  atribuirLivreSeVazia?: boolean;
+};
 
 export type AtendimentoEmAndamento = {
   id: string;
@@ -37,6 +45,8 @@ export type NovaTransferencia = {
   // Destino fixo (não escolhido pelo Balanceamento): ocupado, o Atendimento entra na fila dele
   // em vez de ser recusado ("conflito").
   enfileirarSeOcupado: boolean;
+  // Como em `NovoAtendimento`: vale só sem destino escolhido.
+  atribuirLivreSeVazia?: boolean;
   resumo: string;
   ator: { id: string; setor: SetorSlug };
 };

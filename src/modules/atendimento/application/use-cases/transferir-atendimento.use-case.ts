@@ -119,7 +119,9 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
       await this.auditarFalha(ator, input.atendimentoId);
       return err(
         new EstadoInconsistenteError(
-          "Atendimento transferido, mas o aviso ao cliente falhou.",
+          avisoDaOrigem.ok
+            ? "Atendimento transferido, mas o aviso ao cliente falhou."
+            : "Atendimento transferido, mas os avisos ao cliente e ao da Fila da origem falharam.",
           input.atendimentoId,
         ),
       );
@@ -218,6 +220,7 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
         ...dados,
         funcionarioDestinoId: escolhido.value,
         enfileirarSeOcupado: false,
+        atribuirLivreSeVazia: escolhido.value === null,
       });
       if (!resultado.ok || resultado.value.status !== "conflito") {
         return this.exigirTransferido(resultado);
@@ -228,6 +231,7 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
         ...dados,
         funcionarioDestinoId: null,
         enfileirarSeOcupado: false,
+        atribuirLivreSeVazia: true,
       }),
     );
   }

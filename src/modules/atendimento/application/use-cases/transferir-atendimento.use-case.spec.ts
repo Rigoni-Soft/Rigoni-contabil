@@ -194,6 +194,12 @@ describe("TransferirAtendimento", () => {
       expect(enviadas[0].telefone).toBe("5561977776666");
     });
 
+    it("se os dois avisos falharem o erro diz isso, sem perder a falha da origem", async () => {
+      const { caso } = montar({ resultados: COM_PROXIMO, avisoFalha: [0, 1] });
+      const r = await caso.execute(INPUT);
+      expect(!r.ok && r.error.message).toContain("avisos ao cliente e ao da Fila da origem");
+    });
+
     it("falha ao avisar o cliente da Fila da origem devolve o erro, já transferido", async () => {
       const { caso, transferencias } = montar({ resultados: COM_PROXIMO, avisoFalha: [1] });
       const r = await caso.execute(INPUT);

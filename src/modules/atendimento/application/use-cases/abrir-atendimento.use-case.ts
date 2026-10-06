@@ -27,12 +27,20 @@ export class AbrirAtendimento implements AbrirAtendimentoPort {
       const funcionarios = await this.repositorio.funcionariosDoSetor(abertura.setor);
       if (!funcionarios.ok) return funcionarios;
       const funcionarioId = menosCarregado(funcionarios.value)?.id ?? null;
-      const aberto = await this.repositorio.abrir({ ...abertura, funcionarioId });
+      const aberto = await this.repositorio.abrir({
+        ...abertura,
+        funcionarioId,
+        atribuirLivreSeVazia: funcionarioId === null,
+      });
       if (!aberto.ok) return aberto;
       if (aberto.value.status === "aberto")
-        return this.comPosicaoNaFila(aberto.value.id, funcionarioId);
+        return this.comPosicaoNaFila(aberto.value.id, aberto.value.funcionarioId);
     }
-    const semAtribuicao = await this.repositorio.abrir({ ...abertura, funcionarioId: null });
+    const semAtribuicao = await this.repositorio.abrir({
+      ...abertura,
+      funcionarioId: null,
+      atribuirLivreSeVazia: true,
+    });
     if (!semAtribuicao.ok) return semAtribuicao;
     // Sem Funcionário não há o que disputar: "conflito" aqui quebra o contrato do repositório.
     if (semAtribuicao.value.status !== "aberto") {
@@ -43,7 +51,7 @@ export class AbrirAtendimento implements AbrirAtendimentoPort {
         ),
       );
     }
-    return this.comPosicaoNaFila(semAtribuicao.value.id, null);
+    return this.comPosicaoNaFila(semAtribuicao.value.id, semAtribuicao.value.funcionarioId);
   }
 
   private async comPosicaoNaFila(

@@ -25,6 +25,8 @@ const TELEFONES = [
   "61955570005",
   "61955570006",
   "61955570007",
+  "61955570008",
+  "61955570009",
 ];
 const clienteId = crypto.randomUUID();
 const CNPJ = `7${Date.now()}`.slice(0, 14);
@@ -241,5 +243,46 @@ describe("SupabaseAtendimentoRepository — Fila", () => {
     expect(r.ok && r.value.status === "transferido" && r.value.proximoDaOrigem?.id).toBe(segundo);
     // O transferido espera na Fila do Setor de destino, que passa a contar desde agora.
     expect(await repositorio.posicaoNaFila(atendimentoId)).toEqual({ ok: true, value: 1 });
+  });
+
+  describe("Funcionário liberado depois da listagem de quem chama (Fila vazia)", () => {
+    it("abrir sem escolhido, sem Fila e com Funcionário livre, atribui a ele em vez de enfileirar", async () => {
+      const livre = await criarFuncionario("Livre Abre 47", "tributario");
+      const r = await repositorio.abrir({
+        telefone: TELEFONES[7],
+        chave: TELEFONES[7],
+        clienteId: null,
+        setor: "tributario",
+        funcionarioId: null,
+        atribuirLivreSeVazia: true,
+        mensagens: [{ autor: "contato", texto: "oi" }],
+      });
+      expect(r.ok && r.value.status === "aberto" && r.value.funcionarioId).toBe(livre);
+    });
+
+    it("transferir sem destino escolhido, sem Fila e com Funcionário livre, atribui a ele", async () => {
+      const livre = await criarFuncionario("Livre Transfere 47", "tributario");
+      const origem = await criarFuncionario("Origem Livre 47");
+      const atendimentoId = await abrir(TELEFONES[8], origem);
+      const r = await repositorio.transferir({
+        atendimentoId,
+        origemFuncionarioId: origem,
+        setorOrigem: SETOR,
+        setorDestino: "tributario",
+        funcionarioDestinoId: null,
+        enfileirarSeOcupado: false,
+        atribuirLivreSeVazia: true,
+        resumo: "IRPJ",
+        ator: ATOR(origem),
+      });
+      expect(r.ok && r.value.status === "transferido" && r.value.destinatarioNome).toBe(
+        "Livre Transfere 47",
+      );
+      const dono = await admin
+        .from("atendimentos")
+        .select("funcionario_id")
+        .eq("id", atendimentoId);
+      expect(dono.data).toEqual([{ funcionario_id: livre }]);
+    });
   });
 });
