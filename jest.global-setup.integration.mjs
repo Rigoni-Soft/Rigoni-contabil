@@ -13,7 +13,6 @@ export default async function limparClientesDeTeste() {
   if (!/^https?:\/\/(127\.0\.0\.1|localhost)[:/]/.test(`${URL}/`)) return;
   const admin = createClient(URL, SERVICE_KEY, { auth: { persistSession: false } });
   try {
-    await admin.from("atendimentos").delete().not("cliente_id", "is", null);
     await admin.from("clientes").delete().not("cnpj", "like", "9000000%");
   } catch {
     // Supabase local fora do ar: os testes de integração falham sozinhos, com mensagem própria.
