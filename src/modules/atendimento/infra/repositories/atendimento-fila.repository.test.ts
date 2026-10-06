@@ -17,7 +17,15 @@ const repositorio = new SupabaseAtendimentoRepository(admin);
 // Setor só desta suíte: a Fila é do Setor inteiro, então nenhuma outra suíte pode usá-lo.
 const SETOR = "societario" as const;
 const ATOR = (id: string) => ({ id, setor: SETOR });
-const TELEFONES = ["61955570001", "61955570002", "61955570003", "61955570004", "61955570005"];
+const TELEFONES = [
+  "61955570001",
+  "61955570002",
+  "61955570003",
+  "61955570004",
+  "61955570005",
+  "61955570006",
+  "61955570007",
+];
 const clienteId = crypto.randomUUID();
 const CNPJ = `7${Date.now()}`.slice(0, 14);
 const usuarios: string[] = [];
@@ -115,11 +123,21 @@ describe("SupabaseAtendimentoRepository — Fila", () => {
     expect(fila.ok && fila.value[0].filaDesde).toBeInstanceOf(Date);
   });
 
-  it("ocupado ou com a Fila vazia, liberar não atribui nada", async () => {
-    expect(await repositorio.liberarFuncionario(dono, SETOR)).toEqual({ ok: true, value: null });
-    const livre = await criarFuncionario("Livre Fila 47");
-    const vazia = await repositorio.liberarFuncionario(livre, "contabil");
-    expect(vazia).toEqual({ ok: true, value: null });
+  it("com a Fila vazia, encerrar não atribui nada a ninguém", async () => {
+    const livre = await criarFuncionario("Livre Fila 47", "rh");
+    const r = await repositorio.abrir({
+      telefone: TELEFONES[5],
+      chave: TELEFONES[5],
+      clienteId: null,
+      setor: "rh",
+      funcionarioId: livre,
+      mensagens: [{ autor: "contato", texto: "oi" }],
+    });
+    if (!r.ok || r.value.status !== "aberto") throw new Error("abertura falhou");
+    expect(await repositorio.encerrar(r.value.id, livre, { id: livre, setor: "rh" })).toEqual({
+      ok: true,
+      value: { status: "encerrado", proximo: null },
+    });
   });
 
   it("ao encerrar, o Funcionário assume o cliente mais antigo da Fila e isso soma ao mês dele", async () => {
@@ -134,7 +152,15 @@ describe("SupabaseAtendimentoRepository — Fila", () => {
       .single();
     expect(await repositorio.encerrar(emAndamento.data!.id, dono, ATOR(dono))).toEqual({
       ok: true,
-      value: true,
+      value: {
+        status: "encerrado",
+        proximo: {
+          id: primeiro,
+          telefone: TELEFONES[1],
+          chave: TELEFONES[1],
+          funcionarioNome: "Dono Fila 47",
+        },
+      },
     });
     const auditoria = await admin
       .from("registros_auditoria")
@@ -146,18 +172,7 @@ describe("SupabaseAtendimentoRepository — Fila", () => {
     // Já encerrado: o dono informado não bate mais com nada em andamento.
     expect(await repositorio.encerrar(emAndamento.data!.id, dono, ATOR(dono))).toEqual({
       ok: true,
-      value: false,
-    });
-
-    const assumido = await repositorio.liberarFuncionario(dono, SETOR);
-    expect(assumido).toEqual({
-      ok: true,
-      value: {
-        id: primeiro,
-        telefone: TELEFONES[1],
-        chave: TELEFONES[1],
-        funcionarioNome: "Dono Fila 47",
-      },
+      value: { status: "inexistente" },
     });
 
     const depois = await repositorio.funcionariosDoSetor(SETOR);
@@ -201,11 +216,30 @@ describe("SupabaseAtendimentoRepository — Fila", () => {
       .eq("funcionario_id", alvo)
       .eq("status", "em_andamento")
       .single();
-    await repositorio.encerrar(emAndamento.data!.id, alvo, ATOR(alvo));
-    const assumido = await repositorio.liberarFuncionario(alvo, SETOR);
+    const encerrado = await repositorio.encerrar(emAndamento.data!.id, alvo, ATOR(alvo));
     // O da Fila de `alvo` (desde 2020) é mais antigo que o `segundo` do Setor; o de `outro` fica.
-    expect(assumido.ok && assumido.value?.id).toBe(terceiro);
+    expect(
+      encerrado.ok && encerrado.value.status === "encerrado" && encerrado.value.proximo?.id,
+    ).toBe(terceiro);
     const fila = await repositorio.filaDoSetor(SETOR);
     expect(fila.ok && fila.value.map((i) => i.id)).toEqual([segundo, atendimentoOutro]);
+  });
+
+  it("ao transferir, a origem liberada assume o mais antigo da Fila do Setor onde estava", async () => {
+    const origem = await criarFuncionario("Origem Transfere 47");
+    const atendimentoId = await abrir(TELEFONES[6], origem);
+    const r = await repositorio.transferir({
+      atendimentoId,
+      origemFuncionarioId: origem,
+      setorOrigem: SETOR,
+      setorDestino: "rh",
+      funcionarioDestinoId: null,
+      enfileirarSeOcupado: false,
+      resumo: "Folha",
+      ator: ATOR(origem),
+    });
+    expect(r.ok && r.value.status === "transferido" && r.value.proximoDaOrigem?.id).toBe(segundo);
+    // O transferido espera na Fila do Setor de destino, que passa a contar desde agora.
+    expect(await repositorio.posicaoNaFila(atendimentoId)).toEqual({ ok: true, value: 1 });
   });
 });

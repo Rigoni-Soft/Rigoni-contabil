@@ -47,12 +47,19 @@ export type ResultadoTransferencia =
   | {
       status: "transferido";
       naFila: boolean;
+      // O Funcionário de origem ficou livre e assumiu o próximo da Fila do Setor dele.
+      proximoDaOrigem: AtendimentoAssumido | null;
       destinatarioNome: string | null;
       origemNome: string | null;
       contato: DadosDoContato;
     }
   | { status: "conflito" }
   | { status: "inexistente" };
+
+// "inexistente": não está em andamento com esse dono. "encerrado": `proximo` é o Atendimento que o
+// Funcionário liberado assumiu da Fila.
+export type ResultadoEncerramento =
+  { status: "encerrado"; proximo: AtendimentoAssumido | null } | { status: "inexistente" };
 
 // Regime e Responsável do Cliente, para decidir a Transferência ao Simples Nacional.
 export type RoteamentoDoCliente = { regime: RegimeValor; responsavelId: string | null };
@@ -61,6 +68,8 @@ export type RoteamentoDoCliente = { regime: RegimeValor; responsavelId: string |
 // fixo ocupado). `filaDesde` ordena a saída (mais antigo primeiro).
 export type ItemDaFila = {
   id: string;
+  // 1 = próximo da Fila em que está (a do Setor ou a de um usuário).
+  posicao: number;
   filaFuncionarioId: string | null;
   filaDesde: Date;
   telefone: string;
@@ -68,7 +77,7 @@ export type ItemDaFila = {
   resumo: string | null;
 };
 
-// O Atendimento que o Funcionário liberado assumiu da Fila.
+// O Atendimento que um Funcionário liberado assumiu da Fila.
 export type AtendimentoAssumido = {
   id: string;
   telefone: string;
@@ -90,15 +99,11 @@ export interface AtendimentoRepositoryPort {
   // 1 = próximo da Fila em que está; null se não está em Fila.
   posicaoNaFila(atendimentoId: string): Promise<Result<number | null, AppError>>;
   filaDoSetor(setor: SetorSlug): Promise<Result<ItemDaFila[], AppError>>;
-  // false = não está em andamento com esse dono (`funcionarioId` null = Atendimento da Fila).
+  // `funcionarioId` null = Atendimento da Fila. Libera o Funcionário pro mais antigo da Fila dele,
+  // na mesma operação (nada fura a Fila entre uma coisa e outra).
   encerrar(
     atendimentoId: string,
     funcionarioId: string | null,
     ator: { id: string; setor: SetorSlug },
-  ): Promise<Result<boolean, AppError>>;
-  // Funcionário livre assume o mais antigo da Fila (do Setor ou a sua); null = ocupado ou Fila vazia.
-  liberarFuncionario(
-    funcionarioId: string,
-    setor: SetorSlug,
-  ): Promise<Result<AtendimentoAssumido | null, AppError>>;
+  ): Promise<Result<ResultadoEncerramento, AppError>>;
 }

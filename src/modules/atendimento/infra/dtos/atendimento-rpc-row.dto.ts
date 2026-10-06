@@ -8,10 +8,19 @@ export const aberturaRowSchema = z.string().nullable();
 // `anexar_mensagem_atendimento`: true se havia Atendimento em andamento.
 export const anexoRowSchema = z.boolean();
 
+// Atendimento que um Funcionário liberado assumiu da Fila (`assumir_proximo_da_fila`).
+const assumidoRowSchema = z.object({
+  id: z.string(),
+  telefone: z.string(),
+  chave: z.string(),
+  funcionario_nome: z.string().nullable(),
+});
+
 // `transferir_atendimento`: `status` e, quando transferido, os nomes/dados do destino.
 export const transferenciaRowSchema = z.discriminatedUnion("status", [
   z.object({
     status: z.literal("transferido"),
+    proximo_da_origem: assumidoRowSchema.nullable(),
     na_fila: z.boolean(),
     destinatario_nome: z.string().nullable(),
     origem_nome: z.string().nullable(),
@@ -43,11 +52,15 @@ export const liderRowSchema = z.object({ id: z.string() });
 
 // `posicao_na_fila`: null se o Atendimento não está em Fila.
 export const posicaoRowSchema = z.number().int().nullable();
-// `encerrar_atendimento`: true se estava em andamento com o dono informado.
-export const encerramentoRowSchema = z.boolean();
+// `encerrar_atendimento`: `inexistente` se não estava em andamento com o dono informado.
+export const encerramentoRowSchema = z.discriminatedUnion("status", [
+  z.object({ status: z.literal("encerrado"), proximo: assumidoRowSchema.nullable() }),
+  z.object({ status: z.literal("inexistente") }),
+]);
 
 export const filaRowSchema = z.object({
   id: z.string(),
+  posicao: z.number().int(),
   fila_funcionario_id: z.string().nullable(),
   fila_desde: z.string(),
   telefone: z.string(),
@@ -56,13 +69,3 @@ export const filaRowSchema = z.object({
   cnpj: z.string().nullable(),
   resumo: z.string().nullable(),
 });
-
-// `liberar_funcionario`: o Atendimento assumido, ou null.
-export const liberacaoRowSchema = z
-  .object({
-    id: z.string(),
-    telefone: z.string(),
-    chave: z.string(),
-    funcionario_nome: z.string().nullable(),
-  })
-  .nullable();

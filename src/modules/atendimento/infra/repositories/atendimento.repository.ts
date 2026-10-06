@@ -12,6 +12,7 @@ import type {
   NovaTransferencia,
   NovoAtendimento,
   ResultadoAbertura,
+  ResultadoEncerramento,
   ResultadoTransferencia,
   RoteamentoDoCliente,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
@@ -21,7 +22,6 @@ import {
   atendimentoEmAndamentoRowSchema,
   encerramentoRowSchema,
   filaRowSchema,
-  liberacaoRowSchema,
   liderRowSchema,
   posicaoRowSchema,
   roteamentoDoClienteRowSchema,
@@ -150,6 +150,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     return ok({
       status: "transferido",
       naFila: linha.na_fila,
+      proximoDaOrigem: assumido(linha.proximo_da_origem),
       destinatarioNome: linha.destinatario_nome,
       origemNome: linha.origem_nome,
       contato: { contatoNome: linha.contato_nome, empresa: linha.empresa, cnpj: linha.cnpj },
@@ -174,6 +175,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
         .parse(data)
         .map((linha) => ({
           id: linha.id,
+          posicao: linha.posicao,
           filaFuncionarioId: linha.fila_funcionario_id,
           filaDesde: new Date(linha.fila_desde),
           telefone: linha.telefone,
@@ -187,7 +189,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     atendimentoId: string,
     funcionarioId: string | null,
     ator: { id: string; setor: SetorSlug },
-  ): Promise<Result<boolean, AppError>> {
+  ): Promise<Result<ResultadoEncerramento, AppError>> {
     const { data, error } = await this.supabaseAdmin.rpc("encerrar_atendimento", {
       p_atendimento_id: atendimentoId,
       p_funcionario_id: funcionarioId,
@@ -195,25 +197,26 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       p_ator_setor: ator.setor,
     });
     if (error) return err(new ServicoExternoError("Falha ao encerrar o Atendimento."));
-    return ok(encerramentoRowSchema.parse(data));
+    const linha = encerramentoRowSchema.parse(data);
+    if (linha.status === "inexistente") return ok(linha);
+    return ok({ status: "encerrado", proximo: assumido(linha.proximo) });
   }
+}
 
-  async liberarFuncionario(
-    funcionarioId: string,
-    setor: SetorSlug,
-  ): Promise<Result<AtendimentoAssumido | null, AppError>> {
-    const { data, error } = await this.supabaseAdmin.rpc("liberar_funcionario", {
-      p_funcionario_id: funcionarioId,
-      p_setor: setor,
-    });
-    if (error) return err(new ServicoExternoError("Falha ao atribuir o próximo da Fila."));
-    const linha = liberacaoRowSchema.parse(data);
-    if (!linha) return ok(null);
-    return ok({
-      id: linha.id,
-      telefone: linha.telefone,
-      chave: linha.chave,
-      funcionarioNome: linha.funcionario_nome,
-    });
-  }
+type LinhaAssumida = {
+  id: string;
+  telefone: string;
+  chave: string;
+  funcionario_nome: string | null;
+} | null;
+
+function assumido(linha: LinhaAssumida): AtendimentoAssumido | null {
+  return linha
+    ? {
+        id: linha.id,
+        telefone: linha.telefone,
+        chave: linha.chave,
+        funcionarioNome: linha.funcionario_nome,
+      }
+    : null;
 }

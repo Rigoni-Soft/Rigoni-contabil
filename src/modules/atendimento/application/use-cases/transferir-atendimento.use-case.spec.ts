@@ -9,7 +9,6 @@ import type {
 import type { RegistrarAcaoAuditoria } from "@/modules/atendimento/application/ports/out/auditoria.provider";
 import type { MensagemEnviada } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type { AtorSessaoDto } from "@/modules/atendimento/application/ports/out/sessao.provider";
-import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok } from "@/shared/kernel/result";
 
@@ -26,6 +25,7 @@ const ATENDIMENTO: AtendimentoEmAndamento = {
 const TRANSFERIDO = {
   status: "transferido" as const,
   naFila: false,
+  proximoDaOrigem: null,
   destinatarioNome: "Ana",
   origemNome: "Beto",
   contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
@@ -42,8 +42,9 @@ function montar(
     roteamento?: RoteamentoDoCliente | null;
     lider?: string | null;
     envioFalha?: boolean;
+    // Índices (0 = aviso ao transferido, 1 = aviso ao cliente da Fila da origem) que falham.
+    avisoFalha?: number[];
     posicao?: number | null;
-    promocaoFalha?: boolean;
   } = {},
 ) {
   const ator =
@@ -55,7 +56,7 @@ function montar(
   const anexadas: string[] = [];
   const enviadas: MensagemEnviada[] = [];
   const auditadas: RegistrarAcaoAuditoria[] = [];
-  const promovidos: { funcionarioId: string; setor: string }[] = [];
+  let chamadas = 0;
   const repo = {
     posicaoNaFila: async () => ok(opcoes.posicao === undefined ? null : opcoes.posicao),
     buscarEmAndamento: async () =>
@@ -73,38 +74,28 @@ function montar(
       transferencias.push(t);
       return ok(resultados.shift() ?? TRANSFERIDO);
     },
-    anexarMensagem: async (_chave: string, m: { texto: string }) => {
-      anexadas.push(m.texto);
-      return ok({ anexada: true });
-    },
   } as unknown as AtendimentoRepositoryPort;
   const caso = new TransferirAtendimento(
     { usuarioAtual: async () => ator },
     repo,
-    {
-      enviar: async (m) => {
-        if (opcoes.envioFalha) return err(new ServicoExternoError("meta"));
-        enviadas.push(m);
-        return ok(undefined);
-      },
-      enviarDocumento: async () => ok(undefined),
-    },
     {
       registrar: async (a) => {
         auditadas.push(a);
       },
     },
     {
-      execute: async (p) => {
-        promovidos.push(p);
-        if (opcoes.promocaoFalha) {
-          return err(new EstadoInconsistenteError("aviso da fila falhou", "at-2"));
+      execute: async ({ telefone, texto }) => {
+        const indice = chamadas++;
+        if (opcoes.envioFalha || opcoes.avisoFalha?.includes(indice)) {
+          return err(new ServicoExternoError("meta"));
         }
-        return ok(null);
+        enviadas.push({ telefone, texto });
+        anexadas.push(texto);
+        return ok(undefined);
       },
     },
   );
-  return { caso, transferencias, anexadas, enviadas, auditadas, promovidos };
+  return { caso, transferencias, anexadas, enviadas, auditadas };
 }
 
 describe("TransferirAtendimento", () => {
@@ -172,30 +163,39 @@ describe("TransferirAtendimento", () => {
   });
 
   describe("Fila do Funcionário de origem", () => {
-    it("a origem liberada puxa o mais antigo da Fila do Setor onde estava", async () => {
-      const { caso, promovidos } = montar();
-      await caso.execute(INPUT);
-      expect(promovidos).toEqual([{ funcionarioId: "func-origem", setor: "recepcao" }]);
-    });
+    const PROXIMO = {
+      id: "at-2",
+      telefone: "5561977776666",
+      chave: "61977776666",
+      funcionarioNome: "Beto",
+    };
+    const COM_PROXIMO = [{ ...TRANSFERIDO, proximoDaOrigem: PROXIMO }];
 
-    it("Atendimento da Fila (sem dono) não libera ninguém", async () => {
-      const { caso, promovidos } = montar({
-        ator: { id: "lider", papel: "lider_setor", setor: "recepcao" },
-        atendimento: { ...ATENDIMENTO, funcionarioId: null },
+    it("o cliente da Fila que a origem liberada assumiu é avisado de quem vai atendê-lo", async () => {
+      const { caso, enviadas } = montar({ resultados: COM_PROXIMO });
+      expect((await caso.execute(INPUT)).ok).toBe(true);
+      expect(enviadas[1]).toEqual({
+        telefone: "5561977776666",
+        texto: "Chegou a sua vez! Beto vai te atender agora.",
       });
-      await caso.execute(INPUT);
-      expect(promovidos).toEqual([]);
     });
 
-    it("libera a origem mesmo se o aviso ao cliente falhou", async () => {
-      const { caso, promovidos } = montar({ envioFalha: true });
+    it("sem ninguém na Fila da origem só o transferido é avisado", async () => {
+      const { caso, enviadas } = montar();
+      await caso.execute(INPUT);
+      expect(enviadas).toHaveLength(1);
+    });
+
+    it("o cliente da Fila é avisado mesmo se o aviso ao transferido falhou", async () => {
+      const { caso, enviadas } = montar({ resultados: COM_PROXIMO, avisoFalha: [0] });
       const r = await caso.execute(INPUT);
       expect(!r.ok && r.error.code).toBe("INCONSISTENT_STATE");
-      expect(promovidos).toHaveLength(1);
+      expect(enviadas).toHaveLength(1);
+      expect(enviadas[0].telefone).toBe("5561977776666");
     });
 
     it("falha ao avisar o cliente da Fila da origem devolve o erro, já transferido", async () => {
-      const { caso, transferencias } = montar({ promocaoFalha: true });
+      const { caso, transferencias } = montar({ resultados: COM_PROXIMO, avisoFalha: [1] });
       const r = await caso.execute(INPUT);
       expect(!r.ok && r.error.code).toBe("INCONSISTENT_STATE");
       expect(transferencias).toHaveLength(1);

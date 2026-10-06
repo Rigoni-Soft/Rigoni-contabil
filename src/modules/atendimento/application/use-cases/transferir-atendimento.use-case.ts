@@ -1,4 +1,4 @@
-import type { PromoverDaFilaPort } from "@/modules/atendimento/application/ports/in/promover-da-fila.provider";
+import type { AvisarClientePort } from "@/modules/atendimento/application/ports/in/avisar-cliente.provider";
 import type {
   TransferenciaConcluida,
   TransferirAtendimentoInput,
@@ -11,11 +11,11 @@ import type {
   ResultadoTransferencia,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { AuditoriaPort } from "@/modules/atendimento/application/ports/out/auditoria.provider";
-import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type {
   AtorSessaoDto,
   SessaoPort,
 } from "@/modules/atendimento/application/ports/out/sessao.provider";
+import { avisoDeVez } from "@/modules/atendimento/domain/services/aviso-fila.service";
 import {
   menosCarregado,
   TENTATIVAS_DE_ATRIBUICAO,
@@ -59,15 +59,14 @@ function avisoAoCliente(
 
 // Setores que recebem já são só os cliente-facing (SETORES exclui Patriki, Expedição e T.I.),
 // então o tipo do destino basta. O Funcionário de destino sai do Balanceamento mensal; sem
-// ninguém livre o Atendimento entra na Fila. O Funcionário de origem fica livre: o cliente mais
-// antigo da Fila dele assume o lugar.
+// ninguém livre o Atendimento entra na Fila. O Funcionário de origem fica livre: o repositório já o
+// põe no cliente mais antigo da Fila dele (na mesma operação) e aqui esse cliente é avisado.
 export class TransferirAtendimento implements TransferirAtendimentoPort {
   constructor(
     private readonly sessao: SessaoPort,
     private readonly repositorio: AtendimentoRepositoryPort,
-    private readonly envio: EnvioMensagemPort,
     private readonly auditoria: AuditoriaPort,
-    private readonly fila: PromoverDaFilaPort,
+    private readonly avisar: AvisarClientePort,
   ) {}
 
   async execute(
@@ -100,18 +99,22 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
 
     // Transferido: falhar daqui em diante não desfaz nada; o erro diz que o Atendimento já está
     // com o destino e o cliente não foi avisado.
-    const { destinatarioNome, naFila, origemNome, contato } = gravada.value;
+    const { destinatarioNome, naFila, origemNome, contato, proximoDaOrigem } = gravada.value;
     const posicao =
       destinatarioNome === null || naFila ? await this.posicaoNaFila(input.atendimentoId) : null;
-    const aviso = await this.avisarCliente(
-      atendimento.value,
-      avisoAoCliente(input.setorDestino, destinatarioNome, naFila, posicao),
-    );
-    // A origem foi liberada mesmo se o aviso falhou: a Fila dela não pode esperar por isso.
-    const origemId = atendimento.value.funcionarioId;
-    const promovido = origemId
-      ? await this.fila.execute({ funcionarioId: origemId, setor: atendimento.value.setor })
-      : ok(null);
+    const aviso = await this.avisar.execute({
+      telefone: atendimento.value.telefone,
+      chave: atendimento.value.chave,
+      texto: avisoAoCliente(input.setorDestino, destinatarioNome, naFila, posicao),
+    });
+    // O cliente da Fila da origem é avisado mesmo se o aviso do transferido falhou.
+    const avisoDaOrigem = proximoDaOrigem
+      ? await this.avisar.execute({
+          telefone: proximoDaOrigem.telefone,
+          chave: proximoDaOrigem.chave,
+          texto: avisoDeVez(proximoDaOrigem.funcionarioNome),
+        })
+      : ok(undefined);
     if (!aviso.ok) {
       await this.auditarFalha(ator, input.atendimentoId);
       return err(
@@ -121,7 +124,14 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
         ),
       );
     }
-    if (!promovido.ok) return promovido;
+    if (!avisoDaOrigem.ok) {
+      return err(
+        new EstadoInconsistenteError(
+          "Atendimento da Fila assumido, mas o aviso ao cliente falhou.",
+          proximoDaOrigem?.id ?? input.atendimentoId,
+        ),
+      );
+    }
     return ok({
       destinatarioNome,
       naFila,
@@ -256,27 +266,5 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
       alvo: atendimentoId,
       resultado: "falha",
     });
-  }
-
-  private async avisarCliente(
-    atendimento: AtendimentoEmAndamento,
-    texto: string,
-  ): Promise<Result<void, AppError>> {
-    // Só vira Mensagem do Atendimento o que o cliente de fato recebeu.
-    const enviada = await this.enviarAviso(atendimento.telefone, texto);
-    if (!enviada.ok) return enviada;
-    const registrada = await this.repositorio.anexarMensagem(atendimento.chave, {
-      autor: "ura",
-      texto,
-    });
-    return registrada.ok ? ok(undefined) : registrada;
-  }
-
-  private async enviarAviso(telefone: string, texto: string): Promise<Result<void, AppError>> {
-    try {
-      return await this.envio.enviar({ telefone, texto });
-    } catch {
-      return err(new ServicoExternoError("Falha ao enviar a mensagem."));
-    }
   }
 }

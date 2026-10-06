@@ -13,6 +13,7 @@ const CONTATO = { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777
 const ITENS: ItemDaFila[] = [
   {
     id: "at-1",
+    posicao: 1,
     filaFuncionarioId: null,
     filaDesde: new Date("2026-10-06T13:54:53Z"),
     telefone: "5561988887777",
@@ -21,6 +22,7 @@ const ITENS: ItemDaFila[] = [
   },
   {
     id: "at-2",
+    posicao: 1,
     filaFuncionarioId: "func-1",
     filaDesde: new Date("2026-10-06T14:58:30Z"),
     telefone: "5561977776666",
@@ -37,18 +39,14 @@ function montar(ator: AtorSessaoDto | null, fila: ItemDaFila[] | "falha" = ITENS
       return fila === "falha" ? err(new ServicoExternoError("banco")) : ok(fila);
     },
   } as unknown as AtendimentoRepositoryPort;
-  return { consultados, caso: new ListarFila({ usuarioAtual: async () => ator }, repo) };
+  const relogio = { agora: () => AGORA };
+  return { consultados, caso: new ListarFila({ usuarioAtual: async () => ator }, repo, relogio) };
 }
 
 const FUNCIONARIO = { id: "func-1", papel: "funcionario" as const, setor: "contabil" as const };
 
 describe("ListarFila", () => {
-  beforeEach(() => {
-    jest.useFakeTimers().setSystemTime(AGORA);
-  });
-  afterEach(() => jest.useRealTimers());
-
-  it("lista do mais antigo ao mais novo, com o que já foi coletado e a espera", async () => {
+  it("lista do mais antigo ao mais novo, com a posição em cada Fila, o que já foi coletado e a espera", async () => {
     const { caso } = montar(FUNCIONARIO);
     const r = await caso.execute({ setor: "contabil" });
     expect(r).toEqual({
@@ -66,7 +64,7 @@ describe("ListarFila", () => {
         },
         expect.objectContaining({
           atendimentoId: "at-2",
-          posicao: 2,
+          posicao: 1,
           espera: "01:30",
           filaDoFuncionarioId: "func-1",
         }),

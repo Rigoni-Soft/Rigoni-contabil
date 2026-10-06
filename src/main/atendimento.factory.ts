@@ -12,9 +12,9 @@ import { makeRegistrarAcao } from "@/main/auditoria.factory";
 import { exigirSegredosReais } from "@/main/segredos-mensageria.factory";
 import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
+import type { AvisarClientePort } from "@/modules/atendimento/application/ports/in/avisar-cliente.provider";
 import type { EncerrarAtendimentoPort } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
 import type { ListarFilaPort } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
-import type { PromoverDaFilaPort } from "@/modules/atendimento/application/ports/in/promover-da-fila.provider";
 import type { ReceberMensagemPort } from "@/modules/atendimento/application/ports/in/receber-mensagem.provider";
 import type { TransferirAtendimentoPort } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
 import type { AuditoriaPort } from "@/modules/atendimento/application/ports/out/auditoria.provider";
@@ -26,9 +26,9 @@ import type {
 } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { AbrirAtendimento } from "@/modules/atendimento/application/use-cases/abrir-atendimento.use-case";
 import { AnexarMensagemAtendimento } from "@/modules/atendimento/application/use-cases/anexar-mensagem-atendimento.use-case";
+import { AvisarCliente } from "@/modules/atendimento/application/use-cases/avisar-cliente.use-case";
 import { EncerrarAtendimento } from "@/modules/atendimento/application/use-cases/encerrar-atendimento.use-case";
 import { ListarFila } from "@/modules/atendimento/application/use-cases/listar-fila.use-case";
-import { PromoverDaFila } from "@/modules/atendimento/application/use-cases/promover-da-fila.use-case";
 import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/receber-mensagem.use-case";
 import { TransferirAtendimento } from "@/modules/atendimento/application/use-cases/transferir-atendimento.use-case";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
@@ -122,8 +122,8 @@ function auditoriaViaModuloAuditoria(): AuditoriaPort {
   };
 }
 
-function makePromoverDaFila(repositorio: SupabaseAtendimentoRepository): PromoverDaFilaPort {
-  return new PromoverDaFila(repositorio, makeEnvioMensagem());
+function makeAvisarCliente(repositorio: SupabaseAtendimentoRepository): AvisarClientePort {
+  return new AvisarCliente(makeEnvioMensagem(), repositorio);
 }
 
 export async function makeTransferirAtendimento(): Promise<TransferirAtendimentoPort> {
@@ -131,9 +131,8 @@ export async function makeTransferirAtendimento(): Promise<TransferirAtendimento
   return new TransferirAtendimento(
     sessaoViaUsuarios(await createSupabaseServer()),
     repositorio,
-    makeEnvioMensagem(),
     auditoriaViaModuloAuditoria(),
-    makePromoverDaFila(repositorio),
+    makeAvisarCliente(repositorio),
   );
 }
 
@@ -142,7 +141,7 @@ export async function makeEncerrarAtendimento(): Promise<EncerrarAtendimentoPort
   return new EncerrarAtendimento(
     sessaoViaUsuarios(await createSupabaseServer()),
     repositorio,
-    makePromoverDaFila(repositorio),
+    makeAvisarCliente(repositorio),
   );
 }
 
@@ -150,5 +149,6 @@ export async function makeListarFila(): Promise<ListarFilaPort> {
   return new ListarFila(
     sessaoViaUsuarios(await createSupabaseServer()),
     new SupabaseAtendimentoRepository(createSupabaseAdmin()),
+    { agora: () => new Date() },
   );
 }

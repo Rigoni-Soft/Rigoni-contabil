@@ -48,7 +48,57 @@ begin
 end;
 $$;
 
--- Igual à do #45, mas o Atendimento que vai pra Fila ganha `fila_desde` (e o que sai dela, não).
+-- Funcionário livre assume o Atendimento mais antigo da Fila do Setor ou da sua própria Fila,
+-- ignorando o Balanceamento; `assumido_em` conta pro Balanceamento mensal dele. QUEM CHAMA já
+-- segura o lock do Setor (é o que impede uma atribuição concorrente de furar a Fila) e libera o
+-- Funcionário na mesma transação. Devolve o Atendimento assumido, ou null (ocupado ou Fila vazia).
+create function public.assumir_proximo_da_fila(p_funcionario_id uuid, p_setor public.setor_slug)
+returns jsonb
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  v_id uuid;
+  v_telefone text;
+  v_chave text;
+begin
+  if exists (
+    select 1 from public.atendimentos
+    where funcionario_id = p_funcionario_id and status = 'em_andamento'
+  ) then
+    return null;
+  end if;
+
+  select a.id, a.telefone, a.chave_telefone into v_id, v_telefone, v_chave
+  from public.atendimentos a
+  where a.setor = p_setor and a.status = 'em_andamento' and a.funcionario_id is null
+    and (a.fila_funcionario_id is null or a.fila_funcionario_id = p_funcionario_id)
+  order by a.fila_desde, a.id
+  limit 1
+  for update;
+  if v_id is null then
+    return null;
+  end if;
+
+  update public.atendimentos
+  set funcionario_id = p_funcionario_id, fila_funcionario_id = null,
+      fila_desde = null, assumido_em = now()
+  where id = v_id;
+
+  return jsonb_build_object(
+    'id', v_id, 'telefone', v_telefone, 'chave', v_chave,
+    'funcionario_nome', (select nome from public.perfis where id = p_funcionario_id)
+  );
+end;
+$$;
+revoke all on function public.assumir_proximo_da_fila(uuid, public.setor_slug)
+  from public, anon, authenticated;
+
+-- Igual à do #45, mas: o Atendimento que vai pra Fila ganha `fila_desde` (e o que sai dela, não);
+-- e o Funcionário de origem, agora livre, assume o próximo da Fila do Setor onde estava, na mesma
+-- transação (`proximo_da_origem`). Trava os dois Setores, sempre na mesma ordem (nome), pra duas
+-- Transferências em sentidos opostos não ficarem uma esperando a outra.
 create or replace function public.transferir_atendimento(
   p_atendimento_id uuid,
   p_origem_funcionario_id uuid,
@@ -70,8 +120,14 @@ declare
   v_empresa text;
   v_cnpj text;
   v_na_fila boolean := false;
+  v_proximo jsonb;
 begin
-  perform pg_advisory_xact_lock(hashtext('atendimento:' || p_setor_destino::text));
+  perform pg_advisory_xact_lock(
+    hashtext('atendimento:' || least(p_setor_destino::text, p_setor_origem::text)));
+  if p_setor_origem <> p_setor_destino then
+    perform pg_advisory_xact_lock(
+      hashtext('atendimento:' || greatest(p_setor_destino::text, p_setor_origem::text)));
+  end if;
 
   select * into v_atendimento from public.atendimentos
   where id = p_atendimento_id and status = 'em_andamento'
@@ -130,8 +186,13 @@ begin
     limit 1;
   end if;
 
+  if p_origem_funcionario_id is not null then
+    v_proximo := public.assumir_proximo_da_fila(p_origem_funcionario_id, p_setor_origem);
+  end if;
+
   return jsonb_build_object(
     'status', 'transferido',
+    'proximo_da_origem', v_proximo,
     'na_fila', v_na_fila,
     'destinatario_nome', (select nome from public.perfis where id = p_funcionario_destino_id),
     'origem_nome', (select nome from public.perfis where id = p_origem_funcionario_id),
@@ -142,9 +203,10 @@ begin
 end;
 $$;
 
--- Posição (1 = próximo) do Atendimento na Fila em que está: a do Setor ou a do usuário. null se não
--- está em Fila. ponytail: a Fila de um usuário e a do Setor concorrem pelo mesmo Funcionário ao
--- liberar (`liberar_funcionario`); aqui cada Fila conta só os seus, então a posição é um mínimo.
+-- Posição (1 = próximo) do Atendimento na Fila em que está: a do Setor ou a do usuário (a mesma
+-- numeração de `fila_do_setor`). null se não está em Fila. ponytail: a Fila de um usuário e a do
+-- Setor concorrem pelo mesmo Funcionário ao liberar (`assumir_proximo_da_fila`); cada Fila conta
+-- só os seus, então a posição é um mínimo.
 create function public.posicao_na_fila(p_atendimento_id uuid) returns integer
 language sql
 stable
@@ -161,11 +223,12 @@ as $$
 $$;
 revoke all on function public.posicao_na_fila(uuid) from public, anon, authenticated;
 
--- A Fila do Setor (a do Setor e as de usuários), do mais antigo ao mais novo, com o que já se sabe
--- do Contato e o resumo da última Transferência.
+-- A Fila do Setor (a do Setor e as de usuários), do mais antigo ao mais novo, com a posição em
+-- cada Fila, o que já se sabe do Contato e o resumo da última Transferência.
 create function public.fila_do_setor(p_setor public.setor_slug)
 returns table (
   id uuid,
+  posicao integer,
   fila_funcionario_id uuid,
   fila_desde timestamptz,
   telefone text,
@@ -180,7 +243,9 @@ security invoker
 set search_path = public
 as $$
   select
-    a.id, a.fila_funcionario_id, a.fila_desde, a.telefone,
+    a.id,
+    (row_number() over (partition by a.fila_funcionario_id order by a.fila_desde, a.id))::integer,
+    a.fila_funcionario_id, a.fila_desde, a.telefone,
     (select ct.nome from public.cliente_contatos ct
       where ct.cliente_id = a.cliente_id
         and regexp_replace(ct.telefone, '\D', '', 'g') = a.chave_telefone
@@ -195,80 +260,49 @@ as $$
 $$;
 revoke all on function public.fila_do_setor(public.setor_slug) from public, anon, authenticated;
 
--- Encerra o Atendimento do Funcionário (null = um da Fila) e grava a auditoria de sucesso na mesma
--- transação (mesmo contrato de `transferir_atendimento` para o ator). false = não está em andamento
--- com esse dono.
+-- Encerra o Atendimento do Funcionário (null = um da Fila), grava a auditoria de sucesso e, se havia
+-- Funcionário, libera ele pro próximo da Fila: tudo numa transação, sob o lock do Setor (mesmo
+-- contrato de ator de `transferir_atendimento`). Devolve jsonb com `status`:
+--  - 'inexistente': não está em andamento com esse dono (ou o Setor mudou no meio);
+--  - 'encerrado': com `proximo`, o Atendimento que o Funcionário assumiu (ou null).
 create function public.encerrar_atendimento(
   p_atendimento_id uuid,
   p_funcionario_id uuid,
   p_ator uuid,
   p_ator_setor public.setor_slug
-) returns boolean
-language plpgsql
-security invoker
-set search_path = public
-as $$
-begin
-  update public.atendimentos set status = 'encerrado'
-  where id = p_atendimento_id and status = 'em_andamento'
-    and funcionario_id is not distinct from p_funcionario_id;
-  if not found then
-    return false;
-  end if;
-  insert into public.registros_auditoria (id, ator, setor, acao, alvo, resultado)
-  values (
-    gen_random_uuid(), p_ator, p_ator_setor, 'atendimento.encerrar',
-    p_atendimento_id::text, 'sucesso'
-  );
-  return true;
-end;
-$$;
-revoke all on function public.encerrar_atendimento(uuid, uuid, uuid, public.setor_slug)
-  from public, anon, authenticated;
-
--- Funcionário livre assume o Atendimento mais antigo da Fila do Setor ou da sua própria Fila,
--- ignorando o Balanceamento. `assumido_em` conta pro Balanceamento mensal dele. Mesmo lock por
--- Setor das atribuições. Devolve o Atendimento assumido, ou null (já ocupado ou Fila vazia).
-create function public.liberar_funcionario(p_funcionario_id uuid, p_setor public.setor_slug)
-returns jsonb
+) returns jsonb
 language plpgsql
 security invoker
 set search_path = public
 as $$
 declare
-  v_id uuid;
-  v_telefone text;
-  v_chave text;
+  v_setor public.setor_slug;
+  v_proximo jsonb;
 begin
-  perform pg_advisory_xact_lock(hashtext('atendimento:' || p_setor::text));
-  if exists (
-    select 1 from public.atendimentos
-    where funcionario_id = p_funcionario_id and status = 'em_andamento'
-  ) then
-    return null;
+  select setor into v_setor from public.atendimentos where id = p_atendimento_id;
+  if v_setor is null then
+    return jsonb_build_object('status', 'inexistente');
+  end if;
+  perform pg_advisory_xact_lock(hashtext('atendimento:' || v_setor::text));
+
+  update public.atendimentos set status = 'encerrado'
+  where id = p_atendimento_id and status = 'em_andamento' and setor = v_setor
+    and funcionario_id is not distinct from p_funcionario_id;
+  if not found then
+    return jsonb_build_object('status', 'inexistente');
   end if;
 
-  select a.id, a.telefone, a.chave_telefone into v_id, v_telefone, v_chave
-  from public.atendimentos a
-  where a.setor = p_setor and a.status = 'em_andamento' and a.funcionario_id is null
-    and (a.fila_funcionario_id is null or a.fila_funcionario_id = p_funcionario_id)
-  order by a.fila_desde, a.id
-  limit 1
-  for update;
-  if v_id is null then
-    return null;
-  end if;
-
-  update public.atendimentos
-  set funcionario_id = p_funcionario_id, fila_funcionario_id = null,
-      fila_desde = null, assumido_em = now()
-  where id = v_id;
-
-  return jsonb_build_object(
-    'id', v_id, 'telefone', v_telefone, 'chave', v_chave,
-    'funcionario_nome', (select nome from public.perfis where id = p_funcionario_id)
+  insert into public.registros_auditoria (id, ator, setor, acao, alvo, resultado)
+  values (
+    gen_random_uuid(), p_ator, p_ator_setor, 'atendimento.encerrar',
+    p_atendimento_id::text, 'sucesso'
   );
+
+  if p_funcionario_id is not null then
+    v_proximo := public.assumir_proximo_da_fila(p_funcionario_id, v_setor);
+  end if;
+  return jsonb_build_object('status', 'encerrado', 'proximo', v_proximo);
 end;
 $$;
-revoke all on function public.liberar_funcionario(uuid, public.setor_slug)
+revoke all on function public.encerrar_atendimento(uuid, uuid, uuid, public.setor_slug)
   from public, anon, authenticated;

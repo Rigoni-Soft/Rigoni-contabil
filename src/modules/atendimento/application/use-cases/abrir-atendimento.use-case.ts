@@ -29,7 +29,8 @@ export class AbrirAtendimento implements AbrirAtendimentoPort {
       const funcionarioId = menosCarregado(funcionarios.value)?.id ?? null;
       const aberto = await this.repositorio.abrir({ ...abertura, funcionarioId });
       if (!aberto.ok) return aberto;
-      if (aberto.value.status === "aberto") return this.concluir(aberto.value.id, funcionarioId);
+      if (aberto.value.status === "aberto")
+        return this.comPosicaoNaFila(aberto.value.id, funcionarioId);
     }
     const semAtribuicao = await this.repositorio.abrir({ ...abertura, funcionarioId: null });
     if (!semAtribuicao.ok) return semAtribuicao;
@@ -42,10 +43,10 @@ export class AbrirAtendimento implements AbrirAtendimentoPort {
         ),
       );
     }
-    return this.concluir(semAtribuicao.value.id, null);
+    return this.comPosicaoNaFila(semAtribuicao.value.id, null);
   }
 
-  private async concluir(
+  private async comPosicaoNaFila(
     id: string,
     funcionarioId: string | null,
   ): Promise<Result<AtendimentoAberto, AppError>> {

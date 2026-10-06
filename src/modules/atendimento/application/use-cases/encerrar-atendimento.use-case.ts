@@ -1,23 +1,26 @@
+import type { AvisarClientePort } from "@/modules/atendimento/application/ports/in/avisar-cliente.provider";
 import type {
   AtendimentoEncerrado,
   EncerrarAtendimentoPort,
 } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
-import type { PromoverDaFilaPort } from "@/modules/atendimento/application/ports/in/promover-da-fila.provider";
 import type { AtendimentoRepositoryPort } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { SessaoPort } from "@/modules/atendimento/application/ports/out/sessao.provider";
+import { avisoDeVez } from "@/modules/atendimento/domain/services/aviso-fila.service";
 import { podeTransferir } from "@/modules/atendimento/domain/services/transferencia.service";
 import type { AppError } from "@/shared/errors/app.error";
+import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Encerrar libera o Funcionário: o cliente mais antigo da Fila assume o lugar. Mesma regra de
-// quem pode agir sobre o Atendimento que a Transferência (dono, Líder do Setor ou Admin).
+// Encerrar libera o Funcionário: o repositório já o põe no cliente mais antigo da Fila (na mesma
+// operação, nada fura a Fila) e aqui esse cliente é avisado. Mesma regra de quem pode agir sobre o
+// Atendimento que a Transferência (dono, Líder do Setor ou Admin).
 export class EncerrarAtendimento implements EncerrarAtendimentoPort {
   constructor(
     private readonly sessao: SessaoPort,
     private readonly repositorio: AtendimentoRepositoryPort,
-    private readonly fila: PromoverDaFilaPort,
+    private readonly avisar: AvisarClientePort,
   ) {}
 
   async execute({
@@ -41,17 +44,28 @@ export class EncerrarAtendimento implements EncerrarAtendimentoPort {
       setor: ator.setor,
     });
     if (!encerrado.ok) return encerrado;
-    if (!encerrado.value) {
+    if (encerrado.value.status === "inexistente") {
       return err(
         new NotFoundError("O Atendimento mudou ou foi encerrado. Atualize e tente novamente."),
       );
     }
-    if (!atendimento.funcionarioId) return ok({ proximoDaFila: null });
 
-    const proximo = await this.fila.execute({
-      funcionarioId: atendimento.funcionarioId,
-      setor: atendimento.setor,
+    const proximo = encerrado.value.proximo;
+    if (!proximo) return ok({ proximoDaFila: null });
+    // Assumido: falhar aqui não desfaz nada; o erro diz que o cliente não foi avisado.
+    const aviso = await this.avisar.execute({
+      telefone: proximo.telefone,
+      chave: proximo.chave,
+      texto: avisoDeVez(proximo.funcionarioNome),
     });
-    return proximo.ok ? ok({ proximoDaFila: proximo.value?.atendimentoId ?? null }) : proximo;
+    if (!aviso.ok) {
+      return err(
+        new EstadoInconsistenteError(
+          "Atendimento assumido da Fila, mas o aviso ao cliente falhou.",
+          proximo.id,
+        ),
+      );
+    }
+    return ok({ proximoDaFila: proximo.id });
   }
 }

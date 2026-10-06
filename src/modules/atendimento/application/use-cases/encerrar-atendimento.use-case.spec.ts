@@ -1,6 +1,8 @@
 import type {
+  AtendimentoAssumido,
   AtendimentoEmAndamento,
   AtendimentoRepositoryPort,
+  ResultadoEncerramento,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { AtorSessaoDto } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -17,54 +19,66 @@ const ATENDIMENTO: AtendimentoEmAndamento = {
   chave: "61988887777",
 };
 const DONO: AtorSessaoDto = { id: "func-1", papel: "funcionario", setor: "contabil" };
+const PROXIMO: AtendimentoAssumido = {
+  id: "at-9",
+  telefone: "5561977776666",
+  chave: "61977776666",
+  funcionarioNome: "Ana",
+};
 
 function montar(
   opcoes: {
     ator?: AtorSessaoDto | null;
     atendimento?: AtendimentoEmAndamento | null;
-    encerrado?: boolean;
-    proximo?: string | null;
-    promocaoFalha?: boolean;
+    encerramento?: ResultadoEncerramento;
+    avisoFalha?: boolean;
   } = {},
 ) {
   const encerrados: unknown[][] = [];
-  const promovidos: unknown[] = [];
+  const avisos: { telefone: string; chave: string; texto: string }[] = [];
   const repo = {
     buscarEmAndamento: async () =>
       ok(opcoes.atendimento === undefined ? ATENDIMENTO : opcoes.atendimento),
     encerrar: async (...args: unknown[]) => {
       encerrados.push(args);
-      return ok(opcoes.encerrado ?? true);
+      return ok(opcoes.encerramento ?? { status: "encerrado" as const, proximo: null });
     },
   } as unknown as AtendimentoRepositoryPort;
   const caso = new EncerrarAtendimento(
     { usuarioAtual: async () => (opcoes.ator === undefined ? DONO : opcoes.ator) },
     repo,
     {
-      execute: async (p) => {
-        promovidos.push(p);
-        if (opcoes.promocaoFalha) return err(new ServicoExternoError("banco"));
-        return ok(opcoes.proximo ? { atendimentoId: opcoes.proximo } : null);
+      execute: async (aviso) => {
+        avisos.push(aviso);
+        return opcoes.avisoFalha ? err(new ServicoExternoError("meta")) : ok(undefined);
       },
     },
   );
-  return { caso, encerrados, promovidos };
+  return { caso, encerrados, avisos };
 }
 
 const INPUT = { atendimentoId: "at-1" };
 
 describe("EncerrarAtendimento", () => {
-  it("encerra e o Funcionário liberado assume o próximo da Fila do Setor", async () => {
-    const { caso, encerrados, promovidos } = montar({ proximo: "at-9" });
-    const r = await caso.execute(INPUT);
-    expect(r).toEqual({ ok: true, value: { proximoDaFila: "at-9" } });
+  it("encerra, e o cliente da Fila que o Funcionário liberado assumiu é avisado", async () => {
+    const { caso, encerrados, avisos } = montar({
+      encerramento: { status: "encerrado", proximo: PROXIMO },
+    });
+    expect(await caso.execute(INPUT)).toEqual({ ok: true, value: { proximoDaFila: "at-9" } });
     expect(encerrados).toEqual([["at-1", "func-1", { id: "func-1", setor: "contabil" }]]);
-    expect(promovidos).toEqual([{ funcionarioId: "func-1", setor: "contabil" }]);
+    expect(avisos).toEqual([
+      {
+        telefone: "5561977776666",
+        chave: "61977776666",
+        texto: "Chegou a sua vez! Ana vai te atender agora.",
+      },
+    ]);
   });
 
-  it("Fila vazia: encerra e não há próximo", async () => {
-    const { caso } = montar();
+  it("Fila vazia: encerra e não avisa ninguém", async () => {
+    const { caso, avisos } = montar();
     expect(await caso.execute(INPUT)).toEqual({ ok: true, value: { proximoDaFila: null } });
+    expect(avisos).toEqual([]);
   });
 
   it("Líder do Setor e Admin encerram; outro Funcionário e outro Setor não", async () => {
@@ -85,29 +99,31 @@ describe("EncerrarAtendimento", () => {
     }
   });
 
-  it("Atendimento da Fila (sem dono) encerra sem liberar ninguém", async () => {
-    const { caso, promovidos } = montar({
+  it("Atendimento da Fila (sem dono) encerra pelo Líder, sem dono a liberar", async () => {
+    const { caso, encerrados } = montar({
       ator: { id: "lider", papel: "lider_setor", setor: "contabil" },
       atendimento: { ...ATENDIMENTO, funcionarioId: null },
     });
     expect((await caso.execute(INPUT)).ok).toBe(true);
-    expect(promovidos).toEqual([]);
+    expect(encerrados[0][1]).toBeNull();
   });
 
-  it("sem sessão, inexistente ou já mudado: recusa sem promover", async () => {
+  it("sem sessão, inexistente ou já mudado: recusa", async () => {
     const semSessao = await montar({ ator: null }).caso.execute(INPUT);
     expect(!semSessao.ok && semSessao.error.code).toBe("FORBIDDEN");
     const inexistente = await montar({ atendimento: null }).caso.execute(INPUT);
     expect(!inexistente.ok && inexistente.error.code).toBe("NOT_FOUND");
-    const mudou = montar({ encerrado: false });
-    const r = await mudou.caso.execute(INPUT);
-    expect(!r.ok && r.error.code).toBe("NOT_FOUND");
-    expect(mudou.promovidos).toEqual([]);
+    const mudou = await montar({ encerramento: { status: "inexistente" } }).caso.execute(INPUT);
+    expect(!mudou.ok && mudou.error.code).toBe("NOT_FOUND");
   });
 
-  it("falha ao promover o próximo da Fila devolve o erro (já encerrado)", async () => {
-    const { caso, encerrados } = montar({ promocaoFalha: true });
-    expect((await caso.execute(INPUT)).ok).toBe(false);
+  it("falha ao avisar o cliente da Fila: erro de estado, já encerrado e assumido", async () => {
+    const { caso, encerrados } = montar({
+      encerramento: { status: "encerrado", proximo: PROXIMO },
+      avisoFalha: true,
+    });
+    const r = await caso.execute(INPUT);
+    expect(!r.ok && r.error.code).toBe("INCONSISTENT_STATE");
     expect(encerrados).toHaveLength(1);
   });
 });
