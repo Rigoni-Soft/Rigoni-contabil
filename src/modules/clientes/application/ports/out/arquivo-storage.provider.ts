@@ -1,0 +1,9 @@
+import type { AppError } from "@/shared/errors/app.error";
+import type { Result } from "@/shared/kernel/result";
+
+export interface ArquivoStoragePort {
+  enviar(caminho: string, arquivo: File): Promise<Result<{ caminho: string }, AppError>>;
+  // Compensação: remove os objetos já enviados quando o cadastro falha depois do upload.
+  // Só é ok se TODOS foram removidos.
+  remover(caminhos: string[]): Promise<Result<void, AppError>>;
+}

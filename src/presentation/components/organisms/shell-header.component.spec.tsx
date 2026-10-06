@@ -91,6 +91,35 @@ describe("ShellHeader", () => {
     );
   });
 
+  it("Admin vê 'Cadastrar Cliente' apontando pro cadastro de cliente", () => {
+    render(
+      <ShellHeader
+        nome="Cledson"
+        papel="admin"
+        setor="administrativo"
+        sair={<button>Sair</button>}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: /cadastrar cliente/i })).toHaveAttribute(
+      "href",
+      "/admin/clientes/novo",
+    );
+  });
+
+  it("Líder e Funcionário não veem 'Cadastrar Cliente' (só Admin, #33)", () => {
+    render(
+      <ShellHeader
+        nome="Jéssica"
+        papel="lider_setor"
+        setor="contabil"
+        sair={<button>Sair</button>}
+      />,
+    );
+
+    expect(screen.queryByRole("link", { name: /cadastrar cliente/i })).not.toBeInTheDocument();
+  });
+
   it("Funcionário não vê link de cadastro (não cadastra ninguém)", () => {
     render(
       <ShellHeader
