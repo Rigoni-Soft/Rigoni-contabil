@@ -90,7 +90,11 @@ select id, empresa, cnpj, regime
 from public.clientes
 where public.acesso_liberado() and public.meu_papel() is not null;
 
-revoke all on public.clientes_basico from public, anon;
+-- Devolutiva PR #69 (revalidação, B1): view simples é atualizável e roda com os
+-- privilégios do dono; `grant select` não remove os INSERT/UPDATE/DELETE que
+-- `authenticated` recebe por default privileges do Supabase. Revoga tudo antes de
+-- conceder só leitura.
+revoke all on public.clientes_basico from public, anon, authenticated;
 grant select on public.clientes_basico to authenticated;
 
 create policy "cliente_cadastro_operacional_select_qualquer_perfil"
@@ -180,6 +184,76 @@ create policy "cliente_atividades_update_sn"
     )
   );
 
+-- Devolutiva PR #69 (revalidação, I1): o mês corrente é decidido pelo banco, no fuso de
+-- negócio. `p_agora` existe só para testar a virada UTC x São Paulo.
+create function public.mes_corrente_sp(p_agora timestamptz default now())
+returns date
+language sql
+immutable
+as $$
+  select date_trunc('month', p_agora at time zone 'America/Sao_Paulo')::date;
+$$;
+
+revoke execute on function public.mes_corrente_sp(timestamptz) from public, anon;
+grant execute on function public.mes_corrente_sp(timestamptz) to authenticated, service_role;
+
+-- Devolutiva PR #69 (revalidação, I2): Cadastro operacional SN só existe para Regime
+-- Simples Nacional ou MEI (CONTEXT.md, "Regime"). Definer porque quem edita não lê `clientes`.
+create function public.regime_tem_cadastro_operacional_sn(p_cliente_id uuid)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select public.acesso_liberado() and exists (
+    select 1 from public.clientes
+    where id = p_cliente_id and regime in ('simples_nacional', 'mei')
+  );
+$$;
+
+revoke execute on function public.regime_tem_cadastro_operacional_sn(uuid) from public, anon;
+grant execute on function public.regime_tem_cadastro_operacional_sn(uuid) to authenticated;
+
+-- I1 + I2 em qualquer DML de sessão (RPC ou Data API direta): Cadastro operacional só para
+-- SN/MEI; Atividade só do mês corrente, e a de mês passado não pode ser alterada nem movida.
+-- Sem auth.uid() (service_role/migrations/seed) o chamador é o servidor confiável.
+create function public.proteger_cadastro_operacional()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null then
+    return new;
+  end if;
+  if not exists (
+    select 1 from public.clientes
+    where id = new.cliente_id and regime in ('simples_nacional', 'mei')
+  ) then
+    raise exception 'Cadastro operacional SN não se aplica a este Regime.' using errcode = '23514';
+  end if;
+  if tg_table_name = 'cliente_atividades_mensais' then
+    if new.ano_mes <> public.mes_corrente_sp()
+       or (tg_op = 'UPDATE' and old.ano_mes <> public.mes_corrente_sp()) then
+      raise exception 'Só a Atividade do mês corrente é editável.' using errcode = '23514';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+revoke execute on function public.proteger_cadastro_operacional() from public, anon, authenticated;
+
+create trigger cliente_cadastro_operacional_proteger
+  before insert or update on public.cliente_cadastro_operacional_sn
+  for each row execute function public.proteger_cadastro_operacional();
+
+create trigger cliente_atividades_proteger
+  before insert or update on public.cliente_atividades_mensais
+  for each row execute function public.proteger_cadastro_operacional();
+
 -- cliente_cadastro_operacional_sn + cliente_contatos + cliente_atividades_mensais
 -- são extensão do mesmo agregado Cliente (arquitetura.md seção 3.5) — uma RPC
 -- transacional evita gravação parcial entre as 3 tabelas. `security invoker`:
@@ -206,6 +280,14 @@ security invoker
 set search_path = public
 as $$
 begin
+  -- sem primeiro acesso finalizado a barreira é a RLS (erro de permissão), não esta mensagem
+  if public.acesso_liberado() and not public.regime_tem_cadastro_operacional_sn(p_cliente_id) then
+    raise exception 'Cadastro operacional SN não se aplica a este Regime.' using errcode = '23514';
+  end if;
+  if p_ano_mes is distinct from public.mes_corrente_sp() then
+    raise exception 'Só a Atividade do mês corrente é editável.' using errcode = '23514';
+  end if;
+
   insert into public.cliente_cadastro_operacional_sn
     (cliente_id, forma_envio, documento_obrigatorio, das_status, data_envio_das,
      tem_parcelamento, parcelamento_status, observacoes_gerais, atualizado_em)
@@ -244,14 +326,57 @@ begin
 end;
 $$;
 
--- Devolutiva técnica PR #69, ponto 3: a auditoria de sucesso nasce na mesma
--- transação da edição (como `cliente.criar` no #33). A RPC sempre grava a
--- Atividade do mês (insert OU update, nunca os dois): um gatilho nessa escrita
--- produz exatamente um evento por edição, e se o evento não puder ser gravado a
--- edição inteira é desfeita — não existe edição sem `cliente.editar-operacional`.
--- Ator e setor vêm da sessão do banco, nunca do chamador. `registrar_acao_auditoria`
--- é só service_role (PR #61), por isso o gatilho (definer) insere direto.
+-- Devolutiva técnica PR #69, ponto 3 + revalidação (B2): a auditoria de sucesso nasce na mesma
+-- transação de QUALQUER escrita autorizada nas três tabelas (RPC ou Data API direta), e se o
+-- evento não puder ser gravado a escrita inteira é desfeita — não existe alteração sem
+-- `cliente.editar-operacional`. Uma transação gera um só evento por Cliente: o gatilho marca o
+-- Cliente já auditado numa variável local da transação (a edição completa da RPC toca as três
+-- tabelas e continua sendo um evento lógico; o cadastro de Cliente marca o mesmo em
+-- `auditar_cliente_criado`, então a linha operacional automática não duplica `cliente.criar`).
+-- Atribuir o Responsável (`responsavel_id`, #65) não dispara: tem a própria ação.
+-- Ator e setor vêm da sessão do banco, nunca do chamador. `registrar_acao_auditoria` é só
+-- service_role (PR #61), por isso o gatilho (definer) insere direto.
 create function public.auditar_cadastro_operacional_editado()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_cliente_id uuid := case when tg_op = 'DELETE' then old.cliente_id else new.cliente_id end;
+begin
+  if auth.uid() is null
+     or current_setting('app.cliente_auditado', true) = v_cliente_id::text then
+    return null;
+  end if;
+  insert into public.registros_auditoria (id, ator, setor, acao, alvo, resultado, criado_em)
+  values (
+    gen_random_uuid(), auth.uid(), public.meu_setor(), 'cliente.editar-operacional',
+    (select cnpj from public.clientes where id = v_cliente_id), 'sucesso', now()
+  );
+  perform set_config('app.cliente_auditado', v_cliente_id::text, true);
+  return null;
+end;
+$$;
+
+revoke execute on function public.auditar_cadastro_operacional_editado() from public, anon, authenticated;
+
+create trigger cliente_cadastro_operacional_auditar
+  after insert or update of forma_envio, documento_obrigatorio, das_status, data_envio_das,
+    tem_parcelamento, parcelamento_status, observacoes_gerais
+  on public.cliente_cadastro_operacional_sn
+  for each row execute function public.auditar_cadastro_operacional_editado();
+
+create trigger cliente_contatos_auditar
+  after insert or delete on public.cliente_contatos
+  for each row execute function public.auditar_cadastro_operacional_editado();
+
+create trigger cliente_atividades_auditar
+  after insert or update on public.cliente_atividades_mensais
+  for each row execute function public.auditar_cadastro_operacional_editado();
+
+-- Redefine o gatilho do #33 só para marcar o Cliente recém-criado como auditado nesta transação.
+create or replace function public.auditar_cliente_criado()
 returns trigger
 language plpgsql
 security definer
@@ -260,17 +385,9 @@ as $$
 begin
   if auth.uid() is not null then
     insert into public.registros_auditoria (id, ator, setor, acao, alvo, resultado, criado_em)
-    values (
-      gen_random_uuid(), auth.uid(), public.meu_setor(), 'cliente.editar-operacional',
-      (select cnpj from public.clientes where id = new.cliente_id), 'sucesso', now()
-    );
+    values (gen_random_uuid(), auth.uid(), public.meu_setor(), 'cliente.criar', new.cnpj, 'sucesso', now());
+    perform set_config('app.cliente_auditado', new.id::text, true);
   end if;
   return new;
 end;
 $$;
-
-revoke execute on function public.auditar_cadastro_operacional_editado() from public, anon, authenticated;
-
-create trigger cliente_atividades_auditar_edicao
-  after insert or update on public.cliente_atividades_mensais
-  for each row execute function public.auditar_cadastro_operacional_editado();

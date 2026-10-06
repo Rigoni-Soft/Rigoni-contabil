@@ -9,6 +9,7 @@ import {
   type EditarCadastroOperacionalFormValues,
 } from "@/presentation/components/organisms/editar-cadastro-operacional-form.component";
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
+import { REGIME_LABEL, regimeTemCadastroOperacionalSn } from "@/shared/kernel/regimes";
 
 import { editarCadastroOperacionalAction } from "./editar-cadastro-operacional.actions";
 import { editarCadastroOperacionalFormSchema } from "./editar-cadastro-operacional.schema";
@@ -99,6 +100,15 @@ export function EditarCadastroOperacionalContainer({ dados, readOnly }: Props) {
 
   if (!dados) {
     return <p className="text-sm text-muted-foreground">Cliente não encontrado.</p>;
+  }
+
+  if (!regimeTemCadastroOperacionalSn(dados.regime)) {
+    return (
+      <p role="status" className="text-sm text-muted-foreground">
+        O Cadastro operacional do Simples Nacional não se aplica ao Regime{" "}
+        {REGIME_LABEL[dados.regime] ?? dados.regime}.
+      </p>
+    );
   }
 
   return (

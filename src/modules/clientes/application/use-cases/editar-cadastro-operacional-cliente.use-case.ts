@@ -12,7 +12,9 @@ import type {
 import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { ValidationError } from "@/shared/errors/validation.error";
 import { mesAtual } from "@/shared/kernel/mes-atual";
+import { regimeTemCadastroOperacionalSn } from "@/shared/kernel/regimes";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 export class EditarCadastroOperacionalCliente implements EditarCadastroOperacionalClientePort {
@@ -36,6 +38,13 @@ export class EditarCadastroOperacionalCliente implements EditarCadastroOperacion
     if (!clienteAtual.ok) return clienteAtual;
     if (!clienteAtual.value) {
       return err(new ForbiddenError(`Cliente ${input.clienteId} não encontrado.`));
+    }
+
+    if (!regimeTemCadastroOperacionalSn(clienteAtual.value.regime.valor)) {
+      await this.registrarAuditoria(ator, clienteAtual.value, "falha");
+      return err(
+        new ValidationError("O Cadastro operacional SN não se aplica ao Regime deste Cliente."),
+      );
     }
 
     const construido = this.reconstruir(clienteAtual.value, input);

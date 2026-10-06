@@ -233,3 +233,205 @@ describe("Auditoria atômica da edição (PR #69, ponto 3)", () => {
     expect(await eventosDeEdicao(cnpj)).toBe(0);
   });
 });
+
+describe("Data API — revalidação da PR #69 (B1, B2, I1, I2)", () => {
+  const eventos = async (cnpj: string): Promise<number> => {
+    const { data, error } = await serviceRole()
+      .from("registros_auditoria")
+      .select("id")
+      .eq("acao", "cliente.editar-operacional")
+      .eq("alvo", cnpj);
+    if (error) throw new Error(error.message);
+    return data.length;
+  };
+
+  it("B1: clientes_basico é só leitura — INSERT, UPDATE e DELETE falham para qualquer Funcionário e o Cliente fica intacto", async () => {
+    const cliente = await criarClienteComContrato("11444777001486");
+
+    for (const supabase of [await comoFuncionarioSN(), await comoFuncionarioFinanceiro()]) {
+      const insercao = await supabase
+        .from("clientes_basico")
+        .insert({ id: crypto.randomUUID(), empresa: "X", cnpj: "11444777001567", regime: "mei" });
+      expect(insercao.error).not.toBeNull();
+
+      const alteracao = await supabase
+        .from("clientes_basico")
+        .update({ empresa: "Alterada" })
+        .eq("id", cliente.id);
+      expect(alteracao.error).not.toBeNull();
+
+      const exclusao = await supabase.from("clientes_basico").delete().eq("id", cliente.id);
+      expect(exclusao.error).not.toBeNull();
+
+      const leitura = await supabase.from("clientes_basico").select("empresa").eq("id", cliente.id);
+      expect(leitura.data).toEqual([{ empresa: "Padaria Pão Quente Ltda" }]);
+    }
+
+    const { data } = await serviceRole().from("clientes").select("empresa").eq("id", cliente.id);
+    expect(data).toEqual([{ empresa: "Padaria Pão Quente Ltda" }]);
+  });
+
+  it("B2: escrita direta nas tabelas operacionais também gera o evento, e o cadastro do Cliente não gera evento de edição", async () => {
+    const cnpj = "11444777001648";
+    const cliente = await criarClienteComContrato(cnpj);
+    const supabase = await comoFuncionarioSN();
+    expect(await eventos(cnpj)).toBe(0);
+
+    const observacao = await supabase
+      .from("cliente_cadastro_operacional_sn")
+      .update({ observacoes_gerais: "direto" })
+      .eq("cliente_id", cliente.id);
+    expect(observacao.error).toBeNull();
+    expect(await eventos(cnpj)).toBe(1);
+
+    const formaEnvio = await supabase
+      .from("cliente_cadastro_operacional_sn")
+      .update({ forma_envio: "email" })
+      .eq("cliente_id", cliente.id);
+    expect(formaEnvio.error).toBeNull();
+    expect(await eventos(cnpj)).toBe(2);
+
+    const contatoId = crypto.randomUUID();
+    const inserirContato = await supabase.from("cliente_contatos").insert({
+      id: contatoId,
+      cliente_id: cliente.id,
+      nome: "Direto",
+      telefone: "11988887777",
+      padrao: true,
+    });
+    expect(inserirContato.error).toBeNull();
+    expect(await eventos(cnpj)).toBe(3);
+
+    const removerContato = await supabase.from("cliente_contatos").delete().eq("id", contatoId);
+    expect(removerContato.error).toBeNull();
+    expect(await eventos(cnpj)).toBe(4);
+  });
+
+  it("B2: coluna que não é edição operacional (servidor, sem sessão) não gera este evento", async () => {
+    const cnpj = "11444777001729";
+    const cliente = await criarClienteComContrato(cnpj);
+
+    const { error } = await serviceRole()
+      .from("cliente_cadastro_operacional_sn")
+      .update({ observacoes_gerais: "servidor" })
+      .eq("cliente_id", cliente.id);
+
+    expect(error).toBeNull();
+    expect(await eventos(cnpj)).toBe(0);
+  });
+
+  it("I1: RPC e DML direto rejeitam mês passado/futuro; a atividade histórica não é alterada nem movida, mas continua legível", async () => {
+    const cnpj = "11444777001800";
+    const cliente = await criarClienteComContrato(cnpj);
+    const supabase = await comoFuncionarioSN();
+    const mesCorrente = primeiroDiaDoMesAtual();
+    const passado = "2020-01-01";
+    const futuro = "2099-01-01";
+
+    for (const mes of [passado, futuro]) {
+      const rpc = await supabase.rpc("editar_cadastro_operacional_cliente", {
+        ...paramsEdicao(cliente.id),
+        p_ano_mes: mes,
+      });
+      expect(rpc.error?.message).toMatch(/mês corrente/);
+
+      const insercao = await supabase.from("cliente_atividades_mensais").insert({
+        id: crypto.randomUUID(),
+        cliente_id: cliente.id,
+        ano_mes: mes,
+      });
+      expect(insercao.error?.message).toMatch(/mês corrente/);
+    }
+
+    const historica = crypto.randomUUID();
+    const semente = await serviceRole()
+      .from("cliente_atividades_mensais")
+      .insert({ id: historica, cliente_id: cliente.id, ano_mes: passado, comercio: true });
+    expect(semente.error).toBeNull();
+
+    const alterar = await supabase
+      .from("cliente_atividades_mensais")
+      .update({ comercio: false })
+      .eq("id", historica);
+    expect(alterar.error?.message).toMatch(/mês corrente/);
+
+    const edicao = await supabase.rpc(
+      "editar_cadastro_operacional_cliente",
+      paramsEdicao(cliente.id),
+    );
+    expect(edicao.error).toBeNull();
+    const mover = await supabase
+      .from("cliente_atividades_mensais")
+      .update({ ano_mes: passado })
+      .eq("cliente_id", cliente.id)
+      .eq("ano_mes", mesCorrente);
+    expect(mover.error?.message).toMatch(/mês corrente/);
+
+    const leitura = await supabase
+      .from("cliente_atividades_mensais")
+      .select("comercio")
+      .eq("id", historica);
+    expect(leitura.data).toEqual([{ comercio: true }]);
+  });
+
+  it("I1: o mês corrente do banco respeita a virada UTC x São Paulo", async () => {
+    const mes = async (agora: string) =>
+      (await serviceRole().rpc("mes_corrente_sp", { p_agora: agora })).data;
+
+    // 02:00 UTC de 01/10 ainda é 23:00 de 30/09 em São Paulo.
+    expect(await mes("2026-10-01T02:00:00Z")).toBe("2026-09-01");
+    expect(await mes("2026-10-01T03:00:00Z")).toBe("2026-10-01");
+  });
+
+  it.each([
+    ["lucro_presumido", "11444777001990", false],
+    ["lucro_real", "11444777002024", false],
+    ["mei", "11444777002105", true],
+    ["simples_nacional", "11444777002296", true],
+  ])(
+    "I2: Regime %s (%s) edita o Cadastro operacional SN = %s, pela aplicação e pela API",
+    async (regime, cnpj, aplica) => {
+      const admin = await comoAdmin();
+      const construido = Cliente.builder()
+        .comId(crypto.randomUUID())
+        .comEmpresa("Regime Teste Ltda")
+        .comCnpj(cnpj)
+        .comRegime(regime)
+        .comContratoSocialCaminho(null)
+        .comAlteracoesContratuais([])
+        .build();
+      if (!construido.ok) throw new Error("setup inválido");
+      const salvo = await new SupabaseClienteRepository(admin).criar(construido.value);
+      expect(salvo.ok).toBe(true);
+      const id = construido.value.id;
+
+      // criação automática só para MEI/Simples Nacional
+      const automatico = await serviceRole()
+        .from("cliente_cadastro_operacional_sn")
+        .select("cliente_id")
+        .eq("cliente_id", id);
+      expect(automatico.data).toHaveLength(aplica ? 1 : 0);
+
+      const funcionario = await comoFuncionarioSN();
+      const rpc = await funcionario.rpc("editar_cadastro_operacional_cliente", paramsEdicao(id));
+      if (aplica) {
+        expect(rpc.error).toBeNull();
+        return;
+      }
+      expect(rpc.error?.message).toMatch(/não se aplica/);
+
+      // DML direto de Admin e de Funcionário SN também não cria o cadastro
+      for (const supabase of [admin, funcionario]) {
+        const direto = await supabase
+          .from("cliente_cadastro_operacional_sn")
+          .insert({ cliente_id: id });
+        expect(direto.error).not.toBeNull();
+      }
+      const semLinha = await serviceRole()
+        .from("cliente_cadastro_operacional_sn")
+        .select("cliente_id")
+        .eq("cliente_id", id);
+      expect(semLinha.data).toEqual([]);
+    },
+  );
+});

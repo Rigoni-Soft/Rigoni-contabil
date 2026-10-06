@@ -32,6 +32,16 @@ describe("EditarCadastroOperacionalContainer", () => {
     executeMock.mockReset();
   });
 
+  it.each([
+    ["lucro_presumido", "Lucro Presumido"],
+    ["lucro_real", "Lucro Real"],
+  ])("Regime %s: avisa que não se aplica e não renderiza o formulário", (regime, rotulo) => {
+    render(<EditarCadastroOperacionalContainer dados={{ ...dados, regime }} readOnly={false} />);
+
+    expect(screen.getByRole("status")).toHaveTextContent(`não se aplica ao Regime ${rotulo}`);
+    expect(screen.queryByRole("button", { name: /salvar/i })).not.toBeInTheDocument();
+  });
+
   it("modo readOnly: nunca renderiza contrato social/alterações e não mostra Salvar/Limpar/Cancelar", () => {
     render(<EditarCadastroOperacionalContainer dados={dados} readOnly />);
 

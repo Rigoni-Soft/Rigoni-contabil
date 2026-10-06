@@ -19,12 +19,12 @@ import { EditarCadastroOperacionalCliente } from "./editar-cadastro-operacional-
 const CNPJ_VALIDO = "11444777000161";
 const CLIENTE_ID = "11111111-1111-1111-1111-111111111111";
 
-function clienteBase(): Cliente {
+function clienteBase(regime = "simples_nacional"): Cliente {
   const resultado = Cliente.builder()
     .comId(CLIENTE_ID)
     .comEmpresa("Padaria Pão Quente Ltda")
     .comCnpj(CNPJ_VALIDO)
-    .comRegime("simples_nacional")
+    .comRegime(regime)
     .comContratoSocialCaminho(null)
     .comAlteracoesContratuais([])
     .build();
@@ -193,5 +193,36 @@ describe("EditarCadastroOperacionalCliente", () => {
     expect(resultado.ok).toBe(false);
     expect(clientes.atualizado).toBeNull();
     expect(auditoria.registros).toEqual([expect.objectContaining({ resultado: "falha" })]);
+  });
+
+  it.each(["lucro_presumido", "lucro_real"])(
+    "Cliente de Regime %s não tem Cadastro operacional SN: rejeita sem gravar e audita a falha",
+    async (regime) => {
+      const repositorio = new ClienteRepositoryFalso();
+      repositorio.cliente = clienteBase(regime);
+      const auditoria = new AuditoriaFalsa();
+      const caso = new EditarCadastroOperacionalCliente(new SessaoFalsa(), repositorio, auditoria);
+
+      const r = await caso.execute(INPUT_VALIDO);
+
+      expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
+      expect(repositorio.atualizado).toBeNull();
+      expect(auditoria.registros).toEqual([
+        expect.objectContaining({ acao: "cliente.editar-operacional", resultado: "falha" }),
+      ]);
+    },
+  );
+
+  it.each(["simples_nacional", "mei"])("Cliente de Regime %s é editado", async (regime) => {
+    const repositorio = new ClienteRepositoryFalso();
+    repositorio.cliente = clienteBase(regime);
+    const caso = new EditarCadastroOperacionalCliente(
+      new SessaoFalsa(),
+      repositorio,
+      new AuditoriaFalsa(),
+    );
+
+    expect((await caso.execute(INPUT_VALIDO)).ok).toBe(true);
+    expect(repositorio.atualizado).not.toBeNull();
   });
 });

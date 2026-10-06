@@ -427,6 +427,8 @@ Detalhes em `seguranca.md`. Aqui ficam as que a estrutura garante:
 - Nenhuma Server Action sem validação de input e sem checagem de sessão.
 - Nenhum dado por usuário, papel ou filial em cache compartilhado (seção 6.3).
 - RLS ativa em toda tabela exposta.
+- **View de leitura exposta a `authenticated`**: `grant select` não remove os INSERT/UPDATE/DELETE que o Supabase concede por default privileges, e uma view simples é atualizável com os privilégios do dono. Sempre `revoke all ... from public, anon, authenticated` antes do `grant select`, e teste negativo pela Data API (devolutiva técnica da PR #69, B1).
+- **Toda escrita autorizada numa tabela de negócio auditada gera o evento no próprio banco**, na mesma transação (gatilho `AFTER`), seja pela RPC ou por DML direto da Data API; uma transação grava um só evento por agregado (variável local `app.cliente_auditado`). Regras de domínio que a RPC aplica (mês corrente, Regime) também valem em gatilho `BEFORE`, senão a Data API as contorna (devolutiva técnica da PR #69, B2/I1/I2).
 - Tabela de log/trilha imutável (ex.: auditoria): sem policy de INSERT liberada ao cliente, mesmo restrita ao próprio `auth.uid()` — a única escrita é por função `SECURITY DEFINER` que decide ator e timestamp no próprio banco, nunca a partir do que o chamador envia (devolutiva técnica da PR #60, bloqueador 01).
 
 ---
