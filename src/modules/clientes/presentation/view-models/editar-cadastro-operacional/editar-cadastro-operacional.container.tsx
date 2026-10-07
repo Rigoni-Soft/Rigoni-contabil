@@ -100,6 +100,9 @@ export function EditarCadastroOperacionalContainer({
     setErroServidor(undefined);
     setSucesso(false);
 
+    // Vira true quando o cadastro está persistido (nesta tentativa ou numa anterior): a mensagem
+    // de erro de transporte precisa dizer isso em vez de sugerir que nada foi salvo.
+    let cadastroPersistido = false;
     // try/finally: rejeição de transporte da Server Action não pode deixar o
     // botão preso em "Salvando..." (devolutiva PR #69, ponto 6).
     try {
@@ -123,6 +126,10 @@ export function EditarCadastroOperacionalContainer({
           return;
         }
       }
+      // Devolutiva PR #71 (revalidação): o retrato é guardado assim que o cadastro persiste, antes
+      // da atribuição, para valer também quando a atribuição rejeita por erro de transporte.
+      setCadastroSalvo(retrato);
+      cadastroPersistido = true;
 
       if (podeAtribuirResponsavel && valores.responsavelId !== (dados.responsavelId ?? "")) {
         const atribuicao = await atribuirResponsavelAction({
@@ -131,7 +138,6 @@ export function EditarCadastroOperacionalContainer({
         });
         if (!atribuicao.ok) {
           // O cadastro já foi salvo; reenviar o formulário repete só a atribuição.
-          setCadastroSalvo(retrato);
           setErroServidor(
             `Os dados foram salvos, mas não foi possível atribuir o Responsável. ${atribuicao.error.message}`,
           );
@@ -147,7 +153,11 @@ export function EditarCadastroOperacionalContainer({
         router.push(voltarHrefAoSalvar);
       }
     } catch {
-      setErroServidor("Não foi possível salvar agora. Verifique a conexão e tente novamente.");
+      setErroServidor(
+        cadastroPersistido
+          ? "Os dados foram salvos, mas não foi possível atribuir o Responsável. Verifique a conexão e tente novamente."
+          : "Não foi possível salvar agora. Verifique a conexão e tente novamente.",
+      );
     } finally {
       setPendente(false);
     }

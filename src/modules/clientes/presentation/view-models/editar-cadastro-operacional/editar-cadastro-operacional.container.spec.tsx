@@ -180,6 +180,36 @@ describe("EditarCadastroOperacionalContainer", () => {
       expect(atribuirMock).toHaveBeenCalledTimes(2);
     });
 
+    it("atribuição que rejeita por transporte também não faz o segundo clique regravar o cadastro", async () => {
+      executeMock.mockResolvedValue(ok({ clienteId: dados.id }));
+      atribuirMock.mockRejectedValueOnce(new Error("rede"));
+      render(
+        <EditarCadastroOperacionalContainer
+          dados={dados}
+          readOnly={false}
+          podeAtribuirResponsavel
+          voltarHrefAoSalvar="/simples-nacional"
+        />,
+      );
+      await userEvent.click(screen.getByLabelText("Responsável"));
+      await screen.findByRole("option", { name: "Funcionário SN" });
+      await userEvent.selectOptions(
+        screen.getByLabelText("Responsável"),
+        "f1111111-1111-4111-8111-111111111111",
+      );
+      await userEvent.click(screen.getByRole("button", { name: "Salvar" }));
+      expect(
+        await screen.findByText(/Os dados foram salvos, mas não foi possível atribuir/),
+      ).toBeInTheDocument();
+      atribuirMock.mockResolvedValue(ok(undefined));
+
+      await userEvent.click(screen.getByRole("button", { name: "Salvar" }));
+
+      await waitFor(() => expect(routerPush).toHaveBeenCalledWith("/simples-nacional"));
+      expect(executeMock).toHaveBeenCalledTimes(1);
+      expect(atribuirMock).toHaveBeenCalledTimes(2);
+    });
+
     it("se outro campo mudou entre as tentativas, o salvamento completo volta", async () => {
       await falharAtribuicao();
       atribuirMock.mockResolvedValue(ok(undefined));
