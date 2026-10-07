@@ -13,10 +13,11 @@ import type {
   ContatoIdentificado,
   IdentificacaoContatoPort,
 } from "@/modules/atendimento/application/ports/out/identificacao-contato.provider";
-import type {
-  EtapaIdentificacao,
-  SessaoAtendimento,
-  SessaoAtendimentoPort,
+import {
+  invalidosDe,
+  type EtapaIdentificacao,
+  type SessaoAtendimento,
+  type SessaoAtendimentoPort,
 } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -41,10 +42,9 @@ const CNPJ_INVALIDO = "Esse CNPJ não parece válido. Confira e envie novamente 
 const NUMERO_AMBIGUO =
   "Seu número está cadastrado em mais de uma empresa e não conseguimos confirmar qual delas você quer consultar. Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
 
-const CNPJ_NAO_ENCONTRADO =
-  "Não encontramos esse CNPJ entre os nossos clientes. Confira e envie novamente (ou digite *menu*).";
-const PARA_RECEPCAO_CNPJ =
-  "Não encontramos esse CNPJ entre os nossos clientes. Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
+const SEM_CNPJ = "Não encontramos esse CNPJ entre os nossos clientes.";
+const CNPJ_NAO_ENCONTRADO = `${SEM_CNPJ} Confira e envie novamente (ou digite *menu*).`;
+const PARA_RECEPCAO_CNPJ = `${SEM_CNPJ} Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.`;
 // Palavras que, num número não reconhecido, pedem uma pessoa em vez de seguir o fluxo.
 const PEDIDO_DE_ATENDENTE =
   /\b(atendente|humano|recepcao|recepcionista|suporte|(falar|conversar) com (alguem|uma pessoa|gente|o contador|a contadora))\b/;
@@ -67,6 +67,8 @@ const MODOS: Record<string, Modo> = { "1": "contrato", "2": "alteracoes", "3": "
 
 // `telefone` com DDI, como a mensagem chegou (resposta); `chave` só dígitos nacionais (sessão).
 type Conversa = { contato: ContatoIdentificado; telefone: string; chave: string };
+// Quem escreveu e o que disse, para abrir o Atendimento na recepção.
+type Origem = { telefone: string; chave: string; textoDoContato: string };
 type Documentos = { contrato: DocumentoContratual | null; alteracoes: DocumentoContratual[] };
 
 // DDI 55 é descartado: o telefone do Contato é cadastrado só com DDD + número.
@@ -149,7 +151,10 @@ export class ReceberMensagem implements ReceberMensagemPort {
     if (!sessao.ok) return sessao;
     if (contato.value === "ambiguo") {
       // Nenhum documento é oferecido: sem confirmar a empresa, a recepção decide.
-      return this.encaminharRecepcao(mensagem.telefone, chave, mensagem.texto, NUMERO_AMBIGUO);
+      return this.encaminharRecepcao(
+        { telefone: mensagem.telefone, chave, textoDoContato: mensagem.texto },
+        NUMERO_AMBIGUO,
+      );
     }
     if (!contato.value) {
       return this.identificarNovo(mensagem, chave, texto, sessao.value);
@@ -176,54 +181,48 @@ export class ReceberMensagem implements ReceberMensagemPort {
     texto: string,
     sessao: SessaoAtendimento | null,
   ): Promise<Result<void, AppError>> {
+    const origem: Origem = { telefone, chave, textoDoContato };
     const etapa = texto === "menu" ? null : sessao?.etapa;
     const semAcento = texto.normalize("NFD").replace(/\p{M}/gu, "");
 
     if (texto !== "menu" && PEDIDO_DE_ATENDENTE.test(semAcento)) {
-      return this.encaminharRecepcao(telefone, chave, textoDoContato);
+      return this.encaminharRecepcao(origem);
     }
     if (etapa === "ja_cliente") {
-      if (["sim", "s"].includes(semAcento))
-        return this.avancar(telefone, chave, "cnpj", PEDIR_CNPJ);
-      if (["nao", "n"].includes(semAcento))
-        return this.encaminharRecepcao(telefone, chave, textoDoContato);
-      return this.tratarInvalido(telefone, chave, textoDoContato, etapa, sessao, SIM_OU_NAO);
+      if (["sim", "s"].includes(semAcento)) return this.avancar(origem, "cnpj", PEDIR_CNPJ);
+      if (["nao", "n"].includes(semAcento)) return this.encaminharRecepcao(origem);
+      return this.tratarInvalido(origem, etapa, sessao, SIM_OU_NAO);
     }
     if (etapa === "cnpj" || etapa === "cnpj_nova_tentativa") {
-      if (!cnpjValido(texto))
-        return this.tratarInvalido(telefone, chave, textoDoContato, etapa, sessao, CNPJ_INVALIDO);
+      if (!cnpjValido(texto)) return this.tratarInvalido(origem, etapa, sessao, CNPJ_INVALIDO);
       const cadastrado = await this.contatos.cnpjCadastrado(normalizarCnpj(texto));
       if (!cadastrado.ok) return cadastrado;
-      if (cadastrado.value) return this.encaminharRecepcao(telefone, chave, textoDoContato);
-      if (etapa === "cnpj")
-        return this.avancar(telefone, chave, "cnpj_nova_tentativa", CNPJ_NAO_ENCONTRADO);
-      return this.encaminharRecepcao(telefone, chave, textoDoContato, PARA_RECEPCAO_CNPJ);
+      if (cadastrado.value) return this.encaminharRecepcao(origem);
+      const primeiraTentativa = etapa === "cnpj";
+      if (primeiraTentativa)
+        return this.avancar(origem, "cnpj_nova_tentativa", CNPJ_NAO_ENCONTRADO);
+      return this.encaminharRecepcao(origem, PARA_RECEPCAO_CNPJ);
     }
-    return this.avancar(telefone, chave, "ja_cliente", PERGUNTA_CLIENTE);
+    return this.avancar(origem, "ja_cliente", PERGUNTA_CLIENTE);
   }
 
   // Sem contador o cliente ficaria preso em resposta inválida (sim/não ou CNPJ): ao passar do
   // limite vai à recepção.
   private async tratarInvalido(
-    telefone: string,
-    chave: string,
-    textoDoContato: string,
+    origem: Origem,
     etapa: EtapaIdentificacao,
     sessao: SessaoAtendimento | null,
     aviso: string,
   ): Promise<Result<void, AppError>> {
-    const invalidos = (sessao && "invalidos" in sessao ? sessao.invalidos : 0) + 1;
-    if (invalidos >= MAX_INVALIDOS) {
-      return this.encaminharRecepcao(telefone, chave, textoDoContato);
-    }
-    const salva = await this.sessoes.salvar(chave, { etapa, invalidos });
-    return salva.ok ? this.enviar(telefone, aviso) : salva;
+    const invalidos = invalidosDe(sessao) + 1;
+    if (invalidos >= MAX_INVALIDOS) return this.encaminharRecepcao(origem);
+    const salva = await this.sessoes.salvar(origem.chave, { etapa, invalidos });
+    return salva.ok ? this.enviar(origem.telefone, aviso) : salva;
   }
 
   // Trocar de etapa zera o contador de respostas inválidas (cada etapa tem o seu).
   private async avancar(
-    telefone: string,
-    chave: string,
+    { telefone, chave }: Origem,
     etapa: EtapaIdentificacao,
     texto: string,
   ): Promise<Result<void, AppError>> {
@@ -232,9 +231,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
   }
 
   private async encaminharRecepcao(
-    telefone: string,
-    chave: string,
-    textoDoContato: string,
+    { telefone, chave, textoDoContato }: Origem,
     textoAviso = PARA_RECEPCAO,
   ): Promise<Result<void, AppError>> {
     // Aviso antes de abrir: se o envio falhar e a Meta reenviar, não nasce Atendimento duplicado.

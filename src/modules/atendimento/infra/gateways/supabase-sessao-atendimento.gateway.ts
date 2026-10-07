@@ -2,9 +2,10 @@ import { createHmac } from "node:crypto";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type {
-  SessaoAtendimento,
-  SessaoAtendimentoPort,
+import {
+  invalidosDe,
+  type SessaoAtendimento,
+  type SessaoAtendimentoPort,
 } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
 import { sessaoAtendimentoRowSchema } from "@/modules/atendimento/infra/dtos/sessao-atendimento-row.dto";
 import type { AppError } from "@/shared/errors/app.error";
@@ -52,7 +53,7 @@ export class SupabaseSessaoAtendimentoGateway implements SessaoAtendimentoPort {
       modo: sessao.etapa === "alteracao" ? sessao.modo : null,
       pagina: sessao.etapa === "alteracao" ? sessao.pagina : null,
       lista: sessao.etapa === "alteracao" ? sessao.lista : null,
-      invalidos: "invalidos" in sessao ? sessao.invalidos : 0,
+      invalidos: invalidosDe(sessao),
       atualizado_em: new Date().toISOString(),
     });
     return error ? falha("gravar") : ok(undefined);
