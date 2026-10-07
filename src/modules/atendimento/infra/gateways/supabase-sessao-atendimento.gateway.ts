@@ -2,10 +2,10 @@ import { createHmac } from "node:crypto";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import {
-  invalidosDe,
-  type SessaoAtendimento,
-  type SessaoAtendimentoPort,
+import { invalidosDe } from "@/modules/atendimento/application/dtos/sessao-identificacao.dto";
+import type {
+  SessaoAtendimento,
+  SessaoAtendimentoPort,
 } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
 import { sessaoAtendimentoRowSchema } from "@/modules/atendimento/infra/dtos/sessao-atendimento-row.dto";
 import type { AppError } from "@/shared/errors/app.error";

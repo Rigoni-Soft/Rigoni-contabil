@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ETAPAS_IDENTIFICACAO } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
+import { ETAPAS_IDENTIFICACAO } from "@/modules/atendimento/application/dtos/sessao-identificacao.dto";
 
 // Linha de `atendimento_sessoes`: `modo`/`pagina`/`lista` só existem em "alteracao" e `invalidos` só conta
 // nas etapas da identificação (já é cliente / CNPJ); a constraint do banco garante o trio

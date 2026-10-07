@@ -1,3 +1,7 @@
+import {
+  invalidosDe,
+  type EtapaIdentificacao,
+} from "@/modules/atendimento/application/dtos/sessao-identificacao.dto";
 import type { AbrirAtendimentoPort } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type { AnexarMensagemAtendimentoPort } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
 import type {
@@ -13,11 +17,9 @@ import type {
   ContatoIdentificado,
   IdentificacaoContatoPort,
 } from "@/modules/atendimento/application/ports/out/identificacao-contato.provider";
-import {
-  invalidosDe,
-  type EtapaIdentificacao,
-  type SessaoAtendimento,
-  type SessaoAtendimentoPort,
+import type {
+  SessaoAtendimento,
+  SessaoAtendimentoPort,
 } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
