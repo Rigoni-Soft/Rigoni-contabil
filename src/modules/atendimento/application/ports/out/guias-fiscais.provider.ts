@@ -8,6 +8,6 @@ export type GuiaFiscal = { nomeArquivo: string; pdfBase64: string };
 
 export interface GuiasFiscaisPort {
   // O CNPJ vem do cadastro do Cliente (nunca perguntado ao contato). Sem autorização vigente do
-  // Cliente, devolve `ValidationError`; falha do provedor, `ServicoExternoError`.
+  // Cliente, devolve `ForbiddenError`; falha do provedor, `ServicoExternoError`.
   buscar(clienteId: string, tipo: TipoGuia): Promise<Result<GuiaFiscal, AppError>>;
 }

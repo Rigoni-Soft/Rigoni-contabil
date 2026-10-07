@@ -10,7 +10,6 @@ import {
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { makeRegistrarAcao } from "@/main/auditoria.factory";
-import { GuiasFiscaisViaClientes } from "@/main/guias-fiscais.factory";
 import { exigirSegredosReais } from "@/main/segredos-mensageria.factory";
 import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
@@ -42,8 +41,10 @@ import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/rec
 import { RemoverFeriado } from "@/modules/atendimento/application/use-cases/remover-feriado.use-case";
 import { TransferirAtendimento } from "@/modules/atendimento/application/use-cases/transferir-atendimento.use-case";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
+import { GuiasFiscaisGateway } from "@/modules/atendimento/infra/gateways/guias-fiscais.gateway";
 import { HmacAutenticacaoWebhookGateway } from "@/modules/atendimento/infra/gateways/hmac-autenticacao-webhook.gateway";
 import { RelogioSistemaGateway } from "@/modules/atendimento/infra/gateways/relogio-sistema.gateway";
+import { SupabaseClienteCnpjGateway } from "@/modules/atendimento/infra/gateways/supabase-cliente-cnpj.gateway";
 import { SupabaseDocumentosContratuaisGateway } from "@/modules/atendimento/infra/gateways/supabase-documentos-contratuais.gateway";
 import { SupabaseIdentificacaoContatoGateway } from "@/modules/atendimento/infra/gateways/supabase-identificacao-contato.gateway";
 import { SupabaseSessaoAtendimentoGateway } from "@/modules/atendimento/infra/gateways/supabase-sessao-atendimento.gateway";
@@ -53,9 +54,7 @@ import { ObrigacoesFiscaisHttpGateway } from "@/modules/clientes/infra/gateways/
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
 import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabase-sessao.gateway";
 import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories/usuario.repository";
-import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import type { Papel } from "@/shared/kernel/papeis";
-import { err, ok } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
 // Instância única: o falso guarda em memória o que "enviou".
@@ -81,17 +80,11 @@ function exigirSegredosDeProducao(): void {
   );
 }
 
-// O CNPJ da guia vem do cadastro do Cliente ligado ao contato (service_role: o webhook não tem sessão).
-function guiasFiscais(supabaseAdmin: SupabaseClient): GuiasFiscaisViaClientes {
-  return new GuiasFiscaisViaClientes(async (clienteId) => {
-    const { data, error } = await supabaseAdmin
-      .from("clientes")
-      .select("cnpj")
-      .eq("id", clienteId)
-      .maybeSingle<{ cnpj: string }>();
-    if (error || !data) return err(new ServicoExternoError("Falha ao ler o CNPJ do Cliente."));
-    return ok(data.cnpj);
-  }, new ObrigacoesFiscaisHttpGateway(OBRIGACOES_FISCAIS_URL));
+function guiasFiscais(supabaseAdmin: SupabaseClient): GuiasFiscaisGateway {
+  return new GuiasFiscaisGateway(
+    new SupabaseClienteCnpjGateway(supabaseAdmin),
+    new ObrigacoesFiscaisHttpGateway(OBRIGACOES_FISCAIS_URL),
+  );
 }
 
 export function makeReceberMensagem(): ReceberMensagemPort {

@@ -30,8 +30,8 @@ import type {
   SessaoAtendimentoPort,
 } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
 import type { AppError } from "@/shared/errors/app.error";
+import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
-import { ValidationError } from "@/shared/errors/validation.error";
 import { normalizarCnpj } from "@/shared/kernel/cnpj";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
@@ -234,7 +234,7 @@ describe("ReceberMensagem", () => {
 
   it("guia sem autorização vigente avisa o contato e oferece o atendente", async () => {
     const { caso, enviadas, documentosEnviados } = montar({
-      guiaFalha: new ValidationError("sem autorização"),
+      guiaFalha: new ForbiddenError("sem autorização"),
     });
     const r = await caso.execute({ telefone: "11912345678", texto: "2" });
     expect(r.ok).toBe(true);
@@ -259,6 +259,13 @@ describe("ReceberMensagem", () => {
     const { caso } = montar({ envioFalha: true });
     const r = await caso.execute({ telefone: "11912345678", texto: "2" });
     expect(r).toEqual({ ok: false, error: expect.any(ServicoExternoError) });
+  });
+
+  it("texto que coincide com chave herdada de objeto não vira guia", async () => {
+    const { caso, guiasBuscadas } = montar();
+    const r = await caso.execute({ telefone: "11912345678", texto: "constructor" });
+    expect(r.ok).toBe(true);
+    expect(guiasBuscadas).toEqual([]);
   });
 
   it("telefone sem dígitos é rejeitado", async () => {

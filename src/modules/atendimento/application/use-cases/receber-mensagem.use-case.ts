@@ -18,6 +18,7 @@ import type {
 } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type { FeriadosPort } from "@/modules/atendimento/application/ports/out/feriados.provider";
 import type {
+  GuiaFiscal,
   GuiasFiscaisPort,
   TipoGuia,
 } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
@@ -35,6 +36,7 @@ import {
   estaAbertoEm,
 } from "@/modules/atendimento/domain/services/expediente.service";
 import type { AppError } from "@/shared/errors/app.error";
+import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { cnpjValido, normalizarCnpj } from "@/shared/kernel/cnpj";
@@ -352,7 +354,8 @@ export class ReceberMensagem implements ReceberMensagemPort {
         aviso: AVISO_RECEPCAO_PEDIDO_NO_MENU,
       });
     }
-    if (texto in GUIAS_DO_MENU) return this.entregarGuia(conversa, GUIAS_DO_MENU[texto]);
+    if (Object.hasOwn(GUIAS_DO_MENU, texto))
+      return this.entregarGuia(conversa, GUIAS_DO_MENU[texto]);
     const menu = OPCOES_MENU.map((opcao, i) => `${i + 1} - ${opcao}`).join("\n");
     return this.enviar(
       telefone,
@@ -367,7 +370,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
     { telefone, contato }: Conversa,
     tipo: TipoGuia,
   ): Promise<Result<void, AppError>> {
-    let guia: Awaited<ReturnType<GuiasFiscaisPort["buscar"]>>;
+    let guia: Result<GuiaFiscal, AppError>;
     try {
       guia = await this.guias.buscar(contato.clienteId, tipo);
     } catch {
@@ -375,7 +378,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
     }
     if (!guia.ok) {
       const aviso =
-        guia.error instanceof ValidationError ? SEM_AUTORIZACAO_FISCAL : GUIA_INDISPONIVEL;
+        guia.error instanceof ForbiddenError ? SEM_AUTORIZACAO_FISCAL : GUIA_INDISPONIVEL;
       return this.enviar(telefone, aviso);
     }
     return this.despacharDocumento({ telefone, ...guia.value });
