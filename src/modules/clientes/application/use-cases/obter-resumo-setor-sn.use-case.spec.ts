@@ -102,6 +102,36 @@ describe("ObterResumoSetorSn", () => {
     }
   });
 
+  it.each([
+    ["funcionario", "financeiro"],
+    ["lider_setor", "administrativo"],
+  ])("recusa %s do setor %s antes de consultar", async (papel, setor) => {
+    const consultas: string[] = [];
+    const query = new ClienteQueryPortFalso();
+    const listar = query.listarResumoOperacional.bind(query);
+    query.listarResumoOperacional = async () => {
+      consultas.push("listarResumoOperacional");
+      return listar();
+    };
+
+    const resultado = await new ObterResumoSetorSn(sessaoDe(papel, setor), query).execute();
+
+    expect(!resultado.ok && resultado.error.code).toBe("FORBIDDEN");
+    expect(consultas).toEqual([]);
+  });
+
+  it("Admin e Líder/Funcionário do Simples Nacional continuam autorizados", async () => {
+    for (const sessao of [
+      sessaoDe("admin", "administrativo"),
+      sessaoDe("lider_setor", "simples_nacional"),
+      sessaoDe("funcionario", "simples_nacional"),
+    ]) {
+      expect((await new ObterResumoSetorSn(sessao, new ClienteQueryPortFalso()).execute()).ok).toBe(
+        true,
+      );
+    }
+  });
+
   it("recusa sem sessão, antes de consultar", async () => {
     const query = new ClienteQueryPortFalso();
     query.erro = new ForbiddenError("não deveria consultar");
