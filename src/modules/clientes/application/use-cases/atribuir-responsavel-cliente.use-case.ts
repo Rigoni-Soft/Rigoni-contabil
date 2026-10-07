@@ -18,7 +18,9 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 // Só o Líder do Simples Nacional atribui/troca/remove o Responsável (#65). O
 // banco repete a regra (trigger + RLS) — aqui é a primeira barreira e o ponto
-// que registra a auditoria (a ação distingue atribuir, trocar e remover).
+// que registra a auditoria de falha (a ação distingue atribuir, trocar e remover). A de
+// sucesso nasce no banco, na mesma transação da escrita (trigger `auditar_responsavel_cliente`),
+// inclusive quando o Líder grava pela Data API.
 export class AtribuirResponsavelCliente implements AtribuirResponsavelClientePort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -47,12 +49,12 @@ export class AtribuirResponsavelCliente implements AtribuirResponsavelClientePor
     const acao = this.nomeDaAcao(cliente.value.responsavelId, input.responsavelId);
     const elegivel = await this.validarElegivel(input.responsavelId);
     if (!elegivel.ok) {
-      await this.registrarAuditoria(ator, acao, cliente.value.cnpj, "falha");
+      await this.registrarAuditoria(ator, acao, cliente.value.cnpj);
       return elegivel;
     }
 
     const salvo = await this.responsaveis.atribuir(input.clienteId, input.responsavelId);
-    await this.registrarAuditoria(ator, acao, cliente.value.cnpj, salvo.ok ? "sucesso" : "falha");
+    if (!salvo.ok) await this.registrarAuditoria(ator, acao, cliente.value.cnpj);
     return salvo;
   }
 
@@ -75,18 +77,13 @@ export class AtribuirResponsavelCliente implements AtribuirResponsavelClientePor
     return ok(undefined);
   }
 
-  private async registrarAuditoria(
-    ator: AtorSessaoDto,
-    acao: string,
-    cnpj: string,
-    resultado: "sucesso" | "falha",
-  ): Promise<void> {
+  private async registrarAuditoria(ator: AtorSessaoDto, acao: string, cnpj: string): Promise<void> {
     await this.auditoria.registrar({
       ator: ator.id,
       setor: ator.setor,
       acao,
       alvo: cnpj,
-      resultado,
+      resultado: "falha",
     });
   }
 }

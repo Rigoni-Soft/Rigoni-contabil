@@ -41,7 +41,7 @@ O conjunto de campos que o Funcionário do Simples Nacional mantém atualizado p
 _Avoid_: Cadastro do cliente (ambíguo com o cadastro básico do #33 — Empresa/CNPJ/Regime/documentos jurídicos).
 
 **Responsável**:
-O Funcionário do Simples Nacional atribuído pelo Líder a um Cliente (#65). Um Cliente tem no máximo um; um Funcionário pode ser Responsável por vários. Funcionário só enxerga e edita os Clientes pelos quais é Responsável (RLS no banco); o Líder enxerga todos e é o único que atribui, troca ou remove. Sem atribuição, o Cliente aparece como "Sem responsável".
+O Funcionário do Simples Nacional atribuído pelo Líder a um Cliente (#65). Um Cliente tem no máximo um; um Funcionário pode ser Responsável por vários. Funcionário só enxerga e edita os Clientes pelos quais é Responsável (RLS no banco); o Líder enxerga todos e é o único que atribui, troca ou remove. Sem atribuição, o Cliente aparece como "Sem responsável". Funcionário removido (conta excluída) também deixa o Cliente sem responsável; a desativação (soft delete) nasce no #58, que deve fazer o mesmo.
 _Avoid_: Dono, atendente do cliente (Atendente é outro conceito — quem conduz um Atendimento).
 
 **Contato**:

@@ -37,6 +37,8 @@ const SERVICE_ROLE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
 const FUNCIONARIO_SN_ID = "22222222-2222-2222-2222-222222222222";
+const LIDER_SN_ID = "88888888-8888-8888-8888-888888888888";
+const FUNCIONARIO_2_SN_ID = "99999999-9999-9999-9999-999999999999";
 const FUNCIONARIO_FINANCEIRO_ID = "33333333-3333-3333-3333-333333333333";
 
 // #65: Funcionário SN só edita Cliente do qual é Responsável — quem atribui é o Líder.
@@ -255,6 +257,70 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
         .eq("cliente_id", clienteBase.id)
         .single();
       expect(data?.responsavel_id).toBeNull();
+    });
+
+    // Devolutiva PR #71, ponto 1: o evento nasce no banco, na transação da escrita.
+    describe("auditoria atômica do Responsável", () => {
+      const eventosDoResponsavel = async (cnpj: string) => {
+        const servico = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+          auth: { autoRefreshToken: false, persistSession: false },
+        });
+        const { data } = await servico
+          .from("registros_auditoria")
+          .select("acao, ator, resultado")
+          .eq("alvo", cnpj)
+          .like("acao", "cliente.%-responsavel")
+          .order("criado_em");
+        return data ?? [];
+      };
+
+      it("atribuir, trocar e remover pela application geram um evento cada, com o ator da sessão", async () => {
+        const admin = await comoAdmin();
+        const clienteBase = await criarClienteBase(admin, "62785037000120");
+        await atribuirComoLider(clienteBase.id, FUNCIONARIO_SN_ID);
+        await atribuirComoLider(clienteBase.id, FUNCIONARIO_2_SN_ID);
+        await atribuirComoLider(clienteBase.id, null);
+
+        const eventos = await eventosDoResponsavel("62785037000120");
+        expect(eventos.map((e) => e.acao)).toEqual([
+          "cliente.atribuir-responsavel",
+          "cliente.trocar-responsavel",
+          "cliente.remover-responsavel",
+        ]);
+        expect(eventos.every((e) => e.ator === LIDER_SN_ID && e.resultado === "sucesso")).toBe(
+          true,
+        );
+      });
+
+      it("update direto do Líder pela Data API gera exatamente um evento", async () => {
+        const admin = await comoAdmin();
+        const clienteBase = await criarClienteBase(admin, "62785037000200");
+        const lider = await comoLiderSN();
+
+        const direto = await lider
+          .from("cliente_cadastro_operacional_sn")
+          .update({ responsavel_id: FUNCIONARIO_SN_ID })
+          .eq("cliente_id", clienteBase.id);
+
+        expect(direto.error).toBeNull();
+        expect((await eventosDoResponsavel("62785037000200")).map((e) => e.acao)).toEqual([
+          "cliente.atribuir-responsavel",
+        ]);
+      });
+
+      it("regravar o mesmo Responsável não gera evento", async () => {
+        const admin = await comoAdmin();
+        const clienteBase = await criarClienteBase(admin, "62785037000391");
+        await atribuirComoLider(clienteBase.id, FUNCIONARIO_SN_ID);
+        const lider = await comoLiderSN();
+
+        await lider
+          .from("cliente_cadastro_operacional_sn")
+          .update({ responsavel_id: FUNCIONARIO_SN_ID })
+          .eq("cliente_id", clienteBase.id);
+
+        expect(await eventosDoResponsavel("62785037000391")).toHaveLength(1);
+      });
     });
 
     it("Líder enxerga e edita qualquer Cliente do SN, e remover o Responsável deixa 'Sem responsável'", async () => {

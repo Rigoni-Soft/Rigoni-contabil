@@ -152,6 +152,45 @@ create trigger cliente_cadastro_operacional_proteger_responsavel
   before insert or update on public.cliente_cadastro_operacional_sn
   for each row execute function public.proteger_responsavel_cliente();
 
+-- Devolutiva técnica PR #71, ponto 1: a auditoria de sucesso do Responsável nasce na mesma
+-- transação da escrita, seja pelo caso de uso ou pela Data API (a RLS deixa o Líder do SN
+-- atualizar a coluna direto). Se o evento não puder ser gravado, a alteração é desfeita. A ação
+-- sai da comparação OLD/NEW (atribuir, trocar ou remover); ator e setor vêm da sessão do banco,
+-- nunca do chamador. Sem auth.uid() (service_role, migrations, ON DELETE SET NULL de uma conta
+-- excluída) não há ator a registrar. O gatilho de edição do cadastro operacional não dispara por
+-- esta coluna, então a atribuição gera exatamente um evento.
+create function public.auditar_responsavel_cliente()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_antigo uuid := case when tg_op = 'UPDATE' then old.responsavel_id end;
+begin
+  if auth.uid() is null or new.responsavel_id is not distinct from v_antigo then
+    return null;
+  end if;
+  insert into public.registros_auditoria (id, ator, setor, acao, alvo, resultado, criado_em)
+  values (
+    gen_random_uuid(), auth.uid(), public.meu_setor(),
+    case
+      when new.responsavel_id is null then 'cliente.remover-responsavel'
+      when v_antigo is null then 'cliente.atribuir-responsavel'
+      else 'cliente.trocar-responsavel'
+    end,
+    (select cnpj from public.clientes where id = new.cliente_id), 'sucesso', now()
+  );
+  return null;
+end;
+$$;
+
+revoke execute on function public.auditar_responsavel_cliente() from public, anon, authenticated;
+
+create trigger cliente_cadastro_operacional_auditar_responsavel
+  after insert or update of responsavel_id on public.cliente_cadastro_operacional_sn
+  for each row execute function public.auditar_responsavel_cliente();
+
 -- Helpers só pra quem está logado (as policies rodam como `authenticated`).
 revoke execute on function public.sou_responsavel_do_cliente(uuid) from public, anon;
 revoke execute on function public.pode_ver_cliente(uuid) from public, anon;

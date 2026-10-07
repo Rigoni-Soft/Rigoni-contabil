@@ -93,31 +93,31 @@ function montar() {
 }
 
 describe("AtribuirResponsavelCliente", () => {
-  it("Líder do SN atribui Funcionário do SN e audita como atribuir", async () => {
+  it("Líder do SN atribui Funcionário do SN; o sucesso é auditado pelo banco, não pelo caso de uso", async () => {
     const { useCase, responsaveis, auditoria } = montar();
 
     const r = await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: FUNC_ID });
 
     expect(r.ok).toBe(true);
     expect(responsaveis.chamadas).toEqual([[CLIENTE_ID, FUNC_ID]]);
-    expect(auditoria.registros[0]).toMatchObject({
-      acao: "cliente.atribuir-responsavel",
-      alvo: "11444777000161",
-      resultado: "sucesso",
-    });
+    expect(auditoria.registros).toEqual([]);
   });
 
-  it("audita trocar quando já havia Responsável e remover quando vira null", async () => {
-    const { useCase, query, auditoria } = montar();
-    query.cliente = cadastro(OUTRO_FUNC_ID);
+  it("falha de gravação audita a ação certa: atribuir, trocar ou remover", async () => {
+    const { useCase, query, responsaveis, auditoria } = montar();
+    responsaveis.falha = true;
 
+    await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: FUNC_ID });
+    query.cliente = cadastro(OUTRO_FUNC_ID);
     await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: FUNC_ID });
     await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: null });
 
-    expect(auditoria.registros.map((r) => r.acao)).toEqual([
-      "cliente.trocar-responsavel",
-      "cliente.remover-responsavel",
+    expect(auditoria.registros.map((r) => [r.acao, r.resultado])).toEqual([
+      ["cliente.atribuir-responsavel", "falha"],
+      ["cliente.trocar-responsavel", "falha"],
+      ["cliente.remover-responsavel", "falha"],
     ]);
+    expect(auditoria.registros[0]).toMatchObject({ alvo: "11444777000161" });
   });
 
   it("reatribuir o mesmo Responsável (ou remover sem ter) não grava nem audita", async () => {
