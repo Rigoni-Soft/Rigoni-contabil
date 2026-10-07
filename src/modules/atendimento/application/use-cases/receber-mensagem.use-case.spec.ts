@@ -779,6 +779,12 @@ describe("ReceberMensagem — opção falar com atendente (#46)", () => {
     expect(abertos[0].mensagens.map((m) => m.autor)).toEqual(["contato", "ura"]);
   });
 
+  it("registra o rótulo da opção como Mensagem do contato, não o dígito digitado", async () => {
+    const { caso, abertos } = montar();
+    await pedir(caso);
+    expect(abertos[0].mensagens[0]).toEqual({ autor: "contato", texto: "Falar com atendente" });
+  });
+
   it("avisa que vai à recepção, sem o stub 'em construção'", async () => {
     const { caso, enviadas } = montar();
     await pedir(caso);

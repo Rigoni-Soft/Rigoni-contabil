@@ -34,6 +34,8 @@ const OPCOES_MENU = [
   "CND",
   "Falar com atendente",
 ];
+// Número da opção no menu ("1".."5"); as demais ainda são stubs, exceto a 1.
+const OPCAO_ATENDENTE = 5;
 
 const PERGUNTA_CLIENTE =
   "Olá! Não identificamos este número entre os contatos dos nossos clientes. Você já é cliente da Rigoni Contábil? Responda *sim* ou *não*.";
@@ -46,15 +48,14 @@ const NUMERO_AMBIGUO =
 
 const SEM_CNPJ = "Não encontramos esse CNPJ entre os nossos clientes.";
 const CNPJ_NAO_ENCONTRADO = `${SEM_CNPJ} Confira e envie novamente (ou digite *menu*).`;
-const PARA_RECEPCAO_CNPJ = `${SEM_CNPJ} Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.`;
+const ENCAMINHANDO =
+  "Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
+const PARA_RECEPCAO_CNPJ = `${SEM_CNPJ} ${ENCAMINHANDO}`;
 // Palavras que, num número não reconhecido, pedem uma pessoa em vez de seguir o fluxo.
 const PEDIDO_DE_ATENDENTE =
   /\b(atendente|humano|recepcao|recepcionista|suporte|ajuda|funcionario|duvida|(falar|conversar) com (alguem|uma pessoa|gente|o contador|a contadora))\b/;
-const PARA_RECEPCAO =
-  "Não encontramos você entre os contatos cadastrados. Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
-
-const PARA_RECEPCAO_CONTATO =
-  "Certo! Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
+const PARA_RECEPCAO = `Não encontramos você entre os contatos cadastrados. ${ENCAMINHANDO}`;
+const PARA_RECEPCAO_CONTATO = `Certo! ${ENCAMINHANDO}`;
 
 const PERGUNTA_TIPO =
   "O que você deseja receber?\n1 - Contrato social\n2 - Alterações\n3 - Ambos (contrato social e uma alteração)\nDigite *menu* para voltar.";
@@ -75,6 +76,10 @@ type Conversa = { contato: ContatoIdentificado; telefone: string; chave: string 
 // Quem escreveu e o que disse, para abrir o Atendimento na recepção; `clienteId` null = número sem Contato.
 type Origem = { telefone: string; chave: string; textoDoContato: string; clienteId: string | null };
 type Documentos = { contrato: DocumentoContratual | null; alteracoes: DocumentoContratual[] };
+
+function origemDe({ contato, telefone, chave }: Conversa, textoDoContato: string): Origem {
+  return { telefone, chave, textoDoContato, clienteId: contato.clienteId };
+}
 
 // DDI 55 é descartado: o telefone do Contato é cadastrado só com DDD + número.
 function soDigitosNacionais(telefone: string): string {
@@ -269,22 +274,22 @@ export class ReceberMensagem implements ReceberMensagemPort {
     return registrada.ok ? ok(undefined) : registrada;
   }
 
-  private async responderMenu(
-    { contato, telefone, chave }: Conversa,
-    texto: string,
-  ): Promise<Result<void, AppError>> {
+  private async responderMenu(conversa: Conversa, texto: string): Promise<Result<void, AppError>> {
+    const { contato, telefone, chave } = conversa;
     if (texto === "1") {
       const salva = await this.sessoes.salvar(chave, { etapa: "tipo_documento" });
       return salva.ok ? this.enviar(telefone, PERGUNTA_TIPO) : salva;
     }
     const escolha = Number(texto);
-    if (escolha === OPCOES_MENU.length) {
+    if (escolha === OPCAO_ATENDENTE) {
+      // A Mensagem registrada é o rótulo da opção, não o dígito: o Funcionário lê o pedido do
+      // contato em vez de um "5" solto.
       return this.encaminharRecepcao(
-        { telefone, chave, textoDoContato: OPCOES_MENU[escolha - 1], clienteId: contato.clienteId },
+        origemDe(conversa, OPCOES_MENU[OPCAO_ATENDENTE - 1]),
         PARA_RECEPCAO_CONTATO,
       );
     }
-    if (Number.isInteger(escolha) && escolha >= 2 && escolha < OPCOES_MENU.length) {
+    if (Number.isInteger(escolha) && escolha >= 2 && escolha < OPCAO_ATENDENTE) {
       return this.enviar(
         telefone,
         `${OPCOES_MENU[escolha - 1]}: em construção. Envie qualquer mensagem para ver o menu.`,
