@@ -34,7 +34,7 @@ const OPCOES_MENU = [
   "CND",
   "Falar com atendente",
 ];
-// Número da opção no menu ("1".."5"); as demais ainda são stubs, exceto a 1.
+// Posição (base 1) de "Falar com atendente" em OPCOES_MENU; deve ser a última opção.
 const OPCAO_ATENDENTE = 5;
 
 const PERGUNTA_CLIENTE =
