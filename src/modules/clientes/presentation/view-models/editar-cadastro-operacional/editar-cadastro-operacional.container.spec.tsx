@@ -146,6 +146,52 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(routerPush).not.toHaveBeenCalled();
   });
 
+  // Devolutiva PR #71, ponto 5.
+  describe("retry depois de salvar o cadastro e falhar só a atribuição", () => {
+    async function falharAtribuicao() {
+      executeMock.mockResolvedValue(ok({ clienteId: dados.id }));
+      atribuirMock.mockResolvedValueOnce(err(new ForbiddenError("Só o Líder atribui.")));
+      render(
+        <EditarCadastroOperacionalContainer
+          dados={dados}
+          readOnly={false}
+          podeAtribuirResponsavel
+          voltarHrefAoSalvar="/simples-nacional"
+        />,
+      );
+      await userEvent.click(screen.getByLabelText("Responsável"));
+      await screen.findByRole("option", { name: "Funcionário SN" });
+      await userEvent.selectOptions(
+        screen.getByLabelText("Responsável"),
+        "f1111111-1111-4111-8111-111111111111",
+      );
+      await userEvent.click(screen.getByRole("button", { name: "Salvar" }));
+      await screen.findByText(/Os dados foram salvos, mas não foi possível atribuir/);
+    }
+
+    it("o segundo clique repete só a atribuição, sem chamar a edição de novo", async () => {
+      await falharAtribuicao();
+      atribuirMock.mockResolvedValue(ok(undefined));
+
+      await userEvent.click(screen.getByRole("button", { name: "Salvar" }));
+
+      await waitFor(() => expect(routerPush).toHaveBeenCalledWith("/simples-nacional"));
+      expect(executeMock).toHaveBeenCalledTimes(1);
+      expect(atribuirMock).toHaveBeenCalledTimes(2);
+    });
+
+    it("se outro campo mudou entre as tentativas, o salvamento completo volta", async () => {
+      await falharAtribuicao();
+      atribuirMock.mockResolvedValue(ok(undefined));
+
+      await userEvent.type(screen.getByLabelText(/observações gerais/i), " Mais um detalhe.");
+      await userEvent.click(screen.getByRole("button", { name: "Salvar" }));
+
+      await waitFor(() => expect(routerPush).toHaveBeenCalledWith("/simples-nacional"));
+      expect(executeMock).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it("modo readOnly: nunca renderiza contrato social/alterações e não mostra Salvar/Limpar/Cancelar", () => {
     render(<EditarCadastroOperacionalContainer dados={dados} readOnly />);
 

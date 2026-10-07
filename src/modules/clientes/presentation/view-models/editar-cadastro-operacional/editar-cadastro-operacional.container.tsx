@@ -46,6 +46,10 @@ export function EditarCadastroOperacionalContainer({
   const [pendente, setPendente] = useState(false);
   const [erroServidor, setErroServidor] = useState<string | undefined>();
   const [sucesso, setSucesso] = useState(false);
+  // Devolutiva PR #71, ponto 5: depois de salvar o cadastro e falhar só a atribuição, guarda o que
+  // foi persistido (campos sem o Responsável); reenviar o mesmo formulário repete só a atribuição.
+  // Se a pessoa mexer em outro campo, o retrato muda e o salvamento completo volta.
+  const [cadastroSalvo, setCadastroSalvo] = useState<string | null>(null);
 
   // Extraído pra reusar no reset() do botão "Limpar" — reverte pro que veio
   // do servidor, não esvazia campos (formaEnvio é enum obrigatório, sem opção
@@ -99,16 +103,25 @@ export function EditarCadastroOperacionalContainer({
     // try/finally: rejeição de transporte da Server Action não pode deixar o
     // botão preso em "Salvando..." (devolutiva PR #69, ponto 6).
     try {
-      const resultado = await editarCadastroOperacionalAction({ ...valores, clienteId: dados.id });
+      const { responsavelId: _responsavelId, ...cadastro } = valores;
+      const retrato = JSON.stringify(cadastro);
+      if (cadastroSalvo !== retrato) {
+        const resultado = await editarCadastroOperacionalAction({
+          ...valores,
+          clienteId: dados.id,
+        });
 
-      if (!resultado.ok) {
-        setErroServidor(resultado.error.message);
-        for (const [campo, mensagens] of Object.entries(resultado.error.fields ?? {})) {
-          if (mensagens[0] && campo !== "clienteId") {
-            setError(campo as keyof EditarCadastroOperacionalFormValues, { message: mensagens[0] });
+        if (!resultado.ok) {
+          setErroServidor(resultado.error.message);
+          for (const [campo, mensagens] of Object.entries(resultado.error.fields ?? {})) {
+            if (mensagens[0] && campo !== "clienteId") {
+              setError(campo as keyof EditarCadastroOperacionalFormValues, {
+                message: mensagens[0],
+              });
+            }
           }
+          return;
         }
-        return;
       }
 
       if (podeAtribuirResponsavel && valores.responsavelId !== (dados.responsavelId ?? "")) {
@@ -118,6 +131,7 @@ export function EditarCadastroOperacionalContainer({
         });
         if (!atribuicao.ok) {
           // O cadastro já foi salvo; reenviar o formulário repete só a atribuição.
+          setCadastroSalvo(retrato);
           setErroServidor(
             `Os dados foram salvos, mas não foi possível atribuir o Responsável. ${atribuicao.error.message}`,
           );
@@ -125,6 +139,7 @@ export function EditarCadastroOperacionalContainer({
         }
       }
 
+      setCadastroSalvo(null);
       setSucesso(true);
       if (aoSalvarComSucesso) {
         aoSalvarComSucesso();
