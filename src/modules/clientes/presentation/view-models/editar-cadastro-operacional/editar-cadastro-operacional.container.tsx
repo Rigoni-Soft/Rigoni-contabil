@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 
@@ -11,18 +12,44 @@ import {
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { REGIME_LABEL, regimeTemCadastroOperacionalSn } from "@/shared/kernel/regimes";
 
+import { atribuirResponsavelAction } from "./atribuir-responsavel.actions";
 import { editarCadastroOperacionalAction } from "./editar-cadastro-operacional.actions";
+import { nomeResponsavelAtual, opcoesResponsavel } from "./editar-cadastro-operacional.presenter";
 import { editarCadastroOperacionalFormSchema } from "./editar-cadastro-operacional.schema";
+import { useResponsaveisElegiveis } from "./responsaveis.queries";
 
 type Props = {
   dados: CadastroOperacionalClienteDto | null;
   readOnly: boolean;
+  // Só o Líder do SN (#65): troca o Select de Responsável editável.
+  podeAtribuirResponsavel?: boolean;
+  onCancelar?: () => void;
+  // Depois de salvar com sucesso, o painel precisa fechar/voltar — o "que o
+  // caso exigir" (feedback de teste manual do #36): painel embutido no
+  // dashboard (busca do /simples-nacional) fecha de volta pra busca e
+  // atualiza os cards; tela própria (/clientes/[id]) navega de volta pra
+  // onde a lista do bucket (ou o próprio dashboard) ficou. Só um dos dois é
+  // passado por consumidor — `aoSalvarComSucesso` tem prioridade.
+  aoSalvarComSucesso?: () => void;
+  voltarHrefAoSalvar?: string;
 };
 
-export function EditarCadastroOperacionalContainer({ dados, readOnly }: Props) {
+export function EditarCadastroOperacionalContainer({
+  dados,
+  readOnly,
+  podeAtribuirResponsavel = false,
+  onCancelar,
+  aoSalvarComSucesso,
+  voltarHrefAoSalvar,
+}: Props) {
+  const router = useRouter();
   const [pendente, setPendente] = useState(false);
   const [erroServidor, setErroServidor] = useState<string | undefined>();
   const [sucesso, setSucesso] = useState(false);
+  // Devolutiva PR #71, ponto 5: depois de salvar o cadastro e falhar só a atribuição, guarda o que
+  // foi persistido (campos sem o Responsável); reenviar o mesmo formulário repete só a atribuição.
+  // Se a pessoa mexer em outro campo, o retrato muda e o salvamento completo volta.
+  const [cadastroSalvo, setCadastroSalvo] = useState<string | null>(null);
 
   // Extraído pra reusar no reset() do botão "Limpar" — reverte pro que veio
   // do servidor, não esvazia campos (formaEnvio é enum obrigatório, sem opção
@@ -41,6 +68,7 @@ export function EditarCadastroOperacionalContainer({ dados, readOnly }: Props) {
           dados.parcelamentoStatus as EditarCadastroOperacionalFormValues["parcelamentoStatus"],
         observacoesGerais: dados.observacoesGerais,
         atividadeMes: dados.atividadeMes,
+        responsavelId: dados.responsavelId ?? "",
       }
     : undefined;
 
@@ -61,6 +89,9 @@ export function EditarCadastroOperacionalContainer({ dados, readOnly }: Props) {
     name: "temParcelamento",
     defaultValue: dados?.temParcelamento ?? false,
   });
+  // Lista de Funcionários só é buscada quando o Líder abre o Select (#65).
+  const [listaAberta, setListaAberta] = useState(false);
+  const elegiveis = useResponsaveisElegiveis(podeAtribuirResponsavel && listaAberta);
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
 
   const aoSubmeter = handleSubmit(async (valores) => {
@@ -69,24 +100,64 @@ export function EditarCadastroOperacionalContainer({ dados, readOnly }: Props) {
     setErroServidor(undefined);
     setSucesso(false);
 
+    // Vira true quando o cadastro está persistido (nesta tentativa ou numa anterior): a mensagem
+    // de erro de transporte precisa dizer isso em vez de sugerir que nada foi salvo.
+    let cadastroPersistido = false;
     // try/finally: rejeição de transporte da Server Action não pode deixar o
     // botão preso em "Salvando..." (devolutiva PR #69, ponto 6).
     try {
-      const resultado = await editarCadastroOperacionalAction({ ...valores, clienteId: dados.id });
+      const { responsavelId: _responsavelId, ...cadastro } = valores;
+      const retrato = JSON.stringify(cadastro);
+      if (cadastroSalvo !== retrato) {
+        const resultado = await editarCadastroOperacionalAction({
+          ...valores,
+          clienteId: dados.id,
+        });
 
-      if (!resultado.ok) {
-        setErroServidor(resultado.error.message);
-        for (const [campo, mensagens] of Object.entries(resultado.error.fields ?? {})) {
-          if (mensagens[0] && campo !== "clienteId") {
-            setError(campo as keyof EditarCadastroOperacionalFormValues, { message: mensagens[0] });
+        if (!resultado.ok) {
+          setErroServidor(resultado.error.message);
+          for (const [campo, mensagens] of Object.entries(resultado.error.fields ?? {})) {
+            if (mensagens[0] && campo !== "clienteId") {
+              setError(campo as keyof EditarCadastroOperacionalFormValues, {
+                message: mensagens[0],
+              });
+            }
           }
+          return;
         }
-        return;
+      }
+      // Devolutiva PR #71 (revalidação): o retrato é guardado assim que o cadastro persiste, antes
+      // da atribuição, para valer também quando a atribuição rejeita por erro de transporte.
+      setCadastroSalvo(retrato);
+      cadastroPersistido = true;
+
+      if (podeAtribuirResponsavel && valores.responsavelId !== (dados.responsavelId ?? "")) {
+        const atribuicao = await atribuirResponsavelAction({
+          clienteId: dados.id,
+          responsavelId: valores.responsavelId || null,
+        });
+        if (!atribuicao.ok) {
+          // O cadastro já foi salvo; reenviar o formulário repete só a atribuição.
+          setErroServidor(
+            `Os dados foram salvos, mas não foi possível atribuir o Responsável. ${atribuicao.error.message}`,
+          );
+          return;
+        }
       }
 
+      setCadastroSalvo(null);
       setSucesso(true);
+      if (aoSalvarComSucesso) {
+        aoSalvarComSucesso();
+      } else if (voltarHrefAoSalvar) {
+        router.push(voltarHrefAoSalvar);
+      }
     } catch {
-      setErroServidor("Não foi possível salvar agora. Verifique a conexão e tente novamente.");
+      setErroServidor(
+        cadastroPersistido
+          ? "Os dados foram salvos, mas não foi possível atribuir o Responsável. Verifique a conexão e tente novamente."
+          : "Não foi possível salvar agora. Verifique a conexão e tente novamente.",
+      );
     } finally {
       setPendente(false);
     }
@@ -120,6 +191,14 @@ export function EditarCadastroOperacionalContainer({ dados, readOnly }: Props) {
       onSubmit={aoSubmeter}
       pendente={pendente}
       readOnly={readOnly}
+      responsavel={{
+        editavel: podeAtribuirResponsavel,
+        nomeAtual: nomeResponsavelAtual(dados),
+        opcoes: opcoesResponsavel(dados, elegiveis.data ?? []),
+        onAbrir: () => setListaAberta(true),
+        estadoLista: elegiveis.isError ? "erro" : elegiveis.isLoading ? "carregando" : "ok",
+        onTentarNovamente: () => void elegiveis.refetch(),
+      }}
       temParcelamento={temParcelamento}
       erroServidor={erroServidor}
       sucesso={sucesso}
@@ -127,6 +206,7 @@ export function EditarCadastroOperacionalContainer({ dados, readOnly }: Props) {
       onAdicionarContato={() => append({ nome: "", telefone: "", padrao: fields.length === 0 })}
       onRemoverContato={remove}
       onLimpar={aoLimpar}
+      onCancelar={onCancelar}
     />
   );
 }

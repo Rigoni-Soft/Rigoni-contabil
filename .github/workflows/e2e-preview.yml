@@ -1,0 +1,81 @@
+name: E2E Preview
+
+on:
+  deployment_status:
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: e2e-preview-${{ github.event.deployment.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-preview:
+    name: E2E no preview da Vercel
+    # Devolutiva técnica PR #71, ponto 3: a suíte cria Clientes e usuários e altera cadastros, então
+    # só roda contra Supabase de preview/homolog isolado e descartável (docs/testes.md, seção 5).
+    # Desligado até essa prova existir: defina a variável de repositório E2E_PREVIEW_HABILITADO=true
+    # (Settings > Secrets and variables > Actions > Variables) depois de conferir as variáveis do
+    # Supabase nos ambientes Preview e Homolog da Vercel.
+    if: >
+      vars.E2E_PREVIEW_HABILITADO == 'true' &&
+      github.event.deployment_status.state == 'success' &&
+      startsWith(github.event.deployment.environment, 'Preview') &&
+      contains(fromJSON('["develop","homolog"]'), github.event.deployment.ref)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SHA: ${{ github.event.deployment.sha }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Marca o commit como pendente
+        run: |
+          gh api "repos/${{ github.repository }}/statuses/$SHA" \
+            -f state=pending -f context="E2E Preview" \
+            -f description="E2E rodando contra o preview" \
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - run: yarn install --frozen-lockfile
+      - run: npx playwright install --with-deps chromium
+
+      - name: Define a suíte (develop = smoke, homolog = completa)
+        id: suite
+        run: |
+          if [ "${{ github.event.deployment.ref }}" = "homolog" ]; then
+            echo "args=" >> "$GITHUB_OUTPUT"
+          else
+            echo "args=--grep @smoke" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Playwright contra o preview
+        run: yarn test:e2e ${{ steps.suite.outputs.args }}
+        env:
+          BASE_URL: ${{ github.event.deployment_status.environment_url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ github.event.deployment.ref }}
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Publica o resultado no commit
+        if: success() || failure()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then STATE=success; else STATE=failure; fi
+          gh api "repos/${{ github.repository }}/statuses/$SHA" \
+            -f state=$STATE -f context="E2E Preview" \
+            -f description="E2E no preview: $STATE" \
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

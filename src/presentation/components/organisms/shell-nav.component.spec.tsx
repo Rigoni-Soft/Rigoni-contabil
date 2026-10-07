@@ -22,10 +22,19 @@ describe("ShellNav", () => {
     expect(screen.queryByText("Financeiro")).not.toBeInTheDocument();
   });
 
-  it("marca cada setor como indisponível (nenhuma tela existe ainda)", () => {
+  it("Simples Nacional é um link de verdade pro dashboard exclusivo (#36)", () => {
     render(<ShellNav setores={[{ slug: "simples_nacional" }]} />);
 
-    const item = screen.getByText("Simples Nacional");
+    expect(screen.getByRole("link", { name: "Simples Nacional" })).toHaveAttribute(
+      "href",
+      "/simples-nacional",
+    );
+  });
+
+  it("marca os demais setores como indisponíveis (nenhuma tela existe ainda)", () => {
+    render(<ShellNav setores={[{ slug: "financeiro" }]} />);
+
+    const item = screen.getByText("Financeiro");
     expect(item).toHaveAttribute("aria-disabled", "true");
   });
 });

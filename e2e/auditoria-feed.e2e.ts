@@ -38,11 +38,12 @@ test.describe("Feed de auditoria (Admin only)", () => {
 
   test("Funcionário é redirecionado pra fora do feed de auditoria", async ({ page }) => {
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");
-    await expect(page).toHaveURL("/");
+    // Simples Nacional é a página principal do próprio setor (#36).
+    await expect(page).toHaveURL("/simples-nacional");
 
     await page.goto("/admin/auditoria");
 
-    await expect(page).toHaveURL("/");
+    await expect(page).toHaveURL("/simples-nacional");
   });
 
   test("Admin filtra o feed por resultado e vê só o que combina", async ({ page }) => {

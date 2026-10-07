@@ -77,6 +77,16 @@ async function criarContaEmPrimeiroAcesso(): Promise<{ id: string; email: string
   return { id: data.user.id, email, senha };
 }
 
+// #65: Funcionário SN só vê/edita Cliente do qual é Responsável. service_role
+// atribui direto (sem auth.uid() o gatilho confia no servidor).
+async function tornarResponsavel(clienteId: string, perfilId: string): Promise<void> {
+  const { error } = await serviceRole()
+    .from("cliente_cadastro_operacional_sn")
+    .update({ responsavel_id: perfilId })
+    .eq("cliente_id", clienteId);
+  if (error) throw new Error(`Falha ao atribuir Responsável: ${error.message}`);
+}
+
 const paramsEdicao = (clienteId: string) => ({
   p_cliente_id: clienteId,
   p_forma_envio: "email",
@@ -94,8 +104,9 @@ const paramsEdicao = (clienteId: string) => ({
 });
 
 describe("Data API — confidencialidade dos documentos jurídicos (PR #69, ponto 1)", () => {
-  it("Funcionário SN e de outro Setor não leem clientes nem alterações contratuais direto, mas leem a projeção segura", async () => {
-    const cliente = await criarClienteComContrato("11444777000838");
+  it("Funcionário SN e de outro Setor não leem clientes nem alterações contratuais direto; a projeção segura vale pra quem pode ver o Cliente", async () => {
+    const cliente = await criarClienteComContrato("45723174000110");
+    await tornarResponsavel(cliente.id, FUNCIONARIO_SN_ID);
 
     for (const supabase of [await comoFuncionarioSN(), await comoFuncionarioFinanceiro()]) {
       const direto = await supabase.from("clientes").select("*").eq("id", cliente.id);
@@ -112,7 +123,7 @@ describe("Data API — confidencialidade dos documentos jurídicos (PR #69, pont
         {
           id: cliente.id,
           empresa: "Padaria Pão Quente Ltda",
-          cnpj: "11444777000838",
+          cnpj: "45723174000110",
           regime: "simples_nacional",
         },
       ]);
@@ -122,8 +133,17 @@ describe("Data API — confidencialidade dos documentos jurídicos (PR #69, pont
     }
   });
 
+  it("Funcionário SN que não é Responsável não vê o Cliente nem pela projeção (#65)", async () => {
+    const cliente = await criarClienteComContrato("45723174000200");
+    const supabase = await comoFuncionarioSN();
+
+    const projecao = await supabase.from("clientes_basico").select("*").eq("id", cliente.id);
+
+    expect(projecao.data).toEqual([]);
+  });
+
   it("Admin continua lendo o contrato social em clientes", async () => {
-    const cliente = await criarClienteComContrato("11444777000919");
+    const cliente = await criarClienteComContrato("45723174000625");
     const admin = await comoAdmin();
 
     const { data } = await admin
@@ -138,8 +158,9 @@ describe("Data API — confidencialidade dos documentos jurídicos (PR #69, pont
 
 describe("Data API — primeiro acesso não finalizado (PR #69, ponto 2)", () => {
   it("conta com senha provisória não lê nem edita dados de negócio; depois da troca, passa a ter o acesso normal", async () => {
-    const cliente = await criarClienteComContrato("11444777001052");
+    const cliente = await criarClienteComContrato("45723174000382");
     const conta = await criarContaEmPrimeiroAcesso();
+    await tornarResponsavel(cliente.id, conta.id);
     const supabase = await clienteAutenticado(conta.email, conta.senha);
 
     const leitura = await supabase.from("clientes_basico").select("*").eq("id", cliente.id);
@@ -187,8 +208,9 @@ describe("Auditoria atômica da edição (PR #69, ponto 3)", () => {
   }
 
   it("cada edição gera exatamente um evento de sucesso, com ator e setor da sessão", async () => {
-    const cnpj = "11444777001133";
+    const cnpj = "45723174000463";
     const cliente = await criarClienteComContrato(cnpj);
+    await tornarResponsavel(cliente.id, FUNCIONARIO_SN_ID);
     const supabase = await comoFuncionarioSN();
 
     expect(await eventosDeEdicao(cnpj)).toBe(0);
@@ -220,8 +242,9 @@ describe("Auditoria atômica da edição (PR #69, ponto 3)", () => {
   });
 
   it("edição que falha (contato inválido) não deixa evento de sucesso", async () => {
-    const cnpj = "11444777001214";
+    const cnpj = "45723174000544";
     const cliente = await criarClienteComContrato(cnpj);
+    await tornarResponsavel(cliente.id, FUNCIONARIO_SN_ID);
     const supabase = await comoFuncionarioSN();
 
     const { error } = await supabase.rpc("editar_cadastro_operacional_cliente", {
@@ -247,6 +270,7 @@ describe("Data API — revalidação da PR #69 (B1, B2, I1, I2)", () => {
 
   it("B1: clientes_basico é só leitura — INSERT, UPDATE e DELETE falham para qualquer Funcionário e o Cliente fica intacto", async () => {
     const cliente = await criarClienteComContrato("11444777001486");
+    await tornarResponsavel(cliente.id, FUNCIONARIO_SN_ID);
 
     for (const supabase of [await comoFuncionarioSN(), await comoFuncionarioFinanceiro()]) {
       const insercao = await supabase
@@ -274,6 +298,7 @@ describe("Data API — revalidação da PR #69 (B1, B2, I1, I2)", () => {
   it("B2: escrita direta nas tabelas operacionais também gera o evento, e o cadastro do Cliente não gera evento de edição", async () => {
     const cnpj = "11444777001648";
     const cliente = await criarClienteComContrato(cnpj);
+    await tornarResponsavel(cliente.id, FUNCIONARIO_SN_ID);
     const supabase = await comoFuncionarioSN();
     expect(await eventos(cnpj)).toBe(0);
 
@@ -323,6 +348,7 @@ describe("Data API — revalidação da PR #69 (B1, B2, I1, I2)", () => {
   it("I1: RPC e DML direto rejeitam mês passado/futuro; a atividade histórica não é alterada nem movida, mas continua legível", async () => {
     const cnpj = "11444777001800";
     const cliente = await criarClienteComContrato(cnpj);
+    await tornarResponsavel(cliente.id, FUNCIONARIO_SN_ID);
     const supabase = await comoFuncionarioSN();
     const mesCorrente = primeiroDiaDoMesAtual();
     const passado = "2020-01-01";
@@ -404,6 +430,7 @@ describe("Data API — revalidação da PR #69 (B1, B2, I1, I2)", () => {
       const salvo = await new SupabaseClienteRepository(admin).criar(construido.value);
       expect(salvo.ok).toBe(true);
       const id = construido.value.id;
+      if (aplica) await tornarResponsavel(id, FUNCIONARIO_SN_ID);
 
       // criação automática só para MEI/Simples Nacional
       const automatico = await serviceRole()

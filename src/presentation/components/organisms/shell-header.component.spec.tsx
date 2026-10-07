@@ -26,7 +26,7 @@ describe("ShellHeader", () => {
       />,
     );
 
-    expect(screen.getByText(/Setor: simples_nacional/)).toBeInTheDocument();
+    expect(screen.getByText(/Setor: Simples Nacional/)).toBeInTheDocument();
     expect(screen.getByText(/Funcionário/)).toBeInTheDocument();
   });
 

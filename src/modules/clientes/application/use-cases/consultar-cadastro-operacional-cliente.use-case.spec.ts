@@ -22,6 +22,8 @@ const DTO: CadastroOperacionalClienteDto = {
   parcelamentoStatus: null,
   observacoesGerais: "",
   atividadeMes: { industria: false, comercio: false, servico: false },
+  responsavelId: null,
+  responsavelNome: null,
 };
 
 const sessaoCom = (autenticado: boolean): SessaoPort => ({
@@ -35,6 +37,16 @@ class ClienteQueryPortFalso implements ClienteQueryPort {
     Result<CadastroOperacionalClienteDto | null, AppError>
   > {
     return ok(this.dto);
+  }
+
+  async buscarPorTermo() {
+    return ok([]);
+  }
+  async listarResumoOperacional() {
+    return ok([]);
+  }
+  async listarResponsaveisElegiveis() {
+    return ok([]);
   }
 }
 

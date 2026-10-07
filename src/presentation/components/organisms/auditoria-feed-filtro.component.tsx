@@ -5,7 +5,7 @@ import { FieldError } from "@/presentation/components/ui/field-error";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
 import { Select } from "@/presentation/components/ui/select";
-import { SETORES } from "@/shared/kernel/setores";
+import { SETOR_LABEL, SETORES } from "@/shared/kernel/setores";
 
 export type FiltroValues = {
   dataInicio?: string;
@@ -65,7 +65,7 @@ export function AuditoriaFeedFiltro({
             <option value="">Todos</option>
             {SETORES.map((setor) => (
               <option key={setor} value={setor}>
-                {setor}
+                {SETOR_LABEL[setor]}
               </option>
             ))}
           </Select>

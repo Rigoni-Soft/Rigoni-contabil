@@ -40,6 +40,10 @@ _Avoid_: Regime de atendimento (não é isso).
 O conjunto de campos que o Funcionário do Simples Nacional mantém atualizado por Cliente — forma de envio, Contatos, documento recebido, DAS, Parcelamento, Atividade do mês, observações gerais (#34). Nasce automaticamente quando o Cliente é cadastrado com Regime Simples Nacional ou MEI (#33), com os campos de status em suas opções negativa/pendente por padrão (documento recebido = negativo; DAS e Parcelamento = pendente) até o Funcionário atualizar de verdade — nunca fica em branco esperando o primeiro acesso. Outros Setores só visualizam; nunca inclui contrato social/alterações contratuais, mesmo pro próprio Funcionário do Simples Nacional.
 _Avoid_: Cadastro do cliente (ambíguo com o cadastro básico do #33 — Empresa/CNPJ/Regime/documentos jurídicos).
 
+**Responsável**:
+O Funcionário do Simples Nacional atribuído pelo Líder a um Cliente (#65). Um Cliente tem no máximo um; um Funcionário pode ser Responsável por vários. Funcionário só enxerga e edita os Clientes pelos quais é Responsável (RLS no banco); o Líder enxerga todos e é o único que atribui, troca ou remove. Sem atribuição, o Cliente aparece como "Sem responsável". Funcionário removido (conta excluída) também deixa o Cliente sem responsável; a desativação (soft delete) nasce no #58, que deve fazer o mesmo.
+_Avoid_: Dono, atendente do cliente (Atendente é outro conceito — quem conduz um Atendimento).
+
 **Contato**:
 Um vínculo nome + número de WhatsApp a um Cliente. Um Cliente tem um Contato marcado como padrão e pode ter outros Contatos adicionais.
 _Avoid_: Cliente (um Contato não é o Cliente, é quem fala em nome dele).

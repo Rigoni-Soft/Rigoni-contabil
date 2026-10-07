@@ -3,6 +3,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   CadastroOperacionalClienteDto,
   ClienteQueryPort,
+  ResponsavelOpcaoDto,
+  ResumoOperacionalRow,
+  SugestaoClienteDto,
 } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import {
   operacionalUnico,
@@ -29,12 +32,20 @@ type ClienteBasicoRow = {
   cliente_atividades_mensais: AtividadeMensalRow[] | null;
 };
 
+const EMBED_OPERACIONAL =
+  "cliente_cadastro_operacional_sn(*, responsavel:perfis!responsavel_id(nome))";
+
+const responsavelDe = (operacional: CadastroOperacionalRow | null) => ({
+  responsavelId: operacional?.responsavel_id ?? null,
+  responsavelNome: operacional?.responsavel?.nome ?? null,
+});
+
 // Lê da view `clientes_basico`, que não tem contrato_social_caminho: a
 // confidencialidade é garantida no banco (PR #69), não só pelo select ou pelo
 // shape do DTO de saída.
 const SELECT_CADASTRO_BASICO = `
   id, empresa, cnpj, regime,
-  cliente_cadastro_operacional_sn(*),
+  ${EMBED_OPERACIONAL},
   cliente_contatos(*),
   cliente_atividades_mensais(*)
 `;
@@ -85,6 +96,80 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
         comercio: atividade?.comercio ?? false,
         servico: atividade?.servico ?? false,
       },
+      ...responsavelDe(operacional),
     });
+  }
+
+  async listarResponsaveisElegiveis(): Promise<Result<ResponsavelOpcaoDto[], AppError>> {
+    const { data, error } = await this.supabase
+      .from("perfis")
+      .select("id, nome")
+      .eq("papel", "funcionario")
+      .eq("setor", "simples_nacional")
+      .order("nome");
+    if (error) return err(new ConsultaError(`Erro ao listar Responsáveis: ${error.message}`));
+    return ok((data as ResponsavelOpcaoDto[]) ?? []);
+  }
+
+  async buscarPorTermo(
+    termo: string,
+    apenasSnMei: boolean,
+  ): Promise<Result<SugestaoClienteDto[], AppError>> {
+    // `,`/`()` têm significado especial na sintaxe de filtro `.or()` do
+    // PostgREST — sem escapar, um termo com vírgula (ex. "Pão, Quente Ltda")
+    // vira duas condições em vez de texto literal. Envolver em aspas duplas
+    // (com `"`/`\` escapados) trata o valor inteiro como literal.
+    const valor = `%${termo}%`.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    // View `clientes_basico`, não `clientes`: o dashboard é de qualquer Funcionário
+    // do setor, e só Admin lê a tabela (devolutiva PR #69, contrato social).
+    let query = this.supabase.from("clientes_basico").select("id, empresa, cnpj");
+    // Só a busca embutida no dashboard do Simples Nacional restringe o
+    // Regime (#35/#36) — Admin/qualquer setor fora dessa tela busca em
+    // qualquer Cliente (feedback de teste manual, ponto 3 do #36).
+    if (apenasSnMei) query = query.in("regime", ["simples_nacional", "mei"]);
+    const { data, error } = await query
+      .or(`cnpj.ilike."${valor}",empresa.ilike."${valor}"`)
+      .order("empresa")
+      .limit(10);
+
+    if (error) return err(new ConsultaError(`Erro ao buscar clientes: ${error.message}`));
+    return ok((data as SugestaoClienteDto[]) ?? []);
+  }
+
+  async listarResumoOperacional(): Promise<Result<ResumoOperacionalRow[], AppError>> {
+    // View `clientes_basico` (PR #69): o dashboard é de qualquer Funcionário do setor.
+    const anoMesAtual = primeiroDiaDoMesAtual();
+    const { data, error } = await this.supabase
+      .from("clientes_basico")
+      .select(`id, empresa, cnpj, ${EMBED_OPERACIONAL}, cliente_atividades_mensais(*)`)
+      .eq("cliente_atividades_mensais.ano_mes", anoMesAtual)
+      // Mesmo escopo da busca (#35): só Regime com cadastro operacional de
+      // verdade (nasce automático só pra Simples Nacional/MEI, #34).
+      .in("regime", ["simples_nacional", "mei"]);
+
+    if (error) return err(new ConsultaError(`Erro ao listar resumo operacional: ${error.message}`));
+
+    const linhas = (data ?? []) as unknown as (ClienteBasicoRow & { id: string })[];
+    return ok(
+      linhas.map((linha) => {
+        const operacional = operacionalUnico(linha.cliente_cadastro_operacional_sn);
+        const atividade = (linha.cliente_atividades_mensais ?? [])[0];
+        return {
+          clienteId: linha.id,
+          empresa: linha.empresa,
+          cnpj: linha.cnpj,
+          documentoObrigatorio: operacional?.documento_obrigatorio ?? null,
+          dasStatus: operacional?.das_status ?? null,
+          temParcelamento: operacional?.tem_parcelamento ?? false,
+          parcelamentoStatus: operacional?.parcelamento_status ?? null,
+          atividadeMes: {
+            industria: atividade?.industria ?? false,
+            comercio: atividade?.comercio ?? false,
+            servico: atividade?.servico ?? false,
+          },
+          ...responsavelDe(operacional),
+        };
+      }),
+    );
   }
 }

@@ -35,9 +35,11 @@ export type EditarCadastroOperacionalInput = z.infer<typeof editarCadastroOperac
 // (Container injeta antes de chamar a Server Action). Removê-lo do resolver
 // do formulário evita depender de um input escondido só pra carregar um
 // valor que o React Hook Form já não precisa validar no cliente.
-export const editarCadastroOperacionalFormSchema = editarCadastroOperacionalSchema.omit({
-  clienteId: true,
-});
+// responsavelId vai por outra Server Action (só o Líder do SN atribui, #65) —
+// aqui só viaja no formulário; o schema da action de edição o descarta.
+export const editarCadastroOperacionalFormSchema = editarCadastroOperacionalSchema
+  .omit({ clienteId: true })
+  .extend({ responsavelId: z.string() });
 export type EditarCadastroOperacionalFormValues = z.infer<
   typeof editarCadastroOperacionalFormSchema
 >;

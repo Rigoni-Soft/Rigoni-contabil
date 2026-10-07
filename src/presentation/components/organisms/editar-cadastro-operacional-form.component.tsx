@@ -16,11 +16,13 @@ import {
   type DocumentoObrigatorioStatusValor,
 } from "@/shared/kernel/documento-obrigatorio-status";
 import { FORMA_ENVIO_LABEL, FORMAS_ENVIO, type FormaEnvioValor } from "@/shared/kernel/forma-envio";
+import { SEM_RESPONSAVEL_LABEL } from "@/shared/kernel/papeis";
 import {
   PARCELAMENTO_STATUS_LABEL,
   PARCELAMENTO_STATUSES,
   type ParcelamentoStatusValor,
 } from "@/shared/kernel/parcelamento-status";
+import { REGIME_LABEL } from "@/shared/kernel/regimes";
 
 // View global não importa módulos (arquitetura.md §3.4) — o shape espelha
 // EditarCadastroOperacionalFormValues (módulo clientes) por estrutura, não
@@ -35,6 +37,21 @@ export type EditarCadastroOperacionalFormValues = {
   parcelamentoStatus: ParcelamentoStatusValor | null;
   observacoesGerais: string;
   atividadeMes: { industria: boolean; comercio: boolean; servico: boolean };
+  // "" = Sem responsável (#65).
+  responsavelId: string;
+};
+
+// Responsável (#65): só o Líder do SN edita (Select); os demais veem o nome.
+type ResponsavelCampo = {
+  editavel: boolean;
+  nomeAtual: string;
+  opcoes: { id: string; nome: string }[];
+  // Lista carrega só quando o Select é aberto; enquanto isso (ou se falhar)
+  // aparece como opção desabilitada.
+  onAbrir: () => void;
+  // "erro": aviso próprio com saída (tentar de novo), nunca só uma opção.
+  estadoLista: "ok" | "carregando" | "erro";
+  onTentarNovamente: () => void;
 };
 
 type CabecalhoCliente = { empresa: string; cnpj: string; regime: string };
@@ -47,6 +64,7 @@ type EditarCadastroOperacionalFormProps = {
   onSubmit: React.FormEventHandler<HTMLFormElement>;
   pendente: boolean;
   readOnly: boolean;
+  responsavel: ResponsavelCampo;
   temParcelamento: boolean;
   erroServidor?: string;
   sucesso?: boolean;
@@ -55,6 +73,11 @@ type EditarCadastroOperacionalFormProps = {
   onAdicionarContato: () => void;
   onRemoverContato: (indice: number) => void;
   onLimpar: () => void;
+  // Sem callback (uso em /clientes/[id]): "Cancelar" navega pro mesmo destino
+  // do "Voltar" do topo. Com callback (uso inline na busca do dashboard, #35):
+  // já está em "/" — um <Link href="/"> não dispara navegação nem reseta nada,
+  // então o Container que abriu o form inline fecha o painel diretamente.
+  onCancelar?: () => void;
 };
 
 export function EditarCadastroOperacionalForm({
@@ -65,6 +88,7 @@ export function EditarCadastroOperacionalForm({
   onSubmit,
   pendente,
   readOnly,
+  responsavel,
   temParcelamento,
   erroServidor,
   sucesso,
@@ -72,11 +96,12 @@ export function EditarCadastroOperacionalForm({
   onAdicionarContato,
   onRemoverContato,
   onLimpar,
+  onCancelar,
 }: EditarCadastroOperacionalFormProps) {
   return (
     <form
       onSubmit={onSubmit}
-      className="space-y-6 rounded-lg border border-border bg-card p-6 shadow-sm"
+      className="rc-guilloche-frame space-y-6 rounded-lg border border-border bg-card p-6 shadow-sm"
     >
       {!readOnly && (
         <p className="text-xs text-muted-foreground">
@@ -84,7 +109,7 @@ export function EditarCadastroOperacionalForm({
         </p>
       )}
 
-      <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-3" disabled>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1.5fr]">
         <div className="space-y-1">
           <Label>Empresa</Label>
           <Input value={cabecalho.empresa} disabled readOnly />
@@ -95,9 +120,43 @@ export function EditarCadastroOperacionalForm({
         </div>
         <div className="space-y-1">
           <Label>Regime</Label>
-          <Input value={cabecalho.regime} disabled readOnly />
+          <Input value={REGIME_LABEL[cabecalho.regime] ?? cabecalho.regime} disabled readOnly />
         </div>
-      </fieldset>
+        <div className="space-y-1">
+          <Label htmlFor="responsavelId">Responsável</Label>
+          {responsavel.editavel ? (
+            <Select
+              id="responsavelId"
+              disabled={pendente}
+              {...register("responsavelId")}
+              onFocus={responsavel.onAbrir}
+            >
+              <option value="">{SEM_RESPONSAVEL_LABEL}</option>
+              {responsavel.estadoLista === "carregando" && <option disabled>Carregando…</option>}
+              {responsavel.opcoes.map((opcao) => (
+                <option key={opcao.id} value={opcao.id}>
+                  {opcao.nome}
+                </option>
+              ))}
+            </Select>
+          ) : (
+            <Input id="responsavelId" value={responsavel.nomeAtual} disabled readOnly />
+          )}
+          {responsavel.estadoLista === "erro" && (
+            <div className="flex flex-wrap items-center gap-x-2">
+              <FieldError>Não foi possível carregar a lista de Funcionários.</FieldError>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={responsavel.onTentarNovamente}
+              >
+                Tentar de novo
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
 
       <fieldset disabled={readOnly || pendente} className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="space-y-1">
@@ -260,15 +319,25 @@ export function EditarCadastroOperacionalForm({
             <Button type="button" variant="outline" onClick={onLimpar} disabled={pendente}>
               Limpar
             </Button>
-            <Link href="/" className={buttonVariants({ variant: "ghost" })}>
-              Cancelar
-            </Link>
+            {onCancelar ? (
+              <Button type="button" variant="destructive" onClick={onCancelar} disabled={pendente}>
+                Cancelar
+              </Button>
+            ) : (
+              <Link href="/" className={buttonVariants({ variant: "destructive" })}>
+                Cancelar
+              </Link>
+            )}
           </div>
         )}
       </fieldset>
 
       {erroServidor && <FieldError>{erroServidor}</FieldError>}
-      {sucesso && <p className="text-sm text-primary">Cadastro operacional atualizado.</p>}
+      {sucesso && (
+        <p role="status" className="text-sm text-primary">
+          Cadastro operacional atualizado.
+        </p>
+      )}
     </form>
   );
 }

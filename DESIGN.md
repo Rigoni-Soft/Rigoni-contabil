@@ -75,30 +75,42 @@ técnica não negociável), carregada via `next/font/google` em
 `.rc-guilloche-frame` (`src/app/globals.css`) é a moldura de segurança do
 mundo "Talão de Cheque": duas grades de linhas finas em ângulos opostos,
 recortadas para viver só na faixa de borda via `mask-composite: exclude` —
-sem asset de imagem, tileable, 100% CSS. Usada com moderação: hoje só no
-cartão de login; o painel de cliente do dashboard Simples Nacional é o
-próximo consumidor natural.
+sem asset de imagem, tileable, 100% CSS. Usada com moderação: cartão de
+login e, desde #35, o próprio formulário de cadastro operacional
+(`editar-cadastro-operacional-form.component.tsx`) — o painel de cliente
+do dashboard Simples Nacional, tanto na página dedicada `/clientes/[id]`
+quanto no uso inline da busca (`/`), lê como a folha do talão preenchida,
+conforme o contrato de `.impeccable/surfaces/dashboard-simples-nacional.md`.
+Qualquer outro painel de cliente futuro reusa a mesma moldura em vez de um
+`border` simples.
 
 ## Layout
 
 Telas Operate autenticadas (`ShellHeader` + conteúdo) usam um container
-centralizado com padding lateral (`px-4 sm:px-6`); a largura máxima segue a
-densidade real do conteúdo, não um valor único fixo do produto:
+centralizado com padding lateral (`px-4 sm:px-6`); a largura é relativa à
+tela (`%`, não `max-w-*` fixo), definida pela categoria da tela, não um
+valor único fixo do produto (decisão revisada em 2026-10-01, feedback
+manual do #36 — `max-w-*` fixo deixava a tela "sobrando" em monitores
+largos, abaixo do que o usuário queria ver ocupado):
 
-- Formulário isolado (ex.: cartão de login, cadastro de Líder/Funcionário
-  pelo Admin ou pelo Líder de setor — escopado por RBAC no caso de uso, #32
-  —, troca de senha): `max-w-md`, conteúdo único centralizado.
-- Feed/tabela com filtro (ex.: `/admin/auditoria`): `max-w-6xl` — largura
-  suficiente para a grade de filtro de 4 colunas e as 6 colunas da tabela
-  sem espremer nem forçar rolagem horizontal prematura.
-- Formulário com elevação em 2 colunas (ex.: edição do cadastro operacional
-  do Simples Nacional, #34, feedback manual do usuário): `max-w-2xl` dentro
-  de um cartão `rounded-lg border bg-card shadow-sm` — mais largo que o
-  formulário isolado de coluna única porque o conteúdo é denso (Forma de
-  envio, Documento, DAS, parcelamento, Atividade do mês, Contatos), mas sem
-  chegar na largura de feed/tabela. Qualquer formulário operacional futuro
-  com essa mesma densidade (vários grupos de campo relacionados, não um
-  fluxo linear único) reusa essa largura em vez de forçar `max-w-md`.
+- **Login e troca de senha**: ficam de fora da regra — `max-w-sm`/`max-w-md`,
+  conteúdo único centralizado, por serem telas de entrada/bloqueio, não de
+  trabalho. Decisão explícita do usuário: nunca ocupam a tela toda.
+- **Formulário de criar algo** (ex.: cadastro de Cliente, cadastro de
+  Líder/Funcionário): `w-[80%]` — mais largo que antes, mas ainda contido,
+  porque continua sendo um fluxo de preenchimento linear único, não uma
+  grade densa de múltiplos grupos.
+- **Conteúdo/listagem** (dashboard `/`, resumo do setor e seu drill-down
+  `/clientes/resumo/[bucket]`, feed de auditoria `/admin/auditoria`, edição
+  do cadastro operacional `/clientes/[id]`): `w-[90%]` — telas de trabalho
+  contínuo (ver, filtrar, navegar entre registros), ocupam a maior parte da
+  largura livre da tela.
+
+Formulário com elevação em 2 colunas (ex.: edição do cadastro operacional
+do Simples Nacional, #34): cartão `rounded-lg border bg-card shadow-sm`
+dentro do container de 90% acima — mais denso que um formulário isolado
+(Forma de envio, Documento, DAS, parcelamento, Atividade do mês, Contatos),
+por isso fica na categoria "conteúdo", não "formulário de criar".
 
 Painel de filtro: campos em grid (`grid-cols-2 sm:grid-cols-4`), e as ações
 (Limpar/Filtrar) ficam numa linha própria abaixo dos campos, separada por
@@ -273,6 +285,37 @@ sem alteração — `Button` primário "Cadastrar outro" (ícone `UserPlus`,
 limpa o formulário e reseta a lista de alterações contratuais) e `<Link>`
 "Finalizar" pra `/`, mesma justificativa provisória do destino.
 
+**Largura compacta (feedback de teste manual do #36):** depois que o
+container da página virou `w-[80%]`/`w-[90%]` (#36, seção Layout), a
+confirmação de cadastro (senha provisória, ou só o aviso de sucesso) parou
+de fazer sentido esticada pra largura inteira — vira uma caixa pequena,
+`max-w-md mx-auto` (cadastro de usuário, tem mais conteúdo: senha provisória
+em bloco mono) ou `max-w-sm mx-auto` (cadastro de Cliente, só uma linha de
+texto), cada uma só um pouco mais larga que os dois botões lado a lado.
+
+### Formulários de criar: campos lado a lado (#36, feedback de teste manual)
+
+Com o container da página em `w-[80%]` (seção Layout acima), empilhar cada
+campo numa linha própria (`flex flex-col gap-5`) deixa o formulário raso e
+alongado sem aproveitar a largura. Campos de identificação simples (texto
+curto, `Select` de poucas opções) agora ficam num `grid` — 2 ou 3 colunas
+conforme o número de campos do grupo, nunca mais que isso (texto longo tipo
+Observações, upload de arquivo e listas repetíveis continuam em coluna
+única, não cabem bem num grid raso):
+
+- `CriarUsuarioForm`: Nome/E-mail/Papel/Setor em `grid-cols-1 sm:grid-cols-2`.
+- `CriarClienteForm`: CNPJ/Empresa/Regime em `grid-cols-1 sm:grid-cols-3`
+  (identificação do Cliente); dentro de cada "Alteração contratual", Data e
+  Arquivo da alteração em `grid-cols-1 sm:grid-cols-2`. A seção "Documentos"
+  (Contrato social + lista de Alterações) continua fora do grid — upload de
+  arquivo e lista dinâmica não comprimem bem lado a lado.
+- `EditarCadastroOperacionalForm` já seguia esse padrão desde o #34 (3 e 2
+  colunas, conforme o grupo de campos) — nenhuma mudança necessária lá.
+
+Formulário isolado de coluna única (login, troca de senha) fica de fora
+dessa regra — container estreito (`max-w-sm`/`max-w-md`, não entra na
+regra de 80%/90%), poucos campos, grid não ajudaria.
+
 ### Lista de itens repetíveis (campo dinâmico)
 
 **Alterações contratuais (29/09/2026, #33):** primeiro uso de
@@ -343,9 +386,19 @@ salvar/desfazer/cancelar): `Button` primário "Salvar"; `Button`
 (`reset()` do react-hook-form com os mesmos valores do `defaultValues`) —
 **não esvazia campos**, porque campos `enum` obrigatórios (ex.: Forma de
 envio) não têm opção em branco no `Select`, então "limpar de verdade"
-quebraria a validação; e `<Link>` `ghost` "Cancelar" pro mesmo destino do
-"Voltar" do topo da página. Qualquer tela de edição futura (distinta de
-cadastro em lote) reusa este trio em vez do par "Cadastrar outro"/"Finalizar".
+quebraria a validação; e "Cancelar" `destructive` (vermelho — revisado no
+#35, era `ghost` na entrega original do #34 e o usuário pediu destaque de
+cor pra uma ação que descarta a edição). Qualquer tela de edição futura
+(distinta de cadastro em lote) reusa este trio em vez do par "Cadastrar
+outro"/"Finalizar".
+
+**#35, reuso inline:** o mesmo form passou a abrir embutido na seção
+"Buscar cliente" do dashboard (`/`), não só na página dedicada
+`/clientes/[id]`. Como `/` já é o próprio destino do "Cancelar", um
+`<Link href="/">` ali dentro não navega pra lugar nenhum — o form ganhou
+uma prop opcional `onCancelar`: quando informada (uso inline), "Cancelar"
+vira `Button` que fecha o painel e volta pro campo de busca; sem ela (uso
+em `/clientes/[id]`), continua `<Link href="/">`.
 
 ### Autopreenchimento a partir de API pública
 
@@ -380,6 +433,130 @@ formulário com `useFieldArray` segue essa mesma cautela — testar em E2E de
 verdade, não só unitário com a chamada externa mockada, antes de considerar
 pronto.
 
+### Busca com sugestões (combobox)
+
+**"Buscar cliente" do dashboard (#35):** primeiro typeahead do produto —
+padrão pra qualquer busca-com-sugestões futura. `Input` ganha
+`role="combobox"`, `aria-expanded`, `aria-controls` apontando pro
+`id` da `<ul role="listbox">`, e `aria-autocomplete="list"`; cada
+sugestão é um `<li role="option">` (não um `<button>` dentro do
+`<li>` — ARIA não permite elemento interativo aninhado num `option`).
+Teclado: `ArrowUp`/`ArrowDown` movem um destaque visual (`bg-accent`
++ `aria-selected`) calculado no render a partir do índice guardado em
+`useState` — nunca resetado dentro de um `useEffect` (React desaconselha
+`setState` síncrono em efeito pelo cascading render; o índice só é válido
+se ainda cabe na lista atual do resultado, verificado direto no render);
+`Enter` seleciona a sugestão destacada, `Escape` limpa o campo.
+Contagem de resultados e estado de carregamento vão num
+`role="status" aria-live="polite"` `sr-only` (nunca só o texto visível,
+que só ajuda quem enxerga a tela). Ao selecionar um resultado, o foco move
+pro título do painel que abre (`ref` + `tabIndex={-1}` + `.focus()`
+num `useEffect`) — sem isso, navegação por teclado/leitor de tela perde o
+contexto da troca de tela.
+
+### Resumo do setor (anéis de status, #36)
+
+**`ResumoSetorSn` / `ResumoSetorSnLista` (/simples-nacional):**
+9 cards fixos (invariante do mapper, ordem garantida por teste) divididos em
+dois grupos — "Documentos e DAS" (5) e "Parcelamento" (4) — cada card é um
+`Link` inteiro (não botão + link separados) pra
+`/clientes/resumo/<bucket>`, que abre a lista filtrada
+daquele status como tela própria (não modal, não accordion inline — mesma
+razão de qualquer outra navegação do produto: estado via URL, não só client
+state). Cada card é um selo circular SVG (anel de progresso, raio 26,
+`stroke-linecap: round`, girado -90° pra começar no topo
+como um relógio) com a contagem em número grande (`tabular-nums`)
+no centro — a cor do traço reusa os tokens semânticos já existentes
+(`stroke-primary`/`stroke-success`/`stroke-destructive`/`stroke-muted-foreground`,
+mapeados 1:1 com as cores do protótipo aprovado na spec #24), sem introduzir
+nenhum token novo. É o primeiro uso visual real do token `success`
+(dourado) desde que foi definido — deixa de ser "token sem uso" (ver "O que
+ainda não existe" abaixo).
+
+**Título do card e contagem total via sr-only:** a proporção visual do anel
+(fração preenchida do círculo) não tem equivalente textual pra quem usa
+leitor de tela — corrigido na revisão impeccable (01/10/2026): cada card
+carrega um `<span className="sr-only">` depois do título com
+"— N de M clientes", garantindo que o nome acessível do link expresse a
+mesma proporção que o anel mostra visualmente, não só a contagem isolada.
+Qualquer novo indicador em anel/gráfico futuro reusa esse padrão (contexto
+textual completo em sr-only, nunca só o número visível).
+
+**`<h1>` da página, não `<h2>` (01/10/2026):** desde que
+"Resumo do setor" ganhou página própria (`/simples-nacional`, decisão
+registrada na seção Layout acima), seu título é o heading de nível 1 do
+conteúdo da página — corrigido na revisão impeccable (era `<h2>` de
+quando ainda vivia embutido em `/` ao lado de outras seções).
+`ShellHeader` não tem heading próprio (mostra nome/papel de
+sessão, não título de página), então cada página de conteúdo é responsável
+pelo próprio `<h1>` — `ResumoSetorSnListaPage` (drill-down de
+bucket) já seguia essa regra desde a implementação original.
+
+**Lista de drill-down (`ResumoSetorSnLista`):** linhas simples
+(`divide-y` + borda, sem o tratamento de card elevado) — empresa em
+destaque, CNPJ mascarado abaixo em texto secundário, "Ver cadastro →" como
+affordance textual de navegação (não ícone sozinho). Cada linha leva pra
+`/clientes/[id]` (#34, tela de edição/consulta já existente) com
+`?voltarPara=` apontando de volta pra própria lista — "Voltar" na
+tela de edição retorna pro bucket, não pro resumo geral.
+
+**Comparativos (`ComparativosSn`, #37):** seção abaixo do resumo do setor,
+grid `md:grid-cols-2 lg:grid-cols-3` (3 gráficos) — o Líder do SN ganha um 4º
+(#65, abaixo) e a grade vira `md:grid-cols-2` (2×2, duas linhas de dois: em
+4 colunas os cartões ficavam apertados). O título da seção é `<h2>`
+`text-lg font-semibold` (mesmo papel de "Buscar cliente"); o `<h1>` da página
+("Resumo do setor") segue o padrão de título de página do app
+(`text-xl font-bold tracking-tight text-primary`) — h1 e h2 nunca com o mesmo
+tamanho; cada gráfico é um cartão
+`rounded-xl border bg-card` (mesma superfície dos cards do resumo, sem
+guilhochê) com `role="group"` + título. DAS e parcelamento são donuts SVG
+(sem biblioteca de gráfico, anel de fundo `stroke-border`); Atividade do mês
+é lista de barras proporcionais ao total de clientes e ocupa a largura toda
+no tablet (`md:col-span-2`). Só tokens existentes: `primary` (enviado),
+`destructive` (pendente), `success` (pronto), `muted-foreground` (sem
+movimento/interno). A cor nunca é o único
+canal: toda fatia tem legenda com rótulo e número.
+
+**4º comparativo — "Envio de DAS por Responsável" (#65, só Líder):** barras
+proporcionais ao total de clientes, mesmo layout de "Atividade do mês"
+(`Barras` recebe a nota como prop; sem `col-span` quando são 4 cartões).
+Conta Clientes com DAS **Enviado** por Responsável; "Sem responsável" usa o
+tom neutro (`bg-muted-foreground`, mesmo de "Sem movimento"/"Interno"), cada
+Funcionário o tom primário. Nome longo trunca com reticências + `title` e o
+número fica `shrink-0`. Sem nenhum cliente atribuído: texto "Nenhum cliente
+atribuído ainda." no lugar da lista. Funcionário (e Admin) continuam vendo só
+os 3 gráficos originais.
+
+**Estado vazio do resumo (#65):** Funcionário sem clientes atribuídos vê o
+dashboard normal (cards zerados) mais um aviso neutro,
+`text-sm text-muted-foreground` ("Nenhum cliente no resumo ainda. Os clientes
+atribuídos a você aparecem aqui.") — a RLS esconde os clientes dos outros, não
+há tela de "sem acesso".
+
+**Campo Responsável no cadastro operacional (#65):** fica no cabeçalho de
+identidade do formulário, não no fim — a linha Empresa · CNPJ · Regime ·
+Responsável é uma grade `grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1.5fr]`
+(Empresa mais larga pra nomes longos). Os 3 primeiros são `Input`
+`disabled readOnly`; o Responsável é o único editável dessa linha, por isso o
+bloco deixou de ser um `fieldset disabled` (cada campo carrega o próprio
+`disabled`). Líder do SN vê um `Select` ("Sem responsável" + Funcionários do
+SN); quem só visualiza (Funcionário, Admin, outros Setores) vê um `Input`
+desabilitado com o nome — "Sem responsável" sem atribuição, "Responsável de
+outro setor" quando a RLS esconde o perfil. A lista de Funcionários é
+carregada **só quando o Select recebe foco** (React Query, `enabled` ligado
+no `onFocus`); antes disso só o Responsável atual está nas opções. Estados:
+"Carregando…" como `<option disabled>`; falha de carga vira
+`FieldError` ("Não foi possível carregar a lista de Funcionários.") com botão
+ghost "Tentar de novo" ao lado (nunca só uma opção desabilitada, que não tem
+saída). Salvar grava o cadastro e depois a atribuição; se só a segunda
+falhar, a mensagem diz que os dados foram salvos
+("Os dados foram salvos, mas não foi possível atribuir o Responsável. …") e
+reenviar repete só a atribuição.
+
+**Rótulos de Setor/Regime:** slugs do banco nunca aparecem como texto de UI;
+usar `SETOR_LABEL` (`shared/kernel/setores.ts`) e `REGIME_LABEL`.
+`ThemeToggle` mostra o ícone do tema de destino (sol no dark, lua no light).
+
 ## Estados e motion
 
 - Loading do formulário de login: label muda para "Entrando…" e um
@@ -389,11 +566,14 @@ pronto.
   troca de senha (#31) seguem o mesmo padrão ("Cadastrando…" /
   "Trocando…").
 - Erro de servidor: bloco com borda/ícone `destructive`, `role="alert"`.
+- Sucesso de salvar no cadastro operacional: `role="status"` (anunciado por
+  leitor de tela, ao contrário de um `<p>` mudo).
 
 ## O que ainda não existe
 
-- Selo dourado "em dia" (`success`) definido como token mas sem uso visual
-  ainda — pertence às telas do setor Simples Nacional (#35–#37).
+- ~~Selo dourado "em dia" (`success`) definido como token mas sem uso visual
+  ainda.~~ Em uso desde #36 (ver Componentes → Resumo do setor) — o anel
+  "atenção" usa `stroke-success`.
 - Componentes `ui/` adicionais além de `select.tsx` (Dialog, uma `Table`
   estilizada para reuso — hoje o feed de auditoria usa `<table>` nativo com
   classes inline) — adicionar sob demanda, seguindo os mesmos tokens.

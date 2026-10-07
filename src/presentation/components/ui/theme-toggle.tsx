@@ -24,7 +24,7 @@ export function ThemeToggle() {
       onClick={() => setTheme(escuro ? "light" : "dark")}
     >
       <span suppressHydrationWarning>
-        {escuro ? <Moon aria-hidden="true" /> : <Sun aria-hidden="true" />}
+        {escuro ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
       </span>
     </Button>
   );

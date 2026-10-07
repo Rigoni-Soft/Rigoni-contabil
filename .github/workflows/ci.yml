@@ -2,13 +2,19 @@ name: CI
 
 on:
   pull_request:
+    branches: [develop, homolog, main]
   push:
-    branches: [main, homolog, develop]
+    branches: [develop, homolog, main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   qualidade:
     name: Lint, naming, deps, types, format, unit
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -34,6 +40,7 @@ jobs:
   build:
     name: Build de produção
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -56,6 +63,7 @@ jobs:
   integracao-e2e:
     name: Integração + E2E (Supabase local)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 

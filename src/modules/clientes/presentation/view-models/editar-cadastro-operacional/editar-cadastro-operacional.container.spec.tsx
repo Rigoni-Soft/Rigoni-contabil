@@ -1,14 +1,26 @@
-import { render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render as renderRtl, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
+import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { err, ok } from "@/shared/kernel/result";
 
 import { EditarCadastroOperacionalContainer } from "./editar-cadastro-operacional.container";
 
+const routerPush = jest.fn();
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push: routerPush, refresh: jest.fn() }),
+}));
+
 const executeMock = jest.fn();
 
+const atribuirMock = jest.fn();
+const listarMock = jest.fn();
 jest.mock("@/main/clientes.factory", () => ({
   makeEditarCadastroOperacionalCliente: () => ({ execute: executeMock }),
+  makeAtribuirResponsavelCliente: () => ({ execute: atribuirMock }),
+  makeListarResponsaveisElegiveis: () => ({ execute: listarMock }),
 }));
 
 const dados: CadastroOperacionalClienteDto = {
@@ -25,11 +37,25 @@ const dados: CadastroOperacionalClienteDto = {
   parcelamentoStatus: null,
   observacoesGerais: "Cliente pontual.",
   atividadeMes: { industria: false, comercio: true, servico: false },
+  responsavelId: null,
+  responsavelNome: null,
 };
+
+// Sem retry: o backoff do React Query travaria os findBy.
+function render(ui: React.ReactElement) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return renderRtl(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
 
 describe("EditarCadastroOperacionalContainer", () => {
   beforeEach(() => {
     executeMock.mockReset();
+    atribuirMock.mockReset();
+    listarMock.mockReset();
+    listarMock.mockResolvedValue(
+      ok([{ id: "f1111111-1111-4111-8111-111111111111", nome: "Funcionário SN" }]),
+    );
+    routerPush.mockReset();
   });
 
   it.each([
@@ -40,6 +66,160 @@ describe("EditarCadastroOperacionalContainer", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent(`não se aplica ao Regime ${rotulo}`);
     expect(screen.queryByRole("button", { name: /salvar/i })).not.toBeInTheDocument();
+  });
+
+  it("Responsável: sem permissão mostra o nome (campo desabilitado); Líder escolhe e salva via atribuir", async () => {
+    const { unmount } = render(
+      <EditarCadastroOperacionalContainer dados={dados} readOnly={false} />,
+    );
+    expect(screen.getByLabelText("Responsável")).toBeDisabled();
+    expect(screen.getByLabelText("Responsável")).toHaveValue("Sem responsável");
+    unmount();
+
+    executeMock.mockResolvedValue(ok({ clienteId: dados.id }));
+    atribuirMock.mockResolvedValue(ok({ clienteId: dados.id }));
+    render(
+      <EditarCadastroOperacionalContainer
+        dados={dados}
+        readOnly={false}
+        podeAtribuirResponsavel
+        voltarHrefAoSalvar="/simples-nacional"
+      />,
+    );
+    // Lista só é buscada quando o Select recebe foco/abre.
+    expect(listarMock).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByLabelText("Responsável"));
+    await screen.findByRole("option", { name: "Funcionário SN" });
+    expect(listarMock).toHaveBeenCalledTimes(1);
+    await userEvent.selectOptions(
+      screen.getByLabelText("Responsável"),
+      "f1111111-1111-4111-8111-111111111111",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Salvar" }));
+
+    await waitFor(() =>
+      expect(atribuirMock).toHaveBeenCalledWith({
+        clienteId: dados.id,
+        responsavelId: "f1111111-1111-4111-8111-111111111111",
+      }),
+    );
+    expect(routerPush).toHaveBeenCalledWith("/simples-nacional");
+  });
+
+  it("Responsável: falha ao carregar a lista mostra aviso com Tentar de novo, que busca de novo", async () => {
+    listarMock.mockResolvedValueOnce(err(new ForbiddenError("falhou")));
+    render(
+      <EditarCadastroOperacionalContainer dados={dados} readOnly={false} podeAtribuirResponsavel />,
+    );
+
+    await userEvent.click(screen.getByLabelText("Responsável"));
+    expect(await screen.findByText(/Não foi possível carregar a lista/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Tentar de novo" }));
+
+    expect(await screen.findByRole("option", { name: "Funcionário SN" })).toBeInTheDocument();
+    expect(listarMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("Responsável: erro ao atribuir mostra a mensagem e não navega", async () => {
+    executeMock.mockResolvedValue(ok({ clienteId: dados.id }));
+    atribuirMock.mockResolvedValue(err(new ForbiddenError("Só o Líder atribui.")));
+    render(
+      <EditarCadastroOperacionalContainer
+        dados={dados}
+        readOnly={false}
+        podeAtribuirResponsavel
+        voltarHrefAoSalvar="/simples-nacional"
+      />,
+    );
+    await userEvent.click(screen.getByLabelText("Responsável"));
+    await screen.findByRole("option", { name: "Funcionário SN" });
+    await userEvent.selectOptions(
+      screen.getByLabelText("Responsável"),
+      "f1111111-1111-4111-8111-111111111111",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Salvar" }));
+
+    expect(
+      await screen.findByText(/Os dados foram salvos, mas não foi possível atribuir/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Só o Líder atribui./)).toBeInTheDocument();
+    expect(routerPush).not.toHaveBeenCalled();
+  });
+
+  // Devolutiva PR #71, ponto 5.
+  describe("retry depois de salvar o cadastro e falhar só a atribuição", () => {
+    async function falharAtribuicao() {
+      executeMock.mockResolvedValue(ok({ clienteId: dados.id }));
+      atribuirMock.mockResolvedValueOnce(err(new ForbiddenError("Só o Líder atribui.")));
+      render(
+        <EditarCadastroOperacionalContainer
+          dados={dados}
+          readOnly={false}
+          podeAtribuirResponsavel
+          voltarHrefAoSalvar="/simples-nacional"
+        />,
+      );
+      await userEvent.click(screen.getByLabelText("Responsável"));
+      await screen.findByRole("option", { name: "Funcionário SN" });
+      await userEvent.selectOptions(
+        screen.getByLabelText("Responsável"),
+        "f1111111-1111-4111-8111-111111111111",
+      );
+      await userEvent.click(screen.getByRole("button", { name: "Salvar" }));
+      await screen.findByText(/Os dados foram salvos, mas não foi possível atribuir/);
+    }
+
+    it("o segundo clique repete só a atribuição, sem chamar a edição de novo", async () => {
+      await falharAtribuicao();
+      atribuirMock.mockResolvedValue(ok(undefined));
+
+      await userEvent.click(screen.getByRole("button", { name: "Salvar" }));
+
+      await waitFor(() => expect(routerPush).toHaveBeenCalledWith("/simples-nacional"));
+      expect(executeMock).toHaveBeenCalledTimes(1);
+      expect(atribuirMock).toHaveBeenCalledTimes(2);
+    });
+
+    it("atribuição que rejeita por transporte também não faz o segundo clique regravar o cadastro", async () => {
+      executeMock.mockResolvedValue(ok({ clienteId: dados.id }));
+      atribuirMock.mockRejectedValueOnce(new Error("rede"));
+      render(
+        <EditarCadastroOperacionalContainer
+          dados={dados}
+          readOnly={false}
+          podeAtribuirResponsavel
+          voltarHrefAoSalvar="/simples-nacional"
+        />,
+      );
+      await userEvent.click(screen.getByLabelText("Responsável"));
+      await screen.findByRole("option", { name: "Funcionário SN" });
+      await userEvent.selectOptions(
+        screen.getByLabelText("Responsável"),
+        "f1111111-1111-4111-8111-111111111111",
+      );
+      await userEvent.click(screen.getByRole("button", { name: "Salvar" }));
+      expect(
+        await screen.findByText(/Os dados foram salvos, mas não foi possível atribuir/),
+      ).toBeInTheDocument();
+      atribuirMock.mockResolvedValue(ok(undefined));
+
+      await userEvent.click(screen.getByRole("button", { name: "Salvar" }));
+
+      await waitFor(() => expect(routerPush).toHaveBeenCalledWith("/simples-nacional"));
+      expect(executeMock).toHaveBeenCalledTimes(1);
+      expect(atribuirMock).toHaveBeenCalledTimes(2);
+    });
+
+    it("se outro campo mudou entre as tentativas, o salvamento completo volta", async () => {
+      await falharAtribuicao();
+      atribuirMock.mockResolvedValue(ok(undefined));
+
+      await userEvent.type(screen.getByLabelText(/observações gerais/i), " Mais um detalhe.");
+      await userEvent.click(screen.getByRole("button", { name: "Salvar" }));
+
+      await waitFor(() => expect(routerPush).toHaveBeenCalledWith("/simples-nacional"));
+      expect(executeMock).toHaveBeenCalledTimes(2);
+    });
   });
 
   it("modo readOnly: nunca renderiza contrato social/alterações e não mostra Salvar/Limpar/Cancelar", () => {
@@ -97,6 +277,48 @@ describe("EditarCadastroOperacionalContainer", () => {
 
     expect(await screen.findByText(/Não foi possível salvar agora/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /salvar/i })).toBeEnabled();
+  });
+
+  // Feedback de teste manual do #36: tela própria (/clientes/[id]) navega de
+  // volta pro lugar certo depois de salvar, em vez de ficar parada no form.
+  it("com voltarHrefAoSalvar, navega pra lá depois de salvar com sucesso", async () => {
+    executeMock.mockResolvedValue({ ok: true, value: { clienteId: dados.id } });
+    const usuario = userEvent.setup();
+    render(
+      <EditarCadastroOperacionalContainer
+        dados={dados}
+        readOnly={false}
+        voltarHrefAoSalvar="/clientes/resumo/sem_documento"
+      />,
+    );
+
+    await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+
+    await screen.findByText(/atualizado/i);
+    expect(routerPush).toHaveBeenCalledWith("/clientes/resumo/sem_documento");
+  });
+
+  // Painel embutido no dashboard (busca do /simples-nacional): quem decide o
+  // "fechar/voltar" é o consumidor (fecha o painel + atualiza a página), não
+  // uma navegação fixa — aoSalvarComSucesso tem prioridade sobre voltarHref.
+  it("com aoSalvarComSucesso, chama o callback em vez de navegar", async () => {
+    executeMock.mockResolvedValue({ ok: true, value: { clienteId: dados.id } });
+    const aoSalvarComSucesso = jest.fn();
+    const usuario = userEvent.setup();
+    render(
+      <EditarCadastroOperacionalContainer
+        dados={dados}
+        readOnly={false}
+        voltarHrefAoSalvar="/nunca-deveria-navegar-pra-ca"
+        aoSalvarComSucesso={aoSalvarComSucesso}
+      />,
+    );
+
+    await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+
+    await screen.findByText(/atualizado/i);
+    expect(aoSalvarComSucesso).toHaveBeenCalled();
+    expect(routerPush).not.toHaveBeenCalled();
   });
 
   it("cliente não encontrado: mostra mensagem em vez do formulário", () => {

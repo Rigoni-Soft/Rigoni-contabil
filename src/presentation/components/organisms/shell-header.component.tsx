@@ -4,6 +4,7 @@ import { Building2, KeyRound, UserPlus } from "lucide-react";
 import { buttonVariants } from "@/presentation/components/ui/button";
 import { ThemeToggle } from "@/presentation/components/ui/theme-toggle";
 import { PAPEL_LABEL } from "@/shared/kernel/papeis";
+import { SETOR_LABEL } from "@/shared/kernel/setores";
 
 type ShellHeaderProps = {
   nome: string;
@@ -20,7 +21,8 @@ const CADASTRAR_LABEL: Record<string, string> = {
 };
 
 export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
-  const escopo = papel === "admin" ? "acesso a todos os setores" : `Setor: ${setor}`;
+  const escopo =
+    papel === "admin" ? "acesso a todos os setores" : `Setor: ${SETOR_LABEL[setor] ?? setor}`;
   const inicial = nome.charAt(0).toUpperCase();
   const rotuloCadastrar = CADASTRAR_LABEL[papel];
 

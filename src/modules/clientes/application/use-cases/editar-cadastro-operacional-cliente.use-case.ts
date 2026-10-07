@@ -12,8 +12,10 @@ import type {
 import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { mesAtual } from "@/shared/kernel/mes-atual";
+import { podeEditarCadastroOperacional } from "@/shared/kernel/papeis";
 import { regimeTemCadastroOperacionalSn } from "@/shared/kernel/regimes";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
@@ -28,16 +30,20 @@ export class EditarCadastroOperacionalCliente implements EditarCadastroOperacion
     input: EditarCadastroOperacionalClienteInput,
   ): Promise<Result<EditarCadastroOperacionalClienteOutput, AppError>> {
     const ator = await this.sessao.usuarioAtual();
-    if (!ator || !this.podeEditar(ator)) {
+    if (!ator || !podeEditarCadastroOperacional(ator.papel, ator.setor)) {
       return err(
-        new ForbiddenError("Só Admin ou Funcionário do Simples Nacional editam este cadastro."),
+        new ForbiddenError(
+          "Só Admin, Líder ou Funcionário do Simples Nacional editam este cadastro.",
+        ),
       );
     }
 
     const clienteAtual = await this.clientes.buscarPorId(input.clienteId);
     if (!clienteAtual.ok) return clienteAtual;
     if (!clienteAtual.value) {
-      return err(new ForbiddenError(`Cliente ${input.clienteId} não encontrado.`));
+      return err(
+        new NotFoundError("Não encontramos este cliente. Atualize a página e tente novamente."),
+      );
     }
 
     if (!regimeTemCadastroOperacionalSn(clienteAtual.value.regime.valor)) {
@@ -63,12 +69,6 @@ export class EditarCadastroOperacionalCliente implements EditarCadastroOperacion
     // cliente_atividades_mensais, PR #69): aqui só as falhas, que não têm
     // estado a preservar.
     return ok({ clienteId: input.clienteId });
-  }
-
-  private podeEditar(ator: AtorSessaoDto): boolean {
-    return (
-      ator.papel === "admin" || (ator.papel === "funcionario" && ator.setor === "simples_nacional")
-    );
   }
 
   private reconstruir(
