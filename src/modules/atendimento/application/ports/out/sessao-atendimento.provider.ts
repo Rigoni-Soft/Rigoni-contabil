@@ -5,8 +5,7 @@ import type { Result } from "@/shared/kernel/result";
 // qualquer dado do Cliente: o que for preciso é recalculado a cada mensagem. `lista` é um hash
 // da lista de alterações exibida, só para detectar que ela mudou antes de a escolha valer.
 export type SessaoAtendimento =
-  | { etapa: "ja_cliente" }
-  | { etapa: "cnpj" | "cnpj_nova_tentativa"; invalidos: number }
+  | { etapa: "ja_cliente" | "cnpj" | "cnpj_nova_tentativa"; invalidos: number }
   | { etapa: "tipo_documento" }
   | { etapa: "alteracao"; modo: "alteracoes" | "ambos"; pagina: number; lista: string };
 

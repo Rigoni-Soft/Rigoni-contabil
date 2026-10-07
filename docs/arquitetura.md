@@ -340,6 +340,7 @@ export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: ErrorD
 - `infra` só implementa portas OUT. Toda chamada ao `supabase-js` (queries, RPC, Storage, Realtime, Auth) mora aqui.
 - O cliente Supabase entra pelo construtor do repositório (criado no `main`), nunca é importado direto.
 - Toda linha lida é validada por Zod e convertida em entidade pelo mapper (que chama `Builder.restaurar`).
+- **Exceções registradas (#50):** `SupabaseSessaoAtendimentoGateway.obter()` devolve o resultado do parse Zod direto, sem mapper (a sessão é um tipo simples já no formato do domínio, não uma entidade); `SupabaseIdentificacaoContatoGateway.cnpjCadastrado()` lê só a existência de uma linha, sem Row DTO. Não repetir para entidades.
 - Erros do Postgres/Supabase são traduzidos para `AppError` dentro do adapter.
 - Tipos do banco vêm de `supabase gen types`.
 - **Toda comunicação com o Supabase passa pela `infra`**, com uma única exceção: a autenticação no navegador (abaixo).

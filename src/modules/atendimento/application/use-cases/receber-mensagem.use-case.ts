@@ -35,7 +35,7 @@ const PERGUNTA_CLIENTE =
   "Olá! Não identificamos este número entre os contatos dos nossos clientes. Você já é cliente da Rigoni Contábil? Responda *sim* ou *não*.";
 const SIM_OU_NAO = "Responda *sim* ou *não*.";
 const PEDIR_CNPJ = "Ótimo! Informe o CNPJ da sua empresa.";
-const MAX_CNPJ_INVALIDOS = 3;
+const MAX_INVALIDOS = 3;
 const CNPJ_INVALIDO = "Esse CNPJ não parece válido. Confira e envie novamente (ou digite *menu*).";
 const NUMERO_AMBIGUO =
   "Seu número está cadastrado em mais de uma empresa e não conseguimos confirmar qual delas você quer consultar. Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
@@ -186,12 +186,27 @@ export class ReceberMensagem implements ReceberMensagemPort {
         return this.avancar(telefone, chave, "cnpj", PEDIR_CNPJ);
       if (["nao", "n"].includes(semAcento))
         return this.encaminharRecepcao(telefone, chave, textoDoContato);
-      return this.enviar(telefone, SIM_OU_NAO);
+      const anteriores = sessao && "invalidos" in sessao ? sessao.invalidos : 0;
+      return this.tratarInvalido(
+        telefone,
+        chave,
+        textoDoContato,
+        etapa,
+        anteriores + 1,
+        SIM_OU_NAO,
+      );
     }
     if (etapa === "cnpj" || etapa === "cnpj_nova_tentativa") {
       if (!cnpjValido(texto)) {
         const anteriores = sessao && "invalidos" in sessao ? sessao.invalidos : 0;
-        return this.tratarCnpjInvalido(telefone, chave, textoDoContato, etapa, anteriores + 1);
+        return this.tratarInvalido(
+          telefone,
+          chave,
+          textoDoContato,
+          etapa,
+          anteriores + 1,
+          CNPJ_INVALIDO,
+        );
       }
       const cadastrado = await this.contatos.cnpjCadastrado(normalizarCnpj(texto));
       if (!cadastrado.ok) return cadastrado;
@@ -203,32 +218,31 @@ export class ReceberMensagem implements ReceberMensagemPort {
     return this.avancar(telefone, chave, "ja_cliente", PERGUNTA_CLIENTE);
   }
 
-  // Sem contador o cliente ficaria preso em CNPJ inválido: ao passar do limite vai à recepção.
-  private async tratarCnpjInvalido(
+  // Sem contador o cliente ficaria preso em resposta inválida (sim/não ou CNPJ): ao passar do
+  // limite vai à recepção.
+  private async tratarInvalido(
     telefone: string,
     chave: string,
     textoDoContato: string,
-    etapa: "cnpj" | "cnpj_nova_tentativa",
+    etapa: "ja_cliente" | "cnpj" | "cnpj_nova_tentativa",
     invalidos: number,
+    aviso: string,
   ): Promise<Result<void, AppError>> {
-    if (invalidos >= MAX_CNPJ_INVALIDOS) {
+    if (invalidos >= MAX_INVALIDOS) {
       return this.encaminharRecepcao(telefone, chave, textoDoContato);
     }
     const salva = await this.sessoes.salvar(chave, { etapa, invalidos });
-    return salva.ok ? this.enviar(telefone, CNPJ_INVALIDO) : salva;
+    return salva.ok ? this.enviar(telefone, aviso) : salva;
   }
 
-  // Trocar de etapa zera o contador de CNPJs inválidos (cada etapa tem o seu).
+  // Trocar de etapa zera o contador de respostas inválidas (cada etapa tem o seu).
   private async avancar(
     telefone: string,
     chave: string,
     etapa: "ja_cliente" | "cnpj" | "cnpj_nova_tentativa",
     texto: string,
   ): Promise<Result<void, AppError>> {
-    const salva = await this.sessoes.salvar(
-      chave,
-      etapa === "ja_cliente" ? { etapa } : { etapa, invalidos: 0 },
-    );
+    const salva = await this.sessoes.salvar(chave, { etapa, invalidos: 0 });
     return salva.ok ? this.enviar(telefone, texto) : salva;
   }
 

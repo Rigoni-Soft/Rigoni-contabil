@@ -1,8 +1,9 @@
 import { z } from "zod";
 
 // Linha de `atendimento_sessoes`: `modo`/`pagina`/`lista` só existem em "alteracao" e `invalidos` só
-// conta nas etapas de CNPJ (a constraint do banco garante o trio modo/pagina/lista). Sem mapper: o
-// formato já é o de `SessaoAtendimento`, então o resultado do parse é devolvido direto.
+// conta nas etapas da identificação (já é cliente / CNPJ). A constraint do banco garante o trio
+// modo/pagina/lista. Sem mapper: o formato já é o de `SessaoAtendimento`, então o resultado do parse
+// é devolvido direto.
 export const sessaoAtendimentoRowSchema = z.discriminatedUnion("etapa", [
   z.object({
     etapa: z.literal("alteracao"),
@@ -11,8 +12,8 @@ export const sessaoAtendimentoRowSchema = z.discriminatedUnion("etapa", [
     lista: z.string(),
   }),
   z.object({
-    etapa: z.enum(["cnpj", "cnpj_nova_tentativa"]),
+    etapa: z.enum(["ja_cliente", "cnpj", "cnpj_nova_tentativa"]),
     invalidos: z.number().int().nonnegative(),
   }),
-  z.object({ etapa: z.enum(["ja_cliente", "tipo_documento"]) }),
+  z.object({ etapa: z.literal("tipo_documento") }),
 ]);

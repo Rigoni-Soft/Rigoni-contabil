@@ -28,7 +28,7 @@ describe("SupabaseSessaoAtendimentoGateway", () => {
   it.each([
     [{ etapa: "tipo_documento" as const }],
     [{ etapa: "alteracao" as const, modo: "ambos" as const, pagina: 2, lista: "abc123" }],
-    [{ etapa: "ja_cliente" as const }],
+    [{ etapa: "ja_cliente" as const, invalidos: 1 }],
     [{ etapa: "cnpj" as const, invalidos: 0 }],
     [{ etapa: "cnpj_nova_tentativa" as const, invalidos: 0 }],
     [{ etapa: "cnpj_nova_tentativa" as const, invalidos: 1 }],

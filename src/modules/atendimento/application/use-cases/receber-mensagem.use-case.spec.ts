@@ -461,7 +461,7 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     const r = await caso.execute({ telefone: "11900000000", texto: "1" });
     expect(r.ok).toBe(true);
     expect(listados).toHaveLength(0);
-    expect(sessoes.get("11900000000")).toEqual({ etapa: "ja_cliente" });
+    expect(sessoes.get("11900000000")).toEqual({ etapa: "ja_cliente", invalidos: 0 });
   });
 });
 
@@ -475,7 +475,7 @@ describe("ReceberMensagem — número não cadastrado (#43)", () => {
     expect((await dizer(caso, "oi")).ok).toBe(true);
     expect(enviadas[0].texto).toContain("já é cliente");
     expect(enviadas[0].texto).not.toContain("1 - Contrato");
-    expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente" });
+    expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente", invalidos: 0 });
   });
 
   it("resposta negativa transfere pra recepção com aviso amigável e encerra a sessão", async () => {
@@ -491,7 +491,7 @@ describe("ReceberMensagem — número não cadastrado (#43)", () => {
     await dizer(caso, "oi");
     await dizer(caso, "talvez");
     expect(enviadas[1].texto).toContain("*sim*");
-    expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente" });
+    expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente", invalidos: 1 });
   });
 
   it("resposta positiva pede o CNPJ", async () => {
@@ -519,7 +519,7 @@ describe("ReceberMensagem — número não cadastrado (#43)", () => {
   it("'menu' recomeça pela pergunta", async () => {
     const { caso, sessoes } = montar({ contato: null });
     for (const t of ["oi", "sim", "menu"]) await dizer(caso, t);
-    expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente" });
+    expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente", invalidos: 0 });
   });
 
   it("a transferência abre Atendimento na recepção com as Mensagens da conversa", async () => {
@@ -554,7 +554,7 @@ describe("ReceberMensagem — número não cadastrado (#43)", () => {
     const { caso, sessoes } = montar({ contato: null, aberturaFalha: true });
     await dizer(caso, "oi");
     expect((await dizer(caso, "não")).ok).toBe(false);
-    expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente" });
+    expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente", invalidos: 0 });
   });
 
   it("número com Atendimento em andamento tem a Mensagem anexada e a URA não recomeça", async () => {
@@ -664,10 +664,10 @@ describe("ReceberMensagem — fallback para a recepção (#50)", () => {
     },
   );
 
-  it("'menu' recomeça o fluxo e zera os contadores de CNPJ", async () => {
+  it("'menu' recomeça o fluxo e zera os contadores de respostas inválidas", async () => {
     const { caso, sessoes } = montar({ contato: null });
     for (const t of ["oi", "sim", "123", "menu"]) await dizer(caso, t);
-    expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente" });
+    expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente", invalidos: 0 });
   });
 
   it.each(["sou pessoa física", "preciso de atendimento fiscal"])(
@@ -676,7 +676,7 @@ describe("ReceberMensagem — fallback para a recepção (#50)", () => {
       const { caso, abertos, sessoes } = montar({ contato: null });
       for (const t of ["oi", frase]) await dizer(caso, t);
       expect(abertos).toHaveLength(0);
-      expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente" });
+      expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente", invalidos: 1 });
     },
   );
 
@@ -707,6 +707,16 @@ describe("ReceberMensagem — fallback para a recepção (#50)", () => {
     expect(enviadas[3].texto).toContain("recepção");
     expect(abertos).toHaveLength(1);
     expect(abertos[0].mensagens[1].texto).toBe(enviadas[3].texto);
+    expect(sessoes.has(TEL)).toBe(false);
+  });
+
+  it("respostas fora de sim/não seguidas levam à recepção na terceira", async () => {
+    const { caso, abertos, sessoes } = montar({ contato: null });
+    for (const t of ["oi", "talvez", "hmm"]) await dizer(caso, t);
+    expect(abertos).toHaveLength(0);
+    expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente", invalidos: 2 });
+    await dizer(caso, "sei la");
+    expect(abertos).toHaveLength(1);
     expect(sessoes.has(TEL)).toBe(false);
   });
 
