@@ -802,6 +802,12 @@ describe("ReceberMensagem — opção falar com atendente (#46)", () => {
     ]);
   });
 
+  it.each(["05", "5.0", "0x5", "5e0"])("formato numérico %p não abre Atendimento", async (texto) => {
+    const { caso, abertos } = montar();
+    await caso.execute({ telefone: TEL, texto });
+    expect(abertos).toHaveLength(0);
+  });
+
   it("falha ao abrir o Atendimento devolve o erro", async () => {
     const { caso } = montar({ aberturaFalha: true });
     expect((await pedir(caso)).ok).toBe(false);

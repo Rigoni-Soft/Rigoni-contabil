@@ -281,7 +281,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
       return salva.ok ? this.enviar(telefone, PERGUNTA_TIPO) : salva;
     }
     const escolha = Number(texto);
-    if (escolha === OPCAO_ATENDENTE) {
+    if (texto === String(OPCAO_ATENDENTE)) {
       // A Mensagem registrada é o rótulo da opção, não o dígito: o Funcionário lê o pedido do
       // contato em vez de um "5" solto.
       return this.encaminharRecepcao(
