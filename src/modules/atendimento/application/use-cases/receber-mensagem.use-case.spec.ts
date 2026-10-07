@@ -662,6 +662,11 @@ describe("ReceberMensagem — fallback para a recepção (#50)", () => {
     "preciso de ajuda",
     "quero falar com um funcionário",
     "tenho uma dúvida",
+    "quero falar com humano",
+    "preciso da recepção",
+    "chama o recepcionista",
+    "quero falar com alguém",
+    "quero falar com gente",
   ])("'%s' também é pedido de atendente", async (frase) => {
     const { caso, abertos } = montar({ contato: null });
     await dizer(caso, frase);
