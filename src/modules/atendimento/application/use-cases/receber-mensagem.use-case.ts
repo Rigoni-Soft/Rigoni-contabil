@@ -34,8 +34,8 @@ const OPCOES_MENU = [
   "CND",
   "Falar com atendente",
 ];
-// Posição (base 1) de "Falar com atendente" em OPCOES_MENU; deve ser a última opção.
-const OPCAO_ATENDENTE = 5;
+// "Falar com atendente" é sempre a última opção do menu; a constante acompanha o array.
+const OPCAO_ATENDENTE = OPCOES_MENU.length;
 
 const PERGUNTA_CLIENTE =
   "Olá! Não identificamos este número entre os contatos dos nossos clientes. Você já é cliente da Rigoni Contábil? Responda *sim* ou *não*.";
@@ -48,14 +48,14 @@ const NUMERO_AMBIGUO =
 
 const SEM_CNPJ = "Não encontramos esse CNPJ entre os nossos clientes.";
 const CNPJ_NAO_ENCONTRADO = `${SEM_CNPJ} Confira e envie novamente (ou digite *menu*).`;
-const ENCAMINHANDO =
+const ENCAMINHANDO_PARA_RECEPCAO =
   "Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
-const PARA_RECEPCAO_CNPJ = `${SEM_CNPJ} ${ENCAMINHANDO}`;
+const AVISO_RECEPCAO_CNPJ_NAO_ENCONTRADO = `${SEM_CNPJ} ${ENCAMINHANDO_PARA_RECEPCAO}`;
 // Palavras que, num número não reconhecido, pedem uma pessoa em vez de seguir o fluxo.
 const PEDIDO_DE_ATENDENTE =
   /\b(atendente|humano|recepcao|recepcionista|suporte|ajuda|funcionario|duvida|(falar|conversar) com (alguem|uma pessoa|gente|o contador|a contadora))\b/;
-const PARA_RECEPCAO = `Não encontramos você entre os contatos cadastrados. ${ENCAMINHANDO}`;
-const PARA_RECEPCAO_CONTATO = `Certo! ${ENCAMINHANDO}`;
+const AVISO_RECEPCAO_SEM_CADASTRO = `Não encontramos você entre os contatos cadastrados. ${ENCAMINHANDO_PARA_RECEPCAO}`;
+const AVISO_RECEPCAO_PEDIDO_NO_MENU = `Certo! ${ENCAMINHANDO_PARA_RECEPCAO}`;
 
 const PERGUNTA_TIPO =
   "O que você deseja receber?\n1 - Contrato social\n2 - Alterações\n3 - Ambos (contrato social e uma alteração)\nDigite *menu* para voltar.";
@@ -72,9 +72,10 @@ type Modo = "contrato" | "alteracoes" | "ambos";
 const MODOS: Record<string, Modo> = { "1": "contrato", "2": "alteracoes", "3": "ambos" };
 
 // `telefone` com DDI, como a mensagem chegou (resposta); `chave` só dígitos nacionais (sessão).
-type Conversa = { contato: ContatoIdentificado; telefone: string; chave: string };
-// Quem escreveu e o que disse, para abrir o Atendimento na recepção; `clienteId` null = número sem Contato.
-type Origem = { telefone: string; chave: string; textoDoContato: string; clienteId: string | null };
+type Remetente = { telefone: string; chave: string };
+type Conversa = Remetente & { contato: ContatoIdentificado };
+// O que o remetente disse, para abrir o Atendimento na recepção; `clienteId` null = número sem Contato.
+type Origem = Remetente & { textoDoContato: string; clienteId: string | null };
 type Documentos = { contrato: DocumentoContratual | null; alteracoes: DocumentoContratual[] };
 
 function origemDe({ contato, telefone, chave }: Conversa, textoDoContato: string): Origem {
@@ -211,7 +212,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
       const primeiraTentativa = etapa === "cnpj";
       if (primeiraTentativa)
         return this.avancar(origem, "cnpj_nova_tentativa", CNPJ_NAO_ENCONTRADO);
-      return this.encaminharRecepcao(origem, PARA_RECEPCAO_CNPJ);
+      return this.encaminharRecepcao(origem, AVISO_RECEPCAO_CNPJ_NAO_ENCONTRADO);
     }
     return this.avancar(origem, "ja_cliente", PERGUNTA_CLIENTE);
   }
@@ -242,7 +243,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
 
   private async encaminharRecepcao(
     { telefone, chave, textoDoContato, clienteId }: Origem,
-    textoAviso = PARA_RECEPCAO,
+    textoAviso = AVISO_RECEPCAO_SEM_CADASTRO,
   ): Promise<Result<void, AppError>> {
     // Aviso antes de abrir: se o envio falhar e a Meta reenviar, não nasce Atendimento duplicado.
     const aviso = await this.enviar(telefone, textoAviso);
@@ -286,7 +287,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
       // contato em vez de um "5" solto.
       return this.encaminharRecepcao(
         origemDe(conversa, OPCOES_MENU[OPCAO_ATENDENTE - 1]),
-        PARA_RECEPCAO_CONTATO,
+        AVISO_RECEPCAO_PEDIDO_NO_MENU,
       );
     }
     if (Number.isInteger(escolha) && escolha >= 2 && escolha < OPCAO_ATENDENTE) {

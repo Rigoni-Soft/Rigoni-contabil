@@ -802,10 +802,34 @@ describe("ReceberMensagem — opção falar com atendente (#46)", () => {
     ]);
   });
 
-  it.each(["05", "5.0", "0x5", "5e0"])("formato numérico %p não abre Atendimento", async (texto) => {
-    const { caso, abertos } = montar();
-    await caso.execute({ telefone: TEL, texto });
-    expect(abertos).toHaveLength(0);
+  it.each(["05", "5.0", "0x5", "5e0"])(
+    "formato numérico %p não abre Atendimento",
+    async (texto) => {
+      const { caso, abertos } = montar();
+      await caso.execute({ telefone: TEL, texto });
+      expect(abertos).toHaveLength(0);
+    },
+  );
+
+  it("limpa a sessão que sobrou ao abrir o Atendimento", async () => {
+    const { caso, sessoes } = montar();
+    sessoes.set("11912345678", { etapa: "ja_cliente", invalidos: 1 });
+    await pedir(caso);
+    expect(sessoes.size).toBe(0);
+  });
+
+  it("a opção de atendente é a última do menu enviado", async () => {
+    const { caso, enviadas } = montar();
+    await caso.execute({ telefone: TEL, texto: "oi" });
+    const linhas = enviadas[0].texto.split("\n");
+    expect(linhas[linhas.length - 1]).toBe("5 - Falar com atendente");
+  });
+
+  it("o aviso da opção não repete o dos outros caminhos para a recepção", async () => {
+    const { caso, enviadas } = montar();
+    await pedir(caso);
+    expect(enviadas[0].texto).toMatch(/^Certo!/);
+    expect(enviadas[0].texto).not.toContain("Não encontramos");
   });
 
   it("falha ao abrir o Atendimento devolve o erro", async () => {
