@@ -12,6 +12,10 @@ export type AberturaAtendimento = {
   clienteId: string | null;
   setor: SetorSlug;
   mensagens: NovaMensagem[];
+  // Só a URA preenche: o que a recepção lê ao assumir e o CNPJ (normalizado) que o número informou.
+  // O banco liga o CNPJ ao Cliente se existir; sem Cliente é um provável cliente novo.
+  resumo?: string;
+  cnpjInformado?: string;
 };
 
 // `funcionarioId` null = nenhum Funcionário livre no Setor: o Atendimento entrou na Fila e

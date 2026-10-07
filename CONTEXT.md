@@ -69,6 +69,7 @@ Certidão Negativa de Débitos — documento que atesta a regularidade fiscal do
 
 **Atendimento**:
 A sessão completa de contato entre um Contato e o escritório, do início ao encerramento — pode passar por vários Atendentes e Setores via Transferência. Contém muitas Mensagens. **Começa quando o contato é encaminhado a um humano** (um Setor ou a Fila): a conversa com a URA antes disso (saudação, "já é cliente?", CNPJ, menu) não é guardada como Mensagem; quem recebe o Atendimento vê o resumo e o CNPJ informado na URA (#46), não os balões (decisão do usuário, 2026-10-08, devolutiva da PR #77, B5).
+O Atendimento que a URA abre na recepção traz o motivo (resumo) e, se o número informou, o CNPJ: o CNPJ de um Cliente liga o Atendimento a ele; CNPJ que não existe no sistema é um provável cliente novo. Nenhum Contato é salvo.
 _Avoid_: Conversa, ticket, chamado.
 
 **Mensagem**:

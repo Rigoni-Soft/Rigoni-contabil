@@ -843,3 +843,43 @@ describe("ReceberMensagem — opção falar com atendente (#46)", () => {
     expect(abertos).toHaveLength(0);
   });
 });
+
+describe("ReceberMensagem — resumo e CNPJ do Atendimento aberto pela URA (#46)", () => {
+  const TEL_NOVO = "5511900000000";
+  const dizerNovo = (caso: ReturnType<typeof montar>["caso"], texto: string) =>
+    caso.execute({ telefone: TEL_NOVO, texto });
+
+  it("opção do menu: resumo do pedido, sem CNPJ informado", async () => {
+    const { caso, abertos } = montar();
+    await caso.execute({ telefone: "5511912345678", texto: "5" });
+    expect(abertos[0].resumo).toBe("Cliente pediu a recepção pelo menu da URA.");
+    expect(abertos[0].cnpjInformado).toBeUndefined();
+  });
+
+  it("CNPJ de Cliente cadastrado: leva o CNPJ normalizado para o banco ligar ao Cliente", async () => {
+    const { caso, abertos } = montar({ contato: null });
+    for (const t of ["oi", "sim", CNPJ_CADASTRADO]) await dizerNovo(caso, t);
+    expect(abertos[0].clienteId).toBeNull();
+    expect(abertos[0].cnpjInformado).toBe(normalizarCnpj(CNPJ_CADASTRADO));
+    expect(abertos[0].resumo).toContain("não consta nos contatos do Cliente do CNPJ informado");
+  });
+
+  it("CNPJ que não existe no sistema: provável cliente novo, com o CNPJ da segunda tentativa", async () => {
+    const { caso, abertos } = montar({ contato: null });
+    for (const t of ["oi", "sim", CNPJ_DESCONHECIDO, CNPJ_DESCONHECIDO]) await dizerNovo(caso, t);
+    expect(abertos).toHaveLength(1);
+    expect(abertos[0].cnpjInformado).toBe(normalizarCnpj(CNPJ_DESCONHECIDO));
+    expect(abertos[0].resumo).toContain("provável cliente novo");
+  });
+
+  it.each([
+    ["pedido de atendente", ["atendente"], "pediu um atendente"],
+    ["resposta 'não' a já ser cliente", ["oi", "não"], "disse não ser cliente"],
+    ["respostas inválidas seguidas", ["oi", "x", "x", "x"], "respostas inválidas seguidas"],
+  ])("%s: resumo sem CNPJ informado", async (_, falas, trecho) => {
+    const { caso, abertos } = montar({ contato: null });
+    for (const t of falas) await dizerNovo(caso, t);
+    expect(abertos[0].resumo).toContain(trecho);
+    expect(abertos[0].cnpjInformado).toBeUndefined();
+  });
+});

@@ -130,3 +130,81 @@ describe("SupabaseAtendimentoRepository", () => {
     });
   });
 });
+
+describe("SupabaseAtendimentoRepository — origem URA (#46)", () => {
+  const TELEFONES = ["61977770001", "61977770002", "61977770003"];
+  const clienteId = crypto.randomUUID();
+  const cnpjCliente = `8${Date.now()}`.slice(0, 14);
+  const cnpjNovo = `6${Date.now()}`.slice(0, 14); // sem Cliente no sistema
+
+  beforeAll(async () => {
+    const { error } = await admin.from("clientes").insert({
+      id: clienteId,
+      empresa: "Origem URA Ltda",
+      cnpj: cnpjCliente,
+      regime: "lucro_real",
+    });
+    if (error) throw error;
+  });
+
+  afterAll(async () => {
+    await admin.from("atendimentos").delete().in("telefone", TELEFONES);
+    await admin.from("clientes").delete().eq("id", clienteId);
+  });
+
+  const abrir = (telefone: string, extra: { resumo: string; cnpjInformado?: string }) =>
+    gateway.abrir({
+      telefone,
+      chave: telefone,
+      clienteId: null,
+      setor: "recepcao",
+      funcionarioId: null,
+      mensagens: [{ autor: "contato", texto: "oi" }],
+      ...extra,
+    });
+
+  const linha = async (telefone: string) =>
+    (
+      await admin
+        .from("atendimentos")
+        .select("cliente_id, resumo_ura, cnpj_informado")
+        .eq("telefone", telefone)
+        .single()
+    ).data;
+
+  it("CNPJ de Cliente cadastrado liga o Atendimento ao Cliente e guarda o resumo", async () => {
+    const r = await abrir(TELEFONES[0], {
+      resumo: "Contato não encontrado.",
+      cnpjInformado: cnpjCliente,
+    });
+    expect(r.ok).toBe(true);
+    expect(await linha(TELEFONES[0])).toEqual({
+      cliente_id: clienteId,
+      resumo_ura: "Contato não encontrado.",
+      cnpj_informado: cnpjCliente,
+    });
+  });
+
+  it("CNPJ que não existe no sistema deixa o Atendimento sem Cliente (provável cliente novo)", async () => {
+    const r = await abrir(TELEFONES[1], {
+      resumo: "Provável cliente novo.",
+      cnpjInformado: cnpjNovo,
+    });
+    expect(r.ok).toBe(true);
+    expect(await linha(TELEFONES[1])).toEqual({
+      cliente_id: null,
+      resumo_ura: "Provável cliente novo.",
+      cnpj_informado: cnpjNovo,
+    });
+  });
+
+  it("sem CNPJ informado guarda só o resumo", async () => {
+    const r = await abrir(TELEFONES[2], { resumo: "Pediu a recepção." });
+    expect(r.ok).toBe(true);
+    expect(await linha(TELEFONES[2])).toEqual({
+      cliente_id: null,
+      resumo_ura: "Pediu a recepção.",
+      cnpj_informado: null,
+    });
+  });
+});

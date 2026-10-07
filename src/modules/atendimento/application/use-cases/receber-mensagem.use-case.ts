@@ -57,6 +57,16 @@ const PEDIDO_DE_ATENDENTE =
 const AVISO_RECEPCAO_SEM_CADASTRO = `Não encontramos você entre os contatos cadastrados. ${ENCAMINHANDO_PARA_RECEPCAO}`;
 const AVISO_RECEPCAO_PEDIDO_NO_MENU = `Certo! ${ENCAMINHANDO_PARA_RECEPCAO}`;
 
+// O que a recepção lê ao assumir (`atendimentos.resumo_ura`): a origem é sempre a URA.
+const RESUMO_PEDIDO_NO_MENU = "Cliente pediu a recepção pelo menu da URA.";
+const RESUMO_PEDIU_ATENDENTE = "Contato não encontrado: o número pediu um atendente.";
+const RESUMO_NAO_E_CLIENTE = "Contato não encontrado: o número disse não ser cliente.";
+const RESUMO_RESPOSTAS_INVALIDAS = "Contato não encontrado: respostas inválidas seguidas.";
+const RESUMO_CNPJ_CADASTRADO =
+  "Contato não encontrado: o número não consta nos contatos do Cliente do CNPJ informado.";
+const RESUMO_CNPJ_NOVO =
+  "Contato não encontrado: o CNPJ informado não existe no sistema (provável cliente novo).";
+
 const PERGUNTA_TIPO =
   "O que você deseja receber?\n1 - Contrato social\n2 - Alterações\n3 - Ambos (contrato social e uma alteração)\nDigite *menu* para voltar.";
 
@@ -76,6 +86,9 @@ type Remetente = { telefone: string; chave: string };
 type Conversa = Remetente & { contato: ContatoIdentificado };
 // O que o remetente disse, para abrir o Atendimento na recepção; `clienteId` null = número sem Contato.
 type Origem = Remetente & { textoDoContato: string; clienteId: string | null };
+// Por que vai à recepção: `cnpj` é o CNPJ (normalizado) que o número informou, quando informou; o
+// banco o liga ao Cliente se existir, e sem Cliente a recepção vê um provável cliente novo.
+type Encaminhamento = { resumo: string; aviso?: string; cnpj?: string };
 type Documentos = { contrato: DocumentoContratual | null; alteracoes: DocumentoContratual[] };
 
 function origemDe({ contato, telefone, chave }: Conversa, textoDoContato: string): Origem {
@@ -197,22 +210,31 @@ export class ReceberMensagem implements ReceberMensagemPort {
     const semAcento = texto.normalize("NFD").replace(/\p{M}/gu, "");
 
     if (texto !== "menu" && PEDIDO_DE_ATENDENTE.test(semAcento)) {
-      return this.encaminharRecepcao(origem);
+      return this.encaminharRecepcao(origem, { resumo: RESUMO_PEDIU_ATENDENTE });
     }
     if (etapa === "ja_cliente") {
       if (["sim", "s"].includes(semAcento)) return this.avancar(origem, "cnpj", PEDIR_CNPJ);
-      if (["nao", "n"].includes(semAcento)) return this.encaminharRecepcao(origem);
+      if (["nao", "n"].includes(semAcento)) {
+        return this.encaminharRecepcao(origem, { resumo: RESUMO_NAO_E_CLIENTE });
+      }
       return this.tratarInvalido(origem, etapa, sessao, SIM_OU_NAO);
     }
     if (etapa === "cnpj" || etapa === "cnpj_nova_tentativa") {
       if (!cnpjValido(texto)) return this.tratarInvalido(origem, etapa, sessao, CNPJ_INVALIDO);
-      const cadastrado = await this.contatos.cnpjCadastrado(normalizarCnpj(texto));
+      const cnpj = normalizarCnpj(texto);
+      const cadastrado = await this.contatos.cnpjCadastrado(cnpj);
       if (!cadastrado.ok) return cadastrado;
-      if (cadastrado.value) return this.encaminharRecepcao(origem);
+      if (cadastrado.value) {
+        return this.encaminharRecepcao(origem, { resumo: RESUMO_CNPJ_CADASTRADO, cnpj });
+      }
       const primeiraTentativa = etapa === "cnpj";
       if (primeiraTentativa)
         return this.avancar(origem, "cnpj_nova_tentativa", CNPJ_NAO_ENCONTRADO);
-      return this.encaminharRecepcao(origem, AVISO_RECEPCAO_CNPJ_NAO_ENCONTRADO);
+      return this.encaminharRecepcao(origem, {
+        resumo: RESUMO_CNPJ_NOVO,
+        aviso: AVISO_RECEPCAO_CNPJ_NAO_ENCONTRADO,
+        cnpj,
+      });
     }
     return this.avancar(origem, "ja_cliente", PERGUNTA_CLIENTE);
   }
@@ -226,7 +248,9 @@ export class ReceberMensagem implements ReceberMensagemPort {
     aviso: string,
   ): Promise<Result<void, AppError>> {
     const invalidos = invalidosDe(sessao) + 1;
-    if (invalidos >= MAX_INVALIDOS) return this.encaminharRecepcao(origem);
+    if (invalidos >= MAX_INVALIDOS) {
+      return this.encaminharRecepcao(origem, { resumo: RESUMO_RESPOSTAS_INVALIDAS });
+    }
     const salva = await this.sessoes.salvar(origem.chave, { etapa, invalidos });
     return salva.ok ? this.enviar(origem.telefone, aviso) : salva;
   }
@@ -243,16 +267,17 @@ export class ReceberMensagem implements ReceberMensagemPort {
 
   private async encaminharRecepcao(
     { telefone, chave, textoDoContato, clienteId }: Origem,
-    textoAviso = AVISO_RECEPCAO_SEM_CADASTRO,
+    { resumo, aviso: textoAviso = AVISO_RECEPCAO_SEM_CADASTRO, cnpj }: Encaminhamento,
   ): Promise<Result<void, AppError>> {
     // Aviso antes de abrir: se o envio falhar e a Meta reenviar, não nasce Atendimento duplicado.
     const aviso = await this.enviar(telefone, textoAviso);
     if (!aviso.ok) return aviso;
-    // ponytail: número sem Contato abre sem cliente; a recepção identifica na conversa.
     const aberto = await this.atendimentos.execute({
       telefone,
       chave,
       clienteId,
+      cnpjInformado: cnpj,
+      resumo,
       setor: "recepcao",
       mensagens: [
         { autor: "contato", texto: textoDoContato },
@@ -285,10 +310,10 @@ export class ReceberMensagem implements ReceberMensagemPort {
     if (texto === String(OPCAO_ATENDENTE)) {
       // A Mensagem registrada é o rótulo da opção, não o dígito: o Funcionário lê o pedido do
       // contato em vez de um "5" solto.
-      return this.encaminharRecepcao(
-        origemDe(conversa, OPCOES_MENU[OPCAO_ATENDENTE - 1]),
-        AVISO_RECEPCAO_PEDIDO_NO_MENU,
-      );
+      return this.encaminharRecepcao(origemDe(conversa, OPCOES_MENU[OPCAO_ATENDENTE - 1]), {
+        resumo: RESUMO_PEDIDO_NO_MENU,
+        aviso: AVISO_RECEPCAO_PEDIDO_NO_MENU,
+      });
     }
     if (Number.isInteger(escolha) && escolha >= 2 && escolha < OPCAO_ATENDENTE) {
       return this.enviar(
