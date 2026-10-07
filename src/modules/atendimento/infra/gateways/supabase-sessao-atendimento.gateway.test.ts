@@ -2,7 +2,7 @@
  * Integração infra ↔ Supabase (testes.md, seção 3) da sessão da URA (#41).
  * Requer `npx supabase start` local com migrations + seed aplicados.
  */
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { SupabaseSessaoAtendimentoGateway } from "./supabase-sessao-atendimento.gateway";
 
@@ -80,6 +80,20 @@ describe("SupabaseSessaoAtendimentoGateway", () => {
     await gateway.salvar("61900001111", { etapa: "tipo_documento" });
     const { data } = await admin.from("atendimento_sessoes").select("chave");
     expect(data).toHaveLength(1);
+  });
+
+  it("linha fora do formato esperado vira erro, não sessão", async () => {
+    const consulta = {
+      select: () => consulta,
+      eq: () => consulta,
+      gt: () => consulta,
+      maybeSingle: async () => ({ data: { etapa: "desconhecida" }, error: null }),
+    };
+    const fake = { from: () => consulta } as unknown as SupabaseClient;
+    const resultado = await new SupabaseSessaoAtendimentoGateway(fake, "segredo-teste").obter(
+      TELEFONE,
+    );
+    expect(resultado.ok).toBe(false);
   });
 
   it("usuário comum (anon) não lê a tabela", async () => {
