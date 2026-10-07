@@ -13,14 +13,20 @@ import type {
   DocumentosContratuaisPort,
 } from "@/modules/atendimento/application/ports/out/documentos-contratuais.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
+import type { FeriadosPort } from "@/modules/atendimento/application/ports/out/feriados.provider";
 import type {
   ContatoIdentificado,
   IdentificacaoContatoPort,
 } from "@/modules/atendimento/application/ports/out/identificacao-contato.provider";
+import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import type {
   SessaoAtendimento,
   SessaoAtendimentoPort,
 } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
+import {
+  avisoDeFechado,
+  estaAbertoEm,
+} from "@/modules/atendimento/domain/services/expediente.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
@@ -154,6 +160,8 @@ export class ReceberMensagem implements ReceberMensagemPort {
     private readonly sessoes: SessaoAtendimentoPort,
     private readonly atendimentos: AbrirAtendimentoPort,
     private readonly mensagens: AnexarMensagemAtendimentoPort,
+    private readonly relogio: RelogioPort,
+    private readonly feriados: FeriadosPort,
   ) {}
 
   async execute(mensagem: MensagemRecebida): Promise<Result<void, AppError>> {
@@ -168,6 +176,15 @@ export class ReceberMensagem implements ReceberMensagemPort {
     });
     if (!anexada.ok) return anexada;
     if (anexada.value.anexada) return ok(undefined);
+
+    // Fora do expediente a URA só avisa o horário: nada de menu, documento, sessão ou Atendimento.
+    const extras = await this.feriados.listarDatas();
+    if (!extras.ok) return extras;
+    const agora = this.relogio.agora();
+    const feriados = new Set(extras.value);
+    if (!estaAbertoEm(agora, feriados)) {
+      return this.enviar(mensagem.telefone, avisoDeFechado(agora, feriados));
+    }
 
     const contato = await this.contatos.identificar(chave);
     if (!contato.ok) return contato;

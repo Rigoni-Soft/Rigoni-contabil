@@ -14,6 +14,11 @@ import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
 import type { AvisarClientePort } from "@/modules/atendimento/application/ports/in/avisar-cliente.provider";
 import type { EncerrarAtendimentoPort } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
+import type {
+  CadastrarFeriadoPort,
+  ListarFeriadosPort,
+  RemoverFeriadoPort,
+} from "@/modules/atendimento/application/ports/in/gerenciar-feriados.provider";
 import type { ListarFilaPort } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
 import type { ReceberMensagemPort } from "@/modules/atendimento/application/ports/in/receber-mensagem.provider";
 import type { TransferirAtendimentoPort } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
@@ -27,9 +32,12 @@ import type {
 import { AbrirAtendimento } from "@/modules/atendimento/application/use-cases/abrir-atendimento.use-case";
 import { AnexarMensagemAtendimento } from "@/modules/atendimento/application/use-cases/anexar-mensagem-atendimento.use-case";
 import { AvisarCliente } from "@/modules/atendimento/application/use-cases/avisar-cliente.use-case";
+import { CadastrarFeriado } from "@/modules/atendimento/application/use-cases/cadastrar-feriado.use-case";
 import { EncerrarAtendimento } from "@/modules/atendimento/application/use-cases/encerrar-atendimento.use-case";
+import { ListarFeriados } from "@/modules/atendimento/application/use-cases/listar-feriados.use-case";
 import { ListarFila } from "@/modules/atendimento/application/use-cases/listar-fila.use-case";
 import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/receber-mensagem.use-case";
+import { RemoverFeriado } from "@/modules/atendimento/application/use-cases/remover-feriado.use-case";
 import { TransferirAtendimento } from "@/modules/atendimento/application/use-cases/transferir-atendimento.use-case";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
 import { HmacAutenticacaoWebhookGateway } from "@/modules/atendimento/infra/gateways/hmac-autenticacao-webhook.gateway";
@@ -38,6 +46,7 @@ import { SupabaseDocumentosContratuaisGateway } from "@/modules/atendimento/infr
 import { SupabaseIdentificacaoContatoGateway } from "@/modules/atendimento/infra/gateways/supabase-identificacao-contato.gateway";
 import { SupabaseSessaoAtendimentoGateway } from "@/modules/atendimento/infra/gateways/supabase-sessao-atendimento.gateway";
 import { SupabaseAtendimentoRepository } from "@/modules/atendimento/infra/repositories/atendimento.repository";
+import { SupabaseFeriadoRepository } from "@/modules/atendimento/infra/repositories/feriado.repository";
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
 import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabase-sessao.gateway";
 import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories/usuario.repository";
@@ -78,6 +87,8 @@ export function makeReceberMensagem(): ReceberMensagemPort {
     new SupabaseSessaoAtendimentoGateway(supabaseAdmin, MENSAGERIA_SEGREDO_SESSAO),
     new AbrirAtendimento(atendimentos, new AvisarCliente(makeEnvioMensagem(), atendimentos)),
     new AnexarMensagemAtendimento(atendimentos),
+    new RelogioSistemaGateway(),
+    new SupabaseFeriadoRepository(supabaseAdmin),
   );
 }
 
@@ -152,4 +163,28 @@ export async function makeListarFila(): Promise<ListarFilaPort> {
     new SupabaseAtendimentoRepository(createSupabaseAdmin()),
     new RelogioSistemaGateway(),
   );
+}
+
+// Feriados do Admin: client da sessão dele, para a RLS e a auditoria do banco valerem.
+async function makeFeriados() {
+  const supabase = await createSupabaseServer();
+  return {
+    sessao: sessaoViaUsuarios(supabase),
+    repositorio: new SupabaseFeriadoRepository(supabase),
+  };
+}
+
+export async function makeListarFeriados(): Promise<ListarFeriadosPort> {
+  const { sessao, repositorio } = await makeFeriados();
+  return new ListarFeriados(sessao, repositorio);
+}
+
+export async function makeCadastrarFeriado(): Promise<CadastrarFeriadoPort> {
+  const { sessao, repositorio } = await makeFeriados();
+  return new CadastrarFeriado(sessao, repositorio);
+}
+
+export async function makeRemoverFeriado(): Promise<RemoverFeriadoPort> {
+  const { sessao, repositorio } = await makeFeriados();
+  return new RemoverFeriado(sessao, repositorio);
 }

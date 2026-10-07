@@ -47,6 +47,9 @@ jest.mock("@/main/atendimento.factory", () => ({
         execute: async () => ok({ id: "at-1", funcionarioId: null }),
       },
       { execute: async () => ok({ anexada: false }) },
+      // Quarta-feira, 10h em São Paulo: o expediente fica aberto independente da hora real.
+      { agora: () => new Date("2026-10-07T10:00:00-03:00") },
+      { listarDatas: async () => ok([]) },
     ),
   makeAutenticacaoWebhook: () => new HmacAutenticacaoWebhookGateway(SEGREDO, TOKEN),
 }));

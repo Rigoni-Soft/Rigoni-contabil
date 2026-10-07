@@ -13,11 +13,13 @@ import type {
   EnvioMensagemPort,
   MensagemEnviada,
 } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
+import type { FeriadosPort } from "@/modules/atendimento/application/ports/out/feriados.provider";
 import type {
   ContatoAmbiguo,
   ContatoIdentificado,
   IdentificacaoContatoPort,
 } from "@/modules/atendimento/application/ports/out/identificacao-contato.provider";
+import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import type {
   SessaoAtendimento,
   SessaoAtendimentoPort,
@@ -58,6 +60,9 @@ function montar(
     posicaoNaFila?: number;
     cnpjsCadastrados?: string[];
     cnpjFalha?: boolean;
+    agora?: Date;
+    feriados?: string[];
+    feriadosFalha?: boolean;
   } = {},
 ) {
   const buscados: string[] = [];
@@ -141,11 +146,28 @@ function montar(
       });
     },
   };
+  // Por padrão: quarta-feira, 10h em São Paulo (expediente aberto).
+  const relogio: RelogioPort = {
+    agora: () => opcoes.agora ?? new Date("2026-10-07T10:00:00-03:00"),
+  };
+  const feriados: FeriadosPort = {
+    listarDatas: async () =>
+      opcoes.feriadosFalha ? err(new ServicoExternoError("banco")) : ok(opcoes.feriados ?? []),
+  };
   return {
     anexadas,
     tentativasDeAnexar,
     abertos,
-    caso: new ReceberMensagem(identificacao, envio, documentos, sessao, atendimentos, mensagens),
+    caso: new ReceberMensagem(
+      identificacao,
+      envio,
+      documentos,
+      sessao,
+      atendimentos,
+      mensagens,
+      relogio,
+      feriados,
+    ),
     sessoes,
     gravadas,
     buscados,
@@ -217,10 +239,82 @@ describe("ReceberMensagem", () => {
       },
       { execute: async () => ok({ id: "at-1", funcionarioId: null }) },
       { execute: async () => ok({ anexada: false }) },
+      { agora: () => new Date("2026-10-07T10:00:00-03:00") },
+      { listarDatas: async () => ok([]) },
     );
     const r = await caso.execute({ telefone: "11912345678", texto: "oi" });
     expect(r.ok).toBe(false);
     expect(enviadas).toHaveLength(0);
+  });
+});
+
+describe("ReceberMensagem — fora do expediente (#72)", () => {
+  const QUARTA_19H = new Date("2026-10-07T19:00:00-03:00");
+
+  it("só avisa o horário, sem menu, e diz quando volta", async () => {
+    const { caso, enviadas } = montar({ agora: QUARTA_19H });
+    const r = await caso.execute({ telefone: FONE, texto: "oi" });
+    expect(r.ok).toBe(true);
+    expect(enviadas).toHaveLength(1);
+    expect(enviadas[0].telefone).toBe(FONE);
+    expect(enviadas[0].texto).toMatch(/fechado.*amanhã.*8h/);
+    expect(enviadas[0].texto).not.toContain("1 - ");
+  });
+
+  it("não identifica, não grava sessão, não entrega documento e não abre Atendimento", async () => {
+    const { caso, buscados, gravadas, sessoes, documentosEnviados, abertos } = montar({
+      agora: QUARTA_19H,
+      documentos: [CONTRATO],
+    });
+    await caso.execute({ telefone: FONE, texto: "1" });
+    await caso.execute({ telefone: FONE, texto: "5" });
+    expect(buscados).toHaveLength(0);
+    expect(gravadas).toHaveLength(0);
+    expect(sessoes.size).toBe(0);
+    expect(documentosEnviados).toHaveLength(0);
+    expect(abertos).toHaveLength(0);
+  });
+
+  it("número não cadastrado também só recebe o aviso", async () => {
+    const { caso, enviadas, gravadas, abertos } = montar({ agora: QUARTA_19H, contato: null });
+    await caso.execute({ telefone: FONE, texto: "oi" });
+    await caso.execute({ telefone: FONE, texto: "quero um atendente" });
+    expect(enviadas.every((e) => /fechado/.test(e.texto))).toBe(true);
+    expect(gravadas).toHaveLength(0);
+    expect(abertos).toHaveLength(0);
+  });
+
+  it("Atendimento em andamento continua recebendo a Mensagem, sem aviso", async () => {
+    const { caso, enviadas, anexadas } = montar({ agora: QUARTA_19H, emAndamento: true });
+    const r = await caso.execute({ telefone: FONE, texto: "ainda aí?" });
+    expect(r.ok).toBe(true);
+    expect(anexadas).toEqual([{ autor: "contato", texto: "ainda aí?" }]);
+    expect(enviadas).toHaveLength(0);
+  });
+
+  it("feriado cadastrado pelo Admin fecha o expediente", async () => {
+    const { caso, enviadas } = montar({ feriados: ["2026-10-07"] });
+    await caso.execute({ telefone: FONE, texto: "oi" });
+    expect(enviadas[0].texto).toMatch(/fechado.*amanhã/);
+  });
+
+  it("dentro do expediente nada muda: saudação com menu", async () => {
+    const { caso, enviadas } = montar({ agora: new Date("2026-10-07T17:59:00-03:00") });
+    await caso.execute({ telefone: FONE, texto: "oi" });
+    expect(enviadas[0].texto).toContain("Ana");
+  });
+
+  it("falha ao ler os feriados vira erro, sem responder nada", async () => {
+    const { caso, enviadas } = montar({ feriadosFalha: true });
+    const r = await caso.execute({ telefone: FONE, texto: "oi" });
+    expect(r).toEqual({ ok: false, error: expect.any(ServicoExternoError) });
+    expect(enviadas).toHaveLength(0);
+  });
+
+  it("falha do envio do aviso vira erro de serviço externo", async () => {
+    const { caso } = montar({ agora: QUARTA_19H, envioFalha: true });
+    const r = await caso.execute({ telefone: FONE, texto: "oi" });
+    expect(r).toEqual({ ok: false, error: expect.any(ServicoExternoError) });
   });
 });
 

@@ -29,6 +29,10 @@ _Avoid_: Operador.
 Ator de sistema (service role, sem login humano) que conduz o Atendimento automatizado via WhatsApp antes de uma eventual transferência para um Funcionário. Não é um Papel.
 _Avoid_: Bot, chatbot.
 
+**Expediente**:
+Janela em que a URA atende: dia útil (não sábado, domingo nem feriado), das 8h às 18h, horário de São Paulo. Fora dele a URA só responde um aviso com a volta do escritório — sem menu, documento, sessão nem Atendimento. Atendimento em andamento segue até ser finalizado e continua anexando as Mensagens do número. Feriados nacionais (fixos e móveis) estão no código; estaduais e municipais são cadastrados pelo Admin e auditados.
+_Avoid_: Horário comercial, plantão.
+
 ### Cliente e cadastro
 
 **Cliente**:
