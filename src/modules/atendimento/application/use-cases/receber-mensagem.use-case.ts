@@ -43,21 +43,21 @@ import { cnpjValido, normalizarCnpj } from "@/shared/kernel/cnpj";
 import { formatarDataIso } from "@/shared/kernel/data-iso";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-const OPCOES_MENU = [
-  "Contrato social e alterações",
-  "Guia de imposto",
-  "Guia de parcelamento",
-  "CND",
-  "Falar com atendente",
+// Uma só lista define o menu: a posição é o número digitado, e `guia` marca as opções cujo PDF vem
+// do provedor fiscal. "Falar com atendente" é sempre a última.
+const OPCOES_MENU: { rotulo: string; guia?: TipoGuia }[] = [
+  { rotulo: "Contrato social e alterações" },
+  { rotulo: "Guia de imposto", guia: "das" },
+  { rotulo: "Guia de parcelamento", guia: "parcelamento" },
+  { rotulo: "CND", guia: "cnd" },
+  { rotulo: "Falar com atendente" },
 ];
-// "Falar com atendente" é sempre a última opção do menu; a constante acompanha o array.
 const OPCAO_ATENDENTE = OPCOES_MENU.length;
-// Opções 2 a 4 do menu: o PDF vem do provedor fiscal.
-const GUIAS_DO_MENU: Record<string, TipoGuia> = { "2": "das", "3": "parcelamento", "4": "cnd" };
-const SEM_AUTORIZACAO_FISCAL =
-  "O escritório ainda não tem autorização para consultar esse documento da sua empresa. Digite *5* para falar com um atendente.";
-const GUIA_INDISPONIVEL =
-  "Não conseguimos buscar o documento agora. Tente novamente em alguns minutos ou digite *5* para falar com um atendente.";
+const GUIAS_DO_MENU = new Map(
+  OPCOES_MENU.flatMap(({ guia }, i) => (guia ? [[String(i + 1), guia] as const] : [])),
+);
+const SEM_AUTORIZACAO_FISCAL = `O escritório ainda não tem autorização para consultar esse documento da sua empresa. Digite *${OPCAO_ATENDENTE}* para falar com um atendente.`;
+const GUIA_INDISPONIVEL = `Não conseguimos buscar o documento agora. Tente novamente em alguns minutos ou digite *${OPCAO_ATENDENTE}* para falar com um atendente.`;
 
 const PERGUNTA_CLIENTE =
   "Olá! Não identificamos este número entre os contatos dos nossos clientes. Você já é cliente da Rigoni Contábil? Responda *sim* ou *não*.";
@@ -349,14 +349,14 @@ export class ReceberMensagem implements ReceberMensagemPort {
     if (texto === String(OPCAO_ATENDENTE)) {
       // A Mensagem registrada é o rótulo da opção, não o dígito: o Funcionário lê o pedido do
       // contato em vez de um "5" solto.
-      return this.encaminharRecepcao(origemDe(conversa, OPCOES_MENU[OPCAO_ATENDENTE - 1]), {
+      return this.encaminharRecepcao(origemDe(conversa, OPCOES_MENU[OPCAO_ATENDENTE - 1].rotulo), {
         resumo: RESUMO_PEDIDO_NO_MENU,
         aviso: AVISO_RECEPCAO_PEDIDO_NO_MENU,
       });
     }
-    if (Object.hasOwn(GUIAS_DO_MENU, texto))
-      return this.entregarGuia(conversa, GUIAS_DO_MENU[texto]);
-    const menu = OPCOES_MENU.map((opcao, i) => `${i + 1} - ${opcao}`).join("\n");
+    const guia = GUIAS_DO_MENU.get(texto);
+    if (guia) return this.entregarGuia(conversa, guia);
+    const menu = OPCOES_MENU.map(({ rotulo }, i) => `${i + 1} - ${rotulo}`).join("\n");
     return this.enviar(
       telefone,
       `Olá, ${contato.nome} (${contato.empresa})! Como podemos ajudar?\n${menu}`,
@@ -373,13 +373,18 @@ export class ReceberMensagem implements ReceberMensagemPort {
     let guia: Result<GuiaFiscal, AppError>;
     try {
       guia = await this.guias.buscar(contato.clienteId, tipo);
-    } catch {
+    } catch (erro) {
+      console.error(`Falha inesperada ao buscar a guia ${tipo}:`, erro);
       return this.enviar(telefone, GUIA_INDISPONIVEL);
     }
     if (!guia.ok) {
-      const aviso =
-        guia.error instanceof ForbiddenError ? SEM_AUTORIZACAO_FISCAL : GUIA_INDISPONIVEL;
-      return this.enviar(telefone, aviso);
+      // Sem autorização é esperado por Cliente; o resto (Cliente sumido, CNPJ inválido, provedor
+      // fora do ar) é problema do sistema e precisa de rastro. Sem CNPJ no log.
+      if (guia.error instanceof ForbiddenError) {
+        return this.enviar(telefone, SEM_AUTORIZACAO_FISCAL);
+      }
+      console.error(`Falha ao buscar a guia ${tipo}:`, guia.error.message);
+      return this.enviar(telefone, GUIA_INDISPONIVEL);
     }
     return this.despacharDocumento({ telefone, ...guia.value });
   }

@@ -31,6 +31,7 @@ import type {
 } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { normalizarCnpj } from "@/shared/kernel/cnpj";
 import { err, ok, type Result } from "@/shared/kernel/result";
@@ -243,15 +244,22 @@ describe("ReceberMensagem", () => {
     expect(enviadas[0].texto).toContain("*5*");
   });
 
-  it.each([new ServicoExternoError("fora do ar"), "lanca" as const])(
-    "falha do provedor fiscal (%p) não derruba: avisa o contato e oferece o atendente",
+  it.each([
+    new ServicoExternoError("fora do ar"),
+    new NotFoundError("sem cliente"),
+    "lanca" as const,
+  ])(
+    "falha do provedor fiscal (%p) não derruba: registra no log, avisa o contato e oferece o atendente",
     async (guiaFalha) => {
+      const log = jest.spyOn(console, "error").mockImplementation(() => undefined);
       const { caso, enviadas, documentosEnviados } = montar({ guiaFalha });
       const r = await caso.execute({ telefone: "11912345678", texto: "4" });
       expect(r.ok).toBe(true);
       expect(documentosEnviados).toHaveLength(0);
       expect(enviadas[0].texto).toContain("agora");
       expect(enviadas[0].texto).toContain("*5*");
+      expect(log).toHaveBeenCalledTimes(1);
+      log.mockRestore();
     },
   );
 
