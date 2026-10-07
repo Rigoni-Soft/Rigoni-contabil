@@ -14,7 +14,13 @@ concurrency:
 jobs:
   e2e-preview:
     name: E2E no preview da Vercel
+    # Devolutiva técnica PR #71, ponto 3: a suíte cria Clientes e usuários e altera cadastros, então
+    # só roda contra Supabase de preview/homolog isolado e descartável (docs/testes.md, seção 5).
+    # Desligado até essa prova existir: defina a variável de repositório E2E_PREVIEW_HABILITADO=true
+    # (Settings > Secrets and variables > Actions > Variables) depois de conferir as variáveis do
+    # Supabase nos ambientes Preview e Homolog da Vercel.
     if: >
+      vars.E2E_PREVIEW_HABILITADO == 'true' &&
       github.event.deployment_status.state == 'success' &&
       startsWith(github.event.deployment.environment, 'Preview') &&
       contains(fromJSON('["develop","homolog"]'), github.event.deployment.ref)
