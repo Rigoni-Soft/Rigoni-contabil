@@ -14,6 +14,7 @@ import type {
   IdentificacaoContatoPort,
 } from "@/modules/atendimento/application/ports/out/identificacao-contato.provider";
 import type {
+  EtapaIdentificacao,
   SessaoAtendimento,
   SessaoAtendimentoPort,
 } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
@@ -207,7 +208,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
     telefone: string,
     chave: string,
     textoDoContato: string,
-    etapa: "ja_cliente" | "cnpj" | "cnpj_nova_tentativa",
+    etapa: EtapaIdentificacao,
     sessao: SessaoAtendimento | null,
     aviso: string,
   ): Promise<Result<void, AppError>> {
@@ -223,7 +224,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
   private async avancar(
     telefone: string,
     chave: string,
-    etapa: "ja_cliente" | "cnpj" | "cnpj_nova_tentativa",
+    etapa: EtapaIdentificacao,
     texto: string,
   ): Promise<Result<void, AppError>> {
     const salva = await this.sessoes.salvar(chave, { etapa, invalidos: 0 });

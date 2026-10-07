@@ -95,7 +95,6 @@ Número que consta como Contato de mais de um Cliente é ambíguo: a URA não of
 Em produção (`NODE_ENV=production`) a rota recusa qualquer segredo ausente ou igual ao placeholder de desenvolvimento
 (`src/main/segredos-mensageria.factory.ts`), antes de validar HMAC ou criar o client privilegiado.
 
-
 ## Ainda não coberto (vai com a #68)
 
 **Gate obrigatório antes de ativar qualquer envio real** (`MENSAGERIA_MODO=real`): idempotência durável por `wamid` e
