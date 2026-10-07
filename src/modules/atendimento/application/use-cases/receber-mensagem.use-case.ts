@@ -12,8 +12,15 @@ import type {
   DocumentoContratual,
   DocumentosContratuaisPort,
 } from "@/modules/atendimento/application/ports/out/documentos-contratuais.provider";
-import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
+import type {
+  DocumentoEnviado,
+  EnvioMensagemPort,
+} from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type { FeriadosPort } from "@/modules/atendimento/application/ports/out/feriados.provider";
+import type {
+  GuiasFiscaisPort,
+  TipoGuia,
+} from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
 import type {
   ContatoIdentificado,
   IdentificacaoContatoPort,
@@ -43,6 +50,12 @@ const OPCOES_MENU = [
 ];
 // "Falar com atendente" é sempre a última opção do menu; a constante acompanha o array.
 const OPCAO_ATENDENTE = OPCOES_MENU.length;
+// Opções 2 a 4 do menu: o PDF vem do provedor fiscal.
+const GUIAS_DO_MENU: Record<string, TipoGuia> = { "2": "das", "3": "parcelamento", "4": "cnd" };
+const SEM_AUTORIZACAO_FISCAL =
+  "O escritório ainda não tem autorização para consultar esse documento da sua empresa. Digite *5* para falar com um atendente.";
+const GUIA_INDISPONIVEL =
+  "Não conseguimos buscar o documento agora. Tente novamente em alguns minutos ou digite *5* para falar com um atendente.";
 
 const PERGUNTA_CLIENTE =
   "Olá! Não identificamos este número entre os contatos dos nossos clientes. Você já é cliente da Rigoni Contábil? Responda *sim* ou *não*.";
@@ -158,6 +171,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
     private readonly mensagens: AnexarMensagemAtendimentoPort,
     private readonly relogio: RelogioPort,
     private readonly feriados: FeriadosPort,
+    private readonly guias: GuiasFiscaisPort,
   ) {}
 
   async execute(mensagem: MensagemRecebida): Promise<Result<void, AppError>> {
@@ -330,7 +344,6 @@ export class ReceberMensagem implements ReceberMensagemPort {
       const salva = await this.sessoes.salvar(chave, { etapa: "tipo_documento" });
       return salva.ok ? this.enviar(telefone, PERGUNTA_TIPO) : salva;
     }
-    const escolha = Number(texto);
     if (texto === String(OPCAO_ATENDENTE)) {
       // A Mensagem registrada é o rótulo da opção, não o dígito: o Funcionário lê o pedido do
       // contato em vez de um "5" solto.
@@ -339,17 +352,33 @@ export class ReceberMensagem implements ReceberMensagemPort {
         aviso: AVISO_RECEPCAO_PEDIDO_NO_MENU,
       });
     }
-    if (Number.isInteger(escolha) && escolha >= 2 && escolha < OPCAO_ATENDENTE) {
-      return this.enviar(
-        telefone,
-        `${OPCOES_MENU[escolha - 1]}: em construção. Envie qualquer mensagem para ver o menu.`,
-      );
-    }
+    if (texto in GUIAS_DO_MENU) return this.entregarGuia(conversa, GUIAS_DO_MENU[texto]);
     const menu = OPCOES_MENU.map((opcao, i) => `${i + 1} - ${opcao}`).join("\n");
     return this.enviar(
       telefone,
       `Olá, ${contato.nome} (${contato.empresa})! Como podemos ajudar?\n${menu}`,
     );
+  }
+
+  // O provedor fiscal é falha esperada por Cliente (sem autorização, fora do ar): o contato é
+  // avisado e a mensagem fica resolvida, em vez de a Meta reenviar para sempre. Só falhar o envio
+  // do PDF/aviso devolve erro.
+  private async entregarGuia(
+    { telefone, contato }: Conversa,
+    tipo: TipoGuia,
+  ): Promise<Result<void, AppError>> {
+    let guia: Awaited<ReturnType<GuiasFiscaisPort["buscar"]>>;
+    try {
+      guia = await this.guias.buscar(contato.clienteId, tipo);
+    } catch {
+      return this.enviar(telefone, GUIA_INDISPONIVEL);
+    }
+    if (!guia.ok) {
+      const aviso =
+        guia.error instanceof ValidationError ? SEM_AUTORIZACAO_FISCAL : GUIA_INDISPONIVEL;
+      return this.enviar(telefone, aviso);
+    }
+    return this.despacharDocumento({ telefone, ...guia.value });
   }
 
   private async escolherTipo(conversa: Conversa, texto: string): Promise<Result<void, AppError>> {
@@ -462,12 +491,16 @@ export class ReceberMensagem implements ReceberMensagemPort {
     const link = await this.documentos.linkTemporario(documento.caminho);
     if (!link.ok) return link;
     const extensao = /\.[A-Za-z0-9]+$/.exec(documento.caminho)?.[0] ?? "";
+    return this.despacharDocumento({
+      telefone,
+      url: link.value,
+      nomeArquivo: `${descrever(documento)}${extensao}`,
+    });
+  }
+
+  private async despacharDocumento(documento: DocumentoEnviado): Promise<Result<void, AppError>> {
     try {
-      return await this.envio.enviarDocumento({
-        telefone,
-        url: link.value,
-        nomeArquivo: `${descrever(documento)}${extensao}`,
-      });
+      return await this.envio.enviarDocumento(documento);
     } catch {
       return err(new ServicoExternoError("Falha ao enviar o documento."));
     }

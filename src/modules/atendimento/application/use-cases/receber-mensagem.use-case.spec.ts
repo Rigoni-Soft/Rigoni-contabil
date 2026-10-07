@@ -15,6 +15,11 @@ import type {
 } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type { FeriadosPort } from "@/modules/atendimento/application/ports/out/feriados.provider";
 import type {
+  GuiaFiscal,
+  GuiasFiscaisPort,
+  TipoGuia,
+} from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
+import type {
   ContatoAmbiguo,
   ContatoIdentificado,
   IdentificacaoContatoPort,
@@ -26,6 +31,7 @@ import type {
 } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
+import { ValidationError } from "@/shared/errors/validation.error";
 import { normalizarCnpj } from "@/shared/kernel/cnpj";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
@@ -63,6 +69,7 @@ function montar(
     agora?: Date;
     feriados?: string[];
     feriadosFalha?: boolean;
+    guiaFalha?: AppError | "lanca";
   } = {},
 ) {
   const buscados: string[] = [];
@@ -154,7 +161,17 @@ function montar(
     listarDatas: async () =>
       opcoes.feriadosFalha ? err(new ServicoExternoError("banco")) : ok(opcoes.feriados ?? []),
   };
+  const guiasBuscadas: { clienteId: string; tipo: TipoGuia }[] = [];
+  const guias: GuiasFiscaisPort = {
+    buscar: async (clienteId, tipo) => {
+      guiasBuscadas.push({ clienteId, tipo });
+      if (opcoes.guiaFalha === "lanca") throw new Error("rede");
+      if (opcoes.guiaFalha) return err(opcoes.guiaFalha);
+      return ok<GuiaFiscal>({ nomeArquivo: `${tipo}.pdf`, pdfBase64: `pdf-${tipo}` });
+    },
+  };
   return {
+    guiasBuscadas,
     anexadas,
     tentativasDeAnexar,
     abertos,
@@ -167,6 +184,7 @@ function montar(
       mensagens,
       relogio,
       feriados,
+      guias,
     ),
     sessoes,
     gravadas,
@@ -197,11 +215,50 @@ describe("ReceberMensagem", () => {
     }
   });
 
-  it.each(["2", "3", "4", " 3 "])("opção %p do menu responde em construção", async (texto) => {
-    const { caso, enviadas } = montar();
-    const r = await caso.execute({ telefone: "11912345678", texto });
+  it.each([
+    ["2", "das"],
+    ["3", "parcelamento"],
+    ["4", "cnd"],
+    [" 3 ", "parcelamento"],
+  ])("opção %p do menu entrega o PDF de %s do Cliente do contato", async (texto, tipo) => {
+    const { caso, enviadas, documentosEnviados, guiasBuscadas } = montar();
+    const r = await caso.execute({ telefone: "5511912345678", texto });
     expect(r.ok).toBe(true);
-    expect(enviadas[0].texto).toContain("em construção");
+    // O CNPJ nunca é perguntado: a busca usa o Cliente ligado ao contato.
+    expect(guiasBuscadas).toEqual([{ clienteId: ana.clienteId, tipo }]);
+    expect(documentosEnviados).toEqual([
+      { telefone: "5511912345678", nomeArquivo: `${tipo}.pdf`, pdfBase64: `pdf-${tipo}` },
+    ]);
+    expect(enviadas).toHaveLength(0);
+  });
+
+  it("guia sem autorização vigente avisa o contato e oferece o atendente", async () => {
+    const { caso, enviadas, documentosEnviados } = montar({
+      guiaFalha: new ValidationError("sem autorização"),
+    });
+    const r = await caso.execute({ telefone: "11912345678", texto: "2" });
+    expect(r.ok).toBe(true);
+    expect(documentosEnviados).toHaveLength(0);
+    expect(enviadas[0].texto).toContain("autorização");
+    expect(enviadas[0].texto).toContain("*5*");
+  });
+
+  it.each([new ServicoExternoError("fora do ar"), "lanca" as const])(
+    "falha do provedor fiscal (%p) não derruba: avisa o contato e oferece o atendente",
+    async (guiaFalha) => {
+      const { caso, enviadas, documentosEnviados } = montar({ guiaFalha });
+      const r = await caso.execute({ telefone: "11912345678", texto: "4" });
+      expect(r.ok).toBe(true);
+      expect(documentosEnviados).toHaveLength(0);
+      expect(enviadas[0].texto).toContain("agora");
+      expect(enviadas[0].texto).toContain("*5*");
+    },
+  );
+
+  it("falha ao enviar o PDF devolve erro para a Meta reenviar", async () => {
+    const { caso } = montar({ envioFalha: true });
+    const r = await caso.execute({ telefone: "11912345678", texto: "2" });
+    expect(r).toEqual({ ok: false, error: expect.any(ServicoExternoError) });
   });
 
   it("telefone sem dígitos é rejeitado", async () => {
@@ -241,6 +298,7 @@ describe("ReceberMensagem", () => {
       { execute: async () => ok({ anexada: false }) },
       { agora: () => new Date("2026-10-07T10:00:00-03:00") },
       { listarDatas: async () => ok([]) },
+      { buscar: async () => err(new ServicoExternoError("fiscal")) },
     );
     const r = await caso.execute({ telefone: "11912345678", texto: "oi" });
     expect(r.ok).toBe(false);

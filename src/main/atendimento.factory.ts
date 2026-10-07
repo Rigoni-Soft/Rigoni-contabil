@@ -5,10 +5,12 @@ import {
   MENSAGERIA_SEGREDO_ASSINATURA,
   MENSAGERIA_SEGREDO_SESSAO,
   MENSAGERIA_TOKEN_VERIFICACAO,
+  OBRIGACOES_FISCAIS_URL,
 } from "@/env";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { makeRegistrarAcao } from "@/main/auditoria.factory";
+import { GuiasFiscaisViaClientes } from "@/main/guias-fiscais.factory";
 import { exigirSegredosReais } from "@/main/segredos-mensageria.factory";
 import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
@@ -47,10 +49,13 @@ import { SupabaseIdentificacaoContatoGateway } from "@/modules/atendimento/infra
 import { SupabaseSessaoAtendimentoGateway } from "@/modules/atendimento/infra/gateways/supabase-sessao-atendimento.gateway";
 import { SupabaseAtendimentoRepository } from "@/modules/atendimento/infra/repositories/atendimento.repository";
 import { SupabaseFeriadoRepository } from "@/modules/atendimento/infra/repositories/feriado.repository";
+import { ObrigacoesFiscaisHttpGateway } from "@/modules/clientes/infra/gateways/obrigacoes-fiscais-http.gateway";
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
 import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabase-sessao.gateway";
 import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories/usuario.repository";
+import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import type { Papel } from "@/shared/kernel/papeis";
+import { err, ok } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
 // Instância única: o falso guarda em memória o que "enviou".
@@ -76,6 +81,19 @@ function exigirSegredosDeProducao(): void {
   );
 }
 
+// O CNPJ da guia vem do cadastro do Cliente ligado ao contato (service_role: o webhook não tem sessão).
+function guiasFiscais(supabaseAdmin: SupabaseClient): GuiasFiscaisViaClientes {
+  return new GuiasFiscaisViaClientes(async (clienteId) => {
+    const { data, error } = await supabaseAdmin
+      .from("clientes")
+      .select("cnpj")
+      .eq("id", clienteId)
+      .maybeSingle<{ cnpj: string }>();
+    if (error || !data) return err(new ServicoExternoError("Falha ao ler o CNPJ do Cliente."));
+    return ok(data.cnpj);
+  }, new ObrigacoesFiscaisHttpGateway(OBRIGACOES_FISCAIS_URL));
+}
+
 export function makeReceberMensagem(): ReceberMensagemPort {
   exigirSegredosDeProducao();
   const supabaseAdmin = createSupabaseAdmin();
@@ -89,6 +107,7 @@ export function makeReceberMensagem(): ReceberMensagemPort {
     new AnexarMensagemAtendimento(atendimentos),
     new RelogioSistemaGateway(),
     new SupabaseFeriadoRepository(supabaseAdmin),
+    guiasFiscais(supabaseAdmin),
   );
 }
 

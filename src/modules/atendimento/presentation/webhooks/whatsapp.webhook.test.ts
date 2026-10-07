@@ -50,6 +50,7 @@ jest.mock("@/main/atendimento.factory", () => ({
       // Quarta-feira, 10h em São Paulo: o expediente fica aberto independente da hora real.
       { agora: () => new Date("2026-10-07T10:00:00-03:00") },
       { listarDatas: async () => ok([]) },
+      { buscar: async () => ok({ nomeArquivo: "DAS.pdf", pdfBase64: "JVBERi0=" }) },
     ),
   makeAutenticacaoWebhook: () => new HmacAutenticacaoWebhookGateway(SEGREDO, TOKEN),
 }));
@@ -155,8 +156,10 @@ describe("POST /api/webhooks/whatsapp (notificação)", () => {
   it("processa todas as mensagens de um lote", async () => {
     const r = await enviar(notificacao([texto("oi"), texto("2", "5511999990000")]));
     expect(r.status).toBe(200);
-    expect(envio.enviadas).toHaveLength(2);
-    expect(envio.enviadas[1].texto).toContain("em construção");
+    expect(envio.enviadas).toHaveLength(1);
+    expect(envio.documentosEnviados).toEqual([
+      { telefone: "5511999990000", nomeArquivo: "DAS.pdf", pdfBase64: "JVBERi0=" },
+    ]);
   });
 
   it("opção 5 do menu (falar com atendente) encaminha o contato reconhecido à recepção", async () => {
