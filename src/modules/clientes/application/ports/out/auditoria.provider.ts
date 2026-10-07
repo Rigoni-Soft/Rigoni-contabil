@@ -10,7 +10,8 @@ export type RegistrarAcaoAuditoria = {
 
 export interface AuditoriaPort {
   // Best-effort, só pra "falha" e "falha_compensacao" (tentativas sem estado a
-  // preservar). O "sucesso" do cadastro é auditado pelo próprio banco, na mesma
-  // transação do INSERT em `clientes` (trigger): não existe Cliente sem evento.
+  // preservar). O "sucesso" é auditado pelo próprio banco, na mesma transação da
+  // escrita (trigger): do cadastro (INSERT em `clientes`) e da edição do cadastro
+  // operacional (`cliente_atividades_mensais`) — não existe estado sem evento.
   registrar(input: RegistrarAcaoAuditoria): Promise<void>;
 }

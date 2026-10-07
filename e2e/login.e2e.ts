@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 // Cobre o cenário principal do ticket #28 (RBAC básico, login, setores):
 // login por e-mail/senha, shell autenticado mostrando papel/setor, navegação

@@ -33,8 +33,12 @@ Uma empresa cadastrada no sistema, identificada por CNPJ. "Empresa" é o nome do
 _Avoid_: Empresa (como entidade à parte), conta.
 
 **Regime**:
-O regime tributário do Cliente — Simples Nacional, Lucro Presumido, Lucro Real ou MEI. Nesta rodada, todo Cliente cadastrado é Simples Nacional, mas o campo aceita os quatro valores.
+O regime tributário do Cliente — Simples Nacional, Lucro Presumido, Lucro Real ou MEI, livremente escolhido no cadastro (#33). Só Simples Nacional e MEI ganham Cadastro operacional (ver termo abaixo); Lucro Presumido e Lucro Real não têm cadastro nesta rodada.
 _Avoid_: Regime de atendimento (não é isso).
+
+**Cadastro operacional**:
+O conjunto de campos que o Funcionário do Simples Nacional mantém atualizado por Cliente — forma de envio, Contatos, documento recebido, DAS, Parcelamento, Atividade do mês, observações gerais (#34). Nasce automaticamente quando o Cliente é cadastrado com Regime Simples Nacional ou MEI (#33), com os campos de status em suas opções negativa/pendente por padrão (documento recebido = negativo; DAS e Parcelamento = pendente) até o Funcionário atualizar de verdade — nunca fica em branco esperando o primeiro acesso. Outros Setores só visualizam; nunca inclui contrato social/alterações contratuais, mesmo pro próprio Funcionário do Simples Nacional.
+_Avoid_: Cadastro do cliente (ambíguo com o cadastro básico do #33 — Empresa/CNPJ/Regime/documentos jurídicos).
 
 **Contato**:
 Um vínculo nome + número de WhatsApp a um Cliente. Um Cliente tem um Contato marcado como padrão e pode ter outros Contatos adicionais.

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 // Cobre o cenário principal do ticket #30 (Admin cadastra Líder/Funcionário):
 // cadastro com senha provisória gerada automaticamente, mostrada na hora.

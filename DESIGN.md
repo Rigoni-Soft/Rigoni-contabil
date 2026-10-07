@@ -19,12 +19,13 @@ para ação e estado — nunca decoração.
 
 Definidos como CSS variables em `src/app/globals.css`, no formato exigido
 pelo shadcn (`docs/arquitetura.md` §5.1). `:root` carrega os valores do tema
-**dark** (padrão do produto); a classe `.light` sobrescreve para o tema
-claro. `next-themes` (`src/presentation/providers/theme.provider.tsx`)
-alterna a classe em `<html>`; `enableSystem` fica desligado para não
-sobrepor "dark é o padrão" com a preferência de SO do visitante.
+dark; a classe `.light` sobrescreve para o tema **claro (padrão do produto,
+decisão revisada em 2026-09-30)**. `next-themes`
+(`src/presentation/providers/theme.provider.tsx`) alterna a classe em
+`<html>`; `enableSystem` fica desligado para não sobrepor "light é o padrão"
+com a preferência de SO do visitante.
 
-| Token | Dark (padrão) | Light | Uso |
+| Token | Dark | Light (padrão) | Uso |
 |---|---|---|---|
 | `background` / `foreground` | `#23221f` / `#ece7d8` | `#f4f1e8` / `#16231f` | tela |
 | `card` / `card-foreground` | `#2c2a26` / `#ece7d8` | `#faf8f1` / `#16231f` | superfícies elevadas (cartão de login, painel de filtro, cartão de confirmação) |
@@ -90,6 +91,14 @@ densidade real do conteúdo, não um valor único fixo do produto:
 - Feed/tabela com filtro (ex.: `/admin/auditoria`): `max-w-6xl` — largura
   suficiente para a grade de filtro de 4 colunas e as 6 colunas da tabela
   sem espremer nem forçar rolagem horizontal prematura.
+- Formulário com elevação em 2 colunas (ex.: edição do cadastro operacional
+  do Simples Nacional, #34, feedback manual do usuário): `max-w-2xl` dentro
+  de um cartão `rounded-lg border bg-card shadow-sm` — mais largo que o
+  formulário isolado de coluna única porque o conteúdo é denso (Forma de
+  envio, Documento, DAS, parcelamento, Atividade do mês, Contatos), mas sem
+  chegar na largura de feed/tabela. Qualquer formulário operacional futuro
+  com essa mesma densidade (vários grupos de campo relacionados, não um
+  fluxo linear único) reusa essa largura em vez de forçar `max-w-md`.
 
 Painel de filtro: campos em grid (`grid-cols-2 sm:grid-cols-4`), e as ações
 (Limpar/Filtrar) ficam numa linha própria abaixo dos campos, separada por
@@ -101,6 +110,15 @@ entrada (ação e dado de filtro são grupos distintos).
 `src/presentation/components/ui/` — primitivas estilo shadcn (kebab-case,
 sem sufixo `.component`, isentas de teste por convenção —
 `docs/testes.md`):
+
+Checkboxes/radios nativos (`src/app/globals.css`): `accent-color:
+var(--primary)` global — sem isso, o navegador pinta o azul padrão do SO,
+brigando com o verde-cheque do resto do produto. Primeiro uso real em
+`editar-cadastro-operacional-form.component.tsx` (#34: "Tem parcelamento",
+"Atividade do mês", "Padrão" de cada Contato); a regra é global porque
+`accent-color` é herdado por elemento nativo, não por componente — qualquer
+`<input type="checkbox">`/`type="radio"` futuro herda o token automaticamente,
+sem precisar de classe.
 
 - `button.tsx` — variantes `default`/`destructive`/`outline`/`ghost`,
   tamanhos `default` (44px), `sm` (40px), `icon` (44px). Alturas escolhidas
@@ -272,6 +290,12 @@ elevado (`bg-card`), fica no mesmo plano do formulário. Qualquer lista
 dinâmica futura (Data + arquivo, ou qualquer par de campos repetível) reusa
 este padrão em vez de inventar um novo.
 
+**Confirmado em #34:** o cadastro operacional (Contatos) reusa o mesmo
+padrão sem alteração — bloco com borda por contato, "Remover contato N"
+com `aria-label` numerado, botão "Adicionar contato" nas mesmas
+variante/tamanho. Segundo consumidor confirma que o padrão vale para
+qualquer lista dinâmica de campos, não só o par data+arquivo do #33.
+
 ### Campo obrigatório e máscara de entrada
 
 **`RequiredMark` (29/09/2026, #33, feedback manual do usuário):** asterisco
@@ -284,6 +308,11 @@ precisa duplicar em texto). Um parágrafo no topo do formulário
 `<RequiredMark />` + `aria-required="true"` no input, em vez de confiar só
 na mensagem de erro do submit pra sinalizar isso.
 
+**Confirmado em #34:** os campos Nome e Telefone de cada Contato (únicos
+campos obrigatórios do cadastro operacional — os demais são `enum`/`select`
+com valor sempre presente ou opcionais) usam `<RequiredMark />` +
+`aria-required="true"`, mesmo padrão do #33.
+
 **Máscara de exibição (29/09/2026, #33):** quando um campo tem um formato
 canônico bem definido (CNPJ: `00.000.000/0000-00`), a formatação acontece
 progressivamente enquanto o usuário digita, via `Controller` controlado
@@ -295,6 +324,28 @@ validação de formato de verdade (dígito verificador) é uma função separada
 (`arquitetura.md`, regra de dependência), então a checagem client-side
 duplica de propósito o algoritmo do domínio só pra dar feedback cedo; a
 validação que vale de verdade continua do lado do servidor.
+
+**Confirmado em #34 (Telefone):** segundo consumidor do padrão de máscara —
+`telefone-mask.ts` formata progressivamente `(00) 0000-0000` (fixo, 10
+dígitos) ou `(00) 00000-0000` (celular, 11 dígitos), mesma técnica
+(`Controller` controlado, não `register`). Diferença do CNPJ: Telefone não
+tem VO próprio com dígito verificador no domínio (`Contato.criar` só exige
+presença) — a máscara aqui é só visual, sem contraparte de validação de
+formato/checksum no domínio ou no schema.
+
+### Ações do formulário (Salvar/Limpar/Cancelar)
+
+**#34, feedback manual do usuário:** formulário de edição (não de cadastro
+em lote, ver "Ações pós-sucesso" acima) ganha três ações lado a lado, só em
+modo edição (nenhuma aparece em modo somente-leitura, já que não há o que
+salvar/desfazer/cancelar): `Button` primário "Salvar"; `Button`
+`outline` "Limpar", que reverte o formulário pro que veio do servidor
+(`reset()` do react-hook-form com os mesmos valores do `defaultValues`) —
+**não esvazia campos**, porque campos `enum` obrigatórios (ex.: Forma de
+envio) não têm opção em branco no `Select`, então "limpar de verdade"
+quebraria a validação; e `<Link>` `ghost` "Cancelar" pro mesmo destino do
+"Voltar" do topo da página. Qualquer tela de edição futura (distinta de
+cadastro em lote) reusa este trio em vez do par "Cadastrar outro"/"Finalizar".
 
 ### Autopreenchimento a partir de API pública
 

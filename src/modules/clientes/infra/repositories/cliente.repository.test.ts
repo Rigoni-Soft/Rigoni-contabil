@@ -122,7 +122,7 @@ describe("SupabaseClienteRepository (integração)", () => {
     expect(depois.data).toHaveLength(antes.data?.length ?? 0);
   });
 
-  it("rejeita CNPJ duplicado (constraint unique)", async () => {
+  it("rejeita CNPJ duplicado com mensagem amigável (não vaza erro cru do Postgres)", async () => {
     const supabase = await comoAdmin();
     const repositorio = new SupabaseClienteRepository(supabase);
     const cnpj = "11222333000181";
@@ -131,6 +131,9 @@ describe("SupabaseClienteRepository (integração)", () => {
     const resultado = await repositorio.criar(clienteValido(cnpj));
 
     expect(resultado.ok).toBe(false);
+    if (resultado.ok) return;
+    expect(resultado.error.message).toBe("CNPJ já cadastrado para outro Cliente.");
+    expect(resultado.error.message).not.toMatch(/duplicate key|constraint|clientes_cnpj_key/i);
   });
 
   it("Funcionário não pode cadastrar Cliente (RLS)", async () => {

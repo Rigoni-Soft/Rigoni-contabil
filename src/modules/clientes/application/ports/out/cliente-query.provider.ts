@@ -1,0 +1,28 @@
+import type { AppError } from "@/shared/errors/app.error";
+import type { Result } from "@/shared/kernel/result";
+
+// Read model puro (arquitetura.md, seção 3.6): nunca passa pelo builder/entidade
+// Cliente. Deliberadamente SEM contratoSocialCaminho/alteracoesContratuais —
+// a confidencialidade destes campos nesta tela é garantida pelo shape do DTO,
+// não por lógica condicional na View (RLS é por linha, não por coluna).
+export type CadastroOperacionalClienteDto = {
+  id: string;
+  empresa: string;
+  cnpj: string;
+  regime: string;
+  formaEnvio: string;
+  contatos: { id?: string; nome: string; telefone: string; padrao: boolean }[];
+  documentoObrigatorio: string | null;
+  dasStatus: string | null;
+  dataEnvioDas: string | null;
+  temParcelamento: boolean;
+  parcelamentoStatus: string | null;
+  observacoesGerais: string;
+  atividadeMes: { industria: boolean; comercio: boolean; servico: boolean };
+};
+
+export interface ClienteQueryPort {
+  buscarCadastroOperacional(
+    clienteId: string,
+  ): Promise<Result<CadastroOperacionalClienteDto | null, AppError>>;
+}

@@ -30,7 +30,7 @@ Ferramenta interna proprietária, não um produto de mercado. O que a diferencia
 ## Capabilities and Constraints
 
 - RBAC por Papel (Admin, Líder de setor, Funcionário) e Setor; Admin acessa tudo, os demais só o próprio setor.
-- Quatro módulos de domínio: `usuarios` (RBAC/autenticação), `clientes` (cadastro Simples Nacional, DAS, parcelamento, contrato social), `atendimento` (URA, fila, transferência, balanceamento mensal), `auditoria` (registro + consulta).
+- Quatro módulos de domínio: `usuarios` (RBAC/autenticação), `clientes` (cadastro básico por Admin + Cadastro operacional automático pra Regime Simples Nacional/MEI, editado pelo Funcionário do Simples Nacional — DAS, parcelamento, contrato social), `atendimento` (URA, fila, transferência, balanceamento mensal), `auditoria` (registro + consulta).
 - Nenhuma tela do setor Simples Nacional exibe contrato social ou alterações contratuais — mesmo o cadastro de outros setores é só leitura.
 - Terminologia do domínio fixada em `CONTEXT.md` (Setor, Papel, Atendente, URA, Cliente, Regime, Contato, Atendimento, Mensagem, Fila, Transferência, Balanceamento mensal, Atividade do mês) — qualquer trabalho futuro deve usar esses termos, sem sinônimos novos.
 - Spec funcional completa e os 27 tickets de implementação vivem no issue tracker do GitHub (`Rigoni-Soft/Rigoni-contabil`, issue #24 e filhos #28–#54), não neste arquivo.

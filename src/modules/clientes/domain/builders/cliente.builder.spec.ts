@@ -131,4 +131,122 @@ describe("ClienteBuilder", () => {
     expect(resultado.ok).toBe(true);
     if (resultado.ok) expect(resultado.value.alteracoesContratuais).toHaveLength(1);
   });
+
+  it("aceita Cliente sem nenhum campo operacional informado (defaults: whatsapp, sem parcelamento, sem observações)", () => {
+    const resultado = Cliente.builder()
+      .comId("11111111-1111-1111-1111-111111111111")
+      .comEmpresa("Padaria Pão Quente Ltda")
+      .comCnpj(CNPJ_VALIDO)
+      .comRegime("simples_nacional")
+      .comContratoSocialCaminho(null)
+      .comAlteracoesContratuais([])
+      .build();
+
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) {
+      expect(resultado.value.formaEnvio.valor).toBe("whatsapp");
+      expect(resultado.value.contatos).toEqual([]);
+      expect(resultado.value.documentoObrigatorio).toBeNull();
+      expect(resultado.value.dasStatus).toBeNull();
+      expect(resultado.value.dataEnvioDas).toBeNull();
+      expect(resultado.value.temParcelamento).toBe(false);
+      expect(resultado.value.parcelamentoStatus).toBeNull();
+      expect(resultado.value.observacoesGerais).toBe("");
+      expect(resultado.value.atividadeMesAtual).toBeNull();
+    }
+  });
+
+  it("constrói com todos os campos operacionais preenchidos", () => {
+    const resultado = Cliente.builder()
+      .comId("11111111-1111-1111-1111-111111111111")
+      .comEmpresa("Padaria Pão Quente Ltda")
+      .comCnpj(CNPJ_VALIDO)
+      .comRegime("simples_nacional")
+      .comContratoSocialCaminho(null)
+      .comAlteracoesContratuais([])
+      .comFormaEnvio("email")
+      .comContatos([{ nome: "Maria", telefone: "11999990000", padrao: true }])
+      .comDocumentoObrigatorio("positivo")
+      .comDasStatus("pronto")
+      .comDataEnvioDas(new Date("2026-09-10"))
+      .comTemParcelamento(true)
+      .comParcelamentoStatus("enviado")
+      .comObservacoesGerais("Cliente pontual.")
+      .comAtividadeMesAtual({ anoMes: "2026-09", industria: false, comercio: true, servico: false })
+      .build();
+
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) {
+      expect(resultado.value.formaEnvio.valor).toBe("email");
+      expect(resultado.value.contatos).toHaveLength(1);
+      expect(resultado.value.documentoObrigatorio?.valor).toBe("positivo");
+      expect(resultado.value.dasStatus?.valor).toBe("pronto");
+      expect(resultado.value.temParcelamento).toBe(true);
+      expect(resultado.value.parcelamentoStatus?.valor).toBe("enviado");
+      expect(resultado.value.observacoesGerais).toBe("Cliente pontual.");
+      expect(resultado.value.atividadeMesAtual?.comercio).toBe(true);
+    }
+  });
+
+  it("rejeita 2 contatos marcados como padrão ao mesmo tempo", () => {
+    const resultado = Cliente.builder()
+      .comId("11111111-1111-1111-1111-111111111111")
+      .comEmpresa("Padaria Pão Quente Ltda")
+      .comCnpj(CNPJ_VALIDO)
+      .comRegime("simples_nacional")
+      .comContratoSocialCaminho(null)
+      .comAlteracoesContratuais([])
+      .comContatos([
+        { nome: "Maria", telefone: "11999990000", padrao: true },
+        { nome: "João", telefone: "11988880000", padrao: true },
+      ])
+      .build();
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error.fields?.contatos).toBeDefined();
+  });
+
+  it("rejeita contatos sem nenhum marcado como padrão, quando há ao menos um contato", () => {
+    const resultado = Cliente.builder()
+      .comId("11111111-1111-1111-1111-111111111111")
+      .comEmpresa("Padaria Pão Quente Ltda")
+      .comCnpj(CNPJ_VALIDO)
+      .comRegime("simples_nacional")
+      .comContratoSocialCaminho(null)
+      .comAlteracoesContratuais([])
+      .comContatos([{ nome: "Maria", telefone: "11999990000", padrao: false }])
+      .build();
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error.fields?.contatos).toBeDefined();
+  });
+
+  it("restaurar reconstitui os campos operacionais persistidos", () => {
+    const resultado = Cliente.builder()
+      .restaurar({
+        id: "11111111-1111-1111-1111-111111111111",
+        empresa: "Padaria Pão Quente Ltda",
+        cnpj: CNPJ_VALIDO,
+        regime: "simples_nacional",
+        contratoSocialCaminho: null,
+        alteracoesContratuais: [],
+        formaEnvio: "email",
+        contatos: [{ nome: "Maria", telefone: "11999990000", padrao: true }],
+        documentoObrigatorio: "positivo",
+        dasStatus: "pronto",
+        dataEnvioDas: "2026-09-10",
+        temParcelamento: true,
+        parcelamentoStatus: "enviado",
+        observacoesGerais: "Cliente pontual.",
+        atividadeMesAtual: { anoMes: "2026-09", industria: false, comercio: true, servico: false },
+      })
+      .build();
+
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) {
+      expect(resultado.value.formaEnvio.valor).toBe("email");
+      expect(resultado.value.dataEnvioDas).toEqual(new Date("2026-09-10"));
+      expect(resultado.value.atividadeMesAtual?.comercio).toBe(true);
+    }
+  });
 });

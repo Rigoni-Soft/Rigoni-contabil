@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 // Cobre o cenário principal do ticket #29 (Registro de auditoria): a tela de
 // feed bruto em /admin/auditoria é acessível só por Admin.

@@ -38,6 +38,12 @@ class ClienteRepositoryFalso implements ClienteRepository {
     this.criado = cliente;
     return ok(undefined);
   }
+  async buscarPorId(): Promise<Result<Cliente | null, AppError>> {
+    throw new Error("não usado neste caso de uso");
+  }
+  async atualizarOperacional(): Promise<Result<void, AppError>> {
+    throw new Error("não usado neste caso de uso");
+  }
 }
 
 class ArquivoStorageFalso implements ArquivoStoragePort {

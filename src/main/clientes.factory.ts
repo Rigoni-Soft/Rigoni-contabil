@@ -5,12 +5,16 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { makeRegistrarAcao } from "@/main/auditoria.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
 import type { CriarClientePort } from "@/modules/clientes/application/ports/in/criar-cliente.provider";
+import type { EditarCadastroOperacionalClientePort } from "@/modules/clientes/application/ports/in/editar-cadastro-operacional-cliente.provider";
 import type { AuditoriaPort } from "@/modules/clientes/application/ports/out/auditoria.provider";
 import type {
   AtorSessaoDto,
   SessaoPort,
 } from "@/modules/clientes/application/ports/out/sessao.provider";
+import { ConsultarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/consultar-cadastro-operacional-cliente.use-case";
 import { CriarCliente } from "@/modules/clientes/application/use-cases/criar-cliente.use-case";
+import { EditarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/editar-cadastro-operacional-cliente.use-case";
+import { SupabaseClienteQueryGateway } from "@/modules/clientes/infra/gateways/cliente-query.gateway";
 import { SupabaseArquivoStorageGateway } from "@/modules/clientes/infra/gateways/supabase-arquivo-storage.gateway";
 import { SupabaseClienteRepository } from "@/modules/clientes/infra/repositories/cliente.repository";
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
@@ -51,5 +55,22 @@ export async function makeCriarCliente(): Promise<CriarClientePort> {
     new SupabaseClienteRepository(supabase),
     new SupabaseArquivoStorageGateway(supabase),
     auditoriaViaModuloAuditoria(),
+  );
+}
+
+export async function makeEditarCadastroOperacionalCliente(): Promise<EditarCadastroOperacionalClientePort> {
+  const supabase = await createSupabaseServer();
+  return new EditarCadastroOperacionalCliente(
+    sessaoViaUsuarios(supabase),
+    new SupabaseClienteRepository(supabase),
+    auditoriaViaModuloAuditoria(),
+  );
+}
+
+export async function makeConsultarCadastroOperacionalCliente(): Promise<ConsultarCadastroOperacionalCliente> {
+  const supabase = await createSupabaseServer();
+  return new ConsultarCadastroOperacionalCliente(
+    sessaoViaUsuarios(supabase),
+    new SupabaseClienteQueryGateway(supabase),
   );
 }
