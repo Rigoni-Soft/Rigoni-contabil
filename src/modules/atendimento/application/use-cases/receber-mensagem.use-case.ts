@@ -186,28 +186,11 @@ export class ReceberMensagem implements ReceberMensagemPort {
         return this.avancar(telefone, chave, "cnpj", PEDIR_CNPJ);
       if (["nao", "n"].includes(semAcento))
         return this.encaminharRecepcao(telefone, chave, textoDoContato);
-      const anteriores = sessao && "invalidos" in sessao ? sessao.invalidos : 0;
-      return this.tratarInvalido(
-        telefone,
-        chave,
-        textoDoContato,
-        etapa,
-        anteriores + 1,
-        SIM_OU_NAO,
-      );
+      return this.tratarInvalido(telefone, chave, textoDoContato, etapa, sessao, SIM_OU_NAO);
     }
     if (etapa === "cnpj" || etapa === "cnpj_nova_tentativa") {
-      if (!cnpjValido(texto)) {
-        const anteriores = sessao && "invalidos" in sessao ? sessao.invalidos : 0;
-        return this.tratarInvalido(
-          telefone,
-          chave,
-          textoDoContato,
-          etapa,
-          anteriores + 1,
-          CNPJ_INVALIDO,
-        );
-      }
+      if (!cnpjValido(texto))
+        return this.tratarInvalido(telefone, chave, textoDoContato, etapa, sessao, CNPJ_INVALIDO);
       const cadastrado = await this.contatos.cnpjCadastrado(normalizarCnpj(texto));
       if (!cadastrado.ok) return cadastrado;
       if (cadastrado.value) return this.encaminharRecepcao(telefone, chave, textoDoContato);
@@ -225,9 +208,10 @@ export class ReceberMensagem implements ReceberMensagemPort {
     chave: string,
     textoDoContato: string,
     etapa: "ja_cliente" | "cnpj" | "cnpj_nova_tentativa",
-    invalidos: number,
+    sessao: SessaoAtendimento | null,
     aviso: string,
   ): Promise<Result<void, AppError>> {
+    const invalidos = (sessao && "invalidos" in sessao ? sessao.invalidos : 0) + 1;
     if (invalidos >= MAX_INVALIDOS) {
       return this.encaminharRecepcao(telefone, chave, textoDoContato);
     }
