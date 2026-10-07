@@ -1,4 +1,4 @@
-import type { FeriadoDto } from "@/modules/atendimento/application/ports/out/feriado.repository";
+import type { FeriadoDto } from "@/modules/atendimento/application/dtos/feriado.dto";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 

@@ -1,7 +1,5 @@
-import type {
-  FeriadoDto,
-  FeriadoRepositoryPort,
-} from "@/modules/atendimento/application/ports/out/feriado.repository";
+import type { FeriadoDto } from "@/modules/atendimento/application/dtos/feriado.dto";
+import type { FeriadoRepositoryPort } from "@/modules/atendimento/application/ports/out/feriado.repository";
 import type { AtorSessaoDto } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ValidationError } from "@/shared/errors/validation.error";

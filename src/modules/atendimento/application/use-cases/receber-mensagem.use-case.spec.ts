@@ -284,6 +284,22 @@ describe("ReceberMensagem — fora do expediente (#72)", () => {
     expect(abertos).toHaveLength(0);
   });
 
+  it("pedido de atendente, respostas inválidas e CNPJ inexistente também só recebem o aviso", async () => {
+    const { caso, enviadas, abertos, gravadas, sessoes } = montar({
+      agora: QUARTA_19H,
+      contato: null,
+      cnpjsCadastrados: [],
+    });
+    for (const texto of ["5", "sim", "xx", "yy", "zz", CNPJ_DESCONHECIDO, CNPJ_DESCONHECIDO]) {
+      await caso.execute({ telefone: FONE, texto });
+    }
+    expect(enviadas).toHaveLength(7);
+    expect(enviadas.every((e) => /fechado/.test(e.texto))).toBe(true);
+    expect(abertos).toHaveLength(0);
+    expect(gravadas).toHaveLength(0);
+    expect(sessoes.size).toBe(0);
+  });
+
   it("Atendimento em andamento continua recebendo a Mensagem, sem aviso", async () => {
     const { caso, enviadas, anexadas } = montar({ agora: QUARTA_19H, emAndamento: true });
     const r = await caso.execute({ telefone: FONE, texto: "ainda aí?" });

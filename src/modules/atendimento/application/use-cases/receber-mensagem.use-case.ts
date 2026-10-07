@@ -173,18 +173,8 @@ export class ReceberMensagem implements ReceberMensagemPort {
     if (!anexada.ok) return anexada;
     if (anexada.value.anexada) return ok(undefined);
 
-    // Fora do expediente a URA só avisa o horário: nada de menu, documento, sessão ou Atendimento.
-    // Os feriados cadastrados só fecham mais dias, nunca abrem: se o calendário nacional já diz
-    // "fechado", a falha ao lê-los não impede o aviso (no máximo a data da volta ignora um
-    // feriado local); se diz "aberto", sem eles não dá para saber, e o erro faz a Meta reenviar.
-    const agora = this.relogio.agora();
-    const fechadoNacional = !estaAbertoEm(agora, new Set());
-    const extras = await this.feriados.listarDatas();
-    if (!extras.ok && !fechadoNacional) return extras;
-    const feriados = new Set(extras.ok ? extras.value : []);
-    if (fechadoNacional || !estaAbertoEm(agora, feriados)) {
-      return this.enviar(mensagem.telefone, avisoDeFechado(agora, feriados));
-    }
+    const fechado = await this.avisarSeFechado(mensagem.telefone);
+    if (fechado) return fechado;
 
     const contato = await this.contatos.identificar(chave);
     if (!contato.ok) return contato;
@@ -212,6 +202,21 @@ export class ReceberMensagem implements ReceberMensagemPort {
       return this.escolherAlteracao(conversa, sessao.value, texto);
     }
     return this.responderMenu(conversa, texto);
+  }
+
+  // Fora do expediente a URA só avisa o horário: nada de menu, documento, sessão ou Atendimento.
+  // Devolve o resultado do aviso, ou `null` com o escritório aberto. Os feriados cadastrados só
+  // fecham mais dias, nunca abrem: se o calendário nacional já diz "fechado", a falha ao lê-los não
+  // impede o aviso (no máximo a data da volta ignora um feriado local); se diz "aberto", sem eles
+  // não dá para saber, e o erro faz a Meta reenviar.
+  private async avisarSeFechado(telefone: string): Promise<Result<void, AppError> | null> {
+    const agora = this.relogio.agora();
+    const fechadoNoCalendarioNacional = !estaAbertoEm(agora, new Set());
+    const extras = await this.feriados.listarDatas();
+    if (!extras.ok && !fechadoNoCalendarioNacional) return extras;
+    const feriados = new Set(extras.ok ? extras.value : []);
+    if (!fechadoNoCalendarioNacional && estaAbertoEm(agora, feriados)) return null;
+    return this.enviar(telefone, avisoDeFechado(agora, feriados));
   }
 
   // Número sem Contato: "já é cliente?" → CNPJ → recepção. Mesmo com o CNPJ o número não é um

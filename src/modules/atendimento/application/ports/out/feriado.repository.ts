@@ -1,8 +1,6 @@
+import type { FeriadoDto } from "@/modules/atendimento/application/dtos/feriado.dto";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
-
-// `data` é "AAAA-MM-DD".
-export type FeriadoDto = { data: string; descricao: string };
 
 export interface FeriadoRepositoryPort {
   listar(): Promise<Result<FeriadoDto[], AppError>>;

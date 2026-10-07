@@ -1,10 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
 
-import type {
-  FeriadoDto,
-  FeriadoRepositoryPort,
-} from "@/modules/atendimento/application/ports/out/feriado.repository";
+import type { FeriadoDto } from "@/modules/atendimento/application/dtos/feriado.dto";
+import type { FeriadoRepositoryPort } from "@/modules/atendimento/application/ports/out/feriado.repository";
 import type { FeriadosPort } from "@/modules/atendimento/application/ports/out/feriados.provider";
+import { feriadoRowSchema } from "@/modules/atendimento/infra/dtos/feriado-row.dto";
 import type { AppError } from "@/shared/errors/app.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -24,7 +24,10 @@ export class SupabaseFeriadoRepository implements FeriadoRepositoryPort, Feriado
       .select("data, descricao")
       .order("data");
     if (error) return err(new ServicoExternoError("Falha ao consultar os feriados."));
-    return ok(data as FeriadoDto[]);
+    const linhas = z.array(feriadoRowSchema).safeParse(data);
+    return linhas.success
+      ? ok(linhas.data)
+      : err(new ServicoExternoError("Falha ao consultar os feriados."));
   }
 
   async listarDatas(): Promise<Result<string[], AppError>> {
