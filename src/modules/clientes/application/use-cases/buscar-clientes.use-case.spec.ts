@@ -4,6 +4,7 @@ import type {
   ResumoOperacionalRow,
   SugestaoClienteDto,
 } from "@/modules/clientes/application/ports/out/cliente-query.provider";
+import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ok, type Result } from "@/shared/kernel/result";
 
@@ -40,11 +41,25 @@ class ClienteQueryPortFalso implements ClienteQueryPort {
   }
 }
 
+const COM_SESSAO: SessaoPort = {
+  usuarioAtual: async () => ({ id: "u1", papel: "funcionario", setor: "simples_nacional" }),
+};
+const SEM_SESSAO: SessaoPort = { usuarioAtual: async () => null };
+
 describe("BuscarClientes", () => {
+  it("recusa sem sessão, sem consultar", async () => {
+    const query = new ClienteQueryPortFalso(SUGESTOES);
+
+    const resultado = await new BuscarClientes(SEM_SESSAO, query).execute("Pão", false);
+
+    expect(!resultado.ok && resultado.error.code).toBe("FORBIDDEN");
+    expect(query.apenasSnMeiRecebido).toBeNull();
+  });
+
   it("devolve as sugestões encontradas pelo termo", async () => {
     const query = new ClienteQueryPortFalso(SUGESTOES);
 
-    const resultado = await new BuscarClientes(query).execute("Pão Quente", false);
+    const resultado = await new BuscarClientes(COM_SESSAO, query).execute("Pão Quente", false);
 
     expect(resultado.ok).toBe(true);
     if (resultado.ok) expect(resultado.value).toEqual(SUGESTOES);
@@ -53,7 +68,7 @@ describe("BuscarClientes", () => {
   it("devolve lista vazia quando nada casa com o termo", async () => {
     const query = new ClienteQueryPortFalso([]);
 
-    const resultado = await new BuscarClientes(query).execute("inexistente", false);
+    const resultado = await new BuscarClientes(COM_SESSAO, query).execute("inexistente", false);
 
     expect(resultado.ok).toBe(true);
     if (resultado.ok) expect(resultado.value).toEqual([]);
@@ -62,7 +77,7 @@ describe("BuscarClientes", () => {
   it("repassa apenasSnMei pra porta de query sem alterar", async () => {
     const query = new ClienteQueryPortFalso(SUGESTOES);
 
-    await new BuscarClientes(query).execute("Pão Quente", true);
+    await new BuscarClientes(COM_SESSAO, query).execute("Pão Quente", true);
 
     expect(query.apenasSnMeiRecebido).toBe(true);
   });

@@ -93,7 +93,7 @@ export async function makeConsultarCadastroOperacionalCliente(): Promise<Consult
 
 export async function makeBuscarClientes(): Promise<BuscarClientes> {
   const supabase = await createSupabaseServer();
-  return new BuscarClientes(new SupabaseClienteQueryGateway(supabase));
+  return new BuscarClientes(sessaoViaUsuarios(supabase), new SupabaseClienteQueryGateway(supabase));
 }
 
 export async function makeListarResponsaveisElegiveis(): Promise<ListarResponsaveisElegiveis> {

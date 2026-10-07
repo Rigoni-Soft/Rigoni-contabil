@@ -97,18 +97,29 @@ describe("ObterResumoSetorSn", () => {
     for (const sessao of [
       sessaoDe("funcionario", "simples_nacional"),
       sessaoDe("admin", "administrativo"),
-      SEM_SESSAO,
     ]) {
       expect("responsaveis" in (await comparativosPara(sessao))).toBe(false);
     }
+  });
+
+  it("recusa sem sessão, antes de consultar", async () => {
+    const query = new ClienteQueryPortFalso();
+    query.erro = new ForbiddenError("não deveria consultar");
+
+    const resultado = await new ObterResumoSetorSn(SEM_SESSAO, query).execute();
+
+    expect(!resultado.ok && resultado.error.message).toMatch(/login/);
   });
 
   it("propaga o erro técnico quando a consulta falha", async () => {
     const query = new ClienteQueryPortFalso();
     query.erro = new ForbiddenError("Falha ao listar");
 
-    const resultado = await new ObterResumoSetorSn(SEM_SESSAO, query).execute();
+    const resultado = await new ObterResumoSetorSn(
+      sessaoDe("funcionario", "simples_nacional"),
+      query,
+    ).execute();
 
-    expect(resultado.ok).toBe(false);
+    expect(!resultado.ok && resultado.error.message).toBe("Falha ao listar");
   });
 });

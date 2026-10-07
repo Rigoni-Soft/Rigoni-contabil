@@ -5,10 +5,11 @@ import type {
 import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { podeAtribuirResponsavel } from "@/shared/kernel/papeis";
 import { err, type Result } from "@/shared/kernel/result";
 
-// Leitura: exige só sessão válida (RLS de `perfis` já limita ao mesmo Setor).
-// A UI chama quando o Líder abre o campo Responsável (#65).
+// A lista serve ao campo Responsável, que é só do Líder do Simples Nacional (#65); a RLS de
+// `perfis` (mesmo Setor) fica como segunda camada.
 export class ListarResponsaveisElegiveis {
   constructor(
     private readonly sessao: SessaoPort,
@@ -16,8 +17,10 @@ export class ListarResponsaveisElegiveis {
   ) {}
 
   async execute(): Promise<Result<ResponsavelOpcaoDto[], AppError>> {
-    if (!(await this.sessao.usuarioAtual())) {
-      return err(new ForbiddenError("Sessão inválida. Entre novamente."));
+    const ator = await this.sessao.usuarioAtual();
+    if (!ator) return err(new ForbiddenError("Sessão inválida. Entre novamente."));
+    if (!podeAtribuirResponsavel(ator.papel, ator.setor)) {
+      return err(new ForbiddenError("Só o Líder do Simples Nacional escolhe o Responsável."));
     }
     return this.query.listarResponsaveisElegiveis();
   }

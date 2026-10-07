@@ -4,12 +4,14 @@ import type { ResumoSetorSnDto } from "@/modules/clientes/application/ports/in/o
 import type { ClienteQueryPort } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
 import type { AppError } from "@/shared/errors/app.error";
+import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { podeAtribuirResponsavel } from "@/shared/kernel/papeis";
-import { ok, type Result } from "@/shared/kernel/result";
+import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Sem exigir sessão pra ver o resumo, mesmo raciocínio do ConsultarCadastroOperacionalCliente
-// (#34): é visualização, RLS de SELECT já restringe a quem tem perfil. A sessão
-// só decide o 4º comparativo (#65), que é do Líder do Simples Nacional.
+// Qualquer usuário autenticado vê o resumo (visualização, mesma regra do
+// ConsultarCadastroOperacionalCliente, #34); a sessão é validada antes de consultar
+// (arquitetura.md §3.12) e a RLS de SELECT fica como segunda camada. O papel só decide o
+// 4º comparativo (#65), que é do Líder do Simples Nacional.
 export class ObterResumoSetorSn {
   constructor(
     private readonly sessao: SessaoPort,
@@ -17,19 +19,20 @@ export class ObterResumoSetorSn {
   ) {}
 
   async execute(): Promise<Result<ResumoSetorSnDto, AppError>> {
+    const ator = await this.sessao.usuarioAtual();
+    if (!ator) return err(new ForbiddenError("Faça login para ver o resumo do setor."));
+
     const linhas = await this.query.listarResumoOperacional();
     if (!linhas.ok) return linhas;
 
-    const ator = await this.sessao.usuarioAtual();
     const { responsaveis, ...comparativos } = calcularComparativosSn(linhas.value);
 
     return ok({
       totalClientes: linhas.value.length,
       cards: classificarResumoSetorSn(linhas.value),
-      comparativos:
-        ator && podeAtribuirResponsavel(ator.papel, ator.setor)
-          ? { ...comparativos, responsaveis }
-          : comparativos,
+      comparativos: podeAtribuirResponsavel(ator.papel, ator.setor)
+        ? { ...comparativos, responsaveis }
+        : comparativos,
     });
   }
 }

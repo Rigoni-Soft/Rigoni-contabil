@@ -41,13 +41,23 @@ describe("carregarCadastroOperacionalAction (integração)", () => {
   beforeEach(() => consultarExecuteMock.mockReset());
 
   it("devolve o cadastro operacional do cliente selecionado", async () => {
-    consultarExecuteMock.mockResolvedValue(ok({ id: "1", empresa: "Padaria Pão Quente Ltda" }));
+    const id = "9f1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7d";
+    consultarExecuteMock.mockResolvedValue(ok({ id, empresa: "Padaria Pão Quente Ltda" }));
 
-    const resultado = await carregarCadastroOperacionalAction("1");
+    const resultado = await carregarCadastroOperacionalAction(id);
 
     expect(resultado.ok).toBe(true);
-    if (resultado.ok)
-      expect(resultado.data).toEqual({ id: "1", empresa: "Padaria Pão Quente Ltda" });
-    expect(consultarExecuteMock).toHaveBeenCalledWith("1");
+    if (resultado.ok) expect(resultado.data).toEqual({ id, empresa: "Padaria Pão Quente Ltda" });
+    expect(consultarExecuteMock).toHaveBeenCalledWith(id);
   });
+
+  it.each([["1"], [""], [undefined], [{ id: "x" }]])(
+    "devolve VALIDATION_ERROR sem chamar o caso de uso quando o clienteId é %p",
+    async (entrada) => {
+      const resultado = await carregarCadastroOperacionalAction(entrada);
+
+      expect(!resultado.ok && resultado.error.code).toBe("VALIDATION_ERROR");
+      expect(consultarExecuteMock).not.toHaveBeenCalled();
+    },
+  );
 });

@@ -23,6 +23,18 @@ describe("ListarResponsaveisElegiveis", () => {
     expect(r.ok && r.value).toEqual(OPCOES);
   });
 
+  it.each([
+    ["funcionario", "simples_nacional"],
+    ["lider_setor", "financeiro"],
+    ["admin", "administrativo"],
+  ])("recusa %s do setor %s", async (papel, setor) => {
+    const sessao: SessaoPort = { usuarioAtual: async () => ({ id: "u1", papel, setor }) };
+
+    const r = await new ListarResponsaveisElegiveis(sessao, query).execute();
+
+    expect(!r.ok && r.error.code).toBe("FORBIDDEN");
+  });
+
   it("recusa sem sessão", async () => {
     const sessao: SessaoPort = { usuarioAtual: async () => null };
 

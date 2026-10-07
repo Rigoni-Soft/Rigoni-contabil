@@ -33,11 +33,16 @@ export async function buscarClientesAction(
   return toActionResult(await buscar.execute(parsed.data.termo, parsed.data.apenasSnMei));
 }
 
-// Sem schema de validação de input: clienteId já vem de um resultado de busca
-// confiável (buscarClientesAction), não de digitação direta do usuário.
+// Server Action é endpoint público (arquitetura.md §3.13): o clienteId é validado mesmo vindo
+// de um resultado de busca da própria UI.
 export async function carregarCadastroOperacionalAction(
-  clienteId: string,
+  clienteId: unknown,
 ): Promise<ActionResult<CadastroOperacionalClienteDto | null>> {
+  const parsed = z.guid().safeParse(clienteId);
+  if (!parsed.success) {
+    return { ok: false, error: { code: "VALIDATION_ERROR", message: "Cliente inválido." } };
+  }
+
   const consultar = await makeConsultarCadastroOperacionalCliente();
-  return toActionResult(await consultar.execute(clienteId));
+  return toActionResult(await consultar.execute(parsed.data));
 }
