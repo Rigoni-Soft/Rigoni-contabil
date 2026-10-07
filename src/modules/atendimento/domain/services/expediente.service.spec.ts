@@ -61,6 +61,21 @@ describe("estaAbertoEm", () => {
     expect(estaAbertoEm(sp("2026-09-08T08:00:00"), SEM_EXTRAS)).toBe(true);
   });
 
+  it("sexta às 18h até segunda às 8h (fim de semana sem feriado)", () => {
+    // 2026-10-19 é segunda comum.
+    expect(estaAbertoEm(sp("2026-10-16T18:00:00"), SEM_EXTRAS)).toBe(false);
+    expect(estaAbertoEm(sp("2026-10-19T07:59:00"), SEM_EXTRAS)).toBe(false);
+    expect(estaAbertoEm(sp("2026-10-19T08:00:00"), SEM_EXTRAS)).toBe(true);
+  });
+
+  it("véspera de feriado cadastrado no meio da semana fecha às 18h e reabre depois dele", () => {
+    const extras = new Set(["2026-10-22"]); // quinta
+    expect(estaAbertoEm(sp("2026-10-21T17:59:00"), extras)).toBe(true);
+    expect(estaAbertoEm(sp("2026-10-21T18:00:00"), extras)).toBe(false);
+    expect(estaAbertoEm(sp("2026-10-23T07:59:00"), extras)).toBe(false);
+    expect(estaAbertoEm(sp("2026-10-23T08:00:00"), extras)).toBe(true);
+  });
+
   it("feriado cadastrado vale como feriado", () => {
     const extras = new Set(["2026-10-08"]);
     expect(estaAbertoEm(sp("2026-10-08T10:00:00"), extras)).toBe(false);
