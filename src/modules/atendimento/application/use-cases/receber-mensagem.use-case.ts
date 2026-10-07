@@ -53,6 +53,9 @@ const PEDIDO_DE_ATENDENTE =
 const PARA_RECEPCAO =
   "Não encontramos você entre os contatos cadastrados. Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
 
+const PARA_RECEPCAO_CONTATO =
+  "Certo! Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
+
 const PERGUNTA_TIPO =
   "O que você deseja receber?\n1 - Contrato social\n2 - Alterações\n3 - Ambos (contrato social e uma alteração)\nDigite *menu* para voltar.";
 
@@ -69,8 +72,8 @@ const MODOS: Record<string, Modo> = { "1": "contrato", "2": "alteracoes", "3": "
 
 // `telefone` com DDI, como a mensagem chegou (resposta); `chave` só dígitos nacionais (sessão).
 type Conversa = { contato: ContatoIdentificado; telefone: string; chave: string };
-// Quem escreveu e o que disse, para abrir o Atendimento na recepção.
-type Origem = { telefone: string; chave: string; textoDoContato: string };
+// Quem escreveu e o que disse, para abrir o Atendimento na recepção; `clienteId` null = número sem Contato.
+type Origem = { telefone: string; chave: string; textoDoContato: string; clienteId: string | null };
 type Documentos = { contrato: DocumentoContratual | null; alteracoes: DocumentoContratual[] };
 
 // DDI 55 é descartado: o telefone do Contato é cadastrado só com DDD + número.
@@ -137,7 +140,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
     if (!chave) return err(new ValidationError("Telefone da mensagem é obrigatório"));
 
     // Quem já tem Atendimento em andamento continua nele; a URA não recomeça.
-    // ponytail: sem resposta automática, quem responde é o Funcionário (#46).
+    // ponytail: sem resposta automática, quem responde é o Funcionário (tela de atendimento do Funcionário ainda não existe).
     const anexada = await this.mensagens.execute({
       chave,
       mensagem: { autor: "contato", texto: mensagem.texto },
@@ -183,7 +186,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
     texto: string,
     sessao: SessaoAtendimento | null,
   ): Promise<Result<void, AppError>> {
-    const origem: Origem = { telefone, chave, textoDoContato };
+    const origem: Origem = { telefone, chave, textoDoContato, clienteId: null };
     const etapa = texto === "menu" ? null : sessao?.etapa;
     const semAcento = texto.normalize("NFD").replace(/\p{M}/gu, "");
 
@@ -233,7 +236,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
   }
 
   private async encaminharRecepcao(
-    { telefone, chave, textoDoContato }: Origem,
+    { telefone, chave, textoDoContato, clienteId }: Origem,
     textoAviso = PARA_RECEPCAO,
   ): Promise<Result<void, AppError>> {
     // Aviso antes de abrir: se o envio falhar e a Meta reenviar, não nasce Atendimento duplicado.
@@ -243,7 +246,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
     const aberto = await this.atendimentos.execute({
       telefone,
       chave,
-      clienteId: null,
+      clienteId,
       setor: "recepcao",
       mensagens: [
         { autor: "contato", texto: textoDoContato },
@@ -275,7 +278,13 @@ export class ReceberMensagem implements ReceberMensagemPort {
       return salva.ok ? this.enviar(telefone, PERGUNTA_TIPO) : salva;
     }
     const escolha = Number(texto);
-    if (Number.isInteger(escolha) && escolha >= 2 && escolha <= OPCOES_MENU.length) {
+    if (escolha === OPCOES_MENU.length) {
+      return this.encaminharRecepcao(
+        { telefone, chave, textoDoContato: OPCOES_MENU[escolha - 1], clienteId: contato.clienteId },
+        PARA_RECEPCAO_CONTATO,
+      );
+    }
+    if (Number.isInteger(escolha) && escolha >= 2 && escolha < OPCOES_MENU.length) {
       return this.enviar(
         telefone,
         `${OPCOES_MENU[escolha - 1]}: em construção. Envie qualquer mensagem para ver o menu.`,

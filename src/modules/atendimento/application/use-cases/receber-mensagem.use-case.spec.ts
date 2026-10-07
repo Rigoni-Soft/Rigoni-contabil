@@ -175,7 +175,7 @@ describe("ReceberMensagem", () => {
     }
   });
 
-  it.each(["2", "3", "4", "5", " 3 "])("opção %p do menu responde em construção", async (texto) => {
+  it.each(["2", "3", "4", " 3 "])("opção %p do menu responde em construção", async (texto) => {
     const { caso, enviadas } = montar();
     const r = await caso.execute({ telefone: "11912345678", texto });
     expect(r.ok).toBe(true);
@@ -758,5 +758,52 @@ describe("ReceberMensagem — fallback para a recepção (#50)", () => {
     for (const t of ["oi", "sim"]) await dizer(caso, t);
     expect((await dizer(caso, CNPJ_DESCONHECIDO)).ok).toBe(false);
     expect(sessoes.get(TEL)).toEqual({ etapa: "cnpj", invalidos: 0 });
+  });
+});
+
+describe("ReceberMensagem — opção falar com atendente (#46)", () => {
+  const TEL = "5511912345678";
+  const pedir = (caso: ReturnType<typeof montar>["caso"]) =>
+    caso.execute({ telefone: TEL, texto: " 5 " });
+
+  it("abre Atendimento na recepção já vinculado ao Cliente, com as Mensagens da conversa", async () => {
+    const { caso, abertos } = montar();
+    expect((await pedir(caso)).ok).toBe(true);
+    expect(abertos).toHaveLength(1);
+    expect(abertos[0]).toMatchObject({
+      telefone: TEL,
+      chave: "11912345678",
+      clienteId: "cliente-1",
+      setor: "recepcao",
+    });
+    expect(abertos[0].mensagens.map((m) => m.autor)).toEqual(["contato", "ura"]);
+  });
+
+  it("avisa que vai à recepção, sem o stub 'em construção'", async () => {
+    const { caso, enviadas } = montar();
+    await pedir(caso);
+    expect(enviadas).toHaveLength(1);
+    expect(enviadas[0].texto).toContain("recepção");
+    expect(enviadas[0].texto).not.toContain("em construção");
+  });
+
+  it("sem Funcionário livre manda a posição na Fila depois do aviso", async () => {
+    const { caso, enviadas } = montar({ posicaoNaFila: 2 });
+    await pedir(caso);
+    expect(enviadas.map((e) => e.texto)).toEqual([
+      expect.stringContaining("recepção"),
+      "Você está na posição 2 da fila de atendimento. Aguarde, por favor.",
+    ]);
+  });
+
+  it("falha ao abrir o Atendimento devolve o erro", async () => {
+    const { caso } = montar({ aberturaFalha: true });
+    expect((await pedir(caso)).ok).toBe(false);
+  });
+
+  it("falha do envio do aviso não abre Atendimento (a reentrega não duplica)", async () => {
+    const { caso, abertos } = montar({ envioFalha: true });
+    expect((await pedir(caso)).ok).toBe(false);
+    expect(abertos).toHaveLength(0);
   });
 });
