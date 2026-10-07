@@ -655,14 +655,18 @@ describe("ReceberMensagem — fallback para a recepção (#50)", () => {
     expect(enviadas[0].texto).toContain("recepção");
   });
 
-  it.each(["preciso de suporte", "quero falar com o contador", "Conversar com a contadora"])(
-    "'%s' também é pedido de atendente",
-    async (frase) => {
-      const { caso, abertos } = montar({ contato: null });
-      await dizer(caso, frase);
-      expect(abertos).toHaveLength(1);
-    },
-  );
+  it.each([
+    "preciso de suporte",
+    "quero falar com o contador",
+    "Conversar com a contadora",
+    "preciso de ajuda",
+    "quero falar com um funcionário",
+    "tenho uma dúvida",
+  ])("'%s' também é pedido de atendente", async (frase) => {
+    const { caso, abertos } = montar({ contato: null });
+    await dizer(caso, frase);
+    expect(abertos).toHaveLength(1);
+  });
 
   it("'menu' recomeça o fluxo e zera os contadores de respostas inválidas", async () => {
     const { caso, sessoes } = montar({ contato: null });

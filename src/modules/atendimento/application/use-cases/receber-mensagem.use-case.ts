@@ -49,7 +49,7 @@ const CNPJ_NAO_ENCONTRADO = `${SEM_CNPJ} Confira e envie novamente (ou digite *m
 const PARA_RECEPCAO_CNPJ = `${SEM_CNPJ} Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.`;
 // Palavras que, num número não reconhecido, pedem uma pessoa em vez de seguir o fluxo.
 const PEDIDO_DE_ATENDENTE =
-  /\b(atendente|humano|recepcao|recepcionista|suporte|(falar|conversar) com (alguem|uma pessoa|gente|o contador|a contadora))\b/;
+  /\b(atendente|humano|recepcao|recepcionista|suporte|ajuda|funcionario|duvida|(falar|conversar) com (alguem|uma pessoa|gente|o contador|a contadora))\b/;
 const PARA_RECEPCAO =
   "Não encontramos você entre os contatos cadastrados. Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
 

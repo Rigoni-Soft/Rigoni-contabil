@@ -70,7 +70,7 @@ amigável de que será encaminhado à recepção. `sim` → pede o CNPJ (validad
 novo). CNPJ válido que pertence a um Cliente → recepção (o número continua sem ser Contato). CNPJ válido que **não** existe
 em nenhum cadastro → 1 nova tentativa (sessão `cnpj_nova_tentativa`; CNPJ inválido não gasta a tentativa); errando de novo,
 vai à recepção com aviso de que o CNPJ não foi encontrado. **Fallback (#50):** em qualquer etapa, texto com palavra-chave de
-atendente (`atendente`, `humano`, `recepção`, `recepcionista`, `suporte`, "falar/conversar com alguém/uma pessoa/gente/o contador/a contadora"; palavras soltas como "pessoa" ou "atendimento" não contam) vai direto à recepção. Não há
+atendente (`atendente`, `humano`, `recepção`, `recepcionista`, `suporte`, `ajuda`, `funcionário`, `dúvida`, "falar/conversar com alguém/uma pessoa/gente/o contador/a contadora"; palavras soltas como "pessoa" ou "atendimento" não contam) vai direto à recepção. Não há
 auto-cadastro. Sessão (`ja_cliente`/`cnpj`/`cnpj_nova_tentativa`) ausente, expirada ou `menu` recomeça pela pergunta (e `menu` zera os contadores de respostas inválidas: é a saída de emergência do cliente, aceito de propósito).
 A 3ª resposta inválida seguida (contador `invalidos` na sessão, em `ja_cliente` ou CNPJ) também vai à recepção. "Encaminhar à recepção" abre um Atendimento no Setor recepção (entra na Fila se não houver Funcionário livre).
 
