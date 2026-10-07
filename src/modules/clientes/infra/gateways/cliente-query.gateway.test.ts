@@ -6,6 +6,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
 import { SupabaseClienteRepository } from "@/modules/clientes/infra/repositories/cliente.repository";
+import { primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
 
 import { SupabaseClienteQueryGateway } from "./cliente-query.gateway";
 
@@ -235,7 +236,8 @@ describe("SupabaseClienteQueryGateway.listarResumoOperacional (#36, integração
       "Resumo Sem Atividade Ltda",
       cnpjUnico(),
     );
-    const anoMes = `${new Date().toISOString().slice(0, 7)}-01`;
+    // Mesma fonte de verdade do produto (America/Sao_Paulo): UTC erra o mês nas últimas horas do dia 1.
+    const anoMes = primeiroDiaDoMesAtual();
     const { error } = await admin.from("cliente_atividades_mensais").insert({
       id: crypto.randomUUID(),
       cliente_id: comAtividade.id,
