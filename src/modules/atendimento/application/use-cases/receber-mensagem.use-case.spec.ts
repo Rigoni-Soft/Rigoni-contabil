@@ -304,7 +304,14 @@ describe("ReceberMensagem — fora do expediente (#72)", () => {
     expect(enviadas[0].texto).toContain("Ana");
   });
 
-  it("falha ao ler os feriados vira erro, sem responder nada", async () => {
+  it("fechado pelo calendário nacional, falha ao ler os feriados não impede o aviso", async () => {
+    const { caso, enviadas } = montar({ agora: QUARTA_19H, feriadosFalha: true });
+    const r = await caso.execute({ telefone: FONE, texto: "oi" });
+    expect(r.ok).toBe(true);
+    expect(enviadas[0].texto).toMatch(/fechado.*amanhã/);
+  });
+
+  it("aberto pelo calendário nacional, falha ao ler os feriados vira erro, sem responder nada", async () => {
     const { caso, enviadas } = montar({ feriadosFalha: true });
     const r = await caso.execute({ telefone: FONE, texto: "oi" });
     expect(r).toEqual({ ok: false, error: expect.any(ServicoExternoError) });

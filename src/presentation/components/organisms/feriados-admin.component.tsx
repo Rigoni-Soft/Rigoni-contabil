@@ -5,6 +5,7 @@ import { Button } from "@/presentation/components/ui/button";
 import { FieldError } from "@/presentation/components/ui/field-error";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
+import { formatarDataIso } from "@/shared/kernel/data-iso";
 
 type FeriadoFormValues = { data: string; descricao: string };
 
@@ -17,11 +18,6 @@ type FeriadosAdminProps = {
   pendente: boolean;
   erroServidor?: string;
 };
-
-function formatarData(iso: string): string {
-  const [ano, mes, dia] = iso.split("-");
-  return `${dia}/${mes}/${ano}`;
-}
 
 export function FeriadosAdmin({
   feriados,
@@ -72,14 +68,14 @@ export function FeriadosAdmin({
           {feriados.map((feriado) => (
             <li key={feriado.data} className="flex items-center justify-between gap-3 px-4 py-3">
               <span className="text-sm">
-                <strong>{formatarData(feriado.data)}</strong> — {feriado.descricao}
+                <strong>{formatarDataIso(feriado.data)}</strong> — {feriado.descricao}
               </span>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 disabled={pendente}
-                aria-label={`Remover feriado de ${formatarData(feriado.data)}`}
+                aria-label={`Remover feriado de ${formatarDataIso(feriado.data)}`}
                 onClick={() => onRemover(feriado.data)}
               >
                 <Trash2 aria-hidden="true" />

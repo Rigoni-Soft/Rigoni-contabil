@@ -31,6 +31,7 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { cnpjValido, normalizarCnpj } from "@/shared/kernel/cnpj";
+import { formatarDataIso } from "@/shared/kernel/data-iso";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 const OPCOES_MENU = [
@@ -109,13 +110,8 @@ function soDigitosNacionais(telefone: string): string {
   return digitos.length > 11 && digitos.startsWith("55") ? digitos.slice(2) : digitos;
 }
 
-function formatarData(iso: string): string {
-  const [ano, mes, dia] = iso.split("-");
-  return `${dia}/${mes}/${ano}`;
-}
-
 function descrever(documento: DocumentoContratual): string {
-  return documento.data ? `Alteração de ${formatarData(documento.data)}` : "Contrato social";
+  return documento.data ? `Alteração de ${formatarDataIso(documento.data)}` : "Contrato social";
 }
 
 // Impressão digital da lista inteira (a numeração das páginas depende de todos os itens). Hash
@@ -178,11 +174,15 @@ export class ReceberMensagem implements ReceberMensagemPort {
     if (anexada.value.anexada) return ok(undefined);
 
     // Fora do expediente a URA só avisa o horário: nada de menu, documento, sessão ou Atendimento.
-    const extras = await this.feriados.listarDatas();
-    if (!extras.ok) return extras;
+    // Os feriados cadastrados só fecham mais dias, nunca abrem: se o calendário nacional já diz
+    // "fechado", a falha ao lê-los não impede o aviso (no máximo a data da volta ignora um
+    // feriado local); se diz "aberto", sem eles não dá para saber, e o erro faz a Meta reenviar.
     const agora = this.relogio.agora();
-    const feriados = new Set(extras.value);
-    if (!estaAbertoEm(agora, feriados)) {
+    const fechadoNacional = !estaAbertoEm(agora, new Set());
+    const extras = await this.feriados.listarDatas();
+    if (!extras.ok && !fechadoNacional) return extras;
+    const feriados = new Set(extras.ok ? extras.value : []);
+    if (fechadoNacional || !estaAbertoEm(agora, feriados)) {
       return this.enviar(mensagem.telefone, avisoDeFechado(agora, feriados));
     }
 

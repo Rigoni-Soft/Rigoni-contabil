@@ -59,7 +59,18 @@ function pascoa(ano: number): string {
   return `${ano}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
 }
 
+const cacheNacionais = new Map<number, string[]>();
+
 export function feriadosNacionais(ano: number): string[] {
+  let datas = cacheNacionais.get(ano);
+  if (!datas) {
+    datas = calcularNacionais(ano);
+    cacheNacionais.set(ano, datas);
+  }
+  return datas;
+}
+
+function calcularNacionais(ano: number): string[] {
   const p = pascoa(ano);
   return [
     ...FIXOS.map((md) => `${ano}-${md}`),

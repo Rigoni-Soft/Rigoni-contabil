@@ -17,6 +17,12 @@ test.describe("Feriados (Admin only)", () => {
     await expect(page).toHaveURL("/");
 
     await page.goto("/admin/feriados");
+    // Sobra de uma rodada que falhou no meio: limpa antes, senão o cadastro cai em "já existe".
+    const sobra = page.getByRole("button", { name: "Remover feriado de 17/03/2031" });
+    if (await sobra.count()) {
+      await sobra.click();
+      await expect(sobra).toHaveCount(0);
+    }
     await page.getByLabel("Data").fill(DATA);
     await page.getByLabel("Descrição").fill("Aniversário da cidade (e2e)");
     await page.getByRole("button", { name: "Cadastrar feriado" }).click();

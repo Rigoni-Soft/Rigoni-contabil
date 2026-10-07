@@ -8,10 +8,12 @@ import { FeriadosContainer } from "@/modules/atendimento/presentation/view-model
 import { carregarFeriados } from "@/modules/atendimento/presentation/view-models/feriados/feriados.server";
 
 export default async function Page() {
-  const [sessao, feriados] = await Promise.all([carregarSessao(), carregarFeriados()]);
+  const sessao = await carregarSessao();
   if (!sessao) redirect("/login");
   if (sessao.precisaTrocarSenha) redirect("/trocar-senha");
-  if (!feriados.ok) redirect("/");
+  const feriados = await carregarFeriados();
+  // Só quem não é Admin sai da tela; falha de leitura aparece em vez de mandar o Admin para a home.
+  if (!feriados.ok && feriados.error.code === "FORBIDDEN") redirect("/");
 
   return (
     <FeriadosPage
@@ -23,7 +25,15 @@ export default async function Page() {
           sair={<LogoutButtonContainer />}
         />
       }
-      conteudo={<FeriadosContainer feriados={feriados.value} />}
+      conteudo={
+        feriados.ok ? (
+          <FeriadosContainer feriados={feriados.value} />
+        ) : (
+          <p role="alert" className="text-sm text-destructive">
+            {feriados.error.message}
+          </p>
+        )
+      }
     />
   );
 }
