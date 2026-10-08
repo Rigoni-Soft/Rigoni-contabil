@@ -136,6 +136,35 @@ export type EncerramentoPendente = {
 export type ResultadoEncerramentoPorInatividade =
   | { status: "encerrado"; proximo: AtendimentoAssumido | null; reivindicacao: string }
   | { status: "inexistente" };
+// Atendimento em andamento de um Funcionário, para a lista dele (painel do Funcionário, #49).
+export type AtendimentoDoFuncionario = {
+  id: string;
+  telefone: string;
+  criadoEm: string;
+  contato: DadosDoContato;
+};
+
+// Quem escreveu uma Mensagem do Funcionário (nome e Setor atuais do perfil); null nas do contato
+// e da URA.
+export type MensagemLida = {
+  id: string;
+  autor: "contato" | "ura" | "funcionario";
+  texto: string;
+  criadoEm: string;
+  atendente: { nome: string; setor: SetorSlug } | null;
+};
+
+// O Atendimento inteiro, em qualquer status, com as Mensagens da mais antiga à mais nova.
+export type ConversaLida = {
+  id: string;
+  status: "em_andamento" | "encerrado";
+  setor: SetorSlug;
+  funcionarioId: string | null;
+  clienteId: string | null;
+  telefone: string;
+  contato: DadosDoContato;
+  mensagens: MensagemLida[];
+};
 
 export interface AtendimentoRepositoryPort {
   funcionariosDoSetor(setor: SetorSlug): Promise<Result<FuncionarioDoSetor[], AppError>>;
@@ -194,4 +223,14 @@ export interface AtendimentoRepositoryPort {
     atendimentoId: string,
     reivindicacao: string,
   ): Promise<Result<boolean, AppError>>;
+  emAndamentoDoFuncionario(
+    funcionarioId: string,
+  ): Promise<Result<AtendimentoDoFuncionario[], AppError>>;
+  conversa(atendimentoId: string): Promise<Result<ConversaLida | null, AppError>>;
+  // Mensagem escrita por um Funcionário (autor "funcionario") no Atendimento, com quem a escreveu.
+  registrarMensagemDoFuncionario(
+    atendimentoId: string,
+    funcionarioId: string,
+    texto: string,
+  ): Promise<Result<void, AppError>>;
 }

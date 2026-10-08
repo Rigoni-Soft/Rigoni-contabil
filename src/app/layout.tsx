@@ -3,6 +3,7 @@ import { Roboto } from "next/font/google";
 
 import { QueryProvider } from "@/presentation/providers/query.provider";
 import { ThemeProvider } from "@/presentation/providers/theme.provider";
+import { MeusAtendimentosContainer } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.container";
 
 import "./globals.css";
 
@@ -22,7 +23,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="pt-BR" className={`${roboto.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="flex min-h-full flex-col font-sans">
         <ThemeProvider>
-          <QueryProvider>{children}</QueryProvider>
+          <QueryProvider>
+            {children}
+            {/* Persiste entre as telas: o Funcionário não perde o Atendimento ao trocar de aba. */}
+            <MeusAtendimentosContainer />
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>

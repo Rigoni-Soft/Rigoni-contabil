@@ -23,7 +23,10 @@ import type {
   ListarFeriadosPort,
   RemoverFeriadoPort,
 } from "@/modules/atendimento/application/ports/in/gerenciar-feriados.provider";
+import type { EnviarDocumentoAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-documento-ao-cliente.provider";
 import type { ListarFilaPort } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
+import type { ListarMeusAtendimentosPort } from "@/modules/atendimento/application/ports/in/listar-meus-atendimentos.provider";
+import type { ObterConversaPort } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import type { ReceberMensagemPort } from "@/modules/atendimento/application/ports/in/receber-mensagem.provider";
 import type { TransferirAtendimentoPort } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
 import type { VerificarInatividadePort } from "@/modules/atendimento/application/ports/in/verificar-inatividade.provider";
@@ -41,7 +44,10 @@ import { AvisarCliente } from "@/modules/atendimento/application/use-cases/avisa
 import { CadastrarFeriado } from "@/modules/atendimento/application/use-cases/cadastrar-feriado.use-case";
 import { EncerrarAtendimento } from "@/modules/atendimento/application/use-cases/encerrar-atendimento.use-case";
 import { ListarFeriados } from "@/modules/atendimento/application/use-cases/listar-feriados.use-case";
+import { EnviarDocumentoAoCliente } from "@/modules/atendimento/application/use-cases/enviar-documento-ao-cliente.use-case";
 import { ListarFila } from "@/modules/atendimento/application/use-cases/listar-fila.use-case";
+import { ListarMeusAtendimentos } from "@/modules/atendimento/application/use-cases/listar-meus-atendimentos.use-case";
+import { ObterConversa } from "@/modules/atendimento/application/use-cases/obter-conversa.use-case";
 import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/receber-mensagem.use-case";
 import { RemoverFeriado } from "@/modules/atendimento/application/use-cases/remover-feriado.use-case";
 import { TransferirAtendimento } from "@/modules/atendimento/application/use-cases/transferir-atendimento.use-case";
@@ -229,4 +235,31 @@ export async function makeCadastrarFeriado(): Promise<CadastrarFeriadoPort> {
 export async function makeRemoverFeriado(): Promise<RemoverFeriadoPort> {
   const { sessao, repositorio } = await makeFeriados();
   return new RemoverFeriado(sessao, repositorio);
+}
+
+export async function makeListarMeusAtendimentos(): Promise<ListarMeusAtendimentosPort> {
+  return new ListarMeusAtendimentos(
+    sessaoViaUsuarios(await createSupabaseServer()),
+    new SupabaseAtendimentoRepository(createSupabaseAdmin()),
+  );
+}
+
+export async function makeObterConversa(): Promise<ObterConversaPort> {
+  const supabaseAdmin = createSupabaseAdmin();
+  return new ObterConversa(
+    sessaoViaUsuarios(await createSupabaseServer()),
+    new SupabaseAtendimentoRepository(supabaseAdmin),
+    new SupabaseDocumentosContratuaisGateway(supabaseAdmin),
+  );
+}
+
+export async function makeEnviarDocumentoAoCliente(): Promise<EnviarDocumentoAoClientePort> {
+  const supabaseAdmin = createSupabaseAdmin();
+  return new EnviarDocumentoAoCliente(
+    sessaoViaUsuarios(await createSupabaseServer()),
+    new SupabaseAtendimentoRepository(supabaseAdmin),
+    new SupabaseDocumentosContratuaisGateway(supabaseAdmin),
+    makeEnvioMensagem(),
+    auditoriaViaModuloAuditoria(),
+  );
 }

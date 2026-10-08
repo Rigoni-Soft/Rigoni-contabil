@@ -3,12 +3,15 @@ import { z } from "zod";
 
 import type { NovaMensagem } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type { AnexarMensagemOutput } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
+import type { DadosDoContato } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
 import type {
   AtendimentoAssumido,
+  AtendimentoDoFuncionario,
   AtendimentoEmAndamento,
   AtendimentoParaInatividade,
   AtendimentoRepositoryPort,
   EncerramentoPendente,
+  ConversaLida,
   FuncionarioDoSetor,
   ItemDaFila,
   NovaTransferencia,
@@ -23,9 +26,11 @@ import type { Inativo } from "@/modules/atendimento/domain/services/inatividade.
 import {
   aberturaRowSchema,
   anexoRowSchema,
+  atendimentoDoFuncionarioRowSchema,
   atendimentoEmAndamentoRowSchema,
   encerramentoPendenteRowSchema,
   encerramentoPorInatividadeRowSchema,
+  conversaRowSchema,
   encerramentoRowSchema,
   filaRowSchema,
   inatividadeRowSchema,
@@ -400,6 +405,93 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     if (error) return err(new ServicoExternoError("Falha ao limpar o aviso de inatividade."));
     return ok(undefined);
   }
+
+  async emAndamentoDoFuncionario(
+    funcionarioId: string,
+  ): Promise<Result<AtendimentoDoFuncionario[], AppError>> {
+    const { data, error } = await this.supabaseAdmin
+      .from("atendimentos")
+      .select(
+        "id, telefone, chave_telefone, criado_em, clientes(empresa, cnpj, cliente_contatos(nome, telefone, padrao, criado_em))",
+      )
+      .eq("funcionario_id", funcionarioId)
+      .eq("status", "em_andamento")
+      .order("assumido_em")
+      .order("id");
+    if (error) return err(new ServicoExternoError("Falha ao consultar os Atendimentos."));
+    return ok(
+      z
+        .array(atendimentoDoFuncionarioRowSchema)
+        .parse(data)
+        .map((linha) => ({
+          id: linha.id,
+          telefone: linha.telefone,
+          criadoEm: linha.criado_em,
+          contato: dadosDoContato(linha.clientes, linha.chave_telefone),
+        })),
+    );
+  }
+
+  async conversa(atendimentoId: string): Promise<Result<ConversaLida | null, AppError>> {
+    const { data, error } = await this.supabaseAdmin
+      .from("atendimentos")
+      .select(
+        "id, status, setor, funcionario_id, cliente_id, telefone, chave_telefone, clientes(empresa, cnpj, cliente_contatos(nome, telefone, padrao, criado_em)), mensagens(id, autor, texto, criado_em, perfis(nome, setor))",
+      )
+      .eq("id", atendimentoId)
+      .order("criado_em", { referencedTable: "mensagens" })
+      .order("id", { referencedTable: "mensagens" })
+      .maybeSingle();
+    if (error) return err(new ServicoExternoError("Falha ao consultar o Atendimento."));
+    if (!data) return ok(null);
+    const linha = conversaRowSchema.parse(data);
+    return ok({
+      id: linha.id,
+      status: linha.status,
+      setor: linha.setor,
+      funcionarioId: linha.funcionario_id,
+      clienteId: linha.cliente_id,
+      telefone: linha.telefone,
+      contato: dadosDoContato(linha.clientes, linha.chave_telefone),
+      mensagens: linha.mensagens.map((m) => ({
+        id: m.id,
+        autor: m.autor,
+        texto: m.texto,
+        criadoEm: m.criado_em,
+        atendente: m.perfis ? { nome: m.perfis.nome, setor: m.perfis.setor } : null,
+      })),
+    });
+  }
+
+  async registrarMensagemDoFuncionario(
+    atendimentoId: string,
+    funcionarioId: string,
+    texto: string,
+  ): Promise<Result<void, AppError>> {
+    const { error } = await this.supabaseAdmin.from("mensagens").insert({
+      atendimento_id: atendimentoId,
+      autor: "funcionario",
+      funcionario_id: funcionarioId,
+      texto,
+    });
+    if (error) return err(new ServicoExternoError("Falha ao registrar a Mensagem."));
+    return ok(undefined);
+  }
+}
+
+type ClienteEmbutido = z.infer<typeof atendimentoDoFuncionarioRowSchema>["clientes"];
+
+const soDigitos = (telefone: string) => telefone.replace(/\D/g, "");
+
+// Quem escreve é o Contato cujo número bate com o do Atendimento; o padrão desempata.
+function dadosDoContato(cliente: ClienteEmbutido, chave: string): DadosDoContato {
+  if (!cliente) return { contatoNome: null, empresa: null, cnpj: null };
+  const contato = cliente.cliente_contatos
+    .filter((c) => soDigitos(c.telefone) === chave)
+    .sort(
+      (a, b) => Number(b.padrao) - Number(a.padrao) || a.criado_em.localeCompare(b.criado_em),
+    )[0];
+  return { contatoNome: contato?.nome ?? null, empresa: cliente.empresa, cnpj: cliente.cnpj };
 }
 
 type LinhaAssumida = {

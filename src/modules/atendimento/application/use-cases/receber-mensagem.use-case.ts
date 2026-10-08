@@ -35,6 +35,7 @@ import {
   avisoDeFechado,
   estaAbertoEm,
 } from "@/modules/atendimento/domain/services/expediente.service";
+import { descreverDocumento } from "@/modules/atendimento/domain/services/documento-contratual.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -125,10 +126,6 @@ function soDigitosNacionais(telefone: string): string {
   return digitos.length > 11 && digitos.startsWith("55") ? digitos.slice(2) : digitos;
 }
 
-function descrever(documento: DocumentoContratual): string {
-  return documento.data ? `Alteração de ${formatarDataIso(documento.data)}` : "Contrato social";
-}
-
 // Impressão digital da lista inteira (a numeração das páginas depende de todos os itens). Hash
 // não criptográfico (cyrb53, 53 bits): só detecta mudança, não protege nada, e a camada de
 // aplicação não importa `crypto` (infra). Colisão exigiria uma lista diferente com o mesmo hash.
@@ -152,7 +149,7 @@ function paginaDe(alteracoes: DocumentoContratual[], pagina: number): DocumentoC
 function listaDaPagina(alteracoes: DocumentoContratual[], pagina: number): string {
   const total = Math.ceil(alteracoes.length / ALTERACOES_POR_PAGINA);
   const itens = paginaDe(alteracoes, pagina)
-    .map((a, i) => `${i + 1} - ${descrever(a)}`)
+    .map((a, i) => `${i + 1} - ${descreverDocumento(a)}`)
     .join("\n");
   const mais = pagina < total ? "\nDigite *mais* para ver as próximas." : "";
   return `Qual alteração você deseja? (página ${pagina} de ${total})\n${itens}${mais}\nDigite *menu* para voltar.`;
@@ -503,7 +500,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
     return this.despacharDocumento({
       telefone,
       url: link.value,
-      nomeArquivo: `${descrever(documento)}${extensao}`,
+      nomeArquivo: `${descreverDocumento(documento)}${extensao}`,
     });
   }
 

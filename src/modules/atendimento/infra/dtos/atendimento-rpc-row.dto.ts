@@ -109,3 +109,46 @@ export const encerramentoPorInatividadeRowSchema = z.discriminatedUnion("status"
   }),
   z.object({ status: z.literal("inexistente") }),
 ]);
+// `clientes` embutido num Atendimento, com os Contatos para achar quem escreve pelo telefone.
+const clienteComContatosRowSchema = z
+  .object({
+    empresa: z.string(),
+    cnpj: z.string(),
+    cliente_contatos: z.array(
+      z.object({
+        nome: z.string(),
+        telefone: z.string(),
+        padrao: z.boolean(),
+        criado_em: z.string(),
+      }),
+    ),
+  })
+  .nullable();
+
+export const atendimentoDoFuncionarioRowSchema = z.object({
+  id: z.string(),
+  telefone: z.string(),
+  chave_telefone: z.string(),
+  criado_em: z.string(),
+  clientes: clienteComContatosRowSchema,
+});
+
+export const conversaRowSchema = z.object({
+  id: z.string(),
+  status: z.enum(["em_andamento", "encerrado"]),
+  setor: z.enum(SETORES),
+  funcionario_id: z.string().nullable(),
+  cliente_id: z.string().nullable(),
+  telefone: z.string(),
+  chave_telefone: z.string(),
+  clientes: clienteComContatosRowSchema,
+  mensagens: z.array(
+    z.object({
+      id: z.string(),
+      autor: z.enum(["contato", "ura", "funcionario"]),
+      texto: z.string(),
+      criado_em: z.string(),
+      perfis: z.object({ nome: z.string(), setor: z.enum(SETORES) }).nullable(),
+    }),
+  ),
+});
