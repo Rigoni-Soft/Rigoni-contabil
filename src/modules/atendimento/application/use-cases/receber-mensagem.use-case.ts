@@ -219,10 +219,13 @@ export class ReceberMensagem implements ReceberMensagemPort {
     // Sem Funcionário livre o Atendimento entrou na Fila: o cliente fica sabendo a posição. O aviso
     // vem depois de abrir porque a posição só existe com o Atendimento criado.
     if (aberto.value.posicao === undefined) return ok(undefined);
-    const texto = `Você está na posição ${aberto.value.posicao} da fila de atendimento. Aguarde, por favor.`;
-    const enviado = await this.enviar(telefone, texto);
+    const avisoFila = `Você está na posição ${aberto.value.posicao} da fila de atendimento. Aguarde, por favor.`;
+    const enviado = await this.enviar(telefone, avisoFila);
     if (!enviado.ok) return enviado;
-    const registrada = await this.mensagens.execute({ chave, mensagem: { autor: "ura", texto } });
+    const registrada = await this.mensagens.execute({
+      chave,
+      mensagem: { autor: "ura", texto: avisoFila },
+    });
     return registrada.ok ? ok(undefined) : registrada;
   }
 
