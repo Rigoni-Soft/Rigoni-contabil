@@ -291,7 +291,10 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       p_de: de,
     });
     if (error) return err(new ServicoExternoError("Falha ao marcar o aviso de inatividade."));
-    return ok(anexoRowSchema.parse(data));
+    const marcado = z.boolean().safeParse(data);
+    if (!marcado.success)
+      return err(new ServicoExternoError("Resposta inesperada ao marcar o aviso de inatividade."));
+    return ok(marcado.data);
   }
 
   async limparAvisoInatividade(atendimentoId: string): Promise<Result<void, AppError>> {

@@ -43,15 +43,7 @@ export class VerificarInatividade implements VerificarInatividadePort {
     const feriados = new Set(extras.value);
     const resumo: InatividadeVerificada = { avisados: 0, cancelados: 0, encerrados: 0, falhas: 0 };
     for (const atendimento of lista.value) {
-      const decisao = decidirInatividade(
-        {
-          ultimaDoContato: atendimento.ultimaDoContato,
-          ultimaDoFuncionario: atendimento.ultimaDoFuncionario,
-          aviso: atendimento.aviso,
-        },
-        agora,
-        feriados,
-      );
+      const decisao = decidirInatividade(atendimento, agora, feriados);
       if (decisao.acao === "nada") continue;
       const feito =
         decisao.acao === "avisar"
