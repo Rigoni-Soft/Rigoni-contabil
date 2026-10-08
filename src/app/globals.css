@@ -63,6 +63,7 @@
 }
 
 @theme inline {
+  --animate-dock-entrada: dock-entrada 0.35s ease-out;
   --font-sans: var(--font-roboto);
 
   --color-background: var(--background);
@@ -147,4 +148,16 @@ input[type="radio"] {
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   opacity: 0.55;
+}
+
+/* Cartão do dock de Atendimentos: sobe e aparece. Só roda com `motion-safe:`. */
+@keyframes dock-entrada {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }

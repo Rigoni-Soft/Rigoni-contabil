@@ -12,4 +12,30 @@ describe("CartaoDeAtendimento", () => {
     );
     expect(screen.getByText("Padaria Ltda")).toBeInTheDocument();
   });
+
+  it("mostra a prévia da última mensagem", () => {
+    render(
+      <CartaoDeAtendimento
+        href="/x"
+        titulo="Maria"
+        detalhe="Padaria"
+        previa="preciso do contrato"
+      />,
+    );
+
+    expect(screen.getByText("preciso do contrato")).toBeInTheDocument();
+  });
+
+  it("aguardando resposta: destaca o cartão e avisa leitor de tela da nova mensagem", () => {
+    render(<CartaoDeAtendimento href="/x" titulo="Maria" detalhe="Padaria" aguardando />);
+
+    const cartao = screen.getByRole("link", { name: /nova mensagem/ });
+    expect(cartao).toHaveClass("border-primary");
+  });
+
+  it("entra com animação, que respeita movimento reduzido (motion-safe)", () => {
+    render(<CartaoDeAtendimento href="/x" titulo="Maria" detalhe="Padaria" />);
+
+    expect(screen.getByRole("link")).toHaveClass("motion-safe:animate-dock-entrada");
+  });
 });

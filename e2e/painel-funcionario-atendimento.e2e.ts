@@ -127,6 +127,35 @@ test.describe("Painel do Funcionário (#49)", () => {
     await expect(campo).toHaveValue("");
   });
 
+  test("mensagem nova do cliente, com o Funcionário em outra tela, aparece no dock com prévia e destaque", async ({
+    page,
+  }) => {
+    await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL("/");
+    await page.getByRole("link", { name: "Meu perfil" }).click();
+    await expect(page).toHaveURL("/perfil");
+
+    const atendimento = await admin
+      .from("atendimentos")
+      .select("id")
+      .eq("cliente_id", CLIENTE)
+      .single();
+    if (atendimento.error) throw atendimento.error;
+    const nova = await admin.from("mensagens").insert({
+      atendimento_id: atendimento.data.id,
+      autor: "contato",
+      texto: "Chegou outra dúvida sobre o contrato",
+    });
+    if (nova.error) throw nova.error;
+
+    // O dock consulta a cada 15 s: a prévia e o destaque aparecem sem sair da tela.
+    const cartao = page
+      .getByRole("navigation", { name: "Atendimentos em andamento" })
+      .getByRole("link", { name: /Dona Painel/ });
+    await expect(cartao).toContainText("Chegou outra dúvida sobre o contrato", { timeout: 30_000 });
+    await expect(cartao).toContainText("nova mensagem");
+  });
+
   test("o Funcionário transfere o Atendimento a outro Setor, que não oferece o Setor atual nem o Simples Nacional @smoke", async ({
     page,
   }) => {

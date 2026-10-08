@@ -131,6 +131,14 @@ export const atendimentoDoFuncionarioRowSchema = z.object({
   chave_telefone: z.string(),
   criado_em: z.string(),
   clientes: clienteComContatosRowSchema,
+  // Só a mais recente (a consulta pede uma, da mais nova para a mais antiga).
+  mensagens: z.array(
+    z.object({
+      autor: z.enum(["contato", "ura", "funcionario"]),
+      texto: z.string(),
+      criado_em: z.string(),
+    }),
+  ),
 });
 
 export const conversaRowSchema = z.object({

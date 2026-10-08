@@ -7,7 +7,15 @@ describe("AtendimentosEmAndamento", () => {
     render(
       <AtendimentosEmAndamento
         atendimentos={[
-          { id: "at-1", href: "/atendimento/at-1", titulo: "Maria", detalhe: "Padaria Ltda" },
+          {
+            id: "at-1",
+            href: "/atendimento/at-1",
+            titulo: "Maria",
+            detalhe: "Padaria Ltda",
+            previa: null,
+            aguardando: false,
+            sinal: "",
+          },
         ]}
       />,
     );

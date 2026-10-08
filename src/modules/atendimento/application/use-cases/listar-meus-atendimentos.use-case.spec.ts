@@ -6,6 +6,7 @@ import { err, ok } from "@/shared/kernel/result";
 import { ListarMeusAtendimentos } from "./listar-meus-atendimentos.use-case";
 
 const CONTATO = { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" };
+const ULTIMA = { autor: "contato" as const, texto: "oi", criadoEm: "2026-10-08T12:05:00Z" };
 const FUNCIONARIO: AtorSessaoDto = { id: "func-1", papel: "funcionario", setor: "contabil" };
 
 function montar(ator: AtorSessaoDto | null, falha = false) {
@@ -21,6 +22,7 @@ function montar(ator: AtorSessaoDto | null, falha = false) {
               telefone: "5561988887777",
               criadoEm: "2026-10-08T12:00:00Z",
               contato: CONTATO,
+              ultimaMensagem: ULTIMA,
             },
           ]);
     },
@@ -43,6 +45,7 @@ describe("ListarMeusAtendimentos", () => {
           telefone: "5561988887777",
           criadoEm: "2026-10-08T12:00:00Z",
           contato: CONTATO,
+          ultimaMensagem: ULTIMA,
         },
       ],
     });

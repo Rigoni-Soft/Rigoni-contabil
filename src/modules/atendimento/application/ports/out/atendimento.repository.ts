@@ -142,6 +142,12 @@ export type AtendimentoDoFuncionario = {
   telefone: string;
   criadoEm: string;
   contato: DadosDoContato;
+  // A mensagem mais recente da conversa (null se ainda não há), para o dock avisar de novidade.
+  ultimaMensagem: {
+    autor: "contato" | "ura" | "funcionario";
+    texto: string;
+    criadoEm: string;
+  } | null;
 };
 
 // Quem escreveu uma Mensagem do Funcionário (nome e Setor atuais do perfil); null nas do contato

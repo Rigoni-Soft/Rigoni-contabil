@@ -412,8 +412,10 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     const { data, error } = await this.supabaseAdmin
       .from("atendimentos")
       .select(
-        "id, telefone, chave_telefone, criado_em, clientes(empresa, cnpj, cliente_contatos(nome, telefone, padrao, criado_em))",
+        "id, telefone, chave_telefone, criado_em, clientes(empresa, cnpj, cliente_contatos(nome, telefone, padrao, criado_em)), mensagens(autor, texto, criado_em)",
       )
+      .order("criado_em", { referencedTable: "mensagens", ascending: false })
+      .limit(1, { referencedTable: "mensagens" })
       .eq("funcionario_id", funcionarioId)
       .eq("status", "em_andamento")
       .order("assumido_em")
@@ -428,6 +430,13 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
           telefone: linha.telefone,
           criadoEm: linha.criado_em,
           contato: dadosDoContato(linha.clientes, linha.chave_telefone),
+          ultimaMensagem: linha.mensagens[0]
+            ? {
+                autor: linha.mensagens[0].autor,
+                texto: linha.mensagens[0].texto,
+                criadoEm: linha.mensagens[0].criado_em,
+              }
+            : null,
         })),
     );
   }

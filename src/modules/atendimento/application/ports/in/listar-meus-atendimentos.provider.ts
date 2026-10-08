@@ -7,6 +7,11 @@ export type AtendimentoVisto = {
   telefone: string;
   criadoEm: string;
   contato: DadosDoContato;
+  ultimaMensagem: {
+    autor: "contato" | "ura" | "funcionario";
+    texto: string;
+    criadoEm: string;
+  } | null;
 };
 
 // Os Atendimentos em andamento do usuário logado: o que o painel mantém visível enquanto ele

@@ -97,6 +97,12 @@ describe("SupabaseAtendimentoRepository — painel do Funcionário", () => {
           telefone: TELEFONES[0],
           criadoEm: expect.any(String),
           contato: { contatoNome: "Seu Painel", empresa: "Painel Ltda", cnpj: CNPJ },
+          // A mais recente das duas mensagens da abertura (a da URA).
+          ultimaMensagem: {
+            autor: "ura",
+            texto: "Já vamos te atender",
+            criadoEm: expect.any(String),
+          },
         },
       ],
     });

@@ -26,6 +26,7 @@ export class ListarMeusAtendimentos implements ListarMeusAtendimentosPort {
         telefone: a.telefone,
         criadoEm: a.criadoEm,
         contato: a.contato,
+        ultimaMensagem: a.ultimaMensagem,
       })),
     );
   }
