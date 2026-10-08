@@ -59,6 +59,8 @@ const AVISO_RECEPCAO_PEDIDO_NO_MENU = `Certo! ${ENCAMINHANDO_PARA_RECEPCAO}`;
 
 // O que a recepção lê ao assumir (`atendimentos.resumo_ura`): a origem é sempre a URA.
 const RESUMO_PEDIDO_NO_MENU = "Cliente pediu a recepção pelo menu da URA.";
+const RESUMO_NUMERO_AMBIGUO =
+  "Número cadastrado como Contato de mais de uma empresa: confirmar com o contato qual deseja.";
 const RESUMO_PEDIU_ATENDENTE = "Contato não encontrado: o número pediu um atendente.";
 const RESUMO_NAO_E_CLIENTE = "Contato não encontrado: o número disse não ser cliente.";
 const RESUMO_RESPOSTAS_INVALIDAS = "Contato não encontrado: respostas inválidas seguidas.";
@@ -176,8 +178,8 @@ export class ReceberMensagem implements ReceberMensagemPort {
     if (contato.value === "ambiguo") {
       // Nenhum documento é oferecido: sem confirmar a empresa, a recepção decide.
       return this.encaminharRecepcao(
-        { telefone: mensagem.telefone, chave, textoDoContato: mensagem.texto },
-        NUMERO_AMBIGUO,
+        { telefone: mensagem.telefone, chave, textoDoContato: mensagem.texto, clienteId: null },
+        { resumo: RESUMO_NUMERO_AMBIGUO, aviso: NUMERO_AMBIGUO },
       );
     }
     if (!contato.value) {
