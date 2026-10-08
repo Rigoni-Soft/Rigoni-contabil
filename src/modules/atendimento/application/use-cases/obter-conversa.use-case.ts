@@ -7,11 +7,15 @@ import type { AtendimentoRepositoryPort } from "@/modules/atendimento/applicatio
 import type { DocumentosContratuaisPort } from "@/modules/atendimento/application/ports/out/documentos-contratuais.provider";
 import type { SessaoPort } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { descreverDocumento } from "@/modules/atendimento/domain/services/documento-contratual.service";
-import { podeTransferir } from "@/modules/atendimento/domain/services/transferencia.service";
+import {
+  podeTransferir,
+  setoresDeDestino,
+} from "@/modules/atendimento/domain/services/transferencia.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
+import type { SetorSlug } from "@/shared/kernel/setores";
 
 // Mesma regra de quem pode agir sobre o Atendimento que a Transferência (dono, Líder do Setor ou
 // Admin). Os serviços que o Funcionário pode disparar vêm junto: uma leitura só por interação.
@@ -39,6 +43,8 @@ export class ObterConversa implements ObterConversaPort {
     }
 
     const encerrado = conversa.status === "encerrado";
+    const destinos = encerrado ? ok([]) : await this.destinos(conversa.setor, conversa.clienteId);
+    if (!destinos.ok) return destinos;
     const disponiveis =
       encerrado || !conversa.clienteId ? ok([]) : await this.servicos(conversa.clienteId);
     if (!disponiveis.ok) return disponiveis;
@@ -50,7 +56,17 @@ export class ObterConversa implements ObterConversaPort {
       clienteVinculado: conversa.clienteId !== null,
       mensagens: conversa.mensagens,
       documentos: disponiveis.value,
+      setoresDestino: destinos.value,
     });
+  }
+
+  private async destinos(
+    setor: SetorSlug,
+    clienteId: string | null,
+  ): Promise<Result<SetorSlug[], AppError>> {
+    const roteamento = clienteId ? await this.repositorio.roteamentoDoCliente(clienteId) : ok(null);
+    if (!roteamento.ok) return roteamento;
+    return ok(setoresDeDestino(setor, roteamento.value?.regime ?? null));
   }
 
   private async servicos(clienteId: string): Promise<Result<DocumentoOferecido[], AppError>> {

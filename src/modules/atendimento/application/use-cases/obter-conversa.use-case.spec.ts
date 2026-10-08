@@ -31,10 +31,15 @@ const CONVERSA: ConversaLida = {
 };
 const FUNCIONARIO: AtorSessaoDto = { id: "func-1", papel: "funcionario", setor: "contabil" };
 
-function montar(ator: AtorSessaoDto | null, conversa: ConversaLida | null | "falha" = CONVERSA) {
+function montar(
+  ator: AtorSessaoDto | null,
+  conversa: ConversaLida | null | "falha" = CONVERSA,
+  regime = "lucro_presumido",
+) {
   const repo = {
     conversa: async () =>
       conversa === "falha" ? err(new ServicoExternoError("banco")) : ok(conversa),
+    roteamentoDoCliente: async () => ok({ regime: regime, responsavelId: null }),
   } as unknown as AtendimentoRepositoryPort;
   const listados: string[] = [];
   const documentos = {
@@ -69,8 +74,11 @@ describe("ObterConversa", () => {
           { tipo: "contrato", data: null, descricao: "Contrato social" },
           { tipo: "alteracao", data: "2026-03-01", descricao: "Alteração de 01/03/2026" },
         ],
+        setoresDestino: expect.arrayContaining(["recepcao", "tributario"]),
       },
     });
+    expect(r.ok && r.value.setoresDestino).not.toContain("contabil");
+    expect(r.ok && r.value.setoresDestino).not.toContain("simples_nacional");
     expect(listados).toEqual(["cli-1"]);
   });
 
@@ -85,6 +93,18 @@ describe("ObterConversa", () => {
     expect(b.ok && b.value.encerrado).toBe(true);
     expect(b.ok && b.value.documentos).toEqual([]);
     expect([...semCliente.listados, ...encerrado.listados]).toEqual([]);
+  });
+
+  it("oferece o Simples Nacional como destino só para Cliente do Simples Nacional ou MEI", async () => {
+    const mei = await montar(FUNCIONARIO, CONVERSA, "mei").caso.execute({ atendimentoId: "at-1" });
+    expect(mei.ok && mei.value.setoresDestino).toContain("simples_nacional");
+  });
+
+  it("encerrado não oferece destinos", async () => {
+    const r = await montar(FUNCIONARIO, { ...CONVERSA, status: "encerrado" }).caso.execute({
+      atendimentoId: "at-1",
+    });
+    expect(r.ok && r.value.setoresDestino).toEqual([]);
   });
 
   it("só o dono, o Líder do Setor e o Admin leem; outro Funcionário e outro Líder não", async () => {

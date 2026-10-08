@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { ConversaAtendimento } from "./conversa-atendimento.component";
@@ -36,6 +36,12 @@ const BASE = {
   ],
   onEnviarServico: jest.fn(),
   enviando: false,
+  setoresDestino: [
+    { valor: "recepcao", rotulo: "Recepção" },
+    { valor: "tributario", rotulo: "Tributário" },
+  ],
+  onTransferir: jest.fn(),
+  transferindo: false,
 };
 
 describe("ConversaAtendimento", () => {
@@ -139,5 +145,50 @@ describe("ConversaAtendimento", () => {
     render(<ConversaAtendimento {...BASE} aviso={{ tipo: "erro", texto: "Falha ao enviar" }} />);
 
     expect(screen.getByRole("alert")).toHaveTextContent("Falha ao enviar");
+  });
+
+  it("as ações ficam num painel lateral, separado do chat", () => {
+    render(<ConversaAtendimento {...BASE} />);
+
+    const painel = screen.getByRole("complementary", { name: "Ações do Atendimento" });
+    expect(painel).toHaveTextContent("Serviços do cliente");
+    expect(painel).toHaveTextContent("Transferir Atendimento");
+    expect(painel).not.toContainElement(screen.getByText("oi"));
+  });
+
+  it("transferir envia o Setor escolhido e o resumo", async () => {
+    const aoTransferir = jest.fn();
+    const usuario = userEvent.setup();
+    render(<ConversaAtendimento {...BASE} onTransferir={aoTransferir} />);
+
+    const setores = screen.getByLabelText("Setor de destino");
+    expect(
+      within(setores)
+        .getAllByRole("option")
+        .map((o) => o.textContent),
+    ).toEqual(["Escolha o Setor", "Recepção", "Tributário"]);
+    await usuario.selectOptions(setores, "recepcao");
+    await usuario.type(screen.getByLabelText("Resumo do assunto"), "Cliente novo");
+    await usuario.click(screen.getByRole("button", { name: "Transferir" }));
+
+    expect(aoTransferir).toHaveBeenCalledWith("recepcao", "Cliente novo");
+  });
+
+  it("depois de transferido o painel avisa para onde foi e some com as ações", () => {
+    render(<ConversaAtendimento {...BASE} transferidoPara="Tributário" />);
+
+    expect(screen.getByText(/Foi para o Setor Tributário/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Transferir" })).not.toBeInTheDocument();
+  });
+
+  it("mostra o erro da transferência", () => {
+    render(
+      <ConversaAtendimento
+        {...BASE}
+        avisoTransferencia={{ tipo: "erro", texto: "Só Cliente do Simples Nacional ou MEI." }}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Só Cliente do Simples Nacional");
   });
 });

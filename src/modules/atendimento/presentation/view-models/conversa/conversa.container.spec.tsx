@@ -6,6 +6,7 @@ import type { ConversaVista } from "@/modules/atendimento/application/ports/in/o
 import { ConversaContainer } from "./conversa.container";
 
 const aoEnviarServico = jest.fn();
+const aoTransferir = jest.fn();
 
 jest.mock("@/modules/atendimento/presentation/view-models/conversa/use-conversa.hook", () => ({
   useConversa: () => ({
@@ -18,6 +19,11 @@ jest.mock("@/modules/atendimento/presentation/view-models/conversa/use-conversa.
     aoEnviarServico,
     enviando: false,
     aviso: undefined,
+    setoresDestino: [{ valor: "tributario", rotulo: "Tributário" }],
+    aoTransferir,
+    transferindo: false,
+    transferidoPara: undefined,
+    avisoTransferencia: undefined,
   }),
 }));
 
@@ -36,5 +42,16 @@ describe("ConversaContainer", () => {
     await usuario.click(screen.getByRole("button", { name: "Contrato social" }));
 
     expect(aoEnviarServico).toHaveBeenCalledWith("contrato");
+  });
+
+  it("enviar o formulário de transferência chama a função do hook com Setor e resumo", async () => {
+    const usuario = userEvent.setup();
+    render(<ConversaContainer atendimentoId="at-1" initialData={{} as ConversaVista} />);
+
+    await usuario.selectOptions(screen.getByLabelText("Setor de destino"), "tributario");
+    await usuario.type(screen.getByLabelText("Resumo do assunto"), "DAS em atraso");
+    await usuario.click(screen.getByRole("button", { name: "Transferir" }));
+
+    expect(aoTransferir).toHaveBeenCalledWith("tributario", "DAS em atraso");
   });
 });

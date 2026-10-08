@@ -63,7 +63,8 @@ test.describe("Painel do Funcionário (#49)", () => {
   });
 
   test.afterAll(async () => {
-    await admin.from("atendimentos").delete().eq("funcionario_id", FUNCIONARIO);
+    // Por Cliente, não por Funcionário: depois de transferido o Atendimento muda de dono.
+    await admin.from("atendimentos").delete().eq("cliente_id", CLIENTE);
     await admin.from("clientes").delete().eq("id", CLIENTE);
   });
 
@@ -96,5 +97,28 @@ test.describe("Painel do Funcionário (#49)", () => {
 
     // O Cliente está vinculado: o disparo oferece o documento sem pedir o CNPJ de novo.
     await expect(page.getByRole("heading", { name: "Serviços do cliente" })).toBeVisible();
+  });
+
+  test("o Funcionário transfere o Atendimento a outro Setor, que não oferece o Setor atual nem o Simples Nacional @smoke", async ({
+    page,
+  }) => {
+    await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL("/");
+    await page
+      .getByRole("navigation", { name: "Atendimentos em andamento" })
+      .getByRole("link")
+      .click();
+
+    const painel = page.getByRole("complementary", { name: "Ações do Atendimento" });
+    const setores = painel.getByLabel("Setor de destino");
+    await expect(setores.locator("option", { hasText: "Financeiro" })).toHaveCount(0);
+    // O Cliente de teste é Lucro Presumido: o Simples Nacional não é destino possível.
+    await expect(setores.locator("option", { hasText: "Simples Nacional" })).toHaveCount(0);
+
+    await setores.selectOption({ label: "Tributário" });
+    await painel.getByLabel("Resumo do assunto").fill("Cliente quer revisar o DAS");
+    await painel.getByRole("button", { name: "Transferir" }).click();
+
+    await expect(painel.getByText(/Foi para o Setor Tributário/)).toBeVisible();
   });
 });

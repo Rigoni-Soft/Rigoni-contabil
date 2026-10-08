@@ -3,16 +3,22 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 
 import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 
-import { enviarDocumentoAction, obterConversaAction } from "./conversa.actions";
+import {
+  enviarDocumentoAction,
+  obterConversaAction,
+  transferirAtendimentoAction,
+} from "./conversa.actions";
 import { useConversa } from "./use-conversa.hook";
 
 jest.mock("./conversa.actions", () => ({
   enviarDocumentoAction: jest.fn(),
   obterConversaAction: jest.fn(),
+  transferirAtendimentoAction: jest.fn(),
 }));
 
 const enviar = jest.mocked(enviarDocumentoAction);
 const obter = jest.mocked(obterConversaAction);
+const transferir = jest.mocked(transferirAtendimentoAction);
 
 const CONVERSA: ConversaVista = {
   atendimentoId: "at-1",
@@ -21,6 +27,7 @@ const CONVERSA: ConversaVista = {
   contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
   clienteVinculado: true,
   mensagens: [],
+  setoresDestino: ["recepcao", "tributario"],
   documentos: [
     { tipo: "contrato", data: null, descricao: "Contrato social" },
     { tipo: "alteracao", data: "2026-03-01", descricao: "Alteração de 01/03/2026" },
@@ -40,6 +47,7 @@ describe("useConversa", () => {
   beforeEach(() => {
     enviar.mockReset();
     obter.mockReset();
+    transferir.mockReset();
     obter.mockResolvedValue({ ok: true, data: CONVERSA });
   });
 
@@ -78,5 +86,37 @@ describe("useConversa", () => {
     await waitFor(() =>
       expect(result.current.aviso).toEqual({ tipo: "erro", texto: "Falha ao enviar o documento." }),
     );
+  });
+
+  it("transfere para o Setor escolhido e troca as ações pelo aviso de transferido", async () => {
+    transferir.mockResolvedValue({ ok: true, data: {} as never });
+    const { result } = renderizar();
+
+    act(() => result.current.aoTransferir("tributario", "DAS em atraso"));
+
+    await waitFor(() => expect(result.current.transferidoPara).toBe("Tributário"));
+    expect(transferir).toHaveBeenCalledWith({
+      atendimentoId: "at-1",
+      setorDestino: "tributario",
+      resumo: "DAS em atraso",
+    });
+  });
+
+  it("mostra o erro da transferência", async () => {
+    transferir.mockResolvedValue({
+      ok: false,
+      error: { code: "VALIDATION_ERROR", message: "Só Cliente do Simples Nacional ou MEI." },
+    });
+    const { result } = renderizar();
+
+    act(() => result.current.aoTransferir("tributario", "x"));
+
+    await waitFor(() =>
+      expect(result.current.avisoTransferencia).toEqual({
+        tipo: "erro",
+        texto: "Só Cliente do Simples Nacional ou MEI.",
+      }),
+    );
+    expect(result.current.transferidoPara).toBeUndefined();
   });
 });

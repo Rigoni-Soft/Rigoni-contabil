@@ -21,6 +21,11 @@ export function ConversaContainer({
     aoEnviarServico,
     enviando,
     aviso,
+    setoresDestino,
+    aoTransferir,
+    transferindo,
+    transferidoPara,
+    avisoTransferencia,
   } = useConversa(atendimentoId, initialData);
 
   return (
@@ -34,6 +39,11 @@ export function ConversaContainer({
       onEnviarServico={aoEnviarServico}
       enviando={enviando}
       aviso={aviso}
+      setoresDestino={setoresDestino}
+      onTransferir={aoTransferir}
+      transferindo={transferindo}
+      transferidoPara={transferidoPara}
+      avisoTransferencia={avisoTransferencia}
     />
   );
 }

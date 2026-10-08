@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { SETORES } from "@/shared/kernel/setores";
+
 // z.guid(), não z.uuid(): mesmo critério do feed de auditoria (a coluna aceita qualquer 8-4-4-4-12).
 export const atendimentoIdSchema = z.guid("Atendimento inválido.");
 
@@ -23,3 +25,15 @@ export const enviarDocumentoSchema = z
   });
 
 export type EnviarDocumentoValues = z.infer<typeof enviarDocumentoSchema>;
+
+export const RESUMO_TAMANHO_MAXIMO = 1000; // o mesmo limite do caso de uso e da tabela `transferencias`
+
+export const transferirAtendimentoSchema = z.object({
+  atendimentoId: atendimentoIdSchema,
+  setorDestino: z.enum(SETORES, "Escolha o Setor de destino."),
+  resumo: z
+    .string()
+    .trim()
+    .min(1, "Informe o resumo do assunto.")
+    .max(RESUMO_TAMANHO_MAXIMO, `O resumo aceita até ${RESUMO_TAMANHO_MAXIMO} caracteres.`),
+});

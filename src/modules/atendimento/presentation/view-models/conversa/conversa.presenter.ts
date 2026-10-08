@@ -24,6 +24,7 @@ export type ConversaView = {
   semCliente: boolean;
   mensagens: MensagemView[];
   servicos: { valor: string; rotulo: string; grupo: "contrato" | "alteracao" }[];
+  setoresDestino: { valor: string; rotulo: string }[];
 };
 
 // O telefone do Atendimento vem com DDI; a máscara é de DDD + número.
@@ -83,6 +84,10 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
       detalhe: m.autor === "contato" ? cnpjDoContato : null,
       texto: m.texto,
       hora: formatarHora(m.criadoEm),
+    })),
+    setoresDestino: conversa.setoresDestino.map((setor) => ({
+      valor: setor,
+      rotulo: SETOR_LABEL[setor],
     })),
     // Como no menu da URA: o contrato primeiro, as alterações da mais recente para a mais antiga.
     servicos: [...conversa.documentos]

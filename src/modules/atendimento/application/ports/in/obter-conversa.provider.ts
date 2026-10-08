@@ -28,6 +28,8 @@ export type ConversaVista = {
   mensagens: MensagemVista[];
   // Serviços que o Funcionário pode disparar agora; vazio se encerrado ou sem Cliente.
   documentos: DocumentoOferecido[];
+  // Setores para onde o Funcionário pode transferir agora; vazio se encerrado.
+  setoresDestino: SetorSlug[];
 };
 
 export interface ObterConversaPort {

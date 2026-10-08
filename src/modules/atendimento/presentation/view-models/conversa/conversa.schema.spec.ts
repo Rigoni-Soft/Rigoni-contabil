@@ -1,4 +1,8 @@
-import { atendimentoIdSchema, enviarDocumentoSchema } from "./conversa.schema";
+import {
+  atendimentoIdSchema,
+  enviarDocumentoSchema,
+  transferirAtendimentoSchema,
+} from "./conversa.schema";
 
 const ID = "9f1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7d";
 
@@ -24,5 +28,27 @@ describe("enviarDocumentoSchema", () => {
     [{ tipo: "guia", data: null }],
   ])("recusa %p", (documento) => {
     expect(enviarDocumentoSchema.safeParse({ atendimentoId: ID, documento }).success).toBe(false);
+  });
+});
+
+describe("transferirAtendimentoSchema", () => {
+  it("aceita Setor e resumo, aparando espaços", () => {
+    const r = transferirAtendimentoSchema.safeParse({
+      atendimentoId: ID,
+      setorDestino: "tributario",
+      resumo: "  DAS em atraso  ",
+    });
+    expect(r.success && r.data.resumo).toBe("DAS em atraso");
+  });
+
+  it.each([
+    [{ setorDestino: "", resumo: "x" }],
+    [{ setorDestino: "ti", resumo: "x" }],
+    [{ setorDestino: "tributario", resumo: "   " }],
+    [{ setorDestino: "tributario", resumo: "x".repeat(1001) }],
+  ])("recusa %p", (dados) => {
+    expect(transferirAtendimentoSchema.safeParse({ atendimentoId: ID, ...dados }).success).toBe(
+      false,
+    );
   });
 });

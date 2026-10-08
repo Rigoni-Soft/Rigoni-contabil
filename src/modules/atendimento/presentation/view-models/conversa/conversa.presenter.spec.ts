@@ -19,6 +19,7 @@ const CONVERSA: ConversaVista = {
       atendente: { nome: "Ana", setor: "simples_nacional" },
     },
   ],
+  setoresDestino: ["recepcao", "tributario"],
   documentos: [
     { tipo: "contrato", data: null, descricao: "Contrato social" },
     { tipo: "alteracao", data: "2026-03-01", descricao: "Alteração de 01/03/2026" },
@@ -63,6 +64,13 @@ describe("conversaParaView", () => {
       { valor: "contrato", rotulo: "Contrato social", grupo: "contrato" },
       { valor: "alteracao:2026-03-01", rotulo: "Alteração de 01/03/2026", grupo: "alteracao" },
       { valor: "alteracao:2025-01-10", rotulo: "Alteração de 10/01/2025", grupo: "alteracao" },
+    ]);
+  });
+
+  it("destinos de transferência viram opções com o nome do Setor", () => {
+    expect(conversaParaView(CONVERSA).setoresDestino).toEqual([
+      { valor: "recepcao", rotulo: "Recepção" },
+      { valor: "tributario", rotulo: "Tributário" },
     ]);
   });
 

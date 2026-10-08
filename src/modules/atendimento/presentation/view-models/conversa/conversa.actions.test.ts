@@ -5,14 +5,20 @@
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok } from "@/shared/kernel/result";
 
-import { enviarDocumentoAction, obterConversaAction } from "./conversa.actions";
+import {
+  enviarDocumentoAction,
+  obterConversaAction,
+  transferirAtendimentoAction,
+} from "./conversa.actions";
 
 const obterMock = jest.fn();
 const enviarMock = jest.fn();
+const transferirMock = jest.fn();
 
 jest.mock("@/main/atendimento.factory", () => ({
   makeObterConversa: async () => ({ execute: obterMock }),
   makeEnviarDocumentoAoCliente: async () => ({ execute: enviarMock }),
+  makeTransferirAtendimento: async () => ({ execute: transferirMock }),
 }));
 
 const ID = "9f1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7d";
@@ -61,5 +67,30 @@ describe("enviarDocumentoAction (integração)", () => {
     });
     expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
     expect(enviarMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("transferirAtendimentoAction (integração)", () => {
+  beforeEach(() => transferirMock.mockReset());
+
+  it("chama o caso de uso com o Setor e o resumo", async () => {
+    transferirMock.mockResolvedValue(ok({ destinatarioNome: "Ana" }));
+    const entrada = { atendimentoId: ID, setorDestino: "tributario", resumo: "DAS em atraso" };
+
+    const r = await transferirAtendimentoAction(entrada);
+
+    expect(r).toEqual({ ok: true, data: { destinatarioNome: "Ana" } });
+    expect(transferirMock).toHaveBeenCalledWith(entrada);
+  });
+
+  it("devolve VALIDATION_ERROR sem chamar o caso de uso quando falta o resumo", async () => {
+    const r = await transferirAtendimentoAction({
+      atendimentoId: ID,
+      setorDestino: "tributario",
+      resumo: " ",
+    });
+
+    expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
+    expect(transferirMock).not.toHaveBeenCalled();
   });
 });

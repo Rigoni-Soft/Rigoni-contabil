@@ -7,6 +7,7 @@ import type {
 import {
   enviarDocumentoAction,
   obterConversaAction,
+  transferirAtendimentoAction,
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.actions";
 
 export const conversaKeys = {
@@ -17,7 +18,8 @@ export const conversaKeys = {
 // arquitetura.md 4.2) quando o atraso incomodar.
 const INTERVALO_MS = 5_000;
 
-export function useConversaQuery(atendimentoId: string, initialData: ConversaVista) {
+// `ativa` falso depois de transferida: a conversa deixa de ser do usuário, não há o que atualizar.
+export function useConversaQuery(atendimentoId: string, initialData: ConversaVista, ativa = true) {
   return useQuery({
     queryKey: conversaKeys.conversa(atendimentoId),
     queryFn: async () => {
@@ -27,7 +29,7 @@ export function useConversaQuery(atendimentoId: string, initialData: ConversaVis
     },
     initialData,
     staleTime: INTERVALO_MS,
-    refetchInterval: INTERVALO_MS,
+    refetchInterval: ativa ? INTERVALO_MS : false,
     retry: false,
   });
 }
@@ -43,5 +45,18 @@ export function useEnviarDocumentoMutation(atendimentoId: string) {
     // Também no erro: um envio entregue mas não registrado já deve aparecer (ou não) na conversa.
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: conversaKeys.conversa(atendimentoId) }),
+  });
+}
+
+export function useTransferirAtendimentoMutation(atendimentoId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (dados: { setorDestino: string; resumo: string }) => {
+      const resultado = await transferirAtendimentoAction({ atendimentoId, ...dados });
+      if (!resultado.ok) throw new Error(resultado.error.message);
+    },
+    // O Atendimento mudou de mãos: a lista do dock precisa refletir.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["atendimento", "meus"] }),
   });
 }
