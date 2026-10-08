@@ -27,7 +27,7 @@ describe("SupabaseSessaoAtendimentoGateway", () => {
 
   it.each([
     [{ etapa: "tipo_documento" as const }],
-    [{ etapa: "alteracao" as const, modo: "ambos" as const, pagina: 2 }],
+    [{ etapa: "alteracao" as const, modo: "ambos" as const, pagina: 2, lista: "abc123" }],
     [{ etapa: "ja_cliente" as const }],
     [{ etapa: "cnpj" as const }],
   ])("grava e lê a sessão %j", async (sessao) => {
@@ -37,10 +37,15 @@ describe("SupabaseSessaoAtendimentoGateway", () => {
 
   it("salvar de novo substitui; limpar remove", async () => {
     await gateway.salvar(TELEFONE, { etapa: "tipo_documento" });
-    await gateway.salvar(TELEFONE, { etapa: "alteracao", modo: "alteracoes", pagina: 1 });
+    await gateway.salvar(TELEFONE, {
+      etapa: "alteracao",
+      modo: "alteracoes",
+      pagina: 1,
+      lista: "abc123",
+    });
     expect(await gateway.obter(TELEFONE)).toEqual({
       ok: true,
-      value: { etapa: "alteracao", modo: "alteracoes", pagina: 1 },
+      value: { etapa: "alteracao", modo: "alteracoes", pagina: 1, lista: "abc123" },
     });
     await gateway.limpar(TELEFONE);
     expect(await gateway.obter(TELEFONE)).toEqual({ ok: true, value: null });

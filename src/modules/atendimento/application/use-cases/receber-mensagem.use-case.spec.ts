@@ -259,7 +259,12 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     await caso.execute({ telefone: FONE, texto: "mais" });
     expect(enviadas[2].texto.match(/^\d+ - /gm)).toHaveLength(2);
     expect(enviadas[2].texto).not.toContain("mais");
-    expect(gravadas.at(-1)).toEqual({ etapa: "alteracao", modo: "alteracoes", pagina: 2 });
+    expect(gravadas.at(-1)).toEqual({
+      etapa: "alteracao",
+      modo: "alteracoes",
+      pagina: 2,
+      lista: expect.any(String),
+    });
 
     await caso.execute({ telefone: FONE, texto: "2" });
     expect(nomes(documentosEnviados)).toEqual(["Alteração de 15/01/2020.pdf"]);
@@ -282,7 +287,12 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     });
     await caso.execute({ telefone: FONE, texto: "1" });
     await caso.execute({ telefone: FONE, texto: "3" });
-    expect(gravadas.at(-1)).toEqual({ etapa: "alteracao", modo: "ambos", pagina: 1 });
+    expect(gravadas.at(-1)).toEqual({
+      etapa: "alteracao",
+      modo: "ambos",
+      pagina: 1,
+      lista: expect.any(String),
+    });
     await caso.execute({ telefone: FONE, texto: "2" });
     expect(nomes(documentosEnviados)).toEqual([
       "Contrato social.pdf",
@@ -311,10 +321,12 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
 
   it("sessão numa página que deixou de existir volta à última página", async () => {
     const { caso, enviadas, sessoes } = montar({ documentos: alteracoes(12) });
-    sessoes.set(CHAVE, { etapa: "alteracao", modo: "alteracoes", pagina: 5 });
+    await caso.execute({ telefone: FONE, texto: "1" });
+    await caso.execute({ telefone: FONE, texto: "2" });
+    sessoes.set(CHAVE, { ...(sessoes.get(CHAVE) as object), pagina: 5 } as never);
     await caso.execute({ telefone: FONE, texto: "mais" });
-    expect(enviadas[0].texto).toContain("página 2 de 2");
-    expect(enviadas[0].texto.match(/^\d+ - /gm)).toHaveLength(2);
+    expect(enviadas[2].texto).toContain("página 2 de 2");
+    expect(enviadas[2].texto.match(/^\d+ - /gm)).toHaveLength(2);
   });
 
   it("ambos sem alterações envia só o contrato", async () => {
@@ -341,13 +353,16 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     expect(enviadas[2].texto).toContain("Olá, Ana");
   });
 
-  it("a sessão nunca guarda dado do Cliente, só etapa, modo e página", async () => {
+  it("a sessão nunca guarda dado do Cliente, só etapa, modo, página e o hash da lista (sem caminho)", async () => {
     const { caso, gravadas } = montar({ documentos: [CONTRATO, ...alteracoes(12)] });
     await caso.execute({ telefone: FONE, texto: "1" });
     await caso.execute({ telefone: FONE, texto: "3" });
     await caso.execute({ telefone: FONE, texto: "mais" });
     for (const g of gravadas) {
-      expect(Object.keys(g).every((k) => ["etapa", "modo", "pagina"].includes(k))).toBe(true);
+      expect(Object.keys(g).every((k) => ["etapa", "modo", "pagina", "lista"].includes(k))).toBe(
+        true,
+      );
+      if (g.etapa === "alteracao") expect(g.lista).toMatch(/^[0-9a-z]+$/);
     }
   });
 
@@ -473,6 +488,34 @@ describe("ReceberMensagem — mesmo número em mais de um Cliente (PR #76, B2)",
       expect(documentosEnviados).toEqual([]);
       expect(listados).toEqual([]);
       expect(sessoes.has(CHAVE)).toBe(false);
+    },
+  );
+});
+
+describe("ReceberMensagem — lista de alterações mudou com a sessão aberta (PR #76, I2)", () => {
+  it.each([
+    ["uma alteração é incluída", (docs: DocumentoContratual[]) => docs.push(alteracoes(4)[3])],
+    ["uma alteração é excluída", (docs: DocumentoContratual[]) => docs.splice(0, 1)],
+  ])(
+    "se %s entre a lista e a escolha, nada é entregue e a lista nova é mostrada",
+    async (_, mudar) => {
+      const documentos = alteracoes(3);
+      const { caso, enviadas, documentosEnviados, sessoes } = montar({ documentos });
+      await caso.execute({ telefone: FONE, texto: "1" });
+      await caso.execute({ telefone: FONE, texto: "2" });
+      const antes = sessoes.get(CHAVE);
+
+      mudar(documentos);
+      await caso.execute({ telefone: FONE, texto: "1" });
+
+      expect(documentosEnviados).toEqual([]);
+      expect(enviadas.at(-1)?.texto).toContain("atualizada");
+      expect(enviadas.at(-1)?.texto).toContain(documentos.length === 4 ? "4 - " : "2 - ");
+      expect(sessoes.get(CHAVE)).not.toEqual(antes);
+
+      // Com a lista nova já exibida, a mesma escolha passa a valer.
+      await caso.execute({ telefone: FONE, texto: "1" });
+      expect(documentosEnviados).toHaveLength(1);
     },
   );
 });

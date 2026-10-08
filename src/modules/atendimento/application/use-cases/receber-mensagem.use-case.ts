@@ -47,6 +47,9 @@ const PERGUNTA_TIPO =
 const SEM_CONTRATO = "Não encontramos o contrato social cadastrado. Fale com o escritório.";
 const SEM_ALTERACOES = "Não encontramos alterações contratuais cadastradas. Fale com o escritório.";
 
+const LISTA_MUDOU =
+  "A lista de alterações foi atualizada e a sua escolha não foi considerada. Escolha novamente:\n";
+
 const ALTERACOES_POR_PAGINA = 10;
 
 type Modo = "contrato" | "alteracoes" | "ambos";
@@ -71,6 +74,22 @@ function descrever(documento: DocumentoContratual): string {
   return documento.data ? `Alteração de ${formatarData(documento.data)}` : "Contrato social";
 }
 
+// Impressão digital da lista inteira (a numeração das páginas depende de todos os itens). Hash
+// não criptográfico (cyrb53, 53 bits): só detecta mudança, não protege nada, e a camada de
+// aplicação não importa `crypto` (infra). Colisão exigiria uma lista diferente com o mesmo hash.
+function impressaoDaLista(alteracoes: DocumentoContratual[]): string {
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (const ch of alteracoes.map((a) => a.caminho).join("\n")) {
+    const codigo = ch.codePointAt(0) as number;
+    h1 = Math.imul(h1 ^ codigo, 2654435761);
+    h2 = Math.imul(h2 ^ codigo, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+
 function paginaDe(alteracoes: DocumentoContratual[], pagina: number): DocumentoContratual[] {
   return alteracoes.slice((pagina - 1) * ALTERACOES_POR_PAGINA, pagina * ALTERACOES_POR_PAGINA);
 }
@@ -87,8 +106,8 @@ function listaDaPagina(alteracoes: DocumentoContratual[], pagina: number): strin
 // Passos do menu de documentos ficam numa sessão que guarda só a posição (etapa/modo/página):
 // nada do Cliente é persistido, os documentos são relidos a cada mensagem. "1".."5" é escolha
 // de menu; qualquer outro texto reabre a saudação com o menu.
-// ponytail: se uma alteração entrar/sair com a sessão aberta, o número escolhido pode apontar
-// para outra (janela de minutos); guardar os ids da lista na sessão se isso virar problema.
+// A sessão guarda também um hash da lista de alterações exibida: se ela mudar antes da escolha,
+// nada é entregue e a lista nova é mostrada.
 export class ReceberMensagem implements ReceberMensagemPort {
   constructor(
     private readonly contatos: IdentificacaoContatoPort,
@@ -211,7 +230,11 @@ export class ReceberMensagem implements ReceberMensagemPort {
     if (alteracoes.length === 1) {
       return this.entregar(conversa, modo === "ambos" ? [contrato, alteracoes[0]] : alteracoes);
     }
-    return this.mostrarPagina(conversa, { etapa: "alteracao", modo, pagina: 1 }, alteracoes);
+    return this.mostrarPagina(
+      conversa,
+      { etapa: "alteracao", modo, pagina: 1, lista: impressaoDaLista(alteracoes) },
+      alteracoes,
+    );
   }
 
   private async escolherAlteracao(
@@ -224,7 +247,17 @@ export class ReceberMensagem implements ReceberMensagemPort {
     const { contrato, alteracoes } = docs.value;
     if (alteracoes.length === 0) return this.enviar(conversa.telefone, SEM_ALTERACOES);
 
-    // Alterações podem ter sido removidas com a sessão aberta: a página nunca passa da última.
+    // Lista mudou desde que foi exibida: o número digitado pode apontar para outro documento
+    // jurídico, então nada é entregue e a lista atualizada é mostrada de novo.
+    if (sessao.lista !== impressaoDaLista(alteracoes)) {
+      return this.mostrarPagina(
+        conversa,
+        { ...sessao, pagina: 1, lista: impressaoDaLista(alteracoes) },
+        alteracoes,
+        LISTA_MUDOU,
+      );
+    }
+
     const ultimaPagina = Math.ceil(alteracoes.length / ALTERACOES_POR_PAGINA);
     const pagina = Math.min(sessao.pagina, ultimaPagina);
     if (texto === "mais" && pagina < ultimaPagina) {
@@ -242,9 +275,12 @@ export class ReceberMensagem implements ReceberMensagemPort {
     { telefone, chave }: Conversa,
     sessao: SessaoAtendimento & { etapa: "alteracao" },
     alteracoes: DocumentoContratual[],
+    aviso = "",
   ): Promise<Result<void, AppError>> {
     const salva = await this.sessoes.salvar(chave, sessao);
-    return salva.ok ? this.enviar(telefone, listaDaPagina(alteracoes, sessao.pagina)) : salva;
+    return salva.ok
+      ? this.enviar(telefone, `${aviso}${listaDaPagina(alteracoes, sessao.pagina)}`)
+      : salva;
   }
 
   // Contrato à parte; alterações da mais recente para a mais antiga.
