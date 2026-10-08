@@ -1,6 +1,6 @@
-import { ChevronDown, FileText, SendHorizontal } from "lucide-react";
+import { FileText, SendHorizontal } from "lucide-react";
 
-import { Button, buttonVariants } from "@/presentation/components/ui/button";
+import { Button } from "@/presentation/components/ui/button";
 import { Label } from "@/presentation/components/ui/label";
 import { Select } from "@/presentation/components/ui/select";
 import { Textarea } from "@/presentation/components/ui/textarea";
@@ -46,16 +46,25 @@ function AvisoTexto({ aviso }: { aviso: Aviso }) {
   return (
     <p
       role={aviso.tipo === "erro" ? "alert" : "status"}
-      className={cn("text-sm", aviso.tipo === "erro" ? "text-destructive" : "text-success")}
+      className={cn("text-xs", aviso.tipo === "erro" ? "text-destructive" : "text-success")}
     >
       {aviso.texto}
     </p>
   );
 }
 
+function TituloDoGrupo({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+      {children}
+    </h2>
+  );
+}
+
 // Desenho de chat (WhatsApp/Messenger): cliente à esquerda, em balão claro; URA e Funcionário, que
 // falam em nome do escritório, à direita. A hora fica dentro do balão, no canto inferior direito.
-// As ações do Atendimento ficam num painel à direita (abaixo do chat em tela estreita).
+// Em tela larga a página não rola: só a lista de mensagens rola, sempre parada nas últimas, e as
+// ações do Atendimento ficam num painel compacto à direita (abaixo do chat em tela estreita).
 export function ConversaAtendimento({
   titulo,
   subtitulo,
@@ -83,24 +92,26 @@ export function ConversaAtendimento({
     <section
       aria-label="Atendimento"
       className={cn(
-        "grid gap-6",
-        !encerrado && "lg:grid-cols-[minmax(0,1fr)_22rem] 2xl:grid-cols-[minmax(0,1fr)_26rem]",
+        "grid gap-4 lg:h-full lg:min-h-0",
+        !encerrado && "lg:grid-cols-[minmax(0,1fr)_19rem] 2xl:grid-cols-[minmax(0,1fr)_22rem]",
       )}
     >
-      <div className="space-y-6">
-        <header>
-          <h1 className="text-xl font-bold tracking-tight text-primary">{titulo}</h1>
+      <div className="flex min-h-0 flex-col gap-3">
+        <header className="shrink-0">
+          <h1 className="text-lg font-bold tracking-tight text-primary">{titulo}</h1>
           <p className="text-sm text-muted-foreground">{subtitulo}</p>
           {encerrado && (
-            <p className="mt-2 text-sm font-medium text-muted-foreground">Atendimento encerrado.</p>
+            <p className="mt-1 text-sm font-medium text-muted-foreground">Atendimento encerrado.</p>
           )}
         </header>
 
+        {/* flex-col-reverse com as mensagens da mais nova para a mais antiga: o navegador mantém a
+            rolagem no fim (nas últimas conversas) sem JavaScript, e a ordem na tela é a cronológica. */}
         <ol
           aria-label="Mensagens"
-          className="flex flex-col gap-1.5 rounded-xl border border-border bg-muted/50 p-3 sm:p-4"
+          className="flex max-h-[60vh] min-h-0 flex-col-reverse gap-1.5 overflow-y-auto rounded-xl border border-border bg-muted/50 p-3 lg:max-h-none lg:flex-1"
         >
-          {mensagens.map((mensagem) => {
+          {[...mensagens].reverse().map((mensagem) => {
             const doCliente = mensagem.lado === "contato";
             return (
               <li
@@ -137,7 +148,7 @@ export function ConversaAtendimento({
         </ol>
 
         {!transferidoPara && !encerrado && (
-          <div className="space-y-2">
+          <div className="shrink-0 space-y-1">
             <form
               key={mensagensEnviadas}
               className="flex items-end gap-2"
@@ -183,7 +194,7 @@ export function ConversaAtendimento({
       {!encerrado && (
         <aside
           aria-label="Ações do Atendimento"
-          className="space-y-6 self-start rounded-xl border border-border bg-card p-4 lg:sticky lg:top-4"
+          className="min-h-0 space-y-4 self-start overflow-y-auto rounded-xl border border-border bg-card p-3 lg:max-h-full"
         >
           {transferidoPara ? (
             <div role="status" className="space-y-1">
@@ -194,115 +205,87 @@ export function ConversaAtendimento({
             </div>
           ) : (
             <>
-              <div className="space-y-4">
-                <div>
-                  <h2 className="font-semibold text-foreground">Serviços do cliente</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Os mesmos serviços do menu da URA. Um clique envia ao WhatsApp do cliente, sem
-                    pedir o CNPJ de novo.
-                  </p>
-                </div>
-
+              <div className="space-y-2">
+                <TituloDoGrupo>Serviços do cliente</TituloDoGrupo>
                 {semCliente ? (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Sem Cliente vinculado a este número não há serviços para disparar.
                   </p>
                 ) : (
                   <>
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-medium text-foreground">
-                        Contrato social e alterações
-                      </h3>
-                      <div className="flex flex-col gap-2">
-                        {contrato ? (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="justify-start"
-                            disabled={enviando}
-                            onClick={() => onEnviarServico(contrato.valor)}
-                          >
-                            <FileText aria-hidden="true" />
-                            {contrato.rotulo}
-                          </Button>
-                        ) : (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="justify-start"
-                            disabled
-                          >
-                            <FileText aria-hidden="true" />
-                            Contrato social (não cadastrado)
-                          </Button>
-                        )}
-                        {alteracoes.length === 0 ? (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="justify-start"
-                            disabled
-                          >
-                            <FileText aria-hidden="true" />
-                            Alterações (não cadastradas)
-                          </Button>
-                        ) : (
-                          <details>
-                            <summary
-                              className={cn(
-                                buttonVariants({ variant: "outline" }),
-                                "w-full cursor-pointer list-none justify-start [&::-webkit-details-marker]:hidden",
-                              )}
-                            >
-                              <FileText aria-hidden="true" />
-                              Alterações contratuais ({alteracoes.length})
-                              <ChevronDown aria-hidden="true" className="ml-auto" />
-                            </summary>
-                            <ul
-                              aria-label="Alterações contratuais"
-                              className="mt-2 max-h-60 divide-y divide-border overflow-y-auto rounded-md border border-border"
-                            >
-                              {alteracoes.map((alteracao) => (
-                                <li key={alteracao.valor}>
-                                  <button
-                                    type="button"
-                                    disabled={enviando}
-                                    onClick={() => onEnviarServico(alteracao.valor)}
-                                    className="w-full px-3 py-2.5 text-left text-sm hover:bg-accent disabled:opacity-50"
-                                  >
-                                    {alteracao.rotulo}
-                                  </button>
-                                </li>
-                              ))}
-                            </ul>
-                          </details>
-                        )}
-                      </div>
+                    {/* Mesmos serviços do menu da URA. Guias e CND ainda respondem "em construção"
+                        lá (#42 e os adapters do Serpro, #66-#68) e passam a disparar quando existirem. */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="justify-start"
+                        disabled={enviando || !contrato}
+                        title={contrato ? undefined : "Contrato social não cadastrado"}
+                        onClick={() => contrato && onEnviarServico(contrato.valor)}
+                      >
+                        <FileText aria-hidden="true" />
+                        Contrato social
+                      </Button>
+                      {SERVICOS_EM_CONSTRUCAO.map((rotulo) => (
+                        <Button
+                          key={rotulo}
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="justify-start"
+                          disabled
+                          title="Em construção"
+                        >
+                          {rotulo}
+                        </Button>
+                      ))}
                     </div>
-
-                    {/* Mesmos itens do menu da URA, que ainda responde "em construção" a eles (#42
-                        e os adapters reais do Serpro, #66-#68). Passam a disparar quando existirem. */}
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-medium text-foreground">Guias e certidões</h3>
-                      <div className="flex flex-col gap-2">
-                        {SERVICOS_EM_CONSTRUCAO.map((rotulo) => (
-                          <Button
-                            key={rotulo}
-                            type="button"
-                            variant="outline"
-                            className="justify-start"
-                            disabled
-                          >
-                            {rotulo} · em construção
-                          </Button>
-                        ))}
+                    <form
+                      className="flex items-end gap-2"
+                      onSubmit={(evento) => {
+                        evento.preventDefault();
+                        onEnviarServico(
+                          String(new FormData(evento.currentTarget).get("alteracao")),
+                        );
+                      }}
+                    >
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <Label htmlFor="servico-alteracao" className="text-xs">
+                          Alteração contratual
+                        </Label>
+                        <Select
+                          id="servico-alteracao"
+                          name="alteracao"
+                          required
+                          defaultValue=""
+                          disabled={alteracoes.length === 0}
+                          className="h-10"
+                        >
+                          <option value="" disabled>
+                            {alteracoes.length === 0 ? "Nenhuma cadastrada" : "Escolha a alteração"}
+                          </option>
+                          {alteracoes.map((alteracao) => (
+                            <option key={alteracao.valor} value={alteracao.valor}>
+                              {alteracao.rotulo}
+                            </option>
+                          ))}
+                        </Select>
                       </div>
-                    </div>
+                      <Button
+                        type="submit"
+                        size="sm"
+                        aria-label="Enviar alteração"
+                        disabled={enviando || alteracoes.length === 0}
+                      >
+                        Enviar
+                      </Button>
+                    </form>
                   </>
                 )}
-
                 {enviando && (
-                  <p role="status" className="text-sm text-muted-foreground">
+                  <p role="status" className="text-xs text-muted-foreground">
                     Enviando...
                   </p>
                 )}
@@ -310,45 +293,54 @@ export function ConversaAtendimento({
               </div>
 
               <form
-                className="space-y-3 border-t border-border pt-4"
+                className="space-y-2 border-t border-border pt-3"
                 onSubmit={(evento) => {
                   evento.preventDefault();
                   const dados = new FormData(evento.currentTarget);
                   onTransferir(String(dados.get("setor")), String(dados.get("resumo")));
                 }}
               >
-                <div>
-                  <h2 className="font-semibold text-foreground">Transferir Atendimento</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Encaminha a conversa para outro Setor e avisa o cliente.
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="transferir-setor">Setor de destino</Label>
-                  <Select id="transferir-setor" name="setor" required defaultValue="">
-                    <option value="" disabled>
-                      Escolha o Setor
-                    </option>
-                    {setoresDestino.map((setor) => (
-                      <option key={setor.valor} value={setor.valor}>
-                        {setor.rotulo}
+                <TituloDoGrupo>Transferir Atendimento</TituloDoGrupo>
+                <div className="flex items-end gap-2">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <Label htmlFor="transferir-setor" className="text-xs">
+                      Setor de destino
+                    </Label>
+                    <Select
+                      id="transferir-setor"
+                      name="setor"
+                      required
+                      defaultValue=""
+                      className="h-10"
+                    >
+                      <option value="" disabled>
+                        Escolha o Setor
                       </option>
-                    ))}
-                  </Select>
+                      {setoresDestino.map((setor) => (
+                        <option key={setor.valor} value={setor.valor}>
+                          {setor.rotulo}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                  <Button type="submit" size="sm" disabled={transferindo}>
+                    {transferindo ? "Transferindo..." : "Transferir"}
+                  </Button>
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="transferir-resumo">Resumo do assunto</Label>
+                  <Label htmlFor="transferir-resumo" className="text-xs">
+                    Resumo do assunto
+                  </Label>
                   <Textarea
                     id="transferir-resumo"
                     name="resumo"
                     required
+                    rows={2}
                     maxLength={1000}
                     placeholder="O que o próximo atendente precisa saber"
+                    className="min-h-16 resize-none"
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={transferindo}>
-                  {transferindo ? "Transferindo..." : "Transferir"}
-                </Button>
                 {avisoTransferencia && <AvisoTexto aviso={avisoTransferencia} />}
               </form>
             </>

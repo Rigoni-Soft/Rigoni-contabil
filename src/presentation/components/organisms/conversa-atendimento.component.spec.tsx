@@ -78,20 +78,21 @@ describe("ConversaAtendimento", () => {
     expect(aoEnviar).toHaveBeenCalledWith("contrato");
   });
 
-  it("mesmo com uma alteração só, o Funcionário abre a lista e escolhe qual enviar", async () => {
+  it("a alteração contratual é escolhida num seletor e enviada pelo botão", async () => {
     const aoEnviar = jest.fn();
     const usuario = userEvent.setup();
     render(<ConversaAtendimento {...BASE} onEnviarServico={aoEnviar} />);
 
-    await usuario.click(screen.getByText(/Alterações contratuais \(1\)/));
-    await usuario.click(screen.getByRole("button", { name: "Alteração de 01/03/2026" }));
+    await usuario.selectOptions(
+      screen.getByLabelText("Alteração contratual"),
+      "alteracao:2026-03-01",
+    );
+    await usuario.click(screen.getByRole("button", { name: "Enviar alteração" }));
 
     expect(aoEnviar).toHaveBeenCalledWith("alteracao:2026-03-01");
   });
 
-  it("várias alterações abrem uma lista para o Funcionário escolher qual enviar", async () => {
-    const aoEnviar = jest.fn();
-    const usuario = userEvent.setup();
+  it("várias alterações aparecem no seletor, da mais recente para a mais antiga", () => {
     render(
       <ConversaAtendimento
         {...BASE}
@@ -99,14 +100,15 @@ describe("ConversaAtendimento", () => {
           ...BASE.servicos,
           { valor: "alteracao:2025-01-10", rotulo: "Alteração de 10/01/2025", grupo: "alteracao" },
         ]}
-        onEnviarServico={aoEnviar}
       />,
     );
 
-    await usuario.click(screen.getByText(/Alterações contratuais \(2\)/));
-    await usuario.click(screen.getByRole("button", { name: "Alteração de 10/01/2025" }));
-
-    expect(aoEnviar).toHaveBeenCalledWith("alteracao:2025-01-10");
+    const opcoes = within(screen.getByLabelText("Alteração contratual")).getAllByRole("option");
+    expect(opcoes.map((o) => o.textContent)).toEqual([
+      "Escolha a alteração",
+      "Alteração de 01/03/2026",
+      "Alteração de 10/01/2025",
+    ]);
   });
 
   it("guia de imposto, de parcelamento e CND aparecem desabilitados enquanto a URA não os tem", () => {
@@ -117,11 +119,12 @@ describe("ConversaAtendimento", () => {
     }
   });
 
-  it("Cliente sem contrato ou sem alterações mostra o botão desabilitado", () => {
+  it("Cliente sem contrato ou sem alterações mostra tudo desabilitado", () => {
     render(<ConversaAtendimento {...BASE} servicos={[]} />);
 
-    expect(screen.getByRole("button", { name: /Contrato social/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Alterações/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Contrato social" })).toBeDisabled();
+    expect(screen.getByLabelText("Alteração contratual")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Enviar alteração" })).toBeDisabled();
   });
 
   it("enquanto envia, os serviços ficam travados", () => {

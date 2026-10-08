@@ -95,6 +95,13 @@ test.describe("Painel do Funcionário (#49)", () => {
     const balaoDoAtendente = page.getByRole("listitem").filter({ hasText: "Já te envio" });
     await expect(balaoDoAtendente).toContainText("Segundo Funcionário Financeiro · Financeiro");
 
+    // Em tela larga a página não rola em nenhum sentido: só a lista de mensagens rola.
+    const transborda = await page.evaluate(() => ({
+      vertical: document.documentElement.scrollHeight > window.innerHeight,
+      horizontal: document.documentElement.scrollWidth > window.innerWidth,
+    }));
+    expect(transborda).toEqual({ vertical: false, horizontal: false });
+
     // O Cliente está vinculado: o disparo oferece o documento sem pedir o CNPJ de novo.
     await expect(page.getByRole("heading", { name: "Serviços do cliente" })).toBeVisible();
   });
