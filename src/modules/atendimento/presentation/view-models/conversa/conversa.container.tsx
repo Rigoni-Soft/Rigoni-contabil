@@ -26,6 +26,10 @@ export function ConversaContainer({
     transferindo,
     transferidoPara,
     avisoTransferencia,
+    aoEnviarMensagem,
+    enviandoMensagem,
+    erroMensagem,
+    mensagensEnviadas,
   } = useConversa(atendimentoId, initialData);
 
   return (
@@ -44,6 +48,10 @@ export function ConversaContainer({
       transferindo={transferindo}
       transferidoPara={transferidoPara}
       avisoTransferencia={avisoTransferencia}
+      onEnviarMensagem={aoEnviarMensagem}
+      enviandoMensagem={enviandoMensagem}
+      erroMensagem={erroMensagem}
+      mensagensEnviadas={mensagensEnviadas}
     />
   );
 }

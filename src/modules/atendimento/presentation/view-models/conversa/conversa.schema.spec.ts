@@ -1,6 +1,7 @@
 import {
   atendimentoIdSchema,
   enviarDocumentoSchema,
+  enviarMensagemSchema,
   transferirAtendimentoSchema,
 } from "./conversa.schema";
 
@@ -50,5 +51,16 @@ describe("transferirAtendimentoSchema", () => {
     expect(transferirAtendimentoSchema.safeParse({ atendimentoId: ID, ...dados }).success).toBe(
       false,
     );
+  });
+});
+
+describe("enviarMensagemSchema", () => {
+  it("aceita o texto, aparando espaços", () => {
+    const r = enviarMensagemSchema.safeParse({ atendimentoId: ID, texto: "  oi  " });
+    expect(r.success && r.data.texto).toBe("oi");
+  });
+
+  it.each([[""], ["   "], ["x".repeat(4097)]])("recusa %p", (texto) => {
+    expect(enviarMensagemSchema.safeParse({ atendimentoId: ID, texto }).success).toBe(false);
   });
 });

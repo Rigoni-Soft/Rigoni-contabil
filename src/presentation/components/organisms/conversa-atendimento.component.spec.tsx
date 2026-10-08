@@ -42,6 +42,9 @@ const BASE = {
   ],
   onTransferir: jest.fn(),
   transferindo: false,
+  onEnviarMensagem: jest.fn(),
+  enviandoMensagem: false,
+  mensagensEnviadas: 0,
 };
 
 describe("ConversaAtendimento", () => {
@@ -75,11 +78,12 @@ describe("ConversaAtendimento", () => {
     expect(aoEnviar).toHaveBeenCalledWith("contrato");
   });
 
-  it("uma alteração só é enviada direto, como no menu da URA", async () => {
+  it("mesmo com uma alteração só, o Funcionário abre a lista e escolhe qual enviar", async () => {
     const aoEnviar = jest.fn();
     const usuario = userEvent.setup();
     render(<ConversaAtendimento {...BASE} onEnviarServico={aoEnviar} />);
 
+    await usuario.click(screen.getByText(/Alterações contratuais \(1\)/));
     await usuario.click(screen.getByRole("button", { name: "Alteração de 01/03/2026" }));
 
     expect(aoEnviar).toHaveBeenCalledWith("alteracao:2026-03-01");
@@ -190,5 +194,44 @@ describe("ConversaAtendimento", () => {
     );
 
     expect(screen.getByRole("alert")).toHaveTextContent("Só Cliente do Simples Nacional");
+  });
+
+  it("Enter envia a mensagem e Shift+Enter só quebra a linha", async () => {
+    const aoEnviarMensagem = jest.fn();
+    const usuario = userEvent.setup();
+    render(<ConversaAtendimento {...BASE} onEnviarMensagem={aoEnviarMensagem} />);
+
+    const campo = screen.getByLabelText("Mensagem ao cliente");
+    await usuario.type(campo, "Bom dia{Shift>}{Enter}{/Shift}Tudo bem?");
+    expect(aoEnviarMensagem).not.toHaveBeenCalled();
+    await usuario.type(campo, "{Enter}");
+
+    expect(aoEnviarMensagem).toHaveBeenCalledWith("Bom dia\nTudo bem?");
+  });
+
+  it("o botão enviar também envia e mostra o erro do envio", async () => {
+    const aoEnviarMensagem = jest.fn();
+    const usuario = userEvent.setup();
+    render(
+      <ConversaAtendimento
+        {...BASE}
+        onEnviarMensagem={aoEnviarMensagem}
+        erroMensagem="Falha ao enviar a mensagem."
+      />,
+    );
+
+    await usuario.type(screen.getByLabelText("Mensagem ao cliente"), "Oi");
+    await usuario.click(screen.getByRole("button", { name: "Enviar mensagem" }));
+
+    expect(aoEnviarMensagem).toHaveBeenCalledWith("Oi");
+    expect(screen.getByRole("alert")).toHaveTextContent("Falha ao enviar a mensagem.");
+  });
+
+  it("sem campo de resposta quando encerrado ou já transferido", () => {
+    const { rerender } = render(<ConversaAtendimento {...BASE} encerrado />);
+    expect(screen.queryByLabelText("Mensagem ao cliente")).not.toBeInTheDocument();
+
+    rerender(<ConversaAtendimento {...BASE} transferidoPara="Tributário" />);
+    expect(screen.queryByLabelText("Mensagem ao cliente")).not.toBeInTheDocument();
   });
 });

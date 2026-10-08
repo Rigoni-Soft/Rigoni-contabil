@@ -1,4 +1,4 @@
-import { ChevronDown, FileText } from "lucide-react";
+import { ChevronDown, FileText, SendHorizontal } from "lucide-react";
 
 import { Button, buttonVariants } from "@/presentation/components/ui/button";
 import { Label } from "@/presentation/components/ui/label";
@@ -35,6 +35,11 @@ type ConversaAtendimentoProps = {
   // Nome do Setor para onde o Atendimento acabou de ir; troca as ações por um aviso.
   transferidoPara?: string;
   avisoTransferencia?: Aviso;
+  onEnviarMensagem: (texto: string) => void;
+  enviandoMensagem: boolean;
+  erroMensagem?: string;
+  // Muda a cada envio bem-sucedido: esvazia o campo (se falhou, o texto fica para tentar de novo).
+  mensagensEnviadas: number;
 };
 
 function AvisoTexto({ aviso }: { aviso: Aviso }) {
@@ -66,6 +71,10 @@ export function ConversaAtendimento({
   transferindo,
   transferidoPara,
   avisoTransferencia,
+  onEnviarMensagem,
+  enviandoMensagem,
+  erroMensagem,
+  mensagensEnviadas,
 }: ConversaAtendimentoProps) {
   const contrato = servicos.find((servico) => servico.grupo === "contrato");
   const alteracoes = servicos.filter((servico) => servico.grupo === "alteracao");
@@ -126,6 +135,49 @@ export function ConversaAtendimento({
             );
           })}
         </ol>
+
+        {!transferidoPara && !encerrado && (
+          <div className="space-y-2">
+            <form
+              key={mensagensEnviadas}
+              className="flex items-end gap-2"
+              onSubmit={(evento) => {
+                evento.preventDefault();
+                onEnviarMensagem(String(new FormData(evento.currentTarget).get("texto")));
+              }}
+            >
+              <Label htmlFor="mensagem-ao-cliente" className="sr-only">
+                Mensagem ao cliente
+              </Label>
+              <Textarea
+                id="mensagem-ao-cliente"
+                name="texto"
+                required
+                rows={2}
+                maxLength={4096}
+                placeholder="Escreva uma mensagem ao cliente..."
+                className="min-h-12 flex-1 resize-none rounded-2xl"
+                onKeyDown={(evento) => {
+                  // Enter envia, Shift+Enter quebra a linha (como nos chats).
+                  if (evento.key === "Enter" && !evento.shiftKey) {
+                    evento.preventDefault();
+                    evento.currentTarget.form?.requestSubmit();
+                  }
+                }}
+              />
+              <Button
+                type="submit"
+                size="icon"
+                className="rounded-full"
+                aria-label="Enviar mensagem"
+                disabled={enviandoMensagem}
+              >
+                <SendHorizontal aria-hidden="true" />
+              </Button>
+            </form>
+            {erroMensagem && <AvisoTexto aviso={{ tipo: "erro", texto: erroMensagem }} />}
+          </div>
+        )}
       </div>
 
       {!encerrado && (
@@ -193,17 +245,6 @@ export function ConversaAtendimento({
                           >
                             <FileText aria-hidden="true" />
                             Alterações (não cadastradas)
-                          </Button>
-                        ) : alteracoes.length === 1 ? (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="justify-start"
-                            disabled={enviando}
-                            onClick={() => onEnviarServico(alteracoes[0].valor)}
-                          >
-                            <FileText aria-hidden="true" />
-                            {alteracoes[0].rotulo}
                           </Button>
                         ) : (
                           <details>

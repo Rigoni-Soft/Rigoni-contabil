@@ -5,6 +5,7 @@ import type { ConversaVista } from "@/modules/atendimento/application/ports/in/o
 
 import {
   enviarDocumentoAction,
+  enviarMensagemAction,
   obterConversaAction,
   transferirAtendimentoAction,
 } from "./conversa.actions";
@@ -14,11 +15,13 @@ jest.mock("./conversa.actions", () => ({
   enviarDocumentoAction: jest.fn(),
   obterConversaAction: jest.fn(),
   transferirAtendimentoAction: jest.fn(),
+  enviarMensagemAction: jest.fn(),
 }));
 
 const enviar = jest.mocked(enviarDocumentoAction);
 const obter = jest.mocked(obterConversaAction);
 const transferir = jest.mocked(transferirAtendimentoAction);
+const mensagem = jest.mocked(enviarMensagemAction);
 
 const CONVERSA: ConversaVista = {
   atendimentoId: "at-1",
@@ -48,6 +51,7 @@ describe("useConversa", () => {
     enviar.mockReset();
     obter.mockReset();
     transferir.mockReset();
+    mensagem.mockReset();
     obter.mockResolvedValue({ ok: true, data: CONVERSA });
   });
 
@@ -118,5 +122,28 @@ describe("useConversa", () => {
       }),
     );
     expect(result.current.transferidoPara).toBeUndefined();
+  });
+
+  it("envia a mensagem e conta o envio para esvaziar o campo", async () => {
+    mensagem.mockResolvedValue({ ok: true, data: undefined });
+    const { result } = renderizar();
+
+    act(() => result.current.aoEnviarMensagem("Bom dia"));
+
+    await waitFor(() => expect(result.current.mensagensEnviadas).toBe(1));
+    expect(mensagem).toHaveBeenCalledWith({ atendimentoId: "at-1", texto: "Bom dia" });
+  });
+
+  it("falha ao enviar a mensagem mostra o erro e não conta o envio", async () => {
+    mensagem.mockResolvedValue({
+      ok: false,
+      error: { code: "SERVICO_EXTERNO", message: "Falha ao enviar a mensagem." },
+    });
+    const { result } = renderizar();
+
+    act(() => result.current.aoEnviarMensagem("Bom dia"));
+
+    await waitFor(() => expect(result.current.erroMensagem).toBe("Falha ao enviar a mensagem."));
+    expect(result.current.mensagensEnviadas).toBe(0);
   });
 });

@@ -7,6 +7,7 @@ import { ConversaContainer } from "./conversa.container";
 
 const aoEnviarServico = jest.fn();
 const aoTransferir = jest.fn();
+const aoEnviarMensagem = jest.fn();
 
 jest.mock("@/modules/atendimento/presentation/view-models/conversa/use-conversa.hook", () => ({
   useConversa: () => ({
@@ -24,6 +25,10 @@ jest.mock("@/modules/atendimento/presentation/view-models/conversa/use-conversa.
     transferindo: false,
     transferidoPara: undefined,
     avisoTransferencia: undefined,
+    aoEnviarMensagem,
+    enviandoMensagem: false,
+    erroMensagem: undefined,
+    mensagensEnviadas: 0,
   }),
 }));
 
@@ -53,5 +58,15 @@ describe("ConversaContainer", () => {
     await usuario.click(screen.getByRole("button", { name: "Transferir" }));
 
     expect(aoTransferir).toHaveBeenCalledWith("tributario", "DAS em atraso");
+  });
+
+  it("enviar o campo de resposta chama a função do hook com o texto", async () => {
+    const usuario = userEvent.setup();
+    render(<ConversaContainer atendimentoId="at-1" initialData={{} as ConversaVista} />);
+
+    await usuario.type(screen.getByLabelText("Mensagem ao cliente"), "Bom dia");
+    await usuario.click(screen.getByRole("button", { name: "Enviar mensagem" }));
+
+    expect(aoEnviarMensagem).toHaveBeenCalledWith("Bom dia");
   });
 });

@@ -7,6 +7,7 @@ import { err, ok } from "@/shared/kernel/result";
 
 import {
   enviarDocumentoAction,
+  enviarMensagemAction,
   obterConversaAction,
   transferirAtendimentoAction,
 } from "./conversa.actions";
@@ -14,11 +15,13 @@ import {
 const obterMock = jest.fn();
 const enviarMock = jest.fn();
 const transferirMock = jest.fn();
+const mensagemMock = jest.fn();
 
 jest.mock("@/main/atendimento.factory", () => ({
   makeObterConversa: async () => ({ execute: obterMock }),
   makeEnviarDocumentoAoCliente: async () => ({ execute: enviarMock }),
   makeTransferirAtendimento: async () => ({ execute: transferirMock }),
+  makeEnviarMensagemAoCliente: async () => ({ execute: mensagemMock }),
 }));
 
 const ID = "9f1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7d";
@@ -92,5 +95,25 @@ describe("transferirAtendimentoAction (integração)", () => {
 
     expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
     expect(transferirMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("enviarMensagemAction (integração)", () => {
+  beforeEach(() => mensagemMock.mockReset());
+
+  it("chama o caso de uso com o texto", async () => {
+    mensagemMock.mockResolvedValue(ok(undefined));
+
+    const r = await enviarMensagemAction({ atendimentoId: ID, texto: "Bom dia" });
+
+    expect(r.ok).toBe(true);
+    expect(mensagemMock).toHaveBeenCalledWith({ atendimentoId: ID, texto: "Bom dia" });
+  });
+
+  it("devolve VALIDATION_ERROR sem chamar o caso de uso quando o texto é vazio", async () => {
+    const r = await enviarMensagemAction({ atendimentoId: ID, texto: "  " });
+
+    expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
+    expect(mensagemMock).not.toHaveBeenCalled();
   });
 });

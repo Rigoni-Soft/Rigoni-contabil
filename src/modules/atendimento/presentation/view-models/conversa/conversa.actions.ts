@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import {
   makeEnviarDocumentoAoCliente,
+  makeEnviarMensagemAoCliente,
   makeObterConversa,
   makeTransferirAtendimento,
 } from "@/main/atendimento.factory";
@@ -12,6 +13,7 @@ import type { TransferenciaConcluida } from "@/modules/atendimento/application/p
 import {
   atendimentoIdSchema,
   enviarDocumentoSchema,
+  enviarMensagemSchema,
   transferirAtendimentoSchema,
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.schema";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
@@ -54,4 +56,12 @@ export async function transferirAtendimentoAction(
 
   const transferir = await makeTransferirAtendimento();
   return toActionResult(await transferir.execute(parsed.data));
+}
+
+export async function enviarMensagemAction(input: unknown): Promise<ActionResult<void>> {
+  const parsed = enviarMensagemSchema.safeParse(input);
+  if (!parsed.success) return entradaInvalida(parsed.error);
+
+  const enviarMensagem = await makeEnviarMensagemAoCliente();
+  return toActionResult(await enviarMensagem.execute(parsed.data));
 }

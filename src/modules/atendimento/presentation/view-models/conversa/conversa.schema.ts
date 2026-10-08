@@ -37,3 +37,14 @@ export const transferirAtendimentoSchema = z.object({
     .min(1, "Informe o resumo do assunto.")
     .max(RESUMO_TAMANHO_MAXIMO, `O resumo aceita até ${RESUMO_TAMANHO_MAXIMO} caracteres.`),
 });
+
+export const MENSAGEM_TAMANHO_MAXIMO = 4096; // o mesmo limite do caso de uso (texto do WhatsApp)
+
+export const enviarMensagemSchema = z.object({
+  atendimentoId: atendimentoIdSchema,
+  texto: z
+    .string()
+    .trim()
+    .min(1, "Escreva a mensagem.")
+    .max(MENSAGEM_TAMANHO_MAXIMO, `A mensagem aceita até ${MENSAGEM_TAMANHO_MAXIMO} caracteres.`),
+});

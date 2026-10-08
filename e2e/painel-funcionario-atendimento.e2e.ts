@@ -99,6 +99,27 @@ test.describe("Painel do Funcionário (#49)", () => {
     await expect(page.getByRole("heading", { name: "Serviços do cliente" })).toBeVisible();
   });
 
+  test("o Funcionário responde ao cliente pelo campo da conversa e a resposta vira balão @smoke", async ({
+    page,
+  }) => {
+    await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL("/");
+    await page
+      .getByRole("navigation", { name: "Atendimentos em andamento" })
+      .getByRole("link")
+      .click();
+
+    const campo = page.getByLabel("Mensagem ao cliente");
+    await campo.fill("Bom dia, Dona Painel! Já estou vendo.");
+    await campo.press("Enter");
+
+    const balao = page
+      .getByRole("listitem")
+      .filter({ hasText: "Bom dia, Dona Painel! Já estou vendo." });
+    await expect(balao).toContainText("Segundo Funcionário Financeiro · Financeiro");
+    await expect(campo).toHaveValue("");
+  });
+
   test("o Funcionário transfere o Atendimento a outro Setor, que não oferece o Setor atual nem o Simples Nacional @smoke", async ({
     page,
   }) => {

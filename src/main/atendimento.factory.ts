@@ -24,6 +24,7 @@ import type {
   RemoverFeriadoPort,
 } from "@/modules/atendimento/application/ports/in/gerenciar-feriados.provider";
 import type { EnviarDocumentoAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-documento-ao-cliente.provider";
+import type { EnviarMensagemAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-mensagem-ao-cliente.provider";
 import type { ListarFilaPort } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
 import type { ListarMeusAtendimentosPort } from "@/modules/atendimento/application/ports/in/listar-meus-atendimentos.provider";
 import type { ObterConversaPort } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
@@ -45,6 +46,7 @@ import { CadastrarFeriado } from "@/modules/atendimento/application/use-cases/ca
 import { EncerrarAtendimento } from "@/modules/atendimento/application/use-cases/encerrar-atendimento.use-case";
 import { ListarFeriados } from "@/modules/atendimento/application/use-cases/listar-feriados.use-case";
 import { EnviarDocumentoAoCliente } from "@/modules/atendimento/application/use-cases/enviar-documento-ao-cliente.use-case";
+import { EnviarMensagemAoCliente } from "@/modules/atendimento/application/use-cases/enviar-mensagem-ao-cliente.use-case";
 import { ListarFila } from "@/modules/atendimento/application/use-cases/listar-fila.use-case";
 import { ListarMeusAtendimentos } from "@/modules/atendimento/application/use-cases/listar-meus-atendimentos.use-case";
 import { ObterConversa } from "@/modules/atendimento/application/use-cases/obter-conversa.use-case";
@@ -261,5 +263,13 @@ export async function makeEnviarDocumentoAoCliente(): Promise<EnviarDocumentoAoC
     new SupabaseDocumentosContratuaisGateway(supabaseAdmin),
     makeEnvioMensagem(),
     auditoriaViaModuloAuditoria(),
+  );
+}
+
+export async function makeEnviarMensagemAoCliente(): Promise<EnviarMensagemAoClientePort> {
+  return new EnviarMensagemAoCliente(
+    sessaoViaUsuarios(await createSupabaseServer()),
+    new SupabaseAtendimentoRepository(createSupabaseAdmin()),
+    makeEnvioMensagem(),
   );
 }

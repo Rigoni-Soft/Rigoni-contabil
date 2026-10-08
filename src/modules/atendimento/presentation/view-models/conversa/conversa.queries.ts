@@ -6,6 +6,7 @@ import type {
 } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import {
   enviarDocumentoAction,
+  enviarMensagemAction,
   obterConversaAction,
   transferirAtendimentoAction,
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.actions";
@@ -58,5 +59,18 @@ export function useTransferirAtendimentoMutation(atendimentoId: string) {
     },
     // O Atendimento mudou de mãos: a lista do dock precisa refletir.
     onSettled: () => queryClient.invalidateQueries({ queryKey: ["atendimento", "meus"] }),
+  });
+}
+
+export function useEnviarMensagemMutation(atendimentoId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (texto: string) => {
+      const resultado = await enviarMensagemAction({ atendimentoId, texto });
+      if (!resultado.ok) throw new Error(resultado.error.message);
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: conversaKeys.conversa(atendimentoId) }),
   });
 }
