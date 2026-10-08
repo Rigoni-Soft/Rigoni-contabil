@@ -27,7 +27,12 @@ function usuario(id: string, papel: string): Usuario {
 function montar(opcoes: { atorId?: string | null; perfis?: Usuario[] } = {}) {
   const perfis = opcoes.perfis ?? [usuario("admin-1", "admin"), usuario("func-1", "funcionario")];
   const chamadas: string[] = [];
-  const falhas: { desativar?: AppError; banir?: AppError; buscar?: AppError } = {};
+  const falhas: {
+    desativar?: AppError;
+    banir?: AppError;
+    bloquear?: AppError;
+    buscar?: AppError;
+  } = {};
 
   const sessao = {
     usuarioAtualId: async () => (opcoes.atorId === undefined ? "admin-1" : opcoes.atorId),
@@ -40,6 +45,10 @@ function montar(opcoes: { atorId?: string | null; perfis?: Usuario[] } = {}) {
     desativar: async (alvo, ator) => {
       chamadas.push(`desativar:${alvo}:${ator}`);
       return falhas.desativar ? err(falhas.desativar) : ok(undefined);
+    },
+    registrarBloqueio: async (alvo) => {
+      chamadas.push(`bloquear:${alvo}`);
+      return falhas.bloquear ? err(falhas.bloquear) : ok(undefined);
     },
   };
   const authAdmin = {
@@ -63,7 +72,7 @@ describe("DesativarUsuario", () => {
     const resultado = await casoDeUso.execute({ usuarioId: "func-1" });
 
     expect(resultado.ok).toBe(true);
-    expect(chamadas).toEqual(["desativar:func-1:admin-1", "banir:func-1"]);
+    expect(chamadas).toEqual(["desativar:func-1:admin-1", "banir:func-1", "bloquear:func-1"]);
   });
 
   it("Admin desativa Líder de setor", async () => {
@@ -152,8 +161,8 @@ describe("DesativarUsuario", () => {
     expect(chamadas).toEqual(["desativar:func-1:admin-1"]);
   });
 
-  it("falha no ban devolve o erro (repetir a ação é seguro: a RPC é idempotente)", async () => {
-    const { casoDeUso, falhas } = montar();
+  it("falha no ban devolve o erro e não registra o bloqueio (fica pendente na lista)", async () => {
+    const { casoDeUso, chamadas, falhas } = montar();
     falhas.banir = new FalhaTecnica("auth fora");
 
     const resultado = await casoDeUso.execute({ usuarioId: "func-1" });
@@ -163,5 +172,25 @@ describe("DesativarUsuario", () => {
       expect(resultado.error.code).toBe("INCONSISTENT_STATE");
       expect(resultado.error.message).toMatch(/Usuário desativado, mas o bloqueio da conta falhou/);
     }
+    expect(chamadas).not.toContain("bloquear:func-1");
+  });
+
+  it("falha ao registrar o bloqueio também fica pendente, sem sucesso total", async () => {
+    const { casoDeUso, falhas } = montar();
+    falhas.bloquear = new FalhaTecnica("banco fora");
+
+    const resultado = await casoDeUso.execute({ usuarioId: "func-1" });
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error.code).toBe("INCONSISTENT_STATE");
+  });
+
+  it("repetir sobre conta já desativada conclui o bloqueio pendente", async () => {
+    const { casoDeUso, chamadas } = montar();
+
+    await casoDeUso.execute({ usuarioId: "func-1" });
+    await casoDeUso.execute({ usuarioId: "func-1" });
+
+    expect(chamadas.filter((c) => c === "banir:func-1")).toHaveLength(2);
   });
 });

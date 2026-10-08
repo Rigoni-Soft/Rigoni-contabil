@@ -26,4 +26,12 @@ describe("UsuariosLista", () => {
     expect(screen.getByRole("button", { name: "Ação Jéssica" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Ação Cledson/ })).not.toBeInTheDocument();
   });
+
+  it("avisa quando a conta está desativada com o bloqueio ainda pendente", () => {
+    render(
+      <UsuariosLista usuarios={[{ ...usuarios[0], bloqueioPendente: true }]} acoes={() => null} />,
+    );
+
+    expect(screen.getByText(/bloqueio da conta ainda não foi concluído/)).toBeInTheDocument();
+  });
 });

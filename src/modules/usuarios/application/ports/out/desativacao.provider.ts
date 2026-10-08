@@ -7,4 +7,6 @@ import type { Result } from "@/shared/kernel/result";
 // auditoria na MESMA transação; idempotente (já desativado = não faz nada).
 export interface DesativacaoPort {
   desativar(alvoId: UsuarioId, atorId: UsuarioId): Promise<Result<void, AppError>>;
+  // Registra que o Auth confirmou o ban (some da lista de bloqueios pendentes). Idempotente.
+  registrarBloqueio(alvoId: UsuarioId): Promise<Result<void, AppError>>;
 }

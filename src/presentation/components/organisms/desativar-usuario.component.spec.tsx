@@ -58,4 +58,14 @@ describe("DesativarUsuario", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("Falhou.");
   });
+
+  it("bloqueio pendente: Concluir bloqueio repete a ação direto, sem pedir confirmação", async () => {
+    const { aoConfirmar, aoPedirConfirmacao } = renderizar({ bloqueioPendente: true });
+
+    expect(screen.queryByRole("button", { name: "Desativar Jéssica" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Concluir bloqueio de Jéssica" }));
+
+    expect(aoConfirmar).toHaveBeenCalled();
+    expect(aoPedirConfirmacao).not.toHaveBeenCalled();
+  });
 });

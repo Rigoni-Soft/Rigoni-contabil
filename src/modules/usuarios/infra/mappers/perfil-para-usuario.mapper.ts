@@ -11,6 +11,7 @@ export function perfilParaUsuario(row: PerfilRowDto): Result<Usuario, Validation
       senhaAuthAlteradaEm: row.senha_auth_alterada_em,
       senhaProvisoriaExpiraEm: row.senha_provisoria_expira_em,
       desativadoEm: row.desativado_em,
+      banidoEm: row.banido_em,
     })
     .build();
 }

@@ -17,11 +17,12 @@ function usuario(id: string, papel: string): Usuario {
   return resultado.value;
 }
 
-function montar(atorId: string | null, ator: Usuario | null) {
+function montar(atorId: string | null, ator: Usuario | null, pendentes: Usuario[] = []) {
   const sessao = { usuarioAtualId: async () => atorId } as unknown as SessaoPort;
   const usuarios = {
     buscarPorId: async () => ok(ator),
     listarAtivos: async () => ok([usuario("admin-1", "admin"), usuario("func-1", "funcionario")]),
+    listarComBloqueioPendente: async () => ok(pendentes),
   } as unknown as UsuarioRepository;
   return new ListarUsuarios(sessao, usuarios);
 }
@@ -32,6 +33,31 @@ describe("ListarUsuarios", () => {
 
     expect(resultado.ok).toBe(true);
     if (resultado.ok) expect(resultado.value.map((u) => u.id)).toEqual(["admin-1", "func-1"]);
+  });
+
+  it("inclui as contas desativadas com bloqueio pendente, marcadas, para o Admin reprocessar", async () => {
+    const pendente = Usuario.builder()
+      .comId("func-2")
+      .comNome("Nome func-2")
+      .comEmail("func-2@rigonicontabil.local")
+      .comPapel("funcionario")
+      .comSetor("simples_nacional")
+      .comDesativadoEm(new Date().toISOString())
+      .build();
+    if (!pendente.ok) throw new Error("setup inválido");
+
+    const resultado = await montar("admin-1", usuario("admin-1", "admin"), [
+      pendente.value,
+    ]).execute();
+
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) {
+      expect(resultado.value.map((u) => [u.id, u.bloqueioPendente])).toEqual([
+        ["admin-1", false],
+        ["func-1", false],
+        ["func-2", true],
+      ]);
+    }
   });
 
   it.each([

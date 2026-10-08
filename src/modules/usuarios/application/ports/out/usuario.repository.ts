@@ -10,6 +10,8 @@ export interface UsuarioRepository {
   criar(usuario: Usuario): Promise<Result<void, AppError>>;
   // Só contas ativas (#58). RLS decide quem enxerga o quê — Admin vê todas.
   listarAtivos(): Promise<Result<Usuario[], AppError>>;
+  // Desativadas cujo ban no Auth ainda não foi confirmado (PR #75, ponto D).
+  listarComBloqueioPendente(): Promise<Result<Usuario[], AppError>>;
   // Líder de setor não desativado do Setor, ou null (#57).
   buscarLiderAtivoDoSetor(setor: Setor): Promise<Result<Usuario | null, AppError>>;
 }

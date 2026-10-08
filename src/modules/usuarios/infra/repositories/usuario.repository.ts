@@ -44,8 +44,26 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
       return err(new PersistenciaError("Falha ao listar usuários."));
     }
 
+    return this.paraUsuarios(data);
+  }
+
+  async listarComBloqueioPendente(): Promise<Result<Usuario[], AppError>> {
+    const { data, error } = await this.supabase
+      .from("perfis")
+      .select("*")
+      .not("desativado_em", "is", null)
+      .is("banido_em", null)
+      .order("nome");
+    if (error) {
+      console.error(`Falha ao listar bloqueios pendentes: ${error.message}`);
+      return err(new PersistenciaError("Falha ao listar usuários."));
+    }
+    return this.paraUsuarios(data);
+  }
+
+  private paraUsuarios(rows: unknown[]): Result<Usuario[], AppError> {
     const usuarios: Usuario[] = [];
-    for (const row of data) {
+    for (const row of rows) {
       const usuario = this.paraUsuario(row);
       if (!usuario.ok) return err(new PersistenciaError("Falha ao listar usuários."));
       usuarios.push(usuario.value);

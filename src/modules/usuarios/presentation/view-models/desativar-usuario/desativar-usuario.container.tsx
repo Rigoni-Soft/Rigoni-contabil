@@ -7,9 +7,17 @@ import { useDesativarUsuario } from "./use-desativar-usuario.hook";
 export function DesativarUsuarioContainer({
   usuarioId,
   nome,
+  bloqueioPendente,
 }: {
   usuarioId: string;
   nome: string;
+  bloqueioPendente?: boolean;
 }) {
-  return <DesativarUsuario nome={nome} {...useDesativarUsuario(usuarioId)} />;
+  return (
+    <DesativarUsuario
+      nome={nome}
+      bloqueioPendente={bloqueioPendente}
+      {...useDesativarUsuario(usuarioId)}
+    />
+  );
 }

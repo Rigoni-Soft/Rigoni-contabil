@@ -19,4 +19,14 @@ export class SupabaseDesativacaoGateway implements DesativacaoPort {
     if (error) return err(new PersistenciaError(`Falha em desativar_usuario: ${error.message}`));
     return ok(undefined);
   }
+
+  async registrarBloqueio(alvoId: UsuarioId): Promise<Result<void, AppError>> {
+    const { error } = await this.supabaseAdmin
+      .from("perfis")
+      .update({ banido_em: new Date().toISOString() })
+      .eq("id", alvoId)
+      .is("banido_em", null);
+    if (error) return err(new PersistenciaError(`Falha ao registrar bloqueio: ${error.message}`));
+    return ok(undefined);
+  }
 }

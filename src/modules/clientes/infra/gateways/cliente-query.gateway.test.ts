@@ -305,6 +305,38 @@ describe("SupabaseClienteQueryGateway.listarResumoOperacional (#36, integração
     expect(ids).not.toContain("88888888-8888-8888-8888-888888888888");
   });
 
+  it("não lista como Responsável elegível um Funcionário do SN desativado (PR #75)", async () => {
+    const servidor = createClient(
+      SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY ??
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU",
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+    const email = `inativo-${crypto.randomUUID()}@rigonicontabil.local`;
+    const { data } = await servidor.auth.admin.createUser({
+      email,
+      password: "senha-de-teste-123",
+      email_confirm: true,
+    });
+    const id = data.user!.id;
+    await servidor.from("perfis").insert({
+      id,
+      nome: "Inativo",
+      email,
+      papel: "funcionario",
+      setor: "simples_nacional",
+      desativado_em: new Date().toISOString(),
+    });
+
+    const resultado = await new SupabaseClienteQueryGateway(
+      await comoLiderSN(),
+    ).listarResponsaveisElegiveis();
+
+    await servidor.from("perfis").delete().eq("id", id);
+    expect(resultado.ok && resultado.value.map((r) => r.id)).not.toContain(id);
+    expect(resultado.ok && resultado.value.length).toBeGreaterThan(0);
+  });
+
   it("traz o Responsável (id e nome) no cadastro operacional e no resumo; Funcionário só vê o que é dele", async () => {
     const admin = await comoAdmin();
     const cliente = await criarClienteComContratoSocial(admin, "Resp Query Ltda", cnpjUnico());

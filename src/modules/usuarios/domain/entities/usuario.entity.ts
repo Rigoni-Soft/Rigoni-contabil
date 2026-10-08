@@ -15,6 +15,8 @@ export type UsuarioProps = {
   senhaAuthAlteradaEm: Date | null;
   senhaProvisoriaExpiraEm: Date;
   desativadoEm: Date | null;
+  // Quando o Auth confirmou o ban da conta desativada; null + desativadoEm = bloqueio pendente.
+  banidoEm: Date | null;
 };
 
 export class Usuario {
@@ -58,6 +60,11 @@ export class Usuario {
   // Soft delete (#58): o perfil continua no banco pra preservar o histórico de auditoria.
   estaDesativado(): boolean {
     return this.props.desativadoEm !== null;
+  }
+
+  // Desativada no banco (RLS já nega), mas o ban no Auth ainda não foi confirmado (PR #75, ponto D).
+  bloqueioPendente(): boolean {
+    return this.estaDesativado() && this.props.banidoEm === null;
   }
 
   senhaProvisoriaVencida(agora: Date): boolean {

@@ -7,6 +7,7 @@ export type UsuarioListado = {
   email: string;
   papel: string;
   setor: string;
+  bloqueioPendente?: boolean;
 };
 
 type UsuariosListaProps = {
@@ -27,6 +28,11 @@ export function UsuariosLista({ usuarios, acoes }: UsuariosListaProps) {
               {usuario.email} · {PAPEL_LABEL[usuario.papel] ?? usuario.papel} ·{" "}
               {SETOR_LABEL[usuario.setor] ?? usuario.setor}
             </p>
+            {usuario.bloqueioPendente && (
+              <p className="text-sm text-destructive">
+                Desativado, mas o bloqueio da conta ainda não foi concluído.
+              </p>
+            )}
           </div>
           {acoes(usuario)}
         </li>

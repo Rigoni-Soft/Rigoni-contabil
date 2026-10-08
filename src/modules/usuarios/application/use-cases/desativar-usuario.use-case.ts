@@ -43,15 +43,22 @@ export class DesativarUsuario implements DesativarUsuarioPort {
     const desativado = await this.desativacao.desativar(alvo.value.id, ator.value.id);
     if (!desativado.ok) return desativado;
 
+    // `banido_em` registra a confirmação do Auth: sem ela a conta aparece na lista
+    // como "bloqueio pendente" e o Admin repete este mesmo caso de uso (idempotente).
     const banido = await this.authAdmin.banirConta(alvo.value.id);
-    if (banido.ok) return ok(undefined);
+    const registrado = banido.ok ? await this.desativacao.registrarBloqueio(alvo.value.id) : banido;
+    if (registrado.ok) return ok(undefined);
 
-    // O usuário JÁ está desativado e auditado; só o ban falhou. Não apresenta isso
-    // como falha total (mesmo padrão do EstadoInconsistenteError do #30/#31).
-    console.error(`Falha ao banir conta desativada (id=${alvo.value.id}):`, banido.error.message);
+    // O usuário JÁ está desativado e auditado (a RLS já nega o acesso); só o bloqueio
+    // no Auth falhou. Não apresenta isso como falha total (mesmo padrão do
+    // EstadoInconsistenteError do #30/#31).
+    console.error(
+      `Falha ao bloquear conta desativada (id=${alvo.value.id}):`,
+      registrado.error.message,
+    );
     return err(
       new EstadoInconsistenteError(
-        "Usuário desativado, mas o bloqueio da conta falhou. Repita a ação para concluir.",
+        "Usuário desativado, mas o bloqueio da conta falhou. Ele segue na lista como bloqueio pendente: conclua o bloqueio por lá.",
         alvo.value.id,
       ),
     );

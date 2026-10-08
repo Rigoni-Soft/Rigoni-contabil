@@ -32,8 +32,14 @@ export default async function Page() {
           acoes={(u) =>
             u.papel === "admin" ? null : (
               <div className="flex items-start gap-2">
-                <AlterarPapelContainer usuarioId={u.id} nome={u.nome} papel={u.papel} />
-                <DesativarUsuarioContainer usuarioId={u.id} nome={u.nome} />
+                {!u.bloqueioPendente && (
+                  <AlterarPapelContainer usuarioId={u.id} nome={u.nome} papel={u.papel} />
+                )}
+                <DesativarUsuarioContainer
+                  usuarioId={u.id}
+                  nome={u.nome}
+                  bloqueioPendente={u.bloqueioPendente}
+                />
               </div>
             )
           }

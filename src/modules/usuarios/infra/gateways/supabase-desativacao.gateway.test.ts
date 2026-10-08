@@ -109,4 +109,24 @@ describe("desativação de usuário (integração)", () => {
     expect(antes.ok && antes.value.some((u) => u.id === alvo.id)).toBe(true);
     expect(depois.ok && depois.value.some((u) => u.id === alvo.id)).toBe(false);
   });
+
+  it("conta desativada sem ban confirmado aparece como bloqueio pendente e sai depois de registrar o bloqueio (PR #75, ponto D)", async () => {
+    const admin = clienteAdmin();
+    const ator = await criarPerfil("admin");
+    const alvo = await criarPerfil("funcionario");
+    const repositorio = new SupabaseUsuarioRepository(admin);
+    const desativacao = new SupabaseDesativacaoGateway(admin);
+    const pendentes = async () => {
+      const lista = await repositorio.listarComBloqueioPendente();
+      return lista.ok && lista.value.some((u) => u.id === alvo.id);
+    };
+
+    expect(await pendentes()).toBe(false);
+    await desativacao.desativar(alvo.id as UsuarioId, ator.id as UsuarioId);
+    expect(await pendentes()).toBe(true);
+
+    expect((await desativacao.registrarBloqueio(alvo.id as UsuarioId)).ok).toBe(true);
+    expect((await desativacao.registrarBloqueio(alvo.id as UsuarioId)).ok).toBe(true);
+    expect(await pendentes()).toBe(false);
+  });
 });

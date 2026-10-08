@@ -29,6 +29,13 @@ export class SupabaseAlteracaoPapelGateway implements AlteracaoPapelPort {
     if (error?.message.includes("setor_com_lider")) {
       return err(new ValidationError(`O setor já tem Líder ativo. ${ORIENTACAO_SETOR_COM_LIDER}`));
     }
+    if (error?.message.includes("responsavel_com_clientes")) {
+      return err(
+        new ValidationError(
+          "O Funcionário é Responsável por Clientes. Redistribua os Clientes dele antes de promovê-lo.",
+        ),
+      );
+    }
     if (error)
       return err(new PersistenciaError(`Falha em alterar_papel_usuario: ${error.message}`));
     return ok(undefined);
