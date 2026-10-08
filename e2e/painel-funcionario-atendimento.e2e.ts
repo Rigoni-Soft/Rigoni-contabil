@@ -89,7 +89,8 @@ test.describe("Painel do Funcionário (#49)", () => {
     const balaoDoCliente = page
       .getByRole("listitem")
       .filter({ hasText: "Preciso do contrato social" });
-    await expect(balaoDoCliente).toContainText("Dona Painel ·");
+    await expect(balaoDoCliente).toContainText("Dona Painel");
+    await expect(balaoDoCliente).toContainText("CNPJ");
     const balaoDoAtendente = page.getByRole("listitem").filter({ hasText: "Já te envio" });
     await expect(balaoDoAtendente).toContainText("Segundo Funcionário Financeiro · Financeiro");
 

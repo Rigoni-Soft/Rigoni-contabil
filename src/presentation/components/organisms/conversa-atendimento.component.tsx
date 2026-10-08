@@ -7,6 +7,7 @@ type MensagemView = {
   id: string;
   lado: "contato" | "ura" | "atendente";
   autor: string;
+  detalhe: string | null;
   texto: string;
   hora: string;
 };
@@ -25,7 +26,8 @@ type ConversaAtendimentoProps = {
   aviso?: { tipo: "erro" | "sucesso"; texto: string };
 };
 
-// Cliente à esquerda; URA e Funcionário à direita (quem fala em nome do escritório).
+// Desenho de chat (WhatsApp/Messenger): cliente à esquerda, em balão claro; URA e Funcionário, que
+// falam em nome do escritório, à direita. A hora fica dentro do balão, no canto inferior direito.
 export function ConversaAtendimento({
   titulo,
   subtitulo,
@@ -49,21 +51,42 @@ export function ConversaAtendimento({
         )}
       </header>
 
-      <ol aria-label="Mensagens" className="space-y-3">
-        {mensagens.map((mensagem) => (
-          <li
-            key={mensagem.id}
-            className={cn(
-              "max-w-[85%] rounded-lg border border-border px-3 py-2",
-              mensagem.lado === "contato" ? "mr-auto bg-card" : "ml-auto bg-accent",
-            )}
-          >
-            <p className="text-xs font-medium text-muted-foreground">
-              {mensagem.autor} · {mensagem.hora}
-            </p>
-            <p className="break-words whitespace-pre-wrap text-foreground">{mensagem.texto}</p>
-          </li>
-        ))}
+      <ol
+        aria-label="Mensagens"
+        className="flex flex-col gap-1.5 rounded-xl border border-border bg-muted/50 p-3 sm:p-4"
+      >
+        {mensagens.map((mensagem) => {
+          const doCliente = mensagem.lado === "contato";
+          return (
+            <li
+              key={mensagem.id}
+              className={cn(
+                "max-w-[85%] px-3 py-1.5 shadow-sm sm:max-w-[75%]",
+                doCliente
+                  ? "self-start rounded-2xl rounded-tl-sm border border-border bg-card text-card-foreground"
+                  : mensagem.lado === "atendente"
+                    ? "self-end rounded-2xl rounded-tr-sm bg-primary text-primary-foreground"
+                    : "self-end rounded-2xl rounded-tr-sm border border-border bg-accent text-accent-foreground",
+              )}
+            >
+              <p className={cn("text-xs font-semibold", doCliente ? "text-primary" : "opacity-90")}>
+                {mensagem.autor}
+              </p>
+              {mensagem.detalhe && (
+                <p className="text-xs text-muted-foreground">{mensagem.detalhe}</p>
+              )}
+              <p className="break-words whitespace-pre-wrap">{mensagem.texto}</p>
+              <p
+                className={cn(
+                  "mt-0.5 text-right text-[11px]",
+                  mensagem.lado === "atendente" ? "opacity-75" : "text-muted-foreground",
+                )}
+              >
+                {mensagem.hora}
+              </p>
+            </li>
+          );
+        })}
       </ol>
 
       {!encerrado && (

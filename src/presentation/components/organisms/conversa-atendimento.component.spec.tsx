@@ -9,11 +9,19 @@ const BASE = {
   encerrado: false,
   semCliente: false,
   mensagens: [
-    { id: "1", lado: "contato" as const, autor: "Maria", texto: "oi", hora: "08/10 12:30" },
+    {
+      id: "1",
+      lado: "contato" as const,
+      autor: "Maria",
+      detalhe: "CNPJ 11.444.777/0001-61",
+      texto: "oi",
+      hora: "08/10 12:30",
+    },
     {
       id: "2",
       lado: "atendente" as const,
       autor: "Ana · Contábil",
+      detalhe: null,
       texto: "Bom dia",
       hora: "08/10 12:31",
     },
@@ -29,12 +37,24 @@ const BASE = {
 };
 
 describe("ConversaAtendimento", () => {
-  it("mostra o contato no cabeçalho e quem escreveu cada balão com a hora", () => {
+  it("mostra o contato no cabeçalho e, em cada balão, quem escreveu e a hora", () => {
     render(<ConversaAtendimento {...BASE} />);
 
     expect(screen.getByRole("heading", { name: "Maria" })).toBeInTheDocument();
-    expect(screen.getByText("Maria · 08/10 12:30")).toBeInTheDocument();
-    expect(screen.getByText("Ana · Contábil · 08/10 12:31")).toBeInTheDocument();
+    const doCliente = screen.getByText("oi").closest("li")!;
+    expect(doCliente).toHaveTextContent("Maria");
+    expect(doCliente).toHaveTextContent("CNPJ 11.444.777/0001-61");
+    expect(doCliente).toHaveTextContent("08/10 12:30");
+    const doAtendente = screen.getByText("Bom dia").closest("li")!;
+    expect(doAtendente).toHaveTextContent("Ana · Contábil");
+    expect(doAtendente).not.toHaveTextContent("CNPJ");
+  });
+
+  it("cliente à esquerda e atendente à direita, como nos chats", () => {
+    render(<ConversaAtendimento {...BASE} />);
+
+    expect(screen.getByText("oi").closest("li")).toHaveClass("self-start");
+    expect(screen.getByText("Bom dia").closest("li")).toHaveClass("self-end");
   });
 
   it("escolher outro documento e enviar chama os callbacks", async () => {

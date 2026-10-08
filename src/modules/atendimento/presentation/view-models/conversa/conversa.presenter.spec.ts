@@ -31,12 +31,20 @@ describe("conversaParaView", () => {
     expect(view.titulo).toBe("Maria");
     expect(view.subtitulo).toBe("Padaria Ltda · 11.444.777/0001-61 · (61) 98888-7777");
     expect(view.mensagens).toEqual([
-      { id: "1", lado: "contato", autor: "Maria", texto: "oi", hora: "08/10 12:30" },
-      { id: "2", lado: "ura", autor: "URA", texto: "olá", hora: "08/10 12:31" },
+      {
+        id: "1",
+        lado: "contato",
+        autor: "Maria",
+        detalhe: "CNPJ 11.444.777/0001-61",
+        texto: "oi",
+        hora: "08/10 12:30",
+      },
+      { id: "2", lado: "ura", autor: "URA", detalhe: null, texto: "olá", hora: "08/10 12:31" },
       {
         id: "3",
         lado: "atendente",
         autor: "Ana · Simples Nacional",
+        detalhe: null,
         texto: "Enviou ao cliente: Contrato social",
         hora: "08/10 12:32",
       },
@@ -61,6 +69,7 @@ describe("conversaParaView", () => {
     expect(view.subtitulo).toBe("Cliente não identificado");
     expect(view.semCliente).toBe(true);
     expect(view.mensagens[0].autor).toBe("(61) 98888-7777");
+    expect(view.mensagens[0].detalhe).toBe("CNPJ não definido");
   });
 });
 

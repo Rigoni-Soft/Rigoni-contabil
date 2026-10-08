@@ -11,6 +11,8 @@ export type MensagemView = {
   id: string;
   lado: "contato" | "ura" | "atendente";
   autor: string;
+  // Só no balão do cliente: a empresa a que o Atendimento pertence.
+  detalhe: string | null;
   texto: string;
   hora: string;
 };
@@ -57,6 +59,7 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
   const telefone = telefoneParaExibicao(conversa.telefone);
   const { contatoNome, empresa, cnpj } = conversa.contato;
   const nomeDoContato = contatoNome ?? telefone;
+  const cnpjDoContato = cnpj ? `CNPJ ${formatarCnpj(cnpj)}` : "CNPJ não definido";
 
   return {
     titulo: nomeDoContato,
@@ -77,6 +80,7 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
             : m.atendente
               ? `${m.atendente.nome} · ${SETOR_LABEL[m.atendente.setor]}`
               : "Atendente",
+      detalhe: m.autor === "contato" ? cnpjDoContato : null,
       texto: m.texto,
       hora: formatarHora(m.criadoEm),
     })),
