@@ -843,6 +843,10 @@ Todas as regras de teste (TDD, pirâmide, o que testar em cada camada, cobertura
 7. **Versão do Next.js:** major 16 fixado (`next@^16`); a documentação consultada é da 16.3.5.
 8. **Nomenclatura:** regras globais de nomes incorporadas (seção 0.2), com verificação automática (Anexo E).
 9. **Testes:** documento separado, `testes.md`, como fonte única das regras de teste. Este documento só aponta para ele (seções 0.2 e 7, Anexo D).
+10. **Tela reativa com várias regiões:** um Container e um hook por região, todos sobre a **mesma chave** do React Query (uma consulta só, mesmo com vários Containers). A `page` e o `template` continuam Server e só montam os slots; os hooks ficam nos Containers (seções 4.5 e 4.6). Estado que cruza regiões (ex.: "este Atendimento acabou de ser transferido") vem do **cache de mutações** do React Query (`useMutationState`), sem store paralela (seção 4.7). Exemplo: o Painel do Funcionário (`modules/atendimento/presentation/view-models/conversa/`).
+11. **Atomic Design de verdade:** átomo/molécula é o componente pequeno e reaproveitável; organismo é uma parte concisa da tela montada com moléculas; template estrutura a tela com slots; page é o template preenchido (seção 4.4). Um componente com mais de uma responsabilidade (balão, campo, painel, formulário) deve ser quebrado. Os organismos antigos que são telas inteiras ficam como dívida a quebrar quando forem tocados.
+12. **Painel de Atendimento lê e escreve com `service_role`**, com a autorização no caso de uso (dono, Líder do Setor ou Admin): `atendimentos`, `mensagens` e `transferencias` têm RLS ligada e nenhuma policy. Ver ADR 0005.
+13. **Aviso sonoro da interface** gerado pelo próprio navegador (Web Audio API, `presentation/lib/notificacao-sonora.ts`), sem arquivo de áudio, liberado pelo primeiro gesto do usuário (política de autoplay) e sempre acompanhado de sinal visual e de texto para leitor de tela; nunca é o único aviso.
 
 **Pendentes de decisão**
 

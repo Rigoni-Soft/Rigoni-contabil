@@ -110,6 +110,12 @@ largos, abaixo do que o usuário queria ver ocupado):
   do cadastro operacional `/clientes/[id]`): `w-[90%]` — telas de trabalho
   contínuo (ver, filtrar, navegar entre registros), ocupam a maior parte da
   largura livre da tela.
+- **Conversa do Atendimento** (`/atendimento/[id]`, #49): exceção à regra
+  de `%`, por decisão do usuário (2026-10-08, "muito apertado no centro"):
+  ocupa a tela toda, com só `px-4 sm:px-6 lg:px-8`. Em tela larga (`lg`) a
+  página tem exatamente a altura da janela (`h-dvh`) e **não rola em
+  nenhum sentido**; só a lista de mensagens rola, por dentro. Em tela
+  estreita volta a ser uma página comum.
 
 Formulário com elevação em 2 colunas (ex.: edição do cadastro operacional
 do Simples Nacional, #34): cartão `rounded-lg border bg-card shadow-sm`
@@ -601,6 +607,43 @@ aparece abaixo do botão (`AlertTriangle` + `text-destructive`, `role="alert"`,
 dois botões ficam num `flex gap-2`; a linha do Admin segue sem ação. Nenhum token
 novo.
 
+### Conversa do Atendimento (#49)
+
+Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
+
+- **Balões** (`MensagemBalao`): cliente à esquerda, `bg-card` com borda e a
+  ponta no canto superior esquerdo; Funcionário à direita em `bg-primary`;
+  URA à direita em `bg-accent`. O balão do cliente mostra o nome do Contato
+  e, abaixo, `CNPJ 00.000.000/0000-00` ou "CNPJ não definido"; o do
+  atendente mostra nome e Setor. A hora fica dentro do balão, no canto
+  inferior direito, em `text-[11px]`.
+- **Lista de mensagens** (`ListaDeMensagens`): `flex-col-reverse` com as
+  mensagens da mais nova para a mais antiga no DOM — o navegador mantém a
+  rolagem no fim (nas últimas conversas) sem JavaScript, e rolar para cima
+  para ler o histórico não é puxado de volta quando chega mensagem nova.
+- **Campo de resposta** (`CompositorDeMensagem`): `Textarea` arredondado +
+  botão redondo de enviar. Enter envia, Shift+Enter quebra a linha; o campo
+  só esvazia quando o envio dá certo (se falhar, o texto fica).
+- **Painel de ações** (`PainelDeAcoes`, à direita, 19 rem; 22 rem em `2xl`):
+  compacto, sem textos explicativos. Serviços em grade de 2 colunas de
+  botões `sm`; alteração contratual e Setor de destino em **seletor** +
+  botão na mesma linha; resumo da transferência em `Textarea` baixo. Guias
+  e CND ficam `disabled` com `title="Em construção"`. Em janela baixa o painel
+  rola por dentro. Transferido, o painel troca tudo por um aviso e a tela
+  sai da conversa.
+
+### Dock de Atendimentos (#49)
+
+Cartões fixos no canto inferior direito (`fixed right-4 bottom-4`), um por
+Atendimento em andamento: ícone, Contato, empresa e o começo da última
+mensagem (prefixo "Você:" / "URA:" quando não é do cliente). Quando o cliente
+escreveu por último o cartão ganha `border-primary`, uma bolinha
+`destructive` e a prévia em `font-medium` (e "nova mensagem" só para leitor
+de tela). O cartão entra com `animate-dock-entrada` (sobe e aparece, 0,35 s,
+keyframes em `globals.css`) e é recriado a cada mensagem nova, repetindo a
+animação. O aviso sonoro (dois tons curtos) toca quando surge um Atendimento
+ou o cliente escreve de novo.
+
 ## Estados e motion
 
 - Loading do formulário de login: label muda para "Entrando…" e um
@@ -612,6 +655,13 @@ novo.
 - Erro de servidor: bloco com borda/ícone `destructive`, `role="alert"`.
 - Sucesso de salvar no cadastro operacional: `role="status"` (anunciado por
   leitor de tela, ao contrário de um `<p>` mudo).
+- Entrada do cartão do dock de Atendimentos: `motion-safe:animate-dock-entrada`.
+  O estado (destaque, prévia, "nova mensagem") não depende da animação nem do
+  som: quem pediu movimento reduzido ou está sem som perde só o enfeite.
+- Aviso sonoro: só quando há novidade (Atendimento novo ou cliente escreveu
+  de novo; resposta nossa ou da URA e a primeira leitura da tela são
+  silenciosas). Navegadores bloqueiam som antes do primeiro clique/tecla da
+  página; até lá o aviso é mudo, sem erro.
 
 ## O que ainda não existe
 

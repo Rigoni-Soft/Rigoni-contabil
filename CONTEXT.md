@@ -88,11 +88,22 @@ O estado de um Atendimento aguardando um Funcionário disponível no Setor — a
 _Avoid_: Fila de espera (como entidade própria).
 
 **Transferência**:
-A ação de mover um Atendimento de um Atendente/Setor para outro.
+A ação de mover um Atendimento de um Atendente/Setor para outro. O Funcionário transfere pelo Painel do Funcionário: escolhe o Setor de destino (nunca o Setor em que o Atendimento já está) e informa o resumo do assunto. Depois de transferir ele perde o controle e a visão da conversa: a tela sai dela e abre o Atendimento da Fila que ele assumiu ao ficar livre, ou volta ao início (#49).
 Para o Setor Simples Nacional só vale para Cliente do Simples Nacional ou MEI e ignora o Balanceamento mensal: vai ao Responsável do Cliente ou, sem Responsável, ao Líder do Setor; se o destino estiver ocupado, o Atendimento entra na fila dele. Responsável inativo (usuário desativado, #58) não conta: o Atendimento vai ao Líder.
 
 **Balanceamento mensal**:
 A regra de distribuição de novos Atendimentos entre os usuários de um Setor (Admin, Líder de setor e Funcionário — todos podem assumir Atendimento), de forma equilibrada ao longo do mês. Não se aplica à ordem de saída da Fila, que é sempre por antiguidade. Só conta e só recebe perfil **ativo** do Setor. O crédito do mês é por **assunção** (evento imutável): quem assumiu um Atendimento mantém o crédito mesmo depois de transferi-lo, e quem recebe a Transferência ganha o seu ao assumir; a URA sozinha não gera crédito (PR #77, I1, decidido pelo usuário em 2026-10-08).
+
+**Painel do Funcionário**:
+A tela `/atendimento/[id]` em que o Funcionário conduz um Atendimento (#49): a conversa em balões, o campo de resposta e, ao lado, os Serviços do cliente e a Transferência. Quem pode abri-la e agir é o dono do Atendimento, o Líder do Setor onde ele está ou o Admin (mesma regra da Transferência). O balão do cliente mostra o nome do Contato cujo número bate com o do Atendimento (o Contato padrão desempata) e o CNPJ da empresa — ou "CNPJ não definido" quando o número não foi identificado ou é cliente novo; o balão do atendente mostra nome e Setor de quem escreveu.
+_Avoid_: Chat do funcionário, tela de atendimento (ambíguo com Atendimento).
+
+**Serviços do cliente**:
+Os mesmos serviços do menu da URA (contrato social, alterações contratuais, guia de imposto, guia de parcelamento, CND) disparados pelo Funcionário com um clique, usando o Cliente já vinculado ao Atendimento, sem perguntar o CNPJ de novo. Hoje funcionam o contrato social e as alterações (a alteração é escolhida num seletor, da mais recente para a mais antiga); guias e CND aparecem desabilitados, "em construção", como na URA (#42 e os adapters do Serpro, #66–#68).
+
+**Dock de Atendimentos**:
+O cartão no canto inferior direito de toda tela autenticada com os Atendimentos em andamento do usuário, para ele trocar de tela sem perder o Atendimento. Mostra o Contato, a empresa e o começo da última mensagem; se o cliente escreveu por último, o cartão é destacado. Atualiza a cada 15 s: o cartão aparece com animação e toca um aviso sonoro quando surge um Atendimento ou o cliente escreve de novo. Some na própria conversa e nas telas de login e troca de senha.
+_Avoid_: Notificação, bandeja.
 
 ### Auditoria
 

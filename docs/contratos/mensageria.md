@@ -61,6 +61,12 @@ Template (#51): corpo `{ ..., type: "template", template: { name, language: { co
 Documento (#41): corpo `{ messaging_product, recipient_type, to, type: "document", document: { link, filename } }`, mesma
 resposta/erros do texto. O `link` é uma URL assinada do Storage (bucket privado `documentos-clientes`) válida por 5 min.
 
+Painel do Funcionário (#49): o Funcionário responde por texto (`enviar`, até 4096 caracteres) e dispara contrato social/alterações (`enviarDocumento`, o mesmo do menu da URA) pelas mesmas chamadas acima. Só vira Mensagem do Atendimento o que o provedor aceitou: se o envio falha, nada é registrado.
+
+## Pendências de mídia (issues #79, #80, #81)
+
+Imagem, arquivo e **áudio** enviados pelo Funcionário (#79, #80) e recebidos do cliente (#81) ainda não existem. Já verificado na [documentação da Meta](https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/audio-messages): áudio aceito é AAC, AMR, MP3, M4A (`audio/mp4`) e OGG **só com Opus**, até 16 MB (mensagem de voz exige ogg/opus; **webm não é aceito**); a mídia recebida chega no webhook com um `id`, que se troca por um endereço temporário (`GET /{media-id}`) e se baixa com o token. Hoje uma mensagem sem `text` (áudio, imagem…) reabre o menu; a #81 muda isso, e só dentro de um Atendimento em andamento.
+
 ## Fluxo
 
 Número de um Contato (padrão ou outro) de um Cliente recebe saudação nominal + menu (1 contrato social e
