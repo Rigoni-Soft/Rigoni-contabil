@@ -28,15 +28,26 @@ as $$
 declare
   v_id uuid;
   v_funcionario uuid := p_funcionario_id;
+  v_promovido jsonb;
 begin
   perform pg_advisory_xact_lock(hashtext('atendimento:' || p_setor::text));
-  if v_funcionario is not null and exists (
-    select 1 from public.atendimentos
-    where funcionario_id = v_funcionario and status = 'em_andamento'
-  ) then
-    return null;
-  end if;
-  if v_funcionario is null and p_atribuir_livre and not exists (
+  -- Mantém o que a PR #77 garante (atendente elegível, a Fila antiga na frente, crédito por
+  -- assunção): esta função substitui a de `20261006135000_atendimento_integridade.sql`.
+  if v_funcionario is not null then
+    if not public.atendente_elegivel(v_funcionario, p_setor) then
+      return null;
+    end if;
+    if exists (
+      select 1 from public.atendimentos
+      where funcionario_id = v_funcionario and status = 'em_andamento'
+    ) then
+      return null;
+    end if;
+    v_promovido := public.assumir_proximo_da_fila(v_funcionario, p_setor);
+    if v_promovido is not null then
+      v_funcionario := null;
+    end if;
+  elsif p_atribuir_livre and not exists (
     select 1 from public.atendimentos
     where setor = p_setor and status = 'em_andamento' and funcionario_id is null
   ) then
@@ -55,13 +66,19 @@ begin
     p_resumo, p_cnpj_informado
   )
   returning id into v_id;
+  if v_funcionario is not null then
+    insert into public.assuncoes_atendimento (atendimento_id, funcionario_id)
+    values (v_id, v_funcionario);
+  end if;
 
   insert into public.mensagens (atendimento_id, autor, texto)
   select v_id, (m ->> 'autor')::public.autor_mensagem, m ->> 'texto'
   from jsonb_array_elements(p_mensagens) with ordinality as t(m, n)
   order by n;
 
-  return jsonb_build_object('id', v_id, 'funcionario_id', v_funcionario);
+  return jsonb_build_object(
+    'id', v_id, 'funcionario_id', v_funcionario, 'promovido', v_promovido
+  );
 end;
 $$;
 revoke all on function public.abrir_atendimento(
