@@ -68,28 +68,23 @@ export class VerificarInatividade implements VerificarInatividadePort {
     }
   }
 
+  // O aviso ao cliente sai antes da marca: se o envio falhar nada é marcado e a próxima rodada
+  // tenta de novo; se só a marca falhar, o aviso se repete (melhor que encerrar sem ter avisado).
+  // O aviso ao Funcionário é só a marca (a tela dele a lê).
   private async avisarInativo(
     atendimento: AtendimentoParaInatividade,
     de: Inativo,
   ): Promise<Result<void, AppError>> {
-    const marcado = await this.repositorio.marcarAvisoInatividade(atendimento.id, de);
-    if (!marcado.ok) return marcado;
-    if (!marcado.value || de === "funcionario") return ok(undefined);
-    const aviso = await this.avisar.execute({
-      telefone: atendimento.telefone,
-      chave: atendimento.chave,
-      texto: AVISO_INATIVIDADE_AO_CLIENTE,
-    });
-    if (aviso.ok) return aviso;
-    // Sem o aviso entregue o cliente não pode ser encerrado: desfaz a marca e a próxima rodada tenta.
-    const limpo = await this.repositorio.limparAvisoInatividade(atendimento.id);
-    if (!limpo.ok) {
-      console.error(
-        `Aviso de inatividade sem entrega e sem desfazer (${atendimento.id}):`,
-        limpo.error.message,
-      );
+    if (de === "contato") {
+      const aviso = await this.avisar.execute({
+        telefone: atendimento.telefone,
+        chave: atendimento.chave,
+        texto: AVISO_INATIVIDADE_AO_CLIENTE,
+      });
+      if (!aviso.ok) return aviso;
     }
-    return aviso;
+    const marcado = await this.repositorio.marcarAvisoInatividade(atendimento.id, de);
+    return marcado.ok ? ok(undefined) : marcado;
   }
 
   private async encerrar(atendimento: AtendimentoParaInatividade): Promise<Result<void, AppError>> {

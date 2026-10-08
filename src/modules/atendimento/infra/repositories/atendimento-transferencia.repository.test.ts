@@ -112,6 +112,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
         funcionarioId: origemId,
         telefone: TELEFONE,
         chave: TELEFONE,
+        emAvisoDeInatividade: false,
       },
     });
     expect(await repositorio.buscarEmAndamento(crypto.randomUUID())).toEqual({

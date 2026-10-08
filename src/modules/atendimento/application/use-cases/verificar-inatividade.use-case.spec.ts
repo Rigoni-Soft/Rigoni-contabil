@@ -105,19 +105,23 @@ describe("VerificarInatividade", () => {
     expect(marcados).toEqual([]);
   });
 
-  it("job repetido não reenvia o aviso ao cliente", async () => {
-    const a = atendimento({ ultimaDoContato: sp("2026-10-07T09:00:00"), ultimaDoFuncionario: T0 });
-    const { caso, enviados } = montar([a], sp("2026-10-07T12:00:00"), { jaMarcado: true });
+  it("job repetido não reenvia o aviso ao cliente já avisado", async () => {
+    const a = atendimento({
+      ultimaDoContato: sp("2026-10-07T09:00:00"),
+      ultimaDoFuncionario: T0,
+      aviso: { em: AVISO_EM, de: "contato" },
+    });
+    const { caso, enviados } = montar([a], sp("2026-10-07T12:05:00"));
     await caso.execute();
     expect(enviados).toEqual([]);
   });
 
-  it("aviso ao cliente que falha desfaz a marca para a próxima rodada tentar", async () => {
+  it("aviso ao cliente que falha não marca nada, para a próxima rodada tentar", async () => {
     const a = atendimento({ ultimaDoContato: sp("2026-10-07T09:00:00"), ultimaDoFuncionario: T0 });
-    const { caso, limpos } = montar([a], sp("2026-10-07T12:00:00"), { envioFalha: true });
+    const { caso, marcados } = montar([a], sp("2026-10-07T12:00:00"), { envioFalha: true });
     const r = await caso.execute();
     expect(r.ok && r.value).toMatchObject({ avisados: 0, falhas: 1 });
-    expect(limpos).toEqual(["a1"]);
+    expect(marcados).toEqual([]);
   });
 
   it("ação de quem estava inativo dentro dos 10 minutos cancela o encerramento", async () => {

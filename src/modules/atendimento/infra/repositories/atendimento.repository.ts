@@ -101,7 +101,9 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
   async buscarEmAndamento(id: string): Promise<Result<AtendimentoEmAndamento | null, AppError>> {
     const { data, error } = await this.supabaseAdmin
       .from("atendimentos")
-      .select("id, cliente_id, setor, funcionario_id, telefone, chave_telefone")
+      .select(
+        "id, cliente_id, setor, funcionario_id, telefone, chave_telefone, aviso_inatividade_em",
+      )
       .eq("id", id)
       .eq("status", "em_andamento")
       .maybeSingle();
@@ -115,6 +117,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       funcionarioId: linha.funcionario_id,
       telefone: linha.telefone,
       chave: linha.chave_telefone,
+      emAvisoDeInatividade: linha.aviso_inatividade_em !== null,
     });
   }
 

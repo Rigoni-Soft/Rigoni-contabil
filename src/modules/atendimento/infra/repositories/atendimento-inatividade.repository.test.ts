@@ -94,6 +94,10 @@ describe("SupabaseAtendimentoRepository — inatividade", () => {
     });
     expect((await doAtendimento(id))?.aviso).toMatchObject({ de: "funcionario" });
 
+    // Em aviso, o Atendimento não muda de Setor nem de dono (guarda do banco contra a corrida).
+    const troca = await admin.from("atendimentos").update({ setor: "financeiro" }).eq("id", id);
+    expect(troca.error?.message).toContain("nao pode ser transferido");
+
     expect((await repositorio.limparAvisoInatividade(id)).ok).toBe(true);
     expect((await doAtendimento(id))?.aviso).toBeNull();
   });

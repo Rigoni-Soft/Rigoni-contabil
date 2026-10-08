@@ -41,6 +41,8 @@ export type AtendimentoEmAndamento = {
   funcionarioId: string | null;
   telefone: string;
   chave: string;
+  // O aviso de encerramento por inatividade foi enviado e ainda vale: não se transfere.
+  emAvisoDeInatividade: boolean;
 };
 
 export type NovaTransferencia = {

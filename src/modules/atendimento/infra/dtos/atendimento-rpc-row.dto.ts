@@ -48,6 +48,7 @@ export const atendimentoEmAndamentoRowSchema = z.object({
   funcionario_id: z.string().nullable(),
   telefone: z.string(),
   chave_telefone: z.string(),
+  aviso_inatividade_em: z.string().nullable(),
 });
 
 // `clientes` com o cadastro operacional embutido (1:1; só MEI/Simples Nacional têm linha).

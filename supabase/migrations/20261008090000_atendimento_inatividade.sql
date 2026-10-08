@@ -7,6 +7,25 @@ alter table public.atendimentos
   add check ((aviso_inatividade_em is null) = (aviso_inatividade_de is null)),
   add check (aviso_inatividade_de in ('contato', 'funcionario'));
 
+-- Atendimento em aviso de inatividade não muda de dono nem de Setor (a Transferência é recusada
+-- antes, no caso de uso; isto fecha a corrida entre a leitura e a gravação).
+create function public.atendimento_em_aviso_nao_muda_de_dono()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if old.aviso_inatividade_em is not null
+     and (new.funcionario_id is distinct from old.funcionario_id or new.setor <> old.setor) then
+    raise exception 'Atendimento em aviso de inatividade nao pode ser transferido.';
+  end if;
+  return new;
+end;
+$$;
+create trigger atendimento_em_aviso_nao_muda_de_dono
+  before update of funcionario_id, setor on public.atendimentos
+  for each row execute function public.atendimento_em_aviso_nao_muda_de_dono();
+
 -- Atendimentos em andamento com Funcionário (os da Fila não têm quem esteja inativo).
 create function public.atendimentos_para_inatividade()
 returns table (
