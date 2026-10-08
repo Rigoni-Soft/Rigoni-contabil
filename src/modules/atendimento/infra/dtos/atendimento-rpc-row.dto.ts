@@ -6,7 +6,11 @@ import { SETORES } from "@/shared/kernel/setores";
 // `abrir_atendimento`: o Atendimento e o Funcionário que ficou com ele (null = Fila), ou null se o
 // Funcionário escolhido foi ocupado.
 export const aberturaRowSchema = z
-  .object({ id: z.string(), funcionario_id: z.string().nullable() })
+  .object({
+    id: z.string(),
+    funcionario_id: z.string().nullable(),
+    promovido: z.lazy(() => assumidoRowSchema).nullable(),
+  })
   .nullable();
 // `anexar_mensagem_atendimento`: true se havia Atendimento em andamento.
 export const anexoRowSchema = z.boolean();
@@ -24,6 +28,7 @@ export const transferenciaRowSchema = z.discriminatedUnion("status", [
   z.object({
     status: z.literal("transferido"),
     proximo_da_origem: assumidoRowSchema.nullable(),
+    promovido: assumidoRowSchema.nullable(),
     na_fila: z.boolean(),
     destinatario_nome: z.string().nullable(),
     origem_nome: z.string().nullable(),

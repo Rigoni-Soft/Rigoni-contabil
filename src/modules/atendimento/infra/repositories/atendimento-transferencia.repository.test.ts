@@ -156,6 +156,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
         status: "transferido",
         naFila: false,
         proximoDaOrigem: null,
+        promovidoNoDestino: null,
         destinatarioNome: "Destino 45",
         origemNome: "Origem 45",
         contato: { contatoNome: "Dona Lia", empresa: "Transfere Ltda", cnpj: CNPJ },
@@ -231,6 +232,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
         status: "transferido",
         naFila: false,
         proximoDaOrigem: null,
+        promovidoNoDestino: null,
         destinatarioNome: null,
         origemNome: null,
         contato: { contatoNome: null, empresa: null, cnpj: null },
@@ -273,7 +275,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       atendimentoId: novo,
       origemFuncionarioId: null,
       setorOrigem: "recepcao",
-      setorDestino: "contabil",
+      setorDestino: "simples_nacional",
       funcionarioDestinoId: destinoId,
       enfileirarSeOcupado: true,
       resumo: "fila",
@@ -287,7 +289,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       .eq("id", novo)
       .single();
     expect(data).toEqual({
-      setor: "contabil",
+      setor: "simples_nacional",
       funcionario_id: null,
       fila_funcionario_id: destinoId,
       assumido_em: null,
@@ -301,7 +303,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       atendimentoId: meu,
       origemFuncionarioId: dono,
       setorOrigem: "recepcao",
-      setorDestino: "contabil",
+      setorDestino: "recepcao",
       funcionarioDestinoId: dono,
       enfileirarSeOcupado: true,
       resumo: "eu mesmo",

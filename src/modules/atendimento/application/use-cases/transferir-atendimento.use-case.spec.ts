@@ -26,6 +26,7 @@ const TRANSFERIDO = {
   status: "transferido" as const,
   naFila: false,
   proximoDaOrigem: null,
+  promovidoNoDestino: null,
   destinatarioNome: "Ana",
   origemNome: "Beto",
   contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
@@ -203,6 +204,39 @@ describe("TransferirAtendimento", () => {
     it("falha ao avisar o cliente da Fila da origem devolve o erro, já transferido", async () => {
       const { caso, transferencias } = montar({ resultados: COM_PROXIMO, avisoFalha: [1] });
       const r = await caso.execute(INPUT);
+      expect(!r.ok && r.error.code).toBe("INCONSISTENT_STATE");
+      expect(transferencias).toHaveLength(1);
+    });
+  });
+
+  describe("cliente mais antigo da Fila do destino passa na frente (PR #77, B3)", () => {
+    const PROMOVIDO = {
+      id: "at-9",
+      telefone: "5561955554444",
+      chave: "61955554444",
+      funcionarioNome: "Ana",
+    };
+    const COM_PROMOVIDO = [
+      { ...TRANSFERIDO, destinatarioNome: null, promovidoNoDestino: PROMOVIDO },
+    ];
+
+    it("o cliente promovido no destino é avisado de quem o atende, além do transferido", async () => {
+      const { caso, enviadas } = montar({ resultados: COM_PROMOVIDO });
+
+      expect((await caso.execute(INPUT)).ok).toBe(true);
+
+      expect(enviadas).toHaveLength(2);
+      expect(enviadas[1]).toEqual({
+        telefone: "5561955554444",
+        texto: "Chegou a sua vez! Ana vai te atender agora.",
+      });
+    });
+
+    it("falha ao avisar o promovido devolve o erro, já transferido", async () => {
+      const { caso, transferencias } = montar({ resultados: COM_PROMOVIDO, avisoFalha: [1] });
+
+      const r = await caso.execute(INPUT);
+
       expect(!r.ok && r.error.code).toBe("INCONSISTENT_STATE");
       expect(transferencias).toHaveLength(1);
     });

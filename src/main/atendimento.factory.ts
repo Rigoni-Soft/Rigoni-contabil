@@ -76,7 +76,7 @@ export function makeReceberMensagem(): ReceberMensagemPort {
     makeEnvioMensagem(),
     new SupabaseDocumentosContratuaisGateway(supabaseAdmin),
     new SupabaseSessaoAtendimentoGateway(supabaseAdmin, MENSAGERIA_SEGREDO_SESSAO),
-    new AbrirAtendimento(atendimentos),
+    new AbrirAtendimento(atendimentos, new AvisarCliente(makeEnvioMensagem(), atendimentos)),
     new AnexarMensagemAtendimento(atendimentos),
   );
 }

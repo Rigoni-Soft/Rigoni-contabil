@@ -13,10 +13,18 @@ export type FuncionarioDoSetor = { id: string; atendimentosNoMes: number; livre:
 
 // "aberto": `funcionarioId` é quem ficou com o Atendimento (null = Fila). Pode não ser o escolhido
 // por quem chamou: sem escolhido e sem ninguém na frente, um Funcionário liberado no meio é assumido.
-// "conflito": o Funcionário escolhido foi ocupado por outro Atendimento no meio (concorrência);
-// nada é gravado e quem chama escolhe de novo.
+// "conflito": o Funcionário escolhido foi ocupado por outro Atendimento no meio (concorrência) ou
+// deixou de ser elegível (outro Setor, desativado); nada é gravado e quem chama escolhe de novo.
+// "aberto" traz também `promovido`: o cliente mais antigo da Fila que assumiu o Funcionário escolhido
+// antes do recém-chegado (que, nesse caso, entrou na Fila: `funcionarioId` null).
 export type ResultadoAbertura =
-  { status: "aberto"; id: string; funcionarioId: string | null } | { status: "conflito" };
+  | {
+      status: "aberto";
+      id: string;
+      funcionarioId: string | null;
+      promovido: AtendimentoAssumido | null;
+    }
+  | { status: "conflito" };
 
 // `atribuirLivreSeVazia`: sem Funcionário escolhido e sem Fila, o banco entrega o Atendimento a um
 // Funcionário livre do Setor (liberado depois da listagem de quem chama) em vez de enfileirar.
@@ -59,6 +67,8 @@ export type ResultadoTransferencia =
       naFila: boolean;
       // O Funcionário de origem ficou livre e assumiu o próximo da Fila do Setor dele.
       proximoDaOrigem: AtendimentoAssumido | null;
+      // O mais antigo da Fila do destino, que assumiu o destino antes do transferido.
+      promovidoNoDestino: AtendimentoAssumido | null;
       destinatarioNome: string | null;
       origemNome: string | null;
       contato: DadosDoContato;

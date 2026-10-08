@@ -5,6 +5,7 @@ import type {
   TransferirAtendimentoPort,
 } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
 import type {
+  AtendimentoAssumido,
   AtendimentoEmAndamento,
   AtendimentoRepositoryPort,
   NovaTransferencia,
@@ -99,7 +100,8 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
 
     // Transferido: falhar daqui em diante não desfaz nada; o erro diz que o Atendimento já está
     // com o destino e o cliente não foi avisado.
-    const { destinatarioNome, naFila, origemNome, contato, proximoDaOrigem } = gravada.value;
+    const { destinatarioNome, naFila, origemNome, contato, proximoDaOrigem, promovidoNoDestino } =
+      gravada.value;
     const posicao =
       destinatarioNome === null || naFila ? await this.posicaoNaFila(input.atendimentoId) : null;
     const aviso = await this.avisar.execute({
@@ -107,14 +109,9 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
       chave: atendimento.value.chave,
       texto: avisoAoCliente(input.setorDestino, destinatarioNome, naFila, posicao),
     });
-    // O cliente da Fila da origem é avisado mesmo se o aviso do transferido falhou.
-    const avisoDaOrigem = proximoDaOrigem
-      ? await this.avisar.execute({
-          telefone: proximoDaOrigem.telefone,
-          chave: proximoDaOrigem.chave,
-          texto: avisoDeVez(proximoDaOrigem.funcionarioNome),
-        })
-      : ok(undefined);
+    // Os clientes da Fila que assumiram (a origem liberada; o destino, antes do transferido) são
+    // avisados mesmo se o aviso do transferido falhou.
+    const avisoDaOrigem = await this.avisarDaFila([proximoDaOrigem, promovidoNoDestino]);
     if (!aviso.ok) {
       await this.auditarFalha(ator, input.atendimentoId);
       return err(
@@ -130,7 +127,7 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
       return err(
         new EstadoInconsistenteError(
           "Atendimento da Fila assumido, mas o aviso ao cliente falhou.",
-          proximoDaOrigem?.id ?? input.atendimentoId,
+          (proximoDaOrigem ?? promovidoNoDestino)?.id ?? input.atendimentoId,
         ),
       );
     }
@@ -234,6 +231,22 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
         atribuirLivreSeVazia: true,
       }),
     );
+  }
+
+  private async avisarDaFila(
+    assumidos: (AtendimentoAssumido | null)[],
+  ): Promise<Result<void, AppError>> {
+    let resultado: Result<void, AppError> = ok(undefined);
+    for (const assumido of assumidos) {
+      if (!assumido) continue;
+      const aviso = await this.avisar.execute({
+        telefone: assumido.telefone,
+        chave: assumido.chave,
+        texto: avisoDeVez(assumido.funcionarioNome),
+      });
+      if (!aviso.ok) resultado = aviso;
+    }
+    return resultado;
   }
 
   // Só enfeita o aviso: sem a posição o cliente ainda é avisado de que está na fila.

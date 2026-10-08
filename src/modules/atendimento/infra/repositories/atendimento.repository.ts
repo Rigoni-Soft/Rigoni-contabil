@@ -68,7 +68,12 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     const linha = aberturaRowSchema.parse(data);
     return ok(
       linha
-        ? { status: "aberto", id: linha.id, funcionarioId: linha.funcionario_id }
+        ? {
+            status: "aberto",
+            id: linha.id,
+            funcionarioId: linha.funcionario_id,
+            promovido: assumido(linha.promovido),
+          }
         : { status: "conflito" },
     );
   }
@@ -117,10 +122,17 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     if (error) return err(new ServicoExternoError("Falha ao consultar o Cliente."));
     if (!data) return ok(null);
     const linha = roteamentoDoClienteRowSchema.parse(data);
-    return ok({
-      regime: linha.regime,
-      responsavelId: linha.cliente_cadastro_operacional_sn?.responsavel_id ?? null,
-    });
+    const responsavelId = linha.cliente_cadastro_operacional_sn?.responsavel_id ?? null;
+    if (!responsavelId) return ok({ regime: linha.regime, responsavelId: null });
+    // Responsável desativado não recebe: o Atendimento cai no Líder (#58).
+    const ativo = await this.supabaseAdmin
+      .from("perfis")
+      .select("id")
+      .eq("id", responsavelId)
+      .is("desativado_em", null)
+      .maybeSingle();
+    if (ativo.error) return err(new ServicoExternoError("Falha ao consultar o Responsável."));
+    return ok({ regime: linha.regime, responsavelId: ativo.data ? responsavelId : null });
   }
 
   // Cada Setor tem um só Líder (regra de domínio); se o banco devolver dois, falha em vez de escolher.
@@ -130,6 +142,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       .select("id")
       .eq("setor", setor)
       .eq("papel", "lider_setor")
+      .is("desativado_em", null)
       .maybeSingle();
     if (error) return err(new ServicoExternoError("Falha ao consultar o Líder do Setor."));
     return ok(data ? liderRowSchema.parse(data).id : null);
@@ -157,6 +170,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       status: "transferido",
       naFila: linha.na_fila,
       proximoDaOrigem: assumido(linha.proximo_da_origem),
+      promovidoNoDestino: assumido(linha.promovido),
       destinatarioNome: linha.destinatario_nome,
       origemNome: linha.origem_nome,
       contato: { contatoNome: linha.contato_nome, empresa: linha.empresa, cnpj: linha.cnpj },

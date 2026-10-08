@@ -1,5 +1,6 @@
 import type { AberturaAtendimento } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type {
+  AtendimentoAssumido,
   AtendimentoRepositoryPort,
   FuncionarioDoSetor,
   NovoAtendimento,
@@ -14,8 +15,12 @@ function montar(
   recusasIniciais = 0,
   posicao = 1,
   // Quem o repositório diz que ficou com o Atendimento, se não for o pedido.
-  assumidoPeloRepositorio?: string,
+  assumidoPeloRepositorio?: string | null,
+  // Cliente da Fila que assumiu o Funcionário antes do recém-chegado, e se o aviso a ele falha.
+  promovido: AtendimentoAssumido | null = null,
+  avisoFalha = false,
 ) {
+  const avisos: { telefone: string; chave: string; texto: string }[] = [];
   const abertos: NovoAtendimento[] = [];
   const tentativas: NovoAtendimento[] = [];
   const repo = {
@@ -28,13 +33,21 @@ function montar(
       return ok({
         status: "aberto",
         id: "at-1",
-        funcionarioId: assumidoPeloRepositorio ?? a.funcionarioId,
+        funcionarioId:
+          assumidoPeloRepositorio === undefined ? a.funcionarioId : assumidoPeloRepositorio,
+        promovido,
       });
     },
     anexarMensagem: async () => ok({ anexada: false }),
     posicaoNaFila: async () => ok(posicao),
   } as unknown as AtendimentoRepositoryPort;
-  return { abertos, tentativas, caso: new AbrirAtendimento(repo) };
+  const avisar = {
+    execute: async (aviso: { telefone: string; chave: string; texto: string }) => {
+      avisos.push(aviso);
+      return avisoFalha ? err(new ServicoExternoError("meta")) : ok(undefined);
+    },
+  };
+  return { abertos, tentativas, avisos, caso: new AbrirAtendimento(repo, avisar) };
 }
 
 const abertura: AberturaAtendimento = {
@@ -104,5 +117,46 @@ describe("AbrirAtendimento", () => {
     const r = await caso.execute(abertura);
     expect(r.ok && r.value.funcionarioId).toBeNull();
     expect(abertos[0].funcionarioId).toBeNull();
+  });
+
+  describe("cliente mais antigo da Fila passa na frente (PR #77, B3)", () => {
+    const PROMOVIDO: AtendimentoAssumido = {
+      id: "at-0",
+      telefone: "5561977776666",
+      chave: "61977776666",
+      funcionarioNome: "Ana",
+    };
+    const LIVRE = [{ id: "f1", atendimentosNoMes: 0, livre: true }];
+
+    it("o recém-chegado espera (sem Funcionário, com posição) e o promovido é avisado de quem o atende", async () => {
+      const { avisos, caso } = montar(LIVRE, 0, 2, null, PROMOVIDO);
+
+      const r = await caso.execute(abertura);
+
+      expect(r).toEqual({ ok: true, value: { id: "at-1", funcionarioId: null, posicao: 2 } });
+      expect(avisos).toEqual([
+        {
+          telefone: "5561977776666",
+          chave: "61977776666",
+          texto: "Chegou a sua vez! Ana vai te atender agora.",
+        },
+      ]);
+    });
+
+    it("sem promovido ninguém é avisado", async () => {
+      const { avisos, caso } = montar(LIVRE);
+
+      await caso.execute(abertura);
+
+      expect(avisos).toEqual([]);
+    });
+
+    it("falha ao avisar o promovido devolve o erro, com o Atendimento já aberto", async () => {
+      const { caso } = montar(LIVRE, 0, 2, null, PROMOVIDO, true);
+
+      const r = await caso.execute(abertura);
+
+      expect(!r.ok && r.error.code).toBe("INCONSISTENT_STATE");
+    });
   });
 });

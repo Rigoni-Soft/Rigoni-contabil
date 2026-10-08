@@ -63,6 +63,27 @@ async function abrir(
   return r.value.id;
 }
 
+// Dono já em atendimento, gravado direto: com Fila na frente, `abrir` (corretamente) faria o dono
+// assumir o mais antigo da Fila. Estes testes precisam justamente do estado "dono ocupado".
+async function abrirDireto(telefone: string, funcionarioId: string): Promise<string> {
+  const { data, error } = await admin
+    .from("atendimentos")
+    .insert({
+      telefone,
+      chave_telefone: telefone,
+      setor: SETOR,
+      funcionario_id: funcionarioId,
+      assumido_em: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  await admin
+    .from("assuncoes_atendimento")
+    .insert({ atendimento_id: data.id, funcionario_id: funcionarioId });
+  return data.id;
+}
+
 async function pausa() {
   // `fila_desde` usa now() da transação: a ordem só é distinguível entre transações separadas.
   await new Promise((resolve) => setTimeout(resolve, 15));
@@ -188,11 +209,11 @@ describe("SupabaseAtendimentoRepository — Fila", () => {
   it("a Fila de um usuário e a do Setor concorrem por antiguidade, e a dos outros usuários não entra", async () => {
     const alvo = await criarFuncionario("Alvo Fila 47");
     const outro = await criarFuncionario("Outro Fila 47");
-    await abrir(TELEFONES[4], alvo);
+    await abrirDireto(TELEFONES[4], alvo);
     await pausa();
     // Entra na Fila de `outro` (ocupado por outro Atendimento): mais novo que o `segundo` do Setor.
-    const origem = await criarFuncionario("Origem Fila 47", "recepcao");
-    const atendimentoOutro = await abrir(TELEFONES[0], origem);
+    const origem = await criarFuncionario("Origem Fila 47");
+    const atendimentoOutro = await abrirDireto(TELEFONES[0], origem);
     const naFilaDeOutro = await admin
       .from("atendimentos")
       .update({
@@ -229,7 +250,7 @@ describe("SupabaseAtendimentoRepository — Fila", () => {
 
   it("ao transferir, a origem liberada assume o mais antigo da Fila do Setor onde estava", async () => {
     const origem = await criarFuncionario("Origem Transfere 47");
-    const atendimentoId = await abrir(TELEFONES[6], origem);
+    const atendimentoId = await abrirDireto(TELEFONES[6], origem);
     const r = await repositorio.transferir({
       atendimentoId,
       origemFuncionarioId: origem,
