@@ -50,7 +50,6 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/supertest": "^7.2.1",
     "dependency-cruiser": "^18.4.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.6",
@@ -60,7 +59,6 @@
     "pdf-lib": "^1.17.1",
     "prettier": "^3.9.9",
     "prettier-plugin-tailwindcss": "^0.8.1",
-    "supertest": "^7.3.0",
     "tailwindcss": "^4",
     "typescript": "^6"
   },
