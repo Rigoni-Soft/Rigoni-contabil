@@ -2,6 +2,8 @@ import "server-only";
 
 import { z } from "zod";
 
+import { SEGREDOS_MENSAGERIA_PLACEHOLDER } from "@/main/segredos-mensageria.factory";
+
 export * from "./env.client";
 
 // PORT não entra aqui: nenhum código do app a lê (é consumida só por `next
@@ -17,12 +19,18 @@ const resultado = z
     // Adapter de mensageria (docs/contratos/mensageria.md): falso por padrão.
     MENSAGERIA_MODO: z.enum(["falso", "real"]).default("falso"),
     // Segredos do webhook (assinatura HMAC e handshake de verificação). Valores
-    // falsos de dev; em produção vêm do painel do provedor.
-    MENSAGERIA_SEGREDO_ASSINATURA: z.string().min(1).default("segredo-falso"),
-    MENSAGERIA_TOKEN_VERIFICACAO: z.string().min(1).default("token-falso"),
+    // falsos de dev; em produção vêm do painel do provedor (a factory recusa os falsos).
+    MENSAGERIA_SEGREDO_ASSINATURA: z
+      .string()
+      .min(1)
+      .default(SEGREDOS_MENSAGERIA_PLACEHOLDER.assinatura),
+    MENSAGERIA_TOKEN_VERIFICACAO: z
+      .string()
+      .min(1)
+      .default(SEGREDOS_MENSAGERIA_PLACEHOLDER.tokenVerificacao),
     // Chave do HMAC que pseudonimiza o telefone na sessão da URA. Própria (não reaproveita o
     // segredo do webhook): trocar um não invalida o outro. Valor falso só pra dev.
-    MENSAGERIA_SEGREDO_SESSAO: z.string().min(1).default("segredo-sessao-falso"),
+    MENSAGERIA_SEGREDO_SESSAO: z.string().min(1).default(SEGREDOS_MENSAGERIA_PLACEHOLDER.sessao),
   })
   .safeParse({
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,

@@ -7,6 +7,7 @@ import {
   MENSAGERIA_TOKEN_VERIFICACAO,
 } from "@/env";
 
+import { exigirSegredosReais } from "@/main/segredos-mensageria.factory";
 import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import type { ReceberMensagemPort } from "@/modules/atendimento/application/ports/in/receber-mensagem.provider";
 import type { AutenticacaoWebhookPort } from "@/modules/atendimento/application/ports/out/autenticacao-webhook.provider";
@@ -28,7 +29,21 @@ function makeEnvioMensagem(): EnvioMensagemPort {
   return envioFalso;
 }
 
+// Chamada por makeAutenticacaoWebhook e makeReceberMensagem: nenhum caminho da rota pública
+// (GET/POST) chega ao client privilegiado nem valida HMAC com segredo de desenvolvimento.
+function exigirSegredosDeProducao(): void {
+  exigirSegredosReais(
+    {
+      assinatura: MENSAGERIA_SEGREDO_ASSINATURA,
+      tokenVerificacao: MENSAGERIA_TOKEN_VERIFICACAO,
+      sessao: MENSAGERIA_SEGREDO_SESSAO,
+    },
+    process.env.NODE_ENV === "production",
+  );
+}
+
 export function makeReceberMensagem(): ReceberMensagemPort {
+  exigirSegredosDeProducao();
   const supabaseAdmin = createSupabaseAdmin();
   return new ReceberMensagem(
     new SupabaseIdentificacaoContatoGateway(supabaseAdmin),
@@ -39,6 +54,7 @@ export function makeReceberMensagem(): ReceberMensagemPort {
 }
 
 export function makeAutenticacaoWebhook(): AutenticacaoWebhookPort {
+  exigirSegredosDeProducao();
   return new HmacAutenticacaoWebhookGateway(
     MENSAGERIA_SEGREDO_ASSINATURA,
     MENSAGERIA_TOKEN_VERIFICACAO,
