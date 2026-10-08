@@ -84,10 +84,9 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
       texto: m.texto,
       hora: formatarHora(m.criadoEm),
     })),
-    servicos: conversa.documentos.map((d) => ({
-      valor: valorDaOpcao(d),
-      rotulo: d.descricao,
-      grupo: d.tipo,
-    })),
+    // Como no menu da URA: o contrato primeiro, as alterações da mais recente para a mais antiga.
+    servicos: [...conversa.documentos]
+      .sort((x, y) => (x.data === null ? -1 : y.data === null ? 1 : y.data.localeCompare(x.data)))
+      .map((doc) => ({ valor: valorDaOpcao(doc), rotulo: doc.descricao, grupo: doc.tipo })),
   };
 }

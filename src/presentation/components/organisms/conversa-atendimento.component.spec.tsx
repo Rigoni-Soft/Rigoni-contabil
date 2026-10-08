@@ -59,16 +59,44 @@ describe("ConversaAtendimento", () => {
     expect(screen.getByText("Bom dia").closest("li")).toHaveClass("self-end");
   });
 
-  it("um clique no serviço dispara o envio dele", async () => {
+  it("um clique no contrato dispara o envio dele", async () => {
     const aoEnviar = jest.fn();
     const usuario = userEvent.setup();
     render(<ConversaAtendimento {...BASE} onEnviarServico={aoEnviar} />);
 
     await usuario.click(screen.getByRole("button", { name: "Contrato social" }));
+
+    expect(aoEnviar).toHaveBeenCalledWith("contrato");
+  });
+
+  it("uma alteração só é enviada direto, como no menu da URA", async () => {
+    const aoEnviar = jest.fn();
+    const usuario = userEvent.setup();
+    render(<ConversaAtendimento {...BASE} onEnviarServico={aoEnviar} />);
+
     await usuario.click(screen.getByRole("button", { name: "Alteração de 01/03/2026" }));
 
-    expect(aoEnviar).toHaveBeenNthCalledWith(1, "contrato");
-    expect(aoEnviar).toHaveBeenNthCalledWith(2, "alteracao:2026-03-01");
+    expect(aoEnviar).toHaveBeenCalledWith("alteracao:2026-03-01");
+  });
+
+  it("várias alterações abrem uma lista para o Funcionário escolher qual enviar", async () => {
+    const aoEnviar = jest.fn();
+    const usuario = userEvent.setup();
+    render(
+      <ConversaAtendimento
+        {...BASE}
+        servicos={[
+          ...BASE.servicos,
+          { valor: "alteracao:2025-01-10", rotulo: "Alteração de 10/01/2025", grupo: "alteracao" },
+        ]}
+        onEnviarServico={aoEnviar}
+      />,
+    );
+
+    await usuario.click(screen.getByText(/Alterações contratuais \(2\)/));
+    await usuario.click(screen.getByRole("button", { name: "Alteração de 10/01/2025" }));
+
+    expect(aoEnviar).toHaveBeenCalledWith("alteracao:2025-01-10");
   });
 
   it("guia de imposto, de parcelamento e CND aparecem desabilitados enquanto a URA não os tem", () => {

@@ -51,10 +51,18 @@ describe("conversaParaView", () => {
     ]);
   });
 
-  it("serviços viram opções com o nome que o cliente vê", () => {
-    expect(conversaParaView(CONVERSA).servicos).toEqual([
+  it("serviços viram opções com o nome que o cliente vê: contrato primeiro, alterações da mais recente para a mais antiga", () => {
+    const antiga = {
+      tipo: "alteracao" as const,
+      data: "2025-01-10",
+      descricao: "Alteração de 10/01/2025",
+    };
+    const documentos = [antiga, CONVERSA.documentos[1], CONVERSA.documentos[0]];
+
+    expect(conversaParaView({ ...CONVERSA, documentos }).servicos).toEqual([
       { valor: "contrato", rotulo: "Contrato social", grupo: "contrato" },
       { valor: "alteracao:2026-03-01", rotulo: "Alteração de 01/03/2026", grupo: "alteracao" },
+      { valor: "alteracao:2025-01-10", rotulo: "Alteração de 10/01/2025", grupo: "alteracao" },
     ]);
   });
 

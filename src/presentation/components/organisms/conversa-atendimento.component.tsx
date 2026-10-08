@@ -1,6 +1,6 @@
-import { FileText } from "lucide-react";
+import { ChevronDown, FileText } from "lucide-react";
 
-import { Button } from "@/presentation/components/ui/button";
+import { Button, buttonVariants } from "@/presentation/components/ui/button";
 import { cn } from "@/presentation/lib/utils";
 
 const SERVICOS_EM_CONSTRUCAO = ["Guia de imposto", "Guia de parcelamento", "CND"];
@@ -132,19 +132,46 @@ export function ConversaAtendimento({
                       <FileText aria-hidden="true" />
                       Alterações (não cadastradas)
                     </Button>
+                  ) : alteracoes.length === 1 ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={enviando}
+                      onClick={() => onEnviarServico(alteracoes[0].valor)}
+                    >
+                      <FileText aria-hidden="true" />
+                      {alteracoes[0].rotulo}
+                    </Button>
                   ) : (
-                    alteracoes.map((alteracao) => (
-                      <Button
-                        key={alteracao.valor}
-                        type="button"
-                        variant="outline"
-                        disabled={enviando}
-                        onClick={() => onEnviarServico(alteracao.valor)}
+                    <details className="w-full">
+                      <summary
+                        className={cn(
+                          buttonVariants({ variant: "outline" }),
+                          "cursor-pointer list-none [&::-webkit-details-marker]:hidden",
+                        )}
                       >
                         <FileText aria-hidden="true" />
-                        {alteracao.rotulo}
-                      </Button>
-                    ))
+                        Alterações contratuais ({alteracoes.length})
+                        <ChevronDown aria-hidden="true" />
+                      </summary>
+                      <ul
+                        aria-label="Alterações contratuais"
+                        className="mt-2 max-h-60 divide-y divide-border overflow-y-auto rounded-md border border-border"
+                      >
+                        {alteracoes.map((alteracao) => (
+                          <li key={alteracao.valor}>
+                            <button
+                              type="button"
+                              disabled={enviando}
+                              onClick={() => onEnviarServico(alteracao.valor)}
+                              className="w-full px-3 py-2.5 text-left text-sm hover:bg-accent disabled:opacity-50"
+                            >
+                              {alteracao.rotulo}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
                   )}
                 </div>
               </div>
