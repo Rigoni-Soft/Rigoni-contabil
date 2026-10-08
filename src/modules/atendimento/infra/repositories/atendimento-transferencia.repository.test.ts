@@ -373,9 +373,13 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       value: { regime: "simples_nacional", responsavelId: null },
     });
     expect(await repositorio.liderDoSetor("condominios")).toEqual({ ok: true, value: null });
-    const setorDoLider = await repositorio.funcionariosDoSetor("condominios");
-    expect(setorDoLider.ok && setorDoLider.value.map((f) => f.id)).not.toContain(liderCondominios);
-    const setorDoDestino = await repositorio.funcionariosDoSetor("simples_nacional");
-    expect(setorDoDestino.ok && setorDoDestino.value.map((f) => f.id)).not.toContain(destinoId);
+    const funcionariosDoLider = await repositorio.funcionariosDoSetor("condominios");
+    expect(funcionariosDoLider.ok && funcionariosDoLider.value.map((f) => f.id)).not.toContain(
+      liderCondominios,
+    );
+    const funcionariosDoDestino = await repositorio.funcionariosDoSetor("simples_nacional");
+    expect(funcionariosDoDestino.ok && funcionariosDoDestino.value.map((f) => f.id)).not.toContain(
+      destinoId,
+    );
   });
 });
