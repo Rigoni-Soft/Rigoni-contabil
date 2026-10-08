@@ -8,6 +8,7 @@ import type {
   MensagemEnviada,
 } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type {
+  ContatoAmbiguo,
   ContatoIdentificado,
   IdentificacaoContatoPort,
 } from "@/modules/atendimento/application/ports/out/identificacao-contato.provider";
@@ -36,7 +37,7 @@ const CONTRATO: DocumentoContratual = {
 
 function montar(
   opcoes: {
-    contato?: ContatoIdentificado | null;
+    contato?: ContatoIdentificado | ContatoAmbiguo | null;
     envioFalha?: boolean;
     documentos?: DocumentoContratual[];
     listagemFalha?: boolean;
@@ -67,7 +68,9 @@ function montar(
     },
   };
   const identificacao: IdentificacaoContatoPort = {
-    identificar: async (telefone): Promise<Result<ContatoIdentificado | null, AppError>> => {
+    identificar: async (
+      telefone,
+    ): Promise<Result<ContatoIdentificado | ContatoAmbiguo | null, AppError>> => {
       buscados.push(telefone);
       return ok(opcoes.contato === undefined ? ana : opcoes.contato);
     },
@@ -449,4 +452,27 @@ describe("ReceberMensagem — número não cadastrado (#43)", () => {
     for (const t of ["oi", "sim", "menu"]) await dizer(caso, t);
     expect(sessoes.get(TEL)).toEqual({ etapa: "ja_cliente" });
   });
+});
+
+describe("ReceberMensagem — mesmo número em mais de um Cliente (PR #76, B2)", () => {
+  it.each(["oi", "1", "menu", "3"])(
+    "'%s' vai pra recepção, sem menu nem documento, mesmo havendo contratos",
+    async (texto) => {
+      const { caso, enviadas, documentosEnviados, listados, sessoes } = montar({
+        contato: "ambiguo",
+        documentos: [CONTRATO],
+      });
+      sessoes.set(CHAVE, { etapa: "tipo_documento" });
+
+      expect((await caso.execute({ telefone: FONE, texto })).ok).toBe(true);
+
+      expect(enviadas).toHaveLength(1);
+      expect(enviadas[0].texto).toContain("mais de uma empresa");
+      expect(enviadas[0].texto).toContain("recepção");
+      expect(enviadas[0].texto).not.toContain("1 - Contrato");
+      expect(documentosEnviados).toEqual([]);
+      expect(listados).toEqual([]);
+      expect(sessoes.has(CHAVE)).toBe(false);
+    },
+  );
 });

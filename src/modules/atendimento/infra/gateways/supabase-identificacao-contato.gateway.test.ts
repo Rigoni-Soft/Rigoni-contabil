@@ -19,6 +19,10 @@ const gateway = new SupabaseIdentificacaoContatoGateway(admin);
 const PADRAO = "(61) 99111-2233";
 const OUTRO = "(61) 3222-4455";
 const clienteId = crypto.randomUUID();
+// Mesmo telefone em dois Clientes, com contratos distintos (B2 do PR #76).
+const COMPARTILHADO = "(61) 98777-6655";
+const clienteA = crypto.randomUUID();
+const clienteB = crypto.randomUUID();
 
 beforeAll(async () => {
   const cliente = await admin.from("clientes").insert({
@@ -39,10 +43,27 @@ beforeAll(async () => {
     },
   ]);
   if (contatos.error) throw contatos.error;
+  for (const [id, empresa, cnpj] of [
+    [clienteA, "Empresa A Ltda", `8${Date.now()}`.slice(0, 14)],
+    [clienteB, "Empresa B Ltda", `7${Date.now()}`.slice(0, 14)],
+  ]) {
+    const novo = await admin
+      .from("clientes")
+      .insert({ id, empresa, cnpj, regime: "simples_nacional" });
+    if (novo.error) throw novo.error;
+    const contato = await admin.from("cliente_contatos").insert({
+      id: crypto.randomUUID(),
+      cliente_id: id,
+      nome: `Contato ${empresa}`,
+      telefone: COMPARTILHADO,
+      padrao: true,
+    });
+    if (contato.error) throw contato.error;
+  }
 });
 
 afterAll(async () => {
-  await admin.from("clientes").delete().eq("id", clienteId);
+  await admin.from("clientes").delete().in("id", [clienteId, clienteA, clienteB]);
 });
 
 describe("SupabaseIdentificacaoContatoGateway", () => {
@@ -60,6 +81,10 @@ describe("SupabaseIdentificacaoContatoGateway", () => {
       ok: true,
       value: { clienteId, nome: "Caio", empresa: "Contato Teste Ltda", padrao: false },
     });
+  });
+
+  it("mesmo telefone em dois Clientes é ambíguo: nenhum é escolhido", async () => {
+    expect(await gateway.identificar("61987776655")).toEqual({ ok: true, value: "ambiguo" });
   });
 
   it("número que não é de nenhum Cliente devolve null", async () => {

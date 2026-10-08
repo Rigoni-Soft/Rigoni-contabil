@@ -35,6 +35,9 @@ const SIM_OU_NAO = "Responda *sim* ou *não*.";
 const PEDIR_CNPJ = "Ótimo! Informe o CNPJ da sua empresa.";
 const CNPJ_INVALIDO = "Esse CNPJ não parece válido. Confira e envie novamente (ou digite *menu*).";
 // ponytail: só avisa; a Transferência real para a recepção entra com a Fila (#44/#45).
+const NUMERO_AMBIGUO =
+  "Seu número está cadastrado em mais de uma empresa e não conseguimos confirmar qual delas você quer consultar. Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
+
 const PARA_RECEPCAO =
   "Não encontramos você entre os contatos cadastrados. Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
 
@@ -104,6 +107,11 @@ export class ReceberMensagem implements ReceberMensagemPort {
 
     const sessao = await this.sessoes.obter(chave);
     if (!sessao.ok) return sessao;
+    if (contato.value === "ambiguo") {
+      // Nenhum documento é oferecido: sem confirmar a empresa, a recepção decide.
+      const limpa = await this.sessoes.limpar(chave);
+      return limpa.ok ? this.enviar(mensagem.telefone, NUMERO_AMBIGUO) : limpa;
+    }
     if (!contato.value) {
       return this.identificarNovo(mensagem.telefone, chave, texto, sessao.value);
     }

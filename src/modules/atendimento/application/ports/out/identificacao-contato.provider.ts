@@ -8,7 +8,12 @@ export type ContatoIdentificado = {
   padrao: boolean;
 };
 
+// O número consta como Contato de mais de um Cliente: nenhum é escolhido automaticamente.
+export type ContatoAmbiguo = "ambiguo";
+
 export interface IdentificacaoContatoPort {
   // `telefone` só com dígitos, sem DDI. null = número não pertence a nenhum Cliente.
-  identificar(telefone: string): Promise<Result<ContatoIdentificado | null, AppError>>;
+  identificar(
+    telefone: string,
+  ): Promise<Result<ContatoIdentificado | ContatoAmbiguo | null, AppError>>;
 }
