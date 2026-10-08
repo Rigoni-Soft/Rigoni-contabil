@@ -15,10 +15,13 @@ import {
   AVISO_INATIVIDADE_AO_CLIENTE,
   decidirInatividade,
   URA_ATOR_ID,
+  type DecisaoInatividade,
   type Inativo,
 } from "@/modules/atendimento/domain/services/inatividade.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
+
+const CONTADOR = { avisar: "avisados", cancelar: "cancelados", encerrar: "encerrados" } as const;
 
 // Job periódico: a URA avisa quem está inativo e, sem ação, encerra o Atendimento como o
 // encerramento comum (libera o Funcionário, que assume o próximo da Fila). O Funcionário continua
@@ -45,18 +48,24 @@ export class VerificarInatividade implements VerificarInatividadePort {
     for (const atendimento of lista.value) {
       const decisao = decidirInatividade(atendimento, agora, feriados);
       if (decisao.acao === "nada") continue;
-      const feito =
-        decisao.acao === "avisar"
-          ? await this.avisarInativo(atendimento, decisao.de)
-          : decisao.acao === "cancelar"
-            ? await this.repositorio.limparAvisoInatividade(atendimento.id)
-            : await this.encerrar(atendimento);
-      if (!feito.ok) resumo.falhas += 1;
-      else if (decisao.acao === "avisar") resumo.avisados += 1;
-      else if (decisao.acao === "cancelar") resumo.cancelados += 1;
-      else resumo.encerrados += 1;
+      const feito = await this.executar(decisao, atendimento);
+      resumo[feito.ok ? CONTADOR[decisao.acao] : "falhas"] += 1;
     }
     return ok(resumo);
+  }
+
+  private executar(
+    decisao: Exclude<DecisaoInatividade, { acao: "nada" }>,
+    atendimento: AtendimentoParaInatividade,
+  ): Promise<Result<void, AppError>> {
+    switch (decisao.acao) {
+      case "avisar":
+        return this.avisarInativo(atendimento, decisao.de);
+      case "cancelar":
+        return this.repositorio.limparAvisoInatividade(atendimento.id);
+      case "encerrar":
+        return this.encerrar(atendimento);
+    }
   }
 
   private async avisarInativo(

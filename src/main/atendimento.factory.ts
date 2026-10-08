@@ -26,6 +26,7 @@ import type { ReceberMensagemPort } from "@/modules/atendimento/application/port
 import type { TransferirAtendimentoPort } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
 import type { VerificarInatividadePort } from "@/modules/atendimento/application/ports/in/verificar-inatividade.provider";
 import type { AuditoriaPort } from "@/modules/atendimento/application/ports/out/auditoria.provider";
+import type { AutenticacaoJobPort } from "@/modules/atendimento/application/ports/out/autenticacao-job.provider";
 import type { AutenticacaoWebhookPort } from "@/modules/atendimento/application/ports/out/autenticacao-webhook.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type {
@@ -43,6 +44,7 @@ import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/rec
 import { RemoverFeriado } from "@/modules/atendimento/application/use-cases/remover-feriado.use-case";
 import { TransferirAtendimento } from "@/modules/atendimento/application/use-cases/transferir-atendimento.use-case";
 import { VerificarInatividade } from "@/modules/atendimento/application/use-cases/verificar-inatividade.use-case";
+import { BearerAutenticacaoJobGateway } from "@/modules/atendimento/infra/gateways/bearer-autenticacao-job.gateway";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
 import { GuiasFiscaisGateway } from "@/modules/atendimento/infra/gateways/guias-fiscais.gateway";
 import { HmacAutenticacaoWebhookGateway } from "@/modules/atendimento/infra/gateways/hmac-autenticacao-webhook.gateway";
@@ -107,9 +109,8 @@ export function makeReceberMensagem(): ReceberMensagemPort {
   );
 }
 
-// Quem chama o job precisa do segredo; sem ele configurado, ninguém chama.
-export function jobAutorizado(authorization: string | null): boolean {
-  return CRON_SECRET !== undefined && authorization === `Bearer ${CRON_SECRET}`;
+export function makeAutenticacaoJob(): AutenticacaoJobPort {
+  return new BearerAutenticacaoJobGateway(CRON_SECRET);
 }
 
 export function makeAutenticacaoWebhook(): AutenticacaoWebhookPort {

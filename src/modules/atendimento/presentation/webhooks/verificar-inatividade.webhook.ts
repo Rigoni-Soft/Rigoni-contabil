@@ -1,9 +1,9 @@
-import { jobAutorizado, makeVerificarInatividade } from "@/main/atendimento.factory";
+import { makeAutenticacaoJob, makeVerificarInatividade } from "@/main/atendimento.factory";
 
 // Chamada periódica do agendador (a cada poucos minutos): a URA verifica a inatividade. O Vercel
 // Cron chama com GET; POST serve a outros agendadores.
 export async function POST(request: Request): Promise<Response> {
-  if (!jobAutorizado(request.headers.get("authorization"))) {
+  if (!makeAutenticacaoJob().autorizado(request.headers.get("authorization"))) {
     return new Response("Não autorizado.", { status: 401 });
   }
   const resultado = await makeVerificarInatividade().execute();
