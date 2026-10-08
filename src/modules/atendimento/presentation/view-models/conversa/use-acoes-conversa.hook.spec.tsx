@@ -10,6 +10,9 @@ import {
 } from "./conversa.actions";
 import { useAcoesConversa } from "./use-acoes-conversa.hook";
 
+const push = jest.fn();
+jest.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+
 jest.mock("./conversa.actions", () => ({
   enviarDocumentoAction: jest.fn(),
   enviarMensagemAction: jest.fn(),
@@ -47,6 +50,7 @@ function renderizar(conversa: ConversaVista = CONVERSA) {
 describe("useAcoesConversa", () => {
   beforeEach(() => {
     enviar.mockReset();
+    push.mockReset();
     obter.mockReset();
     transferir.mockReset();
     obter.mockResolvedValue({ ok: true, data: CONVERSA });
@@ -96,8 +100,8 @@ describe("useAcoesConversa", () => {
     );
   });
 
-  it("transfere para o Setor escolhido e passa a mostrar para onde foi", async () => {
-    transferir.mockResolvedValue({ ok: true, data: {} as never });
+  it("transfere para o Setor escolhido, passa a mostrar para onde foi e volta ao início", async () => {
+    transferir.mockResolvedValue({ ok: true, data: { proximoDaFila: null } as never });
     const { result } = renderizar();
 
     act(() => result.current.aoTransferir("tributario", "DAS em atraso"));
@@ -109,6 +113,16 @@ describe("useAcoesConversa", () => {
       setorDestino: "tributario",
       resumo: "DAS em atraso",
     });
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/"));
+  });
+
+  it("se ficou livre e assumiu o próximo da Fila, abre a conversa dele", async () => {
+    transferir.mockResolvedValue({ ok: true, data: { proximoDaFila: "at-2" } as never });
+    const { result } = renderizar();
+
+    act(() => result.current.aoTransferir("tributario", "DAS"));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/atendimento/at-2"));
   });
 
   it("mostra o erro da transferência e não marca como transferido", async () => {
@@ -127,5 +141,6 @@ describe("useAcoesConversa", () => {
       }),
     );
     expect(result.current.transferidoPara).toBeUndefined();
+    expect(push).not.toHaveBeenCalled();
   });
 });

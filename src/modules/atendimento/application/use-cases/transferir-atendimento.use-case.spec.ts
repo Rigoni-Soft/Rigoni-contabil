@@ -119,6 +119,7 @@ describe("TransferirAtendimento", () => {
         origemSetor: "recepcao",
         origemNome: "Beto",
         resumo: "DAS",
+        proximoDaFila: null,
       },
     });
     expect(transferencias[0]).toMatchObject({
@@ -172,6 +173,14 @@ describe("TransferirAtendimento", () => {
       funcionarioNome: "Beto",
     };
     const COM_PROXIMO = [{ ...TRANSFERIDO, proximoDaOrigem: PROXIMO }];
+
+    it("devolve o Atendimento da Fila que a origem liberada assumiu, para o painel abrir", async () => {
+      const { caso } = montar({ resultados: COM_PROXIMO });
+
+      const r = await caso.execute(INPUT);
+
+      expect(r.ok && r.value.proximoDaFila).toBe("at-2");
+    });
 
     it("o cliente da Fila que a origem liberada assumiu é avisado de quem vai atendê-lo", async () => {
       const { caso, enviadas } = montar({ resultados: COM_PROXIMO });

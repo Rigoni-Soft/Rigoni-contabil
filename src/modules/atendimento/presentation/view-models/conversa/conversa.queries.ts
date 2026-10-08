@@ -55,9 +55,11 @@ export function useTransferirAtendimentoMutation(atendimentoId: string) {
 
   return useMutation({
     mutationKey: conversaKeys.transferencia(atendimentoId),
+    // Devolve o Atendimento da Fila que o Funcionário liberado assumiu (null se não havia).
     mutationFn: async (dados: { setorDestino: string; resumo: string }) => {
       const resultado = await transferirAtendimentoAction({ atendimentoId, ...dados });
       if (!resultado.ok) throw new Error(resultado.error.message);
+      return resultado.data.proximoDaFila;
     },
     // O Atendimento mudou de mãos: a lista do dock precisa refletir.
     onSettled: () => queryClient.invalidateQueries({ queryKey: ["atendimento", "meus"] }),

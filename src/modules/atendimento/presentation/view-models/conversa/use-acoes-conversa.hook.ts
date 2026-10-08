@@ -1,3 +1,5 @@
+import { useRouter } from "next/navigation";
+
 import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import { documentoDaOpcao } from "@/modules/atendimento/presentation/view-models/conversa/conversa.presenter";
 import {
@@ -11,6 +13,7 @@ export function useAcoesConversa(atendimentoId: string, initialData: ConversaVis
     atendimentoId,
     initialData,
   );
+  const router = useRouter();
   const envio = useEnviarDocumentoMutation(atendimentoId);
   const transferencia = useTransferirAtendimentoMutation(atendimentoId);
 
@@ -32,8 +35,16 @@ export function useAcoesConversa(atendimentoId: string, initialData: ConversaVis
     enviando: envio.isPending,
     aviso,
     setoresDestino: conversa.setoresDestino,
+    // Transferido, o Funcionário perde o controle e a visão da conversa: a tela sai dela e abre o
+    // Atendimento da Fila que ele assumiu ao ficar livre; sem ele, volta ao início.
     aoTransferir: (setorDestino: string, resumo: string) =>
-      transferencia.mutate({ setorDestino, resumo }),
+      transferencia.mutate(
+        { setorDestino, resumo },
+        {
+          onSuccess: (proximoDaFila) =>
+            router.push(proximoDaFila ? `/atendimento/${proximoDaFila}` : "/"),
+        },
+      ),
     transferindo: transferencia.isPending,
     avisoTransferencia: transferencia.isError
       ? { tipo: "erro" as const, texto: transferencia.error.message }

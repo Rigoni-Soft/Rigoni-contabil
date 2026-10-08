@@ -147,6 +147,10 @@ test.describe("Painel do Funcionário (#49)", () => {
     await painel.getByLabel("Resumo do assunto").fill("Cliente quer revisar o DAS");
     await painel.getByRole("button", { name: "Transferir" }).click();
 
-    await expect(painel.getByText(/Foi para o Setor Tributário/)).toBeVisible();
+    // Transferido, o Funcionário perde a conversa: a tela sai dela e o Atendimento some do dock.
+    await expect(page).toHaveURL("/");
+    await expect(page.getByRole("navigation", { name: "Atendimentos em andamento" })).toHaveCount(
+      0,
+    );
   });
 });

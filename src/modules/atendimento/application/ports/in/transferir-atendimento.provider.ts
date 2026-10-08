@@ -26,6 +26,8 @@ export type TransferenciaConcluida = {
   origemSetor: SetorSlug;
   origemNome: string | null;
   resumo: string;
+  // Atendimento da Fila que o Funcionário de origem, agora livre, assumiu; null se não havia.
+  proximoDaFila: string | null;
 };
 
 export interface TransferirAtendimentoPort {
