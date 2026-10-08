@@ -71,6 +71,15 @@ class UsuarioRepositoryFalso implements UsuarioRepository {
   async buscarPorId(): Promise<Result<Usuario | null, AppError>> {
     return this.erroTecnico ? err(this.erroTecnico) : ok(this.usuario);
   }
+  async listarComBloqueioPendente(): Promise<Result<Usuario[], AppError>> {
+    return ok([]);
+  }
+  async buscarLiderAtivoDoSetor(): Promise<Result<Usuario | null, AppError>> {
+    return ok(null);
+  }
+  async listarAtivos(): Promise<Result<Usuario[], AppError>> {
+    return ok([]);
+  }
   async criar(): Promise<Result<void, AppError>> {
     return ok(undefined);
   }
@@ -123,6 +132,28 @@ function montar() {
 }
 
 describe("TrocarSenha", () => {
+  // #58: JWT de quem foi desativado vale até expirar; o perfil é a fonte da verdade.
+  it("nega usuário desativado com sessão ainda válida, sem tocar no Auth", async () => {
+    const { usuarios, sessao, useCase } = montar();
+    const desativado = Usuario.builder()
+      .comId(ID)
+      .comNome("Jéssica Souza")
+      .comEmail("jessica@rigonicontabil.local")
+      .comPapel("funcionario")
+      .comSetor("simples_nacional")
+      .comSenhaTrocadaEm(new Date().toISOString())
+      .comDesativadoEm(new Date().toISOString())
+      .build();
+    if (!desativado.ok) throw new Error("setup inválido");
+    usuarios.usuario = desativado.value;
+
+    const resultado = await useCase.execute({ novaSenha: "nova-senha-123" });
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error).toBeInstanceOf(ForbiddenError);
+    expect(sessao.chamadasTrocar).toBe(0);
+  });
+
   it("primeiro acesso: troca a senha e finaliza perfil + 1 auditoria 'primeiro_acesso'", async () => {
     const { sessao, usuarios, finalizar, auditoria, useCase } = montar();
     usuarios.usuario = usuarioFalso(null);

@@ -22,7 +22,10 @@ export const SETORES = [
 ] as const;
 export type SetorSlug = (typeof SETORES)[number];
 
-// Rótulos de exibição dos Setores — os slugs são identificadores do banco, nunca texto de UI.
+// Record<string, ...> solto (não Record<SetorSlug, ...>) de propósito: quem exibe o
+// rótulo recebe o slug como string crua (vem de um DTO), então indexar com SetorSlug
+// exigiria um cast no ponto de leitura sem ganho real — a exaustividade já é
+// garantida por SETORES acima, não precisa duplicar aqui.
 export const SETOR_LABEL: Record<string, string> = {
   rh: "RH",
   tributario: "Tributário",

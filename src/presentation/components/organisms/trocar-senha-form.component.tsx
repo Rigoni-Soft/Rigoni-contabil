@@ -3,8 +3,8 @@ import type { FieldErrors, UseFormRegister } from "react-hook-form";
 
 import { Button } from "@/presentation/components/ui/button";
 import { FieldError } from "@/presentation/components/ui/field-error";
-import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
+import { PasswordInput } from "@/presentation/components/ui/password-input";
 
 type TrocarSenhaFormValues = { novaSenha: string; confirmacao: string };
 
@@ -27,9 +27,8 @@ export function TrocarSenhaForm({
     <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="novaSenha">Nova senha</Label>
-        <Input
+        <PasswordInput
           id="novaSenha"
-          type="password"
           autoComplete="new-password"
           aria-invalid={!!errors.novaSenha}
           {...register("novaSenha")}
@@ -39,9 +38,8 @@ export function TrocarSenhaForm({
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="confirmacao">Confirmar nova senha</Label>
-        <Input
+        <PasswordInput
           id="confirmacao"
-          type="password"
           autoComplete="new-password"
           aria-invalid={!!errors.confirmacao}
           {...register("confirmacao")}

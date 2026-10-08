@@ -29,6 +29,15 @@ class UsuarioRepositoryFalso implements UsuarioRepository {
   async buscarPorId(): Promise<Result<Usuario | null, AppError>> {
     return this.erroTecnico ? err(this.erroTecnico) : ok(this.usuario);
   }
+  async listarComBloqueioPendente(): Promise<Result<Usuario[], AppError>> {
+    return ok([]);
+  }
+  async buscarLiderAtivoDoSetor(): Promise<Result<Usuario | null, AppError>> {
+    return ok(null);
+  }
+  async listarAtivos(): Promise<Result<Usuario[], AppError>> {
+    return ok([]);
+  }
   async criar(): Promise<Result<void, AppError>> {
     return ok(undefined);
   }
@@ -93,5 +102,25 @@ describe("ObterSessao", () => {
     const resultado = await new ObterSessao(sessao, repositorio).execute();
 
     expect(resultado).toBeNull();
+  });
+
+  // #58: soft delete — sessão aberta antes da desativação para de valer na próxima página.
+  it("devolve null quando o usuário foi desativado, mesmo com sessão ativa", async () => {
+    const sessao = new SessaoFalsa();
+    sessao.id = "11111111-1111-1111-1111-111111111111" as UsuarioId;
+    const repositorio = new UsuarioRepositoryFalso();
+    const resultado = Usuario.builder()
+      .comId("11111111-1111-1111-1111-111111111111")
+      .comNome("Jéssica")
+      .comEmail("jessica@rigonicontabil.local")
+      .comPapel("funcionario")
+      .comSetor("simples_nacional")
+      .comSenhaTrocadaEm(new Date().toISOString())
+      .comDesativadoEm(new Date().toISOString())
+      .build();
+    if (!resultado.ok) throw new Error("setup inválido");
+    repositorio.usuario = resultado.value;
+
+    expect(await new ObterSessao(sessao, repositorio).execute()).toBeNull();
   });
 });

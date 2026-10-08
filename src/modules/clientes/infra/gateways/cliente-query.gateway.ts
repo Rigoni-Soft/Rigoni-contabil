@@ -106,6 +106,7 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
       .select("id, nome")
       .eq("papel", "funcionario")
       .eq("setor", "simples_nacional")
+      .is("desativado_em", null)
       .order("nome");
     if (error) return err(new ConsultaError(`Erro ao listar Responsáveis: ${error.message}`));
     return ok((data as ResponsavelOpcaoDto[]) ?? []);

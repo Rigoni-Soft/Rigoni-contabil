@@ -43,7 +43,7 @@ describe("ShellHeader", () => {
     expect(screen.getByRole("button", { name: "Sair" })).toBeInTheDocument();
   });
 
-  it("tem um link pra trocar senha voluntariamente (único caminho de navegação até lá)", () => {
+  it("tem um link pro perfil (único caminho de navegação até a troca voluntária de senha)", () => {
     render(
       <ShellHeader
         nome="Jéssica"
@@ -53,10 +53,8 @@ describe("ShellHeader", () => {
       />,
     );
 
-    expect(screen.getByRole("link", { name: /trocar senha/i })).toHaveAttribute(
-      "href",
-      "/trocar-senha",
-    );
+    expect(screen.getByRole("link", { name: /meu perfil/i })).toHaveAttribute("href", "/perfil");
+    expect(screen.queryByRole("link", { name: /trocar senha/i })).not.toBeInTheDocument();
   });
 
   it("Admin vê 'Cadastrar Líder' apontando pro cadastro de usuário", () => {
@@ -131,5 +129,20 @@ describe("ShellHeader", () => {
     );
 
     expect(screen.queryByRole("link", { name: /cadastrar/i })).not.toBeInTheDocument();
+  });
+
+  it("Admin vê o link 'Usuários' (desativação, #58); Líder não", () => {
+    const { rerender } = render(
+      <ShellHeader nome="C" papel="admin" setor="administrativo" sair={<button>Sair</button>} />,
+    );
+    expect(screen.getByRole("link", { name: "Usuários" })).toHaveAttribute(
+      "href",
+      "/admin/usuarios",
+    );
+
+    rerender(
+      <ShellHeader nome="L" papel="lider_setor" setor="contabil" sair={<button>Sair</button>} />,
+    );
+    expect(screen.queryByRole("link", { name: "Usuários" })).not.toBeInTheDocument();
   });
 });

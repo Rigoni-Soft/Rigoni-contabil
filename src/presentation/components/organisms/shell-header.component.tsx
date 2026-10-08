@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, KeyRound, UserPlus } from "lucide-react";
+import { Building2, CircleUser, UserPlus, Users } from "lucide-react";
 
 import { buttonVariants } from "@/presentation/components/ui/button";
 import { ThemeToggle } from "@/presentation/components/ui/theme-toggle";
@@ -31,13 +31,13 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
       <div className="flex min-w-0 items-center gap-3">
         <span
           aria-hidden="true"
-          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground"
+          className="hidden size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground sm:flex"
         >
           {inicial}
         </span>
         <div className="min-w-0">
-          <p className="truncate font-medium text-foreground">{nome}</p>
-          <p className="truncate text-sm text-muted-foreground">
+          <p className="font-medium break-words text-foreground sm:truncate">{nome}</p>
+          <p className="text-sm break-words text-muted-foreground sm:truncate">
             {PAPEL_LABEL[papel] ?? papel} · {escopo}
           </p>
         </div>
@@ -51,7 +51,7 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
           <Link
             href="/admin/usuarios/novo"
             aria-label={rotuloCadastrar}
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
+            className={buttonVariants({ variant: "ghost" })}
           >
             <UserPlus aria-hidden="true" />
             <span className="hidden sm:inline">{rotuloCadastrar}</span>
@@ -70,16 +70,25 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
             <span className="hidden sm:inline">Cadastrar Cliente</span>
           </Link>
         )}
-        {/* Único caminho de navegação até /trocar-senha fora do redirecionamento
-            obrigatório de senha provisória — sem isso a troca voluntária só era
-            alcançável digitando a URL direto (achado da revisão manual em 28/09/2026). */}
+        {papel === "admin" && (
+          <Link
+            href="/admin/usuarios"
+            aria-label="Usuários"
+            className={buttonVariants({ variant: "ghost" })}
+          >
+            <Users aria-hidden="true" />
+            <span className="hidden sm:inline">Usuários</span>
+          </Link>
+        )}
+        {/* Único caminho de navegação até /perfil (#56), onde mora a troca voluntária
+            de senha — a /trocar-senha fica só pro redirecionamento obrigatório (#31). */}
         <Link
-          href="/trocar-senha"
-          aria-label="Trocar senha"
-          className={buttonVariants({ variant: "ghost", size: "sm" })}
+          href="/perfil"
+          aria-label="Meu perfil"
+          className={buttonVariants({ variant: "ghost" })}
         >
-          <KeyRound aria-hidden="true" />
-          <span className="hidden sm:inline">Trocar senha</span>
+          <CircleUser aria-hidden="true" />
+          <span className="hidden sm:inline">Meu perfil</span>
         </Link>
         <ThemeToggle />
         {sair}

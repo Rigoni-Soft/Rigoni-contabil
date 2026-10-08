@@ -12,6 +12,8 @@ export const perfilRowSchema = z.object({
   senha_trocada_em: z.string().nullable(),
   senha_auth_alterada_em: z.string().nullable(),
   senha_provisoria_expira_em: z.string(),
+  desativado_em: z.string().nullable(),
+  banido_em: z.string().nullable(),
 });
 
 export type PerfilRowDto = z.infer<typeof perfilRowSchema>;

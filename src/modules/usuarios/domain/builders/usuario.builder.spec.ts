@@ -98,4 +98,26 @@ describe("UsuarioBuilder", () => {
       );
     }
   });
+
+  it.each([
+    ["ativa", null, null, false],
+    ["desativada sem ban confirmado", "2026-10-05T10:00:00Z", null, true],
+    ["desativada com ban confirmado", "2026-10-05T10:00:00Z", "2026-10-05T10:00:01Z", false],
+  ])("bloqueio pendente: %s", (_nome, desativadoEm, banidoEm, esperado) => {
+    const resultado = Usuario.builder()
+      .restaurar({
+        id: "11111111-1111-1111-1111-111111111111",
+        nome: "Jéssica Souza",
+        email: "jessica@rigonicontabil.local",
+        papel: "funcionario",
+        setor: "simples_nacional",
+        senhaTrocadaEm: null,
+        senhaProvisoriaExpiraEm: "2026-10-10T10:00:00Z",
+        desativadoEm,
+        banidoEm,
+      })
+      .build();
+
+    expect(resultado.ok && resultado.value.bloqueioPendente()).toBe(esperado);
+  });
 });

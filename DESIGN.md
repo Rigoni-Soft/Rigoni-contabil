@@ -1,3 +1,4 @@
+
 # DESIGN.md — Rigoni Contábil
 
 Sistema de design estabelecido nesta rodada pela primeira UI real do produto
@@ -96,6 +97,10 @@ largos, abaixo do que o usuário queria ver ocupado):
 - **Login e troca de senha**: ficam de fora da regra — `max-w-sm`/`max-w-md`,
   conteúdo único centralizado, por serem telas de entrada/bloqueio, não de
   trabalho. Decisão explícita do usuário: nunca ocupam a tela toda.
+- **Perfil** (`/perfil`, #56): `max-w-md`, como login/troca de senha; dados da conta em `<dl>` (rótulo
+  `muted-foreground` / valor `font-medium`), seguidos da seção "Trocar
+  senha" separada por `border-t`. Sem cartão: são dois blocos de leitura e
+  formulário, não superfícies elevadas.
 - **Formulário de criar algo** (ex.: cadastro de Cliente, cadastro de
   Líder/Funcionário): `w-[80%]` — mais largo que antes, mas ainda contido,
   porque continua sendo um fluxo de preenchimento linear único, não uma
@@ -137,14 +142,14 @@ sem precisar de classe.
   para bater o alvo de toque de 44px em controles primários. Exporta
   `buttonVariants` (a função `cva` por trás do componente) para qualquer
   elemento que precise da mesma aparência sem ser um `<button>` de verdade —
-  o link "Trocar senha" do `ShellHeader` é o primeiro consumidor
+  o link "Meu perfil" do `ShellHeader` é o primeiro consumidor
   (`buttonVariants({ variant: "ghost", size: "sm" })` num `<Link>`), evitando
   reimplementar as classes do ghost/sm à mão. Qualquer link estilizado como
   botão reusa `buttonVariants` em vez de duplicar classes.
 
   **Rótulo de ação oculto abaixo de `sm` (revisão de 28/09/2026, #32):** os
   links de ação do `ShellHeader` (hoje "Cadastrar Líder"/"Cadastrar
-  Funcionário" e "Trocar senha") escondem o texto do rótulo em telas
+  Funcionário", "Usuários" e "Meu perfil") escondem o texto do rótulo em telas
   estreitas (`<span className="hidden sm:inline">`) mantendo só o ícone —
   necessário porque o header ganhou um terceiro link de ação neste ticket, e
   o rótulo completo dos três (mais o toggle de tema e "Sair") não cabe em
@@ -158,6 +163,13 @@ sem precisar de classe.
   `Building2`, visível só pro papel Admin) segue exatamente esse padrão —
   confirma que a regra vale para qualquer novo link, não só os três
   documentados em #32.
+
+  **Identidade do usuário no header (#56):** abaixo de `sm` o nome e o escopo
+  (`Papel · Setor: <rótulo>`) quebram linha em vez de truncar, e o avatar da
+  inicial (decorativo, `aria-hidden`) some para liberar largura — truncar
+  escondia o Setor do usuário no celular. De `sm` pra cima voltam o avatar e o
+  `truncate`. O Setor é sempre o rótulo legível (`SETOR_LABEL`, em
+  `shared/kernel/setores.ts`), nunca o slug.
 - `input.tsx` — 44px de altura; `aria-invalid` troca borda/anel para
   `destructive` automaticamente.
 
@@ -195,6 +207,11 @@ sem precisar de classe.
   dois grupos de campos claramente distintos (identificação vs. anexos, por
   exemplo) reusa esse padrão de divisor em vez de um `<hr>` genérico ou um
   segundo cartão.
+- `password-input.tsx` (#56) — `Input` com botão de exibir/ocultar
+  (`Eye`/`EyeOff`, alvo 44px) dentro do campo; usado no login e na troca de
+  senha. O `aria-label` do botão ("Mostrar/Ocultar caracteres") evita a
+  palavra "senha" de propósito, para não colidir com `getByLabel("Senha")`
+  dos e2e.
 - `select.tsx` — mesmo tratamento visual do `input.tsx` (44px, mesmas
   bordas/foco, e o mesmo `aria-invalid` para borda/anel `destructive`).
   Introduzido no feed de auditoria para eliminar classes Tailwind duplicadas
@@ -274,8 +291,8 @@ ganhou duas ações lado a lado — `Button` primário "Cadastrar outro"
 novo cadastro, mantendo Papel/Setor travados quando aplicável) e um
 `<Link>` estilizado com `buttonVariants({ variant: "outline" })` "Finalizar"
 (ícone `Check`) que leva pra `/`. `/` é provisório: ainda não existe uma
-tela própria do Setor pra voltar (mesma situação já registrada para o link
-"Trocar senha" do `ShellHeader`, #31) — trocar o destino quando essa tela
+tela própria do Setor pra voltar (a tela de troca de senha agora vive em `/perfil`, #56, linkada no
+`ShellHeader` como "Meu perfil") — trocar o destino quando essa tela
 existir, sem mudar o padrão dos dois botões em si. Vale pra qualquer tela
 futura de cadastro em lote (ex.: Cadastro de Cliente, #33): oferecer
 continuar sem sair, e um jeito explícito de encerrar.
@@ -556,6 +573,27 @@ reenviar repete só a atribuição.
 **Rótulos de Setor/Regime:** slugs do banco nunca aparecem como texto de UI;
 usar `SETOR_LABEL` (`shared/kernel/setores.ts`) e `REGIME_LABEL`.
 `ThemeToggle` mostra o ícone do tema de destino (sol no dark, lua no light).
+
+### Lista de usuários e desativação inline (#58)
+
+`/admin/usuarios` (só Admin) lista usuários ativos num `<ul>` de linhas sobre
+`card` com `divide-border`. A ação "Desativar" é um `Button` `outline`/`sm`; ao
+clicar, troca no próprio lugar por "Confirmar" (`destructive`) + "Cancelar"
+(`ghost`) — confirmação inline, sem modal. Erro aparece abaixo com
+`AlertTriangle` + `text-destructive` (`role="alert"`). A linha do Admin não tem
+ação. `ShellHeader` ganhou o link "Usuários" (ícone `Users`, rótulo oculto
+abaixo de `sm`, mesmo padrão dos demais links de ação).
+
+### Troca de papel inline (#57)
+
+Na mesma linha, ao lado de "Desativar", um `Button` `outline`/`sm`: "Promover"
+(Funcionário → Líder de setor) ou "Rebaixar" (Líder → Funcionário), com
+`aria-label` completo ("Promover Fulana a Líder de setor"). Sem confirmação (a
+troca é reversível e auditada). Se o Setor já tem Líder ativo, o erro explícito
+aparece abaixo do botão (`AlertTriangle` + `text-destructive`, `role="alert"`,
+`max-w-64`) pedindo para rebaixar o atual antes — nunca há troca automática. Os
+dois botões ficam num `flex gap-2`; a linha do Admin segue sem ação. Nenhum token
+novo.
 
 ## Estados e motion
 

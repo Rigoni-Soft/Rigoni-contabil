@@ -53,6 +53,15 @@ class UsuarioRepositoryFalso implements UsuarioRepository {
     if (this.erroTecnicoAoBuscarAtor) return err(this.erroTecnicoAoBuscarAtor);
     return ok(id === "admin-1" ? this.ator : null);
   }
+  async listarComBloqueioPendente(): Promise<Result<Usuario[], AppError>> {
+    return ok([]);
+  }
+  async buscarLiderAtivoDoSetor(): Promise<Result<Usuario | null, AppError>> {
+    return ok(null);
+  }
+  async listarAtivos(): Promise<Result<Usuario[], AppError>> {
+    return ok([]);
+  }
   async criar(usuario: Usuario): Promise<Result<void, AppError>> {
     if (this.erroAoCriar) return err(new ValidationError("falha ao salvar"));
     this.criado = usuario;
@@ -73,6 +82,9 @@ class AuthAdminFalso implements AuthAdminPort {
     return this.erro
       ? err(this.erro)
       : ok({ id: this.idGerado, senhaProvisoria: this.senhaGerada });
+  }
+  async banirConta(): Promise<Result<void, AppError>> {
+    return ok(undefined);
   }
   async removerConta(id: string): Promise<Result<void, AppError>> {
     this.contasRemovidas.push(id);
@@ -204,6 +216,32 @@ describe("CriarUsuario", () => {
       usuarios,
       authAdmin,
       auditoria,
+      new AutorizacaoService(),
+    ).execute(INPUT_VALIDO);
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error).toBeInstanceOf(ForbiddenError);
+    expect(usuarios.criado).toBeNull();
+  });
+
+  it("nega quando o Líder foi desativado mas a sessão ainda vale (#58)", async () => {
+    const usuarios = new UsuarioRepositoryFalso();
+    const lider = Usuario.builder()
+      .comId("admin-1")
+      .comNome("Alguém")
+      .comEmail("alguem@rigonicontabil.local")
+      .comPapel("lider_setor")
+      .comSetor("simples_nacional")
+      .comDesativadoEm("2026-10-01T00:00:00Z")
+      .build();
+    if (!lider.ok) throw new Error("setup inválido");
+    usuarios.ator = lider.value;
+
+    const resultado = await new CriarUsuario(
+      new SessaoFalsa(),
+      usuarios,
+      new AuthAdminFalso(),
+      new AuditoriaFalsa(),
       new AutorizacaoService(),
     ).execute(INPUT_VALIDO);
 
