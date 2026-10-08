@@ -23,7 +23,6 @@ export default async () => ({
       displayName: "integration", // integração (inclui os de webhook com Supertest)
       testMatch: ["**/*.test.ts"],
       testEnvironment: "node",
-      globalSetup: "<rootDir>/jest.global-setup.integration.mjs",
     })(),
   ],
   collectCoverageFrom: [
