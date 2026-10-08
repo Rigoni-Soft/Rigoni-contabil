@@ -73,7 +73,7 @@ export function ConversaAtendimento({
   return (
     <section
       aria-label="Atendimento"
-      className={cn("grid gap-6", !encerrado && "lg:grid-cols-[minmax(0,1fr)_20rem]")}
+      className={cn("grid gap-6", !encerrado && "lg:grid-cols-[minmax(0,1fr)_22rem] 2xl:grid-cols-[minmax(0,1fr)_26rem]")}
     >
       <div className="space-y-6">
         <header>
