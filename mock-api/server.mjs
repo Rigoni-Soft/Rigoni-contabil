@@ -3,7 +3,8 @@
 // Controle de cenário: POST /__modo  {"modo":"normal"|"falha"|"sem_autorizacao"}
 import { createServer } from "node:http";
 
-const PDF = Buffer.from("%PDF-1.4\n% mock\n%%EOF").toString("base64");
+import { PDF_BASE64 as PDF } from "./pdf-teste.mjs";
+
 let modo = "normal";
 
 const recursos = {
