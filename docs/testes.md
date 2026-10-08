@@ -78,6 +78,7 @@ O unitário é o nível priorizado: toda classe, função e método com lógica 
 - **`infra`:** com frequência não é testável unitariamente, porque existe para encapsular a dependência externa. Não se força um teste unitário mockando o próprio Supabase; o teste de integração é o substituto legítimo, não um extra.
 - **Supertest** é uma ferramenta, não um nível: o teste de webhook que o usa é um teste de integração como os demais e usa o sufixo `*.test.ts`. Só entra onde há HTTP real (o handler de webhook).
 - **Ambiente:** Supabase local (seção 5); o próprio teste monta o estado inicial de que precisa.
+- **Dados de teste:** nunca um `DELETE` amplo (nem em `globalSetup`). Cada suíte que usa CNPJ fixo declara a lista e a limpa antes e depois com `removerClientesDeTeste` (`test-support/`), que apaga só esses CNPJs e os eventos de auditoria deles, e só no Supabase local; os CNPJs listados nas suítes são reservados para teste. Clientes e usuários de outra origem (seed, teste manual) ficam intactos, e a suíte roda repetidas vezes sem `db reset` (devolutiva da PR #77, B1).
 
 ### 4.3 E2E (`*.e2e.ts`, Playwright CLI)
 

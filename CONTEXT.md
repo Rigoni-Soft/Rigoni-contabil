@@ -68,7 +68,7 @@ Certidão Negativa de Débitos — documento que atesta a regularidade fiscal do
 ### Atendimento
 
 **Atendimento**:
-A sessão completa de contato entre um Contato e o escritório, do início ao encerramento — pode passar por vários Atendentes e Setores via Transferência. Contém muitas Mensagens.
+A sessão completa de contato entre um Contato e o escritório, do início ao encerramento — pode passar por vários Atendentes e Setores via Transferência. Contém muitas Mensagens. **Começa quando o contato é encaminhado a um humano** (um Setor ou a Fila): a conversa com a URA antes disso (saudação, "já é cliente?", CNPJ, menu) não é guardada como Mensagem; quem recebe o Atendimento vê o resumo e o CNPJ informado na URA (#46), não os balões (decisão do usuário, 2026-10-08, devolutiva da PR #77, B5).
 _Avoid_: Conversa, ticket, chamado.
 
 **Mensagem**:
@@ -76,7 +76,7 @@ Uma única troca dentro de um Atendimento (um "balão"), enviada pelo Contato ou
 _Avoid_: Balão (usar só informalmente), texto.
 
 **Fila**:
-O estado de um Atendimento aguardando um Funcionário disponível no Setor — ao abrir, ou depois de uma Transferência, sem Atendente livre. Não é uma entidade separada do Atendimento — é um estado dele. A fila pode ser do Setor ou de um usuário específico (destino fixo ocupado, ex.: Responsável do Cliente). O cliente recebe sua posição; o Setor vê quem espera, com o que já foi coletado e o tempo de espera (mm:ss, h:mm:ss a partir de 1h). Quando um Funcionário fica livre (encerra ou transfere o Atendimento), assume o cliente mais antigo da fila do Setor ou da sua própria, sempre por antiguidade de entrada na fila e não pela ordem do Balanceamento; esse Atendimento ainda conta no Balanceamento mensal dele.
+O estado de um Atendimento aguardando um Funcionário disponível no Setor — ao abrir, ou depois de uma Transferência, sem Atendente livre. Não é uma entidade separada do Atendimento — é um estado dele. A fila pode ser do Setor ou de um usuário específico (destino fixo ocupado, ex.: Responsável do Cliente). O cliente recebe sua posição; o Setor vê quem espera, com o que já foi coletado e o tempo de espera (mm:ss, h:mm:ss a partir de 1h). Quando um Funcionário fica livre (encerra ou transfere o Atendimento), assume o cliente mais antigo da fila do Setor ou da sua própria, sempre por antiguidade de entrada na fila e não pela ordem do Balanceamento; esse Atendimento ainda conta no Balanceamento mensal dele. Nenhum Atendimento novo ou transferido passa na frente de um mais antigo e elegível: se o Funcionário escolhido está livre mas há alguém esperando, o mais antigo assume e o recém-chegado espera (PR #77, B3).
 _Avoid_: Fila de espera (como entidade própria).
 
 **Transferência**:
@@ -84,7 +84,7 @@ A ação de mover um Atendimento de um Atendente/Setor para outro.
 Para o Setor Simples Nacional só vale para Cliente do Simples Nacional ou MEI e ignora o Balanceamento mensal: vai ao Responsável do Cliente ou, sem Responsável, ao Líder do Setor; se o destino estiver ocupado, o Atendimento entra na fila dele. Responsável inativo (usuário desativado, #58) não conta: o Atendimento vai ao Líder.
 
 **Balanceamento mensal**:
-A regra de distribuição de novos Atendimentos entre os usuários de um Setor (Admin, Líder de setor e Funcionário — todos podem assumir Atendimento), de forma equilibrada ao longo do mês. Não se aplica à ordem de saída da Fila, que é sempre por antiguidade.
+A regra de distribuição de novos Atendimentos entre os usuários de um Setor (Admin, Líder de setor e Funcionário — todos podem assumir Atendimento), de forma equilibrada ao longo do mês. Não se aplica à ordem de saída da Fila, que é sempre por antiguidade. Só conta e só recebe perfil **ativo** do Setor. O crédito do mês é por **assunção** (evento imutável): quem assumiu um Atendimento mantém o crédito mesmo depois de transferi-lo, e quem recebe a Transferência ganha o seu ao assumir; a URA sozinha não gera crédito (PR #77, I1, decidido pelo usuário em 2026-10-08).
 
 ### Auditoria
 
