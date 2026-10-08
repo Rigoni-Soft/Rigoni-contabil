@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  JOBS_SEGREDO,
   MENSAGERIA_MODO,
   MENSAGERIA_SEGREDO_ASSINATURA,
   MENSAGERIA_SEGREDO_SESSAO,
@@ -23,6 +24,7 @@ import type {
 import type { ListarFilaPort } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
 import type { ReceberMensagemPort } from "@/modules/atendimento/application/ports/in/receber-mensagem.provider";
 import type { TransferirAtendimentoPort } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
+import type { VerificarInatividadePort } from "@/modules/atendimento/application/ports/in/verificar-inatividade.provider";
 import type { AuditoriaPort } from "@/modules/atendimento/application/ports/out/auditoria.provider";
 import type { AutenticacaoWebhookPort } from "@/modules/atendimento/application/ports/out/autenticacao-webhook.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
@@ -40,6 +42,7 @@ import { ListarFila } from "@/modules/atendimento/application/use-cases/listar-f
 import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/receber-mensagem.use-case";
 import { RemoverFeriado } from "@/modules/atendimento/application/use-cases/remover-feriado.use-case";
 import { TransferirAtendimento } from "@/modules/atendimento/application/use-cases/transferir-atendimento.use-case";
+import { VerificarInatividade } from "@/modules/atendimento/application/use-cases/verificar-inatividade.use-case";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
 import { GuiasFiscaisGateway } from "@/modules/atendimento/infra/gateways/guias-fiscais.gateway";
 import { HmacAutenticacaoWebhookGateway } from "@/modules/atendimento/infra/gateways/hmac-autenticacao-webhook.gateway";
@@ -104,6 +107,11 @@ export function makeReceberMensagem(): ReceberMensagemPort {
   );
 }
 
+// Quem chama o job precisa do segredo; sem ele configurado, ninguém chama.
+export function jobAutorizado(authorization: string | null): boolean {
+  return JOBS_SEGREDO !== undefined && authorization === `Bearer ${JOBS_SEGREDO}`;
+}
+
 export function makeAutenticacaoWebhook(): AutenticacaoWebhookPort {
   exigirSegredosDeProducao();
   return new HmacAutenticacaoWebhookGateway(
@@ -166,6 +174,18 @@ export async function makeEncerrarAtendimento(): Promise<EncerrarAtendimentoPort
     sessaoViaUsuarios(await createSupabaseServer()),
     repositorio,
     makeAvisarCliente(repositorio),
+  );
+}
+
+// Job (service_role, sem sessão de usuário): a URA verifica a inatividade dos Atendimentos.
+export function makeVerificarInatividade(): VerificarInatividadePort {
+  const supabaseAdmin = createSupabaseAdmin();
+  const repositorio = new SupabaseAtendimentoRepository(supabaseAdmin);
+  return new VerificarInatividade(
+    repositorio,
+    makeAvisarCliente(repositorio),
+    new RelogioSistemaGateway(),
+    new SupabaseFeriadoRepository(supabaseAdmin),
   );
 }
 

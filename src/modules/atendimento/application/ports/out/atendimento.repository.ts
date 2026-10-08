@@ -4,6 +4,7 @@ import type {
 } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type { AnexarMensagemOutput } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
 import type { DadosDoContato } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
+import type { Inativo } from "@/modules/atendimento/domain/services/inatividade.service";
 import type { AppError } from "@/shared/errors/app.error";
 import type { RegimeValor } from "@/shared/kernel/regimes";
 import type { Result } from "@/shared/kernel/result";
@@ -105,6 +106,19 @@ export type AtendimentoAssumido = {
   funcionarioNome: string | null;
 };
 
+// Atendimento em andamento com Funcionário, com o que a verificação de inatividade precisa:
+// quando cada lado escreveu pela última vez e o aviso de encerramento já enviado (se houver).
+export type AtendimentoParaInatividade = {
+  id: string;
+  setor: SetorSlug;
+  funcionarioId: string;
+  telefone: string;
+  chave: string;
+  ultimaDoContato: Date | null;
+  ultimaDoFuncionario: Date | null;
+  aviso: { em: Date; de: Inativo } | null;
+};
+
 export interface AtendimentoRepositoryPort {
   funcionariosDoSetor(setor: SetorSlug): Promise<Result<FuncionarioDoSetor[], AppError>>;
   abrir(atendimento: NovoAtendimento): Promise<Result<ResultadoAbertura, AppError>>;
@@ -126,4 +140,8 @@ export interface AtendimentoRepositoryPort {
     funcionarioId: string | null,
     ator: { id: string; setor: SetorSlug },
   ): Promise<Result<ResultadoEncerramento, AppError>>;
+  paraInatividade(): Promise<Result<AtendimentoParaInatividade[], AppError>>;
+  // true se este chamador marcou o aviso; false se já estava marcado (job repetido não reenvia).
+  marcarAvisoInatividade(atendimentoId: string, de: Inativo): Promise<Result<boolean, AppError>>;
+  limparAvisoInatividade(atendimentoId: string): Promise<Result<void, AppError>>;
 }

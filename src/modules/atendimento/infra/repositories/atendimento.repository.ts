@@ -6,6 +6,7 @@ import type { AnexarMensagemOutput } from "@/modules/atendimento/application/por
 import type {
   AtendimentoAssumido,
   AtendimentoEmAndamento,
+  AtendimentoParaInatividade,
   AtendimentoRepositoryPort,
   FuncionarioDoSetor,
   ItemDaFila,
@@ -16,12 +17,14 @@ import type {
   ResultadoTransferencia,
   RoteamentoDoCliente,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
+import type { Inativo } from "@/modules/atendimento/domain/services/inatividade.service";
 import {
   aberturaRowSchema,
   anexoRowSchema,
   atendimentoEmAndamentoRowSchema,
   encerramentoRowSchema,
   filaRowSchema,
+  inatividadeRowSchema,
   liderRowSchema,
   posicaoRowSchema,
   roteamentoDoClienteRowSchema,
@@ -222,6 +225,51 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     const linha = encerramentoRowSchema.parse(data);
     if (linha.status === "inexistente") return ok(linha);
     return ok({ status: "encerrado", proximo: assumido(linha.proximo) });
+  }
+
+  async paraInatividade(): Promise<Result<AtendimentoParaInatividade[], AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("atendimentos_para_inatividade");
+    if (error) return err(new ServicoExternoError("Falha ao consultar a inatividade."));
+    const paraData = (valor: string | null) => (valor ? new Date(valor) : null);
+    return ok(
+      z
+        .array(inatividadeRowSchema)
+        .parse(data)
+        .map((linha) => ({
+          id: linha.id,
+          setor: linha.setor,
+          funcionarioId: linha.funcionario_id,
+          telefone: linha.telefone,
+          chave: linha.chave_telefone,
+          ultimaDoContato: paraData(linha.ultima_do_contato),
+          ultimaDoFuncionario: paraData(linha.ultima_do_funcionario),
+          aviso:
+            linha.aviso_inatividade_em && linha.aviso_inatividade_de
+              ? { em: new Date(linha.aviso_inatividade_em), de: linha.aviso_inatividade_de }
+              : null,
+        })),
+    );
+  }
+
+  async marcarAvisoInatividade(
+    atendimentoId: string,
+    de: Inativo,
+  ): Promise<Result<boolean, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("marcar_aviso_inatividade", {
+      p_atendimento_id: atendimentoId,
+      p_de: de,
+    });
+    if (error) return err(new ServicoExternoError("Falha ao marcar o aviso de inatividade."));
+    return ok(anexoRowSchema.parse(data));
+  }
+
+  async limparAvisoInatividade(atendimentoId: string): Promise<Result<void, AppError>> {
+    const { error } = await this.supabaseAdmin
+      .from("atendimentos")
+      .update({ aviso_inatividade_em: null, aviso_inatividade_de: null })
+      .eq("id", atendimentoId);
+    if (error) return err(new ServicoExternoError("Falha ao limpar o aviso de inatividade."));
+    return ok(undefined);
   }
 }
 

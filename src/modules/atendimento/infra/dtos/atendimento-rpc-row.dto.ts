@@ -77,3 +77,16 @@ export const filaRowSchema = z.object({
   cnpj: z.string().nullable(),
   resumo: z.string().nullable(),
 });
+
+// `atendimentos_para_inatividade`.
+export const inatividadeRowSchema = z.object({
+  id: z.string(),
+  setor: z.enum(SETORES),
+  funcionario_id: z.string(),
+  telefone: z.string(),
+  chave_telefone: z.string(),
+  ultima_do_contato: z.string().nullable(),
+  ultima_do_funcionario: z.string().nullable(),
+  aviso_inatividade_em: z.string().nullable(),
+  aviso_inatividade_de: z.enum(["contato", "funcionario"]).nullable(),
+});
