@@ -11,6 +11,9 @@ import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
+// TODO(#66): só confere sessão e formato do CNPJ; falta verificar se o CNPJ é de um Cliente visível
+// ao ator (Responsável/Setor, ou Contato reconhecido pela URA) antes de consultar a fonte fiscal.
+// Sem endpoint público e com provedor falso não há exposição hoje; é gate para o Serpro real.
 // Sem autorização vigente a consulta falharia só pra esse CNPJ: falha
 // esperada por cliente, devolvida de forma acionável (contrato em docs/contratos).
 export class BuscarGuia implements BuscarGuiaPort {

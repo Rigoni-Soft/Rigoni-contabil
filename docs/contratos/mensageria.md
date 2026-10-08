@@ -84,10 +84,20 @@ Não há auto-cadastro. Sessão (`ja_cliente`/`cnpj`) ausente, expirada ou `menu
 nome, empresa, CNPJ e caminhos são relidos a cada mensagem. A chave é um HMAC-SHA256 do telefone (segredo
 `MENSAGERIA_SEGREDO_SESSAO`), nunca o número; expira em 10 min (ignorada na leitura, varrida a cada gravação);
 RLS ligada sem policy (só `service_role`). A sessão só é encerrada depois do envio: se o envio falhar, a Meta reenvia e o
-cliente retoma do mesmo ponto; se só o encerramento falhar, o erro é ignorado (não duplica o documento) e a sessão expira sozinha. Limite: se uma alteração for cadastrada com a sessão aberta, o número escolhido pode
-apontar para outra.
+cliente retoma do mesmo ponto; se só o encerramento falhar, o erro é ignorado (não duplica o documento) e a sessão expira sozinha. A sessão da escolha de alteração guarda também um hash da lista exibida: se ela mudar
+(inclusão/exclusão) antes da resposta, nada é entregue e a lista nova é mostrada.
+
+Número que consta como Contato de mais de um Cliente é ambíguo: a URA não oferece documento e encaminha à recepção.
+
+Em produção (`NODE_ENV=production`) a rota recusa qualquer segredo ausente ou igual ao placeholder de desenvolvimento
+(`src/main/segredos-mensageria.factory.ts`), antes de validar HMAC ou criar o client privilegiado.
 
 ## Ainda não coberto (vai com a #68)
 
-Idempotência por `wamid` (a Meta não garante deduplicar reenvios; um lote reenviado reprocessa mensagens já
-respondidas), janela de 24h e templates, e o adapter HTTP real.
+**Gate obrigatório antes de ativar qualquer envio real** (`MENSAGERIA_MODO=real`): idempotência durável por `wamid` e
+por documento entregue (a Meta não garante deduplicar reenvios; um lote reenviado reprocessa mensagens já respondidas,
+e um lote parcialmente processado, com 502 numa mensagem posterior, repete as anteriores; em "Ambos", falha na
+alteração repete o contrato). Exige teste de lote parcial + retry. Hoje o modo real lança erro, então não há reenvio
+real.
+
+Também com a #68: janela de 24h e templates, credenciais reais, observabilidade e o adapter HTTP real.
