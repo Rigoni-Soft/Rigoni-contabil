@@ -1,1 +1,4 @@
-export { POST } from "@/modules/atendimento/presentation/webhooks/verificar-inatividade.webhook";
+export {
+  GET,
+  POST,
+} from "@/modules/atendimento/presentation/webhooks/verificar-inatividade.webhook";

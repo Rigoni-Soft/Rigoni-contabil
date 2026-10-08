@@ -36,6 +36,8 @@ import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
+const PAGINA = 1000;
+
 // Usa o client service_role (docs/adr/0001); a tabela não tem policy para usuário logado.
 export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
@@ -210,12 +212,34 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     );
   }
 
-  async encerrar(
+  encerrar(
     atendimentoId: string,
     funcionarioId: string | null,
     ator: { id: string; setor: SetorSlug },
   ): Promise<Result<ResultadoEncerramento, AppError>> {
-    const { data, error } = await this.supabaseAdmin.rpc("encerrar_atendimento", {
+    return this.chamarEncerramento("encerrar_atendimento", atendimentoId, funcionarioId, ator);
+  }
+
+  encerrarPorInatividade(
+    atendimentoId: string,
+    funcionarioId: string,
+    ator: { id: string; setor: SetorSlug },
+  ): Promise<Result<ResultadoEncerramento, AppError>> {
+    return this.chamarEncerramento(
+      "encerrar_atendimento_por_inatividade",
+      atendimentoId,
+      funcionarioId,
+      ator,
+    );
+  }
+
+  private async chamarEncerramento(
+    rpc: "encerrar_atendimento" | "encerrar_atendimento_por_inatividade",
+    atendimentoId: string,
+    funcionarioId: string | null,
+    ator: { id: string; setor: SetorSlug },
+  ): Promise<Result<ResultadoEncerramento, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc(rpc, {
       p_atendimento_id: atendimentoId,
       p_funcionario_id: funcionarioId,
       p_ator: ator.id,
@@ -227,15 +251,20 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     return ok({ status: "encerrado", proximo: assumido(linha.proximo) });
   }
 
+  // O PostgREST corta cada resposta (1000 linhas por padrão): lê em páginas até acabar.
   async paraInatividade(): Promise<Result<AtendimentoParaInatividade[], AppError>> {
-    const { data, error } = await this.supabaseAdmin.rpc("atendimentos_para_inatividade");
-    if (error) return err(new ServicoExternoError("Falha ao consultar a inatividade."));
     const paraData = (valor: string | null) => (valor ? new Date(valor) : null);
-    return ok(
-      z
-        .array(inatividadeRowSchema)
-        .parse(data)
-        .map((linha) => ({
+    const lidos: AtendimentoParaInatividade[] = [];
+    for (let de = 0; ; de += PAGINA) {
+      const { data, error } = await this.supabaseAdmin
+        .rpc("atendimentos_para_inatividade")
+        .range(de, de + PAGINA - 1);
+      const linhas = z.array(inatividadeRowSchema).safeParse(data);
+      if (error || !linhas.success) {
+        return err(new ServicoExternoError("Falha ao consultar a inatividade."));
+      }
+      for (const linha of linhas.data) {
+        lidos.push({
           id: linha.id,
           setor: linha.setor,
           funcionarioId: linha.funcionario_id,
@@ -247,8 +276,10 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
             linha.aviso_inatividade_em && linha.aviso_inatividade_de
               ? { em: new Date(linha.aviso_inatividade_em), de: linha.aviso_inatividade_de }
               : null,
-        })),
-    );
+        });
+      }
+      if (linhas.data.length < PAGINA) return ok(lidos);
+    }
   }
 
   async marcarAvisoInatividade(

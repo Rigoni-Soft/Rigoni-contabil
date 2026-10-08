@@ -81,15 +81,25 @@ export class VerificarInatividade implements VerificarInatividadePort {
     });
     if (aviso.ok) return aviso;
     // Sem o aviso entregue o cliente não pode ser encerrado: desfaz a marca e a próxima rodada tenta.
-    await this.repositorio.limparAvisoInatividade(atendimento.id);
+    const limpo = await this.repositorio.limparAvisoInatividade(atendimento.id);
+    if (!limpo.ok) {
+      console.error(
+        `Aviso de inatividade sem entrega e sem desfazer (${atendimento.id}):`,
+        limpo.error.message,
+      );
+    }
     return aviso;
   }
 
   private async encerrar(atendimento: AtendimentoParaInatividade): Promise<Result<void, AppError>> {
-    const encerrado = await this.repositorio.encerrar(atendimento.id, atendimento.funcionarioId, {
-      id: URA_ATOR_ID,
-      setor: atendimento.setor,
-    });
+    const encerrado = await this.repositorio.encerrarPorInatividade(
+      atendimento.id,
+      atendimento.funcionarioId,
+      {
+        id: URA_ATOR_ID,
+        setor: atendimento.setor,
+      },
+    );
     if (!encerrado.ok) return encerrado;
     // Mudou ou foi encerrado por outro caminho entre a leitura e agora: nada a fazer.
     if (encerrado.value.status === "inexistente") return ok(undefined);

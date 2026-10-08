@@ -140,6 +140,13 @@ export interface AtendimentoRepositoryPort {
     funcionarioId: string | null,
     ator: { id: string; setor: SetorSlug },
   ): Promise<Result<ResultadoEncerramento, AppError>>;
+  // Como `encerrar`, mas só se o aviso de inatividade continua marcado e quem estava inativo não
+  // escreveu depois dele (leitura e encerramento não se cruzam com uma Mensagem nova).
+  encerrarPorInatividade(
+    atendimentoId: string,
+    funcionarioId: string,
+    ator: { id: string; setor: SetorSlug },
+  ): Promise<Result<ResultadoEncerramento, AppError>>;
   paraInatividade(): Promise<Result<AtendimentoParaInatividade[], AppError>>;
   // true se este chamador marcou o aviso; false se já estava marcado (job repetido não reenvia).
   marcarAvisoInatividade(atendimentoId: string, de: Inativo): Promise<Result<boolean, AppError>>;

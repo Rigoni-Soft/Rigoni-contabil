@@ -32,7 +32,7 @@ const resultado = z
     // segredo do webhook): trocar um não invalida o outro. Valor falso só pra dev.
     MENSAGERIA_SEGREDO_SESSAO: z.string().min(1).default(SEGREDOS_MENSAGERIA_PLACEHOLDER.sessao),
     // Bearer das rotas de job (agendador). Sem valor, as rotas recusam tudo.
-    JOBS_SEGREDO: z.string().min(1).optional(),
+    CRON_SECRET: z.string().min(1).optional(),
   })
   .safeParse({
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -41,7 +41,7 @@ const resultado = z
     MENSAGERIA_SEGREDO_ASSINATURA: process.env.MENSAGERIA_SEGREDO_ASSINATURA || undefined,
     MENSAGERIA_TOKEN_VERIFICACAO: process.env.MENSAGERIA_TOKEN_VERIFICACAO || undefined,
     MENSAGERIA_SEGREDO_SESSAO: process.env.MENSAGERIA_SEGREDO_SESSAO || undefined,
-    JOBS_SEGREDO: process.env.JOBS_SEGREDO || undefined,
+    CRON_SECRET: process.env.CRON_SECRET || undefined,
   });
 
 if (!resultado.success) {
@@ -55,5 +55,5 @@ export const {
   MENSAGERIA_SEGREDO_ASSINATURA,
   MENSAGERIA_TOKEN_VERIFICACAO,
   MENSAGERIA_SEGREDO_SESSAO,
-  JOBS_SEGREDO,
+  CRON_SECRET,
 } = resultado.data;

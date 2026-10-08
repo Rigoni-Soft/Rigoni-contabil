@@ -33,7 +33,8 @@ as $$
   from public.atendimentos a
   left join public.mensagens m on m.atendimento_id = a.id
   where a.status = 'em_andamento' and a.funcionario_id is not null
-  group by a.id;
+  group by a.id
+  order by a.id;
 $$;
 revoke all on function public.atendimentos_para_inatividade() from public, anon, authenticated;
 
@@ -55,4 +56,42 @@ as $$
   select exists (select 1 from marcado);
 $$;
 revoke all on function public.marcar_aviso_inatividade(uuid, public.autor_mensagem)
+  from public, anon, authenticated;
+
+-- Encerra só se o aviso continua marcado e quem estava inativo não escreveu depois dele; senão
+-- 'inexistente' (o job tenta de novo na próxima rodada). Sob o lock do Setor, como o encerramento.
+create function public.encerrar_atendimento_por_inatividade(
+  p_atendimento_id uuid,
+  p_funcionario_id uuid,
+  p_ator uuid,
+  p_ator_setor public.setor_slug
+) returns jsonb
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  v_setor public.setor_slug;
+begin
+  select setor into v_setor from public.atendimentos where id = p_atendimento_id;
+  if v_setor is null then
+    return jsonb_build_object('status', 'inexistente');
+  end if;
+  perform pg_advisory_xact_lock(hashtext('atendimento:' || v_setor::text));
+
+  if not exists (
+    select 1 from public.atendimentos a
+    where a.id = p_atendimento_id and a.aviso_inatividade_em is not null
+      and not exists (
+        select 1 from public.mensagens m
+        where m.atendimento_id = a.id and m.autor = a.aviso_inatividade_de
+          and m.criado_em > a.aviso_inatividade_em
+      )
+  ) then
+    return jsonb_build_object('status', 'inexistente');
+  end if;
+  return public.encerrar_atendimento(p_atendimento_id, p_funcionario_id, p_ator, p_ator_setor);
+end;
+$$;
+revoke all on function public.encerrar_atendimento_por_inatividade(uuid, uuid, uuid, public.setor_slug)
   from public, anon, authenticated;

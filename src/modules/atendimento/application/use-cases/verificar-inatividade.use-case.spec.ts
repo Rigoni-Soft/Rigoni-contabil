@@ -52,7 +52,7 @@ function montar(
       limpos.push(id);
       return ok(undefined);
     },
-    encerrar: async (...args: unknown[]) => {
+    encerrarPorInatividade: async (...args: unknown[]) => {
       encerrados.push(args);
       return ok(opcoes.encerramento ?? { status: "encerrado" as const, proximo: null });
     },

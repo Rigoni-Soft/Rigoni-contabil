@@ -1,7 +1,7 @@
 import "server-only";
 
 import {
-  JOBS_SEGREDO,
+  CRON_SECRET,
   MENSAGERIA_MODO,
   MENSAGERIA_SEGREDO_ASSINATURA,
   MENSAGERIA_SEGREDO_SESSAO,
@@ -109,7 +109,7 @@ export function makeReceberMensagem(): ReceberMensagemPort {
 
 // Quem chama o job precisa do segredo; sem ele configurado, ninguém chama.
 export function jobAutorizado(authorization: string | null): boolean {
-  return JOBS_SEGREDO !== undefined && authorization === `Bearer ${JOBS_SEGREDO}`;
+  return CRON_SECRET !== undefined && authorization === `Bearer ${CRON_SECRET}`;
 }
 
 export function makeAutenticacaoWebhook(): AutenticacaoWebhookPort {
