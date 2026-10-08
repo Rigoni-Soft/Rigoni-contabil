@@ -48,6 +48,27 @@ async function abrir(telefone: string, funcionarioId: string | null) {
   return r.value.id;
 }
 
+// Dono já em atendimento, gravado direto: com alguém esperando na Fila, `abrir` (corretamente, PR #77,
+// B3) faria o dono assumir o mais antigo. Este teste precisa do estado "dono ocupado + Fila".
+async function abrirDireto(telefone: string, funcionarioId: string): Promise<string> {
+  const { data, error } = await admin
+    .from("atendimentos")
+    .insert({
+      telefone,
+      chave_telefone: telefone,
+      setor: SETOR,
+      funcionario_id: funcionarioId,
+      assumido_em: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  await admin
+    .from("assuncoes_atendimento")
+    .insert({ atendimento_id: data.id, funcionario_id: funcionarioId });
+  return data.id;
+}
+
 async function mensagem(telefone: string, autor: "contato" | "funcionario") {
   await repositorio.anexarMensagem(telefone, { autor, texto: "msg" });
 }
@@ -82,7 +103,7 @@ describe("SupabaseAtendimentoRepository — inatividade", () => {
 
   it("marca o aviso uma vez só e limpa", async () => {
     const funcionario = await criarFuncionario("Func Inatividade B");
-    const id = await abrir(TELEFONES[2], funcionario);
+    const id = await abrirDireto(TELEFONES[2], funcionario);
 
     expect(await repositorio.marcarAvisoInatividade(id, "funcionario")).toEqual({
       ok: true,
