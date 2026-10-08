@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useMutationState, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type {
   ConversaVista,
@@ -13,6 +13,7 @@ import {
 
 export const conversaKeys = {
   conversa: (atendimentoId: string) => ["atendimento", "conversa", atendimentoId] as const,
+  transferencia: (atendimentoId: string) => ["atendimento", "transferir", atendimentoId] as const,
 };
 
 // ponytail: polling a cada 5 s para a Mensagem do cliente aparecer; Realtime (`*.realtime.ts`,
@@ -53,6 +54,7 @@ export function useTransferirAtendimentoMutation(atendimentoId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: conversaKeys.transferencia(atendimentoId),
     mutationFn: async (dados: { setorDestino: string; resumo: string }) => {
       const resultado = await transferirAtendimentoAction({ atendimentoId, ...dados });
       if (!resultado.ok) throw new Error(resultado.error.message);
@@ -73,4 +75,16 @@ export function useEnviarMensagemMutation(atendimentoId: string) {
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: conversaKeys.conversa(atendimentoId) }),
   });
+}
+
+// As regiões da tela (mensagens, compositor, ações) são Containers separados; quem transferiu o
+// Atendimento avisa as outras pelo cache de mutações do React Query, sem estado paralelo.
+export function useTransferenciaConcluida(
+  atendimentoId: string,
+): { setorDestino: string } | undefined {
+  const concluidas = useMutationState({
+    filters: { mutationKey: conversaKeys.transferencia(atendimentoId), status: "success" },
+    select: (mutacao) => mutacao.state.variables as { setorDestino: string },
+  });
+  return concluidas.at(-1);
 }

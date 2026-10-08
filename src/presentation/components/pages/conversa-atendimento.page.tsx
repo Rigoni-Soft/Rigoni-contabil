@@ -1,24 +1,40 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
-type ConversaAtendimentoPageProps = { header: React.ReactNode; conversa: React.ReactNode };
+import { ConversaTemplate } from "@/presentation/components/templates/conversa-template.component";
 
-// Em tela larga a página ocupa exatamente a altura da janela e não rola; quem rola é só a lista de
-// mensagens, dentro da conversa. Em tela estreita volta a ser uma página comum.
-export function ConversaAtendimentoPage({ header, conversa }: ConversaAtendimentoPageProps) {
+type ConversaAtendimentoPageProps = {
+  header: React.ReactNode;
+  cabecalho: React.ReactNode;
+  mensagens: React.ReactNode;
+  compositor: React.ReactNode;
+  acoes?: React.ReactNode;
+};
+
+// O template da conversa preenchido: os slots recebem os Containers montados em `app/`.
+export function ConversaAtendimentoPage({
+  header,
+  cabecalho,
+  mensagens,
+  compositor,
+  acoes,
+}: ConversaAtendimentoPageProps) {
   return (
-    <main className="flex min-h-screen flex-col bg-background lg:h-dvh lg:min-h-0 lg:overflow-hidden">
-      {header}
-      <div className="flex min-h-0 flex-1 flex-col px-4 py-3 sm:px-6 lg:px-8">
+    <ConversaTemplate
+      header={header}
+      voltar={
         <Link
           href="/"
-          className="mb-2 inline-flex shrink-0 items-center gap-1.5 self-start text-sm text-muted-foreground hover:text-foreground hover:underline"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
           Voltar
         </Link>
-        <div className="min-h-0 flex-1">{conversa}</div>
-      </div>
-    </main>
+      }
+      cabecalho={cabecalho}
+      mensagens={mensagens}
+      compositor={compositor}
+      acoes={acoes}
+    />
   );
 }
