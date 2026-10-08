@@ -92,13 +92,18 @@ export function ConversaAtendimento({
       {!encerrado && (
         <div className="space-y-2 rounded-lg border border-border p-4">
           <h2 className="font-semibold text-foreground">Enviar ao cliente</h2>
+          <p className="text-sm text-muted-foreground">
+            Escolha um documento do cadastro do Cliente (contrato social e alterações contratuais) e
+            clique em Enviar: ele chega ao cliente no WhatsApp. Não é preciso anexar arquivo.
+          </p>
           {semCliente ? (
             <p className="text-sm text-muted-foreground">
               Sem Cliente vinculado a este número não há documentos para enviar.
             </p>
           ) : servicos.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              O Cliente não tem documentos cadastrados.
+              Este Cliente não tem contrato social nem alterações cadastrados, então não há o que
+              enviar. O Admin anexa os documentos no cadastro do Cliente.
             </p>
           ) : (
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
