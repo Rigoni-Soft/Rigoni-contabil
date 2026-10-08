@@ -53,8 +53,8 @@ describe("conversaParaView", () => {
 
   it("serviços viram opções com o nome que o cliente vê", () => {
     expect(conversaParaView(CONVERSA).servicos).toEqual([
-      { valor: "contrato", rotulo: "Contrato social" },
-      { valor: "alteracao:2026-03-01", rotulo: "Alteração de 01/03/2026" },
+      { valor: "contrato", rotulo: "Contrato social", grupo: "contrato" },
+      { valor: "alteracao:2026-03-01", rotulo: "Alteração de 01/03/2026", grupo: "alteracao" },
     ]);
   });
 

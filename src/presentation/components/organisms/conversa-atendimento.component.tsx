@@ -1,7 +1,9 @@
+import { FileText } from "lucide-react";
+
 import { Button } from "@/presentation/components/ui/button";
-import { Label } from "@/presentation/components/ui/label";
-import { Select } from "@/presentation/components/ui/select";
 import { cn } from "@/presentation/lib/utils";
+
+const SERVICOS_EM_CONSTRUCAO = ["Guia de imposto", "Guia de parcelamento", "CND"];
 
 type MensagemView = {
   id: string;
@@ -18,10 +20,8 @@ type ConversaAtendimentoProps = {
   encerrado: boolean;
   semCliente: boolean;
   mensagens: MensagemView[];
-  servicos: { valor: string; rotulo: string }[];
-  servicoEscolhido: string;
-  onEscolherServico: (valor: string) => void;
-  onEnviarServico: () => void;
+  servicos: { valor: string; rotulo: string; grupo: "contrato" | "alteracao" }[];
+  onEnviarServico: (valor: string) => void;
   enviando: boolean;
   aviso?: { tipo: "erro" | "sucesso"; texto: string };
 };
@@ -35,12 +35,13 @@ export function ConversaAtendimento({
   semCliente,
   mensagens,
   servicos,
-  servicoEscolhido,
-  onEscolherServico,
   onEnviarServico,
   enviando,
   aviso,
 }: ConversaAtendimentoProps) {
+  const contrato = servicos.find((servico) => servico.grupo === "contrato");
+  const alteracoes = servicos.filter((servico) => servico.grupo === "alteracao");
+
   return (
     <section aria-label="Atendimento" className="space-y-6">
       <header>
@@ -90,41 +91,83 @@ export function ConversaAtendimento({
       </ol>
 
       {!encerrado && (
-        <div className="space-y-2 rounded-lg border border-border p-4">
-          <h2 className="font-semibold text-foreground">Enviar ao cliente</h2>
-          <p className="text-sm text-muted-foreground">
-            Escolha um documento do cadastro do Cliente (contrato social e alterações contratuais) e
-            clique em Enviar: ele chega ao cliente no WhatsApp. Não é preciso anexar arquivo.
-          </p>
+        <div className="space-y-4 rounded-lg border border-border p-4">
+          <div>
+            <h2 className="font-semibold text-foreground">Serviços do cliente</h2>
+            <p className="text-sm text-muted-foreground">
+              Os mesmos serviços do menu da URA. Um clique envia ao WhatsApp do cliente, sem pedir o
+              CNPJ de novo.
+            </p>
+          </div>
+
           {semCliente ? (
             <p className="text-sm text-muted-foreground">
-              Sem Cliente vinculado a este número não há documentos para enviar.
-            </p>
-          ) : servicos.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Este Cliente não tem contrato social nem alterações cadastrados, então não há o que
-              enviar. O Admin anexa os documentos no cadastro do Cliente.
+              Sem Cliente vinculado a este número não há serviços para disparar.
             </p>
           ) : (
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-              <div className="flex-1 space-y-1">
-                <Label htmlFor="servico-atendimento">Documento</Label>
-                <Select
-                  id="servico-atendimento"
-                  value={servicoEscolhido}
-                  onChange={(e) => onEscolherServico(e.target.value)}
-                >
-                  {servicos.map((servico) => (
-                    <option key={servico.valor} value={servico.valor}>
-                      {servico.rotulo}
-                    </option>
-                  ))}
-                </Select>
+            <>
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-foreground">
+                  Contrato social e alterações
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {contrato ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={enviando}
+                      onClick={() => onEnviarServico(contrato.valor)}
+                    >
+                      <FileText aria-hidden="true" />
+                      {contrato.rotulo}
+                    </Button>
+                  ) : (
+                    <Button type="button" variant="outline" disabled>
+                      <FileText aria-hidden="true" />
+                      Contrato social (não cadastrado)
+                    </Button>
+                  )}
+                  {alteracoes.length === 0 ? (
+                    <Button type="button" variant="outline" disabled>
+                      <FileText aria-hidden="true" />
+                      Alterações (não cadastradas)
+                    </Button>
+                  ) : (
+                    alteracoes.map((alteracao) => (
+                      <Button
+                        key={alteracao.valor}
+                        type="button"
+                        variant="outline"
+                        disabled={enviando}
+                        onClick={() => onEnviarServico(alteracao.valor)}
+                      >
+                        <FileText aria-hidden="true" />
+                        {alteracao.rotulo}
+                      </Button>
+                    ))
+                  )}
+                </div>
               </div>
-              <Button type="button" onClick={onEnviarServico} disabled={enviando}>
-                {enviando ? "Enviando..." : "Enviar"}
-              </Button>
-            </div>
+
+              {/* Mesmos itens do menu da URA, que ainda responde "em construção" a eles (#42 e os
+                  adapters reais do Serpro, #66-#68). Passam a disparar quando existirem. */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-foreground">Guias e certidões</h3>
+                <div className="flex flex-wrap gap-2">
+                  {SERVICOS_EM_CONSTRUCAO.map((rotulo) => (
+                    <Button key={rotulo} type="button" variant="outline" disabled>
+                      {rotulo} · em construção
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {enviando && (
+            <p role="status" className="text-sm text-muted-foreground">
+              Enviando...
+            </p>
           )}
           {aviso && (
             <p

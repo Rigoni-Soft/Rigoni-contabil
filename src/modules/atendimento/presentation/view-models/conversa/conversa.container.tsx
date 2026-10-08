@@ -18,8 +18,6 @@ export function ConversaContainer({
     semCliente,
     mensagens,
     servicos,
-    servicoEscolhido,
-    aoEscolherServico,
     aoEnviarServico,
     enviando,
     aviso,
@@ -33,8 +31,6 @@ export function ConversaContainer({
       semCliente={semCliente}
       mensagens={mensagens}
       servicos={servicos}
-      servicoEscolhido={servicoEscolhido}
-      onEscolherServico={aoEscolherServico}
       onEnviarServico={aoEnviarServico}
       enviando={enviando}
       aviso={aviso}

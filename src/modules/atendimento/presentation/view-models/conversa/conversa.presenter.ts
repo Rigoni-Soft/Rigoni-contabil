@@ -23,7 +23,7 @@ export type ConversaView = {
   encerrado: boolean;
   semCliente: boolean;
   mensagens: MensagemView[];
-  servicos: { valor: string; rotulo: string }[];
+  servicos: { valor: string; rotulo: string; grupo: "contrato" | "alteracao" }[];
 };
 
 // O telefone do Atendimento vem com DDI; a máscara é de DDD + número.
@@ -87,6 +87,7 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
     servicos: conversa.documentos.map((d) => ({
       valor: valorDaOpcao(d),
       rotulo: d.descricao,
+      grupo: d.tipo,
     })),
   };
 }

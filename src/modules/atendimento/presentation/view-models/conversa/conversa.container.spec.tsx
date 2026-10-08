@@ -14,9 +14,7 @@ jest.mock("@/modules/atendimento/presentation/view-models/conversa/use-conversa.
     encerrado: false,
     semCliente: false,
     mensagens: [{ id: "1", lado: "contato", autor: "Maria", texto: "oi", hora: "08/10 12:30" }],
-    servicos: [{ valor: "contrato", rotulo: "Contrato social" }],
-    servicoEscolhido: "contrato",
-    aoEscolherServico: jest.fn(),
+    servicos: [{ valor: "contrato", rotulo: "Contrato social", grupo: "contrato" }],
     aoEnviarServico,
     enviando: false,
     aviso: undefined,
@@ -31,12 +29,12 @@ describe("ConversaContainer", () => {
     expect(screen.getByText("oi")).toBeInTheDocument();
   });
 
-  it("clicar em Enviar chama a função do hook", async () => {
+  it("clicar no serviço chama a função do hook com ele", async () => {
     const usuario = userEvent.setup();
     render(<ConversaContainer atendimentoId="at-1" initialData={{} as ConversaVista} />);
 
-    await usuario.click(screen.getByRole("button", { name: "Enviar" }));
+    await usuario.click(screen.getByRole("button", { name: "Contrato social" }));
 
-    expect(aoEnviarServico).toHaveBeenCalledTimes(1);
+    expect(aoEnviarServico).toHaveBeenCalledWith("contrato");
   });
 });

@@ -43,19 +43,21 @@ describe("useConversa", () => {
     obter.mockResolvedValue({ ok: true, data: CONVERSA });
   });
 
-  it("parte da conversa carregada no servidor e escolhe o primeiro documento", () => {
+  it("parte da conversa carregada no servidor", () => {
     const { result } = renderizar();
 
     expect(result.current.titulo).toBe("Maria");
-    expect(result.current.servicoEscolhido).toBe("contrato");
+    expect(result.current.servicos.map((s) => s.valor)).toEqual([
+      "contrato",
+      "alteracao:2026-03-01",
+    ]);
   });
 
   it("envia o documento escolhido e avisa o sucesso", async () => {
     enviar.mockResolvedValue({ ok: true, data: undefined });
     const { result } = renderizar();
 
-    act(() => result.current.aoEscolherServico("alteracao:2026-03-01"));
-    act(() => result.current.aoEnviarServico());
+    act(() => result.current.aoEnviarServico("alteracao:2026-03-01"));
 
     await waitFor(() => expect(result.current.aviso?.tipo).toBe("sucesso"));
     expect(enviar).toHaveBeenCalledWith({
@@ -71,7 +73,7 @@ describe("useConversa", () => {
     });
     const { result } = renderizar();
 
-    act(() => result.current.aoEnviarServico());
+    act(() => result.current.aoEnviarServico("contrato"));
 
     await waitFor(() =>
       expect(result.current.aviso).toEqual({ tipo: "erro", texto: "Falha ao enviar o documento." }),

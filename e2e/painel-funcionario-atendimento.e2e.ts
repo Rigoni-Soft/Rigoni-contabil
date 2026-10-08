@@ -95,6 +95,6 @@ test.describe("Painel do Funcionário (#49)", () => {
     await expect(balaoDoAtendente).toContainText("Segundo Funcionário Financeiro · Financeiro");
 
     // O Cliente está vinculado: o disparo oferece o documento sem pedir o CNPJ de novo.
-    await expect(page.getByRole("heading", { name: "Enviar ao cliente" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Serviços do cliente" })).toBeVisible();
   });
 });

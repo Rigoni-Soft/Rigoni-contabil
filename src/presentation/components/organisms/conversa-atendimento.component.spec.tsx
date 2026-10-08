@@ -27,11 +27,13 @@ const BASE = {
     },
   ],
   servicos: [
-    { valor: "contrato", rotulo: "Contrato social" },
-    { valor: "alteracao:2026-03-01", rotulo: "Alteração de 01/03/2026" },
+    { valor: "contrato", rotulo: "Contrato social", grupo: "contrato" as const },
+    {
+      valor: "alteracao:2026-03-01",
+      rotulo: "Alteração de 01/03/2026",
+      grupo: "alteracao" as const,
+    },
   ],
-  servicoEscolhido: "contrato",
-  onEscolherServico: jest.fn(),
   onEnviarServico: jest.fn(),
   enviando: false,
 };
@@ -57,33 +59,52 @@ describe("ConversaAtendimento", () => {
     expect(screen.getByText("Bom dia").closest("li")).toHaveClass("self-end");
   });
 
-  it("escolher outro documento e enviar chama os callbacks", async () => {
-    const aoEscolher = jest.fn();
+  it("um clique no serviço dispara o envio dele", async () => {
     const aoEnviar = jest.fn();
     const usuario = userEvent.setup();
-    render(
-      <ConversaAtendimento {...BASE} onEscolherServico={aoEscolher} onEnviarServico={aoEnviar} />,
-    );
+    render(<ConversaAtendimento {...BASE} onEnviarServico={aoEnviar} />);
 
-    await usuario.selectOptions(screen.getByLabelText("Documento"), "alteracao:2026-03-01");
-    await usuario.click(screen.getByRole("button", { name: "Enviar" }));
+    await usuario.click(screen.getByRole("button", { name: "Contrato social" }));
+    await usuario.click(screen.getByRole("button", { name: "Alteração de 01/03/2026" }));
 
-    expect(aoEscolher).toHaveBeenCalledWith("alteracao:2026-03-01");
-    expect(aoEnviar).toHaveBeenCalledTimes(1);
+    expect(aoEnviar).toHaveBeenNthCalledWith(1, "contrato");
+    expect(aoEnviar).toHaveBeenNthCalledWith(2, "alteracao:2026-03-01");
+  });
+
+  it("guia de imposto, de parcelamento e CND aparecem desabilitados enquanto a URA não os tem", () => {
+    render(<ConversaAtendimento {...BASE} />);
+
+    for (const nome of [/Guia de imposto/, /Guia de parcelamento/, /CND/]) {
+      expect(screen.getByRole("button", { name: nome })).toBeDisabled();
+    }
+  });
+
+  it("Cliente sem contrato ou sem alterações mostra o botão desabilitado", () => {
+    render(<ConversaAtendimento {...BASE} servicos={[]} />);
+
+    expect(screen.getByRole("button", { name: /Contrato social/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Alterações/ })).toBeDisabled();
+  });
+
+  it("enquanto envia, os serviços ficam travados", () => {
+    render(<ConversaAtendimento {...BASE} enviando />);
+
+    expect(screen.getByRole("button", { name: "Contrato social" })).toBeDisabled();
+    expect(screen.getByText("Enviando...")).toBeInTheDocument();
   });
 
   it("sem Cliente vinculado explica por que não há o que enviar", () => {
     render(<ConversaAtendimento {...BASE} semCliente servicos={[]} />);
 
     expect(screen.getByText(/Sem Cliente vinculado/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Enviar" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Contrato social" })).not.toBeInTheDocument();
   });
 
   it("Atendimento encerrado não oferece envio", () => {
     render(<ConversaAtendimento {...BASE} encerrado />);
 
     expect(screen.getByText("Atendimento encerrado.")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Enviar" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Contrato social" })).not.toBeInTheDocument();
   });
 
   it("mostra o erro do envio como alerta", () => {
