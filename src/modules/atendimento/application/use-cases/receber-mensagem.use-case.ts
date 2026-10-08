@@ -374,7 +374,11 @@ export class ReceberMensagem implements ReceberMensagemPort {
     try {
       guia = await this.guias.buscar(contato.clienteId, tipo);
     } catch (erro) {
-      console.error(`Falha inesperada ao buscar a guia ${tipo}:`, erro);
+      // Só a mensagem: o objeto de erro inteiro poderia levar o CNPJ ao log.
+      console.error(
+        `Falha inesperada ao buscar a guia ${tipo}:`,
+        erro instanceof Error ? erro.message : "erro desconhecido",
+      );
       return this.enviar(telefone, GUIA_INDISPONIVEL);
     }
     if (!guia.ok) {
