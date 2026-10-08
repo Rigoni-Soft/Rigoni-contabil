@@ -354,4 +354,28 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
     const { data } = await admin.from("atendimentos").select("setor").eq("id", id).single();
     expect(data).toEqual({ setor: "recepcao" });
   });
+
+  // Por último: desativa o Líder e o Responsável usados pelos testes acima (#58).
+  it("usuário desativado sai do Balanceamento, não é Responsável nem Líder de destino", async () => {
+    const op = await admin
+      .from("cliente_cadastro_operacional_sn")
+      .select("responsavel_id")
+      .eq("cliente_id", clienteId)
+      .single();
+    expect(op.data?.responsavel_id).toBe(destinoId);
+    const agora = new Date().toISOString();
+    for (const id of [destinoId, liderCondominios])
+      await admin.from("perfis").update({ desativado_em: agora }).eq("id", id);
+
+    const roteamento = await repositorio.roteamentoDoCliente(clienteId);
+    expect(roteamento).toEqual({
+      ok: true,
+      value: { regime: "simples_nacional", responsavelId: null },
+    });
+    expect(await repositorio.liderDoSetor("condominios")).toEqual({ ok: true, value: null });
+    const setorDoLider = await repositorio.funcionariosDoSetor("condominios");
+    expect(setorDoLider.ok && setorDoLider.value.map((f) => f.id)).not.toContain(liderCondominios);
+    const setorDoDestino = await repositorio.funcionariosDoSetor("simples_nacional");
+    expect(setorDoDestino.ok && setorDoDestino.value.map((f) => f.id)).not.toContain(destinoId);
+  });
 });
