@@ -16,7 +16,7 @@
     "new:module": "node scripts/new-module.mjs",
     "mock:api": "node mock-api/server.mjs",
     "test": "jest --selectProjects unit",
-    "test:int": "jest --selectProjects integration",
+    "test:int": "jest --selectProjects integration --runInBand",
     "test:e2e": "playwright test",
     "test:e2e:diff": "playwright test --only-changed=develop",
     "test:cov": "jest --coverage"
