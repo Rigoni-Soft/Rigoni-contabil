@@ -1,0 +1,25 @@
+# Contrato: obrigações fiscais do Cliente
+
+Contrato **neutro** que o sistema espera de qualquer fonte de DAS, guia de parcelamento e CND. Nenhum
+termo de provedor aparece aqui: o Serpro (ver `docs/pesquisa/serpro-api.md`) é só um dos adapters
+possíveis (#66), traduzido pra este formato. Em desenvolvimento quem responde é `mock-api/` (`yarn mock:api`).
+
+Configuração: `OBRIGACOES_FISCAIS_URL` (padrão `http://127.0.0.1:4010`). Porta no código:
+`ObrigacoesFiscaisPort`; adapter: `ObrigacoesFiscaisHttpGateway`.
+
+`{cnpj}` = 14 caracteres `[0-9A-Z]` (CNPJ numérico ou alfanumérico), sem máscara. Datas `AAAA-MM-DD`; valores em centavos; PDFs em base64.
+
+| Recurso | Resposta 200 |
+|---|---|
+| `GET /clientes/{cnpj}/autorizacao` | `{ "vigente": true, "dataExpiracao": "2027-12-31" }` ou `{ "vigente": false }` |
+| `GET /clientes/{cnpj}/das` | `{ nomeArquivo, pdfBase64, competencia "AAAA-MM", valorCentavos, vencimento }` |
+| `GET /clientes/{cnpj}/parcelamento` | `{ nomeArquivo, pdfBase64, parcela "AAAAMM", valorCentavos, vencimento }` |
+| `GET /clientes/{cnpj}/cnd` | `{ nomeArquivo, pdfBase64, validade }` |
+
+Qualquer resposta não-2xx, timeout (10 s) ou corpo fora deste formato vira `ServicoExternoError`
+no sistema — falha esperada, nunca derruba o restante.
+
+## Mock
+
+`POST /__modo` com `{"modo": "normal" | "falha" | "sem_autorizacao"}` troca o cenário:
+`falha` responde 503 em tudo; `sem_autorizacao` devolve `vigente: false`.

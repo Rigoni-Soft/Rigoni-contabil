@@ -2,6 +2,8 @@ import "server-only";
 
 import { z } from "zod";
 
+import { SEGREDOS_MENSAGERIA_PLACEHOLDER } from "@/main/segredos-mensageria.factory";
+
 export * from "./env.client";
 
 // PORT não entra aqui: nenhum código do app a lê (é consumida só por `next
@@ -12,13 +14,42 @@ export * from "./env.client";
 const resultado = z
   .object({
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+    // Fonte das obrigações fiscais (docs/contratos): por padrão o mock de mock-api/.
+    OBRIGACOES_FISCAIS_URL: z.url().default("http://127.0.0.1:4010"),
+    // Adapter de mensageria (docs/contratos/mensageria.md): falso por padrão.
+    MENSAGERIA_MODO: z.enum(["falso", "real"]).default("falso"),
+    // Segredos do webhook (assinatura HMAC e handshake de verificação). Valores
+    // falsos de dev; em produção vêm do painel do provedor (a factory recusa os falsos).
+    MENSAGERIA_SEGREDO_ASSINATURA: z
+      .string()
+      .min(1)
+      .default(SEGREDOS_MENSAGERIA_PLACEHOLDER.assinatura),
+    MENSAGERIA_TOKEN_VERIFICACAO: z
+      .string()
+      .min(1)
+      .default(SEGREDOS_MENSAGERIA_PLACEHOLDER.tokenVerificacao),
+    // Chave do HMAC que pseudonimiza o telefone na sessão da URA. Própria (não reaproveita o
+    // segredo do webhook): trocar um não invalida o outro. Valor falso só pra dev.
+    MENSAGERIA_SEGREDO_SESSAO: z.string().min(1).default(SEGREDOS_MENSAGERIA_PLACEHOLDER.sessao),
   })
   .safeParse({
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    OBRIGACOES_FISCAIS_URL: process.env.OBRIGACOES_FISCAIS_URL || undefined,
+    MENSAGERIA_MODO: process.env.MENSAGERIA_MODO || undefined,
+    MENSAGERIA_SEGREDO_ASSINATURA: process.env.MENSAGERIA_SEGREDO_ASSINATURA || undefined,
+    MENSAGERIA_TOKEN_VERIFICACAO: process.env.MENSAGERIA_TOKEN_VERIFICACAO || undefined,
+    MENSAGERIA_SEGREDO_SESSAO: process.env.MENSAGERIA_SEGREDO_SESSAO || undefined,
   });
 
 if (!resultado.success) {
   throw new Error(`Variáveis de ambiente inválidas:\n${z.prettifyError(resultado.error)}`);
 }
 
-export const { SUPABASE_SERVICE_ROLE_KEY } = resultado.data;
+export const {
+  SUPABASE_SERVICE_ROLE_KEY,
+  OBRIGACOES_FISCAIS_URL,
+  MENSAGERIA_MODO,
+  MENSAGERIA_SEGREDO_ASSINATURA,
+  MENSAGERIA_TOKEN_VERIFICACAO,
+  MENSAGERIA_SEGREDO_SESSAO,
+} = resultado.data;

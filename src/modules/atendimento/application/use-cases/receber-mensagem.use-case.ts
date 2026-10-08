@@ -1,0 +1,341 @@
+import type {
+  MensagemRecebida,
+  ReceberMensagemPort,
+} from "@/modules/atendimento/application/ports/in/receber-mensagem.provider";
+import type {
+  DocumentoContratual,
+  DocumentosContratuaisPort,
+} from "@/modules/atendimento/application/ports/out/documentos-contratuais.provider";
+import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
+import type {
+  ContatoIdentificado,
+  IdentificacaoContatoPort,
+} from "@/modules/atendimento/application/ports/out/identificacao-contato.provider";
+import type {
+  SessaoAtendimento,
+  SessaoAtendimentoPort,
+} from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
+import type { AppError } from "@/shared/errors/app.error";
+import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
+import { ValidationError } from "@/shared/errors/validation.error";
+import { cnpjValido } from "@/shared/kernel/cnpj";
+import { err, ok, type Result } from "@/shared/kernel/result";
+
+const OPCOES_MENU = [
+  "Contrato social e alterações",
+  "Guia de imposto",
+  "Guia de parcelamento",
+  "CND",
+  "Falar com atendente",
+];
+
+const PERGUNTA_CLIENTE =
+  "Olá! Não identificamos este número entre os contatos dos nossos clientes. Você já é cliente da Rigoni Contábil? Responda *sim* ou *não*.";
+const SIM_OU_NAO = "Responda *sim* ou *não*.";
+const PEDIR_CNPJ = "Ótimo! Informe o CNPJ da sua empresa.";
+const CNPJ_INVALIDO = "Esse CNPJ não parece válido. Confira e envie novamente (ou digite *menu*).";
+// ponytail: só avisa; a Transferência real para a recepção entra com a Fila (#44/#45).
+const NUMERO_AMBIGUO =
+  "Seu número está cadastrado em mais de uma empresa e não conseguimos confirmar qual delas você quer consultar. Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
+
+const PARA_RECEPCAO =
+  "Não encontramos você entre os contatos cadastrados. Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
+
+const PERGUNTA_TIPO =
+  "O que você deseja receber?\n1 - Contrato social\n2 - Alterações\n3 - Ambos (contrato social e uma alteração)\nDigite *menu* para voltar.";
+
+const SEM_CONTRATO = "Não encontramos o contrato social cadastrado. Fale com o escritório.";
+const SEM_ALTERACOES = "Não encontramos alterações contratuais cadastradas. Fale com o escritório.";
+
+const LISTA_MUDOU =
+  "A lista de alterações foi atualizada e a sua escolha não foi considerada. Escolha novamente:\n";
+
+const ALTERACOES_POR_PAGINA = 10;
+
+type Modo = "contrato" | "alteracoes" | "ambos";
+const MODOS: Record<string, Modo> = { "1": "contrato", "2": "alteracoes", "3": "ambos" };
+
+// `telefone` com DDI, como a mensagem chegou (resposta); `chave` só dígitos nacionais (sessão).
+type Conversa = { contato: ContatoIdentificado; telefone: string; chave: string };
+type Documentos = { contrato: DocumentoContratual | null; alteracoes: DocumentoContratual[] };
+
+// DDI 55 é descartado: o telefone do Contato é cadastrado só com DDD + número.
+function soDigitosNacionais(telefone: string): string {
+  const digitos = telefone.replace(/\D/g, "");
+  return digitos.length > 11 && digitos.startsWith("55") ? digitos.slice(2) : digitos;
+}
+
+function formatarData(iso: string): string {
+  const [ano, mes, dia] = iso.split("-");
+  return `${dia}/${mes}/${ano}`;
+}
+
+function descrever(documento: DocumentoContratual): string {
+  return documento.data ? `Alteração de ${formatarData(documento.data)}` : "Contrato social";
+}
+
+// Impressão digital da lista inteira (a numeração das páginas depende de todos os itens). Hash
+// não criptográfico (cyrb53, 53 bits): só detecta mudança, não protege nada, e a camada de
+// aplicação não importa `crypto` (infra). Colisão exigiria uma lista diferente com o mesmo hash.
+function impressaoDaLista(alteracoes: DocumentoContratual[]): string {
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (const ch of alteracoes.map((a) => a.caminho).join("\n")) {
+    const codigo = ch.codePointAt(0) as number;
+    h1 = Math.imul(h1 ^ codigo, 2654435761);
+    h2 = Math.imul(h2 ^ codigo, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+
+function paginaDe(alteracoes: DocumentoContratual[], pagina: number): DocumentoContratual[] {
+  return alteracoes.slice((pagina - 1) * ALTERACOES_POR_PAGINA, pagina * ALTERACOES_POR_PAGINA);
+}
+
+function listaDaPagina(alteracoes: DocumentoContratual[], pagina: number): string {
+  const total = Math.ceil(alteracoes.length / ALTERACOES_POR_PAGINA);
+  const itens = paginaDe(alteracoes, pagina)
+    .map((a, i) => `${i + 1} - ${descrever(a)}`)
+    .join("\n");
+  const mais = pagina < total ? "\nDigite *mais* para ver as próximas." : "";
+  return `Qual alteração você deseja? (página ${pagina} de ${total})\n${itens}${mais}\nDigite *menu* para voltar.`;
+}
+
+// Passos do menu de documentos ficam numa sessão que guarda só a posição (etapa/modo/página):
+// nada do Cliente é persistido, os documentos são relidos a cada mensagem. "1".."5" é escolha
+// de menu; qualquer outro texto reabre a saudação com o menu.
+// A sessão guarda também um hash da lista de alterações exibida: se ela mudar antes da escolha,
+// nada é entregue e a lista nova é mostrada.
+export class ReceberMensagem implements ReceberMensagemPort {
+  constructor(
+    private readonly contatos: IdentificacaoContatoPort,
+    private readonly envio: EnvioMensagemPort,
+    private readonly documentos: DocumentosContratuaisPort,
+    private readonly sessoes: SessaoAtendimentoPort,
+  ) {}
+
+  async execute(mensagem: MensagemRecebida): Promise<Result<void, AppError>> {
+    const chave = soDigitosNacionais(mensagem.telefone);
+    if (!chave) return err(new ValidationError("Telefone da mensagem é obrigatório"));
+
+    const contato = await this.contatos.identificar(chave);
+    if (!contato.ok) return contato;
+    const texto = mensagem.texto.trim().toLowerCase();
+
+    const sessao = await this.sessoes.obter(chave);
+    if (!sessao.ok) return sessao;
+    if (contato.value === "ambiguo") {
+      // Nenhum documento é oferecido: sem confirmar a empresa, a recepção decide.
+      const limpa = await this.sessoes.limpar(chave);
+      return limpa.ok ? this.enviar(mensagem.telefone, NUMERO_AMBIGUO) : limpa;
+    }
+    if (!contato.value) {
+      return this.identificarNovo(mensagem.telefone, chave, texto, sessao.value);
+    }
+    const conversa: Conversa = { contato: contato.value, telefone: mensagem.telefone, chave };
+    if (texto === "menu") {
+      const limpa = await this.sessoes.limpar(chave);
+      if (!limpa.ok) return limpa;
+    } else if (sessao.value?.etapa === "tipo_documento") {
+      return this.escolherTipo(conversa, texto);
+    } else if (sessao.value?.etapa === "alteracao") {
+      return this.escolherAlteracao(conversa, sessao.value, texto);
+    }
+    return this.responderMenu(conversa, texto);
+  }
+
+  // Número sem Contato: "já é cliente?" → CNPJ → recepção. Mesmo com o CNPJ o número não é um
+  // Contato (já foi buscado em todos os Clientes), então o fim é sempre a recepção; sessão
+  // ausente/expirada/de outro fluxo ou "menu" recomeça pela pergunta.
+  private async identificarNovo(
+    telefone: string,
+    chave: string,
+    texto: string,
+    sessao: SessaoAtendimento | null,
+  ): Promise<Result<void, AppError>> {
+    const etapa = texto === "menu" ? null : sessao?.etapa;
+    const resposta = texto.normalize("NFD").replace(/\p{M}/gu, "");
+
+    if (etapa === "ja_cliente") {
+      if (["sim", "s"].includes(resposta)) return this.avancar(telefone, chave, "cnpj", PEDIR_CNPJ);
+      if (["nao", "n"].includes(resposta)) return this.encaminharRecepcao(telefone, chave);
+      return this.enviar(telefone, SIM_OU_NAO);
+    }
+    if (etapa === "cnpj") {
+      if (!cnpjValido(texto)) return this.enviar(telefone, CNPJ_INVALIDO);
+      return this.encaminharRecepcao(telefone, chave);
+    }
+    return this.avancar(telefone, chave, "ja_cliente", PERGUNTA_CLIENTE);
+  }
+
+  private async avancar(
+    telefone: string,
+    chave: string,
+    etapa: "ja_cliente" | "cnpj",
+    texto: string,
+  ): Promise<Result<void, AppError>> {
+    const salva = await this.sessoes.salvar(chave, { etapa });
+    return salva.ok ? this.enviar(telefone, texto) : salva;
+  }
+
+  private async encaminharRecepcao(
+    telefone: string,
+    chave: string,
+  ): Promise<Result<void, AppError>> {
+    const limpa = await this.sessoes.limpar(chave);
+    return limpa.ok ? this.enviar(telefone, PARA_RECEPCAO) : limpa;
+  }
+
+  private async responderMenu(
+    { contato, telefone, chave }: Conversa,
+    texto: string,
+  ): Promise<Result<void, AppError>> {
+    if (texto === "1") {
+      const salva = await this.sessoes.salvar(chave, { etapa: "tipo_documento" });
+      return salva.ok ? this.enviar(telefone, PERGUNTA_TIPO) : salva;
+    }
+    const escolha = Number(texto);
+    if (Number.isInteger(escolha) && escolha >= 2 && escolha <= OPCOES_MENU.length) {
+      return this.enviar(
+        telefone,
+        `${OPCOES_MENU[escolha - 1]}: em construção. Envie qualquer mensagem para ver o menu.`,
+      );
+    }
+    const menu = OPCOES_MENU.map((opcao, i) => `${i + 1} - ${opcao}`).join("\n");
+    return this.enviar(
+      telefone,
+      `Olá, ${contato.nome} (${contato.empresa})! Como podemos ajudar?\n${menu}`,
+    );
+  }
+
+  private async escolherTipo(conversa: Conversa, texto: string): Promise<Result<void, AppError>> {
+    const modo = MODOS[texto];
+    if (!modo) return this.enviar(conversa.telefone, PERGUNTA_TIPO);
+
+    const docs = await this.carregar(conversa.contato);
+    if (!docs.ok) return docs;
+    const { contrato, alteracoes } = docs.value;
+
+    if (modo === "contrato") {
+      if (!contrato) return this.enviar(conversa.telefone, SEM_CONTRATO);
+      return this.entregar(conversa, [contrato]);
+    }
+    if (alteracoes.length === 0) {
+      // "Ambos" sem alterações ainda entrega o contrato.
+      if (modo === "ambos" && contrato) return this.entregar(conversa, [contrato]);
+      return this.enviar(conversa.telefone, SEM_ALTERACOES);
+    }
+    if (alteracoes.length === 1) {
+      return this.entregar(conversa, modo === "ambos" ? [contrato, alteracoes[0]] : alteracoes);
+    }
+    return this.mostrarPagina(
+      conversa,
+      { etapa: "alteracao", modo, pagina: 1, lista: impressaoDaLista(alteracoes) },
+      alteracoes,
+    );
+  }
+
+  private async escolherAlteracao(
+    conversa: Conversa,
+    sessao: Extract<SessaoAtendimento, { etapa: "alteracao" }>,
+    texto: string,
+  ): Promise<Result<void, AppError>> {
+    const docs = await this.carregar(conversa.contato);
+    if (!docs.ok) return docs;
+    const { contrato, alteracoes } = docs.value;
+    if (alteracoes.length === 0) return this.enviar(conversa.telefone, SEM_ALTERACOES);
+
+    // Lista mudou desde que foi exibida: o número digitado pode apontar para outro documento
+    // jurídico, então nada é entregue e a lista atualizada é mostrada de novo.
+    if (sessao.lista !== impressaoDaLista(alteracoes)) {
+      return this.mostrarPagina(
+        conversa,
+        { ...sessao, pagina: 1, lista: impressaoDaLista(alteracoes) },
+        alteracoes,
+        LISTA_MUDOU,
+      );
+    }
+
+    const ultimaPagina = Math.ceil(alteracoes.length / ALTERACOES_POR_PAGINA);
+    const pagina = Math.min(sessao.pagina, ultimaPagina);
+    if (texto === "mais" && pagina < ultimaPagina) {
+      return this.mostrarPagina(conversa, { ...sessao, pagina: pagina + 1 }, alteracoes);
+    }
+
+    const escolhida = /^\d+$/.test(texto)
+      ? paginaDe(alteracoes, pagina)[Number(texto) - 1]
+      : undefined;
+    if (!escolhida) return this.enviar(conversa.telefone, listaDaPagina(alteracoes, pagina));
+    return this.entregar(conversa, sessao.modo === "ambos" ? [contrato, escolhida] : [escolhida]);
+  }
+
+  private async mostrarPagina(
+    { telefone, chave }: Conversa,
+    sessao: SessaoAtendimento & { etapa: "alteracao" },
+    alteracoes: DocumentoContratual[],
+    aviso = "",
+  ): Promise<Result<void, AppError>> {
+    const salva = await this.sessoes.salvar(chave, sessao);
+    return salva.ok
+      ? this.enviar(telefone, `${aviso}${listaDaPagina(alteracoes, sessao.pagina)}`)
+      : salva;
+  }
+
+  // Contrato à parte; alterações da mais recente para a mais antiga.
+  private async carregar(contato: ContatoIdentificado): Promise<Result<Documentos, AppError>> {
+    const lista = await this.documentos.listar(contato.clienteId);
+    if (!lista.ok) return lista;
+    return ok({
+      contrato: lista.value.find((d) => d.tipo === "contrato") ?? null,
+      alteracoes: lista.value
+        .filter((d) => d.tipo === "alteracao")
+        .sort((a, b) => (b.data ?? "").localeCompare(a.data ?? "")),
+    });
+  }
+
+  // Encerra a sessão só depois de entregar: se o envio falhar, a Meta reenvia a mensagem e o
+  // cliente continua do mesmo ponto. `null` = contrato pedido ("ambos") mas não cadastrado.
+  private async entregar(
+    { telefone, chave }: Conversa,
+    documentos: (DocumentoContratual | null)[],
+  ): Promise<Result<void, AppError>> {
+    for (const documento of documentos) {
+      const enviado = documento
+        ? await this.enviarDocumento(telefone, documento)
+        : await this.enviar(telefone, SEM_CONTRATO);
+      if (!enviado.ok) return enviado;
+    }
+    // Já entregou: falhar aqui faria a Meta reenviar a mensagem e duplicar o documento. A
+    // sessão que sobrar expira sozinha (10 min) ou some com "menu".
+    await this.sessoes.limpar(chave);
+    return ok(undefined);
+  }
+
+  private async enviarDocumento(
+    telefone: string,
+    documento: DocumentoContratual,
+  ): Promise<Result<void, AppError>> {
+    const link = await this.documentos.linkTemporario(documento.caminho);
+    if (!link.ok) return link;
+    const extensao = /\.[A-Za-z0-9]+$/.exec(documento.caminho)?.[0] ?? "";
+    try {
+      return await this.envio.enviarDocumento({
+        telefone,
+        url: link.value,
+        nomeArquivo: `${descrever(documento)}${extensao}`,
+      });
+    } catch {
+      return err(new ServicoExternoError("Falha ao enviar o documento."));
+    }
+  }
+
+  private async enviar(telefone: string, texto: string): Promise<Result<void, AppError>> {
+    try {
+      return await this.envio.enviar({ telefone, texto });
+    } catch {
+      return err(new ServicoExternoError("Falha ao enviar a mensagem."));
+    }
+  }
+}
