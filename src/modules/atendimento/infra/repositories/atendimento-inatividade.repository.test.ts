@@ -17,8 +17,8 @@ const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: 
 const repositorio = new SupabaseAtendimentoRepository(admin);
 
 // Setor só desta suíte: encerrar mexe na Fila do Setor inteiro.
-const SETOR = "condominios" as const;
-const TELEFONES = ["61955580001", "61955580002", "61955580003"];
+const SETOR = "administrativo" as const;
+const TELEFONES = ["61955590001", "61955590002", "61955590003"];
 const usuarios: string[] = [];
 
 async function criarFuncionario(nome: string): Promise<string> {
