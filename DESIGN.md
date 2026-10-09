@@ -639,7 +639,8 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
 - **Encerrar atendimento** (no fim do `PainelDeAcoes`, separado por `border-t`):
   botão `outline`; o primeiro clique só abre a confirmação (`role="alertdialog"`
   com o aviso de que o cliente será avisado) com "Confirmar encerramento"
-  em `destructive` e "Cancelar". Encerrar não tem volta.
+  em `destructive` e "Cancelar" (que recebe o foco ao abrir, pois o botão que
+  pediu a confirmação some). Encerrar não tem volta.
 - **Fila do Setor** (`FilaDoSetor` + `ItemDaFila`, #70): na tela `/fila`
   (`max-w-3xl`, h1 "Fila de atendimento do <nome>, setor <Setor>", seletor de
   Setor só para o Admin) e como barra lateral esquerda da conversa (18 rem; 20

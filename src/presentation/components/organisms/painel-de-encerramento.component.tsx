@@ -45,6 +45,8 @@ export function PainelDeEncerramento({
               variant="outline"
               className="pointer-coarse:h-11"
               disabled={encerrando}
+              // O botão que pediu a confirmação sumiu: leva o foco do teclado para a saída segura.
+              autoFocus
               onClick={onCancelar}
             >
               Cancelar
