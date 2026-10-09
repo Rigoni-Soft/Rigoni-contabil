@@ -4,12 +4,12 @@ import { FilaDoSetor } from "@/presentation/components/organisms/fila-do-setor.c
 import type { ItemDaFilaVisto } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
 import { tituloDaFila } from "@/modules/atendimento/presentation/view-models/fila/fila.presenter";
 import { useFila } from "@/modules/atendimento/presentation/view-models/fila/use-fila.hook";
-import { SETOR_LABEL, SETORES } from "@/shared/kernel/setores";
+import { SETOR_LABEL, SETORES, type SetorSlug } from "@/shared/kernel/setores";
 
 type FilaContainerProps = {
   nome: string;
   nivelDoTitulo?: 1 | 2;
-  setorInicial: string;
+  setorInicial: SetorSlug;
   initialData: ItemDaFilaVisto[];
   podeEscolherSetor: boolean;
 };

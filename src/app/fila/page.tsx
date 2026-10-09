@@ -6,7 +6,7 @@ import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-b
 import { carregarSessao } from "@/presentation/view-models/shell/shell.server";
 import { FilaContainer } from "@/modules/atendimento/presentation/view-models/fila/fila.container";
 import { carregarFila } from "@/modules/atendimento/presentation/view-models/fila/fila.server";
-import { SETORES, type SetorSlug } from "@/shared/kernel/setores";
+import { ehSetor, SETORES } from "@/shared/kernel/setores";
 
 export default async function Page() {
   const sessao = await carregarSessao();
@@ -15,7 +15,8 @@ export default async function Page() {
 
   // Admin não pertence a um Setor: começa pelo primeiro e escolhe na tela.
   const ehAdmin = sessao.papel === "admin";
-  const setor = (ehAdmin ? SETORES[0] : sessao.setor) as SetorSlug;
+  const setor = ehAdmin ? SETORES[0] : sessao.setor;
+  if (!ehSetor(setor)) redirect("/");
   const fila = await carregarFila(setor);
   if (!fila.ok) redirect("/");
 

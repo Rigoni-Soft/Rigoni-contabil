@@ -38,7 +38,17 @@ export function tituloDaFila(nome: string, setor: string): string {
 }
 
 // O cartão do dock fora da conversa e da tela da Fila (mesmo formato do de Atendimentos).
-export function avisoDaFila(itens: ItemDaFilaVisto[]) {
+export type AvisoDaFilaView = {
+  id: string;
+  href: string;
+  titulo: string;
+  detalhe: string;
+  previa: string;
+  aguardando: boolean;
+  sinal: string;
+};
+
+export function avisoDaFila(itens: ItemDaFilaVisto[]): AvisoDaFilaView | null {
   if (itens.length === 0) return null;
   return {
     id: "fila",

@@ -126,4 +126,45 @@ describe("useAvisoFila", () => {
     await waitFor(() => expect(acao).toHaveBeenCalledTimes(2));
     expect(tocar).not.toHaveBeenCalled();
   });
+
+  describe("insistência da leitura", () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    async function ciclos(n: number) {
+      for (let i = 0; i < n; i++) {
+        await act(async () => {
+          await jest.advanceTimersByTimeAsync(5_000);
+        });
+      }
+    }
+
+    it("negada (Admin não tem Setor) não é lida de novo", async () => {
+      acao.mockResolvedValue({
+        ok: false,
+        error: { code: "FORBIDDEN", message: "Informe o Setor da Fila." },
+      });
+      renderizar();
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(0);
+      });
+      expect(acao).toHaveBeenCalledTimes(1);
+
+      await ciclos(3);
+
+      expect(acao).toHaveBeenCalledTimes(1);
+    });
+
+    it("erro passageiro segue tentando no próximo ciclo", async () => {
+      acao.mockResolvedValue({ ok: false, error: { code: "EXTERNAL_SERVICE", message: "caiu" } });
+      renderizar();
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(0);
+      });
+
+      await ciclos(2);
+
+      expect(acao.mock.calls.length).toBeGreaterThan(1);
+    });
+  });
 });

@@ -1,6 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
+import type { SetorSlug } from "@/shared/kernel/setores";
+
 import { listarFilaAction } from "./fila.actions";
 import { useFila } from "./use-fila.hook";
 
@@ -18,7 +20,7 @@ const ITEM = {
   filaDoFuncionarioId: null,
 };
 
-function renderizar(setorInicial = "financeiro") {
+function renderizar(setorInicial: SetorSlug = "financeiro") {
   const cliente = new QueryClient();
   return renderHook(() => useFila(setorInicial, [ITEM], true), {
     wrapper: ({ children }) => (

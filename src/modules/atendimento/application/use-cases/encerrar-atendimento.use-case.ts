@@ -56,24 +56,23 @@ export class EncerrarAtendimento implements EncerrarAtendimentoPort {
       );
     }
 
-    // Já encerrado: falhar nos avisos não desfaz nada; o erro diz quem não foi avisado. O mesmo
-    // caminho do encerramento por inatividade: o cliente é avisado do encerramento e o da Fila, da vez.
+    // Já encerrado: falhar nos avisos não desfaz nada. O mesmo caminho do encerramento por
+    // inatividade: o cliente é avisado do encerramento e o da Fila, da vez.
     const avisoDoEncerramento = await this.avisar.execute({
       telefone: atendimento.telefone,
       chave: atendimento.chave,
       texto: AVISO_ENCERRAMENTO_AO_CLIENTE,
     });
-    const proximo = encerrado.value.proximo;
-    const resultado = proximo ? await this.avisarProximo(proximo) : ok({ proximoDaFila: null });
+    // O aviso de despedida não vale um erro para quem encerrou: o Funcionário já foi liberado e,
+    // com erro, a tela não abriria o Atendimento da Fila que ele assumiu. Fica só no log.
     if (!avisoDoEncerramento.ok) {
-      return err(
-        new EstadoInconsistenteError(
-          "Atendimento encerrado, mas o aviso ao cliente falhou.",
-          atendimentoId,
-        ),
+      console.error(
+        `Atendimento ${atendimentoId} encerrado, mas o aviso ao cliente falhou:`,
+        avisoDoEncerramento.error.message,
       );
     }
-    return resultado;
+    const proximo = encerrado.value.proximo;
+    return proximo ? this.avisarProximo(proximo) : ok({ proximoDaFila: null });
   }
 
   // Assumido: falhar aqui não desfaz nada; o erro diz que o cliente não foi avisado.

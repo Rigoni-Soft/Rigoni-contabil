@@ -2,7 +2,7 @@ import { cn } from "@/presentation/lib/utils";
 
 // Em tela larga: [Fila] | chat | [painel de ações], conforme os slots preenchidos. A Fila só entra
 // a partir de xl: com as três colunas em lg (1024 px) o chat sobra com ~330 px.
-const COLUNAS: Record<string, string> = {
+const COLUNAS: Record<"" | "acoes" | "fila" | "filaacoes", string> = {
   "": "",
   acoes: "lg:grid-cols-[minmax(0,1fr)_19rem] 2xl:grid-cols-[minmax(0,1fr)_22rem]",
   fila: "xl:grid-cols-[18rem_minmax(0,1fr)]",
@@ -43,7 +43,7 @@ export function ConversaTemplate({
             aria-label="Atendimento"
             className={cn(
               "grid gap-4 lg:h-full lg:min-h-0",
-              COLUNAS[`${fila ? "fila" : ""}${acoes ? "acoes" : ""}`],
+              COLUNAS[`${fila ? "fila" : ""}${acoes ? "acoes" : ""}` as const],
             )}
           >
             {fila && (
