@@ -9,7 +9,7 @@ type CartaoDeAtendimentoProps = {
   detalhe: string;
   // Início da última mensagem da conversa.
   previa?: string | null;
-  // O cliente escreveu por último e espera resposta: destaca o cartão.
+  // O cliente escreveu por último e espera resposta: ponto vermelho e prévia em destaque.
   aguardando?: boolean;
 };
 
@@ -25,8 +25,7 @@ export function CartaoDeAtendimento({
     <Link
       href={href}
       className={cn(
-        "flex items-center gap-3 rounded-lg border bg-card px-3 py-2 shadow-md hover:bg-accent motion-safe:animate-dock-entrada",
-        aguardando ? "border-primary" : "border-border",
+        "flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 shadow-md hover:bg-accent motion-safe:animate-dock-entrada",
       )}
     >
       <span className="relative shrink-0">

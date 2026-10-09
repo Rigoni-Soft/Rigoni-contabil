@@ -44,7 +44,7 @@ export function PainelDeTransferencia({
             </option>
           ))}
         </CampoSelect>
-        <Button type="submit" size="sm" disabled={transferindo}>
+        <Button type="submit" size="sm" className="pointer-coarse:h-11" disabled={transferindo}>
           {transferindo ? "Transferindo..." : "Transferir"}
         </Button>
       </div>

@@ -36,7 +36,7 @@ export function CompositorDeMensagem({
           required
           rows={2}
           maxLength={4096}
-          placeholder="Escreva uma mensagem ao cliente..."
+          placeholder="Escreva aqui"
           className="min-h-12 resize-none rounded-2xl"
           onKeyDown={(evento) => {
             // Enter envia, Shift+Enter quebra a linha (como nos chats).

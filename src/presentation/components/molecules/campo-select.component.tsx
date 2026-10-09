@@ -14,7 +14,7 @@ export function CampoSelect({ id, rotulo, className, children, ...props }: Campo
       <Label htmlFor={id} className="text-xs">
         {rotulo}
       </Label>
-      <Select id={id} className={cn("h-10", className)} {...props}>
+      <Select id={id} className={cn("h-10 pointer-coarse:h-11", className)} {...props}>
         {children}
       </Select>
     </div>

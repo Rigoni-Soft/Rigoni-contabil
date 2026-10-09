@@ -16,7 +16,7 @@ export function MensagemBalao({ lado, autor, detalhe, texto, hora }: MensagemBal
   return (
     <li
       className={cn(
-        "max-w-[85%] px-3 py-1.5 shadow-sm sm:max-w-[75%]",
+        "max-w-[85%] px-3 py-1.5 sm:max-w-[75%]",
         doCliente
           ? "self-start rounded-2xl rounded-tl-sm border border-border bg-card text-card-foreground"
           : lado === "atendente"
@@ -32,7 +32,7 @@ export function MensagemBalao({ lado, autor, detalhe, texto, hora }: MensagemBal
       <p
         className={cn(
           "mt-0.5 text-right text-[11px]",
-          lado === "atendente" ? "opacity-75" : "text-muted-foreground",
+          lado === "atendente" ? "opacity-90" : "text-muted-foreground",
         )}
       >
         {hora}

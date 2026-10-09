@@ -19,7 +19,8 @@ export function AtendimentosEmAndamento({ atendimentos }: AtendimentosEmAndament
   return (
     <nav
       aria-label="Atendimentos em andamento"
-      className="fixed right-4 bottom-4 z-50 flex max-w-[calc(100vw-2rem)] flex-col gap-2 sm:max-w-xs"
+      aria-live="polite"
+      className="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-50 flex max-w-[calc(100vw-2rem)] flex-col gap-2 sm:max-w-xs"
     >
       {/* A chave inclui o sinal: a cada mensagem nova o cartão é recriado e a animação de entrada
           roda de novo, sinalizando a atualização. */}

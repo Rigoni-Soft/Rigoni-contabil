@@ -30,11 +30,15 @@ describe("ListaDeMensagens", () => {
     ).toHaveLength(2);
   });
 
-  it("fica parada nas últimas mensagens: o DOM vai da mais nova para a mais antiga e a lista é col-reverse", () => {
+  it("fica parada nas últimas mensagens (rolador col-reverse) e o DOM segue a ordem cronológica", () => {
     render(<ListaDeMensagens mensagens={MENSAGENS} />);
 
-    const lista = screen.getByRole("list", { name: "Mensagens" });
-    expect(lista).toHaveClass("flex-col-reverse", "overflow-y-auto");
-    expect(within(lista).getAllByRole("listitem")[0]).toHaveTextContent("segunda");
+    expect(screen.getByRole("log", { name: "Conversa" })).toHaveClass(
+      "flex-col-reverse",
+      "overflow-y-auto",
+    );
+    const itens = within(screen.getByRole("list", { name: "Mensagens" })).getAllByRole("listitem");
+    expect(itens[0]).toHaveTextContent("primeira");
+    expect(itens[1]).toHaveTextContent("segunda");
   });
 });

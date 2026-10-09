@@ -15,9 +15,7 @@ export function PainelDeAcoes({ transferidoPara, servicos, transferencia }: Pain
       {transferidoPara ? (
         <div role="status" className="space-y-1">
           <h2 className="font-semibold text-foreground">Atendimento transferido</h2>
-          <p className="text-sm text-muted-foreground">
-            Foi para o Setor {transferidoPara}. Você não acompanha mais esta conversa.
-          </p>
+          <p className="text-sm text-muted-foreground">Foi para o Setor {transferidoPara}.</p>
         </div>
       ) : (
         <>

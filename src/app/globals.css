@@ -63,7 +63,7 @@
 }
 
 @theme inline {
-  --animate-dock-entrada: dock-entrada 0.35s ease-out;
+  --animate-dock-entrada: dock-entrada 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   --font-sans: var(--font-roboto);
 
   --color-background: var(--background);

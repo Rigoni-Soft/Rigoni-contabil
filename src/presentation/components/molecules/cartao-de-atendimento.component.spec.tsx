@@ -26,11 +26,10 @@ describe("CartaoDeAtendimento", () => {
     expect(screen.getByText("preciso do contrato")).toBeInTheDocument();
   });
 
-  it("aguardando resposta: destaca o cartão e avisa leitor de tela da nova mensagem", () => {
+  it("aguardando resposta: mostra o ponto e avisa leitor de tela da nova mensagem", () => {
     render(<CartaoDeAtendimento href="/x" titulo="Maria" detalhe="Padaria" aguardando />);
 
-    const cartao = screen.getByRole("link", { name: /nova mensagem/ });
-    expect(cartao).toHaveClass("border-primary");
+    expect(screen.getByRole("link", { name: /nova mensagem/ })).toBeInTheDocument();
   });
 
   it("entra com animação, que respeita movimento reduzido (motion-safe)", () => {
