@@ -50,6 +50,14 @@ describe("PainelDeServicos", () => {
     expect(aoEnviar).toHaveBeenCalledWith("alteracao:2025-01-10");
   });
 
+  it("guia de imposto, de parcelamento e CND aparecem desabilitados enquanto a URA não os tem", () => {
+    render(<PainelDeServicos {...BASE} />);
+
+    for (const nome of [/Guia de imposto/, /Guia de parcelamento/, /CND/]) {
+      expect(screen.getByRole("button", { name: nome })).toBeDisabled();
+    }
+  });
+
   it("Cliente sem contrato ou sem alterações mostra tudo desabilitado", () => {
     render(<PainelDeServicos {...BASE} servicos={[]} />);
 
