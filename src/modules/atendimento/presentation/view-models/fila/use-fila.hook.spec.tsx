@@ -56,7 +56,9 @@ describe("useFila", () => {
 
     act(() => result.current.escolherSetor("rh"));
 
+    expect(result.current.carregando).toBe(true);
     await waitFor(() => expect(acao).toHaveBeenCalledWith("rh"));
     expect(result.current.setor).toBe("rh");
+    await waitFor(() => expect(result.current.carregando).toBe(false));
   });
 });

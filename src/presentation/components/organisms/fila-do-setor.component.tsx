@@ -11,10 +11,16 @@ type FilaDoSetorProps = {
     opcoes: { valor: string; rotulo: string }[];
     onChange: (setor: string) => void;
   };
+  carregando?: boolean;
   indisponivel?: boolean;
 };
 
-export function FilaDoSetor({ itens, escolhaDeSetor, indisponivel = false }: FilaDoSetorProps) {
+export function FilaDoSetor({
+  itens,
+  escolhaDeSetor,
+  carregando = false,
+  indisponivel = false,
+}: FilaDoSetorProps) {
   return (
     <section aria-label="Fila do Setor" className="space-y-4">
       {escolhaDeSetor && (
@@ -38,7 +44,11 @@ export function FilaDoSetor({ itens, escolhaDeSetor, indisponivel = false }: Fil
           Não foi possível atualizar a Fila agora. Tentando de novo.
         </p>
       )}
-      {itens.length === 0 ? (
+      {carregando ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          Carregando a Fila…
+        </p>
+      ) : itens.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nenhum cliente na Fila.</p>
       ) : (
         <ol className="space-y-2">

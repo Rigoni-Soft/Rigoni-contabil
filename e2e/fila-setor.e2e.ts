@@ -13,7 +13,7 @@ const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: 
 
 const CLIENTE = crypto.randomUUID();
 const CNPJ = `7${Date.now()}`.slice(0, 14);
-const TELEFONES = ["61955573001", "61955573002"];
+const TELEFONES = ["61955573001", "61955573002", "61955573003"];
 
 test.describe("Fila do Setor (#70)", () => {
   test.beforeAll(async () => {
@@ -48,6 +48,13 @@ test.describe("Fila do Setor (#70)", () => {
         setor: "financeiro",
         fila_desde: new Date(agora - 60_000).toISOString(),
       },
+      // Fila de outro Setor: o Funcionário do financeiro não a enxerga.
+      {
+        telefone: `55${TELEFONES[2]}`,
+        chave_telefone: TELEFONES[2],
+        setor: "rh",
+        fila_desde: new Date(agora - 60_000).toISOString(),
+      },
     ]);
     if (atendimentos.error) throw atendimentos.error;
   });
@@ -79,7 +86,10 @@ test.describe("Fila do Setor (#70)", () => {
     await expect(espera).not.toHaveText(antes ?? "");
 
     // Funcionário não escolhe Setor: só vê a própria Fila.
+    // Nem a Fila de outro Setor (RH): só os 2 do financeiro, e o telefone do RH não aparece.
     await expect(page.getByRole("combobox", { name: "Setor" })).toHaveCount(0);
+    await expect(itens).toHaveCount(2);
+    await expect(page.getByText("(61) 95557-3003")).toHaveCount(0);
   });
 
   test("o Admin escolhe o Setor da Fila", async ({ page }) => {

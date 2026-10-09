@@ -20,6 +20,8 @@ export function useFila(setorInicial: string, inicial: ItemDaFilaVisto[]) {
     escolherSetor: setSetor,
     itens: (query.data ?? []).map((item) => itemDaFilaParaView(item, agora)),
     // Falha de leitura (ex.: sessão expirada) mantém o que já estava na tela.
+    // Setor ainda sem leitura (ex.: o Admin acabou de trocar): não é o mesmo que Fila vazia.
+    carregando: query.isPending,
     indisponivel: query.isError,
   };
 }

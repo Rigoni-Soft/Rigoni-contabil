@@ -18,11 +18,15 @@ export function FilaContainer({
   initialData,
   podeEscolherSetor,
 }: FilaContainerProps) {
-  const { setor, escolherSetor, itens, indisponivel } = useFila(setorInicial, initialData);
+  const { setor, escolherSetor, itens, carregando, indisponivel } = useFila(
+    setorInicial,
+    initialData,
+  );
 
   return (
     <FilaDoSetor
       itens={itens}
+      carregando={carregando}
       indisponivel={indisponivel}
       escolhaDeSetor={
         podeEscolherSetor ? { setor, opcoes: OPCOES, onChange: escolherSetor } : undefined
