@@ -8,7 +8,9 @@ alter table public.atendimentos
   add check (aviso_inatividade_de in ('contato', 'funcionario'));
 
 -- Atendimento em aviso de inatividade não muda de dono nem de Setor (a Transferência é recusada
--- antes, no caso de uso; isto fecha a corrida entre a leitura e a gravação).
+-- antes, no caso de uso; isto fecha a corrida entre a leitura e a gravação). Exceção: a desativação
+-- do dono (PR #77, 2ª devolutiva) devolve o Atendimento à Fila; ali o aviso perde o sentido e é
+-- limpo junto, na mesma gravação.
 create function public.atendimento_em_aviso_nao_muda_de_dono()
 returns trigger
 language plpgsql
@@ -17,6 +19,11 @@ as $$
 begin
   if old.aviso_inatividade_em is not null
      and (new.funcionario_id is distinct from old.funcionario_id or new.setor <> old.setor) then
+    if coalesce(current_setting('rigoni.devolucao_por_desativacao', true), '') = 'on' then
+      new.aviso_inatividade_em := null;
+      new.aviso_inatividade_de := null;
+      return new;
+    end if;
     raise exception 'Atendimento em aviso de inatividade nao pode ser transferido.';
   end if;
   return new;

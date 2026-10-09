@@ -18,7 +18,7 @@ const repositorio = new SupabaseAtendimentoRepository(admin);
 
 // Setor só desta suíte: encerrar mexe na Fila do Setor inteiro.
 const SETOR = "administrativo" as const;
-const TELEFONES = ["61955590001", "61955590002", "61955590003"];
+const TELEFONES = ["61955590001", "61955590002", "61955590003", "61955590004"];
 const usuarios: string[] = [];
 
 async function criarFuncionario(nome: string): Promise<string> {
@@ -155,6 +155,36 @@ describe("SupabaseAtendimentoRepository — inatividade", () => {
       .eq("ator", URA_ATOR_ID)
       .eq("alvo", id);
     expect(auditoria.data).toEqual([{ acao: "atendimento.encerrar", setor: SETOR }]);
+  });
+});
+
+describe("inatividade × desativação do dono", () => {
+  it("desativar o dono de um Atendimento em aviso o devolve à Fila e limpa o aviso, sem apagar nada", async () => {
+    const dono = await criarFuncionario("Func Desativado Em Aviso");
+    const id = await abrirDireto(TELEFONES[3], dono);
+    await mensagem(TELEFONES[3], "contato");
+    await repositorio.marcarAvisoInatividade(id, "funcionario");
+
+    const r = await admin.rpc("desativar_usuario", {
+      alvo_id: dono,
+      ator_id: "11111111-1111-1111-1111-111111111111",
+    });
+
+    expect(r.error).toBeNull();
+    const { data } = await admin
+      .from("atendimentos")
+      .select("status, funcionario_id, aviso_inatividade_em, aviso_inatividade_de")
+      .eq("id", id)
+      .single();
+    expect(data).toMatchObject({
+      status: "em_andamento",
+      aviso_inatividade_em: null,
+      aviso_inatividade_de: null,
+    });
+    // Sem o dono: na Fila ou já com quem estava livre no Setor.
+    expect(data?.funcionario_id).not.toBe(dono);
+    const mensagens = await admin.from("mensagens").select("id").eq("atendimento_id", id);
+    expect(mensagens.data).toHaveLength(1);
   });
 });
 
