@@ -20,6 +20,9 @@ export function useAcoesConversa(atendimentoId: string, initialData: ConversaVis
   const transferencia = useTransferirAtendimentoMutation(atendimentoId);
   const encerramento = useEncerrarAtendimentoMutation(atendimentoId);
   const [confirmandoEncerramento, setConfirmandoEncerramento] = useState(false);
+  // Sai da conversa: abre o Atendimento da Fila que o Funcionário assumiu, ou volta ao início.
+  const irParaProximo = (proximoDaFila: string | null) =>
+    router.push(proximoDaFila ? `/atendimento/${proximoDaFila}` : "/");
 
   const aviso = envio.isError
     ? { tipo: "erro" as const, texto: envio.error.message }
@@ -45,8 +48,7 @@ export function useAcoesConversa(atendimentoId: string, initialData: ConversaVis
       transferencia.mutate(
         { setorDestino, resumo },
         {
-          onSuccess: (proximoDaFila) =>
-            router.push(proximoDaFila ? `/atendimento/${proximoDaFila}` : "/"),
+          onSuccess: irParaProximo,
         },
       ),
     transferindo: transferencia.isPending,
@@ -60,8 +62,7 @@ export function useAcoesConversa(atendimentoId: string, initialData: ConversaVis
     aoCancelarEncerramento: () => setConfirmandoEncerramento(false),
     aoConfirmarEncerramento: () =>
       encerramento.mutate(undefined, {
-        onSuccess: (proximoDaFila) =>
-          router.push(proximoDaFila ? `/atendimento/${proximoDaFila}` : "/"),
+        onSuccess: irParaProximo,
         onSettled: () => setConfirmandoEncerramento(false),
       }),
     encerrando: encerramento.isPending,
