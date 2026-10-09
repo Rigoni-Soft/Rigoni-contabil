@@ -271,5 +271,6 @@ export async function makeEnviarMensagemAoCliente(): Promise<EnviarMensagemAoCli
     sessaoViaUsuarios(await createSupabaseServer()),
     new SupabaseAtendimentoRepository(createSupabaseAdmin()),
     makeEnvioMensagem(),
+    auditoriaViaModuloAuditoria(),
   );
 }

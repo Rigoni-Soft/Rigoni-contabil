@@ -2,6 +2,8 @@ import type { Papel } from "@/shared/kernel/papeis";
 import { SETORES, type SetorSlug } from "@/shared/kernel/setores";
 
 // Quem transfere: o Funcionário dono do Atendimento, o Líder do Setor onde ele está, ou o Admin.
+// ponytail: o nome ficou estreito, a regra também decide quem vê, responde e envia documento no
+// Atendimento. Renomear para `podeAgirNoAtendimento` junto com a PR #77 (o rename toca a pilha).
 export function podeTransferir(
   ator: { id: string; papel: Papel; setor: SetorSlug },
   atendimento: { setor: SetorSlug; funcionarioId: string | null },

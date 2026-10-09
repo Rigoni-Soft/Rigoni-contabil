@@ -1,7 +1,11 @@
 import type { EnviarMensagemAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-mensagem-ao-cliente.provider";
 import type { AtendimentoRepositoryPort } from "@/modules/atendimento/application/ports/out/atendimento.repository";
+import type { AuditoriaPort } from "@/modules/atendimento/application/ports/out/auditoria.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
-import type { SessaoPort } from "@/modules/atendimento/application/ports/out/sessao.provider";
+import type {
+  AtorSessaoDto,
+  SessaoPort,
+} from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { podeTransferir } from "@/modules/atendimento/domain/services/transferencia.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
@@ -11,6 +15,7 @@ import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
+const ACAO = "atendimento.enviar_mensagem";
 const TEXTO_TAMANHO_MAXIMO = 4096; // limite de uma mensagem de texto do WhatsApp
 
 // Mesma regra de quem pode agir que a Transferência. A Mensagem só entra no Atendimento depois de
@@ -20,6 +25,7 @@ export class EnviarMensagemAoCliente implements EnviarMensagemAoClientePort {
     private readonly sessao: SessaoPort,
     private readonly repositorio: AtendimentoRepositoryPort,
     private readonly envio: EnvioMensagemPort,
+    private readonly auditoria: AuditoriaPort,
   ) {}
 
   async execute({
@@ -52,13 +58,18 @@ export class EnviarMensagemAoCliente implements EnviarMensagemAoClientePort {
     }
 
     const enviada = await this.enviar(atendimento.telefone, mensagem);
-    if (!enviada.ok) return enviada;
+    if (!enviada.ok) {
+      await this.auditar(ator, atendimentoId, "falha");
+      return enviada;
+    }
 
     const registrada = await this.repositorio.registrarMensagemDoFuncionario(
       atendimentoId,
       ator.id,
       mensagem,
     );
+    // Já entregue: o registro na conversa falhar não desfaz o envio. O texto não vai para a trilha.
+    await this.auditar(ator, atendimentoId, "sucesso");
     if (!registrada.ok) {
       return err(
         new EstadoInconsistenteError(
@@ -68,6 +79,16 @@ export class EnviarMensagemAoCliente implements EnviarMensagemAoClientePort {
       );
     }
     return ok(undefined);
+  }
+
+  private auditar(ator: AtorSessaoDto, atendimentoId: string, resultado: "sucesso" | "falha") {
+    return this.auditoria.registrar({
+      ator: ator.id,
+      setor: ator.setor,
+      acao: ACAO,
+      alvo: atendimentoId,
+      resultado,
+    });
   }
 
   private async enviar(telefone: string, texto: string): Promise<Result<void, AppError>> {
