@@ -45,12 +45,7 @@ export function useAcoesConversa(atendimentoId: string, initialData: ConversaVis
     // Transferido, o Funcionário perde o controle e a visão da conversa: a tela sai dela e abre o
     // Atendimento da Fila que ele assumiu ao ficar livre; sem ele, volta ao início.
     aoTransferir: (setorDestino: string, resumo: string) =>
-      transferencia.mutate(
-        { setorDestino, resumo },
-        {
-          onSuccess: irParaProximo,
-        },
-      ),
+      transferencia.mutate({ setorDestino, resumo }, { onSuccess: irParaProximo }),
     transferindo: transferencia.isPending,
     avisoTransferencia: transferencia.isError
       ? { tipo: "erro" as const, texto: transferencia.error.message }
