@@ -1,11 +1,13 @@
 import { cn } from "@/presentation/lib/utils";
 
-// Em tela larga: [Fila] | chat | [painel de ações], conforme os slots preenchidos.
+// Em tela larga: [Fila] | chat | [painel de ações], conforme os slots preenchidos. A Fila só entra
+// a partir de xl: com as três colunas em lg (1024 px) o chat sobra com ~330 px.
 const COLUNAS: Record<string, string> = {
   "": "",
   acoes: "lg:grid-cols-[minmax(0,1fr)_19rem] 2xl:grid-cols-[minmax(0,1fr)_22rem]",
-  fila: "lg:grid-cols-[18rem_minmax(0,1fr)]",
-  filaacoes: "lg:grid-cols-[18rem_minmax(0,1fr)_19rem] 2xl:grid-cols-[20rem_minmax(0,1fr)_22rem]",
+  fila: "xl:grid-cols-[18rem_minmax(0,1fr)]",
+  filaacoes:
+    "lg:grid-cols-[minmax(0,1fr)_19rem] xl:grid-cols-[18rem_minmax(0,1fr)_19rem] 2xl:grid-cols-[20rem_minmax(0,1fr)_22rem]",
 };
 
 type ConversaTemplateProps = {
@@ -16,7 +18,7 @@ type ConversaTemplateProps = {
   compositor: React.ReactNode;
   // Sem `acoes` (Atendimento encerrado) o chat ocupa a largura toda.
   acoes?: React.ReactNode;
-  // Barra lateral esquerda com a Fila do Setor (some em tela estreita; a Fila tem tela própria).
+  // Barra lateral esquerda com a Fila do Setor (só de xl para cima; a Fila tem tela própria).
   fila?: React.ReactNode;
 };
 
@@ -47,7 +49,7 @@ export function ConversaTemplate({
             {fila && (
               <aside
                 aria-label="Fila de atendimento"
-                className="hidden min-h-0 overflow-y-auto lg:block"
+                className="hidden min-h-0 overflow-y-auto xl:block"
               >
                 {fila}
               </aside>
