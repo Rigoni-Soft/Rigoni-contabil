@@ -636,6 +636,17 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   e CND ficam `disabled` com `title="Em construção"`. Em janela baixa o painel
   rola por dentro. Transferido, o painel troca tudo por um aviso e a tela
   sai da conversa.
+- **Encerrar atendimento** (no fim do `PainelDeAcoes`, separado por `border-t`):
+  botão `outline`; o primeiro clique só abre a confirmação (`role="alertdialog"`
+  com o aviso de que o cliente será avisado) com "Confirmar encerramento"
+  em `destructive` e "Cancelar". Encerrar não tem volta.
+- **Fila do Setor** (`FilaDoSetor` + `ItemDaFila`, #70): na tela `/fila`
+  (`max-w-3xl`, h1 "Fila de atendimento do <nome>, setor <Setor>", seletor de
+  Setor só para o Admin) e como barra lateral esquerda da conversa (18 rem; 20
+  rem em `2xl`) **só de `xl` para cima**, para o chat não espremer em `lg`.
+  Cada item é `rounded-lg border bg-card`: posição em círculo `primary`,
+  contato/empresa/telefone e a espera em `tabular-nums` com ícone de relógio.
+  Abaixo de `xl` a barra some e o cartão da Fila entra no dock.
 - **Aviso de status** (`AvisoDeStatus`): feedback de envio/transferência no
   painel e no campo de resposta. Segue "Indicadores de estado": ícone
   (`AlertCircle`/`CheckCircle2`) + texto + cor, erro em `destructive` e sucesso

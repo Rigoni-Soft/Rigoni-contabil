@@ -23,10 +23,8 @@ export function ItemDaFila({
 }: ItemDaFilaProps) {
   return (
     <li className="flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3">
-      <span
-        aria-label={`Posição ${posicao}`}
-        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground"
-      >
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+        <span className="sr-only">Posição </span>
         {posicao}
       </span>
       <div className="min-w-0 flex-1">
