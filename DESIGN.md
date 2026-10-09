@@ -631,6 +631,10 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   e CND ficam `disabled` com `title="Em construção"`. Em janela baixa o painel
   rola por dentro. Transferido, o painel troca tudo por um aviso e a tela
   sai da conversa.
+- **Aviso de status** (`AvisoDeStatus`): feedback de envio/transferência no
+  painel e no campo de resposta. Segue "Indicadores de estado": ícone
+  (`AlertCircle`/`CheckCircle2`) + texto + cor, erro em `destructive` e sucesso
+  em `primary` (nunca `success`, o dourado do selo "em dia").
 
 ### Dock de Atendimentos (#49)
 
