@@ -64,18 +64,32 @@ describe("useAvisoFila", () => {
     expect(tocar).not.toHaveBeenCalled();
   });
 
-  it.each(["/fila", "/atendimento/at-1"])(
-    "em %s não mostra o aviso (a Fila já está na tela)",
-    async (rota) => {
-      pathname = rota;
-      acao.mockResolvedValue({ ok: true, data: [item("a")] });
+  it("na conversa o cartão só vale para tela estreita (em tela larga a Fila está na lateral)", async () => {
+    pathname = "/atendimento/at-1";
+    acao.mockResolvedValue({ ok: true, data: [item("a")] });
 
-      const { result } = renderizar();
+    const { result } = renderizar();
 
-      await waitFor(() => expect(acao).toHaveBeenCalled());
-      expect(result.current.aviso).toBeNull();
-    },
-  );
+    await waitFor(() => expect(result.current.aviso).toMatchObject({ soEmTelaEstreita: true }));
+  });
+
+  it("em outras telas o cartão vale para qualquer largura", async () => {
+    acao.mockResolvedValue({ ok: true, data: [item("a")] });
+
+    const { result } = renderizar();
+
+    await waitFor(() => expect(result.current.aviso).toMatchObject({ soEmTelaEstreita: false }));
+  });
+
+  it("em /fila não mostra o aviso (a Fila já está na tela)", async () => {
+    pathname = "/fila";
+    acao.mockResolvedValue({ ok: true, data: [item("a")] });
+
+    const { result } = renderizar();
+
+    await waitFor(() => expect(acao).toHaveBeenCalled());
+    expect(result.current.aviso).toBeNull();
+  });
 
   it.each(["/login", "/trocar-senha"])("em %s não consulta", (rota) => {
     pathname = rota;

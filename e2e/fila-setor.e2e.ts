@@ -132,8 +132,23 @@ test.describe("Fila do Setor (#70)", () => {
       }),
     ).toBeVisible();
     await expect(lateral.getByText("Seu Fila")).toBeVisible();
-    // Na conversa a Fila já está à vista: o cartão do dock some.
-    await expect(dock.getByRole("link", { name: /Fila de atendimento/ })).toHaveCount(0);
+    // Em tela larga a Fila está na lateral: o cartão do dock não aparece.
+    await expect(dock.getByRole("link", { name: /Fila de atendimento/ })).toBeHidden();
+  });
+
+  test("na conversa em tela estreita a lateral some e o cartão da Fila no dock leva a ela", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await login(page, "funcionario.financeiro@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL("/");
+
+    const dock = page.getByRole("navigation", { name: "Atendimentos em andamento" });
+    await dock.getByRole("link", { name: /95557-3004/ }).click();
+
+    await expect(page.getByRole("complementary", { name: "Fila de atendimento" })).toBeHidden();
+    await dock.getByRole("link", { name: /Fila de atendimento/ }).click();
+    await expect(page).toHaveURL("/fila");
   });
 
   test("o Admin escolhe o Setor da Fila", async ({ page }) => {

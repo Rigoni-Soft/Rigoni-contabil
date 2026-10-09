@@ -47,6 +47,28 @@ describe("AtendimentosEmAndamento", () => {
     );
   });
 
+  it("na conversa o cartão da Fila some em tela larga (a Fila está na lateral)", () => {
+    render(
+      <AtendimentosEmAndamento
+        atendimentos={[]}
+        fila={{
+          id: "fila",
+          href: "/fila",
+          titulo: "Fila de atendimento",
+          detalhe: "2 clientes aguardando",
+          previa: null,
+          aguardando: true,
+          sinal: "a,b",
+          soEmTelaEstreita: true,
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: /Fila de atendimento/ }).closest("div")).toHaveClass(
+      "xl:hidden",
+    );
+  });
+
   it("sem Atendimento não renderiza nada", () => {
     const { container } = render(<AtendimentosEmAndamento atendimentos={[]} />);
     expect(container).toBeEmptyDOMElement();

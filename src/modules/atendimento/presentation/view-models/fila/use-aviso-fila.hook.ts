@@ -7,11 +7,14 @@ import { useFilaQuery } from "@/modules/atendimento/presentation/view-models/fil
 
 // Sem sessão não há Fila para consultar.
 const SEM_FILA = ["/login", "/trocar-senha"];
-// Nestas telas a Fila já está à vista (tela própria e barra lateral da conversa): sem cartão.
-const FILA_NA_TELA = ["/fila", "/atendimento/"];
+// Na tela da Fila ela já está à vista: sem cartão.
+const TELA_DA_FILA = "/fila";
+// Na conversa a Fila fica na barra lateral, que só existe em tela larga (xl): em tela estreita o
+// cartão continua sendo o caminho até ela.
+const CONVERSA = "/atendimento/";
 
 // Aviso global da Fila do Setor do usuário: som quando alguém entra, em qualquer tela; cartão no
-// dock quando a Fila não está à vista. Admin não tem Setor próprio: a leitura falha e o aviso some.
+// dock quando a Fila não está à vista (na conversa, só em tela estreita). Admin não tem Setor próprio: a leitura falha e o aviso some.
 export function useAvisoFila() {
   const pathname = usePathname();
   const habilitado = !SEM_FILA.some((rota) => pathname.startsWith(rota));
@@ -33,6 +36,7 @@ export function useAvisoFila() {
     anterior.current = atuais;
   }, [query.data, habilitado]);
 
-  const naTela = FILA_NA_TELA.some((rota) => pathname.startsWith(rota));
-  return { aviso: habilitado && !naTela && query.data ? avisoDaFila(query.data) : null };
+  const aviso = habilitado && query.data ? avisoDaFila(query.data) : null;
+  if (!aviso || pathname.startsWith(TELA_DA_FILA)) return { aviso: null };
+  return { aviso: { ...aviso, soEmTelaEstreita: pathname.startsWith(CONVERSA) } };
 }
