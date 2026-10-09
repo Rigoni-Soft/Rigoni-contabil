@@ -52,6 +52,12 @@ begin
     where setor = p_setor and status = 'em_andamento' and funcionario_id is null
   ) then
     v_funcionario := public.funcionario_livre_do_setor(p_setor);
+    -- Desativado entre a escolha e agora: revalida com lock (PR #77, 2ª devolutiva); inelegível
+    -- não recebe, o Atendimento espera na Fila.
+    if v_funcionario is not null
+       and not public.atendente_elegivel(v_funcionario, p_setor) then
+      v_funcionario := null;
+    end if;
   end if;
 
   insert into public.atendimentos (
