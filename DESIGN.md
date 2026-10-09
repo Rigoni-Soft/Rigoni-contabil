@@ -617,16 +617,21 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   e, abaixo, `CNPJ 00.000.000/0000-00` ou "CNPJ não definido"; o do
   atendente mostra nome e Setor. A hora fica dentro do balão, no canto
   inferior direito, em `text-[11px]`.
-- **Lista de mensagens** (`ListaDeMensagens`): `flex-col-reverse` com as
-  mensagens da mais nova para a mais antiga no DOM — o navegador mantém a
-  rolagem no fim (nas últimas conversas) sem JavaScript, e rolar para cima
-  para ler o histórico não é puxado de volta quando chega mensagem nova.
+- **Lista de mensagens** (`ListaDeMensagens`): um rolador `role="log"`
+  (`aria-label="Conversa"`) em `flex-col-reverse` com o `<ol>` cronológico
+  dentro — o navegador mantém a rolagem no fim (nas últimas conversas) sem
+  JavaScript, o DOM segue a ordem de leitura e o leitor de tela anuncia a
+  mensagem nova. Rolar para cima para ler o histórico não é puxado de volta
+  quando chega mensagem nova. Balões sem sombra; a hora do balão do
+  Funcionário usa `opacity-90` (contraste ≥ 4,5:1 nos dois temas).
 - **Campo de resposta** (`CompositorDeMensagem`): `Textarea` arredondado +
-  botão redondo de enviar. Enter envia, Shift+Enter quebra a linha; o campo
+  botão redondo de enviar (placeholder "Escreva aqui"; o nome acessível vem
+  do rótulo oculto "Mensagem ao cliente"). Enter envia, Shift+Enter quebra a linha; o campo
   só esvazia quando o envio dá certo (se falhar, o texto fica).
 - **Painel de ações** (`PainelDeAcoes`, à direita, 19 rem; 22 rem em `2xl`):
-  compacto, sem textos explicativos. Serviços em grade de 2 colunas de
-  botões `sm`; alteração contratual e Setor de destino em **seletor** +
+  compacto. Serviço "Contrato social" em botão `sm` (quando o Cliente não o
+  tem, o botão fica `disabled` com a frase "Contrato social não cadastrado."
+  visível, não só em `title`); alteração contratual e Setor de destino em **seletor** +
   botão na mesma linha; resumo da transferência em `Textarea` baixo. Guias
   e CND ficam `disabled` com `title="Em construção"`. Em janela baixa o painel
   rola por dentro. Transferido, o painel troca tudo por um aviso e a tela
@@ -641,10 +646,11 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
 Cartões fixos no canto inferior direito (`fixed right-4 bottom-4`), um por
 Atendimento em andamento: ícone, Contato, empresa e o começo da última
 mensagem (prefixo "Você:" / "URA:" quando não é do cliente). Quando o cliente
-escreveu por último o cartão ganha `border-primary`, uma bolinha
-`destructive` e a prévia em `font-medium` (e "nova mensagem" só para leitor
-de tela). O cartão entra com `animate-dock-entrada` (sobe e aparece, 0,35 s,
-keyframes em `globals.css`) e é recriado a cada mensagem nova, repetindo a
+escreveu por último o cartão ganha uma bolinha `destructive` e a prévia em
+`font-medium` (e "nova mensagem" só para leitor de tela); o contêiner é
+`aria-live="polite"` e fica acima da safe-area de aparelhos com barra
+inferior (`bottom-[max(1rem,env(safe-area-inset-bottom))]`). O cartão entra com `animate-dock-entrada` (sobe e aparece, 0,35 s,
+`cubic-bezier(0.16, 1, 0.3, 1)`, keyframes em `globals.css`) e é recriado a cada mensagem nova, repetindo a
 animação. O aviso sonoro (dois tons curtos) toca quando surge um Atendimento
 ou o cliente escreve de novo.
 
@@ -659,6 +665,8 @@ ou o cliente escreve de novo.
 - Erro de servidor: bloco com borda/ícone `destructive`, `role="alert"`.
 - Sucesso de salvar no cadastro operacional: `role="status"` (anunciado por
   leitor de tela, ao contrário de um `<p>` mudo).
+- Alvos de toque: em aparelho de toque (`pointer-coarse:h-11`) os controles do
+  painel de ações sobem para 44 px.
 - Entrada do cartão do dock de Atendimentos: `motion-safe:animate-dock-entrada`.
   O estado (destaque, prévia, "nova mensagem") não depende da animação nem do
   som: quem pediu movimento reduzido ou está sem som perde só o enfeite.
