@@ -1,6 +1,6 @@
 import { Clock } from "lucide-react";
 
-type ItemDaFilaProps = {
+export type ItemDaFilaProps = {
   posicao: number;
   contato: string;
   empresa: string;

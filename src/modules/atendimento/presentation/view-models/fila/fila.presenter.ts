@@ -1,6 +1,6 @@
 import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
+import { telefoneParaExibicao } from "@/presentation/lib/telefone-mask";
 import type { ItemDaFilaVisto } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
-import { telefoneParaExibicao } from "@/modules/atendimento/presentation/view-models/conversa/conversa.presenter";
 import { formatarEspera } from "@/shared/kernel/espera";
 import { SETOR_LABEL, type SetorSlug } from "@/shared/kernel/setores";
 

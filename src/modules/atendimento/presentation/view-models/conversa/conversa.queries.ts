@@ -11,6 +11,8 @@ import {
   obterConversaAction,
   transferirAtendimentoAction,
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.actions";
+import { filaKeys } from "@/modules/atendimento/presentation/view-models/fila/fila.keys";
+import { meusAtendimentosKeys } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.keys";
 
 export const conversaKeys = {
   conversa: (atendimentoId: string) => ["atendimento", "conversa", atendimentoId] as const,
@@ -63,7 +65,7 @@ export function useTransferirAtendimentoMutation(atendimentoId: string) {
       return resultado.data.proximoDaFila;
     },
     // O Atendimento mudou de mãos: a lista do dock precisa refletir.
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ["atendimento", "meus"] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: meusAtendimentosKeys.lista() }),
   });
 }
 
@@ -82,8 +84,8 @@ export function useEncerrarAtendimentoMutation(atendimentoId: string) {
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: conversaKeys.conversa(atendimentoId) }),
-        queryClient.invalidateQueries({ queryKey: ["atendimento", "meus"] }),
-        queryClient.invalidateQueries({ queryKey: ["atendimento", "fila"] }),
+        queryClient.invalidateQueries({ queryKey: meusAtendimentosKeys.lista() }),
+        queryClient.invalidateQueries({ queryKey: filaKeys.todas() }),
       ]),
   });
 }

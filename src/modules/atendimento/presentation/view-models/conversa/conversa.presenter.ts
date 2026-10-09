@@ -1,5 +1,5 @@
 import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
-import { formatarTelefone } from "@/presentation/lib/telefone-mask";
+import { telefoneParaExibicao } from "@/presentation/lib/telefone-mask";
 import type {
   ConversaVista,
   DocumentoDisponivel,
@@ -26,14 +26,6 @@ export type ConversaView = {
   servicos: { valor: string; rotulo: string; grupo: "contrato" | "alteracao" }[];
   setoresDestino: { valor: string; rotulo: string }[];
 };
-
-// O telefone do Atendimento vem com DDI; a máscara é de DDD + número.
-export function telefoneParaExibicao(telefone: string): string {
-  const digitos = telefone.replace(/\D/g, "");
-  return formatarTelefone(
-    digitos.length > 11 && digitos.startsWith("55") ? digitos.slice(2) : digitos,
-  );
-}
 
 const valorDaOpcao = (d: DocumentoOferecido) => (d.data ? `${d.tipo}:${d.data}` : d.tipo);
 

@@ -1,10 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { listarMeusAtendimentosAction } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.actions";
-
-export const meusAtendimentosKeys = {
-  lista: () => ["atendimento", "meus"] as const,
-};
+import { meusAtendimentosKeys } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.keys";
 
 // ponytail: polling a cada 15 s; um Atendimento novo aparece em até esse tempo. Realtime
 // (`*.realtime.ts`, arquitetura.md 4.2) quando o tempo de espera incomodar.

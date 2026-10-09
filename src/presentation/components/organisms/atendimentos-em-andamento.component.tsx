@@ -11,10 +11,12 @@ type AtendimentoEmAndamentoView = {
   sinal: string;
 };
 
+type CartaoDaFilaView = AtendimentoEmAndamentoView & { soEmTelaEstreita?: boolean };
+
 type AtendimentosEmAndamentoProps = {
   atendimentos: AtendimentoEmAndamentoView[];
   // Cartão da Fila do Setor (#70), quando ela não está à vista.
-  fila?: (AtendimentoEmAndamentoView & { soEmTelaEstreita?: boolean }) | null;
+  fila?: CartaoDaFilaView | null;
 };
 
 // Fica no canto de toda tela autenticada: o Funcionário troca de tela sem perder o Atendimento.

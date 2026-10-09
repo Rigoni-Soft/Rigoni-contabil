@@ -1,5 +1,5 @@
+import { telefoneParaExibicao } from "@/presentation/lib/telefone-mask";
 import type { AtendimentoVisto } from "@/modules/atendimento/application/ports/in/listar-meus-atendimentos.provider";
-import { telefoneParaExibicao } from "@/modules/atendimento/presentation/view-models/conversa/conversa.presenter";
 
 export type AtendimentoEmAndamentoView = {
   id: string;

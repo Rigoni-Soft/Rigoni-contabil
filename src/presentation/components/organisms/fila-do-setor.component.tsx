@@ -1,7 +1,10 @@
 import { CampoSelect } from "@/presentation/components/molecules/campo-select.component";
-import { ItemDaFila } from "@/presentation/components/molecules/item-da-fila.component";
+import {
+  ItemDaFila,
+  type ItemDaFilaProps,
+} from "@/presentation/components/molecules/item-da-fila.component";
 
-type ItemView = React.ComponentProps<typeof ItemDaFila> & { id: string };
+type ItemView = ItemDaFilaProps & { id: string };
 
 type FilaDoSetorProps = {
   titulo: string;
