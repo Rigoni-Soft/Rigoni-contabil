@@ -24,6 +24,7 @@ function montar(opcoes: { envioFalha?: boolean | "excecao"; registroFalha?: bool
         return ok(undefined);
       },
       enviarDocumento: async () => ok(undefined),
+      enviarTemplate: async () => ok(undefined),
     },
     repo,
   );
