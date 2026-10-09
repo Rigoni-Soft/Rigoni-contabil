@@ -27,7 +27,7 @@ export type UltimaTransferencia = {
 };
 
 // O que a URA já sabia ao encaminhar o contato; `cnpjInformado` só existe se o número digitou um.
-export type OrigemUra = { resumo: string; cnpjInformado: string | null };
+export type OrigemUra = { resumo: string | null; cnpjInformado: string | null };
 
 export type ConversaVista = {
   atendimentoId: string;
@@ -39,7 +39,7 @@ export type ConversaVista = {
   mensagens: MensagemVista[];
   // Null se o Atendimento nunca foi transferido.
   ultimaTransferencia: UltimaTransferencia | null;
-  // Null se o Atendimento não nasceu da URA (ou nasceu sem resumo).
+  // Null se o Atendimento não nasceu da URA (sem resumo nem CNPJ informado).
   ura: OrigemUra | null;
   // Serviços que o Funcionário pode disparar agora; vazio se encerrado ou sem Cliente.
   documentos: DocumentoOferecido[];

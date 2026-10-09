@@ -8,7 +8,9 @@ const RESUMO_LONGO = 160;
 
 export function useCabecalhoConversa(atendimentoId: string, initialData: ConversaVista) {
   const { conversa } = useConversa(atendimentoId, initialData);
-  const [resumoAberto, setResumoAberto] = useState(false);
+  // Guarda qual resumo foi aberto: se o contexto mudar, o novo resumo volta recolhido.
+  const [abertoPara, setAbertoPara] = useState<string | null>(null);
+  const resumo = conversa.contexto?.resumo ?? null;
 
   return {
     titulo: conversa.titulo,
@@ -16,7 +18,7 @@ export function useCabecalhoConversa(atendimentoId: string, initialData: Convers
     encerrado: conversa.encerrado,
     contexto: conversa.contexto,
     resumoLongo: (conversa.contexto?.resumo.length ?? 0) > RESUMO_LONGO,
-    resumoAberto,
-    alternarResumo: () => setResumoAberto((aberto) => !aberto),
+    resumoAberto: resumo !== null && abertoPara === resumo,
+    alternarResumo: () => setAbertoPara((aberto) => (aberto === resumo ? null : resumo)),
   };
 }

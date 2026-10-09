@@ -94,6 +94,10 @@ describe("conversaParaView", () => {
     expect(conversaParaView({ ...semCliente, ura: null }).subtitulo).toBe(
       "Cliente não identificado",
     );
+    // O CNPJ informado aparece mesmo sem resumo da URA; o bloco de contexto é que some.
+    const semResumo = { ...semCliente, ura: { resumo: null, cnpjInformado: "11444777000161" } };
+    expect(conversaParaView(semResumo).subtitulo).toContain("Provável cliente novo");
+    expect(conversaParaView(semResumo).contexto).toBeNull();
   });
 
   it("serviços viram opções com o nome que o cliente vê: contrato primeiro, alterações da mais recente para a mais antiga", () => {

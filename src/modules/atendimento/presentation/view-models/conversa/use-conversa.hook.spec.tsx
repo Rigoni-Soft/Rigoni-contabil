@@ -4,7 +4,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 
 import { obterConversaAction, transferirAtendimentoAction } from "./conversa.actions";
-import { useTransferirAtendimentoMutation } from "./conversa.queries";
+import { conversaKeys, useTransferirAtendimentoMutation } from "./conversa.queries";
 import { useCabecalhoConversa } from "./use-cabecalho-conversa.hook";
 import { useMensagensConversa } from "./use-mensagens-conversa.hook";
 
@@ -80,6 +80,30 @@ describe("regiões da conversa que leem a mesma consulta", () => {
 
     act(() => result.current.alternarResumo());
     expect(result.current.resumoAberto).toBe(true);
+    act(() => result.current.alternarResumo());
+    expect(result.current.resumoAberto).toBe(false);
+  });
+
+  it("resumo novo chega recolhido, mesmo se o anterior estava aberto", async () => {
+    const resumoDe = (resumo: string) => ({
+      ...CONVERSA,
+      ultimaTransferencia: { setorOrigem: "recepcao" as const, origemNome: null, resumo },
+    });
+    const cliente = new QueryClient();
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={cliente}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(() => useCabecalhoConversa("at-1", resumoDe("x".repeat(200))), {
+      wrapper,
+    });
+    act(() => result.current.alternarResumo());
+    expect(result.current.resumoAberto).toBe(true);
+
+    act(() => {
+      cliente.setQueryData(conversaKeys.conversa("at-1"), resumoDe("y".repeat(200)));
+    });
+    await waitFor(() => expect(result.current.contexto?.resumo).toBe("y".repeat(200)));
+    expect(result.current.resumoAberto).toBe(false);
   });
 
   it("as mensagens chegam prontas para a View", () => {

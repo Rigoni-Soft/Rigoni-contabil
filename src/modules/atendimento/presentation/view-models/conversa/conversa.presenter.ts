@@ -63,7 +63,7 @@ function contextoDaConversa({ ultimaTransferencia, ura }: ConversaVista): Conver
       resumo: ultimaTransferencia.resumo,
     };
   }
-  return ura && { origem: "Aberto pela URA", resumo: ura.resumo };
+  return ura?.resumo ? { origem: "Aberto pela URA", resumo: ura.resumo } : null;
 }
 
 export function conversaParaView(conversa: ConversaVista): ConversaView {

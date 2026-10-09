@@ -480,9 +480,10 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
             resumo: ultima.resumo,
           }
         : null,
-      ura: linha.resumo_ura
-        ? { resumo: linha.resumo_ura, cnpjInformado: linha.cnpj_informado }
-        : null,
+      ura:
+        linha.resumo_ura || linha.cnpj_informado
+          ? { resumo: linha.resumo_ura, cnpjInformado: linha.cnpj_informado }
+          : null,
     });
   }
 
