@@ -2,7 +2,7 @@ import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
 import type { ItemDaFilaVisto } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
 import { telefoneParaExibicao } from "@/modules/atendimento/presentation/view-models/conversa/conversa.presenter";
 import { formatarEspera } from "@/shared/kernel/espera";
-import { SETOR_LABEL } from "@/shared/kernel/setores";
+import { SETOR_LABEL, type SetorSlug } from "@/shared/kernel/setores";
 
 export type ItemDaFilaView = {
   id: string;
@@ -33,8 +33,8 @@ export function itemDaFilaParaView(item: ItemDaFilaVisto, agora?: number): ItemD
   };
 }
 
-export function tituloDaFila(nome: string, setor: string): string {
-  return `Fila de atendimento do ${nome}, setor ${SETOR_LABEL[setor] ?? setor}`;
+export function tituloDaFila(nome: string, setor: SetorSlug): string {
+  return `Fila de atendimento do ${nome}, setor ${SETOR_LABEL[setor]}`;
 }
 
 // O cartão do dock fora da conversa e da tela da Fila (mesmo formato do de Atendimentos).
