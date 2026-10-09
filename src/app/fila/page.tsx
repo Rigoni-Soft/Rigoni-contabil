@@ -30,7 +30,13 @@ export default async function Page() {
         />
       }
       fila={
-        <FilaContainer setorInicial={setor} initialData={fila.value} podeEscolherSetor={ehAdmin} />
+        <FilaContainer
+          nome={sessao.nome}
+          nivelDoTitulo={1}
+          setorInicial={setor}
+          initialData={fila.value}
+          podeEscolherSetor={ehAdmin}
+        />
       }
     />
   );

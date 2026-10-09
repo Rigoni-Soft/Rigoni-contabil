@@ -10,11 +10,15 @@ type AtendimentoEmAndamentoView = {
   sinal: string;
 };
 
-type AtendimentosEmAndamentoProps = { atendimentos: AtendimentoEmAndamentoView[] };
+type AtendimentosEmAndamentoProps = {
+  atendimentos: AtendimentoEmAndamentoView[];
+  // Cartão da Fila do Setor (#70), quando ela não está à vista.
+  fila?: AtendimentoEmAndamentoView | null;
+};
 
 // Fica no canto de toda tela autenticada: o Funcionário troca de tela sem perder o Atendimento.
-export function AtendimentosEmAndamento({ atendimentos }: AtendimentosEmAndamentoProps) {
-  if (atendimentos.length === 0) return null;
+export function AtendimentosEmAndamento({ atendimentos, fila }: AtendimentosEmAndamentoProps) {
+  if (atendimentos.length === 0 && !fila) return null;
 
   return (
     <nav
@@ -24,7 +28,7 @@ export function AtendimentosEmAndamento({ atendimentos }: AtendimentosEmAndament
     >
       {/* A chave inclui o sinal: a cada mensagem nova o cartão é recriado e a animação de entrada
           roda de novo, sinalizando a atualização. */}
-      {atendimentos.map(({ id, sinal, ...atendimento }) => (
+      {[...(fila ? [fila] : []), ...atendimentos].map(({ id, sinal, ...atendimento }) => (
         <CartaoDeAtendimento key={`${id}:${sinal}`} {...atendimento} />
       ))}
     </nav>

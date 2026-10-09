@@ -89,4 +89,22 @@ describe("ListarFila", () => {
     const falha = await montar(FUNCIONARIO, "falha").caso.execute({ setor: "contabil" });
     expect(falha.ok).toBe(false);
   });
+
+  it("sem Setor informado lê a Fila do Setor do próprio usuário", async () => {
+    const { caso, consultados } = montar(FUNCIONARIO);
+
+    const r = await caso.execute({});
+
+    expect(r.ok).toBe(true);
+    expect(consultados).toEqual(["contabil"]);
+  });
+
+  it("Admin precisa informar o Setor (não pertence a um)", async () => {
+    const { caso, consultados } = montar({ id: "adm", papel: "admin", setor: "administrativo" });
+
+    const r = await caso.execute({});
+
+    expect(!r.ok && r.error.code).toBe("FORBIDDEN");
+    expect(consultados).toEqual([]);
+  });
 });

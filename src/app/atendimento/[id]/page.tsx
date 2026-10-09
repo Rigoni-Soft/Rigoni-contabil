@@ -9,6 +9,9 @@ import { CabecalhoConversaContainer } from "@/modules/atendimento/presentation/v
 import { CompositorConversaContainer } from "@/modules/atendimento/presentation/view-models/conversa/compositor-conversa.container";
 import { carregarConversa } from "@/modules/atendimento/presentation/view-models/conversa/conversa.server";
 import { MensagensConversaContainer } from "@/modules/atendimento/presentation/view-models/conversa/mensagens-conversa.container";
+import { FilaContainer } from "@/modules/atendimento/presentation/view-models/fila/fila.container";
+import { carregarFila } from "@/modules/atendimento/presentation/view-models/fila/fila.server";
+import type { SetorSlug } from "@/shared/kernel/setores";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -20,6 +23,9 @@ export default async function Page({ params }: Props) {
   // Sem permissão, inexistente ou id inválido: volta ao início, como as outras telas protegidas.
   if (!conversa.ok) redirect("/");
 
+  // Barra lateral da Fila do próprio Setor; Admin não tem Setor e vê a Fila em /fila.
+  const fila = sessao.papel === "admin" ? null : await carregarFila(sessao.setor as SetorSlug);
+
   return (
     <ConversaAtendimentoPage
       header={
@@ -29,6 +35,16 @@ export default async function Page({ params }: Props) {
           setor={sessao.setor}
           sair={<LogoutButtonContainer />}
         />
+      }
+      fila={
+        fila?.ok && (
+          <FilaContainer
+            nome={sessao.nome}
+            setorInicial={sessao.setor}
+            initialData={fila.value}
+            podeEscolherSetor={false}
+          />
+        )
       }
       cabecalho={<CabecalhoConversaContainer atendimentoId={id} initialData={conversa.value} />}
       mensagens={<MensagensConversaContainer atendimentoId={id} initialData={conversa.value} />}

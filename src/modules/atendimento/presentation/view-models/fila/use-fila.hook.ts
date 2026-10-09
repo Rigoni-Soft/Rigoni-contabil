@@ -5,10 +5,18 @@ import { itemDaFilaParaView } from "@/modules/atendimento/presentation/view-mode
 import { useFilaQuery } from "@/modules/atendimento/presentation/view-models/fila/fila.queries";
 
 // `inicial` é a carga do servidor para `setorInicial`; outro Setor (Admin) lê pela Server Action.
-export function useFila(setorInicial: string, inicial: ItemDaFilaVisto[]) {
+// Só o Admin escolhe o Setor; os demais leem sempre a Fila do próprio Setor.
+export function useFila(
+  setorInicial: string,
+  inicial: ItemDaFilaVisto[],
+  podeEscolherSetor: boolean,
+) {
   const [setor, setSetor] = useState(setorInicial);
   const [agora, setAgora] = useState(() => Date.now());
-  const query = useFilaQuery(setor, setor === setorInicial ? inicial : undefined);
+  const query = useFilaQuery(
+    podeEscolherSetor ? setor : null,
+    setor === setorInicial ? inicial : undefined,
+  );
 
   useEffect(() => {
     const timer = setInterval(() => setAgora(Date.now()), 1000);

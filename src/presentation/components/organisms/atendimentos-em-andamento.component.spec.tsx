@@ -25,6 +25,28 @@ describe("AtendimentosEmAndamento", () => {
     expect(screen.getByText("Padaria Ltda")).toBeInTheDocument();
   });
 
+  it("mostra o cartão da Fila mesmo sem Atendimento", () => {
+    render(
+      <AtendimentosEmAndamento
+        atendimentos={[]}
+        fila={{
+          id: "fila",
+          href: "/fila",
+          titulo: "Fila de atendimento",
+          detalhe: "2 clientes aguardando",
+          previa: null,
+          aguardando: true,
+          sinal: "a,b",
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: /Fila de atendimento/ })).toHaveAttribute(
+      "href",
+      "/fila",
+    );
+  });
+
   it("sem Atendimento não renderiza nada", () => {
     const { container } = render(<AtendimentosEmAndamento atendimentos={[]} />);
     expect(container).toBeEmptyDOMElement();

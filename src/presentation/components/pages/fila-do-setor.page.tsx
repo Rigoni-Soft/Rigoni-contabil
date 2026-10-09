@@ -18,7 +18,6 @@ export function FilaDoSetorPage({ header, fila }: FilaDoSetorPageProps) {
           <ArrowLeft className="size-4" aria-hidden="true" />
           Voltar
         </Link>
-        <h1 className="mb-6 text-xl font-bold tracking-tight text-primary">Fila de atendimento</h1>
         {fila}
       </div>
     </main>

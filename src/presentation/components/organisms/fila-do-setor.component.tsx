@@ -4,6 +4,9 @@ import { ItemDaFila } from "@/presentation/components/molecules/item-da-fila.com
 type ItemView = React.ComponentProps<typeof ItemDaFila> & { id: string };
 
 type FilaDoSetorProps = {
+  titulo: string;
+  // h1 quando a Fila é a tela; h2 quando é a barra lateral da conversa.
+  nivelDoTitulo?: 1 | 2;
   itens: ItemView[];
   // Só o Admin escolhe o Setor; para os demais a Fila é a do próprio Setor.
   escolhaDeSetor?: {
@@ -16,13 +19,17 @@ type FilaDoSetorProps = {
 };
 
 export function FilaDoSetor({
+  titulo,
+  nivelDoTitulo = 2,
   itens,
   escolhaDeSetor,
   carregando = false,
   indisponivel = false,
 }: FilaDoSetorProps) {
+  const Titulo = nivelDoTitulo === 1 ? "h1" : "h2";
   return (
     <section aria-label="Fila do Setor" className="space-y-4">
+      <Titulo className="text-lg font-bold tracking-tight text-primary">{titulo}</Titulo>
       {escolhaDeSetor && (
         <div className="max-w-xs">
           <CampoSelect

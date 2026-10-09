@@ -1,0 +1,38 @@
+import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
+
+import { prepararSom, tocarNotificacao } from "@/presentation/lib/notificacao-sonora";
+import { avisoDaFila } from "@/modules/atendimento/presentation/view-models/fila/fila.presenter";
+import { useFilaQuery } from "@/modules/atendimento/presentation/view-models/fila/fila.queries";
+
+// Sem sessão não há Fila para consultar.
+const SEM_FILA = ["/login", "/trocar-senha"];
+// Nestas telas a Fila já está à vista (tela própria e barra lateral da conversa): sem cartão.
+const FILA_NA_TELA = ["/fila", "/atendimento/"];
+
+// Aviso global da Fila do Setor do usuário: som quando alguém entra, em qualquer tela; cartão no
+// dock quando a Fila não está à vista. Admin não tem Setor próprio: a leitura falha e o aviso some.
+export function useAvisoFila() {
+  const pathname = usePathname();
+  const habilitado = !SEM_FILA.some((rota) => pathname.startsWith(rota));
+  const query = useFilaQuery(null, undefined, habilitado);
+  // Atendimentos da última leitura; null = ainda não houve leitura (a primeira é silenciosa).
+  const anterior = useRef<Set<string> | null>(null);
+
+  useEffect(() => prepararSom(), []);
+
+  useEffect(() => {
+    if (!habilitado) {
+      anterior.current = null;
+      return;
+    }
+    if (!query.data) return;
+    const atuais = new Set(query.data.map((item) => item.atendimentoId));
+    const antes = anterior.current;
+    if (antes && [...atuais].some((id) => !antes.has(id))) tocarNotificacao();
+    anterior.current = atuais;
+  }, [query.data, habilitado]);
+
+  const naTela = FILA_NA_TELA.some((rota) => pathname.startsWith(rota));
+  return { aviso: habilitado && !naTela && query.data ? avisoDaFila(query.data) : null };
+}

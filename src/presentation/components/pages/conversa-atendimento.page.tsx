@@ -9,6 +9,7 @@ type ConversaAtendimentoPageProps = {
   mensagens: React.ReactNode;
   compositor: React.ReactNode;
   acoes?: React.ReactNode;
+  fila?: React.ReactNode;
 };
 
 // O template da conversa preenchido: os slots recebem os Containers montados em `app/`.
@@ -18,6 +19,7 @@ export function ConversaAtendimentoPage({
   mensagens,
   compositor,
   acoes,
+  fila,
 }: ConversaAtendimentoPageProps) {
   return (
     <ConversaTemplate
@@ -35,6 +37,7 @@ export function ConversaAtendimentoPage({
       mensagens={mensagens}
       compositor={compositor}
       acoes={acoes}
+      fila={fila}
     />
   );
 }

@@ -20,7 +20,7 @@ const ITEM = {
 
 function renderizar(setorInicial = "financeiro") {
   const cliente = new QueryClient();
-  return renderHook(() => useFila(setorInicial, [ITEM]), {
+  return renderHook(() => useFila(setorInicial, [ITEM], true), {
     wrapper: ({ children }) => (
       <QueryClientProvider client={cliente}>{children}</QueryClientProvider>
     ),

@@ -13,7 +13,8 @@ const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: 
 
 const CLIENTE = crypto.randomUUID();
 const CNPJ = `7${Date.now()}`.slice(0, 14);
-const TELEFONES = ["61955573001", "61955573002", "61955573003"];
+const FUNCIONARIO = "33333333-3333-3333-3333-333333333333"; // funcionario.financeiro
+const TELEFONES = ["61955573001", "61955573002", "61955573003", "61955573004"];
 
 test.describe("Fila do Setor (#70)", () => {
   test.beforeAll(async () => {
@@ -48,6 +49,14 @@ test.describe("Fila do Setor (#70)", () => {
         setor: "financeiro",
         fila_desde: new Date(agora - 60_000).toISOString(),
       },
+      // Atendimento em andamento do Funcionário: é a conversa onde a Fila aparece na lateral.
+      {
+        telefone: `55${TELEFONES[3]}`,
+        chave_telefone: TELEFONES[3],
+        setor: "financeiro",
+        funcionario_id: FUNCIONARIO,
+        assumido_em: new Date(agora).toISOString(),
+      },
       // Fila de outro Setor: o Funcionário do financeiro não a enxerga.
       {
         telefone: `55${TELEFONES[2]}`,
@@ -70,8 +79,15 @@ test.describe("Fila do Setor (#70)", () => {
     await login(page, "funcionario.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
 
-    await page.getByRole("link", { name: "Fila" }).click();
+    await page.getByRole("link", { name: "Fila", exact: true }).click();
     await expect(page).toHaveURL("/fila");
+
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: /^Fila de atendimento do .+, setor Financeiro$/,
+      }),
+    ).toBeVisible();
 
     const itens = page.getByRole("region", { name: "Fila do Setor" }).getByRole("listitem");
     await expect(itens).toHaveCount(2);
@@ -92,6 +108,29 @@ test.describe("Fila do Setor (#70)", () => {
     await expect(page.getByText("(61) 95557-3003")).toHaveCount(0);
   });
 
+  test("na conversa a Fila fica na barra lateral esquerda, com o título do Funcionário e do Setor @smoke", async ({
+    page,
+  }) => {
+    await login(page, "funcionario.financeiro@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL("/");
+
+    // Fora da conversa e da Fila, o dock avisa que há gente esperando.
+    const dock = page.getByRole("navigation", { name: "Atendimentos em andamento" });
+    await expect(dock.getByRole("link", { name: /Fila de atendimento/ })).toBeVisible();
+
+    await dock.getByRole("link", { name: /95557-3004/ }).click();
+    const lateral = page.getByRole("complementary", { name: "Fila de atendimento" });
+    await expect(
+      lateral.getByRole("heading", {
+        level: 2,
+        name: /^Fila de atendimento do .+, setor Financeiro$/,
+      }),
+    ).toBeVisible();
+    await expect(lateral.getByText("Seu Fila")).toBeVisible();
+    // Na conversa a Fila já está à vista: o cartão do dock some.
+    await expect(dock.getByRole("link", { name: /Fila de atendimento/ })).toHaveCount(0);
+  });
+
   test("o Admin escolhe o Setor da Fila", async ({ page }) => {
     await login(page, "admin@rigonicontabil.local", "admin123");
     await expect(page).toHaveURL("/");
@@ -100,5 +139,6 @@ test.describe("Fila do Setor (#70)", () => {
     await page.getByRole("combobox", { name: "Setor" }).selectOption("financeiro");
 
     await expect(page.getByRole("listitem").filter({ hasText: "Seu Fila" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: /setor Financeiro$/ })).toBeVisible();
   });
 });
