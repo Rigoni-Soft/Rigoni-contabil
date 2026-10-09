@@ -145,4 +145,18 @@ describe("ShellHeader", () => {
     );
     expect(screen.queryByRole("link", { name: "Usuários" })).not.toBeInTheDocument();
   });
+
+  it("só o Admin vê o link 'Fila' (os demais têm a Fila na conversa, #70)", () => {
+    const { rerender } = render(
+      <ShellHeader nome="C" papel="admin" setor="administrativo" sair={<button>Sair</button>} />,
+    );
+    expect(screen.getByRole("link", { name: "Fila" })).toHaveAttribute("href", "/fila");
+
+    for (const papel of ["lider_setor", "funcionario"]) {
+      rerender(
+        <ShellHeader nome="L" papel={papel} setor="contabil" sair={<button>Sair</button>} />,
+      );
+      expect(screen.queryByRole("link", { name: "Fila" })).not.toBeInTheDocument();
+    }
+  });
 });

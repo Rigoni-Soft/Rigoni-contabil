@@ -91,11 +91,14 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
             <span className="hidden sm:inline">Feriados</span>
           </Link>
         )}
-        {/* Único caminho de navegação até /fila (#70): Admin vê a de qualquer Setor, os demais a do seu. */}
-        <Link href="/fila" aria-label="Fila" className={buttonVariants({ variant: "ghost" })}>
-          <ListOrdered aria-hidden="true" />
-          <span className="hidden sm:inline">Fila</span>
-        </Link>
+        {/* Só o Admin: ele não tem Setor nem barra lateral na conversa e vê a Fila de qualquer
+            Setor aqui (#70). Os demais têm a Fila na conversa e o cartão no dock. */}
+        {papel === "admin" && (
+          <Link href="/fila" aria-label="Fila" className={buttonVariants({ variant: "ghost" })}>
+            <ListOrdered aria-hidden="true" />
+            <span className="hidden sm:inline">Fila</span>
+          </Link>
+        )}
         {/* Único caminho de navegação até /perfil (#56), onde mora a troca voluntária
             de senha — a /trocar-senha fica só pro redirecionamento obrigatório (#31). */}
         <Link
