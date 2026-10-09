@@ -30,7 +30,7 @@ export function CabecalhoDaConversa({
           <p className="font-medium text-muted-foreground">{transferencia.origem}</p>
           <p
             id="resumo-da-transferencia"
-            className={`break-words text-muted-foreground ${longo && !aberto ? "line-clamp-3" : ""}`}
+            className={`font-semibold break-words text-foreground ${longo && !aberto ? "line-clamp-3" : ""}`}
           >
             {transferencia.resumo}
           </p>
