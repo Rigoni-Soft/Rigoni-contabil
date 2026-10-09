@@ -640,13 +640,19 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   botão `outline`; o primeiro clique só abre a confirmação (`role="alertdialog"`
   com o aviso de que o cliente será avisado) com "Confirmar encerramento"
   em `destructive` e "Cancelar" (que recebe o foco ao abrir, pois o botão que
-  pediu a confirmação some). Encerrar não tem volta.
+  pediu a confirmação some). A pergunta descreve o diálogo (`aria-describedby`)
+  e, enquanto encerra, "Cancelar" fica `aria-disabled` (não `disabled`), sem
+  perder o foco. Encerrar não tem volta.
 - **Fila do Setor** (`FilaDoSetor` + `ItemDaFila`, #70): na tela `/fila`
   (`max-w-3xl`, h1 "Fila de atendimento do <nome>, setor <Setor>", seletor de
   Setor só para o Admin) e como barra lateral esquerda da conversa (18 rem; 20
   rem em `2xl`) **só de `xl` para cima**, para o chat não espremer em `lg`.
   Cada item é `rounded-lg border bg-card`: posição em círculo `primary`,
-  contato/empresa/telefone e a espera em `tabular-nums` com ícone de relógio.
+  contato/empresa/telefone e a espera em `tabular-nums` com ícone de relógio
+  (`mm:ss`; `h:mm:ss` a partir de 1 h). O CNPJ vai junto da empresa e nunca
+  quebra no meio do número (`whitespace-nowrap`); resumo da Transferência em
+  `text-sm` e "Fila de um usuário" em `text-sm muted` quando a Fila é de um
+  usuário (destino fixo ocupado).
   Abaixo de `xl` a barra some e o cartão da Fila entra no dock.
 - **Aviso de status** (`AvisoDeStatus`): feedback de envio/transferência no
   painel e no campo de resposta. Segue "Indicadores de estado": ícone
