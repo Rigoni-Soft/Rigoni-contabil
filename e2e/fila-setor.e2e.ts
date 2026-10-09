@@ -14,7 +14,8 @@ const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: 
 const CLIENTE = crypto.randomUUID();
 const CNPJ = `7${Date.now()}`.slice(0, 14);
 const FUNCIONARIO = "33333333-3333-3333-3333-333333333333"; // funcionario.financeiro
-const TELEFONES = ["61955573001", "61955573002", "61955573003", "61955573004"];
+const TELEFONES = ["61955573001", "61955573002", "61955573003", "61955573004", "61955573005"];
+const PRIMEIRO = crypto.randomUUID();
 
 test.describe("Fila do Setor (#70)", () => {
   test.beforeAll(async () => {
@@ -37,6 +38,7 @@ test.describe("Fila do Setor (#70)", () => {
     const agora = Date.now();
     const atendimentos = await admin.from("atendimentos").insert([
       {
+        id: PRIMEIRO,
         telefone: `55${TELEFONES[0]}`,
         chave_telefone: TELEFONES[0],
         cliente_id: CLIENTE,
@@ -44,13 +46,17 @@ test.describe("Fila do Setor (#70)", () => {
         fila_desde: new Date(agora - 5 * 60_000).toISOString(),
       },
       {
+        id: crypto.randomUUID(),
         telefone: `55${TELEFONES[1]}`,
         chave_telefone: TELEFONES[1],
         setor: "financeiro",
+        // Fila de um usuário: destino fixo ocupado (#45).
+        fila_funcionario_id: FUNCIONARIO,
         fila_desde: new Date(agora - 60_000).toISOString(),
       },
       // Atendimento em andamento do Funcionário: é a conversa onde a Fila aparece na lateral.
       {
+        id: crypto.randomUUID(),
         telefone: `55${TELEFONES[3]}`,
         chave_telefone: TELEFONES[3],
         setor: "financeiro",
@@ -59,6 +65,7 @@ test.describe("Fila do Setor (#70)", () => {
       },
       // Fila de outro Setor: o Funcionário do financeiro não a enxerga.
       {
+        id: crypto.randomUUID(),
         telefone: `55${TELEFONES[2]}`,
         chave_telefone: TELEFONES[2],
         setor: "rh",
@@ -66,6 +73,14 @@ test.describe("Fila do Setor (#70)", () => {
       },
     ]);
     if (atendimentos.error) throw atendimentos.error;
+
+    const transferencia = await admin.from("transferencias").insert({
+      atendimento_id: PRIMEIRO,
+      setor_origem: "rh",
+      setor_destino: "financeiro",
+      resumo: "Cliente quer segunda via do boleto",
+    });
+    if (transferencia.error) throw transferencia.error;
   });
 
   test.afterAll(async () => {
@@ -99,7 +114,11 @@ test.describe("Fila do Setor (#70)", () => {
     await expect(itens.nth(0)).toContainText("Seu Fila");
     await expect(itens.nth(0)).toContainText("Fila E2E Ltda");
     await expect(itens.nth(0)).toContainText("(61) 95557-3001");
+    await expect(itens.nth(0)).toContainText(/\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}|\d{14}/);
+    await expect(itens.nth(0)).toContainText("Cliente quer segunda via do boleto");
+    await expect(itens.nth(0)).not.toContainText("Fila de um usuário");
     await expect(itens.nth(1)).toContainText("Contato não identificado");
+    await expect(itens.nth(1)).toContainText("Fila de um usuário");
 
     // O tempo corre sem recarregar a página.
     const espera = itens.nth(0).getByText(/^\d{2}:\d{2}$/);
@@ -111,6 +130,40 @@ test.describe("Fila do Setor (#70)", () => {
     await expect(page.getByRole("combobox", { name: "Setor" })).toHaveCount(0);
     await expect(itens).toHaveCount(2);
     await expect(page.getByText("(61) 95557-3003")).toHaveCount(0);
+  });
+
+  test("a lista se atualiza quando a Fila muda (entrada, promoção, saída)", async ({ page }) => {
+    test.setTimeout(90_000);
+    await login(page, "funcionario.financeiro@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL("/");
+    await page.goto("/fila");
+    const itens = page.getByRole("region", { name: "Fila do Setor" }).getByRole("listitem");
+    await expect(itens).toHaveCount(2);
+
+    const agora = Date.now();
+    const entrada = await admin.from("atendimentos").insert({
+      telefone: `55${TELEFONES[4]}`,
+      chave_telefone: TELEFONES[4],
+      setor: "financeiro",
+      fila_desde: new Date(agora).toISOString(),
+    });
+    if (entrada.error) throw entrada.error;
+    await expect(itens).toHaveCount(3, { timeout: 30_000 });
+    await expect(itens.nth(2)).toContainText("95557-3005");
+
+    // Promoção: o mais novo passa a ser o mais antigo.
+    const promocao = await admin
+      .from("atendimentos")
+      .update({ fila_desde: new Date(agora - 3_600_000).toISOString() })
+      .eq("chave_telefone", TELEFONES[4]);
+    if (promocao.error) throw promocao.error;
+    await expect(itens.nth(0)).toContainText("95557-3005", { timeout: 30_000 });
+    // Mais de 1h de espera: h:mm:ss.
+    await expect(itens.nth(0).getByText(/^\d:\d{2}:\d{2}$/)).toBeVisible();
+
+    const saida = await admin.from("atendimentos").delete().eq("chave_telefone", TELEFONES[4]);
+    if (saida.error) throw saida.error;
+    await expect(itens).toHaveCount(2, { timeout: 30_000 });
   });
 
   test("na conversa a Fila fica na barra lateral esquerda, com o título do Funcionário e do Setor @smoke", async ({
