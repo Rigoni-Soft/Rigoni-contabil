@@ -80,7 +80,7 @@ test.describe("Contexto da Transferência (#74)", () => {
     await expect(page.getByRole("heading", { name: "Seu Contexto" })).toBeVisible();
     await expect(page.getByText("Contexto E2E Ltda ·")).toBeVisible();
     await expect(
-      page.getByText("Transferido por Segundo Funcionário Financeiro · Financeiro:"),
+      page.getByText("Transferido por Segundo Funcionário Financeiro · Financeiro"),
     ).toBeVisible();
     await expect(page.getByText(RESUMO)).toBeVisible();
   });
