@@ -5,6 +5,7 @@ import type {
   ResultadoEncerramento,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { AtorSessaoDto } from "@/modules/atendimento/application/ports/out/sessao.provider";
+import { AVISO_ENCERRAMENTO_AO_CLIENTE } from "@/modules/atendimento/domain/services/aviso-fila.service";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok } from "@/shared/kernel/result";
 
@@ -68,6 +69,7 @@ describe("EncerrarAtendimento", () => {
     expect(await caso.execute(INPUT)).toEqual({ ok: true, value: { proximoDaFila: "at-9" } });
     expect(encerrados).toEqual([["at-1", "func-1", { id: "func-1", setor: "contabil" }]]);
     expect(avisos).toEqual([
+      { telefone: "5561988887777", chave: "61988887777", texto: AVISO_ENCERRAMENTO_AO_CLIENTE },
       {
         telefone: "5561977776666",
         chave: "61977776666",
@@ -76,10 +78,12 @@ describe("EncerrarAtendimento", () => {
     ]);
   });
 
-  it("Fila vazia: encerra e não avisa ninguém", async () => {
+  it("Fila vazia: encerra e avisa só o cliente de que o Atendimento foi encerrado", async () => {
     const { caso, avisos } = montar();
     expect(await caso.execute(INPUT)).toEqual({ ok: true, value: { proximoDaFila: null } });
-    expect(avisos).toEqual([]);
+    expect(avisos).toEqual([
+      { telefone: "5561988887777", chave: "61988887777", texto: AVISO_ENCERRAMENTO_AO_CLIENTE },
+    ]);
   });
 
   it("Líder do Setor e Admin encerram; outro Funcionário e outro Setor não", async () => {
@@ -116,6 +120,16 @@ describe("EncerrarAtendimento", () => {
     expect(!inexistente.ok && inexistente.error.code).toBe("NOT_FOUND");
     const mudou = await montar({ encerramento: { status: "inexistente" } }).caso.execute(INPUT);
     expect(!mudou.ok && mudou.error.code).toBe("NOT_FOUND");
+  });
+
+  it("falha ao avisar o cliente do encerramento: erro de estado, mas ainda avisa o da Fila", async () => {
+    const { caso, avisos } = montar({
+      encerramento: { status: "encerrado", proximo: PROXIMO },
+      avisoFalha: true,
+    });
+    const r = await caso.execute(INPUT);
+    expect(!r.ok && r.error.code).toBe("INCONSISTENT_STATE");
+    expect(avisos).toHaveLength(2);
   });
 
   it("falha ao avisar o cliente da Fila: erro de estado, já encerrado e assumido", async () => {

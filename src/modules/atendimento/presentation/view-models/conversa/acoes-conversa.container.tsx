@@ -1,6 +1,7 @@
 "use client";
 
 import { PainelDeAcoes } from "@/presentation/components/organisms/painel-de-acoes.component";
+import { PainelDeEncerramento } from "@/presentation/components/organisms/painel-de-encerramento.component";
 import { PainelDeServicos } from "@/presentation/components/organisms/painel-de-servicos.component";
 import { PainelDeTransferencia } from "@/presentation/components/organisms/painel-de-transferencia.component";
 import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
@@ -34,6 +35,16 @@ export function AcoesConversaContainer({
           onTransferir={acoes.aoTransferir}
           transferindo={acoes.transferindo}
           aviso={acoes.avisoTransferencia}
+        />
+      }
+      encerramento={
+        <PainelDeEncerramento
+          confirmando={acoes.confirmandoEncerramento}
+          encerrando={acoes.encerrando}
+          onPedir={acoes.aoPedirEncerramento}
+          onCancelar={acoes.aoCancelarEncerramento}
+          onConfirmar={acoes.aoConfirmarEncerramento}
+          aviso={acoes.avisoEncerramento}
         />
       }
     />

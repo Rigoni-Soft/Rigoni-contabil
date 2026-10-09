@@ -6,6 +6,7 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok } from "@/shared/kernel/result";
 
 import {
+  encerrarAtendimentoAction,
   enviarDocumentoAction,
   enviarMensagemAction,
   obterConversaAction,
@@ -16,12 +17,14 @@ const obterMock = jest.fn();
 const enviarMock = jest.fn();
 const transferirMock = jest.fn();
 const mensagemMock = jest.fn();
+const encerrarMock = jest.fn();
 
 jest.mock("@/main/atendimento.factory", () => ({
   makeObterConversa: async () => ({ execute: obterMock }),
   makeEnviarDocumentoAoCliente: async () => ({ execute: enviarMock }),
   makeTransferirAtendimento: async () => ({ execute: transferirMock }),
   makeEnviarMensagemAoCliente: async () => ({ execute: mensagemMock }),
+  makeEncerrarAtendimento: async () => ({ execute: encerrarMock }),
 }));
 
 const ID = "9f1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7d";
@@ -115,5 +118,35 @@ describe("enviarMensagemAction (integração)", () => {
 
     expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
     expect(mensagemMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("encerrarAtendimentoAction (integração)", () => {
+  beforeEach(() => encerrarMock.mockReset());
+
+  it("chama o caso de uso e devolve o próximo da Fila que o Funcionário assumiu", async () => {
+    encerrarMock.mockResolvedValue(ok({ proximoDaFila: "at-9" }));
+
+    const r = await encerrarAtendimentoAction(ID);
+
+    expect(r).toEqual({ ok: true, data: { proximoDaFila: "at-9" } });
+    expect(encerrarMock).toHaveBeenCalledWith({ atendimentoId: ID });
+  });
+
+  it("repassa a negativa de quem não pode encerrar", async () => {
+    encerrarMock.mockResolvedValue(
+      err(new ForbiddenError("Você não pode encerrar este Atendimento.")),
+    );
+
+    const r = await encerrarAtendimentoAction(ID);
+
+    expect(!r.ok && r.error.code).toBe("FORBIDDEN");
+  });
+
+  it("devolve VALIDATION_ERROR sem chamar o caso de uso quando o id é inválido", async () => {
+    const r = await encerrarAtendimentoAction("1");
+
+    expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
+    expect(encerrarMock).not.toHaveBeenCalled();
   });
 });

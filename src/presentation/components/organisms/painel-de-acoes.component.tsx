@@ -3,10 +3,16 @@ type PainelDeAcoesProps = {
   transferidoPara?: string;
   servicos: React.ReactNode;
   transferencia: React.ReactNode;
+  encerramento: React.ReactNode;
 };
 
-// Moldura do painel lateral: junta os serviços e a transferência. Em janela baixa rola por dentro.
-export function PainelDeAcoes({ transferidoPara, servicos, transferencia }: PainelDeAcoesProps) {
+// Moldura do painel lateral: junta os serviços, a transferência e o encerramento. Em janela baixa rola por dentro.
+export function PainelDeAcoes({
+  transferidoPara,
+  servicos,
+  transferencia,
+  encerramento,
+}: PainelDeAcoesProps) {
   return (
     <aside
       aria-label="Ações do Atendimento"
@@ -21,6 +27,7 @@ export function PainelDeAcoes({ transferidoPara, servicos, transferencia }: Pain
         <>
           {servicos}
           <div className="border-t border-border pt-3">{transferencia}</div>
+          <div className="border-t border-border pt-3">{encerramento}</div>
         </>
       )}
     </aside>

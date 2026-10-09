@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import { documentoDaOpcao } from "@/modules/atendimento/presentation/view-models/conversa/conversa.presenter";
 import {
+  useEncerrarAtendimentoMutation,
   useEnviarDocumentoMutation,
   useTransferirAtendimentoMutation,
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.queries";
@@ -16,6 +18,8 @@ export function useAcoesConversa(atendimentoId: string, initialData: ConversaVis
   const router = useRouter();
   const envio = useEnviarDocumentoMutation(atendimentoId);
   const transferencia = useTransferirAtendimentoMutation(atendimentoId);
+  const encerramento = useEncerrarAtendimentoMutation(atendimentoId);
+  const [confirmandoEncerramento, setConfirmandoEncerramento] = useState(false);
 
   const aviso = envio.isError
     ? { tipo: "erro" as const, texto: envio.error.message }
@@ -48,6 +52,21 @@ export function useAcoesConversa(atendimentoId: string, initialData: ConversaVis
     transferindo: transferencia.isPending,
     avisoTransferencia: transferencia.isError
       ? { tipo: "erro" as const, texto: transferencia.error.message }
+      : undefined,
+    // Encerrar não tem volta: pede confirmação. Encerrado, o Funcionário sai da conversa como na
+    // transferência (abre a do próximo da Fila que assumiu, ou volta ao início).
+    confirmandoEncerramento,
+    aoPedirEncerramento: () => setConfirmandoEncerramento(true),
+    aoCancelarEncerramento: () => setConfirmandoEncerramento(false),
+    aoConfirmarEncerramento: () =>
+      encerramento.mutate(undefined, {
+        onSuccess: (proximoDaFila) =>
+          router.push(proximoDaFila ? `/atendimento/${proximoDaFila}` : "/"),
+        onSettled: () => setConfirmandoEncerramento(false),
+      }),
+    encerrando: encerramento.isPending,
+    avisoEncerramento: encerramento.isError
+      ? { tipo: "erro" as const, texto: encerramento.error.message }
       : undefined,
   };
 }

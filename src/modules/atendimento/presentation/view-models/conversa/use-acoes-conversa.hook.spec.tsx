@@ -4,6 +4,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 
 import {
+  encerrarAtendimentoAction,
   enviarDocumentoAction,
   obterConversaAction,
   transferirAtendimentoAction,
@@ -14,6 +15,7 @@ const push = jest.fn();
 jest.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
 jest.mock("./conversa.actions", () => ({
+  encerrarAtendimentoAction: jest.fn(),
   enviarDocumentoAction: jest.fn(),
   enviarMensagemAction: jest.fn(),
   obterConversaAction: jest.fn(),
@@ -23,6 +25,7 @@ jest.mock("./conversa.actions", () => ({
 const enviar = jest.mocked(enviarDocumentoAction);
 const obter = jest.mocked(obterConversaAction);
 const transferir = jest.mocked(transferirAtendimentoAction);
+const encerrar = jest.mocked(encerrarAtendimentoAction);
 
 const CONVERSA: ConversaVista = {
   atendimentoId: "at-1",
@@ -142,5 +145,56 @@ describe("useAcoesConversa", () => {
     );
     expect(result.current.transferidoPara).toBeUndefined();
     expect(push).not.toHaveBeenCalled();
+  });
+
+  describe("encerrar o Atendimento", () => {
+    it("pede confirmação antes de encerrar; cancelar não encerra", () => {
+      const { result } = renderizar();
+      expect(result.current.confirmandoEncerramento).toBe(false);
+
+      act(() => result.current.aoPedirEncerramento());
+      expect(result.current.confirmandoEncerramento).toBe(true);
+
+      act(() => result.current.aoCancelarEncerramento());
+      expect(result.current.confirmandoEncerramento).toBe(false);
+      expect(encerrar).not.toHaveBeenCalled();
+    });
+
+    it("confirmado, encerra e volta ao início", async () => {
+      encerrar.mockResolvedValue({ ok: true, data: { proximoDaFila: null } });
+      const { result } = renderizar();
+
+      act(() => result.current.aoConfirmarEncerramento());
+
+      await waitFor(() => expect(push).toHaveBeenCalledWith("/"));
+      expect(encerrar).toHaveBeenCalledWith("at-1");
+    });
+
+    it("se ficou livre e assumiu o próximo da Fila, abre a conversa dele", async () => {
+      encerrar.mockResolvedValue({ ok: true, data: { proximoDaFila: "at-2" } });
+      const { result } = renderizar();
+
+      act(() => result.current.aoConfirmarEncerramento());
+
+      await waitFor(() => expect(push).toHaveBeenCalledWith("/atendimento/at-2"));
+    });
+
+    it("mostra o erro e não sai da conversa", async () => {
+      encerrar.mockResolvedValue({
+        ok: false,
+        error: { code: "FORBIDDEN", message: "Você não pode encerrar este Atendimento." },
+      });
+      const { result } = renderizar();
+
+      act(() => result.current.aoConfirmarEncerramento());
+
+      await waitFor(() =>
+        expect(result.current.avisoEncerramento).toEqual({
+          tipo: "erro",
+          texto: "Você não pode encerrar este Atendimento.",
+        }),
+      );
+      expect(push).not.toHaveBeenCalled();
+    });
   });
 });

@@ -5,6 +5,7 @@ import type {
   DocumentoDisponivel,
 } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import {
+  encerrarAtendimentoAction,
   enviarDocumentoAction,
   enviarMensagemAction,
   obterConversaAction,
@@ -63,6 +64,27 @@ export function useTransferirAtendimentoMutation(atendimentoId: string) {
     },
     // O Atendimento mudou de mãos: a lista do dock precisa refletir.
     onSettled: () => queryClient.invalidateQueries({ queryKey: ["atendimento", "meus"] }),
+  });
+}
+
+export function useEncerrarAtendimentoMutation(atendimentoId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    // Devolve o Atendimento da Fila que o Funcionário liberado assumiu (null se não havia).
+    mutationFn: async () => {
+      const resultado = await encerrarAtendimentoAction(atendimentoId);
+      if (!resultado.ok) throw new Error(resultado.error.message);
+      return resultado.data.proximoDaFila;
+    },
+    // Também no erro: um encerramento feito mas com aviso falho já deve aparecer na conversa. O dock
+    // e a Fila refletem o Funcionário livre e o Atendimento que ele assumiu.
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: conversaKeys.conversa(atendimentoId) }),
+        queryClient.invalidateQueries({ queryKey: ["atendimento", "meus"] }),
+        queryClient.invalidateQueries({ queryKey: ["atendimento", "fila"] }),
+      ]),
   });
 }
 

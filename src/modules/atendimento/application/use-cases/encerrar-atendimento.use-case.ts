@@ -3,9 +3,15 @@ import type {
   AtendimentoEncerrado,
   EncerrarAtendimentoPort,
 } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
-import type { AtendimentoRepositoryPort } from "@/modules/atendimento/application/ports/out/atendimento.repository";
+import type {
+  AtendimentoAssumido,
+  AtendimentoRepositoryPort,
+} from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { SessaoPort } from "@/modules/atendimento/application/ports/out/sessao.provider";
-import { avisoDeVez } from "@/modules/atendimento/domain/services/aviso-fila.service";
+import {
+  AVISO_ENCERRAMENTO_AO_CLIENTE,
+  avisoDeVez,
+} from "@/modules/atendimento/domain/services/aviso-fila.service";
 import { podeTransferir } from "@/modules/atendimento/domain/services/transferencia.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
@@ -50,9 +56,30 @@ export class EncerrarAtendimento implements EncerrarAtendimentoPort {
       );
     }
 
+    // Já encerrado: falhar nos avisos não desfaz nada; o erro diz quem não foi avisado. O mesmo
+    // caminho do encerramento por inatividade: o cliente é avisado do encerramento e o da Fila, da vez.
+    const avisoDoEncerramento = await this.avisar.execute({
+      telefone: atendimento.telefone,
+      chave: atendimento.chave,
+      texto: AVISO_ENCERRAMENTO_AO_CLIENTE,
+    });
     const proximo = encerrado.value.proximo;
-    if (!proximo) return ok({ proximoDaFila: null });
-    // Assumido: falhar aqui não desfaz nada; o erro diz que o cliente não foi avisado.
+    const resultado = proximo ? await this.avisarProximo(proximo) : ok({ proximoDaFila: null });
+    if (!avisoDoEncerramento.ok) {
+      return err(
+        new EstadoInconsistenteError(
+          "Atendimento encerrado, mas o aviso ao cliente falhou.",
+          atendimentoId,
+        ),
+      );
+    }
+    return resultado;
+  }
+
+  // Assumido: falhar aqui não desfaz nada; o erro diz que o cliente não foi avisado.
+  private async avisarProximo(
+    proximo: AtendimentoAssumido,
+  ): Promise<Result<AtendimentoEncerrado, AppError>> {
     const aviso = await this.avisar.execute({
       telefone: proximo.telefone,
       chave: proximo.chave,

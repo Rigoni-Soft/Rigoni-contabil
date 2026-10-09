@@ -3,11 +3,13 @@
 import { z } from "zod";
 
 import {
+  makeEncerrarAtendimento,
   makeEnviarDocumentoAoCliente,
   makeEnviarMensagemAoCliente,
   makeObterConversa,
   makeTransferirAtendimento,
 } from "@/main/atendimento.factory";
+import type { AtendimentoEncerrado } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
 import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import type { TransferenciaConcluida } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
 import {
@@ -56,6 +58,16 @@ export async function transferirAtendimentoAction(
 
   const transferir = await makeTransferirAtendimento();
   return toActionResult(await transferir.execute(parsed.data));
+}
+
+export async function encerrarAtendimentoAction(
+  atendimentoId: unknown,
+): Promise<ActionResult<AtendimentoEncerrado>> {
+  const parsed = atendimentoIdSchema.safeParse(atendimentoId);
+  if (!parsed.success) return entradaInvalida(parsed.error);
+
+  const encerrar = await makeEncerrarAtendimento();
+  return toActionResult(await encerrar.execute({ atendimentoId: parsed.data }));
 }
 
 export async function enviarMensagemAction(input: unknown): Promise<ActionResult<void>> {
