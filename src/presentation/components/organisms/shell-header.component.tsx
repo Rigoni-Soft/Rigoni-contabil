@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, CalendarOff, CircleUser, UserPlus, Users } from "lucide-react";
+import { Building2, CalendarOff, CircleUser, ListOrdered, UserPlus, Users } from "lucide-react";
 
 import { buttonVariants } from "@/presentation/components/ui/button";
 import { ThemeToggle } from "@/presentation/components/ui/theme-toggle";
@@ -91,6 +91,11 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
             <span className="hidden sm:inline">Feriados</span>
           </Link>
         )}
+        {/* Único caminho de navegação até /fila (#70): Admin vê a de qualquer Setor, os demais a do seu. */}
+        <Link href="/fila" aria-label="Fila" className={buttonVariants({ variant: "ghost" })}>
+          <ListOrdered aria-hidden="true" />
+          <span className="hidden sm:inline">Fila</span>
+        </Link>
         {/* Único caminho de navegação até /perfil (#56), onde mora a troca voluntária
             de senha — a /trocar-senha fica só pro redirecionamento obrigatório (#31). */}
         <Link

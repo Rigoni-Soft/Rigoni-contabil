@@ -5,7 +5,7 @@ import type {
 import type { AtendimentoRepositoryPort } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import type { SessaoPort } from "@/modules/atendimento/application/ports/out/sessao.provider";
-import { formatarEspera } from "@/modules/atendimento/domain/services/espera.service";
+import { formatarEspera } from "@/shared/kernel/espera";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
