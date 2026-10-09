@@ -24,8 +24,6 @@ export const enviarDocumentoSchema = z
     }
   });
 
-export type EnviarDocumentoValues = z.infer<typeof enviarDocumentoSchema>;
-
 export const RESUMO_TAMANHO_MAXIMO = 1000; // o mesmo limite do caso de uso e da tabela `transferencias`
 
 export const transferirAtendimentoSchema = z.object({
@@ -38,7 +36,7 @@ export const transferirAtendimentoSchema = z.object({
     .max(RESUMO_TAMANHO_MAXIMO, `O resumo aceita até ${RESUMO_TAMANHO_MAXIMO} caracteres.`),
 });
 
-export const MENSAGEM_TAMANHO_MAXIMO = 4096; // o mesmo limite do caso de uso (texto do WhatsApp)
+const MENSAGEM_TAMANHO_MAXIMO = 4096; // o mesmo limite do caso de uso (texto do WhatsApp)
 
 export const enviarMensagemSchema = z.object({
   atendimentoId: atendimentoIdSchema,
