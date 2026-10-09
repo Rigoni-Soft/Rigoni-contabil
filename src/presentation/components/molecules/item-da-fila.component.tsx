@@ -31,7 +31,12 @@ export function ItemDaFila({
         <p className="font-medium break-words text-foreground">{contato}</p>
         <p className="text-sm break-words text-muted-foreground">
           {empresa}
-          {cnpj && ` · ${cnpj}`}
+          {cnpj && (
+            <>
+              {" · "}
+              <span className="whitespace-nowrap">{cnpj}</span>
+            </>
+          )}
         </p>
         <p className="text-sm text-muted-foreground">{telefone}</p>
         {resumo && <p className="mt-1 text-sm break-words text-foreground">{resumo}</p>}
