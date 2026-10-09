@@ -11,6 +11,7 @@ import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
 import { SupabaseResponsavelClienteRepository } from "@/modules/clientes/infra/repositories/responsavel-cliente.repository";
 import { mesAtual } from "@/shared/kernel/mes-atual";
 
+import { removerClientesDeTeste } from "../../../../../test-support/clientes-de-teste";
 import { SupabaseClienteRepository } from "./cliente.repository";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
@@ -93,6 +94,28 @@ function comCadastroOperacional(clienteBase: Cliente): Cliente {
   if (!reconstruido.ok) throw new Error("setup inválido: " + JSON.stringify(reconstruido.error));
   return reconstruido.value;
 }
+
+// CNPJs fixos desta suíte, reservados para teste: removidos antes e depois (nunca um DELETE amplo).
+const CNPJS_DA_SUITE = [
+  "11444777000242",
+  "11444777000323",
+  "11444777000404",
+  "11444777000595",
+  "11444777000838",
+  "11444777000919",
+  "11444777001052",
+  "11444777001133",
+  "11444777001214",
+  "11444777001303",
+  "62785037000120",
+  "62785037000200",
+  "62785037000391",
+  "92773111000159",
+  "92773222000165",
+  "92773334000116",
+] as const;
+beforeAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
+afterAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
 
 describe("SupabaseClienteRepository — cadastro operacional (#34, integração)", () => {
   it("Funcionário SN edita e persiste o cadastro operacional (RPC editar_cadastro_operacional_cliente)", async () => {

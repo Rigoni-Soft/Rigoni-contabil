@@ -8,6 +8,7 @@ import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
 import { SupabaseClienteRepository } from "@/modules/clientes/infra/repositories/cliente.repository";
 import { primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
 
+import { removerClientesDeTeste } from "../../../../../test-support/clientes-de-teste";
 import { SupabaseClienteQueryGateway } from "./cliente-query.gateway";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
@@ -71,6 +72,11 @@ async function criarClienteComContratoSocial(
   if (!salvo.ok) throw new Error("falha ao criar cliente base: " + salvo.error.message);
   return construido.value;
 }
+
+// CNPJs fixos desta suíte, reservados para teste: removidos antes e depois (nunca um DELETE amplo).
+const CNPJS_DA_SUITE = ["11444777000676"] as const;
+beforeAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
+afterAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
 
 describe("SupabaseClienteQueryGateway (#34, integração)", () => {
   it("devolve o cadastro operacional sem contrato social/alterações, mesmo o cliente tendo contrato social salvo", async () => {

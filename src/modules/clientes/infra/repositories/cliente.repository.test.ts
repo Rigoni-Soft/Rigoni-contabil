@@ -8,6 +8,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
 
+import { removerClientesDeTeste } from "../../../../../test-support/clientes-de-teste";
 import { SupabaseClienteRepository } from "./cliente.repository";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
@@ -38,6 +39,16 @@ function clienteValido(cnpj: string): Cliente {
   if (!resultado.ok) throw new Error("setup inválido");
   return resultado.value;
 }
+
+// CNPJs fixos desta suíte, reservados para teste: removidos antes e depois (nunca um DELETE amplo).
+const CNPJS_DA_SUITE = [
+  "00000000E08G12",
+  "11222333000181",
+  "11444777000161",
+  "20045044000145",
+] as const;
+beforeAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
+afterAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
 
 describe("SupabaseClienteRepository (integração)", () => {
   it("Admin cadastra um Cliente com Alterações contratuais (RPC criar_cliente)", async () => {
@@ -89,6 +100,8 @@ describe("SupabaseClienteRepository (integração)", () => {
     const supabase = await comoAdmin();
     const repositorio = new SupabaseClienteRepository(supabase);
     const cliente = clienteValido("00000000E08G12");
+    // A auditoria é imutável e guarda eventos de execuções anteriores: só conta o desta.
+    const inicio = new Date().toISOString();
 
     const resultado = await repositorio.criar(cliente);
 
@@ -102,7 +115,8 @@ describe("SupabaseClienteRepository (integração)", () => {
     const { data: eventos } = await supabase
       .from("registros_auditoria")
       .select("acao, resultado, setor")
-      .eq("alvo", "00000000E08G12");
+      .eq("alvo", "00000000E08G12")
+      .gte("criado_em", inicio);
     expect(eventos).toEqual([
       { acao: "cliente.criar", resultado: "sucesso", setor: "administrativo" },
     ]);

@@ -8,6 +8,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
 import { primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
 
+import { removerClientesDeTeste } from "../../../../../test-support/clientes-de-teste";
 import { SupabaseClienteRepository } from "./cliente.repository";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
@@ -102,6 +103,27 @@ const paramsEdicao = (clienteId: string) => ({
   p_comercio: true,
   p_servico: false,
 });
+
+// CNPJs fixos desta suíte, reservados para teste: removidos antes e depois (nunca um DELETE amplo).
+const CNPJS_DA_SUITE = [
+  "11444777001486",
+  "11444777001567",
+  "11444777001648",
+  "11444777001729",
+  "11444777001800",
+  "11444777001990",
+  "11444777002024",
+  "11444777002105",
+  "11444777002296",
+  "45723174000110",
+  "45723174000200",
+  "45723174000382",
+  "45723174000463",
+  "45723174000544",
+  "45723174000625",
+] as const;
+beforeAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
+afterAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
 
 describe("Data API — confidencialidade dos documentos jurídicos (PR #69, ponto 1)", () => {
   it("Funcionário SN e de outro Setor não leem clientes nem alterações contratuais direto; a projeção segura vale pra quem pode ver o Cliente", async () => {

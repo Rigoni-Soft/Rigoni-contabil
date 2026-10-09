@@ -287,6 +287,7 @@ Regras do Builder:
 - **Porta IN** = interface do caso de uso, com os tipos `Input` e `Output` no mesmo arquivo (`ports/in/criar-membro.provider.ts`).
 - **Porta OUT** = interface de uma dependência (`ports/out/membro.repository.ts`, `sessao.provider.ts`, `relogio.provider.ts`). Contratos de repositório usam `.repository.ts`; as demais portas, `.provider.ts` (seção 0.2).
 - **Caso de uso** implementa uma porta IN e recebe as portas OUT pelo construtor.
+  - Exceção aceita: dentro do mesmo módulo, um caso de uso pode receber a porta IN de outro (ex.: `ReceberMensagem` recebe `AbrirAtendimentoPort`) quando o segundo é uma etapa reaproveitável do primeiro. Entre módulos vale a seção 3.11.
 
 ```ts
 export interface CriarMembroPort { execute(i: CriarMembroInput): Promise<Result<MembroDto>> }

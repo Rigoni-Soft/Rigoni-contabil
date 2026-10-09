@@ -1,3 +1,5 @@
+import type { AbrirAtendimentoPort } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
+import type { AnexarMensagemAtendimentoPort } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
 import type {
   MensagemRecebida,
   ReceberMensagemPort,
@@ -34,7 +36,6 @@ const PERGUNTA_CLIENTE =
 const SIM_OU_NAO = "Responda *sim* ou *não*.";
 const PEDIR_CNPJ = "Ótimo! Informe o CNPJ da sua empresa.";
 const CNPJ_INVALIDO = "Esse CNPJ não parece válido. Confira e envie novamente (ou digite *menu*).";
-// ponytail: só avisa; a Transferência real para a recepção entra com a Fila (#44/#45).
 const NUMERO_AMBIGUO =
   "Seu número está cadastrado em mais de uma empresa e não conseguimos confirmar qual delas você quer consultar. Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
 
@@ -114,11 +115,22 @@ export class ReceberMensagem implements ReceberMensagemPort {
     private readonly envio: EnvioMensagemPort,
     private readonly documentos: DocumentosContratuaisPort,
     private readonly sessoes: SessaoAtendimentoPort,
+    private readonly atendimentos: AbrirAtendimentoPort,
+    private readonly mensagens: AnexarMensagemAtendimentoPort,
   ) {}
 
   async execute(mensagem: MensagemRecebida): Promise<Result<void, AppError>> {
     const chave = soDigitosNacionais(mensagem.telefone);
     if (!chave) return err(new ValidationError("Telefone da mensagem é obrigatório"));
+
+    // Quem já tem Atendimento em andamento continua nele; a URA não recomeça.
+    // ponytail: sem resposta automática, quem responde é o Funcionário (#46).
+    const anexada = await this.mensagens.execute({
+      chave,
+      mensagem: { autor: "contato", texto: mensagem.texto },
+    });
+    if (!anexada.ok) return anexada;
+    if (anexada.value.anexada) return ok(undefined);
 
     const contato = await this.contatos.identificar(chave);
     if (!contato.ok) return contato;
@@ -128,11 +140,10 @@ export class ReceberMensagem implements ReceberMensagemPort {
     if (!sessao.ok) return sessao;
     if (contato.value === "ambiguo") {
       // Nenhum documento é oferecido: sem confirmar a empresa, a recepção decide.
-      const limpa = await this.sessoes.limpar(chave);
-      return limpa.ok ? this.enviar(mensagem.telefone, NUMERO_AMBIGUO) : limpa;
+      return this.encaminharRecepcao(mensagem.telefone, chave, mensagem.texto, NUMERO_AMBIGUO);
     }
     if (!contato.value) {
-      return this.identificarNovo(mensagem.telefone, chave, texto, sessao.value);
+      return this.identificarNovo(mensagem, chave, texto, sessao.value);
     }
     const conversa: Conversa = { contato: contato.value, telefone: mensagem.telefone, chave };
     if (texto === "menu") {
@@ -150,22 +161,24 @@ export class ReceberMensagem implements ReceberMensagemPort {
   // Contato (já foi buscado em todos os Clientes), então o fim é sempre a recepção; sessão
   // ausente/expirada/de outro fluxo ou "menu" recomeça pela pergunta.
   private async identificarNovo(
-    telefone: string,
+    { telefone, texto: textoDoContato }: MensagemRecebida,
     chave: string,
     texto: string,
     sessao: SessaoAtendimento | null,
   ): Promise<Result<void, AppError>> {
     const etapa = texto === "menu" ? null : sessao?.etapa;
-    const resposta = texto.normalize("NFD").replace(/\p{M}/gu, "");
+    const semAcento = texto.normalize("NFD").replace(/\p{M}/gu, "");
 
     if (etapa === "ja_cliente") {
-      if (["sim", "s"].includes(resposta)) return this.avancar(telefone, chave, "cnpj", PEDIR_CNPJ);
-      if (["nao", "n"].includes(resposta)) return this.encaminharRecepcao(telefone, chave);
+      if (["sim", "s"].includes(semAcento))
+        return this.avancar(telefone, chave, "cnpj", PEDIR_CNPJ);
+      if (["nao", "n"].includes(semAcento))
+        return this.encaminharRecepcao(telefone, chave, textoDoContato);
       return this.enviar(telefone, SIM_OU_NAO);
     }
     if (etapa === "cnpj") {
       if (!cnpjValido(texto)) return this.enviar(telefone, CNPJ_INVALIDO);
-      return this.encaminharRecepcao(telefone, chave);
+      return this.encaminharRecepcao(telefone, chave, textoDoContato);
     }
     return this.avancar(telefone, chave, "ja_cliente", PERGUNTA_CLIENTE);
   }
@@ -183,9 +196,37 @@ export class ReceberMensagem implements ReceberMensagemPort {
   private async encaminharRecepcao(
     telefone: string,
     chave: string,
+    textoDoContato: string,
+    texto = PARA_RECEPCAO,
   ): Promise<Result<void, AppError>> {
+    // Aviso antes de abrir: se o envio falhar e a Meta reenviar, não nasce Atendimento duplicado.
+    const aviso = await this.enviar(telefone, texto);
+    if (!aviso.ok) return aviso;
+    // ponytail: número sem Contato abre sem cliente; a recepção identifica na conversa.
+    const aberto = await this.atendimentos.execute({
+      telefone,
+      chave,
+      clienteId: null,
+      setor: "recepcao",
+      mensagens: [
+        { autor: "contato", texto: textoDoContato },
+        { autor: "ura", texto },
+      ],
+    });
+    if (!aberto.ok) return aberto;
     const limpa = await this.sessoes.limpar(chave);
-    return limpa.ok ? this.enviar(telefone, PARA_RECEPCAO) : limpa;
+    if (!limpa.ok) return limpa;
+    // Sem Funcionário livre o Atendimento entrou na Fila: o cliente fica sabendo a posição. O aviso
+    // vem depois de abrir porque a posição só existe com o Atendimento criado.
+    if (aberto.value.posicao === undefined) return ok(undefined);
+    const avisoFila = `Você está na posição ${aberto.value.posicao} da fila de atendimento. Aguarde, por favor.`;
+    const enviado = await this.enviar(telefone, avisoFila);
+    if (!enviado.ok) return enviado;
+    const registrada = await this.mensagens.execute({
+      chave,
+      mensagem: { autor: "ura", texto: avisoFila },
+    });
+    return registrada.ok ? ok(undefined) : registrada;
   }
 
   private async responderMenu(
