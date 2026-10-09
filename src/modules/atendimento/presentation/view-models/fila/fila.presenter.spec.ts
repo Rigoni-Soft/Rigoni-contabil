@@ -23,7 +23,6 @@ describe("itemDaFilaParaView", () => {
       cnpj: "11.444.777/0001-61",
       telefone: "(61) 98888-7777",
       resumo: "Quer o contrato social",
-      filaDesdeMs: ITEM.filaDesde.getTime(),
       daFilaDeUsuario: false,
     });
   });

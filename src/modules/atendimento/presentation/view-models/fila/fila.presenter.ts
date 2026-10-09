@@ -14,7 +14,6 @@ export type ItemDaFilaView = {
   resumo: string | null;
   // Fila de um usuário (não a do Setor): o item só sai quando ele ficar livre.
   daFilaDeUsuario: boolean;
-  filaDesdeMs: number;
   espera: string;
 };
 
@@ -30,7 +29,6 @@ export function itemDaFilaParaView(item: ItemDaFilaVisto, agora?: number): ItemD
     telefone: telefoneParaExibicao(item.telefone),
     resumo: item.resumo,
     daFilaDeUsuario: item.filaDoFuncionarioId !== null,
-    filaDesdeMs,
     espera: agora === undefined ? item.espera : formatarEspera(agora - filaDesdeMs),
   };
 }
