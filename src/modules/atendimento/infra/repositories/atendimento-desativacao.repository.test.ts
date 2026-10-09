@@ -124,6 +124,7 @@ describe("desativação × Atendimento em andamento", () => {
     const dono = await criarPerfil("Dono Desativado");
     const { id } = await abrir(dono, { mensagens: 3 });
     const antes = await atendimento(id);
+    const antesDeDesativar = Date.now();
 
     expect((await desativar(dono)).error).toBeNull();
 
@@ -134,8 +135,11 @@ describe("desativação × Atendimento em andamento", () => {
       fila_funcionario_id: null,
       assumido_em: null,
     });
-    // O cliente já esperava: a posição na Fila é a da criação do Atendimento.
-    expect(new Date(depois.fila_desde!).getTime()).toBe(new Date(antes.criado_em).getTime());
+    // A posição na Fila é a da entrada nela (a devolução), não a da abertura do Atendimento.
+    expect(new Date(depois.fila_desde!).getTime()).toBeGreaterThan(
+      new Date(antes.criado_em).getTime(),
+    );
+    expect(new Date(depois.fila_desde!).getTime()).toBeGreaterThanOrEqual(antesDeDesativar - 1000);
     expect(await mensagensDe(id)).toEqual(["mensagem 1", "mensagem 2", "mensagem 3"]);
     expect(await assuncoesDe(id)).toEqual([dono]);
     expect(await auditoriasDe("atendimento.devolver-fila", id)).toEqual([
@@ -184,17 +188,40 @@ describe("desativação × Atendimento em andamento", () => {
     expect(await auditoriasDe("atendimento.reatribuir", id)).toHaveLength(1);
   });
 
-  it("só anda o mais antigo: quem já esperava na Fila vem antes do devolvido", async () => {
+  it("FIFO cronológico: quem já esperava na Fila vem antes do devolvido, mesmo aberto depois dele", async () => {
     const dono = await criarPerfil("Dono Fifo");
+    // t1: A é assumido pelo dono (não está na Fila).
     const { id: devolvido } = await abrir(dono);
-    // Sem ninguém livre, este entra na Fila agora: depois da criação do devolvido.
-    const { id: depois } = await abrir(null);
+    // t2: sem ninguém livre, B entra na Fila.
+    const { id: esperava } = await abrir(null);
     const colega = await criarPerfil("Colega Fifo");
+
+    // t3 > t2: A volta à Fila, agora atrás de B.
+    await desativar(dono);
+
+    expect((await atendimento(esperava)).funcionario_id).toBe(colega);
+    expect((await atendimento(devolvido)).funcionario_id).toBeNull();
+    const fila = await repositorio.filaDoSetor(SETOR);
+    if (!fila.ok) throw new Error("setup: fila");
+    expect(fila.value.map((item) => [item.id, item.posicao])).toEqual([[devolvido, 1]]);
+  });
+
+  it("FIFO: o devolvido entra na Fila no instante da desativação, depois de quem já esperava", async () => {
+    const dono = await criarPerfil("Dono Fila Ordem");
+    const { id: devolvido } = await abrir(dono);
+    const { id: esperava } = await abrir(null);
+    const antes = await atendimento(esperava);
 
     await desativar(dono);
 
-    expect((await atendimento(devolvido)).funcionario_id).toBe(colega);
-    expect((await atendimento(depois)).funcionario_id).toBeNull();
+    const depois = await atendimento(devolvido);
+    expect(new Date(depois.fila_desde!).getTime()).toBeGreaterThan(
+      new Date(antes.fila_desde!).getTime(),
+    );
+    // Sem colega livre, os dois esperam e B (que já esperava) está na frente.
+    const fila = await repositorio.filaDoSetor(SETOR);
+    if (!fila.ok) throw new Error("setup: fila");
+    expect(fila.value.map((item) => item.id)).toEqual([esperava, devolvido]);
   });
 
   it("não mexe nos Atendimentos de colegas ativos nem de outros Setores", async () => {

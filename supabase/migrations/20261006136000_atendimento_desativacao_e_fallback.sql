@@ -275,7 +275,13 @@ begin
     set funcionario_id = null,
         fila_funcionario_id = null,
         assumido_em = null,
-        fila_desde = coalesce(a.fila_desde, a.criado_em)
+        -- FIFO é a ordem de entrada na Fila, não a de abertura: quem estava sendo atendido entra
+        -- agora (atrás de quem já esperava); quem esperava na fila pessoal do desativado mantém a
+        -- espera. Os `a.*` do SET são os valores de antes da atualização.
+        fila_desde = case
+          when a.funcionario_id = alvo_id then clock_timestamp()
+          else coalesce(a.fila_desde, a.criado_em)
+        end
     where a.status = 'em_andamento'
       and (a.funcionario_id = alvo_id or a.fila_funcionario_id = alvo_id)
     returning a.id
