@@ -36,7 +36,7 @@ export function ItemDaFila({
         <p className="text-sm text-muted-foreground">{telefone}</p>
         {resumo && <p className="mt-1 text-sm break-words text-foreground">{resumo}</p>}
         {daFilaDeUsuario && (
-          <p className="mt-1 text-xs text-muted-foreground">Fila de um usuário</p>
+          <p className="mt-1 text-sm text-muted-foreground">Fila de um usuário</p>
         )}
       </div>
       <span className="flex shrink-0 items-center gap-1 text-sm text-foreground tabular-nums">

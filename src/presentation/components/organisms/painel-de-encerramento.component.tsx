@@ -24,8 +24,13 @@ export function PainelDeEncerramento({
     <div className="space-y-2">
       <TituloDoGrupo>Encerrar Atendimento</TituloDoGrupo>
       {confirmando ? (
-        <div role="alertdialog" aria-label="Confirmar encerramento" className="space-y-2">
-          <p className="text-sm text-foreground">
+        <div
+          role="alertdialog"
+          aria-label="Confirmar encerramento"
+          aria-describedby="encerramento-pergunta"
+          className="space-y-2"
+        >
+          <p id="encerramento-pergunta" className="text-sm text-foreground">
             O cliente será avisado de que o Atendimento foi encerrado. Encerrar agora?
           </p>
           <div className="flex gap-2">
@@ -43,11 +48,12 @@ export function PainelDeEncerramento({
               type="button"
               size="sm"
               variant="outline"
-              className="pointer-coarse:h-11"
-              disabled={encerrando}
               // O botão que pediu a confirmação sumiu: leva o foco do teclado para a saída segura.
               autoFocus
-              onClick={onCancelar}
+              // aria-disabled (não disabled) para o foco não se perder enquanto encerra.
+              aria-disabled={encerrando}
+              className="aria-disabled:pointer-events-none aria-disabled:opacity-50 pointer-coarse:h-11"
+              onClick={() => !encerrando && onCancelar()}
             >
               Cancelar
             </Button>
