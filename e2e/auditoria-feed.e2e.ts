@@ -1,4 +1,12 @@
+import { createClient } from "@supabase/supabase-js";
+
 import { expect, test } from "./fixtures";
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
+const SERVICE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ??
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
+const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
 // Cobre o cenário principal do ticket #29 (Registro de auditoria): a tela de
 // feed bruto em /admin/auditoria é acessível só por Admin.
@@ -25,6 +33,16 @@ function linhaFalhaSeed(page: import("@playwright/test").Page) {
 }
 
 test.describe("Feed de auditoria (Admin only)", () => {
+  // O feed mostra só os 50 registros mais recentes: com o uso, as outras suítes empurram os dois do
+  // seed para fora. Rejuvenescê-los mantém o teste independente do que rodou antes.
+  test.beforeEach(async () => {
+    const { error } = await admin
+      .from("registros_auditoria")
+      .update({ criado_em: new Date().toISOString() })
+      .in("id", ["77777777-7777-7777-7777-777777777777", "66666666-6666-6666-6666-666666666666"]);
+    if (error) throw error;
+  });
+
   test("Admin vê o feed com o registro de exemplo do seed", async ({ page }) => {
     await login(page, "admin@rigonicontabil.local", "admin123");
     await expect(page).toHaveURL("/");
