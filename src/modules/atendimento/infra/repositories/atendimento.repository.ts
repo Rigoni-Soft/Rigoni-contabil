@@ -450,6 +450,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       .eq("id", atendimentoId)
       .order("criado_em", { referencedTable: "mensagens" })
       .order("criado_em", { referencedTable: "transferencias", ascending: false })
+      .order("id", { referencedTable: "transferencias", ascending: false })
       .limit(1, { referencedTable: "transferencias" })
       .order("id", { referencedTable: "mensagens" })
       .maybeSingle();
