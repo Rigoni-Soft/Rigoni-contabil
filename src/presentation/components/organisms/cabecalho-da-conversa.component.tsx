@@ -1,26 +1,23 @@
-"use client";
-
-import { useState } from "react";
-
 type CabecalhoDaConversaProps = {
   titulo: string;
   subtitulo: string;
   encerrado: boolean;
   contexto?: { origem: string; resumo: string } | null;
+  // Resumo longo vem recolhido em 3 linhas, com botão para ler inteiro.
+  resumoLongo?: boolean;
+  resumoAberto?: boolean;
+  onAlternarResumo?: () => void;
 };
-
-// Resumo acima disso recolhe em 3 linhas; o limite da Transferência é 1000 caracteres.
-const RESUMO_LONGO = 160;
 
 export function CabecalhoDaConversa({
   titulo,
   subtitulo,
   encerrado,
   contexto,
+  resumoLongo = false,
+  resumoAberto = false,
+  onAlternarResumo,
 }: CabecalhoDaConversaProps) {
-  const [aberto, setAberto] = useState(false);
-  const longo = (contexto?.resumo.length ?? 0) > RESUMO_LONGO;
-
   return (
     <header className="shrink-0">
       <h1 className="text-lg font-bold tracking-tight text-primary">{titulo}</h1>
@@ -30,19 +27,19 @@ export function CabecalhoDaConversa({
           <p className="font-medium text-muted-foreground">{contexto.origem}</p>
           <p
             id="resumo-do-contexto"
-            className={`font-semibold break-words text-foreground ${longo && !aberto ? "line-clamp-3" : ""}`}
+            className={`font-semibold break-words text-foreground ${resumoLongo && !resumoAberto ? "line-clamp-3" : ""}`}
           >
             {contexto.resumo}
           </p>
-          {longo && (
+          {resumoLongo && (
             <button
               type="button"
-              aria-expanded={aberto}
+              aria-expanded={resumoAberto}
               aria-controls="resumo-do-contexto"
-              onClick={() => setAberto(!aberto)}
+              onClick={onAlternarResumo}
               className="-ml-2 min-h-11 rounded-md px-2 font-medium text-primary underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              {aberto ? "Mostrar menos" : "Ler resumo completo"}
+              {resumoAberto ? "Mostrar menos" : "Ler resumo completo"}
             </button>
           )}
         </section>

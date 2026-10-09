@@ -34,19 +34,24 @@ describe("CabecalhoDaConversa", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
-  it("resumo longo vem recolhido e o botão expande e recolhe", async () => {
-    render(
-      <CabecalhoDaConversa
-        titulo="Maria"
-        subtitulo="Padaria Ltda"
-        encerrado={false}
-        contexto={{ origem: "Transferido por Ana · Recepção", resumo: "x".repeat(300) }}
-      />,
-    );
+  it("resumo longo vem recolhido e o botão pede para alternar", async () => {
+    const aoAlternar = jest.fn();
+    const props = {
+      titulo: "Maria",
+      subtitulo: "Padaria Ltda",
+      encerrado: false,
+      contexto: { origem: "Transferido por Ana · Recepção", resumo: "x".repeat(300) },
+      resumoLongo: true,
+      onAlternarResumo: aoAlternar,
+    };
+    const { rerender } = render(<CabecalhoDaConversa {...props} />);
     const resumo = document.getElementById("resumo-do-contexto")!;
     expect(resumo).toHaveClass("line-clamp-3");
 
     await userEvent.click(screen.getByRole("button", { name: "Ler resumo completo" }));
+    expect(aoAlternar).toHaveBeenCalledTimes(1);
+
+    rerender(<CabecalhoDaConversa {...props} resumoAberto />);
     expect(resumo).not.toHaveClass("line-clamp-3");
     expect(screen.getByRole("button", { name: "Mostrar menos" })).toHaveAttribute(
       "aria-expanded",

@@ -57,7 +57,29 @@ describe("regiões da conversa que leem a mesma consulta", () => {
       subtitulo: "Padaria Ltda · 11.444.777/0001-61 · (61) 98888-7777",
       encerrado: false,
       contexto: null,
+      resumoLongo: false,
+      resumoAberto: false,
+      alternarResumo: expect.any(Function),
     });
+  });
+
+  it("resumo de mais de 160 caracteres é longo e o cabeçalho alterna entre recolhido e aberto", () => {
+    const longa = {
+      ...CONVERSA,
+      ultimaTransferencia: {
+        setorOrigem: "recepcao" as const,
+        origemNome: null,
+        resumo: "x".repeat(161),
+      },
+    };
+    const { result } = renderHook(() => useCabecalhoConversa("at-1", longa), {
+      wrapper: criarWrapper(),
+    });
+    expect(result.current.resumoLongo).toBe(true);
+    expect(result.current.resumoAberto).toBe(false);
+
+    act(() => result.current.alternarResumo());
+    expect(result.current.resumoAberto).toBe(true);
   });
 
   it("as mensagens chegam prontas para a View", () => {
