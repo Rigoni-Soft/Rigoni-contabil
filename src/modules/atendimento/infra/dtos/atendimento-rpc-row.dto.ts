@@ -149,6 +149,8 @@ export const conversaRowSchema = z.object({
   cliente_id: z.string().nullable(),
   telefone: z.string(),
   chave_telefone: z.string(),
+  resumo_ura: z.string().nullable(),
+  cnpj_informado: z.string().nullable(),
   clientes: clienteComContatosRowSchema,
   mensagens: z.array(
     z.object({

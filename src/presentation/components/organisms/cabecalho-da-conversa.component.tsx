@@ -6,7 +6,7 @@ type CabecalhoDaConversaProps = {
   titulo: string;
   subtitulo: string;
   encerrado: boolean;
-  transferencia?: { origem: string; resumo: string } | null;
+  contexto?: { origem: string; resumo: string } | null;
 };
 
 // Resumo acima disso recolhe em 3 linhas; o limite da Transferência é 1000 caracteres.
@@ -16,29 +16,29 @@ export function CabecalhoDaConversa({
   titulo,
   subtitulo,
   encerrado,
-  transferencia,
+  contexto,
 }: CabecalhoDaConversaProps) {
   const [aberto, setAberto] = useState(false);
-  const longo = (transferencia?.resumo.length ?? 0) > RESUMO_LONGO;
+  const longo = (contexto?.resumo.length ?? 0) > RESUMO_LONGO;
 
   return (
     <header className="shrink-0">
       <h1 className="text-lg font-bold tracking-tight text-primary">{titulo}</h1>
       <p className="text-sm text-muted-foreground">{subtitulo}</p>
-      {transferencia && (
-        <section aria-label="Contexto da transferência" className="mt-1 text-sm">
-          <p className="font-medium text-muted-foreground">{transferencia.origem}</p>
+      {contexto && (
+        <section aria-label="Contexto do Atendimento" className="mt-1 text-sm">
+          <p className="font-medium text-muted-foreground">{contexto.origem}</p>
           <p
-            id="resumo-da-transferencia"
+            id="resumo-do-contexto"
             className={`font-semibold break-words text-foreground ${longo && !aberto ? "line-clamp-3" : ""}`}
           >
-            {transferencia.resumo}
+            {contexto.resumo}
           </p>
           {longo && (
             <button
               type="button"
               aria-expanded={aberto}
-              aria-controls="resumo-da-transferencia"
+              aria-controls="resumo-do-contexto"
               onClick={() => setAberto(!aberto)}
               className="-ml-2 min-h-11 rounded-md px-2 font-medium text-primary underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >

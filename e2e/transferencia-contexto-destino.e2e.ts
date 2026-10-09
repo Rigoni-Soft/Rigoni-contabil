@@ -84,4 +84,36 @@ test.describe("Contexto da Transferência (#74)", () => {
     ).toBeVisible();
     await expect(page.getByText(RESUMO)).toBeVisible();
   });
+
+  test("o Atendimento aberto pela URA mostra o resumo e, sem Cliente, o CNPJ informado @smoke", async ({
+    page,
+  }) => {
+    const telefone = "61955574002";
+    const aberto = await admin
+      .from("atendimentos")
+      .insert({
+        telefone: `55${telefone}`,
+        chave_telefone: telefone,
+        setor: "recepcao",
+        resumo_ura: "Quer abrir uma empresa nova",
+        cnpj_informado: "11444777000161",
+      })
+      .select("id")
+      .single();
+    if (aberto.error) throw aberto.error;
+
+    try {
+      await login(page, "admin@rigonicontabil.local", "admin123");
+      await expect(page).toHaveURL("/");
+      await page.goto(`/atendimento/${aberto.data.id}`);
+
+      await expect(page.getByText("Aberto pela URA")).toBeVisible();
+      await expect(page.getByText("Quer abrir uma empresa nova")).toBeVisible();
+      await expect(
+        page.getByText("Provável cliente novo · CNPJ informado 11.444.777/0001-61"),
+      ).toBeVisible();
+    } finally {
+      await admin.from("atendimentos").delete().eq("id", aberto.data.id);
+    }
+  });
 });

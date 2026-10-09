@@ -8,6 +8,6 @@ export function useCabecalhoConversa(atendimentoId: string, initialData: Convers
     titulo: conversa.titulo,
     subtitulo: conversa.subtitulo,
     encerrado: conversa.encerrado,
-    transferencia: conversa.transferencia,
+    contexto: conversa.contexto,
   };
 }

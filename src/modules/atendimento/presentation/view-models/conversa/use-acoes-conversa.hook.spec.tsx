@@ -35,6 +35,7 @@ const CONVERSA: ConversaVista = {
   clienteVinculado: true,
   mensagens: [],
   ultimaTransferencia: null,
+  ura: null,
   setoresDestino: ["recepcao", "tributario"],
   documentos: [
     { tipo: "contrato", data: null, descricao: "Contrato social" },

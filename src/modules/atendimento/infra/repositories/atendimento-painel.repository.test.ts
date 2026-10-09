@@ -15,7 +15,7 @@ const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: 
 const repositorio = new SupabaseAtendimentoRepository(admin);
 
 const SETOR = "condominios" as const;
-const TELEFONES = ["61955571001", "61955571002", "61955571003", "61955571004"];
+const TELEFONES = ["61955571001", "61955571002", "61955571003", "61955571004", "61955571005"];
 const clienteId = crypto.randomUUID();
 const CNPJ = `8${Date.now()}`.slice(0, 14);
 const usuarios: string[] = [];
@@ -142,6 +142,7 @@ describe("SupabaseAtendimentoRepository — painel do Funcionário", () => {
           }),
         ],
         ultimaTransferencia: null,
+        ura: null,
       },
     });
   });
@@ -168,6 +169,21 @@ describe("SupabaseAtendimentoRepository — painel do Funcionário", () => {
       setorOrigem: "recepcao",
       origemNome: "Caio Painel 49",
       resumo: "Dúvida no DAS",
+    });
+  });
+
+  it("a conversa traz o resumo da URA e o CNPJ informado do Atendimento sem Cliente", async () => {
+    const edu = await criarFuncionario("Edu Painel 49");
+    const id = await abrir(TELEFONES[4], edu, null);
+    await admin
+      .from("atendimentos")
+      .update({ resumo_ura: "Quer abrir uma empresa", cnpj_informado: "11444777000161" })
+      .eq("id", id);
+
+    const conversa = await repositorio.conversa(id);
+    expect(conversa.ok && conversa.value?.ura).toEqual({
+      resumo: "Quer abrir uma empresa",
+      cnpjInformado: "11444777000161",
     });
   });
 

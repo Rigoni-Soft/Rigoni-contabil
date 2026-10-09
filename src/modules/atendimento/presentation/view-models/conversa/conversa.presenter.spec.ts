@@ -20,6 +20,7 @@ const CONVERSA: ConversaVista = {
     },
   ],
   ultimaTransferencia: null,
+  ura: null,
   setoresDestino: ["recepcao", "tributario"],
   documentos: [
     { tipo: "contrato", data: null, descricao: "Contrato social" },
@@ -58,13 +59,41 @@ describe("conversaParaView", () => {
       conversaParaView({
         ...CONVERSA,
         ultimaTransferencia: { setorOrigem: "recepcao", origemNome, resumo: "Dúvida no DAS" },
-      }).transferencia;
-    expect(conversaParaView(CONVERSA).transferencia).toBeNull();
+      }).contexto;
+    expect(conversaParaView(CONVERSA).contexto).toBeNull();
     expect(transferida("Ana")).toEqual({
       origem: "Transferido por Ana · Recepção",
       resumo: "Dúvida no DAS",
     });
     expect(transferida(null)?.origem).toBe("Transferido do setor Recepção");
+  });
+
+  it("sem Transferência, o contexto é o resumo da URA; com Transferência, vale a Transferência", () => {
+    const daUra = { ...CONVERSA, ura: { resumo: "Quer abrir uma empresa", cnpjInformado: null } };
+    expect(conversaParaView(daUra).contexto).toEqual({
+      origem: "Aberto pela URA",
+      resumo: "Quer abrir uma empresa",
+    });
+    const transferida = {
+      ...daUra,
+      ultimaTransferencia: { setorOrigem: "recepcao" as const, origemNome: "Ana", resumo: "DAS" },
+    };
+    expect(conversaParaView(transferida).contexto?.resumo).toBe("DAS");
+  });
+
+  it("sem Cliente, mostra o CNPJ que o número informou como provável cliente novo", () => {
+    const semCliente = {
+      ...CONVERSA,
+      clienteVinculado: false,
+      contato: { contatoNome: null, empresa: null, cnpj: null },
+      ura: { resumo: "Quer abrir uma empresa", cnpjInformado: "11444777000161" },
+    };
+    expect(conversaParaView(semCliente).subtitulo).toBe(
+      "Provável cliente novo · CNPJ informado 11.444.777/0001-61 · (61) 98888-7777",
+    );
+    expect(conversaParaView({ ...semCliente, ura: null }).subtitulo).toBe(
+      "Cliente não identificado",
+    );
   });
 
   it("serviços viram opções com o nome que o cliente vê: contrato primeiro, alterações da mais recente para a mais antiga", () => {

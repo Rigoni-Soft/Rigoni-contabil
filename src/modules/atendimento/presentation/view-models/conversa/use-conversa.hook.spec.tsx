@@ -28,6 +28,7 @@ const CONVERSA: ConversaVista = {
     { id: "m1", autor: "contato", texto: "oi", criadoEm: "2026-10-08T15:30:00Z", atendente: null },
   ],
   ultimaTransferencia: null,
+  ura: null,
   setoresDestino: ["recepcao", "tributario"],
   documentos: [],
 };
@@ -55,7 +56,7 @@ describe("regiões da conversa que leem a mesma consulta", () => {
       titulo: "Maria",
       subtitulo: "Padaria Ltda · 11.444.777/0001-61 · (61) 98888-7777",
       encerrado: false,
-      transferencia: null,
+      contexto: null,
     });
   });
 

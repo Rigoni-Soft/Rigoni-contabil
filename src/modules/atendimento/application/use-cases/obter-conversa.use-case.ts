@@ -56,6 +56,7 @@ export class ObterConversa implements ObterConversaPort {
       clienteVinculado: conversa.clienteId !== null,
       mensagens: conversa.mensagens,
       ultimaTransferencia: conversa.ultimaTransferencia,
+      ura: conversa.ura,
       documentos: disponiveis.value,
       setoresDestino: destinos.value,
     });

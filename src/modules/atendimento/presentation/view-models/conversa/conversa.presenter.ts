@@ -23,7 +23,8 @@ export type ConversaView = {
   subtitulo: string;
   encerrado: boolean;
   semCliente: boolean;
-  transferencia: { origem: string; resumo: string } | null;
+  // De onde veio o Atendimento: a última Transferência ou, sem ela, o que a URA já sabia.
+  contexto: { origem: string; resumo: string } | null;
   mensagens: MensagemView[];
   servicos: { valor: string; rotulo: string; grupo: "contrato" | "alteracao" }[];
   setoresDestino: { valor: string; rotulo: string }[];
@@ -55,6 +56,16 @@ function origemDaTransferencia({ setorOrigem, origemNome }: UltimaTransferencia)
   return origemNome ? `Transferido por ${origemNome} · ${setor}` : `Transferido do setor ${setor}`;
 }
 
+function contextoDaConversa({ ultimaTransferencia, ura }: ConversaVista): ConversaView["contexto"] {
+  if (ultimaTransferencia) {
+    return {
+      origem: origemDaTransferencia(ultimaTransferencia),
+      resumo: ultimaTransferencia.resumo,
+    };
+  }
+  return ura && { origem: "Aberto pela URA", resumo: ura.resumo };
+}
+
 export function conversaParaView(conversa: ConversaVista): ConversaView {
   const telefone = telefoneParaExibicao(conversa.telefone);
   const { contatoNome, empresa, cnpj } = conversa.contato;
@@ -66,13 +77,12 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
     subtitulo:
       empresa && cnpj
         ? `${empresa} · ${formatarCnpj(cnpj)} · ${telefone}`
-        : "Cliente não identificado",
+        : conversa.ura?.cnpjInformado
+          ? `Provável cliente novo · CNPJ informado ${formatarCnpj(conversa.ura.cnpjInformado)} · ${telefone}`
+          : "Cliente não identificado",
     encerrado: conversa.encerrado,
     semCliente: !conversa.clienteVinculado,
-    transferencia: conversa.ultimaTransferencia && {
-      origem: origemDaTransferencia(conversa.ultimaTransferencia),
-      resumo: conversa.ultimaTransferencia.resumo,
-    },
+    contexto: contextoDaConversa(conversa),
     mensagens: conversa.mensagens.map((m) => ({
       id: m.id,
       lado: m.autor === "funcionario" ? "atendente" : m.autor,

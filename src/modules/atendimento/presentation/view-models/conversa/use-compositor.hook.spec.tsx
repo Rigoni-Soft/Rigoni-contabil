@@ -24,6 +24,7 @@ const CONVERSA: ConversaVista = {
   clienteVinculado: true,
   mensagens: [],
   ultimaTransferencia: null,
+  ura: null,
   setoresDestino: [],
   documentos: [],
 };
