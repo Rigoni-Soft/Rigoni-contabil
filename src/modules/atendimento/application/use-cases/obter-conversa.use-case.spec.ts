@@ -28,6 +28,7 @@ const CONVERSA: ConversaLida = {
       atendente: { nome: "Ana", setor: "contabil" },
     },
   ],
+  ultimaTransferencia: { setorOrigem: "recepcao", origemNome: "Ana", resumo: "Dúvida no DAS" },
 };
 const FUNCIONARIO: AtorSessaoDto = { id: "func-1", papel: "funcionario", setor: "contabil" };
 
@@ -70,6 +71,7 @@ describe("ObterConversa", () => {
         contato: CONTATO,
         clienteVinculado: true,
         mensagens: CONVERSA.mensagens,
+        ultimaTransferencia: CONVERSA.ultimaTransferencia,
         documentos: [
           { tipo: "contrato", data: null, descricao: "Contrato social" },
           { tipo: "alteracao", data: "2026-03-01", descricao: "Alteração de 01/03/2026" },

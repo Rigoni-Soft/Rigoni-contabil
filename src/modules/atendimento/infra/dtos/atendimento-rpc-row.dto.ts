@@ -159,4 +159,11 @@ export const conversaRowSchema = z.object({
       perfis: z.object({ nome: z.string(), setor: z.enum(SETORES) }).nullable(),
     }),
   ),
+  transferencias: z.array(
+    z.object({
+      setor_origem: z.enum(SETORES),
+      resumo: z.string(),
+      origem: z.object({ nome: z.string() }).nullable(),
+    }),
+  ),
 });

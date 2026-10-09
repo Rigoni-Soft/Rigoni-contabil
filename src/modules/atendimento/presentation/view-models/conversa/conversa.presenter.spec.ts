@@ -19,6 +19,7 @@ const CONVERSA: ConversaVista = {
       atendente: { nome: "Ana", setor: "simples_nacional" },
     },
   ],
+  ultimaTransferencia: null,
   setoresDestino: ["recepcao", "tributario"],
   documentos: [
     { tipo: "contrato", data: null, descricao: "Contrato social" },
@@ -50,6 +51,20 @@ describe("conversaParaView", () => {
         hora: "08/10 12:32",
       },
     ]);
+  });
+
+  it("mostra a origem e o resumo da última Transferência; da Fila não tem nome de quem transferiu", () => {
+    const transferida = (origemNome: string | null) =>
+      conversaParaView({
+        ...CONVERSA,
+        ultimaTransferencia: { setorOrigem: "recepcao", origemNome, resumo: "Dúvida no DAS" },
+      }).transferencia;
+    expect(conversaParaView(CONVERSA).transferencia).toBeNull();
+    expect(transferida("Ana")).toEqual({
+      origem: "Transferido por Ana · Recepção",
+      resumo: "Dúvida no DAS",
+    });
+    expect(transferida(null)?.origem).toBe("Transferido do setor Recepção");
   });
 
   it("serviços viram opções com o nome que o cliente vê: contrato primeiro, alterações da mais recente para a mais antiga", () => {

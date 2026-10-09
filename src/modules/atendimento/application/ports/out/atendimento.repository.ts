@@ -3,6 +3,7 @@ import type {
   NovaMensagem,
 } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type { AnexarMensagemOutput } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
+import type { UltimaTransferencia } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import type { DadosDoContato } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
 import type { Inativo } from "@/modules/atendimento/domain/services/inatividade.service";
 import type { AppError } from "@/shared/errors/app.error";
@@ -170,6 +171,7 @@ export type ConversaLida = {
   telefone: string;
   contato: DadosDoContato;
   mensagens: MensagemLida[];
+  ultimaTransferencia: UltimaTransferencia | null;
 };
 
 export interface AtendimentoRepositoryPort {

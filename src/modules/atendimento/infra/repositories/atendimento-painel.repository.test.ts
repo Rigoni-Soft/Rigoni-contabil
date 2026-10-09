@@ -15,7 +15,7 @@ const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: 
 const repositorio = new SupabaseAtendimentoRepository(admin);
 
 const SETOR = "condominios" as const;
-const TELEFONES = ["61955571001", "61955571002", "61955571003"];
+const TELEFONES = ["61955571001", "61955571002", "61955571003", "61955571004"];
 const clienteId = crypto.randomUUID();
 const CNPJ = `8${Date.now()}`.slice(0, 14);
 const usuarios: string[] = [];
@@ -141,7 +141,33 @@ describe("SupabaseAtendimentoRepository — painel do Funcionário", () => {
             atendente: { nome: "Bia Painel 49", setor: SETOR },
           }),
         ],
+        ultimaTransferencia: null,
       },
+    });
+  });
+
+  it("a conversa traz a última Transferência: Setor e nome de origem e o resumo", async () => {
+    const caio = await criarFuncionario("Caio Painel 49");
+    const dani = await criarFuncionario("Dani Painel 49");
+    const id = await abrir(TELEFONES[3], dani, null);
+    const grava = (origem: string | null, resumo: string, criadoEm: string) =>
+      admin.from("transferencias").insert({
+        atendimento_id: id,
+        setor_origem: "recepcao",
+        funcionario_origem_id: origem,
+        setor_destino: SETOR,
+        funcionario_destino_id: dani,
+        resumo,
+        criado_em: criadoEm,
+      });
+    await grava(caio, "primeiro assunto", "2026-10-01T10:00:00Z");
+    await grava(caio, "Dúvida no DAS", "2026-10-02T10:00:00Z");
+
+    const conversa = await repositorio.conversa(id);
+    expect(conversa.ok && conversa.value?.ultimaTransferencia).toEqual({
+      setorOrigem: "recepcao",
+      origemNome: "Caio Painel 49",
+      resumo: "Dúvida no DAS",
     });
   });
 

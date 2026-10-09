@@ -11,7 +11,17 @@ export function CabecalhoConversaContainer({
   atendimentoId: string;
   initialData: ConversaVista;
 }) {
-  const { titulo, subtitulo, encerrado } = useCabecalhoConversa(atendimentoId, initialData);
+  const { titulo, subtitulo, encerrado, transferencia } = useCabecalhoConversa(
+    atendimentoId,
+    initialData,
+  );
 
-  return <CabecalhoDaConversa titulo={titulo} subtitulo={subtitulo} encerrado={encerrado} />;
+  return (
+    <CabecalhoDaConversa
+      titulo={titulo}
+      subtitulo={subtitulo}
+      encerrado={encerrado}
+      transferencia={transferencia}
+    />
+  );
 }

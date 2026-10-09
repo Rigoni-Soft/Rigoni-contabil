@@ -4,5 +4,10 @@ import { useConversa } from "@/modules/atendimento/presentation/view-models/conv
 export function useCabecalhoConversa(atendimentoId: string, initialData: ConversaVista) {
   const { conversa } = useConversa(atendimentoId, initialData);
 
-  return { titulo: conversa.titulo, subtitulo: conversa.subtitulo, encerrado: conversa.encerrado };
+  return {
+    titulo: conversa.titulo,
+    subtitulo: conversa.subtitulo,
+    encerrado: conversa.encerrado,
+    transferencia: conversa.transferencia,
+  };
 }

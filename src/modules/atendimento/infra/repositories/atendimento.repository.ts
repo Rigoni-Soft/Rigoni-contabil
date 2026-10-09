@@ -445,15 +445,18 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     const { data, error } = await this.supabaseAdmin
       .from("atendimentos")
       .select(
-        "id, status, setor, funcionario_id, cliente_id, telefone, chave_telefone, clientes(empresa, cnpj, cliente_contatos(nome, telefone, padrao, criado_em)), mensagens(id, autor, texto, criado_em, perfis(nome, setor))",
+        "id, status, setor, funcionario_id, cliente_id, telefone, chave_telefone, clientes(empresa, cnpj, cliente_contatos(nome, telefone, padrao, criado_em)), mensagens(id, autor, texto, criado_em, perfis(nome, setor)), transferencias(setor_origem, resumo, origem:perfis!funcionario_origem_id(nome))",
       )
       .eq("id", atendimentoId)
       .order("criado_em", { referencedTable: "mensagens" })
+      .order("criado_em", { referencedTable: "transferencias", ascending: false })
+      .limit(1, { referencedTable: "transferencias" })
       .order("id", { referencedTable: "mensagens" })
       .maybeSingle();
     if (error) return err(new ServicoExternoError("Falha ao consultar o Atendimento."));
     if (!data) return ok(null);
     const linha = conversaRowSchema.parse(data);
+    const [ultima] = linha.transferencias;
     return ok({
       id: linha.id,
       status: linha.status,
@@ -469,6 +472,13 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
         criadoEm: m.criado_em,
         atendente: m.perfis ? { nome: m.perfis.nome, setor: m.perfis.setor } : null,
       })),
+      ultimaTransferencia: ultima
+        ? {
+            setorOrigem: ultima.setor_origem,
+            origemNome: ultima.origem?.nome ?? null,
+            resumo: ultima.resumo,
+          }
+        : null,
     });
   }
 

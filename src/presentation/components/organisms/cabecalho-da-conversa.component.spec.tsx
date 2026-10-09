@@ -16,4 +16,18 @@ describe("CabecalhoDaConversa", () => {
 
     expect(screen.getByText("Atendimento encerrado.")).toBeInTheDocument();
   });
+
+  it("mostra de onde veio a transferência e o resumo do assunto", () => {
+    render(
+      <CabecalhoDaConversa
+        titulo="Maria"
+        subtitulo="Padaria Ltda"
+        encerrado={false}
+        transferencia={{ origem: "Transferido por Ana · Recepção", resumo: "Dúvida no DAS" }}
+      />,
+    );
+
+    expect(screen.getByText("Transferido por Ana · Recepção:")).toBeInTheDocument();
+    expect(screen.getByText(/Dúvida no DAS/)).toBeInTheDocument();
+  });
 });

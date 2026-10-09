@@ -4,6 +4,7 @@ import type {
   ConversaVista,
   DocumentoDisponivel,
   DocumentoOferecido,
+  UltimaTransferencia,
 } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import { SETOR_LABEL } from "@/shared/kernel/setores";
 
@@ -22,6 +23,7 @@ export type ConversaView = {
   subtitulo: string;
   encerrado: boolean;
   semCliente: boolean;
+  transferencia: { origem: string; resumo: string } | null;
   mensagens: MensagemView[];
   servicos: { valor: string; rotulo: string; grupo: "contrato" | "alteracao" }[];
   setoresDestino: { valor: string; rotulo: string }[];
@@ -48,6 +50,11 @@ function formatarHora(iso: string): string {
   return `${p("day")}/${p("month")} ${p("hour")}:${p("minute")}`;
 }
 
+function origemDaTransferencia({ setorOrigem, origemNome }: UltimaTransferencia): string {
+  const setor = SETOR_LABEL[setorOrigem];
+  return origemNome ? `Transferido por ${origemNome} · ${setor}` : `Transferido do setor ${setor}`;
+}
+
 export function conversaParaView(conversa: ConversaVista): ConversaView {
   const telefone = telefoneParaExibicao(conversa.telefone);
   const { contatoNome, empresa, cnpj } = conversa.contato;
@@ -62,6 +69,10 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
         : "Cliente não identificado",
     encerrado: conversa.encerrado,
     semCliente: !conversa.clienteVinculado,
+    transferencia: conversa.ultimaTransferencia && {
+      origem: origemDaTransferencia(conversa.ultimaTransferencia),
+      resumo: conversa.ultimaTransferencia.resumo,
+    },
     mensagens: conversa.mensagens.map((m) => ({
       id: m.id,
       lado: m.autor === "funcionario" ? "atendente" : m.autor,

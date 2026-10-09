@@ -18,6 +18,14 @@ export type MensagemVista = {
   atendente: { nome: string; setor: SetorSlug } | null;
 };
 
+// A Transferência mais recente do Atendimento: de onde veio e o resumo que o destino recebe.
+// `origemNome` é null quando o Atendimento saiu da Fila (sem Funcionário de origem).
+export type UltimaTransferencia = {
+  setorOrigem: SetorSlug;
+  origemNome: string | null;
+  resumo: string;
+};
+
 export type ConversaVista = {
   atendimentoId: string;
   encerrado: boolean;
@@ -26,6 +34,8 @@ export type ConversaVista = {
   // Sem Cliente vinculado (ex.: número não identificado) não há CNPJ para disparar serviços.
   clienteVinculado: boolean;
   mensagens: MensagemVista[];
+  // Null se o Atendimento nunca foi transferido.
+  ultimaTransferencia: UltimaTransferencia | null;
   // Serviços que o Funcionário pode disparar agora; vazio se encerrado ou sem Cliente.
   documentos: DocumentoOferecido[];
   // Setores para onde o Funcionário pode transferir agora; vazio se encerrado.

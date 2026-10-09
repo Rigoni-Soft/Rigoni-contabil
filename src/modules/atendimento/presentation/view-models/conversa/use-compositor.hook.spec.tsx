@@ -23,6 +23,7 @@ const CONVERSA: ConversaVista = {
   contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
   clienteVinculado: true,
   mensagens: [],
+  ultimaTransferencia: null,
   setoresDestino: [],
   documentos: [],
 };
