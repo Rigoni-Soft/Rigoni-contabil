@@ -5,6 +5,7 @@ import { CompositorDeMensagem } from "./compositor-de-mensagem.component";
 
 const SELETOR = {
   aberto: false,
+  recentes: [] as string[],
   onAlternar: jest.fn(),
   onEscolher: jest.fn(),
   painelId: "painel",
@@ -80,6 +81,14 @@ describe("CompositorDeMensagem — seletor de emoji", () => {
 
     expect(aoEscolher).toHaveBeenCalledWith("👍");
     expect(aoAlternar).toHaveBeenCalled();
+  });
+
+  it("mostra o grupo Recentes primeiro, só quando há recentes", () => {
+    const seletor = { ...SELETOR, aberto: true, recentes: ["👍"] };
+    render(<CompositorDeMensagem {...BASE} seletor={seletor} />);
+
+    const grupos = screen.getAllByRole("group").map((g) => g.getAttribute("aria-label"));
+    expect(grupos.slice(1, 3)).toEqual(["Recentes", "Rostos"]);
   });
 
   it("fechado, não mostra os emojis", () => {

@@ -17,7 +17,7 @@ export function CampoTextarea({
   ...props
 }: CampoTextareaProps) {
   return (
-    <div className="min-w-0 flex-1 space-y-1">
+    <div className={cn("min-w-0 flex-1", !rotuloOculto && "space-y-1")}>
       <Label htmlFor={id} className={cn("text-xs", rotuloOculto && "sr-only")}>
         {rotulo}
       </Label>

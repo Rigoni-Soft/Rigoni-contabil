@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
@@ -61,6 +61,7 @@ jest.mock(
 const PROPS = { atendimentoId: "at-1", initialData: {} as ConversaVista };
 
 beforeEach(() => {
+  localStorage.clear();
   acoesVisiveis = true;
   compositorVisivel = true;
 });
@@ -123,6 +124,21 @@ describe("CompositorConversaContainer", () => {
     await usuario.click(abrir);
     await usuario.click(screen.getByLabelText("Mensagem ao cliente"));
     expect(screen.queryByRole("group", { name: "Emojis" })).not.toBeInTheDocument();
+  });
+
+  it("lembra os emojis escolhidos, o mais recente primeiro, sem repetir", async () => {
+    const usuario = userEvent.setup();
+    render(<CompositorConversaContainer {...PROPS} />);
+
+    for (const nome of ["Joinha", "Palmas", "Joinha"]) {
+      await usuario.click(screen.getByRole("button", { name: "Inserir emoji" }));
+      const gestos = screen.getByRole("group", { name: "Gestos" });
+      await usuario.click(within(gestos).getByRole("button", { name: nome }));
+    }
+    await usuario.click(screen.getByRole("button", { name: "Inserir emoji" }));
+
+    const recentes = screen.getByRole("group", { name: "Recentes" });
+    expect(recentes).toHaveTextContent("👍👏");
   });
 
   it("Esc fecha o seletor mesmo com o foco no campo", async () => {

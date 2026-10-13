@@ -28,7 +28,7 @@ export function CompositorDeMensagem({
     <div className="shrink-0 space-y-1">
       <form
         key={enviadas}
-        className="flex items-end gap-2"
+        className="flex items-center gap-2"
         onSubmit={(evento) => {
           evento.preventDefault();
           onEnviar(String(new FormData(evento.currentTarget).get("texto")));

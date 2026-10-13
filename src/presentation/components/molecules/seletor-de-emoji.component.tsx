@@ -67,8 +67,12 @@ const CATEGORIAS: { nome: string; emojis: [emoji: string, nome: string][] }[] = 
   },
 ];
 
+const NOMES = new Map(CATEGORIAS.flatMap((categoria) => categoria.emojis));
+
 type SeletorDeEmojiProps = {
   aberto: boolean;
+  // Últimos escolhidos, do mais novo ao mais antigo.
+  recentes: string[];
   onAlternar: () => void;
   onEscolher: (emoji: string) => void;
   painelId: string;
@@ -79,6 +83,7 @@ type SeletorDeEmojiProps = {
 
 export function SeletorDeEmoji({
   aberto,
+  recentes,
   onAlternar,
   onEscolher,
   painelId,
@@ -100,7 +105,7 @@ export function SeletorDeEmoji({
         disabled={disabled}
         onClick={onAlternar}
       >
-        <Smile aria-hidden="true" />
+        <Smile aria-hidden="true" className="size-6" />
       </Button>
       {aberto && (
         <div
@@ -109,7 +114,17 @@ export function SeletorDeEmoji({
           aria-label="Emojis"
           className="absolute bottom-full left-0 z-10 mb-2 max-h-64 w-72 space-y-2 overflow-y-auto rounded-xl border border-input bg-background p-2 shadow-md"
         >
-          {CATEGORIAS.map((categoria) => (
+          {[
+            ...(recentes.length
+              ? [
+                  {
+                    nome: "Recentes",
+                    emojis: recentes.map((e): [string, string] => [e, NOMES.get(e) ?? e]),
+                  },
+                ]
+              : []),
+            ...CATEGORIAS,
+          ].map((categoria) => (
             <div key={categoria.nome} role="group" aria-label={categoria.nome}>
               <p className="px-1 text-xs text-muted-foreground">{categoria.nome}</p>
               <div className="flex flex-wrap">
