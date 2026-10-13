@@ -36,42 +36,45 @@ type ListaDeMensagensProps = { mensagens: MensagemView[]; reacao?: ReacaoProps }
 // ordem de leitura. role="log" anuncia a mensagem nova ao leitor de tela.
 export function ListaDeMensagens({ mensagens, reacao }: ListaDeMensagensProps) {
   return (
-    <div
-      role="log"
-      aria-label="Conversa"
-      className="flex max-h-[60vh] min-h-0 flex-col-reverse overflow-y-auto rounded-xl border border-border bg-muted/50 p-3 lg:max-h-none lg:flex-1"
-    >
-      <ol aria-label="Mensagens" className="flex shrink-0 flex-col gap-1.5">
-        {mensagens.map(({ id, reagivel, ...mensagem }) => {
-          const aberto = reacao?.abertaId === id;
-          return (
-            <MensagemBalao
-              key={id}
-              {...mensagem}
-              acao={
-                reacao?.ativa && reagivel ? (
-                  <SeletorDeEmoji
-                    compacto
-                    rotulo={`Reagir à mensagem de ${mensagem.autor}`}
-                    aberto={aberto}
-                    recentes={reacao.recentes}
-                    completo={reacao.completo}
-                    onExpandir={reacao.aoExpandir}
-                    estilo={aberto ? reacao.estilo : undefined}
-                    painelId={reacao.painelId}
-                    raizRef={aberto ? reacao.raizRef : null}
-                    botaoRef={aberto ? reacao.botaoRef : null}
-                    onAlternar={(evento) =>
-                      reacao.aoAlternar(id, evento.currentTarget.getBoundingClientRect())
-                    }
-                    onEscolher={(emoji) => reacao.aoEscolher(id, emoji)}
-                  />
-                ) : undefined
-              }
-            />
-          );
-        })}
-      </ol>
+    // O erro de reação fica fora do rolador (col-reverse o jogaria para o topo, fora de vista).
+    <div className="flex min-h-0 flex-col gap-1.5 lg:flex-1">
+      <div
+        role="log"
+        aria-label="Conversa"
+        className="flex max-h-[60vh] min-h-0 flex-col-reverse overflow-y-auto rounded-xl border border-border bg-muted/50 p-3 lg:max-h-none lg:flex-1"
+      >
+        <ol aria-label="Mensagens" className="flex shrink-0 flex-col gap-1.5">
+          {mensagens.map(({ id, reagivel, ...mensagem }) => {
+            const aberto = reacao?.abertaId === id;
+            return (
+              <MensagemBalao
+                key={id}
+                {...mensagem}
+                acao={
+                  reacao?.ativa && reagivel ? (
+                    <SeletorDeEmoji
+                      compacto
+                      rotulo={`Reagir à mensagem de ${mensagem.autor}`}
+                      aberto={aberto}
+                      recentes={reacao.recentes}
+                      completo={reacao.completo}
+                      onExpandir={reacao.aoExpandir}
+                      estilo={aberto ? reacao.estilo : undefined}
+                      painelId={reacao.painelId}
+                      raizRef={aberto ? reacao.raizRef : null}
+                      botaoRef={aberto ? reacao.botaoRef : null}
+                      onAlternar={(evento) =>
+                        reacao.aoAlternar(id, evento.currentTarget.getBoundingClientRect())
+                      }
+                      onEscolher={(emoji) => reacao.aoEscolher(id, emoji)}
+                    />
+                  ) : undefined
+                }
+              />
+            );
+          })}
+        </ol>
+      </div>
       {reacao?.erro && <AvisoDeStatus tipo="erro" texto={reacao.erro} />}
     </div>
   );

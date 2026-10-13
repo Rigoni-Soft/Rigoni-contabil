@@ -45,10 +45,12 @@ export function CompositorDeMensagem({
           rows={2}
           // Sem maxLength: ele conta unidades UTF-16 (emoji valeria 2); o limite é conferido ao enviar.
           placeholder="Escreva aqui"
-          className="min-h-12 resize-none rounded-2xl"
+          // 16px no celular: abaixo disso o iOS dá zoom ao focar o campo.
+          className="min-h-12 resize-none rounded-2xl text-base sm:text-sm"
           onKeyDown={(evento) => {
-            // Enter envia, Shift+Enter quebra a linha (como nos chats).
-            if (evento.key === "Enter" && !evento.shiftKey) {
+            // Enter envia, Shift+Enter quebra a linha (como nos chats); Enter que confirma
+            // composição (IME, teclado de celular) não envia.
+            if (evento.key === "Enter" && !evento.shiftKey && !evento.nativeEvent.isComposing) {
               evento.preventDefault();
               evento.currentTarget.form?.requestSubmit();
             }

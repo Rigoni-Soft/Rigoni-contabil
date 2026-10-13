@@ -34,7 +34,7 @@ export function ConversaTemplate({
   fila,
 }: ConversaTemplateProps) {
   return (
-    <main className="flex min-h-screen flex-col bg-background lg:h-dvh lg:min-h-0 lg:overflow-hidden">
+    <main className="flex min-h-dvh flex-col bg-background lg:h-dvh lg:min-h-0 lg:overflow-hidden">
       {header}
       <div className="flex min-h-0 flex-1 flex-col px-4 py-3 sm:px-6 lg:px-8">
         <div className="mb-2 shrink-0">{voltar}</div>

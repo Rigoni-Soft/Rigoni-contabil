@@ -46,14 +46,14 @@ export function MensagemBalao({
         <span
           role="img"
           aria-label={`Reação do escritório: ${reacao}`}
-          className="mt-1 inline-block rounded-full border border-border bg-background px-1.5 text-sm"
+          className="mt-1 inline-block rounded-full border border-border bg-background px-1.5 text-base"
         >
           {reacao}
         </span>
       )}
       <p
         className={cn(
-          "mt-0.5 text-right text-[11px]",
+          "mt-0.5 text-right text-xs",
           lado === "atendente" ? "opacity-90" : "text-muted-foreground",
         )}
       >

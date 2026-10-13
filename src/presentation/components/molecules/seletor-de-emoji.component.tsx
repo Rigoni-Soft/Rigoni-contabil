@@ -83,7 +83,7 @@ function BotaoDeEmoji({
     <button
       type="button"
       aria-label={nome}
-      className="flex size-10 shrink-0 items-center justify-center rounded-md text-xl outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex size-11 shrink-0 items-center justify-center rounded-md text-xl outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
       onClick={() => onEscolher(emoji)}
     >
       {emoji}
@@ -133,7 +133,11 @@ export function SeletorDeEmoji({
         type="button"
         variant="ghost"
         size="icon"
-        className={cn("rounded-full", compacto && "size-7")}
+        // Compacto: glifo de 28px no balão, com a área de toque ampliada a 44px.
+        className={cn(
+          "rounded-full",
+          compacto && "relative size-7 before:absolute before:-inset-2 before:content-['']",
+        )}
         aria-label={rotulo}
         aria-expanded={aberto}
         aria-controls={aberto ? painelId : undefined}
@@ -154,7 +158,7 @@ export function SeletorDeEmoji({
           )}
         >
           {recentes.length > 0 && (
-            <div role="group" aria-label="Recentes" className="flex flex-nowrap items-center">
+            <div role="group" aria-label="Recentes" className="flex flex-wrap items-center">
               {recentes.map((emoji) => (
                 <BotaoDeEmoji
                   key={emoji}
@@ -167,7 +171,7 @@ export function SeletorDeEmoji({
                 <button
                   type="button"
                   aria-label="Ver todos os emojis"
-                  className="ml-auto flex size-10 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+                  className="ml-auto flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
                   onClick={onExpandir}
                 >
                   <Plus aria-hidden="true" className="size-5" />
