@@ -2,7 +2,7 @@ type LoginPageProps = { formulario: React.ReactNode };
 
 export function LoginPage({ formulario }: LoginPageProps) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-12 sm:px-6">
+    <main className="flex min-h-dvh items-center justify-center bg-background px-4 py-12 sm:px-6">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-1 text-center">
           <h1 className="text-2xl font-bold tracking-tight text-primary">Rigoni Contábil</h1>

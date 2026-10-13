@@ -70,7 +70,7 @@ const CATEGORIAS: { nome: string; emojis: [emoji: string, nome: string][] }[] = 
 
 const NOMES = new Map(CATEGORIAS.flatMap((categoria) => categoria.emojis));
 
-const BOTAO_44 =
+const BOTAO_DE_EMOJI =
   "flex size-11 shrink-0 items-center justify-center rounded-md outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring";
 
 function BotaoDeEmoji({
@@ -86,7 +86,7 @@ function BotaoDeEmoji({
     <button
       type="button"
       aria-label={nome}
-      className={cn(BOTAO_44, "text-xl")}
+      className={cn(BOTAO_DE_EMOJI, "text-xl")}
       onClick={() => onEscolher(emoji)}
     >
       {emoji}
@@ -174,7 +174,7 @@ export function SeletorDeEmoji({
                 <button
                   type="button"
                   aria-label="Ver todos os emojis"
-                  className={cn(BOTAO_44, "ml-auto text-muted-foreground")}
+                  className={cn(BOTAO_DE_EMOJI, "ml-auto text-muted-foreground")}
                   onClick={onExpandir}
                 >
                   <Plus aria-hidden="true" className="size-5" />

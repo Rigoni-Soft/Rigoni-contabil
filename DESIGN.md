@@ -184,8 +184,9 @@ sem precisar de classe.
   inclui a data.
 - `input.tsx` — 44px de altura; `aria-invalid` troca borda/anel para
   `destructive` automaticamente. `input`, `select` e `textarea` usam
-  `text-base sm:text-sm`: 16 px no celular (abaixo disso o iOS dá zoom ao focar
-  o campo), 14 px de `sm` em diante.
+  `text-base sm:text-sm`, assim como `file-input.tsx`: 16 px no celular (abaixo
+  disso o iOS dá zoom ao focar o campo), 14 px de `sm` em diante. Campo de texto
+  novo usa o primitivo de `ui/`, nunca um `<textarea>`/`<select>` cru.
 
   **Campo de arquivo sempre com `Label` visível (29/09/2026, #33):** o
   cadastro de Cliente introduziu os primeiros `<Input type="file">` do
@@ -644,7 +645,8 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
 - **Campo de resposta** (`CompositorDeMensagem`): `Textarea` arredondado +
   botão redondo de enviar (placeholder "Escreva aqui"; o nome acessível vem
   do rótulo oculto "Mensagem ao cliente"). Enter envia, Shift+Enter quebra a linha (Enter de composição, IME ou
-  teclado de celular, não envia); o campo só esvazia quando o envio dá certo (se falhar, o texto fica). À esquerda do
+  teclado de celular, não envia; o Safari entrega esse Enter com `isComposing` falso e
+  `keyCode` 229, por isso os dois são checados); o campo só esvazia quando o envio dá certo (se falhar, o texto fica). À esquerda do
   campo, o botão redondo `ghost` "Inserir emoji" (`SeletorDeEmoji`, #78) abre um
   painel acima dele. Com recentes (até 8, por navegador) o painel mostra só a
   linha "Recentes" e o botão "Ver todos os emojis"; sem recentes, ou depois do

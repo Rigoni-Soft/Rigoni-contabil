@@ -5,7 +5,7 @@ type TrocarSenhaPageProps = {
 
 export function TrocarSenhaPage({ header, formulario }: TrocarSenhaPageProps) {
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-dvh bg-background">
       {header}
       <div className="mx-auto max-w-md px-4 py-8 sm:px-6">
         <h1 className="mb-2 text-xl font-bold tracking-tight text-primary">Trocar senha</h1>

@@ -17,7 +17,7 @@ export function EditarCadastroOperacionalPage({
   voltarHref = "/",
 }: EditarCadastroOperacionalPageProps) {
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-dvh bg-background">
       {header}
       <div className="mx-auto w-[90%] px-4 py-8 sm:px-6">
         <Link

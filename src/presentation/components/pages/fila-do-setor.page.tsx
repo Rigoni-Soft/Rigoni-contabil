@@ -8,7 +8,7 @@ type FilaDoSetorPageProps = {
 
 export function FilaDoSetorPage({ header, fila }: FilaDoSetorPageProps) {
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-dvh bg-background">
       {header}
       <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
         <Link

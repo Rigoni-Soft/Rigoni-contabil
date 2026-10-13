@@ -5,7 +5,7 @@ type CriarClientePageProps = { header: React.ReactNode; formulario: React.ReactN
 
 export function CriarClientePage({ header, formulario }: CriarClientePageProps) {
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-dvh bg-background">
       {header}
       <div className="mx-auto w-[80%] px-4 py-8 sm:px-6">
         <Link

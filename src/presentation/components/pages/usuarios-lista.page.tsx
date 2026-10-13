@@ -5,7 +5,7 @@ type UsuariosListaPageProps = { header: React.ReactNode; lista: React.ReactNode 
 
 export function UsuariosListaPage({ header, lista }: UsuariosListaPageProps) {
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-dvh bg-background">
       {header}
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
         <Link

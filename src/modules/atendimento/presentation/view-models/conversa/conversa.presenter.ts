@@ -41,8 +41,8 @@ export function documentoDaOpcao(valor: string): DocumentoDisponivel {
   return { tipo: tipo as DocumentoDisponivel["tipo"], data: data ?? null };
 }
 
-// Mesmo fuso de negócio do feed de auditoria (não o do navegador). Criado uma vez: um por Mensagem
-// a cada render era caro.
+// Mesmo fuso de negócio do feed de auditoria (não o do navegador). Um formatter só, reusado por
+// todas as Mensagens.
 const FORMATO_HORA = new Intl.DateTimeFormat("pt-BR", {
   timeZone: "America/Sao_Paulo",
   day: "2-digit",
