@@ -67,6 +67,7 @@ describe("feriados do Admin", () => {
   it.each([
     ["31/12/2026", "X"],
     ["2026-02-30", "X"],
+    ["2026-13-01", "X"],
     ["2026-10-08", "   "],
     ["2026-10-08", "x".repeat(201)],
   ])("rejeita data %p / descrição inválida", async (data, descricao) => {

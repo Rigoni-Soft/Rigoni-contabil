@@ -47,6 +47,29 @@ afterEach(async () => {
   await service.from("registros_auditoria").delete().in("alvo", [DATA, OUTRA]);
 });
 
+// Admin com senha provisória ainda válida e troca obrigatória pendente (devolutiva PR #82, B1):
+// `meu_papel()` sozinho o deixava passar; as policies exigem `acesso_liberado()`.
+async function criarAdminEmPrimeiroAcesso(): Promise<{ id: string; email: string }> {
+  const email = `teste-feriados-${crypto.randomUUID()}@rigonicontabil.local`;
+  const { data, error } = await service.auth.admin.createUser({
+    email,
+    password: "senha-provisoria-123",
+    email_confirm: true,
+  });
+  if (error || !data.user) throw new Error(`Falha ao criar conta de teste: ${error?.message}`);
+  const { error: erroPerfil } = await service.from("perfis").insert({
+    id: data.user.id,
+    nome: "Admin Primeiro Acesso",
+    email,
+    papel: "admin",
+    setor: "administrativo",
+    senha_trocada_em: null,
+    senha_provisoria_expira_em: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+  });
+  if (erroPerfil) throw new Error(`Falha ao salvar perfil de teste: ${erroPerfil.message}`);
+  return { id: data.user.id, email };
+}
+
 describe("SupabaseFeriadoRepository", () => {
   it("Admin cadastra, lista e remove; cada ação fica na auditoria", async () => {
     expect((await admin.cadastrar({ data: DATA, descricao: "Aniversário da cidade" })).ok).toBe(
@@ -88,5 +111,34 @@ describe("SupabaseFeriadoRepository", () => {
 
     const pelaUra = await new SupabaseFeriadoRepository(service).listarDatas();
     expect(pelaUra.ok && pelaUra.value).toContain(DATA);
+  });
+
+  it("Admin em primeiro acesso não lê, cadastra nem remove feriado; após a troca, sim", async () => {
+    const conta = await criarAdminEmPrimeiroAcesso();
+    try {
+      await service.from("feriados").insert({ data: DATA, descricao: "Y" });
+      const repo = new SupabaseFeriadoRepository(
+        await logadoComo(conta.email, "senha-provisoria-123"),
+      );
+
+      const lista = await repo.listar();
+      expect(lista.ok && lista.value).toEqual([]);
+      expect((await repo.cadastrar({ data: OUTRA, descricao: "X" })).ok).toBe(false);
+      expect((await repo.remover(DATA)).ok).toBe(false);
+      const restantes = await service.from("feriados").select("data").in("data", [DATA, OUTRA]);
+      expect(restantes.data).toEqual([{ data: DATA }]);
+
+      await service
+        .from("perfis")
+        .update({ senha_trocada_em: new Date().toISOString() })
+        .eq("id", conta.id);
+      expect((await repo.cadastrar({ data: OUTRA, descricao: "X" })).ok).toBe(true);
+      const aposTroca = await repo.listar();
+      expect(aposTroca.ok && aposTroca.value.map((f) => f.data)).toEqual([DATA, OUTRA]);
+    } finally {
+      await service.from("registros_auditoria").delete().eq("ator", conta.id);
+      await service.from("perfis").delete().eq("id", conta.id);
+      await service.auth.admin.deleteUser(conta.id);
+    }
   });
 });

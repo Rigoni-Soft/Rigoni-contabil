@@ -18,9 +18,11 @@ export class CadastrarFeriado implements CadastrarFeriadoPort {
     const ator = await this.sessao.usuarioAtual();
     if (ator?.papel !== "admin") return err(new ForbiddenError("Só o Admin cadastra feriados."));
 
+    const instante = new Date(`${data}T00:00:00Z`);
     const dataValida =
       /^\d{4}-\d{2}-\d{2}$/.test(data) &&
-      new Date(`${data}T00:00:00Z`).toISOString().startsWith(data);
+      !Number.isNaN(instante.getTime()) &&
+      instante.toISOString().startsWith(data);
     if (!dataValida) return err(new ValidationError("Data inválida."));
     const texto = descricao.trim();
     if (texto.length < 1 || texto.length > 200) {

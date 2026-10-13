@@ -9,15 +9,17 @@ create table public.feriados (
 
 alter table public.feriados enable row level security;
 
+-- acesso_liberado() exige a troca de senha concluída; `meu_papel()` sozinho aceita o Admin ainda
+-- na senha provisória (devolutiva PR #82, B1).
 create policy "feriados_select_admin"
   on public.feriados for select
-  using (public.meu_papel() = 'admin');
+  using (public.acesso_liberado() and public.meu_papel() = 'admin');
 create policy "feriados_insert_admin"
   on public.feriados for insert
-  with check (public.meu_papel() = 'admin');
+  with check (public.acesso_liberado() and public.meu_papel() = 'admin');
 create policy "feriados_delete_admin"
   on public.feriados for delete
-  using (public.meu_papel() = 'admin');
+  using (public.acesso_liberado() and public.meu_papel() = 'admin');
 
 -- Mesma ideia de `auditar_cliente_criado`: o evento nasce na transação da escrita, com ator e
 -- setor da sessão do banco. Sem sessão (seed, migration, service_role) não há ator a registrar.
