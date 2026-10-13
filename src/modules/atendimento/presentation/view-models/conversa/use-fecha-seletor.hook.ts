@@ -17,9 +17,15 @@ export function useFechaSeletor(
     const aoClicar = (evento: PointerEvent) => {
       if (!raiz.current?.contains(evento.target as Node)) fechar();
     };
+    // O painel de reação é `fixed`: rolar a conversa o deixaria solto do botão.
+    const aoRolar = (evento: Event) => {
+      if (!raiz.current?.contains(evento.target as Node)) fechar();
+    };
+    document.addEventListener("scroll", aoRolar, true);
     document.addEventListener("keydown", aoTeclar);
     document.addEventListener("pointerdown", aoClicar);
     return () => {
+      document.removeEventListener("scroll", aoRolar, true);
       document.removeEventListener("keydown", aoTeclar);
       document.removeEventListener("pointerdown", aoClicar);
     };

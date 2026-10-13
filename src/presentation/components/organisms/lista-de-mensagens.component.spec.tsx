@@ -52,6 +52,9 @@ describe("ListaDeMensagens — reação (#84)", () => {
   const reacao = (extra: object = {}) => ({
     ativa: true,
     abertaId: null,
+    completo: false,
+    recentes: [] as string[],
+    aoExpandir: jest.fn(),
     painelId: "painel",
     raizRef: null,
     botaoRef: null,
@@ -68,7 +71,7 @@ describe("ListaDeMensagens — reação (#84)", () => {
     expect(screen.getAllByRole("button", { name: /Reagir à mensagem/ })).toHaveLength(1);
     expect(screen.getByRole("img", { name: "Reação do escritório: ❤️" })).toBeInTheDocument();
     await usuario.click(screen.getByRole("button", { name: "Reagir à mensagem de Maria" }));
-    expect(r.aoAlternar).toHaveBeenCalledWith("1");
+    expect(r.aoAlternar).toHaveBeenCalledWith("1", expect.objectContaining({ top: 0 }));
   });
 
   it("escolher um emoji do seletor aberto reage àquela Mensagem", async () => {

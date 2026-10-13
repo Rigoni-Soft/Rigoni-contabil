@@ -27,7 +27,7 @@ export function MensagemBalao({
   return (
     <li
       className={cn(
-        "max-w-[85%] px-3 py-1.5 sm:max-w-[75%]",
+        "relative max-w-[85%] px-3 py-1.5 sm:max-w-[75%]",
         doCliente
           ? "self-start rounded-2xl rounded-tl-sm border border-border bg-card text-card-foreground"
           : lado === "atendente"
@@ -40,19 +40,14 @@ export function MensagemBalao({
       </p>
       {detalhe && <p className="text-xs text-muted-foreground">{detalhe}</p>}
       <p className="break-words whitespace-pre-wrap">{texto}</p>
-      {(reacao || acao) && (
-        <div className="mt-1 flex items-center gap-1">
-          {reacao && (
-            <span
-              role="img"
-              aria-label={`Reação do escritório: ${reacao}`}
-              className="rounded-full border border-border bg-background px-1.5 text-sm"
-            >
-              {reacao}
-            </span>
-          )}
-          {acao}
-        </div>
+      {reacao && (
+        <span
+          role="img"
+          aria-label={`Reação do escritório: ${reacao}`}
+          className="mt-1 inline-block rounded-full border border-border bg-background px-1.5 text-sm"
+        >
+          {reacao}
+        </span>
       )}
       <p
         className={cn(
@@ -62,6 +57,7 @@ export function MensagemBalao({
       >
         {hora}
       </p>
+      {acao && <div className="absolute top-0 left-full ml-1">{acao}</div>}
     </li>
   );
 }

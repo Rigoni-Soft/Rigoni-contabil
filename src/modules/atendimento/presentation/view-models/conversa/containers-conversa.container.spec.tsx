@@ -126,19 +126,25 @@ describe("CompositorConversaContainer", () => {
     expect(screen.queryByRole("group", { name: "Emojis" })).not.toBeInTheDocument();
   });
 
-  it("lembra os emojis escolhidos, o mais recente primeiro, sem repetir", async () => {
+  it("lembra os emojis escolhidos: com recentes, só a linha deles até ver todos", async () => {
     const usuario = userEvent.setup();
     render(<CompositorConversaContainer {...PROPS} />);
+    const abrir = () => usuario.click(screen.getByRole("button", { name: "Inserir emoji" }));
 
-    for (const nome of ["Joinha", "Palmas", "Joinha"]) {
-      await usuario.click(screen.getByRole("button", { name: "Inserir emoji" }));
-      const gestos = screen.getByRole("group", { name: "Gestos" });
-      await usuario.click(within(gestos).getByRole("button", { name: nome }));
-    }
-    await usuario.click(screen.getByRole("button", { name: "Inserir emoji" }));
+    await abrir();
+    await usuario.click(
+      within(screen.getByRole("group", { name: "Gestos" })).getByRole("button", { name: "Joinha" }),
+    );
+    await abrir();
+    expect(screen.getByRole("group", { name: "Recentes" })).toHaveTextContent("👍");
+    expect(screen.queryByRole("group", { name: "Gestos" })).not.toBeInTheDocument();
 
-    const recentes = screen.getByRole("group", { name: "Recentes" });
-    expect(recentes).toHaveTextContent("👍👏");
+    await usuario.click(screen.getByRole("button", { name: "Ver todos os emojis" }));
+    await usuario.click(
+      within(screen.getByRole("group", { name: "Gestos" })).getByRole("button", { name: "Palmas" }),
+    );
+    await abrir();
+    expect(screen.getByRole("group", { name: "Recentes" })).toHaveTextContent("👏👍");
   });
 
   it("ignora recentes inválidos ou repetidos vindos do storage", async () => {

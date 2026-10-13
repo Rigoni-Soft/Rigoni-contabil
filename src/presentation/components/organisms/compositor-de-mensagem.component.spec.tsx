@@ -6,6 +6,8 @@ import { CompositorDeMensagem } from "./compositor-de-mensagem.component";
 const SELETOR = {
   aberto: false,
   recentes: [] as string[],
+  completo: false,
+  onExpandir: jest.fn(),
   onAlternar: jest.fn(),
   onEscolher: jest.fn(),
   painelId: "painel",
@@ -83,12 +85,19 @@ describe("CompositorDeMensagem — seletor de emoji", () => {
     expect(aoAlternar).toHaveBeenCalled();
   });
 
-  it("mostra o grupo Recentes primeiro, só quando há recentes", () => {
-    const seletor = { ...SELETOR, aberto: true, recentes: ["👍"] };
-    render(<CompositorDeMensagem {...BASE} seletor={seletor} />);
+  it("com recentes mostra só a linha deles e o ver todos; completo traz as categorias", async () => {
+    const aoExpandir = jest.fn();
+    const usuario = userEvent.setup();
+    const seletor = { ...SELETOR, aberto: true, recentes: ["👍"], onExpandir: aoExpandir };
+    const { rerender } = render(<CompositorDeMensagem {...BASE} seletor={seletor} />);
 
-    const grupos = screen.getAllByRole("group").map((g) => g.getAttribute("aria-label"));
-    expect(grupos.slice(1, 3)).toEqual(["Recentes", "Rostos"]);
+    expect(screen.getByRole("group", { name: "Recentes" })).toHaveTextContent("👍");
+    expect(screen.queryByRole("group", { name: "Rostos" })).not.toBeInTheDocument();
+    await usuario.click(screen.getByRole("button", { name: "Ver todos os emojis" }));
+    expect(aoExpandir).toHaveBeenCalled();
+
+    rerender(<CompositorDeMensagem {...BASE} seletor={{ ...seletor, completo: true }} />);
+    expect(screen.getByRole("group", { name: "Rostos" })).toBeInTheDocument();
   });
 
   it("fechado, não mostra os emojis", () => {

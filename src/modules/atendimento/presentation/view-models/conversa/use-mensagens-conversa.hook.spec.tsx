@@ -50,18 +50,18 @@ describe("useMensagensConversa — reação (#84)", () => {
   it("abre o seletor de uma Mensagem por vez e alterna ao repetir", () => {
     const { result } = renderizar();
 
-    act(() => result.current.reacao.aoAlternar("m1"));
+    act(() => result.current.reacao.aoAlternar("m1", new DOMRect(0, 0, 28, 28)));
     expect(result.current.reacao.abertaId).toBe("m1");
-    act(() => result.current.reacao.aoAlternar("m2"));
+    act(() => result.current.reacao.aoAlternar("m2", new DOMRect(0, 0, 28, 28)));
     expect(result.current.reacao.abertaId).toBe("m2");
-    act(() => result.current.reacao.aoAlternar("m2"));
+    act(() => result.current.reacao.aoAlternar("m2", new DOMRect(0, 0, 28, 28)));
     expect(result.current.reacao.abertaId).toBeNull();
   });
 
   it("escolher o emoji reage à Mensagem e fecha o seletor", async () => {
     reagir.mockResolvedValue({ ok: true, data: undefined });
     const { result } = renderizar();
-    act(() => result.current.reacao.aoAlternar("m1"));
+    act(() => result.current.reacao.aoAlternar("m1", new DOMRect(0, 0, 28, 28)));
 
     act(() => result.current.reacao.aoEscolher("m1", "👍"));
 

@@ -17,11 +17,15 @@ type MensagemView = {
 type ReacaoProps = {
   ativa: boolean;
   abertaId: string | null;
+  estilo?: React.CSSProperties;
+  completo: boolean;
+  recentes: string[];
   painelId: string;
   raizRef: React.Ref<HTMLDivElement>;
   botaoRef: React.Ref<HTMLButtonElement>;
   erro?: string;
-  aoAlternar: (mensagemId: string) => void;
+  aoAlternar: (mensagemId: string, botao: DOMRect) => void;
+  aoExpandir: () => void;
   aoEscolher: (mensagemId: string, emoji: string) => void;
 };
 
@@ -50,11 +54,16 @@ export function ListaDeMensagens({ mensagens, reacao }: ListaDeMensagensProps) {
                     compacto
                     rotulo={`Reagir à mensagem de ${mensagem.autor}`}
                     aberto={aberto}
-                    recentes={[]}
+                    recentes={reacao.recentes}
+                    completo={reacao.completo}
+                    onExpandir={reacao.aoExpandir}
+                    estilo={aberto ? reacao.estilo : undefined}
                     painelId={reacao.painelId}
                     raizRef={aberto ? reacao.raizRef : null}
                     botaoRef={aberto ? reacao.botaoRef : null}
-                    onAlternar={() => reacao.aoAlternar(id)}
+                    onAlternar={(evento) =>
+                      reacao.aoAlternar(id, evento.currentTarget.getBoundingClientRect())
+                    }
                     onEscolher={(emoji) => reacao.aoEscolher(id, emoji)}
                   />
                 ) : undefined

@@ -1,4 +1,4 @@
-import { Smile } from "lucide-react";
+import { Plus, Smile } from "lucide-react";
 
 import { Button } from "@/presentation/components/ui/button";
 import { cn } from "@/presentation/lib/utils";
@@ -70,11 +70,37 @@ const CATEGORIAS: { nome: string; emojis: [emoji: string, nome: string][] }[] = 
 
 const NOMES = new Map(CATEGORIAS.flatMap((categoria) => categoria.emojis));
 
+function BotaoDeEmoji({
+  emoji,
+  nome,
+  onEscolher,
+}: {
+  emoji: string;
+  nome: string;
+  onEscolher: (emoji: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={nome}
+      className="flex size-10 shrink-0 items-center justify-center rounded-md text-xl outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+      onClick={() => onEscolher(emoji)}
+    >
+      {emoji}
+    </button>
+  );
+}
+
 type SeletorDeEmojiProps = {
   aberto: boolean;
   // Últimos escolhidos, do mais novo ao mais antigo.
   recentes: string[];
-  onAlternar: () => void;
+  // Com recentes, o seletor mostra só a linha deles até `completo` (via "ver todos").
+  completo: boolean;
+  onExpandir: () => void;
+  onAlternar: (evento: React.MouseEvent<HTMLButtonElement>) => void;
+  // Posição `fixed` do painel (reação em balão, fora do corte do rolador).
+  estilo?: React.CSSProperties;
   onEscolher: (emoji: string) => void;
   painelId: string;
   raizRef: React.Ref<HTMLDivElement>;
@@ -88,6 +114,9 @@ type SeletorDeEmojiProps = {
 export function SeletorDeEmoji({
   aberto,
   recentes,
+  completo,
+  onExpandir,
+  estilo,
   onAlternar,
   onEscolher,
   painelId,
@@ -97,17 +126,6 @@ export function SeletorDeEmoji({
   rotulo = "Inserir emoji",
   compacto = false,
 }: SeletorDeEmojiProps) {
-  const grupos = [
-    ...(recentes.length
-      ? [
-          {
-            nome: "Recentes",
-            emojis: recentes.map((e): [string, string] => [e, NOMES.get(e) ?? e]),
-          },
-        ]
-      : []),
-    ...CATEGORIAS,
-  ];
   return (
     <div ref={raizRef} className="relative">
       <Button
@@ -129,29 +147,47 @@ export function SeletorDeEmoji({
           id={painelId}
           role="group"
           aria-label={compacto ? "Emojis da reação" : "Emojis"}
+          style={estilo}
           className={cn(
-            "absolute left-0 z-10 max-h-64 w-72 space-y-2 overflow-y-auto rounded-xl border border-input bg-background p-2 shadow-md",
-            compacto ? "top-full mt-1" : "bottom-full mb-2",
+            "z-20 max-h-64 w-72 space-y-2 overflow-y-auto rounded-xl border border-input bg-background p-2 shadow-md",
+            estilo
+              ? "fixed"
+              : cn("absolute left-0", compacto ? "top-full mt-1" : "bottom-full mb-2"),
           )}
         >
-          {grupos.map((categoria) => (
-            <div key={categoria.nome} role="group" aria-label={categoria.nome}>
-              <p className="px-1 text-xs text-muted-foreground">{categoria.nome}</p>
-              <div className="flex flex-wrap">
-                {categoria.emojis.map(([emoji, nome]) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    aria-label={nome}
-                    className="flex size-10 items-center justify-center rounded-md text-xl outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
-                    onClick={() => onEscolher(emoji)}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
+          {recentes.length > 0 && (
+            <div role="group" aria-label="Recentes" className="flex flex-nowrap items-center">
+              {recentes.map((emoji) => (
+                <BotaoDeEmoji
+                  key={emoji}
+                  emoji={emoji}
+                  nome={NOMES.get(emoji) ?? emoji}
+                  onEscolher={onEscolher}
+                />
+              ))}
+              {!completo && (
+                <button
+                  type="button"
+                  aria-label="Ver todos os emojis"
+                  className="ml-auto flex size-10 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={onExpandir}
+                >
+                  <Plus aria-hidden="true" className="size-5" />
+                </button>
+              )}
             </div>
-          ))}
+          )}
+          {(recentes.length === 0 || completo) &&
+            CATEGORIAS.map((categoria) => (
+              <div key={categoria.nome} role="group" aria-label={categoria.nome}>
+                <p className="px-1 text-xs text-muted-foreground">{categoria.nome}</p>
+                <div className="flex flex-wrap">
+                  {categoria.emojis.map(([emoji, nome]) => (
+                    <BotaoDeEmoji key={emoji} emoji={emoji} nome={nome} onEscolher={onEscolher} />
+                  ))}
+                </div>
+              </div>
+            ))}
         </div>
       )}
     </div>
