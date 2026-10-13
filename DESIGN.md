@@ -149,9 +149,14 @@ reaproveitável **composto por 2 ou mais átomos** (`campo-de-texto`,
 especialista da tela, organizando átomos e moléculas (formulários, listas,
 painéis). Template: organiza os slots da tela, sem marcação de conteúdo
 (`tela-de-trabalho`, `entrada`, `conversa`). Page: só renderiza o template com os
-slots preenchidos. Texto novo usa `atoms/texto` (papéis `destaque`, `corpo`,
-`apoio`, `alerta`, `rotulo`, `nota`, `titulo`, `tela`, `secao`) em vez de `<p>`
-com classes.
+slots preenchidos. **Nenhum elemento HTML cru fora de `atoms/` e `ui/`** (lint): o
+contêiner é `Caixa` (`como="section"|"ul"|"li"|"form"…`), o ritmo vertical é
+`Pilha espaco={1|2|3|4|6|8|"campo"|"formulario"}`, e o texto é `Texto` com um
+papel: `destaque`, `corpo`, `apoio`, `alerta`, `rotulo`, `nota`, `titulo`,
+`subtitulo`, `tela`, `subtela`, `marca`, `secao`, `rotuloDeSecao`, `enfase`,
+`codigo`, `somenteLeitor`, `ocultoNoCelular`. Trecho que só agrupa ou quebra
+linha é `Caixa`, não `Texto`. Cabeçalho e navegação da aplicação ficam fora do
+`<main>` (landmarks de topo).
 
 `password-input` e `theme-toggle` ficam em `ui/` de propósito: guardam estado
 visual efêmero (mostrar/ocultar, tema) e `'use client'` é permitido ali

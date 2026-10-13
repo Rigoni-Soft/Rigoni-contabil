@@ -1,4 +1,4 @@
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Pilha } from "@/presentation/components/atoms/caixa.component";
 import { SecaoComDivisor } from "@/presentation/components/atoms/secao-com-divisor.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 
@@ -18,18 +18,19 @@ export function PainelDeAcoes({
   encerramento,
 }: PainelDeAcoesProps) {
   return (
-    <Caixa
+    <Pilha
+      espaco={4}
       como="aside"
       aria-label="Ações do Atendimento"
-      className="min-h-0 space-y-4 self-start overflow-y-auto rounded-xl border border-border bg-card p-3 lg:max-h-full"
+      className="min-h-0 self-start overflow-y-auto rounded-xl border border-border bg-card p-3 lg:max-h-full"
     >
       {transferidoPara ? (
-        <Caixa role="status" className="space-y-1">
+        <Pilha espaco={1} role="status">
           <Texto como="h2" variante="titulo">
             Atendimento transferido
           </Texto>
           <Texto variante="apoio">Foi para o Setor {transferidoPara}.</Texto>
-        </Caixa>
+        </Pilha>
       ) : (
         <>
           {servicos}
@@ -37,6 +38,6 @@ export function PainelDeAcoes({
           <SecaoComDivisor>{encerramento}</SecaoComDivisor>
         </>
       )}
-    </Caixa>
+    </Pilha>
   );
 }

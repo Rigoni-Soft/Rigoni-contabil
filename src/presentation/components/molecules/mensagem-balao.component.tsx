@@ -1,4 +1,5 @@
 import { Balao } from "@/presentation/components/atoms/balao.component";
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { HoraDaMensagem } from "@/presentation/components/atoms/hora-da-mensagem.component";
 import { ReacaoEmPilula } from "@/presentation/components/atoms/reacao-em-pilula.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
@@ -32,9 +33,9 @@ export function MensagemBalao({
         {autor}
       </Texto>
       {detalhe && <Texto variante="nota">{detalhe}</Texto>}
-      <Texto variante="livre" className="break-words whitespace-pre-wrap">
+      <Caixa como="p" className="break-words whitespace-pre-wrap">
         {texto}
-      </Texto>
+      </Caixa>
       {reacao && <ReacaoEmPilula emoji={reacao} />}
       <HoraDaMensagem hora={hora} sobrePrimario={lado === "atendente"} />
     </Balao>

@@ -1,4 +1,4 @@
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { Button } from "@/presentation/components/ui/button";
@@ -33,7 +33,7 @@ export function CampoResponsavel({
   desabilitado,
 }: CampoResponsavelProps) {
   return (
-    <Caixa className="space-y-1">
+    <Pilha espaco={1}>
       <Label htmlFor="responsavelId">Responsável</Label>
       {editavel ? (
         <Select id="responsavelId" disabled={desabilitado} {...select} onFocus={onAbrir}>
@@ -56,6 +56,6 @@ export function CampoResponsavel({
           </Button>
         </Caixa>
       )}
-    </Caixa>
+    </Pilha>
   );
 }

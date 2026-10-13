@@ -3,7 +3,7 @@ import { Controller, type Control, type FieldErrors, type UseFormRegister } from
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcacao.component";
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { NotaDeObrigatorio } from "@/presentation/components/atoms/nota-de-obrigatorio.component";
 import { AcoesDoFormulario } from "@/presentation/components/molecules/acoes-do-formulario.component";
@@ -114,26 +114,27 @@ export function EditarCadastroOperacionalForm({
   onCancelar,
 }: EditarCadastroOperacionalFormProps) {
   return (
-    <Caixa
+    <Pilha
+      espaco={6}
       como="form"
       onSubmit={onSubmit}
-      className="rc-guilloche-frame space-y-6 rounded-lg border border-border bg-card p-6 shadow-sm"
+      className="rc-guilloche-frame rounded-lg border border-border bg-card p-6 shadow-sm"
     >
       {!readOnly && <NotaDeObrigatorio />}
 
       <Caixa className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1.5fr]">
-        <Caixa className="space-y-1">
+        <Pilha espaco={1}>
           <Label>Empresa</Label>
           <Input value={cabecalho.empresa} disabled readOnly />
-        </Caixa>
-        <Caixa className="space-y-1">
+        </Pilha>
+        <Pilha espaco={1}>
           <Label>CNPJ</Label>
           <Input value={cabecalho.cnpj} disabled readOnly />
-        </Caixa>
-        <Caixa className="space-y-1">
+        </Pilha>
+        <Pilha espaco={1}>
           <Label>Regime</Label>
           <Input value={REGIME_LABEL[cabecalho.regime] ?? cabecalho.regime} disabled readOnly />
-        </Caixa>
+        </Pilha>
         <CampoResponsavel
           editavel={responsavel.editavel}
           nomeAtual={responsavel.nomeAtual}
@@ -183,7 +184,7 @@ export function EditarCadastroOperacionalForm({
           {...register("dataEnvioDas")}
         />
 
-        <Caixa className="space-y-1">
+        <Pilha espaco={1}>
           <CaixaDeMarcacao rotulo="Tem parcelamento" {...register("temParcelamento")} />
           {temParcelamento && (
             <CampoDeOpcoes
@@ -195,18 +196,18 @@ export function EditarCadastroOperacionalForm({
               {...register("parcelamentoStatus")}
             />
           )}
-        </Caixa>
+        </Pilha>
 
-        <Caixa className="space-y-1">
+        <Pilha espaco={1}>
           <Label>Atividade do mês</Label>
           <Caixa className="flex gap-4 text-sm">
             <CaixaDeMarcacao rotulo="Indústria" {...register("atividadeMes.industria")} />
             <CaixaDeMarcacao rotulo="Comércio" {...register("atividadeMes.comercio")} />
             <CaixaDeMarcacao rotulo="Serviço" {...register("atividadeMes.servico")} />
           </Caixa>
-        </Caixa>
+        </Pilha>
 
-        <Caixa className="space-y-3 sm:col-span-2">
+        <Pilha espaco={3} className="sm:col-span-2">
           <Label className="block">Contatos</Label>
           {contatos.map((campo, indice) => (
             <Controller
@@ -239,12 +240,12 @@ export function EditarCadastroOperacionalForm({
             <Plus className="size-4" aria-hidden="true" />
             Adicionar contato
           </Button>
-        </Caixa>
+        </Pilha>
 
-        <Caixa className="space-y-1 sm:col-span-2">
+        <Pilha espaco={1} className="sm:col-span-2">
           <Label htmlFor="observacoesGerais">Observações gerais</Label>
           <Textarea id="observacoesGerais" {...register("observacoesGerais")} rows={4} />
-        </Caixa>
+        </Pilha>
 
         {!readOnly && (
           <AcoesDoFormulario pendente={pendente} onLimpar={onLimpar} onCancelar={onCancelar} />
@@ -253,6 +254,6 @@ export function EditarCadastroOperacionalForm({
 
       {erroServidor && <FieldError>{erroServidor}</FieldError>}
       {sucesso && <AvisoDeStatus tipo="sucesso" texto="Cadastro operacional atualizado." />}
-    </Caixa>
+    </Pilha>
   );
 }

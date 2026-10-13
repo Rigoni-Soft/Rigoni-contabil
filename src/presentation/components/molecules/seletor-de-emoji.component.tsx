@@ -100,7 +100,7 @@ export function SeletorDeEmoji({
           {(recentes.length === 0 || completo) &&
             CATEGORIAS_DE_EMOJI.map((categoria) => (
               <Caixa key={categoria.nome} role="group" aria-label={categoria.nome}>
-                <Texto variante="livre" className="px-1 text-xs text-muted-foreground">
+                <Texto variante="nota" className="px-1">
                   {categoria.nome}
                 </Texto>
                 <Caixa className="flex flex-wrap">

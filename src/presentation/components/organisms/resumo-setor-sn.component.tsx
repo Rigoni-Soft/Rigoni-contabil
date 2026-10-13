@@ -1,4 +1,4 @@
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CartaoDeResumo } from "@/presentation/components/molecules/cartao-de-resumo.component";
 
@@ -24,14 +24,15 @@ function Grupo({
       </Texto>
       <Caixa como="ul" className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {cards.map((card) => (
-          <CartaoDeResumo
-            key={card.id}
-            href={`/clientes/resumo/${card.id}`}
-            titulo={card.titulo}
-            cor={card.cor}
-            quantidade={card.quantidade}
-            totalClientes={totalClientes}
-          />
+          <Caixa como="li" key={card.id}>
+            <CartaoDeResumo
+              href={`/clientes/resumo/${card.id}`}
+              titulo={card.titulo}
+              cor={card.cor}
+              quantidade={card.quantidade}
+              totalClientes={totalClientes}
+            />
+          </Caixa>
         ))}
       </Caixa>
     </Caixa>
@@ -45,7 +46,7 @@ function Grupo({
 // estado), essa view global não pode importá-lo direto (arquitetura.md §3.4).
 export function ResumoSetorSn({ cards, totalClientes, busca }: Props) {
   return (
-    <Caixa como="section" className="space-y-6">
+    <Pilha espaco={6} como="section">
       <Texto como="h1" variante="tela">
         Resumo do setor
       </Texto>
@@ -58,6 +59,6 @@ export function ResumoSetorSn({ cards, totalClientes, busca }: Props) {
       )}
       <Grupo titulo="Documentos e DAS" cards={cards.slice(0, 5)} totalClientes={totalClientes} />
       <Grupo titulo="Parcelamento" cards={cards.slice(5, 9)} totalClientes={totalClientes} />
-    </Caixa>
+    </Pilha>
   );
 }

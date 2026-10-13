@@ -1,6 +1,6 @@
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { Button } from "@/presentation/components/ui/button";
@@ -40,7 +40,7 @@ export function AuditoriaFeedFiltro({
       noValidate
     >
       <Caixa className="grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-4">
-        <Caixa className="flex flex-col gap-1.5">
+        <Pilha espaco="campo">
           <Label htmlFor="dataInicio">De</Label>
           <Input
             id="dataInicio"
@@ -49,9 +49,9 @@ export function AuditoriaFeedFiltro({
             {...register("dataInicio")}
           />
           {errors.dataInicio && <FieldError>{errors.dataInicio.message}</FieldError>}
-        </Caixa>
+        </Pilha>
 
-        <Caixa className="flex flex-col gap-1.5">
+        <Pilha espaco="campo">
           <Label htmlFor="dataFim">Até</Label>
           <Input
             id="dataFim"
@@ -60,9 +60,9 @@ export function AuditoriaFeedFiltro({
             {...register("dataFim")}
           />
           {errors.dataFim && <FieldError>{errors.dataFim.message}</FieldError>}
-        </Caixa>
+        </Pilha>
 
-        <Caixa className="flex flex-col gap-1.5">
+        <Pilha espaco="campo">
           <Label htmlFor="setor">Setor</Label>
           <Select id="setor" {...register("setor")}>
             <Opcao value="">Todos</Opcao>
@@ -72,9 +72,9 @@ export function AuditoriaFeedFiltro({
               </Opcao>
             ))}
           </Select>
-        </Caixa>
+        </Pilha>
 
-        <Caixa className="flex flex-col gap-1.5">
+        <Pilha espaco="campo">
           <Label htmlFor="resultado">Resultado</Label>
           <Select id="resultado" {...register("resultado")}>
             <Opcao value="">Todos</Opcao>
@@ -82,9 +82,9 @@ export function AuditoriaFeedFiltro({
             <Opcao value="falha">falha</Opcao>
             <Opcao value="falha_compensacao">falha_compensacao</Opcao>
           </Select>
-        </Caixa>
+        </Pilha>
 
-        <Caixa className="flex flex-col gap-1.5">
+        <Pilha espaco="campo">
           <Label htmlFor="ator">Ator</Label>
           <Input
             id="ator"
@@ -93,17 +93,17 @@ export function AuditoriaFeedFiltro({
             {...register("ator")}
           />
           {errors.ator && <FieldError>{errors.ator.message}</FieldError>}
-        </Caixa>
+        </Pilha>
 
-        <Caixa className="flex flex-col gap-1.5">
+        <Pilha espaco="campo">
           <Label htmlFor="acao">Ação</Label>
           <Input id="acao" placeholder="ex.: usuario.criar" {...register("acao")} />
-        </Caixa>
+        </Pilha>
 
-        <Caixa className="flex flex-col gap-1.5">
+        <Pilha espaco="campo">
           <Label htmlFor="alvo">Alvo</Label>
           <Input id="alvo" placeholder="busca parcial" {...register("alvo")} />
-        </Caixa>
+        </Pilha>
       </Caixa>
 
       <Caixa className="mt-4 flex justify-end gap-2 border-t border-border pt-4">

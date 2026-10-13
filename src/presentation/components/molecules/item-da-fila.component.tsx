@@ -25,10 +25,7 @@ export function ItemDaFila({
   espera,
 }: ItemDaFilaProps) {
   return (
-    <Caixa
-      como="li"
-      className="flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3"
-    >
+    <Caixa className="flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3">
       <NumeroEmCirculo valor={posicao} prefixo="Posição" />
       <Caixa className="min-w-0 flex-1">
         <Texto variante="destaque" className="break-words">
@@ -39,9 +36,9 @@ export function ItemDaFila({
           {cnpj && (
             <>
               {" · "}
-              <Texto variante="livre" como="span" className="whitespace-nowrap">
+              <Caixa como="span" className="whitespace-nowrap">
                 {cnpj}
-              </Texto>
+              </Caixa>
             </>
           )}
         </Texto>

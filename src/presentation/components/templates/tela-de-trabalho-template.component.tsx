@@ -29,10 +29,11 @@ export function TelaDeTrabalhoTemplate({
   conteudo,
 }: TelaDeTrabalhoTemplateProps) {
   return (
-    <Caixa como="main" className="min-h-dvh bg-background">
+    <Caixa className="min-h-dvh bg-background">
+      {/* Cabeçalho e navegação da aplicação ficam fora do <main>: são landmarks de topo. */}
       {header}
       {nav}
-      <Caixa className={cn("mx-auto px-4 py-8 sm:px-6", LARGURA[largura])}>
+      <Caixa como="main" className={cn("mx-auto px-4 py-8 sm:px-6", LARGURA[largura])}>
         {cabecalho}
         {conteudo}
       </Caixa>

@@ -14,11 +14,7 @@ export function LogoutButton({ formAction, pendente, erro }: LogoutButtonProps) 
   return (
     <Caixa como="form" action={formAction} className="flex items-center gap-2">
       {erro && (
-        <Texto
-          variante="livre"
-          role="alert"
-          className="flex items-center gap-1 text-sm text-destructive"
-        >
+        <Texto variante="alerta" role="alert" className="flex items-center gap-1">
           <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
           {erro}
         </Texto>

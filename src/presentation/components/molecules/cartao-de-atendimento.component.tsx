@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { IconeDeConversa } from "@/presentation/components/atoms/icone-de-conversa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { cn } from "@/presentation/lib/utils";
@@ -28,11 +29,11 @@ export function CartaoDeAtendimento({
       className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 shadow-md hover:bg-accent motion-safe:animate-dock-entrada"
     >
       <IconeDeConversa aguardando={aguardando} />
-      <Texto variante="livre" como="span" className="min-w-0">
+      <Caixa como="span" className="min-w-0">
         <Texto como="span" variante="destaque" className="block truncate">
           {titulo}
           {aguardando && (
-            <Texto variante="livre" como="span" className="sr-only">
+            <Texto variante="somenteLeitor" como="span">
               {" "}
               — nova mensagem
             </Texto>
@@ -50,7 +51,7 @@ export function CartaoDeAtendimento({
             {previa}
           </Texto>
         )}
-      </Texto>
+      </Caixa>
     </Link>
   );
 }

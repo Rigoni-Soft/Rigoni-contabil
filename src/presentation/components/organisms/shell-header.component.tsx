@@ -34,19 +34,18 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
       className="flex items-center justify-between gap-4 border-b border-border bg-card px-4 py-3 sm:px-6"
     >
       <Caixa className="flex min-w-0 items-center gap-3">
-        <Texto
-          variante="livre"
+        <Caixa
           como="span"
           aria-hidden="true"
           className="hidden size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground sm:flex"
         >
           {inicial}
-        </Texto>
+        </Caixa>
         <Caixa className="min-w-0">
-          <Texto variante="livre" className="font-medium break-words text-foreground sm:truncate">
+          <Texto variante="destaque" className="break-words sm:truncate">
             {nome}
           </Texto>
-          <Texto variante="livre" className="text-sm break-words text-muted-foreground sm:truncate">
+          <Texto variante="apoio" className="break-words sm:truncate">
             {PAPEL_LABEL[papel] ?? papel} · {escopo}
           </Texto>
         </Caixa>
@@ -63,7 +62,7 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
             className={buttonVariants({ variant: "ghost" })}
           >
             <UserPlus aria-hidden="true" />
-            <Texto variante="livre" como="span" className="hidden sm:inline">
+            <Texto variante="ocultoNoCelular" como="span">
               {rotuloCadastrar}
             </Texto>
           </Link>
@@ -78,7 +77,7 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
             className={buttonVariants({ variant: "ghost", size: "sm" })}
           >
             <Building2 aria-hidden="true" />
-            <Texto variante="livre" como="span" className="hidden sm:inline">
+            <Texto variante="ocultoNoCelular" como="span">
               Cadastrar Cliente
             </Texto>
           </Link>
@@ -90,7 +89,7 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
             className={buttonVariants({ variant: "ghost" })}
           >
             <Users aria-hidden="true" />
-            <Texto variante="livre" como="span" className="hidden sm:inline">
+            <Texto variante="ocultoNoCelular" como="span">
               Usuários
             </Texto>
           </Link>
@@ -100,7 +99,7 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
         {papel === "admin" && (
           <Link href="/fila" aria-label="Fila" className={buttonVariants({ variant: "ghost" })}>
             <ListOrdered aria-hidden="true" />
-            <Texto variante="livre" como="span" className="hidden sm:inline">
+            <Texto variante="ocultoNoCelular" como="span">
               Fila
             </Texto>
           </Link>
@@ -113,7 +112,7 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
             className={buttonVariants({ variant: "ghost" })}
           >
             <CalendarOff aria-hidden="true" />
-            <Texto variante="livre" como="span" className="hidden sm:inline">
+            <Texto variante="ocultoNoCelular" como="span">
               Feriados
             </Texto>
           </Link>
@@ -126,7 +125,7 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
           className={buttonVariants({ variant: "ghost" })}
         >
           <CircleUser aria-hidden="true" />
-          <Texto variante="livre" como="span" className="hidden sm:inline">
+          <Texto variante="ocultoNoCelular" como="span">
             Meu perfil
           </Texto>
         </Link>

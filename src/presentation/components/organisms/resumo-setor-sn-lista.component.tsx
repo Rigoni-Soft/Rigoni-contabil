@@ -1,3 +1,4 @@
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { ListaComDivisores } from "@/presentation/components/atoms/lista-com-divisores.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { LinhaDeCliente } from "@/presentation/components/molecules/linha-de-cliente.component";
@@ -19,12 +20,13 @@ export function ResumoSetorSnLista({ clientes, bucket }: Props) {
   return (
     <ListaComDivisores>
       {clientes.map((cliente) => (
-        <LinhaDeCliente
-          key={cliente.clienteId}
-          href={`/clientes/${cliente.clienteId}?voltarPara=/clientes/resumo/${bucket}`}
-          empresa={cliente.empresa}
-          cnpj={formatarCnpj(cliente.cnpj)}
-        />
+        <Caixa como="li" key={cliente.clienteId}>
+          <LinhaDeCliente
+            href={`/clientes/${cliente.clienteId}?voltarPara=/clientes/resumo/${bucket}`}
+            empresa={cliente.empresa}
+            cnpj={formatarCnpj(cliente.cnpj)}
+          />
+        </Caixa>
       ))}
     </ListaComDivisores>
   );

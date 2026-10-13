@@ -2,6 +2,7 @@ import { BotaoDeLink } from "@/presentation/components/atoms/botao-de-link.compo
 import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
+import { cn } from "@/presentation/lib/utils";
 
 type CabecalhoDaConversaProps = {
   titulo: string;
@@ -28,21 +29,19 @@ export function CabecalhoDaConversa({
 }: CabecalhoDaConversaProps) {
   return (
     <Caixa como="header" className="shrink-0">
-      <Texto variante="livre" como="h1" className="text-lg font-bold tracking-tight text-primary">
+      <Texto variante="subtela" como="h1">
         {titulo}
       </Texto>
-      <Texto variante="livre" className="text-sm text-muted-foreground">
-        {subtitulo}
-      </Texto>
+      <Texto variante="apoio">{subtitulo}</Texto>
       {contexto && (
         <Caixa como="section" aria-label="Contexto do Atendimento" className="mt-1 text-sm">
-          <Texto variante="livre" className="font-medium text-muted-foreground">
+          <Texto variante="apoio" className="font-medium">
             {contexto.origem}
           </Texto>
           <Texto
-            variante="livre"
+            variante="titulo"
             id="resumo-do-contexto"
-            className={`font-semibold break-words text-foreground ${resumoLongo && !resumoAberto ? "line-clamp-3" : ""}`}
+            className={cn("break-words", resumoLongo && !resumoAberto && "line-clamp-3")}
           >
             {contexto.resumo}
           </Texto>
@@ -64,7 +63,7 @@ export function CabecalhoDaConversa({
         </FieldError>
       )}
       {encerrado && (
-        <Texto variante="livre" className="mt-1 text-sm font-medium text-muted-foreground">
+        <Texto variante="apoio" className="mt-1 font-medium">
           Atendimento encerrado.
         </Texto>
       )}

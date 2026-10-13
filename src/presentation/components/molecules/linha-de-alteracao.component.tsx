@@ -1,6 +1,6 @@
 import { Trash2 } from "lucide-react";
 
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Button } from "@/presentation/components/ui/button";
@@ -33,9 +33,9 @@ export function LinhaDeAlteracao({
     <Caixa className="flex flex-col gap-2 rounded-md border border-border p-3">
       <Caixa className="flex items-center justify-between gap-2">
         <Texto
-          variante="livre"
+          variante="corpo"
           como="span"
-          className="text-sm font-medium text-foreground"
+          className="font-medium"
         >{`Alteração ${indice + 1}`}</Texto>
         <Button
           type="button"
@@ -49,17 +49,17 @@ export function LinhaDeAlteracao({
       </Caixa>
 
       <Caixa className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Caixa className="flex flex-col gap-1.5">
+        <Pilha espaco="campo">
           <Label htmlFor={idData}>{`Data da alteração ${indice + 1}`}</Label>
           <Input id={idData} type="date" aria-invalid={!!erroData} {...data} />
           {erroData && <FieldError>{erroData}</FieldError>}
-        </Caixa>
+        </Pilha>
 
-        <Caixa className="flex flex-col gap-1.5">
+        <Pilha espaco="campo">
           <Label htmlFor={idArquivo}>{`Arquivo da alteração ${indice + 1}`}</Label>
           {campoArquivo(idArquivo)}
           {erroArquivo && <FieldError>{erroArquivo}</FieldError>}
-        </Caixa>
+        </Pilha>
       </Caixa>
     </Caixa>
   );

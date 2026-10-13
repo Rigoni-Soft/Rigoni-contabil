@@ -25,7 +25,7 @@ describe("ConversaTemplate", () => {
   it("em tela larga a página não rola; com ações abre a segunda coluna", () => {
     render(<ConversaTemplate {...SLOTS} acoes={<aside>ações</aside>} />);
 
-    expect(screen.getByRole("main")).toHaveClass("lg:h-dvh", "lg:overflow-hidden");
+    expect(screen.getByRole("main").parentElement).toHaveClass("lg:h-dvh", "lg:overflow-hidden");
     expect(screen.getByRole("region", { name: "Atendimento" }).className).toContain(
       "lg:grid-cols-",
     );

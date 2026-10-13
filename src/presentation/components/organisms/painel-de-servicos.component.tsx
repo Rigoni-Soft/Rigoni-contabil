@@ -1,7 +1,7 @@
 import { FileText } from "lucide-react";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { TituloDoGrupo } from "@/presentation/components/atoms/titulo-de-grupo.component";
@@ -31,12 +31,10 @@ export function PainelDeServicos({
   const alteracoes = servicos.filter((servico) => servico.grupo === "alteracao");
 
   return (
-    <Caixa className="space-y-2">
+    <Pilha espaco={2}>
       <TituloDoGrupo>Serviços do cliente</TituloDoGrupo>
       {semCliente ? (
-        <Texto variante="livre" className="text-xs text-muted-foreground">
-          Sem Cliente vinculado a este número.
-        </Texto>
+        <Texto variante="nota">Sem Cliente vinculado a este número.</Texto>
       ) : (
         <>
           <Caixa className="grid grid-cols-2 gap-2">
@@ -65,14 +63,8 @@ export function PainelDeServicos({
               </Button>
             ))}
           </Caixa>
-          <Texto variante="livre" className="text-xs text-muted-foreground">
-            Guias e CND: em construção.
-          </Texto>
-          {!contrato && (
-            <Texto variante="livre" className="text-xs text-muted-foreground">
-              Contrato social não cadastrado.
-            </Texto>
-          )}
+          <Texto variante="nota">Guias e CND: em construção.</Texto>
+          {!contrato && <Texto variante="nota">Contrato social não cadastrado.</Texto>}
           <Caixa
             como="form"
             className="flex items-end gap-2"
@@ -111,11 +103,11 @@ export function PainelDeServicos({
         </>
       )}
       {enviando && (
-        <Texto variante="livre" role="status" className="text-xs text-muted-foreground">
+        <Texto variante="nota" role="status">
           Enviando...
         </Texto>
       )}
       {aviso && <AvisoDeStatus {...aviso} />}
-    </Caixa>
+    </Pilha>
   );
 }

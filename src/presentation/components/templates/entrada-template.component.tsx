@@ -17,23 +17,17 @@ export function EntradaTemplate({ titulo, subtitulo, rodape, formulario }: Entra
     >
       <Caixa className="w-full max-w-sm">
         <Caixa className="mb-8 flex flex-col items-center gap-1 text-center">
-          <Texto
-            variante="livre"
-            como="h1"
-            className="text-2xl font-bold tracking-tight text-primary"
-          >
+          <Texto variante="marca" como="h1">
             {titulo}
           </Texto>
-          <Texto variante="livre" className="text-sm text-muted-foreground">
-            {subtitulo}
-          </Texto>
+          <Texto variante="apoio">{subtitulo}</Texto>
         </Caixa>
 
         <Caixa className="rc-guilloche-frame rounded-lg border border-border bg-card p-6 shadow-sm sm:p-8">
           {formulario}
         </Caixa>
 
-        <Texto variante="livre" className="mt-6 text-center text-xs text-muted-foreground">
+        <Texto variante="nota" className="mt-6 text-center">
           {rodape}
         </Texto>
       </Caixa>

@@ -21,11 +21,24 @@ describe("TelaDeTrabalhoTemplate", () => {
     expect(screen.getByRole("main")).toBeInTheDocument();
   });
 
-  it("a largura vem da categoria da tela", () => {
-    const { container } = render(
-      <TelaDeTrabalhoTemplate header={null} largura="formulario" conteudo="x" />,
+  it("cabeçalho e navegação da aplicação ficam fora do main", () => {
+    render(
+      <TelaDeTrabalhoTemplate
+        header={<header>topo</header>}
+        nav={<nav>abas</nav>}
+        largura="lista"
+        conteudo="x"
+      />,
     );
 
-    expect(container.querySelector("main > div")).toHaveClass("w-[80%]");
+    const main = screen.getByRole("main");
+    expect(main).not.toContainElement(screen.getByText("topo"));
+    expect(main).not.toContainElement(screen.getByText("abas"));
+  });
+
+  it("a largura vem da categoria da tela", () => {
+    render(<TelaDeTrabalhoTemplate header={null} largura="formulario" conteudo="x" />);
+
+    expect(screen.getByRole("main")).toHaveClass("w-[80%]");
   });
 });

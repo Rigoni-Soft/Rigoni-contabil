@@ -1,4 +1,4 @@
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Button } from "@/presentation/components/ui/button";
 
@@ -18,14 +18,14 @@ export function PainelDoCliente({
   children,
 }: PainelDoClienteProps) {
   return (
-    <Caixa como="section" className="space-y-3">
+    <Pilha espaco={3} como="section">
       <Caixa className="flex items-center justify-between gap-4">
         <Texto
           como="h2"
-          variante="livre"
+          variante="subtitulo"
           ref={tituloRef}
           tabIndex={-1}
-          className="rounded text-lg font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="rounded outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {titulo}
         </Texto>
@@ -34,6 +34,6 @@ export function PainelDoCliente({
         </Button>
       </Caixa>
       {children}
-    </Caixa>
+    </Pilha>
   );
 }

@@ -1,4 +1,4 @@
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoSelect } from "@/presentation/components/molecules/campo-select.component";
@@ -34,7 +34,7 @@ export function FilaDoSetor({
 }: FilaDoSetorProps) {
   const Titulo = nivelDoTitulo === 1 ? "h1" : "h2";
   return (
-    <Caixa como="section" aria-label="Fila do Setor" className="space-y-4">
+    <Pilha espaco={4} como="section" aria-label="Fila do Setor">
       <Titulo className="text-lg font-bold tracking-tight text-primary">{titulo}</Titulo>
       {escolhaDeSetor && (
         <Caixa className="max-w-xs">
@@ -53,25 +53,25 @@ export function FilaDoSetor({
         </Caixa>
       )}
       {indisponivel && (
-        <Texto variante="livre" role="alert" className="text-sm text-destructive">
+        <Texto variante="alerta" role="alert">
           Não foi possível atualizar a Fila agora. Tentando de novo.
         </Texto>
       )}
       {carregando ? (
-        <Texto variante="livre" role="status" className="text-sm text-muted-foreground">
+        <Texto variante="apoio" role="status">
           Carregando a Fila…
         </Texto>
       ) : itens.length === 0 ? (
-        <Texto variante="livre" className="text-sm text-muted-foreground">
-          Nenhum cliente na Fila.
-        </Texto>
+        <Texto variante="apoio">Nenhum cliente na Fila.</Texto>
       ) : (
-        <Caixa como="ol" className="space-y-2">
+        <Pilha espaco={2} como="ol">
           {itens.map(({ id, ...item }) => (
-            <ItemDaFila key={id} {...item} />
+            <Caixa como="li" key={id}>
+              <ItemDaFila {...item} />
+            </Caixa>
           ))}
-        </Caixa>
+        </Pilha>
       )}
-    </Caixa>
+    </Pilha>
   );
 }

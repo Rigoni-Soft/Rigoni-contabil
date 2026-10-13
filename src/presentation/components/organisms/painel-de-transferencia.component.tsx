@@ -1,5 +1,5 @@
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { TituloDoGrupo } from "@/presentation/components/atoms/titulo-de-grupo.component";
 import { CampoSelect } from "@/presentation/components/molecules/campo-select.component";
@@ -20,9 +20,9 @@ export function PainelDeTransferencia({
   aviso,
 }: PainelDeTransferenciaProps) {
   return (
-    <Caixa
+    <Pilha
+      espaco={2}
       como="form"
-      className="space-y-2"
       onSubmit={(evento) => {
         evento.preventDefault();
         const dados = new FormData(evento.currentTarget);
@@ -62,6 +62,6 @@ export function PainelDeTransferencia({
         className="min-h-16 resize-none"
       />
       {aviso && <AvisoDeStatus {...aviso} />}
-    </Caixa>
+    </Pilha>
   );
 }

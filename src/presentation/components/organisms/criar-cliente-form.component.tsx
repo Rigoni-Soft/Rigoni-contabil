@@ -2,7 +2,7 @@ import { Plus } from "lucide-react";
 import { Controller, type Control, type FieldErrors, type UseFormRegister } from "react-hook-form";
 
 import { BotaoDeEnvio } from "@/presentation/components/atoms/botao-de-envio.component";
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { FileInput } from "@/presentation/components/atoms/file-input.component";
 import { NotaDeObrigatorio } from "@/presentation/components/atoms/nota-de-obrigatorio.component";
@@ -86,7 +86,7 @@ export function CriarClienteForm({
         mensagem={
           <>
             Cliente{" "}
-            <Texto variante="livre" como="strong">
+            <Texto variante="enfase" como="strong">
               {criado.empresa}
             </Texto>{" "}
             (CNPJ {criado.cnpj}) cadastrado.
@@ -97,7 +97,7 @@ export function CriarClienteForm({
   }
 
   return (
-    <Caixa como="form" onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
+    <Pilha espaco="formulario" como="form" onSubmit={onSubmit} noValidate>
       <NotaDeObrigatorio />
 
       {/* CNPJ primeiro (ponto 4 do feedback manual): autopreenche Empresa/Regime
@@ -151,12 +151,8 @@ export function CriarClienteForm({
 
       {/* Seção de documentos separada da identificação do Cliente — mais espaço
           acima do heading que abaixo, mesma cadência de arquitetura.md/DESIGN.md. */}
-      <Caixa className="mt-2 flex flex-col gap-5 border-t border-border pt-6">
-        <Texto
-          variante="livre"
-          como="h2"
-          className="text-sm font-semibold tracking-wide text-muted-foreground uppercase"
-        >
+      <Pilha espaco="formulario" className="mt-2 border-t border-border pt-6">
+        <Texto variante="rotuloDeSecao" como="h2">
           Documentos
         </Texto>
 
@@ -214,11 +210,11 @@ export function CriarClienteForm({
             />
           ))}
         </Caixa>
-      </Caixa>
+      </Pilha>
 
       {erroServidor && <FieldError>{erroServidor}</FieldError>}
 
       <BotaoDeEnvio pendente={pendente} rotulo="Cadastrar" rotuloPendente="Cadastrando…" />
-    </Caixa>
+    </Pilha>
   );
 }

@@ -1,4 +1,4 @@
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Label } from "@/presentation/components/ui/label";
 import { Select } from "@/presentation/components/ui/select";
 import { cn } from "@/presentation/lib/utils";
@@ -11,13 +11,13 @@ type CampoSelectProps = React.SelectHTMLAttributes<HTMLSelectElement> & {
 // Rótulo + seletor compactos, para painéis laterais.
 export function CampoSelect({ id, rotulo, className, children, ...props }: CampoSelectProps) {
   return (
-    <Caixa className="min-w-0 flex-1 space-y-1">
+    <Pilha espaco={1} className="min-w-0 flex-1">
       <Label htmlFor={id} className="text-xs">
         {rotulo}
       </Label>
       <Select id={id} className={cn("h-10 pointer-coarse:h-11", className)} {...props}>
         {children}
       </Select>
-    </Caixa>
+    </Pilha>
   );
 }

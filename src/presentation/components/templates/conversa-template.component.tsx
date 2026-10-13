@@ -35,12 +35,10 @@ export function ConversaTemplate({
   fila,
 }: ConversaTemplateProps) {
   return (
-    <Caixa
-      como="main"
-      className="flex min-h-dvh flex-col bg-background lg:h-dvh lg:min-h-0 lg:overflow-hidden"
-    >
+    <Caixa className="flex min-h-dvh flex-col bg-background lg:h-dvh lg:min-h-0 lg:overflow-hidden">
+      {/* O cabeçalho da aplicação fica fora do <main>: é landmark de topo. */}
       {header}
-      <Caixa className="flex min-h-0 flex-1 flex-col px-4 py-3 sm:px-6 lg:px-8">
+      <Caixa como="main" className="flex min-h-0 flex-1 flex-col px-4 py-3 sm:px-6 lg:px-8">
         <Caixa className="mb-2 shrink-0">{voltar}</Caixa>
         <Caixa className="min-h-0 flex-1">
           <Caixa

@@ -11,16 +11,14 @@ type LinhaDeClienteProps = {
 // Cliente em lista: leva ao cadastro operacional dele.
 export function LinhaDeCliente({ href, empresa, cnpj }: LinhaDeClienteProps) {
   return (
-    <Caixa como="li">
-      <LinkDeLinha href={href}>
-        <Caixa>
-          <Texto variante="destaque">{empresa}</Texto>
-          <Texto variante="apoio">{cnpj}</Texto>
-        </Caixa>
-        <Texto como="span" variante="apoio">
-          Ver cadastro →
-        </Texto>
-      </LinkDeLinha>
-    </Caixa>
+    <LinkDeLinha href={href}>
+      <Caixa>
+        <Texto variante="destaque">{empresa}</Texto>
+        <Texto variante="apoio">{cnpj}</Texto>
+      </Caixa>
+      <Texto como="span" variante="apoio">
+        Ver cadastro →
+      </Texto>
+    </LinkDeLinha>
   );
 }

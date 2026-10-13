@@ -45,12 +45,7 @@ export function PerfilDaConta({ nome, email, papel, setor, formulario }: PerfilD
         aria-labelledby="trocar-senha-titulo"
         className="border-t border-border pt-8"
       >
-        <Texto
-          variante="livre"
-          como="h2"
-          id="trocar-senha-titulo"
-          className="mb-2 text-lg font-semibold text-foreground"
-        >
+        <Texto variante="subtitulo" como="h2" id="trocar-senha-titulo" className="mb-2">
           Trocar senha
         </Texto>
         <Texto variante="apoio" className="mb-6">

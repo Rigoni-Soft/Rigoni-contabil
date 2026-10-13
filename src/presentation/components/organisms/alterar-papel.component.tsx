@@ -31,11 +31,7 @@ export function AlterarPapel({ nome, papelAlvo, pendente, erro, aoAlterar }: Alt
         {promove ? "Promover" : "Rebaixar"}
       </Button>
       {erro && (
-        <Texto
-          variante="livre"
-          role="alert"
-          className="flex max-w-64 items-start gap-1 text-sm text-destructive"
-        >
+        <Texto variante="alerta" role="alert" className="flex max-w-64 items-start gap-1">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           {erro}
         </Texto>

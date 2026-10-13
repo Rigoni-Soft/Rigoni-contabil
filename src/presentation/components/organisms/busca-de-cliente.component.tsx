@@ -1,4 +1,4 @@
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
@@ -41,11 +41,11 @@ export function BuscaDeCliente({
   idOpcao,
 }: BuscaDeClienteProps) {
   return (
-    <Caixa como="section" className="space-y-3">
-      <Texto como="h2" variante="livre" className="text-lg font-semibold text-foreground">
+    <Pilha espaco={3} como="section">
+      <Texto como="h2" variante="subtitulo">
         Buscar cliente
       </Texto>
-      <Caixa className="space-y-1">
+      <Pilha espaco={1}>
         <Label htmlFor="buscar-cliente-termo">Empresa ou CNPJ</Label>
         <Input
           id="buscar-cliente-termo"
@@ -59,9 +59,9 @@ export function BuscaDeCliente({
           aria-autocomplete="list"
           aria-activedescendant={indiceAtivo !== null ? idOpcao(indiceAtivo) : undefined}
         />
-      </Caixa>
+      </Pilha>
 
-      <Texto variante="livre" className="sr-only" role="status" aria-live="polite">
+      <Texto variante="somenteLeitor" role="status" aria-live="polite">
         {anuncio(buscando, sugestoes.length)}
       </Texto>
       {buscando && <Texto variante="apoio">Buscando...</Texto>}
@@ -98,6 +98,6 @@ export function BuscaDeCliente({
           ))}
         </Caixa>
       )}
-    </Caixa>
+    </Pilha>
   );
 }

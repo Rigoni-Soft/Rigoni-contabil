@@ -1,7 +1,6 @@
 import Link from "next/link";
 
 import { AnelDeProgresso } from "@/presentation/components/atoms/anel-de-progresso.component";
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 
 // Cores do protótipo aprovado (spec #24): os valores --good/--warning/--critical do mockup batem com
@@ -31,24 +30,22 @@ export function CartaoDeResumo({
   totalClientes,
 }: CartaoDeResumoProps) {
   return (
-    <Caixa como="li">
-      <Link
-        href={href}
-        className="flex h-full flex-col items-center gap-3 rounded-xl border border-border bg-card p-4 text-center shadow-sm transition-colors hover:border-ring hover:bg-accent/50"
-      >
-        <AnelDeProgresso
-          quantidade={quantidade}
-          total={totalClientes}
-          classe={ANEL_POR_COR[cor] ?? ANEL_POR_COR.informativo}
-        />
-        <Texto variante="corpo" className="font-semibold">
-          {titulo}
-          <Texto variante="livre" como="span" className="sr-only">
-            {" "}
-            — {quantidade} de {totalClientes} clientes
-          </Texto>
+    <Link
+      href={href}
+      className="flex h-full flex-col items-center gap-3 rounded-xl border border-border bg-card p-4 text-center shadow-sm transition-colors hover:border-ring hover:bg-accent/50"
+    >
+      <AnelDeProgresso
+        quantidade={quantidade}
+        total={totalClientes}
+        classe={ANEL_POR_COR[cor] ?? ANEL_POR_COR.informativo}
+      />
+      <Texto variante="corpo" className="font-semibold">
+        {titulo}
+        <Texto variante="somenteLeitor" como="span">
+          {" "}
+          — {quantidade} de {totalClientes} clientes
         </Texto>
-      </Link>
-    </Caixa>
+      </Texto>
+    </Link>
   );
 }

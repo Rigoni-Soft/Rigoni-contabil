@@ -2,7 +2,7 @@ import { UserPlus } from "lucide-react";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 
 import { BotaoDeEnvio } from "@/presentation/components/atoms/botao-de-envio.component";
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
@@ -62,7 +62,7 @@ export function CriarUsuarioForm({
         mensagem={
           <>
             Conta de{" "}
-            <Texto variante="livre" como="strong">
+            <Texto variante="enfase" como="strong">
               {criado.nome}
             </Texto>{" "}
             ({criado.email}) criada.
@@ -70,15 +70,10 @@ export function CriarUsuarioForm({
         }
         detalhes={
           <>
-            <Texto variante="livre" className="text-sm text-muted-foreground">
+            <Texto variante="apoio">
               Senha provisória — repasse com segurança, será exigida troca no primeiro acesso:
             </Texto>
-            <Texto
-              variante="livre"
-              className="rounded-md bg-muted px-3 py-2 font-mono text-lg tracking-wider"
-            >
-              {criado.senhaProvisoria}
-            </Texto>
+            <Texto variante="codigo">{criado.senhaProvisoria}</Texto>
           </>
         }
       />
@@ -86,7 +81,7 @@ export function CriarUsuarioForm({
   }
 
   return (
-    <Caixa como="form" onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
+    <Pilha espaco="formulario" como="form" onSubmit={onSubmit} noValidate>
       {/* Nome/E-mail/Papel/Setor cabem lado a lado — 2 colunas aproveita melhor
           a largura do formulário (80% da tela, #36) do que empilhar tudo numa
           coluna só. */}
@@ -131,6 +126,6 @@ export function CriarUsuarioForm({
       {erroServidor && <FieldError>{erroServidor}</FieldError>}
 
       <BotaoDeEnvio pendente={pendente} rotulo="Cadastrar" rotuloPendente="Cadastrando…" />
-    </Caixa>
+    </Pilha>
   );
 }

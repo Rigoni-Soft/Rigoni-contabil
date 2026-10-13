@@ -1,4 +1,4 @@
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { BarrasDeFatias } from "@/presentation/components/molecules/barras-de-fatias.component";
 import { DonutDeFatias } from "@/presentation/components/molecules/donut-de-fatias.component";
@@ -13,13 +13,8 @@ type Props = {
 
 export function ComparativosSn({ comparativos, responsaveis, totalClientes }: Props) {
   return (
-    <Caixa como="section" aria-labelledby="comparativos-titulo" className="space-y-4">
-      <Texto
-        variante="livre"
-        como="h2"
-        id="comparativos-titulo"
-        className="text-lg font-semibold text-foreground"
-      >
+    <Pilha espaco={4} como="section" aria-labelledby="comparativos-titulo">
+      <Texto variante="subtitulo" como="h2" id="comparativos-titulo">
         Comparativos
       </Texto>
       <Caixa
@@ -45,6 +40,6 @@ export function ComparativosSn({ comparativos, responsaveis, totalClientes }: Pr
           />
         )}
       </Caixa>
-    </Caixa>
+    </Pilha>
   );
 }

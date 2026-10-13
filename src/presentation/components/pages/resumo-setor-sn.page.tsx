@@ -1,5 +1,5 @@
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Pilha } from "@/presentation/components/atoms/caixa.component";
 import { TelaDeTrabalhoTemplate } from "@/presentation/components/templates/tela-de-trabalho-template.component";
 
 type ResumoSetorSnPageProps = {
@@ -27,10 +27,10 @@ export function ResumoSetorSnPage({
         erro ? (
           <AvisoDeStatus tipo="erro" texto={erro} />
         ) : (
-          <Caixa className="space-y-8">
+          <Pilha espaco={8}>
             {resumo}
             {comparativos}
-          </Caixa>
+          </Pilha>
         )
       }
     />
