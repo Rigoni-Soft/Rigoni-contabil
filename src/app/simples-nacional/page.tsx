@@ -4,6 +4,7 @@ import { ComparativosSn } from "@/presentation/components/organisms/comparativos
 import { ResumoSetorSn } from "@/presentation/components/organisms/resumo-setor-sn.component";
 import { ShellHeader } from "@/presentation/components/organisms/shell-header.component";
 import { ShellNav } from "@/presentation/components/organisms/shell-nav.component";
+import { ResumoSetorSnPage } from "@/presentation/components/pages/resumo-setor-sn.page";
 import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-button.container";
 import {
   carregarSessao,
@@ -31,38 +32,35 @@ export default async function Page() {
   ]);
 
   return (
-    <>
-      <ShellHeader
-        nome={sessao.nome}
-        papel={sessao.papel}
-        setor={sessao.setor}
-        sair={<LogoutButtonContainer />}
-      />
-      <ShellNav setores={setores} />
-      <main className="px-4 py-6 sm:px-6">
-        <div className="mx-auto w-[90%] space-y-8">
-          {resumo.ok ? (
-            <>
-              <ResumoSetorSn
-                cards={resumo.value.cards}
-                totalClientes={resumo.value.totalClientes}
-                busca={
-                  <BuscarClienteContainer papel={sessao.papel} setor={sessao.setor} apenasSnMei />
-                }
-              />
-              <ComparativosSn
-                comparativos={resumo.value.comparativos}
-                responsaveis={resumo.value.comparativos.responsaveis}
-                totalClientes={resumo.value.totalClientes}
-              />
-            </>
-          ) : (
-            <p role="alert" className="text-sm text-destructive">
-              Falha ao carregar o resumo do setor. Tente novamente.
-            </p>
-          )}
-        </div>
-      </main>
-    </>
+    <ResumoSetorSnPage
+      header={
+        <ShellHeader
+          nome={sessao.nome}
+          papel={sessao.papel}
+          setor={sessao.setor}
+          sair={<LogoutButtonContainer />}
+        />
+      }
+      nav={<ShellNav setores={setores} />}
+      erro={resumo.ok ? undefined : "Falha ao carregar o resumo do setor. Tente novamente."}
+      resumo={
+        resumo.ok && (
+          <ResumoSetorSn
+            cards={resumo.value.cards}
+            totalClientes={resumo.value.totalClientes}
+            busca={<BuscarClienteContainer papel={sessao.papel} setor={sessao.setor} apenasSnMei />}
+          />
+        )
+      }
+      comparativos={
+        resumo.ok && (
+          <ComparativosSn
+            comparativos={resumo.value.comparativos}
+            responsaveis={resumo.value.comparativos.responsaveis}
+            totalClientes={resumo.value.totalClientes}
+          />
+        )
+      }
+    />
   );
 }

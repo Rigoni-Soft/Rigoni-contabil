@@ -1,19 +1,15 @@
-type TrocarSenhaPageProps = {
-  header: React.ReactNode;
-  formulario: React.ReactNode;
-};
+import { TelaDeTrabalhoTemplate } from "@/presentation/components/templates/tela-de-trabalho-template.component";
+
+type TrocarSenhaPageProps = { header: React.ReactNode; formulario: React.ReactNode };
 
 export function TrocarSenhaPage({ header, formulario }: TrocarSenhaPageProps) {
   return (
-    <main className="min-h-dvh bg-background">
-      {header}
-      <div className="mx-auto max-w-md px-4 py-8 sm:px-6">
-        <h1 className="mb-2 text-xl font-bold tracking-tight text-primary">Trocar senha</h1>
-        <p className="mb-6 text-sm text-muted-foreground">
-          Você está usando uma senha provisória. Defina uma nova senha para continuar.
-        </p>
-        {formulario}
-      </div>
-    </main>
+    <TelaDeTrabalhoTemplate
+      header={header}
+      largura="conta"
+      titulo="Trocar senha"
+      descricao="Você está usando uma senha provisória. Defina uma nova senha para continuar."
+      conteudo={formulario}
+    />
   );
 }

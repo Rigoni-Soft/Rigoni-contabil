@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { GrupoDeAcoes } from "@/presentation/components/atoms/grupo-de-acoes.component";
 import { ShellHeader } from "@/presentation/components/organisms/shell-header.component";
 import { UsuariosLista } from "@/presentation/components/organisms/usuarios-lista.component";
 import { UsuariosListaPage } from "@/presentation/components/pages/usuarios-lista.page";
@@ -31,7 +32,7 @@ export default async function Page() {
           // Admin nunca é desativado nem muda de papel pela UI (#57/#58): a linha dele fica sem ação.
           acoes={(u) =>
             u.papel === "admin" ? null : (
-              <div className="flex items-start gap-2">
+              <GrupoDeAcoes>
                 {!u.bloqueioPendente && (
                   <AlterarPapelContainer usuarioId={u.id} nome={u.nome} papel={u.papel} />
                 )}
@@ -40,7 +41,7 @@ export default async function Page() {
                   nome={u.nome}
                   bloqueioPendente={u.bloqueioPendente}
                 />
-              </div>
+              </GrupoDeAcoes>
             )
           }
         />

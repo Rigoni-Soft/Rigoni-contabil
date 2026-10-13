@@ -1,25 +1,7 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { TelaDeTrabalhoTemplate } from "@/presentation/components/templates/tela-de-trabalho-template.component";
 
-type FilaDoSetorPageProps = {
-  header: React.ReactNode;
-  fila: React.ReactNode;
-};
+type FilaDoSetorPageProps = { header: React.ReactNode; fila: React.ReactNode };
 
 export function FilaDoSetorPage({ header, fila }: FilaDoSetorPageProps) {
-  return (
-    <main className="min-h-dvh bg-background">
-      {header}
-      <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
-        <Link
-          href="/"
-          className="mb-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline"
-        >
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          Voltar
-        </Link>
-        {fila}
-      </div>
-    </main>
-  );
+  return <TelaDeTrabalhoTemplate header={header} largura="lista" voltarHref="/" conteudo={fila} />;
 }

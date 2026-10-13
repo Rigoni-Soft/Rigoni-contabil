@@ -1,23 +1,16 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { TelaDeTrabalhoTemplate } from "@/presentation/components/templates/tela-de-trabalho-template.component";
 
 type Props = { header: React.ReactNode; titulo: string; lista: React.ReactNode };
 
 export function ResumoSetorSnListaPage({ header, titulo, lista }: Props) {
   return (
-    <main className="min-h-dvh bg-background">
-      {header}
-      <div className="mx-auto w-[90%] px-4 py-8 sm:px-6">
-        <Link
-          href="/simples-nacional"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline"
-        >
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          Voltar ao resumo
-        </Link>
-        <h1 className="mt-3 mb-6 text-xl font-bold tracking-tight text-primary">{titulo}</h1>
-        {lista}
-      </div>
-    </main>
+    <TelaDeTrabalhoTemplate
+      header={header}
+      largura="conteudo"
+      voltarHref="/simples-nacional"
+      voltarRotulo="Voltar ao resumo"
+      titulo={titulo}
+      conteudo={lista}
+    />
   );
 }
