@@ -12,8 +12,8 @@ import {
   reagirAMensagemAction,
   transferirAtendimentoAction,
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.actions";
-import { filaKeys } from "@/modules/atendimento/presentation/view-models/fila/fila.keys";
-import { meusAtendimentosKeys } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.keys";
+import { filaKeys } from "@/modules/atendimento/presentation/view-models/fila/fila.queries";
+import { meusAtendimentosKeys } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.queries";
 
 export const conversaKeys = {
   conversa: (atendimentoId: string) => ["atendimento", "conversa", atendimentoId] as const,
