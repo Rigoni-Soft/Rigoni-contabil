@@ -90,6 +90,17 @@ describe("EnviarMensagemAoCliente", () => {
     expect(enviados).toEqual([]);
   });
 
+  it("conta o limite por caractere: 4096 emojis passam (8192 unidades UTF-16), 4097 não", async () => {
+    const { caso, enviados } = montar();
+
+    const noLimite = await caso.execute({ atendimentoId: "at-1", texto: "😀".repeat(4096) });
+    const passou = await caso.execute({ atendimentoId: "at-1", texto: "😀".repeat(4097) });
+
+    expect(noLimite.ok).toBe(true);
+    expect(!passou.ok && passou.error.code).toBe("VALIDATION_ERROR");
+    expect(enviados).toHaveLength(1);
+  });
+
   it("o Líder do Setor responde em nome do Atendimento; outro Funcionário não", async () => {
     const outro = montar({ ator: { ...FUNCIONARIO, id: "func-2" } });
     const negado = await outro.caso.execute({ atendimentoId: "at-1", texto: "oi" });

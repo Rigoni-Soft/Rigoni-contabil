@@ -127,6 +127,27 @@ test.describe("Painel do Funcionário (#49)", () => {
     await expect(campo).toHaveValue("");
   });
 
+  test("o Funcionário insere um emoji pelo seletor e a mensagem com emoji vira balão @smoke", async ({
+    page,
+  }) => {
+    await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL("/");
+    await page
+      .getByRole("navigation", { name: "Atendimentos em andamento" })
+      .getByRole("link")
+      .click();
+
+    const campo = page.getByLabel("Mensagem ao cliente");
+    await campo.fill("Recebido");
+    await page.getByRole("button", { name: "Inserir emoji" }).click();
+    await page.getByRole("button", { name: "Joinha" }).click();
+    await expect(campo).toHaveValue("Recebido👍");
+    await campo.press("Enter");
+
+    await expect(page.getByRole("listitem").filter({ hasText: "Recebido👍" })).toBeVisible();
+    await expect(campo).toHaveValue("");
+  });
+
   test("mensagem nova do cliente, com o Funcionário em outra tela, aparece no dock com prévia e destaque", async ({
     page,
   }) => {

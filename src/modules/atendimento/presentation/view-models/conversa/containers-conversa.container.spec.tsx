@@ -92,6 +92,39 @@ describe("CompositorConversaContainer", () => {
     expect(aoEnviar).toHaveBeenCalledWith("Bom dia");
   });
 
+  it("insere o emoji na posição do cursor, fecha o seletor e devolve o foco ao campo", async () => {
+    const usuario = userEvent.setup();
+    render(<CompositorConversaContainer {...PROPS} />);
+    const campo = screen.getByLabelText("Mensagem ao cliente") as HTMLTextAreaElement;
+    await usuario.type(campo, "Olá Maria");
+    campo.setSelectionRange(4, 4);
+
+    await usuario.click(screen.getByRole("button", { name: "Inserir emoji" }));
+    await usuario.click(screen.getByRole("button", { name: "Joinha" }));
+
+    expect(campo).toHaveValue("Olá 👍Maria");
+    expect(campo).toHaveFocus();
+    expect(screen.queryByRole("group", { name: "Emojis" })).not.toBeInTheDocument();
+    await usuario.keyboard("{Enter}");
+    expect(aoEnviar).toHaveBeenCalledWith("Olá 👍Maria");
+  });
+
+  it("o seletor fecha com Esc (foco volta ao botão) e ao clicar fora", async () => {
+    const usuario = userEvent.setup();
+    render(<CompositorConversaContainer {...PROPS} />);
+    const abrir = screen.getByRole("button", { name: "Inserir emoji" });
+
+    await usuario.click(abrir);
+    expect(screen.getByRole("group", { name: "Emojis" })).toBeInTheDocument();
+    await usuario.keyboard("{Escape}");
+    expect(screen.queryByRole("group", { name: "Emojis" })).not.toBeInTheDocument();
+    expect(abrir).toHaveFocus();
+
+    await usuario.click(abrir);
+    await usuario.click(screen.getByLabelText("Mensagem ao cliente"));
+    expect(screen.queryByRole("group", { name: "Emojis" })).not.toBeInTheDocument();
+  });
+
   it("não aparece quando o hook diz que não está visível", () => {
     compositorVisivel = false;
     const { container } = render(<CompositorConversaContainer {...PROPS} />);

@@ -3,7 +3,21 @@ import userEvent from "@testing-library/user-event";
 
 import { CompositorDeMensagem } from "./compositor-de-mensagem.component";
 
-const BASE = { onEnviar: jest.fn(), enviando: false, enviadas: 0 };
+const SELETOR = {
+  aberto: false,
+  onAlternar: jest.fn(),
+  onEscolher: jest.fn(),
+  onTeclar: jest.fn(),
+  raizRef: null,
+  botaoRef: null,
+};
+const BASE = {
+  onEnviar: jest.fn(),
+  enviando: false,
+  enviadas: 0,
+  campoRef: null,
+  seletor: SELETOR,
+};
 
 describe("CompositorDeMensagem", () => {
   it("Enter envia a mensagem e Shift+Enter só quebra a linha", async () => {
@@ -47,5 +61,34 @@ describe("CompositorDeMensagem", () => {
     rerender(<CompositorDeMensagem {...BASE} enviadas={1} />);
 
     expect(screen.getByLabelText("Mensagem ao cliente")).toHaveValue("");
+  });
+});
+
+describe("CompositorDeMensagem — seletor de emoji", () => {
+  it("o botão alterna o seletor e cada emoji escolhido é repassado", async () => {
+    const aoAlternar = jest.fn();
+    const aoEscolher = jest.fn();
+    const usuario = userEvent.setup();
+    const seletor = { ...SELETOR, aberto: true, onAlternar: aoAlternar, onEscolher: aoEscolher };
+    render(<CompositorDeMensagem {...BASE} seletor={seletor} />);
+
+    for (const nome of ["Rostos", "Gestos", "Objetos", "Símbolos"]) {
+      expect(screen.getByRole("group", { name: nome })).toBeInTheDocument();
+    }
+    await usuario.click(screen.getByRole("button", { name: "Joinha" }));
+    await usuario.click(screen.getByRole("button", { name: "Inserir emoji" }));
+
+    expect(aoEscolher).toHaveBeenCalledWith("👍");
+    expect(aoAlternar).toHaveBeenCalled();
+  });
+
+  it("fechado, não mostra os emojis", () => {
+    render(<CompositorDeMensagem {...BASE} />);
+
+    expect(screen.queryByRole("group", { name: "Emojis" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Inserir emoji" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
   });
 });

@@ -14,6 +14,7 @@ import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
+import { contarCaracteres } from "@/shared/kernel/texto";
 
 const ACAO = "atendimento.enviar_mensagem";
 const TEXTO_TAMANHO_MAXIMO = 4096; // limite de uma mensagem de texto do WhatsApp
@@ -41,7 +42,7 @@ export class EnviarMensagemAoCliente implements EnviarMensagemAoClientePort {
     const mensagem = texto.trim();
     if (!mensagem)
       return err(new ValidationError("Escreva a mensagem.", { texto: ["Obrigatório"] }));
-    if (mensagem.length > TEXTO_TAMANHO_MAXIMO) {
+    if (contarCaracteres(mensagem) > TEXTO_TAMANHO_MAXIMO) {
       return err(
         new ValidationError(`A mensagem aceita até ${TEXTO_TAMANHO_MAXIMO} caracteres.`, {
           texto: ["Muito longa"],

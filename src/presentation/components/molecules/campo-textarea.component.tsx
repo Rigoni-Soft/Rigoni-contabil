@@ -2,7 +2,7 @@ import { Label } from "@/presentation/components/ui/label";
 import { Textarea } from "@/presentation/components/ui/textarea";
 import { cn } from "@/presentation/lib/utils";
 
-type CampoTextareaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
+type CampoTextareaProps = React.ComponentProps<"textarea"> & {
   id: string;
   rotulo: string;
   // Rótulo só para leitor de tela (o placeholder já diz o que escrever).

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { SETORES } from "@/shared/kernel/setores";
+import { contarCaracteres } from "@/shared/kernel/texto";
 
 // z.guid(), não z.uuid(): mesmo critério do feed de auditoria (a coluna aceita qualquer 8-4-4-4-12).
 export const atendimentoIdSchema = z.guid("Atendimento inválido.");
@@ -44,5 +45,7 @@ export const enviarMensagemSchema = z.object({
     .string()
     .trim()
     .min(1, "Escreva a mensagem.")
-    .max(MENSAGEM_TAMANHO_MAXIMO, `A mensagem aceita até ${MENSAGEM_TAMANHO_MAXIMO} caracteres.`),
+    .refine((texto) => contarCaracteres(texto) <= MENSAGEM_TAMANHO_MAXIMO, {
+      message: `A mensagem aceita até ${MENSAGEM_TAMANHO_MAXIMO} caracteres.`,
+    }),
 });
