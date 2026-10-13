@@ -280,6 +280,10 @@ de resultado em geral, não específico de tabela. `success` (dourado) fica
 reservado ao selo "em dia" do Simples Nacional — não se usa aqui para não
 sobrepor dois significados no mesmo token.
 
+**`FieldError` com texto longo:** o ícone alinha na primeira linha
+(`items-start` + `mt-[3px]`, 14 px de ícone sobre 20 px de linha), então o
+componente serve para uma linha ou para várias sem mudar de aparência.
+
 **Aviso (não é erro de validação, mas usa o mesmo componente):** o feed de
 auditoria já usava `field-error.tsx` pra avisar período incompleto mesmo sem
 ser um erro de schema — o cadastro de Cliente (29/09/2026, #33) confirma que
@@ -636,6 +640,13 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   e CND ficam `disabled` com `title="Em construção"`. Em janela baixa o painel
   rola por dentro. Transferido, o painel troca tudo por um aviso e a tela
   sai da conversa.
+- **Aviso de inatividade** (#73, `CabecalhoDaConversa`): quando a URA avisou
+  que vai encerrar o Atendimento por falta de resposta do Funcionário, o
+  cabeçalho mostra um `FieldError` (ícone + texto, `role="alert"`) logo abaixo
+  do contexto. Só o dono do Atendimento o vê, e some assim que ele escreve ou o
+  Atendimento encerra. Não há alerta no dock. Contraste conferido: 8,42:1 no
+  claro e 6,75:1 no escuro; em 360 px o texto quebra em 3 linhas e a página
+  rola, em 1024×600 o chat mantém ~230 px.
 - **Encerrar atendimento** (no fim do `PainelDeAcoes`, separado por `border-t`):
   botão `outline`; o primeiro clique só abre a confirmação (`role="alertdialog"`
   com o aviso de que o cliente será avisado) com "Confirmar encerramento"
