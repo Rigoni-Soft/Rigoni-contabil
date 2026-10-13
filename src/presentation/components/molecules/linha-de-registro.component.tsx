@@ -1,4 +1,7 @@
-import { CelulaDeTabela } from "@/presentation/components/atoms/celula-de-tabela.component";
+import {
+  CelulaDeTabela,
+  LinhaDeTabela,
+} from "@/presentation/components/atoms/celula-de-tabela.component";
 import { SeloDeResultado } from "@/presentation/components/atoms/selo-de-resultado.component";
 
 export type RegistroAcaoView = {
@@ -14,7 +17,7 @@ export type RegistroAcaoView = {
 // Uma linha do feed de auditoria: data/hora, ator, setor, ação, alvo e o resultado com ícone.
 export function LinhaDeRegistro({ registro }: { registro: RegistroAcaoView }) {
   return (
-    <tr className="border-b border-border last:border-0">
+    <LinhaDeTabela>
       <CelulaDeTabela numerica>{registro.dataHora}</CelulaDeTabela>
       <CelulaDeTabela>{registro.ator}</CelulaDeTabela>
       <CelulaDeTabela>{registro.setor}</CelulaDeTabela>
@@ -23,6 +26,6 @@ export function LinhaDeRegistro({ registro }: { registro: RegistroAcaoView }) {
       <CelulaDeTabela>
         <SeloDeResultado resultado={registro.resultado} />
       </CelulaDeTabela>
-    </tr>
+    </LinhaDeTabela>
   );
 }

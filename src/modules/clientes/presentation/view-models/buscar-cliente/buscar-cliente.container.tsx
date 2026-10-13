@@ -3,9 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { Button } from "@/presentation/components/ui/button";
-import { Input } from "@/presentation/components/ui/input";
-import { Label } from "@/presentation/components/ui/label";
+import { BuscaDeCliente } from "@/presentation/components/organisms/busca-de-cliente.component";
+import { PainelDoCliente } from "@/presentation/components/organisms/painel-do-cliente.component";
 import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
 import { EditarCadastroOperacionalContainer } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.container";
 
@@ -43,7 +42,7 @@ export function BuscarClienteContainer({ papel, setor, apenasSnMei = false }: Pr
   // Foco move pro título do painel ao selecionar um cliente — sem isso, quem
   // navega por teclado/leitor de tela perde o contexto da troca (a lista de
   // sugestões desaparece e o formulário aparece sem nenhum anúncio).
-  const tituloPainelRef = useRef<HTMLHeadingElement>(null);
+  const tituloPainelRef = useRef<HTMLElement>(null);
   useEffect(() => {
     if (clienteSelecionado) tituloPainelRef.current?.focus();
   }, [clienteSelecionado]);
@@ -71,19 +70,11 @@ export function BuscarClienteContainer({ papel, setor, apenasSnMei = false }: Pr
 
   if (clienteSelecionado) {
     return (
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-4">
-          <h2
-            ref={tituloPainelRef}
-            tabIndex={-1}
-            className="rounded text-lg font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {readOnly ? "Visualizar cadastro operacional" : "Editar cadastro operacional"}
-          </h2>
-          <Button type="button" variant="ghost" size="sm" onClick={fecharPainel}>
-            Nova busca
-          </Button>
-        </div>
+      <PainelDoCliente
+        titulo={readOnly ? "Visualizar cadastro operacional" : "Editar cadastro operacional"}
+        tituloRef={tituloPainelRef}
+        onNovaBusca={fecharPainel}
+      >
         <EditarCadastroOperacionalContainer
           dados={clienteSelecionado}
           readOnly={readOnly}
@@ -98,65 +89,26 @@ export function BuscarClienteContainer({ papel, setor, apenasSnMei = false }: Pr
             router.refresh();
           }}
         />
-      </section>
+      </PainelDoCliente>
     );
   }
 
   return (
-    <section className="space-y-3">
-      <h2 className="text-lg font-semibold text-foreground">Buscar cliente</h2>
-      <div className="space-y-1">
-        <Label htmlFor="buscar-cliente-termo">Empresa ou CNPJ</Label>
-        <Input
-          id="buscar-cliente-termo"
-          placeholder="Digite ao menos 3 caracteres"
-          value={termo}
-          onChange={(e) => setTermo(e.target.value)}
-          onKeyDown={aoTeclar}
-          role="combobox"
-          aria-expanded={sugestoesVisiveis.length > 0}
-          aria-controls={ID_LISTA}
-          aria-autocomplete="list"
-          aria-activedescendant={
-            indiceAtivoValido !== null ? idOpcao(indiceAtivoValido) : undefined
-          }
-        />
-      </div>
-
-      <p className="sr-only" role="status" aria-live="polite">
-        {buscando
-          ? "Buscando..."
-          : sugestoesVisiveis.length > 0
-            ? `${sugestoesVisiveis.length} sugestão${sugestoesVisiveis.length > 1 ? "ões" : ""} encontrada${sugestoesVisiveis.length > 1 ? "s" : ""}.`
-            : ""}
-      </p>
-      {buscando && <p className="text-sm text-muted-foreground">Buscando...</p>}
-
-      {sugestoesVisiveis.length > 0 && (
-        <ul
-          id={ID_LISTA}
-          role="listbox"
-          aria-label="Sugestões de clientes"
-          className="divide-y divide-border rounded-md border border-border"
-        >
-          {sugestoesVisiveis.map((sugestao, indice) => (
-            <li
-              key={sugestao.id}
-              id={idOpcao(indice)}
-              role="option"
-              aria-selected={indice === indiceAtivoValido}
-              onMouseEnter={() => setIndiceAtivo(indice)}
-              onClick={() => selecionarCliente(sugestao.id)}
-              className={`flex cursor-pointer flex-col items-start gap-0.5 px-3 py-2 text-left ${
-                indice === indiceAtivoValido ? "bg-accent" : ""
-              }`}
-            >
-              <span className="font-medium text-foreground">{sugestao.empresa}</span>
-              <span className="text-sm text-muted-foreground">{formatarCnpj(sugestao.cnpj)}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
+    <BuscaDeCliente
+      termo={termo}
+      onTermoChange={setTermo}
+      onKeyDown={aoTeclar}
+      buscando={buscando}
+      sugestoes={sugestoesVisiveis.map((sugestao) => ({
+        id: sugestao.id,
+        empresa: sugestao.empresa,
+        cnpj: formatarCnpj(sugestao.cnpj),
+      }))}
+      indiceAtivo={indiceAtivoValido}
+      onDestacar={setIndiceAtivo}
+      onSelecionar={selecionarCliente}
+      idLista={ID_LISTA}
+      idOpcao={idOpcao}
+    />
   );
 }

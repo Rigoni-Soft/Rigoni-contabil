@@ -1,7 +1,7 @@
 "use client";
 
 import { AuditoriaFeedFiltro } from "@/presentation/components/organisms/auditoria-feed-filtro.component";
-import { AuditoriaFeed } from "@/presentation/components/organisms/auditoria-feed.component";
+import { ResultadoDoFeed } from "@/presentation/components/organisms/resultado-do-feed.component";
 import type { RegistroAcaoDto } from "@/modules/auditoria/application/dtos/registro-acao.dto";
 import { useFeed } from "@/modules/auditoria/presentation/view-models/feed/use-feed.hook";
 
@@ -17,14 +17,7 @@ export function FeedContainer({ initialData }: { initialData: RegistroAcaoDto[] 
         onSubmit={aoSubmeter}
         onLimpar={aoLimpar}
       />
-      {erro && (
-        <p role="alert" className="mb-4 text-sm text-destructive">
-          {erro}
-        </p>
-      )}
-      <div aria-busy={carregando} className={carregando ? "opacity-60" : undefined}>
-        <AuditoriaFeed registros={registros} />
-      </div>
+      <ResultadoDoFeed registros={registros} carregando={carregando} erro={erro} />
     </>
   );
 }

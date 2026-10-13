@@ -1,6 +1,7 @@
 import { Check } from "lucide-react";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
 import { Button } from "@/presentation/components/ui/button";
 import { cn } from "@/presentation/lib/utils";
@@ -23,7 +24,7 @@ export function ConfirmacaoDeCadastro({
   onCadastrarNovo,
 }: ConfirmacaoDeCadastroProps) {
   return (
-    <div
+    <Caixa
       className={cn(
         "mx-auto flex flex-col gap-3 rounded-lg border border-border bg-card p-4",
         largura === "sm" ? "max-w-sm" : "max-w-md",
@@ -31,7 +32,7 @@ export function ConfirmacaoDeCadastro({
     >
       <AvisoDeStatus tipo="sucesso" texto={mensagem} className="items-center text-sm" />
       {detalhes}
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <Caixa className="flex flex-col gap-2 sm:flex-row">
         <Button type="button" onClick={onCadastrarNovo} className="sm:flex-1">
           {iconeNovo}
           Cadastrar outro
@@ -41,7 +42,7 @@ export function ConfirmacaoDeCadastro({
           <Check aria-hidden="true" />
           Finalizar
         </LinkDeAcao>
-      </div>
-    </div>
+      </Caixa>
+    </Caixa>
   );
 }

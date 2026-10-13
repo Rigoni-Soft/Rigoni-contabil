@@ -1,3 +1,4 @@
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { ChipDeSetor } from "@/presentation/components/atoms/chip-de-setor.component";
 import { SETOR_LABEL } from "@/shared/kernel/setores";
 
@@ -13,7 +14,8 @@ const ROTA_POR_SETOR: Record<string, string> = {
 
 export function ShellNav({ setores }: ShellNavProps) {
   return (
-    <nav
+    <Caixa
+      como="nav"
       aria-label="Setores"
       className="flex flex-wrap gap-2 border-b border-border bg-card px-4 py-3 sm:px-6"
     >
@@ -22,6 +24,6 @@ export function ShellNav({ setores }: ShellNavProps) {
           {SETOR_LABEL[setor.slug] ?? setor.slug}
         </ChipDeSetor>
       ))}
-    </nav>
+    </Caixa>
   );
 }

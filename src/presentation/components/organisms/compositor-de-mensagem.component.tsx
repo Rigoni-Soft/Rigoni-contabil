@@ -1,6 +1,7 @@
 import { SendHorizontal } from "lucide-react";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { CampoTextarea } from "@/presentation/components/molecules/campo-textarea.component";
 import { SeletorDeEmoji } from "@/presentation/components/molecules/seletor-de-emoji.component";
 import { Button } from "@/presentation/components/ui/button";
@@ -25,8 +26,9 @@ export function CompositorDeMensagem({
   seletor,
 }: CompositorDeMensagemProps) {
   return (
-    <div className="shrink-0 space-y-1">
-      <form
+    <Caixa className="shrink-0 space-y-1">
+      <Caixa
+        como="form"
         key={enviadas}
         className="flex items-center gap-2"
         onSubmit={(evento) => {
@@ -65,8 +67,8 @@ export function CompositorDeMensagem({
         >
           <SendHorizontal aria-hidden="true" />
         </Button>
-      </form>
+      </Caixa>
       {erro && <AvisoDeStatus tipo="erro" texto={erro} />}
-    </div>
+    </Caixa>
   );
 }

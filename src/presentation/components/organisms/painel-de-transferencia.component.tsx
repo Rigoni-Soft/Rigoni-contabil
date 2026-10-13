@@ -1,4 +1,6 @@
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { TituloDoGrupo } from "@/presentation/components/atoms/titulo-de-grupo.component";
 import { CampoSelect } from "@/presentation/components/molecules/campo-select.component";
 import { CampoTextarea } from "@/presentation/components/molecules/campo-textarea.component";
@@ -18,7 +20,8 @@ export function PainelDeTransferencia({
   aviso,
 }: PainelDeTransferenciaProps) {
   return (
-    <form
+    <Caixa
+      como="form"
       className="space-y-2"
       onSubmit={(evento) => {
         evento.preventDefault();
@@ -27,7 +30,7 @@ export function PainelDeTransferencia({
       }}
     >
       <TituloDoGrupo>Transferir Atendimento</TituloDoGrupo>
-      <div className="flex items-end gap-2">
+      <Caixa className="flex items-end gap-2">
         <CampoSelect
           id="transferir-setor"
           rotulo="Setor de destino"
@@ -35,19 +38,19 @@ export function PainelDeTransferencia({
           required
           defaultValue=""
         >
-          <option value="" disabled>
+          <Opcao value="" disabled>
             Escolha o Setor
-          </option>
+          </Opcao>
           {setoresDestino.map((setor) => (
-            <option key={setor.valor} value={setor.valor}>
+            <Opcao key={setor.valor} value={setor.valor}>
               {setor.rotulo}
-            </option>
+            </Opcao>
           ))}
         </CampoSelect>
         <Button type="submit" size="sm" className="pointer-coarse:h-11" disabled={transferindo}>
           {transferindo ? "Transferindo..." : "Transferir"}
         </Button>
-      </div>
+      </Caixa>
       <CampoTextarea
         id="transferir-resumo"
         rotulo="Resumo do assunto"
@@ -59,6 +62,6 @@ export function PainelDeTransferencia({
         className="min-h-16 resize-none"
       />
       {aviso && <AvisoDeStatus {...aviso} />}
-    </form>
+    </Caixa>
   );
 }

@@ -1,5 +1,7 @@
 import { AlertTriangle } from "lucide-react";
 
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Button } from "@/presentation/components/ui/button";
 
 type AlterarPapelProps = {
@@ -15,7 +17,7 @@ type AlterarPapelProps = {
 export function AlterarPapel({ nome, papelAlvo, pendente, erro, aoAlterar }: AlterarPapelProps) {
   const promove = papelAlvo === "lider_setor";
   return (
-    <div className="flex shrink-0 flex-col items-end gap-1">
+    <Caixa className="flex shrink-0 flex-col items-end gap-1">
       <Button
         type="button"
         variant="outline"
@@ -29,11 +31,15 @@ export function AlterarPapel({ nome, papelAlvo, pendente, erro, aoAlterar }: Alt
         {promove ? "Promover" : "Rebaixar"}
       </Button>
       {erro && (
-        <p role="alert" className="flex max-w-64 items-start gap-1 text-sm text-destructive">
+        <Texto
+          variante="livre"
+          role="alert"
+          className="flex max-w-64 items-start gap-1 text-sm text-destructive"
+        >
           <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           {erro}
-        </p>
+        </Texto>
       )}
-    </div>
+    </Caixa>
   );
 }

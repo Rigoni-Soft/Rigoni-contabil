@@ -28,10 +28,15 @@ export function CartaoDeAtendimento({
       className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 shadow-md hover:bg-accent motion-safe:animate-dock-entrada"
     >
       <IconeDeConversa aguardando={aguardando} />
-      <span className="min-w-0">
+      <Texto variante="livre" como="span" className="min-w-0">
         <Texto como="span" variante="destaque" className="block truncate">
           {titulo}
-          {aguardando && <span className="sr-only"> — nova mensagem</span>}
+          {aguardando && (
+            <Texto variante="livre" como="span" className="sr-only">
+              {" "}
+              — nova mensagem
+            </Texto>
+          )}
         </Texto>
         <Texto como="span" variante="apoio" className="block truncate">
           {detalhe}
@@ -45,7 +50,7 @@ export function CartaoDeAtendimento({
             {previa}
           </Texto>
         )}
-      </span>
+      </Texto>
     </Link>
   );
 }

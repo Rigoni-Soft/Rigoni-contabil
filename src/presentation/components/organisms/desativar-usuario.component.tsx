@@ -1,5 +1,7 @@
 import { AlertTriangle } from "lucide-react";
 
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Button } from "@/presentation/components/ui/button";
 
 type DesativarUsuarioProps = {
@@ -25,7 +27,7 @@ export function DesativarUsuario({
   aoConfirmar,
 }: DesativarUsuarioProps) {
   return (
-    <div className="flex shrink-0 flex-col items-end gap-1">
+    <Caixa className="flex shrink-0 flex-col items-end gap-1">
       {bloqueioPendente ? (
         <Button
           type="button"
@@ -38,7 +40,7 @@ export function DesativarUsuario({
           Concluir bloqueio
         </Button>
       ) : confirmando ? (
-        <div className="flex gap-2">
+        <Caixa className="flex gap-2">
           <Button
             type="button"
             variant="destructive"
@@ -52,7 +54,7 @@ export function DesativarUsuario({
           <Button type="button" variant="ghost" size="sm" onClick={aoCancelar}>
             Cancelar
           </Button>
-        </div>
+        </Caixa>
       ) : (
         <Button
           type="button"
@@ -66,11 +68,15 @@ export function DesativarUsuario({
         </Button>
       )}
       {erro && (
-        <p role="alert" className="flex items-center gap-1 text-sm text-destructive">
+        <Texto
+          variante="livre"
+          role="alert"
+          className="flex items-center gap-1 text-sm text-destructive"
+        >
           <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
           {erro}
-        </p>
+        </Texto>
       )}
-    </div>
+    </Caixa>
   );
 }

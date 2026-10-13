@@ -1,6 +1,7 @@
 import { cn } from "@/presentation/lib/utils";
 
 // Papéis tipográficos do produto (DESIGN.md → Tipografia): a cor e o peso saem do papel, não da tela.
+// `livre` não define estilo: o texto herda o do contêiner e a classe vem de quem usa.
 const VARIANTES = {
   destaque: "font-medium text-foreground",
   corpo: "text-sm text-foreground",
@@ -11,16 +12,24 @@ const VARIANTES = {
   titulo: "font-semibold text-foreground",
   tela: "text-xl font-bold tracking-tight text-primary",
   secao: "text-sm font-bold tracking-wide text-foreground uppercase",
+  livre: "",
 } as const;
 
-type TextoProps = {
+type TextoProps = Omit<React.HTMLAttributes<HTMLElement>, "className"> & {
   variante: keyof typeof VARIANTES;
   // Elemento semântico; o padrão é parágrafo.
-  como?: "p" | "span" | "h1" | "h2";
+  como?: "p" | "span" | "h1" | "h2" | "h3" | "strong" | "small";
   className?: string;
-  children: React.ReactNode;
+  ref?: React.Ref<HTMLElement>;
 };
 
-export function Texto({ variante, como: Elemento = "p", className, children }: TextoProps) {
-  return <Elemento className={cn(VARIANTES[variante], className)}>{children}</Elemento>;
+export function Texto({ variante, como = "p", className, children, ...props }: TextoProps) {
+  const Elemento = como as React.ElementType<
+    React.HTMLAttributes<HTMLElement> & { ref?: React.Ref<HTMLElement> }
+  >;
+  return (
+    <Elemento className={cn(VARIANTES[variante], className)} {...props}>
+      {children}
+    </Elemento>
+  );
 }

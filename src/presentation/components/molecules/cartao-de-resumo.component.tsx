@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AnelDeProgresso } from "@/presentation/components/atoms/anel-de-progresso.component";
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 
 // Cores do protótipo aprovado (spec #24): os valores --good/--warning/--critical do mockup batem com
@@ -30,7 +31,7 @@ export function CartaoDeResumo({
   totalClientes,
 }: CartaoDeResumoProps) {
   return (
-    <li>
+    <Caixa como="li">
       <Link
         href={href}
         className="flex h-full flex-col items-center gap-3 rounded-xl border border-border bg-card p-4 text-center shadow-sm transition-colors hover:border-ring hover:bg-accent/50"
@@ -42,12 +43,12 @@ export function CartaoDeResumo({
         />
         <Texto variante="corpo" className="font-semibold">
           {titulo}
-          <span className="sr-only">
+          <Texto variante="livre" como="span" className="sr-only">
             {" "}
             — {quantidade} de {totalClientes} clientes
-          </span>
+          </Texto>
         </Texto>
       </Link>
-    </li>
+    </Caixa>
   );
 }

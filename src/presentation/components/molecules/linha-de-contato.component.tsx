@@ -1,6 +1,7 @@
 import { Trash2 } from "lucide-react";
 
 import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcacao.component";
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { Button } from "@/presentation/components/ui/button";
 
@@ -26,7 +27,7 @@ export function LinhaDeContato({
   onRemover,
 }: LinhaDeContatoProps) {
   return (
-    <div className="flex flex-wrap items-end gap-3 rounded-md border border-border p-3">
+    <Caixa className="flex flex-wrap items-end gap-3 rounded-md border border-border p-3">
       <CampoDeTexto
         id={`contatos.${indice}.nome`}
         rotulo="Nome"
@@ -53,6 +54,6 @@ export function LinhaDeContato({
       >
         <Trash2 className="size-4" aria-hidden="true" />
       </Button>
-    </div>
+    </Caixa>
   );
 }

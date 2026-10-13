@@ -1,3 +1,4 @@
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { NumeroEmCirculo } from "@/presentation/components/atoms/numero-em-circulo.component";
 import { TempoDeEspera } from "@/presentation/components/atoms/tempo-de-espera.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
@@ -24,9 +25,12 @@ export function ItemDaFila({
   espera,
 }: ItemDaFilaProps) {
   return (
-    <li className="flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3">
+    <Caixa
+      como="li"
+      className="flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3"
+    >
       <NumeroEmCirculo valor={posicao} prefixo="Posição" />
-      <div className="min-w-0 flex-1">
+      <Caixa className="min-w-0 flex-1">
         <Texto variante="destaque" className="break-words">
           {contato}
         </Texto>
@@ -35,7 +39,9 @@ export function ItemDaFila({
           {cnpj && (
             <>
               {" · "}
-              <span className="whitespace-nowrap">{cnpj}</span>
+              <Texto variante="livre" como="span" className="whitespace-nowrap">
+                {cnpj}
+              </Texto>
             </>
           )}
         </Texto>
@@ -50,8 +56,8 @@ export function ItemDaFila({
             Fila de um usuário
           </Texto>
         )}
-      </div>
+      </Caixa>
       <TempoDeEspera valor={espera} />
-    </li>
+    </Caixa>
   );
 }

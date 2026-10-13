@@ -1,3 +1,4 @@
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { LinkDeVoltar } from "@/presentation/components/atoms/link-de-voltar.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { cn } from "@/presentation/lib/utils";
@@ -18,7 +19,7 @@ export function CabecalhoDeTela({
   voltarRotulo,
 }: CabecalhoDeTelaProps) {
   return (
-    <div className={cn(voltarHref && !titulo && "mb-3")}>
+    <Caixa className={cn(voltarHref && !titulo && "mb-3")}>
       {voltarHref && <LinkDeVoltar href={voltarHref}>{voltarRotulo}</LinkDeVoltar>}
       {titulo && (
         <Texto
@@ -34,6 +35,6 @@ export function CabecalhoDeTela({
           {descricao}
         </Texto>
       )}
-    </div>
+    </Caixa>
   );
 }

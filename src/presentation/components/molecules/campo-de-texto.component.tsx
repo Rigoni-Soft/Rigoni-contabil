@@ -1,3 +1,4 @@
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { RequiredMark } from "@/presentation/components/atoms/required-mark.component";
 import { Input } from "@/presentation/components/ui/input";
@@ -26,7 +27,7 @@ export function CampoDeTexto({
   ...props
 }: CampoDeTextoProps) {
   return (
-    <div className={cn("flex flex-col gap-1.5", className)}>
+    <Caixa className={cn("flex flex-col gap-1.5", className)}>
       <Label htmlFor={id}>
         {rotulo}
         {obrigatorio && <RequiredMark />}
@@ -39,6 +40,6 @@ export function CampoDeTexto({
       />
       {erro && <FieldError>{erro}</FieldError>}
       {!erro && aviso && <FieldError>{aviso}</FieldError>}
-    </div>
+    </Caixa>
   );
 }

@@ -1,3 +1,4 @@
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { cn } from "@/presentation/lib/utils";
 
 // Em tela larga: [Fila] | chat | [painel de ações], conforme os slots preenchidos. A Fila só entra
@@ -34,12 +35,16 @@ export function ConversaTemplate({
   fila,
 }: ConversaTemplateProps) {
   return (
-    <main className="flex min-h-dvh flex-col bg-background lg:h-dvh lg:min-h-0 lg:overflow-hidden">
+    <Caixa
+      como="main"
+      className="flex min-h-dvh flex-col bg-background lg:h-dvh lg:min-h-0 lg:overflow-hidden"
+    >
       {header}
-      <div className="flex min-h-0 flex-1 flex-col px-4 py-3 sm:px-6 lg:px-8">
-        <div className="mb-2 shrink-0">{voltar}</div>
-        <div className="min-h-0 flex-1">
-          <section
+      <Caixa className="flex min-h-0 flex-1 flex-col px-4 py-3 sm:px-6 lg:px-8">
+        <Caixa className="mb-2 shrink-0">{voltar}</Caixa>
+        <Caixa className="min-h-0 flex-1">
+          <Caixa
+            como="section"
             aria-label="Atendimento"
             className={cn(
               "grid gap-4 lg:h-full lg:min-h-0",
@@ -47,22 +52,23 @@ export function ConversaTemplate({
             )}
           >
             {fila && (
-              <aside
+              <Caixa
+                como="aside"
                 aria-label="Fila de atendimento"
                 className="hidden min-h-0 overflow-y-auto xl:block"
               >
                 {fila}
-              </aside>
+              </Caixa>
             )}
-            <div className="flex min-h-0 flex-col gap-3">
+            <Caixa className="flex min-h-0 flex-col gap-3">
               {cabecalho}
               {mensagens}
               {compositor}
-            </div>
+            </Caixa>
             {acoes}
-          </section>
-        </div>
-      </div>
-    </main>
+          </Caixa>
+        </Caixa>
+      </Caixa>
+    </Caixa>
   );
 }

@@ -1,9 +1,8 @@
 import { Plus, Smile } from "lucide-react";
 
-import {
-  BOTAO_DE_EMOJI,
-  BotaoDeEmoji,
-} from "@/presentation/components/atoms/botao-de-emoji.component";
+import { BotaoDeEmoji } from "@/presentation/components/atoms/botao-de-emoji.component";
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Button } from "@/presentation/components/ui/button";
 import { CATEGORIAS_DE_EMOJI, NOME_DO_EMOJI } from "@/presentation/lib/emojis";
 import { cn } from "@/presentation/lib/utils";
@@ -44,7 +43,7 @@ export function SeletorDeEmoji({
   compacto = false,
 }: SeletorDeEmojiProps) {
   return (
-    <div ref={raizRef} className="relative">
+    <Caixa ref={raizRef} className="relative">
       <Button
         ref={botaoRef}
         type="button"
@@ -64,7 +63,7 @@ export function SeletorDeEmoji({
         <Smile aria-hidden="true" className={compacto ? "size-4" : "size-6"} />
       </Button>
       {aberto && (
-        <div
+        <Caixa
           id={painelId}
           role="group"
           aria-label={compacto ? "Emojis da reação" : "Emojis"}
@@ -75,7 +74,7 @@ export function SeletorDeEmoji({
           )}
         >
           {recentes.length > 0 && (
-            <div role="group" aria-label="Recentes" className="flex flex-wrap items-center">
+            <Caixa role="group" aria-label="Recentes" className="flex flex-wrap items-center">
               {recentes.map((emoji) => (
                 <BotaoDeEmoji
                   key={emoji}
@@ -85,30 +84,34 @@ export function SeletorDeEmoji({
                 />
               ))}
               {!completo && (
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon"
                   aria-label="Ver todos os emojis"
-                  className={cn(BOTAO_DE_EMOJI, "ml-auto text-muted-foreground")}
+                  className="ml-auto text-muted-foreground"
                   onClick={onExpandir}
                 >
                   <Plus aria-hidden="true" className="size-5" />
-                </button>
+                </Button>
               )}
-            </div>
+            </Caixa>
           )}
           {(recentes.length === 0 || completo) &&
             CATEGORIAS_DE_EMOJI.map((categoria) => (
-              <div key={categoria.nome} role="group" aria-label={categoria.nome}>
-                <p className="px-1 text-xs text-muted-foreground">{categoria.nome}</p>
-                <div className="flex flex-wrap">
+              <Caixa key={categoria.nome} role="group" aria-label={categoria.nome}>
+                <Texto variante="livre" className="px-1 text-xs text-muted-foreground">
+                  {categoria.nome}
+                </Texto>
+                <Caixa className="flex flex-wrap">
                   {categoria.emojis.map(([emoji, nome]) => (
                     <BotaoDeEmoji key={emoji} emoji={emoji} nome={nome} onEscolher={onEscolher} />
                   ))}
-                </div>
-              </div>
+                </Caixa>
+              </Caixa>
             ))}
-        </div>
+        </Caixa>
       )}
-    </div>
+    </Caixa>
   );
 }

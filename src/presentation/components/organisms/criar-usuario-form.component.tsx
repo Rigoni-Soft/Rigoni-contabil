@@ -2,7 +2,9 @@ import { UserPlus } from "lucide-react";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 
 import { BotaoDeEnvio } from "@/presentation/components/atoms/botao-de-envio.component";
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { ConfirmacaoDeCadastro } from "@/presentation/components/molecules/confirmacao-de-cadastro.component";
@@ -59,17 +61,24 @@ export function CriarUsuarioForm({
         onCadastrarNovo={onCadastrarNovo}
         mensagem={
           <>
-            Conta de <strong>{criado.nome}</strong> ({criado.email}) criada.
+            Conta de{" "}
+            <Texto variante="livre" como="strong">
+              {criado.nome}
+            </Texto>{" "}
+            ({criado.email}) criada.
           </>
         }
         detalhes={
           <>
-            <p className="text-sm text-muted-foreground">
+            <Texto variante="livre" className="text-sm text-muted-foreground">
               Senha provisória — repasse com segurança, será exigida troca no primeiro acesso:
-            </p>
-            <p className="rounded-md bg-muted px-3 py-2 font-mono text-lg tracking-wider">
+            </Texto>
+            <Texto
+              variante="livre"
+              className="rounded-md bg-muted px-3 py-2 font-mono text-lg tracking-wider"
+            >
               {criado.senhaProvisoria}
-            </p>
+            </Texto>
           </>
         }
       />
@@ -77,11 +86,11 @@ export function CriarUsuarioForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
+    <Caixa como="form" onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
       {/* Nome/E-mail/Papel/Setor cabem lado a lado — 2 colunas aproveita melhor
           a largura do formulário (80% da tela, #36) do que empilhar tudo numa
           coluna só. */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+      <Caixa className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <CampoDeTexto id="nome" rotulo="Nome" erro={errors.nome?.message} {...register("nome")} />
         <CampoDeTexto
           id="email"
@@ -117,11 +126,11 @@ export function CriarUsuarioForm({
           erro={errors.setor?.message}
           {...register("setor")}
         />
-      </div>
+      </Caixa>
 
       {erroServidor && <FieldError>{erroServidor}</FieldError>}
 
       <BotaoDeEnvio pendente={pendente} rotulo="Cadastrar" rotuloPendente="Cadastrando…" />
-    </form>
+    </Caixa>
   );
 }

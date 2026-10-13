@@ -1,3 +1,4 @@
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { cn } from "@/presentation/lib/utils";
 
 // Larguras por categoria de tela (DESIGN.md → Layout): a largura é relativa, não um `max-w` fixo.
@@ -28,13 +29,13 @@ export function TelaDeTrabalhoTemplate({
   conteudo,
 }: TelaDeTrabalhoTemplateProps) {
   return (
-    <main className="min-h-dvh bg-background">
+    <Caixa como="main" className="min-h-dvh bg-background">
       {header}
       {nav}
-      <div className={cn("mx-auto px-4 py-8 sm:px-6", LARGURA[largura])}>
+      <Caixa className={cn("mx-auto px-4 py-8 sm:px-6", LARGURA[largura])}>
         {cabecalho}
         {conteudo}
-      </div>
-    </main>
+      </Caixa>
+    </Caixa>
   );
 }

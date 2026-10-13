@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Building2, CalendarOff, CircleUser, ListOrdered, UserPlus, Users } from "lucide-react";
 
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { buttonVariants } from "@/presentation/components/ui/button";
 import { ThemeToggle } from "@/presentation/components/ui/theme-toggle";
 import { PAPEL_LABEL } from "@/shared/kernel/papeis";
@@ -27,23 +29,30 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
   const rotuloCadastrar = CADASTRAR_LABEL[papel];
 
   return (
-    <header className="flex items-center justify-between gap-4 border-b border-border bg-card px-4 py-3 sm:px-6">
-      <div className="flex min-w-0 items-center gap-3">
-        <span
+    <Caixa
+      como="header"
+      className="flex items-center justify-between gap-4 border-b border-border bg-card px-4 py-3 sm:px-6"
+    >
+      <Caixa className="flex min-w-0 items-center gap-3">
+        <Texto
+          variante="livre"
+          como="span"
           aria-hidden="true"
           className="hidden size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground sm:flex"
         >
           {inicial}
-        </span>
-        <div className="min-w-0">
-          <p className="font-medium break-words text-foreground sm:truncate">{nome}</p>
-          <p className="text-sm break-words text-muted-foreground sm:truncate">
+        </Texto>
+        <Caixa className="min-w-0">
+          <Texto variante="livre" className="font-medium break-words text-foreground sm:truncate">
+            {nome}
+          </Texto>
+          <Texto variante="livre" className="text-sm break-words text-muted-foreground sm:truncate">
             {PAPEL_LABEL[papel] ?? papel} · {escopo}
-          </p>
-        </div>
-      </div>
+          </Texto>
+        </Caixa>
+      </Caixa>
 
-      <div className="flex shrink-0 items-center gap-1">
+      <Caixa className="flex shrink-0 items-center gap-1">
         {/* Único caminho de navegação até /admin/usuarios/novo — Admin e Líder
             cadastram (escopado por papel no próprio caso de uso, #30/#32);
             Funcionário não cadastra ninguém, então não vê o link. */}
@@ -54,7 +63,9 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
             className={buttonVariants({ variant: "ghost" })}
           >
             <UserPlus aria-hidden="true" />
-            <span className="hidden sm:inline">{rotuloCadastrar}</span>
+            <Texto variante="livre" como="span" className="hidden sm:inline">
+              {rotuloCadastrar}
+            </Texto>
           </Link>
         )}
         {/* Único caminho de navegação até /admin/clientes/novo — só Admin cadastra
@@ -67,7 +78,9 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
             className={buttonVariants({ variant: "ghost", size: "sm" })}
           >
             <Building2 aria-hidden="true" />
-            <span className="hidden sm:inline">Cadastrar Cliente</span>
+            <Texto variante="livre" como="span" className="hidden sm:inline">
+              Cadastrar Cliente
+            </Texto>
           </Link>
         )}
         {papel === "admin" && (
@@ -77,7 +90,9 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
             className={buttonVariants({ variant: "ghost" })}
           >
             <Users aria-hidden="true" />
-            <span className="hidden sm:inline">Usuários</span>
+            <Texto variante="livre" como="span" className="hidden sm:inline">
+              Usuários
+            </Texto>
           </Link>
         )}
         {/* Só o Admin: ele não tem Setor nem barra lateral na conversa e vê a Fila de qualquer
@@ -85,7 +100,9 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
         {papel === "admin" && (
           <Link href="/fila" aria-label="Fila" className={buttonVariants({ variant: "ghost" })}>
             <ListOrdered aria-hidden="true" />
-            <span className="hidden sm:inline">Fila</span>
+            <Texto variante="livre" como="span" className="hidden sm:inline">
+              Fila
+            </Texto>
           </Link>
         )}
         {/* Caminho até /admin/feriados (#72): só o Admin cadastra feriados. */}
@@ -96,7 +113,9 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
             className={buttonVariants({ variant: "ghost" })}
           >
             <CalendarOff aria-hidden="true" />
-            <span className="hidden sm:inline">Feriados</span>
+            <Texto variante="livre" como="span" className="hidden sm:inline">
+              Feriados
+            </Texto>
           </Link>
         )}
         {/* Único caminho de navegação até /perfil (#56), onde mora a troca voluntária
@@ -107,11 +126,13 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
           className={buttonVariants({ variant: "ghost" })}
         >
           <CircleUser aria-hidden="true" />
-          <span className="hidden sm:inline">Meu perfil</span>
+          <Texto variante="livre" como="span" className="hidden sm:inline">
+            Meu perfil
+          </Texto>
         </Link>
         <ThemeToggle />
         {sair}
-      </div>
-    </header>
+      </Caixa>
+    </Caixa>
   );
 }

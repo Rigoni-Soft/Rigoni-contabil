@@ -2,9 +2,11 @@ import { Plus } from "lucide-react";
 import { Controller, type Control, type FieldErrors, type UseFormRegister } from "react-hook-form";
 
 import { BotaoDeEnvio } from "@/presentation/components/atoms/botao-de-envio.component";
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { FileInput } from "@/presentation/components/atoms/file-input.component";
 import { NotaDeObrigatorio } from "@/presentation/components/atoms/nota-de-obrigatorio.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoDeArquivo } from "@/presentation/components/molecules/campo-de-arquivo.component";
 import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
@@ -83,7 +85,11 @@ export function CriarClienteForm({
         onCadastrarNovo={onCadastrarNovo}
         mensagem={
           <>
-            Cliente <strong>{criado.empresa}</strong> (CNPJ {criado.cnpj}) cadastrado.
+            Cliente{" "}
+            <Texto variante="livre" como="strong">
+              {criado.empresa}
+            </Texto>{" "}
+            (CNPJ {criado.cnpj}) cadastrado.
           </>
         }
       />
@@ -91,14 +97,14 @@ export function CriarClienteForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
+    <Caixa como="form" onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
       <NotaDeObrigatorio />
 
       {/* CNPJ primeiro (ponto 4 do feedback manual): autopreenche Empresa/Regime
           ao perder o foco, antes do resto do formulário ser preenchido à mão.
           3 colunas aproveita a largura do formulário (80% da tela, #36) em vez
           de empilhar os 3 campos de identificação numa coluna só. */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+      <Caixa className="grid grid-cols-1 gap-5 sm:grid-cols-3">
         <Controller
           control={control}
           name="cnpj"
@@ -141,14 +147,18 @@ export function CriarClienteForm({
           aviso={avisoRegime}
           {...register("regime", { onChange: onRegimeChange })}
         />
-      </div>
+      </Caixa>
 
       {/* Seção de documentos separada da identificação do Cliente — mais espaço
           acima do heading que abaixo, mesma cadência de arquitetura.md/DESIGN.md. */}
-      <div className="mt-2 flex flex-col gap-5 border-t border-border pt-6">
-        <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+      <Caixa className="mt-2 flex flex-col gap-5 border-t border-border pt-6">
+        <Texto
+          variante="livre"
+          como="h2"
+          className="text-sm font-semibold tracking-wide text-muted-foreground uppercase"
+        >
           Documentos
-        </h2>
+        </Texto>
 
         <Controller
           control={control}
@@ -167,14 +177,14 @@ export function CriarClienteForm({
           )}
         />
 
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
+        <Caixa className="flex flex-col gap-3">
+          <Caixa className="flex items-center justify-between">
             <Label>Alterações contratuais</Label>
             <Button type="button" variant="outline" size="sm" onClick={onAdicionarAlteracao}>
               <Plus aria-hidden="true" />
               Adicionar
             </Button>
-          </div>
+          </Caixa>
 
           {alteracoes.map((alteracao, indice) => (
             <LinhaDeAlteracao
@@ -203,12 +213,12 @@ export function CriarClienteForm({
               )}
             />
           ))}
-        </div>
-      </div>
+        </Caixa>
+      </Caixa>
 
       {erroServidor && <FieldError>{erroServidor}</FieldError>}
 
       <BotaoDeEnvio pendente={pendente} rotulo="Cadastrar" rotuloPendente="Cadastrando…" />
-    </form>
+    </Caixa>
   );
 }

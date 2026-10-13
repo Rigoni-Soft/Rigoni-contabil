@@ -1,7 +1,9 @@
 import { AlertTriangle, Loader2 } from "lucide-react";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Button } from "@/presentation/components/ui/button";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
@@ -19,8 +21,8 @@ type LoginFormProps = {
 
 export function LoginForm({ register, errors, onSubmit, pendente, erroServidor }: LoginFormProps) {
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
-      <div className="flex flex-col gap-1.5">
+    <Caixa como="form" onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
+      <Caixa className="flex flex-col gap-1.5">
         <Label htmlFor="email">E-mail</Label>
         <Input
           id="email"
@@ -30,9 +32,9 @@ export function LoginForm({ register, errors, onSubmit, pendente, erroServidor }
           {...register("email")}
         />
         {errors.email && <FieldError>{errors.email.message}</FieldError>}
-      </div>
+      </Caixa>
 
-      <div className="flex flex-col gap-1.5">
+      <Caixa className="flex flex-col gap-1.5">
         <Label htmlFor="senha">Senha</Label>
         <PasswordInput
           id="senha"
@@ -41,21 +43,21 @@ export function LoginForm({ register, errors, onSubmit, pendente, erroServidor }
           {...register("senha")}
         />
         {errors.senha && <FieldError>{errors.senha.message}</FieldError>}
-      </div>
+      </Caixa>
 
       {erroServidor && (
-        <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2.5">
+        <Caixa className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2.5">
           <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden="true" />
-          <p role="alert" className="text-sm text-destructive">
+          <Texto variante="livre" role="alert" className="text-sm text-destructive">
             {erroServidor}
-          </p>
-        </div>
+          </Texto>
+        </Caixa>
       )}
 
       <Button type="submit" disabled={pendente} className="w-full">
         {pendente && <Loader2 className="motion-safe:animate-spin" aria-hidden="true" />}
         {pendente ? "Entrando…" : "Entrar"}
       </Button>
-    </form>
+    </Caixa>
   );
 }

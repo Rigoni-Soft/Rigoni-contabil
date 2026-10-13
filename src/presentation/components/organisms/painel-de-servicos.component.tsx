@@ -1,6 +1,9 @@
 import { FileText } from "lucide-react";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Opcao } from "@/presentation/components/atoms/opcao.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { TituloDoGrupo } from "@/presentation/components/atoms/titulo-de-grupo.component";
 import { CampoSelect } from "@/presentation/components/molecules/campo-select.component";
 import { Button } from "@/presentation/components/ui/button";
@@ -28,13 +31,15 @@ export function PainelDeServicos({
   const alteracoes = servicos.filter((servico) => servico.grupo === "alteracao");
 
   return (
-    <div className="space-y-2">
+    <Caixa className="space-y-2">
       <TituloDoGrupo>Serviços do cliente</TituloDoGrupo>
       {semCliente ? (
-        <p className="text-xs text-muted-foreground">Sem Cliente vinculado a este número.</p>
+        <Texto variante="livre" className="text-xs text-muted-foreground">
+          Sem Cliente vinculado a este número.
+        </Texto>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-2">
+          <Caixa className="grid grid-cols-2 gap-2">
             <Button
               type="button"
               variant="outline"
@@ -59,12 +64,17 @@ export function PainelDeServicos({
                 {rotulo}
               </Button>
             ))}
-          </div>
-          <p className="text-xs text-muted-foreground">Guias e CND: em construção.</p>
+          </Caixa>
+          <Texto variante="livre" className="text-xs text-muted-foreground">
+            Guias e CND: em construção.
+          </Texto>
           {!contrato && (
-            <p className="text-xs text-muted-foreground">Contrato social não cadastrado.</p>
+            <Texto variante="livre" className="text-xs text-muted-foreground">
+              Contrato social não cadastrado.
+            </Texto>
           )}
-          <form
+          <Caixa
+            como="form"
             className="flex items-end gap-2"
             onSubmit={(evento) => {
               evento.preventDefault();
@@ -79,13 +89,13 @@ export function PainelDeServicos({
               defaultValue=""
               disabled={alteracoes.length === 0}
             >
-              <option value="" disabled>
+              <Opcao value="" disabled>
                 {alteracoes.length === 0 ? "Nenhuma cadastrada" : "Escolha a alteração"}
-              </option>
+              </Opcao>
               {alteracoes.map((alteracao) => (
-                <option key={alteracao.valor} value={alteracao.valor}>
+                <Opcao key={alteracao.valor} value={alteracao.valor}>
                   {alteracao.rotulo}
-                </option>
+                </Opcao>
               ))}
             </CampoSelect>
             <Button
@@ -97,15 +107,15 @@ export function PainelDeServicos({
             >
               Enviar
             </Button>
-          </form>
+          </Caixa>
         </>
       )}
       {enviando && (
-        <p role="status" className="text-xs text-muted-foreground">
+        <Texto variante="livre" role="status" className="text-xs text-muted-foreground">
           Enviando...
-        </p>
+        </Texto>
       )}
       {aviso && <AvisoDeStatus {...aviso} />}
-    </div>
+    </Caixa>
   );
 }

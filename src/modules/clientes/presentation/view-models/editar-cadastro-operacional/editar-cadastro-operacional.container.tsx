@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import {
   EditarCadastroOperacionalForm,
   type EditarCadastroOperacionalFormValues,
@@ -170,15 +171,15 @@ export function EditarCadastroOperacionalContainer({
   };
 
   if (!dados) {
-    return <p className="text-sm text-muted-foreground">Cliente não encontrado.</p>;
+    return <Texto variante="apoio">Cliente não encontrado.</Texto>;
   }
 
   if (!regimeTemCadastroOperacionalSn(dados.regime)) {
     return (
-      <p role="status" className="text-sm text-muted-foreground">
+      <Texto variante="apoio" role="status">
         O Cadastro operacional do Simples Nacional não se aplica ao Regime{" "}
         {REGIME_LABEL[dados.regime] ?? dados.regime}.
-      </p>
+      </Texto>
     );
   }
 

@@ -32,7 +32,9 @@ export function MensagemBalao({
         {autor}
       </Texto>
       {detalhe && <Texto variante="nota">{detalhe}</Texto>}
-      <p className="break-words whitespace-pre-wrap">{texto}</p>
+      <Texto variante="livre" className="break-words whitespace-pre-wrap">
+        {texto}
+      </Texto>
       {reacao && <ReacaoEmPilula emoji={reacao} />}
       <HoraDaMensagem hora={hora} sobrePrimario={lado === "atendente"} />
     </Balao>

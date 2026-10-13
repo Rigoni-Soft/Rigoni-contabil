@@ -1,3 +1,4 @@
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { LinkDeLinha } from "@/presentation/components/atoms/link-de-linha.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 
@@ -10,16 +11,16 @@ type LinhaDeClienteProps = {
 // Cliente em lista: leva ao cadastro operacional dele.
 export function LinhaDeCliente({ href, empresa, cnpj }: LinhaDeClienteProps) {
   return (
-    <li>
+    <Caixa como="li">
       <LinkDeLinha href={href}>
-        <div>
+        <Caixa>
           <Texto variante="destaque">{empresa}</Texto>
           <Texto variante="apoio">{cnpj}</Texto>
-        </div>
+        </Caixa>
         <Texto como="span" variante="apoio">
           Ver cadastro →
         </Texto>
       </LinkDeLinha>
-    </li>
+    </Caixa>
   );
 }

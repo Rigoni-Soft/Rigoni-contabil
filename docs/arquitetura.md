@@ -520,6 +520,8 @@ src/
 | **pages/** | `.../pages/` | Template preenchido por slots com conteúdo. Sempre Server. |
 
 - Cada nível só importa níveis abaixo. **[lint]**
+- **Só `atoms/` e `ui/` têm elemento HTML cru** (`<div>`, `<p>`, `<ul>`, `<button>`…). Molécula, organismo, template e page compõem o nível abaixo: o contêiner de layout é o átomo `Caixa`, o texto é `Texto`, a lista é `Caixa como="ul"`. Container (`*.container.tsx`) e `page.tsx` do Next seguem a mesma regra. Exceção rara e justificada: `eslint-disable` com o motivo. **[lint]**
+- Molécula é composta por 2 ou mais átomos distintos; organismo organiza átomos e moléculas; template organiza slots; page renderiza o template.
 - Todas as Views são globais (`presentation/components/`). Não existe View dentro de módulo.
 - Aliases do `components.json` (Anexo C) apontam o shadcn para `presentation/`.
 - Edição de arquivos do `ui/` é permitida para adicionar variantes (cva) ou ajustar tokens; toda edição é deliberada e registrada no PR, para não ser perdida em um `shadcn add` posterior.

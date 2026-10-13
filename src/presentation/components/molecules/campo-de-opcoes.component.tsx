@@ -1,4 +1,6 @@
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
+import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { RequiredMark } from "@/presentation/components/atoms/required-mark.component";
 import { Label } from "@/presentation/components/ui/label";
 import { Select } from "@/presentation/components/ui/select";
@@ -34,7 +36,7 @@ export function CampoDeOpcoes({
   ...props
 }: CampoDeOpcoesProps) {
   return (
-    <div className={cn("flex flex-col gap-1.5", className)}>
+    <Caixa className={cn("flex flex-col gap-1.5", className)}>
       <Label htmlFor={id}>
         {rotulo}
         {obrigatorio && <RequiredMark />}
@@ -47,18 +49,18 @@ export function CampoDeOpcoes({
         {...props}
       >
         {placeholder !== undefined && (
-          <option value="" disabled={placeholderDesabilitado}>
+          <Opcao value="" disabled={placeholderDesabilitado}>
             {placeholder}
-          </option>
+          </Opcao>
         )}
         {opcoes.map((opcao) => (
-          <option key={opcao.valor} value={opcao.valor}>
+          <Opcao key={opcao.valor} value={opcao.valor}>
             {opcao.rotulo}
-          </option>
+          </Opcao>
         ))}
       </Select>
       {erro && <FieldError>{erro}</FieldError>}
       {!erro && aviso && <FieldError>{aviso}</FieldError>}
-    </div>
+    </Caixa>
   );
 }

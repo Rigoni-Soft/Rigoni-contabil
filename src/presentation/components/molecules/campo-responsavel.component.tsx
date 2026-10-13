@@ -1,4 +1,6 @@
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
+import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { Button } from "@/presentation/components/ui/button";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
@@ -31,29 +33,29 @@ export function CampoResponsavel({
   desabilitado,
 }: CampoResponsavelProps) {
   return (
-    <div className="space-y-1">
+    <Caixa className="space-y-1">
       <Label htmlFor="responsavelId">Responsável</Label>
       {editavel ? (
         <Select id="responsavelId" disabled={desabilitado} {...select} onFocus={onAbrir}>
-          <option value="">{semResponsavel}</option>
-          {estadoLista === "carregando" && <option disabled>Carregando…</option>}
+          <Opcao value="">{semResponsavel}</Opcao>
+          {estadoLista === "carregando" && <Opcao disabled>Carregando…</Opcao>}
           {opcoes.map((opcao) => (
-            <option key={opcao.id} value={opcao.id}>
+            <Opcao key={opcao.id} value={opcao.id}>
               {opcao.nome}
-            </option>
+            </Opcao>
           ))}
         </Select>
       ) : (
         <Input id="responsavelId" value={nomeAtual} disabled readOnly />
       )}
       {estadoLista === "erro" && (
-        <div className="flex flex-wrap items-center gap-x-2">
+        <Caixa className="flex flex-wrap items-center gap-x-2">
           <FieldError>Não foi possível carregar a lista de Funcionários.</FieldError>
           <Button type="button" variant="ghost" size="sm" onClick={onTentarNovamente}>
             Tentar de novo
           </Button>
-        </div>
+        </Caixa>
       )}
-    </div>
+    </Caixa>
   );
 }

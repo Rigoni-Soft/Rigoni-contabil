@@ -1,3 +1,4 @@
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { CartaoDeAtendimento } from "@/presentation/components/molecules/cartao-de-atendimento.component";
 import { cn } from "@/presentation/lib/utils";
 
@@ -26,7 +27,8 @@ export function AtendimentosEmAndamento({ atendimentos, fila }: AtendimentosEmAn
   const filaSoEstreita = fila?.soEmTelaEstreita ?? false;
 
   return (
-    <nav
+    <Caixa
+      como="nav"
       aria-label="Atendimentos em andamento"
       aria-live="polite"
       className={cn(
@@ -38,7 +40,10 @@ export function AtendimentosEmAndamento({ atendimentos, fila }: AtendimentosEmAn
       {/* A chave inclui o sinal: a cada mensagem nova o cartão é recriado e a animação de entrada
           roda de novo, sinalizando a atualização. */}
       {fila && (
-        <div key={`${fila.id}:${fila.sinal}`} className={filaSoEstreita ? "xl:hidden" : undefined}>
+        <Caixa
+          key={`${fila.id}:${fila.sinal}`}
+          className={filaSoEstreita ? "xl:hidden" : undefined}
+        >
           <CartaoDeAtendimento
             href={fila.href}
             titulo={fila.titulo}
@@ -46,11 +51,11 @@ export function AtendimentosEmAndamento({ atendimentos, fila }: AtendimentosEmAn
             previa={fila.previa}
             aguardando={fila.aguardando}
           />
-        </div>
+        </Caixa>
       )}
       {atendimentos.map(({ id, sinal, ...atendimento }) => (
         <CartaoDeAtendimento key={`${id}:${sinal}`} {...atendimento} />
       ))}
-    </nav>
+    </Caixa>
   );
 }

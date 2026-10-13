@@ -1,3 +1,4 @@
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { LinhaDeLista } from "@/presentation/components/atoms/linha-de-lista.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 
@@ -14,7 +15,7 @@ type LinhaDeUsuarioProps = {
 export function LinhaDeUsuario({ nome, resumo, bloqueioPendente, acoes }: LinhaDeUsuarioProps) {
   return (
     <LinhaDeLista>
-      <div className="min-w-0">
+      <Caixa className="min-w-0">
         <Texto variante="destaque" className="truncate">
           {nome}
         </Texto>
@@ -26,7 +27,7 @@ export function LinhaDeUsuario({ nome, resumo, bloqueioPendente, acoes }: LinhaD
             Desativado, mas o bloqueio da conta ainda não foi concluído.
           </Texto>
         )}
-      </div>
+      </Caixa>
       {acoes}
     </LinhaDeLista>
   );

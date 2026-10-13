@@ -1,3 +1,5 @@
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { BarrasDeFatias } from "@/presentation/components/molecules/barras-de-fatias.component";
 import { DonutDeFatias } from "@/presentation/components/molecules/donut-de-fatias.component";
 import type { Fatia } from "@/presentation/lib/fatia-de-grafico";
@@ -11,11 +13,16 @@ type Props = {
 
 export function ComparativosSn({ comparativos, responsaveis, totalClientes }: Props) {
   return (
-    <section aria-labelledby="comparativos-titulo" className="space-y-4">
-      <h2 id="comparativos-titulo" className="text-lg font-semibold text-foreground">
+    <Caixa como="section" aria-labelledby="comparativos-titulo" className="space-y-4">
+      <Texto
+        variante="livre"
+        como="h2"
+        id="comparativos-titulo"
+        className="text-lg font-semibold text-foreground"
+      >
         Comparativos
-      </h2>
-      <div
+      </Texto>
+      <Caixa
         className={
           responsaveis ? "grid gap-4 md:grid-cols-2" : "grid gap-4 md:grid-cols-2 lg:grid-cols-3"
         }
@@ -37,7 +44,7 @@ export function ComparativosSn({ comparativos, responsaveis, totalClientes }: Pr
             nota="Clientes com DAS enviada, por Responsável."
           />
         )}
-      </div>
-    </section>
+      </Caixa>
+    </Caixa>
   );
 }

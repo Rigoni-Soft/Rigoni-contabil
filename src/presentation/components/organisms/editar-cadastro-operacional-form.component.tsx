@@ -3,6 +3,7 @@ import { Controller, type Control, type FieldErrors, type UseFormRegister } from
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcacao.component";
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { NotaDeObrigatorio } from "@/presentation/components/atoms/nota-de-obrigatorio.component";
 import { AcoesDoFormulario } from "@/presentation/components/molecules/acoes-do-formulario.component";
@@ -113,25 +114,26 @@ export function EditarCadastroOperacionalForm({
   onCancelar,
 }: EditarCadastroOperacionalFormProps) {
   return (
-    <form
+    <Caixa
+      como="form"
       onSubmit={onSubmit}
       className="rc-guilloche-frame space-y-6 rounded-lg border border-border bg-card p-6 shadow-sm"
     >
       {!readOnly && <NotaDeObrigatorio />}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1.5fr]">
-        <div className="space-y-1">
+      <Caixa className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1.5fr]">
+        <Caixa className="space-y-1">
           <Label>Empresa</Label>
           <Input value={cabecalho.empresa} disabled readOnly />
-        </div>
-        <div className="space-y-1">
+        </Caixa>
+        <Caixa className="space-y-1">
           <Label>CNPJ</Label>
           <Input value={cabecalho.cnpj} disabled readOnly />
-        </div>
-        <div className="space-y-1">
+        </Caixa>
+        <Caixa className="space-y-1">
           <Label>Regime</Label>
           <Input value={REGIME_LABEL[cabecalho.regime] ?? cabecalho.regime} disabled readOnly />
-        </div>
+        </Caixa>
         <CampoResponsavel
           editavel={responsavel.editavel}
           nomeAtual={responsavel.nomeAtual}
@@ -143,9 +145,13 @@ export function EditarCadastroOperacionalForm({
           select={register("responsavelId")}
           desabilitado={pendente}
         />
-      </div>
+      </Caixa>
 
-      <fieldset disabled={readOnly || pendente} className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+      <Caixa
+        como="fieldset"
+        disabled={readOnly || pendente}
+        className="grid grid-cols-1 gap-6 sm:grid-cols-2"
+      >
         <CampoDeOpcoes
           id="formaEnvio"
           rotulo="Forma de envio"
@@ -177,7 +183,7 @@ export function EditarCadastroOperacionalForm({
           {...register("dataEnvioDas")}
         />
 
-        <div className="space-y-1">
+        <Caixa className="space-y-1">
           <CaixaDeMarcacao rotulo="Tem parcelamento" {...register("temParcelamento")} />
           {temParcelamento && (
             <CampoDeOpcoes
@@ -189,18 +195,18 @@ export function EditarCadastroOperacionalForm({
               {...register("parcelamentoStatus")}
             />
           )}
-        </div>
+        </Caixa>
 
-        <div className="space-y-1">
+        <Caixa className="space-y-1">
           <Label>Atividade do mês</Label>
-          <div className="flex gap-4 text-sm">
+          <Caixa className="flex gap-4 text-sm">
             <CaixaDeMarcacao rotulo="Indústria" {...register("atividadeMes.industria")} />
             <CaixaDeMarcacao rotulo="Comércio" {...register("atividadeMes.comercio")} />
             <CaixaDeMarcacao rotulo="Serviço" {...register("atividadeMes.servico")} />
-          </div>
-        </div>
+          </Caixa>
+        </Caixa>
 
-        <div className="space-y-3 sm:col-span-2">
+        <Caixa className="space-y-3 sm:col-span-2">
           <Label className="block">Contatos</Label>
           {contatos.map((campo, indice) => (
             <Controller
@@ -233,20 +239,20 @@ export function EditarCadastroOperacionalForm({
             <Plus className="size-4" aria-hidden="true" />
             Adicionar contato
           </Button>
-        </div>
+        </Caixa>
 
-        <div className="space-y-1 sm:col-span-2">
+        <Caixa className="space-y-1 sm:col-span-2">
           <Label htmlFor="observacoesGerais">Observações gerais</Label>
           <Textarea id="observacoesGerais" {...register("observacoesGerais")} rows={4} />
-        </div>
+        </Caixa>
 
         {!readOnly && (
           <AcoesDoFormulario pendente={pendente} onLimpar={onLimpar} onCancelar={onCancelar} />
         )}
-      </fieldset>
+      </Caixa>
 
       {erroServidor && <FieldError>{erroServidor}</FieldError>}
       {sucesso && <AvisoDeStatus tipo="sucesso" texto="Cadastro operacional atualizado." />}
-    </form>
+    </Caixa>
   );
 }

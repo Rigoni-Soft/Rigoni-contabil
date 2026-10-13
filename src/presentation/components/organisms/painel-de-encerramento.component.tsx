@@ -1,4 +1,6 @@
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { TituloDoGrupo } from "@/presentation/components/atoms/titulo-de-grupo.component";
 import { Button } from "@/presentation/components/ui/button";
 
@@ -21,19 +23,19 @@ export function PainelDeEncerramento({
   aviso,
 }: PainelDeEncerramentoProps) {
   return (
-    <div className="space-y-2">
+    <Caixa className="space-y-2">
       <TituloDoGrupo>Encerrar Atendimento</TituloDoGrupo>
       {confirmando ? (
-        <div
+        <Caixa
           role="alertdialog"
           aria-label="Confirmar encerramento"
           aria-describedby="encerramento-pergunta"
           className="space-y-2"
         >
-          <p id="encerramento-pergunta" className="text-sm text-foreground">
+          <Texto variante="livre" id="encerramento-pergunta" className="text-sm text-foreground">
             O cliente será avisado de que o Atendimento foi encerrado. Encerrar agora?
-          </p>
-          <div className="flex gap-2">
+          </Texto>
+          <Caixa className="flex gap-2">
             <Button
               type="button"
               size="sm"
@@ -57,8 +59,8 @@ export function PainelDeEncerramento({
             >
               Cancelar
             </Button>
-          </div>
-        </div>
+          </Caixa>
+        </Caixa>
       ) : (
         <Button
           type="button"
@@ -71,6 +73,6 @@ export function PainelDeEncerramento({
         </Button>
       )}
       {aviso && <AvisoDeStatus {...aviso} />}
-    </div>
+    </Caixa>
   );
 }

@@ -1,4 +1,5 @@
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { MensagemBalao } from "@/presentation/components/molecules/mensagem-balao.component";
 import { SeletorDeEmoji } from "@/presentation/components/molecules/seletor-de-emoji.component";
 
@@ -37,13 +38,13 @@ type ListaDeMensagensProps = { mensagens: MensagemView[]; reacao?: ReacaoProps }
 export function ListaDeMensagens({ mensagens, reacao }: ListaDeMensagensProps) {
   return (
     // O erro de reação fica fora do rolador (col-reverse o jogaria para o topo, fora de vista).
-    <div className="flex min-h-0 flex-col gap-1.5 lg:flex-1">
-      <div
+    <Caixa className="flex min-h-0 flex-col gap-1.5 lg:flex-1">
+      <Caixa
         role="log"
         aria-label="Conversa"
         className="flex max-h-[60vh] min-h-0 flex-col-reverse overflow-y-auto rounded-xl border border-border bg-muted/50 p-3 lg:max-h-none lg:flex-1"
       >
-        <ol aria-label="Mensagens" className="flex shrink-0 flex-col gap-1.5">
+        <Caixa como="ol" aria-label="Mensagens" className="flex shrink-0 flex-col gap-1.5">
           {mensagens.map(({ id, reagivel, ...mensagem }) => {
             const aberto = reacao?.abertaId === id;
             return (
@@ -73,9 +74,9 @@ export function ListaDeMensagens({ mensagens, reacao }: ListaDeMensagensProps) {
               />
             );
           })}
-        </ol>
-      </div>
+        </Caixa>
+      </Caixa>
       {reacao?.erro && <AvisoDeStatus tipo="erro" texto={reacao.erro} />}
-    </div>
+    </Caixa>
   );
 }
