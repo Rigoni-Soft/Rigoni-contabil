@@ -28,6 +28,7 @@ import type {
 import type { ListarFilaPort } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
 import type { ListarMeusAtendimentosPort } from "@/modules/atendimento/application/ports/in/listar-meus-atendimentos.provider";
 import type { ObterConversaPort } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
+import type { ReagirAMensagemPort } from "@/modules/atendimento/application/ports/in/reagir-a-mensagem.provider";
 import type { ReceberMensagemPort } from "@/modules/atendimento/application/ports/in/receber-mensagem.provider";
 import type { TransferirAtendimentoPort } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
 import type { VerificarInatividadePort } from "@/modules/atendimento/application/ports/in/verificar-inatividade.provider";
@@ -50,6 +51,7 @@ import { ListarFeriados } from "@/modules/atendimento/application/use-cases/list
 import { ListarFila } from "@/modules/atendimento/application/use-cases/listar-fila.use-case";
 import { ListarMeusAtendimentos } from "@/modules/atendimento/application/use-cases/listar-meus-atendimentos.use-case";
 import { ObterConversa } from "@/modules/atendimento/application/use-cases/obter-conversa.use-case";
+import { ReagirAMensagem } from "@/modules/atendimento/application/use-cases/reagir-a-mensagem.use-case";
 import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/receber-mensagem.use-case";
 import { RemoverFeriado } from "@/modules/atendimento/application/use-cases/remover-feriado.use-case";
 import { TransferirAtendimento } from "@/modules/atendimento/application/use-cases/transferir-atendimento.use-case";
@@ -244,6 +246,15 @@ export async function makeEnviarDocumentoAoCliente(): Promise<EnviarDocumentoAoC
 
 export async function makeEnviarMensagemAoCliente(): Promise<EnviarMensagemAoClientePort> {
   return new EnviarMensagemAoCliente(
+    sessaoViaUsuarios(await createSupabaseServer()),
+    new SupabaseAtendimentoRepository(createSupabaseAdmin()),
+    makeEnvioMensagem(),
+    auditoriaViaModuloAuditoria(),
+  );
+}
+
+export async function makeReagirAMensagem(): Promise<ReagirAMensagemPort> {
+  return new ReagirAMensagem(
     sessaoViaUsuarios(await createSupabaseServer()),
     new SupabaseAtendimentoRepository(createSupabaseAdmin()),
     makeEnvioMensagem(),

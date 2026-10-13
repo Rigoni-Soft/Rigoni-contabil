@@ -5,6 +5,7 @@ import type {
   EnvioMensagemPort,
   MensagemEnviada,
   TemplateEnviado,
+  ReacaoEnviada,
 } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -30,6 +31,7 @@ type ParteCorpo = { to: string } & (
         components: TemplateComponents;
       };
     }
+  | { type: "reaction"; reaction: { message_id: string; emoji: string } }
 );
 type CorpoEnvioCloudApi = {
   messaging_product: "whatsapp";
@@ -92,6 +94,7 @@ export class EnvioMensagemFalsoGateway implements EnvioMensagemPort {
   readonly enviadas: MensagemEnviada[] = [];
   readonly documentosEnviados: DocumentoEnviado[] = [];
   readonly templatesEnviados: TemplateEnviado[] = [];
+  readonly reacoesEnviadas: ReacaoEnviada[] = [];
   readonly requisicoes: CorpoEnvioCloudApi[] = [];
 
   constructor(private readonly falhas: Record<string, number> = {}) {}
@@ -144,6 +147,20 @@ export class EnvioMensagemFalsoGateway implements EnvioMensagemPort {
     if (!enviado.ok) return enviado;
     this.templatesEnviados.push(template);
     console.info(`[mensageria falsa] para ${template.telefone}: template ${template.nome}`);
+    return enviado;
+  }
+
+  async reagir(reacao: ReacaoEnviada): Promise<Result<void, AppError>> {
+    const enviado = this.despachar({
+      to: reacao.telefone,
+      type: "reaction",
+      reaction: { message_id: reacao.idExterno, emoji: reacao.emoji },
+    });
+    if (!enviado.ok) return enviado;
+    this.reacoesEnviadas.push(reacao);
+    console.info(
+      `[mensageria falsa] para ${reacao.telefone}: reação ${reacao.emoji || "(removida)"}`,
+    );
     return enviado;
   }
 

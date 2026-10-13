@@ -76,6 +76,7 @@ export async function POST(request: Request): Promise<Response> {
     const resultado = await receber.execute({
       telefone: mensagem.from,
       texto: mensagem.text?.body ?? "",
+      id: mensagem.id,
     });
     if (resultado.ok) continue;
     if (resultado.error instanceof ServicoExternoError) {

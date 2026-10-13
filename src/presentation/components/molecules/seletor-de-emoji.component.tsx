@@ -1,6 +1,7 @@
 import { Smile } from "lucide-react";
 
 import { Button } from "@/presentation/components/ui/button";
+import { cn } from "@/presentation/lib/utils";
 
 const CATEGORIAS: { nome: string; emojis: [emoji: string, nome: string][] }[] = [
   {
@@ -79,6 +80,9 @@ type SeletorDeEmojiProps = {
   raizRef: React.Ref<HTMLDivElement>;
   botaoRef: React.Ref<HTMLButtonElement>;
   disabled?: boolean;
+  // Reação em balão: botão pequeno, painel para baixo e rótulo próprio.
+  rotulo?: string;
+  compacto?: boolean;
 };
 
 export function SeletorDeEmoji({
@@ -90,6 +94,8 @@ export function SeletorDeEmoji({
   raizRef,
   botaoRef,
   disabled,
+  rotulo = "Inserir emoji",
+  compacto = false,
 }: SeletorDeEmojiProps) {
   const grupos = [
     ...(recentes.length
@@ -109,21 +115,24 @@ export function SeletorDeEmoji({
         type="button"
         variant="ghost"
         size="icon"
-        className="rounded-full"
-        aria-label="Inserir emoji"
+        className={cn("rounded-full", compacto && "size-7")}
+        aria-label={rotulo}
         aria-expanded={aberto}
         aria-controls={aberto ? painelId : undefined}
         disabled={disabled}
         onClick={onAlternar}
       >
-        <Smile aria-hidden="true" className="size-6" />
+        <Smile aria-hidden="true" className={compacto ? "size-4" : "size-6"} />
       </Button>
       {aberto && (
         <div
           id={painelId}
           role="group"
-          aria-label="Emojis"
-          className="absolute bottom-full left-0 z-10 mb-2 max-h-64 w-72 space-y-2 overflow-y-auto rounded-xl border border-input bg-background p-2 shadow-md"
+          aria-label={compacto ? "Emojis da reação" : "Emojis"}
+          className={cn(
+            "absolute left-0 z-10 max-h-64 w-72 space-y-2 overflow-y-auto rounded-xl border border-input bg-background p-2 shadow-md",
+            compacto ? "top-full mt-1" : "bottom-full mb-2",
+          )}
         >
           {grupos.map((categoria) => (
             <div key={categoria.nome} role="group" aria-label={categoria.nome}>

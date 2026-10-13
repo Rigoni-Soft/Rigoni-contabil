@@ -25,7 +25,15 @@ const CONVERSA: ConversaVista = {
   contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
   clienteVinculado: true,
   mensagens: [
-    { id: "m1", autor: "contato", texto: "oi", criadoEm: "2026-10-08T15:30:00Z", atendente: null },
+    {
+      id: "m1",
+      autor: "contato",
+      texto: "oi",
+      criadoEm: "2026-10-08T15:30:00Z",
+      atendente: null,
+      reacao: null,
+      reagivel: false,
+    },
   ],
   ultimaTransferencia: null,
   ura: null,

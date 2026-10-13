@@ -160,6 +160,8 @@ export const conversaRowSchema = z.object({
       autor: z.enum(["contato", "ura", "funcionario"]),
       texto: z.string(),
       criado_em: z.string(),
+      id_externo: z.string().nullable(),
+      reacao: z.string().nullable(),
       perfis: z.object({ nome: z.string(), setor: z.enum(SETORES) }).nullable(),
     }),
   ),
@@ -170,4 +172,9 @@ export const conversaRowSchema = z.object({
       origem: z.object({ nome: z.string() }).nullable(),
     }),
   ),
+});
+export const mensagemParaReacaoRowSchema = z.object({
+  autor: z.enum(["contato", "ura", "funcionario"]),
+  id_externo: z.string().nullable(),
+  reacao: z.string().nullable(),
 });

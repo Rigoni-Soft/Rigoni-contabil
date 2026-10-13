@@ -1,4 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import { ListaDeMensagens } from "./lista-de-mensagens.component";
 
@@ -40,5 +41,56 @@ describe("ListaDeMensagens", () => {
     const itens = within(screen.getByRole("list", { name: "Mensagens" })).getAllByRole("listitem");
     expect(itens[0]).toHaveTextContent("primeira");
     expect(itens[1]).toHaveTextContent("segunda");
+  });
+});
+
+describe("ListaDeMensagens — reação (#84)", () => {
+  const REAGIVEIS = [
+    { ...MENSAGENS[0], reagivel: true, reacao: "❤️" },
+    { ...MENSAGENS[1], reagivel: false },
+  ];
+  const reacao = (extra: object = {}) => ({
+    ativa: true,
+    abertaId: null,
+    painelId: "painel",
+    raizRef: null,
+    botaoRef: null,
+    aoAlternar: jest.fn(),
+    aoEscolher: jest.fn(),
+    ...extra,
+  });
+
+  it("só a Mensagem reagível ganha o botão, e a reação aparece no balão", async () => {
+    const r = reacao();
+    const usuario = userEvent.setup();
+    render(<ListaDeMensagens mensagens={REAGIVEIS} reacao={r} />);
+
+    expect(screen.getAllByRole("button", { name: /Reagir à mensagem/ })).toHaveLength(1);
+    expect(screen.getByRole("img", { name: "Reação do escritório: ❤️" })).toBeInTheDocument();
+    await usuario.click(screen.getByRole("button", { name: "Reagir à mensagem de Maria" }));
+    expect(r.aoAlternar).toHaveBeenCalledWith("1");
+  });
+
+  it("escolher um emoji do seletor aberto reage àquela Mensagem", async () => {
+    const r = reacao({ abertaId: "1" });
+    const usuario = userEvent.setup();
+    render(<ListaDeMensagens mensagens={REAGIVEIS} reacao={r} />);
+
+    const painel = screen.getByRole("group", { name: "Emojis da reação" });
+    await usuario.click(within(painel).getByRole("button", { name: "Joinha" }));
+
+    expect(r.aoEscolher).toHaveBeenCalledWith("1", "👍");
+  });
+
+  it("conversa encerrada (ativa=false) não oferece reação, e o erro aparece", () => {
+    render(
+      <ListaDeMensagens
+        mensagens={REAGIVEIS}
+        reacao={reacao({ ativa: false, erro: "Falha ao enviar a reação." })}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: /Reagir à mensagem/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Falha ao enviar a reação.");
   });
 });

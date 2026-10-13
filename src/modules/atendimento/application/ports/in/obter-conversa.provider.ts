@@ -14,6 +14,9 @@ export type MensagemVista = {
   autor: "contato" | "ura" | "funcionario";
   texto: string;
   criadoEm: string;
+  // Reação do escritório (emoji) à Mensagem do cliente; `reagivel`: dá para reagir a ela.
+  reacao: string | null;
+  reagivel: boolean;
   // Só nas Mensagens de Funcionário.
   atendente: { nome: string; setor: SetorSlug } | null;
 };

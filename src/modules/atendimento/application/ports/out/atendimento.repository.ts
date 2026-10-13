@@ -162,6 +162,15 @@ export type MensagemLida = {
   texto: string;
   criadoEm: string;
   atendente: { nome: string; setor: SetorSlug } | null;
+  idExterno: string | null;
+  reacao: string | null;
+};
+
+// A Mensagem sobre a qual o Funcionário quer reagir.
+export type MensagemParaReacao = {
+  autor: "contato" | "ura" | "funcionario";
+  idExterno: string | null;
+  reacao: string | null;
 };
 
 // O Atendimento inteiro, em qualquer status, com as Mensagens da mais antiga à mais nova.
@@ -247,4 +256,11 @@ export interface AtendimentoRepositoryPort {
     funcionarioId: string,
     texto: string,
   ): Promise<Result<void, AppError>>;
+  // null se a Mensagem não existe neste Atendimento.
+  mensagemParaReacao(
+    atendimentoId: string,
+    mensagemId: string,
+  ): Promise<Result<MensagemParaReacao | null, AppError>>;
+  // null remove a reação.
+  registrarReacao(mensagemId: string, reacao: string | null): Promise<Result<void, AppError>>;
 }

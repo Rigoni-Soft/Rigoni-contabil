@@ -9,6 +9,7 @@ import {
   enviarDocumentoAction,
   enviarMensagemAction,
   obterConversaAction,
+  reagirAMensagemAction,
   transferirAtendimentoAction,
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.actions";
 import { filaKeys } from "@/modules/atendimento/presentation/view-models/fila/fila.keys";
@@ -96,6 +97,19 @@ export function useEnviarMensagemMutation(atendimentoId: string) {
   return useMutation({
     mutationFn: async (texto: string) => {
       const resultado = await enviarMensagemAction({ atendimentoId, texto });
+      if (!resultado.ok) throw new Error(resultado.error.message);
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: conversaKeys.conversa(atendimentoId) }),
+  });
+}
+
+export function useReagirAMensagemMutation(atendimentoId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (dados: { mensagemId: string; emoji: string }) => {
+      const resultado = await reagirAMensagemAction({ atendimentoId, ...dados });
       if (!resultado.ok) throw new Error(resultado.error.message);
     },
     onSettled: () =>

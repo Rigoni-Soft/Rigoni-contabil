@@ -1,4 +1,6 @@
+import { AvisoDeStatus } from "@/presentation/components/molecules/aviso-de-status.component";
 import { MensagemBalao } from "@/presentation/components/molecules/mensagem-balao.component";
+import { SeletorDeEmoji } from "@/presentation/components/molecules/seletor-de-emoji.component";
 
 type MensagemView = {
   id: string;
@@ -7,14 +9,28 @@ type MensagemView = {
   detalhe: string | null;
   texto: string;
   hora: string;
+  reacao?: string | null;
+  reagivel?: boolean;
 };
 
-type ListaDeMensagensProps = { mensagens: MensagemView[] };
+// Reação a Mensagens do cliente: estado, refs e envio vêm do Container.
+type ReacaoProps = {
+  ativa: boolean;
+  abertaId: string | null;
+  painelId: string;
+  raizRef: React.Ref<HTMLDivElement>;
+  botaoRef: React.Ref<HTMLButtonElement>;
+  erro?: string;
+  aoAlternar: (mensagemId: string) => void;
+  aoEscolher: (mensagemId: string, emoji: string) => void;
+};
+
+type ListaDeMensagensProps = { mensagens: MensagemView[]; reacao?: ReacaoProps };
 
 // Em tela larga é a única parte da página que rola. O rolador é col-reverse com a lista dentro em
 // ordem cronológica: o scroll nasce no fim (nas últimas mensagens) sem JavaScript e o DOM segue a
 // ordem de leitura. role="log" anuncia a mensagem nova ao leitor de tela.
-export function ListaDeMensagens({ mensagens }: ListaDeMensagensProps) {
+export function ListaDeMensagens({ mensagens, reacao }: ListaDeMensagensProps) {
   return (
     <div
       role="log"
@@ -22,10 +38,32 @@ export function ListaDeMensagens({ mensagens }: ListaDeMensagensProps) {
       className="flex max-h-[60vh] min-h-0 flex-col-reverse overflow-y-auto rounded-xl border border-border bg-muted/50 p-3 lg:max-h-none lg:flex-1"
     >
       <ol aria-label="Mensagens" className="flex shrink-0 flex-col gap-1.5">
-        {mensagens.map(({ id, ...mensagem }) => (
-          <MensagemBalao key={id} {...mensagem} />
-        ))}
+        {mensagens.map(({ id, reagivel, ...mensagem }) => {
+          const aberto = reacao?.abertaId === id;
+          return (
+            <MensagemBalao
+              key={id}
+              {...mensagem}
+              acao={
+                reacao?.ativa && reagivel ? (
+                  <SeletorDeEmoji
+                    compacto
+                    rotulo={`Reagir à mensagem de ${mensagem.autor}`}
+                    aberto={aberto}
+                    recentes={[]}
+                    painelId={reacao.painelId}
+                    raizRef={aberto ? reacao.raizRef : null}
+                    botaoRef={aberto ? reacao.botaoRef : null}
+                    onAlternar={() => reacao.aoAlternar(id)}
+                    onEscolher={(emoji) => reacao.aoEscolher(id, emoji)}
+                  />
+                ) : undefined
+              }
+            />
+          );
+        })}
       </ol>
+      {reacao?.erro && <AvisoDeStatus tipo="erro" texto={reacao.erro} />}
     </div>
   );
 }

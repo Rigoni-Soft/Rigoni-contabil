@@ -1,4 +1,6 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
+
+import { useFechaSeletor } from "@/modules/atendimento/presentation/view-models/conversa/use-fecha-seletor.hook";
 
 const CHAVE_RECENTES = "emojis-recentes";
 const MAXIMO_RECENTES = 8;
@@ -25,25 +27,9 @@ export function useSeletorDeEmoji() {
   const raiz = useRef<HTMLDivElement>(null);
   const botao = useRef<HTMLButtonElement>(null);
   const painelId = useId();
+  const fechar = useCallback(() => setAberto(false), []);
 
-  // Aberto: Esc (de qualquer foco) e clique fora fecham.
-  useEffect(() => {
-    if (!aberto) return;
-    const aoTeclar = (evento: KeyboardEvent) => {
-      if (evento.key !== "Escape") return;
-      setAberto(false);
-      botao.current?.focus();
-    };
-    const aoClicar = (evento: PointerEvent) => {
-      if (!raiz.current?.contains(evento.target as Node)) setAberto(false);
-    };
-    document.addEventListener("keydown", aoTeclar);
-    document.addEventListener("pointerdown", aoClicar);
-    return () => {
-      document.removeEventListener("keydown", aoTeclar);
-      document.removeEventListener("pointerdown", aoClicar);
-    };
-  }, [aberto]);
+  useFechaSeletor(aberto, raiz, botao, fechar);
 
   // Insere na posição do cursor (ou no lugar da seleção) e devolve o foco ao campo.
   function escolher(emoji: string) {

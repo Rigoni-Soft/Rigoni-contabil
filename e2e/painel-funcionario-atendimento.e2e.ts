@@ -51,6 +51,7 @@ test.describe("Painel do Funcionário (#49)", () => {
         atendimento_id: atendimento.data.id,
         autor: "contato",
         texto: "Preciso do contrato social",
+        id_externo: "wamid.E2E-PAINEL",
       },
       {
         atendimento_id: atendimento.data.id,
@@ -146,6 +147,32 @@ test.describe("Painel do Funcionário (#49)", () => {
 
     await expect(page.getByRole("listitem").filter({ hasText: "Recebido👍" })).toBeVisible();
     await expect(campo).toHaveValue("");
+  });
+
+  test("o Funcionário reage com emoji à mensagem do cliente e a reação aparece no balão @smoke", async ({
+    page,
+  }) => {
+    await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL("/");
+    await page
+      .getByRole("navigation", { name: "Atendimentos em andamento" })
+      .getByRole("link")
+      .click();
+
+    await page.getByRole("button", { name: "Reagir à mensagem de Dona Painel" }).click();
+    await page
+      .getByRole("group", { name: "Emojis da reação" })
+      .getByRole("button", { name: "Joinha" })
+      .click();
+
+    await expect(page.getByRole("img", { name: "Reação do escritório: 👍" })).toBeVisible();
+    // Escolher o mesmo emoji de novo remove a reação.
+    await page.getByRole("button", { name: "Reagir à mensagem de Dona Painel" }).click();
+    await page
+      .getByRole("group", { name: "Emojis da reação" })
+      .getByRole("button", { name: "Joinha" })
+      .click();
+    await expect(page.getByRole("img", { name: "Reação do escritório: 👍" })).toHaveCount(0);
   });
 
   test("mensagem nova do cliente, com o Funcionário em outra tela, aparece no dock com prévia e destaque", async ({

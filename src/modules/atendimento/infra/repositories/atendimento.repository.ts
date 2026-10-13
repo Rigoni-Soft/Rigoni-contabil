@@ -14,6 +14,7 @@ import type {
   EncerramentoPendente,
   FuncionarioDoSetor,
   ItemDaFila,
+  MensagemParaReacao,
   NovaTransferencia,
   NovoAtendimento,
   ResultadoAbertura,
@@ -35,6 +36,7 @@ import {
   filaRowSchema,
   inatividadeRowSchema,
   liderRowSchema,
+  mensagemParaReacaoRowSchema,
   posicaoRowSchema,
   roteamentoDoClienteRowSchema,
   transferenciaRowSchema,
@@ -102,6 +104,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       p_chave: chave,
       p_autor: mensagem.autor,
       p_texto: mensagem.texto,
+      p_id_externo: mensagem.idExterno ?? null,
     });
     if (error) return err(new ServicoExternoError("Falha ao registrar a Mensagem."));
     return ok({ anexada: anexoRowSchema.parse(data) });
@@ -445,7 +448,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     const { data, error } = await this.supabaseAdmin
       .from("atendimentos")
       .select(
-        "id, status, setor, funcionario_id, cliente_id, telefone, chave_telefone, resumo_ura, cnpj_informado, aviso_inatividade_em, aviso_inatividade_de, clientes(empresa, cnpj, cliente_contatos(nome, telefone, padrao, criado_em)), mensagens(id, autor, texto, criado_em, perfis(nome, setor)), transferencias(setor_origem, resumo, origem:perfis!funcionario_origem_id(nome))",
+        "id, status, setor, funcionario_id, cliente_id, telefone, chave_telefone, resumo_ura, cnpj_informado, aviso_inatividade_em, aviso_inatividade_de, clientes(empresa, cnpj, cliente_contatos(nome, telefone, padrao, criado_em)), mensagens(id, autor, texto, criado_em, id_externo, reacao, perfis(nome, setor)), transferencias(setor_origem, resumo, origem:perfis!funcionario_origem_id(nome))",
       )
       .eq("id", atendimentoId)
       .order("criado_em", { referencedTable: "mensagens" })
@@ -472,6 +475,8 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
         texto: m.texto,
         criadoEm: m.criado_em,
         atendente: m.perfis ? { nome: m.perfis.nome, setor: m.perfis.setor } : null,
+        idExterno: m.id_externo,
+        reacao: m.reacao,
       })),
       ultimaTransferencia: ultima
         ? {
@@ -505,6 +510,34 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     if (error) return err(new ServicoExternoError("Falha ao registrar a Mensagem."));
     return ok(undefined);
   }
+  async mensagemParaReacao(
+    atendimentoId: string,
+    mensagemId: string,
+  ): Promise<Result<MensagemParaReacao | null, AppError>> {
+    const { data, error } = await this.supabaseAdmin
+      .from("mensagens")
+      .select("autor, id_externo, reacao")
+      .eq("id", mensagemId)
+      .eq("atendimento_id", atendimentoId)
+      .maybeSingle();
+    if (error) return err(new ServicoExternoError("Falha ao consultar a Mensagem."));
+    if (!data) return ok(null);
+    const linha = mensagemParaReacaoRowSchema.parse(data);
+    return ok({ autor: linha.autor, idExterno: linha.id_externo, reacao: linha.reacao });
+  }
+
+  async registrarReacao(
+    mensagemId: string,
+    reacao: string | null,
+  ): Promise<Result<void, AppError>> {
+    const { error } = await this.supabaseAdmin
+      .from("mensagens")
+      .update({ reacao })
+      .eq("id", mensagemId);
+    if (error) return err(new ServicoExternoError("Falha ao registrar a reação."));
+    return ok(undefined);
+  }
+
 }
 
 type ClienteEmbutido = z.infer<typeof atendimentoDoFuncionarioRowSchema>["clientes"];

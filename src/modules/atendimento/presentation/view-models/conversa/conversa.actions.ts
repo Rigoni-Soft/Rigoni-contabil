@@ -7,6 +7,7 @@ import {
   makeEnviarDocumentoAoCliente,
   makeEnviarMensagemAoCliente,
   makeObterConversa,
+  makeReagirAMensagem,
   makeTransferirAtendimento,
 } from "@/main/atendimento.factory";
 import type { AtendimentoEncerrado } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
@@ -16,6 +17,7 @@ import {
   atendimentoIdSchema,
   enviarDocumentoSchema,
   enviarMensagemSchema,
+  reagirAMensagemSchema,
   transferirAtendimentoSchema,
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.schema";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
@@ -76,4 +78,12 @@ export async function enviarMensagemAction(input: unknown): Promise<ActionResult
 
   const enviarMensagem = await makeEnviarMensagemAoCliente();
   return toActionResult(await enviarMensagem.execute(parsed.data));
+}
+
+export async function reagirAMensagemAction(input: unknown): Promise<ActionResult<void>> {
+  const parsed = reagirAMensagemSchema.safeParse(input);
+  if (!parsed.success) return entradaInvalida(parsed.error);
+
+  const reagir = await makeReagirAMensagem();
+  return toActionResult(await reagir.execute(parsed.data));
 }

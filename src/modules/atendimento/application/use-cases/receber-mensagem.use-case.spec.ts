@@ -117,6 +117,7 @@ function montar(
       enviadas.push(m);
       return ok(undefined);
     },
+    reagir: async () => ok(undefined),
     enviarDocumento: async (d) => {
       if (opcoes.envioFalha) throw new Error("rede");
       documentosEnviados.push(d);
@@ -303,6 +304,7 @@ describe("ReceberMensagem", () => {
         },
         enviarDocumento: async () => ok(undefined),
         enviarTemplate: async () => ok(undefined),
+        reagir: async () => ok(undefined),
       },
       { listar: async () => ok([]), linkTemporario: async () => ok("x") },
       {
@@ -380,6 +382,21 @@ describe("ReceberMensagem — fora do expediente (#72)", () => {
     expect(r.ok).toBe(true);
     expect(anexadas).toEqual([{ autor: "contato", texto: "ainda aí?" }]);
     expect(enviadas).toHaveLength(0);
+  });
+
+  it("guarda o id da Mensagem no provedor ao anexar e ao abrir o Atendimento (#84)", async () => {
+    const anexo = montar({ agora: QUARTA_19H, emAndamento: true });
+    await anexo.caso.execute({ telefone: FONE, texto: "ainda aí?", id: "wamid.ANEXO" });
+    expect(anexo.anexadas).toEqual([
+      { autor: "contato", texto: "ainda aí?", idExterno: "wamid.ANEXO" },
+    ]);
+
+    const abertura = montar();
+    await abertura.caso.execute({ telefone: FONE, texto: "5", id: "wamid.ABERTURA" });
+    expect(abertura.abertos[0].mensagens[0]).toMatchObject({
+      autor: "contato",
+      idExterno: "wamid.ABERTURA",
+    });
   });
 
   it("feriado cadastrado pelo Admin fecha o expediente", async () => {

@@ -107,7 +107,8 @@ type Modo = "contrato" | "alteracoes" | "ambos";
 const MODOS: Record<string, Modo> = { "1": "contrato", "2": "alteracoes", "3": "ambos" };
 
 // `telefone` com DDI, como a mensagem chegou (resposta); `chave` só dígitos nacionais (sessão).
-type Remetente = { telefone: string; chave: string };
+// `idExterno`: id da Mensagem que o contato mandou, guardado ao abrir o Atendimento.
+type Remetente = { telefone: string; chave: string; idExterno?: string };
 type Conversa = Remetente & { contato: ContatoIdentificado };
 // O que o remetente disse, para abrir o Atendimento na recepção; `clienteId` null = número sem Contato.
 type Origem = Remetente & { textoDoContato: string; clienteId: string | null };
@@ -116,8 +117,11 @@ type Origem = Remetente & { textoDoContato: string; clienteId: string | null };
 type Encaminhamento = { resumo: string; aviso?: string; cnpj?: string };
 type Documentos = { contrato: DocumentoContratual | null; alteracoes: DocumentoContratual[] };
 
-function origemDe({ contato, telefone, chave }: Conversa, textoDoContato: string): Origem {
-  return { telefone, chave, textoDoContato, clienteId: contato.clienteId };
+function origemDe(
+  { contato, telefone, chave, idExterno }: Conversa,
+  textoDoContato: string,
+): Origem {
+  return { telefone, chave, idExterno, textoDoContato, clienteId: contato.clienteId };
 }
 
 // DDI 55 é descartado: o telefone do Contato é cadastrado só com DDD + número.
@@ -181,7 +185,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
     // ponytail: sem resposta automática, quem responde é o Funcionário (tela de atendimento do Funcionário ainda não existe).
     const anexada = await this.mensagens.execute({
       chave,
-      mensagem: { autor: "contato", texto: mensagem.texto },
+      mensagem: { autor: "contato", texto: mensagem.texto, idExterno: mensagem.id },
     });
     if (!anexada.ok) return anexada;
     if (anexada.value.anexada) return ok(undefined);
@@ -198,14 +202,25 @@ export class ReceberMensagem implements ReceberMensagemPort {
     if (contato.value === "ambiguo") {
       // Nenhum documento é oferecido: sem confirmar a empresa, a recepção decide.
       return this.encaminharRecepcao(
-        { telefone: mensagem.telefone, chave, textoDoContato: mensagem.texto, clienteId: null },
+        {
+          telefone: mensagem.telefone,
+          chave,
+          idExterno: mensagem.id,
+          textoDoContato: mensagem.texto,
+          clienteId: null,
+        },
         { resumo: RESUMO_NUMERO_AMBIGUO, aviso: NUMERO_AMBIGUO },
       );
     }
     if (!contato.value) {
       return this.identificarNovo(mensagem, chave, texto, sessao.value);
     }
-    const conversa: Conversa = { contato: contato.value, telefone: mensagem.telefone, chave };
+    const conversa: Conversa = {
+      contato: contato.value,
+      telefone: mensagem.telefone,
+      chave,
+      idExterno: mensagem.id,
+    };
     if (texto === "menu") {
       const limpa = await this.sessoes.limpar(chave);
       if (!limpa.ok) return limpa;
@@ -234,12 +249,12 @@ export class ReceberMensagem implements ReceberMensagemPort {
   // existe em nenhum cadastro tem 1 nova tentativa antes. Pedido de atendente em qualquer etapa
   // vai direto à recepção; sessão ausente/expirada/de outro fluxo ou "menu" recomeça pela pergunta.
   private async identificarNovo(
-    { telefone, texto: textoDoContato }: MensagemRecebida,
+    { telefone, texto: textoDoContato, id: idExterno }: MensagemRecebida,
     chave: string,
     texto: string,
     sessao: SessaoAtendimento | null,
   ): Promise<Result<void, AppError>> {
-    const origem: Origem = { telefone, chave, textoDoContato, clienteId: null };
+    const origem: Origem = { telefone, chave, idExterno, textoDoContato, clienteId: null };
     const etapa = texto === "menu" ? null : sessao?.etapa;
     const semAcento = texto.normalize("NFD").replace(/\p{M}/gu, "");
 
@@ -300,7 +315,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
   }
 
   private async encaminharRecepcao(
-    { telefone, chave, textoDoContato, clienteId }: Origem,
+    { telefone, chave, idExterno, textoDoContato, clienteId }: Origem,
     { resumo, aviso: textoAviso = AVISO_RECEPCAO_SEM_CADASTRO, cnpj }: Encaminhamento,
   ): Promise<Result<void, AppError>> {
     // Aviso antes de abrir: se o envio falhar e a Meta reenviar, não nasce Atendimento duplicado.
@@ -314,7 +329,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
       resumo,
       setor: "recepcao",
       mensagens: [
-        { autor: "contato", texto: textoDoContato },
+        { autor: "contato", texto: textoDoContato, idExterno },
         { autor: "ura", texto: textoAviso },
       ],
     });

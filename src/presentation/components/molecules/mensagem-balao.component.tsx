@@ -7,11 +7,22 @@ type MensagemBalaoProps = {
   detalhe: string | null;
   texto: string;
   hora: string;
+  // Reação do escritório à Mensagem do cliente (emoji) e a ação de reagir (slot do organismo).
+  reacao?: string | null;
+  acao?: React.ReactNode;
 };
 
 // Cliente à esquerda, em balão claro; URA e Funcionário, que falam em nome do escritório, à
 // direita. A hora fica dentro do balão, no canto inferior direito.
-export function MensagemBalao({ lado, autor, detalhe, texto, hora }: MensagemBalaoProps) {
+export function MensagemBalao({
+  lado,
+  autor,
+  detalhe,
+  texto,
+  hora,
+  reacao,
+  acao,
+}: MensagemBalaoProps) {
   const doCliente = lado === "contato";
   return (
     <li
@@ -29,6 +40,20 @@ export function MensagemBalao({ lado, autor, detalhe, texto, hora }: MensagemBal
       </p>
       {detalhe && <p className="text-xs text-muted-foreground">{detalhe}</p>}
       <p className="break-words whitespace-pre-wrap">{texto}</p>
+      {(reacao || acao) && (
+        <div className="mt-1 flex items-center gap-1">
+          {reacao && (
+            <span
+              role="img"
+              aria-label={`Reação do escritório: ${reacao}`}
+              className="rounded-full border border-border bg-background px-1.5 text-sm"
+            >
+              {reacao}
+            </span>
+          )}
+          {acao}
+        </div>
+      )}
       <p
         className={cn(
           "mt-0.5 text-right text-[11px]",

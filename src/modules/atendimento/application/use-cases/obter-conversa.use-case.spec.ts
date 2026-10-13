@@ -19,13 +19,23 @@ const CONVERSA: ConversaLida = {
   telefone: "5561988887777",
   contato: CONTATO,
   mensagens: [
-    { id: "m1", autor: "contato", texto: "oi", criadoEm: "2026-10-08T12:00:00Z", atendente: null },
+    {
+      id: "m1",
+      autor: "contato",
+      texto: "oi",
+      criadoEm: "2026-10-08T12:00:00Z",
+      atendente: null,
+      idExterno: "wamid.1",
+      reacao: "👍",
+    },
     {
       id: "m2",
       autor: "funcionario",
       texto: "Enviou: Contrato social",
       criadoEm: "2026-10-08T12:01:00Z",
       atendente: { nome: "Ana", setor: "contabil" },
+      idExterno: null,
+      reacao: null,
     },
   ],
   ultimaTransferencia: { setorOrigem: "recepcao", origemNome: "Ana", resumo: "Dúvida no DAS" },
@@ -72,7 +82,11 @@ describe("ObterConversa", () => {
         telefone: "5561988887777",
         contato: CONTATO,
         clienteVinculado: true,
-        mensagens: CONVERSA.mensagens,
+        // O id do provedor não vai à tela: só se a Mensagem do cliente aceita reação.
+        mensagens: [
+          { ...CONVERSA.mensagens[0], idExterno: undefined, reagivel: true },
+          { ...CONVERSA.mensagens[1], idExterno: undefined, reagivel: false },
+        ].map(({ idExterno: _, ...m }) => m),
         ultimaTransferencia: CONVERSA.ultimaTransferencia,
         ura: CONVERSA.ura,
         avisoInatividade: false,
@@ -121,6 +135,8 @@ describe("ObterConversa", () => {
             texto: "respondi",
             criadoEm: "2026-10-08T12:01:00Z",
             atendente: { nome: "Ana", setor: "contabil" as const },
+            idExterno: null,
+            reacao: null,
           },
         ],
       };

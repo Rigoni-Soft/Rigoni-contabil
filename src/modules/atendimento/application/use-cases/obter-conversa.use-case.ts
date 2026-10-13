@@ -57,7 +57,10 @@ export class ObterConversa implements ObterConversaPort {
       telefone: conversa.telefone,
       contato: conversa.contato,
       clienteVinculado: conversa.clienteId !== null,
-      mensagens: conversa.mensagens,
+      mensagens: conversa.mensagens.map(({ idExterno, ...m }) => ({
+        ...m,
+        reagivel: m.autor === "contato" && idExterno !== null,
+      })),
       ultimaTransferencia: conversa.ultimaTransferencia,
       ura: conversa.ura,
       // Só o dono é o "inativo"; Líder e Admin que abrem a conversa não são avisados.

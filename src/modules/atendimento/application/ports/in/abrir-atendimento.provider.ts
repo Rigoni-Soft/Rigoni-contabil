@@ -3,7 +3,8 @@ import type { Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
 export type AutorMensagem = "contato" | "ura" | "funcionario";
-export type NovaMensagem = { autor: AutorMensagem; texto: string };
+// `idExterno`: id da Mensagem no provedor (só a do contato), para reagir a ela depois.
+export type NovaMensagem = { autor: AutorMensagem; texto: string; idExterno?: string };
 
 // `telefone` como chegou (resposta); `chave` só dígitos nacionais (identifica o Atendimento).
 export type AberturaAtendimento = {

@@ -43,3 +43,31 @@ describe("MensagemBalao", () => {
     expect(screen.getByRole("listitem")).not.toHaveTextContent("CNPJ");
   });
 });
+
+describe("MensagemBalao — reação (#84)", () => {
+  it("mostra a reação do escritório e a ação de reagir", () => {
+    render(
+      <ul>
+        <MensagemBalao
+          {...BASE}
+          lado="contato"
+          reacao="👍"
+          acao={<button type="button">Reagir</button>}
+        />
+      </ul>,
+    );
+
+    expect(screen.getByRole("img", { name: "Reação do escritório: 👍" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reagir" })).toBeInTheDocument();
+  });
+
+  it("sem reação nem ação, não reserva espaço", () => {
+    render(
+      <ul>
+        <MensagemBalao {...BASE} lado="contato" />
+      </ul>,
+    );
+
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+});

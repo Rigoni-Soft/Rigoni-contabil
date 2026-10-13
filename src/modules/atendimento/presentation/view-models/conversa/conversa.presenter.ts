@@ -16,6 +16,9 @@ export type MensagemView = {
   detalhe: string | null;
   texto: string;
   hora: string;
+  // Reação do escritório (emoji) e se ainda dá para reagir a esta Mensagem.
+  reacao: string | null;
+  reagivel: boolean;
 };
 
 export type ConversaView = {
@@ -99,6 +102,8 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
       detalhe: m.autor === "contato" ? cnpjDoContato : null,
       texto: m.texto,
       hora: formatarHora(m.criadoEm),
+      reacao: m.reacao,
+      reagivel: m.reagivel,
     })),
     setoresDestino: conversa.setoresDestino.map((setor) => ({
       valor: setor,

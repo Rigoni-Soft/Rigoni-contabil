@@ -18,9 +18,12 @@ export type TemplateEnviado = {
   variaveis: string[];
   documento?: { url: string; nomeArquivo: string };
 };
+// `emoji` vazio remove a reação. `idExterno` é o id da Mensagem do cliente no provedor.
+export type ReacaoEnviada = { telefone: string; idExterno: string; emoji: string };
 
 export interface EnvioMensagemPort {
   enviar(mensagem: MensagemEnviada): Promise<Result<void, AppError>>;
   enviarDocumento(documento: DocumentoEnviado): Promise<Result<void, AppError>>;
   enviarTemplate(template: TemplateEnviado): Promise<Result<void, AppError>>;
+  reagir(reacao: ReacaoEnviada): Promise<Result<void, AppError>>;
 }
