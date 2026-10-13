@@ -45,7 +45,7 @@ export function ConversaTemplate({
             como="section"
             aria-label="Atendimento"
             className={cn(
-              "grid gap-4 lg:h-full lg:min-h-0",
+              "grid grid-cols-[minmax(0,1fr)] gap-4 lg:h-full lg:min-h-0",
               COLUNAS[`${fila ? "fila" : ""}${acoes ? "acoes" : ""}` as const],
             )}
           >

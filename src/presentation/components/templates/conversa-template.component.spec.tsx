@@ -34,9 +34,18 @@ describe("ConversaTemplate", () => {
   it("sem ações (encerrado) o chat ocupa a largura toda", () => {
     render(<ConversaTemplate {...SLOTS} />);
 
-    expect(screen.getByRole("region", { name: "Atendimento" }).className).not.toContain(
-      "grid-cols-",
+    // Sem Fila nem ações não há coluna extra em nenhuma largura (só a coluna única).
+    expect(screen.getByRole("region", { name: "Atendimento" }).className).not.toMatch(
+      /(sm|md|lg|xl|2xl):grid-cols-/,
     );
     expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+  });
+
+  it("em tela estreita a coluna única não cresce com palavra longa (minmax(0,1fr))", () => {
+    render(<ConversaTemplate {...SLOTS} />);
+
+    expect(screen.getByRole("region", { name: "Atendimento" })).toHaveClass(
+      "grid-cols-[minmax(0,1fr)]",
+    );
   });
 });

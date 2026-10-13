@@ -42,7 +42,7 @@ export function PainelDeServicos({
               type="button"
               variant="outline"
               size="sm"
-              className="justify-start pointer-coarse:h-11"
+              className="h-auto min-h-10 justify-start py-1.5 text-left leading-tight whitespace-normal pointer-coarse:min-h-11"
               disabled={enviando || !contrato}
               onClick={() => contrato && onEnviarServico(contrato.valor)}
             >
@@ -55,7 +55,7 @@ export function PainelDeServicos({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="justify-start pointer-coarse:h-11"
+                className="h-auto min-h-10 justify-start py-1.5 text-left leading-tight whitespace-normal pointer-coarse:min-h-11"
                 disabled
                 title="Em construção"
               >
