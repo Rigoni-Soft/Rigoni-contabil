@@ -620,7 +620,7 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   URA à direita em `bg-accent`. O balão do cliente mostra o nome do Contato
   e, abaixo, `CNPJ 00.000.000/0000-00` ou "CNPJ não definido"; o do
   atendente mostra nome e Setor. A hora fica dentro do balão, no canto
-  inferior direito, em `text-[11px]`.
+  inferior direito, em `text-xs`.
 - **Lista de mensagens** (`ListaDeMensagens`): um rolador `role="log"`
   (`aria-label="Conversa"`) em `flex-col-reverse` com o `<ol>` cronológico
   dentro — o navegador mantém a rolagem no fim (nas últimas conversas) sem
@@ -630,20 +630,27 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   Funcionário usa `opacity-90` (contraste ≥ 4,5:1 nos dois temas).
 - **Reação do escritório** (#84): o balão do cliente tem, fora dele à direita
   (`left-full`, largura reservada no `max-w`), o botão `ghost` redondo de 28 px
-  "Reagir à mensagem de <nome>" (mesmo `SeletorDeEmoji`, `compacto`). O painel
+  "Reagir à mensagem de <nome>" (mesmo `SeletorDeEmoji`, `compacto`). O glifo
+  fica em 28 px, mas a área de toque é de 44 px (`before:-inset-2`): o alvo
+  cresce sem engordar o balão. O painel
   "Emojis da reação" é `fixed` posicionado pelo botão (não é cortado pelo rolador)
   e fecha com Esc, clique fora ou rolagem. A reação aparece como pílula de emoji
-  abaixo do texto (`role="img"`, "Reação do escritório: 👍"); escolher o mesmo
-  emoji remove.
+  abaixo do texto em `text-base` (`role="img"`, "Reação do escritório: 👍");
+  escolher o mesmo emoji remove. Se a reação falhar, o erro (`role="alert"`)
+  aparece **abaixo** do rolador, não dentro dele: em `flex-col-reverse` o que
+  vem depois do `<ol>` ficaria no topo, fora de vista.
 - **Campo de resposta** (`CompositorDeMensagem`): `Textarea` arredondado +
   botão redondo de enviar (placeholder "Escreva aqui"; o nome acessível vem
-  do rótulo oculto "Mensagem ao cliente"). Enter envia, Shift+Enter quebra a linha; o campo
+  do rótulo oculto "Mensagem ao cliente"). Enter envia, Shift+Enter quebra a linha (Enter que confirma composição de
+  IME/teclado de celular não envia); o campo está em 16 px no celular
+  (`text-base sm:text-sm`) para o iOS não dar zoom ao focar; o campo
   só esvazia quando o envio dá certo (se falhar, o texto fica). À esquerda do
   campo, o botão redondo `ghost` "Inserir emoji" (`SeletorDeEmoji`, #78) abre um
   painel acima dele. Com recentes (até 8, por navegador) o painel mostra só a
   linha "Recentes" e o botão "Ver todos os emojis"; sem recentes, ou depois do
   "ver todos", as categorias Rostos, Gestos, Objetos e Símbolos. Cada emoji é um
-  botão de 40 px com nome acessível. Escolher insere na posição do cursor e devolve o foco ao campo; Esc
+  botão de 44 px com nome acessível; a linha de recentes quebra em duas
+  quando não cabe. Escolher insere na posição do cursor e devolve o foco ao campo; Esc
   (de qualquer foco) e clique fora fecham. O limite de 4096 conta caracteres como o
   WhatsApp (emoji vale 1), por isso o campo não usa `maxLength`.
 - **Painel de ações** (`PainelDeAcoes`, à direita, 19 rem; 22 rem em `2xl`):
