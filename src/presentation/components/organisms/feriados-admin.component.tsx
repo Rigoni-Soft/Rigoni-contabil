@@ -74,12 +74,12 @@ export function FeriadosAdmin({
               key={feriado.data}
               className="px-4 py-3"
             >
-              <Caixa como="span" className="text-sm">
+              <Texto como="span" variante="corpo">
                 <Texto variante="enfase" como="strong">
                   {formatarDataIso(feriado.data)}
                 </Texto>{" "}
                 — {feriado.descricao}
-              </Caixa>
+              </Texto>
               <Button
                 type="button"
                 variant="ghost"

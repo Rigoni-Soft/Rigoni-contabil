@@ -1,5 +1,5 @@
 import { BarraDeProgresso } from "@/presentation/components/atoms/barra-de-progresso.component";
-import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { CartaoDeGrafico } from "@/presentation/components/atoms/cartao-de-grafico.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { corDaFatia, type Fatia } from "@/presentation/lib/fatia-de-grafico";
@@ -28,16 +28,17 @@ export function BarrasDeFatias({
           const pct = totalClientes === 0 ? 0 : Math.min(100, (f.quantidade / totalClientes) * 100);
           return (
             <Pilha espaco={1} como="li" key={f.id}>
-              <Linha espaco={2} className="text-sm">
-                <Caixa como="span" className="truncate text-foreground" title={f.rotulo}>
+              <Linha espaco={2}>
+                <Texto como="span" variante="corpo" className="truncate" title={f.rotulo}>
                   {f.rotulo}
-                </Caixa>
-                <Caixa
+                </Texto>
+                <Texto
                   como="span"
-                  className="ml-auto shrink-0 font-semibold text-foreground tabular-nums"
+                  variante="corpo"
+                  className="ml-auto shrink-0 font-semibold tabular-nums"
                 >
                   {f.quantidade}
-                </Caixa>
+                </Texto>
               </Linha>
               <BarraDeProgresso porcentagem={pct} classe={corDaFatia(f.id).fundo} />
             </Pilha>
