@@ -230,19 +230,36 @@ describe("SupabaseAtendimentoRepository — inatividade", () => {
     // Quem encerrou já tem a reivindicação da mensagem final: outro job não a pega.
     const outroJob = await repositorio.reivindicarEncerramentosPendentes(1000);
     expect(outroJob.ok && outroJob.value.map((p) => p.atendimentoId)).not.toContain(id);
-    // Falha no envio: libera, e a próxima rodada a reivindica com o texto do histórico.
-    expect(await repositorio.liberarEncerramentoPendente(id)).toEqual({
+    // Falha no envio: libera com o token do encerramento; depois do backoff a próxima rodada a
+    // reivindica com o texto do histórico e um token novo.
+    expect(r.ok && r.value.status === "encerrado").toBe(true);
+    const tokenDoEncerramento = r.ok && r.value.status === "encerrado" ? r.value.reivindicacao : "";
+    expect(await repositorio.liberarEncerramentoPendente(id, tokenDoEncerramento)).toEqual({
       ok: true,
       value: undefined,
     });
+    await admin
+      .from("atendimentos")
+      .update({ encerramento_tentativa_em: "2000-01-01T00:00:00Z" })
+      .eq("id", id);
     const pendentes = await repositorio.reivindicarEncerramentosPendentes(1000);
     expect(pendentes.ok && pendentes.value).toContainEqual({
       atendimentoId: id,
       telefone: TELEFONES[2],
       texto: TEXTO_FINAL,
+      reivindicacao: expect.any(String),
     });
-    expect(await repositorio.confirmarEncerramentoEntregue(id)).toEqual({ ok: true, value: true });
-    await repositorio.liberarEncerramentoPendente(id);
+    const nova = pendentes.ok ? pendentes.value.find((p) => p.atendimentoId === id) : undefined;
+    expect(nova?.reivindicacao).not.toBe(tokenDoEncerramento);
+    // O token antigo (de quem perdeu a posse) não confirma; o novo sim.
+    expect(await repositorio.confirmarEncerramentoEntregue(id, tokenDoEncerramento)).toEqual({
+      ok: true,
+      value: false,
+    });
+    expect(await repositorio.confirmarEncerramentoEntregue(id, nova!.reivindicacao)).toEqual({
+      ok: true,
+      value: true,
+    });
     const depois = await repositorio.reivindicarEncerramentosPendentes(1000);
     expect(depois.ok && depois.value.map((p) => p.atendimentoId)).not.toContain(id);
   });

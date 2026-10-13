@@ -124,7 +124,18 @@ export type AtendimentoParaInatividade = {
 };
 
 // Encerramento por inatividade cuja mensagem final ainda não foi entregue ao cliente.
-export type EncerramentoPendente = { atendimentoId: string; telefone: string; texto: string };
+// `reivindicacao` é o token de posse: só quem o detém libera ou confirma.
+export type EncerramentoPendente = {
+  atendimentoId: string;
+  telefone: string;
+  texto: string;
+  reivindicacao: string;
+};
+
+// Encerrado por inatividade: já nasce com a reivindicação da própria mensagem final.
+export type ResultadoEncerramentoPorInatividade =
+  | { status: "encerrado"; proximo: AtendimentoAssumido | null; reivindicacao: string }
+  | { status: "inexistente" };
 
 export interface AtendimentoRepositoryPort {
   funcionariosDoSetor(setor: SetorSlug): Promise<Result<FuncionarioDoSetor[], AppError>>;
@@ -155,7 +166,7 @@ export interface AtendimentoRepositoryPort {
     funcionarioId: string,
     ator: { id: string; setor: SetorSlug },
     textoFinal: string,
-  ): Promise<Result<ResultadoEncerramento, AppError>>;
+  ): Promise<Result<ResultadoEncerramentoPorInatividade, AppError>>;
   paraInatividade(): Promise<Result<AtendimentoParaInatividade[], AppError>>;
   // Reserva o aviso: true só se este chamador marcou. false se já estava marcado ou se entrou
   // Mensagem depois de `vistoAte` (a decisão é de uma leitura velha; a próxima rodada reavalia).
@@ -168,10 +179,19 @@ export interface AtendimentoRepositoryPort {
   confirmarAvisoEntregue(atendimentoId: string): Promise<Result<boolean, AppError>>;
   limparAvisoInatividade(atendimentoId: string): Promise<Result<void, AppError>>;
   // Reivindica até `limite` mensagens finais não entregues: um job por vez (lease no banco; vencido,
-  // volta a ser elegível). Quem reivindica entrega e confirma, ou libera se o envio falhou.
+  // volta a ser elegível). Nunca tentadas primeiro, depois a tentativa mais antiga; quem falha espera
+  // um backoff crescente. Quem reivindica entrega e confirma, ou libera se o envio falhou, sempre
+  // com o token da reivindicação (um job cujo lease venceu não altera a posse de outro).
   reivindicarEncerramentosPendentes(
     limite: number,
   ): Promise<Result<EncerramentoPendente[], AppError>>;
-  liberarEncerramentoPendente(atendimentoId: string): Promise<Result<void, AppError>>;
-  confirmarEncerramentoEntregue(atendimentoId: string): Promise<Result<boolean, AppError>>;
+  liberarEncerramentoPendente(
+    atendimentoId: string,
+    reivindicacao: string,
+  ): Promise<Result<void, AppError>>;
+  // false se a posse já não é de quem confirma.
+  confirmarEncerramentoEntregue(
+    atendimentoId: string,
+    reivindicacao: string,
+  ): Promise<Result<boolean, AppError>>;
 }

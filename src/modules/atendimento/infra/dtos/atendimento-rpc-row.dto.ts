@@ -97,4 +97,15 @@ export const encerramentoPendenteRowSchema = z.object({
   id: z.string(),
   telefone: z.string(),
   texto: z.string().nullable(),
+  reivindicacao: z.string(),
 });
+
+// `encerrar_atendimento_por_inatividade`: o encerrado traz o token da reivindicação.
+export const encerramentoPorInatividadeRowSchema = z.discriminatedUnion("status", [
+  z.object({
+    status: z.literal("encerrado"),
+    proximo: assumidoRowSchema.nullable(),
+    reivindicacao: z.string(),
+  }),
+  z.object({ status: z.literal("inexistente") }),
+]);

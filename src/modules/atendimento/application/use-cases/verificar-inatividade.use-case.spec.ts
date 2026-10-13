@@ -2,7 +2,7 @@ import type {
   AtendimentoParaInatividade,
   AtendimentoRepositoryPort,
   EncerramentoPendente,
-  ResultadoEncerramento,
+  ResultadoEncerramentoPorInatividade,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import {
   AVISO_ENCERRAMENTO_AO_CLIENTE,
@@ -43,7 +43,7 @@ function montar(
     reservaNegada?: boolean;
     envioFalha?: boolean;
     envioFalhaDe?: string;
-    encerramento?: ResultadoEncerramento;
+    encerramento?: ResultadoEncerramentoPorInatividade;
     pendentes?: EncerramentoPendente[];
     feriadosFalha?: boolean;
   } = {},
@@ -77,15 +77,21 @@ function montar(
     },
     encerrarPorInatividade: async (...args: unknown[]) => {
       encerrados.push(args);
-      return ok(opcoes.encerramento ?? { status: "encerrado" as const, proximo: null });
+      return ok(
+        opcoes.encerramento ?? {
+          status: "encerrado" as const,
+          proximo: null,
+          reivindicacao: "tok-1",
+        },
+      );
     },
     reivindicarEncerramentosPendentes: async () => ok(opcoes.pendentes ?? []),
-    liberarEncerramentoPendente: async (id: string) => {
-      liberados.push(id);
+    liberarEncerramentoPendente: async (id: string, reivindicacao: string) => {
+      liberados.push(`${id}:${reivindicacao}`);
       return ok(undefined);
     },
-    confirmarEncerramentoEntregue: async (id: string) => {
-      confirmadosEncerramento.push(id);
+    confirmarEncerramentoEntregue: async (id: string, reivindicacao: string) => {
+      confirmadosEncerramento.push(`${id}:${reivindicacao}`);
       return ok(true);
     },
   } as unknown as AtendimentoRepositoryPort;
@@ -209,7 +215,7 @@ describe("VerificarInatividade", () => {
     const { caso, encerrados, enviados, confirmadosEncerramento } = montar(
       [a],
       sp("2026-10-07T12:10:00"),
-      { encerramento: { status: "encerrado", proximo } },
+      { encerramento: { status: "encerrado", proximo, reivindicacao: "tok-1" } },
     );
     const r = await caso.execute();
     expect(r.ok && r.value.encerrados).toBe(1);
@@ -221,7 +227,8 @@ describe("VerificarInatividade", () => {
       ["5561988887777", false],
       ["5561911112222", undefined],
     ]);
-    expect(confirmadosEncerramento).toEqual(["a1"]);
+    // Confirma com o token que o próprio encerramento reivindicou.
+    expect(confirmadosEncerramento).toEqual(["a1:tok-1"]);
   });
 
   it("aviso ao cliente reservado e nunca entregue não encerra: limpa e recomeça o ciclo", async () => {
@@ -258,7 +265,12 @@ describe("VerificarInatividade", () => {
   });
 
   it("reenvia a mensagem final de encerramento pendente, mesmo com o Atendimento encerrado", async () => {
-    const pendente = { atendimentoId: "a9", telefone: "5561900000000", texto: "Encerrado." };
+    const pendente = {
+      atendimentoId: "a9",
+      telefone: "5561900000000",
+      texto: "Encerrado.",
+      reivindicacao: "tok-9",
+    };
     const { caso, enviados, confirmadosEncerramento } = montar([], sp("2026-10-07T12:00:00"), {
       pendentes: [pendente],
     });
@@ -269,11 +281,16 @@ describe("VerificarInatividade", () => {
     expect(enviados).toEqual([
       { telefone: "5561900000000", texto: "Encerrado.", registrar: false },
     ]);
-    expect(confirmadosEncerramento).toEqual(["a9"]);
+    expect(confirmadosEncerramento).toEqual(["a9:tok-9"]);
   });
 
   it("falha ao reenviar o pendente conta falha e mantém pendente", async () => {
-    const pendente = { atendimentoId: "a9", telefone: "5561900000000", texto: "Encerrado." };
+    const pendente = {
+      atendimentoId: "a9",
+      telefone: "5561900000000",
+      texto: "Encerrado.",
+      reivindicacao: "tok-9",
+    };
     const { caso, confirmadosEncerramento, liberados } = montar([], sp("2026-10-07T12:00:00"), {
       pendentes: [pendente],
       envioFalha: true,
@@ -283,8 +300,8 @@ describe("VerificarInatividade", () => {
 
     expect(r.ok && r.value).toMatchObject({ reentregues: 0, falhas: 1 });
     expect(confirmadosEncerramento).toEqual([]);
-    // A reivindicação volta para a próxima rodada, sem esperar o lease.
-    expect(liberados).toEqual(["a9"]);
+    // A reivindicação volta para a próxima rodada, sem esperar o lease, com o token de quem a detém.
+    expect(liberados).toEqual(["a9:tok-9"]);
   });
 
   it("Atendimento fora do expediente não é tocado", async () => {

@@ -44,6 +44,16 @@ Antes de ligar em produção:
   `encerramento_reivindicado_em`); dois jobs simultâneos não enviam a mesma. Envio que falha
   libera a reivindicação; job que cai a deixa vencer o lease. Quem encerra já nasce com a
   reivindicação.
+- **Posse (revalidação 3):** a reivindicação emite um token (`encerramento_reivindicacao`);
+  `liberar_encerramento_pendente` e `confirmar_encerramento_entregue` o exigem. Um job cujo lease
+  venceu não altera a reivindicação de quem a retomou (confirmar devolve `false`). Gate para ativar
+  a mensageria real, junto da idempotência externa (#68).
+- **Rodízio e backoff (revalidação 3):** a ordem é nunca tentadas primeiro, depois a tentativa mais
+  antiga (`encerramento_tentativa_em`); quem falha vai para o fim da fila. Depois de cada tentativa a
+  mensagem só volta a ser elegível passado `1 min × 2^(tentativas − 1)`, até o teto de 6 h: um
+  destinatário que falha sempre não monopoliza os lotes nem repete a cada rodada de 5 min. Sem
+  desistência automática: a mensagem final nunca some em silêncio, e as falhas aparecem no resumo
+  do job (HTTP 500).
 - **Backlog em lotes:** cada rodada reivindica até 50 pendentes (`LOTE_REENTREGA`); o resto entra
   nas próximas rodadas (sem teto de 1.000 do PostgREST, sem perda).
 - **Limite conhecido:** se o provedor aceitar a mensagem e a confirmação no banco falhar, o envio

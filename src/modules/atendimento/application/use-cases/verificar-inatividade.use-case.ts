@@ -137,6 +137,7 @@ export class VerificarInatividade implements VerificarInatividadePort {
     // cliente fica pendente (o job a reenvia); a do próximo da Fila aparece na contagem de falhas.
     const entregue = await this.entregarEncerramento(
       atendimento.id,
+      encerrado.value.reivindicacao,
       atendimento.telefone,
       atendimento.chave,
     );
@@ -152,8 +153,10 @@ export class VerificarInatividade implements VerificarInatividadePort {
     return avisoDoProximo.ok ? ok(true) : err(avisoDoProximo.error);
   }
 
+  // `reivindicacao`: o token de posse; liberar e confirmar só valem para quem o detém.
   private async entregarEncerramento(
     atendimentoId: string,
+    reivindicacao: string,
     telefone: string,
     chave: string,
     texto = AVISO_ENCERRAMENTO_AO_CLIENTE,
@@ -162,10 +165,14 @@ export class VerificarInatividade implements VerificarInatividadePort {
     const aviso = await this.avisar.execute({ telefone, chave, texto, registrar: false });
     if (!aviso.ok) {
       // Devolve a reivindicação: a próxima rodada tenta de novo, sem esperar o lease vencer.
-      await this.repositorio.liberarEncerramentoPendente(atendimentoId);
+      await this.repositorio.liberarEncerramentoPendente(atendimentoId, reivindicacao);
       return aviso;
     }
-    const confirmado = await this.repositorio.confirmarEncerramentoEntregue(atendimentoId);
+    // false: o lease venceu e outro job tomou a posse; a entrega já saiu, e quem a tem decide.
+    const confirmado = await this.repositorio.confirmarEncerramentoEntregue(
+      atendimentoId,
+      reivindicacao,
+    );
     return confirmado.ok ? ok(undefined) : confirmado;
   }
 
@@ -180,6 +187,7 @@ export class VerificarInatividade implements VerificarInatividadePort {
     for (const pendente of pendentes.value) {
       const entregue = await this.entregarEncerramento(
         pendente.atendimentoId,
+        pendente.reivindicacao,
         pendente.telefone,
         "",
         pendente.texto,

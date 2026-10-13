@@ -201,9 +201,26 @@ describe("inatividade × concorrência (duas conexões)", () => {
     const dono = await conexao();
     const r = await dono.query(ENCERRAR, [id, funcionario, URA_ATOR_ID, SETOR, "fim"]);
     expect(r.rows[0].r.status).toBe("encerrado");
-    await admin.rpc("liberar_encerramento_pendente", { p_atendimento_id: id });
+    await admin.rpc("liberar_encerramento_pendente", {
+      p_atendimento_id: id,
+      p_reivindicacao: r.rows[0].r.reivindicacao,
+    });
+    // A tentativa de agora ficou no passado: elegível (o backoff é testado à parte).
+    await tentativaEm(id, "2000-01-01T00:00:00Z");
     return id;
   }
+
+  const tentativaEm = (id: string, quando: string, tentativas?: number) =>
+    admin
+      .from("atendimentos")
+      .update({
+        encerramento_tentativa_em: quando,
+        ...(tentativas === undefined ? {} : { encerramento_tentativas: tentativas }),
+      })
+      .eq("id", id);
+
+  const REIVINDICAR_SEM_ESPERA =
+    "select id, reivindicacao from public.reivindicar_encerramentos_pendentes($1::int, interval '10 minutes', interval '0 seconds')";
 
   const REIVINDICAR = "select id from public.reivindicar_encerramentos_pendentes($1::int)";
 
@@ -223,7 +240,7 @@ describe("inatividade × concorrência (duas conexões)", () => {
     expect(deNovo.rows.map((l) => l.id)).not.toContain(id);
     // O job que a pegou caiu: com o lease vencido (zero), outra rodada a reivindica.
     const retomada = await b.query(
-      "select id from public.reivindicar_encerramentos_pendentes(100, interval '0 seconds')",
+      "select id from public.reivindicar_encerramentos_pendentes(100, interval '0 seconds', interval '0 seconds')",
     );
     expect(retomada.rows.map((l) => l.id)).toContain(id);
   });
@@ -244,5 +261,130 @@ describe("inatividade × concorrência (duas conexões)", () => {
     }
 
     for (const id of ids) expect(vistos.filter((v) => v === id)).toHaveLength(1);
+  });
+
+  it("rodízio: quem falha de novo vai para o fim; a primeira não monopoliza o lote (limite 1)", async () => {
+    const a = await encerradoPendente("61955592001", "Func Rodizio A");
+    const b = await encerradoPendente("61955592002", "Func Rodizio B");
+    // Mais antigos que qualquer outro pendente da suíte, A antes de B.
+    await tentativaEm(a, "1999-01-01T00:00:00Z");
+    await tentativaEm(b, "1999-01-02T00:00:00Z");
+    const cliente = await conexao();
+    const falha = (id: string, reivindicacao: string) =>
+      admin.rpc("liberar_encerramento_pendente", {
+        p_atendimento_id: id,
+        p_reivindicacao: reivindicacao,
+      });
+
+    const rodada1 = await cliente.query(REIVINDICAR_SEM_ESPERA, [1]);
+    expect(rodada1.rows[0].id).toBe(a);
+    await falha(a, rodada1.rows[0].reivindicacao);
+
+    // A falhou e foi liberada: a rodada seguinte tenta B, não A de novo.
+    const rodada2 = await cliente.query(REIVINDICAR_SEM_ESPERA, [1]);
+    expect(rodada2.rows[0].id).toBe(b);
+    await falha(b, rodada2.rows[0].reivindicacao);
+
+    // As duas falharam: o rodízio volta à que esperou mais.
+    const rodada3 = await cliente.query(REIVINDICAR_SEM_ESPERA, [1]);
+    expect(rodada3.rows[0].id).toBe(a);
+    // Sucesso remove a pendência: B segue sozinha.
+    await admin.rpc("confirmar_encerramento_entregue", {
+      p_atendimento_id: a,
+      p_reivindicacao: rodada3.rows[0].reivindicacao,
+    });
+    const rodada4 = await cliente.query(REIVINDICAR_SEM_ESPERA, [1]);
+    expect(rodada4.rows[0].id).toBe(b);
+  });
+
+  it("backoff: depois de falhar, só volta a ser elegível passado o tempo, que cresce com as tentativas", async () => {
+    const id = await encerradoPendente("61955592003", "Func Backoff");
+    const cliente = await conexao();
+    const elegivel = async () =>
+      (await cliente.query(REIVINDICAR, [1000])).rows.some((l) => l.id === id);
+    const liberar = async () => {
+      const t = await admin
+        .from("atendimentos")
+        .select("encerramento_reivindicacao")
+        .eq("id", id)
+        .single();
+      await admin.rpc("liberar_encerramento_pendente", {
+        p_atendimento_id: id,
+        p_reivindicacao: t.data!.encerramento_reivindicacao,
+      });
+    };
+    const minutos = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
+
+    // 2ª tentativa (a 1ª foi a do encerramento): espera 1 min * 2^1 = 2 min.
+    await tentativaEm(id, minutos(1), 2);
+    expect(await elegivel()).toBe(false);
+    await tentativaEm(id, minutos(3), 2);
+    expect(await elegivel()).toBe(true);
+    await liberar();
+
+    // 5ª tentativa: 1 min * 2^4 = 16 min. 10 min atrás ainda não; 20 min atrás sim.
+    await tentativaEm(id, minutos(10), 5);
+    expect(await elegivel()).toBe(false);
+    await tentativaEm(id, minutos(20), 5);
+    expect(await elegivel()).toBe(true);
+    await liberar();
+
+    // Muitas tentativas: o teto de 6 h (5 h atrás não; 7 h atrás sim).
+    await tentativaEm(id, minutos(5 * 60), 30);
+    expect(await elegivel()).toBe(false);
+    await tentativaEm(id, minutos(7 * 60), 30);
+    expect(await elegivel()).toBe(true);
+  });
+
+  it("posse: o job cujo lease venceu não libera nem confirma a reivindicação de quem a retomou", async () => {
+    const id = await encerradoPendente("61955592004", "Func Posse");
+    const [a, b] = await Promise.all([conexao(), conexao()]);
+    const posse = async () =>
+      (
+        await admin
+          .from("atendimentos")
+          .select("encerramento_pendente, encerramento_reivindicacao, encerramento_reivindicado_em")
+          .eq("id", id)
+          .single()
+      ).data!;
+
+    // A reivindica ...
+    const deA = (await a.query(REIVINDICAR_SEM_ESPERA, [1000])).rows.find((l) => l.id === id);
+    expect(deA).toBeDefined();
+    // ... o lease dela vence e B retoma.
+    const deB = (
+      await b.query(
+        "select id, reivindicacao from public.reivindicar_encerramentos_pendentes(1000, interval '0 seconds', interval '0 seconds')",
+      )
+    ).rows.find((l) => l.id === id);
+    expect(deB).toBeDefined();
+    expect(deB.reivindicacao).not.toBe(deA.reivindicacao);
+
+    // A, atrasada, tenta liberar e confirmar com o token antigo: nada muda.
+    await admin.rpc("liberar_encerramento_pendente", {
+      p_atendimento_id: id,
+      p_reivindicacao: deA.reivindicacao,
+    });
+    const confirmaA = await admin.rpc("confirmar_encerramento_entregue", {
+      p_atendimento_id: id,
+      p_reivindicacao: deA.reivindicacao,
+    });
+    expect(confirmaA.data).toBe(false);
+    expect(await posse()).toMatchObject({
+      encerramento_pendente: true,
+      encerramento_reivindicacao: deB.reivindicacao,
+    });
+    expect((await posse()).encerramento_reivindicado_em).not.toBeNull();
+
+    // B confirma normalmente.
+    const confirmaB = await admin.rpc("confirmar_encerramento_entregue", {
+      p_atendimento_id: id,
+      p_reivindicacao: deB.reivindicacao,
+    });
+    expect(confirmaB.data).toBe(true);
+    expect(await posse()).toMatchObject({
+      encerramento_pendente: false,
+      encerramento_reivindicacao: null,
+    });
   });
 });

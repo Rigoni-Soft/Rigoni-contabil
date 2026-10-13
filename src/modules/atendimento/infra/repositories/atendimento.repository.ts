@@ -15,6 +15,7 @@ import type {
   NovoAtendimento,
   ResultadoAbertura,
   ResultadoEncerramento,
+  ResultadoEncerramentoPorInatividade,
   ResultadoTransferencia,
   RoteamentoDoCliente,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
@@ -24,6 +25,7 @@ import {
   anexoRowSchema,
   atendimentoEmAndamentoRowSchema,
   encerramentoPendenteRowSchema,
+  encerramentoPorInatividadeRowSchema,
   encerramentoRowSchema,
   filaRowSchema,
   inatividadeRowSchema,
@@ -230,23 +232,42 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     funcionarioId: string,
     ator: { id: string; setor: SetorSlug },
     textoFinal: string,
-  ): Promise<Result<ResultadoEncerramento, AppError>> {
-    return this.chamarEncerramento(
-      "encerrar_atendimento_por_inatividade",
-      atendimentoId,
-      funcionarioId,
-      ator,
-      { p_texto_final: textoFinal },
-    );
+  ): Promise<Result<ResultadoEncerramentoPorInatividade, AppError>> {
+    return this.chamar("encerrar_atendimento_por_inatividade", atendimentoId, funcionarioId, ator, {
+      p_texto_final: textoFinal,
+    }).then((r) => {
+      if (!r.ok) return r;
+      const linha = encerramentoPorInatividadeRowSchema.parse(r.value);
+      if (linha.status === "inexistente") return ok(linha);
+      return ok({
+        status: "encerrado" as const,
+        proximo: assumido(linha.proximo),
+        reivindicacao: linha.reivindicacao,
+      });
+    });
   }
 
   private async chamarEncerramento(
+    rpc: "encerrar_atendimento",
+    atendimentoId: string,
+    funcionarioId: string | null,
+    ator: { id: string; setor: SetorSlug },
+  ): Promise<Result<ResultadoEncerramento, AppError>> {
+    const resposta = await this.chamar(rpc, atendimentoId, funcionarioId, ator, {});
+    if (!resposta.ok) return resposta;
+    const linha = encerramentoRowSchema.parse(resposta.value);
+    if (linha.status === "inexistente") return ok(linha);
+    return ok({ status: "encerrado", proximo: assumido(linha.proximo) });
+  }
+
+  // Chamada comum das RPCs de encerramento; devolve o jsonb cru para quem a interpreta.
+  private async chamar(
     rpc: "encerrar_atendimento" | "encerrar_atendimento_por_inatividade",
     atendimentoId: string,
     funcionarioId: string | null,
     ator: { id: string; setor: SetorSlug },
-    extra: { p_texto_final?: string } = {},
-  ): Promise<Result<ResultadoEncerramento, AppError>> {
+    extra: { p_texto_final?: string },
+  ): Promise<Result<unknown, AppError>> {
     const { data, error } = await this.supabaseAdmin.rpc(rpc, {
       p_atendimento_id: atendimentoId,
       p_funcionario_id: funcionarioId,
@@ -255,9 +276,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       ...extra,
     });
     if (error) return err(new ServicoExternoError("Falha ao encerrar o Atendimento."));
-    const linha = encerramentoRowSchema.parse(data);
-    if (linha.status === "inexistente") return ok(linha);
-    return ok({ status: "encerrado", proximo: assumido(linha.proximo) });
+    return ok(data);
   }
 
   // O PostgREST corta cada resposta (1000 linhas por padrão): lê em páginas até acabar.
@@ -312,10 +331,13 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     );
   }
 
-  async confirmarEncerramentoEntregue(atendimentoId: string): Promise<Result<boolean, AppError>> {
+  async confirmarEncerramentoEntregue(
+    atendimentoId: string,
+    reivindicacao: string,
+  ): Promise<Result<boolean, AppError>> {
     return this.rpcBooleana(
       "confirmar_encerramento_entregue",
-      { p_atendimento_id: atendimentoId },
+      { p_atendimento_id: atendimentoId, p_reivindicacao: reivindicacao },
       "Falha ao confirmar a entrega do encerramento.",
     );
   }
@@ -332,14 +354,27 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     }
     return ok(
       linhas.data.flatMap((l) =>
-        l.texto ? [{ atendimentoId: l.id, telefone: l.telefone, texto: l.texto }] : [],
+        l.texto
+          ? [
+              {
+                atendimentoId: l.id,
+                telefone: l.telefone,
+                texto: l.texto,
+                reivindicacao: l.reivindicacao,
+              },
+            ]
+          : [],
       ),
     );
   }
 
-  async liberarEncerramentoPendente(atendimentoId: string): Promise<Result<void, AppError>> {
+  async liberarEncerramentoPendente(
+    atendimentoId: string,
+    reivindicacao: string,
+  ): Promise<Result<void, AppError>> {
     const { error } = await this.supabaseAdmin.rpc("liberar_encerramento_pendente", {
       p_atendimento_id: atendimentoId,
+      p_reivindicacao: reivindicacao,
     });
     if (error) return err(new ServicoExternoError("Falha ao liberar o encerramento pendente."));
     return ok(undefined);
