@@ -137,6 +137,7 @@ export const atendimentoDoFuncionarioRowSchema = z.object({
       autor: z.enum(["contato", "ura", "funcionario"]),
       texto: z.string(),
       criado_em: z.string(),
+      anexo_tipo: z.enum(["imagem", "audio", "documento"]).nullable(),
     }),
   ),
 });
@@ -162,6 +163,10 @@ export const conversaRowSchema = z.object({
       criado_em: z.string(),
       id_externo: z.string().nullable(),
       reacao: z.string().nullable(),
+      anexo_tipo: z.enum(["imagem", "audio", "documento"]).nullable(),
+      anexo_nome: z.string().nullable(),
+      anexo_caminho: z.string().nullable(),
+      anexo_tamanho: z.number().nullable(),
       perfis: z.object({ nome: z.string(), setor: z.enum(SETORES) }).nullable(),
     }),
   ),

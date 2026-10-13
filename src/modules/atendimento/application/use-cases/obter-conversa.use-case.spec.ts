@@ -1,3 +1,4 @@
+import type { AnexosAtendimentoPort } from "@/modules/atendimento/application/ports/out/anexos-atendimento.provider";
 import type {
   AtendimentoRepositoryPort,
   ConversaLida,
@@ -27,6 +28,7 @@ const CONVERSA: ConversaLida = {
       atendente: null,
       idExterno: "wamid.1",
       reacao: "👍",
+      anexo: null,
     },
     {
       id: "m2",
@@ -36,11 +38,28 @@ const CONVERSA: ConversaLida = {
       atendente: { nome: "Ana", setor: "contabil" },
       idExterno: null,
       reacao: null,
+      anexo: null,
     },
   ],
   ultimaTransferencia: { setorOrigem: "recepcao", origemNome: "Ana", resumo: "Dúvida no DAS" },
   ura: { resumo: "Quer o contrato", cnpjInformado: null },
   aviso: null,
+};
+const COM_ANEXO: ConversaLida = {
+  ...CONVERSA,
+  mensagens: [
+    ...CONVERSA.mensagens,
+    {
+      id: "m3",
+      autor: "funcionario",
+      texto: "Segue",
+      criadoEm: "2026-10-08T12:02:00Z",
+      atendente: { nome: "Ana", setor: "contabil" },
+      idExterno: null,
+      reacao: null,
+      anexo: { tipo: "imagem", nome: "foto.png", tamanho: 10, caminho: "at-1/u/foto.png" },
+    },
+  ],
 };
 const FUNCIONARIO: AtorSessaoDto = { id: "func-1", papel: "funcionario", setor: "contabil" };
 
@@ -64,13 +83,50 @@ function montar(
       ]);
     },
   } as unknown as DocumentosContratuaisPort;
+  const pedidos: string[][] = [];
+  const anexos = {
+    linksTemporarios: async (caminhos: string[]) => {
+      pedidos.push(caminhos);
+      return ok(
+        Object.fromEntries(
+          caminhos.map((c) => [c, { url: `https://link/${c}`, expiraEm: "2026-10-08T13:00:00Z" }]),
+        ),
+      );
+    },
+  } as unknown as AnexosAtendimentoPort;
   return {
     listados,
-    caso: new ObterConversa({ usuarioAtual: async () => ator }, repo, documentos),
+    pedidos,
+    caso: new ObterConversa({ usuarioAtual: async () => ator }, repo, documentos, anexos),
   };
 }
 
 describe("ObterConversa", () => {
+  it("pede os links dos anexos em lote e devolve o anexo sem o caminho", async () => {
+    const { caso, pedidos } = montar(FUNCIONARIO, COM_ANEXO);
+
+    const r = await caso.execute({ atendimentoId: "at-1" });
+
+    expect(pedidos).toEqual([["at-1/u/foto.png"]]);
+    expect(r.ok && r.value.mensagens.map((m) => m.anexo)).toEqual([
+      null,
+      null,
+      {
+        tipo: "imagem",
+        nome: "foto.png",
+        tamanho: 10,
+        url: "https://link/at-1/u/foto.png",
+        expiraEm: "2026-10-08T13:00:00Z",
+      },
+    ]);
+  });
+
+  it("sem anexo na conversa não consulta o Storage", async () => {
+    const { caso, pedidos } = montar(FUNCIONARIO);
+    await caso.execute({ atendimentoId: "at-1" });
+    expect(pedidos).toEqual([]);
+  });
+
   it("devolve a conversa com quem escreveu cada Mensagem e os serviços disponíveis, sem o caminho dos arquivos", async () => {
     const { caso, listados } = montar(FUNCIONARIO);
     const r = await caso.execute({ atendimentoId: "at-1" });
@@ -138,6 +194,7 @@ describe("ObterConversa", () => {
             atendente: { nome: "Ana", setor: "contabil" as const },
             idExterno: null,
             reacao: null,
+            anexo: null,
           },
         ],
       };

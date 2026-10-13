@@ -5,6 +5,7 @@ import type { NovaMensagem } from "@/modules/atendimento/application/ports/in/ab
 import type { AnexarMensagemOutput } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
 import type { DadosDoContato } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
 import type {
+  AnexoDaMensagem,
   AtendimentoAssumido,
   AtendimentoDoFuncionario,
   AtendimentoEmAndamento,
@@ -415,7 +416,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     const { data, error } = await this.supabaseAdmin
       .from("atendimentos")
       .select(
-        "id, telefone, chave_telefone, criado_em, clientes(empresa, cnpj, cliente_contatos(nome, telefone, padrao, criado_em)), mensagens(autor, texto, criado_em)",
+        "id, telefone, chave_telefone, criado_em, clientes(empresa, cnpj, cliente_contatos(nome, telefone, padrao, criado_em)), mensagens(autor, texto, criado_em, anexo_tipo)",
       )
       .order("criado_em", { referencedTable: "mensagens", ascending: false })
       .limit(1, { referencedTable: "mensagens" })
@@ -438,6 +439,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
                 autor: linha.mensagens[0].autor,
                 texto: linha.mensagens[0].texto,
                 criadoEm: linha.mensagens[0].criado_em,
+                anexoTipo: linha.mensagens[0].anexo_tipo,
               }
             : null,
         })),
@@ -448,7 +450,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     const { data, error } = await this.supabaseAdmin
       .from("atendimentos")
       .select(
-        "id, status, setor, funcionario_id, cliente_id, telefone, chave_telefone, resumo_ura, cnpj_informado, aviso_inatividade_em, aviso_inatividade_de, clientes(empresa, cnpj, cliente_contatos(nome, telefone, padrao, criado_em)), mensagens(id, autor, texto, criado_em, id_externo, reacao, perfis(nome, setor)), transferencias(setor_origem, resumo, origem:perfis!funcionario_origem_id(nome))",
+        "id, status, setor, funcionario_id, cliente_id, telefone, chave_telefone, resumo_ura, cnpj_informado, aviso_inatividade_em, aviso_inatividade_de, clientes(empresa, cnpj, cliente_contatos(nome, telefone, padrao, criado_em)), mensagens(id, autor, texto, criado_em, id_externo, reacao, anexo_tipo, anexo_nome, anexo_caminho, anexo_tamanho, perfis(nome, setor)), transferencias(setor_origem, resumo, origem:perfis!funcionario_origem_id(nome))",
       )
       .eq("id", atendimentoId)
       .order("criado_em", { referencedTable: "mensagens" })
@@ -477,6 +479,16 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
         atendente: m.perfis ? { nome: m.perfis.nome, setor: m.perfis.setor } : null,
         idExterno: m.id_externo,
         reacao: m.reacao,
+        // Os quatro campos nascem juntos (CHECK da tabela).
+        anexo:
+          m.anexo_tipo && m.anexo_nome && m.anexo_caminho && m.anexo_tamanho !== null
+            ? {
+                tipo: m.anexo_tipo,
+                nome: m.anexo_nome,
+                tamanho: m.anexo_tamanho,
+                caminho: m.anexo_caminho,
+              }
+            : null,
       })),
       ultimaTransferencia: ultima
         ? {
@@ -500,12 +512,19 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     atendimentoId: string,
     funcionarioId: string,
     texto: string,
+    anexo?: AnexoDaMensagem,
   ): Promise<Result<void, AppError>> {
     const { error } = await this.supabaseAdmin.from("mensagens").insert({
       atendimento_id: atendimentoId,
       autor: "funcionario",
       funcionario_id: funcionarioId,
       texto,
+      ...(anexo && {
+        anexo_tipo: anexo.tipo,
+        anexo_nome: anexo.nome,
+        anexo_caminho: anexo.caminho,
+        anexo_tamanho: anexo.tamanho,
+      }),
     });
     if (error) return err(new ServicoExternoError("Falha ao registrar a Mensagem."));
     return ok(undefined);

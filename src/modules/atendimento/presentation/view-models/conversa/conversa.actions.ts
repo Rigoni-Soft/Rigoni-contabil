@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import {
   makeEncerrarAtendimento,
+  makeEnviarAnexoAoCliente,
   makeEnviarDocumentoAoCliente,
   makeEnviarMensagemAoCliente,
   makeObterConversa,
@@ -15,6 +16,7 @@ import type { ConversaVista } from "@/modules/atendimento/application/ports/in/o
 import type { TransferenciaConcluida } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
 import {
   atendimentoIdSchema,
+  enviarAnexoSchema,
   enviarDocumentoSchema,
   enviarMensagemSchema,
   reagirAMensagemSchema,
@@ -86,4 +88,38 @@ export async function reagirAMensagemAction(input: unknown): Promise<ActionResul
 
   const reagir = await makeReagirAMensagem();
   return toActionResult(await reagir.execute(parsed.data));
+}
+
+// FormData: arquivo, `atendimentoId` e `legenda`. Sem arquivo (ou acima do limite do body, que o
+// Next recusa antes de chegar aqui) o caso de uso nem é chamado.
+export async function enviarAnexoAction(formData: FormData): Promise<ActionResult<void>> {
+  const parsed = enviarAnexoSchema.safeParse({
+    atendimentoId: formData.get("atendimentoId"),
+    legenda: formData.get("legenda") ?? undefined,
+  });
+  if (!parsed.success) return entradaInvalida(parsed.error);
+  const arquivo = formData.get("arquivo");
+  if (!(arquivo instanceof File)) {
+    return {
+      ok: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Escolha o arquivo.",
+        fields: { arquivo: ["Obrigatório"] },
+      },
+    };
+  }
+
+  const enviarAnexo = await makeEnviarAnexoAoCliente();
+  return toActionResult(
+    await enviarAnexo.execute({
+      atendimentoId: parsed.data.atendimentoId,
+      legenda: parsed.data.legenda,
+      arquivo: {
+        nome: arquivo.name,
+        tipoMime: arquivo.type,
+        conteudo: new Uint8Array(await arquivo.arrayBuffer()),
+      },
+    }),
+  );
 }

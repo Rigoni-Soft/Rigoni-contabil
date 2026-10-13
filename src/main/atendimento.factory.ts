@@ -18,6 +18,7 @@ import { createSupabaseServer } from "@/main/supabase-server.factory";
 import type { AutenticarWebhookPort } from "@/modules/atendimento/application/ports/in/autenticar-webhook.provider";
 import type { AvisarClientePort } from "@/modules/atendimento/application/ports/in/avisar-cliente.provider";
 import type { EncerrarAtendimentoPort } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
+import type { EnviarAnexoAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-anexo-ao-cliente.provider";
 import type { EnviarDocumentoAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-documento-ao-cliente.provider";
 import type { EnviarMensagemAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-mensagem-ao-cliente.provider";
 import type {
@@ -45,6 +46,7 @@ import { AutenticarWebhook } from "@/modules/atendimento/application/use-cases/a
 import { AvisarCliente } from "@/modules/atendimento/application/use-cases/avisar-cliente.use-case";
 import { CadastrarFeriado } from "@/modules/atendimento/application/use-cases/cadastrar-feriado.use-case";
 import { EncerrarAtendimento } from "@/modules/atendimento/application/use-cases/encerrar-atendimento.use-case";
+import { EnviarAnexoAoCliente } from "@/modules/atendimento/application/use-cases/enviar-anexo-ao-cliente.use-case";
 import { EnviarDocumentoAoCliente } from "@/modules/atendimento/application/use-cases/enviar-documento-ao-cliente.use-case";
 import { EnviarMensagemAoCliente } from "@/modules/atendimento/application/use-cases/enviar-mensagem-ao-cliente.use-case";
 import { ListarFeriados } from "@/modules/atendimento/application/use-cases/listar-feriados.use-case";
@@ -61,6 +63,7 @@ import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/
 import { GuiasFiscaisGateway } from "@/modules/atendimento/infra/gateways/guias-fiscais.gateway";
 import { HmacAutenticacaoWebhookGateway } from "@/modules/atendimento/infra/gateways/hmac-autenticacao-webhook.gateway";
 import { RelogioSistemaGateway } from "@/modules/atendimento/infra/gateways/relogio-sistema.gateway";
+import { SupabaseAnexosAtendimentoGateway } from "@/modules/atendimento/infra/gateways/supabase-anexos-atendimento.gateway";
 import { SupabaseClienteCnpjGateway } from "@/modules/atendimento/infra/gateways/supabase-cliente-cnpj.gateway";
 import { SupabaseDocumentosContratuaisGateway } from "@/modules/atendimento/infra/gateways/supabase-documentos-contratuais.gateway";
 import { SupabaseIdentificacaoContatoGateway } from "@/modules/atendimento/infra/gateways/supabase-identificacao-contato.gateway";
@@ -230,6 +233,18 @@ export async function makeObterConversa(): Promise<ObterConversaPort> {
     sessaoViaUsuarios(await createSupabaseServer()),
     new SupabaseAtendimentoRepository(supabaseAdmin),
     new SupabaseDocumentosContratuaisGateway(supabaseAdmin),
+    new SupabaseAnexosAtendimentoGateway(supabaseAdmin),
+  );
+}
+
+export async function makeEnviarAnexoAoCliente(): Promise<EnviarAnexoAoClientePort> {
+  const supabaseAdmin = createSupabaseAdmin();
+  return new EnviarAnexoAoCliente(
+    sessaoViaUsuarios(await createSupabaseServer()),
+    new SupabaseAtendimentoRepository(supabaseAdmin),
+    new SupabaseAnexosAtendimentoGateway(supabaseAdmin),
+    makeEnvioMensagem(),
+    auditoriaViaModuloAuditoria(),
   );
 }
 

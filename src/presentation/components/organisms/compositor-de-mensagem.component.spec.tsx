@@ -20,6 +20,9 @@ const BASE = {
   enviadas: 0,
   campoRef: null,
   seletor: SELETOR,
+  aceitar: "image/png,application/pdf",
+  onAnexar: jest.fn(),
+  onRemoverAnexo: jest.fn(),
 };
 
 describe("CompositorDeMensagem", () => {
@@ -121,5 +124,80 @@ describe("CompositorDeMensagem — seletor de emoji", () => {
       "aria-expanded",
       "false",
     );
+  });
+});
+
+describe("CompositorDeMensagem — anexo", () => {
+  const PDF = new File(["%PDF"], "balanco.pdf", { type: "application/pdf" });
+  const ANEXO = { nome: "balanco.pdf", tamanho: "1,5 KB", miniaturaUrl: null };
+
+  it("o clipe entrega o arquivo escolhido no seletor do sistema", async () => {
+    const aoAnexar = jest.fn();
+    const usuario = userEvent.setup();
+    render(<CompositorDeMensagem {...BASE} onAnexar={aoAnexar} />);
+
+    await usuario.upload(screen.getByLabelText("Anexar arquivo"), PDF);
+
+    expect(aoAnexar).toHaveBeenCalledWith(PDF);
+  });
+
+  it("arrastar e soltar um arquivo sobre o campo o anexa", () => {
+    const aoAnexar = jest.fn();
+    render(<CompositorDeMensagem {...BASE} onAnexar={aoAnexar} />);
+
+    fireEvent.drop(screen.getByLabelText("Mensagem ao cliente").closest("form")!, {
+      dataTransfer: { files: [PDF] },
+    });
+
+    expect(aoAnexar).toHaveBeenCalledWith(PDF);
+  });
+
+  it("colar uma imagem (Ctrl+V) a anexa; colar texto não", () => {
+    const aoAnexar = jest.fn();
+    const imagem = new File(["x"], "print.png", { type: "image/png" });
+    render(<CompositorDeMensagem {...BASE} onAnexar={aoAnexar} />);
+    const campo = screen.getByLabelText("Mensagem ao cliente");
+
+    fireEvent.paste(campo, { clipboardData: { files: [imagem] } });
+    expect(aoAnexar).toHaveBeenCalledWith(imagem);
+
+    aoAnexar.mockClear();
+    fireEvent.paste(campo, { clipboardData: { files: [] } });
+    expect(aoAnexar).not.toHaveBeenCalled();
+  });
+
+  it("mostra a prévia com nome e tamanho, e remover chama o callback", async () => {
+    const aoRemover = jest.fn();
+    const usuario = userEvent.setup();
+    render(<CompositorDeMensagem {...BASE} anexo={ANEXO} onRemoverAnexo={aoRemover} />);
+
+    expect(screen.getByText("balanco.pdf")).toBeInTheDocument();
+    expect(screen.getByText("1,5 KB")).toBeInTheDocument();
+    await usuario.click(screen.getByRole("button", { name: "Remover balanco.pdf" }));
+
+    expect(aoRemover).toHaveBeenCalled();
+  });
+
+  it("com anexo o texto vira legenda opcional e o envio sai sem texto", async () => {
+    const aoEnviar = jest.fn();
+    const usuario = userEvent.setup();
+    render(<CompositorDeMensagem {...BASE} anexo={ANEXO} onEnviar={aoEnviar} />);
+
+    expect(screen.getByLabelText("Mensagem ao cliente")).not.toBeRequired();
+    expect(screen.getByLabelText("Mensagem ao cliente")).toHaveAttribute(
+      "placeholder",
+      "Legenda (opcional)",
+    );
+    await usuario.click(screen.getByRole("button", { name: "Enviar arquivo" }));
+
+    expect(aoEnviar).toHaveBeenCalledWith("");
+  });
+
+  it("imagem escolhida mostra a miniatura", () => {
+    const { container } = render(
+      <CompositorDeMensagem {...BASE} anexo={{ ...ANEXO, miniaturaUrl: "blob:abc" }} />,
+    );
+
+    expect(container.querySelector('img[src="blob:abc"]')).toBeInTheDocument();
   });
 });

@@ -1,0 +1,227 @@
+import type { AnexosAtendimentoPort } from "@/modules/atendimento/application/ports/out/anexos-atendimento.provider";
+import type {
+  AtendimentoEmAndamento,
+  AtendimentoRepositoryPort,
+} from "@/modules/atendimento/application/ports/out/atendimento.repository";
+import type { AuditoriaPort } from "@/modules/atendimento/application/ports/out/auditoria.provider";
+import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
+import type { AtorSessaoDto } from "@/modules/atendimento/application/ports/out/sessao.provider";
+import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
+import { ANEXO_TAMANHO_MAXIMO } from "@/shared/kernel/anexo";
+import { err, ok } from "@/shared/kernel/result";
+
+import { EnviarAnexoAoCliente } from "./enviar-anexo-ao-cliente.use-case";
+
+const ATENDIMENTO: AtendimentoEmAndamento = {
+  id: "at-1",
+  clienteId: "cli-1",
+  setor: "contabil",
+  funcionarioId: "func-1",
+  telefone: "5561988887777",
+  chave: "61988887777",
+  emAvisoDeInatividade: false,
+};
+const FUNCIONARIO: AtorSessaoDto = { id: "func-1", papel: "funcionario", setor: "contabil" };
+const PDF = { nome: "balanco.pdf", tipoMime: "application/pdf", conteudo: new Uint8Array(2048) };
+const FOTO = { nome: "foto.png", tipoMime: "image/png", conteudo: new Uint8Array(10) };
+
+type Opcoes = {
+  ator?: AtorSessaoDto | null;
+  atendimento?: AtendimentoEmAndamento | null;
+  falhaGuardar?: boolean;
+  falhaEnvio?: boolean;
+  falhaRegistro?: boolean;
+};
+
+function montar({
+  ator = FUNCIONARIO,
+  atendimento = ATENDIMENTO,
+  falhaGuardar = false,
+  falhaEnvio = false,
+  falhaRegistro = false,
+}: Opcoes = {}) {
+  const guardados: unknown[] = [];
+  const removidos: string[] = [];
+  const enviados: unknown[] = [];
+  const registradas: unknown[] = [];
+  const auditadas: unknown[] = [];
+  const repo = {
+    buscarEmAndamento: async () => ok(atendimento),
+    registrarMensagemDoFuncionario: async (...args: unknown[]) => {
+      registradas.push(args);
+      return falhaRegistro ? err(new ServicoExternoError("banco")) : ok(undefined);
+    },
+  } as unknown as AtendimentoRepositoryPort;
+  const anexos: AnexosAtendimentoPort = {
+    guardar: async (entrada) => {
+      guardados.push(entrada);
+      return falhaGuardar
+        ? err(new ServicoExternoError("storage"))
+        : ok(`at-1/${entrada.arquivo.nome}`);
+    },
+    linksTemporarios: async (caminhos) =>
+      ok(
+        Object.fromEntries(
+          caminhos.map((c) => [c, { url: `https://link/${c}`, expiraEm: "2026-10-14T13:00:00Z" }]),
+        ),
+      ),
+    remover: async (caminho) => {
+      removidos.push(caminho);
+      return ok(undefined);
+    },
+  };
+  const envio = {
+    enviarAnexo: async (a: unknown) => {
+      enviados.push(a);
+      return falhaEnvio ? err(new ServicoExternoError("meta")) : ok(undefined);
+    },
+  } as unknown as EnvioMensagemPort;
+  const auditoria: AuditoriaPort = { registrar: async (a) => void auditadas.push(a) };
+  return {
+    guardados,
+    removidos,
+    enviados,
+    registradas,
+    auditadas,
+    caso: new EnviarAnexoAoCliente(
+      { usuarioAtual: async () => ator },
+      repo,
+      anexos,
+      envio,
+      auditoria,
+    ),
+  };
+}
+
+describe("EnviarAnexoAoCliente", () => {
+  it("guarda o arquivo, entrega pelo link temporário e registra a Mensagem com a legenda", async () => {
+    const { caso, guardados, enviados, registradas, auditadas } = montar();
+
+    const r = await caso.execute({ atendimentoId: "at-1", arquivo: PDF, legenda: "  Segue  " });
+
+    expect(r.ok).toBe(true);
+    expect(guardados).toEqual([{ atendimentoId: "at-1", arquivo: PDF }]);
+    expect(enviados).toEqual([
+      {
+        telefone: "5561988887777",
+        tipo: "documento",
+        url: "https://link/at-1/balanco.pdf",
+        nomeArquivo: "balanco.pdf",
+        legenda: "Segue",
+      },
+    ]);
+    expect(registradas).toEqual([
+      [
+        "at-1",
+        "func-1",
+        "Segue",
+        { tipo: "documento", nome: "balanco.pdf", tamanho: 2048, caminho: "at-1/balanco.pdf" },
+      ],
+    ]);
+    expect(auditadas).toEqual([
+      {
+        ator: "func-1",
+        setor: "contabil",
+        acao: "atendimento.enviar_anexo",
+        alvo: "at-1",
+        resultado: "sucesso",
+      },
+    ]);
+  });
+
+  it("imagem vai como imagem e a legenda é opcional", async () => {
+    const { caso, enviados, registradas } = montar();
+
+    const r = await caso.execute({ atendimentoId: "at-1", arquivo: FOTO });
+
+    expect(r.ok).toBe(true);
+    expect(enviados).toEqual([expect.objectContaining({ tipo: "imagem", legenda: undefined })]);
+    expect(registradas).toEqual([
+      ["at-1", "func-1", "", expect.objectContaining({ tipo: "imagem" })],
+    ]);
+  });
+
+  it.each([
+    ["tipo não aceito", { ...PDF, nome: "x.svg", tipoMime: "image/svg+xml" }, undefined],
+    ["arquivo vazio", { ...PDF, conteudo: new Uint8Array(0) }, undefined],
+    [
+      "maior que o limite",
+      { ...PDF, conteudo: new Uint8Array(ANEXO_TAMANHO_MAXIMO + 1) },
+      undefined,
+    ],
+    ["legenda longa demais", PDF, "x".repeat(1025)],
+  ])("recusa %s sem guardar nem enviar", async (_, arquivo, legenda) => {
+    const { caso, guardados, enviados } = montar();
+
+    const r = await caso.execute({ atendimentoId: "at-1", arquivo, legenda });
+
+    expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
+    expect(guardados).toEqual([]);
+    expect(enviados).toEqual([]);
+  });
+
+  it("aceita exatamente o tamanho máximo", async () => {
+    const { caso } = montar();
+    const r = await caso.execute({
+      atendimentoId: "at-1",
+      arquivo: { ...PDF, conteudo: new Uint8Array(ANEXO_TAMANHO_MAXIMO) },
+    });
+    expect(r.ok).toBe(true);
+  });
+
+  it("o Líder do Setor envia; outro Funcionário não", async () => {
+    const outro = montar({ ator: { ...FUNCIONARIO, id: "func-2" } });
+    const negado = await outro.caso.execute({ atendimentoId: "at-1", arquivo: PDF });
+    expect(!negado.ok && negado.error.code).toBe("FORBIDDEN");
+    expect(outro.guardados).toEqual([]);
+
+    const lider = montar({ ator: { id: "lid", papel: "lider_setor", setor: "contabil" } });
+    expect((await lider.caso.execute({ atendimentoId: "at-1", arquivo: PDF })).ok).toBe(true);
+  });
+
+  it("recusa sem sessão e Atendimento que não está em andamento", async () => {
+    const semSessao = await montar({ ator: null }).caso.execute({
+      atendimentoId: "at-1",
+      arquivo: PDF,
+    });
+    expect(!semSessao.ok && semSessao.error.code).toBe("FORBIDDEN");
+
+    const inexistente = await montar({ atendimento: null }).caso.execute({
+      atendimentoId: "at-1",
+      arquivo: PDF,
+    });
+    expect(!inexistente.ok && inexistente.error.code).toBe("NOT_FOUND");
+  });
+
+  it("falha do envio remove o arquivo e não registra Mensagem", async () => {
+    const { caso, removidos, registradas, auditadas } = montar({ falhaEnvio: true });
+
+    const r = await caso.execute({ atendimentoId: "at-1", arquivo: PDF });
+
+    expect(r.ok).toBe(false);
+    expect(removidos).toEqual(["at-1/balanco.pdf"]);
+    expect(registradas).toEqual([]);
+    expect(auditadas).toEqual([expect.objectContaining({ resultado: "falha" })]);
+  });
+
+  it("falha ao guardar não envia nem registra", async () => {
+    const { caso, enviados, registradas, auditadas } = montar({ falhaGuardar: true });
+
+    const r = await caso.execute({ atendimentoId: "at-1", arquivo: PDF });
+
+    expect(r.ok).toBe(false);
+    expect(enviados).toEqual([]);
+    expect(registradas).toEqual([]);
+    expect(auditadas).toEqual([expect.objectContaining({ resultado: "falha" })]);
+  });
+
+  it("entregue mas não registrada é estado inconsistente, e o arquivo fica (o cliente já recebeu)", async () => {
+    const { caso, removidos, auditadas } = montar({ falhaRegistro: true });
+
+    const r = await caso.execute({ atendimentoId: "at-1", arquivo: PDF });
+
+    expect(!r.ok && r.error.code).toBe("INCONSISTENT_STATE");
+    expect(removidos).toEqual([]);
+    expect(auditadas).toEqual([expect.objectContaining({ resultado: "sucesso" })]);
+  });
+});

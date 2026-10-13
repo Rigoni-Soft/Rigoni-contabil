@@ -15,10 +15,15 @@ export type AtendimentoEmAndamentoView = {
 
 const PREVIA_TAMANHO = 60;
 const AUTOR_DA_PREVIA = { contato: "", funcionario: "Você: ", ura: "URA: " } as const;
+const ROTULO_DO_ANEXO = { imagem: "Imagem", audio: "Áudio", documento: "Arquivo" } as const;
 
 function previaDe(mensagem: AtendimentoVisto["ultimaMensagem"]): string | null {
   if (!mensagem) return null;
-  const texto = mensagem.texto.replace(/\s+/g, " ").trim();
+  // Mídia: o tipo no lugar do texto; a legenda, se houver, segue depois.
+  const legenda = mensagem.texto.replace(/\s+/g, " ").trim();
+  const texto = mensagem.anexoTipo
+    ? [ROTULO_DO_ANEXO[mensagem.anexoTipo], legenda].filter(Boolean).join(": ")
+    : legenda;
   // Por ponto de código: cortar em UTF-16 partiria o par substituto de um emoji.
   const letras = [...texto];
   const curto =

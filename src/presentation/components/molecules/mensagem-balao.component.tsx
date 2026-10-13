@@ -1,5 +1,6 @@
 import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
+import { AnexoDaMensagem } from "@/presentation/components/molecules/anexo-da-mensagem.component";
 import { cn } from "@/presentation/lib/utils";
 
 type MensagemBalaoProps = {
@@ -12,6 +13,8 @@ type MensagemBalaoProps = {
   // Reação do escritório à Mensagem do cliente (emoji) e a ação de reagir (slot do organismo).
   reacao?: string | null;
   acao?: React.ReactNode;
+  // Imagem ou arquivo enviado junto; `texto` passa a ser a legenda (pode vir vazia).
+  anexo?: React.ComponentProps<typeof AnexoDaMensagem> | null;
 };
 
 // Cliente à esquerda, em balão claro; URA e Funcionário, que falam em nome do escritório, à direita.
@@ -30,6 +33,7 @@ export function MensagemBalao({
   hora,
   reacao,
   acao,
+  anexo,
 }: MensagemBalaoProps) {
   return (
     <Caixa
@@ -45,9 +49,12 @@ export function MensagemBalao({
         {autor}
       </Texto>
       {detalhe && <Texto variante="nota">{detalhe}</Texto>}
-      <Caixa como="p" className="break-words whitespace-pre-wrap">
-        {texto}
-      </Caixa>
+      {anexo && <AnexoDaMensagem {...anexo} />}
+      {texto && (
+        <Caixa como="p" className="break-words whitespace-pre-wrap">
+          {texto}
+        </Caixa>
+      )}
       {reacao && (
         <Caixa
           como="span"

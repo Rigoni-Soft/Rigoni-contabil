@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type {
+  AnexoEnviado,
   DocumentoEnviado,
   EnvioMensagemPort,
   MensagemEnviada,
@@ -22,7 +23,12 @@ type TemplateComponents = (
 )[];
 type ParteCorpo = { to: string } & (
   | { type: "text"; text: { body: string } }
-  | { type: "document"; document: ({ link: string } | { id: string }) & { filename: string } }
+  | {
+      type: "document";
+      document: ({ link: string } | { id: string }) & { filename: string; caption?: string };
+    }
+  | { type: "image"; image: { link: string; caption?: string } }
+  | { type: "audio"; audio: { link: string } }
   | {
       type: "template";
       template: {
@@ -94,6 +100,7 @@ export class EnvioMensagemFalsoGateway implements EnvioMensagemPort {
   readonly enviadas: MensagemEnviada[] = [];
   readonly documentosEnviados: DocumentoEnviado[] = [];
   readonly templatesEnviados: TemplateEnviado[] = [];
+  readonly anexosEnviados: AnexoEnviado[] = [];
   readonly reacoesEnviadas: ReacaoEnviada[] = [];
   readonly requisicoes: CorpoEnvioCloudApi[] = [];
 
@@ -147,6 +154,27 @@ export class EnvioMensagemFalsoGateway implements EnvioMensagemPort {
     if (!enviado.ok) return enviado;
     this.templatesEnviados.push(template);
     console.info(`[mensageria falsa] para ${template.telefone}: template ${template.nome}`);
+    return enviado;
+  }
+
+  async enviarAnexo(anexo: AnexoEnviado): Promise<Result<void, AppError>> {
+    const { telefone, url, nomeArquivo, legenda } = anexo;
+    // Áudio não tem legenda na Cloud API; imagem e documento têm `caption`.
+    const caption = legenda ? { caption: legenda } : {};
+    const enviado = this.despachar(
+      anexo.tipo === "imagem"
+        ? { to: telefone, type: "image", image: { link: url, ...caption } }
+        : anexo.tipo === "audio"
+          ? { to: telefone, type: "audio", audio: { link: url } }
+          : {
+              to: telefone,
+              type: "document",
+              document: { link: url, filename: nomeArquivo, ...caption },
+            },
+    );
+    if (!enviado.ok) return enviado;
+    this.anexosEnviados.push(anexo);
+    console.info(`[mensageria falsa] para ${telefone}: ${anexo.tipo} ${nomeArquivo}`);
     return enviado;
   }
 

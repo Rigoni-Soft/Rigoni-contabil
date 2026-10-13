@@ -12,6 +12,12 @@ type MensagemView = {
   hora: string;
   reacao?: string | null;
   reagivel?: boolean;
+  anexo?: {
+    tipo: "imagem" | "audio" | "documento";
+    nome: string;
+    tamanho: string;
+    url: string;
+  } | null;
 };
 
 // Reação a Mensagens do cliente: estado, refs e envio vêm do Container.
@@ -30,27 +36,42 @@ type ReacaoProps = {
   aoEscolher: (mensagemId: string, emoji: string) => void;
 };
 
-type ListaDeMensagensProps = { mensagens: MensagemView[]; reacao?: ReacaoProps };
+type ListaDeMensagensProps = {
+  mensagens: MensagemView[];
+  reacao?: ReacaoProps;
+  // Arquivo solto sobre a conversa (arrastar e soltar); sem ele a lista não aceita soltar.
+  aoSoltar?: (arquivo: File) => void;
+};
 
 // Em tela larga é a única parte da página que rola. O rolador é col-reverse com a lista dentro em
 // ordem cronológica: o scroll nasce no fim (nas últimas mensagens) sem JavaScript e o DOM segue a
 // ordem de leitura. role="log" anuncia a mensagem nova ao leitor de tela.
-export function ListaDeMensagens({ mensagens, reacao }: ListaDeMensagensProps) {
+export function ListaDeMensagens({ mensagens, reacao, aoSoltar }: ListaDeMensagensProps) {
   return (
     // O erro de reação fica fora do rolador (col-reverse o jogaria para o topo, fora de vista).
     <Pilha espaco="campo" className="min-h-0 lg:flex-1">
       <Linha
         role="log"
         aria-label="Conversa"
+        onDragOver={aoSoltar && ((evento) => evento.preventDefault())}
+        onDrop={
+          aoSoltar &&
+          ((evento) => {
+            evento.preventDefault();
+            const arquivo = evento.dataTransfer.files[0];
+            if (arquivo) aoSoltar(arquivo);
+          })
+        }
         className="max-h-[60vh] min-h-0 flex-col-reverse overflow-y-auto rounded-xl border border-border bg-muted/50 p-3 lg:max-h-none lg:flex-1"
       >
         <Pilha espaco="campo" como="ol" aria-label="Mensagens" className="shrink-0">
-          {mensagens.map(({ id, reagivel, ...mensagem }) => {
+          {mensagens.map(({ id, reagivel, anexo, ...mensagem }) => {
             const aberto = reacao?.abertaId === id;
             return (
               <MensagemBalao
                 key={id}
                 {...mensagem}
+                anexo={anexo && { ...anexo, painelId: `anexo-${id}` }}
                 acao={
                   reacao?.ativa && reagivel ? (
                     <SeletorDeEmoji

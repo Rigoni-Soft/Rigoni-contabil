@@ -15,6 +15,7 @@ jest.mock("../meus-atendimentos/meus-atendimentos.actions", () => ({
 }));
 
 jest.mock("./conversa.actions", () => ({
+  enviarAnexoAction: jest.fn(),
   enviarDocumentoAction: jest.fn(),
   enviarMensagemAction: jest.fn(),
   obterConversaAction: jest.fn(),
@@ -39,6 +40,7 @@ const CONVERSA: ConversaVista = {
       atendente: null,
       reacao: null,
       reagivel: false,
+      anexo: null,
     },
   ],
   ultimaTransferencia: null,

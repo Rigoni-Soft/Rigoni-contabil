@@ -149,6 +149,81 @@ test.describe("Painel do Funcionário (#49)", () => {
     await expect(campo).toHaveValue("");
   });
 
+  test("o Funcionário envia uma imagem e um PDF ao cliente pelo clipe e os anexos viram balão @smoke", async ({
+    page,
+  }) => {
+    await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL("/");
+    await page
+      .getByRole("navigation", { name: "Atendimentos em andamento" })
+      .getByRole("link")
+      .click();
+
+    const campo = page.getByLabel("Mensagem ao cliente");
+    const clipe = page.getByLabel("Anexar arquivo");
+
+    // Imagem: a prévia mostra o arquivo, o texto digitado vira a legenda e o campo esvazia.
+    await clipe.setInputFiles({
+      name: "foto-fachada.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+        "base64",
+      ),
+    });
+    await expect(page.getByRole("button", { name: "Remover foto-fachada.png" })).toBeVisible();
+    await campo.fill("Foto da fachada");
+    await page.getByRole("button", { name: "Enviar arquivo" }).click();
+
+    const balaoDaImagem = page.getByRole("listitem").filter({ hasText: "Foto da fachada" });
+    await expect(
+      balaoDaImagem.getByRole("button", { name: "Ampliar foto-fachada.png" }),
+    ).toBeVisible();
+    await expect(balaoDaImagem).toContainText("Segundo Funcionário Financeiro · Financeiro");
+    await expect(page.getByRole("button", { name: "Remover foto-fachada.png" })).toHaveCount(0);
+    await expect(campo).toHaveValue("");
+
+    // PDF sem legenda: balão com nome, tamanho e link para baixar.
+    await clipe.setInputFiles({
+      name: "balanco-setembro.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from("%PDF-1.4 %%EOF"),
+    });
+    await page.getByRole("button", { name: "Enviar arquivo" }).click();
+
+    const link = page.getByRole("link", { name: /balanco-setembro\.pdf/ });
+    await expect(link).toBeVisible();
+    await expect(link).toContainText("Baixar");
+
+    // Tipo não aceito é recusado com mensagem clara e nada é anexado.
+    await clipe.setInputFiles({
+      name: "script.html",
+      mimeType: "text/html",
+      buffer: Buffer.from("<script>alert(1)</script>"),
+    });
+    await expect(page.getByText("Tipo de arquivo não aceito")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Remover script.html" })).toHaveCount(0);
+
+    // Limpa o que o teste criou: os balões com mídia alongam a conversa e os testes seguintes
+    // (reação, dock) a esperam curta; o Storage não fica com os arquivos de teste.
+    const anexos = await admin
+      .from("mensagens")
+      .select("id, anexo_caminho, atendimentos!inner(cliente_id)")
+      .eq("atendimentos.cliente_id", CLIENTE)
+      .not("anexo_tipo", "is", null);
+    if (anexos.error) throw anexos.error;
+    await admin.storage
+      .from("anexos-atendimento")
+      .remove(anexos.data.map((m) => m.anexo_caminho as string));
+    await admin
+      .from("mensagens")
+      .delete()
+      .in(
+        "id",
+        anexos.data.map((m) => m.id),
+      );
+  });
+
   test("o Funcionário reage com emoji à mensagem do cliente e a reação aparece no balão @smoke", async ({
     page,
   }) => {

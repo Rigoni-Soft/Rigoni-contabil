@@ -2,6 +2,7 @@ import { useCallback, useId, useRef, useState } from "react";
 
 import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import { useReagirAMensagemMutation } from "@/modules/atendimento/presentation/view-models/conversa/conversa.queries";
+import { useAnexoPendente } from "@/modules/atendimento/presentation/view-models/conversa/use-anexo-pendente.hook";
 import { useConversa } from "@/modules/atendimento/presentation/view-models/conversa/use-conversa.hook";
 import { useEmojisRecentes } from "@/modules/atendimento/presentation/view-models/conversa/use-emojis-recentes.hook";
 import { useFechaSeletor } from "@/modules/atendimento/presentation/view-models/conversa/use-fecha-seletor.hook";
@@ -22,6 +23,7 @@ function posicaoDoPainel(botao: DOMRect): React.CSSProperties {
 export function useMensagensConversa(atendimentoId: string, initialData: ConversaVista) {
   const { conversa, transferido } = useConversa(atendimentoId, initialData);
   const reagir = useReagirAMensagemMutation(atendimentoId);
+  const pendente = useAnexoPendente(atendimentoId);
   // Um seletor aberto por vez: guarda de qual Mensagem e onde o painel fica.
   const [aberta, setAberta] = useState<{ id: string; estilo: React.CSSProperties } | null>(null);
   const [completo, setCompleto] = useState(false);
@@ -34,6 +36,9 @@ export function useMensagensConversa(atendimentoId: string, initialData: Convers
 
   return {
     mensagens: conversa.mensagens,
+    // Soltar um arquivo sobre a conversa o põe no campo de resposta; encerrado ou transferido não.
+    aoSoltar:
+      !conversa.encerrado && !transferido ? (arquivo: File) => pendente.anexar(arquivo) : undefined,
     reacao: {
       // Encerrado ou transferido: a conversa não é mais do usuário.
       ativa: !conversa.encerrado && !transferido,

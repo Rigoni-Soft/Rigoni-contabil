@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { ListaDeMensagens } from "./lista-de-mensagens.component";
@@ -107,5 +107,19 @@ describe("ListaDeMensagens — reação (#84)", () => {
 
     expect(within(screen.getByRole("log")).queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.getByRole("alert")).toBeInTheDocument();
+  });
+
+  it("soltar um arquivo sobre a conversa o repassa; sem aoSoltar não aceita", () => {
+    const aoSoltar = jest.fn();
+    const arquivo = new File(["x"], "a.pdf", { type: "application/pdf" });
+    const { rerender } = render(<ListaDeMensagens mensagens={[]} aoSoltar={aoSoltar} />);
+
+    fireEvent.drop(screen.getByRole("log"), { dataTransfer: { files: [arquivo] } });
+    expect(aoSoltar).toHaveBeenCalledWith(arquivo);
+
+    aoSoltar.mockClear();
+    rerender(<ListaDeMensagens mensagens={[]} />);
+    fireEvent.drop(screen.getByRole("log"), { dataTransfer: { files: [arquivo] } });
+    expect(aoSoltar).not.toHaveBeenCalled();
   });
 });

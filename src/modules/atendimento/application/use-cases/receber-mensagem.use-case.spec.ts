@@ -118,6 +118,7 @@ function montar(
       return ok(undefined);
     },
     reagir: async () => ok(undefined),
+    enviarAnexo: async () => ok(undefined),
     enviarDocumento: async (d) => {
       if (opcoes.envioFalha) throw new Error("rede");
       documentosEnviados.push(d);
@@ -304,6 +305,7 @@ describe("ReceberMensagem", () => {
         },
         enviarDocumento: async () => ok(undefined),
         enviarTemplate: async () => ok(undefined),
+        enviarAnexo: async () => ok(undefined),
         reagir: async () => ok(undefined),
       },
       { listar: async () => ok([]), linkTemporario: async () => ok("x") },

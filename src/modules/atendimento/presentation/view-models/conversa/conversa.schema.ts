@@ -55,3 +55,10 @@ export const reagirAMensagemSchema = z.object({
   mensagemId: z.guid("Mensagem inválida."),
   emoji: z.string().trim().refine(emojiValido, "Escolha um emoji."),
 });
+
+// O arquivo chega em FormData: aqui só o que vem em texto. Tipo e tamanho do arquivo o caso de uso
+// confere (a fonte da verdade é o servidor).
+export const enviarAnexoSchema = z.object({
+  atendimentoId: atendimentoIdSchema,
+  legenda: z.string().optional(),
+});

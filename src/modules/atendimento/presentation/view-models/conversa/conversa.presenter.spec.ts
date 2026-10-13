@@ -1,6 +1,11 @@
 import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 
-import { conversaParaView, documentoDaOpcao } from "./conversa.presenter";
+import {
+  conversaParaView,
+  documentoDaOpcao,
+  formatarTamanho,
+  reaproveitarLinks,
+} from "./conversa.presenter";
 
 const CONVERSA: ConversaVista = {
   atendimentoId: "at-1",
@@ -17,6 +22,7 @@ const CONVERSA: ConversaVista = {
       atendente: null,
       reacao: null,
       reagivel: false,
+      anexo: null,
     },
     {
       id: "2",
@@ -26,6 +32,7 @@ const CONVERSA: ConversaVista = {
       atendente: null,
       reacao: null,
       reagivel: false,
+      anexo: null,
     },
     {
       id: "3",
@@ -35,6 +42,7 @@ const CONVERSA: ConversaVista = {
       atendente: { nome: "Ana", setor: "simples_nacional" },
       reacao: null,
       reagivel: false,
+      anexo: null,
     },
   ],
   ultimaTransferencia: null,
@@ -67,6 +75,7 @@ describe("conversaParaView", () => {
         hora: "08/10 12:30",
         reacao: null,
         reagivel: false,
+        anexo: null,
       },
       {
         id: "2",
@@ -77,6 +86,7 @@ describe("conversaParaView", () => {
         hora: "08/10 12:31",
         reacao: null,
         reagivel: false,
+        anexo: null,
       },
       {
         id: "3",
@@ -87,6 +97,7 @@ describe("conversaParaView", () => {
         hora: "08/10 12:32",
         reacao: null,
         reagivel: false,
+        anexo: null,
       },
     ]);
   });
@@ -181,5 +192,60 @@ describe("documentoDaOpcao", () => {
       tipo: "alteracao",
       data: "2026-03-01",
     });
+  });
+});
+
+describe("anexo na conversa", () => {
+  const AGORA = Date.parse("2026-10-14T12:00:00Z");
+  const comAnexo = (url: string, expiraEm: string): ConversaVista => ({
+    ...CONVERSA,
+    mensagens: [
+      {
+        ...CONVERSA.mensagens[2],
+        texto: "Segue",
+        anexo: { tipo: "documento", nome: "balanco.pdf", tamanho: 1536, url, expiraEm },
+      },
+    ],
+  });
+
+  it("formata o tamanho em B, KB e MB", () => {
+    expect(formatarTamanho(512)).toBe("512 B");
+    expect(formatarTamanho(1536)).toBe("1,5 KB");
+    expect(formatarTamanho(10 * 1024 * 1024)).toBe("10 MB");
+  });
+
+  it("mostra o anexo com nome, tamanho e link no balão", () => {
+    const view = conversaParaView(comAnexo("https://l/1", "2026-10-14T13:00:00Z"));
+    expect(view.mensagens[0].anexo).toEqual({
+      tipo: "documento",
+      nome: "balanco.pdf",
+      tamanho: "1,5 KB",
+      url: "https://l/1",
+    });
+  });
+
+  it("reaproveita o link da leitura anterior enquanto falta tempo para expirar", () => {
+    const anterior = comAnexo("https://l/velho", "2026-10-14T12:30:00Z");
+    const nova = comAnexo("https://l/novo", "2026-10-14T13:00:00Z");
+
+    const r = reaproveitarLinks(nova, anterior, AGORA);
+
+    expect(r.mensagens[0].anexo).toMatchObject({
+      url: "https://l/velho",
+      expiraEm: "2026-10-14T12:30:00Z",
+    });
+  });
+
+  it("troca pelo link novo quando o antigo está perto de expirar", () => {
+    const anterior = comAnexo("https://l/velho", "2026-10-14T12:04:00Z");
+    const nova = comAnexo("https://l/novo", "2026-10-14T13:00:00Z");
+
+    expect(reaproveitarLinks(nova, anterior, AGORA).mensagens[0].anexo?.url).toBe("https://l/novo");
+  });
+
+  it("sem leitura anterior ou com anexo novo, fica o link recebido", () => {
+    const nova = comAnexo("https://l/novo", "2026-10-14T13:00:00Z");
+    expect(reaproveitarLinks(nova, undefined, AGORA)).toBe(nova);
+    expect(reaproveitarLinks(nova, CONVERSA, AGORA).mensagens[0].anexo?.url).toBe("https://l/novo");
   });
 });

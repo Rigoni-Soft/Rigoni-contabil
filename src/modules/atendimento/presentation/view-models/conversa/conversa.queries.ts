@@ -6,16 +6,22 @@ import type {
 } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import {
   encerrarAtendimentoAction,
+  enviarAnexoAction,
   enviarDocumentoAction,
   enviarMensagemAction,
   obterConversaAction,
   reagirAMensagemAction,
   transferirAtendimentoAction,
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.actions";
+import { reaproveitarLinks } from "@/modules/atendimento/presentation/view-models/conversa/conversa.presenter";
 import { filaKeys } from "@/modules/atendimento/presentation/view-models/fila/fila.queries";
 import { meusAtendimentosKeys } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.queries";
 
 export const conversaKeys = {
+  // Arquivo escolhido e ainda não enviado: o campo de resposta e a conversa (onde se solta o
+  // arquivo) são regiões diferentes e compartilham o estado pelo cache.
+  anexoPendente: (atendimentoId: string) =>
+    ["atendimento", "anexo-pendente", atendimentoId] as const,
   conversa: (atendimentoId: string) => ["atendimento", "conversa", atendimentoId] as const,
   transferencia: (atendimentoId: string) => ["atendimento", "transferir", atendimentoId] as const,
 };
@@ -26,12 +32,19 @@ const INTERVALO_MS = 5_000;
 
 // `ativa` falso depois de transferida: a conversa deixa de ser do usuário, não há o que atualizar.
 export function useConversaQuery(atendimentoId: string, initialData: ConversaVista, ativa = true) {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: conversaKeys.conversa(atendimentoId),
     queryFn: async () => {
       const resultado = await obterConversaAction(atendimentoId);
       if (!resultado.ok) throw new Error(resultado.error.message);
-      return resultado.data;
+      // Links de anexo já obtidos continuam valendo: as imagens não recarregam a cada leitura.
+      return reaproveitarLinks(
+        resultado.data,
+        queryClient.getQueryData<ConversaVista>(conversaKeys.conversa(atendimentoId)),
+        Date.now(),
+      );
     },
     initialData,
     staleTime: INTERVALO_MS,
@@ -97,6 +110,23 @@ export function useEnviarMensagemMutation(atendimentoId: string) {
   return useMutation({
     mutationFn: async (texto: string) => {
       const resultado = await enviarMensagemAction({ atendimentoId, texto });
+      if (!resultado.ok) throw new Error(resultado.error.message);
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: conversaKeys.conversa(atendimentoId) }),
+  });
+}
+
+export function useEnviarAnexoMutation(atendimentoId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ arquivo, legenda }: { arquivo: File; legenda: string }) => {
+      const dados = new FormData();
+      dados.set("atendimentoId", atendimentoId);
+      dados.set("arquivo", arquivo);
+      dados.set("legenda", legenda);
+      const resultado = await enviarAnexoAction(dados);
       if (!resultado.ok) throw new Error(resultado.error.message);
     },
     onSettled: () =>

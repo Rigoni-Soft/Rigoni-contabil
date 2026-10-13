@@ -15,7 +15,15 @@ const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: 
 const repositorio = new SupabaseAtendimentoRepository(admin);
 
 const SETOR = "condominios" as const;
-const TELEFONES = ["61955571001", "61955571002", "61955571003", "61955571004", "61955571005"];
+const TELEFONES = [
+  "61955571001",
+  "61955571002",
+  "61955571003",
+  "61955571004",
+  "61955571005",
+  "61955571006",
+  "61955571007",
+];
 const clienteId = crypto.randomUUID();
 const CNPJ = `8${Date.now()}`.slice(0, 14);
 const usuarios: string[] = [];
@@ -102,6 +110,7 @@ describe("SupabaseAtendimentoRepository — painel do Funcionário", () => {
             autor: "ura",
             texto: "Já vamos te atender",
             criadoEm: expect.any(String),
+            anexoTipo: null,
           },
         },
       ],
@@ -186,6 +195,45 @@ describe("SupabaseAtendimentoRepository — painel do Funcionário", () => {
       resumo: "Quer abrir uma empresa",
       cnpjInformado: "11444777000161",
     });
+  });
+
+  it("Mensagem com anexo guarda legenda e anexo (#79): a conversa e a lista do dock os trazem", async () => {
+    const fabi = await criarFuncionario("Fabi Painel 79");
+    const id = await abrir(TELEFONES[5], fabi, null);
+    const anexo = {
+      tipo: "documento" as const,
+      nome: "balanço.pdf",
+      tamanho: 2048,
+      caminho: `${id}/u/balanco.pdf`,
+    };
+
+    const gravada = await repositorio.registrarMensagemDoFuncionario(id, fabi, "Segue", anexo);
+    expect(gravada.ok).toBe(true);
+
+    const conversa = await repositorio.conversa(id);
+    expect(conversa.ok && conversa.value?.mensagens.at(-1)).toEqual(
+      expect.objectContaining({ autor: "funcionario", texto: "Segue", anexo }),
+    );
+    expect(conversa.ok && conversa.value?.mensagens[0].anexo).toBeNull();
+    const lista = await repositorio.emAndamentoDoFuncionario(fabi);
+    expect(lista.ok && lista.value[0].ultimaMensagem).toEqual(
+      expect.objectContaining({ texto: "Segue", anexoTipo: "documento" }),
+    );
+  });
+
+  it("o banco recusa anexo incompleto (os quatro campos nascem juntos)", async () => {
+    const gil = await criarFuncionario("Gil Painel 79");
+    const id = await abrir(TELEFONES[6], gil, null);
+
+    const { error } = await admin.from("mensagens").insert({
+      atendimento_id: id,
+      autor: "funcionario",
+      funcionario_id: gil,
+      texto: "",
+      anexo_tipo: "imagem",
+    });
+
+    expect(error?.message).toMatch(/mensagens_anexo_completo/);
   });
 
   it("Atendimento inexistente não é encontrado", async () => {

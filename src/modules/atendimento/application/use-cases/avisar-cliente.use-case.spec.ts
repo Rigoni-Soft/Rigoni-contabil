@@ -25,6 +25,7 @@ function montar(opcoes: { envioFalha?: boolean | "excecao"; registroFalha?: bool
       },
       enviarDocumento: async () => ok(undefined),
       enviarTemplate: async () => ok(undefined),
+      enviarAnexo: async () => ok(undefined),
       reagir: async () => ok(undefined),
     },
     repo,

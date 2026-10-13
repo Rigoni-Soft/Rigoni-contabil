@@ -13,6 +13,7 @@ jest.mock("../meus-atendimentos/meus-atendimentos.actions", () => ({
 }));
 
 jest.mock("./conversa.actions", () => ({
+  enviarAnexoAction: jest.fn(),
   enviarDocumentoAction: jest.fn(),
   enviarMensagemAction: jest.fn(),
   obterConversaAction: jest.fn(),
@@ -89,5 +90,13 @@ describe("useMensagensConversa — reação (#84)", () => {
     await waitFor(() => expect(result.current.reacao.erro).toBe("Falha ao enviar a reação."));
     expect(result.current.reacao.ativa).toBe(true);
     expect(renderizar({ ...CONVERSA, encerrado: true }).result.current.reacao.ativa).toBe(false);
+  });
+
+  it("soltar um arquivo sobre a conversa o deixa pendente no campo de resposta; encerrada não aceita", () => {
+    const aberta = renderizar();
+    expect(aberta.result.current.aoSoltar).toEqual(expect.any(Function));
+
+    const encerrada = renderizar({ ...CONVERSA, encerrado: true });
+    expect(encerrada.result.current.aoSoltar).toBeUndefined();
   });
 });

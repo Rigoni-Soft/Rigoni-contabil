@@ -40,7 +40,7 @@ function renderizar() {
 
 const DO_CLIENTE = (criadoEm: string) => ({
   ...ATENDIMENTO,
-  ultimaMensagem: { autor: "contato" as const, texto: "oi", criadoEm },
+  ultimaMensagem: { autor: "contato" as const, texto: "oi", criadoEm, anexoTipo: null },
 });
 
 describe("useMeusAtendimentos", () => {
@@ -141,7 +141,12 @@ describe("useMeusAtendimentos", () => {
         data: [
           {
             ...ATENDIMENTO,
-            ultimaMensagem: { autor: "funcionario" as const, texto: "ok", criadoEm: "t2" },
+            ultimaMensagem: {
+              autor: "funcionario" as const,
+              texto: "ok",
+              criadoEm: "t2",
+              anexoTipo: null,
+            },
           },
         ],
       });

@@ -9,6 +9,15 @@ export type DocumentoDisponivel = { tipo: "contrato" | "alteracao"; data: string
 // `descricao` é como o cliente vê o documento (ex.: "Alteração de 01/03/2026").
 export type DocumentoOferecido = DocumentoDisponivel & { descricao: string };
 
+// O anexo de uma Mensagem do Funcionário, com o link temporário já pedido (`expiraEm` em ISO).
+export type AnexoVisto = {
+  tipo: "imagem" | "audio" | "documento";
+  nome: string;
+  tamanho: number;
+  url: string;
+  expiraEm: string;
+};
+
 export type MensagemVista = {
   id: string;
   autor: "contato" | "ura" | "funcionario";
@@ -17,6 +26,7 @@ export type MensagemVista = {
   // Reação do escritório (emoji) à Mensagem do cliente; `reagivel`: dá para reagir a ela.
   reacao: string | null;
   reagivel: boolean;
+  anexo: AnexoVisto | null;
   // Só nas Mensagens de Funcionário.
   atendente: { nome: string; setor: SetorSlug } | null;
 };

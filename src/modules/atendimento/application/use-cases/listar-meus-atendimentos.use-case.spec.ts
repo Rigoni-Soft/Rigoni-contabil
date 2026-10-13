@@ -6,7 +6,12 @@ import { err, ok } from "@/shared/kernel/result";
 import { ListarMeusAtendimentos } from "./listar-meus-atendimentos.use-case";
 
 const CONTATO = { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" };
-const ULTIMA = { autor: "contato" as const, texto: "oi", criadoEm: "2026-10-08T12:05:00Z" };
+const ULTIMA = {
+  autor: "contato" as const,
+  texto: "oi",
+  criadoEm: "2026-10-08T12:05:00Z",
+  anexoTipo: null,
+};
 const FUNCIONARIO: AtorSessaoDto = { id: "func-1", papel: "funcionario", setor: "contabil" };
 
 function montar(ator: AtorSessaoDto | null, falha = false) {

@@ -70,4 +70,52 @@ describe("MensagemBalao — reação (#84)", () => {
 
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
+
+  it("anexo de arquivo mostra nome, tamanho e o link para baixar, com a legenda", () => {
+    render(
+      <ul>
+        <MensagemBalao
+          {...BASE}
+          lado="atendente"
+          texto="Segue o balanço"
+          anexo={{
+            tipo: "documento",
+            nome: "balanco.pdf",
+            tamanho: "1,5 KB",
+            url: "https://l/1",
+            painelId: "p1",
+          }}
+        />
+      </ul>,
+    );
+
+    const link = screen.getByRole("link", { name: /balanco\.pdf/ });
+    expect(link).toHaveAttribute("href", "https://l/1");
+    expect(link).toHaveAttribute("download", "balanco.pdf");
+    expect(link).toHaveTextContent("1,5 KB");
+    expect(screen.getByText("Segue o balanço")).toBeInTheDocument();
+  });
+
+  it("anexo de imagem mostra a miniatura que amplia; sem legenda não há parágrafo de texto", () => {
+    const { container } = render(
+      <ul>
+        <MensagemBalao
+          {...BASE}
+          lado="atendente"
+          texto=""
+          anexo={{
+            tipo: "imagem",
+            nome: "foto.png",
+            tamanho: "10 B",
+            url: "https://l/2",
+            painelId: "p2",
+          }}
+        />
+      </ul>,
+    );
+
+    expect(screen.getByRole("button", { name: "Ampliar foto.png" })).toBeInTheDocument();
+    expect(container.querySelectorAll('img[src="https://l/2"]')).toHaveLength(2);
+    expect(container.querySelectorAll("p")).toHaveLength(2); // autor e hora, nenhum de texto
+  });
 });

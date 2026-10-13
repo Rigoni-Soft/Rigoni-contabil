@@ -3,7 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 
 import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 
-import { enviarMensagemAction, obterConversaAction } from "./conversa.actions";
+import { enviarAnexoAction, enviarMensagemAction, obterConversaAction } from "./conversa.actions";
 import { useCompositor } from "./use-compositor.hook";
 
 // conversa.queries invalida as chaves da Fila e dos Meus atendimentos: importa os módulos delas.
@@ -13,6 +13,7 @@ jest.mock("../meus-atendimentos/meus-atendimentos.actions", () => ({
 }));
 
 jest.mock("./conversa.actions", () => ({
+  enviarAnexoAction: jest.fn(),
   enviarDocumentoAction: jest.fn(),
   enviarMensagemAction: jest.fn(),
   obterConversaAction: jest.fn(),
@@ -20,6 +21,7 @@ jest.mock("./conversa.actions", () => ({
 }));
 
 const mensagem = jest.mocked(enviarMensagemAction);
+const anexo = jest.mocked(enviarAnexoAction);
 const obter = jest.mocked(obterConversaAction);
 
 const CONVERSA: ConversaVista = {
@@ -48,6 +50,7 @@ function renderizar(conversa: ConversaVista = CONVERSA) {
 describe("useCompositor", () => {
   beforeEach(() => {
     mensagem.mockReset();
+    anexo.mockReset();
     obter.mockReset();
     obter.mockResolvedValue({ ok: true, data: CONVERSA });
   });
@@ -78,5 +81,81 @@ describe("useCompositor", () => {
 
     await waitFor(() => expect(result.current.erro).toBe("Falha ao enviar a mensagem."));
     expect(result.current.enviadas).toBe(0);
+  });
+
+  describe("anexo", () => {
+    const PDF = new File(["%PDF"], "balanco.pdf", { type: "application/pdf" });
+
+    beforeAll(() => {
+      URL.createObjectURL = jest.fn(() => "blob:previa");
+      URL.revokeObjectURL = jest.fn();
+    });
+
+    it("escolher um arquivo mostra a prévia e o envio vai como anexo, com o texto de legenda", async () => {
+      anexo.mockResolvedValue({ ok: true, data: undefined });
+      const { result } = renderizar();
+
+      act(() => result.current.aoAnexar(PDF));
+      await waitFor(() =>
+        expect(result.current.anexo).toEqual({
+          nome: "balanco.pdf",
+          tamanho: "4 B",
+          miniaturaUrl: null,
+        }),
+      );
+
+      act(() => result.current.aoEnviar("Segue"));
+
+      await waitFor(() => expect(result.current.enviadas).toBe(1));
+      const dados = anexo.mock.calls[0][0];
+      expect(dados.get("atendimentoId")).toBe("at-1");
+      expect(dados.get("legenda")).toBe("Segue");
+      expect(dados.get("arquivo")).toBe(PDF);
+      expect(mensagem).not.toHaveBeenCalled();
+      // Enviado: a prévia some.
+      await waitFor(() => expect(result.current.anexo).toBeUndefined());
+    });
+
+    it("imagem ganha miniatura local, que é liberada ao remover", async () => {
+      const { result } = renderizar();
+      const foto = new File(["x"], "foto.png", { type: "image/png" });
+
+      act(() => result.current.aoAnexar(foto));
+      await waitFor(() => expect(result.current.anexo?.miniaturaUrl).toBe("blob:previa"));
+
+      act(() => result.current.aoRemoverAnexo());
+      await waitFor(() => expect(result.current.anexo).toBeUndefined());
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:previa");
+    });
+
+    it("recusa tipo não aceito e arquivo acima de 10 MB com mensagem clara, sem anexar", async () => {
+      const { result } = renderizar();
+
+      act(() => result.current.aoAnexar(new File(["<svg/>"], "x.svg", { type: "image/svg+xml" })));
+      await waitFor(() => expect(result.current.erro).toMatch(/Tipo de arquivo não aceito/));
+      expect(result.current.anexo).toBeUndefined();
+
+      const grande = new File(["x"], "grande.pdf", { type: "application/pdf" });
+      Object.defineProperty(grande, "size", { value: 10 * 1024 * 1024 + 1 });
+      act(() => result.current.aoAnexar(grande));
+      await waitFor(() => expect(result.current.erro).toBe("O arquivo aceita até 10 MB."));
+      expect(result.current.anexo).toBeUndefined();
+    });
+
+    it("falha no envio do anexo mantém o arquivo e mostra o erro do servidor", async () => {
+      anexo.mockResolvedValue({
+        ok: false,
+        error: { code: "SERVICO_EXTERNO", message: "Falha ao enviar o arquivo." },
+      });
+      const { result } = renderizar();
+      act(() => result.current.aoAnexar(PDF));
+      await waitFor(() => expect(result.current.anexo).toBeDefined());
+
+      act(() => result.current.aoEnviar(""));
+
+      await waitFor(() => expect(result.current.erro).toBe("Falha ao enviar o arquivo."));
+      expect(result.current.anexo?.nome).toBe("balanco.pdf");
+      expect(result.current.enviadas).toBe(0);
+    });
   });
 });

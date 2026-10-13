@@ -151,11 +151,19 @@ export type AtendimentoDoFuncionario = {
     autor: "contato" | "ura" | "funcionario";
     texto: string;
     criadoEm: string;
+    anexoTipo: "imagem" | "audio" | "documento" | null;
   } | null;
 };
 
 // Quem escreveu uma Mensagem do Funcionário (nome e Setor atuais do perfil); null nas do contato
 // e da URA.
+export type AnexoDaMensagem = {
+  tipo: "imagem" | "audio" | "documento";
+  nome: string;
+  tamanho: number;
+  caminho: string;
+};
+
 export type MensagemLida = {
   id: string;
   autor: "contato" | "ura" | "funcionario";
@@ -164,6 +172,7 @@ export type MensagemLida = {
   atendente: { nome: string; setor: SetorSlug } | null;
   idExterno: string | null;
   reacao: string | null;
+  anexo: AnexoDaMensagem | null;
 };
 
 // A Mensagem sobre a qual o Funcionário quer reagir.
@@ -251,10 +260,12 @@ export interface AtendimentoRepositoryPort {
   ): Promise<Result<AtendimentoDoFuncionario[], AppError>>;
   conversa(atendimentoId: string): Promise<Result<ConversaLida | null, AppError>>;
   // Mensagem escrita por um Funcionário (autor "funcionario") no Atendimento, com quem a escreveu.
+  // Com `anexo`, `texto` é a legenda (pode ser vazia).
   registrarMensagemDoFuncionario(
     atendimentoId: string,
     funcionarioId: string,
     texto: string,
+    anexo?: AnexoDaMensagem,
   ): Promise<Result<void, AppError>>;
   // null se a Mensagem não existe neste Atendimento.
   mensagemParaReacao(

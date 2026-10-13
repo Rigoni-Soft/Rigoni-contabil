@@ -3,7 +3,14 @@ import type {
   DocumentoOferecido,
   ObterConversaPort,
 } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
-import type { AtendimentoRepositoryPort } from "@/modules/atendimento/application/ports/out/atendimento.repository";
+import type {
+  AnexosAtendimentoPort,
+  LinkTemporario,
+} from "@/modules/atendimento/application/ports/out/anexos-atendimento.provider";
+import type {
+  AtendimentoRepositoryPort,
+  ConversaLida,
+} from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { DocumentosContratuaisPort } from "@/modules/atendimento/application/ports/out/documentos-contratuais.provider";
 import type { SessaoPort } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { descreverDocumento } from "@/modules/atendimento/domain/services/documento-contratual.service";
@@ -25,6 +32,7 @@ export class ObterConversa implements ObterConversaPort {
     private readonly sessao: SessaoPort,
     private readonly repositorio: AtendimentoRepositoryPort,
     private readonly documentos: DocumentosContratuaisPort,
+    private readonly anexos: AnexosAtendimentoPort,
   ) {}
 
   async execute({
@@ -51,16 +59,25 @@ export class ObterConversa implements ObterConversaPort {
     const disponiveis =
       encerrado || !conversa.clienteId ? ok([]) : await this.servicos(conversa.clienteId);
     if (!disponiveis.ok) return disponiveis;
+    const links = await this.links(conversa.mensagens);
+    if (!links.ok) return links;
     return ok({
       atendimentoId: conversa.id,
       encerrado,
       telefone: conversa.telefone,
       contato: conversa.contato,
       clienteVinculado: conversa.clienteId !== null,
-      mensagens: conversa.mensagens.map(({ idExterno, ...m }) => ({
-        ...m,
-        reagivel: m.autor === "contato" && idExterno !== null,
-      })),
+      mensagens: conversa.mensagens.map(({ idExterno, anexo, ...m }) => {
+        const link = anexo && links.value[anexo.caminho];
+        return {
+          ...m,
+          reagivel: m.autor === "contato" && idExterno !== null,
+          anexo:
+            anexo && link
+              ? { tipo: anexo.tipo, nome: anexo.nome, tamanho: anexo.tamanho, ...link }
+              : null,
+        };
+      }),
       ultimaTransferencia: conversa.ultimaTransferencia,
       ura: conversa.ura,
       // Só o dono é o "inativo"; Líder e Admin que abrem a conversa não são avisados.
@@ -80,6 +97,14 @@ export class ObterConversa implements ObterConversaPort {
     const roteamento = clienteId ? await this.repositorio.roteamentoDoCliente(clienteId) : ok(null);
     if (!roteamento.ok) return roteamento;
     return ok(setoresDeDestino(setor, roteamento.value?.regime ?? null));
+  }
+
+  // Um pedido só para todos os anexos da conversa.
+  private async links(
+    mensagens: ConversaLida["mensagens"],
+  ): Promise<Result<Record<string, LinkTemporario>, AppError>> {
+    const caminhos = mensagens.flatMap((m) => (m.anexo ? [m.anexo.caminho] : []));
+    return caminhos.length ? this.anexos.linksTemporarios(caminhos) : ok({});
   }
 
   private async servicos(clienteId: string): Promise<Result<DocumentoOferecido[], AppError>> {

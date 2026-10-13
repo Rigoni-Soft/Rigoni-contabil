@@ -1,8 +1,10 @@
 import { SendHorizontal } from "lucide-react";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
+import { BotaoDeAnexo } from "@/presentation/components/atoms/botao-de-anexo.component";
 import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { CampoTextarea } from "@/presentation/components/molecules/campo-textarea.component";
+import { PreviaDeAnexo } from "@/presentation/components/molecules/previa-de-anexo.component";
 import { SeletorDeEmoji } from "@/presentation/components/molecules/seletor-de-emoji.component";
 import { Button } from "@/presentation/components/ui/button";
 
@@ -15,6 +17,12 @@ type CompositorDeMensagemProps = {
   // Seletor de emoji: estado, refs e inserção na posição do cursor vêm do Container.
   campoRef: React.Ref<HTMLTextAreaElement>;
   seletor: React.ComponentProps<typeof SeletorDeEmoji>;
+  // Anexo: o arquivo escolhido (prévia) e como escolher/remover. Sem `anexo`, o envio é só texto;
+  // com ele, o texto digitado vira a legenda e deixa de ser obrigatório.
+  anexo?: { nome: string; tamanho: string; miniaturaUrl: string | null };
+  aceitar: string;
+  onAnexar: (arquivo: File) => void;
+  onRemoverAnexo: () => void;
 };
 
 export function CompositorDeMensagem({
@@ -24,19 +32,32 @@ export function CompositorDeMensagem({
   enviadas,
   campoRef,
   seletor,
+  anexo,
+  aceitar,
+  onAnexar,
+  onRemoverAnexo,
 }: CompositorDeMensagemProps) {
   return (
     <Pilha espaco={1} className="shrink-0">
+      {anexo && <PreviaDeAnexo {...anexo} onRemover={onRemoverAnexo} disabled={enviando} />}
       <Linha
         alinhar="centro"
         espaco={2}
         como="form"
         key={enviadas}
+        // Arrastar e soltar sobre o campo (sobre a conversa, quem trata é a lista de mensagens).
+        onDragOver={(evento) => evento.preventDefault()}
+        onDrop={(evento) => {
+          evento.preventDefault();
+          const arquivo = evento.dataTransfer.files[0];
+          if (arquivo) onAnexar(arquivo);
+        }}
         onSubmit={(evento) => {
           evento.preventDefault();
           onEnviar(String(new FormData(evento.currentTarget).get("texto")));
         }}
       >
+        <BotaoDeAnexo aceitar={aceitar} disabled={enviando} onEscolher={onAnexar} />
         <SeletorDeEmoji {...seletor} disabled={enviando} />
         <CampoTextarea
           ref={campoRef}
@@ -44,11 +65,19 @@ export function CompositorDeMensagem({
           rotulo="Mensagem ao cliente"
           rotuloOculto
           name="texto"
-          required
+          required={!anexo}
           rows={2}
           // Sem maxLength: ele conta unidades UTF-16 (emoji valeria 2); o limite é conferido ao enviar.
-          placeholder="Escreva aqui"
+          placeholder={anexo ? "Legenda (opcional)" : "Escreva aqui"}
           className="min-h-12 resize-none rounded-2xl"
+          onPaste={(evento) => {
+            // Ctrl+V com imagem (print) na área de transferência vira anexo; texto cola normalmente.
+            const arquivo = evento.clipboardData.files[0];
+            if (arquivo) {
+              evento.preventDefault();
+              onAnexar(arquivo);
+            }
+          }}
           onKeyDown={(evento) => {
             // Enter envia, Shift+Enter quebra a linha; Enter de composição (IME) não envia. O Safari
             // entrega esse Enter com isComposing falso e keyCode 229.
@@ -63,7 +92,7 @@ export function CompositorDeMensagem({
           type="submit"
           size="icon"
           className="rounded-full"
-          aria-label="Enviar mensagem"
+          aria-label={anexo ? "Enviar arquivo" : "Enviar mensagem"}
           disabled={enviando}
         >
           <SendHorizontal aria-hidden="true" />

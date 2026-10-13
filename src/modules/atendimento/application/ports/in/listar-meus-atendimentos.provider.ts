@@ -11,6 +11,8 @@ export type AtendimentoVisto = {
     autor: "contato" | "ura" | "funcionario";
     texto: string;
     criadoEm: string;
+    // Mensagem com imagem, arquivo ou áudio: a prévia nomeia o tipo no lugar do texto.
+    anexoTipo: "imagem" | "audio" | "documento" | null;
   } | null;
 };
 

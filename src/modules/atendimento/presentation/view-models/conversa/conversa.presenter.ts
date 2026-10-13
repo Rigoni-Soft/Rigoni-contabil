@@ -8,6 +8,14 @@ import type {
 } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import { SETOR_LABEL } from "@/shared/kernel/setores";
 
+export type AnexoView = {
+  tipo: "imagem" | "audio" | "documento";
+  nome: string;
+  // Já formatado ("1,2 MB").
+  tamanho: string;
+  url: string;
+};
+
 export type MensagemView = {
   id: string;
   lado: "contato" | "ura" | "atendente";
@@ -19,6 +27,7 @@ export type MensagemView = {
   // Reação do escritório (emoji) e se ainda dá para reagir a esta Mensagem.
   reacao: string | null;
   reagivel: boolean;
+  anexo: AnexoView | null;
 };
 
 export type ConversaView = {
@@ -39,6 +48,34 @@ const valorDaOpcao = (d: DocumentoOferecido) => (d.data ? `${d.tipo}:${d.data}` 
 export function documentoDaOpcao(valor: string): DocumentoDisponivel {
   const [tipo, data] = valor.split(":");
   return { tipo: tipo as DocumentoDisponivel["tipo"], data: data ?? null };
+}
+
+const FORMATO_TAMANHO = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
+
+export function formatarTamanho(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${FORMATO_TAMANHO.format(bytes / 1024)} KB`;
+  return `${FORMATO_TAMANHO.format(bytes / (1024 * 1024))} MB`;
+}
+
+// A conversa é relida a cada 5 s e cada leitura gera links novos, o que recarregaria as imagens.
+// Mantém o link que a leitura anterior já tinha até faltar `margemMs` para expirar.
+export function reaproveitarLinks(
+  nova: ConversaVista,
+  anterior: ConversaVista | undefined,
+  agora: number,
+  margemMs = 5 * 60_000,
+): ConversaVista {
+  if (!anterior) return nova;
+  const anteriores = new Map(anterior.mensagens.map((m) => [m.id, m.anexo]));
+  return {
+    ...nova,
+    mensagens: nova.mensagens.map((m) => {
+      const antigo = anteriores.get(m.id);
+      if (!m.anexo || !antigo || Date.parse(antigo.expiraEm) - agora <= margemMs) return m;
+      return { ...m, anexo: { ...m.anexo, url: antigo.url, expiraEm: antigo.expiraEm } };
+    }),
+  };
 }
 
 // Mesmo fuso de negócio do feed de auditoria (não o do navegador). Um formatter só, reusado por
@@ -107,6 +144,14 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
       hora: formatarHora(m.criadoEm),
       reacao: m.reacao,
       reagivel: m.reagivel,
+      anexo: m.anexo
+        ? {
+            tipo: m.anexo.tipo,
+            nome: m.anexo.nome,
+            tamanho: formatarTamanho(m.anexo.tamanho),
+            url: m.anexo.url,
+          }
+        : null,
     })),
     setoresDestino: conversa.setoresDestino.map((setor) => ({
       valor: setor,

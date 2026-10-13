@@ -35,14 +35,24 @@ describe("atendimentoParaView", () => {
   it("mensagem do cliente: prévia sem prefixo e o cliente está aguardando", () => {
     const view = atendimentoParaView({
       ...BASE,
-      ultimaMensagem: { autor: "contato", texto: "  preciso\ndo   contrato ", criadoEm: "t1" },
+      ultimaMensagem: {
+        autor: "contato",
+        texto: "  preciso\ndo   contrato ",
+        criadoEm: "t1",
+        anexoTipo: null,
+      },
     });
 
     expect(view).toMatchObject({ previa: "preciso do contrato", aguardando: true, sinal: "t1" });
   });
 
   it("mensagem do Funcionário ou da URA: prefixada e o cliente não está aguardando", () => {
-    const ultima = (autor: "funcionario" | "ura") => ({ autor, texto: "oi", criadoEm: "t2" });
+    const ultima = (autor: "funcionario" | "ura") => ({
+      autor,
+      texto: "oi",
+      criadoEm: "t2",
+      anexoTipo: null,
+    });
 
     expect(atendimentoParaView({ ...BASE, ultimaMensagem: ultima("funcionario") })).toMatchObject({
       previa: "Você: oi",
@@ -57,7 +67,7 @@ describe("atendimentoParaView", () => {
   it("prévia longa é cortada com reticências", () => {
     const view = atendimentoParaView({
       ...BASE,
-      ultimaMensagem: { autor: "contato", texto: "x".repeat(100), criadoEm: "t3" },
+      ultimaMensagem: { autor: "contato", texto: "x".repeat(100), criadoEm: "t3", anexoTipo: null },
     });
 
     expect(view.previa).toHaveLength(60);
@@ -67,9 +77,27 @@ describe("atendimentoParaView", () => {
   it("prévia longa de emojis corta por caractere, sem partir o emoji", () => {
     const view = atendimentoParaView({
       ...BASE,
-      ultimaMensagem: { autor: "contato", texto: "😀".repeat(100), criadoEm: "t4" },
+      ultimaMensagem: {
+        autor: "contato",
+        texto: "😀".repeat(100),
+        criadoEm: "t4",
+        anexoTipo: null,
+      },
     });
 
     expect(view.previa).toBe(`${"😀".repeat(59)}…`);
+  });
+
+  it("mensagem com anexo mostra o tipo no lugar do texto, e a legenda segue", () => {
+    const com = (anexoTipo: "imagem" | "audio" | "documento", texto: string) =>
+      atendimentoParaView({
+        ...BASE,
+        ultimaMensagem: { autor: "funcionario", texto, criadoEm: "t5", anexoTipo },
+      }).previa;
+
+    expect(com("imagem", "")).toBe("Você: Imagem");
+    expect(com("documento", "")).toBe("Você: Arquivo");
+    expect(com("audio", "")).toBe("Você: Áudio");
+    expect(com("documento", "Segue o balanço")).toBe("Você: Arquivo: Segue o balanço");
   });
 });

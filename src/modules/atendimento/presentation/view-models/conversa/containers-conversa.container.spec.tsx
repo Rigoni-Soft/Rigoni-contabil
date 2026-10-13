@@ -37,6 +37,10 @@ jest.mock("@/modules/atendimento/presentation/view-models/conversa/use-composito
     enviando: false,
     erro: undefined,
     enviadas: 0,
+    aceitar: "image/png",
+    anexo: undefined,
+    aoAnexar: jest.fn(),
+    aoRemoverAnexo: jest.fn(),
   }),
 }));
 jest.mock(
