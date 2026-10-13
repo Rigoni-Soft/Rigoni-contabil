@@ -95,7 +95,8 @@ describe("ObterConversa", () => {
     });
     const avisoVisto = async (conversa: ConversaLida, ator: AtorSessaoDto = FUNCIONARIO) => {
       const r = await montar(ator, conversa).caso.execute({ atendimentoId: "at-1" });
-      return r.ok && r.value.avisoInatividade;
+      if (!r.ok) throw new Error("ObterConversa falhou");
+      return r.value.avisoInatividade;
     };
 
     it("só o dono do Atendimento é avisado, não o Líder nem o Admin que abrem a conversa", async () => {
@@ -111,16 +112,39 @@ describe("ObterConversa", () => {
     });
 
     it("some quando o Funcionário escreveu depois do aviso, antes de o job cancelar", async () => {
-      expect(await avisoVisto(aviso("funcionario", "2026-10-08T12:00:30Z"))).toBe(false);
+      const conversa = {
+        ...aviso("funcionario", "2026-10-08T12:00:30Z"),
+        mensagens: [
+          {
+            id: "m-func",
+            autor: "funcionario" as const,
+            texto: "respondi",
+            criadoEm: "2026-10-08T12:01:00Z",
+            atendente: { nome: "Ana", setor: "contabil" as const },
+          },
+        ],
+      };
+      expect(await avisoVisto(conversa)).toBe(false);
     });
 
-    it("não aparece quando o inativo é o contato (o aviso foi ao cliente) nem com Atendimento encerrado", async () => {
+    it("não aparece quando o inativo é o contato (o aviso foi ao cliente)", async () => {
       expect(await avisoVisto(aviso("contato", "2026-10-08T14:00:00Z"))).toBe(false);
+    });
+
+    it("não aparece com o Atendimento encerrado", async () => {
       const encerrado = {
         ...aviso("funcionario", "2026-10-08T14:00:00Z"),
         status: "encerrado" as const,
       };
       expect(await avisoVisto(encerrado)).toBe(false);
+    });
+
+    it("em aviso de inatividade não oferece Setores de destino (o backend recusaria a Transferência)", async () => {
+      const r = await montar(
+        FUNCIONARIO,
+        aviso("funcionario", "2026-10-08T14:00:00Z"),
+      ).caso.execute({ atendimentoId: "at-1" });
+      expect(r.ok && r.value.setoresDestino).toEqual([]);
     });
   });
 

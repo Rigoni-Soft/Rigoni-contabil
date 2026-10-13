@@ -44,7 +44,9 @@ export class ObterConversa implements ObterConversaPort {
     }
 
     const encerrado = conversa.status === "encerrado";
-    const destinos = encerrado ? ok([]) : await this.destinos(conversa.setor, conversa.clienteId);
+    // Em aviso de inatividade a Transferência é recusada pelo backend: não a oferece.
+    const semDestinos = encerrado || conversa.aviso !== null;
+    const destinos = semDestinos ? ok([]) : await this.destinos(conversa.setor, conversa.clienteId);
     if (!destinos.ok) return destinos;
     const disponiveis =
       encerrado || !conversa.clienteId ? ok([]) : await this.servicos(conversa.clienteId);

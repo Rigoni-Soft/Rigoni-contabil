@@ -181,9 +181,6 @@ describe("SupabaseAtendimentoRepository — inatividade", () => {
       value: false,
     });
     expect((await doAtendimento(id))?.aviso).toMatchObject({ de: "funcionario" });
-    // A conversa do painel (#73) vê o mesmo aviso.
-    const conversa = await repositorio.conversa(id);
-    expect(conversa.ok && conversa.value?.aviso).toMatchObject({ de: "funcionario" });
 
     // Em aviso, o Atendimento não muda de Setor nem de dono (guarda do banco contra a corrida).
     const troca = await admin.from("atendimentos").update({ setor: "financeiro" }).eq("id", id);
@@ -302,7 +299,7 @@ describe("inatividade × desativação do dono", () => {
 });
 
 describe("inatividade × conversa do painel", () => {
-  it("a conversa lida traz o aviso e a Mensagem posterior do Funcionário, e o aviso deixa de estar pendente", async () => {
+  it("a Mensagem posterior do Funcionário tira o aviso de pendente, mesmo com a marca gravada", async () => {
     const dono = await criarFuncionario("Func Aviso Na Conversa");
     const id = await abrirDireto(TELEFONES[4], dono);
     await mensagem(TELEFONES[4], "contato");
@@ -312,6 +309,7 @@ describe("inatividade × conversa do painel", () => {
     if (!antes.ok || !antes.value?.aviso) throw new Error("aviso não lido");
     expect(avisoPendenteAoFuncionario(antes.value.aviso, antes.value.mensagens)).toBe(true);
 
+    // Sequencial: a Mensagem nasce depois da marca (ambas com o relógio do banco).
     await mensagem(TELEFONES[4], "funcionario");
     const depois = await repositorio.conversa(id);
     if (!depois.ok || !depois.value?.aviso) throw new Error("aviso não lido");
