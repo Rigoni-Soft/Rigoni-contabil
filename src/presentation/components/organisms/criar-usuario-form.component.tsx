@@ -2,8 +2,8 @@ import Link from "next/link";
 import { Check, CheckCircle2, Loader2, UserPlus } from "lucide-react";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 
+import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { Button, buttonVariants } from "@/presentation/components/ui/button";
-import { FieldError } from "@/presentation/components/ui/field-error";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
 import { Select } from "@/presentation/components/ui/select";

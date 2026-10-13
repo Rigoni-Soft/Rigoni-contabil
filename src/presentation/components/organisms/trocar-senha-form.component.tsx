@@ -1,8 +1,8 @@
 import { AlertTriangle, Loader2 } from "lucide-react";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 
+import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { Button } from "@/presentation/components/ui/button";
-import { FieldError } from "@/presentation/components/ui/field-error";
 import { Label } from "@/presentation/components/ui/label";
 import { PasswordInput } from "@/presentation/components/ui/password-input";
 

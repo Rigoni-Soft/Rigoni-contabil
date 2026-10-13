@@ -2,12 +2,12 @@ import Link from "next/link";
 import { Check, CheckCircle2, Loader2, Plus, Trash2 } from "lucide-react";
 import { Controller, type Control, type FieldErrors, type UseFormRegister } from "react-hook-form";
 
+import { FieldError } from "@/presentation/components/atoms/field-error.component";
+import { FileInput } from "@/presentation/components/atoms/file-input.component";
+import { RequiredMark } from "@/presentation/components/atoms/required-mark.component";
 import { Button, buttonVariants } from "@/presentation/components/ui/button";
-import { FieldError } from "@/presentation/components/ui/field-error";
-import { FileInput } from "@/presentation/components/ui/file-input";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
-import { RequiredMark } from "@/presentation/components/ui/required-mark";
 import { Select } from "@/presentation/components/ui/select";
 import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
 import { cn } from "@/presentation/lib/utils";

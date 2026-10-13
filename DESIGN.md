@@ -130,6 +130,13 @@ entrada (ação e dado de filtro são grupos distintos).
 
 ## Componentes
 
+Átomos próprios (o que o shadcn não oferece, sem estado nem hooks) vivem em
+`src/presentation/components/atoms/` com sufixo `.component.tsx`:
+`field-error`, `file-input`, `required-mark`, `titulo-de-grupo`, `grupo-de-acoes`.
+`password-input` e `theme-toggle` ficam em `ui/` de propósito: guardam estado
+visual efêmero (mostrar/ocultar, tema) e `'use client'` é permitido ali
+(arquitetura.md 4.7).
+
 `src/presentation/components/ui/` — primitivas estilo shadcn (kebab-case,
 sem sufixo `.component`, isentas de teste por convenção —
 `docs/testes.md`):
@@ -184,7 +191,7 @@ sem precisar de classe.
   inclui a data.
 - `input.tsx` — 44px de altura; `aria-invalid` troca borda/anel para
   `destructive` automaticamente. `input`, `select` e `textarea` usam
-  `text-base sm:text-sm`, assim como `file-input.tsx`: 16 px no celular (abaixo
+  `text-base sm:text-sm`, assim como `atoms/file-input.component.tsx`: 16 px no celular (abaixo
   disso o iOS dá zoom ao focar o campo), 14 px de `sm` em diante. Campo de texto
   novo usa o primitivo de `ui/`, nunca um `<textarea>`/`<select>` cru.
 
@@ -196,10 +203,10 @@ sem precisar de classe.
   sempre tem rótulo visível emparelhado por `htmlFor`/`id`. Corrigido na
   revisão impeccable: todo campo de arquivo usa `Label htmlFor` + `Input id`
   como qualquer outro campo, sem depender só de `aria-label`. **Superado
-  pelo `file-input.tsx` abaixo** (feedback manual do usuário, mesma data) —
+  pelo `atoms/file-input.component.tsx` abaixo** (feedback manual do usuário, mesma data) —
   o contrato de `Label htmlFor`/`id` continua valendo, só o controle em si
   deixou de ser um `<input type="file">` nu.
-- `file-input.tsx` (29/09/2026, #33, feedback manual do usuário — "o layout
+- `atoms/file-input.component.tsx` (29/09/2026, #33, feedback manual do usuário — "o layout
   está muito simples"): `<input type="file">` nativo não aceita ser
   estilizado diretamente ("Choose File / No file chosen" do navegador era o
   único controle do produto fora do sistema de design). Substituído por um
@@ -259,7 +266,7 @@ sem precisar de classe.
   `not-allowed` (herdado, mantido) já basta pra sinalizar "sem interação
   aqui". Qualquer campo futuro que reuse o padrão de campo travado acima
   reusa também esse override.
-- `label.tsx`, `field-error.tsx` — erro de campo sempre ícone (`AlertCircle`)
+- `label.tsx`, `atoms/field-error.component.tsx` — erro de campo sempre ícone (`AlertCircle`)
   + texto + cor, nunca só cor (contrato "Talão de Cheque": estado por
   padrão/ícone além de cor).
 - `theme-toggle.tsx` — único ponto de troca de tema, hoje vive no
@@ -272,7 +279,7 @@ reusado no cadastro de Líder/Funcionário).
 
 ### Indicadores de estado (sucesso/falha)
 
-O mesmo contrato do `field-error.tsx` (ícone + texto + cor, nunca só cor) se
+O mesmo contrato do `atoms/field-error.component.tsx` (ícone + texto + cor, nunca só cor) se
 estende a qualquer indicador de resultado, não só erro de formulário nem só
 listas. No feed de auditoria, a coluna "Resultado" combina
 `CheckCircle2`/`XCircle` + o texto (`sucesso`/`falha`) +
@@ -288,7 +295,7 @@ sobrepor dois significados no mesmo token.
 componente serve para uma linha ou para várias sem mudar de aparência.
 
 **Aviso (não é erro de validação, mas usa o mesmo componente):** o feed de
-auditoria já usava `field-error.tsx` pra avisar período incompleto mesmo sem
+auditoria já usava `atoms/field-error.component.tsx` pra avisar período incompleto mesmo sem
 ser um erro de schema — o cadastro de Cliente (29/09/2026, #33) confirma que
 isso é um padrão, não uma exceção. Quando a interface precisa dizer "isso não
 está errado, mas você precisa fazer algo a respeito" (CNPJ com formato válido

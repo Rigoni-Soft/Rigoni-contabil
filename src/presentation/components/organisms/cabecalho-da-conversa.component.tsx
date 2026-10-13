@@ -1,4 +1,4 @@
-import { FieldError } from "@/presentation/components/ui/field-error";
+import { FieldError } from "@/presentation/components/atoms/field-error.component";
 
 type CabecalhoDaConversaProps = {
   titulo: string;

@@ -1,8 +1,8 @@
 import { Loader2, Trash2 } from "lucide-react";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 
+import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { Button } from "@/presentation/components/ui/button";
-import { FieldError } from "@/presentation/components/ui/field-error";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
 import { formatarDataIso } from "@/shared/kernel/data-iso";
