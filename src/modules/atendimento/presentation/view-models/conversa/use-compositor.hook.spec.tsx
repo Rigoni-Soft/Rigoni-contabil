@@ -25,6 +25,7 @@ const CONVERSA: ConversaVista = {
   mensagens: [],
   ultimaTransferencia: null,
   ura: null,
+  avisoInatividade: false,
   setoresDestino: [],
   documentos: [],
 };

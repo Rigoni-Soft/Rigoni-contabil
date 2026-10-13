@@ -176,6 +176,8 @@ export type ConversaLida = {
   mensagens: MensagemLida[];
   ultimaTransferencia: UltimaTransferencia | null;
   ura: OrigemUra | null;
+  // Aviso de inatividade pendente (#73): quem estava inativo e quando a URA avisou.
+  aviso: { de: Inativo; em: string } | null;
 };
 
 export interface AtendimentoRepositoryPort {

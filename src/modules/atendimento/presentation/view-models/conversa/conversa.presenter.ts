@@ -23,6 +23,7 @@ export type ConversaView = {
   subtitulo: string;
   encerrado: boolean;
   semCliente: boolean;
+  avisoInatividade: boolean;
   // De onde veio o Atendimento: a última Transferência ou, sem ela, o que a URA já sabia.
   contexto: { origem: string; resumo: string } | null;
   mensagens: MensagemView[];
@@ -82,6 +83,7 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
           : "Cliente não identificado",
     encerrado: conversa.encerrado,
     semCliente: !conversa.clienteVinculado,
+    avisoInatividade: conversa.avisoInatividade,
     contexto: contextoDaConversa(conversa),
     mensagens: conversa.mensagens.map((m) => ({
       id: m.id,

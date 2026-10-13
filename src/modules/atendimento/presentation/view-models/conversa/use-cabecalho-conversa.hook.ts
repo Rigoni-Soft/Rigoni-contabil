@@ -16,6 +16,7 @@ export function useCabecalhoConversa(atendimentoId: string, initialData: Convers
     titulo: conversa.titulo,
     subtitulo: conversa.subtitulo,
     encerrado: conversa.encerrado,
+    avisoInatividade: conversa.avisoInatividade,
     contexto: conversa.contexto,
     resumoLongo: (conversa.contexto?.resumo.length ?? 0) > RESUMO_LONGO,
     resumoAberto: resumo !== null && abertoPara === resumo,

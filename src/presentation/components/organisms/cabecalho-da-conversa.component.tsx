@@ -2,6 +2,8 @@ type CabecalhoDaConversaProps = {
   titulo: string;
   subtitulo: string;
   encerrado: boolean;
+  // A URA avisou que o Atendimento será encerrado por falta de resposta do Funcionário (#73).
+  avisoInatividade?: boolean;
   contexto?: { origem: string; resumo: string } | null;
   // Resumo longo vem recolhido em 3 linhas, com botão para ler inteiro.
   resumoLongo?: boolean;
@@ -13,6 +15,7 @@ export function CabecalhoDaConversa({
   titulo,
   subtitulo,
   encerrado,
+  avisoInatividade = false,
   contexto,
   resumoLongo = false,
   resumoAberto = false,
@@ -43,6 +46,15 @@ export function CabecalhoDaConversa({
             </button>
           )}
         </section>
+      )}
+      {avisoInatividade && !encerrado && (
+        <p
+          role="status"
+          className="mt-1 rounded-md border border-border bg-muted px-3 py-2 text-sm font-medium text-foreground"
+        >
+          Sem resposta sua há um tempo. Responda ou finalize: sem ação em 10 minutos a URA encerra o
+          Atendimento.
+        </p>
       )}
       {encerrado && (
         <p className="mt-1 text-sm font-medium text-muted-foreground">Atendimento encerrado.</p>

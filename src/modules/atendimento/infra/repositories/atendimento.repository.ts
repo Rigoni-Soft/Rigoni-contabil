@@ -445,7 +445,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     const { data, error } = await this.supabaseAdmin
       .from("atendimentos")
       .select(
-        "id, status, setor, funcionario_id, cliente_id, telefone, chave_telefone, resumo_ura, cnpj_informado, clientes(empresa, cnpj, cliente_contatos(nome, telefone, padrao, criado_em)), mensagens(id, autor, texto, criado_em, perfis(nome, setor)), transferencias(setor_origem, resumo, origem:perfis!funcionario_origem_id(nome))",
+        "id, status, setor, funcionario_id, cliente_id, telefone, chave_telefone, resumo_ura, cnpj_informado, aviso_inatividade_em, aviso_inatividade_de, clientes(empresa, cnpj, cliente_contatos(nome, telefone, padrao, criado_em)), mensagens(id, autor, texto, criado_em, perfis(nome, setor)), transferencias(setor_origem, resumo, origem:perfis!funcionario_origem_id(nome))",
       )
       .eq("id", atendimentoId)
       .order("criado_em", { referencedTable: "mensagens" })
@@ -483,6 +483,10 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       ura:
         linha.resumo_ura || linha.cnpj_informado
           ? { resumo: linha.resumo_ura, cnpjInformado: linha.cnpj_informado }
+          : null,
+      aviso:
+        linha.aviso_inatividade_em && linha.aviso_inatividade_de
+          ? { em: linha.aviso_inatividade_em, de: linha.aviso_inatividade_de }
           : null,
     });
   }

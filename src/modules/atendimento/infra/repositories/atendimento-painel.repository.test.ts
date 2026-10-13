@@ -143,6 +143,7 @@ describe("SupabaseAtendimentoRepository — painel do Funcionário", () => {
         ],
         ultimaTransferencia: null,
         ura: null,
+        aviso: null,
       },
     });
   });

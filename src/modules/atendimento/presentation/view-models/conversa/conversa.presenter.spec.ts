@@ -21,6 +21,7 @@ const CONVERSA: ConversaVista = {
   ],
   ultimaTransferencia: null,
   ura: null,
+  avisoInatividade: false,
   setoresDestino: ["recepcao", "tributario"],
   documentos: [
     { tipo: "contrato", data: null, descricao: "Contrato social" },
@@ -29,6 +30,11 @@ const CONVERSA: ConversaVista = {
 };
 
 describe("conversaParaView", () => {
+  it("repassa o aviso de inatividade ao Funcionário", () => {
+    expect(conversaParaView(CONVERSA).avisoInatividade).toBe(false);
+    expect(conversaParaView({ ...CONVERSA, avisoInatividade: true }).avisoInatividade).toBe(true);
+  });
+
   it("balão do cliente mostra o nome do Contato e o do atendente mostra nome e Setor", () => {
     const view = conversaParaView(CONVERSA);
     expect(view.titulo).toBe("Maria");

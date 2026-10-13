@@ -30,6 +30,7 @@ const CONVERSA: ConversaLida = {
   ],
   ultimaTransferencia: { setorOrigem: "recepcao", origemNome: "Ana", resumo: "Dúvida no DAS" },
   ura: { resumo: "Quer o contrato", cnpjInformado: null },
+  aviso: null,
 };
 const FUNCIONARIO: AtorSessaoDto = { id: "func-1", papel: "funcionario", setor: "contabil" };
 
@@ -74,6 +75,7 @@ describe("ObterConversa", () => {
         mensagens: CONVERSA.mensagens,
         ultimaTransferencia: CONVERSA.ultimaTransferencia,
         ura: CONVERSA.ura,
+        avisoInatividade: false,
         documentos: [
           { tipo: "contrato", data: null, descricao: "Contrato social" },
           { tipo: "alteracao", data: "2026-03-01", descricao: "Alteração de 01/03/2026" },
@@ -84,6 +86,34 @@ describe("ObterConversa", () => {
     expect(r.ok && r.value.setoresDestino).not.toContain("contabil");
     expect(r.ok && r.value.setoresDestino).not.toContain("simples_nacional");
     expect(listados).toEqual(["cli-1"]);
+  });
+
+  describe("aviso de inatividade ao Funcionário", () => {
+    const aviso = (de: "contato" | "funcionario", em: string) => ({
+      ...CONVERSA,
+      aviso: { de, em },
+    });
+    const avisoVisto = async (conversa: ConversaLida) => {
+      const r = await montar(FUNCIONARIO, conversa).caso.execute({ atendimentoId: "at-1" });
+      return r.ok && r.value.avisoInatividade;
+    };
+
+    it("aparece quando o Funcionário é o inativo e não escreveu depois do aviso", async () => {
+      expect(await avisoVisto(aviso("funcionario", "2026-10-08T14:00:00Z"))).toBe(true);
+    });
+
+    it("some quando o Funcionário escreveu depois do aviso, antes de o job cancelar", async () => {
+      expect(await avisoVisto(aviso("funcionario", "2026-10-08T12:00:30Z"))).toBe(false);
+    });
+
+    it("não aparece quando o inativo é o contato (o aviso foi ao cliente) nem com Atendimento encerrado", async () => {
+      expect(await avisoVisto(aviso("contato", "2026-10-08T14:00:00Z"))).toBe(false);
+      const encerrado = {
+        ...aviso("funcionario", "2026-10-08T14:00:00Z"),
+        status: "encerrado" as const,
+      };
+      expect(await avisoVisto(encerrado)).toBe(false);
+    });
   });
 
   it("sem Cliente vinculado ou encerrado não oferece serviços e nem consulta os documentos", async () => {

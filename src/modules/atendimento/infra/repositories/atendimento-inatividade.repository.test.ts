@@ -178,6 +178,9 @@ describe("SupabaseAtendimentoRepository — inatividade", () => {
       value: false,
     });
     expect((await doAtendimento(id))?.aviso).toMatchObject({ de: "funcionario" });
+    // A conversa do painel (#73) vê o mesmo aviso.
+    const conversa = await repositorio.conversa(id);
+    expect(conversa.ok && conversa.value?.aviso).toMatchObject({ de: "funcionario" });
 
     // Em aviso, o Atendimento não muda de Setor nem de dono (guarda do banco contra a corrida).
     const troca = await admin.from("atendimentos").update({ setor: "financeiro" }).eq("id", id);

@@ -151,6 +151,8 @@ export const conversaRowSchema = z.object({
   chave_telefone: z.string(),
   resumo_ura: z.string().nullable(),
   cnpj_informado: z.string().nullable(),
+  aviso_inatividade_em: z.string().nullable(),
+  aviso_inatividade_de: z.enum(["contato", "funcionario"]).nullable(),
   clientes: clienteComContatosRowSchema,
   mensagens: z.array(
     z.object({
