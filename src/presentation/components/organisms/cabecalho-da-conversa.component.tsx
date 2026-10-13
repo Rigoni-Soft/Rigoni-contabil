@@ -49,7 +49,7 @@ export function CabecalhoDaConversa({
           )}
         </section>
       )}
-      {avisoInatividade && !encerrado && (
+      {avisoInatividade && (
         <FieldError className="mt-1 font-medium">
           Sem resposta sua há um tempo. Responda ou finalize: sem ação em 10 minutos de expediente a
           URA encerra o Atendimento.

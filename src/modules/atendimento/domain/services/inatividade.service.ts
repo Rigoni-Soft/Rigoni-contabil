@@ -56,10 +56,8 @@ export function avisoPendenteAoFuncionario(
   mensagens: { autor: string; criadoEm: string }[],
 ): boolean {
   if (aviso?.de !== "funcionario") return false;
-  const avisoEm = new Date(aviso.em).getTime();
-  return !mensagens.some(
-    (m) => m.autor === "funcionario" && new Date(m.criadoEm).getTime() > avisoEm,
-  );
+  const avisoEm = new Date(aviso.em);
+  return !mensagens.some((m) => m.autor === "funcionario" && new Date(m.criadoEm) > avisoEm);
 }
 
 export const AVISO_INATIVIDADE_AO_CLIENTE =
