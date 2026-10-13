@@ -49,7 +49,9 @@ export function useSeletorDeEmoji() {
     setRecentes(novos);
     try {
       localStorage.setItem(CHAVE_RECENTES, JSON.stringify(novos));
-    } catch {}
+    } catch {
+      // sem storage: só não persiste.
+    }
     const area = campo.current;
     if (!area) return;
     area.setRangeText(emoji, area.selectionStart, area.selectionEnd, "end");

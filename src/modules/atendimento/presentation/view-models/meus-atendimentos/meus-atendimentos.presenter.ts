@@ -19,7 +19,10 @@ const AUTOR_DA_PREVIA = { contato: "", funcionario: "Você: ", ura: "URA: " } as
 function previaDe(mensagem: AtendimentoVisto["ultimaMensagem"]): string | null {
   if (!mensagem) return null;
   const texto = mensagem.texto.replace(/\s+/g, " ").trim();
-  const curto = texto.length > PREVIA_TAMANHO ? `${texto.slice(0, PREVIA_TAMANHO - 1)}…` : texto;
+  // Por ponto de código: cortar em UTF-16 partiria o par substituto de um emoji.
+  const letras = [...texto];
+  const curto =
+    letras.length > PREVIA_TAMANHO ? `${letras.slice(0, PREVIA_TAMANHO - 1).join("")}…` : texto;
   return `${AUTOR_DA_PREVIA[mensagem.autor]}${curto}`;
 }
 

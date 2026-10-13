@@ -63,4 +63,13 @@ describe("atendimentoParaView", () => {
     expect(view.previa).toHaveLength(60);
     expect(view.previa?.endsWith("…")).toBe(true);
   });
+
+  it("prévia longa de emojis corta por caractere, sem partir o emoji", () => {
+    const view = atendimentoParaView({
+      ...BASE,
+      ultimaMensagem: { autor: "contato", texto: "😀".repeat(100), criadoEm: "t4" },
+    });
+
+    expect(view.previa).toBe(`${"😀".repeat(59)}…`);
+  });
 });

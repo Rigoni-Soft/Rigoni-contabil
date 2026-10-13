@@ -91,6 +91,17 @@ export function SeletorDeEmoji({
   botaoRef,
   disabled,
 }: SeletorDeEmojiProps) {
+  const grupos = [
+    ...(recentes.length
+      ? [
+          {
+            nome: "Recentes",
+            emojis: recentes.map((e): [string, string] => [e, NOMES.get(e) ?? e]),
+          },
+        ]
+      : []),
+    ...CATEGORIAS,
+  ];
   return (
     <div ref={raizRef} className="relative">
       <Button
@@ -114,17 +125,7 @@ export function SeletorDeEmoji({
           aria-label="Emojis"
           className="absolute bottom-full left-0 z-10 mb-2 max-h-64 w-72 space-y-2 overflow-y-auto rounded-xl border border-input bg-background p-2 shadow-md"
         >
-          {[
-            ...(recentes.length
-              ? [
-                  {
-                    nome: "Recentes",
-                    emojis: recentes.map((e): [string, string] => [e, NOMES.get(e) ?? e]),
-                  },
-                ]
-              : []),
-            ...CATEGORIAS,
-          ].map((categoria) => (
+          {grupos.map((categoria) => (
             <div key={categoria.nome} role="group" aria-label={categoria.nome}>
               <p className="px-1 text-xs text-muted-foreground">{categoria.nome}</p>
               <div className="flex flex-wrap">

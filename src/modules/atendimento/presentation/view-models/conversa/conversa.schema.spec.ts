@@ -60,6 +60,12 @@ describe("enviarMensagemSchema", () => {
     expect(r.success && r.data.texto).toBe("oi");
   });
 
+  it("conta emoji como um caractere (limite por ponto de código)", () => {
+    const aceita = enviarMensagemSchema.safeParse({ atendimentoId: ID, texto: "😀".repeat(4096) });
+    const recusa = enviarMensagemSchema.safeParse({ atendimentoId: ID, texto: "😀".repeat(4097) });
+    expect([aceita.success, recusa.success]).toEqual([true, false]);
+  });
+
   it.each([[""], ["   "], ["x".repeat(4097)]])("recusa %p", (texto) => {
     expect(enviarMensagemSchema.safeParse({ atendimentoId: ID, texto }).success).toBe(false);
   });
