@@ -14,7 +14,8 @@ export async function POST(request: Request): Promise<Response> {
   if (!inatividadeAutomaticaAtiva()) return Response.json({ ativa: false });
   const resultado = await makeVerificarInatividade().execute();
   if (!resultado.ok) return new Response(resultado.error.message, { status: 502 });
-  return Response.json(resultado.value);
+  // Falhas por Atendimento não passam por 200: o agendador e o monitoramento veem a rodada falha.
+  return Response.json(resultado.value, { status: resultado.value.falhas > 0 ? 500 : 200 });
 }
 
 export const GET = POST;

@@ -55,6 +55,7 @@ function montar(
   const entregues: string[] = [];
   const encerrados: unknown[] = [];
   const confirmadosEncerramento: string[] = [];
+  const liberados: string[] = [];
   const enviados: { telefone: string; texto: string; registrar?: boolean }[] = [];
   const repo = {
     paraInatividade: async () => ok(atendimentos),
@@ -78,7 +79,11 @@ function montar(
       encerrados.push(args);
       return ok(opcoes.encerramento ?? { status: "encerrado" as const, proximo: null });
     },
-    encerramentosPendentes: async () => ok(opcoes.pendentes ?? []),
+    reivindicarEncerramentosPendentes: async () => ok(opcoes.pendentes ?? []),
+    liberarEncerramentoPendente: async (id: string) => {
+      liberados.push(id);
+      return ok(undefined);
+    },
     confirmarEncerramentoEntregue: async (id: string) => {
       confirmadosEncerramento.push(id);
       return ok(true);
@@ -110,6 +115,7 @@ function montar(
     entregues,
     encerrados,
     confirmadosEncerramento,
+    liberados,
     enviados,
   };
 }
@@ -268,7 +274,7 @@ describe("VerificarInatividade", () => {
 
   it("falha ao reenviar o pendente conta falha e mantém pendente", async () => {
     const pendente = { atendimentoId: "a9", telefone: "5561900000000", texto: "Encerrado." };
-    const { caso, confirmadosEncerramento } = montar([], sp("2026-10-07T12:00:00"), {
+    const { caso, confirmadosEncerramento, liberados } = montar([], sp("2026-10-07T12:00:00"), {
       pendentes: [pendente],
       envioFalha: true,
     });
@@ -277,6 +283,8 @@ describe("VerificarInatividade", () => {
 
     expect(r.ok && r.value).toMatchObject({ reentregues: 0, falhas: 1 });
     expect(confirmadosEncerramento).toEqual([]);
+    // A reivindicação volta para a próxima rodada, sem esperar o lease.
+    expect(liberados).toEqual(["a9"]);
   });
 
   it("Atendimento fora do expediente não é tocado", async () => {

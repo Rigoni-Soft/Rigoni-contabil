@@ -53,4 +53,17 @@ describe("job de inatividade", () => {
     expect(executar).toHaveBeenCalledTimes(1);
     expect(await resposta.json()).toMatchObject({ falhas: 0 });
   });
+
+  it("rodada com falhas por Atendimento responde 500 com o resumo", async () => {
+    ativa = true;
+    executar.mockResolvedValue({
+      ok: true,
+      value: { avisados: 0, cancelados: 0, encerrados: 0, reentregues: 0, falhas: 2 },
+    });
+
+    const resposta = await POST(requisicao());
+
+    expect(resposta.status).toBe(500);
+    expect(await resposta.json()).toMatchObject({ falhas: 2 });
+  });
 });

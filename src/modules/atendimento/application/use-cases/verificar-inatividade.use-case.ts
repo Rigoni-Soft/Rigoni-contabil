@@ -21,6 +21,9 @@ import {
 import type { AppError } from "@/shared/errors/app.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
+// Mensagens finais reivindicadas por rodada: o backlog restante entra nas próximas.
+const LOTE_REENTREGA = 50;
+
 const CONTADOR = { avisar: "avisados", cancelar: "cancelados", encerrar: "encerrados" } as const;
 
 // Job periódico: a URA avisa quem está inativo e, sem ação, encerra o Atendimento como o
@@ -157,15 +160,19 @@ export class VerificarInatividade implements VerificarInatividadePort {
   ): Promise<Result<void, AppError>> {
     // `registrar: false`: a mensagem já foi gravada na transação do encerramento.
     const aviso = await this.avisar.execute({ telefone, chave, texto, registrar: false });
-    if (!aviso.ok) return aviso;
+    if (!aviso.ok) {
+      // Devolve a reivindicação: a próxima rodada tenta de novo, sem esperar o lease vencer.
+      await this.repositorio.liberarEncerramentoPendente(atendimentoId);
+      return aviso;
+    }
     const confirmado = await this.repositorio.confirmarEncerramentoEntregue(atendimentoId);
     return confirmado.ok ? ok(undefined) : confirmado;
   }
 
   // Encerramentos de rodadas anteriores cuja mensagem final não chegou: reenvia mesmo com o
-  // Atendimento já encerrado.
+  // Atendimento já encerrado. Só o que este job reivindicou (dois jobs não enviam a mesma).
   private async reentregarEncerramentos(resumo: InatividadeVerificada): Promise<void> {
-    const pendentes = await this.repositorio.encerramentosPendentes();
+    const pendentes = await this.repositorio.reivindicarEncerramentosPendentes(LOTE_REENTREGA);
     if (!pendentes.ok) {
       resumo.falhas += 1;
       return;

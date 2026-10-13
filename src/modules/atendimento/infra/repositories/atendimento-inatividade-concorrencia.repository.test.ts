@@ -8,6 +8,8 @@ import { Client } from "pg";
 
 import { URA_ATOR_ID } from "@/modules/atendimento/domain/services/inatividade.service";
 
+import { exigirSupabaseLocal } from "../../../../../test-support/exigir-supabase-local";
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ??
@@ -15,12 +17,23 @@ const SERVICE_KEY =
 const DATABASE_URL =
   process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 
+// Antes de qualquer setup destrutivo: a suíte nunca roda contra base remota.
+exigirSupabaseLocal(SUPABASE_URL, DATABASE_URL);
+
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
 // Setor só desta suíte (encerrar mexe na Fila do Setor inteiro).
 const SETOR = "tributario" as const;
-const TELEFONES = ["61955591001", "61955591002", "61955591003"];
+const TELEFONES = [
+  "61955591001",
+  "61955591002",
+  "61955591003",
+  "61955591004",
+  "61955591005",
+  "61955591006",
+];
 const usuarios: string[] = [];
+const atendimentosCriados: string[] = [];
 const clientes: Client[] = [];
 
 async function conexao(): Promise<Client> {
@@ -61,6 +74,7 @@ async function atendimentoEmAviso(telefone: string, nome: string) {
     .select("id")
     .single();
   if (error) throw error;
+  atendimentosCriados.push(data.id);
   await admin
     .from("assuncoes_atendimento")
     .insert({ atendimento_id: data.id, funcionario_id: funcionario });
@@ -81,7 +95,13 @@ const ENCERRAR =
 afterAll(async () => {
   for (const cliente of clientes) await cliente.end().catch(() => undefined);
   await admin.from("atendimentos").delete().in("telefone", TELEFONES);
-  await admin.from("registros_auditoria").delete().eq("ator", URA_ATOR_ID).eq("setor", SETOR);
+  // Só a auditoria dos Atendimentos desta suíte: nunca a de outras (nem a de outro ator/setor).
+  await admin
+    .from("registros_auditoria")
+    .delete()
+    .eq("ator", URA_ATOR_ID)
+    .eq("setor", SETOR)
+    .in("alvo", atendimentosCriados);
   for (const id of usuarios) await admin.auth.admin.deleteUser(id);
 });
 
@@ -154,6 +174,7 @@ describe("inatividade × concorrência (duas conexões)", () => {
       })
       .select("id")
       .single();
+    atendimentosCriados.push(data!.id);
     await admin
       .from("assuncoes_atendimento")
       .insert({ atendimento_id: data!.id, funcionario_id: funcionario });
@@ -171,5 +192,57 @@ describe("inatividade × concorrência (duas conexões)", () => {
 
     const marcados = [primeira.rows[0].marcado, segunda.rows[0].marcado];
     expect(marcados.filter(Boolean)).toHaveLength(1);
+  });
+
+  // Encerra por inatividade (nasce com a reivindicação da mensagem final) e a devolve, como o job
+  // faz quando o envio falha: fica pendente e livre para ser disputada.
+  async function encerradoPendente(telefone: string, nome: string): Promise<string> {
+    const { id, funcionario } = await atendimentoEmAviso(telefone, nome);
+    const dono = await conexao();
+    const r = await dono.query(ENCERRAR, [id, funcionario, URA_ATOR_ID, SETOR, "fim"]);
+    expect(r.rows[0].r.status).toBe("encerrado");
+    await admin.rpc("liberar_encerramento_pendente", { p_atendimento_id: id });
+    return id;
+  }
+
+  const REIVINDICAR = "select id from public.reivindicar_encerramentos_pendentes($1::int)";
+
+  it("dois jobs disputam a mensagem final pendente: exatamente um a reivindica; vencido o lease, outro a retoma", async () => {
+    const id = await encerradoPendente(TELEFONES[3], "Func Concorrencia D");
+    const [a, b] = await Promise.all([conexao(), conexao()]);
+
+    const [primeiro, segundo] = await Promise.all([
+      a.query(REIVINDICAR, [100]),
+      b.query(REIVINDICAR, [100]),
+    ]);
+
+    const com = [primeiro, segundo].filter((r) => r.rows.some((l) => l.id === id));
+    expect(com).toHaveLength(1);
+    // Reivindicada e dentro do lease: ninguém mais a vê.
+    const deNovo = await a.query(REIVINDICAR, [100]);
+    expect(deNovo.rows.map((l) => l.id)).not.toContain(id);
+    // O job que a pegou caiu: com o lease vencido (zero), outra rodada a reivindica.
+    const retomada = await b.query(
+      "select id from public.reivindicar_encerramentos_pendentes(100, interval '0 seconds')",
+    );
+    expect(retomada.rows.map((l) => l.id)).toContain(id);
+  });
+
+  it("backlog maior que o lote é drenado em lotes, sem truncar nem repetir", async () => {
+    const ids = [
+      await encerradoPendente(TELEFONES[4], "Func Concorrencia E"),
+      await encerradoPendente(TELEFONES[5], "Func Concorrencia F"),
+    ];
+    const cliente = await conexao();
+
+    const vistos: string[] = [];
+    for (;;) {
+      const lote = await cliente.query(REIVINDICAR, [1]);
+      expect(lote.rows.length).toBeLessThanOrEqual(1);
+      if (lote.rows.length === 0) break;
+      vistos.push(lote.rows[0].id);
+    }
+
+    for (const id of ids) expect(vistos.filter((v) => v === id)).toHaveLength(1);
   });
 });

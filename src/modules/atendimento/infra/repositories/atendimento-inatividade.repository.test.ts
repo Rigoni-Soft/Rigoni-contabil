@@ -6,6 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 
 import { URA_ATOR_ID } from "@/modules/atendimento/domain/services/inatividade.service";
 
+import { exigirSupabaseLocal } from "../../../../../test-support/exigir-supabase-local";
 import { SupabaseAtendimentoRepository } from "./atendimento.repository";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
@@ -13,8 +14,12 @@ const SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
+// Antes de qualquer setup destrutivo.
+exigirSupabaseLocal(SUPABASE_URL);
+
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 const repositorio = new SupabaseAtendimentoRepository(admin);
+const atendimentosCriados: string[] = [];
 
 // Setor só desta suíte: encerrar mexe na Fila do Setor inteiro.
 const SETOR = "administrativo" as const;
@@ -52,6 +57,7 @@ async function abrir(telefone: string, funcionarioId: string | null) {
     mensagens: [{ autor: "contato", texto: "oi" }],
   });
   if (!r.ok || r.value.status !== "aberto") throw new Error("abertura falhou");
+  atendimentosCriados.push(r.value.id);
   return r.value.id;
 }
 
@@ -73,6 +79,7 @@ async function abrirDireto(telefone: string, funcionarioId: string): Promise<str
   await admin
     .from("assuncoes_atendimento")
     .insert({ atendimento_id: data.id, funcionario_id: funcionarioId });
+  atendimentosCriados.push(data.id);
   return data.id;
 }
 
@@ -91,7 +98,14 @@ const TEXTO_FINAL = "Seu atendimento foi encerrado por inatividade.";
 
 afterAll(async () => {
   await admin.from("atendimentos").delete().in("telefone", TELEFONES);
-  await admin.from("registros_auditoria").delete().eq("ator", URA_ATOR_ID);
+  // Só a auditoria dos Atendimentos desta suíte (alvo): nunca a de outras.
+  if (atendimentosCriados.length > 0) {
+    await admin
+      .from("registros_auditoria")
+      .delete()
+      .eq("ator", URA_ATOR_ID)
+      .in("alvo", atendimentosCriados);
+  }
   for (const id of usuarios) await admin.auth.admin.deleteUser(id);
 });
 
@@ -213,14 +227,23 @@ describe("SupabaseAtendimentoRepository — inatividade", () => {
       .eq("atendimento_id", id)
       .eq("autor", "ura");
     expect(final.data).toEqual([{ autor: "ura", texto: TEXTO_FINAL }]);
-    const pendentes = await repositorio.encerramentosPendentes();
+    // Quem encerrou já tem a reivindicação da mensagem final: outro job não a pega.
+    const outroJob = await repositorio.reivindicarEncerramentosPendentes(1000);
+    expect(outroJob.ok && outroJob.value.map((p) => p.atendimentoId)).not.toContain(id);
+    // Falha no envio: libera, e a próxima rodada a reivindica com o texto do histórico.
+    expect(await repositorio.liberarEncerramentoPendente(id)).toEqual({
+      ok: true,
+      value: undefined,
+    });
+    const pendentes = await repositorio.reivindicarEncerramentosPendentes(1000);
     expect(pendentes.ok && pendentes.value).toContainEqual({
       atendimentoId: id,
       telefone: TELEFONES[2],
       texto: TEXTO_FINAL,
     });
     expect(await repositorio.confirmarEncerramentoEntregue(id)).toEqual({ ok: true, value: true });
-    const depois = await repositorio.encerramentosPendentes();
+    await repositorio.liberarEncerramentoPendente(id);
+    const depois = await repositorio.reivindicarEncerramentosPendentes(1000);
     expect(depois.ok && depois.value.map((p) => p.atendimentoId)).not.toContain(id);
   });
 });

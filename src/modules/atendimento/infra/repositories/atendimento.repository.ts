@@ -320,8 +320,12 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     );
   }
 
-  async encerramentosPendentes(): Promise<Result<EncerramentoPendente[], AppError>> {
-    const { data, error } = await this.supabaseAdmin.rpc("encerramentos_pendentes");
+  async reivindicarEncerramentosPendentes(
+    limite: number,
+  ): Promise<Result<EncerramentoPendente[], AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("reivindicar_encerramentos_pendentes", {
+      p_limite: limite,
+    });
     const linhas = z.array(encerramentoPendenteRowSchema).safeParse(data);
     if (error || !linhas.success) {
       return err(new ServicoExternoError("Falha ao consultar os encerramentos pendentes."));
@@ -331,6 +335,14 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
         l.texto ? [{ atendimentoId: l.id, telefone: l.telefone, texto: l.texto }] : [],
       ),
     );
+  }
+
+  async liberarEncerramentoPendente(atendimentoId: string): Promise<Result<void, AppError>> {
+    const { error } = await this.supabaseAdmin.rpc("liberar_encerramento_pendente", {
+      p_atendimento_id: atendimentoId,
+    });
+    if (error) return err(new ServicoExternoError("Falha ao liberar o encerramento pendente."));
+    return ok(undefined);
   }
 
   private async rpcBooleana(

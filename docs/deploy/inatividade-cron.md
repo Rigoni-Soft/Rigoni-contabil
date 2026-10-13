@@ -24,8 +24,11 @@ Antes de ligar em produção:
   o plano do projeto antes de fazer deploy com este `vercel.json`.
 - `atendimentos_para_inatividade` agrega as Mensagens de todos os Atendimentos em andamento com
   Funcionário: medir a duração com volume real; se pesar, filtrar por vencimento no banco.
-- O endpoint responde `200` com falhas individuais no corpo (`falhas > 0`): ligar alerta na
-  contagem de `falhas` e de `reentregues` (mensagens finais que não tinham chegado).
+- O endpoint responde `500` com o resumo no corpo quando `falhas > 0` (rodada falha aparece nos
+  logs do cron); ligar alerta também em `reentregues` (mensagens finais que não tinham chegado) e
+  acompanhar o backlog de pendentes.
+- O Vercel Cron **não** reexecuta nem garante execução única: duas invocações podem se sobrepor,
+  o que as garantias abaixo cobrem no banco.
 
 ## Garantias do job
 
@@ -36,3 +39,13 @@ Antes de ligar em produção:
   a resposta que chega primeiro cancela, e a que chega depois não é anexada ao encerrado.
 - **Histórico durável:** a mensagem final da URA entra no histórico na transação que fecha;
   `encerramento_pendente` guarda a entrega, e o job reenvia mesmo com o Atendimento encerrado.
+- **Reenvio exclusivo (devolutiva 2, B5):** a mensagem final pendente é *reivindicada*
+  (`reivindicar_encerramentos_pendentes`, `for update skip locked` + lease de 10 min em
+  `encerramento_reivindicado_em`); dois jobs simultâneos não enviam a mesma. Envio que falha
+  libera a reivindicação; job que cai a deixa vencer o lease. Quem encerra já nasce com a
+  reivindicação.
+- **Backlog em lotes:** cada rodada reivindica até 50 pendentes (`LOTE_REENTREGA`); o resto entra
+  nas próximas rodadas (sem teto de 1.000 do PostgREST, sem perda).
+- **Limite conhecido:** se o provedor aceitar a mensagem e a confirmação no banco falhar, o envio
+  se repete depois do lease. Exatamente-uma-vez externo depende da idempotência do adapter real
+  (#68), pré-requisito de ativação junto de métricas de tentativas/falhas/pendentes.

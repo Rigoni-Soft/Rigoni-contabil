@@ -167,6 +167,11 @@ export interface AtendimentoRepositoryPort {
   // O aviso ao cliente saiu. false se o aviso já não existe.
   confirmarAvisoEntregue(atendimentoId: string): Promise<Result<boolean, AppError>>;
   limparAvisoInatividade(atendimentoId: string): Promise<Result<void, AppError>>;
-  encerramentosPendentes(): Promise<Result<EncerramentoPendente[], AppError>>;
+  // Reivindica até `limite` mensagens finais não entregues: um job por vez (lease no banco; vencido,
+  // volta a ser elegível). Quem reivindica entrega e confirma, ou libera se o envio falhou.
+  reivindicarEncerramentosPendentes(
+    limite: number,
+  ): Promise<Result<EncerramentoPendente[], AppError>>;
+  liberarEncerramentoPendente(atendimentoId: string): Promise<Result<void, AppError>>;
   confirmarEncerramentoEntregue(atendimentoId: string): Promise<Result<boolean, AppError>>;
 }
