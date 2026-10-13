@@ -41,16 +41,19 @@ export function documentoDaOpcao(valor: string): DocumentoDisponivel {
   return { tipo: tipo as DocumentoDisponivel["tipo"], data: data ?? null };
 }
 
-// Mesmo fuso de negócio do feed de auditoria (não o do navegador).
+// Mesmo fuso de negócio do feed de auditoria (não o do navegador). Criado uma vez: construir um
+// Intl.DateTimeFormat por Mensagem a cada render é o custo dominante da conversa.
+const FORMATO_HORA = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: "America/Sao_Paulo",
+  day: "2-digit",
+  month: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
 function formatarHora(iso: string): string {
-  const partes = new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(new Date(iso));
+  const partes = FORMATO_HORA.formatToParts(new Date(iso));
   const p = (tipo: string) => partes.find((x) => x.type === tipo)?.value ?? "";
   return `${p("day")}/${p("month")} ${p("hour")}:${p("minute")}`;
 }
