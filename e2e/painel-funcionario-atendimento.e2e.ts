@@ -193,6 +193,7 @@ test.describe("Painel do Funcionário (#49)", () => {
     await expect(
       page.getByRole("dialog", { name: "Imagem ampliada: foto-fachada.png" }),
     ).toBeVisible();
+    await expect(fechar).toBeFocused();
     await expect(fechar).toBeInViewport();
     await fechar.click();
     await expect(page.getByRole("dialog", { name: /Imagem ampliada/ })).toBeHidden();

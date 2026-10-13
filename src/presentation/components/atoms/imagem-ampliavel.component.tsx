@@ -44,6 +44,9 @@ export function ImagemAmpliavel({ src, ampliadaSrc, alt, painelId }: ImagemAmpli
           popoverTarget={painelId}
           popoverTargetAction="hide"
           aria-label="Fechar imagem"
+          // O React trata `autoFocus` focando na montagem (o painel ainda está oculto); o atributo
+          // nativo é o que o popover usa para decidir o foco ao abrir.
+          ref={(botao) => botao?.setAttribute("autofocus", "")}
           className="absolute top-3 right-3 flex size-11 items-center justify-center rounded-full bg-background/90 text-foreground shadow outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
         >
           <X className="size-5" aria-hidden="true" />
