@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import {
   atribuirResponsavelComoLider,
   criarClienteComoAdmin,
+  empresaUnica,
   login,
 } from "./support/criar-cliente";
 
@@ -18,7 +19,7 @@ test.describe("Resumo do setor (#36)", () => {
   test("o card 'Sem documento' leva a uma tela própria com o cliente recém-cadastrado, que leva ao cadastro dele", async ({
     page,
   }) => {
-    const empresa = "Resumo Setor E2E Ltda";
+    const empresa = empresaUnica("Resumo Setor E2E Ltda");
     await criarClienteComoAdmin(page, empresa);
 
     await page.goto("/");
@@ -51,7 +52,7 @@ test.describe("Resumo do setor (#36)", () => {
   test("salvar uma edição move o cliente pro bucket certo e fecha a tela de volta pra lista", async ({
     page,
   }) => {
-    const empresa = "Resumo Setor Realtime E2E Ltda";
+    const empresa = empresaUnica("Resumo Setor Realtime E2E Ltda");
     const cnpjDigits = await criarClienteComoAdmin(page, empresa);
     await atribuirResponsavelComoLider(cnpjDigits);
 

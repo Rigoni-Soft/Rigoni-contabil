@@ -3,6 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import {
   atribuirResponsavelComoLider,
   criarClienteComoAdmin,
+  empresaUnica,
   login,
 } from "./support/criar-cliente";
 
@@ -24,12 +25,12 @@ test.describe("Responsável por Cliente (#65)", () => {
   test("Líder atribui o Responsável pela busca; só o Funcionário responsável enxerga o Cliente", async ({
     page,
   }) => {
-    const empresa = "Responsavel E2E Ltda";
+    const empresa = empresaUnica("Responsavel E2E Ltda");
     await criarClienteComoAdmin(page, empresa);
     await sair(page);
 
     await entrarEm(page, "lider.sn@rigonicontabil.local", "lider123");
-    await page.getByLabel(/empresa ou cnpj/i).fill(empresa.slice(0, 12));
+    await page.getByLabel(/empresa ou cnpj/i).fill(empresa);
     await page.getByText(empresa).click();
     await expect(page.getByLabel("Responsável", { exact: true })).toHaveValue("");
     // A lista de Funcionários só é buscada quando o Select recebe foco (lazy).
@@ -41,7 +42,7 @@ test.describe("Responsável por Cliente (#65)", () => {
     await sair(page);
 
     await entrarEm(page, "funcionario.sn@rigonicontabil.local", "func123");
-    await page.getByLabel(/empresa ou cnpj/i).fill(empresa.slice(0, 12));
+    await page.getByLabel(/empresa ou cnpj/i).fill(empresa);
     await page.getByText(empresa).click();
     // Funcionário vê o Responsável, mas não edita.
     await expect(page.getByLabel("Responsável", { exact: true })).toBeDisabled();
@@ -51,7 +52,7 @@ test.describe("Responsável por Cliente (#65)", () => {
     await sair(page);
 
     await entrarEm(page, "funcionario2.sn@rigonicontabil.local", "func123");
-    await page.getByLabel(/empresa ou cnpj/i).fill(empresa.slice(0, 12));
+    await page.getByLabel(/empresa ou cnpj/i).fill(empresa);
     await expect(page.getByText(empresa)).toBeHidden();
   });
 

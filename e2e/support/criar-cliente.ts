@@ -35,6 +35,13 @@ function digitoVerificador(base: string, pesos: number[]): string {
   return String(resto < 2 ? 0 : 11 - resto);
 }
 
+// Nome único por execução: o cliente criado pelo e2e continua no banco, e `getByText` em modo estrito
+// falha quando a busca devolve mais de um com o mesmo nome (e uma busca por prefixo comum perde o
+// novo para os antigos). Busque sempre pelo nome inteiro devolvido aqui.
+export function empresaUnica(base: string): string {
+  return `${base} ${Date.now().toString(36).toUpperCase()}`;
+}
+
 export function cnpjUnico(): string {
   const raiz = `${Date.now()}`.slice(-8) + "0001";
   const d1 = digitoVerificador(raiz, PESOS_PRIMEIRO_DIGITO);
