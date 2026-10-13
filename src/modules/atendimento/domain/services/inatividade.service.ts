@@ -49,6 +49,19 @@ export function decidirInatividade(
   return { acao: "avisar", de: contatoPorUltimo ? "funcionario" : "contato" };
 }
 
+// Aviso de inatividade ainda pendente para o Funcionário: a URA avisou que ele era o inativo e ele
+// não escreveu depois (a Mensagem dele já cancela, mesmo antes de o job limpar a marca).
+export function avisoPendenteAoFuncionario(
+  aviso: { de: Inativo; em: string } | null,
+  mensagens: { autor: string; criadoEm: string }[],
+): boolean {
+  if (aviso?.de !== "funcionario") return false;
+  const avisoEm = new Date(aviso.em).getTime();
+  return !mensagens.some(
+    (m) => m.autor === "funcionario" && new Date(m.criadoEm).getTime() > avisoEm,
+  );
+}
+
 export const AVISO_INATIVIDADE_AO_CLIENTE =
   "Olá! Não recebemos resposta há um tempo. Se não houver nenhuma ação em 10 minutos, o atendimento será encerrado.";
 export const AVISO_ENCERRAMENTO_AO_CLIENTE =

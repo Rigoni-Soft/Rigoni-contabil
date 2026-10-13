@@ -3,13 +3,11 @@ import type {
   DocumentoOferecido,
   ObterConversaPort,
 } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
-import type {
-  AtendimentoRepositoryPort,
-  ConversaLida,
-} from "@/modules/atendimento/application/ports/out/atendimento.repository";
+import type { AtendimentoRepositoryPort } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { DocumentosContratuaisPort } from "@/modules/atendimento/application/ports/out/documentos-contratuais.provider";
 import type { SessaoPort } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { descreverDocumento } from "@/modules/atendimento/domain/services/documento-contratual.service";
+import { avisoPendenteAoFuncionario } from "@/modules/atendimento/domain/services/inatividade.service";
 import {
   podeTransferir,
   setoresDeDestino,
@@ -19,16 +17,6 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
-
-// O aviso ao cliente não aparece aqui; e a Mensagem do Funcionário depois do aviso já o cancela,
-// mesmo antes de o job limpar a marca.
-function avisoAoFuncionario({ status, aviso, mensagens }: ConversaLida): boolean {
-  if (status === "encerrado" || aviso?.de !== "funcionario") return false;
-  const avisoEm = new Date(aviso.em).getTime();
-  return !mensagens.some(
-    (m) => m.autor === "funcionario" && new Date(m.criadoEm).getTime() > avisoEm,
-  );
-}
 
 // Mesma regra de quem pode agir sobre o Atendimento que a Transferência (dono, Líder do Setor ou
 // Admin). Os serviços que o Funcionário pode disparar vêm junto: uma leitura só por interação.
@@ -70,7 +58,11 @@ export class ObterConversa implements ObterConversaPort {
       mensagens: conversa.mensagens,
       ultimaTransferencia: conversa.ultimaTransferencia,
       ura: conversa.ura,
-      avisoInatividade: avisoAoFuncionario(conversa),
+      // Só o dono é o "inativo"; Líder e Admin que abrem a conversa não são avisados.
+      avisoInatividade:
+        !encerrado &&
+        conversa.funcionarioId === ator.id &&
+        avisoPendenteAoFuncionario(conversa.aviso, conversa.mensagens),
       documentos: disponiveis.value,
       setoresDestino: destinos.value,
     });

@@ -93,10 +93,18 @@ describe("ObterConversa", () => {
       ...CONVERSA,
       aviso: { de, em },
     });
-    const avisoVisto = async (conversa: ConversaLida) => {
-      const r = await montar(FUNCIONARIO, conversa).caso.execute({ atendimentoId: "at-1" });
+    const avisoVisto = async (conversa: ConversaLida, ator: AtorSessaoDto = FUNCIONARIO) => {
+      const r = await montar(ator, conversa).caso.execute({ atendimentoId: "at-1" });
       return r.ok && r.value.avisoInatividade;
     };
+
+    it("só o dono do Atendimento é avisado, não o Líder nem o Admin que abrem a conversa", async () => {
+      const pendente = aviso("funcionario", "2026-10-08T14:00:00Z");
+      const lider: AtorSessaoDto = { id: "lider-1", papel: "lider_setor", setor: "contabil" };
+      const admin: AtorSessaoDto = { id: "adm-1", papel: "admin", setor: "contabil" };
+      expect(await avisoVisto(pendente, lider)).toBe(false);
+      expect(await avisoVisto(pendente, admin)).toBe(false);
+    });
 
     it("aparece quando o Funcionário é o inativo e não escreveu depois do aviso", async () => {
       expect(await avisoVisto(aviso("funcionario", "2026-10-08T14:00:00Z"))).toBe(true);

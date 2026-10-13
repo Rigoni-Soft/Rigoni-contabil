@@ -1,3 +1,5 @@
+import { FieldError } from "@/presentation/components/ui/field-error";
+
 type CabecalhoDaConversaProps = {
   titulo: string;
   subtitulo: string;
@@ -48,13 +50,10 @@ export function CabecalhoDaConversa({
         </section>
       )}
       {avisoInatividade && !encerrado && (
-        <p
-          role="status"
-          className="mt-1 rounded-md border border-border bg-muted px-3 py-2 text-sm font-medium text-foreground"
-        >
-          Sem resposta sua há um tempo. Responda ou finalize: sem ação em 10 minutos a URA encerra o
-          Atendimento.
-        </p>
+        <FieldError className="mt-1 font-medium">
+          Sem resposta sua há um tempo. Responda ou finalize: sem ação em 10 minutos de expediente a
+          URA encerra o Atendimento.
+        </FieldError>
       )}
       {encerrado && (
         <p className="mt-1 text-sm font-medium text-muted-foreground">Atendimento encerrado.</p>

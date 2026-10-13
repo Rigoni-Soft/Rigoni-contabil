@@ -21,12 +21,12 @@ describe("CabecalhoDaConversa", () => {
         avisoInatividade
       />,
     );
-    expect(screen.getByRole("status")).toHaveTextContent("sem ação em 10 minutos");
+    expect(screen.getByRole("alert")).toHaveTextContent("sem ação em 10 minutos de expediente");
 
     rerender(
       <CabecalhoDaConversa titulo="Maria" subtitulo="Padaria Ltda" encerrado avisoInatividade />,
     );
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("avisa quando o Atendimento está encerrado", () => {

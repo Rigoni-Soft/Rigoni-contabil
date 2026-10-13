@@ -1,5 +1,9 @@
 import { expedienteDecorrido } from "./expediente.service";
-import { decidirInatividade, type EstadoInatividade } from "./inatividade.service";
+import {
+  avisoPendenteAoFuncionario,
+  decidirInatividade,
+  type EstadoInatividade,
+} from "./inatividade.service";
 
 const sp = (iso: string) => new Date(`${iso}-03:00`);
 const NENHUM = new Set<string>();
@@ -128,5 +132,32 @@ describe("decidirInatividade", () => {
     expect(decidirInatividade(estado, sp("2026-10-08T08:05:00"), NENHUM)).toEqual({
       acao: "encerrar",
     });
+  });
+});
+
+describe("avisoPendenteAoFuncionario", () => {
+  const aviso = { de: "funcionario" as const, em: "2026-10-08T14:00:00Z" };
+  const doFuncionario = (criadoEm: string) => ({ autor: "funcionario", criadoEm });
+
+  it("fica pendente enquanto o Funcionário não escreve depois do aviso", () => {
+    expect(avisoPendenteAoFuncionario(aviso, [doFuncionario("2026-10-08T12:00:00Z")])).toBe(true);
+    expect(avisoPendenteAoFuncionario(aviso, [])).toBe(true);
+  });
+
+  it("some quando o Funcionário escreve depois do aviso", () => {
+    expect(avisoPendenteAoFuncionario(aviso, [doFuncionario("2026-10-08T14:00:01Z")])).toBe(false);
+  });
+
+  it("a Mensagem do contato ou da URA depois do aviso não cancela", () => {
+    const outras = [
+      { autor: "contato", criadoEm: "2026-10-08T14:05:00Z" },
+      { autor: "ura", criadoEm: "2026-10-08T14:06:00Z" },
+    ];
+    expect(avisoPendenteAoFuncionario(aviso, outras)).toBe(true);
+  });
+
+  it("sem aviso, ou com o aviso ao cliente, não há pendência para o Funcionário", () => {
+    expect(avisoPendenteAoFuncionario(null, [])).toBe(false);
+    expect(avisoPendenteAoFuncionario({ ...aviso, de: "contato" }, [])).toBe(false);
   });
 });
