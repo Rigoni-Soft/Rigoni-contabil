@@ -7,7 +7,7 @@ const SELETOR = {
   aberto: false,
   onAlternar: jest.fn(),
   onEscolher: jest.fn(),
-  onTeclar: jest.fn(),
+  painelId: "painel",
   raizRef: null,
   botaoRef: null,
 };

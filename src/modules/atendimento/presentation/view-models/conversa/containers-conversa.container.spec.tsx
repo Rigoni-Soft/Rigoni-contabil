@@ -125,6 +125,20 @@ describe("CompositorConversaContainer", () => {
     expect(screen.queryByRole("group", { name: "Emojis" })).not.toBeInTheDocument();
   });
 
+  it("Esc fecha o seletor mesmo com o foco no campo", async () => {
+    const usuario = userEvent.setup();
+    render(<CompositorConversaContainer {...PROPS} />);
+    const abrir = screen.getByRole("button", { name: "Inserir emoji" });
+
+    await usuario.click(abrir);
+    expect(abrir).toHaveAttribute("aria-controls");
+    screen.getByLabelText("Mensagem ao cliente").focus();
+    await usuario.keyboard("{Escape}");
+
+    expect(screen.queryByRole("group", { name: "Emojis" })).not.toBeInTheDocument();
+    expect(abrir).not.toHaveAttribute("aria-controls");
+  });
+
   it("não aparece quando o hook diz que não está visível", () => {
     compositorVisivel = false;
     const { container } = render(<CompositorConversaContainer {...PROPS} />);

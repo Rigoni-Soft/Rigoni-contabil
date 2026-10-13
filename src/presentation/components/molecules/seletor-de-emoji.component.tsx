@@ -71,8 +71,7 @@ type SeletorDeEmojiProps = {
   aberto: boolean;
   onAlternar: () => void;
   onEscolher: (emoji: string) => void;
-  // Esc fecha e devolve o foco ao botão (quem controla o estado e os refs é o Container).
-  onTeclar: React.KeyboardEventHandler<HTMLDivElement>;
+  painelId: string;
   raizRef: React.Ref<HTMLDivElement>;
   botaoRef: React.Ref<HTMLButtonElement>;
   disabled?: boolean;
@@ -82,13 +81,13 @@ export function SeletorDeEmoji({
   aberto,
   onAlternar,
   onEscolher,
-  onTeclar,
+  painelId,
   raizRef,
   botaoRef,
   disabled,
 }: SeletorDeEmojiProps) {
   return (
-    <div ref={raizRef} className="relative" onKeyDown={onTeclar}>
+    <div ref={raizRef} className="relative">
       <Button
         ref={botaoRef}
         type="button"
@@ -97,7 +96,7 @@ export function SeletorDeEmoji({
         className="rounded-full"
         aria-label="Inserir emoji"
         aria-expanded={aberto}
-        aria-controls="seletor-de-emoji"
+        aria-controls={aberto ? painelId : undefined}
         disabled={disabled}
         onClick={onAlternar}
       >
@@ -105,7 +104,7 @@ export function SeletorDeEmoji({
       </Button>
       {aberto && (
         <div
-          id="seletor-de-emoji"
+          id={painelId}
           role="group"
           aria-label="Emojis"
           className="absolute bottom-full left-0 z-10 mb-2 max-h-64 w-72 space-y-2 overflow-y-auto rounded-xl border border-input bg-background p-2 shadow-md"
