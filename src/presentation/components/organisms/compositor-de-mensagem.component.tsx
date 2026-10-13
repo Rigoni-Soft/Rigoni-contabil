@@ -53,11 +53,14 @@ export function CompositorDeMensagem({
       <Linha
         alinhar="centro"
         espaco={2}
+        quebra
         como="form"
         key={enviadas}
         {...arraste?.ligacoes}
         className={cn(
-          "rounded-2xl transition-shadow",
+          // Celular: o campo ocupa a linha toda e as ações (clipe, emoji, enviar) vão para baixo;
+          // de sm em diante, tudo numa linha só.
+          "rounded-2xl transition-shadow sm:flex-nowrap",
           arraste?.arrastando && "ring-2 ring-primary ring-offset-4 ring-offset-background",
         )}
         onSubmit={(evento) => {
@@ -72,6 +75,7 @@ export function CompositorDeMensagem({
           id="mensagem-ao-cliente"
           rotulo="Mensagem ao cliente"
           rotuloOculto
+          containerClassName="order-first basis-full sm:order-none sm:basis-0"
           name="texto"
           required={!anexo}
           rows={2}
@@ -99,7 +103,7 @@ export function CompositorDeMensagem({
         <Button
           type="submit"
           size="icon"
-          className="rounded-full"
+          className="ml-auto rounded-full sm:ml-0"
           aria-label={anexo ? "Enviar arquivo" : "Enviar mensagem"}
           disabled={enviando}
         >

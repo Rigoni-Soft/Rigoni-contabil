@@ -699,6 +699,9 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   de guilhochê (`SobreposicaoDeSoltar`, "Solte para anexar", entrada de 180 ms só
   com `motion-safe:`) e sobre o campo, um anel `primary`; é só enfeite de mouse, o
   caminho por teclado é o clipe. Texto e link arrastados não acendem nada.
+  No celular (abaixo de `sm`) o campo ocupa a linha toda e clipe, emoji e enviar
+  ficam numa linha própria abaixo, com enviar à direita; de `sm` em diante, tudo
+  numa linha só.
 - **Painel de ações** (`PainelDeAcoes`, à direita, 19 rem; 22 rem em `2xl`):
   compacto. Serviço "Contrato social" em botão `sm` (quando o Cliente não o
   tem, o botão fica `disabled` com a frase "Contrato social não cadastrado."

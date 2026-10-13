@@ -8,17 +8,20 @@ type CampoTextareaProps = React.ComponentProps<"textarea"> & {
   rotulo: string;
   // Rótulo só para leitor de tela (o placeholder já diz o que escrever).
   rotuloOculto?: boolean;
+  // Classes do contêiner do campo (largura/ordem dentro de uma linha flex).
+  containerClassName?: string;
 };
 
 export function CampoTextarea({
   id,
   rotulo,
   rotuloOculto = false,
+  containerClassName,
   className,
   ...props
 }: CampoTextareaProps) {
   return (
-    <Caixa className={cn("min-w-0 flex-1", !rotuloOculto && "space-y-1")}>
+    <Caixa className={cn("min-w-0 flex-1", !rotuloOculto && "space-y-1", containerClassName)}>
       <Label htmlFor={id} className={cn("text-xs", rotuloOculto && "sr-only")}>
         {rotulo}
       </Label>
