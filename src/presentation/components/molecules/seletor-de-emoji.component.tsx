@@ -1,7 +1,7 @@
 import { Plus, Smile } from "lucide-react";
 
 import { BotaoDeEmoji } from "@/presentation/components/atoms/botao-de-emoji.component";
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Button } from "@/presentation/components/ui/button";
 import { CATEGORIAS_DE_EMOJI, NOME_DO_EMOJI } from "@/presentation/lib/emojis";
@@ -74,7 +74,7 @@ export function SeletorDeEmoji({
           )}
         >
           {recentes.length > 0 && (
-            <Caixa role="group" aria-label="Recentes" className="flex flex-wrap items-center">
+            <Linha alinhar="centro" quebra role="group" aria-label="Recentes">
               {recentes.map((emoji) => (
                 <BotaoDeEmoji
                   key={emoji}
@@ -95,7 +95,7 @@ export function SeletorDeEmoji({
                   <Plus aria-hidden="true" className="size-5" />
                 </Button>
               )}
-            </Caixa>
+            </Linha>
           )}
           {(recentes.length === 0 || completo) &&
             CATEGORIAS_DE_EMOJI.map((categoria) => (
@@ -103,11 +103,11 @@ export function SeletorDeEmoji({
                 <Texto variante="nota" className="px-1">
                   {categoria.nome}
                 </Texto>
-                <Caixa className="flex flex-wrap">
+                <Linha quebra>
                   {categoria.emojis.map(([emoji, nome]) => (
                     <BotaoDeEmoji key={emoji} emoji={emoji} nome={nome} onEscolher={onEscolher} />
                   ))}
-                </Caixa>
+                </Linha>
               </Caixa>
             ))}
         </Caixa>

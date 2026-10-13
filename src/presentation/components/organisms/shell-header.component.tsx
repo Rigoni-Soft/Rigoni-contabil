@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Building2, CalendarOff, CircleUser, ListOrdered, UserPlus, Users } from "lucide-react";
 
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { buttonVariants } from "@/presentation/components/ui/button";
 import { ThemeToggle } from "@/presentation/components/ui/theme-toggle";
@@ -29,11 +29,14 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
   const rotuloCadastrar = CADASTRAR_LABEL[papel];
 
   return (
-    <Caixa
+    <Linha
+      alinhar="centro"
+      justificar="entre"
+      espaco={4}
       como="header"
-      className="flex items-center justify-between gap-4 border-b border-border bg-card px-4 py-3 sm:px-6"
+      className="border-b border-border bg-card px-4 py-3 sm:px-6"
     >
-      <Caixa className="flex min-w-0 items-center gap-3">
+      <Linha alinhar="centro" espaco={3} className="min-w-0">
         <Caixa
           como="span"
           aria-hidden="true"
@@ -49,9 +52,9 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
             {PAPEL_LABEL[papel] ?? papel} · {escopo}
           </Texto>
         </Caixa>
-      </Caixa>
+      </Linha>
 
-      <Caixa className="flex shrink-0 items-center gap-1">
+      <Linha alinhar="centro" espaco={1} className="shrink-0">
         {/* Único caminho de navegação até /admin/usuarios/novo — Admin e Líder
             cadastram (escopado por papel no próprio caso de uso, #30/#32);
             Funcionário não cadastra ninguém, então não vê o link. */}
@@ -131,7 +134,7 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
         </Link>
         <ThemeToggle />
         {sair}
-      </Caixa>
-    </Caixa>
+      </Linha>
+    </Linha>
   );
 }

@@ -1,5 +1,5 @@
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
-import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { TituloDoGrupo } from "@/presentation/components/atoms/titulo-de-grupo.component";
 import { CampoSelect } from "@/presentation/components/molecules/campo-select.component";
@@ -30,7 +30,7 @@ export function PainelDeTransferencia({
       }}
     >
       <TituloDoGrupo>Transferir Atendimento</TituloDoGrupo>
-      <Caixa className="flex items-end gap-2">
+      <Linha alinhar="fim" espaco={2}>
         <CampoSelect
           id="transferir-setor"
           rotulo="Setor de destino"
@@ -50,7 +50,7 @@ export function PainelDeTransferencia({
         <Button type="submit" size="sm" className="pointer-coarse:h-11" disabled={transferindo}>
           {transferindo ? "Transferindo..." : "Transferir"}
         </Button>
-      </Caixa>
+      </Linha>
       <CampoTextarea
         id="transferir-resumo"
         rotulo="Resumo do assunto"

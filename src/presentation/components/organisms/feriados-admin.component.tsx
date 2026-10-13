@@ -1,7 +1,7 @@
 import { Loader2, Trash2 } from "lucide-react";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 
-import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Grade, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Button } from "@/presentation/components/ui/button";
@@ -38,7 +38,7 @@ export function FeriadosAdmin({
       </Texto>
 
       <Pilha espaco="formulario" como="form" onSubmit={onSubmit} noValidate>
-        <Caixa className="grid grid-cols-1 gap-5 sm:grid-cols-[12rem_1fr]">
+        <Grade colunas="1>rotulo-valor" espaco={5}>
           <Pilha espaco="campo">
             <Label htmlFor="data">Data</Label>
             <Input id="data" type="date" aria-invalid={!!errors.data} {...register("data")} />
@@ -49,7 +49,7 @@ export function FeriadosAdmin({
             <Input id="descricao" aria-invalid={!!errors.descricao} {...register("descricao")} />
             {errors.descricao && <FieldError>{errors.descricao.message}</FieldError>}
           </Pilha>
-        </Caixa>
+        </Grade>
         {erroServidor && (
           <Texto variante="alerta" role="alert">
             {erroServidor}
@@ -66,10 +66,13 @@ export function FeriadosAdmin({
       ) : (
         <Caixa como="ul" className="divide-y divide-border rounded-lg border border-border bg-card">
           {feriados.map((feriado) => (
-            <Caixa
+            <Linha
+              alinhar="centro"
+              justificar="entre"
+              espaco={3}
               como="li"
               key={feriado.data}
-              className="flex items-center justify-between gap-3 px-4 py-3"
+              className="px-4 py-3"
             >
               <Caixa como="span" className="text-sm">
                 <Texto variante="enfase" como="strong">
@@ -87,7 +90,7 @@ export function FeriadosAdmin({
               >
                 <Trash2 aria-hidden="true" />
               </Button>
-            </Caixa>
+            </Linha>
           ))}
         </Caixa>
       )}

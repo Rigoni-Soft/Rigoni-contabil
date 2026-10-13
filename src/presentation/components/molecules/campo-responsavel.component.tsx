@@ -1,4 +1,4 @@
-import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { Button } from "@/presentation/components/ui/button";
@@ -49,12 +49,12 @@ export function CampoResponsavel({
         <Input id="responsavelId" value={nomeAtual} disabled readOnly />
       )}
       {estadoLista === "erro" && (
-        <Caixa className="flex flex-wrap items-center gap-x-2">
+        <Linha alinhar="centro" quebra className="gap-x-2">
           <FieldError>Não foi possível carregar a lista de Funcionários.</FieldError>
           <Button type="button" variant="ghost" size="sm" onClick={onTentarNovamente}>
             Tentar de novo
           </Button>
-        </Caixa>
+        </Linha>
       )}
     </Pilha>
   );

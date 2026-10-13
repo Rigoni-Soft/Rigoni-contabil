@@ -2,7 +2,7 @@ import { Plus } from "lucide-react";
 import { Controller, type Control, type FieldErrors, type UseFormRegister } from "react-hook-form";
 
 import { BotaoDeEnvio } from "@/presentation/components/atoms/botao-de-envio.component";
-import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Grade, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { FileInput } from "@/presentation/components/atoms/file-input.component";
 import { NotaDeObrigatorio } from "@/presentation/components/atoms/nota-de-obrigatorio.component";
@@ -104,7 +104,7 @@ export function CriarClienteForm({
           ao perder o foco, antes do resto do formulário ser preenchido à mão.
           3 colunas aproveita a largura do formulário (80% da tela, #36) em vez
           de empilhar os 3 campos de identificação numa coluna só. */}
-      <Caixa className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+      <Grade colunas="1>3" espaco={5}>
         <Controller
           control={control}
           name="cnpj"
@@ -147,7 +147,7 @@ export function CriarClienteForm({
           aviso={avisoRegime}
           {...register("regime", { onChange: onRegimeChange })}
         />
-      </Caixa>
+      </Grade>
 
       {/* Seção de documentos separada da identificação do Cliente — mais espaço
           acima do heading que abaixo, mesma cadência de arquitetura.md/DESIGN.md. */}
@@ -174,13 +174,13 @@ export function CriarClienteForm({
         />
 
         <Caixa className="flex flex-col gap-3">
-          <Caixa className="flex items-center justify-between">
+          <Linha alinhar="centro" justificar="entre">
             <Label>Alterações contratuais</Label>
             <Button type="button" variant="outline" size="sm" onClick={onAdicionarAlteracao}>
               <Plus aria-hidden="true" />
               Adicionar
             </Button>
-          </Caixa>
+          </Linha>
 
           {alteracoes.map((alteracao, indice) => (
             <LinhaDeAlteracao

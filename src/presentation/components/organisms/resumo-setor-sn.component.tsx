@@ -1,4 +1,4 @@
-import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Grade, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CartaoDeResumo } from "@/presentation/components/molecules/cartao-de-resumo.component";
 
@@ -22,7 +22,7 @@ function Grupo({
       <Texto variante="secao" className="mb-3 border-b border-border pb-2">
         {titulo}
       </Texto>
-      <Caixa como="ul" className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <Grade colunas="2>3>5" espaco={4} como="ul">
         {cards.map((card) => (
           <Caixa como="li" key={card.id}>
             <CartaoDeResumo
@@ -34,7 +34,7 @@ function Grupo({
             />
           </Caixa>
         ))}
-      </Caixa>
+      </Grade>
     </Caixa>
   );
 }

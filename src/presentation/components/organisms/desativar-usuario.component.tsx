@@ -1,6 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Button } from "@/presentation/components/ui/button";
 
@@ -40,7 +40,7 @@ export function DesativarUsuario({
           Concluir bloqueio
         </Button>
       ) : confirmando ? (
-        <Caixa className="flex gap-2">
+        <Linha espaco={2}>
           <Button
             type="button"
             variant="destructive"
@@ -54,7 +54,7 @@ export function DesativarUsuario({
           <Button type="button" variant="ghost" size="sm" onClick={aoCancelar}>
             Cancelar
           </Button>
-        </Caixa>
+        </Linha>
       ) : (
         <Button
           type="button"

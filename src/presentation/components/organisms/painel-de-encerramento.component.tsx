@@ -1,5 +1,5 @@
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
-import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { TituloDoGrupo } from "@/presentation/components/atoms/titulo-de-grupo.component";
 import { Button } from "@/presentation/components/ui/button";
@@ -35,7 +35,7 @@ export function PainelDeEncerramento({
           <Texto variante="corpo" id="encerramento-pergunta">
             O cliente será avisado de que o Atendimento foi encerrado. Encerrar agora?
           </Texto>
-          <Caixa className="flex gap-2">
+          <Linha espaco={2}>
             <Button
               type="button"
               size="sm"
@@ -59,7 +59,7 @@ export function PainelDeEncerramento({
             >
               Cancelar
             </Button>
-          </Caixa>
+          </Linha>
         </Pilha>
       ) : (
         <Button

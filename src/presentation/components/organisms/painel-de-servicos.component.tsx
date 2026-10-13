@@ -1,7 +1,7 @@
 import { FileText } from "lucide-react";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
-import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Grade, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { TituloDoGrupo } from "@/presentation/components/atoms/titulo-de-grupo.component";
@@ -37,7 +37,7 @@ export function PainelDeServicos({
         <Texto variante="nota">Sem Cliente vinculado a este número.</Texto>
       ) : (
         <>
-          <Caixa className="grid grid-cols-2 gap-2">
+          <Grade colunas="duas" espaco={2}>
             <Button
               type="button"
               variant="outline"
@@ -62,12 +62,13 @@ export function PainelDeServicos({
                 {rotulo}
               </Button>
             ))}
-          </Caixa>
+          </Grade>
           <Texto variante="nota">Guias e CND: em construção.</Texto>
           {!contrato && <Texto variante="nota">Contrato social não cadastrado.</Texto>}
-          <Caixa
+          <Linha
+            alinhar="fim"
+            espaco={2}
             como="form"
-            className="flex items-end gap-2"
             onSubmit={(evento) => {
               evento.preventDefault();
               onEnviarServico(String(new FormData(evento.currentTarget).get("alteracao")));
@@ -99,7 +100,7 @@ export function PainelDeServicos({
             >
               Enviar
             </Button>
-          </Caixa>
+          </Linha>
         </>
       )}
       {enviando && (

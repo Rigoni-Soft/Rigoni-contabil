@@ -1,6 +1,6 @@
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 
-import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Grade, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { Button } from "@/presentation/components/ui/button";
@@ -39,7 +39,7 @@ export function AuditoriaFeedFiltro({
       className="mb-6 rounded-lg border border-border bg-card p-4"
       noValidate
     >
-      <Caixa className="grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-4">
+      <Grade colunas="2>4" className="gap-x-3 gap-y-4">
         <Pilha espaco="campo">
           <Label htmlFor="dataInicio">De</Label>
           <Input
@@ -104,16 +104,16 @@ export function AuditoriaFeedFiltro({
           <Label htmlFor="alvo">Alvo</Label>
           <Input id="alvo" placeholder="busca parcial" {...register("alvo")} />
         </Pilha>
-      </Caixa>
+      </Grade>
 
-      <Caixa className="mt-4 flex justify-end gap-2 border-t border-border pt-4">
+      <Linha justificar="fim" espaco={2} className="mt-4 border-t border-border pt-4">
         <Button type="button" variant="ghost" size="sm" onClick={onLimpar}>
           Limpar
         </Button>
         <Button type="submit" size="sm">
           Filtrar
         </Button>
-      </Caixa>
+      </Linha>
     </Caixa>
   );
 }

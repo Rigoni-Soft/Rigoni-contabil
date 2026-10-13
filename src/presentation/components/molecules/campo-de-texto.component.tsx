@@ -1,9 +1,8 @@
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { RequiredMark } from "@/presentation/components/atoms/required-mark.component";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
-import { cn } from "@/presentation/lib/utils";
 
 type CampoDeTextoProps = React.ComponentProps<"input"> & {
   id: string;
@@ -27,7 +26,7 @@ export function CampoDeTexto({
   ...props
 }: CampoDeTextoProps) {
   return (
-    <Caixa className={cn("flex flex-col gap-1.5", className)}>
+    <Pilha espaco="campo" className={className}>
       <Label htmlFor={id}>
         {rotulo}
         {obrigatorio && <RequiredMark />}
@@ -40,6 +39,6 @@ export function CampoDeTexto({
       />
       {erro && <FieldError>{erro}</FieldError>}
       {!erro && aviso && <FieldError>{aviso}</FieldError>}
-    </Caixa>
+    </Pilha>
   );
 }

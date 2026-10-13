@@ -1,10 +1,9 @@
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { RequiredMark } from "@/presentation/components/atoms/required-mark.component";
 import { Label } from "@/presentation/components/ui/label";
 import { Select } from "@/presentation/components/ui/select";
-import { cn } from "@/presentation/lib/utils";
 
 type CampoDeOpcoesProps = React.ComponentProps<"select"> & {
   id: string;
@@ -36,7 +35,7 @@ export function CampoDeOpcoes({
   ...props
 }: CampoDeOpcoesProps) {
   return (
-    <Caixa className={cn("flex flex-col gap-1.5", className)}>
+    <Pilha espaco="campo" className={className}>
       <Label htmlFor={id}>
         {rotulo}
         {obrigatorio && <RequiredMark />}
@@ -61,6 +60,6 @@ export function CampoDeOpcoes({
       </Select>
       {erro && <FieldError>{erro}</FieldError>}
       {!erro && aviso && <FieldError>{aviso}</FieldError>}
-    </Caixa>
+    </Pilha>
   );
 }

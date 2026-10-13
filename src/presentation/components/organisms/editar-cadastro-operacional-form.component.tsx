@@ -3,7 +3,7 @@ import { Controller, type Control, type FieldErrors, type UseFormRegister } from
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcacao.component";
-import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Grade, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { NotaDeObrigatorio } from "@/presentation/components/atoms/nota-de-obrigatorio.component";
 import { AcoesDoFormulario } from "@/presentation/components/molecules/acoes-do-formulario.component";
@@ -122,7 +122,7 @@ export function EditarCadastroOperacionalForm({
     >
       {!readOnly && <NotaDeObrigatorio />}
 
-      <Caixa className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1.5fr]">
+      <Grade colunas="1>2>cabecalho" espaco={4}>
         <Pilha espaco={1}>
           <Label>Empresa</Label>
           <Input value={cabecalho.empresa} disabled readOnly />
@@ -146,13 +146,9 @@ export function EditarCadastroOperacionalForm({
           select={register("responsavelId")}
           desabilitado={pendente}
         />
-      </Caixa>
+      </Grade>
 
-      <Caixa
-        como="fieldset"
-        disabled={readOnly || pendente}
-        className="grid grid-cols-1 gap-6 sm:grid-cols-2"
-      >
+      <Grade colunas="1>2" como="fieldset" disabled={readOnly || pendente} className="gap-6">
         <CampoDeOpcoes
           id="formaEnvio"
           rotulo="Forma de envio"
@@ -200,11 +196,11 @@ export function EditarCadastroOperacionalForm({
 
         <Pilha espaco={1}>
           <Label>Atividade do mês</Label>
-          <Caixa className="flex gap-4 text-sm">
+          <Linha espaco={4} className="text-sm">
             <CaixaDeMarcacao rotulo="Indústria" {...register("atividadeMes.industria")} />
             <CaixaDeMarcacao rotulo="Comércio" {...register("atividadeMes.comercio")} />
             <CaixaDeMarcacao rotulo="Serviço" {...register("atividadeMes.servico")} />
-          </Caixa>
+          </Linha>
         </Pilha>
 
         <Pilha espaco={3} className="sm:col-span-2">
@@ -250,7 +246,7 @@ export function EditarCadastroOperacionalForm({
         {!readOnly && (
           <AcoesDoFormulario pendente={pendente} onLimpar={onLimpar} onCancelar={onCancelar} />
         )}
-      </Caixa>
+      </Grade>
 
       {erroServidor && <FieldError>{erroServidor}</FieldError>}
       {sucesso && <AvisoDeStatus tipo="sucesso" texto="Cadastro operacional atualizado." />}

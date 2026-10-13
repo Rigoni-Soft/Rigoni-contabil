@@ -151,7 +151,9 @@ painéis). Template: organiza os slots da tela, sem marcação de conteúdo
 (`tela-de-trabalho`, `entrada`, `conversa`). Page: só renderiza o template com os
 slots preenchidos. **Nenhum elemento HTML cru fora de `atoms/` e `ui/`** (lint): o
 contêiner é `Caixa` (`como="section"|"ul"|"li"|"form"…`), o ritmo vertical é
-`Pilha espaco={1|2|3|4|6|8|"campo"|"formulario"}`, e o texto é `Texto` com um
+`Pilha espaco={1|2|3|4|6|8|"campo"|"formulario"}`, a linha é `Linha`
+(`alinhar`, `justificar`, `espaco`, `quebra`), a malha é `Grade colunas="1>2"|"1>3"|…`,
+e o texto é `Texto` com um
 papel: `destaque`, `corpo`, `apoio`, `alerta`, `rotulo`, `nota`, `titulo`,
 `subtitulo`, `tela`, `subtela`, `marca`, `secao`, `rotuloDeSecao`, `enfase`,
 `codigo`, `somenteLeitor`, `ocultoNoCelular`. Trecho que só agrupa ou quebra

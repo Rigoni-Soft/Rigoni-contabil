@@ -1,4 +1,4 @@
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Linha } from "@/presentation/components/atoms/caixa.component";
 import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
 import { Button } from "@/presentation/components/ui/button";
 
@@ -13,7 +13,7 @@ type AcoesDoFormularioProps = {
 // Salvar / Limpar / Cancelar, na ordem do contrato de ações de formulário do DESIGN.md.
 export function AcoesDoFormulario({ pendente, onLimpar, onCancelar }: AcoesDoFormularioProps) {
   return (
-    <Caixa className="flex flex-wrap gap-2 sm:col-span-2">
+    <Linha espaco={2} quebra className="sm:col-span-2">
       <Button type="submit">{pendente ? "Salvando..." : "Salvar"}</Button>
       <Button type="button" variant="outline" onClick={onLimpar} disabled={pendente}>
         Limpar
@@ -27,6 +27,6 @@ export function AcoesDoFormulario({ pendente, onLimpar, onCancelar }: AcoesDoFor
           Cancelar
         </LinkDeAcao>
       )}
-    </Caixa>
+    </Linha>
   );
 }

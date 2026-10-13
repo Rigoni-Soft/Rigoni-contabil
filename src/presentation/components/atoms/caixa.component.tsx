@@ -11,9 +11,9 @@ export function Caixa<T extends ElementType = "div">({ como, ...props }: CaixaPr
   return <Elemento {...props} />;
 }
 
-// Ritmo vertical do produto (DESIGN.md → Layout): os filhos empilham com um espaço nomeado, em vez
-// de `space-y-*`/`gap-*` soltos em cada tela.
-const ESPACO = {
+// Os três átomos de layout abaixo nomeiam o ritmo e a malha do produto (DESIGN.md → Layout): o
+// espaço e a distribuição vêm de props nomeadas, não de `space-y-*`/`gap-*`/`grid-cols-*` soltos.
+const ESPACO_VERTICAL = {
   1: "space-y-1",
   2: "space-y-2",
   3: "space-y-3",
@@ -26,8 +26,11 @@ const ESPACO = {
   formulario: "flex flex-col gap-5",
 } as const;
 
-type PilhaProps<T extends ElementType> = CaixaProps<T> & { espaco: keyof typeof ESPACO };
+type PilhaProps<T extends ElementType> = CaixaProps<T> & {
+  espaco: keyof typeof ESPACO_VERTICAL;
+};
 
+// Filhos empilhados na vertical.
 export function Pilha<T extends ElementType = "div">({
   espaco,
   como,
@@ -35,5 +38,85 @@ export function Pilha<T extends ElementType = "div">({
   ...props
 }: PilhaProps<T>) {
   const Elemento: ElementType = como ?? "div";
-  return <Elemento className={cn(ESPACO[espaco], className as string | undefined)} {...props} />;
+  return (
+    <Elemento className={cn(ESPACO_VERTICAL[espaco], className as string | undefined)} {...props} />
+  );
+}
+
+const GAP = { 1: "gap-1", 2: "gap-2", 3: "gap-3", 4: "gap-4", 5: "gap-5" } as const;
+const ALINHAR = { inicio: "items-start", centro: "items-center", fim: "items-end" } as const;
+const JUSTIFICAR = { entre: "justify-between", fim: "justify-end" } as const;
+
+type LinhaProps<T extends ElementType> = CaixaProps<T> & {
+  alinhar?: keyof typeof ALINHAR;
+  justificar?: keyof typeof JUSTIFICAR;
+  espaco?: keyof typeof GAP;
+  // Quebra para a linha de baixo quando não cabe.
+  quebra?: boolean;
+};
+
+// Filhos lado a lado, na horizontal.
+export function Linha<T extends ElementType = "div">({
+  alinhar,
+  justificar,
+  espaco,
+  quebra,
+  como,
+  className,
+  ...props
+}: LinhaProps<T>) {
+  const Elemento: ElementType = como ?? "div";
+  return (
+    <Elemento
+      className={cn(
+        "flex",
+        alinhar && ALINHAR[alinhar],
+        justificar && JUSTIFICAR[justificar],
+        espaco && GAP[espaco],
+        quebra && "flex-wrap",
+        className as string | undefined,
+      )}
+      {...props}
+    />
+  );
+}
+
+// Malhas responsivas usadas pelas telas: o nome diz as colunas por largura (celular > sm > lg).
+const COLUNAS = {
+  duas: "grid-cols-2",
+  "1>2": "grid-cols-1 sm:grid-cols-2",
+  "1>3": "grid-cols-1 sm:grid-cols-3",
+  "2>4": "grid-cols-2 sm:grid-cols-4",
+  "2>3>5": "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
+  // lista de definição: rótulo ao lado do valor
+  rotuloValor: "grid-cols-[auto_1fr]",
+  "1>rotulo-valor": "grid-cols-1 sm:grid-cols-[12rem_1fr]",
+  // cabeçalho do cadastro: empresa larga, CNPJ, regime, responsável
+  "1>2>cabecalho": "grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1.5fr]",
+} as const;
+
+type GradeProps<T extends ElementType> = CaixaProps<T> & {
+  colunas: keyof typeof COLUNAS;
+  espaco?: keyof typeof GAP;
+};
+
+export function Grade<T extends ElementType = "div">({
+  colunas,
+  espaco,
+  como,
+  className,
+  ...props
+}: GradeProps<T>) {
+  const Elemento: ElementType = como ?? "div";
+  return (
+    <Elemento
+      className={cn(
+        "grid",
+        COLUNAS[colunas],
+        espaco && GAP[espaco],
+        className as string | undefined,
+      )}
+      {...props}
+    />
+  );
 }

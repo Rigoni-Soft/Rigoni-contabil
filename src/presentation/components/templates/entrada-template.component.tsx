@@ -1,4 +1,4 @@
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 
 type EntradaTemplateProps = {
@@ -11,9 +11,10 @@ type EntradaTemplateProps = {
 // Tela de entrada (login): conteúdo único centralizado, sem cabeçalho nem navegação. Sempre Server.
 export function EntradaTemplate({ titulo, subtitulo, rodape, formulario }: EntradaTemplateProps) {
   return (
-    <Caixa
+    <Linha
+      alinhar="centro"
       como="main"
-      className="flex min-h-dvh items-center justify-center bg-background px-4 py-12 sm:px-6"
+      className="min-h-dvh justify-center bg-background px-4 py-12 sm:px-6"
     >
       <Caixa className="w-full max-w-sm">
         <Caixa className="mb-8 flex flex-col items-center gap-1 text-center">
@@ -31,6 +32,6 @@ export function EntradaTemplate({ titulo, subtitulo, rodape, formulario }: Entra
           {rodape}
         </Texto>
       </Caixa>
-    </Caixa>
+    </Linha>
   );
 }

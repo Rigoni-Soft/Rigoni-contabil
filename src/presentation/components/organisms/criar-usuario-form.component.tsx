@@ -2,7 +2,7 @@ import { UserPlus } from "lucide-react";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 
 import { BotaoDeEnvio } from "@/presentation/components/atoms/botao-de-envio.component";
-import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Grade, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
@@ -85,7 +85,7 @@ export function CriarUsuarioForm({
       {/* Nome/E-mail/Papel/Setor cabem lado a lado — 2 colunas aproveita melhor
           a largura do formulário (80% da tela, #36) do que empilhar tudo numa
           coluna só. */}
-      <Caixa className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+      <Grade colunas="1>2" espaco={5}>
         <CampoDeTexto id="nome" rotulo="Nome" erro={errors.nome?.message} {...register("nome")} />
         <CampoDeTexto
           id="email"
@@ -121,7 +121,7 @@ export function CriarUsuarioForm({
           erro={errors.setor?.message}
           {...register("setor")}
         />
-      </Caixa>
+      </Grade>
 
       {erroServidor && <FieldError>{erroServidor}</FieldError>}
 

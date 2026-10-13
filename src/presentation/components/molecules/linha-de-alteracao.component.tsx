@@ -1,6 +1,6 @@
 import { Trash2 } from "lucide-react";
 
-import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Grade, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Button } from "@/presentation/components/ui/button";
@@ -31,7 +31,7 @@ export function LinhaDeAlteracao({
   const idArquivo = `alteracoesContratuais.${indice}.arquivo`;
   return (
     <Caixa className="flex flex-col gap-2 rounded-md border border-border p-3">
-      <Caixa className="flex items-center justify-between gap-2">
+      <Linha alinhar="centro" justificar="entre" espaco={2}>
         <Texto
           variante="corpo"
           como="span"
@@ -46,9 +46,9 @@ export function LinhaDeAlteracao({
         >
           <Trash2 aria-hidden="true" />
         </Button>
-      </Caixa>
+      </Linha>
 
-      <Caixa className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <Grade colunas="1>2" espaco={3}>
         <Pilha espaco="campo">
           <Label htmlFor={idData}>{`Data da alteração ${indice + 1}`}</Label>
           <Input id={idData} type="date" aria-invalid={!!erroData} {...data} />
@@ -60,7 +60,7 @@ export function LinhaDeAlteracao({
           {campoArquivo(idArquivo)}
           {erroArquivo && <FieldError>{erroArquivo}</FieldError>}
         </Pilha>
-      </Caixa>
+      </Grade>
     </Caixa>
   );
 }

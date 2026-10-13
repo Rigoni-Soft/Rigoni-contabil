@@ -1,4 +1,4 @@
-import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Button } from "@/presentation/components/ui/button";
 
@@ -19,7 +19,7 @@ export function PainelDoCliente({
 }: PainelDoClienteProps) {
   return (
     <Pilha espaco={3} como="section">
-      <Caixa className="flex items-center justify-between gap-4">
+      <Linha alinhar="centro" justificar="entre" espaco={4}>
         <Texto
           como="h2"
           variante="subtitulo"
@@ -32,7 +32,7 @@ export function PainelDoCliente({
         <Button type="button" variant="ghost" size="sm" onClick={onNovaBusca}>
           Nova busca
         </Button>
-      </Caixa>
+      </Linha>
       {children}
     </Pilha>
   );

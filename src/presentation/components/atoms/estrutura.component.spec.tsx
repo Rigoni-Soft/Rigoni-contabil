@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { BotaoDeLink } from "./botao-de-link.component";
-import { Caixa } from "./caixa.component";
+import { Caixa, Grade, Linha, Pilha } from "./caixa.component";
 import {
   CabecalhoDeColuna,
   CelulaDeTabela,
@@ -75,5 +75,31 @@ describe("átomos estruturais", () => {
     await userEvent.setup().click(screen.getByRole("button", { name: "Ler resumo completo" }));
 
     expect(aoClicar).toHaveBeenCalled();
+  });
+
+  it("Pilha, Linha e Grade traduzem as props nomeadas em layout", () => {
+    render(
+      <>
+        <Pilha espaco="campo" data-testid="pilha" />
+        <Linha alinhar="centro" justificar="entre" espaco={2} quebra data-testid="linha" />
+        <Grade colunas="1>2" espaco={4} como="ul" data-testid="grade" />
+      </>,
+    );
+
+    expect(screen.getByTestId("pilha")).toHaveClass("flex", "flex-col", "gap-1.5");
+    expect(screen.getByTestId("linha")).toHaveClass(
+      "flex",
+      "items-center",
+      "justify-between",
+      "gap-2",
+      "flex-wrap",
+    );
+    expect(screen.getByTestId("grade")).toHaveClass(
+      "grid",
+      "grid-cols-1",
+      "sm:grid-cols-2",
+      "gap-4",
+    );
+    expect(screen.getByTestId("grade").tagName).toBe("UL");
   });
 });
