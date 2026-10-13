@@ -96,4 +96,16 @@ describe("ListaDeMensagens — reação (#84)", () => {
     expect(screen.queryByRole("button", { name: /Reagir à mensagem/ })).not.toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("Falha ao enviar a reação.");
   });
+
+  it("o erro de reação fica fora do rolador (role=log)", () => {
+    render(
+      <ListaDeMensagens
+        mensagens={REAGIVEIS}
+        reacao={reacao({ erro: "Falha ao enviar a reação." })}
+      />,
+    );
+
+    expect(within(screen.getByRole("log")).queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+  });
 });

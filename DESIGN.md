@@ -183,7 +183,9 @@ sem precisar de classe.
   com `divide-y`; remover é botão `ghost` só-ícone com `aria-label` que
   inclui a data.
 - `input.tsx` — 44px de altura; `aria-invalid` troca borda/anel para
-  `destructive` automaticamente.
+  `destructive` automaticamente. `input`, `select` e `textarea` usam
+  `text-base sm:text-sm`: 16 px no celular (abaixo disso o iOS dá zoom ao focar
+  o campo), 14 px de `sm` em diante.
 
   **Campo de arquivo sempre com `Label` visível (29/09/2026, #33):** o
   cadastro de Cliente introduziu os primeiros `<Input type="file">` do
@@ -641,10 +643,8 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   vem depois do `<ol>` ficaria no topo, fora de vista.
 - **Campo de resposta** (`CompositorDeMensagem`): `Textarea` arredondado +
   botão redondo de enviar (placeholder "Escreva aqui"; o nome acessível vem
-  do rótulo oculto "Mensagem ao cliente"). Enter envia, Shift+Enter quebra a linha (Enter que confirma composição de
-  IME/teclado de celular não envia); o campo está em 16 px no celular
-  (`text-base sm:text-sm`) para o iOS não dar zoom ao focar; o campo
-  só esvazia quando o envio dá certo (se falhar, o texto fica). À esquerda do
+  do rótulo oculto "Mensagem ao cliente"). Enter envia, Shift+Enter quebra a linha (Enter de composição, IME ou
+  teclado de celular, não envia); o campo só esvazia quando o envio dá certo (se falhar, o texto fica). À esquerda do
   campo, o botão redondo `ghost` "Inserir emoji" (`SeletorDeEmoji`, #78) abre um
   painel acima dele. Com recentes (até 8, por navegador) o painel mostra só a
   linha "Recentes" e o botão "Ver todos os emojis"; sem recentes, ou depois do

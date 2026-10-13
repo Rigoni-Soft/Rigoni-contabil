@@ -41,8 +41,8 @@ export function documentoDaOpcao(valor: string): DocumentoDisponivel {
   return { tipo: tipo as DocumentoDisponivel["tipo"], data: data ?? null };
 }
 
-// Mesmo fuso de negócio do feed de auditoria (não o do navegador). Criado uma vez: construir um
-// Intl.DateTimeFormat por Mensagem a cada render é o custo dominante da conversa.
+// Mesmo fuso de negócio do feed de auditoria (não o do navegador). Criado uma vez: um por Mensagem
+// a cada render era caro.
 const FORMATO_HORA = new Intl.DateTimeFormat("pt-BR", {
   timeZone: "America/Sao_Paulo",
   day: "2-digit",

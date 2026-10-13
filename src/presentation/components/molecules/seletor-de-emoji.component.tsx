@@ -70,6 +70,9 @@ const CATEGORIAS: { nome: string; emojis: [emoji: string, nome: string][] }[] = 
 
 const NOMES = new Map(CATEGORIAS.flatMap((categoria) => categoria.emojis));
 
+const BOTAO_44 =
+  "flex size-11 shrink-0 items-center justify-center rounded-md outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring";
+
 function BotaoDeEmoji({
   emoji,
   nome,
@@ -83,7 +86,7 @@ function BotaoDeEmoji({
     <button
       type="button"
       aria-label={nome}
-      className="flex size-11 shrink-0 items-center justify-center rounded-md text-xl outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+      className={cn(BOTAO_44, "text-xl")}
       onClick={() => onEscolher(emoji)}
     >
       {emoji}
@@ -136,7 +139,7 @@ export function SeletorDeEmoji({
         // Compacto: glifo de 28px no balão, com a área de toque ampliada a 44px.
         className={cn(
           "rounded-full",
-          compacto && "relative size-7 before:absolute before:-inset-2 before:content-['']",
+          compacto && "relative size-7 before:absolute before:-inset-2",
         )}
         aria-label={rotulo}
         aria-expanded={aberto}
@@ -171,7 +174,7 @@ export function SeletorDeEmoji({
                 <button
                   type="button"
                   aria-label="Ver todos os emojis"
-                  className="ml-auto flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+                  className={cn(BOTAO_44, "ml-auto text-muted-foreground")}
                   onClick={onExpandir}
                 >
                   <Plus aria-hidden="true" className="size-5" />

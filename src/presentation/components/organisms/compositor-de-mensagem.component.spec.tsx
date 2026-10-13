@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { CompositorDeMensagem } from "./compositor-de-mensagem.component";
@@ -34,6 +34,19 @@ describe("CompositorDeMensagem", () => {
     await usuario.type(campo, "{Enter}");
 
     expect(aoEnviar).toHaveBeenCalledWith("Bom dia\nTudo bem?");
+  });
+
+  it("Enter que confirma composição (IME, keyCode 229) não envia", async () => {
+    const aoEnviar = jest.fn();
+    const usuario = userEvent.setup();
+    render(<CompositorDeMensagem {...BASE} onEnviar={aoEnviar} />);
+
+    const campo = screen.getByLabelText("Mensagem ao cliente");
+    await usuario.type(campo, "ola");
+    fireEvent.keyDown(campo, { key: "Enter", isComposing: true });
+    fireEvent.keyDown(campo, { key: "Enter", keyCode: 229 });
+
+    expect(aoEnviar).not.toHaveBeenCalled();
   });
 
   it("o botão enviar também envia, e o erro do envio aparece como alerta", async () => {
