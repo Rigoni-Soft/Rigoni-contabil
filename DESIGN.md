@@ -694,7 +694,8 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   escolhido vira `PreviaDeAnexo` acima do campo (miniatura ou ícone, nome, tamanho,
   remover; "Enviando…" com `role="status"` durante o envio) e o texto passa a ser a
   legenda. No balão, imagem é miniatura de 160 px (caixa fixa, sem salto de layout)
-  que abre num diálogo com botão "Fechar imagem"; arquivo é uma linha com ícone,
+  que abre num diálogo com botão "Fechar imagem" (o véu `bg-black/60` é neutro nos
+  dois temas e a única cor fora dos tokens, por ser o único overlay do produto); arquivo é uma linha com ícone,
   nome, tamanho e "Baixar". Arrastar um arquivo sobre a conversa acende a moldura
   de guilhochê (`SobreposicaoDeSoltar`, "Solte para anexar", entrada de 180 ms só
   com `motion-safe:`) e sobre o campo, um anel `primary`; é só enfeite de mouse, o
