@@ -65,6 +65,15 @@ describe("regiões da conversa que leem a mesma consulta", () => {
     });
   });
 
+  it("o cabeçalho repassa o aviso de inatividade ao Funcionário", () => {
+    const { result } = renderHook(
+      () => useCabecalhoConversa("at-1", { ...CONVERSA, avisoInatividade: true }),
+      { wrapper: criarWrapper() },
+    );
+
+    expect(result.current.avisoInatividade).toBe(true);
+  });
+
   it("resumo de mais de 160 caracteres é longo e o cabeçalho alterna entre recolhido e aberto", () => {
     const longa = {
       ...CONVERSA,

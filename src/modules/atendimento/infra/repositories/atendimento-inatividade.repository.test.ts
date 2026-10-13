@@ -4,7 +4,10 @@
  */
 import { createClient } from "@supabase/supabase-js";
 
-import { URA_ATOR_ID } from "@/modules/atendimento/domain/services/inatividade.service";
+import {
+  avisoPendenteAoFuncionario,
+  URA_ATOR_ID,
+} from "@/modules/atendimento/domain/services/inatividade.service";
 
 import { exigirSupabaseLocal } from "../../../../../test-support/exigir-supabase-local";
 import { SupabaseAtendimentoRepository } from "./atendimento.repository";
@@ -295,6 +298,25 @@ describe("inatividade × desativação do dono", () => {
     expect(data?.funcionario_id).not.toBe(dono);
     const mensagens = await admin.from("mensagens").select("id").eq("atendimento_id", id);
     expect(mensagens.data).toHaveLength(1);
+  });
+});
+
+describe("inatividade × conversa do painel", () => {
+  it("a conversa lida traz o aviso e a Mensagem posterior do Funcionário, e o aviso deixa de estar pendente", async () => {
+    const dono = await criarFuncionario("Func Aviso Na Conversa");
+    const id = await abrirDireto(TELEFONES[4], dono);
+    await mensagem(TELEFONES[4], "contato");
+    await repositorio.marcarAvisoInatividade(id, "funcionario", new Date());
+
+    const antes = await repositorio.conversa(id);
+    if (!antes.ok || !antes.value?.aviso) throw new Error("aviso não lido");
+    expect(avisoPendenteAoFuncionario(antes.value.aviso, antes.value.mensagens)).toBe(true);
+
+    await mensagem(TELEFONES[4], "funcionario");
+    const depois = await repositorio.conversa(id);
+    if (!depois.ok || !depois.value?.aviso) throw new Error("aviso não lido");
+    // A marca continua gravada até o job limpar; a Mensagem posterior já a torna não pendente.
+    expect(avisoPendenteAoFuncionario(depois.value.aviso, depois.value.mensagens)).toBe(false);
   });
 });
 
