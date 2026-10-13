@@ -215,30 +215,6 @@ export async function makeListarFila(): Promise<ListarFilaPort> {
   );
 }
 
-// Feriados do Admin: client da sessão dele, para a RLS e a auditoria do banco valerem.
-async function makeFeriados() {
-  const supabase = await createSupabaseServer();
-  return {
-    sessao: sessaoViaUsuarios(supabase),
-    repositorio: new SupabaseFeriadoRepository(supabase),
-  };
-}
-
-export async function makeListarFeriados(): Promise<ListarFeriadosPort> {
-  const { sessao, repositorio } = await makeFeriados();
-  return new ListarFeriados(sessao, repositorio);
-}
-
-export async function makeCadastrarFeriado(): Promise<CadastrarFeriadoPort> {
-  const { sessao, repositorio } = await makeFeriados();
-  return new CadastrarFeriado(sessao, repositorio);
-}
-
-export async function makeRemoverFeriado(): Promise<RemoverFeriadoPort> {
-  const { sessao, repositorio } = await makeFeriados();
-  return new RemoverFeriado(sessao, repositorio);
-}
-
 export async function makeListarMeusAtendimentos(): Promise<ListarMeusAtendimentosPort> {
   return new ListarMeusAtendimentos(
     sessaoViaUsuarios(await createSupabaseServer()),
@@ -273,4 +249,28 @@ export async function makeEnviarMensagemAoCliente(): Promise<EnviarMensagemAoCli
     makeEnvioMensagem(),
     auditoriaViaModuloAuditoria(),
   );
+}
+
+// Feriados do Admin: client da sessão dele, para a RLS e a auditoria do banco valerem.
+async function makeFeriados() {
+  const supabase = await createSupabaseServer();
+  return {
+    sessao: sessaoViaUsuarios(supabase),
+    repositorio: new SupabaseFeriadoRepository(supabase),
+  };
+}
+
+export async function makeListarFeriados(): Promise<ListarFeriadosPort> {
+  const { sessao, repositorio } = await makeFeriados();
+  return new ListarFeriados(sessao, repositorio);
+}
+
+export async function makeCadastrarFeriado(): Promise<CadastrarFeriadoPort> {
+  const { sessao, repositorio } = await makeFeriados();
+  return new CadastrarFeriado(sessao, repositorio);
+}
+
+export async function makeRemoverFeriado(): Promise<RemoverFeriadoPort> {
+  const { sessao, repositorio } = await makeFeriados();
+  return new RemoverFeriado(sessao, repositorio);
 }

@@ -41,7 +41,6 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { cnpjValido, normalizarCnpj } from "@/shared/kernel/cnpj";
-import { formatarDataIso } from "@/shared/kernel/data-iso";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 // Uma só lista define o menu: a posição é o número digitado, e `guia` marca as opções cujo PDF vem
@@ -53,6 +52,7 @@ const OPCOES_MENU: { rotulo: string; guia?: TipoGuia }[] = [
   { rotulo: "CND", guia: "cnd" },
   { rotulo: "Falar com atendente" },
 ];
+// "Falar com atendente" é sempre a última opção do menu; a constante acompanha o array.
 const OPCAO_ATENDENTE = OPCOES_MENU.length;
 const GUIAS_DO_MENU = new Map(
   OPCOES_MENU.flatMap(({ guia }, i) => (guia ? [[String(i + 1), guia] as const] : [])),
