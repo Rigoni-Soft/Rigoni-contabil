@@ -47,6 +47,10 @@ jest.mock("@/main/atendimento.factory", () => ({
         execute: async () => ok({ id: "at-1", funcionarioId: null }),
       },
       { execute: async () => ok({ anexada: false }) },
+      // Quarta-feira, 10h em São Paulo: o expediente fica aberto independente da hora real.
+      { agora: () => new Date("2026-10-07T10:00:00-03:00") },
+      { listarDatas: async () => ok([]) },
+      { buscar: async () => ok({ nomeArquivo: "DAS.pdf", pdfBase64: "JVBERi0=" }) },
     ),
   makeAutenticacaoWebhook: () => new HmacAutenticacaoWebhookGateway(SEGREDO, TOKEN),
 }));
@@ -101,6 +105,7 @@ beforeEach(() => {
   sessoesEmMemoria.clear();
   identificacao = {
     identificar: async () => ok({ clienteId: "c1", nome: "Ana", empresa: "Padaria", padrao: true }),
+    cnpjCadastrado: async () => ok(true),
   };
   jest.spyOn(console, "info").mockImplementation(() => undefined);
   jest.spyOn(console, "error").mockImplementation(() => undefined);
@@ -138,11 +143,30 @@ describe("POST /api/webhooks/whatsapp (notificação)", () => {
     expect(envio.enviadas[0].texto).toContain("Olá, Ana");
   });
 
+  it("número desconhecido: CNPJ não encontrado ganha nova tentativa e, errando de novo, vai à recepção", async () => {
+    identificacao = { identificar: async () => ok(null), cnpjCadastrado: async () => ok(false) };
+    for (const t of ["oi", "sim", "11.222.333/0001-81", "11.222.333/0001-81"]) {
+      expect((await enviar(notificacao([texto(t)]))).status).toBe(200);
+    }
+    const textos = envio.enviadas.map((e) => e.texto);
+    expect(textos[2]).toContain("Confira e envie novamente");
+    expect(textos[3]).toContain("recepção");
+  });
+
   it("processa todas as mensagens de um lote", async () => {
     const r = await enviar(notificacao([texto("oi"), texto("2", "5511999990000")]));
     expect(r.status).toBe(200);
-    expect(envio.enviadas).toHaveLength(2);
-    expect(envio.enviadas[1].texto).toContain("em construção");
+    expect(envio.enviadas).toHaveLength(1);
+    expect(envio.documentosEnviados).toEqual([
+      { telefone: "5511999990000", nomeArquivo: "DAS.pdf", pdfBase64: "JVBERi0=" },
+    ]);
+  });
+
+  it("opção 5 do menu (falar com atendente) encaminha o contato reconhecido à recepção", async () => {
+    const r = await enviar(notificacao([texto("5")]));
+    expect(r.status).toBe(200);
+    expect(envio.enviadas).toHaveLength(1);
+    expect(envio.enviadas[0].texto).toContain("recepção");
   });
 
   it("opção 1 do menu pergunta o tipo e, ao escolher contrato, entrega o documento", async () => {
@@ -200,7 +224,10 @@ describe("POST /api/webhooks/whatsapp (notificação)", () => {
   });
 
   it("502 quando falha transitória (identificação) pra Meta reenviar", async () => {
-    identificacao = { identificar: async () => err(new ServicoExternoError("banco")) };
+    identificacao = {
+      identificar: async () => err(new ServicoExternoError("banco")),
+      cnpjCadastrado: async () => err(new ServicoExternoError("banco")),
+    };
     expect((await enviar(notificacao([texto("oi")]))).status).toBe(502);
   });
 

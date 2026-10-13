@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, CircleUser, UserPlus, Users } from "lucide-react";
+import { Building2, CalendarOff, CircleUser, UserPlus, Users } from "lucide-react";
 
 import { buttonVariants } from "@/presentation/components/ui/button";
 import { ThemeToggle } from "@/presentation/components/ui/theme-toggle";
@@ -78,6 +78,17 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
           >
             <Users aria-hidden="true" />
             <span className="hidden sm:inline">Usuários</span>
+          </Link>
+        )}
+        {/* Caminho até /admin/feriados (#72): só o Admin cadastra feriados. */}
+        {papel === "admin" && (
+          <Link
+            href="/admin/feriados"
+            aria-label="Feriados"
+            className={buttonVariants({ variant: "ghost" })}
+          >
+            <CalendarOff aria-hidden="true" />
+            <span className="hidden sm:inline">Feriados</span>
           </Link>
         )}
         {/* Único caminho de navegação até /perfil (#56), onde mora a troca voluntária

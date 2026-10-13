@@ -170,6 +170,12 @@ sem precisar de classe.
   escondia o Setor do usuário no celular. De `sm` pra cima voltam o avatar e o
   `truncate`. O Setor é sempre o rótulo legível (`SETOR_LABEL`, em
   `shared/kernel/setores.ts`), nunca o slug.
+
+  **Extensão (07/10/2026, #72):** o link "Feriados" (ícone `CalendarOff`,
+  só Admin, rota `/admin/feriados`) segue o mesmo padrão. A tela reutiliza
+  `FieldError`, `Input type="date"` com `Label` visível e lista em `card`
+  com `divide-y`; remover é botão `ghost` só-ícone com `aria-label` que
+  inclui a data.
 - `input.tsx` — 44px de altura; `aria-invalid` troca borda/anel para
   `destructive` automaticamente.
 

@@ -1,0 +1,39 @@
+import { redirect } from "next/navigation";
+
+import { ShellHeader } from "@/presentation/components/organisms/shell-header.component";
+import { FeriadosPage } from "@/presentation/components/pages/feriados.page";
+import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-button.container";
+import { carregarSessao } from "@/presentation/view-models/shell/shell.server";
+import { FeriadosContainer } from "@/modules/atendimento/presentation/view-models/feriados/feriados.container";
+import { carregarFeriados } from "@/modules/atendimento/presentation/view-models/feriados/feriados.server";
+
+export default async function Page() {
+  const sessao = await carregarSessao();
+  if (!sessao) redirect("/login");
+  if (sessao.precisaTrocarSenha) redirect("/trocar-senha");
+  const feriados = await carregarFeriados();
+  // Só quem não é Admin sai da tela; falha de leitura aparece em vez de mandar o Admin para a home.
+  if (!feriados.ok && feriados.error.code === "FORBIDDEN") redirect("/");
+
+  return (
+    <FeriadosPage
+      header={
+        <ShellHeader
+          nome={sessao.nome}
+          papel={sessao.papel}
+          setor={sessao.setor}
+          sair={<LogoutButtonContainer />}
+        />
+      }
+      conteudo={
+        feriados.ok ? (
+          <FeriadosContainer feriados={feriados.value} />
+        ) : (
+          <p role="alert" className="text-sm text-destructive">
+            {feriados.error.message}
+          </p>
+        )
+      }
+    />
+  );
+}

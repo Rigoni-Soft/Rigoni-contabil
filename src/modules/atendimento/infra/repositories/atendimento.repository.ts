@@ -63,6 +63,8 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       p_funcionario_id: atendimento.funcionarioId,
       p_mensagens: atendimento.mensagens,
       p_atribuir_livre: atendimento.atribuirLivreSeVazia ?? false,
+      p_resumo: atendimento.resumo ?? null,
+      p_cnpj_informado: atendimento.cnpjInformado ?? null,
     });
     if (error) return err(new ServicoExternoError("Falha ao abrir o Atendimento."));
     const linha = aberturaRowSchema.parse(data);

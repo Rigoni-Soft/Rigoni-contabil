@@ -13,7 +13,7 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 // Formato de `POST /{phone-number-id}/messages` da WhatsApp Cloud API (Meta).
 type ParteCorpo = { to: string } & (
   | { type: "text"; text: { body: string } }
-  | { type: "document"; document: { link: string; filename: string } }
+  | { type: "document"; document: ({ link: string } | { id: string }) & { filename: string } }
 );
 type CorpoEnvioCloudApi = {
   messaging_product: "whatsapp";
@@ -95,7 +95,10 @@ export class EnvioMensagemFalsoGateway implements EnvioMensagemPort {
     const enviado = this.despachar({
       to: documento.telefone,
       type: "document",
-      document: { link: documento.url, filename: documento.nomeArquivo },
+      document: {
+        ...("url" in documento ? { link: documento.url } : { id: `midia-falsa-${randomUUID()}` }),
+        filename: documento.nomeArquivo,
+      },
     });
     if (!enviado.ok) return enviado;
     this.documentosEnviados.push(documento);

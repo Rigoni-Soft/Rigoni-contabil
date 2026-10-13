@@ -1,3 +1,7 @@
+import {
+  invalidosDe,
+  type EtapaIdentificacao,
+} from "@/modules/atendimento/application/dtos/sessao-identificacao.dto";
 import type { AbrirAtendimentoPort } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type { AnexarMensagemAtendimentoPort } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
 import type {
@@ -8,39 +12,84 @@ import type {
   DocumentoContratual,
   DocumentosContratuaisPort,
 } from "@/modules/atendimento/application/ports/out/documentos-contratuais.provider";
-import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
+import type {
+  DocumentoEnviado,
+  EnvioMensagemPort,
+} from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
+import type { FeriadosPort } from "@/modules/atendimento/application/ports/out/feriados.provider";
+import type {
+  GuiaFiscal,
+  GuiasFiscaisPort,
+  TipoGuia,
+} from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
 import type {
   ContatoIdentificado,
   IdentificacaoContatoPort,
 } from "@/modules/atendimento/application/ports/out/identificacao-contato.provider";
+import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import type {
   SessaoAtendimento,
   SessaoAtendimentoPort,
 } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
+import {
+  avisoDeFechado,
+  estaAbertoEm,
+} from "@/modules/atendimento/domain/services/expediente.service";
 import type { AppError } from "@/shared/errors/app.error";
+import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
-import { cnpjValido } from "@/shared/kernel/cnpj";
+import { cnpjValido, normalizarCnpj } from "@/shared/kernel/cnpj";
+import { formatarDataIso } from "@/shared/kernel/data-iso";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-const OPCOES_MENU = [
-  "Contrato social e alterações",
-  "Guia de imposto",
-  "Guia de parcelamento",
-  "CND",
-  "Falar com atendente",
+// Uma só lista define o menu: a posição é o número digitado, e `guia` marca as opções cujo PDF vem
+// do provedor fiscal. "Falar com atendente" é sempre a última.
+const OPCOES_MENU: { rotulo: string; guia?: TipoGuia }[] = [
+  { rotulo: "Contrato social e alterações" },
+  { rotulo: "Guia de imposto", guia: "das" },
+  { rotulo: "Guia de parcelamento", guia: "parcelamento" },
+  { rotulo: "CND", guia: "cnd" },
+  { rotulo: "Falar com atendente" },
 ];
+const OPCAO_ATENDENTE = OPCOES_MENU.length;
+const GUIAS_DO_MENU = new Map(
+  OPCOES_MENU.flatMap(({ guia }, i) => (guia ? [[String(i + 1), guia] as const] : [])),
+);
+const SEM_AUTORIZACAO_FISCAL = `O escritório ainda não tem autorização para consultar esse documento da sua empresa. Digite *${OPCAO_ATENDENTE}* para falar com um atendente.`;
+const GUIA_INDISPONIVEL = `Não conseguimos buscar o documento agora. Tente novamente em alguns minutos ou digite *${OPCAO_ATENDENTE}* para falar com um atendente.`;
 
 const PERGUNTA_CLIENTE =
   "Olá! Não identificamos este número entre os contatos dos nossos clientes. Você já é cliente da Rigoni Contábil? Responda *sim* ou *não*.";
 const SIM_OU_NAO = "Responda *sim* ou *não*.";
 const PEDIR_CNPJ = "Ótimo! Informe o CNPJ da sua empresa.";
+const MAX_INVALIDOS = 3;
 const CNPJ_INVALIDO = "Esse CNPJ não parece válido. Confira e envie novamente (ou digite *menu*).";
 const NUMERO_AMBIGUO =
   "Seu número está cadastrado em mais de uma empresa e não conseguimos confirmar qual delas você quer consultar. Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
 
-const PARA_RECEPCAO =
-  "Não encontramos você entre os contatos cadastrados. Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
+const SEM_CNPJ = "Não encontramos esse CNPJ entre os nossos clientes.";
+const CNPJ_NAO_ENCONTRADO = `${SEM_CNPJ} Confira e envie novamente (ou digite *menu*).`;
+const ENCAMINHANDO_PARA_RECEPCAO =
+  "Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
+const AVISO_RECEPCAO_CNPJ_NAO_ENCONTRADO = `${SEM_CNPJ} ${ENCAMINHANDO_PARA_RECEPCAO}`;
+// Palavras que, num número não reconhecido, pedem uma pessoa em vez de seguir o fluxo.
+const PEDIDO_DE_ATENDENTE =
+  /\b(atendente|humano|recepcao|recepcionista|suporte|ajuda|funcionario|duvida|(falar|conversar) com (alguem|uma pessoa|gente|o contador|a contadora))\b/;
+const AVISO_RECEPCAO_SEM_CADASTRO = `Não encontramos você entre os contatos cadastrados. ${ENCAMINHANDO_PARA_RECEPCAO}`;
+const AVISO_RECEPCAO_PEDIDO_NO_MENU = `Certo! ${ENCAMINHANDO_PARA_RECEPCAO}`;
+
+// O que a recepção lê ao assumir (`atendimentos.resumo_ura`): a origem é sempre a URA.
+const RESUMO_PEDIDO_NO_MENU = "Cliente pediu a recepção pelo menu da URA.";
+const RESUMO_NUMERO_AMBIGUO =
+  "Número cadastrado como Contato de mais de uma empresa: confirmar com o contato qual deseja.";
+const RESUMO_PEDIU_ATENDENTE = "Contato não encontrado: o número pediu um atendente.";
+const RESUMO_NAO_E_CLIENTE = "Contato não encontrado: o número disse não ser cliente.";
+const RESUMO_RESPOSTAS_INVALIDAS = "Contato não encontrado: respostas inválidas seguidas.";
+const RESUMO_CNPJ_CADASTRADO =
+  "Contato não encontrado: o número não consta nos contatos do Cliente do CNPJ informado.";
+const RESUMO_CNPJ_NOVO =
+  "Contato não encontrado: o CNPJ informado não existe no sistema (provável cliente novo).";
 
 const PERGUNTA_TIPO =
   "O que você deseja receber?\n1 - Contrato social\n2 - Alterações\n3 - Ambos (contrato social e uma alteração)\nDigite *menu* para voltar.";
@@ -57,8 +106,18 @@ type Modo = "contrato" | "alteracoes" | "ambos";
 const MODOS: Record<string, Modo> = { "1": "contrato", "2": "alteracoes", "3": "ambos" };
 
 // `telefone` com DDI, como a mensagem chegou (resposta); `chave` só dígitos nacionais (sessão).
-type Conversa = { contato: ContatoIdentificado; telefone: string; chave: string };
+type Remetente = { telefone: string; chave: string };
+type Conversa = Remetente & { contato: ContatoIdentificado };
+// O que o remetente disse, para abrir o Atendimento na recepção; `clienteId` null = número sem Contato.
+type Origem = Remetente & { textoDoContato: string; clienteId: string | null };
+// Por que vai à recepção: `cnpj` é o CNPJ (normalizado) que o número informou, quando informou; o
+// banco o liga ao Cliente se existir, e sem Cliente a recepção vê um provável cliente novo.
+type Encaminhamento = { resumo: string; aviso?: string; cnpj?: string };
 type Documentos = { contrato: DocumentoContratual | null; alteracoes: DocumentoContratual[] };
+
+function origemDe({ contato, telefone, chave }: Conversa, textoDoContato: string): Origem {
+  return { telefone, chave, textoDoContato, clienteId: contato.clienteId };
+}
 
 // DDI 55 é descartado: o telefone do Contato é cadastrado só com DDD + número.
 function soDigitosNacionais(telefone: string): string {
@@ -66,13 +125,8 @@ function soDigitosNacionais(telefone: string): string {
   return digitos.length > 11 && digitos.startsWith("55") ? digitos.slice(2) : digitos;
 }
 
-function formatarData(iso: string): string {
-  const [ano, mes, dia] = iso.split("-");
-  return `${dia}/${mes}/${ano}`;
-}
-
 function descrever(documento: DocumentoContratual): string {
-  return documento.data ? `Alteração de ${formatarData(documento.data)}` : "Contrato social";
+  return documento.data ? `Alteração de ${formatarDataIso(documento.data)}` : "Contrato social";
 }
 
 // Impressão digital da lista inteira (a numeração das páginas depende de todos os itens). Hash
@@ -117,6 +171,9 @@ export class ReceberMensagem implements ReceberMensagemPort {
     private readonly sessoes: SessaoAtendimentoPort,
     private readonly atendimentos: AbrirAtendimentoPort,
     private readonly mensagens: AnexarMensagemAtendimentoPort,
+    private readonly relogio: RelogioPort,
+    private readonly feriados: FeriadosPort,
+    private readonly guias: GuiasFiscaisPort,
   ) {}
 
   async execute(mensagem: MensagemRecebida): Promise<Result<void, AppError>> {
@@ -124,13 +181,16 @@ export class ReceberMensagem implements ReceberMensagemPort {
     if (!chave) return err(new ValidationError("Telefone da mensagem é obrigatório"));
 
     // Quem já tem Atendimento em andamento continua nele; a URA não recomeça.
-    // ponytail: sem resposta automática, quem responde é o Funcionário (#46).
+    // ponytail: sem resposta automática, quem responde é o Funcionário (tela de atendimento do Funcionário ainda não existe).
     const anexada = await this.mensagens.execute({
       chave,
       mensagem: { autor: "contato", texto: mensagem.texto },
     });
     if (!anexada.ok) return anexada;
     if (anexada.value.anexada) return ok(undefined);
+
+    const fechado = await this.avisarSeFechado(mensagem.telefone);
+    if (fechado) return fechado;
 
     const contato = await this.contatos.identificar(chave);
     if (!contato.ok) return contato;
@@ -140,7 +200,10 @@ export class ReceberMensagem implements ReceberMensagemPort {
     if (!sessao.ok) return sessao;
     if (contato.value === "ambiguo") {
       // Nenhum documento é oferecido: sem confirmar a empresa, a recepção decide.
-      return this.encaminharRecepcao(mensagem.telefone, chave, mensagem.texto, NUMERO_AMBIGUO);
+      return this.encaminharRecepcao(
+        { telefone: mensagem.telefone, chave, textoDoContato: mensagem.texto, clienteId: null },
+        { resumo: RESUMO_NUMERO_AMBIGUO, aviso: NUMERO_AMBIGUO },
+      );
     }
     if (!contato.value) {
       return this.identificarNovo(mensagem, chave, texto, sessao.value);
@@ -157,60 +220,105 @@ export class ReceberMensagem implements ReceberMensagemPort {
     return this.responderMenu(conversa, texto);
   }
 
+  // Fora do expediente a URA só avisa o horário: nada de menu, documento, sessão ou Atendimento.
+  // Devolve o resultado do aviso, ou `null` com o escritório aberto. Sem a lista de feriados não
+  // dá para afirmar nem se está aberto nem a data da volta: o erro faz a Meta reenviar.
+  private async avisarSeFechado(telefone: string): Promise<Result<void, AppError> | null> {
+    const agora = this.relogio.agora();
+    const extras = await this.feriados.listarDatas();
+    if (!extras.ok) return extras;
+    const feriados = new Set(extras.value);
+    if (estaAbertoEm(agora, feriados)) return null;
+    return this.enviar(telefone, avisoDeFechado(agora, feriados));
+  }
+
   // Número sem Contato: "já é cliente?" → CNPJ → recepção. Mesmo com o CNPJ o número não é um
-  // Contato (já foi buscado em todos os Clientes), então o fim é sempre a recepção; sessão
-  // ausente/expirada/de outro fluxo ou "menu" recomeça pela pergunta.
+  // Contato (já foi buscado em todos os Clientes), então o fim é sempre a recepção; CNPJ que não
+  // existe em nenhum cadastro tem 1 nova tentativa antes. Pedido de atendente em qualquer etapa
+  // vai direto à recepção; sessão ausente/expirada/de outro fluxo ou "menu" recomeça pela pergunta.
   private async identificarNovo(
     { telefone, texto: textoDoContato }: MensagemRecebida,
     chave: string,
     texto: string,
     sessao: SessaoAtendimento | null,
   ): Promise<Result<void, AppError>> {
+    const origem: Origem = { telefone, chave, textoDoContato, clienteId: null };
     const etapa = texto === "menu" ? null : sessao?.etapa;
     const semAcento = texto.normalize("NFD").replace(/\p{M}/gu, "");
 
+    if (texto !== "menu" && PEDIDO_DE_ATENDENTE.test(semAcento)) {
+      return this.encaminharRecepcao(origem, { resumo: RESUMO_PEDIU_ATENDENTE });
+    }
     if (etapa === "ja_cliente") {
-      if (["sim", "s"].includes(semAcento))
-        return this.avancar(telefone, chave, "cnpj", PEDIR_CNPJ);
-      if (["nao", "n"].includes(semAcento))
-        return this.encaminharRecepcao(telefone, chave, textoDoContato);
-      return this.enviar(telefone, SIM_OU_NAO);
+      if (["sim", "s"].includes(semAcento)) return this.avancar(origem, "cnpj", PEDIR_CNPJ);
+      if (["nao", "n"].includes(semAcento)) {
+        return this.encaminharRecepcao(origem, { resumo: RESUMO_NAO_E_CLIENTE });
+      }
+      return this.tratarInvalido(origem, etapa, sessao, SIM_OU_NAO);
     }
-    if (etapa === "cnpj") {
-      if (!cnpjValido(texto)) return this.enviar(telefone, CNPJ_INVALIDO);
-      return this.encaminharRecepcao(telefone, chave, textoDoContato);
+    if (etapa === "cnpj" || etapa === "cnpj_nova_tentativa") {
+      if (!cnpjValido(texto)) return this.tratarInvalido(origem, etapa, sessao, CNPJ_INVALIDO);
+      const cnpj = normalizarCnpj(texto);
+      const cadastrado = await this.contatos.cnpjCadastrado(cnpj);
+      if (!cadastrado.ok) return cadastrado;
+      if (cadastrado.value) {
+        return this.encaminharRecepcao(origem, { resumo: RESUMO_CNPJ_CADASTRADO, cnpj });
+      }
+      const primeiraTentativa = etapa === "cnpj";
+      if (primeiraTentativa)
+        return this.avancar(origem, "cnpj_nova_tentativa", CNPJ_NAO_ENCONTRADO);
+      return this.encaminharRecepcao(origem, {
+        resumo: RESUMO_CNPJ_NOVO,
+        aviso: AVISO_RECEPCAO_CNPJ_NAO_ENCONTRADO,
+        cnpj,
+      });
     }
-    return this.avancar(telefone, chave, "ja_cliente", PERGUNTA_CLIENTE);
+    return this.avancar(origem, "ja_cliente", PERGUNTA_CLIENTE);
   }
 
+  // Sem contador o cliente ficaria preso em resposta inválida (sim/não ou CNPJ): ao passar do
+  // limite vai à recepção.
+  private async tratarInvalido(
+    origem: Origem,
+    etapa: EtapaIdentificacao,
+    sessao: SessaoAtendimento | null,
+    aviso: string,
+  ): Promise<Result<void, AppError>> {
+    const invalidos = invalidosDe(sessao) + 1;
+    if (invalidos >= MAX_INVALIDOS) {
+      return this.encaminharRecepcao(origem, { resumo: RESUMO_RESPOSTAS_INVALIDAS });
+    }
+    const salva = await this.sessoes.salvar(origem.chave, { etapa, invalidos });
+    return salva.ok ? this.enviar(origem.telefone, aviso) : salva;
+  }
+
+  // Trocar de etapa zera o contador de respostas inválidas (cada etapa tem o seu).
   private async avancar(
-    telefone: string,
-    chave: string,
-    etapa: "ja_cliente" | "cnpj",
+    { telefone, chave }: Origem,
+    etapa: EtapaIdentificacao,
     texto: string,
   ): Promise<Result<void, AppError>> {
-    const salva = await this.sessoes.salvar(chave, { etapa });
+    const salva = await this.sessoes.salvar(chave, { etapa, invalidos: 0 });
     return salva.ok ? this.enviar(telefone, texto) : salva;
   }
 
   private async encaminharRecepcao(
-    telefone: string,
-    chave: string,
-    textoDoContato: string,
-    texto = PARA_RECEPCAO,
+    { telefone, chave, textoDoContato, clienteId }: Origem,
+    { resumo, aviso: textoAviso = AVISO_RECEPCAO_SEM_CADASTRO, cnpj }: Encaminhamento,
   ): Promise<Result<void, AppError>> {
     // Aviso antes de abrir: se o envio falhar e a Meta reenviar, não nasce Atendimento duplicado.
-    const aviso = await this.enviar(telefone, texto);
+    const aviso = await this.enviar(telefone, textoAviso);
     if (!aviso.ok) return aviso;
-    // ponytail: número sem Contato abre sem cliente; a recepção identifica na conversa.
     const aberto = await this.atendimentos.execute({
       telefone,
       chave,
-      clienteId: null,
+      clienteId,
+      cnpjInformado: cnpj,
+      resumo,
       setor: "recepcao",
       mensagens: [
         { autor: "contato", texto: textoDoContato },
-        { autor: "ura", texto },
+        { autor: "ura", texto: textoAviso },
       ],
     });
     if (!aberto.ok) return aberto;
@@ -229,26 +337,57 @@ export class ReceberMensagem implements ReceberMensagemPort {
     return registrada.ok ? ok(undefined) : registrada;
   }
 
-  private async responderMenu(
-    { contato, telefone, chave }: Conversa,
-    texto: string,
-  ): Promise<Result<void, AppError>> {
+  private async responderMenu(conversa: Conversa, texto: string): Promise<Result<void, AppError>> {
+    const { contato, telefone, chave } = conversa;
     if (texto === "1") {
       const salva = await this.sessoes.salvar(chave, { etapa: "tipo_documento" });
       return salva.ok ? this.enviar(telefone, PERGUNTA_TIPO) : salva;
     }
-    const escolha = Number(texto);
-    if (Number.isInteger(escolha) && escolha >= 2 && escolha <= OPCOES_MENU.length) {
-      return this.enviar(
-        telefone,
-        `${OPCOES_MENU[escolha - 1]}: em construção. Envie qualquer mensagem para ver o menu.`,
-      );
+    if (texto === String(OPCAO_ATENDENTE)) {
+      // A Mensagem registrada é o rótulo da opção, não o dígito: o Funcionário lê o pedido do
+      // contato em vez de um "5" solto.
+      return this.encaminharRecepcao(origemDe(conversa, OPCOES_MENU[OPCAO_ATENDENTE - 1].rotulo), {
+        resumo: RESUMO_PEDIDO_NO_MENU,
+        aviso: AVISO_RECEPCAO_PEDIDO_NO_MENU,
+      });
     }
-    const menu = OPCOES_MENU.map((opcao, i) => `${i + 1} - ${opcao}`).join("\n");
+    const guia = GUIAS_DO_MENU.get(texto);
+    if (guia) return this.entregarGuia(conversa, guia);
+    const menu = OPCOES_MENU.map(({ rotulo }, i) => `${i + 1} - ${rotulo}`).join("\n");
     return this.enviar(
       telefone,
       `Olá, ${contato.nome} (${contato.empresa})! Como podemos ajudar?\n${menu}`,
     );
+  }
+
+  // O provedor fiscal é falha esperada por Cliente (sem autorização, fora do ar): o contato é
+  // avisado e a mensagem fica resolvida, em vez de a Meta reenviar para sempre. Só falhar o envio
+  // do PDF/aviso devolve erro.
+  private async entregarGuia(
+    { telefone, contato }: Conversa,
+    tipo: TipoGuia,
+  ): Promise<Result<void, AppError>> {
+    let guia: Result<GuiaFiscal, AppError>;
+    try {
+      guia = await this.guias.buscar(contato.clienteId, tipo);
+    } catch (erro) {
+      // Só a mensagem: o objeto de erro inteiro poderia levar o CNPJ ao log.
+      console.error(
+        `Falha inesperada ao buscar a guia ${tipo}:`,
+        erro instanceof Error ? erro.message : "erro desconhecido",
+      );
+      return this.enviar(telefone, GUIA_INDISPONIVEL);
+    }
+    if (!guia.ok) {
+      // Sem autorização é esperado por Cliente; o resto (Cliente sumido, CNPJ inválido, provedor
+      // fora do ar) é problema do sistema e precisa de rastro. Sem CNPJ no log.
+      if (guia.error instanceof ForbiddenError) {
+        return this.enviar(telefone, SEM_AUTORIZACAO_FISCAL);
+      }
+      console.error(`Falha ao buscar a guia ${tipo}:`, guia.error.message);
+      return this.enviar(telefone, GUIA_INDISPONIVEL);
+    }
+    return this.despacharDocumento({ telefone, ...guia.value });
   }
 
   private async escolherTipo(conversa: Conversa, texto: string): Promise<Result<void, AppError>> {
@@ -361,12 +500,16 @@ export class ReceberMensagem implements ReceberMensagemPort {
     const link = await this.documentos.linkTemporario(documento.caminho);
     if (!link.ok) return link;
     const extensao = /\.[A-Za-z0-9]+$/.exec(documento.caminho)?.[0] ?? "";
+    return this.despacharDocumento({
+      telefone,
+      url: link.value,
+      nomeArquivo: `${descrever(documento)}${extensao}`,
+    });
+  }
+
+  private async despacharDocumento(documento: DocumentoEnviado): Promise<Result<void, AppError>> {
     try {
-      return await this.envio.enviarDocumento({
-        telefone,
-        url: link.value,
-        nomeArquivo: `${descrever(documento)}${extensao}`,
-      });
+      return await this.envio.enviarDocumento(documento);
     } catch {
       return err(new ServicoExternoError("Falha ao enviar o documento."));
     }

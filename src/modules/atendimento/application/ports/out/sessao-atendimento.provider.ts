@@ -1,3 +1,4 @@
+import type { EtapaIdentificacao } from "@/modules/atendimento/application/dtos/sessao-identificacao.dto";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
@@ -5,8 +6,7 @@ import type { Result } from "@/shared/kernel/result";
 // qualquer dado do Cliente: o que for preciso é recalculado a cada mensagem. `lista` é um hash
 // da lista de alterações exibida, só para detectar que ela mudou antes de a escolha valer.
 export type SessaoAtendimento =
-  | { etapa: "ja_cliente" }
-  | { etapa: "cnpj" }
+  | { etapa: EtapaIdentificacao; invalidos: number }
   | { etapa: "tipo_documento" }
   | { etapa: "alteracao"; modo: "alteracoes" | "ambos"; pagina: number; lista: string };
 

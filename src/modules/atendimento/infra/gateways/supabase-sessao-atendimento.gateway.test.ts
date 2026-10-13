@@ -2,7 +2,7 @@
  * Integração infra ↔ Supabase (testes.md, seção 3) da sessão da URA (#41).
  * Requer `npx supabase start` local com migrations + seed aplicados.
  */
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { SupabaseSessaoAtendimentoGateway } from "./supabase-sessao-atendimento.gateway";
 
@@ -28,11 +28,23 @@ describe("SupabaseSessaoAtendimentoGateway", () => {
   it.each([
     [{ etapa: "tipo_documento" as const }],
     [{ etapa: "alteracao" as const, modo: "ambos" as const, pagina: 2, lista: "abc123" }],
-    [{ etapa: "ja_cliente" as const }],
-    [{ etapa: "cnpj" as const }],
+    [{ etapa: "ja_cliente" as const, invalidos: 1 }],
+    [{ etapa: "cnpj" as const, invalidos: 0 }],
+    [{ etapa: "cnpj_nova_tentativa" as const, invalidos: 0 }],
+    [{ etapa: "cnpj_nova_tentativa" as const, invalidos: 1 }],
+    [{ etapa: "cnpj" as const, invalidos: 2 }],
   ])("grava e lê a sessão %j", async (sessao) => {
     expect((await gateway.salvar(TELEFONE, sessao)).ok).toBe(true);
     expect(await gateway.obter(TELEFONE)).toEqual({ ok: true, value: sessao });
+  });
+
+  it("regravar a sessão em outra etapa substitui o contador de invalidos", async () => {
+    await gateway.salvar(TELEFONE, { etapa: "cnpj", invalidos: 2 });
+    await gateway.salvar(TELEFONE, { etapa: "cnpj_nova_tentativa", invalidos: 0 });
+    expect(await gateway.obter(TELEFONE)).toEqual({
+      ok: true,
+      value: { etapa: "cnpj_nova_tentativa", invalidos: 0 },
+    });
   });
 
   it("salvar de novo substitui; limpar remove", async () => {
@@ -68,6 +80,20 @@ describe("SupabaseSessaoAtendimentoGateway", () => {
     await gateway.salvar("61900001111", { etapa: "tipo_documento" });
     const { data } = await admin.from("atendimento_sessoes").select("chave");
     expect(data).toHaveLength(1);
+  });
+
+  it("linha fora do formato esperado vira erro, não sessão", async () => {
+    const consulta = {
+      select: () => consulta,
+      eq: () => consulta,
+      gt: () => consulta,
+      maybeSingle: async () => ({ data: { etapa: "desconhecida" }, error: null }),
+    };
+    const fake = { from: () => consulta } as unknown as SupabaseClient;
+    const resultado = await new SupabaseSessaoAtendimentoGateway(fake, "segredo-teste").obter(
+      TELEFONE,
+    );
+    expect(resultado.ok).toBe(false);
   });
 
   it("usuário comum (anon) não lê a tabela", async () => {

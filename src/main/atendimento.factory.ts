@@ -5,6 +5,7 @@ import {
   MENSAGERIA_SEGREDO_ASSINATURA,
   MENSAGERIA_SEGREDO_SESSAO,
   MENSAGERIA_TOKEN_VERIFICACAO,
+  OBRIGACOES_FISCAIS_URL,
 } from "@/env";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -14,6 +15,11 @@ import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
 import type { AvisarClientePort } from "@/modules/atendimento/application/ports/in/avisar-cliente.provider";
 import type { EncerrarAtendimentoPort } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
+import type {
+  CadastrarFeriadoPort,
+  ListarFeriadosPort,
+  RemoverFeriadoPort,
+} from "@/modules/atendimento/application/ports/in/gerenciar-feriados.provider";
 import type { ListarFilaPort } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
 import type { ReceberMensagemPort } from "@/modules/atendimento/application/ports/in/receber-mensagem.provider";
 import type { TransferirAtendimentoPort } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
@@ -27,17 +33,24 @@ import type {
 import { AbrirAtendimento } from "@/modules/atendimento/application/use-cases/abrir-atendimento.use-case";
 import { AnexarMensagemAtendimento } from "@/modules/atendimento/application/use-cases/anexar-mensagem-atendimento.use-case";
 import { AvisarCliente } from "@/modules/atendimento/application/use-cases/avisar-cliente.use-case";
+import { CadastrarFeriado } from "@/modules/atendimento/application/use-cases/cadastrar-feriado.use-case";
 import { EncerrarAtendimento } from "@/modules/atendimento/application/use-cases/encerrar-atendimento.use-case";
+import { ListarFeriados } from "@/modules/atendimento/application/use-cases/listar-feriados.use-case";
 import { ListarFila } from "@/modules/atendimento/application/use-cases/listar-fila.use-case";
 import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/receber-mensagem.use-case";
+import { RemoverFeriado } from "@/modules/atendimento/application/use-cases/remover-feriado.use-case";
 import { TransferirAtendimento } from "@/modules/atendimento/application/use-cases/transferir-atendimento.use-case";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
+import { GuiasFiscaisGateway } from "@/modules/atendimento/infra/gateways/guias-fiscais.gateway";
 import { HmacAutenticacaoWebhookGateway } from "@/modules/atendimento/infra/gateways/hmac-autenticacao-webhook.gateway";
 import { RelogioSistemaGateway } from "@/modules/atendimento/infra/gateways/relogio-sistema.gateway";
+import { SupabaseClienteCnpjGateway } from "@/modules/atendimento/infra/gateways/supabase-cliente-cnpj.gateway";
 import { SupabaseDocumentosContratuaisGateway } from "@/modules/atendimento/infra/gateways/supabase-documentos-contratuais.gateway";
 import { SupabaseIdentificacaoContatoGateway } from "@/modules/atendimento/infra/gateways/supabase-identificacao-contato.gateway";
 import { SupabaseSessaoAtendimentoGateway } from "@/modules/atendimento/infra/gateways/supabase-sessao-atendimento.gateway";
 import { SupabaseAtendimentoRepository } from "@/modules/atendimento/infra/repositories/atendimento.repository";
+import { SupabaseFeriadoRepository } from "@/modules/atendimento/infra/repositories/feriado.repository";
+import { ObrigacoesFiscaisHttpGateway } from "@/modules/clientes/infra/gateways/obrigacoes-fiscais-http.gateway";
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
 import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabase-sessao.gateway";
 import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories/usuario.repository";
@@ -67,6 +80,13 @@ function exigirSegredosDeProducao(): void {
   );
 }
 
+function guiasFiscais(supabaseAdmin: SupabaseClient): GuiasFiscaisGateway {
+  return new GuiasFiscaisGateway(
+    new SupabaseClienteCnpjGateway(supabaseAdmin),
+    new ObrigacoesFiscaisHttpGateway(OBRIGACOES_FISCAIS_URL),
+  );
+}
+
 export function makeReceberMensagem(): ReceberMensagemPort {
   exigirSegredosDeProducao();
   const supabaseAdmin = createSupabaseAdmin();
@@ -78,6 +98,9 @@ export function makeReceberMensagem(): ReceberMensagemPort {
     new SupabaseSessaoAtendimentoGateway(supabaseAdmin, MENSAGERIA_SEGREDO_SESSAO),
     new AbrirAtendimento(atendimentos, new AvisarCliente(makeEnvioMensagem(), atendimentos)),
     new AnexarMensagemAtendimento(atendimentos),
+    new RelogioSistemaGateway(),
+    new SupabaseFeriadoRepository(supabaseAdmin),
+    guiasFiscais(supabaseAdmin),
   );
 }
 
@@ -152,4 +175,28 @@ export async function makeListarFila(): Promise<ListarFilaPort> {
     new SupabaseAtendimentoRepository(createSupabaseAdmin()),
     new RelogioSistemaGateway(),
   );
+}
+
+// Feriados do Admin: client da sessão dele, para a RLS e a auditoria do banco valerem.
+async function makeFeriados() {
+  const supabase = await createSupabaseServer();
+  return {
+    sessao: sessaoViaUsuarios(supabase),
+    repositorio: new SupabaseFeriadoRepository(supabase),
+  };
+}
+
+export async function makeListarFeriados(): Promise<ListarFeriadosPort> {
+  const { sessao, repositorio } = await makeFeriados();
+  return new ListarFeriados(sessao, repositorio);
+}
+
+export async function makeCadastrarFeriado(): Promise<CadastrarFeriadoPort> {
+  const { sessao, repositorio } = await makeFeriados();
+  return new CadastrarFeriado(sessao, repositorio);
+}
+
+export async function makeRemoverFeriado(): Promise<RemoverFeriadoPort> {
+  const { sessao, repositorio } = await makeFeriados();
+  return new RemoverFeriado(sessao, repositorio);
 }

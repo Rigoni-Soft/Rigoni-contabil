@@ -2,7 +2,7 @@
  * Integração infra ↔ Supabase (testes.md, seção 3) da identificação de contato por telefone (#40).
  * Requer `npx supabase start` local com migrations + seed aplicados.
  */
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { SupabaseIdentificacaoContatoGateway } from "./supabase-identificacao-contato.gateway";
 
@@ -89,6 +89,26 @@ describe("SupabaseIdentificacaoContatoGateway", () => {
 
   it("número que não é de nenhum Cliente devolve null", async () => {
     expect(await gateway.identificar("61900000000")).toEqual({ ok: true, value: null });
+  });
+
+  it("cnpjCadastrado acha o Cliente por CNPJ normalizado e nega o desconhecido", async () => {
+    const { data } = await admin.from("clientes").select("cnpj").eq("id", clienteId).single();
+    const cnpj = (data as { cnpj: string }).cnpj;
+    expect(await gateway.cnpjCadastrado(cnpj)).toEqual({ ok: true, value: true });
+    expect(await gateway.cnpjCadastrado("00000000000191")).toEqual({ ok: true, value: false });
+  });
+
+  it("falha na consulta do CNPJ vira erro, não 'não cadastrado'", async () => {
+    const consulta = {
+      select: () => consulta,
+      eq: () => consulta,
+      maybeSingle: async () => ({ data: null, error: { message: "boom" } }),
+    };
+    const fake = { from: () => consulta } as unknown as SupabaseClient;
+    const resultado = await new SupabaseIdentificacaoContatoGateway(fake).cnpjCadastrado(
+      "00000000000191",
+    );
+    expect(resultado.ok).toBe(false);
   });
 
   it("usuário comum (anon) não consegue chamar a função", async () => {

@@ -30,4 +30,15 @@ export class SupabaseIdentificacaoContatoGateway implements IdentificacaoContato
     const { cliente_id: clienteId, ...resto } = linha;
     return ok({ clienteId, ...resto } satisfies ContatoIdentificado);
   }
+
+  // Só existência: não há linha de Cliente a mapear, então não passa por Row DTO.
+  async cnpjCadastrado(cnpj: string): Promise<Result<boolean, AppError>> {
+    const { data, error } = await this.supabaseAdmin
+      .from("clientes")
+      .select("id")
+      .eq("cnpj", cnpj)
+      .maybeSingle();
+    if (error) return err(new ServicoExternoError("Falha ao consultar o CNPJ."));
+    return ok(data !== null);
+  }
 }

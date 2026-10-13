@@ -58,6 +58,22 @@ describe("EnvioMensagemFalsoGateway (Cloud API simulada)", () => {
     expect(gateway.documentosEnviados).toEqual([documento]);
   });
 
+  it("documento com o PDF em base64 vai por id de mídia (a Cloud API recebe o arquivo antes)", async () => {
+    const gateway = new EnvioMensagemFalsoGateway();
+    const documento = {
+      telefone: "5511912345678",
+      pdfBase64: "JVBERi0=",
+      nomeArquivo: "DAS 2026-09.pdf",
+    };
+    const r = await gateway.enviarDocumento(documento);
+    expect(r.ok).toBe(true);
+    expect(gateway.requisicoes[0]).toMatchObject({
+      type: "document",
+      document: { id: expect.stringMatching(/^midia-falsa-/), filename: documento.nomeArquivo },
+    });
+    expect(gateway.documentosEnviados).toEqual([documento]);
+  });
+
   it("erro da Cloud API no envio de documento não registra o envio", async () => {
     const gateway = new EnvioMensagemFalsoGateway({ "5511900000000": 133010 });
     const r = await gateway.enviarDocumento({
