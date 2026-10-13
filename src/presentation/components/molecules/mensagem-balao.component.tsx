@@ -27,7 +27,9 @@ export function MensagemBalao({
   return (
     <li
       className={cn(
-        "relative max-w-[85%] px-3 py-1.5 sm:max-w-[75%]",
+        "relative px-3 py-1.5 sm:max-w-[75%]",
+        // A ação fica fora do balão (left-full): reserva a largura dela para não gerar rolagem horizontal.
+        acao ? "max-w-[calc(85%-2rem)]" : "max-w-[85%]",
         doCliente
           ? "self-start rounded-2xl rounded-tl-sm border border-border bg-card text-card-foreground"
           : lado === "atendente"

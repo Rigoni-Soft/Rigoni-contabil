@@ -628,14 +628,22 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   mensagem nova. Rolar para cima para ler o histórico não é puxado de volta
   quando chega mensagem nova. Balões sem sombra; a hora do balão do
   Funcionário usa `opacity-90` (contraste ≥ 4,5:1 nos dois temas).
+- **Reação do escritório** (#84): o balão do cliente tem, fora dele à direita
+  (`left-full`, largura reservada no `max-w`), o botão `ghost` redondo de 28 px
+  "Reagir à mensagem de <nome>" (mesmo `SeletorDeEmoji`, `compacto`). O painel
+  "Emojis da reação" é `fixed` posicionado pelo botão (não é cortado pelo rolador)
+  e fecha com Esc, clique fora ou rolagem. A reação aparece como pílula de emoji
+  abaixo do texto (`role="img"`, "Reação do escritório: 👍"); escolher o mesmo
+  emoji remove.
 - **Campo de resposta** (`CompositorDeMensagem`): `Textarea` arredondado +
   botão redondo de enviar (placeholder "Escreva aqui"; o nome acessível vem
   do rótulo oculto "Mensagem ao cliente"). Enter envia, Shift+Enter quebra a linha; o campo
   só esvazia quando o envio dá certo (se falhar, o texto fica). À esquerda do
   campo, o botão redondo `ghost` "Inserir emoji" (`SeletorDeEmoji`, #78) abre um
-  painel acima dele, com grupo "Recentes" (até 8, por navegador) e as categorias
-  Rostos, Gestos, Objetos e Símbolos; cada emoji é um botão de 40 px com nome
-  acessível. Escolher insere na posição do cursor e devolve o foco ao campo; Esc
+  painel acima dele. Com recentes (até 8, por navegador) o painel mostra só a
+  linha "Recentes" e o botão "Ver todos os emojis"; sem recentes, ou depois do
+  "ver todos", as categorias Rostos, Gestos, Objetos e Símbolos. Cada emoji é um
+  botão de 40 px com nome acessível. Escolher insere na posição do cursor e devolve o foco ao campo; Esc
   (de qualquer foco) e clique fora fecham. O limite de 4096 conta caracteres como o
   WhatsApp (emoji vale 1), por isso o campo não usa `maxLength`.
 - **Painel de ações** (`PainelDeAcoes`, à direita, 19 rem; 22 rem em `2xl`):
