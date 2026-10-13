@@ -187,6 +187,16 @@ test.describe("Painel do Funcionário (#49)", () => {
     await expect(page.getByRole("button", { name: "Remover foto-fachada.png" })).toHaveCount(0);
     await expect(campo).toHaveValue("");
 
+    // Ampliar: o diálogo abre com o botão de fechar à vista, e fechar devolve a conversa.
+    await balaoDaImagem.getByRole("button", { name: "Ampliar foto-fachada.png" }).click();
+    const fechar = page.getByRole("button", { name: "Fechar imagem" });
+    await expect(
+      page.getByRole("dialog", { name: "Imagem ampliada: foto-fachada.png" }),
+    ).toBeVisible();
+    await expect(fechar).toBeInViewport();
+    await fechar.click();
+    await expect(page.getByRole("dialog", { name: /Imagem ampliada/ })).toBeHidden();
+
     // PDF sem legenda: balão com nome, tamanho e link para baixar.
     await clipe.setInputFiles({
       name: "balanco-setembro.pdf",

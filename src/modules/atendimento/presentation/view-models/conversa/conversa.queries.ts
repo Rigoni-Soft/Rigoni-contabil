@@ -23,6 +23,7 @@ export const conversaKeys = {
   anexoPendente: (atendimentoId: string) =>
     ["atendimento", "anexo-pendente", atendimentoId] as const,
   conversa: (atendimentoId: string) => ["atendimento", "conversa", atendimentoId] as const,
+  enviarAnexo: (atendimentoId: string) => ["atendimento", "enviar-anexo", atendimentoId] as const,
   transferencia: (atendimentoId: string) => ["atendimento", "transferir", atendimentoId] as const,
 };
 
@@ -121,6 +122,7 @@ export function useEnviarAnexoMutation(atendimentoId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: conversaKeys.enviarAnexo(atendimentoId),
     mutationFn: async ({
       arquivo,
       legenda,
@@ -135,7 +137,14 @@ export function useEnviarAnexoMutation(atendimentoId: string) {
       dados.set("arquivo", arquivo);
       dados.set("legenda", legenda);
       if (miniatura) dados.set("miniatura", miniatura);
-      const resultado = await enviarAnexoAction(dados);
+      // Sem rede, ou corpo recusado antes de chegar ao caso de uso: a action lança em vez de
+      // devolver o resultado, e a mensagem crua não diz o que fazer.
+      const resultado = await enviarAnexoAction(dados).catch(() => null);
+      if (!resultado) {
+        throw new Error(
+          "Não foi possível enviar o arquivo. Confira a conexão e tente de novo; o arquivo continua aqui.",
+        );
+      }
       if (!resultado.ok) throw new Error(resultado.error.message);
     },
     onSettled: () =>

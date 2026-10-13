@@ -39,7 +39,7 @@ export function CompositorDeMensagem({
 }: CompositorDeMensagemProps) {
   return (
     <Pilha espaco={1} className="shrink-0">
-      {anexo && <PreviaDeAnexo {...anexo} onRemover={onRemoverAnexo} disabled={enviando} />}
+      {anexo && <PreviaDeAnexo {...anexo} onRemover={onRemoverAnexo} enviando={enviando} />}
       <Linha
         alinhar="centro"
         espaco={2}

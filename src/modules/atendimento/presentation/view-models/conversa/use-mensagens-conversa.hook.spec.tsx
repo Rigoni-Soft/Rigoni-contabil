@@ -99,4 +99,28 @@ describe("useMensagensConversa — reação (#84)", () => {
     const encerrada = renderizar({ ...CONVERSA, encerrado: true });
     expect(encerrada.result.current.aoSoltar).toBeUndefined();
   });
+
+  it("durante o envio de um anexo não aceita soltar outro arquivo", async () => {
+    const cliente = new QueryClient();
+    const { result } = renderHook(() => useMensagensConversa("at-1", CONVERSA), {
+      wrapper: ({ children }) => (
+        <QueryClientProvider client={cliente}>{children}</QueryClientProvider>
+      ),
+    });
+    expect(result.current.aoSoltar).toEqual(expect.any(Function));
+
+    // Uma mutação de anexo em andamento (a região do campo de resposta é quem a dispara).
+    let concluir: () => void = () => {};
+    void cliente
+      .getMutationCache()
+      .build(cliente, {
+        mutationKey: ["atendimento", "enviar-anexo", "at-1"],
+        mutationFn: () => new Promise<void>((resolve) => (concluir = resolve)),
+      })
+      .execute(undefined);
+
+    await waitFor(() => expect(result.current.aoSoltar).toBeUndefined());
+    concluir();
+    await waitFor(() => expect(result.current.aoSoltar).toEqual(expect.any(Function)));
+  });
 });

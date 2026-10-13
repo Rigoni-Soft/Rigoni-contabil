@@ -200,4 +200,20 @@ describe("CompositorDeMensagem — anexo", () => {
 
     expect(container.querySelector('img[src="blob:abc"]')).toBeInTheDocument();
   });
+
+  describe("CompositorDeMensagem — enviando anexo", () => {
+    it("anuncia o envio, trava remover e enviar", () => {
+      render(
+        <CompositorDeMensagem
+          {...BASE}
+          enviando
+          anexo={{ nome: "balanco.pdf", tamanho: "1,5 KB", miniaturaUrl: null }}
+        />,
+      );
+
+      expect(screen.getByRole("status")).toHaveTextContent("Enviando… 1,5 KB");
+      expect(screen.getByRole("button", { name: "Remover balanco.pdf" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Enviar arquivo" })).toBeDisabled();
+    });
+  });
 });

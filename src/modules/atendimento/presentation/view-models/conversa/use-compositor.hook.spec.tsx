@@ -142,6 +142,36 @@ describe("useCompositor", () => {
       expect(result.current.anexo).toBeUndefined();
     });
 
+    it("segundo envio e troca de arquivo durante o envio são ignorados", async () => {
+      let concluir: (r: { ok: true; data: undefined }) => void = () => {};
+      anexo.mockReturnValue(new Promise((resolve) => (concluir = resolve)));
+      const { result } = renderizar();
+      act(() => result.current.aoAnexar(PDF));
+      await waitFor(() => expect(result.current.anexo).toBeDefined());
+
+      act(() => result.current.aoEnviar("1"));
+      await waitFor(() => expect(result.current.enviando).toBe(true));
+      act(() => result.current.aoEnviar("2"));
+      act(() => result.current.aoAnexar(new File(["y"], "outro.pdf", { type: "application/pdf" })));
+
+      expect(anexo).toHaveBeenCalledTimes(1);
+      expect(result.current.anexo?.nome).toBe("balanco.pdf");
+      await act(async () => concluir({ ok: true, data: undefined }));
+      await waitFor(() => expect(result.current.enviadas).toBe(1));
+    });
+
+    it("erro de rede (a action lança) vira mensagem legível e mantém o arquivo", async () => {
+      anexo.mockRejectedValue(new Error("fetch failed"));
+      const { result } = renderizar();
+      act(() => result.current.aoAnexar(PDF));
+      await waitFor(() => expect(result.current.anexo).toBeDefined());
+
+      act(() => result.current.aoEnviar(""));
+
+      await waitFor(() => expect(result.current.erro).toMatch(/Confira a conexão/));
+      expect(result.current.anexo?.nome).toBe("balanco.pdf");
+    });
+
     it("falha no envio do anexo mantém o arquivo e mostra o erro do servidor", async () => {
       anexo.mockResolvedValue({
         ok: false,

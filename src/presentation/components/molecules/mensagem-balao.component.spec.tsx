@@ -118,4 +118,37 @@ describe("MensagemBalao — reação (#84)", () => {
     expect(container.querySelectorAll('img[src="https://l/2"]')).toHaveLength(2);
     expect(container.querySelectorAll("p")).toHaveLength(2); // autor e hora, nenhum de texto
   });
+
+  it("a imagem ampliada é um diálogo nomeado com botão de fechar", () => {
+    render(
+      <ul>
+        <MensagemBalao
+          {...BASE}
+          lado="atendente"
+          texto=""
+          anexo={{
+            tipo: "imagem",
+            nome: "foto.png",
+            tamanho: "10 B",
+            url: "https://l/original",
+            miniaturaUrl: "https://l/mini",
+            painelId: "p3",
+          }}
+        />
+      </ul>,
+    );
+
+    const painel = document.getElementById("p3")!;
+    expect(painel).toHaveAttribute("role", "dialog");
+    expect(painel).toHaveAttribute("aria-label", "Imagem ampliada: foto.png");
+    expect(painel.querySelector("button[aria-label='Fechar imagem']")).toHaveAttribute(
+      "popovertargetaction",
+      "hide",
+    );
+    // O balão mostra a miniatura; o painel, o original.
+    expect(
+      screen.getByRole("button", { name: "Ampliar foto.png" }).querySelector("img"),
+    ).toHaveAttribute("src", "https://l/mini");
+    expect(painel.querySelector("img")).toHaveAttribute("src", "https://l/original");
+  });
 });

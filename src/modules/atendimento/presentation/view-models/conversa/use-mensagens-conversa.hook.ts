@@ -1,7 +1,11 @@
 import { useCallback, useId, useRef, useState } from "react";
+import { useIsMutating } from "@tanstack/react-query";
 
 import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
-import { useReagirAMensagemMutation } from "@/modules/atendimento/presentation/view-models/conversa/conversa.queries";
+import {
+  conversaKeys,
+  useReagirAMensagemMutation,
+} from "@/modules/atendimento/presentation/view-models/conversa/conversa.queries";
 import { useAnexoPendente } from "@/modules/atendimento/presentation/view-models/conversa/use-anexo-pendente.hook";
 import { useConversa } from "@/modules/atendimento/presentation/view-models/conversa/use-conversa.hook";
 import { useEmojisRecentes } from "@/modules/atendimento/presentation/view-models/conversa/use-emojis-recentes.hook";
@@ -24,6 +28,8 @@ export function useMensagensConversa(atendimentoId: string, initialData: Convers
   const { conversa, transferido } = useConversa(atendimentoId, initialData);
   const reagir = useReagirAMensagemMutation(atendimentoId);
   const pendente = useAnexoPendente(atendimentoId);
+  // O envio é da região do campo de resposta: aqui só se sabe pelo cache de mutações.
+  const enviandoAnexo = useIsMutating({ mutationKey: conversaKeys.enviarAnexo(atendimentoId) }) > 0;
   // Um seletor aberto por vez: guarda de qual Mensagem e onde o painel fica.
   const [aberta, setAberta] = useState<{ id: string; estilo: React.CSSProperties } | null>(null);
   const [completo, setCompleto] = useState(false);
@@ -38,7 +44,9 @@ export function useMensagensConversa(atendimentoId: string, initialData: Convers
     mensagens: conversa.mensagens,
     // Soltar um arquivo sobre a conversa o põe no campo de resposta; encerrado ou transferido não.
     aoSoltar:
-      !conversa.encerrado && !transferido ? (arquivo: File) => pendente.anexar(arquivo) : undefined,
+      !conversa.encerrado && !transferido && !enviandoAnexo
+        ? (arquivo: File) => pendente.anexar(arquivo)
+        : undefined,
     reacao: {
       // Encerrado ou transferido: a conversa não é mais do usuário.
       ativa: !conversa.encerrado && !transferido,

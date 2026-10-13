@@ -47,7 +47,7 @@ export function AnexoDaMensagem({
     >
       <FileText className="size-5 shrink-0" aria-hidden="true" />
       <Linha como="span" className="min-w-0 flex-col">
-        <Caixa como="span" className="truncate font-medium">
+        <Caixa como="span" className="truncate font-medium" title={nome}>
           {nome}
         </Caixa>
         <Texto como="span" variante="nota" className="text-current opacity-80">
