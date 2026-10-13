@@ -631,7 +631,13 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
 - **Campo de resposta** (`CompositorDeMensagem`): `Textarea` arredondado +
   botão redondo de enviar (placeholder "Escreva aqui"; o nome acessível vem
   do rótulo oculto "Mensagem ao cliente"). Enter envia, Shift+Enter quebra a linha; o campo
-  só esvazia quando o envio dá certo (se falhar, o texto fica).
+  só esvazia quando o envio dá certo (se falhar, o texto fica). À esquerda do
+  campo, o botão redondo `ghost` "Inserir emoji" (`SeletorDeEmoji`, #78) abre um
+  painel acima dele, com grupo "Recentes" (até 8, por navegador) e as categorias
+  Rostos, Gestos, Objetos e Símbolos; cada emoji é um botão de 40 px com nome
+  acessível. Escolher insere na posição do cursor e devolve o foco ao campo; Esc
+  (de qualquer foco) e clique fora fecham. O limite de 4096 conta caracteres como o
+  WhatsApp (emoji vale 1), por isso o campo não usa `maxLength`.
 - **Painel de ações** (`PainelDeAcoes`, à direita, 19 rem; 22 rem em `2xl`):
   compacto. Serviço "Contrato social" em botão `sm` (quando o Cliente não o
   tem, o botão fica `disabled` com a frase "Contrato social não cadastrado."
