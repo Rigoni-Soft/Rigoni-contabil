@@ -12,8 +12,9 @@ type LinhaDeAlteracaoProps = {
   // Props do <input type="date"> (o `register` do formulário, já resolvido por quem monta).
   data: React.ComponentProps<"input">;
   erroData?: string;
-  // O campo de arquivo é controlado pelo formulário; recebe o id que o rótulo aponta.
-  campoArquivo: (id: string) => React.ReactNode;
+  // O campo de arquivo é controlado pelo formulário; o id dele é `alteracoesContratuais.<i>.arquivo`
+  // (o rótulo aponta para ele).
+  arquivo: React.ReactNode;
   erroArquivo?: string;
   onRemover: () => void;
 };
@@ -23,7 +24,7 @@ export function LinhaDeAlteracao({
   indice,
   data,
   erroData,
-  campoArquivo,
+  arquivo,
   erroArquivo,
   onRemover,
 }: LinhaDeAlteracaoProps) {
@@ -57,7 +58,7 @@ export function LinhaDeAlteracao({
 
         <Pilha espaco="campo">
           <Label htmlFor={idArquivo}>{`Arquivo da alteração ${indice + 1}`}</Label>
-          {campoArquivo(idArquivo)}
+          {arquivo}
           {erroArquivo && <FieldError>{erroArquivo}</FieldError>}
         </Pilha>
       </Grade>

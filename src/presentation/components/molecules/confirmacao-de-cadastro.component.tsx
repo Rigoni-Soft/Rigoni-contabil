@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { Caixa } from "@/presentation/components/atoms/caixa.component";
@@ -9,8 +9,7 @@ import { cn } from "@/presentation/lib/utils";
 type ConfirmacaoDeCadastroProps = {
   mensagem: React.ReactNode;
   // Conteúdo extra abaixo da mensagem (ex.: a senha provisória).
-  detalhes?: React.ReactNode;
-  iconeNovo?: React.ReactNode;
+  children?: React.ReactNode;
   largura: "sm" | "md";
   onCadastrarNovo: () => void;
 };
@@ -18,8 +17,7 @@ type ConfirmacaoDeCadastroProps = {
 // Confirmação de cadastro com as duas saídas: continuar ("Cadastrar outro") ou encerrar.
 export function ConfirmacaoDeCadastro({
   mensagem,
-  detalhes,
-  iconeNovo,
+  children,
   largura,
   onCadastrarNovo,
 }: ConfirmacaoDeCadastroProps) {
@@ -31,10 +29,10 @@ export function ConfirmacaoDeCadastro({
       )}
     >
       <AvisoDeStatus tipo="sucesso" texto={mensagem} className="items-center text-sm" />
-      {detalhes}
+      {children}
       <Caixa className="flex flex-col gap-2 sm:flex-row">
         <Button type="button" onClick={onCadastrarNovo} className="sm:flex-1">
-          {iconeNovo}
+          <Plus aria-hidden="true" />
           Cadastrar outro
         </Button>
         {/* Provisório: leva para a home, ainda não existe uma tela própria do Setor para voltar. */}

@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event";
 
 import { BuscaDeCliente } from "./busca-de-cliente.component";
 import { PainelDoCliente } from "./painel-do-cliente.component";
-import { ResultadoDoFeed } from "./resultado-do-feed.component";
 
 const BASE = {
   termo: "pad",
@@ -60,16 +59,5 @@ describe("PainelDoCliente", () => {
     );
     await userEvent.setup().click(screen.getByRole("button", { name: "Nova busca" }));
     expect(aoNovaBusca).toHaveBeenCalled();
-  });
-});
-
-describe("ResultadoDoFeed", () => {
-  it("erro acima da lista e estado ocupado enquanto carrega", () => {
-    const { container } = render(
-      <ResultadoDoFeed registros={[]} carregando erro="Falha ao carregar." />,
-    );
-
-    expect(screen.getByRole("alert")).toHaveTextContent("Falha ao carregar.");
-    expect(container.querySelector("[aria-busy='true']")).toBeInTheDocument();
   });
 });

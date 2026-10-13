@@ -1,7 +1,7 @@
 import { cn } from "@/presentation/lib/utils";
 
 // Alvo de 44 px (DESIGN.md); o emoji é o conteúdo, o nome acessível é a descrição dele.
-export const BOTAO_DE_EMOJI =
+const BOTAO_DE_EMOJI =
   "flex size-11 shrink-0 items-center justify-center rounded-md outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring";
 
 type BotaoDeEmojiProps = {

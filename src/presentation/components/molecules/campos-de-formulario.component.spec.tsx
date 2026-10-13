@@ -98,7 +98,7 @@ describe("linhas de lista do formulário", () => {
         data={{}}
         erroData="Informe a data."
         erroArquivo="Envie o arquivo."
-        campoArquivo={(id) => <input id={id} type="file" />}
+        arquivo={<input id="alteracoesContratuais.0.arquivo" type="file" />}
         onRemover={jest.fn()}
       />,
     );

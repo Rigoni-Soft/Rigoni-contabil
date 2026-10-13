@@ -1,4 +1,3 @@
-import { UserPlus } from "lucide-react";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 
 import { BotaoDeEnvio } from "@/presentation/components/atoms/botao-de-envio.component";
@@ -57,7 +56,6 @@ export function CriarUsuarioForm({
     return (
       <ConfirmacaoDeCadastro
         largura="md"
-        iconeNovo={<UserPlus aria-hidden="true" />}
         onCadastrarNovo={onCadastrarNovo}
         mensagem={
           <>
@@ -68,15 +66,14 @@ export function CriarUsuarioForm({
             ({criado.email}) criada.
           </>
         }
-        detalhes={
-          <>
-            <Texto variante="apoio">
-              Senha provisória — repasse com segurança, será exigida troca no primeiro acesso:
-            </Texto>
-            <Texto variante="codigo">{criado.senhaProvisoria}</Texto>
-          </>
-        }
-      />
+      >
+        <>
+          <Texto variante="apoio">
+            Senha provisória — repasse com segurança, será exigida troca no primeiro acesso:
+          </Texto>
+          <Texto variante="codigo">{criado.senhaProvisoria}</Texto>
+        </>
+      </ConfirmacaoDeCadastro>
     );
   }
 

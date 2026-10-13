@@ -142,8 +142,8 @@ rótulo + campo + erro à mão. Gráficos do dashboard: `cartao-de-grafico` (át
 `donut-de-fatias` e `barras-de-fatias` (moléculas).
 
 **Definição de cada nível (Atomic Design deste produto).** Átomo: o menor componente
-da página (`ui/` + `atoms/`: `texto`, `balao`, `chip-de-setor`, `link-de-acao`,
-`numero-em-circulo`, `celula-de-tabela`…). Molécula: pequeno componente
+da página (`ui/` + `atoms/`: `caixa` (+ `pilha`, `linha`, `grade`), `texto`, `link-de-acao`,
+`celula-de-tabela`, `botao-de-emoji`…). Molécula: pequeno componente
 reaproveitável **composto por 2 ou mais átomos** (`campo-de-texto`,
 `mensagem-balao`, `item-da-fila`, `cabecalho-de-tela`…). Organismo: parte coesa e
 especialista da tela, organizando átomos e moléculas (formulários, listas,
@@ -154,9 +154,8 @@ contêiner é `Caixa` (`como="section"|"ul"|"li"|"form"…`), o ritmo vertical �
 `Pilha espaco={1|2|3|4|6|8|"campo"|"formulario"}`, a linha é `Linha`
 (`alinhar`, `justificar`, `espaco`, `quebra`), a malha é `Grade colunas="1>2"|"1>3"|…`,
 e o texto é `Texto` com um
-papel: `destaque`, `corpo`, `apoio`, `alerta`, `rotulo`, `nota`, `titulo`,
-`subtitulo`, `tela`, `subtela`, `marca`, `secao`, `rotuloDeSecao`, `enfase`,
-`codigo`, `somenteLeitor`, `soDesktop`. Trecho que só agrupa ou quebra
+papel (variantes em `atoms/texto.component.tsx`: `destaque`, `corpo`, `apoio`, `alerta`,
+`nota`, `titulo`, `tela`…). Trecho que só agrupa ou quebra
 linha é `Caixa`, não `Texto`. Cabeçalho e navegação da aplicação ficam fora do
 `<main>` (landmarks de topo).
 

@@ -1,6 +1,6 @@
+import { Clock } from "lucide-react";
+
 import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
-import { NumeroEmCirculo } from "@/presentation/components/atoms/numero-em-circulo.component";
-import { TempoDeEspera } from "@/presentation/components/atoms/tempo-de-espera.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 
 export type ItemDaFilaProps = {
@@ -30,7 +30,15 @@ export function ItemDaFila({
       espaco={3}
       className="rounded-lg border border-border bg-card px-4 py-3"
     >
-      <NumeroEmCirculo valor={posicao} prefixo="Posição" />
+      <Caixa
+        como="span"
+        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground"
+      >
+        <Texto como="span" variante="somenteLeitor">
+          Posição{" "}
+        </Texto>
+        {posicao}
+      </Caixa>
       <Caixa className="min-w-0 flex-1">
         <Texto variante="destaque" className="break-words">
           {contato}
@@ -58,7 +66,13 @@ export function ItemDaFila({
           </Texto>
         )}
       </Caixa>
-      <TempoDeEspera valor={espera} />
+      <Linha como="span" alinhar="centro" espaco={1} className="shrink-0 text-sm tabular-nums">
+        <Clock aria-hidden="true" className="size-4 text-muted-foreground" />
+        <Texto como="span" variante="somenteLeitor">
+          Esperando há{" "}
+        </Texto>
+        <Caixa como="span">{espera}</Caixa>
+      </Linha>
     </Linha>
   );
 }

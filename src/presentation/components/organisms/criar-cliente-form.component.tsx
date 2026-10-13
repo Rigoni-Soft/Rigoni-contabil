@@ -190,13 +190,13 @@ export function CriarClienteForm({
               erroData={errors.alteracoesContratuais?.[indice]?.data?.message}
               erroArquivo={errors.alteracoesContratuais?.[indice]?.arquivo?.message}
               onRemover={() => onRemoverAlteracao(indice)}
-              campoArquivo={(id) => (
+              arquivo={
                 <Controller
                   control={control}
                   name={`alteracoesContratuais.${indice}.arquivo` as const}
                   render={({ field: { onChange, onBlur, name, value } }) => (
                     <FileInput
-                      id={id}
+                      id={`alteracoesContratuais.${indice}.arquivo`}
                       name={name}
                       accept={ACCEPT_DOCUMENTO}
                       file={value}
@@ -206,7 +206,7 @@ export function CriarClienteForm({
                     />
                   )}
                 />
-              )}
+              }
             />
           ))}
         </Caixa>

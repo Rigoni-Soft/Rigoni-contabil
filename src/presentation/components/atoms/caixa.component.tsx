@@ -13,6 +13,12 @@ export function Caixa<T extends ElementType = "div">({ como, ...props }: CaixaPr
 
 // Os três átomos de layout abaixo nomeiam o ritmo e a malha do produto (DESIGN.md → Layout): o
 // espaço e a distribuição vêm de props nomeadas, não de `space-y-*`/`gap-*`/`grid-cols-*` soltos.
+// Todos delegam a `Caixa` com a classe já resolvida.
+function comClasses(props: unknown, ...classes: (string | false | undefined)[]) {
+  const { className, ...resto } = props as { className?: string };
+  return { ...resto, className: cn(...classes, className) } as CaixaProps<ElementType>;
+}
+
 const ESPACO_VERTICAL = {
   1: "space-y-1",
   2: "space-y-2",
@@ -31,16 +37,8 @@ type PilhaProps<T extends ElementType> = CaixaProps<T> & {
 };
 
 // Filhos empilhados na vertical.
-export function Pilha<T extends ElementType = "div">({
-  espaco,
-  como,
-  className,
-  ...props
-}: PilhaProps<T>) {
-  const Elemento: ElementType = como ?? "div";
-  return (
-    <Elemento className={cn(ESPACO_VERTICAL[espaco], className as string | undefined)} {...props} />
-  );
+export function Pilha<T extends ElementType = "div">({ espaco, ...props }: PilhaProps<T>) {
+  return <Caixa {...comClasses(props, ESPACO_VERTICAL[espaco])} />;
 }
 
 const GAP = { 1: "gap-1", 2: "gap-2", 3: "gap-3", 4: "gap-4", 5: "gap-5" } as const;
@@ -61,22 +59,18 @@ export function Linha<T extends ElementType = "div">({
   justificar,
   espaco,
   quebra,
-  como,
-  className,
   ...props
 }: LinhaProps<T>) {
-  const Elemento: ElementType = como ?? "div";
   return (
-    <Elemento
-      className={cn(
+    <Caixa
+      {...comClasses(
+        props,
         "flex",
         alinhar && ALINHAR[alinhar],
         justificar && JUSTIFICAR[justificar],
         espaco && GAP[espaco],
         quebra && "flex-wrap",
-        className as string | undefined,
       )}
-      {...props}
     />
   );
 }
@@ -100,23 +94,6 @@ type GradeProps<T extends ElementType> = CaixaProps<T> & {
   espaco?: keyof typeof GAP;
 };
 
-export function Grade<T extends ElementType = "div">({
-  colunas,
-  espaco,
-  como,
-  className,
-  ...props
-}: GradeProps<T>) {
-  const Elemento: ElementType = como ?? "div";
-  return (
-    <Elemento
-      className={cn(
-        "grid",
-        COLUNAS[colunas],
-        espaco && GAP[espaco],
-        className as string | undefined,
-      )}
-      {...props}
-    />
-  );
+export function Grade<T extends ElementType = "div">({ colunas, espaco, ...props }: GradeProps<T>) {
+  return <Caixa {...comClasses(props, "grid", COLUNAS[colunas], espaco && GAP[espaco])} />;
 }

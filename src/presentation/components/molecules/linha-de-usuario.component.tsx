@@ -1,5 +1,4 @@
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
-import { LinhaDeLista } from "@/presentation/components/atoms/linha-de-lista.component";
+import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 
 type LinhaDeUsuarioProps = {
@@ -14,7 +13,7 @@ type LinhaDeUsuarioProps = {
 
 export function LinhaDeUsuario({ nome, resumo, bloqueioPendente, acoes }: LinhaDeUsuarioProps) {
   return (
-    <LinhaDeLista>
+    <Linha como="li" alinhar="centro" justificar="entre" espaco={4} className="px-4 py-3">
       <Caixa className="min-w-0">
         <Texto variante="destaque" className="truncate">
           {nome}
@@ -29,6 +28,6 @@ export function LinhaDeUsuario({ nome, resumo, bloqueioPendente, acoes }: LinhaD
         )}
       </Caixa>
       {acoes}
-    </LinhaDeLista>
+    </Linha>
   );
 }
