@@ -1,6 +1,6 @@
 import { FileText } from "lucide-react";
 
-import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { ImagemAmpliavel } from "@/presentation/components/atoms/imagem-ampliavel.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 
@@ -46,14 +46,14 @@ export function AnexoDaMensagem({
       className="my-1 flex min-h-11 items-center gap-2 rounded-lg bg-background/20 px-2 py-1 underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
     >
       <FileText className="size-5 shrink-0" aria-hidden="true" />
-      <Linha como="span" className="min-w-0 flex-col">
+      <Caixa como="span" className="flex min-w-0 flex-col">
         <Caixa como="span" className="truncate font-medium" title={nome}>
           {nome}
         </Caixa>
-        <Texto como="span" variante="nota" className="text-current opacity-80">
+        <Texto como="span" variante="nota" className="text-current opacity-90">
           {tamanho} · Baixar
         </Texto>
-      </Linha>
+      </Caixa>
     </Caixa>
   );
 }

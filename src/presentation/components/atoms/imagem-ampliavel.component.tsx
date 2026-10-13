@@ -54,7 +54,7 @@ export function ImagemAmpliavel({ src, ampliadaSrc, alt, painelId }: ImagemAmpli
           alt={alt}
           loading="lazy"
           decoding="async"
-          className="max-h-[85dvh] max-w-full object-contain"
+          className="max-h-[85dvh] max-w-full min-w-[min(80vw,16rem)] object-contain"
         />
       </div>
     </>
