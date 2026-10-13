@@ -99,14 +99,14 @@ type SeletorDeEmojiProps = {
   completo: boolean;
   onExpandir: () => void;
   onAlternar: (evento: React.MouseEvent<HTMLButtonElement>) => void;
-  // Posição `fixed` do painel (reação em balão, fora do corte do rolador).
+  // Posição `fixed` do painel (reação em balão, fora do corte do rolador); sem ela, acima do botão.
   estilo?: React.CSSProperties;
   onEscolher: (emoji: string) => void;
   painelId: string;
   raizRef: React.Ref<HTMLDivElement>;
   botaoRef: React.Ref<HTMLButtonElement>;
   disabled?: boolean;
-  // Reação em balão: botão pequeno, painel para baixo e rótulo próprio.
+  // Reação em balão: botão pequeno e rótulo próprio.
   rotulo?: string;
   compacto?: boolean;
 };
@@ -150,9 +150,7 @@ export function SeletorDeEmoji({
           style={estilo}
           className={cn(
             "z-20 max-h-64 w-72 space-y-2 overflow-y-auto rounded-xl border border-input bg-background p-2 shadow-md",
-            estilo
-              ? "fixed"
-              : cn("absolute left-0", compacto ? "top-full mt-1" : "bottom-full mb-2"),
+            estilo ? "fixed" : "absolute bottom-full left-0 mb-2",
           )}
         >
           {recentes.length > 0 && (

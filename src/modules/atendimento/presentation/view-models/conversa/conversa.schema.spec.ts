@@ -2,6 +2,7 @@ import {
   atendimentoIdSchema,
   enviarDocumentoSchema,
   enviarMensagemSchema,
+  reagirAMensagemSchema,
   transferirAtendimentoSchema,
 } from "./conversa.schema";
 
@@ -68,5 +69,16 @@ describe("enviarMensagemSchema", () => {
 
   it.each([[""], ["   "], ["x".repeat(4097)]])("recusa %p", (texto) => {
     expect(enviarMensagemSchema.safeParse({ atendimentoId: ID, texto }).success).toBe(false);
+  });
+});
+
+describe("reagirAMensagemSchema", () => {
+  it("aceita emoji composto e recusa mensagem fora do formato de id ou emoji vazio", () => {
+    const base = { atendimentoId: ID, mensagemId: ID };
+    expect(reagirAMensagemSchema.safeParse({ ...base, emoji: "👨‍👩‍👧" }).success).toBe(true);
+    expect(
+      reagirAMensagemSchema.safeParse({ ...base, mensagemId: "m1", emoji: "👍" }).success,
+    ).toBe(false);
+    expect(reagirAMensagemSchema.safeParse({ ...base, emoji: "  " }).success).toBe(false);
   });
 });

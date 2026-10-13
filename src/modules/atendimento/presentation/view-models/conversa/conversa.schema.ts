@@ -52,6 +52,6 @@ export const enviarMensagemSchema = z.object({
 
 export const reagirAMensagemSchema = z.object({
   atendimentoId: atendimentoIdSchema,
-  mensagemId: z.string().min(1),
+  mensagemId: z.guid("Mensagem inválida."),
   emoji: z.string().trim().min(1, "Escolha um emoji.").max(16),
 });
