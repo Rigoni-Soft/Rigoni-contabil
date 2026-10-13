@@ -101,7 +101,8 @@ begin
   select id into v_id from public.atendimentos
   where chave_telefone = p_chave and status = 'em_andamento'
   order by criado_em desc
-  limit 1;
+  limit 1
+  for update;
   if v_id is null then
     return false;
   end if;
