@@ -28,7 +28,7 @@ declare
 begin
   perform pg_advisory_xact_lock(hashtext('atendimento:' || p_setor::text));
   -- Mantém o que a PR #77 garante (atendente elegível, a Fila antiga na frente, crédito por
-  -- assunção): esta função substitui a de `20261006135000_atendimento_integridade.sql`.
+  -- assunção): esta função substitui a de `20261007090000_atendimento_origem_ura.sql`.
   if v_funcionario is not null then
     if not public.atendente_elegivel(v_funcionario, p_setor) then
       return null;

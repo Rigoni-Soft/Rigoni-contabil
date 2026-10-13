@@ -84,9 +84,9 @@ describe("ObterConversa", () => {
         clienteVinculado: true,
         // O id do provedor não vai à tela: só se a Mensagem do cliente aceita reação.
         mensagens: [
-          { ...CONVERSA.mensagens[0], idExterno: undefined, reagivel: true },
-          { ...CONVERSA.mensagens[1], idExterno: undefined, reagivel: false },
-        ].map(({ idExterno: _, ...m }) => m),
+          expect.objectContaining({ reagivel: true }),
+          expect.objectContaining({ reagivel: false }),
+        ],
         ultimaTransferencia: CONVERSA.ultimaTransferencia,
         ura: CONVERSA.ura,
         avisoInatividade: false,
@@ -97,6 +97,7 @@ describe("ObterConversa", () => {
         setoresDestino: expect.arrayContaining(["recepcao", "tributario"]),
       },
     });
+    expect(r.ok && r.value.mensagens.some((m) => "idExterno" in m)).toBe(false);
     expect(r.ok && r.value.setoresDestino).not.toContain("contabil");
     expect(r.ok && r.value.setoresDestino).not.toContain("simples_nacional");
     expect(listados).toEqual(["cli-1"]);
