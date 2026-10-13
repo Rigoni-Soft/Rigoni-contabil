@@ -1,6 +1,5 @@
-import Link from "next/link";
-
-import { Button, buttonVariants } from "@/presentation/components/ui/button";
+import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
+import { Button } from "@/presentation/components/ui/button";
 
 type AcoesDoFormularioProps = {
   pendente: boolean;
@@ -23,9 +22,9 @@ export function AcoesDoFormulario({ pendente, onLimpar, onCancelar }: AcoesDoFor
           Cancelar
         </Button>
       ) : (
-        <Link href="/" className={buttonVariants({ variant: "destructive" })}>
+        <LinkDeAcao href="/" variant="destructive">
           Cancelar
-        </Link>
+        </LinkDeAcao>
       )}
     </div>
   );

@@ -1,8 +1,10 @@
 import { Plus } from "lucide-react";
 import { Controller, type Control, type FieldErrors, type UseFormRegister } from "react-hook-form";
 
+import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcacao.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
+import { NotaDeObrigatorio } from "@/presentation/components/atoms/nota-de-obrigatorio.component";
 import { AcoesDoFormulario } from "@/presentation/components/molecules/acoes-do-formulario.component";
 import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
@@ -115,11 +117,7 @@ export function EditarCadastroOperacionalForm({
       onSubmit={onSubmit}
       className="rc-guilloche-frame space-y-6 rounded-lg border border-border bg-card p-6 shadow-sm"
     >
-      {!readOnly && (
-        <p className="text-xs text-muted-foreground">
-          Campos com <span className="text-destructive">*</span> são obrigatórios.
-        </p>
-      )}
+      {!readOnly && <NotaDeObrigatorio />}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1.5fr]">
         <div className="space-y-1">
@@ -248,11 +246,7 @@ export function EditarCadastroOperacionalForm({
       </fieldset>
 
       {erroServidor && <FieldError>{erroServidor}</FieldError>}
-      {sucesso && (
-        <p role="status" className="text-sm text-primary">
-          Cadastro operacional atualizado.
-        </p>
-      )}
+      {sucesso && <AvisoDeStatus tipo="sucesso" texto="Cadastro operacional atualizado." />}
     </form>
   );
 }

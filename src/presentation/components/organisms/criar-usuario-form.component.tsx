@@ -1,8 +1,8 @@
 import { UserPlus } from "lucide-react";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 
+import { BotaoDeEnvio } from "@/presentation/components/atoms/botao-de-envio.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
-import { BotaoDeEnvio } from "@/presentation/components/molecules/botao-de-envio.component";
 import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { ConfirmacaoDeCadastro } from "@/presentation/components/molecules/confirmacao-de-cadastro.component";

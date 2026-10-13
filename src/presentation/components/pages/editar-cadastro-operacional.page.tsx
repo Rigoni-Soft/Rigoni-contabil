@@ -1,3 +1,4 @@
+import { CabecalhoDeTela } from "@/presentation/components/molecules/cabecalho-de-tela.component";
 import { TelaDeTrabalhoTemplate } from "@/presentation/components/templates/tela-de-trabalho-template.component";
 
 type EditarCadastroOperacionalPageProps = {
@@ -19,8 +20,7 @@ export function EditarCadastroOperacionalPage({
     <TelaDeTrabalhoTemplate
       header={header}
       largura="conteudo"
-      voltarHref={voltarHref}
-      titulo={titulo}
+      cabecalho={<CabecalhoDeTela voltarHref={voltarHref} titulo={titulo} />}
       conteudo={formulario}
     />
   );

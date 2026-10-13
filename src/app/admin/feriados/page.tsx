@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { AvisoDeStatus } from "@/presentation/components/molecules/aviso-de-status.component";
+import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { ShellHeader } from "@/presentation/components/organisms/shell-header.component";
 import { FeriadosPage } from "@/presentation/components/pages/feriados.page";
 import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-button.container";

@@ -1,4 +1,6 @@
-import { Clock } from "lucide-react";
+import { NumeroEmCirculo } from "@/presentation/components/atoms/numero-em-circulo.component";
+import { TempoDeEspera } from "@/presentation/components/atoms/tempo-de-espera.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 
 export type ItemDaFilaProps = {
   posicao: number;
@@ -23,13 +25,12 @@ export function ItemDaFila({
 }: ItemDaFilaProps) {
   return (
     <li className="flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3">
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
-        <span className="sr-only">Posição </span>
-        {posicao}
-      </span>
+      <NumeroEmCirculo valor={posicao} prefixo="Posição" />
       <div className="min-w-0 flex-1">
-        <p className="font-medium break-words text-foreground">{contato}</p>
-        <p className="text-sm break-words text-muted-foreground">
+        <Texto variante="destaque" className="break-words">
+          {contato}
+        </Texto>
+        <Texto variante="apoio" className="break-words">
           {empresa}
           {cnpj && (
             <>
@@ -37,18 +38,20 @@ export function ItemDaFila({
               <span className="whitespace-nowrap">{cnpj}</span>
             </>
           )}
-        </p>
-        <p className="text-sm text-muted-foreground">{telefone}</p>
-        {resumo && <p className="mt-1 text-sm break-words text-foreground">{resumo}</p>}
+        </Texto>
+        <Texto variante="apoio">{telefone}</Texto>
+        {resumo && (
+          <Texto variante="corpo" className="mt-1 break-words">
+            {resumo}
+          </Texto>
+        )}
         {daFilaDeUsuario && (
-          <p className="mt-1 text-sm text-muted-foreground">Fila de um usuário</p>
+          <Texto variante="apoio" className="mt-1">
+            Fila de um usuário
+          </Texto>
         )}
       </div>
-      <span className="flex shrink-0 items-center gap-1 text-sm text-foreground tabular-nums">
-        <Clock aria-hidden="true" className="size-4 text-muted-foreground" />
-        <span className="sr-only">Esperando há </span>
-        <span>{espera}</span>
-      </span>
+      <TempoDeEspera valor={espera} />
     </li>
   );
 }

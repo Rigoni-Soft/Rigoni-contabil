@@ -1,7 +1,8 @@
-import Link from "next/link";
-import { Check, CheckCircle2 } from "lucide-react";
+import { Check } from "lucide-react";
 
-import { Button, buttonVariants } from "@/presentation/components/ui/button";
+import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
+import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
+import { Button } from "@/presentation/components/ui/button";
 import { cn } from "@/presentation/lib/utils";
 
 type ConfirmacaoDeCadastroProps = {
@@ -28,10 +29,7 @@ export function ConfirmacaoDeCadastro({
         largura === "sm" ? "max-w-sm" : "max-w-md",
       )}
     >
-      <p className="flex items-center gap-1.5 text-sm text-primary">
-        <CheckCircle2 className="size-3.5 shrink-0" aria-hidden="true" />
-        <span>{mensagem}</span>
-      </p>
+      <AvisoDeStatus tipo="sucesso" texto={mensagem} className="items-center text-sm" />
       {detalhes}
       <div className="flex flex-col gap-2 sm:flex-row">
         <Button type="button" onClick={onCadastrarNovo} className="sm:flex-1">
@@ -39,10 +37,10 @@ export function ConfirmacaoDeCadastro({
           Cadastrar outro
         </Button>
         {/* Provisório: leva para a home, ainda não existe uma tela própria do Setor para voltar. */}
-        <Link href="/" className={cn(buttonVariants({ variant: "outline" }), "sm:flex-1")}>
+        <LinkDeAcao href="/" className="sm:flex-1">
           <Check aria-hidden="true" />
           Finalizar
-        </Link>
+        </LinkDeAcao>
       </div>
     </div>
   );

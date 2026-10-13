@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { MessageCircle } from "lucide-react";
 
+import { IconeDeConversa } from "@/presentation/components/atoms/icone-de-conversa.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { cn } from "@/presentation/lib/utils";
 
 type CartaoDeAtendimentoProps = {
@@ -24,34 +25,25 @@ export function CartaoDeAtendimento({
   return (
     <Link
       href={href}
-      className={cn(
-        "flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 shadow-md hover:bg-accent motion-safe:animate-dock-entrada",
-      )}
+      className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 shadow-md hover:bg-accent motion-safe:animate-dock-entrada"
     >
-      <span className="relative shrink-0">
-        <MessageCircle aria-hidden="true" className="size-5 text-primary" />
-        {aguardando && (
-          <span
-            aria-hidden="true"
-            className="absolute -top-1 -right-1 size-2.5 rounded-full bg-destructive"
-          />
-        )}
-      </span>
+      <IconeDeConversa aguardando={aguardando} />
       <span className="min-w-0">
-        <span className="block truncate font-medium text-foreground">
+        <Texto como="span" variante="destaque" className="block truncate">
           {titulo}
           {aguardando && <span className="sr-only"> — nova mensagem</span>}
-        </span>
-        <span className="block truncate text-sm text-muted-foreground">{detalhe}</span>
+        </Texto>
+        <Texto como="span" variante="apoio" className="block truncate">
+          {detalhe}
+        </Texto>
         {previa && (
-          <span
-            className={cn(
-              "block truncate text-xs",
-              aguardando ? "font-medium text-foreground" : "text-muted-foreground",
-            )}
+          <Texto
+            como="span"
+            variante="nota"
+            className={cn("block truncate", aguardando && "font-medium text-foreground")}
           >
             {previa}
-          </span>
+          </Texto>
         )}
       </span>
     </Link>

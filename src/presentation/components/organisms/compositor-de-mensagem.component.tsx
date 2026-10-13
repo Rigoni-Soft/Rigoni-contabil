@@ -1,6 +1,6 @@
 import { SendHorizontal } from "lucide-react";
 
-import { AvisoDeStatus } from "@/presentation/components/molecules/aviso-de-status.component";
+import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { CampoTextarea } from "@/presentation/components/molecules/campo-textarea.component";
 import { SeletorDeEmoji } from "@/presentation/components/molecules/seletor-de-emoji.component";
 import { Button } from "@/presentation/components/ui/button";

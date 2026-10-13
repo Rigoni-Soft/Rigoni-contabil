@@ -1,5 +1,5 @@
+import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { TituloDoGrupo } from "@/presentation/components/atoms/titulo-de-grupo.component";
-import { AvisoDeStatus } from "@/presentation/components/molecules/aviso-de-status.component";
 import { CampoSelect } from "@/presentation/components/molecules/campo-select.component";
 import { CampoTextarea } from "@/presentation/components/molecules/campo-textarea.component";
 import { Button } from "@/presentation/components/ui/button";

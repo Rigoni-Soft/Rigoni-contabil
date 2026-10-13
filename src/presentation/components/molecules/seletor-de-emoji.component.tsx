@@ -1,98 +1,12 @@
 import { Plus, Smile } from "lucide-react";
 
+import {
+  BOTAO_DE_EMOJI,
+  BotaoDeEmoji,
+} from "@/presentation/components/atoms/botao-de-emoji.component";
 import { Button } from "@/presentation/components/ui/button";
+import { CATEGORIAS_DE_EMOJI, NOME_DO_EMOJI } from "@/presentation/lib/emojis";
 import { cn } from "@/presentation/lib/utils";
-
-const CATEGORIAS: { nome: string; emojis: [emoji: string, nome: string][] }[] = [
-  {
-    nome: "Rostos",
-    emojis: [
-      ["😀", "Sorriso"],
-      ["😂", "Rindo às lágrimas"],
-      ["😊", "Sorriso corado"],
-      ["😍", "Olhos de coração"],
-      ["😉", "Piscadela"],
-      ["🙂", "Sorriso leve"],
-      ["😅", "Sorriso com suor"],
-      ["🤔", "Pensativo"],
-      ["😢", "Chorando"],
-      ["😮", "Surpreso"],
-      ["😴", "Dormindo"],
-      ["😎", "Óculos escuros"],
-    ],
-  },
-  {
-    nome: "Gestos",
-    emojis: [
-      ["👍", "Joinha"],
-      ["👎", "Polegar para baixo"],
-      ["👏", "Palmas"],
-      ["🙏", "Mãos juntas"],
-      ["🤝", "Aperto de mão"],
-      ["👋", "Mão acenando"],
-      ["👌", "Tudo certo"],
-      ["✌️", "Paz"],
-      ["💪", "Braço forte"],
-      ["🤞", "Dedos cruzados"],
-    ],
-  },
-  {
-    nome: "Objetos",
-    emojis: [
-      ["📄", "Documento"],
-      ["📎", "Clipe"],
-      ["📅", "Calendário"],
-      ["📞", "Telefone"],
-      ["💻", "Computador"],
-      ["📧", "E-mail"],
-      ["💰", "Dinheiro"],
-      ["🧾", "Recibo"],
-      ["⏰", "Despertador"],
-      ["🔑", "Chave"],
-    ],
-  },
-  {
-    nome: "Símbolos",
-    emojis: [
-      ["✅", "Confirmado"],
-      ["❌", "Erro"],
-      ["⚠️", "Atenção"],
-      ["❗", "Exclamação"],
-      ["❓", "Interrogação"],
-      ["❤️", "Coração"],
-      ["⭐", "Estrela"],
-      ["🔔", "Sino"],
-      ["➡️", "Seta para a direita"],
-      ["🎉", "Festa"],
-    ],
-  },
-];
-
-const NOMES = new Map(CATEGORIAS.flatMap((categoria) => categoria.emojis));
-
-const BOTAO_DE_EMOJI =
-  "flex size-11 shrink-0 items-center justify-center rounded-md outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring";
-
-function BotaoDeEmoji({
-  emoji,
-  nome,
-  onEscolher,
-}: {
-  emoji: string;
-  nome: string;
-  onEscolher: (emoji: string) => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={nome}
-      className={cn(BOTAO_DE_EMOJI, "text-xl")}
-      onClick={() => onEscolher(emoji)}
-    >
-      {emoji}
-    </button>
-  );
-}
 
 type SeletorDeEmojiProps = {
   aberto: boolean;
@@ -166,7 +80,7 @@ export function SeletorDeEmoji({
                 <BotaoDeEmoji
                   key={emoji}
                   emoji={emoji}
-                  nome={NOMES.get(emoji) ?? emoji}
+                  nome={NOME_DO_EMOJI.get(emoji) ?? emoji}
                   onEscolher={onEscolher}
                 />
               ))}
@@ -183,7 +97,7 @@ export function SeletorDeEmoji({
             </div>
           )}
           {(recentes.length === 0 || completo) &&
-            CATEGORIAS.map((categoria) => (
+            CATEGORIAS_DE_EMOJI.map((categoria) => (
               <div key={categoria.nome} role="group" aria-label={categoria.nome}>
                 <p className="px-1 text-xs text-muted-foreground">{categoria.nome}</p>
                 <div className="flex flex-wrap">

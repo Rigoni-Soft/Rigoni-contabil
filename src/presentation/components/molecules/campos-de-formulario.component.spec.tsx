@@ -1,8 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import { BotaoDeEnvio } from "@/presentation/components/atoms/botao-de-envio.component";
+
 import { AcoesDoFormulario } from "./acoes-do-formulario.component";
-import { BotaoDeEnvio } from "./botao-de-envio.component";
 import { CampoDeOpcoes } from "./campo-de-opcoes.component";
 import { CampoDeTexto } from "./campo-de-texto.component";
 import { CampoResponsavel } from "./campo-responsavel.component";

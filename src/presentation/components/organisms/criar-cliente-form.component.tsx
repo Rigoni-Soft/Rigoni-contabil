@@ -1,9 +1,11 @@
 import { Plus } from "lucide-react";
 import { Controller, type Control, type FieldErrors, type UseFormRegister } from "react-hook-form";
 
+import { BotaoDeEnvio } from "@/presentation/components/atoms/botao-de-envio.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { FileInput } from "@/presentation/components/atoms/file-input.component";
-import { BotaoDeEnvio } from "@/presentation/components/molecules/botao-de-envio.component";
+import { NotaDeObrigatorio } from "@/presentation/components/atoms/nota-de-obrigatorio.component";
+import { CampoDeArquivo } from "@/presentation/components/molecules/campo-de-arquivo.component";
 import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { ConfirmacaoDeCadastro } from "@/presentation/components/molecules/confirmacao-de-cadastro.component";
@@ -90,9 +92,7 @@ export function CriarClienteForm({
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
-      <p className="text-xs text-muted-foreground">
-        Campos com <span className="text-destructive">*</span> são obrigatórios.
-      </p>
+      <NotaDeObrigatorio />
 
       {/* CNPJ primeiro (ponto 4 do feedback manual): autopreenche Empresa/Regime
           ao perder o foco, antes do resto do formulário ser preenchido à mão.
@@ -150,25 +150,22 @@ export function CriarClienteForm({
           Documentos
         </h2>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="contratoSocial">Contrato social</Label>
-          <Controller
-            control={control}
-            name="contratoSocial"
-            render={({ field: { onChange, onBlur, name, value } }) => (
-              <FileInput
-                id="contratoSocial"
-                name={name}
-                accept={ACCEPT_DOCUMENTO}
-                file={value}
-                onBlur={onBlur}
-                aria-invalid={!!errors.contratoSocial}
-                onChange={onChange}
-              />
-            )}
-          />
-          {errors.contratoSocial && <FieldError>{errors.contratoSocial.message}</FieldError>}
-        </div>
+        <Controller
+          control={control}
+          name="contratoSocial"
+          render={({ field: { onChange, onBlur, name, value } }) => (
+            <CampoDeArquivo
+              id="contratoSocial"
+              rotulo="Contrato social"
+              name={name}
+              accept={ACCEPT_DOCUMENTO}
+              file={value}
+              onBlur={onBlur}
+              erro={errors.contratoSocial?.message}
+              onChange={onChange}
+            />
+          )}
+        />
 
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">

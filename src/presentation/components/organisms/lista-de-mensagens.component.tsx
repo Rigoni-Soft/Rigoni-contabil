@@ -1,4 +1,4 @@
-import { AvisoDeStatus } from "@/presentation/components/molecules/aviso-de-status.component";
+import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { MensagemBalao } from "@/presentation/components/molecules/mensagem-balao.component";
 import { SeletorDeEmoji } from "@/presentation/components/molecules/seletor-de-emoji.component";
 

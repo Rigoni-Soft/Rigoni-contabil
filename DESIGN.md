@@ -141,6 +141,18 @@ vindos das props), `confirmacao-de-cadastro`, `botao-de-envio`,
 rótulo + campo + erro à mão. Gráficos do dashboard: `cartao-de-grafico` (átomo),
 `donut-de-fatias` e `barras-de-fatias` (moléculas).
 
+**Definição de cada nível (Atomic Design deste produto).** Átomo: o menor componente
+da página (`ui/` + `atoms/`: `texto`, `balao`, `chip-de-setor`, `link-de-acao`,
+`numero-em-circulo`, `celula-de-tabela`…). Molécula: pequeno componente
+reaproveitável **composto por 2 ou mais átomos** (`campo-de-texto`,
+`mensagem-balao`, `item-da-fila`, `cabecalho-de-tela`…). Organismo: parte coesa e
+especialista da tela, organizando átomos e moléculas (formulários, listas,
+painéis). Template: organiza os slots da tela, sem marcação de conteúdo
+(`tela-de-trabalho`, `entrada`, `conversa`). Page: só renderiza o template com os
+slots preenchidos. Texto novo usa `atoms/texto` (papéis `destaque`, `corpo`,
+`apoio`, `alerta`, `rotulo`, `nota`, `titulo`, `tela`, `secao`) em vez de `<p>`
+com classes.
+
 `password-input` e `theme-toggle` ficam em `ui/` de propósito: guardam estado
 visual efêmero (mostrar/ocultar, tema) e `'use client'` é permitido ali
 (arquitetura.md 4.7).

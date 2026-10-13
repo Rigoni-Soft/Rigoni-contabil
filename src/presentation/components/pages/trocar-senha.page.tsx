@@ -1,3 +1,4 @@
+import { CabecalhoDeTela } from "@/presentation/components/molecules/cabecalho-de-tela.component";
 import { TelaDeTrabalhoTemplate } from "@/presentation/components/templates/tela-de-trabalho-template.component";
 
 type TrocarSenhaPageProps = { header: React.ReactNode; formulario: React.ReactNode };
@@ -7,8 +8,12 @@ export function TrocarSenhaPage({ header, formulario }: TrocarSenhaPageProps) {
     <TelaDeTrabalhoTemplate
       header={header}
       largura="conta"
-      titulo="Trocar senha"
-      descricao="Você está usando uma senha provisória. Defina uma nova senha para continuar."
+      cabecalho={
+        <CabecalhoDeTela
+          titulo="Trocar senha"
+          descricao="Você está usando uma senha provisória. Defina uma nova senha para continuar."
+        />
+      }
       conteudo={formulario}
     />
   );

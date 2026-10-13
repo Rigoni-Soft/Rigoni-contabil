@@ -1,4 +1,4 @@
-import { AvisoDeStatus } from "@/presentation/components/molecules/aviso-de-status.component";
+import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { TelaDeTrabalhoTemplate } from "@/presentation/components/templates/tela-de-trabalho-template.component";
 
 type ResumoSetorSnPageProps = {
