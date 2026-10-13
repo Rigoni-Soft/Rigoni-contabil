@@ -14,6 +14,12 @@ import { useAcoesConversa } from "./use-acoes-conversa.hook";
 const push = jest.fn();
 jest.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
+// conversa.queries invalida as chaves da Fila e dos Meus atendimentos: importa os módulos delas.
+jest.mock("../fila/fila.actions", () => ({ listarFilaAction: jest.fn() }));
+jest.mock("../meus-atendimentos/meus-atendimentos.actions", () => ({
+  listarMeusAtendimentosAction: jest.fn(),
+}));
+
 jest.mock("./conversa.actions", () => ({
   encerrarAtendimentoAction: jest.fn(),
   enviarDocumentoAction: jest.fn(),

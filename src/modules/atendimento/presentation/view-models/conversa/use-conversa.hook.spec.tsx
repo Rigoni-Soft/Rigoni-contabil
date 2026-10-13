@@ -8,6 +8,12 @@ import { conversaKeys, useTransferirAtendimentoMutation } from "./conversa.queri
 import { useCabecalhoConversa } from "./use-cabecalho-conversa.hook";
 import { useMensagensConversa } from "./use-mensagens-conversa.hook";
 
+// conversa.queries invalida as chaves da Fila e dos Meus atendimentos: importa os módulos delas.
+jest.mock("../fila/fila.actions", () => ({ listarFilaAction: jest.fn() }));
+jest.mock("../meus-atendimentos/meus-atendimentos.actions", () => ({
+  listarMeusAtendimentosAction: jest.fn(),
+}));
+
 jest.mock("./conversa.actions", () => ({
   enviarDocumentoAction: jest.fn(),
   enviarMensagemAction: jest.fn(),

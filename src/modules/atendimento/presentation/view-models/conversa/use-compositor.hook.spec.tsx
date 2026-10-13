@@ -6,6 +6,12 @@ import type { ConversaVista } from "@/modules/atendimento/application/ports/in/o
 import { enviarMensagemAction, obterConversaAction } from "./conversa.actions";
 import { useCompositor } from "./use-compositor.hook";
 
+// conversa.queries invalida as chaves da Fila e dos Meus atendimentos: importa os módulos delas.
+jest.mock("../fila/fila.actions", () => ({ listarFilaAction: jest.fn() }));
+jest.mock("../meus-atendimentos/meus-atendimentos.actions", () => ({
+  listarMeusAtendimentosAction: jest.fn(),
+}));
+
 jest.mock("./conversa.actions", () => ({
   enviarDocumentoAction: jest.fn(),
   enviarMensagemAction: jest.fn(),
