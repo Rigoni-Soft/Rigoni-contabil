@@ -83,7 +83,7 @@ begin
   );
 end;
 $$;
--- A assinatura ganha p_id_externo: troca a função, mantendo o acesso só do service_role.
+-- `anexar` ganha p_id_externo (assinatura nova): troca a função, mantendo o acesso só do service_role.
 drop function public.anexar_mensagem_atendimento(text, public.autor_mensagem, text);
 create function public.anexar_mensagem_atendimento(
   p_chave text,
