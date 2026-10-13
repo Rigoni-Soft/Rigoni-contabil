@@ -14,9 +14,9 @@ import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
+import { emojiValido } from "@/shared/kernel/texto";
 
 const ACAO = "atendimento.reagir_mensagem";
-const EMOJI_TAMANHO_MAXIMO = 16; // unidades UTF-16: cobre emoji composto (ZWJ, bandeira, tom de pele)
 
 // Mesma regra de quem pode agir que o envio de mensagem. A reação só é registrada depois de
 // entregue ao cliente (o painel mostra o que ele de fato recebeu).
@@ -41,7 +41,7 @@ export class ReagirAMensagem implements ReagirAMensagemPort {
     if (!ator) return err(new ForbiddenError("Faça login para reagir à mensagem."));
 
     const escolhido = emoji.trim();
-    if (!escolhido || escolhido.length > EMOJI_TAMANHO_MAXIMO) {
+    if (!emojiValido(escolhido)) {
       return err(new ValidationError("Escolha um emoji.", { emoji: ["Inválido"] }));
     }
 
@@ -72,7 +72,10 @@ export class ReagirAMensagem implements ReagirAMensagemPort {
       return enviada;
     }
 
+    // ponytail: o toggle lê e grava sem trava; dois cliques simultâneos no mesmo balão podem
+    // divergir provedor e banco. Aceito (um Funcionário por Atendimento); trava otimista se pesar.
     const registrada = await this.repositorio.registrarReacao(
+      atendimentoId,
       mensagemId,
       remover ? null : escolhido,
     );

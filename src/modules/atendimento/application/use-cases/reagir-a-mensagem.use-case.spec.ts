@@ -65,7 +65,7 @@ describe("ReagirAMensagem", () => {
 
     expect(resultado.ok).toBe(true);
     expect(enviadas).toEqual([{ telefone: "5561988887777", idExterno: "wamid.1", emoji: "👍" }]);
-    expect(registradas).toEqual([["m-1", "👍"]]);
+    expect(registradas).toEqual([["at-1", "m-1", "👍"]]);
     expect(auditadas).toEqual([
       {
         ator: "func-1",
@@ -83,7 +83,7 @@ describe("ReagirAMensagem", () => {
     expect((await caso.execute(ENTRADA)).ok).toBe(true);
 
     expect(enviadas).toEqual([{ telefone: "5561988887777", idExterno: "wamid.1", emoji: "" }]);
-    expect(registradas).toEqual([["m-1", null]]);
+    expect(registradas).toEqual([["at-1", "m-1", null]]);
   });
 
   it("outro emoji troca a reação", async () => {
@@ -91,7 +91,7 @@ describe("ReagirAMensagem", () => {
 
     await caso.execute(ENTRADA);
 
-    expect(registradas).toEqual([["m-1", "👍"]]);
+    expect(registradas).toEqual([["at-1", "m-1", "👍"]]);
   });
 
   it("só reage a Mensagem do cliente com id no provedor", async () => {

@@ -74,12 +74,12 @@ describe("SupabaseAtendimentoRepository — reação (#84)", () => {
       reacao: null,
     });
 
-    expect((await repositorio.registrarReacao(mensagemId, "👍")).ok).toBe(true);
+    expect((await repositorio.registrarReacao(atendimentoId, mensagemId, "👍")).ok).toBe(true);
     const conversa = await repositorio.conversa(atendimentoId);
     const lida = conversa.ok && conversa.value?.mensagens.find((m) => m.id === mensagemId);
     expect(lida).toMatchObject({ idExterno: "wamid.ANEXO", reacao: "👍" });
 
-    expect((await repositorio.registrarReacao(mensagemId, null)).ok).toBe(true);
+    expect((await repositorio.registrarReacao(atendimentoId, mensagemId, null)).ok).toBe(true);
     const depois = await repositorio.mensagemParaReacao(atendimentoId, mensagemId);
     expect(depois.ok && depois.value?.reacao).toBeNull();
   });
@@ -88,5 +88,33 @@ describe("SupabaseAtendimentoRepository — reação (#84)", () => {
     const r = await repositorio.mensagemParaReacao(atendimentoId, crypto.randomUUID());
 
     expect(r.ok && r.value).toBeNull();
+  });
+});
+
+describe("reentrega do webhook (#84)", () => {
+  it("o mesmo id do provedor no anexo não duplica a Mensagem e continua anexada", async () => {
+    await admin.from("atendimentos").delete().eq("chave_telefone", "61955584002");
+    const aberto = await repositorio.abrir({
+      telefone: "5561955584002",
+      chave: "61955584002",
+      clienteId: null,
+      setor: "recepcao",
+      funcionarioId: null,
+      mensagens: [{ autor: "contato", texto: "oi", idExterno: "wamid.A" }],
+    });
+    if (!aberto.ok || aberto.value.status !== "aberto") throw new Error("abertura falhou");
+    const mensagem = { autor: "contato" as const, texto: "tudo bem?", idExterno: "wamid.B" };
+
+    const primeira = await repositorio.anexarMensagem("61955584002", mensagem);
+    const reentrega = await repositorio.anexarMensagem("61955584002", mensagem);
+
+    expect(primeira.ok && primeira.value.anexada).toBe(true);
+    expect(reentrega.ok && reentrega.value.anexada).toBe(true);
+    const { data } = await admin
+      .from("mensagens")
+      .select("texto")
+      .eq("atendimento_id", aberto.value.id);
+    expect(data).toHaveLength(2);
+    await admin.from("atendimentos").delete().eq("chave_telefone", "61955584002");
   });
 });

@@ -262,5 +262,9 @@ export interface AtendimentoRepositoryPort {
     mensagemId: string,
   ): Promise<Result<MensagemParaReacao | null, AppError>>;
   // null remove a reação.
-  registrarReacao(mensagemId: string, reacao: string | null): Promise<Result<void, AppError>>;
+  registrarReacao(
+    atendimentoId: string,
+    mensagemId: string,
+    reacao: string | null,
+  ): Promise<Result<void, AppError>>;
 }

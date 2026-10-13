@@ -527,13 +527,15 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
   }
 
   async registrarReacao(
+    atendimentoId: string,
     mensagemId: string,
     reacao: string | null,
   ): Promise<Result<void, AppError>> {
     const { error } = await this.supabaseAdmin
       .from("mensagens")
       .update({ reacao })
-      .eq("id", mensagemId);
+      .eq("id", mensagemId)
+      .eq("atendimento_id", atendimentoId);
     if (error) return err(new ServicoExternoError("Falha ao registrar a reação."));
     return ok(undefined);
   }

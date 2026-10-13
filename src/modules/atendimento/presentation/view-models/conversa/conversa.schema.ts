@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { SETORES } from "@/shared/kernel/setores";
-import { contarCaracteres } from "@/shared/kernel/texto";
+import { contarCaracteres, emojiValido } from "@/shared/kernel/texto";
 
 // z.guid(), não z.uuid(): mesmo critério do feed de auditoria (a coluna aceita qualquer 8-4-4-4-12).
 export const atendimentoIdSchema = z.guid("Atendimento inválido.");
@@ -53,5 +53,5 @@ export const enviarMensagemSchema = z.object({
 export const reagirAMensagemSchema = z.object({
   atendimentoId: atendimentoIdSchema,
   mensagemId: z.guid("Mensagem inválida."),
-  emoji: z.string().trim().min(1, "Escolha um emoji.").max(16),
+  emoji: z.string().trim().refine(emojiValido, "Escolha um emoji."),
 });
