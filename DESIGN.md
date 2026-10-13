@@ -690,6 +690,15 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   quando não cabe. Escolher insere na posição do cursor e devolve o foco ao campo; Esc
   (de qualquer foco) e clique fora fecham. O limite de 4096 conta caracteres como o
   WhatsApp (emoji vale 1), por isso o campo não usa `maxLength`.
+- **Anexos** (#79): o clipe (`BotaoDeAnexo`, 44 px) fica à esquerda do emoji; o arquivo
+  escolhido vira `PreviaDeAnexo` acima do campo (miniatura ou ícone, nome, tamanho,
+  remover; "Enviando…" com `role="status"` durante o envio) e o texto passa a ser a
+  legenda. No balão, imagem é miniatura de 160 px (caixa fixa, sem salto de layout)
+  que abre num diálogo com botão "Fechar imagem"; arquivo é uma linha com ícone,
+  nome, tamanho e "Baixar". Arrastar um arquivo sobre a conversa acende a moldura
+  de guilhochê (`SobreposicaoDeSoltar`, "Solte para anexar", entrada de 180 ms só
+  com `motion-safe:`) e sobre o campo, um anel `primary`; é só enfeite de mouse, o
+  caminho por teclado é o clipe. Texto e link arrastados não acendem nada.
 - **Painel de ações** (`PainelDeAcoes`, à direita, 19 rem; 22 rem em `2xl`):
   compacto. Serviço "Contrato social" em botão `sm` (quando o Cliente não o
   tem, o botão fica `disabled` com a frase "Contrato social não cadastrado."

@@ -109,17 +109,19 @@ describe("ListaDeMensagens — reação (#84)", () => {
     expect(screen.getByRole("alert")).toBeInTheDocument();
   });
 
-  it("soltar um arquivo sobre a conversa o repassa; sem aoSoltar não aceita", () => {
-    const aoSoltar = jest.fn();
-    const arquivo = new File(["x"], "a.pdf", { type: "application/pdf" });
-    const { rerender } = render(<ListaDeMensagens mensagens={[]} aoSoltar={aoSoltar} />);
+  it("com arraste, a moldura aparece enquanto um arquivo passa por cima e os eventos vão ao Container", () => {
+    const onDrop = jest.fn();
+    const { rerender } = render(
+      <ListaDeMensagens mensagens={[]} arraste={{ arrastando: false, ligacoes: { onDrop } }} />,
+    );
+    expect(screen.queryByText("Solte para anexar")).not.toBeInTheDocument();
 
-    fireEvent.drop(screen.getByRole("log"), { dataTransfer: { files: [arquivo] } });
-    expect(aoSoltar).toHaveBeenCalledWith(arquivo);
+    fireEvent.drop(screen.getByRole("log"));
+    expect(onDrop).toHaveBeenCalled();
 
-    aoSoltar.mockClear();
-    rerender(<ListaDeMensagens mensagens={[]} />);
-    fireEvent.drop(screen.getByRole("log"), { dataTransfer: { files: [arquivo] } });
-    expect(aoSoltar).not.toHaveBeenCalled();
+    rerender(
+      <ListaDeMensagens mensagens={[]} arraste={{ arrastando: true, ligacoes: { onDrop } }} />,
+    );
+    expect(screen.getByText("Solte para anexar")).toBeInTheDocument();
   });
 });

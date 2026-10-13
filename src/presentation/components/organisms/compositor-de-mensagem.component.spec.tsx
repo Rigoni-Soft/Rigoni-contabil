@@ -141,15 +141,14 @@ describe("CompositorDeMensagem — anexo", () => {
     expect(aoAnexar).toHaveBeenCalledWith(PDF);
   });
 
-  it("arrastar e soltar um arquivo sobre o campo o anexa", () => {
-    const aoAnexar = jest.fn();
-    render(<CompositorDeMensagem {...BASE} onAnexar={aoAnexar} />);
+  it("arrastando, o campo é destacado e os eventos de arrastar vão ao Container", () => {
+    const onDrop = jest.fn();
+    render(<CompositorDeMensagem {...BASE} arraste={{ arrastando: true, ligacoes: { onDrop } }} />);
+    const form = screen.getByLabelText("Mensagem ao cliente").closest("form")!;
 
-    fireEvent.drop(screen.getByLabelText("Mensagem ao cliente").closest("form")!, {
-      dataTransfer: { files: [PDF] },
-    });
-
-    expect(aoAnexar).toHaveBeenCalledWith(PDF);
+    expect(form.className).toMatch(/ring-primary/);
+    fireEvent.drop(form);
+    expect(onDrop).toHaveBeenCalled();
   });
 
   it("colar uma imagem (Ctrl+V) a anexa; colar texto não", () => {

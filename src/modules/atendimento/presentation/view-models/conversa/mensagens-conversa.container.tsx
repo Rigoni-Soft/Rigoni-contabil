@@ -11,7 +11,7 @@ export function MensagensConversaContainer({
   atendimentoId: string;
   initialData: ConversaVista;
 }) {
-  const { mensagens, reacao, aoSoltar } = useMensagensConversa(atendimentoId, initialData);
+  const { mensagens, reacao, arraste } = useMensagensConversa(atendimentoId, initialData);
 
-  return <ListaDeMensagens mensagens={mensagens} reacao={reacao} aoSoltar={aoSoltar} />;
+  return <ListaDeMensagens mensagens={mensagens} reacao={reacao} arraste={arraste} />;
 }

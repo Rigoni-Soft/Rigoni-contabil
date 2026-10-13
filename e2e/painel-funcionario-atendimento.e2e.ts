@@ -209,6 +209,20 @@ test.describe("Painel do Funcionário (#49)", () => {
     await expect(link).toBeVisible();
     await expect(link).toContainText("Baixar");
 
+    // Arrastar um arquivo sobre a conversa acende a moldura; soltar o põe na prévia do campo.
+    const conversa = page.getByRole("log", { name: "Conversa" });
+    const transferencia = await page.evaluateHandle(() => {
+      const dados = new DataTransfer();
+      dados.items.add(new File(["x"], "planilha.csv", { type: "text/csv" }));
+      return dados;
+    });
+    await conversa.dispatchEvent("dragenter", { dataTransfer: transferencia });
+    await expect(page.getByText("Solte para anexar")).toBeVisible();
+    await conversa.dispatchEvent("drop", { dataTransfer: transferencia });
+    await expect(page.getByText("Solte para anexar")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Remover planilha.csv" })).toBeVisible();
+    await page.getByRole("button", { name: "Remover planilha.csv" }).click();
+
     // Tipo não aceito é recusado com mensagem clara e nada é anexado.
     await clipe.setInputFiles({
       name: "script.html",

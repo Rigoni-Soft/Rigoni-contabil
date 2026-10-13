@@ -12,8 +12,18 @@ export function CompositorConversaContainer({
   atendimentoId: string;
   initialData: ConversaVista;
 }) {
-  const { visivel, aoEnviar, enviando, erro, enviadas, anexo, aceitar, aoAnexar, aoRemoverAnexo } =
-    useCompositor(atendimentoId, initialData);
+  const {
+    visivel,
+    aoEnviar,
+    enviando,
+    erro,
+    enviadas,
+    anexo,
+    aceitar,
+    aoAnexar,
+    aoRemoverAnexo,
+    arraste,
+  } = useCompositor(atendimentoId, initialData);
 
   const { campoRef, seletor } = useSeletorDeEmoji();
 
@@ -30,6 +40,7 @@ export function CompositorConversaContainer({
       aceitar={aceitar}
       onAnexar={aoAnexar}
       onRemoverAnexo={aoRemoverAnexo}
+      arraste={arraste}
     />
   );
 }

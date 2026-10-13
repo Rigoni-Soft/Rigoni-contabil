@@ -7,6 +7,7 @@ import { CampoTextarea } from "@/presentation/components/molecules/campo-textare
 import { PreviaDeAnexo } from "@/presentation/components/molecules/previa-de-anexo.component";
 import { SeletorDeEmoji } from "@/presentation/components/molecules/seletor-de-emoji.component";
 import { Button } from "@/presentation/components/ui/button";
+import { cn } from "@/presentation/lib/utils";
 
 type CompositorDeMensagemProps = {
   onEnviar: (texto: string) => void;
@@ -23,6 +24,14 @@ type CompositorDeMensagemProps = {
   aceitar: string;
   onAnexar: (arquivo: File) => void;
   onRemoverAnexo: () => void;
+  // Arrastar e soltar sobre o campo: `arrastando` destaca o campo; `ligacoes` vêm do Container.
+  arraste?: {
+    arrastando: boolean;
+    ligacoes?: Pick<
+      React.DOMAttributes<HTMLElement>,
+      "onDragEnter" | "onDragOver" | "onDragLeave" | "onDrop"
+    >;
+  };
 };
 
 export function CompositorDeMensagem({
@@ -36,6 +45,7 @@ export function CompositorDeMensagem({
   aceitar,
   onAnexar,
   onRemoverAnexo,
+  arraste,
 }: CompositorDeMensagemProps) {
   return (
     <Pilha espaco={1} className="shrink-0">
@@ -45,13 +55,11 @@ export function CompositorDeMensagem({
         espaco={2}
         como="form"
         key={enviadas}
-        // Arrastar e soltar sobre o campo (sobre a conversa, quem trata é a lista de mensagens).
-        onDragOver={(evento) => evento.preventDefault()}
-        onDrop={(evento) => {
-          evento.preventDefault();
-          const arquivo = evento.dataTransfer.files[0];
-          if (arquivo) onAnexar(arquivo);
-        }}
+        {...arraste?.ligacoes}
+        className={cn(
+          "rounded-2xl transition-shadow",
+          arraste?.arrastando && "ring-2 ring-primary ring-offset-4 ring-offset-background",
+        )}
         onSubmit={(evento) => {
           evento.preventDefault();
           onEnviar(String(new FormData(evento.currentTarget).get("texto")));

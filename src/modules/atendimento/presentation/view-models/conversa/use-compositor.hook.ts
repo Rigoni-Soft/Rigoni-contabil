@@ -7,6 +7,7 @@ import {
   useEnviarMensagemMutation,
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.queries";
 import { useAnexoPendente } from "@/modules/atendimento/presentation/view-models/conversa/use-anexo-pendente.hook";
+import { useArrastarArquivo } from "@/modules/atendimento/presentation/view-models/conversa/use-arrastar-arquivo.hook";
 import { useConversa } from "@/modules/atendimento/presentation/view-models/conversa/use-conversa.hook";
 import { ANEXO_MIMES_ACEITOS } from "@/shared/kernel/anexo";
 
@@ -27,9 +28,20 @@ export function useCompositor(atendimentoId: string, initialData: ConversaVista)
   };
   const envio = arquivo ? anexoMutation : mensagem;
 
+  const visivel = !conversa.encerrado && !transferido;
+  const aoAnexar = (novo: File) => {
+    // Trocar o arquivo no meio do envio faria o sucesso limpar o arquivo novo.
+    if (envio.isPending) return;
+    // Um erro antigo do envio não fica ao lado do arquivo novo.
+    anexoMutation.reset();
+    pendente.anexar(novo);
+  };
+  const arraste = useArrastarArquivo(visivel && !envio.isPending ? aoAnexar : undefined);
+
   return {
     // Encerrado ou transferido: a conversa não é mais do usuário.
-    visivel: !conversa.encerrado && !transferido,
+    visivel,
+    arraste,
     // Com arquivo escolhido, o texto é a legenda.
     aoEnviar: (texto: string) => {
       // Enter repetido antes de a tela travar o botão não reenvia.
@@ -52,13 +64,7 @@ export function useCompositor(atendimentoId: string, initialData: ConversaVista)
           miniaturaUrl: pendente.miniaturaUrl,
         }
       : undefined,
-    aoAnexar: (novo: File) => {
-      // Trocar o arquivo no meio do envio faria o sucesso limpar o arquivo novo.
-      if (envio.isPending) return;
-      // Um erro antigo do envio não fica ao lado do arquivo novo.
-      anexoMutation.reset();
-      pendente.anexar(novo);
-    },
+    aoAnexar,
     aoRemoverAnexo: () => {
       anexoMutation.reset();
       pendente.limpar();

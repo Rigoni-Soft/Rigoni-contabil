@@ -7,6 +7,7 @@ import {
   useReagirAMensagemMutation,
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.queries";
 import { useAnexoPendente } from "@/modules/atendimento/presentation/view-models/conversa/use-anexo-pendente.hook";
+import { useArrastarArquivo } from "@/modules/atendimento/presentation/view-models/conversa/use-arrastar-arquivo.hook";
 import { useConversa } from "@/modules/atendimento/presentation/view-models/conversa/use-conversa.hook";
 import { useEmojisRecentes } from "@/modules/atendimento/presentation/view-models/conversa/use-emojis-recentes.hook";
 import { useFechaSeletor } from "@/modules/atendimento/presentation/view-models/conversa/use-fecha-seletor.hook";
@@ -40,13 +41,17 @@ export function useMensagensConversa(atendimentoId: string, initialData: Convers
   const fechar = useCallback(() => setAberta(null), []);
   useFechaSeletor(aberta !== null, raiz, botao, fechar);
 
+  // Soltar um arquivo sobre a conversa o põe no campo de resposta; encerrado, transferido ou
+  // enviando outro arquivo não.
+  const arraste = useArrastarArquivo(
+    !conversa.encerrado && !transferido && !enviandoAnexo
+      ? (arquivo: File) => pendente.anexar(arquivo)
+      : undefined,
+  );
+
   return {
     mensagens: conversa.mensagens,
-    // Soltar um arquivo sobre a conversa o põe no campo de resposta; encerrado ou transferido não.
-    aoSoltar:
-      !conversa.encerrado && !transferido && !enviandoAnexo
-        ? (arquivo: File) => pendente.anexar(arquivo)
-        : undefined,
+    arraste,
     reacao: {
       // Encerrado ou transferido: a conversa não é mais do usuário.
       ativa: !conversa.encerrado && !transferido,

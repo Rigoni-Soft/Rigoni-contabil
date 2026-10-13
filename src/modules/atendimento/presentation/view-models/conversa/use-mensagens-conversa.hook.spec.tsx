@@ -94,10 +94,10 @@ describe("useMensagensConversa — reação (#84)", () => {
 
   it("soltar um arquivo sobre a conversa o deixa pendente no campo de resposta; encerrada não aceita", () => {
     const aberta = renderizar();
-    expect(aberta.result.current.aoSoltar).toEqual(expect.any(Function));
+    expect(aberta.result.current.arraste.ligacoes).toBeDefined();
 
     const encerrada = renderizar({ ...CONVERSA, encerrado: true });
-    expect(encerrada.result.current.aoSoltar).toBeUndefined();
+    expect(encerrada.result.current.arraste.ligacoes).toBeUndefined();
   });
 
   it("durante o envio de um anexo não aceita soltar outro arquivo", async () => {
@@ -107,7 +107,7 @@ describe("useMensagensConversa — reação (#84)", () => {
         <QueryClientProvider client={cliente}>{children}</QueryClientProvider>
       ),
     });
-    expect(result.current.aoSoltar).toEqual(expect.any(Function));
+    expect(result.current.arraste.ligacoes).toBeDefined();
 
     // Uma mutação de anexo em andamento (a região do campo de resposta é quem a dispara).
     let concluir: () => void = () => {};
@@ -119,8 +119,8 @@ describe("useMensagensConversa — reação (#84)", () => {
       })
       .execute(undefined);
 
-    await waitFor(() => expect(result.current.aoSoltar).toBeUndefined());
+    await waitFor(() => expect(result.current.arraste.ligacoes).toBeUndefined());
     concluir();
-    await waitFor(() => expect(result.current.aoSoltar).toEqual(expect.any(Function)));
+    await waitFor(() => expect(result.current.arraste.ligacoes).toBeDefined());
   });
 });
