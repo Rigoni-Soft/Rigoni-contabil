@@ -44,68 +44,99 @@ export class VerificarInatividade implements VerificarInatividadePort {
 
     const agora = this.relogio.agora();
     const feriados = new Set(extras.value);
-    const resumo: InatividadeVerificada = { avisados: 0, cancelados: 0, encerrados: 0, falhas: 0 };
+    const resumo: InatividadeVerificada = {
+      avisados: 0,
+      cancelados: 0,
+      encerrados: 0,
+      reentregues: 0,
+      falhas: 0,
+    };
     for (const atendimento of lista.value) {
       const decisao = decidirInatividade(atendimento, agora, feriados);
       if (decisao.acao === "nada") continue;
       const feito = await this.executar(decisao, atendimento);
-      resumo[feito.ok ? CONTADOR[decisao.acao] : "falhas"] += 1;
+      if (!feito.ok) resumo.falhas += 1;
+      else if (feito.value) resumo[CONTADOR[decisao.acao]] += 1;
     }
+    await this.reentregarEncerramentos(resumo);
     return ok(resumo);
   }
 
+  // `true` se a ação aconteceu; `false` se não coube (outro job ou uma Mensagem chegou antes).
   private executar(
     decisao: Exclude<DecisaoInatividade, { acao: "nada" }>,
     atendimento: AtendimentoParaInatividade,
-  ): Promise<Result<void, AppError>> {
+  ): Promise<Result<boolean, AppError>> {
     switch (decisao.acao) {
       case "avisar":
         return this.avisarInativo(atendimento, decisao.de);
       case "cancelar":
-        return this.repositorio.limparAvisoInatividade(atendimento.id);
+        return this.cancelar(atendimento);
       case "encerrar":
         return this.encerrar(atendimento);
     }
   }
 
-  // O aviso ao cliente sai antes da marca: se o envio falhar nada é marcado e a próxima rodada
-  // tenta de novo; se só a marca falhar, o aviso se repete (melhor que encerrar sem ter avisado).
-  // O aviso ao Funcionário é só a marca (a tela dele a lê).
+  private async cancelar(
+    atendimento: AtendimentoParaInatividade,
+  ): Promise<Result<boolean, AppError>> {
+    const limpo = await this.repositorio.limparAvisoInatividade(atendimento.id);
+    return limpo.ok ? ok(true) : limpo;
+  }
+
+  // O aviso é reservado antes de sair: só quem marcou envia (duas execuções não duplicam) e a
+  // marca só vale se nenhuma Mensagem entrou depois do que o job leu. Se o envio falhar a marca
+  // sai, e a próxima rodada reavalia do zero. O aviso ao Funcionário é só a marca (a tela dele a
+  // lê).
   private async avisarInativo(
     atendimento: AtendimentoParaInatividade,
     de: Inativo,
-  ): Promise<Result<void, AppError>> {
-    if (de === "contato") {
-      const aviso = await this.avisar.execute({
-        telefone: atendimento.telefone,
-        chave: atendimento.chave,
-        texto: AVISO_INATIVIDADE_AO_CLIENTE,
-      });
-      if (!aviso.ok) return aviso;
-    }
-    const marcado = await this.repositorio.marcarAvisoInatividade(atendimento.id, de);
-    return marcado.ok ? ok(undefined) : marcado;
-  }
+  ): Promise<Result<boolean, AppError>> {
+    const vistoAte = ultima(atendimento);
+    const reservado = await this.repositorio.marcarAvisoInatividade(atendimento.id, de, vistoAte);
+    if (!reservado.ok) return reservado;
+    if (!reservado.value) return ok(false);
+    if (de === "funcionario") return ok(true);
 
-  private async encerrar(atendimento: AtendimentoParaInatividade): Promise<Result<void, AppError>> {
-    const encerrado = await this.repositorio.encerrarPorInatividade(
-      atendimento.id,
-      atendimento.funcionarioId,
-      {
-        id: URA_ATOR_ID,
-        setor: atendimento.setor,
-      },
-    );
-    if (!encerrado.ok) return encerrado;
-    // Mudou ou foi encerrado por outro caminho entre a leitura e agora: nada a fazer.
-    if (encerrado.value.status === "inexistente") return ok(undefined);
-
-    // Assumido: falhar nos avisos não desfaz nada; a falha só aparece na contagem.
     const aviso = await this.avisar.execute({
       telefone: atendimento.telefone,
       chave: atendimento.chave,
-      texto: AVISO_ENCERRAMENTO_AO_CLIENTE,
+      texto: AVISO_INATIVIDADE_AO_CLIENTE,
     });
+    if (!aviso.ok) {
+      await this.repositorio.limparAvisoInatividade(atendimento.id);
+      return aviso;
+    }
+    const confirmado = await this.repositorio.confirmarAvisoEntregue(atendimento.id);
+    return confirmado.ok ? ok(true) : confirmado;
+  }
+
+  private async encerrar(
+    atendimento: AtendimentoParaInatividade,
+  ): Promise<Result<boolean, AppError>> {
+    // Aviso ao cliente reservado e nunca entregue (o processo caiu entre marcar e enviar): não
+    // encerra sem ele; limpa e o ciclo recomeça.
+    if (atendimento.aviso?.de === "contato" && !atendimento.avisoEntregue) {
+      const limpo = await this.repositorio.limparAvisoInatividade(atendimento.id);
+      return limpo.ok ? ok(false) : limpo;
+    }
+    const encerrado = await this.repositorio.encerrarPorInatividade(
+      atendimento.id,
+      atendimento.funcionarioId,
+      { id: URA_ATOR_ID, setor: atendimento.setor },
+      AVISO_ENCERRAMENTO_AO_CLIENTE,
+    );
+    if (!encerrado.ok) return encerrado;
+    // Mudou ou foi encerrado por outro caminho entre a leitura e agora: nada a fazer.
+    if (encerrado.value.status === "inexistente") return ok(false);
+
+    // Fechado, com a mensagem final já no histórico. Falhar nos avisos não desfaz nada: a do
+    // cliente fica pendente (o job a reenvia); a do próximo da Fila aparece na contagem de falhas.
+    const entregue = await this.entregarEncerramento(
+      atendimento.id,
+      atendimento.telefone,
+      atendimento.chave,
+    );
     const proximo = encerrado.value.proximo;
     const avisoDoProximo = proximo
       ? await this.avisar.execute({
@@ -114,6 +145,45 @@ export class VerificarInatividade implements VerificarInatividadePort {
           texto: avisoDeVez(proximo.funcionarioNome),
         })
       : ok(undefined);
-    return !aviso.ok ? aviso : avisoDoProximo.ok ? ok(undefined) : err(avisoDoProximo.error);
+    if (!entregue.ok) return entregue;
+    return avisoDoProximo.ok ? ok(true) : err(avisoDoProximo.error);
   }
+
+  private async entregarEncerramento(
+    atendimentoId: string,
+    telefone: string,
+    chave: string,
+    texto = AVISO_ENCERRAMENTO_AO_CLIENTE,
+  ): Promise<Result<void, AppError>> {
+    // `registrar: false`: a mensagem já foi gravada na transação do encerramento.
+    const aviso = await this.avisar.execute({ telefone, chave, texto, registrar: false });
+    if (!aviso.ok) return aviso;
+    const confirmado = await this.repositorio.confirmarEncerramentoEntregue(atendimentoId);
+    return confirmado.ok ? ok(undefined) : confirmado;
+  }
+
+  // Encerramentos de rodadas anteriores cuja mensagem final não chegou: reenvia mesmo com o
+  // Atendimento já encerrado.
+  private async reentregarEncerramentos(resumo: InatividadeVerificada): Promise<void> {
+    const pendentes = await this.repositorio.encerramentosPendentes();
+    if (!pendentes.ok) {
+      resumo.falhas += 1;
+      return;
+    }
+    for (const pendente of pendentes.value) {
+      const entregue = await this.entregarEncerramento(
+        pendente.atendimentoId,
+        pendente.telefone,
+        "",
+        pendente.texto,
+      );
+      if (entregue.ok) resumo.reentregues += 1;
+      else resumo.falhas += 1;
+    }
+  }
+}
+
+// A última Mensagem que o job leu (de qualquer lado): a reserva do aviso só vale sem nada depois.
+function ultima({ ultimaDoContato, ultimaDoFuncionario }: AtendimentoParaInatividade): Date {
+  return new Date(Math.max(ultimaDoContato?.getTime() ?? 0, ultimaDoFuncionario?.getTime() ?? 0));
 }

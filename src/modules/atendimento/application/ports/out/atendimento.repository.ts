@@ -119,7 +119,12 @@ export type AtendimentoParaInatividade = {
   ultimaDoContato: Date | null;
   ultimaDoFuncionario: Date | null;
   aviso: { em: Date; de: Inativo } | null;
+  // O aviso chegou a quem estava inativo (o do cliente só depois de enviado).
+  avisoEntregue: boolean;
 };
+
+// Encerramento por inatividade cuja mensagem final ainda não foi entregue ao cliente.
+export type EncerramentoPendente = { atendimentoId: string; telefone: string; texto: string };
 
 export interface AtendimentoRepositoryPort {
   funcionariosDoSetor(setor: SetorSlug): Promise<Result<FuncionarioDoSetor[], AppError>>;
@@ -142,15 +147,26 @@ export interface AtendimentoRepositoryPort {
     funcionarioId: string | null,
     ator: { id: string; setor: SetorSlug },
   ): Promise<Result<ResultadoEncerramento, AppError>>;
-  // Como `encerrar`, mas só se o aviso de inatividade continua marcado e quem estava inativo não
-  // escreveu depois dele (leitura e encerramento não se cruzam com uma Mensagem nova).
+  // Como `encerrar`, mas só se o aviso de inatividade foi entregue e continua marcado, e quem
+  // estava inativo não escreveu depois dele (a Mensagem que chega e o encerramento se serializam).
+  // A mensagem final da URA (`textoFinal`) entra no histórico na mesma transação que fecha.
   encerrarPorInatividade(
     atendimentoId: string,
     funcionarioId: string,
     ator: { id: string; setor: SetorSlug },
+    textoFinal: string,
   ): Promise<Result<ResultadoEncerramento, AppError>>;
   paraInatividade(): Promise<Result<AtendimentoParaInatividade[], AppError>>;
-  // true se este chamador marcou o aviso; false se já estava marcado (job repetido não reenvia).
-  marcarAvisoInatividade(atendimentoId: string, de: Inativo): Promise<Result<boolean, AppError>>;
+  // Reserva o aviso: true só se este chamador marcou. false se já estava marcado ou se entrou
+  // Mensagem depois de `vistoAte` (a decisão é de uma leitura velha; a próxima rodada reavalia).
+  marcarAvisoInatividade(
+    atendimentoId: string,
+    de: Inativo,
+    vistoAte: Date,
+  ): Promise<Result<boolean, AppError>>;
+  // O aviso ao cliente saiu. false se o aviso já não existe.
+  confirmarAvisoEntregue(atendimentoId: string): Promise<Result<boolean, AppError>>;
   limparAvisoInatividade(atendimentoId: string): Promise<Result<void, AppError>>;
+  encerramentosPendentes(): Promise<Result<EncerramentoPendente[], AppError>>;
+  confirmarEncerramentoEntregue(atendimentoId: string): Promise<Result<boolean, AppError>>;
 }

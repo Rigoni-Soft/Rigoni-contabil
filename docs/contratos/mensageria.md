@@ -107,3 +107,7 @@ alteração repete o contrato). Exige teste de lote parcial + retry. Hoje o modo
 real.
 
 Também com a #68: credenciais reais, observabilidade e o adapter HTTP real. A decisão janela/template (#51) já existe em `EnviarComunicacaoProativa`, mas ainda não tem chamador nem composição em `main`.
+
+## Inatividade (#73)
+
+O aviso de 10 minutos e a mensagem final de encerramento saem pelo mesmo `enviar`. O aviso é reservado no banco antes do envio e o encerramento só ocorre com o aviso entregue; a mensagem final fica no histórico (gravada na transação que fecha) e, se o envio falhar, o job a reenvia. O job só roda com `INATIVIDADE_AUTOMATICA=ligada` e, em produção, com `MENSAGERIA_MODO=real` (ver `docs/deploy/inatividade-cron.md`).

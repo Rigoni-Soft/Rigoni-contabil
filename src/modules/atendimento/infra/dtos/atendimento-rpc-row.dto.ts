@@ -90,4 +90,11 @@ export const inatividadeRowSchema = z.object({
   ultima_do_funcionario: z.string().nullable(),
   aviso_inatividade_em: z.string().nullable(),
   aviso_inatividade_de: z.enum(["contato", "funcionario"]).nullable(),
+  aviso_entregue_em: z.string().nullable(),
+});
+
+export const encerramentoPendenteRowSchema = z.object({
+  id: z.string(),
+  telefone: z.string(),
+  texto: z.string().nullable(),
 });

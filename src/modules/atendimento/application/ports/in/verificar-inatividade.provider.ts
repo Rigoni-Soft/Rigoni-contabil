@@ -7,6 +7,8 @@ export type InatividadeVerificada = {
   avisados: number;
   cancelados: number;
   encerrados: number;
+  // Mensagens finais de encerramentos anteriores que não tinham chegado ao cliente.
+  reentregues: number;
   falhas: number;
 };
 

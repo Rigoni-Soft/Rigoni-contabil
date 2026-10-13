@@ -18,7 +18,14 @@ const repositorio = new SupabaseAtendimentoRepository(admin);
 
 // Setor só desta suíte: encerrar mexe na Fila do Setor inteiro.
 const SETOR = "administrativo" as const;
-const TELEFONES = ["61955590001", "61955590002", "61955590003", "61955590004"];
+const TELEFONES = [
+  "61955590001",
+  "61955590002",
+  "61955590003",
+  "61955590004",
+  "61955590005",
+  "61955590006",
+];
 const usuarios: string[] = [];
 
 async function criarFuncionario(nome: string): Promise<string> {
@@ -80,6 +87,7 @@ async function doAtendimento(id: string) {
 }
 
 const ATOR = { id: URA_ATOR_ID, setor: SETOR };
+const TEXTO_FINAL = "Seu atendimento foi encerrado por inatividade.";
 
 afterAll(async () => {
   await admin.from("atendimentos").delete().in("telefone", TELEFONES);
@@ -101,15 +109,57 @@ describe("SupabaseAtendimentoRepository — inatividade", () => {
     expect(await doAtendimento(naFila)).toBeUndefined();
   });
 
+  it("a reserva do aviso só vale sem Mensagem posterior ao que o job leu", async () => {
+    const funcionario = await criarFuncionario("Func Inatividade Reserva");
+    const id = await abrirDireto(TELEFONES[4], funcionario);
+    await mensagem(TELEFONES[4], "contato");
+    const lido = (await doAtendimento(id))!;
+
+    // O contato escreve depois da leitura do job: a reserva baseada nela é recusada.
+    await mensagem(TELEFONES[4], "contato");
+    expect(await repositorio.marcarAvisoInatividade(id, "contato", lido.ultimaDoContato!)).toEqual({
+      ok: true,
+      value: false,
+    });
+    expect((await doAtendimento(id))?.aviso).toBeNull();
+
+    // Releitura: reserva aceita, e o aviso ao cliente só conta como entregue depois de confirmado.
+    const novo = (await doAtendimento(id))!;
+    expect(await repositorio.marcarAvisoInatividade(id, "contato", novo.ultimaDoContato!)).toEqual({
+      ok: true,
+      value: true,
+    });
+    expect((await doAtendimento(id))?.avisoEntregue).toBe(false);
+    expect(await repositorio.confirmarAvisoEntregue(id)).toEqual({ ok: true, value: true });
+    expect(await repositorio.confirmarAvisoEntregue(id)).toEqual({ ok: true, value: false });
+    expect((await doAtendimento(id))?.avisoEntregue).toBe(true);
+    await repositorio.limparAvisoInatividade(id);
+    expect((await doAtendimento(id))?.avisoEntregue).toBe(false);
+  });
+
+  it("não encerra com o aviso ao cliente reservado e não entregue", async () => {
+    const funcionario = await criarFuncionario("Func Inatividade Sem Entrega");
+    const id = await abrirDireto(TELEFONES[5], funcionario);
+    await mensagem(TELEFONES[5], "contato");
+    const lido = (await doAtendimento(id))!;
+    await repositorio.marcarAvisoInatividade(id, "contato", lido.ultimaDoContato!);
+
+    expect(await repositorio.encerrarPorInatividade(id, funcionario, ATOR, TEXTO_FINAL)).toEqual({
+      ok: true,
+      value: { status: "inexistente" },
+    });
+    expect(await idDe(TELEFONES[5])).toBe(id);
+  });
+
   it("marca o aviso uma vez só e limpa", async () => {
     const funcionario = await criarFuncionario("Func Inatividade B");
     const id = await abrirDireto(TELEFONES[2], funcionario);
 
-    expect(await repositorio.marcarAvisoInatividade(id, "funcionario")).toEqual({
+    expect(await repositorio.marcarAvisoInatividade(id, "funcionario", new Date())).toEqual({
       ok: true,
       value: true,
     });
-    expect(await repositorio.marcarAvisoInatividade(id, "funcionario")).toEqual({
+    expect(await repositorio.marcarAvisoInatividade(id, "funcionario", new Date())).toEqual({
       ok: true,
       value: false,
     });
@@ -128,23 +178,23 @@ describe("SupabaseAtendimentoRepository — inatividade", () => {
     const funcionario = (await doAtendimento(id))!.funcionarioId;
 
     // Sem aviso: recusa.
-    expect(await repositorio.encerrarPorInatividade(id, funcionario, ATOR)).toEqual({
+    expect(await repositorio.encerrarPorInatividade(id, funcionario, ATOR, TEXTO_FINAL)).toEqual({
       ok: true,
       value: { status: "inexistente" },
     });
 
     // Com aviso, mas o Funcionário (o inativo) escreveu depois: recusa.
-    await repositorio.marcarAvisoInatividade(id, "funcionario");
+    await repositorio.marcarAvisoInatividade(id, "funcionario", new Date());
     await mensagem(TELEFONES[2], "funcionario");
-    expect(await repositorio.encerrarPorInatividade(id, funcionario, ATOR)).toEqual({
+    expect(await repositorio.encerrarPorInatividade(id, funcionario, ATOR, TEXTO_FINAL)).toEqual({
       ok: true,
       value: { status: "inexistente" },
     });
 
     // Aviso válido, sem ação depois: encerra e audita com a URA.
     await repositorio.limparAvisoInatividade(id);
-    await repositorio.marcarAvisoInatividade(id, "funcionario");
-    const r = await repositorio.encerrarPorInatividade(id, funcionario, ATOR);
+    await repositorio.marcarAvisoInatividade(id, "funcionario", new Date());
+    const r = await repositorio.encerrarPorInatividade(id, funcionario, ATOR, TEXTO_FINAL);
     // O Funcionário liberado assume o Atendimento que estava na Fila do Setor.
     expect(r.ok && r.value.status === "encerrado" && r.value.proximo?.chave).toBe(TELEFONES[1]);
     expect(await doAtendimento(id)).toBeUndefined();
@@ -155,6 +205,23 @@ describe("SupabaseAtendimentoRepository — inatividade", () => {
       .eq("ator", URA_ATOR_ID)
       .eq("alvo", id);
     expect(auditoria.data).toEqual([{ acao: "atendimento.encerrar", setor: SETOR }]);
+
+    // A mensagem final da URA entrou no histórico na mesma transação e fica pendente de entrega.
+    const final = await admin
+      .from("mensagens")
+      .select("autor, texto")
+      .eq("atendimento_id", id)
+      .eq("autor", "ura");
+    expect(final.data).toEqual([{ autor: "ura", texto: TEXTO_FINAL }]);
+    const pendentes = await repositorio.encerramentosPendentes();
+    expect(pendentes.ok && pendentes.value).toContainEqual({
+      atendimentoId: id,
+      telefone: TELEFONES[2],
+      texto: TEXTO_FINAL,
+    });
+    expect(await repositorio.confirmarEncerramentoEntregue(id)).toEqual({ ok: true, value: true });
+    const depois = await repositorio.encerramentosPendentes();
+    expect(depois.ok && depois.value.map((p) => p.atendimentoId)).not.toContain(id);
   });
 });
 
@@ -163,7 +230,7 @@ describe("inatividade × desativação do dono", () => {
     const dono = await criarFuncionario("Func Desativado Em Aviso");
     const id = await abrirDireto(TELEFONES[3], dono);
     await mensagem(TELEFONES[3], "contato");
-    await repositorio.marcarAvisoInatividade(id, "funcionario");
+    await repositorio.marcarAvisoInatividade(id, "funcionario", new Date());
 
     const r = await admin.rpc("desativar_usuario", {
       alvo_id: dono,
