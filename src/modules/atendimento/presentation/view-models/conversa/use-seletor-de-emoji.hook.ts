@@ -53,8 +53,6 @@ export function useSeletorDeEmoji() {
     const area = campo.current;
     if (!area) return;
     area.setRangeText(emoji, area.selectionStart, area.selectionEnd, "end");
-    // setRangeText não dispara `input`: avisa quem escuta o campo.
-    area.dispatchEvent(new Event("input", { bubbles: true }));
     area.focus();
   }
 
