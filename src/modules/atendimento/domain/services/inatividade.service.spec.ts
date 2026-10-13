@@ -137,11 +137,15 @@ describe("decidirInatividade", () => {
 
 describe("avisoPendenteAoFuncionario", () => {
   const aviso = { de: "funcionario" as const, em: "2026-10-08T14:00:00Z" };
-  const doFuncionario = (criadoEm: string) => ({ autor: "funcionario", criadoEm });
+  const doFuncionario = (criadoEm: string) => ({ autor: "funcionario" as const, criadoEm });
 
   it("fica pendente enquanto o Funcionário não escreve depois do aviso", () => {
     expect(avisoPendenteAoFuncionario(aviso, [doFuncionario("2026-10-08T12:00:00Z")])).toBe(true);
     expect(avisoPendenteAoFuncionario(aviso, [])).toBe(true);
+  });
+
+  it("Mensagem no mesmo instante do aviso ainda não cancela: só a posterior", () => {
+    expect(avisoPendenteAoFuncionario(aviso, [doFuncionario(aviso.em)])).toBe(true);
   });
 
   it("some quando o Funcionário escreve depois do aviso", () => {
@@ -150,8 +154,8 @@ describe("avisoPendenteAoFuncionario", () => {
 
   it("a Mensagem do contato ou da URA depois do aviso não cancela", () => {
     const outras = [
-      { autor: "contato", criadoEm: "2026-10-08T14:05:00Z" },
-      { autor: "ura", criadoEm: "2026-10-08T14:06:00Z" },
+      { autor: "contato" as const, criadoEm: "2026-10-08T14:05:00Z" },
+      { autor: "ura" as const, criadoEm: "2026-10-08T14:06:00Z" },
     ];
     expect(avisoPendenteAoFuncionario(aviso, outras)).toBe(true);
   });

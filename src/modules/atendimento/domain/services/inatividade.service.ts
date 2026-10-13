@@ -53,7 +53,7 @@ export function decidirInatividade(
 // não escreveu depois (a Mensagem dele já cancela, mesmo antes de o job limpar a marca).
 export function avisoPendenteAoFuncionario(
   aviso: { de: Inativo; em: string } | null,
-  mensagens: { autor: string; criadoEm: string }[],
+  mensagens: { autor: "contato" | "ura" | "funcionario"; criadoEm: string }[],
 ): boolean {
   if (aviso?.de !== "funcionario") return false;
   const avisoEm = new Date(aviso.em);
