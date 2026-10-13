@@ -19,7 +19,7 @@ const VARIANTES = {
   enfase: "font-bold",
   codigo: "rounded-md bg-muted px-3 py-2 font-mono text-lg tracking-wider",
   somenteLeitor: "sr-only",
-  ocultoNoCelular: "hidden sm:inline",
+  soDesktop: "hidden lg:inline",
 } as const;
 
 type TextoProps = Omit<React.HTMLAttributes<HTMLElement>, "className"> & {

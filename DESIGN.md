@@ -156,7 +156,7 @@ contêiner é `Caixa` (`como="section"|"ul"|"li"|"form"…`), o ritmo vertical �
 e o texto é `Texto` com um
 papel: `destaque`, `corpo`, `apoio`, `alerta`, `rotulo`, `nota`, `titulo`,
 `subtitulo`, `tela`, `subtela`, `marca`, `secao`, `rotuloDeSecao`, `enfase`,
-`codigo`, `somenteLeitor`, `ocultoNoCelular`. Trecho que só agrupa ou quebra
+`codigo`, `somenteLeitor`, `soDesktop`. Trecho que só agrupa ou quebra
 linha é `Caixa`, não `Texto`. Cabeçalho e navegação da aplicação ficam fora do
 `<main>` (landmarks de topo).
 
@@ -187,10 +187,12 @@ sem precisar de classe.
   reimplementar as classes do ghost/sm à mão. Qualquer link estilizado como
   botão reusa `buttonVariants` em vez de duplicar classes.
 
-  **Rótulo de ação oculto abaixo de `sm` (revisão de 28/09/2026, #32):** os
+  **Rótulo de ação oculto abaixo de `lg` (revisão de 28/09/2026, #32; subiu de `sm` para `lg` em
+  13/10/2026, quando a sonda de reflow mostrou rolagem horizontal do Admin a 320 e 768 px;
+  abaixo de `lg` a identidade e as ações também empilham em duas linhas):** os
   links de ação do `ShellHeader` (hoje "Cadastrar Líder"/"Cadastrar
   Funcionário", "Usuários" e "Meu perfil") escondem o texto do rótulo em telas
-  estreitas (`<span className="hidden sm:inline">`) mantendo só o ícone —
+  estreitas (`Texto variante="soDesktop"`, `hidden lg:inline`) mantendo só o ícone —
   necessário porque o header ganhou um terceiro link de ação neste ticket, e
   o rótulo completo dos três (mais o toggle de tema e "Sair") não cabe em
   larguras de celular sem rolagem horizontal. `aria-label` no próprio
