@@ -15,6 +15,8 @@ export type AnexoVisto = {
   nome: string;
   tamanho: number;
   url: string;
+  // Só imagem com miniatura: a conversa mostra esta e amplia o original (`url`).
+  miniaturaUrl: string | null;
   expiraEm: string;
 };
 

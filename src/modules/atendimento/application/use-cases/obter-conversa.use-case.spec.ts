@@ -57,7 +57,13 @@ const COM_ANEXO: ConversaLida = {
       atendente: { nome: "Ana", setor: "contabil" },
       idExterno: null,
       reacao: null,
-      anexo: { tipo: "imagem", nome: "foto.png", tamanho: 10, caminho: "at-1/u/foto.png" },
+      anexo: {
+        tipo: "imagem",
+        nome: "foto.png",
+        tamanho: 10,
+        caminho: "at-1/u/foto.png",
+        miniaturaCaminho: "at-1/u/miniatura.webp",
+      },
     },
   ],
 };
@@ -107,7 +113,7 @@ describe("ObterConversa", () => {
 
     const r = await caso.execute({ atendimentoId: "at-1" });
 
-    expect(pedidos).toEqual([["at-1/u/foto.png"]]);
+    expect(pedidos).toEqual([["at-1/u/foto.png", "at-1/u/miniatura.webp"]]);
     expect(r.ok && r.value.mensagens.map((m) => m.anexo)).toEqual([
       null,
       null,
@@ -116,6 +122,7 @@ describe("ObterConversa", () => {
         nome: "foto.png",
         tamanho: 10,
         url: "https://link/at-1/u/foto.png",
+        miniaturaUrl: "https://link/at-1/u/miniatura.webp",
         expiraEm: "2026-10-08T13:00:00Z",
       },
     ]);

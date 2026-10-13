@@ -14,6 +14,8 @@ export type AnexoView = {
   // Já formatado ("1,2 MB").
   tamanho: string;
   url: string;
+  // Imagem com miniatura: a conversa mostra esta e amplia `url`.
+  miniaturaUrl: string | null;
 };
 
 export type MensagemView = {
@@ -73,7 +75,15 @@ export function reaproveitarLinks(
     mensagens: nova.mensagens.map((m) => {
       const antigo = anteriores.get(m.id);
       if (!m.anexo || !antigo || Date.parse(antigo.expiraEm) - agora <= margemMs) return m;
-      return { ...m, anexo: { ...m.anexo, url: antigo.url, expiraEm: antigo.expiraEm } };
+      return {
+        ...m,
+        anexo: {
+          ...m.anexo,
+          url: antigo.url,
+          miniaturaUrl: antigo.miniaturaUrl,
+          expiraEm: antigo.expiraEm,
+        },
+      };
     }),
   };
 }
@@ -150,6 +160,7 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
             nome: m.anexo.nome,
             tamanho: formatarTamanho(m.anexo.tamanho),
             url: m.anexo.url,
+            miniaturaUrl: m.anexo.miniaturaUrl,
           }
         : null,
     })),

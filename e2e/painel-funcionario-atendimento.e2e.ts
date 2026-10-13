@@ -180,6 +180,10 @@ test.describe("Painel do Funcionário (#49)", () => {
       balaoDaImagem.getByRole("button", { name: "Ampliar foto-fachada.png" }),
     ).toBeVisible();
     await expect(balaoDaImagem).toContainText("Segundo Funcionário Financeiro · Financeiro");
+    // A conversa mostra a miniatura reduzida (WebP) e só baixa o original ao ampliar.
+    await expect(
+      balaoDaImagem.getByRole("button", { name: "Ampliar foto-fachada.png" }).locator("img"),
+    ).toHaveAttribute("src", /miniatura\.webp/);
     await expect(page.getByRole("button", { name: "Remover foto-fachada.png" })).toHaveCount(0);
     await expect(campo).toHaveValue("");
 

@@ -167,6 +167,7 @@ export const conversaRowSchema = z.object({
       anexo_nome: z.string().nullable(),
       anexo_caminho: z.string().nullable(),
       anexo_tamanho: z.number().nullable(),
+      anexo_miniatura_caminho: z.string().nullable(),
       perfis: z.object({ nome: z.string(), setor: z.enum(SETORES) }).nullable(),
     }),
   ),

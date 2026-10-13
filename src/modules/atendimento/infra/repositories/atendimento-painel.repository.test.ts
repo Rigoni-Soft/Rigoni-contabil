@@ -205,6 +205,7 @@ describe("SupabaseAtendimentoRepository — painel do Funcionário", () => {
       nome: "balanço.pdf",
       tamanho: 2048,
       caminho: `${id}/u/balanco.pdf`,
+      miniaturaCaminho: `${id}/u/miniatura.webp`,
     };
 
     const gravada = await repositorio.registrarMensagemDoFuncionario(id, fabi, "Segue", anexo);

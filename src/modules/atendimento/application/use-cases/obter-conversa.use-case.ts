@@ -69,12 +69,19 @@ export class ObterConversa implements ObterConversaPort {
       clienteVinculado: conversa.clienteId !== null,
       mensagens: conversa.mensagens.map(({ idExterno, anexo, ...m }) => {
         const link = anexo && links.value[anexo.caminho];
+        const miniatura = anexo?.miniaturaCaminho ? links.value[anexo.miniaturaCaminho] : undefined;
         return {
           ...m,
           reagivel: m.autor === "contato" && idExterno !== null,
           anexo:
             anexo && link
-              ? { tipo: anexo.tipo, nome: anexo.nome, tamanho: anexo.tamanho, ...link }
+              ? {
+                  tipo: anexo.tipo,
+                  nome: anexo.nome,
+                  tamanho: anexo.tamanho,
+                  ...link,
+                  miniaturaUrl: miniatura?.url ?? null,
+                }
               : null,
         };
       }),
@@ -103,7 +110,11 @@ export class ObterConversa implements ObterConversaPort {
   private async links(
     mensagens: ConversaLida["mensagens"],
   ): Promise<Result<Record<string, LinkTemporario>, AppError>> {
-    const caminhos = mensagens.flatMap((m) => (m.anexo ? [m.anexo.caminho] : []));
+    const caminhos = mensagens.flatMap((m) =>
+      m.anexo
+        ? [m.anexo.caminho, ...(m.anexo.miniaturaCaminho ? [m.anexo.miniaturaCaminho] : [])]
+        : [],
+    );
     return caminhos.length ? this.anexos.linksTemporarios(caminhos) : ok({});
   }
 

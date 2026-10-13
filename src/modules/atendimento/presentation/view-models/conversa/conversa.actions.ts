@@ -92,6 +92,14 @@ export async function reagirAMensagemAction(input: unknown): Promise<ActionResul
 
 // FormData: arquivo, `atendimentoId` e `legenda`. Sem arquivo (ou acima do limite do body, que o
 // Next recusa antes de chegar aqui) o caso de uso nem é chamado.
+async function paraArquivoAnexo(arquivo: File) {
+  return {
+    nome: arquivo.name,
+    tipoMime: arquivo.type,
+    conteudo: new Uint8Array(await arquivo.arrayBuffer()),
+  };
+}
+
 export async function enviarAnexoAction(formData: FormData): Promise<ActionResult<void>> {
   const parsed = enviarAnexoSchema.safeParse({
     atendimentoId: formData.get("atendimentoId"),
@@ -110,16 +118,14 @@ export async function enviarAnexoAction(formData: FormData): Promise<ActionResul
     };
   }
 
+  const miniatura = formData.get("miniatura");
   const enviarAnexo = await makeEnviarAnexoAoCliente();
   return toActionResult(
     await enviarAnexo.execute({
       atendimentoId: parsed.data.atendimentoId,
       legenda: parsed.data.legenda,
-      arquivo: {
-        nome: arquivo.name,
-        tipoMime: arquivo.type,
-        conteudo: new Uint8Array(await arquivo.arrayBuffer()),
-      },
+      arquivo: await paraArquivoAnexo(arquivo),
+      miniatura: miniatura instanceof File ? await paraArquivoAnexo(miniatura) : undefined,
     }),
   );
 }

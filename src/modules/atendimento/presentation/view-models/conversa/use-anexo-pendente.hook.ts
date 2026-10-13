@@ -1,11 +1,23 @@
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { gerarMiniatura } from "@/presentation/lib/miniatura-de-imagem";
 import { conversaKeys } from "@/modules/atendimento/presentation/view-models/conversa/conversa.queries";
-import { ANEXO_TAMANHO_MAXIMO, ANEXO_TIPO_RECUSADO, classificarAnexo } from "@/shared/kernel/anexo";
+import {
+  ANEXO_MINIATURA_LADO,
+  ANEXO_TAMANHO_MAXIMO,
+  ANEXO_TIPO_RECUSADO,
+  classificarAnexo,
+} from "@/shared/kernel/anexo";
 
-type Estado = { arquivo: File | null; miniaturaUrl: string | null; erro?: string };
-const VAZIO: Estado = { arquivo: null, miniaturaUrl: null };
+// `miniatura`: versão reduzida da imagem, gerada em segundo plano; vai junto no envio.
+type Estado = {
+  arquivo: File | null;
+  miniaturaUrl: string | null;
+  miniatura: File | null;
+  erro?: string;
+};
+const VAZIO: Estado = { arquivo: null, miniaturaUrl: null, miniatura: null };
 
 function revogar(estado: Estado | undefined) {
   if (estado?.miniaturaUrl) URL.revokeObjectURL(estado.miniaturaUrl);
@@ -45,6 +57,7 @@ export function useAnexoPendente(atendimentoId: string, { limparAoDesmontar = fa
   return {
     arquivo: estado.arquivo,
     miniaturaUrl: estado.miniaturaUrl,
+    miniatura: estado.miniatura,
     erro: estado.erro,
     anexar(arquivo: File) {
       const tipo = classificarAnexo(arquivo.type);
@@ -58,8 +71,17 @@ export function useAnexoPendente(atendimentoId: string, { limparAoDesmontar = fa
         return trocar({ ...VAZIO, erro: "O arquivo aceita até 10 MB." });
       }
       trocar({
+        ...VAZIO,
         arquivo,
         miniaturaUrl: tipo === "imagem" ? URL.createObjectURL(arquivo) : null,
+      });
+      if (tipo !== "imagem") return;
+      void gerarMiniatura(arquivo, ANEXO_MINIATURA_LADO).then((miniatura) => {
+        const atual = queryClient.getQueryData<Estado>(chave);
+        // O arquivo pode ter sido trocado ou removido enquanto a miniatura saía.
+        if (miniatura && atual?.arquivo === arquivo) {
+          queryClient.setQueryData<Estado>(chave, { ...atual, miniatura });
+        }
       });
     },
     limpar: () => trocar(VAZIO),

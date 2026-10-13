@@ -6,6 +6,10 @@ export const ANEXO_LEGENDA_TAMANHO_MAXIMO = 1024; // limite da legenda de mídia
 export const ANEXO_TIPO_RECUSADO =
   "Tipo de arquivo não aceito. Envie imagem (JPEG, PNG, WebP), PDF, Office, TXT, CSV ou ZIP.";
 
+// Miniatura que o formulário gera da imagem (a conversa mostra esta, não o original de até 10 MB).
+export const ANEXO_MINIATURA_LADO = 320;
+export const ANEXO_MINIATURA_TAMANHO_MAXIMO = 256 * 1024;
+
 export type TipoAnexo = "imagem" | "documento";
 
 // Por tipo MIME, nunca pela extensão. Lista fechada: SVG e HTML (que executam script) ficam de fora.

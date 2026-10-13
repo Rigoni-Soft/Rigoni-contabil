@@ -121,11 +121,20 @@ export function useEnviarAnexoMutation(atendimentoId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ arquivo, legenda }: { arquivo: File; legenda: string }) => {
+    mutationFn: async ({
+      arquivo,
+      legenda,
+      miniatura,
+    }: {
+      arquivo: File;
+      legenda: string;
+      miniatura: File | null;
+    }) => {
       const dados = new FormData();
       dados.set("atendimentoId", atendimentoId);
       dados.set("arquivo", arquivo);
       dados.set("legenda", legenda);
+      if (miniatura) dados.set("miniatura", miniatura);
       const resultado = await enviarAnexoAction(dados);
       if (!resultado.ok) throw new Error(resultado.error.message);
     },

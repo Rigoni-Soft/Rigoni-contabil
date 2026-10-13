@@ -10,17 +10,31 @@ type AnexoDaMensagemProps = {
   // Já formatado ("1,2 MB").
   tamanho: string;
   url: string;
+  // Imagem com miniatura: é ela que aparece no balão; `url` é o original, aberto ao ampliar.
+  miniaturaUrl?: string | null;
   // Id do painel da imagem ampliada, único na página.
   painelId: string;
 };
 
 // O que o balão mostra de um anexo: imagem em miniatura que amplia; arquivo com ícone, nome,
 // tamanho e o link para baixar.
-export function AnexoDaMensagem({ tipo, nome, tamanho, url, painelId }: AnexoDaMensagemProps) {
+export function AnexoDaMensagem({
+  tipo,
+  nome,
+  tamanho,
+  url,
+  miniaturaUrl,
+  painelId,
+}: AnexoDaMensagemProps) {
   if (tipo === "imagem") {
     return (
       <Caixa className="my-1">
-        <ImagemAmpliavel src={url} alt={nome} painelId={painelId} />
+        <ImagemAmpliavel
+          src={miniaturaUrl ?? url}
+          ampliadaSrc={url}
+          alt={nome}
+          painelId={painelId}
+        />
       </Caixa>
     );
   }

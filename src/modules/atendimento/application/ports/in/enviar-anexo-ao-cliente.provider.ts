@@ -8,6 +8,8 @@ export interface EnviarAnexoAoClientePort {
   execute(input: {
     atendimentoId: string;
     arquivo: ArquivoAnexo;
+    // Só imagem: versão reduzida para a conversa (otimização; inválida ou com falha, é ignorada).
+    miniatura?: ArquivoAnexo;
     legenda?: string;
   }): Promise<Result<void, AppError>>;
 }

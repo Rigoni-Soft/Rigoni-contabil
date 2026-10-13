@@ -5,7 +5,9 @@ alter table public.mensagens
   add column anexo_tipo text,
   add column anexo_nome text,
   add column anexo_caminho text,
-  add column anexo_tamanho integer;
+  add column anexo_tamanho integer,
+  -- Só imagem: versão reduzida que a conversa mostra no lugar do original. Opcional, fora do CHECK.
+  add column anexo_miniatura_caminho text;
 
 alter table public.mensagens add constraint mensagens_anexo_completo check (
   (anexo_tipo is null and anexo_nome is null and anexo_caminho is null and anexo_tamanho is null)

@@ -115,7 +115,13 @@ describe("EnviarAnexoAoCliente", () => {
         "at-1",
         "func-1",
         "Segue",
-        { tipo: "documento", nome: "balanco.pdf", tamanho: 2048, caminho: "at-1/balanco.pdf" },
+        {
+          tipo: "documento",
+          nome: "balanco.pdf",
+          tamanho: 2048,
+          caminho: "at-1/balanco.pdf",
+          miniaturaCaminho: null,
+        },
       ],
     ]);
     expect(auditadas).toEqual([
@@ -223,5 +229,59 @@ describe("EnviarAnexoAoCliente", () => {
     expect(!r.ok && r.error.code).toBe("INCONSISTENT_STATE");
     expect(removidos).toEqual([]);
     expect(auditadas).toEqual([expect.objectContaining({ resultado: "sucesso" })]);
+  });
+
+  describe("miniatura", () => {
+    const MINIATURA = {
+      nome: "miniatura.webp",
+      tipoMime: "image/webp",
+      conteudo: new Uint8Array(500),
+    };
+
+    it("imagem com miniatura guarda as duas e registra o caminho da miniatura, sem enviá-la ao cliente", async () => {
+      const { caso, guardados, enviados, registradas } = montar();
+
+      const r = await caso.execute({ atendimentoId: "at-1", arquivo: FOTO, miniatura: MINIATURA });
+
+      expect(r.ok).toBe(true);
+      expect(guardados).toHaveLength(2);
+      expect(enviados).toEqual([expect.objectContaining({ nomeArquivo: "foto.png" })]);
+      expect(registradas).toEqual([
+        [
+          "at-1",
+          "func-1",
+          "",
+          expect.objectContaining({
+            caminho: "at-1/foto.png",
+            miniaturaCaminho: "at-1/miniatura.webp",
+          }),
+        ],
+      ]);
+    });
+
+    it.each([
+      ["de documento (só imagem tem miniatura)", PDF, MINIATURA],
+      ["que não é imagem", FOTO, { ...MINIATURA, tipoMime: "application/pdf" }],
+      ["grande demais", FOTO, { ...MINIATURA, conteudo: new Uint8Array(256 * 1024 + 1) }],
+      ["vazia", FOTO, { ...MINIATURA, conteudo: new Uint8Array(0) }],
+    ])("miniatura %s é ignorada e o envio segue", async (_, arquivo, miniatura) => {
+      const { caso, guardados, registradas } = montar();
+
+      const r = await caso.execute({ atendimentoId: "at-1", arquivo, miniatura });
+
+      expect(r.ok).toBe(true);
+      expect(guardados).toHaveLength(1);
+      expect(registradas).toEqual([
+        ["at-1", "func-1", "", expect.objectContaining({ miniaturaCaminho: null })],
+      ]);
+    });
+
+    it("falha do envio remove o original e a miniatura", async () => {
+      const { caso, removidos } = montar({ falhaEnvio: true });
+
+      await caso.execute({ atendimentoId: "at-1", arquivo: FOTO, miniatura: MINIATURA });
+
+      expect(removidos.sort()).toEqual(["at-1/foto.png", "at-1/miniatura.webp"]);
+    });
   });
 });

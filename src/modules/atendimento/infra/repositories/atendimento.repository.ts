@@ -450,7 +450,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     const { data, error } = await this.supabaseAdmin
       .from("atendimentos")
       .select(
-        "id, status, setor, funcionario_id, cliente_id, telefone, chave_telefone, resumo_ura, cnpj_informado, aviso_inatividade_em, aviso_inatividade_de, clientes(empresa, cnpj, cliente_contatos(nome, telefone, padrao, criado_em)), mensagens(id, autor, texto, criado_em, id_externo, reacao, anexo_tipo, anexo_nome, anexo_caminho, anexo_tamanho, perfis(nome, setor)), transferencias(setor_origem, resumo, origem:perfis!funcionario_origem_id(nome))",
+        "id, status, setor, funcionario_id, cliente_id, telefone, chave_telefone, resumo_ura, cnpj_informado, aviso_inatividade_em, aviso_inatividade_de, clientes(empresa, cnpj, cliente_contatos(nome, telefone, padrao, criado_em)), mensagens(id, autor, texto, criado_em, id_externo, reacao, anexo_tipo, anexo_nome, anexo_caminho, anexo_tamanho, anexo_miniatura_caminho, perfis(nome, setor)), transferencias(setor_origem, resumo, origem:perfis!funcionario_origem_id(nome))",
       )
       .eq("id", atendimentoId)
       .order("criado_em", { referencedTable: "mensagens" })
@@ -487,6 +487,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
                 nome: m.anexo_nome,
                 tamanho: m.anexo_tamanho,
                 caminho: m.anexo_caminho,
+                miniaturaCaminho: m.anexo_miniatura_caminho,
               }
             : null,
       })),
@@ -524,6 +525,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
         anexo_nome: anexo.nome,
         anexo_caminho: anexo.caminho,
         anexo_tamanho: anexo.tamanho,
+        anexo_miniatura_caminho: anexo.miniaturaCaminho,
       }),
     });
     if (error) return err(new ServicoExternoError("Falha ao registrar a Mensagem."));

@@ -162,6 +162,8 @@ export type AnexoDaMensagem = {
   nome: string;
   tamanho: number;
   caminho: string;
+  // Só imagem: versão reduzida que a conversa mostra.
+  miniaturaCaminho: string | null;
 };
 
 export type MensagemLida = {

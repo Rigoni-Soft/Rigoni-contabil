@@ -33,7 +33,10 @@ export function useCompositor(atendimentoId: string, initialData: ConversaVista)
     // Com arquivo escolhido, o texto é a legenda.
     aoEnviar: (texto: string) =>
       arquivo
-        ? anexoMutation.mutate({ arquivo, legenda: texto }, { onSuccess: concluido })
+        ? anexoMutation.mutate(
+            { arquivo, legenda: texto, miniatura: pendente.miniatura },
+            { onSuccess: concluido },
+          )
         : mensagem.mutate(texto, { onSuccess: concluido }),
     enviando: envio.isPending,
     erro: pendente.erro ?? (envio.isError ? envio.error.message : undefined),

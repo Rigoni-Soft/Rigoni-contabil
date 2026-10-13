@@ -19,6 +19,7 @@ import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import {
   ANEXO_LEGENDA_TAMANHO_MAXIMO,
+  ANEXO_MINIATURA_TAMANHO_MAXIMO,
   ANEXO_TAMANHO_MAXIMO,
   ANEXO_TIPO_RECUSADO,
   classificarAnexo,
@@ -48,10 +49,12 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
   async execute({
     atendimentoId,
     arquivo,
+    miniatura,
     legenda,
   }: {
     atendimentoId: string;
     arquivo: ArquivoAnexo;
+    miniatura?: ArquivoAnexo;
     legenda?: string;
   }): Promise<Result<void, AppError>> {
     const ator = await this.sessao.usuarioAtual();
@@ -84,10 +87,12 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
       return guardado;
     }
     const caminho = guardado.value;
+    const miniaturaCaminho = await this.guardarMiniatura(atendimentoId, tipo, miniatura);
+    const arquivos = miniaturaCaminho ? [caminho, miniaturaCaminho] : [caminho];
 
     const entregue = await this.entregar(atendimento.telefone, caminho, tipo, arquivo, texto);
     if (!entregue.ok) {
-      await this.anexos.remover(caminho);
+      await Promise.all(arquivos.map((c) => this.anexos.remover(c)));
       await this.auditar(ator, atendimentoId, "falha");
       return entregue;
     }
@@ -96,7 +101,13 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
       atendimentoId,
       ator.id,
       texto,
-      { tipo, nome: arquivo.nome, tamanho: arquivo.conteudo.byteLength, caminho },
+      {
+        tipo,
+        nome: arquivo.nome,
+        tamanho: arquivo.conteudo.byteLength,
+        caminho,
+        miniaturaCaminho,
+      },
     );
     // Já entregue: o registro falhar não desfaz o envio, e o arquivo fica (o cliente o recebeu).
     await this.auditar(ator, atendimentoId, "sucesso");
@@ -109,6 +120,26 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
       );
     }
     return ok(undefined);
+  }
+
+  // Só para imagem, e no formato e tamanho esperados; qualquer outra coisa (ou falha ao guardar) é
+  // ignorada: a conversa mostra o original, o envio não é prejudicado.
+  private async guardarMiniatura(
+    atendimentoId: string,
+    tipo: TipoAnexo,
+    miniatura: ArquivoAnexo | undefined,
+  ): Promise<string | null> {
+    if (
+      tipo !== "imagem" ||
+      !miniatura ||
+      classificarAnexo(miniatura.tipoMime) !== "imagem" ||
+      miniatura.conteudo.byteLength === 0 ||
+      miniatura.conteudo.byteLength > ANEXO_MINIATURA_TAMANHO_MAXIMO
+    ) {
+      return null;
+    }
+    const guardada = await this.anexos.guardar({ atendimentoId, arquivo: miniatura });
+    return guardada.ok ? guardada.value : null;
   }
 
   private async entregar(

@@ -203,7 +203,14 @@ describe("anexo na conversa", () => {
       {
         ...CONVERSA.mensagens[2],
         texto: "Segue",
-        anexo: { tipo: "documento", nome: "balanco.pdf", tamanho: 1536, url, expiraEm },
+        anexo: {
+          tipo: "documento",
+          nome: "balanco.pdf",
+          tamanho: 1536,
+          url,
+          miniaturaUrl: `${url}-mini`,
+          expiraEm,
+        },
       },
     ],
   });
@@ -221,6 +228,7 @@ describe("anexo na conversa", () => {
       nome: "balanco.pdf",
       tamanho: "1,5 KB",
       url: "https://l/1",
+      miniaturaUrl: "https://l/1-mini",
     });
   });
 
@@ -232,6 +240,7 @@ describe("anexo na conversa", () => {
 
     expect(r.mensagens[0].anexo).toMatchObject({
       url: "https://l/velho",
+      miniaturaUrl: "https://l/velho-mini",
       expiraEm: "2026-10-14T12:30:00Z",
     });
   });
