@@ -141,6 +141,16 @@ describe("CompositorConversaContainer", () => {
     expect(recentes).toHaveTextContent("👍👏");
   });
 
+  it("ignora recentes inválidos ou repetidos vindos do storage", async () => {
+    localStorage.setItem("emojis-recentes", JSON.stringify(["👍", 7, "👍", "👏"]));
+    const usuario = userEvent.setup();
+    render(<CompositorConversaContainer {...PROPS} />);
+
+    await usuario.click(screen.getByRole("button", { name: "Inserir emoji" }));
+
+    expect(screen.getByRole("group", { name: "Recentes" })).toHaveTextContent("👍👏");
+  });
+
   it("Esc fecha o seletor mesmo com o foco no campo", async () => {
     const usuario = userEvent.setup();
     render(<CompositorConversaContainer {...PROPS} />);

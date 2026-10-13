@@ -7,7 +7,10 @@ const MAXIMO_RECENTES = 8;
 function lerRecentes(): string[] {
   try {
     const lista: unknown = JSON.parse(localStorage.getItem(CHAVE_RECENTES) ?? "[]");
-    return Array.isArray(lista) ? lista.filter((e) => typeof e === "string") : [];
+    if (!Array.isArray(lista)) return [];
+    // O storage é editável: só strings, sem repetidas (viram `key` do botão) e no máximo MAXIMO_RECENTES.
+    const textos = lista.filter((e): e is string => typeof e === "string");
+    return [...new Set(textos)].slice(0, MAXIMO_RECENTES);
   } catch {
     return [];
   }
