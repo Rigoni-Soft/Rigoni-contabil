@@ -133,6 +133,14 @@ entrada (ação e dado de filtro são grupos distintos).
 Átomos próprios (o que o shadcn não oferece, sem estado nem hooks) vivem em
 `src/presentation/components/atoms/` com sufixo `.component.tsx`:
 `field-error`, `file-input`, `required-mark`, `titulo-de-grupo`, `grupo-de-acoes`.
+Moléculas de formulário reaproveitáveis (`molecules/`): `campo-de-texto`,
+`campo-de-opcoes` (rótulo + campo + erro/aviso, `aria-invalid`/`aria-required`
+vindos das props), `confirmacao-de-cadastro`, `botao-de-envio`,
+`acoes-do-formulario`, `linha-de-contato`, `linha-de-alteracao`,
+`campo-responsavel`. Formulário novo compõe estas peças em vez de repetir
+rótulo + campo + erro à mão. Gráficos do dashboard: `cartao-de-grafico` (átomo),
+`donut-de-fatias` e `barras-de-fatias` (moléculas).
+
 `password-input` e `theme-toggle` ficam em `ui/` de propósito: guardam estado
 visual efêmero (mostrar/ocultar, tema) e `'use client'` é permitido ali
 (arquitetura.md 4.7).

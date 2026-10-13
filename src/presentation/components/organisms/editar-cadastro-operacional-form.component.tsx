@@ -1,13 +1,16 @@
-import Link from "next/link";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Controller, type Control, type FieldErrors, type UseFormRegister } from "react-hook-form";
 
+import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcacao.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
-import { RequiredMark } from "@/presentation/components/atoms/required-mark.component";
-import { Button, buttonVariants } from "@/presentation/components/ui/button";
+import { AcoesDoFormulario } from "@/presentation/components/molecules/acoes-do-formulario.component";
+import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
+import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
+import { CampoResponsavel } from "@/presentation/components/molecules/campo-responsavel.component";
+import { LinhaDeContato } from "@/presentation/components/molecules/linha-de-contato.component";
+import { Button } from "@/presentation/components/ui/button";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
-import { Select } from "@/presentation/components/ui/select";
 import { Textarea } from "@/presentation/components/ui/textarea";
 import { formatarTelefone } from "@/presentation/lib/telefone-mask";
 import { DAS_STATUS_LABEL, DAS_STATUSES, type DasStatusValor } from "@/shared/kernel/das-status";
@@ -24,6 +27,14 @@ import {
   type ParcelamentoStatusValor,
 } from "@/shared/kernel/parcelamento-status";
 import { REGIME_LABEL } from "@/shared/kernel/regimes";
+
+// Opções dos selects de status (valor/rótulo), montadas uma vez.
+const opcoes = <T extends string>(valores: readonly T[], rotulos: Record<T, string>) =>
+  valores.map((valor) => ({ valor, rotulo: rotulos[valor] }));
+const OPCOES_FORMA_ENVIO = opcoes(FORMAS_ENVIO, FORMA_ENVIO_LABEL);
+const OPCOES_DOCUMENTO = opcoes(DOCUMENTO_OBRIGATORIO_STATUSES, DOCUMENTO_OBRIGATORIO_STATUS_LABEL);
+const OPCOES_DAS = opcoes(DAS_STATUSES, DAS_STATUS_LABEL);
+const OPCOES_PARCELAMENTO = opcoes(PARCELAMENTO_STATUSES, PARCELAMENTO_STATUS_LABEL);
 
 // View global não importa módulos (arquitetura.md §3.4) — o shape espelha
 // EditarCadastroOperacionalFormValues (módulo clientes) por estrutura, não
@@ -123,177 +134,99 @@ export function EditarCadastroOperacionalForm({
           <Label>Regime</Label>
           <Input value={REGIME_LABEL[cabecalho.regime] ?? cabecalho.regime} disabled readOnly />
         </div>
-        <div className="space-y-1">
-          <Label htmlFor="responsavelId">Responsável</Label>
-          {responsavel.editavel ? (
-            <Select
-              id="responsavelId"
-              disabled={pendente}
-              {...register("responsavelId")}
-              onFocus={responsavel.onAbrir}
-            >
-              <option value="">{SEM_RESPONSAVEL_LABEL}</option>
-              {responsavel.estadoLista === "carregando" && <option disabled>Carregando…</option>}
-              {responsavel.opcoes.map((opcao) => (
-                <option key={opcao.id} value={opcao.id}>
-                  {opcao.nome}
-                </option>
-              ))}
-            </Select>
-          ) : (
-            <Input id="responsavelId" value={responsavel.nomeAtual} disabled readOnly />
-          )}
-          {responsavel.estadoLista === "erro" && (
-            <div className="flex flex-wrap items-center gap-x-2">
-              <FieldError>Não foi possível carregar a lista de Funcionários.</FieldError>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={responsavel.onTentarNovamente}
-              >
-                Tentar de novo
-              </Button>
-            </div>
-          )}
-        </div>
+        <CampoResponsavel
+          editavel={responsavel.editavel}
+          nomeAtual={responsavel.nomeAtual}
+          opcoes={responsavel.opcoes}
+          semResponsavel={SEM_RESPONSAVEL_LABEL}
+          estadoLista={responsavel.estadoLista}
+          onAbrir={responsavel.onAbrir}
+          onTentarNovamente={responsavel.onTentarNovamente}
+          select={register("responsavelId")}
+          desabilitado={pendente}
+        />
       </div>
 
       <fieldset disabled={readOnly || pendente} className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <div className="space-y-1">
-          <Label htmlFor="formaEnvio">Forma de envio</Label>
-          <Select id="formaEnvio" {...register("formaEnvio")}>
-            {FORMAS_ENVIO.map((valor) => (
-              <option key={valor} value={valor}>
-                {FORMA_ENVIO_LABEL[valor]}
-              </option>
-            ))}
-          </Select>
-        </div>
+        <CampoDeOpcoes
+          id="formaEnvio"
+          rotulo="Forma de envio"
+          opcoes={OPCOES_FORMA_ENVIO}
+          className="gap-1"
+          {...register("formaEnvio")}
+        />
+        <CampoDeOpcoes
+          id="documentoObrigatorio"
+          rotulo="Documento recebido"
+          opcoes={OPCOES_DOCUMENTO}
+          placeholder="Não definido"
+          className="gap-1"
+          {...register("documentoObrigatorio")}
+        />
+        <CampoDeOpcoes
+          id="dasStatus"
+          rotulo="DAS"
+          opcoes={OPCOES_DAS}
+          placeholder="Não definido"
+          className="gap-1"
+          {...register("dasStatus")}
+        />
+        <CampoDeTexto
+          id="dataEnvioDas"
+          rotulo="Data de envio"
+          type="date"
+          className="gap-1"
+          {...register("dataEnvioDas")}
+        />
 
         <div className="space-y-1">
-          <Label htmlFor="documentoObrigatorio">Documento recebido</Label>
-          <Select id="documentoObrigatorio" {...register("documentoObrigatorio")}>
-            <option value="">Não definido</option>
-            {DOCUMENTO_OBRIGATORIO_STATUSES.map((valor) => (
-              <option key={valor} value={valor}>
-                {DOCUMENTO_OBRIGATORIO_STATUS_LABEL[valor]}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        <div className="space-y-1">
-          <Label htmlFor="dasStatus">DAS</Label>
-          <Select id="dasStatus" {...register("dasStatus")}>
-            <option value="">Não definido</option>
-            {DAS_STATUSES.map((valor) => (
-              <option key={valor} value={valor}>
-                {DAS_STATUS_LABEL[valor]}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="dataEnvioDas">Data de envio</Label>
-          <Input id="dataEnvioDas" type="date" {...register("dataEnvioDas")} />
-        </div>
-
-        <div className="space-y-1">
-          <label className="flex items-center gap-1.5 text-sm">
-            <input type="checkbox" {...register("temParcelamento")} />
-            Tem parcelamento
-          </label>
+          <CaixaDeMarcacao rotulo="Tem parcelamento" {...register("temParcelamento")} />
           {temParcelamento && (
-            <Select id="parcelamentoStatus" {...register("parcelamentoStatus")}>
-              <option value="">Não definido</option>
-              {PARCELAMENTO_STATUSES.map((valor) => (
-                <option key={valor} value={valor}>
-                  {PARCELAMENTO_STATUS_LABEL[valor]}
-                </option>
-              ))}
-            </Select>
+            <CampoDeOpcoes
+              id="parcelamentoStatus"
+              rotulo="Status do parcelamento"
+              opcoes={OPCOES_PARCELAMENTO}
+              placeholder="Não definido"
+              className="gap-1"
+              {...register("parcelamentoStatus")}
+            />
           )}
         </div>
 
         <div className="space-y-1">
           <Label>Atividade do mês</Label>
           <div className="flex gap-4 text-sm">
-            <label className="flex items-center gap-1.5">
-              <input type="checkbox" {...register("atividadeMes.industria")} />
-              Indústria
-            </label>
-            <label className="flex items-center gap-1.5">
-              <input type="checkbox" {...register("atividadeMes.comercio")} />
-              Comércio
-            </label>
-            <label className="flex items-center gap-1.5">
-              <input type="checkbox" {...register("atividadeMes.servico")} />
-              Serviço
-            </label>
+            <CaixaDeMarcacao rotulo="Indústria" {...register("atividadeMes.industria")} />
+            <CaixaDeMarcacao rotulo="Comércio" {...register("atividadeMes.comercio")} />
+            <CaixaDeMarcacao rotulo="Serviço" {...register("atividadeMes.servico")} />
           </div>
         </div>
 
         <div className="space-y-3 sm:col-span-2">
           <Label className="block">Contatos</Label>
           {contatos.map((campo, indice) => (
-            <div
+            <Controller
               key={campo.id}
-              className="flex flex-wrap items-end gap-3 rounded-md border border-border p-3"
-            >
-              <div className="min-w-[10rem] flex-1 space-y-1">
-                <Label htmlFor={`contatos.${indice}.nome`}>
-                  Nome
-                  <RequiredMark />
-                </Label>
-                <Input
-                  id={`contatos.${indice}.nome`}
-                  aria-required="true"
-                  {...register(`contatos.${indice}.nome`)}
+              control={control}
+              name={`contatos.${indice}.telefone`}
+              render={({ field: { onChange, onBlur, value, name } }) => (
+                <LinhaDeContato
+                  indice={indice}
+                  nome={register(`contatos.${indice}.nome`)}
+                  // Sem `ref` (Input não usa forwardRef): só perde o foco automático em erro.
+                  telefone={{
+                    name,
+                    value,
+                    onBlur,
+                    onChange: (evento) => onChange(formatarTelefone(evento.target.value)),
+                  }}
+                  padrao={register(`contatos.${indice}.padrao`)}
+                  erroNome={errors.contatos?.[indice]?.nome?.message}
+                  erroTelefone={errors.contatos?.[indice]?.telefone?.message}
+                  onRemover={() => onRemoverContato(indice)}
                 />
-                {errors.contatos?.[indice]?.nome && (
-                  <FieldError>{errors.contatos[indice]?.nome?.message}</FieldError>
-                )}
-              </div>
-              <div className="min-w-[10rem] flex-1 space-y-1">
-                <Label htmlFor={`contatos.${indice}.telefone`}>
-                  Telefone
-                  <RequiredMark />
-                </Label>
-                <Controller
-                  control={control}
-                  name={`contatos.${indice}.telefone`}
-                  render={({ field: { onChange, onBlur, value, name } }) => (
-                    // Input (ui/) não usa forwardRef — sem ref aqui, mesmo ajuste do #33
-                    // (criar-cliente.schema.ts): só perde o foco automático em erro.
-                    <Input
-                      id={`contatos.${indice}.telefone`}
-                      name={name}
-                      value={value}
-                      aria-required="true"
-                      onBlur={onBlur}
-                      onChange={(evento) => onChange(formatarTelefone(evento.target.value))}
-                    />
-                  )}
-                />
-                {errors.contatos?.[indice]?.telefone && (
-                  <FieldError>{errors.contatos[indice]?.telefone?.message}</FieldError>
-                )}
-              </div>
-              <label className="flex items-center gap-1.5 pb-2 text-sm">
-                <input type="checkbox" {...register(`contatos.${indice}.padrao`)} />
-                Padrão
-              </label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => onRemoverContato(indice)}
-                aria-label={`Remover contato ${indice + 1}`}
-              >
-                <Trash2 className="size-4" aria-hidden="true" />
-              </Button>
-            </div>
+              )}
+            />
           ))}
           {errors.contatos && typeof errors.contatos.message === "string" && (
             <FieldError>{errors.contatos.message}</FieldError>
@@ -310,21 +243,7 @@ export function EditarCadastroOperacionalForm({
         </div>
 
         {!readOnly && (
-          <div className="flex flex-wrap gap-2 sm:col-span-2">
-            <Button type="submit">{pendente ? "Salvando..." : "Salvar"}</Button>
-            <Button type="button" variant="outline" onClick={onLimpar} disabled={pendente}>
-              Limpar
-            </Button>
-            {onCancelar ? (
-              <Button type="button" variant="destructive" onClick={onCancelar} disabled={pendente}>
-                Cancelar
-              </Button>
-            ) : (
-              <Link href="/" className={buttonVariants({ variant: "destructive" })}>
-                Cancelar
-              </Link>
-            )}
-          </div>
+          <AcoesDoFormulario pendente={pendente} onLimpar={onLimpar} onCancelar={onCancelar} />
         )}
       </fieldset>
 
