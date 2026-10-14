@@ -55,6 +55,17 @@ describe("criarClienteSchema", () => {
     },
   );
 
+  it("rejeita e-mail acima de 254 caracteres", () => {
+    const resultado = criarClienteSchema.safeParse({
+      empresa: "Padaria Pão Quente Ltda",
+      cnpj: "11.444.777/0001-61",
+      regime: "simples_nacional",
+      email: `${"a".repeat(250)}@b.co`,
+      alteracoesContratuais: [],
+    });
+    expect(resultado.success).toBe(false);
+  });
+
   it("rejeita e-mail mal formado", () => {
     const resultado = criarClienteSchema.safeParse({
       empresa: "Padaria Pão Quente Ltda",

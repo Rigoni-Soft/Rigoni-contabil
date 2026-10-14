@@ -281,6 +281,11 @@ describe("ClienteBuilder", () => {
       if (!resultado.ok) expect(resultado.error.fields?.email).toBeDefined();
     });
 
+    it("e-mail acima de 254 caracteres é rejeitado (limite da coluna)", () => {
+      const longo = `${"a".repeat(250)}@b.co`;
+      expect(comBase().comEmail(longo).build().ok).toBe(false);
+    });
+
     it("restaurar traz o e-mail do cadastro", () => {
       const resultado = Cliente.builder()
         .restaurar({

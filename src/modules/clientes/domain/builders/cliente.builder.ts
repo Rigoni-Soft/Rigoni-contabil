@@ -105,8 +105,9 @@ export class ClienteBuilder {
   // Vazio ou só espaços é "sem e-mail"; o formato é o mesmo do `check` da coluna.
   comEmail(entrada: string | null): this {
     const email = entrada?.trim() || null;
-    if (email !== null && !EMAIL_VALIDO.test(email))
+    if (email !== null && (email.length > 254 || !EMAIL_VALIDO.test(email))) {
       this.camposInvalidos.email = ["e-mail inválido"];
+    }
     this.email = email;
     return this;
   }

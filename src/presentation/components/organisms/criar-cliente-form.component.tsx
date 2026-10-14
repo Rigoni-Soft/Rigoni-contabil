@@ -154,6 +154,7 @@ export function CriarClienteForm({
           rotulo="E-mail"
           type="email"
           autoComplete="off"
+          maxLength={254}
           erro={errors.email?.message}
           {...register("email")}
         />
