@@ -43,4 +43,15 @@ describe("FfmpegConversorDeAudioGateway", () => {
     expect(r.ok).toBe(true);
     if (r.ok) expect(Buffer.from(r.value.subarray(0, 4)).toString("latin1")).toBe("OggS");
   });
+
+  it("só resolve o binário quando há o que converter e falha com mensagem clara se a resolução falha", async () => {
+    const resolver = jest.fn().mockRejectedValue(new Error("sem /tmp"));
+    const gateway = new FfmpegConversorDeAudioGateway(resolver);
+    expect(resolver).not.toHaveBeenCalled();
+
+    const r = await gateway.paraOggOpus(new Uint8Array([1]));
+
+    expect(resolver).toHaveBeenCalledTimes(1);
+    expect(r.ok).toBe(false);
+  });
 });

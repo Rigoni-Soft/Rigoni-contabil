@@ -19,9 +19,20 @@ const ARGS_OGG_OPUS = [
 // Usa o binário `ffmpeg` do ambiente (ou o de `caminho`); sem ele a conversão falha com mensagem
 // clara e nada é perdido (docs/adr/0006).
 export class FfmpegConversorDeAudioGateway implements ConversorDeAudioPort {
-  constructor(private readonly caminho = "ffmpeg") {}
+  // `caminho` como função: o binário só é resolvido (e descomprimido) quando há o que converter.
+  constructor(private readonly caminho: string | (() => Promise<string>) = "ffmpeg") {}
 
-  paraOggOpus(conteudo: Uint8Array): Promise<Result<Uint8Array, AppError>> {
+  async paraOggOpus(conteudo: Uint8Array): Promise<Result<Uint8Array, AppError>> {
+    let binario: string;
+    try {
+      binario = typeof this.caminho === "string" ? this.caminho : await this.caminho();
+    } catch {
+      return err(new ServicoExternoError(SEM_FFMPEG));
+    }
+    return this.converter(binario, conteudo);
+  }
+
+  private converter(binario: string, conteudo: Uint8Array): Promise<Result<Uint8Array, AppError>> {
     return new Promise((resolve) => {
       const saida: Buffer[] = [];
       let encerrado = false;
@@ -32,7 +43,7 @@ export class FfmpegConversorDeAudioGateway implements ConversorDeAudioPort {
         resolve(resultado);
       };
 
-      const processo = spawn(this.caminho, ARGS_OGG_OPUS, { stdio: ["pipe", "pipe", "ignore"] });
+      const processo = spawn(binario, ARGS_OGG_OPUS, { stdio: ["pipe", "pipe", "ignore"] });
       const limite = setTimeout(() => {
         processo.kill();
         encerrar(err(new ServicoExternoError(FALHA_NA_CONVERSAO)));

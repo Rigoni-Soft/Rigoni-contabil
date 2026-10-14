@@ -244,7 +244,7 @@ export async function makeObterConversa(): Promise<ObterConversaPort> {
 }
 
 // `FFMPEG_PATH` manda; senão o binário comprimido do build (menor na função); senão o do pacote
-// ffmpeg-static (desenvolvimento) ou o do PATH.
+// ffmpeg-static (desenvolvimento) ou o do PATH. Só é chamada quando há áudio webm a converter.
 function caminhoDoFfmpeg(): Promise<string> {
   if (FFMPEG_PATH) return Promise.resolve(FFMPEG_PATH);
   return resolverFfmpeg({
@@ -266,7 +266,7 @@ export async function makeEnviarAnexoAoCliente(): Promise<EnviarAnexoAoClientePo
     new SupabaseAnexosAtendimentoGateway(supabaseAdmin),
     makeEnvioMensagem(),
     auditoriaViaModuloAuditoria(),
-    new FfmpegConversorDeAudioGateway(await caminhoDoFfmpeg()),
+    new FfmpegConversorDeAudioGateway(caminhoDoFfmpeg),
   );
 }
 

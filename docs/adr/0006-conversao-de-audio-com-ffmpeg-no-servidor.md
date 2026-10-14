@@ -22,7 +22,7 @@ para contar com isso em todas as versões instaladas).
 - Para a função levar menos peso, o `prebuild` comprime o binário em brotli (`.ffmpeg/ffmpeg.br`,
   cerca de 83 MB → 26 MB); a rota da conversa leva só esse arquivo (`outputFileTracingIncludes`, com o
   binário bruto em `outputFileTracingExcludes`) e `resolverFfmpeg` o descomprime em `/tmp` na
-  primeira conversão da instância. Em desenvolvimento, sem o `.br`, usa o binário do pacote.
+  primeira conversão da instância (só quando há webm a converter). Em desenvolvimento, sem o `.br`, usa o binário do pacote.
 - Se o binário não executar, o envio falha com mensagem clara; a gravação continua no navegador.
 
 ## Alternativas
