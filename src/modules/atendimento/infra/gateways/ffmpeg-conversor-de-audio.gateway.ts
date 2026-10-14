@@ -7,10 +7,11 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const SEM_FFMPEG =
   "Este ambiente não tem como converter o áudio. Tente de novo pelo Firefox ou Safari, ou avise o suporte; a gravação continua aqui.";
+const TIMEOUT_MS = 30_000;
 const FALHA_NA_CONVERSAO = "Não foi possível converter o áudio. Tente gravar de novo.";
 
 // ogg/opus mono, o formato da mensagem de voz do WhatsApp. Entrada e saída por pipe: nada vai a disco.
-const ARGUMENTOS = [
+const ARGS_OGG_OPUS = [
   ...["-hide_banner", "-loglevel", "error", "-i", "pipe:0", "-vn"],
   ...["-ac", "1", "-c:a", "libopus", "-b:a", "32k", "-f", "ogg", "pipe:1"],
 ];
@@ -18,10 +19,7 @@ const ARGUMENTOS = [
 // Usa o binário `ffmpeg` do ambiente (ou o de `caminho`); sem ele a conversão falha com mensagem
 // clara e nada é perdido (docs/adr/0006).
 export class FfmpegConversorDeAudioGateway implements ConversorDeAudioPort {
-  constructor(
-    private readonly caminho = "ffmpeg",
-    private readonly timeoutMs = 30_000,
-  ) {}
+  constructor(private readonly caminho = "ffmpeg") {}
 
   paraOggOpus(conteudo: Uint8Array): Promise<Result<Uint8Array, AppError>> {
     return new Promise((resolve) => {
@@ -34,11 +32,11 @@ export class FfmpegConversorDeAudioGateway implements ConversorDeAudioPort {
         resolve(resultado);
       };
 
-      const processo = spawn(this.caminho, ARGUMENTOS, { stdio: ["pipe", "pipe", "ignore"] });
+      const processo = spawn(this.caminho, ARGS_OGG_OPUS, { stdio: ["pipe", "pipe", "ignore"] });
       const limite = setTimeout(() => {
         processo.kill();
         encerrar(err(new ServicoExternoError(FALHA_NA_CONVERSAO)));
-      }, this.timeoutMs);
+      }, TIMEOUT_MS);
 
       processo.on("error", (erro: NodeJS.ErrnoException) =>
         encerrar(

@@ -39,9 +39,14 @@ const MIME_DOCUMENTO = [
 
 export const ANEXO_MIMES_ACEITOS = [...MIME_IMAGEM, ...MIME_DOCUMENTO];
 
+// "Audio/OGG; codecs=opus" → "audio/ogg".
+export function normalizarMime(tipoMime: string): string {
+  return tipoMime.split(";")[0].trim().toLowerCase();
+}
+
 // null: tipo não aceito.
 export function classificarAnexo(tipoMime: string): TipoAnexo | null {
-  const mime = tipoMime.split(";")[0].trim().toLowerCase();
+  const mime = normalizarMime(tipoMime);
   if (MIME_IMAGEM.includes(mime)) return "imagem";
   if (MIME_DOCUMENTO.includes(mime)) return "documento";
   return null;
@@ -77,14 +82,14 @@ const MIME_AUDIO_A_CONVERTER = ["audio/webm"];
 
 // "nativo": o provedor aceita como está; "converter": só depois de virar ogg/opus; null: recusado.
 export function classificarAudio(tipoMime: string): "nativo" | "converter" | null {
-  const mime = tipoMime.split(";")[0].trim().toLowerCase();
+  const mime = normalizarMime(tipoMime);
   if (MIME_AUDIO_NATIVO.includes(mime)) return "nativo";
   if (MIME_AUDIO_A_CONVERTER.includes(mime)) return "converter";
   return null;
 }
 
 export function ehAudio(tipoMime: string): boolean {
-  return tipoMime.trim().toLowerCase().startsWith("audio/");
+  return normalizarMime(tipoMime).startsWith("audio/");
 }
 
 export function validarAudio(

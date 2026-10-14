@@ -97,11 +97,12 @@ describe("useGravadorAudio", () => {
 
     await act(() => result.current.iniciar());
     act(() => FakeMediaRecorder.ultimo!.emitir(10));
+    let arquivo: File | null = null;
     await act(async () => {
-      await result.current.parar();
+      arquivo = await result.current.parar();
     });
 
-    expect(result.current.arquivo).toMatchObject({ name: "gravacao.webm" });
+    expect(arquivo).toMatchObject({ name: "gravacao.webm" });
   });
 
   it.each([
@@ -127,7 +128,7 @@ describe("useGravadorAudio", () => {
     act(() => result.current.descartar());
 
     expect(trilha.stop).toHaveBeenCalled();
-    expect(result.current).toMatchObject({ estado: "ocioso", arquivo: null, segundos: 0 });
+    expect(result.current).toMatchObject({ estado: "ocioso", segundos: 0 });
   });
 
   it("sair da tela no meio da gravação libera o microfone", async () => {
@@ -148,8 +149,7 @@ describe("useGravadorAudio", () => {
 
     act(() => FakeMediaRecorder.ultimo!.emitir(10 * 1024 * 1024));
 
-    expect(result.current).toMatchObject({ estado: "pronto", limiteAtingido: true });
-    expect(result.current.arquivo).not.toBeNull();
+    expect(result.current.estado).toBe("pronto");
   });
 
   it("ao atingir o limite de duração, a gravação para sozinha", async () => {
@@ -162,7 +162,7 @@ describe("useGravadorAudio", () => {
       jest.advanceTimersByTime(300_000);
     });
 
-    expect(result.current).toMatchObject({ estado: "pronto", limiteAtingido: true });
+    expect(result.current.estado).toBe("pronto");
   });
 
   it("sem MediaRecorder, informa que o navegador não tem suporte", () => {

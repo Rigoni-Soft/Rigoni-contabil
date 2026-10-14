@@ -23,6 +23,7 @@ import {
   AUDIO_MIME_OGG,
   ehAudio,
   miniaturaValida,
+  normalizarMime,
   validarAnexo,
   validarAudio,
   type TipoAnexoMensagem,
@@ -143,9 +144,9 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
   ): Promise<Result<ArquivoAnexo, AppError>> {
     if (!formato) return ok(arquivo);
     if (formato === "nativo") {
-      return ok({ ...arquivo, tipoMime: arquivo.tipoMime.split(";")[0].trim().toLowerCase() });
+      return ok({ ...arquivo, tipoMime: normalizarMime(arquivo.tipoMime) });
     }
-    const convertido = await this.conversor.paraOggOpus(arquivo.conteudo, arquivo.tipoMime);
+    const convertido = await this.conversor.paraOggOpus(arquivo.conteudo);
     if (!convertido.ok) return convertido;
     return ok({
       nome: arquivo.nome.replace(/\.[^.]+$/, "") + ".ogg",

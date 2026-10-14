@@ -32,7 +32,7 @@ export function CompositorConversaContainer({
   const { campoRef, seletor } = useSeletorDeEmoji();
   const gravador = useGravadorAudio();
 
-  // Enviar para a gravação (se ainda corre) e entrega o arquivo; só some da tela se a entrega deu certo.
+  // Para a gravação (se ainda corre) e entrega o arquivo; só some da tela se a entrega deu certo.
   const enviarGravacao = async () => {
     const gravado = await gravador.parar();
     if (gravado) aoEnviarAudio(gravado, gravador.descartar);

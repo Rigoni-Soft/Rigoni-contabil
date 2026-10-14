@@ -43,7 +43,7 @@ function montar({
   falhaRegistro = false,
   falhaConversao = false,
 }: Opcoes = {}) {
-  const conversoes: string[] = [];
+  const conversoes: number[] = [];
   const guardados: unknown[] = [];
   const removidos: string[] = [];
   const enviados: unknown[] = [];
@@ -82,8 +82,8 @@ function montar({
   } as unknown as EnvioMensagemPort;
   const auditoria: AuditoriaPort = { registrar: async (a) => void auditadas.push(a) };
   const conversor: ConversorDeAudioPort = {
-    paraOggOpus: async (conteudo, mime) => {
-      conversoes.push(mime);
+    paraOggOpus: async (conteudo) => {
+      conversoes.push(conteudo.byteLength);
       return falhaConversao
         ? err(new ServicoExternoError("sem ffmpeg"))
         : ok(new Uint8Array(conteudo.byteLength / 2));
@@ -317,7 +317,7 @@ describe("EnviarAnexoAoCliente", () => {
       const r = await caso.execute({ atendimentoId: "at-1", arquivo: webm, legenda: "ignorada" });
 
       expect(r.ok).toBe(true);
-      expect(conversoes).toEqual(["audio/webm;codecs=opus"]);
+      expect(conversoes).toEqual([4000]);
       expect(guardados).toEqual([
         {
           atendimentoId: "at-1",

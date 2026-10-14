@@ -23,7 +23,7 @@ function motivoSemSuporte(): string {
   }
   return "";
 }
-const semAssinatura = () => () => {};
+const semAssinatura = () => () => {}; // `subscribe` de useSyncExternalStore: o suporte não muda
 
 function extensao(mime: string) {
   if (mime.startsWith("audio/ogg")) return "ogg";
@@ -40,13 +40,11 @@ function mensagemDoErro(erro: unknown) {
 
 // Gravação pelo microfone (UI efêmera, arquitetura.md §4.7). A permissão só é pedida em `iniciar`.
 // O microfone é liberado ao parar, ao descartar e ao sair da tela; nada fica guardado no navegador.
-// `limiteAtingido`: a gravação parou sozinha (duração ou tamanho) e espera a confirmação para enviar.
+// `estado` "pronto": parou (a pedido, ou sozinha ao atingir duração/tamanho) e espera enviar ou descartar.
 export function useGravadorAudio() {
   const indisponivel = useSyncExternalStore(semAssinatura, motivoSemSuporte, () => "");
   const [estado, setEstado] = useState<EstadoGravacao>("ocioso");
   const [segundos, setSegundos] = useState(0);
-  const [arquivo, setArquivo] = useState<File | null>(null);
-  const [limiteAtingido, setLimiteAtingido] = useState(false);
   const [erro, setErro] = useState<string>();
 
   const gravador = useRef<MediaRecorder | null>(null);
@@ -80,8 +78,6 @@ export function useGravadorAudio() {
     liberar();
     setEstado("ocioso");
     setSegundos(0);
-    setArquivo(null);
-    setLimiteAtingido(false);
   }, [liberar]);
 
   useEffect(() => descartar, [descartar]);
@@ -91,7 +87,8 @@ export function useGravadorAudio() {
     setErro(undefined);
     let microfone: MediaStream;
     try {
-      microfone = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Mono: o que a mensagem de voz do WhatsApp exige (o plano B do servidor também converte a mono).
+      microfone = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1 } });
     } catch (falha) {
       setErro(mensagemDoErro(falha));
       return;
@@ -113,8 +110,8 @@ export function useGravadorAudio() {
     fluxo.current = microfone;
     gravador.current = atual;
 
+    // Duração ou tamanho: para sozinha e fica "pronto", esperando a confirmação para enviar.
     const encerrarPorLimite = () => {
-      setLimiteAtingido(true);
       if (atual.state !== "inactive") atual.stop();
     };
     atual.ondataavailable = (evento) => {
@@ -129,13 +126,11 @@ export function useGravadorAudio() {
       const tipo = atual.mimeType || formato || "audio/webm";
       const gravado = new File(partes, `gravacao.${extensao(tipo)}`, { type: tipo });
       arquivoGravado.current = gravado;
-      setArquivo(gravado);
       setEstado("pronto");
     };
 
     let decorridos = 0;
     setSegundos(0);
-    setLimiteAtingido(false);
     setEstado("gravando");
     relogio.current = setInterval(() => {
       decorridos += 1;
@@ -149,8 +144,6 @@ export function useGravadorAudio() {
   return {
     estado,
     segundos,
-    arquivo,
-    limiteAtingido,
     // Motivo fixo de o botão não funcionar; `erro` é o da última tentativa (permissão, sem microfone).
     indisponivel: indisponivel || undefined,
     erro,
