@@ -1,21 +1,17 @@
 import { createHmac } from "node:crypto";
 
 import type { APIRequestContext } from "@playwright/test";
-import { createClient } from "@supabase/supabase-js";
 
 import { expect, test } from "./fixtures";
+import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
 // Mídia do cliente (#81): o cliente manda um áudio pelo WhatsApp (webhook, adapter falso de download)
 // e o Funcionário o vê e o toca na conversa. O Atendimento nasce direto no banco; o webhook é
 // chamado com a assinatura HMAC do segredo de desenvolvimento. Usuário: supabase/seed.sql
 // (funcionario2.sn).
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
-const SERVICE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ??
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 const SEGREDO = process.env.MENSAGERIA_SEGREDO_ASSINATURA ?? "segredo-falso";
-const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+const admin = adminLocal();
 
 const FUNCIONARIO = "99999999-9999-9999-9999-999999999999";
 const TELEFONE = "61955572081";

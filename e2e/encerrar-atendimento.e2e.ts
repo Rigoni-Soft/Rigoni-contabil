@@ -1,16 +1,11 @@
-import { createClient } from "@supabase/supabase-js";
-
 import { expect, test } from "./fixtures";
+import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
 // O Funcionário encerra o Atendimento (#49/#70): o mesmo encerramento que a URA faz por
 // inatividade (#73) — libera o Funcionário, que assume o mais antigo da Fila, e o cliente é avisado.
 // Os Atendimentos nascem direto no banco. Usuário: supabase/seed.sql (funcionario2.financeiro).
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
-const SERVICE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ??
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
-const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+const admin = adminLocal();
 
 const FUNCIONARIO = "55555555-5555-5555-5555-555555555555"; // funcionario2.financeiro
 const EM_ANDAMENTO = "61955574001";

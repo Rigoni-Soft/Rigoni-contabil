@@ -1,15 +1,10 @@
-import { createClient } from "@supabase/supabase-js";
-
 import { expect, test } from "./fixtures";
+import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
 // Tela da Fila do Setor (#70). Os Atendimentos nascem direto no banco, já na Fila (sem
 // Funcionário), com a espera começando no passado. Usuários: supabase/seed.sql, ambiente Dev local.
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
-const SERVICE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ??
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
-const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+const admin = adminLocal();
 
 const CLIENTE = crypto.randomUUID();
 const CNPJ = `7${Date.now()}`.slice(0, 14);
