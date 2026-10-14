@@ -15,7 +15,7 @@ import { Regime } from "@/modules/clientes/domain/value-objects/regime.vo";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-const EMAIL_VALIDO = /^[^@s]+@[^@s]+$/;
+const EMAIL_VALIDO = /^[^@\s]+@[^@\s]+$/;
 
 export type AlteracaoContratualRestaurar = { data: string; arquivoCaminho: string };
 export type ContatoRestaurar = { id?: string; nome: string; telefone: string; padrao: boolean };

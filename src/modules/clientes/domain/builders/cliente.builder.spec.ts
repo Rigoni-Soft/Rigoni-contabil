@@ -265,6 +265,12 @@ describe("ClienteBuilder", () => {
       expect(resultado.ok && resultado.value.email).toBeNull();
     });
 
+    it("aceita e-mail com a letra s e rejeita espaço no meio", () => {
+      const comS = comBase().comEmail("contato@silva.com.br").build();
+      expect(comS.ok && comS.value.email).toBe("contato@silva.com.br");
+      expect(comBase().comEmail("con tato@silva.com.br").build().ok).toBe(false);
+    });
+
     it("guarda o e-mail sem espaços nas pontas", () => {
       const resultado = comBase().comEmail("  financeiro@padaria.com.br ").build();
       expect(resultado.ok && resultado.value.email).toBe("financeiro@padaria.com.br");
