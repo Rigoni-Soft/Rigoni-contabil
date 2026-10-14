@@ -9,3 +9,7 @@ export const FORMA_ENVIO_LABEL: Record<string, string> = {
   email: "E-mail",
   whatsapp_e_email: "WhatsApp e E-mail",
 };
+
+// Canais que a forma de envio inclui.
+export const formaEnvioUsaWhatsapp = (forma: FormaEnvioValor) => forma !== "email";
+export const formaEnvioUsaEmail = (forma: FormaEnvioValor) => forma !== "whatsapp";

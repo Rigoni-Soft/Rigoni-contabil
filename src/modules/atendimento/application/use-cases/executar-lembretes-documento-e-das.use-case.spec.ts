@@ -8,6 +8,7 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
+import { EntregarComunicacaoPorCanais } from "./entregar-comunicacao-por-canais.use-case";
 import { EnviarComunicacaoProativa } from "./enviar-comunicacao-proativa.use-case";
 import { ExecutarLembretesDocumentoEDas } from "./executar-lembretes-documento-e-das.use-case";
 
@@ -68,13 +69,16 @@ function montar(
     },
     { buscar },
     { publicar: async () => ok("https://storage.test/das.pdf") },
-    new EnviarComunicacaoProativa(envio, 3, 0),
-    {
-      enviar: async (email) => {
-        emails.push(email);
-        return ok(undefined);
+    new EntregarComunicacaoPorCanais(
+      new EnviarComunicacaoProativa(envio, 3, 0),
+      {
+        enviar: async (email) => {
+          emails.push(email);
+          return ok(undefined);
+        },
       },
-    },
+      0,
+    ),
     {
       alertar: async (alerta) => {
         alertas.push(alerta);

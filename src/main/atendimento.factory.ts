@@ -54,6 +54,7 @@ import { AutenticarWebhook } from "@/modules/atendimento/application/use-cases/a
 import { AvisarCliente } from "@/modules/atendimento/application/use-cases/avisar-cliente.use-case";
 import { CadastrarFeriado } from "@/modules/atendimento/application/use-cases/cadastrar-feriado.use-case";
 import { EncerrarAtendimento } from "@/modules/atendimento/application/use-cases/encerrar-atendimento.use-case";
+import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/use-cases/entregar-comunicacao-por-canais.use-case";
 import { EnviarAnexoAoCliente } from "@/modules/atendimento/application/use-cases/enviar-anexo-ao-cliente.use-case";
 import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
 import { EnviarDocumentoAoCliente } from "@/modules/atendimento/application/use-cases/enviar-documento-ao-cliente.use-case";
@@ -256,8 +257,10 @@ export function makeExecutarLembretesDocumentoEDas(): ExecutarLembretesDocumento
     new SupabaseClientesParaLembreteGateway(supabaseAdmin),
     guiasFiscais(supabaseAdmin),
     new SupabaseGuiaPublicadaGateway(supabaseAdmin),
-    new EnviarComunicacaoProativa(makeEnvioMensagem(), TENTATIVAS, ESPERA_MS),
-    new EnvioEmailFalsoGateway(),
+    new EntregarComunicacaoPorCanais(
+      new EnviarComunicacaoProativa(makeEnvioMensagem(), TENTATIVAS, ESPERA_MS),
+      new EnvioEmailFalsoGateway(),
+    ),
     new SupabaseAlertaSetorGateway(supabaseAdmin),
     new RelogioSistemaGateway(),
   );

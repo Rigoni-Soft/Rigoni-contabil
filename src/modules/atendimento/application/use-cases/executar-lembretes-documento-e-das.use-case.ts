@@ -3,43 +3,35 @@ import {
   ESPERA_MS,
   TENTATIVAS,
 } from "@/modules/atendimento/application/com-tentativas";
-import {
-  montarMensagemLivre,
-  type ComunicacaoProativa,
-} from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
+import type { ComunicacaoProativa } from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
 import type {
   ExecutarLembretesDocumentoEDasPort,
   LembretesExecutados,
 } from "@/modules/atendimento/application/ports/in/executar-lembretes-documento-e-das.provider";
-import type {
-  AlertaSetor,
-  AlertaSetorPort,
-} from "@/modules/atendimento/application/ports/out/alerta-setor.provider";
+import type { AlertaSetorPort } from "@/modules/atendimento/application/ports/out/alerta-setor.provider";
 import type {
   ClienteParaLembrete,
   ClientesParaLembretePort,
 } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
-import type { EnvioEmailPort } from "@/modules/atendimento/application/ports/out/envio-email.provider";
 import type { GuiaPublicadaPort } from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
 import type { GuiasFiscaisPort } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
-import type { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
+import { RodadaLembretes } from "@/modules/atendimento/application/rodada-lembretes";
+import type { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/use-cases/entregar-comunicacao-por-canais.use-case";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
-import { formatarDataIso } from "@/shared/kernel/data-iso";
+import { formatarCompetencia, formatarDataIso } from "@/shared/kernel/data-iso";
+import { formaEnvioUsaEmail, formaEnvioUsaWhatsapp } from "@/shared/kernel/forma-envio";
+import { diaDoMes, hojeIso } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 const DIAS_DO_JOB = [1, 5, 10, 15];
 
-const FORMATO_DATA = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "America/Sao_Paulo",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
+const nomeDoContato = (cliente: ClienteParaLembrete) => cliente.contato?.nome ?? cliente.empresa;
 
-const usaWhatsapp = (c: ClienteParaLembrete) => c.formaEnvio !== "email";
-const usaEmail = (c: ClienteParaLembrete) => c.formaEnvio !== "whatsapp";
+const temDestinatario = (cliente: ClienteParaLembrete) =>
+  (formaEnvioUsaWhatsapp(cliente.formaEnvio) && cliente.contato !== null) ||
+  (formaEnvioUsaEmail(cliente.formaEnvio) && cliente.email !== null);
 
 // Job dos dias 01/05/10/15 (fuso de São Paulo): lembra quem está sem documento obrigatório,
 // envia o DAS pronto pela forma de envio do Cliente e alerta o setor Simples Nacional do DAS que
@@ -54,189 +46,120 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     private readonly clientes: ClientesParaLembretePort,
     private readonly guias: GuiasFiscaisPort,
     private readonly publicadas: GuiaPublicadaPort,
-    private readonly proativa: EnviarComunicacaoProativa,
-    private readonly email: EnvioEmailPort,
+    private readonly entrega: EntregarComunicacaoPorCanais,
     private readonly alertas: AlertaSetorPort,
     private readonly relogio: RelogioPort,
     private readonly esperaEntreTentativasMs = ESPERA_MS,
   ) {}
 
-  // Alertas já levantados na rodada, por Cliente e tipo: um Cliente com lembrete e DAS não alerta
-  // duas vezes o mesmo problema.
-  private readonly alertados = new Set<string>();
-
-  // Contadores da rodada; o use case é instanciado por execução.
-  private resumo!: LembretesExecutados;
-
   async execute(): Promise<Result<LembretesExecutados, AppError>> {
     const agora = this.relogio.agora();
-    const hoje = FORMATO_DATA.format(agora);
-    this.resumo = {
-      executado: DIAS_DO_JOB.includes(Number(hoje.slice(8))),
-      lembretes: 0,
-      dasEnviados: 0,
-      alertas: 0,
-      falhas: 0,
-    };
-    if (!this.resumo.executado) return ok(this.resumo);
+    const rodada = new RodadaLembretes(this.alertas, DIAS_DO_JOB.includes(diaDoMes(agora)));
+    if (!rodada.resumo.executado) return ok(rodada.resumo);
 
     const lista = await this.clientes.listar();
     if (!lista.ok) return lista;
-    for (const cliente of lista.value) {
-      if (cliente.documentoObrigatorio === "negativo") {
-        const comunicacao: ComunicacaoProativa = {
-          tipo: "lembrete_documento_obrigatorio",
-          contato: cliente.contato?.nome ?? cliente.empresa,
-          empresa: cliente.empresa,
-        };
-        if (await this.entregar(cliente, comunicacao, agora)) this.resumo.lembretes += 1;
-      }
-      if (cliente.dasStatus === "pronto") {
-        await this.enviarDas(cliente, agora, hoje);
-      } else if (cliente.dasStatus === "pendente" && cliente.documentoObrigatorio === "positivo") {
-        await this.alertar(
-          cliente,
-          "das_pendente",
-          `DAS de ${cliente.empresa} segue pendente com o documento obrigatório em dia.`,
-        );
-      }
-    }
+    for (const cliente of lista.value) await this.processar(cliente, agora, rodada);
+
     // Alerta que o job não renovou nesta rodada deixou de valer. A folga cobre a diferença entre o
     // relógio do servidor e o do banco; os alertas anteriores têm dias.
     const resolvidos = await this.alertas.resolverNaoRenovados(new Date(agora.getTime() - 60_000));
-    if (!resolvidos.ok) this.resumo.falhas += 1;
-    return ok(this.resumo);
+    if (!resolvidos.ok) rodada.resumo.falhas += 1;
+    return ok(rodada.resumo);
   }
 
-  private async enviarDas(c: ClienteParaLembrete, agora: Date, hoje: string) {
-    // Sem para quem enviar não vale buscar a guia nem reivindicar o DAS.
-    const temDestino = (usaWhatsapp(c) && c.contato) || (usaEmail(c) && c.email);
-    if (!temDestino) {
-      return this.alertar(
-        c,
-        "contato_ausente",
-        `${c.empresa} não tem contato nem e-mail para a forma de envio.`,
+  private async processar(cliente: ClienteParaLembrete, agora: Date, rodada: RodadaLembretes) {
+    if (cliente.documentoObrigatorio === "negativo") await this.lembrar(cliente, agora, rodada);
+    if (cliente.dasStatus === "pronto") return this.enviarDas(cliente, agora, rodada);
+    if (cliente.dasStatus === "pendente" && cliente.documentoObrigatorio === "positivo") {
+      await rodada.alertar(
+        cliente,
+        "das_pendente",
+        `DAS de ${cliente.empresa} segue pendente com o documento obrigatório em dia.`,
       );
     }
+  }
 
-    const reivindicado = await this.clientes.reivindicarDas(c.clienteId, hoje);
+  private async lembrar(cliente: ClienteParaLembrete, agora: Date, rodada: RodadaLembretes) {
+    const comunicacao: ComunicacaoProativa = {
+      tipo: "lembrete_documento_obrigatorio",
+      contato: nomeDoContato(cliente),
+      empresa: cliente.empresa,
+    };
+    if (await this.entrega.execute(cliente, comunicacao, agora, rodada)) {
+      rodada.resumo.lembretes += 1;
+    }
+  }
+
+  private async enviarDas(cliente: ClienteParaLembrete, agora: Date, rodada: RodadaLembretes) {
+    // Sem para quem enviar não vale buscar a guia nem reivindicar o DAS.
+    if (!temDestinatario(cliente)) {
+      return rodada.alertar(
+        cliente,
+        "contato_ausente",
+        `${cliente.empresa} não tem contato nem e-mail para a forma de envio.`,
+      );
+    }
+    const reivindicado = await this.clientes.reivindicarDas(cliente.clienteId, hojeIso(agora));
     if (!reivindicado.ok) {
-      return this.falhou(c, `DAS de ${c.empresa}: ${reivindicado.error.message}`);
+      return rodada.falhou(cliente, `DAS de ${cliente.empresa}: ${reivindicado.error.message}`);
     }
     // Outro job ou o Funcionário já tratou o DAS: quem não reivindicou não envia.
     if (!reivindicado.value) return;
 
-    if (await this.entregarDas(c, agora)) {
-      this.resumo.dasEnviados += 1;
+    if (await this.entregarDas(cliente, agora, rodada)) {
+      rodada.resumo.dasEnviados += 1;
       return;
     }
-    const desfeito = await this.clientes.desfazerDas(c.clienteId, c.dataEnvioDas);
-    if (!desfeito.ok) {
-      await this.falhou(
-        c,
-        `DAS de ${c.empresa} não voltou a pronto após a falha: ${desfeito.error.message}`,
-      );
-    }
+    await this.devolverDas(cliente, rodada);
   }
 
-  private async entregarDas(c: ClienteParaLembrete, agora: Date): Promise<boolean> {
+  private async devolverDas(cliente: ClienteParaLembrete, rodada: RodadaLembretes) {
+    const desfeito = await this.clientes.desfazerDas(cliente.clienteId, cliente.dataEnvioDas);
+    if (desfeito.ok) return;
+    await rodada.falhou(
+      cliente,
+      `DAS de ${cliente.empresa} não voltou a pronto após a falha: ${desfeito.error.message}`,
+    );
+  }
+
+  private async entregarDas(
+    cliente: ClienteParaLembrete,
+    agora: Date,
+    rodada: RodadaLembretes,
+  ): Promise<boolean> {
     const guia = await comTentativas(
-      async () => {
-        const buscada = await this.guias.buscar(c.clienteId, "das");
-        if (!buscada.ok) return buscada;
-        const { competencia, vencimento } = buscada.value;
-        if (!competencia || !vencimento) {
-          return err(new ServicoExternoError("Guia do DAS sem competência ou vencimento."));
-        }
-        const url = await this.publicadas.publicar(c.clienteId, buscada.value);
-        if (!url.ok) return url;
-        const [ano, mes] = competencia.split("-");
-        return ok({
-          url: url.value,
-          nomeArquivo: buscada.value.nomeArquivo,
-          competencia: `${mes}/${ano}`,
-          vencimento: formatarDataIso(vencimento),
-        });
-      },
+      () => this.guiaPublicada(cliente),
       TENTATIVAS,
       this.esperaEntreTentativasMs,
     );
     if (!guia.ok) {
-      await this.falhou(c, `DAS de ${c.empresa}: ${guia.error.message}`);
+      await rodada.falhou(cliente, `DAS de ${cliente.empresa}: ${guia.error.message}`);
       return false;
     }
-
-    const { url, nomeArquivo, competencia, vencimento } = guia.value;
     const comunicacao: ComunicacaoProativa = {
       tipo: "envio_guia_das",
-      contato: c.contato?.nome ?? c.empresa,
-      empresa: c.empresa,
-      competencia,
-      vencimento,
-      guia: { url, nomeArquivo },
+      contato: nomeDoContato(cliente),
+      empresa: cliente.empresa,
+      ...guia.value,
     };
-    return this.entregar(c, comunicacao, agora);
+    return this.entrega.execute(cliente, comunicacao, agora, rodada);
   }
 
-  // Entrega pelos canais da forma de envio; `true` se ao menos um entregou. Canal que não entrega
-  // vira alerta, sem derrubar o outro.
-  private async entregar(
-    c: ClienteParaLembrete,
-    comunicacao: ComunicacaoProativa,
-    agora: Date,
-  ): Promise<boolean> {
-    let entregue = false;
-    if (usaWhatsapp(c)) {
-      if (!c.contato) {
-        await this.alertar(c, "contato_ausente", `${c.empresa} não tem contato padrão.`);
-      } else {
-        const enviado = await this.proativa.execute({
-          telefone: c.contato.telefone,
-          comunicacao,
-          ultimaMensagemDoContatoEm: c.ultimaMensagemDoContatoEm,
-          agora,
-        });
-        if (enviado.ok) entregue = true;
-        else await this.falhou(c, `WhatsApp de ${c.empresa}: ${enviado.error.message}`);
-      }
+  // Busca a guia do DAS no provedor fiscal e a publica para o provedor de envio buscar por link.
+  private async guiaPublicada(cliente: ClienteParaLembrete) {
+    const buscada = await this.guias.buscar(cliente.clienteId, "das");
+    if (!buscada.ok) return buscada;
+    const { competencia, vencimento, nomeArquivo } = buscada.value;
+    if (!competencia || !vencimento) {
+      return err(new ServicoExternoError("Guia do DAS sem competência ou vencimento."));
     }
-    if (usaEmail(c)) {
-      if (!c.email) {
-        await this.alertar(c, "contato_ausente", `${c.empresa} não tem e-mail.`);
-      } else {
-        const para = c.email;
-        const { texto } = montarMensagemLivre(comunicacao, "");
-        const anexo = "guia" in comunicacao ? comunicacao.guia : undefined;
-        const tema = anexo ? "Guia do DAS" : "Documentos fiscais pendentes";
-        const assunto = `${tema} — ${c.empresa}`;
-        const enviado = await comTentativas(
-          () => this.email.enviar({ para, assunto, texto, anexo }),
-          TENTATIVAS,
-          this.esperaEntreTentativasMs,
-        );
-        if (enviado.ok) entregue = true;
-        else await this.falhou(c, `E-mail de ${c.empresa}: ${enviado.error.message}`);
-      }
-    }
-    return entregue;
-  }
-
-  private async falhou(c: ClienteParaLembrete, mensagem: string) {
-    this.resumo.falhas += 1;
-    await this.alertar(c, "falha_envio", mensagem);
-  }
-
-  private async alertar(c: ClienteParaLembrete, tipo: AlertaSetor["tipo"], mensagem: string) {
-    const chave = `${c.clienteId}:${tipo}`;
-    if (this.alertados.has(chave)) return;
-    this.alertados.add(chave);
-    const gravado = await this.alertas.alertar({
-      setor: "simples_nacional",
-      tipo,
-      clienteId: c.clienteId,
-      mensagem,
+    const url = await this.publicadas.publicar(cliente.clienteId, buscada.value);
+    if (!url.ok) return url;
+    return ok({
+      competencia: formatarCompetencia(competencia),
+      vencimento: formatarDataIso(vencimento),
+      guia: { url: url.value, nomeArquivo },
     });
-    if (gravado.ok) this.resumo.alertas += 1;
-    else this.resumo.falhas += 1;
   }
 }
