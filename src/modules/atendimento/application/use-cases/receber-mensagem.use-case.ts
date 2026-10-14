@@ -219,9 +219,10 @@ export class ReceberMensagem implements ReceberMensagemPort {
     if (texto === "menu") {
       const limpa = await this.sessoes.limpar(chave);
       if (!limpa.ok) return limpa;
-    } else if (sessao.value?.etapa === "tipo_documento") {
-      return this.escolherTipo(conversa, texto);
-    } else if (sessao.value?.etapa === "alteracao") {
+      return this.responderMenu(conversa, texto);
+    }
+    if (sessao.value?.etapa === "tipo_documento") return this.escolherTipo(conversa, texto);
+    if (sessao.value?.etapa === "alteracao") {
       return this.escolherAlteracao(conversa, sessao.value, texto);
     }
     return this.responderMenu(conversa, texto);
@@ -401,9 +402,9 @@ export class ReceberMensagem implements ReceberMensagemPort {
     const modo = MODOS[texto];
     if (!modo) return this.enviar(conversa.telefone, PERGUNTA_TIPO);
 
-    const docs = await this.carregar(conversa.contato);
-    if (!docs.ok) return docs;
-    const { contrato, alteracoes } = docs.value;
+    const existentes = await this.carregar(conversa.contato);
+    if (!existentes.ok) return existentes;
+    const { contrato, alteracoes } = existentes.value;
 
     if (modo === "contrato") {
       if (!contrato) return this.enviar(conversa.telefone, SEM_CONTRATO);
@@ -429,9 +430,9 @@ export class ReceberMensagem implements ReceberMensagemPort {
     sessao: Extract<SessaoAtendimento, { etapa: "alteracao" }>,
     texto: string,
   ): Promise<Result<void, AppError>> {
-    const docs = await this.carregar(conversa.contato);
-    if (!docs.ok) return docs;
-    const { contrato, alteracoes } = docs.value;
+    const existentes = await this.carregar(conversa.contato);
+    if (!existentes.ok) return existentes;
+    const { contrato, alteracoes } = existentes.value;
     if (alteracoes.length === 0) return this.enviar(conversa.telefone, SEM_ALTERACOES);
 
     // Lista mudou desde que foi exibida: o número digitado pode apontar para outro documento
@@ -475,10 +476,10 @@ export class ReceberMensagem implements ReceberMensagemPort {
     const lista = await this.documentos.listar(contato.clienteId);
     if (!lista.ok) return lista;
     return ok({
-      contrato: lista.value.find((d) => d.tipo === "contrato") ?? null,
+      contrato: lista.value.find((documento) => documento.tipo === "contrato") ?? null,
       alteracoes: lista.value
-        .filter((d) => d.tipo === "alteracao")
-        .sort((a, b) => (b.data ?? "").localeCompare(a.data ?? "")),
+        .filter((documento) => documento.tipo === "alteracao")
+        .sort((primeira, segunda) => (segunda.data ?? "").localeCompare(primeira.data ?? "")),
     });
   }
 

@@ -2,10 +2,12 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 import type { AutenticacaoWebhookPort } from "@/modules/atendimento/application/ports/out/autenticacao-webhook.provider";
 
-function iguais(a: string, b: string): boolean {
-  const ba = Buffer.from(a);
-  const bb = Buffer.from(b);
-  return ba.length === bb.length && timingSafeEqual(ba, bb);
+function iguais(primeiro: string, segundo: string): boolean {
+  const bytesPrimeiro = Buffer.from(primeiro);
+  const bytesSegundo = Buffer.from(segundo);
+  return (
+    bytesPrimeiro.length === bytesSegundo.length && timingSafeEqual(bytesPrimeiro, bytesSegundo)
+  );
 }
 
 // Assinatura no formato da Meta: cabeçalho `X-Hub-Signature-256: sha256=<hex>`,

@@ -417,7 +417,7 @@ Regras:
 2. Esse `route.ts` só reexporta o `POST` (o de job também o `GET`, que é o método do Vercel Cron) de `modules/<d>/presentation/webhooks/<nome>.webhook.ts`. **[lint]**
    - **Job agendado:** o handler confere o segredo do agendador (`Authorization: Bearer`) por uma porta OUT (`AutenticacaoJobPort`), chama a porta IN pelo `main` e devolve o resumo; sem o segredo configurado, recusa tudo. O cron fica em `vercel.json`.
 3. O handler `*.webhook.ts` lê o corpo cru, extrai a assinatura, chama uma porta IN pelo `main` e converte o resultado em status HTTP. Sem regra de negócio.
-4. **O que puder passar pela `infra` passa.** A verificação de assinatura e a idempotência (guardar o id do evento já processado) acontecem dentro do caso de uso, por portas OUT (`AssinaturaWebhookPort`, `EventoProcessadoRepository`) implementadas na `infra`.
+4. **O que puder passar pela `infra` passa.** A verificação de assinatura e a idempotência (guardar o id do evento já processado) acontecem dentro do caso de uso, por portas OUT (`AutenticacaoWebhookPort`, `EventoProcessadoRepository`) implementadas na `infra`. Quando a assinatura cobre o corpo cru no formato do provedor e o caso de uso de recepção tem contrato neutro (sem jargão do provedor), a verificação fica num caso de uso próprio (`AutenticarWebhook`, porta IN com um método por prova: assinatura e token de handshake), chamado pelo handler antes de qualquer efeito; o handler nunca obtém a porta OUT direto do `main`.
 5. Resposta: 2xx quando processou ou já tinha visto o evento; 4xx para assinatura inválida; 5xx para falha transitória (o provedor tenta de novo).
 6. O middleware/proxy de sessão exclui `/api/webhooks/**`. Em `/api/jobs/**` ele só renova sessão (não redireciona), o que é inofensivo.
 
@@ -865,7 +865,7 @@ Nenhum.
 - Dado compartilhado em `'use cache'` restrito a conteúdo público; exceções por registro de decisão.
 - Nenhuma cor crua do Tailwind nas Views; só tokens semânticos.
 - Adaptações da regra de nomenclatura ao projeto (seção 0.2): `*.provider.ts` para as portas (contratos de repositório ficam em `.repository.ts`), `*.component.tsx` para atoms, molecules, organisms e templates (o nível vem da pasta), `*.hook.ts` no hook do ViewModel, `*.spec.ts` (unitário), `*.test.ts` (integração) e `*.e2e.ts` (E2E) nos testes, `preconditions.ts` no lugar de `guard.ts`, `supabase-server.factory.ts`, e a lista de sufixos adicionais.
-- Nomes novos introduzidos pelas últimas revisões: `*.realtime.ts`, `*.webhook.ts`, `infra/realtime/`, `main/client/`, `presentation/auth/`, `AssinaturaWebhookPort`, `EventoProcessadoRepository`.
+- Nomes novos introduzidos pelas últimas revisões: `*.realtime.ts`, `*.webhook.ts`, `infra/realtime/`, `main/client/`, `presentation/auth/`, `AutenticacaoWebhookPort`, `AutenticarWebhook`, `EventoProcessadoRepository`.
 
 ---
 
