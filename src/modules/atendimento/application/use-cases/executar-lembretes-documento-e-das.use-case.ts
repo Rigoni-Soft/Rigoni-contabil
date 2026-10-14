@@ -1,12 +1,13 @@
 import type { ComunicacaoProativa } from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
 import type {
-  AlertasDaRodada,
   EntregarComunicacaoPorCanaisPort,
+  OcorrenciaDeEntrega,
 } from "@/modules/atendimento/application/ports/in/entregar-comunicacao-por-canais.provider";
 import type {
   ExecutarLembretesDocumentoEDasPort,
   LembretesExecutados,
 } from "@/modules/atendimento/application/ports/in/executar-lembretes-documento-e-das.provider";
+import type { ObterGuiaDasParaEnvioPort } from "@/modules/atendimento/application/ports/in/obter-guia-das-para-envio.provider";
 import type {
   AlertaSetorPort,
   TipoAlertaSetor,
@@ -15,21 +16,26 @@ import type {
   ClienteParaLembrete,
   ClientesParaLembretePort,
 } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
-import type { GuiaPublicadaPort } from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
-import type { GuiasFiscaisPort } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import type { AppError } from "@/shared/errors/app.error";
-import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
-import { comTentativas, ESPERA_MS, TENTATIVAS } from "@/shared/kernel/com-tentativas";
-import { formatarCompetencia, formatarDataIso } from "@/shared/kernel/data-iso";
 import { formaEnvioUsaEmail, formaEnvioUsaWhatsapp } from "@/shared/kernel/forma-envio";
 import { diaDoMes, hojeIso } from "@/shared/kernel/mes-atual";
-import { err, ok, type Result } from "@/shared/kernel/result";
+import { ok, type Result } from "@/shared/kernel/result";
 
 const DIAS_DO_JOB = [1, 5, 10, 15];
 
 // Diferença tolerada entre o relógio do servidor e o do banco ao resolver alertas.
 const FOLGA_RELOGIO_MS = 60_000;
+
+// O que aconteceu com uma das duas tarefas do Cliente (lembrete ou guia).
+type Andamento = { enviado: boolean; ocorrencias: OcorrenciaDeEntrega[] };
+
+const SEM_ANDAMENTO: Andamento = { enviado: false, ocorrencias: [] };
+
+const falha = (mensagem: string): Andamento => ({
+  enviado: false,
+  ocorrencias: [{ tipo: "falha_envio", mensagem }],
+});
 
 const nomeDoContato = (cliente: ClienteParaLembrete) => cliente.contato?.nome ?? cliente.empresa;
 
@@ -37,186 +43,168 @@ const temDestinatario = (cliente: ClienteParaLembrete) =>
   (formaEnvioUsaWhatsapp(cliente.formaEnvio) && cliente.contato !== null) ||
   (formaEnvioUsaEmail(cliente.formaEnvio) && cliente.email !== null);
 
-// Estado de uma rodada do job: contadores do resumo e alertas já levantados por Cliente e tipo (um
-// Cliente com lembrete e DAS não alerta duas vezes o mesmo problema). Nasce a cada execução, o que
-// mantém o use case sem estado.
-class RodadaLembretes implements AlertasDaRodada {
-  private readonly contadores: LembretesExecutados;
-  private readonly alertados = new Set<string>();
-
-  constructor(
-    private readonly alertas: AlertaSetorPort,
-    executado: boolean,
-  ) {
-    this.contadores = { executado, lembretes: 0, dasEnviados: 0, alertas: 0, falhas: 0 };
+// Um alerta por tipo e Cliente: as mensagens do mesmo tipo (ex.: falha do lembrete e da guia) se
+// juntam, em vez de a segunda ser descartada.
+function agruparPorTipo(ocorrencias: OcorrenciaDeEntrega[]): Map<TipoAlertaSetor, string[]> {
+  const porTipo = new Map<TipoAlertaSetor, string[]>();
+  for (const { tipo, mensagem } of ocorrencias) {
+    porTipo.set(tipo, [...(porTipo.get(tipo) ?? []), mensagem]);
   }
-
-  // Cópia: quem lê o resumo não altera os contadores da rodada.
-  get resumo(): LembretesExecutados {
-    return { ...this.contadores };
-  }
-
-  registrarLembrete() {
-    this.contadores.lembretes += 1;
-  }
-
-  registrarDasEnviado() {
-    this.contadores.dasEnviados += 1;
-  }
-
-  registrarFalha() {
-    this.contadores.falhas += 1;
-  }
-
-  async alertar(cliente: ClienteParaLembrete, tipo: TipoAlertaSetor, mensagem: string) {
-    const chave = `${cliente.clienteId}:${tipo}`;
-    if (this.alertados.has(chave)) return;
-    this.alertados.add(chave);
-    const gravado = await this.alertas.alertar({
-      setor: "simples_nacional",
-      tipo,
-      clienteId: cliente.clienteId,
-      mensagem,
-    });
-    if (gravado.ok) this.contadores.alertas += 1;
-    else this.registrarFalha();
-  }
-
-  async falhou(cliente: ClienteParaLembrete, mensagem: string) {
-    this.registrarFalha();
-    await this.alertar(cliente, "falha_envio", mensagem);
-  }
+  return porTipo;
 }
 
 // Job dos dias 01/05/10/15 (fuso de São Paulo): lembra quem está sem documento obrigatório,
 // envia o DAS pronto pela forma de envio do Cliente e alerta o setor Simples Nacional do DAS que
 // segue pendente com o documento em dia. Cada Cliente é independente: um que falha não impede os
-// demais. Falha do provedor fiscal ou de mensagem tenta de novo antes de alertar.
-// A entrega é precedida da reivindicação do DAS (pronto → enviado, atômica) e desfeita se falhar:
-// duas execuções ou o Funcionário não geram envio em dobro, e uma falha não deixa o DAS "enviado".
+// demais. A guia é reivindicada (pronto → enviado, atômico) antes da entrega e devolvida se ela
+// falhar: execuções simultâneas ou o Funcionário não geram envio em dobro.
 // ponytail: processo que cai entre reivindicar e entregar deixa o DAS como enviado sem a guia ter
-// saído; o Funcionário vê o DAS enviado e a auditoria da URA. Lease com retomada se isso doer.
+// saído; a auditoria da URA mostra o que houve. Lease com retomada se isso doer.
 export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocumentoEDasPort {
   constructor(
     private readonly clientes: ClientesParaLembretePort,
-    private readonly guias: GuiasFiscaisPort,
-    private readonly publicadas: GuiaPublicadaPort,
+    private readonly guiaDas: ObterGuiaDasParaEnvioPort,
     private readonly entrega: EntregarComunicacaoPorCanaisPort,
     private readonly alertas: AlertaSetorPort,
     private readonly relogio: RelogioPort,
-    private readonly esperaEntreTentativasMs = ESPERA_MS,
   ) {}
 
   async execute(): Promise<Result<LembretesExecutados, AppError>> {
     const agora = this.relogio.agora();
-    const rodada = new RodadaLembretes(this.alertas, DIAS_DO_JOB.includes(diaDoMes(agora)));
-    if (!rodada.resumo.executado) return ok(rodada.resumo);
+    const resumo: LembretesExecutados = {
+      executado: DIAS_DO_JOB.includes(diaDoMes(agora)),
+      lembretes: 0,
+      dasEnviados: 0,
+      alertas: 0,
+      falhas: 0,
+    };
+    if (!resumo.executado) return ok(resumo);
 
     const clientes = await this.clientes.listar();
     if (!clientes.ok) return clientes;
-    for (const cliente of clientes.value) await this.processar(cliente, agora, rodada);
 
-    // Alerta que o job não renovou nesta rodada deixou de valer. A folga cobre a diferença entre o
-    // relógio do servidor e o do banco; os alertas anteriores têm dias.
-    const resolvidos = await this.alertas.resolverNaoRenovados(
-      new Date(agora.getTime() - FOLGA_RELOGIO_MS),
-    );
-    if (!resolvidos.ok) rodada.registrarFalha();
-    return ok(rodada.resumo);
-  }
+    let alertasNaoGravados = 0;
+    for (const cliente of clientes.value) {
+      const feito = await this.processar(cliente, agora);
+      resumo.lembretes += Number(feito.lembrete.enviado);
+      resumo.dasEnviados += Number(feito.das.enviado);
+      const ocorrencias = [...feito.lembrete.ocorrencias, ...feito.das.ocorrencias];
+      resumo.falhas += ocorrencias.filter((o) => o.tipo === "falha_envio").length;
 
-  private async processar(cliente: ClienteParaLembrete, agora: Date, rodada: RodadaLembretes) {
-    if (cliente.documentoObrigatorio === "negativo") await this.lembrar(cliente, agora, rodada);
-    if (cliente.dasStatus === "pronto") return this.enviarDas(cliente, agora, rodada);
-    if (cliente.dasStatus === "pendente" && cliente.documentoObrigatorio === "positivo") {
-      await rodada.alertar(
-        cliente,
-        "das_pendente",
-        `DAS de ${cliente.empresa} segue pendente com o documento obrigatório em dia.`,
-      );
+      const gravacao = await this.levantarAlertas(cliente, ocorrencias);
+      resumo.alertas += gravacao.gravados;
+      alertasNaoGravados += gravacao.naoGravados;
     }
+    resumo.falhas += alertasNaoGravados;
+
+    // Alerta que o job não renovou nesta rodada deixou de valer. Com alerta que não pôde ser
+    // gravado a rodada não sabe o que renovou, então não resolve nada.
+    if (alertasNaoGravados === 0) {
+      const folga = new Date(agora.getTime() - FOLGA_RELOGIO_MS);
+      const resolvidos = await this.alertas.resolverNaoRenovados(folga);
+      if (!resolvidos.ok) resumo.falhas += 1;
+    }
+    return ok(resumo);
   }
 
-  private async lembrar(cliente: ClienteParaLembrete, agora: Date, rodada: RodadaLembretes) {
+  private async processar(cliente: ClienteParaLembrete, agora: Date) {
+    const lembrete =
+      cliente.documentoObrigatorio === "negativo"
+        ? await this.lembrar(cliente, agora)
+        : SEM_ANDAMENTO;
+    const das =
+      cliente.dasStatus === "pronto"
+        ? await this.enviarDas(cliente, agora)
+        : { enviado: false, ocorrencias: this.dasPendente(cliente) };
+    return { lembrete, das };
+  }
+
+  private dasPendente(cliente: ClienteParaLembrete): OcorrenciaDeEntrega[] {
+    if (cliente.dasStatus !== "pendente" || cliente.documentoObrigatorio !== "positivo") return [];
+    return [
+      {
+        tipo: "das_pendente",
+        mensagem: `DAS de ${cliente.empresa} segue pendente com o documento obrigatório em dia.`,
+      },
+    ];
+  }
+
+  private async lembrar(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento> {
     const comunicacao: ComunicacaoProativa = {
       tipo: "lembrete_documento_obrigatorio",
       contato: nomeDoContato(cliente),
       empresa: cliente.empresa,
     };
-    if (await this.entrega.execute({ cliente, comunicacao, agora, rodada })) {
-      rodada.registrarLembrete();
-    }
+    return this.entregar(cliente, comunicacao, agora);
   }
 
-  private async enviarDas(cliente: ClienteParaLembrete, agora: Date, rodada: RodadaLembretes) {
+  private async enviarDas(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento> {
     // Sem para quem enviar não vale buscar a guia nem reivindicar o DAS.
     if (!temDestinatario(cliente)) {
-      return rodada.alertar(
-        cliente,
-        "contato_ausente",
-        `${cliente.empresa} não tem contato nem e-mail para a forma de envio.`,
-      );
+      return {
+        enviado: false,
+        ocorrencias: [
+          {
+            tipo: "contato_ausente",
+            mensagem: `${cliente.empresa} não tem contato nem e-mail para a forma de envio.`,
+          },
+        ],
+      };
     }
     const reivindicado = await this.clientes.reivindicarDas(cliente.clienteId, hojeIso(agora));
     if (!reivindicado.ok) {
-      return rodada.falhou(cliente, `DAS de ${cliente.empresa}: ${reivindicado.error.message}`);
+      return falha(`DAS de ${cliente.empresa}: ${reivindicado.error.message}`);
     }
     // Outro job ou o Funcionário já tratou o DAS: quem não reivindicou não envia.
-    if (!reivindicado.value) return;
+    if (!reivindicado.value) return SEM_ANDAMENTO;
 
-    if (await this.entregarDas(cliente, agora, rodada)) {
-      rodada.registrarDasEnviado();
-      return;
-    }
-    await this.devolverDas(cliente, rodada);
-  }
+    const entrega = await this.entregarGuia(cliente, agora);
+    if (entrega.enviado) return entrega;
 
-  private async devolverDas(cliente: ClienteParaLembrete, rodada: RodadaLembretes) {
     const desfeito = await this.clientes.desfazerDas(cliente.clienteId, cliente.dataEnvioDas);
-    if (desfeito.ok) return;
-    await rodada.falhou(
-      cliente,
-      `DAS de ${cliente.empresa} não voltou a pronto após a falha: ${desfeito.error.message}`,
-    );
+    if (desfeito.ok) return entrega;
+    const naoVoltou = `DAS de ${cliente.empresa} não voltou a pronto após a falha: ${desfeito.error.message}`;
+    return {
+      enviado: false,
+      ocorrencias: [...entrega.ocorrencias, ...falha(naoVoltou).ocorrencias],
+    };
   }
 
-  private async entregarDas(
-    cliente: ClienteParaLembrete,
-    agora: Date,
-    rodada: RodadaLembretes,
-  ): Promise<boolean> {
-    const guia = await comTentativas(
-      () => this.guiaPublicada(cliente),
-      TENTATIVAS,
-      this.esperaEntreTentativasMs,
-    );
-    if (!guia.ok) {
-      await rodada.falhou(cliente, `DAS de ${cliente.empresa}: ${guia.error.message}`);
-      return false;
-    }
+  private async entregarGuia(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento> {
+    const guia = await this.guiaDas.execute(cliente.clienteId);
+    if (!guia.ok) return falha(`DAS de ${cliente.empresa}: ${guia.error.message}`);
     const comunicacao: ComunicacaoProativa = {
       tipo: "envio_guia_das",
       contato: nomeDoContato(cliente),
       empresa: cliente.empresa,
       ...guia.value,
     };
-    return this.entrega.execute({ cliente, comunicacao, agora, rodada });
+    return this.entregar(cliente, comunicacao, agora);
   }
 
-  // Busca a guia do DAS no provedor fiscal e a publica para o provedor de envio buscar por link.
-  private async guiaPublicada(cliente: ClienteParaLembrete) {
-    const buscada = await this.guias.buscar(cliente.clienteId, "das");
-    if (!buscada.ok) return buscada;
-    const { competencia, vencimento, nomeArquivo } = buscada.value;
-    if (!competencia || !vencimento) {
-      return err(new ServicoExternoError("Guia do DAS sem competência ou vencimento."));
+  private async entregar(
+    cliente: ClienteParaLembrete,
+    comunicacao: ComunicacaoProativa,
+    agora: Date,
+  ): Promise<Andamento> {
+    const entrega = await this.entrega.execute({ cliente, comunicacao, agora });
+    if (!entrega.ok) return falha(`${cliente.empresa}: ${entrega.error.message}`);
+    return { enviado: entrega.value.entregues > 0, ocorrencias: entrega.value.ocorrencias };
+  }
+
+  private async levantarAlertas(cliente: ClienteParaLembrete, ocorrencias: OcorrenciaDeEntrega[]) {
+    let gravados = 0;
+    let naoGravados = 0;
+    for (const [tipo, mensagens] of agruparPorTipo(ocorrencias)) {
+      const gravado = await this.alertas.alertar({
+        setor: "simples_nacional",
+        tipo,
+        clienteId: cliente.clienteId,
+        mensagem: mensagens.join(" | "),
+      });
+      if (gravado.ok) gravados += 1;
+      else naoGravados += 1;
     }
-    const url = await this.publicadas.publicar(cliente.clienteId, buscada.value);
-    if (!url.ok) return url;
-    return ok({
-      competencia: formatarCompetencia(competencia),
-      vencimento: formatarDataIso(vencimento),
-      guia: { url: url.value, nomeArquivo },
-    });
+    return { gravados, naoGravados };
   }
 }

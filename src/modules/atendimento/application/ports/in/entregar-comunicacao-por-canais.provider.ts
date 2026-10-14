@@ -1,21 +1,25 @@
 import type { ComunicacaoProativa } from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
 import type { TipoAlertaSetor } from "@/modules/atendimento/application/ports/out/alerta-setor.provider";
 import type { ClienteParaLembrete } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
-
-// O que a entrega precisa da rodada do job: levantar alertas do setor e registrar falhas.
-export interface AlertasDaRodada {
-  alertar(cliente: ClienteParaLembrete, tipo: TipoAlertaSetor, mensagem: string): Promise<void>;
-  falhou(cliente: ClienteParaLembrete, mensagem: string): Promise<void>;
-}
+import type { AppError } from "@/shared/errors/app.error";
+import type { Result } from "@/shared/kernel/result";
 
 export type EntregarComunicacaoInput = {
   cliente: ClienteParaLembrete;
   comunicacao: ComunicacaoProativa;
   agora: Date;
-  rodada: AlertasDaRodada;
 };
 
-// `true` se ao menos um canal da forma de envio do Cliente entregou.
+// Algo que o setor precisa saber depois da entrega (canal sem destinatário, falha, entrega por um
+// canal só). Quem chama decide o que fazer com isso; o caso de uso não grava alerta.
+export type OcorrenciaDeEntrega = { tipo: TipoAlertaSetor; mensagem: string };
+
+export type ComunicacaoEntregue = {
+  // Canais da forma de envio do Cliente que entregaram (0 = nenhum).
+  entregues: number;
+  ocorrencias: OcorrenciaDeEntrega[];
+};
+
 export interface EntregarComunicacaoPorCanaisPort {
-  execute(entrada: EntregarComunicacaoInput): Promise<boolean>;
+  execute(entrada: EntregarComunicacaoInput): Promise<Result<ComunicacaoEntregue, AppError>>;
 }

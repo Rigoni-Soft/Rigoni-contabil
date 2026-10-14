@@ -11,6 +11,7 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 import { EntregarComunicacaoPorCanais } from "./entregar-comunicacao-por-canais.use-case";
 import { EnviarComunicacaoProativa } from "./enviar-comunicacao-proativa.use-case";
 import { ExecutarLembretesDocumentoEDas } from "./executar-lembretes-documento-e-das.use-case";
+import { ObterGuiaDasParaEnvio } from "./obter-guia-das-para-envio.use-case";
 
 // 05/10/2026 09:00 em São Paulo.
 const diaDoJob = new Date("2026-10-05T12:00:00Z");
@@ -46,6 +47,7 @@ function montar(
     falhas?: Record<string, number>;
     reivindicar?: Result<boolean, AppError>;
     resolver?: Result<void, AppError>;
+    gravacao?: Result<void, AppError>;
   } = {},
 ) {
   const envio = new EnvioMensagemFalsoGateway(opcoes.falhas);
@@ -67,8 +69,11 @@ function montar(
         return ok(undefined);
       },
     },
-    { buscar },
-    { publicar: async () => ok("https://storage.test/das.pdf") },
+    new ObterGuiaDasParaEnvio(
+      { buscar },
+      { publicar: async () => ok("https://storage.test/das.pdf") },
+      0,
+    ),
     new EntregarComunicacaoPorCanais(
       new EnviarComunicacaoProativa(envio, 3, 0),
       {
@@ -82,7 +87,7 @@ function montar(
     {
       alertar: async (alerta) => {
         alertas.push(alerta);
-        return ok(undefined);
+        return opcoes.gravacao ?? ok(undefined);
       },
       resolverNaoRenovados: async (desde) => {
         resolvidos.push(desde);
@@ -90,7 +95,6 @@ function montar(
       },
     },
     { agora: () => opcoes.agora ?? diaDoJob },
-    0,
   );
   return { job, envio, emails, alertas, marcados, desfeitos, resolvidos, buscar };
 }
@@ -378,5 +382,25 @@ describe("ExecutarLembretesDocumentoEDas", () => {
     ]);
     await job.execute();
     expect(alertas.map((a) => a.tipo)).toEqual(["contato_ausente"]);
+  });
+
+  it("falha do lembrete e da guia no mesmo Cliente: um alerta só, com as duas mensagens", async () => {
+    const { job, alertas } = montar(
+      [cliente({ documentoObrigatorio: "negativo", dasStatus: "pronto" })],
+      { falhas: { [telefone]: 131026 } },
+    );
+    await job.execute();
+    expect(alertas).toHaveLength(1);
+    expect(alertas[0].tipo).toBe("falha_envio");
+    expect(alertas[0].mensagem.split(" | ")).toHaveLength(2);
+  });
+
+  it("alerta que não pôde ser gravado: não resolve os alertas antigos e conta como falha", async () => {
+    const { job, resolvidos } = montar([cliente({ dasStatus: "pendente" })], {
+      gravacao: err(new ServicoExternoError("banco")),
+    });
+    const resultado = await job.execute();
+    expect(resolvidos).toHaveLength(0);
+    expect(resultado.ok && resultado.value.falhas).toBe(1);
   });
 });

@@ -66,6 +66,7 @@ import { ListarMeusAtendimentos } from "@/modules/atendimento/application/use-ca
 import { ObterConversa } from "@/modules/atendimento/application/use-cases/obter-conversa.use-case";
 import { PrepararAnexoParaEnvio } from "@/modules/atendimento/application/use-cases/preparar-anexo-para-envio.use-case";
 import { ReagirAMensagem } from "@/modules/atendimento/application/use-cases/reagir-a-mensagem.use-case";
+import { ObterGuiaDasParaEnvio } from "@/modules/atendimento/application/use-cases/obter-guia-das-para-envio.use-case";
 import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/receber-mensagem.use-case";
 import { ReceberMidia } from "@/modules/atendimento/application/use-cases/receber-midia.use-case";
 import { RemoverFeriado } from "@/modules/atendimento/application/use-cases/remover-feriado.use-case";
@@ -270,8 +271,10 @@ export function makeExecutarLembretesDocumentoEDas(): ExecutarLembretesDocumento
   const supabaseAdmin = createSupabaseAdmin();
   return new ExecutarLembretesDocumentoEDas(
     new SupabaseClientesParaLembreteGateway(supabaseAdmin),
-    guiasFiscais(supabaseAdmin),
-    new SupabaseGuiaPublicadaGateway(supabaseAdmin),
+    new ObterGuiaDasParaEnvio(
+      guiasFiscais(supabaseAdmin),
+      new SupabaseGuiaPublicadaGateway(supabaseAdmin),
+    ),
     new EntregarComunicacaoPorCanais(
       new EnviarComunicacaoProativa(makeEnvioMensagem(), TENTATIVAS, ESPERA_MS),
       makeEnvioEmail(),

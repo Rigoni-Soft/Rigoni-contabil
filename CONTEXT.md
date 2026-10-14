@@ -104,6 +104,19 @@ Os mesmos serviços do menu da URA (contrato social, alterações contratuais, g
 **Dock de Atendimentos**:
 O cartão no canto inferior direito de toda tela autenticada com os Atendimentos em andamento do usuário, para ele trocar de tela sem perder o Atendimento. Mostra o Contato, a empresa e o começo da última mensagem; se o cliente escreveu por último, o cartão é destacado. Atualiza a cada 15 s: o cartão aparece com animação e toca um aviso sonoro quando surge um Atendimento ou o cliente escreve de novo. Some na própria conversa e nas telas de login e troca de senha.
 _Avoid_: Notificação, bandeja.
+### Jobs e alertas
+
+**Lembrete de documento**:
+Mensagem que o sistema envia nos dias 01, 05, 10 e 15 ao Contato padrão dos Clientes com documento obrigatório negativo, pedindo os documentos fiscais do mês (#52). Fora da janela de 24h usa o template aprovado; dentro, o formato próprio do sistema.
+_Avoid_: Cobrança.
+
+**Envio automático de DAS**:
+Nos mesmos dias, a entrega da guia do DAS quando o DAS está pronto, pela forma de envio do Cliente (WhatsApp, e-mail ou os dois). O DAS passa a enviado com a data de envio, auditado com a URA como ator; se a entrega falha, volta a pronto (#52).
+_Avoid_: Disparo.
+
+**Alerta do setor**:
+Registro que o job grava para o setor Simples Nacional quando algo pede ação humana: DAS pendente com o documento em dia (`das_pendente`), envio que falhou depois das tentativas (`falha_envio`), Cliente sem contato ou e-mail para a forma de envio (`contato_ausente`) e guia entregue por um canal só (`entrega_parcial`). Há um alerta aberto por Cliente e tipo; o job o renova enquanto a condição existe e o resolve quando ela some, exceto `entrega_parcial`, que só uma pessoa resolve.
+_Avoid_: Notificação, aviso (aviso é o de Inatividade).
 
 ### Auditoria
 
