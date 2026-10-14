@@ -4,6 +4,7 @@ import {
   TENTATIVAS,
 } from "@/modules/atendimento/application/com-tentativas";
 import {
+  guiaDe,
   montarAssuntoEmail,
   montarTextoLivre,
   type ComunicacaoProativa,
@@ -14,12 +15,12 @@ import type { RodadaLembretes } from "@/modules/atendimento/application/rodada-l
 import type { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
 import { formaEnvioUsaEmail, formaEnvioUsaWhatsapp } from "@/shared/kernel/forma-envio";
 
-type Canal = "entregue" | "falhou" | "indisponivel";
+type ResultadoDoCanal = "entregue" | "falhou" | "indisponivel";
 
 // Entrega a comunicação pelos canais da forma de envio do Cliente. `true` se ao menos um canal
 // entregou. O canal que não entrega vira alerta do setor sem derrubar o outro; entregar por um
-// canal só (forma de envio com os dois) abre também o alerta `entrega_parcial`, que o job não
-// resolve sozinho.
+// canal só (forma de envio com os dois, na guia) abre também o alerta `entrega_parcial`, que o
+// job não resolve sozinho.
 export class EntregarComunicacaoPorCanais {
   constructor(
     private readonly proativa: EnviarComunicacaoProativa,
@@ -33,7 +34,7 @@ export class EntregarComunicacaoPorCanais {
     agora: Date,
     rodada: RodadaLembretes,
   ): Promise<boolean> {
-    const canais: Canal[] = [];
+    const canais: ResultadoDoCanal[] = [];
     if (formaEnvioUsaWhatsapp(cliente.formaEnvio)) {
       canais.push(await this.porWhatsapp(cliente, comunicacao, agora, rodada));
     }
@@ -41,7 +42,8 @@ export class EntregarComunicacaoPorCanais {
       canais.push(await this.porEmail(cliente, comunicacao, rodada));
     }
     const entregues = canais.filter((canal) => canal === "entregue").length;
-    if (entregues > 0 && entregues < canais.length) {
+    // Só a guia gera pendência: o lembrete é recorrente e volta a sair na próxima rodada.
+    if (guiaDe(comunicacao) && entregues > 0 && entregues < canais.length) {
       await rodada.alertar(
         cliente,
         "entrega_parcial",
@@ -56,7 +58,7 @@ export class EntregarComunicacaoPorCanais {
     comunicacao: ComunicacaoProativa,
     agora: Date,
     rodada: RodadaLembretes,
-  ): Promise<Canal> {
+  ): Promise<ResultadoDoCanal> {
     if (!cliente.contato) {
       await rodada.alertar(
         cliente,
@@ -80,7 +82,7 @@ export class EntregarComunicacaoPorCanais {
     cliente: ClienteParaLembrete,
     comunicacao: ComunicacaoProativa,
     rodada: RodadaLembretes,
-  ): Promise<Canal> {
+  ): Promise<ResultadoDoCanal> {
     const destinatario = cliente.email;
     if (!destinatario) {
       await rodada.alertar(cliente, "contato_ausente", `${cliente.empresa} não tem e-mail.`);
@@ -92,7 +94,7 @@ export class EntregarComunicacaoPorCanais {
           para: destinatario,
           assunto: `${montarAssuntoEmail(comunicacao)} — ${cliente.empresa}`,
           texto: montarTextoLivre(comunicacao),
-          anexo: "guia" in comunicacao ? comunicacao.guia : undefined,
+          anexo: guiaDe(comunicacao),
         }),
       TENTATIVAS,
       this.esperaEntreTentativasMs,

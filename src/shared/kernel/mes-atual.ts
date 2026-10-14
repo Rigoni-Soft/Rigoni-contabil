@@ -1,9 +1,3 @@
-const FORMATO = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "America/Sao_Paulo",
-  year: "numeric",
-  month: "2-digit",
-});
-
 const FORMATO_DATA = new Intl.DateTimeFormat("en-CA", {
   timeZone: "America/Sao_Paulo",
   year: "numeric",
@@ -24,7 +18,7 @@ export function diaDoMes(agora: Date = new Date()): number {
 // Mês corrente no fuso de negócio (America/Sao_Paulo), "YYYY-MM". UTC erraria
 // o mês entre 21h e 23h59 do último dia (Brasília), quando UTC já virou.
 export function mesAtual(agora: Date = new Date()): string {
-  return FORMATO.format(agora);
+  return hojeIso(agora).slice(0, 7);
 }
 
 export function primeiroDiaDoMesAtual(agora: Date = new Date()): string {

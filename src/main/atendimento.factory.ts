@@ -44,6 +44,7 @@ import type { TransferirAtendimentoPort } from "@/modules/atendimento/applicatio
 import type { VerificarInatividadePort } from "@/modules/atendimento/application/ports/in/verificar-inatividade.provider";
 import type { AuditoriaPort } from "@/modules/atendimento/application/ports/out/auditoria.provider";
 import type { AutenticacaoJobPort } from "@/modules/atendimento/application/ports/out/autenticacao-job.provider";
+import type { EnvioEmailPort } from "@/modules/atendimento/application/ports/out/envio-email.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type {
   AtorSessaoDto,
@@ -74,6 +75,7 @@ import { VerificarInatividade } from "@/modules/atendimento/application/use-case
 import { BearerAutenticacaoJobGateway } from "@/modules/atendimento/infra/gateways/bearer-autenticacao-job.gateway";
 import { DownloadMidiaFalsoGateway } from "@/modules/atendimento/infra/gateways/download-midia-falso.gateway";
 import { EnvioEmailFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-email-falso.gateway";
+import { EnvioEmailIndisponivelGateway } from "@/modules/atendimento/infra/gateways/envio-email-indisponivel.gateway";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
 import { FfmpegConversorDeAudioGateway } from "@/modules/atendimento/infra/gateways/ffmpeg-conversor-de-audio.gateway";
 import { GuiasFiscaisGateway } from "@/modules/atendimento/infra/gateways/guias-fiscais.gateway";
@@ -255,6 +257,14 @@ export function makeVerificarInatividade(): VerificarInatividadePort {
   );
 }
 
+// Em produção o e-mail falso responderia ok sem enviar nada; sem o adapter real (#86) o canal
+// falha de forma explícita.
+function makeEnvioEmail(): EnvioEmailPort {
+  return process.env.NODE_ENV === "production"
+    ? new EnvioEmailIndisponivelGateway()
+    : new EnvioEmailFalsoGateway();
+}
+
 // Job (service_role, sem sessão de usuário): lembrete de documento e envio de DAS.
 export function makeExecutarLembretesDocumentoEDas(): ExecutarLembretesDocumentoEDasPort {
   const supabaseAdmin = createSupabaseAdmin();
@@ -264,7 +274,7 @@ export function makeExecutarLembretesDocumentoEDas(): ExecutarLembretesDocumento
     new SupabaseGuiaPublicadaGateway(supabaseAdmin),
     new EntregarComunicacaoPorCanais(
       new EnviarComunicacaoProativa(makeEnvioMensagem(), TENTATIVAS, ESPERA_MS),
-      new EnvioEmailFalsoGateway(),
+      makeEnvioEmail(),
     ),
     new SupabaseAlertaSetorGateway(supabaseAdmin),
     new RelogioSistemaGateway(),

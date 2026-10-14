@@ -13,7 +13,9 @@ adapter falso o DAS ficaria `enviado` sem o cliente ter recebido.
 Antes de ligar em produção:
 
 1. Mensageria real no ar (#68) e os 3 templates aprovados na Meta (#67).
-2. E-mail real (hoje só o adapter falso `EnvioEmailFalsoGateway`). O destino é `clientes.email`,
+2. E-mail real. Hoje só existe o adapter falso, e em produção o canal e-mail falha de forma
+   explícita (`EnvioEmailIndisponivelGateway`): o DAS não é marcado como enviado e o setor recebe
+   alerta, em vez de o adapter falso responder ok. O destino é `clientes.email`,
    informado pelo Admin no cadastro do Cliente (opcional) e exposto na projeção `clientes_basico`.
    Cliente sem e-mail com forma de envio que o inclui vira alerta `contato_ausente`. Editar o e-mail
    depois do cadastro ainda não tem tela (só o Admin cria; o cadastro operacional não o altera).
@@ -36,7 +38,8 @@ Antes de ligar em produção:
   devolve o DAS a pronto com a data de envio anterior (`cliente.desfazer-envio-das-automatico`).
 - **Forma de envio:** WhatsApp e e-mail são independentes; o DAS vira `enviado` se ao menos um
   canal entregou. Canal que falha ou não tem destinatário gera alerta e não derruba o outro. Quando
-  a forma de envio tem os dois canais e só um entregou, abre-se também `entrega_parcial`: o job
+  a guia do DAS tem os dois canais na forma de envio e só um entregou, abre-se também
+  `entrega_parcial` (no lembrete não: ele volta a sair na próxima rodada): o job
   não a resolve sozinho (o DAS já saiu de `pronto`), ela fica aberta até alguém reenviar pelo
   outro canal.
 - **Guia no template:** o PDF vai para o bucket privado `guias-fiscais` e o provedor busca por link

@@ -1,7 +1,7 @@
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
-export type EmailEnviado = {
+export type EmailParaEnvio = {
   para: string;
   assunto: string;
   texto: string;
@@ -9,5 +9,5 @@ export type EmailEnviado = {
 };
 
 export interface EnvioEmailPort {
-  enviar(email: EmailEnviado): Promise<Result<void, AppError>>;
+  enviar(email: EmailParaEnvio): Promise<Result<void, AppError>>;
 }

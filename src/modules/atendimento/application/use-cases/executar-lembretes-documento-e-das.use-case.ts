@@ -27,6 +27,9 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const DIAS_DO_JOB = [1, 5, 10, 15];
 
+// Diferença tolerada entre o relógio do servidor e o do banco ao resolver alertas.
+const FOLGA_RELOGIO_MS = 60_000;
+
 const nomeDoContato = (cliente: ClienteParaLembrete) => cliente.contato?.nome ?? cliente.empresa;
 
 const temDestinatario = (cliente: ClienteParaLembrete) =>
@@ -57,13 +60,15 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     const rodada = new RodadaLembretes(this.alertas, DIAS_DO_JOB.includes(diaDoMes(agora)));
     if (!rodada.resumo.executado) return ok(rodada.resumo);
 
-    const lista = await this.clientes.listar();
-    if (!lista.ok) return lista;
-    for (const cliente of lista.value) await this.processar(cliente, agora, rodada);
+    const clientes = await this.clientes.listar();
+    if (!clientes.ok) return clientes;
+    for (const cliente of clientes.value) await this.processar(cliente, agora, rodada);
 
     // Alerta que o job não renovou nesta rodada deixou de valer. A folga cobre a diferença entre o
     // relógio do servidor e o do banco; os alertas anteriores têm dias.
-    const resolvidos = await this.alertas.resolverNaoRenovados(new Date(agora.getTime() - 60_000));
+    const resolvidos = await this.alertas.resolverNaoRenovados(
+      new Date(agora.getTime() - FOLGA_RELOGIO_MS),
+    );
     if (!resolvidos.ok) rodada.registrarFalha();
     return ok(rodada.resumo);
   }

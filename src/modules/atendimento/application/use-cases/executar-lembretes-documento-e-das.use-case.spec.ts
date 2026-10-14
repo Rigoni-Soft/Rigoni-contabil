@@ -1,7 +1,7 @@
 import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/entrega-por-canais";
 import type { AlertaSetor } from "@/modules/atendimento/application/ports/out/alerta-setor.provider";
 import type { ClienteParaLembrete } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
-import type { EmailEnviado } from "@/modules/atendimento/application/ports/out/envio-email.provider";
+import type { EmailParaEnvio } from "@/modules/atendimento/application/ports/out/envio-email.provider";
 import type { GuiaFiscal } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
 import type { AppError } from "@/shared/errors/app.error";
@@ -49,7 +49,7 @@ function montar(
   } = {},
 ) {
   const envio = new EnvioMensagemFalsoGateway(opcoes.falhas);
-  const emails: EmailEnviado[] = [];
+  const emails: EmailParaEnvio[] = [];
   const alertas: AlertaSetor[] = [];
   const marcados: [string, string][] = [];
   const desfeitos: [string, string | null][] = [];
@@ -370,5 +370,13 @@ describe("ExecutarLembretesDocumentoEDas", () => {
     });
     await job.execute();
     expect(alertas.map((a) => a.tipo)).toEqual(["falha_envio"]);
+  });
+
+  it("lembrete entregue por um canal só não abre entrega_parcial (volta a sair na próxima rodada)", async () => {
+    const { job, alertas } = montar([
+      cliente({ documentoObrigatorio: "negativo", formaEnvio: "whatsapp_e_email", email: null }),
+    ]);
+    await job.execute();
+    expect(alertas.map((a) => a.tipo)).toEqual(["contato_ausente"]);
   });
 });

@@ -9,26 +9,31 @@ import type { ClienteParaLembrete } from "@/modules/atendimento/application/port
 // tipo (um Cliente com lembrete e DAS não alerta duas vezes o mesmo problema). Nasce a cada
 // execução, o que mantém o use case sem estado.
 export class RodadaLembretes {
-  readonly resumo: LembretesExecutados;
+  private readonly contadores: LembretesExecutados;
   private readonly alertados = new Set<string>();
 
   constructor(
     private readonly alertas: AlertaSetorPort,
     executado: boolean,
   ) {
-    this.resumo = { executado, lembretes: 0, dasEnviados: 0, alertas: 0, falhas: 0 };
+    this.contadores = { executado, lembretes: 0, dasEnviados: 0, alertas: 0, falhas: 0 };
+  }
+
+  // Cópia: quem lê o resumo não altera os contadores da rodada.
+  get resumo(): LembretesExecutados {
+    return { ...this.contadores };
   }
 
   registrarLembrete() {
-    this.resumo.lembretes += 1;
+    this.contadores.lembretes += 1;
   }
 
   registrarDasEnviado() {
-    this.resumo.dasEnviados += 1;
+    this.contadores.dasEnviados += 1;
   }
 
   registrarFalha() {
-    this.resumo.falhas += 1;
+    this.contadores.falhas += 1;
   }
 
   async alertar(cliente: ClienteParaLembrete, tipo: TipoAlertaSetor, mensagem: string) {
@@ -41,7 +46,7 @@ export class RodadaLembretes {
       clienteId: cliente.clienteId,
       mensagem,
     });
-    if (gravado.ok) this.resumo.alertas += 1;
+    if (gravado.ok) this.contadores.alertas += 1;
     else this.registrarFalha();
   }
 

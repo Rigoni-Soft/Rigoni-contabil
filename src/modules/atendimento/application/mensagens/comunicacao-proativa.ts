@@ -70,6 +70,10 @@ const ASSUNTO_EMAIL: Record<ComunicacaoProativa["tipo"], string> = {
 
 export const montarAssuntoEmail = (c: ComunicacaoProativa): string => ASSUNTO_EMAIL[c.tipo];
 
+// A guia anexada à comunicação, quando é uma comunicação com guia.
+export const guiaDe = (c: ComunicacaoProativa): Guia | undefined =>
+  "guia" in c ? c.guia : undefined;
+
 // Texto no formato próprio do sistema, usado com a janela aberta (sem custo de template) e no
 // e-mail.
 export function montarTextoLivre(comunicacao: ComunicacaoProativa): string {
@@ -88,7 +92,6 @@ export function montarMensagemLivre(
   telefone: string,
 ): { texto: string; documento?: DocumentoEnviado } {
   const texto = montarTextoLivre(comunicacao);
-  return "guia" in comunicacao
-    ? { texto, documento: { telefone, ...comunicacao.guia } }
-    : { texto };
+  const guia = guiaDe(comunicacao);
+  return guia ? { texto, documento: { telefone, ...guia } } : { texto };
 }
