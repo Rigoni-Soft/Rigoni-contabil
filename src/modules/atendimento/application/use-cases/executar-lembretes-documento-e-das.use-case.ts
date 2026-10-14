@@ -71,14 +71,14 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
   async execute(): Promise<Result<LembretesExecutados, AppError>> {
     const agora = this.relogio.agora();
     const hoje = FORMATO_DATA.format(agora);
-    const resumo = (this.resumo = {
+    this.resumo = {
       executado: DIAS_DO_JOB.includes(Number(hoje.slice(8))),
       lembretes: 0,
       dasEnviados: 0,
       alertas: 0,
       falhas: 0,
-    });
-    if (!resumo.executado) return ok(resumo);
+    };
+    if (!this.resumo.executado) return ok(this.resumo);
 
     const lista = await this.clientes.listar();
     if (!lista.ok) return lista;
@@ -89,7 +89,7 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
           contato: cliente.contato?.nome ?? cliente.empresa,
           empresa: cliente.empresa,
         };
-        if (await this.entregar(cliente, comunicacao, agora)) resumo.lembretes += 1;
+        if (await this.entregar(cliente, comunicacao, agora)) this.resumo.lembretes += 1;
       }
       if (cliente.dasStatus === "pronto") {
         await this.enviarDas(cliente, agora, hoje);
@@ -104,8 +104,8 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     // Alerta que o job não renovou nesta rodada deixou de valer. A folga cobre a diferença entre o
     // relógio do servidor e o do banco; os alertas anteriores têm dias.
     const resolvidos = await this.alertas.resolverNaoRenovados(new Date(agora.getTime() - 60_000));
-    if (!resolvidos.ok) resumo.falhas += 1;
-    return ok(resumo);
+    if (!resolvidos.ok) this.resumo.falhas += 1;
+    return ok(this.resumo);
   }
 
   private async enviarDas(c: ClienteParaLembrete, agora: Date, hoje: string) {
