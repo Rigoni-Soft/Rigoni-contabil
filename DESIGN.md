@@ -694,9 +694,19 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   escolhido vira `PreviaDeAnexo` acima do campo (miniatura ou ícone, nome, tamanho,
   remover; "Enviando…" com `role="status"` durante o envio) e o texto passa a ser a
   legenda. No balão, imagem é miniatura de 160 px (caixa fixa, sem salto de layout)
-  que abre num diálogo com botão "Fechar imagem" (o véu `bg-black/60` é neutro nos
-  dois temas e a única cor fora dos tokens, por ser o único overlay do produto); arquivo é uma linha com ícone,
-  nome, tamanho e "Baixar". Arrastar um arquivo sobre a conversa acende a moldura
+  que abre num diálogo nativo (`popover`): faixa própria no topo com "Baixar" e
+  "Fechar imagem" (44 px cada, fora da foto, que fica com teto `90dvh − 5rem`), e a
+  imagem ampliada com `alt=""` porque o diálogo já se chama "Imagem ampliada: nome".
+  O véu `bg-black/60` é neutro nos dois temas. Arquivo é uma linha com ícone, nome
+  (trunca, `title` com o inteiro), tamanho e as ações "Visualizar" e "Baixar":
+  PDF e TXT abrem numa aba; Word e Excel abrem num painel `popover` com a prévia
+  lida no navegador (Word num iframe `sandbox=""`; planilha como tabela com o nome
+  em `caption` e no máximo 500 linhas, "Mostrando as primeiras N linhas"). O Word
+  fica em fundo branco nos dois temas, de propósito: é papel, a única superfície
+  fora dos tokens além do véu. Carregando é `role="status"`; falha diz para fechar e
+  usar Baixar; planilha ou documento sem conteúdo têm aviso próprio; a leitura tem
+  teto de 30 s e um clique repetido não baixa duas vezes. Arquivo de áudio não
+  tem "Baixar": só o player. Arrastar um arquivo sobre a conversa acende a moldura
   de guilhochê (`SobreposicaoDeSoltar`, "Solte para anexar", entrada de 180 ms só
   com `motion-safe:`) e sobre o campo, um anel `primary`; é só enfeite de mouse, o
   caminho por teclado é o clipe. Texto e link arrastados não acendem nada.

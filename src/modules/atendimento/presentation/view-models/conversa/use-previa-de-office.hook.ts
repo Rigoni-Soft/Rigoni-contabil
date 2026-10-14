@@ -1,20 +1,26 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import type { PreviaCarregada } from "@/presentation/lib/previa-de-office";
 
 type Estado = "fechado" | "carregando" | "erro" | "pronto";
+
+// Sem teto, uma conexão que não responde deixaria o painel em "Carregando" para sempre.
+const LIMITE_DO_DOWNLOAD_MS = 30_000;
 
 // Lê o Word/Excel no navegador na primeira vez que é aberto. As bibliotecas só são baixadas aqui,
 // não no carregamento da conversa.
 export function usePreviaDeOffice(url: string, formato: "docx" | "xlsx") {
   const [estado, setEstado] = useState<Estado>("fechado");
   const [previa, setPrevia] = useState<PreviaCarregada | undefined>();
+  // Dois cliques antes da próxima renderização leriam o mesmo `estado`: o ref fecha essa janela.
+  const emAndamento = useRef(false);
 
   const abrir = useCallback(async () => {
-    if (estado === "carregando" || estado === "pronto") return;
+    if (emAndamento.current || estado === "pronto") return;
+    emAndamento.current = true;
     setEstado("carregando");
     try {
-      const resposta = await fetch(url);
+      const resposta = await fetch(url, { signal: AbortSignal.timeout(LIMITE_DO_DOWNLOAD_MS) });
       if (!resposta.ok) throw new Error("download");
       const conteudo = await resposta.arrayBuffer();
       const office = await import("@/presentation/lib/previa-de-office");
@@ -26,6 +32,8 @@ export function usePreviaDeOffice(url: string, formato: "docx" | "xlsx") {
       setEstado("pronto");
     } catch {
       setEstado("erro");
+    } finally {
+      emAndamento.current = false;
     }
   }, [estado, url, formato]);
 

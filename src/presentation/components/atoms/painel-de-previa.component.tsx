@@ -12,7 +12,8 @@ type PainelDePreviaProps = {
   aoAbrir: () => void;
 };
 
-// Estilo do documento dentro do iframe: o HTML do arquivo não herda o da página.
+// Estilo do documento dentro do iframe: o HTML do arquivo não herda o da página. O Word é "papel":
+// fica claro (fundo branco, texto escuro) nos dois temas, como numa folha impressa.
 const ESTILO_DO_DOCUMENTO =
   "<style>body{font:15px/1.5 system-ui,sans-serif;margin:16px;color:#1c1917}img{max-width:100%}table{border-collapse:collapse}td,th{border:1px solid #d6d3d1;padding:4px 8px}</style>";
 
@@ -55,13 +56,24 @@ export function PainelDePrevia({ nome, painelId, estado, previa, aoAbrir }: Pain
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-auto">
-          {estado === "carregando" && <p className="p-4 text-sm">Carregando o arquivo…</p>}
-          {estado === "erro" && (
-            <p role="alert" className="p-4 text-sm text-destructive">
-              Não foi possível abrir este arquivo. Baixe-o para ver o conteúdo.
+          {estado === "carregando" && (
+            <p role="status" className="p-4 text-sm">
+              Carregando o arquivo…
             </p>
           )}
-          {estado === "pronto" && previa?.tipo === "documento" && (
+          {estado === "erro" && (
+            <p role="alert" className="p-4 text-sm text-destructive">
+              Não foi possível mostrar o arquivo aqui. Feche esta janela e use Baixar para abri-lo
+              no seu computador.
+            </p>
+          )}
+          {estado === "pronto" && previa?.tipo === "documento" && !previa.html.trim() && (
+            <p className="p-4 text-sm text-muted-foreground">Este documento não tem conteúdo.</p>
+          )}
+          {estado === "pronto" && previa?.tipo === "planilha" && previa.linhas.length === 0 && (
+            <p className="p-4 text-sm text-muted-foreground">Esta planilha não tem conteúdo.</p>
+          )}
+          {estado === "pronto" && previa?.tipo === "documento" && previa.html.trim() && (
             <iframe
               title={`Conteúdo de ${nome}`}
               sandbox=""
@@ -69,15 +81,18 @@ export function PainelDePrevia({ nome, painelId, estado, previa, aoAbrir }: Pain
               className="size-full border-0 bg-white"
             />
           )}
-          {estado === "pronto" && previa?.tipo === "planilha" && (
+          {estado === "pronto" && previa?.tipo === "planilha" && previa.linhas.length > 0 && (
             <div className="p-3">
-              <p className="mb-2 text-sm font-medium">{previa.nome}</p>
               <table className="border-collapse text-sm">
+                <caption className="mb-2 text-left text-sm font-medium">{previa.nome}</caption>
                 <tbody>
                   {previa.linhas.map((linha, i) => (
                     <tr key={i}>
                       {linha.map((celula, j) => (
-                        <td key={j} className="border border-border px-2 py-1 align-top">
+                        <td
+                          key={j}
+                          className="max-w-[24rem] border border-border px-2 py-1 align-top break-words"
+                        >
                           {celula}
                         </td>
                       ))}
@@ -87,7 +102,8 @@ export function PainelDePrevia({ nome, painelId, estado, previa, aoAbrir }: Pain
               </table>
               {previa.truncada && (
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Mostrando só as primeiras linhas. Baixe o arquivo para ver tudo.
+                  Mostrando as primeiras {previa.linhas.length} linhas. Baixe o arquivo para ver
+                  todas.
                 </p>
               )}
             </div>

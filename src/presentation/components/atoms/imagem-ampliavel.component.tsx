@@ -47,34 +47,39 @@ export function ImagemAmpliavel({
         aria-label={`Imagem ampliada: ${alt}`}
         className="m-auto max-h-[90dvh] max-w-[min(90vw,64rem)] min-w-[min(90vw,16rem)] overflow-visible rounded-xl border border-border bg-background p-2 backdrop:bg-black/60"
       >
-        <button
-          type="button"
-          popoverTarget={painelId}
-          popoverTargetAction="hide"
-          aria-label="Fechar imagem"
-          // O React trata `autoFocus` focando na montagem (o painel ainda está oculto); o atributo
-          // nativo é o que o popover usa para decidir o foco ao abrir.
-          ref={(botao) => botao?.setAttribute("autofocus", "")}
-          className="absolute top-3 right-3 flex size-11 items-center justify-center rounded-full bg-background/90 text-foreground shadow outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <X className="size-5" aria-hidden="true" />
-        </button>
-        <a
-          href={baixarHref}
-          download={alt}
-          aria-label={`Baixar ${alt}`}
-          className="absolute top-3 right-16 flex h-11 items-center gap-1 rounded-full bg-background/90 px-3 text-sm text-foreground shadow outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <Download className="size-4" aria-hidden="true" />
-          Baixar
-        </a>
+        {/* Ações numa faixa própria: sobre a foto cobririam justamente o que se quer ver. */}
+        <div className="mb-2 flex items-center justify-end gap-2">
+          <a
+            href={baixarHref}
+            download={alt}
+            aria-label={`Baixar ${alt}`}
+            className="flex h-11 items-center gap-1 rounded-full px-3 text-sm text-foreground outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Download className="size-4" aria-hidden="true" />
+            Baixar
+          </a>
+          <button
+            type="button"
+            popoverTarget={painelId}
+            popoverTargetAction="hide"
+            aria-label="Fechar imagem"
+            // O React trata `autoFocus` focando na montagem (o painel ainda está oculto); o atributo
+            // nativo é o que o popover usa para decidir o foco ao abrir.
+            ref={(botao) => botao?.setAttribute("autofocus", "")}
+            className="flex size-11 items-center justify-center rounded-full text-foreground outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <X className="size-5" aria-hidden="true" />
+          </button>
+        </div>
         {/* eslint-disable-next-line @next/next/no-img-element -- idem */}
         <img
           src={ampliadaSrc}
-          alt={alt}
+          // O diálogo já se chama "Imagem ampliada: nome": repetir o nome faria o leitor de tela
+          // lê-lo duas vezes.
+          alt=""
           loading="lazy"
           decoding="async"
-          className="max-h-[85dvh] max-w-full min-w-[min(80vw,16rem)] object-contain"
+          className="max-h-[calc(90dvh-5rem)] max-w-full min-w-[min(80vw,16rem)] object-contain"
         />
       </div>
     </>
