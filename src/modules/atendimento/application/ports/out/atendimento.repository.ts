@@ -4,6 +4,7 @@ import type {
 } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type { AnexarMensagemOutput } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
 import type { DadosDoContato } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
+import type { Inativo } from "@/modules/atendimento/domain/services/inatividade.service";
 import type { AppError } from "@/shared/errors/app.error";
 import type { RegimeValor } from "@/shared/kernel/regimes";
 import type { Result } from "@/shared/kernel/result";
@@ -40,6 +41,8 @@ export type AtendimentoEmAndamento = {
   funcionarioId: string | null;
   telefone: string;
   chave: string;
+  // O aviso de encerramento por inatividade foi enviado e ainda vale: não se transfere.
+  emAvisoDeInatividade: boolean;
 };
 
 export type NovaTransferencia = {
@@ -105,6 +108,35 @@ export type AtendimentoAssumido = {
   funcionarioNome: string | null;
 };
 
+// Atendimento em andamento com Funcionário, com o que a verificação de inatividade precisa:
+// quando cada lado escreveu pela última vez e o aviso de encerramento já enviado (se houver).
+export type AtendimentoParaInatividade = {
+  id: string;
+  setor: SetorSlug;
+  funcionarioId: string;
+  telefone: string;
+  chave: string;
+  ultimaDoContato: Date | null;
+  ultimaDoFuncionario: Date | null;
+  aviso: { em: Date; de: Inativo } | null;
+  // O aviso chegou a quem estava inativo (o do cliente só depois de enviado).
+  avisoEntregue: boolean;
+};
+
+// Encerramento por inatividade cuja mensagem final ainda não foi entregue ao cliente.
+// `reivindicacao` é o token de posse: só quem o detém libera ou confirma.
+export type EncerramentoPendente = {
+  atendimentoId: string;
+  telefone: string;
+  texto: string;
+  reivindicacao: string;
+};
+
+// Encerrado por inatividade: já nasce com a reivindicação da própria mensagem final.
+export type ResultadoEncerramentoPorInatividade =
+  | { status: "encerrado"; proximo: AtendimentoAssumido | null; reivindicacao: string }
+  | { status: "inexistente" };
+
 export interface AtendimentoRepositoryPort {
   funcionariosDoSetor(setor: SetorSlug): Promise<Result<FuncionarioDoSetor[], AppError>>;
   abrir(atendimento: NovoAtendimento): Promise<Result<ResultadoAbertura, AppError>>;
@@ -126,4 +158,40 @@ export interface AtendimentoRepositoryPort {
     funcionarioId: string | null,
     ator: { id: string; setor: SetorSlug },
   ): Promise<Result<ResultadoEncerramento, AppError>>;
+  // Como `encerrar`, mas só se o aviso de inatividade foi entregue e continua marcado, e quem
+  // estava inativo não escreveu depois dele (a Mensagem que chega e o encerramento se serializam).
+  // A mensagem final da URA (`textoFinal`) entra no histórico na mesma transação que fecha.
+  encerrarPorInatividade(
+    atendimentoId: string,
+    funcionarioId: string,
+    ator: { id: string; setor: SetorSlug },
+    textoFinal: string,
+  ): Promise<Result<ResultadoEncerramentoPorInatividade, AppError>>;
+  paraInatividade(): Promise<Result<AtendimentoParaInatividade[], AppError>>;
+  // Reserva o aviso: true só se este chamador marcou. false se já estava marcado ou se entrou
+  // Mensagem depois de `vistoAte` (a decisão é de uma leitura velha; a próxima rodada reavalia).
+  marcarAvisoInatividade(
+    atendimentoId: string,
+    de: Inativo,
+    vistoAte: Date,
+  ): Promise<Result<boolean, AppError>>;
+  // O aviso ao cliente saiu. false se o aviso já não existe.
+  confirmarAvisoEntregue(atendimentoId: string): Promise<Result<boolean, AppError>>;
+  limparAvisoInatividade(atendimentoId: string): Promise<Result<void, AppError>>;
+  // Reivindica até `limite` mensagens finais não entregues: um job por vez (lease no banco; vencido,
+  // volta a ser elegível). Nunca tentadas primeiro, depois a tentativa mais antiga; quem falha espera
+  // um backoff crescente. Quem reivindica entrega e confirma, ou libera se o envio falhou, sempre
+  // com o token da reivindicação (um job cujo lease venceu não altera a posse de outro).
+  reivindicarEncerramentosPendentes(
+    limite: number,
+  ): Promise<Result<EncerramentoPendente[], AppError>>;
+  liberarEncerramentoPendente(
+    atendimentoId: string,
+    reivindicacao: string,
+  ): Promise<Result<void, AppError>>;
+  // false se a posse já não é de quem confirma.
+  confirmarEncerramentoEntregue(
+    atendimentoId: string,
+    reivindicacao: string,
+  ): Promise<Result<boolean, AppError>>;
 }

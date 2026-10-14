@@ -152,6 +152,13 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
     if (!podeTransferir(ator, atendimento)) {
       return err(new ForbiddenError("Você não pode transferir este Atendimento."));
     }
+    if (atendimento.emAvisoDeInatividade) {
+      return err(
+        new ValidationError(
+          "Este Atendimento está em aviso de encerramento por inatividade e não pode ser transferido.",
+        ),
+      );
+    }
     if (setorDestino === atendimento.setor) {
       return err(
         new ValidationError("Escolha outro Setor.", { setorDestino: ["Setor de origem"] }),

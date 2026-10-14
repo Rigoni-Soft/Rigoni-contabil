@@ -112,6 +112,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
         funcionarioId: origemId,
         telefone: TELEFONE,
         chave: TELEFONE,
+        emAvisoDeInatividade: false,
       },
     });
     expect(await repositorio.buscarEmAndamento(crypto.randomUUID())).toEqual({
@@ -352,5 +353,47 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
     expect(r).toEqual({ ok: true, value: { status: "inexistente" } });
     const { data } = await admin.from("atendimentos").select("setor").eq("id", id).single();
     expect(data).toEqual({ setor: "recepcao" });
+  });
+
+  // #58: cada teste desativa o perfil, confere e reativa — sem depender da ordem da suíte.
+  async function comDesativado(id: string, verificar: () => Promise<void>) {
+    await admin.from("perfis").update({ desativado_em: new Date().toISOString() }).eq("id", id);
+    try {
+      await verificar();
+    } finally {
+      await admin.from("perfis").update({ desativado_em: null }).eq("id", id);
+    }
+  }
+
+  it("usuário desativado sai do Balanceamento", async () => {
+    await comDesativado(destinoId, async () => {
+      const r = await repositorio.funcionariosDoSetor("simples_nacional");
+      expect(r.ok && r.value.map((f) => f.id)).not.toContain(destinoId);
+    });
+    const depois = await repositorio.funcionariosDoSetor("simples_nacional");
+    expect(depois.ok && depois.value.map((f) => f.id)).toContain(destinoId);
+  });
+
+  it("Responsável desativado não é destino: o Cliente fica sem Responsável", async () => {
+    const op = await admin
+      .from("cliente_cadastro_operacional_sn")
+      .upsert({ cliente_id: clienteId, responsavel_id: destinoId });
+    if (op.error) throw op.error;
+    await comDesativado(destinoId, async () => {
+      expect(await repositorio.roteamentoDoCliente(clienteId)).toEqual({
+        ok: true,
+        value: { regime: "simples_nacional", responsavelId: null },
+      });
+    });
+  });
+
+  it("Líder desativado não é destino: o Setor fica sem Líder", async () => {
+    await comDesativado(liderCondominios, async () => {
+      expect(await repositorio.liderDoSetor("condominios")).toEqual({ ok: true, value: null });
+    });
+    expect(await repositorio.liderDoSetor("condominios")).toEqual({
+      ok: true,
+      value: liderCondominios,
+    });
   });
 });

@@ -117,7 +117,7 @@ Fora dessas exceções, prefira sempre `kebab-case`.
 
 Premissas:
 
-1. **Sem API Routes.** Não existe `route.ts` em `src/app`, exceto webhooks de terceiros em `src/app/api/webhooks/**` (seção 3.13). Toda comunicação cliente→servidor é Server Action; a carga inicial vem de Server Components. **[lint]**
+1. **Sem API Routes.** Não existe `route.ts` em `src/app`, exceto webhooks de terceiros em `src/app/api/webhooks/**` e jobs agendados em `src/app/api/jobs/**` (seção 3.13). Toda comunicação cliente→servidor é Server Action; a carga inicial vem de Server Components. **[lint]**
 2. **Monólito modular por domínio.** Um deploy, módulos isolados entre si.
 3. **Clean Architecture clássica** dentro de cada módulo: `domain`, `application`, `infra`, `presentation`, mais `shared` e `main` globais.
 4. **Server Components são o padrão absoluto.** Cliente só onde é exigido (seção 4.6).
@@ -156,7 +156,8 @@ Cada módulo é uma fatia de Clean Architecture (hexagonal): o `domain` no centr
 ```
 src/
 ├─ app/                          convenções do Next.js apenas (layout, page, loading, error, globals.css)
-│  └─ api/webhooks/<provedor>/route.ts   única exceção: webhooks de terceiros (seção 3.13)
+│  └─ api/webhooks/<provedor>/route.ts   exceção: webhooks de terceiros (seção 3.13)
+│  └─ api/jobs/<job>/route.ts            exceção: jobs chamados por agendador, ex.: Vercel Cron (seção 3.13)
 ├─ middleware.ts                 (proxy.ts no Next 16) somente refresh de sessão do Supabase
 ├─ shared/                       TypeScript puro, sem framework e sem biblioteca
 │  ├─ kernel/    result.ts · preconditions.ts · id.types.ts (Brand, Id) · setores.ts (SETORES,
@@ -411,12 +412,13 @@ Decisão tomada a partir da arquitetura e da documentação do Next.js e do Supa
 
 Regras:
 
-1. `route.ts` só é permitido em `src/app/api/webhooks/<provedor>/route.ts`. Qualquer outro `route.ts` falha o CI.
-2. Esse `route.ts` só reexporta o `POST` de `modules/<d>/presentation/webhooks/<provedor>.webhook.ts`. **[lint]**
+1. `route.ts` só é permitido em `src/app/api/webhooks/<provedor>/route.ts` e `src/app/api/jobs/<job>/route.ts`. Qualquer outro `route.ts` falha o CI.
+2. Esse `route.ts` só reexporta o `POST` (o de job também o `GET`, que é o método do Vercel Cron) de `modules/<d>/presentation/webhooks/<nome>.webhook.ts`. **[lint]**
+   - **Job agendado:** o handler confere o segredo do agendador (`Authorization: Bearer`) por uma porta OUT (`AutenticacaoJobPort`), chama a porta IN pelo `main` e devolve o resumo; sem o segredo configurado, recusa tudo. O cron fica em `vercel.json`.
 3. O handler `*.webhook.ts` lê o corpo cru, extrai a assinatura, chama uma porta IN pelo `main` e converte o resultado em status HTTP. Sem regra de negócio.
 4. **O que puder passar pela `infra` passa.** A verificação de assinatura e a idempotência (guardar o id do evento já processado) acontecem dentro do caso de uso, por portas OUT (`AssinaturaWebhookPort`, `EventoProcessadoRepository`) implementadas na `infra`.
 5. Resposta: 2xx quando processou ou já tinha visto o evento; 4xx para assinatura inválida; 5xx para falha transitória (o provedor tenta de novo).
-6. O middleware/proxy de sessão exclui `/api/webhooks/**`.
+6. O middleware/proxy de sessão exclui `/api/webhooks/**`. Em `/api/jobs/**` ele só renova sessão (não redireciona), o que é inofensivo.
 
 ### 3.14 Regras de segurança impostas pela arquitetura
 
@@ -833,7 +835,7 @@ Todas as regras de teste (TDD, pirâmide, o que testar em cada camada, cobertura
 **Decisões tomadas**
 
 1. **Supabase só pela `infra`**, com uma exceção: **autenticação** no navegador, restrita a `presentation/auth/` (seção 3.9). **Realtime passa pela `infra`** (porta OUT + `infra/realtime/` + `main/client/`).
-2. **Webhooks** são a única exceção à regra "sem Route Handlers", em `src/app/api/webhooks/**`, com o handler fino e o processamento por portas da `infra` (seção 3.13).
+2. **Webhooks** são a única exceção à regra "sem Route Handlers", em `src/app/api/webhooks/**` (e os jobs agendados, em `src/app/api/jobs/**`), com o handler fino e o processamento por portas da `infra` (seção 3.13).
 3. **Views podem importar `next/link` e `next/image`.** O resto de `next/*` continua proibido (seção 4.11).
 4. **Entidades expõem getters somente leitura**, sem setters (seções 2 e 3.5).
 5. **Leituras reativas por Server Action + React Query**, com carga inicial sempre no servidor, uma action por interação e consultas relacionadas agrupadas em um caso de leitura (seções 3.6 e 4.9). Filtro por URL descartado para manter um só mecanismo.
@@ -927,10 +929,10 @@ module.exports = {
 
 Verificação feita: em uma árvore de teste com 55 módulos, 22 arquivos com violações plantadas geraram 30 ocorrências, todas detectadas, sem falso positivo em arquivo válido (inclusive `next/link`, `next/image`, cliente Supabase em `infra/` e em `presentation/auth/`, `*.realtime.ts` usando `main/client` e a rota de webhook reexportando o handler). As regras `ad-molecule`, `ad-organism` e `infra-so-dentro-do-modulo` não foram exercitadas nesse teste.
 
-**Falha de CI adicional** (premissa 1): nenhum `route.ts` fora de `src/app/api/webhooks/`. O comando deve imprimir **nada**; qualquer linha é violação.
+**Falha de CI adicional** (premissa 1): nenhum `route.ts` fora de `src/app/api/webhooks/` e `src/app/api/jobs/`. O comando deve imprimir **nada**; qualquer linha é violação.
 
 ```bash
-find src/app -name "route.ts*" -not -path "src/app/api/webhooks/*"
+find src/app -name "route.ts*" -not -path "src/app/api/webhooks/*" -not -path "src/app/api/jobs/*"
 ```
 
 ## Anexo B — Diretivas e hooks (`eslint.config.mjs`) **[testado]**

@@ -1,6 +1,8 @@
 import "server-only";
 
 import {
+  CRON_SECRET,
+  INATIVIDADE_AUTOMATICA,
   MENSAGERIA_MODO,
   MENSAGERIA_SEGREDO_ASSINATURA,
   MENSAGERIA_SEGREDO_SESSAO,
@@ -13,6 +15,7 @@ import { makeRegistrarAcao } from "@/main/auditoria.factory";
 import { exigirSegredosReais } from "@/main/segredos-mensageria.factory";
 import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
+import type { AutenticarWebhookPort } from "@/modules/atendimento/application/ports/in/autenticar-webhook.provider";
 import type { AvisarClientePort } from "@/modules/atendimento/application/ports/in/avisar-cliente.provider";
 import type { EncerrarAtendimentoPort } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
 import type {
@@ -23,8 +26,9 @@ import type {
 import type { ListarFilaPort } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
 import type { ReceberMensagemPort } from "@/modules/atendimento/application/ports/in/receber-mensagem.provider";
 import type { TransferirAtendimentoPort } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
+import type { VerificarInatividadePort } from "@/modules/atendimento/application/ports/in/verificar-inatividade.provider";
 import type { AuditoriaPort } from "@/modules/atendimento/application/ports/out/auditoria.provider";
-import type { AutenticacaoWebhookPort } from "@/modules/atendimento/application/ports/out/autenticacao-webhook.provider";
+import type { AutenticacaoJobPort } from "@/modules/atendimento/application/ports/out/autenticacao-job.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type {
   AtorSessaoDto,
@@ -32,6 +36,7 @@ import type {
 } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { AbrirAtendimento } from "@/modules/atendimento/application/use-cases/abrir-atendimento.use-case";
 import { AnexarMensagemAtendimento } from "@/modules/atendimento/application/use-cases/anexar-mensagem-atendimento.use-case";
+import { AutenticarWebhook } from "@/modules/atendimento/application/use-cases/autenticar-webhook.use-case";
 import { AvisarCliente } from "@/modules/atendimento/application/use-cases/avisar-cliente.use-case";
 import { CadastrarFeriado } from "@/modules/atendimento/application/use-cases/cadastrar-feriado.use-case";
 import { EncerrarAtendimento } from "@/modules/atendimento/application/use-cases/encerrar-atendimento.use-case";
@@ -40,6 +45,8 @@ import { ListarFila } from "@/modules/atendimento/application/use-cases/listar-f
 import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/receber-mensagem.use-case";
 import { RemoverFeriado } from "@/modules/atendimento/application/use-cases/remover-feriado.use-case";
 import { TransferirAtendimento } from "@/modules/atendimento/application/use-cases/transferir-atendimento.use-case";
+import { VerificarInatividade } from "@/modules/atendimento/application/use-cases/verificar-inatividade.use-case";
+import { BearerAutenticacaoJobGateway } from "@/modules/atendimento/infra/gateways/bearer-autenticacao-job.gateway";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
 import { GuiasFiscaisGateway } from "@/modules/atendimento/infra/gateways/guias-fiscais.gateway";
 import { HmacAutenticacaoWebhookGateway } from "@/modules/atendimento/infra/gateways/hmac-autenticacao-webhook.gateway";
@@ -67,7 +74,7 @@ function makeEnvioMensagem(): EnvioMensagemPort {
   return envioFalso;
 }
 
-// Chamada por makeAutenticacaoWebhook e makeReceberMensagem: nenhum caminho da rota pública
+// Chamada por makeAutenticarWebhook e makeReceberMensagem: nenhum caminho da rota pública
 // (GET/POST) chega ao client privilegiado nem valida HMAC com segredo de desenvolvimento.
 function exigirSegredosDeProducao(): void {
   exigirSegredosReais(
@@ -104,11 +111,14 @@ export function makeReceberMensagem(): ReceberMensagemPort {
   );
 }
 
-export function makeAutenticacaoWebhook(): AutenticacaoWebhookPort {
+export function makeAutenticacaoJob(): AutenticacaoJobPort {
+  return new BearerAutenticacaoJobGateway(CRON_SECRET);
+}
+
+export function makeAutenticarWebhook(): AutenticarWebhookPort {
   exigirSegredosDeProducao();
-  return new HmacAutenticacaoWebhookGateway(
-    MENSAGERIA_SEGREDO_ASSINATURA,
-    MENSAGERIA_TOKEN_VERIFICACAO,
+  return new AutenticarWebhook(
+    new HmacAutenticacaoWebhookGateway(MENSAGERIA_SEGREDO_ASSINATURA, MENSAGERIA_TOKEN_VERIFICACAO),
   );
 }
 
@@ -166,6 +176,26 @@ export async function makeEncerrarAtendimento(): Promise<EncerrarAtendimentoPort
     sessaoViaUsuarios(await createSupabaseServer()),
     repositorio,
     makeAvisarCliente(repositorio),
+  );
+}
+
+// O job só age com a flag ligada, e em produção só com mensageria real: o adapter falso "envia"
+// sem avisar ninguém, e encerrar Atendimento real assim seria encerrar sem aviso (devolutiva da
+// PR #83, B1). Autenticar o job (CRON_SECRET) não autoriza executá-lo.
+export function inatividadeAutomaticaAtiva(): boolean {
+  if (INATIVIDADE_AUTOMATICA !== "ligada") return false;
+  return !(process.env.NODE_ENV === "production" && MENSAGERIA_MODO === "falso");
+}
+
+// Job (service_role, sem sessão de usuário): a URA verifica a inatividade dos Atendimentos.
+export function makeVerificarInatividade(): VerificarInatividadePort {
+  const supabaseAdmin = createSupabaseAdmin();
+  const repositorio = new SupabaseAtendimentoRepository(supabaseAdmin);
+  return new VerificarInatividade(
+    repositorio,
+    makeAvisarCliente(repositorio),
+    new RelogioSistemaGateway(),
+    new SupabaseFeriadoRepository(supabaseAdmin),
   );
 }
 

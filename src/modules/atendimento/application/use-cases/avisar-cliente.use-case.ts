@@ -15,10 +15,12 @@ export class AvisarCliente implements AvisarClientePort {
     telefone: string;
     chave: string;
     texto: string;
+    registrar?: boolean;
   }): Promise<Result<void, AppError>> {
     // Só vira Mensagem do Atendimento o que o cliente de fato recebeu.
     const enviada = await this.enviar(input.telefone, input.texto);
     if (!enviada.ok) return enviada;
+    if (input.registrar === false) return ok(undefined);
     const registrada = await this.repositorio.anexarMensagem(input.chave, {
       autor: "ura",
       texto: input.texto,

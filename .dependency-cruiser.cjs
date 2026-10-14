@@ -75,6 +75,12 @@ module.exports = {
       to: { pathNot: ["^src/modules/[^/]+/presentation/webhooks/", "node_modules/"] },
     },
     {
+      name: "job-route-so-importa-handler",
+      severity: "error",
+      from: { path: "^src/app/api/jobs/" },
+      to: { pathNot: ["^src/modules/[^/]+/presentation/webhooks/", "node_modules/"] },
+    },
+    {
       name: "modulos-isolados",
       severity: "error",
       from: { path: `${MOD}/` },

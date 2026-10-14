@@ -31,6 +31,12 @@ const resultado = z
     // Chave do HMAC que pseudonimiza o telefone na sessão da URA. Própria (não reaproveita o
     // segredo do webhook): trocar um não invalida o outro. Valor falso só pra dev.
     MENSAGERIA_SEGREDO_SESSAO: z.string().min(1).default(SEGREDOS_MENSAGERIA_PLACEHOLDER.sessao),
+    // Bearer das rotas de job (agendador). Sem valor, as rotas recusam tudo.
+    CRON_SECRET: z.string().min(1).optional(),
+    // Liga o encerramento automático por inatividade (#73). Desligada por padrão: ter o
+    // CRON_SECRET não basta. Em produção só age com mensageria real e o aviso visível ao
+    // Funcionário (docs/contratos/mensageria.md).
+    INATIVIDADE_AUTOMATICA: z.enum(["desligada", "ligada"]).default("desligada"),
   })
   .safeParse({
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -39,6 +45,8 @@ const resultado = z
     MENSAGERIA_SEGREDO_ASSINATURA: process.env.MENSAGERIA_SEGREDO_ASSINATURA || undefined,
     MENSAGERIA_TOKEN_VERIFICACAO: process.env.MENSAGERIA_TOKEN_VERIFICACAO || undefined,
     MENSAGERIA_SEGREDO_SESSAO: process.env.MENSAGERIA_SEGREDO_SESSAO || undefined,
+    CRON_SECRET: process.env.CRON_SECRET || undefined,
+    INATIVIDADE_AUTOMATICA: process.env.INATIVIDADE_AUTOMATICA || undefined,
   });
 
 if (!resultado.success) {
@@ -52,4 +60,6 @@ export const {
   MENSAGERIA_SEGREDO_ASSINATURA,
   MENSAGERIA_TOKEN_VERIFICACAO,
   MENSAGERIA_SEGREDO_SESSAO,
+  CRON_SECRET,
+  INATIVIDADE_AUTOMATICA,
 } = resultado.data;

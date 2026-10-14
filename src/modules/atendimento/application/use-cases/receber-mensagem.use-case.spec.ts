@@ -42,7 +42,6 @@ const ana: ContatoIdentificado = {
   clienteId: "cliente-1",
   nome: "Ana",
   empresa: "Padaria Pão Quente",
-  padrao: true,
 };
 
 const CNPJ_CADASTRADO = "90.000.001/0001-29";
@@ -123,6 +122,7 @@ function montar(
       documentosEnviados.push(d);
       return ok(undefined);
     },
+    enviarTemplate: async () => ok(undefined),
   };
   const documentos: DocumentosContratuaisPort = {
     listar: async (clienteId) => {
@@ -302,6 +302,7 @@ describe("ReceberMensagem", () => {
           return ok(undefined);
         },
         enviarDocumento: async () => ok(undefined),
+        enviarTemplate: async () => ok(undefined),
       },
       { listar: async () => ok([]), linkTemporario: async () => ok("x") },
       {

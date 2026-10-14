@@ -112,3 +112,21 @@ export function avisoDeFechado(instante: Date, extras: ReadonlySet<string>): str
   }
   return `Olá! No momento o escritório está fechado. Voltamos a atender ${quando}, às ${ABRE}h.`;
 }
+
+// Tempo (ms) de expediente aberto entre dois instantes: a noite, o fim de semana e os feriados não
+// contam. ponytail: offset fixo -03:00 (o Brasil não tem horário de verão desde 2019); se voltar,
+// derivar o instante de abertura do FUSO.
+export function expedienteDecorrido(de: Date, ate: Date, extras: ReadonlySet<string>): number {
+  const inicio = de.getTime();
+  const fim = ate.getTime();
+  const hora = (h: number) => String(h).padStart(2, "0");
+  let total = 0;
+  const ultimo = partesEmSp(ate).data;
+  for (let dia = partesEmSp(de).data; dia <= ultimo; dia = somarDias(dia, 1)) {
+    if (!diaUtil(dia, extras)) continue;
+    const abre = new Date(`${dia}T${hora(ABRE)}:00:00-03:00`).getTime();
+    const fecha = new Date(`${dia}T${hora(FECHA)}:00:00-03:00`).getTime();
+    total += Math.max(0, Math.min(fim, fecha) - Math.max(inicio, abre));
+  }
+  return total;
+}
