@@ -79,6 +79,7 @@ Exemplos de diretórios válidos: `shared`, `pages`, `examples`, `customer-setti
 | `*.actions.ts` | Server Actions |
 | `*.server.ts` | loaders de servidor |
 | `*.realtime.ts` | assinatura Realtime no ViewModel |
+| `*.upload.ts` | upload em partes do navegador direto ao Storage, no ViewModel (ADR 0007) |
 | `*.webhook.ts` | handlers de webhook |
 | `*.test.ts` | testes de integração (inclui os de webhook, feitos com Supertest) |
 | `*.e2e.ts` | testes E2E, em `e2e/` |
@@ -224,7 +225,7 @@ Cada regra vale para a pasta inteira, incluindo subpastas. "Própria" significa 
 | `main` | `application` e `infra` de qualquer módulo, `shared` | `domain` diretamente, `presentation` |
 | view-model | `shared`, tipos de `application` | `domain`, `infra`, `main` (exceto os arquivos das duas linhas abaixo) |
 | `*.actions.ts`, `*.server.ts`, `*.webhook.ts` | `main` (servidor), `shared`, tipos de `application` | `domain`, `infra`, `main/client` |
-| `*.realtime.ts` | `main/client`, `shared`, tipos de `application` | `domain`, `infra`, `main` de servidor |
+| `*.realtime.ts`, `*.upload.ts` | `main/client`, `shared`, tipos de `application` | `domain`, `infra`, `main` de servidor |
 | `main/client` | `application`, `infra` (incluindo `infra/realtime`), `shared` | `main` de servidor, `server-only` |
 | `presentation/auth/` | `@supabase/*` (cliente do navegador), `shared` | consultas de dados; `main` |
 | Views | `shared`, `presentation/components` (níveis abaixo) | `modules/`, `main`, `next/*` (exceto `next/link` e `next/image`), hooks |
@@ -233,7 +234,7 @@ Cada regra vale para a pasta inteira, incluindo subpastas. "Própria" significa 
 Regras adicionais:
 
 1. **Módulos não se importam.** Só `app/` e `main/` enxergam mais de um módulo (seção 3.11).
-2. **Só `main` importa `infra`.** Só `*.actions.ts`, `*.server.ts` e `*.webhook.ts` importam `main` (servidor); só `*.realtime.ts` importa `main/client`.
+2. **Só `main` importa `infra`.** Só `*.actions.ts`, `*.server.ts` e `*.webhook.ts` importam `main` (servidor); só `*.realtime.ts` e `*.upload.ts` importam `main/client`.
 3. **A entidade de domínio nunca sai da `application`.** Ela cruza `application`↔`infra` pelas portas OUT (ambas conhecem o `domain`), mas nunca chega à `presentation`: o que sai é sempre um Output DTO.
 4. **Importe `import type` para interfaces** e mantenha `tsPreCompilationDeps: true` na configuração do lint, senão importações só de tipo ficam invisíveis.
 5. **`@supabase/*` só em `infra`, `main` e `presentation/auth/`.**
@@ -364,7 +365,7 @@ export const makeCriarMembro = (): CriarMembroPort =>
 - **Por requisição, nunca singleton:** o cliente Supabase depende dos cookies do usuário (sessão e RLS). Um singleton misturaria sessões.
 - `import "server-only"` obrigatório em `main/**`.
 - É o único lugar com `new` de adaptador. Chaves privilegiadas (`service_role`) só existem aqui, em fábricas de uso explícito (jobs), nunca no caminho de uma requisição de usuário.
-- **`main/client/`** reúne as factories que rodam no navegador (hoje, só Realtime). Não importa `server-only` nem o `main` de servidor, e só `*.realtime.ts` a importa.
+- **`main/client/`** reúne as factories que rodam no navegador (Realtime e upload em partes, ADR 0007). Não importa `server-only` nem o `main` de servidor, e só `*.realtime.ts` e `*.upload.ts` a importam.
 
 ### 3.11 Comunicação entre módulos
 
@@ -895,7 +896,7 @@ module.exports = {
     { name: "so-actions-importam-main", severity: "error",
       from: { path: "^src/(modules|presentation|app)/", pathNot: "\\.(actions|server|webhook)\\.tsx?$" }, to: { path: "^src/main/(?!client/)" } },
     { name: "so-realtime-importa-main-client", severity: "error",
-      from: { pathNot: ["\\.realtime\\.tsx?$", "^src/main/"] }, to: { path: "^src/main/client/" } },
+      from: { pathNot: ["\\.(realtime|upload)\\.tsx?$", "^src/main/"] }, to: { path: "^src/main/client/" } },
     { name: "main-client-sem-servidor", severity: "error",
       from: { path: "^src/main/client/" }, to: { path: ["^src/main/(?!client/)", "node_modules/server-only/"] } },
     { name: "supabase-so-em-infra-main-e-auth", severity: "error",
@@ -1056,7 +1057,7 @@ const ROLES = [
   [/\/infra\/repositories\//, ["repository"]],
   [/\/infra\/(gateways|realtime)\//, ["gateway"]],
   [/\/presentation\/webhooks\//, ["webhook"]],
-  [/\/presentation\/view-models\//, ["actions", "server", "queries", "realtime", "store", "schema", "presenter", "hook", "container"]],
+  [/\/presentation\/view-models\//, ["actions", "server", "queries", "realtime", "upload", "store", "schema", "presenter", "hook", "container"]],
   [/\/presentation\/stores\//, ["store"]],
   [/\/presentation\/providers\//, ["provider", "providers"]],
   [/\/presentation\/components\/(atoms|molecules|organisms|templates)\//, ["component"]],

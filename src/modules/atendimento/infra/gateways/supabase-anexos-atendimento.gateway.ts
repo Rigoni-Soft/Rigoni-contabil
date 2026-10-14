@@ -72,4 +72,20 @@ export class SupabaseAnexosAtendimentoGateway implements AnexosAtendimentoPort {
     if (error) return err(new ServicoExternoError("Falha ao remover o arquivo."));
     return ok(undefined);
   }
+
+  async inspecionar(
+    caminho: string,
+  ): Promise<Result<{ tipoMime: string; tamanho: number } | null, AppError>> {
+    const { data, error } = await this.supabaseAdmin.storage.from(BUCKET).info(caminho);
+    // Objeto inexistente: o Storage responde erro, sem distinguir de falha de rede; os dois viram
+    // "não chegou", e quem chama pede o envio de novo.
+    if (error || !data) return ok(null);
+    return ok({ tipoMime: data.contentType ?? "", tamanho: data.size ?? 0 });
+  }
+
+  async baixar(caminho: string): Promise<Result<Uint8Array, AppError>> {
+    const { data, error } = await this.supabaseAdmin.storage.from(BUCKET).download(caminho);
+    if (error || !data) return err(new ServicoExternoError("Falha ao ler o arquivo guardado."));
+    return ok(new Uint8Array(await data.arrayBuffer()));
+  }
 }

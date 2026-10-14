@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { brotliCompressSync } from "node:zlib";
 
-import { resolverFfmpeg } from "./resolver-ffmpeg";
+import { resolverFfmpeg } from "./resolver-ffmpeg.gateway";
 
 async function pasta() {
   return mkdtemp(join(tmpdir(), "resolver-ffmpeg-"));

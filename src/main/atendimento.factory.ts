@@ -68,7 +68,7 @@ import { FfmpegConversorDeAudioGateway } from "@/modules/atendimento/infra/gatew
 import { GuiasFiscaisGateway } from "@/modules/atendimento/infra/gateways/guias-fiscais.gateway";
 import { HmacAutenticacaoWebhookGateway } from "@/modules/atendimento/infra/gateways/hmac-autenticacao-webhook.gateway";
 import { RelogioSistemaGateway } from "@/modules/atendimento/infra/gateways/relogio-sistema.gateway";
-import { resolverFfmpeg } from "@/modules/atendimento/infra/gateways/resolver-ffmpeg";
+import { resolverFfmpeg } from "@/modules/atendimento/infra/gateways/resolver-ffmpeg.gateway";
 import { SupabaseAnexosAtendimentoGateway } from "@/modules/atendimento/infra/gateways/supabase-anexos-atendimento.gateway";
 import { SupabaseClienteCnpjGateway } from "@/modules/atendimento/infra/gateways/supabase-cliente-cnpj.gateway";
 import { SupabaseDocumentosContratuaisGateway } from "@/modules/atendimento/infra/gateways/supabase-documentos-contratuais.gateway";

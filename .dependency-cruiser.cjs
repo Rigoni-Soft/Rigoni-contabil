@@ -30,7 +30,7 @@ module.exports = {
           "^src/shared/",
           "^src/modules/$1/(domain|application|infra)/",
           "node_modules/",
-          "^(node:)?crypto$",
+          "^(node:)?(crypto|child_process|fs(/promises)?|os|path|util|zlib)$",
         ],
       },
     },
@@ -53,7 +53,7 @@ module.exports = {
     {
       name: "so-realtime-importa-main-client",
       severity: "error",
-      from: { pathNot: ["\\.realtime\\.tsx?$", "^src/main/"] },
+      from: { pathNot: ["\\.(realtime|upload)\\.tsx?$", "^src/main/"] },
       to: { path: "^src/main/client/" },
     },
     {

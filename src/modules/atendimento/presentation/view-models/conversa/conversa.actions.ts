@@ -16,6 +16,7 @@ import type { ConversaVista } from "@/modules/atendimento/application/ports/in/o
 import type { TransferenciaConcluida } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
 import {
   atendimentoIdSchema,
+  enviarAnexoGuardadoSchema,
   enviarAnexoSchema,
   enviarDocumentoSchema,
   enviarMensagemSchema,
@@ -126,6 +127,20 @@ export async function enviarAnexoAction(formData: FormData): Promise<ActionResul
       legenda: parsed.data.legenda,
       arquivo: await paraArquivoAnexo(arquivo),
       miniatura: miniatura instanceof File ? await paraArquivoAnexo(miniatura) : undefined,
+    }),
+  );
+}
+
+// O navegador já subiu o objeto em partes direto ao Storage; aqui só o caminho chega.
+export async function enviarAnexoGuardadoAction(input: unknown): Promise<ActionResult<void>> {
+  const parsed = enviarAnexoGuardadoSchema.safeParse(input);
+  if (!parsed.success) return entradaInvalida(parsed.error);
+
+  const enviarAnexo = await makeEnviarAnexoAoCliente();
+  return toActionResult(
+    await enviarAnexo.execute({
+      atendimentoId: parsed.data.atendimentoId,
+      guardado: { caminho: parsed.data.caminho, nome: parsed.data.nome },
     }),
   );
 }

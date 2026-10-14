@@ -2,14 +2,18 @@ import type { ArquivoAnexo } from "@/modules/atendimento/application/ports/out/a
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
-// Imagem ou arquivo do Funcionário ao cliente do Atendimento, com legenda opcional, entregue no
-// WhatsApp e guardada como Mensagem do Funcionário.
+// Os bytes vêm no pedido (`arquivo`, com miniatura opcional só para imagem: otimização, inválida ou
+// com falha é ignorada) ou o navegador já subiu o objeto em partes direto ao Storage (`guardado`).
+export type EntradaEnviarAnexo = {
+  atendimentoId: string;
+  legenda?: string;
+} & (
+  | { arquivo: ArquivoAnexo; miniatura?: ArquivoAnexo }
+  | { guardado: { caminho: string; nome: string } }
+);
+
+// Imagem, arquivo ou áudio do Funcionário ao cliente do Atendimento, com legenda opcional (não vale
+// para áudio), entregue no WhatsApp e guardada como Mensagem do Funcionário.
 export interface EnviarAnexoAoClientePort {
-  execute(input: {
-    atendimentoId: string;
-    arquivo: ArquivoAnexo;
-    // Só imagem: versão reduzida para a conversa (otimização; inválida ou com falha, é ignorada).
-    miniatura?: ArquivoAnexo;
-    legenda?: string;
-  }): Promise<Result<void, AppError>>;
+  execute(input: EntradaEnviarAnexo): Promise<Result<void, AppError>>;
 }

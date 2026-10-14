@@ -3,7 +3,13 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 
 import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 
-import { enviarAnexoAction, enviarMensagemAction, obterConversaAction } from "./conversa.actions";
+import { subirAnexoEmPartes } from "./anexo-em-partes.upload";
+import {
+  enviarAnexoAction,
+  enviarAnexoGuardadoAction,
+  enviarMensagemAction,
+  obterConversaAction,
+} from "./conversa.actions";
 import { useCompositor } from "./use-compositor.hook";
 
 // conversa.queries invalida as chaves da Fila e dos Meus atendimentos: importa os módulos delas.
@@ -12,8 +18,10 @@ jest.mock("../meus-atendimentos/meus-atendimentos.actions", () => ({
   listarMeusAtendimentosAction: jest.fn(),
 }));
 
+jest.mock("./anexo-em-partes.upload", () => ({ subirAnexoEmPartes: jest.fn() }));
 jest.mock("./conversa.actions", () => ({
   enviarAnexoAction: jest.fn(),
+  enviarAnexoGuardadoAction: jest.fn(),
   enviarDocumentoAction: jest.fn(),
   enviarMensagemAction: jest.fn(),
   obterConversaAction: jest.fn(),
@@ -23,6 +31,8 @@ jest.mock("./conversa.actions", () => ({
 const mensagem = jest.mocked(enviarMensagemAction);
 const anexo = jest.mocked(enviarAnexoAction);
 const obter = jest.mocked(obterConversaAction);
+const guardado = jest.mocked(enviarAnexoGuardadoAction);
+const subir = jest.mocked(subirAnexoEmPartes);
 
 const CONVERSA: ConversaVista = {
   atendimentoId: "at-1",
@@ -51,6 +61,8 @@ describe("useCompositor", () => {
   beforeEach(() => {
     mensagem.mockReset();
     anexo.mockReset();
+    guardado.mockReset();
+    subir.mockReset();
     obter.mockReset();
     obter.mockResolvedValue({ ok: true, data: CONVERSA });
   });
@@ -189,8 +201,9 @@ describe("useCompositor", () => {
     });
   });
 
-  it("envia o áudio gravado como anexo sem legenda e só chama aoConcluir se a entrega deu certo", async () => {
-    anexo.mockResolvedValueOnce({
+  it("sobe o áudio em partes, pede ao servidor que o entregue e só chama aoConcluir se deu certo", async () => {
+    subir.mockResolvedValue("at-1/u-1/gravacao.webm");
+    guardado.mockResolvedValueOnce({
       ok: false,
       error: { code: "EXTERNAL_SERVICE_ERROR", message: "Sem conversão." },
     });
@@ -201,16 +214,32 @@ describe("useCompositor", () => {
     act(() => result.current.aoEnviarAudio(audio, aoConcluir));
     await waitFor(() => expect(result.current.erro).toBe("Sem conversão."));
     expect(aoConcluir).not.toHaveBeenCalled();
-    const dados = anexo.mock.calls[0][0] as FormData;
-    expect(dados.get("arquivo")).toBe(audio);
-    expect(dados.get("legenda")).toBe("");
+    expect(subir).toHaveBeenCalledWith("at-1", audio);
+    expect(guardado).toHaveBeenCalledWith({
+      atendimentoId: "at-1",
+      caminho: "at-1/u-1/gravacao.webm",
+      nome: "gravacao.webm",
+    });
+    expect(anexo).not.toHaveBeenCalled();
 
     // Descartar a gravação apaga o erro dela.
     act(() => result.current.aoCancelarAudio());
     await waitFor(() => expect(result.current.erro).toBeUndefined());
 
-    anexo.mockResolvedValueOnce({ ok: true, data: undefined });
+    guardado.mockResolvedValueOnce({ ok: true, data: undefined });
     act(() => result.current.aoEnviarAudio(audio, aoConcluir));
     await waitFor(() => expect(aoConcluir).toHaveBeenCalledTimes(1));
+  });
+
+  it("falha ao subir as partes mostra o erro do envio e não chama o servidor", async () => {
+    subir.mockRejectedValue(new Error("Não foi possível enviar o arquivo."));
+    const { result } = renderizar();
+
+    act(() =>
+      result.current.aoEnviarAudio(new File(["x"], "g.webm", { type: "audio/webm" }), jest.fn()),
+    );
+
+    await waitFor(() => expect(result.current.erro).toBe("Não foi possível enviar o arquivo."));
+    expect(guardado).not.toHaveBeenCalled();
   });
 });

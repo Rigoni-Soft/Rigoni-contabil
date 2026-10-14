@@ -33,6 +33,8 @@ type Opcoes = {
   falhaEnvio?: boolean;
   falhaRegistro?: boolean;
   falhaConversao?: boolean;
+  // O que o Storage tem do objeto que o navegador subiu em partes (null: não existe).
+  objeto?: { tipoMime: string; tamanho: number } | null;
 };
 
 function montar({
@@ -42,6 +44,7 @@ function montar({
   falhaEnvio = false,
   falhaRegistro = false,
   falhaConversao = false,
+  objeto = null,
 }: Opcoes = {}) {
   const conversoes: number[] = [];
   const guardados: unknown[] = [];
@@ -73,6 +76,8 @@ function montar({
       removidos.push(caminho);
       return ok(undefined);
     },
+    inspecionar: async () => ok(objeto),
+    baixar: async () => ok(new Uint8Array(objeto?.tamanho ?? 0)),
   };
   const envio = {
     enviarAnexo: async (a: unknown) => {
@@ -384,6 +389,121 @@ describe("EnviarAnexoAoCliente", () => {
 
       expect(r.ok).toBe(false);
       expect(conversoes).toEqual([]);
+    });
+  });
+
+  describe("arquivo já guardado pelo navegador (upload em partes)", () => {
+    const GUARDADO = { caminho: "at-1/u-1/gravacao.ogg", nome: "gravacao.ogg" };
+
+    it("áudio ogg: confere o objeto no Storage, entrega e registra sem guardar de novo", async () => {
+      const { caso, guardados, enviados, registradas, removidos } = montar({
+        objeto: { tipoMime: "audio/ogg", tamanho: 3000 },
+      });
+
+      const r = await caso.execute({ atendimentoId: "at-1", guardado: GUARDADO });
+
+      expect(r.ok).toBe(true);
+      expect(guardados).toEqual([]);
+      expect(removidos).toEqual([]);
+      expect(enviados).toMatchObject([
+        { tipo: "audio", url: "https://link/at-1/u-1/gravacao.ogg" },
+      ]);
+      expect(registradas).toEqual([
+        [
+          "at-1",
+          "func-1",
+          "",
+          {
+            tipo: "audio",
+            nome: "gravacao.ogg",
+            tamanho: 3000,
+            caminho: "at-1/u-1/gravacao.ogg",
+            miniaturaCaminho: null,
+          },
+        ],
+      ]);
+    });
+
+    it("webm é baixado, convertido, guardado como ogg e o original sai do Storage", async () => {
+      const { caso, conversoes, guardados, removidos, registradas } = montar({
+        objeto: { tipoMime: "audio/webm", tamanho: 4000 },
+      });
+
+      const r = await caso.execute({
+        atendimentoId: "at-1",
+        guardado: { caminho: "at-1/u-1/gravacao.webm", nome: "gravacao.webm" },
+      });
+
+      expect(r.ok).toBe(true);
+      expect(conversoes).toEqual([4000]);
+      expect(removidos).toEqual(["at-1/u-1/gravacao.webm"]);
+      expect(guardados).toMatchObject([
+        { arquivo: { nome: "gravacao.ogg", tipoMime: "audio/ogg" } },
+      ]);
+      expect(registradas).toMatchObject([["at-1", "func-1", "", { tipo: "audio", tamanho: 2000 }]]);
+    });
+
+    it("falha na conversão remove o original e não entrega nada", async () => {
+      const { caso, removidos, enviados } = montar({
+        falhaConversao: true,
+        objeto: { tipoMime: "audio/webm", tamanho: 4000 },
+      });
+
+      const r = await caso.execute({
+        atendimentoId: "at-1",
+        guardado: { caminho: "at-1/u-1/gravacao.webm", nome: "gravacao.webm" },
+      });
+
+      expect(r.ok).toBe(false);
+      expect(removidos).toEqual(["at-1/u-1/gravacao.webm"]);
+      expect(enviados).toEqual([]);
+    });
+
+    it("objeto de outro Atendimento é recusado sem tocar no Storage", async () => {
+      const { caso, removidos, enviados } = montar({
+        objeto: { tipoMime: "audio/ogg", tamanho: 10 },
+      });
+
+      const r = await caso.execute({
+        atendimentoId: "at-1",
+        guardado: { caminho: "at-2/u-1/x.ogg", nome: "x.ogg" },
+      });
+
+      expect(r.ok).toBe(false);
+      expect(removidos).toEqual([]);
+      expect(enviados).toEqual([]);
+    });
+
+    it("objeto inexistente pede novo envio", async () => {
+      const { caso } = montar({ objeto: null });
+
+      const r = await caso.execute({ atendimentoId: "at-1", guardado: GUARDADO });
+
+      expect(r.ok).toBe(false);
+    });
+
+    it("tipo ou tamanho fora do aceito pelo Storage real remove o objeto e recusa", async () => {
+      const { caso, removidos, enviados } = montar({
+        objeto: { tipoMime: "audio/mpeg", tamanho: 100 },
+      });
+
+      const r = await caso.execute({ atendimentoId: "at-1", guardado: GUARDADO });
+
+      expect(r.ok).toBe(false);
+      expect(removidos).toEqual([GUARDADO.caminho]);
+      expect(enviados).toEqual([]);
+    });
+
+    it("quem não pode agir no Atendimento é recusado antes de olhar o Storage", async () => {
+      const { caso, removidos } = montar({
+        ator: { id: "outro", papel: "funcionario", setor: "contabil" },
+        objeto: { tipoMime: "audio/ogg", tamanho: 10 },
+      });
+
+      const r = await caso.execute({ atendimentoId: "at-1", guardado: GUARDADO });
+
+      expect(r.ok).toBe(false);
+      expect(removidos).toEqual([]);
     });
   });
 });

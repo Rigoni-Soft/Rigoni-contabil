@@ -4,6 +4,7 @@ import type { ConversaVista } from "@/modules/atendimento/application/ports/in/o
 import { formatarTamanho } from "@/modules/atendimento/presentation/view-models/conversa/conversa.presenter";
 import {
   useEnviarAnexoMutation,
+  useEnviarAudioMutation,
   useEnviarMensagemMutation,
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.queries";
 import { useAnexoPendente } from "@/modules/atendimento/presentation/view-models/conversa/use-anexo-pendente.hook";
@@ -17,6 +18,7 @@ export function useCompositor(atendimentoId: string, initialData: ConversaVista)
   const { conversa, transferido } = useConversa(atendimentoId, initialData);
   const mensagem = useEnviarMensagemMutation(atendimentoId);
   const anexoMutation = useEnviarAnexoMutation(atendimentoId);
+  const audioMutation = useEnviarAudioMutation(atendimentoId);
   const pendente = useAnexoPendente(atendimentoId, { limparAoDesmontar: true });
   // Muda a cada envio que deu certo: a View usa para esvaziar o campo (falhou, o texto fica).
   const [enviadas, setEnviadas] = useState(0);
@@ -26,10 +28,14 @@ export function useCompositor(atendimentoId: string, initialData: ConversaVista)
     pendente.limpar();
     setEnviadas((n) => n + 1);
   };
-  // O áudio gravado vai pela mesma mutação do arquivo, sem arquivo pendente: a mutação (em curso ou
-  // com erro) é quem responde até a gravação ser enviada ou cancelada.
+  // O áudio gravado não é arquivo pendente: a mutação dele (em curso ou com erro) é quem responde
+  // até a gravação ser enviada ou cancelada. Depois, a do arquivo escolhido; senão, a do texto.
   const envio =
-    arquivo || anexoMutation.isPending || anexoMutation.isError ? anexoMutation : mensagem;
+    audioMutation.isPending || audioMutation.isError
+      ? audioMutation
+      : arquivo || anexoMutation.isPending || anexoMutation.isError
+        ? anexoMutation
+        : mensagem;
 
   const visivel = !conversa.encerrado && !transferido;
   const aoAnexar = (novo: File) => {
@@ -59,13 +65,10 @@ export function useCompositor(atendimentoId: string, initialData: ConversaVista)
     // Grava e envia o áudio; `aoConcluir` roda só se a entrega deu certo (falhou, a gravação fica).
     aoEnviarAudio: (audio: File, aoConcluir: () => void) => {
       if (envio.isPending) return;
-      anexoMutation.mutate(
-        { arquivo: audio, legenda: "", miniatura: null },
-        { onSuccess: aoConcluir },
-      );
+      audioMutation.mutate(audio, { onSuccess: aoConcluir });
     },
     // Descartar a gravação que falhou ao enviar também apaga o erro dela.
-    aoCancelarAudio: () => anexoMutation.reset(),
+    aoCancelarAudio: () => audioMutation.reset(),
     enviando: envio.isPending,
     erro: pendente.erro ?? (envio.isError ? envio.error.message : undefined),
     enviadas,

@@ -4,9 +4,11 @@ import type {
   ConversaVista,
   DocumentoDisponivel,
 } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
+import { subirAnexoEmPartes } from "@/modules/atendimento/presentation/view-models/conversa/anexo-em-partes.upload";
 import {
   encerrarAtendimentoAction,
   enviarAnexoAction,
+  enviarAnexoGuardadoAction,
   enviarDocumentoAction,
   enviarMensagemAction,
   obterConversaAction,
@@ -143,6 +145,32 @@ export function useEnviarAnexoMutation(atendimentoId: string) {
       if (!resultado) {
         throw new Error(
           "Não foi possível enviar o arquivo. Confira a conexão e tente de novo; o arquivo continua aqui.",
+        );
+      }
+      if (!resultado.ok) throw new Error(resultado.error.message);
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: conversaKeys.conversa(atendimentoId) }),
+  });
+}
+
+// Áudio gravado: sobe em partes direto ao Storage (docs/adr/0007) e só então pede ao servidor que o
+// confira e entregue. Compartilha a chave da mutação de anexo (a conversa trava igual enquanto envia).
+export function useEnviarAudioMutation(atendimentoId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: conversaKeys.enviarAnexo(atendimentoId),
+    mutationFn: async (audio: File) => {
+      const caminho = await subirAnexoEmPartes(atendimentoId, audio);
+      const resultado = await enviarAnexoGuardadoAction({
+        atendimentoId,
+        caminho,
+        nome: audio.name,
+      }).catch(() => null);
+      if (!resultado) {
+        throw new Error(
+          "Não foi possível enviar o áudio. Confira a conexão e tente de novo; a gravação continua aqui.",
         );
       }
       if (!resultado.ok) throw new Error(resultado.error.message);
