@@ -1,4 +1,5 @@
 import type { AppError } from "@/shared/errors/app.error";
+import type { TipoAnexoMensagem } from "@/shared/kernel/anexo";
 import type { Result } from "@/shared/kernel/result";
 
 export type MensagemEnviada = { telefone: string; texto: string };
@@ -21,7 +22,7 @@ export type TemplateEnviado = {
 // Mídia que o provedor busca em `url`. `legenda` não vale para áudio.
 export type AnexoEnviado = {
   telefone: string;
-  tipo: "imagem" | "audio" | "documento";
+  tipo: TipoAnexoMensagem;
   url: string;
   nomeArquivo: string;
   legenda?: string;

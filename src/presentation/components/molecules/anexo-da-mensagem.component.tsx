@@ -1,11 +1,12 @@
 import { FileText } from "lucide-react";
 
 import { Caixa } from "@/presentation/components/atoms/caixa.component";
-import { ImagemAmpliavel } from "@/presentation/components/atoms/imagem-ampliavel.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
+import { ImagemAmpliavel } from "@/presentation/components/atoms/imagem-ampliavel.component";
+import type { TipoAnexoMensagem } from "@/shared/kernel/anexo";
 
 type AnexoDaMensagemProps = {
-  tipo: "imagem" | "audio" | "documento";
+  tipo: TipoAnexoMensagem;
   nome: string;
   // Já formatado ("1,2 MB").
   tamanho: string;

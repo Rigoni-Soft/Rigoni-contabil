@@ -1,5 +1,6 @@
 import type { DadosDoContato } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
 import type { AppError } from "@/shared/errors/app.error";
+import type { TipoAnexoMensagem } from "@/shared/kernel/anexo";
 import type { Result } from "@/shared/kernel/result";
 
 export type AtendimentoVisto = {
@@ -12,7 +13,7 @@ export type AtendimentoVisto = {
     texto: string;
     criadoEm: string;
     // Mensagem com imagem, arquivo ou áudio: a prévia nomeia o tipo no lugar do texto.
-    anexoTipo: "imagem" | "audio" | "documento" | null;
+    anexoTipo: TipoAnexoMensagem | null;
   } | null;
 };
 

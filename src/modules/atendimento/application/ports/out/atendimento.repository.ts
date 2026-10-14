@@ -10,6 +10,7 @@ import type {
 import type { DadosDoContato } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
 import type { Inativo } from "@/modules/atendimento/domain/services/inatividade.service";
 import type { AppError } from "@/shared/errors/app.error";
+import type { TipoAnexoMensagem } from "@/shared/kernel/anexo";
 import type { RegimeValor } from "@/shared/kernel/regimes";
 import type { Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
@@ -151,14 +152,14 @@ export type AtendimentoDoFuncionario = {
     autor: "contato" | "ura" | "funcionario";
     texto: string;
     criadoEm: string;
-    anexoTipo: "imagem" | "audio" | "documento" | null;
+    anexoTipo: TipoAnexoMensagem | null;
   } | null;
 };
 
 // Quem escreveu uma Mensagem do Funcionário (nome e Setor atuais do perfil); null nas do contato
 // e da URA.
 export type AnexoDaMensagem = {
-  tipo: "imagem" | "audio" | "documento";
+  tipo: TipoAnexoMensagem;
   nome: string;
   tamanho: number;
   caminho: string;

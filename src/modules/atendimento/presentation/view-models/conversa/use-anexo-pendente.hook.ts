@@ -3,23 +3,22 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { gerarMiniatura } from "@/presentation/lib/miniatura-de-imagem";
 import { conversaKeys } from "@/modules/atendimento/presentation/view-models/conversa/conversa.queries";
-import {
-  ANEXO_MINIATURA_LADO,
-  ANEXO_TAMANHO_MAXIMO,
-  ANEXO_TIPO_RECUSADO,
-  classificarAnexo,
-} from "@/shared/kernel/anexo";
+import { ANEXO_MINIATURA_LADO, validarAnexo } from "@/shared/kernel/anexo";
 
 // `miniatura`: versão reduzida da imagem, gerada em segundo plano; vai junto no envio.
-type Estado = {
+type AnexoPendenteEstado = {
   arquivo: File | null;
   miniaturaUrl: string | null;
   miniatura: File | null;
   erro?: string;
 };
-const VAZIO: Estado = { arquivo: null, miniaturaUrl: null, miniatura: null };
+const ANEXO_PENDENTE_VAZIO: AnexoPendenteEstado = {
+  arquivo: null,
+  miniaturaUrl: null,
+  miniatura: null,
+};
 
-function revogar(estado: Estado | undefined) {
+function revogar(estado: AnexoPendenteEstado | undefined) {
   if (estado?.miniaturaUrl) URL.revokeObjectURL(estado.miniaturaUrl);
 }
 
@@ -33,8 +32,8 @@ export function useAnexoPendente(atendimentoId: string, { limparAoDesmontar = fa
   const chave = conversaKeys.anexoPendente(atendimentoId);
   const { data: estado } = useQuery({
     queryKey: chave,
-    queryFn: () => VAZIO,
-    initialData: VAZIO,
+    queryFn: () => ANEXO_PENDENTE_VAZIO,
+    initialData: ANEXO_PENDENTE_VAZIO,
     staleTime: Infinity,
     enabled: false,
   });
@@ -44,14 +43,14 @@ export function useAnexoPendente(atendimentoId: string, { limparAoDesmontar = fa
     // A chave é recriada a cada render: a dependência é o id, para o efeito só rodar ao sair.
     const chaveDoAtendimento = conversaKeys.anexoPendente(atendimentoId);
     return () => {
-      revogar(queryClient.getQueryData<Estado>(chaveDoAtendimento));
-      queryClient.setQueryData<Estado>(chaveDoAtendimento, VAZIO);
+      revogar(queryClient.getQueryData<AnexoPendenteEstado>(chaveDoAtendimento));
+      queryClient.setQueryData<AnexoPendenteEstado>(chaveDoAtendimento, ANEXO_PENDENTE_VAZIO);
     };
   }, [limparAoDesmontar, queryClient, atendimentoId]);
 
-  function trocar(novo: Estado) {
-    revogar(queryClient.getQueryData<Estado>(chave));
-    queryClient.setQueryData<Estado>(chave, novo);
+  function trocar(novo: AnexoPendenteEstado) {
+    revogar(queryClient.getQueryData<AnexoPendenteEstado>(chave));
+    queryClient.setQueryData<AnexoPendenteEstado>(chave, novo);
   }
 
   return {
@@ -60,30 +59,22 @@ export function useAnexoPendente(atendimentoId: string, { limparAoDesmontar = fa
     miniatura: estado.miniatura,
     erro: estado.erro,
     anexar(arquivo: File) {
-      const tipo = classificarAnexo(arquivo.type);
-      if (!tipo) {
-        return trocar({
-          ...VAZIO,
-          erro: ANEXO_TIPO_RECUSADO,
-        });
-      }
-      if (arquivo.size > ANEXO_TAMANHO_MAXIMO) {
-        return trocar({ ...VAZIO, erro: "O arquivo aceita até 10 MB." });
-      }
+      const { tipo, erro } = validarAnexo(arquivo.type, arquivo.size);
+      if (!tipo) return trocar({ ...ANEXO_PENDENTE_VAZIO, erro });
       trocar({
-        ...VAZIO,
+        ...ANEXO_PENDENTE_VAZIO,
         arquivo,
         miniaturaUrl: tipo === "imagem" ? URL.createObjectURL(arquivo) : null,
       });
       if (tipo !== "imagem") return;
       void gerarMiniatura(arquivo, ANEXO_MINIATURA_LADO).then((miniatura) => {
-        const atual = queryClient.getQueryData<Estado>(chave);
+        const atual = queryClient.getQueryData<AnexoPendenteEstado>(chave);
         // O arquivo pode ter sido trocado ou removido enquanto a miniatura saía.
         if (miniatura && atual?.arquivo === arquivo) {
-          queryClient.setQueryData<Estado>(chave, { ...atual, miniatura });
+          queryClient.setQueryData<AnexoPendenteEstado>(chave, { ...atual, miniatura });
         }
       });
     },
-    limpar: () => trocar(VAZIO),
+    limpar: () => trocar(ANEXO_PENDENTE_VAZIO),
   };
 }

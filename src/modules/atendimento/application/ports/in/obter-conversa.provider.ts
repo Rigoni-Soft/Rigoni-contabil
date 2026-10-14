@@ -1,5 +1,6 @@
 import type { DadosDoContato } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
 import type { AppError } from "@/shared/errors/app.error";
+import type { TipoAnexoMensagem } from "@/shared/kernel/anexo";
 import type { Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
@@ -11,7 +12,7 @@ export type DocumentoOferecido = DocumentoDisponivel & { descricao: string };
 
 // O anexo de uma Mensagem do Funcionário, com o link temporário já pedido (`expiraEm` em ISO).
 export type AnexoVisto = {
-  tipo: "imagem" | "audio" | "documento";
+  tipo: TipoAnexoMensagem;
   nome: string;
   tamanho: number;
   url: string;

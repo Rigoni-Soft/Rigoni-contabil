@@ -6,10 +6,11 @@ import type {
   DocumentoOferecido,
   UltimaTransferencia,
 } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
+import { ANEXO_LINK_MARGEM_MS, type TipoAnexoMensagem } from "@/shared/kernel/anexo";
 import { SETOR_LABEL } from "@/shared/kernel/setores";
 
 export type AnexoView = {
-  tipo: "imagem" | "audio" | "documento";
+  tipo: TipoAnexoMensagem;
   nome: string;
   // Já formatado ("1,2 MB").
   tamanho: string;
@@ -66,7 +67,7 @@ export function reaproveitarLinks(
   nova: ConversaVista,
   anterior: ConversaVista | undefined,
   agora: number,
-  margemMs = 5 * 60_000,
+  margemMs = ANEXO_LINK_MARGEM_MS,
 ): ConversaVista {
   if (!anterior) return nova;
   const anteriores = new Map(anterior.mensagens.map((m) => [m.id, m.anexo]));

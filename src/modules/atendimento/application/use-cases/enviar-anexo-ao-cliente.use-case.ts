@@ -19,10 +19,8 @@ import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import {
   ANEXO_LEGENDA_TAMANHO_MAXIMO,
-  ANEXO_MINIATURA_TAMANHO_MAXIMO,
-  ANEXO_TAMANHO_MAXIMO,
-  ANEXO_TIPO_RECUSADO,
-  classificarAnexo,
+  miniaturaValida,
+  validarAnexo,
   type TipoAnexo,
 } from "@/shared/kernel/anexo";
 import { err, ok, type Result } from "@/shared/kernel/result";
@@ -60,15 +58,9 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
     const ator = await this.sessao.usuarioAtual();
     if (!ator) return err(new ForbiddenError("Faça login para enviar o arquivo."));
 
-    const tipo = classificarAnexo(arquivo.tipoMime);
+    const { tipo, erro } = validarAnexo(arquivo.tipoMime, arquivo.conteudo.byteLength);
     const texto = legenda?.trim() ?? "";
-    if (!tipo) {
-      return recusa("arquivo", ANEXO_TIPO_RECUSADO);
-    }
-    if (arquivo.conteudo.byteLength === 0) return recusa("arquivo", "O arquivo está vazio.");
-    if (arquivo.conteudo.byteLength > ANEXO_TAMANHO_MAXIMO) {
-      return recusa("arquivo", "O arquivo aceita até 10 MB.");
-    }
+    if (!tipo) return recusa("arquivo", erro);
     if (contarCaracteres(texto) > ANEXO_LEGENDA_TAMANHO_MAXIMO) {
       return recusa("legenda", `A legenda aceita até ${ANEXO_LEGENDA_TAMANHO_MAXIMO} caracteres.`);
     }
@@ -110,8 +102,10 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
       },
     );
     // Já entregue: o registro falhar não desfaz o envio, e o arquivo fica (o cliente o recebeu).
+    // A miniatura, que só a conversa usaria, não fica órfã.
     await this.auditar(ator, atendimentoId, "sucesso");
     if (!registrada.ok) {
+      if (miniaturaCaminho) await this.anexos.remover(miniaturaCaminho);
       return err(
         new EstadoInconsistenteError(
           "Arquivo enviado, mas a conversa não o registrou.",
@@ -132,9 +126,7 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
     if (
       tipo !== "imagem" ||
       !miniatura ||
-      classificarAnexo(miniatura.tipoMime) !== "imagem" ||
-      miniatura.conteudo.byteLength === 0 ||
-      miniatura.conteudo.byteLength > ANEXO_MINIATURA_TAMANHO_MAXIMO
+      !miniaturaValida(miniatura.tipoMime, miniatura.conteudo.byteLength)
     ) {
       return null;
     }
