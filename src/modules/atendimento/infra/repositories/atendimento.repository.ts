@@ -537,7 +537,6 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     if (error) return err(new ServicoExternoError("Falha ao registrar a reação."));
     return ok(undefined);
   }
-
 }
 
 type ClienteEmbutido = z.infer<typeof atendimentoDoFuncionarioRowSchema>["clientes"];

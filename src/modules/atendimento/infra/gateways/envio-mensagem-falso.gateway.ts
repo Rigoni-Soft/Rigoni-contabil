@@ -4,8 +4,8 @@ import type {
   DocumentoEnviado,
   EnvioMensagemPort,
   MensagemEnviada,
-  TemplateEnviado,
   ReacaoEnviada,
+  TemplateEnviado,
 } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
