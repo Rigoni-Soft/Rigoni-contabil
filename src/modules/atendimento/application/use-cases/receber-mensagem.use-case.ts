@@ -36,6 +36,7 @@ import {
   avisoDeFechado,
   estaAbertoEm,
 } from "@/modules/atendimento/domain/services/expediente.service";
+import { soDigitosNacionais } from "@/modules/atendimento/domain/services/telefone.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -122,12 +123,6 @@ function origemDe(
   textoDoContato: string,
 ): Origem {
   return { telefone, chave, idExterno, textoDoContato, clienteId: contato.clienteId };
-}
-
-// DDI 55 é descartado: o telefone do Contato é cadastrado só com DDD + número.
-function soDigitosNacionais(telefone: string): string {
-  const digitos = telefone.replace(/\D/g, "");
-  return digitos.length > 11 && digitos.startsWith("55") ? digitos.slice(2) : digitos;
 }
 
 // Impressão digital da lista inteira (a numeração das páginas depende de todos os itens). Hash

@@ -30,6 +30,7 @@ import {
   anexoRowSchema,
   atendimentoDoFuncionarioRowSchema,
   atendimentoEmAndamentoRowSchema,
+  atendimentoIdRowSchema,
   conversaRowSchema,
   encerramentoPendenteRowSchema,
   encerramentoPorInatividadeRowSchema,
@@ -109,6 +110,62 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     });
     if (error) return err(new ServicoExternoError("Falha ao registrar a Mensagem."));
     return ok({ anexada: anexoRowSchema.parse(data) });
+  }
+
+  async atendimentoParaMidia(
+    chave: string,
+    idExterno: string | undefined,
+  ): Promise<Result<{ atendimentoId: string; jaRegistrada: boolean } | null, AppError>> {
+    // Mesmo critério da RPC de anexar: o Atendimento em andamento mais novo do número.
+    const atendimento = await this.supabaseAdmin
+      .from("atendimentos")
+      .select("id")
+      .eq("chave_telefone", chave)
+      .eq("status", "em_andamento")
+      .order("criado_em", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (atendimento.error) return err(new ServicoExternoError("Falha ao consultar o Atendimento."));
+    if (!atendimento.data) return ok(null);
+    const { id: atendimentoId } = atendimentoIdRowSchema.parse(atendimento.data);
+    if (!idExterno) return ok({ atendimentoId, jaRegistrada: false });
+
+    const existente = await this.supabaseAdmin
+      .from("mensagens")
+      .select("id")
+      .eq("atendimento_id", atendimentoId)
+      .eq("id_externo", idExterno)
+      .maybeSingle();
+    if (existente.error) return err(new ServicoExternoError("Falha ao consultar a Mensagem."));
+    return ok({ atendimentoId, jaRegistrada: existente.data !== null });
+  }
+
+  async registrarMensagemRecebida(
+    atendimentoId: string,
+    mensagem: {
+      autor: "contato" | "ura";
+      texto: string;
+      idExterno?: string;
+      anexo?: AnexoDaMensagem;
+    },
+  ): Promise<Result<boolean, AppError>> {
+    const { anexo } = mensagem;
+    const { error } = await this.supabaseAdmin.from("mensagens").insert({
+      atendimento_id: atendimentoId,
+      autor: mensagem.autor,
+      texto: mensagem.texto,
+      id_externo: mensagem.idExterno ?? null,
+      ...(anexo && {
+        anexo_tipo: anexo.tipo,
+        anexo_nome: anexo.nome,
+        anexo_caminho: anexo.caminho,
+        anexo_tamanho: anexo.tamanho,
+      }),
+    });
+    // 23505: índice único (atendimento, id no provedor): a reentrega já gravou esta Mensagem.
+    if (error?.code === "23505") return ok(false);
+    if (error) return err(new ServicoExternoError("Falha ao registrar a Mensagem."));
+    return ok(true);
   }
 
   async buscarEmAndamento(id: string): Promise<Result<AtendimentoEmAndamento | null, AppError>> {

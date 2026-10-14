@@ -96,7 +96,7 @@ describe("MensagemBalao — reação (#84)", () => {
     expect(screen.getByText("Segue o balanço")).toBeInTheDocument();
   });
 
-  it("anexo de áudio mostra o player com o arquivo, sem link de download", () => {
+  it("anexo de áudio mostra o player com o arquivo e o link para baixar", () => {
     render(
       <ul>
         <MensagemBalao
@@ -115,7 +115,11 @@ describe("MensagemBalao — reação (#84)", () => {
     );
 
     expect(screen.getByLabelText("Áudio: gravacao.ogg")).toHaveAttribute("src", "https://l/audio");
-    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    // Plano B para quem não toca ogg (Safari): baixar o arquivo.
+    expect(screen.getByRole("link", { name: "12 KB · Baixar" })).toHaveAttribute(
+      "href",
+      "https://l/audio",
+    );
   });
 
   it("anexo de imagem mostra a miniatura que amplia; sem legenda não há parágrafo de texto", () => {

@@ -34,7 +34,7 @@ Cabeçalho `X-Hub-Signature-256: sha256=<HMAC-SHA256 hex do corpo cru com o app 
 ```
 
 Lotes (várias entries/changes/messages) são processados em ordem. `statuses` (sent/delivered/read/failed) são
-aceitos e ignorados. Mensagem sem `text` (áudio, imagem…) reabre o menu.
+aceitos e ignorados. Mensagem de tipo sem tratamento (vídeo, figurinha, localização…) chega sem `text` e reabre o menu; `audio`, `image` e `document` seguem o fluxo de mídia abaixo (#81).
 
 A Meta só entende **200**: qualquer outro status faz ela reenviar, com frequência decrescente, por dias. Por isso:
 
@@ -67,9 +67,29 @@ Reação (#84): o Funcionário reage com emoji a uma Mensagem do cliente (`reagi
 
 Anexo do Funcionário (#79): `enviarAnexo({ telefone, tipo: "imagem" | "audio" | "documento", url, nomeArquivo, legenda? })`. O corpo segue a Cloud API: `image: { link, caption? }`, `document: { link, filename, caption? }` e `audio: { link }` (áudio não tem legenda). O `link` é uma URL assinada do bucket privado `anexos-atendimento` (separado de `documentos-clientes`), válida por 1 h. Aceitos: JPEG, PNG, WebP, PDF, Word, Excel, PowerPoint, TXT, CSV e ZIP, até 10 MB; a lista é por tipo MIME (nunca pela extensão; SVG e HTML recusados), conferida no servidor e repetida no bucket (`allowed_mime_types`, `file_size_limit`). A Mensagem guarda `anexo_tipo`, `anexo_nome`, `anexo_caminho` e `anexo_tamanho` (os quatro juntos ou nenhum) e `texto` é a legenda; o arquivo só vira Mensagem depois de o provedor aceitar, e se o envio falha o arquivo guardado é removido. Para imagem, o formulário gera uma miniatura WebP (lado maior 320 px, até 256 KB) que vai junto, é guardada no mesmo bucket (`anexo_miniatura_caminho`) e é a que a conversa mostra; o original só é baixado ao ampliar e é o único que segue ao cliente. A miniatura é opcional: inválida ou com falha ao guardar, o envio continua. Auditoria: `atendimento.enviar_anexo`.
 
-## Pendências de mídia (issues #80, #81)
+## Mídia recebida do cliente (#81)
 
-**Áudio** enviado pelo Funcionário (#80) e mídia recebida do cliente (#81) ainda não existem. Já verificado na [documentação da Meta](https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/audio-messages): áudio aceito é AAC, AMR, MP3, M4A (`audio/mp4`) e OGG **só com Opus**, até 16 MB (mensagem de voz exige ogg/opus; **webm não é aceito**); a mídia recebida chega no webhook com um `id`, que se troca por um endereço temporário (`GET /{media-id}`) e se baixa com o token. Hoje uma mensagem sem `text` (áudio, imagem…) reabre o menu; a #81 muda isso, e só dentro de um Atendimento em andamento.
+`audio` (inclusive mensagem de voz), `image` e `document` chegam com um objeto `{ id, mime_type, caption?, filename? }`. O
+webhook os entrega a um caso de uso próprio, atrás da porta neutra `DownloadMidiaPort` (`baixar(idDaMidia) → { bytes, mime, nome? }`;
+o adapter falso devolve arquivos de teste pelo id: `midia-teste-audio` (ogg/opus tocável), `-imagem`, `-documento`, `-grande`
+(acima de 10 MB), `-svg` e `-fora-do-ar`; o real, que troca o id pelo endereço temporário e baixa com o token, é da #68).
+
+- **Só dentro de um Atendimento em andamento.** De um número sem Atendimento (inclusive quem está no menu da URA) a mídia não é
+  baixada nem guardada, não abre Atendimento nem reabre o menu: a URA responde que, por ora, só entende texto. A checagem
+  acontece antes do download.
+- **Guardada** no bucket `anexos-atendimento` e nas mesmas colunas de anexo da Mensagem (#79), como Mensagem do contato; a
+  legenda de imagem/documento é o `texto`. Mesmos limites e tipos do envio do Funcionário (10 MB, lista de MIMEs, SVG/HTML recusados);
+  áudio só ogg (Opus) ou mp4/AAC. Imagem recebida não ganha miniatura: a conversa mostra o original.
+- **Recusada** (acima do limite, tipo não aceito ou mídia que o provedor não entrega mais): vira uma Mensagem da URA na
+  conversa ("o cliente enviou um arquivo que não pôde ser recebido") e o webhook responde 200.
+- **Idempotência** pelo `wamid` (`mensagens.id_externo`, índice único por Atendimento): a reentrega nem baixa o arquivo de novo; se
+  duas chegarem ao mesmo tempo, o banco grava uma só e o arquivo que sobrou é removido.
+- **Falha transitória** ao baixar ou guardar (`ServicoExternoError`) responde 502, e a Meta reenvia o evento; é essa
+  reentrega que reprocessa, não há fila própria.
+- **Áudio no Safari:** o ogg/opus da mensagem de voz não toca no Safari; o player tem o botão de baixar como plano B. Converter
+  para m4a ao guardar (reaproveitando `ConversorDeAudioPort`) fica fora desta entrega.
+
+Áudio enviado pelo Funcionário (#80): ver Anexo do Funcionário acima; aceito pela Meta é AAC, AMR, MP3, M4A (`audio/mp4`) e OGG **só com Opus**, até 16 MB (webm não é aceito).
 
 ## Fluxo
 

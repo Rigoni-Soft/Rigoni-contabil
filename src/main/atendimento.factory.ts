@@ -35,6 +35,7 @@ import type { ListarMeusAtendimentosPort } from "@/modules/atendimento/applicati
 import type { ObterConversaPort } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import type { ReagirAMensagemPort } from "@/modules/atendimento/application/ports/in/reagir-a-mensagem.provider";
 import type { ReceberMensagemPort } from "@/modules/atendimento/application/ports/in/receber-mensagem.provider";
+import type { ReceberMidiaPort } from "@/modules/atendimento/application/ports/in/receber-midia.provider";
 import type { TransferirAtendimentoPort } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
 import type { VerificarInatividadePort } from "@/modules/atendimento/application/ports/in/verificar-inatividade.provider";
 import type { AuditoriaPort } from "@/modules/atendimento/application/ports/out/auditoria.provider";
@@ -60,10 +61,12 @@ import { ObterConversa } from "@/modules/atendimento/application/use-cases/obter
 import { PrepararAnexoParaEnvio } from "@/modules/atendimento/application/use-cases/preparar-anexo-para-envio.use-case";
 import { ReagirAMensagem } from "@/modules/atendimento/application/use-cases/reagir-a-mensagem.use-case";
 import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/receber-mensagem.use-case";
+import { ReceberMidia } from "@/modules/atendimento/application/use-cases/receber-midia.use-case";
 import { RemoverFeriado } from "@/modules/atendimento/application/use-cases/remover-feriado.use-case";
 import { TransferirAtendimento } from "@/modules/atendimento/application/use-cases/transferir-atendimento.use-case";
 import { VerificarInatividade } from "@/modules/atendimento/application/use-cases/verificar-inatividade.use-case";
 import { BearerAutenticacaoJobGateway } from "@/modules/atendimento/infra/gateways/bearer-autenticacao-job.gateway";
+import { DownloadMidiaFalsoGateway } from "@/modules/atendimento/infra/gateways/download-midia-falso.gateway";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
 import { FfmpegConversorDeAudioGateway } from "@/modules/atendimento/infra/gateways/ffmpeg-conversor-de-audio.gateway";
 import { GuiasFiscaisGateway } from "@/modules/atendimento/infra/gateways/guias-fiscais.gateway";
@@ -128,6 +131,20 @@ export function makeReceberMensagem(): ReceberMensagemPort {
     new RelogioSistemaGateway(),
     new SupabaseFeriadoRepository(supabaseAdmin),
     guiasFiscais(supabaseAdmin),
+  );
+}
+
+export function makeReceberMidia(): ReceberMidiaPort {
+  exigirSegredosDeProducao();
+  if (MENSAGERIA_MODO === "real") {
+    throw new Error("MENSAGERIA_MODO=real: o adapter real de mensageria ainda não existe (#68).");
+  }
+  const supabaseAdmin = createSupabaseAdmin();
+  return new ReceberMidia(
+    new SupabaseAtendimentoRepository(supabaseAdmin),
+    new DownloadMidiaFalsoGateway(),
+    new SupabaseAnexosAtendimentoGateway(supabaseAdmin),
+    makeEnvioMensagem(),
   );
 }
 

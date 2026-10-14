@@ -18,8 +18,8 @@ type AnexoDaMensagemProps = {
   painelId: string;
 };
 
-// O que o balão mostra de um anexo: imagem em miniatura que amplia; arquivo com ícone, nome,
-// tamanho e o link para baixar.
+// O que o balão mostra de um anexo: imagem em miniatura que amplia; áudio com player (e o link para
+// baixar); arquivo com ícone, nome, tamanho e o link para baixar.
 export function AnexoDaMensagem({
   tipo,
   nome,
@@ -44,6 +44,15 @@ export function AnexoDaMensagem({
     return (
       <Caixa className="my-1">
         <PlayerDeAudio src={url} nome={nome} />
+        {/* Plano B: o ogg/opus da mensagem de voz não toca no Safari; o arquivo se baixa. */}
+        <Caixa
+          como="a"
+          href={url}
+          download={nome}
+          className="inline-block min-h-11 py-2 text-sm underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {tamanho} · Baixar
+        </Caixa>
       </Caixa>
     );
   }

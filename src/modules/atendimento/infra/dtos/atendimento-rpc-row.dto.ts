@@ -184,3 +184,6 @@ export const mensagemParaReacaoRowSchema = z.object({
   id_externo: z.string().nullable(),
   reacao: z.string().nullable(),
 });
+
+// `atendimentos.id` lido sozinho (a mídia só precisa saber qual é o Atendimento em andamento).
+export const atendimentoIdRowSchema = z.object({ id: z.string() });

@@ -209,6 +209,23 @@ export interface AtendimentoRepositoryPort {
     mensagem: NovaMensagem,
   ): Promise<Result<AnexarMensagemOutput, AppError>>;
   buscarEmAndamento(id: string): Promise<Result<AtendimentoEmAndamento | null, AppError>>;
+  // O Atendimento em andamento do número e se a Mensagem do provedor `idExterno` já está nele
+  // (reentrega); null se o número não tem Atendimento em andamento.
+  atendimentoParaMidia(
+    chave: string,
+    idExterno: string | undefined,
+  ): Promise<Result<{ atendimentoId: string; jaRegistrada: boolean } | null, AppError>>;
+  // Mensagem do contato (ou aviso do sistema, autor "ura") no Atendimento. `false`: já existia
+  // uma com o mesmo `idExterno` (reentrega que correu em paralelo), nada foi gravado.
+  registrarMensagemRecebida(
+    atendimentoId: string,
+    mensagem: {
+      autor: "contato" | "ura";
+      texto: string;
+      idExterno?: string;
+      anexo?: AnexoDaMensagem;
+    },
+  ): Promise<Result<boolean, AppError>>;
   roteamentoDoCliente(clienteId: string): Promise<Result<RoteamentoDoCliente | null, AppError>>;
   liderDoSetor(setor: SetorSlug): Promise<Result<string | null, AppError>>;
   transferir(transferencia: NovaTransferencia): Promise<Result<ResultadoTransferencia, AppError>>;

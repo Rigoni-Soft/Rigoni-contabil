@@ -116,3 +116,16 @@ export function validarAudio(
   if (bytes > ANEXO_TAMANHO_MAXIMO) return { erro: ANEXO_TAMANHO_RECUSADO };
   return { formato };
 }
+
+// Mídia que o cliente envia (#81): mesma lista e mesmo limite do que o Funcionário envia, mais o
+// áudio (voz do WhatsApp chega em ogg/opus). Áudio em formato que o provedor não entrega é recusado.
+export function validarMidiaRecebida(
+  tipoMime: string,
+  bytes: number,
+): { tipo: TipoAnexoMensagem; erro?: undefined } | { tipo?: undefined; erro: string } {
+  if (!ehAudio(tipoMime)) return validarAnexo(tipoMime, bytes);
+  const audio = validarAudio(tipoMime, bytes);
+  if (audio.erro !== undefined) return { erro: audio.erro };
+  // Quem converte webm é o formulário de gravação; o que chega do provedor já vem nativo.
+  return audio.formato === "nativo" ? { tipo: "audio" } : { erro: AUDIO_TIPO_RECUSADO };
+}

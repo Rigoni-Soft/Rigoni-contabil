@@ -11,6 +11,7 @@ import {
   miniaturaValida,
   validarAnexo,
   validarAudio,
+  validarMidiaRecebida,
 } from "./anexo";
 
 describe("classificarAnexo", () => {
@@ -91,5 +92,31 @@ describe("ehOggOpus", () => {
     expect(ehOggOpus(com("OpusHead"))).toBe(true);
     expect(ehOggOpus(com("vorbis"))).toBe(false);
     expect(ehOggOpus(new Uint8Array(0))).toBe(false);
+  });
+});
+
+describe("validarMidiaRecebida (mídia que o cliente envia)", () => {
+  it.each([
+    ["audio/ogg; codecs=opus", "audio"],
+    ["audio/mp4", "audio"],
+    ["image/jpeg", "imagem"],
+    ["application/pdf", "documento"],
+  ])("%s é aceito como %s", (mime, tipo) => {
+    expect(validarMidiaRecebida(mime, 1024)).toEqual({ tipo });
+  });
+
+  it.each([
+    ["image/svg+xml", ANEXO_TIPO_RECUSADO],
+    ["text/html", ANEXO_TIPO_RECUSADO],
+    ["audio/webm", AUDIO_TIPO_RECUSADO],
+  ])("%s é recusado", (mime, erro) => {
+    expect(validarMidiaRecebida(mime, 1024)).toEqual({ erro });
+  });
+
+  it("recusa vazio e acima de 10 MB, em áudio e em arquivo", () => {
+    expect(validarMidiaRecebida("audio/ogg", 0)).toEqual({ erro: ANEXO_VAZIO_RECUSADO });
+    expect(validarMidiaRecebida("image/png", ANEXO_TAMANHO_MAXIMO + 1)).toEqual({
+      erro: ANEXO_TAMANHO_RECUSADO,
+    });
   });
 });
