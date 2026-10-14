@@ -35,11 +35,8 @@ const FORMATO_DATA = new Intl.DateTimeFormat("en-CA", {
   day: "2-digit",
 });
 
-const ASSUNTO = {
-  lembrete_documento_obrigatorio: "Documentos fiscais pendentes",
-  envio_guia_das: "Guia do DAS",
-  envio_guia_parcelamento: "Guia de parcelamento",
-} as const;
+const usaWhatsapp = (c: ClienteParaLembrete) => c.formaEnvio !== "email";
+const usaEmail = (c: ClienteParaLembrete) => c.formaEnvio !== "whatsapp";
 
 // Job dos dias 01/05/10/15 (fuso de São Paulo): lembra quem está sem documento obrigatório,
 // envia o DAS pronto pela forma de envio do Cliente e alerta o setor Simples Nacional do DAS que
@@ -118,9 +115,8 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     resumo: LembretesExecutados,
   ) {
     // Sem para quem enviar não vale buscar a guia nem reivindicar o DAS.
-    const temWhatsapp = c.formaEnvio !== "email" && c.contato !== null;
-    const temEmail = c.formaEnvio !== "whatsapp" && c.email !== null;
-    if (!temWhatsapp && !temEmail) {
+    const temDestino = (usaWhatsapp(c) && c.contato) || (usaEmail(c) && c.email);
+    if (!temDestino) {
       return this.alertar(
         c,
         "contato_ausente",
@@ -202,7 +198,7 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     resumo: LembretesExecutados,
   ): Promise<boolean> {
     let entregue = false;
-    if (c.formaEnvio !== "email") {
+    if (usaWhatsapp(c)) {
       if (!c.contato) {
         await this.alertar(c, "contato_ausente", `${c.empresa} não tem contato padrão.`, resumo);
       } else {
@@ -217,14 +213,15 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
         else await this.falhou(c, `WhatsApp de ${c.empresa}: ${enviado.error.message}`, resumo);
       }
     }
-    if (c.formaEnvio !== "whatsapp") {
+    if (usaEmail(c)) {
       if (!c.email) {
         await this.alertar(c, "contato_ausente", `${c.empresa} não tem e-mail.`, resumo);
       } else {
         const para = c.email;
         const { texto } = montarMensagemLivre(comunicacao, "");
         const anexo = "guia" in comunicacao ? comunicacao.guia : undefined;
-        const assunto = `${ASSUNTO[comunicacao.tipo]} — ${c.empresa}`;
+        const tema = anexo ? "Guia do DAS" : "Documentos fiscais pendentes";
+        const assunto = `${tema} — ${c.empresa}`;
         const enviado = await comTentativas(
           () => this.email.enviar({ para, assunto, texto, anexo }),
           TENTATIVAS,

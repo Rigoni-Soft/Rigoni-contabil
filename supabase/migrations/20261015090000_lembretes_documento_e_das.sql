@@ -157,17 +157,28 @@ as $$
   order by c.empresa, c.id;
 $$;
 
+-- Auditoria da URA: o gatilho do cadastro não audita sem sessão de usuário, então a reivindicação
+-- e o desfazer gravam o evento aqui, com a URA como ator.
+create function public.auditar_das_da_ura(p_cliente_id uuid, p_acao text)
+returns void
+language sql
+security invoker
+set search_path = public
+as $$
+  insert into public.registros_auditoria (id, ator, setor, acao, alvo, resultado, criado_em)
+  select gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'simples_nacional',
+         p_acao, cnpj, 'sucesso', now()
+  from public.clientes where id = p_cliente_id;
+$$;
+
 -- Reivindica o DAS: pronto → enviado com a data, só se ainda estiver pronto (quem reivindicou
--- entrega; quem não, não envia). Auditado com a URA como ator, porque o gatilho do cadastro não
--- audita sem sessão de usuário.
+-- entrega; quem não, não envia).
 create function public.reivindicar_das_para_envio(p_cliente_id uuid, p_data date)
 returns boolean
 language plpgsql
 security invoker
 set search_path = public
 as $$
-declare
-  v_cnpj text;
 begin
   update public.cliente_cadastro_operacional_sn
      set das_status = 'enviado', data_envio_das = p_data, atualizado_em = now()
@@ -175,12 +186,7 @@ begin
   if not found then
     return false;
   end if;
-  select cnpj into v_cnpj from public.clientes where id = p_cliente_id;
-  insert into public.registros_auditoria (id, ator, setor, acao, alvo, resultado, criado_em)
-  values (
-    gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'simples_nacional',
-    'cliente.enviar-das-automatico', v_cnpj, 'sucesso', now()
-  );
+  perform public.auditar_das_da_ura(p_cliente_id, 'cliente.enviar-das-automatico');
   return true;
 end;
 $$;
@@ -193,21 +199,13 @@ language plpgsql
 security invoker
 set search_path = public
 as $$
-declare
-  v_cnpj text;
 begin
   update public.cliente_cadastro_operacional_sn
      set das_status = 'pronto', data_envio_das = p_data_anterior, atualizado_em = now()
    where cliente_id = p_cliente_id and das_status = 'enviado';
-  if not found then
-    return;
+  if found then
+    perform public.auditar_das_da_ura(p_cliente_id, 'cliente.desfazer-envio-das-automatico');
   end if;
-  select cnpj into v_cnpj from public.clientes where id = p_cliente_id;
-  insert into public.registros_auditoria (id, ator, setor, acao, alvo, resultado, criado_em)
-  values (
-    gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'simples_nacional',
-    'cliente.desfazer-envio-das-automatico', v_cnpj, 'sucesso', now()
-  );
 end;
 $$;
 
@@ -215,6 +213,7 @@ revoke all on function
   public.registrar_alerta_setor(public.setor_slug, public.tipo_alerta_setor, uuid, text),
   public.resolver_alertas_setor_nao_renovados(timestamptz),
   public.clientes_para_lembrete(),
+  public.auditar_das_da_ura(uuid, text),
   public.reivindicar_das_para_envio(uuid, date),
   public.desfazer_envio_das_automatico(uuid, date)
   from public, anon, authenticated;
@@ -222,6 +221,7 @@ grant execute on function
   public.registrar_alerta_setor(public.setor_slug, public.tipo_alerta_setor, uuid, text),
   public.resolver_alertas_setor_nao_renovados(timestamptz),
   public.clientes_para_lembrete(),
+  public.auditar_das_da_ura(uuid, text),
   public.reivindicar_das_para_envio(uuid, date),
   public.desfazer_envio_das_automatico(uuid, date)
   to service_role;

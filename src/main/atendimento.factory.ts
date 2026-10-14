@@ -225,12 +225,16 @@ export async function makeEncerrarAtendimento(): Promise<EncerrarAtendimentoPort
 }
 
 // O job só age com a flag ligada, e em produção só com mensageria real: o adapter falso "envia"
-// sem avisar ninguém, e encerrar Atendimento real assim seria encerrar sem aviso (devolutiva da
-// PR #83, B1). Autenticar o job (CRON_SECRET) não autoriza executá-lo.
-export function inatividadeAutomaticaAtiva(): boolean {
-  if (INATIVIDADE_AUTOMATICA !== "ligada") return false;
-  return !(process.env.NODE_ENV === "production" && MENSAGERIA_MODO === "falso");
+// sem avisar ninguém (encerraria Atendimento ou marcaria DAS como enviado sem o cliente saber;
+// devolutiva da PR #83, B1). Autenticar o job (CRON_SECRET) não autoriza executá-lo.
+function jobAutomaticoAtivo(flag: string): boolean {
+  return (
+    flag === "ligada" && !(process.env.NODE_ENV === "production" && MENSAGERIA_MODO === "falso")
+  );
 }
+
+export const inatividadeAutomaticaAtiva = () => jobAutomaticoAtivo(INATIVIDADE_AUTOMATICA);
+export const lembretesAutomaticosAtivos = () => jobAutomaticoAtivo(LEMBRETES_AUTOMATICOS);
 
 // Job (service_role, sem sessão de usuário): a URA verifica a inatividade dos Atendimentos.
 export function makeVerificarInatividade(): VerificarInatividadePort {
@@ -242,13 +246,6 @@ export function makeVerificarInatividade(): VerificarInatividadePort {
     new RelogioSistemaGateway(),
     new SupabaseFeriadoRepository(supabaseAdmin),
   );
-}
-
-// Mesma regra da inatividade: ligada por flag e, em produção, só com mensageria real (o adapter
-// falso "envia" sem avisar ninguém e o DAS ficaria marcado como enviado sem o cliente receber).
-export function lembretesAutomaticosAtivos(): boolean {
-  if (LEMBRETES_AUTOMATICOS !== "ligada") return false;
-  return !(process.env.NODE_ENV === "production" && MENSAGERIA_MODO === "falso");
 }
 
 // Instância única: o falso guarda em memória o que "enviou".
