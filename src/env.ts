@@ -38,8 +38,8 @@ const resultado = z
     // Funcionário (docs/contratos/mensageria.md).
     INATIVIDADE_AUTOMATICA: z.enum(["desligada", "ligada"]).default("desligada"),
     // Binário do ffmpeg que converte o áudio gravado em webm (docs/adr/0006). Sem valor, usa o
-    // `ffmpeg` do PATH.
-    FFMPEG_PATH: z.string().min(1).default("ffmpeg"),
+    // do pacote `ffmpeg-static`.
+    FFMPEG_PATH: z.string().min(1).optional(),
   })
   .safeParse({
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,

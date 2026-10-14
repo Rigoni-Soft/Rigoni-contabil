@@ -6,7 +6,8 @@
 
 O Funcionário grava áudio pelo navegador (#80). A Cloud API do WhatsApp aceita ogg com Opus e mp4/AAC,
 mas **não webm**. O `MediaRecorder` do Firefox grava ogg/opus e o do Safari grava mp4, mas o do
-Chrome/Edge (a maioria dos usuários) grava `audio/webm;codecs=opus`.
+Chrome/Edge grava `audio/webm;codecs=opus` por padrão (versões recentes já aceitam mp4, mas não dá
+para contar com isso em todas as versões instaladas).
 
 ## Decisão
 
@@ -15,20 +16,19 @@ Chrome/Edge (a maioria dos usuários) grava `audio/webm;codecs=opus`.
 - Webm é convertido **no servidor**, no caso de uso, por uma porta OUT neutra
   (`ConversorDeAudioPort.paraOggOpus`) antes de guardar e entregar. A porta de envio nunca recebe
   webm, e o arquivo tocado na conversa é o convertido.
-- O gateway chama o binário `ffmpeg` do ambiente por `child_process.spawn` (pipe de entrada e saída,
-  mono, Opus 32 kbps), localizado por `FFMPEG_PATH` ou pelo PATH. Sem dependência nova no `package.json`.
-- Sem o binário, o envio falha com mensagem clara; a gravação continua no navegador para nova tentativa.
+- O gateway chama o binário do ffmpeg por `child_process.spawn` (pipe de entrada e saída, mono, Opus
+  32 kbps). O binário vem do pacote `ffmpeg-static`, que o baixa na instalação; `FFMPEG_PATH` troca
+  por outro binário. No Next, o pacote fica em `serverExternalPackages` e o binário entra no trace
+  da rota da conversa por `outputFileTracingIncludes`.
+- Se o binário não executar, o envio falha com mensagem clara; a gravação continua no navegador.
 
 ## Alternativas
 
-- `ffmpeg-static` + `fluent-ffmpeg`: traz o binário (dezenas de MB) para o bundle da função; na
-  Vercel exige `outputFileTracingIncludes` e pesa no limite de tamanho. Adotar só se o deploy não
-  puder fornecer ffmpeg.
+- `fluent-ffmpeg`: só embrulha o `spawn` em API fluente; o comando é um só, não compensa a dependência.
 - Encoder Opus/ogg em WASM no navegador (`opus-recorder`): tira a conversão do servidor, mas é código
   de terceiros no cliente e precisa de gravação por AudioWorklet.
 
 ## Consequências
 
-Em desenvolvimento e em hospedagem com ffmpeg, Chrome/Edge funcionam. Em ambiente sem ffmpeg
-(a Vercel padrão), só Firefox e Safari enviam áudio até o deploy escolher uma das alternativas;
-essa escolha é pendência de deploy, não de código.
+Chrome/Edge funcionam sem configurar nada no ambiente. O custo é o binário (dezenas de MB) na função
+da conversa; se o limite de tamanho da hospedagem apertar, o caminho é o encoder WASM no navegador.

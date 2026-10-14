@@ -1,5 +1,3 @@
-import { spawnSync } from "node:child_process";
-
 import { createClient } from "@supabase/supabase-js";
 
 import { expect, test } from "./fixtures";
@@ -19,8 +17,6 @@ const FUNCIONARIO = "55555555-5555-5555-5555-555555555555";
 const TELEFONE = "61955572001";
 const CLIENTE = crypto.randomUUID();
 const CNPJ = `6${Date.now()}`.slice(0, 14);
-// O Chromium grava webm, que o servidor converte com ffmpeg (docs/adr/0006).
-const TEM_FFMPEG = spawnSync(process.env.FFMPEG_PATH || "ffmpeg", ["-version"]).status === 0;
 
 test.describe("Painel do Funcionário (#49)", () => {
   test.beforeAll(async () => {
@@ -279,7 +275,6 @@ test.describe("Painel do Funcionário (#49)", () => {
   test("o Funcionário grava e envia um áudio ao cliente e ele vira balão com player @smoke", async ({
     page,
   }) => {
-    test.skip(!TEM_FFMPEG, "o Chromium grava webm e a conversão para ogg exige ffmpeg");
     await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
     await page
@@ -291,7 +286,9 @@ test.describe("Painel do Funcionário (#49)", () => {
     await expect(page.getByText(/Gravando: 00:0[1-9]/)).toBeVisible();
     await page.getByRole("button", { name: "Enviar áudio" }).click();
 
-    const player = page.getByLabel(/^Áudio: gravacao\.ogg$/);
+    const player = page.getByLabel(/^Áudio: gravacao\.(ogg|m4a)$/);
+    // O Chromium recente grava mp4/AAC (m4a), aceito sem conversão; o webm→ogg é coberto pelo
+    // gateway (ffmpeg real) e pelo caso de uso.
     await expect(player).toBeVisible();
     await expect(page.getByRole("button", { name: "Gravar áudio" })).toBeVisible();
 

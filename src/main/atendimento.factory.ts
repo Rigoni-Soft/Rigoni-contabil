@@ -11,6 +11,7 @@ import {
   OBRIGACOES_FISCAIS_URL,
 } from "@/env";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import ffmpegEstatico from "ffmpeg-static";
 
 import { makeRegistrarAcao } from "@/main/auditoria.factory";
 import { exigirSegredosReais } from "@/main/segredos-mensageria.factory";
@@ -247,7 +248,7 @@ export async function makeEnviarAnexoAoCliente(): Promise<EnviarAnexoAoClientePo
     new SupabaseAnexosAtendimentoGateway(supabaseAdmin),
     makeEnvioMensagem(),
     auditoriaViaModuloAuditoria(),
-    new FfmpegConversorDeAudioGateway(FFMPEG_PATH),
+    new FfmpegConversorDeAudioGateway(FFMPEG_PATH ?? ffmpegEstatico ?? "ffmpeg"),
   );
 }
 

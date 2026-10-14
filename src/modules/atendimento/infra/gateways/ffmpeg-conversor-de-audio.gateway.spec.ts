@@ -1,3 +1,7 @@
+import { spawnSync } from "node:child_process";
+
+import ffmpegEstatico from "ffmpeg-static";
+
 import { FfmpegConversorDeAudioGateway } from "./ffmpeg-conversor-de-audio.gateway";
 
 describe("FfmpegConversorDeAudioGateway", () => {
@@ -18,5 +22,25 @@ describe("FfmpegConversorDeAudioGateway", () => {
 
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error.message).toMatch(/converter o áudio/);
+  });
+
+  it("converte webm/opus em ogg/opus com o ffmpeg do pacote", async () => {
+    const webm = spawnSync(
+      ffmpegEstatico!,
+      ["-loglevel", "error", "-f", "lavfi", "-i", "sine=duration=0.5", "-c:a", "libopus"].concat([
+        "-f",
+        "webm",
+        "pipe:1",
+      ]),
+      { maxBuffer: 1024 * 1024 },
+    ).stdout;
+    expect(webm.byteLength).toBeGreaterThan(0);
+
+    const r = await new FfmpegConversorDeAudioGateway(ffmpegEstatico!).paraOggOpus(
+      new Uint8Array(webm),
+    );
+
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(Buffer.from(r.value.subarray(0, 4)).toString("latin1")).toBe("OggS");
   });
 });
