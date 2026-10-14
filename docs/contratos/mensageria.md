@@ -86,6 +86,11 @@ o adapter falso devolve arquivos de teste pelo id: `midia-teste-audio` (ogg/opus
   duas chegarem ao mesmo tempo, o banco grava uma só e o arquivo que sobrou é removido.
 - **Falha transitória** ao baixar ou guardar (`ServicoExternoError`) responde 502, e a Meta reenvia o evento; é essa
   reentrega que reprocessa, não há fila própria.
+- **Visualizar e baixar** (vale para todo anexo da conversa, do cliente ou do Funcionário): cada anexo tem dois links temporários
+  do mesmo objeto, o de **download** (cabeçalho de anexo, com o nome original; vai para a pasta Downloads do navegador) e o de
+  **visualização** (sem esse cabeçalho). Imagem amplia no painel e baixa pelo botão "Baixar"; PDF e TXT ganham "Visualizar"
+  (aba nova) e "Baixar"; Word, Excel, PowerPoint, CSV e ZIP só baixam (o navegador não os mostra sem um visualizador externo,
+  que receberia o link do arquivo do cliente).
 - **Áudio no Safari:** o ogg/opus da mensagem de voz não toca no Safari; o player tem o botão de baixar como plano B. Converter
   para m4a ao guardar (reaproveitando `ConversorDeAudioPort`) fica fora desta entrega.
 

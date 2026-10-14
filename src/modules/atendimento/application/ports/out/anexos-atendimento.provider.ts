@@ -3,8 +3,10 @@ import type { Result } from "@/shared/kernel/result";
 
 export type ArquivoAnexo = { nome: string; tipoMime: string; conteudo: Uint8Array };
 
-// Endereço de curta duração e o instante em que deixa de valer (ISO).
-export type LinkTemporario = { url: string; expiraEm: string };
+// Endereços de curta duração e o instante em que deixam de valer (ISO).
+// `url` baixa o arquivo (cabeçalho de anexo, com o nome original); `urlVisualizacao` o serve para o
+// navegador mostrar, sem forçar o download.
+export type LinkTemporario = { url: string; urlVisualizacao: string; expiraEm: string };
 
 // Arquivos que o Funcionário envia ao cliente. Bucket privado próprio, separado dos documentos do
 // Cliente: o arquivo só sai dele por link temporário.

@@ -209,6 +209,7 @@ describe("anexo na conversa", () => {
           nome: "balanco.pdf",
           tamanho: 1536,
           url,
+          urlVisualizacao: `${url}-ver`,
           miniaturaUrl: `${url}-mini`,
           expiraEm,
         },
@@ -229,6 +230,7 @@ describe("anexo na conversa", () => {
       nome: "balanco.pdf",
       tamanho: "1,5 KB",
       url: "https://l/1",
+      urlVisualizacao: "https://l/1-ver",
       miniaturaUrl: "https://l/1-mini",
     });
   });

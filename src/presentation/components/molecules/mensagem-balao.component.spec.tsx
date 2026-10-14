@@ -71,7 +71,7 @@ describe("MensagemBalao — reação (#84)", () => {
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 
-  it("anexo de arquivo mostra nome, tamanho e o link para baixar, com a legenda", () => {
+  it("anexo de arquivo mostra nome, tamanho, visualizar (PDF) e baixar, com a legenda", () => {
     render(
       <ul>
         <MensagemBalao
@@ -83,16 +83,22 @@ describe("MensagemBalao — reação (#84)", () => {
             nome: "balanco.pdf",
             tamanho: "1,5 KB",
             url: "https://l/1",
+            urlVisualizacao: "https://l/1?ver",
             painelId: "p1",
           }}
         />
       </ul>,
     );
 
-    const link = screen.getByRole("link", { name: /balanco\.pdf/ });
-    expect(link).toHaveAttribute("href", "https://l/1");
-    expect(link).toHaveAttribute("download", "balanco.pdf");
-    expect(link).toHaveTextContent("1,5 KB");
+    const baixar = screen.getByRole("link", { name: "Baixar balanco.pdf" });
+    expect(baixar).toHaveAttribute("href", "https://l/1");
+    expect(baixar).toHaveAttribute("download", "balanco.pdf");
+    // PDF abre numa aba, sem forçar o download.
+    const ver = screen.getByRole("link", { name: "Visualizar balanco.pdf" });
+    expect(ver).toHaveAttribute("href", "https://l/1?ver");
+    expect(ver).toHaveAttribute("target", "_blank");
+    expect(ver).toHaveAttribute("rel", expect.stringContaining("noopener"));
+    expect(screen.getByText("1,5 KB")).toBeInTheDocument();
     expect(screen.getByText("Segue o balanço")).toBeInTheDocument();
   });
 
@@ -108,6 +114,7 @@ describe("MensagemBalao — reação (#84)", () => {
             nome: "gravacao.ogg",
             tamanho: "12 KB",
             url: "https://l/audio",
+            urlVisualizacao: "https://l/audio?ver",
             painelId: "p1",
           }}
         />
@@ -116,7 +123,7 @@ describe("MensagemBalao — reação (#84)", () => {
 
     expect(screen.getByLabelText("Áudio: gravacao.ogg")).toHaveAttribute("src", "https://l/audio");
     // Plano B para quem não toca ogg (Safari): baixar o arquivo.
-    expect(screen.getByRole("link", { name: "12 KB · Baixar" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Baixar gravacao.ogg" })).toHaveAttribute(
       "href",
       "https://l/audio",
     );
@@ -134,6 +141,7 @@ describe("MensagemBalao — reação (#84)", () => {
             nome: "foto.png",
             tamanho: "10 B",
             url: "https://l/2",
+            urlVisualizacao: "https://l/2?ver",
             painelId: "p2",
           }}
         />
@@ -141,7 +149,13 @@ describe("MensagemBalao — reação (#84)", () => {
     );
 
     expect(screen.getByRole("button", { name: "Ampliar foto.png" })).toBeInTheDocument();
-    expect(container.querySelectorAll('img[src="https://l/2"]')).toHaveLength(2);
+    expect(container.querySelectorAll('img[src="https://l/2"]')).toHaveLength(1); // miniatura = original
+    expect(container.querySelectorAll('img[src="https://l/2?ver"]')).toHaveLength(1);
+    // A ampliada oferece baixar o original.
+    expect(screen.getByRole("link", { name: "Baixar foto.png", hidden: true })).toHaveAttribute(
+      "href",
+      "https://l/2",
+    );
     expect(container.querySelectorAll("p")).toHaveLength(2); // autor e hora, nenhum de texto
   });
 
@@ -157,6 +171,7 @@ describe("MensagemBalao — reação (#84)", () => {
             nome: "foto.png",
             tamanho: "10 B",
             url: "https://l/original",
+            urlVisualizacao: "https://l/original?ver",
             miniaturaUrl: "https://l/mini",
             painelId: "p3",
           }}
@@ -175,6 +190,6 @@ describe("MensagemBalao — reação (#84)", () => {
     expect(
       screen.getByRole("button", { name: "Ampliar foto.png" }).querySelector("img"),
     ).toHaveAttribute("src", "https://l/mini");
-    expect(painel.querySelector("img")).toHaveAttribute("src", "https://l/original");
+    expect(painel.querySelector("img")).toHaveAttribute("src", "https://l/original?ver");
   });
 });

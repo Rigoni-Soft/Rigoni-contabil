@@ -1,9 +1,11 @@
-import { X } from "lucide-react";
+import { Download, X } from "lucide-react";
 
 type ImagemAmpliavelProps = {
   // A miniatura (ou o original, se não houver) e o original que o painel mostra.
   src: string;
   ampliadaSrc: string;
+  // Endereço que baixa o original (Content-Disposition de anexo).
+  baixarHref: string;
   // Nome acessível da miniatura e da imagem ampliada.
   alt: string;
   // Liga o botão ao painel; único na página (a View não gera id).
@@ -14,7 +16,13 @@ type ImagemAmpliavelProps = {
 // botão (o primeiro Tab depois de abrir), sem estado nem script. A caixa da miniatura tem tamanho
 // fixo: a imagem que termina de carregar não desloca a conversa (rolar fecharia o seletor de
 // reação aberto).
-export function ImagemAmpliavel({ src, ampliadaSrc, alt, painelId }: ImagemAmpliavelProps) {
+export function ImagemAmpliavel({
+  src,
+  ampliadaSrc,
+  baixarHref,
+  alt,
+  painelId,
+}: ImagemAmpliavelProps) {
   return (
     <>
       <button
@@ -51,6 +59,15 @@ export function ImagemAmpliavel({ src, ampliadaSrc, alt, painelId }: ImagemAmpli
         >
           <X className="size-5" aria-hidden="true" />
         </button>
+        <a
+          href={baixarHref}
+          download={alt}
+          aria-label={`Baixar ${alt}`}
+          className="absolute top-3 right-16 flex h-11 items-center gap-1 rounded-full bg-background/90 px-3 text-sm text-foreground shadow outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Download className="size-4" aria-hidden="true" />
+          Baixar
+        </a>
         {/* eslint-disable-next-line @next/next/no-img-element -- idem */}
         <img
           src={ampliadaSrc}

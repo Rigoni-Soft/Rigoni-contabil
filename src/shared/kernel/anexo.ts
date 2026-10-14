@@ -102,6 +102,13 @@ export function ehOggOpus(inicio: Uint8Array): boolean {
   return false;
 }
 
+// Arquivo que o navegador mostra sozinho numa aba (PDF e texto): só serve para oferecer
+// "Visualizar"; o arquivo é sempre conferido por tipo MIME ao entrar. Os demais (Office, ZIP, CSV)
+// só se baixam.
+export function abreNoNavegador(nome: string): boolean {
+  return /\.(pdf|txt)$/i.test(nome);
+}
+
 export function ehAudio(tipoMime: string): boolean {
   return normalizarMime(tipoMime).startsWith("audio/");
 }

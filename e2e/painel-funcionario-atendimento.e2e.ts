@@ -206,9 +206,8 @@ test.describe("Painel do Funcionário (#49)", () => {
     });
     await page.getByRole("button", { name: "Enviar arquivo" }).click();
 
-    const link = page.getByRole("link", { name: /balanco-setembro\.pdf/ });
-    await expect(link).toBeVisible();
-    await expect(link).toContainText("Baixar");
+    await expect(page.getByRole("link", { name: "Visualizar balanco-setembro.pdf" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Baixar balanco-setembro.pdf" })).toBeVisible();
 
     // Arrastar um arquivo sobre a conversa acende a moldura; soltar o põe na prévia do campo.
     const conversa = page.getByRole("log", { name: "Conversa" });

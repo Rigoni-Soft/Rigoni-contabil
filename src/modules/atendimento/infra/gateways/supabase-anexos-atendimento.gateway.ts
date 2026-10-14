@@ -62,7 +62,14 @@ export class SupabaseAnexosAtendimentoGateway implements AnexosAtendimentoPort {
       if (item.error || !item.signedUrl || !item.path) {
         return err(new ServicoExternoError("Falha ao gerar o link do arquivo."));
       }
-      links[item.path] = { url: item.signedUrl, expiraEm };
+      // O token assina só o caminho: sem `download` o mesmo endereço serve o arquivo para ver.
+      const visualizacao = new URL(item.signedUrl);
+      visualizacao.searchParams.delete("download");
+      links[item.path] = {
+        url: item.signedUrl,
+        urlVisualizacao: visualizacao.toString(),
+        expiraEm,
+      };
     }
     return ok(links);
   }

@@ -15,7 +15,9 @@ export type AnexoVisto = {
   tipo: TipoAnexoMensagem;
   nome: string;
   tamanho: number;
+  // Baixa o arquivo; `urlVisualizacao` o abre no navegador.
   url: string;
+  urlVisualizacao: string;
   // Só imagem com miniatura: a conversa mostra esta e amplia o original (`url`).
   miniaturaUrl: string | null;
   expiraEm: string;

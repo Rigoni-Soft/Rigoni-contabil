@@ -81,7 +81,14 @@ function montar({
     linksTemporarios: async (caminhos) =>
       ok(
         Object.fromEntries(
-          caminhos.map((c) => [c, { url: `https://link/${c}`, expiraEm: "2026-10-14T13:00:00Z" }]),
+          caminhos.map((c) => [
+            c,
+            {
+              url: `https://link/${c}`,
+              urlVisualizacao: `https://link/${c}?ver`,
+              expiraEm: "2026-10-14T13:00:00Z",
+            },
+          ]),
         ),
       ),
     remover: async (caminho) => {

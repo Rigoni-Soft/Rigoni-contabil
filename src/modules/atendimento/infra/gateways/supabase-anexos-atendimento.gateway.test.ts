@@ -46,6 +46,12 @@ describe("SupabaseAnexosAtendimentoGateway", () => {
     const resposta = await fetch(link!.url);
     expect(resposta.status).toBe(200);
     expect([...new Uint8Array(await resposta.arrayBuffer())]).toEqual([1, 2, 3]);
+    // Baixar força o download (anexo); ver serve o mesmo arquivo para o navegador abrir.
+    expect(resposta.headers.get("content-disposition")).toMatch(/^attachment/);
+    const ver = await fetch(link!.urlVisualizacao);
+    expect(ver.status).toBe(200);
+    expect(ver.headers.get("content-disposition")).toBeNull();
+    expect(ver.headers.get("content-type")).toBe("application/pdf");
   });
 
   it("gera os links de vários arquivos de uma vez, indexados pelo caminho", async () => {

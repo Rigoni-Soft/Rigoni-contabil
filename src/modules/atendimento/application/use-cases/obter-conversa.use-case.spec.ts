@@ -95,7 +95,14 @@ function montar(
       pedidos.push(caminhos);
       return ok(
         Object.fromEntries(
-          caminhos.map((c) => [c, { url: `https://link/${c}`, expiraEm: "2026-10-08T13:00:00Z" }]),
+          caminhos.map((c) => [
+            c,
+            {
+              url: `https://link/${c}`,
+              urlVisualizacao: `https://link/${c}?ver`,
+              expiraEm: "2026-10-08T13:00:00Z",
+            },
+          ]),
         ),
       );
     },
@@ -122,6 +129,7 @@ describe("ObterConversa", () => {
         nome: "foto.png",
         tamanho: 10,
         url: "https://link/at-1/u/foto.png",
+        urlVisualizacao: "https://link/at-1/u/foto.png?ver",
         miniaturaUrl: "https://link/at-1/u/miniatura.webp",
         expiraEm: "2026-10-08T13:00:00Z",
       },

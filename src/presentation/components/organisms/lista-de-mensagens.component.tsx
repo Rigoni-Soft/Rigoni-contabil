@@ -18,6 +18,7 @@ type MensagemView = {
     nome: string;
     tamanho: string;
     url: string;
+    urlVisualizacao: string;
     miniaturaUrl?: string | null;
   } | null;
 };
