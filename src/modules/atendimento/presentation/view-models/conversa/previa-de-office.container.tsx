@@ -2,12 +2,13 @@
 
 import { PainelDePrevia } from "@/presentation/components/atoms/painel-de-previa.component";
 import { usePreviaDeOffice } from "@/modules/atendimento/presentation/view-models/conversa/use-previa-de-office.hook";
+import type { FormatoDeOffice } from "@/shared/kernel/anexo";
 
 type PreviaDeOfficeContainerProps = {
   nome: string;
   // Endereço do arquivo para o navegador ler (sem cabeçalho de download).
   url: string;
-  formato: "docx" | "xlsx";
+  formato: FormatoDeOffice;
   painelId: string;
 };
 

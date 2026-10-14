@@ -1,13 +1,14 @@
 import { useCallback, useRef, useState } from "react";
 
 import type { PreviaCarregada } from "@/presentation/lib/previa-de-office";
+import type { FormatoDeOffice } from "@/shared/kernel/anexo";
 
-type Estado = "fechado" | "carregando" | "erro" | "pronto";
+type EstadoDaPrevia = "fechado" | "carregando" | "erro" | "pronto";
 
 // Lê o Word/Excel no navegador na primeira vez que é aberto. As bibliotecas só são baixadas aqui,
 // não no carregamento da conversa.
-export function usePreviaDeOffice(url: string, formato: "docx" | "xlsx") {
-  const [estado, setEstado] = useState<Estado>("fechado");
+export function usePreviaDeOffice(url: string, formato: FormatoDeOffice) {
+  const [estado, setEstado] = useState<EstadoDaPrevia>("fechado");
   const [previa, setPrevia] = useState<PreviaCarregada | undefined>();
   // Dois cliques antes da próxima renderização leriam o mesmo `estado`: o ref fecha essa janela.
   const emAndamento = useRef(false);

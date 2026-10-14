@@ -106,6 +106,8 @@ export function ehOggOpus(inicio: Uint8Array): boolean {
 // lidos no navegador e mostrados num painel; null só baixa. Pela extensão do nome, só para oferecer
 // a ação: o arquivo é sempre conferido por tipo MIME ao entrar.
 export type PreviaDeAnexo = "navegador" | "docx" | "xlsx";
+// O que o navegador lê por conta própria (Word e Excel), sem o "navegador" que só abre numa aba.
+export type FormatoDeOffice = Exclude<PreviaDeAnexo, "navegador">;
 
 export function tipoDePrevia(nome: string): PreviaDeAnexo | null {
   const extensao = nome.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1];

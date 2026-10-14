@@ -3,7 +3,7 @@ import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { MensagemBalao } from "@/presentation/components/molecules/mensagem-balao.component";
 import { SeletorDeEmoji } from "@/presentation/components/molecules/seletor-de-emoji.component";
 import { SobreposicaoDeSoltar } from "@/presentation/components/molecules/sobreposicao-de-soltar.component";
-import { tipoDePrevia } from "@/shared/kernel/anexo";
+import { tipoDePrevia, type FormatoDeOffice } from "@/shared/kernel/anexo";
 
 type MensagemView = {
   id: string;
@@ -56,7 +56,7 @@ type ListaDeMensagensProps = {
   previaDoAnexo?: (anexo: {
     nome: string;
     urlVisualizacao: string;
-    formato: "docx" | "xlsx";
+    formato: FormatoDeOffice;
     painelId: string;
   }) => React.ReactNode;
   reacao?: ReacaoProps;

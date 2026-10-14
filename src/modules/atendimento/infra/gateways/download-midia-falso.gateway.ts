@@ -21,24 +21,27 @@ const DOCX_BASE64 =
 const XLSX_BASE64 =
   "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";
 
-const doBase64 = (base64: string) => new Uint8Array(Buffer.from(base64, "base64"));
+const bytesDeBase64 = (base64: string) => new Uint8Array(Buffer.from(base64, "base64"));
 
 // Mídias de teste do adapter falso, escolhidas pelo id que a notificação traz. O real vive na #68.
 const CATALOGO: Record<string, () => MidiaBaixada> = {
-  "midia-teste-audio": () => ({ bytes: doBase64(OGG_OPUS_BASE64), mime: "audio/ogg; codecs=opus" }),
-  "midia-teste-imagem": () => ({ bytes: doBase64(PNG_BASE64), mime: "image/png" }),
+  "midia-teste-audio": () => ({
+    bytes: bytesDeBase64(OGG_OPUS_BASE64),
+    mime: "audio/ogg; codecs=opus",
+  }),
+  "midia-teste-imagem": () => ({ bytes: bytesDeBase64(PNG_BASE64), mime: "image/png" }),
   "midia-teste-documento": () => ({
     bytes: Buffer.from("%PDF-1.4\n%%EOF\n"),
     mime: "application/pdf",
     nome: "documento-de-teste.pdf",
   }),
   "midia-teste-docx": () => ({
-    bytes: doBase64(DOCX_BASE64),
+    bytes: bytesDeBase64(DOCX_BASE64),
     mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     nome: "contrato.docx",
   }),
   "midia-teste-xlsx": () => ({
-    bytes: doBase64(XLSX_BASE64),
+    bytes: bytesDeBase64(XLSX_BASE64),
     mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     nome: "balancete.xlsx",
   }),

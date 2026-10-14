@@ -83,7 +83,8 @@ o adapter falso devolve arquivos de teste pelo id: `midia-teste-audio` (ogg/opus
 - **Recusada** (acima do limite, tipo não aceito ou mídia que o provedor não entrega mais): vira uma Mensagem da URA na
   conversa ("o cliente enviou um arquivo que não pôde ser recebido") e o webhook responde 200.
 - **Idempotência** pelo `wamid` (`mensagens.id_externo`, índice único por Atendimento): a reentrega nem baixa o arquivo de novo; se
-  duas chegarem ao mesmo tempo, o banco grava uma só e o arquivo que sobrou é removido.
+  duas chegarem ao mesmo tempo, o banco grava uma só e o arquivo que sobrou é removido (o arquivo é baixado
+  duas vezes nessa corrida). Mensagem sem `id` não tem o que deduplicar: a checagem é pulada e a reentrega duplica.
 - **Falha transitória** ao baixar ou guardar (`ServicoExternoError`) responde 502, e a Meta reenvia o evento; é essa
   reentrega que reprocessa, não há fila própria.
 - **Visualizar e baixar** (todo anexo da conversa, do cliente ou do Funcionário): cada anexo tem dois links temporários do mesmo
