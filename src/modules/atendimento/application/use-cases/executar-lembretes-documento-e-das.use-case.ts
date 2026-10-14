@@ -1,3 +1,4 @@
+import { comTentativas } from "@/modules/atendimento/application/com-tentativas";
 import {
   montarMensagemLivre,
   type ComunicacaoProativa,
@@ -44,8 +45,10 @@ const ASSUNTO = {
 // envia o DAS pronto pela forma de envio do Cliente e alerta o setor Simples Nacional do DAS que
 // segue pendente com o documento em dia. Cada Cliente é independente: um que falha não impede os
 // demais. Falha de Serpro/WhatsApp tenta de novo antes de alertar.
-// ponytail: um segundo disparo simultâneo no mesmo dia pode reenviar; o cron roda uma vez por dia
-// e o DAS vira "enviado" logo depois da entrega. Reivindicar a linha antes de enviar se preciso.
+// A entrega é precedida da reivindicação do DAS (pronto → enviado, atômica) e desfeita se falhar:
+// duas execuções ou o Funcionário não geram envio em dobro, e uma falha não deixa o DAS "enviado".
+// ponytail: processo que cai entre reivindicar e entregar deixa o DAS como enviado sem a guia ter
+// saído; o Funcionário vê o DAS enviado e a auditoria da URA. Lease com retomada se isso doer.
 export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocumentoEDasPort {
   constructor(
     private readonly clientes: ClientesParaLembretePort,
@@ -57,6 +60,10 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     private readonly relogio: RelogioPort,
     private readonly esperaEntreTentativasMs = 2000,
   ) {}
+
+  // Alertas já levantados na rodada, por Cliente e tipo: um Cliente com lembrete e DAS não alerta
+  // duas vezes o mesmo problema.
+  private readonly alertados = new Set<string>();
 
   async execute(): Promise<Result<LembretesExecutados, AppError>> {
     const agora = this.relogio.agora();
@@ -72,6 +79,7 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
 
     const lista = await this.clientes.listar();
     if (!lista.ok) return lista;
+    this.alertados.clear();
     for (const cliente of lista.value) {
       if (cliente.documentoObrigatorio === "negativo") {
         await this.lembrar(cliente, agora, resumo);
@@ -87,6 +95,10 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
         );
       }
     }
+    // Alerta que o job não renovou nesta rodada deixou de valer. A folga cobre a diferença entre o
+    // relógio do servidor e o do banco; os alertas anteriores têm dias.
+    const resolvidos = await this.alertas.resolverNaoRenovados(new Date(agora.getTime() - 60_000));
+    if (!resolvidos.ok) resumo.falhas += 1;
     return ok(resumo);
   }
 
@@ -105,24 +117,69 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     hoje: string,
     resumo: LembretesExecutados,
   ) {
-    const guia = await this.tentar(async () => {
-      const buscada = await this.guias.buscar(c.clienteId, "das");
-      if (!buscada.ok) return buscada;
-      const { competencia, vencimento } = buscada.value;
-      if (!competencia || !vencimento) {
-        return err(new ServicoExternoError("Guia do DAS sem competência ou vencimento."));
-      }
-      const url = await this.publicadas.publicar(c.clienteId, buscada.value);
-      if (!url.ok) return url;
-      const [ano, mes] = competencia.split("-");
-      return ok({
-        url: url.value,
-        nomeArquivo: buscada.value.nomeArquivo,
-        competencia: `${mes}/${ano}`,
-        vencimento: formatarDataIso(vencimento),
-      });
-    });
-    if (!guia.ok) return this.falhou(c, `DAS de ${c.empresa}: ${guia.error.message}`, resumo);
+    // Sem para quem enviar não vale buscar a guia nem reivindicar o DAS.
+    const temWhatsapp = c.formaEnvio !== "email" && c.contato !== null;
+    const temEmail = c.formaEnvio !== "whatsapp" && c.email !== null;
+    if (!temWhatsapp && !temEmail) {
+      return this.alertar(
+        c,
+        "contato_ausente",
+        `${c.empresa} não tem contato nem e-mail para a forma de envio.`,
+        resumo,
+      );
+    }
+
+    const reivindicado = await this.clientes.reivindicarDas(c.clienteId, hoje);
+    if (!reivindicado.ok) {
+      return this.falhou(c, `DAS de ${c.empresa}: ${reivindicado.error.message}`, resumo);
+    }
+    // Outro job ou o Funcionário já tratou o DAS: quem não reivindicou não envia.
+    if (!reivindicado.value) return;
+
+    if (await this.entregarDas(c, agora, resumo)) {
+      resumo.dasEnviados += 1;
+      return;
+    }
+    const desfeito = await this.clientes.desfazerDas(c.clienteId, c.dataEnvioDas);
+    if (!desfeito.ok) {
+      await this.falhou(
+        c,
+        `DAS de ${c.empresa} não voltou a pronto após a falha: ${desfeito.error.message}`,
+        resumo,
+      );
+    }
+  }
+
+  private async entregarDas(
+    c: ClienteParaLembrete,
+    agora: Date,
+    resumo: LembretesExecutados,
+  ): Promise<boolean> {
+    const guia = await comTentativas(
+      async () => {
+        const buscada = await this.guias.buscar(c.clienteId, "das");
+        if (!buscada.ok) return buscada;
+        const { competencia, vencimento } = buscada.value;
+        if (!competencia || !vencimento) {
+          return err(new ServicoExternoError("Guia do DAS sem competência ou vencimento."));
+        }
+        const url = await this.publicadas.publicar(c.clienteId, buscada.value);
+        if (!url.ok) return url;
+        const [ano, mes] = competencia.split("-");
+        return ok({
+          url: url.value,
+          nomeArquivo: buscada.value.nomeArquivo,
+          competencia: `${mes}/${ano}`,
+          vencimento: formatarDataIso(vencimento),
+        });
+      },
+      TENTATIVAS,
+      this.esperaEntreTentativasMs,
+    );
+    if (!guia.ok) {
+      await this.falhou(c, `DAS de ${c.empresa}: ${guia.error.message}`, resumo);
+      return false;
+    }
 
     const { url, nomeArquivo, competencia, vencimento } = guia.value;
     const comunicacao: ComunicacaoProativa = {
@@ -133,13 +190,7 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
       vencimento,
       guia: { url, nomeArquivo },
     };
-    if (!(await this.entregar(c, comunicacao, agora, resumo))) return;
-
-    const marcado = await this.clientes.marcarDasEnviado(c.clienteId, hoje);
-    if (!marcado.ok) {
-      return this.falhou(c, `DAS enviado, mas não marcado: ${marcado.error.message}`, resumo);
-    }
-    resumo.dasEnviados += 1;
+    return this.entregar(c, comunicacao, agora, resumo);
   }
 
   // Entrega pelos canais da forma de envio; `true` se ao menos um entregou. Canal que não entrega
@@ -156,14 +207,12 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
         await this.alertar(c, "contato_ausente", `${c.empresa} não tem contato padrão.`, resumo);
       } else {
         const { telefone } = c.contato;
-        const enviado = await this.tentar(() =>
-          this.proativa.execute({
-            telefone,
-            comunicacao,
-            ultimaMensagemDoContatoEm: c.ultimaMensagemDoContatoEm,
-            agora,
-          }),
-        );
+        const enviado = await this.proativa.execute({
+          telefone,
+          comunicacao,
+          ultimaMensagemDoContatoEm: c.ultimaMensagemDoContatoEm,
+          agora,
+        });
         if (enviado.ok) entregue = true;
         else await this.falhou(c, `WhatsApp de ${c.empresa}: ${enviado.error.message}`, resumo);
       }
@@ -176,26 +225,16 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
         const { texto } = montarMensagemLivre(comunicacao, "");
         const anexo = "guia" in comunicacao ? comunicacao.guia : undefined;
         const assunto = `${ASSUNTO[comunicacao.tipo]} — ${c.empresa}`;
-        const enviado = await this.tentar(() => this.email.enviar({ para, assunto, texto, anexo }));
+        const enviado = await comTentativas(
+          () => this.email.enviar({ para, assunto, texto, anexo }),
+          TENTATIVAS,
+          this.esperaEntreTentativasMs,
+        );
         if (enviado.ok) entregue = true;
         else await this.falhou(c, `E-mail de ${c.empresa}: ${enviado.error.message}`, resumo);
       }
     }
     return entregue;
-  }
-
-  // Só falha do serviço externo é transitória; o resto (sem autorização, destinatário inválido)
-  // não melhora ao repetir.
-  private async tentar<T>(
-    operacao: () => Promise<Result<T, AppError>>,
-  ): Promise<Result<T, AppError>> {
-    let resultado = await operacao();
-    for (let n = 1; n < TENTATIVAS && !resultado.ok; n += 1) {
-      if (!(resultado.error instanceof ServicoExternoError)) break;
-      await new Promise((resolve) => setTimeout(resolve, this.esperaEntreTentativasMs));
-      resultado = await operacao();
-    }
-    return resultado;
   }
 
   private async falhou(c: ClienteParaLembrete, mensagem: string, resumo: LembretesExecutados) {
@@ -209,6 +248,9 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     mensagem: string,
     resumo: LembretesExecutados,
   ) {
+    const chave = `${c.clienteId}:${tipo}`;
+    if (this.alertados.has(chave)) return;
+    this.alertados.add(chave);
     const gravado = await this.alertas.alertar({
       setor: "simples_nacional",
       tipo,

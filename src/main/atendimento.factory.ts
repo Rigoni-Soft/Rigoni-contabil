@@ -261,7 +261,7 @@ export function makeExecutarLembretesDocumentoEDas(): ExecutarLembretesDocumento
     new SupabaseClientesParaLembreteGateway(supabaseAdmin),
     guiasFiscais(supabaseAdmin),
     new SupabaseGuiaPublicadaGateway(supabaseAdmin),
-    new EnviarComunicacaoProativa(makeEnvioMensagem()),
+    new EnviarComunicacaoProativa(makeEnvioMensagem(), 3, 2000),
     emailFalso,
     new SupabaseAlertaSetorGateway(supabaseAdmin),
     new RelogioSistemaGateway(),

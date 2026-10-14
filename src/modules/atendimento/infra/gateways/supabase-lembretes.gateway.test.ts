@@ -29,9 +29,13 @@ const telefoneMascarado = `(11) 9${sufixo.slice(0, 4)}-${sufixo.slice(4)}`;
 const chave = `55119${sufixo}`;
 
 beforeAll(async () => {
-  const cliente = await admin
-    .from("clientes")
-    .insert({ id: clienteId, empresa: "Lembrete Teste Ltda", cnpj, regime: "simples_nacional" });
+  const cliente = await admin.from("clientes").insert({
+    id: clienteId,
+    empresa: "Lembrete Teste Ltda",
+    cnpj,
+    regime: "simples_nacional",
+    email: "financeiro@lembrete.test",
+  });
   if (cliente.error) throw cliente.error;
   const cadastro = await admin.from("cliente_cadastro_operacional_sn").upsert({
     cliente_id: clienteId,
@@ -63,12 +67,12 @@ describe("job de lembrete de documento e DAS (infra)", () => {
     expect(lista.ok).toBe(true);
     const encontrado = lista.ok && lista.value.find((c) => c.clienteId === clienteId);
     expect(encontrado).toMatchObject({
-      cnpj,
+      email: "financeiro@lembrete.test",
+      dataEnvioDas: null,
       formaEnvio: "whatsapp_e_email",
       documentoObrigatorio: "negativo",
       dasStatus: "pronto",
       contato: { nome: "Ângela", telefone: chave },
-      email: null,
       ultimaMensagemDoContatoEm: null,
     });
   });
@@ -92,8 +96,8 @@ describe("job de lembrete de documento e DAS (infra)", () => {
     expect(encontrado && encontrado.ultimaMensagemDoContatoEm).toBeInstanceOf(Date);
   });
 
-  it("marca o DAS pronto como enviado com a data e audita com a URA; a segunda vez devolve false", async () => {
-    expect(await clientes.marcarDasEnviado(clienteId, "2026-10-05")).toEqual({
+  it("reivindica o DAS pronto com a data e audita com a URA; a segunda vez devolve false", async () => {
+    expect(await clientes.reivindicarDas(clienteId, "2026-10-05")).toEqual({
       ok: true,
       value: true,
     });
@@ -117,25 +121,71 @@ describe("job de lembrete de documento e DAS (infra)", () => {
       },
     ]);
 
-    expect(await clientes.marcarDasEnviado(clienteId, "2026-10-10")).toEqual({
+    expect(await clientes.reivindicarDas(clienteId, "2026-10-10")).toEqual({
       ok: true,
       value: false,
     });
   });
 
-  it("grava o alerta do setor e não empilha outro igual enquanto estiver aberto", async () => {
+  it("desfaz a reivindicação: volta a pronto com a data anterior e registra o desfazer", async () => {
+    expect(await clientes.desfazerDas(clienteId, null)).toEqual({ ok: true, value: undefined });
+
+    const cadastro = await admin
+      .from("cliente_cadastro_operacional_sn")
+      .select("das_status, data_envio_das")
+      .eq("cliente_id", clienteId)
+      .single();
+    expect(cadastro.data).toEqual({ das_status: "pronto", data_envio_das: null });
+    const auditoria = await admin
+      .from("registros_auditoria")
+      .select("acao")
+      .eq("alvo", cnpj)
+      .order("criado_em");
+    expect(auditoria.data).toEqual([
+      { acao: "cliente.enviar-das-automatico" },
+      { acao: "cliente.desfazer-envio-das-automatico" },
+    ]);
+  });
+
+  it("repetir o alerta renova a mensagem em vez de empilhar, e o não renovado é resolvido", async () => {
     const alerta = {
       setor: "simples_nacional",
       tipo: "das_pendente",
       clienteId,
-      mensagem: "DAS pendente",
+      mensagem: "primeira",
     } as const;
 
     expect((await alertas.alertar(alerta)).ok).toBe(true);
-    expect((await alertas.alertar(alerta)).ok).toBe(true);
+    expect((await alertas.alertar({ ...alerta, mensagem: "segunda" })).ok).toBe(true);
 
-    const gravados = await admin.from("alertas_setor").select("tipo").eq("cliente_id", clienteId);
-    expect(gravados.data).toEqual([{ tipo: "das_pendente" }]);
+    const abertos = await admin
+      .from("alertas_setor")
+      .select("mensagem")
+      .eq("cliente_id", clienteId)
+      .is("resolvido_em", null);
+    expect(abertos.data).toEqual([{ mensagem: "segunda" }]);
+
+    // Renovado depois de "desde": continua aberto. Antes dele: resolvido.
+    await alertas.resolverNaoRenovados(new Date(Date.now() - 60_000));
+    const ainda = await admin
+      .from("alertas_setor")
+      .select("id")
+      .eq("cliente_id", clienteId)
+      .is("resolvido_em", null);
+    expect(ainda.data).toHaveLength(1);
+
+    await alertas.resolverNaoRenovados(new Date(Date.now() + 60_000));
+    const resolvido = await admin
+      .from("alertas_setor")
+      .select("id")
+      .eq("cliente_id", clienteId)
+      .is("resolvido_em", null);
+    expect(resolvido.data).toHaveLength(0);
+
+    // Resolvido: o mesmo problema volta como alerta novo.
+    expect((await alertas.alertar(alerta)).ok).toBe(true);
+    const todos = await admin.from("alertas_setor").select("id").eq("cliente_id", clienteId);
+    expect(todos.data).toHaveLength(2);
   });
 
   it("publica o PDF no bucket e devolve um link assinado", async () => {

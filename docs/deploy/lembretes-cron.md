@@ -13,9 +13,9 @@ adapter falso o DAS ficaria `enviado` sem o cliente ter recebido.
 Antes de ligar em produção:
 
 1. Mensageria real no ar (#68) e os 3 templates aprovados na Meta (#67).
-2. E-mail real (hoje só o adapter falso `EnvioEmailFalsoGateway`) e o endereço no cadastro do
-   Contato: ainda não existe campo de e-mail, então a forma de envio com e-mail vira alerta
-   `contato_ausente` em vez de enviar.
+2. E-mail real (hoje só o adapter falso `EnvioEmailFalsoGateway`) e o campo `clientes.email`
+   preenchido: a coluna existe, mas as telas e o cadastro do Cliente ainda não a leem nem gravam.
+   Sem e-mail, a forma de envio com e-mail vira alerta `contato_ausente` em vez de enviar.
 3. Painel do Funcionário lendo `alertas_setor` (a tabela e a RLS já existem; a tela não).
 
 ## O que o job faz
@@ -27,19 +27,27 @@ Antes de ligar em produção:
 | DAS = pendente e documento obrigatório = positivo | Alerta `das_pendente` ao setor Simples Nacional                                     |
 
 - **Retentativa:** falha do Serpro, do armazenamento ou do envio (`ServicoExternoError`) é repetida
-  até 3 vezes (2 s entre elas) antes de virar alerta `falha_envio`. Sem autorização vigente ou
+  até 3 vezes (2 s entre elas) antes de virar alerta `falha_envio`. Cada envio repete sozinho: o
+  texto que já chegou não sai de novo quando só o documento falhou. Sem autorização vigente ou
   destinatário inválido não repete.
+- **Reivindicação do DAS:** antes de buscar e enviar, o DAS é reivindicado (pronto → enviado, atômico,
+  auditado com a URA). Quem não reivindicou (outro job ou o Funcionário) não envia; entrega que falha
+  devolve o DAS a pronto com a data de envio anterior (`cliente.desfazer-envio-das-automatico`).
 - **Forma de envio:** WhatsApp e e-mail são independentes; o DAS vira `enviado` se ao menos um canal
   entregou. Canal que falha ou não tem destinatário gera alerta e não derruba o outro.
 - **Guia no template:** o PDF vai para o bucket privado `guias-fiscais` e o provedor busca por link
   assinado (7 dias). Os PDFs não são removidos (ver `ponytail:` no gateway).
-- **Alertas:** `alertas_setor`, um aberto por Cliente e tipo (índice parcial); o job não empilha o
-  mesmo aviso nas quatro rodadas do mês. Quem resolve preenche `resolvido_em`.
+- **Alertas:** `alertas_setor`, um aberto por Cliente e tipo (índice parcial). Repetir o alerta
+  renova a mensagem e a data; ao fim da rodada o que não foi renovado é resolvido (o Cliente
+  regularizou). O mesmo problema não alerta duas vezes na rodada (lembrete + DAS do mesmo Cliente).
 - **Auditoria:** DAS marcado como enviado grava `cliente.enviar-das-automatico` com a URA como ator.
 - **Resposta:** `500` com o resumo quando `falhas > 0`, para a rodada aparecer nos logs do cron.
 
 ## Limites conhecidos
 
-- Duas invocações simultâneas no mesmo dia podem reenviar a mesma guia (o DAS só vira `enviado`
-  depois da entrega). O cron roda uma vez por dia; reivindicar a linha antes de enviar se preciso.
-- Parcelamento (dias 20/22/24/26/28) fica fora desta issue (história 43 da spec #24) e não está neste job.
+- Processo que cai entre reivindicar e entregar deixa o DAS como `enviado` sem a guia ter saído; a
+  auditoria da URA mostra o que aconteceu. Lease com retomada se isso virar problema.
+- Os clientes são processados em sequência dentro de uma invocação: com volume alto, medir a
+  duração e declarar `maxDuration` (depende do plano Vercel) ou processar em lotes.
+- Parcelamento (dias 20/22/24/26/28) fica fora desta issue (história 43 da spec #24) e não está
+  neste job.

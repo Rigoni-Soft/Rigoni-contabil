@@ -18,11 +18,11 @@ const telefone = "5511912345678";
 function cliente(extra: Partial<ClienteParaLembrete> = {}): ClienteParaLembrete {
   return {
     clienteId: "c1",
-    cnpj: "12345678000195",
     empresa: "3A Construções",
     formaEnvio: "whatsapp",
     documentoObrigatorio: "positivo",
     dasStatus: "enviado",
+    dataEnvioDas: null,
     contato: { nome: "Ângela", telefone },
     email: null,
     ultimaMensagemDoContatoEm: null,
@@ -43,25 +43,32 @@ function montar(
     agora?: Date;
     buscar?: () => Promise<Result<GuiaFiscal, AppError>>;
     falhas?: Record<string, number>;
-    marcar?: Result<boolean, AppError>;
+    reivindicar?: Result<boolean, AppError>;
+    resolver?: Result<void, AppError>;
   } = {},
 ) {
   const envio = new EnvioMensagemFalsoGateway(opcoes.falhas);
   const emails: EmailEnviado[] = [];
   const alertas: AlertaSetor[] = [];
   const marcados: [string, string][] = [];
+  const desfeitos: [string, string | null][] = [];
+  const resolvidos: Date[] = [];
   const buscar = jest.fn(opcoes.buscar ?? (async () => ok(guiaOk)));
   const job = new ExecutarLembretesDocumentoEDas(
     {
       listar: async () => ok(clientes),
-      marcarDasEnviado: async (id, data) => {
+      reivindicarDas: async (id, data) => {
         marcados.push([id, data]);
-        return opcoes.marcar ?? ok(true);
+        return opcoes.reivindicar ?? ok(true);
+      },
+      desfazerDas: async (id, anterior) => {
+        desfeitos.push([id, anterior]);
+        return ok(undefined);
       },
     },
     { buscar },
     { publicar: async () => ok("https://storage.test/das.pdf") },
-    new EnviarComunicacaoProativa(envio),
+    new EnviarComunicacaoProativa(envio, 3, 0),
     {
       enviar: async (email) => {
         emails.push(email);
@@ -73,11 +80,15 @@ function montar(
         alertas.push(alerta);
         return ok(undefined);
       },
+      resolverNaoRenovados: async (desde) => {
+        resolvidos.push(desde);
+        return opcoes.resolver ?? ok(undefined);
+      },
     },
     { agora: () => opcoes.agora ?? diaDoJob },
     0,
   );
-  return { job, envio, emails, alertas, marcados, buscar };
+  return { job, envio, emails, alertas, marcados, desfeitos, resolvidos, buscar };
 }
 
 beforeEach(() => {
@@ -224,14 +235,15 @@ describe("ExecutarLembretesDocumentoEDas", () => {
   });
 
   it("Serpro falha em todas as tentativas: alerta o setor e mantém o DAS pronto", async () => {
-    const { job, alertas, marcados, buscar } = montar([cliente({ dasStatus: "pronto" })], {
+    const { job, alertas, desfeitos, buscar } = montar([cliente({ dasStatus: "pronto" })], {
       buscar: async () => err(new ServicoExternoError("503")),
     });
     const resultado = await job.execute();
     expect(buscar).toHaveBeenCalledTimes(3);
     expect(alertas).toMatchObject([{ tipo: "falha_envio" }]);
-    expect(marcados).toHaveLength(0);
+    expect(desfeitos).toEqual([["c1", null]]);
     expect(resultado.ok && resultado.value.falhas).toBe(1);
+    expect(resultado.ok && resultado.value.dasEnviados).toBe(0);
   });
 
   it("sem autorização vigente: não repete, alerta de uma vez", async () => {
@@ -244,17 +256,17 @@ describe("ExecutarLembretesDocumentoEDas", () => {
   });
 
   it("WhatsApp falha (limite de taxa): repete e depois alerta, sem marcar enviado", async () => {
-    const { job, envio, alertas, marcados } = montar([cliente({ dasStatus: "pronto" })], {
+    const { job, envio, alertas, desfeitos } = montar([cliente({ dasStatus: "pronto" })], {
       falhas: { [telefone]: 130429 },
     });
     await job.execute();
     expect(envio.requisicoes).toHaveLength(3);
     expect(alertas).toMatchObject([{ tipo: "falha_envio" }]);
-    expect(marcados).toHaveLength(0);
+    expect(desfeitos).toEqual([["c1", null]]);
   });
 
   it("um Cliente que falha não impede os demais", async () => {
-    const { job, marcados } = montar(
+    const { job, desfeitos } = montar(
       [
         cliente({
           clienteId: "ruim",
@@ -266,15 +278,66 @@ describe("ExecutarLembretesDocumentoEDas", () => {
       { falhas: { "5500": 131026 } },
     );
     await job.execute();
-    expect(marcados).toEqual([["bom", "2026-10-05"]]);
+    expect(desfeitos).toEqual([["ruim", null]]);
   });
 
-  it("falha ao marcar o DAS como enviado vira alerta e não conta como enviado", async () => {
-    const { job, alertas } = montar([cliente({ dasStatus: "pronto" })], {
-      marcar: err(new ServicoExternoError("banco")),
+  it("falha ao reivindicar o DAS vira alerta e nada é enviado", async () => {
+    const { job, alertas, envio, buscar } = montar([cliente({ dasStatus: "pronto" })], {
+      reivindicar: err(new ServicoExternoError("banco")),
     });
     const resultado = await job.execute();
     expect(alertas).toMatchObject([{ tipo: "falha_envio" }]);
+    expect(envio.requisicoes).toHaveLength(0);
+    expect(buscar).not.toHaveBeenCalled();
     expect(resultado.ok && resultado.value.dasEnviados).toBe(0);
+  });
+
+  it("DAS que outro job ou o Funcionário já tratou (reivindicação false): não envia nem conta", async () => {
+    const { job, envio, alertas, desfeitos } = montar([cliente({ dasStatus: "pronto" })], {
+      reivindicar: ok(false),
+    });
+    const resultado = await job.execute();
+    expect(envio.requisicoes).toHaveLength(0);
+    expect(alertas).toHaveLength(0);
+    expect(desfeitos).toHaveLength(0);
+    expect(resultado.ok && resultado.value.dasEnviados).toBe(0);
+  });
+
+  it("entrega falhou: devolve o DAS a pronto com a data de envio que tinha", async () => {
+    const { job, desfeitos } = montar(
+      [cliente({ dasStatus: "pronto", dataEnvioDas: "2026-09-10" })],
+      { falhas: { [telefone]: 131026 } },
+    );
+    await job.execute();
+    expect(desfeitos).toEqual([["c1", "2026-09-10"]]);
+  });
+
+  it("entrega concluída não desfaz a reivindicação", async () => {
+    const { job, desfeitos } = montar([cliente({ dasStatus: "pronto" })]);
+    await job.execute();
+    expect(desfeitos).toHaveLength(0);
+  });
+
+  it("sem destinatário: alerta uma vez, sem buscar a guia nem reivindicar o DAS", async () => {
+    const { job, alertas, marcados, buscar } = montar([
+      cliente({ documentoObrigatorio: "negativo", dasStatus: "pronto", contato: null }),
+    ]);
+    const resultado = await job.execute();
+    expect(alertas).toMatchObject([{ tipo: "contato_ausente" }]);
+    expect(marcados).toHaveLength(0);
+    expect(buscar).not.toHaveBeenCalled();
+    expect(resultado.ok && resultado.value.alertas).toBe(1);
+  });
+
+  it("alertas não renovados na rodada são resolvidos ao fim, com folga sobre o relógio", async () => {
+    const { job, resolvidos } = montar([]);
+    await job.execute();
+    expect(resolvidos).toEqual([new Date(diaDoJob.getTime() - 60_000)]);
+  });
+
+  it("falha ao resolver os alertas conta como falha da rodada", async () => {
+    const { job } = montar([], { resolver: err(new ServicoExternoError("banco")) });
+    const resultado = await job.execute();
+    expect(resultado.ok && resultado.value.falhas).toBe(1);
   });
 });

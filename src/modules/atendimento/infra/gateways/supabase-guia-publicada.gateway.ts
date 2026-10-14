@@ -10,7 +10,7 @@ const BUCKET = "guias-fiscais";
 const VALIDADE_LINK_SEGUNDOS = 7 * 24 * 60 * 60;
 
 // Usa o client service_role (docs/adr/0001): o job não tem sessão de usuário.
-// ponytail: o PDF fica no bucket para sempre; limpar por data se o volume pesar.
+// ponytail: o PDF enviado fica no bucket para sempre; limpar por data se o volume pesar.
 export class SupabaseGuiaPublicadaGateway implements GuiaPublicadaPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 
@@ -27,6 +27,8 @@ export class SupabaseGuiaPublicadaGateway implements GuiaPublicadaPort {
     if (error) return err(new ServicoExternoError("Falha ao guardar a guia."));
     const link = await bucket.createSignedUrl(caminho, VALIDADE_LINK_SEGUNDOS);
     if (link.error || !link.data) {
+      // Sem link o arquivo não serve a ninguém: não deixa órfão para a próxima tentativa.
+      await bucket.remove([caminho]);
       return err(new ServicoExternoError("Falha ao gerar o link da guia."));
     }
     return ok(link.data.signedUrl);

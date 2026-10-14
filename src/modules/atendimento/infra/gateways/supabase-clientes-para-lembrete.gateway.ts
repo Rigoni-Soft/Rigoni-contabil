@@ -14,11 +14,12 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const linhaSchema = z.object({
   cliente_id: z.string(),
-  cnpj: z.string(),
+  email: z.string().nullable(),
   empresa: z.string(),
   forma_envio: z.enum(FORMAS_ENVIO),
   documento_obrigatorio: z.enum(DOCUMENTO_OBRIGATORIO_STATUSES).nullable(),
   das_status: z.enum(DAS_STATUSES).nullable(),
+  data_envio_das: z.string().nullable(),
   contato_nome: z.string().nullable(),
   contato_telefone: z.string().nullable(),
   ultima_mensagem_do_contato_em: z.string().nullable(),
@@ -37,16 +38,16 @@ export class SupabaseClientesParaLembreteGateway implements ClientesParaLembrete
     return ok(
       linhas.data.map((l) => ({
         clienteId: l.cliente_id,
-        cnpj: l.cnpj,
         empresa: l.empresa,
         formaEnvio: l.forma_envio,
         documentoObrigatorio: l.documento_obrigatorio,
         dasStatus: l.das_status,
+        dataEnvioDas: l.data_envio_das,
         contato:
           l.contato_nome && l.contato_telefone
             ? { nome: l.contato_nome, telefone: l.contato_telefone }
             : null,
-        email: null,
+        email: l.email,
         ultimaMensagemDoContatoEm: l.ultima_mensagem_do_contato_em
           ? new Date(l.ultima_mensagem_do_contato_em)
           : null,
@@ -54,14 +55,26 @@ export class SupabaseClientesParaLembreteGateway implements ClientesParaLembrete
     );
   }
 
-  async marcarDasEnviado(clienteId: string, dataIso: string): Promise<Result<boolean, AppError>> {
-    const { data, error } = await this.supabaseAdmin.rpc("marcar_das_enviado_automaticamente", {
+  async reivindicarDas(clienteId: string, dataIso: string): Promise<Result<boolean, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("reivindicar_das_para_envio", {
       p_cliente_id: clienteId,
       p_data: dataIso,
     });
     if (error || typeof data !== "boolean") {
-      return err(new ServicoExternoError("Falha ao marcar o DAS como enviado."));
+      return err(new ServicoExternoError("Falha ao reivindicar o DAS para envio."));
     }
     return ok(data);
+  }
+
+  async desfazerDas(
+    clienteId: string,
+    dataAnterior: string | null,
+  ): Promise<Result<void, AppError>> {
+    const { error } = await this.supabaseAdmin.rpc("desfazer_envio_das_automatico", {
+      p_cliente_id: clienteId,
+      p_data_anterior: dataAnterior,
+    });
+    if (error) return err(new ServicoExternoError("Falha ao devolver o DAS a pronto."));
+    return ok(undefined);
   }
 }

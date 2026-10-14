@@ -7,13 +7,12 @@ import type { Result } from "@/shared/kernel/result";
 // Cliente do Simples Nacional com o que o job de lembrete/DAS precisa saber dele.
 export type ClienteParaLembrete = {
   clienteId: string;
-  cnpj: string;
   empresa: string;
   formaEnvio: FormaEnvioValor;
   documentoObrigatorio: DocumentoObrigatorioStatusValor | null;
   dasStatus: DasStatusValor | null;
+  dataEnvioDas: string | null; // AAAA-MM-DD
   contato: { nome: string; telefone: string } | null;
-  // Ainda não existe e-mail no cadastro do Contato: o gateway devolve `null` até ele existir.
   email: string | null;
   // Última Mensagem do contato em qualquer Atendimento do telefone (abre/fecha a janela de 24h).
   ultimaMensagemDoContatoEm: Date | null;
@@ -22,6 +21,8 @@ export type ClienteParaLembrete = {
 export interface ClientesParaLembretePort {
   listar(): Promise<Result<ClienteParaLembrete[], AppError>>;
   // DAS pronto → enviado com a data de envio, auditado com a URA como ator. `false` se o DAS já
-  // não estava pronto (outro job ou o Funcionário mexeu antes).
-  marcarDasEnviado(clienteId: string, dataIso: string): Promise<Result<boolean, AppError>>;
+  // não estava pronto (outro job ou o Funcionário mexeu antes): quem não reivindicou não envia.
+  reivindicarDas(clienteId: string, dataIso: string): Promise<Result<boolean, AppError>>;
+  // A entrega falhou: devolve o DAS a pronto, com a data de envio que tinha antes.
+  desfazerDas(clienteId: string, dataAnterior: string | null): Promise<Result<void, AppError>>;
 }
