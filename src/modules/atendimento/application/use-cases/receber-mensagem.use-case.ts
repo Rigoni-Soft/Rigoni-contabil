@@ -31,11 +31,11 @@ import type {
   SessaoAtendimento,
   SessaoAtendimentoPort,
 } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
+import { descreverDocumento } from "@/modules/atendimento/domain/services/documento-contratual.service";
 import {
   avisoDeFechado,
   estaAbertoEm,
 } from "@/modules/atendimento/domain/services/expediente.service";
-import { descreverDocumento } from "@/modules/atendimento/domain/services/documento-contratual.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";

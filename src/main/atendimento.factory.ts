@@ -18,13 +18,13 @@ import { createSupabaseServer } from "@/main/supabase-server.factory";
 import type { AutenticarWebhookPort } from "@/modules/atendimento/application/ports/in/autenticar-webhook.provider";
 import type { AvisarClientePort } from "@/modules/atendimento/application/ports/in/avisar-cliente.provider";
 import type { EncerrarAtendimentoPort } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
+import type { EnviarDocumentoAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-documento-ao-cliente.provider";
+import type { EnviarMensagemAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-mensagem-ao-cliente.provider";
 import type {
   CadastrarFeriadoPort,
   ListarFeriadosPort,
   RemoverFeriadoPort,
 } from "@/modules/atendimento/application/ports/in/gerenciar-feriados.provider";
-import type { EnviarDocumentoAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-documento-ao-cliente.provider";
-import type { EnviarMensagemAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-mensagem-ao-cliente.provider";
 import type { ListarFilaPort } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
 import type { ListarMeusAtendimentosPort } from "@/modules/atendimento/application/ports/in/listar-meus-atendimentos.provider";
 import type { ObterConversaPort } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
@@ -44,9 +44,9 @@ import { AutenticarWebhook } from "@/modules/atendimento/application/use-cases/a
 import { AvisarCliente } from "@/modules/atendimento/application/use-cases/avisar-cliente.use-case";
 import { CadastrarFeriado } from "@/modules/atendimento/application/use-cases/cadastrar-feriado.use-case";
 import { EncerrarAtendimento } from "@/modules/atendimento/application/use-cases/encerrar-atendimento.use-case";
-import { ListarFeriados } from "@/modules/atendimento/application/use-cases/listar-feriados.use-case";
 import { EnviarDocumentoAoCliente } from "@/modules/atendimento/application/use-cases/enviar-documento-ao-cliente.use-case";
 import { EnviarMensagemAoCliente } from "@/modules/atendimento/application/use-cases/enviar-mensagem-ao-cliente.use-case";
+import { ListarFeriados } from "@/modules/atendimento/application/use-cases/listar-feriados.use-case";
 import { ListarFila } from "@/modules/atendimento/application/use-cases/listar-fila.use-case";
 import { ListarMeusAtendimentos } from "@/modules/atendimento/application/use-cases/listar-meus-atendimentos.use-case";
 import { ObterConversa } from "@/modules/atendimento/application/use-cases/obter-conversa.use-case";
