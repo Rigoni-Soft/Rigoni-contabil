@@ -65,16 +65,19 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
   // duas vezes o mesmo problema.
   private readonly alertados = new Set<string>();
 
+  // Contadores da rodada; o use case é instanciado por execução.
+  private resumo!: LembretesExecutados;
+
   async execute(): Promise<Result<LembretesExecutados, AppError>> {
     const agora = this.relogio.agora();
     const hoje = FORMATO_DATA.format(agora);
-    const resumo: LembretesExecutados = {
+    const resumo = (this.resumo = {
       executado: DIAS_DO_JOB.includes(Number(hoje.slice(8))),
       lembretes: 0,
       dasEnviados: 0,
       alertas: 0,
       falhas: 0,
-    };
+    });
     if (!resumo.executado) return ok(resumo);
 
     const lista = await this.clientes.listar();
@@ -86,16 +89,15 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
           contato: cliente.contato?.nome ?? cliente.empresa,
           empresa: cliente.empresa,
         };
-        if (await this.entregar(cliente, comunicacao, agora, resumo)) resumo.lembretes += 1;
+        if (await this.entregar(cliente, comunicacao, agora)) resumo.lembretes += 1;
       }
       if (cliente.dasStatus === "pronto") {
-        await this.enviarDas(cliente, agora, hoje, resumo);
+        await this.enviarDas(cliente, agora, hoje);
       } else if (cliente.dasStatus === "pendente" && cliente.documentoObrigatorio === "positivo") {
         await this.alertar(
           cliente,
           "das_pendente",
           `DAS de ${cliente.empresa} segue pendente com o documento obrigatório em dia.`,
-          resumo,
         );
       }
     }
@@ -106,12 +108,7 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     return ok(resumo);
   }
 
-  private async enviarDas(
-    c: ClienteParaLembrete,
-    agora: Date,
-    hoje: string,
-    resumo: LembretesExecutados,
-  ) {
+  private async enviarDas(c: ClienteParaLembrete, agora: Date, hoje: string) {
     // Sem para quem enviar não vale buscar a guia nem reivindicar o DAS.
     const temDestino = (usaWhatsapp(c) && c.contato) || (usaEmail(c) && c.email);
     if (!temDestino) {
@@ -119,19 +116,18 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
         c,
         "contato_ausente",
         `${c.empresa} não tem contato nem e-mail para a forma de envio.`,
-        resumo,
       );
     }
 
     const reivindicado = await this.clientes.reivindicarDas(c.clienteId, hoje);
     if (!reivindicado.ok) {
-      return this.falhou(c, `DAS de ${c.empresa}: ${reivindicado.error.message}`, resumo);
+      return this.falhou(c, `DAS de ${c.empresa}: ${reivindicado.error.message}`);
     }
     // Outro job ou o Funcionário já tratou o DAS: quem não reivindicou não envia.
     if (!reivindicado.value) return;
 
-    if (await this.entregarDas(c, agora, resumo)) {
-      resumo.dasEnviados += 1;
+    if (await this.entregarDas(c, agora)) {
+      this.resumo.dasEnviados += 1;
       return;
     }
     const desfeito = await this.clientes.desfazerDas(c.clienteId, c.dataEnvioDas);
@@ -139,16 +135,11 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
       await this.falhou(
         c,
         `DAS de ${c.empresa} não voltou a pronto após a falha: ${desfeito.error.message}`,
-        resumo,
       );
     }
   }
 
-  private async entregarDas(
-    c: ClienteParaLembrete,
-    agora: Date,
-    resumo: LembretesExecutados,
-  ): Promise<boolean> {
+  private async entregarDas(c: ClienteParaLembrete, agora: Date): Promise<boolean> {
     const guia = await comTentativas(
       async () => {
         const buscada = await this.guias.buscar(c.clienteId, "das");
@@ -171,7 +162,7 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
       this.esperaEntreTentativasMs,
     );
     if (!guia.ok) {
-      await this.falhou(c, `DAS de ${c.empresa}: ${guia.error.message}`, resumo);
+      await this.falhou(c, `DAS de ${c.empresa}: ${guia.error.message}`);
       return false;
     }
 
@@ -184,7 +175,7 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
       vencimento,
       guia: { url, nomeArquivo },
     };
-    return this.entregar(c, comunicacao, agora, resumo);
+    return this.entregar(c, comunicacao, agora);
   }
 
   // Entrega pelos canais da forma de envio; `true` se ao menos um entregou. Canal que não entrega
@@ -193,27 +184,25 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     c: ClienteParaLembrete,
     comunicacao: ComunicacaoProativa,
     agora: Date,
-    resumo: LembretesExecutados,
   ): Promise<boolean> {
     let entregue = false;
     if (usaWhatsapp(c)) {
       if (!c.contato) {
-        await this.alertar(c, "contato_ausente", `${c.empresa} não tem contato padrão.`, resumo);
+        await this.alertar(c, "contato_ausente", `${c.empresa} não tem contato padrão.`);
       } else {
-        const { telefone } = c.contato;
         const enviado = await this.proativa.execute({
-          telefone,
+          telefone: c.contato.telefone,
           comunicacao,
           ultimaMensagemDoContatoEm: c.ultimaMensagemDoContatoEm,
           agora,
         });
         if (enviado.ok) entregue = true;
-        else await this.falhou(c, `WhatsApp de ${c.empresa}: ${enviado.error.message}`, resumo);
+        else await this.falhou(c, `WhatsApp de ${c.empresa}: ${enviado.error.message}`);
       }
     }
     if (usaEmail(c)) {
       if (!c.email) {
-        await this.alertar(c, "contato_ausente", `${c.empresa} não tem e-mail.`, resumo);
+        await this.alertar(c, "contato_ausente", `${c.empresa} não tem e-mail.`);
       } else {
         const para = c.email;
         const { texto } = montarMensagemLivre(comunicacao, "");
@@ -226,23 +215,18 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
           this.esperaEntreTentativasMs,
         );
         if (enviado.ok) entregue = true;
-        else await this.falhou(c, `E-mail de ${c.empresa}: ${enviado.error.message}`, resumo);
+        else await this.falhou(c, `E-mail de ${c.empresa}: ${enviado.error.message}`);
       }
     }
     return entregue;
   }
 
-  private async falhou(c: ClienteParaLembrete, mensagem: string, resumo: LembretesExecutados) {
-    resumo.falhas += 1;
-    await this.alertar(c, "falha_envio", mensagem, resumo);
+  private async falhou(c: ClienteParaLembrete, mensagem: string) {
+    this.resumo.falhas += 1;
+    await this.alertar(c, "falha_envio", mensagem);
   }
 
-  private async alertar(
-    c: ClienteParaLembrete,
-    tipo: AlertaSetor["tipo"],
-    mensagem: string,
-    resumo: LembretesExecutados,
-  ) {
+  private async alertar(c: ClienteParaLembrete, tipo: AlertaSetor["tipo"], mensagem: string) {
     const chave = `${c.clienteId}:${tipo}`;
     if (this.alertados.has(chave)) return;
     this.alertados.add(chave);
@@ -252,7 +236,7 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
       clienteId: c.clienteId,
       mensagem,
     });
-    if (gravado.ok) resumo.alertas += 1;
-    else resumo.falhas += 1;
+    if (gravado.ok) this.resumo.alertas += 1;
+    else this.resumo.falhas += 1;
   }
 }

@@ -249,9 +249,6 @@ export function makeVerificarInatividade(): VerificarInatividadePort {
   );
 }
 
-// Instância única: o falso guarda em memória o que "enviou".
-const emailFalso = new EnvioEmailFalsoGateway();
-
 // Job (service_role, sem sessão de usuário): lembrete de documento e envio de DAS.
 export function makeExecutarLembretesDocumentoEDas(): ExecutarLembretesDocumentoEDasPort {
   const supabaseAdmin = createSupabaseAdmin();
@@ -260,7 +257,7 @@ export function makeExecutarLembretesDocumentoEDas(): ExecutarLembretesDocumento
     guiasFiscais(supabaseAdmin),
     new SupabaseGuiaPublicadaGateway(supabaseAdmin),
     new EnviarComunicacaoProativa(makeEnvioMensagem(), TENTATIVAS, ESPERA_MS),
-    emailFalso,
+    new EnvioEmailFalsoGateway(),
     new SupabaseAlertaSetorGateway(supabaseAdmin),
     new RelogioSistemaGateway(),
   );
