@@ -114,6 +114,24 @@ function montar(
   };
 }
 
+// O mesmo caso de uso, com o Storage trocável para o teste de falha dos links.
+function montarComFalhaDeLinks() {
+  const anexos = { linksTemporarios: async () => ok({}) } as unknown as AnexosAtendimentoPort & {
+    linksTemporarios: () => Promise<unknown>;
+  };
+  const repo = {
+    conversa: async () => ok(COM_ANEXO),
+    roteamentoDoCliente: async () => ok({ regime: "lucro_presumido", responsavelId: null }),
+  } as unknown as AtendimentoRepositoryPort;
+  const documentos = {
+    listar: async () => ok([]),
+  } as unknown as DocumentosContratuaisPort;
+  return {
+    anexos,
+    caso: new ObterConversa({ usuarioAtual: async () => FUNCIONARIO }, repo, documentos, anexos),
+  };
+}
+
 describe("ObterConversa", () => {
   it("pede os links dos anexos em lote e devolve o anexo sem o caminho", async () => {
     const { caso, pedidos } = montar(FUNCIONARIO, COM_ANEXO);
@@ -134,6 +152,19 @@ describe("ObterConversa", () => {
         expiraEm: "2026-10-08T13:00:00Z",
       },
     ]);
+  });
+
+  it("falha ao gerar os links não derruba a leitura: o texto vem e o anexo aparece sem arquivo", async () => {
+    const { caso, anexos } = montarComFalhaDeLinks();
+    anexos.linksTemporarios = async () => err(new ServicoExternoError("storage"));
+
+    const r = await caso.execute({ atendimentoId: "at-1" });
+
+    expect(r.ok).toBe(true);
+    expect(r.ok && r.value.mensagens.map((m) => m.anexo)).toEqual([null, null, null]);
+    expect(r.ok && r.value.mensagens.map((m) => m.texto)).toEqual(
+      COM_ANEXO.mensagens.map((m) => m.texto),
+    );
   });
 
   it("sem anexo na conversa não consulta o Storage", async () => {

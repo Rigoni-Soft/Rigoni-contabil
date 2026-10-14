@@ -19,6 +19,12 @@ export interface AnexosAtendimentoPort {
   // Em lote, um round-trip só. A chave do resultado é o caminho pedido.
   linksTemporarios(caminhos: string[]): Promise<Result<Record<string, LinkTemporario>, AppError>>;
   remover(caminho: string): Promise<Result<void, AppError>>;
+  // Posse do objeto que o navegador subiu em partes: `true` se esta tentativa o reservou (e é dona
+  // dele: pode removê-lo se falhar); `false` se outra finalização já o reservou ou uma Mensagem já o
+  // referencia, e então ele NÃO é desta tentativa e não pode ser removido. A reserva de quem concluiu
+  // fica (consumo idempotente); `liberarReserva` é de quem falhou e removeu o objeto.
+  reservar(caminho: string, atendimentoId: string): Promise<Result<boolean, AppError>>;
+  liberarReserva(caminho: string): Promise<Result<void, AppError>>;
   // O que o Storage tem do objeto (null: não existe). Usado quando o navegador sobe o arquivo em
   // partes: tipo e tamanho vêm do Storage, não do pedido.
   inspecionar(

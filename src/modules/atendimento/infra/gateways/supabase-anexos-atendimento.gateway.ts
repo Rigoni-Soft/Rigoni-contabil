@@ -59,9 +59,8 @@ export class SupabaseAnexosAtendimentoGateway implements AnexosAtendimentoPort {
     const expiraEm = new Date(Date.now() + VALIDADE_LINK_SEGUNDOS * 1000).toISOString();
     const links: Record<string, LinkTemporario> = {};
     for (const item of data) {
-      if (item.error || !item.signedUrl || !item.path) {
-        return err(new ServicoExternoError("Falha ao gerar o link do arquivo."));
-      }
+      // Um anexo sem link aparece sem arquivo na conversa; os demais, e o texto, continuam.
+      if (item.error || !item.signedUrl || !item.path) continue;
       // O token assina só o caminho: sem `download` o mesmo endereço serve o arquivo para ver.
       const visualizacao = new URL(item.signedUrl);
       visualizacao.searchParams.delete("download");
@@ -80,6 +79,25 @@ export class SupabaseAnexosAtendimentoGateway implements AnexosAtendimentoPort {
     return ok(undefined);
   }
 
+  async reservar(caminho: string, atendimentoId: string): Promise<Result<boolean, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("reservar_anexo_para_envio", {
+      p_caminho: caminho,
+      p_atendimento_id: atendimentoId,
+    });
+    if (error || (data !== "reservado" && data !== "em_uso")) {
+      return err(new ServicoExternoError("Falha ao reservar o arquivo para envio."));
+    }
+    return ok(data === "reservado");
+  }
+
+  async liberarReserva(caminho: string): Promise<Result<void, AppError>> {
+    const { error } = await this.supabaseAdmin.rpc("liberar_anexo_em_envio", {
+      p_caminho: caminho,
+    });
+    if (error) return err(new ServicoExternoError("Falha ao liberar a reserva do arquivo."));
+    return ok(undefined);
+  }
+
   async inspecionar(
     caminho: string,
   ): Promise<Result<{ tipoMime: string; tamanho: number } | null, AppError>> {
@@ -93,8 +111,10 @@ export class SupabaseAnexosAtendimentoGateway implements AnexosAtendimentoPort {
   async cabecalho(caminho: string, bytes: number): Promise<Result<Uint8Array, AppError>> {
     const links = await this.linksTemporarios([caminho]);
     if (!links.ok) return links;
+    const link = links.value[caminho];
+    if (!link) return err(new ServicoExternoError("Falha ao ler o arquivo guardado."));
     try {
-      const resposta = await fetch(links.value[caminho].url, {
+      const resposta = await fetch(link.url, {
         headers: { Range: `bytes=0-${bytes - 1}` },
       });
       if (!resposta.ok) throw new Error();

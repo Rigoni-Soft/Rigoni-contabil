@@ -29,7 +29,81 @@ async function guardar(nome: string, tipoMime: string, conteudo = new Uint8Array
   return r;
 }
 
+// Atendimento real: a reserva tem chave estrangeira para ele.
+const ATENDIMENTO_REAL = crypto.randomUUID();
+const TELEFONE_DA_RESERVA = `6195559${Date.now().toString().slice(-4)}`;
+
+beforeAll(async () => {
+  const criado = await admin.from("atendimentos").insert({
+    id: ATENDIMENTO_REAL,
+    telefone: TELEFONE_DA_RESERVA,
+    chave_telefone: TELEFONE_DA_RESERVA,
+    setor: "recepcao",
+  });
+  if (criado.error) throw criado.error;
+});
+
+afterAll(async () => {
+  // A reserva cai em cascata com o Atendimento.
+  await admin.from("atendimentos").delete().eq("id", ATENDIMENTO_REAL);
+});
+
+describe("posse e consumo do objeto subido em partes (R85-03)", () => {
+  it("o primeiro a reservar é o dono; quem chega depois recebe false", async () => {
+    const caminho = `${ATENDIMENTO_REAL}/u-1/gravacao.ogg`;
+
+    expect(await gateway.reservar(caminho, ATENDIMENTO_REAL)).toEqual({ ok: true, value: true });
+    expect(await gateway.reservar(caminho, ATENDIMENTO_REAL)).toEqual({ ok: true, value: false });
+  });
+
+  it("finalizações paralelas do mesmo objeto: exatamente uma o reserva", async () => {
+    const caminho = `${ATENDIMENTO_REAL}/u-2/gravacao.ogg`;
+
+    const resultados = await Promise.all(
+      Array.from({ length: 6 }, () => gateway.reservar(caminho, ATENDIMENTO_REAL)),
+    );
+
+    expect(resultados.every((r) => r.ok)).toBe(true);
+    expect(resultados.filter((r) => r.ok && r.value)).toHaveLength(1);
+  });
+
+  it("objeto já referenciado por uma Mensagem do histórico não pode ser reservado", async () => {
+    const caminho = `${ATENDIMENTO_REAL}/u-3/balanco.pdf`;
+    const mensagem = await admin.from("mensagens").insert({
+      atendimento_id: ATENDIMENTO_REAL,
+      autor: "funcionario",
+      texto: "",
+      anexo_tipo: "documento",
+      anexo_nome: "balanco.pdf",
+      anexo_caminho: caminho,
+      anexo_tamanho: 10,
+    });
+    expect(mensagem.error).toBeNull();
+
+    expect(await gateway.reservar(caminho, ATENDIMENTO_REAL)).toEqual({ ok: true, value: false });
+  });
+
+  it("liberar a reserva de quem falhou deixa o caminho reservável de novo", async () => {
+    const caminho = `${ATENDIMENTO_REAL}/u-4/gravacao.ogg`;
+    await gateway.reservar(caminho, ATENDIMENTO_REAL);
+
+    expect((await gateway.liberarReserva(caminho)).ok).toBe(true);
+
+    expect(await gateway.reservar(caminho, ATENDIMENTO_REAL)).toEqual({ ok: true, value: true });
+  });
+});
+
 describe("SupabaseAnexosAtendimentoGateway", () => {
+  it("um objeto sem link não derruba os links dos demais", async () => {
+    const existente = await guardar("existe.png", "image/png");
+    const caminho = existente.ok ? existente.value : "";
+
+    const links = await gateway.linksTemporarios([caminho, `${ATENDIMENTO}/nao/existe.png`]);
+
+    expect(links.ok).toBe(true);
+    expect(links.ok && Object.keys(links.value)).toEqual([caminho]);
+  });
+
   it("guarda o arquivo numa pasta por envio, com nome seguro, e devolve link temporário que baixa o conteúdo", async () => {
     const r = await guardar("Balanço de setembro (final).pdf", "application/pdf");
 
@@ -86,8 +160,9 @@ describe("SupabaseAnexosAtendimentoGateway", () => {
 
     expect((await gateway.remover(caminho)).ok).toBe(true);
 
+    // Sem arquivo não há link, e isso não é erro da leitura: o anexo some da resposta.
     const links = await gateway.linksTemporarios([caminho]);
-    expect(links.ok).toBe(false);
+    expect(links.ok && links.value[caminho]).toBeUndefined();
   });
 
   it("inspeciona o objeto (tipo e tamanho do Storage), lê só o início e baixa inteiro", async () => {

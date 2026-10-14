@@ -59,8 +59,9 @@ export class ObterConversa implements ObterConversaPort {
     const disponiveis =
       encerrado || !conversa.clienteId ? ok([]) : await this.servicos(conversa.clienteId);
     if (!disponiveis.ok) return disponiveis;
-    const links = await this.links(conversa.mensagens);
-    if (!links.ok) return links;
+    // Sem os links os anexos aparecem sem arquivo, mas o texto da conversa continua legível.
+    const buscados = await this.links(conversa.mensagens);
+    const links = { value: buscados.ok ? buscados.value : {} };
     return ok({
       atendimentoId: conversa.id,
       encerrado,

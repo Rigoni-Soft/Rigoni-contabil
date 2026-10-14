@@ -42,6 +42,8 @@ type Opcoes = {
   falhaEnvio?: boolean;
   falhaRegistro?: boolean;
   falhaDesfazer?: boolean;
+  // Caminhos que outra finalização já reservou, ou que uma Mensagem do histórico já referencia.
+  jaReservados?: string[];
   veredito?: "registrada" | "encerrada" | "sem_autoridade";
   falhaConversao?: boolean;
   // Primeiros bytes do objeto subido em partes (por padrão, ogg com Opus).
@@ -57,6 +59,7 @@ function montar({
   falhaEnvio = false,
   falhaRegistro = false,
   falhaDesfazer = false,
+  jaReservados = [],
   veredito = "registrada",
   falhaConversao = false,
   cabecalho = OGG_OPUS,
@@ -68,6 +71,8 @@ function montar({
   const enviados: unknown[] = [];
   const registradas: unknown[] = [];
   const desfeitas: unknown[] = [];
+  const reservas = new Set<string>(jaReservados);
+  const liberadas: string[] = [];
   const auditadas: unknown[] = [];
   const repo = {
     buscarEmAndamento: async () => ok(atendimento),
@@ -105,6 +110,16 @@ function montar({
       removidos.push(caminho);
       return ok(undefined);
     },
+    reservar: async (caminho) => {
+      if (reservas.has(caminho)) return ok(false);
+      reservas.add(caminho);
+      return ok(true);
+    },
+    liberarReserva: async (caminho) => {
+      liberadas.push(caminho);
+      reservas.delete(caminho);
+      return ok(undefined);
+    },
     inspecionar: async () => ok(objeto),
     cabecalho: async () => ok(cabecalho),
     baixar: async () => ok(new Uint8Array(objeto?.tamanho ?? 0)),
@@ -131,6 +146,8 @@ function montar({
     enviados,
     registradas,
     desfeitas,
+    liberadas,
+    reservas,
     auditadas,
     caso: new EnviarAnexoAoCliente(
       { usuarioAtual: async () => ator },
@@ -459,6 +476,76 @@ describe("EnviarAnexoAoCliente", () => {
 
   describe("arquivo já guardado pelo navegador (upload em partes)", () => {
     const GUARDADO = { caminho: "at-1/u-1/gravacao.ogg", nome: "gravacao.ogg" };
+
+    describe("posse e consumo do objeto (R85-03)", () => {
+      const NO_STORAGE = { tipoMime: "audio/ogg", tamanho: 3000 };
+
+      it("repetir a finalização de um objeto já consumido é recusado SEM remover o arquivo do histórico", async () => {
+        const { caso, enviados, removidos, desfeitas } = montar({
+          objeto: NO_STORAGE,
+          jaReservados: [GUARDADO.caminho],
+          falhaEnvio: true,
+        });
+
+        const r = await caso.execute({ atendimentoId: "at-1", guardado: GUARDADO });
+
+        expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
+        expect(enviados).toEqual([]);
+        expect(removidos).toEqual([]);
+        expect(desfeitas).toEqual([]);
+      });
+
+      it("duas finalizações do mesmo objeto: só uma entrega e a outra é recusada sem tocar no objeto", async () => {
+        const primeira = montar({ objeto: NO_STORAGE });
+        const ok1 = await primeira.caso.execute({ atendimentoId: "at-1", guardado: GUARDADO });
+        expect(ok1.ok).toBe(true);
+        expect(primeira.reservas.has(GUARDADO.caminho)).toBe(true);
+
+        // Mesma reserva, estado compartilhado: a segunda vê o objeto já consumido.
+        const segunda = montar({ objeto: NO_STORAGE, jaReservados: [...primeira.reservas] });
+        const r2 = await segunda.caso.execute({ atendimentoId: "at-1", guardado: GUARDADO });
+        expect(r2.ok).toBe(false);
+        expect(segunda.enviados).toEqual([]);
+        expect(segunda.removidos).toEqual([]);
+      });
+
+      it("upload genuinamente novo cuja entrega falha: o objeto sai e a reserva é liberada", async () => {
+        const { caso, removidos, liberadas, reservas } = montar({
+          objeto: NO_STORAGE,
+          falhaEnvio: true,
+        });
+
+        const r = await caso.execute({ atendimentoId: "at-1", guardado: GUARDADO });
+
+        expect(r.ok).toBe(false);
+        expect(removidos).toEqual([GUARDADO.caminho]);
+        expect(liberadas).toEqual([GUARDADO.caminho]);
+        expect(reservas.has(GUARDADO.caminho)).toBe(false);
+      });
+
+      it("conclusão com sucesso deixa a reserva (o consumo) e não remove nada", async () => {
+        const { caso, removidos, liberadas, reservas } = montar({ objeto: NO_STORAGE });
+
+        const r = await caso.execute({ atendimentoId: "at-1", guardado: GUARDADO });
+
+        expect(r.ok).toBe(true);
+        expect(removidos).toEqual([]);
+        expect(liberadas).toEqual([]);
+        expect(reservas.has(GUARDADO.caminho)).toBe(true);
+      });
+
+      it("objeto recusado pelo Storage real sai e libera a reserva", async () => {
+        const { caso, removidos, liberadas } = montar({
+          objeto: { tipoMime: "image/svg+xml", tamanho: 100 },
+        });
+
+        const r = await caso.execute({ atendimentoId: "at-1", guardado: GUARDADO });
+
+        expect(r.ok).toBe(false);
+        expect(removidos).toEqual([GUARDADO.caminho]);
+        expect(liberadas).toEqual([GUARDADO.caminho]);
+      });
+    });
 
     it("áudio ogg: confere o objeto no Storage, entrega e registra sem guardar de novo", async () => {
       const { caso, guardados, enviados, registradas, removidos } = montar({

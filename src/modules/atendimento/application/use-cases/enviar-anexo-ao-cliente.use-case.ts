@@ -60,7 +60,7 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
       await this.auditar(ator, atendimentoId, "falha");
       return preparado;
     }
-    const { tipo, caminho, nome, tamanho } = preparado.value;
+    const { tipo, caminho, nome, tamanho, reserva } = preparado.value;
     const texto = tipo === "audio" ? "" : (legenda?.trim() ?? "");
 
     const miniaturaCaminho = await this.guardarMiniatura(
@@ -79,7 +79,7 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
       { tipo, nome, tamanho, caminho, miniaturaCaminho },
     );
     if (!registrada.ok || registrada.value.status !== "registrada") {
-      await Promise.all(arquivos.map((c) => this.anexos.remover(c)));
+      await this.descartarArquivos(arquivos, reserva);
       await this.auditar(ator, atendimentoId, "falha");
       return this.recusaDoRegistro(registrada);
     }
@@ -88,7 +88,7 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
     if (!entregue.ok) {
       await this.auditar(ator, atendimentoId, "falha");
       const desfeita = await this.repositorio.desfazerMensagemDoFuncionario(registrada.value.id);
-      await Promise.all(arquivos.map((c) => this.anexos.remover(c)));
+      await this.descartarArquivos(arquivos, reserva);
       if (desfeita.ok) return entregue;
       return err(
         new EstadoInconsistenteError(
@@ -99,6 +99,12 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
     }
     await this.auditar(ator, atendimentoId, "sucesso");
     return ok(undefined);
+  }
+
+  // Só o que esta tentativa guardou ou reservou: a reserva sai junto do objeto.
+  private async descartarArquivos(arquivos: string[], reserva: string | undefined) {
+    await Promise.all(arquivos.map((c) => this.anexos.remover(c)));
+    if (reserva) await this.anexos.liberarReserva(reserva);
   }
 
   private recusaDoRegistro(

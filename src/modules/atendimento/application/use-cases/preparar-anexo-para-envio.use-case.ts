@@ -40,6 +40,8 @@ export type AnexoPreparado = {
   caminho: string;
   nome: string;
   tamanho: number;
+  // Objeto do navegador que esta tentativa reservou: quem falhar depois o remove e libera a reserva.
+  reserva?: string;
 };
 
 function validar(
@@ -129,8 +131,14 @@ export class PrepararAnexoParaEnvio {
     if (!caminho.startsWith(`${atendimentoId}/`)) {
       return err(new ForbiddenError("Você não pode enviar arquivos neste Atendimento."));
     }
+    // Posse antes de qualquer outra coisa: um objeto já finalizado (ou em finalização) não é desta
+    // tentativa, então é recusado SEM tocar nele; a compensação nunca remove arquivo do histórico.
+    const reservado = await this.anexos.reservar(caminho, atendimentoId);
+    if (!reservado.ok) return reservado;
+    if (!reservado.value) return recusa("arquivo", "Este arquivo já foi enviado.");
+
     const objeto = await this.anexos.inspecionar(caminho);
-    if (!objeto.ok) return objeto;
+    if (!objeto.ok) return this.descartar(caminho, objeto);
     if (!objeto.value) return recusa("arquivo", "O arquivo não chegou inteiro. Envie de novo.");
     const { tipoMime, tamanho } = objeto.value;
 
@@ -141,12 +149,12 @@ export class PrepararAnexoParaEnvio {
     if (recusada) return this.descartar(caminho, recusada);
     if (formato === "nativo" && normalizarMime(tipoMime) === AUDIO_MIME_OGG) {
       const inicio = await this.anexos.cabecalho(caminho, AUDIO_CABECALHO_BYTES);
-      if (!inicio.ok) return inicio;
+      if (!inicio.ok) return this.descartar(caminho, inicio);
       if (oggSemOpus(tipoMime, inicio.value)) {
         return this.descartar(caminho, recusa("arquivo", AUDIO_OGG_SEM_OPUS_RECUSADO));
       }
     }
-    if (formato !== "converter") return ok({ tipo, caminho, nome, tamanho });
+    if (formato !== "converter") return ok({ tipo, caminho, nome, tamanho, reserva: caminho });
 
     const bytes = await this.anexos.baixar(caminho);
     const convertido = bytes.ok
@@ -154,6 +162,7 @@ export class PrepararAnexoParaEnvio {
       : bytes;
     // O original (webm) sai de qualquer jeito; o navegador ainda tem a gravação para tentar de novo.
     await this.anexos.remover(caminho);
+    await this.anexos.liberarReserva(caminho);
     if (!convertido.ok) return convertido;
     const novo = await this.anexos.guardar({ atendimentoId, arquivo: convertido.value });
     if (!novo.ok) return novo;
@@ -168,6 +177,7 @@ export class PrepararAnexoParaEnvio {
   // Recusado pelo que o Storage tem: o objeto não serve a ninguém e sai.
   private async descartar(caminho: string, erro: Result<never, AppError>) {
     await this.anexos.remover(caminho);
+    await this.anexos.liberarReserva(caminho);
     return erro;
   }
 
