@@ -1,0 +1,280 @@
+import type { AlertaSetor } from "@/modules/atendimento/application/ports/out/alerta-setor.provider";
+import type { ClienteParaLembrete } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
+import type { EmailEnviado } from "@/modules/atendimento/application/ports/out/envio-email.provider";
+import type { GuiaFiscal } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
+import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
+import type { AppError } from "@/shared/errors/app.error";
+import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
+import { err, ok, type Result } from "@/shared/kernel/result";
+
+import { EnviarComunicacaoProativa } from "./enviar-comunicacao-proativa.use-case";
+import { ExecutarLembretesDocumentoEDas } from "./executar-lembretes-documento-e-das.use-case";
+
+// 05/10/2026 09:00 em São Paulo.
+const diaDoJob = new Date("2026-10-05T12:00:00Z");
+const telefone = "5511912345678";
+
+function cliente(extra: Partial<ClienteParaLembrete> = {}): ClienteParaLembrete {
+  return {
+    clienteId: "c1",
+    cnpj: "12345678000195",
+    empresa: "3A Construções",
+    formaEnvio: "whatsapp",
+    documentoObrigatorio: "positivo",
+    dasStatus: "enviado",
+    contato: { nome: "Ângela", telefone },
+    email: null,
+    ultimaMensagemDoContatoEm: null,
+    ...extra,
+  };
+}
+
+const guiaOk: GuiaFiscal = {
+  nomeArquivo: "das.pdf",
+  pdfBase64: "JVBERi0=",
+  competencia: "2026-09",
+  vencimento: "2026-10-20",
+};
+
+function montar(
+  clientes: ClienteParaLembrete[],
+  opcoes: {
+    agora?: Date;
+    buscar?: () => Promise<Result<GuiaFiscal, AppError>>;
+    falhas?: Record<string, number>;
+    marcar?: Result<boolean, AppError>;
+  } = {},
+) {
+  const envio = new EnvioMensagemFalsoGateway(opcoes.falhas);
+  const emails: EmailEnviado[] = [];
+  const alertas: AlertaSetor[] = [];
+  const marcados: [string, string][] = [];
+  const buscar = jest.fn(opcoes.buscar ?? (async () => ok(guiaOk)));
+  const job = new ExecutarLembretesDocumentoEDas(
+    {
+      listar: async () => ok(clientes),
+      marcarDasEnviado: async (id, data) => {
+        marcados.push([id, data]);
+        return opcoes.marcar ?? ok(true);
+      },
+    },
+    { buscar },
+    { publicar: async () => ok("https://storage.test/das.pdf") },
+    new EnviarComunicacaoProativa(envio),
+    {
+      enviar: async (email) => {
+        emails.push(email);
+        return ok(undefined);
+      },
+    },
+    {
+      alertar: async (alerta) => {
+        alertas.push(alerta);
+        return ok(undefined);
+      },
+    },
+    { agora: () => opcoes.agora ?? diaDoJob },
+    0,
+  );
+  return { job, envio, emails, alertas, marcados, buscar };
+}
+
+beforeEach(() => {
+  jest.spyOn(console, "info").mockImplementation(() => undefined);
+});
+
+describe("ExecutarLembretesDocumentoEDas", () => {
+  it.each([2, 4, 11, 16, 20, 31])("dia %i não é dia do job: não lê nem envia nada", async (dia) => {
+    const { job, envio, buscar } = montar([cliente({ documentoObrigatorio: "negativo" })], {
+      agora: new Date(`2026-10-${String(dia).padStart(2, "0")}T15:00:00Z`),
+    });
+    const resultado = await job.execute();
+    expect(resultado.ok && resultado.value.executado).toBe(false);
+    expect(envio.requisicoes).toHaveLength(0);
+    expect(buscar).not.toHaveBeenCalled();
+  });
+
+  it("usa o dia de São Paulo, não o UTC (01/10 às 22h em Brasília já é 02 em UTC)", async () => {
+    const { job } = montar([], { agora: new Date("2026-10-02T01:00:00Z") });
+    const resultado = await job.execute();
+    expect(resultado.ok && resultado.value.executado).toBe(true);
+  });
+
+  it("documento obrigatório negativo: lembra o contato padrão pelo template (janela fechada)", async () => {
+    const { job, envio } = montar([cliente({ documentoObrigatorio: "negativo" })]);
+    const resultado = await job.execute();
+    expect(resultado.ok && resultado.value.lembretes).toBe(1);
+    expect(envio.templatesEnviados).toMatchObject([
+      { nome: "lembrete_documento_obrigatorio", telefone, variaveis: ["Ângela", "3A Construções"] },
+    ]);
+  });
+
+  it("janela de 24h aberta: o lembrete vai em formato próprio, sem template", async () => {
+    const { job, envio } = montar([
+      cliente({
+        documentoObrigatorio: "negativo",
+        ultimaMensagemDoContatoEm: new Date("2026-10-05T08:00:00Z"),
+      }),
+    ]);
+    await job.execute();
+    expect(envio.enviadas).toHaveLength(1);
+    expect(envio.templatesEnviados).toHaveLength(0);
+  });
+
+  it("documento positivo ou não se aplica: não lembra", async () => {
+    const { job, envio } = montar([
+      cliente({ documentoObrigatorio: "positivo" }),
+      cliente({ clienteId: "c2", documentoObrigatorio: "nao_se_aplica" }),
+    ]);
+    await job.execute();
+    expect(envio.requisicoes).toHaveLength(0);
+  });
+
+  it("DAS pronto: envia a guia com competência e vencimento, marca enviado e grava a data", async () => {
+    const { job, envio, marcados } = montar([cliente({ dasStatus: "pronto" })]);
+    const resultado = await job.execute();
+    expect(resultado.ok && resultado.value.dasEnviados).toBe(1);
+    expect(envio.templatesEnviados).toMatchObject([
+      {
+        nome: "envio_guia_das",
+        variaveis: ["Ângela", "3A Construções", "09/2026", "20/10/2026"],
+        documento: { url: "https://storage.test/das.pdf", nomeArquivo: "das.pdf" },
+      },
+    ]);
+    expect(marcados).toEqual([["c1", "2026-10-05"]]);
+  });
+
+  it("DAS pronto com a forma de envio e-mail: manda e-mail com a guia e não usa WhatsApp", async () => {
+    const { job, envio, emails, marcados } = montar([
+      cliente({ dasStatus: "pronto", formaEnvio: "email", email: "ana@3a.com.br" }),
+    ]);
+    await job.execute();
+    expect(envio.requisicoes).toHaveLength(0);
+    expect(emails).toMatchObject([
+      {
+        para: "ana@3a.com.br",
+        assunto: "Guia do DAS — 3A Construções",
+        anexo: { url: "https://storage.test/das.pdf" },
+      },
+    ]);
+    expect(marcados).toHaveLength(1);
+  });
+
+  it("WhatsApp e e-mail: envia pelos dois", async () => {
+    const { job, envio, emails } = montar([
+      cliente({ dasStatus: "pronto", formaEnvio: "whatsapp_e_email", email: "ana@3a.com.br" }),
+    ]);
+    await job.execute();
+    expect(envio.requisicoes).toHaveLength(1);
+    expect(emails).toHaveLength(1);
+  });
+
+  it("forma de envio e-mail sem e-mail cadastrado: alerta o setor e mantém o DAS pronto", async () => {
+    const { job, alertas, marcados } = montar([
+      cliente({ dasStatus: "pronto", formaEnvio: "email" }),
+    ]);
+    const resultado = await job.execute();
+    expect(marcados).toHaveLength(0);
+    expect(alertas).toMatchObject([
+      { setor: "simples_nacional", tipo: "contato_ausente", clienteId: "c1" },
+    ]);
+    expect(resultado.ok && resultado.value.dasEnviados).toBe(0);
+  });
+
+  it("sem contato padrão: alerta o setor e mantém o DAS pronto", async () => {
+    const { job, alertas, marcados } = montar([cliente({ dasStatus: "pronto", contato: null })]);
+    await job.execute();
+    expect(marcados).toHaveLength(0);
+    expect(alertas).toMatchObject([{ tipo: "contato_ausente" }]);
+  });
+
+  it("DAS pendente com documento positivo: alerta o setor", async () => {
+    const { job, alertas, envio } = montar([
+      cliente({ dasStatus: "pendente", documentoObrigatorio: "positivo" }),
+    ]);
+    const resultado = await job.execute();
+    expect(alertas).toMatchObject([
+      { setor: "simples_nacional", tipo: "das_pendente", clienteId: "c1" },
+    ]);
+    expect(envio.requisicoes).toHaveLength(0);
+    expect(resultado.ok && resultado.value.alertas).toBe(1);
+  });
+
+  it("DAS pendente com documento negativo: só lembra, sem alertar", async () => {
+    const { job, alertas } = montar([
+      cliente({ dasStatus: "pendente", documentoObrigatorio: "negativo" }),
+    ]);
+    await job.execute();
+    expect(alertas).toHaveLength(0);
+  });
+
+  it("falha transitória do Serpro: tenta de novo e envia sem alertar", async () => {
+    let chamadas = 0;
+    const { job, alertas, marcados } = montar([cliente({ dasStatus: "pronto" })], {
+      buscar: async () => {
+        chamadas += 1;
+        return chamadas < 3 ? err(new ServicoExternoError("503")) : ok(guiaOk);
+      },
+    });
+    await job.execute();
+    expect(chamadas).toBe(3);
+    expect(alertas).toHaveLength(0);
+    expect(marcados).toHaveLength(1);
+  });
+
+  it("Serpro falha em todas as tentativas: alerta o setor e mantém o DAS pronto", async () => {
+    const { job, alertas, marcados, buscar } = montar([cliente({ dasStatus: "pronto" })], {
+      buscar: async () => err(new ServicoExternoError("503")),
+    });
+    const resultado = await job.execute();
+    expect(buscar).toHaveBeenCalledTimes(3);
+    expect(alertas).toMatchObject([{ tipo: "falha_envio" }]);
+    expect(marcados).toHaveLength(0);
+    expect(resultado.ok && resultado.value.falhas).toBe(1);
+  });
+
+  it("sem autorização vigente: não repete, alerta de uma vez", async () => {
+    const { job, alertas, buscar } = montar([cliente({ dasStatus: "pronto" })], {
+      buscar: async () => err(new ForbiddenError("sem autorização")),
+    });
+    await job.execute();
+    expect(buscar).toHaveBeenCalledTimes(1);
+    expect(alertas).toMatchObject([{ tipo: "falha_envio" }]);
+  });
+
+  it("WhatsApp falha (limite de taxa): repete e depois alerta, sem marcar enviado", async () => {
+    const { job, envio, alertas, marcados } = montar([cliente({ dasStatus: "pronto" })], {
+      falhas: { [telefone]: 130429 },
+    });
+    await job.execute();
+    expect(envio.requisicoes).toHaveLength(3);
+    expect(alertas).toMatchObject([{ tipo: "falha_envio" }]);
+    expect(marcados).toHaveLength(0);
+  });
+
+  it("um Cliente que falha não impede os demais", async () => {
+    const { job, marcados } = montar(
+      [
+        cliente({
+          clienteId: "ruim",
+          dasStatus: "pronto",
+          contato: { nome: "X", telefone: "5500" },
+        }),
+        cliente({ clienteId: "bom", dasStatus: "pronto" }),
+      ],
+      { falhas: { "5500": 131026 } },
+    );
+    await job.execute();
+    expect(marcados).toEqual([["bom", "2026-10-05"]]);
+  });
+
+  it("falha ao marcar o DAS como enviado vira alerta e não conta como enviado", async () => {
+    const { job, alertas } = montar([cliente({ dasStatus: "pronto" })], {
+      marcar: err(new ServicoExternoError("banco")),
+    });
+    const resultado = await job.execute();
+    expect(alertas).toMatchObject([{ tipo: "falha_envio" }]);
+    expect(resultado.ok && resultado.value.dasEnviados).toBe(0);
+  });
+});

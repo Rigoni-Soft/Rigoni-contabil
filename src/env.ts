@@ -40,6 +40,8 @@ const resultado = z
     // Binário do ffmpeg que converte o áudio gravado em webm (docs/adr/0006). Sem valor, usa o
     // do pacote `ffmpeg-static`.
     FFMPEG_PATH: z.string().min(1).optional(),
+    // Liga o job de lembrete de documento e envio de DAS (#52). Mesma regra da inatividade.
+    LEMBRETES_AUTOMATICOS: z.enum(["desligada", "ligada"]).default("desligada"),
   })
   .safeParse({
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -51,6 +53,7 @@ const resultado = z
     CRON_SECRET: process.env.CRON_SECRET || undefined,
     INATIVIDADE_AUTOMATICA: process.env.INATIVIDADE_AUTOMATICA || undefined,
     FFMPEG_PATH: process.env.FFMPEG_PATH || undefined,
+    LEMBRETES_AUTOMATICOS: process.env.LEMBRETES_AUTOMATICOS || undefined,
   });
 
 if (!resultado.success) {
@@ -67,4 +70,5 @@ export const {
   CRON_SECRET,
   INATIVIDADE_AUTOMATICA,
   FFMPEG_PATH,
+  LEMBRETES_AUTOMATICOS,
 } = resultado.data;
