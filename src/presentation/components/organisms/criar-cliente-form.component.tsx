@@ -103,9 +103,10 @@ export function CriarClienteForm({
 
       {/* CNPJ primeiro (ponto 4 do feedback manual): autopreenche Empresa/Regime
           ao perder o foco, antes do resto do formulário ser preenchido à mão.
-          3 colunas aproveita a largura do formulário (80% da tela, #36) em vez
-          de empilhar os 3 campos de identificação numa coluna só. */}
-      <Grade colunas="1>3" espaco={5}>
+          2 colunas aproveitam a largura do formulário (80% da tela, #36) em vez
+          de empilhar os 4 campos numa coluna só; o E-mail (opcional, destino do
+          envio por e-mail) fecha o par com o Regime, sem ficar sozinho numa linha. */}
+      <Grade colunas="1>2" espaco={5}>
         <Controller
           control={control}
           name="cnpj"
