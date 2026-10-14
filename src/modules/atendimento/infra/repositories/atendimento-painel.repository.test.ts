@@ -123,8 +123,12 @@ describe("SupabaseAtendimentoRepository — painel do Funcionário", () => {
   it("devolve a conversa em ordem, com nome e Setor de quem escreveu cada Mensagem do Funcionário", async () => {
     const bia = await criarFuncionario("Bia Painel 49");
     const id = await abrir(TELEFONES[2], bia, null);
-    const gravada = await repositorio.registrarMensagemDoFuncionario(id, bia, "Enviou ao cliente");
-    expect(gravada.ok).toBe(true);
+    const gravada = await repositorio.registrarMensagemDoFuncionario(
+      id,
+      { id: bia, papel: "funcionario", setor: SETOR },
+      "Enviou ao cliente",
+    );
+    expect(gravada.ok && gravada.value.status).toBe("registrada");
 
     const conversa = await repositorio.conversa(id);
     expect(conversa).toEqual({
@@ -208,8 +212,13 @@ describe("SupabaseAtendimentoRepository — painel do Funcionário", () => {
       miniaturaCaminho: `${id}/u/miniatura.webp`,
     };
 
-    const gravada = await repositorio.registrarMensagemDoFuncionario(id, fabi, "Segue", anexo);
-    expect(gravada.ok).toBe(true);
+    const gravada = await repositorio.registrarMensagemDoFuncionario(
+      id,
+      { id: fabi, papel: "funcionario", setor: SETOR },
+      "Segue",
+      anexo,
+    );
+    expect(gravada.ok && gravada.value.status).toBe("registrada");
 
     const conversa = await repositorio.conversa(id);
     expect(conversa.ok && conversa.value?.mensagens.at(-1)).toEqual(

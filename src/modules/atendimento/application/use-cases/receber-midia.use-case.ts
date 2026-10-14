@@ -67,13 +67,15 @@ export class ReceberMidia implements ReceberMidiaPort {
     const baixada = await this.download.baixar(midia.id);
     if (!baixada.ok) {
       if (baixada.error instanceof ServicoExternoError) return baixada;
-      return this.avisarNaoRecebido(atendimentoId, idDaMensagem);
+      return this.avisarNaoRecebido(atendimentoId, idDaMensagem, telefone);
     }
 
     const { bytes, mime: mimeCru, nome } = baixada.value;
     const mime = normalizarMime(mimeCru || midia.mime);
     const validada = validarMidiaRecebida(mime, bytes.byteLength);
-    if (validada.erro !== undefined) return this.avisarNaoRecebido(atendimentoId, idDaMensagem);
+    if (validada.erro !== undefined) {
+      return this.avisarNaoRecebido(atendimentoId, idDaMensagem, telefone);
+    }
     const tipo = validada.tipo;
     const nomeFinal = nomeDoArquivo(tipo, mime, nome ?? midia.nome);
 
@@ -90,20 +92,27 @@ export class ReceberMidia implements ReceberMidiaPort {
       idExterno: idDaMensagem,
       anexo: { tipo, nome: nomeFinal, tamanho: bytes.byteLength, caminho, miniaturaCaminho: null },
     });
-    // Falhou ou já havia a Mensagem (reentrega em paralelo): o arquivo guardado não serve a ninguém.
-    if (!registrada.ok || !registrada.value) await this.anexos.remover(caminho);
-    return registrada.ok ? ok(undefined) : registrada;
+    // Só "registrada" deixa o arquivo na conversa. Falhou, já havia a Mensagem (reentrega em
+    // paralelo) ou o Atendimento fechou no meio: o arquivo guardado não serve a ninguém.
+    if (!registrada.ok || registrada.value !== "registrada") await this.anexos.remover(caminho);
+    if (!registrada.ok) return registrada;
+    // O fechamento venceu a corrida: do ponto de vista do cliente não há Atendimento aberto.
+    if (registrada.value === "encerrada") return this.envio.enviar({ telefone, texto: SO_TEXTO });
+    return ok(undefined);
   }
 
   private async avisarNaoRecebido(
     atendimentoId: string,
     idExterno: string | undefined,
+    telefone: string,
   ): Promise<Result<void, AppError>> {
     const registrada = await this.repositorio.registrarMensagemRecebida(atendimentoId, {
       autor: "ura",
       texto: NAO_RECEBIDO,
       idExterno,
     });
-    return registrada.ok ? ok(undefined) : registrada;
+    if (!registrada.ok) return registrada;
+    if (registrada.value === "encerrada") return this.envio.enviar({ telefone, texto: SO_TEXTO });
+    return ok(undefined);
   }
 }

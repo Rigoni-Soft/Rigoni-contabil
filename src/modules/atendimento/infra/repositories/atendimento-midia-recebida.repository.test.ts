@@ -61,7 +61,7 @@ describe("SupabaseAtendimentoRepository — mídia recebida (#81)", () => {
         miniaturaCaminho: null,
       },
     });
-    expect(gravada.ok && gravada.value).toBe(true);
+    expect(gravada.ok && gravada.value).toBe("registrada");
 
     const { data } = await admin
       .from("mensagens")
@@ -83,13 +83,13 @@ describe("SupabaseAtendimentoRepository — mídia recebida (#81)", () => {
     expect(r.ok && r.value).toEqual({ atendimentoId, jaRegistrada: true });
   });
 
-  it("a mesma Mensagem do provedor gravada de novo não duplica e devolve false", async () => {
+  it("a mesma Mensagem do provedor gravada de novo não duplica e devolve duplicada", async () => {
     const r = await repositorio.registrarMensagemRecebida(atendimentoId, {
       autor: "contato",
       texto: "",
       idExterno: "wamid.MIDIA",
     });
-    expect(r.ok && r.value).toBe(false);
+    expect(r.ok && r.value).toBe("duplicada");
     const { count } = await admin
       .from("mensagens")
       .select("id", { count: "exact", head: true })
@@ -104,7 +104,7 @@ describe("SupabaseAtendimentoRepository — mídia recebida (#81)", () => {
       texto: "O cliente enviou um arquivo que não pôde ser recebido.",
       idExterno: "wamid.RECUSADA",
     });
-    expect(r.ok && r.value).toBe(true);
+    expect(r.ok && r.value).toBe("registrada");
     const { data } = await admin
       .from("mensagens")
       .select("autor, anexo_tipo")

@@ -59,29 +59,34 @@ export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
     );
     if (!escolhido) return err(new NotFoundError("O Cliente não tem esse documento."));
 
+    // Registro antes da entrega, sob o lock do Atendimento (ver EnviarMensagemAoCliente).
     const descricao = descreverDocumento(escolhido);
+    const registrada = await this.repositorio.registrarMensagemDoFuncionario(
+      atendimentoId,
+      ator,
+      `Enviou ao cliente: ${descricao}`,
+    );
+    if (!registrada.ok) return registrada;
+    if (registrada.value.status === "encerrada") {
+      return err(new NotFoundError("O Atendimento já foi encerrado."));
+    }
+    if (registrada.value.status === "sem_autoridade") {
+      return err(new ForbiddenError("Você não pode enviar documentos neste Atendimento."));
+    }
+
     const enviado = await this.enviar(atendimento.telefone, escolhido.caminho, descricao);
     if (!enviado.ok) {
       await this.auditar(ator, atendimentoId, "falha");
-      return enviado;
-    }
-
-    // Já entregue ao cliente: falhar o registro não desfaz nada, o erro diz que a conversa não
-    // mostra o envio.
-    const registrada = await this.repositorio.registrarMensagemDoFuncionario(
-      atendimentoId,
-      ator.id,
-      `Enviou ao cliente: ${descricao}`,
-    );
-    await this.auditar(ator, atendimentoId, "sucesso");
-    if (!registrada.ok) {
+      const desfeita = await this.repositorio.desfazerMensagemDoFuncionario(registrada.value.id);
+      if (desfeita.ok) return enviado;
       return err(
         new EstadoInconsistenteError(
-          "Documento enviado, mas a conversa não registrou o envio.",
+          "O documento não foi enviado, mas a conversa registra o envio.",
           atendimentoId,
         ),
       );
     }
+    await this.auditar(ator, atendimentoId, "sucesso");
     return ok(undefined);
   }
 

@@ -304,7 +304,8 @@ describe("inatividade × conversa do painel", () => {
     const dono = await criarFuncionario("Func Aviso Na Conversa");
     const id = await abrirDireto(TELEFONES[6], dono);
     await mensagem(TELEFONES[6], "contato");
-    await repositorio.marcarAvisoInatividade(id, "funcionario", new Date());
+    // Futuro: o relógio do banco (container) pode estar alguns ms à frente do desta máquina.
+    await repositorio.marcarAvisoInatividade(id, "funcionario", new Date(Date.now() + 60_000));
 
     const antes = await repositorio.conversa(id);
     if (!antes.ok || !antes.value?.aviso) throw new Error("aviso não lido");

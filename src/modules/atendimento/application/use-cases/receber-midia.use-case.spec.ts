@@ -18,6 +18,7 @@ type Opcoes = {
   falhaGuardar?: boolean;
   falhaRegistro?: boolean;
   registroDuplicado?: boolean;
+  registroEncerrado?: boolean;
 };
 
 const AUDIO: MidiaBaixada = {
@@ -31,6 +32,7 @@ function montar({
   falhaGuardar = false,
   falhaRegistro = false,
   registroDuplicado = false,
+  registroEncerrado = false,
 }: Opcoes = {}) {
   const chamadas = {
     baixou: 0,
@@ -44,7 +46,8 @@ function montar({
     registrarMensagemRecebida: async (_: string, mensagem: unknown) => {
       if (falhaRegistro) return err(new ServicoExternoError("banco"));
       chamadas.registradas.push(mensagem);
-      return ok(!registroDuplicado);
+      if (registroEncerrado) return ok("encerrada" as const);
+      return ok(registroDuplicado ? ("duplicada" as const) : ("registrada" as const));
     },
   } as unknown as AtendimentoRepositoryPort;
   const baixador: DownloadMidiaPort = {
@@ -153,6 +156,19 @@ describe("ReceberMidia", () => {
     const { caso, chamadas } = montar({ registroDuplicado: true });
     expect((await caso.execute(entrada)).ok).toBe(true);
     expect(chamadas.removidos).toEqual(["at-1/u/audio.ogg"]);
+  });
+
+  it("o fechamento venceu a corrida: o arquivo guardado sai e o cliente é orientado como sem Atendimento", async () => {
+    const { caso, chamadas } = montar({ registroEncerrado: true });
+    expect((await caso.execute(entrada)).ok).toBe(true);
+    expect(chamadas.removidos).toEqual(["at-1/u/audio.ogg"]);
+    expect(chamadas.textos[0].texto).toContain("mensagens de texto");
+  });
+
+  it("mensagem registrada com sucesso mantém o arquivo na conversa", async () => {
+    const { caso, chamadas } = montar();
+    expect((await caso.execute(entrada)).ok).toBe(true);
+    expect(chamadas.removidos).toEqual([]);
   });
 
   it("arquivo acima do limite vira aviso do sistema na conversa, sem guardar o arquivo", async () => {

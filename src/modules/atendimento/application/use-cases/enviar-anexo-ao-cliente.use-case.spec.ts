@@ -41,6 +41,8 @@ type Opcoes = {
   falhaGuardar?: boolean;
   falhaEnvio?: boolean;
   falhaRegistro?: boolean;
+  falhaDesfazer?: boolean;
+  veredito?: "registrada" | "encerrada" | "sem_autoridade";
   falhaConversao?: boolean;
   // Primeiros bytes do objeto subido em partes (por padrão, ogg com Opus).
   cabecalho?: Uint8Array;
@@ -54,6 +56,8 @@ function montar({
   falhaGuardar = false,
   falhaEnvio = false,
   falhaRegistro = false,
+  falhaDesfazer = false,
+  veredito = "registrada",
   falhaConversao = false,
   cabecalho = OGG_OPUS,
   objeto = null,
@@ -63,12 +67,18 @@ function montar({
   const removidos: string[] = [];
   const enviados: unknown[] = [];
   const registradas: unknown[] = [];
+  const desfeitas: unknown[] = [];
   const auditadas: unknown[] = [];
   const repo = {
     buscarEmAndamento: async () => ok(atendimento),
     registrarMensagemDoFuncionario: async (...args: unknown[]) => {
       registradas.push(args);
-      return falhaRegistro ? err(new ServicoExternoError("banco")) : ok(undefined);
+      if (falhaRegistro) return err(new ServicoExternoError("banco"));
+      return ok(veredito === "registrada" ? { status: veredito, id: "m-1" } : { status: veredito });
+    },
+    desfazerMensagemDoFuncionario: async (id: string) => {
+      desfeitas.push(id);
+      return falhaDesfazer ? err(new ServicoExternoError("banco")) : ok(undefined);
     },
   } as unknown as AtendimentoRepositoryPort;
   const anexos: AnexosAtendimentoPort = {
@@ -120,6 +130,7 @@ function montar({
     removidos,
     enviados,
     registradas,
+    desfeitas,
     auditadas,
     caso: new EnviarAnexoAoCliente(
       { usuarioAtual: async () => ator },
@@ -152,7 +163,7 @@ describe("EnviarAnexoAoCliente", () => {
     expect(registradas).toEqual([
       [
         "at-1",
-        "func-1",
+        FUNCIONARIO,
         "Segue",
         {
           tipo: "documento",
@@ -182,7 +193,7 @@ describe("EnviarAnexoAoCliente", () => {
     expect(r.ok).toBe(true);
     expect(enviados).toEqual([expect.objectContaining({ tipo: "imagem", legenda: undefined })]);
     expect(registradas).toEqual([
-      ["at-1", "func-1", "", expect.objectContaining({ tipo: "imagem" })],
+      ["at-1", FUNCIONARIO, "", expect.objectContaining({ tipo: "imagem" })],
     ]);
   });
 
@@ -238,15 +249,36 @@ describe("EnviarAnexoAoCliente", () => {
     expect(!inexistente.ok && inexistente.error.code).toBe("NOT_FOUND");
   });
 
-  it("falha do envio remove o arquivo e não registra Mensagem", async () => {
-    const { caso, removidos, registradas, auditadas } = montar({ falhaEnvio: true });
+  it("falha do envio remove o arquivo e desfaz a Mensagem que entrou antes", async () => {
+    const { caso, removidos, desfeitas, auditadas } = montar({ falhaEnvio: true });
 
     const r = await caso.execute({ atendimentoId: "at-1", arquivo: PDF });
 
     expect(r.ok).toBe(false);
     expect(removidos).toEqual(["at-1/balanco.pdf"]);
-    expect(registradas).toEqual([]);
+    expect(desfeitas).toEqual(["m-1"]);
     expect(auditadas).toEqual([expect.objectContaining({ resultado: "falha" })]);
+  });
+
+  it("falha do envio e da compensação é estado inconsistente", async () => {
+    const { caso } = montar({ falhaEnvio: true, falhaDesfazer: true });
+
+    const r = await caso.execute({ atendimentoId: "at-1", arquivo: PDF });
+
+    expect(!r.ok && r.error.code).toBe("INCONSISTENT_STATE");
+  });
+
+  it("fechamento ou perda de autoridade durante a operação: nada é enviado e o arquivo sai", async () => {
+    const fechado = montar({ veredito: "encerrada" });
+    const a = await fechado.caso.execute({ atendimentoId: "at-1", arquivo: PDF });
+    expect(!a.ok && a.error.code).toBe("NOT_FOUND");
+    expect(fechado.enviados).toEqual([]);
+    expect(fechado.removidos).toEqual(["at-1/balanco.pdf"]);
+
+    const semAutoridade = montar({ veredito: "sem_autoridade" });
+    const b = await semAutoridade.caso.execute({ atendimentoId: "at-1", arquivo: PDF });
+    expect(!b.ok && b.error.code).toBe("FORBIDDEN");
+    expect(semAutoridade.enviados).toEqual([]);
   });
 
   it("falha ao guardar não envia nem registra", async () => {
@@ -260,14 +292,15 @@ describe("EnviarAnexoAoCliente", () => {
     expect(auditadas).toEqual([expect.objectContaining({ resultado: "falha" })]);
   });
 
-  it("entregue mas não registrada é estado inconsistente, e o arquivo fica (o cliente já recebeu)", async () => {
-    const { caso, removidos, auditadas } = montar({ falhaRegistro: true });
+  it("falha ao registrar não envia nada e o arquivo guardado sai", async () => {
+    const { caso, enviados, removidos, auditadas } = montar({ falhaRegistro: true });
 
     const r = await caso.execute({ atendimentoId: "at-1", arquivo: PDF });
 
-    expect(!r.ok && r.error.code).toBe("INCONSISTENT_STATE");
-    expect(removidos).toEqual([]);
-    expect(auditadas).toEqual([expect.objectContaining({ resultado: "sucesso" })]);
+    expect(r.ok).toBe(false);
+    expect(enviados).toEqual([]);
+    expect(removidos).toEqual(["at-1/balanco.pdf"]);
+    expect(auditadas).toEqual([expect.objectContaining({ resultado: "falha" })]);
   });
 
   describe("miniatura", () => {
@@ -288,7 +321,7 @@ describe("EnviarAnexoAoCliente", () => {
       expect(registradas).toEqual([
         [
           "at-1",
-          "func-1",
+          FUNCIONARIO,
           "",
           expect.objectContaining({
             caminho: "at-1/foto.png",
@@ -311,7 +344,7 @@ describe("EnviarAnexoAoCliente", () => {
       expect(r.ok).toBe(true);
       expect(guardados).toHaveLength(1);
       expect(registradas).toEqual([
-        ["at-1", "func-1", "", expect.objectContaining({ miniaturaCaminho: null })],
+        ["at-1", FUNCIONARIO, "", expect.objectContaining({ miniaturaCaminho: null })],
       ]);
     });
 
@@ -361,7 +394,7 @@ describe("EnviarAnexoAoCliente", () => {
       expect(registradas).toEqual([
         [
           "at-1",
-          "func-1",
+          FUNCIONARIO,
           "",
           {
             tipo: "audio",
@@ -443,7 +476,7 @@ describe("EnviarAnexoAoCliente", () => {
       expect(registradas).toEqual([
         [
           "at-1",
-          "func-1",
+          FUNCIONARIO,
           "",
           {
             tipo: "audio",
@@ -485,7 +518,9 @@ describe("EnviarAnexoAoCliente", () => {
       expect(guardados).toMatchObject([
         { arquivo: { nome: "gravacao.ogg", tipoMime: "audio/ogg" } },
       ]);
-      expect(registradas).toMatchObject([["at-1", "func-1", "", { tipo: "audio", tamanho: 2000 }]]);
+      expect(registradas).toMatchObject([
+        ["at-1", FUNCIONARIO, "", { tipo: "audio", tamanho: 2000 }],
+      ]);
     });
 
     it("falha na conversão remove o original e não entrega nada", async () => {

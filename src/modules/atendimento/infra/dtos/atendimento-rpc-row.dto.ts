@@ -185,5 +185,15 @@ export const mensagemParaReacaoRowSchema = z.object({
   reacao: z.string().nullable(),
 });
 
+// `registrar_mensagem_recebida`: o veredito do lock.
+export const registroRecebidoRowSchema = z.enum(["registrada", "duplicada", "encerrada"]);
+
+// `registrar_mensagem_do_funcionario`.
+export const registroDoFuncionarioRowSchema = z.discriminatedUnion("status", [
+  z.object({ status: z.literal("registrada"), id: z.string() }),
+  z.object({ status: z.literal("encerrada") }),
+  z.object({ status: z.literal("sem_autoridade") }),
+]);
+
 // `atendimentos.id` lido sozinho (a mídia só precisa saber qual é o Atendimento em andamento).
 export const atendimentoIdRowSchema = z.object({ id: z.string() });

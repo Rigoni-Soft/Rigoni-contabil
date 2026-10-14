@@ -11,6 +11,7 @@ import type { DadosDoContato } from "@/modules/atendimento/application/ports/in/
 import type { Inativo } from "@/modules/atendimento/domain/services/inatividade.service";
 import type { AppError } from "@/shared/errors/app.error";
 import type { TipoAnexoMensagem } from "@/shared/kernel/anexo";
+import type { Papel } from "@/shared/kernel/papeis";
 import type { RegimeValor } from "@/shared/kernel/regimes";
 import type { Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
@@ -167,6 +168,11 @@ export type AnexoDaMensagem = {
   miniaturaCaminho: string | null;
 };
 
+export type ResultadoRegistroRecebido = "registrada" | "duplicada" | "encerrada";
+
+export type ResultadoRegistroDoFuncionario =
+  { status: "registrada"; id: string } | { status: "encerrada" } | { status: "sem_autoridade" };
+
 export type MensagemLida = {
   id: string;
   autor: "contato" | "ura" | "funcionario";
@@ -215,8 +221,10 @@ export interface AtendimentoRepositoryPort {
     chave: string,
     idExterno: string | undefined,
   ): Promise<Result<{ atendimentoId: string; jaRegistrada: boolean } | null, AppError>>;
-  // Mensagem do contato (ou aviso do sistema, autor "ura") no Atendimento. `false`: já existia
-  // uma com o mesmo `idExterno` (reentrega que correu em paralelo), nada foi gravado.
+  // Mensagem do contato (ou aviso do sistema, autor "ura") no Atendimento, sob o lock da linha: o
+  // fechamento que vence deixa o Atendimento `encerrada` e nada é gravado. `duplicada`: já existia
+  // uma com o mesmo `idExterno` (reentrega que correu em paralelo). Quem guardou um objeto antes
+  // descarta-o quando a Mensagem não entrou.
   registrarMensagemRecebida(
     atendimentoId: string,
     mensagem: {
@@ -225,7 +233,7 @@ export interface AtendimentoRepositoryPort {
       idExterno?: string;
       anexo?: AnexoDaMensagem;
     },
-  ): Promise<Result<boolean, AppError>>;
+  ): Promise<Result<ResultadoRegistroRecebido, AppError>>;
   roteamentoDoCliente(clienteId: string): Promise<Result<RoteamentoDoCliente | null, AppError>>;
   liderDoSetor(setor: SetorSlug): Promise<Result<string | null, AppError>>;
   transferir(transferencia: NovaTransferencia): Promise<Result<ResultadoTransferencia, AppError>>;
@@ -280,13 +288,18 @@ export interface AtendimentoRepositoryPort {
   ): Promise<Result<AtendimentoDoFuncionario[], AppError>>;
   conversa(atendimentoId: string): Promise<Result<ConversaLida | null, AppError>>;
   // Mensagem escrita por um Funcionário (autor "funcionario") no Atendimento, com quem a escreveu.
-  // Com `anexo`, `texto` é a legenda (pode ser vazia).
+  // Com `anexo`, `texto` é a legenda (pode ser vazia). Grava sob o lock da linha e revalida a
+  // autoridade do ator no mesmo instante (dono, Líder do Setor ou Admin): o fechamento, a
+  // transferência ou a desativação que vencem a corrida viram `encerrada`/`sem_autoridade`. A
+  // gravação vem ANTES da entrega ao provedor (sem transação aberta durante o HTTP); se a entrega
+  // falha, `desfazerMensagemDoFuncionario` a remove.
   registrarMensagemDoFuncionario(
     atendimentoId: string,
-    funcionarioId: string,
+    ator: { id: string; papel: Papel; setor: SetorSlug },
     texto: string,
     anexo?: AnexoDaMensagem,
-  ): Promise<Result<void, AppError>>;
+  ): Promise<Result<ResultadoRegistroDoFuncionario, AppError>>;
+  desfazerMensagemDoFuncionario(mensagemId: string): Promise<Result<void, AppError>>;
   // null se a Mensagem não existe neste Atendimento.
   mensagemParaReacao(
     atendimentoId: string,

@@ -70,32 +70,45 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
     );
     const arquivos = miniaturaCaminho ? [caminho, miniaturaCaminho] : [caminho];
 
-    const entregue = await this.entregar(atendimento.telefone, caminho, tipo, nome, texto);
-    if (!entregue.ok) {
-      await Promise.all(arquivos.map((c) => this.anexos.remover(c)));
-      await this.auditar(ator, atendimentoId, "falha");
-      return entregue;
-    }
-
+    // Registro antes da entrega, sob o lock do Atendimento (ver EnviarMensagemAoCliente): se o
+    // fechamento venceu, o arquivo guardado sai e nada é enviado.
     const registrada = await this.repositorio.registrarMensagemDoFuncionario(
       atendimentoId,
-      ator.id,
+      ator,
       texto,
       { tipo, nome, tamanho, caminho, miniaturaCaminho },
     );
-    // Já entregue: o registro falhar não desfaz o envio, e o arquivo fica (o cliente o recebeu).
-    // A miniatura, que só a conversa usaria, não fica órfã.
-    await this.auditar(ator, atendimentoId, "sucesso");
-    if (!registrada.ok) {
-      if (miniaturaCaminho) await this.anexos.remover(miniaturaCaminho);
+    if (!registrada.ok || registrada.value.status !== "registrada") {
+      await Promise.all(arquivos.map((c) => this.anexos.remover(c)));
+      await this.auditar(ator, atendimentoId, "falha");
+      return this.recusaDoRegistro(registrada);
+    }
+
+    const entregue = await this.entregar(atendimento.telefone, caminho, tipo, nome, texto);
+    if (!entregue.ok) {
+      await this.auditar(ator, atendimentoId, "falha");
+      const desfeita = await this.repositorio.desfazerMensagemDoFuncionario(registrada.value.id);
+      await Promise.all(arquivos.map((c) => this.anexos.remover(c)));
+      if (desfeita.ok) return entregue;
       return err(
         new EstadoInconsistenteError(
-          "Arquivo enviado, mas a conversa não o registrou.",
+          "O arquivo não foi enviado, mas a conversa o registra.",
           atendimentoId,
         ),
       );
     }
+    await this.auditar(ator, atendimentoId, "sucesso");
     return ok(undefined);
+  }
+
+  private recusaDoRegistro(
+    registrada: Awaited<ReturnType<AtendimentoRepositoryPort["registrarMensagemDoFuncionario"]>>,
+  ): Result<void, AppError> {
+    if (!registrada.ok) return registrada;
+    if (registrada.value.status === "encerrada") {
+      return err(new NotFoundError("O Atendimento já foi encerrado."));
+    }
+    return err(new ForbiddenError("Você não pode enviar arquivos neste Atendimento."));
   }
 
   // Só para imagem, e no formato e tamanho esperados; qualquer outra coisa (ou falha ao guardar) é

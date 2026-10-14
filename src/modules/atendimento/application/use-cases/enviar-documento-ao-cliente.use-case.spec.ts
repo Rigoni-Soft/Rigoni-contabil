@@ -29,6 +29,8 @@ type Opcoes = {
   atendimento?: AtendimentoEmAndamento | null;
   falhaEnvio?: boolean;
   falhaRegistro?: boolean;
+  falhaDesfazer?: boolean;
+  veredito?: "registrada" | "encerrada" | "sem_autoridade";
 };
 
 function montar({
@@ -36,15 +38,23 @@ function montar({
   atendimento = ATENDIMENTO,
   falhaEnvio = false,
   falhaRegistro = false,
+  falhaDesfazer = false,
+  veredito = "registrada",
 }: Opcoes = {}) {
   const enviados: unknown[] = [];
   const registradas: unknown[] = [];
+  const desfeitas: unknown[] = [];
   const auditadas: unknown[] = [];
   const repo = {
     buscarEmAndamento: async () => ok(atendimento),
     registrarMensagemDoFuncionario: async (...args: unknown[]) => {
       registradas.push(args);
-      return falhaRegistro ? err(new ServicoExternoError("banco")) : ok(undefined);
+      if (falhaRegistro) return err(new ServicoExternoError("banco"));
+      return ok(veredito === "registrada" ? { status: veredito, id: "m-1" } : { status: veredito });
+    },
+    desfazerMensagemDoFuncionario: async (id: string) => {
+      desfeitas.push(id);
+      return falhaDesfazer ? err(new ServicoExternoError("banco")) : ok(undefined);
     },
   } as unknown as AtendimentoRepositoryPort;
   const documentos = {
@@ -65,6 +75,7 @@ function montar({
   return {
     enviados,
     registradas,
+    desfeitas,
     auditadas,
     caso: new EnviarDocumentoAoCliente(
       { usuarioAtual: async () => ator },
@@ -88,7 +99,9 @@ describe("EnviarDocumentoAoCliente", () => {
         nomeArquivo: "Alteração de 01/03/2026.pdf",
       },
     ]);
-    expect(registradas).toEqual([["at-1", "func-1", "Enviou ao cliente: Alteração de 01/03/2026"]]);
+    expect(registradas).toEqual([
+      ["at-1", FUNCIONARIO, "Enviou ao cliente: Alteração de 01/03/2026"],
+    ]);
     expect(auditadas).toEqual([
       {
         ator: "func-1",
@@ -110,7 +123,13 @@ describe("EnviarDocumentoAoCliente", () => {
     expect((await lider.caso.execute({ atendimentoId: "at-1", documento: CONTRATO })).ok).toBe(
       true,
     );
-    expect(lider.registradas).toEqual([["at-1", "lid", "Enviou ao cliente: Contrato social"]]);
+    expect(lider.registradas).toEqual([
+      [
+        "at-1",
+        { id: "lid", papel: "lider_setor", setor: "contabil" },
+        "Enviou ao cliente: Contrato social",
+      ],
+    ]);
   });
 
   it("recusa sem sessão, Atendimento que não está em andamento, sem Cliente e documento que o Cliente não tem", async () => {
@@ -138,17 +157,36 @@ describe("EnviarDocumentoAoCliente", () => {
     expect(!naoTem.ok && naoTem.error.code).toBe("NOT_FOUND");
   });
 
-  it("falha do envio não registra Mensagem e audita a falha", async () => {
-    const { caso, registradas, auditadas } = montar({ falhaEnvio: true });
+  it("falha do envio desfaz a Mensagem que entrou antes e audita a falha", async () => {
+    const { caso, desfeitas, auditadas } = montar({ falhaEnvio: true });
     const r = await caso.execute({ atendimentoId: "at-1", documento: CONTRATO });
     expect(r.ok).toBe(false);
-    expect(registradas).toEqual([]);
+    expect(desfeitas).toEqual(["m-1"]);
     expect(auditadas).toEqual([expect.objectContaining({ resultado: "falha" })]);
   });
 
-  it("documento entregue mas Mensagem não registrada é estado inconsistente", async () => {
-    const { caso } = montar({ falhaRegistro: true });
+  it("falha do envio e da compensação é estado inconsistente", async () => {
+    const { caso } = montar({ falhaEnvio: true, falhaDesfazer: true });
     const r = await caso.execute({ atendimentoId: "at-1", documento: CONTRATO });
     expect(!r.ok && r.error.code).toBe("INCONSISTENT_STATE");
+  });
+
+  it("falha ao registrar não envia nada (a Mensagem entra antes de sair)", async () => {
+    const { caso, enviados } = montar({ falhaRegistro: true });
+    const r = await caso.execute({ atendimentoId: "at-1", documento: CONTRATO });
+    expect(r.ok).toBe(false);
+    expect(enviados).toEqual([]);
+  });
+
+  it("fechamento ou perda de autoridade durante a operação: nada é enviado", async () => {
+    const fechado = montar({ veredito: "encerrada" });
+    const a = await fechado.caso.execute({ atendimentoId: "at-1", documento: CONTRATO });
+    expect(!a.ok && a.error.code).toBe("NOT_FOUND");
+    expect(fechado.enviados).toEqual([]);
+
+    const semAutoridade = montar({ veredito: "sem_autoridade" });
+    const b = await semAutoridade.caso.execute({ atendimentoId: "at-1", documento: CONTRATO });
+    expect(!b.ok && b.error.code).toBe("FORBIDDEN");
+    expect(semAutoridade.enviados).toEqual([]);
   });
 });

@@ -58,27 +58,36 @@ export class EnviarMensagemAoCliente implements EnviarMensagemAoClientePort {
       return err(new ForbiddenError("Você não pode responder neste Atendimento."));
     }
 
+    // A Mensagem entra no histórico (sob o lock do Atendimento, com a autoridade revalidada) ANTES
+    // de sair: o fechamento que vence a corrida não deixa uma resposta enviada a um Atendimento
+    // encerrado. Se a entrega falha, a Mensagem é desfeita.
+    const registrada = await this.repositorio.registrarMensagemDoFuncionario(
+      atendimentoId,
+      ator,
+      mensagem,
+    );
+    if (!registrada.ok) return registrada;
+    if (registrada.value.status === "encerrada") {
+      return err(new NotFoundError("O Atendimento já foi encerrado."));
+    }
+    if (registrada.value.status === "sem_autoridade") {
+      return err(new ForbiddenError("Você não pode responder neste Atendimento."));
+    }
+
     const enviada = await this.enviar(atendimento.telefone, mensagem);
     if (!enviada.ok) {
       await this.auditar(ator, atendimentoId, "falha");
-      return enviada;
-    }
-
-    const registrada = await this.repositorio.registrarMensagemDoFuncionario(
-      atendimentoId,
-      ator.id,
-      mensagem,
-    );
-    // Já entregue: o registro na conversa falhar não desfaz o envio. O texto não vai para a trilha.
-    await this.auditar(ator, atendimentoId, "sucesso");
-    if (!registrada.ok) {
+      const desfeita = await this.repositorio.desfazerMensagemDoFuncionario(registrada.value.id);
+      if (desfeita.ok) return enviada;
       return err(
         new EstadoInconsistenteError(
-          "Mensagem enviada, mas a conversa não a registrou.",
+          "A mensagem não foi enviada, mas continua na conversa.",
           atendimentoId,
         ),
       );
     }
+    // O texto não vai para a trilha.
+    await this.auditar(ator, atendimentoId, "sucesso");
     return ok(undefined);
   }
 

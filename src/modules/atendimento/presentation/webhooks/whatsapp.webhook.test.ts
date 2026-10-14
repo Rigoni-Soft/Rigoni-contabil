@@ -55,7 +55,7 @@ const repositorioDeMidia = {
     ),
   registrarMensagemRecebida: async (_: string, mensagem: (typeof registradas)[number]) => {
     registradas.push(mensagem);
-    return ok(true);
+    return ok("registrada" as const);
   },
 } as unknown as AtendimentoRepositoryPort;
 const anexosDeMidia = {

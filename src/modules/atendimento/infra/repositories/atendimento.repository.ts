@@ -21,6 +21,8 @@ import type {
   ResultadoAbertura,
   ResultadoEncerramento,
   ResultadoEncerramentoPorInatividade,
+  ResultadoRegistroDoFuncionario,
+  ResultadoRegistroRecebido,
   ResultadoTransferencia,
   RoteamentoDoCliente,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
@@ -40,12 +42,15 @@ import {
   liderRowSchema,
   mensagemParaReacaoRowSchema,
   posicaoRowSchema,
+  registroDoFuncionarioRowSchema,
+  registroRecebidoRowSchema,
   roteamentoDoClienteRowSchema,
   transferenciaRowSchema,
 } from "@/modules/atendimento/infra/dtos/atendimento-rpc-row.dto";
 import { funcionarioDoSetorRowSchema } from "@/modules/atendimento/infra/dtos/funcionario-do-setor-row.dto";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
+import type { Papel } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
@@ -148,24 +153,16 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       idExterno?: string;
       anexo?: AnexoDaMensagem;
     },
-  ): Promise<Result<boolean, AppError>> {
-    const { anexo } = mensagem;
-    const { error } = await this.supabaseAdmin.from("mensagens").insert({
-      atendimento_id: atendimentoId,
-      autor: mensagem.autor,
-      texto: mensagem.texto,
-      id_externo: mensagem.idExterno ?? null,
-      ...(anexo && {
-        anexo_tipo: anexo.tipo,
-        anexo_nome: anexo.nome,
-        anexo_caminho: anexo.caminho,
-        anexo_tamanho: anexo.tamanho,
-      }),
+  ): Promise<Result<ResultadoRegistroRecebido, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("registrar_mensagem_recebida", {
+      p_atendimento_id: atendimentoId,
+      p_autor: mensagem.autor,
+      p_texto: mensagem.texto,
+      p_id_externo: mensagem.idExterno ?? null,
+      p_anexo: mensagem.anexo ?? null,
     });
-    // 23505: índice único (atendimento, id no provedor): a reentrega já gravou esta Mensagem.
-    if (error?.code === "23505") return ok(false);
     if (error) return err(new ServicoExternoError("Falha ao registrar a Mensagem."));
-    return ok(true);
+    return ok(registroRecebidoRowSchema.parse(data));
   }
 
   async buscarEmAndamento(id: string): Promise<Result<AtendimentoEmAndamento | null, AppError>> {
@@ -568,26 +565,30 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
 
   async registrarMensagemDoFuncionario(
     atendimentoId: string,
-    funcionarioId: string,
+    ator: { id: string; papel: Papel; setor: SetorSlug },
     texto: string,
     anexo?: AnexoDaMensagem,
-  ): Promise<Result<void, AppError>> {
-    const { error } = await this.supabaseAdmin.from("mensagens").insert({
-      atendimento_id: atendimentoId,
-      autor: "funcionario",
-      funcionario_id: funcionarioId,
-      texto,
-      ...(anexo && {
-        anexo_tipo: anexo.tipo,
-        anexo_nome: anexo.nome,
-        anexo_caminho: anexo.caminho,
-        anexo_tamanho: anexo.tamanho,
-        anexo_miniatura_caminho: anexo.miniaturaCaminho,
-      }),
+  ): Promise<Result<ResultadoRegistroDoFuncionario, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("registrar_mensagem_do_funcionario", {
+      p_atendimento_id: atendimentoId,
+      p_ator: ator.id,
+      p_ator_papel: ator.papel,
+      p_ator_setor: ator.setor,
+      p_texto: texto,
+      p_anexo: anexo ?? null,
     });
     if (error) return err(new ServicoExternoError("Falha ao registrar a Mensagem."));
+    return ok(registroDoFuncionarioRowSchema.parse(data));
+  }
+
+  async desfazerMensagemDoFuncionario(mensagemId: string): Promise<Result<void, AppError>> {
+    const { error } = await this.supabaseAdmin.rpc("desfazer_mensagem_do_funcionario", {
+      p_id: mensagemId,
+    });
+    if (error) return err(new ServicoExternoError("Falha ao desfazer a Mensagem."));
     return ok(undefined);
   }
+
   async mensagemParaReacao(
     atendimentoId: string,
     mensagemId: string,
