@@ -32,6 +32,11 @@ const TELEFONES = [
   "61955591005",
   "61955591006",
 ];
+const TELEFONE_TETO: Record<number, string> = {
+  38: "61955593001",
+  39: "61955593002",
+  1000: "61955593003",
+};
 const usuarios: string[] = [];
 const atendimentosCriados: string[] = [];
 const clientes: Client[] = [];
@@ -94,15 +99,18 @@ const ENCERRAR =
 
 afterAll(async () => {
   for (const cliente of clientes) await cliente.end().catch(() => undefined);
-  await admin.from("atendimentos").delete().in("telefone", TELEFONES);
-  // Só a auditoria dos Atendimentos desta suíte: nunca a de outras (nem a de outro ator/setor).
-  await admin
+  // Só o que esta suíte criou, por ID (os números de telefone dos cenários variam e não delimitam):
+  // nunca o Atendimento ou a auditoria de outras suítes (nem de outro ator/setor).
+  const auditoria = await admin
     .from("registros_auditoria")
     .delete()
     .eq("ator", URA_ATOR_ID)
     .eq("setor", SETOR)
     .in("alvo", atendimentosCriados);
+  const atendimentos = await admin.from("atendimentos").delete().in("id", atendimentosCriados);
   for (const id of usuarios) await admin.auth.admin.deleteUser(id);
+  if (auditoria.error) throw auditoria.error;
+  if (atendimentos.error) throw atendimentos.error;
 });
 
 describe("inatividade × concorrência (duas conexões)", () => {
@@ -334,6 +342,36 @@ describe("inatividade × concorrência (duas conexões)", () => {
     expect(await elegivel()).toBe(false);
     await tentativaEm(id, minutos(7 * 60), 30);
     expect(await elegivel()).toBe(true);
+  });
+
+  // 38 é o último expoente que cabia antes da correção; 39 estourava o intervalo ("interval out of
+  // range") dentro do filtro; 1000 é o caso de falha permanente de um destinatário.
+  it.each([38, 39, 1000])(
+    "backoff com %i tentativas respeita o teto de 6 h, sem estourar o intervalo",
+    async (tentativas) => {
+      const id = await encerradoPendente(TELEFONE_TETO[tentativas], `Func Teto ${tentativas}`);
+      const cliente = await conexao();
+      const elegivel = async () =>
+        (await cliente.query(REIVINDICAR, [1000])).rows.some((l) => l.id === id);
+      const horas = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
+
+      await tentativaEm(id, horas(5), tentativas);
+      expect(await elegivel()).toBe(false);
+      await tentativaEm(id, horas(7), tentativas);
+      expect(await elegivel()).toBe(true);
+    },
+  );
+
+  it("fila mista: um registro com 1000 falhas não impede a reivindicação dos demais", async () => {
+    const muitasFalhas = await encerradoPendente("61955594001", "Func Falhas Muitas");
+    const normal = await encerradoPendente("61955594002", "Func Falhas Normal");
+    await tentativaEm(muitasFalhas, new Date(Date.now() - 60_000).toISOString(), 1000);
+    const cliente = await conexao();
+
+    const r = await cliente.query(REIVINDICAR, [1000]);
+
+    expect(r.rows.map((l) => l.id)).toContain(normal);
+    expect(r.rows.map((l) => l.id)).not.toContain(muitasFalhas);
   });
 
   it("posse: o job cujo lease venceu não libera nem confirma a reivindicação de quem a retomou", async () => {
