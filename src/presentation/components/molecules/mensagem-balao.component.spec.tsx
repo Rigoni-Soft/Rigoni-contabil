@@ -102,7 +102,7 @@ describe("MensagemBalao — reação (#84)", () => {
     expect(screen.getByText("Segue o balanço")).toBeInTheDocument();
   });
 
-  it("anexo de áudio mostra o player com o arquivo e o link para baixar", () => {
+  it("anexo de áudio mostra só o player, sem baixar", () => {
     render(
       <ul>
         <MensagemBalao
@@ -122,11 +122,30 @@ describe("MensagemBalao — reação (#84)", () => {
     );
 
     expect(screen.getByLabelText("Áudio: gravacao.ogg")).toHaveAttribute("src", "https://l/audio");
-    // Plano B para quem não toca ogg (Safari): baixar o arquivo.
-    expect(screen.getByRole("link", { name: "Baixar gravacao.ogg" })).toHaveAttribute(
-      "href",
-      "https://l/audio",
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("arquivo que não é PDF, TXT nem imagem (Word) mostra nome e tamanho, sem visualizar nem baixar", () => {
+    render(
+      <ul>
+        <MensagemBalao
+          {...BASE}
+          lado="contato"
+          texto=""
+          anexo={{
+            tipo: "documento",
+            nome: "contrato.docx",
+            tamanho: "20 KB",
+            url: "https://l/d",
+            urlVisualizacao: "https://l/d?ver",
+            painelId: "p9",
+          }}
+        />
+      </ul>,
     );
+
+    expect(screen.getByText("contrato.docx")).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
   it("anexo de imagem mostra a miniatura que amplia; sem legenda não há parágrafo de texto", () => {

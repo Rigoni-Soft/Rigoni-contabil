@@ -11,7 +11,7 @@ type AnexoDaMensagemProps = {
   nome: string;
   // Já formatado ("1,2 MB").
   tamanho: string;
-  // Baixa o arquivo (para a pasta Downloads); `urlVisualizacao` o abre no navegador.
+  // Baixa o arquivo (pasta Downloads); `urlVisualizacao` o abre no navegador. Só PDF, TXT e imagem.
   url: string;
   urlVisualizacao: string;
   // Imagem com miniatura: é ela que aparece no balão; `url` é o original, aberto ao ampliar.
@@ -24,7 +24,7 @@ const ACAO =
   "inline-flex min-h-11 items-center gap-1 text-sm underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 // O que o balão mostra de um anexo: imagem em miniatura que amplia (e baixa); áudio com player e
-// link para baixar; arquivo com ícone, nome, tamanho, "Visualizar" (PDF e texto) e "Baixar".
+// arquivo com ícone, nome e tamanho; só PDF e texto (e imagem) têm "Visualizar" e "Baixar".
 export function AnexoDaMensagem({
   tipo,
   nome,
@@ -51,11 +51,6 @@ export function AnexoDaMensagem({
     return (
       <Caixa className="my-1">
         <PlayerDeAudio src={url} nome={nome} />
-        {/* Plano B: o ogg/opus da mensagem de voz não toca no Safari; o arquivo se baixa. */}
-        <Caixa como="a" href={url} download={nome} aria-label={`Baixar ${nome}`} className={ACAO}>
-          <Download className="size-4" aria-hidden="true" />
-          {tamanho} · Baixar
-        </Caixa>
       </Caixa>
     );
   }
@@ -72,8 +67,8 @@ export function AnexoDaMensagem({
           </Texto>
         </Caixa>
       </Caixa>
-      <Caixa className="flex flex-wrap gap-3">
-        {abreNoNavegador(nome) && (
+      {abreNoNavegador(nome) && (
+        <Caixa className="flex flex-wrap gap-3">
           <Caixa
             como="a"
             href={urlVisualizacao}
@@ -85,12 +80,12 @@ export function AnexoDaMensagem({
             <Eye className="size-4" aria-hidden="true" />
             Visualizar
           </Caixa>
-        )}
-        <Caixa como="a" href={url} download={nome} aria-label={`Baixar ${nome}`} className={ACAO}>
-          <Download className="size-4" aria-hidden="true" />
-          Baixar
+          <Caixa como="a" href={url} download={nome} aria-label={`Baixar ${nome}`} className={ACAO}>
+            <Download className="size-4" aria-hidden="true" />
+            Baixar
+          </Caixa>
         </Caixa>
-      </Caixa>
+      )}
     </Caixa>
   );
 }
