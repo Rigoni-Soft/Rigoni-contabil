@@ -12,6 +12,7 @@ import { ANEXO_TAMANHO_MAXIMO } from "@/shared/kernel/anexo";
 import { err, ok } from "@/shared/kernel/result";
 
 import { EnviarAnexoAoCliente } from "./enviar-anexo-ao-cliente.use-case";
+import { PrepararAnexoParaEnvio } from "./preparar-anexo-para-envio.use-case";
 
 const ATENDIMENTO: AtendimentoEmAndamento = {
   id: "at-1",
@@ -23,6 +24,14 @@ const ATENDIMENTO: AtendimentoEmAndamento = {
   emAvisoDeInatividade: false,
 };
 const FUNCIONARIO: AtorSessaoDto = { id: "func-1", papel: "funcionario", setor: "contabil" };
+// Primeira página de um ogg com Opus / com Vorbis (o que a conferência de codec lê).
+const comCabecalho = (marca: string, tamanho: number) => {
+  const bytes = new Uint8Array(tamanho);
+  bytes.set(Uint8Array.from(marca, (c) => c.charCodeAt(0)));
+  return bytes;
+};
+const OGG_OPUS = comCabecalho("OggS....OpusHead", 3000);
+const OGG_VORBIS = comCabecalho("OggS....vorbis", 3000);
 const PDF = { nome: "balanco.pdf", tipoMime: "application/pdf", conteudo: new Uint8Array(2048) };
 const FOTO = { nome: "foto.png", tipoMime: "image/png", conteudo: new Uint8Array(10) };
 
@@ -33,6 +42,8 @@ type Opcoes = {
   falhaEnvio?: boolean;
   falhaRegistro?: boolean;
   falhaConversao?: boolean;
+  // Primeiros bytes do objeto subido em partes (por padrão, ogg com Opus).
+  cabecalho?: Uint8Array;
   // O que o Storage tem do objeto que o navegador subiu em partes (null: não existe).
   objeto?: { tipoMime: string; tamanho: number } | null;
 };
@@ -44,6 +55,7 @@ function montar({
   falhaEnvio = false,
   falhaRegistro = false,
   falhaConversao = false,
+  cabecalho = OGG_OPUS,
   objeto = null,
 }: Opcoes = {}) {
   const conversoes: number[] = [];
@@ -77,6 +89,7 @@ function montar({
       return ok(undefined);
     },
     inspecionar: async () => ok(objeto),
+    cabecalho: async () => ok(cabecalho),
     baixar: async () => ok(new Uint8Array(objeto?.tamanho ?? 0)),
   };
   const envio = {
@@ -107,7 +120,7 @@ function montar({
       anexos,
       envio,
       auditoria,
-      conversor,
+      new PrepararAnexoParaEnvio(anexos, conversor),
     ),
   };
 }
@@ -313,7 +326,7 @@ describe("EnviarAnexoAoCliente", () => {
     const ogg = {
       nome: "gravacao.ogg",
       tipoMime: "audio/ogg;codecs=opus",
-      conteudo: new Uint8Array(3000),
+      conteudo: OGG_OPUS,
     };
 
     it("webm é convertido para ogg antes de guardar e entregar, e registra o tipo áudio sem legenda", async () => {
@@ -352,6 +365,18 @@ describe("EnviarAnexoAoCliente", () => {
           },
         ],
       ]);
+    });
+
+    it("ogg com Vorbis é recusado: a Meta só aceita Opus", async () => {
+      const { caso, guardados } = montar();
+
+      const r = await caso.execute({
+        atendimentoId: "at-1",
+        arquivo: { ...ogg, conteudo: OGG_VORBIS },
+      });
+
+      expect(r.ok).toBe(false);
+      expect(guardados).toEqual([]);
     });
 
     it("ogg/opus e mp4 seguem sem conversão, com o MIME sem parâmetros", async () => {
@@ -422,6 +447,19 @@ describe("EnviarAnexoAoCliente", () => {
           },
         ],
       ]);
+    });
+
+    it("ogg com Vorbis subido em partes é recusado e removido do Storage", async () => {
+      const { caso, removidos, enviados } = montar({
+        cabecalho: OGG_VORBIS,
+        objeto: { tipoMime: "audio/ogg", tamanho: 3000 },
+      });
+
+      const r = await caso.execute({ atendimentoId: "at-1", guardado: GUARDADO });
+
+      expect(r.ok).toBe(false);
+      expect(removidos).toEqual([GUARDADO.caminho]);
+      expect(enviados).toEqual([]);
     });
 
     it("webm é baixado, convertido, guardado como ogg e o original sai do Storage", async () => {

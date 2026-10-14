@@ -23,6 +23,8 @@ para contar com isso em todas as versões instaladas).
   cerca de 83 MB → 26 MB); a rota da conversa leva só esse arquivo (`outputFileTracingIncludes`, com o
   binário bruto em `outputFileTracingExcludes`) e `resolverFfmpeg` o descomprime em `/tmp` na
   primeira conversão da instância (só quando há webm a converter). Em desenvolvimento, sem o `.br`, usa o binário do pacote.
+- Ogg só segue sem conversão se for Opus: o servidor lê `OpusHead` no início do arquivo (a Meta
+  não aceita Vorbis, e o MIME `audio/ogg` não distingue). Ogg com outro codec é recusado.
 - Se o binário não executar, o envio falha com mensagem clara; a gravação continua no navegador.
 
 ## Alternativas

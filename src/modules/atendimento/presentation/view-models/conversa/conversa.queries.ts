@@ -1,4 +1,10 @@
-import { useMutation, useMutationState, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useMutationState,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 
 import type {
   ConversaVista,
@@ -65,8 +71,7 @@ export function useEnviarDocumentoMutation(atendimentoId: string) {
       if (!resultado.ok) throw new Error(resultado.error.message);
     },
     // Também no erro: um envio entregue mas não registrado já deve aparecer (ou não) na conversa.
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: conversaKeys.conversa(atendimentoId) }),
+    onSettled: () => invalidarConversa(queryClient, atendimentoId),
   });
 }
 
@@ -107,6 +112,10 @@ export function useEncerrarAtendimentoMutation(atendimentoId: string) {
   });
 }
 
+function invalidarConversa(queryClient: QueryClient, atendimentoId: string) {
+  return queryClient.invalidateQueries({ queryKey: conversaKeys.conversa(atendimentoId) });
+}
+
 export function useEnviarMensagemMutation(atendimentoId: string) {
   const queryClient = useQueryClient();
 
@@ -115,8 +124,7 @@ export function useEnviarMensagemMutation(atendimentoId: string) {
       const resultado = await enviarMensagemAction({ atendimentoId, texto });
       if (!resultado.ok) throw new Error(resultado.error.message);
     },
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: conversaKeys.conversa(atendimentoId) }),
+    onSettled: () => invalidarConversa(queryClient, atendimentoId),
   });
 }
 
@@ -149,8 +157,7 @@ export function useEnviarAnexoMutation(atendimentoId: string) {
       }
       if (!resultado.ok) throw new Error(resultado.error.message);
     },
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: conversaKeys.conversa(atendimentoId) }),
+    onSettled: () => invalidarConversa(queryClient, atendimentoId),
   });
 }
 
@@ -175,8 +182,7 @@ export function useEnviarAudioMutation(atendimentoId: string) {
       }
       if (!resultado.ok) throw new Error(resultado.error.message);
     },
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: conversaKeys.conversa(atendimentoId) }),
+    onSettled: () => invalidarConversa(queryClient, atendimentoId),
   });
 }
 
@@ -188,8 +194,7 @@ export function useReagirAMensagemMutation(atendimentoId: string) {
       const resultado = await reagirAMensagemAction({ atendimentoId, ...dados });
       if (!resultado.ok) throw new Error(resultado.error.message);
     },
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: conversaKeys.conversa(atendimentoId) }),
+    onSettled: () => invalidarConversa(queryClient, atendimentoId),
   });
 }
 

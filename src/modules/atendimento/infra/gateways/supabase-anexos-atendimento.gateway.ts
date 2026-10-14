@@ -83,6 +83,20 @@ export class SupabaseAnexosAtendimentoGateway implements AnexosAtendimentoPort {
     return ok({ tipoMime: data.contentType ?? "", tamanho: data.size ?? 0 });
   }
 
+  async cabecalho(caminho: string, bytes: number): Promise<Result<Uint8Array, AppError>> {
+    const links = await this.linksTemporarios([caminho]);
+    if (!links.ok) return links;
+    try {
+      const resposta = await fetch(links.value[caminho].url, {
+        headers: { Range: `bytes=0-${bytes - 1}` },
+      });
+      if (!resposta.ok) throw new Error();
+      return ok(new Uint8Array(await resposta.arrayBuffer()).subarray(0, bytes));
+    } catch {
+      return err(new ServicoExternoError("Falha ao ler o arquivo guardado."));
+    }
+  }
+
   async baixar(caminho: string): Promise<Result<Uint8Array, AppError>> {
     const { data, error } = await this.supabaseAdmin.storage.from(BUCKET).download(caminho);
     if (error || !data) return err(new ServicoExternoError("Falha ao ler o arquivo guardado."));

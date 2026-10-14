@@ -1,12 +1,9 @@
 "use client";
 
-import { useState } from "react";
-
 import { CompositorDeMensagem } from "@/presentation/components/organisms/compositor-de-mensagem.component";
 import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
-import { formatarCronometro } from "@/modules/atendimento/presentation/view-models/conversa/conversa.presenter";
 import { useCompositor } from "@/modules/atendimento/presentation/view-models/conversa/use-compositor.hook";
-import { useGravadorAudio } from "@/modules/atendimento/presentation/view-models/conversa/use-gravador-audio.hook";
+import { useGravacaoNoCompositor } from "@/modules/atendimento/presentation/view-models/conversa/use-gravacao-no-compositor.hook";
 import { useSeletorDeEmoji } from "@/modules/atendimento/presentation/view-models/conversa/use-seletor-de-emoji.hook";
 
 export function CompositorConversaContainer({
@@ -32,26 +29,17 @@ export function CompositorConversaContainer({
   } = useCompositor(atendimentoId, initialData);
 
   const { campoRef, seletor } = useSeletorDeEmoji();
-  const gravador = useGravadorAudio();
-  // A barra de gravação ocupa o lugar do campo: ao sair dela, o foco volta ao microfone.
-  const [focarMicrofone, setFocarMicrofone] = useState(false);
-  const descartarGravacao = () => {
-    gravador.descartar();
-    setFocarMicrofone(true);
-  };
-
-  // Para a gravação (se ainda corre) e entrega o arquivo; só some da tela se a entrega deu certo.
-  const enviarGravacao = async () => {
-    const gravado = await gravador.parar();
-    if (gravado) aoEnviarAudio(gravado, descartarGravacao);
-  };
+  const { erro: erroDaGravacao, gravacao } = useGravacaoNoCompositor({
+    aoEnviarAudio,
+    aoCancelarAudio,
+  });
 
   if (!visivel) return null;
   return (
     <CompositorDeMensagem
       onEnviar={aoEnviar}
       enviando={enviando}
-      erro={gravador.erro ?? erro}
+      erro={erroDaGravacao ?? erro}
       enviadas={enviadas}
       campoRef={campoRef}
       seletor={seletor}
@@ -59,22 +47,7 @@ export function CompositorConversaContainer({
       aceitar={aceitar}
       onAnexar={aoAnexar}
       onRemoverAnexo={aoRemoverAnexo}
-      gravacao={{
-        gravando: gravador.estado !== "ocioso",
-        parada: gravador.estado === "pronto",
-        tempo: formatarCronometro(gravador.segundos),
-        indisponivel: gravador.indisponivel,
-        focarMicrofone,
-        onIniciar: () => {
-          setFocarMicrofone(false);
-          void gravador.iniciar();
-        },
-        onCancelar: () => {
-          descartarGravacao();
-          aoCancelarAudio();
-        },
-        onEnviar: () => void enviarGravacao(),
-      }}
+      gravacao={gravacao}
       arraste={arraste}
     />
   );

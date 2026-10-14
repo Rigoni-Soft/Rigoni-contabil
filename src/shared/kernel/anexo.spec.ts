@@ -7,6 +7,7 @@ import {
   AUDIO_TIPO_RECUSADO,
   classificarAnexo,
   classificarAudio,
+  ehOggOpus,
   miniaturaValida,
   validarAnexo,
   validarAudio,
@@ -80,5 +81,15 @@ describe("áudio gravado", () => {
     expect(validarAudio("audio/ogg", ANEXO_TAMANHO_MAXIMO + 1)).toEqual({
       erro: ANEXO_TAMANHO_RECUSADO,
     });
+  });
+});
+
+describe("ehOggOpus", () => {
+  const com = (texto: string) => Uint8Array.from(`OggS....${texto}`, (c) => c.charCodeAt(0));
+
+  it("reconhece Opus pelo cabeçalho e recusa Vorbis", () => {
+    expect(ehOggOpus(com("OpusHead"))).toBe(true);
+    expect(ehOggOpus(com("vorbis"))).toBe(false);
+    expect(ehOggOpus(new Uint8Array(0))).toBe(false);
   });
 });

@@ -1,5 +1,6 @@
 import { Paperclip } from "lucide-react";
 
+import { BOTAO_DE_ICONE } from "@/presentation/lib/botao-de-icone";
 import { cn } from "@/presentation/lib/utils";
 
 type BotaoDeAnexoProps = {
@@ -15,7 +16,8 @@ export function BotaoDeAnexo({ aceitar, disabled, onEscolher }: BotaoDeAnexoProp
   return (
     <label
       className={cn(
-        "flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+        BOTAO_DE_ICONE,
+        "cursor-pointer",
         "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
         disabled && "pointer-events-none opacity-50",
       )}

@@ -83,4 +83,26 @@ describe("SupabaseAnexosAtendimentoGateway", () => {
     const links = await gateway.linksTemporarios([caminho]);
     expect(links.ok).toBe(false);
   });
+
+  it("inspeciona o objeto (tipo e tamanho do Storage), lê só o início e baixa inteiro", async () => {
+    const conteudo = Uint8Array.from("OggS....OpusHead e o resto do arquivo", (c) =>
+      c.charCodeAt(0),
+    );
+    const r = await guardar("gravacao.ogg", "audio/ogg", conteudo);
+    const caminho = r.ok ? r.value : "";
+
+    const info = await gateway.inspecionar(caminho);
+    const inicio = await gateway.cabecalho(caminho, 16);
+    const inteiro = await gateway.baixar(caminho);
+
+    expect(info.ok && info.value).toEqual({ tipoMime: "audio/ogg", tamanho: conteudo.byteLength });
+    expect(inicio.ok && [...inicio.value]).toEqual([...conteudo.subarray(0, 16)]);
+    expect(inteiro.ok && [...inteiro.value]).toEqual([...conteudo]);
+  });
+
+  it("objeto inexistente não é erro: inspecionar devolve null", async () => {
+    const r = await gateway.inspecionar(`${ATENDIMENTO}/${crypto.randomUUID()}/nao-existe.ogg`);
+
+    expect(r.ok && r.value).toBeNull();
+  });
 });

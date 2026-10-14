@@ -1,5 +1,6 @@
 import { Mic } from "lucide-react";
 
+import { BOTAO_DE_ICONE } from "@/presentation/lib/botao-de-icone";
 import { cn } from "@/presentation/lib/utils";
 
 type BotaoDeMicrofoneProps = {
@@ -30,7 +31,8 @@ export function BotaoDeMicrofone({
       autoFocus={focarAoMontar}
       disabled={disabled || !!motivo}
       className={cn(
-        "flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
+        BOTAO_DE_ICONE,
+        "outline-none focus-visible:ring-2 focus-visible:ring-ring",
         "disabled:pointer-events-none disabled:opacity-50",
       )}
       onClick={onClick}

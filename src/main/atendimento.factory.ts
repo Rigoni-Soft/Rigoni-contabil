@@ -57,6 +57,7 @@ import { ListarFeriados } from "@/modules/atendimento/application/use-cases/list
 import { ListarFila } from "@/modules/atendimento/application/use-cases/listar-fila.use-case";
 import { ListarMeusAtendimentos } from "@/modules/atendimento/application/use-cases/listar-meus-atendimentos.use-case";
 import { ObterConversa } from "@/modules/atendimento/application/use-cases/obter-conversa.use-case";
+import { PrepararAnexoParaEnvio } from "@/modules/atendimento/application/use-cases/preparar-anexo-para-envio.use-case";
 import { ReagirAMensagem } from "@/modules/atendimento/application/use-cases/reagir-a-mensagem.use-case";
 import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/receber-mensagem.use-case";
 import { RemoverFeriado } from "@/modules/atendimento/application/use-cases/remover-feriado.use-case";
@@ -260,13 +261,14 @@ function caminhoDoFfmpeg(): Promise<string> {
 
 export async function makeEnviarAnexoAoCliente(): Promise<EnviarAnexoAoClientePort> {
   const supabaseAdmin = createSupabaseAdmin();
+  const anexos = new SupabaseAnexosAtendimentoGateway(supabaseAdmin);
   return new EnviarAnexoAoCliente(
     sessaoViaUsuarios(await createSupabaseServer()),
     new SupabaseAtendimentoRepository(supabaseAdmin),
-    new SupabaseAnexosAtendimentoGateway(supabaseAdmin),
+    anexos,
     makeEnvioMensagem(),
     auditoriaViaModuloAuditoria(),
-    new FfmpegConversorDeAudioGateway(caminhoDoFfmpeg),
+    new PrepararAnexoParaEnvio(anexos, new FfmpegConversorDeAudioGateway(caminhoDoFfmpeg)),
   );
 }
 

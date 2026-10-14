@@ -88,6 +88,20 @@ export function classificarAudio(tipoMime: string): "nativo" | "converter" | nul
   return null;
 }
 
+// Ogg com Opus traz "OpusHead" na primeira página; Vorbis traz "vorbis". A Meta aceita só Opus, e o
+// MIME ("audio/ogg") não diz qual dos dois é: o cabeçalho do arquivo diz.
+export const AUDIO_OGG_SEM_OPUS_RECUSADO = "O áudio em ogg precisa usar o codec Opus.";
+export const AUDIO_CABECALHO_BYTES = 128;
+
+export function ehOggOpus(inicio: Uint8Array): boolean {
+  const marca = Array.from("OpusHead", (c) => c.charCodeAt(0));
+  const fim = Math.min(inicio.length, AUDIO_CABECALHO_BYTES) - marca.length;
+  for (let i = 0; i <= fim; i++) {
+    if (marca.every((byte, j) => inicio[i + j] === byte)) return true;
+  }
+  return false;
+}
+
 export function ehAudio(tipoMime: string): boolean {
   return normalizarMime(tipoMime).startsWith("audio/");
 }

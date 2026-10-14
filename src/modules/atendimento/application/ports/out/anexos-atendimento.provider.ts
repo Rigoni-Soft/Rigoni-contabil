@@ -23,4 +23,6 @@ export interface AnexosAtendimentoPort {
     caminho: string,
   ): Promise<Result<{ tipoMime: string; tamanho: number } | null, AppError>>;
   baixar(caminho: string): Promise<Result<Uint8Array, AppError>>;
+  // Só os primeiros bytes (para conferir o codec sem baixar o arquivo todo).
+  cabecalho(caminho: string, bytes: number): Promise<Result<Uint8Array, AppError>>;
 }
