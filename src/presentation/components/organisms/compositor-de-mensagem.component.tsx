@@ -34,6 +34,8 @@ type CompositorDeMensagemProps = {
     parada: boolean;
     tempo: string;
     indisponivel?: string;
+    // Acabou de gravar (enviou ou cancelou): o microfone volta a ter o foco.
+    focarMicrofone?: boolean;
     onIniciar: () => void;
     onCancelar: () => void;
     onEnviar: () => void;
@@ -109,6 +111,7 @@ export function CompositorDeMensagem({
           <BotaoDeMicrofone
             disabled={enviando}
             motivo={gravacao.indisponivel}
+            focarAoMontar={gravacao.focarMicrofone}
             onClick={gravacao.onIniciar}
           />
         )}

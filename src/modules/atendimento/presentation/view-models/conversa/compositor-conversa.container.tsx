@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { CompositorDeMensagem } from "@/presentation/components/organisms/compositor-de-mensagem.component";
 import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import { formatarCronometro } from "@/modules/atendimento/presentation/view-models/conversa/conversa.presenter";
@@ -31,11 +33,17 @@ export function CompositorConversaContainer({
 
   const { campoRef, seletor } = useSeletorDeEmoji();
   const gravador = useGravadorAudio();
+  // A barra de gravação ocupa o lugar do campo: ao sair dela, o foco volta ao microfone.
+  const [focarMicrofone, setFocarMicrofone] = useState(false);
+  const descartarGravacao = () => {
+    gravador.descartar();
+    setFocarMicrofone(true);
+  };
 
   // Para a gravação (se ainda corre) e entrega o arquivo; só some da tela se a entrega deu certo.
   const enviarGravacao = async () => {
     const gravado = await gravador.parar();
-    if (gravado) aoEnviarAudio(gravado, gravador.descartar);
+    if (gravado) aoEnviarAudio(gravado, descartarGravacao);
   };
 
   if (!visivel) return null;
@@ -56,9 +64,13 @@ export function CompositorConversaContainer({
         parada: gravador.estado === "pronto",
         tempo: formatarCronometro(gravador.segundos),
         indisponivel: gravador.indisponivel,
-        onIniciar: () => void gravador.iniciar(),
+        focarMicrofone,
+        onIniciar: () => {
+          setFocarMicrofone(false);
+          void gravador.iniciar();
+        },
         onCancelar: () => {
-          gravador.descartar();
+          descartarGravacao();
           aoCancelarAudio();
         },
         onEnviar: () => void enviarGravacao(),

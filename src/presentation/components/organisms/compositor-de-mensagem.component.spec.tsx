@@ -272,6 +272,43 @@ describe("CompositorDeMensagem — anexo", () => {
       expect(aoEnviar).toHaveBeenCalled();
     });
 
+    it("a barra entra com o foco em cancelar e o Esc descarta a gravação", async () => {
+      const aoCancelar = jest.fn();
+      render(
+        <CompositorDeMensagem
+          {...BASE}
+          gravacao={{ ...GRAVACAO, gravando: true, onCancelar: aoCancelar }}
+        />,
+      );
+
+      expect(screen.getByRole("button", { name: "Cancelar gravação" })).toHaveFocus();
+      await userEvent.keyboard("{Escape}");
+
+      expect(aoCancelar).toHaveBeenCalledTimes(1);
+    });
+
+    it("com o envio em curso, o Esc não descarta", async () => {
+      const aoCancelar = jest.fn();
+      render(
+        <CompositorDeMensagem
+          {...BASE}
+          enviando
+          gravacao={{ ...GRAVACAO, gravando: true, onCancelar: aoCancelar }}
+        />,
+      );
+
+      screen.getByRole("button", { name: "Enviar áudio" }).focus();
+      await userEvent.keyboard("{Escape}");
+
+      expect(aoCancelar).not.toHaveBeenCalled();
+    });
+
+    it("depois de gravar, o microfone volta a ter o foco", () => {
+      render(<CompositorDeMensagem {...BASE} gravacao={{ ...GRAVACAO, focarMicrofone: true }} />);
+
+      expect(screen.getByRole("button", { name: "Gravar áudio" })).toHaveFocus();
+    });
+
     it("gravação parada pede a confirmação e o envio em curso trava as ações", () => {
       render(
         <CompositorDeMensagem

@@ -23,12 +23,21 @@ export function BarraDeGravacao({
   onEnviar,
 }: BarraDeGravacaoProps) {
   return (
-    <Linha alinhar="centro" espaco={2} className="min-h-12 rounded-2xl border border-border px-2">
+    <Linha
+      alinhar="centro"
+      espaco={2}
+      className="min-h-12 rounded-2xl border border-border px-2"
+      onKeyDown={(evento: React.KeyboardEvent) => {
+        if (evento.key === "Escape" && !enviando) onCancelar();
+      }}
+    >
+      {/* O foco entra na saída segura: um Enter ou espaço sem querer descarta, não envia. */}
       <Button
         type="button"
         variant="ghost"
         size="icon"
         aria-label="Cancelar gravação"
+        autoFocus
         disabled={enviando}
         onClick={onCancelar}
       >
