@@ -102,11 +102,16 @@ export function ehOggOpus(inicio: Uint8Array): boolean {
   return false;
 }
 
-// Arquivo que o navegador mostra sozinho numa aba (PDF e texto): só serve para oferecer
-// "Visualizar"; o arquivo é sempre conferido por tipo MIME ao entrar. Os demais (Office, ZIP, CSV)
-// só se baixam.
-export function abreNoNavegador(nome: string): boolean {
-  return /\.(pdf|txt)$/i.test(nome);
+// Como a conversa mostra o arquivo: "navegador" abre numa aba (PDF e texto); "docx" e "xlsx" são
+// lidos no navegador e mostrados num painel; null só baixa. Pela extensão do nome, só para oferecer
+// a ação: o arquivo é sempre conferido por tipo MIME ao entrar.
+export type PreviaDeAnexo = "navegador" | "docx" | "xlsx";
+
+export function tipoDePrevia(nome: string): PreviaDeAnexo | null {
+  const extensao = nome.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1];
+  if (extensao === "pdf" || extensao === "txt") return "navegador";
+  if (extensao === "docx" || extensao === "xlsx") return extensao;
+  return null;
 }
 
 export function ehAudio(tipoMime: string): boolean {

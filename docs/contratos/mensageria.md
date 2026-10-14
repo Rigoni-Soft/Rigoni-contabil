@@ -86,11 +86,14 @@ o adapter falso devolve arquivos de teste pelo id: `midia-teste-audio` (ogg/opus
   duas chegarem ao mesmo tempo, o banco grava uma só e o arquivo que sobrou é removido.
 - **Falha transitória** ao baixar ou guardar (`ServicoExternoError`) responde 502, e a Meta reenvia o evento; é essa
   reentrega que reprocessa, não há fila própria.
-- **Visualizar e baixar** (todo anexo da conversa, do cliente ou do Funcionário; só **PDF, TXT e imagem**): cada anexo tem dois
-  links temporários do mesmo objeto, o de **download** (cabeçalho de anexo, com o nome original, vai para a pasta Downloads) e o de
-  **visualização** (sem esse cabeçalho). Imagem amplia no painel e baixa pelo botão "Baixar"; PDF e TXT ganham "Visualizar" (aba
-  nova) e "Baixar". Word, Excel, PowerPoint, CSV e ZIP aparecem só com nome e tamanho, sem ação. Áudio só toca no player (#80),
-  sem baixar; o ogg/opus da mensagem de voz não toca no Safari e não há conversão para m4a nesta entrega.
+- **Visualizar e baixar** (todo anexo da conversa, do cliente ou do Funcionário): cada anexo tem dois links temporários do mesmo
+  objeto, o de **download** (cabeçalho de anexo, com o nome original, vai para a pasta Downloads) e o de **visualização** (sem esse
+  cabeçalho). Imagem amplia no painel e baixa pelo botão "Baixar". Arquivo (PDF, TXT, Word, Excel, PowerPoint, CSV, ZIP...) tem
+  sempre "Baixar"; "Visualizar" existe para PDF e TXT (aba nova do navegador) e para **.docx e .xlsx**, que o navegador lê
+  sozinho (`mammoth` e `read-excel-file`, sem enviar o arquivo a serviço externo) e mostra num painel: o Word num iframe sem script
+  (o arquivo é do cliente) e o Excel como tabela da primeira planilha, até 500 linhas. `.doc`, `.xls`, PowerPoint, CSV e ZIP só
+  baixam. **Áudio** (e vídeo, que o sistema não recebe) não baixa: toca no player do chat (#80); o ogg/opus da mensagem de voz
+  não toca no Safari e não há conversão para m4a nesta entrega.
 
 Áudio enviado pelo Funcionário (#80): ver Anexo do Funcionário acima; aceito pela Meta é AAC, AMR, MP3, M4A (`audio/mp4`) e OGG **só com Opus**, até 16 MB (webm não é aceito).
 

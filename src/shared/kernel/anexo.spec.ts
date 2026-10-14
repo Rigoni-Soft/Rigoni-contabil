@@ -9,10 +9,26 @@ import {
   classificarAudio,
   ehOggOpus,
   miniaturaValida,
+  tipoDePrevia,
   validarAnexo,
   validarAudio,
   validarMidiaRecebida,
 } from "./anexo";
+
+describe("tipoDePrevia", () => {
+  it.each([
+    ["balanco.pdf", "navegador"],
+    ["LEIA-ME.TXT", "navegador"],
+    ["contrato.docx", "docx"],
+    ["Balancete.XLSX", "xlsx"],
+    ["antigo.doc", null],
+    ["planilha.xls", null],
+    ["apresentacao.pptx", null],
+    ["sem-extensao", null],
+  ])("%s → %s", (nome, esperado) => {
+    expect(tipoDePrevia(nome)).toBe(esperado);
+  });
+});
 
 describe("classificarAnexo", () => {
   it.each([

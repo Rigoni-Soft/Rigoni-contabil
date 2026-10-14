@@ -125,7 +125,7 @@ describe("MensagemBalao — reação (#84)", () => {
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
-  it("arquivo que não é PDF, TXT nem imagem (Word) mostra nome e tamanho, sem visualizar nem baixar", () => {
+  it("Word mostra nome, tamanho e baixar; o Visualizar vem do slot do Container", () => {
     render(
       <ul>
         <MensagemBalao
@@ -139,13 +139,20 @@ describe("MensagemBalao — reação (#84)", () => {
             url: "https://l/d",
             urlVisualizacao: "https://l/d?ver",
             painelId: "p9",
+            previa: <button type="button">Visualizar contrato.docx</button>,
           }}
         />
       </ul>,
     );
 
     expect(screen.getByText("contrato.docx")).toBeInTheDocument();
-    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Baixar contrato.docx" })).toHaveAttribute(
+      "download",
+      "contrato.docx",
+    );
+    // O link de PDF/TXT não vale para Word: a visualização é o botão do Container.
+    expect(screen.queryByRole("link", { name: /Visualizar/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Visualizar contrato.docx" })).toBeInTheDocument();
   });
 
   it("anexo de imagem mostra a miniatura que amplia; sem legenda não há parágrafo de texto", () => {

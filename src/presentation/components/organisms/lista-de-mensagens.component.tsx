@@ -3,6 +3,7 @@ import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { MensagemBalao } from "@/presentation/components/molecules/mensagem-balao.component";
 import { SeletorDeEmoji } from "@/presentation/components/molecules/seletor-de-emoji.component";
 import { SobreposicaoDeSoltar } from "@/presentation/components/molecules/sobreposicao-de-soltar.component";
+import { tipoDePrevia } from "@/shared/kernel/anexo";
 
 type MensagemView = {
   id: string;
@@ -51,14 +52,42 @@ type ArrasteProps = {
 
 type ListaDeMensagensProps = {
   mensagens: MensagemView[];
+  // Botão de visualizar Word/Excel de um anexo: o Container o monta (lê o arquivo no navegador).
+  previaDoAnexo?: (anexo: {
+    nome: string;
+    urlVisualizacao: string;
+    formato: "docx" | "xlsx";
+    painelId: string;
+  }) => React.ReactNode;
   reacao?: ReacaoProps;
   arraste?: ArrasteProps;
 };
 
+// Word e Excel ganham o botão de visualizar que o Container fornece; os demais não.
+function previaDoAnexoDe(
+  painelId: string,
+  anexo: NonNullable<MensagemView["anexo"]>,
+  previaDoAnexo: ListaDeMensagensProps["previaDoAnexo"],
+) {
+  const formato = tipoDePrevia(anexo.nome);
+  if (anexo.tipo !== "documento" || (formato !== "docx" && formato !== "xlsx")) return undefined;
+  return previaDoAnexo?.({
+    nome: anexo.nome,
+    urlVisualizacao: anexo.urlVisualizacao,
+    formato,
+    painelId,
+  });
+}
+
 // Em tela larga é a única parte da página que rola. O rolador é col-reverse com a lista dentro em
 // ordem cronológica: o scroll nasce no fim (nas últimas mensagens) sem JavaScript e o DOM segue a
 // ordem de leitura. role="log" anuncia a mensagem nova ao leitor de tela.
-export function ListaDeMensagens({ mensagens, reacao, arraste }: ListaDeMensagensProps) {
+export function ListaDeMensagens({
+  mensagens,
+  previaDoAnexo,
+  reacao,
+  arraste,
+}: ListaDeMensagensProps) {
   return (
     // O erro de reação fica fora do rolador (col-reverse o jogaria para o topo, fora de vista).
     <Pilha espaco="campo" className="relative min-h-0 lg:flex-1" {...arraste?.ligacoes}>
@@ -75,7 +104,13 @@ export function ListaDeMensagens({ mensagens, reacao, arraste }: ListaDeMensagen
               <MensagemBalao
                 key={id}
                 {...mensagem}
-                anexo={anexo && { ...anexo, painelId: `anexo-${id}` }}
+                anexo={
+                  anexo && {
+                    ...anexo,
+                    painelId: `anexo-${id}`,
+                    previa: previaDoAnexoDe(`anexo-${id}`, anexo, previaDoAnexo),
+                  }
+                }
                 acao={
                   reacao?.ativa && reagivel ? (
                     <SeletorDeEmoji

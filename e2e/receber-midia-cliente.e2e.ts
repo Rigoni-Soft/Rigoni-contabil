@@ -157,6 +157,61 @@ test.describe("Mídia recebida do cliente (#81)", () => {
     expect(downloadImagem.suggestedFilename()).toBe("imagem.png");
   });
 
+  test("Word e Excel do cliente abrem no painel e também baixam @smoke", async ({
+    page,
+    request,
+  }) => {
+    await receber(request, {
+      id: "wamid.E2E-MIDIA-4",
+      type: "document",
+      document: {
+        id: "midia-teste-docx",
+        mime_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      },
+    });
+    await receber(request, {
+      id: "wamid.E2E-MIDIA-5",
+      type: "document",
+      document: {
+        id: "midia-teste-xlsx",
+        mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      },
+    });
+
+    await login(page, "funcionario2.sn@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL(/\/(simples-nacional)?$/);
+    await page
+      .getByRole("navigation", { name: "Atendimentos em andamento" })
+      .getByRole("link", { name: /Seu Midia/ })
+      .click();
+
+    // Word: o conteúdo aparece num painel (iframe isolado) e fecha pelo botão.
+    await page.getByRole("button", { name: "Visualizar contrato.docx" }).click();
+    const painelWord = page.getByRole("dialog", { name: "Visualização de contrato.docx" });
+    await expect(painelWord).toBeVisible();
+    await expect(
+      painelWord.frameLocator("iframe").getByText("Contrato de prestação de serviços"),
+    ).toBeVisible();
+    await painelWord.getByRole("button", { name: "Fechar visualização" }).click();
+    await expect(painelWord).toBeHidden();
+
+    // Excel: a primeira planilha vira tabela.
+    await page.getByRole("button", { name: "Visualizar balancete.xlsx" }).click();
+    const painelExcel = page.getByRole("dialog", { name: "Visualização de balancete.xlsx" });
+    await expect(painelExcel.getByRole("cell", { name: "Caixa" })).toBeVisible();
+    await expect(painelExcel.getByRole("cell", { name: "1500.5" })).toBeVisible();
+    await painelExcel.getByRole("button", { name: "Fechar visualização" }).click();
+
+    // Os dois baixam com o nome original.
+    for (const nome of ["contrato.docx", "balancete.xlsx"]) {
+      const [download] = await Promise.all([
+        page.waitForEvent("download"),
+        page.getByRole("link", { name: `Baixar ${nome}` }).click(),
+      ]);
+      expect(download.suggestedFilename()).toBe(nome);
+    }
+  });
+
   test("o áudio que o cliente envia aparece na conversa com player e o balão do cliente @smoke", async ({
     page,
     request,
