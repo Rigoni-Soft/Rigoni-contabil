@@ -245,6 +245,9 @@ describe("CompositorDeMensagem — anexo", () => {
 
       expect(screen.getByRole("button", { name: "Gravar áudio" })).toBeDisabled();
       expect(screen.getByText("Este navegador não permite gravar áudio.")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Gravar áudio" })).toHaveAccessibleDescription(
+        "Este navegador não permite gravar áudio.",
+      );
       expect(screen.getByLabelText("Mensagem ao cliente")).toBeEnabled();
     });
 
@@ -265,6 +268,7 @@ describe("CompositorDeMensagem — anexo", () => {
       );
 
       expect(screen.getByText("01:05")).toBeInTheDocument();
+      expect(screen.getByRole("status")).toHaveTextContent("Gravando. Enter envia, Esc cancela.");
       expect(screen.queryByLabelText("Mensagem ao cliente")).not.toBeInTheDocument();
       await userEvent.click(screen.getByRole("button", { name: "Cancelar gravação" }));
       await userEvent.click(screen.getByRole("button", { name: "Enviar áudio" }));
@@ -322,7 +326,9 @@ describe("CompositorDeMensagem — anexo", () => {
         />,
       );
 
-      expect(screen.getByText("A gravação parou. Envie o áudio ou cancele.")).toBeInTheDocument();
+      expect(
+        screen.getByText("A gravação atingiu o limite e parou. Envie o áudio ou cancele."),
+      ).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Enviar áudio" })).toBeDisabled();
       expect(screen.getByRole("button", { name: "Cancelar gravação" })).toBeDisabled();
     });

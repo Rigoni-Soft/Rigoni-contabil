@@ -12,6 +12,9 @@ import { SeletorDeEmoji } from "@/presentation/components/molecules/seletor-de-e
 import { Button } from "@/presentation/components/ui/button";
 import { cn } from "@/presentation/lib/utils";
 
+// Único compositor por tela: o id fixo liga o microfone desligado ao motivo escrito abaixo do campo.
+const MOTIVO_MICROFONE_ID = "motivo-microfone-indisponivel";
+
 type CompositorDeMensagemProps = {
   onEnviar: (texto: string) => void;
   enviando: boolean;
@@ -74,9 +77,13 @@ export function CompositorDeMensagem({
           onCancelar={gravacao.onCancelar}
           onEnviar={gravacao.onEnviar}
         />
-        {gravacao.parada && !erro && (
+        {/* Montada uma vez ao abrir a barra: o leitor de tela anuncia o início; o cronômetro não é
+            região viva (anunciaria a cada segundo). Parada sem erro é o limite de tempo ou de tamanho. */}
+        {!erro && (
           <Texto variante="nota" role="status">
-            A gravação parou. Envie o áudio ou cancele.
+            {gravacao.parada
+              ? "A gravação atingiu o limite e parou. Envie o áudio ou cancele."
+              : "Gravando. Enter envia, Esc cancela."}
           </Texto>
         )}
         {erro && <AvisoDeStatus tipo="erro" texto={erro} />}
@@ -111,6 +118,7 @@ export function CompositorDeMensagem({
           <BotaoDeMicrofone
             disabled={enviando}
             motivo={gravacao.indisponivel}
+            motivoId={MOTIVO_MICROFONE_ID}
             focarAoMontar={gravacao.focarMicrofone}
             onClick={gravacao.onIniciar}
           />
@@ -155,7 +163,11 @@ export function CompositorDeMensagem({
           <SendHorizontal aria-hidden="true" />
         </Button>
       </Linha>
-      {gravacao?.indisponivel && <Texto variante="nota">{gravacao.indisponivel}</Texto>}
+      {gravacao?.indisponivel && (
+        <Texto variante="nota" id={MOTIVO_MICROFONE_ID}>
+          {gravacao.indisponivel}
+        </Texto>
+      )}
       {erro && <AvisoDeStatus tipo="erro" texto={erro} />}
     </Pilha>
   );
