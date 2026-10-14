@@ -1,4 +1,8 @@
-import { comTentativas } from "@/modules/atendimento/application/com-tentativas";
+import {
+  comTentativas,
+  ESPERA_MS,
+  TENTATIVAS,
+} from "@/modules/atendimento/application/com-tentativas";
 import {
   montarMensagemLivre,
   type ComunicacaoProativa,
@@ -26,7 +30,6 @@ import { formatarDataIso } from "@/shared/kernel/data-iso";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 const DIAS_DO_JOB = [1, 5, 10, 15];
-const TENTATIVAS = 3;
 
 const FORMATO_DATA = new Intl.DateTimeFormat("en-CA", {
   timeZone: "America/Sao_Paulo",
@@ -55,7 +58,7 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     private readonly email: EnvioEmailPort,
     private readonly alertas: AlertaSetorPort,
     private readonly relogio: RelogioPort,
-    private readonly esperaEntreTentativasMs = 2000,
+    private readonly esperaEntreTentativasMs = ESPERA_MS,
   ) {}
 
   // Alertas já levantados na rodada, por Cliente e tipo: um Cliente com lembrete e DAS não alerta
@@ -76,10 +79,14 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
 
     const lista = await this.clientes.listar();
     if (!lista.ok) return lista;
-    this.alertados.clear();
     for (const cliente of lista.value) {
       if (cliente.documentoObrigatorio === "negativo") {
-        await this.lembrar(cliente, agora, resumo);
+        const comunicacao: ComunicacaoProativa = {
+          tipo: "lembrete_documento_obrigatorio",
+          contato: cliente.contato?.nome ?? cliente.empresa,
+          empresa: cliente.empresa,
+        };
+        if (await this.entregar(cliente, comunicacao, agora, resumo)) resumo.lembretes += 1;
       }
       if (cliente.dasStatus === "pronto") {
         await this.enviarDas(cliente, agora, hoje, resumo);
@@ -97,15 +104,6 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     const resolvidos = await this.alertas.resolverNaoRenovados(new Date(agora.getTime() - 60_000));
     if (!resolvidos.ok) resumo.falhas += 1;
     return ok(resumo);
-  }
-
-  private async lembrar(c: ClienteParaLembrete, agora: Date, resumo: LembretesExecutados) {
-    const comunicacao: ComunicacaoProativa = {
-      tipo: "lembrete_documento_obrigatorio",
-      contato: c.contato?.nome ?? c.empresa,
-      empresa: c.empresa,
-    };
-    if (await this.entregar(c, comunicacao, agora, resumo)) resumo.lembretes += 1;
   }
 
   private async enviarDas(

@@ -20,6 +20,7 @@ import { makeRegistrarAcao } from "@/main/auditoria.factory";
 import { exigirSegredosReais } from "@/main/segredos-mensageria.factory";
 import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
+import { ESPERA_MS, TENTATIVAS } from "@/modules/atendimento/application/com-tentativas";
 import type { AutenticarWebhookPort } from "@/modules/atendimento/application/ports/in/autenticar-webhook.provider";
 import type { AvisarClientePort } from "@/modules/atendimento/application/ports/in/avisar-cliente.provider";
 import type { EncerrarAtendimentoPort } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
@@ -258,7 +259,7 @@ export function makeExecutarLembretesDocumentoEDas(): ExecutarLembretesDocumento
     new SupabaseClientesParaLembreteGateway(supabaseAdmin),
     guiasFiscais(supabaseAdmin),
     new SupabaseGuiaPublicadaGateway(supabaseAdmin),
-    new EnviarComunicacaoProativa(makeEnvioMensagem(), 3, 2000),
+    new EnviarComunicacaoProativa(makeEnvioMensagem(), TENTATIVAS, ESPERA_MS),
     emailFalso,
     new SupabaseAlertaSetorGateway(supabaseAdmin),
     new RelogioSistemaGateway(),

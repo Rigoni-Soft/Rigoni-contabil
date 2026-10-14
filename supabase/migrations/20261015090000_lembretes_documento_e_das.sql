@@ -69,8 +69,6 @@ create table public.alertas_setor (
 create unique index alertas_setor_um_aberto_por_cliente_e_tipo
   on public.alertas_setor (cliente_id, tipo)
   where resolvido_em is null;
-create index alertas_setor_abertos on public.alertas_setor (setor, criado_em desc)
-  where resolvido_em is null;
 
 alter table public.alertas_setor enable row level security;
 
