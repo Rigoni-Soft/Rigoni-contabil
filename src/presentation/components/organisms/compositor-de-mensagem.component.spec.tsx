@@ -215,4 +215,75 @@ describe("CompositorDeMensagem — anexo", () => {
       expect(screen.getByRole("button", { name: "Enviar arquivo" })).toBeDisabled();
     });
   });
+
+  describe("CompositorDeMensagem — gravação de áudio", () => {
+    const GRAVACAO = {
+      gravando: false,
+      parada: false,
+      tempo: "00:00",
+      onIniciar: jest.fn(),
+      onCancelar: jest.fn(),
+      onEnviar: jest.fn(),
+    };
+
+    it("o microfone inicia a gravação", async () => {
+      const aoIniciar = jest.fn();
+      render(<CompositorDeMensagem {...BASE} gravacao={{ ...GRAVACAO, onIniciar: aoIniciar }} />);
+
+      await userEvent.click(screen.getByRole("button", { name: "Gravar áudio" }));
+
+      expect(aoIniciar).toHaveBeenCalled();
+    });
+
+    it("sem suporte, o microfone fica desligado e o motivo aparece, sem quebrar o campo", () => {
+      render(
+        <CompositorDeMensagem
+          {...BASE}
+          gravacao={{ ...GRAVACAO, indisponivel: "Este navegador não permite gravar áudio." }}
+        />,
+      );
+
+      expect(screen.getByRole("button", { name: "Gravar áudio" })).toBeDisabled();
+      expect(screen.getByText("Este navegador não permite gravar áudio.")).toBeInTheDocument();
+      expect(screen.getByLabelText("Mensagem ao cliente")).toBeEnabled();
+    });
+
+    it("gravando, mostra o cronômetro e as ações cancelar e enviar no lugar do campo", async () => {
+      const aoCancelar = jest.fn();
+      const aoEnviar = jest.fn();
+      render(
+        <CompositorDeMensagem
+          {...BASE}
+          gravacao={{
+            ...GRAVACAO,
+            gravando: true,
+            tempo: "01:05",
+            onCancelar: aoCancelar,
+            onEnviar: aoEnviar,
+          }}
+        />,
+      );
+
+      expect(screen.getByText("01:05")).toBeInTheDocument();
+      expect(screen.queryByLabelText("Mensagem ao cliente")).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: "Cancelar gravação" }));
+      await userEvent.click(screen.getByRole("button", { name: "Enviar áudio" }));
+      expect(aoCancelar).toHaveBeenCalled();
+      expect(aoEnviar).toHaveBeenCalled();
+    });
+
+    it("gravação parada pede a confirmação e o envio em curso trava as ações", () => {
+      render(
+        <CompositorDeMensagem
+          {...BASE}
+          enviando
+          gravacao={{ ...GRAVACAO, gravando: true, parada: true, tempo: "05:00" }}
+        />,
+      );
+
+      expect(screen.getByText("A gravação parou. Envie o áudio ou cancele.")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Enviar áudio" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Cancelar gravação" })).toBeDisabled();
+    });
+  });
 });

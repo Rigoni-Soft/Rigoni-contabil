@@ -4,9 +4,12 @@ import {
   ANEXO_TAMANHO_RECUSADO,
   ANEXO_TIPO_RECUSADO,
   ANEXO_VAZIO_RECUSADO,
+  AUDIO_TIPO_RECUSADO,
   classificarAnexo,
+  classificarAudio,
   miniaturaValida,
   validarAnexo,
+  validarAudio,
 } from "./anexo";
 
 describe("classificarAnexo", () => {
@@ -55,5 +58,27 @@ describe("miniaturaValida", () => {
     expect(miniaturaValida("application/pdf", 100)).toBe(false);
     expect(miniaturaValida("image/webp", 0)).toBe(false);
     expect(miniaturaValida("image/webp", 10 * 1024 * 1024)).toBe(false);
+  });
+});
+
+describe("áudio gravado", () => {
+  it.each([
+    ["audio/ogg;codecs=opus", "nativo"],
+    ["audio/mp4;codecs=mp4a.40.2", "nativo"],
+    ["audio/mp4", "nativo"],
+    ["audio/webm;codecs=opus", "converter"],
+    ["audio/mpeg", null],
+    ["image/png", null],
+  ])("%s é %s", (mime, formato) => {
+    expect(classificarAudio(mime)).toBe(formato);
+  });
+
+  it("valida formato e tamanho", () => {
+    expect(validarAudio("audio/webm", 10)).toEqual({ formato: "converter" });
+    expect(validarAudio("audio/mpeg", 10)).toEqual({ erro: AUDIO_TIPO_RECUSADO });
+    expect(validarAudio("audio/ogg", 0)).toEqual({ erro: ANEXO_VAZIO_RECUSADO });
+    expect(validarAudio("audio/ogg", ANEXO_TAMANHO_MAXIMO + 1)).toEqual({
+      erro: ANEXO_TAMANHO_RECUSADO,
+    });
   });
 });

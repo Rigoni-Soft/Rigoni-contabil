@@ -188,4 +188,29 @@ describe("useCompositor", () => {
       expect(result.current.enviadas).toBe(0);
     });
   });
+
+  it("envia o áudio gravado como anexo sem legenda e só chama aoConcluir se a entrega deu certo", async () => {
+    anexo.mockResolvedValueOnce({
+      ok: false,
+      error: { code: "EXTERNAL_SERVICE_ERROR", message: "Sem conversão." },
+    });
+    const { result } = renderizar();
+    const audio = new File(["x"], "gravacao.webm", { type: "audio/webm" });
+    const aoConcluir = jest.fn();
+
+    act(() => result.current.aoEnviarAudio(audio, aoConcluir));
+    await waitFor(() => expect(result.current.erro).toBe("Sem conversão."));
+    expect(aoConcluir).not.toHaveBeenCalled();
+    const dados = anexo.mock.calls[0][0] as FormData;
+    expect(dados.get("arquivo")).toBe(audio);
+    expect(dados.get("legenda")).toBe("");
+
+    // Descartar a gravação apaga o erro dela.
+    act(() => result.current.aoCancelarAudio());
+    await waitFor(() => expect(result.current.erro).toBeUndefined());
+
+    anexo.mockResolvedValueOnce({ ok: true, data: undefined });
+    act(() => result.current.aoEnviarAudio(audio, aoConcluir));
+    await waitFor(() => expect(aoConcluir).toHaveBeenCalledTimes(1));
+  });
 });

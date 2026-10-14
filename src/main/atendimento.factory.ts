@@ -3,6 +3,7 @@ import "server-only";
 import {
   CRON_SECRET,
   INATIVIDADE_AUTOMATICA,
+  FFMPEG_PATH,
   MENSAGERIA_MODO,
   MENSAGERIA_SEGREDO_ASSINATURA,
   MENSAGERIA_SEGREDO_SESSAO,
@@ -60,6 +61,7 @@ import { TransferirAtendimento } from "@/modules/atendimento/application/use-cas
 import { VerificarInatividade } from "@/modules/atendimento/application/use-cases/verificar-inatividade.use-case";
 import { BearerAutenticacaoJobGateway } from "@/modules/atendimento/infra/gateways/bearer-autenticacao-job.gateway";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
+import { FfmpegConversorDeAudioGateway } from "@/modules/atendimento/infra/gateways/ffmpeg-conversor-de-audio.gateway";
 import { GuiasFiscaisGateway } from "@/modules/atendimento/infra/gateways/guias-fiscais.gateway";
 import { HmacAutenticacaoWebhookGateway } from "@/modules/atendimento/infra/gateways/hmac-autenticacao-webhook.gateway";
 import { RelogioSistemaGateway } from "@/modules/atendimento/infra/gateways/relogio-sistema.gateway";
@@ -245,6 +247,7 @@ export async function makeEnviarAnexoAoCliente(): Promise<EnviarAnexoAoClientePo
     new SupabaseAnexosAtendimentoGateway(supabaseAdmin),
     makeEnvioMensagem(),
     auditoriaViaModuloAuditoria(),
+    new FfmpegConversorDeAudioGateway(FFMPEG_PATH),
   );
 }
 

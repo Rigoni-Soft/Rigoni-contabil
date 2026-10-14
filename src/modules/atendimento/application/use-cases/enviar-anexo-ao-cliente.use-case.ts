@@ -5,6 +5,7 @@ import type {
 } from "@/modules/atendimento/application/ports/out/anexos-atendimento.provider";
 import type { AtendimentoRepositoryPort } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { AuditoriaPort } from "@/modules/atendimento/application/ports/out/auditoria.provider";
+import type { ConversorDeAudioPort } from "@/modules/atendimento/application/ports/out/conversor-de-audio.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type {
   AtorSessaoDto,
@@ -19,9 +20,12 @@ import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import {
   ANEXO_LEGENDA_TAMANHO_MAXIMO,
+  AUDIO_MIME_OGG,
+  ehAudio,
   miniaturaValida,
   validarAnexo,
-  type TipoAnexo,
+  validarAudio,
+  type TipoAnexoMensagem,
 } from "@/shared/kernel/anexo";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import { contarCaracteres } from "@/shared/kernel/texto";
@@ -34,7 +38,8 @@ function recusa(campo: "arquivo" | "legenda", mensagem: string) {
 
 // Mesma regra de quem pode agir que a Transferência. Tipo e tamanho são conferidos aqui, no servidor
 // (o formulário só antecipa o erro). O arquivo só vira Mensagem depois de entregue ao cliente; se a
-// entrega falha, o arquivo guardado é removido.
+// entrega falha, o arquivo guardado é removido. Áudio gravado em webm (Chrome/Edge) é convertido para
+// ogg/opus antes de guardar e entregar: o provedor nunca recebe webm. Áudio não leva legenda.
 export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -42,11 +47,12 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
     private readonly anexos: AnexosAtendimentoPort,
     private readonly envio: EnvioMensagemPort,
     private readonly auditoria: AuditoriaPort,
+    private readonly conversor: ConversorDeAudioPort,
   ) {}
 
   async execute({
     atendimentoId,
-    arquivo,
+    arquivo: original,
     miniatura,
     legenda,
   }: {
@@ -58,9 +64,15 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
     const ator = await this.sessao.usuarioAtual();
     if (!ator) return err(new ForbiddenError("Faça login para enviar o arquivo."));
 
-    const { tipo, erro } = validarAnexo(arquivo.tipoMime, arquivo.conteudo.byteLength);
-    const texto = legenda?.trim() ?? "";
-    if (!tipo) return recusa("arquivo", erro);
+    const bytes = original.conteudo.byteLength;
+    const audio = ehAudio(original.tipoMime);
+    const validado = audio
+      ? validarAudio(original.tipoMime, bytes)
+      : validarAnexo(original.tipoMime, bytes);
+    if (validado.erro !== undefined) return recusa("arquivo", validado.erro);
+    const tipo: TipoAnexoMensagem = "formato" in validado ? "audio" : validado.tipo;
+    const formatoAudio = "formato" in validado ? validado.formato : undefined;
+    const texto = audio ? "" : (legenda?.trim() ?? "");
     if (contarCaracteres(texto) > ANEXO_LEGENDA_TAMANHO_MAXIMO) {
       return recusa("legenda", `A legenda aceita até ${ANEXO_LEGENDA_TAMANHO_MAXIMO} caracteres.`);
     }
@@ -72,6 +84,13 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
     if (!podeTransferir(ator, atendimento)) {
       return err(new ForbiddenError("Você não pode enviar arquivos neste Atendimento."));
     }
+
+    const preparado = await this.prepararArquivo(original, formatoAudio);
+    if (!preparado.ok) {
+      await this.auditar(ator, atendimentoId, "falha");
+      return preparado;
+    }
+    const arquivo = preparado.value;
 
     const guardado = await this.anexos.guardar({ atendimentoId, arquivo });
     if (!guardado.ok) {
@@ -116,11 +135,30 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
     return ok(undefined);
   }
 
+  // Áudio em formato que o provedor aceita só perde os parâmetros do MIME ("audio/ogg;codecs=opus"
+  // vira "audio/ogg"); o que não aceita (webm) passa pelo conversor.
+  private async prepararArquivo(
+    arquivo: ArquivoAnexo,
+    formato: "nativo" | "converter" | undefined,
+  ): Promise<Result<ArquivoAnexo, AppError>> {
+    if (!formato) return ok(arquivo);
+    if (formato === "nativo") {
+      return ok({ ...arquivo, tipoMime: arquivo.tipoMime.split(";")[0].trim().toLowerCase() });
+    }
+    const convertido = await this.conversor.paraOggOpus(arquivo.conteudo, arquivo.tipoMime);
+    if (!convertido.ok) return convertido;
+    return ok({
+      nome: arquivo.nome.replace(/\.[^.]+$/, "") + ".ogg",
+      tipoMime: AUDIO_MIME_OGG,
+      conteudo: convertido.value,
+    });
+  }
+
   // Só para imagem, e no formato e tamanho esperados; qualquer outra coisa (ou falha ao guardar) é
   // ignorada: a conversa mostra o original, o envio não é prejudicado.
   private async guardarMiniatura(
     atendimentoId: string,
-    tipo: TipoAnexo,
+    tipo: TipoAnexoMensagem,
     miniatura: ArquivoAnexo | undefined,
   ): Promise<string | null> {
     if (
@@ -137,7 +175,7 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
   private async entregar(
     telefone: string,
     caminho: string,
-    tipo: TipoAnexo,
+    tipo: TipoAnexoMensagem,
     arquivo: ArquivoAnexo,
     legenda: string,
   ): Promise<Result<void, AppError>> {

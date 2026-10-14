@@ -18,7 +18,7 @@ export const ANEXO_MINIATURA_QUALIDADE = 0.8;
 export const ANEXO_LINK_MARGEM_MS = 5 * 60_000;
 
 export type TipoAnexo = "imagem" | "documento";
-// O que a Mensagem guarda: inclui o áudio, que chega (#81) mas o Funcionário ainda não envia.
+// O que a Mensagem guarda: inclui o áudio (gravado pelo Funcionário, #80; enviado pelo cliente, #81).
 export type TipoAnexoMensagem = TipoAnexo | "audio";
 
 // Por tipo MIME, nunca pela extensão. Lista fechada: SVG e HTML (que executam script) ficam de fora.
@@ -65,4 +65,35 @@ export function miniaturaValida(tipoMime: string, bytes: number): boolean {
   return (
     classificarAnexo(tipoMime) === "imagem" && bytes > 0 && bytes <= ANEXO_MINIATURA_TAMANHO_MAXIMO
   );
+}
+
+// Áudio gravado pelo microfone. Não entra em `ANEXO_MIMES_ACEITOS` (o seletor de arquivos não oferece
+// áudio): só a gravação o produz. A Meta aceita ogg com Opus e mp4/AAC, mas não webm.
+export const AUDIO_DURACAO_MAXIMA_S = 5 * 60;
+export const AUDIO_TIPO_RECUSADO = "Formato de áudio não aceito.";
+export const AUDIO_MIME_OGG = "audio/ogg";
+const MIME_AUDIO_NATIVO = [AUDIO_MIME_OGG, "audio/mp4"];
+const MIME_AUDIO_A_CONVERTER = ["audio/webm"];
+
+// "nativo": o provedor aceita como está; "converter": só depois de virar ogg/opus; null: recusado.
+export function classificarAudio(tipoMime: string): "nativo" | "converter" | null {
+  const mime = tipoMime.split(";")[0].trim().toLowerCase();
+  if (MIME_AUDIO_NATIVO.includes(mime)) return "nativo";
+  if (MIME_AUDIO_A_CONVERTER.includes(mime)) return "converter";
+  return null;
+}
+
+export function ehAudio(tipoMime: string): boolean {
+  return tipoMime.trim().toLowerCase().startsWith("audio/");
+}
+
+export function validarAudio(
+  tipoMime: string,
+  bytes: number,
+): { formato: "nativo" | "converter"; erro?: undefined } | { formato?: undefined; erro: string } {
+  const formato = classificarAudio(tipoMime);
+  if (!formato) return { erro: AUDIO_TIPO_RECUSADO };
+  if (bytes === 0) return { erro: ANEXO_VAZIO_RECUSADO };
+  if (bytes > ANEXO_TAMANHO_MAXIMO) return { erro: ANEXO_TAMANHO_RECUSADO };
+  return { formato };
 }

@@ -61,6 +61,12 @@ export function formatarTamanho(bytes: number): string {
   return `${FORMATO_TAMANHO.format(bytes / (1024 * 1024))} MB`;
 }
 
+// Cronômetro da gravação: 65 → "01:05".
+export function formatarCronometro(segundos: number): string {
+  const mm = String(Math.floor(segundos / 60)).padStart(2, "0");
+  return `${mm}:${String(segundos % 60).padStart(2, "0")}`;
+}
+
 // A conversa é relida a cada 5 s e cada leitura gera links novos, o que recarregaria as imagens.
 // Mantém o link que a leitura anterior já tinha até faltar `margemMs` para expirar.
 export function reaproveitarLinks(

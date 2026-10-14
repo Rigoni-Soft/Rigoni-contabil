@@ -4,6 +4,7 @@ import type {
   AtendimentoRepositoryPort,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { AuditoriaPort } from "@/modules/atendimento/application/ports/out/auditoria.provider";
+import type { ConversorDeAudioPort } from "@/modules/atendimento/application/ports/out/conversor-de-audio.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type { AtorSessaoDto } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -31,6 +32,7 @@ type Opcoes = {
   falhaGuardar?: boolean;
   falhaEnvio?: boolean;
   falhaRegistro?: boolean;
+  falhaConversao?: boolean;
 };
 
 function montar({
@@ -39,7 +41,9 @@ function montar({
   falhaGuardar = false,
   falhaEnvio = false,
   falhaRegistro = false,
+  falhaConversao = false,
 }: Opcoes = {}) {
+  const conversoes: string[] = [];
   const guardados: unknown[] = [];
   const removidos: string[] = [];
   const enviados: unknown[] = [];
@@ -77,7 +81,16 @@ function montar({
     },
   } as unknown as EnvioMensagemPort;
   const auditoria: AuditoriaPort = { registrar: async (a) => void auditadas.push(a) };
+  const conversor: ConversorDeAudioPort = {
+    paraOggOpus: async (conteudo, mime) => {
+      conversoes.push(mime);
+      return falhaConversao
+        ? err(new ServicoExternoError("sem ffmpeg"))
+        : ok(new Uint8Array(conteudo.byteLength / 2));
+    },
+  };
   return {
+    conversoes,
     guardados,
     removidos,
     enviados,
@@ -89,6 +102,7 @@ function montar({
       anexos,
       envio,
       auditoria,
+      conversor,
     ),
   };
 }
@@ -282,6 +296,94 @@ describe("EnviarAnexoAoCliente", () => {
       await caso.execute({ atendimentoId: "at-1", arquivo: FOTO, miniatura: MINIATURA });
 
       expect(removidos.sort()).toEqual(["at-1/foto.png", "at-1/miniatura.webp"]);
+    });
+  });
+
+  describe("áudio gravado", () => {
+    const webm = {
+      nome: "gravacao.webm",
+      tipoMime: "audio/webm;codecs=opus",
+      conteudo: new Uint8Array(4000),
+    };
+    const ogg = {
+      nome: "gravacao.ogg",
+      tipoMime: "audio/ogg;codecs=opus",
+      conteudo: new Uint8Array(3000),
+    };
+
+    it("webm é convertido para ogg antes de guardar e entregar, e registra o tipo áudio sem legenda", async () => {
+      const { caso, conversoes, guardados, enviados, registradas } = montar();
+
+      const r = await caso.execute({ atendimentoId: "at-1", arquivo: webm, legenda: "ignorada" });
+
+      expect(r.ok).toBe(true);
+      expect(conversoes).toEqual(["audio/webm;codecs=opus"]);
+      expect(guardados).toEqual([
+        {
+          atendimentoId: "at-1",
+          arquivo: { nome: "gravacao.ogg", tipoMime: "audio/ogg", conteudo: new Uint8Array(2000) },
+        },
+      ]);
+      expect(enviados).toEqual([
+        {
+          telefone: "5561988887777",
+          tipo: "audio",
+          url: "https://link/at-1/gravacao.ogg",
+          nomeArquivo: "gravacao.ogg",
+          legenda: undefined,
+        },
+      ]);
+      expect(registradas).toEqual([
+        [
+          "at-1",
+          "func-1",
+          "",
+          {
+            tipo: "audio",
+            nome: "gravacao.ogg",
+            tamanho: 2000,
+            caminho: "at-1/gravacao.ogg",
+            miniaturaCaminho: null,
+          },
+        ],
+      ]);
+    });
+
+    it("ogg/opus e mp4 seguem sem conversão, com o MIME sem parâmetros", async () => {
+      const { caso, conversoes, guardados } = montar();
+
+      expect((await caso.execute({ atendimentoId: "at-1", arquivo: ogg })).ok).toBe(true);
+      expect(conversoes).toEqual([]);
+      expect(guardados).toEqual([
+        { atendimentoId: "at-1", arquivo: { ...ogg, tipoMime: "audio/ogg" } },
+      ]);
+    });
+
+    it("sem como converter, o envio falha antes de guardar, e a falha é auditada", async () => {
+      const { caso, guardados, enviados, auditadas } = montar({ falhaConversao: true });
+
+      const r = await caso.execute({ atendimentoId: "at-1", arquivo: webm });
+
+      expect(r.ok).toBe(false);
+      expect(guardados).toEqual([]);
+      expect(enviados).toEqual([]);
+      expect(auditadas).toMatchObject([{ acao: "atendimento.enviar_anexo", resultado: "falha" }]);
+    });
+
+    it.each([
+      ["audio/mpeg", 10],
+      ["audio/webm", 0],
+      ["audio/webm", ANEXO_TAMANHO_MAXIMO + 1],
+    ])("recusa %s com %d bytes", async (tipoMime, bytes) => {
+      const { caso, conversoes } = montar();
+
+      const r = await caso.execute({
+        atendimentoId: "at-1",
+        arquivo: { nome: "a", tipoMime, conteudo: new Uint8Array(bytes) },
+      });
+
+      expect(r.ok).toBe(false);
+      expect(conversoes).toEqual([]);
     });
   });
 });

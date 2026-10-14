@@ -37,6 +37,9 @@ const resultado = z
     // CRON_SECRET não basta. Em produção só age com mensageria real e o aviso visível ao
     // Funcionário (docs/contratos/mensageria.md).
     INATIVIDADE_AUTOMATICA: z.enum(["desligada", "ligada"]).default("desligada"),
+    // Binário do ffmpeg que converte o áudio gravado em webm (docs/adr/0006). Sem valor, usa o
+    // `ffmpeg` do PATH.
+    FFMPEG_PATH: z.string().min(1).default("ffmpeg"),
   })
   .safeParse({
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -47,6 +50,7 @@ const resultado = z
     MENSAGERIA_SEGREDO_SESSAO: process.env.MENSAGERIA_SEGREDO_SESSAO || undefined,
     CRON_SECRET: process.env.CRON_SECRET || undefined,
     INATIVIDADE_AUTOMATICA: process.env.INATIVIDADE_AUTOMATICA || undefined,
+    FFMPEG_PATH: process.env.FFMPEG_PATH || undefined,
   });
 
 if (!resultado.success) {
@@ -62,4 +66,5 @@ export const {
   MENSAGERIA_SEGREDO_SESSAO,
   CRON_SECRET,
   INATIVIDADE_AUTOMATICA,
+  FFMPEG_PATH,
 } = resultado.data;

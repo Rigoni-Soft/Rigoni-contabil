@@ -96,6 +96,28 @@ describe("MensagemBalao — reação (#84)", () => {
     expect(screen.getByText("Segue o balanço")).toBeInTheDocument();
   });
 
+  it("anexo de áudio mostra o player com o arquivo, sem link de download", () => {
+    render(
+      <ul>
+        <MensagemBalao
+          {...BASE}
+          lado="atendente"
+          texto=""
+          anexo={{
+            tipo: "audio",
+            nome: "gravacao.ogg",
+            tamanho: "12 KB",
+            url: "https://l/audio",
+            painelId: "p1",
+          }}
+        />
+      </ul>,
+    );
+
+    expect(screen.getByLabelText("Áudio: gravacao.ogg")).toHaveAttribute("src", "https://l/audio");
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
   it("anexo de imagem mostra a miniatura que amplia; sem legenda não há parágrafo de texto", () => {
     const { container } = render(
       <ul>

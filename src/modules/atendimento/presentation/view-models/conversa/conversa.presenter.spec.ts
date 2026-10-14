@@ -3,6 +3,7 @@ import type { ConversaVista } from "@/modules/atendimento/application/ports/in/o
 import {
   conversaParaView,
   documentoDaOpcao,
+  formatarCronometro,
   formatarTamanho,
   reaproveitarLinks,
 } from "./conversa.presenter";
@@ -256,5 +257,12 @@ describe("anexo na conversa", () => {
     const nova = comAnexo("https://l/novo", "2026-10-14T13:00:00Z");
     expect(reaproveitarLinks(nova, undefined, AGORA)).toBe(nova);
     expect(reaproveitarLinks(nova, CONVERSA, AGORA).mensagens[0].anexo?.url).toBe("https://l/novo");
+  });
+});
+describe("formatarCronometro", () => {
+  it("mostra minutos e segundos com dois dígitos", () => {
+    expect(formatarCronometro(0)).toBe("00:00");
+    expect(formatarCronometro(65)).toBe("01:05");
+    expect(formatarCronometro(300)).toBe("05:00");
   });
 });

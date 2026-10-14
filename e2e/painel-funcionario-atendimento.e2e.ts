@@ -1,3 +1,5 @@
+import { spawnSync } from "node:child_process";
+
 import { createClient } from "@supabase/supabase-js";
 
 import { expect, test } from "./fixtures";
@@ -17,6 +19,8 @@ const FUNCIONARIO = "55555555-5555-5555-5555-555555555555";
 const TELEFONE = "61955572001";
 const CLIENTE = crypto.randomUUID();
 const CNPJ = `6${Date.now()}`.slice(0, 14);
+// O Chromium grava webm, que o servidor converte com ffmpeg (docs/adr/0006).
+const TEM_FFMPEG = spawnSync(process.env.FFMPEG_PATH || "ffmpeg", ["-version"]).status === 0;
 
 test.describe("Painel do Funcionário (#49)", () => {
   test.beforeAll(async () => {
@@ -240,6 +244,63 @@ test.describe("Painel do Funcionário (#49)", () => {
       .select("id, anexo_caminho, atendimentos!inner(cliente_id)")
       .eq("atendimentos.cliente_id", CLIENTE)
       .not("anexo_tipo", "is", null);
+    if (anexos.error) throw anexos.error;
+    await admin.storage
+      .from("anexos-atendimento")
+      .remove(anexos.data.map((m) => m.anexo_caminho as string));
+    await admin
+      .from("mensagens")
+      .delete()
+      .in(
+        "id",
+        anexos.data.map((m) => m.id),
+      );
+  });
+
+  test("o Funcionário grava um áudio, vê o cronômetro e cancelar descarta sem enviar nada @smoke", async ({
+    page,
+  }) => {
+    await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL("/");
+    await page
+      .getByRole("navigation", { name: "Atendimentos em andamento" })
+      .getByRole("link")
+      .click();
+
+    await page.getByRole("button", { name: "Gravar áudio" }).click();
+    await expect(page.getByRole("button", { name: "Enviar áudio" })).toBeVisible();
+    await expect(page.getByText(/Gravando: 00:0[1-9]/)).toBeVisible();
+
+    await page.getByRole("button", { name: "Cancelar gravação" }).click();
+    await expect(page.getByRole("button", { name: "Gravar áudio" })).toBeVisible();
+    await expect(page.getByLabel("Mensagem ao cliente")).toBeVisible();
+  });
+
+  test("o Funcionário grava e envia um áudio ao cliente e ele vira balão com player @smoke", async ({
+    page,
+  }) => {
+    test.skip(!TEM_FFMPEG, "o Chromium grava webm e a conversão para ogg exige ffmpeg");
+    await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL("/");
+    await page
+      .getByRole("navigation", { name: "Atendimentos em andamento" })
+      .getByRole("link")
+      .click();
+
+    await page.getByRole("button", { name: "Gravar áudio" }).click();
+    await expect(page.getByText(/Gravando: 00:0[1-9]/)).toBeVisible();
+    await page.getByRole("button", { name: "Enviar áudio" }).click();
+
+    const player = page.getByLabel(/^Áudio: gravacao\.ogg$/);
+    await expect(player).toBeVisible();
+    await expect(page.getByRole("button", { name: "Gravar áudio" })).toBeVisible();
+
+    // Limpa o que o teste criou, como o teste dos anexos.
+    const anexos = await admin
+      .from("mensagens")
+      .select("id, anexo_caminho, atendimentos!inner(cliente_id)")
+      .eq("atendimentos.cliente_id", CLIENTE)
+      .eq("anexo_tipo", "audio");
     if (anexos.error) throw anexos.error;
     await admin.storage
       .from("anexos-atendimento")

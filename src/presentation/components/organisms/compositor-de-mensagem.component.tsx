@@ -2,7 +2,10 @@ import { SendHorizontal } from "lucide-react";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { BotaoDeAnexo } from "@/presentation/components/atoms/botao-de-anexo.component";
+import { BotaoDeMicrofone } from "@/presentation/components/atoms/botao-de-microfone.component";
 import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
+import { BarraDeGravacao } from "@/presentation/components/molecules/barra-de-gravacao.component";
 import { CampoTextarea } from "@/presentation/components/molecules/campo-textarea.component";
 import { PreviaDeAnexo } from "@/presentation/components/molecules/previa-de-anexo.component";
 import { SeletorDeEmoji } from "@/presentation/components/molecules/seletor-de-emoji.component";
@@ -24,6 +27,17 @@ type CompositorDeMensagemProps = {
   aceitar: string;
   onAnexar: (arquivo: File) => void;
   onRemoverAnexo: () => void;
+  // Gravação de áudio: sem `gravacao`, o campo não oferece o microfone. `gravando` troca o campo
+  // pela barra de gravação; `indisponivel` explica por que o microfone está desligado.
+  gravacao?: {
+    gravando: boolean;
+    parada: boolean;
+    tempo: string;
+    indisponivel?: string;
+    onIniciar: () => void;
+    onCancelar: () => void;
+    onEnviar: () => void;
+  };
   // Arrastar e soltar sobre o campo: `arrastando` destaca o campo; `ligacoes` vêm do Container.
   arraste?: {
     arrastando: boolean;
@@ -45,8 +59,29 @@ export function CompositorDeMensagem({
   aceitar,
   onAnexar,
   onRemoverAnexo,
+  gravacao,
   arraste,
 }: CompositorDeMensagemProps) {
+  if (gravacao?.gravando) {
+    return (
+      <Pilha espaco={1} className="shrink-0">
+        <BarraDeGravacao
+          tempo={gravacao.tempo}
+          parada={gravacao.parada}
+          enviando={enviando}
+          onCancelar={gravacao.onCancelar}
+          onEnviar={gravacao.onEnviar}
+        />
+        {gravacao.parada && !erro && (
+          <Texto variante="nota" role="status">
+            A gravação parou. Envie o áudio ou cancele.
+          </Texto>
+        )}
+        {erro && <AvisoDeStatus tipo="erro" texto={erro} />}
+      </Pilha>
+    );
+  }
+
   return (
     <Pilha espaco={1} className="shrink-0">
       {anexo && <PreviaDeAnexo {...anexo} onRemover={onRemoverAnexo} enviando={enviando} />}
@@ -58,7 +93,7 @@ export function CompositorDeMensagem({
         key={enviadas}
         {...arraste?.ligacoes}
         className={cn(
-          // Celular: o campo ocupa a linha toda e as ações (clipe, emoji, enviar) vão para baixo;
+          // Celular: o campo ocupa a linha toda e as ações (clipe, emoji, microfone, enviar) vão para baixo;
           // de sm em diante, tudo numa linha só.
           "rounded-2xl transition-shadow sm:flex-nowrap",
           arraste?.arrastando && "ring-2 ring-primary ring-offset-4 ring-offset-background",
@@ -70,6 +105,13 @@ export function CompositorDeMensagem({
       >
         <BotaoDeAnexo aceitar={aceitar} disabled={enviando} onEscolher={onAnexar} />
         <SeletorDeEmoji {...seletor} disabled={enviando} />
+        {gravacao && (
+          <BotaoDeMicrofone
+            disabled={enviando}
+            motivo={gravacao.indisponivel}
+            onClick={gravacao.onIniciar}
+          />
+        )}
         <CampoTextarea
           ref={campoRef}
           id="mensagem-ao-cliente"
@@ -110,6 +152,7 @@ export function CompositorDeMensagem({
           <SendHorizontal aria-hidden="true" />
         </Button>
       </Linha>
+      {gravacao?.indisponivel && <Texto variante="nota">{gravacao.indisponivel}</Texto>}
       {erro && <AvisoDeStatus tipo="erro" texto={erro} />}
     </Pilha>
   );

@@ -1,8 +1,9 @@
 import { FileText } from "lucide-react";
 
 import { Caixa } from "@/presentation/components/atoms/caixa.component";
-import { Texto } from "@/presentation/components/atoms/texto.component";
 import { ImagemAmpliavel } from "@/presentation/components/atoms/imagem-ampliavel.component";
+import { PlayerDeAudio } from "@/presentation/components/atoms/player-de-audio.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import type { TipoAnexoMensagem } from "@/shared/kernel/anexo";
 
 type AnexoDaMensagemProps = {
@@ -36,6 +37,13 @@ export function AnexoDaMensagem({
           alt={nome}
           painelId={painelId}
         />
+      </Caixa>
+    );
+  }
+  if (tipo === "audio") {
+    return (
+      <Caixa className="my-1">
+        <PlayerDeAudio src={url} nome={nome} />
       </Caixa>
     );
   }

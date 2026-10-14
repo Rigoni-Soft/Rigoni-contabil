@@ -33,6 +33,11 @@ export default defineConfig({
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
+        // Gravação de áudio (#80): microfone falso e permissão já dada, sem prompt nem hardware.
+        permissions: ["microphone"],
+        launchOptions: {
+          args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"],
+        },
         ...(precisaBypass ? { storageState: "e2e/.auth/bypass.json" } : {}),
       },
       dependencies: precisaBypass ? ["bypass"] : [],
