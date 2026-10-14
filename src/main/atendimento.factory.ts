@@ -1,5 +1,8 @@
 import "server-only";
 
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import {
   CRON_SECRET,
   INATIVIDADE_AUTOMATICA,
@@ -11,7 +14,6 @@ import {
   OBRIGACOES_FISCAIS_URL,
 } from "@/env";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import ffmpegEstatico from "ffmpeg-static";
 
 import { makeRegistrarAcao } from "@/main/auditoria.factory";
 import { exigirSegredosReais } from "@/main/segredos-mensageria.factory";
@@ -66,6 +68,7 @@ import { FfmpegConversorDeAudioGateway } from "@/modules/atendimento/infra/gatew
 import { GuiasFiscaisGateway } from "@/modules/atendimento/infra/gateways/guias-fiscais.gateway";
 import { HmacAutenticacaoWebhookGateway } from "@/modules/atendimento/infra/gateways/hmac-autenticacao-webhook.gateway";
 import { RelogioSistemaGateway } from "@/modules/atendimento/infra/gateways/relogio-sistema.gateway";
+import { resolverFfmpeg } from "@/modules/atendimento/infra/gateways/resolver-ffmpeg";
 import { SupabaseAnexosAtendimentoGateway } from "@/modules/atendimento/infra/gateways/supabase-anexos-atendimento.gateway";
 import { SupabaseClienteCnpjGateway } from "@/modules/atendimento/infra/gateways/supabase-cliente-cnpj.gateway";
 import { SupabaseDocumentosContratuaisGateway } from "@/modules/atendimento/infra/gateways/supabase-documentos-contratuais.gateway";
@@ -240,6 +243,21 @@ export async function makeObterConversa(): Promise<ObterConversaPort> {
   );
 }
 
+// `FFMPEG_PATH` manda; senão o binário comprimido do build (menor na função); senão o do pacote
+// ffmpeg-static (desenvolvimento) ou o do PATH.
+function caminhoDoFfmpeg(): Promise<string> {
+  if (FFMPEG_PATH) return Promise.resolve(FFMPEG_PATH);
+  return resolverFfmpeg({
+    comprimido: join(process.cwd(), ".ffmpeg", "ffmpeg.br"),
+    destino: join(tmpdir(), "rigoni-ffmpeg", "ffmpeg"),
+    alternativo: async () => {
+      // Import dinâmico: no deploy o pacote é excluído do trace (só o comprimido segue).
+      const pacote = await import("ffmpeg-static").catch(() => null);
+      return pacote?.default ?? "ffmpeg";
+    },
+  });
+}
+
 export async function makeEnviarAnexoAoCliente(): Promise<EnviarAnexoAoClientePort> {
   const supabaseAdmin = createSupabaseAdmin();
   return new EnviarAnexoAoCliente(
@@ -248,7 +266,7 @@ export async function makeEnviarAnexoAoCliente(): Promise<EnviarAnexoAoClientePo
     new SupabaseAnexosAtendimentoGateway(supabaseAdmin),
     makeEnvioMensagem(),
     auditoriaViaModuloAuditoria(),
-    new FfmpegConversorDeAudioGateway(FFMPEG_PATH ?? ffmpegEstatico ?? "ffmpeg"),
+    new FfmpegConversorDeAudioGateway(await caminhoDoFfmpeg()),
   );
 }
 

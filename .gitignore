@@ -156,3 +156,6 @@ graphify-out
 /blob-report/
 /playwright/.cache/
 /e2e/.auth/
+
+# ffmpeg comprimido no build (scripts/comprimir-ffmpeg.mjs)
+/.ffmpeg

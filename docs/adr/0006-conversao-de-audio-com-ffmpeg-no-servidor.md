@@ -18,8 +18,11 @@ para contar com isso em todas as versões instaladas).
   webm, e o arquivo tocado na conversa é o convertido.
 - O gateway chama o binário do ffmpeg por `child_process.spawn` (pipe de entrada e saída, mono, Opus
   32 kbps). O binário vem do pacote `ffmpeg-static`, que o baixa na instalação; `FFMPEG_PATH` troca
-  por outro binário. No Next, o pacote fica em `serverExternalPackages` e o binário entra no trace
-  da rota da conversa por `outputFileTracingIncludes`.
+  por outro binário.
+- Para a função levar menos peso, o `prebuild` comprime o binário em brotli (`.ffmpeg/ffmpeg.br`,
+  cerca de 83 MB → 26 MB); a rota da conversa leva só esse arquivo (`outputFileTracingIncludes`, com o
+  binário bruto em `outputFileTracingExcludes`) e `resolverFfmpeg` o descomprime em `/tmp` na
+  primeira conversão da instância. Em desenvolvimento, sem o `.br`, usa o binário do pacote.
 - Se o binário não executar, o envio falha com mensagem clara; a gravação continua no navegador.
 
 ## Alternativas
@@ -30,5 +33,6 @@ para contar com isso em todas as versões instaladas).
 
 ## Consequências
 
-Chrome/Edge funcionam sem configurar nada no ambiente. O custo é o binário (dezenas de MB) na função
-da conversa; se o limite de tamanho da hospedagem apertar, o caminho é o encoder WASM no navegador.
+Chrome/Edge funcionam sem configurar nada no ambiente. A primeira conversão de cada instância paga a
+descompressão (cerca de 1 s). Se o limite de tamanho da hospedagem ainda apertar, o caminho é o
+encoder WASM no navegador.
