@@ -13,9 +13,10 @@ adapter falso o DAS ficaria `enviado` sem o cliente ter recebido.
 Antes de ligar em produção:
 
 1. Mensageria real no ar (#68) e os 3 templates aprovados na Meta (#67).
-2. E-mail real (hoje só o adapter falso `EnvioEmailFalsoGateway`) e o campo `clientes.email`
-   preenchido: a coluna existe, mas as telas e o cadastro do Cliente ainda não a leem nem gravam.
-   Sem e-mail, a forma de envio com e-mail vira alerta `contato_ausente` em vez de enviar.
+2. E-mail real (hoje só o adapter falso `EnvioEmailFalsoGateway`). O destino é `clientes.email`,
+   informado pelo Admin no cadastro do Cliente (opcional) e exposto na projeção `clientes_basico`.
+   Cliente sem e-mail com forma de envio que o inclui vira alerta `contato_ausente`. Editar o e-mail
+   depois do cadastro ainda não tem tela (só o Admin cria; o cadastro operacional não o altera).
 3. Painel do Funcionário lendo `alertas_setor` (a tabela e a RLS já existem; a tela não).
 
 ## O que o job faz

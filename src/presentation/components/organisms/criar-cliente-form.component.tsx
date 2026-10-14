@@ -28,6 +28,7 @@ export type CriarClienteFormValues = {
   empresa: string;
   cnpj: string;
   regime: (typeof REGIMES)[number];
+  email?: string;
   contratoSocial?: File;
   alteracoesContratuais: { data: string; arquivo: File }[];
 };
@@ -146,6 +147,14 @@ export function CriarClienteForm({
           erro={errors.regime?.message}
           aviso={avisoRegime}
           {...register("regime", { onChange: onRegimeChange })}
+        />
+        <CampoDeTexto
+          id="email"
+          rotulo="E-mail"
+          type="email"
+          autoComplete="off"
+          erro={errors.email?.message}
+          {...register("email")}
         />
       </Grade>
 

@@ -46,6 +46,7 @@ const CNPJS_DA_SUITE = [
   "11222333000181",
   "11444777000161",
   "20045044000145",
+  "34028316000103",
 ] as const;
 beforeAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
 afterAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
@@ -157,5 +158,45 @@ describe("SupabaseClienteRepository (integração)", () => {
     const resultado = await repositorio.criar(clienteValido("11444777000161"));
 
     expect(resultado.ok).toBe(false);
+  });
+
+  it("grava o e-mail do Cliente e o Funcionário o lê pela projeção clientes_basico", async () => {
+    const admin = await comoAdmin();
+    const construido = Cliente.builder()
+      .comId(crypto.randomUUID())
+      .comEmpresa("Padaria Pão Quente Ltda")
+      .comCnpj("34028316000103")
+      .comRegime("simples_nacional")
+      .comContratoSocialCaminho(null)
+      .comEmail("financeiro@padaria.com.br")
+      .comAlteracoesContratuais([])
+      .build();
+    if (!construido.ok) throw new Error("setup inválido");
+
+    const criado = await new SupabaseClienteRepository(admin).criar(construido.value);
+    expect(criado.ok).toBe(true);
+
+    const { data: linha } = await admin
+      .from("clientes")
+      .select("email")
+      .eq("id", construido.value.id)
+      .maybeSingle();
+    expect(linha?.email).toBe("financeiro@padaria.com.br");
+
+    // Admin lê pela view como qualquer perfil; o Cliente reconstituído traz o e-mail.
+    const lido = await new SupabaseClienteRepository(admin).buscarPorId(construido.value.id);
+    expect(lido.ok && lido.value?.email).toBe("financeiro@padaria.com.br");
+  });
+
+  it("e-mail mal formado é barrado pelo banco", async () => {
+    const admin = await comoAdmin();
+    const { error } = await admin.from("clientes").insert({
+      id: crypto.randomUUID(),
+      empresa: "Sem Arroba Ltda",
+      cnpj: "00000000E08G12",
+      regime: "simples_nacional",
+      email: "sem-arroba",
+    });
+    expect(error?.code).toBe("23514");
   });
 });

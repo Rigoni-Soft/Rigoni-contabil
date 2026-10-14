@@ -23,6 +23,8 @@ export const criarClienteSchema = z.object({
   empresa: z.string().min(1, "Empresa obrigatória"),
   cnpj: z.string().min(1, "CNPJ obrigatório").refine(cnpjValido, "CNPJ inválido"),
   regime: z.enum(REGIMES, "Regime obrigatório"),
+  // Opcional: vazio vale como "sem e-mail" (campo de texto não preenchido chega como "").
+  email: z.union([z.literal(""), z.string().trim().email("E-mail inválido")]).optional(),
   // Opcional (decisão de produto 2026-09-29, atualiza a spec #24).
   contratoSocial: arquivoDocumento("Arquivo inválido").optional(),
   alteracoesContratuais: z.array(

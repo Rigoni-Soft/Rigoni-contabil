@@ -40,4 +40,29 @@ describe("criarClienteSchema", () => {
 
     expect(resultado.success).toBe(false);
   });
+
+  it.each([[undefined], [""], ["financeiro@padaria.com.br"]])(
+    "e-mail opcional: aceita %p",
+    (email) => {
+      const resultado = criarClienteSchema.safeParse({
+        empresa: "Padaria Pão Quente Ltda",
+        cnpj: "11.444.777/0001-61",
+        regime: "simples_nacional",
+        email,
+        alteracoesContratuais: [],
+      });
+      expect(resultado.success).toBe(true);
+    },
+  );
+
+  it("rejeita e-mail mal formado", () => {
+    const resultado = criarClienteSchema.safeParse({
+      empresa: "Padaria Pão Quente Ltda",
+      cnpj: "11.444.777/0001-61",
+      regime: "simples_nacional",
+      email: "sem-arroba",
+      alteracoesContratuais: [],
+    });
+    expect(resultado.success).toBe(false);
+  });
 });

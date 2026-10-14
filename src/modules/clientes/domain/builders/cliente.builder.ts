@@ -15,6 +15,8 @@ import { Regime } from "@/modules/clientes/domain/value-objects/regime.vo";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
+const EMAIL_VALIDO = /^[^@s]+@[^@s]+$/;
+
 export type AlteracaoContratualRestaurar = { data: string; arquivoCaminho: string };
 export type ContatoRestaurar = { id?: string; nome: string; telefone: string; padrao: boolean };
 export type AtividadeMensalRestaurar = {
@@ -30,6 +32,7 @@ export type ClienteRestaurar = {
   cnpj: string;
   regime: string;
   contratoSocialCaminho: string | null;
+  email?: string | null;
   alteracoesContratuais: AlteracaoContratualRestaurar[];
   formaEnvio?: string;
   contatos?: ContatoRestaurar[];
@@ -50,6 +53,7 @@ export class ClienteBuilder {
   // Opcional (decisão de produto 2026-09-29) — sem sentinela `undefined` pra
   // distinguir "setter nunca chamado" porque não há mais checagem de presença.
   private contratoSocialCaminho: string | null = null;
+  private email: string | null = null;
   private alteracoesContratuais: AlteracaoContratual[] = [];
   // Campos operacionais do Simples Nacional (#34) — todos opcionais/com
   // default, igual a contratoSocialCaminho: um Cliente recém-criado pelo #33
@@ -95,6 +99,15 @@ export class ClienteBuilder {
 
   comContratoSocialCaminho(caminho: string | null): this {
     this.contratoSocialCaminho = caminho;
+    return this;
+  }
+
+  // Vazio ou só espaços é "sem e-mail"; o formato é o mesmo do `check` da coluna.
+  comEmail(entrada: string | null): this {
+    const email = entrada?.trim() || null;
+    if (email !== null && !EMAIL_VALIDO.test(email))
+      this.camposInvalidos.email = ["e-mail inválido"];
+    this.email = email;
     return this;
   }
 
@@ -210,6 +223,7 @@ export class ClienteBuilder {
       .comRegime(dados.regime)
       .comContratoSocialCaminho(dados.contratoSocialCaminho)
       .comAlteracoesContratuais(dados.alteracoesContratuais);
+    if (dados.email !== undefined) this.comEmail(dados.email);
     if (dados.formaEnvio !== undefined) this.comFormaEnvio(dados.formaEnvio);
     if (dados.contatos !== undefined) this.comContatos(dados.contatos);
     if (dados.documentoObrigatorio !== undefined)
@@ -262,6 +276,7 @@ export class ClienteBuilder {
         cnpj: this.cnpj!,
         regime: this.regime!,
         contratoSocialCaminho: this.contratoSocialCaminho,
+        email: this.email,
         alteracoesContratuais: this.alteracoesContratuais,
         formaEnvio: this.formaEnvio ?? formaEnvioPadrao(),
         contatos: this.contatos,

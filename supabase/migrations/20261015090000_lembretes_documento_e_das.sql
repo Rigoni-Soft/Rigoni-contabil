@@ -5,6 +5,53 @@
 alter table public.clientes
   add column email text check (email is null or (length(email) <= 254 and email ~ '^[^@\s]+@[^@\s]+$'));
 
+-- O Admin informa o e-mail ao cadastrar o Cliente; a projeção que não-Admin lê também o expõe
+-- (novas colunas entram no fim da view).
+create or replace view public.clientes_basico
+with (security_invoker = false) as
+select id, empresa, cnpj, regime, email
+from public.clientes
+where public.pode_ver_cliente(id);
+
+-- Mesma RPC do cadastro (20261002130000) com o e-mail. A assinatura antiga sai: duas versões
+-- tornariam a chamada ambígua.
+drop function if exists public.criar_cliente(uuid, text, text, public.regime, text, jsonb);
+create function public.criar_cliente(
+  p_id uuid,
+  p_empresa text,
+  p_cnpj text,
+  p_regime public.regime,
+  p_contrato_social_caminho text,
+  p_alteracoes jsonb,
+  p_email text default null
+)
+returns void
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  insert into public.clientes (id, empresa, cnpj, regime, contrato_social_caminho, email)
+  values (p_id, p_empresa, p_cnpj, p_regime, p_contrato_social_caminho, p_email);
+
+  insert into public.cliente_alteracoes_contratuais (id, cliente_id, data, arquivo_caminho)
+  select
+    (item ->> 'id')::uuid,
+    p_id,
+    (item ->> 'data')::date,
+    item ->> 'arquivoCaminho'
+  from jsonb_array_elements(p_alteracoes) as item;
+
+  if p_regime in ('mei', 'simples_nacional') then
+    insert into public.cliente_cadastro_operacional_sn
+      (cliente_id, forma_envio, documento_obrigatorio, das_status, tem_parcelamento,
+       parcelamento_status, observacoes_gerais)
+    values
+      (p_id, 'whatsapp', 'negativo', 'pendente', false, 'pendente', '');
+  end if;
+end;
+$$;
+
 -- Alertas ao setor, lidos pelo painel do Funcionário. Um alerta aberto por Cliente e tipo: o job
 -- roda quatro vezes por mês e renova o mesmo aviso até a condição acabar ou alguém resolvê-lo.
 create type public.tipo_alerta_setor as enum ('das_pendente', 'falha_envio', 'contato_ausente');

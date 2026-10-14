@@ -6,5 +6,6 @@ export type ClienteDto = {
   cnpj: string;
   regime: string;
   contratoSocialCaminho: string | null;
+  email: string | null;
   alteracoesContratuais: AlteracaoContratualDto[];
 };

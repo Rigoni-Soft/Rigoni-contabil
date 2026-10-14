@@ -20,6 +20,8 @@ export type ClienteProps = {
   // Opcional (decisão de produto 2026-09-29, atualiza a spec #24): nem todo
   // Cliente tem o contrato social anexado no momento do cadastro.
   contratoSocialCaminho: string | null;
+  // Opcional: destino do envio por e-mail do job de lembrete/DAS (#52).
+  email: string | null;
   alteracoesContratuais: readonly AlteracaoContratual[];
   // Campos operacionais do Simples Nacional (#34) — editados pelo Funcionário
   // do setor, em tela separada do cadastro jurídico do #33.
@@ -59,6 +61,10 @@ export class Cliente {
 
   get contratoSocialCaminho(): string | null {
     return this.props.contratoSocialCaminho;
+  }
+
+  get email(): string | null {
+    return this.props.email;
   }
 
   get alteracoesContratuais(): readonly AlteracaoContratual[] {
