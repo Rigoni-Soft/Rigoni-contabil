@@ -376,8 +376,7 @@ Observações, upload de arquivo e listas repetíveis continuam em coluna
 
 - `CriarUsuarioForm`: Nome/E-mail/Papel/Setor em `grid-cols-1 sm:grid-cols-2`.
 - `CriarClienteForm`: CNPJ/Empresa/Regime/E-mail em `grid-cols-1 sm:grid-cols-2`
-  (identificação do Cliente; eram 3 colunas até o E-mail entrar, #52 — com
-  4 campos o grid de 3 deixaria o último sozinho numa linha); dentro de cada "Alteração contratual", Data e
+  (identificação do Cliente: 4 campos, 2 colunas); dentro de cada "Alteração contratual", Data e
   Arquivo da alteração em `grid-cols-1 sm:grid-cols-2`. A seção "Documentos"
   (Contrato social + lista de Alterações) continua fora do grid — upload de
   arquivo e lista dinâmica não comprimem bem lado a lado.

@@ -62,6 +62,14 @@ export function montarTemplate(
   }
 }
 
+const ASSUNTO_EMAIL: Record<ComunicacaoProativa["tipo"], string> = {
+  lembrete_documento_obrigatorio: "Documentos fiscais pendentes",
+  envio_guia_das: "Guia do DAS",
+  envio_guia_parcelamento: "Guia de parcelamento",
+};
+
+export const montarAssuntoEmail = (c: ComunicacaoProativa): string => ASSUNTO_EMAIL[c.tipo];
+
 // Texto no formato próprio do sistema, usado com a janela aberta (sem custo de template) e no
 // e-mail.
 export function montarTextoLivre(comunicacao: ComunicacaoProativa): string {

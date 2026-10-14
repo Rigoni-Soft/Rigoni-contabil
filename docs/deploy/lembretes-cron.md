@@ -34,8 +34,11 @@ Antes de ligar em produção:
 - **Reivindicação do DAS:** antes de buscar e enviar, o DAS é reivindicado (pronto → enviado, atômico,
   auditado com a URA). Quem não reivindicou (outro job ou o Funcionário) não envia; entrega que falha
   devolve o DAS a pronto com a data de envio anterior (`cliente.desfazer-envio-das-automatico`).
-- **Forma de envio:** WhatsApp e e-mail são independentes; o DAS vira `enviado` se ao menos um canal
-  entregou. Canal que falha ou não tem destinatário gera alerta e não derruba o outro.
+- **Forma de envio:** WhatsApp e e-mail são independentes; o DAS vira `enviado` se ao menos um
+  canal entregou. Canal que falha ou não tem destinatário gera alerta e não derruba o outro. Quando
+  a forma de envio tem os dois canais e só um entregou, abre-se também `entrega_parcial`: o job
+  não a resolve sozinho (o DAS já saiu de `pronto`), ela fica aberta até alguém reenviar pelo
+  outro canal.
 - **Guia no template:** o PDF vai para o bucket privado `guias-fiscais` e o provedor busca por link
   assinado (7 dias). Os PDFs não são removidos (ver `ponytail:` no gateway).
 - **Alertas:** `alertas_setor`, um aberto por Cliente e tipo (índice parcial). Repetir o alerta

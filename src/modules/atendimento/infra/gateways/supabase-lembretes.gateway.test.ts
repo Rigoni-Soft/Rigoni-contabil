@@ -188,6 +188,22 @@ describe("job de lembrete de documento e DAS (infra)", () => {
     expect(todos.data).toHaveLength(2);
   });
 
+  it("a entrega parcial não é resolvida pelo job; os demais alertas não renovados são", async () => {
+    await admin.from("alertas_setor").delete().eq("cliente_id", clienteId);
+    const base = { setor: "simples_nacional", clienteId, mensagem: "x" } as const;
+    await alertas.alertar({ ...base, tipo: "entrega_parcial" });
+    await alertas.alertar({ ...base, tipo: "falha_envio" });
+
+    await alertas.resolverNaoRenovados(new Date(Date.now() + 60_000));
+
+    const abertos = await admin
+      .from("alertas_setor")
+      .select("tipo")
+      .eq("cliente_id", clienteId)
+      .is("resolvido_em", null);
+    expect(abertos.data).toEqual([{ tipo: "entrega_parcial" }]);
+  });
+
   it("publica o PDF no bucket e devolve um link assinado", async () => {
     const link = await guias.publicar(clienteId, {
       nomeArquivo: "das.pdf",

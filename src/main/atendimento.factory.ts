@@ -21,6 +21,7 @@ import { exigirSegredosReais } from "@/main/segredos-mensageria.factory";
 import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
 import { ESPERA_MS, TENTATIVAS } from "@/modules/atendimento/application/com-tentativas";
+import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/entrega-por-canais";
 import type { AutenticarWebhookPort } from "@/modules/atendimento/application/ports/in/autenticar-webhook.provider";
 import type { AvisarClientePort } from "@/modules/atendimento/application/ports/in/avisar-cliente.provider";
 import type { EncerrarAtendimentoPort } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
@@ -54,7 +55,6 @@ import { AutenticarWebhook } from "@/modules/atendimento/application/use-cases/a
 import { AvisarCliente } from "@/modules/atendimento/application/use-cases/avisar-cliente.use-case";
 import { CadastrarFeriado } from "@/modules/atendimento/application/use-cases/cadastrar-feriado.use-case";
 import { EncerrarAtendimento } from "@/modules/atendimento/application/use-cases/encerrar-atendimento.use-case";
-import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/use-cases/entregar-comunicacao-por-canais.use-case";
 import { EnviarAnexoAoCliente } from "@/modules/atendimento/application/use-cases/enviar-anexo-ao-cliente.use-case";
 import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
 import { EnviarDocumentoAoCliente } from "@/modules/atendimento/application/use-cases/enviar-documento-ao-cliente.use-case";
@@ -235,8 +235,13 @@ function jobAutomaticoAtivo(flag: string): boolean {
   );
 }
 
-export const inatividadeAutomaticaAtiva = () => jobAutomaticoAtivo(INATIVIDADE_AUTOMATICA);
-export const lembretesAutomaticosAtivos = () => jobAutomaticoAtivo(LEMBRETES_AUTOMATICOS);
+export function inatividadeAutomaticaAtiva(): boolean {
+  return jobAutomaticoAtivo(INATIVIDADE_AUTOMATICA);
+}
+
+export function lembretesAutomaticosAtivos(): boolean {
+  return jobAutomaticoAtivo(LEMBRETES_AUTOMATICOS);
+}
 
 // Job (service_role, sem sessão de usuário): a URA verifica a inatividade dos Atendimentos.
 export function makeVerificarInatividade(): VerificarInatividadePort {

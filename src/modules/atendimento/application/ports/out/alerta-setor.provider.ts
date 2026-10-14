@@ -2,7 +2,8 @@ import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
-export type TipoAlertaSetor = "das_pendente" | "falha_envio" | "contato_ausente";
+export type TipoAlertaSetor =
+  "das_pendente" | "falha_envio" | "contato_ausente" | "entrega_parcial";
 
 export type AlertaSetor = {
   setor: SetorSlug;

@@ -4,6 +4,7 @@ import {
   TENTATIVAS,
 } from "@/modules/atendimento/application/com-tentativas";
 import {
+  montarAssuntoEmail,
   montarTextoLivre,
   type ComunicacaoProativa,
 } from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
@@ -13,8 +14,12 @@ import type { RodadaLembretes } from "@/modules/atendimento/application/rodada-l
 import type { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
 import { formaEnvioUsaEmail, formaEnvioUsaWhatsapp } from "@/shared/kernel/forma-envio";
 
+type Canal = "entregue" | "falhou" | "indisponivel";
+
 // Entrega a comunicação pelos canais da forma de envio do Cliente. `true` se ao menos um canal
-// entregou; o canal que não entrega vira alerta do setor e não derruba o outro.
+// entregou. O canal que não entrega vira alerta do setor sem derrubar o outro; entregar por um
+// canal só (forma de envio com os dois) abre também o alerta `entrega_parcial`, que o job não
+// resolve sozinho.
 export class EntregarComunicacaoPorCanais {
   constructor(
     private readonly proativa: EnviarComunicacaoProativa,
@@ -28,13 +33,22 @@ export class EntregarComunicacaoPorCanais {
     agora: Date,
     rodada: RodadaLembretes,
   ): Promise<boolean> {
-    const porWhatsapp = formaEnvioUsaWhatsapp(cliente.formaEnvio)
-      ? await this.porWhatsapp(cliente, comunicacao, agora, rodada)
-      : false;
-    const porEmail = formaEnvioUsaEmail(cliente.formaEnvio)
-      ? await this.porEmail(cliente, comunicacao, rodada)
-      : false;
-    return porWhatsapp || porEmail;
+    const canais: Canal[] = [];
+    if (formaEnvioUsaWhatsapp(cliente.formaEnvio)) {
+      canais.push(await this.porWhatsapp(cliente, comunicacao, agora, rodada));
+    }
+    if (formaEnvioUsaEmail(cliente.formaEnvio)) {
+      canais.push(await this.porEmail(cliente, comunicacao, rodada));
+    }
+    const entregues = canais.filter((canal) => canal === "entregue").length;
+    if (entregues > 0 && entregues < canais.length) {
+      await rodada.alertar(
+        cliente,
+        "entrega_parcial",
+        `${cliente.empresa}: entregue por apenas um canal; reenviar pelo outro.`,
+      );
+    }
+    return entregues > 0;
   }
 
   private async porWhatsapp(
@@ -42,14 +56,14 @@ export class EntregarComunicacaoPorCanais {
     comunicacao: ComunicacaoProativa,
     agora: Date,
     rodada: RodadaLembretes,
-  ): Promise<boolean> {
+  ): Promise<Canal> {
     if (!cliente.contato) {
       await rodada.alertar(
         cliente,
         "contato_ausente",
         `${cliente.empresa} não tem contato padrão.`,
       );
-      return false;
+      return "indisponivel";
     }
     const enviado = await this.proativa.execute({
       telefone: cliente.contato.telefone,
@@ -57,36 +71,34 @@ export class EntregarComunicacaoPorCanais {
       ultimaMensagemDoContatoEm: cliente.ultimaMensagemDoContatoEm,
       agora,
     });
-    if (enviado.ok) return true;
+    if (enviado.ok) return "entregue";
     await rodada.falhou(cliente, `WhatsApp de ${cliente.empresa}: ${enviado.error.message}`);
-    return false;
+    return "falhou";
   }
 
   private async porEmail(
     cliente: ClienteParaLembrete,
     comunicacao: ComunicacaoProativa,
     rodada: RodadaLembretes,
-  ): Promise<boolean> {
+  ): Promise<Canal> {
     const destinatario = cliente.email;
     if (!destinatario) {
       await rodada.alertar(cliente, "contato_ausente", `${cliente.empresa} não tem e-mail.`);
-      return false;
+      return "indisponivel";
     }
-    const anexo = "guia" in comunicacao ? comunicacao.guia : undefined;
-    const tema = anexo ? "Guia do DAS" : "Documentos fiscais pendentes";
     const enviado = await comTentativas(
       () =>
         this.email.enviar({
           para: destinatario,
-          assunto: `${tema} — ${cliente.empresa}`,
+          assunto: `${montarAssuntoEmail(comunicacao)} — ${cliente.empresa}`,
           texto: montarTextoLivre(comunicacao),
-          anexo,
+          anexo: "guia" in comunicacao ? comunicacao.guia : undefined,
         }),
       TENTATIVAS,
       this.esperaEntreTentativasMs,
     );
-    if (enviado.ok) return true;
+    if (enviado.ok) return "entregue";
     await rodada.falhou(cliente, `E-mail de ${cliente.empresa}: ${enviado.error.message}`);
-    return false;
+    return "falhou";
   }
 }

@@ -19,6 +19,18 @@ export class RodadaLembretes {
     this.resumo = { executado, lembretes: 0, dasEnviados: 0, alertas: 0, falhas: 0 };
   }
 
+  registrarLembrete() {
+    this.resumo.lembretes += 1;
+  }
+
+  registrarDasEnviado() {
+    this.resumo.dasEnviados += 1;
+  }
+
+  registrarFalha() {
+    this.resumo.falhas += 1;
+  }
+
   async alertar(cliente: ClienteParaLembrete, tipo: TipoAlertaSetor, mensagem: string) {
     const chave = `${cliente.clienteId}:${tipo}`;
     if (this.alertados.has(chave)) return;
@@ -30,11 +42,11 @@ export class RodadaLembretes {
       mensagem,
     });
     if (gravado.ok) this.resumo.alertas += 1;
-    else this.resumo.falhas += 1;
+    else this.registrarFalha();
   }
 
   async falhou(cliente: ClienteParaLembrete, mensagem: string) {
-    this.resumo.falhas += 1;
+    this.registrarFalha();
     await this.alertar(cliente, "falha_envio", mensagem);
   }
 }

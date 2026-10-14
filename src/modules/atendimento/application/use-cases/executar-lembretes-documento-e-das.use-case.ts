@@ -3,6 +3,7 @@ import {
   ESPERA_MS,
   TENTATIVAS,
 } from "@/modules/atendimento/application/com-tentativas";
+import type { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/entrega-por-canais";
 import type { ComunicacaoProativa } from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
 import type {
   ExecutarLembretesDocumentoEDasPort,
@@ -17,7 +18,6 @@ import type { GuiaPublicadaPort } from "@/modules/atendimento/application/ports/
 import type { GuiasFiscaisPort } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import { RodadaLembretes } from "@/modules/atendimento/application/rodada-lembretes";
-import type { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/use-cases/entregar-comunicacao-por-canais.use-case";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { formatarCompetencia, formatarDataIso } from "@/shared/kernel/data-iso";
@@ -36,7 +36,7 @@ const temDestinatario = (cliente: ClienteParaLembrete) =>
 // Job dos dias 01/05/10/15 (fuso de São Paulo): lembra quem está sem documento obrigatório,
 // envia o DAS pronto pela forma de envio do Cliente e alerta o setor Simples Nacional do DAS que
 // segue pendente com o documento em dia. Cada Cliente é independente: um que falha não impede os
-// demais. Falha de Serpro/WhatsApp tenta de novo antes de alertar.
+// demais. Falha do provedor fiscal ou de mensagem tenta de novo antes de alertar.
 // A entrega é precedida da reivindicação do DAS (pronto → enviado, atômica) e desfeita se falhar:
 // duas execuções ou o Funcionário não geram envio em dobro, e uma falha não deixa o DAS "enviado".
 // ponytail: processo que cai entre reivindicar e entregar deixa o DAS como enviado sem a guia ter
@@ -64,7 +64,7 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     // Alerta que o job não renovou nesta rodada deixou de valer. A folga cobre a diferença entre o
     // relógio do servidor e o do banco; os alertas anteriores têm dias.
     const resolvidos = await this.alertas.resolverNaoRenovados(new Date(agora.getTime() - 60_000));
-    if (!resolvidos.ok) rodada.resumo.falhas += 1;
+    if (!resolvidos.ok) rodada.registrarFalha();
     return ok(rodada.resumo);
   }
 
@@ -87,7 +87,7 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
       empresa: cliente.empresa,
     };
     if (await this.entrega.execute(cliente, comunicacao, agora, rodada)) {
-      rodada.resumo.lembretes += 1;
+      rodada.registrarLembrete();
     }
   }
 
@@ -108,7 +108,7 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     if (!reivindicado.value) return;
 
     if (await this.entregarDas(cliente, agora, rodada)) {
-      rodada.resumo.dasEnviados += 1;
+      rodada.registrarDasEnviado();
       return;
     }
     await this.devolverDas(cliente, rodada);

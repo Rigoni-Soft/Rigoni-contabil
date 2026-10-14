@@ -1,3 +1,4 @@
+import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/entrega-por-canais";
 import type { AlertaSetor } from "@/modules/atendimento/application/ports/out/alerta-setor.provider";
 import type { ClienteParaLembrete } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
 import type { EmailEnviado } from "@/modules/atendimento/application/ports/out/envio-email.provider";
@@ -8,7 +9,6 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-import { EntregarComunicacaoPorCanais } from "./entregar-comunicacao-por-canais.use-case";
 import { EnviarComunicacaoProativa } from "./enviar-comunicacao-proativa.use-case";
 import { ExecutarLembretesDocumentoEDas } from "./executar-lembretes-documento-e-das.use-case";
 
@@ -343,5 +343,32 @@ describe("ExecutarLembretesDocumentoEDas", () => {
     const { job } = montar([], { resolver: err(new ServicoExternoError("banco")) });
     const resultado = await job.execute();
     expect(resultado.ok && resultado.value.falhas).toBe(1);
+  });
+
+  it("whatsapp_e_email com e-mail ausente: entrega pelo WhatsApp, mantém enviado e abre entrega_parcial", async () => {
+    const { job, envio, alertas, desfeitos } = montar([
+      cliente({ dasStatus: "pronto", formaEnvio: "whatsapp_e_email", email: null }),
+    ]);
+    const resultado = await job.execute();
+    expect(envio.requisicoes).toHaveLength(1);
+    expect(desfeitos).toHaveLength(0);
+    expect(resultado.ok && resultado.value.dasEnviados).toBe(1);
+    expect(alertas.map((a) => a.tipo).sort()).toEqual(["contato_ausente", "entrega_parcial"]);
+  });
+
+  it("whatsapp_e_email entregue pelos dois canais: sem alerta de entrega parcial", async () => {
+    const { job, alertas } = montar([
+      cliente({ dasStatus: "pronto", formaEnvio: "whatsapp_e_email", email: "ana@3a.com.br" }),
+    ]);
+    await job.execute();
+    expect(alertas).toHaveLength(0);
+  });
+
+  it("forma de envio de um canal só que falha: falha_envio, sem entrega_parcial", async () => {
+    const { job, alertas } = montar([cliente({ dasStatus: "pronto" })], {
+      falhas: { [telefone]: 131026 },
+    });
+    await job.execute();
+    expect(alertas.map((a) => a.tipo)).toEqual(["falha_envio"]);
   });
 });

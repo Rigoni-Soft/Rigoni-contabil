@@ -54,7 +54,11 @@ $$;
 
 -- Alertas ao setor, lidos pelo painel do Funcionário. Um alerta aberto por Cliente e tipo: o job
 -- roda quatro vezes por mês e renova o mesmo aviso até a condição acabar ou alguém resolvê-lo.
-create type public.tipo_alerta_setor as enum ('das_pendente', 'falha_envio', 'contato_ausente');
+-- 'entrega_parcial': a guia chegou por um canal só. Não é recorrente (o DAS já saiu de "pronto"),
+-- então o job não a renova nem a resolve: fica aberta até alguém reenviar pelo outro canal.
+create type public.tipo_alerta_setor as enum (
+  'das_pendente', 'falha_envio', 'contato_ausente', 'entrega_parcial'
+);
 
 create table public.alertas_setor (
   id uuid primary key default gen_random_uuid(),
@@ -101,6 +105,7 @@ as $$
 $$;
 
 -- Ao fim da rodada: o que o job não renovou desde `p_desde` deixou de valer (o Cliente regularizou).
+-- A entrega parcial fica de fora: ela só se resolve com uma ação humana.
 create function public.resolver_alertas_setor_nao_renovados(p_desde timestamptz)
 returns void
 language sql
@@ -109,7 +114,7 @@ set search_path = public
 as $$
   update public.alertas_setor
      set resolvido_em = now()
-   where resolvido_em is null and criado_em < p_desde;
+   where resolvido_em is null and criado_em < p_desde and tipo <> 'entrega_parcial';
 $$;
 
 -- Guias do DAS publicadas para o provedor de mensagem/e-mail buscar por link assinado.
