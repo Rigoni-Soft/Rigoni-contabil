@@ -33,6 +33,7 @@ const TELEFONES = [
   "61955590004",
   "61955590005",
   "61955590006",
+  "61955590007",
 ];
 const usuarios: string[] = [];
 
@@ -301,8 +302,8 @@ describe("inatividade × desativação do dono", () => {
 describe("inatividade × conversa do painel", () => {
   it("a Mensagem posterior do Funcionário tira o aviso de pendente, mesmo com a marca gravada", async () => {
     const dono = await criarFuncionario("Func Aviso Na Conversa");
-    const id = await abrirDireto(TELEFONES[4], dono);
-    await mensagem(TELEFONES[4], "contato");
+    const id = await abrirDireto(TELEFONES[6], dono);
+    await mensagem(TELEFONES[6], "contato");
     await repositorio.marcarAvisoInatividade(id, "funcionario", new Date());
 
     const antes = await repositorio.conversa(id);
@@ -310,7 +311,7 @@ describe("inatividade × conversa do painel", () => {
     expect(avisoPendenteAoFuncionario(antes.value.aviso, antes.value.mensagens)).toBe(true);
 
     // Sequencial: a Mensagem nasce depois da marca (ambas com o relógio do banco).
-    await mensagem(TELEFONES[4], "funcionario");
+    await mensagem(TELEFONES[6], "funcionario");
     const depois = await repositorio.conversa(id);
     if (!depois.ok || !depois.value?.aviso) throw new Error("aviso não lido");
     // A marca continua gravada até o job limpar; a Mensagem posterior já a torna não pendente.
