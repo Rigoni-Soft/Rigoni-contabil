@@ -185,7 +185,7 @@ describe("SupabaseClienteRepository (integração)", () => {
 
     // Admin lê pela view como qualquer perfil; o Cliente reconstituído traz o e-mail.
     const lido = await new SupabaseClienteRepository(admin).buscarPorId(construido.value.id);
-    expect(lido.ok && lido.value?.email).toBe("financeiro@padaria.com.br");
+    expect(lido.ok && lido.value?.email?.valor).toBe("financeiro@padaria.com.br");
   });
 
   it("e-mail mal formado é barrado pelo banco", async () => {

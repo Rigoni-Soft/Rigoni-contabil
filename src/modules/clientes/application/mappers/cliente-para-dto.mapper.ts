@@ -8,7 +8,7 @@ export function clienteParaDto(cliente: Cliente): ClienteDto {
     cnpj: cliente.cnpj.valor,
     regime: cliente.regime.valor,
     contratoSocialCaminho: cliente.contratoSocialCaminho,
-    email: cliente.email,
+    email: cliente.email?.valor ?? null,
     alteracoesContratuais: cliente.alteracoesContratuais.map((alteracao) => ({
       data: alteracao.data.toISOString().slice(0, 10),
       arquivoCaminho: alteracao.arquivoCaminho,

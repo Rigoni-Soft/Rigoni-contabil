@@ -9,13 +9,12 @@ import { Cnpj } from "@/modules/clientes/domain/value-objects/cnpj.vo";
 import { Contato } from "@/modules/clientes/domain/value-objects/contato.vo";
 import { DasStatus } from "@/modules/clientes/domain/value-objects/das-status.vo";
 import { DocumentoObrigatorioStatus } from "@/modules/clientes/domain/value-objects/documento-obrigatorio-status.vo";
+import { Email } from "@/modules/clientes/domain/value-objects/email.vo";
 import { FormaEnvio } from "@/modules/clientes/domain/value-objects/forma-envio.vo";
 import { ParcelamentoStatus } from "@/modules/clientes/domain/value-objects/parcelamento-status.vo";
 import { Regime } from "@/modules/clientes/domain/value-objects/regime.vo";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
-
-const EMAIL_VALIDO = /^[^@\s]+@[^@\s]+$/;
 
 export type AlteracaoContratualRestaurar = { data: string; arquivoCaminho: string };
 export type ContatoRestaurar = { id?: string; nome: string; telefone: string; padrao: boolean };
@@ -53,7 +52,7 @@ export class ClienteBuilder {
   // Opcional (decisão de produto 2026-09-29) — sem sentinela `undefined` pra
   // distinguir "setter nunca chamado" porque não há mais checagem de presença.
   private contratoSocialCaminho: string | null = null;
-  private email: string | null = null;
+  private email: Email | null = null;
   private alteracoesContratuais: AlteracaoContratual[] = [];
   // Campos operacionais do Simples Nacional (#34) — todos opcionais/com
   // default, igual a contratoSocialCaminho: um Cliente recém-criado pelo #33
@@ -102,13 +101,16 @@ export class ClienteBuilder {
     return this;
   }
 
-  // Vazio ou só espaços é "sem e-mail"; o formato é o mesmo do `check` da coluna.
+  // Vazio ou só espaços é "sem e-mail".
   comEmail(entrada: string | null): this {
-    const email = entrada?.trim() || null;
-    if (email !== null && (email.length > 254 || !EMAIL_VALIDO.test(email))) {
-      this.camposInvalidos.email = ["e-mail inválido"];
+    const texto = entrada?.trim();
+    if (!texto) {
+      this.email = null;
+      return this;
     }
-    this.email = email;
+    const resultado = Email.criar(texto);
+    if (resultado.ok) this.email = resultado.value;
+    else this.camposInvalidos.email = [resultado.error.message];
     return this;
   }
 

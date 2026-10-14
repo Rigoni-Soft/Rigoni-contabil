@@ -1,25 +1,21 @@
-import { comTentativas } from "@/modules/atendimento/application/com-tentativas";
 import {
   janelaAberta,
   montarMensagemLivre,
   montarTemplate,
-  type ComunicacaoProativa,
 } from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
+import type {
+  EnviarComunicacaoProativaInput,
+  EnviarComunicacaoProativaPort,
+} from "@/modules/atendimento/application/ports/in/enviar-comunicacao-proativa.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type { AppError } from "@/shared/errors/app.error";
+import { comTentativas } from "@/shared/kernel/com-tentativas";
 import { ok, type Result } from "@/shared/kernel/result";
-
-export type EnviarComunicacaoProativaInput = {
-  telefone: string;
-  comunicacao: ComunicacaoProativa;
-  ultimaMensagemDoContatoEm: Date | null;
-  agora: Date;
-};
 
 // Janela de 24h aberta: formato próprio do sistema (grátis). Fechada: template aprovado.
 // Cada envio repete sozinho em falha transitória (`tentativas`): na janela aberta o texto que já
 // chegou não sai de novo quando só o documento falhou.
-export class EnviarComunicacaoProativa {
+export class EnviarComunicacaoProativa implements EnviarComunicacaoProativaPort {
   constructor(
     private readonly envio: EnvioMensagemPort,
     private readonly tentativas = 1,

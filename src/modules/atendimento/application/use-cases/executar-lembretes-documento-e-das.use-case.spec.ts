@@ -1,4 +1,3 @@
-import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/entrega-por-canais";
 import type { AlertaSetor } from "@/modules/atendimento/application/ports/out/alerta-setor.provider";
 import type { ClienteParaLembrete } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
 import type { EmailParaEnvio } from "@/modules/atendimento/application/ports/out/envio-email.provider";
@@ -9,6 +8,7 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
+import { EntregarComunicacaoPorCanais } from "./entregar-comunicacao-por-canais.use-case";
 import { EnviarComunicacaoProativa } from "./enviar-comunicacao-proativa.use-case";
 import { ExecutarLembretesDocumentoEDas } from "./executar-lembretes-documento-e-das.use-case";
 

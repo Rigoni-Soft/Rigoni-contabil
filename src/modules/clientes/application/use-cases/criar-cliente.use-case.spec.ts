@@ -129,7 +129,7 @@ describe("CriarCliente", () => {
     ).execute({ ...INPUT_VALIDO, email: "financeiro@padaria.com.br" });
 
     expect(resultado.ok && resultado.value.cliente.email).toBe("financeiro@padaria.com.br");
-    expect(clientes.criado?.email).toBe("financeiro@padaria.com.br");
+    expect(clientes.criado?.email?.valor).toBe("financeiro@padaria.com.br");
   });
 
   it("e-mail inválido: rejeita antes de salvar", async () => {

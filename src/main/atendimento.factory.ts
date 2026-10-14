@@ -20,8 +20,6 @@ import { makeRegistrarAcao } from "@/main/auditoria.factory";
 import { exigirSegredosReais } from "@/main/segredos-mensageria.factory";
 import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
-import { ESPERA_MS, TENTATIVAS } from "@/modules/atendimento/application/com-tentativas";
-import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/entrega-por-canais";
 import type { AutenticarWebhookPort } from "@/modules/atendimento/application/ports/in/autenticar-webhook.provider";
 import type { AvisarClientePort } from "@/modules/atendimento/application/ports/in/avisar-cliente.provider";
 import type { EncerrarAtendimentoPort } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
@@ -57,6 +55,7 @@ import { AvisarCliente } from "@/modules/atendimento/application/use-cases/avisa
 import { CadastrarFeriado } from "@/modules/atendimento/application/use-cases/cadastrar-feriado.use-case";
 import { EncerrarAtendimento } from "@/modules/atendimento/application/use-cases/encerrar-atendimento.use-case";
 import { EnviarAnexoAoCliente } from "@/modules/atendimento/application/use-cases/enviar-anexo-ao-cliente.use-case";
+import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/use-cases/entregar-comunicacao-por-canais.use-case";
 import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
 import { EnviarDocumentoAoCliente } from "@/modules/atendimento/application/use-cases/enviar-documento-ao-cliente.use-case";
 import { EnviarMensagemAoCliente } from "@/modules/atendimento/application/use-cases/enviar-mensagem-ao-cliente.use-case";
@@ -96,6 +95,7 @@ import { ObrigacoesFiscaisHttpGateway } from "@/modules/clientes/infra/gateways/
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
 import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabase-sessao.gateway";
 import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories/usuario.repository";
+import { ESPERA_MS, TENTATIVAS } from "@/shared/kernel/com-tentativas";
 import type { Papel } from "@/shared/kernel/papeis";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
