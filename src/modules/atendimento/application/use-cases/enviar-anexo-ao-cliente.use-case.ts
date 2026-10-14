@@ -101,11 +101,10 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
     }
 
     const preparado =
-      memoria && validado
-        ? await this.prepararDeMemoria(atendimentoId, memoria, validado)
-        : "guardado" in entrada
-          ? await this.prepararGuardado(atendimentoId, entrada.guardado, legenda)
-          : recusa("arquivo", "Escolha o arquivo.");
+      "guardado" in entrada
+        ? await this.prepararGuardado(atendimentoId, entrada.guardado, legenda)
+        : // `validado` foi preenchido acima, na única entrada que traz `arquivo`.
+          await this.prepararDeMemoria(atendimentoId, entrada.arquivo, validado!);
     if (!preparado.ok) {
       await this.auditar(ator, atendimentoId, "falha");
       return preparado;
@@ -188,6 +187,7 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
     if (!objeto.value) return recusa("arquivo", "O arquivo não chegou inteiro. Envie de novo.");
     const { tipoMime, tamanho } = objeto.value;
 
+    // Recusado pelo que o Storage tem: o objeto não serve a ninguém e sai.
     const v = validar(tipoMime, tamanho);
     if (!v.ok) {
       await this.anexos.remover(caminho);

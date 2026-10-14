@@ -3,6 +3,7 @@ import * as tus from "tus-js-client";
 import type { UploadDeAnexoPort } from "@/modules/atendimento/application/ports/out/upload-de-anexo.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
+import { normalizarMime } from "@/shared/kernel/anexo";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 const BUCKET = "anexos-atendimento";
@@ -49,7 +50,7 @@ export class TusUploadDeAnexoGateway implements UploadDeAnexoPort {
           bucketName: BUCKET,
           objectName: caminho,
           // Só o tipo, sem parâmetros: o bucket confere contra a lista fechada.
-          contentType: tipoMime.split(";")[0].trim().toLowerCase(),
+          contentType: normalizarMime(tipoMime),
           cacheControl: "3600",
         },
         onError: () => resolve(err(new ServicoExternoError(FALHA))),

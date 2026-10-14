@@ -39,12 +39,12 @@ export class FfmpegConversorDeAudioGateway implements ConversorDeAudioPort {
       const encerrar = (resultado: Result<Uint8Array, AppError>) => {
         if (encerrado) return;
         encerrado = true;
-        clearTimeout(limite);
+        clearTimeout(temporizador);
         resolve(resultado);
       };
 
       const processo = spawn(binario, ARGS_OGG_OPUS, { stdio: ["pipe", "pipe", "ignore"] });
-      const limite = setTimeout(() => {
+      const temporizador = setTimeout(() => {
         processo.kill();
         encerrar(err(new ServicoExternoError(FALHA_NA_CONVERSAO)));
       }, TIMEOUT_MS);
