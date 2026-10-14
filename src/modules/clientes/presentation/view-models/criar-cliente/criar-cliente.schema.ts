@@ -27,7 +27,11 @@ export const criarClienteSchema = z.object({
   email: z
     .union([
       z.literal(""),
-      z.string().trim().max(254, "E-mail muito longo").email("E-mail inválido"),
+      z
+        .string()
+        .trim()
+        .max(254, "Use até 254 caracteres")
+        .email("Informe um e-mail válido, como nome@empresa.com.br"),
     ])
     .optional(),
   // Opcional (decisão de produto 2026-09-29, atualiza a spec #24).

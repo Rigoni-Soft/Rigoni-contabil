@@ -149,15 +149,21 @@ export function CriarClienteForm({
           aviso={avisoRegime}
           {...register("regime", { onChange: onRegimeChange })}
         />
-        <CampoDeTexto
-          id="email"
-          rotulo="E-mail"
-          type="email"
-          autoComplete="off"
-          maxLength={254}
-          erro={errors.email?.message}
-          {...register("email")}
-        />
+        <Pilha espaco={1}>
+          <CampoDeTexto
+            id="email"
+            rotulo="E-mail do Cliente"
+            type="email"
+            autoComplete="off"
+            maxLength={254}
+            aria-describedby="email-ajuda"
+            erro={errors.email?.message}
+            {...register("email")}
+          />
+          <Texto variante="nota" id="email-ajuda">
+            Recebe guias e lembretes quando a forma de envio inclui e-mail.
+          </Texto>
+        </Pilha>
       </Grade>
 
       {/* Seção de documentos separada da identificação do Cliente — mais espaço
