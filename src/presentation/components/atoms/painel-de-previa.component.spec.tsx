@@ -31,13 +31,13 @@ describe("PainelDePrevia", () => {
 
   it("planilha vazia mostra aviso em vez de tabela vazia", () => {
     renderizar("pronto", { tipo: "planilha", nome: "Plan1", linhas: [], truncada: false });
-    expect(screen.getByText("Esta planilha não tem conteúdo.")).toBeInTheDocument();
+    expect(screen.getByText("Este arquivo não tem conteúdo.")).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 
   it("documento sem conteúdo mostra aviso em vez de quadro em branco", () => {
     renderizar("pronto", { tipo: "documento", html: "  " });
-    expect(screen.getByText("Este documento não tem conteúdo.")).toBeInTheDocument();
+    expect(screen.getByText("Este arquivo não tem conteúdo.")).toBeInTheDocument();
   });
 
   it("planilha cortada informa quantas linhas aparecem e nomeia a tabela", () => {

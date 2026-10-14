@@ -21,6 +21,8 @@ const ESTILO_DO_DOCUMENTO =
 // ou pelo botão). O arquivo vem do cliente: o HTML do Word fica num iframe sem script nem
 // same-origin, e a planilha é só texto em tabela.
 export function PainelDePrevia({ nome, painelId, estado, previa, aoAbrir }: PainelDePreviaProps) {
+  const vazio =
+    previa && (previa.tipo === "documento" ? !previa.html.trim() : !previa.linhas.length);
   return (
     <>
       <button
@@ -67,13 +69,10 @@ export function PainelDePrevia({ nome, painelId, estado, previa, aoAbrir }: Pain
               no seu computador.
             </p>
           )}
-          {estado === "pronto" && previa?.tipo === "documento" && !previa.html.trim() && (
-            <p className="p-4 text-sm text-muted-foreground">Este documento não tem conteúdo.</p>
+          {vazio && (
+            <p className="p-4 text-sm text-muted-foreground">Este arquivo não tem conteúdo.</p>
           )}
-          {estado === "pronto" && previa?.tipo === "planilha" && previa.linhas.length === 0 && (
-            <p className="p-4 text-sm text-muted-foreground">Esta planilha não tem conteúdo.</p>
-          )}
-          {estado === "pronto" && previa?.tipo === "documento" && previa.html.trim() && (
+          {previa?.tipo === "documento" && !vazio && (
             <iframe
               title={`Conteúdo de ${nome}`}
               sandbox=""
@@ -81,7 +80,7 @@ export function PainelDePrevia({ nome, painelId, estado, previa, aoAbrir }: Pain
               className="size-full border-0 bg-white"
             />
           )}
-          {estado === "pronto" && previa?.tipo === "planilha" && previa.linhas.length > 0 && (
+          {previa?.tipo === "planilha" && !vazio && (
             <div className="p-3">
               <table className="border-collapse text-sm">
                 <caption className="mb-2 text-left text-sm font-medium">{previa.nome}</caption>

@@ -4,9 +4,6 @@ import type { PreviaCarregada } from "@/presentation/lib/previa-de-office";
 
 type Estado = "fechado" | "carregando" | "erro" | "pronto";
 
-// Sem teto, uma conexão que não responde deixaria o painel em "Carregando" para sempre.
-const LIMITE_DO_DOWNLOAD_MS = 30_000;
-
 // Lê o Word/Excel no navegador na primeira vez que é aberto. As bibliotecas só são baixadas aqui,
 // não no carregamento da conversa.
 export function usePreviaDeOffice(url: string, formato: "docx" | "xlsx") {
@@ -16,11 +13,12 @@ export function usePreviaDeOffice(url: string, formato: "docx" | "xlsx") {
   const emAndamento = useRef(false);
 
   const abrir = useCallback(async () => {
-    if (emAndamento.current || estado === "pronto") return;
+    if (emAndamento.current || previa) return;
     emAndamento.current = true;
     setEstado("carregando");
     try {
-      const resposta = await fetch(url, { signal: AbortSignal.timeout(LIMITE_DO_DOWNLOAD_MS) });
+      // Sem teto, uma conexão que não responde deixaria o painel em "Carregando" para sempre.
+      const resposta = await fetch(url, { signal: AbortSignal.timeout(30_000) });
       if (!resposta.ok) throw new Error("download");
       const conteudo = await resposta.arrayBuffer();
       const office = await import("@/presentation/lib/previa-de-office");
@@ -35,7 +33,7 @@ export function usePreviaDeOffice(url: string, formato: "docx" | "xlsx") {
     } finally {
       emAndamento.current = false;
     }
-  }, [estado, url, formato]);
+  }, [previa, url, formato]);
 
   return { estado, previa, abrir };
 }
