@@ -272,18 +272,22 @@ describe("CompositorDeMensagem — anexo", () => {
       expect(aoEnviar).toHaveBeenCalled();
     });
 
-    it("a barra entra com o foco em cancelar e o Esc descarta a gravação", async () => {
+    it("a barra entra com o foco em enviar: Enter envia e o Esc descarta a gravação", async () => {
       const aoCancelar = jest.fn();
+      const aoEnviar = jest.fn();
       render(
         <CompositorDeMensagem
           {...BASE}
-          gravacao={{ ...GRAVACAO, gravando: true, onCancelar: aoCancelar }}
+          gravacao={{ ...GRAVACAO, gravando: true, onCancelar: aoCancelar, onEnviar: aoEnviar }}
         />,
       );
 
-      expect(screen.getByRole("button", { name: "Cancelar gravação" })).toHaveFocus();
-      await userEvent.keyboard("{Escape}");
+      expect(screen.getByRole("button", { name: "Enviar áudio" })).toHaveFocus();
+      await userEvent.keyboard("{Enter}");
+      expect(aoEnviar).toHaveBeenCalledTimes(1);
+      expect(aoCancelar).not.toHaveBeenCalled();
 
+      await userEvent.keyboard("{Escape}");
       expect(aoCancelar).toHaveBeenCalledTimes(1);
     });
 

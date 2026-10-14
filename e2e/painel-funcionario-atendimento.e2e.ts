@@ -267,8 +267,8 @@ test.describe("Painel do Funcionário (#49)", () => {
     await expect(page.getByRole("button", { name: "Enviar áudio" })).toBeVisible();
     await expect(page.getByText(/Gravando: 00:0[1-9]/)).toBeVisible();
 
-    // O foco entra na barra, o Esc descarta e o foco volta ao microfone.
-    await expect(page.getByRole("button", { name: "Cancelar gravação" })).toBeFocused();
+    // O foco entra em enviar (Enter envia), o Esc descarta e o foco volta ao microfone.
+    await expect(page.getByRole("button", { name: "Enviar áudio" })).toBeFocused();
     await page.keyboard.press("Escape");
     await expect(page.getByRole("button", { name: "Gravar áudio" })).toBeFocused();
     await expect(page.getByLabel("Mensagem ao cliente")).toBeVisible();

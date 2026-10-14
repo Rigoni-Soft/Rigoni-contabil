@@ -31,13 +31,11 @@ export function BarraDeGravacao({
         if (evento.key === "Escape" && !enviando) onCancelar();
       }}
     >
-      {/* O foco entra na saída segura: um Enter ou espaço sem querer descarta, não envia. */}
       <Button
         type="button"
         variant="ghost"
         size="icon"
         aria-label="Cancelar gravação"
-        autoFocus
         disabled={enviando}
         onClick={onCancelar}
       >
@@ -65,6 +63,8 @@ export function BarraDeGravacao({
         size="icon"
         className="rounded-full"
         aria-label="Enviar áudio"
+        // Como no campo de texto: o Enter envia; o Esc cancela.
+        autoFocus
         disabled={enviando}
         onClick={onEnviar}
       >
