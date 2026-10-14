@@ -703,6 +703,17 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   No celular (abaixo de `sm`) o campo ocupa a linha toda e clipe, emoji e enviar
   ficam numa linha própria abaixo, com enviar à direita; de `sm` em diante, tudo
   numa linha só.
+- **Áudio** (#80): o microfone (`BotaoDeMicrofone`, 44 px) fica entre o emoji e o
+  enviar; sem suporte (navegador sem gravação, página sem HTTPS) fica `disabled`,
+  com o motivo escrito abaixo do campo e ligado ao botão por `aria-describedby`.
+  Gravando, a `BarraDeGravacao` ocupa o lugar do campo: lixeira (cancelar) à
+  esquerda, ponto `destructive` que pulsa só com `motion-safe:` e o cronômetro
+  `mm:ss` em numerais tabulares, e enviar à direita, que recebe o foco (Enter envia,
+  Esc cancela; a dica de teclado some em telas sem hover). A nota abaixo é
+  `role="status"`, montada uma vez, para o início ser anunciado sem narrar o
+  cronômetro. No limite (5 min ou 10 MB) o ponto fica cinza e a nota explica; ao
+  sair da barra o foco volta ao microfone. No balão, o áudio é o player nativo
+  (`PlayerDeAudio`, 44 px, largura mínima de 12 rem) com play, progresso e duração.
 - **Painel de ações** (`PainelDeAcoes`, à direita, 19 rem; 22 rem em `2xl`):
   compacto. Serviço "Contrato social" em botão `sm` (quando o Cliente não o
   tem, o botão fica `disabled` com a frase "Contrato social não cadastrado."

@@ -3,7 +3,7 @@ import { SendHorizontal } from "lucide-react";
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { BotaoDeAnexo } from "@/presentation/components/atoms/botao-de-anexo.component";
 import { BotaoDeMicrofone } from "@/presentation/components/atoms/botao-de-microfone.component";
-import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { BarraDeGravacao } from "@/presentation/components/molecules/barra-de-gravacao.component";
 import { CampoTextarea } from "@/presentation/components/molecules/campo-textarea.component";
@@ -81,9 +81,17 @@ export function CompositorDeMensagem({
             região viva (anunciaria a cada segundo). Parada sem erro é o limite de tempo ou de tamanho. */}
         {!erro && (
           <Texto variante="nota" role="status">
-            {gravacao.parada
-              ? "A gravação atingiu o limite e parou. Envie o áudio ou cancele."
-              : "Gravando. Enter envia, Esc cancela."}
+            {gravacao.parada ? (
+              "A gravação atingiu o limite e parou. Envie o áudio ou cancele."
+            ) : (
+              <>
+                Gravando.
+                <Caixa como="span" className="[@media(hover:none)]:hidden">
+                  {" "}
+                  Enter envia, Esc cancela.
+                </Caixa>
+              </>
+            )}
           </Texto>
         )}
         {erro && <AvisoDeStatus tipo="erro" texto={erro} />}
