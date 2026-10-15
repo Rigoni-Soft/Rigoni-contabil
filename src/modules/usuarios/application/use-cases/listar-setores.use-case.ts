@@ -4,14 +4,14 @@ import type {
 } from "@/modules/usuarios/application/ports/in/listar-setores.provider";
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
-import type { AutorizacaoService } from "@/modules/usuarios/domain/services/autorizacao.service";
+import { AutorizacaoService } from "@/modules/usuarios/domain/services/autorizacao.service";
 import { Setor, SETORES } from "@/modules/usuarios/domain/value-objects/setor.vo";
 
 export class ListarSetores implements ListarSetoresPort {
   constructor(
     private readonly sessao: SessaoPort,
     private readonly usuarios: UsuarioRepository,
-    private readonly autorizacao: AutorizacaoService,
+    private readonly autorizacao = new AutorizacaoService(),
   ) {}
 
   async execute(): Promise<SetorDto[]> {

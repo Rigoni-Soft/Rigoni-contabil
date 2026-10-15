@@ -22,7 +22,6 @@ import { Login } from "@/modules/usuarios/application/use-cases/login.use-case";
 import { Logout } from "@/modules/usuarios/application/use-cases/logout.use-case";
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
 import { TrocarSenha } from "@/modules/usuarios/application/use-cases/trocar-senha.use-case";
-import { AutorizacaoService } from "@/modules/usuarios/domain/services/autorizacao.service";
 import { SupabaseAlteracaoPapelGateway } from "@/modules/usuarios/infra/gateways/supabase-alteracao-papel.gateway";
 import { SupabaseAuthAdminGateway } from "@/modules/usuarios/infra/gateways/supabase-auth-admin.gateway";
 import { SupabaseDesativacaoGateway } from "@/modules/usuarios/infra/gateways/supabase-desativacao.gateway";
@@ -68,7 +67,6 @@ export async function makeListarSetores(): Promise<ListarSetoresPort> {
   return new ListarSetores(
     new SupabaseSessaoGateway(supabase),
     new SupabaseUsuarioRepository(supabase),
-    new AutorizacaoService(),
   );
 }
 
@@ -79,7 +77,6 @@ export async function makeCriarUsuario(): Promise<CriarUsuarioPort> {
     new SupabaseUsuarioRepository(supabase),
     new SupabaseAuthAdminGateway(createSupabaseAdmin()),
     auditoriaViaModuloAuditoria(),
-    new AutorizacaoService(),
   );
 }
 

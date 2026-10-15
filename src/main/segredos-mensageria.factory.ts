@@ -1,3 +1,5 @@
+import "server-only";
+
 // Valores de desenvolvimento do `env.ts` e do `.env.example`. Em produção nenhum deles vale.
 export const SEGREDOS_MENSAGERIA_PLACEHOLDER = {
   assinatura: "segredo-falso",

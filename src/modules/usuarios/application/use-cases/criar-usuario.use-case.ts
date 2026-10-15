@@ -9,7 +9,7 @@ import type { AuthAdminPort } from "@/modules/usuarios/application/ports/out/aut
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
 import { Usuario } from "@/modules/usuarios/domain/entities/usuario.entity";
-import type { AutorizacaoService } from "@/modules/usuarios/domain/services/autorizacao.service";
+import { AutorizacaoService } from "@/modules/usuarios/domain/services/autorizacao.service";
 import { Setor } from "@/modules/usuarios/domain/value-objects/setor.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
@@ -22,7 +22,7 @@ export class CriarUsuario implements CriarUsuarioPort {
     private readonly usuarios: UsuarioRepository,
     private readonly authAdmin: AuthAdminPort,
     private readonly auditoria: AuditoriaPort,
-    private readonly autorizacao: AutorizacaoService,
+    private readonly autorizacao = new AutorizacaoService(),
   ) {}
 
   async execute(input: CriarUsuarioInput): Promise<Result<CriarUsuarioOutput, AppError>> {

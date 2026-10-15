@@ -57,6 +57,12 @@ module.exports = {
       to: { path: "^src/modules/[^/]+/infra/" },
     },
     {
+      name: "main-sem-domain",
+      severity: "error",
+      from: { path: "^src/main/" },
+      to: { path: "^src/modules/[^/]+/domain/" },
+    },
+    {
       name: "so-actions-importam-main",
       severity: "error",
       from: {
