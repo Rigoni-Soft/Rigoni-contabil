@@ -526,6 +526,9 @@ src/
 - Todas as Views são globais (`presentation/components/`). Não existe View dentro de módulo.
 - Aliases do `components.json` (Anexo C) apontam o shadcn para `presentation/`.
 - Edição de arquivos do `ui/` é permitida para adicionar variantes (cva) ou ajustar tokens; toda edição é deliberada e registrada no PR, para não ser perdida em um `shadcn add` posterior.
+- **Exceções registradas:**
+  1. `ui/password-input.tsx` e `ui/theme-toggle.tsx` não vêm do shadcn: são átomos de cliente cuja única interação é estado visual local (mostrar senha, tema), sem dado nem módulo. Moram em `ui/` porque `'use client'` só é permitido ali, em Containers e providers; o `PasswordInput` envolve o `Input` por isso. Não crie outros: componente com estado que não seja só isso é Container (seção 4.6).
+  2. As Views de formulário (organismos `*-form`) recebem `register`, `errors` e `control` do React Hook Form do ViewModel e usam `Controller` para campos controlados. Elas continuam sem hook e sem conhecer módulo; o acoplamento é com a biblioteca de formulário, não com o domínio. Para trocar a biblioteca, o contrato seria o ViewModel entregar `campo(nome)` já resolvido.
 
 ### 4.5 `layout.tsx` e `page.tsx` × Atomic Design
 
