@@ -797,7 +797,7 @@ ou o cliente escreve de novo.
 - Erro de servidor: bloco com borda/ícone `destructive`, `role="alert"`.
 - Sucesso de salvar no cadastro operacional: `role="status"` (anunciado por
   leitor de tela, ao contrário de um `<p>` mudo).
-- Alvos de toque: em aparelho de toque (`pointer-coarse:h-11`) os controles do
+- Alvos de toque: em aparelho de toque (`pointer-coarse:h-11`; `pointer-coarse:min-h-11` no "Voltar" e nas abas do shell) os controles do
   painel de ações sobem para 44 px.
 - Entrada do cartão do dock de Atendimentos: `motion-safe:animate-dock-entrada`.
   O estado (destaque, prévia, "nova mensagem") não depende da animação nem do

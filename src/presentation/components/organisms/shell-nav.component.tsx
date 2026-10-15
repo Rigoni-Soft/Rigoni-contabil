@@ -14,7 +14,8 @@ const ROTA_POR_SETOR: Record<string, string> = {
   simples_nacional: "/simples-nacional",
 };
 
-const CHIP = "rounded-md border border-border px-3 py-1.5 text-sm";
+const CHIP =
+  "inline-flex items-center rounded-md border border-border px-3 py-1.5 text-sm pointer-coarse:min-h-11";
 
 export function ShellNav({ setores }: ShellNavProps) {
   return (
