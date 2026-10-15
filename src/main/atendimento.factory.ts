@@ -12,6 +12,7 @@ import {
   MENSAGERIA_SEGREDO_ASSINATURA,
   MENSAGERIA_SEGREDO_SESSAO,
   MENSAGERIA_TOKEN_VERIFICACAO,
+  NODE_ENV,
   OBRIGACOES_FISCAIS_URL,
 } from "@/env";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -123,7 +124,7 @@ function exigirSegredosDeProducao(): void {
       tokenVerificacao: MENSAGERIA_TOKEN_VERIFICACAO,
       sessao: MENSAGERIA_SEGREDO_SESSAO,
     },
-    process.env.NODE_ENV === "production",
+    NODE_ENV === "production",
   );
 }
 
@@ -237,9 +238,7 @@ export async function makeEncerrarAtendimento(): Promise<EncerrarAtendimentoPort
 // sem avisar ninguém (encerraria Atendimento ou marcaria DAS como enviado sem o cliente saber;
 // devolutiva da PR #83, B1). Autenticar o job (CRON_SECRET) não autoriza executá-lo.
 function jobAutomaticoAtivo(flag: string): boolean {
-  return (
-    flag === "ligada" && !(process.env.NODE_ENV === "production" && MENSAGERIA_MODO === "falso")
-  );
+  return flag === "ligada" && !(NODE_ENV === "production" && MENSAGERIA_MODO === "falso");
 }
 
 export function inatividadeAutomaticaAtiva(): boolean {

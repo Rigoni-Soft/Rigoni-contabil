@@ -13,6 +13,10 @@ export * from "./env.client";
 // (revisão do #28).
 const resultado = z
   .object({
+    // O Next define NODE_ENV (production no build e na Vercel, inclusive preview). As regras que
+    // dependem de "produção" (segredos reais, jobs só com mensageria real) leem daqui, não de
+    // process.env.
+    NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
     // Fonte das obrigações fiscais (docs/contratos): por padrão o mock de mock-api/.
     OBRIGACOES_FISCAIS_URL: z.url().default("http://127.0.0.1:4010"),
@@ -44,6 +48,7 @@ const resultado = z
     LEMBRETES_AUTOMATICOS: z.enum(["desligada", "ligada"]).default("desligada"),
   })
   .safeParse({
+    NODE_ENV: process.env.NODE_ENV || undefined,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     OBRIGACOES_FISCAIS_URL: process.env.OBRIGACOES_FISCAIS_URL || undefined,
     MENSAGERIA_MODO: process.env.MENSAGERIA_MODO || undefined,
@@ -61,6 +66,7 @@ if (!resultado.success) {
 }
 
 export const {
+  NODE_ENV,
   SUPABASE_SERVICE_ROLE_KEY,
   OBRIGACOES_FISCAIS_URL,
   MENSAGERIA_MODO,

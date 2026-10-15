@@ -71,5 +71,21 @@ export default defineConfig([
     ignores: ["**/*.spec.tsx"],
     rules: rule(SERVER, CACHE, HOST_ELEMENT),
   },
+  {
+    // Variável de ambiente só entra por src/env.ts (servidor) e src/env.client.ts (público), que a
+    // validam com Zod. process.env espalhado pelo código fura a validação e os defaults.
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/env.ts", "src/env.client.ts", "**/*.{spec,test}.{ts,tsx}"],
+    rules: {
+      "no-restricted-properties": [
+        "error",
+        {
+          object: "process",
+          property: "env",
+          message: "Leia a variável por @/env (ou @/env.client), que a valida com Zod.",
+        },
+      ],
+    },
+  },
   prettier,
 ]);
