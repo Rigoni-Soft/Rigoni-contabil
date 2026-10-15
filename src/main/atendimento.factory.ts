@@ -264,7 +264,7 @@ export function makeVerificarInatividade(): VerificarInatividadePort {
 // Em produção o e-mail falso responderia ok sem enviar nada; sem o adapter real (#86) o canal
 // falha de forma explícita.
 function makeEnvioEmail(): EnvioEmailPort {
-  return process.env.NODE_ENV === "production"
+  return NODE_ENV === "production"
     ? new EnvioEmailIndisponivelGateway()
     : new EnvioEmailFalsoGateway();
 }

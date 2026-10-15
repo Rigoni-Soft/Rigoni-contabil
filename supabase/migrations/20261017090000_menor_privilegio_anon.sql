@@ -10,6 +10,7 @@ revoke all on all tables in schema public from anon;
 revoke truncate, references, trigger on all tables in schema public from authenticated;
 
 -- Policies: só `authenticated`.
+alter policy "alertas_setor_select" on public.alertas_setor to authenticated;
 alter policy "cliente_alteracoes_insert_admin" on public.cliente_alteracoes_contratuais to authenticated;
 alter policy "cliente_alteracoes_select_admin" on public.cliente_alteracoes_contratuais to authenticated;
 alter policy "cliente_atividades_select_qualquer_perfil" on public.cliente_atividades_mensais to authenticated;
@@ -40,7 +41,7 @@ alter policy "documentos_clientes_select_admin" on storage.objects to authentica
 -- precisa delas (RPCs do app e helpers que o RLS chama) e `service_role` segue com os grants.
 revoke execute on function public.acesso_liberado() from public, anon;
 revoke execute on function public.atendimento_em_aviso_nao_muda_de_dono() from public, anon;
-revoke execute on function public.criar_cliente(uuid, text, text, regime, text, jsonb) from public, anon;
+revoke execute on function public.criar_cliente(uuid, text, text, regime, text, jsonb, text) from public, anon;
 revoke execute on function public.editar_cadastro_operacional_cliente(uuid, forma_envio, documento_obrigatorio_status, das_status, date, boolean, parcelamento_status, text, jsonb, date, boolean, boolean, boolean) from public, anon;
 revoke execute on function public.meu_papel() from public, anon;
 revoke execute on function public.meu_setor() from public, anon;

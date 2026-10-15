@@ -35,6 +35,8 @@ const TABELAS = [
   "assuncoes_atendimento",
   "feriados",
   "anexos_em_envio",
+  "alertas_setor",
+  "envios_automaticos",
 ];
 
 describe("papel anon sem privilégio no schema public", () => {
