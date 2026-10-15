@@ -33,8 +33,6 @@ import {
   CONVERSA_JANELA_MENSAGENS,
   type CursorDaConversa,
 } from "@/modules/atendimento/domain/services/janela-da-conversa.service";
-import type {
-  mensagemDaConversaRowSchema} from "@/modules/atendimento/infra/dtos/atendimento-rpc-row.dto";
 import {
   aberturaRowSchema,
   anexoRowSchema,
@@ -55,6 +53,7 @@ import {
   registroRecebidoRowSchema,
   roteamentoDoClienteRowSchema,
   transferenciaRowSchema,
+  type mensagemDaConversaRowSchema,
 } from "@/modules/atendimento/infra/dtos/atendimento-rpc-row.dto";
 import { funcionarioDoSetorRowSchema } from "@/modules/atendimento/infra/dtos/funcionario-do-setor-row.dto";
 import type { AppError } from "@/shared/errors/app.error";
