@@ -61,10 +61,12 @@ export class ExecutarEnvioGuiaParcelamento implements ExecutarEnvioGuiaParcelame
     const rodada = await executarRodada(this.alertas, agora, clientes.value, async (cliente) => [
       await this.enviar(cliente, agora),
     ]);
-    resumo.enviados = rodada.andamentos.filter(([a]) => a.enviado).length;
-    resumo.alertas = rodada.alertas;
-    resumo.falhas = rodada.falhas;
-    return ok(resumo);
+    return ok({
+      ...resumo,
+      enviados: rodada.andamentos.filter(([a]) => a.enviado).length,
+      alertas: rodada.alertas,
+      falhas: rodada.falhas,
+    });
   }
 
   private async enviar(cliente: ClienteParaParcelamento, agora: Date): Promise<Andamento> {

@@ -67,11 +67,13 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     const rodada = await executarRodada(this.alertas, agora, clientes.value, (cliente) =>
       this.processar(cliente, agora),
     );
-    resumo.lembretes = rodada.andamentos.filter(([lembrete]) => lembrete.enviado).length;
-    resumo.dasEnviados = rodada.andamentos.filter(([, das]) => das.enviado).length;
-    resumo.alertas = rodada.alertas;
-    resumo.falhas = rodada.falhas;
-    return ok(resumo);
+    return ok({
+      ...resumo,
+      lembretes: rodada.andamentos.filter(([lembrete]) => lembrete.enviado).length,
+      dasEnviados: rodada.andamentos.filter(([, das]) => das.enviado).length,
+      alertas: rodada.alertas,
+      falhas: rodada.falhas,
+    });
   }
 
   private async processar(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento[]> {

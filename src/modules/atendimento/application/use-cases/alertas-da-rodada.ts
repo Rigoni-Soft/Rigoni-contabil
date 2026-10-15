@@ -18,21 +18,16 @@ export type Andamento = { enviado: boolean; ocorrencias: OcorrenciaDeEntrega[] }
 
 export const SEM_ANDAMENTO: Andamento = { enviado: false, ocorrencias: [] };
 
-export const falha = (mensagem: string): Andamento => ({
+const comOcorrencia = (tipo: TipoAlertaSetor, mensagem: string): Andamento => ({
   enviado: false,
-  ocorrencias: [{ tipo: "falha_envio", mensagem }],
+  ocorrencias: [{ tipo, mensagem }],
 });
 
+export const falha = (mensagem: string) => comOcorrencia("falha_envio", mensagem);
+
 // Sem para quem enviar não vale buscar a guia nem reivindicar a tarefa.
-export const semDestinatario = (empresa: string): Andamento => ({
-  enviado: false,
-  ocorrencias: [
-    {
-      tipo: "contato_ausente",
-      mensagem: `${empresa} não tem contato nem e-mail para a forma de envio.`,
-    },
-  ],
-});
+export const semDestinatario = (empresa: string) =>
+  comOcorrencia("contato_ausente", `${empresa} não tem contato nem e-mail para a forma de envio.`);
 
 type Etapas = {
   reivindicar: () => Promise<Result<boolean, AppError>>;
