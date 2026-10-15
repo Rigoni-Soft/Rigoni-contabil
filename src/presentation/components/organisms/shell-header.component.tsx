@@ -77,7 +77,7 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
           <Link
             href="/admin/clientes/novo"
             aria-label="Cadastrar Cliente"
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
+            className={buttonVariants({ variant: "ghost" })}
           >
             <Building2 aria-hidden="true" />
             <Texto variante="soDesktop" como="span">
