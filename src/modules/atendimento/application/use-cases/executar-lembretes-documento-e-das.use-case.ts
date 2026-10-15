@@ -7,10 +7,7 @@ import {
   semDestinatario,
   type Andamento,
 } from "@/modules/atendimento/application/jobs/alertas-da-rodada";
-import {
-  temDestinatario,
-  type ComunicacaoProativa,
-} from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
+import type { ComunicacaoProativa } from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
 import type {
   EntregarComunicacaoPorCanaisPort,
   OcorrenciaDeEntrega,
@@ -27,6 +24,7 @@ import type {
 } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import type { AppError } from "@/shared/errors/app.error";
+import { temDestinatario } from "@/shared/kernel/forma-envio";
 import { diaDoMes, hojeIso } from "@/shared/kernel/mes-atual";
 import { ok, type Result } from "@/shared/kernel/result";
 
@@ -109,16 +107,13 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
 
   private async enviarDas(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento> {
     if (!temDestinatario(cliente)) return semDestinatario(cliente.empresa);
-    return entregarReivindicando(
-      {
-        reivindicar: () => this.clientes.reivindicarDas(cliente.clienteId, hojeIso(agora)),
-        entregar: () => this.entregarGuia(cliente, agora),
-        desfazer: () => this.clientes.desfazerDas(cliente.clienteId, cliente.dataEnvioDas),
-      },
-      "DAS",
-      cliente.empresa,
-      "pronto",
-    );
+    return entregarReivindicando({
+      descricao: `DAS de ${cliente.empresa}`,
+      estadoOriginal: "pronto",
+      reivindicar: () => this.clientes.reivindicarDas(cliente.clienteId, hojeIso(agora)),
+      entregar: () => this.entregarGuia(cliente, agora),
+      desfazer: () => this.clientes.desfazerDas(cliente.clienteId, cliente.dataEnvioDas),
+    });
   }
 
   private async entregarGuia(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento> {

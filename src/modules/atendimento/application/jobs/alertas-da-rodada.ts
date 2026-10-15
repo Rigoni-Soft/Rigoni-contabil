@@ -30,6 +30,10 @@ export const semDestinatario = (empresa: string) =>
   comOcorrencia("contato_ausente", `${empresa} não tem contato nem e-mail para a forma de envio.`);
 
 type Etapas = {
+  // "DAS de 3A": a tarefa do Cliente, para as mensagens.
+  descricao: string;
+  // Estado a que a tarefa volta se a entrega falhar ("pronto", "pendente").
+  estadoOriginal: string;
   reivindicar: () => Promise<Result<boolean, AppError>>;
   entregar: () => Promise<Andamento>;
   desfazer: () => Promise<Result<void, AppError>>;
@@ -37,14 +41,15 @@ type Etapas = {
 
 // Reivindica a tarefa (atômico), entrega e, se a entrega falhar, devolve a tarefa ao estado
 // original: quem não reivindicou não entrega, e a falha não deixa a tarefa como feita.
-export async function entregarReivindicando(
-  { reivindicar, entregar, desfazer }: Etapas,
-  tarefa: string,
-  empresa: string,
-  estadoOriginal: string,
-): Promise<Andamento> {
+export async function entregarReivindicando({
+  descricao,
+  estadoOriginal,
+  reivindicar,
+  entregar,
+  desfazer,
+}: Etapas): Promise<Andamento> {
   const reivindicado = await reivindicar();
-  if (!reivindicado.ok) return falha(`${tarefa} de ${empresa}: ${reivindicado.error.message}`);
+  if (!reivindicado.ok) return falha(`${descricao}: ${reivindicado.error.message}`);
   // Outro job ou o Funcionário já tratou a tarefa.
   if (!reivindicado.value) return SEM_ANDAMENTO;
 
@@ -53,7 +58,7 @@ export async function entregarReivindicando(
 
   const desfeito = await desfazer();
   if (desfeito.ok) return entrega;
-  const naoVoltou = `${tarefa} de ${empresa} não voltou a ${estadoOriginal} após a falha: ${desfeito.error.message}`;
+  const naoVoltou = `${descricao} não voltou a ${estadoOriginal} após a falha: ${desfeito.error.message}`;
   return { enviado: false, ocorrencias: [...entrega.ocorrencias, ...falha(naoVoltou).ocorrencias] };
 }
 

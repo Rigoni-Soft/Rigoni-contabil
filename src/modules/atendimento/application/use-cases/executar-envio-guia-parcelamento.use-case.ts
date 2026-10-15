@@ -6,10 +6,7 @@ import {
   semDestinatario,
   type Andamento,
 } from "@/modules/atendimento/application/jobs/alertas-da-rodada";
-import {
-  temDestinatario,
-  type ComunicacaoProativa,
-} from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
+import type { ComunicacaoProativa } from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
 import type { EntregarComunicacaoPorCanaisPort } from "@/modules/atendimento/application/ports/in/entregar-comunicacao-por-canais.provider";
 import type {
   EnvioGuiaParcelamentoExecutado,
@@ -23,6 +20,7 @@ import type {
 } from "@/modules/atendimento/application/ports/out/clientes-para-parcelamento.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import type { AppError } from "@/shared/errors/app.error";
+import { temDestinatario } from "@/shared/kernel/forma-envio";
 import { diaDoMes } from "@/shared/kernel/mes-atual";
 import { ok, type Result } from "@/shared/kernel/result";
 
@@ -63,7 +61,7 @@ export class ExecutarEnvioGuiaParcelamento implements ExecutarEnvioGuiaParcelame
     ]);
     return ok({
       ...resumo,
-      enviados: rodada.andamentos.filter(([a]) => a.enviado).length,
+      enviados: rodada.andamentos.filter(([andamento]) => andamento.enviado).length,
       alertas: rodada.alertas,
       falhas: rodada.falhas,
     });
@@ -71,16 +69,13 @@ export class ExecutarEnvioGuiaParcelamento implements ExecutarEnvioGuiaParcelame
 
   private async enviar(cliente: ClienteParaParcelamento, agora: Date): Promise<Andamento> {
     if (!temDestinatario(cliente)) return semDestinatario(cliente.empresa);
-    return entregarReivindicando(
-      {
-        reivindicar: () => this.clientes.reivindicar(cliente.clienteId),
-        entregar: () => this.entregarGuia(cliente, agora),
-        desfazer: () => this.clientes.desfazer(cliente.clienteId),
-      },
-      "Parcelamento",
-      cliente.empresa,
-      "pendente",
-    );
+    return entregarReivindicando({
+      descricao: `Parcelamento de ${cliente.empresa}`,
+      estadoOriginal: "pendente",
+      reivindicar: () => this.clientes.reivindicar(cliente.clienteId),
+      entregar: () => this.entregarGuia(cliente, agora),
+      desfazer: () => this.clientes.desfazer(cliente.clienteId),
+    });
   }
 
   private async entregarGuia(cliente: ClienteParaParcelamento, agora: Date): Promise<Andamento> {
