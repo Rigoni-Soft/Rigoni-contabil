@@ -15,7 +15,7 @@ export type OrigemAlertaSetor = "lembretes" | "parcelamento";
 export class SupabaseAlertaSetorGateway implements AlertaSetorPort {
   constructor(
     private readonly supabaseAdmin: SupabaseClient,
-    private readonly origem: OrigemAlertaSetor = "lembretes",
+    private readonly origem: OrigemAlertaSetor,
   ) {}
 
   async alertar(alerta: AlertaSetor): Promise<Result<void, AppError>> {

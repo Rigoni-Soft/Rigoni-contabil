@@ -18,7 +18,7 @@ const SERVICE_KEY =
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 const clientes = new SupabaseClientesParaLembreteGateway(admin);
-const alertas = new SupabaseAlertaSetorGateway(admin);
+const alertas = new SupabaseAlertaSetorGateway(admin, "lembretes");
 const guias = new SupabaseGuiaPublicadaGateway(admin);
 
 const clienteId = crypto.randomUUID();

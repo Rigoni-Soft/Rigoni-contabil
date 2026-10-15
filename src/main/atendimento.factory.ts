@@ -283,7 +283,7 @@ export function makeExecutarLembretesDocumentoEDas(): ExecutarLembretesDocumento
       new EnviarComunicacaoProativa(makeEnvioMensagem(), TENTATIVAS, ESPERA_MS),
       makeEnvioEmail(),
     ),
-    new SupabaseAlertaSetorGateway(supabaseAdmin),
+    new SupabaseAlertaSetorGateway(supabaseAdmin, "lembretes"),
     new RelogioSistemaGateway(),
   );
 }

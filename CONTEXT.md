@@ -114,8 +114,12 @@ _Avoid_: Cobrança.
 Nos mesmos dias, a entrega da guia do DAS quando o DAS está pronto, pela forma de envio do Cliente (WhatsApp, e-mail ou os dois). O DAS passa a enviado com a data de envio, auditado com a URA como ator; se a entrega falha, volta a pronto (#52).
 _Avoid_: Disparo.
 
+**Envio automático de guia de parcelamento**:
+Nos dias 20, 22, 24, 26 e 28, a entrega da guia de parcelamento aos Clientes com parcelamento positivo e Parcelamento pendente, pela forma de envio do Cliente. O Parcelamento passa a enviado, auditado com a URA como ator; se a entrega falha depois das tentativas, volta a pendente e a rodada seguinte tenta de novo (#53).
+_Avoid_: Disparo.
+
 **Alerta do setor**:
-Registro que o job grava para o setor Simples Nacional quando algo pede ação humana: DAS pendente com o documento em dia (`das_pendente`), envio que falhou depois das tentativas (`falha_envio`), Cliente sem contato ou e-mail para a forma de envio (`contato_ausente`) e guia entregue por um canal só (`entrega_parcial`). Há um alerta aberto por Cliente e tipo; o job o renova enquanto a condição existe e o resolve quando ela some, exceto `entrega_parcial`, que só uma pessoa resolve.
+Registro que o job grava para o setor Simples Nacional quando algo pede ação humana: DAS pendente com o documento em dia (`das_pendente`), envio que falhou depois das tentativas (`falha_envio`), Cliente sem contato ou e-mail para a forma de envio (`contato_ausente`) e guia entregue por um canal só (`entrega_parcial`). Há um alerta aberto por Cliente e tipo; o job o renova enquanto a condição existe e o resolve quando ela some, exceto `entrega_parcial`, que só uma pessoa resolve. Cada alerta tem a origem do job que o gerou (`lembretes` ou `parcelamento`): um job renova e resolve só os seus.
 _Avoid_: Notificação, aviso (aviso é o de Inatividade).
 
 ### Auditoria
