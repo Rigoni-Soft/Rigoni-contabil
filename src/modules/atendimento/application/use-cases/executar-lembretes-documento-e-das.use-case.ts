@@ -19,9 +19,9 @@ import type {
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import {
   entregarReivindicando,
+  executarRodada,
   falha,
-  levantarAlertas,
-  resolverAlertasDaRodada,
+  paraAndamento,
   SEM_ANDAMENTO,
   semDestinatario,
   type Andamento,
@@ -64,25 +64,17 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     const clientes = await this.clientes.listar();
     if (!clientes.ok) return clientes;
 
-    let alertasNaoGravados = 0;
-    for (const cliente of clientes.value) {
-      const feito = await this.processar(cliente, agora);
-      resumo.lembretes += Number(feito.lembrete.enviado);
-      resumo.dasEnviados += Number(feito.das.enviado);
-      const ocorrencias = [...feito.lembrete.ocorrencias, ...feito.das.ocorrencias];
-      resumo.falhas += ocorrencias.filter((o) => o.tipo === "falha_envio").length;
-
-      const gravacao = await levantarAlertas(this.alertas, cliente.clienteId, ocorrencias);
-      resumo.alertas += gravacao.gravados;
-      alertasNaoGravados += gravacao.naoGravados;
-    }
-    resumo.falhas += alertasNaoGravados;
-
-    resumo.falhas += await resolverAlertasDaRodada(this.alertas, agora, alertasNaoGravados);
+    const rodada = await executarRodada(this.alertas, agora, clientes.value, (cliente) =>
+      this.processar(cliente, agora),
+    );
+    resumo.lembretes = rodada.andamentos.filter(([lembrete]) => lembrete.enviado).length;
+    resumo.dasEnviados = rodada.andamentos.filter(([, das]) => das.enviado).length;
+    resumo.alertas = rodada.alertas;
+    resumo.falhas = rodada.falhas;
     return ok(resumo);
   }
 
-  private async processar(cliente: ClienteParaLembrete, agora: Date) {
+  private async processar(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento[]> {
     const lembrete =
       cliente.documentoObrigatorio === "negativo"
         ? await this.lembrar(cliente, agora)
@@ -91,7 +83,7 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
       cliente.dasStatus === "pronto"
         ? await this.enviarDas(cliente, agora)
         : { enviado: false, ocorrencias: this.dasPendente(cliente) };
-    return { lembrete, das };
+    return [lembrete, das];
   }
 
   private dasPendente(cliente: ClienteParaLembrete): OcorrenciaDeEntrega[] {
@@ -144,8 +136,9 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     comunicacao: ComunicacaoProativa,
     agora: Date,
   ): Promise<Andamento> {
-    const entrega = await this.entrega.execute({ cliente, comunicacao, agora });
-    if (!entrega.ok) return falha(`${cliente.empresa}: ${entrega.error.message}`);
-    return { enviado: entrega.value.entregues > 0, ocorrencias: entrega.value.ocorrencias };
+    return paraAndamento(
+      await this.entrega.execute({ cliente, comunicacao, agora }),
+      cliente.empresa,
+    );
   }
 }

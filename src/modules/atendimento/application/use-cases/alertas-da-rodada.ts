@@ -1,4 +1,7 @@
-import type { OcorrenciaDeEntrega } from "@/modules/atendimento/application/ports/in/entregar-comunicacao-por-canais.provider";
+import type {
+  ComunicacaoEntregue,
+  OcorrenciaDeEntrega,
+} from "@/modules/atendimento/application/ports/in/entregar-comunicacao-por-canais.provider";
 import type {
   AlertaSetorPort,
   TipoAlertaSetor,
@@ -70,7 +73,7 @@ function agruparPorTipo(ocorrencias: OcorrenciaDeEntrega[]): Map<TipoAlertaSetor
 }
 
 // Grava as ocorrências do Cliente como alertas do setor Simples Nacional.
-export async function levantarAlertas(
+async function levantarAlertas(
   alertas: AlertaSetorPort,
   clienteId: string,
   ocorrencias: OcorrenciaDeEntrega[],
@@ -91,8 +94,8 @@ export async function levantarAlertas(
 }
 
 // Alerta que o job não renovou nesta rodada deixou de valer. Com alerta que não pôde ser gravado a
-// rodada não sabe o que renovou, então não resolve nada. Devolve as falhas que isso acrescenta.
-export async function resolverAlertasDaRodada(
+// rodada não sabe o que renovou, então não resolve nada.
+async function resolverNaoRenovados(
   alertas: AlertaSetorPort,
   agora: Date,
   alertasNaoGravados: number,
@@ -102,4 +105,43 @@ export async function resolverAlertasDaRodada(
     new Date(agora.getTime() - FOLGA_RELOGIO_MS),
   );
   return resolvidos.ok ? 0 : 1;
+}
+
+// Processa cada Cliente em sequência (um que falha não impede os demais), grava os alertas das
+// ocorrências dele e, ao fim, resolve os que a rodada não renovou. `falhas` soma os envios que
+// falharam e as gravações/resoluções de alerta que não foram feitas.
+export async function executarRodada<C extends { clienteId: string }>(
+  alertas: AlertaSetorPort,
+  agora: Date,
+  clientes: C[],
+  processar: (cliente: C) => Promise<Andamento[]>,
+): Promise<{ andamentos: Andamento[][]; alertas: number; falhas: number }> {
+  const andamentos: Andamento[][] = [];
+  let gravadosTotal = 0;
+  let naoGravadosTotal = 0;
+  let falhas = 0;
+  for (const cliente of clientes) {
+    const feito = await processar(cliente);
+    andamentos.push(feito);
+    const ocorrencias = feito.flatMap((a) => a.ocorrencias);
+    falhas += ocorrencias.filter((o) => o.tipo === "falha_envio").length;
+    const { gravados, naoGravados } = await levantarAlertas(
+      alertas,
+      cliente.clienteId,
+      ocorrencias,
+    );
+    gravadosTotal += gravados;
+    naoGravadosTotal += naoGravados;
+  }
+  falhas += naoGravadosTotal + (await resolverNaoRenovados(alertas, agora, naoGravadosTotal));
+  return { andamentos, alertas: gravadosTotal, falhas };
+}
+
+// O resultado da entrega por canais como andamento do Cliente.
+export function paraAndamento(
+  entrega: Result<ComunicacaoEntregue, AppError>,
+  empresa: string,
+): Andamento {
+  if (!entrega.ok) return falha(`${empresa}: ${entrega.error.message}`);
+  return { enviado: entrega.value.entregues > 0, ocorrencias: entrega.value.ocorrencias };
 }

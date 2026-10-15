@@ -16,9 +16,9 @@ import type {
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import {
   entregarReivindicando,
+  executarRodada,
   falha,
-  levantarAlertas,
-  resolverAlertasDaRodada,
+  paraAndamento,
   semDestinatario,
   type Andamento,
 } from "@/modules/atendimento/application/use-cases/alertas-da-rodada";
@@ -58,18 +58,12 @@ export class ExecutarEnvioGuiaParcelamento implements ExecutarEnvioGuiaParcelame
     const clientes = await this.clientes.listarPendentes();
     if (!clientes.ok) return clientes;
 
-    let alertasNaoGravados = 0;
-    for (const cliente of clientes.value) {
-      const feito = await this.enviar(cliente, agora);
-      resumo.enviados += Number(feito.enviado);
-      resumo.falhas += feito.ocorrencias.filter((o) => o.tipo === "falha_envio").length;
-      const gravacao = await levantarAlertas(this.alertas, cliente.clienteId, feito.ocorrencias);
-      resumo.alertas += gravacao.gravados;
-      alertasNaoGravados += gravacao.naoGravados;
-    }
-    resumo.falhas += alertasNaoGravados;
-
-    resumo.falhas += await resolverAlertasDaRodada(this.alertas, agora, alertasNaoGravados);
+    const rodada = await executarRodada(this.alertas, agora, clientes.value, async (cliente) => [
+      await this.enviar(cliente, agora),
+    ]);
+    resumo.enviados = rodada.andamentos.filter(([a]) => a.enviado).length;
+    resumo.alertas = rodada.alertas;
+    resumo.falhas = rodada.falhas;
     return ok(resumo);
   }
 
@@ -96,8 +90,9 @@ export class ExecutarEnvioGuiaParcelamento implements ExecutarEnvioGuiaParcelame
       empresa: cliente.empresa,
       ...guia.value,
     };
-    const entrega = await this.entrega.execute({ cliente, comunicacao, agora });
-    if (!entrega.ok) return falha(`${cliente.empresa}: ${entrega.error.message}`);
-    return { enviado: entrega.value.entregues > 0, ocorrencias: entrega.value.ocorrencias };
+    return paraAndamento(
+      await this.entrega.execute({ cliente, comunicacao, agora }),
+      cliente.empresa,
+    );
   }
 }
