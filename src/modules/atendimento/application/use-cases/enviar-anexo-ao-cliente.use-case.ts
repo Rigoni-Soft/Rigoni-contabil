@@ -63,11 +63,7 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
     const { tipo, caminho, nome, tamanho, reserva } = preparado.value;
     const texto = tipo === "audio" ? "" : (legenda?.trim() ?? "");
 
-    const miniaturaCaminho = await this.guardarMiniatura(
-      atendimentoId,
-      tipo,
-      "arquivo" in entrada ? entrada.miniatura : undefined,
-    );
+    const miniaturaCaminho = await this.guardarMiniatura(atendimentoId, tipo, entrada.miniatura);
     const arquivos = miniaturaCaminho ? [caminho, miniaturaCaminho] : [caminho];
 
     // Registro antes da entrega, sob o lock do Atendimento (ver EnviarMensagemAoCliente): se o

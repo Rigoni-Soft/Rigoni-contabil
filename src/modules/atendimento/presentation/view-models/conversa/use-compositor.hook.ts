@@ -65,7 +65,7 @@ export function useCompositor(atendimentoId: string, initialData: ConversaVista)
     // Grava e envia o áudio; `aoConcluir` roda só se a entrega deu certo (falhou, a gravação fica).
     aoEnviarAudio: (audio: File, aoConcluir: () => void) => {
       if (envio.isPending) return;
-      audioMutation.mutate(audio, { onSuccess: aoConcluir });
+      audioMutation.mutate({ arquivo: audio }, { onSuccess: aoConcluir });
     },
     // Descartar a gravação que falhou ao enviar também apaga o erro dela.
     aoCancelarAudio: () => audioMutation.reset(),

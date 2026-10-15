@@ -14,7 +14,7 @@ jest.mock("../meus-atendimentos/meus-atendimentos.actions", () => ({
 }));
 
 jest.mock("./conversa.actions", () => ({
-  enviarAnexoAction: jest.fn(),
+  enviarAnexoGuardadoAction: jest.fn(),
   enviarDocumentoAction: jest.fn(),
   enviarMensagemAction: jest.fn(),
   obterConversaAction: jest.fn(),

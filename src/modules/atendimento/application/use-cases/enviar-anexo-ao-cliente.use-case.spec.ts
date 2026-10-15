@@ -477,6 +477,41 @@ describe("EnviarAnexoAoCliente", () => {
   describe("arquivo já guardado pelo navegador (upload em partes)", () => {
     const GUARDADO = { caminho: "at-1/u-1/gravacao.ogg", nome: "gravacao.ogg" };
 
+    it("imagem de até 10 MB subida em partes mantém a legenda e a miniatura (R85-04)", async () => {
+      const { caso, guardados, enviados, registradas } = montar({
+        objeto: { tipoMime: "image/png", tamanho: 9 * 1024 * 1024 },
+      });
+      const miniatura = {
+        nome: "miniatura.webp",
+        tipoMime: "image/webp",
+        conteudo: new Uint8Array(500),
+      };
+
+      const r = await caso.execute({
+        atendimentoId: "at-1",
+        legenda: " Segue ",
+        guardado: { caminho: "at-1/u-1/foto.png", nome: "foto.png" },
+        miniatura,
+      });
+
+      expect(r.ok).toBe(true);
+      expect(guardados).toHaveLength(1);
+      expect(enviados).toEqual([
+        expect.objectContaining({ nomeArquivo: "foto.png", legenda: "Segue" }),
+      ]);
+      expect(registradas).toEqual([
+        [
+          "at-1",
+          FUNCIONARIO,
+          "Segue",
+          expect.objectContaining({
+            caminho: "at-1/u-1/foto.png",
+            miniaturaCaminho: "at-1/miniatura.webp",
+          }),
+        ],
+      ]);
+    });
+
     describe("posse e consumo do objeto (R85-03)", () => {
       const NO_STORAGE = { tipoMime: "audio/ogg", tamanho: 3000 };
 

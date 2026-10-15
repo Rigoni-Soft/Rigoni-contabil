@@ -17,7 +17,6 @@ import type { TransferenciaConcluida } from "@/modules/atendimento/application/p
 import {
   atendimentoIdSchema,
   enviarAnexoGuardadoSchema,
-  enviarAnexoSchema,
   enviarDocumentoSchema,
   enviarMensagemSchema,
   reagirAMensagemSchema,
@@ -91,33 +90,16 @@ export async function reagirAMensagemAction(input: unknown): Promise<ActionResul
   return toActionResult(await reagir.execute(parsed.data));
 }
 
-// FormData: arquivo, `atendimentoId` e `legenda`. Sem arquivo (ou acima do limite do body, que o
-// Next recusa antes de chegar aqui) o caso de uso nem é chamado.
-async function paraArquivoAnexo(arquivo: File) {
-  return {
-    nome: arquivo.name,
-    tipoMime: arquivo.type,
-    conteudo: new Uint8Array(await arquivo.arrayBuffer()),
-  };
-}
-
-export async function enviarAnexoAction(formData: FormData): Promise<ActionResult<void>> {
-  const parsed = enviarAnexoSchema.safeParse({
+// O navegador já subiu o objeto em partes direto ao Storage (o corpo de uma Server Action não passa
+// de 4,5 MB na Vercel); aqui chegam só o caminho, o nome, a legenda e a miniatura (até 256 KB).
+export async function enviarAnexoGuardadoAction(formData: FormData): Promise<ActionResult<void>> {
+  const parsed = enviarAnexoGuardadoSchema.safeParse({
     atendimentoId: formData.get("atendimentoId"),
+    caminho: formData.get("caminho"),
+    nome: formData.get("nome"),
     legenda: formData.get("legenda") ?? undefined,
   });
   if (!parsed.success) return entradaInvalida(parsed.error);
-  const arquivo = formData.get("arquivo");
-  if (!(arquivo instanceof File)) {
-    return {
-      ok: false,
-      error: {
-        code: "VALIDATION_ERROR",
-        message: "Escolha o arquivo.",
-        fields: { arquivo: ["Obrigatório"] },
-      },
-    };
-  }
 
   const miniatura = formData.get("miniatura");
   const enviarAnexo = await makeEnviarAnexoAoCliente();
@@ -125,22 +107,15 @@ export async function enviarAnexoAction(formData: FormData): Promise<ActionResul
     await enviarAnexo.execute({
       atendimentoId: parsed.data.atendimentoId,
       legenda: parsed.data.legenda,
-      arquivo: await paraArquivoAnexo(arquivo),
-      miniatura: miniatura instanceof File ? await paraArquivoAnexo(miniatura) : undefined,
-    }),
-  );
-}
-
-// O navegador já subiu o objeto em partes direto ao Storage; aqui só o caminho chega.
-export async function enviarAnexoGuardadoAction(input: unknown): Promise<ActionResult<void>> {
-  const parsed = enviarAnexoGuardadoSchema.safeParse(input);
-  if (!parsed.success) return entradaInvalida(parsed.error);
-
-  const enviarAnexo = await makeEnviarAnexoAoCliente();
-  return toActionResult(
-    await enviarAnexo.execute({
-      atendimentoId: parsed.data.atendimentoId,
       guardado: { caminho: parsed.data.caminho, nome: parsed.data.nome },
+      miniatura:
+        miniatura instanceof File
+          ? {
+              nome: miniatura.name,
+              tipoMime: miniatura.type,
+              conteudo: new Uint8Array(await miniatura.arrayBuffer()),
+            }
+          : undefined,
     }),
   );
 }

@@ -57,16 +57,10 @@ export const reagirAMensagemSchema = z.object({
 });
 
 // Objeto que o navegador já subiu em partes: `{atendimento}/{uuid}/{nome}`. O caso de uso confere a
-// pasta, o tipo e o tamanho no Storage.
+// pasta, o tipo e o tamanho no Storage. Chega em FormData porque a miniatura (pequena) vai junto.
 export const enviarAnexoGuardadoSchema = z.object({
   atendimentoId: atendimentoIdSchema,
   caminho: z.string().regex(/^[0-9a-f-]{36}\/[0-9a-f-]{36}\/[\w.-]{1,120}$/i, "Arquivo inválido."),
   nome: z.string().trim().min(1).max(255),
-});
-
-// O arquivo chega em FormData: aqui só o que vem em texto. Tipo e tamanho do arquivo o caso de uso
-// confere (a fonte da verdade é o servidor).
-export const enviarAnexoSchema = z.object({
-  atendimentoId: atendimentoIdSchema,
   legenda: z.string().optional(),
 });

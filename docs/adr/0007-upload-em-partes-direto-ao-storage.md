@@ -33,5 +33,6 @@ arquivo por HTTP Range no link temporário do Storage.
 - Objeto subido e nunca finalizado (aba fechada antes de a Server Action rodar) fica órfão no bucket;
   uma limpeza por data entra se o volume justificar.
 - O bucket aceita `audio/webm` só de passagem (o servidor converte e remove).
-- Imagens e arquivos seguem pela Server Action (cabem no limite); migram para o mesmo caminho se
-  passarem do limite ou junto com o vídeo.
+- Imagens e documentos (até 10 MB, #79) usam o mesmo caminho desde a revisão da PR #85 (R85-04): o
+  corpo de uma Function na Vercel não passa de 4,5 MB, então a Server Action recebe só o caminho, o
+  nome, a legenda e a miniatura (≤ 256 KB). O envio inteiro pelo corpo da action deixou de existir.

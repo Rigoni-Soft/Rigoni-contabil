@@ -5,7 +5,6 @@ import type { ConversaVista } from "@/modules/atendimento/application/ports/in/o
 
 import { subirAnexoEmPartes } from "./anexo-em-partes.upload";
 import {
-  enviarAnexoAction,
   enviarAnexoGuardadoAction,
   enviarMensagemAction,
   obterConversaAction,
@@ -20,7 +19,6 @@ jest.mock("../meus-atendimentos/meus-atendimentos.actions", () => ({
 
 jest.mock("./anexo-em-partes.upload", () => ({ subirAnexoEmPartes: jest.fn() }));
 jest.mock("./conversa.actions", () => ({
-  enviarAnexoAction: jest.fn(),
   enviarAnexoGuardadoAction: jest.fn(),
   enviarDocumentoAction: jest.fn(),
   enviarMensagemAction: jest.fn(),
@@ -29,7 +27,6 @@ jest.mock("./conversa.actions", () => ({
 }));
 
 const mensagem = jest.mocked(enviarMensagemAction);
-const anexo = jest.mocked(enviarAnexoAction);
 const obter = jest.mocked(obterConversaAction);
 const guardado = jest.mocked(enviarAnexoGuardadoAction);
 const subir = jest.mocked(subirAnexoEmPartes);
@@ -60,7 +57,6 @@ function renderizar(conversa: ConversaVista = CONVERSA) {
 describe("useCompositor", () => {
   beforeEach(() => {
     mensagem.mockReset();
-    anexo.mockReset();
     guardado.mockReset();
     subir.mockReset();
     obter.mockReset();
@@ -103,8 +99,10 @@ describe("useCompositor", () => {
       URL.revokeObjectURL = jest.fn();
     });
 
+    beforeEach(() => subir.mockResolvedValue("at-1/u-1/balanco.pdf"));
+
     it("escolher um arquivo mostra a prévia e o envio vai como anexo, com o texto de legenda", async () => {
-      anexo.mockResolvedValue({ ok: true, data: undefined });
+      guardado.mockResolvedValue({ ok: true, data: undefined });
       const { result } = renderizar();
 
       act(() => result.current.aoAnexar(PDF));
@@ -119,10 +117,12 @@ describe("useCompositor", () => {
       act(() => result.current.aoEnviar("Segue"));
 
       await waitFor(() => expect(result.current.enviadas).toBe(1));
-      const dados = anexo.mock.calls[0][0];
+      expect(subir).toHaveBeenCalledWith("at-1", PDF);
+      const dados = guardado.mock.calls[0][0];
       expect(dados.get("atendimentoId")).toBe("at-1");
+      expect(dados.get("caminho")).toBe("at-1/u-1/balanco.pdf");
+      expect(dados.get("nome")).toBe("balanco.pdf");
       expect(dados.get("legenda")).toBe("Segue");
-      expect(dados.get("arquivo")).toBe(PDF);
       expect(mensagem).not.toHaveBeenCalled();
       // Enviado: a prévia some.
       await waitFor(() => expect(result.current.anexo).toBeUndefined());
@@ -156,7 +156,7 @@ describe("useCompositor", () => {
 
     it("segundo envio e troca de arquivo durante o envio são ignorados", async () => {
       let concluir: (r: { ok: true; data: undefined }) => void = () => {};
-      anexo.mockReturnValue(new Promise((resolve) => (concluir = resolve)));
+      guardado.mockReturnValue(new Promise((resolve) => (concluir = resolve)));
       const { result } = renderizar();
       act(() => result.current.aoAnexar(PDF));
       await waitFor(() => expect(result.current.anexo).toBeDefined());
@@ -166,14 +166,14 @@ describe("useCompositor", () => {
       act(() => result.current.aoEnviar("2"));
       act(() => result.current.aoAnexar(new File(["y"], "outro.pdf", { type: "application/pdf" })));
 
-      expect(anexo).toHaveBeenCalledTimes(1);
+      expect(guardado).toHaveBeenCalledTimes(1);
       expect(result.current.anexo?.nome).toBe("balanco.pdf");
       await act(async () => concluir({ ok: true, data: undefined }));
       await waitFor(() => expect(result.current.enviadas).toBe(1));
     });
 
     it("erro de rede (a action lança) vira mensagem legível e mantém o arquivo", async () => {
-      anexo.mockRejectedValue(new Error("fetch failed"));
+      guardado.mockRejectedValue(new Error("fetch failed"));
       const { result } = renderizar();
       act(() => result.current.aoAnexar(PDF));
       await waitFor(() => expect(result.current.anexo).toBeDefined());
@@ -185,7 +185,7 @@ describe("useCompositor", () => {
     });
 
     it("falha no envio do anexo mantém o arquivo e mostra o erro do servidor", async () => {
-      anexo.mockResolvedValue({
+      guardado.mockResolvedValue({
         ok: false,
         error: { code: "SERVICO_EXTERNO", message: "Falha ao enviar o arquivo." },
       });
@@ -215,12 +215,11 @@ describe("useCompositor", () => {
     await waitFor(() => expect(result.current.erro).toBe("Sem conversão."));
     expect(aoConcluir).not.toHaveBeenCalled();
     expect(subir).toHaveBeenCalledWith("at-1", audio);
-    expect(guardado).toHaveBeenCalledWith({
-      atendimentoId: "at-1",
-      caminho: "at-1/u-1/gravacao.webm",
-      nome: "gravacao.webm",
-    });
-    expect(anexo).not.toHaveBeenCalled();
+    const dados = guardado.mock.calls[0][0];
+    expect(dados.get("atendimentoId")).toBe("at-1");
+    expect(dados.get("caminho")).toBe("at-1/u-1/gravacao.webm");
+    expect(dados.get("nome")).toBe("gravacao.webm");
+    expect(dados.get("legenda")).toBeNull();
 
     // Descartar a gravação apaga o erro dela.
     act(() => result.current.aoCancelarAudio());

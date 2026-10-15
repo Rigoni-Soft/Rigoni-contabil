@@ -13,7 +13,6 @@ import type {
 import { subirAnexoEmPartes } from "@/modules/atendimento/presentation/view-models/conversa/anexo-em-partes.upload";
 import {
   encerrarAtendimentoAction,
-  enviarAnexoAction,
   enviarAnexoGuardadoAction,
   enviarDocumentoAction,
   enviarMensagemAction,
@@ -128,7 +127,10 @@ export function useEnviarMensagemMutation(atendimentoId: string) {
   });
 }
 
-export function useEnviarAnexoMutation(atendimentoId: string) {
+// Imagem, documento ou áudio gravado: sobe em partes direto ao Storage (docs/adr/0007; o corpo de uma
+// Server Action não passa de 4,5 MB na Vercel) e só então pede ao servidor que o confira e entregue,
+// com a legenda e a miniatura. A mesma chave de mutação: a conversa trava igual enquanto envia.
+function useEnviarGuardadoMutation(atendimentoId: string, falha: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -139,51 +141,37 @@ export function useEnviarAnexoMutation(atendimentoId: string) {
       miniatura,
     }: {
       arquivo: File;
-      legenda: string;
-      miniatura: File | null;
+      legenda?: string;
+      miniatura?: File | null;
     }) => {
+      const caminho = await subirAnexoEmPartes(atendimentoId, arquivo);
       const dados = new FormData();
       dados.set("atendimentoId", atendimentoId);
-      dados.set("arquivo", arquivo);
-      dados.set("legenda", legenda);
+      dados.set("caminho", caminho);
+      dados.set("nome", arquivo.name);
+      if (legenda) dados.set("legenda", legenda);
       if (miniatura) dados.set("miniatura", miniatura);
-      // Sem rede, ou corpo recusado antes de chegar ao caso de uso: a action lança em vez de
-      // devolver o resultado, e a mensagem crua não diz o que fazer.
-      const resultado = await enviarAnexoAction(dados).catch(() => null);
-      if (!resultado) {
-        throw new Error(
-          "Não foi possível enviar o arquivo. Confira a conexão e tente de novo; o arquivo continua aqui.",
-        );
-      }
+      // Sem rede: a action lança em vez de devolver o resultado, e a mensagem crua não diz o que fazer.
+      const resultado = await enviarAnexoGuardadoAction(dados).catch(() => null);
+      if (!resultado) throw new Error(falha);
       if (!resultado.ok) throw new Error(resultado.error.message);
     },
     onSettled: () => invalidarConversa(queryClient, atendimentoId),
   });
 }
 
-// Áudio gravado: sobe em partes direto ao Storage (docs/adr/0007) e só então pede ao servidor que o
-// confira e entregue. Compartilha a chave da mutação de anexo (a conversa trava igual enquanto envia).
-export function useEnviarAudioMutation(atendimentoId: string) {
-  const queryClient = useQueryClient();
+export function useEnviarAnexoMutation(atendimentoId: string) {
+  return useEnviarGuardadoMutation(
+    atendimentoId,
+    "Não foi possível enviar o arquivo. Confira a conexão e tente de novo; o arquivo continua aqui.",
+  );
+}
 
-  return useMutation({
-    mutationKey: conversaKeys.enviarAnexo(atendimentoId),
-    mutationFn: async (audio: File) => {
-      const caminho = await subirAnexoEmPartes(atendimentoId, audio);
-      const resultado = await enviarAnexoGuardadoAction({
-        atendimentoId,
-        caminho,
-        nome: audio.name,
-      }).catch(() => null);
-      if (!resultado) {
-        throw new Error(
-          "Não foi possível enviar o áudio. Confira a conexão e tente de novo; a gravação continua aqui.",
-        );
-      }
-      if (!resultado.ok) throw new Error(resultado.error.message);
-    },
-    onSettled: () => invalidarConversa(queryClient, atendimentoId),
-  });
+export function useEnviarAudioMutation(atendimentoId: string) {
+  return useEnviarGuardadoMutation(
+    atendimentoId,
+    "Não foi possível enviar o áudio. Confira a conexão e tente de novo; a gravação continua aqui.",
+  );
 }
 
 export function useReagirAMensagemMutation(atendimentoId: string) {
