@@ -46,6 +46,8 @@ function montar(
     buscar?: () => Promise<Result<GuiaFiscal, AppError>>;
     falhas?: Record<string, number>;
     reservar?: Result<string | null, AppError>;
+    // Por Cliente: sobrepõe `reservar` (um Cliente com a reserva ocupada ao lado de outro livre).
+    reservarPor?: Record<string, Result<string | null, AppError>>;
     concluir?: Result<boolean, AppError>;
     liberar?: Result<void, AppError>;
     resolver?: Result<void, AppError>;
@@ -64,7 +66,7 @@ function montar(
   const job = new ExecutarLembretesDocumentoEDas(
     {
       listar: async () => ok(clientes),
-      reservarDas: async () => opcoes.reservar ?? ok("tok-1"),
+      reservarDas: async (id) => opcoes.reservarPor?.[id] ?? opcoes.reservar ?? ok("tok-1"),
       concluirDas: async (id, _token, data) => {
         marcados.push([id, data]);
         entregasAoConcluir.push(envio.requisicoes.length + emails.length);
@@ -387,6 +389,38 @@ describe("ExecutarLembretesDocumentoEDas", () => {
     expect(alertas).toMatchObject([{ tipo: "falha_envio", clienteId: "cai" }]);
     expect(envio.templatesEnviados).toHaveLength(1);
     expect(resultado.ok && resultado.value.dasEnviados).toBe(1);
+  });
+
+  it("DAS com a reserva ocupada: o Cliente não entra na resolução, mesmo com o lembrete enviado (R87-03.A)", async () => {
+    const { job, resolvidos, envio } = montar(
+      [
+        cliente({ clienteId: "ocupado", documentoObrigatorio: "negativo", dasStatus: "pronto" }),
+        cliente({ clienteId: "livre", documentoObrigatorio: "negativo", dasStatus: "pronto" }),
+      ],
+      { reservarPor: { ocupado: ok(null) } },
+    );
+    const resultado = await job.execute();
+    // O lembrete do Cliente ocupado saiu, mas a tarefa do DAS não foi reavaliada: ele fica de fora.
+    expect(envio.templatesEnviados.map((t) => t.nome).sort()).toEqual([
+      "envio_guia_das",
+      "lembrete_documento_obrigatorio",
+      "lembrete_documento_obrigatorio",
+    ]);
+    expect(resolvidos.map((r) => r.ids)).toEqual([["livre"]]);
+    expect(resultado.ok && resultado.value.lembretes).toBe(2);
+    expect(resultado.ok && resultado.value.dasEnviados).toBe(1);
+  });
+
+  it("todos os Clientes com a reserva ocupada: nenhum alerta é resolvido", async () => {
+    const { job, resolvidos } = montar(
+      [
+        cliente({ clienteId: "a", dasStatus: "pronto" }),
+        cliente({ clienteId: "b", dasStatus: "pronto" }),
+      ],
+      { reservar: ok(null) },
+    );
+    await job.execute();
+    expect(resolvidos).toHaveLength(0);
   });
 
   it("conclui só depois de a entrega ser aceita", async () => {

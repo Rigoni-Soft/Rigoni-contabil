@@ -14,9 +14,23 @@ const FOLGA_RELOGIO_MS = 60_000;
 
 // O que aconteceu com uma tarefa do Cliente numa rodada de job: se saiu e o que o setor precisa
 // saber.
-export type Andamento = { enviado: boolean; ocorrencias: OcorrenciaDeEntrega[] };
+// `naoReavaliado`: a tarefa não pôde ser reavaliada nesta rodada (outra tentativa vigente a tem
+// reservada, resultado ainda incerto). Quem tem isso não entra na resolução de alertas: um alerta
+// anterior só se resolve depois de a condição ser de fato reavaliada.
+export type Andamento = {
+  enviado: boolean;
+  ocorrencias: OcorrenciaDeEntrega[];
+  naoReavaliado?: true;
+};
 
 export const SEM_ANDAMENTO: Andamento = { enviado: false, ocorrencias: [] };
+
+// Reserva ocupada: a tarefa existe e segue com a tentativa de antes, sem ocorrência nova.
+export const RESERVA_OCUPADA: Andamento = {
+  enviado: false,
+  ocorrencias: [],
+  naoReavaliado: true,
+};
 
 const comOcorrencia = (tipo: TipoAlertaSetor, mensagem: string): Andamento => ({
   enviado: false,
@@ -56,8 +70,10 @@ export async function entregarComReserva({
 }: Etapas): Promise<Andamento> {
   const reserva = await reservar();
   if (!reserva.ok) return falha(`${descricao}: ${reserva.error.message}`);
-  // Outra tentativa em andamento, ou o Funcionário já tratou a tarefa.
-  if (reserva.value === null) return SEM_ANDAMENTO;
+  // Outra tentativa vigente (resultado ainda incerto) ou o cadastro deixou de estar elegível entre a
+  // leitura e agora. Em nenhum dos dois casos a condição foi reavaliada aqui: não conta como
+  // "regularizado" para os alertas; a rodada seguinte relê o Cliente e decide.
+  if (reserva.value === null) return RESERVA_OCUPADA;
   const token = reserva.value;
 
   let entrega: Andamento;
@@ -117,8 +133,9 @@ async function levantarAlertas(
 }
 
 // Alerta que o job não renovou nesta rodada deixou de valer, mas só para os Clientes que ela
-// avaliou: um Cliente não lido não teve a condição reavaliada. Com alerta que não pôde ser gravado a
-// rodada não sabe o que renovou, então não resolve nada.
+// reavaliou: um Cliente não lido, ou com a tarefa reservada por outra tentativa, não teve a
+// condição reavaliada. Com alerta que não pôde ser gravado a rodada não sabe o que renovou, então
+// não resolve nada.
 async function resolverNaoRenovados(
   alertas: AlertaSetorPort,
   agora: Date,
@@ -162,7 +179,11 @@ export async function executarRodada<C extends { clienteId: string }>(
     gravadosTotal += gravados;
     naoGravadosTotal += naoGravados;
   }
-  const avaliados = clientes.map((cliente) => cliente.clienteId);
+  // Só os Clientes cujas tarefas foram todas reavaliadas: um Cliente com reserva ocupada mantém os
+  // alertas dele até a condição ser reavaliada (inclusive os da tarefa vizinha, que dividem o tipo).
+  const avaliados = clientes
+    .filter((_, i) => !andamentos[i].some((andamento) => andamento.naoReavaliado))
+    .map((cliente) => cliente.clienteId);
   falhas +=
     naoGravadosTotal + (await resolverNaoRenovados(alertas, agora, avaliados, naoGravadosTotal));
   return { andamentos, alertas: gravadosTotal, falhas };

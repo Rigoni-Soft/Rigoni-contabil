@@ -4,9 +4,13 @@
  * envio do DAS com posse por token, alertas por Cliente e guia publicada. Destrutiva: só roda no
  * Supabase local (R87-02) e limpa pelos IDs da própria execução. Requer `npx supabase start`.
  */
+import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/use-cases/entregar-comunicacao-por-canais.use-case";
 import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
+import { ExecutarLembretesDocumentoEDas } from "@/modules/atendimento/application/use-cases/executar-lembretes-documento-e-das.use-case";
+import { ObterGuiaDasParaEnvio } from "@/modules/atendimento/application/use-cases/obter-guia-das-para-envio.use-case";
 import { URA_ATOR_ID } from "@/modules/atendimento/domain/services/inatividade.service";
 import { soDigitosNacionais } from "@/modules/atendimento/domain/services/telefone.service";
+import { ok as sucesso } from "@/shared/kernel/result";
 
 import { criarAdminLocal } from "../../../../../test-support/admin-supabase-local";
 import { EnvioMensagemFalsoGateway } from "./envio-mensagem-falso.gateway";
@@ -504,6 +508,105 @@ describe("alertas do setor", () => {
 
     expect(await abertos(principal.id)).toEqual(expect.arrayContaining([{ tipo: "falha_envio" }]));
   });
+});
+
+describe("rodada real com a reserva ocupada (R87-03.A)", () => {
+  it("segunda rodada com a reserva vigente não resolve o alerta de falha do DAS, mesmo com o lembrete enviado", async () => {
+    const alvo = await criarCliente(`(11) 97${sufixo.slice(0, 3)}-${sufixo.slice(3, 7)}`);
+    // Só o Cliente do teste participa da rodada (o banco local pode ter outros).
+    const apenasOAlvo = {
+      listar: async () => {
+        const todos = await clientes.listar();
+        return todos.ok ? sucesso(todos.value.filter((c) => c.clienteId === alvo.id)) : todos;
+      },
+      reservarDas: (id: string) => clientes.reservarDas(id),
+      concluirDas: (id: string, token: string, data: string) =>
+        clientes.concluirDas(id, token, data),
+      liberarDas: (id: string, token: string) => clientes.liberarDas(id, token),
+    };
+    let quedaNaEntrega = true;
+    const envio = new EnvioMensagemFalsoGateway();
+    let relogioDaRodada = new Date();
+    const alertasNoRelogioDaRodada = {
+      alertar: async (alerta: Parameters<typeof alertas.alertar>[0]) => {
+        const resultado = await alertas.alertar(alerta);
+        await admin
+          .from("alertas_setor")
+          .update({ criado_em: relogioDaRodada.toISOString() })
+          .eq("cliente_id", alerta.clienteId)
+          .eq("tipo", alerta.tipo)
+          .eq("origem", "lembretes")
+          .is("resolvido_em", null);
+        return resultado;
+      },
+      resolverNaoRenovados: (desde: Date, ids: string[]) =>
+        alertas.resolverNaoRenovados(desde, ids),
+    };
+    jest.spyOn(console, "info").mockImplementation(() => undefined);
+    const montar = (agora: Date) => {
+      relogioDaRodada = agora;
+      return new ExecutarLembretesDocumentoEDas(
+        apenasOAlvo,
+        new ObterGuiaDasParaEnvio(
+          {
+            buscar: async () => {
+              if (quedaNaEntrega) throw new Error("processo caiu");
+              return sucesso({
+                nomeArquivo: "das.pdf",
+                pdfBase64: "JVBERi0=",
+                competencia: "2026-09",
+                vencimento: "2026-10-20",
+              });
+            },
+          },
+          { publicar: async () => sucesso("https://storage.test/das.pdf") },
+          0,
+        ),
+        new EntregarComunicacaoPorCanais(
+          new EnviarComunicacaoProativa(envio, 1, 0),
+          { enviar: async () => sucesso(undefined) },
+          0,
+        ),
+        alertasNoRelogioDaRodada,
+        { agora: () => agora },
+      );
+    };
+    const abertos = async () =>
+      ok(
+        admin
+          .from("alertas_setor")
+          .select("tipo")
+          .eq("cliente_id", alvo.id)
+          .eq("origem", "lembretes")
+          .is("resolvido_em", null),
+      );
+    const diaDoJob = new Date("2026-10-05T12:00:00Z");
+
+    // T0: o lembrete sai, a entrega do DAS cai; falha_envio aberto, reserva vigente, DAS pronto.
+    await montar(diaDoJob).execute();
+    expect(await abertos()).toEqual([{ tipo: "falha_envio" }]);
+    expect((await statusDoDas(alvo.id)).das_status).toBe("pronto");
+    const lembretesNaPrimeira = envio.templatesEnviados.length;
+    expect(lembretesNaPrimeira).toBeGreaterThan(0);
+
+    // T0 + 2 min: o lembrete sai de novo, mas a reserva do DAS devolve null: nada é concluído e o
+    // alerta da tarefa não reavaliada continua aberto.
+    quedaNaEntrega = false;
+    await montar(new Date(diaDoJob.getTime() + 2 * 60_000)).execute();
+    expect((await statusDoDas(alvo.id)).das_status).toBe("pronto");
+    expect(await abertos()).toEqual([{ tipo: "falha_envio" }]);
+
+    // A reserva vence: a retomada entrega, conclui o DAS e só então resolve o alerta.
+    await ok(
+      admin
+        .from("envios_automaticos")
+        .update({ reservado_em: new Date(Date.now() - 20 * 60_000).toISOString() })
+        .eq("cliente_id", alvo.id),
+    );
+    await montar(new Date(diaDoJob.getTime() + 4 * 60_000)).execute();
+    expect((await statusDoDas(alvo.id)).das_status).toBe("enviado");
+    expect(await abertos()).toEqual([]);
+  }, 60_000);
 });
 
 describe("guia publicada", () => {

@@ -4,9 +4,13 @@
  * alertas separados por origem e por Cliente avaliado. Destrutiva: só roda no Supabase local
  * (R87-02) e limpa pelos IDs da própria execução. Requer `npx supabase start`.
  */
+import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/use-cases/entregar-comunicacao-por-canais.use-case";
 import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
+import { ExecutarEnvioGuiaParcelamento } from "@/modules/atendimento/application/use-cases/executar-envio-guia-parcelamento.use-case";
+import { ObterGuiaParcelamentoParaEnvio } from "@/modules/atendimento/application/use-cases/obter-guia-parcelamento-para-envio.use-case";
 import { URA_ATOR_ID } from "@/modules/atendimento/domain/services/inatividade.service";
 import { soDigitosNacionais } from "@/modules/atendimento/domain/services/telefone.service";
+import { ok as sucesso } from "@/shared/kernel/result";
 
 import { criarAdminLocal } from "../../../../../test-support/admin-supabase-local";
 import { EnvioMensagemFalsoGateway } from "./envio-mensagem-falso.gateway";
@@ -407,4 +411,99 @@ describe("alertas por origem e por Cliente avaliado", () => {
     );
     expect(abertos.map((a) => a.origem).sort()).toEqual(["lembretes", "parcelamento"]);
   });
+});
+
+describe("rodada real com a reserva ocupada (R87-03.A)", () => {
+  it("segunda rodada com a reserva vigente não resolve o alerta de falha; a retomada o resolve", async () => {
+    const alvo = await criarCliente({
+      telefone: `(61) 97${sufixo.slice(0, 3)}-${sufixo.slice(3, 7)}`,
+      empresa: "Rodada Ocupada Ltda",
+    });
+    // Só o Cliente do teste participa da rodada (o banco local pode ter outros pendentes).
+    const apenasOAlvo = {
+      listarPendentes: async () => {
+        const todos = await clientes.listarPendentes();
+        return todos.ok ? sucesso(todos.value.filter((c) => c.clienteId === alvo.id)) : todos;
+      },
+      reservar: (id: string) => clientes.reservar(id),
+      concluir: (id: string, token: string) => clientes.concluir(id, token),
+      liberar: (id: string, token: string) => clientes.liberar(id, token),
+    };
+    let quedaNaEntrega = true;
+    const envio = new EnvioMensagemFalsoGateway();
+    let relogioDaRodada = new Date();
+    const alertasNoRelogioDaRodada = {
+      alertar: async (alerta: Parameters<typeof alertasParcelamento.alertar>[0]) => {
+        const resultado = await alertasParcelamento.alertar(alerta);
+        await admin
+          .from("alertas_setor")
+          .update({ criado_em: relogioDaRodada.toISOString() })
+          .eq("cliente_id", alerta.clienteId)
+          .eq("tipo", alerta.tipo)
+          .eq("origem", "parcelamento")
+          .is("resolvido_em", null);
+        return resultado;
+      },
+      resolverNaoRenovados: (desde: Date, ids: string[]) =>
+        alertasParcelamento.resolverNaoRenovados(desde, ids),
+    };
+    jest.spyOn(console, "info").mockImplementation(() => undefined);
+    const montar = (agora: Date) => {
+      relogioDaRodada = agora;
+      return new ExecutarEnvioGuiaParcelamento(
+        apenasOAlvo,
+        new ObterGuiaParcelamentoParaEnvio(
+          {
+            buscar: async () => {
+              if (quedaNaEntrega) throw new Error("processo caiu");
+              return sucesso({ nomeArquivo: "p.pdf", pdfBase64: "JVBERi0=", parcela: "202609" });
+            },
+          },
+          { publicar: async () => sucesso("https://storage.test/p.pdf") },
+          0,
+        ),
+        new EntregarComunicacaoPorCanais(
+          new EnviarComunicacaoProativa(envio, 1, 0),
+          { enviar: async () => sucesso(undefined) },
+          0,
+        ),
+        alertasNoRelogioDaRodada,
+        { agora: () => agora },
+      );
+    };
+    const abertos = async () =>
+      ok(
+        admin
+          .from("alertas_setor")
+          .select("tipo")
+          .eq("cliente_id", alvo.id)
+          .eq("origem", "parcelamento")
+          .is("resolvido_em", null),
+      );
+    const diaDoJob = new Date("2026-10-22T12:00:00Z");
+
+    // T0: a entrega cai; falha_envio aberto e a reserva fica vigente, o cadastro segue pendente.
+    await montar(diaDoJob).execute();
+    expect(await abertos()).toEqual([{ tipo: "falha_envio" }]);
+    expect(await statusDoParcelamento(alvo.id)).toBe("pendente");
+
+    // T0 + 2 min: a reserva vigente devolve null; nada é entregue nem concluído, e o alerta fica.
+    quedaNaEntrega = false;
+    await montar(new Date(diaDoJob.getTime() + 2 * 60_000)).execute();
+    expect(envio.requisicoes).toHaveLength(0);
+    expect(await statusDoParcelamento(alvo.id)).toBe("pendente");
+    expect(await abertos()).toEqual([{ tipo: "falha_envio" }]);
+
+    // A reserva vence: a retomada entrega, conclui e só então resolve o alerta.
+    await ok(
+      admin
+        .from("envios_automaticos")
+        .update({ reservado_em: new Date(Date.now() - 20 * 60_000).toISOString() })
+        .eq("cliente_id", alvo.id),
+    );
+    await montar(new Date(diaDoJob.getTime() + 4 * 60_000)).execute();
+    expect(envio.templatesEnviados.length + envio.enviadas.length).toBeGreaterThan(0);
+    expect(await statusDoParcelamento(alvo.id)).toBe("enviado");
+    expect(await abertos()).toEqual([]);
+  }, 60_000);
 });

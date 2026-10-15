@@ -42,6 +42,8 @@ function montar(
     buscar?: () => Promise<Result<GuiaFiscal, AppError>>;
     falhas?: Record<string, number>;
     reservar?: Result<string | null, AppError>;
+    // Por Cliente: sobrepõe `reservar` (um Cliente com a reserva ocupada ao lado de outro livre).
+    reservarPor?: Record<string, Result<string | null, AppError>>;
     concluir?: Result<boolean, AppError>;
     liberar?: Result<void, AppError>;
     gravacao?: Result<void, AppError>;
@@ -63,7 +65,7 @@ function montar(
       listarPendentes: async () => ok(clientes),
       reservar: async (id) => {
         reservados.push(id);
-        return opcoes.reservar ?? ok("tok-1");
+        return opcoes.reservarPor?.[id] ?? opcoes.reservar ?? ok("tok-1");
       },
       concluir: async (id, token) => {
         concluidos.push([id, token]);
@@ -389,6 +391,27 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
     const { job, resolvidos } = montar([cliente({ clienteId: "a" }), cliente({ clienteId: "b" })]);
     await job.execute();
     expect(resolvidos.map((r) => r.ids)).toEqual([["a", "b"]]);
+  });
+
+  it("reserva ocupada (resultado ainda incerto): o Cliente não entra na resolução de alertas (R87-03.A)", async () => {
+    const { job, resolvidos, alertas, envio } = montar(
+      [cliente({ clienteId: "ocupado" }), cliente({ clienteId: "livre" })],
+      { reservarPor: { ocupado: ok(null) } },
+    );
+    const resultado = await job.execute();
+    // Só o Cliente efetivamente reavaliado participa; o ocupado mantém o alerta anterior.
+    expect(resolvidos.map((r) => r.ids)).toEqual([["livre"]]);
+    expect(alertas).toHaveLength(0);
+    expect(envio.templatesEnviados).toHaveLength(1);
+    expect(resultado.ok && resultado.value.enviados).toBe(1);
+  });
+
+  it("todos os Clientes com a reserva ocupada: nenhum alerta é resolvido", async () => {
+    const { job, resolvidos } = montar([cliente({ clienteId: "a" }), cliente({ clienteId: "b" })], {
+      reservar: ok(null),
+    });
+    await job.execute();
+    expect(resolvidos).toHaveLength(0);
   });
 
   it("rodada sem Clientes não chama a resolução de alertas", async () => {

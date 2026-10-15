@@ -56,8 +56,10 @@ Antes de ligar em produção:
   recebimento grava em `atendimentos.chave_telefone`); o telefone de envio vai com o DDI 55.
 - **Alertas:** `alertas_setor`, um aberto por Cliente e tipo (índice parcial). Repetir o alerta
   renova a mensagem e a data; ao fim da rodada o que não foi renovado é resolvido (o Cliente
-  regularizou), **só para os Clientes que a rodada avaliou** (`p_cliente_ids`). O mesmo problema
-  não alerta duas vezes na rodada (lembrete + DAS do mesmo Cliente).
+  regularizou), **só para os Clientes que a rodada reavaliou** (`p_cliente_ids`). Cliente cuja
+  tarefa está com a reserva ocupada por outra tentativa vigente (resultado ainda incerto) não é
+  reavaliado: fica de fora da resolução, inclusive os alertas da tarefa vizinha, e a rodada seguinte
+  decide. O mesmo problema não alerta duas vezes na rodada (lembrete + DAS do mesmo Cliente).
 - **Auditoria:** DAS marcado como enviado grava `cliente.enviar-das-automatico` com a URA como ator.
 - **Resposta:** `500` com o resumo quando `falhas > 0`, para a rodada aparecer nos logs do cron.
 
