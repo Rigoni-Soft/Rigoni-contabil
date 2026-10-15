@@ -15,9 +15,11 @@ import type {
 } from "@/modules/atendimento/application/ports/out/clientes-para-parcelamento.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import {
+  entregarReivindicando,
   falha,
   levantarAlertas,
   resolverAlertasDaRodada,
+  semDestinatario,
   type Andamento,
 } from "@/modules/atendimento/application/use-cases/alertas-da-rodada";
 import type { AppError } from "@/shared/errors/app.error";
@@ -72,35 +74,17 @@ export class ExecutarEnvioGuiaParcelamento implements ExecutarEnvioGuiaParcelame
   }
 
   private async enviar(cliente: ClienteParaParcelamento, agora: Date): Promise<Andamento> {
-    // Sem para quem enviar não vale buscar a guia nem reivindicar o Parcelamento.
-    if (!temDestinatario(cliente)) {
-      return {
-        enviado: false,
-        ocorrencias: [
-          {
-            tipo: "contato_ausente",
-            mensagem: `${cliente.empresa} não tem contato nem e-mail para a forma de envio.`,
-          },
-        ],
-      };
-    }
-    const reivindicado = await this.clientes.reivindicar(cliente.clienteId);
-    if (!reivindicado.ok) {
-      return falha(`Parcelamento de ${cliente.empresa}: ${reivindicado.error.message}`);
-    }
-    // Outro job ou o Funcionário já tratou o Parcelamento: quem não reivindicou não envia.
-    if (!reivindicado.value) return { enviado: false, ocorrencias: [] };
-
-    const entrega = await this.entregarGuia(cliente, agora);
-    if (entrega.enviado) return entrega;
-
-    const desfeito = await this.clientes.desfazer(cliente.clienteId);
-    if (desfeito.ok) return entrega;
-    const naoVoltou = `Parcelamento de ${cliente.empresa} não voltou a pendente após a falha: ${desfeito.error.message}`;
-    return {
-      enviado: false,
-      ocorrencias: [...entrega.ocorrencias, ...falha(naoVoltou).ocorrencias],
-    };
+    if (!temDestinatario(cliente)) return semDestinatario(cliente.empresa);
+    return entregarReivindicando(
+      {
+        reivindicar: () => this.clientes.reivindicar(cliente.clienteId),
+        entregar: () => this.entregarGuia(cliente, agora),
+        desfazer: () => this.clientes.desfazer(cliente.clienteId),
+      },
+      "Parcelamento",
+      cliente.empresa,
+      "pendente",
+    );
   }
 
   private async entregarGuia(cliente: ClienteParaParcelamento, agora: Date): Promise<Andamento> {

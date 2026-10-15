@@ -8,16 +8,12 @@ import type { AppError } from "@/shared/errors/app.error";
 import { comTentativas, TENTATIVAS } from "@/shared/kernel/com-tentativas";
 import { ok, type Result } from "@/shared/kernel/result";
 
-type Dependencias = {
-  guias: GuiasFiscaisPort;
-  publicadas: GuiaPublicadaPort;
-  esperaEntreTentativasMs: number;
-};
-
 // Busca a guia no provedor fiscal, confere o que o template exige (`extrair`) e a publica. Falha
 // do serviço externo repete antes de devolver o erro.
 export function obterGuiaPublicada<T>(
-  { guias, publicadas, esperaEntreTentativasMs }: Dependencias,
+  guias: GuiasFiscaisPort,
+  publicadas: GuiaPublicadaPort,
+  esperaEntreTentativasMs: number,
   clienteId: string,
   tipo: TipoGuia,
   extrair: (guia: GuiaFiscal) => Result<T, AppError>,

@@ -18,10 +18,12 @@ import type {
 } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import {
+  entregarReivindicando,
   falha,
   levantarAlertas,
   resolverAlertasDaRodada,
   SEM_ANDAMENTO,
+  semDestinatario,
   type Andamento,
 } from "@/modules/atendimento/application/use-cases/alertas-da-rodada";
 import type { AppError } from "@/shared/errors/app.error";
@@ -112,35 +114,17 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
   }
 
   private async enviarDas(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento> {
-    // Sem para quem enviar não vale buscar a guia nem reivindicar o DAS.
-    if (!temDestinatario(cliente)) {
-      return {
-        enviado: false,
-        ocorrencias: [
-          {
-            tipo: "contato_ausente",
-            mensagem: `${cliente.empresa} não tem contato nem e-mail para a forma de envio.`,
-          },
-        ],
-      };
-    }
-    const reivindicado = await this.clientes.reivindicarDas(cliente.clienteId, hojeIso(agora));
-    if (!reivindicado.ok) {
-      return falha(`DAS de ${cliente.empresa}: ${reivindicado.error.message}`);
-    }
-    // Outro job ou o Funcionário já tratou o DAS: quem não reivindicou não envia.
-    if (!reivindicado.value) return SEM_ANDAMENTO;
-
-    const entrega = await this.entregarGuia(cliente, agora);
-    if (entrega.enviado) return entrega;
-
-    const desfeito = await this.clientes.desfazerDas(cliente.clienteId, cliente.dataEnvioDas);
-    if (desfeito.ok) return entrega;
-    const naoVoltou = `DAS de ${cliente.empresa} não voltou a pronto após a falha: ${desfeito.error.message}`;
-    return {
-      enviado: false,
-      ocorrencias: [...entrega.ocorrencias, ...falha(naoVoltou).ocorrencias],
-    };
+    if (!temDestinatario(cliente)) return semDestinatario(cliente.empresa);
+    return entregarReivindicando(
+      {
+        reivindicar: () => this.clientes.reivindicarDas(cliente.clienteId, hojeIso(agora)),
+        entregar: () => this.entregarGuia(cliente, agora),
+        desfazer: () => this.clientes.desfazerDas(cliente.clienteId, cliente.dataEnvioDas),
+      },
+      "DAS",
+      cliente.empresa,
+      "pronto",
+    );
   }
 
   private async entregarGuia(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento> {

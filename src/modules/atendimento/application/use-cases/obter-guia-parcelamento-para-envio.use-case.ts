@@ -21,11 +21,9 @@ export class ObterGuiaParcelamentoParaEnvio implements ObterGuiaParcelamentoPara
 
   execute(clienteId: string): Promise<Result<GuiaParcelamentoParaEnvio, AppError>> {
     return obterGuiaPublicada(
-      {
-        guias: this.guias,
-        publicadas: this.publicadas,
-        esperaEntreTentativasMs: this.esperaEntreTentativasMs,
-      },
+      this.guias,
+      this.publicadas,
+      this.esperaEntreTentativasMs,
       clienteId,
       "parcelamento",
       ({ parcela }) =>

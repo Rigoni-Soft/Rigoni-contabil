@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-import type { DestinatarioDeComunicacao } from "@/modules/atendimento/application/ports/in/entregar-comunicacao-por-canais.provider";
 import { FORMAS_ENVIO } from "@/shared/kernel/forma-envio";
 
 // Colunas que as RPCs de leitura dos jobs de comunicação devolvem sobre quem recebe a guia.
@@ -14,11 +13,7 @@ export const linhaDestinatarioSchema = z.object({
   ultima_mensagem_do_contato_em: z.string().nullable(),
 });
 
-type LinhaDestinatario = z.infer<typeof linhaDestinatarioSchema>;
-
-export const paraDestinatario = (
-  l: LinhaDestinatario,
-): DestinatarioDeComunicacao & { clienteId: string } => ({
+export const paraDestinatario = (l: z.infer<typeof linhaDestinatarioSchema>) => ({
   clienteId: l.cliente_id,
   empresa: l.empresa,
   formaEnvio: l.forma_envio,

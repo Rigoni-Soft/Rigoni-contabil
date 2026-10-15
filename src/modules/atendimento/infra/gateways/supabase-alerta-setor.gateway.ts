@@ -8,7 +8,7 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-export type OrigemAlertaSetor = "lembretes" | "parcelamento";
+type OrigemAlertaSetor = "lembretes" | "parcelamento";
 
 // Usa o client service_role (docs/adr/0001): o job não tem sessão de usuário. Cada job grava e
 // resolve só os alertas da própria origem.

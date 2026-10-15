@@ -21,11 +21,9 @@ export class ObterGuiaDasParaEnvio implements ObterGuiaDasParaEnvioPort {
 
   execute(clienteId: string): Promise<Result<GuiaDasParaEnvio, AppError>> {
     return obterGuiaPublicada(
-      {
-        guias: this.guias,
-        publicadas: this.publicadas,
-        esperaEntreTentativasMs: this.esperaEntreTentativasMs,
-      },
+      this.guias,
+      this.publicadas,
+      this.esperaEntreTentativasMs,
       clienteId,
       "das",
       ({ competencia, vencimento }) =>
