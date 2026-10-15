@@ -667,6 +667,16 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   mensagem nova. Rolar para cima para ler o histórico não é puxado de volta
   quando chega mensagem nova. Balões sem sombra; a hora do balão do
   Funcionário usa `opacity-90` (contraste ≥ 4,5:1 nos dois temas).
+- **Histórico anterior** (R85-05): a conversa carrega só as mensagens mais recentes;
+  "Ver mensagens anteriores" (`BotaoDeLink`, 44 px, sublinhado) fica no topo da lista,
+  vira "Carregando…" enquanto busca e some quando não há mais. A falha aparece como
+  `AvisoDeStatus` de erro logo abaixo do botão, sem derrubar o que já está na tela. O
+  histórico aberto continua na tela quando a conversa se atualiza; uma resposta atrasada
+  que não encaixa na janela atual é descartada e o botão segue disponível.
+- **Envio não confirmado** (R85-01): a mensagem do Funcionário que o provedor ainda não
+  aceitou (ou recusou) mostra "Envio não confirmado ·" em `font-semibold` antes da hora,
+  no próprio balão, sem trocar a cor dele: o texto e o anexo continuam visíveis e a
+  mensagem não conta como resposta para a inatividade. O estado vem do texto, não da cor.
 - **Reação do escritório** (#84): o balão do cliente tem, fora dele à direita
   (`left-full`, largura reservada no `max-w`), o botão `ghost` redondo de 28 px
   "Reagir à mensagem de <nome>" (mesmo `SeletorDeEmoji`, `compacto`). O glifo
