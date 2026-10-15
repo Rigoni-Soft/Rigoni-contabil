@@ -4,12 +4,14 @@ import type { Result } from "@/shared/kernel/result";
 export type TipoGuia = "das" | "parcelamento" | "cnd";
 
 // PDF em base64, como o provedor fiscal devolve. `competencia` (AAAA-MM) e `vencimento`
-// (AAAA-MM-DD) vêm na guia do DAS; o job de lembrete precisa deles para o template.
+// (AAAA-MM-DD) vêm na guia do DAS; `parcela` (AAAAMM) e `vencimento`, na do parcelamento. Os jobs
+// precisam deles para o template.
 export type GuiaFiscal = {
   nomeArquivo: string;
   pdfBase64: string;
   competencia?: string;
   vencimento?: string;
+  parcela?: string;
 };
 
 export interface GuiasFiscaisPort {

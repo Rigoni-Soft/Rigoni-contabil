@@ -4,8 +4,14 @@ import type { ClienteParaLembrete } from "@/modules/atendimento/application/port
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
+// O que a entrega precisa saber do Cliente: para quem e por qual canal enviar.
+export type DestinatarioDeComunicacao = Pick<
+  ClienteParaLembrete,
+  "empresa" | "formaEnvio" | "contato" | "email" | "ultimaMensagemDoContatoEm"
+>;
+
 export type EntregarComunicacaoInput = {
-  cliente: ClienteParaLembrete;
+  cliente: DestinatarioDeComunicacao;
   comunicacao: ComunicacaoProativa;
   agora: Date;
 };

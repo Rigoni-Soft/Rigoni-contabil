@@ -1,4 +1,4 @@
-import { formatarCompetencia, formatarDataIso } from "./data-iso";
+import { formatarCompetencia, formatarDataIso, formatarParcela } from "./data-iso";
 
 describe("data-iso", () => {
   it("formata a data ISO como DD/MM/AAAA", () => {
@@ -7,5 +7,9 @@ describe("data-iso", () => {
 
   it("formata a competência AAAA-MM como MM/AAAA", () => {
     expect(formatarCompetencia("2026-09")).toBe("09/2026");
+  });
+
+  it("formata a parcela AAAAMM como MM/AAAA", () => {
+    expect(formatarParcela("202609")).toBe("09/2026");
   });
 });

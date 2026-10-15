@@ -9,3 +9,8 @@ export function formatarCompetencia(anoMes: string): string {
   const [ano, mes] = anoMes.split("-");
   return `${mes}/${ano}`;
 }
+
+// "AAAAMM" (parcela do provedor fiscal) → "MM/AAAA".
+export function formatarParcela(aaaamm: string): string {
+  return `${aaaamm.slice(4)}/${aaaamm.slice(0, 4)}`;
+}

@@ -1,4 +1,7 @@
-import type { ComunicacaoProativa } from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
+import {
+  temDestinatario,
+  type ComunicacaoProativa,
+} from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
 import type {
   EntregarComunicacaoPorCanaisPort,
   OcorrenciaDeEntrega,
@@ -18,7 +21,6 @@ import type {
 } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import type { AppError } from "@/shared/errors/app.error";
-import { formaEnvioUsaEmail, formaEnvioUsaWhatsapp } from "@/shared/kernel/forma-envio";
 import { diaDoMes, hojeIso } from "@/shared/kernel/mes-atual";
 import { ok, type Result } from "@/shared/kernel/result";
 
@@ -38,10 +40,6 @@ const falha = (mensagem: string): Andamento => ({
 });
 
 const nomeDoContato = (cliente: ClienteParaLembrete) => cliente.contato?.nome ?? cliente.empresa;
-
-const temDestinatario = (cliente: ClienteParaLembrete) =>
-  (formaEnvioUsaWhatsapp(cliente.formaEnvio) && cliente.contato !== null) ||
-  (formaEnvioUsaEmail(cliente.formaEnvio) && cliente.email !== null);
 
 // Um alerta por tipo e Cliente: as mensagens do mesmo tipo (ex.: falha do lembrete e da guia) se
 // juntam, em vez de a segunda ser descartada.

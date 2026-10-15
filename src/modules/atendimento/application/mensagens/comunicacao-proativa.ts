@@ -1,7 +1,9 @@
+import type { DestinatarioDeComunicacao } from "@/modules/atendimento/application/ports/in/entregar-comunicacao-por-canais.provider";
 import type {
   DocumentoEnviado,
   TemplateEnviado,
 } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
+import { formaEnvioUsaEmail, formaEnvioUsaWhatsapp } from "@/shared/kernel/forma-envio";
 
 const JANELA_MS = 24 * 60 * 60 * 1000;
 
@@ -25,6 +27,11 @@ export type ComunicacaoProativa =
       parcela: string;
       guia: Guia;
     };
+
+// Há para quem enviar pela forma de envio do Cliente (contato padrão e/ou e-mail).
+export const temDestinatario = (c: DestinatarioDeComunicacao): boolean =>
+  (formaEnvioUsaWhatsapp(c.formaEnvio) && c.contato !== null) ||
+  (formaEnvioUsaEmail(c.formaEnvio) && c.email !== null);
 
 // A janela de 24h conta da última mensagem recebida do contato.
 export function janelaAberta(ultimaMensagemDoContatoEm: Date | null, agora: Date): boolean {
