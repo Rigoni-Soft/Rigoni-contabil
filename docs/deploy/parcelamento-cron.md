@@ -16,3 +16,8 @@ Mesmo gate, retentativa, reivindicação e alertas do job de lembrete/DAS
 - `alertas_setor.origem = 'parcelamento'`: cada job renova e resolve só os seus alertas.
 - A parcela do provedor (`AAAAMM`) vai como `MM/AAAA`; guia sem parcela falha.
 - Não há data de envio do Parcelamento (o DAS tem): a auditoria registra quando.
+- A migration `20261016090000` substitui as RPCs `registrar_alerta_setor` e
+  `resolver_alertas_setor_nao_renovados` do #52 (novo parâmetro `p_origem`, default `lembretes`) e
+  recria o índice único de `alertas_setor`. Aplicar junto com o código desta versão: o código do #52
+  anterior chama as assinaturas antigas, que deixam de existir.
+- O Parcelamento `enviado` não volta a `pendente` sozinho: quem repõe é o Funcionário (como o DAS).

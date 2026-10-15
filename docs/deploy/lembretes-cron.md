@@ -56,4 +56,5 @@ Antes de ligar em produção:
   auditoria da URA mostra o que aconteceu. Lease com retomada se isso virar problema.
 - Os clientes são processados em sequência dentro de uma invocação: com volume alto, medir a
   duração e declarar `maxDuration` (depende do plano Vercel) ou processar em lotes.
+  O mesmo vale para o job de [parcelamento](./parcelamento-cron.md), que roda nos dias 20 a 28.
 - A guia de parcelamento (dias 20/22/24/26/28) é outro job: [parcelamento-cron.md](./parcelamento-cron.md).

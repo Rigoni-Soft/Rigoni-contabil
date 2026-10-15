@@ -49,7 +49,9 @@ as $$
 $$;
 
 -- Clientes com Parcelamento pendente (e tem parcelamento positivo), com o contato padrão e a
--- janela de 24h: a mesma leitura do job de lembrete, filtrada.
+-- janela de 24h: a mesma leitura do job de lembrete, filtrada. As colunas acompanham as de
+-- `clientes_para_lembrete()`: se aquela ganhar coluna, esta também (o gateway lê as duas com o
+-- mesmo schema de linha).
 create function public.clientes_para_parcelamento()
 returns table (
   cliente_id uuid,
@@ -74,6 +76,8 @@ $$;
 
 -- Reivindica o Parcelamento: pendente → enviado, só se ainda estiver pendente (quem reivindicou
 -- entrega; quem não, não envia). Auditoria com a URA como ator, como no DAS.
+-- Nota: `auditar_das_da_ura` ficou com o nome do #52 mas audita qualquer ação automática da URA no
+-- Cadastro operacional (`p_acao` diz qual); renomeá-la pede migration própria.
 create function public.reivindicar_parcelamento_para_envio(p_cliente_id uuid)
 returns boolean
 language plpgsql
@@ -93,7 +97,7 @@ end;
 $$;
 
 -- A entrega falhou: o Parcelamento volta a pendente e o desfazer fica na auditoria ao lado da
--- reivindicação.
+-- reivindicação. Só desfaz o que está `enviado`: se o Funcionário já mexeu, não sobrescreve.
 create function public.desfazer_envio_parcelamento_automatico(p_cliente_id uuid)
 returns void
 language plpgsql

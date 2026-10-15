@@ -117,6 +117,13 @@ describe("job de envio da guia de parcelamento (infra)", () => {
     ]);
   });
 
+  it("desfazer num Parcelamento que não está enviado não altera nem audita", async () => {
+    expect(await clientes.desfazer(clienteId)).toEqual({ ok: true, value: undefined });
+
+    const auditoria = await admin.from("registros_auditoria").select("acao").eq("alvo", cnpj);
+    expect(auditoria.data).toHaveLength(2);
+  });
+
   it("cada job resolve só os alertas da própria origem", async () => {
     const base = {
       setor: "simples_nacional",
@@ -134,5 +141,19 @@ describe("job de envio da guia de parcelamento (infra)", () => {
       .eq("cliente_id", clienteId)
       .is("resolvido_em", null);
     expect(abertos.data).toEqual([{ tipo: "das_pendente", origem: "lembretes" }]);
+  });
+
+  it("o mesmo tipo de alerta do mesmo Cliente abre um alerta por origem", async () => {
+    const base = { setor: "simples_nacional", clienteId, mensagem: "y" } as const;
+    await alertasLembretes.alertar({ ...base, tipo: "falha_envio" });
+    await alertasParcelamento.alertar({ ...base, tipo: "falha_envio" });
+
+    const abertos = await admin
+      .from("alertas_setor")
+      .select("origem")
+      .eq("cliente_id", clienteId)
+      .eq("tipo", "falha_envio")
+      .is("resolvido_em", null);
+    expect(abertos.data?.map((a) => a.origem).sort()).toEqual(["lembretes", "parcelamento"]);
   });
 });
