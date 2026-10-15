@@ -12,11 +12,15 @@ export function MensagensConversaContainer({
   atendimentoId: string;
   initialData: ConversaVista;
 }) {
-  const { mensagens, reacao, arraste } = useMensagensConversa(atendimentoId, initialData);
+  const { mensagens, anteriores, reacao, arraste } = useMensagensConversa(
+    atendimentoId,
+    initialData,
+  );
 
   return (
     <ListaDeMensagens
       mensagens={mensagens}
+      anteriores={anteriores}
       reacao={reacao}
       arraste={arraste}
       previaDoAnexo={(anexo) => (

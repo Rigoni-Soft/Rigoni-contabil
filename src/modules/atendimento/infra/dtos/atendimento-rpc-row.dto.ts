@@ -142,6 +142,22 @@ export const atendimentoDoFuncionarioRowSchema = z.object({
   ),
 });
 
+// Mensagem da conversa, com quem a escreveu (`perfis`).
+export const mensagemDaConversaRowSchema = z.object({
+  id: z.string(),
+  autor: z.enum(["contato", "ura", "funcionario"]),
+  texto: z.string(),
+  criado_em: z.string(),
+  id_externo: z.string().nullable(),
+  reacao: z.string().nullable(),
+  anexo_tipo: z.enum(["imagem", "audio", "documento"]).nullable(),
+  anexo_nome: z.string().nullable(),
+  anexo_caminho: z.string().nullable(),
+  anexo_tamanho: z.number().nullable(),
+  anexo_miniatura_caminho: z.string().nullable(),
+  perfis: z.object({ nome: z.string(), setor: z.enum(SETORES) }).nullable(),
+});
+
 export const conversaRowSchema = z.object({
   id: z.string(),
   status: z.enum(["em_andamento", "encerrado"]),
@@ -155,22 +171,7 @@ export const conversaRowSchema = z.object({
   aviso_inatividade_em: z.string().nullable(),
   aviso_inatividade_de: z.enum(["contato", "funcionario"]).nullable(),
   clientes: clienteComContatosRowSchema,
-  mensagens: z.array(
-    z.object({
-      id: z.string(),
-      autor: z.enum(["contato", "ura", "funcionario"]),
-      texto: z.string(),
-      criado_em: z.string(),
-      id_externo: z.string().nullable(),
-      reacao: z.string().nullable(),
-      anexo_tipo: z.enum(["imagem", "audio", "documento"]).nullable(),
-      anexo_nome: z.string().nullable(),
-      anexo_caminho: z.string().nullable(),
-      anexo_tamanho: z.number().nullable(),
-      anexo_miniatura_caminho: z.string().nullable(),
-      perfis: z.object({ nome: z.string(), setor: z.enum(SETORES) }).nullable(),
-    }),
-  ),
+  mensagens: z.array(mensagemDaConversaRowSchema),
   transferencias: z.array(
     z.object({
       setor_origem: z.enum(SETORES),
@@ -197,3 +198,10 @@ export const registroDoFuncionarioRowSchema = z.discriminatedUnion("status", [
 
 // `atendimentos.id` lido sozinho (a mídia só precisa saber qual é o Atendimento em andamento).
 export const atendimentoIdRowSchema = z.object({ id: z.string() });
+
+// Uma página do histórico: o Atendimento só com o que decide quem pode vê-la, e as Mensagens.
+export const mensagensAnterioresRowSchema = z.object({
+  setor: z.enum(SETORES),
+  funcionario_id: z.string().nullable(),
+  mensagens: z.array(mensagemDaConversaRowSchema),
+});

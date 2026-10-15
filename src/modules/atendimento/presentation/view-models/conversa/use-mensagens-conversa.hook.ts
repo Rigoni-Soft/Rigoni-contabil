@@ -4,6 +4,7 @@ import { useIsMutating } from "@tanstack/react-query";
 import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import {
   conversaKeys,
+  useMensagensAnterioresMutation,
   useReagirAMensagemMutation,
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.queries";
 import { useAnexoPendente } from "@/modules/atendimento/presentation/view-models/conversa/use-anexo-pendente.hook";
@@ -28,6 +29,7 @@ function posicaoDoPainel(botao: DOMRect): React.CSSProperties {
 export function useMensagensConversa(atendimentoId: string, initialData: ConversaVista) {
   const { conversa, transferido } = useConversa(atendimentoId, initialData);
   const reagir = useReagirAMensagemMutation(atendimentoId);
+  const anteriores = useMensagensAnterioresMutation(atendimentoId);
   const pendente = useAnexoPendente(atendimentoId);
   // O envio é da região do campo de resposta: aqui só se sabe pelo cache de mutações.
   const enviandoAnexo = useIsMutating({ mutationKey: conversaKeys.enviarAnexo(atendimentoId) }) > 0;
@@ -51,6 +53,12 @@ export function useMensagensConversa(atendimentoId: string, initialData: Convers
 
   return {
     mensagens: conversa.mensagens,
+    anteriores: {
+      disponivel: conversa.temMaisAnteriores,
+      carregando: anteriores.isPending,
+      erro: anteriores.isError ? anteriores.error.message : undefined,
+      aoCarregar: () => anteriores.mutate(),
+    },
     arraste,
     reacao: {
       // Encerrado ou transferido: a conversa não é mais do usuário.

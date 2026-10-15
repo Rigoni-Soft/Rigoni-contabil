@@ -54,7 +54,9 @@ export type ConversaVista = {
   contato: DadosDoContato;
   // Sem Cliente vinculado (ex.: número não identificado) não há CNPJ para disparar serviços.
   clienteVinculado: boolean;
+  // As mais recentes (a janela); `temMaisAnteriores`: há histórico antes da primeira.
   mensagens: MensagemVista[];
+  temMaisAnteriores: boolean;
   // Null se o Atendimento nunca foi transferido.
   ultimaTransferencia: UltimaTransferencia | null;
   // Null se o Atendimento não nasceu da URA (sem resumo nem CNPJ informado).
@@ -68,6 +70,16 @@ export type ConversaVista = {
   setoresDestino: SetorSlug[];
 };
 
+// Uma página do histórico anterior ao cursor (a primeira Mensagem que a tela já tem).
+export type MensagensAnterioresVista = {
+  mensagens: MensagemVista[];
+  temMaisAnteriores: boolean;
+};
+
 export interface ObterConversaPort {
   execute(input: { atendimentoId: string }): Promise<Result<ConversaVista, AppError>>;
+  mensagensAnteriores(input: {
+    atendimentoId: string;
+    antes: { criadoEm: string; id: string };
+  }): Promise<Result<MensagensAnterioresVista, AppError>>;
 }

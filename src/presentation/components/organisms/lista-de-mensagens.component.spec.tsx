@@ -44,6 +44,41 @@ describe("ListaDeMensagens", () => {
   });
 });
 
+describe("ListaDeMensagens — histórico anterior (R85-05)", () => {
+  it("oferece as mensagens anteriores acima da lista e pede o carregamento", async () => {
+    const aoCarregar = jest.fn();
+    render(
+      <ListaDeMensagens
+        mensagens={MENSAGENS}
+        anteriores={{ disponivel: true, carregando: false, aoCarregar }}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Ver mensagens anteriores" }));
+
+    expect(aoCarregar).toHaveBeenCalledTimes(1);
+  });
+
+  it("sem histórico a mais não mostra o botão; carregando o desabilita; o erro aparece", () => {
+    const { rerender } = render(
+      <ListaDeMensagens
+        mensagens={MENSAGENS}
+        anteriores={{ disponivel: false, carregando: false, aoCarregar: jest.fn() }}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: /anteriores/ })).not.toBeInTheDocument();
+
+    rerender(
+      <ListaDeMensagens
+        mensagens={MENSAGENS}
+        anteriores={{ disponivel: true, carregando: true, erro: "Falhou.", aoCarregar: jest.fn() }}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Carregando…" })).toBeDisabled();
+    expect(screen.getByText("Falhou.")).toBeInTheDocument();
+  });
+});
+
 describe("ListaDeMensagens — reação (#84)", () => {
   const REAGIVEIS = [
     { ...MENSAGENS[0], reagivel: true, reacao: "❤️" },

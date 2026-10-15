@@ -40,6 +40,7 @@ const CONVERSA: ConversaVista = {
   mensagens: [],
   ultimaTransferencia: null,
   ura: null,
+  temMaisAnteriores: false,
   avisoInatividade: false,
   setoresDestino: [],
   documentos: [],

@@ -1,4 +1,5 @@
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
+import { BotaoDeLink } from "@/presentation/components/atoms/botao-de-link.component";
 import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { MensagemBalao } from "@/presentation/components/molecules/mensagem-balao.component";
 import { SeletorDeEmoji } from "@/presentation/components/molecules/seletor-de-emoji.component";
@@ -50,8 +51,18 @@ type ArrasteProps = {
   >;
 };
 
+// Histórico anterior ao que a conversa mostra: a lista abre nas mais recentes e o restante vem sob
+// demanda (o Container carrega).
+type AnterioresProps = {
+  disponivel: boolean;
+  carregando: boolean;
+  erro?: string;
+  aoCarregar: () => void;
+};
+
 type ListaDeMensagensProps = {
   mensagens: MensagemView[];
+  anteriores?: AnterioresProps;
   // Botão de visualizar Word/Excel de um anexo: o Container o monta (lê o arquivo no navegador).
   previaDoAnexo?: (anexo: {
     nome: string;
@@ -84,6 +95,7 @@ function previaDoAnexoDe(
 // ordem de leitura. role="log" anuncia a mensagem nova ao leitor de tela.
 export function ListaDeMensagens({
   mensagens,
+  anteriores,
   previaDoAnexo,
   reacao,
   arraste,
@@ -97,43 +109,51 @@ export function ListaDeMensagens({
         aria-label="Conversa"
         className="max-h-[60vh] min-h-0 flex-col-reverse overflow-y-auto rounded-xl border border-border bg-muted/50 p-3 lg:max-h-none lg:flex-1"
       >
-        <Pilha espaco="campo" como="ol" aria-label="Mensagens" className="shrink-0">
-          {mensagens.map(({ id, reagivel, anexo, ...mensagem }) => {
-            const aberto = reacao?.abertaId === id;
-            return (
-              <MensagemBalao
-                key={id}
-                {...mensagem}
-                anexo={
-                  anexo && {
-                    ...anexo,
-                    painelId: `anexo-${id}`,
-                    previa: previaDoAnexoDe(`anexo-${id}`, anexo, previaDoAnexo),
+        <Pilha espaco="campo" className="shrink-0">
+          {anteriores?.disponivel && (
+            <BotaoDeLink onClick={anteriores.aoCarregar} disabled={anteriores.carregando}>
+              {anteriores.carregando ? "Carregando…" : "Ver mensagens anteriores"}
+            </BotaoDeLink>
+          )}
+          {anteriores?.erro && <AvisoDeStatus tipo="erro" texto={anteriores.erro} />}
+          <Pilha espaco="campo" como="ol" aria-label="Mensagens">
+            {mensagens.map(({ id, reagivel, anexo, ...mensagem }) => {
+              const aberto = reacao?.abertaId === id;
+              return (
+                <MensagemBalao
+                  key={id}
+                  {...mensagem}
+                  anexo={
+                    anexo && {
+                      ...anexo,
+                      painelId: `anexo-${id}`,
+                      previa: previaDoAnexoDe(`anexo-${id}`, anexo, previaDoAnexo),
+                    }
                   }
-                }
-                acao={
-                  reacao?.ativa && reagivel ? (
-                    <SeletorDeEmoji
-                      compacto
-                      rotulo={`Reagir à mensagem de ${mensagem.autor}`}
-                      aberto={aberto}
-                      recentes={reacao.recentes}
-                      completo={reacao.completo}
-                      onExpandir={reacao.aoExpandir}
-                      estilo={aberto ? reacao.estilo : undefined}
-                      painelId={reacao.painelId}
-                      raizRef={aberto ? reacao.raizRef : null}
-                      botaoRef={aberto ? reacao.botaoRef : null}
-                      onAlternar={(evento) =>
-                        reacao.aoAlternar(id, evento.currentTarget.getBoundingClientRect())
-                      }
-                      onEscolher={(emoji) => reacao.aoEscolher(id, emoji)}
-                    />
-                  ) : undefined
-                }
-              />
-            );
-          })}
+                  acao={
+                    reacao?.ativa && reagivel ? (
+                      <SeletorDeEmoji
+                        compacto
+                        rotulo={`Reagir à mensagem de ${mensagem.autor}`}
+                        aberto={aberto}
+                        recentes={reacao.recentes}
+                        completo={reacao.completo}
+                        onExpandir={reacao.aoExpandir}
+                        estilo={aberto ? reacao.estilo : undefined}
+                        painelId={reacao.painelId}
+                        raizRef={aberto ? reacao.raizRef : null}
+                        botaoRef={aberto ? reacao.botaoRef : null}
+                        onAlternar={(evento) =>
+                          reacao.aoAlternar(id, evento.currentTarget.getBoundingClientRect())
+                        }
+                        onEscolher={(emoji) => reacao.aoEscolher(id, emoji)}
+                      />
+                    ) : undefined
+                  }
+                />
+              );
+            })}
+          </Pilha>
         </Pilha>
       </Linha>
       {reacao?.erro && <AvisoDeStatus tipo="erro" texto={reacao.erro} />}

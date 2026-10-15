@@ -41,6 +41,8 @@ const CONVERSA: ConversaLida = {
       anexo: null,
     },
   ],
+  temMaisAntigas: false,
+  ultimaDoFuncionarioEm: null,
   ultimaTransferencia: { setorOrigem: "recepcao", origemNome: "Ana", resumo: "Dúvida no DAS" },
   ura: { resumo: "Quer o contrato", cnpjInformado: null },
   aviso: null,
@@ -74,10 +76,20 @@ function montar(
   conversa: ConversaLida | null | "falha" = CONVERSA,
   regime = "lucro_presumido",
 ) {
+  const chamadasAnteriores: { antes: { id: string }; limite: number }[] = [];
   const repo = {
     conversa: async () =>
       conversa === "falha" ? err(new ServicoExternoError("banco")) : ok(conversa),
     roteamentoDoCliente: async () => ok({ regime: regime, responsavelId: null }),
+    mensagensAnteriores: async (_id: string, antes: { id: string }, limite: number) => {
+      chamadasAnteriores.push({ antes, limite });
+      return ok({
+        setor: "contabil" as const,
+        funcionarioId: "func-1",
+        mensagens: CONVERSA.mensagens.slice(0, 1),
+        temMaisAntigas: true,
+      });
+    },
   } as unknown as AtendimentoRepositoryPort;
   const listados: string[] = [];
   const documentos = {
@@ -110,6 +122,7 @@ function montar(
   return {
     listados,
     pedidos,
+    chamadasAnteriores,
     caso: new ObterConversa({ usuarioAtual: async () => ator }, repo, documentos, anexos),
   };
 }
@@ -132,7 +145,59 @@ function montarComFalhaDeLinks() {
   };
 }
 
+const ANTES = { criadoEm: "2026-10-08T12:00:00+00:00", id: "m1" };
+
 describe("ObterConversa", () => {
+  it("diz que há histórico antes da janela", async () => {
+    const { caso } = montar(FUNCIONARIO, { ...CONVERSA, temMaisAntigas: true });
+    const r = await caso.execute({ atendimentoId: "at-1" });
+    expect(r.ok && r.value.temMaisAnteriores).toBe(true);
+  });
+
+  it("o aviso de inatividade usa a última Mensagem do Funcionário, mesmo fora da janela (R85-05)", async () => {
+    const aviso = { de: "funcionario" as const, em: "2026-10-08T12:05:00Z" };
+    const pendente = montar(FUNCIONARIO, { ...CONVERSA, aviso, ultimaDoFuncionarioEm: null });
+    const respondido = montar(FUNCIONARIO, {
+      ...CONVERSA,
+      aviso,
+      ultimaDoFuncionarioEm: "2026-10-08T12:06:00Z",
+    });
+
+    const a = await pendente.caso.execute({ atendimentoId: "at-1" });
+    const b = await respondido.caso.execute({ atendimentoId: "at-1" });
+
+    expect(a.ok && a.value.avisoInatividade).toBe(true);
+    expect(b.ok && b.value.avisoInatividade).toBe(false);
+  });
+
+  describe("mensagensAnteriores", () => {
+    it("devolve a página anterior ao cursor, na janela, para quem pode ver o Atendimento", async () => {
+      const { caso, chamadasAnteriores } = montar(FUNCIONARIO);
+
+      const r = await caso.mensagensAnteriores({ atendimentoId: "at-1", antes: ANTES });
+
+      expect(chamadasAnteriores).toEqual([{ antes: ANTES, limite: 100 }]);
+      expect(r.ok && r.value.temMaisAnteriores).toBe(true);
+      expect(r.ok && r.value.mensagens.map((m) => m.id)).toEqual(["m1"]);
+    });
+
+    it("outro Funcionário não vê o histórico", async () => {
+      const { caso } = montar({ id: "func-2", papel: "funcionario", setor: "contabil" });
+
+      const r = await caso.mensagensAnteriores({ atendimentoId: "at-1", antes: ANTES });
+
+      expect(!r.ok && r.error.code).toBe("FORBIDDEN");
+    });
+
+    it("sem sessão é recusado", async () => {
+      const { caso } = montar(null);
+
+      const r = await caso.mensagensAnteriores({ atendimentoId: "at-1", antes: ANTES });
+
+      expect(r.ok).toBe(false);
+    });
+  });
+
   it("pede os links dos anexos em lote e devolve o anexo sem o caminho", async () => {
     const { caso, pedidos } = montar(FUNCIONARIO, COM_ANEXO);
 
@@ -189,6 +254,7 @@ describe("ObterConversa", () => {
           expect.objectContaining({ reagivel: true }),
           expect.objectContaining({ reagivel: false }),
         ],
+        temMaisAnteriores: false,
         ultimaTransferencia: CONVERSA.ultimaTransferencia,
         ura: CONVERSA.ura,
         avisoInatividade: false,
@@ -231,18 +297,7 @@ describe("ObterConversa", () => {
     it("some quando o Funcionário escreveu depois do aviso, antes de o job cancelar", async () => {
       const conversa = {
         ...aviso("funcionario", "2026-10-08T12:00:30Z"),
-        mensagens: [
-          {
-            id: "m-func",
-            autor: "funcionario" as const,
-            texto: "respondi",
-            criadoEm: "2026-10-08T12:01:00Z",
-            atendente: { nome: "Ana", setor: "contabil" as const },
-            idExterno: null,
-            reacao: null,
-            anexo: null,
-          },
-        ],
+        ultimaDoFuncionarioEm: "2026-10-08T12:01:00Z",
       };
       expect(await avisoVisto(conversa)).toBe(false);
     });

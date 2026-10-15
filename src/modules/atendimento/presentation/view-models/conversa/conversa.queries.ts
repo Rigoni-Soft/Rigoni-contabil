@@ -17,10 +17,14 @@ import {
   enviarDocumentoAction,
   enviarMensagemAction,
   obterConversaAction,
+  obterMensagensAnterioresAction,
   reagirAMensagemAction,
   transferirAtendimentoAction,
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.actions";
-import { reaproveitarLinks } from "@/modules/atendimento/presentation/view-models/conversa/conversa.presenter";
+import {
+  manterHistorico,
+  reaproveitarLinks,
+} from "@/modules/atendimento/presentation/view-models/conversa/conversa.presenter";
 import { filaKeys } from "@/modules/atendimento/presentation/view-models/fila/fila.queries";
 import { meusAtendimentosKeys } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.queries";
 
@@ -48,16 +52,42 @@ export function useConversaQuery(atendimentoId: string, initialData: ConversaVis
       const resultado = await obterConversaAction(atendimentoId);
       if (!resultado.ok) throw new Error(resultado.error.message);
       // Links de anexo já obtidos continuam valendo: as imagens não recarregam a cada leitura.
-      return reaproveitarLinks(
-        resultado.data,
-        queryClient.getQueryData<ConversaVista>(conversaKeys.conversa(atendimentoId)),
-        Date.now(),
+      const anterior = queryClient.getQueryData<ConversaVista>(
+        conversaKeys.conversa(atendimentoId),
       );
+      return reaproveitarLinks(manterHistorico(resultado.data, anterior), anterior, Date.now());
     },
     initialData,
     staleTime: INTERVALO_MS,
     refetchInterval: ativa ? INTERVALO_MS : false,
     retry: false,
+  });
+}
+
+// Histórico anterior ao que a tela já tem: entra no cache da conversa antes das Mensagens atuais.
+export function useMensagensAnterioresMutation(atendimentoId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const chave = conversaKeys.conversa(atendimentoId);
+      const primeira = queryClient.getQueryData<ConversaVista>(chave)?.mensagens[0];
+      if (!primeira) return;
+      const resultado = await obterMensagensAnterioresAction({
+        atendimentoId,
+        antes: { criadoEm: primeira.criadoEm, id: primeira.id },
+      });
+      if (!resultado.ok) throw new Error(resultado.error.message);
+      queryClient.setQueryData<ConversaVista>(chave, (atual) => {
+        if (!atual) return atual;
+        const ja = new Set(atual.mensagens.map((m) => m.id));
+        return {
+          ...atual,
+          mensagens: [...resultado.data.mensagens.filter((m) => !ja.has(m.id)), ...atual.mensagens],
+          temMaisAnteriores: resultado.data.temMaisAnteriores,
+        };
+      });
+    },
   });
 }
 

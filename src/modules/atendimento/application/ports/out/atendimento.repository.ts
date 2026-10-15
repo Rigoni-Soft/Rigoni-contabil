@@ -9,6 +9,7 @@ import type {
 } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import type { DadosDoContato } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
 import type { Inativo } from "@/modules/atendimento/domain/services/inatividade.service";
+import type { CursorDaConversa } from "@/modules/atendimento/domain/services/janela-da-conversa.service";
 import type { AppError } from "@/shared/errors/app.error";
 import type { TipoAnexoMensagem } from "@/shared/kernel/anexo";
 import type { Papel } from "@/shared/kernel/papeis";
@@ -191,7 +192,9 @@ export type MensagemParaReacao = {
   reacao: string | null;
 };
 
-// O Atendimento inteiro, em qualquer status, com as Mensagens da mais antiga à mais nova.
+// O Atendimento em qualquer status, com as Mensagens mais recentes (a janela) da mais antiga à mais
+// nova. `temMaisAntigas`: há histórico antes da primeira; `ultimaDoFuncionarioEm`: a última Mensagem
+// de Funcionário do Atendimento, esteja ou não na janela (o aviso de inatividade depende dela).
 export type ConversaLida = {
   id: string;
   status: "em_andamento" | "encerrado";
@@ -201,10 +204,20 @@ export type ConversaLida = {
   telefone: string;
   contato: DadosDoContato;
   mensagens: MensagemLida[];
+  temMaisAntigas: boolean;
+  ultimaDoFuncionarioEm: string | null;
   ultimaTransferencia: UltimaTransferencia | null;
   ura: OrigemUra | null;
   // Aviso de inatividade pendente (#73): quem estava inativo e quando a URA avisou.
   aviso: { de: Inativo; em: string } | null;
+};
+
+// Uma página do histórico anterior ao cursor, com o que decide quem pode vê-la.
+export type MensagensAnteriores = {
+  setor: SetorSlug;
+  funcionarioId: string | null;
+  mensagens: MensagemLida[];
+  temMaisAntigas: boolean;
 };
 
 export interface AtendimentoRepositoryPort {
@@ -287,6 +300,13 @@ export interface AtendimentoRepositoryPort {
     funcionarioId: string,
   ): Promise<Result<AtendimentoDoFuncionario[], AppError>>;
   conversa(atendimentoId: string): Promise<Result<ConversaLida | null, AppError>>;
+  // Até `limite` Mensagens estritamente anteriores a `antes`, da mais antiga à mais nova; null se o
+  // Atendimento não existe.
+  mensagensAnteriores(
+    atendimentoId: string,
+    antes: CursorDaConversa,
+    limite: number,
+  ): Promise<Result<MensagensAnteriores | null, AppError>>;
   // Mensagem escrita por um Funcionário (autor "funcionario") no Atendimento, com quem a escreveu.
   // Com `anexo`, `texto` é a legenda (pode ser vazia). Grava sob o lock da linha e revalida a
   // autoridade do ator no mesmo instante (dono, Líder do Setor ou Admin): o fechamento, a

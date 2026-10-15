@@ -12,13 +12,17 @@ import {
   makeTransferirAtendimento,
 } from "@/main/atendimento.factory";
 import type { AtendimentoEncerrado } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
-import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
+import type {
+  ConversaVista,
+  MensagensAnterioresVista,
+} from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import type { TransferenciaConcluida } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
 import {
   atendimentoIdSchema,
   enviarAnexoGuardadoSchema,
   enviarDocumentoSchema,
   enviarMensagemSchema,
+  mensagensAnterioresSchema,
   reagirAMensagemSchema,
   transferirAtendimentoSchema,
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.schema";
@@ -44,6 +48,16 @@ export async function obterConversaAction(
 
   const obterConversa = await makeObterConversa();
   return toActionResult(await obterConversa.execute({ atendimentoId: parsed.data }));
+}
+
+export async function obterMensagensAnterioresAction(
+  input: unknown,
+): Promise<ActionResult<MensagensAnterioresVista>> {
+  const parsed = mensagensAnterioresSchema.safeParse(input);
+  if (!parsed.success) return entradaInvalida(parsed.error);
+
+  const obterConversa = await makeObterConversa();
+  return toActionResult(await obterConversa.mensagensAnteriores(parsed.data));
 }
 
 export async function enviarDocumentoAction(input: unknown): Promise<ActionResult<void>> {

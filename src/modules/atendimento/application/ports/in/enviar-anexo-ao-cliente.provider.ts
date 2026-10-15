@@ -8,10 +8,9 @@ import type { Result } from "@/shared/kernel/result";
 export type EntradaEnviarAnexo = {
   atendimentoId: string;
   legenda?: string;
-} & (
-  | { arquivo: ArquivoAnexo }
-  | { guardado: { caminho: string; nome: string } }
-) & { miniatura?: ArquivoAnexo };
+} & ({ arquivo: ArquivoAnexo } | { guardado: { caminho: string; nome: string } }) & {
+    miniatura?: ArquivoAnexo;
+  };
 
 // Imagem, arquivo ou áudio do Funcionário ao cliente do Atendimento, com legenda opcional (não vale
 // para áudio), entregue no WhatsApp e guardada como Mensagem do Funcionário.

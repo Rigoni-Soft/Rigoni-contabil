@@ -1,6 +1,8 @@
 import type {
   ConversaVista,
   DocumentoOferecido,
+  MensagemVista,
+  MensagensAnterioresVista,
   ObterConversaPort,
 } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import type {
@@ -15,6 +17,10 @@ import type { DocumentosContratuaisPort } from "@/modules/atendimento/applicatio
 import type { SessaoPort } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { descreverDocumento } from "@/modules/atendimento/domain/services/documento-contratual.service";
 import { avisoPendenteAoFuncionario } from "@/modules/atendimento/domain/services/inatividade.service";
+import {
+  CONVERSA_JANELA_MENSAGENS,
+  type CursorDaConversa,
+} from "@/modules/atendimento/domain/services/janela-da-conversa.service";
 import {
   podeTransferir,
   setoresDeDestino,
@@ -59,42 +65,81 @@ export class ObterConversa implements ObterConversaPort {
     const disponiveis =
       encerrado || !conversa.clienteId ? ok([]) : await this.servicos(conversa.clienteId);
     if (!disponiveis.ok) return disponiveis;
-    // Sem os links os anexos aparecem sem arquivo, mas o texto da conversa continua legível.
-    const buscados = await this.links(conversa.mensagens);
-    const links = { value: buscados.ok ? buscados.value : {} };
     return ok({
       atendimentoId: conversa.id,
       encerrado,
       telefone: conversa.telefone,
       contato: conversa.contato,
       clienteVinculado: conversa.clienteId !== null,
-      mensagens: conversa.mensagens.map(({ idExterno, anexo, ...m }) => {
-        const link = anexo && links.value[anexo.caminho];
-        const miniatura = anexo?.miniaturaCaminho ? links.value[anexo.miniaturaCaminho] : undefined;
-        return {
-          ...m,
-          reagivel: m.autor === "contato" && idExterno !== null,
-          anexo:
-            anexo && link
-              ? {
-                  tipo: anexo.tipo,
-                  nome: anexo.nome,
-                  tamanho: anexo.tamanho,
-                  ...link,
-                  miniaturaUrl: miniatura?.url ?? null,
-                }
-              : null,
-        };
-      }),
+      mensagens: await this.vistas(conversa.mensagens),
+      temMaisAnteriores: conversa.temMaisAntigas,
       ultimaTransferencia: conversa.ultimaTransferencia,
       ura: conversa.ura,
       // Só o dono é o "inativo"; Líder e Admin que abrem a conversa não são avisados.
       avisoInatividade:
         !encerrado &&
         conversa.funcionarioId === ator.id &&
-        avisoPendenteAoFuncionario(conversa.aviso, conversa.mensagens),
+        avisoPendenteAoFuncionario(
+          conversa.aviso,
+          // A janela pode não alcançar a última Mensagem do Funcionário: ela vem à parte.
+          conversa.ultimaDoFuncionarioEm
+            ? [{ autor: "funcionario", criadoEm: conversa.ultimaDoFuncionarioEm }]
+            : [],
+        ),
       documentos: disponiveis.value,
       setoresDestino: destinos.value,
+    });
+  }
+
+  // Mesma regra de quem pode ver que a leitura da conversa; o cursor é a Mensagem mais antiga que
+  // a tela já tem.
+  async mensagensAnteriores({
+    atendimentoId,
+    antes,
+  }: {
+    atendimentoId: string;
+    antes: CursorDaConversa;
+  }): Promise<Result<MensagensAnterioresVista, AppError>> {
+    const ator = await this.sessao.usuarioAtual();
+    if (!ator) return err(new ForbiddenError("Faça login para ver o Atendimento."));
+
+    const lida = await this.repositorio.mensagensAnteriores(
+      atendimentoId,
+      antes,
+      CONVERSA_JANELA_MENSAGENS,
+    );
+    if (!lida.ok) return lida;
+    if (!lida.value) return err(new NotFoundError("Atendimento não encontrado."));
+    if (!podeTransferir(ator, lida.value)) {
+      return err(new ForbiddenError("Você não pode ver este Atendimento."));
+    }
+    return ok({
+      mensagens: await this.vistas(lida.value.mensagens),
+      temMaisAnteriores: lida.value.temMaisAntigas,
+    });
+  }
+
+  // Sem os links os anexos aparecem sem arquivo, mas o texto da conversa continua legível.
+  private async vistas(mensagens: ConversaLida["mensagens"]): Promise<MensagemVista[]> {
+    const buscados = await this.links(mensagens);
+    const links = buscados.ok ? buscados.value : {};
+    return mensagens.map(({ idExterno, anexo, ...m }) => {
+      const link = anexo && links[anexo.caminho];
+      const miniatura = anexo?.miniaturaCaminho ? links[anexo.miniaturaCaminho] : undefined;
+      return {
+        ...m,
+        reagivel: m.autor === "contato" && idExterno !== null,
+        anexo:
+          anexo && link
+            ? {
+                tipo: anexo.tipo,
+                nome: anexo.nome,
+                tamanho: anexo.tamanho,
+                ...link,
+                miniaturaUrl: miniatura?.url ?? null,
+              }
+            : null,
+      };
     });
   }
 

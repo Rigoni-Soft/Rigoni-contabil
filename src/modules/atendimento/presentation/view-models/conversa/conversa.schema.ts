@@ -50,6 +50,15 @@ export const enviarMensagemSchema = z.object({
     }),
 });
 
+// Cursor do histórico: a Mensagem mais antiga que a tela já tem (data com fuso e id).
+export const mensagensAnterioresSchema = z.object({
+  atendimentoId: atendimentoIdSchema,
+  antes: z.object({
+    criadoEm: z.iso.datetime({ offset: true }),
+    id: z.guid("Mensagem inválida."),
+  }),
+});
+
 export const reagirAMensagemSchema = z.object({
   atendimentoId: atendimentoIdSchema,
   mensagemId: z.guid("Mensagem inválida."),

@@ -154,6 +154,8 @@ describe("SupabaseAtendimentoRepository — painel do Funcionário", () => {
             atendente: { nome: "Bia Painel 49", setor: SETOR },
           }),
         ],
+        temMaisAntigas: false,
+        ultimaDoFuncionarioEm: null,
         ultimaTransferencia: null,
         ura: null,
         aviso: null,

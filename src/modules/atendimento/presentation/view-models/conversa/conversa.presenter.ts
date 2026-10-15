@@ -43,6 +43,7 @@ export type ConversaView = {
   // De onde veio o Atendimento: a última Transferência ou, sem ela, o que a URA já sabia.
   contexto: { origem: string; resumo: string } | null;
   mensagens: MensagemView[];
+  temMaisAnteriores: boolean;
   servicos: { valor: string; rotulo: string; grupo: "contrato" | "alteracao" }[];
   setoresDestino: { valor: string; rotulo: string }[];
 };
@@ -97,6 +98,28 @@ export function reaproveitarLinks(
   };
 }
 
+// O polling devolve só a janela recente: o histórico que o Funcionário já abriu (as Mensagens antes
+// do começo dela) é mantido da leitura anterior.
+export function manterHistorico(nova: ConversaVista, anterior: ConversaVista | undefined) {
+  const primeira = nova.mensagens[0];
+  if (!anterior || !primeira) return nova;
+  const antigas = anterior.mensagens.filter((m) => antesDe(m, primeira));
+  if (!antigas.length) return nova;
+  return {
+    ...nova,
+    mensagens: [...antigas, ...nova.mensagens],
+    temMaisAnteriores: anterior.temMaisAnteriores,
+  };
+}
+
+// Mais antiga na ordem da conversa: data e, no empate, id (o mesmo cursor da leitura no servidor).
+export function antesDe(
+  a: { criadoEm: string; id: string },
+  b: { criadoEm: string; id: string },
+): boolean {
+  return a.criadoEm < b.criadoEm || (a.criadoEm === b.criadoEm && a.id < b.id);
+}
+
 // Mesmo fuso de negócio do feed de auditoria (não o do navegador). Um formatter só, reusado por
 // todas as Mensagens.
 const FORMATO_HORA = new Intl.DateTimeFormat("pt-BR", {
@@ -147,6 +170,7 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
     semCliente: !conversa.clienteVinculado,
     avisoInatividade: conversa.avisoInatividade,
     contexto: contextoDaConversa(conversa),
+    temMaisAnteriores: conversa.temMaisAnteriores,
     mensagens: conversa.mensagens.map((m) => ({
       id: m.id,
       lado: m.autor === "funcionario" ? "atendente" : m.autor,

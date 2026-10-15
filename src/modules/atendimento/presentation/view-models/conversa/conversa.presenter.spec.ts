@@ -5,6 +5,7 @@ import {
   documentoDaOpcao,
   formatarCronometro,
   formatarTamanho,
+  manterHistorico,
   reaproveitarLinks,
 } from "./conversa.presenter";
 
@@ -48,6 +49,7 @@ const CONVERSA: ConversaVista = {
   ],
   ultimaTransferencia: null,
   ura: null,
+  temMaisAnteriores: false,
   avisoInatividade: false,
   setoresDestino: ["recepcao", "tributario"],
   documentos: [
@@ -261,6 +263,61 @@ describe("anexo na conversa", () => {
     expect(reaproveitarLinks(nova, CONVERSA, AGORA).mensagens[0].anexo?.url).toBe("https://l/novo");
   });
 });
+describe("manterHistorico (R85-05)", () => {
+  const msg = (id: string, criadoEm: string) => ({
+    ...CONVERSA.mensagens[0],
+    id,
+    criadoEm,
+  });
+  const lida = (ids: [string, string][], temMais: boolean): ConversaVista => ({
+    ...CONVERSA,
+    mensagens: ids.map(([id, em]) => msg(id, em)),
+    temMaisAnteriores: temMais,
+  });
+
+  it("mantém o histórico já aberto antes da janela e o 'tem mais' dele", () => {
+    const anterior = lida(
+      [
+        ["a", "2026-10-14T10:00:00Z"],
+        ["b", "2026-10-14T11:00:00Z"],
+        ["c", "2026-10-14T12:00:00Z"],
+      ],
+      false,
+    );
+    const nova = lida(
+      [
+        ["c", "2026-10-14T12:00:00Z"],
+        ["d", "2026-10-14T12:05:00Z"],
+      ],
+      true,
+    );
+
+    const r = manterHistorico(nova, anterior);
+
+    expect(r.mensagens.map((m) => m.id)).toEqual(["a", "b", "c", "d"]);
+    expect(r.temMaisAnteriores).toBe(false);
+  });
+
+  it("no empate de data o id desempata", () => {
+    const anterior = lida(
+      [
+        ["a", "2026-10-14T12:00:00Z"],
+        ["b", "2026-10-14T12:00:00Z"],
+      ],
+      false,
+    );
+    const nova = lida([["b", "2026-10-14T12:00:00Z"]], true);
+
+    expect(manterHistorico(nova, anterior).mensagens.map((m) => m.id)).toEqual(["a", "b"]);
+  });
+
+  it("sem leitura anterior ou sem histórico aberto, fica a leitura recebida", () => {
+    const nova = lida([["c", "2026-10-14T12:00:00Z"]], true);
+    expect(manterHistorico(nova, undefined)).toBe(nova);
+    expect(manterHistorico(nova, lida([["c", "2026-10-14T12:00:00Z"]], true))).toBe(nova);
+  });
+});
+
 describe("formatarCronometro", () => {
   it("mostra minutos e segundos com dois dígitos", () => {
     expect(formatarCronometro(0)).toBe("00:00");
