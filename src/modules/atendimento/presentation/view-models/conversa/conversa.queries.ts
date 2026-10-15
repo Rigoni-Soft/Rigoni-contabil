@@ -33,10 +33,6 @@ import { filaKeys } from "@/modules/atendimento/presentation/view-models/fila/fi
 import { meusAtendimentosKeys } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.queries";
 
 export const conversaKeys = {
-  // Arquivo escolhido e ainda não enviado: o campo de resposta e a conversa (onde se solta o
-  // arquivo) são regiões diferentes e compartilham o estado pelo cache.
-  anexoPendente: (atendimentoId: string) =>
-    ["atendimento", "anexo-pendente", atendimentoId] as const,
   conversa: (atendimentoId: string) => ["atendimento", "conversa", atendimentoId] as const,
   enviarAnexo: (atendimentoId: string) => ["atendimento", "enviar-anexo", atendimentoId] as const,
   transferencia: (atendimentoId: string) => ["atendimento", "transferir", atendimentoId] as const,
