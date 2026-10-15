@@ -1,7 +1,6 @@
 import { Mic } from "lucide-react";
 
-import { BOTAO_DE_ICONE } from "@/presentation/lib/botao-de-icone";
-import { cn } from "@/presentation/lib/utils";
+import { Button } from "@/presentation/components/ui/button";
 
 type BotaoDeMicrofoneProps = {
   disabled?: boolean;
@@ -23,21 +22,19 @@ export function BotaoDeMicrofone({
   onClick,
 }: BotaoDeMicrofoneProps) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="icon"
       aria-label="Gravar áudio"
       title={motivo}
       aria-describedby={motivo ? motivoId : undefined}
       autoFocus={focarAoMontar}
       disabled={disabled || !!motivo}
-      className={cn(
-        BOTAO_DE_ICONE,
-        "outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        "disabled:pointer-events-none disabled:opacity-50",
-      )}
+      className="text-muted-foreground hover:text-foreground [&_svg]:size-5"
       onClick={onClick}
     >
-      <Mic className="size-5" aria-hidden="true" />
-    </button>
+      <Mic aria-hidden="true" />
+    </Button>
   );
 }

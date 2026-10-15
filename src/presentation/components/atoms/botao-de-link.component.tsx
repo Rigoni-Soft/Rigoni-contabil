@@ -1,14 +1,13 @@
+import { Button } from "@/presentation/components/ui/button";
 import { cn } from "@/presentation/lib/utils";
 
 // Ação com aparência de link (sublinhada, na cor primária): alterna a exibição de um trecho.
 export function BotaoDeLink({ className, ...props }: React.ComponentProps<"button">) {
   return (
-    <button
+    <Button
       type="button"
-      className={cn(
-        "-ml-2 min-h-11 rounded-md px-2 font-medium text-primary underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        className,
-      )}
+      variant="link"
+      className={cn("-ml-2 h-auto min-h-11 px-2", className)}
       {...props}
     />
   );
