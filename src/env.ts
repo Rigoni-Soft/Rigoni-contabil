@@ -33,6 +33,9 @@ const resultado = z
     // Chave do HMAC que pseudonimiza o telefone na sessão da URA. Própria (não reaproveita o
     // segredo do webhook): trocar um não invalida o outro. Valor falso só pra dev.
     MENSAGERIA_SEGREDO_SESSAO: z.string().min(1).default(SEGREDOS_MENSAGERIA_PLACEHOLDER.sessao),
+    // Credenciais da Cloud API (Meta); só exigidas com MENSAGERIA_MODO=real (a factory valida).
+    WHATSAPP_TOKEN: z.string().min(1).optional(),
+    WHATSAPP_PHONE_NUMBER_ID: z.string().min(1).optional(),
     // Bearer das rotas de job (agendador). Sem valor, as rotas recusam tudo.
     CRON_SECRET: z.string().min(1).optional(),
     // Liga o encerramento automático por inatividade. Desligada por padrão: ter o CRON_SECRET não
@@ -45,6 +48,10 @@ const resultado = z
     // Liga o job de lembrete de documento e envio de DAS. Mesma regra da inatividade.
     LEMBRETES_AUTOMATICOS: z.enum(["desligada", "ligada"]).default("desligada"),
   })
+  .refine((v) => v.MENSAGERIA_MODO !== "real" || (v.WHATSAPP_TOKEN && v.WHATSAPP_PHONE_NUMBER_ID), {
+    message: "MENSAGERIA_MODO=real exige WHATSAPP_TOKEN e WHATSAPP_PHONE_NUMBER_ID.",
+    path: ["WHATSAPP_TOKEN"],
+  })
   .safeParse({
     NODE_ENV: process.env.NODE_ENV || undefined,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -53,6 +60,8 @@ const resultado = z
     MENSAGERIA_SEGREDO_ASSINATURA: process.env.MENSAGERIA_SEGREDO_ASSINATURA || undefined,
     MENSAGERIA_TOKEN_VERIFICACAO: process.env.MENSAGERIA_TOKEN_VERIFICACAO || undefined,
     MENSAGERIA_SEGREDO_SESSAO: process.env.MENSAGERIA_SEGREDO_SESSAO || undefined,
+    WHATSAPP_TOKEN: process.env.WHATSAPP_TOKEN || undefined,
+    WHATSAPP_PHONE_NUMBER_ID: process.env.WHATSAPP_PHONE_NUMBER_ID || undefined,
     CRON_SECRET: process.env.CRON_SECRET || undefined,
     INATIVIDADE_AUTOMATICA: process.env.INATIVIDADE_AUTOMATICA || undefined,
     FFMPEG_PATH: process.env.FFMPEG_PATH || undefined,
@@ -71,6 +80,8 @@ export const {
   MENSAGERIA_SEGREDO_ASSINATURA,
   MENSAGERIA_TOKEN_VERIFICACAO,
   MENSAGERIA_SEGREDO_SESSAO,
+  WHATSAPP_TOKEN,
+  WHATSAPP_PHONE_NUMBER_ID,
   CRON_SECRET,
   INATIVIDADE_AUTOMATICA,
   FFMPEG_PATH,

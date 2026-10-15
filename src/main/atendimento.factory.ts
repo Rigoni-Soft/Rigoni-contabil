@@ -14,6 +14,8 @@ import {
   MENSAGERIA_TOKEN_VERIFICACAO,
   NODE_ENV,
   OBRIGACOES_FISCAIS_URL,
+  WHATSAPP_PHONE_NUMBER_ID,
+  WHATSAPP_TOKEN,
 } from "@/env";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -81,6 +83,7 @@ import { DownloadMidiaFalsoGateway } from "@/modules/atendimento/infra/gateways/
 import { EnvioEmailFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-email-falso.gateway";
 import { EnvioEmailIndisponivelGateway } from "@/modules/atendimento/infra/gateways/envio-email-indisponivel.gateway";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
+import { EnvioMensagemWhatsappGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-whatsapp.gateway";
 import { FfmpegConversorDeAudioGateway } from "@/modules/atendimento/infra/gateways/ffmpeg-conversor-de-audio.gateway";
 import { GuiasFiscaisGateway } from "@/modules/atendimento/infra/gateways/guias-fiscais.gateway";
 import { HmacAutenticacaoWebhookGateway } from "@/modules/atendimento/infra/gateways/hmac-autenticacao-webhook.gateway";
@@ -109,10 +112,9 @@ import type { SetorSlug } from "@/shared/kernel/setores";
 const envioFalso = new EnvioMensagemFalsoGateway();
 
 function makeEnvioMensagem(): EnvioMensagemPort {
-  if (MENSAGERIA_MODO === "real") {
-    throw new Error("MENSAGERIA_MODO=real: o adapter real de mensageria ainda não existe (#68).");
-  }
-  return envioFalso;
+  if (MENSAGERIA_MODO !== "real") return envioFalso;
+  // env.ts garante as duas credenciais com o modo real.
+  return new EnvioMensagemWhatsappGateway(WHATSAPP_TOKEN!, WHATSAPP_PHONE_NUMBER_ID!);
 }
 
 // Chamada por makeAutenticarWebhook e makeReceberMensagem: nenhum caminho da rota pública

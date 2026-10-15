@@ -4,7 +4,7 @@ A **porta** do sistema é neutra (`ReceberMensagemPort`, `EnvioMensagemPort`: `{
 HTTP e o adapter falso reproduzem a **WhatsApp Cloud API da Meta**, pra que o adapter real (#68) só troque a
 implementação. Fonte: documentação oficial da Meta (webhooks, Messages API, códigos de erro). Ver ADR 0004.
 
-Configuração: `MENSAGERIA_MODO` = `falso` (padrão) | `real` (ainda não existe, #68);
+Configuração: `MENSAGERIA_MODO` = `falso` (padrão) | `real` (`EnvioMensagemWhatsappGateway`; exige `WHATSAPP_TOKEN` e `WHATSAPP_PHONE_NUMBER_ID`, o gate de idempotência abaixo segue pendente);
 `MENSAGERIA_SEGREDO_ASSINATURA` (app secret) e `MENSAGERIA_TOKEN_VERIFICACAO` e `MENSAGERIA_SEGREDO_SESSAO` (chave do HMAC da sessão da URA, separada da assinatura; padrões falsos em dev).
 
 ## Entrada: `/api/webhooks/whatsapp`
