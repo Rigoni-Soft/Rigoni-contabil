@@ -3,8 +3,16 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 
 import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 
-import { obterConversaAction, transferirAtendimentoAction } from "./conversa.actions";
-import { conversaKeys, useTransferirAtendimentoMutation } from "./conversa.queries";
+import {
+  obterConversaAction,
+  renovarLinksDeAnexosAction,
+  transferirAtendimentoAction,
+} from "./conversa.actions";
+import {
+  conversaKeys,
+  useConversaQuery,
+  useTransferirAtendimentoMutation,
+} from "./conversa.queries";
 import { useCabecalhoConversa } from "./use-cabecalho-conversa.hook";
 import { useMensagensConversa } from "./use-mensagens-conversa.hook";
 
@@ -20,11 +28,13 @@ jest.mock("./conversa.actions", () => ({
   enviarDocumentoAction: jest.fn(),
   enviarMensagemAction: jest.fn(),
   obterConversaAction: jest.fn(),
+  renovarLinksDeAnexosAction: jest.fn(),
   transferirAtendimentoAction: jest.fn(),
 }));
 
 const obter = jest.mocked(obterConversaAction);
 const transferir = jest.mocked(transferirAtendimentoAction);
+const renovar = jest.mocked(renovarLinksDeAnexosAction);
 
 const CONVERSA: ConversaVista = {
   atendimentoId: "at-1",
@@ -40,6 +50,7 @@ const CONVERSA: ConversaVista = {
       criadoEm: "2026-10-08T15:30:00Z",
       atendente: null,
       reacao: null,
+      entrega: "entregue",
       reagivel: false,
       anexo: null,
     },
@@ -163,5 +174,85 @@ describe("regiões da conversa que leem a mesma consulta", () => {
     // Transferida: a conversa deixa de ser atualizada.
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(obter).not.toHaveBeenCalled();
+  });
+});
+
+describe("renovação dos links de anexos do histórico já aberto (R85-05.B)", () => {
+  const anexo = (url: string, expiraEm: string) => ({
+    tipo: "documento" as const,
+    nome: "balanco.pdf",
+    tamanho: 1024,
+    url,
+    urlVisualizacao: `${url}-ver`,
+    miniaturaUrl: null,
+    expiraEm,
+  });
+  const mensagem = (id: string, comAnexo: ReturnType<typeof anexo> | null) => ({
+    ...CONVERSA.mensagens[0],
+    id,
+    anexo: comAnexo,
+  });
+
+  beforeEach(() => {
+    obter.mockReset();
+    renovar.mockReset();
+  });
+
+  it("o polling renova só o anexo antigo que está para vencer, sem reassinar o resto", async () => {
+    const venceEmBreve = new Date(Date.now() + 2 * 60_000).toISOString();
+    const daqui1h = new Date(Date.now() + 60 * 60_000).toISOString();
+    const velho = mensagem("m0", anexo("https://l/velho", venceEmBreve));
+    const recente = mensagem("m1", null);
+    const inicial = { ...CONVERSA, mensagens: [velho, recente], temMaisAnteriores: false };
+    // A leitura do servidor traz só a janela recente (sem a Mensagem antiga).
+    obter.mockResolvedValue({ ok: true, data: { ...CONVERSA, mensagens: [recente] } });
+    renovar.mockResolvedValue({
+      ok: true,
+      data: [mensagem("m0", anexo("https://l/novo", daqui1h))],
+    });
+
+    const { result } = renderHook(() => useConversaQuery("at-1", inicial, false), {
+      wrapper: criarWrapper(),
+    });
+    // O React Query só re-renderiza pelo que foi lido: a View lê `data`.
+    expect(result.current.data).toBeDefined();
+    await act(async () => {
+      await result.current.refetch();
+    });
+
+    expect(renovar).toHaveBeenCalledTimes(1);
+    expect(renovar).toHaveBeenCalledWith({ atendimentoId: "at-1", mensagemIds: ["m0"] });
+    await waitFor(() =>
+      expect(result.current.data?.mensagens.find((m) => m.id === "m0")?.anexo?.url).toBe(
+        "https://l/novo",
+      ),
+    );
+  });
+
+  it("falha da renovação não derruba a leitura: o link antigo fica e a conversa segue", async () => {
+    const venceEmBreve = new Date(Date.now() + 60_000).toISOString();
+    const inicial = {
+      ...CONVERSA,
+      mensagens: [mensagem("m9", anexo("https://l/velho", venceEmBreve)), mensagem("m10", null)],
+    };
+    obter.mockResolvedValue({
+      ok: true,
+      data: { ...CONVERSA, mensagens: [mensagem("m10", null)] },
+    });
+    renovar.mockRejectedValue(new Error("rede"));
+
+    const { result } = renderHook(() => useConversaQuery("at-1", inicial, false), {
+      wrapper: criarWrapper(),
+    });
+    // O React Query só re-renderiza pelo que foi lido: a View lê `data`.
+    expect(result.current.data).toBeDefined();
+    await act(async () => {
+      await result.current.refetch();
+    });
+
+    expect(result.current.isError).toBe(false);
+    expect(result.current.data?.mensagens.find((m) => m.id === "m9")?.anexo?.url).toBe(
+      "https://l/velho",
+    );
   });
 });

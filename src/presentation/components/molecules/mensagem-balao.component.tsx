@@ -13,6 +13,8 @@ type MensagemBalaoProps = {
   // Reação do escritório à Mensagem do cliente (emoji) e a ação de reagir (slot do organismo).
   reacao?: string | null;
   acao?: React.ReactNode;
+  // Envio ao cliente não confirmado (a Mensagem está na conversa, mas pode não ter chegado).
+  aviso?: string | null;
   // Imagem ou arquivo enviado junto; `texto` passa a ser a legenda (pode vir vazia).
   anexo?: React.ComponentProps<typeof AnexoDaMensagem> | null;
 };
@@ -33,6 +35,7 @@ export function MensagemBalao({
   hora,
   reacao,
   acao,
+  aviso,
   anexo,
 }: MensagemBalaoProps) {
   return (
@@ -72,6 +75,11 @@ export function MensagemBalao({
           lado === "atendente" ? "opacity-90" : "text-muted-foreground",
         )}
       >
+        {aviso && (
+          <Caixa como="span" className="mr-1 font-semibold">
+            {aviso} ·
+          </Caixa>
+        )}
         {hora}
       </Caixa>
       {acao && <Caixa className="absolute top-0 left-full ml-1">{acao}</Caixa>}

@@ -23,6 +23,9 @@ const TELEFONES = [
   "61955571005",
   "61955571006",
   "61955571007",
+  "61955571008",
+  "61955571009",
+  "61955571010",
 ];
 const clienteId = crypto.randomUUID();
 const CNPJ = `8${Date.now()}`.slice(0, 14);
@@ -125,7 +128,7 @@ describe("SupabaseAtendimentoRepository — painel do Funcionário", () => {
     const id = await abrir(TELEFONES[2], bia, null);
     const gravada = await repositorio.registrarMensagemDoFuncionario(
       id,
-      { id: bia, papel: "funcionario", setor: SETOR },
+      { id: bia },
       "Enviou ao cliente",
     );
     expect(gravada.ok && gravada.value.status).toBe("registrada");
@@ -216,7 +219,7 @@ describe("SupabaseAtendimentoRepository — painel do Funcionário", () => {
 
     const gravada = await repositorio.registrarMensagemDoFuncionario(
       id,
-      { id: fabi, papel: "funcionario", setor: SETOR },
+      { id: fabi },
       "Segue",
       anexo,
     );
@@ -246,6 +249,59 @@ describe("SupabaseAtendimentoRepository — painel do Funcionário", () => {
     });
 
     expect(error?.message).toMatch(/mensagens_anexo_completo/);
+  });
+
+  it("mensagensPorId devolve só as Mensagens pedidas do Atendimento (outro id é ignorado) com anexo e entrega (R85-05.B)", async () => {
+    const hugo = await criarFuncionario("Hugo Painel 85");
+    const id = await abrir(TELEFONES[7], hugo, null);
+    const outro = await abrir(TELEFONES[8], await criarFuncionario("Ivo Painel 85"), null);
+    const anexo = {
+      tipo: "documento" as const,
+      nome: "balanco.pdf",
+      tamanho: 2048,
+      caminho: `${id}/u/balanco.pdf`,
+      miniaturaCaminho: null,
+    };
+    const gravada = await repositorio.registrarMensagemDoFuncionario(
+      id,
+      { id: hugo },
+      "Segue",
+      anexo,
+    );
+    if (!gravada.ok || gravada.value.status !== "registrada") throw new Error("registro falhou");
+    const doOutro = await admin.from("mensagens").select("id").eq("atendimento_id", outro).limit(1);
+
+    const lidas = await repositorio.mensagensPorId(id, [
+      gravada.value.id,
+      doOutro.data![0].id,
+      crypto.randomUUID(),
+    ]);
+
+    expect(lidas.ok && lidas.value?.mensagens.map((m) => m.id)).toEqual([gravada.value.id]);
+    expect(lidas.ok && lidas.value?.mensagens[0]).toMatchObject({
+      anexo: { caminho: anexo.caminho },
+      entrega: "pendente",
+    });
+    expect(lidas.ok && lidas.value).toMatchObject({ setor: SETOR, funcionarioId: hugo });
+    expect(await repositorio.mensagensPorId(crypto.randomUUID(), [gravada.value.id])).toEqual({
+      ok: true,
+      value: null,
+    });
+  });
+
+  it("finalizarEntregaDoFuncionario fecha a Mensagem e ela passa a contar na última do Funcionário", async () => {
+    const id = await abrir(TELEFONES[9], await criarFuncionario("Joel Painel 85"), null);
+    const joel = (await admin.from("atendimentos").select("funcionario_id").eq("id", id).single())
+      .data!.funcionario_id as string;
+    const gravada = await repositorio.registrarMensagemDoFuncionario(id, { id: joel }, "oi");
+    if (!gravada.ok || gravada.value.status !== "registrada") throw new Error("registro falhou");
+
+    const antes = await repositorio.conversa(id);
+    expect(antes.ok && antes.value?.mensagens.at(-1)?.entrega).toBe("pendente");
+
+    await repositorio.finalizarEntregaDoFuncionario(gravada.value.id, true);
+    const depois = await repositorio.conversa(id);
+    expect(depois.ok && depois.value?.mensagens.at(-1)?.entrega).toBe("entregue");
   });
 
   it("Atendimento inexistente não é encontrado", async () => {

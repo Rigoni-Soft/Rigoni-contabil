@@ -14,6 +14,7 @@ import {
 import type { AtendimentoEncerrado } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
 import type {
   ConversaVista,
+  MensagemVista,
   MensagensAnterioresVista,
 } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import type { TransferenciaConcluida } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
@@ -24,6 +25,7 @@ import {
   enviarMensagemSchema,
   mensagensAnterioresSchema,
   reagirAMensagemSchema,
+  renovarLinksSchema,
   transferirAtendimentoSchema,
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.schema";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
@@ -58,6 +60,16 @@ export async function obterMensagensAnterioresAction(
 
   const obterConversa = await makeObterConversa();
   return toActionResult(await obterConversa.mensagensAnteriores(parsed.data));
+}
+
+export async function renovarLinksDeAnexosAction(
+  input: unknown,
+): Promise<ActionResult<MensagemVista[]>> {
+  const parsed = renovarLinksSchema.safeParse(input);
+  if (!parsed.success) return entradaInvalida(parsed.error);
+
+  const obterConversa = await makeObterConversa();
+  return toActionResult(await obterConversa.renovarLinks(parsed.data));
 }
 
 export async function enviarDocumentoAction(input: unknown): Promise<ActionResult<void>> {

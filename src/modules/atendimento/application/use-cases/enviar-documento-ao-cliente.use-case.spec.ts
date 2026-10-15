@@ -29,7 +29,7 @@ type Opcoes = {
   atendimento?: AtendimentoEmAndamento | null;
   falhaEnvio?: boolean;
   falhaRegistro?: boolean;
-  falhaDesfazer?: boolean;
+  falhaFinalizar?: boolean;
   veredito?: "registrada" | "encerrada" | "sem_autoridade";
 };
 
@@ -38,12 +38,12 @@ function montar({
   atendimento = ATENDIMENTO,
   falhaEnvio = false,
   falhaRegistro = false,
-  falhaDesfazer = false,
+  falhaFinalizar = false,
   veredito = "registrada",
 }: Opcoes = {}) {
   const enviados: unknown[] = [];
   const registradas: unknown[] = [];
-  const desfeitas: unknown[] = [];
+  const finalizadas: unknown[] = [];
   const auditadas: unknown[] = [];
   const repo = {
     buscarEmAndamento: async () => ok(atendimento),
@@ -52,9 +52,9 @@ function montar({
       if (falhaRegistro) return err(new ServicoExternoError("banco"));
       return ok(veredito === "registrada" ? { status: veredito, id: "m-1" } : { status: veredito });
     },
-    desfazerMensagemDoFuncionario: async (id: string) => {
-      desfeitas.push(id);
-      return falhaDesfazer ? err(new ServicoExternoError("banco")) : ok(undefined);
+    finalizarEntregaDoFuncionario: async (id: string, entregue: boolean) => {
+      finalizadas.push({ id, entregue });
+      return falhaFinalizar ? err(new ServicoExternoError("banco")) : ok(undefined);
     },
   } as unknown as AtendimentoRepositoryPort;
   const documentos = {
@@ -75,7 +75,7 @@ function montar({
   return {
     enviados,
     registradas,
-    desfeitas,
+    finalizadas,
     auditadas,
     caso: new EnviarDocumentoAoCliente(
       { usuarioAtual: async () => ator },
@@ -97,6 +97,7 @@ describe("EnviarDocumentoAoCliente", () => {
         telefone: "5561988887777",
         url: "https://link/a/alteracao.pdf",
         nomeArquivo: "Alteração de 01/03/2026.pdf",
+        chaveIdempotencia: "m-1",
       },
     ]);
     expect(registradas).toEqual([
@@ -157,18 +158,19 @@ describe("EnviarDocumentoAoCliente", () => {
     expect(!naoTem.ok && naoTem.error.code).toBe("NOT_FOUND");
   });
 
-  it("falha do envio desfaz a Mensagem que entrou antes e audita a falha", async () => {
-    const { caso, desfeitas, auditadas } = montar({ falhaEnvio: true });
+  it("falha do envio fecha a Mensagem como falha (não a apaga) e audita a falha", async () => {
+    const { caso, finalizadas, auditadas } = montar({ falhaEnvio: true });
     const r = await caso.execute({ atendimentoId: "at-1", documento: CONTRATO });
     expect(r.ok).toBe(false);
-    expect(desfeitas).toEqual(["m-1"]);
+    expect(finalizadas).toEqual([{ id: "m-1", entregue: false }]);
     expect(auditadas).toEqual([expect.objectContaining({ resultado: "falha" })]);
   });
 
-  it("falha do envio e da compensação é estado inconsistente", async () => {
-    const { caso } = montar({ falhaEnvio: true, falhaDesfazer: true });
+  it("falha ao fechar a linha depois do aceite não vira erro (fica pendente)", async () => {
+    const { caso, enviados } = montar({ falhaFinalizar: true });
     const r = await caso.execute({ atendimentoId: "at-1", documento: CONTRATO });
-    expect(!r.ok && r.error.code).toBe("INCONSISTENT_STATE");
+    expect(r.ok).toBe(true);
+    expect(enviados).toHaveLength(1);
   });
 
   it("falha ao registrar não envia nada (a Mensagem entra antes de sair)", async () => {

@@ -15,6 +15,7 @@ type MensagemView = {
   hora: string;
   reacao?: string | null;
   reagivel?: boolean;
+  aviso?: string | null;
   anexo?: {
     tipo: "imagem" | "audio" | "documento";
     nome: string;

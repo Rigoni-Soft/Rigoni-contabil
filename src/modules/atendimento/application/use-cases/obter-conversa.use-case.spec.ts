@@ -28,6 +28,7 @@ const CONVERSA: ConversaLida = {
       atendente: null,
       idExterno: "wamid.1",
       reacao: "👍",
+      entrega: "entregue",
       anexo: null,
     },
     {
@@ -38,6 +39,7 @@ const CONVERSA: ConversaLida = {
       atendente: { nome: "Ana", setor: "contabil" },
       idExterno: null,
       reacao: null,
+      entrega: "entregue",
       anexo: null,
     },
   ],
@@ -59,6 +61,7 @@ const COM_ANEXO: ConversaLida = {
       atendente: { nome: "Ana", setor: "contabil" },
       idExterno: null,
       reacao: null,
+      entrega: "entregue",
       anexo: {
         tipo: "imagem",
         nome: "foto.png",
@@ -77,10 +80,19 @@ function montar(
   regime = "lucro_presumido",
 ) {
   const chamadasAnteriores: { antes: { id: string }; limite: number }[] = [];
+  const pedidosPorId: string[][] = [];
   const repo = {
     conversa: async () =>
       conversa === "falha" ? err(new ServicoExternoError("banco")) : ok(conversa),
     roteamentoDoCliente: async () => ok({ regime: regime, responsavelId: null }),
+    mensagensPorId: async (_id: string, ids: string[]) => {
+      pedidosPorId.push(ids);
+      return ok({
+        setor: "contabil" as const,
+        funcionarioId: "func-1",
+        mensagens: COM_ANEXO.mensagens.filter((m) => ids.includes(m.id)),
+      });
+    },
     mensagensAnteriores: async (_id: string, antes: { id: string }, limite: number) => {
       chamadasAnteriores.push({ antes, limite });
       return ok({
@@ -123,6 +135,7 @@ function montar(
     listados,
     pedidos,
     chamadasAnteriores,
+    pedidosPorId,
     caso: new ObterConversa({ usuarioAtual: async () => ator }, repo, documentos, anexos),
   };
 }
@@ -135,6 +148,8 @@ function montarComFalhaDeLinks() {
   const repo = {
     conversa: async () => ok(COM_ANEXO),
     roteamentoDoCliente: async () => ok({ regime: "lucro_presumido", responsavelId: null }),
+    mensagensPorId: async () =>
+      ok({ setor: "contabil" as const, funcionarioId: "func-1", mensagens: COM_ANEXO.mensagens }),
   } as unknown as AtendimentoRepositoryPort;
   const documentos = {
     listar: async () => ok([]),
@@ -378,5 +393,56 @@ describe("ObterConversa", () => {
     expect(!inexistente.ok && inexistente.error.code).toBe("NOT_FOUND");
     const falha = await montar(FUNCIONARIO, "falha").caso.execute({ atendimentoId: "at-1" });
     expect(falha.ok).toBe(false);
+  });
+});
+
+describe("ObterConversa.renovarLinks (R85-05.B)", () => {
+  it("gera links novos só para as Mensagens pedidas que têm anexo, sem o caminho", async () => {
+    const { caso, pedidos } = montar(FUNCIONARIO, COM_ANEXO);
+
+    const r = await caso.renovarLinks({ atendimentoId: "at-1", mensagemIds: ["m1", "m3"] });
+
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.map((m) => m.id)).toEqual(["m3"]);
+    expect(r.value[0].anexo).toMatchObject({
+      url: "https://link/at-1/u/foto.png",
+      miniaturaUrl: "https://link/at-1/u/miniatura.webp",
+      expiraEm: "2026-10-08T13:00:00Z",
+    });
+    expect(JSON.stringify(r.value)).not.toContain("caminho");
+    expect(pedidos).toHaveLength(1);
+  });
+
+  it("passa de novo pela autorização: outro Funcionário, outro Setor e sem sessão não renovam", async () => {
+    const pedido = { atendimentoId: "at-1", mensagemIds: ["m3"] };
+    const outro = await montar({ ...FUNCIONARIO, id: "func-2" }).caso.renovarLinks(pedido);
+    expect(!outro.ok && outro.error.code).toBe("FORBIDDEN");
+    const outroSetor = await montar({
+      id: "l",
+      papel: "lider_setor",
+      setor: "rh",
+    }).caso.renovarLinks(pedido);
+    expect(!outroSetor.ok && outroSetor.error.code).toBe("FORBIDDEN");
+    const semSessao = await montar(null).caso.renovarLinks(pedido);
+    expect(!semSessao.ok && semSessao.error.code).toBe("FORBIDDEN");
+  });
+
+  it("mudança de autorização depois de carregar (dono perdeu o Atendimento): recusa", async () => {
+    const transferido = montar({ ...FUNCIONARIO, id: "func-antigo" });
+    const r = await transferido.caso.renovarLinks({ atendimentoId: "at-1", mensagemIds: ["m3"] });
+    expect(!r.ok && r.error.code).toBe("FORBIDDEN");
+    expect(transferido.pedidos).toEqual([]);
+  });
+
+  it("corta o pedido no limite e objeto ausente devolve a Mensagem sem anexo (o cliente mantém o link)", async () => {
+    const muitos = Array.from({ length: 80 }, (_, i) => `id-${i}`);
+    const { caso, pedidosPorId } = montar(FUNCIONARIO, COM_ANEXO);
+    await caso.renovarLinks({ atendimentoId: "at-1", mensagemIds: muitos });
+    expect(pedidosPorId[0]).toHaveLength(50);
+
+    const { caso: semObjeto } = montarComFalhaDeLinks();
+    const r = await semObjeto.renovarLinks({ atendimentoId: "at-1", mensagemIds: ["m3"] });
+    expect(r.ok && r.value[0]?.anexo).toBeNull();
   });
 });

@@ -41,7 +41,7 @@ type Opcoes = {
   falhaGuardar?: boolean;
   falhaEnvio?: boolean;
   falhaRegistro?: boolean;
-  falhaDesfazer?: boolean;
+  falhaFinalizar?: boolean;
   // Caminhos que outra finalização já reservou, ou que uma Mensagem do histórico já referencia.
   jaReservados?: string[];
   veredito?: "registrada" | "encerrada" | "sem_autoridade";
@@ -58,7 +58,7 @@ function montar({
   falhaGuardar = false,
   falhaEnvio = false,
   falhaRegistro = false,
-  falhaDesfazer = false,
+  falhaFinalizar = false,
   jaReservados = [],
   veredito = "registrada",
   falhaConversao = false,
@@ -70,7 +70,7 @@ function montar({
   const removidos: string[] = [];
   const enviados: unknown[] = [];
   const registradas: unknown[] = [];
-  const desfeitas: unknown[] = [];
+  const finalizadas: unknown[] = [];
   const reservas = new Set<string>(jaReservados);
   const liberadas: string[] = [];
   const auditadas: unknown[] = [];
@@ -81,9 +81,9 @@ function montar({
       if (falhaRegistro) return err(new ServicoExternoError("banco"));
       return ok(veredito === "registrada" ? { status: veredito, id: "m-1" } : { status: veredito });
     },
-    desfazerMensagemDoFuncionario: async (id: string) => {
-      desfeitas.push(id);
-      return falhaDesfazer ? err(new ServicoExternoError("banco")) : ok(undefined);
+    finalizarEntregaDoFuncionario: async (id: string, entregue: boolean) => {
+      finalizadas.push({ id, entregue });
+      return falhaFinalizar ? err(new ServicoExternoError("banco")) : ok(undefined);
     },
   } as unknown as AtendimentoRepositoryPort;
   const anexos: AnexosAtendimentoPort = {
@@ -145,7 +145,7 @@ function montar({
     removidos,
     enviados,
     registradas,
-    desfeitas,
+    finalizadas,
     liberadas,
     reservas,
     auditadas,
@@ -175,6 +175,7 @@ describe("EnviarAnexoAoCliente", () => {
         url: "https://link/at-1/balanco.pdf",
         nomeArquivo: "balanco.pdf",
         legenda: "Segue",
+        chaveIdempotencia: "m-1",
       },
     ]);
     expect(registradas).toEqual([
@@ -266,23 +267,24 @@ describe("EnviarAnexoAoCliente", () => {
     expect(!inexistente.ok && inexistente.error.code).toBe("NOT_FOUND");
   });
 
-  it("falha do envio remove o arquivo e desfaz a Mensagem que entrou antes", async () => {
-    const { caso, removidos, desfeitas, auditadas } = montar({ falhaEnvio: true });
+  it("falha do envio fecha a Mensagem como falha e preserva o arquivo que ela referencia", async () => {
+    const { caso, removidos, finalizadas, auditadas } = montar({ falhaEnvio: true });
 
     const r = await caso.execute({ atendimentoId: "at-1", arquivo: PDF });
 
     expect(r.ok).toBe(false);
-    expect(removidos).toEqual(["at-1/balanco.pdf"]);
-    expect(desfeitas).toEqual(["m-1"]);
+    expect(removidos).toEqual([]);
+    expect(finalizadas).toEqual([{ id: "m-1", entregue: false }]);
     expect(auditadas).toEqual([expect.objectContaining({ resultado: "falha" })]);
   });
 
-  it("falha do envio e da compensação é estado inconsistente", async () => {
-    const { caso } = montar({ falhaEnvio: true, falhaDesfazer: true });
+  it("falha ao fechar a linha depois do aceite não vira erro (fica pendente)", async () => {
+    const { caso, enviados } = montar({ falhaFinalizar: true });
 
     const r = await caso.execute({ atendimentoId: "at-1", arquivo: PDF });
 
-    expect(!r.ok && r.error.code).toBe("INCONSISTENT_STATE");
+    expect(r.ok).toBe(true);
+    expect(enviados).toHaveLength(1);
   });
 
   it("fechamento ou perda de autoridade durante a operação: nada é enviado e o arquivo sai", async () => {
@@ -365,12 +367,12 @@ describe("EnviarAnexoAoCliente", () => {
       ]);
     });
 
-    it("falha do envio remove o original e a miniatura", async () => {
+    it("falha do envio preserva o original e a miniatura que a Mensagem referencia", async () => {
       const { caso, removidos } = montar({ falhaEnvio: true });
 
       await caso.execute({ atendimentoId: "at-1", arquivo: FOTO, miniatura: MINIATURA });
 
-      expect(removidos.sort()).toEqual(["at-1/foto.png", "at-1/miniatura.webp"]);
+      expect(removidos).toEqual([]);
     });
   });
 
@@ -406,6 +408,7 @@ describe("EnviarAnexoAoCliente", () => {
           url: "https://link/at-1/gravacao.ogg",
           nomeArquivo: "gravacao.ogg",
           legenda: undefined,
+          chaveIdempotencia: "m-1",
         },
       ]);
       expect(registradas).toEqual([
@@ -516,7 +519,7 @@ describe("EnviarAnexoAoCliente", () => {
       const NO_STORAGE = { tipoMime: "audio/ogg", tamanho: 3000 };
 
       it("repetir a finalização de um objeto já consumido é recusado SEM remover o arquivo do histórico", async () => {
-        const { caso, enviados, removidos, desfeitas } = montar({
+        const { caso, enviados, removidos, finalizadas } = montar({
           objeto: NO_STORAGE,
           jaReservados: [GUARDADO.caminho],
           falhaEnvio: true,
@@ -527,7 +530,7 @@ describe("EnviarAnexoAoCliente", () => {
         expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
         expect(enviados).toEqual([]);
         expect(removidos).toEqual([]);
-        expect(desfeitas).toEqual([]);
+        expect(finalizadas).toEqual([]);
       });
 
       it("duas finalizações do mesmo objeto: só uma entrega e a outra é recusada sem tocar no objeto", async () => {
@@ -544,7 +547,7 @@ describe("EnviarAnexoAoCliente", () => {
         expect(segunda.removidos).toEqual([]);
       });
 
-      it("upload genuinamente novo cuja entrega falha: o objeto sai e a reserva é liberada", async () => {
+      it("upload novo cuja entrega falha: o objeto e a reserva ficam com a Mensagem registrada", async () => {
         const { caso, removidos, liberadas, reservas } = montar({
           objeto: NO_STORAGE,
           falhaEnvio: true,
@@ -553,9 +556,9 @@ describe("EnviarAnexoAoCliente", () => {
         const r = await caso.execute({ atendimentoId: "at-1", guardado: GUARDADO });
 
         expect(r.ok).toBe(false);
-        expect(removidos).toEqual([GUARDADO.caminho]);
-        expect(liberadas).toEqual([GUARDADO.caminho]);
-        expect(reservas.has(GUARDADO.caminho)).toBe(false);
+        expect(removidos).toEqual([]);
+        expect(liberadas).toEqual([]);
+        expect(reservas.has(GUARDADO.caminho)).toBe(true);
       });
 
       it("conclusão com sucesso deixa a reserva (o consumo) e não remove nada", async () => {

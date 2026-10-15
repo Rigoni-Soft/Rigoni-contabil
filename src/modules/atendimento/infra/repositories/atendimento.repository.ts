@@ -18,6 +18,7 @@ import type {
   MensagemLida,
   MensagemParaReacao,
   MensagensAnteriores,
+  MensagensPorId,
   NovaTransferencia,
   NovoAtendimento,
   ResultadoAbertura,
@@ -58,7 +59,6 @@ import {
 import { funcionarioDoSetorRowSchema } from "@/modules/atendimento/infra/dtos/funcionario-do-setor-row.dto";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
-import type { Papel } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
@@ -74,6 +74,7 @@ function paraMensagemLida(m: z.infer<typeof mensagemDaConversaRowSchema>): Mensa
     atendente: m.perfis ? { nome: m.perfis.nome, setor: m.perfis.setor } : null,
     idExterno: m.id_externo,
     reacao: m.reacao,
+    entrega: m.entrega,
     anexo:
       m.anexo_tipo && m.anexo_nome && m.anexo_caminho && m.anexo_tamanho !== null
         ? {
@@ -535,7 +536,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     const { data, error } = await this.supabaseAdmin
       .from("atendimentos")
       .select(
-        "id, status, setor, funcionario_id, cliente_id, telefone, chave_telefone, resumo_ura, cnpj_informado, aviso_inatividade_em, aviso_inatividade_de, clientes(empresa, cnpj, cliente_contatos(nome, telefone, padrao, criado_em)), mensagens(id, autor, texto, criado_em, id_externo, reacao, anexo_tipo, anexo_nome, anexo_caminho, anexo_tamanho, anexo_miniatura_caminho, perfis(nome, setor)), transferencias(setor_origem, resumo, origem:perfis!funcionario_origem_id(nome))",
+        "id, status, setor, funcionario_id, cliente_id, telefone, chave_telefone, resumo_ura, cnpj_informado, aviso_inatividade_em, aviso_inatividade_de, clientes(empresa, cnpj, cliente_contatos(nome, telefone, padrao, criado_em)), mensagens(id, autor, texto, criado_em, id_externo, reacao, entrega, anexo_tipo, anexo_nome, anexo_caminho, anexo_tamanho, anexo_miniatura_caminho, perfis(nome, setor)), transferencias(setor_origem, resumo, origem:perfis!funcionario_origem_id(nome))",
       )
       .eq("id", atendimentoId)
       // As mais recentes primeiro e uma a mais que a janela (diz se há histórico); a ordem
@@ -596,6 +597,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       .select("criado_em")
       .eq("atendimento_id", atendimentoId)
       .eq("autor", "funcionario")
+      .eq("entrega", "entregue")
       .order("criado_em", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -612,7 +614,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     const { data, error } = await this.supabaseAdmin
       .from("atendimentos")
       .select(
-        "setor, funcionario_id, mensagens(id, autor, texto, criado_em, id_externo, reacao, anexo_tipo, anexo_nome, anexo_caminho, anexo_tamanho, anexo_miniatura_caminho, perfis(nome, setor))",
+        "setor, funcionario_id, mensagens(id, autor, texto, criado_em, id_externo, reacao, entrega, anexo_tipo, anexo_nome, anexo_caminho, anexo_tamanho, anexo_miniatura_caminho, perfis(nome, setor))",
       )
       .eq("id", atendimentoId)
       .or(
@@ -636,17 +638,37 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     });
   }
 
+  async mensagensPorId(
+    atendimentoId: string,
+    ids: string[],
+  ): Promise<Result<MensagensPorId | null, AppError>> {
+    const { data, error } = await this.supabaseAdmin
+      .from("atendimentos")
+      .select(
+        "setor, funcionario_id, mensagens(id, autor, texto, criado_em, id_externo, reacao, entrega, anexo_tipo, anexo_nome, anexo_caminho, anexo_tamanho, anexo_miniatura_caminho, perfis(nome, setor))",
+      )
+      .eq("id", atendimentoId)
+      .in("mensagens.id", ids)
+      .maybeSingle();
+    if (error) return err(new ServicoExternoError("Falha ao consultar o Atendimento."));
+    if (!data) return ok(null);
+    const linha = mensagensAnterioresRowSchema.parse(data);
+    return ok({
+      setor: linha.setor,
+      funcionarioId: linha.funcionario_id,
+      mensagens: linha.mensagens.map(paraMensagemLida),
+    });
+  }
+
   async registrarMensagemDoFuncionario(
     atendimentoId: string,
-    ator: { id: string; papel: Papel; setor: SetorSlug },
+    ator: { id: string },
     texto: string,
     anexo?: AnexoDaMensagem,
   ): Promise<Result<ResultadoRegistroDoFuncionario, AppError>> {
     const { data, error } = await this.supabaseAdmin.rpc("registrar_mensagem_do_funcionario", {
       p_atendimento_id: atendimentoId,
       p_ator: ator.id,
-      p_ator_papel: ator.papel,
-      p_ator_setor: ator.setor,
       p_texto: texto,
       p_anexo: anexo ?? null,
     });
@@ -654,11 +676,15 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     return ok(registroDoFuncionarioRowSchema.parse(data));
   }
 
-  async desfazerMensagemDoFuncionario(mensagemId: string): Promise<Result<void, AppError>> {
-    const { error } = await this.supabaseAdmin.rpc("desfazer_mensagem_do_funcionario", {
+  async finalizarEntregaDoFuncionario(
+    mensagemId: string,
+    entregue: boolean,
+  ): Promise<Result<void, AppError>> {
+    const { error } = await this.supabaseAdmin.rpc("finalizar_entrega_mensagem_do_funcionario", {
       p_id: mensagemId,
+      p_entregue: entregue,
     });
-    if (error) return err(new ServicoExternoError("Falha ao desfazer a Mensagem."));
+    if (error) return err(new ServicoExternoError("Falha ao registrar o resultado do envio."));
     return ok(undefined);
   }
 

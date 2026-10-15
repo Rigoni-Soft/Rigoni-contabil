@@ -19,9 +19,12 @@ import {
   obterConversaAction,
   obterMensagensAnterioresAction,
   reagirAMensagemAction,
+  renovarLinksDeAnexosAction,
   transferirAtendimentoAction,
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.actions";
 import {
+  aplicarLinksRenovados,
+  idsComLinkVencendo,
   manterHistorico,
   reaproveitarLinks,
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.presenter";
@@ -42,6 +45,31 @@ export const conversaKeys = {
 // arquitetura.md 4.2) quando o atraso incomodar.
 const INTERVALO_MS = 5_000;
 
+// Por rodada de polling: o lote de renovação e o tempo antes de pedir de novo o mesmo anexo (um
+// objeto ausente não é pedido a cada 5 s).
+const RENOVACAO_LOTE = 20;
+const RENOVACAO_ESPERA_MS = 60_000;
+const renovacaoPedidaEm = new Map<string, number>();
+
+// O polling só reassina a janela recente; os anexos do histórico já aberto têm o link vencendo
+// sozinhos. Renova, em lote e passando de novo pela autorização do servidor, só os que estão perto
+// de vencer. Falhar não derruba a leitura: o link antigo fica e a próxima rodada tenta de novo.
+async function renovarLinksVencendo(
+  atendimentoId: string,
+  conversa: ConversaVista,
+  agora: number,
+): Promise<ConversaVista> {
+  const ids = idsComLinkVencendo(conversa, agora, RENOVACAO_LOTE).filter(
+    (id) => agora - (renovacaoPedidaEm.get(id) ?? 0) >= RENOVACAO_ESPERA_MS,
+  );
+  if (!ids.length) return conversa;
+  for (const id of ids) renovacaoPedidaEm.set(id, agora);
+  const renovadas = await renovarLinksDeAnexosAction({ atendimentoId, mensagemIds: ids }).catch(
+    () => null,
+  );
+  return renovadas?.ok ? aplicarLinksRenovados(conversa, renovadas.data) : conversa;
+}
+
 // `ativa` falso depois de transferida: a conversa deixa de ser do usuário, não há o que atualizar.
 export function useConversaQuery(atendimentoId: string, initialData: ConversaVista, ativa = true) {
   const queryClient = useQueryClient();
@@ -55,7 +83,13 @@ export function useConversaQuery(atendimentoId: string, initialData: ConversaVis
       const anterior = queryClient.getQueryData<ConversaVista>(
         conversaKeys.conversa(atendimentoId),
       );
-      return reaproveitarLinks(manterHistorico(resultado.data, anterior), anterior, Date.now());
+      const agora = Date.now();
+      const conversa = reaproveitarLinks(
+        manterHistorico(resultado.data, anterior),
+        anterior,
+        agora,
+      );
+      return renovarLinksVencendo(atendimentoId, conversa, agora);
     },
     initialData,
     staleTime: INTERVALO_MS,

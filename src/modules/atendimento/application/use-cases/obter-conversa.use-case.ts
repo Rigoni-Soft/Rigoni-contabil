@@ -19,6 +19,7 @@ import { descreverDocumento } from "@/modules/atendimento/domain/services/docume
 import { avisoPendenteAoFuncionario } from "@/modules/atendimento/domain/services/inatividade.service";
 import {
   CONVERSA_JANELA_MENSAGENS,
+  RENOVACAO_LINKS_MAXIMO,
   type CursorDaConversa,
 } from "@/modules/atendimento/domain/services/janela-da-conversa.service";
 import {
@@ -117,6 +118,30 @@ export class ObterConversa implements ObterConversaPort {
       mensagens: await this.vistas(lida.value.mensagens),
       temMaisAnteriores: lida.value.temMaisAntigas,
     });
+  }
+
+  // Mesma regra de quem pode ver que a leitura da conversa. Pedido além do limite é cortado.
+  async renovarLinks({
+    atendimentoId,
+    mensagemIds,
+  }: {
+    atendimentoId: string;
+    mensagemIds: string[];
+  }): Promise<Result<MensagemVista[], AppError>> {
+    const ator = await this.sessao.usuarioAtual();
+    if (!ator) return err(new ForbiddenError("Faça login para ver o Atendimento."));
+
+    const lida = await this.repositorio.mensagensPorId(
+      atendimentoId,
+      mensagemIds.slice(0, RENOVACAO_LINKS_MAXIMO),
+    );
+    if (!lida.ok) return lida;
+    if (!lida.value) return err(new NotFoundError("Atendimento não encontrado."));
+    if (!podeTransferir(ator, lida.value)) {
+      return err(new ForbiddenError("Você não pode ver este Atendimento."));
+    }
+    const comAnexo = lida.value.mensagens.filter((m) => m.anexo);
+    return ok(await this.vistas(comAnexo));
   }
 
   // Sem os links os anexos aparecem sem arquivo, mas o texto da conversa continua legível.

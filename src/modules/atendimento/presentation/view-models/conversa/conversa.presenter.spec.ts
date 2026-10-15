@@ -1,10 +1,12 @@
 import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 
 import {
+  aplicarLinksRenovados,
   conversaParaView,
   documentoDaOpcao,
   formatarCronometro,
   formatarTamanho,
+  idsComLinkVencendo,
   manterHistorico,
   reaproveitarLinks,
 } from "./conversa.presenter";
@@ -23,6 +25,7 @@ const CONVERSA: ConversaVista = {
       criadoEm: "2026-10-08T15:30:00Z",
       atendente: null,
       reacao: null,
+      entrega: "entregue",
       reagivel: false,
       anexo: null,
     },
@@ -33,6 +36,7 @@ const CONVERSA: ConversaVista = {
       criadoEm: "2026-10-08T15:31:00Z",
       atendente: null,
       reacao: null,
+      entrega: "entregue",
       reagivel: false,
       anexo: null,
     },
@@ -43,6 +47,7 @@ const CONVERSA: ConversaVista = {
       criadoEm: "2026-10-08T15:32:00Z",
       atendente: { nome: "Ana", setor: "simples_nacional" },
       reacao: null,
+      entrega: "entregue",
       reagivel: false,
       anexo: null,
     },
@@ -78,6 +83,7 @@ describe("conversaParaView", () => {
         hora: "08/10 12:30",
         reacao: null,
         reagivel: false,
+        aviso: null,
         anexo: null,
       },
       {
@@ -89,6 +95,7 @@ describe("conversaParaView", () => {
         hora: "08/10 12:31",
         reacao: null,
         reagivel: false,
+        aviso: null,
         anexo: null,
       },
       {
@@ -100,9 +107,22 @@ describe("conversaParaView", () => {
         hora: "08/10 12:32",
         reacao: null,
         reagivel: false,
+        aviso: null,
         anexo: null,
       },
     ]);
+  });
+
+  it("Mensagem do Funcionário com envio não confirmado (pendente/falha) leva o aviso", () => {
+    const [pendente, falha] = (["pendente", "falha"] as const).map(
+      (entrega) =>
+        conversaParaView({
+          ...CONVERSA,
+          mensagens: [{ ...CONVERSA.mensagens[2], entrega }],
+        }).mensagens[0].aviso,
+    );
+    expect(pendente).toBe("Envio não confirmado");
+    expect(falha).toBe("Envio não confirmado");
   });
 
   it("mostra a origem e o resumo da última Transferência; da Fila não tem nome de quem transferiu", () => {
@@ -315,6 +335,120 @@ describe("manterHistorico (R85-05)", () => {
     const nova = lida([["c", "2026-10-14T12:00:00Z"]], true);
     expect(manterHistorico(nova, undefined)).toBe(nova);
     expect(manterHistorico(nova, lida([["c", "2026-10-14T12:00:00Z"]], true))).toBe(nova);
+  });
+
+  // Mensagens m001..m350 em ordem, uma por minuto (id ordenável como a data).
+  const sequencia = (de: number, ate: number) =>
+    Array.from({ length: ate - de + 1 }, (_, i): [string, string] => {
+      const n = de + i;
+      const minutos = String(n).padStart(4, "0");
+      return [
+        `m${minutos}`,
+        `2026-10-14T${String(Math.floor(n / 60)).padStart(2, "0")}:${String(n % 60).padStart(2, "0")}:00Z`,
+      ];
+    });
+
+  it("janelas sem sobreposição (250 novas entre duas leituras): descarta o cache e não emenda o buraco", () => {
+    const anterior = lida(sequencia(1, 100), false);
+    const nova = lida(sequencia(251, 350), true);
+
+    const r = manterHistorico(nova, anterior);
+
+    expect(r).toBe(nova);
+    expect(r.mensagens).toHaveLength(100);
+    expect(r.temMaisAnteriores).toBe(true);
+  });
+
+  it("com sobreposição (ainda dentro da janela) o histórico aberto continua e sem duplicar", () => {
+    const anterior = lida(sequencia(1, 100), false);
+    const nova = lida(sequencia(2, 101), true);
+
+    const r = manterHistorico(nova, anterior);
+
+    expect(r.mensagens.map((m) => m.id)).toEqual(sequencia(1, 101).map(([id]) => id));
+    expect(r.temMaisAnteriores).toBe(false);
+  });
+
+  it("depois da recarga, as páginas anteriores recompõem uma sequência contínua e alcançável", () => {
+    // A janela nova vale sozinha; o cursor do "ver anteriores" parte da primeira dela.
+    const recarregada = manterHistorico(
+      lida(sequencia(251, 350), true),
+      lida(sequencia(1, 100), false),
+    );
+    const cursor = recarregada.mensagens[0];
+    expect(cursor.id).toBe("m0251");
+    expect(recarregada.temMaisAnteriores).toBe(true);
+  });
+});
+
+describe("renovação de links de anexos antigos (R85-05.B)", () => {
+  const AGORA_MS = Date.parse("2026-10-14T12:00:00Z");
+  const margem = 5 * 60_000;
+  const comLink = (id: string, expiraEm: string | null) => ({
+    ...CONVERSA.mensagens[0],
+    id,
+    anexo: expiraEm
+      ? {
+          tipo: "documento" as const,
+          nome: "balanco.pdf",
+          tamanho: "1 KB",
+          url: `https://l/${id}`,
+          urlVisualizacao: `https://l/${id}-ver`,
+          miniaturaUrl: null,
+          expiraEm,
+        }
+      : null,
+  });
+  const conversa = (mensagens: ReturnType<typeof comLink>[]) =>
+    ({ ...CONVERSA, mensagens }) as unknown as ConversaVista;
+
+  it("pega só os anexos que vencem na margem (relógio avançado), fora da janela recente", () => {
+    const c = conversa([
+      comLink("velho", "2026-10-14T12:03:00Z"),
+      comLink("longe", "2026-10-14T12:50:00Z"),
+      comLink("sem-anexo", null),
+      comLink("vencido", "2026-10-14T11:00:00Z"),
+    ]);
+
+    expect(idsComLinkVencendo(c, AGORA_MS, 20, margem)).toEqual(["velho", "vencido"]);
+    // Uma hora depois todos estão vencendo.
+    expect(idsComLinkVencendo(c, AGORA_MS + 60 * 60_000, 20, margem)).toEqual([
+      "velho",
+      "longe",
+      "vencido",
+    ]);
+  });
+
+  it("limita o lote e não reassina o histórico inteiro", () => {
+    const c = conversa(
+      Array.from({ length: 30 }, (_, i) => comLink(`m${i}`, "2026-10-14T11:00:00Z")),
+    );
+    expect(idsComLinkVencendo(c, AGORA_MS, 20, margem)).toHaveLength(20);
+  });
+
+  it("aplica o link novo só nos anexos renovados; objeto ausente (sem anexo) mantém o antigo", () => {
+    const c = conversa([
+      comLink("a", "2026-10-14T12:01:00Z"),
+      comLink("b", "2026-10-14T12:01:00Z"),
+    ]);
+    const renovadas = [
+      {
+        ...comLink("a", "2026-10-14T13:00:00Z"),
+        anexo: { ...comLink("a", "2026-10-14T13:00:00Z").anexo!, url: "https://l/a-novo" },
+      },
+      { ...comLink("b", null) },
+    ] as unknown as Parameters<typeof aplicarLinksRenovados>[1];
+
+    const r = aplicarLinksRenovados(c, renovadas);
+
+    expect(r.mensagens[0].anexo).toMatchObject({
+      url: "https://l/a-novo",
+      expiraEm: "2026-10-14T13:00:00Z",
+    });
+    expect(r.mensagens[1].anexo).toMatchObject({
+      url: "https://l/b",
+      expiraEm: "2026-10-14T12:01:00Z",
+    });
   });
 });
 

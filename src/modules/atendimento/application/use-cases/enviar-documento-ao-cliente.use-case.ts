@@ -11,7 +11,6 @@ import type {
 import { descreverDocumento } from "@/modules/atendimento/domain/services/documento-contratual.service";
 import { podeTransferir } from "@/modules/atendimento/domain/services/transferencia.service";
 import type { AppError } from "@/shared/errors/app.error";
-import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -74,17 +73,16 @@ export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
       return err(new ForbiddenError("Você não pode enviar documentos neste Atendimento."));
     }
 
-    const enviado = await this.enviar(atendimento.telefone, escolhido.caminho, descricao);
+    const enviado = await this.enviar(
+      atendimento.telefone,
+      escolhido.caminho,
+      descricao,
+      registrada.value.id,
+    );
+    await this.repositorio.finalizarEntregaDoFuncionario(registrada.value.id, enviado.ok);
     if (!enviado.ok) {
       await this.auditar(ator, atendimentoId, "falha");
-      const desfeita = await this.repositorio.desfazerMensagemDoFuncionario(registrada.value.id);
-      if (desfeita.ok) return enviado;
-      return err(
-        new EstadoInconsistenteError(
-          "O documento não foi enviado, mas a conversa registra o envio.",
-          atendimentoId,
-        ),
-      );
+      return enviado;
     }
     await this.auditar(ator, atendimentoId, "sucesso");
     return ok(undefined);
@@ -94,6 +92,7 @@ export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
     telefone: string,
     caminho: string,
     descricao: string,
+    chaveIdempotencia: string,
   ): Promise<Result<void, AppError>> {
     const link = await this.documentos.linkTemporario(caminho);
     if (!link.ok) return link;
@@ -103,6 +102,7 @@ export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
         telefone,
         url: link.value,
         nomeArquivo: `${descricao}${extensao}`,
+        chaveIdempotencia,
       });
     } catch {
       return err(new ServicoExternoError("Falha ao enviar o documento."));

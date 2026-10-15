@@ -150,6 +150,7 @@ export const mensagemDaConversaRowSchema = z.object({
   criado_em: z.string(),
   id_externo: z.string().nullable(),
   reacao: z.string().nullable(),
+  entrega: z.enum(["pendente", "entregue", "falha"]),
   anexo_tipo: z.enum(["imagem", "audio", "documento"]).nullable(),
   anexo_nome: z.string().nullable(),
   anexo_caminho: z.string().nullable(),

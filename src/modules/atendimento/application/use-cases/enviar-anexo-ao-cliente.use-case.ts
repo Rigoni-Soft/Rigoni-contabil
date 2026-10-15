@@ -16,7 +16,6 @@ import type {
 import type { PrepararAnexoParaEnvio } from "@/modules/atendimento/application/use-cases/preparar-anexo-para-envio.use-case";
 import { podeTransferir } from "@/modules/atendimento/domain/services/transferencia.service";
 import type { AppError } from "@/shared/errors/app.error";
-import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -25,8 +24,9 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const ACAO = "atendimento.enviar_anexo";
 
-// Mesma regra de quem pode agir que a Transferência. O arquivo só vira Mensagem depois de entregue ao
-// cliente; se a entrega falha, o arquivo guardado é removido. Tipo, tamanho e formato de áudio (e a
+// Mesma regra de quem pode agir que a Transferência. A intenção (com o arquivo) é gravada `pendente`
+// e fechada com o resultado da entrega; o arquivo guardado fica referenciado pela linha mesmo se a
+// entrega falha (evidência de uma entrega incerta, e o Funcionário vê o que não foi confirmado). Tipo, tamanho e formato de áudio (e a
 // conversão de webm) são do `PrepararAnexoParaEnvio`; aqui ficam a autorização, a entrega, o registro
 // e a auditoria. Áudio não leva legenda.
 export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
@@ -80,18 +80,18 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
       return this.recusaDoRegistro(registrada);
     }
 
-    const entregue = await this.entregar(atendimento.telefone, caminho, tipo, nome, texto);
+    const entregue = await this.entregar(
+      atendimento.telefone,
+      caminho,
+      tipo,
+      nome,
+      texto,
+      registrada.value.id,
+    );
+    await this.repositorio.finalizarEntregaDoFuncionario(registrada.value.id, entregue.ok);
     if (!entregue.ok) {
       await this.auditar(ator, atendimentoId, "falha");
-      const desfeita = await this.repositorio.desfazerMensagemDoFuncionario(registrada.value.id);
-      await this.descartarArquivos(arquivos, reserva);
-      if (desfeita.ok) return entregue;
-      return err(
-        new EstadoInconsistenteError(
-          "O arquivo não foi enviado, mas a conversa o registra.",
-          atendimentoId,
-        ),
-      );
+      return entregue;
     }
     await this.auditar(ator, atendimentoId, "sucesso");
     return ok(undefined);
@@ -137,6 +137,7 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
     tipo: TipoAnexoMensagem,
     nomeArquivo: string,
     legenda: string,
+    chaveIdempotencia: string,
   ): Promise<Result<void, AppError>> {
     const links = await this.anexos.linksTemporarios([caminho]);
     if (!links.ok) return links;
@@ -149,6 +150,7 @@ export class EnviarAnexoAoCliente implements EnviarAnexoAoClientePort {
         url: link.url,
         nomeArquivo,
         legenda: legenda || undefined,
+        chaveIdempotencia,
       });
     } catch {
       return err(new ServicoExternoError("Falha ao enviar o arquivo."));

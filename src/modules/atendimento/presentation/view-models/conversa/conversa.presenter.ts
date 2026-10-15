@@ -4,6 +4,7 @@ import type {
   ConversaVista,
   DocumentoDisponivel,
   DocumentoOferecido,
+  MensagemVista,
   UltimaTransferencia,
 } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import { ANEXO_LINK_MARGEM_MS, type TipoAnexoMensagem } from "@/shared/kernel/anexo";
@@ -31,6 +32,8 @@ export type MensagemView = {
   // Reação do escritório (emoji) e se ainda dá para reagir a esta Mensagem.
   reacao: string | null;
   reagivel: boolean;
+  // Preenchido quando o envio ao cliente não foi confirmado.
+  aviso: string | null;
   anexo: AnexoView | null;
 };
 
@@ -99,16 +102,51 @@ export function reaproveitarLinks(
 }
 
 // O polling devolve só a janela recente: o histórico que o Funcionário já abriu (as Mensagens antes
-// do começo dela) é mantido da leitura anterior.
+// do começo dela) é mantido da leitura anterior. Só se as duas janelas se sobrepõem: sem nenhuma
+// Mensagem em comum e com histórico antes da nova, pode haver um intervalo que nenhuma das duas
+// tem, e emendá-las esconderia o buraco. Aí a janela nova vale sozinha (recarga: o "ver anteriores"
+// refaz o caminho a partir dela, sem lacuna).
 export function manterHistorico(nova: ConversaVista, anterior: ConversaVista | undefined) {
   const primeira = nova.mensagens[0];
   if (!anterior || !primeira) return nova;
   const antigas = anterior.mensagens.filter((m) => antesDe(m, primeira));
   if (!antigas.length) return nova;
+  const ids = new Set(nova.mensagens.map((m) => m.id));
+  const sobrepoe = anterior.mensagens.some((m) => ids.has(m.id));
+  if (!sobrepoe && nova.temMaisAnteriores) return nova;
   return {
     ...nova,
     mensagens: [...antigas, ...nova.mensagens],
     temMaisAnteriores: anterior.temMaisAnteriores,
+  };
+}
+
+// Ids das Mensagens carregadas cujo link de anexo está perto de vencer (o polling só reassina a
+// janela recente). `limite` corta o lote: o resto fica para a rodada seguinte.
+export function idsComLinkVencendo(
+  conversa: ConversaVista,
+  agora: number,
+  limite: number,
+  margemMs = ANEXO_LINK_MARGEM_MS,
+): string[] {
+  return conversa.mensagens
+    .filter((m) => m.anexo && Date.parse(m.anexo.expiraEm) - agora <= margemMs)
+    .slice(0, limite)
+    .map((m) => m.id);
+}
+
+// Troca só os links (e a validade) dos anexos renovados; o resto da conversa não muda.
+export function aplicarLinksRenovados(
+  conversa: ConversaVista,
+  renovadas: MensagemVista[],
+): ConversaVista {
+  const novos = new Map(renovadas.map((m) => [m.id, m.anexo]));
+  return {
+    ...conversa,
+    mensagens: conversa.mensagens.map((m) => {
+      const renovado = novos.get(m.id);
+      return m.anexo && renovado ? { ...m, anexo: { ...m.anexo, ...renovado } } : m;
+    }),
   };
 }
 
@@ -187,6 +225,7 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
       hora: formatarHora(m.criadoEm),
       reacao: m.reacao,
       reagivel: m.reagivel,
+      aviso: m.entrega === "entregue" ? null : "Envio não confirmado",
       anexo: m.anexo
         ? {
             tipo: m.anexo.tipo,

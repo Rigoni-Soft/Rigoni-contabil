@@ -31,6 +31,8 @@ export type MensagemVista = {
   // Reação do escritório (emoji) à Mensagem do cliente; `reagivel`: dá para reagir a ela.
   reacao: string | null;
   reagivel: boolean;
+  // `pendente`/`falha`: o envio ao cliente não foi confirmado (só nas Mensagens de Funcionário).
+  entrega: "pendente" | "entregue" | "falha";
   anexo: AnexoVisto | null;
   // Só nas Mensagens de Funcionário.
   atendente: { nome: string; setor: SetorSlug } | null;
@@ -82,4 +84,10 @@ export interface ObterConversaPort {
     atendimentoId: string;
     antes: { criadoEm: string; id: string };
   }): Promise<Result<MensagensAnterioresVista, AppError>>;
+  // Links novos para os anexos já carregados cuja validade está acabando; passa de novo pela
+  // autorização da conversa. Só devolve Mensagens com anexo, e só as do Atendimento.
+  renovarLinks(input: {
+    atendimentoId: string;
+    mensagemIds: string[];
+  }): Promise<Result<MensagemVista[], AppError>>;
 }

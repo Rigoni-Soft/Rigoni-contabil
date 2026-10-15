@@ -12,7 +12,6 @@ import type { Inativo } from "@/modules/atendimento/domain/services/inatividade.
 import type { CursorDaConversa } from "@/modules/atendimento/domain/services/janela-da-conversa.service";
 import type { AppError } from "@/shared/errors/app.error";
 import type { TipoAnexoMensagem } from "@/shared/kernel/anexo";
-import type { Papel } from "@/shared/kernel/papeis";
 import type { RegimeValor } from "@/shared/kernel/regimes";
 import type { Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
@@ -169,6 +168,8 @@ export type AnexoDaMensagem = {
   miniaturaCaminho: string | null;
 };
 
+export type EntregaDaMensagem = "pendente" | "entregue" | "falha";
+
 export type ResultadoRegistroRecebido = "registrada" | "duplicada" | "encerrada";
 
 export type ResultadoRegistroDoFuncionario =
@@ -183,6 +184,8 @@ export type MensagemLida = {
   idExterno: string | null;
   reacao: string | null;
   anexo: AnexoDaMensagem | null;
+  // Só a Mensagem de Funcionário nasce `pendente`; do contato e da URA é sempre `entregue`.
+  entrega: EntregaDaMensagem;
 };
 
 // A Mensagem sobre a qual o Funcionário quer reagir.
@@ -219,6 +222,9 @@ export type MensagensAnteriores = {
   mensagens: MensagemLida[];
   temMaisAntigas: boolean;
 };
+
+// Mensagens pedidas por id (renovação de links), com o que decide quem pode vê-las.
+export type MensagensPorId = Omit<MensagensAnteriores, "temMaisAntigas">;
 
 export interface AtendimentoRepositoryPort {
   funcionariosDoSetor(setor: SetorSlug): Promise<Result<FuncionarioDoSetor[], AppError>>;
@@ -307,19 +313,30 @@ export interface AtendimentoRepositoryPort {
     antes: CursorDaConversa,
     limite: number,
   ): Promise<Result<MensagensAnteriores | null, AppError>>;
+  // Só as Mensagens pedidas que pertencem ao Atendimento (qualquer outro id é ignorado); null se o
+  // Atendimento não existe.
+  mensagensPorId(
+    atendimentoId: string,
+    ids: string[],
+  ): Promise<Result<MensagensPorId | null, AppError>>;
   // Mensagem escrita por um Funcionário (autor "funcionario") no Atendimento, com quem a escreveu.
   // Com `anexo`, `texto` é a legenda (pode ser vazia). Grava sob o lock da linha e revalida a
-  // autoridade do ator no mesmo instante (dono, Líder do Setor ou Admin): o fechamento, a
-  // transferência ou a desativação que vencem a corrida viram `encerrada`/`sem_autoridade`. A
-  // gravação vem ANTES da entrega ao provedor (sem transação aberta durante o HTTP); se a entrega
-  // falha, `desfazerMensagemDoFuncionario` a remove.
+  // autoridade do ator no perfil REAL, no mesmo instante (ativo; dono, Líder do Setor ou Admin): o
+  // fechamento, a transferência, a desativação ou a perda do papel que vencem a corrida viram
+  // `encerrada`/`sem_autoridade`. A intenção é gravada `pendente` ANTES da entrega ao provedor
+  // (sem transação aberta durante o HTTP) e fechada por `finalizarEntregaDoFuncionario`: ela nunca
+  // é apagada, e só `entregue` conta na inatividade.
   registrarMensagemDoFuncionario(
     atendimentoId: string,
-    ator: { id: string; papel: Papel; setor: SetorSlug },
+    ator: { id: string },
     texto: string,
     anexo?: AnexoDaMensagem,
   ): Promise<Result<ResultadoRegistroDoFuncionario, AppError>>;
-  desfazerMensagemDoFuncionario(mensagemId: string): Promise<Result<void, AppError>>;
+  // `entregue`: o adapter aceitou; senão `falha`. Só sai de `pendente` (idempotente).
+  finalizarEntregaDoFuncionario(
+    mensagemId: string,
+    entregue: boolean,
+  ): Promise<Result<void, AppError>>;
   // null se a Mensagem não existe neste Atendimento.
   mensagemParaReacao(
     atendimentoId: string,

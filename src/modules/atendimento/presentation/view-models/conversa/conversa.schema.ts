@@ -59,6 +59,12 @@ export const mensagensAnterioresSchema = z.object({
   }),
 });
 
+// Mensagens carregadas cujo link de anexo está vencendo (o servidor corta no limite do caso de uso).
+export const renovarLinksSchema = z.object({
+  atendimentoId: atendimentoIdSchema,
+  mensagemIds: z.array(z.guid("Mensagem inválida.")).min(1).max(50),
+});
+
 export const reagirAMensagemSchema = z.object({
   atendimentoId: atendimentoIdSchema,
   mensagemId: z.guid("Mensagem inválida."),

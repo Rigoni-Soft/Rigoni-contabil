@@ -8,7 +8,6 @@ import type {
 } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { podeTransferir } from "@/modules/atendimento/domain/services/transferencia.service";
 import type { AppError } from "@/shared/errors/app.error";
-import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -19,8 +18,9 @@ import { contarCaracteres } from "@/shared/kernel/texto";
 const ACAO = "atendimento.enviar_mensagem";
 const TEXTO_TAMANHO_MAXIMO = 4096; // limite de uma mensagem de texto do WhatsApp
 
-// Mesma regra de quem pode agir que a Transferência. A Mensagem só entra no Atendimento depois de
-// entregue ao cliente (só vira histórico o que ele de fato recebeu).
+// Mesma regra de quem pode agir que a Transferência. A intenção é gravada `pendente` e só vira
+// `entregue` com o aceite do adapter; falhou ou ficou incerto, a linha continua (`falha`/`pendente`)
+// e não conta como resposta na inatividade.
 export class EnviarMensagemAoCliente implements EnviarMensagemAoClientePort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -58,9 +58,9 @@ export class EnviarMensagemAoCliente implements EnviarMensagemAoClientePort {
       return err(new ForbiddenError("Você não pode responder neste Atendimento."));
     }
 
-    // A Mensagem entra no histórico (sob o lock do Atendimento, com a autoridade revalidada) ANTES
-    // de sair: o fechamento que vence a corrida não deixa uma resposta enviada a um Atendimento
-    // encerrado. Se a entrega falha, a Mensagem é desfeita.
+    // A intenção entra no histórico (sob o lock do Atendimento, com a autoridade relida do perfil)
+    // ANTES de sair: o fechamento que vence a corrida não deixa uma resposta enviada a um
+    // Atendimento encerrado. O resultado fecha a linha; ela nunca é apagada.
     const registrada = await this.repositorio.registrarMensagemDoFuncionario(
       atendimentoId,
       ator,
@@ -74,17 +74,13 @@ export class EnviarMensagemAoCliente implements EnviarMensagemAoClientePort {
       return err(new ForbiddenError("Você não pode responder neste Atendimento."));
     }
 
-    const enviada = await this.enviar(atendimento.telefone, mensagem);
+    const enviada = await this.enviar(atendimento.telefone, mensagem, registrada.value.id);
+    // Falha ao fechar a linha a deixa `pendente`: segue sem contar como resposta e a conversa a
+    // mostra como não confirmada. O envio aceito não vira erro (reenviar duplicaria).
+    await this.repositorio.finalizarEntregaDoFuncionario(registrada.value.id, enviada.ok);
     if (!enviada.ok) {
       await this.auditar(ator, atendimentoId, "falha");
-      const desfeita = await this.repositorio.desfazerMensagemDoFuncionario(registrada.value.id);
-      if (desfeita.ok) return enviada;
-      return err(
-        new EstadoInconsistenteError(
-          "A mensagem não foi enviada, mas continua na conversa.",
-          atendimentoId,
-        ),
-      );
+      return enviada;
     }
     // O texto não vai para a trilha.
     await this.auditar(ator, atendimentoId, "sucesso");
@@ -101,9 +97,13 @@ export class EnviarMensagemAoCliente implements EnviarMensagemAoClientePort {
     });
   }
 
-  private async enviar(telefone: string, texto: string): Promise<Result<void, AppError>> {
+  private async enviar(
+    telefone: string,
+    texto: string,
+    chaveIdempotencia: string,
+  ): Promise<Result<void, AppError>> {
     try {
-      return await this.envio.enviar({ telefone, texto });
+      return await this.envio.enviar({ telefone, texto, chaveIdempotencia });
     } catch {
       return err(new ServicoExternoError("Falha ao enviar a mensagem."));
     }
