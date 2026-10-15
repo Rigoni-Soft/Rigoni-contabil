@@ -135,7 +135,13 @@ describe("EnviarComunicacaoProativa", () => {
       .mockResolvedValueOnce(err(new ServicoExternoError("503")))
       .mockResolvedValueOnce(ok(undefined));
     const proativa = new EnviarComunicacaoProativa(
-      { enviar, enviarDocumento, enviarTemplate: jest.fn() },
+      {
+        enviar,
+        enviarDocumento,
+        enviarTemplate: jest.fn(),
+        enviarAnexo: jest.fn(),
+        reagir: jest.fn(),
+      },
       3,
       0,
     );
