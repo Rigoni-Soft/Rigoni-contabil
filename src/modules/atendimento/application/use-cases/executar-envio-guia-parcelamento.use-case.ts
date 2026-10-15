@@ -2,48 +2,29 @@ import {
   temDestinatario,
   type ComunicacaoProativa,
 } from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
-import type {
-  EntregarComunicacaoPorCanaisPort,
-  OcorrenciaDeEntrega,
-} from "@/modules/atendimento/application/ports/in/entregar-comunicacao-por-canais.provider";
+import type { EntregarComunicacaoPorCanaisPort } from "@/modules/atendimento/application/ports/in/entregar-comunicacao-por-canais.provider";
 import type {
   EnvioGuiaParcelamentoExecutado,
   ExecutarEnvioGuiaParcelamentoPort,
 } from "@/modules/atendimento/application/ports/in/executar-envio-guia-parcelamento.provider";
 import type { ObterGuiaParcelamentoParaEnvioPort } from "@/modules/atendimento/application/ports/in/obter-guia-parcelamento-para-envio.provider";
-import type {
-  AlertaSetorPort,
-  TipoAlertaSetor,
-} from "@/modules/atendimento/application/ports/out/alerta-setor.provider";
+import type { AlertaSetorPort } from "@/modules/atendimento/application/ports/out/alerta-setor.provider";
 import type {
   ClienteParaParcelamento,
   ClientesParaParcelamentoPort,
 } from "@/modules/atendimento/application/ports/out/clientes-para-parcelamento.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
+import {
+  falha,
+  levantarAlertas,
+  resolverAlertasDaRodada,
+  type Andamento,
+} from "@/modules/atendimento/application/use-cases/alertas-da-rodada";
 import type { AppError } from "@/shared/errors/app.error";
 import { diaDoMes } from "@/shared/kernel/mes-atual";
 import { ok, type Result } from "@/shared/kernel/result";
 
 const DIAS_DO_JOB = [20, 22, 24, 26, 28];
-
-// Diferença tolerada entre o relógio do servidor e o do banco ao resolver alertas.
-const FOLGA_RELOGIO_MS = 60_000;
-
-type Andamento = { enviado: boolean; ocorrencias: OcorrenciaDeEntrega[] };
-
-const falha = (mensagem: string): Andamento => ({
-  enviado: false,
-  ocorrencias: [{ tipo: "falha_envio", mensagem }],
-});
-
-// Um alerta por tipo e Cliente: mensagens do mesmo tipo se juntam, em vez de a segunda se perder.
-function agruparPorTipo(ocorrencias: OcorrenciaDeEntrega[]): Map<TipoAlertaSetor, string[]> {
-  const porTipo = new Map<TipoAlertaSetor, string[]>();
-  for (const { tipo, mensagem } of ocorrencias) {
-    porTipo.set(tipo, [...(porTipo.get(tipo) ?? []), mensagem]);
-  }
-  return porTipo;
-}
 
 // Job dos dias 20/22/24/26/28 (fuso de São Paulo): envia a guia de parcelamento pela forma de
 // envio do Cliente que tem Parcelamento pendente e o marca como enviado. Falha do provedor fiscal
@@ -80,19 +61,13 @@ export class ExecutarEnvioGuiaParcelamento implements ExecutarEnvioGuiaParcelame
       const feito = await this.enviar(cliente, agora);
       resumo.enviados += Number(feito.enviado);
       resumo.falhas += feito.ocorrencias.filter((o) => o.tipo === "falha_envio").length;
-      const gravacao = await this.levantarAlertas(cliente, feito.ocorrencias);
+      const gravacao = await levantarAlertas(this.alertas, cliente.clienteId, feito.ocorrencias);
       resumo.alertas += gravacao.gravados;
       alertasNaoGravados += gravacao.naoGravados;
     }
     resumo.falhas += alertasNaoGravados;
 
-    // Alerta que o job não renovou nesta rodada deixou de valer. Com alerta que não pôde ser
-    // gravado a rodada não sabe o que renovou, então não resolve nada.
-    if (alertasNaoGravados === 0) {
-      const folga = new Date(agora.getTime() - FOLGA_RELOGIO_MS);
-      const resolvidos = await this.alertas.resolverNaoRenovados(folga);
-      if (!resolvidos.ok) resumo.falhas += 1;
-    }
+    resumo.falhas += await resolverAlertasDaRodada(this.alertas, agora, alertasNaoGravados);
     return ok(resumo);
   }
 
@@ -140,24 +115,5 @@ export class ExecutarEnvioGuiaParcelamento implements ExecutarEnvioGuiaParcelame
     const entrega = await this.entrega.execute({ cliente, comunicacao, agora });
     if (!entrega.ok) return falha(`${cliente.empresa}: ${entrega.error.message}`);
     return { enviado: entrega.value.entregues > 0, ocorrencias: entrega.value.ocorrencias };
-  }
-
-  private async levantarAlertas(
-    cliente: ClienteParaParcelamento,
-    ocorrencias: OcorrenciaDeEntrega[],
-  ) {
-    let gravados = 0;
-    let naoGravados = 0;
-    for (const [tipo, mensagens] of agruparPorTipo(ocorrencias)) {
-      const gravado = await this.alertas.alertar({
-        setor: "simples_nacional",
-        tipo,
-        clienteId: cliente.clienteId,
-        mensagem: mensagens.join(" | "),
-      });
-      if (gravado.ok) gravados += 1;
-      else naoGravados += 1;
-    }
-    return { gravados, naoGravados };
   }
 }

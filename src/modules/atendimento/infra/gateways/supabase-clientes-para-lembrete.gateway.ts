@@ -9,20 +9,14 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { DAS_STATUSES } from "@/shared/kernel/das-status";
 import { DOCUMENTO_OBRIGATORIO_STATUSES } from "@/shared/kernel/documento-obrigatorio-status";
-import { FORMAS_ENVIO } from "@/shared/kernel/forma-envio";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-const linhaSchema = z.object({
-  cliente_id: z.string(),
-  email: z.string().nullable(),
-  empresa: z.string(),
-  forma_envio: z.enum(FORMAS_ENVIO),
+import { linhaDestinatarioSchema, paraDestinatario } from "./supabase-linha-destinatario";
+
+const linhaSchema = linhaDestinatarioSchema.extend({
   documento_obrigatorio: z.enum(DOCUMENTO_OBRIGATORIO_STATUSES).nullable(),
   das_status: z.enum(DAS_STATUSES).nullable(),
   data_envio_das: z.string().nullable(),
-  contato_nome: z.string().nullable(),
-  contato_telefone: z.string().nullable(),
-  ultima_mensagem_do_contato_em: z.string().nullable(),
 });
 
 // Usa o client service_role (docs/adr/0001): o job não tem sessão de usuário.
@@ -37,20 +31,10 @@ export class SupabaseClientesParaLembreteGateway implements ClientesParaLembrete
     }
     return ok(
       linhas.data.map((l) => ({
-        clienteId: l.cliente_id,
-        empresa: l.empresa,
-        formaEnvio: l.forma_envio,
+        ...paraDestinatario(l),
         documentoObrigatorio: l.documento_obrigatorio,
         dasStatus: l.das_status,
         dataEnvioDas: l.data_envio_das,
-        contato:
-          l.contato_nome && l.contato_telefone
-            ? { nome: l.contato_nome, telefone: l.contato_telefone }
-            : null,
-        email: l.email,
-        ultimaMensagemDoContatoEm: l.ultima_mensagem_do_contato_em
-          ? new Date(l.ultima_mensagem_do_contato_em)
-          : null,
       })),
     );
   }

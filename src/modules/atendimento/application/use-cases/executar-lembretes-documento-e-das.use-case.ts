@@ -11,45 +11,26 @@ import type {
   LembretesExecutados,
 } from "@/modules/atendimento/application/ports/in/executar-lembretes-documento-e-das.provider";
 import type { ObterGuiaDasParaEnvioPort } from "@/modules/atendimento/application/ports/in/obter-guia-das-para-envio.provider";
-import type {
-  AlertaSetorPort,
-  TipoAlertaSetor,
-} from "@/modules/atendimento/application/ports/out/alerta-setor.provider";
+import type { AlertaSetorPort } from "@/modules/atendimento/application/ports/out/alerta-setor.provider";
 import type {
   ClienteParaLembrete,
   ClientesParaLembretePort,
 } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
+import {
+  falha,
+  levantarAlertas,
+  resolverAlertasDaRodada,
+  SEM_ANDAMENTO,
+  type Andamento,
+} from "@/modules/atendimento/application/use-cases/alertas-da-rodada";
 import type { AppError } from "@/shared/errors/app.error";
 import { diaDoMes, hojeIso } from "@/shared/kernel/mes-atual";
 import { ok, type Result } from "@/shared/kernel/result";
 
 const DIAS_DO_JOB = [1, 5, 10, 15];
 
-// Diferença tolerada entre o relógio do servidor e o do banco ao resolver alertas.
-const FOLGA_RELOGIO_MS = 60_000;
-
-// O que aconteceu com uma das duas tarefas do Cliente (lembrete ou guia).
-type Andamento = { enviado: boolean; ocorrencias: OcorrenciaDeEntrega[] };
-
-const SEM_ANDAMENTO: Andamento = { enviado: false, ocorrencias: [] };
-
-const falha = (mensagem: string): Andamento => ({
-  enviado: false,
-  ocorrencias: [{ tipo: "falha_envio", mensagem }],
-});
-
 const nomeDoContato = (cliente: ClienteParaLembrete) => cliente.contato?.nome ?? cliente.empresa;
-
-// Um alerta por tipo e Cliente: as mensagens do mesmo tipo (ex.: falha do lembrete e da guia) se
-// juntam, em vez de a segunda ser descartada.
-function agruparPorTipo(ocorrencias: OcorrenciaDeEntrega[]): Map<TipoAlertaSetor, string[]> {
-  const porTipo = new Map<TipoAlertaSetor, string[]>();
-  for (const { tipo, mensagem } of ocorrencias) {
-    porTipo.set(tipo, [...(porTipo.get(tipo) ?? []), mensagem]);
-  }
-  return porTipo;
-}
 
 // Job dos dias 01/05/10/15 (fuso de São Paulo): lembra quem está sem documento obrigatório,
 // envia o DAS pronto pela forma de envio do Cliente e alerta o setor Simples Nacional do DAS que
@@ -89,19 +70,13 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
       const ocorrencias = [...feito.lembrete.ocorrencias, ...feito.das.ocorrencias];
       resumo.falhas += ocorrencias.filter((o) => o.tipo === "falha_envio").length;
 
-      const gravacao = await this.levantarAlertas(cliente, ocorrencias);
+      const gravacao = await levantarAlertas(this.alertas, cliente.clienteId, ocorrencias);
       resumo.alertas += gravacao.gravados;
       alertasNaoGravados += gravacao.naoGravados;
     }
     resumo.falhas += alertasNaoGravados;
 
-    // Alerta que o job não renovou nesta rodada deixou de valer. Com alerta que não pôde ser
-    // gravado a rodada não sabe o que renovou, então não resolve nada.
-    if (alertasNaoGravados === 0) {
-      const folga = new Date(agora.getTime() - FOLGA_RELOGIO_MS);
-      const resolvidos = await this.alertas.resolverNaoRenovados(folga);
-      if (!resolvidos.ok) resumo.falhas += 1;
-    }
+    resumo.falhas += await resolverAlertasDaRodada(this.alertas, agora, alertasNaoGravados);
     return ok(resumo);
   }
 
@@ -188,21 +163,5 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     const entrega = await this.entrega.execute({ cliente, comunicacao, agora });
     if (!entrega.ok) return falha(`${cliente.empresa}: ${entrega.error.message}`);
     return { enviado: entrega.value.entregues > 0, ocorrencias: entrega.value.ocorrencias };
-  }
-
-  private async levantarAlertas(cliente: ClienteParaLembrete, ocorrencias: OcorrenciaDeEntrega[]) {
-    let gravados = 0;
-    let naoGravados = 0;
-    for (const [tipo, mensagens] of agruparPorTipo(ocorrencias)) {
-      const gravado = await this.alertas.alertar({
-        setor: "simples_nacional",
-        tipo,
-        clienteId: cliente.clienteId,
-        mensagem: mensagens.join(" | "),
-      });
-      if (gravado.ok) gravados += 1;
-      else naoGravados += 1;
-    }
-    return { gravados, naoGravados };
   }
 }

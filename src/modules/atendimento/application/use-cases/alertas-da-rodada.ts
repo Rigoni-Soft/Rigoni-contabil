@@ -1,0 +1,64 @@
+import type { OcorrenciaDeEntrega } from "@/modules/atendimento/application/ports/in/entregar-comunicacao-por-canais.provider";
+import type {
+  AlertaSetorPort,
+  TipoAlertaSetor,
+} from "@/modules/atendimento/application/ports/out/alerta-setor.provider";
+
+// Diferença tolerada entre o relógio do servidor e o do banco ao resolver alertas.
+const FOLGA_RELOGIO_MS = 60_000;
+
+// O que aconteceu com uma tarefa do Cliente numa rodada de job: se saiu e o que o setor precisa
+// saber.
+export type Andamento = { enviado: boolean; ocorrencias: OcorrenciaDeEntrega[] };
+
+export const SEM_ANDAMENTO: Andamento = { enviado: false, ocorrencias: [] };
+
+export const falha = (mensagem: string): Andamento => ({
+  enviado: false,
+  ocorrencias: [{ tipo: "falha_envio", mensagem }],
+});
+
+// Um alerta por tipo e Cliente: as mensagens do mesmo tipo (ex.: falha do lembrete e da guia) se
+// juntam, em vez de a segunda ser descartada.
+function agruparPorTipo(ocorrencias: OcorrenciaDeEntrega[]): Map<TipoAlertaSetor, string[]> {
+  const porTipo = new Map<TipoAlertaSetor, string[]>();
+  for (const { tipo, mensagem } of ocorrencias) {
+    porTipo.set(tipo, [...(porTipo.get(tipo) ?? []), mensagem]);
+  }
+  return porTipo;
+}
+
+// Grava as ocorrências do Cliente como alertas do setor Simples Nacional.
+export async function levantarAlertas(
+  alertas: AlertaSetorPort,
+  clienteId: string,
+  ocorrencias: OcorrenciaDeEntrega[],
+): Promise<{ gravados: number; naoGravados: number }> {
+  let gravados = 0;
+  let naoGravados = 0;
+  for (const [tipo, mensagens] of agruparPorTipo(ocorrencias)) {
+    const gravado = await alertas.alertar({
+      setor: "simples_nacional",
+      tipo,
+      clienteId,
+      mensagem: mensagens.join(" | "),
+    });
+    if (gravado.ok) gravados += 1;
+    else naoGravados += 1;
+  }
+  return { gravados, naoGravados };
+}
+
+// Alerta que o job não renovou nesta rodada deixou de valer. Com alerta que não pôde ser gravado a
+// rodada não sabe o que renovou, então não resolve nada. Devolve as falhas que isso acrescenta.
+export async function resolverAlertasDaRodada(
+  alertas: AlertaSetorPort,
+  agora: Date,
+  alertasNaoGravados: number,
+): Promise<number> {
+  if (alertasNaoGravados > 0) return 0;
+  const resolvidos = await alertas.resolverNaoRenovados(
+    new Date(agora.getTime() - FOLGA_RELOGIO_MS),
+  );
+  return resolvidos.ok ? 0 : 1;
+}
