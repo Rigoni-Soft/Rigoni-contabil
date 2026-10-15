@@ -33,8 +33,9 @@ com a preferência de SO do visitante.
 | `primary` / `primary-foreground` | `#54a292` / `#0a1613` | `#0d3b36` / `#f4f1e8` | verde-cheque — ação principal, e estado "sucesso" em listas/feeds e confirmações |
 | `secondary`, `muted`, `accent` | tons de papel/verde desaturados | idem | hierarquia secundária, hover |
 | `destructive` / `destructive-foreground` | `#e0968c` / `#2a0f0c` | `#7a2b2b` / `#f4f1e8` | erro/atenção — sempre com ícone, nunca só cor; também estado "falha" em listas/feeds |
-| `success` / `success-foreground` | `#d9bd7c` / `#2a1f0c` | `#96742f` / `#2a1f0c` | selo dourado "em dia" — reservado especificamente para as telas de status do Simples Nacional (#35–#37); não usar para resultado sucesso/falha genérico (isso é `primary`/`destructive`, ver Componentes → Indicadores de estado) |
-| `border` / `input` / `ring` | `#47453e` | tons de contorno derivados do verde | bordas, campos, foco |
+| `success` / `success-foreground` | `#d9bd7c` / `#2a1f0c` | `#96742f` / `#2a1f0c` | selo dourado "em dia" — reservado especificamente para as telas de status do Simples Nacional (#35–#37); não usar para resultado sucesso/falha genérico (isso é `primary`/`destructive`, ver Componentes → Indicadores de estado). Só em traço/ícone: no claro tem 3,8:1 sobre `background`, abaixo dos 4,5:1 de texto |
+| `border` / `ring` | `#47453e` | tons de contorno derivados do verde | bordas decorativas, foco |
+| `input` | `#7a7765` | `#857d66` | contorno de campo, select, textarea, botão outline e painel de emoji: ≥3:1 sobre `background` e `card` nos dois temas (WCAG 1.4.11); revisão de 15/10/2026 |
 
 **Dark "leve" (revisão de 28/09/2026, duas rodadas):** a paleta dark original
 (`background` `#0c1512`, luminância relativa ~0,6%) lia como sombria demais —
