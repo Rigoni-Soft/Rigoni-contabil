@@ -1,6 +1,4 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-
+import { LinkDeVoltar } from "@/presentation/components/atoms/link-de-voltar.component";
 import { ConversaTemplate } from "@/presentation/components/templates/conversa-template.component";
 
 type ConversaAtendimentoPageProps = {
@@ -24,15 +22,7 @@ export function ConversaAtendimentoPage({
   return (
     <ConversaTemplate
       header={header}
-      voltar={
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline"
-        >
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          Voltar
-        </Link>
-      }
+      voltar={<LinkDeVoltar href="/" />}
       cabecalho={cabecalho}
       mensagens={mensagens}
       compositor={compositor}
