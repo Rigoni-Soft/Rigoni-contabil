@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Roboto } from "next/font/google";
+import localFont from "next/font/local";
 
 import { QueryProvider } from "@/presentation/providers/query.provider";
 import { ThemeProvider } from "@/presentation/providers/theme.provider";
@@ -7,10 +7,13 @@ import { MeusAtendimentosContainer } from "@/modules/atendimento/presentation/vi
 
 import "./globals.css";
 
-const roboto = Roboto({
+// Roboto variável (latin) servida do repositório, não do Google: o build não depende de rede
+// externa (o CI e a Vercel compilam sem buscar a fonte).
+const roboto = localFont({
+  src: "./fonts/roboto-latin.woff2",
   variable: "--font-roboto",
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
+  weight: "100 900",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
