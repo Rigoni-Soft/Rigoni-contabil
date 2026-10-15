@@ -121,16 +121,37 @@ export function manterHistorico(nova: ConversaVista, anterior: ConversaVista | u
   };
 }
 
+// Página de histórico anterior que o Funcionário pediu a partir de `cursorId` (a primeira Mensagem
+// da tela naquele momento). Só entra se esse ainda é o começo da conversa: se o polling substituiu
+// a janela enquanto o pedido estava em andamento, a página não é contígua à tela atual e emendá-la
+// esconderia um intervalo. Nesse caso é descartada e o "ver anteriores" refaz a partir do cursor atual.
+export function acrescentarAnteriores(
+  atual: ConversaVista,
+  cursorId: string,
+  pagina: { mensagens: MensagemVista[]; temMaisAnteriores: boolean },
+): ConversaVista {
+  if (atual.mensagens[0]?.id !== cursorId) return atual;
+  const ja = new Set(atual.mensagens.map((m) => m.id));
+  return {
+    ...atual,
+    mensagens: [...pagina.mensagens.filter((m) => !ja.has(m.id)), ...atual.mensagens],
+    temMaisAnteriores: pagina.temMaisAnteriores,
+  };
+}
+
 // Ids das Mensagens carregadas cujo link de anexo está perto de vencer (o polling só reassina a
-// janela recente). `limite` corta o lote: o resto fica para a rodada seguinte.
+// janela recente). `elegivel` (ex.: fora da espera de uma tentativa recente) entra antes do corte:
+// `limite` corta só os elegíveis, o resto fica para a rodada seguinte; objetos ausentes que
+// continuam vencendo não ocupam as vagas dos válidos que vêm depois.
 export function idsComLinkVencendo(
   conversa: ConversaVista,
   agora: number,
   limite: number,
   margemMs = ANEXO_LINK_MARGEM_MS,
+  elegivel: (id: string) => boolean = () => true,
 ): string[] {
   return conversa.mensagens
-    .filter((m) => m.anexo && Date.parse(m.anexo.expiraEm) - agora <= margemMs)
+    .filter((m) => m.anexo && Date.parse(m.anexo.expiraEm) - agora <= margemMs && elegivel(m.id))
     .slice(0, limite)
     .map((m) => m.id);
 }

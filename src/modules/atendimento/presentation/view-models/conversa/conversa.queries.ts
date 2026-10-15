@@ -23,6 +23,7 @@ import {
   transferirAtendimentoAction,
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.actions";
 import {
+  acrescentarAnteriores,
   aplicarLinksRenovados,
   idsComLinkVencendo,
   manterHistorico,
@@ -59,7 +60,11 @@ async function renovarLinksVencendo(
   conversa: ConversaVista,
   agora: number,
 ): Promise<ConversaVista> {
-  const ids = idsComLinkVencendo(conversa, agora, RENOVACAO_LOTE).filter(
+  const ids = idsComLinkVencendo(
+    conversa,
+    agora,
+    RENOVACAO_LOTE,
+    undefined,
     (id) => agora - (renovacaoPedidaEm.get(id) ?? 0) >= RENOVACAO_ESPERA_MS,
   );
   if (!ids.length) return conversa;
@@ -112,15 +117,10 @@ export function useMensagensAnterioresMutation(atendimentoId: string) {
         antes: { criadoEm: primeira.criadoEm, id: primeira.id },
       });
       if (!resultado.ok) throw new Error(resultado.error.message);
-      queryClient.setQueryData<ConversaVista>(chave, (atual) => {
-        if (!atual) return atual;
-        const ja = new Set(atual.mensagens.map((m) => m.id));
-        return {
-          ...atual,
-          mensagens: [...resultado.data.mensagens.filter((m) => !ja.has(m.id)), ...atual.mensagens],
-          temMaisAnteriores: resultado.data.temMaisAnteriores,
-        };
-      });
+      // Confere o cursor contra o cache de agora: o polling pode ter trocado a janela no caminho.
+      queryClient.setQueryData<ConversaVista>(chave, (atual) =>
+        atual ? acrescentarAnteriores(atual, primeira.id, resultado.data) : atual,
+      );
     },
   });
 }

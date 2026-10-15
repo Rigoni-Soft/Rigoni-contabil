@@ -1,6 +1,7 @@
 import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 
 import {
+  acrescentarAnteriores,
   aplicarLinksRenovados,
   conversaParaView,
   documentoDaOpcao,
@@ -426,6 +427,19 @@ describe("renovação de links de anexos antigos (R85-05.B)", () => {
     expect(idsComLinkVencendo(c, AGORA_MS, 20, margem)).toHaveLength(20);
   });
 
+  it("objetos ausentes em espera não ocupam o lote: os válidos seguintes são pedidos", () => {
+    const c = conversa(
+      Array.from({ length: 25 }, (_, i) => comLink(`m${i}`, "2026-10-14T11:00:00Z")),
+    );
+    const emEspera = new Set(Array.from({ length: 20 }, (_, i) => `m${i}`));
+
+    const ids = idsComLinkVencendo(c, AGORA_MS, 20, margem, (id) => !emEspera.has(id));
+
+    expect(ids).toEqual(["m20", "m21", "m22", "m23", "m24"]);
+    // Sem ninguém em espera, o teto do lote continua valendo.
+    expect(idsComLinkVencendo(c, AGORA_MS, 20, margem, () => true)).toHaveLength(20);
+  });
+
   it("aplica o link novo só nos anexos renovados; objeto ausente (sem anexo) mantém o antigo", () => {
     const c = conversa([
       comLink("a", "2026-10-14T12:01:00Z"),
@@ -449,6 +463,41 @@ describe("renovação de links de anexos antigos (R85-05.B)", () => {
       url: "https://l/b",
       expiraEm: "2026-10-14T12:01:00Z",
     });
+  });
+});
+
+describe("página anterior atrasada (R85-05.A)", () => {
+  const msg = (id: string, criadoEm: string) => ({ ...CONVERSA.mensagens[0], id, criadoEm });
+  const tela = (ids: string[], temMais = true): ConversaVista => ({
+    ...CONVERSA,
+    mensagens: ids.map((id, i) => msg(id, `2026-10-14T12:${String(i).padStart(2, "0")}:00Z`)),
+    temMaisAnteriores: temMais,
+  });
+  const pagina = (ids: string[], temMais: boolean) => ({
+    mensagens: ids.map((id) => msg(id, "2026-10-14T09:00:00Z")),
+    temMaisAnteriores: temMais,
+  });
+
+  it("junta a página antes da primeira Mensagem quando o cursor ainda é o começo da tela", () => {
+    const r = acrescentarAnteriores(tela(["m3", "m4"]), "m3", pagina(["m1", "m2"], false));
+    expect(r.mensagens.map((m) => m.id)).toEqual(["m1", "m2", "m3", "m4"]);
+    expect(r.temMaisAnteriores).toBe(false);
+  });
+
+  it("não repete Mensagem que o polling já trouxe", () => {
+    const r = acrescentarAnteriores(tela(["m2", "m3"]), "m2", pagina(["m1", "m2"], true));
+    expect(r.mensagens.map((m) => m.id)).toEqual(["m1", "m2", "m3"]);
+  });
+
+  it("descarta a página se o polling trocou a janela: sem junção descontínua nem falso fim", () => {
+    // Pedido feito com a tela em m101..; o polling a substituiu por m351.. e só então a página chega.
+    const atual = tela(["m351", "m352"], true);
+    const r = acrescentarAnteriores(atual, "m101", pagina(["m1", "m100"], false));
+    expect(r).toBe(atual);
+    expect(r.temMaisAnteriores).toBe(true);
+    // Um novo pedido, agora a partir do cursor atual, entra normalmente.
+    const refeita = acrescentarAnteriores(atual, "m351", pagina(["m350"], true));
+    expect(refeita.mensagens.map((m) => m.id)).toEqual(["m350", "m351", "m352"]);
   });
 });
 
