@@ -37,7 +37,7 @@ async function clienteAutenticadoComoFuncionarioSeed(): Promise<SupabaseClient> 
   return supabase;
 }
 
-// registrar_acao_auditoria só aceita service_role (migration 20260930170000) —
+// registrar_acao_auditoria só aceita service_role (migration 20260924190000_usuarios_e_auditoria.sql) —
 // mesmo client que `main/auditoria.factory.ts` usa de verdade em produção.
 function clienteServiceRole(): SupabaseClient {
   return createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {

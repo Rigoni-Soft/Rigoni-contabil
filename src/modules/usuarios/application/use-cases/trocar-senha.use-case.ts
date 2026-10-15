@@ -73,7 +73,7 @@ export class TrocarSenha implements TrocarSenhaPort {
     // Falha daqui em diante vira EstadoInconsistenteError, recuperável por retry.
     if (primeiroAcesso) {
       // Perfil + auditoria numa única transação idempotente (migration
-      // 20261001090000): retry conclui só o que falta, sem nova troca no Auth e
+      // 20260924190000_usuarios_e_auditoria.sql): retry conclui só o que falta, sem nova troca no Auth e
       // sem auditoria duplicada.
       const finalizada = await this.finalizarTrocaSenha.finalizar(id);
       if (!finalizada.ok) {

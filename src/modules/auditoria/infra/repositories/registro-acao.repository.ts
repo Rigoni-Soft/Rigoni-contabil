@@ -15,7 +15,7 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 export class SupabaseRegistroAcaoRepository implements RegistroAcaoRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
-  // A RPC só aceita `service_role` (migration 20260930170000): só o servidor, que já validou a
+  // A RPC só aceita `service_role` (migration 20260924190000_usuarios_e_auditoria.sql): só o servidor, que já validou a
   // sessão antes de chamar `RegistrarAcao`, tem acesso. Sem JWT de usuário, `auth.uid()` não existe
   // aqui — `p_ator` vai explícito. `criado_em` continua decidido pelo banco (now()).
   async salvar(registro: RegistroAcao): Promise<Result<void, AppError>> {

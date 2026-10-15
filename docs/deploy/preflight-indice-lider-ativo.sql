@@ -1,3 +1,6 @@
+-- HISTÓRICO: as migrations citadas abaixo foram consolidadas em 20260924190000_usuarios_e_auditoria.sql
+-- (e as demais da família). Este preflight só vale para uma base que ainda esteja no estado anterior
+-- à consolidação; em base nova ou resetada não há o que conferir.
 -- Preflight SOMENTE LEITURA da migration 20261005090000_alterar_papel_usuario.sql
 -- Rode no Supabase da Rigoni ANTES do deploy.
 -- Nada aqui altera ou apaga dado.

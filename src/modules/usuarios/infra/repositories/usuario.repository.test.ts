@@ -56,7 +56,7 @@ async function criarContaAuthDeTeste(): Promise<{ id: string; email: string }> {
 }
 
 // Cria uma conta com senha provisória já vencida (direto via service_role, fora do fluxo normal)
-// pra provar que meu_papel()/meu_setor() negam acesso via Data API mesmo com um JWT válido.
+// pra provar que meu_papel()/meu_setor() (20260924190000_usuarios_e_auditoria.sql) negam acesso via Data API mesmo com um JWT válido.
 async function criarContaComSenhaVencida(
   papel: "admin" | "funcionario",
   setor: string,

@@ -16,7 +16,7 @@ function nomeSeguro(nome: string): string {
 }
 
 // Upload resumível (TUS) do Supabase Storage, do navegador. O token é o do usuário logado: sem
-// policy de INSERT que o autorize (migration 20261014180000), o Storage recusa. Cada parte falha e
+// policy de INSERT que o autorize (migration 20261014130000_mensagens_anexos_e_entrega.sql), o Storage recusa. Cada parte falha e
 // repete sozinha (o tus-js-client retoma de onde parou) antes de devolver erro.
 export class TusUploadDeAnexoGateway implements UploadDeAnexoPort {
   constructor(

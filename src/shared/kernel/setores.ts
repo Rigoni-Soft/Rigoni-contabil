@@ -3,7 +3,7 @@
 // Contábil (não dois setores) e T.I. não é setor próprio (cai dentro de Administrativo, mesmo padrão
 // da Zeladoria) — decisões definitivas (CONTEXT.md, termo "Setor").
 // O enum `setor_slug` do Postgres está alinhado a esta lista (migration
-// 20260929180000_setor_slug_remove_setores_mortos.sql): `contabil_externo`/`ti` saíram do banco também.
+// 20260924190000_usuarios_e_auditoria.sql): `contabil_externo`/`ti` saíram do banco também.
 // Fica em shared (não em usuarios/domain) porque Views globais também precisam da lista
 // e não podem importar de dentro de um módulo (arquitetura.md, seção 3.4).
 export const SETORES = [
