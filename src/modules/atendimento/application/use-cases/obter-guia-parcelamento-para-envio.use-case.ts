@@ -1,10 +1,10 @@
+import { obterGuiaPublicada } from "@/modules/atendimento/application/jobs/obter-guia-publicada";
 import type {
   GuiaParcelamentoParaEnvio,
   ObterGuiaParcelamentoParaEnvioPort,
 } from "@/modules/atendimento/application/ports/in/obter-guia-parcelamento-para-envio.provider";
 import type { GuiaPublicadaPort } from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
 import type { GuiasFiscaisPort } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
-import { obterGuiaPublicada } from "@/modules/atendimento/application/use-cases/obter-guia-publicada";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ESPERA_MS } from "@/shared/kernel/com-tentativas";

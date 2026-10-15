@@ -1,4 +1,12 @@
 import {
+  entregarReivindicando,
+  executarRodada,
+  falha,
+  paraAndamento,
+  semDestinatario,
+  type Andamento,
+} from "@/modules/atendimento/application/jobs/alertas-da-rodada";
+import {
   temDestinatario,
   type ComunicacaoProativa,
 } from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
@@ -14,14 +22,6 @@ import type {
   ClientesParaParcelamentoPort,
 } from "@/modules/atendimento/application/ports/out/clientes-para-parcelamento.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
-import {
-  entregarReivindicando,
-  executarRodada,
-  falha,
-  paraAndamento,
-  semDestinatario,
-  type Andamento,
-} from "@/modules/atendimento/application/use-cases/alertas-da-rodada";
 import type { AppError } from "@/shared/errors/app.error";
 import { diaDoMes } from "@/shared/kernel/mes-atual";
 import { ok, type Result } from "@/shared/kernel/result";

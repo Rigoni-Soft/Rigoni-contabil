@@ -5,7 +5,7 @@ import {
 
 import { jobAgendadoWebhook } from "./job-agendado.webhook";
 
-// Chamada diária: o próprio job decide se hoje é dia 20/22/24/26/28 (São Paulo).
+// O cron chama só nos dias 20/22/24/26/28; o próprio job reconfere o dia (São Paulo).
 export const POST = jobAgendadoWebhook(lembretesAutomaticosAtivos, () =>
   makeExecutarEnvioGuiaParcelamento().execute(),
 );

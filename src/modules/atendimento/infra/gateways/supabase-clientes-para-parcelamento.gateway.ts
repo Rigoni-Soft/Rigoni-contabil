@@ -5,11 +5,13 @@ import type {
   ClienteParaParcelamento,
   ClientesParaParcelamentoPort,
 } from "@/modules/atendimento/application/ports/out/clientes-para-parcelamento.provider";
+import {
+  linhaDestinatarioSchema,
+  paraDestinatario,
+} from "@/modules/atendimento/infra/mappers/linha-destinatario.mapper";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
-
-import { linhaDestinatarioSchema, paraDestinatario } from "./supabase-linha-destinatario";
 
 // Usa o client service_role (docs/adr/0001): o job não tem sessão de usuário.
 export class SupabaseClientesParaParcelamentoGateway implements ClientesParaParcelamentoPort {

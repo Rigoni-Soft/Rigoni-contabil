@@ -5,13 +5,15 @@ import type {
   ClienteParaLembrete,
   ClientesParaLembretePort,
 } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
+import {
+  linhaDestinatarioSchema,
+  paraDestinatario,
+} from "@/modules/atendimento/infra/mappers/linha-destinatario.mapper";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { DAS_STATUSES } from "@/shared/kernel/das-status";
 import { DOCUMENTO_OBRIGATORIO_STATUSES } from "@/shared/kernel/documento-obrigatorio-status";
 import { err, ok, type Result } from "@/shared/kernel/result";
-
-import { linhaDestinatarioSchema, paraDestinatario } from "./supabase-linha-destinatario";
 
 const linhaSchema = linhaDestinatarioSchema.extend({
   documento_obrigatorio: z.enum(DOCUMENTO_OBRIGATORIO_STATUSES).nullable(),
