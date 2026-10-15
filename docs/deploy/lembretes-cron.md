@@ -33,9 +33,14 @@ Antes de ligar em produção:
   até 3 vezes (2 s entre elas) antes de virar alerta `falha_envio`. Cada envio repete sozinho: o
   texto que já chegou não sai de novo quando só o documento falhou. Sem autorização vigente ou
   destinatário inválido não repete.
-- **Reivindicação do DAS:** antes de buscar e enviar, o DAS é reivindicado (pronto → enviado, atômico,
-  auditado com a URA). Quem não reivindicou (outro job ou o Funcionário) não envia; entrega que falha
-  devolve o DAS a pronto com a data de envio anterior (`cliente.desfazer-envio-das-automatico`).
+- **Reserva do envio do DAS (R87-01):** antes de buscar e enviar, o job reserva a entrega
+  (`reservar_envio_automatico`, tabela `envios_automaticos`: um token por Cliente e tipo, validade
+  de 15 min). A reserva **não muda o DAS**: ele só vira `enviado` (com a data, auditado com a URA)
+  ao concluir, depois de a entrega ser aceita, e só com o token da reserva. Quem não reservou (outro
+  job, tentativa vigente ou o Funcionário) não envia; entrega que falha libera a reserva e o DAS
+  segue `pronto`. Queda no meio deixa o DAS como estava e a reserva expira: a rodada seguinte
+  retoma. Conclusão ou liberação com token antigo não têm efeito (a tentativa mais recente não é
+  sobrescrita).
 - **Forma de envio:** WhatsApp e e-mail são independentes; o DAS vira `enviado` se ao menos um
   canal entregou. Canal que falha ou não tem destinatário gera alerta e não derruba o outro. Quando
   a guia do DAS tem os dois canais na forma de envio e só um entregou, abre-se também
@@ -44,17 +49,26 @@ Antes de ligar em produção:
   outro canal.
 - **Guia no template:** o PDF vai para o bucket privado `guias-fiscais` e o provedor busca por link
   assinado (7 dias). Os PDFs não são removidos (ver `ponytail:` no gateway).
+- **Leitura completa (R87-03):** os Clientes vêm em páginas de 500 por cursor (`cliente_id`),
+  abaixo do `max_rows` do PostgREST. A leitura é completa ou erro: página que falha não vira rodada
+  parcial.
+- **Janela de 24h (R87-04):** consultada pela chave **nacional** do telefone (DDD + número, a que o
+  recebimento grava em `atendimentos.chave_telefone`); o telefone de envio vai com o DDI 55.
 - **Alertas:** `alertas_setor`, um aberto por Cliente e tipo (índice parcial). Repetir o alerta
   renova a mensagem e a data; ao fim da rodada o que não foi renovado é resolvido (o Cliente
-  regularizou). O mesmo problema não alerta duas vezes na rodada (lembrete + DAS do mesmo Cliente).
+  regularizou), **só para os Clientes que a rodada avaliou** (`p_cliente_ids`). O mesmo problema
+  não alerta duas vezes na rodada (lembrete + DAS do mesmo Cliente).
 - **Auditoria:** DAS marcado como enviado grava `cliente.enviar-das-automatico` com a URA como ator.
 - **Resposta:** `500` com o resumo quando `falhas > 0`, para a rodada aparecer nos logs do cron.
 
 ## Limites conhecidos
 
-- Processo que cai entre reivindicar e entregar deixa o DAS como `enviado` sem a guia ter saído; a
-  auditoria da URA mostra o que aconteceu. Lease com retomada se isso virar problema.
-- Os clientes são processados em sequência dentro de uma invocação: com volume alto, medir a
-  duração e declarar `maxDuration` (depende do plano Vercel) ou processar em lotes.
+- Entrega pelo menos uma vez: se o provedor aceitou e o processo caiu antes de concluir, a reserva
+  expira e a rodada seguinte reenvia a guia (o provedor não garante exatamente-uma-vez). Sem
+  reconciliação automática nem painel de reservas vencidas: observar `envios_automaticos` com
+  `concluido_em is null` antes de operar em produção.
+- Os clientes são processados em sequência dentro de uma invocação (a leitura é paginada, mas o
+  processamento não tem orçamento de duração): com volume alto, medir a duração e declarar
+  `maxDuration` (depende do plano Vercel) ou processar em lotes com progresso durável.
   O mesmo vale para o job de [parcelamento](./parcelamento-cron.md), que roda nos dias 20 a 28.
 - A guia de parcelamento (dias 20/22/24/26/28) é outro job: [parcelamento-cron.md](./parcelamento-cron.md).

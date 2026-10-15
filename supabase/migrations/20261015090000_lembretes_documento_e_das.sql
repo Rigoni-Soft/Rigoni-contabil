@@ -105,8 +105,13 @@ as $$
 $$;
 
 -- Ao fim da rodada: o que o job não renovou desde `p_desde` deixou de valer (o Cliente regularizou).
--- A entrega parcial fica de fora: ela só se resolve com uma ação humana.
-create function public.resolver_alertas_setor_nao_renovados(p_desde timestamptz)
+-- Só vale para os Clientes que a rodada avaliou (`p_cliente_ids`): a ausência de um alerta no que
+-- o job leu não prova regularização de quem ele não leu. A entrega parcial fica de fora: ela só se
+-- resolve com uma ação humana.
+create function public.resolver_alertas_setor_nao_renovados(
+  p_desde timestamptz,
+  p_cliente_ids uuid[]
+)
 returns void
 language sql
 security invoker
@@ -114,7 +119,8 @@ set search_path = public
 as $$
   update public.alertas_setor
      set resolvido_em = now()
-   where resolvido_em is null and criado_em < p_desde and tipo <> 'entrega_parcial';
+   where resolvido_em is null and criado_em < p_desde and tipo <> 'entrega_parcial'
+     and cliente_id = any (p_cliente_ids);
 $$;
 
 -- Guias do DAS publicadas para o provedor de mensagem/e-mail buscar por link assinado.
@@ -122,9 +128,13 @@ insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 values ('guias-fiscais', 'guias-fiscais', false, 10485760, array['application/pdf'])
 on conflict (id) do nothing;
 
--- Clientes com Cadastro operacional do Simples Nacional, o contato padrão (telefone já com 55 e só
--- dígitos, como o webhook o recebe) e a última Mensagem do contato, que decide a janela de 24h.
-create function public.clientes_para_lembrete()
+-- Clientes com Cadastro operacional do Simples Nacional, o contato padrão e a última Mensagem do
+-- contato, que decide a janela de 24h. Base interna, sem teto de linhas: as RPCs de leitura abaixo
+-- paginam por cursor (cliente_id), porque o PostgREST corta a resposta em `max_rows`.
+-- `contato_telefone` é o telefone de ENVIO (DDI 55 + DDD + número). A janela é consultada pela
+-- chave NACIONAL (DDD + número), a mesma que o recebimento grava em `atendimentos.chave_telefone`
+-- (`soDigitosNacionais`); as chaves históricas não são reescritas.
+create function public.clientes_para_envio_base()
 returns table (
   cliente_id uuid,
   empresa text,
@@ -143,25 +153,57 @@ security invoker
 set search_path = public
 as $$
   select c.id, c.empresa, c.email, o.forma_envio, o.documento_obrigatorio, o.das_status,
-         o.data_envio_das, ct.nome, ct.chave,
+         o.data_envio_das, ct.nome, ct.telefone_envio,
          (select max(m.criado_em)
             from public.mensagens m
             join public.atendimentos a on a.id = m.atendimento_id
-           where a.chave_telefone = ct.chave and m.autor = 'contato')
+           where a.chave_telefone = ct.chave_nacional and m.autor = 'contato')
   from public.cliente_cadastro_operacional_sn o
   join public.clientes c on c.id = o.cliente_id
   left join lateral (
-    select p.nome,
-           case when length(d.digitos) in (10, 11) then '55' || d.digitos else d.digitos end as chave
+    select p.nome, n.chave_nacional,
+           case when length(n.chave_nacional) in (10, 11)
+                then '55' || n.chave_nacional else n.digitos end as telefone_envio
     from public.cliente_contatos p,
-         lateral (select regexp_replace(p.telefone, '\D', '', 'g') as digitos) d
+         lateral (select regexp_replace(p.telefone, '\D', '', 'g') as digitos) d,
+         lateral (
+           select d.digitos,
+                  case when length(d.digitos) > 11 and left(d.digitos, 2) = '55'
+                       then substr(d.digitos, 3) else d.digitos end as chave_nacional
+         ) n
     where p.cliente_id = c.id and p.padrao
-  ) ct on true
-  order by c.empresa, c.id;
+  ) ct on true;
 $$;
 
--- Auditoria da URA: o gatilho do cadastro não audita sem sessão de usuário, então a reivindicação
--- e o desfazer gravam o evento aqui, com a URA como ator.
+-- Leitura do job de lembrete: uma página por chamada, em ordem de cliente_id. `p_apos` é o último
+-- cliente_id da página anterior.
+create function public.clientes_para_lembrete(p_apos uuid default null, p_limite int default 500)
+returns table (
+  cliente_id uuid,
+  empresa text,
+  email text,
+  forma_envio public.forma_envio,
+  documento_obrigatorio public.documento_obrigatorio_status,
+  das_status public.das_status,
+  data_envio_das date,
+  contato_nome text,
+  contato_telefone text,
+  ultima_mensagem_do_contato_em timestamptz
+)
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select b.*
+    from public.clientes_para_envio_base() b
+   where p_apos is null or b.cliente_id > p_apos
+   order by b.cliente_id
+   limit p_limite;
+$$;
+
+-- Auditoria da URA: o gatilho do cadastro não audita sem sessão de usuário, então a conclusão do
+-- envio grava o evento aqui, com a URA como ator.
 create function public.auditar_das_da_ura(p_cliente_id uuid, p_acao text)
 returns void
 language sql
@@ -174,57 +216,130 @@ as $$
   from public.clientes where id = p_cliente_id;
 $$;
 
--- Reivindica o DAS: pronto → enviado com a data, só se ainda estiver pronto (quem reivindicou
--- entrega; quem não, não envia).
-create function public.reivindicar_das_para_envio(p_cliente_id uuid, p_data date)
+-- Reserva do envio automático: a intenção de entregar a guia, separada do estado final do cadastro
+-- (R87-01). O DAS/Parcelamento só vira `enviado` ao CONCLUIR, depois de a entrega ser aceita; queda
+-- no meio deixa o cadastro como estava e a reserva expira (retomada na rodada seguinte). Uma linha
+-- por Cliente e tipo: a tentativa vigente. `token` prova a posse: concluir/liberar com token antigo
+-- não tem efeito.
+create table public.envios_automaticos (
+  cliente_id uuid not null references public.clientes (id) on delete cascade,
+  tipo text not null check (tipo in ('das', 'parcelamento')),
+  token uuid not null,
+  reservado_em timestamptz not null default now(),
+  concluido_em timestamptz,
+  primary key (cliente_id, tipo)
+);
+
+-- Só o job (service_role) lê e escreve: RLS ligado e sem policy.
+alter table public.envios_automaticos enable row level security;
+
+-- Reserva a entrega: devolve o token da tentativa, ou null se o cadastro já não está elegível
+-- (pronto/pendente) ou outra tentativa vigente (não expirada) já a reservou. O cadastro é travado
+-- antes: a conclusão de outra tentativa termina antes de esta avaliar a elegibilidade.
+create function public.reservar_envio_automatico(
+  p_cliente_id uuid,
+  p_tipo text,
+  p_validade interval default interval '15 minutes'
+)
+returns uuid
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  v_elegivel boolean;
+  v_token uuid;
+begin
+  if p_tipo not in ('das', 'parcelamento') then
+    raise exception 'tipo de envio automatico invalido: %', p_tipo;
+  end if;
+
+  select case p_tipo
+           when 'das' then o.das_status = 'pronto'
+           else o.tem_parcelamento and o.parcelamento_status = 'pendente'
+         end
+    into v_elegivel
+    from public.cliente_cadastro_operacional_sn o
+   where o.cliente_id = p_cliente_id
+     for update;
+  if not coalesce(v_elegivel, false) then
+    return null;
+  end if;
+
+  insert into public.envios_automaticos as e (cliente_id, tipo, token)
+  values (p_cliente_id, p_tipo, gen_random_uuid())
+  on conflict (cliente_id, tipo) do update
+     set token = gen_random_uuid(), reservado_em = now(), concluido_em = null
+   where e.concluido_em is not null or e.reservado_em < now() - p_validade
+  returning e.token into v_token;
+  return v_token;
+end;
+$$;
+
+-- A entrega falhou (resposta definida, sem aceite): libera a reserva para a próxima rodada. Token
+-- antigo não libera a reserva de outra tentativa.
+create function public.liberar_envio_automatico(p_cliente_id uuid, p_tipo text, p_token uuid)
+returns void
+language sql
+security invoker
+set search_path = public
+as $$
+  delete from public.envios_automaticos
+   where cliente_id = p_cliente_id and tipo = p_tipo and token = p_token and concluido_em is null;
+$$;
+
+-- A entrega foi aceita: DAS pronto → enviado com a data, auditado com a URA como ator. Só com a
+-- posse da reserva (token). `true` se o cadastro foi atualizado; `false` sem a posse ou se o
+-- Funcionário já havia mexido no DAS (a reserva é concluída do mesmo jeito: não há o que repetir).
+create function public.concluir_envio_automatico_das(
+  p_cliente_id uuid,
+  p_token uuid,
+  p_data date
+)
 returns boolean
 language plpgsql
 security invoker
 set search_path = public
 as $$
 begin
+  perform 1 from public.cliente_cadastro_operacional_sn where cliente_id = p_cliente_id for update;
+
+  update public.envios_automaticos
+     set concluido_em = now()
+   where cliente_id = p_cliente_id and tipo = 'das' and token = p_token and concluido_em is null;
+  if not found then
+    return false;
+  end if;
+
   update public.cliente_cadastro_operacional_sn
      set das_status = 'enviado', data_envio_das = p_data, atualizado_em = now()
    where cliente_id = p_cliente_id and das_status = 'pronto';
   if not found then
     return false;
   end if;
+
   perform public.auditar_das_da_ura(p_cliente_id, 'cliente.enviar-das-automatico');
   return true;
 end;
 $$;
 
--- A entrega falhou: o DAS volta a pronto com a data de envio que tinha, e o desfazer fica na
--- auditoria ao lado da reivindicação.
-create function public.desfazer_envio_das_automatico(p_cliente_id uuid, p_data_anterior date)
-returns void
-language plpgsql
-security invoker
-set search_path = public
-as $$
-begin
-  update public.cliente_cadastro_operacional_sn
-     set das_status = 'pronto', data_envio_das = p_data_anterior, atualizado_em = now()
-   where cliente_id = p_cliente_id and das_status = 'enviado';
-  if found then
-    perform public.auditar_das_da_ura(p_cliente_id, 'cliente.desfazer-envio-das-automatico');
-  end if;
-end;
-$$;
-
 revoke all on function
   public.registrar_alerta_setor(public.setor_slug, public.tipo_alerta_setor, uuid, text),
-  public.resolver_alertas_setor_nao_renovados(timestamptz),
-  public.clientes_para_lembrete(),
+  public.resolver_alertas_setor_nao_renovados(timestamptz, uuid[]),
+  public.clientes_para_envio_base(),
+  public.clientes_para_lembrete(uuid, int),
   public.auditar_das_da_ura(uuid, text),
-  public.reivindicar_das_para_envio(uuid, date),
-  public.desfazer_envio_das_automatico(uuid, date)
+  public.reservar_envio_automatico(uuid, text, interval),
+  public.liberar_envio_automatico(uuid, text, uuid),
+  public.concluir_envio_automatico_das(uuid, uuid, date)
   from public, anon, authenticated;
 grant execute on function
   public.registrar_alerta_setor(public.setor_slug, public.tipo_alerta_setor, uuid, text),
-  public.resolver_alertas_setor_nao_renovados(timestamptz),
-  public.clientes_para_lembrete(),
+  public.resolver_alertas_setor_nao_renovados(timestamptz, uuid[]),
+  public.clientes_para_envio_base(),
+  public.clientes_para_lembrete(uuid, int),
   public.auditar_das_da_ura(uuid, text),
-  public.reivindicar_das_para_envio(uuid, date),
-  public.desfazer_envio_das_automatico(uuid, date)
+  public.reservar_envio_automatico(uuid, text, interval),
+  public.liberar_envio_automatico(uuid, text, uuid),
+  public.concluir_envio_automatico_das(uuid, uuid, date)
   to service_role;

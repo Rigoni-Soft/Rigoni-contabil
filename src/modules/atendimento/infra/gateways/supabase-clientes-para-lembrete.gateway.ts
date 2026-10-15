@@ -13,6 +13,7 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { DAS_STATUSES } from "@/shared/kernel/das-status";
 import { DOCUMENTO_OBRIGATORIO_STATUSES } from "@/shared/kernel/documento-obrigatorio-status";
+import { lerTodasAsPaginas, TAMANHO_DA_PAGINA } from "@/shared/kernel/paginacao-por-cursor";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 const linhaSchema = linhaDestinatarioSchema.extend({
@@ -26,13 +27,20 @@ export class SupabaseClientesParaLembreteGateway implements ClientesParaLembrete
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 
   async listar(): Promise<Result<ClienteParaLembrete[], AppError>> {
-    const { data, error } = await this.supabaseAdmin.rpc("clientes_para_lembrete");
-    const linhas = z.array(linhaSchema).safeParse(data);
-    if (error || !linhas.success) {
-      return err(new ServicoExternoError("Falha ao ler os Clientes do lembrete."));
-    }
+    const linhas = await lerTodasAsPaginas(
+      async (apos) => {
+        const { data, error } = await this.supabaseAdmin.rpc("clientes_para_lembrete", {
+          p_apos: apos,
+          p_limite: TAMANHO_DA_PAGINA,
+        });
+        const lidas = z.array(linhaSchema).safeParse(data);
+        return error || !lidas.success ? null : lidas.data;
+      },
+      (linha) => linha.cliente_id,
+    );
+    if (!linhas) return err(new ServicoExternoError("Falha ao ler os Clientes do lembrete."));
     return ok(
-      linhas.data.map((l) => ({
+      linhas.map((l) => ({
         ...paraDestinatario(l),
         documentoObrigatorio: l.documento_obrigatorio,
         dasStatus: l.das_status,
@@ -41,26 +49,40 @@ export class SupabaseClientesParaLembreteGateway implements ClientesParaLembrete
     );
   }
 
-  async reivindicarDas(clienteId: string, dataIso: string): Promise<Result<boolean, AppError>> {
-    const { data, error } = await this.supabaseAdmin.rpc("reivindicar_das_para_envio", {
+  async reservarDas(clienteId: string): Promise<Result<string | null, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("reservar_envio_automatico", {
       p_cliente_id: clienteId,
-      p_data: dataIso,
+      p_tipo: "das",
     });
-    if (error || typeof data !== "boolean") {
-      return err(new ServicoExternoError("Falha ao reivindicar o DAS para envio."));
+    if (error || (data !== null && typeof data !== "string")) {
+      return err(new ServicoExternoError("Falha ao reservar o DAS para envio."));
     }
     return ok(data);
   }
 
-  async desfazerDas(
+  async concluirDas(
     clienteId: string,
-    dataAnterior: string | null,
-  ): Promise<Result<void, AppError>> {
-    const { error } = await this.supabaseAdmin.rpc("desfazer_envio_das_automatico", {
+    token: string,
+    dataIso: string,
+  ): Promise<Result<boolean, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("concluir_envio_automatico_das", {
       p_cliente_id: clienteId,
-      p_data_anterior: dataAnterior,
+      p_token: token,
+      p_data: dataIso,
     });
-    if (error) return err(new ServicoExternoError("Falha ao devolver o DAS a pronto."));
+    if (error || typeof data !== "boolean") {
+      return err(new ServicoExternoError("Falha ao registrar o envio do DAS."));
+    }
+    return ok(data);
+  }
+
+  async liberarDas(clienteId: string, token: string): Promise<Result<void, AppError>> {
+    const { error } = await this.supabaseAdmin.rpc("liberar_envio_automatico", {
+      p_cliente_id: clienteId,
+      p_tipo: "das",
+      p_token: token,
+    });
+    if (error) return err(new ServicoExternoError("Falha ao liberar a reserva do DAS."));
     return ok(undefined);
   }
 }

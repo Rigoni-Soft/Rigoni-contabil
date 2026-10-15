@@ -1,5 +1,5 @@
 import {
-  entregarReivindicando,
+  entregarComReserva,
   executarRodada,
   falha,
   paraAndamento,
@@ -29,11 +29,11 @@ const DIAS_DO_JOB = [20, 22, 24, 26, 28];
 // Job dos dias 20/22/24/26/28 (fuso de São Paulo): envia a guia de parcelamento pela forma de
 // envio do Cliente que tem Parcelamento pendente e o marca como enviado. Falha do provedor fiscal
 // ou do envio repete (nas portas) antes de alertar o setor Simples Nacional, e o Parcelamento
-// volta a pendente: a próxima rodada tenta de novo. O Parcelamento é reivindicado (pendente →
-// enviado, atômico) antes da entrega: execuções simultâneas ou o Funcionário não geram envio em
-// dobro. Cada Cliente é independente.
-// ponytail: processo que cai entre reivindicar e entregar deixa o Parcelamento como enviado sem a
-// guia ter saído; a auditoria da URA mostra o que houve. Lease com retomada se isso doer.
+// segue pendente: a próxima rodada tenta de novo. A entrega é reservada (token, com validade) antes
+// de sair e o Parcelamento só vira enviado ao concluir, depois do aceite: execuções simultâneas ou
+// o Funcionário não geram envio em dobro, e uma queda no meio o deixa pendente (a reserva expira e
+// a rodada seguinte retoma). Se o aceite ocorreu e a queda veio antes da conclusão, a guia pode
+// ser reenviada (pelo menos uma vez). Cada Cliente é independente.
 export class ExecutarEnvioGuiaParcelamento implements ExecutarEnvioGuiaParcelamentoPort {
   constructor(
     private readonly clientes: ClientesParaParcelamentoPort,
@@ -69,12 +69,12 @@ export class ExecutarEnvioGuiaParcelamento implements ExecutarEnvioGuiaParcelame
 
   private async enviar(cliente: ClienteParaParcelamento, agora: Date): Promise<Andamento> {
     if (!temDestinatario(cliente)) return semDestinatario(cliente.empresa);
-    return entregarReivindicando({
+    return entregarComReserva({
       descricao: `Parcelamento de ${cliente.empresa}`,
-      estadoOriginal: "pendente",
-      reivindicar: () => this.clientes.reivindicar(cliente.clienteId),
+      reservar: () => this.clientes.reservar(cliente.clienteId),
       entregar: () => this.entregarGuia(cliente, agora),
-      desfazer: () => this.clientes.desfazer(cliente.clienteId),
+      concluir: (token) => this.clientes.concluir(cliente.clienteId, token),
+      liberar: (token) => this.clientes.liberar(cliente.clienteId, token),
     });
   }
 

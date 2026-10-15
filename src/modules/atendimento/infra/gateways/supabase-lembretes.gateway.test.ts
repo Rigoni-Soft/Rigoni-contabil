@@ -1,118 +1,302 @@
 /**
  * Integração infra ↔ Supabase (testes.md, seção 3) do job de lembrete de documento e DAS (#52):
- * leitura dos Clientes, DAS enviado com auditoria da URA, alertas ao setor e guia publicada.
- * Requer `npx supabase start` local com migrations aplicadas.
+ * leitura paginada dos Clientes, janela de 24h pela chave nacional do telefone, reserva/conclusão do
+ * envio do DAS com posse por token, alertas por Cliente e guia publicada. Destrutiva: só roda no
+ * Supabase local (R87-02) e limpa pelos IDs da própria execução. Requer `npx supabase start`.
  */
-import { createClient } from "@supabase/supabase-js";
-
+import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
 import { URA_ATOR_ID } from "@/modules/atendimento/domain/services/inatividade.service";
+import { soDigitosNacionais } from "@/modules/atendimento/domain/services/telefone.service";
 
+import { criarAdminLocal } from "../../../../../test-support/admin-supabase-local";
+import { EnvioMensagemFalsoGateway } from "./envio-mensagem-falso.gateway";
 import { SupabaseAlertaSetorGateway } from "./supabase-alerta-setor.gateway";
 import { SupabaseClientesParaLembreteGateway } from "./supabase-clientes-para-lembrete.gateway";
 import { SupabaseGuiaPublicadaGateway } from "./supabase-guia-publicada.gateway";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
-const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+// O destino é validado antes de o client existir: remoto falha alto, sem tocar em dados alheios.
+const admin = criarAdminLocal(SERVICE_KEY);
 const clientes = new SupabaseClientesParaLembreteGateway(admin);
 const alertas = new SupabaseAlertaSetorGateway(admin, "lembretes");
 const guias = new SupabaseGuiaPublicadaGateway(admin);
 
-const clienteId = crypto.randomUUID();
-const cnpj = `7${Date.now()}`.slice(0, 14);
-// Dígitos únicos por execução: a chave de telefone dos Atendimentos é global.
 const sufixo = String(Date.now()).slice(-8);
-const telefoneMascarado = `(11) 9${sufixo.slice(0, 4)}-${sufixo.slice(4)}`;
-const chave = `55119${sufixo}`;
+const HORA_MS = 60 * 60 * 1000;
+
+type Fixture = { id: string; cnpj: string; nacional: string };
+const criados: Fixture[] = [];
+const atendimentos: string[] = [];
+let sequencia = 0;
+
+function cnpjUnico(): string {
+  sequencia += 1;
+  return `7${sufixo}${String(sequencia).padStart(5, "0")}`.slice(0, 14);
+}
+
+async function ok<T>(consulta: PromiseLike<{ data: T; error: { message: string } | null }>) {
+  const { data, error } = await consulta;
+  if (error) throw new Error(error.message);
+  // Quem lê (select) recebe o dado; insert/update sem retorno não usa o valor.
+  return data as NonNullable<T>;
+}
+
+// Cliente com cadastro (DAS pronto) e o contato padrão com o telefone dado, como o Admin o digita.
+async function criarCliente(telefoneCadastrado: string): Promise<Fixture> {
+  const nacional = soDigitosNacionais(telefoneCadastrado);
+  const fixture = { id: crypto.randomUUID(), cnpj: cnpjUnico(), nacional };
+  await ok(
+    admin.from("clientes").insert({
+      id: fixture.id,
+      empresa: `Lembrete ${nacional} Ltda`,
+      cnpj: fixture.cnpj,
+      regime: "simples_nacional",
+      email: "financeiro@lembrete.test",
+    }),
+  );
+  criados.push(fixture);
+  await ok(
+    admin.from("cliente_cadastro_operacional_sn").upsert({
+      cliente_id: fixture.id,
+      forma_envio: "whatsapp_e_email",
+      documento_obrigatorio: "negativo",
+      das_status: "pronto",
+    }),
+  );
+  await ok(
+    admin.from("cliente_contatos").insert({
+      id: crypto.randomUUID(),
+      cliente_id: fixture.id,
+      nome: "Ângela",
+      telefone: telefoneCadastrado,
+      padrao: true,
+    }),
+  );
+  return fixture;
+}
+
+// O Atendimento como o recebimento o grava: telefone com DDI, chave nacional (`soDigitosNacionais`).
+async function criarAtendimento(fixture: Fixture, mensagens: { autor: string; ha: number }[]) {
+  const telefone = `55${fixture.nacional}`;
+  const criado = await ok(
+    admin
+      .from("atendimentos")
+      .insert({
+        telefone,
+        chave_telefone: soDigitosNacionais(telefone),
+        cliente_id: fixture.id,
+        setor: "recepcao",
+      })
+      .select("id")
+      .single(),
+  );
+  atendimentos.push(criado.id);
+  if (mensagens.length > 0) {
+    await ok(
+      admin.from("mensagens").insert(
+        mensagens.map((m) => ({
+          atendimento_id: criado.id,
+          autor: m.autor,
+          texto: "teste",
+          criado_em: new Date(Date.now() - m.ha).toISOString(),
+        })),
+      ),
+    );
+  }
+}
+
+async function doLista(id: string) {
+  const lista = await clientes.listar();
+  if (!lista.ok) throw new Error("listar falhou");
+  const encontrado = lista.value.find((c) => c.clienteId === id);
+  if (!encontrado) throw new Error("Cliente fora da lista");
+  return encontrado;
+}
+
+// A decisão real do job: janela aberta → texto livre; fechada → template.
+async function tipoDeEnvio(id: string): Promise<"template" | "texto"> {
+  const c = await doLista(id);
+  const envio = new EnvioMensagemFalsoGateway();
+  jest.spyOn(console, "info").mockImplementation(() => undefined);
+  await new EnviarComunicacaoProativa(envio).execute({
+    telefone: c.contato!.telefone,
+    comunicacao: {
+      tipo: "lembrete_documento_obrigatorio",
+      contato: "Ângela",
+      empresa: "Teste",
+    },
+    ultimaMensagemDoContatoEm: c.ultimaMensagemDoContatoEm,
+    agora: new Date(),
+  });
+  return envio.templatesEnviados.length > 0 ? "template" : "texto";
+}
+
+async function statusDoDas(id: string) {
+  return ok(
+    admin
+      .from("cliente_cadastro_operacional_sn")
+      .select("das_status, data_envio_das")
+      .eq("cliente_id", id)
+      .single(),
+  );
+}
+
+let principal: Fixture;
+const publicados: string[] = [];
 
 beforeAll(async () => {
-  const cliente = await admin.from("clientes").insert({
-    id: clienteId,
-    empresa: "Lembrete Teste Ltda",
-    cnpj,
-    regime: "simples_nacional",
-    email: "financeiro@lembrete.test",
-  });
-  if (cliente.error) throw cliente.error;
-  const cadastro = await admin.from("cliente_cadastro_operacional_sn").upsert({
-    cliente_id: clienteId,
-    forma_envio: "whatsapp_e_email",
-    documento_obrigatorio: "negativo",
-    das_status: "pronto",
-  });
-  if (cadastro.error) throw cadastro.error;
-  const contato = await admin.from("cliente_contatos").insert({
-    id: crypto.randomUUID(),
-    cliente_id: clienteId,
-    nome: "Ângela",
-    telefone: telefoneMascarado,
-    padrao: true,
-  });
-  if (contato.error) throw contato.error;
+  // 11 dígitos, digitado com máscara.
+  principal = await criarCliente(`(11) 9${sufixo.slice(0, 4)}-${sufixo.slice(4)}`);
 });
 
 afterAll(async () => {
-  await admin.from("atendimentos").delete().eq("chave_telefone", chave);
-  await admin.from("registros_auditoria").delete().eq("alvo", cnpj);
-  await admin.from("clientes").delete().eq("id", clienteId);
+  const erros: string[] = [];
+  const registrar = (rotulo: string, e: { message: string } | null) => {
+    if (e) erros.push(`${rotulo}: ${e.message}`);
+  };
+  // O filtro vai na URL: em lotes, para a lista de 1.001 Clientes não estourar o tamanho dela.
+  const emLotes = async <T>(
+    itens: T[],
+    apagar: (lote: T[]) => PromiseLike<{ error: { message: string } | null }>,
+    rotulo: string,
+  ) => {
+    for (let i = 0; i < itens.length; i += 100) {
+      registrar(rotulo, (await apagar(itens.slice(i, i + 100))).error);
+    }
+  };
+  // Alertas e reservas saem em cascata com o Cliente.
+  await emLotes(
+    atendimentos,
+    (l) => admin.from("atendimentos").delete().in("id", l),
+    "atendimentos",
+  );
+  await emLotes(
+    criados.map((c) => c.cnpj),
+    (l) => admin.from("registros_auditoria").delete().in("alvo", l),
+    "auditoria",
+  );
+  await emLotes(
+    criados.map((c) => c.id),
+    (l) => admin.from("clientes").delete().in("id", l),
+    "clientes",
+  );
+  if (publicados.length > 0) {
+    registrar("storage", (await admin.storage.from("guias-fiscais").remove(publicados)).error);
+  }
+  expect(erros).toEqual([]);
 });
 
-describe("job de lembrete de documento e DAS (infra)", () => {
-  it("lista o Cliente com o contato padrão (telefone com 55) e sem mensagem do contato", async () => {
-    const lista = await clientes.listar();
+describe("leitura dos Clientes e janela de 24h (R87-04)", () => {
+  it("telefone de envio com DDI e sem mensagem do contato: janela fechada, template", async () => {
+    const c = await doLista(principal.id);
 
-    expect(lista.ok).toBe(true);
-    const encontrado = lista.ok && lista.value.find((c) => c.clienteId === clienteId);
-    expect(encontrado).toMatchObject({
+    expect(c).toMatchObject({
       email: "financeiro@lembrete.test",
-      dataEnvioDas: null,
       formaEnvio: "whatsapp_e_email",
       documentoObrigatorio: "negativo",
       dasStatus: "pronto",
-      contato: { nome: "Ângela", telefone: chave },
+      contato: { nome: "Ângela", telefone: `55${principal.nacional}` },
       ultimaMensagemDoContatoEm: null,
     });
+    expect(await tipoDeEnvio(principal.id)).toBe("template");
   });
 
-  it("traz a última Mensagem do contato nos Atendimentos do telefone", async () => {
-    const atendimento = await admin
-      .from("atendimentos")
-      .insert({ telefone: chave, chave_telefone: chave, cliente_id: clienteId, setor: "recepcao" })
-      .select("id")
-      .single();
-    if (atendimento.error) throw atendimento.error;
-    const mensagens = await admin.from("mensagens").insert([
-      { atendimento_id: atendimento.data.id, autor: "contato", texto: "oi" },
-      { atendimento_id: atendimento.data.id, autor: "ura", texto: "resposta" },
+  it("Atendimento gravado como o recebimento (chave nacional): mensagem recente abre a janela", async () => {
+    await criarAtendimento(principal, [
+      { autor: "contato", ha: HORA_MS },
+      { autor: "ura", ha: 60_000 },
     ]);
-    if (mensagens.error) throw mensagens.error;
 
-    const lista = await clientes.listar();
+    const c = await doLista(principal.id);
 
-    const encontrado = lista.ok && lista.value.find((c) => c.clienteId === clienteId);
-    expect(encontrado && encontrado.ultimaMensagemDoContatoEm).toBeInstanceOf(Date);
+    expect(c.ultimaMensagemDoContatoEm).toBeInstanceOf(Date);
+    // A última do contato (1 h), não a da URA (1 min).
+    const idade = Date.now() - c.ultimaMensagemDoContatoEm!.getTime();
+    expect(idade).toBeGreaterThan(HORA_MS - 30_000);
+    expect(idade).toBeLessThan(HORA_MS + 30_000);
+    expect(await tipoDeEnvio(principal.id)).toBe("texto");
   });
 
-  it("reivindica o DAS pronto com a data e audita com a URA; a segunda vez devolve false", async () => {
-    expect(await clientes.reivindicarDas(clienteId, "2026-10-05")).toEqual({
+  it("mensagem do contato com mais de 24 h: janela fechada, template", async () => {
+    const antigo = await criarCliente(`(11) 9${sufixo.slice(1, 5)}-${sufixo.slice(0, 4)}`);
+    await criarAtendimento(antigo, [{ autor: "contato", ha: 30 * HORA_MS }]);
+
+    expect((await doLista(antigo.id)).ultimaMensagemDoContatoEm).toBeInstanceOf(Date);
+    expect(await tipoDeEnvio(antigo.id)).toBe("template");
+  });
+
+  it("fixo de 10 dígitos: telefone de envio com 55 e janela pela chave nacional", async () => {
+    const fixo = await criarCliente(`(11) 3${sufixo.slice(0, 3)}-${sufixo.slice(3, 7)}`);
+    await criarAtendimento(fixo, [{ autor: "contato", ha: HORA_MS }]);
+
+    const c = await doLista(fixo.id);
+
+    expect(fixo.nacional).toHaveLength(10);
+    expect(c.contato?.telefone).toBe(`55${fixo.nacional}`);
+    expect(await tipoDeEnvio(fixo.id)).toBe("texto");
+  });
+
+  it("contato cadastrado já com o 55: o telefone de envio não duplica o DDI", async () => {
+    const nacional = `118${sufixo.slice(0, 8)}`;
+    const com55 = await criarCliente(`55${nacional}`);
+    await criarAtendimento(com55, [{ autor: "contato", ha: HORA_MS }]);
+
+    const c = await doLista(com55.id);
+
+    expect(c.contato?.telefone).toBe(`55${nacional}`);
+    expect(await tipoDeEnvio(com55.id)).toBe("texto");
+  });
+});
+
+describe("reserva e conclusão do envio do DAS (R87-01)", () => {
+  async function recolocarPronto(id: string) {
+    await ok(
+      admin
+        .from("cliente_cadastro_operacional_sn")
+        .update({ das_status: "pronto", data_envio_das: null })
+        .eq("cliente_id", id),
+    );
+  }
+
+  it("reservar não muda o DAS; a segunda reserva vigente devolve null", async () => {
+    const token = await clientes.reservarDas(principal.id);
+
+    expect(token.ok && typeof token.value).toBe("string");
+    expect(await statusDoDas(principal.id)).toEqual({ das_status: "pronto", data_envio_das: null });
+    expect(await clientes.reservarDas(principal.id)).toEqual({ ok: true, value: null });
+  });
+
+  it("token desconhecido não conclui nem altera o cadastro", async () => {
+    const conclusao = await clientes.concluirDas(principal.id, crypto.randomUUID(), "2026-10-05");
+
+    expect(conclusao).toEqual({ ok: true, value: false });
+    expect(await statusDoDas(principal.id)).toEqual({ das_status: "pronto", data_envio_das: null });
+  });
+
+  it("concluir com o token da reserva: enviado com a data e uma auditoria da URA", async () => {
+    await admin.from("envios_automaticos").delete().eq("cliente_id", principal.id);
+    const reserva = await clientes.reservarDas(principal.id);
+    const token = reserva.ok ? reserva.value! : "";
+
+    expect(await clientes.concluirDas(principal.id, token, "2026-10-05")).toEqual({
       ok: true,
       value: true,
     });
 
-    const cadastro = await admin
-      .from("cliente_cadastro_operacional_sn")
-      .select("das_status, data_envio_das")
-      .eq("cliente_id", clienteId)
-      .single();
-    expect(cadastro.data).toEqual({ das_status: "enviado", data_envio_das: "2026-10-05" });
-    const auditoria = await admin
-      .from("registros_auditoria")
-      .select("ator, setor, acao, resultado")
-      .eq("alvo", cnpj);
-    expect(auditoria.data).toEqual([
+    expect(await statusDoDas(principal.id)).toEqual({
+      das_status: "enviado",
+      data_envio_das: "2026-10-05",
+    });
+    const auditoria = await ok(
+      admin
+        .from("registros_auditoria")
+        .select("ator, setor, acao, resultado")
+        .eq("alvo", principal.cnpj),
+    );
+    expect(auditoria).toEqual([
       {
         ator: URA_ATOR_ID,
         setor: "simples_nacional",
@@ -120,98 +304,221 @@ describe("job de lembrete de documento e DAS (infra)", () => {
         resultado: "sucesso",
       },
     ]);
-
-    expect(await clientes.reivindicarDas(clienteId, "2026-10-10")).toEqual({
+    // Já concluída: o mesmo token não conclui de novo e não há nova reserva (DAS não está pronto).
+    expect(await clientes.concluirDas(principal.id, token, "2026-10-10")).toEqual({
       ok: true,
       value: false,
     });
+    expect(await clientes.reservarDas(principal.id)).toEqual({ ok: true, value: null });
   });
 
-  it("desfaz a reivindicação: volta a pronto com a data anterior e registra o desfazer", async () => {
-    expect(await clientes.desfazerDas(clienteId, null)).toEqual({ ok: true, value: undefined });
+  it("liberar devolve a reserva sem tocar no cadastro; token antigo não libera a de outra tentativa", async () => {
+    await recolocarPronto(principal.id);
+    const a = await clientes.reservarDas(principal.id);
+    const tokenA = a.ok ? a.value! : "";
 
-    const cadastro = await admin
-      .from("cliente_cadastro_operacional_sn")
-      .select("das_status, data_envio_das")
-      .eq("cliente_id", clienteId)
-      .single();
-    expect(cadastro.data).toEqual({ das_status: "pronto", data_envio_das: null });
-    const auditoria = await admin
-      .from("registros_auditoria")
-      .select("acao")
-      .eq("alvo", cnpj)
-      .order("criado_em");
-    expect(auditoria.data).toEqual([
-      { acao: "cliente.enviar-das-automatico" },
-      { acao: "cliente.desfazer-envio-das-automatico" },
+    expect(await clientes.liberarDas(principal.id, tokenA)).toEqual({ ok: true, value: undefined });
+    expect(await statusDoDas(principal.id)).toEqual({ das_status: "pronto", data_envio_das: null });
+
+    const b = await clientes.reservarDas(principal.id);
+    const tokenB = b.ok ? b.value! : "";
+    expect(tokenB).not.toBe(tokenA);
+    // O token A é antigo: liberar não derruba a reserva B, que conclui normalmente.
+    await clientes.liberarDas(principal.id, tokenA);
+    expect(await clientes.reservarDas(principal.id)).toEqual({ ok: true, value: null });
+    expect(await clientes.concluirDas(principal.id, tokenB, "2026-10-05")).toEqual({
+      ok: true,
+      value: true,
+    });
+  });
+
+  it("reserva expirada é retomada; o token antigo e a alteração do cadastro entre A e B não sobrescrevem", async () => {
+    await recolocarPronto(principal.id);
+    await admin.from("envios_automaticos").delete().eq("cliente_id", principal.id);
+    const a = await clientes.reservarDas(principal.id);
+    const tokenA = a.ok ? a.value! : "";
+
+    // A queda deixou a reserva A para trás; o Funcionário mexe no cadastro e o recoloca em pronto.
+    await ok(
+      admin
+        .from("envios_automaticos")
+        .update({ reservado_em: new Date(Date.now() - HORA_MS).toISOString() })
+        .eq("cliente_id", principal.id),
+    );
+    await ok(
+      admin
+        .from("cliente_cadastro_operacional_sn")
+        .update({ das_status: "pendente" })
+        .eq("cliente_id", principal.id),
+    );
+    expect(await clientes.reservarDas(principal.id)).toEqual({ ok: true, value: null });
+    await recolocarPronto(principal.id);
+
+    const b = await clientes.reservarDas(principal.id);
+    const tokenB = b.ok ? b.value! : "";
+    expect(tokenB).not.toBe(tokenA);
+    expect(await clientes.concluirDas(principal.id, tokenB, "2026-10-15")).toEqual({
+      ok: true,
+      value: true,
+    });
+
+    // A volta atrasada: sem posse, não altera a conclusão de B nem a data.
+    expect(await clientes.concluirDas(principal.id, tokenA, "2026-10-01")).toEqual({
+      ok: true,
+      value: false,
+    });
+    expect(await statusDoDas(principal.id)).toEqual({
+      das_status: "enviado",
+      data_envio_das: "2026-10-15",
+    });
+  });
+
+  it("o Funcionário marcou o DAS durante a entrega: concluir devolve false e não duplica a auditoria", async () => {
+    await recolocarPronto(principal.id);
+    await admin.from("envios_automaticos").delete().eq("cliente_id", principal.id);
+    await ok(admin.from("registros_auditoria").delete().eq("alvo", principal.cnpj));
+    const reserva = await clientes.reservarDas(principal.id);
+    const token = reserva.ok ? reserva.value! : "";
+
+    await ok(
+      admin
+        .from("cliente_cadastro_operacional_sn")
+        .update({ das_status: "enviado", data_envio_das: "2026-10-04" })
+        .eq("cliente_id", principal.id),
+    );
+
+    expect(await clientes.concluirDas(principal.id, token, "2026-10-05")).toEqual({
+      ok: true,
+      value: false,
+    });
+    expect(await statusDoDas(principal.id)).toEqual({
+      das_status: "enviado",
+      data_envio_das: "2026-10-04",
+    });
+    const auditoria = await ok(
+      admin.from("registros_auditoria").select("acao").eq("alvo", principal.cnpj),
+    );
+    expect(auditoria).toEqual([]);
+  });
+
+  it("duas reservas simultâneas: só uma recebe o token", async () => {
+    await recolocarPronto(principal.id);
+    await admin.from("envios_automaticos").delete().eq("cliente_id", principal.id);
+
+    const [x, y] = await Promise.all([
+      clientes.reservarDas(principal.id),
+      clientes.reservarDas(principal.id),
     ]);
+
+    const tokens = [x, y].map((r) => (r.ok ? r.value : "erro"));
+    expect(tokens.filter((t) => typeof t === "string" && t !== "erro")).toHaveLength(1);
+    expect(tokens.filter((t) => t === null)).toHaveLength(1);
+  });
+});
+
+describe("leitura completa por páginas (R87-03)", () => {
+  it("1.001 Clientes além do teto do PostgREST: todos aparecem, uma vez, em ordem de cliente_id", async () => {
+    const lote: Fixture[] = [];
+    for (let i = 0; i < 1001; i += 1) {
+      lote.push({ id: crypto.randomUUID(), cnpj: cnpjUnico(), nacional: "" });
+    }
+    for (let i = 0; i < lote.length; i += 500) {
+      const parte = lote.slice(i, i + 500);
+      await ok(
+        admin.from("clientes").insert(
+          parte.map((c) => ({
+            id: c.id,
+            empresa: "Volume Ltda",
+            cnpj: c.cnpj,
+            regime: "simples_nacional",
+          })),
+        ),
+      );
+      criados.push(...parte);
+      await ok(
+        admin
+          .from("cliente_cadastro_operacional_sn")
+          .upsert(parte.map((c) => ({ cliente_id: c.id, forma_envio: "whatsapp" }))),
+      );
+    }
+
+    const lista = await clientes.listar();
+
+    expect(lista.ok).toBe(true);
+    const ids = lista.ok ? lista.value.map((c) => c.clienteId) : [];
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids.length).toBeGreaterThanOrEqual(1001);
+    const nossos = new Set(lote.map((c) => c.id));
+    const aparecem = ids.filter((id) => nossos.has(id));
+    expect(aparecem).toHaveLength(1001);
+    expect(ids).toEqual([...ids].sort());
+  }, 120_000);
+});
+
+describe("alertas do setor", () => {
+  const alerta = (clienteId: string, tipo: "das_pendente" | "falha_envio" | "entrega_parcial") =>
+    ({ setor: "simples_nacional", tipo, clienteId, mensagem: "x" }) as const;
+
+  async function abertos(clienteId: string) {
+    return ok(
+      admin
+        .from("alertas_setor")
+        .select("tipo")
+        .eq("cliente_id", clienteId)
+        .is("resolvido_em", null),
+    );
+  }
+
+  it("repetir o alerta renova a mensagem em vez de empilhar", async () => {
+    await alertas.alertar({ ...alerta(principal.id, "das_pendente"), mensagem: "primeira" });
+    await alertas.alertar({ ...alerta(principal.id, "das_pendente"), mensagem: "segunda" });
+
+    const linhas = await ok(
+      admin
+        .from("alertas_setor")
+        .select("mensagem")
+        .eq("cliente_id", principal.id)
+        .eq("tipo", "das_pendente")
+        .is("resolvido_em", null),
+    );
+    expect(linhas).toEqual([{ mensagem: "segunda" }]);
   });
 
-  it("repetir o alerta renova a mensagem em vez de empilhar, e o não renovado é resolvido", async () => {
-    const alerta = {
-      setor: "simples_nacional",
-      tipo: "das_pendente",
-      clienteId,
-      mensagem: "primeira",
-    } as const;
+  it("resolve só os Clientes avaliados e preserva a entrega parcial", async () => {
+    const outro = await criarCliente("(11) 98888-0000");
+    await alertas.alertar(alerta(principal.id, "falha_envio"));
+    await alertas.alertar(alerta(principal.id, "entrega_parcial"));
+    await alertas.alertar(alerta(outro.id, "falha_envio"));
 
-    expect((await alertas.alertar(alerta)).ok).toBe(true);
-    expect((await alertas.alertar({ ...alerta, mensagem: "segunda" })).ok).toBe(true);
+    // "Avaliado" é só o `principal`: o alerta do `outro` não pode ser resolvido por esta rodada.
+    await alertas.resolverNaoRenovados(new Date(Date.now() + 60_000), [principal.id]);
 
-    const abertos = await admin
-      .from("alertas_setor")
-      .select("mensagem")
-      .eq("cliente_id", clienteId)
-      .is("resolvido_em", null);
-    expect(abertos.data).toEqual([{ mensagem: "segunda" }]);
-
-    // Renovado depois de "desde": continua aberto. Antes dele: resolvido.
-    await alertas.resolverNaoRenovados(new Date(Date.now() - 60_000));
-    const ainda = await admin
-      .from("alertas_setor")
-      .select("id")
-      .eq("cliente_id", clienteId)
-      .is("resolvido_em", null);
-    expect(ainda.data).toHaveLength(1);
-
-    await alertas.resolverNaoRenovados(new Date(Date.now() + 60_000));
-    const resolvido = await admin
-      .from("alertas_setor")
-      .select("id")
-      .eq("cliente_id", clienteId)
-      .is("resolvido_em", null);
-    expect(resolvido.data).toHaveLength(0);
-
-    // Resolvido: o mesmo problema volta como alerta novo.
-    expect((await alertas.alertar(alerta)).ok).toBe(true);
-    const todos = await admin.from("alertas_setor").select("id").eq("cliente_id", clienteId);
-    expect(todos.data).toHaveLength(2);
+    expect(await abertos(principal.id)).toEqual([{ tipo: "entrega_parcial" }]);
+    expect(await abertos(outro.id)).toEqual([{ tipo: "falha_envio" }]);
   });
 
-  it("a entrega parcial não é resolvida pelo job; os demais alertas não renovados são", async () => {
-    await admin.from("alertas_setor").delete().eq("cliente_id", clienteId);
-    const base = { setor: "simples_nacional", clienteId, mensagem: "x" } as const;
-    await alertas.alertar({ ...base, tipo: "entrega_parcial" });
-    await alertas.alertar({ ...base, tipo: "falha_envio" });
+  it("lista vazia de Clientes não resolve nada", async () => {
+    await alertas.alertar(alerta(principal.id, "falha_envio"));
 
-    await alertas.resolverNaoRenovados(new Date(Date.now() + 60_000));
+    await alertas.resolverNaoRenovados(new Date(Date.now() + 60_000), []);
 
-    const abertos = await admin
-      .from("alertas_setor")
-      .select("tipo")
-      .eq("cliente_id", clienteId)
-      .is("resolvido_em", null);
-    expect(abertos.data).toEqual([{ tipo: "entrega_parcial" }]);
+    expect(await abertos(principal.id)).toEqual(expect.arrayContaining([{ tipo: "falha_envio" }]));
   });
+});
 
+describe("guia publicada", () => {
   it("publica o PDF no bucket e devolve um link assinado", async () => {
-    const link = await guias.publicar(clienteId, {
+    const link = await guias.publicar(principal.id, {
       nomeArquivo: "das.pdf",
       pdfBase64: Buffer.from("%PDF-1.4 teste").toString("base64"),
     });
 
     expect(link.ok && link.value).toContain("/guias-fiscais/");
-    const baixado = await fetch(link.ok ? link.value : "");
+    const url = link.ok ? link.value : "";
+    // O objeto é limpo no teardown pelo caminho que o link carrega.
+    const caminho = new URL(url).pathname.split("/guias-fiscais/")[1];
+    if (caminho) publicados.push(decodeURIComponent(caminho));
+    const baixado = await fetch(url);
     expect(baixado.status).toBe(200);
     expect(await baixado.text()).toBe("%PDF-1.4 teste");
   });

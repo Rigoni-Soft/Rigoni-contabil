@@ -19,10 +19,19 @@ export type ClienteParaLembrete = {
 };
 
 export interface ClientesParaLembretePort {
+  // Todos os Clientes do Cadastro operacional (leitura paginada por cursor, completa ou erro).
   listar(): Promise<Result<ClienteParaLembrete[], AppError>>;
-  // DAS pronto → enviado com a data de envio, auditado com a URA como ator. `false` se o DAS já
-  // não estava pronto (outro job ou o Funcionário mexeu antes): quem não reivindicou não envia.
-  reivindicarDas(clienteId: string, dataIso: string): Promise<Result<boolean, AppError>>;
-  // A entrega falhou: devolve o DAS a pronto, com a data de envio que tinha antes.
-  desfazerDas(clienteId: string, dataAnterior: string | null): Promise<Result<void, AppError>>;
+  // Reserva a entrega do DAS: devolve o token da tentativa, ou null se o DAS já não está pronto
+  // (outro job ou o Funcionário mexeu antes) ou outra tentativa vigente o reservou. Não muda o
+  // estado do DAS: ele só vira enviado ao concluir.
+  reservarDas(clienteId: string): Promise<Result<string | null, AppError>>;
+  // A entrega foi aceita: DAS pronto → enviado com a data de envio, auditado com a URA como ator,
+  // só com a posse da reserva (token). false: sem a posse ou o Funcionário já havia mexido.
+  concluirDas(
+    clienteId: string,
+    token: string,
+    dataIso: string,
+  ): Promise<Result<boolean, AppError>>;
+  // A entrega falhou sem aceite: libera a reserva (token antigo não libera a de outra tentativa).
+  liberarDas(clienteId: string, token: string): Promise<Result<void, AppError>>;
 }

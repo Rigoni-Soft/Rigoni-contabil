@@ -41,8 +41,9 @@ function montar(
     agora?: Date;
     buscar?: () => Promise<Result<GuiaFiscal, AppError>>;
     falhas?: Record<string, number>;
-    reivindicar?: Result<boolean, AppError>;
-    desfazer?: Result<void, AppError>;
+    reservar?: Result<string | null, AppError>;
+    concluir?: Result<boolean, AppError>;
+    liberar?: Result<void, AppError>;
     gravacao?: Result<void, AppError>;
     resolver?: Result<void, AppError>;
   } = {},
@@ -50,20 +51,28 @@ function montar(
   const envio = new EnvioMensagemFalsoGateway(opcoes.falhas);
   const emails: EmailParaEnvio[] = [];
   const alertas: AlertaSetor[] = [];
-  const reivindicados: string[] = [];
-  const desfeitos: string[] = [];
-  const resolvidos: Date[] = [];
+  const reservados: string[] = [];
+  const concluidos: [string, string][] = [];
+  const liberados: [string, string][] = [];
+  // Quantos templates já tinham saído quando cada conclusão foi pedida: concluir é depois do envio.
+  const entregasAoConcluir: number[] = [];
+  const resolvidos: { desde: Date; ids: string[] }[] = [];
   const buscar = jest.fn(opcoes.buscar ?? (async () => ok(guiaOk)));
   const job = new ExecutarEnvioGuiaParcelamento(
     {
       listarPendentes: async () => ok(clientes),
-      reivindicar: async (id) => {
-        reivindicados.push(id);
-        return opcoes.reivindicar ?? ok(true);
+      reservar: async (id) => {
+        reservados.push(id);
+        return opcoes.reservar ?? ok("tok-1");
       },
-      desfazer: async (id) => {
-        desfeitos.push(id);
-        return opcoes.desfazer ?? ok(undefined);
+      concluir: async (id, token) => {
+        concluidos.push([id, token]);
+        entregasAoConcluir.push(envio.templatesEnviados.length + emails.length);
+        return opcoes.concluir ?? ok(true);
+      },
+      liberar: async (id, token) => {
+        liberados.push([id, token]);
+        return opcoes.liberar ?? ok(undefined);
       },
     },
     new ObterGuiaParcelamentoParaEnvio(
@@ -86,14 +95,25 @@ function montar(
         alertas.push(alerta);
         return opcoes.gravacao ?? ok(undefined);
       },
-      resolverNaoRenovados: async (desde) => {
-        resolvidos.push(desde);
+      resolverNaoRenovados: async (desde, ids) => {
+        resolvidos.push({ desde, ids });
         return opcoes.resolver ?? ok(undefined);
       },
     },
     { agora: () => opcoes.agora ?? diaDoJob },
   );
-  return { job, envio, emails, alertas, reivindicados, desfeitos, resolvidos, buscar };
+  return {
+    job,
+    envio,
+    emails,
+    alertas,
+    reservados,
+    concluidos,
+    liberados,
+    entregasAoConcluir,
+    resolvidos,
+    buscar,
+  };
 }
 
 beforeEach(() => {
@@ -126,8 +146,8 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
     expect(resultado.ok && resultado.value.executado).toBe(false);
   });
 
-  it("Parcelamento pendente: envia a guia com a parcela pelo template e reivindica antes", async () => {
-    const { job, envio, reivindicados, desfeitos } = montar([cliente()]);
+  it("Parcelamento pendente: envia a guia com a parcela pelo template, reserva antes e conclui depois do envio", async () => {
+    const { job, envio, reservados, concluidos, liberados } = montar([cliente()]);
     const resultado = await job.execute();
     expect(resultado.ok && resultado.value.enviados).toBe(1);
     expect(envio.templatesEnviados).toMatchObject([
@@ -141,8 +161,9 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
         },
       },
     ]);
-    expect(reivindicados).toEqual(["c1"]);
-    expect(desfeitos).toHaveLength(0);
+    expect(reservados).toEqual(["c1"]);
+    expect(concluidos).toEqual([["c1", "tok-1"]]);
+    expect(liberados).toHaveLength(0);
   });
 
   it("forma de envio e-mail: manda e-mail com a guia e não usa WhatsApp", async () => {
@@ -160,10 +181,10 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
     ]);
   });
 
-  it("sem destinatário: alerta uma vez, sem buscar a guia nem reivindicar", async () => {
-    const { job, alertas, reivindicados, buscar } = montar([cliente({ contato: null })]);
+  it("sem destinatário: alerta uma vez, sem buscar a guia nem reservar", async () => {
+    const { job, alertas, reservados, buscar } = montar([cliente({ contato: null })]);
     await job.execute();
-    expect(reivindicados).toHaveLength(0);
+    expect(reservados).toHaveLength(0);
     expect(buscar).not.toHaveBeenCalled();
     expect(alertas).toMatchObject([
       { setor: "simples_nacional", tipo: "contato_ausente", clienteId: "c1" },
@@ -172,7 +193,7 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
 
   it("falha transitória do provedor fiscal: tenta de novo e envia sem alertar", async () => {
     let chamadas = 0;
-    const { job, alertas, reivindicados } = montar([cliente()], {
+    const { job, alertas, reservados } = montar([cliente()], {
       buscar: async () => {
         chamadas += 1;
         return chamadas < 3 ? err(new ServicoExternoError("503")) : ok(guiaOk);
@@ -181,17 +202,17 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
     await job.execute();
     expect(chamadas).toBe(3);
     expect(alertas).toHaveLength(0);
-    expect(reivindicados).toHaveLength(1);
+    expect(reservados).toHaveLength(1);
   });
 
-  it("provedor falha em todas as tentativas: alerta o setor e devolve o Parcelamento a pendente", async () => {
-    const { job, alertas, desfeitos, buscar } = montar([cliente()], {
+  it("provedor falha em todas as tentativas: alerta o setor e libera a reserva e o Parcelamento segue pendente", async () => {
+    const { job, alertas, liberados, buscar } = montar([cliente()], {
       buscar: async () => err(new ServicoExternoError("503")),
     });
     const resultado = await job.execute();
     expect(buscar).toHaveBeenCalledTimes(3);
     expect(alertas).toMatchObject([{ tipo: "falha_envio" }]);
-    expect(desfeitos).toEqual(["c1"]);
+    expect(liberados).toEqual([["c1", "tok-1"]]);
     expect(resultado.ok && resultado.value.falhas).toBe(1);
     expect(resultado.ok && resultado.value.enviados).toBe(0);
   });
@@ -214,18 +235,18 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
     expect(alertas).toMatchObject([{ tipo: "falha_envio" }]);
   });
 
-  it("WhatsApp falha (limite de taxa): repete e depois alerta, sem marcar enviado", async () => {
-    const { job, envio, alertas, desfeitos } = montar([cliente()], {
+  it("WhatsApp falha (limite de taxa): repete e depois alerta, sem concluir", async () => {
+    const { job, envio, alertas, liberados } = montar([cliente()], {
       falhas: { [telefone]: 130429 },
     });
     await job.execute();
     expect(envio.requisicoes).toHaveLength(3);
     expect(alertas).toMatchObject([{ tipo: "falha_envio" }]);
-    expect(desfeitos).toEqual(["c1"]);
+    expect(liberados).toEqual([["c1", "tok-1"]]);
   });
 
   it("um Cliente que falha não impede os demais", async () => {
-    const { job, desfeitos, envio } = montar(
+    const { job, liberados, envio } = montar(
       [
         cliente({ clienteId: "ruim", contato: { nome: "X", telefone: "5500" } }),
         cliente({ clienteId: "bom" }),
@@ -233,14 +254,14 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
       { falhas: { "5500": 131026 } },
     );
     const resultado = await job.execute();
-    expect(desfeitos).toEqual(["ruim"]);
+    expect(liberados).toEqual([["ruim", "tok-1"]]);
     expect(envio.templatesEnviados).toHaveLength(1);
     expect(resultado.ok && resultado.value.enviados).toBe(1);
   });
 
-  it("falha ao reivindicar vira alerta e nada é enviado", async () => {
+  it("falha ao reservar vira alerta e nada é enviado", async () => {
     const { job, alertas, envio, buscar } = montar([cliente()], {
-      reivindicar: err(new ServicoExternoError("banco")),
+      reservar: err(new ServicoExternoError("banco")),
     });
     await job.execute();
     expect(alertas).toMatchObject([{ tipo: "falha_envio" }]);
@@ -248,40 +269,40 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
     expect(buscar).not.toHaveBeenCalled();
   });
 
-  it("Parcelamento que outro job ou o Funcionário já tratou (reivindicação false): não envia nem alerta", async () => {
-    const { job, envio, alertas, desfeitos } = montar([cliente()], { reivindicar: ok(false) });
+  it("Parcelamento que outro job ou o Funcionário já tratou (reserva nula): não envia nem alerta", async () => {
+    const { job, envio, alertas, liberados } = montar([cliente()], { reservar: ok(null) });
     const resultado = await job.execute();
     expect(envio.requisicoes).toHaveLength(0);
     expect(alertas).toHaveLength(0);
-    expect(desfeitos).toHaveLength(0);
+    expect(liberados).toHaveLength(0);
     expect(resultado.ok && resultado.value.enviados).toBe(0);
   });
 
-  it("não conseguir devolver o Parcelamento a pendente é falha própria", async () => {
+  it("não conseguir liberar a reserva é falha própria", async () => {
     const { job, alertas } = montar([cliente()], {
       falhas: { [telefone]: 131026 },
-      desfazer: err(new ServicoExternoError("banco")),
+      liberar: err(new ServicoExternoError("banco")),
     });
     await job.execute();
     expect(alertas).toHaveLength(1);
-    expect(alertas[0].mensagem).toContain("não voltou a pendente");
+    expect(alertas[0].mensagem).toContain("a reserva não foi liberada");
   });
 
-  it("entrega por um canal só: envia, conta e alerta a entrega parcial sem desfazer", async () => {
-    const { job, alertas, desfeitos } = montar(
+  it("entrega por um canal só: envia, conta e alerta a entrega parcial e conclui sem liberar", async () => {
+    const { job, alertas, liberados } = montar(
       [cliente({ formaEnvio: "whatsapp_e_email", email: "ana@3a.com.br" })],
       { falhas: { [telefone]: 131026 } },
     );
     const resultado = await job.execute();
     expect(resultado.ok && resultado.value.enviados).toBe(1);
-    expect(desfeitos).toHaveLength(0);
+    expect(liberados).toHaveLength(0);
     expect(alertas.map((a) => a.tipo).sort()).toEqual(["entrega_parcial", "falha_envio"]);
   });
 
   it("ao fim da rodada resolve o que não foi renovado, com folga de relógio", async () => {
     const { job, resolvidos } = montar([cliente()]);
     await job.execute();
-    expect(resolvidos).toEqual([new Date(diaDoJob.getTime() - 60_000)]);
+    expect(resolvidos).toEqual([{ desde: new Date(diaDoJob.getTime() - 60_000), ids: ["c1"] }]);
   });
 
   it("alerta que não pôde ser gravado conta como falha e a rodada não resolve nada", async () => {
@@ -294,17 +315,85 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
   });
 
   it("falha ao ler os Clientes devolve o erro", async () => {
+    const resolvidos: string[] = [];
     const job = new ExecutarEnvioGuiaParcelamento(
       {
         listarPendentes: async () => err(new ServicoExternoError("banco")),
-        reivindicar: async () => ok(true),
-        desfazer: async () => ok(undefined),
+        reservar: async () => ok("tok-1"),
+        concluir: async () => ok(true),
+        liberar: async () => ok(undefined),
       },
       { execute: async () => err(new ServicoExternoError("x")) },
       { execute: async () => err(new ServicoExternoError("x")) },
-      { alertar: async () => ok(undefined), resolverNaoRenovados: async () => ok(undefined) },
+      {
+        alertar: async () => ok(undefined),
+        resolverNaoRenovados: async () => {
+          resolvidos.push("chamado");
+          return ok(undefined);
+        },
+      },
       { agora: () => diaDoJob },
     );
     expect((await job.execute()).ok).toBe(false);
+    // Leitura incompleta não vira "rodada concluída": nenhum alerta é resolvido.
+    expect(resolvidos).toHaveLength(0);
+  });
+
+  it("entrega interrompida por exceção: mantém a reserva (resultado incerto), alerta e segue", async () => {
+    let chamada = 0;
+    const { job, alertas, concluidos, liberados, envio } = montar(
+      [cliente({ clienteId: "cai" }), cliente({ clienteId: "bom" })],
+      {
+        buscar: async () => {
+          chamada += 1;
+          if (chamada === 1) throw new Error("processo caiu");
+          return ok(guiaOk);
+        },
+      },
+    );
+    const resultado = await job.execute();
+    // Sem conclusão e sem liberação: o cadastro segue pendente e a reserva expira sozinha.
+    expect(concluidos).toEqual([["bom", "tok-1"]]);
+    expect(liberados).toHaveLength(0);
+    expect(alertas).toMatchObject([{ tipo: "falha_envio", clienteId: "cai" }]);
+    expect(envio.templatesEnviados).toHaveLength(1);
+    expect(resultado.ok && resultado.value.enviados).toBe(1);
+  });
+
+  it("conclui só depois de a entrega ser aceita", async () => {
+    const { job, entregasAoConcluir } = montar([cliente()]);
+    await job.execute();
+    expect(entregasAoConcluir).toEqual([1]);
+  });
+
+  it("entrega aceita mas conclusão sem a posse da reserva: conta como enviado e alerta o setor", async () => {
+    const { job, alertas, liberados } = montar([cliente()], { concluir: ok(false) });
+    const resultado = await job.execute();
+    expect(resultado.ok && resultado.value.enviados).toBe(1);
+    expect(liberados).toHaveLength(0);
+    expect(alertas).toMatchObject([{ tipo: "falha_envio" }]);
+    expect(alertas[0].mensagem).toContain("o cadastro não foi atualizado");
+  });
+
+  it("entrega aceita mas erro ao concluir: conta como enviado e alerta, sem liberar", async () => {
+    const { job, alertas, liberados } = montar([cliente()], {
+      concluir: err(new ServicoExternoError("banco")),
+    });
+    const resultado = await job.execute();
+    expect(resultado.ok && resultado.value.enviados).toBe(1);
+    expect(liberados).toHaveLength(0);
+    expect(alertas[0].mensagem).toContain("o cadastro não foi atualizado");
+  });
+
+  it("resolve alertas só dos Clientes avaliados na rodada", async () => {
+    const { job, resolvidos } = montar([cliente({ clienteId: "a" }), cliente({ clienteId: "b" })]);
+    await job.execute();
+    expect(resolvidos.map((r) => r.ids)).toEqual([["a", "b"]]);
+  });
+
+  it("rodada sem Clientes não chama a resolução de alertas", async () => {
+    const { job, resolvidos } = montar([]);
+    await job.execute();
+    expect(resolvidos).toHaveLength(0);
   });
 });

@@ -16,6 +16,7 @@ export type AlertaSetor = {
 export interface AlertaSetorPort {
   // Um alerta aberto por Cliente e tipo: repetir o alerta renova a mensagem e a data.
   alertar(alerta: AlertaSetor): Promise<Result<void, AppError>>;
-  // Fecha o que não foi renovado desde `desde`: a condição que o gerou deixou de existir.
-  resolverNaoRenovados(desde: Date): Promise<Result<void, AppError>>;
+  // Fecha o que não foi renovado desde `desde`, só dos Clientes avaliados (`clienteIds`): a
+  // condição que o gerou deixou de existir. Quem não foi lido não teve a condição reavaliada.
+  resolverNaoRenovados(desde: Date, clienteIds: string[]): Promise<Result<void, AppError>>;
 }

@@ -1,87 +1,273 @@
 /**
  * Integração infra ↔ Supabase (testes.md, seção 3) do job de envio da guia de parcelamento (#53):
- * leitura dos pendentes, reivindicação com auditoria da URA e alertas separados por origem.
- * Requer `npx supabase start` local com migrations aplicadas.
+ * leitura paginada dos pendentes, reserva/conclusão com posse por token e auditoria da URA, e
+ * alertas separados por origem e por Cliente avaliado. Destrutiva: só roda no Supabase local
+ * (R87-02) e limpa pelos IDs da própria execução. Requer `npx supabase start`.
  */
-import { createClient } from "@supabase/supabase-js";
-
+import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
 import { URA_ATOR_ID } from "@/modules/atendimento/domain/services/inatividade.service";
+import { soDigitosNacionais } from "@/modules/atendimento/domain/services/telefone.service";
 
+import { criarAdminLocal } from "../../../../../test-support/admin-supabase-local";
+import { EnvioMensagemFalsoGateway } from "./envio-mensagem-falso.gateway";
 import { SupabaseAlertaSetorGateway } from "./supabase-alerta-setor.gateway";
 import { SupabaseClientesParaParcelamentoGateway } from "./supabase-clientes-para-parcelamento.gateway";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
-const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+// O destino é validado antes de o client existir: remoto falha alto, sem tocar em dados alheios.
+const admin = criarAdminLocal(SERVICE_KEY);
 const clientes = new SupabaseClientesParaParcelamentoGateway(admin);
 const alertasParcelamento = new SupabaseAlertaSetorGateway(admin, "parcelamento");
 const alertasLembretes = new SupabaseAlertaSetorGateway(admin, "lembretes");
 
-const clienteId = crypto.randomUUID();
-const semParcelamentoId = crypto.randomUUID();
-const cnpj = `8${Date.now()}`.slice(0, 14);
 const sufixo = String(Date.now()).slice(-8);
+const HORA_MS = 60 * 60 * 1000;
+
+type Fixture = { id: string; cnpj: string };
+const criados: Fixture[] = [];
+const atendimentos: string[] = [];
+let sequencia = 0;
+
+function cnpjUnico(): string {
+  sequencia += 1;
+  return `8${sufixo}${String(sequencia).padStart(5, "0")}`.slice(0, 14);
+}
+
+async function ok<T>(consulta: PromiseLike<{ data: T; error: { message: string } | null }>) {
+  const { data, error } = await consulta;
+  if (error) throw new Error(error.message);
+  // Quem lê (select) recebe o dado; insert/update sem retorno não usa o valor.
+  return data as NonNullable<T>;
+}
+
+async function criarCliente(
+  opcoes: { temParcelamento?: boolean; telefone?: string; empresa?: string } = {},
+): Promise<Fixture> {
+  const fixture = { id: crypto.randomUUID(), cnpj: cnpjUnico() };
+  await ok(
+    admin.from("clientes").insert({
+      id: fixture.id,
+      empresa: opcoes.empresa ?? "Parcelamento Teste Ltda",
+      cnpj: fixture.cnpj,
+      regime: "simples_nacional",
+    }),
+  );
+  criados.push(fixture);
+  await ok(
+    admin.from("cliente_cadastro_operacional_sn").upsert({
+      cliente_id: fixture.id,
+      forma_envio: "whatsapp",
+      tem_parcelamento: opcoes.temParcelamento ?? true,
+      parcelamento_status: "pendente",
+    }),
+  );
+  if (opcoes.telefone) {
+    await ok(
+      admin.from("cliente_contatos").insert({
+        id: crypto.randomUUID(),
+        cliente_id: fixture.id,
+        nome: "Ângela",
+        telefone: opcoes.telefone,
+        padrao: true,
+      }),
+    );
+  }
+  return fixture;
+}
+
+async function statusDoParcelamento(id: string) {
+  const linha = await ok(
+    admin
+      .from("cliente_cadastro_operacional_sn")
+      .select("parcelamento_status")
+      .eq("cliente_id", id)
+      .single(),
+  );
+  return linha.parcelamento_status;
+}
+
+let pendente: Fixture;
+let semParcelamento: Fixture;
 
 beforeAll(async () => {
-  const novos = await admin.from("clientes").insert([
-    { id: clienteId, empresa: "Parcelamento Teste Ltda", cnpj, regime: "simples_nacional" },
-    {
-      id: semParcelamentoId,
-      empresa: "Sem Parcelamento Ltda",
-      cnpj: `9${sufixo}${sufixo}`.slice(0, 14),
-      regime: "simples_nacional",
-    },
-  ]);
-  if (novos.error) throw novos.error;
-  const cadastros = await admin.from("cliente_cadastro_operacional_sn").upsert([
-    {
-      cliente_id: clienteId,
-      forma_envio: "whatsapp",
-      tem_parcelamento: true,
-      parcelamento_status: "pendente",
-    },
-    {
-      cliente_id: semParcelamentoId,
-      forma_envio: "whatsapp",
-      tem_parcelamento: false,
-      parcelamento_status: "pendente",
-    },
-  ]);
-  if (cadastros.error) throw cadastros.error;
+  pendente = await criarCliente({ telefone: `(61) 9${sufixo.slice(0, 4)}-${sufixo.slice(4)}` });
+  semParcelamento = await criarCliente({
+    temParcelamento: false,
+    empresa: "Sem Parcelamento Ltda",
+  });
 });
 
 afterAll(async () => {
-  await admin.from("registros_auditoria").delete().eq("alvo", cnpj);
-  await admin.from("clientes").delete().in("id", [clienteId, semParcelamentoId]);
+  const erros: string[] = [];
+  const registrar = (rotulo: string, e: { message: string } | null) => {
+    if (e) erros.push(`${rotulo}: ${e.message}`);
+  };
+  // O filtro vai na URL: em lotes, para a lista de 1.001 Clientes não estourar o tamanho dela.
+  const emLotes = async <T>(
+    itens: T[],
+    apagar: (lote: T[]) => PromiseLike<{ error: { message: string } | null }>,
+    rotulo: string,
+  ) => {
+    for (let i = 0; i < itens.length; i += 100) {
+      registrar(rotulo, (await apagar(itens.slice(i, i + 100))).error);
+    }
+  };
+  // Alertas e reservas saem em cascata com o Cliente.
+  await emLotes(
+    atendimentos,
+    (l) => admin.from("atendimentos").delete().in("id", l),
+    "atendimentos",
+  );
+  await emLotes(
+    criados.map((c) => c.cnpj),
+    (l) => admin.from("registros_auditoria").delete().in("alvo", l),
+    "auditoria",
+  );
+  await emLotes(
+    criados.map((c) => c.id),
+    (l) => admin.from("clientes").delete().in("id", l),
+    "clientes",
+  );
+  expect(erros).toEqual([]);
 });
 
-describe("job de envio da guia de parcelamento (infra)", () => {
-  it("lista só quem tem parcelamento e Parcelamento pendente", async () => {
+describe("leitura dos pendentes", () => {
+  it("lista só quem tem parcelamento e Parcelamento pendente, com o telefone de envio", async () => {
+    const lista = await clientes.listarPendentes();
+
+    expect(lista.ok).toBe(true);
+    const itens = lista.ok ? lista.value : [];
+    const ids = itens.map((c) => c.clienteId);
+    expect(ids).toContain(pendente.id);
+    expect(ids).not.toContain(semParcelamento.id);
+    const nacional = soDigitosNacionais(`(61) 9${sufixo.slice(0, 4)}-${sufixo.slice(4)}`);
+    expect(itens.find((c) => c.clienteId === pendente.id)?.contato?.telefone).toBe(`55${nacional}`);
+  });
+
+  it("janela de 24h pela chave nacional: mensagem recente do contato escolhe o texto livre (R87-04)", async () => {
+    const nacional = soDigitosNacionais(`(61) 9${sufixo.slice(0, 4)}-${sufixo.slice(4)}`);
+    const criado = await ok(
+      admin
+        .from("atendimentos")
+        .insert({
+          telefone: `55${nacional}`,
+          chave_telefone: soDigitosNacionais(`55${nacional}`),
+          cliente_id: pendente.id,
+          setor: "recepcao",
+        })
+        .select("id")
+        .single(),
+    );
+    atendimentos.push(criado.id);
+    await ok(
+      admin.from("mensagens").insert({
+        atendimento_id: criado.id,
+        autor: "contato",
+        texto: "oi",
+        criado_em: new Date(Date.now() - HORA_MS).toISOString(),
+      }),
+    );
+
+    const lista = await clientes.listarPendentes();
+    const c = lista.ok ? lista.value.find((x) => x.clienteId === pendente.id) : undefined;
+
+    expect(c?.ultimaMensagemDoContatoEm).toBeInstanceOf(Date);
+    const envio = new EnvioMensagemFalsoGateway();
+    jest.spyOn(console, "info").mockImplementation(() => undefined);
+    await new EnviarComunicacaoProativa(envio).execute({
+      telefone: c!.contato!.telefone,
+      comunicacao: {
+        tipo: "envio_guia_parcelamento",
+        contato: "Ângela",
+        empresa: "Teste",
+        parcela: "09/2026",
+        guia: { url: "https://x/g.pdf", nomeArquivo: "g.pdf" },
+      },
+      ultimaMensagemDoContatoEm: c!.ultimaMensagemDoContatoEm,
+      agora: new Date(),
+    });
+    expect(envio.templatesEnviados).toHaveLength(0);
+    expect(envio.enviadas).toHaveLength(1);
+  });
+
+  it("1.001 pendentes além do teto do PostgREST: todos aparecem, uma vez, em ordem de cliente_id", async () => {
+    const lote: Fixture[] = [];
+    for (let i = 0; i < 1001; i += 1) lote.push({ id: crypto.randomUUID(), cnpj: cnpjUnico() });
+    for (let i = 0; i < lote.length; i += 500) {
+      const parte = lote.slice(i, i + 500);
+      await ok(
+        admin.from("clientes").insert(
+          parte.map((c) => ({
+            id: c.id,
+            empresa: "Volume Parcelamento Ltda",
+            cnpj: c.cnpj,
+            regime: "simples_nacional",
+          })),
+        ),
+      );
+      criados.push(...parte);
+      await ok(
+        admin.from("cliente_cadastro_operacional_sn").upsert(
+          parte.map((c) => ({
+            cliente_id: c.id,
+            forma_envio: "whatsapp",
+            tem_parcelamento: true,
+            parcelamento_status: "pendente",
+          })),
+        ),
+      );
+    }
+
     const lista = await clientes.listarPendentes();
 
     expect(lista.ok).toBe(true);
     const ids = lista.ok ? lista.value.map((c) => c.clienteId) : [];
-    expect(ids).toContain(clienteId);
-    expect(ids).not.toContain(semParcelamentoId);
+    expect(new Set(ids).size).toBe(ids.length);
+    const nossos = new Set(lote.map((c) => c.id));
+    expect(ids.filter((id) => nossos.has(id))).toHaveLength(1001);
+    expect(ids).toEqual([...ids].sort());
+  }, 120_000);
+});
+
+describe("reserva e conclusão do envio do Parcelamento (R87-01)", () => {
+  it("reservar não muda o Parcelamento; a segunda reserva vigente devolve null", async () => {
+    const token = await clientes.reservar(pendente.id);
+
+    expect(token.ok && typeof token.value).toBe("string");
+    expect(await statusDoParcelamento(pendente.id)).toBe("pendente");
+    expect(await clientes.reservar(pendente.id)).toEqual({ ok: true, value: null });
   });
 
-  it("reivindica o Parcelamento pendente e audita com a URA; a segunda vez devolve false", async () => {
-    expect(await clientes.reivindicar(clienteId)).toEqual({ ok: true, value: true });
+  it("não reserva Cliente sem parcelamento", async () => {
+    expect(await clientes.reservar(semParcelamento.id)).toEqual({ ok: true, value: null });
+  });
 
-    const cadastro = await admin
-      .from("cliente_cadastro_operacional_sn")
-      .select("parcelamento_status")
-      .eq("cliente_id", clienteId)
-      .single();
-    expect(cadastro.data).toEqual({ parcelamento_status: "enviado" });
-    const auditoria = await admin
-      .from("registros_auditoria")
-      .select("ator, setor, acao, resultado")
-      .eq("alvo", cnpj);
-    expect(auditoria.data).toEqual([
+  it("token desconhecido não conclui nem altera o cadastro", async () => {
+    expect(await clientes.concluir(pendente.id, crypto.randomUUID())).toEqual({
+      ok: true,
+      value: false,
+    });
+    expect(await statusDoParcelamento(pendente.id)).toBe("pendente");
+  });
+
+  it("concluir com o token da reserva: enviado e uma auditoria da URA; repetir não tem efeito", async () => {
+    await admin.from("envios_automaticos").delete().eq("cliente_id", pendente.id);
+    const reserva = await clientes.reservar(pendente.id);
+    const token = reserva.ok ? reserva.value! : "";
+
+    expect(await clientes.concluir(pendente.id, token)).toEqual({ ok: true, value: true });
+
+    expect(await statusDoParcelamento(pendente.id)).toBe("enviado");
+    const auditoria = await ok(
+      admin
+        .from("registros_auditoria")
+        .select("ator, setor, acao, resultado")
+        .eq("alvo", pendente.cnpj),
+    );
+    expect(auditoria).toEqual([
       {
         ator: URA_ATOR_ID,
         setor: "simples_nacional",
@@ -89,71 +275,136 @@ describe("job de envio da guia de parcelamento (infra)", () => {
         resultado: "sucesso",
       },
     ]);
-
-    expect(await clientes.reivindicar(clienteId)).toEqual({ ok: true, value: false });
+    expect(await clientes.concluir(pendente.id, token)).toEqual({ ok: true, value: false });
+    expect(await clientes.reservar(pendente.id)).toEqual({ ok: true, value: null });
   });
 
-  it("não reivindica Cliente sem parcelamento", async () => {
-    expect(await clientes.reivindicar(semParcelamentoId)).toEqual({ ok: true, value: false });
+  it("liberar devolve a reserva sem tocar no cadastro; token antigo não libera a de outra tentativa", async () => {
+    await ok(
+      admin
+        .from("cliente_cadastro_operacional_sn")
+        .update({ parcelamento_status: "pendente" })
+        .eq("cliente_id", pendente.id),
+    );
+    const a = await clientes.reservar(pendente.id);
+    const tokenA = a.ok ? a.value! : "";
+
+    expect(await clientes.liberar(pendente.id, tokenA)).toEqual({ ok: true, value: undefined });
+    expect(await statusDoParcelamento(pendente.id)).toBe("pendente");
+
+    const b = await clientes.reservar(pendente.id);
+    const tokenB = b.ok ? b.value! : "";
+    expect(tokenB).not.toBe(tokenA);
+    await clientes.liberar(pendente.id, tokenA);
+    expect(await clientes.reservar(pendente.id)).toEqual({ ok: true, value: null });
+    expect(await clientes.concluir(pendente.id, tokenB)).toEqual({ ok: true, value: true });
   });
 
-  it("desfaz a reivindicação: volta a pendente e registra o desfazer", async () => {
-    expect(await clientes.desfazer(clienteId)).toEqual({ ok: true, value: undefined });
+  it("reserva expirada é retomada; o token antigo não sobrescreve a conclusão mais recente", async () => {
+    await ok(
+      admin
+        .from("cliente_cadastro_operacional_sn")
+        .update({ parcelamento_status: "pendente" })
+        .eq("cliente_id", pendente.id),
+    );
+    await admin.from("envios_automaticos").delete().eq("cliente_id", pendente.id);
+    const a = await clientes.reservar(pendente.id);
+    const tokenA = a.ok ? a.value! : "";
+    await ok(
+      admin
+        .from("envios_automaticos")
+        .update({ reservado_em: new Date(Date.now() - HORA_MS).toISOString() })
+        .eq("cliente_id", pendente.id),
+    );
 
-    const cadastro = await admin
-      .from("cliente_cadastro_operacional_sn")
-      .select("parcelamento_status")
-      .eq("cliente_id", clienteId)
-      .single();
-    expect(cadastro.data).toEqual({ parcelamento_status: "pendente" });
-    const auditoria = await admin
-      .from("registros_auditoria")
-      .select("acao")
-      .eq("alvo", cnpj)
-      .order("criado_em");
-    expect(auditoria.data).toEqual([
-      { acao: "cliente.enviar-parcelamento-automatico" },
-      { acao: "cliente.desfazer-envio-parcelamento-automatico" },
+    const b = await clientes.reservar(pendente.id);
+    const tokenB = b.ok ? b.value! : "";
+    expect(tokenB).not.toBe(tokenA);
+    expect(await clientes.concluir(pendente.id, tokenB)).toEqual({ ok: true, value: true });
+
+    // A volta atrasada (e o cadastro foi recolocado em pendente por alguém): sem posse, nada muda.
+    await ok(
+      admin
+        .from("cliente_cadastro_operacional_sn")
+        .update({ parcelamento_status: "pendente" })
+        .eq("cliente_id", pendente.id),
+    );
+    expect(await clientes.concluir(pendente.id, tokenA)).toEqual({ ok: true, value: false });
+    expect(await statusDoParcelamento(pendente.id)).toBe("pendente");
+  });
+
+  it("duas reservas simultâneas: só uma recebe o token", async () => {
+    await admin.from("envios_automaticos").delete().eq("cliente_id", pendente.id);
+
+    const [x, y] = await Promise.all([
+      clientes.reservar(pendente.id),
+      clientes.reservar(pendente.id),
     ]);
-  });
 
-  it("desfazer num Parcelamento que não está enviado não altera nem audita", async () => {
-    expect(await clientes.desfazer(clienteId)).toEqual({ ok: true, value: undefined });
-
-    const auditoria = await admin.from("registros_auditoria").select("acao").eq("alvo", cnpj);
-    expect(auditoria.data).toHaveLength(2);
+    const tokens = [x, y].map((r) => (r.ok ? r.value : "erro"));
+    expect(tokens.filter((t) => typeof t === "string" && t !== "erro")).toHaveLength(1);
+    expect(tokens.filter((t) => t === null)).toHaveLength(1);
   });
+});
+
+describe("alertas por origem e por Cliente avaliado", () => {
+  const base = (clienteId: string) =>
+    ({ setor: "simples_nacional", clienteId, mensagem: "x" }) as const;
 
   it("cada job resolve só os alertas da própria origem", async () => {
-    const base = {
-      setor: "simples_nacional",
-      clienteId,
-      mensagem: "x",
-    } as const;
-    await alertasLembretes.alertar({ ...base, tipo: "das_pendente" });
-    await alertasParcelamento.alertar({ ...base, tipo: "falha_envio" });
+    await alertasLembretes.alertar({ ...base(pendente.id), tipo: "das_pendente" });
+    await alertasParcelamento.alertar({ ...base(pendente.id), tipo: "falha_envio" });
 
-    await alertasParcelamento.resolverNaoRenovados(new Date(Date.now() + 60_000));
+    await alertasParcelamento.resolverNaoRenovados(new Date(Date.now() + 60_000), [pendente.id]);
 
-    const abertos = await admin
-      .from("alertas_setor")
-      .select("tipo, origem")
-      .eq("cliente_id", clienteId)
-      .is("resolvido_em", null);
-    expect(abertos.data).toEqual([{ tipo: "das_pendente", origem: "lembretes" }]);
+    const abertos = await ok(
+      admin
+        .from("alertas_setor")
+        .select("tipo, origem")
+        .eq("cliente_id", pendente.id)
+        .is("resolvido_em", null),
+    );
+    expect(abertos).toEqual([{ tipo: "das_pendente", origem: "lembretes" }]);
+  });
+
+  it("não resolve o alerta de um Cliente que a rodada não avaliou", async () => {
+    const outro = await criarCliente({ empresa: "Nao Avaliado Ltda" });
+    await alertasParcelamento.alertar({ ...base(outro.id), tipo: "falha_envio" });
+    await alertasParcelamento.alertar({ ...base(pendente.id), tipo: "falha_envio" });
+
+    await alertasParcelamento.resolverNaoRenovados(new Date(Date.now() + 60_000), [pendente.id]);
+
+    const doOutro = await ok(
+      admin
+        .from("alertas_setor")
+        .select("tipo")
+        .eq("cliente_id", outro.id)
+        .is("resolvido_em", null),
+    );
+    expect(doOutro).toEqual([{ tipo: "falha_envio" }]);
+    const doAvaliado = await ok(
+      admin
+        .from("alertas_setor")
+        .select("tipo")
+        .eq("cliente_id", pendente.id)
+        .eq("origem", "parcelamento")
+        .is("resolvido_em", null),
+    );
+    expect(doAvaliado).toEqual([]);
   });
 
   it("o mesmo tipo de alerta do mesmo Cliente abre um alerta por origem", async () => {
-    const base = { setor: "simples_nacional", clienteId, mensagem: "y" } as const;
-    await alertasLembretes.alertar({ ...base, tipo: "falha_envio" });
-    await alertasParcelamento.alertar({ ...base, tipo: "falha_envio" });
+    await alertasLembretes.alertar({ ...base(pendente.id), tipo: "falha_envio" });
+    await alertasParcelamento.alertar({ ...base(pendente.id), tipo: "falha_envio" });
 
-    const abertos = await admin
-      .from("alertas_setor")
-      .select("origem")
-      .eq("cliente_id", clienteId)
-      .eq("tipo", "falha_envio")
-      .is("resolvido_em", null);
-    expect(abertos.data?.map((a) => a.origem).sort()).toEqual(["lembretes", "parcelamento"]);
+    const abertos = await ok(
+      admin
+        .from("alertas_setor")
+        .select("origem")
+        .eq("cliente_id", pendente.id)
+        .eq("tipo", "falha_envio")
+        .is("resolvido_em", null),
+    );
+    expect(abertos.map((a) => a.origem).sort()).toEqual(["lembretes", "parcelamento"]);
   });
 });

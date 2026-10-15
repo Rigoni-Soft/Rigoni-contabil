@@ -30,10 +30,11 @@ export class SupabaseAlertaSetorGateway implements AlertaSetorPort {
     return ok(undefined);
   }
 
-  async resolverNaoRenovados(desde: Date): Promise<Result<void, AppError>> {
+  async resolverNaoRenovados(desde: Date, clienteIds: string[]): Promise<Result<void, AppError>> {
     const { error } = await this.supabaseAdmin.rpc("resolver_alertas_setor_nao_renovados", {
       p_desde: desde.toISOString(),
       p_origem: this.origem,
+      p_cliente_ids: clienteIds,
     });
     if (error) return err(new ServicoExternoError("Falha ao resolver os alertas do setor."));
     return ok(undefined);

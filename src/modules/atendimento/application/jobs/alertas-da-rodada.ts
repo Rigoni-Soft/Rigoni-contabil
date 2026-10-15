@@ -32,34 +32,57 @@ export const semDestinatario = (empresa: string) =>
 type Etapas = {
   // "DAS de 3A": a tarefa do Cliente, para as mensagens.
   descricao: string;
-  // Estado a que a tarefa volta se a entrega falhar ("pronto", "pendente").
-  estadoOriginal: string;
-  reivindicar: () => Promise<Result<boolean, AppError>>;
+  // Reserva a entrega e devolve o token da tentativa; null se outra tentativa vigente já a tem ou o
+  // cadastro deixou de estar elegível (outro job ou o Funcionário tratou a tarefa).
+  reservar: () => Promise<Result<string | null, AppError>>;
   entregar: () => Promise<Andamento>;
-  desfazer: () => Promise<Result<void, AppError>>;
+  // Registra o aceite no cadastro, só com a posse da reserva. false: a posse se perdeu ou o
+  // Funcionário já havia mexido.
+  concluir: (token: string) => Promise<Result<boolean, AppError>>;
+  // A entrega falhou sem aceite: devolve a reserva para a próxima rodada.
+  liberar: (token: string) => Promise<Result<void, AppError>>;
 };
 
-// Reivindica a tarefa (atômico), entrega e, se a entrega falhar, devolve a tarefa ao estado
-// original: quem não reivindicou não entrega, e a falha não deixa a tarefa como feita.
-export async function entregarReivindicando({
+// Reserva, entrega e só então conclui. O cadastro nunca afirma uma entrega que não ocorreu: queda ou
+// exceção entre a reserva e a conclusão deixam o cadastro como estava e a reserva expira (retomada
+// na rodada seguinte). Conclusão e liberação provam a posse pelo token: uma tentativa antiga não
+// sobrescreve a mais recente. Resultado incerto (a entrega pode ter saído) não é liberado.
+export async function entregarComReserva({
   descricao,
-  estadoOriginal,
-  reivindicar,
+  reservar,
   entregar,
-  desfazer,
+  concluir,
+  liberar,
 }: Etapas): Promise<Andamento> {
-  const reivindicado = await reivindicar();
-  if (!reivindicado.ok) return falha(`${descricao}: ${reivindicado.error.message}`);
-  // Outro job ou o Funcionário já tratou a tarefa.
-  if (!reivindicado.value) return SEM_ANDAMENTO;
+  const reserva = await reservar();
+  if (!reserva.ok) return falha(`${descricao}: ${reserva.error.message}`);
+  // Outra tentativa em andamento, ou o Funcionário já tratou a tarefa.
+  if (reserva.value === null) return SEM_ANDAMENTO;
+  const token = reserva.value;
 
-  const entrega = await entregar();
-  if (entrega.enviado) return entrega;
+  let entrega: Andamento;
+  try {
+    entrega = await entregar();
+  } catch {
+    return falha(
+      `${descricao}: entrega interrompida com resultado incerto; a reserva expira e a próxima rodada retoma.`,
+    );
+  }
 
-  const desfeito = await desfazer();
-  if (desfeito.ok) return entrega;
-  const naoVoltou = `${descricao} não voltou a ${estadoOriginal} após a falha: ${desfeito.error.message}`;
-  return { enviado: false, ocorrencias: [...entrega.ocorrencias, ...falha(naoVoltou).ocorrencias] };
+  if (!entrega.enviado) {
+    const liberada = await liberar(token);
+    if (liberada.ok) return entrega;
+    const aviso = `${descricao}: a reserva não foi liberada (${liberada.error.message}); expira sozinha.`;
+    return { enviado: false, ocorrencias: [...entrega.ocorrencias, ...falha(aviso).ocorrencias] };
+  }
+
+  const concluida = await concluir(token);
+  if (concluida.ok && concluida.value) return entrega;
+  const motivo = concluida.ok
+    ? "a reserva foi substituída ou o cadastro já havia sido alterado"
+    : concluida.error.message;
+  const aviso = `${descricao}: entregue, mas o cadastro não foi atualizado (${motivo}).`;
+  return { enviado: true, ocorrencias: [...entrega.ocorrencias, ...falha(aviso).ocorrencias] };
 }
 
 // Um alerta por tipo e Cliente: as mensagens do mesmo tipo (ex.: falha do lembrete e da guia) se
@@ -93,22 +116,25 @@ async function levantarAlertas(
   return { gravados, naoGravados };
 }
 
-// Alerta que o job não renovou nesta rodada deixou de valer. Com alerta que não pôde ser gravado a
+// Alerta que o job não renovou nesta rodada deixou de valer, mas só para os Clientes que ela
+// avaliou: um Cliente não lido não teve a condição reavaliada. Com alerta que não pôde ser gravado a
 // rodada não sabe o que renovou, então não resolve nada.
 async function resolverNaoRenovados(
   alertas: AlertaSetorPort,
   agora: Date,
+  clienteIds: string[],
   alertasNaoGravados: number,
 ): Promise<number> {
-  if (alertasNaoGravados > 0) return 0;
+  if (alertasNaoGravados > 0 || clienteIds.length === 0) return 0;
   const resolvidos = await alertas.resolverNaoRenovados(
     new Date(agora.getTime() - FOLGA_RELOGIO_MS),
+    clienteIds,
   );
   return resolvidos.ok ? 0 : 1;
 }
 
 // Processa cada Cliente em sequência (um que falha não impede os demais), grava os alertas das
-// ocorrências dele e, ao fim, resolve os que a rodada não renovou. `falhas` soma os envios que
+// ocorrências dele e, ao fim, resolve os que a rodada não renovou entre os Clientes avaliados. `falhas` soma os envios que
 // falharam e as gravações/resoluções de alerta que não foram feitas.
 export async function executarRodada<C extends { clienteId: string }>(
   alertas: AlertaSetorPort,
@@ -121,7 +147,10 @@ export async function executarRodada<C extends { clienteId: string }>(
   let naoGravadosTotal = 0;
   let falhas = 0;
   for (const cliente of clientes) {
-    const feito = await processar(cliente);
+    // Um Cliente que lança não derruba os seguintes.
+    const feito = await processar(cliente).catch(() => [
+      falha(`Cliente ${cliente.clienteId}: erro inesperado ao processar a rodada.`),
+    ]);
     andamentos.push(feito);
     const ocorrencias = feito.flatMap((a) => a.ocorrencias);
     falhas += ocorrencias.filter((o) => o.tipo === "falha_envio").length;
@@ -133,7 +162,9 @@ export async function executarRodada<C extends { clienteId: string }>(
     gravadosTotal += gravados;
     naoGravadosTotal += naoGravados;
   }
-  falhas += naoGravadosTotal + (await resolverNaoRenovados(alertas, agora, naoGravadosTotal));
+  const avaliados = clientes.map((cliente) => cliente.clienteId);
+  falhas +=
+    naoGravadosTotal + (await resolverNaoRenovados(alertas, agora, avaliados, naoGravadosTotal));
   return { andamentos, alertas: gravadosTotal, falhas };
 }
 

@@ -6,11 +6,16 @@ import type { Result } from "@/shared/kernel/result";
 export type ClienteParaParcelamento = DestinatarioDeComunicacao & { clienteId: string };
 
 export interface ClientesParaParcelamentoPort {
-  // Clientes com tem parcelamento positivo e Parcelamento pendente.
+  // Clientes com tem parcelamento positivo e Parcelamento pendente (leitura paginada por cursor,
+  // completa ou erro).
   listarPendentes(): Promise<Result<ClienteParaParcelamento[], AppError>>;
-  // Parcelamento pendente → enviado, auditado com a URA como ator. `false` se já não estava
-  // pendente (outro job ou o Funcionário mexeu antes): quem não reivindicou não envia.
-  reivindicar(clienteId: string): Promise<Result<boolean, AppError>>;
-  // A entrega falhou: devolve o Parcelamento a pendente.
-  desfazer(clienteId: string): Promise<Result<void, AppError>>;
+  // Reserva a entrega: token da tentativa, ou null se já não está pendente (outro job ou o
+  // Funcionário mexeu antes) ou outra tentativa vigente a reservou. Não muda o estado: o
+  // Parcelamento só vira enviado ao concluir.
+  reservar(clienteId: string): Promise<Result<string | null, AppError>>;
+  // A entrega foi aceita: pendente → enviado, auditado com a URA como ator, só com a posse da
+  // reserva. false: sem a posse ou o Funcionário já havia mexido.
+  concluir(clienteId: string, token: string): Promise<Result<boolean, AppError>>;
+  // A entrega falhou sem aceite: libera a reserva.
+  liberar(clienteId: string, token: string): Promise<Result<void, AppError>>;
 }

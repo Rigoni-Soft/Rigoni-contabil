@@ -1,5 +1,5 @@
 import {
-  entregarReivindicando,
+  entregarComReserva,
   executarRodada,
   falha,
   paraAndamento,
@@ -35,10 +35,10 @@ const nomeDoContato = (cliente: ClienteParaLembrete) => cliente.contato?.nome ??
 // Job dos dias 01/05/10/15 (fuso de São Paulo): lembra quem está sem documento obrigatório,
 // envia o DAS pronto pela forma de envio do Cliente e alerta o setor Simples Nacional do DAS que
 // segue pendente com o documento em dia. Cada Cliente é independente: um que falha não impede os
-// demais. A guia é reivindicada (pronto → enviado, atômico) antes da entrega e devolvida se ela
-// falhar: execuções simultâneas ou o Funcionário não geram envio em dobro.
-// ponytail: processo que cai entre reivindicar e entregar deixa o DAS como enviado sem a guia ter
-// saído; a auditoria da URA mostra o que houve. Lease com retomada se isso doer.
+// demais. A entrega é reservada (token, com validade) antes de sair e o DAS só vira enviado ao
+// concluir, depois do aceite: execuções simultâneas ou o Funcionário não geram envio em dobro, e
+// uma queda no meio deixa o DAS como estava (a reserva expira e a rodada seguinte retoma). Se o
+// aceite ocorreu e a queda veio antes da conclusão, a guia pode ser reenviada (pelo menos uma vez).
 export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocumentoEDasPort {
   constructor(
     private readonly clientes: ClientesParaLembretePort,
@@ -68,7 +68,7 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     return ok({
       ...resumo,
       lembretes: rodada.andamentos.filter(([lembrete]) => lembrete.enviado).length,
-      dasEnviados: rodada.andamentos.filter(([, das]) => das.enviado).length,
+      dasEnviados: rodada.andamentos.filter(([, das]) => das?.enviado).length,
       alertas: rodada.alertas,
       falhas: rodada.falhas,
     });
@@ -107,12 +107,12 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
 
   private async enviarDas(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento> {
     if (!temDestinatario(cliente)) return semDestinatario(cliente.empresa);
-    return entregarReivindicando({
+    return entregarComReserva({
       descricao: `DAS de ${cliente.empresa}`,
-      estadoOriginal: "pronto",
-      reivindicar: () => this.clientes.reivindicarDas(cliente.clienteId, hojeIso(agora)),
+      reservar: () => this.clientes.reservarDas(cliente.clienteId),
       entregar: () => this.entregarGuia(cliente, agora),
-      desfazer: () => this.clientes.desfazerDas(cliente.clienteId, cliente.dataEnvioDas),
+      concluir: (token) => this.clientes.concluirDas(cliente.clienteId, token, hojeIso(agora)),
+      liberar: (token) => this.clientes.liberarDas(cliente.clienteId, token),
     });
   }
 

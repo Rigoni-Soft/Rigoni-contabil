@@ -32,10 +32,11 @@ as $$
   do update set mensagem = excluded.mensagem, criado_em = now();
 $$;
 
-drop function public.resolver_alertas_setor_nao_renovados(timestamptz);
+drop function public.resolver_alertas_setor_nao_renovados(timestamptz, uuid[]);
 create function public.resolver_alertas_setor_nao_renovados(
   p_desde timestamptz,
-  p_origem text default 'lembretes'
+  p_origem text,
+  p_cliente_ids uuid[]
 )
 returns void
 language sql
@@ -45,14 +46,13 @@ as $$
   update public.alertas_setor
      set resolvido_em = now()
    where resolvido_em is null and criado_em < p_desde and tipo <> 'entrega_parcial'
-     and origem = p_origem;
+     and origem = p_origem and cliente_id = any (p_cliente_ids);
 $$;
 
--- Clientes com Parcelamento pendente (e tem parcelamento positivo), com o contato padrão e a
--- janela de 24h: a mesma leitura do job de lembrete, filtrada. As colunas acompanham as de
--- `clientes_para_lembrete()`: se aquela ganhar coluna, esta também (o gateway lê as duas com o
--- mesmo schema de linha).
-create function public.clientes_para_parcelamento()
+-- Clientes com Parcelamento pendente (e tem parcelamento positivo), com o contato padrão e a janela
+-- de 24h: a mesma base do job de lembrete, filtrada, em páginas por cursor (cliente_id). O filtro
+-- entra antes do limite: a página é de pendentes, não dos primeiros clientes lidos.
+create function public.clientes_para_parcelamento(p_apos uuid default null, p_limite int default 500)
 returns table (
   cliente_id uuid,
   empresa text,
@@ -67,64 +67,59 @@ stable
 security invoker
 set search_path = public
 as $$
-  select l.cliente_id, l.empresa, l.email, l.forma_envio, l.contato_nome, l.contato_telefone,
-         l.ultima_mensagem_do_contato_em
-  from public.clientes_para_lembrete() l
-  join public.cliente_cadastro_operacional_sn o on o.cliente_id = l.cliente_id
-  where o.tem_parcelamento and o.parcelamento_status = 'pendente';
+  select b.cliente_id, b.empresa, b.email, b.forma_envio, b.contato_nome, b.contato_telefone,
+         b.ultima_mensagem_do_contato_em
+    from public.clientes_para_envio_base() b
+    join public.cliente_cadastro_operacional_sn o on o.cliente_id = b.cliente_id
+   where o.tem_parcelamento and o.parcelamento_status = 'pendente'
+     and (p_apos is null or b.cliente_id > p_apos)
+   order by b.cliente_id
+   limit p_limite;
 $$;
 
--- Reivindica o Parcelamento: pendente → enviado, só se ainda estiver pendente (quem reivindicou
--- entrega; quem não, não envia). Auditoria com a URA como ator, como no DAS.
+-- A entrega foi aceita: Parcelamento pendente → enviado, auditado com a URA como ator, só com a
+-- posse da reserva (`reservar_envio_automatico`, #52). Mesma regra do DAS: `false` sem a posse ou
+-- se o Funcionário já havia mexido.
 -- Nota: `auditar_das_da_ura` ficou com o nome do #52 mas audita qualquer ação automática da URA no
 -- Cadastro operacional (`p_acao` diz qual); renomeá-la pede migration própria.
-create function public.reivindicar_parcelamento_para_envio(p_cliente_id uuid)
+create function public.concluir_envio_automatico_parcelamento(p_cliente_id uuid, p_token uuid)
 returns boolean
 language plpgsql
 security invoker
 set search_path = public
 as $$
 begin
+  perform 1 from public.cliente_cadastro_operacional_sn where cliente_id = p_cliente_id for update;
+
+  update public.envios_automaticos
+     set concluido_em = now()
+   where cliente_id = p_cliente_id and tipo = 'parcelamento' and token = p_token
+     and concluido_em is null;
+  if not found then
+    return false;
+  end if;
+
   update public.cliente_cadastro_operacional_sn
      set parcelamento_status = 'enviado', atualizado_em = now()
    where cliente_id = p_cliente_id and tem_parcelamento and parcelamento_status = 'pendente';
   if not found then
     return false;
   end if;
+
   perform public.auditar_das_da_ura(p_cliente_id, 'cliente.enviar-parcelamento-automatico');
   return true;
 end;
 $$;
 
--- A entrega falhou: o Parcelamento volta a pendente e o desfazer fica na auditoria ao lado da
--- reivindicação. Só desfaz o que está `enviado`: se o Funcionário já mexeu, não sobrescreve.
-create function public.desfazer_envio_parcelamento_automatico(p_cliente_id uuid)
-returns void
-language plpgsql
-security invoker
-set search_path = public
-as $$
-begin
-  update public.cliente_cadastro_operacional_sn
-     set parcelamento_status = 'pendente', atualizado_em = now()
-   where cliente_id = p_cliente_id and parcelamento_status = 'enviado';
-  if found then
-    perform public.auditar_das_da_ura(p_cliente_id, 'cliente.desfazer-envio-parcelamento-automatico');
-  end if;
-end;
-$$;
-
 revoke all on function
   public.registrar_alerta_setor(public.setor_slug, public.tipo_alerta_setor, uuid, text, text),
-  public.resolver_alertas_setor_nao_renovados(timestamptz, text),
-  public.clientes_para_parcelamento(),
-  public.reivindicar_parcelamento_para_envio(uuid),
-  public.desfazer_envio_parcelamento_automatico(uuid)
+  public.resolver_alertas_setor_nao_renovados(timestamptz, text, uuid[]),
+  public.clientes_para_parcelamento(uuid, int),
+  public.concluir_envio_automatico_parcelamento(uuid, uuid)
   from public, anon, authenticated;
 grant execute on function
   public.registrar_alerta_setor(public.setor_slug, public.tipo_alerta_setor, uuid, text, text),
-  public.resolver_alertas_setor_nao_renovados(timestamptz, text),
-  public.clientes_para_parcelamento(),
-  public.reivindicar_parcelamento_para_envio(uuid),
-  public.desfazer_envio_parcelamento_automatico(uuid)
+  public.resolver_alertas_setor_nao_renovados(timestamptz, text, uuid[]),
+  public.clientes_para_parcelamento(uuid, int),
+  public.concluir_envio_automatico_parcelamento(uuid, uuid)
   to service_role;
