@@ -249,4 +249,62 @@ describe("ClienteBuilder", () => {
       expect(resultado.value.atividadeMesAtual?.comercio).toBe(true);
     }
   });
+
+  describe("e-mail", () => {
+    const comBase = () =>
+      Cliente.builder()
+        .comId("11111111-1111-1111-1111-111111111111")
+        .comEmpresa("Padaria Pão Quente Ltda")
+        .comCnpj(CNPJ_VALIDO)
+        .comRegime("simples_nacional")
+        .comContratoSocialCaminho(null)
+        .comAlteracoesContratuais([]);
+
+    it("sem e-mail é null", () => {
+      const resultado = comBase().build();
+      expect(resultado.ok && resultado.value.email).toBeNull();
+    });
+
+    it("aceita e-mail com a letra s e rejeita espaço no meio", () => {
+      const comS = comBase().comEmail("contato@silva.com.br").build();
+      expect(comS.ok && comS.value.email?.valor).toBe("contato@silva.com.br");
+      expect(comBase().comEmail("con tato@silva.com.br").build().ok).toBe(false);
+    });
+
+    it("guarda o e-mail sem espaços nas pontas", () => {
+      const resultado = comBase().comEmail("  financeiro@padaria.com.br ").build();
+      expect(resultado.ok && resultado.value.email?.valor).toBe("financeiro@padaria.com.br");
+    });
+
+    it("vazio ou só espaços vale como sem e-mail", () => {
+      const resultado = comBase().comEmail("   ").build();
+      expect(resultado.ok && resultado.value.email).toBeNull();
+    });
+
+    it("e-mail inválido é rejeitado apontando o campo", () => {
+      const resultado = comBase().comEmail("sem-arroba").build();
+      expect(resultado.ok).toBe(false);
+      if (!resultado.ok) expect(resultado.error.fields?.email).toBeDefined();
+    });
+
+    it("e-mail acima de 254 caracteres é rejeitado (limite da coluna)", () => {
+      const longo = `${"a".repeat(250)}@b.co`;
+      expect(comBase().comEmail(longo).build().ok).toBe(false);
+    });
+
+    it("restaurar traz o e-mail do cadastro", () => {
+      const resultado = Cliente.builder()
+        .restaurar({
+          id: "11111111-1111-1111-1111-111111111111",
+          empresa: "Padaria Pão Quente Ltda",
+          cnpj: CNPJ_VALIDO,
+          regime: "simples_nacional",
+          contratoSocialCaminho: null,
+          email: "financeiro@padaria.com.br",
+          alteracoesContratuais: [],
+        })
+        .build();
+      expect(resultado.ok && resultado.value.email?.valor).toBe("financeiro@padaria.com.br");
+    });
+  });
 });

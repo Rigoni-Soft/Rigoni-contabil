@@ -375,8 +375,8 @@ Observações, upload de arquivo e listas repetíveis continuam em coluna
 única, não cabem bem num grid raso):
 
 - `CriarUsuarioForm`: Nome/E-mail/Papel/Setor em `grid-cols-1 sm:grid-cols-2`.
-- `CriarClienteForm`: CNPJ/Empresa/Regime em `grid-cols-1 sm:grid-cols-3`
-  (identificação do Cliente); dentro de cada "Alteração contratual", Data e
+- `CriarClienteForm`: CNPJ/Empresa/Regime/E-mail em `grid-cols-1 sm:grid-cols-2`
+  (identificação do Cliente: 4 campos, 2 colunas); dentro de cada "Alteração contratual", Data e
   Arquivo da alteração em `grid-cols-1 sm:grid-cols-2`. A seção "Documentos"
   (Contrato social + lista de Alterações) continua fora do grid — upload de
   arquivo e lista dinâmica não comprimem bem lado a lado.

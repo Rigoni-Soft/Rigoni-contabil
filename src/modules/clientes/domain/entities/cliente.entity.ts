@@ -5,6 +5,7 @@ import type { Cnpj } from "@/modules/clientes/domain/value-objects/cnpj.vo";
 import type { Contato } from "@/modules/clientes/domain/value-objects/contato.vo";
 import type { DasStatus } from "@/modules/clientes/domain/value-objects/das-status.vo";
 import type { DocumentoObrigatorioStatus } from "@/modules/clientes/domain/value-objects/documento-obrigatorio-status.vo";
+import type { Email } from "@/modules/clientes/domain/value-objects/email.vo";
 import type { FormaEnvio } from "@/modules/clientes/domain/value-objects/forma-envio.vo";
 import type { ParcelamentoStatus } from "@/modules/clientes/domain/value-objects/parcelamento-status.vo";
 import type { Regime } from "@/modules/clientes/domain/value-objects/regime.vo";
@@ -20,6 +21,8 @@ export type ClienteProps = {
   // Opcional (decisão de produto 2026-09-29, atualiza a spec #24): nem todo
   // Cliente tem o contrato social anexado no momento do cadastro.
   contratoSocialCaminho: string | null;
+  // Opcional: destino do envio por e-mail do job de lembrete/DAS (#52).
+  email: Email | null;
   alteracoesContratuais: readonly AlteracaoContratual[];
   // Campos operacionais do Simples Nacional (#34) — editados pelo Funcionário
   // do setor, em tela separada do cadastro jurídico do #33.
@@ -59,6 +62,10 @@ export class Cliente {
 
   get contratoSocialCaminho(): string | null {
     return this.props.contratoSocialCaminho;
+  }
+
+  get email(): Email | null {
+    return this.props.email;
   }
 
   get alteracoesContratuais(): readonly AlteracaoContratual[] {

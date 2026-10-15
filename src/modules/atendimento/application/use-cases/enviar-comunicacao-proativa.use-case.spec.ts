@@ -1,5 +1,7 @@
 import type { ComunicacaoProativa } from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
+import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
+import { err, ok } from "@/shared/kernel/result";
 
 import { EnviarComunicacaoProativa } from "./enviar-comunicacao-proativa.use-case";
 
@@ -124,5 +126,35 @@ describe("EnviarComunicacaoProativa", () => {
     const r = await enviar(das, horasAtras(1));
     expect(r.ok).toBe(false);
     expect(envio.documentosEnviados).toHaveLength(0);
+  });
+
+  it("com retentativas, repete só o documento que falhou e não reenvia o texto", async () => {
+    const enviar = jest.fn(async () => ok(undefined));
+    const enviarDocumento = jest
+      .fn()
+      .mockResolvedValueOnce(err(new ServicoExternoError("503")))
+      .mockResolvedValueOnce(ok(undefined));
+    const proativa = new EnviarComunicacaoProativa(
+      {
+        enviar,
+        enviarDocumento,
+        enviarTemplate: jest.fn(),
+        enviarAnexo: jest.fn(),
+        reagir: jest.fn(),
+      },
+      3,
+      0,
+    );
+
+    const r = await proativa.execute({
+      telefone,
+      comunicacao: das,
+      ultimaMensagemDoContatoEm: horasAtras(1),
+      agora,
+    });
+
+    expect(r.ok).toBe(true);
+    expect(enviar).toHaveBeenCalledTimes(1);
+    expect(enviarDocumento).toHaveBeenCalledTimes(2);
   });
 });

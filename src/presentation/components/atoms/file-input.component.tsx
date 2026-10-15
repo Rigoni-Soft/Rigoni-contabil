@@ -10,6 +10,7 @@ type FileInputProps = {
   onChange: (file: File | undefined) => void;
   onBlur?: () => void;
   "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
 };
 
 // Mesmo contrato visual de input.tsx/select.tsx (44px, borda, foco, erro) —
@@ -25,6 +26,7 @@ export function FileInput({
   onChange,
   onBlur,
   "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedby,
 }: FileInputProps) {
   return (
     <label
@@ -51,6 +53,7 @@ export function FileInput({
         accept={accept}
         className="sr-only"
         aria-invalid={ariaInvalid}
+        aria-describedby={ariaDescribedby}
         onBlur={onBlur}
         onChange={(evento) => onChange(evento.target.files?.[0])}
       />

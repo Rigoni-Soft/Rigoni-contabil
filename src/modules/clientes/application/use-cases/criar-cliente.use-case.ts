@@ -74,6 +74,7 @@ export class CriarCliente implements CriarClientePort {
       .comCnpj(cnpj.value.valor)
       .comRegime(input.regime)
       .comContratoSocialCaminho(contratoSocialCaminho)
+      .comEmail(input.email ?? null)
       .comAlteracoesContratuais(alteracoes.value)
       .build();
     if (!construido.ok) return construido;

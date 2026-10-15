@@ -62,25 +62,36 @@ export function montarTemplate(
   }
 }
 
-// Formato próprio do sistema, usado com a janela aberta (sem custo de template).
+const ASSUNTO_EMAIL: Record<ComunicacaoProativa["tipo"], string> = {
+  lembrete_documento_obrigatorio: "Documentos fiscais pendentes",
+  envio_guia_das: "Guia do DAS",
+  envio_guia_parcelamento: "Guia de parcelamento",
+};
+
+export const montarAssuntoEmail = (c: ComunicacaoProativa): string => ASSUNTO_EMAIL[c.tipo];
+
+// A guia anexada à comunicação, quando é uma comunicação com guia.
+export const guiaDe = (c: ComunicacaoProativa): Guia | undefined =>
+  "guia" in c ? c.guia : undefined;
+
+// Texto no formato próprio do sistema, usado com a janela aberta (sem custo de template) e no
+// e-mail.
+export function montarTextoLivre(comunicacao: ComunicacaoProativa): string {
+  switch (comunicacao.tipo) {
+    case "lembrete_documento_obrigatorio":
+      return `Olá, ${comunicacao.contato}! Ainda não recebemos os documentos fiscais de ${comunicacao.empresa} referentes a este mês. Poderia nos enviar assim que possível?`;
+    case "envio_guia_das":
+      return `Olá, ${comunicacao.contato}! Segue a guia do DAS de ${comunicacao.empresa}, competência ${comunicacao.competencia}, com vencimento em ${comunicacao.vencimento}.`;
+    case "envio_guia_parcelamento":
+      return `Olá, ${comunicacao.contato}! Segue a guia de parcelamento de ${comunicacao.empresa}, referente à parcela de ${comunicacao.parcela}.`;
+  }
+}
+
 export function montarMensagemLivre(
   comunicacao: ComunicacaoProativa,
   telefone: string,
 ): { texto: string; documento?: DocumentoEnviado } {
-  switch (comunicacao.tipo) {
-    case "lembrete_documento_obrigatorio":
-      return {
-        texto: `Olá, ${comunicacao.contato}! Ainda não recebemos os documentos fiscais de ${comunicacao.empresa} referentes a este mês. Poderia nos enviar assim que possível?`,
-      };
-    case "envio_guia_das":
-      return {
-        texto: `Olá, ${comunicacao.contato}! Segue a guia do DAS de ${comunicacao.empresa}, competência ${comunicacao.competencia}, com vencimento em ${comunicacao.vencimento}.`,
-        documento: { telefone, ...comunicacao.guia },
-      };
-    case "envio_guia_parcelamento":
-      return {
-        texto: `Olá, ${comunicacao.contato}! Segue a guia de parcelamento de ${comunicacao.empresa}, referente à parcela de ${comunicacao.parcela}.`,
-        documento: { telefone, ...comunicacao.guia },
-      };
-  }
+  const texto = montarTextoLivre(comunicacao);
+  const guia = guiaDe(comunicacao);
+  return guia ? { texto, documento: { telefone, ...guia } } : { texto };
 }

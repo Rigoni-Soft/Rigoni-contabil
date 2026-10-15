@@ -7,6 +7,7 @@ import {
   CRON_SECRET,
   FFMPEG_PATH,
   INATIVIDADE_AUTOMATICA,
+  LEMBRETES_AUTOMATICOS,
   MENSAGERIA_MODO,
   MENSAGERIA_SEGREDO_ASSINATURA,
   MENSAGERIA_SEGREDO_SESSAO,
@@ -25,6 +26,8 @@ import type { EncerrarAtendimentoPort } from "@/modules/atendimento/application/
 import type { EnviarAnexoAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-anexo-ao-cliente.provider";
 import type { EnviarDocumentoAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-documento-ao-cliente.provider";
 import type { EnviarMensagemAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-mensagem-ao-cliente.provider";
+import type { ExecutarEnvioGuiaParcelamentoPort } from "@/modules/atendimento/application/ports/in/executar-envio-guia-parcelamento.provider";
+import type { ExecutarLembretesDocumentoEDasPort } from "@/modules/atendimento/application/ports/in/executar-lembretes-documento-e-das.provider";
 import type {
   CadastrarFeriadoPort,
   ListarFeriadosPort,
@@ -40,6 +43,7 @@ import type { TransferirAtendimentoPort } from "@/modules/atendimento/applicatio
 import type { VerificarInatividadePort } from "@/modules/atendimento/application/ports/in/verificar-inatividade.provider";
 import type { AuditoriaPort } from "@/modules/atendimento/application/ports/out/auditoria.provider";
 import type { AutenticacaoJobPort } from "@/modules/atendimento/application/ports/out/autenticacao-job.provider";
+import type { EnvioEmailPort } from "@/modules/atendimento/application/ports/out/envio-email.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type {
   AtorSessaoDto,
@@ -51,13 +55,19 @@ import { AutenticarWebhook } from "@/modules/atendimento/application/use-cases/a
 import { AvisarCliente } from "@/modules/atendimento/application/use-cases/avisar-cliente.use-case";
 import { CadastrarFeriado } from "@/modules/atendimento/application/use-cases/cadastrar-feriado.use-case";
 import { EncerrarAtendimento } from "@/modules/atendimento/application/use-cases/encerrar-atendimento.use-case";
+import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/use-cases/entregar-comunicacao-por-canais.use-case";
 import { EnviarAnexoAoCliente } from "@/modules/atendimento/application/use-cases/enviar-anexo-ao-cliente.use-case";
+import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
 import { EnviarDocumentoAoCliente } from "@/modules/atendimento/application/use-cases/enviar-documento-ao-cliente.use-case";
 import { EnviarMensagemAoCliente } from "@/modules/atendimento/application/use-cases/enviar-mensagem-ao-cliente.use-case";
+import { ExecutarEnvioGuiaParcelamento } from "@/modules/atendimento/application/use-cases/executar-envio-guia-parcelamento.use-case";
+import { ExecutarLembretesDocumentoEDas } from "@/modules/atendimento/application/use-cases/executar-lembretes-documento-e-das.use-case";
 import { ListarFeriados } from "@/modules/atendimento/application/use-cases/listar-feriados.use-case";
 import { ListarFila } from "@/modules/atendimento/application/use-cases/listar-fila.use-case";
 import { ListarMeusAtendimentos } from "@/modules/atendimento/application/use-cases/listar-meus-atendimentos.use-case";
 import { ObterConversa } from "@/modules/atendimento/application/use-cases/obter-conversa.use-case";
+import { ObterGuiaDasParaEnvio } from "@/modules/atendimento/application/use-cases/obter-guia-das-para-envio.use-case";
+import { ObterGuiaParcelamentoParaEnvio } from "@/modules/atendimento/application/use-cases/obter-guia-parcelamento-para-envio.use-case";
 import { PrepararAnexoParaEnvio } from "@/modules/atendimento/application/use-cases/preparar-anexo-para-envio.use-case";
 import { ReagirAMensagem } from "@/modules/atendimento/application/use-cases/reagir-a-mensagem.use-case";
 import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/receber-mensagem.use-case";
@@ -67,15 +77,21 @@ import { TransferirAtendimento } from "@/modules/atendimento/application/use-cas
 import { VerificarInatividade } from "@/modules/atendimento/application/use-cases/verificar-inatividade.use-case";
 import { BearerAutenticacaoJobGateway } from "@/modules/atendimento/infra/gateways/bearer-autenticacao-job.gateway";
 import { DownloadMidiaFalsoGateway } from "@/modules/atendimento/infra/gateways/download-midia-falso.gateway";
+import { EnvioEmailFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-email-falso.gateway";
+import { EnvioEmailIndisponivelGateway } from "@/modules/atendimento/infra/gateways/envio-email-indisponivel.gateway";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
 import { FfmpegConversorDeAudioGateway } from "@/modules/atendimento/infra/gateways/ffmpeg-conversor-de-audio.gateway";
 import { GuiasFiscaisGateway } from "@/modules/atendimento/infra/gateways/guias-fiscais.gateway";
 import { HmacAutenticacaoWebhookGateway } from "@/modules/atendimento/infra/gateways/hmac-autenticacao-webhook.gateway";
 import { RelogioSistemaGateway } from "@/modules/atendimento/infra/gateways/relogio-sistema.gateway";
 import { resolverFfmpeg } from "@/modules/atendimento/infra/gateways/resolver-ffmpeg.gateway";
+import { SupabaseAlertaSetorGateway } from "@/modules/atendimento/infra/gateways/supabase-alerta-setor.gateway";
 import { SupabaseAnexosAtendimentoGateway } from "@/modules/atendimento/infra/gateways/supabase-anexos-atendimento.gateway";
 import { SupabaseClienteCnpjGateway } from "@/modules/atendimento/infra/gateways/supabase-cliente-cnpj.gateway";
+import { SupabaseClientesParaLembreteGateway } from "@/modules/atendimento/infra/gateways/supabase-clientes-para-lembrete.gateway";
+import { SupabaseClientesParaParcelamentoGateway } from "@/modules/atendimento/infra/gateways/supabase-clientes-para-parcelamento.gateway";
 import { SupabaseDocumentosContratuaisGateway } from "@/modules/atendimento/infra/gateways/supabase-documentos-contratuais.gateway";
+import { SupabaseGuiaPublicadaGateway } from "@/modules/atendimento/infra/gateways/supabase-guia-publicada.gateway";
 import { SupabaseIdentificacaoContatoGateway } from "@/modules/atendimento/infra/gateways/supabase-identificacao-contato.gateway";
 import { SupabaseSessaoAtendimentoGateway } from "@/modules/atendimento/infra/gateways/supabase-sessao-atendimento.gateway";
 import { SupabaseAtendimentoRepository } from "@/modules/atendimento/infra/repositories/atendimento.repository";
@@ -84,6 +100,7 @@ import { ObrigacoesFiscaisHttpGateway } from "@/modules/clientes/infra/gateways/
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
 import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabase-sessao.gateway";
 import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories/usuario.repository";
+import { ESPERA_MS, TENTATIVAS } from "@/shared/kernel/com-tentativas";
 import type { Papel } from "@/shared/kernel/papeis";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
@@ -217,11 +234,20 @@ export async function makeEncerrarAtendimento(): Promise<EncerrarAtendimentoPort
 }
 
 // O job só age com a flag ligada, e em produção só com mensageria real: o adapter falso "envia"
-// sem avisar ninguém, e encerrar Atendimento real assim seria encerrar sem aviso (devolutiva da
-// PR #83, B1). Autenticar o job (CRON_SECRET) não autoriza executá-lo.
+// sem avisar ninguém (encerraria Atendimento ou marcaria DAS como enviado sem o cliente saber;
+// devolutiva da PR #83, B1). Autenticar o job (CRON_SECRET) não autoriza executá-lo.
+function jobAutomaticoAtivo(flag: string): boolean {
+  return (
+    flag === "ligada" && !(process.env.NODE_ENV === "production" && MENSAGERIA_MODO === "falso")
+  );
+}
+
 export function inatividadeAutomaticaAtiva(): boolean {
-  if (INATIVIDADE_AUTOMATICA !== "ligada") return false;
-  return !(process.env.NODE_ENV === "production" && MENSAGERIA_MODO === "falso");
+  return jobAutomaticoAtivo(INATIVIDADE_AUTOMATICA);
+}
+
+export function lembretesAutomaticosAtivos(): boolean {
+  return jobAutomaticoAtivo(LEMBRETES_AUTOMATICOS);
 }
 
 // Job (service_role, sem sessão de usuário): a URA verifica a inatividade dos Atendimentos.
@@ -233,6 +259,51 @@ export function makeVerificarInatividade(): VerificarInatividadePort {
     makeAvisarCliente(repositorio),
     new RelogioSistemaGateway(),
     new SupabaseFeriadoRepository(supabaseAdmin),
+  );
+}
+
+// Em produção o e-mail falso responderia ok sem enviar nada; sem o adapter real (#86) o canal
+// falha de forma explícita.
+function makeEnvioEmail(): EnvioEmailPort {
+  return process.env.NODE_ENV === "production"
+    ? new EnvioEmailIndisponivelGateway()
+    : new EnvioEmailFalsoGateway();
+}
+
+// Job (service_role, sem sessão de usuário): lembrete de documento e envio de DAS.
+export function makeExecutarLembretesDocumentoEDas(): ExecutarLembretesDocumentoEDasPort {
+  const supabaseAdmin = createSupabaseAdmin();
+  return new ExecutarLembretesDocumentoEDas(
+    new SupabaseClientesParaLembreteGateway(supabaseAdmin),
+    new ObterGuiaDasParaEnvio(
+      guiasFiscais(supabaseAdmin),
+      new SupabaseGuiaPublicadaGateway(supabaseAdmin),
+    ),
+    new EntregarComunicacaoPorCanais(
+      new EnviarComunicacaoProativa(makeEnvioMensagem(), TENTATIVAS, ESPERA_MS),
+      makeEnvioEmail(),
+    ),
+    new SupabaseAlertaSetorGateway(supabaseAdmin, "lembretes"),
+    new RelogioSistemaGateway(),
+  );
+}
+
+// Job (service_role, sem sessão de usuário): envio da guia de parcelamento. Mesma flag do job de
+// lembrete: os dois são comunicação automática ao Cliente.
+export function makeExecutarEnvioGuiaParcelamento(): ExecutarEnvioGuiaParcelamentoPort {
+  const supabaseAdmin = createSupabaseAdmin();
+  return new ExecutarEnvioGuiaParcelamento(
+    new SupabaseClientesParaParcelamentoGateway(supabaseAdmin),
+    new ObterGuiaParcelamentoParaEnvio(
+      guiasFiscais(supabaseAdmin),
+      new SupabaseGuiaPublicadaGateway(supabaseAdmin),
+    ),
+    new EntregarComunicacaoPorCanais(
+      new EnviarComunicacaoProativa(makeEnvioMensagem(), TENTATIVAS, ESPERA_MS),
+      makeEnvioEmail(),
+    ),
+    new SupabaseAlertaSetorGateway(supabaseAdmin, "parcelamento"),
+    new RelogioSistemaGateway(),
   );
 }
 

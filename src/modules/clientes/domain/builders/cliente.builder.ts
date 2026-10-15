@@ -9,6 +9,7 @@ import { Cnpj } from "@/modules/clientes/domain/value-objects/cnpj.vo";
 import { Contato } from "@/modules/clientes/domain/value-objects/contato.vo";
 import { DasStatus } from "@/modules/clientes/domain/value-objects/das-status.vo";
 import { DocumentoObrigatorioStatus } from "@/modules/clientes/domain/value-objects/documento-obrigatorio-status.vo";
+import { Email } from "@/modules/clientes/domain/value-objects/email.vo";
 import { FormaEnvio } from "@/modules/clientes/domain/value-objects/forma-envio.vo";
 import { ParcelamentoStatus } from "@/modules/clientes/domain/value-objects/parcelamento-status.vo";
 import { Regime } from "@/modules/clientes/domain/value-objects/regime.vo";
@@ -30,6 +31,7 @@ export type ClienteRestaurar = {
   cnpj: string;
   regime: string;
   contratoSocialCaminho: string | null;
+  email?: string | null;
   alteracoesContratuais: AlteracaoContratualRestaurar[];
   formaEnvio?: string;
   contatos?: ContatoRestaurar[];
@@ -50,6 +52,7 @@ export class ClienteBuilder {
   // Opcional (decisão de produto 2026-09-29) — sem sentinela `undefined` pra
   // distinguir "setter nunca chamado" porque não há mais checagem de presença.
   private contratoSocialCaminho: string | null = null;
+  private email: Email | null = null;
   private alteracoesContratuais: AlteracaoContratual[] = [];
   // Campos operacionais do Simples Nacional (#34) — todos opcionais/com
   // default, igual a contratoSocialCaminho: um Cliente recém-criado pelo #33
@@ -95,6 +98,19 @@ export class ClienteBuilder {
 
   comContratoSocialCaminho(caminho: string | null): this {
     this.contratoSocialCaminho = caminho;
+    return this;
+  }
+
+  // Vazio ou só espaços é "sem e-mail".
+  comEmail(entrada: string | null): this {
+    const texto = entrada?.trim();
+    if (!texto) {
+      this.email = null;
+      return this;
+    }
+    const resultado = Email.criar(texto);
+    if (resultado.ok) this.email = resultado.value;
+    else this.camposInvalidos.email = [resultado.error.message];
     return this;
   }
 
@@ -210,6 +226,7 @@ export class ClienteBuilder {
       .comRegime(dados.regime)
       .comContratoSocialCaminho(dados.contratoSocialCaminho)
       .comAlteracoesContratuais(dados.alteracoesContratuais);
+    if (dados.email !== undefined) this.comEmail(dados.email);
     if (dados.formaEnvio !== undefined) this.comFormaEnvio(dados.formaEnvio);
     if (dados.contatos !== undefined) this.comContatos(dados.contatos);
     if (dados.documentoObrigatorio !== undefined)
@@ -262,6 +279,7 @@ export class ClienteBuilder {
         cnpj: this.cnpj!,
         regime: this.regime!,
         contratoSocialCaminho: this.contratoSocialCaminho,
+        email: this.email,
         alteracoesContratuais: this.alteracoesContratuais,
         formaEnvio: this.formaEnvio ?? formaEnvioPadrao(),
         contatos: this.contatos,

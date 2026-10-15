@@ -27,6 +27,7 @@ describe("clienteParaDto", () => {
       cnpj: "11444777000161",
       regime: "simples_nacional",
       contratoSocialCaminho: "clientes/1/contrato-social/doc.pdf",
+      email: null,
       alteracoesContratuais: [
         { data: "2026-02-01", arquivoCaminho: "clientes/1/alteracoes/0-doc.pdf" },
       ],

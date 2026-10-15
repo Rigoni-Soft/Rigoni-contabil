@@ -1,3 +1,16 @@
 {
-  "crons": [{ "path": "/api/jobs/inatividade", "schedule": "*/5 * * * *" }]
+  "crons": [
+    {
+      "path": "/api/jobs/inatividade",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/jobs/lembretes",
+      "schedule": "0 11 1,5,10,15 * *"
+    },
+    {
+      "path": "/api/jobs/parcelamento",
+      "schedule": "0 11 20,22,24,26,28 * *"
+    }
+  ]
 }

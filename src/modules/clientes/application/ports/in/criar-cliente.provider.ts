@@ -8,6 +8,7 @@ export type CriarClienteInput = {
   empresa: string;
   cnpj: string;
   regime: string;
+  email?: string;
   contratoSocial?: File;
   alteracoesContratuais: AlteracaoContratualInput[];
 };

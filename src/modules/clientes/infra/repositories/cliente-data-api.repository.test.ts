@@ -147,6 +147,7 @@ describe("Data API — confidencialidade dos documentos jurídicos (PR #69, pont
           empresa: "Padaria Pão Quente Ltda",
           cnpj: "45723174000110",
           regime: "simples_nacional",
+          email: null,
         },
       ]);
 

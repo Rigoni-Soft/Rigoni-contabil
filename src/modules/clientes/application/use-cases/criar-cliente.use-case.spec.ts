@@ -118,6 +118,34 @@ describe("CriarCliente", () => {
     expect(storage.removidos).toEqual([]);
   });
 
+  it("grava o e-mail informado e devolve no DTO", async () => {
+    const clientes = new ClienteRepositoryFalso();
+
+    const resultado = await new CriarCliente(
+      new SessaoFalsa(),
+      clientes,
+      new ArquivoStorageFalso(),
+      new AuditoriaFalsa(),
+    ).execute({ ...INPUT_VALIDO, email: "financeiro@padaria.com.br" });
+
+    expect(resultado.ok && resultado.value.cliente.email).toBe("financeiro@padaria.com.br");
+    expect(clientes.criado?.email?.valor).toBe("financeiro@padaria.com.br");
+  });
+
+  it("e-mail inválido: rejeita antes de salvar", async () => {
+    const clientes = new ClienteRepositoryFalso();
+
+    const resultado = await new CriarCliente(
+      new SessaoFalsa(),
+      clientes,
+      new ArquivoStorageFalso(),
+      new AuditoriaFalsa(),
+    ).execute({ ...INPUT_VALIDO, email: "sem-arroba" });
+
+    expect(resultado.ok).toBe(false);
+    expect(clientes.criado).toBeNull();
+  });
+
   it("cadastra sem contrato social (campo opcional, decisão de produto 2026-09-29)", async () => {
     const sessao = new SessaoFalsa();
     const clientes = new ClienteRepositoryFalso();
