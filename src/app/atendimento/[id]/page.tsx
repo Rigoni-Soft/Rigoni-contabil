@@ -10,8 +10,7 @@ import { CompositorConversaContainer } from "@/modules/atendimento/presentation/
 import { carregarConversa } from "@/modules/atendimento/presentation/view-models/conversa/conversa.server";
 import { MensagensConversaContainer } from "@/modules/atendimento/presentation/view-models/conversa/mensagens-conversa.container";
 import { FilaContainer } from "@/modules/atendimento/presentation/view-models/fila/fila.container";
-import { carregarFila } from "@/modules/atendimento/presentation/view-models/fila/fila.server";
-import { ehSetor } from "@/shared/kernel/setores";
+import { carregarFilaDoProprioSetor } from "@/modules/atendimento/presentation/view-models/fila/fila.server";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -23,9 +22,7 @@ export default async function Page({ params }: Props) {
   // Sem permissão, inexistente ou id inválido: volta ao início, como as outras telas protegidas.
   if (!conversa.ok) redirect("/");
 
-  // Barra lateral da Fila do próprio Setor; Admin não tem Setor e vê a Fila em /fila.
-  const setorDaFila = sessao.papel !== "admin" && ehSetor(sessao.setor) ? sessao.setor : null;
-  const fila = setorDaFila ? await carregarFila(setorDaFila) : null;
+  const fila = await carregarFilaDoProprioSetor(sessao);
 
   return (
     <ConversaAtendimentoPage
@@ -38,12 +35,11 @@ export default async function Page({ params }: Props) {
         />
       }
       fila={
-        setorDaFila &&
-        fila?.ok && (
+        fila && (
           <FilaContainer
             nome={sessao.nome}
-            setorInicial={setorDaFila}
-            initialData={fila.value}
+            setorInicial={fila.setor}
+            initialData={fila.dados}
             podeEscolherSetor={false}
           />
         )
