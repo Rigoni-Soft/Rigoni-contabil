@@ -1,6 +1,8 @@
 import { expect, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
+import { registrarClienteDoE2E } from "./manifesto-de-clientes";
+
 // Playwright roda fora do Next (não carrega .env.local) — fallback pra chave
 // anon pública padrão do Supabase local (supabase/.env.local, não é segredo).
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
@@ -35,11 +37,21 @@ function digitoVerificador(base: string, pesos: number[]): string {
   return String(resto < 2 ? 0 : 11 - resto);
 }
 
+// Nome único por execução: o cliente criado pelo e2e continua no banco, e `getByText` em modo estrito
+// falha quando a busca devolve mais de um com o mesmo nome (e uma busca por prefixo comum perde o
+// novo para os antigos). Busque sempre pelo nome inteiro devolvido aqui.
+export function empresaUnica(base: string): string {
+  return `${base} ${Date.now().toString(36).toUpperCase()}`;
+}
+
 export function cnpjUnico(): string {
   const raiz = `${Date.now()}`.slice(-8) + "0001";
   const d1 = digitoVerificador(raiz, PESOS_PRIMEIRO_DIGITO);
   const d2 = digitoVerificador(raiz + d1, PESOS_SEGUNDO_DIGITO);
-  return raiz + d1 + d2;
+  const cnpj = raiz + d1 + d2;
+  // Anotado para a limpeza da rodada seguinte (manifesto-de-clientes.ts).
+  registrarClienteDoE2E(cnpj);
+  return cnpj;
 }
 
 // #65: Funcionário SN só enxerga/edita Cliente do qual é Responsável, e só o

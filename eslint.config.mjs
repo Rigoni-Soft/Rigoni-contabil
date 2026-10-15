@@ -18,6 +18,11 @@ const HOOK_IMPORT = {
   selector: "ImportDeclaration[source.value='react'] ImportSpecifier[imported.name=/^use[A-Z]/]",
   message: "View burra: sem hooks.",
 };
+const HOST_ELEMENT = {
+  selector: "JSXOpeningElement[name.type='JSXIdentifier'][name.name=/^[a-z]/]",
+  message:
+    "Elemento HTML cru só em atoms/ e ui/: componha um átomo (Caixa, Texto, ...). Exceção rara: eslint-disable com o motivo.",
+};
 const rule = (...s) => ({ "no-restricted-syntax": ["error", ...s] });
 
 export default defineConfig([
@@ -53,6 +58,18 @@ export default defineConfig([
     // spec.tsx testa a View com um wrapper (ex.: useForm) por fora dela; não é a própria View com hook.
     ignores: ["**/*.spec.tsx"],
     rules: rule(CLIENT, SERVER, CACHE, HOOK_CALL, HOOK_IMPORT),
+  },
+  {
+    // Pirâmide: só atoms/ e ui/ têm elemento HTML cru; os níveis acima compõem o de baixo.
+    files: ["src/presentation/components/{molecules,organisms,templates,pages}/**/*.tsx"],
+    ignores: ["**/*.spec.tsx"],
+    rules: rule(CLIENT, SERVER, CACHE, HOOK_CALL, HOOK_IMPORT, HOST_ELEMENT),
+  },
+  {
+    // Container e page do Next só montam Views: markup vive em atoms/ e ui/.
+    files: ["**/*.container.tsx", "src/app/**/page.tsx"],
+    ignores: ["**/*.spec.tsx"],
+    rules: rule(SERVER, CACHE, HOST_ELEMENT),
   },
   prettier,
 ]);

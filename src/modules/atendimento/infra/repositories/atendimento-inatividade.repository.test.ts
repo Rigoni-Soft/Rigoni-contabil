@@ -4,7 +4,10 @@
  */
 import { createClient } from "@supabase/supabase-js";
 
-import { URA_ATOR_ID } from "@/modules/atendimento/domain/services/inatividade.service";
+import {
+  avisoPendenteAoFuncionario,
+  URA_ATOR_ID,
+} from "@/modules/atendimento/domain/services/inatividade.service";
 
 import { exigirSupabaseLocal } from "../../../../../test-support/exigir-supabase-local";
 import { SupabaseAtendimentoRepository } from "./atendimento.repository";
@@ -30,6 +33,7 @@ const TELEFONES = [
   "61955590004",
   "61955590005",
   "61955590006",
+  "61955590007",
 ];
 const usuarios: string[] = [];
 
@@ -292,6 +296,27 @@ describe("inatividade × desativação do dono", () => {
     expect(data?.funcionario_id).not.toBe(dono);
     const mensagens = await admin.from("mensagens").select("id").eq("atendimento_id", id);
     expect(mensagens.data).toHaveLength(1);
+  });
+});
+
+describe("inatividade × conversa do painel", () => {
+  it("a Mensagem posterior do Funcionário tira o aviso de pendente, mesmo com a marca gravada", async () => {
+    const dono = await criarFuncionario("Func Aviso Na Conversa");
+    const id = await abrirDireto(TELEFONES[6], dono);
+    await mensagem(TELEFONES[6], "contato");
+    // Futuro: o relógio do banco (container) pode estar alguns ms à frente do desta máquina.
+    await repositorio.marcarAvisoInatividade(id, "funcionario", new Date(Date.now() + 60_000));
+
+    const antes = await repositorio.conversa(id);
+    if (!antes.ok || !antes.value?.aviso) throw new Error("aviso não lido");
+    expect(avisoPendenteAoFuncionario(antes.value.aviso, antes.value.mensagens)).toBe(true);
+
+    // Sequencial: a Mensagem nasce depois da marca (ambas com o relógio do banco).
+    await mensagem(TELEFONES[6], "funcionario");
+    const depois = await repositorio.conversa(id);
+    if (!depois.ok || !depois.value?.aviso) throw new Error("aviso não lido");
+    // A marca continua gravada até o job limpar; a Mensagem posterior já a torna não pendente.
+    expect(avisoPendenteAoFuncionario(depois.value.aviso, depois.value.mensagens)).toBe(false);
   });
 });
 

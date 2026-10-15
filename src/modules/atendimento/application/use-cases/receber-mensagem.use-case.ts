@@ -31,16 +31,17 @@ import type {
   SessaoAtendimento,
   SessaoAtendimentoPort,
 } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
+import { descreverDocumento } from "@/modules/atendimento/domain/services/documento-contratual.service";
 import {
   avisoDeFechado,
   estaAbertoEm,
 } from "@/modules/atendimento/domain/services/expediente.service";
+import { soDigitosNacionais } from "@/modules/atendimento/domain/services/telefone.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { cnpjValido, normalizarCnpj } from "@/shared/kernel/cnpj";
-import { formatarDataIso } from "@/shared/kernel/data-iso";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 // Uma só lista define o menu: a posição é o número digitado, e `guia` marca as opções cujo PDF vem
@@ -52,6 +53,7 @@ const OPCOES_MENU: { rotulo: string; guia?: TipoGuia }[] = [
   { rotulo: "CND", guia: "cnd" },
   { rotulo: "Falar com atendente" },
 ];
+// "Falar com atendente" é sempre a última opção do menu; a constante acompanha o array.
 const OPCAO_ATENDENTE = OPCOES_MENU.length;
 const GUIAS_DO_MENU = new Map(
   OPCOES_MENU.flatMap(({ guia }, i) => (guia ? [[String(i + 1), guia] as const] : [])),
@@ -106,7 +108,8 @@ type Modo = "contrato" | "alteracoes" | "ambos";
 const MODOS: Record<string, Modo> = { "1": "contrato", "2": "alteracoes", "3": "ambos" };
 
 // `telefone` com DDI, como a mensagem chegou (resposta); `chave` só dígitos nacionais (sessão).
-type Remetente = { telefone: string; chave: string };
+// `idExterno`: id da Mensagem que o contato mandou, guardado ao abrir o Atendimento.
+type Remetente = { telefone: string; chave: string; idExterno?: string };
 type Conversa = Remetente & { contato: ContatoIdentificado };
 // O que o remetente disse, para abrir o Atendimento na recepção; `clienteId` null = número sem Contato.
 type Origem = Remetente & { textoDoContato: string; clienteId: string | null };
@@ -115,18 +118,11 @@ type Origem = Remetente & { textoDoContato: string; clienteId: string | null };
 type Encaminhamento = { resumo: string; aviso?: string; cnpj?: string };
 type Documentos = { contrato: DocumentoContratual | null; alteracoes: DocumentoContratual[] };
 
-function origemDe({ contato, telefone, chave }: Conversa, textoDoContato: string): Origem {
-  return { telefone, chave, textoDoContato, clienteId: contato.clienteId };
-}
-
-// DDI 55 é descartado: o telefone do Contato é cadastrado só com DDD + número.
-function soDigitosNacionais(telefone: string): string {
-  const digitos = telefone.replace(/\D/g, "");
-  return digitos.length > 11 && digitos.startsWith("55") ? digitos.slice(2) : digitos;
-}
-
-function descrever(documento: DocumentoContratual): string {
-  return documento.data ? `Alteração de ${formatarDataIso(documento.data)}` : "Contrato social";
+function origemDe(
+  { contato, telefone, chave, idExterno }: Conversa,
+  textoDoContato: string,
+): Origem {
+  return { telefone, chave, idExterno, textoDoContato, clienteId: contato.clienteId };
 }
 
 // Impressão digital da lista inteira (a numeração das páginas depende de todos os itens). Hash
@@ -152,7 +148,7 @@ function paginaDe(alteracoes: DocumentoContratual[], pagina: number): DocumentoC
 function listaDaPagina(alteracoes: DocumentoContratual[], pagina: number): string {
   const total = Math.ceil(alteracoes.length / ALTERACOES_POR_PAGINA);
   const itens = paginaDe(alteracoes, pagina)
-    .map((a, i) => `${i + 1} - ${descrever(a)}`)
+    .map((a, i) => `${i + 1} - ${descreverDocumento(a)}`)
     .join("\n");
   const mais = pagina < total ? "\nDigite *mais* para ver as próximas." : "";
   return `Qual alteração você deseja? (página ${pagina} de ${total})\n${itens}${mais}\nDigite *menu* para voltar.`;
@@ -184,7 +180,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
     // ponytail: sem resposta automática, quem responde é o Funcionário (tela de atendimento do Funcionário ainda não existe).
     const anexada = await this.mensagens.execute({
       chave,
-      mensagem: { autor: "contato", texto: mensagem.texto },
+      mensagem: { autor: "contato", texto: mensagem.texto, idExterno: mensagem.id },
     });
     if (!anexada.ok) return anexada;
     if (anexada.value.anexada) return ok(undefined);
@@ -201,20 +197,32 @@ export class ReceberMensagem implements ReceberMensagemPort {
     if (contato.value === "ambiguo") {
       // Nenhum documento é oferecido: sem confirmar a empresa, a recepção decide.
       return this.encaminharRecepcao(
-        { telefone: mensagem.telefone, chave, textoDoContato: mensagem.texto, clienteId: null },
+        {
+          telefone: mensagem.telefone,
+          chave,
+          idExterno: mensagem.id,
+          textoDoContato: mensagem.texto,
+          clienteId: null,
+        },
         { resumo: RESUMO_NUMERO_AMBIGUO, aviso: NUMERO_AMBIGUO },
       );
     }
     if (!contato.value) {
       return this.identificarNovo(mensagem, chave, texto, sessao.value);
     }
-    const conversa: Conversa = { contato: contato.value, telefone: mensagem.telefone, chave };
+    const conversa: Conversa = {
+      contato: contato.value,
+      telefone: mensagem.telefone,
+      chave,
+      idExterno: mensagem.id,
+    };
     if (texto === "menu") {
       const limpa = await this.sessoes.limpar(chave);
       if (!limpa.ok) return limpa;
-    } else if (sessao.value?.etapa === "tipo_documento") {
-      return this.escolherTipo(conversa, texto);
-    } else if (sessao.value?.etapa === "alteracao") {
+      return this.responderMenu(conversa, texto);
+    }
+    if (sessao.value?.etapa === "tipo_documento") return this.escolherTipo(conversa, texto);
+    if (sessao.value?.etapa === "alteracao") {
       return this.escolherAlteracao(conversa, sessao.value, texto);
     }
     return this.responderMenu(conversa, texto);
@@ -237,12 +245,12 @@ export class ReceberMensagem implements ReceberMensagemPort {
   // existe em nenhum cadastro tem 1 nova tentativa antes. Pedido de atendente em qualquer etapa
   // vai direto à recepção; sessão ausente/expirada/de outro fluxo ou "menu" recomeça pela pergunta.
   private async identificarNovo(
-    { telefone, texto: textoDoContato }: MensagemRecebida,
+    { telefone, texto: textoDoContato, id: idExterno }: MensagemRecebida,
     chave: string,
     texto: string,
     sessao: SessaoAtendimento | null,
   ): Promise<Result<void, AppError>> {
-    const origem: Origem = { telefone, chave, textoDoContato, clienteId: null };
+    const origem: Origem = { telefone, chave, idExterno, textoDoContato, clienteId: null };
     const etapa = texto === "menu" ? null : sessao?.etapa;
     const semAcento = texto.normalize("NFD").replace(/\p{M}/gu, "");
 
@@ -303,7 +311,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
   }
 
   private async encaminharRecepcao(
-    { telefone, chave, textoDoContato, clienteId }: Origem,
+    { telefone, chave, idExterno, textoDoContato, clienteId }: Origem,
     { resumo, aviso: textoAviso = AVISO_RECEPCAO_SEM_CADASTRO, cnpj }: Encaminhamento,
   ): Promise<Result<void, AppError>> {
     // Aviso antes de abrir: se o envio falhar e a Meta reenviar, não nasce Atendimento duplicado.
@@ -317,7 +325,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
       resumo,
       setor: "recepcao",
       mensagens: [
-        { autor: "contato", texto: textoDoContato },
+        { autor: "contato", texto: textoDoContato, idExterno },
         { autor: "ura", texto: textoAviso },
       ],
     });
@@ -394,9 +402,9 @@ export class ReceberMensagem implements ReceberMensagemPort {
     const modo = MODOS[texto];
     if (!modo) return this.enviar(conversa.telefone, PERGUNTA_TIPO);
 
-    const docs = await this.carregar(conversa.contato);
-    if (!docs.ok) return docs;
-    const { contrato, alteracoes } = docs.value;
+    const existentes = await this.carregar(conversa.contato);
+    if (!existentes.ok) return existentes;
+    const { contrato, alteracoes } = existentes.value;
 
     if (modo === "contrato") {
       if (!contrato) return this.enviar(conversa.telefone, SEM_CONTRATO);
@@ -422,9 +430,9 @@ export class ReceberMensagem implements ReceberMensagemPort {
     sessao: Extract<SessaoAtendimento, { etapa: "alteracao" }>,
     texto: string,
   ): Promise<Result<void, AppError>> {
-    const docs = await this.carregar(conversa.contato);
-    if (!docs.ok) return docs;
-    const { contrato, alteracoes } = docs.value;
+    const existentes = await this.carregar(conversa.contato);
+    if (!existentes.ok) return existentes;
+    const { contrato, alteracoes } = existentes.value;
     if (alteracoes.length === 0) return this.enviar(conversa.telefone, SEM_ALTERACOES);
 
     // Lista mudou desde que foi exibida: o número digitado pode apontar para outro documento
@@ -468,10 +476,10 @@ export class ReceberMensagem implements ReceberMensagemPort {
     const lista = await this.documentos.listar(contato.clienteId);
     if (!lista.ok) return lista;
     return ok({
-      contrato: lista.value.find((d) => d.tipo === "contrato") ?? null,
+      contrato: lista.value.find((documento) => documento.tipo === "contrato") ?? null,
       alteracoes: lista.value
-        .filter((d) => d.tipo === "alteracao")
-        .sort((a, b) => (b.data ?? "").localeCompare(a.data ?? "")),
+        .filter((documento) => documento.tipo === "alteracao")
+        .sort((primeira, segunda) => (segunda.data ?? "").localeCompare(primeira.data ?? "")),
     });
   }
 
@@ -503,7 +511,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
     return this.despacharDocumento({
       telefone,
       url: link.value,
-      nomeArquivo: `${descrever(documento)}${extensao}`,
+      nomeArquivo: `${descreverDocumento(documento)}${extensao}`,
     });
   }
 

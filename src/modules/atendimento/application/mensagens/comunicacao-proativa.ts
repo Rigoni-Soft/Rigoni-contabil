@@ -34,41 +34,53 @@ export function janelaAberta(ultimaMensagemDoContatoEm: Date | null, agora: Date
   );
 }
 
-export function montarTemplate(c: ComunicacaoProativa, telefone: string): TemplateEnviado {
-  const base = { telefone, nome: c.tipo, idioma: "pt_BR" } as const;
-  switch (c.tipo) {
+export function montarTemplate(
+  comunicacao: ComunicacaoProativa,
+  telefone: string,
+): TemplateEnviado {
+  const base = { telefone, nome: comunicacao.tipo, idioma: "pt_BR" } as const;
+  switch (comunicacao.tipo) {
     case "lembrete_documento_obrigatorio":
-      return { ...base, variaveis: [c.contato, c.empresa] };
+      return { ...base, variaveis: [comunicacao.contato, comunicacao.empresa] };
     case "envio_guia_das":
       return {
         ...base,
-        variaveis: [c.contato, c.empresa, c.competencia, c.vencimento],
-        documento: c.guia,
+        variaveis: [
+          comunicacao.contato,
+          comunicacao.empresa,
+          comunicacao.competencia,
+          comunicacao.vencimento,
+        ],
+        documento: comunicacao.guia,
       };
     case "envio_guia_parcelamento":
-      return { ...base, variaveis: [c.contato, c.empresa, c.parcela], documento: c.guia };
+      return {
+        ...base,
+        variaveis: [comunicacao.contato, comunicacao.empresa, comunicacao.parcela],
+        documento: comunicacao.guia,
+      };
   }
 }
 
 // Formato próprio do sistema, usado com a janela aberta (sem custo de template).
 export function montarMensagemLivre(
-  c: ComunicacaoProativa,
+  comunicacao: ComunicacaoProativa,
   telefone: string,
 ): { texto: string; documento?: DocumentoEnviado } {
-  switch (c.tipo) {
+  switch (comunicacao.tipo) {
     case "lembrete_documento_obrigatorio":
       return {
-        texto: `Olá, ${c.contato}! Ainda não recebemos os documentos fiscais de ${c.empresa} referentes a este mês. Poderia nos enviar assim que possível?`,
+        texto: `Olá, ${comunicacao.contato}! Ainda não recebemos os documentos fiscais de ${comunicacao.empresa} referentes a este mês. Poderia nos enviar assim que possível?`,
       };
     case "envio_guia_das":
       return {
-        texto: `Olá, ${c.contato}! Segue a guia do DAS de ${c.empresa}, competência ${c.competencia}, com vencimento em ${c.vencimento}.`,
-        documento: { telefone, ...c.guia },
+        texto: `Olá, ${comunicacao.contato}! Segue a guia do DAS de ${comunicacao.empresa}, competência ${comunicacao.competencia}, com vencimento em ${comunicacao.vencimento}.`,
+        documento: { telefone, ...comunicacao.guia },
       };
     case "envio_guia_parcelamento":
       return {
-        texto: `Olá, ${c.contato}! Segue a guia de parcelamento de ${c.empresa}, referente à parcela de ${c.parcela}.`,
-        documento: { telefone, ...c.guia },
+        texto: `Olá, ${comunicacao.contato}! Segue a guia de parcelamento de ${comunicacao.empresa}, referente à parcela de ${comunicacao.parcela}.`,
+        documento: { telefone, ...comunicacao.guia },
       };
   }
 }

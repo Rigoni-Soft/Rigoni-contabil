@@ -1,22 +1,28 @@
-import Link from "next/link";
-import { Check, CheckCircle2, Loader2, Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Controller, type Control, type FieldErrors, type UseFormRegister } from "react-hook-form";
 
-import { Button, buttonVariants } from "@/presentation/components/ui/button";
-import { FieldError } from "@/presentation/components/ui/field-error";
-import { FileInput } from "@/presentation/components/ui/file-input";
-import { Input } from "@/presentation/components/ui/input";
+import { BotaoDeEnvio } from "@/presentation/components/atoms/botao-de-envio.component";
+import { Caixa, Grade, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { FieldError } from "@/presentation/components/atoms/field-error.component";
+import { FileInput } from "@/presentation/components/atoms/file-input.component";
+import { NotaDeObrigatorio } from "@/presentation/components/atoms/nota-de-obrigatorio.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
+import { CampoDeArquivo } from "@/presentation/components/molecules/campo-de-arquivo.component";
+import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
+import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
+import { ConfirmacaoDeCadastro } from "@/presentation/components/molecules/confirmacao-de-cadastro.component";
+import { LinhaDeAlteracao } from "@/presentation/components/molecules/linha-de-alteracao.component";
+import { Button } from "@/presentation/components/ui/button";
 import { Label } from "@/presentation/components/ui/label";
-import { RequiredMark } from "@/presentation/components/ui/required-mark";
-import { Select } from "@/presentation/components/ui/select";
 import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
-import { cn } from "@/presentation/lib/utils";
 import { REGIME_LABEL, REGIMES } from "@/shared/kernel/regimes";
 
 // PDF ou DOCX (ponto 2 do feedback manual, 2026-09-29) — dica do navegador;
 // a validação de verdade fica no schema Zod (não confia só no `accept`).
 const ACCEPT_DOCUMENTO =
   ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+const OPCOES_REGIME = REGIMES.map((valor) => ({ valor, rotulo: REGIME_LABEL[valor] }));
 
 export type CriarClienteFormValues = {
   empresa: string;
@@ -74,217 +80,141 @@ export function CriarClienteForm({
 }: CriarClienteFormProps) {
   if (criado) {
     return (
-      <div className="mx-auto flex max-w-sm flex-col gap-3 rounded-lg border border-border bg-card p-4">
-        <p className="flex items-center gap-1.5 text-sm text-primary">
-          <CheckCircle2 className="size-3.5 shrink-0" aria-hidden="true" />
-          Cliente <strong>{criado.empresa}</strong> (CNPJ {criado.cnpj}) cadastrado.
-        </p>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button type="button" onClick={onCadastrarNovo} className="sm:flex-1">
-            Cadastrar outro
-          </Button>
-          {/* Provisório: leva pra home, mesmo padrão do formulário de usuário (#30/#32). */}
-          <Link href="/" className={cn(buttonVariants({ variant: "outline" }), "sm:flex-1")}>
-            <Check aria-hidden="true" />
-            Finalizar
-          </Link>
-        </div>
-      </div>
+      <ConfirmacaoDeCadastro
+        largura="sm"
+        onCadastrarNovo={onCadastrarNovo}
+        mensagem={
+          <>
+            Cliente{" "}
+            <Texto variante="enfase" como="strong">
+              {criado.empresa}
+            </Texto>{" "}
+            (CNPJ {criado.cnpj}) cadastrado.
+          </>
+        }
+      />
     );
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
-      <p className="text-xs text-muted-foreground">
-        Campos com <span className="text-destructive">*</span> são obrigatórios.
-      </p>
+    <Pilha espaco="formulario" como="form" onSubmit={onSubmit} noValidate>
+      <NotaDeObrigatorio />
 
       {/* CNPJ primeiro (ponto 4 do feedback manual): autopreenche Empresa/Regime
           ao perder o foco, antes do resto do formulário ser preenchido à mão.
           3 colunas aproveita a largura do formulário (80% da tela, #36) em vez
           de empilhar os 3 campos de identificação numa coluna só. */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="cnpj">
-            CNPJ
-            <RequiredMark />
-          </Label>
-          <Controller
-            control={control}
-            name="cnpj"
-            render={({ field: { onChange, onBlur, value, name } }) => (
-              <Input
-                id="cnpj"
-                name={name}
-                inputMode="numeric"
-                placeholder="00.000.000/0000-00"
-                maxLength={18}
-                value={value ?? ""}
-                aria-required="true"
-                aria-invalid={!!errors.cnpj}
-                onChange={(evento) => onChange(formatarCnpj(evento.target.value))}
-                onBlur={(evento) => {
-                  onBlur();
-                  onCnpjBlur(evento.target.value);
-                }}
-              />
-            )}
-          />
-          {errors.cnpj && <FieldError>{errors.cnpj.message}</FieldError>}
-          {!errors.cnpj && avisoCnpj && <FieldError>{avisoCnpj}</FieldError>}
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="empresa">
-            Empresa
-            <RequiredMark />
-          </Label>
-          <Input
-            id="empresa"
-            aria-required="true"
-            aria-invalid={!!errors.empresa}
-            {...register("empresa", { onChange: onEmpresaChange })}
-          />
-          {errors.empresa && <FieldError>{errors.empresa.message}</FieldError>}
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="regime">
-            Regime
-            <RequiredMark />
-          </Label>
-          <Select
-            id="regime"
-            aria-required="true"
-            aria-invalid={!!errors.regime}
-            defaultValue=""
-            {...register("regime", { onChange: onRegimeChange })}
-          >
-            <option value="" disabled>
-              Selecione
-            </option>
-            {REGIMES.map((regime) => (
-              <option key={regime} value={regime}>
-                {REGIME_LABEL[regime]}
-              </option>
-            ))}
-          </Select>
-          {errors.regime && <FieldError>{errors.regime.message}</FieldError>}
-          {!errors.regime && avisoRegime && <FieldError>{avisoRegime}</FieldError>}
-        </div>
-      </div>
+      <Grade colunas="1>3" espaco={5}>
+        <Controller
+          control={control}
+          name="cnpj"
+          render={({ field: { onChange, onBlur, value, name } }) => (
+            <CampoDeTexto
+              id="cnpj"
+              rotulo="CNPJ"
+              obrigatorio
+              name={name}
+              inputMode="numeric"
+              placeholder="00.000.000/0000-00"
+              maxLength={18}
+              value={value ?? ""}
+              erro={errors.cnpj?.message}
+              aviso={avisoCnpj}
+              onChange={(evento) => onChange(formatarCnpj(evento.target.value))}
+              onBlur={(evento) => {
+                onBlur();
+                onCnpjBlur(evento.target.value);
+              }}
+            />
+          )}
+        />
+        <CampoDeTexto
+          id="empresa"
+          rotulo="Empresa"
+          obrigatorio
+          erro={errors.empresa?.message}
+          {...register("empresa", { onChange: onEmpresaChange })}
+        />
+        <CampoDeOpcoes
+          id="regime"
+          rotulo="Regime"
+          obrigatorio
+          opcoes={OPCOES_REGIME}
+          placeholder="Selecione"
+          placeholderDesabilitado
+          defaultValue=""
+          erro={errors.regime?.message}
+          aviso={avisoRegime}
+          {...register("regime", { onChange: onRegimeChange })}
+        />
+      </Grade>
 
       {/* Seção de documentos separada da identificação do Cliente — mais espaço
           acima do heading que abaixo, mesma cadência de arquitetura.md/DESIGN.md. */}
-      <div className="mt-2 flex flex-col gap-5 border-t border-border pt-6">
-        <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+      <Pilha espaco="formulario" className="mt-2 border-t border-border pt-6">
+        <Texto variante="rotuloDeSecao" como="h2">
           Documentos
-        </h2>
+        </Texto>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="contratoSocial">Contrato social</Label>
-          <Controller
-            control={control}
-            name="contratoSocial"
-            render={({ field: { onChange, onBlur, name, value } }) => (
-              <FileInput
-                id="contratoSocial"
-                name={name}
-                accept={ACCEPT_DOCUMENTO}
-                file={value}
-                onBlur={onBlur}
-                aria-invalid={!!errors.contratoSocial}
-                onChange={onChange}
-              />
-            )}
-          />
-          {errors.contratoSocial && <FieldError>{errors.contratoSocial.message}</FieldError>}
-        </div>
+        <Controller
+          control={control}
+          name="contratoSocial"
+          render={({ field: { onChange, onBlur, name, value } }) => (
+            <CampoDeArquivo
+              id="contratoSocial"
+              rotulo="Contrato social"
+              name={name}
+              accept={ACCEPT_DOCUMENTO}
+              file={value}
+              onBlur={onBlur}
+              erro={errors.contratoSocial?.message}
+              onChange={onChange}
+            />
+          )}
+        />
 
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
+        <Caixa className="flex flex-col gap-3">
+          <Linha alinhar="centro" justificar="entre">
             <Label>Alterações contratuais</Label>
             <Button type="button" variant="outline" size="sm" onClick={onAdicionarAlteracao}>
               <Plus aria-hidden="true" />
               Adicionar
             </Button>
-          </div>
+          </Linha>
 
           {alteracoes.map((alteracao, indice) => (
-            <div
+            <LinhaDeAlteracao
               key={alteracao.id}
-              className="flex flex-col gap-2 rounded-md border border-border p-3"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-foreground">{`Alteração ${indice + 1}`}</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  aria-label={`Remover alteração ${indice + 1}`}
-                  onClick={() => onRemoverAlteracao(indice)}
-                >
-                  <Trash2 aria-hidden="true" />
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="flex flex-col gap-1.5">
-                  <Label
-                    htmlFor={`alteracoesContratuais.${indice}.data`}
-                  >{`Data da alteração ${indice + 1}`}</Label>
-                  <Input
-                    id={`alteracoesContratuais.${indice}.data`}
-                    type="date"
-                    aria-invalid={!!errors.alteracoesContratuais?.[indice]?.data}
-                    {...register(`alteracoesContratuais.${indice}.data` as const)}
-                  />
-                  {errors.alteracoesContratuais?.[indice]?.data && (
-                    <FieldError>{errors.alteracoesContratuais[indice]?.data?.message}</FieldError>
+              indice={indice}
+              data={register(`alteracoesContratuais.${indice}.data` as const)}
+              erroData={errors.alteracoesContratuais?.[indice]?.data?.message}
+              erroArquivo={errors.alteracoesContratuais?.[indice]?.arquivo?.message}
+              onRemover={() => onRemoverAlteracao(indice)}
+              arquivo={
+                <Controller
+                  control={control}
+                  name={`alteracoesContratuais.${indice}.arquivo` as const}
+                  render={({ field: { onChange, onBlur, name, value } }) => (
+                    <FileInput
+                      id={`alteracoesContratuais.${indice}.arquivo`}
+                      name={name}
+                      accept={ACCEPT_DOCUMENTO}
+                      file={value}
+                      onBlur={onBlur}
+                      aria-invalid={!!errors.alteracoesContratuais?.[indice]?.arquivo}
+                      onChange={onChange}
+                    />
                   )}
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <Label
-                    htmlFor={`alteracoesContratuais.${indice}.arquivo`}
-                  >{`Arquivo da alteração ${indice + 1}`}</Label>
-                  <Controller
-                    control={control}
-                    name={`alteracoesContratuais.${indice}.arquivo` as const}
-                    render={({ field: { onChange, onBlur, name, value } }) => (
-                      <FileInput
-                        id={`alteracoesContratuais.${indice}.arquivo`}
-                        name={name}
-                        accept={ACCEPT_DOCUMENTO}
-                        file={value}
-                        onBlur={onBlur}
-                        aria-invalid={!!errors.alteracoesContratuais?.[indice]?.arquivo}
-                        onChange={onChange}
-                      />
-                    )}
-                  />
-                  {errors.alteracoesContratuais?.[indice]?.arquivo && (
-                    <FieldError>
-                      {errors.alteracoesContratuais[indice]?.arquivo?.message}
-                    </FieldError>
-                  )}
-                </div>
-              </div>
-            </div>
+                />
+              }
+            />
           ))}
-        </div>
-      </div>
+        </Caixa>
+      </Pilha>
 
-      {erroServidor && (
-        <p role="alert" className="text-sm text-destructive">
-          {erroServidor}
-        </p>
-      )}
+      {erroServidor && <FieldError>{erroServidor}</FieldError>}
 
-      <Button type="submit" disabled={pendente}>
-        {pendente && <Loader2 className="motion-safe:animate-spin" aria-hidden="true" />}
-        {pendente ? "Cadastrando…" : "Cadastrar"}
-      </Button>
-    </form>
+      <BotaoDeEnvio pendente={pendente} rotulo="Cadastrar" rotuloPendente="Cadastrando…" />
+    </Pilha>
   );
 }

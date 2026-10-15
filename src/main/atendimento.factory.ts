@@ -1,7 +1,11 @@
 import "server-only";
 
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import {
   CRON_SECRET,
+  FFMPEG_PATH,
   INATIVIDADE_AUTOMATICA,
   MENSAGERIA_MODO,
   MENSAGERIA_SEGREDO_ASSINATURA,
@@ -18,13 +22,20 @@ import { createSupabaseServer } from "@/main/supabase-server.factory";
 import type { AutenticarWebhookPort } from "@/modules/atendimento/application/ports/in/autenticar-webhook.provider";
 import type { AvisarClientePort } from "@/modules/atendimento/application/ports/in/avisar-cliente.provider";
 import type { EncerrarAtendimentoPort } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
+import type { EnviarAnexoAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-anexo-ao-cliente.provider";
+import type { EnviarDocumentoAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-documento-ao-cliente.provider";
+import type { EnviarMensagemAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-mensagem-ao-cliente.provider";
 import type {
   CadastrarFeriadoPort,
   ListarFeriadosPort,
   RemoverFeriadoPort,
 } from "@/modules/atendimento/application/ports/in/gerenciar-feriados.provider";
 import type { ListarFilaPort } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
+import type { ListarMeusAtendimentosPort } from "@/modules/atendimento/application/ports/in/listar-meus-atendimentos.provider";
+import type { ObterConversaPort } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
+import type { ReagirAMensagemPort } from "@/modules/atendimento/application/ports/in/reagir-a-mensagem.provider";
 import type { ReceberMensagemPort } from "@/modules/atendimento/application/ports/in/receber-mensagem.provider";
+import type { ReceberMidiaPort } from "@/modules/atendimento/application/ports/in/receber-midia.provider";
 import type { TransferirAtendimentoPort } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
 import type { VerificarInatividadePort } from "@/modules/atendimento/application/ports/in/verificar-inatividade.provider";
 import type { AuditoriaPort } from "@/modules/atendimento/application/ports/out/auditoria.provider";
@@ -40,17 +51,29 @@ import { AutenticarWebhook } from "@/modules/atendimento/application/use-cases/a
 import { AvisarCliente } from "@/modules/atendimento/application/use-cases/avisar-cliente.use-case";
 import { CadastrarFeriado } from "@/modules/atendimento/application/use-cases/cadastrar-feriado.use-case";
 import { EncerrarAtendimento } from "@/modules/atendimento/application/use-cases/encerrar-atendimento.use-case";
+import { EnviarAnexoAoCliente } from "@/modules/atendimento/application/use-cases/enviar-anexo-ao-cliente.use-case";
+import { EnviarDocumentoAoCliente } from "@/modules/atendimento/application/use-cases/enviar-documento-ao-cliente.use-case";
+import { EnviarMensagemAoCliente } from "@/modules/atendimento/application/use-cases/enviar-mensagem-ao-cliente.use-case";
 import { ListarFeriados } from "@/modules/atendimento/application/use-cases/listar-feriados.use-case";
 import { ListarFila } from "@/modules/atendimento/application/use-cases/listar-fila.use-case";
+import { ListarMeusAtendimentos } from "@/modules/atendimento/application/use-cases/listar-meus-atendimentos.use-case";
+import { ObterConversa } from "@/modules/atendimento/application/use-cases/obter-conversa.use-case";
+import { PrepararAnexoParaEnvio } from "@/modules/atendimento/application/use-cases/preparar-anexo-para-envio.use-case";
+import { ReagirAMensagem } from "@/modules/atendimento/application/use-cases/reagir-a-mensagem.use-case";
 import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/receber-mensagem.use-case";
+import { ReceberMidia } from "@/modules/atendimento/application/use-cases/receber-midia.use-case";
 import { RemoverFeriado } from "@/modules/atendimento/application/use-cases/remover-feriado.use-case";
 import { TransferirAtendimento } from "@/modules/atendimento/application/use-cases/transferir-atendimento.use-case";
 import { VerificarInatividade } from "@/modules/atendimento/application/use-cases/verificar-inatividade.use-case";
 import { BearerAutenticacaoJobGateway } from "@/modules/atendimento/infra/gateways/bearer-autenticacao-job.gateway";
+import { DownloadMidiaFalsoGateway } from "@/modules/atendimento/infra/gateways/download-midia-falso.gateway";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
+import { FfmpegConversorDeAudioGateway } from "@/modules/atendimento/infra/gateways/ffmpeg-conversor-de-audio.gateway";
 import { GuiasFiscaisGateway } from "@/modules/atendimento/infra/gateways/guias-fiscais.gateway";
 import { HmacAutenticacaoWebhookGateway } from "@/modules/atendimento/infra/gateways/hmac-autenticacao-webhook.gateway";
 import { RelogioSistemaGateway } from "@/modules/atendimento/infra/gateways/relogio-sistema.gateway";
+import { resolverFfmpeg } from "@/modules/atendimento/infra/gateways/resolver-ffmpeg.gateway";
+import { SupabaseAnexosAtendimentoGateway } from "@/modules/atendimento/infra/gateways/supabase-anexos-atendimento.gateway";
 import { SupabaseClienteCnpjGateway } from "@/modules/atendimento/infra/gateways/supabase-cliente-cnpj.gateway";
 import { SupabaseDocumentosContratuaisGateway } from "@/modules/atendimento/infra/gateways/supabase-documentos-contratuais.gateway";
 import { SupabaseIdentificacaoContatoGateway } from "@/modules/atendimento/infra/gateways/supabase-identificacao-contato.gateway";
@@ -108,6 +131,20 @@ export function makeReceberMensagem(): ReceberMensagemPort {
     new RelogioSistemaGateway(),
     new SupabaseFeriadoRepository(supabaseAdmin),
     guiasFiscais(supabaseAdmin),
+  );
+}
+
+export function makeReceberMidia(): ReceberMidiaPort {
+  exigirSegredosDeProducao();
+  if (MENSAGERIA_MODO === "real") {
+    throw new Error("MENSAGERIA_MODO=real: o adapter real de mensageria ainda não existe (#68).");
+  }
+  const supabaseAdmin = createSupabaseAdmin();
+  return new ReceberMidia(
+    new SupabaseAtendimentoRepository(supabaseAdmin),
+    new DownloadMidiaFalsoGateway(),
+    new SupabaseAnexosAtendimentoGateway(supabaseAdmin),
+    makeEnvioMensagem(),
   );
 }
 
@@ -204,6 +241,80 @@ export async function makeListarFila(): Promise<ListarFilaPort> {
     sessaoViaUsuarios(await createSupabaseServer()),
     new SupabaseAtendimentoRepository(createSupabaseAdmin()),
     new RelogioSistemaGateway(),
+  );
+}
+
+export async function makeListarMeusAtendimentos(): Promise<ListarMeusAtendimentosPort> {
+  return new ListarMeusAtendimentos(
+    sessaoViaUsuarios(await createSupabaseServer()),
+    new SupabaseAtendimentoRepository(createSupabaseAdmin()),
+  );
+}
+
+export async function makeObterConversa(): Promise<ObterConversaPort> {
+  const supabaseAdmin = createSupabaseAdmin();
+  return new ObterConversa(
+    sessaoViaUsuarios(await createSupabaseServer()),
+    new SupabaseAtendimentoRepository(supabaseAdmin),
+    new SupabaseDocumentosContratuaisGateway(supabaseAdmin),
+    new SupabaseAnexosAtendimentoGateway(supabaseAdmin),
+  );
+}
+
+// `FFMPEG_PATH` manda; senão o binário comprimido do build (menor na função); senão o do pacote
+// ffmpeg-static (desenvolvimento) ou o do PATH. Só é chamada quando há áudio webm a converter.
+function caminhoDoFfmpeg(): Promise<string> {
+  if (FFMPEG_PATH) return Promise.resolve(FFMPEG_PATH);
+  return resolverFfmpeg({
+    comprimido: join(process.cwd(), ".ffmpeg", "ffmpeg.br"),
+    destino: join(tmpdir(), "rigoni-ffmpeg", "ffmpeg"),
+    alternativo: async () => {
+      // Import dinâmico: no deploy o pacote é excluído do trace (só o comprimido segue).
+      const pacote = await import("ffmpeg-static").catch(() => null);
+      return pacote?.default ?? "ffmpeg";
+    },
+  });
+}
+
+export async function makeEnviarAnexoAoCliente(): Promise<EnviarAnexoAoClientePort> {
+  const supabaseAdmin = createSupabaseAdmin();
+  const anexos = new SupabaseAnexosAtendimentoGateway(supabaseAdmin);
+  return new EnviarAnexoAoCliente(
+    sessaoViaUsuarios(await createSupabaseServer()),
+    new SupabaseAtendimentoRepository(supabaseAdmin),
+    anexos,
+    makeEnvioMensagem(),
+    auditoriaViaModuloAuditoria(),
+    new PrepararAnexoParaEnvio(anexos, new FfmpegConversorDeAudioGateway(caminhoDoFfmpeg)),
+  );
+}
+
+export async function makeEnviarDocumentoAoCliente(): Promise<EnviarDocumentoAoClientePort> {
+  const supabaseAdmin = createSupabaseAdmin();
+  return new EnviarDocumentoAoCliente(
+    sessaoViaUsuarios(await createSupabaseServer()),
+    new SupabaseAtendimentoRepository(supabaseAdmin),
+    new SupabaseDocumentosContratuaisGateway(supabaseAdmin),
+    makeEnvioMensagem(),
+    auditoriaViaModuloAuditoria(),
+  );
+}
+
+export async function makeEnviarMensagemAoCliente(): Promise<EnviarMensagemAoClientePort> {
+  return new EnviarMensagemAoCliente(
+    sessaoViaUsuarios(await createSupabaseServer()),
+    new SupabaseAtendimentoRepository(createSupabaseAdmin()),
+    makeEnvioMensagem(),
+    auditoriaViaModuloAuditoria(),
+  );
+}
+
+export async function makeReagirAMensagem(): Promise<ReagirAMensagemPort> {
+  return new ReagirAMensagem(
+    sessaoViaUsuarios(await createSupabaseServer()),
+    new SupabaseAtendimentoRepository(createSupabaseAdmin()),
+    makeEnvioMensagem(),
+    auditoriaViaModuloAuditoria(),
   );
 }
 

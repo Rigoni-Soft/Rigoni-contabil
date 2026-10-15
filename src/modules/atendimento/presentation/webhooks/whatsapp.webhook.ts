@@ -1,6 +1,14 @@
 import { z } from "zod";
 
-import { makeAutenticarWebhook, makeReceberMensagem } from "@/main/atendimento.factory";
+import {
+  makeAutenticarWebhook,
+  makeReceberMensagem,
+  makeReceberMidia,
+} from "@/main/atendimento.factory";
+import {
+  classificarMensagem,
+  mensagemSchema,
+} from "@/modules/atendimento/presentation/webhooks/mensagem-recebida.webhook";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 
 // Payload de notificação da WhatsApp Cloud API (Meta). Só o que o sistema lê; o
@@ -14,15 +22,7 @@ const notificacaoSchema = z.object({
         z.object({
           field: z.string(),
           value: z.object({
-            messages: z
-              .array(
-                z.object({
-                  from: z.string().min(1),
-                  id: z.string(),
-                  text: z.object({ body: z.string() }).optional(),
-                }),
-              )
-              .optional(),
+            messages: z.array(mensagemSchema).optional(),
           }),
         }),
       ),
@@ -66,17 +66,28 @@ export async function POST(request: Request): Promise<Response> {
   if (!notificacao.success) return resposta("Corpo fora do formato da Cloud API.", 400);
 
   const receber = makeReceberMensagem();
+  const receberMidia = makeReceberMidia();
   const mensagens = notificacao.data.entry
     .flatMap((entrada) => entrada.changes)
     .filter((mudanca) => mudanca.field === "messages")
     .flatMap((mudanca) => mudanca.value.messages ?? []);
 
   for (const mensagem of mensagens) {
-    // Mídia/áudio/etc. não têm `text`: texto vazio reabre o menu.
-    const resultado = await receber.execute({
-      telefone: mensagem.from,
-      texto: mensagem.text?.body ?? "",
-    });
+    const recebida = classificarMensagem(mensagem);
+    const resultado =
+      recebida.tipo === "midia"
+        ? await receberMidia.execute({
+            telefone: recebida.telefone,
+            idDaMensagem: recebida.id,
+            midia: recebida.midia,
+            legenda: recebida.legenda,
+          })
+        : // Tipo sem tratamento (vídeo, figurinha...) chega como texto vazio e reabre o menu.
+          await receber.execute({
+            telefone: recebida.telefone,
+            texto: recebida.texto,
+            id: recebida.id,
+          });
     if (resultado.ok) continue;
     if (resultado.error instanceof ServicoExternoError) {
       return resposta("Falha transitória; reenvie.", 502);

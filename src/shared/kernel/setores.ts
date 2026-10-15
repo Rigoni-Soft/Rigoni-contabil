@@ -22,6 +22,10 @@ export const SETORES = [
 ] as const;
 export type SetorSlug = (typeof SETORES)[number];
 
+// Para valores que chegam como string (sessão, `<select>`) e precisam virar SetorSlug sem cast.
+export const ehSetor = (valor: string): valor is SetorSlug =>
+  (SETORES as readonly string[]).includes(valor);
+
 // Record<string, ...> solto (não Record<SetorSlug, ...>) de propósito: quem exibe o
 // rótulo recebe o slug como string crua (vem de um DTO), então indexar com SetorSlug
 // exigiria um cast no ponto de leitura sem ganho real — a exaustividade já é

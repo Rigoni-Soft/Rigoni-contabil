@@ -34,6 +34,7 @@ const ROLES = [
       "server",
       "queries",
       "realtime",
+      "upload",
       "store",
       "schema",
       "presenter",

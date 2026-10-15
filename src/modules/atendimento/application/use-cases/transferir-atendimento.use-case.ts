@@ -138,6 +138,7 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
       origemSetor: atendimento.value.setor,
       origemNome,
       resumo,
+      proximoDaFila: proximoDaOrigem?.id ?? null,
     });
   }
 

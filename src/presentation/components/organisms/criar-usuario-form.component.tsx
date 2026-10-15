@@ -1,13 +1,12 @@
-import Link from "next/link";
-import { Check, CheckCircle2, Loader2, UserPlus } from "lucide-react";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 
-import { Button, buttonVariants } from "@/presentation/components/ui/button";
-import { FieldError } from "@/presentation/components/ui/field-error";
-import { Input } from "@/presentation/components/ui/input";
-import { Label } from "@/presentation/components/ui/label";
-import { Select } from "@/presentation/components/ui/select";
-import { cn } from "@/presentation/lib/utils";
+import { BotaoDeEnvio } from "@/presentation/components/atoms/botao-de-envio.component";
+import { Grade, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { FieldError } from "@/presentation/components/atoms/field-error.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
+import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
+import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
+import { ConfirmacaoDeCadastro } from "@/presentation/components/molecules/confirmacao-de-cadastro.component";
 import { opcaoUnica } from "@/shared/kernel/opcoes";
 import { PAPEL_LABEL, type PapelCadastravel } from "@/shared/kernel/papeis";
 import { SETOR_LABEL } from "@/shared/kernel/setores";
@@ -55,110 +54,75 @@ export function CriarUsuarioForm({
 
   if (criado) {
     return (
-      <div className="mx-auto flex max-w-md flex-col gap-3 rounded-lg border border-border bg-card p-4">
-        <p className="flex items-center gap-1.5 text-sm text-primary">
-          <CheckCircle2 className="size-3.5 shrink-0" aria-hidden="true" />
-          Conta de <strong>{criado.nome}</strong> ({criado.email}) criada.
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Senha provisória — repasse com segurança, será exigida troca no primeiro acesso:
-        </p>
-        <p className="rounded-md bg-muted px-3 py-2 font-mono text-lg tracking-wider">
-          {criado.senhaProvisoria}
-        </p>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button type="button" onClick={onCadastrarNovo} className="sm:flex-1">
-            <UserPlus aria-hidden="true" />
-            Cadastrar outro
-          </Button>
-          {/* Provisório: leva pra home, ainda não existe uma tela própria do
-              Setor pra voltar. */}
-          <Link href="/" className={cn(buttonVariants({ variant: "outline" }), "sm:flex-1")}>
-            <Check aria-hidden="true" />
-            Finalizar
-          </Link>
-        </div>
-      </div>
+      <ConfirmacaoDeCadastro
+        largura="md"
+        onCadastrarNovo={onCadastrarNovo}
+        mensagem={
+          <>
+            Conta de{" "}
+            <Texto variante="enfase" como="strong">
+              {criado.nome}
+            </Texto>{" "}
+            ({criado.email}) criada.
+          </>
+        }
+      >
+        <>
+          <Texto variante="apoio">
+            Senha provisória — repasse com segurança, será exigida troca no primeiro acesso:
+          </Texto>
+          <Texto variante="codigo">{criado.senhaProvisoria}</Texto>
+        </>
+      </ConfirmacaoDeCadastro>
     );
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
+    <Pilha espaco="formulario" como="form" onSubmit={onSubmit} noValidate>
       {/* Nome/E-mail/Papel/Setor cabem lado a lado — 2 colunas aproveita melhor
           a largura do formulário (80% da tela, #36) do que empilhar tudo numa
           coluna só. */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="nome">Nome</Label>
-          <Input id="nome" aria-invalid={!!errors.nome} {...register("nome")} />
-          {errors.nome && <FieldError>{errors.nome.message}</FieldError>}
-        </div>
+      <Grade colunas="1>2" espaco={5}>
+        <CampoDeTexto id="nome" rotulo="Nome" erro={errors.nome?.message} {...register("nome")} />
+        <CampoDeTexto
+          id="email"
+          rotulo="E-mail"
+          type="email"
+          erro={errors.email?.message}
+          {...register("email")}
+        />
+        <CampoDeOpcoes
+          id="papel"
+          rotulo="Papel"
+          opcoes={papeisDisponiveis.map((valor) => ({ valor, rotulo: PAPEL_LABEL[valor] }))}
+          placeholder={papelUnico ? undefined : "Selecione"}
+          placeholderDesabilitado
+          defaultValue={papelUnico ?? ""}
+          disabled={!!papelUnico}
+          classeDoSelect={papelUnico ? "disabled:opacity-100" : undefined}
+          erro={errors.papel?.message}
+          {...register("papel")}
+        />
+        <CampoDeOpcoes
+          id="setor"
+          rotulo="Setor"
+          opcoes={setoresDisponiveis.map((valor) => ({
+            valor,
+            rotulo: SETOR_LABEL[valor] ?? valor,
+          }))}
+          placeholder={setorUnico ? undefined : "Selecione"}
+          placeholderDesabilitado
+          defaultValue={setorUnico ?? ""}
+          disabled={!!setorUnico}
+          classeDoSelect={setorUnico ? "disabled:opacity-100" : undefined}
+          erro={errors.setor?.message}
+          {...register("setor")}
+        />
+      </Grade>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="email">E-mail</Label>
-          <Input id="email" type="email" aria-invalid={!!errors.email} {...register("email")} />
-          {errors.email && <FieldError>{errors.email.message}</FieldError>}
-        </div>
+      {erroServidor && <FieldError>{erroServidor}</FieldError>}
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="papel">Papel</Label>
-          <Select
-            id="papel"
-            aria-invalid={!!errors.papel}
-            defaultValue={papelUnico ?? ""}
-            disabled={!!papelUnico}
-            className={papelUnico ? "disabled:opacity-100" : undefined}
-            {...register("papel")}
-          >
-            {!papelUnico && (
-              <option value="" disabled>
-                Selecione
-              </option>
-            )}
-            {papeisDisponiveis.map((papel) => (
-              <option key={papel} value={papel}>
-                {PAPEL_LABEL[papel]}
-              </option>
-            ))}
-          </Select>
-          {errors.papel && <FieldError>{errors.papel.message}</FieldError>}
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="setor">Setor</Label>
-          <Select
-            id="setor"
-            aria-invalid={!!errors.setor}
-            defaultValue={setorUnico ?? ""}
-            disabled={!!setorUnico}
-            className={setorUnico ? "disabled:opacity-100" : undefined}
-            {...register("setor")}
-          >
-            {!setorUnico && (
-              <option value="" disabled>
-                Selecione
-              </option>
-            )}
-            {setoresDisponiveis.map((setor) => (
-              <option key={setor} value={setor}>
-                {SETOR_LABEL[setor] ?? setor}
-              </option>
-            ))}
-          </Select>
-          {errors.setor && <FieldError>{errors.setor.message}</FieldError>}
-        </div>
-      </div>
-
-      {erroServidor && (
-        <p role="alert" className="text-sm text-destructive">
-          {erroServidor}
-        </p>
-      )}
-
-      <Button type="submit" disabled={pendente}>
-        {pendente && <Loader2 className="motion-safe:animate-spin" aria-hidden="true" />}
-        {pendente ? "Cadastrando…" : "Cadastrar"}
-      </Button>
-    </form>
+      <BotaoDeEnvio pendente={pendente} rotulo="Cadastrar" rotuloPendente="Cadastrando…" />
+    </Pilha>
   );
 }

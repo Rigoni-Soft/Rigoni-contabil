@@ -1,25 +1,15 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { CabecalhoDeTela } from "@/presentation/components/molecules/cabecalho-de-tela.component";
+import { TelaDeTrabalhoTemplate } from "@/presentation/components/templates/tela-de-trabalho-template.component";
 
 type CriarClientePageProps = { header: React.ReactNode; formulario: React.ReactNode };
 
 export function CriarClientePage({ header, formulario }: CriarClientePageProps) {
   return (
-    <main className="min-h-screen bg-background">
-      {header}
-      <div className="mx-auto w-[80%] px-4 py-8 sm:px-6">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline"
-        >
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          Voltar
-        </Link>
-        <h1 className="mt-3 mb-6 text-xl font-bold tracking-tight text-primary">
-          Cadastrar Cliente
-        </h1>
-        {formulario}
-      </div>
-    </main>
+    <TelaDeTrabalhoTemplate
+      header={header}
+      largura="formulario"
+      cabecalho={<CabecalhoDeTela voltarHref="/" titulo="Cadastrar Cliente" />}
+      conteudo={formulario}
+    />
   );
 }

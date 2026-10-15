@@ -34,7 +34,7 @@ Cabeçalho `X-Hub-Signature-256: sha256=<HMAC-SHA256 hex do corpo cru com o app 
 ```
 
 Lotes (várias entries/changes/messages) são processados em ordem. `statuses` (sent/delivered/read/failed) são
-aceitos e ignorados. Mensagem sem `text` (áudio, imagem…) reabre o menu.
+aceitos e ignorados. Mensagem de tipo sem tratamento (vídeo, figurinha, localização…) chega sem `text` e reabre o menu; `audio`, `image` e `document` seguem o fluxo de mídia abaixo (#81).
 
 A Meta só entende **200**: qualquer outro status faz ela reenviar, com frequência decrescente, por dias. Por isso:
 
@@ -60,6 +60,43 @@ Template (#51): corpo `{ ..., type: "template", template: { name, language: { co
 
 Documento (#41): corpo `{ messaging_product, recipient_type, to, type: "document", document: { link, filename } }`, mesma
 resposta/erros do texto. O `link` é uma URL assinada do Storage (bucket privado `documentos-clientes`) válida por 5 min.
+
+Painel do Funcionário (#49): o Funcionário responde por texto (`enviar`, até 4096 caracteres) e dispara contrato social/alterações (`enviarDocumento`, o mesmo do menu da URA) pelas mesmas chamadas acima. Só vira Mensagem do Atendimento o que o provedor aceitou: se o envio falha, nada é registrado.
+
+Reação (#84): o Funcionário reage com emoji a uma Mensagem do cliente (`reagir`, porta neutra). O corpo é `{ messaging_product, recipient_type, to, type: "reaction", reaction: { message_id, emoji } }`, com `message_id` o `wamid` da Mensagem do cliente, **guardado em `mensagens.id_externo`** na entrada (abertura do Atendimento e anexo). `emoji` vazio remove a reação. Uma reação por Mensagem (`mensagens.reacao`); só é gravada depois de o provedor aceitar. Mensagem sem `id_externo` (anterior ao #84) não aceita reação. O `id_externo` também deduplica a reentrega do webhook: índice único parcial `(atendimento_id, id_externo)`, e o anexo repetido não insere de novo (continua `anexada`, a Meta recebe 200). O emoji precisa conter pictograma ou bandeira (até 16 unidades UTF-16).
+
+Anexo do Funcionário (#79): `enviarAnexo({ telefone, tipo: "imagem" | "audio" | "documento", url, nomeArquivo, legenda? })`. O corpo segue a Cloud API: `image: { link, caption? }`, `document: { link, filename, caption? }` e `audio: { link }` (áudio não tem legenda). O `link` é uma URL assinada do bucket privado `anexos-atendimento` (separado de `documentos-clientes`), válida por 1 h. Aceitos: JPEG, PNG, WebP, PDF, Word, Excel, PowerPoint, TXT, CSV e ZIP, até 10 MB; a lista é por tipo MIME (nunca pela extensão; SVG e HTML recusados), conferida no servidor e repetida no bucket (`allowed_mime_types`, `file_size_limit`). A Mensagem guarda `anexo_tipo`, `anexo_nome`, `anexo_caminho` e `anexo_tamanho` (os quatro juntos ou nenhum) e `texto` é a legenda; o arquivo só vira Mensagem depois de o provedor aceitar, e se o envio falha o arquivo guardado é removido. Para imagem, o formulário gera uma miniatura WebP (lado maior 320 px, até 256 KB) que vai junto, é guardada no mesmo bucket (`anexo_miniatura_caminho`) e é a que a conversa mostra; o original só é baixado ao ampliar e é o único que segue ao cliente. A miniatura é opcional: inválida ou com falha ao guardar, o envio continua. Auditoria: `atendimento.enviar_anexo`.
+
+## Mídia recebida do cliente (#81)
+
+`audio` (inclusive mensagem de voz), `image` e `document` chegam com um objeto `{ id, mime_type, caption?, filename? }`. O
+webhook os entrega a um caso de uso próprio, atrás da porta neutra `DownloadMidiaPort` (`baixar(idDaMidia) → { bytes, mime, nome? }`;
+o adapter falso devolve arquivos de teste pelo id: `midia-teste-audio` (ogg/opus tocável), `-imagem`, `-documento`, `-grande`
+(acima de 10 MB), `-svg` e `-fora-do-ar`; o real, que troca o id pelo endereço temporário e baixa com o token, é da #68).
+
+- **Só dentro de um Atendimento em andamento.** De um número sem Atendimento (inclusive quem está no menu da URA) a mídia não é
+  baixada nem guardada, não abre Atendimento nem reabre o menu: a URA responde que, por ora, só entende texto. A checagem
+  acontece antes do download.
+- **Guardada** no bucket `anexos-atendimento` e nas mesmas colunas de anexo da Mensagem (#79), como Mensagem do contato; a
+  legenda de imagem/documento é o `texto`. Mesmos limites e tipos do envio do Funcionário (10 MB, lista de MIMEs, SVG/HTML recusados);
+  áudio só ogg (Opus) ou mp4/AAC. Imagem recebida não ganha miniatura: a conversa mostra o original.
+- **Recusada** (acima do limite, tipo não aceito ou mídia que o provedor não entrega mais): vira uma Mensagem da URA na
+  conversa ("o cliente enviou um arquivo que não pôde ser recebido") e o webhook responde 200.
+- **Idempotência** pelo `wamid` (`mensagens.id_externo`, índice único por Atendimento): a reentrega nem baixa o arquivo de novo; se
+  duas chegarem ao mesmo tempo, o banco grava uma só e o arquivo que sobrou é removido (o arquivo é baixado
+  duas vezes nessa corrida). Mensagem sem `id` não tem o que deduplicar: a checagem é pulada e a reentrega duplica.
+- **Falha transitória** ao baixar ou guardar (`ServicoExternoError`) responde 502, e a Meta reenvia o evento; é essa
+  reentrega que reprocessa, não há fila própria.
+- **Visualizar e baixar** (todo anexo da conversa, do cliente ou do Funcionário): cada anexo tem dois links temporários do mesmo
+  objeto, o de **download** (cabeçalho de anexo, com o nome original, vai para a pasta Downloads) e o de **visualização** (sem esse
+  cabeçalho). Imagem amplia no painel e baixa pelo botão "Baixar". Arquivo (PDF, TXT, Word, Excel, PowerPoint, CSV, ZIP...) tem
+  sempre "Baixar"; "Visualizar" existe para PDF e TXT (aba nova do navegador) e para **.docx e .xlsx**, que o navegador lê
+  sozinho (`mammoth` e `read-excel-file`, sem enviar o arquivo a serviço externo) e mostra num painel: o Word num iframe sem script
+  (o arquivo é do cliente) e o Excel como tabela da primeira planilha, até 500 linhas. `.doc`, `.xls`, PowerPoint, CSV e ZIP só
+  baixam. **Áudio** (e vídeo, que o sistema não recebe) não baixa: toca no player do chat (#80); o ogg/opus da mensagem de voz
+  não toca no Safari e não há conversão para m4a nesta entrega.
+
+Áudio enviado pelo Funcionário (#80): ver Anexo do Funcionário acima; aceito pela Meta é AAC, AMR, MP3, M4A (`audio/mp4`) e OGG **só com Opus**, até 16 MB (webm não é aceito).
 
 ## Fluxo
 
@@ -107,6 +144,7 @@ alteração repete o contrato). Exige teste de lote parcial + retry. Hoje o modo
 real.
 
 Também com a #68: credenciais reais, observabilidade e o adapter HTTP real. A decisão janela/template (#51) já existe em `EnviarComunicacaoProativa`, mas ainda não tem chamador nem composição em `main`.
+**Recuperação de Mensagens pendentes (R85-01.B, revalidação 2):** uma Mensagem do Funcionário fica `pendente` até o adapter responder (`entregue` ou `falha`). Não há reconciliação automática após queda do processo nem reenvio automático: a linha pendente segue visível como "Envio não confirmado", não conta como resposta e só adia o aviso/encerramento por inatividade por 5 minutos. `entregue` significa aceite do adapter, não leitura pelo destinatário, e não há garantia de exatamente-uma-vez no provedor. A definição operacional (quem reenvia, em que prazo, com que observabilidade de pendências) entra com a ativação da mensageria real, junto do gate acima. Integrar na `develop` não libera mensageria real, cron nem inatividade automática em produção.
 
 ## Inatividade (#73)
 

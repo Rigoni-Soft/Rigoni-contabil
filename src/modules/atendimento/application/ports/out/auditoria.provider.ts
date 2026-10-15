@@ -9,7 +9,8 @@ export type RegistrarAcaoAuditoria = {
 };
 
 export interface AuditoriaPort {
-  // Best-effort, só pra "falha". O "sucesso" é auditado pelo próprio banco, na mesma transação
-  // da Transferência (`transferir_atendimento`): não existe Transferência sem evento.
+  // Best-effort. Na Transferência só a "falha" passa por aqui: o "sucesso" é auditado pelo banco,
+  // na mesma transação (`transferir_atendimento`): não existe Transferência sem evento. Nas ações
+  // sem RPC própria (envio de documento) vão as duas.
   registrar(input: RegistrarAcaoAuditoria): Promise<void>;
 }

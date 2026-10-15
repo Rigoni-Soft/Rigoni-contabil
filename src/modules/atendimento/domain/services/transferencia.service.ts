@@ -1,7 +1,9 @@
 import type { Papel } from "@/shared/kernel/papeis";
-import type { SetorSlug } from "@/shared/kernel/setores";
+import { SETORES, type SetorSlug } from "@/shared/kernel/setores";
 
 // Quem transfere: o Funcionário dono do Atendimento, o Líder do Setor onde ele está, ou o Admin.
+// ponytail: o nome ficou estreito, a regra também decide quem vê, responde e envia documento no
+// Atendimento. Renomear para `podeAgirNoAtendimento` junto com a PR #77 (o rename toca a pilha).
 export function podeTransferir(
   ator: { id: string; papel: Papel; setor: SetorSlug },
   atendimento: { setor: SetorSlug; funcionarioId: string | null },
@@ -16,4 +18,14 @@ export function podeTransferir(
 // Só Cliente do Simples Nacional ou MEI é atendido (e transferido) pelo setor Simples Nacional.
 export function atendidoPeloSimplesNacional(regime: string): boolean {
   return regime === "simples_nacional" || regime === "mei";
+}
+
+// Para onde o Atendimento pode ir: qualquer Setor menos o atual; o Simples Nacional só para
+// Cliente do Simples Nacional/MEI (a mesma trava que a Transferência faz no backend).
+export function setoresDeDestino(origem: SetorSlug, regimeDoCliente: string | null): SetorSlug[] {
+  const simplesNacionalPermitido =
+    regimeDoCliente !== null && atendidoPeloSimplesNacional(regimeDoCliente);
+  return SETORES.filter(
+    (setor) => setor !== origem && (setor !== "simples_nacional" || simplesNacionalPermitido),
+  );
 }

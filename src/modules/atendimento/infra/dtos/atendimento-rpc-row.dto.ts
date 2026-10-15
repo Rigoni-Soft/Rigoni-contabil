@@ -109,3 +109,100 @@ export const encerramentoPorInatividadeRowSchema = z.discriminatedUnion("status"
   }),
   z.object({ status: z.literal("inexistente") }),
 ]);
+// `clientes` embutido num Atendimento, com os Contatos para achar quem escreve pelo telefone.
+const clienteComContatosRowSchema = z
+  .object({
+    empresa: z.string(),
+    cnpj: z.string(),
+    cliente_contatos: z.array(
+      z.object({
+        nome: z.string(),
+        telefone: z.string(),
+        padrao: z.boolean(),
+        criado_em: z.string(),
+      }),
+    ),
+  })
+  .nullable();
+
+export const atendimentoDoFuncionarioRowSchema = z.object({
+  id: z.string(),
+  telefone: z.string(),
+  chave_telefone: z.string(),
+  criado_em: z.string(),
+  clientes: clienteComContatosRowSchema,
+  // Só a mais recente (a consulta pede uma, da mais nova para a mais antiga).
+  mensagens: z.array(
+    z.object({
+      autor: z.enum(["contato", "ura", "funcionario"]),
+      texto: z.string(),
+      criado_em: z.string(),
+      anexo_tipo: z.enum(["imagem", "audio", "documento"]).nullable(),
+    }),
+  ),
+});
+
+// Mensagem da conversa, com quem a escreveu (`perfis`).
+export const mensagemDaConversaRowSchema = z.object({
+  id: z.string(),
+  autor: z.enum(["contato", "ura", "funcionario"]),
+  texto: z.string(),
+  criado_em: z.string(),
+  id_externo: z.string().nullable(),
+  reacao: z.string().nullable(),
+  entrega: z.enum(["pendente", "entregue", "falha"]),
+  anexo_tipo: z.enum(["imagem", "audio", "documento"]).nullable(),
+  anexo_nome: z.string().nullable(),
+  anexo_caminho: z.string().nullable(),
+  anexo_tamanho: z.number().nullable(),
+  anexo_miniatura_caminho: z.string().nullable(),
+  perfis: z.object({ nome: z.string(), setor: z.enum(SETORES) }).nullable(),
+});
+
+export const conversaRowSchema = z.object({
+  id: z.string(),
+  status: z.enum(["em_andamento", "encerrado"]),
+  setor: z.enum(SETORES),
+  funcionario_id: z.string().nullable(),
+  cliente_id: z.string().nullable(),
+  telefone: z.string(),
+  chave_telefone: z.string(),
+  resumo_ura: z.string().nullable(),
+  cnpj_informado: z.string().nullable(),
+  aviso_inatividade_em: z.string().nullable(),
+  aviso_inatividade_de: z.enum(["contato", "funcionario"]).nullable(),
+  clientes: clienteComContatosRowSchema,
+  mensagens: z.array(mensagemDaConversaRowSchema),
+  transferencias: z.array(
+    z.object({
+      setor_origem: z.enum(SETORES),
+      resumo: z.string(),
+      origem: z.object({ nome: z.string() }).nullable(),
+    }),
+  ),
+});
+export const mensagemParaReacaoRowSchema = z.object({
+  autor: z.enum(["contato", "ura", "funcionario"]),
+  id_externo: z.string().nullable(),
+  reacao: z.string().nullable(),
+});
+
+// `registrar_mensagem_recebida`: o veredito do lock.
+export const registroRecebidoRowSchema = z.enum(["registrada", "duplicada", "encerrada"]);
+
+// `registrar_mensagem_do_funcionario`.
+export const registroDoFuncionarioRowSchema = z.discriminatedUnion("status", [
+  z.object({ status: z.literal("registrada"), id: z.string() }),
+  z.object({ status: z.literal("encerrada") }),
+  z.object({ status: z.literal("sem_autoridade") }),
+]);
+
+// `atendimentos.id` lido sozinho (a mídia só precisa saber qual é o Atendimento em andamento).
+export const atendimentoIdRowSchema = z.object({ id: z.string() });
+
+// Uma página do histórico: o Atendimento só com o que decide quem pode vê-la, e as Mensagens.
+export const mensagensAnterioresRowSchema = z.object({
+  setor: z.enum(SETORES),
+  funcionario_id: z.string().nullable(),
+  mensagens: z.array(mensagemDaConversaRowSchema),
+});

@@ -1,4 +1,4 @@
-import { formatarEspera } from "./espera.service";
+import { formatarEspera } from "./espera";
 
 describe("formatarEspera", () => {
   it("abaixo de 1h mostra só mm:ss", () => {

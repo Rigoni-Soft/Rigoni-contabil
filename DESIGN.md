@@ -110,6 +110,12 @@ largos, abaixo do que o usuário queria ver ocupado):
   do cadastro operacional `/clientes/[id]`): `w-[90%]` — telas de trabalho
   contínuo (ver, filtrar, navegar entre registros), ocupam a maior parte da
   largura livre da tela.
+- **Conversa do Atendimento** (`/atendimento/[id]`, #49): exceção à regra
+  de `%`, por decisão do usuário (2026-10-08, "muito apertado no centro"):
+  ocupa a tela toda, com só `px-4 sm:px-6 lg:px-8`. Em tela larga (`lg`) a
+  página tem exatamente a altura da janela (`h-dvh`) e **não rola em
+  nenhum sentido**; só a lista de mensagens rola, por dentro. Em tela
+  estreita volta a ser uma página comum.
 
 Formulário com elevação em 2 colunas (ex.: edição do cadastro operacional
 do Simples Nacional, #34): cartão `rounded-lg border bg-card shadow-sm`
@@ -123,6 +129,39 @@ Painel de filtro: campos em grid (`grid-cols-2 sm:grid-cols-4`), e as ações
 entrada (ação e dado de filtro são grupos distintos).
 
 ## Componentes
+
+Átomos próprios (o que o shadcn não oferece, sem estado nem hooks) vivem em
+`src/presentation/components/atoms/` com sufixo `.component.tsx`:
+`field-error`, `file-input`, `required-mark`, `titulo-de-grupo`, `grupo-de-acoes`.
+Moléculas de formulário reaproveitáveis (`molecules/`): `campo-de-texto`,
+`campo-de-opcoes` (rótulo + campo + erro/aviso, `aria-invalid`/`aria-required`
+vindos das props), `confirmacao-de-cadastro`, `botao-de-envio`,
+`acoes-do-formulario`, `linha-de-contato`, `linha-de-alteracao`,
+`campo-responsavel`. Formulário novo compõe estas peças em vez de repetir
+rótulo + campo + erro à mão. Gráficos do dashboard: `cartao-de-grafico` (átomo),
+`donut-de-fatias` e `barras-de-fatias` (moléculas).
+
+**Definição de cada nível (Atomic Design deste produto).** Átomo: o menor componente
+da página (`ui/` + `atoms/`: `caixa` (+ `pilha`, `linha`, `grade`), `texto`, `link-de-acao`,
+`celula-de-tabela`, `botao-de-emoji`…). Molécula: pequeno componente
+reaproveitável **composto por 2 ou mais átomos** (`campo-de-texto`,
+`mensagem-balao`, `item-da-fila`, `cabecalho-de-tela`…). Organismo: parte coesa e
+especialista da tela, organizando átomos e moléculas (formulários, listas,
+painéis). Template: organiza os slots da tela, sem marcação de conteúdo
+(`tela-de-trabalho`, `entrada`, `conversa`). Page: só renderiza o template com os
+slots preenchidos. **Nenhum elemento HTML cru fora de `atoms/` e `ui/`** (lint): o
+contêiner é `Caixa` (`como="section"|"ul"|"li"|"form"…`), o ritmo vertical é
+`Pilha espaco={1|2|3|4|6|8|"campo"|"formulario"}`, a linha é `Linha`
+(`alinhar`, `justificar`, `espaco`, `quebra`), a malha é `Grade colunas="1>2"|"1>3"|…`,
+e o texto é `Texto` com um
+papel (variantes em `atoms/texto.component.tsx`: `destaque`, `corpo`, `apoio`, `alerta`,
+`nota`, `titulo`, `tela`…). Trecho que só agrupa ou quebra
+linha é `Caixa`, não `Texto`. Cabeçalho e navegação da aplicação ficam fora do
+`<main>` (landmarks de topo).
+
+`password-input` e `theme-toggle` ficam em `ui/` de propósito: guardam estado
+visual efêmero (mostrar/ocultar, tema) e `'use client'` é permitido ali
+(arquitetura.md 4.7).
 
 `src/presentation/components/ui/` — primitivas estilo shadcn (kebab-case,
 sem sufixo `.component`, isentas de teste por convenção —
@@ -147,10 +186,12 @@ sem precisar de classe.
   reimplementar as classes do ghost/sm à mão. Qualquer link estilizado como
   botão reusa `buttonVariants` em vez de duplicar classes.
 
-  **Rótulo de ação oculto abaixo de `sm` (revisão de 28/09/2026, #32):** os
+  **Rótulo de ação oculto abaixo de `lg` (revisão de 28/09/2026, #32; subiu de `sm` para `lg` em
+  13/10/2026, quando a sonda de reflow mostrou rolagem horizontal do Admin a 320 e 768 px;
+  abaixo de `lg` a identidade e as ações também empilham em duas linhas):** os
   links de ação do `ShellHeader` (hoje "Cadastrar Líder"/"Cadastrar
   Funcionário", "Usuários" e "Meu perfil") escondem o texto do rótulo em telas
-  estreitas (`<span className="hidden sm:inline">`) mantendo só o ícone —
+  estreitas (`Texto variante="soDesktop"`, `hidden lg:inline`) mantendo só o ícone —
   necessário porque o header ganhou um terceiro link de ação neste ticket, e
   o rótulo completo dos três (mais o toggle de tema e "Sair") não cabe em
   larguras de celular sem rolagem horizontal. `aria-label` no próprio
@@ -177,7 +218,10 @@ sem precisar de classe.
   com `divide-y`; remover é botão `ghost` só-ícone com `aria-label` que
   inclui a data.
 - `input.tsx` — 44px de altura; `aria-invalid` troca borda/anel para
-  `destructive` automaticamente.
+  `destructive` automaticamente. `input`, `select` e `textarea` usam
+  `text-base sm:text-sm`, assim como `atoms/file-input.component.tsx`: 16 px no celular (abaixo
+  disso o iOS dá zoom ao focar o campo), 14 px de `sm` em diante. Campo de texto
+  novo usa o primitivo de `ui/`, nunca um `<textarea>`/`<select>` cru.
 
   **Campo de arquivo sempre com `Label` visível (29/09/2026, #33):** o
   cadastro de Cliente introduziu os primeiros `<Input type="file">` do
@@ -187,10 +231,10 @@ sem precisar de classe.
   sempre tem rótulo visível emparelhado por `htmlFor`/`id`. Corrigido na
   revisão impeccable: todo campo de arquivo usa `Label htmlFor` + `Input id`
   como qualquer outro campo, sem depender só de `aria-label`. **Superado
-  pelo `file-input.tsx` abaixo** (feedback manual do usuário, mesma data) —
+  pelo `atoms/file-input.component.tsx` abaixo** (feedback manual do usuário, mesma data) —
   o contrato de `Label htmlFor`/`id` continua valendo, só o controle em si
   deixou de ser um `<input type="file">` nu.
-- `file-input.tsx` (29/09/2026, #33, feedback manual do usuário — "o layout
+- `atoms/file-input.component.tsx` (29/09/2026, #33, feedback manual do usuário — "o layout
   está muito simples"): `<input type="file">` nativo não aceita ser
   estilizado diretamente ("Choose File / No file chosen" do navegador era o
   único controle do produto fora do sistema de design). Substituído por um
@@ -250,7 +294,7 @@ sem precisar de classe.
   `not-allowed` (herdado, mantido) já basta pra sinalizar "sem interação
   aqui". Qualquer campo futuro que reuse o padrão de campo travado acima
   reusa também esse override.
-- `label.tsx`, `field-error.tsx` — erro de campo sempre ícone (`AlertCircle`)
+- `label.tsx`, `atoms/field-error.component.tsx` — erro de campo sempre ícone (`AlertCircle`)
   + texto + cor, nunca só cor (contrato "Talão de Cheque": estado por
   padrão/ícone além de cor).
 - `theme-toggle.tsx` — único ponto de troca de tema, hoje vive no
@@ -263,7 +307,7 @@ reusado no cadastro de Líder/Funcionário).
 
 ### Indicadores de estado (sucesso/falha)
 
-O mesmo contrato do `field-error.tsx` (ícone + texto + cor, nunca só cor) se
+O mesmo contrato do `atoms/field-error.component.tsx` (ícone + texto + cor, nunca só cor) se
 estende a qualquer indicador de resultado, não só erro de formulário nem só
 listas. No feed de auditoria, a coluna "Resultado" combina
 `CheckCircle2`/`XCircle` + o texto (`sucesso`/`falha`) +
@@ -274,8 +318,12 @@ de resultado em geral, não específico de tabela. `success` (dourado) fica
 reservado ao selo "em dia" do Simples Nacional — não se usa aqui para não
 sobrepor dois significados no mesmo token.
 
+**`FieldError` com texto longo:** o ícone alinha na primeira linha
+(`items-start` + `mt-[3px]`, 14 px de ícone sobre 20 px de linha), então o
+componente serve para uma linha ou para várias sem mudar de aparência.
+
 **Aviso (não é erro de validação, mas usa o mesmo componente):** o feed de
-auditoria já usava `field-error.tsx` pra avisar período incompleto mesmo sem
+auditoria já usava `atoms/field-error.component.tsx` pra avisar período incompleto mesmo sem
 ser um erro de schema — o cadastro de Cliente (29/09/2026, #33) confirma que
 isso é um padrão, não uma exceção. Quando a interface precisa dizer "isso não
 está errado, mas você precisa fazer algo a respeito" (CNPJ com formato válido
@@ -601,6 +649,132 @@ aparece abaixo do botão (`AlertTriangle` + `text-destructive`, `role="alert"`,
 dois botões ficam num `flex gap-2`; a linha do Admin segue sem ação. Nenhum token
 novo.
 
+### Conversa do Atendimento (#49)
+
+Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
+
+- **Balões** (`MensagemBalao`): cliente à esquerda, `bg-card` com borda e a
+  ponta no canto superior esquerdo; Funcionário à direita em `bg-primary`;
+  URA à direita em `bg-accent`. O balão do cliente mostra o nome do Contato
+  e, abaixo, `CNPJ 00.000.000/0000-00` ou "CNPJ não definido"; o do
+  atendente mostra nome e Setor. A hora fica dentro do balão, no canto
+  inferior direito, em `text-xs`.
+- **Lista de mensagens** (`ListaDeMensagens`): um rolador `role="log"`
+  (`aria-label="Conversa"`) em `flex-col-reverse` com o `<ol>` cronológico
+  dentro — o navegador mantém a rolagem no fim (nas últimas conversas) sem
+  JavaScript, o DOM segue a ordem de leitura e o leitor de tela anuncia a
+  mensagem nova. Rolar para cima para ler o histórico não é puxado de volta
+  quando chega mensagem nova. Balões sem sombra; a hora do balão do
+  Funcionário usa `opacity-90` (contraste ≥ 4,5:1 nos dois temas).
+- **Reação do escritório** (#84): o balão do cliente tem, fora dele à direita
+  (`left-full`, largura reservada no `max-w`), o botão `ghost` redondo de 28 px
+  "Reagir à mensagem de <nome>" (mesmo `SeletorDeEmoji`, `compacto`). O glifo
+  fica em 28 px, mas a área de toque é de 44 px (`before:-inset-2`): o alvo
+  cresce sem engordar o balão. O painel
+  "Emojis da reação" é `fixed` posicionado pelo botão (não é cortado pelo rolador)
+  e fecha com Esc, clique fora ou rolagem. A reação aparece como pílula de emoji
+  abaixo do texto em `text-base` (`role="img"`, "Reação do escritório: 👍");
+  escolher o mesmo emoji remove. Se a reação falhar, o erro (`role="alert"`)
+  aparece **abaixo** do rolador, não dentro dele: em `flex-col-reverse` o que
+  vem depois do `<ol>` ficaria no topo, fora de vista.
+- **Campo de resposta** (`CompositorDeMensagem`): `Textarea` arredondado +
+  botão redondo de enviar (placeholder "Escreva aqui"; o nome acessível vem
+  do rótulo oculto "Mensagem ao cliente"). Enter envia, Shift+Enter quebra a linha (Enter de composição, IME ou
+  teclado de celular, não envia; o Safari entrega esse Enter com `isComposing` falso e
+  `keyCode` 229, por isso os dois são checados); o campo só esvazia quando o envio dá certo (se falhar, o texto fica). À esquerda do
+  campo, o botão redondo `ghost` "Inserir emoji" (`SeletorDeEmoji`, #78) abre um
+  painel acima dele. Com recentes (até 8, por navegador) o painel mostra só a
+  linha "Recentes" e o botão "Ver todos os emojis"; sem recentes, ou depois do
+  "ver todos", as categorias Rostos, Gestos, Objetos e Símbolos. Cada emoji é um
+  botão de 44 px com nome acessível; a linha de recentes quebra em duas
+  quando não cabe. Escolher insere na posição do cursor e devolve o foco ao campo; Esc
+  (de qualquer foco) e clique fora fecham. O limite de 4096 conta caracteres como o
+  WhatsApp (emoji vale 1), por isso o campo não usa `maxLength`.
+- **Anexos** (#79): o clipe (`BotaoDeAnexo`, 44 px) fica à esquerda do emoji; o arquivo
+  escolhido vira `PreviaDeAnexo` acima do campo (miniatura ou ícone, nome, tamanho,
+  remover; "Enviando…" com `role="status"` durante o envio) e o texto passa a ser a
+  legenda. No balão, imagem é miniatura de 160 px (caixa fixa, sem salto de layout)
+  que abre num diálogo nativo (`popover`): faixa própria no topo com "Baixar" e
+  "Fechar imagem" (44 px cada, fora da foto, que fica com teto `90dvh − 5rem`), e a
+  imagem ampliada com `alt=""` porque o diálogo já se chama "Imagem ampliada: nome".
+  O véu `bg-black/60` é neutro nos dois temas. Arquivo é uma linha com ícone, nome
+  (trunca, `title` com o inteiro), tamanho e as ações "Visualizar" e "Baixar":
+  PDF e TXT abrem numa aba; Word e Excel abrem num painel `popover` com a prévia
+  lida no navegador (Word num iframe `sandbox=""`; planilha como tabela com o nome
+  em `caption` e no máximo 500 linhas, "Mostrando as primeiras N linhas"). O Word
+  fica em fundo branco nos dois temas, de propósito: é papel, a única superfície
+  fora dos tokens além do véu. Carregando é `role="status"`; falha diz para fechar e
+  usar Baixar; planilha ou documento sem conteúdo têm aviso próprio; a leitura tem
+  teto de 30 s e um clique repetido não baixa duas vezes. Arquivo de áudio não
+  tem "Baixar": só o player. Arrastar um arquivo sobre a conversa acende a moldura
+  de guilhochê (`SobreposicaoDeSoltar`, "Solte para anexar", entrada de 180 ms só
+  com `motion-safe:`) e sobre o campo, um anel `primary`; é só enfeite de mouse, o
+  caminho por teclado é o clipe. Texto e link arrastados não acendem nada.
+  No celular (abaixo de `sm`) o campo ocupa a linha toda e clipe, emoji e enviar
+  ficam numa linha própria abaixo, com enviar à direita; de `sm` em diante, tudo
+  numa linha só.
+- **Áudio** (#80): o microfone (`BotaoDeMicrofone`, 44 px) fica entre o emoji e o
+  enviar; sem suporte (navegador sem gravação, página sem HTTPS) fica `disabled`,
+  com o motivo escrito abaixo do campo e ligado ao botão por `aria-describedby`.
+  Gravando, a `BarraDeGravacao` ocupa o lugar do campo: lixeira (cancelar) à
+  esquerda, ponto `destructive` que pulsa só com `motion-safe:` e o cronômetro
+  `mm:ss` em numerais tabulares, e enviar à direita, que recebe o foco (Enter envia,
+  Esc cancela; a dica de teclado some em telas sem hover). A nota abaixo é
+  `role="status"`, montada uma vez, para o início ser anunciado sem narrar o
+  cronômetro. No limite (5 min ou 10 MB) o ponto fica cinza e a nota explica; ao
+  sair da barra o foco volta ao microfone. No balão, o áudio é o player nativo
+  (`PlayerDeAudio`, 44 px, largura mínima de 12 rem) com play, progresso e duração.
+- **Painel de ações** (`PainelDeAcoes`, à direita, 19 rem; 22 rem em `2xl`):
+  compacto. Serviço "Contrato social" em botão `sm` (quando o Cliente não o
+  tem, o botão fica `disabled` com a frase "Contrato social não cadastrado."
+  visível, não só em `title`); alteração contratual e Setor de destino em **seletor** +
+  botão na mesma linha; resumo da transferência em `Textarea` baixo. Guias
+  e CND ficam `disabled` com `title="Em construção"`. Em janela baixa o painel
+  rola por dentro. Transferido, o painel troca tudo por um aviso e a tela
+  sai da conversa.
+- **Aviso de inatividade** (#73, `CabecalhoDaConversa`): quando a URA avisou
+  que vai encerrar o Atendimento por falta de resposta do Funcionário, o
+  cabeçalho mostra um `FieldError` (ícone + texto, `role="alert"`) logo abaixo
+  do contexto. Só o dono do Atendimento o vê, e some assim que ele escreve ou o
+  Atendimento encerra. Não há alerta no dock. Contraste conferido: 8,42:1 no
+  claro e 6,75:1 no escuro; em 360 px o texto quebra em 3 linhas e a página
+  rola, em 1024×600 o chat mantém ~230 px.
+- **Encerrar atendimento** (no fim do `PainelDeAcoes`, separado por `border-t`):
+  botão `outline`; o primeiro clique só abre a confirmação (`role="alertdialog"`
+  com o aviso de que o cliente será avisado) com "Confirmar encerramento"
+  em `destructive` e "Cancelar" (que recebe o foco ao abrir, pois o botão que
+  pediu a confirmação some). A pergunta descreve o diálogo (`aria-describedby`)
+  e, enquanto encerra, "Cancelar" fica `aria-disabled` (não `disabled`), sem
+  perder o foco. Encerrar não tem volta.
+- **Fila do Setor** (`FilaDoSetor` + `ItemDaFila`, #70): na tela `/fila`
+  (`max-w-3xl`, h1 "Fila de atendimento do <nome>, setor <Setor>", seletor de
+  Setor só para o Admin) e como barra lateral esquerda da conversa (18 rem; 20
+  rem em `2xl`) **só de `xl` para cima**, para o chat não espremer em `lg`.
+  Cada item é `rounded-lg border bg-card`: posição em círculo `primary`,
+  contato/empresa/telefone e a espera em `tabular-nums` com ícone de relógio
+  (`mm:ss`; `h:mm:ss` a partir de 1 h). O CNPJ vai junto da empresa e nunca
+  quebra no meio do número (`whitespace-nowrap`); resumo da Transferência em
+  `text-sm` e "Fila de um usuário" em `text-sm muted` quando a Fila é de um
+  usuário (destino fixo ocupado).
+  Abaixo de `xl` a barra some e o cartão da Fila entra no dock.
+- **Aviso de status** (`AvisoDeStatus`): feedback de envio/transferência no
+  painel e no campo de resposta. Segue "Indicadores de estado": ícone
+  (`AlertCircle`/`CheckCircle2`) + texto + cor, erro em `destructive` e sucesso
+  em `primary` (nunca `success`, o dourado do selo "em dia").
+
+### Dock de Atendimentos (#49)
+
+Cartões fixos no canto inferior direito (`fixed right-4 bottom-4`), um por
+Atendimento em andamento: ícone, Contato, empresa e o começo da última
+mensagem (prefixo "Você:" / "URA:" quando não é do cliente). Quando o cliente
+escreveu por último o cartão ganha uma bolinha `destructive` e a prévia em
+`font-medium` (e "nova mensagem" só para leitor de tela); o contêiner é
+`aria-live="polite"` e fica acima da safe-area de aparelhos com barra
+inferior (`bottom-[max(1rem,env(safe-area-inset-bottom))]`). O cartão entra com `animate-dock-entrada` (sobe e aparece, 0,35 s,
+`cubic-bezier(0.16, 1, 0.3, 1)`, keyframes em `globals.css`) e é recriado a cada mensagem nova, repetindo a
+animação. O aviso sonoro (dois tons curtos) toca quando surge um Atendimento
+ou o cliente escreve de novo.
+
 ## Estados e motion
 
 - Loading do formulário de login: label muda para "Entrando…" e um
@@ -612,6 +786,15 @@ novo.
 - Erro de servidor: bloco com borda/ícone `destructive`, `role="alert"`.
 - Sucesso de salvar no cadastro operacional: `role="status"` (anunciado por
   leitor de tela, ao contrário de um `<p>` mudo).
+- Alvos de toque: em aparelho de toque (`pointer-coarse:h-11`) os controles do
+  painel de ações sobem para 44 px.
+- Entrada do cartão do dock de Atendimentos: `motion-safe:animate-dock-entrada`.
+  O estado (destaque, prévia, "nova mensagem") não depende da animação nem do
+  som: quem pediu movimento reduzido ou está sem som perde só o enfeite.
+- Aviso sonoro: só quando há novidade (Atendimento novo ou cliente escreveu
+  de novo; resposta nossa ou da URA e a primeira leitura da tela são
+  silenciosas). Navegadores bloqueiam som antes do primeiro clique/tecla da
+  página; até lá o aviso é mudo, sem erro.
 
 ## O que ainda não existe
 

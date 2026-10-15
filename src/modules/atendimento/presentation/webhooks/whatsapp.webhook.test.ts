@@ -5,9 +5,13 @@
  */
 import { createHmac } from "node:crypto";
 
+import type { AnexosAtendimentoPort } from "@/modules/atendimento/application/ports/out/anexos-atendimento.provider";
+import type { AtendimentoRepositoryPort } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { SessaoAtendimento } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
 import { AutenticarWebhook } from "@/modules/atendimento/application/use-cases/autenticar-webhook.use-case";
 import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/receber-mensagem.use-case";
+import { ReceberMidia } from "@/modules/atendimento/application/use-cases/receber-midia.use-case";
+import { DownloadMidiaFalsoGateway } from "@/modules/atendimento/infra/gateways/download-midia-falso.gateway";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
 import { HmacAutenticacaoWebhookGateway } from "@/modules/atendimento/infra/gateways/hmac-autenticacao-webhook.gateway";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -37,7 +41,34 @@ const sessoes: ConstructorParameters<typeof ReceberMensagem>[3] = {
   },
 };
 
+// Mídia (#81): Atendimento em andamento do número e Mensagens registradas, em memória.
+let atendimentoDaMidia: { atendimentoId: string } | null;
+let registradas: { idExterno?: string; autor: string; texto: string; anexo?: { tipo: string } }[];
+let guardados: string[];
+const repositorioDeMidia = {
+  atendimentoParaMidia: async (_: string, idExterno?: string) =>
+    ok(
+      atendimentoDaMidia && {
+        ...atendimentoDaMidia,
+        jaRegistrada: registradas.some((m) => m.idExterno === idExterno),
+      },
+    ),
+  registrarMensagemRecebida: async (_: string, mensagem: (typeof registradas)[number]) => {
+    registradas.push(mensagem);
+    return ok("registrada" as const);
+  },
+} as unknown as AtendimentoRepositoryPort;
+const anexosDeMidia = {
+  guardar: async ({ arquivo }: { arquivo: { nome: string } }) => {
+    guardados.push(arquivo.nome);
+    return ok(`at-1/u/${arquivo.nome}`);
+  },
+  remover: async () => ok(undefined),
+} as unknown as AnexosAtendimentoPort;
+
 jest.mock("@/main/atendimento.factory", () => ({
+  makeReceberMidia: () =>
+    new ReceberMidia(repositorioDeMidia, new DownloadMidiaFalsoGateway(), anexosDeMidia, envio),
   makeReceberMensagem: () =>
     new ReceberMensagem(
       identificacao,
@@ -105,6 +136,9 @@ const verificar = (query: string) =>
 beforeEach(() => {
   envio = new EnvioMensagemFalsoGateway();
   sessoesEmMemoria.clear();
+  atendimentoDaMidia = { atendimentoId: "at-1" };
+  registradas = [];
+  guardados = [];
   identificacao = {
     identificar: async () => ok({ clienteId: "c1", nome: "Ana", empresa: "Padaria" }),
     cnpjCadastrado: async () => ok(true),
@@ -162,6 +196,13 @@ describe("POST /api/webhooks/whatsapp (notificação)", () => {
     expect(envio.documentosEnviados).toEqual([
       { telefone: "5511999990000", nomeArquivo: "DAS.pdf", pdfBase64: "JVBERi0=" },
     ]);
+  });
+
+  it("opção 5 do menu (falar com atendente) encaminha o contato reconhecido à recepção", async () => {
+    const r = await enviar(notificacao([texto("5")]));
+    expect(r.status).toBe(200);
+    expect(envio.enviadas).toHaveLength(1);
+    expect(envio.enviadas[0].texto).toContain("recepção");
   });
 
   it("opção 5 do menu (falar com atendente) encaminha o contato reconhecido à recepção", async () => {
@@ -241,5 +282,67 @@ describe("POST /api/webhooks/whatsapp (notificação)", () => {
   it("200 quando a Cloud API recusa de forma permanente (133010, número sem WhatsApp): sem reenvio", async () => {
     envio = new EnvioMensagemFalsoGateway({ "5511912345678": 133010 });
     expect((await enviar(notificacao([texto("oi")]))).status).toBe(200);
+  });
+});
+
+describe("POST /api/webhooks/whatsapp (mídia do cliente, #81)", () => {
+  const audio = (id = "wamid.AUDIO") => ({
+    from: "5511912345678",
+    id,
+    timestamp: "1749416383",
+    type: "audio",
+    audio: { id: "midia-teste-audio", mime_type: "audio/ogg; codecs=opus", voice: true },
+  });
+
+  it("áudio dentro de um Atendimento em andamento é guardado e registrado como Mensagem do contato", async () => {
+    const r = await enviar(notificacao([audio()]));
+    expect(r.status).toBe(200);
+    expect(guardados).toEqual(["audio.ogg"]);
+    expect(registradas).toMatchObject([
+      { autor: "contato", idExterno: "wamid.AUDIO", anexo: { tipo: "audio" } },
+    ]);
+    expect(envio.enviadas).toHaveLength(0);
+  });
+
+  it("sem Atendimento em andamento: nada é baixado nem guardado, não reabre o menu e a URA pede texto", async () => {
+    atendimentoDaMidia = null;
+    const r = await enviar(notificacao([audio()]));
+    expect(r.status).toBe(200);
+    expect(guardados).toEqual([]);
+    expect(registradas).toEqual([]);
+    expect(envio.enviadas).toHaveLength(1);
+    expect(envio.enviadas[0].texto).toContain("mensagens de texto");
+    expect(envio.enviadas[0].texto).not.toContain("Olá, Ana");
+  });
+
+  it("reentrega do mesmo evento não duplica a Mensagem nem guarda o arquivo duas vezes", async () => {
+    const corpo = notificacao([audio()]);
+    expect((await enviar(corpo)).status).toBe(200);
+    expect((await enviar(corpo)).status).toBe(200);
+    expect(guardados).toHaveLength(1);
+    expect(registradas).toHaveLength(1);
+  });
+
+  it("arquivo acima de 10 MB vira aviso do sistema na conversa e responde 200", async () => {
+    const grande = {
+      from: "5511912345678",
+      id: "wamid.GRANDE",
+      type: "document",
+      document: { id: "midia-teste-grande", mime_type: "application/pdf", filename: "grande.pdf" },
+    };
+    expect((await enviar(notificacao([grande]))).status).toBe(200);
+    expect(guardados).toEqual([]);
+    expect(registradas).toMatchObject([{ autor: "ura", idExterno: "wamid.GRANDE" }]);
+  });
+
+  it("502 quando o provedor de mídia está fora do ar, para a Meta reenviar", async () => {
+    const msg = { ...audio("wamid.FORA"), audio: { id: "midia-teste-fora-do-ar" } };
+    expect((await enviar(notificacao([msg]))).status).toBe(502);
+    expect(registradas).toEqual([]);
+  });
+
+  it("assinatura inválida não processa a mídia", async () => {
+    expect((await enviar(notificacao([audio()]), "sha256=abc")).status).toBe(403);
+    expect(guardados).toEqual([]);
   });
 });

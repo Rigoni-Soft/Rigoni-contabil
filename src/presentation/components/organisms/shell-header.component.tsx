@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { Building2, CalendarOff, CircleUser, UserPlus, Users } from "lucide-react";
+import { Building2, CalendarOff, CircleUser, ListOrdered, UserPlus, Users } from "lucide-react";
 
+import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { buttonVariants } from "@/presentation/components/ui/button";
 import { ThemeToggle } from "@/presentation/components/ui/theme-toggle";
 import { PAPEL_LABEL } from "@/shared/kernel/papeis";
@@ -27,23 +29,32 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
   const rotuloCadastrar = CADASTRAR_LABEL[papel];
 
   return (
-    <header className="flex items-center justify-between gap-4 border-b border-border bg-card px-4 py-3 sm:px-6">
-      <div className="flex min-w-0 items-center gap-3">
-        <span
+    <Linha
+      espaco={3}
+      como="header"
+      // Abaixo de lg a identidade e as ações empilham: o Admin tem 5 ações + tema + Sair e não cabem
+      // lado a lado (reflow a 320 px, WCAG 1.4.10). De lg para cima, uma linha só.
+      className="flex-col items-stretch border-b border-border bg-card px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:gap-4"
+    >
+      <Linha alinhar="centro" espaco={3} className="min-w-0">
+        <Caixa
+          como="span"
           aria-hidden="true"
           className="hidden size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground sm:flex"
         >
           {inicial}
-        </span>
-        <div className="min-w-0">
-          <p className="font-medium break-words text-foreground sm:truncate">{nome}</p>
-          <p className="text-sm break-words text-muted-foreground sm:truncate">
+        </Caixa>
+        <Caixa className="min-w-0">
+          <Texto variante="destaque" className="break-words sm:truncate">
+            {nome}
+          </Texto>
+          <Texto variante="apoio" className="break-words sm:truncate">
             {PAPEL_LABEL[papel] ?? papel} · {escopo}
-          </p>
-        </div>
-      </div>
+          </Texto>
+        </Caixa>
+      </Linha>
 
-      <div className="flex shrink-0 items-center gap-1">
+      <Linha alinhar="centro" espaco={1} quebra className="lg:shrink-0">
         {/* Único caminho de navegação até /admin/usuarios/novo — Admin e Líder
             cadastram (escopado por papel no próprio caso de uso, #30/#32);
             Funcionário não cadastra ninguém, então não vê o link. */}
@@ -54,7 +65,9 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
             className={buttonVariants({ variant: "ghost" })}
           >
             <UserPlus aria-hidden="true" />
-            <span className="hidden sm:inline">{rotuloCadastrar}</span>
+            <Texto variante="soDesktop" como="span">
+              {rotuloCadastrar}
+            </Texto>
           </Link>
         )}
         {/* Único caminho de navegação até /admin/clientes/novo — só Admin cadastra
@@ -67,7 +80,9 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
             className={buttonVariants({ variant: "ghost", size: "sm" })}
           >
             <Building2 aria-hidden="true" />
-            <span className="hidden sm:inline">Cadastrar Cliente</span>
+            <Texto variante="soDesktop" como="span">
+              Cadastrar Cliente
+            </Texto>
           </Link>
         )}
         {papel === "admin" && (
@@ -77,7 +92,19 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
             className={buttonVariants({ variant: "ghost" })}
           >
             <Users aria-hidden="true" />
-            <span className="hidden sm:inline">Usuários</span>
+            <Texto variante="soDesktop" como="span">
+              Usuários
+            </Texto>
+          </Link>
+        )}
+        {/* Só o Admin: ele não tem Setor nem barra lateral na conversa e vê a Fila de qualquer
+            Setor aqui (#70). Os demais têm a Fila na conversa e o cartão no dock. */}
+        {papel === "admin" && (
+          <Link href="/fila" aria-label="Fila" className={buttonVariants({ variant: "ghost" })}>
+            <ListOrdered aria-hidden="true" />
+            <Texto variante="soDesktop" como="span">
+              Fila
+            </Texto>
           </Link>
         )}
         {/* Caminho até /admin/feriados (#72): só o Admin cadastra feriados. */}
@@ -88,7 +115,9 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
             className={buttonVariants({ variant: "ghost" })}
           >
             <CalendarOff aria-hidden="true" />
-            <span className="hidden sm:inline">Feriados</span>
+            <Texto variante="soDesktop" como="span">
+              Feriados
+            </Texto>
           </Link>
         )}
         {/* Único caminho de navegação até /perfil (#56), onde mora a troca voluntária
@@ -99,11 +128,13 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
           className={buttonVariants({ variant: "ghost" })}
         >
           <CircleUser aria-hidden="true" />
-          <span className="hidden sm:inline">Meu perfil</span>
+          <Texto variante="soDesktop" como="span">
+            Meu perfil
+          </Texto>
         </Link>
         <ThemeToggle />
         {sair}
-      </div>
-    </header>
+      </Linha>
+    </Linha>
   );
 }

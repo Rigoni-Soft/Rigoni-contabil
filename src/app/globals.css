@@ -63,6 +63,8 @@
 }
 
 @theme inline {
+  --animate-dock-entrada: dock-entrada 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-arraste-entrada: arraste-entrada 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   --font-sans: var(--font-roboto);
 
   --color-background: var(--background);
@@ -147,4 +149,28 @@ input[type="radio"] {
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   opacity: 0.55;
+}
+
+/* Moldura de soltar arquivo sobre a conversa: aparece. Só roda com `motion-safe:`. */
+@keyframes arraste-entrada {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Cartão do dock de Atendimentos: sobe e aparece. Só roda com `motion-safe:`. */
+@keyframes dock-entrada {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }

@@ -17,3 +17,11 @@ export function formatarTelefone(entrada: string): string {
   if (restante.length > tamanhoDdd) resultado += `-${restante.slice(tamanhoDdd)}`;
   return resultado;
 }
+
+// O telefone do Atendimento vem com DDI; a máscara é de DDD + número.
+export function telefoneParaExibicao(telefone: string): string {
+  const digitos = telefone.replace(/\D/g, "");
+  return formatarTelefone(
+    digitos.length > 11 && digitos.startsWith("55") ? digitos.slice(2) : digitos,
+  );
+}

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { ShellHeader } from "@/presentation/components/organisms/shell-header.component";
 import { FeriadosPage } from "@/presentation/components/pages/feriados.page";
 import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-button.container";
@@ -29,9 +30,7 @@ export default async function Page() {
         feriados.ok ? (
           <FeriadosContainer feriados={feriados.value} />
         ) : (
-          <p role="alert" className="text-sm text-destructive">
-            {feriados.error.message}
-          </p>
+          <AvisoDeStatus tipo="erro" texto={feriados.error.message} />
         )
       }
     />

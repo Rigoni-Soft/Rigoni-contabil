@@ -79,6 +79,7 @@ Exemplos de diretórios válidos: `shared`, `pages`, `examples`, `customer-setti
 | `*.actions.ts` | Server Actions |
 | `*.server.ts` | loaders de servidor |
 | `*.realtime.ts` | assinatura Realtime no ViewModel |
+| `*.upload.ts` | upload em partes do navegador direto ao Storage, no ViewModel (ADR 0007) |
 | `*.webhook.ts` | handlers de webhook |
 | `*.test.ts` | testes de integração (inclui os de webhook, feitos com Supertest) |
 | `*.e2e.ts` | testes E2E, em `e2e/` |
@@ -224,7 +225,7 @@ Cada regra vale para a pasta inteira, incluindo subpastas. "Própria" significa 
 | `main` | `application` e `infra` de qualquer módulo, `shared` | `domain` diretamente, `presentation` |
 | view-model | `shared`, tipos de `application` | `domain`, `infra`, `main` (exceto os arquivos das duas linhas abaixo) |
 | `*.actions.ts`, `*.server.ts`, `*.webhook.ts` | `main` (servidor), `shared`, tipos de `application` | `domain`, `infra`, `main/client` |
-| `*.realtime.ts` | `main/client`, `shared`, tipos de `application` | `domain`, `infra`, `main` de servidor |
+| `*.realtime.ts`, `*.upload.ts` | `main/client`, `shared`, tipos de `application` | `domain`, `infra`, `main` de servidor |
 | `main/client` | `application`, `infra` (incluindo `infra/realtime`), `shared` | `main` de servidor, `server-only` |
 | `presentation/auth/` | `@supabase/*` (cliente do navegador), `shared` | consultas de dados; `main` |
 | Views | `shared`, `presentation/components` (níveis abaixo) | `modules/`, `main`, `next/*` (exceto `next/link` e `next/image`), hooks |
@@ -233,7 +234,7 @@ Cada regra vale para a pasta inteira, incluindo subpastas. "Própria" significa 
 Regras adicionais:
 
 1. **Módulos não se importam.** Só `app/` e `main/` enxergam mais de um módulo (seção 3.11).
-2. **Só `main` importa `infra`.** Só `*.actions.ts`, `*.server.ts` e `*.webhook.ts` importam `main` (servidor); só `*.realtime.ts` importa `main/client`.
+2. **Só `main` importa `infra`.** Só `*.actions.ts`, `*.server.ts` e `*.webhook.ts` importam `main` (servidor); só `*.realtime.ts` e `*.upload.ts` importam `main/client`.
 3. **A entidade de domínio nunca sai da `application`.** Ela cruza `application`↔`infra` pelas portas OUT (ambas conhecem o `domain`), mas nunca chega à `presentation`: o que sai é sempre um Output DTO.
 4. **Importe `import type` para interfaces** e mantenha `tsPreCompilationDeps: true` na configuração do lint, senão importações só de tipo ficam invisíveis.
 5. **`@supabase/*` só em `infra`, `main` e `presentation/auth/`.**
@@ -364,7 +365,7 @@ export const makeCriarMembro = (): CriarMembroPort =>
 - **Por requisição, nunca singleton:** o cliente Supabase depende dos cookies do usuário (sessão e RLS). Um singleton misturaria sessões.
 - `import "server-only"` obrigatório em `main/**`.
 - É o único lugar com `new` de adaptador. Chaves privilegiadas (`service_role`) só existem aqui, em fábricas de uso explícito (jobs), nunca no caminho de uma requisição de usuário.
-- **`main/client/`** reúne as factories que rodam no navegador (hoje, só Realtime). Não importa `server-only` nem o `main` de servidor, e só `*.realtime.ts` a importa.
+- **`main/client/`** reúne as factories que rodam no navegador (Realtime e upload em partes, ADR 0007). Não importa `server-only` nem o `main` de servidor, e só `*.realtime.ts` e `*.upload.ts` a importam.
 
 ### 3.11 Comunicação entre módulos
 
@@ -416,7 +417,7 @@ Regras:
 2. Esse `route.ts` só reexporta o `POST` (o de job também o `GET`, que é o método do Vercel Cron) de `modules/<d>/presentation/webhooks/<nome>.webhook.ts`. **[lint]**
    - **Job agendado:** o handler confere o segredo do agendador (`Authorization: Bearer`) por uma porta OUT (`AutenticacaoJobPort`), chama a porta IN pelo `main` e devolve o resumo; sem o segredo configurado, recusa tudo. O cron fica em `vercel.json`.
 3. O handler `*.webhook.ts` lê o corpo cru, extrai a assinatura, chama uma porta IN pelo `main` e converte o resultado em status HTTP. Sem regra de negócio.
-4. **O que puder passar pela `infra` passa.** A verificação de assinatura e a idempotência (guardar o id do evento já processado) acontecem dentro do caso de uso, por portas OUT (`AssinaturaWebhookPort`, `EventoProcessadoRepository`) implementadas na `infra`.
+4. **O que puder passar pela `infra` passa.** A verificação de assinatura e a idempotência (guardar o id do evento já processado) acontecem dentro do caso de uso, por portas OUT (`AutenticacaoWebhookPort`, `EventoProcessadoRepository`) implementadas na `infra`. Quando a assinatura cobre o corpo cru no formato do provedor e o caso de uso de recepção tem contrato neutro (sem jargão do provedor), a verificação fica num caso de uso próprio (`AutenticarWebhook`, porta IN com um método por prova: assinatura e token de handshake), chamado pelo handler antes de qualquer efeito; o handler nunca obtém a porta OUT direto do `main`.
 5. Resposta: 2xx quando processou ou já tinha visto o evento; 4xx para assinatura inválida; 5xx para falha transitória (o provedor tenta de novo).
 6. O middleware/proxy de sessão exclui `/api/webhooks/**`. Em `/api/jobs/**` ele só renova sessão (não redireciona), o que é inofensivo.
 
@@ -520,6 +521,8 @@ src/
 | **pages/** | `.../pages/` | Template preenchido por slots com conteúdo. Sempre Server. |
 
 - Cada nível só importa níveis abaixo. **[lint]**
+- **Só `atoms/` e `ui/` têm elemento HTML cru** (`<div>`, `<p>`, `<ul>`, `<button>`…). Molécula, organismo, template e page compõem o nível abaixo: o contêiner de layout é o átomo `Caixa`, o texto é `Texto`, a lista é `Caixa como="ul"`. Container (`*.container.tsx`) e `page.tsx` do Next seguem a mesma regra. Exceção rara e justificada: `eslint-disable` com o motivo. **[lint]**
+- Molécula é composta por 2 ou mais átomos distintos; organismo organiza átomos e moléculas; template organiza slots; page renderiza o template.
 - Todas as Views são globais (`presentation/components/`). Não existe View dentro de módulo.
 - Aliases do `components.json` (Anexo C) apontam o shadcn para `presentation/`.
 - Edição de arquivos do `ui/` é permitida para adicionar variantes (cva) ou ajustar tokens; toda edição é deliberada e registrada no PR, para não ser perdida em um `shadcn add` posterior.
@@ -788,6 +791,7 @@ Valores iniciais, a calibrar por medição:
 
 - Toda mutation invalida por **prefixo** de chave, não a árvore inteira.
 - A carga inicial vem como `initialData` do loader; use `staleTime` ≥ 30 s para não refazer a busca ao montar.
+- **Exceção:** query com `refetchInterval` (polling, ex.: a conversa do Atendimento, 5 s, e o dock, 15 s) usa `staleTime` igual ao intervalo: o `initialData` só vale até o primeiro ciclo, e o polling é o que mantém o dado atual.
 
 ### 6.8 Anti-duplicação
 
@@ -843,6 +847,10 @@ Todas as regras de teste (TDD, pirâmide, o que testar em cada camada, cobertura
 7. **Versão do Next.js:** major 16 fixado (`next@^16`); a documentação consultada é da 16.3.5.
 8. **Nomenclatura:** regras globais de nomes incorporadas (seção 0.2), com verificação automática (Anexo E).
 9. **Testes:** documento separado, `testes.md`, como fonte única das regras de teste. Este documento só aponta para ele (seções 0.2 e 7, Anexo D).
+10. **Tela reativa com várias regiões:** um Container e um hook por região, todos sobre a **mesma chave** do React Query (uma consulta só, mesmo com vários Containers). A `page` e o `template` continuam Server e só montam os slots; os hooks ficam nos Containers (seções 4.5 e 4.6). Estado que cruza regiões (ex.: "este Atendimento acabou de ser transferido") vem do **cache de mutações** do React Query (`useMutationState`), sem store paralela (seção 4.7). Exemplo: o Painel do Funcionário (`modules/atendimento/presentation/view-models/conversa/`).
+11. **Atomic Design de verdade:** átomo/molécula é o componente pequeno e reaproveitável; organismo é uma parte concisa da tela montada com moléculas; template estrutura a tela com slots; page é o template preenchido (seção 4.4). Um componente com mais de uma responsabilidade (balão, campo, painel, formulário) deve ser quebrado. Os organismos antigos que são telas inteiras ficam como dívida a quebrar quando forem tocados.
+12. **Painel de Atendimento lê e escreve com `service_role`**, com a autorização no caso de uso (dono, Líder do Setor ou Admin): `atendimentos`, `mensagens` e `transferencias` têm RLS ligada e nenhuma policy. Ver ADR 0005.
+13. **Aviso sonoro da interface** gerado pelo próprio navegador (Web Audio API, `presentation/lib/notificacao-sonora.ts`), sem arquivo de áudio, liberado pelo primeiro gesto do usuário (política de autoplay) e sempre acompanhado de sinal visual e de texto para leitor de tela; nunca é o único aviso.
 
 **Pendentes de decisão**
 
@@ -857,7 +865,7 @@ Nenhum.
 - Dado compartilhado em `'use cache'` restrito a conteúdo público; exceções por registro de decisão.
 - Nenhuma cor crua do Tailwind nas Views; só tokens semânticos.
 - Adaptações da regra de nomenclatura ao projeto (seção 0.2): `*.provider.ts` para as portas (contratos de repositório ficam em `.repository.ts`), `*.component.tsx` para atoms, molecules, organisms e templates (o nível vem da pasta), `*.hook.ts` no hook do ViewModel, `*.spec.ts` (unitário), `*.test.ts` (integração) e `*.e2e.ts` (E2E) nos testes, `preconditions.ts` no lugar de `guard.ts`, `supabase-server.factory.ts`, e a lista de sufixos adicionais.
-- Nomes novos introduzidos pelas últimas revisões: `*.realtime.ts`, `*.webhook.ts`, `infra/realtime/`, `main/client/`, `presentation/auth/`, `AssinaturaWebhookPort`, `EventoProcessadoRepository`.
+- Nomes novos introduzidos pelas últimas revisões: `*.realtime.ts`, `*.webhook.ts`, `infra/realtime/`, `main/client/`, `presentation/auth/`, `AutenticacaoWebhookPort`, `AutenticarWebhook`, `EventoProcessadoRepository`.
 
 ---
 
@@ -888,7 +896,7 @@ module.exports = {
     { name: "so-actions-importam-main", severity: "error",
       from: { path: "^src/(modules|presentation|app)/", pathNot: "\\.(actions|server|webhook)\\.tsx?$" }, to: { path: "^src/main/(?!client/)" } },
     { name: "so-realtime-importa-main-client", severity: "error",
-      from: { pathNot: ["\\.realtime\\.tsx?$", "^src/main/"] }, to: { path: "^src/main/client/" } },
+      from: { pathNot: ["\\.(realtime|upload)\\.tsx?$", "^src/main/"] }, to: { path: "^src/main/client/" } },
     { name: "main-client-sem-servidor", severity: "error",
       from: { path: "^src/main/client/" }, to: { path: ["^src/main/(?!client/)", "node_modules/server-only/"] } },
     { name: "supabase-so-em-infra-main-e-auth", severity: "error",
@@ -1049,7 +1057,7 @@ const ROLES = [
   [/\/infra\/repositories\//, ["repository"]],
   [/\/infra\/(gateways|realtime)\//, ["gateway"]],
   [/\/presentation\/webhooks\//, ["webhook"]],
-  [/\/presentation\/view-models\//, ["actions", "server", "queries", "realtime", "store", "schema", "presenter", "hook", "container"]],
+  [/\/presentation\/view-models\//, ["actions", "server", "queries", "realtime", "upload", "store", "schema", "presenter", "hook", "container"]],
   [/\/presentation\/stores\//, ["store"]],
   [/\/presentation\/providers\//, ["provider", "providers"]],
   [/\/presentation\/components\/(atoms|molecules|organisms|templates)\//, ["component"]],

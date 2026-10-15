@@ -6,6 +6,7 @@ const precisaBypass = remoto && !!process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
 
 export default defineConfig({
   testDir: "e2e",
+  globalSetup: "./e2e/support/global-setup.ts",
   testMatch: "**/*.e2e.ts", // o padrão do Playwright (test|spec) não pega *.e2e.ts
   use: { baseURL: process.env.BASE_URL ?? `http://localhost:${PORT}` },
   // Serial, não paralelo: todos os testes batem no mesmo Supabase local e no
@@ -32,6 +33,11 @@ export default defineConfig({
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
+        // Gravação de áudio (#80): microfone falso e permissão já dada, sem prompt nem hardware.
+        permissions: ["microphone"],
+        launchOptions: {
+          args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"],
+        },
         ...(precisaBypass ? { storageState: "e2e/.auth/bypass.json" } : {}),
       },
       dependencies: precisaBypass ? ["bypass"] : [],

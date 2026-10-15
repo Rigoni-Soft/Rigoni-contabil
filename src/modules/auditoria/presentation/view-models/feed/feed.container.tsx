@@ -1,5 +1,7 @@
 "use client";
 
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { AuditoriaFeedFiltro } from "@/presentation/components/organisms/auditoria-feed-filtro.component";
 import { AuditoriaFeed } from "@/presentation/components/organisms/auditoria-feed.component";
 import type { RegistroAcaoDto } from "@/modules/auditoria/application/dtos/registro-acao.dto";
@@ -18,13 +20,13 @@ export function FeedContainer({ initialData }: { initialData: RegistroAcaoDto[] 
         onLimpar={aoLimpar}
       />
       {erro && (
-        <p role="alert" className="mb-4 text-sm text-destructive">
-          {erro}
-        </p>
+        <Caixa className="mb-4">
+          <FieldError>{erro}</FieldError>
+        </Caixa>
       )}
-      <div aria-busy={carregando} className={carregando ? "opacity-60" : undefined}>
+      <Caixa aria-busy={carregando} className={carregando ? "opacity-60" : undefined}>
         <AuditoriaFeed registros={registros} />
-      </div>
+      </Caixa>
     </>
   );
 }

@@ -1,8 +1,10 @@
 import { AlertTriangle, Loader2 } from "lucide-react";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 
+import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { FieldError } from "@/presentation/components/atoms/field-error.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Button } from "@/presentation/components/ui/button";
-import { FieldError } from "@/presentation/components/ui/field-error";
 import { Label } from "@/presentation/components/ui/label";
 import { PasswordInput } from "@/presentation/components/ui/password-input";
 
@@ -24,8 +26,8 @@ export function TrocarSenhaForm({
   erroServidor,
 }: TrocarSenhaFormProps) {
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
-      <div className="flex flex-col gap-1.5">
+    <Pilha espaco="formulario" como="form" onSubmit={onSubmit} noValidate>
+      <Pilha espaco="campo">
         <Label htmlFor="novaSenha">Nova senha</Label>
         <PasswordInput
           id="novaSenha"
@@ -34,9 +36,9 @@ export function TrocarSenhaForm({
           {...register("novaSenha")}
         />
         {errors.novaSenha && <FieldError>{errors.novaSenha.message}</FieldError>}
-      </div>
+      </Pilha>
 
-      <div className="flex flex-col gap-1.5">
+      <Pilha espaco="campo">
         <Label htmlFor="confirmacao">Confirmar nova senha</Label>
         <PasswordInput
           id="confirmacao"
@@ -45,21 +47,25 @@ export function TrocarSenhaForm({
           {...register("confirmacao")}
         />
         {errors.confirmacao && <FieldError>{errors.confirmacao.message}</FieldError>}
-      </div>
+      </Pilha>
 
       {erroServidor && (
-        <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2.5">
+        <Linha
+          alinhar="inicio"
+          espaco={2}
+          className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2.5"
+        >
           <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden="true" />
-          <p role="alert" className="text-sm text-destructive">
+          <Texto variante="alerta" role="alert">
             {erroServidor}
-          </p>
-        </div>
+          </Texto>
+        </Linha>
       )}
 
       <Button type="submit" disabled={pendente} className="w-full">
         {pendente && <Loader2 className="motion-safe:animate-spin" aria-hidden="true" />}
         {pendente ? "Trocando…" : "Trocar senha"}
       </Button>
-    </form>
+    </Pilha>
   );
 }

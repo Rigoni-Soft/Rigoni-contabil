@@ -17,5 +17,6 @@ export type ItemDaFilaVisto = {
 };
 
 export interface ListarFilaPort {
-  execute(input: { setor: SetorSlug }): Promise<Result<ItemDaFilaVisto[], AppError>>;
+  // Sem `setor`: a Fila do Setor do próprio usuário (Admin não tem um e precisa informar).
+  execute(input: { setor?: SetorSlug }): Promise<Result<ItemDaFilaVisto[], AppError>>;
 }

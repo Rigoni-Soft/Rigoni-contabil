@@ -1,4 +1,5 @@
 const MOD = "^src/modules/([^/]+)"; // $1 = nome do módulo
+const FFMPEG = "ffmpeg[^/]*$"; // gateways do ffmpeg e do seu binário
 const VIEWS = "^src/presentation/components/(atoms|molecules|organisms|templates|pages)/";
 
 module.exports = {
@@ -24,13 +25,27 @@ module.exports = {
     {
       name: "infra-so-dentro-do-modulo",
       severity: "error",
-      from: { path: `${MOD}/infra/` },
+      from: { path: `${MOD}/infra/`, pathNot: FFMPEG },
       to: {
         pathNot: [
           "^src/shared/",
           "^src/modules/$1/(domain|application|infra)/",
           "node_modules/",
           "^(node:)?crypto$",
+        ],
+      },
+    },
+    {
+      // Só o adaptador do ffmpeg executa um processo e lê/escreve arquivo (docs/adr/0006).
+      name: "infra-ffmpeg-usa-node",
+      severity: "error",
+      from: { path: `${MOD}/infra/.*${FFMPEG}` },
+      to: {
+        pathNot: [
+          "^src/shared/",
+          "^src/modules/$1/(domain|application|infra)/",
+          "node_modules/",
+          "^(node:)?(crypto|child_process|fs(/promises)?|os|path|util|zlib)$",
         ],
       },
     },
@@ -53,7 +68,7 @@ module.exports = {
     {
       name: "so-realtime-importa-main-client",
       severity: "error",
-      from: { pathNot: ["\\.realtime\\.tsx?$", "^src/main/"] },
+      from: { pathNot: ["\\.(realtime|upload)\\.tsx?$", "^src/main/"] },
       to: { path: "^src/main/client/" },
     },
     {

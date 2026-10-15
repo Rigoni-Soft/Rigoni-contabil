@@ -29,7 +29,7 @@ describe("removerClientesDeTeste", () => {
   it("apaga os CNPJs da suíte e mantém qualquer outro Cliente, a cada chamada", async () => {
     const criados = await admin.from("clientes").insert([
       { id: ids.daSuite, empresa: "Da Suite Ltda", cnpj: DA_SUITE, regime: "lucro_presumido" },
-      { id: ids.alheio, empresa: "Alheio Ltda", cnpj: ALHEIO, regime: "lucro_presumido" },
+      { id: ids.alheio, empresa: "Alheio E2E Ltda", cnpj: ALHEIO, regime: "lucro_presumido" },
     ]);
     expect(criados.error).toBeNull();
 
