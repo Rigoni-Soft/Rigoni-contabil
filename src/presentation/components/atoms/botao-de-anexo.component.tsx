@@ -9,8 +9,8 @@ type BotaoDeAnexoProps = {
   onEscolher: (arquivo: File) => void;
 };
 
-// Clipe: o <label> carrega a aparência de botão e aciona o seletor de arquivos do sistema; o input
-// fica sr-only (mesmo padrão do FileInput, com alvo de 44 px).
+// Clipe: o <label> carrega a aparência de botão (alvo de 44 px, igual ao ghost icon dos irmãos emoji e
+// microfone) e aciona o seletor de arquivos do sistema; o input fica sr-only (mesmo padrão do FileInput).
 export function BotaoDeAnexo({ aceitar, disabled, onEscolher }: BotaoDeAnexoProps) {
   return (
     <label
