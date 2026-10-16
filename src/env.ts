@@ -135,32 +135,6 @@ const resultado = z
     message: "MENSAGERIA_MODO=real exige WHATSAPP_TOKEN e WHATSAPP_PHONE_NUMBER_ID.",
     path: ["WHATSAPP_TOKEN"],
   })
-  .refine(
-    (v) =>
-      v.OBRIGACOES_FISCAIS_MODO !== "serpro" ||
-      (v.SERPRO_CONSUMER_KEY &&
-        v.SERPRO_CONSUMER_SECRET &&
-        v.SERPRO_CERTIFICADO_P12_BASE64 &&
-        v.SERPRO_CERTIFICADO_SENHA &&
-        v.SERPRO_CNPJ_ESCRITORIO),
-    {
-      message:
-        "OBRIGACOES_FISCAIS_MODO=serpro exige SERPRO_CONSUMER_KEY, SERPRO_CONSUMER_SECRET, SERPRO_CERTIFICADO_P12_BASE64, SERPRO_CERTIFICADO_SENHA e SERPRO_CNPJ_ESCRITORIO.",
-      path: ["OBRIGACOES_FISCAIS_MODO"],
-    },
-  )
-  .refine(
-    (v) =>
-      v.CND_MODO !== "serpro" ||
-      (v.SERPRO_CND_CONSUMER_KEY &&
-        v.SERPRO_CND_CONSUMER_SECRET &&
-        v.SERPRO_CND_CODIGO_IDENTIFICACAO),
-    {
-      message:
-        "CND_MODO=serpro exige SERPRO_CND_CONSUMER_KEY, SERPRO_CND_CONSUMER_SECRET e SERPRO_CND_CODIGO_IDENTIFICACAO.",
-      path: ["CND_MODO"],
-    },
-  )
   .safeParse({
     NODE_ENV: process.env.NODE_ENV || undefined,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,

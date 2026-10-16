@@ -49,6 +49,41 @@ jobs:
       - run: yarn install --frozen-lockfile
       - run: npx playwright install --with-deps chromium
 
+      # docs/testes.md §5.6: a suíte completa começa do seed, com o banco de homologação restaurado.
+      # Só em `homolog`, e só contra o projeto cujo ref está em SUPABASE_HOMOLOG_PROJECT_REF — o
+      # reset apaga TUDO desse projeto, então ele nunca pode ser o de produção.
+      - name: Restaura o Supabase de homologação (migrations + seed)
+        if: github.event.deployment.ref == 'homolog'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_HOMOLOG_DB_PASSWORD }}
+          PROJECT_REF: ${{ vars.SUPABASE_HOMOLOG_PROJECT_REF }}
+        run: |
+          test -n "$PROJECT_REF" || { echo "SUPABASE_HOMOLOG_PROJECT_REF não definida"; exit 1; }
+          npx --yes supabase@latest link --project-ref "$PROJECT_REF"
+          npx --yes supabase@latest db reset --linked --yes
+
+      # Os e2e que preparam dados (Atendimento) falam direto com o banco do preview: só aceitam o
+      # Supabase local ou este projeto de homologação (test-support/exigir-supabase-local.ts).
+      - name: Obtém URL e chaves do Supabase de homologação
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ vars.SUPABASE_HOMOLOG_PROJECT_REF }}
+        run: |
+          test -n "$PROJECT_REF" || { echo "SUPABASE_HOMOLOG_PROJECT_REF não definida"; exit 1; }
+          CHAVES=$(npx --yes supabase@latest projects api-keys --project-ref "$PROJECT_REF" -o json)
+          ANON=$(echo "$CHAVES" | jq -r '.[] | select(.name=="anon") | .api_key')
+          SERVICE=$(echo "$CHAVES" | jq -r '.[] | select(.name=="service_role") | .api_key')
+          test -n "$ANON" && test -n "$SERVICE" || { echo "chaves não encontradas"; exit 1; }
+          echo "::add-mask::$ANON"
+          echo "::add-mask::$SERVICE"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=https://$PROJECT_REF.supabase.co"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE"
+            echo "SUPABASE_HOMOLOG_PROJECT_REF=$PROJECT_REF"
+          } >> "$GITHUB_ENV"
+
       - name: Define a suíte (develop = smoke, homolog = completa)
         id: suite
         run: |

@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-import { exigirSupabaseLocal } from "../../test-support/exigir-supabase-local";
+import { exigirDestinoDoE2E } from "../../test-support/exigir-supabase-local";
 
 // Chave de serviço do Supabase local (supabase/.env.local, não é segredo).
 const SERVICE_KEY_LOCAL =
@@ -10,7 +10,10 @@ const SERVICE_KEY_LOCAL =
 // o Supabase local ANTES de criar o client, em vez de limpar o que é de outros.
 export function adminLocal(): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
-  exigirSupabaseLocal(url);
+  exigirDestinoDoE2E(url, {
+    baseUrl: process.env.BASE_URL,
+    refHomolog: process.env.SUPABASE_HOMOLOG_PROJECT_REF,
+  });
   return createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY ?? SERVICE_KEY_LOCAL, {
     auth: { persistSession: false },
   });

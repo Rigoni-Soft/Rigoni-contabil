@@ -1,6 +1,11 @@
 # Job de inatividade (#73): ativação e operação
 
-Rota: `GET|POST /api/jobs/inatividade`, agendada em `vercel.json` (`*/5 * * * *`).
+Rota: `GET|POST /api/jobs/inatividade`, agendada em `vercel.json` (`0 11 * * *`, 1 vez por dia, 08h em São Paulo).
+
+> **Hobby:** o cron é diário porque o Hobby rejeita o deploy com frequência maior. O desenho do job
+> (aviso, espera, encerramento) assume rodadas de 5 min: com 1 rodada/dia a inatividade só age uma
+> vez por dia. Antes de ligar `INATIVIDADE_AUTOMATICA` em produção, subir para o Pro e voltar a
+> `*/5 * * * *`.
 
 ## Gate de ativação
 

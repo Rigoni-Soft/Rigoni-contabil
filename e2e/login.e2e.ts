@@ -11,12 +11,14 @@ async function login(page: import("@playwright/test").Page, email: string, senha
 }
 
 test.describe("Login e shell autenticado", () => {
-  test("visitante sem sessão é redirecionado para /login", async ({ page }) => {
+  test("visitante sem sessão é redirecionado para /login @smoke", async ({ page }) => {
     await page.goto("/");
     await expect(page).toHaveURL(/\/login$/);
   });
 
-  test("credenciais inválidas mostram erro e mantêm o visitante em /login", async ({ page }) => {
+  test("credenciais inválidas mostram erro e mantêm o visitante em /login @smoke", async ({
+    page,
+  }) => {
     await page.goto("/login");
 
     await page.getByLabel("E-mail").fill(EMAIL);

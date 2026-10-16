@@ -36,7 +36,7 @@ async function criarFuncionarioComSenhaDefinitiva(page: Page) {
 }
 
 test.describe("Perfil do usuário", () => {
-  test("Funcionário abre o perfil pelo header, vê a própria conta e troca a senha por escolha", async ({
+  test("Funcionário abre o perfil pelo header, vê a própria conta e troca a senha por escolha @smoke", async ({
     page,
   }) => {
     const email = await criarFuncionarioComSenhaDefinitiva(page);
