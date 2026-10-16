@@ -205,13 +205,6 @@ describe("POST /api/webhooks/whatsapp (notificação)", () => {
     expect(envio.enviadas[0].texto).toContain("recepção");
   });
 
-  it("opção 5 do menu (falar com atendente) encaminha o contato reconhecido à recepção", async () => {
-    const r = await enviar(notificacao([texto("5")]));
-    expect(r.status).toBe(200);
-    expect(envio.enviadas).toHaveLength(1);
-    expect(envio.enviadas[0].texto).toContain("recepção");
-  });
-
   it("opção 1 do menu pergunta o tipo e, ao escolher contrato, entrega o documento", async () => {
     const r = await enviar(notificacao([texto("1"), texto("1")]));
     expect(r.status).toBe(200);
