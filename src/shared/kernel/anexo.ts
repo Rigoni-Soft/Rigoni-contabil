@@ -18,7 +18,7 @@ export const ANEXO_MINIATURA_QUALIDADE = 0.8;
 export const ANEXO_LINK_MARGEM_MS = 5 * 60_000;
 
 export type TipoAnexo = "imagem" | "documento";
-// O que a Mensagem guarda: inclui o áudio (gravado pelo Funcionário, #80; enviado pelo cliente, #81).
+// O que a Mensagem guarda: inclui o áudio (gravado pelo Funcionário ou enviado pelo cliente).
 export type TipoAnexoMensagem = TipoAnexo | "audio";
 
 // Por tipo MIME, nunca pela extensão. Lista fechada: SVG e HTML (que executam script) ficam de fora.
@@ -131,7 +131,7 @@ export function validarAudio(
   return { formato };
 }
 
-// Mídia que o cliente envia (#81): mesma lista e mesmo limite do que o Funcionário envia, mais o
+// Mídia que o cliente envia: mesma lista e mesmo limite do que o Funcionário envia, mais o
 // áudio (voz do WhatsApp chega em ogg/opus). Áudio em formato que o provedor não entrega é recusado.
 export function validarMidiaRecebida(
   tipoMime: string,

@@ -1,8 +1,7 @@
 /**
- * Matriz de autorização do bucket privado `anexos-atendimento` com sessões reais (revalidação 1 da
- * PR #85, R85-04): só quem pode agir no Atendimento em andamento grava na pasta dele; ninguém lê
- * pelo cliente (o arquivo só sai por link temporário do servidor). A policy não foi ampliada para o
- * teste passar. Requer `npx supabase start` local.
+ * Matriz de autorização do bucket privado `anexos-atendimento` com sessões reais: só quem pode agir no
+ * Atendimento em andamento grava na pasta dele; ninguém lê pelo cliente (o arquivo só sai por link
+ * temporário do servidor). Requer `npx supabase start` local.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 

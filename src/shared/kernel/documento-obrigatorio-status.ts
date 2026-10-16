@@ -1,4 +1,4 @@
-// Status do documento obrigatório do Cliente junto ao Simples Nacional (#34).
+// Status do documento obrigatório do Cliente junto ao Simples Nacional.
 export const DOCUMENTO_OBRIGATORIO_STATUSES = ["positivo", "negativo", "nao_se_aplica"] as const;
 export type DocumentoObrigatorioStatusValor = (typeof DOCUMENTO_OBRIGATORIO_STATUSES)[number];
 

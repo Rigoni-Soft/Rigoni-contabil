@@ -109,10 +109,9 @@ export class UsuarioBuilder {
 
   build(): Result<Usuario, ValidationError> {
     // Presença checada aqui, não nos setters: um setter nunca chamado não deixa
-    // rastro em camposInvalidos, e os `!` abaixo mascarariam undefined em runtime
-    // (devolutiva #55, ponto 03 — builder aceitava usuário incompleto). O guard
-    // `!this.camposInvalidos.X` evita sobrescrever a mensagem específica que o
-    // setter já registrou quando FOI chamado com um valor inválido (ex.:
+    // rastro em camposInvalidos, e os `!` abaixo mascarariam undefined em runtime.
+    // O guard `!this.camposInvalidos.X` evita sobrescrever a mensagem específica que
+    // o setter já registrou quando FOI chamado com um valor inválido (ex.:
     // comPapel("gerente")) — só entra quando o setter nunca rodou.
     if (!this.id) this.camposInvalidos.id = ["obrigatório"];
     if (this.nome === undefined) this.camposInvalidos.nome = ["obrigatório"];
@@ -137,8 +136,8 @@ export class UsuarioBuilder {
         senhaAuthAlteradaEm: this.senhaAuthAlteradaEm,
         desativadoEm: this.desativadoEm,
         banidoEm: this.banidoEm,
-        // Cadastro novo (#30) não chama comSenhaProvisoriaExpiraEm: default aqui
-        // espelha o default da coluna na migration do #31.
+        // Cadastro novo não chama comSenhaProvisoriaExpiraEm: o default aqui espelha o
+        // default da coluna na migration.
         senhaProvisoriaExpiraEm:
           this.senhaProvisoriaExpiraEm ??
           new Date(Date.now() + HORAS_VALIDADE_SENHA_PROVISORIA * 60 * 60 * 1000),

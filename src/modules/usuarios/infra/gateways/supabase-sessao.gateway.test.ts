@@ -12,8 +12,8 @@ const SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
-// Conta descartável (não os usuários do seed): #31 muda a senha de verdade, e um
-// teste que mutasse um usuário do seed deixaria a suíte dependente de ordem.
+// Conta descartável (não os usuários do seed): a troca de senha muda a senha de
+// verdade, e um teste que mutasse um usuário do seed deixaria a suíte dependente de ordem.
 async function criarContaAuthDeTeste(): Promise<{ email: string; senha: string }> {
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -80,13 +80,11 @@ describe("SupabaseSessaoGateway (integração)", () => {
     const gateway = new SupabaseSessaoGateway(supabase);
     await gateway.autenticar(email, senha);
 
-    // Simula o cenário real: updateUser() já teve sucesso numa primeira
-    // submissão (finalização/auditoria falhou depois, por algum motivo), e o
-    // usuário reenvia o mesmo formulário — mesma senha nova de antes. O
-    // gateway não decide mais se isso é reenvio legítimo ou a própria senha
-    // provisória sendo reenviada (ponto 1) — quem decide é TrocarSenha.execute(),
-    // que conhece precisaTrocarSenha() do perfil. Aqui só garantimos que o
-    // gateway devolve um erro reconhecível, não ok() cego.
+    // Simula o cenário real: updateUser() já teve sucesso numa primeira submissão
+    // (a finalização falhou depois) e o usuário reenvia o mesmo formulário. O gateway
+    // não decide se é reenvio legítimo ou a própria senha provisória — quem decide é
+    // TrocarSenha.execute(), que conhece precisaTrocarSenha() do perfil. Aqui só
+    // garantimos que o gateway devolve um erro reconhecível, não ok() cego.
     const primeira = await gateway.trocarSenha("nova-senha-definitiva-123");
     expect(primeira.ok).toBe(true);
 

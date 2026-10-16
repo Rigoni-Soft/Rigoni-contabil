@@ -8,7 +8,7 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, type Result } from "@/shared/kernel/result";
 
 // Sem checagem de papel/setor: qualquer usuário com sessão válida busca (mesma
-// regra do #34 pra ConsultarCadastroOperacionalCliente). A sessão é validada aqui
+// regra de ConsultarCadastroOperacionalCliente). A sessão é validada aqui
 // (arquitetura.md §3.12); a RLS (que também esconde os Clientes dos quais o
 // Funcionário SN não é Responsável) fica como segunda camada, não como única.
 export class BuscarClientes {

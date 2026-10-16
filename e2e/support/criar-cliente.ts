@@ -10,10 +10,8 @@ const SUPABASE_ANON_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
 
-// Compartilhado entre editar-cadastro-operacional.e2e.ts (#34) e
-// busca-cliente-dashboard.e2e.ts (#35) — ambos precisam logar como Admin e
-// cadastrar um Cliente Simples Nacional válido antes do cenário que testam
-// de fato (ponytail-review: estava duplicado igual nos dois arquivos).
+// Compartilhado pelos e2e que precisam logar como Admin e cadastrar um Cliente Simples Nacional
+// válido antes do cenário que testam de fato.
 
 export async function login(page: Page, email: string, senha: string) {
   await page.goto("/login");
@@ -54,9 +52,8 @@ export function cnpjUnico(): string {
   return cnpj;
 }
 
-// #65: Funcionário SN só enxerga/edita Cliente do qual é Responsável, e só o
-// Líder do SN atribui — este helper faz o papel do Líder direto no banco
-// (mesmo caminho que a UI usa), pra e2e de outros tickets não dependerem da tela.
+// Funcionário SN só enxerga/edita Cliente do qual é Responsável, e só o Líder do SN atribui: este
+// helper faz o papel do Líder direto no banco (mesmo caminho que a UI usa).
 export async function atribuirResponsavelComoLider(cnpjDigits: string): Promise<string> {
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const { error: erroLogin } = await supabase.auth.signInWithPassword({

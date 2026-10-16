@@ -1,5 +1,5 @@
 /**
- * Integração infra ↔ Supabase (testes.md, seção 3) para #34: Funcionário do
+ * Integração infra ↔ Supabase (testes.md, seção 3): Funcionário do
  * Simples Nacional edita cadastro operacional de Cliente. Requer
  * `npx supabase start` rodando localmente com migrations + seed aplicados.
  * Usa Admin, Funcionário SN e Funcionário Financeiro (outro Setor) de
@@ -42,7 +42,7 @@ const LIDER_SN_ID = "88888888-8888-8888-8888-888888888888";
 const FUNCIONARIO_2_SN_ID = "99999999-9999-9999-9999-999999999999";
 const FUNCIONARIO_FINANCEIRO_ID = "33333333-3333-3333-3333-333333333333";
 
-// #65: Funcionário SN só edita Cliente do qual é Responsável — quem atribui é o Líder.
+// Funcionário SN só edita Cliente do qual é Responsável — quem atribui é o Líder.
 async function atribuirComoLider(clienteId: string, responsavelId: string | null) {
   const lider = await comoLiderSN();
   const resultado = await new SupabaseResponsavelClienteRepository(lider).atribuir(
@@ -282,7 +282,7 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
       expect(data?.responsavel_id).toBeNull();
     });
 
-    // Devolutiva PR #71, ponto 1: o evento nasce no banco, na transação da escrita.
+    // O evento nasce no banco, na transação da escrita.
     describe("auditoria atômica do Responsável", () => {
       const eventosDoResponsavel = async (cnpj: string) => {
         const servico = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
@@ -377,9 +377,9 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
     if (resultado.ok) expect(resultado.value).toBeNull();
   });
 
-  // Feedback de teste manual do #34: cadastrar um Cliente Simples Nacional/MEI
-  // já cria a linha do cadastro SN (RPC criar_cliente), em vez de só nascer no
-  // primeiro upsert de EditarCadastroOperacionalCliente.
+  // Cadastrar um Cliente Simples Nacional/MEI já cria a linha do cadastro SN
+  // (RPC criar_cliente), em vez de só nascer no primeiro upsert de
+  // EditarCadastroOperacionalCliente.
   it("criar Cliente Simples Nacional já cria o cadastro operacional com os defaults negativos/pendentes", async () => {
     const admin = await comoAdmin();
     const clienteBase = await criarClienteBase(admin, "92773334000116");

@@ -21,8 +21,8 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
 
     // Erro do Postgres (rede, indisponibilidade, id malformado) é falha técnica,
     // distinta de ausência: devolvê-lo como `null` colidiria com "perfil inexistente"
-    // ou "oculto pela RLS" (devolutiva #55, ponto 02). Detalhe fica só no log do
-    // servidor; quem chama decide como apresentar o erro sem expô-lo.
+    // ou "oculto pela RLS". Detalhe fica só no log do servidor; quem chama decide
+    // como apresentar o erro sem expô-lo.
     if (error) {
       const mensagem = `Falha ao buscar perfil (id=${id}): ${error.message}`;
       console.error(mensagem);
@@ -90,7 +90,7 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
   // divergir do schema esperado (arquitetura.md §3.7, bug/estado impossível).
   // Já a reconstrução de domínio (nome/e-mail válidos) é regra de negócio: dado
   // sujo é falha esperada, não bug (§3.8), e devolve Result pra quem chama poder
-  // limpar a sessão sem try/catch (devolutiva #55, ponto 01).
+  // limpar a sessão sem try/catch.
   private paraUsuario(data: unknown): Result<Usuario, AppError> {
     const row = perfilRowSchema.parse(data);
     const resultado = perfilParaUsuario(row);

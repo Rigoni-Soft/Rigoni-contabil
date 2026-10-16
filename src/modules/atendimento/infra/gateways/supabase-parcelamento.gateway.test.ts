@@ -1,8 +1,7 @@
 /**
- * Integração infra ↔ Supabase (testes.md, seção 3) do job de envio da guia de parcelamento (#53):
+ * Integração infra ↔ Supabase (testes.md, seção 3) do job de envio da guia de parcelamento:
  * leitura paginada dos pendentes, reserva/conclusão com posse por token e auditoria da URA, e
- * alertas separados por origem e por Cliente avaliado. Destrutiva: só roda no Supabase local
- * (R87-02) e limpa pelos IDs da própria execução. Requer `npx supabase start`.
+ * alertas separados por origem e por Cliente avaliado. Destrutiva: só roda no Supabase local e limpa pelos IDs da própria execução. Requer `npx supabase start`.
  */
 import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/use-cases/entregar-comunicacao-por-canais.use-case";
 import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";

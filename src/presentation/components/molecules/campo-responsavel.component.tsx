@@ -20,7 +20,7 @@ type CampoResponsavelProps = {
   desabilitado?: boolean;
 };
 
-// Responsável pelo Cliente: só o Líder do setor edita (Select); os demais veem o nome (#65).
+// Responsável pelo Cliente: só o Líder do setor edita (Select); os demais veem o nome.
 export function CampoResponsavel({
   editavel,
   nomeAtual,

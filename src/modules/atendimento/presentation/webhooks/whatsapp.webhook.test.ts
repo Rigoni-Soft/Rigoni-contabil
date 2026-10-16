@@ -41,7 +41,7 @@ const sessoes: ConstructorParameters<typeof ReceberMensagem>[3] = {
   },
 };
 
-// Mídia (#81): Atendimento em andamento do número e Mensagens registradas, em memória.
+// Mídia: Atendimento em andamento do número e Mensagens registradas, em memória.
 let atendimentoDaMidia: { atendimentoId: string } | null;
 let registradas: { idExterno?: string; autor: string; texto: string; anexo?: { tipo: string } }[];
 let guardados: string[];

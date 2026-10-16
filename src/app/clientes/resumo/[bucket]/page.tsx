@@ -16,7 +16,7 @@ export default async function Page({ params }: Props) {
   if (!sessao) redirect("/login");
   if (sessao.precisaTrocarSenha) redirect("/trocar-senha");
 
-  // Resumo do setor é exclusivo do Simples Nacional (#36) — mesmo critério
+  // Resumo do setor é exclusivo do Simples Nacional — mesmo critério
   // de acesso de app/page.tsx.
   if (!podeVerDashboardSn(sessao.papel, sessao.setor)) redirect("/");
 

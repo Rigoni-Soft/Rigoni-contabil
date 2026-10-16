@@ -24,8 +24,7 @@ describe("listarRegistrosAction (integração)", () => {
     expect(executeMock).not.toHaveBeenCalled();
   });
 
-  // Devolutiva técnica PR #60, ajuste 03: ator não-UUID rejeitado antes de
-  // chegar no caso de uso/repositório.
+  // Ator não-UUID rejeitado antes de chegar no caso de uso/repositório.
   it("devolve VALIDATION_ERROR sem chamar o caso de uso quando o ator não é UUID", async () => {
     const resultado = await listarRegistrosAction({ ator: "joão" });
 

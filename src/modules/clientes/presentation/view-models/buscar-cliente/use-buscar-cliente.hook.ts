@@ -31,8 +31,8 @@ export function useBuscarCliente(papel: string, setor: string, apenasSnMei: bool
   };
 
   // Mesma ação por trás de "Nova busca" (topo) e "Cancelar" (dentro do form,
-  // #35 corrige: sem isso o <Link href="/"> do form não fazia nada, já que a
-  // busca já está em "/") — fecha o painel e volta pro campo de busca.
+  // onde um <Link href="/"> não faria nada, já que a busca já está em "/") —
+  // fecha o painel e volta pro campo de busca.
   const fecharPainel = () => setClienteSelecionado(null);
 
   return {

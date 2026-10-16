@@ -3,11 +3,6 @@ import { adminLocal } from "./support/admin-local";
 
 const admin = adminLocal();
 
-// Cobre o cenário principal do ticket #29 (Registro de auditoria): a tela de
-// feed bruto em /admin/auditoria é acessível só por Admin.
-// Usuários: supabase/seed.sql (Admin de Teste e Funcionário Simples Nacional,
-// ambiente Dev local; baseURL vem de playwright.config.ts).
-//
 // Locators presos ao alvo do seed ("funcionario.sn@..."/"CNPJ de teste"), não a
 // textos genéricos como "usuario.criar": outros e2e (ex.: cadastro-usuario)
 // também gravam auditoria de verdade e duplicariam um texto solto.
@@ -51,7 +46,7 @@ test.describe("Feed de auditoria (Admin only)", () => {
 
   test("Funcionário é redirecionado pra fora do feed de auditoria", async ({ page }) => {
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");
-    // Simples Nacional é a página principal do próprio setor (#36).
+    // Simples Nacional é a página principal do próprio setor.
     await expect(page).toHaveURL("/simples-nacional");
 
     await page.goto("/admin/auditoria");

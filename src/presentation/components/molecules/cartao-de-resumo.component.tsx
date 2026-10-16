@@ -3,7 +3,7 @@ import Link from "next/link";
 import { AnelDeProgresso } from "@/presentation/components/atoms/anel-de-progresso.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 
-// Cores do protótipo aprovado (spec #24): os valores --good/--warning/--critical do mockup batem com
+// Cores do protótipo aprovado: os valores --good/--warning/--critical do mockup batem com
 // --primary/--success/--destructive deste projeto. "Em dia" e "em andamento" usam a mesma tinta.
 const ANEL_POR_COR: Record<string, string> = {
   em_dia: "stroke-primary",

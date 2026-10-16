@@ -18,14 +18,14 @@ export type ClienteProps = {
   empresa: string;
   cnpj: Cnpj;
   regime: Regime;
-  // Opcional (decisão de produto 2026-09-29, atualiza a spec #24): nem todo
+  // Opcional: nem todo
   // Cliente tem o contrato social anexado no momento do cadastro.
   contratoSocialCaminho: string | null;
-  // Opcional: destino do envio por e-mail do job de lembrete/DAS (#52).
+  // Opcional: destino do envio por e-mail do job de lembrete/DAS.
   email: Email | null;
   alteracoesContratuais: readonly AlteracaoContratual[];
-  // Campos operacionais do Simples Nacional (#34) — editados pelo Funcionário
-  // do setor, em tela separada do cadastro jurídico do #33.
+  // Campos operacionais do Simples Nacional — editados pelo Funcionário
+  // do setor, em tela separada do cadastro jurídico.
   formaEnvio: FormaEnvio;
   contatos: readonly Contato[];
   documentoObrigatorio: DocumentoObrigatorioStatus | null;

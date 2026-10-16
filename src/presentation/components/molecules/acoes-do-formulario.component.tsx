@@ -6,7 +6,7 @@ type AcoesDoFormularioProps = {
   pendente: boolean;
   onLimpar: () => void;
   // Sem callback, "Cancelar" é um link para "/". Com callback (formulário inline na busca do
-  // dashboard, #35) já estamos em "/": quem abriu o painel o fecha direto.
+  // dashboard) já estamos em "/": quem abriu o painel o fecha direto.
   onCancelar?: () => void;
 };
 

@@ -16,7 +16,7 @@ type CartaoDaFilaView = AtendimentoEmAndamentoView & { soEmTelaEstreita?: boolea
 
 type AtendimentosEmAndamentoProps = {
   atendimentos: AtendimentoEmAndamentoView[];
-  // Cartão da Fila do Setor (#70), quando ela não está à vista.
+  // Cartão da Fila do Setor, quando ela não está à vista.
   fila?: CartaoDaFilaView | null;
 };
 

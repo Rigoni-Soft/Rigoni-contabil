@@ -6,7 +6,7 @@ import type { Fatia } from "@/presentation/lib/fatia-de-grafico";
 
 type Props = {
   comparativos: { das: Fatia[]; parcelamento: Fatia[]; atividade: Fatia[] };
-  // Só o Líder recebe (#65): 4º comparativo, Funcionários por DAS enviada.
+  // Só o Líder recebe: 4º comparativo, Funcionários por DAS enviada.
   responsaveis?: Fatia[];
   totalClientes: number;
 };

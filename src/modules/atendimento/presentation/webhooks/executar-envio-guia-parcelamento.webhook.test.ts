@@ -1,7 +1,7 @@
 import { GET, POST } from "./executar-envio-guia-parcelamento.webhook";
 
 /**
- * Job de envio da guia de parcelamento (#53): autenticar não basta, a flag manda.
+ * Job de envio da guia de parcelamento: autenticar não basta, a flag manda.
  */
 const executar = jest.fn();
 let ativa = false;

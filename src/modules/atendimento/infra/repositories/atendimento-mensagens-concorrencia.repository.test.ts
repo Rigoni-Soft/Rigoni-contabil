@@ -1,7 +1,7 @@
 /**
  * Concorrência real (duas conexões) das Mensagens gravadas por `registrar_mensagem_recebida` e
- * `registrar_mensagem_do_funcionario` contra o fechamento, a transferência e a desativação
- * (devolutiva da PR #85, R85-01). Quem escreve entra sob o lock da linha do Atendimento e
+ * `registrar_mensagem_do_funcionario` contra o fechamento, a transferência e a desativação.
+ * Quem escreve entra sob o lock da linha do Atendimento e
  * reavalia o status e a autoridade ali. Requer `npx supabase start` local.
  */
 import { createClient } from "@supabase/supabase-js";

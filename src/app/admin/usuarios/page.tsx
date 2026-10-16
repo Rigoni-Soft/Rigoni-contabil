@@ -29,7 +29,7 @@ export default async function Page() {
       lista={
         <UsuariosLista
           usuarios={usuarios.value}
-          // Admin nunca é desativado nem muda de papel pela UI (#57/#58): a linha dele fica sem ação.
+          // Admin nunca é desativado nem muda de papel pela UI: a linha dele fica sem ação.
           acoes={(u) =>
             u.papel === "admin" ? null : (
               <GrupoDeAcoes>

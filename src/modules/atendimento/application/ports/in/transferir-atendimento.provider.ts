@@ -17,7 +17,7 @@ export type DadosDoContato = {
 };
 
 // O que o Funcionário de destino recebe.
-// `destinatarioNome` null = ninguém escolhido (nenhum usuário livre no Setor: fila do Setor, #46).
+// `destinatarioNome` null = ninguém escolhido (nenhum usuário livre no Setor: fila do Setor).
 // `naFila` = o destino escolhido estava ocupado e o Atendimento entrou na fila dele.
 export type TransferenciaConcluida = {
   destinatarioNome: string | null;

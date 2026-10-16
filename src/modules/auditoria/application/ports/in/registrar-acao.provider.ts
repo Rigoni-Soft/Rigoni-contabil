@@ -2,7 +2,7 @@ import type { RegistroAcaoDto } from "@/modules/auditoria/application/dtos/regis
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
-// Só ações que mudam estado são registradas — nunca leituras (testes.md, ticket #29).
+// Só ações que mudam estado são registradas — nunca leituras (testes.md).
 export type RegistrarAcaoInput = {
   ator: string;
   setor: string;

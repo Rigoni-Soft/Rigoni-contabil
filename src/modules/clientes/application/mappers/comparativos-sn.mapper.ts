@@ -32,8 +32,8 @@ function porResponsavel(linhas: ResumoOperacionalRow[]): FatiaComparativoDto[] {
   );
 }
 
-// Gráficos da spec #24: DAS usa o status bruto (não os buckets compostos dos
-// cards, que se sobrepõem); atividade do mês são 3 flags independentes.
+// Gráficos: DAS usa o status bruto (não os buckets compostos dos cards, que se
+// sobrepõem); atividade do mês são 3 flags independentes.
 export function calcularComparativosSn(linhas: ResumoOperacionalRow[]) {
   const atividades = linhas.flatMap((l) =>
     (["industria", "comercio", "servico"] as const).filter((a) => l.atividadeMes[a]),

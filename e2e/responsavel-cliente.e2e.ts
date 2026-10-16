@@ -7,10 +7,6 @@ import {
   login,
 } from "./support/criar-cliente";
 
-// Cobre os cenários do ticket #65 (Dashboard SN — Responsável por Cliente):
-// Líder atribui, Funcionário só enxerga o que é dele, 4º comparativo do Líder.
-// Usuários: supabase/seed.sql (lider.sn, funcionario.sn, funcionario2.sn).
-
 async function sair(page: Page) {
   await page.getByRole("button", { name: "Sair" }).click();
   await expect(page).toHaveURL(/\/login$/);

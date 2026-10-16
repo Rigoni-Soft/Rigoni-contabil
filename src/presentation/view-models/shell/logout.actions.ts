@@ -6,9 +6,9 @@ import { makeLogout } from "@/main/usuarios.factory";
 
 export type LogoutState = { erro: string } | null;
 
-// Assinatura (estado, FormData) por causa do useActionState em LogoutButton
-// (devolutiva #55, ponto 04): falha de encerramento precisa de um estado pra
-// interface mostrar aviso visível, não só logar e redirecionar às cegas.
+// Assinatura (estado, FormData) por causa do useActionState em LogoutButton: falha de
+// encerramento precisa de um estado pra interface mostrar aviso visível, não só logar e
+// redirecionar às cegas.
 export async function logoutAction(
   _estadoAnterior: LogoutState,
   _formData: FormData,

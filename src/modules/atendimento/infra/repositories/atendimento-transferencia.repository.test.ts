@@ -1,5 +1,5 @@
 /**
- * Integração infra ↔ Supabase (testes.md, seção 3) da Transferência de Atendimento (#45).
+ * Integração infra ↔ Supabase (testes.md, seção 3) da Transferência de Atendimento.
  * Requer `npx supabase start` local com migrations + seed aplicados.
  */
 import { createClient } from "@supabase/supabase-js";
@@ -355,7 +355,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
     expect(data).toEqual({ setor: "recepcao" });
   });
 
-  // #58: cada teste desativa o perfil, confere e reativa — sem depender da ordem da suíte.
+  // Cada teste desativa o perfil, confere e reativa — sem depender da ordem da suíte.
   async function comDesativado(id: string, verificar: () => Promise<void>) {
     await admin.from("perfis").update({ desativado_em: new Date().toISOString() }).eq("id", id);
     try {

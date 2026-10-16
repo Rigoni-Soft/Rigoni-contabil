@@ -14,7 +14,6 @@ type PerfilDaContaProps = {
   formulario: React.ReactNode;
 };
 
-// Dados da conta (leitura) seguidos da seção "Trocar senha".
 export function PerfilDaConta({ nome, email, papel, setor, formulario }: PerfilDaContaProps) {
   const dados = [
     { rotulo: "Nome", valor: nome },

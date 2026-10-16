@@ -66,10 +66,9 @@ export function CriarUsuarioContainer({
         senhaProvisoria: resultado.data.senhaProvisoria,
       });
     } catch {
-      // Devolutiva técnica PR #61, ponto 5: sem isso, uma Promise rejeitada
-      // (erro de rede/transporte) travava o botão em "Cadastrando..." pra
-      // sempre, porque setPendente(false) só rodava depois do await. Mesma
-      // rede de segurança já usada em login.container.tsx.
+      // Sem isso, uma Promise rejeitada (erro de rede/transporte) travava o botão em
+      // "Cadastrando..." pra sempre, porque setPendente(false) só rodava depois do
+      // await. Mesma rede de segurança já usada em login.container.tsx.
       setErroServidor("Falha inesperada. Tente novamente.");
     } finally {
       setPendente(false);

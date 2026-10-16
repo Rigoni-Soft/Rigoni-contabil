@@ -1,5 +1,5 @@
 /**
- * Integração infra ↔ Supabase (testes.md, seção 3) de #48: Funcionário que desconecta (signOut real)
+ * Integração infra ↔ Supabase (testes.md, seção 3) do Funcionário que desconecta (signOut real)
  * mantém o Atendimento atribuído, nada é redistribuído e o histórico segue intacto.
  * Requer `npx supabase start` local com migrations + seed aplicados.
  */

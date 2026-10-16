@@ -1,5 +1,5 @@
 /**
- * Integração infra ↔ Supabase (testes.md, seção 3) da Fila de Atendimento (#47).
+ * Integração infra ↔ Supabase (testes.md, seção 3) da Fila de Atendimento.
  * Requer `npx supabase start` local com migrations + seed aplicados.
  */
 import { createClient } from "@supabase/supabase-js";

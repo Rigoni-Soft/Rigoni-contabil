@@ -1,5 +1,5 @@
 /**
- * Integração infra ↔ Supabase (testes.md, seção 3) da leitura da conversa por janela (R85-05).
+ * Integração infra ↔ Supabase (testes.md, seção 3) da leitura da conversa por janela.
  * Requer `npx supabase start` local com migrations + seed aplicados.
  */
 import { createClient } from "@supabase/supabase-js";

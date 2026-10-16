@@ -9,7 +9,7 @@ import { primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 // Lê da view `clientes_basico` (sem contrato social/alterações): quem edita o
-// cadastro operacional (Funcionário SN) não tem SELECT em `clientes` (PR #69).
+// cadastro operacional (Funcionário SN) não tem SELECT em `clientes`.
 // O Cliente reconstituído aqui não carrega os documentos jurídicos — só o Admin
 // os lê, e `atualizarOperacional` não os grava.
 const SELECT_CLIENTE_BASICO = `
@@ -28,7 +28,7 @@ export class SupabaseClienteRepository implements ClienteRepository {
 
   // Cliente e suas Alterações contratuais são o mesmo agregado (raiz + entidades
   // filhas, arquitetura.md seção 3.5): gravados juntos via RPC transacional
-  // (`criar_cliente`, migration deste ticket) em vez de dois inserts soltos.
+  // (`criar_cliente`) em vez de dois inserts soltos.
   async criar(cliente: Cliente): Promise<Result<void, AppError>> {
     const { error } = await this.supabase.rpc("criar_cliente", {
       p_id: cliente.id,

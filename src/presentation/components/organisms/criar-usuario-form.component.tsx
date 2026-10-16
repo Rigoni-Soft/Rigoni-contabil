@@ -80,8 +80,7 @@ export function CriarUsuarioForm({
   return (
     <Pilha espaco="formulario" como="form" onSubmit={onSubmit} noValidate>
       {/* Nome/E-mail/Papel/Setor cabem lado a lado — 2 colunas aproveita melhor
-          a largura do formulário (80% da tela, #36) do que empilhar tudo numa
-          coluna só. */}
+          a largura do formulário (80% da tela) do que empilhar tudo numa coluna só. */}
       <Grade colunas="1>2" espaco={5}>
         <CampoDeTexto id="nome" rotulo="Nome" erro={errors.nome?.message} {...register("nome")} />
         <CampoDeTexto

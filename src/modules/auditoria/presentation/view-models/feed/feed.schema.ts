@@ -4,9 +4,8 @@ import { z } from "zod";
 // aceita "" aqui; o hook (use-feed.hook.ts) remove os campos "" antes de filtrar de verdade.
 const dataOuVazio = z.iso.date().or(z.literal(""));
 const resultadoOuVazio = z.enum(["sucesso", "falha", "falha_compensacao"]).or(z.literal(""));
-// Devolutiva técnica PR #60, ajuste 03: a coluna `ator` é UUID — texto livre
-// (ex. "João") chegaria ao Postgres e viraria erro de query em vez de "nenhum
-// resultado". Rejeita aqui, antes da consulta.
+// A coluna `ator` é UUID — texto livre (ex. "João") chegaria ao Postgres e viraria
+// erro de query em vez de "nenhum resultado". Rejeita aqui, antes da consulta.
 // z.guid(), não z.uuid(): a coluna Postgres aceita qualquer literal no formato
 // 8-4-4-4-12 hex, sem exigir os bits de versão/variante do RFC 4122 — mesmo
 // padrão dos IDs fixos usados nos testes de integração (ex. "11111111-...").

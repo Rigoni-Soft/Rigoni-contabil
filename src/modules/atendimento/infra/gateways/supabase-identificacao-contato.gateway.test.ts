@@ -1,5 +1,5 @@
 /**
- * Integração infra ↔ Supabase (testes.md, seção 3) da identificação de contato por telefone (#40).
+ * Integração infra ↔ Supabase (testes.md, seção 3) da identificação de contato por telefone.
  * Requer `npx supabase start` local com migrations + seed aplicados.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -19,7 +19,7 @@ const gateway = new SupabaseIdentificacaoContatoGateway(admin);
 const PADRAO = "(61) 99111-2233";
 const OUTRO = "(61) 3222-4455";
 const clienteId = crypto.randomUUID();
-// Mesmo telefone em dois Clientes, com contratos distintos (B2 do PR #76).
+// Mesmo telefone em dois Clientes, com contratos distintos.
 const COMPARTILHADO = "(61) 98777-6655";
 const clienteA = crypto.randomUUID();
 const clienteB = crypto.randomUUID();

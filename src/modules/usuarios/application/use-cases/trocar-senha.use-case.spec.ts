@@ -16,9 +16,9 @@ import { TrocarSenha } from "./trocar-senha.use-case";
 
 const ID = "11111111-1111-1111-1111-111111111111";
 
-// Mesmo code que SupabaseSessaoGateway devolve pro "same_password" do Auth
-// (devolutiva técnica PR #62, ponto 1) — sem importar infra no teste da
-// application (regra "so-main-importa-infra" do dependency-cruiser).
+// Mesmo code que SupabaseSessaoGateway devolve pro "same_password" do Auth —
+// sem importar infra no teste da application (regra "so-main-importa-infra"
+// do dependency-cruiser).
 class SenhaJaDefinidaFalsa extends AppError {
   readonly code = "SENHA_JA_DEFINIDA";
 }
@@ -132,7 +132,7 @@ function montar() {
 }
 
 describe("TrocarSenha", () => {
-  // #58: JWT de quem foi desativado vale até expirar; o perfil é a fonte da verdade.
+  // JWT de quem foi desativado vale até expirar; o perfil é a fonte da verdade.
   it("nega usuário desativado com sessão ainda válida, sem tocar no Auth", async () => {
     const { usuarios, sessao, useCase } = montar();
     const desativado = Usuario.builder()
@@ -223,9 +223,9 @@ describe("TrocarSenha", () => {
     expect(finalizar.auditoriasGravadas).toHaveLength(1);
   });
 
-  // Devolutiva técnica PR #62, pontos 4 e 5: a senha já mudou no Auth nesse
-  // ponto (ADR 0002, não existe "desfazer") — a falha não pode virar sucesso
-  // silencioso nem um erro indistinguível de "nada aconteceu".
+  // A senha já mudou no Auth nesse ponto (ADR 0002, não existe "desfazer") — a
+  // falha não pode virar sucesso silencioso nem erro indistinguível de "nada
+  // aconteceu".
   it("devolve EstadoInconsistenteError (não sucesso) quando a finalização falha depois da senha já trocada", async () => {
     const { sessao, usuarios, finalizar, useCase } = montar();
     usuarios.usuario = usuarioFalso(null);
@@ -239,9 +239,8 @@ describe("TrocarSenha", () => {
     expect(finalizar.auditoriasGravadas).toEqual([]);
   });
 
-  // Critério de aceite da devolutiva PR #62 (retry): Auth alterado com sucesso →
-  // finalização falha → retry → updateUser NÃO é chamado de novo → perfil +
-  // auditoria concluídos exatamente uma vez.
+  // Auth alterado com sucesso → finalização falha → retry → updateUser NÃO é
+  // chamado de novo → perfil + auditoria concluídos exatamente uma vez.
   it("retry após falha na finalização não chama updateUser de novo e grava exatamente 1 auditoria", async () => {
     const { sessao, usuarios, finalizar, auditoria, useCase } = montar();
     usuarios.usuario = usuarioFalso(null);
@@ -309,9 +308,9 @@ describe("TrocarSenha", () => {
     ]);
   });
 
-  // Devolutiva técnica PR #62, ponto 1: same_password sem prova de Auth alterado
-  //  não pode virar sucesso — senão o usuário "troca" a senha pra ela
-  // mesma (a provisória) e o sistema marca a troca como concluída sem nada mudar.
+  // same_password sem prova de Auth alterado não pode virar sucesso — senão o
+  // usuário "troca" a senha para a mesma (a provisória) e o sistema marca a troca
+  // como concluída sem nada mudar.
   it("rejeita quando a nova senha é igual à provisória (primeiro acesso, sem prova de Auth alterado)", async () => {
     const { sessao, usuarios, finalizar, auditoria, useCase } = montar();
     sessao.erroAoTrocar = new SenhaJaDefinidaFalsa("A nova senha é igual à senha atual.");

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { cnpjValido } from "@/shared/kernel/cnpj";
 import { REGIMES } from "@/shared/kernel/regimes";
 
-// PDF ou DOCX (ponto 2 do feedback manual, 2026-09-29) — restringe tanto no
+// PDF ou DOCX — restringe tanto no
 // `accept` do input (dica do navegador) quanto aqui (não confia só no client).
 const TIPOS_DOCUMENTO_ACEITOS = [
   "application/pdf",
@@ -34,7 +34,7 @@ export const criarClienteSchema = z.object({
         .email("Informe um e-mail válido, como nome@empresa.com.br"),
     ])
     .optional(),
-  // Opcional (decisão de produto 2026-09-29, atualiza a spec #24).
+  // Opcional.
   contratoSocial: arquivoDocumento("Arquivo inválido").optional(),
   alteracoesContratuais: z.array(
     z.object({

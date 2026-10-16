@@ -323,8 +323,8 @@ describe("CriarUsuario", () => {
     expect(auditoria.registros).toEqual([expect.objectContaining({ resultado: "falha" })]);
   });
 
-  // Devolutiva técnica PR #61, ponto 1: nenhum destes 3 casos pode deixar a
-  // conta Auth (id "novo-usuario-1", gerada por AuthAdminFalso) sem compensação.
+  // Nenhum destes 3 casos pode deixar a conta Auth (id "novo-usuario-1", gerada
+  // por AuthAdminFalso) sem compensação.
   it("compensa (remove a conta Auth) quando o INSERT em perfis falha depois da conta já criada", async () => {
     const sessao = new SessaoFalsa();
     const usuarios = new UsuarioRepositoryFalso();
@@ -365,9 +365,8 @@ describe("CriarUsuario", () => {
     // aqui, no unit test com fakes, só garantimos que a compensação foi acionada.
   });
 
-  // Ajuste residual da devolutiva PR #61: falha da própria compensação deixa de
-  // ser mascarada como o erro original — vira erro específico + registro de
-  // auditoria próprio, distinguível de "rollback funcionou".
+  // Falha da própria compensação não é mascarada como o erro original — vira erro
+  // específico + registro de auditoria próprio, distinguível de "rollback funcionou".
   it("distingue falha da própria compensação: erro específico, registro de auditoria próprio e log sem senha", async () => {
     const sessao = new SessaoFalsa();
     const usuarios = new UsuarioRepositoryFalso();

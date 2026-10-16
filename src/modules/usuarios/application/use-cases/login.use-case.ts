@@ -24,20 +24,20 @@ export class Login implements LoginPort {
     // Falha técnica (banco indisponível) e falha de reconstrução de domínio (nome/
     // e-mail inválidos salvos no banco) passam pelo mesmo cleanup que "sem perfil",
     // mas com mensagem própria — não apresentam indisponibilidade como ausência
-    // cadastral (devolutiva #55, pontos 01 e 02).
+    // cadastral.
     if (!perfil.ok) {
       return this.abortarSessaoOrfa("Falha ao carregar seu perfil. Tente novamente.", perfil.error);
     }
     if (!perfil.value) return this.abortarSessaoOrfa("Usuário autenticado sem perfil cadastrado.");
     const usuario = perfil.value;
 
-    // #31/ADR 0002: expirada sem troca também bloqueia — Admin recadastra a
-    // conta (não há endpoint de "regenerar" ainda, YAGNI até virar pedido real).
+    // ADR 0002: expirada sem troca também bloqueia — Admin recadastra a conta
+    // (sem endpoint de "regenerar", YAGNI até virar pedido real).
     if (usuario.senhaProvisoriaVencida(new Date())) {
       return this.abortarSessaoOrfa("Senha provisória expirada. Peça ao Admin uma nova conta.");
     }
 
-    // #58: o ban no Auth já barra o login; isto cobre o caso do ban ter falhado.
+    // O ban no Auth já barra o login; isto cobre o caso do ban ter falhado.
     if (usuario.estaDesativado()) return this.abortarSessaoOrfa("Conta desativada.");
 
     return ok(usuarioParaDto(usuario));

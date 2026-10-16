@@ -8,7 +8,7 @@ type SetorNav = { slug: string };
 
 type ShellNavProps = { setores: SetorNav[] };
 
-// Única aba com tela de verdade por trás (#36) — as demais seguem como
+// Única aba com tela de verdade por trás — as demais seguem como
 // placeholder desabilitado até ganharem painel próprio.
 const ROTA_POR_SETOR: Record<string, string> = {
   simples_nacional: "/simples-nacional",

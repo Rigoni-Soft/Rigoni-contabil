@@ -89,10 +89,8 @@ describe("ObterSessao", () => {
     expect(resultado).toBeNull();
   });
 
-  // Devolutiva técnica PR #62, ponto 3: Login.execute() checava o vencimento
-  // só na hora de entrar — uma sessão aberta antes do vencimento (48h) seguia
-  // válida depois dele, porque nenhuma página checava isso de novo, só
-  // precisaTrocarSenha(). Toda página passa por carregarSessao() → aqui.
+  // Login só checava o vencimento ao entrar; uma sessão aberta antes dele seguia
+  // válida depois. Toda página passa por carregarSessao() → aqui.
   it("devolve null quando a senha provisória da sessão já venceu, mesmo com sessão ativa", async () => {
     const sessao = new SessaoFalsa();
     sessao.id = "11111111-1111-1111-1111-111111111111" as UsuarioId;
@@ -104,7 +102,7 @@ describe("ObterSessao", () => {
     expect(resultado).toBeNull();
   });
 
-  // #58: soft delete — sessão aberta antes da desativação para de valer na próxima página.
+  // Soft delete — sessão aberta antes da desativação para de valer na próxima página.
   it("devolve null quando o usuário foi desativado, mesmo com sessão ativa", async () => {
     const sessao = new SessaoFalsa();
     sessao.id = "11111111-1111-1111-1111-111111111111" as UsuarioId;

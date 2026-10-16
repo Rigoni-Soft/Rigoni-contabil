@@ -26,8 +26,8 @@ function sessaoViaUsuarios(supabase: SupabaseClient): SessaoPort {
   return { usuarioAtual: () => obterSessao.execute() };
 }
 
-// Devolutiva técnica PR #61, ponto 3: client service_role, não o da sessão do
-// usuário -- a RPC registrar_acao_auditoria só aceita service_role agora
+// Client service_role, não o da sessão do
+// usuário: a RPC registrar_acao_auditoria só aceita service_role
 // (migration 20260930170000), justamente pra um usuário comum não conseguir
 // chamá-la direto e fabricar eventos. Mesmo padrão do SupabaseAuthAdminGateway
 // (ADR 0001): privilégio elevado confinado a um único ponto.

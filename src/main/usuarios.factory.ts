@@ -31,7 +31,7 @@ import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories
 import { err, ok } from "@/shared/kernel/result";
 
 // Adapta a porta IN RegistrarAcao (módulo auditoria) à porta própria de usuarios
-// (arquitetura.md, seção 3.11). Devolutiva técnica PR #61, ponto 2: devolve o
+// (arquitetura.md, seção 3.11). Devolve o
 // Result de verdade — quem chama (CriarUsuario) decide se trata como fatal.
 function auditoriaViaModuloAuditoria(): AuditoriaPort {
   return {

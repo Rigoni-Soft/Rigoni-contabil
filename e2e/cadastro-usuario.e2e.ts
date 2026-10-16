@@ -1,10 +1,5 @@
 import { expect, test } from "./fixtures";
 
-// Cobre o cenário principal do ticket #30 (Admin cadastra Líder/Funcionário):
-// cadastro com senha provisória gerada automaticamente, mostrada na hora.
-// Usuários: supabase/seed.sql (Admin de Teste e Funcionário Simples Nacional,
-// ambiente Dev local; baseURL vem de playwright.config.ts).
-
 async function login(page: import("@playwright/test").Page, email: string, senha: string) {
   await page.goto("/login");
   await page.getByLabel("E-mail").fill(email);
@@ -65,7 +60,7 @@ test.describe("Cadastro de Líder/Funcionário (Admin only)", () => {
 
   test("Funcionário é redirecionado pra fora do cadastro de usuário", async ({ page }) => {
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");
-    // Simples Nacional é a página principal do próprio setor (#36).
+    // Simples Nacional é a página principal do próprio setor.
     await expect(page).toHaveURL("/simples-nacional");
 
     await page.goto("/admin/usuarios/novo");
@@ -76,8 +71,7 @@ test.describe("Cadastro de Líder/Funcionário (Admin only)", () => {
   });
 });
 
-// Ticket #32: Líder cadastra Funcionário só do próprio Setor, sem opção de
-// escolher outro Setor nem de cadastrar Líder/Admin.
+// Líder cadastra Funcionário só do próprio Setor, sem opção de escolher outro Setor nem de cadastrar Líder/Admin.
 test.describe("Cadastro de Funcionário (Líder de setor)", () => {
   test("Líder cadastra um Funcionário do próprio Setor e vê a senha provisória", async ({
     page,

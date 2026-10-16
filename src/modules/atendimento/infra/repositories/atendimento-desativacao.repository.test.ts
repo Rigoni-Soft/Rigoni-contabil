@@ -1,5 +1,5 @@
 /**
- * Integração infra ↔ Supabase (testes.md, seção 3) da segunda devolutiva da PR #77: desativar um
+ * Integração infra ↔ Supabase (testes.md, seção 3): desativar um
  * usuário não deixa Atendimento preso a uma conta irrecuperável, e a escolha automática de
  * atendente (fallback) não grava um perfil desativado. Requer `npx supabase start` local com
  * migrations + seed.

@@ -45,8 +45,8 @@ describe("CriarUsuarioContainer", () => {
     expect(executeMock).toHaveBeenCalledTimes(1);
   });
 
-  // Devolutiva técnica PR #61, ponto 5: Promise rejeitada (erro de rede/transporte,
-  // não um ActionResult de erro) não pode deixar o botão preso em "Cadastrando...".
+  // Promise rejeitada (erro de rede/transporte, não um ActionResult de erro) não
+  // pode deixar o botão preso em "Cadastrando...".
   it("Promise rejeitada limpa o estado pendente e mostra erro genérico", async () => {
     executeMock.mockRejectedValue(new Error("falha de rede"));
     const usuario = userEvent.setup();

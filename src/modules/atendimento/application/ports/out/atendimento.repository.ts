@@ -142,7 +142,7 @@ export type EncerramentoPendente = {
 export type ResultadoEncerramentoPorInatividade =
   | { status: "encerrado"; proximo: AtendimentoAssumido | null; reivindicacao: string }
   | { status: "inexistente" };
-// Atendimento em andamento de um Funcionário, para a lista dele (painel do Funcionário, #49).
+// Atendimento em andamento de um Funcionário, para a lista dele (painel do Funcionário).
 export type AtendimentoDoFuncionario = {
   id: string;
   telefone: string;
@@ -211,7 +211,7 @@ export type ConversaLida = {
   ultimaDoFuncionarioEm: string | null;
   ultimaTransferencia: UltimaTransferencia | null;
   ura: OrigemUra | null;
-  // Aviso de inatividade pendente (#73): quem estava inativo e quando a URA avisou.
+  // Aviso de inatividade pendente: quem estava inativo e quando a URA avisou.
   aviso: { de: Inativo; em: string } | null;
 };
 

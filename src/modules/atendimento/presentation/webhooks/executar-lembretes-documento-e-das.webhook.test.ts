@@ -1,7 +1,7 @@
 import { GET, POST } from "./executar-lembretes-documento-e-das.webhook";
 
 /**
- * Job de lembrete de documento e DAS (#52): autenticar não basta, a flag manda.
+ * Job de lembrete de documento e DAS: autenticar não basta, a flag manda.
  */
 const executar = jest.fn();
 let ativa = false;

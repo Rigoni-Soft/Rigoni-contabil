@@ -66,7 +66,7 @@ export class EditarCadastroOperacionalCliente implements EditarCadastroOperacion
     }
 
     // Sucesso é auditado pelo banco, na mesma transação da RPC (gatilho em
-    // cliente_atividades_mensais, PR #69): aqui só as falhas, que não têm
+    // cliente_atividades_mensais): aqui só as falhas, que não têm
     // estado a preservar.
     return ok({ clienteId: input.clienteId });
   }

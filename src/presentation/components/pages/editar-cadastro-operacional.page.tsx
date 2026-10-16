@@ -5,7 +5,7 @@ type EditarCadastroOperacionalPageProps = {
   header: React.ReactNode;
   titulo: string;
   formulario: React.ReactNode;
-  // De onde a tela foi aberta (ex.: a lista de um bucket do resumo do setor, #36): "Voltar" leva
+  // De onde a tela foi aberta (ex.: a lista de um bucket do resumo do setor): "Voltar" leva
   // para lá, não sempre para o dashboard.
   voltarHref?: string;
 };

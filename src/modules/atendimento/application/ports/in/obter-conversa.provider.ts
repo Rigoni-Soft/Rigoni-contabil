@@ -63,7 +63,7 @@ export type ConversaVista = {
   ultimaTransferencia: UltimaTransferencia | null;
   // Null se o Atendimento não nasceu da URA (sem resumo nem CNPJ informado).
   ura: OrigemUra | null;
-  // A URA avisou que o Atendimento será encerrado por falta de resposta do Funcionário (#73) e ele
+  // A URA avisou que o Atendimento será encerrado por falta de resposta do Funcionário e ele
   // ainda não escreveu depois do aviso.
   avisoInatividade: boolean;
   // Serviços que o Funcionário pode disparar agora; vazio se encerrado ou sem Cliente.

@@ -1,7 +1,6 @@
 /**
- * Integração infra ↔ Supabase (testes.md, seção 3) das garantias da devolutiva da PR #77:
- * B2 (só atendente ativo e do Setor recebe), B3 (a Fila antiga passa na frente) e I1 (o crédito
- * mensal sobrevive à Transferência). Requer `npx supabase start` local com migrations + seed.
+ * Integração infra ↔ Supabase (testes.md, seção 3) das garantias de integridade: só atendente
+ * ativo e do Setor recebe, a Fila antiga passa na frente e o crédito mensal sobrevive à Transferência. Requer `npx supabase start` local com migrations + seed.
  */
 import { createClient } from "@supabase/supabase-js";
 
@@ -85,7 +84,7 @@ async function creditoDoMes(setor: typeof SETOR, funcionarioId: string): Promise
 }
 
 // Cada teste começa sem ninguém esperando na Fila do Setor desta suíte: quem sobra de um teste
-// passaria na frente do próximo (é justamente a regra do B3).
+// passaria na frente do próximo (é justamente a regra).
 beforeEach(async () => {
   await admin
     .from("atendimentos")

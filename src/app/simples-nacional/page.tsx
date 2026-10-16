@@ -14,9 +14,6 @@ import { BuscarClienteContainer } from "@/modules/clientes/presentation/view-mod
 import { carregarResumoSetorSn } from "@/modules/clientes/presentation/view-models/resumo-setor-sn/resumo-setor-sn.server";
 import { podeVerDashboardSn } from "@/shared/kernel/papeis";
 
-// Dashboard exclusivo do Simples Nacional (#36, feedback de teste manual,
-// ponto 1): deixou de ser embutido em "/" — só aparece aqui, alcançado pela
-// aba "Simples Nacional" do ShellNav (ponto 2).
 export default async function Page() {
   const sessao = await carregarSessao();
   if (!sessao) redirect("/login");

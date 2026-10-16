@@ -10,7 +10,7 @@ class PersistenciaError extends AppError {
   readonly code = "PERSISTENCIA_ERROR";
 }
 
-// Só mexe em responsavel_id; o banco (trigger + RLS, migration #65) é a última
+// Só mexe em responsavel_id; o banco (trigger + RLS) é a última
 // barreira — Funcionário nem chega a gravar por este caminho.
 export class SupabaseResponsavelClienteRepository implements ResponsavelClienteRepository {
   constructor(private readonly supabase: SupabaseClient) {}

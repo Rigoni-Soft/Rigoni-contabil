@@ -1,5 +1,5 @@
 /**
- * Integração infra ↔ Supabase (testes.md, seção 3) da entrega de documentos contratuais (#41).
+ * Integração infra ↔ Supabase (testes.md, seção 3) da entrega de documentos contratuais.
  * Requer `npx supabase start` local com migrations + seed aplicados.
  */
 import { createClient } from "@supabase/supabase-js";

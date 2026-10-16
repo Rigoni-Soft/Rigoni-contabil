@@ -23,7 +23,7 @@ const XLSX_BASE64 =
 
 const bytesDeBase64 = (base64: string) => new Uint8Array(Buffer.from(base64, "base64"));
 
-// Mídias de teste do adapter falso, escolhidas pelo id que a notificação traz. O real vive na #68.
+// Mídias de teste do adapter falso, escolhidas pelo id que a notificação traz.
 const CATALOGO: Record<string, () => MidiaBaixada> = {
   "midia-teste-audio": () => ({
     bytes: bytesDeBase64(OGG_OPUS_BASE64),

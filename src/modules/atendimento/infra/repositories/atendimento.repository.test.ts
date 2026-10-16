@@ -1,5 +1,5 @@
 /**
- * Integração infra ↔ Supabase (testes.md, seção 3) do Atendimento/Mensagem e do balanceamento (#44).
+ * Integração infra ↔ Supabase (testes.md, seção 3) do Atendimento/Mensagem e do balanceamento.
  * Requer `npx supabase start` local com migrations + seed aplicados.
  */
 import { createClient } from "@supabase/supabase-js";

@@ -9,7 +9,7 @@ import { TrocarSenhaContainer } from "@/modules/usuarios/presentation/view-model
 export default async function Page() {
   const sessao = await carregarSessao();
   if (!sessao) redirect("/login");
-  // Senha provisória: o fluxo obrigatório (#31) tem prioridade sobre o perfil.
+  // Senha provisória: o fluxo obrigatório tem prioridade sobre o perfil.
   if (sessao.precisaTrocarSenha) redirect("/trocar-senha");
 
   return (

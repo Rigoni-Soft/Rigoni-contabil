@@ -12,7 +12,7 @@ type AlterarPapelProps = {
   aoAlterar: () => void;
 };
 
-// Alvo Funcionário = rebaixa o Líder; alvo Líder = promove o Funcionário (#57). Admin não
+// Alvo Funcionário = rebaixa o Líder; alvo Líder = promove o Funcionário. Admin não
 // tem ação (a página nem monta este componente pra ele).
 export function AlterarPapel({ nome, papelAlvo, pendente, erro, aoAlterar }: AlterarPapelProps) {
   const promove = papelAlvo === "lider_setor";

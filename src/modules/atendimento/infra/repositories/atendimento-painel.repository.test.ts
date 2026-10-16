@@ -1,6 +1,6 @@
 /**
  * Integração infra ↔ Supabase (testes.md, seção 3) da leitura e da escrita do painel do
- * Funcionário (#49). Requer `npx supabase start` local com migrations + seed aplicados.
+ * Funcionário. Requer `npx supabase start` local com migrations + seed aplicados.
  */
 import { createClient } from "@supabase/supabase-js";
 

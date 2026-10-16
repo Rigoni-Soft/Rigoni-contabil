@@ -7,13 +7,9 @@ import {
   login,
 } from "./support/criar-cliente";
 
-// Cobre o cenário principal do ticket #36 (Resumo do setor, 9 cards):
-// cliente novo nasce com documento_obrigatorio='negativo' (#34, cadastro
-// automático), então cai no card "Sem documento" — cenário previsível sem
-// precisar editar nada antes do teste. Clicar no card abre uma tela própria
-// (/clientes/resumo/[bucket]), não um painel inline (decisão de UX revisada).
-// Resumo vive só em /simples-nacional, não mais embutido em "/" (feedback de
-// teste manual, ponto 1) — alcançado pela aba "Simples Nacional" do ShellNav.
+// Cliente novo nasce com documento_obrigatorio='negativo' (cadastro automático), então cai no card
+// "Sem documento" sem precisar editar nada. Clicar no card abre uma tela própria
+// (/clientes/resumo/[bucket]), não um painel inline.
 
 test.describe("Resumo do setor (#36)", () => {
   test("o card 'Sem documento' leva a uma tela própria com o cliente recém-cadastrado, que leva ao cadastro dele", async ({
@@ -47,8 +43,7 @@ test.describe("Resumo do setor (#36)", () => {
     await expect(page.getByRole("heading", { name: "Resumo do setor" })).toBeVisible();
   });
 
-  // Feedback de teste manual do #36: salvar uma edição fecha a tela e o
-  // dashboard reflete a mudança na hora — sem precisar recarregar manualmente.
+  // Salvar uma edição fecha a tela e o dashboard reflete a mudança na hora, sem recarregar.
   test("salvar uma edição move o cliente pro bucket certo e fecha a tela de volta pra lista", async ({
     page,
   }) => {

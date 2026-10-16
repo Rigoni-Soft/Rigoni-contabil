@@ -10,7 +10,7 @@ export * from "./env.client";
 // dev`/`next start` e pelo baseURL do Playwright, direto de process.env) —
 // validá-la como obrigatória faria o app inteiro depender dela sem motivo,
 // inclusive em build/deploy onde a plataforma controla a porta sozinha
-// (revisão do #28).
+// inclusive em build/deploy onde a plataforma controla a porta sozinha.
 const resultado = z
   .object({
     // O Next define NODE_ENV (production no build e na Vercel, inclusive preview). As regras que
@@ -37,14 +37,13 @@ const resultado = z
     MENSAGERIA_SEGREDO_SESSAO: z.string().min(1).default(SEGREDOS_MENSAGERIA_PLACEHOLDER.sessao),
     // Bearer das rotas de job (agendador). Sem valor, as rotas recusam tudo.
     CRON_SECRET: z.string().min(1).optional(),
-    // Liga o encerramento automático por inatividade (#73). Desligada por padrão: ter o
-    // CRON_SECRET não basta. Em produção só age com mensageria real e o aviso visível ao
-    // Funcionário (docs/contratos/mensageria.md).
+    // Liga o encerramento automático por inatividade. Desligada por padrão: ter o CRON_SECRET não basta.
+    // Em produção só age com mensageria real e o aviso visível ao Funcionário (docs/contratos/mensageria.md).
     INATIVIDADE_AUTOMATICA: z.enum(["desligada", "ligada"]).default("desligada"),
     // Binário do ffmpeg que converte o áudio gravado em webm (docs/adr/0006). Sem valor, usa o
     // do pacote `ffmpeg-static`.
     FFMPEG_PATH: z.string().min(1).optional(),
-    // Liga o job de lembrete de documento e envio de DAS (#52). Mesma regra da inatividade.
+    // Liga o job de lembrete de documento e envio de DAS. Mesma regra da inatividade.
     LEMBRETES_AUTOMATICOS: z.enum(["desligada", "ligada"]).default("desligada"),
   })
   .safeParse({

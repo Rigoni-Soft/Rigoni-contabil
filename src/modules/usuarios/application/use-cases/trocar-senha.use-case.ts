@@ -25,19 +25,19 @@ export class TrocarSenha implements TrocarSenhaPort {
     if (!id) return err(new ForbiddenError("Sessão inválida."));
 
     const perfil = await this.usuarios.buscarPorId(id);
-    // Erro técnico não vira "sem perfil cadastrado" (devolutiva #55, ponto 02):
-    // propaga o AppError original em vez de mascará-lo.
+    // Erro técnico não vira "sem perfil cadastrado": propaga o AppError original
+    // em vez de mascará-lo.
     if (!perfil.ok) return perfil;
     if (!perfil.value) return err(new ForbiddenError("Usuário autenticado sem perfil cadastrado."));
     const usuario = perfil.value;
-    // #58: JWT de quem foi desativado vale até expirar; o perfil é a fonte da verdade.
+    // JWT de quem foi desativado vale até expirar; o perfil é a fonte da verdade.
     if (usuario.estaDesativado()) return err(new ForbiddenError("Conta desativada."));
 
     // Decide antes de qualquer escrita, senão precisaTrocarSenha() já viraria false.
     const primeiroAcesso = usuario.precisaTrocarSenha();
-    // Devolutiva PR #62 (retry): o marcador só é gravado DEPOIS de updateUser()
-    // ter sucesso — prova que o Auth já tem a senha nova. Com ele, o estado
-    // pendente é só perfil + auditoria e o retry pula o Auth por completo.
+    // O marcador só é gravado DEPOIS de updateUser() ter sucesso — prova que o Auth
+    // já tem a senha nova. Com ele, o estado pendente é só perfil + auditoria e o
+    // retry pula o Auth por completo.
     const authJaAlterado = primeiroAcesso && usuario.authJaAlterado();
 
     if (!authJaAlterado) {

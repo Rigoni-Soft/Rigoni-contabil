@@ -5,7 +5,7 @@ import type {
 import type { AppError } from "@/shared/errors/app.error";
 import { ok, type Result } from "@/shared/kernel/result";
 
-// Adapter falso (padrão em dev/e2e): só registra no log o que "enviou". O real é a #86.
+// Adapter falso (padrão em dev/e2e): só registra no log o que "enviou".
 export class EnvioEmailFalsoGateway implements EnvioEmailPort {
   async enviar(email: EmailParaEnvio): Promise<Result<void, AppError>> {
     console.info(`[e-mail falso] para ${email.para}: ${email.assunto}`);

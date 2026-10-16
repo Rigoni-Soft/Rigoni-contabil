@@ -12,15 +12,14 @@ const TIMEOUT_MS = 5000;
 // custo. Autopreenche Empresa e, quando a API tem certeza (Simples Nacional
 // ou MEI), Regime. Não distingue Lucro Presumido de Lucro Real — não é dado
 // público estruturado — então nesses casos o campo Regime fica em branco pro
-// Admin escolher (decisão tomada com o usuário em 2026-09-29). Falha de rede
+// Admin escolher. Falha de rede
 // ou CNPJ não encontrado: devolve null, sem travar o cadastro manual.
 //
 // Sem estado de "pendente" aqui de propósito: um indicador de loading
-// provocaria um re-render do formulário (e do useFieldArray de alterações
-// contratuais) bem na janela em que o Admin ainda está preenchendo os outros
-// campos — reproduzido num teste E2E como corrida real entre esse re-render e
-// `append()` de uma alteração contratual. A resposta chega em ~100ms na
-// prática; o ganho de UX de um indicador não paga esse risco.
+// re-renderizaria o formulário (e o useFieldArray de alterações contratuais)
+// enquanto o Admin preenche os outros campos, em corrida com `append()`
+// (reproduzida em E2E). A resposta chega em ~100ms; o ganho de UX de um
+// indicador não paga esse risco.
 export function useConsultarCnpj() {
   const consultar = useCallback(async (cnpjDigitos: string): Promise<DadosCnpjPublico | null> => {
     if (cnpjDigitos.length !== 14) return null;

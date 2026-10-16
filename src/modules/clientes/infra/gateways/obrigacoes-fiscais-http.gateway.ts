@@ -36,7 +36,7 @@ const autorizacaoSchema = z.discriminatedUnion("vigente", [
 
 // Fala o contrato neutro de docs/contratos/obrigacoes-fiscais.md com qualquer
 // servidor que o implemente: o mock de `mock-api/` em dev, um tradutor pro
-// provedor real depois (#66). Falha de rede/HTTP/formato vira ServicoExternoError.
+// provedor real depois. Falha de rede/HTTP/formato vira ServicoExternoError.
 export class ObrigacoesFiscaisHttpGateway implements ObrigacoesFiscaisPort {
   constructor(
     private readonly baseUrl: string,

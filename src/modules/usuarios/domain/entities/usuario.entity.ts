@@ -46,23 +46,23 @@ export class Usuario {
     return this.props.setor;
   }
 
-  // Só a troca (não o cadastro) zera isso — decisão do #31.
+  // Só a troca (não o cadastro) zera isso.
   precisaTrocarSenha(): boolean {
     return this.props.senhaTrocadaEm === null;
   }
 
   // Auth já tem a nova senha (prova gravada só DEPOIS de updateUser() ter sucesso);
-  // falta apenas perfil + auditoria (PR #62, retry).
+  // falta apenas perfil + auditoria.
   authJaAlterado(): boolean {
     return this.precisaTrocarSenha() && this.props.senhaAuthAlteradaEm !== null;
   }
 
-  // Soft delete (#58): o perfil continua no banco pra preservar o histórico de auditoria.
+  // Soft delete: o perfil continua no banco pra preservar o histórico de auditoria.
   estaDesativado(): boolean {
     return this.props.desativadoEm !== null;
   }
 
-  // Desativada no banco (RLS já nega), mas o ban no Auth ainda não foi confirmado (PR #75, ponto D).
+  // Desativada no banco (RLS já nega), mas o ban no Auth ainda não foi confirmado.
   bloqueioPendente(): boolean {
     return this.estaDesativado() && this.props.banidoEm === null;
   }

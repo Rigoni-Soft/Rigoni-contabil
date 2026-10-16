@@ -1,5 +1,5 @@
 /**
- * Integração infra ↔ Supabase (testes.md, seção 3) da reação à Mensagem do cliente (#84): o id da
+ * Integração infra ↔ Supabase (testes.md, seção 3) da reação à Mensagem do cliente: o id da
  * Mensagem no provedor é guardado na abertura e no anexo, e a reação é lida e gravada.
  * Requer `npx supabase start` local com migrations + seed aplicados.
  */

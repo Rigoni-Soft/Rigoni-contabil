@@ -17,8 +17,7 @@ import { Label } from "@/presentation/components/ui/label";
 import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
 import { REGIME_LABEL, REGIMES } from "@/shared/kernel/regimes";
 
-// PDF ou DOCX (ponto 2 do feedback manual, 2026-09-29) — dica do navegador;
-// a validação de verdade fica no schema Zod (não confia só no `accept`).
+// PDF ou DOCX — dica do navegador; a validação de verdade fica no schema Zod (não confia só no `accept`).
 const ACCEPT_DOCUMENTO =
   ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
@@ -43,15 +42,13 @@ type CriarClienteFormProps = {
   pendente: boolean;
   erroServidor?: string;
   criado?: ClienteCriado;
-  // Chamado ao clicar "Cadastrar outro" na tela de confirmação — mesmo padrão do
-  // formulário de usuário (#30/#32).
+  // Chamado ao clicar "Cadastrar outro" na tela de confirmação — mesmo padrão do formulário de usuário.
   onCadastrarNovo: () => void;
   // Lista de campos do useFieldArray, montada no Container (View burra: sem hooks).
   alteracoes: { id: string }[];
   onAdicionarAlteracao: () => void;
   onRemoverAlteracao: (indice: number) => void;
-  // CNPJ→autopreenchimento de Empresa/Regime via API pública (ponto 4 do
-  // feedback manual, 2026-09-29) — a consulta em si mora no Container.
+  // CNPJ→autopreenchimento de Empresa/Regime via API pública — a consulta em si mora no Container.
   onCnpjBlur: (cnpjMascarado: string) => void;
   // Avisos da consulta de CNPJ (não são erro de validação — o Zod não sabe
   // se um CNPJ bem formado existe de verdade — por isso ficam fora de `errors`).
@@ -101,11 +98,9 @@ export function CriarClienteForm({
     <Pilha espaco="formulario" como="form" onSubmit={onSubmit} noValidate>
       <NotaDeObrigatorio />
 
-      {/* CNPJ primeiro (ponto 4 do feedback manual): autopreenche Empresa/Regime
-          ao perder o foco, antes do resto do formulário ser preenchido à mão.
-          2 colunas aproveitam a largura do formulário (80% da tela, #36) em vez
-          de empilhar os 4 campos numa coluna só; o E-mail (opcional, destino do
-          envio por e-mail) fecha o par com o Regime, sem ficar sozinho numa linha. */}
+      {/* CNPJ primeiro: autopreenche Empresa/Regime ao perder o foco, antes do resto do formulário ser
+          preenchido à mão. 2 colunas aproveitam a largura do formulário (80% da tela) em vez de empilhar os
+          4 campos; o E-mail (opcional, destino do envio por e-mail) fecha o par com o Regime. */}
       <Grade colunas="1>2" espaco={5}>
         <Controller
           control={control}

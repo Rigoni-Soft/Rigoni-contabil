@@ -3,7 +3,7 @@
  * rodando localmente com as migrations e o seed aplicados. Usa os usuários de
  * `supabase/seed.sql`: Admin (administrativo), Funcionário SN (simples_nacional),
  * Funcionário Financeiro (financeiro) e Líder Contábil (contabil) — cobrindo o
- * isolamento por setor exigido pela RLS (revisão do #28).
+ * isolamento por setor exigido pela RLS.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
@@ -55,10 +55,9 @@ async function criarContaAuthDeTeste(): Promise<{ id: string; email: string }> {
   return { id: data.user.id, email };
 }
 
-// Devolutiva técnica PR #62, bloqueio 2: cria uma conta com senha provisória já
-// vencida (sem passar pelo fluxo normal de #30/#31, direto via service_role),
-// pra provar que meu_papel()/meu_setor() -- endurecidos na mesma migration do
-// #31 (20260927090000) -- negam acesso via Data API mesmo com um JWT válido.
+// Cria uma conta com senha provisória já vencida (direto via service_role, fora
+// do fluxo normal) pra provar que meu_papel()/meu_setor() negam acesso via Data
+// API mesmo com um JWT válido.
 async function criarContaComSenhaVencida(
   papel: "admin" | "funcionario",
   setor: string,
@@ -157,9 +156,8 @@ describe("SupabaseUsuarioRepository (integração)", () => {
     });
 
     // Consulta sem erro (resultado.ok) E ausência da linha (value === null): a
-    // combinação prova bloqueio de RLS, não uma falha técnica mascarada de
-    // ausência (devolutiva #55, ponto 02 — "reforçar os testes de RLS"). O
-    // controle positivo de que a linha existe e é alcançável por um viewer
+    // combinação prova bloqueio de RLS, não uma falha técnica mascarada de ausência.
+    // O controle positivo de que a linha existe e é alcançável por um viewer
     // autorizado está no teste "Admin → outro setor: permitido" acima, mesmo alvo.
     it("Funcionário → outro setor: negado", async () => {
       const supabase = await comoFuncionarioSN();
@@ -225,9 +223,9 @@ describe("SupabaseUsuarioRepository (integração)", () => {
     expect(resultado.ok).toBe(false);
   });
 
-  // Devolutiva técnica PR #63: INSERT direto via Data API (sem passar pelo caso de uso),
-  // provando que a policy perfis_insert_lider_proprio_setor nega no Postgres o que o
-  // CriarUsuario já nega na aplicação.
+  // INSERT direto via Data API (sem passar pelo caso de uso), provando que a policy
+  // perfis_insert_lider_proprio_setor nega no Postgres o que o CriarUsuario já nega
+  // na aplicação.
   describe("Líder insere perfil direto na Data API (RLS: perfis_insert_lider_proprio_setor, devolutiva PR #63)", () => {
     async function inserirComoLiderContabil(papel: string, setor: string) {
       const { id, email } = await criarContaAuthDeTeste();

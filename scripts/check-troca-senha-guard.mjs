@@ -1,11 +1,9 @@
 // yarn check:guard-senha  →  falha se alguma página autenticada sob src/app
 // esquecer o bloqueio de troca obrigatória de senha (precisaTrocarSenha).
 //
-// Devolutiva técnica PR #62, ponto 7 (risco regressivo, não bloqueador): hoje
-// cada page.tsx repete `if (sessao.precisaTrocarSenha) redirect("/trocar-senha")`
-// em vez de centralizar num layout/guard comum. Decisão aceita por ora (poucas
-// rotas autenticadas ainda) — este script é a rede de segurança mais barata
-// pra isso não virar um bypass silencioso numa rota nova.
+// Cada page.tsx repete `if (sessao.precisaTrocarSenha) redirect("/trocar-senha")` em vez de
+// centralizar num layout/guard comum (poucas rotas autenticadas por ora). Este script é a rede de
+// segurança mais barata pra isso não virar um bypass silencioso numa rota nova.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -13,11 +11,8 @@ export const APP_DIR = "src/app";
 
 // Páginas públicas de verdade: não exigem sessão pra existir, então ficam de
 // fora de qualquer checagem (nem carregarSessao, nem precisaTrocarSenha).
-// Devolutiva técnica complementar PR #62, ajuste 2: antes este script só
-// pegava quem chamava carregarSessao e esquecia precisaTrocarSenha — uma
-// página nova que esquecesse de chamar carregarSessao passava batido. Agora
-// toda página fora desta lista é obrigada a chamar carregarSessao; só entra
-// aqui quem é public de propósito (login é o único caso hoje).
+// Toda página fora desta lista é obrigada a chamar carregarSessao; só entra aqui quem é público de
+// propósito (login é o único caso hoje).
 export const PAGINAS_PUBLICAS = new Set(["login/page.tsx"]);
 
 // /trocar-senha é o próprio destino do redirect: carrega sessão (pra saber o

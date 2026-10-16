@@ -52,11 +52,11 @@ export type EditarCadastroOperacionalFormValues = {
   parcelamentoStatus: ParcelamentoStatusValor | null;
   observacoesGerais: string;
   atividadeMes: { industria: boolean; comercio: boolean; servico: boolean };
-  // "" = Sem responsável (#65).
+  // "" = Sem responsável.
   responsavelId: string;
 };
 
-// Responsável (#65): só o Líder do SN edita (Select); os demais veem o nome.
+// Responsável: só o Líder do SN edita (Select); os demais veem o nome.
 type ResponsavelCampo = {
   editavel: boolean;
   nomeAtual: string;
@@ -89,7 +89,7 @@ type EditarCadastroOperacionalFormProps = {
   onRemoverContato: (indice: number) => void;
   onLimpar: () => void;
   // Sem callback (uso em /clientes/[id]): "Cancelar" navega pro mesmo destino
-  // do "Voltar" do topo. Com callback (uso inline na busca do dashboard, #35):
+  // do "Voltar" do topo. Com callback (uso inline na busca do dashboard):
   // já está em "/" — um <Link href="/"> não dispara navegação nem reseta nada,
   // então o Container que abriu o form inline fecha o painel diretamente.
   onCancelar?: () => void;

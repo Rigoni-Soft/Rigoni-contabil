@@ -37,9 +37,8 @@ async function clienteAutenticadoComoFuncionarioSeed(): Promise<SupabaseClient> 
   return supabase;
 }
 
-// Devolutiva técnica PR #61, ponto 3: registrar_acao_auditoria só aceita
-// service_role agora (migration 20260930170000) — mesmo client que
-// `main/auditoria.factory.ts` usa de verdade em produção.
+// registrar_acao_auditoria só aceita service_role (migration 20260930170000) —
+// mesmo client que `main/auditoria.factory.ts` usa de verdade em produção.
 function clienteServiceRole(): SupabaseClient {
   return createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -75,12 +74,9 @@ describe("SupabaseRegistroAcaoRepository (integração)", () => {
     expect(data?.ator).toBe(ADMIN_ID);
   });
 
-  // Devolutiva técnica PR #61, ponto 3 — fecha a brecha herdada da PR #60:
-  // antes, um usuário autenticado comum ainda conseguia chamar a RPC direto
-  // (fora da UI) e fabricar um evento em seu próprio nome, já que EXECUTE
-  // estava liberado pra `authenticated`. Agora só `service_role` tem EXECUTE
-  // — um usuário comum (mesmo o Admin, autenticado pela sessão normal, não
-  // pelo client privilegiado) não consegue mais chamar a RPC de jeito nenhum.
+  // Só `service_role` tem EXECUTE na RPC: um usuário comum (mesmo o Admin,
+  // autenticado pela sessão normal e não pelo client privilegiado) não consegue
+  // fabricar um evento chamando-a direto.
   it("rejeita a chamada da RPC por um usuário autenticado comum (EXECUTE revogado, só service_role chama)", async () => {
     const supabase = await clienteAutenticadoComoFuncionarioSeed();
     const repositorio = new SupabaseRegistroAcaoRepository(supabase);
@@ -90,8 +86,7 @@ describe("SupabaseRegistroAcaoRepository (integração)", () => {
     expect(resultado.ok).toBe(false);
   });
 
-  // Devolutiva técnica PR #60, bloqueador 01 — caminho indevido: sem policy
-  // de INSERT na tabela, um usuário autenticado não consegue mais fabricar
+  // Sem policy de INSERT na tabela, um usuário autenticado não consegue fabricar
   // um evento chamando a Data API diretamente (bypassando a RPC/a aplicação).
   it("rejeita insert direto na tabela via Data API, bypassando a RPC", async () => {
     const supabase = await clienteAutenticadoComoFuncionarioSeed();
@@ -140,8 +135,8 @@ describe("SupabaseRegistroAcaoRepository (integração)", () => {
   });
 
   it("filtra por setor, ação (busca parcial) e resultado", async () => {
-    // salvar() precisa de service_role (ponto 3); listar() continua no client
-    // da sessão do Admin (RLS de leitura não mudou).
+    // salvar() precisa de service_role; listar() continua no client da sessão do
+    // Admin (RLS de leitura não mudou).
     await new SupabaseRegistroAcaoRepository(clienteServiceRole()).salvar(
       registroValido(crypto.randomUUID(), ADMIN_ID, {
         setor: "financeiro",

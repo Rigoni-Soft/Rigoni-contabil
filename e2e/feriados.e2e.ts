@@ -1,7 +1,6 @@
 import { expect, test } from "./fixtures";
 
-// Ticket #72: o Admin cadastra e remove feriado estadual/municipal em /admin/feriados;
-// Funcionário não acessa a tela. Data distante para não colidir com outros cenários.
+// Data distante para não colidir com outros cenários.
 const DATA = "2031-03-17";
 
 async function login(page: import("@playwright/test").Page, email: string, senha: string) {

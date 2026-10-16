@@ -10,11 +10,9 @@ export type RegistroAcaoView = {
   dataHora: string;
 };
 
-// Devolutiva técnica PR #60, bloqueador 02: mesmo timezone de negócio usado
-// pra calcular os limites do filtro em listar-registros.use-case.ts —
+// Mesmo timezone de negócio do filtro em listar-registros.use-case.ts:
 // `toLocaleString("pt-BR")` sem `timeZone` explícito usa o fuso do ambiente
-// onde o código roda (navegador do usuário, servidor, CI), não determinístico
-// e divergente do UTC usado no filtro.
+// (navegador, servidor, CI), não determinístico.
 export function registroAcaoParaView(registro: RegistroAcaoDto): RegistroAcaoView {
   return {
     ...registro,

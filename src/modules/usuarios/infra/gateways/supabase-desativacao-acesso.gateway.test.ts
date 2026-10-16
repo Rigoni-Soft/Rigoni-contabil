@@ -1,8 +1,8 @@
 /**
- * Integração direto pela Data API (PostgREST) — devolutiva técnica PR #75,
- * pontos A, B e C. Prova o que o banco entrega a quem ignora a aplicação e o
- * ban do Auth: um JWT emitido ANTES da desativação, e o Responsável por Cliente
- * depois de desativação/promoção. Requer `npx supabase start` com migrations + seed.
+ * Integração direto pela Data API (PostgREST). Prova o que o banco entrega a
+ * quem ignora a aplicação e o ban do Auth: um JWT emitido ANTES da desativação,
+ * e o Responsável por Cliente depois de desativação/promoção. Requer
+ * `npx supabase start` com migrations + seed.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 

@@ -1,6 +1,5 @@
 /**
- * Concorrência real (duas conexões) do encerramento por inatividade (#73, devolutiva da PR #83,
- * B2/B3): a Mensagem que chega e o encerramento se serializam pela linha do Atendimento, e duas
+ * Concorrência real (duas conexões) do encerramento por inatividade: a Mensagem que chega e o encerramento se serializam pela linha do Atendimento, e duas
  * execuções do job não reservam o mesmo aviso. Requer `npx supabase start` local.
  */
 import { createClient } from "@supabase/supabase-js";

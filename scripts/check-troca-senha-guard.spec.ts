@@ -1,8 +1,4 @@
-/**
- * Devolutiva técnica complementar PR #62, ajuste 2: teste de unidade do
- * próprio checker — garante que o endurecimento (pegar página que nem chama
- * carregarSessao) funciona, e que não regride a checagem original.
- */
+/** Garante que o checker pega página que nem chama carregarSessao e que a checagem original não regride. */
 import { classificarPagina } from "./check-troca-senha-guard.mjs";
 
 describe("classificarPagina", () => {

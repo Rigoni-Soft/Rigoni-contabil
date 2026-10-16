@@ -2,9 +2,8 @@ import { expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
-// O Funcionário encerra o Atendimento (#49/#70): o mesmo encerramento que a URA faz por
-// inatividade (#73) — libera o Funcionário, que assume o mais antigo da Fila, e o cliente é avisado.
-// Os Atendimentos nascem direto no banco. Usuário: supabase/seed.sql (funcionario2.financeiro).
+// O mesmo encerramento que a URA faz por inatividade: libera o Funcionário, que assume o mais antigo
+// da Fila, e o cliente é avisado. Os Atendimentos nascem direto no banco.
 const admin = adminLocal();
 
 const FUNCIONARIO = "55555555-5555-5555-5555-555555555555"; // funcionario2.financeiro

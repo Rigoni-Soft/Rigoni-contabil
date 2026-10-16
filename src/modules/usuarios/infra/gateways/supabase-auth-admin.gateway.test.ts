@@ -43,9 +43,8 @@ describe("SupabaseAuthAdminGateway (integração)", () => {
     if (!resultado.ok) expect(resultado.error.code).toBe("VALIDATION_ERROR");
   });
 
-  // Devolutiva técnica PR #61, ponto 1: removerConta é a compensação usada
-  // quando uma etapa pós-Auth falha — depois de removida, o mesmo e-mail
-  // volta a estar livre pra uma nova tentativa de cadastro.
+  // removerConta é a compensação usada quando uma etapa pós-Auth falha — depois de
+  // removida, o mesmo e-mail volta a estar livre pra uma nova tentativa de cadastro.
   it("remove a conta e libera o e-mail pra uma nova tentativa (compensação)", async () => {
     const gateway = new SupabaseAuthAdminGateway(clienteAdmin());
     const email = `teste-${crypto.randomUUID()}@rigonicontabil.local`;

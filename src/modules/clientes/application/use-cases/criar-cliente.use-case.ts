@@ -35,8 +35,8 @@ export class CriarCliente implements CriarClientePort {
 
     const id = crypto.randomUUID();
     // Todo caminho enviado ao Storage entra aqui: qualquer falha depois do
-    // primeiro upload remove tudo (devolutiva PR #64, ponto 3), em vez de
-    // deixar documento jurídico órfão sem Cliente.
+    // primeiro upload remove tudo, em vez de deixar documento jurídico órfão
+    // sem Cliente.
     const enviados: string[] = [];
     const criado = await this.cadastrar(id, input, enviados);
     if (criado.ok) return criado;
@@ -52,8 +52,7 @@ export class CriarCliente implements CriarClientePort {
     const cnpj = Cnpj.criar(input.cnpj);
     if (!cnpj.ok) return cnpj;
 
-    // Opcional (decisão de produto 2026-09-29): só envia ao Storage quando o
-    // Admin anexou um arquivo.
+    // Opcional: só envia ao Storage quando o Admin anexou um arquivo.
     let contratoSocialCaminho: string | null = null;
     if (input.contratoSocial) {
       const contratoSocial = await this.storage.enviar(
@@ -108,7 +107,7 @@ export class CriarCliente implements CriarClientePort {
   // Falha da própria compensação não é mascarada como o erro original: vira
   // `EstadoInconsistenteError` (objetos podem ter ficado órfãos) + auditoria
   // `falha_compensacao` + log com os caminhos — caminho de reconciliação manual,
-  // mesmo padrão do cadastro de usuário (#30/PR #61).
+  // mesmo padrão do cadastro de usuário.
   private async falhar(
     ator: AtorSessaoDto,
     input: CriarClienteInput,

@@ -9,7 +9,7 @@ import { TrocarSenhaContainer } from "@/modules/usuarios/presentation/view-model
 export default async function Page() {
   const sessao = await carregarSessao();
   if (!sessao) redirect("/login");
-  // Só a troca obrigatória (#31) vive aqui; a voluntária é do perfil (#56).
+  // Só a troca obrigatória vive aqui; a voluntária é do perfil.
   if (!sessao.precisaTrocarSenha) redirect("/perfil");
 
   return (

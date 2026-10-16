@@ -1,5 +1,5 @@
 /**
- * Integração infra ↔ Supabase (testes.md, seção 3) para o read model do #34.
+ * Integração infra ↔ Supabase (testes.md, seção 3) para o read model do cadastro operacional.
  * Requer `npx supabase start` local com migrations + seed aplicados.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -28,10 +28,8 @@ const comoFuncionario2SN = () =>
 
 const FUNCIONARIO_SN_ID = "22222222-2222-2222-2222-222222222222";
 
-// CNPJ único e válido (timestamp + contador, dígitos verificadores calculados
-// pelo mesmo algoritmo mod 11 dos outros arquivos de teste de integração/e2e)
-// — evita colisão de unique constraint quando mais de um teste cria cliente
-// na mesma execução.
+// CNPJ único e válido (timestamp + contador, dígitos verificadores mod 11)
+// — evita colisão de unique constraint quando mais de um teste cria cliente.
 const PESOS_PRIMEIRO_DIGITO = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
 const PESOS_SEGUNDO_DIGITO = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
 let contadorCnpj = 0;
@@ -188,8 +186,8 @@ describe("SupabaseClienteQueryGateway.buscarPorTermo (#35, integração)", () =>
     if (resultado.ok) expect(resultado.value.some((s) => s.id === cliente.id)).toBe(true);
   });
 
-  // Devolutiva de teste manual do #36, ponto 3: Admin (ou qualquer busca fora
-  // do dashboard do SN) precisa achar Cliente de qualquer Regime.
+  // Admin (ou qualquer busca fora do dashboard do SN) precisa achar Cliente
+  // de qualquer Regime.
   it("com apenasSnMei=false, encontra Cliente de Lucro Presumido/Real também", async () => {
     const admin = await comoAdmin();
     const empresa = "Padaria Busca Geral Presumido Ltda";
@@ -297,7 +295,6 @@ describe("SupabaseClienteQueryGateway.listarResumoOperacional (#36, integração
     if (resultado.ok) expect(resultado.value.some((l) => l.clienteId === cliente.id)).toBe(true);
   });
 
-  // #65: Responsável por Cliente.
   it("lista os Funcionários do SN como Responsáveis elegíveis (nunca Líder nem outro Setor)", async () => {
     const lider = await comoLiderSN();
 

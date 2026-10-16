@@ -1,9 +1,5 @@
 import { expect, test } from "./fixtures";
 
-// Cobre o cenário principal do ticket #33 (Admin cadastra Cliente): Empresa,
-// CNPJ, Regime, contrato social e alterações contratuais anexados no Storage,
-// ação registrada na auditoria. Usuários: supabase/seed.sql, ambiente Dev local.
-
 async function login(page: import("@playwright/test").Page, email: string, senha: string) {
   await page.goto("/login");
   await page.getByLabel("E-mail").fill(email);
@@ -70,7 +66,7 @@ test.describe("Cadastro de Cliente (Admin only)", () => {
 
   test("Funcionário é redirecionado pra fora do cadastro de Cliente", async ({ page }) => {
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");
-    // Simples Nacional é a página principal do próprio setor (#36).
+    // Simples Nacional é a página principal do próprio setor.
     await expect(page).toHaveURL("/simples-nacional");
 
     await page.goto("/admin/clientes/novo");

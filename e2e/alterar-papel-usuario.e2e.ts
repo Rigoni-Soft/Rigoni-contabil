@@ -1,9 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
 
-// Cobre o ticket #57 (Admin edita papel): promove um Funcionário a Líder, vê o erro
-// ao tentar promover um segundo no mesmo Setor (dois passos explícitos) e conclui
-// rebaixando o primeiro. Termina com o Setor sem Líder, pra poder rodar de novo.
-
 const SETOR = "condominios";
 
 async function login(page: Page, email: string, senha: string) {

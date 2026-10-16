@@ -1,7 +1,7 @@
 /**
  * Integração infra ↔ Supabase Storage (testes.md, seção 3): requer
  * `npx supabase start` local com as migrations aplicadas (bucket
- * `documentos-clientes` e as policies de storage.objects deste ticket).
+ * `documentos-clientes` e as policies de storage.objects).
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 

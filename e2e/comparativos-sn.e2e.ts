@@ -2,9 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { criarClienteComoAdmin } from "./support/criar-cliente";
 
-// Cobre o cenário principal do ticket #37 (Dashboard — Comparativos): os 3
-// gráficos aparecem no dashboard do SN com dados reais. Cliente novo nasce com
-// DAS "pendente" (#34), então a contagem do DAS sobe sem depender de edição.
+// Cliente novo nasce com DAS "pendente", então a contagem do DAS sobe sem depender de edição.
 test.describe("Comparativos do dashboard (#37)", () => {
   test("o dashboard do SN mostra os 3 gráficos comparativos", async ({ page }) => {
     await criarClienteComoAdmin(page, "Comparativos E2E Ltda");

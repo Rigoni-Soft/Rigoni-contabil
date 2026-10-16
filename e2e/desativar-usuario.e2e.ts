@@ -1,8 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
 
-// Cobre o ticket #58 (Admin desativa usuário): usa o cadastro do #30 pra gerar
-// uma conta, desativa pela tela /admin/usuarios e prova que ela não loga mais.
-
 async function login(page: Page, email: string, senha: string) {
   await page.goto("/login");
   await page.getByLabel("E-mail").fill(email);

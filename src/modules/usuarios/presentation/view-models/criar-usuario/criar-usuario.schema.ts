@@ -2,10 +2,9 @@ import { z } from "zod";
 
 import { SETORES } from "@/shared/kernel/setores";
 
-// Devolutiva técnica PR #61, ponto 1: `z.string().min(1)` aceitava qualquer
-// setor não vazio — passava pela action e só falhava no domínio, DEPOIS da
-// conta já criada no Auth (nada pra compensar nesse caminho específico agora,
-// mas fechar aqui evita a criação inútil da conta em primeiro lugar).
+// `z.string().min(1)` aceitava qualquer setor não vazio — passava pela action e só
+// falhava no domínio, DEPOIS da conta já criada no Auth. Fechar aqui evita a
+// criação inútil da conta em primeiro lugar.
 export const criarUsuarioSchema = z.object({
   nome: z.string().min(1, "Nome obrigatório"),
   email: z.email("E-mail inválido"),

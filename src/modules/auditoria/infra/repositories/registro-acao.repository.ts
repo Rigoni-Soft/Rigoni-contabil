@@ -15,14 +15,10 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 export class SupabaseRegistroAcaoRepository implements RegistroAcaoRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
-  // Devolutiva técnica PR #61, ponto 3 (correção sobre o que a PR #60 fechou
-  // pela metade): a RPC só aceita `service_role` agora (migration
-  // 20260930170000) -- só o servidor, que já validou a sessão antes de
-  // chamar `RegistrarAcao`, tem acesso; um usuário comum não consegue mais
-  // fabricar eventos chamando a RPC direto do browser. Como chamadas com
-  // `service_role` não carregam JWT de usuário, `auth.uid()` deixa de
-  // existir nesse contexto -- `p_ator` vai explícito (confiável porque só o
-  // servidor chega aqui). `criado_em` continua decidido pelo banco (now()).
+  // A RPC só aceita `service_role` (migration 20260930170000): só o servidor, que
+  // já validou a sessão antes de chamar `RegistrarAcao`, tem acesso. Sem JWT de
+  // usuário, `auth.uid()` não existe aqui — `p_ator` vai explícito. `criado_em`
+  // continua decidido pelo banco (now()).
   async salvar(registro: RegistroAcao): Promise<Result<void, AppError>> {
     const { error } = await this.supabase.rpc("registrar_acao_auditoria", {
       p_id: registro.id,

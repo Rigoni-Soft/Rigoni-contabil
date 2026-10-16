@@ -8,7 +8,7 @@ type CabecalhoDaConversaProps = {
   titulo: string;
   subtitulo: string;
   encerrado: boolean;
-  // A URA avisou que o Atendimento será encerrado por falta de resposta do Funcionário (#73).
+  // A URA avisou que o Atendimento será encerrado por falta de resposta do Funcionário.
   avisoInatividade?: boolean;
   contexto?: { origem: string; resumo: string } | null;
   // Resumo longo vem recolhido em 3 linhas, com botão para ler inteiro.

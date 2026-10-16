@@ -235,8 +235,8 @@ export async function makeEncerrarAtendimento(): Promise<EncerrarAtendimentoPort
 }
 
 // O job só age com a flag ligada, e em produção só com mensageria real: o adapter falso "envia"
-// sem avisar ninguém (encerraria Atendimento ou marcaria DAS como enviado sem o cliente saber;
-// devolutiva da PR #83, B1). Autenticar o job (CRON_SECRET) não autoriza executá-lo.
+// sem avisar ninguém (encerraria Atendimento ou marcaria DAS como enviado sem o cliente saber).
+// Autenticar o job (CRON_SECRET) não autoriza executá-lo.
 function jobAutomaticoAtivo(flag: string): boolean {
   return flag === "ligada" && !(NODE_ENV === "production" && MENSAGERIA_MODO === "falso");
 }
@@ -261,7 +261,7 @@ export function makeVerificarInatividade(): VerificarInatividadePort {
   );
 }
 
-// Em produção o e-mail falso responderia ok sem enviar nada; sem o adapter real (#86) o canal
+// Em produção o e-mail falso responderia ok sem enviar nada; sem o adapter real o canal
 // falha de forma explícita.
 function makeEnvioEmail(): EnvioEmailPort {
   return NODE_ENV === "production"

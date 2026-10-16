@@ -1,7 +1,7 @@
 import { GET, POST } from "./verificar-inatividade.webhook";
 
 /**
- * Job de inatividade (#73): autenticar não basta, a flag manda (devolutiva da PR #83, B1).
+ * Job de inatividade: autenticar não basta, a flag manda.
  */
 const executar = jest.fn();
 let ativa = false;

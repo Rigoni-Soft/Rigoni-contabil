@@ -93,7 +93,7 @@ function paraAppError(
 }
 
 // Adapter falso (padrão em dev/e2e): reproduz a Cloud API da Meta sem enviar nada.
-// O real vive na #68. `falhas` mapeia um telefone a um código de erro da tabela acima.
+// `falhas` mapeia um telefone a um código de erro da tabela acima.
 // ponytail: listas em memória sem limite, somem a cada restart; trocar por tabela se
 // alguém precisar auditar o que "foi enviado" fora de testes.
 export class EnvioMensagemFalsoGateway implements EnvioMensagemPort {

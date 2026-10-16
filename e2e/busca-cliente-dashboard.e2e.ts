@@ -19,12 +19,7 @@ test.describe("Busca geral (sem restrição de Regime) — feedback do #36, pont
   });
 });
 
-// Cobre o cenário principal do ticket #35 (Busca de cliente no dashboard):
-// encontrar um cliente pelo nome na seção de busca embutida no dashboard do
-// Simples Nacional e editar o cadastro operacional inline, sem navegar pra
-// /clientes/[id]. Funcionário SN cai direto em /simples-nacional ao logar —
-// é a página principal do setor dele (feedback de teste manual do #36, ponto
-// 1), "/" deixou de ser essa tela. Usuários: supabase/seed.sql, ambiente Dev local.
+// Funcionário SN cai direto em /simples-nacional ao logar: é a página principal do setor dele.
 
 test.describe("Busca de cliente no dashboard (#35)", () => {
   test("Funcionário SN encontra um cliente pela busca e edita o cadastro operacional inline @smoke", async ({

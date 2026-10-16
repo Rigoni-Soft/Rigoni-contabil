@@ -5,13 +5,13 @@ import type { Result } from "@/shared/kernel/result";
 
 export interface UsuarioRepository {
   // Erro técnico (Postgres indisponível, id malformado) nunca vira `null`: colidiria
-  // com "perfil inexistente"/RLS ocultando a linha (arquitetura.md §3.8, devolutiva #55).
+  // com "perfil inexistente"/RLS ocultando a linha (arquitetura.md §3.8).
   buscarPorId(id: UsuarioId): Promise<Result<Usuario | null, AppError>>;
   criar(usuario: Usuario): Promise<Result<void, AppError>>;
-  // Só contas ativas (#58). RLS decide quem enxerga o quê — Admin vê todas.
+  // Só contas ativas. RLS decide quem enxerga o quê — Admin vê todas.
   listarAtivos(): Promise<Result<Usuario[], AppError>>;
-  // Desativadas cujo ban no Auth ainda não foi confirmado (PR #75, ponto D).
+  // Desativadas cujo ban no Auth ainda não foi confirmado.
   listarComBloqueioPendente(): Promise<Result<Usuario[], AppError>>;
-  // Líder de setor não desativado do Setor, ou null (#57).
+  // Líder de setor não desativado do Setor, ou null.
   buscarLiderAtivoDoSetor(setor: Setor): Promise<Result<Usuario | null, AppError>>;
 }

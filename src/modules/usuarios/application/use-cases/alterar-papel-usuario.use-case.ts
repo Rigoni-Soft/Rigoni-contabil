@@ -49,7 +49,7 @@ export class AlterarPapelUsuario implements AlterarPapelUsuarioPort {
       return err(new ValidationError("O usuário já tem esse papel."));
     }
 
-    // Dois passos explícitos (#57): nunca troca o Líder atual por baixo. A mesma
+    // Dois passos explícitos: nunca troca o Líder atual por baixo. A mesma
     // regra é garantida no banco (índice único parcial), que fecha a corrida.
     if (papel === "lider_setor") {
       const lider = await this.usuarios.buscarLiderAtivoDoSetor(alvo.value.setor);

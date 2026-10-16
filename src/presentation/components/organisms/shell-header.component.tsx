@@ -15,8 +15,8 @@ type ShellHeaderProps = {
   sair: React.ReactNode;
 };
 
-// Quem cada papel cadastra (#30/#32) — Funcionário não cadastra ninguém, por
-// isso não entra neste mapa (o link de cadastro simplesmente não aparece pra ele).
+// Quem cada papel cadastra — Funcionário não cadastra ninguém, por isso não entra neste mapa
+// (o link de cadastro simplesmente não aparece pra ele).
 const CADASTRAR_LABEL: Record<string, string> = {
   admin: "Cadastrar Líder",
   lider_setor: "Cadastrar Funcionário",
@@ -56,8 +56,8 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
 
       <Linha alinhar="centro" espaco={1} quebra className="lg:shrink-0">
         {/* Único caminho de navegação até /admin/usuarios/novo — Admin e Líder
-            cadastram (escopado por papel no próprio caso de uso, #30/#32);
-            Funcionário não cadastra ninguém, então não vê o link. */}
+            cadastram (escopado por papel no próprio caso de uso); Funcionário não
+            cadastra ninguém, então não vê o link. */}
         {rotuloCadastrar && (
           <Link
             href="/admin/usuarios/novo"
@@ -71,8 +71,7 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
           </Link>
         )}
         {/* Único caminho de navegação até /admin/clientes/novo — só Admin cadastra
-            Cliente nesta rodada (#33). Sem isso a tela só era alcançável digitando
-            a URL direto, mesmo gap já identificado em #31/#32. */}
+            Cliente. Sem isso a tela só era alcançável digitando a URL direto. */}
         {papel === "admin" && (
           <Link
             href="/admin/clientes/novo"
@@ -98,7 +97,7 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
           </Link>
         )}
         {/* Só o Admin: ele não tem Setor nem barra lateral na conversa e vê a Fila de qualquer
-            Setor aqui (#70). Os demais têm a Fila na conversa e o cartão no dock. */}
+            Setor aqui. Os demais têm a Fila na conversa e o cartão no dock. */}
         {papel === "admin" && (
           <Link href="/fila" aria-label="Fila" className={buttonVariants({ variant: "ghost" })}>
             <ListOrdered aria-hidden="true" />
@@ -107,7 +106,7 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
             </Texto>
           </Link>
         )}
-        {/* Caminho até /admin/feriados (#72): só o Admin cadastra feriados. */}
+        {/* Caminho até /admin/feriados: só o Admin cadastra feriados. */}
         {papel === "admin" && (
           <Link
             href="/admin/feriados"
@@ -120,8 +119,8 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
             </Texto>
           </Link>
         )}
-        {/* Único caminho de navegação até /perfil (#56), onde mora a troca voluntária
-            de senha — a /trocar-senha fica só pro redirecionamento obrigatório (#31). */}
+        {/* Único caminho de navegação até /perfil, onde mora a troca voluntária
+            de senha — a /trocar-senha fica só pro redirecionamento obrigatório. */}
         <Link
           href="/perfil"
           aria-label="Meu perfil"

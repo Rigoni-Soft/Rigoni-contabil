@@ -19,7 +19,7 @@ type PainelDeServicosProps = {
 };
 
 // Os mesmos serviços do menu da URA, a um clique. Guias e CND ainda respondem "em construção" lá
-// (#42 e os adapters do Serpro, #66-#68) e passam a disparar quando existirem.
+// e passam a disparar quando existirem.
 export function PainelDeServicos({
   semCliente,
   servicos,

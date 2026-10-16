@@ -41,7 +41,7 @@ const responsavelDe = (operacional: CadastroOperacionalRow | null) => ({
 });
 
 // Lê da view `clientes_basico`, que não tem contrato_social_caminho: a
-// confidencialidade é garantida no banco (PR #69), não só pelo select ou pelo
+// confidencialidade é garantida no banco, não só pelo select ou pelo
 // shape do DTO de saída.
 const SELECT_CADASTRO_BASICO = `
   id, empresa, cnpj, regime,
@@ -122,11 +122,11 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
     // (com `"`/`\` escapados) trata o valor inteiro como literal.
     const valor = `%${termo}%`.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
     // View `clientes_basico`, não `clientes`: o dashboard é de qualquer Funcionário
-    // do setor, e só Admin lê a tabela (devolutiva PR #69, contrato social).
+    // do setor, e só Admin lê a tabela (contrato social).
     let query = this.supabase.from("clientes_basico").select("id, empresa, cnpj");
     // Só a busca embutida no dashboard do Simples Nacional restringe o
-    // Regime (#35/#36) — Admin/qualquer setor fora dessa tela busca em
-    // qualquer Cliente (feedback de teste manual, ponto 3 do #36).
+    // Regime — Admin/qualquer setor fora dessa tela busca em
+    // qualquer Cliente.
     if (apenasSnMei) query = query.in("regime", ["simples_nacional", "mei"]);
     const { data, error } = await query
       .or(`cnpj.ilike."${valor}",empresa.ilike."${valor}"`)
@@ -138,14 +138,14 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
   }
 
   async listarResumoOperacional(): Promise<Result<ResumoOperacionalRow[], AppError>> {
-    // View `clientes_basico` (PR #69): o dashboard é de qualquer Funcionário do setor.
+    // View `clientes_basico`: o dashboard é de qualquer Funcionário do setor.
     const anoMesAtual = primeiroDiaDoMesAtual();
     const { data, error } = await this.supabase
       .from("clientes_basico")
       .select(`id, empresa, cnpj, ${EMBED_OPERACIONAL}, cliente_atividades_mensais(*)`)
       .eq("cliente_atividades_mensais.ano_mes", anoMesAtual)
-      // Mesmo escopo da busca (#35): só Regime com cadastro operacional de
-      // verdade (nasce automático só pra Simples Nacional/MEI, #34).
+      // Mesmo escopo da busca: só Regime com cadastro operacional de
+      // verdade (nasce automático só pra Simples Nacional/MEI).
       .in("regime", ["simples_nacional", "mei"]);
 
     if (error) return err(new ConsultaError(`Erro ao listar resumo operacional: ${error.message}`));

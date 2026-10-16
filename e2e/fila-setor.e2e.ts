@@ -2,8 +2,7 @@ import { expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
-// Tela da Fila do Setor (#70). Os Atendimentos nascem direto no banco, já na Fila (sem
-// Funcionário), com a espera começando no passado. Usuários: supabase/seed.sql, ambiente Dev local.
+// Os Atendimentos nascem direto no banco, já na Fila (sem Funcionário), com a espera começando no passado.
 const admin = adminLocal();
 
 const CLIENTE = crypto.randomUUID();
@@ -45,7 +44,7 @@ test.describe("Fila do Setor (#70)", () => {
         telefone: `55${TELEFONES[1]}`,
         chave_telefone: TELEFONES[1],
         setor: "financeiro",
-        // Fila de um usuário: destino fixo ocupado (#45).
+        // Fila de um usuário: destino fixo ocupado.
         fila_funcionario_id: FUNCIONARIO,
         fila_desde: new Date(agora - 60_000).toISOString(),
       },

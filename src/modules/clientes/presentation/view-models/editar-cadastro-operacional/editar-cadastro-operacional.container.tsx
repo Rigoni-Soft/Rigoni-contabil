@@ -22,12 +22,11 @@ import { useResponsaveisElegiveis } from "./responsaveis.queries";
 type Props = {
   dados: CadastroOperacionalClienteDto | null;
   readOnly: boolean;
-  // Só o Líder do SN (#65): troca o Select de Responsável editável.
+  // Só o Líder do SN: troca o Select de Responsável editável.
   podeAtribuirResponsavel?: boolean;
   onCancelar?: () => void;
-  // Depois de salvar com sucesso, o painel precisa fechar/voltar — o "que o
-  // caso exigir" (feedback de teste manual do #36): painel embutido no
-  // dashboard (busca do /simples-nacional) fecha de volta pra busca e
+  // Depois de salvar com sucesso, o painel precisa fechar/voltar: painel embutido
+  // no dashboard (busca do /simples-nacional) fecha de volta pra busca e
   // atualiza os cards; tela própria (/clientes/[id]) navega de volta pra
   // onde a lista do bucket (ou o próprio dashboard) ficou. Só um dos dois é
   // passado por consumidor — `aoSalvarComSucesso` tem prioridade.
@@ -47,7 +46,7 @@ export function EditarCadastroOperacionalContainer({
   const [pendente, setPendente] = useState(false);
   const [erroServidor, setErroServidor] = useState<string | undefined>();
   const [sucesso, setSucesso] = useState(false);
-  // Devolutiva PR #71, ponto 5: depois de salvar o cadastro e falhar só a atribuição, guarda o que
+  // Depois de salvar o cadastro e falhar só a atribuição, guarda o que
   // foi persistido (campos sem o Responsável); reenviar o mesmo formulário repete só a atribuição.
   // Se a pessoa mexer em outro campo, o retrato muda e o salvamento completo volta.
   const [cadastroSalvo, setCadastroSalvo] = useState<string | null>(null);
@@ -90,7 +89,7 @@ export function EditarCadastroOperacionalContainer({
     name: "temParcelamento",
     defaultValue: dados?.temParcelamento ?? false,
   });
-  // Lista de Funcionários só é buscada quando o Líder abre o Select (#65).
+  // Lista de Funcionários só é buscada quando o Líder abre o Select.
   const [listaAberta, setListaAberta] = useState(false);
   const elegiveis = useResponsaveisElegiveis(podeAtribuirResponsavel && listaAberta);
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
@@ -105,7 +104,7 @@ export function EditarCadastroOperacionalContainer({
     // de erro de transporte precisa dizer isso em vez de sugerir que nada foi salvo.
     let cadastroPersistido = false;
     // try/finally: rejeição de transporte da Server Action não pode deixar o
-    // botão preso em "Salvando..." (devolutiva PR #69, ponto 6).
+    // botão preso em "Salvando...".
     try {
       const { responsavelId: _responsavelId, ...cadastro } = valores;
       const retrato = JSON.stringify(cadastro);
@@ -127,7 +126,7 @@ export function EditarCadastroOperacionalContainer({
           return;
         }
       }
-      // Devolutiva PR #71 (revalidação): o retrato é guardado assim que o cadastro persiste, antes
+      // O retrato é guardado assim que o cadastro persiste, antes
       // da atribuição, para valer também quando a atribuição rejeita por erro de transporte.
       setCadastroSalvo(retrato);
       cadastroPersistido = true;

@@ -5,9 +5,9 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Passo comum dos casos de uso exclusivos de Admin (#58): sessão válida + perfil
-// Admin. Erro técnico ao buscar o perfil propaga o AppError original (devolutiva
-// #55, ponto 02), nunca vira "sem permissão".
+// Passo comum dos casos de uso exclusivos de Admin: sessão válida + perfil
+// Admin. Erro técnico ao buscar o perfil propaga o AppError original, nunca
+// vira "sem permissão".
 export async function exigirAdmin(
   sessao: SessaoPort,
   usuarios: UsuarioRepository,
@@ -18,7 +18,7 @@ export async function exigirAdmin(
 
   const perfil = await usuarios.buscarPorId(atorId);
   if (!perfil.ok) return perfil;
-  // #58: JWT de conta desativada vale até expirar; o perfil é a fonte da verdade.
+  // JWT de conta desativada vale até expirar; o perfil é a fonte da verdade.
   if (!perfil.value?.papel.ehAdmin() || perfil.value.estaDesativado())
     return err(new ForbiddenError(mensagemForbidden));
   return ok(perfil.value);

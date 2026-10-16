@@ -1,8 +1,5 @@
 import { expect, test } from "./fixtures";
 
-// Cobre o cenário principal do ticket #28 (RBAC básico, login, setores):
-// login por e-mail/senha, shell autenticado mostrando papel/setor, navegação
-// respeitando RBAC, logout. Usuários: supabase/seed.sql (ambiente Dev local).
 const EMAIL = "admin@rigonicontabil.local";
 const SENHA = "admin123";
 
@@ -62,8 +59,7 @@ test.describe("Login e shell autenticado", () => {
   }) => {
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");
 
-    // Simples Nacional é a página principal do próprio setor (#36, feedback
-    // de teste manual) — login cai direto lá, não em "/".
+    // Simples Nacional é a página principal do próprio setor: o login cai direto lá, não em "/".
     await expect(page).toHaveURL("/simples-nacional");
     await expect(page.getByText(/Setor: Simples Nacional/)).toBeVisible();
 

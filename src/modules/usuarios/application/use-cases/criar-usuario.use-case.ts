@@ -30,11 +30,11 @@ export class CriarUsuario implements CriarUsuarioPort {
     if (!atorId) return err(new ForbiddenError("Sessão inválida."));
 
     const perfilAtor = await this.usuarios.buscarPorId(atorId);
-    // Erro técnico não vira "sem permissão" (devolutiva #55, ponto 02): propaga o
-    // AppError original em vez de mascará-lo como Forbidden.
+    // Erro técnico não vira "sem permissão": propaga o AppError original em vez
+    // de mascará-lo como Forbidden.
     if (!perfilAtor.ok) return perfilAtor;
     const ator = perfilAtor.value;
-    // #58: JWT de quem foi desativado vale até expirar; o perfil é a fonte da verdade.
+    // JWT de quem foi desativado vale até expirar; o perfil é a fonte da verdade.
     if (!ator || ator.estaDesativado() || !this.podeCadastrar(ator, input)) {
       return err(
         new ForbiddenError(
@@ -69,10 +69,9 @@ export class CriarUsuario implements CriarUsuarioPort {
     if (!salvo.ok)
       return this.falharComCompensacao(ator.id, input, conta.value.id, "salvar_perfil", salvo);
 
-    // Devolutiva técnica PR #61, ponto 2: auditoria de sucesso deixa de ser
-    // best-effort — se não fica registrada, a operação inteira é revertida
-    // (conta Auth + perfil, via compensação do ponto 1), porque o critério de
-    // aceite do #30 ("Ação fica registrada na auditoria") não é opcional.
+    // Auditoria de sucesso não é best-effort: se não fica registrada, a operação
+    // inteira é revertida (conta Auth + perfil, via compensação), porque a ação
+    // precisa ficar auditada.
     const auditoria = await this.auditoria.registrar({
       ator: ator.id,
       setor: input.setor,
@@ -105,15 +104,11 @@ export class CriarUsuario implements CriarUsuarioPort {
     return setor.ok && this.autorizacao.podeAcessarSetor(ator, setor.value);
   }
 
-  // Devolutiva técnica PR #61, ponto 1: qualquer falha depois da conta Auth já
-  // criada compensa removendo-a — `perfis.id` referencia `auth.users(id) on
-  // delete cascade`, então isso limpa o perfil junto se ele chegou a existir.
-  // Ajuste residual da mesma devolutiva: falha da própria compensação deixa de
-  // ser mascarada como o erro original — vira `EstadoInconsistenteError`
-  // (conta pode ter ficado órfã) e um registro de auditoria só seu
-  // (`falha_compensacao`), que é o caminho de reconciliação manual pro Admin
-  // (mesmo padrão já usado pra senha vencida no #31: sem fila/retry automático,
-  // reconciliável via Supabase Studio). Senha provisória nunca entra no log.
+  // Qualquer falha depois da conta Auth criada a compensa removendo-a (`perfis.id`
+  // tem `on delete cascade`, então o perfil sai junto). Falha da própria
+  // compensação vira `EstadoInconsistenteError` (conta pode ter ficado órfã) e
+  // auditoria `falha_compensacao`, para reconciliação manual via Supabase Studio.
+  // Senha provisória nunca entra no log.
   private async falharComCompensacao(
     atorId: string,
     input: CriarUsuarioInput,
@@ -141,10 +136,8 @@ export class CriarUsuario implements CriarUsuarioPort {
     return resultadoComErro;
   }
 
-  // Auditoria do caminho de FALHA continua best-effort de propósito: se a
-  // operação já falhou, não vale a pena um segundo modo de falha em cima da
-  // tentativa de registrar que ela falhou — o critério de aceite do #30 é
-  // sobre o sucesso ficar auditável, não sobre blindar a auditoria de falhas.
+  // Auditoria do caminho de FALHA é best-effort de propósito: não vale um segundo
+  // modo de falha em cima da tentativa de registrar que a operação já falhou.
   private async registrarAuditoriaBestEffort(
     atorId: string,
     input: CriarUsuarioInput,

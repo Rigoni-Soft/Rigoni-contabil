@@ -11,9 +11,8 @@ type Bucket = {
   pertence: (linha: ResumoOperacionalRow) => boolean;
 };
 
-// Os 9 cards e cores da spec #24 (seção "Dashboard Simples Nacional" —
-// protótipo aprovado). DAS: documentoObrigatorio aqui é o campo que a UI
-// rotula "Documento recebido" (#34) — positivo = já recebido.
+// Os 9 cards e cores do dashboard Simples Nacional. DAS: documentoObrigatorio
+// aqui é o campo que a UI rotula "Documento recebido" — positivo = já recebido.
 const BUCKETS: readonly Bucket[] = [
   {
     id: "das_emitidas",
@@ -29,8 +28,7 @@ const BUCKETS: readonly Bucket[] = [
   },
   {
     // Urgente só quando o documento já chegou e a DAS segue pendente — sem
-    // documento, o backlog já está contado no card "Sem documento" (job #42
-    // da spec #24 só alerta nesse caso, mesmo critério usado aqui).
+    // documento, o backlog já está contado no card "Sem documento".
     id: "das_pendente",
     titulo: "DAS pendente",
     cor: "urgente",

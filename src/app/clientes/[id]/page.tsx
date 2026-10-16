@@ -34,7 +34,7 @@ export default async function Page({ params, searchParams }: Props) {
   if (!resultado.ok || !resultado.value) redirect("/");
 
   // Só Admin ou Funcionário do setor Simples Nacional edita — qualquer outro
-  // perfil autenticado só visualiza (critério de aceite do #34).
+  // perfil autenticado só visualiza.
   const readOnly = !podeEditarCadastroOperacional(sessao.papel, sessao.setor);
 
   return (

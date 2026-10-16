@@ -6,10 +6,8 @@ import { expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
-// Mídia do cliente (#81): o cliente manda um áudio pelo WhatsApp (webhook, adapter falso de download)
-// e o Funcionário o vê e o toca na conversa. O Atendimento nasce direto no banco; o webhook é
-// chamado com a assinatura HMAC do segredo de desenvolvimento. Usuário: supabase/seed.sql
-// (funcionario2.sn).
+// O Atendimento nasce direto no banco; o webhook é chamado com a assinatura HMAC do segredo de
+// desenvolvimento (adapter falso de download).
 const SEGREDO = process.env.MENSAGERIA_SEGREDO_ASSINATURA ?? "segredo-falso";
 const admin = adminLocal();
 

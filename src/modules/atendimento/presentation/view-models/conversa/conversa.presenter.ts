@@ -101,11 +101,8 @@ export function reaproveitarLinks(
   };
 }
 
-// O polling devolve só a janela recente: o histórico que o Funcionário já abriu (as Mensagens antes
-// do começo dela) é mantido da leitura anterior. Só se as duas janelas se sobrepõem: sem nenhuma
-// Mensagem em comum e com histórico antes da nova, pode haver um intervalo que nenhuma das duas
-// tem, e emendá-las esconderia o buraco. Aí a janela nova vale sozinha (recarga: o "ver anteriores"
-// refaz o caminho a partir dela, sem lacuna).
+// O polling devolve só a janela recente; o histórico já aberto é mantido, mas só se as janelas se
+// sobrepõem. Sem Mensagem em comum pode haver um intervalo oculto: a janela nova vale sozinha.
 export function manterHistorico(nova: ConversaVista, anterior: ConversaVista | undefined) {
   const primeira = nova.mensagens[0];
   if (!anterior || !primeira) return nova;
@@ -121,10 +118,8 @@ export function manterHistorico(nova: ConversaVista, anterior: ConversaVista | u
   };
 }
 
-// Página de histórico anterior que o Funcionário pediu a partir de `cursorId` (a primeira Mensagem
-// da tela naquele momento). Só entra se esse ainda é o começo da conversa: se o polling substituiu
-// a janela enquanto o pedido estava em andamento, a página não é contígua à tela atual e emendá-la
-// esconderia um intervalo. Nesse caso é descartada e o "ver anteriores" refaz a partir do cursor atual.
+// Histórico pedido a partir de `cursorId`. Só entra se ainda é o começo da conversa: se o polling
+// trocou a janela no meio, a página não é contígua e é descartada (o "ver anteriores" refaz).
 export function acrescentarAnteriores(
   atual: ConversaVista,
   cursorId: string,
@@ -139,10 +134,8 @@ export function acrescentarAnteriores(
   };
 }
 
-// Ids das Mensagens carregadas cujo link de anexo está perto de vencer (o polling só reassina a
-// janela recente). `elegivel` (ex.: fora da espera de uma tentativa recente) entra antes do corte:
-// `limite` corta só os elegíveis, o resto fica para a rodada seguinte; objetos ausentes que
-// continuam vencendo não ocupam as vagas dos válidos que vêm depois.
+// Ids das Mensagens carregadas cujo link de anexo está perto de vencer. `limite` corta só os
+// `elegivel`: objetos ausentes que continuam vencendo não ocupam as vagas dos válidos.
 export function idsComLinkVencendo(
   conversa: ConversaVista,
   agora: number,

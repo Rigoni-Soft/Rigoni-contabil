@@ -82,8 +82,7 @@ export function BuscarClienteContainer({ papel, setor, apenasSnMei = false }: Pr
           onCancelar={fecharPainel}
           // Salvar fecha o painel (volta pra busca) e atualiza os dados da
           // página — se esta busca estiver embutida no resumo do setor
-          // (/simples-nacional), os cards refletem a mudança na hora
-          // (feedback de teste manual do #36).
+          // (/simples-nacional), os cards refletem a mudança na hora.
           aoSalvarComSucesso={() => {
             fecharPainel();
             router.refresh();

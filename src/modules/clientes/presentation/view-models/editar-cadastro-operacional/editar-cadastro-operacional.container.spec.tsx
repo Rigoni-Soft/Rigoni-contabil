@@ -146,7 +146,6 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(routerPush).not.toHaveBeenCalled();
   });
 
-  // Devolutiva PR #71, ponto 5.
   describe("retry depois de salvar o cadastro e falhar só a atribuição", () => {
     async function falharAtribuicao() {
       executeMock.mockResolvedValue(ok({ clienteId: dados.id }));
@@ -279,8 +278,8 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(screen.getByRole("button", { name: /salvar/i })).toBeEnabled();
   });
 
-  // Feedback de teste manual do #36: tela própria (/clientes/[id]) navega de
-  // volta pro lugar certo depois de salvar, em vez de ficar parada no form.
+  // Tela própria (/clientes/[id]) navega de volta pro lugar certo depois de
+  // salvar, em vez de ficar parada no form.
   it("com voltarHrefAoSalvar, navega pra lá depois de salvar com sucesso", async () => {
     executeMock.mockResolvedValue({ ok: true, value: { clienteId: dados.id } });
     const usuario = userEvent.setup();

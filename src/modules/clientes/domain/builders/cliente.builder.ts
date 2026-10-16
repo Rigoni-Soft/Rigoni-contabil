@@ -49,13 +49,13 @@ export class ClienteBuilder {
   private empresa?: string;
   private cnpj?: Cnpj;
   private regime?: Regime;
-  // Opcional (decisão de produto 2026-09-29) — sem sentinela `undefined` pra
+  // Opcional — sem sentinela `undefined` pra
   // distinguir "setter nunca chamado" porque não há mais checagem de presença.
   private contratoSocialCaminho: string | null = null;
   private email: Email | null = null;
   private alteracoesContratuais: AlteracaoContratual[] = [];
-  // Campos operacionais do Simples Nacional (#34) — todos opcionais/com
-  // default, igual a contratoSocialCaminho: um Cliente recém-criado pelo #33
+  // Campos operacionais do Simples Nacional — todos opcionais/com
+  // default, igual a contratoSocialCaminho: um Cliente recém-criado
   // ainda não tem nenhum deles preenchido. formaEnvio só vira VO no build()
   // (default "whatsapp" quando o setter nunca foi chamado).
   private formaEnvio: FormaEnvio | null = null;
@@ -245,8 +245,7 @@ export class ClienteBuilder {
 
   build(): Result<Cliente, ValidationError> {
     // Presença checada aqui, não nos setters: um setter nunca chamado não deixa
-    // rastro em camposInvalidos, e os `!` abaixo mascarariam undefined em runtime
-    // (mesmo achado da devolutiva #55, ponto 03, aplicado ao builder de Usuario).
+    // rastro em camposInvalidos, e os `!` abaixo mascarariam undefined em runtime.
     // O guard `!this.camposInvalidos.X` evita sobrescrever a mensagem específica
     // que comCnpj/comRegime já registraram quando FORAM chamados com um valor
     // inválido — só entra quando o setter nunca rodou.
@@ -257,7 +256,7 @@ export class ClienteBuilder {
     if (this.regime === undefined && !this.camposInvalidos.regime)
       this.camposInvalidos.regime = ["obrigatório"];
 
-    // Invariante do agregado (#34): se há contatos, exatamente 1 é padrão —
+    // Invariante do agregado: se há contatos, exatamente 1 é padrão —
     // checado aqui (não em comContatos) pelo mesmo motivo do resto do build():
     // é uma regra sobre o conjunto final, não sobre um item isolado.
     if (

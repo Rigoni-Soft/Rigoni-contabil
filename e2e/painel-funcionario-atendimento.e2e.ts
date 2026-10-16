@@ -2,10 +2,7 @@ import { expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
-// Painel do Funcionário (#49): o Atendimento em andamento fica visível ao trocar de tela, a
-// conversa mostra cada balão com quem escreveu, e o disparo de documento usa o Cliente já
-// vinculado. O Atendimento nasce direto no banco (a URA/webhook é outro ticket). Usuário:
-// supabase/seed.sql (funcionario2.financeiro), ambiente Dev local.
+// O Atendimento nasce direto no banco, sem passar pela URA/webhook.
 const admin = adminLocal();
 
 const FUNCIONARIO = "55555555-5555-5555-5555-555555555555";

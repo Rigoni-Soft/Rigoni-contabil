@@ -59,7 +59,7 @@ describe("classificarResumoSetorSn", () => {
 
     expect(quantidade(cards, "sem_documento")).toBe(1);
     // Sem documento recebido, a DAS pendente não conta como "DAS pendente"
-    // (ponto já coberto pelo card "Sem documento" — job #42 da spec #24).
+    // (já coberto pelo card "Sem documento").
     expect(quantidade(cards, "das_pendente")).toBe(0);
   });
 

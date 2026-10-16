@@ -13,7 +13,7 @@ export function AlterarPapelContainer({
   nome: string;
   papel: string;
 }) {
-  // Único ponto da regra de alternância Líder <-> Funcionário (#57).
+  // Único ponto da regra de alternância Líder <-> Funcionário.
   const papelAlvo = papel === "lider_setor" ? "funcionario" : "lider_setor";
   return (
     <AlterarPapel nome={nome} papelAlvo={papelAlvo} {...useAlterarPapel(usuarioId, papelAlvo)} />

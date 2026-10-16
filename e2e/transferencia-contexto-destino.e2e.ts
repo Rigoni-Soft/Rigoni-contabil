@@ -2,9 +2,9 @@ import { expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
-// Contexto da Transferência (#74): o Funcionário transfere pelo painel e o destino lê, na conversa,
-// o contato, a empresa, o CNPJ, quem transferiu e o resumo. O Líder do Contábil lê mesmo que o
-// Balanceamento tenha mandado o Atendimento para a Fila. Usuários: supabase/seed.sql.
+// O Funcionário transfere pelo painel e o destino lê, na conversa, o contato, a empresa, o CNPJ,
+// quem transferiu e o resumo. O Líder do Contábil lê mesmo que o Balanceamento tenha mandado o
+// Atendimento para a Fila.
 const admin = adminLocal();
 
 const FUNCIONARIO = "55555555-5555-5555-5555-555555555555";

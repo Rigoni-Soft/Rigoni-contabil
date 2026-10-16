@@ -1,5 +1,5 @@
 /**
- * Integração infra ↔ Supabase (testes.md, seção 3) da inatividade do Atendimento (#73).
+ * Integração infra ↔ Supabase (testes.md, seção 3) da inatividade do Atendimento.
  * Requer `npx supabase start` local com migrations + seed aplicados.
  */
 import { createClient } from "@supabase/supabase-js";
@@ -65,8 +65,7 @@ async function abrir(telefone: string, funcionarioId: string | null) {
   return r.value.id;
 }
 
-// Dono já em atendimento, gravado direto: com alguém esperando na Fila, `abrir` (corretamente, PR #77,
-// B3) faria o dono assumir o mais antigo. Este teste precisa do estado "dono ocupado + Fila".
+// Dono já em atendimento, gravado direto: com alguém esperando na Fila, `abrir` (corretamente) faria o dono assumir o mais antigo. Este teste precisa do estado "dono ocupado + Fila".
 async function abrirDireto(telefone: string, funcionarioId: string): Promise<string> {
   const { data, error } = await admin
     .from("atendimentos")

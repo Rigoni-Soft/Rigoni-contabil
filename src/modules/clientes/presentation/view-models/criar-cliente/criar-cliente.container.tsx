@@ -51,10 +51,9 @@ export function CriarClienteContainer() {
   };
 
   // Autopreenche Empresa/Regime via API pública ao sair do campo CNPJ, sem
-  // sobrescrever o que o Admin já tiver digitado à mão (ponto 4 do feedback
-  // manual, 2026-09-29). Avisa e libera preenchimento manual quando o CNPJ
-  // não é encontrado, ou quando é encontrado mas o Regime não dá pra
-  // confirmar automaticamente (feedback manual, 2026-09-29).
+  // sobrescrever o que o Admin já tiver digitado à mão. Avisa e libera
+  // preenchimento manual quando o CNPJ não é encontrado, ou quando é
+  // encontrado mas o Regime não dá pra confirmar automaticamente.
   const aoDesfocarCnpj = async (cnpjMascarado: string) => {
     setAvisoCnpj(undefined);
     setAvisoRegime(undefined);
@@ -68,9 +67,9 @@ export function CriarClienteContainer() {
 
     const cnpj = normalizarCnpj(cnpjMascarado);
     const dados = await consultarCnpj(cnpj);
-    // Resposta obsoleta: o Admin já trocou o CNPJ enquanto a consulta voava
-    // (devolutiva PR #64, ponto 6). Aplicar Empresa/Regime de outro CNPJ seria
-    // preencher o formulário com dados que não são desse cadastro.
+    // Resposta obsoleta: o Admin já trocou o CNPJ enquanto a consulta voava.
+    // Aplicar Empresa/Regime de outro CNPJ seria preencher o formulário com
+    // dados que não são desse cadastro.
     if (normalizarCnpj(getValues("cnpj")) !== cnpj) return;
 
     // setTimeout: nunca deixa esses setState caírem no mesmo lote de render
@@ -107,7 +106,7 @@ export function CriarClienteContainer() {
     setErroServidor(undefined);
 
     // try/finally: rejeição de transporte da Server Action não pode deixar o
-    // botão preso em "Cadastrando..." (devolutiva PR #64, ponto 5).
+    // botão preso em "Cadastrando...".
     try {
       const resultado = await criarClienteAction(valores);
       if (!resultado.ok) {

@@ -7,10 +7,6 @@ import {
   login,
 } from "./support/criar-cliente";
 
-// Cobre os cenários do ticket #34 (Funcionário SN edita campos operacionais
-// do cliente): edição, persistência, somente-leitura pra outro Setor e
-// ausência do contrato social nesta tela. Usuários: supabase/seed.sql, Dev local.
-
 // Playwright roda o arquivo de teste fora do Next (não carrega .env.local
 // automaticamente como o runner do Jest faz) — fallback pra chave anon
 // pública padrão do Supabase local (supabase/.env.local, não é segredo).
@@ -51,7 +47,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
 
     await logout(page);
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");
-    // Simples Nacional é a página principal do próprio setor (#36).
+    // Simples Nacional é a página principal do próprio setor.
     await expect(page).toHaveURL("/simples-nacional");
     await page.goto(`/clientes/${clienteId}`);
 
@@ -72,9 +68,8 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
 
     await page.getByRole("button", { name: "Salvar" }).click();
 
-    // Salvar fecha a tela e volta pro destino certo (sem ?voltarPara= nesta
-    // navegação, cai em "/", que redireciona Funcionário SN de volta pra
-    // página principal do próprio setor — feedback de teste manual do #36).
+    // Salvar fecha a tela e volta pro destino certo (sem ?voltarPara= nesta navegação, cai em "/",
+    // que redireciona Funcionário SN de volta pra página principal do próprio setor).
     await expect(page).toHaveURL("/simples-nacional");
 
     // Reabre a tela do cliente pra conferir que a alteração persistiu.
@@ -116,7 +111,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
 
     await logout(page);
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");
-    // Simples Nacional é a página principal do próprio setor (#36).
+    // Simples Nacional é a página principal do próprio setor.
     await expect(page).toHaveURL("/simples-nacional");
     await page.goto(`/clientes/${clienteId}`);
     await expect(page.getByText(/contrato social/i)).not.toBeVisible();

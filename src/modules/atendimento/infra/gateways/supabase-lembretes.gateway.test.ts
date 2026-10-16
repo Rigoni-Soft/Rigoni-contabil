@@ -1,8 +1,8 @@
 /**
- * Integração infra ↔ Supabase (testes.md, seção 3) do job de lembrete de documento e DAS (#52):
+ * Integração infra ↔ Supabase (testes.md, seção 3) do job de lembrete de documento e DAS:
  * leitura paginada dos Clientes, janela de 24h pela chave nacional do telefone, reserva/conclusão do
  * envio do DAS com posse por token, alertas por Cliente e guia publicada. Destrutiva: só roda no
- * Supabase local (R87-02) e limpa pelos IDs da própria execução. Requer `npx supabase start`.
+ * Supabase local e limpa pelos IDs da própria execução. Requer `npx supabase start`.
  */
 import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/use-cases/entregar-comunicacao-por-canais.use-case";
 import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";

@@ -26,7 +26,7 @@ export class DesativarUsuario implements DesativarUsuarioPort {
     const ator = await exigirAdmin(this.sessao, this.usuarios, "Só Admin desativa usuários.");
     if (!ator.ok) return ator;
 
-    // Admin nunca é desativado pela UI (nem o próprio): só Líder/Funcionário (#58).
+    // Admin nunca é desativado pela UI (nem o próprio): só Líder/Funcionário.
     if (usuarioId === ator.value.id) {
       return err(new ForbiddenError("Você não pode desativar a própria conta."));
     }
@@ -51,7 +51,7 @@ export class DesativarUsuario implements DesativarUsuarioPort {
 
     // O usuário JÁ está desativado e auditado (a RLS já nega o acesso); só o bloqueio
     // no Auth falhou. Não apresenta isso como falha total (mesmo padrão do
-    // EstadoInconsistenteError do #30/#31).
+    // EstadoInconsistenteError).
     console.error(
       `Falha ao bloquear conta desativada (id=${alvo.value.id}):`,
       registrado.error.message,

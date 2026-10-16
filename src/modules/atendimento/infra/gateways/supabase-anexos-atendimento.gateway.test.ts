@@ -1,5 +1,5 @@
 /**
- * Integração infra ↔ Supabase Storage (testes.md, seção 3) do bucket `anexos-atendimento` (#79).
+ * Integração infra ↔ Supabase Storage (testes.md, seção 3) do bucket `anexos-atendimento`.
  * Requer `npx supabase start` local com a migration de anexos aplicada.
  */
 import { createClient } from "@supabase/supabase-js";

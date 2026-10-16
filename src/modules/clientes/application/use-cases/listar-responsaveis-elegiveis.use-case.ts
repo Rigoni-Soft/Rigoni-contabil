@@ -8,7 +8,7 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { podeAtribuirResponsavel } from "@/shared/kernel/papeis";
 import { err, type Result } from "@/shared/kernel/result";
 
-// A lista serve ao campo Responsável, que é só do Líder do Simples Nacional (#65); a RLS de
+// A lista serve ao campo Responsável, que é só do Líder do Simples Nacional; a RLS de
 // `perfis` (mesmo Setor) fica como segunda camada.
 export class ListarResponsaveisElegiveis {
   constructor(

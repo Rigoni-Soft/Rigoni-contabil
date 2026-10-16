@@ -1,7 +1,7 @@
 /**
  * Integração direto pela Data API (PostgREST), sem passar por nenhum repositório
- * — prova o que o banco entrega a quem ignora a aplicação (devolutiva técnica
- * PR #69, pontos 1, 2 e 3). Requer `npx supabase start` com migrations + seed.
+ * — prova o que o banco entrega a quem ignora a aplicação.
+ * Requer `npx supabase start` com migrations + seed.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
@@ -78,7 +78,7 @@ async function criarContaEmPrimeiroAcesso(): Promise<{ id: string; email: string
   return { id: data.user.id, email, senha };
 }
 
-// #65: Funcionário SN só vê/edita Cliente do qual é Responsável. service_role
+// Funcionário SN só vê/edita Cliente do qual é Responsável. service_role
 // atribui direto (sem auth.uid() o gatilho confia no servidor).
 async function tornarResponsavel(clienteId: string, perfilId: string): Promise<void> {
   const { error } = await serviceRole()

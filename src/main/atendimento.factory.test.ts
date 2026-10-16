@@ -1,5 +1,5 @@
 /**
- * Fail-open do webhook público (revisão do PR #76, B1): em produção, segredos ausentes ou
+ * Fail-open do webhook público: em produção, segredos ausentes ou
  * iguais ao placeholder devem impedir tanto a validação de HMAC quanto a criação do client
  * privilegiado. O `env` é avaliado na importação, então cada caso reimporta a factory.
  */

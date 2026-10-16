@@ -1,7 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-// Cobre o #56: tela de perfil do próprio usuário + troca voluntária de senha.
-// Usa conta nova (cadastro do #30) pra não mexer na senha das contas do seed.
+// Usa conta nova pra não mexer na senha das contas do seed.
 
 async function login(page: Page, email: string, senha: string) {
   await page.goto("/login");
@@ -42,7 +41,7 @@ test.describe("Perfil do usuário", () => {
   }) => {
     const email = await criarFuncionarioComSenhaDefinitiva(page);
 
-    // Sem senha provisória, /trocar-senha (fluxo obrigatório do #31) leva ao perfil.
+    // Sem senha provisória, /trocar-senha (fluxo obrigatório) leva ao perfil.
     await page.goto("/trocar-senha");
     await expect(page).toHaveURL("/perfil");
 

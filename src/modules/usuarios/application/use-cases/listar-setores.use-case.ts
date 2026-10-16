@@ -23,7 +23,7 @@ export class ListarSetores implements ListarSetoresPort {
       console.error("Falha ao carregar perfil para listar setores:", perfil.error.message);
       return [];
     }
-    // #58: JWT de quem foi desativado vale até expirar; o perfil é a fonte da verdade.
+    // JWT de quem foi desativado vale até expirar; o perfil é a fonte da verdade.
     if (!perfil.value || perfil.value.estaDesativado()) return [];
     const usuario = perfil.value;
 

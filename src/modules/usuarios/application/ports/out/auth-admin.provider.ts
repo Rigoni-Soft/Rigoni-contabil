@@ -9,12 +9,10 @@ export type ContaCriada = { id: string; senhaProvisoria: string };
 // `crypto`, e application só pode importar shared/domain/application (Anexo A).
 export interface AuthAdminPort {
   criarConta(email: string): Promise<Result<ContaCriada, AppError>>;
-  // Devolutiva técnica PR #61, ponto 1: compensação pra qualquer falha depois
-  // da conta já criada no Auth (domínio inválido, INSERT em perfis, auditoria
-  // obrigatória) — `perfis.id` referencia `auth.users(id) on delete cascade`,
-  // então remover a conta aqui já limpa o perfil junto, se ele chegou a existir.
+  // Compensação para falha depois da conta criada no Auth: `perfis.id` referencia
+  // `auth.users(id) on delete cascade`, então remover a conta limpa o perfil junto.
   removerConta(id: string): Promise<Result<void, AppError>>;
-  // #58: bloqueia login/refresh de token da conta (soft delete — a conta e o perfil
+  // Bloqueia login/refresh de token da conta (soft delete — conta e perfil
   // continuam existindo). Idempotente.
   banirConta(id: string): Promise<Result<void, AppError>>;
 }

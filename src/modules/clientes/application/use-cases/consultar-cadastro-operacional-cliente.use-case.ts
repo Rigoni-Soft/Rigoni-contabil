@@ -7,8 +7,8 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, type Result } from "@/shared/kernel/result";
 
-// Sem checagem de papel/setor: qualquer usuário autenticado visualiza (critério
-// de aceite do #34, "Outros Setores conseguem visualizar"). A sessão é validada
+// Sem checagem de papel/setor: qualquer usuário autenticado visualiza (outros
+// Setores conseguem visualizar). A sessão é validada
 // aqui (arquitetura.md §3.12); a RLS fica como segunda camada, não como única.
 export class ConsultarCadastroOperacionalCliente {
   constructor(

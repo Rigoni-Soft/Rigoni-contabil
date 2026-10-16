@@ -14,7 +14,7 @@ export const REGIME_LABEL: Record<string, string> = {
 };
 
 // Cadastro operacional SN só existe para estes Regimes (CONTEXT.md, "Cadastro operacional");
-// o banco repete a regra (devolutiva PR #69, I2).
+// o banco repete a regra.
 export function regimeTemCadastroOperacionalSn(regime: string): boolean {
   return regime === "simples_nacional" || regime === "mei";
 }
