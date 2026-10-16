@@ -18,6 +18,18 @@ const resultado = z
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
     // Fonte das obrigações fiscais (docs/contratos): por padrão o mock de mock-api/.
     OBRIGACOES_FISCAIS_URL: z.url().default("http://127.0.0.1:4010"),
+    // Provedor das obrigações fiscais: o mock acima (padrão) ou o Serpro real (#66).
+    OBRIGACOES_FISCAIS_MODO: z.enum(["mock", "serpro"]).default("mock"),
+    // Só com OBRIGACOES_FISCAIS_MODO=serpro: credenciais do contrato (Consumer Key/Secret) e
+    // certificado e-CNPJ do escritório (.p12 em base64, pois a Vercel não tem arquivos) + senha.
+    SERPRO_CONSUMER_KEY: z.string().min(1).optional(),
+    SERPRO_CONSUMER_SECRET: z.string().min(1).optional(),
+    SERPRO_CERTIFICADO_P12_BASE64: z.string().min(1).optional(),
+    SERPRO_CERTIFICADO_SENHA: z.string().min(1).optional(),
+    SERPRO_CNPJ_ESCRITORIO: z
+      .string()
+      .regex(/^[0-9A-Z]{14}$/)
+      .optional(),
     // Adapter de mensageria (docs/contratos/mensageria.md): falso por padrão.
     MENSAGERIA_MODO: z.enum(["falso", "real"]).default("falso"),
     // Segredos do webhook (assinatura HMAC e handshake de verificação). Valores
@@ -52,10 +64,30 @@ const resultado = z
     message: "MENSAGERIA_MODO=real exige WHATSAPP_TOKEN e WHATSAPP_PHONE_NUMBER_ID.",
     path: ["WHATSAPP_TOKEN"],
   })
+  .refine(
+    (v) =>
+      v.OBRIGACOES_FISCAIS_MODO !== "serpro" ||
+      (v.SERPRO_CONSUMER_KEY &&
+        v.SERPRO_CONSUMER_SECRET &&
+        v.SERPRO_CERTIFICADO_P12_BASE64 &&
+        v.SERPRO_CERTIFICADO_SENHA &&
+        v.SERPRO_CNPJ_ESCRITORIO),
+    {
+      message:
+        "OBRIGACOES_FISCAIS_MODO=serpro exige SERPRO_CONSUMER_KEY, SERPRO_CONSUMER_SECRET, SERPRO_CERTIFICADO_P12_BASE64, SERPRO_CERTIFICADO_SENHA e SERPRO_CNPJ_ESCRITORIO.",
+      path: ["OBRIGACOES_FISCAIS_MODO"],
+    },
+  )
   .safeParse({
     NODE_ENV: process.env.NODE_ENV || undefined,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     OBRIGACOES_FISCAIS_URL: process.env.OBRIGACOES_FISCAIS_URL || undefined,
+    OBRIGACOES_FISCAIS_MODO: process.env.OBRIGACOES_FISCAIS_MODO || undefined,
+    SERPRO_CONSUMER_KEY: process.env.SERPRO_CONSUMER_KEY || undefined,
+    SERPRO_CONSUMER_SECRET: process.env.SERPRO_CONSUMER_SECRET || undefined,
+    SERPRO_CERTIFICADO_P12_BASE64: process.env.SERPRO_CERTIFICADO_P12_BASE64 || undefined,
+    SERPRO_CERTIFICADO_SENHA: process.env.SERPRO_CERTIFICADO_SENHA || undefined,
+    SERPRO_CNPJ_ESCRITORIO: process.env.SERPRO_CNPJ_ESCRITORIO || undefined,
     MENSAGERIA_MODO: process.env.MENSAGERIA_MODO || undefined,
     MENSAGERIA_SEGREDO_ASSINATURA: process.env.MENSAGERIA_SEGREDO_ASSINATURA || undefined,
     MENSAGERIA_TOKEN_VERIFICACAO: process.env.MENSAGERIA_TOKEN_VERIFICACAO || undefined,
@@ -76,6 +108,12 @@ export const {
   NODE_ENV,
   SUPABASE_SERVICE_ROLE_KEY,
   OBRIGACOES_FISCAIS_URL,
+  OBRIGACOES_FISCAIS_MODO,
+  SERPRO_CONSUMER_KEY,
+  SERPRO_CONSUMER_SECRET,
+  SERPRO_CERTIFICADO_P12_BASE64,
+  SERPRO_CERTIFICADO_SENHA,
+  SERPRO_CNPJ_ESCRITORIO,
   MENSAGERIA_MODO,
   MENSAGERIA_SEGREDO_ASSINATURA,
   MENSAGERIA_TOKEN_VERIFICACAO,

@@ -15,8 +15,9 @@ export type GuiaDasDto = DocumentoPdfDto & {
 
 export type GuiaParcelamentoDto = DocumentoPdfDto & {
   parcela: string; // AAAAMM da parcela emitida
-  valorCentavos: number;
-  vencimento: string; // AAAA-MM-DD
+  // Opcionais: nem todo provedor informa fora do PDF.
+  valorCentavos?: number;
+  vencimento?: string; // AAAA-MM-DD
 };
 
 export type CndDto = DocumentoPdfDto & { validade: string }; // AAAA-MM-DD

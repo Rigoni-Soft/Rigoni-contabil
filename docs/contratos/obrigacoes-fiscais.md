@@ -13,11 +13,18 @@ Configuração: `OBRIGACOES_FISCAIS_URL` (padrão `http://127.0.0.1:4010`). Port
 |---|---|
 | `GET /clientes/{cnpj}/autorizacao` | `{ "vigente": true, "dataExpiracao": "2027-12-31" }` ou `{ "vigente": false }` |
 | `GET /clientes/{cnpj}/das` | `{ nomeArquivo, pdfBase64, competencia "AAAA-MM", valorCentavos, vencimento }` |
-| `GET /clientes/{cnpj}/parcelamento` | `{ nomeArquivo, pdfBase64, parcela "AAAAMM", valorCentavos, vencimento }` |
+| `GET /clientes/{cnpj}/parcelamento` | `{ nomeArquivo, pdfBase64, parcela "AAAAMM", valorCentavos?, vencimento? }` |
 | `GET /clientes/{cnpj}/cnd` | `{ nomeArquivo, pdfBase64, validade }` |
 
 Qualquer resposta não-2xx, timeout (10 s) ou corpo fora deste formato vira `ServicoExternoError`
 no sistema — falha esperada, nunca derruba o restante.
+
+## Adapter real (Serpro, #66)
+
+`OBRIGACOES_FISCAIS_MODO=serpro` troca o mock pelo `ObrigacoesFiscaisSerproGateway` (Integra Contador; 5 variáveis `SERPRO_*`
+no `.env.example`). Traduções: DAS = PGDASD/GERARDAS12 do **mês anterior**; parcelamento = PARCSN/GERARDAS161 da parcela do
+**mês corrente**, só PDF (sem valor/vencimento); autorização = Integra-Procurações (vigente se alguma procuração não venceu).
+**CND ainda não implementada** (devolve erro tratado): depende do Swagger do produto avulso "Consulta CND".
 
 ## Mock
 

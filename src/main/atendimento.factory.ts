@@ -13,13 +13,13 @@ import {
   MENSAGERIA_SEGREDO_SESSAO,
   MENSAGERIA_TOKEN_VERIFICACAO,
   NODE_ENV,
-  OBRIGACOES_FISCAIS_URL,
   WHATSAPP_PHONE_NUMBER_ID,
   WHATSAPP_TOKEN,
 } from "@/env";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { makeRegistrarAcao } from "@/main/auditoria.factory";
+import { makeObrigacoesFiscais } from "@/main/obrigacoes-fiscais.factory";
 import { exigirSegredosReais } from "@/main/segredos-mensageria.factory";
 import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
@@ -101,7 +101,6 @@ import { SupabaseIdentificacaoContatoGateway } from "@/modules/atendimento/infra
 import { SupabaseSessaoAtendimentoGateway } from "@/modules/atendimento/infra/gateways/supabase-sessao-atendimento.gateway";
 import { SupabaseAtendimentoRepository } from "@/modules/atendimento/infra/repositories/atendimento.repository";
 import { SupabaseFeriadoRepository } from "@/modules/atendimento/infra/repositories/feriado.repository";
-import { ObrigacoesFiscaisHttpGateway } from "@/modules/clientes/infra/gateways/obrigacoes-fiscais-http.gateway";
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
 import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabase-sessao.gateway";
 import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories/usuario.repository";
@@ -134,7 +133,7 @@ function exigirSegredosDeProducao(): void {
 function guiasFiscais(supabaseAdmin: SupabaseClient): GuiasFiscaisGateway {
   return new GuiasFiscaisGateway(
     new SupabaseClienteCnpjGateway(supabaseAdmin),
-    new ObrigacoesFiscaisHttpGateway(OBRIGACOES_FISCAIS_URL),
+    makeObrigacoesFiscais(),
   );
 }
 

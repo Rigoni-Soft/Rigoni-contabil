@@ -25,8 +25,8 @@ const dasSchema = z.object({
 const parcelamentoSchema = z.object({
   ...documento,
   parcela: z.string().regex(/^\d{6}$/),
-  valorCentavos: z.number().int(),
-  vencimento: dataIso,
+  valorCentavos: z.number().int().optional(),
+  vencimento: dataIso.optional(),
 });
 const cndSchema = z.object({ ...documento, validade: dataIso });
 const autorizacaoSchema = z.discriminatedUnion("vigente", [
