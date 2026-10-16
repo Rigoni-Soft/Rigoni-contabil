@@ -18,8 +18,6 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 // arquivo conhece o Serpro; falha de rede, status ou formato vira ServicoExternoError.
 
 const TIMEOUT_MS = 15_000;
-const URL_AUTENTICACAO = "https://autenticacao.sapi.serpro.gov.br/authenticate";
-const URL_BASE = "https://gateway.apiserpro.serpro.gov.br/integra-contador/v1";
 const CNPJ = 2; // tipo de identificador do Serpro
 
 // [idSistema, idServico] de "Emitir Documento de Arrecadação" do parcelamento ordinário (PARC),
@@ -39,12 +37,21 @@ export type RequisicaoHttp = {
 };
 export type TransporteHttp = (req: RequisicaoHttp) => Promise<RespostaHttp>;
 
+// Trial (demonstração): token fixo, sem autenticar, sem certificado. Produção: OAuth2 com
+// Consumer Key/Secret e o e-CNPJ do escritório. As URLs vêm do ambiente (src/main).
 export type CredenciaisSerpro = {
-  consumerKey: string;
-  consumerSecret: string;
-  certificadoP12: Buffer;
-  certificadoSenha: string;
+  urlAutenticacao: string;
+  urlBase: string;
   cnpjEscritorio: string;
+  acesso:
+    | { tipo: "trial"; token: string }
+    | {
+        tipo: "producao";
+        consumerKey: string;
+        consumerSecret: string;
+        certificadoP12: Buffer;
+        certificadoSenha: string;
+      };
 };
 
 export const transporteNode: TransporteHttp = (req) =>
@@ -186,20 +193,20 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
   }
 
   private async autenticar(): Promise<{ access: string; jwt: string }> {
+    const { acesso } = this.cred;
+    if (acesso.tipo === "trial") return { access: acesso.token, jwt: "" };
     if (this.token && this.token.expiraEm > Date.now()) return this.token;
-    const basico = Buffer.from(`${this.cred.consumerKey}:${this.cred.consumerSecret}`).toString(
-      "base64",
-    );
+    const basico = Buffer.from(`${acesso.consumerKey}:${acesso.consumerSecret}`).toString("base64");
     const r = await this.http({
-      url: URL_AUTENTICACAO,
+      url: this.cred.urlAutenticacao,
       headers: {
         Authorization: `Basic ${basico}`,
         "Role-Type": "TERCEIROS",
         "Content-Type": "application/x-www-form-urlencoded",
       },
       corpo: "grant_type=client_credentials",
-      pfx: this.cred.certificadoP12,
-      passphrase: this.cred.certificadoSenha,
+      pfx: acesso.certificadoP12,
+      passphrase: acesso.certificadoSenha,
     });
     if (r.status !== 200) throw new ErroSerpro(`Autenticação no Serpro respondeu ${r.status}.`);
     const t = tokenSchema.parse(JSON.parse(r.corpo));
@@ -225,10 +232,10 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
     const { access, jwt } = await this.autenticar();
     const escritorio = { numero: this.cred.cnpjEscritorio, tipo: CNPJ };
     const r = await this.http({
-      url: `${URL_BASE}/${operacao}`,
+      url: `${this.cred.urlBase}/${operacao}`,
       headers: {
         Authorization: `Bearer ${access}`,
-        jwt_token: jwt,
+        ...(jwt && { jwt_token: jwt }),
         "Content-Type": "application/json",
       },
       corpo: JSON.stringify({

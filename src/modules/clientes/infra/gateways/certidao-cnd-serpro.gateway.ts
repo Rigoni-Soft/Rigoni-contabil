@@ -14,8 +14,6 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 // Adapter do produto avulso "Consulta CND" (PGFN/RFB) do Serpro: contrato e token próprios, sem
 // certificado digital (docs/pesquisa/serpro-api.md, seção 1).
-const URL_TOKEN = "https://gateway.apiserpro.serpro.gov.br/token";
-const URL_CERTIDAO = "https://gateway.apiserpro.serpro.gov.br/consulta-cnd/v1/certidao";
 const PESSOA_JURIDICA = 1;
 const STATUS_EM_PROCESSAMENTO = 7;
 const STATUS_COM_CERTIDAO = [1, 2]; // encontrada | emitida
@@ -23,10 +21,13 @@ const TENTATIVAS = 4;
 const ESPERA_MS = 3000;
 
 export type CredenciaisCnd = {
-  consumerKey: string;
-  consumerSecret: string;
+  urlToken: string;
+  urlCertidao: string;
   // "Código de identificação do sistema" informado na contratação.
   codigoIdentificacao: string;
+  acesso:
+    | { tipo: "trial"; token: string }
+    | { tipo: "producao"; consumerKey: string; consumerSecret: string };
 };
 
 const tokenSchema = z.object({ access_token: z.string(), expires_in: z.number() });
@@ -94,7 +95,7 @@ export class CertidaoCndSerproGateway implements CertidaoCndPort {
     repetirSe401 = true,
   ): Promise<z.infer<typeof respostaSchema>> {
     const r = await this.http({
-      url: URL_CERTIDAO,
+      url: this.cred.urlCertidao,
       headers: {
         Authorization: `Bearer ${await this.autenticar()}`,
         "Content-Type": "application/json",
@@ -119,12 +120,12 @@ export class CertidaoCndSerproGateway implements CertidaoCndPort {
   }
 
   private async autenticar(): Promise<string> {
+    const { acesso } = this.cred;
+    if (acesso.tipo === "trial") return acesso.token;
     if (this.token && this.token.expiraEm > Date.now()) return this.token.valor;
-    const basico = Buffer.from(`${this.cred.consumerKey}:${this.cred.consumerSecret}`).toString(
-      "base64",
-    );
+    const basico = Buffer.from(`${acesso.consumerKey}:${acesso.consumerSecret}`).toString("base64");
     const r = await this.http({
-      url: URL_TOKEN,
+      url: this.cred.urlToken,
       headers: {
         Authorization: `Basic ${basico}`,
         "Content-Type": "application/x-www-form-urlencoded",

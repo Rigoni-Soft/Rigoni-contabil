@@ -5,11 +5,16 @@ import {
 } from "./obrigacoes-fiscais-serpro.gateway";
 
 const CRED = {
-  consumerKey: "k",
-  consumerSecret: "s",
-  certificadoP12: Buffer.from("p12"),
-  certificadoSenha: "senha",
+  urlAutenticacao: "https://auth.test/authenticate",
+  urlBase: "https://api.test/v1",
   cnpjEscritorio: "11222333000181",
+  acesso: {
+    tipo: "producao" as const,
+    consumerKey: "k",
+    consumerSecret: "s",
+    certificadoP12: Buffer.from("p12"),
+    certificadoSenha: "senha",
+  },
 };
 const CLIENTE = "11444777000161";
 const AGORA = () => new Date("2026-01-15T15:00:00Z"); // janeiro: mês anterior = dezembro
@@ -58,7 +63,9 @@ describe("ObrigacoesFiscaisSerproGateway", () => {
         vencimento: "2026-01-20",
       },
     });
-    expect(http.mock.calls[0][0].pfx).toEqual(CRED.certificadoP12);
+    expect(http.mock.calls[0][0].url).toBe(CRED.urlAutenticacao);
+    expect(http.mock.calls[0][0].pfx).toEqual(CRED.acesso.certificadoP12);
+    expect(http.mock.calls[1][0].url).toBe("https://api.test/v1/Emitir");
     const corpo = JSON.parse(http.mock.calls[1][0].corpo);
     expect(corpo.contribuinte.numero).toBe(CLIENTE);
     expect(corpo.pedidoDados).toMatchObject({ idSistema: "PGDASD", idServico: "GERARDAS12" });
@@ -150,5 +157,24 @@ describe("ObrigacoesFiscaisSerproGateway", () => {
       const r = await gw.buscarDas(CLIENTE);
       expect(!r.ok && r.error.code).toBe("EXTERNAL_SERVICE_ERROR");
     }
+  });
+
+  it("trial usa o token de demonstração direto: sem autenticar, sem certificado, sem jwt_token", async () => {
+    const http = jest.fn().mockResolvedValue(envelope({ docArrecadacaoPdfB64: "JVBERg==" }));
+    const trial = new ObrigacoesFiscaisSerproGateway(
+      { ...CRED, acesso: { tipo: "trial", token: "demo" } },
+      http,
+      AGORA,
+    );
+
+    const r = await trial.buscarGuiaParcelamento(CLIENTE, "simples_nacional");
+
+    expect(r.ok).toBe(true);
+    expect(http).toHaveBeenCalledTimes(1);
+    expect(http.mock.calls[0][0].headers).toEqual({
+      Authorization: "Bearer demo",
+      "Content-Type": "application/json",
+    });
+    expect(http.mock.calls[0][0].pfx).toBeUndefined();
   });
 });

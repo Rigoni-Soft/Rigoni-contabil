@@ -22,6 +22,14 @@ const resultado = z
     OBRIGACOES_FISCAIS_MODO: z.enum(["mock", "serpro"]).default("mock"),
     // Só com OBRIGACOES_FISCAIS_MODO=serpro: credenciais do contrato (Consumer Key/Secret) e
     // certificado e-CNPJ do escritório (.p12 em base64, pois a Vercel não tem arquivos) + senha.
+    // Ambiente do Serpro: "trial" (demonstração: token fixo, sem certificado; Preview/homolog) ou
+    // "producao" (OAuth2 + e-CNPJ; Production). Define as URLs padrão; cada uma é sobrescrevível.
+    SERPRO_AMBIENTE: z.enum(["trial", "producao"]).default("trial"),
+    SERPRO_URL_AUTENTICACAO: z.url().optional(),
+    SERPRO_URL_INTEGRA_CONTADOR: z.url().optional(),
+    SERPRO_URL_CND_TOKEN: z.url().optional(),
+    SERPRO_URL_CND_CERTIDAO: z.url().optional(),
+    SERPRO_TOKEN_TRIAL: z.string().min(1).optional(),
     SERPRO_CONSUMER_KEY: z.string().min(1).optional(),
     SERPRO_CONSUMER_SECRET: z.string().min(1).optional(),
     SERPRO_CERTIFICADO_P12_BASE64: z.string().min(1).optional(),
@@ -72,6 +80,50 @@ const resultado = z
   .refine(
     (v) =>
       v.OBRIGACOES_FISCAIS_MODO !== "serpro" ||
+      (v.SERPRO_CNPJ_ESCRITORIO &&
+        (v.SERPRO_AMBIENTE === "trial" ||
+          (v.SERPRO_CONSUMER_KEY &&
+            v.SERPRO_CONSUMER_SECRET &&
+            v.SERPRO_CERTIFICADO_P12_BASE64 &&
+            v.SERPRO_CERTIFICADO_SENHA))),
+    {
+      message:
+        "OBRIGACOES_FISCAIS_MODO=serpro exige SERPRO_CNPJ_ESCRITORIO e, com SERPRO_AMBIENTE=producao, também SERPRO_CONSUMER_KEY, SERPRO_CONSUMER_SECRET, SERPRO_CERTIFICADO_P12_BASE64 e SERPRO_CERTIFICADO_SENHA.",
+      path: ["OBRIGACOES_FISCAIS_MODO"],
+    },
+  )
+  .refine(
+    (v) =>
+      v.CND_MODO !== "serpro" ||
+      v.SERPRO_AMBIENTE === "trial" ||
+      (v.SERPRO_CND_CONSUMER_KEY &&
+        v.SERPRO_CND_CONSUMER_SECRET &&
+        v.SERPRO_CND_CODIGO_IDENTIFICACAO),
+    {
+      message:
+        "CND_MODO=serpro com SERPRO_AMBIENTE=producao exige SERPRO_CND_CONSUMER_KEY, SERPRO_CND_CONSUMER_SECRET e SERPRO_CND_CODIGO_IDENTIFICACAO.",
+      path: ["CND_MODO"],
+    },
+  )
+  // Trial devolve dados de demonstração: em Production da Vercel isso "enviaria" guias falsas
+  // a Clientes reais.
+  .refine(
+    (v) =>
+      process.env.VERCEL_ENV !== "production" ||
+      v.SERPRO_AMBIENTE === "producao" ||
+      (v.OBRIGACOES_FISCAIS_MODO !== "serpro" && v.CND_MODO !== "serpro"),
+    {
+      message: "Production da Vercel não pode usar SERPRO_AMBIENTE=trial.",
+      path: ["SERPRO_AMBIENTE"],
+    },
+  )
+  .refine((v) => v.MENSAGERIA_MODO !== "real" || (v.WHATSAPP_TOKEN && v.WHATSAPP_PHONE_NUMBER_ID), {
+    message: "MENSAGERIA_MODO=real exige WHATSAPP_TOKEN e WHATSAPP_PHONE_NUMBER_ID.",
+    path: ["WHATSAPP_TOKEN"],
+  })
+  .refine(
+    (v) =>
+      v.OBRIGACOES_FISCAIS_MODO !== "serpro" ||
       (v.SERPRO_CONSUMER_KEY &&
         v.SERPRO_CONSUMER_SECRET &&
         v.SERPRO_CERTIFICADO_P12_BASE64 &&
@@ -100,6 +152,12 @@ const resultado = z
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     OBRIGACOES_FISCAIS_URL: process.env.OBRIGACOES_FISCAIS_URL || undefined,
     OBRIGACOES_FISCAIS_MODO: process.env.OBRIGACOES_FISCAIS_MODO || undefined,
+    SERPRO_AMBIENTE: process.env.SERPRO_AMBIENTE || undefined,
+    SERPRO_URL_AUTENTICACAO: process.env.SERPRO_URL_AUTENTICACAO || undefined,
+    SERPRO_URL_INTEGRA_CONTADOR: process.env.SERPRO_URL_INTEGRA_CONTADOR || undefined,
+    SERPRO_URL_CND_TOKEN: process.env.SERPRO_URL_CND_TOKEN || undefined,
+    SERPRO_URL_CND_CERTIDAO: process.env.SERPRO_URL_CND_CERTIDAO || undefined,
+    SERPRO_TOKEN_TRIAL: process.env.SERPRO_TOKEN_TRIAL || undefined,
     SERPRO_CONSUMER_KEY: process.env.SERPRO_CONSUMER_KEY || undefined,
     SERPRO_CONSUMER_SECRET: process.env.SERPRO_CONSUMER_SECRET || undefined,
     SERPRO_CERTIFICADO_P12_BASE64: process.env.SERPRO_CERTIFICADO_P12_BASE64 || undefined,
@@ -130,6 +188,12 @@ export const {
   SUPABASE_SERVICE_ROLE_KEY,
   OBRIGACOES_FISCAIS_URL,
   OBRIGACOES_FISCAIS_MODO,
+  SERPRO_AMBIENTE,
+  SERPRO_URL_AUTENTICACAO,
+  SERPRO_URL_INTEGRA_CONTADOR,
+  SERPRO_URL_CND_TOKEN,
+  SERPRO_URL_CND_CERTIDAO,
+  SERPRO_TOKEN_TRIAL,
   SERPRO_CONSUMER_KEY,
   SERPRO_CONSUMER_SECRET,
   SERPRO_CERTIFICADO_P12_BASE64,

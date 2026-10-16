@@ -1,6 +1,11 @@
 import { CertidaoCndSerproGateway } from "./certidao-cnd-serpro.gateway";
 
-const CRED = { consumerKey: "k", consumerSecret: "s", codigoIdentificacao: "9001" };
+const CRED = {
+  urlToken: "https://auth.test/token",
+  urlCertidao: "https://api.test/certidao",
+  codigoIdentificacao: "9001",
+  acesso: { tipo: "producao" as const, consumerKey: "k", consumerSecret: "s" },
+};
 const CNPJ = "11444777000161";
 const token = { status: 200, corpo: JSON.stringify({ access_token: "a", expires_in: 3000 }) };
 const resposta = (corpo: unknown, status = 200) => ({ status, corpo: JSON.stringify(corpo) });
@@ -62,5 +67,21 @@ describe("CertidaoCndSerproGateway", () => {
       const r = await gw.buscarCnd(CNPJ);
       expect(!r.ok && r.error.code).toBe("EXTERNAL_SERVICE_ERROR");
     }
+  });
+
+  it("trial usa o token de demonstração direto, sem autenticar", async () => {
+    const http = jest.fn().mockResolvedValue(certidao);
+    const trial = new CertidaoCndSerproGateway(
+      { ...CRED, acesso: { tipo: "trial", token: "demo" } },
+      http,
+      async () => {},
+    );
+
+    const r = await trial.buscarCnd(CNPJ);
+
+    expect(r.ok).toBe(true);
+    expect(http).toHaveBeenCalledTimes(1);
+    expect(http.mock.calls[0][0].url).toBe(CRED.urlCertidao);
+    expect(http.mock.calls[0][0].headers.Authorization).toBe("Bearer demo");
   });
 });
