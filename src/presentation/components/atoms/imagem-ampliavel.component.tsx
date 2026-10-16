@@ -1,5 +1,8 @@
 import { Download, X } from "lucide-react";
 
+import { Button, buttonVariants } from "@/presentation/components/ui/button";
+import { cn } from "@/presentation/lib/utils";
+
 type ImagemAmpliavelProps = {
   // A miniatura (ou o original, se não houver) e o original que o painel mostra.
   src: string;
@@ -53,23 +56,25 @@ export function ImagemAmpliavel({
             href={baixarHref}
             download={alt}
             aria-label={`Baixar ${alt}`}
-            className="flex h-11 items-center gap-1 rounded-full px-3 text-sm text-foreground outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+            className={cn(buttonVariants({ variant: "ghost" }), "rounded-full")}
           >
-            <Download className="size-4" aria-hidden="true" />
+            <Download aria-hidden="true" />
             Baixar
           </a>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             popoverTarget={painelId}
             popoverTargetAction="hide"
             aria-label="Fechar imagem"
             // O React trata `autoFocus` focando na montagem (o painel ainda está oculto); o atributo
             // nativo é o que o popover usa para decidir o foco ao abrir.
             ref={(botao) => botao?.setAttribute("autofocus", "")}
-            className="flex size-11 items-center justify-center rounded-full text-foreground outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+            className="rounded-full"
           >
             <X className="size-5" aria-hidden="true" />
-          </button>
+          </Button>
         </div>
         {/* eslint-disable-next-line @next/next/no-img-element -- idem */}
         <img

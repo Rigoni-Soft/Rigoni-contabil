@@ -1,5 +1,6 @@
 import { Eye, X } from "lucide-react";
 
+import { Button } from "@/presentation/components/ui/button";
 import type { PreviaCarregada } from "@/presentation/lib/previa-de-office";
 
 type PainelDePreviaProps = {
@@ -46,16 +47,18 @@ export function PainelDePrevia({ nome, painelId, estado, previa, aoAbrir }: Pain
           <p className="truncate text-sm font-medium" title={nome}>
             {nome}
           </p>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             popoverTarget={painelId}
             popoverTargetAction="hide"
             aria-label="Fechar visualização"
             ref={(botao) => botao?.setAttribute("autofocus", "")}
-            className="flex size-11 shrink-0 items-center justify-center rounded-full outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+            className="shrink-0 rounded-full"
           >
             <X className="size-5" aria-hidden="true" />
-          </button>
+          </Button>
         </div>
         <div className="min-h-0 flex-1 overflow-auto">
           {estado === "carregando" && (
