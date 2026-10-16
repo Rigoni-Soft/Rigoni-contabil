@@ -7,23 +7,44 @@ permissions:
   contents: read
   statuses: write
 
+# O `ref` do deployment criado pela Vercel é o SHA (payload vazio), então a branch é descoberta no
+# job `ramo`. As rodadas dividem o mesmo banco de homologação: entram em fila, nunca em paralelo.
 concurrency:
-  group: e2e-preview-${{ github.event.deployment.ref }}
-  cancel-in-progress: true
+  group: e2e-preview-banco-de-homologacao
+  cancel-in-progress: false
 
 jobs:
+  ramo:
+    name: Descobre a branch do deploy
+    if: >
+      vars.E2E_PREVIEW_HABILITADO == 'true' &&
+      github.event.deployment_status.state == 'success' &&
+      startsWith(github.event.deployment.environment, 'Preview')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      alvo: ${{ steps.ramo.outputs.alvo }}
+    steps:
+      - id: ramo
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RAMOS=$(gh api "repos/${{ github.repository }}/commits/${{ github.event.deployment.sha }}/branches-where-head" --jq '.[].name')
+          echo "branches com esse commit na ponta: $RAMOS"
+          if echo "$RAMOS" | grep -qx homolog; then ALVO=homolog
+          elif echo "$RAMOS" | grep -qx develop; then ALVO=develop
+          else ALVO=; fi
+          echo "alvo=$ALVO" >> "$GITHUB_OUTPUT"
+
   e2e-preview:
     name: E2E no preview da Vercel
+    needs: ramo
     # Devolutiva técnica PR #71, ponto 3: a suíte cria Clientes e usuários e altera cadastros, então
     # só roda contra Supabase de preview/homolog isolado e descartável (docs/testes.md, seção 5).
     # Desligado até essa prova existir: defina a variável de repositório E2E_PREVIEW_HABILITADO=true
     # (Settings > Secrets and variables > Actions > Variables) depois de conferir as variáveis do
     # Supabase nos ambientes Preview e Homolog da Vercel.
-    if: >
-      vars.E2E_PREVIEW_HABILITADO == 'true' &&
-      github.event.deployment_status.state == 'success' &&
-      startsWith(github.event.deployment.environment, 'Preview') &&
-      contains(fromJSON('["develop","homolog"]'), github.event.deployment.ref)
+    if: needs.ramo.outputs.alvo != ''
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -53,7 +74,7 @@ jobs:
       # Só em `homolog`, e só contra o projeto cujo ref está em SUPABASE_HOMOLOG_PROJECT_REF — o
       # reset apaga TUDO desse projeto, então ele nunca pode ser o de produção.
       - name: Restaura o Supabase de homologação (migrations + seed)
-        if: github.event.deployment.ref == 'homolog'
+        if: needs.ramo.outputs.alvo == 'homolog'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_HOMOLOG_DB_PASSWORD }}
@@ -87,7 +108,7 @@ jobs:
       - name: Define a suíte (develop = smoke, homolog = completa)
         id: suite
         run: |
-          if [ "${{ github.event.deployment.ref }}" = "homolog" ]; then
+          if [ "${{ needs.ramo.outputs.alvo }}" = "homolog" ]; then
             echo "args=" >> "$GITHUB_OUTPUT"
           else
             echo "args=--grep @smoke" >> "$GITHUB_OUTPUT"
@@ -102,7 +123,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-report-${{ github.event.deployment.ref }}
+          name: playwright-report-${{ needs.ramo.outputs.alvo }}
           path: playwright-report/
           retention-days: 7
 
