@@ -20,7 +20,7 @@ import {
   parteTemplate,
   type CorpoEnvioCloudApi,
   type ParteCorpo,
-} from "./corpo-cloud-api";
+} from "./corpo-cloud-api.gateway";
 
 type RespostaCloudApi =
   | {
