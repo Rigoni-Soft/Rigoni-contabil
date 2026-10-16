@@ -80,6 +80,7 @@ import { TransferirAtendimento } from "@/modules/atendimento/application/use-cas
 import { VerificarInatividade } from "@/modules/atendimento/application/use-cases/verificar-inatividade.use-case";
 import { BearerAutenticacaoJobGateway } from "@/modules/atendimento/infra/gateways/bearer-autenticacao-job.gateway";
 import { DownloadMidiaFalsoGateway } from "@/modules/atendimento/infra/gateways/download-midia-falso.gateway";
+import { DownloadMidiaWhatsappGateway } from "@/modules/atendimento/infra/gateways/download-midia-whatsapp.gateway";
 import { EnvioEmailFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-email-falso.gateway";
 import { EnvioEmailIndisponivelGateway } from "@/modules/atendimento/infra/gateways/envio-email-indisponivel.gateway";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
@@ -156,13 +157,12 @@ export function makeReceberMensagem(): ReceberMensagemPort {
 
 export function makeReceberMidia(): ReceberMidiaPort {
   exigirSegredosDeProducao();
-  if (MENSAGERIA_MODO === "real") {
-    throw new Error("MENSAGERIA_MODO=real: o adapter real de mensageria ainda não existe (#68).");
-  }
   const supabaseAdmin = createSupabaseAdmin();
   return new ReceberMidia(
     new SupabaseAtendimentoRepository(supabaseAdmin),
-    new DownloadMidiaFalsoGateway(),
+    MENSAGERIA_MODO === "real"
+      ? new DownloadMidiaWhatsappGateway(WHATSAPP_TOKEN!)
+      : new DownloadMidiaFalsoGateway(),
     new SupabaseAnexosAtendimentoGateway(supabaseAdmin),
     makeEnvioMensagem(),
   );

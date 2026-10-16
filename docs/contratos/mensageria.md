@@ -4,7 +4,7 @@ A **porta** do sistema é neutra (`ReceberMensagemPort`, `EnvioMensagemPort`: `{
 HTTP e o adapter falso reproduzem a **WhatsApp Cloud API da Meta**, pra que o adapter real (#68) só troque a
 implementação. Fonte: documentação oficial da Meta (webhooks, Messages API, códigos de erro). Ver ADR 0004.
 
-Configuração: `MENSAGERIA_MODO` = `falso` (padrão) | `real` (`EnvioMensagemWhatsappGateway`; exige `WHATSAPP_TOKEN` e `WHATSAPP_PHONE_NUMBER_ID`, o gate de idempotência abaixo segue pendente);
+Configuração: `MENSAGERIA_MODO` = `falso` (padrão) | `real` (`EnvioMensagemWhatsappGateway` e `DownloadMidiaWhatsappGateway`; exige `WHATSAPP_TOKEN` e `WHATSAPP_PHONE_NUMBER_ID`). Limite conhecido: a reentrega do webhook é deduplicada pelo `wamid` só dentro de um Atendimento; mensagem tratada apenas pela URA (menu, identificação) e reentregue repete a resposta, pois não há registro de wamid processado fora do Atendimento;
 `MENSAGERIA_SEGREDO_ASSINATURA` (app secret) e `MENSAGERIA_TOKEN_VERIFICACAO` e `MENSAGERIA_SEGREDO_SESSAO` (chave do HMAC da sessão da URA, separada da assinatura; padrões falsos em dev).
 
 ## Entrada: `/api/webhooks/whatsapp`
@@ -72,7 +72,7 @@ Anexo do Funcionário (#79): `enviarAnexo({ telefone, tipo: "imagem" | "audio" |
 `audio` (inclusive mensagem de voz), `image` e `document` chegam com um objeto `{ id, mime_type, caption?, filename? }`. O
 webhook os entrega a um caso de uso próprio, atrás da porta neutra `DownloadMidiaPort` (`baixar(idDaMidia) → { bytes, mime, nome? }`;
 o adapter falso devolve arquivos de teste pelo id: `midia-teste-audio` (ogg/opus tocável), `-imagem`, `-documento`, `-grande`
-(acima de 10 MB), `-svg` e `-fora-do-ar`; o real, que troca o id pelo endereço temporário e baixa com o token, é da #68).
+(acima de 10 MB), `-svg` e `-fora-do-ar`; o real, `DownloadMidiaWhatsappGateway`, troca o id pelo endereço temporário e baixa com o token; 400/404 viram `ValidationError`, o resto `ServicoExternoError`).
 
 - **Só dentro de um Atendimento em andamento.** De um número sem Atendimento (inclusive quem está no menu da URA) a mídia não é
   baixada nem guardada, não abre Atendimento nem reabre o menu: a URA responde que, por ora, só entende texto. A checagem
