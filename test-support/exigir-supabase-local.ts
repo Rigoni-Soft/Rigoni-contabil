@@ -10,3 +10,17 @@ export function exigirSupabaseLocal(...destinos: readonly string[]): void {
     }
   }
 }
+
+// Destino das suítes e2e que preparam dados: o Supabase local ou, só numa rodada contra um deploy
+// (`baseUrl`), o projeto de homologação cujo ref foi declarado em `refHomolog`. Qualquer outro
+// host remoto, inclusive produção, continua recusado.
+export function exigirDestinoDoE2E(
+  supabaseUrl: string,
+  opcoes: { baseUrl?: string; refHomolog?: string },
+): void {
+  const { baseUrl, refHomolog } = opcoes;
+  if (baseUrl && refHomolog && /^[a-z0-9]{20}$/.test(refHomolog)) {
+    if (supabaseUrl === `https://${refHomolog}.supabase.co`) return;
+  }
+  exigirSupabaseLocal(supabaseUrl);
+}
