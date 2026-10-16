@@ -5,6 +5,8 @@ import { join } from "node:path";
 
 import {
   CRON_SECRET,
+  EMAIL_MODO,
+  EMAIL_REMETENTE,
   FFMPEG_PATH,
   INATIVIDADE_AUTOMATICA,
   LEMBRETES_AUTOMATICOS,
@@ -13,6 +15,7 @@ import {
   MENSAGERIA_SEGREDO_SESSAO,
   MENSAGERIA_TOKEN_VERIFICACAO,
   NODE_ENV,
+  RESEND_API_KEY,
   WHATSAPP_PHONE_NUMBER_ID,
   WHATSAPP_TOKEN,
 } from "@/env";
@@ -83,6 +86,7 @@ import { DownloadMidiaFalsoGateway } from "@/modules/atendimento/infra/gateways/
 import { DownloadMidiaWhatsappGateway } from "@/modules/atendimento/infra/gateways/download-midia-whatsapp.gateway";
 import { EnvioEmailFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-email-falso.gateway";
 import { EnvioEmailIndisponivelGateway } from "@/modules/atendimento/infra/gateways/envio-email-indisponivel.gateway";
+import { EnvioEmailResendGateway } from "@/modules/atendimento/infra/gateways/envio-email-resend.gateway";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
 import { EnvioMensagemWhatsappGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-whatsapp.gateway";
 import { FfmpegConversorDeAudioGateway } from "@/modules/atendimento/infra/gateways/ffmpeg-conversor-de-audio.gateway";
@@ -263,9 +267,13 @@ export function makeVerificarInatividade(): VerificarInatividadePort {
   );
 }
 
-// Em produção o e-mail falso responderia ok sem enviar nada; sem o adapter real o canal
-// falha de forma explícita.
+// Em produção o e-mail falso responderia ok sem enviar nada: sem EMAIL_MODO=real o canal falha de
+// forma explícita.
 function makeEnvioEmail(): EnvioEmailPort {
+  if (EMAIL_MODO === "real") {
+    // env.ts garante a chave e o remetente com o modo real.
+    return new EnvioEmailResendGateway(RESEND_API_KEY!, EMAIL_REMETENTE!);
+  }
   return NODE_ENV === "production"
     ? new EnvioEmailIndisponivelGateway()
     : new EnvioEmailFalsoGateway();

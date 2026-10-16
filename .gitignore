@@ -159,3 +159,4 @@ graphify-out
 
 # ffmpeg comprimido no build (scripts/comprimir-ffmpeg.mjs)
 /.ffmpeg
+.env*
