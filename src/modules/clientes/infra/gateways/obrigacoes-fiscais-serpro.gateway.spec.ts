@@ -68,39 +68,34 @@ describe("ObrigacoesFiscaisSerproGateway", () => {
   it("guia de parcelamento traz só o PDF e a parcela do mês corrente", async () => {
     const { gw } = gateway(token, envelope({ docArrecadacaoPdfB64: "JVBERg==" }));
 
-    const r = await gw.buscarGuiaParcelamento(CLIENTE);
+    const r = await gw.buscarGuiaParcelamento(CLIENTE, "simples_nacional");
 
     expect(r.ok && r.value).toMatchObject({ pdfBase64: "JVBERg==", parcela: "202601" });
   });
 
-  it("tenta os parcelamentos em ordem até um emitir a parcela (4xx passa ao próximo)", async () => {
-    const { http, gw } = gateway(
-      token,
-      { status: 400, corpo: "" },
-      { status: 404, corpo: "" },
-      envelope({ docArrecadacaoPdfB64: "JVBERg==" }),
-    );
+  it("parcelamento usa o PARC do regime do Cliente: SN em PARCSN, MEI em PARCMEI", async () => {
+    for (const [regime, sistema, servico] of [
+      ["simples_nacional", "PARCSN", "GERARDAS161"],
+      ["mei", "PARCMEI", "GERARDAS201"],
+    ] as const) {
+      const { http, gw } = gateway(token, envelope({ docArrecadacaoPdfB64: "JVBERg==" }));
 
-    const r = await gw.buscarGuiaParcelamento(CLIENTE);
+      const r = await gw.buscarGuiaParcelamento(CLIENTE, regime);
 
-    expect(r.ok && r.value.pdfBase64).toBe("JVBERg==");
-    const sistemas = http.mock.calls
-      .slice(1)
-      .map((c) => JSON.parse(c[0].corpo).pedidoDados.idSistema);
-    expect(sistemas).toEqual(["PARCSN", "PERTSN", "RELPSN"]);
+      expect(r.ok).toBe(true);
+      expect(JSON.parse(http.mock.calls[1][0].corpo).pedidoDados).toMatchObject({
+        idSistema: sistema,
+        idServico: servico,
+      });
+    }
   });
 
-  it("sem parcelamento em nenhum sistema é erro tratado; 5xx interrompe a busca", async () => {
-    const { http, gw } = gateway(
-      token,
-      ...Array.from({ length: 6 }, () => ({ status: 400, corpo: "" })),
-    );
-    expect((await gw.buscarGuiaParcelamento(CLIENTE)).ok).toBe(false);
-    expect(http).toHaveBeenCalledTimes(7);
+  it("cliente sem parcelamento (404) é erro tratado", async () => {
+    const { gw } = gateway(token, { status: 404, corpo: "" });
 
-    const { http: http2, gw: gw2 } = gateway(token, { status: 503, corpo: "" });
-    expect((await gw2.buscarGuiaParcelamento(CLIENTE)).ok).toBe(false);
-    expect(http2).toHaveBeenCalledTimes(2);
+    const r = await gw.buscarGuiaParcelamento(CLIENTE, "mei");
+
+    expect(!r.ok && r.error.message).toMatch(/sem parcelamento/);
   });
 
   it("reautentica uma vez quando o token expirou (401)", async () => {
@@ -111,7 +106,7 @@ describe("ObrigacoesFiscaisSerproGateway", () => {
       envelope({ docArrecadacaoPdfB64: "x" }),
     );
 
-    const r = await gw.buscarGuiaParcelamento(CLIENTE);
+    const r = await gw.buscarGuiaParcelamento(CLIENTE, "simples_nacional");
 
     expect(r.ok).toBe(true);
     expect(http).toHaveBeenCalledTimes(4);

@@ -66,7 +66,10 @@ class CertidoesFalsas implements CertidaoCndPort {
 
 describe("BuscarGuia", () => {
   it("devolve DAS, parcelamento e CND do CNPJ (só dígitos na porta)", async () => {
-    const r = await new BuscarGuia(logado, new FontesFalsas(), new CertidoesFalsas()).execute(CNPJ);
+    const r = await new BuscarGuia(logado, new FontesFalsas(), new CertidoesFalsas()).execute(
+      CNPJ,
+      "simples_nacional",
+    );
 
     expect(r.ok && r.value.das.nomeArquivo).toBe("das-11444777000161.pdf");
     expect(r.ok && r.value.parcelamento.parcela).toBe("202609");
@@ -78,7 +81,7 @@ describe("BuscarGuia", () => {
       logado,
       new FontesFalsas({ falhar: true }),
       new CertidoesFalsas(),
-    ).execute(CNPJ);
+    ).execute(CNPJ, "simples_nacional");
 
     expect(!r.ok && r.error.code).toBe("EXTERNAL_SERVICE_ERROR");
   });
@@ -88,7 +91,7 @@ describe("BuscarGuia", () => {
       logado,
       new FontesFalsas({ autorizado: false }),
       new CertidoesFalsas(),
-    ).execute(CNPJ);
+    ).execute(CNPJ, "simples_nacional");
 
     expect(!r.ok && r.error.message).toMatch(/sem autorização/);
   });
@@ -99,7 +102,10 @@ describe("BuscarGuia", () => {
       throw new Error("timeout");
     };
 
-    const r = await new BuscarGuia(logado, new FontesFalsas(), certidoes).execute(CNPJ);
+    const r = await new BuscarGuia(logado, new FontesFalsas(), certidoes).execute(
+      CNPJ,
+      "simples_nacional",
+    );
 
     expect(!r.ok && r.error.code).toBe("EXTERNAL_SERVICE_ERROR");
   });
@@ -107,6 +113,16 @@ describe("BuscarGuia", () => {
   it("rejeita CNPJ inválido", async () => {
     const r = await new BuscarGuia(logado, new FontesFalsas(), new CertidoesFalsas()).execute(
       "123",
+      "simples_nacional",
+    );
+
+    expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("rejeita regime sem parcelamento do Simples", async () => {
+    const r = await new BuscarGuia(logado, new FontesFalsas(), new CertidoesFalsas()).execute(
+      CNPJ,
+      "lucro_real",
     );
 
     expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
@@ -115,6 +131,7 @@ describe("BuscarGuia", () => {
   it("exige sessão", async () => {
     const r = await new BuscarGuia(deslogado, new FontesFalsas(), new CertidoesFalsas()).execute(
       CNPJ,
+      "simples_nacional",
     );
 
     expect(!r.ok && r.error.code).toBe("FORBIDDEN");

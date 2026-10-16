@@ -7,6 +7,7 @@ import type {
   GuiaDasDto,
   GuiaParcelamentoDto,
   ObrigacoesFiscaisPort,
+  RegimeParcelamento,
 } from "@/modules/clientes/application/ports/out/obrigacoes-fiscais.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -21,15 +22,12 @@ const URL_AUTENTICACAO = "https://autenticacao.sapi.serpro.gov.br/authenticate";
 const URL_BASE = "https://gateway.apiserpro.serpro.gov.br/integra-contador/v1";
 const CNPJ = 2; // tipo de identificador do Serpro
 
-// [idSistema, idServico] de "Emitir Documento de Arrecadação" de cada parcelamento.
-const PARCELAMENTOS = [
-  ["PARCSN", "GERARDAS161"],
-  ["PERTSN", "GERARDAS181"],
-  ["RELPSN", "GERARDAS191"],
-  ["PARCMEI", "GERARDAS201"],
-  ["PERTMEI", "GERARDAS221"],
-  ["RELPMEI", "GERARDAS231"],
-] as const;
+// [idSistema, idServico] de "Emitir Documento de Arrecadação" do parcelamento ordinário (PARC),
+// o único contínuo; PERT e RELP estão fechados a novas adesões.
+const PARCELAMENTO_POR_REGIME: Record<RegimeParcelamento, readonly [string, string]> = {
+  simples_nacional: ["PARCSN", "GERARDAS161"],
+  mei: ["PARCMEI", "GERARDAS201"],
+};
 
 export type RespostaHttp = { status: number; corpo: string };
 export type RequisicaoHttp = {
@@ -133,31 +131,24 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
     });
   }
 
-  // O Cliente pode estar em qualquer um dos parcelamentos do Integra-Parcelamento e a porta não
-  // diz qual: tenta os seis em ordem e fica com o primeiro que emite a parcela do mês corrente.
-  // Resposta 4xx (sem parcelamento ali) passa ao próximo; rede, 5xx e formato interrompem.
-  // A API devolve só o PDF: valor e vencimento ficam de fora (opcionais no contrato).
-  // ponytail: até 6 chamadas pagas por consulta; guardar o sistema do Cliente se o custo pesar.
-  async buscarGuiaParcelamento(cnpj: string): Promise<Result<GuiaParcelamentoDto, AppError>> {
+  // Parcelamento ordinário do regime do Cliente, parcela do mês corrente. A API devolve só o
+  // PDF: valor e vencimento ficam de fora (opcionais no contrato).
+  async buscarGuiaParcelamento(
+    cnpj: string,
+    regime: RegimeParcelamento,
+  ): Promise<Result<GuiaParcelamentoDto, AppError>> {
     const parcela = mesAtual(this.agora()).replace("-", "");
+    const [idSistema, idServico] = PARCELAMENTO_POR_REGIME[regime];
     return this.executar(async () => {
-      for (const [idSistema, idServico] of PARCELAMENTOS) {
-        try {
-          const dados = await this.chamar("Emitir", cnpj, idSistema, idServico, "1.0", {
-            parcelaParaEmitir: Number(parcela),
-          });
-          if (dados === null) continue; // 204/404: sem parcelamento neste sistema
-          const guia = parcelamentoSchema.parse(dados);
-          return {
-            nomeArquivo: `parcelamento-${cnpj}-${parcela}.pdf`,
-            pdfBase64: guia.docArrecadacaoPdfB64,
-            parcela,
-          };
-        } catch (e) {
-          if (!(e instanceof ErroSerpro && e.status >= 400 && e.status < 500)) throw e;
-        }
-      }
-      throw new ErroSerpro("Nenhum parcelamento com parcela para emitir neste mês.");
+      const dados = await this.chamar("Emitir", cnpj, idSistema, idServico, "1.0", {
+        parcelaParaEmitir: Number(parcela),
+      });
+      if (dados === null) throw new ErroSerpro("Cliente sem parcelamento com parcela neste mês.");
+      return {
+        nomeArquivo: `parcelamento-${cnpj}-${parcela}.pdf`,
+        pdfBase64: parcelamentoSchema.parse(dados).docArrecadacaoPdfB64,
+        parcela,
+      };
     });
   }
 
@@ -252,17 +243,10 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
       return this.chamar(operacao, contribuinte, idSistema, idServico, versaoSistema, dados, false);
     }
     if (r.status === 204 || r.status === 404) return null;
-    if (r.status !== 200) throw new ErroSerpro(`Serviço fiscal respondeu ${r.status}.`, r.status);
+    if (r.status !== 200) throw new ErroSerpro(`Serviço fiscal respondeu ${r.status}.`);
     const envelope = z.object({ dados: z.string() }).parse(JSON.parse(r.corpo));
     return JSON.parse(envelope.dados);
   }
 }
 
-class ErroSerpro extends Error {
-  constructor(
-    message: string,
-    readonly status = 0,
-  ) {
-    super(message);
-  }
-}
+class ErroSerpro extends Error {}

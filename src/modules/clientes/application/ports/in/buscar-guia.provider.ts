@@ -13,5 +13,5 @@ export type BuscarGuiaOutput = {
 };
 
 export interface BuscarGuiaPort {
-  execute(cnpj: string): Promise<Result<BuscarGuiaOutput, AppError>>;
+  execute(cnpj: string, regime: string): Promise<Result<BuscarGuiaOutput, AppError>>;
 }

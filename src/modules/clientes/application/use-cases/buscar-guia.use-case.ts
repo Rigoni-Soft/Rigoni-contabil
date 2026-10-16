@@ -3,9 +3,13 @@ import type {
   BuscarGuiaPort,
 } from "@/modules/clientes/application/ports/in/buscar-guia.provider";
 import type { CertidaoCndPort } from "@/modules/clientes/application/ports/out/certidao-cnd.provider";
-import type { ObrigacoesFiscaisPort } from "@/modules/clientes/application/ports/out/obrigacoes-fiscais.provider";
+import type {
+  ObrigacoesFiscaisPort,
+  RegimeParcelamento,
+} from "@/modules/clientes/application/ports/out/obrigacoes-fiscais.provider";
 import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
 import { Cnpj } from "@/modules/clientes/domain/value-objects/cnpj.vo";
+import { Regime } from "@/modules/clientes/domain/value-objects/regime.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -24,21 +28,34 @@ export class BuscarGuia implements BuscarGuiaPort {
     private readonly certidoes: CertidaoCndPort,
   ) {}
 
-  async execute(entrada: string): Promise<Result<BuscarGuiaOutput, AppError>> {
+  async execute(
+    entrada: string,
+    regimeEntrada: string,
+  ): Promise<Result<BuscarGuiaOutput, AppError>> {
     if (!(await this.sessao.usuarioAtual())) {
       return err(new ForbiddenError("Sessão inválida. Entre novamente."));
     }
     const cnpj = Cnpj.criar(entrada);
     if (!cnpj.ok) return cnpj;
+    const regime = Regime.criar(regimeEntrada);
+    if (!regime.ok) return regime;
+    const parcelavel = regime.value.valor;
+    if (parcelavel !== "simples_nacional" && parcelavel !== "mei") {
+      return err(new ValidationError("Este regime não tem guia de parcelamento do Simples."));
+    }
     try {
-      return await this.buscar(entrada, cnpj.value.valor);
+      return await this.buscar(entrada, cnpj.value.valor, parcelavel);
     } catch {
       // Adapter real (timeout/rede) pode lançar: nunca derruba o sistema.
       return err(new ServicoExternoError("Falha ao consultar as obrigações fiscais."));
     }
   }
 
-  private async buscar(entrada: string, cnpj: string): Promise<Result<BuscarGuiaOutput, AppError>> {
+  private async buscar(
+    entrada: string,
+    cnpj: string,
+    regime: RegimeParcelamento,
+  ): Promise<Result<BuscarGuiaOutput, AppError>> {
     const autorizacao = await this.fontes.consultarAutorizacao(cnpj);
     if (!autorizacao.ok) return autorizacao;
     if (!autorizacao.value.vigente) {
@@ -51,7 +68,7 @@ export class BuscarGuia implements BuscarGuiaPort {
 
     const [das, parcelamento, cnd] = await Promise.all([
       this.fontes.buscarDas(cnpj),
-      this.fontes.buscarGuiaParcelamento(cnpj),
+      this.fontes.buscarGuiaParcelamento(cnpj, regime),
       this.certidoes.buscarCnd(cnpj),
     ]);
     if (!das.ok) return das;
