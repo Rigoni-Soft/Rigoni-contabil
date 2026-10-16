@@ -21,8 +21,7 @@ function arquivo(nome: string): File {
   return new File(["conteúdo"], nome, { type: "application/pdf" });
 }
 
-// Regex: os labels obrigatórios ganharam um "*" visual, então o texto exato
-// não bate.
+// Regex: os labels obrigatórios ganharam um "*" visual, então o texto exato não bate.
 async function preencherCamposObrigatorios(usuario: ReturnType<typeof userEvent.setup>) {
   await usuario.type(screen.getByLabelText(/^CNPJ/), "11.444.777/0001-61");
   await usuario.type(screen.getByLabelText(/^Empresa/), "Padaria Pão Quente Ltda");

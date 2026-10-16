@@ -8,10 +8,9 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Lê da view `clientes_basico` (sem contrato social/alterações): quem edita o
-// cadastro operacional (Funcionário SN) não tem SELECT em `clientes`.
-// O Cliente reconstituído aqui não carrega os documentos jurídicos — só o Admin
-// os lê, e `atualizarOperacional` não os grava.
+// Lê da view `clientes_basico` (sem contrato social/alterações): quem edita o cadastro operacional
+// (Funcionário SN) não tem SELECT em `clientes`. O Cliente reconstituído aqui não carrega os
+// documentos jurídicos — só o Admin os lê, e `atualizarOperacional` não os grava.
 const SELECT_CLIENTE_BASICO = `
   *,
   cliente_cadastro_operacional_sn(*),

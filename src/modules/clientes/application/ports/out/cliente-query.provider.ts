@@ -31,9 +31,8 @@ export type ResponsavelOpcaoDto = { id: string; nome: string };
 // o necessário pra listar sugestões (empresa + CNPJ) antes de escolher um cliente.
 export type SugestaoClienteDto = { id: string; empresa: string; cnpj: string };
 
-// Read model pro resumo do setor — só os campos usados pra classificar
-// um Cliente nos 9 cards, mais empresa/cnpj pra exibir no drill-down.
-// Mesmo raciocínio de confidencialidade do DTO acima.
+// Read model pro resumo do setor — só os campos usados pra classificar um Cliente nos 9 cards, mais
+// empresa/cnpj pra exibir no drill-down. Mesmo raciocínio de confidencialidade do DTO acima.
 export type ResumoOperacionalRow = {
   clienteId: string;
   empresa: string;
@@ -53,10 +52,9 @@ export interface ClienteQueryPort {
     clienteId: string,
   ): Promise<Result<CadastroOperacionalClienteDto | null, AppError>>;
 
-  // apenasSnMei: a busca embutida no dashboard do Simples Nacional só
-  // mostra Cliente com cadastro operacional (regime simples_nacional/mei);
-  // a busca geral do Admin/qualquer setor não tem essa restrição — Admin
-  // precisa achar cliente de qualquer Regime.
+  // apenasSnMei: a busca embutida no dashboard do Simples Nacional só mostra Cliente com cadastro
+  // operacional (regime simples_nacional/mei); a busca geral do Admin/qualquer setor não tem essa
+  // restrição — Admin precisa achar cliente de qualquer Regime.
   buscarPorTermo(
     termo: string,
     apenasSnMei: boolean,

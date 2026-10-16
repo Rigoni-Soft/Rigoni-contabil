@@ -21,10 +21,9 @@ export class Login implements LoginPort {
     if (!id) return this.abortarSessaoOrfa("Sessão inválida após autenticação.");
 
     const perfil = await this.usuarios.buscarPorId(id);
-    // Falha técnica (banco indisponível) e falha de reconstrução de domínio (nome/
-    // e-mail inválidos salvos no banco) passam pelo mesmo cleanup que "sem perfil",
-    // mas com mensagem própria — não apresentam indisponibilidade como ausência
-    // cadastral.
+    // Falha técnica (banco indisponível) e falha de reconstrução de domínio (nome/ e-mail inválidos
+    // salvos no banco) passam pelo mesmo cleanup que "sem perfil", mas com mensagem própria — não
+    // apresentam indisponibilidade como ausência cadastral.
     if (!perfil.ok) {
       return this.abortarSessaoOrfa("Falha ao carregar seu perfil. Tente novamente.", perfil.error);
     }

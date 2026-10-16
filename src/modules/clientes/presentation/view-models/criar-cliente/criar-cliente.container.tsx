@@ -50,10 +50,9 @@ export function CriarClienteContainer() {
     append({ data: "", arquivo: undefined as unknown as File });
   };
 
-  // Autopreenche Empresa/Regime via API pública ao sair do campo CNPJ, sem
-  // sobrescrever o que o Admin já tiver digitado à mão. Avisa e libera
-  // preenchimento manual quando o CNPJ não é encontrado, ou quando é
-  // encontrado mas o Regime não dá pra confirmar automaticamente.
+  // Autopreenche Empresa/Regime via API pública ao sair do campo CNPJ, sem sobrescrever o que o
+  // Admin já tiver digitado à mão. Avisa e libera preenchimento manual quando o CNPJ não é
+  // encontrado, ou quando é encontrado mas o Regime não dá pra confirmar automaticamente.
   const aoDesfocarCnpj = async (cnpjMascarado: string) => {
     setAvisoCnpj(undefined);
     setAvisoRegime(undefined);
@@ -67,9 +66,8 @@ export function CriarClienteContainer() {
 
     const cnpj = normalizarCnpj(cnpjMascarado);
     const dados = await consultarCnpj(cnpj);
-    // Resposta obsoleta: o Admin já trocou o CNPJ enquanto a consulta voava.
-    // Aplicar Empresa/Regime de outro CNPJ seria preencher o formulário com
-    // dados que não são desse cadastro.
+    // Resposta obsoleta: o Admin já trocou o CNPJ enquanto a consulta voava. Aplicar Empresa/Regime
+    // de outro CNPJ seria preencher o formulário com dados que não são desse cadastro.
     if (normalizarCnpj(getValues("cnpj")) !== cnpj) return;
 
     // setTimeout: nunca deixa esses setState caírem no mesmo lote de render

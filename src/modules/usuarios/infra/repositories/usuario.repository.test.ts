@@ -55,9 +55,8 @@ async function criarContaAuthDeTeste(): Promise<{ id: string; email: string }> {
   return { id: data.user.id, email };
 }
 
-// Cria uma conta com senha provisória já vencida (direto via service_role, fora
-// do fluxo normal) pra provar que meu_papel()/meu_setor() negam acesso via Data
-// API mesmo com um JWT válido.
+// Cria uma conta com senha provisória já vencida (direto via service_role, fora do fluxo normal)
+// pra provar que meu_papel()/meu_setor() negam acesso via Data API mesmo com um JWT válido.
 async function criarContaComSenhaVencida(
   papel: "admin" | "funcionario",
   setor: string,
@@ -224,8 +223,7 @@ describe("SupabaseUsuarioRepository (integração)", () => {
   });
 
   // INSERT direto via Data API (sem passar pelo caso de uso), provando que a policy
-  // perfis_insert_lider_proprio_setor nega no Postgres o que o CriarUsuario já nega
-  // na aplicação.
+  // perfis_insert_lider_proprio_setor nega no Postgres o que o CriarUsuario já nega na aplicação.
   describe("Líder insere perfil direto na Data API (RLS: perfis_insert_lider_proprio_setor, devolutiva PR #63)", () => {
     async function inserirComoLiderContabil(papel: string, setor: string) {
       const { id, email } = await criarContaAuthDeTeste();

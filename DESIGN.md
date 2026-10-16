@@ -774,6 +774,15 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   (`AlertCircle`/`CheckCircle2`) + texto + cor, erro em `destructive` e sucesso
   em `primary` (nunca `success`, o dourado do selo "em dia").
 
+### Telas de aviso e carregamento
+
+`TelaDeAvisoPage` (erro inesperado em `app/error.tsx`, rota inexistente em `app/not-found.tsx`) reaproveita o
+`EntradaTemplate` do login: marca, subtítulo que diz o que houve, um `AvisoDeStatus` de erro em `text-sm`
+(ícone + texto, `role="alert"`), as ações e um rodapé. O erro nunca mostra `error.message`; oferece "Tentar de
+novo" e "Ir para o início". `CarregandoPage` (`app/loading.tsx`) é um `role="status"` com spinner
+`motion-safe` e "Carregando…"; só aparece depois de 250 ms (`animate-carregando`, um atraso de opacidade sem
+movimento, por isso sem `motion-safe:`), para a navegação rápida não piscar.
+
 ### Dock de Atendimentos (#49)
 
 Cartões fixos no canto inferior direito (`fixed right-4 bottom-4`), um por

@@ -23,10 +23,9 @@ export class ObterSessao implements ObterSessaoPort {
     }
     if (!perfil.value) return null;
 
-    // Login já bloqueia senha provisória vencida, mas uma sessão aberta ANTES do
-    // vencimento seguia válida depois dele. Toda página autenticada passa por
-    // carregarSessao() → aqui, então tratar como "sem sessão" fecha esse caminho
-    // sem duplicar a checagem em cada rota.
+    // Login já bloqueia senha provisória vencida, mas uma sessão aberta ANTES do vencimento seguia
+    // válida depois dele. Toda página autenticada passa por carregarSessao() → aqui, então tratar
+    // como "sem sessão" fecha esse caminho sem duplicar a checagem em cada rota.
     if (perfil.value.senhaProvisoriaVencida(new Date())) return null;
 
     // Sessão aberta antes da desativação para de valer na próxima página.

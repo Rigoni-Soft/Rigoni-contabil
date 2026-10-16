@@ -9,10 +9,9 @@ import { join } from "node:path";
 
 export const APP_DIR = "src/app";
 
-// Páginas públicas de verdade: não exigem sessão pra existir, então ficam de
-// fora de qualquer checagem (nem carregarSessao, nem precisaTrocarSenha).
-// Toda página fora desta lista é obrigada a chamar carregarSessao; só entra aqui quem é público de
-// propósito (login é o único caso hoje).
+// Páginas públicas de verdade: não exigem sessão pra existir, então ficam de fora de qualquer
+// checagem (nem carregarSessao, nem precisaTrocarSenha). Toda página fora desta lista é obrigada a
+// chamar carregarSessao; só entra aqui quem é público de propósito (login é o único caso hoje).
 export const PAGINAS_PUBLICAS = new Set(["login/page.tsx"]);
 
 // /trocar-senha é o próprio destino do redirect: carrega sessão (pra saber o

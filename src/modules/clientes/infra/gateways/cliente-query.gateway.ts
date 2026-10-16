@@ -40,9 +40,8 @@ const responsavelDe = (operacional: CadastroOperacionalRow | null) => ({
   responsavelNome: operacional?.responsavel?.nome ?? null,
 });
 
-// Lê da view `clientes_basico`, que não tem contrato_social_caminho: a
-// confidencialidade é garantida no banco, não só pelo select ou pelo
-// shape do DTO de saída.
+// Lê da view `clientes_basico`, que não tem contrato_social_caminho: a confidencialidade é
+// garantida no banco, não só pelo select ou pelo shape do DTO de saída.
 const SELECT_CADASTRO_BASICO = `
   id, empresa, cnpj, regime,
   ${EMBED_OPERACIONAL},
@@ -124,9 +123,8 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
     // View `clientes_basico`, não `clientes`: o dashboard é de qualquer Funcionário
     // do setor, e só Admin lê a tabela (contrato social).
     let query = this.supabase.from("clientes_basico").select("id, empresa, cnpj");
-    // Só a busca embutida no dashboard do Simples Nacional restringe o
-    // Regime — Admin/qualquer setor fora dessa tela busca em
-    // qualquer Cliente.
+    // Só a busca embutida no dashboard do Simples Nacional restringe o Regime — Admin/qualquer
+    // setor fora dessa tela busca em qualquer Cliente.
     if (apenasSnMei) query = query.in("regime", ["simples_nacional", "mei"]);
     const { data, error } = await query
       .or(`cnpj.ilike."${valor}",empresa.ilike."${valor}"`)

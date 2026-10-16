@@ -55,8 +55,7 @@ describe("filtroFeedSchema", () => {
     if (!resultado.success) expect(resultado.error.issues[0].path).toEqual(["dataInicio"]);
   });
 
-  // Coluna `ator` é UUID; texto livre deve ser rejeitado no schema, antes de
-  // chegar na consulta.
+  // Coluna `ator` é UUID; texto livre deve ser rejeitado no schema, antes de chegar na consulta.
   it("rejeita um ator que não é UUID, com aviso no campo ator", () => {
     const resultado = filtroFeedSchema.safeParse({ ator: "joão" });
 

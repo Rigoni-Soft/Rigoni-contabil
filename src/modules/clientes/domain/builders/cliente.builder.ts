@@ -54,10 +54,9 @@ export class ClienteBuilder {
   private contratoSocialCaminho: string | null = null;
   private email: Email | null = null;
   private alteracoesContratuais: AlteracaoContratual[] = [];
-  // Campos operacionais do Simples Nacional — todos opcionais/com
-  // default, igual a contratoSocialCaminho: um Cliente recém-criado
-  // ainda não tem nenhum deles preenchido. formaEnvio só vira VO no build()
-  // (default "whatsapp" quando o setter nunca foi chamado).
+  // Campos operacionais do Simples Nacional — todos opcionais/com default, igual a
+  // contratoSocialCaminho: um Cliente recém-criado ainda não tem nenhum deles preenchido.
+  // formaEnvio só vira VO no build() (default "whatsapp" quando o setter nunca foi chamado).
   private formaEnvio: FormaEnvio | null = null;
   private contatos: Contato[] = [];
   private documentoObrigatorio: DocumentoObrigatorioStatus | null = null;

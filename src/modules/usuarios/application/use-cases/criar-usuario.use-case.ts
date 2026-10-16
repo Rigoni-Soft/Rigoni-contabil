@@ -69,9 +69,8 @@ export class CriarUsuario implements CriarUsuarioPort {
     if (!salvo.ok)
       return this.falharComCompensacao(ator.id, input, conta.value.id, "salvar_perfil", salvo);
 
-    // Auditoria de sucesso não é best-effort: se não fica registrada, a operação
-    // inteira é revertida (conta Auth + perfil, via compensação), porque a ação
-    // precisa ficar auditada.
+    // Auditoria de sucesso não é best-effort: se não fica registrada, a operação inteira é
+    // revertida (conta Auth + perfil, via compensação), porque a ação precisa ficar auditada.
     const auditoria = await this.auditoria.registrar({
       ator: ator.id,
       setor: input.setor,
@@ -104,11 +103,10 @@ export class CriarUsuario implements CriarUsuarioPort {
     return setor.ok && this.autorizacao.podeAcessarSetor(ator, setor.value);
   }
 
-  // Qualquer falha depois da conta Auth criada a compensa removendo-a (`perfis.id`
-  // tem `on delete cascade`, então o perfil sai junto). Falha da própria
-  // compensação vira `EstadoInconsistenteError` (conta pode ter ficado órfã) e
-  // auditoria `falha_compensacao`, para reconciliação manual via Supabase Studio.
-  // Senha provisória nunca entra no log.
+  // Qualquer falha depois da conta Auth criada a compensa removendo-a (`perfis.id` tem `on delete
+  // cascade`, então o perfil sai junto). Falha da própria compensação vira
+  // `EstadoInconsistenteError` (conta pode ter ficado órfã) e auditoria `falha_compensacao`, para
+  // reconciliação manual via Supabase Studio. Senha provisória nunca entra no log.
   private async falharComCompensacao(
     atorId: string,
     input: CriarUsuarioInput,

@@ -377,9 +377,8 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
     if (resultado.ok) expect(resultado.value).toBeNull();
   });
 
-  // Cadastrar um Cliente Simples Nacional/MEI já cria a linha do cadastro SN
-  // (RPC criar_cliente), em vez de só nascer no primeiro upsert de
-  // EditarCadastroOperacionalCliente.
+  // Cadastrar um Cliente Simples Nacional/MEI já cria a linha do cadastro SN (RPC criar_cliente),
+  // em vez de só nascer no primeiro upsert de EditarCadastroOperacionalCliente.
   it("criar Cliente Simples Nacional já cria o cadastro operacional com os defaults negativos/pendentes", async () => {
     const admin = await comoAdmin();
     const clienteBase = await criarClienteBase(admin, "92773334000116");

@@ -75,10 +75,9 @@ describe("SupabaseFinalizarTrocaSenhaGateway (integração)", () => {
     expect(auditorias.data).toEqual([{ acao: "usuario.trocar_senha_primeiro_acesso" }]);
   });
 
-  // Antes, `grant execute ... to authenticated` deixava qualquer sessão (inclusive
-  // com senha ainda provisória) chamar a RPC direto via supabase-js, sem trocar a
-  // senha de verdade no Auth. Agora só service_role executa — prova negativa de
-  // que o bypass fechou.
+  // Antes, `grant execute ... to authenticated` deixava qualquer sessão (inclusive com senha ainda
+  // provisória) chamar a RPC direto via supabase-js, sem trocar a senha de verdade no Auth. Agora
+  // só service_role executa — prova negativa de que o bypass fechou.
   it("um usuário autenticado comum não consegue chamar a RPC diretamente", async () => {
     const { id, email } = await criarContaAuthDeTeste();
 

@@ -186,8 +186,7 @@ describe("SupabaseClienteQueryGateway.buscarPorTermo (#35, integração)", () =>
     if (resultado.ok) expect(resultado.value.some((s) => s.id === cliente.id)).toBe(true);
   });
 
-  // Admin (ou qualquer busca fora do dashboard do SN) precisa achar Cliente
-  // de qualquer Regime.
+  // Admin (ou qualquer busca fora do dashboard do SN) precisa achar Cliente de qualquer Regime.
   it("com apenasSnMei=false, encontra Cliente de Lucro Presumido/Real também", async () => {
     const admin = await comoAdmin();
     const empresa = "Padaria Busca Geral Presumido Ltda";

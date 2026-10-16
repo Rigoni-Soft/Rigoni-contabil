@@ -49,9 +49,8 @@ export class DesativarUsuario implements DesativarUsuarioPort {
     const registrado = banido.ok ? await this.desativacao.registrarBloqueio(alvo.value.id) : banido;
     if (registrado.ok) return ok(undefined);
 
-    // O usuário JÁ está desativado e auditado (a RLS já nega o acesso); só o bloqueio
-    // no Auth falhou. Não apresenta isso como falha total (mesmo padrão do
-    // EstadoInconsistenteError).
+    // O usuário JÁ está desativado e auditado (a RLS já nega o acesso); só o bloqueio no Auth
+    // falhou. Não apresenta isso como falha total (mesmo padrão do EstadoInconsistenteError).
     console.error(
       `Falha ao bloquear conta desativada (id=${alvo.value.id}):`,
       registrado.error.message,

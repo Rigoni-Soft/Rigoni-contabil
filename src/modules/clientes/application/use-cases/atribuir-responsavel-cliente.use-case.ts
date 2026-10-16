@@ -16,11 +16,10 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { podeAtribuirResponsavel } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Só o Líder do Simples Nacional atribui/troca/remove o Responsável. O
-// banco repete a regra (trigger + RLS) — aqui é a primeira barreira e o ponto
-// que registra a auditoria de falha (a ação distingue atribuir, trocar e remover). A de
-// sucesso nasce no banco, na mesma transação da escrita (trigger `auditar_responsavel_cliente`),
-// inclusive quando o Líder grava pela Data API.
+// Só o Líder do Simples Nacional atribui/troca/remove o Responsável. O banco repete a regra
+// (trigger + RLS) — aqui é a primeira barreira e o ponto que registra a auditoria de falha (a ação
+// distingue atribuir, trocar e remover). A de sucesso nasce no banco, na mesma transação da escrita
+// (trigger `auditar_responsavel_cliente`), inclusive quando o Líder grava pela Data API.
 export class AtribuirResponsavelCliente implements AtribuirResponsavelClientePort {
   constructor(
     private readonly sessao: SessaoPort,

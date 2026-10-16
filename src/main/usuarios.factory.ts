@@ -30,9 +30,8 @@ import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabas
 import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories/usuario.repository";
 import { err, ok } from "@/shared/kernel/result";
 
-// Adapta a porta IN RegistrarAcao (módulo auditoria) à porta própria de usuarios
-// (arquitetura.md, seção 3.11). Devolve o
-// Result de verdade — quem chama (CriarUsuario) decide se trata como fatal.
+// Adapta a porta IN RegistrarAcao (módulo auditoria) à porta própria de usuarios (arquitetura.md,
+// seção 3.11). Devolve o Result de verdade — quem chama (CriarUsuario) decide se trata como fatal.
 function auditoriaViaModuloAuditoria(): AuditoriaPort {
   return {
     registrar: async (input) => {

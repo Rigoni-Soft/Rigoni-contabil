@@ -25,11 +25,10 @@ type Props = {
   // Só o Líder do SN: troca o Select de Responsável editável.
   podeAtribuirResponsavel?: boolean;
   onCancelar?: () => void;
-  // Depois de salvar com sucesso, o painel precisa fechar/voltar: painel embutido
-  // no dashboard (busca do /simples-nacional) fecha de volta pra busca e
-  // atualiza os cards; tela própria (/clientes/[id]) navega de volta pra
-  // onde a lista do bucket (ou o próprio dashboard) ficou. Só um dos dois é
-  // passado por consumidor — `aoSalvarComSucesso` tem prioridade.
+  // Depois de salvar com sucesso, o painel precisa fechar/voltar: painel embutido no dashboard
+  // (busca do /simples-nacional) fecha de volta pra busca e atualiza os cards; tela própria
+  // (/clientes/[id]) navega de volta pra onde a lista do bucket (ou o próprio dashboard) ficou. Só
+  // um dos dois é passado por consumidor — `aoSalvarComSucesso` tem prioridade.
   aoSalvarComSucesso?: () => void;
   voltarHrefAoSalvar?: string;
 };

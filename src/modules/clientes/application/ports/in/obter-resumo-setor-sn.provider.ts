@@ -19,8 +19,7 @@ export type ComparativosSnDto = {
   das: FatiaComparativoDto[];
   parcelamento: FatiaComparativoDto[];
   atividade: FatiaComparativoDto[];
-  // Só o Líder vê: Funcionários comparados pela quantidade de Clientes
-  // com DAS "enviado".
+  // Só o Líder vê: Funcionários comparados pela quantidade de Clientes com DAS "enviado".
   responsaveis?: FatiaComparativoDto[];
 };
 

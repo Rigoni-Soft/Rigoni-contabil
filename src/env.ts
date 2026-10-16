@@ -6,10 +6,9 @@ import { SEGREDOS_MENSAGERIA_PLACEHOLDER } from "@/main/segredos-mensageria.fact
 
 export * from "./env.client";
 
-// PORT não entra aqui: nenhum código do app a lê (é consumida só por `next
-// dev`/`next start` e pelo baseURL do Playwright, direto de process.env) —
-// validá-la como obrigatória faria o app inteiro depender dela sem motivo,
-// inclusive em build/deploy onde a plataforma controla a porta sozinha.
+// PORT não entra aqui: nenhum código do app a lê (é consumida só por `next dev`/`next start` e pelo
+// baseURL do Playwright, direto de process.env) — validá-la como obrigatória faria o app inteiro
+// depender dela sem motivo, inclusive em build/deploy onde a plataforma controla a porta sozinha.
 const resultado = z
   .object({
     // O Next define NODE_ENV (production no build e na Vercel, inclusive preview). As regras que

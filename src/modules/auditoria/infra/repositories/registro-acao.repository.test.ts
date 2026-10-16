@@ -74,9 +74,8 @@ describe("SupabaseRegistroAcaoRepository (integração)", () => {
     expect(data?.ator).toBe(ADMIN_ID);
   });
 
-  // Só `service_role` tem EXECUTE na RPC: um usuário comum (mesmo o Admin,
-  // autenticado pela sessão normal e não pelo client privilegiado) não consegue
-  // fabricar um evento chamando-a direto.
+  // Só `service_role` tem EXECUTE na RPC: um usuário comum (mesmo o Admin, autenticado pela sessão
+  // normal e não pelo client privilegiado) não consegue fabricar um evento chamando-a direto.
   it("rejeita a chamada da RPC por um usuário autenticado comum (EXECUTE revogado, só service_role chama)", async () => {
     const supabase = await clienteAutenticadoComoFuncionarioSeed();
     const repositorio = new SupabaseRegistroAcaoRepository(supabase);

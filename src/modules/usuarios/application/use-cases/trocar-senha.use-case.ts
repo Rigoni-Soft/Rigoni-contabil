@@ -35,9 +35,8 @@ export class TrocarSenha implements TrocarSenhaPort {
 
     // Decide antes de qualquer escrita, senão precisaTrocarSenha() já viraria false.
     const primeiroAcesso = usuario.precisaTrocarSenha();
-    // O marcador só é gravado DEPOIS de updateUser() ter sucesso — prova que o Auth
-    // já tem a senha nova. Com ele, o estado pendente é só perfil + auditoria e o
-    // retry pula o Auth por completo.
+    // O marcador só é gravado DEPOIS de updateUser() ter sucesso — prova que o Auth já tem a senha
+    // nova. Com ele, o estado pendente é só perfil + auditoria e o retry pula o Auth por completo.
     const authJaAlterado = primeiroAcesso && usuario.authJaAlterado();
 
     if (!authJaAlterado) {

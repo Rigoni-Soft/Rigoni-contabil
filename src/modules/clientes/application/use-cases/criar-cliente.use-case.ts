@@ -34,9 +34,8 @@ export class CriarCliente implements CriarClientePort {
     }
 
     const id = crypto.randomUUID();
-    // Todo caminho enviado ao Storage entra aqui: qualquer falha depois do
-    // primeiro upload remove tudo, em vez de deixar documento jurídico órfão
-    // sem Cliente.
+    // Todo caminho enviado ao Storage entra aqui: qualquer falha depois do primeiro upload remove
+    // tudo, em vez de deixar documento jurídico órfão sem Cliente.
     const enviados: string[] = [];
     const criado = await this.cadastrar(id, input, enviados);
     if (criado.ok) return criado;

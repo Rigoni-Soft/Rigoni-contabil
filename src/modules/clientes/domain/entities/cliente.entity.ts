@@ -18,8 +18,7 @@ export type ClienteProps = {
   empresa: string;
   cnpj: Cnpj;
   regime: Regime;
-  // Opcional: nem todo
-  // Cliente tem o contrato social anexado no momento do cadastro.
+  // Opcional: nem todo Cliente tem o contrato social anexado no momento do cadastro.
   contratoSocialCaminho: string | null;
   // Opcional: destino do envio por e-mail do job de lembrete/DAS.
   email: Email | null;

@@ -5,9 +5,8 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Passo comum dos casos de uso exclusivos de Admin: sessão válida + perfil
-// Admin. Erro técnico ao buscar o perfil propaga o AppError original, nunca
-// vira "sem permissão".
+// Passo comum dos casos de uso exclusivos de Admin: sessão válida + perfil Admin. Erro técnico ao
+// buscar o perfil propaga o AppError original, nunca vira "sem permissão".
 export async function exigirAdmin(
   sessao: SessaoPort,
   usuarios: UsuarioRepository,

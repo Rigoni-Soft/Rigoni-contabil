@@ -11,11 +11,10 @@ import { err, type Result } from "@/shared/kernel/result";
 
 const LIMITE_FEED = 50;
 
-// Timezone de negócio fixo (América/São Paulo, UTC-3 desde o fim do horário de
-// verão em 2019): offset literal é determinístico em browser/servidor/CI sem
-// Intl. O filtro por período calcula os limites do dia no mesmo fuso que
-// feed.presenter.ts usa pra exibir — do contrário um registro perto da
-// meia-noite aparece num dia na tela e é filtrado como se fosse de outro.
+// Timezone de negócio fixo (América/São Paulo, UTC-3 desde o fim do horário de verão em 2019):
+// offset literal é determinístico em browser/servidor/CI sem Intl. O filtro por período calcula os
+// limites do dia no mesmo fuso que feed.presenter.ts usa pra exibir — do contrário um registro
+// perto da meia-noite aparece num dia na tela e é filtrado como se fosse de outro.
 const OFFSET_SAO_PAULO = "-03:00";
 
 function inicioDoDia(data: string): string {

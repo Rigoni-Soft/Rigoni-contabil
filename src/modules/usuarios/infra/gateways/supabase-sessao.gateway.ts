@@ -17,12 +17,11 @@ class AutenticacaoIndisponivelError extends AppError {
 // código (ou nenhum, típico de falha de rede) é tratado como falha técnica.
 const CODIGOS_CREDENCIAL_INVALIDA = new Set(["invalid_credentials"]);
 
-// O Auth rejeita updateUser() com esse código tanto no reenvio legítimo
-// (updateUser() já teve sucesso numa tentativa anterior, só a finalização falhou)
-// quanto quando o usuário manda a própria senha provisória como "nova senha".
-// Este gateway não distingue os dois — quem sabe é TrocarSenha.execute(), que
-// conhece precisaTrocarSenha() do perfil. Por isso o código vira um erro próprio
-// em vez de ok() cego; a decisão fica na camada de aplicação.
+// O Auth rejeita updateUser() com esse código tanto no reenvio legítimo (updateUser() já teve
+// sucesso numa tentativa anterior, só a finalização falhou) quanto quando o usuário manda a própria
+// senha provisória como "nova senha". Este gateway não distingue os dois — quem sabe é
+// TrocarSenha.execute(), que conhece precisaTrocarSenha() do perfil. Por isso o código vira um erro
+// próprio em vez de ok() cego; a decisão fica na camada de aplicação.
 const CODIGO_SENHA_JA_DEFINIDA = "same_password";
 
 export class SenhaJaDefinidaError extends AppError {

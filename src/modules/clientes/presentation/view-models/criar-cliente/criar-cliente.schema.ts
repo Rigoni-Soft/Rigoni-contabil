@@ -3,8 +3,8 @@ import { z } from "zod";
 import { cnpjValido } from "@/shared/kernel/cnpj";
 import { REGIMES } from "@/shared/kernel/regimes";
 
-// PDF ou DOCX — restringe tanto no
-// `accept` do input (dica do navegador) quanto aqui (não confia só no client).
+// PDF ou DOCX — restringe tanto no `accept` do input (dica do navegador) quanto aqui (não confia
+// só no client).
 const TIPOS_DOCUMENTO_ACEITOS = [
   "application/pdf",
   "application/msword",
