@@ -13,14 +13,14 @@ import { ANEXO_MINIATURA_LADO, validarAnexo } from "@/shared/kernel/anexo";
 // sair da tela; as outras regiões só leem ou depositam.
 export function useAnexoPendente(atendimentoId: string, { limparAoDesmontar = false } = {}) {
   const estado = useConversaStore((s) => s.anexosPendentes[atendimentoId] ?? ANEXO_PENDENTE_VAZIO);
-  const trocar = useConversaStore((s) => s.trocarAnexoPendente);
+  const trocarAnexoPendente = useConversaStore((s) => s.trocarAnexoPendente);
   const completarMiniatura = useConversaStore((s) => s.completarMiniatura);
-  const limparDoStore = useConversaStore((s) => s.limparAnexoPendente);
+  const limparAnexoPendente = useConversaStore((s) => s.limparAnexoPendente);
 
   useEffect(() => {
     if (!limparAoDesmontar) return;
-    return () => limparDoStore(atendimentoId);
-  }, [limparAoDesmontar, limparDoStore, atendimentoId]);
+    return () => limparAnexoPendente(atendimentoId);
+  }, [limparAoDesmontar, limparAnexoPendente, atendimentoId]);
 
   return {
     arquivo: estado.arquivo,
@@ -29,8 +29,8 @@ export function useAnexoPendente(atendimentoId: string, { limparAoDesmontar = fa
     erro: estado.erro,
     anexar(arquivo: File) {
       const { tipo, erro } = validarAnexo(arquivo.type, arquivo.size);
-      if (!tipo) return trocar(atendimentoId, { ...ANEXO_PENDENTE_VAZIO, erro });
-      trocar(atendimentoId, {
+      if (!tipo) return trocarAnexoPendente(atendimentoId, { ...ANEXO_PENDENTE_VAZIO, erro });
+      trocarAnexoPendente(atendimentoId, {
         ...ANEXO_PENDENTE_VAZIO,
         arquivo,
         miniaturaUrl: tipo === "imagem" ? URL.createObjectURL(arquivo) : null,
@@ -40,6 +40,6 @@ export function useAnexoPendente(atendimentoId: string, { limparAoDesmontar = fa
         if (miniatura) completarMiniatura(atendimentoId, arquivo, miniatura);
       });
     },
-    limpar: () => limparDoStore(atendimentoId),
+    limpar: () => limparAnexoPendente(atendimentoId),
   };
 }

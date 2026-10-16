@@ -431,6 +431,7 @@ Regras:
 As decisões de acesso estão aqui e nos ADRs 0001, 0002 e 0005. As que a estrutura garante:
 
 - `service_role` só em `main`, nunca no cliente; variáveis `NEXT_PUBLIC_*` só com a chave `anon`.
+- Variável de ambiente se lê por `@/env` (servidor) ou `@/env.client` (cliente), que a validam com Zod; `process.env` fora desses arquivos é erro de lint **[lint]** (specs e testes ficam de fora).
 - `@supabase/*` só em `infra`, `main` e `presentation/auth/`. **[lint]**
 - Webhook: assinatura sempre verificada antes de qualquer efeito, e processamento idempotente.
 - `import "server-only"` em `main/**` e em `*.server.ts`.
