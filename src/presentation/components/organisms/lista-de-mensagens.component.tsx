@@ -1,0 +1,163 @@
+import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
+import { BotaoDeLink } from "@/presentation/components/atoms/botao-de-link.component";
+import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { MensagemBalao } from "@/presentation/components/molecules/mensagem-balao.component";
+import { SeletorDeEmoji } from "@/presentation/components/molecules/seletor-de-emoji.component";
+import { SobreposicaoDeSoltar } from "@/presentation/components/molecules/sobreposicao-de-soltar.component";
+import { tipoDePrevia, type FormatoDeOffice } from "@/shared/kernel/anexo";
+
+type MensagemView = {
+  id: string;
+  lado: "contato" | "ura" | "atendente";
+  autor: string;
+  detalhe: string | null;
+  texto: string;
+  hora: string;
+  reacao?: string | null;
+  reagivel?: boolean;
+  aviso?: string | null;
+  anexo?: {
+    tipo: "imagem" | "audio" | "documento";
+    nome: string;
+    tamanho: string;
+    url: string;
+    urlVisualizacao: string;
+    miniaturaUrl?: string | null;
+  } | null;
+};
+
+// Reação a Mensagens do cliente: estado, refs e envio vêm do Container.
+type ReacaoProps = {
+  ativa: boolean;
+  abertaId: string | null;
+  estilo?: React.CSSProperties;
+  completo: boolean;
+  recentes: string[];
+  painelId: string;
+  raizRef: React.Ref<HTMLDivElement>;
+  botaoRef: React.Ref<HTMLButtonElement>;
+  erro?: string;
+  aoAlternar: (mensagemId: string, botao: DOMRect) => void;
+  aoExpandir: () => void;
+  aoEscolher: (mensagemId: string, emoji: string) => void;
+};
+
+// Arrastar e soltar arquivo sobre a conversa: `arrastando` acende a moldura; `ligacoes` vêm do Container.
+// Sem `ligacoes` a lista não aceita soltar.
+type ArrasteProps = {
+  arrastando: boolean;
+  ligacoes?: Pick<
+    React.DOMAttributes<HTMLElement>,
+    "onDragEnter" | "onDragOver" | "onDragLeave" | "onDrop"
+  >;
+};
+
+// Histórico anterior ao que a conversa mostra: a lista abre nas mais recentes e o restante vem sob
+// demanda (o Container carrega).
+type AnterioresProps = {
+  disponivel: boolean;
+  carregando: boolean;
+  erro?: string;
+  aoCarregar: () => void;
+};
+
+type ListaDeMensagensProps = {
+  mensagens: MensagemView[];
+  anteriores?: AnterioresProps;
+  // Botão de visualizar Word/Excel de um anexo: o Container o monta (lê o arquivo no navegador).
+  previaDoAnexo?: (anexo: {
+    nome: string;
+    urlVisualizacao: string;
+    formato: FormatoDeOffice;
+    painelId: string;
+  }) => React.ReactNode;
+  reacao?: ReacaoProps;
+  arraste?: ArrasteProps;
+};
+
+// Word e Excel ganham o botão de visualizar que o Container fornece; os demais não.
+function previaDoAnexoDe(
+  painelId: string,
+  anexo: NonNullable<MensagemView["anexo"]>,
+  previaDoAnexo: ListaDeMensagensProps["previaDoAnexo"],
+) {
+  const formato = tipoDePrevia(anexo.nome);
+  if (anexo.tipo !== "documento" || (formato !== "docx" && formato !== "xlsx")) return undefined;
+  return previaDoAnexo?.({
+    nome: anexo.nome,
+    urlVisualizacao: anexo.urlVisualizacao,
+    formato,
+    painelId,
+  });
+}
+
+// Em tela larga é a única parte da página que rola. O rolador é col-reverse com a lista dentro em
+// ordem cronológica: o scroll nasce no fim (nas últimas mensagens) sem JavaScript e o DOM segue a
+// ordem de leitura. role="log" anuncia a mensagem nova ao leitor de tela.
+export function ListaDeMensagens({
+  mensagens,
+  anteriores,
+  previaDoAnexo,
+  reacao,
+  arraste,
+}: ListaDeMensagensProps) {
+  return (
+    // O erro de reação fica fora do rolador (col-reverse o jogaria para o topo, fora de vista).
+    <Pilha espaco="campo" className="relative min-h-0 lg:flex-1" {...arraste?.ligacoes}>
+      {arraste?.arrastando && <SobreposicaoDeSoltar />}
+      <Linha
+        role="log"
+        aria-label="Conversa"
+        className="max-h-[60vh] min-h-0 flex-col-reverse overflow-y-auto rounded-xl border border-border bg-muted/50 p-3 lg:max-h-none lg:flex-1"
+      >
+        <Pilha espaco="campo" className="shrink-0">
+          {anteriores?.disponivel && (
+            <BotaoDeLink onClick={anteriores.aoCarregar} disabled={anteriores.carregando}>
+              {anteriores.carregando ? "Carregando…" : "Ver mensagens anteriores"}
+            </BotaoDeLink>
+          )}
+          {anteriores?.erro && <AvisoDeStatus tipo="erro" texto={anteriores.erro} />}
+          <Pilha espaco="campo" como="ol" aria-label="Mensagens">
+            {mensagens.map(({ id, reagivel, anexo, ...mensagem }) => {
+              const aberto = reacao?.abertaId === id;
+              return (
+                <MensagemBalao
+                  key={id}
+                  {...mensagem}
+                  anexo={
+                    anexo && {
+                      ...anexo,
+                      painelId: `anexo-${id}`,
+                      previa: previaDoAnexoDe(`anexo-${id}`, anexo, previaDoAnexo),
+                    }
+                  }
+                  acao={
+                    reacao?.ativa && reagivel ? (
+                      <SeletorDeEmoji
+                        compacto
+                        rotulo={`Reagir à mensagem de ${mensagem.autor}`}
+                        aberto={aberto}
+                        recentes={reacao.recentes}
+                        completo={reacao.completo}
+                        onExpandir={reacao.aoExpandir}
+                        estilo={aberto ? reacao.estilo : undefined}
+                        painelId={reacao.painelId}
+                        raizRef={aberto ? reacao.raizRef : null}
+                        botaoRef={aberto ? reacao.botaoRef : null}
+                        onAlternar={(evento) =>
+                          reacao.aoAlternar(id, evento.currentTarget.getBoundingClientRect())
+                        }
+                        onEscolher={(emoji) => reacao.aoEscolher(id, emoji)}
+                      />
+                    ) : undefined
+                  }
+                />
+              );
+            })}
+          </Pilha>
+        </Pilha>
+      </Linha>
+      {reacao?.erro && <AvisoDeStatus tipo="erro" texto={reacao.erro} />}
+    </Pilha>
+  );
+}

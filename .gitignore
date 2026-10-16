@@ -76,7 +76,7 @@ web_modules/
 
 # Next.js build output
 .next
-out
+/out
 
 # Nuxt.js build / generate output
 .nuxt
@@ -142,8 +142,21 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 
+# Next.js extras
+next-env.d.ts
+.vercel
+
 # AI
 
-.claude/
-Claude.md
 graphify-out
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/e2e/.auth/
+
+# ffmpeg comprimido no build (scripts/comprimir-ffmpeg.mjs)
+/.ffmpeg
+.env*

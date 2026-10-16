@@ -79,6 +79,7 @@ Exemplos de diretórios válidos: `shared`, `pages`, `examples`, `customer-setti
 | `*.actions.ts` | Server Actions |
 | `*.server.ts` | loaders de servidor |
 | `*.realtime.ts` | assinatura Realtime no ViewModel |
+| `*.upload.ts` | upload em partes do navegador direto ao Storage, no ViewModel (ADR 0007) |
 | `*.webhook.ts` | handlers de webhook |
 | `*.test.ts` | testes de integração (inclui os de webhook, feitos com Supertest) |
 | `*.e2e.ts` | testes E2E, em `e2e/` |
@@ -117,7 +118,7 @@ Fora dessas exceções, prefira sempre `kebab-case`.
 
 Premissas:
 
-1. **Sem API Routes.** Não existe `route.ts` em `src/app`, exceto webhooks de terceiros em `src/app/api/webhooks/**` (seção 3.13). Toda comunicação cliente→servidor é Server Action; a carga inicial vem de Server Components. **[lint]**
+1. **Sem API Routes.** Não existe `route.ts` em `src/app`, exceto webhooks de terceiros em `src/app/api/webhooks/**` e jobs agendados em `src/app/api/jobs/**` (seção 3.13). Toda comunicação cliente→servidor é Server Action; a carga inicial vem de Server Components. **[lint]**
 2. **Monólito modular por domínio.** Um deploy, módulos isolados entre si.
 3. **Clean Architecture clássica** dentro de cada módulo: `domain`, `application`, `infra`, `presentation`, mais `shared` e `main` globais.
 4. **Server Components são o padrão absoluto.** Cliente só onde é exigido (seção 4.6).
@@ -129,6 +130,11 @@ Premissas:
 Valem para todo o projeto. Os detalhes de cada um ficam na `constitution.md`; aqui está o que muda na prática da arquitetura.
 
 - **Clean Code:** nomes que revelam intenção, funções pequenas, sem comentário que explique código confuso (reescreva o código).
+- **Referências a ticket, PR e revisão:**
+  - Comentário de código só registra o porquê não óbvio. Nada de `#NN`, PR, devolutiva, revisão, "feedback de teste" ou data de revisão: quem quiser a história usa o git e o issue tracker. Única exceção: `TODO(#NN)`, em que o número é a rastreabilidade da pendência.
+  - Docs vivos (`arquitetura.md`, `testes.md`, `DESIGN.md`, `CONTEXT.md`, `PRODUCT.md`, `docs/deploy/`) escrevem a regra e o porquê, não o histórico de revisão. `#NN` curto de issue é aceito como ponteiro para a spec; `PR #NN`, "devolutiva" e códigos de achado (B1, R85-01) não.
+  - ADRs (`docs/adr/`) e migrations já aplicadas são registro histórico: podem citar a PR e a devolutiva de onde a decisão saiu, e não se reescrevem só por isso.
+  - Títulos de `describe`/`it` podem carregar `#NN`; o grep de limpeza ignora strings.
 - **SOLID:** uma responsabilidade por classe; dependa de abstrações (portas), nunca de implementações; extensão por novas implementações de porta, não por `if` em código existente.
 - **DRY, KISS, YAGNI:** sem abstração antes da segunda repetição real; sem camada vazia. Uma feature de leitura trivial não ganha entidade nem builder só para "cumprir o padrão" (ver read models na seção 3.6).
 - **Object Calisthenics** (rigor em `domain` e `application`; na `presentation` valem as regras 1, 2, 5, 6 e 7):
@@ -156,11 +162,13 @@ Cada módulo é uma fatia de Clean Architecture (hexagonal): o `domain` no centr
 ```
 src/
 ├─ app/                          convenções do Next.js apenas (layout, page, loading, error, globals.css)
-│  └─ api/webhooks/<provedor>/route.ts   única exceção: webhooks de terceiros (seção 3.13)
+│  └─ api/webhooks/<provedor>/route.ts   exceção: webhooks de terceiros (seção 3.13)
+│  └─ api/jobs/<job>/route.ts            exceção: jobs chamados por agendador, ex.: Vercel Cron (seção 3.13)
 ├─ middleware.ts                 (proxy.ts no Next 16) somente refresh de sessão do Supabase
 ├─ shared/                       TypeScript puro, sem framework e sem biblioteca
-│  ├─ kernel/    result.ts · preconditions.ts · id.types.ts (Brand, Id)
-│  ├─ errors/    app.error.ts · domain.error.ts · validation.error.ts · forbidden.error.ts
+│  ├─ kernel/    result.ts · preconditions.ts · id.types.ts (Brand, Id) · setores.ts (SETORES,
+│  │             fonte única do organograma — domain e Views importam daqui, seção 3.4)
+│  ├─ errors/    app.error.ts · domain.error.ts · validation.error.ts · forbidden.error.ts · not-found.error.ts · estado-inconsistente.error.ts · servico-externo.error.ts
 │  └─ dtos/      action-result.dto.ts · error.dto.ts · paginated.dto.ts
 ├─ modules/
 │  └─ <modulo>/
@@ -222,7 +230,7 @@ Cada regra vale para a pasta inteira, incluindo subpastas. "Própria" significa 
 | `main` | `application` e `infra` de qualquer módulo, `shared` | `domain` diretamente, `presentation` |
 | view-model | `shared`, tipos de `application` | `domain`, `infra`, `main` (exceto os arquivos das duas linhas abaixo) |
 | `*.actions.ts`, `*.server.ts`, `*.webhook.ts` | `main` (servidor), `shared`, tipos de `application` | `domain`, `infra`, `main/client` |
-| `*.realtime.ts` | `main/client`, `shared`, tipos de `application` | `domain`, `infra`, `main` de servidor |
+| `*.realtime.ts`, `*.upload.ts` | `main/client`, `shared`, tipos de `application` | `domain`, `infra`, `main` de servidor |
 | `main/client` | `application`, `infra` (incluindo `infra/realtime`), `shared` | `main` de servidor, `server-only` |
 | `presentation/auth/` | `@supabase/*` (cliente do navegador), `shared` | consultas de dados; `main` |
 | Views | `shared`, `presentation/components` (níveis abaixo) | `modules/`, `main`, `next/*` (exceto `next/link` e `next/image`), hooks |
@@ -231,7 +239,7 @@ Cada regra vale para a pasta inteira, incluindo subpastas. "Própria" significa 
 Regras adicionais:
 
 1. **Módulos não se importam.** Só `app/` e `main/` enxergam mais de um módulo (seção 3.11).
-2. **Só `main` importa `infra`.** Só `*.actions.ts`, `*.server.ts` e `*.webhook.ts` importam `main` (servidor); só `*.realtime.ts` importa `main/client`.
+2. **Só `main` importa `infra`.** Só `*.actions.ts`, `*.server.ts` e `*.webhook.ts` importam `main` (servidor); só `*.realtime.ts` e `*.upload.ts` importam `main/client`.
 3. **A entidade de domínio nunca sai da `application`.** Ela cruza `application`↔`infra` pelas portas OUT (ambas conhecem o `domain`), mas nunca chega à `presentation`: o que sai é sempre um Output DTO.
 4. **Importe `import type` para interfaces** e mantenha `tsPreCompilationDeps: true` na configuração do lint, senão importações só de tipo ficam invisíveis.
 5. **`@supabase/*` só em `infra`, `main` e `presentation/auth/`.**
@@ -286,6 +294,7 @@ Regras do Builder:
 - **Porta IN** = interface do caso de uso, com os tipos `Input` e `Output` no mesmo arquivo (`ports/in/criar-membro.provider.ts`).
 - **Porta OUT** = interface de uma dependência (`ports/out/membro.repository.ts`, `sessao.provider.ts`, `relogio.provider.ts`). Contratos de repositório usam `.repository.ts`; as demais portas, `.provider.ts` (seção 0.2).
 - **Caso de uso** implementa uma porta IN e recebe as portas OUT pelo construtor.
+  - Exceção aceita: dentro do mesmo módulo, um caso de uso pode receber a porta IN de outro (ex.: `ReceberMensagem` recebe `AbrirAtendimentoPort`) quando o segundo é uma etapa reaproveitável do primeiro. Entre módulos vale a seção 3.11.
 
 ```ts
 export interface CriarMembroPort { execute(i: CriarMembroInput): Promise<Result<MembroDto>> }
@@ -325,7 +334,7 @@ DTOs são objetos simples (sem classes): a serialização do React Server Compon
 ### 3.8 Erros e `Result`
 
 - `Result<T, E>` (em `shared`) representa falha esperada: validação, não encontrado, conflito, proibido.
-- Hierarquia base em `shared/errors`: `AppError` → `DomainError`, `ValidationError`, `ForbiddenError`.
+- Hierarquia base em `shared/errors`: `AppError` → `DomainError`, `ValidationError`, `ForbiddenError`, `NotFoundError`, `EstadoInconsistenteError`, `ServicoExternoError` (falha esperada de serviço de terceiros, como o Serpro).
 - A Server Action converte `Result`/`AppError` em `ActionResult` serializável; erros nunca atravessam a fronteira como exceção.
 
 ```ts
@@ -338,6 +347,7 @@ export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: ErrorD
 - `infra` só implementa portas OUT. Toda chamada ao `supabase-js` (queries, RPC, Storage, Realtime, Auth) mora aqui.
 - O cliente Supabase entra pelo construtor do repositório (criado no `main`), nunca é importado direto.
 - Toda linha lida é validada por Zod e convertida em entidade pelo mapper (que chama `Builder.restaurar`).
+- **Exceções registradas (#50):** `SupabaseSessaoAtendimentoGateway.obter()` devolve o resultado do parse Zod direto, sem mapper (a sessão é um tipo simples já no formato do domínio, não uma entidade); `SupabaseIdentificacaoContatoGateway.cnpjCadastrado()` lê só a existência de uma linha, sem Row DTO. `application/dtos/sessao-identificacao.dto.ts` exporta `ETAPAS_IDENTIFICACAO` e `invalidosDe()` (valor e função, ao contrário do que um DTO costuma ter) para o use case, o gateway e o Row DTO compartilharem a lista de etapas e a leitura do contador; o módulo não tem outra pasta para isso. Não repetir para entidades.
 - Erros do Postgres/Supabase são traduzidos para `AppError` dentro do adapter.
 - Tipos do banco vêm de `supabase gen types`.
 - **Toda comunicação com o Supabase passa pela `infra`**, com uma única exceção: a autenticação no navegador (abaixo).
@@ -345,6 +355,7 @@ export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: ErrorD
 - **Realtime também passa pela `infra`.** Um caso de uso `ObservarXxx` (porta IN, devolve uma função de cancelamento) usa uma porta OUT `XxxMudancasPort`, implementada em `infra/realtime/` sobre o canal do Supabase. A composição roda em `main/client/`, e o ViewModel a consome em `<tela>.realtime.ts`, que alimenta o React Query com `setQueryData`. `infra/realtime/` e `main/client/` não importam nada `server-only`; a assinatura roda com a sessão do usuário, então a RLS continua valendo. O que sai da porta são Output DTOs, nunca linhas cruas do banco.
 - **Exceção: autenticação.** O cliente Supabase do navegador (`createBrowserClient`) existe só em `presentation/auth/`, para o que apenas o navegador consegue fazer (fluxos OAuth, magic link, escuta de mudança de sessão). Login e logout por e-mail e senha, e todo o resto, acontecem por Server Action + `SessaoPort`. Nenhuma consulta de dados passa por esse cliente.
 - Consultas de busca são um módulo à parte (`busca.md`).
+- **Redefinir uma função `SECURITY DEFINER` usada por RLS de vários módulos** (ex.: `meu_setor()`, `meu_papel()`) exige `DROP FUNCTION` antes de recriar com assinatura diferente — e o Postgres recusa o drop se qualquer policy já criada até aquele ponto da sequência de migrations ainda a referencia. Timestampe a migration para rodar **antes** de qualquer migration futura que passe a depender dela, em vez de a migration tentar prever e recriar RLS de módulos que ainda não existem.
 
 ### 3.10 `main` (injeção de dependências)
 
@@ -359,7 +370,7 @@ export const makeCriarMembro = (): CriarMembroPort =>
 - **Por requisição, nunca singleton:** o cliente Supabase depende dos cookies do usuário (sessão e RLS). Um singleton misturaria sessões.
 - `import "server-only"` obrigatório em `main/**`.
 - É o único lugar com `new` de adaptador. Chaves privilegiadas (`service_role`) só existem aqui, em fábricas de uso explícito (jobs), nunca no caminho de uma requisição de usuário.
-- **`main/client/`** reúne as factories que rodam no navegador (hoje, só Realtime). Não importa `server-only` nem o `main` de servidor, e só `*.realtime.ts` a importa.
+- **`main/client/`** reúne as factories que rodam no navegador (Realtime e upload em partes, ADR 0007). Não importa `server-only` nem o `main` de servidor, e só `*.realtime.ts` e `*.upload.ts` a importam.
 
 ### 3.11 Comunicação entre módulos
 
@@ -407,24 +418,29 @@ Decisão tomada a partir da arquitetura e da documentação do Next.js e do Supa
 
 Regras:
 
-1. `route.ts` só é permitido em `src/app/api/webhooks/<provedor>/route.ts`. Qualquer outro `route.ts` falha o CI.
-2. Esse `route.ts` só reexporta o `POST` de `modules/<d>/presentation/webhooks/<provedor>.webhook.ts`. **[lint]**
+1. `route.ts` só é permitido em `src/app/api/webhooks/<provedor>/route.ts` e `src/app/api/jobs/<job>/route.ts`. Qualquer outro `route.ts` falha o CI.
+2. Esse `route.ts` só reexporta o `POST` (o de job também o `GET`, que é o método do Vercel Cron) de `modules/<d>/presentation/webhooks/<nome>.webhook.ts`. **[lint]**
+   - **Job agendado:** o handler confere o segredo do agendador (`Authorization: Bearer`) por uma porta OUT (`AutenticacaoJobPort`), chama a porta IN pelo `main` e devolve o resumo; sem o segredo configurado, recusa tudo. O cron fica em `vercel.json`.
 3. O handler `*.webhook.ts` lê o corpo cru, extrai a assinatura, chama uma porta IN pelo `main` e converte o resultado em status HTTP. Sem regra de negócio.
-4. **O que puder passar pela `infra` passa.** A verificação de assinatura e a idempotência (guardar o id do evento já processado) acontecem dentro do caso de uso, por portas OUT (`AssinaturaWebhookPort`, `EventoProcessadoRepository`) implementadas na `infra`.
+4. **O que puder passar pela `infra` passa.** A verificação de assinatura e a idempotência (guardar o id do evento já processado) acontecem dentro do caso de uso, por portas OUT (`AutenticacaoWebhookPort`, `EventoProcessadoRepository`) implementadas na `infra`. Quando a assinatura cobre o corpo cru no formato do provedor e o caso de uso de recepção tem contrato neutro (sem jargão do provedor), a verificação fica num caso de uso próprio (`AutenticarWebhook`, porta IN com um método por prova: assinatura e token de handshake), chamado pelo handler antes de qualquer efeito; o handler nunca obtém a porta OUT direto do `main`.
 5. Resposta: 2xx quando processou ou já tinha visto o evento; 4xx para assinatura inválida; 5xx para falha transitória (o provedor tenta de novo).
-6. O middleware/proxy de sessão exclui `/api/webhooks/**`.
+6. O middleware/proxy de sessão exclui `/api/webhooks/**`. Em `/api/jobs/**` ele só renova sessão (não redireciona), o que é inofensivo.
 
 ### 3.14 Regras de segurança impostas pela arquitetura
 
-Detalhes em `seguranca.md`. Aqui ficam as que a estrutura garante:
+As decisões de acesso estão aqui e nos ADRs 0001, 0002 e 0005. As que a estrutura garante:
 
 - `service_role` só em `main`, nunca no cliente; variáveis `NEXT_PUBLIC_*` só com a chave `anon`.
+- Variável de ambiente se lê por `@/env` (servidor) ou `@/env.client` (cliente), que a validam com Zod; `process.env` fora desses arquivos é erro de lint **[lint]** (specs e testes ficam de fora).
 - `@supabase/*` só em `infra`, `main` e `presentation/auth/`. **[lint]**
 - Webhook: assinatura sempre verificada antes de qualquer efeito, e processamento idempotente.
 - `import "server-only"` em `main/**` e em `*.server.ts`.
 - Nenhuma Server Action sem validação de input e sem checagem de sessão.
 - Nenhum dado por usuário, papel ou filial em cache compartilhado (seção 6.3).
-- RLS ativa em toda tabela exposta.
+- RLS ativa em toda tabela exposta, **e o `anon` sem privilégio nenhum no schema `public`**: o sistema não tem acesso anônimo (o login usa a API de Auth, que não toca nas tabelas). As policies são `to authenticated`; `authenticated` não tem `TRUNCATE`, `REFERENCES` nem `TRIGGER` (o RLS não cobre `TRUNCATE`); RPCs e helpers não são executáveis por `anon`/`PUBLIC`. Objetos novos herdam isso por `alter default privileges`. A suíte `privilegios-anon.repository.test.ts` falha se alguma tabela ou RPC voltar a responder ao `anon`.
+- **View de leitura exposta a `authenticated`**: `grant select` não remove os INSERT/UPDATE/DELETE que o Supabase concede por default privileges, e uma view simples é atualizável com os privilégios do dono. Sempre `revoke all ... from public, anon, authenticated` antes do `grant select`, e teste negativo pela Data API.
+- **Toda escrita autorizada numa tabela de negócio auditada gera o evento no próprio banco**, na mesma transação (gatilho `AFTER`), seja pela RPC ou por DML direto da Data API; uma transação grava um só evento por agregado (variável local `app.cliente_auditado`). Regras de domínio que a RPC aplica (mês corrente, Regime) também valem em gatilho `BEFORE`, senão a Data API as contorna.
+- Tabela de log/trilha imutável (ex.: auditoria): sem policy de INSERT liberada ao cliente, mesmo restrita ao próprio `auth.uid()` — a única escrita é por função `SECURITY DEFINER` que decide ator e timestamp no próprio banco, nunca a partir do que o chamador envia.
 
 ---
 
@@ -511,9 +527,14 @@ src/
 | **pages/** | `.../pages/` | Template preenchido por slots com conteúdo. Sempre Server. |
 
 - Cada nível só importa níveis abaixo. **[lint]**
+- **Só `atoms/` e `ui/` têm elemento HTML cru** (`<div>`, `<p>`, `<ul>`, `<button>`…). Molécula, organismo, template e page compõem o nível abaixo: o contêiner de layout é o átomo `Caixa`, o texto é `Texto`, a lista é `Caixa como="ul"`. Container (`*.container.tsx`) e `page.tsx` do Next seguem a mesma regra. Exceção rara e justificada: `eslint-disable` com o motivo. **[lint]**
+- Molécula é composta por 2 ou mais átomos distintos; organismo organiza átomos e moléculas; template organiza slots; page renderiza o template.
 - Todas as Views são globais (`presentation/components/`). Não existe View dentro de módulo.
 - Aliases do `components.json` (Anexo C) apontam o shadcn para `presentation/`.
 - Edição de arquivos do `ui/` é permitida para adicionar variantes (cva) ou ajustar tokens; toda edição é deliberada e registrada no PR, para não ser perdida em um `shadcn add` posterior.
+- **Exceções registradas:**
+  1. `ui/password-input.tsx` e `ui/theme-toggle.tsx` não vêm do shadcn: são átomos de cliente cuja única interação é estado visual local (mostrar senha, tema), sem dado nem módulo. Moram em `ui/` porque `'use client'` só é permitido ali, em Containers e providers; o `PasswordInput` envolve o `Input` por isso. Não crie outros: componente com estado que não seja só isso é Container (seção 4.6).
+  2. As Views de formulário (organismos `*-form`) recebem `register`, `errors` e `control` do React Hook Form do ViewModel e usam `Controller` para campos controlados. Elas continuam sem hook e sem conhecer módulo; o acoplamento é com a biblioteca de formulário, não com o domínio. Para trocar a biblioteca, o contrato seria o ViewModel entregar `campo(nome)` já resolvido.
 
 ### 4.5 `layout.tsx` e `page.tsx` × Atomic Design
 
@@ -664,7 +685,7 @@ O design system vive em `presentation/components` e em `app/globals.css` (tokens
 - Toda cor vem de **tokens semânticos** definidos em CSS variables (`--primary`, `--success`, `--warning`, `--destructive`, `--muted`…), no formato exigido pelo shadcn. Cor crua do Tailwind (`bg-blue-500`) não aparece em componente.
 - A paleta é escolhida pela **teoria da psicologia das cores**, de acordo com o sentimento que o produto deve transmitir, registrado na descrição do produto.
 - Paleta em **tons pastel**.
-- Dois temas obrigatórios, **dark e light**, ambos adaptados aos tokens do shadcn. **Dark é o padrão.**
+- Dois temas obrigatórios, **dark e light**, ambos adaptados aos tokens do shadcn. **Light é o padrão** (decisão revisada em 2026-09-30, `DESIGN.md`).
 - Novas intenções de cor (sucesso, alerta, informação) entram como tokens; se precisarem de variante em um componente, adicione uma variante ao `cva` do arquivo do `ui/`.
 
 ### 5.2 Toggle de tema
@@ -779,6 +800,7 @@ Valores iniciais, a calibrar por medição:
 
 - Toda mutation invalida por **prefixo** de chave, não a árvore inteira.
 - A carga inicial vem como `initialData` do loader; use `staleTime` ≥ 30 s para não refazer a busca ao montar.
+- **Exceção:** query com `refetchInterval` (polling, ex.: a conversa do Atendimento, 5 s, e o dock, 15 s) usa `staleTime` igual ao intervalo: o `initialData` só vale até o primeiro ciclo, e o polling é o que mantém o dado atual.
 
 ### 6.8 Anti-duplicação
 
@@ -826,7 +848,7 @@ Todas as regras de teste (TDD, pirâmide, o que testar em cada camada, cobertura
 **Decisões tomadas**
 
 1. **Supabase só pela `infra`**, com uma exceção: **autenticação** no navegador, restrita a `presentation/auth/` (seção 3.9). **Realtime passa pela `infra`** (porta OUT + `infra/realtime/` + `main/client/`).
-2. **Webhooks** são a única exceção à regra "sem Route Handlers", em `src/app/api/webhooks/**`, com o handler fino e o processamento por portas da `infra` (seção 3.13).
+2. **Webhooks** são a única exceção à regra "sem Route Handlers", em `src/app/api/webhooks/**` (e os jobs agendados, em `src/app/api/jobs/**`), com o handler fino e o processamento por portas da `infra` (seção 3.13).
 3. **Views podem importar `next/link` e `next/image`.** O resto de `next/*` continua proibido (seção 4.11).
 4. **Entidades expõem getters somente leitura**, sem setters (seções 2 e 3.5).
 5. **Leituras reativas por Server Action + React Query**, com carga inicial sempre no servidor, uma action por interação e consultas relacionadas agrupadas em um caso de leitura (seções 3.6 e 4.9). Filtro por URL descartado para manter um só mecanismo.
@@ -834,6 +856,10 @@ Todas as regras de teste (TDD, pirâmide, o que testar em cada camada, cobertura
 7. **Versão do Next.js:** major 16 fixado (`next@^16`); a documentação consultada é da 16.3.5.
 8. **Nomenclatura:** regras globais de nomes incorporadas (seção 0.2), com verificação automática (Anexo E).
 9. **Testes:** documento separado, `testes.md`, como fonte única das regras de teste. Este documento só aponta para ele (seções 0.2 e 7, Anexo D).
+10. **Tela reativa com várias regiões:** um Container e um hook por região, todos sobre a **mesma chave** do React Query (uma consulta só, mesmo com vários Containers). A `page` e o `template` continuam Server e só montam os slots; os hooks ficam nos Containers (seções 4.5 e 4.6). Estado que cruza regiões (ex.: "este Atendimento acabou de ser transferido") vem do **cache de mutações** do React Query (`useMutationState`), sem store paralela (seção 4.7). Exemplo: o Painel do Funcionário (`modules/atendimento/presentation/view-models/conversa/`).
+11. **Atomic Design de verdade:** átomo/molécula é o componente pequeno e reaproveitável; organismo é uma parte concisa da tela montada com moléculas; template estrutura a tela com slots; page é o template preenchido (seção 4.4). Um componente com mais de uma responsabilidade (balão, campo, painel, formulário) deve ser quebrado. Os organismos antigos que são telas inteiras ficam como dívida a quebrar quando forem tocados.
+12. **Painel de Atendimento lê e escreve com `service_role`**, com a autorização no caso de uso (dono, Líder do Setor ou Admin): `atendimentos`, `mensagens` e `transferencias` têm RLS ligada e nenhuma policy. Ver ADR 0005.
+13. **Aviso sonoro da interface** gerado pelo próprio navegador (Web Audio API, `presentation/lib/notificacao-sonora.ts`), sem arquivo de áudio, liberado pelo primeiro gesto do usuário (política de autoplay) e sempre acompanhado de sinal visual e de texto para leitor de tela; nunca é o único aviso.
 
 **Pendentes de decisão**
 
@@ -848,7 +874,7 @@ Nenhum.
 - Dado compartilhado em `'use cache'` restrito a conteúdo público; exceções por registro de decisão.
 - Nenhuma cor crua do Tailwind nas Views; só tokens semânticos.
 - Adaptações da regra de nomenclatura ao projeto (seção 0.2): `*.provider.ts` para as portas (contratos de repositório ficam em `.repository.ts`), `*.component.tsx` para atoms, molecules, organisms e templates (o nível vem da pasta), `*.hook.ts` no hook do ViewModel, `*.spec.ts` (unitário), `*.test.ts` (integração) e `*.e2e.ts` (E2E) nos testes, `preconditions.ts` no lugar de `guard.ts`, `supabase-server.factory.ts`, e a lista de sufixos adicionais.
-- Nomes novos introduzidos pelas últimas revisões: `*.realtime.ts`, `*.webhook.ts`, `infra/realtime/`, `main/client/`, `presentation/auth/`, `AssinaturaWebhookPort`, `EventoProcessadoRepository`.
+- Nomes novos introduzidos pelas últimas revisões: `*.realtime.ts`, `*.webhook.ts`, `infra/realtime/`, `main/client/`, `presentation/auth/`, `AutenticacaoWebhookPort`, `AutenticarWebhook`, `EventoProcessadoRepository`.
 
 ---
 
@@ -876,10 +902,12 @@ module.exports = {
 
     { name: "so-main-importa-infra", severity: "error",
       from: { pathNot: ["^src/main/", "/infra/"] }, to: { path: "^src/modules/[^/]+/infra/" } },
+    { name: "main-sem-domain", severity: "error",
+      from: { path: "^src/main/" }, to: { path: "^src/modules/[^/]+/domain/" } },
     { name: "so-actions-importam-main", severity: "error",
       from: { path: "^src/(modules|presentation|app)/", pathNot: "\\.(actions|server|webhook)\\.tsx?$" }, to: { path: "^src/main/(?!client/)" } },
     { name: "so-realtime-importa-main-client", severity: "error",
-      from: { pathNot: ["\\.realtime\\.tsx?$", "^src/main/"] }, to: { path: "^src/main/client/" } },
+      from: { pathNot: ["\\.(realtime|upload)\\.tsx?$", "^src/main/"] }, to: { path: "^src/main/client/" } },
     { name: "main-client-sem-servidor", severity: "error",
       from: { path: "^src/main/client/" }, to: { path: ["^src/main/(?!client/)", "node_modules/server-only/"] } },
     { name: "supabase-so-em-infra-main-e-auth", severity: "error",
@@ -920,10 +948,10 @@ module.exports = {
 
 Verificação feita: em uma árvore de teste com 55 módulos, 22 arquivos com violações plantadas geraram 30 ocorrências, todas detectadas, sem falso positivo em arquivo válido (inclusive `next/link`, `next/image`, cliente Supabase em `infra/` e em `presentation/auth/`, `*.realtime.ts` usando `main/client` e a rota de webhook reexportando o handler). As regras `ad-molecule`, `ad-organism` e `infra-so-dentro-do-modulo` não foram exercitadas nesse teste.
 
-**Falha de CI adicional** (premissa 1): nenhum `route.ts` fora de `src/app/api/webhooks/`. O comando deve imprimir **nada**; qualquer linha é violação.
+**Falha de CI adicional** (premissa 1): nenhum `route.ts` fora de `src/app/api/webhooks/` e `src/app/api/jobs/`. O comando deve imprimir **nada**; qualquer linha é violação.
 
 ```bash
-find src/app -name "route.ts*" -not -path "src/app/api/webhooks/*"
+find src/app -name "route.ts*" -not -path "src/app/api/webhooks/*" -not -path "src/app/api/jobs/*"
 ```
 
 ## Anexo B — Diretivas e hooks (`eslint.config.mjs`) **[testado]**
@@ -1040,7 +1068,7 @@ const ROLES = [
   [/\/infra\/repositories\//, ["repository"]],
   [/\/infra\/(gateways|realtime)\//, ["gateway"]],
   [/\/presentation\/webhooks\//, ["webhook"]],
-  [/\/presentation\/view-models\//, ["actions", "server", "queries", "realtime", "store", "schema", "presenter", "hook", "container"]],
+  [/\/presentation\/view-models\//, ["actions", "server", "queries", "realtime", "upload", "store", "schema", "presenter", "hook", "container"]],
   [/\/presentation\/stores\//, ["store"]],
   [/\/presentation\/providers\//, ["provider", "providers"]],
   [/\/presentation\/components\/(atoms|molecules|organisms|templates)\//, ["component"]],

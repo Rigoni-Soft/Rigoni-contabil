@@ -1,0 +1,7 @@
+# service_role síncrona na criação de conta pelo Admin/Líder
+
+`arquitetura.md` (seção 3.10) diz que chaves privilegiadas (`service_role`) só devem existir em `main`, "em fábricas de uso explícito (jobs), nunca no caminho de uma requisição de usuário". O ticket #30 (Admin cadastra Líder/Funcionário) e o #32 (Líder cadastra Funcionário do próprio setor) exigem senha provisória gerada pelo sistema na hora do cadastro — isso só é possível via Admin API do Supabase Auth (`auth.admin.createUser`), que exige `service_role`, chamada em resposta direta ao clique do Admin/Líder no formulário.
+
+**Decisão:** permitir essa exceção. `service_role` fica confinada a uma factory dedicada em `main` (nunca no cliente, nunca fora de `main`), usada só por este fluxo de criação de conta, sempre atrás de uma checagem de RBAC (só Admin/Líder autorizado chega até ali). Alternativa considerada e descartada: criar a conta de forma assíncrona (Server Action só enfileira, um job separado processa) — descartada porque adiciona atraso e complexidade sem necessidade real: o Admin precisa ver a senha provisória imediatamente após o cadastro, e não há motivo técnico (throughput, rate limit) que justifique o job aqui.
+
+**Adendo (#40, 2026-10-05):** o webhook do WhatsApp também usa `createSupabaseAdmin()`, via `SupabaseIdentificacaoContatoGateway`, que só chama a função `identificar_contato_por_telefone` (`EXECUTE` só pra `service_role`). Quem escreve pelo WhatsApp não tem sessão; a URA é ator de sistema (CONTEXT.md).

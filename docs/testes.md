@@ -78,6 +78,8 @@ O unitário é o nível priorizado: toda classe, função e método com lógica 
 - **`infra`:** com frequência não é testável unitariamente, porque existe para encapsular a dependência externa. Não se força um teste unitário mockando o próprio Supabase; o teste de integração é o substituto legítimo, não um extra.
 - **Supertest** é uma ferramenta, não um nível: o teste de webhook que o usa é um teste de integração como os demais e usa o sufixo `*.test.ts`. Só entra onde há HTTP real (o handler de webhook).
 - **Ambiente:** Supabase local (seção 5); o próprio teste monta o estado inicial de que precisa.
+- **Execução serial:** as suítes de integração dividem o mesmo banco e as mesmas regras globais por Setor (Balanceamento, Fila), então `yarn test:int` roda uma de cada vez (`--runInBand`), como o E2E. Em paralelo, a Fila de um Setor numa suíte muda a atribuição de outra.
+- **Dados de teste:** nunca um `DELETE` amplo (nem em `globalSetup`). Cada suíte que usa CNPJ fixo declara a lista e a limpa antes e depois com `removerClientesDeTeste` (`test-support/`), que apaga só esses CNPJs e os eventos de auditoria deles, e só no Supabase local; os CNPJs listados nas suítes são reservados para teste. Clientes e usuários de outra origem (seed, teste manual) ficam intactos, e a suíte roda repetidas vezes sem `db reset`.
 
 ### 4.3 E2E (`*.e2e.ts`, Playwright CLI)
 
@@ -180,3 +182,12 @@ export default defineConfig({
 ```
 
 `test:e2e:diff` precisa do histórico do branch base disponível no CI (clone completo, não raso).
+
+`test:int` persiste registros reais no Supabase local (sem limpeza — não é o
+papel do teste de integração fazer isso). Rodar `test:e2e` logo em seguida
+sobre o mesmo banco arrisca colisão de estado quando o E2E faz asserção por
+texto exato que também aparece no seed (ex.: `acao: "usuario.criar"`
+inserido por um teste de integração de auditoria colidindo com o mesmo texto
+no seed, fazendo `getByText` bater 2 elementos). Rodar `supabase db reset`
+entre as duas suítes (local e no CI, ver `.github/workflows/ci.yml`) evita
+isso reaplicando migrations + seed do zero antes do E2E.
