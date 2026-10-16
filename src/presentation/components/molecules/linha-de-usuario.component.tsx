@@ -13,12 +13,18 @@ type LinhaDeUsuarioProps = {
 
 export function LinhaDeUsuario({ nome, resumo, bloqueioPendente, acoes }: LinhaDeUsuarioProps) {
   return (
-    <Linha como="li" alinhar="centro" justificar="entre" espaco={4} className="px-4 py-3">
-      <Caixa className="min-w-0">
-        <Texto variante="destaque" className="truncate">
+    <Linha
+      como="li"
+      alinhar="centro"
+      justificar="entre"
+      espaco={4}
+      className="flex-wrap px-4 py-3 sm:flex-nowrap"
+    >
+      <Caixa className="min-w-0 flex-1 basis-56">
+        <Texto variante="destaque" className="[overflow-wrap:anywhere] sm:truncate">
           {nome}
         </Texto>
-        <Texto variante="apoio" className="truncate">
+        <Texto variante="apoio" className="[overflow-wrap:anywhere] sm:truncate">
           {resumo}
         </Texto>
         {bloqueioPendente && (
