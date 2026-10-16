@@ -8,7 +8,7 @@ async function login(page: import("@playwright/test").Page, email: string, senha
 }
 
 test.describe("Cadastro de Líder/Funcionário (Admin only)", () => {
-  test("Admin cadastra um Funcionário e vê a senha provisória", async ({ page }) => {
+  test("Admin cadastra um Funcionário e vê a senha provisória @smoke", async ({ page }) => {
     await login(page, "admin@rigonicontabil.local", "admin123");
     await expect(page).toHaveURL("/");
     await page.goto("/admin/usuarios/novo");

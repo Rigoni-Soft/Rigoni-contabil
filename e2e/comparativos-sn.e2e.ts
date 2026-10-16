@@ -4,7 +4,7 @@ import { criarClienteComoAdmin } from "./support/criar-cliente";
 
 // Cliente novo nasce com DAS "pendente", então a contagem do DAS sobe sem depender de edição.
 test.describe("Comparativos do dashboard (#37)", () => {
-  test("o dashboard do SN mostra os 3 gráficos comparativos", async ({ page }) => {
+  test("o dashboard do SN mostra os 3 gráficos comparativos @smoke", async ({ page }) => {
     await criarClienteComoAdmin(page, "Comparativos E2E Ltda");
 
     await page.goto("/");

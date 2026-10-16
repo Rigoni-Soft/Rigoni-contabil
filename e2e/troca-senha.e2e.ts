@@ -30,7 +30,7 @@ async function cadastrarFuncionario(page: Page): Promise<{ email: string; senha:
 }
 
 test.describe("Troca obrigatória de senha no primeiro login", () => {
-  test("conta nova é redirecionada pra /trocar-senha e fica bloqueada até trocar", async ({
+  test("conta nova é redirecionada pra /trocar-senha e fica bloqueada até trocar @smoke", async ({
     page,
   }) => {
     const { email, senha } = await cadastrarFuncionario(page);

@@ -18,7 +18,7 @@ async function entrarEm(page: Page, email: string, senha: string) {
 }
 
 test.describe("Responsável por Cliente (#65)", () => {
-  test("Líder atribui o Responsável pela busca; só o Funcionário responsável enxerga o Cliente", async ({
+  test("Líder atribui o Responsável pela busca; só o Funcionário responsável enxerga o Cliente @smoke", async ({
     page,
   }) => {
     const empresa = empresaUnica("Responsavel E2E Ltda");
