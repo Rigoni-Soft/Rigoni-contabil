@@ -31,7 +31,8 @@ module.exports = {
           "^src/shared/",
           "^src/modules/$1/(domain|application|infra)/",
           "node_modules/",
-          "^(node:)?crypto$",
+          // https: só o adapter do Serpro, que apresenta o e-CNPJ (mTLS), coisa que o fetch não faz.
+          "^(node:)?(crypto|https)$",
         ],
       },
     },

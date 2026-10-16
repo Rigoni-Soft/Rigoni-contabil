@@ -1,5 +1,5 @@
+import type { CndDto } from "@/modules/clientes/application/ports/out/certidao-cnd.provider";
 import type {
-  CndDto,
   GuiaDasDto,
   GuiaParcelamentoDto,
 } from "@/modules/clientes/application/ports/out/obrigacoes-fiscais.provider";
@@ -13,5 +13,5 @@ export type BuscarGuiaOutput = {
 };
 
 export interface BuscarGuiaPort {
-  execute(cnpj: string): Promise<Result<BuscarGuiaOutput, AppError>>;
+  execute(cnpj: string, regime: string): Promise<Result<BuscarGuiaOutput, AppError>>;
 }

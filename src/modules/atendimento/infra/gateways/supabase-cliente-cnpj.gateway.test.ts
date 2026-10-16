@@ -32,12 +32,15 @@ afterAll(async () => {
 });
 
 describe("SupabaseClienteCnpjGateway", () => {
-  it("devolve o CNPJ do cadastro do Cliente", async () => {
-    expect(await gateway.cnpjDoCliente(clienteId)).toEqual({ ok: true, value: cnpj });
+  it("devolve o CNPJ e o Regime do cadastro do Cliente", async () => {
+    expect(await gateway.cadastroFiscalDoCliente(clienteId)).toEqual({
+      ok: true,
+      value: { cnpj, regime: "simples_nacional" },
+    });
   });
 
   it("Cliente inexistente é NotFoundError", async () => {
-    const r = await gateway.cnpjDoCliente(crypto.randomUUID());
+    const r = await gateway.cadastroFiscalDoCliente(crypto.randomUUID());
     expect(r).toEqual({ ok: false, error: expect.any(NotFoundError) });
   });
 
@@ -49,7 +52,7 @@ describe("SupabaseClienteCnpjGateway", () => {
         }),
       }),
     } as unknown as SupabaseClient;
-    const r = await new SupabaseClienteCnpjGateway(fake).cnpjDoCliente(clienteId);
+    const r = await new SupabaseClienteCnpjGateway(fake).cadastroFiscalDoCliente(clienteId);
     expect(r).toEqual({ ok: false, error: expect.any(ServicoExternoError) });
   });
 });

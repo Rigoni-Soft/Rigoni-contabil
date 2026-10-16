@@ -13,36 +13,14 @@ import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Formato de `POST /{phone-number-id}/messages` da WhatsApp Cloud API (Meta).
-type TemplateComponents = (
-  | {
-      type: "header";
-      parameters: { type: "document"; document: { link: string; filename: string } }[];
-    }
-  | { type: "body"; parameters: { type: "text"; text: string }[] }
-)[];
-type ParteCorpo = { to: string } & (
-  | { type: "text"; text: { body: string } }
-  | {
-      type: "document";
-      document: ({ link: string } | { id: string }) & { filename: string; caption?: string };
-    }
-  | { type: "image"; image: { link: string; caption?: string } }
-  | { type: "audio"; audio: { link: string } }
-  | {
-      type: "template";
-      template: {
-        name: string;
-        language: { code: string };
-        components: TemplateComponents;
-      };
-    }
-  | { type: "reaction"; reaction: { message_id: string; emoji: string } }
-);
-type CorpoEnvioCloudApi = {
-  messaging_product: "whatsapp";
-  recipient_type: "individual";
-} & ParteCorpo;
+import {
+  envelope,
+  parteAnexo,
+  parteReacao,
+  parteTemplate,
+  type CorpoEnvioCloudApi,
+  type ParteCorpo,
+} from "./corpo-cloud-api.gateway";
 
 type RespostaCloudApi =
   | {
@@ -136,21 +114,7 @@ export class EnvioMensagemFalsoGateway implements EnvioMensagemPort {
   }
 
   async enviarTemplate(template: TemplateEnviado): Promise<Result<void, AppError>> {
-    const { documento } = template;
-    const components: TemplateComponents = [];
-    if (documento) {
-      const document = { link: documento.url, filename: documento.nomeArquivo };
-      components.push({ type: "header", parameters: [{ type: "document", document }] });
-    }
-    components.push({
-      type: "body",
-      parameters: template.variaveis.map((text) => ({ type: "text", text })),
-    });
-    const enviado = this.despachar({
-      to: template.telefone,
-      type: "template",
-      template: { name: template.nome, language: { code: template.idioma }, components },
-    });
+    const enviado = this.despachar(parteTemplate(template));
     if (!enviado.ok) return enviado;
     this.templatesEnviados.push(template);
     console.info(`[mensageria falsa] para ${template.telefone}: template ${template.nome}`);
@@ -158,20 +122,8 @@ export class EnvioMensagemFalsoGateway implements EnvioMensagemPort {
   }
 
   async enviarAnexo(anexo: AnexoEnviado): Promise<Result<void, AppError>> {
-    const { telefone, url, nomeArquivo, legenda } = anexo;
-    // Áudio não tem legenda na Cloud API; imagem e documento têm `caption`.
-    const caption = legenda ? { caption: legenda } : {};
-    const enviado = this.despachar(
-      anexo.tipo === "imagem"
-        ? { to: telefone, type: "image", image: { link: url, ...caption } }
-        : anexo.tipo === "audio"
-          ? { to: telefone, type: "audio", audio: { link: url } }
-          : {
-              to: telefone,
-              type: "document",
-              document: { link: url, filename: nomeArquivo, ...caption },
-            },
-    );
+    const { telefone, nomeArquivo } = anexo;
+    const enviado = this.despachar(parteAnexo(anexo));
     if (!enviado.ok) return enviado;
     this.anexosEnviados.push(anexo);
     console.info(`[mensageria falsa] para ${telefone}: ${anexo.tipo} ${nomeArquivo}`);
@@ -179,11 +131,7 @@ export class EnvioMensagemFalsoGateway implements EnvioMensagemPort {
   }
 
   async reagir(reacao: ReacaoEnviada): Promise<Result<void, AppError>> {
-    const enviado = this.despachar({
-      to: reacao.telefone,
-      type: "reaction",
-      reaction: { message_id: reacao.idExterno, emoji: reacao.emoji },
-    });
+    const enviado = this.despachar(parteReacao(reacao));
     if (!enviado.ok) return enviado;
     this.reacoesEnviadas.push(reacao);
     console.info(
@@ -193,11 +141,7 @@ export class EnvioMensagemFalsoGateway implements EnvioMensagemPort {
   }
 
   private despachar(parte: ParteCorpo): Result<void, AppError> {
-    const corpo: CorpoEnvioCloudApi = {
-      messaging_product: "whatsapp",
-      recipient_type: "individual",
-      ...parte,
-    };
+    const corpo = envelope(parte);
     this.requisicoes.push(corpo);
 
     const resposta = this.responder(corpo);

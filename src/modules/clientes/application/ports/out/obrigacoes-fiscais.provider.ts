@@ -15,19 +15,23 @@ export type GuiaDasDto = DocumentoPdfDto & {
 
 export type GuiaParcelamentoDto = DocumentoPdfDto & {
   parcela: string; // AAAAMM da parcela emitida
-  valorCentavos: number;
-  vencimento: string; // AAAA-MM-DD
+  // Opcionais: nem todo provedor informa fora do PDF.
+  valorCentavos?: number;
+  vencimento?: string; // AAAA-MM-DD
 };
-
-export type CndDto = DocumentoPdfDto & { validade: string }; // AAAA-MM-DD
 
 // O Cliente autorizou o escritório a consultar os dados dele? O sistema só
 // reflete esse estado, nunca o concede.
 export type AutorizacaoDto = { vigente: true; dataExpiracao: string } | { vigente: false }; // AAAA-MM-DD
 
+// Regimes com parcelamento ordinário (PARC): cada um tem o seu no provedor.
+export type RegimeParcelamento = "simples_nacional" | "mei";
+
 export interface ObrigacoesFiscaisPort {
   buscarDas(cnpj: string): Promise<Result<GuiaDasDto, AppError>>;
-  buscarGuiaParcelamento(cnpj: string): Promise<Result<GuiaParcelamentoDto, AppError>>;
-  buscarCnd(cnpj: string): Promise<Result<CndDto, AppError>>;
+  buscarGuiaParcelamento(
+    cnpj: string,
+    regime: RegimeParcelamento,
+  ): Promise<Result<GuiaParcelamentoDto, AppError>>;
   consultarAutorizacao(cnpj: string): Promise<Result<AutorizacaoDto, AppError>>;
 }

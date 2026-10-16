@@ -5,6 +5,10 @@ import { join } from "node:path";
 
 import {
   CRON_SECRET,
+  EMAIL_MODO,
+  EMAIL_REMETENTE,
+  EMAIL_SMTP_SENHA,
+  EMAIL_SMTP_USUARIO,
   FFMPEG_PATH,
   INATIVIDADE_AUTOMATICA,
   LEMBRETES_AUTOMATICOS,
@@ -13,11 +17,13 @@ import {
   MENSAGERIA_SEGREDO_SESSAO,
   MENSAGERIA_TOKEN_VERIFICACAO,
   NODE_ENV,
-  OBRIGACOES_FISCAIS_URL,
+  WHATSAPP_PHONE_NUMBER_ID,
+  WHATSAPP_TOKEN,
 } from "@/env";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { makeRegistrarAcao } from "@/main/auditoria.factory";
+import { makeCertidaoCnd, makeObrigacoesFiscais } from "@/main/obrigacoes-fiscais.factory";
 import { exigirSegredosReais } from "@/main/segredos-mensageria.factory";
 import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
@@ -78,9 +84,12 @@ import { TransferirAtendimento } from "@/modules/atendimento/application/use-cas
 import { VerificarInatividade } from "@/modules/atendimento/application/use-cases/verificar-inatividade.use-case";
 import { BearerAutenticacaoJobGateway } from "@/modules/atendimento/infra/gateways/bearer-autenticacao-job.gateway";
 import { DownloadMidiaFalsoGateway } from "@/modules/atendimento/infra/gateways/download-midia-falso.gateway";
+import { DownloadMidiaWhatsappGateway } from "@/modules/atendimento/infra/gateways/download-midia-whatsapp.gateway";
 import { EnvioEmailFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-email-falso.gateway";
 import { EnvioEmailIndisponivelGateway } from "@/modules/atendimento/infra/gateways/envio-email-indisponivel.gateway";
+import { EnvioEmailSmtpGateway } from "@/modules/atendimento/infra/gateways/envio-email-smtp.gateway";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
+import { EnvioMensagemWhatsappGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-whatsapp.gateway";
 import { FfmpegConversorDeAudioGateway } from "@/modules/atendimento/infra/gateways/ffmpeg-conversor-de-audio.gateway";
 import { GuiasFiscaisGateway } from "@/modules/atendimento/infra/gateways/guias-fiscais.gateway";
 import { HmacAutenticacaoWebhookGateway } from "@/modules/atendimento/infra/gateways/hmac-autenticacao-webhook.gateway";
@@ -97,7 +106,6 @@ import { SupabaseIdentificacaoContatoGateway } from "@/modules/atendimento/infra
 import { SupabaseSessaoAtendimentoGateway } from "@/modules/atendimento/infra/gateways/supabase-sessao-atendimento.gateway";
 import { SupabaseAtendimentoRepository } from "@/modules/atendimento/infra/repositories/atendimento.repository";
 import { SupabaseFeriadoRepository } from "@/modules/atendimento/infra/repositories/feriado.repository";
-import { ObrigacoesFiscaisHttpGateway } from "@/modules/clientes/infra/gateways/obrigacoes-fiscais-http.gateway";
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
 import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabase-sessao.gateway";
 import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories/usuario.repository";
@@ -109,10 +117,9 @@ import type { SetorSlug } from "@/shared/kernel/setores";
 const envioFalso = new EnvioMensagemFalsoGateway();
 
 function makeEnvioMensagem(): EnvioMensagemPort {
-  if (MENSAGERIA_MODO === "real") {
-    throw new Error("MENSAGERIA_MODO=real: o adapter real de mensageria ainda não existe (#68).");
-  }
-  return envioFalso;
+  if (MENSAGERIA_MODO !== "real") return envioFalso;
+  // env.ts garante as duas credenciais com o modo real.
+  return new EnvioMensagemWhatsappGateway(WHATSAPP_TOKEN!, WHATSAPP_PHONE_NUMBER_ID!);
 }
 
 // Chamada por makeAutenticarWebhook e makeReceberMensagem: nenhum caminho da rota pública
@@ -131,7 +138,8 @@ function exigirSegredosDeProducao(): void {
 function guiasFiscais(supabaseAdmin: SupabaseClient): GuiasFiscaisGateway {
   return new GuiasFiscaisGateway(
     new SupabaseClienteCnpjGateway(supabaseAdmin),
-    new ObrigacoesFiscaisHttpGateway(OBRIGACOES_FISCAIS_URL),
+    makeObrigacoesFiscais(),
+    makeCertidaoCnd(),
   );
 }
 
@@ -154,13 +162,12 @@ export function makeReceberMensagem(): ReceberMensagemPort {
 
 export function makeReceberMidia(): ReceberMidiaPort {
   exigirSegredosDeProducao();
-  if (MENSAGERIA_MODO === "real") {
-    throw new Error("MENSAGERIA_MODO=real: o adapter real de mensageria ainda não existe (#68).");
-  }
   const supabaseAdmin = createSupabaseAdmin();
   return new ReceberMidia(
     new SupabaseAtendimentoRepository(supabaseAdmin),
-    new DownloadMidiaFalsoGateway(),
+    MENSAGERIA_MODO === "real"
+      ? new DownloadMidiaWhatsappGateway(WHATSAPP_TOKEN!)
+      : new DownloadMidiaFalsoGateway(),
     new SupabaseAnexosAtendimentoGateway(supabaseAdmin),
     makeEnvioMensagem(),
   );
@@ -261,9 +268,17 @@ export function makeVerificarInatividade(): VerificarInatividadePort {
   );
 }
 
-// Em produção o e-mail falso responderia ok sem enviar nada; sem o adapter real o canal
-// falha de forma explícita.
+// Em produção o e-mail falso responderia ok sem enviar nada: sem EMAIL_MODO=real o canal falha de
+// forma explícita.
 function makeEnvioEmail(): EnvioEmailPort {
+  if (EMAIL_MODO === "real") {
+    // env.ts garante usuário, senha de app e remetente com o modo real.
+    return new EnvioEmailSmtpGateway({
+      usuario: EMAIL_SMTP_USUARIO!,
+      senha: EMAIL_SMTP_SENHA!,
+      remetente: EMAIL_REMETENTE!,
+    });
+  }
   return NODE_ENV === "production"
     ? new EnvioEmailIndisponivelGateway()
     : new EnvioEmailFalsoGateway();

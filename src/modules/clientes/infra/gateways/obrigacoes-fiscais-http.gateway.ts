@@ -2,7 +2,6 @@ import { z } from "zod";
 
 import type {
   AutorizacaoDto,
-  CndDto,
   GuiaDasDto,
   GuiaParcelamentoDto,
   ObrigacoesFiscaisPort,
@@ -25,10 +24,9 @@ const dasSchema = z.object({
 const parcelamentoSchema = z.object({
   ...documento,
   parcela: z.string().regex(/^\d{6}$/),
-  valorCentavos: z.number().int(),
-  vencimento: dataIso,
+  valorCentavos: z.number().int().optional(),
+  vencimento: dataIso.optional(),
 });
-const cndSchema = z.object({ ...documento, validade: dataIso });
 const autorizacaoSchema = z.discriminatedUnion("vigente", [
   z.object({ vigente: z.literal(true), dataExpiracao: dataIso }),
   z.object({ vigente: z.literal(false) }),
@@ -49,10 +47,6 @@ export class ObrigacoesFiscaisHttpGateway implements ObrigacoesFiscaisPort {
 
   buscarGuiaParcelamento(cnpj: string): Promise<Result<GuiaParcelamentoDto, AppError>> {
     return this.obter(cnpj, "parcelamento", parcelamentoSchema);
-  }
-
-  buscarCnd(cnpj: string): Promise<Result<CndDto, AppError>> {
-    return this.obter(cnpj, "cnd", cndSchema);
   }
 
   consultarAutorizacao(cnpj: string): Promise<Result<AutorizacaoDto, AppError>> {

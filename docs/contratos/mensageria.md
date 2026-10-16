@@ -4,8 +4,34 @@ A **porta** do sistema é neutra (`ReceberMensagemPort`, `EnvioMensagemPort`: `{
 HTTP e o adapter falso reproduzem a **WhatsApp Cloud API da Meta**, pra que o adapter real (#68) só troque a
 implementação. Fonte: documentação oficial da Meta (webhooks, Messages API, códigos de erro). Ver ADR 0004.
 
-Configuração: `MENSAGERIA_MODO` = `falso` (padrão) | `real` (ainda não existe, #68);
+Configuração: `MENSAGERIA_MODO` = `falso` (padrão) | `real` (`EnvioMensagemWhatsappGateway` e `DownloadMidiaWhatsappGateway`; exige `WHATSAPP_TOKEN` e `WHATSAPP_PHONE_NUMBER_ID`). Limite conhecido: a reentrega do webhook é deduplicada pelo `wamid` só dentro de um Atendimento; mensagem tratada apenas pela URA (menu, identificação) e reentregue repete a resposta, pois não há registro de wamid processado fora do Atendimento;
 `MENSAGERIA_SEGREDO_ASSINATURA` (app secret) e `MENSAGERIA_TOKEN_VERIFICACAO` e `MENSAGERIA_SEGREDO_SESSAO` (chave do HMAC da sessão da URA, separada da assinatura; padrões falsos em dev).
+
+## Configuração por ambiente (Vercel)
+
+Dois apps na Meta: um de **homolog** (número de teste, grátis, até 5 destinatários verificados) e um de **produção** (número real). Um app tem uma só URL de webhook.
+
+| Variável | Preview (homolog) | Production | Onde achar |
+|---|---|---|---|
+| `MENSAGERIA_MODO` | `real` | `real` | Definida por nós; `falso` não envia nada |
+| `WHATSAPP_PHONE_NUMBER_ID` | id do número de teste | id do número real | Meta for Developers → app → WhatsApp → API Setup → "Phone number ID" (não é o telefone nem o WABA ID) |
+| `WHATSAPP_TOKEN` | token do app de homolog | token do app de produção | API Setup dá token de 24 h; o permanente vem de business.facebook.com → Usuários → Usuários do sistema (app + WABA atribuídos; permissões `whatsapp_business_messaging` e `whatsapp_business_management`) |
+| `MENSAGERIA_SEGREDO_ASSINATURA` | App Secret do app de homolog | App Secret do app de produção | App → Configurações → Básico → Chave secreta do app |
+| `MENSAGERIA_TOKEN_VERIFICACAO` | string aleatória | outra | Inventada; colada igual no "Verify token" do webhook |
+| `MENSAGERIA_SEGREDO_SESSAO` | `openssl rand -hex 32` | outro | Gerado; nunca reaproveitar entre ambientes |
+| `CRON_SECRET` | string aleatória | outra | Gerado; a Vercel o envia como Bearer nos crons |
+| `INATIVIDADE_AUTOMATICA`, `LEMBRETES_AUTOMATICOS` | `desligada` | `desligada` até os gates | Ligar só com templates (#67) aprovados, `CRON_SECRET` e plano da Vercel definidos |
+
+Também nos dois ambientes: `SUPABASE_SERVICE_ROLE_KEY`, chaves públicas do Supabase e `OBRIGACOES_FISCAIS_URL` (o padrão `127.0.0.1` não funciona na Vercel).
+
+**Webhook na Meta:** `https://<domínio>/api/webhooks/whatsapp`, em WhatsApp → Configuration → Webhook, assinando o campo `messages`. Em homolog use domínio fixo atribuído à branch (a URL de preview muda a cada deploy) e libere a Deployment Protection da Vercel para ele (ou Protection Bypass for Automation), senão a Meta não alcança a rota.
+
+**Pegadinhas**
+- O preview da Vercel roda com `NODE_ENV=production`: o webhook recusa segredo ausente ou igual ao de dev (`segredo-falso`, `token-falso`, `segredo-sessao-falso`) mesmo com `MENSAGERIA_MODO=falso`.
+- Fora da janela de 24 h só vai template aprovado; no número de teste, só `hello_world`. Para texto livre, o celular de teste escreve primeiro.
+- O cron da Vercel só roda em Production.
+
+**Ordem para ligar a produção:** app real e token permanente → handshake do webhook → fluxo testado com número próprio → só então as flags automáticas.
 
 ## Entrada: `/api/webhooks/whatsapp`
 
@@ -72,7 +98,7 @@ Anexo do Funcionário (#79): `enviarAnexo({ telefone, tipo: "imagem" | "audio" |
 `audio` (inclusive mensagem de voz), `image` e `document` chegam com um objeto `{ id, mime_type, caption?, filename? }`. O
 webhook os entrega a um caso de uso próprio, atrás da porta neutra `DownloadMidiaPort` (`baixar(idDaMidia) → { bytes, mime, nome? }`;
 o adapter falso devolve arquivos de teste pelo id: `midia-teste-audio` (ogg/opus tocável), `-imagem`, `-documento`, `-grande`
-(acima de 10 MB), `-svg` e `-fora-do-ar`; o real, que troca o id pelo endereço temporário e baixa com o token, é da #68).
+(acima de 10 MB), `-svg` e `-fora-do-ar`; o real, `DownloadMidiaWhatsappGateway`, troca o id pelo endereço temporário e baixa com o token; 400/404 viram `ValidationError`, o resto `ServicoExternoError`).
 
 - **Só dentro de um Atendimento em andamento.** De um número sem Atendimento (inclusive quem está no menu da URA) a mídia não é
   baixada nem guardada, não abre Atendimento nem reabre o menu: a URA responde que, por ora, só entende texto. A checagem

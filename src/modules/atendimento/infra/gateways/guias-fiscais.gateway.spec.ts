@@ -6,22 +6,31 @@ import { GuiasFiscaisGateway, type ObrigacoesFiscais } from "./guias-fiscais.gat
 
 const PDF = { nomeArquivo: "x.pdf", pdfBase64: "JVBERi0=" };
 
-function montar(autorizacao: "vigente" | "vencida" | "falha" = "vigente") {
+function montar(
+  autorizacao: "vigente" | "vencida" | "falha" = "vigente",
+  regime = "simples_nacional",
+) {
   const consultados: string[] = [];
   const obrigacoes: ObrigacoesFiscais = {
     buscarDas: async (c) => (consultados.push(`das:${c}`), ok(PDF)),
-    buscarGuiaParcelamento: async (c) => (consultados.push(`parcelamento:${c}`), ok(PDF)),
-    buscarCnd: async (c) => (consultados.push(`cnd:${c}`), ok(PDF)),
+    buscarGuiaParcelamento: async (c, r) => (consultados.push(`parcelamento:${c}:${r}`), ok(PDF)),
     consultarAutorizacao: async () =>
       autorizacao === "falha"
         ? err(new ServicoExternoError("fora do ar"))
         : ok({ vigente: autorizacao === "vigente" }),
   };
   const clientes = {
-    cnpjDoCliente: async (id: string) =>
-      id === "c1" ? ok("11222333000181") : err(new ServicoExternoError("sem cliente")),
+    cadastroFiscalDoCliente: async (id: string) =>
+      id === "c1"
+        ? ok({ cnpj: "11222333000181", regime })
+        : err(new ServicoExternoError("sem cliente")),
   };
-  return { consultados, guias: new GuiasFiscaisGateway(clientes, obrigacoes) };
+  return {
+    consultados,
+    guias: new GuiasFiscaisGateway(clientes, obrigacoes, {
+      buscarCnd: async (c) => (consultados.push(`cnd:${c}`), ok(PDF)),
+    }),
+  };
 }
 
 describe("GuiasFiscaisGateway", () => {
@@ -30,9 +39,20 @@ describe("GuiasFiscaisGateway", () => {
     async (tipo) => {
       const { guias, consultados } = montar();
       expect(await guias.buscar("c1", tipo)).toEqual({ ok: true, value: PDF });
-      expect(consultados).toEqual([`${tipo}:11222333000181`]);
+      expect(consultados).toEqual([
+        tipo === "parcelamento"
+          ? "parcelamento:11222333000181:simples_nacional"
+          : `${tipo}:11222333000181`,
+      ]);
     },
   );
+
+  it("parcelamento de Cliente fora do Simples/MEI é erro de validação, sem chamar o provedor", async () => {
+    const { guias, consultados } = montar("vigente", "lucro_presumido");
+    const r = await guias.buscar("c1", "parcelamento");
+    expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
+    expect(consultados).toEqual([]);
+  });
 
   it("sem autorização vigente é ForbiddenError e não busca o PDF", async () => {
     const { guias, consultados } = montar("vencida");
