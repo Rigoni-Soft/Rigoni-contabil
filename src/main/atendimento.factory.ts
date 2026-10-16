@@ -7,6 +7,8 @@ import {
   CRON_SECRET,
   EMAIL_MODO,
   EMAIL_REMETENTE,
+  EMAIL_SMTP_SENHA,
+  EMAIL_SMTP_USUARIO,
   FFMPEG_PATH,
   INATIVIDADE_AUTOMATICA,
   LEMBRETES_AUTOMATICOS,
@@ -15,7 +17,6 @@ import {
   MENSAGERIA_SEGREDO_SESSAO,
   MENSAGERIA_TOKEN_VERIFICACAO,
   NODE_ENV,
-  RESEND_API_KEY,
   WHATSAPP_PHONE_NUMBER_ID,
   WHATSAPP_TOKEN,
 } from "@/env";
@@ -86,7 +87,7 @@ import { DownloadMidiaFalsoGateway } from "@/modules/atendimento/infra/gateways/
 import { DownloadMidiaWhatsappGateway } from "@/modules/atendimento/infra/gateways/download-midia-whatsapp.gateway";
 import { EnvioEmailFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-email-falso.gateway";
 import { EnvioEmailIndisponivelGateway } from "@/modules/atendimento/infra/gateways/envio-email-indisponivel.gateway";
-import { EnvioEmailResendGateway } from "@/modules/atendimento/infra/gateways/envio-email-resend.gateway";
+import { EnvioEmailSmtpGateway } from "@/modules/atendimento/infra/gateways/envio-email-smtp.gateway";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
 import { EnvioMensagemWhatsappGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-whatsapp.gateway";
 import { FfmpegConversorDeAudioGateway } from "@/modules/atendimento/infra/gateways/ffmpeg-conversor-de-audio.gateway";
@@ -271,8 +272,12 @@ export function makeVerificarInatividade(): VerificarInatividadePort {
 // forma explícita.
 function makeEnvioEmail(): EnvioEmailPort {
   if (EMAIL_MODO === "real") {
-    // env.ts garante a chave e o remetente com o modo real.
-    return new EnvioEmailResendGateway(RESEND_API_KEY!, EMAIL_REMETENTE!);
+    // env.ts garante usuário, senha de app e remetente com o modo real.
+    return new EnvioEmailSmtpGateway({
+      usuario: EMAIL_SMTP_USUARIO!,
+      senha: EMAIL_SMTP_SENHA!,
+      remetente: EMAIL_REMETENTE!,
+    });
   }
   return NODE_ENV === "production"
     ? new EnvioEmailIndisponivelGateway()

@@ -72,16 +72,21 @@ const resultado = z
     FFMPEG_PATH: z.string().min(1).optional(),
     // Liga o job de lembrete de documento e envio de DAS. Mesma regra da inatividade.
     LEMBRETES_AUTOMATICOS: z.enum(["desligada", "ligada"]).default("desligada"),
-    // Adapter de e-mail (#86): falso por padrão. Com "real": chave de envio do Resend e o `from`
-    // (domínio verificado), ex.: "Rigoni Contábil <no-reply@seudominio.com.br>".
+    // Adapter de e-mail (#86): falso por padrão. Com "real": SMTP do Gmail com senha de app (a conta
+    // precisa de verificação em duas etapas) e o `from`, ex.: "Rigoni Contábil <conta@gmail.com>".
     EMAIL_MODO: z.enum(["falso", "real"]).default("falso"),
-    RESEND_API_KEY: z.string().min(1).optional(),
+    EMAIL_SMTP_USUARIO: z.string().min(1).optional(),
+    EMAIL_SMTP_SENHA: z.string().min(1).optional(),
     EMAIL_REMETENTE: z.string().min(1).optional(),
   })
-  .refine((v) => v.EMAIL_MODO !== "real" || (v.RESEND_API_KEY && v.EMAIL_REMETENTE), {
-    message: "EMAIL_MODO=real exige RESEND_API_KEY e EMAIL_REMETENTE.",
-    path: ["EMAIL_MODO"],
-  })
+  .refine(
+    (v) =>
+      v.EMAIL_MODO !== "real" || (v.EMAIL_SMTP_USUARIO && v.EMAIL_SMTP_SENHA && v.EMAIL_REMETENTE),
+    {
+      message: "EMAIL_MODO=real exige EMAIL_SMTP_USUARIO, EMAIL_SMTP_SENHA e EMAIL_REMETENTE.",
+      path: ["EMAIL_MODO"],
+    },
+  )
   .refine((v) => v.MENSAGERIA_MODO !== "real" || (v.WHATSAPP_TOKEN && v.WHATSAPP_PHONE_NUMBER_ID), {
     message: "MENSAGERIA_MODO=real exige WHATSAPP_TOKEN e WHATSAPP_PHONE_NUMBER_ID.",
     path: ["WHATSAPP_TOKEN"],
@@ -187,7 +192,8 @@ const resultado = z
     FFMPEG_PATH: process.env.FFMPEG_PATH || undefined,
     LEMBRETES_AUTOMATICOS: process.env.LEMBRETES_AUTOMATICOS || undefined,
     EMAIL_MODO: process.env.EMAIL_MODO || undefined,
-    RESEND_API_KEY: process.env.RESEND_API_KEY || undefined,
+    EMAIL_SMTP_USUARIO: process.env.EMAIL_SMTP_USUARIO || undefined,
+    EMAIL_SMTP_SENHA: process.env.EMAIL_SMTP_SENHA || undefined,
     EMAIL_REMETENTE: process.env.EMAIL_REMETENTE || undefined,
   });
 
@@ -226,6 +232,7 @@ export const {
   FFMPEG_PATH,
   LEMBRETES_AUTOMATICOS,
   EMAIL_MODO,
-  RESEND_API_KEY,
+  EMAIL_SMTP_USUARIO,
+  EMAIL_SMTP_SENHA,
   EMAIL_REMETENTE,
 } = resultado.data;
