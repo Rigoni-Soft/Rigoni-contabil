@@ -5,12 +5,7 @@ import { TelaDeAvisoPage } from "@/presentation/components/pages/tela-de-aviso.p
 import { Button } from "@/presentation/components/ui/button";
 
 // Não mostra `error.message`: no servidor ele é genérico e no cliente pode vazar detalhe interno.
-export default function Error({
-  retry,
-}: {
-  error: Error & { digest?: string };
-  retry: () => void;
-}) {
+export default function Error({ retry }: { retry: () => void }) {
   return (
     <TelaDeAvisoPage
       subtitulo="Algo deu errado"
