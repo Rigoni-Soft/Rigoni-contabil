@@ -201,7 +201,7 @@ sem precisar de classe.
   link de ação no header segue o mesmo padrão em vez de forçar o texto
   sempre visível.
 
-  **Extensão (29/09/2026, #33):** o link "Cadastrar Cliente" (ícone
+  **Extensão (#33):** o link "Cadastrar Cliente" (ícone
   `Building2`, visível só pro papel Admin) segue exatamente esse padrão —
   confirma que a regra vale para qualquer novo link, não só os três
   documentados em #32.
@@ -213,7 +213,7 @@ sem precisar de classe.
   `truncate`. O Setor é sempre o rótulo legível (`SETOR_LABEL`, em
   `shared/kernel/setores.ts`), nunca o slug.
 
-  **Extensão (07/10/2026, #72):** o link "Feriados" (ícone `CalendarOff`,
+  **Extensão (#72):** o link "Feriados" (ícone `CalendarOff`,
   só Admin, rota `/admin/feriados`) segue o mesmo padrão. A tela reutiliza
   `FieldError`, `Input type="date"` com `Label` visível e lista em `card`
   com `divide-y`; remover é botão `ghost` só-ícone com `aria-label` que
@@ -224,7 +224,7 @@ sem precisar de classe.
   disso o iOS dá zoom ao focar o campo), 14 px de `sm` em diante. Campo de texto
   novo usa o primitivo de `ui/`, nunca um `<textarea>`/`<select>` cru.
 
-  **Campo de arquivo sempre com `Label` visível (29/09/2026, #33):** o
+  **Campo de arquivo sempre com `Label` visível (#33):** o
   cadastro de Cliente introduziu os primeiros `<Input type="file">` do
   produto (contrato social e cada alteração contratual). O primeiro rascunho
   usava `aria-label` sozinho no arquivo de cada alteração contratual, sem
@@ -235,7 +235,7 @@ sem precisar de classe.
   pelo `atoms/file-input.component.tsx` abaixo** —
   o contrato de `Label htmlFor`/`id` continua valendo, só o controle em si
   deixou de ser um `<input type="file">` nu.
-- `atoms/file-input.component.tsx` (29/09/2026, #33): `<input type="file">` nativo não aceita ser
+- `atoms/file-input.component.tsx` (#33): `<input type="file">` nativo não aceita ser
   estilizado diretamente ("Choose File / No file chosen" do navegador era o
   único controle do produto fora do sistema de design). Substituído por um
   `<label>` do tamanho de `input.tsx`/`select.tsx` (44px, borda, raio, cores
@@ -248,7 +248,7 @@ sem precisar de classe.
   Qualquer novo campo de arquivo do produto reusa este componente em vez de
   um `<Input type="file">` cru.
 
-  **Seção "Documentos" (29/09/2026, #33):** contrato social e alterações
+  **Seção "Documentos" (#33):** contrato social e alterações
   contratuais ganharam um agrupamento visual próprio — `border-t` +
   `pt-6` + heading `text-sm font-semibold uppercase text-muted-foreground`
   ("DOCUMENTOS"), separando os campos de identificação do Cliente (CNPJ,
@@ -273,7 +273,7 @@ sem precisar de classe.
   contrato de erro do `input.tsx`. Qualquer novo select do produto reusa
   este componente em vez de repetir as classes inline.
 
-  **Campo travado quando só há 1 opção válida (28/09/2026, #32):** no
+  **Campo travado quando só há 1 opção válida (#32):** no
   cadastro de Líder/Funcionário, quando quem está logado é Líder de setor,
   o caso de uso só aceita `papel = "funcionario"` no próprio Setor — ou
   seja, os `<select>` de Papel e Setor têm exatamente 1 opção possível.
@@ -324,7 +324,7 @@ componente serve para uma linha ou para várias sem mudar de aparência.
 
 **Aviso (não é erro de validação, mas usa o mesmo componente):** o feed de
 auditoria já usava `atoms/field-error.component.tsx` pra avisar período incompleto mesmo sem
-ser um erro de schema — o cadastro de Cliente (29/09/2026, #33) confirma que
+ser um erro de schema — o cadastro de Cliente (#33) confirma que
 isso é um padrão, não uma exceção. Quando a interface precisa dizer "isso não
 está errado, mas você precisa fazer algo a respeito" (CNPJ com formato válido
 mas não encontrado na consulta pública; Regime que a consulta não conseguiu
@@ -338,7 +338,7 @@ preso na tela depois que a pessoa já agiu sobre ele.
 
 ### Ações pós-sucesso (confirmação de cadastro)
 
-**"Cadastrar outro" / "Finalizar" (28/09/2026, #32):** a tela de
+**"Cadastrar outro" / "Finalizar" (#32):** a tela de
 confirmação do cadastro de Líder/Funcionário (senha provisória exibida)
 ganhou duas ações lado a lado — `Button` primário "Cadastrar outro"
 (ícone `UserPlus`, limpa Nome/E-mail e devolve o formulário pronto pra um
@@ -389,7 +389,7 @@ regra de 80%/90%), poucos campos, grid não ajudaria.
 
 ### Lista de itens repetíveis (campo dinâmico)
 
-**Alterações contratuais (29/09/2026, #33):** primeiro uso de
+**Alterações contratuais (#33):** primeiro uso de
 `useFieldArray` (react-hook-form) no produto — uma lista de itens do
 formulário que o próprio usuário adiciona/remove (aqui: data + arquivo por
 alteração contratual). Padrão: cabeçalho da seção com `Label` da seção +
@@ -412,7 +412,7 @@ qualquer lista dinâmica de campos, não só o par data+arquivo do #33.
 
 ### Campo obrigatório e máscara de entrada
 
-**`RequiredMark` (29/09/2026, #33):** asterisco
+**`RequiredMark` (#33):** asterisco
 `text-destructive` depois do texto do `Label`, com `aria-hidden="true"` —
 fica fora do nome acessível do campo de propósito (screen readers já
 anunciam "obrigatório" via `aria-required="true"` no próprio input, não
@@ -427,7 +427,7 @@ campos obrigatórios do cadastro operacional — os demais são `enum`/`select`
 com valor sempre presente ou opcionais) usam `<RequiredMark />` +
 `aria-required="true"`, mesmo padrão do #33.
 
-**Máscara de exibição (29/09/2026, #33):** quando um campo tem um formato
+**Máscara de exibição (#33):** quando um campo tem um formato
 canônico bem definido (CNPJ: `00.000.000/0000-00`), a formatação acontece
 progressivamente enquanto o usuário digita, via `Controller` controlado
 (não `register` — precisa interceptar `onChange` pra reformatar o valor).
@@ -473,7 +473,7 @@ em `/clientes/[id]`), continua `<Link href="/">`.
 
 ### Autopreenchimento a partir de API pública
 
-**CNPJ → Empresa/Regime via BrasilAPI (29/09/2026, #33):** ao perder o foco de um campo que serve de chave pra uma consulta
+**CNPJ → Empresa/Regime via BrasilAPI (#33):** ao perder o foco de um campo que serve de chave pra uma consulta
 externa, autopreencher os campos derivados sem nunca sobrescrever o que o
 usuário já digitou à mão (checagem `!getValues(campo)` antes de cada
 `setValue`). Três desfechos possíveis, cada um com tratamento explícito:
@@ -488,7 +488,7 @@ estruturado). Nunca deixar a consulta travar o preenchimento manual:
 visível — ver a nota de corrida de `useFieldArray` abaixo antes de
 adicionar um indicador de loading a um fluxo parecido.
 
-**Corrida com `useFieldArray.append()` (29/09/2026, #33) — não repetir:** a
+**Corrida com `useFieldArray.append()` (#33) — não repetir:** a
 primeira versão deste autopreenchimento rastreava um estado `pendente` pra
 mostrar "Buscando…". Como a resposta chega enquanto o usuário ainda pode
 estar preenchendo o resto do formulário, o re-render provocado por esse
