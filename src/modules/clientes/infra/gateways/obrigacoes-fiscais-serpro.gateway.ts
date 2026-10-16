@@ -4,7 +4,6 @@ import { z } from "zod";
 
 import type {
   AutorizacaoDto,
-  CndDto,
   GuiaDasDto,
   GuiaParcelamentoDto,
   ObrigacoesFiscaisPort,
@@ -40,7 +39,7 @@ export type CredenciaisSerpro = {
   cnpjEscritorio: string;
 };
 
-const transporteNode: TransporteHttp = (req) =>
+export const transporteNode: TransporteHttp = (req) =>
   new Promise((resolve, reject) => {
     const chamada = request(
       req.url,
@@ -142,13 +141,6 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
     });
   }
 
-  // ponytail: a CND oficial é o produto avulso "Consulta CND" (outro contrato e outro token,
-  // sem certificado); o endpoint e o formato só saem do Swagger com o contrato ativo. Até lá,
-  // erro tratado.
-  async buscarCnd(_cnpj: string): Promise<Result<CndDto, AppError>> {
-    return err(new ServicoExternoError("Emissão de CND ainda não disponível."));
-  }
-
   // Integra-Procurações: há procuração do Cliente ao escritório com validade a vencer?
   async consultarAutorizacao(cnpj: string): Promise<Result<AutorizacaoDto, AppError>> {
     return this.executar(async () => {
@@ -237,15 +229,7 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
     });
     if (r.status === 401 && repetirSe401) {
       this.token = null;
-      return this.chamar(
-        operacao,
-        contribuinte,
-        idSistema,
-        idServico,
-        versaoSistema,
-        dados,
-        false,
-      );
+      return this.chamar(operacao, contribuinte, idSistema, idServico, versaoSistema, dados, false);
     }
     if (r.status === 204 || r.status === 404) return null;
     if (r.status !== 200) throw new ErroSerpro(`Serviço fiscal respondeu ${r.status}.`);

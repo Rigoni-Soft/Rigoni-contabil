@@ -30,6 +30,11 @@ const resultado = z
       .string()
       .regex(/^[0-9A-Z]{14}$/)
       .optional(),
+    // CND (outro produto do Serpro, chave própria, sem certificado): mesmo esquema, modo à parte.
+    CND_MODO: z.enum(["mock", "serpro"]).default("mock"),
+    SERPRO_CND_CONSUMER_KEY: z.string().min(1).optional(),
+    SERPRO_CND_CONSUMER_SECRET: z.string().min(1).optional(),
+    SERPRO_CND_CODIGO_IDENTIFICACAO: z.string().min(1).optional(),
     // Adapter de mensageria (docs/contratos/mensageria.md): falso por padrão.
     MENSAGERIA_MODO: z.enum(["falso", "real"]).default("falso"),
     // Segredos do webhook (assinatura HMAC e handshake de verificação). Valores
@@ -78,6 +83,18 @@ const resultado = z
       path: ["OBRIGACOES_FISCAIS_MODO"],
     },
   )
+  .refine(
+    (v) =>
+      v.CND_MODO !== "serpro" ||
+      (v.SERPRO_CND_CONSUMER_KEY &&
+        v.SERPRO_CND_CONSUMER_SECRET &&
+        v.SERPRO_CND_CODIGO_IDENTIFICACAO),
+    {
+      message:
+        "CND_MODO=serpro exige SERPRO_CND_CONSUMER_KEY, SERPRO_CND_CONSUMER_SECRET e SERPRO_CND_CODIGO_IDENTIFICACAO.",
+      path: ["CND_MODO"],
+    },
+  )
   .safeParse({
     NODE_ENV: process.env.NODE_ENV || undefined,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -88,6 +105,10 @@ const resultado = z
     SERPRO_CERTIFICADO_P12_BASE64: process.env.SERPRO_CERTIFICADO_P12_BASE64 || undefined,
     SERPRO_CERTIFICADO_SENHA: process.env.SERPRO_CERTIFICADO_SENHA || undefined,
     SERPRO_CNPJ_ESCRITORIO: process.env.SERPRO_CNPJ_ESCRITORIO || undefined,
+    CND_MODO: process.env.CND_MODO || undefined,
+    SERPRO_CND_CONSUMER_KEY: process.env.SERPRO_CND_CONSUMER_KEY || undefined,
+    SERPRO_CND_CONSUMER_SECRET: process.env.SERPRO_CND_CONSUMER_SECRET || undefined,
+    SERPRO_CND_CODIGO_IDENTIFICACAO: process.env.SERPRO_CND_CODIGO_IDENTIFICACAO || undefined,
     MENSAGERIA_MODO: process.env.MENSAGERIA_MODO || undefined,
     MENSAGERIA_SEGREDO_ASSINATURA: process.env.MENSAGERIA_SEGREDO_ASSINATURA || undefined,
     MENSAGERIA_TOKEN_VERIFICACAO: process.env.MENSAGERIA_TOKEN_VERIFICACAO || undefined,
@@ -114,6 +135,10 @@ export const {
   SERPRO_CERTIFICADO_P12_BASE64,
   SERPRO_CERTIFICADO_SENHA,
   SERPRO_CNPJ_ESCRITORIO,
+  CND_MODO,
+  SERPRO_CND_CONSUMER_KEY,
+  SERPRO_CND_CONSUMER_SECRET,
+  SERPRO_CND_CODIGO_IDENTIFICACAO,
   MENSAGERIA_MODO,
   MENSAGERIA_SEGREDO_ASSINATURA,
   MENSAGERIA_TOKEN_VERIFICACAO,

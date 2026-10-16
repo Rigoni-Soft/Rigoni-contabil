@@ -37,7 +37,7 @@ describe("ObrigacoesFiscaisHttpGateway", () => {
   it("status não-2xx vira ServicoExternoError", async () => {
     const http = jest.fn().mockResolvedValue(json({}, 503));
 
-    const r = await new ObrigacoesFiscaisHttpGateway(URL_BASE, http).buscarCnd("1");
+    const r = await new ObrigacoesFiscaisHttpGateway(URL_BASE, http).buscarDas("1");
 
     expect(!r.ok && r.error.code).toBe("EXTERNAL_SERVICE_ERROR");
   });

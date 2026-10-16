@@ -20,8 +20,6 @@ export type GuiaParcelamentoDto = DocumentoPdfDto & {
   vencimento?: string; // AAAA-MM-DD
 };
 
-export type CndDto = DocumentoPdfDto & { validade: string }; // AAAA-MM-DD
-
 // O Cliente autorizou o escritório a consultar os dados dele? O sistema só
 // reflete esse estado, nunca o concede.
 export type AutorizacaoDto = { vigente: true; dataExpiracao: string } | { vigente: false }; // AAAA-MM-DD
@@ -29,6 +27,5 @@ export type AutorizacaoDto = { vigente: true; dataExpiracao: string } | { vigent
 export interface ObrigacoesFiscaisPort {
   buscarDas(cnpj: string): Promise<Result<GuiaDasDto, AppError>>;
   buscarGuiaParcelamento(cnpj: string): Promise<Result<GuiaParcelamentoDto, AppError>>;
-  buscarCnd(cnpj: string): Promise<Result<CndDto, AppError>>;
   consultarAutorizacao(cnpj: string): Promise<Result<AutorizacaoDto, AppError>>;
 }

@@ -19,7 +19,7 @@ import {
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { makeRegistrarAcao } from "@/main/auditoria.factory";
-import { makeObrigacoesFiscais } from "@/main/obrigacoes-fiscais.factory";
+import { makeCertidaoCnd, makeObrigacoesFiscais } from "@/main/obrigacoes-fiscais.factory";
 import { exigirSegredosReais } from "@/main/segredos-mensageria.factory";
 import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
@@ -134,6 +134,7 @@ function guiasFiscais(supabaseAdmin: SupabaseClient): GuiasFiscaisGateway {
   return new GuiasFiscaisGateway(
     new SupabaseClienteCnpjGateway(supabaseAdmin),
     makeObrigacoesFiscais(),
+    makeCertidaoCnd(),
   );
 }
 

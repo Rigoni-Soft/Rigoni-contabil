@@ -3,7 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { makeRegistrarAcao } from "@/main/auditoria.factory";
-import { makeObrigacoesFiscais } from "@/main/obrigacoes-fiscais.factory";
+import { makeCertidaoCnd, makeObrigacoesFiscais } from "@/main/obrigacoes-fiscais.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
 import type { AtribuirResponsavelClientePort } from "@/modules/clientes/application/ports/in/atribuir-responsavel-cliente.provider";
 import type { BuscarGuiaPort } from "@/modules/clientes/application/ports/in/buscar-guia.provider";
@@ -117,5 +117,5 @@ export async function makeObterResumoSetorSn(): Promise<ObterResumoSetorSn> {
 
 export async function makeBuscarGuia(): Promise<BuscarGuiaPort> {
   const supabase = await createSupabaseServer();
-  return new BuscarGuia(sessaoViaUsuarios(supabase), makeObrigacoesFiscais());
+  return new BuscarGuia(sessaoViaUsuarios(supabase), makeObrigacoesFiscais(), makeCertidaoCnd());
 }

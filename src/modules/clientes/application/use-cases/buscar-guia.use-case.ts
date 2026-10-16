@@ -2,6 +2,7 @@ import type {
   BuscarGuiaOutput,
   BuscarGuiaPort,
 } from "@/modules/clientes/application/ports/in/buscar-guia.provider";
+import type { CertidaoCndPort } from "@/modules/clientes/application/ports/out/certidao-cnd.provider";
 import type { ObrigacoesFiscaisPort } from "@/modules/clientes/application/ports/out/obrigacoes-fiscais.provider";
 import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
 import { Cnpj } from "@/modules/clientes/domain/value-objects/cnpj.vo";
@@ -20,6 +21,7 @@ export class BuscarGuia implements BuscarGuiaPort {
   constructor(
     private readonly sessao: SessaoPort,
     private readonly fontes: ObrigacoesFiscaisPort,
+    private readonly certidoes: CertidaoCndPort,
   ) {}
 
   async execute(entrada: string): Promise<Result<BuscarGuiaOutput, AppError>> {
@@ -50,7 +52,7 @@ export class BuscarGuia implements BuscarGuiaPort {
     const [das, parcelamento, cnd] = await Promise.all([
       this.fontes.buscarDas(cnpj),
       this.fontes.buscarGuiaParcelamento(cnpj),
-      this.fontes.buscarCnd(cnpj),
+      this.certidoes.buscarCnd(cnpj),
     ]);
     if (!das.ok) return das;
     if (!parcelamento.ok) return parcelamento;

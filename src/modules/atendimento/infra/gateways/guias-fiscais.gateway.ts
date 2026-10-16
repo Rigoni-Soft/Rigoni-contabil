@@ -14,19 +14,18 @@ export interface ObrigacoesFiscais {
   consultarAutorizacao(cnpj: string): Promise<Result<{ vigente: boolean }, AppError>>;
   buscarDas(cnpj: string): Promise<Result<GuiaFiscal, AppError>>;
   buscarGuiaParcelamento(cnpj: string): Promise<Result<GuiaFiscal, AppError>>;
-  buscarCnd(cnpj: string): Promise<Result<GuiaFiscal, AppError>>;
 }
 
-const BUSCA_POR_TIPO = {
-  das: "buscarDas",
-  parcelamento: "buscarGuiaParcelamento",
-  cnd: "buscarCnd",
-} as const satisfies Record<TipoGuia, keyof ObrigacoesFiscais>;
+// A CND vem de fonte própria (porta separada em `clientes`).
+export interface CertidaoCnd {
+  buscarCnd(cnpj: string): Promise<Result<GuiaFiscal, AppError>>;
+}
 
 export class GuiasFiscaisGateway implements GuiasFiscaisPort {
   constructor(
     private readonly clientes: ClienteCnpjPort,
     private readonly obrigacoes: ObrigacoesFiscais,
+    private readonly certidoes: CertidaoCnd,
   ) {}
 
   async buscar(clienteId: string, tipo: TipoGuia): Promise<Result<GuiaFiscal, AppError>> {
@@ -37,6 +36,13 @@ export class GuiasFiscaisGateway implements GuiasFiscaisPort {
     if (!autorizacao.value.vigente) {
       return err(new ForbiddenError("Cliente sem autorização vigente para consulta fiscal."));
     }
-    return this.obrigacoes[BUSCA_POR_TIPO[tipo]](cnpj.value);
+    switch (tipo) {
+      case "das":
+        return this.obrigacoes.buscarDas(cnpj.value);
+      case "parcelamento":
+        return this.obrigacoes.buscarGuiaParcelamento(cnpj.value);
+      case "cnd":
+        return this.certidoes.buscarCnd(cnpj.value);
+    }
   }
 }

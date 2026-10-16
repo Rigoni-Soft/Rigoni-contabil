@@ -1,6 +1,9 @@
 import type {
-  AutorizacaoDto,
+  CertidaoCndPort,
   CndDto,
+} from "@/modules/clientes/application/ports/out/certidao-cnd.provider";
+import type {
+  AutorizacaoDto,
   GuiaDasDto,
   GuiaParcelamentoDto,
   ObrigacoesFiscaisPort,
@@ -42,10 +45,6 @@ class FontesFalsas implements ObrigacoesFiscaisPort {
     });
   }
 
-  async buscarCnd(): Promise<Result<CndDto, AppError>> {
-    return this.responder({ ...pdf, validade: "2027-03-31" });
-  }
-
   async consultarAutorizacao(): Promise<Result<AutorizacaoDto, AppError>> {
     return this.responder(
       this.opcoes.autorizado === false
@@ -59,9 +58,15 @@ class FontesFalsas implements ObrigacoesFiscaisPort {
   }
 }
 
+class CertidoesFalsas implements CertidaoCndPort {
+  async buscarCnd(): Promise<Result<CndDto, AppError>> {
+    return ok({ ...pdf, validade: "2027-03-31" });
+  }
+}
+
 describe("BuscarGuia", () => {
   it("devolve DAS, parcelamento e CND do CNPJ (só dígitos na porta)", async () => {
-    const r = await new BuscarGuia(logado, new FontesFalsas()).execute(CNPJ);
+    const r = await new BuscarGuia(logado, new FontesFalsas(), new CertidoesFalsas()).execute(CNPJ);
 
     expect(r.ok && r.value.das.nomeArquivo).toBe("das-11444777000161.pdf");
     expect(r.ok && r.value.parcelamento.parcela).toBe("202609");
@@ -69,36 +74,48 @@ describe("BuscarGuia", () => {
   });
 
   it("falha da fonte vira erro de domínio, sem lançar", async () => {
-    const r = await new BuscarGuia(logado, new FontesFalsas({ falhar: true })).execute(CNPJ);
+    const r = await new BuscarGuia(
+      logado,
+      new FontesFalsas({ falhar: true }),
+      new CertidoesFalsas(),
+    ).execute(CNPJ);
 
     expect(!r.ok && r.error.code).toBe("EXTERNAL_SERVICE_ERROR");
   });
 
   it("cliente sem autorização vigente falha de forma acionável", async () => {
-    const r = await new BuscarGuia(logado, new FontesFalsas({ autorizado: false })).execute(CNPJ);
+    const r = await new BuscarGuia(
+      logado,
+      new FontesFalsas({ autorizado: false }),
+      new CertidoesFalsas(),
+    ).execute(CNPJ);
 
     expect(!r.ok && r.error.message).toMatch(/sem autorização/);
   });
 
   it("adapter que lança exceção vira erro de domínio", async () => {
-    const fontes = new FontesFalsas();
-    fontes.buscarCnd = async () => {
+    const certidoes = new CertidoesFalsas();
+    certidoes.buscarCnd = async () => {
       throw new Error("timeout");
     };
 
-    const r = await new BuscarGuia(logado, fontes).execute(CNPJ);
+    const r = await new BuscarGuia(logado, new FontesFalsas(), certidoes).execute(CNPJ);
 
     expect(!r.ok && r.error.code).toBe("EXTERNAL_SERVICE_ERROR");
   });
 
   it("rejeita CNPJ inválido", async () => {
-    const r = await new BuscarGuia(logado, new FontesFalsas()).execute("123");
+    const r = await new BuscarGuia(logado, new FontesFalsas(), new CertidoesFalsas()).execute(
+      "123",
+    );
 
     expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
   });
 
   it("exige sessão", async () => {
-    const r = await new BuscarGuia(deslogado, new FontesFalsas()).execute(CNPJ);
+    const r = await new BuscarGuia(deslogado, new FontesFalsas(), new CertidoesFalsas()).execute(
+      CNPJ,
+    );
 
     expect(!r.ok && r.error.code).toBe("FORBIDDEN");
   });

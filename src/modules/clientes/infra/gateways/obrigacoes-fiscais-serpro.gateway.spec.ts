@@ -112,26 +112,18 @@ describe("ObrigacoesFiscaisSerproGateway", () => {
 
   it("falhas viram ServicoExternoError sem lançar", async () => {
     const { gw: autenticacao } = gateway({ status: 403, corpo: "" });
-    const { gw: rede } = new Array(1)
-      .fill(0)
-      .map(() => ({
-        gw: new ObrigacoesFiscaisSerproGateway(
-          CRED,
-          jest.fn().mockRejectedValue(new Error("x")),
-          AGORA,
-        ),
-      }))[0];
+    const { gw: rede } = new Array(1).fill(0).map(() => ({
+      gw: new ObrigacoesFiscaisSerproGateway(
+        CRED,
+        jest.fn().mockRejectedValue(new Error("x")),
+        AGORA,
+      ),
+    }))[0];
     const { gw: formato } = gateway(token, envelope({ inesperado: true }));
 
     for (const gw of [autenticacao, rede, formato]) {
       const r = await gw.buscarDas(CLIENTE);
       expect(!r.ok && r.error.code).toBe("EXTERNAL_SERVICE_ERROR");
     }
-  });
-
-  it("CND ainda não disponível é erro tratado", async () => {
-    const { gw } = gateway();
-    const r = await gw.buscarCnd(CLIENTE);
-    expect(!r.ok && r.error.code).toBe("EXTERNAL_SERVICE_ERROR");
   });
 });

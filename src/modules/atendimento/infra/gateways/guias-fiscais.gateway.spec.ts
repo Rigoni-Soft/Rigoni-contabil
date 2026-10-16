@@ -11,7 +11,6 @@ function montar(autorizacao: "vigente" | "vencida" | "falha" = "vigente") {
   const obrigacoes: ObrigacoesFiscais = {
     buscarDas: async (c) => (consultados.push(`das:${c}`), ok(PDF)),
     buscarGuiaParcelamento: async (c) => (consultados.push(`parcelamento:${c}`), ok(PDF)),
-    buscarCnd: async (c) => (consultados.push(`cnd:${c}`), ok(PDF)),
     consultarAutorizacao: async () =>
       autorizacao === "falha"
         ? err(new ServicoExternoError("fora do ar"))
@@ -21,7 +20,12 @@ function montar(autorizacao: "vigente" | "vencida" | "falha" = "vigente") {
     cnpjDoCliente: async (id: string) =>
       id === "c1" ? ok("11222333000181") : err(new ServicoExternoError("sem cliente")),
   };
-  return { consultados, guias: new GuiasFiscaisGateway(clientes, obrigacoes) };
+  return {
+    consultados,
+    guias: new GuiasFiscaisGateway(clientes, obrigacoes, {
+      buscarCnd: async (c) => (consultados.push(`cnd:${c}`), ok(PDF)),
+    }),
+  };
 }
 
 describe("GuiasFiscaisGateway", () => {
