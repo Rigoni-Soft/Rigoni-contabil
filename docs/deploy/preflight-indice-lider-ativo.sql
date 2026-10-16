@@ -1,5 +1,5 @@
 -- Preflight SOMENTE LEITURA da migration 20261005090000_alterar_papel_usuario.sql
--- (devolutiva técnica PR #75, ponto E). Rode no Supabase da Rigoni ANTES do deploy.
+-- Rode no Supabase da Rigoni ANTES do deploy.
 -- Nada aqui altera ou apaga dado.
 --
 -- 1) Setores com mais de um Líder ativo: o CREATE UNIQUE INDEX

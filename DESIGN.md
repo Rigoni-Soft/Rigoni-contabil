@@ -38,7 +38,7 @@ com a preferência de SO do visitante.
 | `input` | `#7a7765` | `#857d66` | contorno de campo, select, textarea, botão outline e painel de emoji: ≥3:1 sobre `background` e `card` nos dois temas (WCAG 1.4.11) |
 | `overlay` | `#0f0e0c` a 70% | `#16231f` a 55% | véu atrás de diálogos nativos (`popover`: imagem ampliada, prévia de documento) — tinta de cada tema, não preto puro; só escurece o fundo, não carrega texto |
 
-**Dark "leve" (revisão de 28/09/2026, duas rodadas):** a paleta dark original
+**Dark "leve":** a paleta dark original
 (`background` `#0c1512`, luminância relativa ~0,6%) lia como sombria demais —
 pedido do usuário foi uma dark mais leve/suave, na mesma identidade da light.
 
@@ -187,7 +187,7 @@ sem precisar de classe.
   reimplementar as classes do ghost/sm à mão. Qualquer link estilizado como
   botão reusa `buttonVariants` em vez de duplicar classes.
 
-  **Rótulo de ação oculto abaixo de `lg` (revisão de 28/09/2026, #32; subiu de `sm` para `lg` em
+  **Rótulo de ação oculto abaixo de `lg` (#32; subiu de `sm` para `lg` em
   13/10/2026, quando a sonda de reflow mostrou rolagem horizontal do Admin a 320 e 768 px;
   abaixo de `lg` a identidade e as ações também empilham em duas linhas):** os
   links de ação do `ShellHeader` (hoje "Cadastrar Líder"/"Cadastrar

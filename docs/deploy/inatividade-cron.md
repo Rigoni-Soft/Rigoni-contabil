@@ -2,7 +2,7 @@
 
 Rota: `GET|POST /api/jobs/inatividade`, agendada em `vercel.json` (`*/5 * * * *`).
 
-## Gate de ativação (devolutiva da PR #83, B1)
+## Gate de ativação
 
 Autenticar (`Authorization: Bearer $CRON_SECRET`) **não** autoriza executar. O job só lê e altera
 Atendimentos com `INATIVIDADE_AUTOMATICA=ligada`; desligada (padrão), a rota responde
@@ -39,7 +39,7 @@ Antes de ligar em produção:
   a resposta que chega primeiro cancela, e a que chega depois não é anexada ao encerrado.
 - **Histórico durável:** a mensagem final da URA entra no histórico na transação que fecha;
   `encerramento_pendente` guarda a entrega, e o job reenvia mesmo com o Atendimento encerrado.
-- **Reenvio exclusivo (devolutiva 2, B5):** a mensagem final pendente é *reivindicada*
+- **Reenvio exclusivo:** a mensagem final pendente é *reivindicada*
   (`reivindicar_encerramentos_pendentes`, `for update skip locked` + lease de 10 min em
   `encerramento_reivindicado_em`); dois jobs simultâneos não enviam a mesma. Envio que falha
   libera a reivindicação; job que cai a deixa vencer o lease. Quem encerra já nasce com a

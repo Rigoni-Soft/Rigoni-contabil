@@ -130,6 +130,11 @@ Premissas:
 Valem para todo o projeto. Os detalhes de cada um ficam na `constitution.md`; aqui está o que muda na prática da arquitetura.
 
 - **Clean Code:** nomes que revelam intenção, funções pequenas, sem comentário que explique código confuso (reescreva o código).
+- **Referências a ticket, PR e revisão:**
+  - Comentário de código só registra o porquê não óbvio. Nada de `#NN`, PR, devolutiva, revisão, "feedback de teste" ou data de revisão: quem quiser a história usa o git e o issue tracker. Única exceção: `TODO(#NN)`, em que o número é a rastreabilidade da pendência.
+  - Docs vivos (`arquitetura.md`, `testes.md`, `DESIGN.md`, `CONTEXT.md`, `PRODUCT.md`, `docs/deploy/`) escrevem a regra e o porquê, não o histórico de revisão. `#NN` curto de issue é aceito como ponteiro para a spec; `PR #NN`, "devolutiva" e códigos de achado (B1, R85-01) não.
+  - ADRs (`docs/adr/`) e migrations já aplicadas são registro histórico: podem citar a PR e a devolutiva de onde a decisão saiu, e não se reescrevem só por isso.
+  - Títulos de `describe`/`it` podem carregar `#NN`; o grep de limpeza ignora strings.
 - **SOLID:** uma responsabilidade por classe; dependa de abstrações (portas), nunca de implementações; extensão por novas implementações de porta, não por `if` em código existente.
 - **DRY, KISS, YAGNI:** sem abstração antes da segunda repetição real; sem camada vazia. Uma feature de leitura trivial não ganha entidade nem builder só para "cumprir o padrão" (ver read models na seção 3.6).
 - **Object Calisthenics** (rigor em `domain` e `application`; na `presentation` valem as regras 1, 2, 5, 6 e 7):
@@ -350,7 +355,7 @@ export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: ErrorD
 - **Realtime também passa pela `infra`.** Um caso de uso `ObservarXxx` (porta IN, devolve uma função de cancelamento) usa uma porta OUT `XxxMudancasPort`, implementada em `infra/realtime/` sobre o canal do Supabase. A composição roda em `main/client/`, e o ViewModel a consome em `<tela>.realtime.ts`, que alimenta o React Query com `setQueryData`. `infra/realtime/` e `main/client/` não importam nada `server-only`; a assinatura roda com a sessão do usuário, então a RLS continua valendo. O que sai da porta são Output DTOs, nunca linhas cruas do banco.
 - **Exceção: autenticação.** O cliente Supabase do navegador (`createBrowserClient`) existe só em `presentation/auth/`, para o que apenas o navegador consegue fazer (fluxos OAuth, magic link, escuta de mudança de sessão). Login e logout por e-mail e senha, e todo o resto, acontecem por Server Action + `SessaoPort`. Nenhuma consulta de dados passa por esse cliente.
 - Consultas de busca são um módulo à parte (`busca.md`).
-- **Redefinir uma função `SECURITY DEFINER` usada por RLS de vários módulos** (ex.: `meu_setor()`, `meu_papel()`) exige `DROP FUNCTION` antes de recriar com assinatura diferente — e o Postgres recusa o drop se qualquer policy já criada até aquele ponto da sequência de migrations ainda a referencia. Timestampe a migration para rodar **antes** de qualquer migration futura que passe a depender dela, em vez de a migration tentar prever e recriar RLS de módulos que ainda não existem (lição da devolutiva técnica da PR #60, ajuste 04).
+- **Redefinir uma função `SECURITY DEFINER` usada por RLS de vários módulos** (ex.: `meu_setor()`, `meu_papel()`) exige `DROP FUNCTION` antes de recriar com assinatura diferente — e o Postgres recusa o drop se qualquer policy já criada até aquele ponto da sequência de migrations ainda a referencia. Timestampe a migration para rodar **antes** de qualquer migration futura que passe a depender dela, em vez de a migration tentar prever e recriar RLS de módulos que ainda não existem.
 
 ### 3.10 `main` (injeção de dependências)
 
@@ -432,9 +437,9 @@ As decisões de acesso estão aqui e nos ADRs 0001, 0002 e 0005. As que a estrut
 - Nenhuma Server Action sem validação de input e sem checagem de sessão.
 - Nenhum dado por usuário, papel ou filial em cache compartilhado (seção 6.3).
 - RLS ativa em toda tabela exposta, **e o `anon` sem privilégio nenhum no schema `public`**: o sistema não tem acesso anônimo (o login usa a API de Auth, que não toca nas tabelas). As policies são `to authenticated`; `authenticated` não tem `TRUNCATE`, `REFERENCES` nem `TRIGGER` (o RLS não cobre `TRUNCATE`); RPCs e helpers não são executáveis por `anon`/`PUBLIC`. Objetos novos herdam isso por `alter default privileges`. A suíte `privilegios-anon.repository.test.ts` falha se alguma tabela ou RPC voltar a responder ao `anon`.
-- **View de leitura exposta a `authenticated`**: `grant select` não remove os INSERT/UPDATE/DELETE que o Supabase concede por default privileges, e uma view simples é atualizável com os privilégios do dono. Sempre `revoke all ... from public, anon, authenticated` antes do `grant select`, e teste negativo pela Data API (devolutiva técnica da PR #69, B1).
-- **Toda escrita autorizada numa tabela de negócio auditada gera o evento no próprio banco**, na mesma transação (gatilho `AFTER`), seja pela RPC ou por DML direto da Data API; uma transação grava um só evento por agregado (variável local `app.cliente_auditado`). Regras de domínio que a RPC aplica (mês corrente, Regime) também valem em gatilho `BEFORE`, senão a Data API as contorna (devolutiva técnica da PR #69, B2/I1/I2).
-- Tabela de log/trilha imutável (ex.: auditoria): sem policy de INSERT liberada ao cliente, mesmo restrita ao próprio `auth.uid()` — a única escrita é por função `SECURITY DEFINER` que decide ator e timestamp no próprio banco, nunca a partir do que o chamador envia (devolutiva técnica da PR #60, bloqueador 01).
+- **View de leitura exposta a `authenticated`**: `grant select` não remove os INSERT/UPDATE/DELETE que o Supabase concede por default privileges, e uma view simples é atualizável com os privilégios do dono. Sempre `revoke all ... from public, anon, authenticated` antes do `grant select`, e teste negativo pela Data API.
+- **Toda escrita autorizada numa tabela de negócio auditada gera o evento no próprio banco**, na mesma transação (gatilho `AFTER`), seja pela RPC ou por DML direto da Data API; uma transação grava um só evento por agregado (variável local `app.cliente_auditado`). Regras de domínio que a RPC aplica (mês corrente, Regime) também valem em gatilho `BEFORE`, senão a Data API as contorna.
+- Tabela de log/trilha imutável (ex.: auditoria): sem policy de INSERT liberada ao cliente, mesmo restrita ao próprio `auth.uid()` — a única escrita é por função `SECURITY DEFINER` que decide ator e timestamp no próprio banco, nunca a partir do que o chamador envia.
 
 ---
 

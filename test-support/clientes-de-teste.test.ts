@@ -1,5 +1,5 @@
 /**
- * Prova de segurança de dados da limpeza das suítes de integração (devolutiva da PR #77, B1): ela
+ * Prova de segurança de dados da limpeza das suítes de integração: ela
  * apaga só os CNPJs que recebe, nunca um Cliente que não é da suíte. Requer Supabase local.
  */
 import { createClient } from "@supabase/supabase-js";

@@ -168,7 +168,6 @@ input[type="radio"] {
   }
 }
 
-/* Cartão do dock de Atendimentos: sobe e aparece. Só roda com `motion-safe:`. */
 /* Só atrasa: invisível no primeiro quarto de segundo, sem movimento. Navegação rápida não pisca. */
 @keyframes carregando-entrada {
   from {
@@ -176,6 +175,7 @@ input[type="radio"] {
   }
 }
 
+/* Cartão do dock de Atendimentos: sobe e aparece. Só roda com `motion-safe:`. */
 @keyframes dock-entrada {
   from {
     opacity: 0;
