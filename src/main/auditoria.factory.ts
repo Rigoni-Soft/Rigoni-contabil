@@ -27,9 +27,9 @@ function sessaoViaUsuarios(supabase: SupabaseClient): SessaoPort {
 }
 
 // Client service_role, não o da sessão do usuário: a RPC registrar_acao_auditoria só aceita
-// service_role (migration 20260924190000_usuarios_e_auditoria.sql), justamente pra um usuário comum não conseguir chamá-la
-// direto e fabricar eventos. Mesmo padrão do SupabaseAuthAdminGateway (ADR 0001): privilégio
-// elevado confinado a um único ponto.
+// service_role (migration 20260924190000_usuarios_e_auditoria.sql), justamente pra um usuário comum
+// não conseguir chamá-la direto e fabricar eventos. Mesmo padrão do SupabaseAuthAdminGateway
+// (ADR 0001): privilégio elevado confinado a um único ponto.
 export async function makeRegistrarAcao(): Promise<RegistrarAcaoPort> {
   return new RegistrarAcao(new SupabaseRegistroAcaoRepository(createSupabaseAdmin()));
 }
