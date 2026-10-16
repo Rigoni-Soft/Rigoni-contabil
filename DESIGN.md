@@ -36,6 +36,7 @@ com a preferência de SO do visitante.
 | `success` / `success-foreground` | `#d9bd7c` / `#2a1f0c` | `#96742f` / `#2a1f0c` | selo dourado "em dia" — reservado especificamente para as telas de status do Simples Nacional (#35–#37); não usar para resultado sucesso/falha genérico (isso é `primary`/`destructive`, ver Componentes → Indicadores de estado). Só em traço/ícone: no claro tem 3,8:1 sobre `background`, abaixo dos 4,5:1 de texto |
 | `border` / `ring` | `#47453e` | tons de contorno derivados do verde | bordas decorativas, foco |
 | `input` | `#7a7765` | `#857d66` | contorno de campo, select, textarea, botão outline e painel de emoji: ≥3:1 sobre `background` e `card` nos dois temas (WCAG 1.4.11); revisão de 15/10/2026 |
+| `overlay` | `#0f0e0c` a 70% | `#16231f` a 55% | véu atrás de diálogos nativos (`popover`: imagem ampliada, prévia de documento) — tinta de cada tema, não preto puro; só escurece o fundo, não carrega texto |
 
 **Dark "leve" (revisão de 28/09/2026, duas rodadas):** a paleta dark original
 (`background` `#0c1512`, luminância relativa ~0,6%) lia como sombria demais —
@@ -708,13 +709,16 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   que abre num diálogo nativo (`popover`): faixa própria no topo com "Baixar" e
   "Fechar imagem" (44 px cada, fora da foto, que fica com teto `90dvh − 5rem`), e a
   imagem ampliada com `alt=""` porque o diálogo já se chama "Imagem ampliada: nome".
-  O véu `bg-black/60` é neutro nos dois temas. Arquivo é uma linha com ícone, nome
+  O véu é o token `overlay` (`backdrop:bg-overlay`). Arquivo é uma linha com ícone, nome
   (trunca, `title` com o inteiro), tamanho e as ações "Visualizar" e "Baixar":
   PDF e TXT abrem numa aba; Word e Excel abrem num painel `popover` com a prévia
   lida no navegador (Word num iframe `sandbox=""`; planilha como tabela com o nome
   em `caption` e no máximo 500 linhas, "Mostrando as primeiras N linhas"). O Word
-  fica em fundo branco nos dois temas, de propósito: é papel, a única superfície
-  fora dos tokens além do véu. Carregando é `role="status"`; falha diz para fechar e
+  fica em fundo branco (`#fff`) nos dois temas, de propósito: é papel, a única
+  superfície fora dos tokens. Como o iframe é `sandbox=""` e não herda o CSS da
+  página, o documento leva um estilo próprio (`system-ui` 15px, texto `#1c1917`,
+  bordas de tabela `#d6d3d1`): exceção consciente à regra de Roboto única, porque
+  o conteúdo é do cliente e não faz parte da interface. Carregando é `role="status"`; falha diz para fechar e
   usar Baixar; planilha ou documento sem conteúdo têm aviso próprio; a leitura tem
   teto de 30 s e um clique repetido não baixa duas vezes. Arquivo de áudio não
   tem "Baixar": só o player. Arrastar um arquivo sobre a conversa acende a moldura

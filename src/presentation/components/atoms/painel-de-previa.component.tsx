@@ -40,7 +40,7 @@ export function PainelDePrevia({ nome, painelId, estado, previa, aoAbrir }: Pain
         popover="auto"
         role="dialog"
         aria-label={`Visualização de ${nome}`}
-        className="m-auto h-[85dvh] w-[min(92vw,64rem)] flex-col overflow-hidden rounded-xl border border-border bg-background p-0 text-foreground backdrop:bg-black/60 [&:popover-open]:flex"
+        className="m-auto h-[85dvh] w-[min(92vw,64rem)] flex-col overflow-hidden rounded-xl border border-border bg-background p-0 text-foreground backdrop:bg-overlay [&:popover-open]:flex"
       >
         <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-1">
           <p className="truncate text-sm font-medium" title={nome}>

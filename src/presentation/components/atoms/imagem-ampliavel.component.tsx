@@ -45,7 +45,7 @@ export function ImagemAmpliavel({
         popover="auto"
         role="dialog"
         aria-label={`Imagem ampliada: ${alt}`}
-        className="m-auto max-h-[90dvh] max-w-[min(90vw,64rem)] min-w-[min(90vw,16rem)] overflow-visible rounded-xl border border-border bg-background p-2 backdrop:bg-black/60"
+        className="m-auto max-h-[90dvh] max-w-[min(90vw,64rem)] min-w-[min(90vw,16rem)] overflow-visible rounded-xl border border-border bg-background p-2 backdrop:bg-overlay"
       >
         {/* Ações numa faixa própria: sobre a foto cobririam justamente o que se quer ver. */}
         <div className="mb-2 flex items-center justify-end gap-2">
