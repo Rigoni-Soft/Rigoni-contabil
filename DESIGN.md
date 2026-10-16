@@ -803,6 +803,7 @@ ou o cliente escreve de novo.
   leitor de tela, ao contrário de um `<p>` mudo).
 - Alvos de toque: em aparelho de toque (`pointer-coarse:h-11`, inclusive no `Button` `sm`; `pointer-coarse:min-h-11` no "Voltar" e nas abas do shell) os controles do
   painel de ações sobem para 44 px.
+  Com mouse o piso é de 24 px (WCAG 2.5.8): o "Voltar" tem `min-h-6`.
 - Entrada do cartão do dock de Atendimentos: `motion-safe:animate-dock-entrada`.
   O estado (destaque, prévia, "nova mensagem") não depende da animação nem do
   som: quem pediu movimento reduzido ou está sem som perde só o enfeite.
