@@ -35,7 +35,7 @@ com a preferência de SO do visitante.
 | `destructive` / `destructive-foreground` | `#e0968c` / `#2a0f0c` | `#7a2b2b` / `#f4f1e8` | erro/atenção — sempre com ícone, nunca só cor; também estado "falha" em listas/feeds |
 | `success` / `success-foreground` | `#d9bd7c` / `#2a1f0c` | `#96742f` / `#2a1f0c` | selo dourado "em dia" — reservado especificamente para as telas de status do Simples Nacional (#35–#37); não usar para resultado sucesso/falha genérico (isso é `primary`/`destructive`, ver Componentes → Indicadores de estado). Só em traço/ícone: no claro tem 3,8:1 sobre `background`, abaixo dos 4,5:1 de texto |
 | `border` / `ring` | `#47453e` | tons de contorno derivados do verde | bordas decorativas, foco |
-| `input` | `#7a7765` | `#857d66` | contorno de campo, select, textarea, botão outline e painel de emoji: ≥3:1 sobre `background` e `card` nos dois temas (WCAG 1.4.11); revisão de 15/10/2026 |
+| `input` | `#7a7765` | `#857d66` | contorno de campo, select, textarea, botão outline e painel de emoji: ≥3:1 sobre `background` e `card` nos dois temas (WCAG 1.4.11) |
 | `overlay` | `#0f0e0c` a 70% | `#16231f` a 55% | véu atrás de diálogos nativos (`popover`: imagem ampliada, prévia de documento) — tinta de cada tema, não preto puro; só escurece o fundo, não carrega texto |
 
 **Dark "leve" (revisão de 28/09/2026, duas rodadas):** a paleta dark original
@@ -92,9 +92,8 @@ Qualquer outro painel de cliente futuro reusa a mesma moldura em vez de um
 Telas Operate autenticadas (`ShellHeader` + conteúdo) usam um container
 centralizado com padding lateral (`px-4 sm:px-6`); a largura é relativa à
 tela (`%`, não `max-w-*` fixo), definida pela categoria da tela, não um
-valor único fixo do produto (decisão revisada em 2026-10-01, feedback
-manual do #36 — `max-w-*` fixo deixava a tela "sobrando" em monitores
-largos, abaixo do que o usuário queria ver ocupado):
+valor único fixo do produto (decisão revisada em 2026-10-01: `max-w-*` fixo deixava a tela "sobrando"
+em monitores largos):
 
 - **Login e troca de senha**: ficam de fora da regra — `max-w-sm`/`max-w-md`,
   conteúdo único centralizado, por serem telas de entrada/bloqueio, não de
@@ -233,11 +232,10 @@ sem precisar de classe.
   sempre tem rótulo visível emparelhado por `htmlFor`/`id`. Corrigido na
   revisão impeccable: todo campo de arquivo usa `Label htmlFor` + `Input id`
   como qualquer outro campo, sem depender só de `aria-label`. **Superado
-  pelo `atoms/file-input.component.tsx` abaixo** (feedback manual do usuário, mesma data) —
+  pelo `atoms/file-input.component.tsx` abaixo** —
   o contrato de `Label htmlFor`/`id` continua valendo, só o controle em si
   deixou de ser um `<input type="file">` nu.
-- `atoms/file-input.component.tsx` (29/09/2026, #33, feedback manual do usuário — "o layout
-  está muito simples"): `<input type="file">` nativo não aceita ser
+- `atoms/file-input.component.tsx` (29/09/2026, #33): `<input type="file">` nativo não aceita ser
   estilizado diretamente ("Choose File / No file chosen" do navegador era o
   único controle do produto fora do sistema de design). Substituído por um
   `<label>` do tamanho de `input.tsx`/`select.tsx` (44px, borda, raio, cores
@@ -358,7 +356,7 @@ sem alteração — `Button` primário "Cadastrar outro" (ícone `UserPlus`,
 limpa o formulário e reseta a lista de alterações contratuais) e `<Link>`
 "Finalizar" pra `/`, mesma justificativa provisória do destino.
 
-**Largura compacta (feedback de teste manual do #36):** depois que o
+**Largura compacta (#36):** depois que o
 container da página virou `w-[80%]`/`w-[90%]` (#36, seção Layout), a
 confirmação de cadastro (senha provisória, ou só o aviso de sucesso) parou
 de fazer sentido esticada pra largura inteira — vira uma caixa pequena,
@@ -366,7 +364,7 @@ de fazer sentido esticada pra largura inteira — vira uma caixa pequena,
 em bloco mono) ou `max-w-sm mx-auto` (cadastro de Cliente, só uma linha de
 texto), cada uma só um pouco mais larga que os dois botões lado a lado.
 
-### Formulários de criar: campos lado a lado (#36, feedback de teste manual)
+### Formulários de criar: campos lado a lado (#36)
 
 Com o container da página em `w-[80%]` (seção Layout acima), empilhar cada
 campo numa linha própria (`flex flex-col gap-5`) deixa o formulário raso e
@@ -414,7 +412,7 @@ qualquer lista dinâmica de campos, não só o par data+arquivo do #33.
 
 ### Campo obrigatório e máscara de entrada
 
-**`RequiredMark` (29/09/2026, #33, feedback manual do usuário):** asterisco
+**`RequiredMark` (29/09/2026, #33):** asterisco
 `text-destructive` depois do texto do `Label`, com `aria-hidden="true"` —
 fica fora do nome acessível do campo de propósito (screen readers já
 anunciam "obrigatório" via `aria-required="true"` no próprio input, não
@@ -451,7 +449,7 @@ formato/checksum no domínio ou no schema.
 
 ### Ações do formulário (Salvar/Limpar/Cancelar)
 
-**#34, feedback manual do usuário:** formulário de edição (não de cadastro
+**#34:** formulário de edição (não de cadastro
 em lote, ver "Ações pós-sucesso" acima) ganha três ações lado a lado, só em
 modo edição (nenhuma aparece em modo somente-leitura, já que não há o que
 salvar/desfazer/cancelar): `Button` primário "Salvar"; `Button`
@@ -475,8 +473,7 @@ em `/clientes/[id]`), continua `<Link href="/">`.
 
 ### Autopreenchimento a partir de API pública
 
-**CNPJ → Empresa/Regime via BrasilAPI (29/09/2026, #33, feedback manual do
-usuário):** ao perder o foco de um campo que serve de chave pra uma consulta
+**CNPJ → Empresa/Regime via BrasilAPI (29/09/2026, #33):** ao perder o foco de um campo que serve de chave pra uma consulta
 externa, autopreencher os campos derivados sem nunca sobrescrever o que o
 usuário já digitou à mão (checagem `!getValues(campo)` antes de cada
 `setValue`). Três desfechos possíveis, cada um com tratamento explícito:
@@ -668,13 +665,13 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   mensagem nova. Rolar para cima para ler o histórico não é puxado de volta
   quando chega mensagem nova. Balões sem sombra; a hora do balão do
   Funcionário usa `opacity-90` (contraste ≥ 4,5:1 nos dois temas).
-- **Histórico anterior** (R85-05): a conversa carrega só as mensagens mais recentes;
+- **Histórico anterior**: a conversa carrega só as mensagens mais recentes;
   "Ver mensagens anteriores" (`BotaoDeLink`, 44 px, sublinhado) fica no topo da lista,
   vira "Carregando…" enquanto busca e some quando não há mais. A falha aparece como
   `AvisoDeStatus` de erro logo abaixo do botão, sem derrubar o que já está na tela. O
   histórico aberto continua na tela quando a conversa se atualiza; uma resposta atrasada
   que não encaixa na janela atual é descartada e o botão segue disponível.
-- **Envio não confirmado** (R85-01): a mensagem do Funcionário que o provedor ainda não
+- **Envio não confirmado**: a mensagem do Funcionário que o provedor ainda não
   aceitou (ou recusou) mostra "Envio não confirmado ·" em `font-semibold` antes da hora,
   no próprio balão, sem trocar a cor dele: o texto e o anexo continuam visíveis e a
   mensagem não conta como resposta para a inatividade. O estado vem do texto, não da cor.
