@@ -150,7 +150,7 @@ describe("leitura dos pendentes", () => {
     expect(itens.find((c) => c.clienteId === pendente.id)?.contato?.telefone).toBe(`55${nacional}`);
   });
 
-  it("janela de 24h pela chave nacional: mensagem recente do contato escolhe o texto livre (R87-04)", async () => {
+  it("janela de 24h pela chave nacional: mensagem recente do contato escolhe o texto livre", async () => {
     const nacional = soDigitosNacionais(`(61) 9${sufixo.slice(0, 4)}-${sufixo.slice(4)}`);
     const criado = await ok(
       admin
@@ -235,7 +235,7 @@ describe("leitura dos pendentes", () => {
   }, 120_000);
 });
 
-describe("reserva e conclusão do envio do Parcelamento (R87-01)", () => {
+describe("reserva e conclusão do envio do Parcelamento", () => {
   it("reservar não muda o Parcelamento; a segunda reserva vigente devolve null", async () => {
     const token = await clientes.reservar(pendente.id);
 
@@ -412,7 +412,7 @@ describe("alertas por origem e por Cliente avaliado", () => {
   });
 });
 
-describe("rodada real com a reserva ocupada (R87-03.A)", () => {
+describe("rodada real com a reserva ocupada", () => {
   it("segunda rodada com a reserva vigente não resolve o alerta de falha; a retomada o resolve", async () => {
     const alvo = await criarCliente({
       telefone: `(61) 97${sufixo.slice(0, 3)}-${sufixo.slice(3, 7)}`,

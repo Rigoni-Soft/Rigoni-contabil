@@ -788,7 +788,7 @@ describe("ReceberMensagem — número não cadastrado (#43)", () => {
   });
 });
 
-describe("ReceberMensagem — mesmo número em mais de um Cliente (PR #76, B2)", () => {
+describe("ReceberMensagem — mesmo número em mais de um Cliente", () => {
   it.each(["oi", "1", "menu", "3"])(
     "'%s' vai pra recepção, sem menu nem documento, mesmo havendo contratos",
     async (texto) => {
@@ -813,7 +813,7 @@ describe("ReceberMensagem — mesmo número em mais de um Cliente (PR #76, B2)",
   );
 });
 
-describe("ReceberMensagem — lista de alterações mudou com a sessão aberta (PR #76, I2)", () => {
+describe("ReceberMensagem — lista de alterações mudou com a sessão aberta", () => {
   it.each([
     ["uma alteração é incluída", (docs: DocumentoContratual[]) => docs.push(alteracoes(4)[3])],
     ["uma alteração é excluída", (docs: DocumentoContratual[]) => docs.splice(0, 1)],

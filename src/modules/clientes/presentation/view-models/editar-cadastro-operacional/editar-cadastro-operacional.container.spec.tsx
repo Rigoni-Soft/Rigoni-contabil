@@ -267,7 +267,7 @@ describe("EditarCadastroOperacionalContainer", () => {
     );
   });
 
-  it("Promise rejeitada da Server Action não prende o botão em 'Salvando...' (PR #69, ponto 6)", async () => {
+  it("Promise rejeitada da Server Action não prende o botão em 'Salvando...'", async () => {
     executeMock.mockRejectedValue(new Error("falha de rede"));
     const usuario = userEvent.setup();
     render(<EditarCadastroOperacionalContainer dados={dados} readOnly={false} />);

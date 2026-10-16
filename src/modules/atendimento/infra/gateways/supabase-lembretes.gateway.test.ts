@@ -193,7 +193,7 @@ afterAll(async () => {
   expect(erros).toEqual([]);
 });
 
-describe("leitura dos Clientes e janela de 24h (R87-04)", () => {
+describe("leitura dos Clientes e janela de 24h", () => {
   it("telefone de envio com DDI e sem mensagem do contato: janela fechada, template", async () => {
     const c = await doLista(principal.id);
 
@@ -255,7 +255,7 @@ describe("leitura dos Clientes e janela de 24h (R87-04)", () => {
   });
 });
 
-describe("reserva e conclusão do envio do DAS (R87-01)", () => {
+describe("reserva e conclusão do envio do DAS", () => {
   async function recolocarPronto(id: string) {
     await ok(
       admin
@@ -420,7 +420,7 @@ describe("reserva e conclusão do envio do DAS (R87-01)", () => {
   });
 });
 
-describe("leitura completa por páginas (R87-03)", () => {
+describe("leitura completa por páginas", () => {
   it("1.001 Clientes além do teto do PostgREST: todos aparecem, uma vez, em ordem de cliente_id", async () => {
     const lote: Fixture[] = [];
     for (let i = 0; i < 1001; i += 1) {
@@ -510,7 +510,7 @@ describe("alertas do setor", () => {
   });
 });
 
-describe("rodada real com a reserva ocupada (R87-03.A)", () => {
+describe("rodada real com a reserva ocupada", () => {
   it("segunda rodada com a reserva vigente não resolve o alerta de falha do DAS, mesmo com o lembrete enviado", async () => {
     const alvo = await criarCliente(`(11) 97${sufixo.slice(0, 3)}-${sufixo.slice(3, 7)}`);
     // Só o Cliente do teste participa da rodada (o banco local pode ter outros).

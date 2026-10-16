@@ -134,7 +134,7 @@ describe("Login", () => {
     expect(sessao.encerrada).toBe(true);
   });
 
-  it("encerra a sessão e devolve erro sem mencionar 'sem perfil cadastrado' quando buscarPorId falha por erro técnico (devolutiva #55, pontos 01 e 02)", async () => {
+  it("encerra a sessão e devolve erro sem mencionar 'sem perfil cadastrado' quando buscarPorId falha por erro técnico", async () => {
     const sessao = new SessaoFalsa();
     const repositorio = new UsuarioRepositoryFalso();
     repositorio.erroTecnico = new ForbiddenError("Falha ao buscar perfil: conexão recusada");

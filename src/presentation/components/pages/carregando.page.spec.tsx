@@ -7,5 +7,6 @@ describe("CarregandoPage", () => {
     render(<CarregandoPage />);
 
     expect(screen.getByRole("status")).toHaveTextContent("Carregando…");
+    expect(screen.getByRole("main")).toContainElement(screen.getByRole("status"));
   });
 });

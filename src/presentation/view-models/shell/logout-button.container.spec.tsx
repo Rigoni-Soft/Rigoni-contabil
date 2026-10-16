@@ -13,7 +13,7 @@ describe("LogoutButtonContainer", () => {
     logoutActionMock.mockReset();
   });
 
-  it("mostra aviso visível quando encerrar a sessão falha, sem confirmar saída (devolutiva #55, ponto 04)", async () => {
+  it("mostra aviso visível quando encerrar a sessão falha, sem confirmar saída", async () => {
     logoutActionMock.mockResolvedValue({ erro: "Não foi possível sair. Tente novamente." });
     const usuario = userEvent.setup();
     render(<LogoutButtonContainer />);

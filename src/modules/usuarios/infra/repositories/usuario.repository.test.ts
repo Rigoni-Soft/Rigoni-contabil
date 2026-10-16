@@ -124,7 +124,7 @@ describe("SupabaseUsuarioRepository (integração)", () => {
     expect(resultado).toEqual({ ok: true, value: null });
   });
 
-  it("devolve erro (não ausência) quando o Postgres rejeita a consulta, ex.: id malformado (devolutiva #55, ponto 02)", async () => {
+  it("devolve erro (não ausência) quando o Postgres rejeita a consulta, ex.: id malformado", async () => {
     const supabase = await comoAdmin();
     const repositorio = new SupabaseUsuarioRepository(supabase);
 
@@ -224,7 +224,7 @@ describe("SupabaseUsuarioRepository (integração)", () => {
 
   // INSERT direto via Data API (sem passar pelo caso de uso), provando que a policy
   // perfis_insert_lider_proprio_setor nega no Postgres o que o CriarUsuario já nega na aplicação.
-  describe("Líder insere perfil direto na Data API (RLS: perfis_insert_lider_proprio_setor, devolutiva PR #63)", () => {
+  describe("Líder insere perfil direto na Data API (RLS: perfis_insert_lider_proprio_setor)", () => {
     async function inserirComoLiderContabil(papel: string, setor: string) {
       const { id, email } = await criarContaAuthDeTeste();
       const supabase = await comoLiderContabil();
@@ -252,7 +252,7 @@ describe("SupabaseUsuarioRepository (integração)", () => {
     });
   });
 
-  describe("senha provisória vencida (RLS: meu_papel()/meu_setor() endurecidos, devolutiva PR #62 bloqueio 2)", () => {
+  describe("senha provisória vencida (RLS: meu_papel()/meu_setor() endurecidos)", () => {
     it("papel 'admin' com senha vencida perde o bypass de admin (meu_papel() devolve NULL)", async () => {
       const { email, senha } = await criarContaComSenhaVencida("admin", "administrativo");
       const supabase = await clienteAutenticado(email, senha);

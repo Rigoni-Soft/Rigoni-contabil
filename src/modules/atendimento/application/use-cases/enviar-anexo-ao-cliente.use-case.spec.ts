@@ -480,7 +480,7 @@ describe("EnviarAnexoAoCliente", () => {
   describe("arquivo já guardado pelo navegador (upload em partes)", () => {
     const GUARDADO = { caminho: "at-1/u-1/gravacao.ogg", nome: "gravacao.ogg" };
 
-    it("imagem de até 10 MB subida em partes mantém a legenda e a miniatura (R85-04)", async () => {
+    it("imagem de até 10 MB subida em partes mantém a legenda e a miniatura", async () => {
       const { caso, guardados, enviados, registradas } = montar({
         objeto: { tipoMime: "image/png", tamanho: 9 * 1024 * 1024 },
       });
@@ -515,7 +515,7 @@ describe("EnviarAnexoAoCliente", () => {
       ]);
     });
 
-    describe("posse e consumo do objeto (R85-03)", () => {
+    describe("posse e consumo do objeto", () => {
       const NO_STORAGE = { tipoMime: "audio/ogg", tamanho: 3000 };
 
       it("repetir a finalização de um objeto já consumido é recusado SEM remover o arquivo do histórico", async () => {

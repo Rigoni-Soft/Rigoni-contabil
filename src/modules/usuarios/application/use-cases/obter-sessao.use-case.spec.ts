@@ -78,7 +78,7 @@ describe("ObterSessao", () => {
     expect(resultado?.setor).toBe("simples_nacional");
   });
 
-  it("devolve null (sem lançar) quando buscarPorId falha por erro técnico (devolutiva #55, ponto 02)", async () => {
+  it("devolve null (sem lançar) quando buscarPorId falha por erro técnico", async () => {
     const sessao = new SessaoFalsa();
     sessao.id = "11111111-1111-1111-1111-111111111111" as UsuarioId;
     const repositorio = new UsuarioRepositoryFalso();

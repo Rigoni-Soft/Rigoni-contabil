@@ -110,7 +110,7 @@ describe("desativação de usuário (integração)", () => {
     expect(depois.ok && depois.value.some((u) => u.id === alvo.id)).toBe(false);
   });
 
-  it("conta desativada sem ban confirmado aparece como bloqueio pendente e sai depois de registrar o bloqueio (PR #75, ponto D)", async () => {
+  it("conta desativada sem ban confirmado aparece como bloqueio pendente e sai depois de registrar o bloqueio", async () => {
     const admin = clienteAdmin();
     const ator = await criarPerfil("admin");
     const alvo = await criarPerfil("funcionario");

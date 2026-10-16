@@ -110,7 +110,7 @@ describe("ListarRegistros", () => {
     expect(repositorio.filtroRecebido?.dataFim).toBe("2026-09-23T02:59:59.999Z");
   });
 
-  it("inclui um registro perto da meia-noite de São Paulo que cai no dia seguinte em UTC (devolutiva PR #60, bloqueador 02)", async () => {
+  it("inclui um registro perto da meia-noite de São Paulo que cai no dia seguinte em UTC", async () => {
     const sessao = new SessaoFalsa();
     const repositorio = new RegistroAcaoRepositoryFalso();
 

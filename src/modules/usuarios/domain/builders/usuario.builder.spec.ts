@@ -35,7 +35,7 @@ describe("UsuarioBuilder", () => {
     }
   });
 
-  it("rejeita quando um campo obrigatório nunca teve seu setter chamado (devolutiva #55, ponto 03)", () => {
+  it("rejeita quando um campo obrigatório nunca teve seu setter chamado", () => {
     const resultado = Usuario.builder().comId("11111111-1111-1111-1111-111111111111").build();
 
     expect(resultado.ok).toBe(false);

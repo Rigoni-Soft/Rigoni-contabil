@@ -119,7 +119,7 @@ describe("AbrirAtendimento", () => {
     expect(abertos[0].funcionarioId).toBeNull();
   });
 
-  describe("cliente mais antigo da Fila passa na frente (PR #77, B3)", () => {
+  describe("cliente mais antigo da Fila passa na frente", () => {
     const PROMOVIDO: AtendimentoAssumido = {
       id: "at-0",
       telefone: "5561977776666",

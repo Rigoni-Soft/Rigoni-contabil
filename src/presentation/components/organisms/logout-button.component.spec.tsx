@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { LogoutButton } from "./logout-button.component";
 
 describe("LogoutButton", () => {
-  it("mostra aviso visível quando erro é informado (devolutiva #55, ponto 04)", () => {
+  it("mostra aviso visível quando erro é informado", () => {
     render(<LogoutButton formAction={jest.fn()} pendente={false} erro="Não foi possível sair." />);
 
     expect(screen.getByRole("alert")).toHaveTextContent("Não foi possível sair.");

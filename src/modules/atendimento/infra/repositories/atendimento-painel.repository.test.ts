@@ -251,7 +251,7 @@ describe("SupabaseAtendimentoRepository — painel do Funcionário", () => {
     expect(error?.message).toMatch(/mensagens_anexo_completo/);
   });
 
-  it("mensagensPorId devolve só as Mensagens pedidas do Atendimento (outro id é ignorado) com anexo e entrega (R85-05.B)", async () => {
+  it("mensagensPorId devolve só as Mensagens pedidas do Atendimento (outro id é ignorado) com anexo e entrega", async () => {
     const hugo = await criarFuncionario("Hugo Painel 85");
     const id = await abrir(TELEFONES[7], hugo, null);
     const outro = await abrir(TELEFONES[8], await criarFuncionario("Ivo Painel 85"), null);

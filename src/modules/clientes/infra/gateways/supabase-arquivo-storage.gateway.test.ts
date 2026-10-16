@@ -85,7 +85,7 @@ describe("SupabaseArquivoStorageGateway (integração)", () => {
     await admin.remover([caminho]);
   });
 
-  describe("restrições do próprio bucket (PR #64, ponto 7)", () => {
+  describe("restrições do próprio bucket", () => {
     const caminho = () => `${crypto.randomUUID()}/contrato-social/doc`;
 
     it("aceita PDF e DOCX", async () => {

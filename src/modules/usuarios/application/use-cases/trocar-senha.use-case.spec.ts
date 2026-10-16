@@ -188,7 +188,7 @@ describe("TrocarSenha", () => {
     if (!resultado.ok) expect(resultado.error).toBeInstanceOf(ForbiddenError);
   });
 
-  it("propaga o erro tecnico (nao 'sem perfil cadastrado') quando buscarPorId falha (devolutiva #55, ponto 02)", async () => {
+  it("propaga o erro tecnico (nao 'sem perfil cadastrado') quando buscarPorId falha", async () => {
     const { usuarios, useCase } = montar();
     usuarios.erroTecnico = new ForbiddenError("Falha ao buscar perfil: indisponível");
 

@@ -309,7 +309,7 @@ describe("Mensagem do Funcionário × fechamento, transferência, desativação 
   });
 });
 
-describe("Entrega da Mensagem do Funcionário: pendente → entregue | falha (R85-01.B)", () => {
+describe("Entrega da Mensagem do Funcionário: pendente → entregue | falha", () => {
   const FINALIZAR = "select public.finalizar_entrega_mensagem_do_funcionario($1::uuid, $2) as r";
 
   async function entregaDe(mensagemId: string) {

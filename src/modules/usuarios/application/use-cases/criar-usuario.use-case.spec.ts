@@ -250,7 +250,7 @@ describe("CriarUsuario", () => {
     expect(usuarios.criado).toBeNull();
   });
 
-  it("propaga o erro tecnico (nao 'sem permissao') quando buscarPorId do ator falha (devolutiva #55, ponto 02)", async () => {
+  it("propaga o erro tecnico (nao 'sem permissao') quando buscarPorId do ator falha", async () => {
     const sessao = new SessaoFalsa();
     const usuarios = new UsuarioRepositoryFalso();
     usuarios.erroTecnicoAoBuscarAtor = new ForbiddenError("Falha ao buscar perfil: indisponível");

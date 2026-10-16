@@ -169,7 +169,7 @@ describe("ObterConversa", () => {
     expect(r.ok && r.value.temMaisAnteriores).toBe(true);
   });
 
-  it("o aviso de inatividade usa a última Mensagem do Funcionário, mesmo fora da janela (R85-05)", async () => {
+  it("o aviso de inatividade usa a última Mensagem do Funcionário, mesmo fora da janela", async () => {
     const aviso = { de: "funcionario" as const, em: "2026-10-08T12:05:00Z" };
     const pendente = montar(FUNCIONARIO, { ...CONVERSA, aviso, ultimaDoFuncionarioEm: null });
     const respondido = montar(FUNCIONARIO, {
@@ -396,7 +396,7 @@ describe("ObterConversa", () => {
   });
 });
 
-describe("ObterConversa.renovarLinks (R85-05.B)", () => {
+describe("ObterConversa.renovarLinks", () => {
   it("gera links novos só para as Mensagens pedidas que têm anexo, sem o caminho", async () => {
     const { caso, pedidos } = montar(FUNCIONARIO, COM_ANEXO);
 

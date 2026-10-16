@@ -393,7 +393,7 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
     expect(resolvidos.map((r) => r.ids)).toEqual([["a", "b"]]);
   });
 
-  it("reserva ocupada (resultado ainda incerto): o Cliente não entra na resolução de alertas (R87-03.A)", async () => {
+  it("reserva ocupada (resultado ainda incerto): o Cliente não entra na resolução de alertas", async () => {
     const { job, resolvidos, alertas, envio } = montar(
       [cliente({ clienteId: "ocupado" }), cliente({ clienteId: "livre" })],
       { reservarPor: { ocupado: ok(null) } },

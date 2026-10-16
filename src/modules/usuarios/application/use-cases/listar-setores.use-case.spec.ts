@@ -126,7 +126,7 @@ describe("ListarSetores", () => {
     expect(setores).toEqual([]);
   });
 
-  it("devolve lista vazia (sem lançar) quando buscarPorId falha por erro técnico (devolutiva #55, ponto 02)", async () => {
+  it("devolve lista vazia (sem lançar) quando buscarPorId falha por erro técnico", async () => {
     const sessao = new SessaoFalsa();
     const usuarios = new UsuarioRepositoryFalso();
     usuarios.erroTecnico = new ForbiddenError("Falha ao buscar perfil: conexão recusada");

@@ -97,7 +97,7 @@ describe("SupabaseClienteRepository (integração)", () => {
     expect(linha?.contrato_social_caminho).toBeNull();
   });
 
-  it("cadastro e auditoria de sucesso nascem juntos; CNPJ alfanumérico persiste (PR #64, pontos 1 e 4)", async () => {
+  it("cadastro e auditoria de sucesso nascem juntos; CNPJ alfanumérico persiste", async () => {
     const supabase = await comoAdmin();
     const repositorio = new SupabaseClienteRepository(supabase);
     const cliente = clienteValido("00000000E08G12");
@@ -123,7 +123,7 @@ describe("SupabaseClienteRepository (integração)", () => {
     ]);
   });
 
-  it("cadastro rejeitado (CNPJ duplicado) não deixa evento de sucesso: mesma transação (PR #64, ponto 4)", async () => {
+  it("cadastro rejeitado (CNPJ duplicado) não deixa evento de sucesso: mesma transação", async () => {
     const supabase = await comoAdmin();
     const repositorio = new SupabaseClienteRepository(supabase);
     const cnpj = "11222333000181";

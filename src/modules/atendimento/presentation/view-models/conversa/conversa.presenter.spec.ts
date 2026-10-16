@@ -284,7 +284,7 @@ describe("anexo na conversa", () => {
     expect(reaproveitarLinks(nova, CONVERSA, AGORA).mensagens[0].anexo?.url).toBe("https://l/novo");
   });
 });
-describe("manterHistorico (R85-05)", () => {
+describe("manterHistorico", () => {
   const msg = (id: string, criadoEm: string) => ({
     ...CONVERSA.mensagens[0],
     id,
@@ -382,7 +382,7 @@ describe("manterHistorico (R85-05)", () => {
   });
 });
 
-describe("renovação de links de anexos antigos (R85-05.B)", () => {
+describe("renovação de links de anexos antigos", () => {
   const AGORA_MS = Date.parse("2026-10-14T12:00:00Z");
   const margem = 5 * 60_000;
   const comLink = (id: string, expiraEm: string | null) => ({
@@ -466,7 +466,7 @@ describe("renovação de links de anexos antigos (R85-05.B)", () => {
   });
 });
 
-describe("página anterior atrasada (R85-05.A)", () => {
+describe("página anterior atrasada", () => {
   const msg = (id: string, criadoEm: string) => ({ ...CONVERSA.mensagens[0], id, criadoEm });
   const tela = (ids: string[], temMais = true): ConversaVista => ({
     ...CONVERSA,

@@ -122,7 +122,7 @@ describe("SupabaseClienteQueryGateway.buscarPorTermo (#35, integração)", () =>
     if (porNome.ok) expect(porNome.value.some((s) => s.id === cliente.id)).toBe(true);
   });
 
-  it("Líder do SN (não-Admin) também encontra o cliente, pela view sem contrato social (PR #69)", async () => {
+  it("Líder do SN (não-Admin) também encontra o cliente, pela view sem contrato social", async () => {
     const admin = await comoAdmin();
     const cliente = await criarClienteComContratoSocial(
       admin,
@@ -279,7 +279,7 @@ describe("SupabaseClienteQueryGateway.listarResumoOperacional (#36, integração
     if (resultado.ok) expect(resultado.value.some((l) => l.empresa === empresa)).toBe(false);
   });
 
-  it("Líder do SN (não-Admin) também lista o resumo, pela view sem contrato social (PR #69)", async () => {
+  it("Líder do SN (não-Admin) também lista o resumo, pela view sem contrato social", async () => {
     const admin = await comoAdmin();
     const cliente = await criarClienteComContratoSocial(
       admin,
@@ -307,7 +307,7 @@ describe("SupabaseClienteQueryGateway.listarResumoOperacional (#36, integração
     expect(ids).not.toContain("88888888-8888-8888-8888-888888888888");
   });
 
-  it("não lista como Responsável elegível um Funcionário do SN desativado (PR #75)", async () => {
+  it("não lista como Responsável elegível um Funcionário do SN desativado", async () => {
     const servidor = createClient(
       SUPABASE_URL,
       process.env.SUPABASE_SERVICE_ROLE_KEY ??

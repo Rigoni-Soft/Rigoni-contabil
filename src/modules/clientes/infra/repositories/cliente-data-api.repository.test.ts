@@ -125,7 +125,7 @@ const CNPJS_DA_SUITE = [
 beforeAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
 afterAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
 
-describe("Data API — confidencialidade dos documentos jurídicos (PR #69, ponto 1)", () => {
+describe("Data API — confidencialidade dos documentos jurídicos", () => {
   it("Funcionário SN e de outro Setor não leem clientes nem alterações contratuais direto; a projeção segura vale pra quem pode ver o Cliente", async () => {
     const cliente = await criarClienteComContrato("45723174000110");
     await tornarResponsavel(cliente.id, FUNCIONARIO_SN_ID);
@@ -179,7 +179,7 @@ describe("Data API — confidencialidade dos documentos jurídicos (PR #69, pont
   });
 });
 
-describe("Data API — primeiro acesso não finalizado (PR #69, ponto 2)", () => {
+describe("Data API — primeiro acesso não finalizado", () => {
   it("conta com senha provisória não lê nem edita dados de negócio; depois da troca, passa a ter o acesso normal", async () => {
     const cliente = await criarClienteComContrato("45723174000382");
     const conta = await criarContaEmPrimeiroAcesso();
@@ -219,7 +219,7 @@ describe("Data API — primeiro acesso não finalizado (PR #69, ponto 2)", () =>
   });
 });
 
-describe("Auditoria atômica da edição (PR #69, ponto 3)", () => {
+describe("Auditoria atômica da edição", () => {
   async function eventosDeEdicao(cnpj: string): Promise<number> {
     const { data, error } = await serviceRole()
       .from("registros_auditoria")
@@ -280,7 +280,7 @@ describe("Auditoria atômica da edição (PR #69, ponto 3)", () => {
   });
 });
 
-describe("Data API — revalidação da PR #69 (B1, B2, I1, I2)", () => {
+describe("Data API — revalidação (view, auditoria e gatilhos)", () => {
   const eventos = async (cnpj: string): Promise<number> => {
     const { data, error } = await serviceRole()
       .from("registros_auditoria")

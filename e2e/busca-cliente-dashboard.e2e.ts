@@ -7,7 +7,7 @@ import {
   login,
 } from "./support/criar-cliente";
 
-test.describe("Busca geral (sem restrição de Regime) — feedback do #36, ponto 3", () => {
+test.describe("Busca geral (sem restrição de Regime)", () => {
   test("Admin encontra um cliente de Lucro Presumido na busca de '/'", async ({ page }) => {
     const empresa = empresaUnica("Busca Geral Presumido E2E Ltda");
     await criarClienteComoAdmin(page, empresa, "lucro_presumido");

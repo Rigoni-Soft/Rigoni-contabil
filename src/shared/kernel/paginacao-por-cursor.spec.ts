@@ -13,7 +13,7 @@ function banco(todos: { cliente_id: string }[]) {
   return { ler, chamadas };
 }
 
-describe("lerTodasAsPaginas (R87-03)", () => {
+describe("lerTodasAsPaginas", () => {
   it.each([
     0,
     1,

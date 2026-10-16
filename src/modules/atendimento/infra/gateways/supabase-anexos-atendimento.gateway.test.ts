@@ -48,7 +48,7 @@ afterAll(async () => {
   await admin.from("atendimentos").delete().eq("id", ATENDIMENTO_REAL);
 });
 
-describe("posse e consumo do objeto subido em partes (R85-03)", () => {
+describe("posse e consumo do objeto subido em partes", () => {
   it("o primeiro a reservar é o dono; quem chega depois recebe false", async () => {
     const caminho = `${ATENDIMENTO_REAL}/u-1/gravacao.ogg`;
 

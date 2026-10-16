@@ -391,7 +391,7 @@ describe("ExecutarLembretesDocumentoEDas", () => {
     expect(resultado.ok && resultado.value.dasEnviados).toBe(1);
   });
 
-  it("DAS com a reserva ocupada: o Cliente não entra na resolução, mesmo com o lembrete enviado (R87-03.A)", async () => {
+  it("DAS com a reserva ocupada: o Cliente não entra na resolução, mesmo com o lembrete enviado", async () => {
     const { job, resolvidos, envio } = montar(
       [
         cliente({ clienteId: "ocupado", documentoObrigatorio: "negativo", dasStatus: "pronto" }),

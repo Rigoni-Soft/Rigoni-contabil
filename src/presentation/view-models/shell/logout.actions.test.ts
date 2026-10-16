@@ -31,7 +31,7 @@ describe("logoutAction (integração)", () => {
     expect(redirect).toHaveBeenCalledWith("/login");
   });
 
-  it("não finge logout: devolve estado de erro visível em vez de redirecionar quando encerrar a sessão falha (devolutiva #55, ponto 04)", async () => {
+  it("não finge logout: devolve estado de erro visível em vez de redirecionar quando encerrar a sessão falha", async () => {
     executeMock.mockResolvedValue(err(new ForbiddenError("falha ao encerrar")));
 
     const estado = await logoutAction(null, new FormData());

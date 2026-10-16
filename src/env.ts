@@ -35,8 +35,9 @@ const resultado = z
     MENSAGERIA_SEGREDO_SESSAO: z.string().min(1).default(SEGREDOS_MENSAGERIA_PLACEHOLDER.sessao),
     // Bearer das rotas de job (agendador). Sem valor, as rotas recusam tudo.
     CRON_SECRET: z.string().min(1).optional(),
-    // Liga o encerramento automático por inatividade. Desligada por padrão: ter o CRON_SECRET não basta.
-    // Em produção só age com mensageria real e o aviso visível ao Funcionário (docs/contratos/mensageria.md).
+    // Liga o encerramento automático por inatividade. Desligada por padrão: ter o CRON_SECRET não
+    // basta. Em produção só age com mensageria real e o aviso visível ao Funcionário
+    // (docs/contratos/mensageria.md).
     INATIVIDADE_AUTOMATICA: z.enum(["desligada", "ligada"]).default("desligada"),
     // Binário do ffmpeg que converte o áudio gravado em webm (docs/adr/0006). Sem valor, usa o
     // do pacote `ffmpeg-static`.

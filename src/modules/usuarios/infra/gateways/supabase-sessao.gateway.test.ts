@@ -74,7 +74,7 @@ describe("SupabaseSessaoGateway (integração)", () => {
     expect(reautenticado.ok).toBe(true);
   });
 
-  it("reenvio com a mesma senha (devolutiva PR #62, ponto 1) vira erro distinguível, não sucesso cego", async () => {
+  it("reenvio com a mesma senha vira erro distinguível, não sucesso cego", async () => {
     const { email, senha } = await criarContaAuthDeTeste();
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const gateway = new SupabaseSessaoGateway(supabase);

@@ -9,14 +9,15 @@ export function CarregandoPage() {
     <Linha
       alinhar="centro"
       como="main"
-      role="status"
-      className="min-h-dvh animate-carregando justify-center gap-2 bg-background"
+      className="min-h-dvh animate-carregando justify-center bg-background"
     >
-      <Loader2
-        className="size-4 text-muted-foreground motion-safe:animate-spin"
-        aria-hidden="true"
-      />
-      <Texto variante="apoio">Carregando…</Texto>
+      <Linha alinhar="centro" role="status" className="gap-2">
+        <Loader2
+          className="size-4 text-muted-foreground motion-safe:animate-spin"
+          aria-hidden="true"
+        />
+        <Texto variante="apoio">Carregando…</Texto>
+      </Linha>
     </Linha>
   );
 }

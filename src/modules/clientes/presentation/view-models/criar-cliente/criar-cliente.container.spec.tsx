@@ -36,7 +36,7 @@ describe("CriarClienteContainer", () => {
     consultarMock.mockResolvedValue(null);
   });
 
-  it("autopreenche Empresa e Regime ao sair do CNPJ (ponto 4 do feedback manual, 2026-09-29)", async () => {
+  it("autopreenche Empresa e Regime ao sair do CNPJ", async () => {
     consultarMock.mockResolvedValue({
       empresa: "Padaria Pão Quente Ltda",
       regime: "simples_nacional",
@@ -140,7 +140,7 @@ describe("CriarClienteContainer", () => {
     expect(await screen.findByText("CNPJ já cadastrado")).toBeInTheDocument();
   });
 
-  it("preserva as letras do CNPJ alfanumérico ao digitar e consulta com a forma canônica (PR #64, ponto 1)", async () => {
+  it("preserva as letras do CNPJ alfanumérico ao digitar e consulta com a forma canônica", async () => {
     const usuario = userEvent.setup();
     render(<CriarClienteContainer />);
 
@@ -152,7 +152,7 @@ describe("CriarClienteContainer", () => {
     expect(screen.queryByText("CNPJ inválido")).not.toBeInTheDocument();
   });
 
-  it("não aplica Empresa/Regime de uma resposta que chega depois de o CNPJ ter mudado (PR #64, ponto 6)", async () => {
+  it("não aplica Empresa/Regime de uma resposta que chega depois de o CNPJ ter mudado", async () => {
     let responderA: (dados: unknown) => void = () => undefined;
     consultarMock
       .mockImplementationOnce(() => new Promise((resolver) => (responderA = resolver)))
@@ -175,7 +175,7 @@ describe("CriarClienteContainer", () => {
     expect(screen.getByLabelText(/^Regime/)).toHaveValue("");
   });
 
-  it("Promise rejeitada da Server Action não prende o botão em 'Cadastrando...' (PR #64, ponto 5)", async () => {
+  it("Promise rejeitada da Server Action não prende o botão em 'Cadastrando...'", async () => {
     executeMock.mockRejectedValue(new Error("falha de rede"));
     const usuario = userEvent.setup();
     render(<CriarClienteContainer />);

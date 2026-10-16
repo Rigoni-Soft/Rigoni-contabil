@@ -76,7 +76,7 @@ afterAll(async () => {
   await admin.from("atendimentos").delete().in("telefone", TELEFONES);
 });
 
-describe("SupabaseAtendimentoRepository — conversa por janela (R85-05)", () => {
+describe("SupabaseAtendimentoRepository — conversa por janela", () => {
   it.each([
     [CONVERSA_JANELA_MENSAGENS, false],
     [CONVERSA_JANELA_MENSAGENS + 1, true],

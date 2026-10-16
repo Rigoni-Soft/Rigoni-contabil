@@ -219,7 +219,7 @@ describe("TransferirAtendimento", () => {
     });
   });
 
-  describe("cliente mais antigo da Fila do destino passa na frente (PR #77, B3)", () => {
+  describe("cliente mais antigo da Fila do destino passa na frente", () => {
     const PROMOVIDO = {
       id: "at-9",
       telefone: "5561955554444",

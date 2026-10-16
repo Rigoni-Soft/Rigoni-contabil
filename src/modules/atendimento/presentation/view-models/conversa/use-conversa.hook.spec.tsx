@@ -177,7 +177,7 @@ describe("regiões da conversa que leem a mesma consulta", () => {
   });
 });
 
-describe("renovação dos links de anexos do histórico já aberto (R85-05.B)", () => {
+describe("renovação dos links de anexos do histórico já aberto", () => {
   const anexo = (url: string, expiraEm: string) => ({
     tipo: "documento" as const,
     nome: "balanco.pdf",

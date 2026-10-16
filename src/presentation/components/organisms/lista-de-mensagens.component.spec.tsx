@@ -44,7 +44,7 @@ describe("ListaDeMensagens", () => {
   });
 });
 
-describe("ListaDeMensagens — histórico anterior (R85-05)", () => {
+describe("ListaDeMensagens — histórico anterior", () => {
   it("oferece as mensagens anteriores acima da lista e pede o carregamento", async () => {
     const aoCarregar = jest.fn();
     render(
