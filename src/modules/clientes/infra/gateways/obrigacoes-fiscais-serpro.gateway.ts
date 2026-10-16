@@ -21,6 +21,16 @@ const URL_AUTENTICACAO = "https://autenticacao.sapi.serpro.gov.br/authenticate";
 const URL_BASE = "https://gateway.apiserpro.serpro.gov.br/integra-contador/v1";
 const CNPJ = 2; // tipo de identificador do Serpro
 
+// [idSistema, idServico] de "Emitir Documento de Arrecadação" de cada parcelamento.
+const PARCELAMENTOS = [
+  ["PARCSN", "GERARDAS161"],
+  ["PERTSN", "GERARDAS181"],
+  ["RELPSN", "GERARDAS191"],
+  ["PARCMEI", "GERARDAS201"],
+  ["PERTMEI", "GERARDAS221"],
+  ["RELPMEI", "GERARDAS231"],
+] as const;
+
 export type RespostaHttp = { status: number; corpo: string };
 export type RequisicaoHttp = {
   url: string;
@@ -123,21 +133,31 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
     });
   }
 
-  // PARCSN (Simples ordinário), parcela do mês corrente. A API devolve só o PDF: valor e
-  // vencimento ficam de fora (opcionais no contrato).
+  // O Cliente pode estar em qualquer um dos parcelamentos do Integra-Parcelamento e a porta não
+  // diz qual: tenta os seis em ordem e fica com o primeiro que emite a parcela do mês corrente.
+  // Resposta 4xx (sem parcelamento ali) passa ao próximo; rede, 5xx e formato interrompem.
+  // A API devolve só o PDF: valor e vencimento ficam de fora (opcionais no contrato).
+  // ponytail: até 6 chamadas pagas por consulta; guardar o sistema do Cliente se o custo pesar.
   async buscarGuiaParcelamento(cnpj: string): Promise<Result<GuiaParcelamentoDto, AppError>> {
     const parcela = mesAtual(this.agora()).replace("-", "");
     return this.executar(async () => {
-      const guia = parcelamentoSchema.parse(
-        await this.chamar("Emitir", cnpj, "PARCSN", "GERARDAS161", "1.0", {
-          parcelaParaEmitir: Number(parcela),
-        }),
-      );
-      return {
-        nomeArquivo: `parcelamento-${cnpj}-${parcela}.pdf`,
-        pdfBase64: guia.docArrecadacaoPdfB64,
-        parcela,
-      };
+      for (const [idSistema, idServico] of PARCELAMENTOS) {
+        try {
+          const dados = await this.chamar("Emitir", cnpj, idSistema, idServico, "1.0", {
+            parcelaParaEmitir: Number(parcela),
+          });
+          if (dados === null) continue; // 204/404: sem parcelamento neste sistema
+          const guia = parcelamentoSchema.parse(dados);
+          return {
+            nomeArquivo: `parcelamento-${cnpj}-${parcela}.pdf`,
+            pdfBase64: guia.docArrecadacaoPdfB64,
+            parcela,
+          };
+        } catch (e) {
+          if (!(e instanceof ErroSerpro && e.status >= 400 && e.status < 500)) throw e;
+        }
+      }
+      throw new ErroSerpro("Nenhum parcelamento com parcela para emitir neste mês.");
     });
   }
 
@@ -232,10 +252,17 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
       return this.chamar(operacao, contribuinte, idSistema, idServico, versaoSistema, dados, false);
     }
     if (r.status === 204 || r.status === 404) return null;
-    if (r.status !== 200) throw new ErroSerpro(`Serviço fiscal respondeu ${r.status}.`);
+    if (r.status !== 200) throw new ErroSerpro(`Serviço fiscal respondeu ${r.status}.`, r.status);
     const envelope = z.object({ dados: z.string() }).parse(JSON.parse(r.corpo));
     return JSON.parse(envelope.dados);
   }
 }
 
-class ErroSerpro extends Error {}
+class ErroSerpro extends Error {
+  constructor(
+    message: string,
+    readonly status = 0,
+  ) {
+    super(message);
+  }
+}

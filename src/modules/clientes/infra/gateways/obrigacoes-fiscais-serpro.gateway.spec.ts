@@ -73,6 +73,36 @@ describe("ObrigacoesFiscaisSerproGateway", () => {
     expect(r.ok && r.value).toMatchObject({ pdfBase64: "JVBERg==", parcela: "202601" });
   });
 
+  it("tenta os parcelamentos em ordem até um emitir a parcela (4xx passa ao próximo)", async () => {
+    const { http, gw } = gateway(
+      token,
+      { status: 400, corpo: "" },
+      { status: 404, corpo: "" },
+      envelope({ docArrecadacaoPdfB64: "JVBERg==" }),
+    );
+
+    const r = await gw.buscarGuiaParcelamento(CLIENTE);
+
+    expect(r.ok && r.value.pdfBase64).toBe("JVBERg==");
+    const sistemas = http.mock.calls
+      .slice(1)
+      .map((c) => JSON.parse(c[0].corpo).pedidoDados.idSistema);
+    expect(sistemas).toEqual(["PARCSN", "PERTSN", "RELPSN"]);
+  });
+
+  it("sem parcelamento em nenhum sistema é erro tratado; 5xx interrompe a busca", async () => {
+    const { http, gw } = gateway(
+      token,
+      ...Array.from({ length: 6 }, () => ({ status: 400, corpo: "" })),
+    );
+    expect((await gw.buscarGuiaParcelamento(CLIENTE)).ok).toBe(false);
+    expect(http).toHaveBeenCalledTimes(7);
+
+    const { http: http2, gw: gw2 } = gateway(token, { status: 503, corpo: "" });
+    expect((await gw2.buscarGuiaParcelamento(CLIENTE)).ok).toBe(false);
+    expect(http2).toHaveBeenCalledTimes(2);
+  });
+
   it("reautentica uma vez quando o token expirou (401)", async () => {
     const { http, gw } = gateway(
       token,
