@@ -10,7 +10,7 @@ export function CarregandoPage() {
       alinhar="centro"
       como="main"
       role="status"
-      className="min-h-dvh justify-center gap-2 bg-background"
+      className="min-h-dvh animate-carregando justify-center gap-2 bg-background"
     >
       <Loader2
         className="size-4 text-muted-foreground motion-safe:animate-spin"

@@ -67,6 +67,7 @@
 
 @theme inline {
   --animate-dock-entrada: dock-entrada 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-carregando: carregando-entrada 0.25s step-end;
   --animate-arraste-entrada: arraste-entrada 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   --font-sans: var(--font-roboto);
 
@@ -168,6 +169,16 @@ input[type="radio"] {
 }
 
 /* Cartão do dock de Atendimentos: sobe e aparece. Só roda com `motion-safe:`. */
+/* Só atrasa: invisível no primeiro quarto de segundo, sem movimento. Navegação rápida não pisca. */
+@keyframes carregando-entrada {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes dock-entrada {
   from {
     opacity: 0;
