@@ -14,7 +14,7 @@ export default function Error({
   return (
     <TelaDeAvisoPage
       subtitulo="Algo deu errado"
-      aviso="Não foi possível carregar esta tela. Tente de novo."
+      aviso="Houve um erro inesperado ao abrir esta tela."
       rodape="Se o problema continuar, avise o suporte."
       acoes={
         <>

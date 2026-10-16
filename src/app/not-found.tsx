@@ -5,7 +5,7 @@ export default function NotFound() {
   return (
     <TelaDeAvisoPage
       subtitulo="Página não encontrada"
-      aviso="Esta página não existe ou foi removida."
+      aviso="O endereço pode estar errado ou a página foi removida."
       rodape="Acesso restrito — uso interno Rigoni Contábil."
       acoes={
         <LinkDeAcao href="/" variant="default">
