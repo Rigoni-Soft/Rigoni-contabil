@@ -103,6 +103,11 @@ jobs:
             echo "SUPABASE_HOMOLOG_PROJECT_REF=$PROJECT_REF"
           } >> "$GITHUB_ENV"
 
+      # O reset apaga o banco e o cliente de teste do WhatsApp real junto: recria o "Teste Zap"
+      # (PDFs no bucket de contratos + contatos), como o cadastro do app faria.
+      - name: Cria o cliente Teste Zap
+        run: node scripts/seed-teste-zap.mjs
+
       # Sem isso, um preview morto (404) ou barrado pela Deployment Protection faz os 64 testes
       # estourarem o timeout um a um (~30 min) em vez de falhar na hora.
       - name: Confere que o preview responde
