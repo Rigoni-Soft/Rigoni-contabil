@@ -65,8 +65,8 @@ export async function POST(request: Request): Promise<Response> {
   const notificacao = notificacaoSchema.safeParse(json);
   if (!notificacao.success) return resposta("Corpo fora do formato da Cloud API.", 400);
 
-  const receber = makeReceberMensagem();
-  const receberMidia = makeReceberMidia();
+  const receber = await makeReceberMensagem();
+  const receberMidia = await makeReceberMidia();
   const mensagens = notificacao.data.entry
     .flatMap((entrada) => entrada.changes)
     .filter((mudanca) => mudanca.field === "messages")

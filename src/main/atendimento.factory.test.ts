@@ -27,7 +27,7 @@ afterEach(() => {
 });
 
 describe("atendimento.factory em produção", () => {
-  it("sem segredos (defaults de dev) recusa HMAC e não cria o client privilegiado", () => {
+  it("sem segredos (defaults de dev) recusa HMAC e não cria o client privilegiado", async () => {
     const { factory, criarAdmin } = carregarFactory({
       NODE_ENV: "production",
       MENSAGERIA_SEGREDO_ASSINATURA: undefined,
@@ -35,7 +35,7 @@ describe("atendimento.factory em produção", () => {
       MENSAGERIA_SEGREDO_SESSAO: undefined,
     });
     expect(() => factory.makeAutenticarWebhook()).toThrow(/bloqueado em produção/);
-    expect(() => factory.makeReceberMensagem()).toThrow(/bloqueado em produção/);
+    await expect(factory.makeReceberMensagem()).rejects.toThrow(/bloqueado em produção/);
     expect(criarAdmin).not.toHaveBeenCalled();
   });
 
