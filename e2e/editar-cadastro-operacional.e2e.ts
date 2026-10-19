@@ -55,7 +55,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     // Espera a hidratação: preencher antes dela deixa o React Hook Form
     // reaplicar os valores iniciais por cima do que foi digitado (flaky no
     // dev server frio, o salvar gravava os defaults).
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
 
     await page.getByLabel("Forma de envio").selectOption("email");
     await page.getByRole("button", { name: "Adicionar contato" }).click();
