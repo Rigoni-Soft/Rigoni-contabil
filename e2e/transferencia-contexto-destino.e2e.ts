@@ -67,7 +67,8 @@ test.describe("Contexto da Transferência (#74)", () => {
       .single();
     if (atendimento.error) throw atendimento.error;
 
-    await page.context().clearCookies();
+    // Só a sessão do Supabase: limpar tudo apagaria também o cookie de bypass da proteção do preview.
+    await page.context().clearCookies({ name: /^sb-/ });
     await login(page, "lider.contabil@rigonicontabil.local", "lider123");
     await expect(page).toHaveURL("/");
     await page.goto(`/atendimento/${atendimento.data.id}`);

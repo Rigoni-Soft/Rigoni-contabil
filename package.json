@@ -14,6 +14,7 @@
     "check:deps": "depcruise src --config .dependency-cruiser.cjs",
     "check:naming": "node scripts/check-naming.mjs",
     "check:guard-senha": "node scripts/check-troca-senha-guard.mjs",
+    "seed:teste-zap": "node --env-file=.env.local scripts/seed-teste-zap.mjs",
     "new:module": "node scripts/new-module.mjs",
     "mock:api": "node mock-api/server.mjs",
     "test": "jest --selectProjects unit",
