@@ -8,7 +8,14 @@ export default defineConfig({
   testDir: "e2e",
   globalSetup: "./e2e/support/global-setup.ts",
   testMatch: "**/*.e2e.ts", // o padrão do Playwright (test|spec) não pega *.e2e.ts
-  use: { baseURL: process.env.BASE_URL ?? `http://localhost:${PORT}` },
+  // Contra o preview cada ação passa por rede, função serverless (cold start) e Supabase remoto:
+  // os 5 s/30 s do dev local estouram por latência, não por defeito. O trace guarda a tela das falhas.
+  timeout: remoto ? 60_000 : 30_000,
+  expect: { timeout: remoto ? 15_000 : 5_000 },
+  use: {
+    baseURL: process.env.BASE_URL ?? `http://localhost:${PORT}`,
+    trace: remoto ? "retain-on-failure" : "off",
+  },
   // Serial, não paralelo: todos os testes batem no mesmo Supabase local e no
   // mesmo `next dev` — rodar em paralelo gera falso negativo (rate limit de
   // login do GoTrue, condições de corrida de estado compartilhado), não ganho
