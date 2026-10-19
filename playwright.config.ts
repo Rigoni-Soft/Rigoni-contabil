@@ -14,6 +14,8 @@ export default defineConfig({
   // login do GoTrue, condições de corrida de estado compartilhado), não ganho
   // real de velocidade nessa escala de suíte.
   workers: 1,
+  // Teto da suíte contra o preview: abaixo do timeout do job, para o relatório ainda ser publicado.
+  globalTimeout: remoto ? 25 * 60_000 : undefined,
   // Sobe o Next sozinho só quando roda local — contra um preview da Vercel
   // (BASE_URL setado) o deploy já está de pé, não tem o que subir aqui.
   webServer: remoto

@@ -103,6 +103,17 @@ jobs:
             echo "SUPABASE_HOMOLOG_PROJECT_REF=$PROJECT_REF"
           } >> "$GITHUB_ENV"
 
+      # Sem isso, um preview morto (404) ou barrado pela Deployment Protection faz os 64 testes
+      # estourarem o timeout um a um (~30 min) em vez de falhar na hora.
+      - name: Confere que o preview responde
+        env:
+          BASE_URL: ${{ github.event.deployment_status.environment_url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          CODIGO=$(curl -s -o /dev/null -m 30 -w '%{http_code}'             -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET" "$BASE_URL/login")
+          echo "$BASE_URL/login -> HTTP $CODIGO"
+          test "$CODIGO" = 200 || { echo "::error::preview fora do ar ou protegido (esperado 200, veio $CODIGO)"; exit 1; }
+
       - name: Playwright contra o preview
         run: yarn test:e2e
         env:
@@ -117,7 +128,7 @@ jobs:
           retention-days: 7
 
       - name: Publica o resultado no commit
-        if: success() || failure()
+        if: always()
         run: |
           if [ "${{ job.status }}" = "success" ]; then STATE=success; else STATE=failure; fi
           gh api "repos/${{ github.repository }}/statuses/$SHA" \
