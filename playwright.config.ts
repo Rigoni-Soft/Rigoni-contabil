@@ -15,6 +15,11 @@ export default defineConfig({
   use: {
     baseURL: process.env.BASE_URL ?? `http://localhost:${PORT}`,
     trace: remoto ? "retain-on-failure" : "off",
+    // Num deploy com mensageria real, este cabeçalho (mesmo valor de E2E_ADAPTER_SECRET no Preview)
+    // faz o app usar o adapter falso nas requisições da suíte: nada vai à Meta.
+    extraHTTPHeaders: process.env.E2E_ADAPTER_SECRET
+      ? { "x-e2e-adapter-falso": process.env.E2E_ADAPTER_SECRET }
+      : undefined,
   },
   // Serial, não paralelo: todos os testes batem no mesmo Supabase local e no
   // mesmo `next dev` — rodar em paralelo gera falso negativo (rate limit de

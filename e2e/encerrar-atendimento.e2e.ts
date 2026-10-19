@@ -1,5 +1,4 @@
 import { expect, test } from "./fixtures";
-import { adapterReal, MOTIVO_ADAPTER_REAL } from "./support/adapter-de-mensagens";
 import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
@@ -56,7 +55,6 @@ test.describe("Encerrar Atendimento", () => {
   test("encerra pelo painel, assume o próximo da Fila e avisa o cliente @smoke", async ({
     page,
   }) => {
-    test.skip(adapterReal, MOTIVO_ADAPTER_REAL);
     await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
     await page.goto(`/atendimento/${atendimentoId}`);

@@ -122,8 +122,9 @@ jobs:
           # Os e2e do webhook assinam o corpo com o App Secret do app de homologação (mesmo valor da
           # MENSAGERIA_SEGREDO_ASSINATURA do Preview na Vercel); sem ele a rota responde 403.
           MENSAGERIA_SEGREDO_ASSINATURA: ${{ secrets.MENSAGERIA_SEGREDO_ASSINATURA }}
-          # Modo do adapter no deploy ("falso" ou "real"); com "real" os e2e que dependem do falso são pulados.
-          E2E_MENSAGERIA_MODO: ${{ vars.E2E_MENSAGERIA_MODO || 'falso' }}
+          # Mesmo valor de E2E_ADAPTER_SECRET no Preview da Vercel: as requisições da suíte usam o
+          # adapter falso de mensageria, sem tocar a Meta, mesmo com MENSAGERIA_MODO=real no deploy.
+          E2E_ADAPTER_SECRET: ${{ secrets.E2E_ADAPTER_SECRET }}
 
       - uses: actions/upload-artifact@v4
         if: always()

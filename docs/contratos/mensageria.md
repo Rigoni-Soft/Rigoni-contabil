@@ -31,6 +31,8 @@ Também nos dois ambientes: `SUPABASE_SERVICE_ROLE_KEY`, chaves públicas do Sup
 - Fora da janela de 24 h só vai template aprovado; no número de teste, só `hello_world`. Para texto livre, o celular de teste escreve primeiro.
 - O cron da Vercel só roda em Production.
 
+**E2E contra a homolog em modo real:** a suíte usa o adapter falso (telefones e ids de mídia fictícios). Com `E2E_ADAPTER_SECRET` definido no Preview (mín. 16 caracteres; Production da Vercel recusa), uma requisição com o cabeçalho `x-e2e-adapter-falso: <segredo>` usa o adapter falso mesmo com `MENSAGERIA_MODO=real`; as demais seguem reais. O Playwright manda o cabeçalho quando `E2E_ADAPTER_SECRET` está no ambiente (secret do GitHub de mesmo nome). O cabeçalho só escolhe o adapter que nunca envia: não dá acesso a nada.
+
 **Ordem para ligar a produção:** app real e token permanente → handshake do webhook → fluxo testado com número próprio → só então as flags automáticas.
 
 ## Entrada: `/api/webhooks/whatsapp`

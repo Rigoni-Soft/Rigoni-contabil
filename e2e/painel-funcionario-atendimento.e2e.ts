@@ -1,5 +1,4 @@
 import { expect, test } from "./fixtures";
-import { adapterReal, MOTIVO_ADAPTER_REAL } from "./support/adapter-de-mensagens";
 import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
@@ -103,7 +102,6 @@ test.describe("Painel do Funcionário (#49)", () => {
   test("o Funcionário responde ao cliente pelo campo da conversa e a resposta vira balão @smoke", async ({
     page,
   }) => {
-    test.skip(adapterReal, MOTIVO_ADAPTER_REAL);
     await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
     await page
@@ -125,7 +123,6 @@ test.describe("Painel do Funcionário (#49)", () => {
   test("o Funcionário insere um emoji pelo seletor e a mensagem com emoji vira balão @smoke", async ({
     page,
   }) => {
-    test.skip(adapterReal, MOTIVO_ADAPTER_REAL);
     await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
     await page
@@ -147,7 +144,6 @@ test.describe("Painel do Funcionário (#49)", () => {
   test("o Funcionário envia uma imagem e um PDF ao cliente pelo clipe e os anexos viram balão @smoke", async ({
     page,
   }) => {
-    test.skip(adapterReal, MOTIVO_ADAPTER_REAL);
     await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
     await page
@@ -272,7 +268,6 @@ test.describe("Painel do Funcionário (#49)", () => {
   test("o Funcionário grava e envia um áudio ao cliente e ele vira balão com player @smoke", async ({
     page,
   }) => {
-    test.skip(adapterReal, MOTIVO_ADAPTER_REAL);
     await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
     await page
@@ -312,7 +307,6 @@ test.describe("Painel do Funcionário (#49)", () => {
   test("o Funcionário reage com emoji à mensagem do cliente e a reação aparece no balão @smoke", async ({
     page,
   }) => {
-    test.skip(adapterReal, MOTIVO_ADAPTER_REAL);
     await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
     await page
