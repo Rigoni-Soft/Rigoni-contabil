@@ -9,7 +9,9 @@ export const test = base.extend({
     const irPara = page.goto.bind(page);
     page.goto = async (url, opcoes) => {
       const resposta = await irPara(url, opcoes);
-      await page.waitForLoadState("networkidle");
+      // Teto curto: no preview da Vercel a rede nunca fica ociosa (toolbar/telemetria da plataforma),
+      // e esperar o timeout do teste inteiro derrubava a suíte por configuração, não por bug.
+      await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
       return resposta;
     };
     await usar(page);

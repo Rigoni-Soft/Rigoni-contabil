@@ -119,6 +119,11 @@ jobs:
         env:
           BASE_URL: ${{ github.event.deployment_status.environment_url }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          # Os e2e do webhook assinam o corpo com o App Secret do app de homologação (mesmo valor da
+          # MENSAGERIA_SEGREDO_ASSINATURA do Preview na Vercel); sem ele a rota responde 403.
+          MENSAGERIA_SEGREDO_ASSINATURA: ${{ secrets.MENSAGERIA_SEGREDO_ASSINATURA }}
+          # Modo do adapter no deploy ("falso" ou "real"); com "real" os e2e que dependem do falso são pulados.
+          E2E_MENSAGERIA_MODO: ${{ vars.E2E_MENSAGERIA_MODO || 'falso' }}
 
       - uses: actions/upload-artifact@v4
         if: always()

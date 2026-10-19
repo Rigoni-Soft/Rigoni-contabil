@@ -3,6 +3,7 @@ import { createHmac } from "node:crypto";
 import type { APIRequestContext } from "@playwright/test";
 
 import { expect, test } from "./fixtures";
+import { adapterReal, MOTIVO_ADAPTER_REAL } from "./support/adapter-de-mensagens";
 import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
@@ -101,6 +102,7 @@ test.describe("Mídia recebida do cliente (#81)", () => {
     request,
     context,
   }) => {
+    test.skip(adapterReal, MOTIVO_ADAPTER_REAL);
     await receber(request, {
       id: "wamid.E2E-MIDIA-2",
       type: "document",
@@ -155,6 +157,7 @@ test.describe("Mídia recebida do cliente (#81)", () => {
     page,
     request,
   }) => {
+    test.skip(adapterReal, MOTIVO_ADAPTER_REAL);
     await receber(request, {
       id: "wamid.E2E-MIDIA-4",
       type: "document",
@@ -210,6 +213,7 @@ test.describe("Mídia recebida do cliente (#81)", () => {
     page,
     request,
   }) => {
+    test.skip(adapterReal, MOTIVO_ADAPTER_REAL);
     const corpo = notificacao({
       id: "wamid.E2E-MIDIA-1",
       type: "audio",
