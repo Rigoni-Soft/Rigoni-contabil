@@ -3,8 +3,10 @@ import "server-only";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { headers } from "next/headers";
 import {
   CRON_SECRET,
+  E2E_ADAPTER_SECRET,
   EMAIL_MODO,
   EMAIL_REMETENTE,
   EMAIL_SMTP_SENHA,
@@ -24,7 +26,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { makeRegistrarAcao } from "@/main/auditoria.factory";
 import { makeCertidaoCnd, makeObrigacoesFiscais } from "@/main/obrigacoes-fiscais.factory";
-import { exigirSegredosReais } from "@/main/segredos-mensageria.factory";
+import {
+  CABECALHO_ADAPTER_FALSO_E2E,
+  exigirSegredosReais,
+  pedeAdapterFalsoDoE2E,
+} from "@/main/segredos-mensageria.factory";
 import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
 import type { AutenticarWebhookPort } from "@/modules/atendimento/application/ports/in/autenticar-webhook.provider";
@@ -116,10 +122,24 @@ import type { SetorSlug } from "@/shared/kernel/setores";
 // Instância única: o falso guarda em memória o que "enviou".
 const envioFalso = new EnvioMensagemFalsoGateway();
 
+// Modo do ambiente; vale onde não há requisição de usuário (jobs).
 function makeEnvioMensagem(): EnvioMensagemPort {
   if (MENSAGERIA_MODO !== "real") return envioFalso;
   // env.ts garante as duas credenciais com o modo real.
   return new EnvioMensagemWhatsappGateway(WHATSAPP_TOKEN!, WHATSAPP_PHONE_NUMBER_ID!);
+}
+
+// Uma requisição dos e2e pode pedir o adapter falso (cabeçalho secreto) mesmo com o deploy em modo real.
+async function requisicaoPedeAdapterFalso(): Promise<boolean> {
+  if (!E2E_ADAPTER_SECRET) return false;
+  return pedeAdapterFalsoDoE2E(
+    E2E_ADAPTER_SECRET,
+    (await headers()).get(CABECALHO_ADAPTER_FALSO_E2E),
+  );
+}
+
+async function makeEnvioMensagemDaRequisicao(): Promise<EnvioMensagemPort> {
+  return (await requisicaoPedeAdapterFalso()) ? envioFalso : makeEnvioMensagem();
 }
 
 // Chamada por makeAutenticarWebhook e makeReceberMensagem: nenhum caminho da rota pública
@@ -143,16 +163,17 @@ function guiasFiscais(supabaseAdmin: SupabaseClient): GuiasFiscaisGateway {
   );
 }
 
-export function makeReceberMensagem(): ReceberMensagemPort {
+export async function makeReceberMensagem(): Promise<ReceberMensagemPort> {
   exigirSegredosDeProducao();
   const supabaseAdmin = createSupabaseAdmin();
+  const envio = await makeEnvioMensagemDaRequisicao();
   const atendimentos = new SupabaseAtendimentoRepository(supabaseAdmin);
   return new ReceberMensagem(
     new SupabaseIdentificacaoContatoGateway(supabaseAdmin),
-    makeEnvioMensagem(),
+    envio,
     new SupabaseDocumentosContratuaisGateway(supabaseAdmin),
     new SupabaseSessaoAtendimentoGateway(supabaseAdmin, MENSAGERIA_SEGREDO_SESSAO),
-    new AbrirAtendimento(atendimentos, new AvisarCliente(makeEnvioMensagem(), atendimentos)),
+    new AbrirAtendimento(atendimentos, new AvisarCliente(envio, atendimentos)),
     new AnexarMensagemAtendimento(atendimentos),
     new RelogioSistemaGateway(),
     new SupabaseFeriadoRepository(supabaseAdmin),
@@ -160,16 +181,17 @@ export function makeReceberMensagem(): ReceberMensagemPort {
   );
 }
 
-export function makeReceberMidia(): ReceberMidiaPort {
+export async function makeReceberMidia(): Promise<ReceberMidiaPort> {
   exigirSegredosDeProducao();
   const supabaseAdmin = createSupabaseAdmin();
+  const falso = await requisicaoPedeAdapterFalso();
   return new ReceberMidia(
     new SupabaseAtendimentoRepository(supabaseAdmin),
-    MENSAGERIA_MODO === "real"
+    MENSAGERIA_MODO === "real" && !falso
       ? new DownloadMidiaWhatsappGateway(WHATSAPP_TOKEN!)
       : new DownloadMidiaFalsoGateway(),
     new SupabaseAnexosAtendimentoGateway(supabaseAdmin),
-    makeEnvioMensagem(),
+    falso ? envioFalso : makeEnvioMensagem(),
   );
 }
 
@@ -218,8 +240,11 @@ function auditoriaViaModuloAuditoria(): AuditoriaPort {
   };
 }
 
-function makeAvisarCliente(repositorio: SupabaseAtendimentoRepository): AvisarClientePort {
-  return new AvisarCliente(makeEnvioMensagem(), repositorio);
+function makeAvisarCliente(
+  repositorio: SupabaseAtendimentoRepository,
+  envio: EnvioMensagemPort = makeEnvioMensagem(),
+): AvisarClientePort {
+  return new AvisarCliente(envio, repositorio);
 }
 
 export async function makeTransferirAtendimento(): Promise<TransferirAtendimentoPort> {
@@ -228,7 +253,7 @@ export async function makeTransferirAtendimento(): Promise<TransferirAtendimento
     sessaoViaUsuarios(await createSupabaseServer()),
     repositorio,
     auditoriaViaModuloAuditoria(),
-    makeAvisarCliente(repositorio),
+    makeAvisarCliente(repositorio, await makeEnvioMensagemDaRequisicao()),
   );
 }
 
@@ -237,7 +262,7 @@ export async function makeEncerrarAtendimento(): Promise<EncerrarAtendimentoPort
   return new EncerrarAtendimento(
     sessaoViaUsuarios(await createSupabaseServer()),
     repositorio,
-    makeAvisarCliente(repositorio),
+    makeAvisarCliente(repositorio, await makeEnvioMensagemDaRequisicao()),
   );
 }
 
@@ -368,7 +393,7 @@ export async function makeEnviarAnexoAoCliente(): Promise<EnviarAnexoAoClientePo
     sessaoViaUsuarios(await createSupabaseServer()),
     new SupabaseAtendimentoRepository(supabaseAdmin),
     anexos,
-    makeEnvioMensagem(),
+    await makeEnvioMensagemDaRequisicao(),
     auditoriaViaModuloAuditoria(),
     new PrepararAnexoParaEnvio(anexos, new FfmpegConversorDeAudioGateway(caminhoDoFfmpeg)),
   );
@@ -380,7 +405,7 @@ export async function makeEnviarDocumentoAoCliente(): Promise<EnviarDocumentoAoC
     sessaoViaUsuarios(await createSupabaseServer()),
     new SupabaseAtendimentoRepository(supabaseAdmin),
     new SupabaseDocumentosContratuaisGateway(supabaseAdmin),
-    makeEnvioMensagem(),
+    await makeEnvioMensagemDaRequisicao(),
     auditoriaViaModuloAuditoria(),
   );
 }
@@ -389,7 +414,7 @@ export async function makeEnviarMensagemAoCliente(): Promise<EnviarMensagemAoCli
   return new EnviarMensagemAoCliente(
     sessaoViaUsuarios(await createSupabaseServer()),
     new SupabaseAtendimentoRepository(createSupabaseAdmin()),
-    makeEnvioMensagem(),
+    await makeEnvioMensagemDaRequisicao(),
     auditoriaViaModuloAuditoria(),
   );
 }
@@ -398,7 +423,7 @@ export async function makeReagirAMensagem(): Promise<ReagirAMensagemPort> {
   return new ReagirAMensagem(
     sessaoViaUsuarios(await createSupabaseServer()),
     new SupabaseAtendimentoRepository(createSupabaseAdmin()),
-    makeEnvioMensagem(),
+    await makeEnvioMensagemDaRequisicao(),
     auditoriaViaModuloAuditoria(),
   );
 }

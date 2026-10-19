@@ -58,6 +58,9 @@ const resultado = z
     // Chave do HMAC que pseudonimiza o telefone na sessão da URA. Própria (não reaproveita o
     // segredo do webhook): trocar um não invalida o outro. Valor falso só pra dev.
     MENSAGERIA_SEGREDO_SESSAO: z.string().min(1).default(SEGREDOS_MENSAGERIA_PLACEHOLDER.sessao),
+    // Segredo que os e2e mandam no cabeçalho para usar o adapter falso num deploy com mensageria real
+    // (ver pedeAdapterFalsoDoE2E). Só no Preview/homolog; Production da Vercel recusa (refine abaixo).
+    E2E_ADAPTER_SECRET: z.string().min(16).optional(),
     // Credenciais da Cloud API (Meta); só exigidas com MENSAGERIA_MODO=real (a factory valida).
     WHATSAPP_TOKEN: z.string().min(1).optional(),
     WHATSAPP_PHONE_NUMBER_ID: z.string().min(1).optional(),
@@ -135,6 +138,10 @@ const resultado = z
     message: "MENSAGERIA_MODO=real exige WHATSAPP_TOKEN e WHATSAPP_PHONE_NUMBER_ID.",
     path: ["WHATSAPP_TOKEN"],
   })
+  .refine((v) => process.env.VERCEL_ENV !== "production" || !v.E2E_ADAPTER_SECRET, {
+    message: "Production da Vercel não pode definir E2E_ADAPTER_SECRET.",
+    path: ["E2E_ADAPTER_SECRET"],
+  })
   .safeParse({
     NODE_ENV: process.env.NODE_ENV || undefined,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -159,6 +166,7 @@ const resultado = z
     MENSAGERIA_SEGREDO_ASSINATURA: process.env.MENSAGERIA_SEGREDO_ASSINATURA || undefined,
     MENSAGERIA_TOKEN_VERIFICACAO: process.env.MENSAGERIA_TOKEN_VERIFICACAO || undefined,
     MENSAGERIA_SEGREDO_SESSAO: process.env.MENSAGERIA_SEGREDO_SESSAO || undefined,
+    E2E_ADAPTER_SECRET: process.env.E2E_ADAPTER_SECRET || undefined,
     WHATSAPP_TOKEN: process.env.WHATSAPP_TOKEN || undefined,
     WHATSAPP_PHONE_NUMBER_ID: process.env.WHATSAPP_PHONE_NUMBER_ID || undefined,
     CRON_SECRET: process.env.CRON_SECRET || undefined,
@@ -199,6 +207,7 @@ export const {
   MENSAGERIA_SEGREDO_ASSINATURA,
   MENSAGERIA_TOKEN_VERIFICACAO,
   MENSAGERIA_SEGREDO_SESSAO,
+  E2E_ADAPTER_SECRET,
   WHATSAPP_TOKEN,
   WHATSAPP_PHONE_NUMBER_ID,
   CRON_SECRET,
