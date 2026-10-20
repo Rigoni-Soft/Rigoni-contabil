@@ -119,6 +119,7 @@ const CNPJS_DA_SUITE = [
   "62785037000472",
   "62785037000553",
   "62785037000634",
+  "62785037000715",
 ] as const;
 beforeAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
 afterAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
@@ -203,6 +204,14 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
       const repositorio = new SupabaseClienteRepository(await comoFuncionarioSN());
       return { admin, clienteBase, repositorio };
     }
+    // O sistema (job de envio) grava `enviado` sem sessão de usuário: service_role.
+    const comoSistema = () =>
+      createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+    const sistemaMarcaEnviado = (clienteId: string, data: string) =>
+      comoSistema()
+        .from("cliente_cadastro_operacional_sn")
+        .update({ das_status: "enviado", data_envio_das: data })
+        .eq("cliente_id", clienteId);
     const lerDas = async (admin: SupabaseClient, clienteId: string) =>
       (
         await admin
@@ -229,10 +238,7 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
     it("salvar com DAS já `enviado` pelo sistema preserva status e data, ignorando a data enviada", async () => {
       const { admin, clienteBase, repositorio } = await prepararFuncionarioSN("62785037000553");
       await repositorio.atualizarOperacional(comCadastroOperacional(clienteBase));
-      await admin
-        .from("cliente_cadastro_operacional_sn")
-        .update({ das_status: "enviado", data_envio_das: "2026-10-05" })
-        .eq("cliente_id", clienteBase.id);
+      await sistemaMarcaEnviado(clienteBase.id, "2026-10-05");
 
       const resultado = await repositorio.atualizarOperacional(
         comCadastroOperacional(clienteBase, { status: "enviado", data: "2020-01-01" }),
@@ -245,13 +251,33 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
       });
     });
 
+    it("DML direto pela Data API também não define `enviado` nem altera a data (gatilho)", async () => {
+      const { admin, clienteBase, repositorio } = await prepararFuncionarioSN("62785037000715");
+      await repositorio.atualizarOperacional(comCadastroOperacional(clienteBase));
+      const funcionarioSN = await comoFuncionarioSN();
+
+      const marcar = await funcionarioSN
+        .from("cliente_cadastro_operacional_sn")
+        .update({ das_status: "enviado" })
+        .eq("cliente_id", clienteBase.id);
+      expect(marcar.error?.code).toBe("23514");
+
+      await sistemaMarcaEnviado(clienteBase.id, "2026-10-05");
+      const adulterar = await funcionarioSN
+        .from("cliente_cadastro_operacional_sn")
+        .update({ data_envio_das: "2020-01-01" })
+        .eq("cliente_id", clienteBase.id);
+      expect(adulterar.error).toBeNull();
+      expect(await lerDas(admin, clienteBase.id)).toEqual({
+        das_status: "enviado",
+        data_envio_das: "2026-10-05",
+      });
+    });
+
     it("sair de `enviado` limpa a data de envio", async () => {
       const { admin, clienteBase, repositorio } = await prepararFuncionarioSN("62785037000634");
       await repositorio.atualizarOperacional(comCadastroOperacional(clienteBase));
-      await admin
-        .from("cliente_cadastro_operacional_sn")
-        .update({ das_status: "enviado", data_envio_das: "2026-10-05" })
-        .eq("cliente_id", clienteBase.id);
+      await sistemaMarcaEnviado(clienteBase.id, "2026-10-05");
 
       const resultado = await repositorio.atualizarOperacional(
         comCadastroOperacional(clienteBase, { status: "pendente", data: "2026-10-05" }),

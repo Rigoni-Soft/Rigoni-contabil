@@ -59,6 +59,7 @@ Ferramenta interna proprietária, não um produto de mercado. O que a diferencia
 3. Falha de integração externa (Serpro, WhatsApp) tenta de novo automaticamente algumas vezes antes de virar alerta pra um humano — nunca alarme na primeira falha, nunca silêncio permanente.
 4. Toda ação que muda estado é auditável (ator, data/hora, setor, alvo, resultado); leituras não são auditadas.
 5. O sistema reflete o estado de processos externos (procuração eletrônica, aprovação de template) — nunca tenta automatizá-los ou contorná-los.
+6. O que só o sistema sabe, só o sistema grava: DAS "enviado" e a data de envio resultam da entrega aceita pelo job (#52) e nenhuma pessoa os define, nem Admin. A trava está no banco, e a tela só exibe (#108).
 
 ## Accessibility & Inclusion
 

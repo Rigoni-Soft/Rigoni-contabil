@@ -63,6 +63,11 @@ O unitário é o nível priorizado: toda classe, função e método com lógica 
 | Fluxos afetados pelo diff | E2E do diff | Playwright CLI | nenhuma | A mudança funciona de ponta a ponta |
 | Aplicação inteira | E2E completo | Playwright CLI | nenhuma | A mudança não quebrou o que já funcionava |
 
+> **Dado que só o sistema grava (#108):** teste de integração que precisa de um DAS `enviado` o
+> marca com um cliente `service_role` (como o job faz), nunca como Admin ou Funcionário: o gatilho
+> `proteger_das_enviado_do_sistema` barra qualquer sessão de usuário. Os testes do gatilho cobrem as
+> duas vias (RPC de edição e DML direto pela Data API).
+
 ## 4. Regras por nível
 
 ### 4.1 Unitário e componente (`*.spec.ts`, `*.spec.tsx`)
