@@ -45,5 +45,8 @@ Data API.
   como Admin ou Funcionário.
 - Novo campo "só do sistema" segue o mesmo desenho: gatilho `BEFORE` que deixa passar a escrita sem
   sessão, e tela somente leitura.
-- Quem precisar corrigir um DAS `enviado` por engano não tem caminho pela tela: o ajuste é do
-  sistema (ou de migration/script com `service_role`).
+- Definir um DAS como `enviado` (ou alterar a data de envio) não tem caminho pela tela: é do
+  sistema (ou de migration/script com `service_role`). Mudar um `enviado` para outro status é
+  permitido a quem edita o cadastro e limpa a data.
+- O cadastro operacional não troca de Cliente (`cliente_id` imutável com sessão): senão o estado de
+  entrega de um Cliente passaria para outro.

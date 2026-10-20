@@ -120,6 +120,8 @@ const CNPJS_DA_SUITE = [
   "62785037000553",
   "62785037000634",
   "62785037000715",
+  "62785037000804",
+  "62785037000987",
 ] as const;
 beforeAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
 afterAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
@@ -272,6 +274,38 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
         das_status: "enviado",
         data_envio_das: "2026-10-05",
       });
+    });
+
+    it("sessão de Admin não move o cadastro `enviado` de A para um Cliente B sem cadastro operacional", async () => {
+      const { admin, clienteBase } = await prepararFuncionarioSN("62785037000804");
+      const repositorio = new SupabaseClienteRepository(await comoFuncionarioSN());
+      await repositorio.atualizarOperacional(comCadastroOperacional(clienteBase));
+      await sistemaMarcaEnviado(clienteBase.id, "2026-10-05");
+      // B por INSERT direto: a RPC de cadastro é que cria o cadastro operacional.
+      const clienteBId = crypto.randomUUID();
+      const inserirB = await admin.from("clientes").insert({
+        id: clienteBId,
+        empresa: "Cliente B",
+        cnpj: "62785037000987",
+        regime: "simples_nacional",
+      });
+      expect(inserirB.error).toBeNull();
+
+      const mover = await admin
+        .from("cliente_cadastro_operacional_sn")
+        .update({ cliente_id: clienteBId })
+        .eq("cliente_id", clienteBase.id);
+
+      expect(mover.error?.code).toBe("23514");
+      expect(await lerDas(admin, clienteBase.id)).toEqual({
+        das_status: "enviado",
+        data_envio_das: "2026-10-05",
+      });
+      const { data: linhaB } = await admin
+        .from("cliente_cadastro_operacional_sn")
+        .select("cliente_id")
+        .eq("cliente_id", clienteBId);
+      expect(linhaB).toEqual([]);
     });
 
     it("sair de `enviado` limpa a data de envio", async () => {

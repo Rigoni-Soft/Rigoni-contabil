@@ -44,8 +44,8 @@ Antes de ligar em produção:
 - **Só o job marca `enviado` (#108):** nenhum usuário (Admin inclusive) define o DAS `enviado` nem
   a data de envio pela tela, pela RPC de edição ou pela Data API; um gatilho no banco barra (erro
   `23514`), e a data é sempre derivada. O job passa porque grava com `service_role`, sem sessão
-  (`auth.uid()` nulo). Se um DAS ficar `enviado` por engano, o ajuste é feito com `service_role`
-  (script ou migration), não pela tela. ADR 0008.
+  (`auth.uid()` nulo). Definir `enviado` por engano não é possível pela tela; para desfazer um `enviado`
+  basta mudar o status para outro valor (a data é limpa). ADR 0008.
 - **Forma de envio:** WhatsApp e e-mail são independentes; o DAS vira `enviado` se ao menos um
   canal entregou. Canal que falha ou não tem destinatário gera alerta e não derruba o outro. Quando
   a guia do DAS tem os dois canais na forma de envio e só um entregou, abre-se também

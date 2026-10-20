@@ -5,6 +5,7 @@
 -- gatilho BEFORE na tabela (arquitetura.md §3.14), não código da RPC. A RPC não muda.
 --
 -- Para quem tem sessão (`auth.uid()` não nulo):
+--   * o cadastro não troca de Cliente (`cliente_id`): senão o estado de entrega de A passaria para B;
 --   * `enviado` só se mantém — nunca nasce da edição manual (erro 23514);
 --   * a data de envio é derivada: preservada enquanto o status segue `enviado`, nula nos demais
 --     (o valor que a pessoa mandar é descartado, sem erro: a tela só exibe).
@@ -18,6 +19,10 @@ declare
 begin
   if auth.uid() is null then
     return new;
+  end if;
+
+  if tg_op = 'UPDATE' and new.cliente_id is distinct from old.cliente_id then
+    raise exception 'O Cliente do cadastro operacional não pode ser trocado.' using errcode = '23514';
   end if;
 
   -- No upsert da RPC de edição o gatilho de INSERT roda antes do ON CONFLICT: o status atual é o
