@@ -199,6 +199,7 @@ export function EditarCadastroOperacionalContainer({
         onTentarNovamente: () => void elegiveis.refetch(),
       }}
       temParcelamento={temParcelamento}
+      dasEnviadoPeloSistema={dados?.dasStatus === "enviado"}
       erroServidor={erroServidor}
       sucesso={sucesso}
       contatos={fields}

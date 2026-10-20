@@ -68,7 +68,10 @@ async function criarClienteBase(admin: SupabaseClient, cnpj: string): Promise<Cl
   return construido.value;
 }
 
-function comCadastroOperacional(clienteBase: Cliente): Cliente {
+function comCadastroOperacional(
+  clienteBase: Cliente,
+  das: { status: string; data: string | null } = { status: "pronto", data: null },
+): Cliente {
   const reconstruido = Cliente.builder()
     .comId(clienteBase.id)
     .comEmpresa(clienteBase.empresa)
@@ -79,8 +82,8 @@ function comCadastroOperacional(clienteBase: Cliente): Cliente {
     .comFormaEnvio("email")
     .comContatos([{ nome: "Maria", telefone: "11999990000", padrao: true }])
     .comDocumentoObrigatorio("positivo")
-    .comDasStatus("pronto")
-    .comDataEnvioDas(null)
+    .comDasStatus(das.status as "pronto")
+    .comDataEnvioDas(das.data ? new Date(das.data) : null)
     .comTemParcelamento(false)
     .comParcelamentoStatus(null)
     .comObservacoesGerais("Cliente pontual.")
@@ -113,6 +116,9 @@ const CNPJS_DA_SUITE = [
   "92773111000159",
   "92773222000165",
   "92773334000116",
+  "62785037000472",
+  "62785037000553",
+  "62785037000634",
 ] as const;
 beforeAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
 afterAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
@@ -187,6 +193,76 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
     expect(resultado.value.dasStatus?.valor).toBe("pronto");
     expect(resultado.value.contatos).toHaveLength(1);
     expect(resultado.value.atividadeMesAtual?.comercio).toBe(true);
+  });
+
+  describe("DAS enviado só pelo sistema (#108)", () => {
+    async function prepararFuncionarioSN(cnpj: string) {
+      const admin = await comoAdmin();
+      const clienteBase = await criarClienteBase(admin, cnpj);
+      await atribuirComoLider(clienteBase.id, FUNCIONARIO_SN_ID);
+      const repositorio = new SupabaseClienteRepository(await comoFuncionarioSN());
+      return { admin, clienteBase, repositorio };
+    }
+    const lerDas = async (admin: SupabaseClient, clienteId: string) =>
+      (
+        await admin
+          .from("cliente_cadastro_operacional_sn")
+          .select("das_status, data_envio_das")
+          .eq("cliente_id", clienteId)
+          .single()
+      ).data;
+
+    it("edição manual não consegue definir `enviado`", async () => {
+      const { admin, clienteBase, repositorio } = await prepararFuncionarioSN("62785037000472");
+
+      const resultado = await repositorio.atualizarOperacional(
+        comCadastroOperacional(clienteBase, { status: "enviado", data: "2026-10-01" }),
+      );
+
+      expect(resultado.ok).toBe(false);
+      expect(await lerDas(admin, clienteBase.id)).toEqual({
+        das_status: "pendente",
+        data_envio_das: null,
+      });
+    });
+
+    it("salvar com DAS já `enviado` pelo sistema preserva status e data, ignorando a data enviada", async () => {
+      const { admin, clienteBase, repositorio } = await prepararFuncionarioSN("62785037000553");
+      await repositorio.atualizarOperacional(comCadastroOperacional(clienteBase));
+      await admin
+        .from("cliente_cadastro_operacional_sn")
+        .update({ das_status: "enviado", data_envio_das: "2026-10-05" })
+        .eq("cliente_id", clienteBase.id);
+
+      const resultado = await repositorio.atualizarOperacional(
+        comCadastroOperacional(clienteBase, { status: "enviado", data: "2020-01-01" }),
+      );
+
+      expect(resultado.ok).toBe(true);
+      expect(await lerDas(admin, clienteBase.id)).toEqual({
+        das_status: "enviado",
+        data_envio_das: "2026-10-05",
+      });
+    });
+
+    it("sair de `enviado` limpa a data de envio", async () => {
+      const { admin, clienteBase, repositorio } = await prepararFuncionarioSN("62785037000634");
+      await repositorio.atualizarOperacional(comCadastroOperacional(clienteBase));
+      await admin
+        .from("cliente_cadastro_operacional_sn")
+        .update({ das_status: "enviado", data_envio_das: "2026-10-05" })
+        .eq("cliente_id", clienteBase.id);
+
+      const resultado = await repositorio.atualizarOperacional(
+        comCadastroOperacional(clienteBase, { status: "pendente", data: "2026-10-05" }),
+      );
+
+      expect(resultado.ok).toBe(true);
+      expect(await lerDas(admin, clienteBase.id)).toEqual({
+        das_status: "pendente",
+        data_envio_das: null,
+      });
+    });
   });
 
   describe("Responsável por Cliente (#65)", () => {

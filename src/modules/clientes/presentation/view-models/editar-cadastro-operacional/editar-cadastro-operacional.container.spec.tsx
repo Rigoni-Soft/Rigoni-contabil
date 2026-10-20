@@ -240,6 +240,25 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(screen.getByRole("link", { name: /cancelar/i })).toHaveAttribute("href", "/");
   });
 
+  it("DAS: 'Enviado' não é opção escolhível e a data de envio é só leitura (#108)", () => {
+    render(<EditarCadastroOperacionalContainer dados={dados} readOnly={false} />);
+
+    expect(screen.queryByRole("option", { name: "Enviado" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/data de envio/i)).toHaveAttribute("readonly");
+  });
+
+  it("DAS já enviado pelo sistema: exibe 'Enviado' selecionado com a data (#108)", () => {
+    render(
+      <EditarCadastroOperacionalContainer
+        dados={{ ...dados, dasStatus: "enviado", dataEnvioDas: "2026-10-05" }}
+        readOnly={false}
+      />,
+    );
+
+    expect(screen.getByLabelText("DAS")).toHaveValue("enviado");
+    expect(screen.getByLabelText(/data de envio/i)).toHaveValue("2026-10-05");
+  });
+
   it("'Limpar' desfaz uma edição não salva, voltando ao valor carregado do servidor", async () => {
     const usuario = userEvent.setup();
     render(<EditarCadastroOperacionalContainer dados={dados} readOnly={false} />);
