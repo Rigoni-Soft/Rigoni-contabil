@@ -175,6 +175,41 @@ describe("CriarClienteContainer", () => {
     expect(screen.getByLabelText(/^Regime/)).toHaveValue("");
   });
 
+  it("descarta a resposta do CNPJ que chega depois de 'Cadastrar outro' sem lançar exceção", async () => {
+    let responderA: (dados: unknown) => void = () => undefined;
+    consultarMock.mockImplementationOnce(() => new Promise((resolver) => (responderA = resolver)));
+    executeMock.mockResolvedValue(
+      ok({
+        cliente: {
+          id: "1",
+          empresa: "Padaria Pão Quente Ltda",
+          cnpj: "11444777000161",
+          regime: "simples_nacional",
+          contratoSocialCaminho: "1/contrato-social/doc.pdf",
+          alteracoesContratuais: [],
+        },
+      }),
+    );
+    const rejeicoes: unknown[] = [];
+    const aoRejeitar = (motivo: unknown) => rejeicoes.push(motivo);
+    process.on("unhandledRejection", aoRejeitar);
+    const usuario = userEvent.setup();
+    render(<CriarClienteContainer />);
+
+    await preencherCamposObrigatorios(usuario); // blur do CNPJ deixa a consulta A pendente
+    await usuario.click(screen.getByRole("button", { name: "Cadastrar" }));
+    await screen.findByText(/cadastrado/);
+    await usuario.click(screen.getByRole("button", { name: "Cadastrar outro" }));
+
+    await act(async () => responderA({ empresa: "Empresa A", regime: "simples_nacional" }));
+    await new Promise((resolver) => setTimeout(resolver, 10)); // folga pro setTimeout(0) interno
+    process.off("unhandledRejection", aoRejeitar);
+
+    expect(rejeicoes).toEqual([]);
+    expect(screen.getByLabelText(/^Empresa/)).toHaveValue("");
+    expect(screen.getByLabelText(/^Regime/)).toHaveValue("");
+  });
+
   it("Promise rejeitada da Server Action não prende o botão em 'Cadastrando...'", async () => {
     executeMock.mockRejectedValue(new Error("falha de rede"));
     const usuario = userEvent.setup();
