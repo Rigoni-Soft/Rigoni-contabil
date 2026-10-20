@@ -69,6 +69,13 @@ _Avoid_: Regime (é outro conceito — ver acima).
 **CND**:
 Certidão Negativa de Débitos — documento que atesta a regularidade fiscal do Cliente, obtido via Serpro.
 
+**Aviso de cadastro**:
+O registro permanente, por destinatário, de que um Cliente entrou no Cadastro operacional (*novo cliente*) ou ganhou uma alteração contratual (*nova alteração*). O de novo cliente vai ao Líder do Setor Simples Nacional; o de nova alteração vai ao Líder e ao Responsável do Cliente (só ao Líder, se não houver Responsável ativo). Fica "não visto" até o destinatário abri-lo. Não expira.
+_Avoid_: Notificação, aviso (aviso é o de Inatividade).
+
+**Alteração contratual**:
+Documento que altera o contrato social do Cliente, anexado pelo Admin com a data e um número de sequência (1, 2, 3...) que é único por Cliente. A mais recente é a de maior número.
+
 ### Atendimento
 
 **Atendimento**:
