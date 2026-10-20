@@ -441,6 +441,7 @@ As decisões de acesso estão aqui e nos ADRs 0001, 0002 e 0005. As que a estrut
 - **View de leitura exposta a `authenticated`**: `grant select` não remove os INSERT/UPDATE/DELETE que o Supabase concede por default privileges, e uma view simples é atualizável com os privilégios do dono. Sempre `revoke all ... from public, anon, authenticated` antes do `grant select`, e teste negativo pela Data API.
 - **Tabela nova sem grant**: o Supabase não concede mais privilégios por default em tabelas novas do `public`. Toda migration que faz `create table` traz, junto do `enable row level security`, os `grant` explícitos: `authenticated` só as operações que as policies usam (o RLS filtra as linhas), `service_role` `all`, e nada para `anon` (3.12). Sem o grant a Data API responde 42501 mesmo com policy correta.
 - **Toda escrita autorizada numa tabela de negócio auditada gera o evento no próprio banco**, na mesma transação (gatilho `AFTER`), seja pela RPC ou por DML direto da Data API; uma transação grava um só evento por agregado (variável local `app.cliente_auditado`). Regras de domínio que a RPC aplica (mês corrente, Regime) também valem em gatilho `BEFORE`, senão a Data API as contorna.
+- **Campo que só o sistema grava** (ex.: DAS `enviado` e a data de envio, #108) é travado por gatilho `BEFORE` na tabela, não só na tela nem só na RPC: "sistema" é a escrita sem sessão de usuário (`auth.uid()` nulo), e qualquer pessoa com sessão, Admin inclusive, é edição manual. A tela só exibe (somente leitura). Ver ADR 0008.
 - Tabela de log/trilha imutável (ex.: auditoria): sem policy de INSERT liberada ao cliente, mesmo restrita ao próprio `auth.uid()` — a única escrita é por função `SECURITY DEFINER` que decide ator e timestamp no próprio banco, nunca a partir do que o chamador envia.
 
 ---
@@ -861,6 +862,7 @@ Todas as regras de teste (TDD, pirâmide, o que testar em cada camada, cobertura
 11. **Atomic Design de verdade:** átomo/molécula é o componente pequeno e reaproveitável; organismo é uma parte concisa da tela montada com moléculas; template estrutura a tela com slots; page é o template preenchido (seção 4.4). Um componente com mais de uma responsabilidade (balão, campo, painel, formulário) deve ser quebrado. Os organismos antigos que são telas inteiras ficam como dívida a quebrar quando forem tocados.
 12. **Painel de Atendimento lê e escreve com `service_role`**, com a autorização no caso de uso (dono, Líder do Setor ou Admin): `atendimentos`, `mensagens` e `transferencias` têm RLS ligada e nenhuma policy. Ver ADR 0005.
 13. **Aviso sonoro da interface** gerado pelo próprio navegador (Web Audio API, `presentation/lib/notificacao-sonora.ts`), sem arquivo de áudio, liberado pelo primeiro gesto do usuário (política de autoplay) e sempre acompanhado de sinal visual e de texto para leitor de tela; nunca é o único aviso.
+14. **Campo gravado só pelo sistema é travado no banco** (gatilho `BEFORE`, `auth.uid()` nulo = sistema), com a tela somente leitura; a trava vale para a RPC e para o DML direto. Ver ADR 0008.
 
 **Pendentes de decisão**
 

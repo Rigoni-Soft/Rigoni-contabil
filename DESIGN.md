@@ -603,6 +603,13 @@ dashboard normal (cards zerados) mais um aviso neutro,
 atribuídos a você aparecem aqui.") — a RLS esconde os clientes dos outros, não
 há tela de "sem acesso".
 
+**Campos só do sistema no cadastro operacional (#108):** o status DAS "Enviado" e a
+"Data de envio" nascem da entrega automática, não da digitação. "Enviado" não é
+opção do `Select` do DAS; só aparece enquanto o DAS **salvo** já está enviado, para
+exibir o valor atual. A "Data de envio" é o `Input type="date"` com `readOnly` e
+`aria-readonly="true"`, mantendo o visual de campo (não `disabled`, que o tiraria da
+tabulação e do leitor de tela), e some quando o DAS volta a outro status.
+
 **Campo Responsável no cadastro operacional (#65):** fica no cabeçalho de
 identidade do formulário, não no fim — a linha Empresa · CNPJ · Regime ·
 Responsável é uma grade `grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1.5fr]`

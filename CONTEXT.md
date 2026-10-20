@@ -111,7 +111,7 @@ Mensagem que o sistema envia nos dias 01, 05, 10 e 15 ao Contato padrão dos Cli
 _Avoid_: Cobrança.
 
 **Envio automático de DAS**:
-Nos mesmos dias, a entrega da guia do DAS quando o DAS está pronto, pela forma de envio do Cliente (WhatsApp, e-mail ou os dois). O DAS só passa a enviado, com a data de envio e auditado com a URA como ator, depois de a entrega ser aceita (a entrega é reservada antes, sem mudar o DAS); se ela falha, o DAS segue pronto (#52).
+Nos mesmos dias, a entrega da guia do DAS quando o DAS está pronto, pela forma de envio do Cliente (WhatsApp, e-mail ou os dois). O DAS só passa a enviado, com a data de envio e auditado com a URA como ator, depois de a entrega ser aceita (a entrega é reservada antes, sem mudar o DAS); se ela falha, o DAS segue pronto (#52). A edição manual do cadastro não define `enviado` nem a data de envio — só o sistema; um DAS já enviado continua exibido e a data some se o status volta a outro valor (#108).
 _Avoid_: Disparo.
 
 **Envio automático de guia de parcelamento**:

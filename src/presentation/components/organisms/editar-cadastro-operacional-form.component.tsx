@@ -36,7 +36,12 @@ const opcoes = <T extends string>(valores: readonly T[], rotulos: Record<T, stri
   valores.map((valor) => ({ valor, rotulo: rotulos[valor] }));
 const OPCOES_FORMA_ENVIO = opcoes(FORMAS_ENVIO, FORMA_ENVIO_LABEL);
 const OPCOES_DOCUMENTO = opcoes(DOCUMENTO_OBRIGATORIO_STATUSES, DOCUMENTO_OBRIGATORIO_STATUS_LABEL);
-const OPCOES_DAS = opcoes(DAS_STATUSES, DAS_STATUS_LABEL);
+// "Enviado" é gravado só pelo sistema (#108): fica fora das opções escolhíveis.
+const OPCOES_DAS = opcoes(
+  DAS_STATUSES.filter((status) => status !== "enviado"),
+  DAS_STATUS_LABEL,
+);
+const OPCAO_DAS_ENVIADO = { valor: "enviado", rotulo: DAS_STATUS_LABEL.enviado };
 const OPCOES_PARCELAMENTO = opcoes(PARCELAMENTO_STATUSES, PARCELAMENTO_STATUS_LABEL);
 
 // View global não importa módulos (arquitetura.md §3.4) — o shape espelha
@@ -81,6 +86,8 @@ type EditarCadastroOperacionalFormProps = {
   readOnly: boolean;
   responsavel: ResponsavelCampo;
   temParcelamento: boolean;
+  // DAS já `enviado` pelo sistema: a opção aparece só pra exibir o valor atual.
+  dasEnviadoPeloSistema: boolean;
   erroServidor?: string;
   sucesso?: boolean;
   // Lista de campos do useFieldArray, montada no Container (View burra: sem hooks).
@@ -105,6 +112,7 @@ export function EditarCadastroOperacionalForm({
   readOnly,
   responsavel,
   temParcelamento,
+  dasEnviadoPeloSistema,
   erroServidor,
   sucesso,
   contatos,
@@ -167,7 +175,7 @@ export function EditarCadastroOperacionalForm({
         <CampoDeOpcoes
           id="dasStatus"
           rotulo="DAS"
-          opcoes={OPCOES_DAS}
+          opcoes={dasEnviadoPeloSistema ? [...OPCOES_DAS, OPCAO_DAS_ENVIADO] : OPCOES_DAS}
           placeholder="Não definido"
           className="gap-1"
           {...register("dasStatus")}
@@ -177,6 +185,8 @@ export function EditarCadastroOperacionalForm({
           rotulo="Data de envio"
           type="date"
           className="gap-1"
+          readOnly
+          aria-readonly="true"
           {...register("dataEnvioDas")}
         />
 

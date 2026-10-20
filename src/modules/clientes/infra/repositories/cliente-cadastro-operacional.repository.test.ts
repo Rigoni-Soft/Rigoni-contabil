@@ -68,7 +68,10 @@ async function criarClienteBase(admin: SupabaseClient, cnpj: string): Promise<Cl
   return construido.value;
 }
 
-function comCadastroOperacional(clienteBase: Cliente): Cliente {
+function comCadastroOperacional(
+  clienteBase: Cliente,
+  das: { status: string; data: string | null } = { status: "pronto", data: null },
+): Cliente {
   const reconstruido = Cliente.builder()
     .comId(clienteBase.id)
     .comEmpresa(clienteBase.empresa)
@@ -79,8 +82,8 @@ function comCadastroOperacional(clienteBase: Cliente): Cliente {
     .comFormaEnvio("email")
     .comContatos([{ nome: "Maria", telefone: "11999990000", padrao: true }])
     .comDocumentoObrigatorio("positivo")
-    .comDasStatus("pronto")
-    .comDataEnvioDas(null)
+    .comDasStatus(das.status as "pronto")
+    .comDataEnvioDas(das.data ? new Date(das.data) : null)
     .comTemParcelamento(false)
     .comParcelamentoStatus(null)
     .comObservacoesGerais("Cliente pontual.")
@@ -113,6 +116,14 @@ const CNPJS_DA_SUITE = [
   "92773111000159",
   "92773222000165",
   "92773334000116",
+  "62785037000472",
+  "62785037000553",
+  "62785037000634",
+  "62785037000715",
+  "62785037000804",
+  "62785037000987",
+  "62785037001363",
+  "62785037001444",
 ] as const;
 beforeAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
 afterAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
@@ -187,6 +198,133 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
     expect(resultado.value.dasStatus?.valor).toBe("pronto");
     expect(resultado.value.contatos).toHaveLength(1);
     expect(resultado.value.atividadeMesAtual?.comercio).toBe(true);
+  });
+
+  describe("DAS enviado só pelo sistema (#108)", () => {
+    async function prepararFuncionarioSN(cnpj: string) {
+      const admin = await comoAdmin();
+      const clienteBase = await criarClienteBase(admin, cnpj);
+      await atribuirComoLider(clienteBase.id, FUNCIONARIO_SN_ID);
+      const repositorio = new SupabaseClienteRepository(await comoFuncionarioSN());
+      return { admin, clienteBase, repositorio };
+    }
+    // O sistema (job de envio) grava `enviado` sem sessão de usuário: service_role.
+    const comoSistema = () =>
+      createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+    const sistemaMarcaEnviado = (clienteId: string, data: string) =>
+      comoSistema()
+        .from("cliente_cadastro_operacional_sn")
+        .update({ das_status: "enviado", data_envio_das: data })
+        .eq("cliente_id", clienteId);
+    const lerDas = async (admin: SupabaseClient, clienteId: string) =>
+      (
+        await admin
+          .from("cliente_cadastro_operacional_sn")
+          .select("das_status, data_envio_das")
+          .eq("cliente_id", clienteId)
+          .single()
+      ).data;
+
+    it("edição manual não consegue definir `enviado`", async () => {
+      const { admin, clienteBase, repositorio } = await prepararFuncionarioSN("62785037000472");
+
+      const resultado = await repositorio.atualizarOperacional(
+        comCadastroOperacional(clienteBase, { status: "enviado", data: "2026-10-01" }),
+      );
+
+      expect(resultado.ok).toBe(false);
+      expect(await lerDas(admin, clienteBase.id)).toEqual({
+        das_status: "pendente",
+        data_envio_das: null,
+      });
+    });
+
+    it("salvar com DAS já `enviado` pelo sistema preserva status e data, ignorando a data enviada", async () => {
+      const { admin, clienteBase, repositorio } = await prepararFuncionarioSN("62785037000553");
+      await repositorio.atualizarOperacional(comCadastroOperacional(clienteBase));
+      await sistemaMarcaEnviado(clienteBase.id, "2026-10-05");
+
+      const resultado = await repositorio.atualizarOperacional(
+        comCadastroOperacional(clienteBase, { status: "enviado", data: "2020-01-01" }),
+      );
+
+      expect(resultado.ok).toBe(true);
+      expect(await lerDas(admin, clienteBase.id)).toEqual({
+        das_status: "enviado",
+        data_envio_das: "2026-10-05",
+      });
+    });
+
+    it("DML direto pela Data API também não define `enviado` nem altera a data (gatilho)", async () => {
+      const { admin, clienteBase, repositorio } = await prepararFuncionarioSN("62785037000715");
+      await repositorio.atualizarOperacional(comCadastroOperacional(clienteBase));
+      const funcionarioSN = await comoFuncionarioSN();
+
+      const marcar = await funcionarioSN
+        .from("cliente_cadastro_operacional_sn")
+        .update({ das_status: "enviado" })
+        .eq("cliente_id", clienteBase.id);
+      expect(marcar.error?.code).toBe("23514");
+
+      await sistemaMarcaEnviado(clienteBase.id, "2026-10-05");
+      const adulterar = await funcionarioSN
+        .from("cliente_cadastro_operacional_sn")
+        .update({ data_envio_das: "2020-01-01" })
+        .eq("cliente_id", clienteBase.id);
+      expect(adulterar.error).toBeNull();
+      expect(await lerDas(admin, clienteBase.id)).toEqual({
+        das_status: "enviado",
+        data_envio_das: "2026-10-05",
+      });
+    });
+
+    it("sessão de Admin não move o cadastro `enviado` de A para um Cliente B sem cadastro operacional", async () => {
+      const { admin, clienteBase } = await prepararFuncionarioSN("62785037000804");
+      const repositorio = new SupabaseClienteRepository(await comoFuncionarioSN());
+      await repositorio.atualizarOperacional(comCadastroOperacional(clienteBase));
+      await sistemaMarcaEnviado(clienteBase.id, "2026-10-05");
+      // B por INSERT direto: a RPC de cadastro é que cria o cadastro operacional.
+      const clienteBId = crypto.randomUUID();
+      const inserirB = await admin.from("clientes").insert({
+        id: clienteBId,
+        empresa: "Cliente B",
+        cnpj: "62785037000987",
+        regime: "simples_nacional",
+      });
+      expect(inserirB.error).toBeNull();
+
+      const mover = await admin
+        .from("cliente_cadastro_operacional_sn")
+        .update({ cliente_id: clienteBId })
+        .eq("cliente_id", clienteBase.id);
+
+      expect(mover.error?.code).toBe("23514");
+      expect(await lerDas(admin, clienteBase.id)).toEqual({
+        das_status: "enviado",
+        data_envio_das: "2026-10-05",
+      });
+      const { data: linhaB } = await admin
+        .from("cliente_cadastro_operacional_sn")
+        .select("cliente_id")
+        .eq("cliente_id", clienteBId);
+      expect(linhaB).toEqual([]);
+    });
+
+    it("sair de `enviado` limpa a data de envio", async () => {
+      const { admin, clienteBase, repositorio } = await prepararFuncionarioSN("62785037000634");
+      await repositorio.atualizarOperacional(comCadastroOperacional(clienteBase));
+      await sistemaMarcaEnviado(clienteBase.id, "2026-10-05");
+
+      const resultado = await repositorio.atualizarOperacional(
+        comCadastroOperacional(clienteBase, { status: "pendente", data: "2026-10-05" }),
+      );
+
+      expect(resultado.ok).toBe(true);
+      expect(await lerDas(admin, clienteBase.id)).toEqual({
+        das_status: "pendente",
+        data_envio_das: null,
+      });
+    });
   });
 
   describe("Responsável por Cliente (#65)", () => {
@@ -397,6 +535,39 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
       parcelamento_status: "pendente",
       observacoes_gerais: "",
     });
+  });
+
+  it("Admin não move a Atividade mensal de A para outro Cliente trocando o cliente_id (#120)", async () => {
+    const admin = await comoAdmin();
+    const clienteBase = await criarClienteBase(admin, "62785037001363");
+    await atribuirComoLider(clienteBase.id, FUNCIONARIO_SN_ID);
+    const funcionario = new SupabaseClienteRepository(await comoFuncionarioSN());
+    await funcionario.atualizarOperacional(comCadastroOperacional(clienteBase));
+    const clienteBId = crypto.randomUUID();
+    const inserirB = await admin.from("clientes").insert({
+      id: clienteBId,
+      empresa: "Cliente B",
+      cnpj: "62785037001444",
+      regime: "simples_nacional",
+    });
+    expect(inserirB.error).toBeNull();
+
+    const mover = await admin
+      .from("cliente_atividades_mensais")
+      .update({ cliente_id: clienteBId })
+      .eq("cliente_id", clienteBase.id);
+
+    expect(mover.error?.code).toBe("23514");
+    const doA = await admin
+      .from("cliente_atividades_mensais")
+      .select("id")
+      .eq("cliente_id", clienteBase.id);
+    const doB = await admin
+      .from("cliente_atividades_mensais")
+      .select("id")
+      .eq("cliente_id", clienteBId);
+    expect(doA.data).toHaveLength(1);
+    expect(doB.data).toEqual([]);
   });
 
   it("criar Cliente MEI também já cria o cadastro operacional", async () => {

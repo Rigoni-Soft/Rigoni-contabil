@@ -62,6 +62,9 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await page.getByLabel("Nome").fill("Maria Contato");
     await page.getByLabel("Telefone").fill("11999998888");
     await page.getByLabel("Documento recebido").selectOption("positivo");
+    // "Enviado" e a data de envio são só do sistema (#108).
+    await expect(page.getByLabel("DAS").getByRole("option", { name: "Enviado" })).toHaveCount(0);
+    await expect(page.getByLabel("Data de envio")).toHaveAttribute("readonly", "");
     await page.getByLabel("DAS").selectOption("pronto");
     await page.getByRole("checkbox", { name: "Comércio" }).check();
     await page.getByLabel("Observações gerais").fill("Observação de teste E2E.");

@@ -67,8 +67,9 @@ export function CriarClienteContainer() {
     const cnpj = normalizarCnpj(cnpjMascarado);
     const dados = await consultarCnpj(cnpj);
     // Resposta obsoleta: o Admin já trocou o CNPJ enquanto a consulta voava. Aplicar Empresa/Regime
-    // de outro CNPJ seria preencher o formulário com dados que não são desse cadastro.
-    if (normalizarCnpj(getValues("cnpj")) !== cnpj) return;
+    // de outro CNPJ seria preencher o formulário com dados que não são desse cadastro. Após
+    // `reset()` ("Cadastrar outro") o valor volta a `undefined`: tratado como CNPJ trocado.
+    if (normalizarCnpj(getValues("cnpj") ?? "") !== cnpj) return;
 
     // setTimeout: nunca deixa esses setState caírem no mesmo lote de render
     // de uma ação síncrona concorrente (ex.: clicar "Adicionar" bem quando a
