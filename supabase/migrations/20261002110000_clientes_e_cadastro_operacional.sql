@@ -503,6 +503,19 @@ CREATE VIEW public.clientes_basico WITH (security_invoker='false') AS
 revoke all on public.clientes_basico from public, anon, authenticated;
 grant select on public.clientes_basico to authenticated;
 
+-- Grants de tabela (Supabase não concede mais por default): `authenticated` só recebe o que as
+-- policies deste arquivo usam (o RLS filtra as linhas); `service_role` ignora RLS e fica com tudo.
+grant select, insert on table public.clientes to authenticated;
+grant all on table public.clientes to service_role;
+grant select, insert on table public.cliente_alteracoes_contratuais to authenticated;
+grant all on table public.cliente_alteracoes_contratuais to service_role;
+grant select, insert, update on table public.cliente_cadastro_operacional_sn to authenticated;
+grant all on table public.cliente_cadastro_operacional_sn to service_role;
+grant select, insert, delete on table public.cliente_contatos to authenticated;
+grant all on table public.cliente_contatos to service_role;
+grant select, insert, update on table public.cliente_atividades_mensais to authenticated;
+grant all on table public.cliente_atividades_mensais to service_role;
+
 -- Quem pode executar/ler: só o service_role (jobs, webhook) onde há revoke.
 revoke all on function public.auditar_cadastro_operacional_editado() from public, anon, authenticated;
 grant execute on function public.auditar_cadastro_operacional_editado() to service_role;
