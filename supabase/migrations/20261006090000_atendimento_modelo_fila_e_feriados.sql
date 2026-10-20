@@ -722,6 +722,11 @@ CREATE POLICY feriados_insert_admin ON public.feriados FOR INSERT WITH CHECK ((p
 
 CREATE POLICY feriados_select_admin ON public.feriados FOR SELECT USING ((public.acesso_liberado() AND (public.meu_papel() = 'admin'::public.papel)));
 
+-- Grants de tabela (Supabase não concede mais por default): `authenticated` só recebe o que as
+-- policies deste arquivo usam (o RLS filtra as linhas); `service_role` ignora RLS e fica com tudo.
+grant select, insert, delete on table public.feriados to authenticated;
+grant all on table public.feriados to service_role;
+
 -- Quem pode executar/ler: só o service_role (jobs, webhook) onde há revoke.
 revoke all on table public.atendimentos from anon, authenticated;
 grant all on table public.atendimentos to service_role;

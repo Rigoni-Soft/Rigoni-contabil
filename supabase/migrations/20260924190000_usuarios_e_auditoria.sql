@@ -270,6 +270,13 @@ CREATE POLICY perfis_select_proprio ON public.perfis FOR SELECT USING ((id = aut
 
 CREATE POLICY registros_auditoria_select_admin ON public.registros_auditoria FOR SELECT USING ((public.meu_papel() = 'admin'::public.papel));
 
+-- Grants de tabela (Supabase não concede mais por default): `authenticated` só recebe o que as
+-- policies deste arquivo usam (o RLS filtra as linhas); `service_role` ignora RLS e fica com tudo.
+grant select, insert on table public.perfis to authenticated;
+grant all on table public.perfis to service_role;
+grant select on table public.registros_auditoria to authenticated;
+grant all on table public.registros_auditoria to service_role;
+
 -- Quem pode executar/ler: só o service_role (jobs, webhook) onde há revoke.
 revoke all on function public.alterar_papel_usuario(uuid, uuid, public.papel) from public, anon, authenticated;
 grant execute on function public.alterar_papel_usuario(uuid, uuid, public.papel) to service_role;
