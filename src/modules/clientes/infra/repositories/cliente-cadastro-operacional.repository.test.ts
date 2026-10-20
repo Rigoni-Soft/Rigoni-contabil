@@ -122,6 +122,8 @@ const CNPJS_DA_SUITE = [
   "62785037000715",
   "62785037000804",
   "62785037000987",
+  "62785037001363",
+  "62785037001444",
 ] as const;
 beforeAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
 afterAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
@@ -533,6 +535,39 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
       parcelamento_status: "pendente",
       observacoes_gerais: "",
     });
+  });
+
+  it("Admin não move a Atividade mensal de A para outro Cliente trocando o cliente_id (#120)", async () => {
+    const admin = await comoAdmin();
+    const clienteBase = await criarClienteBase(admin, "62785037001363");
+    await atribuirComoLider(clienteBase.id, FUNCIONARIO_SN_ID);
+    const funcionario = new SupabaseClienteRepository(await comoFuncionarioSN());
+    await funcionario.atualizarOperacional(comCadastroOperacional(clienteBase));
+    const clienteBId = crypto.randomUUID();
+    const inserirB = await admin.from("clientes").insert({
+      id: clienteBId,
+      empresa: "Cliente B",
+      cnpj: "62785037001444",
+      regime: "simples_nacional",
+    });
+    expect(inserirB.error).toBeNull();
+
+    const mover = await admin
+      .from("cliente_atividades_mensais")
+      .update({ cliente_id: clienteBId })
+      .eq("cliente_id", clienteBase.id);
+
+    expect(mover.error?.code).toBe("23514");
+    const doA = await admin
+      .from("cliente_atividades_mensais")
+      .select("id")
+      .eq("cliente_id", clienteBase.id);
+    const doB = await admin
+      .from("cliente_atividades_mensais")
+      .select("id")
+      .eq("cliente_id", clienteBId);
+    expect(doA.data).toHaveLength(1);
+    expect(doB.data).toEqual([]);
   });
 
   it("criar Cliente MEI também já cria o cadastro operacional", async () => {
