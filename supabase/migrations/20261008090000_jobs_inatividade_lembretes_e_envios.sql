@@ -484,6 +484,12 @@ ALTER TABLE public.envios_automaticos ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY alertas_setor_select ON public.alertas_setor FOR SELECT USING ((public.acesso_liberado() AND ((public.meu_papel() = 'admin'::public.papel) OR (setor = public.meu_setor()))));
 
+-- Grants de tabela (Supabase não concede mais por default): `authenticated` só recebe o que as
+-- policies deste arquivo usam (o RLS filtra as linhas); `service_role` ignora RLS e fica com tudo.
+grant select on table public.alertas_setor to authenticated;
+grant all on table public.alertas_setor to service_role;
+grant all on table public.envios_automaticos to service_role;
+
 -- Quem pode executar/ler: só o service_role (jobs, webhook) onde há revoke.
 revoke all on function public.atendimentos_para_inatividade() from public, anon, authenticated;
 grant execute on function public.atendimentos_para_inatividade() to service_role;
