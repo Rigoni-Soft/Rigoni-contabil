@@ -2,8 +2,7 @@ import { X } from "lucide-react";
 import { Controller, type Control, type FieldErrors, type UseFormRegister } from "react-hook-form";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
-import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
-import { ListaComDivisores } from "@/presentation/components/atoms/lista-com-divisores.component";
+import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoDeArquivo } from "@/presentation/components/molecules/campo-de-arquivo.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
@@ -19,15 +18,13 @@ type Valores = { numero: number; data: string; arquivo: File };
 
 type AlteracoesContratuaisProps = {
   painelId: string;
-  // Do maior nº para o menor.
-  alteracoes: { numero: number; rotulo: string; arquivo: string }[];
   register: UseFormRegister<Valores>;
   control: Control<Valores>;
   errors: FieldErrors<Valores>;
   onSubmit: React.FormEventHandler<HTMLFormElement>;
   pendente: boolean;
   erroServidor?: string;
-  // Confirmação exibida na seção depois que o diálogo fecha.
+  // Confirmação exibida depois que o diálogo fecha.
   sucesso?: string;
   // Esc, clique fora ou X: descarta rascunho e erro.
   aoFechar: () => void;
@@ -36,12 +33,11 @@ type AlteracoesContratuaisProps = {
   aoEscolherArquivo: (arquivo: File | undefined) => void;
 };
 
-// Seção do Admin em /clientes/[id], fora do formulário do cadastro operacional (sem <form> aninhado):
-// lista das alterações + o diálogo (popover nativo) de anexar, aberto pelo botão "Anexar alteração"
-// que fica ao lado de "Abrir em nova aba" (BotaoAnexarAlteracao), pelo id do painel.
+// Admin em /clientes/[id], fora do formulário do cadastro operacional (sem <form> aninhado): o diálogo
+// (popover nativo) de anexar, aberto pelo botão "Anexar alteração" que fica ao lado de "Abrir em nova
+// aba" (BotaoAnexarAlteracao), pelo id do painel; mais a confirmação depois de anexar.
 export function AlteracoesContratuais({
   painelId,
-  alteracoes,
   register,
   control,
   errors,
@@ -54,27 +50,8 @@ export function AlteracoesContratuais({
   aoEscolherArquivo,
 }: AlteracoesContratuaisProps) {
   return (
-    <Pilha como="section" espaco={3} aria-labelledby={`${painelId}-secao`}>
-      <Texto variante="destaque" como="h2" id={`${painelId}-secao`}>
-        Alterações contratuais
-      </Texto>
-
+    <Pilha espaco={3}>
       {sucesso && <AvisoDeStatus tipo="sucesso" texto={sucesso} className="text-sm" />}
-
-      {alteracoes.length === 0 ? (
-        <Texto variante="nota">Nenhuma alteração anexada.</Texto>
-      ) : (
-        <ListaComDivisores cartao>
-          {alteracoes.map(({ numero, rotulo, arquivo }) => (
-            <Caixa como="li" key={numero} className="min-w-0 px-3 py-2 text-sm break-words">
-              {rotulo}
-              <Texto variante="nota" como="span" className="block">
-                {arquivo}
-              </Texto>
-            </Caixa>
-          ))}
-        </ListaComDivisores>
-      )}
 
       <Pilha
         espaco={4}

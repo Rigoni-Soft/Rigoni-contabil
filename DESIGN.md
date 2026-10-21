@@ -860,3 +860,6 @@ ou o cliente escreve de novo.
   cartão do documento contratual, junto de "Abrir em nova aba"; sem documento algum, aparece sozinho. O
   diálogo continua na seção "Alterações contratuais", abaixo do formulário (fora dele: sem `<form>`
   aninhado), ligado ao botão pelo id do painel.
+- **Sem seção de lista das alterações**: abaixo do formulário de `/clientes/[id]` não há mais a seção
+  "Alterações contratuais". Ficam só o diálogo de anexar (fora do `<form>`) e a confirmação depois de
+  anexar; o cartão do documento mostra a alteração mais recente.

@@ -39,8 +39,9 @@ test.describe("Admin anexa alteração contratual a Cliente existente (#141)", (
       empresaUnica("Anexar Alteracao E2E Ltda"),
     );
     await page.goto(`/clientes/${clienteId}`);
-    const secao = page.getByRole("region", { name: "Alterações contratuais" });
-    await expect(secao.getByText("Alteração nº 1 - 01/02/2026")).toBeVisible();
+    // O cartão do documento mostra sempre a alteração mais recente.
+    const cartao = page.getByRole("button", { name: /^Abrir / });
+    await expect(cartao).toHaveAccessibleName("Abrir Alteração nº 1 - 01/02/2026 em nova aba");
 
     await page.getByRole("button", { name: "Anexar alteração", exact: true }).click();
     const dialogo = page.getByRole("dialog", { name: "Anexar alteração contratual" });
@@ -49,7 +50,7 @@ test.describe("Admin anexa alteração contratual a Cliente existente (#141)", (
     await dialogo.getByLabel("Data da alteração").fill("2026-03-01");
     await dialogo.getByRole("button", { name: "Anexar", exact: true }).click();
 
-    await expect(secao.getByText("Alteração nº 2 - 01/03/2026")).toBeVisible();
+    await expect(cartao).toHaveAccessibleName("Abrir Alteração nº 2 - 01/03/2026 em nova aba");
     await expect(dialogo).toBeHidden();
 
     // Nº repetido: barrado pela lista já carregada, sem subir o arquivo.
@@ -77,7 +78,6 @@ test.describe("Admin anexa alteração contratual a Cliente existente (#141)", (
       await expect(page).toHaveURL("/simples-nacional");
       await page.goto(`/clientes/${clienteId}`);
       await expect(page.getByRole("button", { name: /^Abrir Alteração nº/ })).toBeVisible();
-      await expect(page.getByRole("region", { name: "Alterações contratuais" })).toBeHidden();
       await expect(page.getByRole("button", { name: "Anexar alteração" })).toBeHidden();
       await sair(page);
     }
