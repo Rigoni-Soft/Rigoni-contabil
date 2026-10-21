@@ -25,44 +25,60 @@ export const arquivoDocumento = (mensagem: string) =>
       "Envie um arquivo PDF ou DOCX",
     );
 
-export const criarClienteSchema = z.object({
-  empresa: z.string().min(1, "Empresa obrigatória"),
-  cnpj: z
-    .string({ error: "CNPJ obrigatório" })
-    .min(1, "CNPJ obrigatório")
-    .refine(cnpjValido, "CNPJ inválido"),
-  regime: z.enum(REGIMES, "Regime obrigatório"),
-  // Opcional: vazio vale como "sem e-mail" (campo de texto não preenchido chega como "").
-  email: z
-    .union([
-      z.literal(""),
-      z
-        .string()
-        .trim()
-        .max(254, "Use até 254 caracteres")
-        .email("Informe um e-mail válido, como nome@empresa.com.br"),
-    ])
-    .optional(),
-  // Opcional.
-  contratoSocial: arquivoDocumento("Arquivo inválido").optional(),
-  alteracoesContratuais: z
-    .array(
-      z.object({
-        numero: z
-          .number({ error: "Nº obrigatório" })
-          .refine((n) => !erroDeFormato(n), ERRO_NUMERO_INVALIDO),
-        data: z.string().min(1, "Data obrigatória"),
-        arquivo: arquivoDocumento("Arquivo obrigatório"),
+// Os arquivos vão todos no corpo de uma só Server Action, que o Next corta em 11 MB (next.config.ts).
+// Acima disso a requisição falha antes do caso de uso e a tela só diria "verifique a conexão".
+const LIMITE_TOTAL_BYTES = 10 * 1024 * 1024;
+
+export const criarClienteSchema = z
+  .object({
+    empresa: z.string().min(1, "Empresa obrigatória"),
+    cnpj: z
+      .string({ error: "CNPJ obrigatório" })
+      .min(1, "CNPJ obrigatório")
+      .refine(cnpjValido, "CNPJ inválido"),
+    regime: z.enum(REGIMES, "Regime obrigatório"),
+    // Opcional: vazio vale como "sem e-mail" (campo de texto não preenchido chega como "").
+    email: z
+      .union([
+        z.literal(""),
+        z
+          .string()
+          .trim()
+          .max(254, "Use até 254 caracteres")
+          .email("Informe um e-mail válido, como nome@empresa.com.br"),
+      ])
+      .optional(),
+    // Opcional.
+    contratoSocial: arquivoDocumento("Arquivo inválido").optional(),
+    alteracoesContratuais: z
+      .array(
+        z.object({
+          numero: z
+            .number({ error: "Nº obrigatório" })
+            .refine((n) => !erroDeFormato(n), ERRO_NUMERO_INVALIDO),
+          data: z.string().min(1, "Data obrigatória"),
+          arquivo: arquivoDocumento("Arquivo obrigatório"),
+        }),
+      )
+      // Nº repetido dentro do formulário: barra antes do envio dos arquivos.
+      .superRefine((alteracoes, ctx) => {
+        alteracoes.forEach(({ numero }, indice) => {
+          if (erroDeFormato(numero)) return;
+          const erro = erroDeDuplicidade(numero, outrosNumeros(alteracoes, indice));
+          if (erro) ctx.addIssue({ code: "custom", message: erro, path: [indice, "numero"] });
+        });
       }),
-    )
-    // Nº repetido dentro do formulário: barra antes do envio dos arquivos.
-    .superRefine((alteracoes, ctx) => {
-      alteracoes.forEach(({ numero }, indice) => {
-        if (erroDeFormato(numero)) return;
-        const erro = erroDeDuplicidade(numero, outrosNumeros(alteracoes, indice));
-        if (erro) ctx.addIssue({ code: "custom", message: erro, path: [indice, "numero"] });
-      });
-    }),
-});
+  })
+  .refine(
+    ({ contratoSocial, alteracoesContratuais }) =>
+      [contratoSocial, ...alteracoesContratuais.map((a) => a.arquivo)].reduce(
+        (soma, arquivo) => soma + (arquivo?.size ?? 0),
+        0,
+      ) <= LIMITE_TOTAL_BYTES,
+    {
+      message: "Os arquivos somam mais de 10 MB. Envie arquivos menores.",
+      path: ["contratoSocial"],
+    },
+  );
 
 export type CriarClienteFormValues = z.infer<typeof criarClienteSchema>;

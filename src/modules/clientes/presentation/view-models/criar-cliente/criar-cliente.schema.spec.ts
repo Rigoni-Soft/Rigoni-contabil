@@ -120,4 +120,20 @@ describe("criarClienteSchema", () => {
       expect(resultado.success).toBe(false);
     });
   });
+
+  it("recusa arquivos que somam mais de 10 MB (o corpo da Server Action tem teto de 11 MB)", () => {
+    const grande = new File([new Uint8Array(6 * 1024 * 1024)], "g.pdf", {
+      type: "application/pdf",
+    });
+    const resultado = criarClienteSchema.safeParse({
+      empresa: "Padaria Pão Quente Ltda",
+      cnpj: "11.444.777/0001-61",
+      regime: "simples_nacional",
+      contratoSocial: grande,
+      alteracoesContratuais: [{ numero: 1, data: "2026-02-01", arquivo: grande }],
+    });
+
+    expect(resultado.success).toBe(false);
+    expect(resultado.error?.issues[0]?.message).toMatch(/somam mais de 10 MB/);
+  });
 });
