@@ -182,6 +182,7 @@ export function EditarCadastroOperacionalForm({
           // é a informação do campo: fica em cor plena, sem a opacidade de desabilitado (DESIGN.md).
           disabled={dasEnviadoPeloSistema}
           classeDoSelect="disabled:opacity-100"
+          ajuda={dasEnviadoPeloSistema ? "Definido pelo sistema." : undefined}
           {...register("dasStatus")}
         />
         <CampoDeTexto
@@ -192,6 +193,7 @@ export function EditarCadastroOperacionalForm({
           readOnly
           disabled
           classeDoInput="disabled:opacity-100"
+          ajuda="Preenchida pelo sistema quando o DAS é enviado."
           {...register("dataEnvioDas")}
         />
 

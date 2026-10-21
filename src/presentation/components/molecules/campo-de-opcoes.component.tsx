@@ -2,6 +2,7 @@ import { Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { RequiredMark } from "@/presentation/components/atoms/required-mark.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Label } from "@/presentation/components/ui/label";
 import { Select } from "@/presentation/components/ui/select";
 
@@ -15,6 +16,8 @@ type CampoDeOpcoesProps = React.ComponentProps<"select"> & {
   placeholderDesabilitado?: boolean;
   erro?: string;
   aviso?: string;
+  // Dica fixa sob o campo (por que está travado); ligada ao select por aria-describedby.
+  ajuda?: string;
   // Classes do contêiner e do <select> (campo travado mantém a cor plena, por exemplo).
   className?: string;
   classeDoSelect?: string;
@@ -30,6 +33,7 @@ export function CampoDeOpcoes({
   placeholderDesabilitado,
   erro,
   aviso,
+  ajuda,
   className,
   classeDoSelect,
   ...props
@@ -45,6 +49,7 @@ export function CampoDeOpcoes({
         aria-required={obrigatorio ? "true" : undefined}
         aria-invalid={!!erro}
         className={classeDoSelect}
+        aria-describedby={ajuda ? `${id}-ajuda` : undefined}
         {...props}
       >
         {placeholder !== undefined && (
@@ -58,6 +63,11 @@ export function CampoDeOpcoes({
           </Opcao>
         ))}
       </Select>
+      {ajuda && (
+        <Texto variante="nota" id={`${id}-ajuda`}>
+          {ajuda}
+        </Texto>
+      )}
       {erro && <FieldError>{erro}</FieldError>}
       {!erro && aviso && <FieldError>{aviso}</FieldError>}
     </Pilha>

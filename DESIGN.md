@@ -614,6 +614,10 @@ campos o valor é a informação, então seguem na cor plena (`disabled:opacity-
 travado do cadastro de usuário). `disabled` é decisão do produto (o valor continua
 visível e segue no formulário, que lê do estado do React Hook Form, não do DOM); o custo
 é o campo sair da tabulação e do leitor de tela.
+Como o campo travado fica igual a um editável (só o cursor `not-allowed` o distingue, e no
+toque nem isso), cada um traz uma nota (`ajuda`, `Texto nota` ligado por `aria-describedby`):
+"Definido pelo sistema." no DAS enviado e "Preenchida pelo sistema quando o DAS é enviado."
+na data, que também explica por que ela está vazia antes do envio.
 
 **Campo Responsável no cadastro operacional (#65):** fica no cabeçalho de
 identidade do formulário, não no fim — a linha Empresa · CNPJ · Regime ·

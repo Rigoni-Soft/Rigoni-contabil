@@ -21,6 +21,12 @@ describe("CampoDeTexto", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("CNPJ inválido.");
   });
 
+  it("a ajuda fica sob o campo e é a descrição dele", () => {
+    render(<CampoDeTexto id="n" rotulo="Nº" ajuda="Pode editar." />);
+
+    expect(screen.getByLabelText("Nº")).toHaveAccessibleDescription("Pode editar.");
+  });
+
   it("o aviso só aparece quando não há erro", () => {
     const { rerender } = render(<CampoDeTexto id="e" rotulo="Empresa" aviso="Confirme à mão." />);
     expect(screen.getByRole("alert")).toHaveTextContent("Confirme à mão.");
@@ -31,6 +37,19 @@ describe("CampoDeTexto", () => {
 });
 
 describe("CampoDeOpcoes", () => {
+  it("a ajuda é a descrição do select", () => {
+    render(
+      <CampoDeOpcoes
+        id="r"
+        rotulo="Regime"
+        opcoes={[{ valor: "mei", rotulo: "MEI" }]}
+        ajuda="Definido pelo sistema."
+      />,
+    );
+
+    expect(screen.getByLabelText("Regime")).toHaveAccessibleDescription("Definido pelo sistema.");
+  });
+
   it("lista as opções e usa o placeholder desabilitado", () => {
     render(
       <CampoDeOpcoes

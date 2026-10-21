@@ -265,6 +265,27 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(screen.getByLabelText(/data de envio/i)).toBeDisabled();
   });
 
+  it("explica por que a data de envio e o DAS enviado estão travados", () => {
+    const { unmount } = render(
+      <EditarCadastroOperacionalContainer dados={dados} readOnly={false} />,
+    );
+
+    expect(screen.getByLabelText(/data de envio/i)).toHaveAccessibleDescription(
+      "Preenchida pelo sistema quando o DAS é enviado.",
+    );
+    // DAS ainda editável: sem texto de "travado".
+    expect(screen.getByLabelText("DAS")).not.toHaveAccessibleDescription();
+    unmount();
+
+    render(
+      <EditarCadastroOperacionalContainer
+        dados={{ ...dados, dasStatus: "enviado", dataEnvioDas: "2026-10-05" }}
+        readOnly={false}
+      />,
+    );
+    expect(screen.getByLabelText("DAS")).toHaveAccessibleDescription("Definido pelo sistema.");
+  });
+
   it("salvar com DAS já enviado mantém 'enviado' e a data no que vai ao servidor", async () => {
     executeMock.mockResolvedValue({ ok: true, value: { clienteId: dados.id } });
     const usuario = userEvent.setup();
