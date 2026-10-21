@@ -6,7 +6,7 @@ type EditarCadastroOperacionalPageProps = {
   header: React.ReactNode;
   titulo: string;
   formulario: React.ReactNode;
-  // Só o Admin: seção para anexar alteração contratual, abaixo do formulário (fora dele).
+  // Só o Admin: diálogo de anexar alteração contratual e sua confirmação, fora do formulário.
   alteracoesContratuais?: React.ReactNode;
   // De onde a tela foi aberta (ex.: a lista de um bucket do resumo do setor): "Voltar" leva
   // para lá, não sempre para o dashboard.
@@ -27,8 +27,10 @@ export function EditarCadastroOperacionalPage({
       cabecalho={<CabecalhoDeTela voltarHref={voltarHref} titulo={titulo} />}
       conteudo={
         <Pilha espaco={6}>
-          {formulario}
+          {/* Antes do formulário: a confirmação de anexar aparece colada ao cartão do documento, que
+              fica no topo dele, em vez de lá embaixo, fora da vista. */}
           {alteracoesContratuais}
+          {formulario}
         </Pilha>
       }
     />

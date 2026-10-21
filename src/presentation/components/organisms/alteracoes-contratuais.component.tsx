@@ -2,7 +2,7 @@ import { X } from "lucide-react";
 import { Controller, type Control, type FieldErrors, type UseFormRegister } from "react-hook-form";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
-import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoDeArquivo } from "@/presentation/components/molecules/campo-de-arquivo.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
@@ -50,8 +50,9 @@ export function AlteracoesContratuais({
   aoEscolherArquivo,
 }: AlteracoesContratuaisProps) {
   return (
-    <Pilha espaco={3}>
-      {sucesso && <AvisoDeStatus tipo="sucesso" texto={sucesso} className="text-sm" />}
+    // `contents`: sem caixa própria, para o espaço do diálogo fechado não abrir vão acima do formulário.
+    <Caixa className="contents">
+      {sucesso && <AvisoDeStatus tipo="sucesso" texto={sucesso} className="mb-4 text-sm" />}
 
       <Pilha
         espaco={4}
@@ -137,6 +138,6 @@ export function AlteracoesContratuais({
           </Button>
         </Pilha>
       </Pilha>
-    </Pilha>
+    </Caixa>
   );
 }

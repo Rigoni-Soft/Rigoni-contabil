@@ -865,7 +865,9 @@ fixos, campo travado em cor plena, diálogo e lista das alterações); onde há 
   lado de "Abrir em nova aba"; sem documento algum, aparece sozinho. **Não existe mais a seção
   "Alterações contratuais" abaixo do formulário** (revisa o #141); ficam só o diálogo de anexar
   (fora do `<form>`, para não aninhar formulários, ligado ao botão pelo id do painel) e a
-  confirmação depois de anexar.
+  confirmação depois de anexar ("Alteração nº N anexada."), que aparece **acima do formulário**, colada
+  ao cartão do documento que fica no topo dele (antes ficava abaixo, fora da vista). O contêiner do
+  diálogo é `display: contents`, para o diálogo fechado não abrir vão acima do formulário.
 - **Busca de Cliente por papel**: o Admin, ao escolher um resultado, vai à tela própria
   `/clientes/[id]` (a única com "Anexar alteração"); Líder e Funcionário continuam no painel
   embutido na busca.
