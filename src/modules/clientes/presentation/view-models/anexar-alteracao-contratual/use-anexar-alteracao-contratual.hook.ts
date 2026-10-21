@@ -39,14 +39,14 @@ export function useAnexarAlteracaoContratual(
     formState: { errors },
   } = useForm<AnexarAlteracaoFormValues>({ resolver: zodResolver(formSchema) });
   const [numero, data] = useWatch({ control, name: ["numero", "data"] });
+  const numeros = alteracoesDaLista(documentos).map((a) => a.numero);
 
   // Sugere o nº só com o campo vazio (nunca pisa no que o Admin digitou) e já valida o arquivo:
   // grande demais ou de outro tipo é recusado na escolha, não só ao enviar.
   const aoEscolherArquivo = (arquivo: File | undefined) => {
     if (!arquivo) return;
     if (!Number.isInteger(getValues("numero"))) {
-      const existentes = alteracoesDaLista(documentos).map((a) => a.numero);
-      setValue("numero", sugerirNumero(arquivo.name, existentes));
+      setValue("numero", sugerirNumero(arquivo.name, numeros));
     }
     void trigger("arquivo");
   };
@@ -59,10 +59,7 @@ export function useAnexarAlteracaoContratual(
 
   const onSubmit = handleSubmit(async (valores) => {
     // Antes de subir o arquivo: a lista carregada já recusa o nº repetido.
-    const repetido = erroDeDuplicidade(
-      valores.numero,
-      alteracoesDaLista(documentos).map((a) => a.numero),
-    );
+    const repetido = erroDeDuplicidade(valores.numero, numeros);
     if (repetido) {
       setError("numero", { message: repetido });
       return;
@@ -96,7 +93,7 @@ export function useAnexarAlteracaoContratual(
     erroServidor,
     sucesso,
     aoFechar,
-    aviso: avisoDeDivergencia(numero, data ?? "", documentos) ?? undefined,
+    aviso: avisoDeDivergencia(numero, data ?? "", documentos),
     aoEscolherArquivo,
   };
 }

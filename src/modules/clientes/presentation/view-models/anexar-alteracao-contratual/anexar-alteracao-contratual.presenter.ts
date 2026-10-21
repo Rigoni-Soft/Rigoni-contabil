@@ -2,10 +2,8 @@ import type { DocumentoContratualVisivelDto } from "@/modules/clientes/applicati
 import { formatarDataIso } from "@/shared/kernel/data-iso";
 import { divergenciaNumeroData } from "@/shared/kernel/numero-alteracao";
 
-type AlteracaoComData = { numero: number; data: string; arquivo: string };
-
 // Só as alterações (o contrato social não tem nº/data), com o que a regra de nº precisa.
-function alteracoesComData(documentos: DocumentoContratualVisivelDto[]): AlteracaoComData[] {
+function alteracoesComData(documentos: DocumentoContratualVisivelDto[]) {
   return documentos.flatMap(({ tipo, numero, data, arquivo }) =>
     tipo === "alteracao" && numero !== null && data !== null ? [{ numero, data, arquivo }] : [],
   );
@@ -27,11 +25,11 @@ export function avisoDeDivergencia(
   numero: number | undefined,
   data: string,
   documentos: DocumentoContratualVisivelDto[],
-): string | null {
-  if (!Number.isInteger(numero) || !data) return null;
+): string | undefined {
+  if (!Number.isInteger(numero) || !data) return undefined;
   const anterior = divergenciaNumeroData(
     { numero: numero as number, data },
     alteracoesComData(documentos),
   );
-  return anterior === null ? null : `Data anterior à da alteração nº ${anterior}, confere?`;
+  return anterior === null ? undefined : `Data anterior à da alteração nº ${anterior}, confere?`;
 }

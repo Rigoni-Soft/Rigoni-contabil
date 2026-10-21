@@ -36,8 +36,8 @@ describe("avisoDeDivergencia", () => {
   });
 
   it("não avisa quando a ordem do nº e da data bate, ou falta nº ou data", () => {
-    expect(avisoDeDivergencia(3, "2025-06-01", lista)).toBeNull();
-    expect(avisoDeDivergencia(undefined, "2025-01-01", lista)).toBeNull();
-    expect(avisoDeDivergencia(3, "", lista)).toBeNull();
+    expect(avisoDeDivergencia(3, "2025-06-01", lista)).toBeUndefined();
+    expect(avisoDeDivergencia(undefined, "2025-01-01", lista)).toBeUndefined();
+    expect(avisoDeDivergencia(3, "", lista)).toBeUndefined();
   });
 });
