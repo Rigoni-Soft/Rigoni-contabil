@@ -77,11 +77,7 @@ export class SupabaseClienteRepository implements ClienteRepository {
 
     if (error) {
       if (error.code === "23505") {
-        return err(
-          new ValidationError(erroNumeroRepetidoNoCliente(alteracao.numero), {
-            numero: ["já existe"],
-          }),
-        );
+        return err(new ValidationError(erroNumeroRepetidoNoCliente(alteracao.numero)));
       }
       console.error("Falha ao anexar alteração contratual:", error.message);
       return err(new PersistenciaError("Não foi possível anexar a alteração. Tente novamente."));

@@ -1,10 +1,6 @@
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 
-import {
-  alteracoesDaLista,
-  avisoDeDivergencia,
-  erroDeNumeroRepetido,
-} from "./anexar-alteracao-contratual.presenter";
+import { alteracoesDaLista, avisoDeDivergencia } from "./anexar-alteracao-contratual.presenter";
 
 const alteracao = (numero: number, data: string): DocumentoContratualVisivelDto => ({
   tipo: "alteracao",
@@ -27,18 +23,6 @@ describe("alteracoesDaLista", () => {
       { numero: 3, rotulo: "Alteração nº 3 - 10/03/2025", arquivo: "3-alteracao.pdf" },
       { numero: 1, rotulo: "Alteração nº 1 - 10/01/2024", arquivo: "1-alteracao.pdf" },
     ]);
-  });
-});
-
-describe("erroDeNumeroRepetido", () => {
-  it("bloqueia o nº que o Cliente já tem", () => {
-    expect(erroDeNumeroRepetido(3, [alteracao(3, "2025-03-10")])).toBe(
-      "Já existe a alteração nº 3 deste Cliente.",
-    );
-  });
-
-  it("libera um nº novo", () => {
-    expect(erroDeNumeroRepetido(4, [alteracao(3, "2025-03-10"), CONTRATO])).toBeNull();
   });
 });
 

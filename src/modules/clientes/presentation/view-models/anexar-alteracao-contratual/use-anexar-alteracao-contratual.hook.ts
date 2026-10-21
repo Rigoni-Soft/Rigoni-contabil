@@ -5,19 +5,15 @@ import { useForm, useWatch } from "react-hook-form";
 import type { z } from "zod";
 
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
-import { sugerirNumero } from "@/shared/kernel/numero-alteracao";
+import { erroDeDuplicidade, sugerirNumero } from "@/shared/kernel/numero-alteracao";
 
 import { chaveDocumentosContratuais } from "../visualizar-documento-contratual/documentos-contratuais.queries";
 import { anexarAlteracaoContratualAction } from "./anexar-alteracao-contratual.actions";
-import {
-  alteracoesDaLista,
-  avisoDeDivergencia,
-  erroDeNumeroRepetido,
-} from "./anexar-alteracao-contratual.presenter";
+import { alteracoesDaLista, avisoDeDivergencia } from "./anexar-alteracao-contratual.presenter";
 import { anexarAlteracaoContratualSchema } from "./anexar-alteracao-contratual.schema";
 
 const formSchema = anexarAlteracaoContratualSchema.omit({ clienteId: true });
-export type AnexarAlteracaoFormValues = z.infer<typeof formSchema>;
+type AnexarAlteracaoFormValues = z.infer<typeof formSchema>;
 
 const ERRO_TRANSPORTE = "Não foi possível anexar agora. Verifique a conexão e tente novamente.";
 
@@ -63,7 +59,10 @@ export function useAnexarAlteracaoContratual(
 
   const onSubmit = handleSubmit(async (valores) => {
     // Antes de subir o arquivo: a lista carregada já recusa o nº repetido.
-    const repetido = erroDeNumeroRepetido(valores.numero, documentos);
+    const repetido = erroDeDuplicidade(
+      valores.numero,
+      alteracoesDaLista(documentos).map((a) => a.numero),
+    );
     if (repetido) {
       setError("numero", { message: repetido });
       return;
@@ -75,11 +74,6 @@ export function useAnexarAlteracaoContratual(
       const resultado = await anexarAlteracaoContratualAction({ clienteId, ...valores });
       if (!resultado.ok) {
         setErroServidor(resultado.error.message);
-        for (const [campo, mensagens] of Object.entries(resultado.error.fields ?? {})) {
-          if (mensagens[0]) {
-            setError(campo as keyof AnexarAlteracaoFormValues, { message: mensagens[0] });
-          }
-        }
         return;
       }
       await queryClient.invalidateQueries({ queryKey: chaveDocumentosContratuais(clienteId) });
