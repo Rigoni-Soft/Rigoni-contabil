@@ -95,7 +95,13 @@ export function AlteracoesContratuais({
         aria-labelledby={`${painelId}-titulo`}
         className="m-auto max-h-[90dvh] w-[min(92vw,28rem)] overflow-auto rounded-xl border border-border bg-background p-4 text-foreground backdrop:bg-overlay"
       >
-        <Linha alinhar="centro" justificar="entre" espaco={2}>
+        {/* Fixo no topo: em tela baixa (celular deitado) o formulário rola e o título e o X seguem à vista. */}
+        <Linha
+          alinhar="centro"
+          justificar="entre"
+          espaco={2}
+          className="sticky -top-4 z-10 -mx-4 -mt-4 bg-background px-4 pt-4 pb-2"
+        >
           <Texto variante="destaque" como="h2" id={`${painelId}-titulo`}>
             Anexar alteração contratual
           </Texto>
