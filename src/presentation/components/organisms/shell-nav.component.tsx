@@ -31,15 +31,14 @@ export function ShellNav({ setores, rotaAtual }: ShellNavProps) {
       {setores.map((setor) => {
         const rota = ROTA_POR_SETOR[setor.slug];
         const label = SETOR_LABEL[setor.slug] ?? setor.slug;
-        const atual = rota !== undefined && rota === rotaAtual;
         return rota ? (
           <Link
             key={setor.slug}
             href={rota}
-            aria-current={atual ? "page" : undefined}
+            aria-current={rota === rotaAtual ? "page" : undefined}
             className={cn(
               CHIP,
-              atual
+              rota === rotaAtual
                 ? "border-primary bg-primary font-medium text-primary-foreground"
                 : "text-foreground hover:bg-accent",
             )}

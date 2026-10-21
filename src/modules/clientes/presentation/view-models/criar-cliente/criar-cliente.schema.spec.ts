@@ -134,7 +134,7 @@ describe("criarClienteSchema", () => {
     });
 
     expect(resultado.success).toBe(false);
-    expect(resultado.error?.issues[0]?.path).toEqual(["documentos"]);
+    expect(resultado.error?.issues[0]?.path).toEqual(["root"]);
     expect(resultado.error?.issues[0]?.message).toMatch(/somam 12,0 MB e o limite é 10 MB/);
   });
 });

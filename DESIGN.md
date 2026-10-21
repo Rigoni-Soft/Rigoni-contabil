@@ -856,7 +856,7 @@ fixos, campo travado em cor plena, diálogo e lista das alterações); onde há 
 - **Teto de arquivos**: a soma de contrato e alterações vai numa só Server Action e o Next corta
   em 11 MB (`bodySizeLimit`); o schema barra acima de 10 MB com a mensagem "Os arquivos somam X,Y MB
   e o limite é 10 MB. Envie arquivos menores ou anexe as alterações depois do cadastro." (total real e
-  saída, não só "mais de 10 MB"). O erro é do conjunto: usa o caminho `documentos` e aparece sob o
+  saída, não só "mais de 10 MB"). O erro é do conjunto: usa o caminho `root` do schema (`errors.root`) e aparece sob o
   título "Documentos", não sob o Contrato social.
 - **Dica de formato no campo de arquivo**: o `FileInput` aceita `dica` ("PDF ou DOCX"), uma linha
   `text-xs` sob "ou clique para selecionar", para o formato ser dito antes de escolher e não só no erro. As instruções

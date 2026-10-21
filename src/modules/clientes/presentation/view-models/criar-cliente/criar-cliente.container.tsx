@@ -67,7 +67,7 @@ export function CriarClienteContainer() {
   // Formulário em branco limpa direto; com algo preenchido (campo ou alteração), pede confirmação,
   // porque o clique descarta arquivos escolhidos e não dá para desfazer.
   const aoPedirLimpar = () => {
-    if (isDirty || fields.length > 0) setConfirmandoLimpar(true);
+    if (isDirty) setConfirmandoLimpar(true);
     else aoLimpar();
   };
 

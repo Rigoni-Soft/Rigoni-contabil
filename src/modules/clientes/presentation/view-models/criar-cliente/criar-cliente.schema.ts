@@ -69,7 +69,7 @@ export const criarClienteSchema = z
         });
       }),
   })
-  // Ancorado em "documentos" (o bloco), não no Contrato social: o excesso pode vir de qualquer arquivo.
+  // Erro do conjunto (`root`), não do Contrato social: o excesso pode vir de qualquer arquivo.
   .superRefine(({ contratoSocial, alteracoesContratuais }, ctx) => {
     const total = [contratoSocial, ...alteracoesContratuais.map((a) => a.arquivo)].reduce(
       (soma, arquivo) => soma + (arquivo?.size ?? 0),
@@ -79,7 +79,7 @@ export const criarClienteSchema = z
     const mb = (total / (1024 * 1024)).toFixed(1).replace(".", ",");
     ctx.addIssue({
       code: "custom",
-      path: ["documentos"],
+      path: ["root"],
       message: `Os arquivos somam ${mb} MB e o limite é 10 MB. Envie arquivos menores ou anexe as alterações depois do cadastro.`,
     });
   });

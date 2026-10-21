@@ -89,10 +89,6 @@ export function CriarClienteForm({
   onRegimeChange,
   onEmpresaChange,
 }: CriarClienteFormProps) {
-  // `documentos` não é um campo do formulário: é o caminho que o schema usa para o erro do conjunto.
-  const erroDosDocumentos = (errors as Record<string, { message?: string } | undefined>).documentos
-    ?.message;
-
   if (criado) {
     return (
       <ConfirmacaoDeCadastro
@@ -186,29 +182,27 @@ export function CriarClienteForm({
           Documentos
         </Texto>
         {/* Erro do conjunto (soma dos arquivos acima do limite): do bloco, não de um arquivo só. */}
-        {erroDosDocumentos && <FieldError>{erroDosDocumentos}</FieldError>}
+        {errors.root && <FieldError>{errors.root.message}</FieldError>}
 
-        <Grade colunas="1>2>4" espaco={4}>
-          <Caixa>
-            <Controller
-              control={control}
-              name="contratoSocial"
-              render={({ field: { onChange, onBlur, name, value } }) => (
-                <CampoDeArquivo
-                  id="contratoSocial"
-                  rotulo="Contrato social"
-                  name={name}
-                  accept={ACCEPT_DOCUMENTO}
-                  dica="PDF ou DOCX"
-                  file={value}
-                  onBlur={onBlur}
-                  erro={errors.contratoSocial?.message}
-                  onChange={onChange}
-                />
-              )}
-            />
-          </Caixa>
-        </Grade>
+        <Caixa className="sm:w-1/2 lg:w-1/4">
+          <Controller
+            control={control}
+            name="contratoSocial"
+            render={({ field: { onChange, onBlur, name, value } }) => (
+              <CampoDeArquivo
+                id="contratoSocial"
+                rotulo="Contrato social"
+                name={name}
+                accept={ACCEPT_DOCUMENTO}
+                dica="PDF ou DOCX"
+                file={value}
+                onBlur={onBlur}
+                erro={errors.contratoSocial?.message}
+                onChange={onChange}
+              />
+            )}
+          />
+        </Caixa>
 
         <Caixa className="flex flex-col gap-3">
           <Linha alinhar="centro" justificar="entre">
