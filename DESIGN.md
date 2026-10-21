@@ -838,7 +838,7 @@ ou o cliente escreve de novo.
   classes inline) — adicionar sob demanda, seguindo os mesmos tokens.
 
 - **Cadastro de Cliente compacto**: a tela usa a largura `cadastro` (`max-w-4xl`), não os 80% da
-  tela. Em tela larga os campos se distribuem em 4 colunas (CNPJ, Empresa em 2, Regime; E-mail em 2;
+  tela; Usuário e Feriados usam a mesma largura. Em tela larga os campos se distribuem em 4 colunas (CNPJ, Empresa em 2, Regime; E-mail em 2;
   Contrato social em 2); cada alteração contratual cabe numa fileira (nº, data, arquivo em 2) com a
   dica do nº embaixo; o "Cadastrar" tem o tamanho do rótulo, à direita. Em tela média são 2 colunas e
   no celular 1.
