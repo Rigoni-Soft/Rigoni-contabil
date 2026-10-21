@@ -47,8 +47,13 @@ const CONVERSA: ConversaVista = {
   avisoInatividade: false,
   setoresDestino: ["recepcao", "tributario"],
   documentos: [
-    { tipo: "contrato", data: null, descricao: "Contrato social" },
-    { tipo: "alteracao", data: "2026-03-01", descricao: "Alteração de 01/03/2026" },
+    { tipo: "contrato", numero: null, data: null, descricao: "Contrato social" },
+    {
+      tipo: "alteracao",
+      numero: 3,
+      data: "2026-03-01",
+      descricao: "Alteração nº 3 - 01/03/2026",
+    },
   ],
 };
 

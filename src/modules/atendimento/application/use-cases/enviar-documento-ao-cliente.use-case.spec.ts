@@ -60,8 +60,8 @@ function montar({
   const documentos = {
     listar: async () =>
       ok([
-        { ...CONTRATO, caminho: "a/contrato.pdf" },
-        { ...ALTERACAO, caminho: "a/alteracao.pdf" },
+        { ...CONTRATO, numero: null, caminho: "a/contrato.pdf" },
+        { ...ALTERACAO, numero: 3, caminho: "a/alteracao.pdf" },
       ]),
     linkTemporario: async (caminho: string) => ok(`https://link/${caminho}`),
   } as unknown as DocumentosContratuaisPort;
@@ -96,12 +96,12 @@ describe("EnviarDocumentoAoCliente", () => {
       {
         telefone: "5561988887777",
         url: "https://link/a/alteracao.pdf",
-        nomeArquivo: "Alteração de 01/03/2026.pdf",
+        nomeArquivo: "Alteração nº 3 - 01/03/2026.pdf",
         chaveIdempotencia: "m-1",
       },
     ]);
     expect(registradas).toEqual([
-      ["at-1", FUNCIONARIO, "Enviou ao cliente: Alteração de 01/03/2026"],
+      ["at-1", FUNCIONARIO, "Enviou ao cliente: Alteração nº 3 - 01/03/2026"],
     ]);
     expect(auditadas).toEqual([
       {

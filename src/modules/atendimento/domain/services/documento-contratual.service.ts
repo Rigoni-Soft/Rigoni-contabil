@@ -4,6 +4,11 @@ function formatarData(iso: string): string {
 }
 
 // Como o documento é chamado ao cliente (menu da URA, nome do arquivo e Mensagem do painel).
-export function descreverDocumento(documento: { data: string | null }): string {
-  return documento.data ? `Alteração de ${formatarData(documento.data)}` : "Contrato social";
+export function descreverDocumento(documento: {
+  numero: number | null;
+  data: string | null;
+}): string {
+  return documento.data
+    ? `Alteração nº ${documento.numero} - ${formatarData(documento.data)}`
+    : "Contrato social";
 }

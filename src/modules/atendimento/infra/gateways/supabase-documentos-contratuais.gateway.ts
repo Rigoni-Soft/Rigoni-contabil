@@ -26,9 +26,9 @@ export class SupabaseDocumentosContratuaisGateway implements DocumentosContratua
         .maybeSingle(),
       this.supabaseAdmin
         .from("cliente_alteracoes_contratuais")
-        .select("data, arquivo_caminho")
+        .select("numero, data, arquivo_caminho")
         .eq("cliente_id", clienteId)
-        .order("data"),
+        .order("numero"),
     ]);
     if (cliente.error || alteracoes.error) {
       return err(new ServicoExternoError("Falha ao consultar os documentos do cliente."));
@@ -36,9 +36,14 @@ export class SupabaseDocumentosContratuaisGateway implements DocumentosContratua
 
     const documentos: DocumentoContratual[] = [];
     const contrato = cliente.data?.contrato_social_caminho as string | null | undefined;
-    if (contrato) documentos.push({ tipo: "contrato", data: null, caminho: contrato });
-    for (const a of alteracoes.data as { data: string; arquivo_caminho: string }[]) {
-      documentos.push({ tipo: "alteracao", data: a.data, caminho: a.arquivo_caminho });
+    if (contrato) documentos.push({ tipo: "contrato", numero: null, data: null, caminho: contrato });
+    for (const a of alteracoes.data as { numero: number; data: string; arquivo_caminho: string }[]) {
+      documentos.push({
+        tipo: "alteracao",
+        numero: a.numero,
+        data: a.data,
+        caminho: a.arquivo_caminho,
+      });
     }
     return ok(documentos);
   }

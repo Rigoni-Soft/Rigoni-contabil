@@ -471,7 +471,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
       : salva;
   }
 
-  // Contrato à parte; alterações da mais recente para a mais antiga.
+  // Contrato à parte; alterações por nº decrescente.
   private async carregar(contato: ContatoIdentificado): Promise<Result<Documentos, AppError>> {
     const lista = await this.documentos.listar(contato.clienteId);
     if (!lista.ok) return lista;
@@ -479,7 +479,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
       contrato: lista.value.find((documento) => documento.tipo === "contrato") ?? null,
       alteracoes: lista.value
         .filter((documento) => documento.tipo === "alteracao")
-        .sort((primeira, segunda) => (segunda.data ?? "").localeCompare(primeira.data ?? "")),
+        .sort((primeira, segunda) => (segunda.numero ?? 0) - (primeira.numero ?? 0)),
     });
   }
 
