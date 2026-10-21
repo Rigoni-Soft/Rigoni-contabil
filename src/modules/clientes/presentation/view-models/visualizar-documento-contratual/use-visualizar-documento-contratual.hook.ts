@@ -16,16 +16,14 @@ export function useVisualizarDocumentoContratual(
 ) {
   const [chave, setChave] = useState(() => chaveDoDocumento(documentos[0]));
   const [abrindo, setAbrindo] = useState(false);
-  const [erro, setErro] = useState<string | undefined>();
-  // Só quando o navegador barra a nova aba: o link já gerado vira um link clicável no diálogo.
-  const [linkAlternativo, setLinkAlternativo] = useState<string | undefined>();
+  // `link` só existe quando o navegador barra a nova aba: o link já gerado vira clicável no diálogo.
+  const [aviso, setAviso] = useState<{ erro: string; link?: string }>();
 
   const selecionado = documentos.find((d) => chaveDoDocumento(d) === chave) ?? documentos[0];
 
   const abrir = async () => {
     setAbrindo(true);
-    setErro(undefined);
-    setLinkAlternativo(undefined);
+    setAviso(undefined);
     // A aba abre de forma síncrona no clique (senão o bloqueador de pop-up barra) e recebe o link
     // depois que a Server Action devolve; sem `noopener` para guardar a referência, `opener` é zerado.
     const aba = window.open("about:blank", "_blank");
@@ -42,14 +40,13 @@ export function useVisualizarDocumentoContratual(
       }
       aba?.close();
       if (resultado.ok) {
-        setLinkAlternativo(resultado.data.url);
-        setErro(ERRO_ABA_BLOQUEADA);
+        setAviso({ erro: ERRO_ABA_BLOQUEADA, link: resultado.data.url });
         return;
       }
-      setErro(resultado.error.message);
+      setAviso({ erro: resultado.error.message });
     } catch {
       aba?.close();
-      setErro(ERRO_ABRIR);
+      setAviso({ erro: ERRO_ABRIR });
     } finally {
       setAbrindo(false);
     }
@@ -58,9 +55,15 @@ export function useVisualizarDocumentoContratual(
   // Trocar de documento descarta o erro e o link do anterior.
   const selecionar = (nova: string) => {
     setChave(nova);
-    setErro(undefined);
-    setLinkAlternativo(undefined);
+    setAviso(undefined);
   };
 
-  return { selecionado, selecionar, abrir, abrindo, erro, linkAlternativo };
+  return {
+    selecionado,
+    selecionar,
+    abrir,
+    abrindo,
+    erro: aviso?.erro,
+    linkAlternativo: aviso?.link,
+  };
 }

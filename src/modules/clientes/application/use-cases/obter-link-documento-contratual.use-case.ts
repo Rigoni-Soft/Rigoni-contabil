@@ -32,7 +32,6 @@ export class ObterLinkDocumentoContratual implements ObterLinkDocumentoContratua
     );
     if (!documento) return err(new NotFoundError("Documento não encontrado."));
     const link = await this.documentos.linkTemporario(documento.caminho, VALIDADE_LINK_SEGUNDOS);
-    if (!link.ok) return link;
-    return ok({ url: link.value });
+    return link.ok ? ok({ url: link.value }) : link;
   }
 }
