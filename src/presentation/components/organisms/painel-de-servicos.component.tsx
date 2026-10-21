@@ -1,4 +1,4 @@
-import { FileText } from "lucide-react";
+import { BadgeCheck, CalendarClock, FileText, Receipt } from "lucide-react";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { Grade, Pilha } from "@/presentation/components/atoms/caixa.component";
@@ -10,9 +10,9 @@ import { Button } from "@/presentation/components/ui/button";
 
 // Guias e CND vêm do provedor fiscal, não da lista do Cliente: o `valor` é o tipo da guia.
 const GUIAS = [
-  { valor: "das", rotulo: "Guia de imposto" },
-  { valor: "parcelamento", rotulo: "Guia de parcelamento" },
-  { valor: "cnd", rotulo: "CND" },
+  { valor: "das", rotulo: "Guia de imposto", Icone: Receipt },
+  { valor: "parcelamento", rotulo: "Guia de parcelamento", Icone: CalendarClock },
+  { valor: "cnd", rotulo: "CND", Icone: BadgeCheck },
 ];
 
 const CLASSE_SERVICO =
@@ -72,7 +72,7 @@ export function PainelDeServicos({
               <FileText aria-hidden="true" />
               Contrato social
             </Button>
-            {GUIAS.map(({ valor, rotulo }) => (
+            {GUIAS.map(({ valor, rotulo, Icone }) => (
               <Button
                 key={valor}
                 type="button"
@@ -82,7 +82,7 @@ export function PainelDeServicos({
                 disabled={enviando}
                 onClick={() => onEnviarServico(valor)}
               >
-                <FileText aria-hidden="true" />
+                <Icone aria-hidden="true" />
                 {rotulo}
               </Button>
             ))}
