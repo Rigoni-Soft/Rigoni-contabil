@@ -88,7 +88,7 @@ export function VisualizarDocumentoContratual({
         {opcoes.length > 1 && (
           <CampoDeOpcoes
             id={`${painelId}-seletor`}
-            rotulo="Outros documentos"
+            rotulo="Escolher documento"
             opcoes={opcoes.map((opcao) => ({ valor: opcao.chave, rotulo: opcao.rotulo }))}
             value={selecionado.chave}
             onChange={(evento) => onSelecionar(evento.target.value)}

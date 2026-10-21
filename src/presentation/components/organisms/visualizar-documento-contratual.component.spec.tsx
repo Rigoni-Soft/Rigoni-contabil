@@ -39,13 +39,13 @@ describe("VisualizarDocumentoContratual (#140)", () => {
     });
 
     expect(screen.getByRole("button", { name: "Visualizar contrato social" })).toBeInTheDocument();
-    expect(screen.queryByLabelText("Outros documentos")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Escolher documento")).not.toBeInTheDocument();
   });
 
   it("seletor lista os documentos e troca o destaque", () => {
     const props = montar();
 
-    fireEvent.change(screen.getByLabelText("Outros documentos"), {
+    fireEvent.change(screen.getByLabelText("Escolher documento"), {
       target: { value: "alteracao-1" },
     });
 

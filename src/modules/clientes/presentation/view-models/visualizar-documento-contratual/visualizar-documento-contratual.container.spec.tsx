@@ -45,7 +45,7 @@ describe("VisualizarDocumentoContratualContainer (#140)", () => {
   it("'Abrir' pede o link só de {tipo, número} e abre em nova aba", async () => {
     acao.mockResolvedValue({ ok: true, data: { url: "https://storage/assinado" } });
     render(<VisualizarDocumentoContratualContainer clienteId={CLIENTE} documentos={DOCUMENTOS} />);
-    fireEvent.change(screen.getByLabelText("Outros documentos"), {
+    fireEvent.change(screen.getByLabelText("Escolher documento"), {
       target: { value: "alteracao-1" },
     });
 
@@ -103,7 +103,7 @@ describe("VisualizarDocumentoContratualContainer (#140)", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Abrir / }));
     await screen.findByRole("alert");
 
-    fireEvent.change(screen.getByLabelText("Outros documentos"), {
+    fireEvent.change(screen.getByLabelText("Escolher documento"), {
       target: { value: "contrato" },
     });
 

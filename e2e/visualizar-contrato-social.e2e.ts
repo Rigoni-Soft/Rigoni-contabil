@@ -75,7 +75,7 @@ test.describe("Visualizar contrato social e alterações (#140)", () => {
     await expect(
       page.getByText("Alteração nº 2 - 01/03/2026", { exact: true }).first(),
     ).toBeVisible();
-    await expect(page.getByLabel("Outros documentos").locator("option")).toHaveCount(3);
+    await expect(page.getByLabel("Escolher documento").locator("option")).toHaveCount(3);
   });
 
   test("Funcionário que não é Responsável não chega ao documento", async ({ page }) => {
