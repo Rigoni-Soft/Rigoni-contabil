@@ -128,6 +128,22 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await expect(page.getByLabel("Data de envio")).toHaveValue("2026-10-05");
   });
 
+  test("se a hidratação falhar, o formulário aparece sozinho em alguns segundos", async ({
+    page,
+  }) => {
+    const cnpjDigits = await criarClienteComoAdmin(page, "Cadastro Hidratacao E2E Ltda");
+    const clienteId = await buscarClienteIdPorCnpj(cnpjDigits);
+    await logout(page);
+    await login(page, "admin@rigonicontabil.local", "admin123");
+    await expect(page).toHaveURL("/");
+
+    // Sem os scripts da aplicação o React nunca hidrata: o formulário não pode ficar oculto.
+    await page.route("**/_next/static/**/*.js", (rota) => rota.abort());
+    await page.goto(`/clientes/${clienteId}`);
+
+    await expect(page.getByLabel("Empresa", { exact: true })).toBeVisible({ timeout: 8_000 });
+  });
+
   test("Funcionário de outro Setor só visualiza: campos desabilitados e sem botão Salvar", async ({
     page,
   }) => {

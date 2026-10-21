@@ -93,7 +93,7 @@ type EditarCadastroOperacionalFormProps = {
   erroServidor?: string;
   sucesso?: boolean;
   // Até hidratar, os campos (não controlados) ainda não têm os valores: o HTML do servidor mostraria
-  // placeholders no lugar do dado. Oculto sem sair do layout, aparece já preenchido.
+  // placeholders no lugar do dado. Oculto sem sair do layout (e revelado após 3 s se a hidratação falhar), aparece já preenchido.
   oculto?: boolean;
   // Lista de campos do useFieldArray, montada no Container (View burra: sem hooks).
   contatos: { id: string }[];
@@ -134,7 +134,7 @@ export function EditarCadastroOperacionalForm({
       onSubmit={onSubmit}
       className={cn(
         "rc-guilloche-frame rounded-lg border border-border bg-card p-6 shadow-sm",
-        oculto && "invisible",
+        oculto && "rc-oculto-ate-hidratar",
       )}
     >
       {!readOnly && <NotaDeObrigatorio />}

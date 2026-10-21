@@ -622,9 +622,10 @@ há tela de "sem acesso".
   só com `readOnly`; durante o salvar continuam esmaecidos, sinal de "ocupado"). Não há
   "Adicionar contato" nem "Remover contato" (`onRemover` do `LinhaDeContato` é opcional).
   Checkbox desativado segue no cinza do navegador, mas marcado e desmarcado se distinguem.
-- O formulário vem `invisible` no servidor e na hidratação (`useSyncExternalStore`): os campos
-  não controlados só recebem os valores no cliente, e sem isso apareceriam "Não definido" e
-  `dd/mm/aaaa` no lugar do dado por um instante.
+- O formulário vem oculto (`rc-oculto-ate-hidratar`) no servidor e na hidratação
+  (`useSyncExternalStore`): os campos não controlados só recebem os valores no cliente, e sem isso
+  apareceriam "Não definido" e `dd/mm/aaaa` no lugar do dado por um instante. Se o React nunca
+  hidratar (script que falhou), a classe revela o formulário após 3 s, em vez de deixá-lo invisível.
 
 **Campo Responsável no cadastro operacional (#65):** fica no cabeçalho de
 identidade do formulário, não no fim — a linha Empresa · CNPJ · Regime ·

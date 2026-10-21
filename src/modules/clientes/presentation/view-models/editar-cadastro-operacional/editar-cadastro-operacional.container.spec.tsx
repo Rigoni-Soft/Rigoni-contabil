@@ -290,7 +290,7 @@ describe("EditarCadastroOperacionalContainer", () => {
     );
 
     const abertura = html.match(/<form[^>]*>/)?.[0] ?? "";
-    expect(abertura).toContain("invisible");
+    expect(abertura).toContain("rc-oculto-ate-hidratar");
   });
 
   it("depois de hidratar, o formulário fica visível", () => {
@@ -298,7 +298,7 @@ describe("EditarCadastroOperacionalContainer", () => {
       <EditarCadastroOperacionalContainer dados={dados} readOnly={false} />,
     );
 
-    expect(container.querySelector("form")).not.toHaveClass("invisible");
+    expect(container.querySelector("form")).not.toHaveClass("rc-oculto-ate-hidratar");
   });
 
   it("Empresa, CNPJ, Regime e Responsável têm rótulo ligado ao campo e estão desativados", () => {
