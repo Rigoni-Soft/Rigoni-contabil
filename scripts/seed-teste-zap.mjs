@@ -55,7 +55,9 @@ if (!existente) {
     p_regime: "simples_nacional",
     p_contrato_social_caminho: CONTRATO,
     p_email: null,
-    p_alteracoes: [{ id: crypto.randomUUID(), numero: 1, data: "2026-01-07", arquivoCaminho: ALTERACAO }],
+    p_alteracoes: [
+      { id: crypto.randomUUID(), numero: 1, data: "2026-01-07", arquivoCaminho: ALTERACAO },
+    ],
   });
   falhou("criar_cliente", criado.error);
 
