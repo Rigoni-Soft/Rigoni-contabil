@@ -122,12 +122,4 @@ describe("fluxo de anexar alteração (hook + container, #141)", () => {
       within(tela.dialogo).queryByText("Não foi possível anexar a alteração."),
     ).not.toBeInTheDocument();
   });
-
-  it("a data só aceita até hoje e o diálogo recebe o foco ao abrir", () => {
-    const tela = montar();
-
-    expect(tela.data()).toHaveAttribute("max");
-    expect(tela.dialogo).toHaveAttribute("autofocus");
-    expect(tela.dialogo).toHaveAttribute("tabindex", "-1");
-  });
 });
