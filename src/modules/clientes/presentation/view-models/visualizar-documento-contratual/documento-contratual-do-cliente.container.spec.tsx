@@ -1,84 +1,75 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render as renderRtl, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import { DocumentoContratualDoClienteContainer } from "./documento-contratual-do-cliente.container";
-import { listarDocumentosContratuaisAction } from "./visualizar-documento-contratual.actions";
+import { useDocumentosContratuais } from "./documentos-contratuais.queries";
 
-jest.mock("./visualizar-documento-contratual.actions", () => ({
-  listarDocumentosContratuaisAction: jest.fn(),
-  obterLinkDocumentoContratualAction: jest.fn(),
+jest.mock("./documentos-contratuais.queries", () => ({ useDocumentosContratuais: jest.fn() }));
+jest.mock("./visualizar-documento-contratual.container", () => ({
+  VisualizarDocumentoContratualContainer: ({ documentos }: { documentos: unknown[] }) => (
+    <button type="button">{`botão com ${documentos.length} documento(s)`}</button>
+  ),
 }));
 
-const listar = listarDocumentosContratuaisAction as jest.MockedFunction<
-  typeof listarDocumentosContratuaisAction
->;
+const query = useDocumentosContratuais as jest.MockedFunction<typeof useDocumentosContratuais>;
 const CLIENTE = "11111111-1111-1111-1111-111111111111";
+const refetch = jest.fn();
 
-function render() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return renderRtl(
-    <QueryClientProvider client={client}>
-      <DocumentoContratualDoClienteContainer clienteId={CLIENTE} />
-    </QueryClientProvider>,
-  );
+function estado(parcial: { data?: unknown; isPending?: boolean; isError?: boolean }) {
+  query.mockReturnValue({
+    data: undefined,
+    isPending: false,
+    isError: false,
+    refetch,
+    ...parcial,
+  } as unknown as ReturnType<typeof useDocumentosContratuais>);
 }
 
 describe("DocumentoContratualDoClienteContainer (#140)", () => {
-  beforeEach(() => listar.mockReset());
+  beforeEach(() => refetch.mockReset());
 
-  it("com alteração, mostra 'Visualizar alteração'", async () => {
-    listar.mockResolvedValue({
-      ok: true,
-      data: [
-        { tipo: "alteracao", numero: 2, data: "2025-03-05" },
-        { tipo: "contrato", numero: null, data: null },
-      ],
-    });
-    render();
+  it("com documentos, entrega a lista ao container do botão", () => {
+    estado({ data: [{ tipo: "contrato", numero: null, data: null }] });
 
-    expect(await screen.findByRole("button", { name: "Visualizar alteração" })).toBeInTheDocument();
+    render(<DocumentoContratualDoClienteContainer clienteId={CLIENTE} />);
+
+    expect(screen.getByRole("button", { name: "botão com 1 documento(s)" })).toBeInTheDocument();
   });
 
-  it("só o contrato social: 'Visualizar contrato social'", async () => {
-    listar.mockResolvedValue({ ok: true, data: [{ tipo: "contrato", numero: null, data: null }] });
-    render();
+  it("repassa a carga inicial do servidor à query", () => {
+    const iniciais = [{ tipo: "contrato" as const, numero: null, data: null }];
+    estado({ data: iniciais });
 
-    expect(
-      await screen.findByRole("button", { name: "Visualizar contrato social" }),
-    ).toBeInTheDocument();
+    render(
+      <DocumentoContratualDoClienteContainer clienteId={CLIENTE} documentosIniciais={iniciais} />,
+    );
+
+    expect(query).toHaveBeenCalledWith(CLIENTE, iniciais);
   });
 
   it("enquanto carrega, reserva o lugar do botão sem mostrar nada acionável", () => {
-    listar.mockReturnValue(new Promise(() => undefined));
-    const { container } = render();
+    estado({ isPending: true });
+    const { container } = render(<DocumentoContratualDoClienteContainer clienteId={CLIENTE} />);
 
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
     expect(container.querySelector('[aria-hidden="true"]')).toHaveClass("min-h-11");
   });
 
-  it("sem acesso (lista vazia): nenhum botão e nenhum aviso", async () => {
-    listar.mockResolvedValue({ ok: true, data: [] });
-    render();
+  it("sem acesso (lista vazia): nenhum botão e nenhum aviso", () => {
+    estado({ data: [] });
 
-    await waitFor(() => expect(listar).toHaveBeenCalledTimes(1));
+    render(<DocumentoContratualDoClienteContainer clienteId={CLIENTE} />);
+
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("falha ao consultar: avisa e 'Tentar novamente' busca de novo e mostra o botão", async () => {
-    listar.mockResolvedValueOnce({ ok: false, error: { code: "ERRO", message: "x" } });
-    listar.mockResolvedValueOnce({
-      ok: true,
-      data: [{ tipo: "contrato", numero: null, data: null }],
-    });
-    render();
+  it("falha ao consultar: avisa e 'Tentar novamente' chama refetch()", () => {
+    estado({ isError: true });
+    render(<DocumentoContratualDoClienteContainer clienteId={CLIENTE} />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível carregar");
+    expect(screen.getByRole("alert")).toHaveTextContent("Não foi possível carregar");
     fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
 
-    expect(
-      await screen.findByRole("button", { name: "Visualizar contrato social" }),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 });

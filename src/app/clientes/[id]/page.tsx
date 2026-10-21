@@ -6,6 +6,7 @@ import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-b
 import { carregarSessao } from "@/presentation/view-models/shell/shell.server";
 import { EditarCadastroOperacionalContainer } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.container";
 import { carregarCadastroOperacionalCliente } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.server";
+import { carregarDocumentosContratuais } from "@/modules/clientes/presentation/view-models/visualizar-documento-contratual/visualizar-documento-contratual.server";
 import { podeAtribuirResponsavel, podeEditarCadastroOperacional } from "@/shared/kernel/papeis";
 
 type Props = {
@@ -25,9 +26,10 @@ function voltarHrefSeguro(valor: string | undefined): string {
 export default async function Page({ params, searchParams }: Props) {
   const { id } = await params;
   const { voltarPara } = await searchParams;
-  const [sessao, resultado] = await Promise.all([
+  const [sessao, resultado, documentos] = await Promise.all([
     carregarSessao(),
     carregarCadastroOperacionalCliente(id),
+    carregarDocumentosContratuais(id),
   ]);
   if (!sessao) redirect("/login");
   if (sessao.precisaTrocarSenha) redirect("/trocar-senha");
@@ -53,6 +55,7 @@ export default async function Page({ params, searchParams }: Props) {
         <EditarCadastroOperacionalContainer
           dados={resultado.value}
           readOnly={readOnly}
+          documentosContratuais={documentos.ok ? documentos.value : undefined}
           podeAtribuirResponsavel={podeAtribuirResponsavel(sessao.papel, sessao.setor)}
           voltarHrefAoSalvar={voltarHrefSeguro(voltarPara)}
         />

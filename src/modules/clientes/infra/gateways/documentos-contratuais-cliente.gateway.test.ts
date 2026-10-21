@@ -134,4 +134,44 @@ describe("SupabaseDocumentosContratuaisClienteGateway (#140, integração)", () 
     expect((await admin.linkTemporario(caminhoForaDoPadrao, 120)).ok).toBe(true);
     expect((await lider.linkTemporario(caminhoForaDoPadrao, 120)).ok).toBe(false);
   });
+
+  it("Responsável em primeiro acesso (sem acesso_liberado) não lê nem gera link (S3d)", async () => {
+    const email = `teste-primeiro-acesso-${crypto.randomUUID()}@rigonicontabil.local`;
+    const senha = "senha-provisoria-123";
+    const criada = await servico.auth.admin.createUser({
+      email,
+      password: senha,
+      email_confirm: true,
+    });
+    if (criada.error || !criada.data.user) throw new Error(criada.error?.message);
+    const contaId = criada.data.user.id;
+    try {
+      const perfil = await servico.from("perfis").insert({
+        id: contaId,
+        nome: "Funcionário Primeiro Acesso",
+        email,
+        papel: "funcionario",
+        setor: "simples_nacional",
+        senha_trocada_em: null,
+        senha_provisoria_expira_em: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+      });
+      if (perfil.error) throw new Error(perfil.error.message);
+      const atribuicao = await servico
+        .from("cliente_cadastro_operacional_sn")
+        .update({ responsavel_id: contaId })
+        .eq("cliente_id", clienteId);
+      if (atribuicao.error) throw new Error(atribuicao.error.message);
+      const gateway = new SupabaseDocumentosContratuaisClienteGateway(await como(email, senha));
+
+      expect(await gateway.listar(clienteId)).toEqual({ ok: true, value: [] });
+      expect((await gateway.linkTemporario(caminhoAlt3, 120)).ok).toBe(false);
+    } finally {
+      await servico
+        .from("cliente_cadastro_operacional_sn")
+        .update({ responsavel_id: RESPONSAVEL_ID })
+        .eq("cliente_id", clienteId);
+      await servico.from("perfis").delete().eq("id", contaId);
+      await servico.auth.admin.deleteUser(contaId);
+    }
+  });
 });

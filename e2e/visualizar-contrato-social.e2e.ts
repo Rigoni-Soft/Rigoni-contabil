@@ -76,6 +76,25 @@ test.describe("Visualizar contrato social e alterações (#140)", () => {
       page.getByText("Alteração nº 2 - 01/03/2026", { exact: true }).first(),
     ).toBeVisible();
     await expect(page.getByLabel("Escolher documento").locator("option")).toHaveCount(3);
+
+    const [requisicao] = await Promise.all([
+      page
+        .context()
+        .waitForEvent("request", (r) => r.url().includes("/object/sign/documentos-clientes/")),
+      page.getByRole("button", { name: /^Abrir / }).click(),
+    ]);
+    expect(requisicao.url()).toContain("token=");
+  });
+
+  test("na tela própria do Cliente o botão já chega com a carga do servidor", async ({ page }) => {
+    const cnpjDigits = await criarClienteComoAdmin(page, "Visualizar Tela Propria E2E Ltda");
+    const clienteId = await atribuirResponsavelComoLider(cnpjDigits);
+    await sair(page);
+
+    await entrarEm(page, "lider.sn@rigonicontabil.local", "lider123");
+    await page.goto(`/clientes/${clienteId}`);
+
+    await expect(page.getByRole("button", { name: "Visualizar contrato social" })).toBeVisible();
   });
 
   test("Funcionário que não é Responsável não chega ao documento", async ({ page }) => {

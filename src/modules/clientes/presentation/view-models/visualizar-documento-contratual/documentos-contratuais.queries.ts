@@ -4,7 +4,12 @@ import type { DocumentoContratualVisivelDto } from "@/modules/clientes/applicati
 
 import { listarDocumentosContratuaisAction } from "./visualizar-documento-contratual.actions";
 
-export function useDocumentosContratuais(clienteId: string) {
+// `iniciais` vem do loader do servidor (tela própria); sem ele (cliente aberto na busca, já no
+// navegador) a lista é lida por Server Action.
+export function useDocumentosContratuais(
+  clienteId: string,
+  iniciais?: DocumentoContratualVisivelDto[],
+) {
   return useQuery<DocumentoContratualVisivelDto[]>({
     queryKey: ["clientes", "documentos-contratuais", clienteId],
     queryFn: async () => {
@@ -12,6 +17,7 @@ export function useDocumentosContratuais(clienteId: string) {
       if (!resultado.ok) throw new Error(resultado.error.message);
       return resultado.data;
     },
+    initialData: iniciais,
     staleTime: 60_000,
   });
 }

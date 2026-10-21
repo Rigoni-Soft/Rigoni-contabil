@@ -10,6 +10,7 @@ import {
   EditarCadastroOperacionalForm,
   type EditarCadastroOperacionalFormValues,
 } from "@/presentation/components/organisms/editar-cadastro-operacional-form.component";
+import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { REGIME_LABEL, regimeTemCadastroOperacionalSn } from "@/shared/kernel/regimes";
 
@@ -32,6 +33,8 @@ type Props = {
   // um dos dois é passado por consumidor — `aoSalvarComSucesso` tem prioridade.
   aoSalvarComSucesso?: () => void;
   voltarHrefAoSalvar?: string;
+  // Carga inicial do servidor (tela própria); no painel embutido da busca vem vazia e o botão lê por action.
+  documentosContratuais?: DocumentoContratualVisivelDto[];
 };
 
 export function EditarCadastroOperacionalContainer({
@@ -41,6 +44,7 @@ export function EditarCadastroOperacionalContainer({
   onCancelar,
   aoSalvarComSucesso,
   voltarHrefAoSalvar,
+  documentosContratuais,
 }: Props) {
   const router = useRouter();
   const [pendente, setPendente] = useState(false);
@@ -208,7 +212,12 @@ export function EditarCadastroOperacionalContainer({
       onRemoverContato={remove}
       onLimpar={aoLimpar}
       onCancelar={onCancelar}
-      documentoContratual={<DocumentoContratualDoClienteContainer clienteId={dados.id} />}
+      documentoContratual={
+        <DocumentoContratualDoClienteContainer
+          clienteId={dados.id}
+          documentosIniciais={documentosContratuais}
+        />
+      }
     />
   );
 }
