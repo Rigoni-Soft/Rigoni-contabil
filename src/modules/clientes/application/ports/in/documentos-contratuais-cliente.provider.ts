@@ -1,4 +1,4 @@
-import type { TipoDocumentoContratual } from "@/modules/clientes/application/ports/out/documentos-contratuais-cliente.provider";
+import type { TipoDocumentoContratual } from "@/modules/clientes/application/dtos/tipo-documento-contratual.dto";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 

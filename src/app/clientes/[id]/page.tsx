@@ -55,6 +55,7 @@ export default async function Page({ params, searchParams }: Props) {
         <EditarCadastroOperacionalContainer
           dados={resultado.value}
           readOnly={readOnly}
+          // Se a carga do servidor falhar, o botão se lê por action (com aviso e "Tentar novamente").
           documentosContratuais={documentos.ok ? documentos.value : undefined}
           podeAtribuirResponsavel={podeAtribuirResponsavel(sessao.papel, sessao.setor)}
           voltarHrefAoSalvar={voltarHrefSeguro(voltarPara)}

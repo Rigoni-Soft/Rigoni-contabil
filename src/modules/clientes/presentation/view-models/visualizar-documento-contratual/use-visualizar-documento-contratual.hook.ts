@@ -2,24 +2,25 @@ import { useState } from "react";
 
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 
-import { chaveDoDocumento } from "./documentos-contratuais.presenter";
+import { chaveDoDocumento, documentoEmDestaque } from "./documentos-contratuais.presenter";
 import { obterLinkDocumentoContratualAction } from "./visualizar-documento-contratual.actions";
 
 const ERRO_ABRIR = "Não foi possível abrir o documento. Tente novamente.";
 const ERRO_ABA_BLOQUEADA =
   "O navegador bloqueou a nova aba. Use o link abaixo, que expira em poucos minutos.";
 
-// `documentos` já vem do mais recente (maior nº) para o contrato social: o primeiro é o destaque.
+// O destaque é a alteração de maior nº, mesmo que a lista chegue fora de ordem.
 export function useVisualizarDocumentoContratual(
   clienteId: string,
   documentos: DocumentoContratualVisivelDto[],
 ) {
-  const [chave, setChave] = useState(() => chaveDoDocumento(documentos[0]));
+  const [chave, setChave] = useState(() => chaveDoDocumento(documentoEmDestaque(documentos)));
   const [abrindo, setAbrindo] = useState(false);
   // `link` só existe quando o navegador barra a nova aba: o link já gerado vira clicável no diálogo.
   const [aviso, setAviso] = useState<{ erro: string; link?: string }>();
 
-  const selecionado = documentos.find((d) => chaveDoDocumento(d) === chave) ?? documentos[0];
+  const selecionado =
+    documentos.find((d) => chaveDoDocumento(d) === chave) ?? documentoEmDestaque(documentos);
 
   const abrir = async () => {
     setAbrindo(true);

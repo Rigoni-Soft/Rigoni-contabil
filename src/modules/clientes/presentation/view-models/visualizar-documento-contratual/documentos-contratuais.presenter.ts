@@ -14,6 +14,16 @@ export function rotuloDoDocumento(documento: DocumentoContratualVisivelDto): str
   return documento.data ? `${base} - ${formatarDataIso(documento.data)}` : base;
 }
 
+// Em destaque: a alteração de maior nº (o contrato social só quando não há alteração), sem depender
+// da ordem em que a lista chegou.
+export function documentoEmDestaque(
+  documentos: DocumentoContratualVisivelDto[],
+): DocumentoContratualVisivelDto {
+  const alteracoes = documentos.filter((d) => d.tipo === "alteracao");
+  if (alteracoes.length === 0) return documentos[0];
+  return alteracoes.reduce((maior, d) => ((d.numero ?? 0) > (maior.numero ?? 0) ? d : maior));
+}
+
 export function paraOpcao(documento: DocumentoContratualVisivelDto) {
   return { valor: chaveDoDocumento(documento), rotulo: rotuloDoDocumento(documento) };
 }

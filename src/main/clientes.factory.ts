@@ -128,18 +128,18 @@ export async function makeBuscarGuia(): Promise<BuscarGuiaPort> {
 }
 
 // Sessão do usuário (RLS), sem service_role e sem o gateway do Atendimento.
-async function sessaoEGatewayDeDocumentosContratuais() {
+export async function makeListarDocumentosContratuaisCliente(): Promise<ListarDocumentosContratuaisClientePort> {
   const supabase = await createSupabaseServer();
-  return [
+  return new ListarDocumentosContratuaisCliente(
     sessaoViaUsuarios(supabase),
     new SupabaseDocumentosContratuaisClienteGateway(supabase),
-  ] as const;
-}
-
-export async function makeListarDocumentosContratuaisCliente(): Promise<ListarDocumentosContratuaisClientePort> {
-  return new ListarDocumentosContratuaisCliente(...(await sessaoEGatewayDeDocumentosContratuais()));
+  );
 }
 
 export async function makeObterLinkDocumentoContratual(): Promise<ObterLinkDocumentoContratualPort> {
-  return new ObterLinkDocumentoContratual(...(await sessaoEGatewayDeDocumentosContratuais()));
+  const supabase = await createSupabaseServer();
+  return new ObterLinkDocumentoContratual(
+    sessaoViaUsuarios(supabase),
+    new SupabaseDocumentosContratuaisClienteGateway(supabase),
+  );
 }
