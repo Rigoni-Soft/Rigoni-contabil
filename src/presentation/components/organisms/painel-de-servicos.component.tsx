@@ -8,8 +8,15 @@ import { TituloDoGrupo } from "@/presentation/components/atoms/titulo-de-grupo.c
 import { CampoSelect } from "@/presentation/components/molecules/campo-select.component";
 import { Button } from "@/presentation/components/ui/button";
 
-const NOTA_EM_CONSTRUCAO = "servicos-em-construcao";
-const SERVICOS_EM_CONSTRUCAO = ["Guia de imposto", "Guia de parcelamento", "CND"];
+// Guias e CND vêm do provedor fiscal, não da lista do Cliente: o `valor` é o tipo da guia.
+const GUIAS = [
+  { valor: "das", rotulo: "Guia de imposto" },
+  { valor: "parcelamento", rotulo: "Guia de parcelamento" },
+  { valor: "cnd", rotulo: "CND" },
+];
+
+const CLASSE_SERVICO =
+  "h-auto min-h-10 justify-start py-1.5 text-left leading-tight whitespace-normal pointer-coarse:min-h-11";
 
 type PainelDeServicosProps = {
   semCliente: boolean;
@@ -19,8 +26,7 @@ type PainelDeServicosProps = {
   aviso?: { tipo: "erro" | "sucesso"; texto: string };
 };
 
-// Os mesmos serviços do menu da URA, a um clique. Guias e CND ainda respondem "em construção" lá
-// e passam a disparar quando existirem.
+// Os mesmos serviços do menu da URA, a um clique.
 export function PainelDeServicos({
   semCliente,
   servicos,
@@ -43,30 +49,28 @@ export function PainelDeServicos({
               type="button"
               variant="outline"
               size="sm"
-              className="h-auto min-h-10 justify-start py-1.5 text-left leading-tight whitespace-normal pointer-coarse:min-h-11"
+              className={CLASSE_SERVICO}
               disabled={enviando || !contrato}
               onClick={() => contrato && onEnviarServico(contrato.valor)}
             >
               <FileText aria-hidden="true" />
               Contrato social
             </Button>
-            {SERVICOS_EM_CONSTRUCAO.map((rotulo) => (
+            {GUIAS.map(({ valor, rotulo }) => (
               <Button
-                key={rotulo}
+                key={valor}
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-auto min-h-10 justify-start py-1.5 text-left leading-tight whitespace-normal pointer-coarse:min-h-11"
-                disabled
-                aria-describedby={NOTA_EM_CONSTRUCAO}
+                className={CLASSE_SERVICO}
+                disabled={enviando}
+                onClick={() => onEnviarServico(valor)}
               >
+                <FileText aria-hidden="true" />
                 {rotulo}
               </Button>
             ))}
           </Grade>
-          <Texto variante="nota" id={NOTA_EM_CONSTRUCAO}>
-            Guias e CND: em construção.
-          </Texto>
           {!contrato && <Texto variante="nota">Contrato social não cadastrado.</Texto>}
           <Pilha
             espaco={2}

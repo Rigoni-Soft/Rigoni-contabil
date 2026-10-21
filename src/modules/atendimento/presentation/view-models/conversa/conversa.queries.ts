@@ -6,10 +6,8 @@ import {
   type QueryClient,
 } from "@tanstack/react-query";
 
-import type {
-  ConversaVista,
-  DocumentoDisponivel,
-} from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
+import type { DocumentoParaEnviar } from "@/modules/atendimento/application/ports/in/enviar-documento-ao-cliente.provider";
+import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import { subirAnexoEmPartes } from "@/modules/atendimento/presentation/view-models/conversa/anexo-em-partes.upload";
 import {
   encerrarAtendimentoAction,
@@ -125,7 +123,7 @@ export function useEnviarDocumentoMutation(atendimentoId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (documento: DocumentoDisponivel) => {
+    mutationFn: async (documento: DocumentoParaEnviar) => {
       const resultado = await enviarDocumentoAction({ atendimentoId, documento });
       if (!resultado.ok) throw new Error(resultado.error.message);
     },

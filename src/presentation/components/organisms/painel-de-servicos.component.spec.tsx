@@ -54,16 +54,28 @@ describe("PainelDeServicos", () => {
     expect(aoEnviar).toHaveBeenCalledWith("alteracao:2");
   });
 
-  it("guia de imposto, de parcelamento e CND aparecem desabilitados enquanto a URA não os tem", () => {
-    render(<PainelDeServicos {...BASE} />);
+  it.each([
+    ["Guia de imposto", "das"],
+    ["Guia de parcelamento", "parcelamento"],
+    ["CND", "cnd"],
+  ])("um clique em %s dispara o envio da guia", async (nome, valor) => {
+    const aoEnviar = jest.fn();
+    const usuario = userEvent.setup();
+    render(<PainelDeServicos {...BASE} onEnviarServico={aoEnviar} />);
 
-    for (const nome of [/Guia de imposto/, /Guia de parcelamento/, /CND/]) {
-      const botao = screen.getByRole("button", { name: nome });
-      expect(botao).toBeDisabled();
-      // Dica que chega a leitor de tela e toque, não só a mouse (`title`).
-      expect(botao).toHaveAccessibleDescription("Guias e CND: em construção.");
-      expect(botao).not.toHaveAttribute("title");
+    await usuario.click(screen.getByRole("button", { name: nome }));
+
+    expect(aoEnviar).toHaveBeenCalledWith(valor);
+  });
+
+  it("enquanto envia, as guias ficam desabilitadas; sem Cliente, não aparecem", () => {
+    const { rerender } = render(<PainelDeServicos {...BASE} enviando />);
+    for (const nome of ["Guia de imposto", "Guia de parcelamento", "CND"]) {
+      expect(screen.getByRole("button", { name: nome })).toBeDisabled();
     }
+
+    rerender(<PainelDeServicos {...BASE} semCliente />);
+    expect(screen.queryByRole("button", { name: "CND" })).not.toBeInTheDocument();
   });
 
   it("Cliente sem contrato ou sem alterações mostra tudo desabilitado", () => {

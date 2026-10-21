@@ -405,6 +405,7 @@ export async function makeEnviarDocumentoAoCliente(): Promise<EnviarDocumentoAoC
     sessaoViaUsuarios(await createSupabaseServer()),
     new SupabaseAtendimentoRepository(supabaseAdmin),
     new SupabaseDocumentosContratuaisGateway(supabaseAdmin),
+    guiasFiscais(supabaseAdmin),
     await makeEnvioMensagemDaRequisicao(),
     auditoriaViaModuloAuditoria(),
   );

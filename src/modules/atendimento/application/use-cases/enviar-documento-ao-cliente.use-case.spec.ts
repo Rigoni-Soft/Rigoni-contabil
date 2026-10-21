@@ -5,7 +5,9 @@ import type {
 import type { AuditoriaPort } from "@/modules/atendimento/application/ports/out/auditoria.provider";
 import type { DocumentosContratuaisPort } from "@/modules/atendimento/application/ports/out/documentos-contratuais.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
+import type { GuiasFiscaisPort } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
 import type { AtorSessaoDto } from "@/modules/atendimento/application/ports/out/sessao.provider";
+import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok } from "@/shared/kernel/result";
 
@@ -31,6 +33,7 @@ type Opcoes = {
   falhaRegistro?: boolean;
   falhaFinalizar?: boolean;
   veredito?: "registrada" | "encerrada" | "sem_autoridade";
+  guia?: "ok" | "sem_autorizacao" | "lanca";
 };
 
 function montar({
@@ -40,6 +43,7 @@ function montar({
   falhaRegistro = false,
   falhaFinalizar = false,
   veredito = "registrada",
+  guia = "ok",
 }: Opcoes = {}) {
   const enviados: unknown[] = [];
   const registradas: unknown[] = [];
@@ -67,6 +71,13 @@ function montar({
       ]),
     linkTemporario: async (caminho: string) => ok(`https://link/${caminho}`),
   } as unknown as DocumentosContratuaisPort;
+  const guias: GuiasFiscaisPort = {
+    buscar: async () => {
+      if (guia === "lanca") throw new Error("boom");
+      if (guia === "sem_autorizacao") return err(new ForbiddenError("sem procuração"));
+      return ok({ nomeArquivo: "guia.pdf", pdfBase64: "UERG" });
+    },
+  };
   const envio = {
     enviarDocumento: async (d: unknown) => {
       enviados.push(d);
@@ -83,6 +94,7 @@ function montar({
       { usuarioAtual: async () => ator },
       repo,
       documentos,
+      guias,
       envio,
       auditoria,
     ),
@@ -129,6 +141,52 @@ describe("EnviarDocumentoAoCliente", () => {
         nomeArquivo: "Alteração nº 2 - 01/03/2026.pdf",
       }),
     ]);
+  });
+
+  it.each([
+    ["das", "Guia de imposto"],
+    ["parcelamento", "Guia de parcelamento"],
+    ["cnd", "CND"],
+  ] as const)(
+    "guia %s: busca no provedor fiscal, envia o PDF, registra a Mensagem e audita",
+    async (tipo, rotulo) => {
+      const { caso, enviados, registradas, finalizadas, auditadas } = montar();
+      const r = await caso.execute({ atendimentoId: "at-1", documento: { tipo, numero: null } });
+      expect(r.ok).toBe(true);
+      expect(enviados).toEqual([
+        {
+          telefone: "5561988887777",
+          nomeArquivo: "guia.pdf",
+          pdfBase64: "UERG",
+          chaveIdempotencia: "m-1",
+        },
+      ]);
+      expect(registradas).toEqual([["at-1", FUNCIONARIO, `Enviou ao cliente: ${rotulo}`]]);
+      expect(finalizadas).toEqual([{ id: "m-1", entregue: true }]);
+      expect(auditadas).toEqual([expect.objectContaining({ resultado: "sucesso" })]);
+    },
+  );
+
+  it("guia sem autorização fiscal do Cliente: devolve o erro e não registra nem envia nada", async () => {
+    const { caso, enviados, registradas } = montar({ guia: "sem_autorizacao" });
+    const r = await caso.execute({
+      atendimentoId: "at-1",
+      documento: { tipo: "das", numero: null },
+    });
+    expect(!r.ok && r.error.code).toBe("FORBIDDEN");
+    expect(registradas).toEqual([]);
+    expect(enviados).toEqual([]);
+  });
+
+  it("falha inesperada do provedor fiscal vira erro de serviço externo, sem registrar nem enviar", async () => {
+    const { caso, enviados, registradas } = montar({ guia: "lanca" });
+    const r = await caso.execute({
+      atendimentoId: "at-1",
+      documento: { tipo: "cnd", numero: null },
+    });
+    expect(!r.ok && r.error).toBeInstanceOf(ServicoExternoError);
+    expect(registradas).toEqual([]);
+    expect(enviados).toEqual([]);
   });
 
   it("o Líder do Setor envia em nome do Atendimento; outro Funcionário não", async () => {

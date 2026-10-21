@@ -23,10 +23,16 @@ describe("enviarDocumentoSchema", () => {
     expect(enviarDocumentoSchema.safeParse(alteracao).success).toBe(true);
   });
 
+  it.each(["das", "parcelamento", "cnd"])("guia %s não tem nº e é válida", (tipo) => {
+    const guia = { atendimentoId: ID, documento: { tipo, numero: null } };
+    expect(enviarDocumentoSchema.safeParse(guia).success).toBe(true);
+  });
+
   it.each([
     [{ tipo: "contrato", numero: 3 }],
     [{ tipo: "alteracao", numero: null }],
     [{ tipo: "alteracao", numero: 0 }],
+    [{ tipo: "das", numero: 3 }],
     [{ tipo: "guia", numero: null }],
   ])("recusa %p", (documento) => {
     expect(enviarDocumentoSchema.safeParse({ atendimentoId: ID, documento }).success).toBe(false);

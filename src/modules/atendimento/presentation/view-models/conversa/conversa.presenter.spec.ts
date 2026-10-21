@@ -220,6 +220,8 @@ describe("documentoDaOpcao", () => {
       tipo: "alteracao",
       numero: 3,
     });
+    expect(documentoDaOpcao("das")).toEqual({ tipo: "das", numero: null });
+    expect(documentoDaOpcao("cnd")).toEqual({ tipo: "cnd", numero: null });
   });
 });
 

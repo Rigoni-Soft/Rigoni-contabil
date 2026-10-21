@@ -744,11 +744,14 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   sair da barra o foco volta ao microfone. No balão, o áudio é o player nativo
   (`PlayerDeAudio`, 44 px, largura mínima de 12 rem) com play, progresso e duração.
 - **Painel de ações** (`PainelDeAcoes`, à direita, 19 rem; 22 rem em `2xl`):
-  compacto. Serviço "Contrato social" em botão `sm` (quando o Cliente não o
-  tem, o botão fica `disabled` com a frase "Contrato social não cadastrado."
-  visível, não só em `title`); alteração contratual e Setor de destino em **seletor** +
-  botão na mesma linha; resumo da transferência em `Textarea` baixo. Guias
-  e CND ficam `disabled` com `title="Em construção"`. Em janela baixa o painel
+  compacto. Serviços "Contrato social", "Guia de imposto", "Guia de
+  parcelamento" e "CND" em botões `sm` numa grade de duas colunas (o contrato,
+  quando o Cliente não o tem, fica `disabled` com a frase "Contrato social não
+  cadastrado." visível, não só em `title`; todos ficam `disabled` enquanto um
+  envio está em andamento); alteração contratual em **seletor** de largura
+  total com o botão abaixo (para o rótulo "Alteração nº N - data" caber nos
+  19 rem); Setor de destino em seletor + botão na mesma linha; resumo da
+  transferência em `Textarea` baixo. Em janela baixa o painel
   rola por dentro. Transferido, o painel troca tudo por um aviso e a tela
   sai da conversa.
 - **Aviso de inatividade** (#73, `CabecalhoDaConversa`): quando a URA avisou

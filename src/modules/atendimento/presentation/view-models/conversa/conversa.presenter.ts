@@ -1,8 +1,8 @@
 import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
 import { telefoneParaExibicao } from "@/presentation/lib/telefone-mask";
+import type { DocumentoParaEnviar } from "@/modules/atendimento/application/ports/in/enviar-documento-ao-cliente.provider";
 import type {
   ConversaVista,
-  DocumentoDisponivel,
   DocumentoOferecido,
   MensagemVista,
   UltimaTransferencia,
@@ -54,9 +54,9 @@ export type ConversaView = {
 const valorDaOpcao = (d: DocumentoOferecido) =>
   d.numero === null ? d.tipo : `${d.tipo}:${d.numero}`;
 
-export function documentoDaOpcao(valor: string): DocumentoDisponivel {
+export function documentoDaOpcao(valor: string): DocumentoParaEnviar {
   const [tipo, numero] = valor.split(":");
-  return { tipo: tipo as DocumentoDisponivel["tipo"], numero: numero ? Number(numero) : null };
+  return { tipo: tipo as DocumentoParaEnviar["tipo"], numero: numero ? Number(numero) : null };
 }
 
 const FORMATO_TAMANHO = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });

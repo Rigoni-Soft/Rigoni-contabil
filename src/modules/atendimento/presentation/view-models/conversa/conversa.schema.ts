@@ -6,12 +6,12 @@ import { contarCaracteres, emojiValido } from "@/shared/kernel/texto";
 // z.guid(), não z.uuid(): mesmo critério do feed de auditoria (a coluna aceita qualquer 8-4-4-4-12).
 export const atendimentoIdSchema = z.guid("Atendimento inválido.");
 
-// Contrato social não tem nº; alteração contratual tem (único por Cliente).
+// Contrato social, guias e CND não têm nº; alteração contratual tem (único por Cliente).
 export const enviarDocumentoSchema = z
   .object({
     atendimentoId: atendimentoIdSchema,
     documento: z.object({
-      tipo: z.enum(["contrato", "alteracao"]),
+      tipo: z.enum(["contrato", "alteracao", "das", "parcelamento", "cnd"]),
       numero: z.number().int().positive().nullable(),
     }),
   })
