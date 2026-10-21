@@ -27,6 +27,24 @@ describe("CampoDeTexto", () => {
     expect(screen.getByLabelText("Nº")).toHaveAccessibleDescription("Pode editar.");
   });
 
+  it("erro e aviso são a descrição do campo, junto da ajuda e do que o chamador ligou", () => {
+    const { rerender } = render(
+      <CampoDeTexto
+        id="n"
+        rotulo="Nº"
+        ajuda="Pode editar."
+        aria-describedby="externo"
+        erro="Obrigatório."
+      />,
+    );
+    const campo = screen.getByLabelText("Nº");
+    expect(campo).toHaveAccessibleDescription(/Obrigatório\./);
+    expect(campo).toHaveAccessibleDescription(/Pode editar\./);
+
+    rerender(<CampoDeTexto id="n" rotulo="Nº" aviso="Confira o nº." />);
+    expect(screen.getByLabelText("Nº")).toHaveAccessibleDescription("Confira o nº.");
+  });
+
   it("o aviso só aparece quando não há erro", () => {
     const { rerender } = render(<CampoDeTexto id="e" rotulo="Empresa" aviso="Confirme à mão." />);
     expect(screen.getByRole("alert")).toHaveTextContent("Confirme à mão.");
@@ -37,6 +55,19 @@ describe("CampoDeTexto", () => {
 });
 
 describe("CampoDeOpcoes", () => {
+  it("o erro é a descrição do select", () => {
+    render(
+      <CampoDeOpcoes
+        id="r"
+        rotulo="Regime"
+        opcoes={[{ valor: "mei", rotulo: "MEI" }]}
+        erro="Escolha um regime."
+      />,
+    );
+
+    expect(screen.getByLabelText("Regime")).toHaveAccessibleDescription("Escolha um regime.");
+  });
+
   it("lista as opções e usa o placeholder desabilitado", () => {
     render(
       <CampoDeOpcoes

@@ -88,6 +88,9 @@ describe("moléculas de lista e de tela", () => {
 
     expect(screen.getByLabelText("Contrato social")).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("Arquivo inválido.");
+    expect(screen.getByLabelText("Contrato social")).toHaveAccessibleDescription(
+      "Arquivo inválido.",
+    );
   });
 
   it("CabecalhoDeTela mostra Voltar, título e descrição; sem nada, não renderiza link nem h1", () => {

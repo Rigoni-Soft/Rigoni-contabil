@@ -4,6 +4,7 @@ import { RequiredMark } from "@/presentation/components/atoms/required-mark.comp
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
+import { descricaoDoCampo } from "@/presentation/lib/descricao-do-campo";
 
 type CampoDeTextoProps = React.ComponentProps<"input"> & {
   id: string;
@@ -39,16 +40,20 @@ export function CampoDeTexto({
         id={id}
         aria-required={obrigatorio ? "true" : undefined}
         aria-invalid={!!erro}
-        aria-describedby={ajuda ? `${id}-ajuda` : undefined}
         {...props}
+        aria-describedby={descricaoDoCampo(
+          props["aria-describedby"],
+          ajuda && `${id}-ajuda`,
+          (erro || aviso) && `${id}-mensagem`,
+        )}
       />
       {ajuda && (
         <Texto variante="nota" id={`${id}-ajuda`}>
           {ajuda}
         </Texto>
       )}
-      {erro && <FieldError>{erro}</FieldError>}
-      {!erro && aviso && <FieldError>{aviso}</FieldError>}
+      {erro && <FieldError id={`${id}-mensagem`}>{erro}</FieldError>}
+      {!erro && aviso && <FieldError id={`${id}-mensagem`}>{aviso}</FieldError>}
     </Pilha>
   );
 }

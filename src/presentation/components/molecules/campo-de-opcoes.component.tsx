@@ -4,6 +4,7 @@ import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { RequiredMark } from "@/presentation/components/atoms/required-mark.component";
 import { Label } from "@/presentation/components/ui/label";
 import { Select } from "@/presentation/components/ui/select";
+import { descricaoDoCampo } from "@/presentation/lib/descricao-do-campo";
 
 type CampoDeOpcoesProps = React.ComponentProps<"select"> & {
   id: string;
@@ -46,6 +47,10 @@ export function CampoDeOpcoes({
         aria-invalid={!!erro}
         className={classeDoSelect}
         {...props}
+        aria-describedby={descricaoDoCampo(
+          props["aria-describedby"],
+          (erro || aviso) && `${id}-mensagem`,
+        )}
       >
         {placeholder !== undefined && (
           <Opcao value="" disabled={placeholderDesabilitado}>
@@ -58,8 +63,8 @@ export function CampoDeOpcoes({
           </Opcao>
         ))}
       </Select>
-      {erro && <FieldError>{erro}</FieldError>}
-      {!erro && aviso && <FieldError>{aviso}</FieldError>}
+      {erro && <FieldError id={`${id}-mensagem`}>{erro}</FieldError>}
+      {!erro && aviso && <FieldError id={`${id}-mensagem`}>{aviso}</FieldError>}
     </Pilha>
   );
 }
