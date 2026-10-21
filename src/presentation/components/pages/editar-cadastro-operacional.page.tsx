@@ -26,14 +26,10 @@ export function EditarCadastroOperacionalPage({
       largura="conteudo"
       cabecalho={<CabecalhoDeTela voltarHref={voltarHref} titulo={titulo} />}
       conteudo={
-        alteracoesContratuais ? (
-          <Pilha espaco={6}>
-            {formulario}
-            {alteracoesContratuais}
-          </Pilha>
-        ) : (
-          formulario
-        )
+        <Pilha espaco={6}>
+          {formulario}
+          {alteracoesContratuais}
+        </Pilha>
       }
     />
   );
