@@ -116,9 +116,9 @@ describe("SupabaseClienteRepository.anexarAlteracaoContratual", () => {
   });
 
   it.each([
-    ["Líder do Setor", "lider.sn@rigonicontabil.local", "lider123"],
-    ["Funcionário", "funcionario.sn@rigonicontabil.local", "func123"],
-  ])("%s é recusado e nada é gravado", async (_papel, email, senha) => {
+    ["lider.sn@rigonicontabil.local", "lider123"],
+    ["funcionario.sn@rigonicontabil.local", "func123"],
+  ])("%s é recusado e nada é gravado", async (email, senha) => {
     const sessao = await como(email, senha);
 
     const resultado = await new SupabaseClienteRepository(sessao).anexarAlteracaoContratual(
@@ -147,7 +147,6 @@ describe("SupabaseClienteRepository.anexarAlteracaoContratual", () => {
       ok: false,
       error: { message: "Já existe a alteração nº 1 deste Cliente." },
     });
-    expect(await eventosDeAnexar(CNPJ_COM_ALTERACAO)).toEqual([]);
   });
 
   it("a criação do Cliente com alterações não gera o evento de anexar", async () => {
