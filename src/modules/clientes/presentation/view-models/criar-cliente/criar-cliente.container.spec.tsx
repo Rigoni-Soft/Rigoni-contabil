@@ -408,7 +408,7 @@ describe("CriarClienteContainer", () => {
     expect(await screen.findAllByRole("alert")).not.toHaveLength(0);
 
     await usuario.click(screen.getByRole("button", { name: "Limpar" }));
-    await usuario.click(screen.getByRole("button", { name: "Sim, limpar" }));
+    await usuario.click(screen.getByRole("button", { name: "Limpar tudo" }));
 
     expect(screen.getByLabelText(/^CNPJ/)).toHaveValue("");
     expect(screen.getByLabelText(/^Regime/)).toHaveValue("");
@@ -424,7 +424,7 @@ describe("CriarClienteContainer", () => {
     await preencherCamposObrigatorios(usuario);
 
     await usuario.click(screen.getByRole("button", { name: "Limpar" }));
-    expect(screen.getByRole("alert")).toHaveTextContent("Descartar tudo o que foi preenchido?");
+    expect(screen.getByRole("alert")).toHaveTextContent(/Limpar o formulário\?/);
     expect(screen.getByRole("button", { name: "Voltar" })).toHaveFocus();
     await usuario.click(screen.getByRole("button", { name: "Voltar" }));
 
@@ -438,7 +438,24 @@ describe("CriarClienteContainer", () => {
 
     await usuario.click(screen.getByRole("button", { name: "Limpar" }));
 
-    expect(screen.queryByRole("button", { name: "Sim, limpar" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Limpar tudo" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Limpar" })).toBeInTheDocument();
+  });
+
+  it("arquivos que passam do limite: o erro aparece no bloco Documentos, com o total e o limite", async () => {
+    const usuario = userEvent.setup();
+    render(<CriarClienteContainer />);
+    await usuario.type(screen.getByLabelText(/^CNPJ/), "11.444.777/0001-61");
+    await usuario.type(screen.getByLabelText(/^Empresa/), "Padaria Pão Quente Ltda");
+    await usuario.selectOptions(screen.getByLabelText(/^Regime/), "simples_nacional");
+    const grande = new File([new Uint8Array(11 * 1024 * 1024)], "g.pdf", {
+      type: "application/pdf",
+    });
+    await usuario.upload(screen.getByLabelText("Contrato social"), grande);
+
+    await usuario.click(screen.getByRole("button", { name: "Cadastrar" }));
+
+    expect(await screen.findByText(/somam 11,0 MB e o limite é 10 MB/)).toBeInTheDocument();
+    expect(executeMock).not.toHaveBeenCalled();
   });
 });

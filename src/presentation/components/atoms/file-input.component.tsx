@@ -7,6 +7,8 @@ type FileInputProps = {
   name?: string;
   accept?: string;
   file?: File;
+  // Formato e limite, ditos antes de escolher (ex.: "PDF ou DOCX"), não só no erro depois.
+  dica?: string;
   onChange: (file: File | undefined) => void;
   onBlur?: () => void;
   "aria-invalid"?: boolean;
@@ -30,6 +32,7 @@ export function FileInput({
   name,
   accept,
   file,
+  dica,
   onChange,
   onBlur,
   "aria-invalid": ariaInvalid,
@@ -69,6 +72,7 @@ export function FileInput({
       <span className="text-xs text-muted-foreground">
         {file ? "Clique ou arraste para trocar" : "ou clique para selecionar"}
       </span>
+      {dica && <span className="text-xs text-muted-foreground">{dica}</span>}
       <input
         id={id}
         name={name}

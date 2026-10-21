@@ -89,6 +89,10 @@ export function CriarClienteForm({
   onRegimeChange,
   onEmpresaChange,
 }: CriarClienteFormProps) {
+  // `documentos` não é um campo do formulário: é o caminho que o schema usa para o erro do conjunto.
+  const erroDosDocumentos = (errors as Record<string, { message?: string } | undefined>).documentos
+    ?.message;
+
   if (criado) {
     return (
       <ConfirmacaoDeCadastro
@@ -181,6 +185,8 @@ export function CriarClienteForm({
         <Texto variante="rotuloDeSecao" como="h2">
           Documentos
         </Texto>
+        {/* Erro do conjunto (soma dos arquivos acima do limite): do bloco, não de um arquivo só. */}
+        {erroDosDocumentos && <FieldError>{erroDosDocumentos}</FieldError>}
 
         <Grade colunas="1>2>4" espaco={4}>
           <Caixa>
@@ -193,6 +199,7 @@ export function CriarClienteForm({
                   rotulo="Contrato social"
                   name={name}
                   accept={ACCEPT_DOCUMENTO}
+                  dica="PDF ou DOCX"
                   file={value}
                   onBlur={onBlur}
                   erro={errors.contratoSocial?.message}
@@ -233,6 +240,7 @@ export function CriarClienteForm({
                       id={`alteracoesContratuais.${indice}.arquivo`}
                       name={name}
                       accept={ACCEPT_DOCUMENTO}
+                      dica="PDF ou DOCX"
                       file={value}
                       onBlur={onBlur}
                       aria-invalid={!!errors.alteracoesContratuais?.[indice]?.arquivo}
@@ -261,14 +269,14 @@ export function CriarClienteForm({
         {confirmandoLimpar ? (
           <>
             <Texto variante="apoio" como="p" role="alert" className="mr-auto">
-              Descartar tudo o que foi preenchido?
+              Limpar o formulário? O que foi preenchido e os arquivos escolhidos serão descartados.
             </Texto>
             {/* Foco inicial no "Voltar": o padrão seguro, não o destrutivo. */}
             <Button type="button" variant="outline" onClick={onCancelarLimpar} autoFocus>
               Voltar
             </Button>
             <Button type="button" variant="destructive" onClick={onLimpar}>
-              Sim, limpar
+              Limpar tudo
             </Button>
           </>
         ) : (

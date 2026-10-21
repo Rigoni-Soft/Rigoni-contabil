@@ -849,12 +849,17 @@ fixos, campo travado em cor plena, diálogo e lista das alterações); onde há 
 - **Limpar (cadastro de Cliente)**: botão `destructive` à esquerda de "Cadastrar". Ao contrário do
   "Limpar" da edição (que volta ao valor do servidor), este **esvazia tudo**: campos, contrato,
   alterações, avisos da consulta de CNPJ e erro do servidor, sem cadastrar. **Com algo preenchido
-  pede confirmação** inline: a linha dos botões troca por "Descartar tudo o que foi preenchido?"
-  (`role="alert"`) com "Voltar" (foco inicial, o lado seguro) e "Sim, limpar"; formulário em branco
+  pede confirmação** inline: a linha dos botões troca por "Limpar o formulário? O que foi preenchido
+  e os arquivos escolhidos serão descartados." (`role="alert"`) com "Voltar" (foco inicial, o lado
+  seguro) e "Limpar tudo" (o botão repete a ação, não "Sim"); formulário em branco
   limpa direto. Enviar cancela o pedido.
 - **Teto de arquivos**: a soma de contrato e alterações vai numa só Server Action e o Next corta
-  em 11 MB (`bodySizeLimit`); o schema barra acima de 10 MB com "Os arquivos somam mais de 10 MB"
-  (hoje ancorado no campo Contrato social).
+  em 11 MB (`bodySizeLimit`); o schema barra acima de 10 MB com a mensagem "Os arquivos somam X,Y MB
+  e o limite é 10 MB. Envie arquivos menores ou anexe as alterações depois do cadastro." (total real e
+  saída, não só "mais de 10 MB"). O erro é do conjunto: usa o caminho `documentos` e aparece sob o
+  título "Documentos", não sob o Contrato social.
+- **Dica de formato no campo de arquivo**: o `FileInput` aceita `dica` ("PDF ou DOCX"), uma linha
+  `text-xs` sob "ou clique para selecionar", para o formato ser dito antes de escolher e não só no erro.
 - **Falha da Server Action**: rejeição vira mensagem pela causa (`TypeError` = sem conexão;
   `NotReadableError` = arquivo ilegível, ex.: ainda só na nuvem do OneDrive; demais = erro
   inesperado, com o erro completo no console). O texto "verifique a conexão" não é mais o padrão

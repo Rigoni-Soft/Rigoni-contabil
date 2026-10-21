@@ -69,16 +69,19 @@ export const criarClienteSchema = z
         });
       }),
   })
-  .refine(
-    ({ contratoSocial, alteracoesContratuais }) =>
-      [contratoSocial, ...alteracoesContratuais.map((a) => a.arquivo)].reduce(
-        (soma, arquivo) => soma + (arquivo?.size ?? 0),
-        0,
-      ) <= LIMITE_TOTAL_BYTES,
-    {
-      message: "Os arquivos somam mais de 10 MB. Envie arquivos menores.",
-      path: ["contratoSocial"],
-    },
-  );
+  // Ancorado em "documentos" (o bloco), não no Contrato social: o excesso pode vir de qualquer arquivo.
+  .superRefine(({ contratoSocial, alteracoesContratuais }, ctx) => {
+    const total = [contratoSocial, ...alteracoesContratuais.map((a) => a.arquivo)].reduce(
+      (soma, arquivo) => soma + (arquivo?.size ?? 0),
+      0,
+    );
+    if (total <= LIMITE_TOTAL_BYTES) return;
+    const mb = (total / (1024 * 1024)).toFixed(1).replace(".", ",");
+    ctx.addIssue({
+      code: "custom",
+      path: ["documentos"],
+      message: `Os arquivos somam ${mb} MB e o limite é 10 MB. Envie arquivos menores ou anexe as alterações depois do cadastro.`,
+    });
+  });
 
 export type CriarClienteFormValues = z.infer<typeof criarClienteSchema>;
