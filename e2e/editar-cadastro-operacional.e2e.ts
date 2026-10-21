@@ -111,12 +111,12 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await expect(page.getByLabel("DAS")).toBeDisabled();
     await expect(page.getByLabel("Data de envio")).toHaveValue("2026-10-05");
     await expect(page.getByLabel("Data de envio")).toBeDisabled();
-    // O valor segue legível: sem a opacidade de desabilitado.
-    await expect(page.getByLabel("DAS")).toHaveCSS("opacity", "1");
-    await expect(page.getByLabel("Data de envio")).toHaveCSS("opacity", "1");
-    // Um só jeito de "travado" na tela: a identidade do Cliente também fica em cor plena.
-    await expect(page.getByLabel("Empresa", { exact: true })).toHaveCSS("opacity", "1");
-    await expect(page.getByLabel("CNPJ", { exact: true })).toHaveCSS("opacity", "1");
+    // Um só jeito de "travado" na tela: esmaecido (opacidade de desabilitado), como a identidade
+    // do Cliente, para o usuário entender que não se altera.
+    await expect(page.getByLabel("DAS")).toHaveCSS("opacity", "0.5");
+    await expect(page.getByLabel("Data de envio")).toHaveCSS("opacity", "0.5");
+    await expect(page.getByLabel("Empresa", { exact: true })).toHaveCSS("opacity", "0.5");
+    await expect(page.getByLabel("CNPJ", { exact: true })).toHaveCSS("opacity", "0.5");
 
     await page.getByLabel("Observações gerais").fill("Edição com DAS já enviado.");
     await page.getByRole("button", { name: "Salvar" }).click();
@@ -160,9 +160,9 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     ).toBeVisible();
     await expect(page.getByLabel("Forma de envio")).toBeDisabled();
     await expect(page.getByRole("button", { name: "Salvar" })).not.toBeVisible();
-    // Na visualização os valores seguem legíveis (cor plena); sem botão de adicionar contato.
-    await expect(page.getByLabel("Forma de envio")).toHaveCSS("opacity", "1");
-    await expect(page.getByLabel("Observações gerais")).toHaveCSS("opacity", "1");
+    // Na visualização os campos ficam esmaecidos (não editáveis); sem botão de adicionar contato.
+    await expect(page.getByLabel("Forma de envio")).toHaveCSS("opacity", "0.5");
+    await expect(page.getByLabel("Observações gerais")).toHaveCSS("opacity", "0.5");
     await expect(page.getByRole("button", { name: "Adicionar contato" })).toBeHidden();
   });
 

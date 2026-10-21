@@ -285,7 +285,8 @@ sem precisar de classe.
   RBAC, às vezes reduzidas a 1) segue o mesmo padrão em vez de forçar uma
   seleção sem escolha real.
 
-  **Sem opacidade de desabilitado (revisão impeccable, 28/09/2026):** o
+  **Sem opacidade de desabilitado, só para confirmação de escolha (revisão impeccable, 28/09/2026;
+  escopo restrito em 21/10/2026):** o
   `disabled:opacity-50` padrão de `select.tsx` existe pra sinalizar "campo
   indisponível" — o oposto do que esse padrão precisa comunicar ("aqui está
   o que vai ser cadastrado", uma confirmação, não uma ausência). Por isso
@@ -293,7 +294,9 @@ sem precisar de classe.
   sobrescrever a opacidade herdada e manter o texto na cor plena — o cursor
   `not-allowed` (herdado, mantido) já basta pra sinalizar "sem interação
   aqui". Qualquer campo futuro que reuse o padrão de campo travado acima
-  reusa também esse override.
+  reusa também esse override. **Escopo (21/10/2026):** vale só para o campo que
+  *confirma a única escolha possível*; o campo que o usuário não pode alterar (cadastro operacional)
+  mantém o esmaecimento padrão.
 - `label.tsx`, `atoms/field-error.component.tsx` — erro de campo sempre ícone (`AlertCircle`)
   + texto + cor, nunca só cor (contrato "Talão de Cheque": estado por
   padrão/ícone além de cor).
@@ -608,20 +611,22 @@ há tela de "sem acesso".
 - O DAS "Enviado" e a "Data de envio" vêm da entrega automática, não da digitação.
   "Enviado" só é opção enquanto o DAS **salvo** já está enviado, e então o `Select` fica
   `disabled`. A data é sempre `Input type="date"` com `readOnly` e `disabled`, vazia até o envio.
-- Travado é valor em cor plena: `TRAVADO` (`disabled:opacity-100`, em
-  `presentation/lib/campo-travado.ts`, via `classeDoSelect` e `classeDoInput`), igual ao campo
-  travado do cadastro de usuário. Vale também para Empresa, CNPJ, Regime e Responsável (os
-  rótulos têm `htmlFor`). `disabled` é decisão do produto: o valor segue no formulário, que lê
-  o estado do React Hook Form; o custo é o campo sair da tabulação e do leitor de tela.
-- O travado fica igual ao editável (só o cursor `not-allowed` o distingue, e no toque nem
-  isso), então cada campo do sistema traz uma nota (`ajuda`, ligada por `aria-describedby`):
-  "Definido pelo sistema." no DAS enviado e "Preenchida pelo sistema quando o DAS é enviado."
-  na data, o que também explica por que ela está vazia antes do envio.
-- Na visualização ("Visualizar cadastro operacional") o `fieldset disabled` não apaga os
-  valores: `input`, `select` e `textarea` desativados ficam na cor plena (`VALORES_LEGIVEIS`,
-  só com `readOnly`; durante o salvar continuam esmaecidos, sinal de "ocupado"). Não há
-  "Adicionar contato" nem "Remover contato" (`onRemover` do `LinhaDeContato` é opcional).
-  Checkbox desativado segue no cinza do navegador, mas marcado e desmarcado se distinguem.
+- Travado é **esmaecido**, como todo campo desativado: `disabled:opacity-50` e cursor
+  `not-allowed` padrão de `Input` e `Select`, sem sobrescrita. Vale para Empresa, CNPJ, Regime e
+  Responsável (os rótulos têm `htmlFor`), para o DAS já enviado e para a Data de envio. **Decisão de
+  21/10/2026, revoga a de manter o travado em cor plena** (`TRAVADO`/`VALORES_LEGIVEIS`, removidos):
+  o esmaecimento é o sinal de "não editável". Só o campo que confirma a única escolha possível
+  (Papel/Setor do cadastro de usuário, #32) segue em cor plena. `disabled` é decisão do produto: o
+  valor segue no formulário, que lê o estado do React Hook Form; o custo é o campo sair da
+  tabulação e do leitor de tela.
+- Como o esmaecido não diz *por que* o campo está travado, cada campo do sistema traz uma nota
+  (`ajuda`, ligada por `aria-describedby`): "Definido pelo sistema." no DAS enviado e "Preenchida
+  pelo sistema quando o DAS é enviado." na data, o que também explica por que ela está vazia antes
+  do envio.
+- Na visualização ("Visualizar cadastro operacional") o `fieldset disabled` esmaece todos os campos
+  (e o salvar em andamento também esmaece, sem distinção). Não há "Adicionar contato" nem "Remover
+  contato" (`onRemover` do `LinhaDeContato` é opcional). Checkbox desativado segue no cinza do
+  navegador, mas marcado e desmarcado se distinguem.
 - O formulário vem oculto (`rc-oculto-ate-hidratar`) no servidor e na hidratação
   (`useSyncExternalStore`): os campos não controlados só recebem os valores no cliente, e sem isso
   apareceriam "Não definido" e `dd/mm/aaaa` no lugar do dado por um instante. Se o React nunca

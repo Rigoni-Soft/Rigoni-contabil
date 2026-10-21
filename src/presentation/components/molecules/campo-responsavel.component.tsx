@@ -5,7 +5,6 @@ import { Button } from "@/presentation/components/ui/button";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
 import { Select } from "@/presentation/components/ui/select";
-import { TRAVADO } from "@/presentation/lib/campo-travado";
 
 type CampoResponsavelProps = {
   editavel: boolean;
@@ -47,7 +46,7 @@ export function CampoResponsavel({
           ))}
         </Select>
       ) : (
-        <Input id="responsavelId" value={nomeAtual} disabled readOnly className={TRAVADO} />
+        <Input id="responsavelId" value={nomeAtual} disabled readOnly />
       )}
       {estadoLista === "erro" && (
         <Linha alinhar="centro" quebra className="gap-x-2">

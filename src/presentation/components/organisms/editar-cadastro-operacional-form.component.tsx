@@ -15,7 +15,6 @@ import { Button } from "@/presentation/components/ui/button";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
 import { Textarea } from "@/presentation/components/ui/textarea";
-import { TRAVADO, VALORES_LEGIVEIS } from "@/presentation/lib/campo-travado";
 import { formatarTelefone } from "@/presentation/lib/telefone-mask";
 import { cn } from "@/presentation/lib/utils";
 import { DAS_STATUS_LABEL, DAS_STATUSES, type DasStatusValor } from "@/shared/kernel/das-status";
@@ -142,11 +141,11 @@ export function EditarCadastroOperacionalForm({
       <Grade colunas="1>2>cabecalho" espaco={4}>
         <Pilha espaco={1}>
           <Label htmlFor="empresa">Empresa</Label>
-          <Input id="empresa" value={cabecalho.empresa} disabled readOnly className={TRAVADO} />
+          <Input id="empresa" value={cabecalho.empresa} disabled readOnly />
         </Pilha>
         <Pilha espaco={1}>
           <Label htmlFor="cnpj">CNPJ</Label>
-          <Input id="cnpj" value={cabecalho.cnpj} disabled readOnly className={TRAVADO} />
+          <Input id="cnpj" value={cabecalho.cnpj} disabled readOnly />
         </Pilha>
         <Pilha espaco={1}>
           <Label htmlFor="regime">Regime</Label>
@@ -155,7 +154,6 @@ export function EditarCadastroOperacionalForm({
             value={REGIME_LABEL[cabecalho.regime] ?? cabecalho.regime}
             disabled
             readOnly
-            className={TRAVADO}
           />
         </Pilha>
         <CampoResponsavel
@@ -171,12 +169,7 @@ export function EditarCadastroOperacionalForm({
         />
       </Grade>
 
-      <Grade
-        colunas="1>2"
-        como="fieldset"
-        disabled={readOnly || pendente}
-        className={cn("gap-6", readOnly && VALORES_LEGIVEIS)}
-      >
+      <Grade colunas="1>2" como="fieldset" disabled={readOnly || pendente} className="gap-6">
         <CampoDeOpcoes
           id="formaEnvio"
           rotulo="Forma de envio"
@@ -198,10 +191,9 @@ export function EditarCadastroOperacionalForm({
           opcoes={dasEnviadoPeloSistema ? [...OPCOES_DAS, OPCAO_DAS_ENVIADO] : OPCOES_DAS}
           placeholder="Não definido"
           className="gap-1"
-          // "Enviado" é do sistema (#108): nem o Admin troca depois que o envio foi concluído. O valor
-          // é a informação do campo: fica em cor plena, sem a opacidade de desabilitado (DESIGN.md).
+          // "Enviado" é do sistema (#108): nem o Admin troca depois que o envio foi concluído. Fica
+          // esmaecido, como todo campo desativado: o esmaecimento é o sinal de não editável (DESIGN.md).
           disabled={dasEnviadoPeloSistema}
-          classeDoSelect={TRAVADO}
           ajuda={dasEnviadoPeloSistema ? "Definido pelo sistema." : undefined}
           {...register("dasStatus")}
         />
@@ -212,7 +204,6 @@ export function EditarCadastroOperacionalForm({
           className="gap-1"
           readOnly
           disabled
-          classeDoInput={TRAVADO}
           ajuda="Preenchida pelo sistema quando o DAS é enviado."
           {...register("dataEnvioDas")}
         />
