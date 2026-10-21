@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render as renderRtl, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render as renderRtl, screen, waitFor } from "@testing-library/react";
 
 import { DocumentoContratualDoClienteContainer } from "./documento-contratual-do-cliente.container";
 import { listarDocumentosContratuaisAction } from "./visualizar-documento-contratual.actions";
@@ -56,16 +56,29 @@ describe("DocumentoContratualDoClienteContainer (#140)", () => {
     expect(container.querySelector('[aria-hidden="true"]')).toHaveClass("min-h-11");
   });
 
-  it("sem acesso (lista vazia) ou com erro: nenhum botão", async () => {
+  it("sem acesso (lista vazia): nenhum botão e nenhum aviso", async () => {
     listar.mockResolvedValue({ ok: true, data: [] });
-    const { unmount } = render();
+    render();
+
     await waitFor(() => expect(listar).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
-    unmount();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
 
-    listar.mockResolvedValue({ ok: false, error: { code: "FORBIDDEN", message: "x" } });
+  it("falha ao consultar: avisa e 'Tentar novamente' busca de novo e mostra o botão", async () => {
+    listar.mockResolvedValueOnce({ ok: false, error: { code: "ERRO", message: "x" } });
+    listar.mockResolvedValueOnce({
+      ok: true,
+      data: [{ tipo: "contrato", numero: null, data: null }],
+    });
     render();
-    await waitFor(() => expect(listar).toHaveBeenCalledTimes(2));
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível carregar");
+    fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+
+    expect(
+      await screen.findByRole("button", { name: "Visualizar contrato social" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
