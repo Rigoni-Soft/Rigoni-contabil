@@ -95,8 +95,7 @@ export function AlteracoesContratuais({
         aria-labelledby={`${painelId}-titulo`}
         className="m-auto max-h-[90dvh] w-[min(92vw,28rem)] overflow-auto rounded-xl border border-border bg-background text-foreground backdrop:bg-overlay"
       >
-        {/* O diálogo não tem padding próprio: cabeçalho e formulário o trazem, e o cabeçalho fixo no topo
-            segue à vista quando o formulário rola em tela baixa (celular deitado). */}
+        {/* Sem padding próprio: o cabeçalho fixo e o formulário trazem o deles. */}
         <Linha
           alinhar="centro"
           justificar="entre"
@@ -161,11 +160,9 @@ export function AlteracoesContratuais({
             {...register("data")}
           />
           {erroServidor && <AvisoDeStatus tipo="erro" texto={erroServidor} className="text-sm" />}
-          <Caixa>
-            <Button type="submit" disabled={pendente}>
-              {pendente ? "Anexando..." : "Anexar"}
-            </Button>
-          </Caixa>
+          <Button type="submit" disabled={pendente}>
+            {pendente ? "Anexando..." : "Anexar"}
+          </Button>
         </Pilha>
       </Pilha>
     </Pilha>
