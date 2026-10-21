@@ -210,17 +210,29 @@ describe("CriarClienteContainer", () => {
     expect(screen.getByLabelText(/^Regime/)).toHaveValue("");
   });
 
-  it("Promise rejeitada da Server Action não prende o botão em 'Cadastrando...'", async () => {
-    executeMock.mockRejectedValue(new Error("falha de rede"));
-    const usuario = userEvent.setup();
-    render(<CriarClienteContainer />);
+  it.each([
+    ["erro inesperado do servidor", new Error("boom"), /Erro inesperado no servidor/],
+    ["falha de rede", new TypeError("Failed to fetch"), /Sem conexão com o servidor/],
+    [
+      "arquivo ilegível",
+      new DOMException("x", "NotReadableError"),
+      /Não foi possível ler um dos arquivos/,
+    ],
+  ])(
+    "Promise rejeitada (%s) diz a causa e não prende o botão em 'Cadastrando...'",
+    async (_, erro, mensagem) => {
+      jest.spyOn(console, "error").mockImplementation(() => undefined);
+      executeMock.mockRejectedValue(erro);
+      const usuario = userEvent.setup();
+      render(<CriarClienteContainer />);
 
-    await preencherCamposObrigatorios(usuario);
-    await usuario.click(screen.getByRole("button", { name: "Cadastrar" }));
+      await preencherCamposObrigatorios(usuario);
+      await usuario.click(screen.getByRole("button", { name: "Cadastrar" }));
 
-    expect(await screen.findByText(/Não foi possível cadastrar agora/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Cadastrar" })).toBeEnabled();
-  });
+      expect(await screen.findByText(mensagem)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Cadastrar" })).toBeEnabled();
+    },
+  );
 
   it("aplica a máscara de CNPJ enquanto digita", async () => {
     const usuario = userEvent.setup();
