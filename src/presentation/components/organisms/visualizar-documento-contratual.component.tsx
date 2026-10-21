@@ -7,6 +7,9 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
 import { Button } from "@/presentation/components/ui/button";
 
+// O botão diz o que abre agora; o título diz o que há dentro (o documento em destaque vem abaixo).
+const TITULO_DO_DIALOGO = "Contrato social e alterações";
+
 type OpcaoDocumento = { chave: string; rotulo: string };
 
 type VisualizarDocumentoContratualProps = {
@@ -53,7 +56,7 @@ export function VisualizarDocumentoContratual({
       >
         <Linha alinhar="centro" justificar="entre" espaco={2}>
           <Texto variante="destaque" como="h2" id={`${painelId}-titulo`}>
-            {rotuloDoBotao}
+            {TITULO_DO_DIALOGO}
           </Texto>
           <Button
             type="button"
@@ -72,12 +75,12 @@ export function VisualizarDocumentoContratual({
           type="button"
           onClick={onAbrir}
           disabled={abrindo}
-          aria-label={abrindo ? undefined : `Abrir ${selecionado.rotulo}`}
+          aria-label={abrindo ? undefined : `Abrir ${selecionado.rotulo} em nova aba`}
           // Foco inicial ao abrir o diálogo (atributo nativo, como no PainelDePrevia).
           ref={(botao) => botao?.setAttribute("autofocus", "")}
         >
           <ExternalLink className="size-4" aria-hidden="true" />
-          {abrindo ? "Abrindo…" : "Abrir"}
+          {abrindo ? "Abrindo…" : "Abrir em nova aba"}
         </Button>
         {erro && <AvisoDeStatus tipo="erro" texto={erro} className="text-sm" />}
         {linkAlternativo && (

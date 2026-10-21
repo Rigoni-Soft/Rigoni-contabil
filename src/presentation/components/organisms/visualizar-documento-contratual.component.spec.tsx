@@ -55,7 +55,9 @@ describe("VisualizarDocumentoContratual (#140)", () => {
 
   it("'Abrir' dispara a abertura; desabilita e avisa enquanto abre", () => {
     const props = montar();
-    fireEvent.click(screen.getByRole("button", { name: "Abrir Alteração nº 3 - 05/03/2025" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Abrir Alteração nº 3 - 05/03/2025 em nova aba" }),
+    );
     expect(props.onAbrir).toHaveBeenCalledTimes(1);
   });
 
@@ -75,7 +77,7 @@ describe("VisualizarDocumentoContratual (#140)", () => {
     montar();
 
     expect(screen.getByRole("dialog", { hidden: true })).toHaveAccessibleName(
-      "Visualizar alteração",
+      "Contrato social e alterações",
     );
     expect(screen.getByRole("button", { name: /^Abrir / })).toHaveAttribute("autofocus");
   });
