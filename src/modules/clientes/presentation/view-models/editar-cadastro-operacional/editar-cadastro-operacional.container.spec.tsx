@@ -1,3 +1,4 @@
+import { renderToString } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render as renderRtl, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -263,6 +264,41 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(das).toBeDisabled();
     expect(screen.getByLabelText(/data de envio/i)).toHaveValue("2026-10-05");
     expect(screen.getByLabelText(/data de envio/i)).toBeDisabled();
+  });
+
+  it("modo readOnly não oferece adicionar nem remover contato", () => {
+    render(<EditarCadastroOperacionalContainer dados={dados} readOnly />);
+
+    expect(screen.getByLabelText(/^Nome/, { selector: "input" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Adicionar contato" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /remover contato/i })).not.toBeInTheDocument();
+  });
+
+  it("editando, adicionar e remover contato continuam disponíveis", () => {
+    render(<EditarCadastroOperacionalContainer dados={dados} readOnly={false} />);
+
+    expect(screen.getByRole("button", { name: "Adicionar contato" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Remover contato 1" })).toBeEnabled();
+  });
+
+  it("no HTML do servidor o formulário vem oculto até hidratar (sem placeholders no lugar dos valores)", () => {
+    const client = new QueryClient();
+    const html = renderToString(
+      <QueryClientProvider client={client}>
+        <EditarCadastroOperacionalContainer dados={dados} readOnly={false} />
+      </QueryClientProvider>,
+    );
+
+    const abertura = html.match(/<form[^>]*>/)?.[0] ?? "";
+    expect(abertura).toContain("invisible");
+  });
+
+  it("depois de hidratar, o formulário fica visível", () => {
+    const { container } = render(
+      <EditarCadastroOperacionalContainer dados={dados} readOnly={false} />,
+    );
+
+    expect(container.querySelector("form")).not.toHaveClass("invisible");
   });
 
   it("Empresa, CNPJ, Regime e Responsável têm rótulo ligado ao campo e estão desativados", () => {

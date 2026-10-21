@@ -92,6 +92,9 @@ type EditarCadastroOperacionalFormProps = {
   dasEnviadoPeloSistema: boolean;
   erroServidor?: string;
   sucesso?: boolean;
+  // Até hidratar, os campos (não controlados) ainda não têm os valores: o HTML do servidor mostraria
+  // placeholders no lugar do dado. Oculto sem sair do layout, aparece já preenchido.
+  oculto?: boolean;
   // Lista de campos do useFieldArray, montada no Container (View burra: sem hooks).
   contatos: { id: string }[];
   onAdicionarContato: () => void;
@@ -117,6 +120,7 @@ export function EditarCadastroOperacionalForm({
   dasEnviadoPeloSistema,
   erroServidor,
   sucesso,
+  oculto,
   contatos,
   onAdicionarContato,
   onRemoverContato,
@@ -128,7 +132,10 @@ export function EditarCadastroOperacionalForm({
       espaco={6}
       como="form"
       onSubmit={onSubmit}
-      className="rc-guilloche-frame rounded-lg border border-border bg-card p-6 shadow-sm"
+      className={cn(
+        "rc-guilloche-frame rounded-lg border border-border bg-card p-6 shadow-sm",
+        oculto && "invisible",
+      )}
     >
       {!readOnly && <NotaDeObrigatorio />}
 
@@ -254,7 +261,7 @@ export function EditarCadastroOperacionalForm({
                   padrao={register(`contatos.${indice}.padrao`)}
                   erroNome={errors.contatos?.[indice]?.nome?.message}
                   erroTelefone={errors.contatos?.[indice]?.telefone?.message}
-                  onRemover={() => onRemoverContato(indice)}
+                  onRemover={readOnly ? undefined : () => onRemoverContato(indice)}
                 />
               )}
             />
@@ -262,10 +269,12 @@ export function EditarCadastroOperacionalForm({
           {errors.contatos && typeof errors.contatos.message === "string" && (
             <FieldError>{errors.contatos.message}</FieldError>
           )}
-          <Button type="button" variant="outline" onClick={onAdicionarContato}>
-            <Plus className="size-4" aria-hidden="true" />
-            Adicionar contato
-          </Button>
+          {!readOnly && (
+            <Button type="button" variant="outline" onClick={onAdicionarContato}>
+              <Plus className="size-4" aria-hidden="true" />
+              Adicionar contato
+            </Button>
+          )}
         </Pilha>
 
         <Pilha espaco={1} className="sm:col-span-2">

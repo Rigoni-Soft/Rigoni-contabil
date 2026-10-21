@@ -13,7 +13,8 @@ type LinhaDeContatoProps = {
   padrao: React.ComponentProps<"input">;
   erroNome?: string;
   erroTelefone?: string;
-  onRemover: () => void;
+  // Sem callback (visualização): não há o que remover, o botão nem aparece.
+  onRemover?: () => void;
 };
 
 // Um Contato do Cliente: nome, telefone, "Padrão" e a ação de remover. A numeração é 1-based.
@@ -45,15 +46,17 @@ export function LinhaDeContato({
         {...telefone}
       />
       <CaixaDeMarcacao rotulo="Padrão" className="pb-2" {...padrao} />
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        onClick={onRemover}
-        aria-label={`Remover contato ${indice + 1}`}
-      >
-        <Trash2 className="size-4" aria-hidden="true" />
-      </Button>
+      {onRemover && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={onRemover}
+          aria-label={`Remover contato ${indice + 1}`}
+        >
+          <Trash2 className="size-4" aria-hidden="true" />
+        </Button>
+      )}
     </Linha>
   );
 }

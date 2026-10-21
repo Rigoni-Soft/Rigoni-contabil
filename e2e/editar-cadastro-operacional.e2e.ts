@@ -144,13 +144,10 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     ).toBeVisible();
     await expect(page.getByLabel("Forma de envio")).toBeDisabled();
     await expect(page.getByRole("button", { name: "Salvar" })).not.toBeVisible();
-    // Na visualização os valores seguem legíveis (cor plena); só os botões ficam esmaecidos.
+    // Na visualização os valores seguem legíveis (cor plena); sem botão de adicionar contato.
     await expect(page.getByLabel("Forma de envio")).toHaveCSS("opacity", "1");
     await expect(page.getByLabel("Observações gerais")).toHaveCSS("opacity", "1");
-    await expect(page.getByRole("button", { name: "Adicionar contato" })).toHaveCSS(
-      "opacity",
-      "0.5",
-    );
+    await expect(page.getByRole("button", { name: "Adicionar contato" })).toBeHidden();
   });
 
   test("Contrato social nunca aparece nesta tela, pra nenhum perfil", async ({ page }) => {

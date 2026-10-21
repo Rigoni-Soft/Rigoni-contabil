@@ -624,7 +624,12 @@ Responsável (para quem não o atribui) também usam `disabled:opacity-100` (con
 No modo só leitura ("Visualizar cadastro operacional", usuário que não edita) o `fieldset
 disabled` não apaga os valores: `input`, `select` e `textarea` desativados dentro dele ficam
 na cor plena (`VALORES_LEGIVEIS`, mesmo arquivo, só com `readOnly`; durante o salvar continuam esmaecidos,
-sinal de "ocupado"), e os botões seguem esmaecidos, porque não há o que acionar.
+sinal de "ocupado"). Na visualização não há "Adicionar contato" nem "Remover contato": o botão
+que não faz nada não aparece (`onRemover` do `LinhaDeContato` é opcional). Um checkbox desativado
+segue no cinza do navegador, mas marcado e desmarcado se distinguem (caixa cheia com visto).
+O formulário vem `invisible` no HTML do servidor e na hidratação (`useSyncExternalStore`), e
+aparece já preenchido: os campos não controlados só recebem os valores no cliente, e sem isso
+o servidor mostraria "Não definido" e `dd/mm/aaaa` por um instante, no lugar do dado.
 
 **Campo Responsável no cadastro operacional (#65):** fica no cabeçalho de
 identidade do formulário, não no fim — a linha Empresa · CNPJ · Regime ·
