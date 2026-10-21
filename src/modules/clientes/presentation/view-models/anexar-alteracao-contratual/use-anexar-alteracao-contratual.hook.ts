@@ -28,6 +28,8 @@ export function useAnexarAlteracaoContratual(
   const queryClient = useQueryClient();
   const [pendente, setPendente] = useState(false);
   const [erroServidor, setErroServidor] = useState<string | undefined>();
+  // Confirmação que sobrevive ao fechamento do diálogo: quem anexou precisa ouvir/ver que deu certo.
+  const [sucesso, setSucesso] = useState<string | undefined>();
   const {
     register,
     control,
@@ -36,14 +38,27 @@ export function useAnexarAlteracaoContratual(
     getValues,
     setValue,
     setError,
+    trigger,
     formState: { errors },
   } = useForm<AnexarAlteracaoFormValues>({ resolver: zodResolver(formSchema) });
   const [numero, data] = useWatch({ control, name: ["numero", "data"] });
 
   // Sugere o nº só com o campo vazio: nunca pisa no que o Admin digitou.
-  const aoEscolherArquivo = (arquivo: File | undefined) => {
+  const sugerirNumeroDoArquivo = (arquivo: File | undefined) => {
     if (!arquivo || Number.isInteger(getValues("numero"))) return;
     setValue("numero", numeroSugerido(arquivo.name, documentos));
+  };
+
+  // Arquivo grande ou de outro tipo é recusado já na escolha, não só ao enviar.
+  const aoEscolherArquivo = (arquivo: File | undefined) => {
+    sugerirNumeroDoArquivo(arquivo);
+    if (arquivo) void trigger("arquivo");
+  };
+
+  // Fechar (Esc, fora, X) descarta o rascunho e o erro: reabrir começa limpo.
+  const aoFechar = () => {
+    reset();
+    setErroServidor(undefined);
   };
 
   const onSubmit = handleSubmit(async (valores) => {
@@ -55,6 +70,7 @@ export function useAnexarAlteracaoContratual(
     }
     setPendente(true);
     setErroServidor(undefined);
+    setSucesso(undefined);
     try {
       const resultado = await anexarAlteracaoContratualAction({ clienteId, ...valores });
       if (!resultado.ok) {
@@ -67,6 +83,7 @@ export function useAnexarAlteracaoContratual(
         return;
       }
       await queryClient.invalidateQueries({ queryKey: chaveDocumentosContratuais(clienteId) });
+      setSucesso(`Alteração nº ${valores.numero} anexada.`);
       reset();
       document.getElementById(painelId)?.hidePopover();
     } catch {
@@ -83,6 +100,8 @@ export function useAnexarAlteracaoContratual(
     onSubmit,
     pendente,
     erroServidor,
+    sucesso,
+    aoFechar,
     aviso: avisoDeDivergencia(numero, data ?? "", documentos) ?? undefined,
     aoEscolherArquivo,
   };

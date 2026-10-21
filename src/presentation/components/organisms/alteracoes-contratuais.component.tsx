@@ -8,6 +8,7 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoDeArquivo } from "@/presentation/components/molecules/campo-de-arquivo.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { Button } from "@/presentation/components/ui/button";
+import { hojeIso } from "@/shared/kernel/mes-atual";
 import { AJUDA_NUMERO_ALTERACAO, NUMERO_MAXIMO } from "@/shared/kernel/numero-alteracao";
 
 // PDF ou DOCX — dica do navegador; a validação de verdade fica no schema Zod.
@@ -26,6 +27,10 @@ type AlteracoesContratuaisProps = {
   onSubmit: React.FormEventHandler<HTMLFormElement>;
   pendente: boolean;
   erroServidor?: string;
+  // Confirmação exibida na seção depois que o diálogo fecha.
+  sucesso?: string;
+  // Esc, clique fora ou X: descarta rascunho e erro.
+  aoFechar: () => void;
   // Alerta não bloqueante (nº × data).
   aviso?: string;
   aoEscolherArquivo: (arquivo: File | undefined) => void;
@@ -42,6 +47,8 @@ export function AlteracoesContratuais({
   onSubmit,
   pendente,
   erroServidor,
+  sucesso,
+  aoFechar,
   aviso,
   aoEscolherArquivo,
 }: AlteracoesContratuaisProps) {
@@ -57,12 +64,14 @@ export function AlteracoesContratuais({
         </Button>
       </Linha>
 
+      {sucesso && <AvisoDeStatus tipo="sucesso" texto={sucesso} className="text-sm" />}
+
       {alteracoes.length === 0 ? (
         <Texto variante="nota">Nenhuma alteração anexada.</Texto>
       ) : (
         <ListaComDivisores cartao>
           {alteracoes.map(({ numero, rotulo, arquivo }) => (
-            <Caixa como="li" key={numero} className="px-3 py-2 text-sm">
+            <Caixa como="li" key={numero} className="min-w-0 px-3 py-2 text-sm break-words">
               {rotulo}
               <Texto variante="nota" como="span" className="block">
                 {arquivo}
@@ -76,6 +85,12 @@ export function AlteracoesContratuais({
         espaco={4}
         id={painelId}
         popover="auto"
+        // Foco inicial no diálogo ao abrir (atributo nativo, como em VisualizarDocumentoContratual).
+        tabIndex={-1}
+        ref={(painel) => painel?.setAttribute("autofocus", "")}
+        onToggle={(evento) => {
+          if ((evento as unknown as ToggleEvent).newState === "closed") aoFechar();
+        }}
         role="dialog"
         aria-labelledby={`${painelId}-titulo`}
         className="m-auto max-h-[90dvh] w-[min(92vw,28rem)] overflow-auto rounded-xl border border-border bg-background p-4 text-foreground backdrop:bg-overlay"
@@ -133,6 +148,7 @@ export function AlteracoesContratuais({
             id={`${painelId}-data`}
             rotulo="Data da alteração"
             type="date"
+            max={hojeIso()}
             erro={errors.data?.message}
             aviso={aviso}
             {...register("data")}

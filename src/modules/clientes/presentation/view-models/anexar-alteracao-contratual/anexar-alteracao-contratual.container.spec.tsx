@@ -35,6 +35,8 @@ function simularHook(parcial: Partial<ReturnType<typeof useAnexarAlteracaoContra
       pendente: false,
       erroServidor: undefined,
       aviso: undefined,
+      sucesso: undefined,
+      aoFechar: jest.fn(),
       aoEscolherArquivo: jest.fn(),
       ...parcial,
     };
