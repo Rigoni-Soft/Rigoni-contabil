@@ -5,7 +5,6 @@ import type {
   AtorSessaoDto,
   SessaoPort,
 } from "@/modules/clientes/application/ports/out/sessao.provider";
-import type { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
 import type { AlteracaoContratual } from "@/modules/clientes/domain/value-objects/alteracao-contratual.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
@@ -21,28 +20,6 @@ class SessaoFalsa implements SessaoPort {
   ator: AtorSessaoDto | null = { id: "admin-1", papel: "admin", setor: "administrativo" };
   async usuarioAtual(): Promise<AtorSessaoDto | null> {
     return this.ator;
-  }
-}
-
-class ClienteRepositoryFalso implements ClienteRepository {
-  anexada: { clienteId: string; alteracao: AlteracaoContratual } | null = null;
-  erroAoAnexar: AppError | null = null;
-  async anexarAlteracaoContratual(
-    clienteId: string,
-    alteracao: AlteracaoContratual,
-  ): Promise<Result<void, AppError>> {
-    if (this.erroAoAnexar) return err(this.erroAoAnexar);
-    this.anexada = { clienteId, alteracao };
-    return ok(undefined);
-  }
-  async criar(): Promise<Result<void, AppError>> {
-    throw new Error("não usado neste caso de uso");
-  }
-  async buscarPorId(): Promise<Result<Cliente | null, AppError>> {
-    throw new Error("não usado neste caso de uso");
-  }
-  async atualizarOperacional(): Promise<Result<void, AppError>> {
-    throw new Error("não usado neste caso de uso");
   }
 }
 
@@ -70,11 +47,14 @@ const INPUT: AnexarAlteracaoContratualInput = {
 
 function montar() {
   const sessao = new SessaoFalsa();
-  const clientes = new ClienteRepositoryFalso();
+  const anexar = jest
+    .fn<Promise<Result<void, AppError>>, [string, AlteracaoContratual]>()
+    .mockResolvedValue(ok(undefined));
+  const clientes = { anexarAlteracaoContratual: anexar } as unknown as ClienteRepository;
   const storage = new ArquivoStorageFalso();
   return {
     sessao,
-    clientes,
+    anexar,
     storage,
     caso: new AnexarAlteracaoContratual(sessao, clientes, storage),
   };
@@ -82,15 +62,16 @@ function montar() {
 
 describe("AnexarAlteracaoContratual", () => {
   it("Admin anexa: sobe o arquivo e grava a alteração com o caminho enviado", async () => {
-    const { caso, clientes, storage } = montar();
+    const { caso, anexar, storage } = montar();
 
     const resultado = await caso.execute(INPUT);
 
     expect(resultado.ok).toBe(true);
     expect(storage.enviados).toEqual([`${CLIENTE_ID}/alteracoes-contratuais/2-alteracao.pdf`]);
-    expect(clientes.anexada?.clienteId).toBe(CLIENTE_ID);
-    expect(clientes.anexada?.alteracao.numero).toBe(2);
-    expect(clientes.anexada?.alteracao.arquivoCaminho).toBe(storage.enviados[0]);
+    const [clienteId, alteracao] = anexar.mock.calls[0];
+    expect(clienteId).toBe(CLIENTE_ID);
+    expect(alteracao.numero).toBe(2);
+    expect(alteracao.arquivoCaminho).toBe(storage.enviados[0]);
     expect(storage.removidos).toEqual([]);
   });
 
@@ -108,8 +89,8 @@ describe("AnexarAlteracaoContratual", () => {
   );
 
   it("falha da gravação remove o arquivo recém-subido e devolve o erro original", async () => {
-    const { caso, clientes, storage } = montar();
-    clientes.erroAoAnexar = new ValidationError("Já existe a alteração nº 2 deste Cliente.");
+    const { caso, anexar, storage } = montar();
+    anexar.mockResolvedValue(err(new ValidationError("Já existe a alteração nº 2 deste Cliente.")));
 
     const resultado = await caso.execute(INPUT);
 
@@ -121,8 +102,8 @@ describe("AnexarAlteracaoContratual", () => {
   });
 
   it("remoção que também falha vira estado inconsistente, não o erro original", async () => {
-    const { caso, clientes, storage } = montar();
-    clientes.erroAoAnexar = new ValidationError("falha ao gravar");
+    const { caso, anexar, storage } = montar();
+    anexar.mockResolvedValue(err(new ValidationError("falha ao gravar")));
     storage.falharAoRemover = true;
     jest.spyOn(console, "error").mockImplementation(() => undefined);
 
