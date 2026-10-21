@@ -5,6 +5,7 @@ import {
   ERRO_NUMERO_INVALIDO,
   erroDeDuplicidade,
   erroDeFormato,
+  outrosNumeros,
 } from "@/shared/kernel/numero-alteracao";
 import { REGIMES } from "@/shared/kernel/regimes";
 
@@ -58,8 +59,7 @@ export const criarClienteSchema = z.object({
     .superRefine((alteracoes, ctx) => {
       alteracoes.forEach(({ numero }, indice) => {
         if (erroDeFormato(numero)) return;
-        const outros = alteracoes.filter((_, i) => i !== indice).map((o) => o.numero);
-        const erro = erroDeDuplicidade(numero, outros);
+        const erro = erroDeDuplicidade(numero, outrosNumeros(alteracoes, indice));
         if (erro) ctx.addIssue({ code: "custom", message: erro, path: [indice, "numero"] });
       });
     }),

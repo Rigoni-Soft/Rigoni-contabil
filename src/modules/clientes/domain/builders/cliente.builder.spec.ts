@@ -11,7 +11,11 @@ describe("ClienteBuilder", () => {
       .comRegime("simples_nacional")
       .comContratoSocialCaminho("clientes/1/contrato-social/doc.pdf")
       .comAlteracoesContratuais([
-        { numero: 1, data: "2026-02-01", arquivoCaminho: "clientes/1/alteracoes/0-doc.pdf" },
+        {
+          numero: 1,
+          data: "2026-02-01",
+          arquivoCaminho: "clientes/1/alteracoes-contratuais/1-doc.pdf",
+        },
       ])
       .build();
 
@@ -142,7 +146,11 @@ describe("ClienteBuilder", () => {
         regime: "simples_nacional",
         contratoSocialCaminho: "clientes/1/contrato-social/doc.pdf",
         alteracoesContratuais: [
-          { numero: 1, data: "2026-02-01", arquivoCaminho: "clientes/1/alteracoes/0-doc.pdf" },
+          {
+            numero: 1,
+            data: "2026-02-01",
+            arquivoCaminho: "clientes/1/alteracoes-contratuais/1-doc.pdf",
+          },
         ],
       })
       .build();

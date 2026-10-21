@@ -6,7 +6,7 @@ import { useFieldArray, useForm } from "react-hook-form";
 
 import { CriarClienteForm } from "@/presentation/components/organisms/criar-cliente-form.component";
 import { normalizarCnpj } from "@/shared/kernel/cnpj";
-import { sugerirNumero } from "@/shared/kernel/numero-alteracao";
+import { outrosNumeros, sugerirNumero } from "@/shared/kernel/numero-alteracao";
 
 import { criarClienteAction } from "./criar-cliente.actions";
 import { criarClienteSchema, type CriarClienteFormValues } from "./criar-cliente.schema";
@@ -61,10 +61,9 @@ export function CriarClienteContainer() {
     if (!arquivo) return;
     const campo = `alteracoesContratuais.${indice}.numero` as const;
     if (Number.isInteger(getValues(campo))) return;
-    const outros = getValues("alteracoesContratuais")
-      .filter((_, i) => i !== indice)
-      .map((alteracao) => alteracao.numero)
-      .filter(Number.isInteger);
+    const outros = outrosNumeros(getValues("alteracoesContratuais"), indice).filter(
+      Number.isInteger,
+    );
     setValue(campo, sugerirNumero(arquivo.name, outros));
   };
 

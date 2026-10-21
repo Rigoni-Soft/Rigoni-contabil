@@ -8,6 +8,9 @@ import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
 import { NUMERO_MAXIMO } from "@/shared/kernel/numero-alteracao";
 
+// Id do alerta de erro de um campo da linha; quem monta o campo de arquivo o usa no aria-describedby.
+export const idErroDoCampo = (idDoCampo: string) => `${idDoCampo}-erro`;
+
 type LinhaDeAlteracaoProps = {
   indice: number;
   // Props do <input type="number"> do nº da alteração (o `register` com `valueAsNumber`).
@@ -17,7 +20,7 @@ type LinhaDeAlteracaoProps = {
   data: React.ComponentProps<"input">;
   erroData?: string;
   // O campo de arquivo é controlado pelo formulário; o id dele é `alteracoesContratuais.<i>.arquivo`
-  // (o rótulo aponta para ele); com erro, o id do alerta é `<id>-erro` (aria-describedby).
+  // (o rótulo aponta para ele); com erro, o id do alerta é `idErroDoCampo(<id>)`.
   arquivo: React.ReactNode;
   erroArquivo?: string;
   onRemover: () => void;
@@ -39,9 +42,9 @@ export function LinhaDeAlteracao({
   const idArquivo = `alteracoesContratuais.${indice}.arquivo`;
   // O erro de cada campo é ligado ao input por aria-describedby (o alerta só soa quando aparece).
   const idAjudaNumero = `${idNumero}-ajuda`;
-  const idErroNumero = `${idNumero}-erro`;
-  const idErroData = `${idData}-erro`;
-  const idErroArquivo = `${idArquivo}-erro`;
+  const idErroNumero = idErroDoCampo(idNumero);
+  const idErroData = idErroDoCampo(idData);
+  const idErroArquivo = idErroDoCampo(idArquivo);
   return (
     <Caixa className="flex flex-col gap-2 rounded-md border border-border p-3">
       <Linha alinhar="centro" justificar="entre" espaco={2}>

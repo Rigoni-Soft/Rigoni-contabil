@@ -11,7 +11,10 @@ import { CampoDeArquivo } from "@/presentation/components/molecules/campo-de-arq
 import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { ConfirmacaoDeCadastro } from "@/presentation/components/molecules/confirmacao-de-cadastro.component";
-import { LinhaDeAlteracao } from "@/presentation/components/molecules/linha-de-alteracao.component";
+import {
+  idErroDoCampo,
+  LinhaDeAlteracao,
+} from "@/presentation/components/molecules/linha-de-alteracao.component";
 import { Button } from "@/presentation/components/ui/button";
 import { Label } from "@/presentation/components/ui/label";
 import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
@@ -223,7 +226,7 @@ export function CriarClienteForm({
                       aria-invalid={!!errors.alteracoesContratuais?.[indice]?.arquivo}
                       aria-describedby={
                         errors.alteracoesContratuais?.[indice]?.arquivo
-                          ? `alteracoesContratuais.${indice}.arquivo-erro`
+                          ? idErroDoCampo(`alteracoesContratuais.${indice}.arquivo`)
                           : undefined
                       }
                       onChange={(arquivo) => {

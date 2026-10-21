@@ -3,6 +3,7 @@ import {
   erroDeDuplicidade,
   erroDeFormato,
   numeroDoNomeDoArquivo,
+  outrosNumeros,
   sugerirNumero,
 } from "./numero-alteracao";
 
@@ -46,6 +47,12 @@ describe("erroDeFormato", () => {
 
   it.each([0, -1, 1.5, Number.NaN, 1_000_000_000])("recusa %s", (numero) => {
     expect(erroDeFormato(numero)).toBe("Informe um nº inteiro de 1 a 999999999");
+  });
+});
+
+describe("outrosNumeros", () => {
+  it("devolve os nºs das demais alterações", () => {
+    expect(outrosNumeros([{ numero: 1 }, { numero: 2 }, { numero: 3 }], 1)).toEqual([1, 3]);
   });
 });
 
