@@ -28,8 +28,13 @@ export function outrosNumeros(alteracoes: { numero: number }[], indice: number):
   return alteracoes.filter((_, i) => i !== indice).map((alteracao) => alteracao.numero);
 }
 
+// Nº já usado por outra alteração do mesmo Cliente (formulário, tela e banco dizem a mesma frase).
+export function erroNumeroRepetidoNoCliente(numero: number): string {
+  return `Já existe a alteração nº ${numero} deste Cliente.`;
+}
+
 export function erroDeDuplicidade(numero: number, outrosNumeros: number[]): string | null {
-  return outrosNumeros.includes(numero) ? `Já existe a alteração nº ${numero}` : null;
+  return outrosNumeros.includes(numero) ? erroNumeroRepetidoNoCliente(numero) : null;
 }
 
 type AlteracaoNumerada = { numero: number; data: string };
@@ -43,9 +48,4 @@ export function divergenciaNumeroData(
     (outra) => outra.numero < atual.numero && outra.data > atual.data,
   );
   return anteriores.length > 0 ? Math.max(...anteriores.map((outra) => outra.numero)) : null;
-}
-
-// Nº já usado por outra alteração do mesmo Cliente (tela e banco dizem a mesma frase).
-export function erroNumeroRepetidoNoCliente(numero: number): string {
-  return `Já existe a alteração nº ${numero} deste Cliente.`;
 }

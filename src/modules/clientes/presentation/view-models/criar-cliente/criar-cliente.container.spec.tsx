@@ -351,7 +351,9 @@ describe("CriarClienteContainer", () => {
       });
       await usuario.click(screen.getByRole("button", { name: "Cadastrar" }));
 
-      expect(await screen.findAllByText("Já existe a alteração nº 1")).toHaveLength(2);
+      expect(await screen.findAllByText("Já existe a alteração nº 1 deste Cliente.")).toHaveLength(
+        2,
+      );
       expect(executeMock).not.toHaveBeenCalled();
     });
   });

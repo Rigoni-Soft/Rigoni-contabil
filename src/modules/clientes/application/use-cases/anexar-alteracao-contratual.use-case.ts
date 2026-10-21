@@ -9,16 +9,11 @@ import { AlteracaoContratual } from "@/modules/clientes/domain/value-objects/alt
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
-import { ValidationError } from "@/shared/errors/validation.error";
-import {
-  ERRO_ARQUIVO_GRANDE,
-  ERRO_DATA_FUTURA,
-  LIMITE_ARQUIVO_BYTES,
-} from "@/shared/kernel/limite-arquivo";
-import { hojeIso } from "@/shared/kernel/mes-atual";
 import { podeAnexarAlteracaoContratual } from "@/shared/kernel/papeis";
 import { err, type Result } from "@/shared/kernel/result";
 
+// Tamanho do arquivo e data futura são barrados pelo schema da Server Action (única entrada da
+// porta); aqui ficam papel, upload e compensação.
 // A auditoria de sucesso (`cliente.anexar-alteracao`) e o aviso nascem de gatilhos no banco, na
 // mesma transação do INSERT: aqui só se sobe o arquivo e, se a gravação falhar, se desfaz o upload.
 export class AnexarAlteracaoContratual implements AnexarAlteracaoContratualPort {
@@ -32,14 +27,6 @@ export class AnexarAlteracaoContratual implements AnexarAlteracaoContratualPort 
     const ator = await this.sessao.usuarioAtual();
     if (!ator || !podeAnexarAlteracaoContratual(ator.papel)) {
       return err(new ForbiddenError("Só Admin anexa alteração contratual."));
-    }
-
-    // Antes de qualquer upload: arquivo grande ou data futura não tocam o Storage.
-    if (input.arquivo.size > LIMITE_ARQUIVO_BYTES) {
-      return err(new ValidationError(ERRO_ARQUIVO_GRANDE, { arquivo: [ERRO_ARQUIVO_GRANDE] }));
-    }
-    if (input.data > hojeIso()) {
-      return err(new ValidationError(ERRO_DATA_FUTURA, { data: [ERRO_DATA_FUTURA] }));
     }
 
     const caminho = `${input.clienteId}/alteracoes-contratuais/${input.numero}-${input.arquivo.name}`;

@@ -1,13 +1,13 @@
 import { z } from "zod";
 
 import { arquivoDocumento } from "@/modules/clientes/presentation/view-models/criar-cliente/criar-cliente.schema";
-import {
-  ERRO_ARQUIVO_GRANDE,
-  ERRO_DATA_FUTURA,
-  LIMITE_ARQUIVO_BYTES,
-} from "@/shared/kernel/limite-arquivo";
 import { hojeIso } from "@/shared/kernel/mes-atual";
 import { ERRO_NUMERO_INVALIDO, erroDeFormato } from "@/shared/kernel/numero-alteracao";
+
+// Teto de 4,5 MB do corpo de uma Server Action na Vercel (ADR 0007): 4 MB deixa folga para o resto.
+const LIMITE_ARQUIVO_BYTES = 4 * 1024 * 1024;
+const ERRO_ARQUIVO_GRANDE = "O arquivo passa de 4 MB. Envie um arquivo menor.";
+const ERRO_DATA_FUTURA = "A data da alteração não pode ser futura.";
 
 // Nº repetido não entra aqui: o schema não conhece as alterações do Cliente (a tela checa pela lista
 // carregada; o banco recusa por 23505). Divergência nº × data só avisa, não bloqueia.

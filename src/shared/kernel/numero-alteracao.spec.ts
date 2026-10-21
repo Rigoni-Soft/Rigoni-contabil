@@ -62,7 +62,7 @@ describe("erroDeDuplicidade", () => {
   });
 
   it("recusa nº repetido", () => {
-    expect(erroDeDuplicidade(2, [1, 2])).toBe("Já existe a alteração nº 2");
+    expect(erroDeDuplicidade(2, [1, 2])).toBe("Já existe a alteração nº 2 deste Cliente.");
   });
 });
 

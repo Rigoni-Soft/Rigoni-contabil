@@ -4,7 +4,6 @@ import {
   alteracoesDaLista,
   avisoDeDivergencia,
   erroDeNumeroRepetido,
-  numeroSugerido,
 } from "./anexar-alteracao-contratual.presenter";
 
 const alteracao = (numero: number, data: string): DocumentoContratualVisivelDto => ({
@@ -28,19 +27,6 @@ describe("alteracoesDaLista", () => {
       { numero: 3, rotulo: "Alteração nº 3 - 10/03/2025", arquivo: "3-alteracao.pdf" },
       { numero: 1, rotulo: "Alteração nº 1 - 10/01/2024", arquivo: "1-alteracao.pdf" },
     ]);
-  });
-});
-
-describe("numeroSugerido", () => {
-  it("usa o prefixo do nome do arquivo", () => {
-    expect(numeroSugerido("5-alteracao.pdf", [alteracao(1, "2024-01-10")])).toBe(5);
-  });
-
-  it("sem prefixo, é o maior nº + 1; sem alteração, é 1", () => {
-    expect(
-      numeroSugerido("alteracao.pdf", [alteracao(1, "2024-01-10"), alteracao(4, "2025-01-01")]),
-    ).toBe(5);
-    expect(numeroSugerido("alteracao.pdf", [CONTRATO])).toBe(1);
   });
 });
 

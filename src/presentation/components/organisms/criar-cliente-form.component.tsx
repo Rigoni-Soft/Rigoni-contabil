@@ -17,12 +17,9 @@ import {
 } from "@/presentation/components/molecules/linha-de-alteracao.component";
 import { Button } from "@/presentation/components/ui/button";
 import { Label } from "@/presentation/components/ui/label";
+import { ACCEPT_DOCUMENTO } from "@/presentation/lib/accept-documento";
 import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
 import { REGIME_LABEL, REGIMES } from "@/shared/kernel/regimes";
-
-// PDF ou DOCX — dica do navegador; a validação de verdade fica no schema Zod (não confia só no `accept`).
-const ACCEPT_DOCUMENTO =
-  ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 const OPCOES_REGIME = REGIMES.map((valor) => ({ valor, rotulo: REGIME_LABEL[valor] }));
 

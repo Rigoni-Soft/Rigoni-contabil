@@ -105,8 +105,8 @@ describe("criarClienteSchema", () => {
       expect(resultado.success).toBe(false);
       if (!resultado.success) {
         expect(resultado.error.issues.map((i) => [i.path.join("."), i.message])).toEqual([
-          ["alteracoesContratuais.0.numero", "Já existe a alteração nº 1"],
-          ["alteracoesContratuais.1.numero", "Já existe a alteração nº 1"],
+          ["alteracoesContratuais.0.numero", "Já existe a alteração nº 1 deste Cliente."],
+          ["alteracoesContratuais.1.numero", "Já existe a alteração nº 1 deste Cliente."],
         ]);
       }
     });

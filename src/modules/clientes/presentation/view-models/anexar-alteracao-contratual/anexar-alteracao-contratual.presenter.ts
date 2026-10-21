@@ -3,7 +3,6 @@ import { formatarDataIso } from "@/shared/kernel/data-iso";
 import {
   divergenciaNumeroData,
   erroNumeroRepetidoNoCliente,
-  sugerirNumero,
 } from "@/shared/kernel/numero-alteracao";
 
 type AlteracaoComData = { numero: number; data: string; arquivo: string };
@@ -24,16 +23,6 @@ export function alteracoesDaLista(documentos: DocumentoContratualVisivelDto[]) {
       arquivo,
       rotulo: `Alteração nº ${numero} - ${formatarDataIso(data)}`,
     }));
-}
-
-export function numeroSugerido(
-  nomeDoArquivo: string,
-  documentos: DocumentoContratualVisivelDto[],
-): number {
-  return sugerirNumero(
-    nomeDoArquivo,
-    alteracoesComData(documentos).map(({ numero }) => numero),
-  );
 }
 
 // Checagem pela lista já carregada, antes de subir o arquivo; o banco recusa por 23505 se a lista estiver velha.

@@ -1,25 +1,24 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm, useWatch } from "react-hook-form";
 import type { z } from "zod";
 
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
+import { sugerirNumero } from "@/shared/kernel/numero-alteracao";
 
 import { chaveDocumentosContratuais } from "../visualizar-documento-contratual/documentos-contratuais.queries";
 import { anexarAlteracaoContratualAction } from "./anexar-alteracao-contratual.actions";
 import {
+  alteracoesDaLista,
   avisoDeDivergencia,
   erroDeNumeroRepetido,
-  numeroSugerido,
 } from "./anexar-alteracao-contratual.presenter";
 import { anexarAlteracaoContratualSchema } from "./anexar-alteracao-contratual.schema";
 
 const formSchema = anexarAlteracaoContratualSchema.omit({ clienteId: true });
 export type AnexarAlteracaoFormValues = z.infer<typeof formSchema>;
 
-// A confirmação some sozinha: o leitor de tela já a anunciou ao aparecer.
-const CONFIRMACAO_MS = 8000;
 const ERRO_TRANSPORTE = "Não foi possível anexar agora. Verifique a conexão e tente novamente.";
 
 export function useAnexarAlteracaoContratual(
@@ -43,23 +42,17 @@ export function useAnexarAlteracaoContratual(
     trigger,
     formState: { errors },
   } = useForm<AnexarAlteracaoFormValues>({ resolver: zodResolver(formSchema) });
-  useEffect(() => {
-    if (!sucesso) return;
-    const timer = setTimeout(() => setSucesso(undefined), CONFIRMACAO_MS);
-    return () => clearTimeout(timer);
-  }, [sucesso]);
   const [numero, data] = useWatch({ control, name: ["numero", "data"] });
 
-  // Sugere o nº só com o campo vazio: nunca pisa no que o Admin digitou.
-  const sugerirNumeroDoArquivo = (arquivo: File | undefined) => {
-    if (!arquivo || Number.isInteger(getValues("numero"))) return;
-    setValue("numero", numeroSugerido(arquivo.name, documentos));
-  };
-
-  // Arquivo grande ou de outro tipo é recusado já na escolha, não só ao enviar.
+  // Sugere o nº só com o campo vazio (nunca pisa no que o Admin digitou) e já valida o arquivo:
+  // grande demais ou de outro tipo é recusado na escolha, não só ao enviar.
   const aoEscolherArquivo = (arquivo: File | undefined) => {
-    sugerirNumeroDoArquivo(arquivo);
-    if (arquivo) void trigger("arquivo");
+    if (!arquivo) return;
+    if (!Number.isInteger(getValues("numero"))) {
+      const existentes = alteracoesDaLista(documentos).map((a) => a.numero);
+      setValue("numero", sugerirNumero(arquivo.name, existentes));
+    }
+    void trigger("arquivo");
   };
 
   // Fechar (Esc, fora, X) descarta o rascunho e o erro: reabrir começa limpo.

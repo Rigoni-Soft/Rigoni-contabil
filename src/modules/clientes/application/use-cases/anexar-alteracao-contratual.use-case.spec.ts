@@ -130,32 +130,4 @@ describe("AnexarAlteracaoContratual", () => {
 
     expect(resultado).toMatchObject({ ok: false, error: expect.any(EstadoInconsistenteError) });
   });
-
-  it("arquivo acima de 4 MB é recusado antes de qualquer gravação", async () => {
-    const { caso, clientes, storage } = montar();
-    const grande = new File([new Uint8Array(4 * 1024 * 1024 + 1)], "grande.pdf", {
-      type: "application/pdf",
-    });
-
-    const resultado = await caso.execute({ ...INPUT, arquivo: grande });
-
-    expect(resultado).toMatchObject({
-      ok: false,
-      error: { message: "O arquivo passa de 4 MB. Envie um arquivo menor." },
-    });
-    expect(storage.enviados).toEqual([]);
-    expect(clientes.anexada).toBeNull();
-  });
-
-  it("data futura é recusada antes de qualquer upload", async () => {
-    const { caso, storage } = montar();
-
-    const resultado = await caso.execute({ ...INPUT, data: "2999-01-01" });
-
-    expect(resultado).toMatchObject({
-      ok: false,
-      error: { message: "A data da alteração não pode ser futura." },
-    });
-    expect(storage.enviados).toEqual([]);
-  });
 });

@@ -71,27 +71,6 @@ describe("fluxo de anexar alteração (hook + container, #141)", () => {
     expect(hidePopover).toHaveBeenCalled();
   });
 
-  it("a confirmação de sucesso some sozinha depois de alguns segundos", async () => {
-    jest.useFakeTimers();
-    try {
-      acao.mockResolvedValue({ ok: true, data: undefined });
-      const usuario = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-      const tela = montar();
-      await usuario.upload(tela.arquivo(), pdf("3-ata.pdf"));
-      fireEvent.change(tela.data(), { target: { value: "2025-04-01" } });
-      await usuario.click(tela.enviar());
-      expect(await screen.findByRole("status")).toBeInTheDocument();
-
-      act(() => {
-        jest.advanceTimersByTime(8000);
-      });
-
-      expect(screen.queryByRole("status")).not.toBeInTheDocument();
-    } finally {
-      jest.useRealTimers();
-    }
-  });
-
   it("nº repetido é barrado pela lista carregada, sem chamar a Server Action", async () => {
     const usuario = userEvent.setup();
     const tela = montar();

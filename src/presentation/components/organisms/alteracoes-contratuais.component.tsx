@@ -8,12 +8,9 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoDeArquivo } from "@/presentation/components/molecules/campo-de-arquivo.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { Button } from "@/presentation/components/ui/button";
+import { ACCEPT_DOCUMENTO } from "@/presentation/lib/accept-documento";
 import { hojeIso } from "@/shared/kernel/mes-atual";
 import { AJUDA_NUMERO_ALTERACAO, NUMERO_MAXIMO } from "@/shared/kernel/numero-alteracao";
-
-// PDF ou DOCX — dica do navegador; a validação de verdade fica no schema Zod.
-const ACCEPT_DOCUMENTO =
-  ".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 // Função estável: o ref não é refeito a cada render.
 const marcarFocoInicial = (painel: HTMLElement | null) => painel?.setAttribute("autofocus", "");
