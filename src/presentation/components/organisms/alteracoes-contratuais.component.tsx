@@ -96,14 +96,15 @@ export function AlteracoesContratuais({
         }}
         role="dialog"
         aria-labelledby={`${painelId}-titulo`}
-        className="m-auto max-h-[90dvh] w-[min(92vw,28rem)] overflow-auto rounded-xl border border-border bg-background p-4 text-foreground backdrop:bg-overlay"
+        className="m-auto max-h-[90dvh] w-[min(92vw,28rem)] overflow-auto rounded-xl border border-border bg-background text-foreground backdrop:bg-overlay"
       >
-        {/* Fixo no topo: em tela baixa (celular deitado) o formulário rola e o título e o X seguem à vista. */}
+        {/* O diálogo não tem padding próprio: cabeçalho e formulário o trazem, e o cabeçalho fixo no topo
+            segue à vista quando o formulário rola em tela baixa (celular deitado). */}
         <Linha
           alinhar="centro"
           justificar="entre"
           espaco={2}
-          className="sticky -top-4 z-10 -mx-4 -mt-4 bg-background px-4 pt-4 pb-2"
+          className="sticky top-0 z-10 bg-background px-4 pt-4 pb-2"
         >
           <Texto variante="destaque" como="h2" id={`${painelId}-titulo`}>
             Anexar alteração contratual
@@ -121,7 +122,7 @@ export function AlteracoesContratuais({
           </Button>
         </Linha>
 
-        <Pilha como="form" espaco={4} onSubmit={onSubmit} noValidate>
+        <Pilha como="form" espaco={4} onSubmit={onSubmit} noValidate className="px-4 pb-4">
           <Controller
             control={control}
             name="arquivo"
