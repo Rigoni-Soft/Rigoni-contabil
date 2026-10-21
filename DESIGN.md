@@ -621,6 +621,10 @@ na data, que também explica por que ela está vazia antes do envio.
 No editar cadastro operacional há um só jeito de "travado": Empresa, CNPJ, Regime e
 Responsável (para quem não o atribui) também usam `disabled:opacity-100` (constante
 `TRAVADO` do formulário), e os três primeiros agora têm `Label htmlFor` ligado ao `Input`.
+No modo só leitura ("Visualizar cadastro operacional", usuário que não edita) o `fieldset
+disabled` não apaga os valores: `input`, `select` e `textarea` desativados dentro dele ficam
+na cor plena (`VALORES_LEGIVEIS`, só com `readOnly`; durante o salvar continuam esmaecidos,
+sinal de "ocupado"), e os botões seguem esmaecidos, porque não há o que acionar.
 
 **Campo Responsável no cadastro operacional (#65):** fica no cabeçalho de
 identidade do formulário, não no fim — a linha Empresa · CNPJ · Regime ·
