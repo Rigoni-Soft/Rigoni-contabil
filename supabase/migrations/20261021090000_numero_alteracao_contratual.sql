@@ -1,4 +1,4 @@
--- Nº da alteração contratual (#138): obrigatório e único por Cliente; "mais recente" = maior nº.
+-- Nº da alteração contratual: obrigatório e único por Cliente; "mais recente" = maior nº.
 -- Sem produção e sem backfill (ADD COLUMN NOT NULL exige base vazia/resetada: `supabase db reset`).
 ALTER TABLE public.cliente_alteracoes_contratuais
     ADD COLUMN numero integer NOT NULL,
