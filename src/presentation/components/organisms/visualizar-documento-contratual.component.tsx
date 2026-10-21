@@ -52,7 +52,7 @@ export function VisualizarDocumentoContratual({
         popover="auto"
         role="dialog"
         aria-labelledby={`${painelId}-titulo`}
-        className="m-auto w-[min(92vw,28rem)] rounded-xl border border-border bg-background p-4 text-foreground backdrop:bg-overlay"
+        className="m-auto max-h-[90dvh] w-[min(92vw,28rem)] overflow-auto rounded-xl border border-border bg-background p-4 text-foreground backdrop:bg-overlay"
       >
         <Linha alinhar="centro" justificar="entre" espaco={2}>
           <Texto variante="destaque" como="h2" id={`${painelId}-titulo`}>
