@@ -22,12 +22,26 @@ describe("átomos de campo", () => {
     const aoMudar = jest.fn();
     render(<FileInput id="contrato" onChange={aoMudar} />);
 
-    expect(screen.getByText("Selecionar arquivo…")).toBeInTheDocument();
+    expect(screen.getByText("Arraste o arquivo aqui")).toBeInTheDocument();
     const arquivo = new File(["x"], "contrato.pdf", { type: "application/pdf" });
     fireEvent.change(document.getElementById("contrato") as HTMLInputElement, {
       target: { files: [arquivo] },
     });
 
+    expect(aoMudar).toHaveBeenCalledWith(arquivo);
+  });
+
+  it("FileInput aceita arquivo arrastado e solto", () => {
+    const aoMudar = jest.fn();
+    render(<FileInput id="contrato" onChange={aoMudar} />);
+
+    const arquivo = new File(["x"], "solto.pdf", { type: "application/pdf" });
+    const area = screen.getByText("Arraste o arquivo aqui").closest("label") as HTMLLabelElement;
+    fireEvent.dragOver(area);
+    expect(area.dataset.arrastando).toBe("true");
+    fireEvent.drop(area, { dataTransfer: { files: [arquivo] } });
+
+    expect(area.dataset.arrastando).toBe("false");
     expect(aoMudar).toHaveBeenCalledWith(arquivo);
   });
 });

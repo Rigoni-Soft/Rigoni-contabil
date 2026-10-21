@@ -237,14 +237,15 @@ sem precisar de classe.
   deixou de ser um `<input type="file">` nu.
 - `atoms/file-input.component.tsx` (#33): `<input type="file">` nativo não aceita ser
   estilizado diretamente ("Choose File / No file chosen" do navegador era o
-  único controle do produto fora do sistema de design). Substituído por um
-  `<label>` do tamanho de `input.tsx`/`select.tsx` (36px, 44px no toque, borda, raio, cores
-  do tema) envolvendo o input real como `sr-only` — mesmo padrão acessível
-  de sempre (o label aciona o seletor de arquivo do SO; foco por teclado no
-  input escondido acende o anel via `has-[:focus-visible]` no label). Ícone
-  `Upload` cinza + "Selecionar arquivo…" no estado vazio; `FileText` verde
-  (`text-primary`) + nome do arquivo depois de selecionado — mesmo
-  vocabulário de ícone-substitui-estado já usado em Indicadores de estado.
+  único controle do produto fora do sistema de design). Substituído por uma **área de soltar**:
+  `<label>` quase quadrado (`min-h-28`, borda tracejada, raio, cores do tema) envolvendo o input
+  real como `sr-only` — o clique aciona o seletor do SO, **arrastar e soltar** entrega o arquivo
+  (destaque em `primary` enquanto arrasta, via `data-arrastando`, sem estado) e o foco por teclado
+  no input escondido acende o anel via `has-[:focus-visible]`. Estado vazio: ícone `Upload` cinza,
+  "Arraste o arquivo aqui" e "ou clique para selecionar"; com arquivo: `FileText` verde
+  (`text-primary`), o nome e "Clique ou arraste para trocar". O tipo do arquivo solto não é
+  filtrado no átomo: o schema do formulário mostra o erro. No cadastro de Cliente o Contrato
+  social ocupa 1 coluna e o arquivo da alteração, 2.
   Qualquer novo campo de arquivo do produto reusa este componente em vez de
   um `<Input type="file">` cru.
 

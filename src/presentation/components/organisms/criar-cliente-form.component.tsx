@@ -173,7 +173,7 @@ export function CriarClienteForm({
         </Texto>
 
         <Grade colunas="1>2>4" espaco={4}>
-          <Caixa className="lg:col-span-2">
+          <Caixa>
             <Controller
               control={control}
               name="contratoSocial"
