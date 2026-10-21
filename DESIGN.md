@@ -603,33 +603,28 @@ dashboard normal (cards zerados) mais um aviso neutro,
 atribuídos a você aparecem aqui.") — a RLS esconde os clientes dos outros, não
 há tela de "sem acesso".
 
-**Campos só do sistema no cadastro operacional (#108):** o status DAS "Enviado" e a
-"Data de envio" nascem da entrega automática, não da digitação. "Enviado" não é
-opção do `Select` do DAS; só aparece enquanto o DAS **salvo** já está enviado, para
-exibir o valor atual, e nesse caso o `Select` do DAS fica `disabled` (nem o Admin troca
-um envio já concluído). A "Data de envio" é sempre um `Input type="date"` com `readOnly` e
-`disabled`: só o sistema a preenche, e some quando o DAS volta a outro status. Nos dois
-campos o valor é a informação, então seguem na cor plena (`disabled:opacity-100`, via
-`classeDoSelect` no `CampoDeOpcoes` e `classeDoInput` no `CampoDeTexto`, como no campo
-travado do cadastro de usuário). `disabled` é decisão do produto (o valor continua
-visível e segue no formulário, que lê do estado do React Hook Form, não do DOM); o custo
-é o campo sair da tabulação e do leitor de tela.
-Como o campo travado fica igual a um editável (só o cursor `not-allowed` o distingue, e no
-toque nem isso), cada um traz uma nota (`ajuda`, `Texto nota` ligado por `aria-describedby`):
-"Definido pelo sistema." no DAS enviado e "Preenchida pelo sistema quando o DAS é enviado."
-na data, que também explica por que ela está vazia antes do envio.
-No editar cadastro operacional há um só jeito de "travado": Empresa, CNPJ, Regime e
-Responsável (para quem não o atribui) também usam `disabled:opacity-100` (constante
-`TRAVADO`, em `presentation/lib/campo-travado.ts`), e os três primeiros agora têm `Label htmlFor` ligado ao `Input`.
-No modo só leitura ("Visualizar cadastro operacional", usuário que não edita) o `fieldset
-disabled` não apaga os valores: `input`, `select` e `textarea` desativados dentro dele ficam
-na cor plena (`VALORES_LEGIVEIS`, mesmo arquivo, só com `readOnly`; durante o salvar continuam esmaecidos,
-sinal de "ocupado"). Na visualização não há "Adicionar contato" nem "Remover contato": o botão
-que não faz nada não aparece (`onRemover` do `LinhaDeContato` é opcional). Um checkbox desativado
-segue no cinza do navegador, mas marcado e desmarcado se distinguem (caixa cheia com visto).
-O formulário vem `invisible` no HTML do servidor e na hidratação (`useSyncExternalStore`), e
-aparece já preenchido: os campos não controlados só recebem os valores no cliente, e sem isso
-o servidor mostraria "Não definido" e `dd/mm/aaaa` por um instante, no lugar do dado.
+**Campos só do sistema e campo travado no cadastro operacional (#108):**
+
+- O DAS "Enviado" e a "Data de envio" vêm da entrega automática, não da digitação.
+  "Enviado" só é opção enquanto o DAS **salvo** já está enviado, e então o `Select` fica
+  `disabled`. A data é sempre `Input type="date"` com `readOnly` e `disabled`, vazia até o envio.
+- Travado é valor em cor plena: `TRAVADO` (`disabled:opacity-100`, em
+  `presentation/lib/campo-travado.ts`, via `classeDoSelect` e `classeDoInput`), igual ao campo
+  travado do cadastro de usuário. Vale também para Empresa, CNPJ, Regime e Responsável (os
+  rótulos têm `htmlFor`). `disabled` é decisão do produto: o valor segue no formulário, que lê
+  o estado do React Hook Form; o custo é o campo sair da tabulação e do leitor de tela.
+- O travado fica igual ao editável (só o cursor `not-allowed` o distingue, e no toque nem
+  isso), então cada campo do sistema traz uma nota (`ajuda`, ligada por `aria-describedby`):
+  "Definido pelo sistema." no DAS enviado e "Preenchida pelo sistema quando o DAS é enviado."
+  na data, o que também explica por que ela está vazia antes do envio.
+- Na visualização ("Visualizar cadastro operacional") o `fieldset disabled` não apaga os
+  valores: `input`, `select` e `textarea` desativados ficam na cor plena (`VALORES_LEGIVEIS`,
+  só com `readOnly`; durante o salvar continuam esmaecidos, sinal de "ocupado"). Não há
+  "Adicionar contato" nem "Remover contato" (`onRemover` do `LinhaDeContato` é opcional).
+  Checkbox desativado segue no cinza do navegador, mas marcado e desmarcado se distinguem.
+- O formulário vem `invisible` no servidor e na hidratação (`useSyncExternalStore`): os campos
+  não controlados só recebem os valores no cliente, e sem isso apareceriam "Não definido" e
+  `dd/mm/aaaa` no lugar do dado por um instante.
 
 **Campo Responsável no cadastro operacional (#65):** fica no cabeçalho de
 identidade do formulário, não no fim — a linha Empresa · CNPJ · Regime ·
