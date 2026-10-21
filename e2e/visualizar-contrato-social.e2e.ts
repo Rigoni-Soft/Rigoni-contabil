@@ -47,9 +47,7 @@ test.describe("Visualizar contrato social e alterações (#140)", () => {
     expect(requisicao.url()).toContain("token=");
   });
 
-  test("com alteração o Líder vê a de maior nº em destaque e o seletor das demais", async ({
-    page,
-  }) => {
+  test("com alteração o Líder vê só a de maior nº, sem escolher outra", async ({ page }) => {
     const empresa = empresaUnica("Visualizar Alteracao E2E Ltda");
     await login(page, "admin@rigonicontabil.local", "admin123");
     await expect(page).toHaveURL("/");
@@ -74,7 +72,7 @@ test.describe("Visualizar contrato social e alterações (#140)", () => {
     await expect(
       page.getByText("Alteração nº 2 - 01/03/2026", { exact: true }).first(),
     ).toBeVisible();
-    await expect(page.getByLabel("Escolher documento").locator("option")).toHaveCount(3);
+    await expect(page.getByLabel("Escolher documento")).toHaveCount(0);
 
     const [requisicao] = await Promise.all([
       page

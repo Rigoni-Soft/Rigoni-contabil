@@ -2,17 +2,9 @@ import { fireEvent, render, screen } from "@testing-library/react";
 
 import { VisualizarDocumentoContratual } from "./visualizar-documento-contratual.component";
 
-const OPCOES = [
-  { valor: "alteracao-3", rotulo: "Alteração nº 3 - 05/03/2025" },
-  { valor: "alteracao-1", rotulo: "Alteração nº 1 - 10/01/2024" },
-  { valor: "contrato", rotulo: "Contrato social" },
-];
-
 function montar(sobrescrever: Partial<Parameters<typeof VisualizarDocumentoContratual>[0]> = {}) {
   const props = {
-    opcoes: OPCOES,
-    selecionado: OPCOES[0],
-    onSelecionar: jest.fn(),
+    rotulo: "Alteração nº 3 - 05/03/2025",
     onAbrir: jest.fn(),
     abrindo: false,
     ...sobrescrever,
@@ -30,22 +22,10 @@ describe("VisualizarDocumentoContratual (#140)", () => {
     expect(screen.queryByRole("dialog", { hidden: true })).not.toBeInTheDocument();
   });
 
-  it("só o contrato social: sem seletor", () => {
-    montar({ opcoes: [OPCOES[2]], selecionado: OPCOES[2] });
+  it("só o contrato social: mostra o contrato", () => {
+    montar({ rotulo: "Contrato social" });
 
     expect(screen.getByText("Contrato social", { selector: "p" })).toBeInTheDocument();
-    expect(screen.queryByLabelText("Escolher documento")).not.toBeInTheDocument();
-  });
-
-  it("seletor lista os documentos e troca o destaque", () => {
-    const props = montar();
-
-    fireEvent.change(screen.getByLabelText("Escolher documento"), {
-      target: { value: "alteracao-1" },
-    });
-
-    expect(props.onSelecionar).toHaveBeenCalledWith("alteracao-1");
-    expect(screen.getAllByRole("option")).toHaveLength(3);
   });
 
   it("'Abrir' dispara a abertura", () => {

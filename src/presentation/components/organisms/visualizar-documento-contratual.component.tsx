@@ -4,16 +4,11 @@ import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.c
 import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
-import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
 import { Button } from "@/presentation/components/ui/button";
 
-type OpcaoDocumento = { valor: string; rotulo: string };
-
 type VisualizarDocumentoContratualProps = {
-  // Alterações do maior nº para o menor, contrato por último; `selecionado` é o que está em destaque.
-  opcoes: OpcaoDocumento[];
-  selecionado: OpcaoDocumento;
-  onSelecionar: (chave: string) => void;
+  // Rótulo do documento mais recente: "Alteração nº N - data", ou "Contrato social" sem alteração.
+  rotulo: string;
   onAbrir: () => void;
   abrindo: boolean;
   erro?: string;
@@ -21,12 +16,10 @@ type VisualizarDocumentoContratualProps = {
   linkAlternativo?: string;
 };
 
-// Só leitura e sem diálogo: o documento em destaque (a alteração de maior nº) já aparece na tela,
+// Só leitura e sem diálogo: o documento mais recente (a alteração de maior nº) já aparece na tela,
 // com o botão que o abre em nova aba no primeiro clique. A tela nunca conhece o caminho do arquivo.
 export function VisualizarDocumentoContratual({
-  opcoes,
-  selecionado,
-  onSelecionar,
+  rotulo,
   onAbrir,
   abrindo,
   erro,
@@ -40,26 +33,15 @@ export function VisualizarDocumentoContratual({
           <Pilha espaco={1} className="min-w-0">
             <Texto variante="apoio">Contrato social e alterações</Texto>
             <Texto variante="destaque" como="p" className="break-words">
-              {selecionado.rotulo}
+              {rotulo}
             </Texto>
           </Pilha>
         </Linha>
-        {opcoes.length > 1 && (
-          <CampoDeOpcoes
-            id="documento-contratual-seletor"
-            rotulo="Escolher documento"
-            opcoes={opcoes}
-            value={selecionado.valor}
-            onChange={(evento) => onSelecionar(evento.target.value)}
-            className="w-full sm:w-64"
-          />
-        )}
         <Button
           type="button"
-          variant="outline"
           onClick={onAbrir}
           disabled={abrindo}
-          aria-label={abrindo ? undefined : `Abrir ${selecionado.rotulo} em nova aba`}
+          aria-label={abrindo ? undefined : `Abrir ${rotulo} em nova aba`}
         >
           <ExternalLink className="size-4" aria-hidden="true" />
           {abrindo ? "Abrindo…" : "Abrir em nova aba"}
@@ -68,7 +50,7 @@ export function VisualizarDocumentoContratual({
       {erro && <AvisoDeStatus tipo="erro" texto={erro} className="text-sm" />}
       {linkAlternativo && (
         <LinkDeAcao href={linkAlternativo} externo>
-          Abrir {selecionado.rotulo}
+          Abrir {rotulo}
         </LinkDeAcao>
       )}
     </Pilha>

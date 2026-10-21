@@ -30,8 +30,7 @@ const CONTRATO = { tipo: "contrato" as const, numero: null, data: null, arquivo:
 
 function hookDevolvendo(selecionado: DocumentoContratualVisivelDto = ALTERACAO, sobrescrever = {}) {
   const retorno = {
-    selecionado,
-    selecionar: jest.fn(),
+    documento: selecionado,
     abrir: jest.fn().mockResolvedValue(undefined),
     abrindo: false,
     erro: undefined,
@@ -65,8 +64,8 @@ describe("VisualizarDocumentoContratualContainer (#140)", () => {
     expect(screen.getByText("Contrato social", { selector: "p" })).toBeInTheDocument();
   });
 
-  it("'Abrir' chama abrir() do hook e o seletor chama selecionar() com a chave", () => {
-    const { abrir, selecionar } = hookDevolvendo();
+  it("'Abrir' chama abrir() do hook, sem seletor de documento", () => {
+    const { abrir } = hookDevolvendo();
     render(
       <VisualizarDocumentoContratualContainer
         clienteId={CLIENTE}
@@ -75,12 +74,9 @@ describe("VisualizarDocumentoContratualContainer (#140)", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: /^Abrir / }));
-    fireEvent.change(screen.getByLabelText("Escolher documento"), {
-      target: { value: "alteracao-1" },
-    });
 
     expect(abrir).toHaveBeenCalledTimes(1);
-    expect(selecionar).toHaveBeenCalledWith("alteracao-1");
+    expect(screen.queryByLabelText("Escolher documento")).not.toBeInTheDocument();
   });
 
   it("repassa erro e link alternativo do hook à View", () => {

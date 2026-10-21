@@ -36,25 +36,16 @@ function montar() {
 
 describe("useVisualizarDocumentoContratual (#140)", () => {
   it("começa com a alteração de maior nº em destaque", () => {
-    expect(montar().result.current.selecionado).toBe(DOCUMENTOS[0]);
+    expect(montar().result.current.documento).toBe(DOCUMENTOS[0]);
   });
 
-  it("selecionar troca o destaque", () => {
-    const { result } = montar();
-
-    act(() => result.current.selecionar("contrato"));
-
-    expect(result.current.selecionado).toBe(DOCUMENTOS[2]);
-  });
-
-  it("abrir pede o link só de {tipo, número} e abre em nova aba", async () => {
+  it("abrir pede o link só de {tipo, número} do mais recente e abre em nova aba", async () => {
     acao.mockResolvedValue({ ok: true, data: { url: "https://storage/assinado" } });
     const { result } = montar();
-    act(() => result.current.selecionar("alteracao-1"));
 
     await act(() => result.current.abrir());
 
-    expect(acao).toHaveBeenCalledWith({ clienteId: CLIENTE, tipo: "alteracao", numero: 1 });
+    expect(acao).toHaveBeenCalledWith({ clienteId: CLIENTE, tipo: "alteracao", numero: 3 });
     expect(aba.location.href).toBe("https://storage/assinado");
     expect(aba.opener).toBeNull();
     expect(result.current.abrindo).toBe(false);
@@ -90,16 +81,5 @@ describe("useVisualizarDocumentoContratual (#140)", () => {
 
     expect(result.current.linkAlternativo).toBe("https://storage/assinado");
     expect(result.current.erro).toContain("bloqueou a nova aba");
-  });
-
-  it("trocar de documento descarta o erro e o link do anterior", async () => {
-    acao.mockResolvedValue(FALHA);
-    const { result } = montar();
-    await act(() => result.current.abrir());
-
-    act(() => result.current.selecionar("contrato"));
-
-    expect(result.current.erro).toBeUndefined();
-    expect(result.current.linkAlternativo).toBeUndefined();
   });
 });

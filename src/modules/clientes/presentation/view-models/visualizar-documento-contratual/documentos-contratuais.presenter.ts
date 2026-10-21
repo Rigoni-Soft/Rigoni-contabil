@@ -16,11 +16,3 @@ export function documentoEmDestaque(
   if (alteracoes.length === 0) return documentos[0];
   return alteracoes.reduce((maior, d) => ((d.numero ?? 0) > (maior.numero ?? 0) ? d : maior));
 }
-
-export function paraOpcao(documento: DocumentoContratualVisivelDto) {
-  return { valor: chaveDoDocumento(documento), rotulo: rotuloDoDocumento(documento) };
-}
-
-export function chaveDoDocumento(documento: DocumentoContratualVisivelDto): string {
-  return documento.tipo === "contrato" ? "contrato" : `alteracao-${documento.numero}`;
-}

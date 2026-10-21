@@ -3,10 +3,10 @@
 import { VisualizarDocumentoContratual } from "@/presentation/components/organisms/visualizar-documento-contratual.component";
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 
-import { paraOpcao } from "./documentos-contratuais.presenter";
+import { rotuloDoDocumento } from "./documentos-contratuais.presenter";
 import { useVisualizarDocumentoContratual } from "./use-visualizar-documento-contratual.hook";
 
-// `documentos` não pode ser vazio: quem renderiza decide pela lista (sem acesso = sem botão).
+// `documentos` não pode ser vazio: quem renderiza decide pela lista (sem acesso = sem cartão).
 type VisualizarDocumentoContratualContainerProps = {
   clienteId: string;
   documentos: DocumentoContratualVisivelDto[];
@@ -16,14 +16,14 @@ export function VisualizarDocumentoContratualContainer({
   clienteId,
   documentos,
 }: VisualizarDocumentoContratualContainerProps) {
-  const { selecionado, selecionar, abrir, abrindo, erro, linkAlternativo } =
-    useVisualizarDocumentoContratual(clienteId, documentos);
+  const { documento, abrir, abrindo, erro, linkAlternativo } = useVisualizarDocumentoContratual(
+    clienteId,
+    documentos,
+  );
 
   return (
     <VisualizarDocumentoContratual
-      opcoes={documentos.map(paraOpcao)}
-      selecionado={paraOpcao(selecionado)}
-      onSelecionar={selecionar}
+      rotulo={rotuloDoDocumento(documento)}
       onAbrir={() => void abrir()}
       abrindo={abrindo}
       erro={erro}
