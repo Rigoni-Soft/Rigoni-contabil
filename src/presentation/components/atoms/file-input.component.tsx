@@ -32,7 +32,7 @@ export function FileInput({
     <label
       htmlFor={id}
       className={cn(
-        "flex h-11 w-full cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 text-base sm:text-sm",
+        "flex h-9 pointer-coarse:h-11 w-full cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 text-base sm:text-sm",
         "transition-colors hover:bg-accent/50",
         "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-background",
         ariaInvalid && "border-destructive has-[:focus-visible]:ring-destructive",

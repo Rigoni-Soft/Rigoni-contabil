@@ -178,8 +178,8 @@ brigando com o verde-cheque do resto do produto. Primeiro uso real em
 sem precisar de classe.
 
 - `button.tsx` — variantes `default`/`destructive`/`outline`/`ghost`,
-  tamanhos `default` (44px), `sm` (40px), `icon` (44px). Alturas escolhidas
-  para bater o alvo de toque de 44px em controles primários. Exporta
+  tamanhos `default` (36px), `sm` (32px), `icon` (36px); em aparelho de toque
+  (`pointer-coarse:`) todos sobem para 44px, o alvo de toque. Exporta
   `buttonVariants` (a função `cva` por trás do componente) para qualquer
   elemento que precise da mesma aparência sem ser um `<button>` de verdade —
   o link "Meu perfil" do `ShellHeader` é o primeiro consumidor
@@ -218,7 +218,7 @@ sem precisar de classe.
   `FieldError`, `Input type="date"` com `Label` visível e lista em `card`
   com `divide-y`; remover é botão `ghost` só-ícone com `aria-label` que
   inclui a data.
-- `input.tsx` — 44px de altura; `aria-invalid` troca borda/anel para
+- `input.tsx` — 36px de altura (44px em aparelho de toque); `aria-invalid` troca borda/anel para
   `destructive` automaticamente. `input`, `select` e `textarea` usam
   `text-base sm:text-sm`, assim como `atoms/file-input.component.tsx`: 16 px no celular (abaixo
   disso o iOS dá zoom ao focar o campo), 14 px de `sm` em diante. Campo de texto
@@ -238,7 +238,7 @@ sem precisar de classe.
 - `atoms/file-input.component.tsx` (#33): `<input type="file">` nativo não aceita ser
   estilizado diretamente ("Choose File / No file chosen" do navegador era o
   único controle do produto fora do sistema de design). Substituído por um
-  `<label>` do tamanho de `input.tsx`/`select.tsx` (44px, borda, raio, cores
+  `<label>` do tamanho de `input.tsx`/`select.tsx` (36px, 44px no toque, borda, raio, cores
   do tema) envolvendo o input real como `sr-only` — mesmo padrão acessível
   de sempre (o label aciona o seletor de arquivo do SO; foco por teclado no
   input escondido acende o anel via `has-[:focus-visible]` no label). Ícone
@@ -262,7 +262,7 @@ sem precisar de classe.
   senha. O `aria-label` do botão ("Mostrar/Ocultar caracteres") evita a
   palavra "senha" de propósito, para não colidir com `getByLabel("Senha")`
   dos e2e.
-- `select.tsx` — mesmo tratamento visual do `input.tsx` (44px, mesmas
+- `select.tsx` — mesmo tratamento visual do `input.tsx` (36px, 44px no toque, mesmas
   bordas/foco, e o mesmo `aria-invalid` para borda/anel `destructive`).
   Introduzido no feed de auditoria para eliminar classes Tailwind duplicadas
   entre os dois `<select>` do filtro (Setor, Resultado); o cadastro de
@@ -836,3 +836,9 @@ ou o cliente escreve de novo.
 - Componentes `ui/` adicionais além de `select.tsx` (Dialog, uma `Table`
   estilizada para reuso — hoje o feed de auditoria usa `<table>` nativo com
   classes inline) — adicionar sob demanda, seguindo os mesmos tokens.
+
+- **Cadastro de Cliente compacto**: a tela usa a largura `cadastro` (`max-w-4xl`), não os 80% da
+  tela. Em tela larga os campos se distribuem em 4 colunas (CNPJ, Empresa em 2, Regime; E-mail em 2;
+  Contrato social em 2); cada alteração contratual cabe numa fileira (nº, data, arquivo em 2) com a
+  dica do nº embaixo; o "Cadastrar" tem o tamanho do rótulo, à direita. Em tela média são 2 colunas e
+  no celular 1.

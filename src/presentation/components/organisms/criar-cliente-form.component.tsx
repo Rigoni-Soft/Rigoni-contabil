@@ -102,9 +102,9 @@ export function CriarClienteForm({
       <NotaDeObrigatorio />
 
       {/* CNPJ primeiro: autopreenche Empresa/Regime ao perder o foco, antes do resto do formulário ser
-          preenchido à mão. 2 colunas aproveitam a largura do formulário (80% da tela) em vez de empilhar os
-          4 campos; o E-mail (opcional, destino do envio por e-mail) fecha o par com o Regime. */}
-      <Grade colunas="1>2" espaco={5}>
+          preenchido à mão. Em tela larga, 4 colunas: CNPJ, Empresa (dobro), Regime e, na linha de baixo, o
+          E-mail (opcional, destino do envio por e-mail); em tela média, 2 colunas; no celular, 1. */}
+      <Grade colunas="1>2>4" espaco={4}>
         <Controller
           control={control}
           name="cnpj"
@@ -132,6 +132,7 @@ export function CriarClienteForm({
           id="empresa"
           rotulo="Empresa"
           obrigatorio
+          className="lg:col-span-2"
           erro={errors.empresa?.message}
           {...register("empresa", { onChange: onEmpresaChange })}
         />
@@ -147,7 +148,7 @@ export function CriarClienteForm({
           aviso={avisoRegime}
           {...register("regime", { onChange: onRegimeChange })}
         />
-        <Pilha espaco={1}>
+        <Pilha espaco={1} className="lg:col-span-2">
           <CampoDeTexto
             id="email"
             rotulo="E-mail do Cliente"
@@ -171,22 +172,26 @@ export function CriarClienteForm({
           Documentos
         </Texto>
 
-        <Controller
-          control={control}
-          name="contratoSocial"
-          render={({ field: { onChange, onBlur, name, value } }) => (
-            <CampoDeArquivo
-              id="contratoSocial"
-              rotulo="Contrato social"
-              name={name}
-              accept={ACCEPT_DOCUMENTO}
-              file={value}
-              onBlur={onBlur}
-              erro={errors.contratoSocial?.message}
-              onChange={onChange}
+        <Grade colunas="1>2>4" espaco={4}>
+          <Caixa className="lg:col-span-2">
+            <Controller
+              control={control}
+              name="contratoSocial"
+              render={({ field: { onChange, onBlur, name, value } }) => (
+                <CampoDeArquivo
+                  id="contratoSocial"
+                  rotulo="Contrato social"
+                  name={name}
+                  accept={ACCEPT_DOCUMENTO}
+                  file={value}
+                  onBlur={onBlur}
+                  erro={errors.contratoSocial?.message}
+                  onChange={onChange}
+                />
+              )}
             />
-          )}
-        />
+          </Caixa>
+        </Grade>
 
         <Caixa className="flex flex-col gap-3">
           <Linha alinhar="centro" justificar="entre">
@@ -241,7 +246,10 @@ export function CriarClienteForm({
 
       {erroServidor && <FieldError>{erroServidor}</FieldError>}
 
-      <BotaoDeEnvio pendente={pendente} rotulo="Cadastrar" rotuloPendente="Cadastrando…" />
+      {/* Botão do tamanho do rótulo, à direita: esticado na largura toda ele vira uma faixa. */}
+      <Linha justificar="fim">
+        <BotaoDeEnvio pendente={pendente} rotulo="Cadastrar" rotuloPendente="Cadastrando…" />
+      </Linha>
     </Pilha>
   );
 }

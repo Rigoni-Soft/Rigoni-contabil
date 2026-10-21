@@ -64,7 +64,7 @@ export function LinhaDeAlteracao({
         </Button>
       </Linha>
 
-      <Grade colunas="1>2" espaco={3}>
+      <Grade colunas="1>2>4" espaco={3}>
         <Pilha espaco="campo">
           <Label htmlFor={idNumero}>{`Nº da alteração ${indice + 1}`}</Label>
           <Input
@@ -78,9 +78,6 @@ export function LinhaDeAlteracao({
             aria-describedby={erroNumero ? `${idAjudaNumero} ${idErroNumero}` : idAjudaNumero}
             {...numero}
           />
-          <Texto variante="nota" id={idAjudaNumero}>
-            {AJUDA_NUMERO_ALTERACAO}
-          </Texto>
           {erroNumero && <FieldError id={idErroNumero}>{erroNumero}</FieldError>}
         </Pilha>
 
@@ -96,13 +93,17 @@ export function LinhaDeAlteracao({
           {erroData && <FieldError id={idErroData}>{erroData}</FieldError>}
         </Pilha>
 
-        {/* Arquivo ocupa a linha inteira: nº e data pareados em cima, o nome do arquivo respira embaixo. */}
+        {/* Em tela larga a linha toda cabe numa fileira: nº e data estreitos, arquivo com o dobro. */}
         <Pilha espaco="campo" className="sm:col-span-2">
           <Label htmlFor={idArquivo}>{`Arquivo da alteração ${indice + 1}`}</Label>
           {arquivo}
           {erroArquivo && <FieldError id={idErroArquivo}>{erroArquivo}</FieldError>}
         </Pilha>
       </Grade>
+      {/* Fora da coluna estreita do nº: a dica ocupa a largura da linha, sem quebrar palavra a palavra. */}
+      <Texto variante="nota" id={idAjudaNumero}>
+        {AJUDA_NUMERO_ALTERACAO}
+      </Texto>
     </Caixa>
   );
 }
