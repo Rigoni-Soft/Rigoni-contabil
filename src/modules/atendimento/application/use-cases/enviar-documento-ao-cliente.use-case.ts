@@ -54,7 +54,7 @@ export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
     const lista = await this.documentos.listar(atendimento.clienteId);
     if (!lista.ok) return lista;
     const escolhido = lista.value.find(
-      (d) => d.tipo === documento.tipo && d.data === documento.data,
+      (d) => d.tipo === documento.tipo && d.numero === documento.numero,
     );
     if (!escolhido) return err(new NotFoundError("O Cliente não tem esse documento."));
 

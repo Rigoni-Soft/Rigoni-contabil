@@ -199,7 +199,6 @@ export class ObterConversa implements ObterConversaPort {
       [...lista.value].sort(porNumeroDecrescente).map(({ tipo, numero, data }) => ({
         tipo,
         numero,
-        data,
         descricao: descreverDocumento({ numero, data }),
       })),
     );

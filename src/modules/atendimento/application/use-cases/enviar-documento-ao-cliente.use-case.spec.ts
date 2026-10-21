@@ -21,8 +21,8 @@ const ATENDIMENTO: AtendimentoEmAndamento = {
   emAvisoDeInatividade: false,
 };
 const FUNCIONARIO: AtorSessaoDto = { id: "func-1", papel: "funcionario", setor: "contabil" };
-const CONTRATO = { tipo: "contrato" as const, data: null };
-const ALTERACAO = { tipo: "alteracao" as const, data: "2026-03-01" };
+const CONTRATO = { tipo: "contrato" as const, numero: null };
+const ALTERACAO = { tipo: "alteracao" as const, numero: 3 };
 
 type Opcoes = {
   ator?: AtorSessaoDto | null;
@@ -60,8 +60,10 @@ function montar({
   const documentos = {
     listar: async () =>
       ok([
-        { ...CONTRATO, numero: null, caminho: "a/contrato.pdf" },
-        { ...ALTERACAO, numero: 3, caminho: "a/alteracao.pdf" },
+        { ...CONTRATO, data: null, caminho: "a/contrato.pdf" },
+        { ...ALTERACAO, data: "2026-03-01", caminho: "a/alteracao.pdf" },
+        // Mesma data da nº 3: só o nº distingue as duas.
+        { tipo: "alteracao", numero: 2, data: "2026-03-01", caminho: "a/alteracao-2.pdf" },
       ]),
     linkTemporario: async (caminho: string) => ok(`https://link/${caminho}`),
   } as unknown as DocumentosContratuaisPort;
@@ -114,6 +116,21 @@ describe("EnviarDocumentoAoCliente", () => {
     ]);
   });
 
+  it("duas alterações na mesma data: envia a de nº escolhido, não a primeira da data", async () => {
+    const { caso, enviados } = montar();
+    const r = await caso.execute({
+      atendimentoId: "at-1",
+      documento: { tipo: "alteracao", numero: 2 },
+    });
+    expect(r.ok).toBe(true);
+    expect(enviados).toEqual([
+      expect.objectContaining({
+        url: "https://link/a/alteracao-2.pdf",
+        nomeArquivo: "Alteração nº 2 - 01/03/2026.pdf",
+      }),
+    ]);
+  });
+
   it("o Líder do Setor envia em nome do Atendimento; outro Funcionário não", async () => {
     const outro = montar({ ator: { ...FUNCIONARIO, id: "func-2" } });
     const negado = await outro.caso.execute({ atendimentoId: "at-1", documento: CONTRATO });
@@ -153,7 +170,7 @@ describe("EnviarDocumentoAoCliente", () => {
 
     const naoTem = await montar().caso.execute({
       atendimentoId: "at-1",
-      documento: { tipo: "alteracao", data: "2020-01-01" },
+      documento: { tipo: "alteracao", numero: 99 },
     });
     expect(!naoTem.ok && naoTem.error.code).toBe("NOT_FOUND");
   });

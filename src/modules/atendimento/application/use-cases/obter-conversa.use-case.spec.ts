@@ -276,17 +276,15 @@ describe("ObterConversa", () => {
         ura: CONVERSA.ura,
         avisoInatividade: false,
         documentos: [
-          { tipo: "contrato", numero: null, data: null, descricao: "Contrato social" },
+          { tipo: "contrato", numero: null, descricao: "Contrato social" },
           {
             tipo: "alteracao",
             numero: 3,
-            data: "2026-03-01",
             descricao: "Alteração nº 3 - 01/03/2026",
           },
           {
             tipo: "alteracao",
             numero: 2,
-            data: "2026-05-10",
             descricao: "Alteração nº 2 - 10/05/2026",
           },
         ],

@@ -51,11 +51,12 @@ export type ConversaView = {
   setoresDestino: { valor: string; rotulo: string }[];
 };
 
-const valorDaOpcao = (d: DocumentoOferecido) => (d.data ? `${d.tipo}:${d.data}` : d.tipo);
+const valorDaOpcao = (d: DocumentoOferecido) =>
+  d.numero === null ? d.tipo : `${d.tipo}:${d.numero}`;
 
 export function documentoDaOpcao(valor: string): DocumentoDisponivel {
-  const [tipo, data] = valor.split(":");
-  return { tipo: tipo as DocumentoDisponivel["tipo"], data: data ?? null };
+  const [tipo, numero] = valor.split(":");
+  return { tipo: tipo as DocumentoDisponivel["tipo"], numero: numero ? Number(numero) : null };
 }
 
 const FORMATO_TAMANHO = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
