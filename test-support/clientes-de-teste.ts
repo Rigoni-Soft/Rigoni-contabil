@@ -17,10 +17,11 @@ export async function removerClientesDeTeste(cnpjs: readonly string[]): Promise<
   const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
   // Os eventos de auditoria desses Clientes (alvo = CNPJ) não caem em cascata; sem apagá-los, o teste
   // que conta "exatamente um evento" falha na execução seguinte.
+  // O alvo pode ser o CNPJ puro ou "CNPJ - alteração nº N" (anexar alteração): apaga pelo prefixo.
   const eventos = await admin
     .from("registros_auditoria")
     .delete()
-    .in("alvo", [...cnpjs]);
+    .or(cnpjs.map((cnpj) => `alvo.like.${cnpj}*`).join(","));
   if (eventos.error)
     throw new Error(`Falha ao limpar a auditoria de teste: ${eventos.error.message}`);
   const clientes = await admin

@@ -4,10 +4,15 @@ import { ShellHeader } from "@/presentation/components/organisms/shell-header.co
 import { EditarCadastroOperacionalPage } from "@/presentation/components/pages/editar-cadastro-operacional.page";
 import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-button.container";
 import { carregarSessao } from "@/presentation/view-models/shell/shell.server";
+import { AnexarAlteracaoContratualContainer } from "@/modules/clientes/presentation/view-models/anexar-alteracao-contratual/anexar-alteracao-contratual.container";
 import { EditarCadastroOperacionalContainer } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.container";
 import { carregarCadastroOperacionalCliente } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.server";
 import { carregarDocumentosContratuais } from "@/modules/clientes/presentation/view-models/visualizar-documento-contratual/visualizar-documento-contratual.server";
-import { podeAtribuirResponsavel, podeEditarCadastroOperacional } from "@/shared/kernel/papeis";
+import {
+  podeAnexarAlteracaoContratual,
+  podeAtribuirResponsavel,
+  podeEditarCadastroOperacional,
+} from "@/shared/kernel/papeis";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -51,6 +56,14 @@ export default async function Page({ params, searchParams }: Props) {
       }
       titulo={readOnly ? "Visualizar cadastro operacional" : "Editar cadastro operacional"}
       voltarHref={voltarHrefSeguro(voltarPara)}
+      alteracoesContratuais={
+        podeAnexarAlteracaoContratual(sessao.papel) ? (
+          <AnexarAlteracaoContratualContainer
+            clienteId={id}
+            documentosIniciais={documentos.ok ? documentos.value : undefined}
+          />
+        ) : undefined
+      }
       formulario={
         <EditarCadastroOperacionalContainer
           dados={resultado.value}

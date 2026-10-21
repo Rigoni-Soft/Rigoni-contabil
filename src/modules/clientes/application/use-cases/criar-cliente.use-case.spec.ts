@@ -41,6 +41,9 @@ class ClienteRepositoryFalso implements ClienteRepository {
   async buscarPorId(): Promise<Result<Cliente | null, AppError>> {
     throw new Error("não usado neste caso de uso");
   }
+  async anexarAlteracaoContratual(): Promise<Result<void, AppError>> {
+    throw new Error("não usado neste caso de uso");
+  }
   async atualizarOperacional(): Promise<Result<void, AppError>> {
     throw new Error("não usado neste caso de uso");
   }

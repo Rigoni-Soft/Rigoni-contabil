@@ -17,7 +17,7 @@ const TIPOS_DOCUMENTO_ACEITOS = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ];
 
-const arquivoDocumento = (mensagem: string) =>
+export const arquivoDocumento = (mensagem: string) =>
   z
     .instanceof(File, { message: mensagem })
     .refine(

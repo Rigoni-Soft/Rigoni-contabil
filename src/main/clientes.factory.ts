@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { makeRegistrarAcao } from "@/main/auditoria.factory";
 import { makeCertidaoCnd, makeObrigacoesFiscais } from "@/main/obrigacoes-fiscais.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
+import type { AnexarAlteracaoContratualPort } from "@/modules/clientes/application/ports/in/anexar-alteracao-contratual.provider";
 import type { AtribuirResponsavelClientePort } from "@/modules/clientes/application/ports/in/atribuir-responsavel-cliente.provider";
 import type { BuscarGuiaPort } from "@/modules/clientes/application/ports/in/buscar-guia.provider";
 import type { CriarClientePort } from "@/modules/clientes/application/ports/in/criar-cliente.provider";
@@ -18,6 +19,7 @@ import type {
   AtorSessaoDto,
   SessaoPort,
 } from "@/modules/clientes/application/ports/out/sessao.provider";
+import { AnexarAlteracaoContratual } from "@/modules/clientes/application/use-cases/anexar-alteracao-contratual.use-case";
 import { AtribuirResponsavelCliente } from "@/modules/clientes/application/use-cases/atribuir-responsavel-cliente.use-case";
 import { BuscarClientes } from "@/modules/clientes/application/use-cases/buscar-clientes.use-case";
 import { BuscarGuia } from "@/modules/clientes/application/use-cases/buscar-guia.use-case";
@@ -71,6 +73,15 @@ export async function makeCriarCliente(): Promise<CriarClientePort> {
     new SupabaseClienteRepository(supabase),
     new SupabaseArquivoStorageGateway(supabase),
     auditoriaViaModuloAuditoria(),
+  );
+}
+
+export async function makeAnexarAlteracaoContratual(): Promise<AnexarAlteracaoContratualPort> {
+  const supabase = await createSupabaseServer();
+  return new AnexarAlteracaoContratual(
+    sessaoViaUsuarios(supabase),
+    new SupabaseClienteRepository(supabase),
+    new SupabaseArquivoStorageGateway(supabase),
   );
 }
 

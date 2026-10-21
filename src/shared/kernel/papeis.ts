@@ -46,3 +46,8 @@ export function podeVerDashboardSn(papel: string, setor: string): boolean {
 export function podeAtribuirResponsavel(papel: string, setor: string): boolean {
   return papel === "lider_setor" && setor === "simples_nacional";
 }
+
+// Anexar alteração contratual a um Cliente existente é dado jurídico: só o Admin.
+export function podeAnexarAlteracaoContratual(papel: string): boolean {
+  return papel === "admin";
+}

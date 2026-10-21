@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { ClienteRepository } from "@/modules/clientes/application/ports/out/cliente.repository";
 import type { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
+import type { AlteracaoContratual } from "@/modules/clientes/domain/value-objects/alteracao-contratual.vo";
 import { clienteDoRow, type ClienteRow } from "@/modules/clientes/infra/mappers/cliente.mapper";
 import { AppError } from "@/shared/errors/app.error";
 import { ValidationError } from "@/shared/errors/validation.error";
@@ -57,6 +58,32 @@ export class SupabaseClienteRepository implements ClienteRepository {
       }
       console.error("Falha ao salvar cliente:", error.message);
       return err(new PersistenciaError("Não foi possível salvar o Cliente. Tente novamente."));
+    }
+    return ok(undefined);
+  }
+
+  async anexarAlteracaoContratual(
+    clienteId: string,
+    alteracao: AlteracaoContratual,
+  ): Promise<Result<void, AppError>> {
+    const { error } = await this.supabase.rpc("anexar_alteracao_contratual", {
+      p_cliente_id: clienteId,
+      p_id: crypto.randomUUID(),
+      p_numero: alteracao.numero,
+      p_data: alteracao.data.toISOString().slice(0, 10),
+      p_caminho: alteracao.arquivoCaminho,
+    });
+
+    if (error) {
+      if (error.code === "23505") {
+        return err(
+          new ValidationError(`Já existe a alteração nº ${alteracao.numero} deste Cliente.`, {
+            numero: ["já existe"],
+          }),
+        );
+      }
+      console.error("Falha ao anexar alteração contratual:", error.message);
+      return err(new PersistenciaError("Não foi possível anexar a alteração. Tente novamente."));
     }
     return ok(undefined);
   }
