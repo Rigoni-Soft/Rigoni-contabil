@@ -1,7 +1,11 @@
 import { z } from "zod";
 
 import { cnpjValido } from "@/shared/kernel/cnpj";
-import { ERRO_NUMERO_INVALIDO, erroDoNumero } from "@/shared/kernel/numero-alteracao";
+import {
+  ERRO_NUMERO_INVALIDO,
+  erroDeDuplicidade,
+  erroDeFormato,
+} from "@/shared/kernel/numero-alteracao";
 import { REGIMES } from "@/shared/kernel/regimes";
 
 // PDF ou DOCX — restringe tanto no `accept` do input (dica do navegador) quanto aqui (não confia
@@ -45,7 +49,7 @@ export const criarClienteSchema = z.object({
       z.object({
         numero: z
           .number({ error: "Nº obrigatório" })
-          .refine((n) => !erroDoNumero(n, []), ERRO_NUMERO_INVALIDO),
+          .refine((n) => !erroDeFormato(n), ERRO_NUMERO_INVALIDO),
         data: z.string().min(1, "Data obrigatória"),
         arquivo: arquivoDocumento("Arquivo obrigatório"),
       }),
@@ -53,9 +57,9 @@ export const criarClienteSchema = z.object({
     // Nº repetido dentro do formulário: barra antes do envio dos arquivos.
     .superRefine((alteracoes, ctx) => {
       alteracoes.forEach(({ numero }, indice) => {
-        if (!Number.isInteger(numero)) return;
+        if (erroDeFormato(numero)) return;
         const outros = alteracoes.filter((_, i) => i !== indice).map((o) => o.numero);
-        const erro = erroDoNumero(numero, outros);
+        const erro = erroDeDuplicidade(numero, outros);
         if (erro) ctx.addIssue({ code: "custom", message: erro, path: [indice, "numero"] });
       });
     }),

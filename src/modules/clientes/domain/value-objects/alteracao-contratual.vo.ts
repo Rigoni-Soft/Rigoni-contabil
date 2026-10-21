@@ -1,5 +1,5 @@
 import { ValidationError } from "@/shared/errors/validation.error";
-import { erroDoNumero } from "@/shared/kernel/numero-alteracao";
+import { erroDeFormato } from "@/shared/kernel/numero-alteracao";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 export type AlteracaoContratualProps = { numero: number; data: Date; arquivoCaminho: string };
@@ -12,7 +12,7 @@ export class AlteracaoContratual {
     data: string,
     arquivoCaminho: string,
   ): Result<AlteracaoContratual, ValidationError> {
-    const erroNumero = erroDoNumero(numero, []);
+    const erroNumero = erroDeFormato(numero);
     if (erroNumero) return err(new ValidationError(erroNumero));
     const dataConvertida = new Date(data);
     if (Number.isNaN(dataConvertida.getTime())) {

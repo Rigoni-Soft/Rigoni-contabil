@@ -1,4 +1,10 @@
-import { erroDoNumero, numeroDoNomeDoArquivo, sugerirNumero } from "./numero-alteracao";
+import {
+  divergenciaNumeroData,
+  erroDeDuplicidade,
+  erroDeFormato,
+  numeroDoNomeDoArquivo,
+  sugerirNumero,
+} from "./numero-alteracao";
 
 describe("numeroDoNomeDoArquivo", () => {
   it.each([
@@ -32,16 +38,42 @@ describe("sugerirNumero", () => {
   });
 });
 
-describe("erroDoNumero", () => {
-  it("aceita nº inteiro positivo e inédito", () => {
-    expect(erroDoNumero(3, [1, 2])).toBeNull();
+describe("erroDeFormato", () => {
+  it("aceita nº inteiro de 1 ao teto", () => {
+    expect(erroDeFormato(3)).toBeNull();
+    expect(erroDeFormato(999_999_999)).toBeNull();
   });
 
   it.each([0, -1, 1.5, Number.NaN, 1_000_000_000])("recusa %s", (numero) => {
-    expect(erroDoNumero(numero, [])).toBe("Informe um nº inteiro de 1 a 999999999");
+    expect(erroDeFormato(numero)).toBe("Informe um nº inteiro de 1 a 999999999");
+  });
+});
+
+describe("erroDeDuplicidade", () => {
+  it("aceita nº inédito", () => {
+    expect(erroDeDuplicidade(3, [1, 2])).toBeNull();
   });
 
   it("recusa nº repetido", () => {
-    expect(erroDoNumero(2, [1, 2])).toBe("Já existe a alteração nº 2");
+    expect(erroDeDuplicidade(2, [1, 2])).toBe("Já existe a alteração nº 2");
+  });
+});
+
+describe("divergenciaNumeroData", () => {
+  const outras = [
+    { numero: 1, data: "2026-01-10" },
+    { numero: 2, data: "2026-03-10" },
+  ];
+
+  it("devolve o maior nº menor cuja data é posterior", () => {
+    expect(divergenciaNumeroData({ numero: 3, data: "2026-02-01" }, outras)).toBe(2);
+  });
+
+  it("não aponta divergência quando a ordem bate", () => {
+    expect(divergenciaNumeroData({ numero: 3, data: "2026-04-01" }, outras)).toBeNull();
+  });
+
+  it("ignora alterações de nº maior", () => {
+    expect(divergenciaNumeroData({ numero: 1, data: "2026-01-01" }, [outras[1]])).toBeNull();
   });
 });
