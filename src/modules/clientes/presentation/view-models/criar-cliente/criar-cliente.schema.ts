@@ -26,7 +26,10 @@ const arquivoDocumento = (mensagem: string) =>
 
 export const criarClienteSchema = z.object({
   empresa: z.string().min(1, "Empresa obrigatória"),
-  cnpj: z.string().min(1, "CNPJ obrigatório").refine(cnpjValido, "CNPJ inválido"),
+  cnpj: z
+    .string({ error: "CNPJ obrigatório" })
+    .min(1, "CNPJ obrigatório")
+    .refine(cnpjValido, "CNPJ inválido"),
   regime: z.enum(REGIMES, "Regime obrigatório"),
   // Opcional: vazio vale como "sem e-mail" (campo de texto não preenchido chega como "").
   email: z

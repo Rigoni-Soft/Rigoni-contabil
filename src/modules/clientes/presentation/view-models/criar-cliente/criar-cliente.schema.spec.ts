@@ -77,6 +77,17 @@ describe("criarClienteSchema", () => {
     expect(resultado.success).toBe(false);
   });
 
+  it("CNPJ nunca preenchido (undefined) mostra a mensagem de obrigatório, não a do Zod", () => {
+    const resultado = criarClienteSchema.safeParse({ alteracoesContratuais: [] });
+
+    expect(resultado.success).toBe(false);
+    if (!resultado.success) {
+      expect(resultado.error.issues.find((i) => i.path[0] === "cnpj")?.message).toBe(
+        "CNPJ obrigatório",
+      );
+    }
+  });
+
   describe("nº da alteração", () => {
     const base = {
       empresa: "Padaria Pão Quente Ltda",
