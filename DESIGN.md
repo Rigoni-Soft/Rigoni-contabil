@@ -102,15 +102,16 @@ em monitores largos):
   `muted-foreground` / valor `font-medium`), seguidos da seção "Trocar
   senha" separada por `border-t`. Sem cartão: são dois blocos de leitura e
   formulário, não superfícies elevadas.
-- **Formulário de criar algo** (ex.: cadastro de Cliente, cadastro de
-  Líder/Funcionário): `w-[80%]` — mais largo que antes, mas ainda contido,
-  porque continua sendo um fluxo de preenchimento linear único, não uma
-  grade densa de múltiplos grupos.
+- **Formulário de cadastro/edição** (cadastro de Cliente, de Líder/Funcionário,
+  Feriados e edição do cadastro operacional `/clientes/[id]`): largura `cadastro`,
+  `w-full max-w-4xl` (56 rem). **Decisão de 21/10/2026, revisa a de `w-[80%]`**: em monitor
+  largo 80% esticava campos e botões demais; o formulário passa a ter largura contida e se
+  organiza em 2 a 4 colunas (ver "Cadastro de Cliente e documentos contratuais"). É a exceção à
+  regra de `%` acima, por ser tela de preenchimento: a legibilidade do campo manda.
 - **Conteúdo/listagem** (dashboard `/`, resumo do setor e seu drill-down
-  `/clientes/resumo/[bucket]`, feed de auditoria `/admin/auditoria`, edição
-  do cadastro operacional `/clientes/[id]`): `w-[90%]` — telas de trabalho
+  `/clientes/resumo/[bucket]`, feed de auditoria `/admin/auditoria`): `w-[90%]` — telas de trabalho
   contínuo (ver, filtrar, navegar entre registros), ocupam a maior parte da
-  largura livre da tela.
+  largura livre da tela. A largura `formulario` (`w-[80%]`) segue no template, hoje sem uso.
 - **Conversa do Atendimento** (`/atendimento/[id]`, #49): exceção à regra
   de `%`, por decisão do usuário (2026-10-08, "muito apertado no centro"):
   ocupa a tela toda, com só `px-4 sm:px-6 lg:px-8`. Em tela larga (`lg`) a
@@ -118,11 +119,10 @@ em monitores largos):
   nenhum sentido**; só a lista de mensagens rola, por dentro. Em tela
   estreita volta a ser uma página comum.
 
-Formulário com elevação em 2 colunas (ex.: edição do cadastro operacional
-do Simples Nacional, #34): cartão `rounded-lg border bg-card shadow-sm`
-dentro do container de 90% acima — mais denso que um formulário isolado
-(Forma de envio, Documento, DAS, parcelamento, Atividade do mês, Contatos),
-por isso fica na categoria "conteúdo", não "formulário de criar".
+Formulário com elevação (edição do cadastro operacional do Simples Nacional, #34):
+cartão `rounded-lg border bg-card p-5 shadow-sm` dentro do container `cadastro`, em 4 colunas
+em tela larga (Forma de envio, Documento, DAS, Data de envio na mesma linha; ver
+"Cadastro de Cliente e documentos contratuais").
 
 Painel de filtro: campos em grid (`grid-cols-2 sm:grid-cols-4`), e as ações
 (Limpar/Filtrar) ficam numa linha própria abaixo dos campos, separada por
@@ -286,7 +286,8 @@ sem precisar de classe.
   RBAC, às vezes reduzidas a 1) segue o mesmo padrão em vez de forçar uma
   seleção sem escolha real.
 
-  **Sem opacidade de desabilitado (revisão impeccable, 28/09/2026):** o
+  **Sem opacidade de desabilitado, só para confirmação de escolha (revisão impeccable, 28/09/2026;
+  escopo restrito em 21/10/2026):** o
   `disabled:opacity-50` padrão de `select.tsx` existe pra sinalizar "campo
   indisponível" — o oposto do que esse padrão precisa comunicar ("aqui está
   o que vai ser cadastrado", uma confirmação, não uma ausência). Por isso
@@ -294,7 +295,12 @@ sem precisar de classe.
   sobrescrever a opacidade herdada e manter o texto na cor plena — o cursor
   `not-allowed` (herdado, mantido) já basta pra sinalizar "sem interação
   aqui". Qualquer campo futuro que reuse o padrão de campo travado acima
-  reusa também esse override.
+  reusa também esse override. **Escopo (21/10/2026):** isto vale só para o campo que *confirma a
+  única escolha possível* (Papel/Setor do #32). O campo que *o usuário não pode alterar* (Empresa,
+  CNPJ, Regime, Responsável sem permissão, DAS já enviado, Data de envio, qualquer campo da
+  visualização somente leitura) **mantém o `disabled:opacity-50` e o cursor `not-allowed`
+  padrão**: o esmaecimento é o sinal de "não editável". A decisão de 28/09 de manter a cor plena
+  também nesses campos foi revertida a pedido do usuário.
 - `label.tsx`, `atoms/field-error.component.tsx` — erro de campo sempre ícone (`AlertCircle`)
   + texto + cor, nunca só cor (contrato "Talão de Cheque": estado por
   padrão/ícone além de cor).
@@ -367,7 +373,7 @@ texto), cada uma só um pouco mais larga que os dois botões lado a lado.
 
 ### Formulários de criar: campos lado a lado (#36)
 
-Com o container da página em `w-[80%]` (seção Layout acima), empilhar cada
+Com o container largo, empilhar cada
 campo numa linha própria (`flex flex-col gap-5`) deixa o formulário raso e
 alongado sem aproveitar a largura. Campos de identificação simples (texto
 curto, `Select` de poucas opções) agora ficam num `grid` — 2 ou 3 colunas
@@ -376,17 +382,16 @@ Observações, upload de arquivo e listas repetíveis continuam em coluna
 única, não cabem bem num grid raso):
 
 - `CriarUsuarioForm`: Nome/E-mail/Papel/Setor em `grid-cols-1 sm:grid-cols-2`.
-- `CriarClienteForm`: CNPJ/Empresa/Regime/E-mail em `grid-cols-1 sm:grid-cols-2`
-  (identificação do Cliente: 4 campos, 2 colunas); dentro de cada "Alteração contratual", Data e
-  Arquivo da alteração em `grid-cols-1 sm:grid-cols-2`. A seção "Documentos"
-  (Contrato social + lista de Alterações) continua fora do grid — upload de
-  arquivo e lista dinâmica não comprimem bem lado a lado.
-- `EditarCadastroOperacionalForm` já seguia esse padrão desde o #34 (3 e 2
-  colunas, conforme o grupo de campos) — nenhuma mudança necessária lá.
+- `CriarClienteForm`: malha `1>2>4` (1 coluna no celular, 2 em `sm`, 4 em `lg`); CNPJ, Empresa (2
+  colunas), Regime; E-mail (2 colunas); na seção "Documentos", Contrato social em 1 coluna e cada
+  alteração em uma fileira (nº, data, arquivo em 2). **Revisado em 21/10/2026**: antes eram 2
+  colunas e o arquivo em linha inteira; a área de soltar quadrada deixou de pedir a linha toda.
+- `EditarCadastroOperacionalForm`: também em 4 colunas (ver "Cadastro de Cliente e documentos
+  contratuais").
 
 Formulário isolado de coluna única (login, troca de senha) fica de fora
 dessa regra — container estreito (`max-w-sm`/`max-w-md`, não entra na
-regra de 80%/90%), poucos campos, grid não ajudaria.
+regra de largura de formulário), poucos campos, grid não ajudaria.
 
 ### Lista de itens repetíveis (campo dinâmico)
 
@@ -614,8 +619,8 @@ CNPJ e Regime), para o usuário entender que não se alteram. Salvar preserva os
 
 **Campo Responsável no cadastro operacional (#65):** fica no cabeçalho de
 identidade do formulário, não no fim — a linha Empresa · CNPJ · Regime ·
-Responsável é uma grade `grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1.5fr]`
-(Empresa mais larga pra nomes longos). Os 3 primeiros são `Input`
+Responsável é uma grade `grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.6fr_1.2fr_1.2fr_2fr]`
+(Empresa e Responsável mais largos pra nomes longos; Regime e CNPJ sem cortar o texto). Os 3 primeiros são `Input`
 `disabled readOnly`; o Responsável é o único editável dessa linha, por isso o
 bloco deixou de ser um `fieldset disabled` (cada campo carrega o próprio
 `disabled`). Líder do SN vê um `Select` ("Sem responsável" + Funcionários do
@@ -819,9 +824,11 @@ ou o cliente escreve de novo.
 - Erro de servidor: bloco com borda/ícone `destructive`, `role="alert"`.
 - Sucesso de salvar no cadastro operacional: `role="status"` (anunciado por
   leitor de tela, ao contrário de um `<p>` mudo).
-- Alvos de toque: em aparelho de toque (`pointer-coarse:h-11`, inclusive no `Button` `sm`; `pointer-coarse:min-h-11` no "Voltar" e nas abas do shell) os controles do
-  painel de ações sobem para 44 px.
-  Com mouse o piso é de 24 px (WCAG 2.5.8): o "Voltar" tem `min-h-6`.
+- Alvos de toque: **todo controle** (`Input`, `Select`, `FileInput`, `Button` em todos os tamanhos)
+  tem 36 px (32 px no `sm`) com mouse e sobe para 44 px em aparelho de toque (`pointer-coarse:h-11`;
+  `pointer-coarse:min-h-11` no "Voltar" e nas abas do shell). **Decisão de 21/10/2026, revisa os
+  44 px fixos anteriores**: controles de 44 px em tela de mouse deixavam o formulário largo e
+  alto demais. Com mouse o piso é de 24 px (WCAG 2.5.8): o "Voltar" tem `min-h-6`.
 - Entrada do cartão do dock de Atendimentos: `motion-safe:animate-dock-entrada`.
   O estado (destaque, prévia, "nova mensagem") não depende da animação nem do
   som: quem pediu movimento reduzido ou está sem som perde só o enfeite.
@@ -829,6 +836,46 @@ ou o cliente escreve de novo.
   de novo; resposta nossa ou da URA e a primeira leitura da tela são
   silenciosas). Navegadores bloqueiam som antes do primeiro clique/tecla da
   página; até lá o aviso é mudo, sem erro.
+
+### Cadastro de Cliente e documentos contratuais (decisões de 21/10/2026; #33, #108, #138–#141)
+
+Estas decisões revisam registros anteriores deste arquivo (larguras de 80%/90%, controles de 44 px
+fixos, campo travado em cor plena, diálogo e lista das alterações); onde há conflito, vale esta seção.
+
+- **Cadastro de Cliente em colunas**: largura `cadastro`; em `lg`, 4 colunas (CNPJ, Empresa em 2,
+  Regime; E-mail em 2; Contrato social em 1; cada alteração numa fileira com nº, data e arquivo em
+  2, e a dica do nº embaixo, na largura da linha). Em `sm`, 2 colunas; no celular, 1. "Cadastrar"
+  tem o tamanho do rótulo e fica à direita.
+- **Limpar (cadastro de Cliente)**: botão `destructive` à esquerda de "Cadastrar". Ao contrário do
+  "Limpar" da edição (que volta ao valor do servidor), este **esvazia tudo**: campos, contrato,
+  alterações, avisos da consulta de CNPJ e erro do servidor, sem cadastrar nem confirmar.
+- **Teto de arquivos**: a soma de contrato e alterações vai numa só Server Action e o Next corta
+  em 11 MB (`bodySizeLimit`); o schema barra acima de 10 MB com "Os arquivos somam mais de 10 MB"
+  (hoje ancorado no campo Contrato social).
+- **Falha da Server Action**: rejeição vira mensagem pela causa (`TypeError` = sem conexão;
+  `NotReadableError` = arquivo ilegível, ex.: ainda só na nuvem do OneDrive; demais = erro
+  inesperado, com o erro completo no console). O texto "verifique a conexão" não é mais o padrão
+  para tudo.
+- **Documento contratual (#140)**: cartão fixo no formulário de editar Cliente, **sem diálogo e sem
+  seletor** (revisa o diálogo com "Escolher documento"): ícone, "Contrato social e alterações", o
+  documento mais recente (alteração de maior nº, ou o contrato social) e o botão verde
+  (`default`) "Abrir em nova aba", que abre o arquivo no primeiro clique. Enquanto carrega, reserva
+  `min-h-20`. As alterações antigas não têm lista na tela.
+- **Anexar alteração (#141)**: botão `outline` "Anexar alteração" (só Admin) no mesmo cartão, ao
+  lado de "Abrir em nova aba"; sem documento algum, aparece sozinho. **Não existe mais a seção
+  "Alterações contratuais" abaixo do formulário** (revisa o #141); ficam só o diálogo de anexar
+  (fora do `<form>`, para não aninhar formulários, ligado ao botão pelo id do painel) e a
+  confirmação depois de anexar.
+- **Busca de Cliente por papel**: o Admin, ao escolher um resultado, vai à tela própria
+  `/clientes/[id]` (a única com "Anexar alteração"); Líder e Funcionário continuam no painel
+  embutido na busca.
+- **Editar cadastro operacional em 4 colunas**: cabeçalho (Empresa, CNPJ, Regime, Responsável),
+  cartão do documento, e Forma de envio, Documento recebido, DAS, Data de envio na mesma linha;
+  parcelamento e atividade do mês em 2 colunas cada; Contatos, Observações e as ações na linha
+  toda. Abaixo de `lg`, 2 colunas; no celular, 1.
+- **Navegação por abas (`ShellNav`)**: só a aba da tela aberta ganha o destaque cheio e
+  `aria-current="page"`; em "/" nenhuma está selecionada, e a única com tela (Simples Nacional)
+  é um link comum, não parece escolhida.
 
 ## O que ainda não existe
 
@@ -838,29 +885,3 @@ ou o cliente escreve de novo.
 - Componentes `ui/` adicionais além de `select.tsx` (Dialog, uma `Table`
   estilizada para reuso — hoje o feed de auditoria usa `<table>` nativo com
   classes inline) — adicionar sob demanda, seguindo os mesmos tokens.
-
-- **Cadastro de Cliente compacto**: a tela usa a largura `cadastro` (`max-w-4xl`), não os 80% da
-  tela; Usuário e Feriados usam a mesma largura. Em tela larga os campos se distribuem em 4 colunas (CNPJ, Empresa em 2, Regime; E-mail em 2;
-  Contrato social em 2); cada alteração contratual cabe numa fileira (nº, data, arquivo em 2) com a
-  dica do nº embaixo; o "Cadastrar" tem o tamanho do rótulo, à direita. Em tela média são 2 colunas e
-  no celular 1.
-- **Limpar no cadastro de Cliente**: botão `destructive` ao lado de "Cadastrar" que devolve o formulário
-  ao estado inicial (campos, alterações, avisos da consulta de CNPJ e erro do servidor), sem cadastrar.
-- **Documento contratual (#140)**: cartão fixo no formulário de editar Cliente, sem diálogo e sem
-  escolha: ícone, "Contrato social e alterações", o documento mais recente (alteração de maior nº, ou o
-  contrato social) e, à direita, o botão verde (`default`) "Abrir em nova aba", que abre o arquivo no
-  primeiro clique. Enquanto carrega, reserva `min-h-20`.
-- **Editar cadastro operacional compacto**: a tela própria do Cliente usa a largura `cadastro`
-  (`max-w-4xl`), como o cadastro de Cliente. Cabeçalho em 4 colunas (Empresa, CNPJ, Regime,
-  Responsável), depois o cartão do documento contratual e os campos operacionais em 4 colunas (Forma de
-  envio, Documento recebido, DAS, Data de envio; parcelamento e atividade do mês em 2 cada); Contatos,
-  Observações e as ações ocupam a linha toda. Abaixo de `lg`, 2 colunas; no celular, 1.
-- **Busca de Cliente por papel**: o Admin, ao escolher um resultado, vai à tela própria `/clientes/[id]`
-  (a única com "Anexar alteração"); Líder e Funcionário continuam no painel embutido na busca.
-- **Anexar alteração (#141) ao lado de "Abrir"**: o botão `outline` "Anexar alteração" (só Admin) fica no
-  cartão do documento contratual, junto de "Abrir em nova aba"; sem documento algum, aparece sozinho. O
-  diálogo continua na seção "Alterações contratuais", abaixo do formulário (fora dele: sem `<form>`
-  aninhado), ligado ao botão pelo id do painel.
-- **Sem seção de lista das alterações**: abaixo do formulário de `/clientes/[id]` não há mais a seção
-  "Alterações contratuais". Ficam só o diálogo de anexar (fora do `<form>`) e a confirmação depois de
-  anexar; o cartão do documento mostra a alteração mais recente.
