@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
 
 import { CriarClienteForm } from "@/presentation/components/organisms/criar-cliente-form.component";
 import { normalizarCnpj } from "@/shared/kernel/cnpj";
+import { sugerirNumero } from "@/shared/kernel/numero-alteracao";
 
 import { criarClienteAction } from "./criar-cliente.actions";
 import { criarClienteSchema, type CriarClienteFormValues } from "./criar-cliente.schema";
@@ -47,7 +48,31 @@ export function CriarClienteContainer() {
   const aoAdicionarAlteracao = () => {
     // arquivo começa vazio (usuário ainda não escolheu); a validação de "obrigatório"
     // acontece no submit, mesmo padrão do contrato social.
-    append({ data: "", arquivo: undefined as unknown as File });
+    append({
+      numero: undefined as unknown as number,
+      data: "",
+      arquivo: undefined as unknown as File,
+    });
+  };
+
+  // Nº sugerido por linha (id do field array): só se sobrescreve o que ainda é a sugestão anterior
+  // ou está vazio, nunca o que o Admin digitou.
+  const sugeridos = useRef(new Map<string, number>());
+
+  // Sugere o nº pelo prefixo do arquivo (ou maior nº + 1).
+  const aoEscolherArquivoDaAlteracao = (indice: number, arquivo: File | undefined) => {
+    if (!arquivo) return;
+    const campo = `alteracoesContratuais.${indice}.numero` as const;
+    const atual = getValues(campo);
+    const idDaLinha = fields[indice].id;
+    if (Number.isInteger(atual) && atual !== sugeridos.current.get(idDaLinha)) return;
+    const outros = getValues("alteracoesContratuais")
+      .filter((_, i) => i !== indice)
+      .map((alteracao) => alteracao.numero)
+      .filter(Number.isInteger);
+    const sugerido = sugerirNumero(arquivo.name, outros);
+    sugeridos.current.set(idDaLinha, sugerido);
+    setValue(campo, sugerido);
   };
 
   // Autopreenche Empresa/Regime via API pública ao sair do campo CNPJ, sem sobrescrever o que o
@@ -140,6 +165,7 @@ export function CriarClienteContainer() {
       alteracoes={fields}
       onAdicionarAlteracao={aoAdicionarAlteracao}
       onRemoverAlteracao={remove}
+      onArquivoDaAlteracao={aoEscolherArquivoDaAlteracao}
       onCnpjBlur={aoDesfocarCnpj}
       avisoCnpj={avisoCnpj}
       avisoRegime={avisoRegime}

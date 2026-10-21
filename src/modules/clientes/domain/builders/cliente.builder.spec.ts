@@ -11,7 +11,7 @@ describe("ClienteBuilder", () => {
       .comRegime("simples_nacional")
       .comContratoSocialCaminho("clientes/1/contrato-social/doc.pdf")
       .comAlteracoesContratuais([
-        { data: "2026-02-01", arquivoCaminho: "clientes/1/alteracoes/0-doc.pdf" },
+        { numero: 1, data: "2026-02-01", arquivoCaminho: "clientes/1/alteracoes/0-doc.pdf" },
       ])
       .build();
 
@@ -77,12 +77,31 @@ describe("ClienteBuilder", () => {
       .comCnpj(CNPJ_VALIDO)
       .comRegime("simples_nacional")
       .comContratoSocialCaminho("clientes/1/contrato-social/doc.pdf")
-      .comAlteracoesContratuais([{ data: "data-invalida", arquivoCaminho: "doc.pdf" }])
+      .comAlteracoesContratuais([{ numero: 1, data: "data-invalida", arquivoCaminho: "doc.pdf" }])
       .build();
 
     expect(resultado.ok).toBe(false);
     if (!resultado.ok) {
       expect(resultado.error.fields?.alteracoesContratuais?.[0]).toContain("item 1");
+    }
+  });
+
+  it("acumula erro quando duas alterações têm o mesmo nº", () => {
+    const resultado = Cliente.builder()
+      .comId("11111111-1111-1111-1111-111111111111")
+      .comEmpresa("Padaria Pão Quente Ltda")
+      .comCnpj(CNPJ_VALIDO)
+      .comRegime("simples_nacional")
+      .comContratoSocialCaminho("clientes/1/contrato-social/doc.pdf")
+      .comAlteracoesContratuais([
+        { numero: 2, data: "2026-02-01", arquivoCaminho: "clientes/1/alteracoes/2-a.pdf" },
+        { numero: 2, data: "2026-03-01", arquivoCaminho: "clientes/1/alteracoes/2-b.pdf" },
+      ])
+      .build();
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) {
+      expect(resultado.error.fields?.alteracoesContratuais?.[0]).toContain("nº 2 repetido");
     }
   });
 
@@ -123,7 +142,7 @@ describe("ClienteBuilder", () => {
         regime: "simples_nacional",
         contratoSocialCaminho: "clientes/1/contrato-social/doc.pdf",
         alteracoesContratuais: [
-          { data: "2026-02-01", arquivoCaminho: "clientes/1/alteracoes/0-doc.pdf" },
+          { numero: 1, data: "2026-02-01", arquivoCaminho: "clientes/1/alteracoes/0-doc.pdf" },
         ],
       })
       .build();

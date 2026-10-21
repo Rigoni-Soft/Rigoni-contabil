@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { cnpjValido } from "@/shared/kernel/cnpj";
+import { erroDoNumero } from "@/shared/kernel/numero-alteracao";
 import { REGIMES } from "@/shared/kernel/regimes";
 
 // PDF ou DOCX — restringe tanto no `accept` do input (dica do navegador) quanto aqui (não confia
@@ -36,12 +37,26 @@ export const criarClienteSchema = z.object({
     .optional(),
   // Opcional.
   contratoSocial: arquivoDocumento("Arquivo inválido").optional(),
-  alteracoesContratuais: z.array(
-    z.object({
-      data: z.string().min(1, "Data obrigatória"),
-      arquivo: arquivoDocumento("Arquivo obrigatório"),
+  alteracoesContratuais: z
+    .array(
+      z.object({
+        numero: z
+          .number({ error: "Nº obrigatório" })
+          .int("Informe um nº inteiro maior que zero")
+          .positive("Informe um nº inteiro maior que zero"),
+        data: z.string().min(1, "Data obrigatória"),
+        arquivo: arquivoDocumento("Arquivo obrigatório"),
+      }),
+    )
+    // Nº repetido dentro do formulário: barra antes do envio dos arquivos.
+    .superRefine((alteracoes, ctx) => {
+      alteracoes.forEach(({ numero }, indice) => {
+        if (!Number.isInteger(numero)) return;
+        const outros = alteracoes.filter((_, i) => i !== indice).map((o) => o.numero);
+        const erro = erroDoNumero(numero, outros);
+        if (erro) ctx.addIssue({ code: "custom", message: erro, path: [indice, "numero"] });
+      });
     }),
-  ),
 });
 
 export type CriarClienteFormValues = z.infer<typeof criarClienteSchema>;

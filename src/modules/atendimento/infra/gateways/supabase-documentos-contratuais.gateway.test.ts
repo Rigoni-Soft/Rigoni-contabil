@@ -42,12 +42,14 @@ beforeAll(async () => {
     {
       id: crypto.randomUUID(),
       cliente_id: clienteId,
+      numero: 2,
       data: "2022-11-01",
       arquivo_caminho: alteracaoNova,
     },
     {
       id: crypto.randomUUID(),
       cliente_id: clienteId,
+      numero: 1,
       data: "2020-03-12",
       arquivo_caminho: alteracaoAntiga,
     },

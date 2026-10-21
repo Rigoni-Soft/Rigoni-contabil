@@ -95,6 +95,8 @@ describe("linhas de lista do formulário", () => {
     render(
       <LinhaDeAlteracao
         indice={0}
+        numero={{}}
+        erroNumero="Já existe a alteração nº 1"
         data={{}}
         erroData="Informe a data."
         erroArquivo="Envie o arquivo."
@@ -107,7 +109,9 @@ describe("linhas de lista do formulário", () => {
       "id",
       "alteracoesContratuais.0.arquivo",
     );
+    expect(screen.getByLabelText("Nº da alteração 1")).toHaveAttribute("type", "number");
     expect(screen.getAllByRole("alert").map((a) => a.textContent)).toEqual([
+      "Já existe a alteração nº 1",
       "Informe a data.",
       "Envie o arquivo.",
     ]);

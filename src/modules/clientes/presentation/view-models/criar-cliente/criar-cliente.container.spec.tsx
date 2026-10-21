@@ -274,7 +274,9 @@ describe("CriarClienteContainer", () => {
           cnpj: "11444777000161",
           regime: "simples_nacional",
           contratoSocialCaminho: "1/contrato-social/doc.pdf",
-          alteracoesContratuais: [{ data: "2026-02-01", arquivoCaminho: "1/alteracoes/0-doc.pdf" }],
+          alteracoesContratuais: [
+            { numero: 1, data: "2026-02-01", arquivoCaminho: "1/alteracoes/1-doc.pdf" },
+          ],
         },
       }),
     );
@@ -297,9 +299,61 @@ describe("CriarClienteContainer", () => {
     expect(await screen.findByText(/cadastrado/)).toBeInTheDocument();
     expect(executeMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        alteracoesContratuais: [expect.objectContaining({ data: "2026-02-01" })],
+        alteracoesContratuais: [expect.objectContaining({ numero: 1, data: "2026-02-01" })],
       }),
     );
+  });
+
+  describe("nº da alteração", () => {
+    const escolherArquivo = async (
+      usuario: ReturnType<typeof userEvent.setup>,
+      indice: number,
+      nome: string,
+    ) => {
+      await usuario.click(screen.getByRole("button", { name: "Adicionar" }));
+      await usuario.upload(screen.getByLabelText(`Arquivo da alteração ${indice}`), arquivo(nome));
+    };
+
+    it("pré-preenche pelo prefixo do arquivo e, sem prefixo, com o maior nº + 1", async () => {
+      const usuario = userEvent.setup();
+      render(<CriarClienteContainer />);
+
+      await escolherArquivo(usuario, 1, "3-alteracao.pdf");
+      await escolherArquivo(usuario, 2, "alteracao.pdf");
+
+      expect(screen.getByLabelText("Nº da alteração 1")).toHaveValue(3);
+      expect(screen.getByLabelText("Nº da alteração 2")).toHaveValue(4);
+    });
+
+    it("não sobrescreve o nº que o Admin digitou", async () => {
+      const usuario = userEvent.setup();
+      render(<CriarClienteContainer />);
+
+      await usuario.click(screen.getByRole("button", { name: "Adicionar" }));
+      await usuario.type(screen.getByLabelText("Nº da alteração 1"), "7");
+      await usuario.upload(screen.getByLabelText("Arquivo da alteração 1"), arquivo("2-alt.pdf"));
+
+      expect(screen.getByLabelText("Nº da alteração 1")).toHaveValue(7);
+    });
+
+    it("barra nº repetido no formulário, sem chamar o servidor", async () => {
+      const usuario = userEvent.setup();
+      render(<CriarClienteContainer />);
+
+      await preencherCamposObrigatorios(usuario);
+      await escolherArquivo(usuario, 1, "1-a.pdf");
+      await escolherArquivo(usuario, 2, "1-b.pdf");
+      fireEvent.change(screen.getByLabelText("Data da alteração 1"), {
+        target: { value: "2026-02-01" },
+      });
+      fireEvent.change(screen.getByLabelText("Data da alteração 2"), {
+        target: { value: "2026-03-01" },
+      });
+      await usuario.click(screen.getByRole("button", { name: "Cadastrar" }));
+
+      expect(await screen.findAllByText("Já existe a alteração nº 1")).toHaveLength(2);
+      expect(executeMock).not.toHaveBeenCalled();
+    });
   });
 
   it("'Cadastrar outro' volta pro formulário limpo", async () => {

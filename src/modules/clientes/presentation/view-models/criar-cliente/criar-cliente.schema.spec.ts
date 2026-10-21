@@ -11,7 +11,7 @@ describe("criarClienteSchema", () => {
       cnpj: "11.444.777/0001-61",
       regime: "simples_nacional",
       contratoSocial: arquivo(),
-      alteracoesContratuais: [{ data: "2026-02-01", arquivo: arquivo() }],
+      alteracoesContratuais: [{ numero: 1, data: "2026-02-01", arquivo: arquivo() }],
     });
 
     expect(resultado.success).toBe(true);
@@ -75,5 +75,38 @@ describe("criarClienteSchema", () => {
       alteracoesContratuais: [],
     });
     expect(resultado.success).toBe(false);
+  });
+
+  describe("nº da alteração", () => {
+    const base = {
+      empresa: "Padaria Pão Quente Ltda",
+      cnpj: "11.444.777/0001-61",
+      regime: "simples_nacional",
+    };
+    const alteracao = (numero: number) => ({ numero, data: "2026-02-01", arquivo: arquivo() });
+
+    it("barra nº repetido no formulário, apontando a alteração repetida", () => {
+      const resultado = criarClienteSchema.safeParse({
+        ...base,
+        alteracoesContratuais: [alteracao(1), alteracao(1)],
+      });
+
+      expect(resultado.success).toBe(false);
+      if (!resultado.success) {
+        expect(resultado.error.issues.map((i) => [i.path.join("."), i.message])).toEqual([
+          ["alteracoesContratuais.0.numero", "Já existe a alteração nº 1"],
+          ["alteracoesContratuais.1.numero", "Já existe a alteração nº 1"],
+        ]);
+      }
+    });
+
+    it.each([0, -2, 1.5, Number.NaN])("recusa o nº %s", (numero) => {
+      const resultado = criarClienteSchema.safeParse({
+        ...base,
+        alteracoesContratuais: [alteracao(numero)],
+      });
+
+      expect(resultado.success).toBe(false);
+    });
   });
 });

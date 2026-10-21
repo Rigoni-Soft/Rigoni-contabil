@@ -77,6 +77,7 @@ function arquivo(nome: string): File {
 }
 
 const ALTERACAO_VALIDA: AlteracaoContratualInput = {
+  numero: 1,
   data: "2026-02-01",
   arquivo: arquivo("alteracao-1.pdf"),
 };
@@ -244,11 +245,11 @@ describe("CriarCliente", () => {
 
   it("falha na segunda alteração: contrato e primeira alteração são removidos", async () => {
     const { resultado, storage, auditoria } = await falhando({
-      storage: (s) => (s.falharEm = "1-alteracao-2"),
+      storage: (s) => (s.falharEm = "2-alteracao-2"),
       input: {
         alteracoesContratuais: [
           ALTERACAO_VALIDA,
-          { data: "2026-03-01", arquivo: arquivo("alteracao-2.pdf") },
+          { numero: 2, data: "2026-03-01", arquivo: arquivo("alteracao-2.pdf") },
         ],
       },
     });
@@ -257,6 +258,27 @@ describe("CriarCliente", () => {
     expect(storage.enviados).toHaveLength(2);
     expect(storage.removidos.sort()).toEqual([...storage.enviados].sort());
     expect(auditoria.registros).toEqual([expect.objectContaining({ resultado: "falha" })]);
+  });
+
+  it("grava o arquivo da alteração com o nº no caminho", async () => {
+    const { resultado, storage } = await falhando({ input: { empresa: "" } });
+
+    expect(resultado.ok).toBe(false);
+    expect(storage.enviados).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("/alteracoes-contratuais/1-alteracao-1.pdf"),
+      ]),
+    );
+  });
+
+  it.each([
+    ["repetido", [ALTERACAO_VALIDA, { ...ALTERACAO_VALIDA, arquivo: arquivo("outra.pdf") }]],
+    ["zero", [{ ...ALTERACAO_VALIDA, numero: 0 }]],
+  ])("nº %s: rejeita antes de qualquer upload", async (_nome, alteracoes) => {
+    const { resultado, storage } = await falhando({ input: { alteracoesContratuais: alteracoes } });
+
+    expect(resultado.ok).toBe(false);
+    expect(storage.enviados).toEqual([]);
   });
 
   it("CNPJ inválido: rejeita antes de qualquer upload", async () => {

@@ -29,7 +29,7 @@ export type CriarClienteFormValues = {
   regime: (typeof REGIMES)[number];
   email?: string;
   contratoSocial?: File;
-  alteracoesContratuais: { data: string; arquivo: File }[];
+  alteracoesContratuais: { numero: number; data: string; arquivo: File }[];
 };
 
 type ClienteCriado = { empresa: string; cnpj: string };
@@ -48,6 +48,8 @@ type CriarClienteFormProps = {
   alteracoes: { id: string }[];
   onAdicionarAlteracao: () => void;
   onRemoverAlteracao: (indice: number) => void;
+  // Escolheu/limpou o arquivo da alteração: o Container sugere o nº pelo prefixo do nome.
+  onArquivoDaAlteracao: (indice: number, arquivo: File | undefined) => void;
   // CNPJ→autopreenchimento de Empresa/Regime via API pública — a consulta em si mora no Container.
   onCnpjBlur: (cnpjMascarado: string) => void;
   // Avisos da consulta de CNPJ (não são erro de validação — o Zod não sabe
@@ -70,6 +72,7 @@ export function CriarClienteForm({
   alteracoes,
   onAdicionarAlteracao,
   onRemoverAlteracao,
+  onArquivoDaAlteracao,
   onCnpjBlur,
   avisoCnpj,
   avisoRegime,
@@ -198,6 +201,10 @@ export function CriarClienteForm({
             <LinhaDeAlteracao
               key={alteracao.id}
               indice={indice}
+              numero={register(`alteracoesContratuais.${indice}.numero` as const, {
+                valueAsNumber: true,
+              })}
+              erroNumero={errors.alteracoesContratuais?.[indice]?.numero?.message}
               data={register(`alteracoesContratuais.${indice}.data` as const)}
               erroData={errors.alteracoesContratuais?.[indice]?.data?.message}
               erroArquivo={errors.alteracoesContratuais?.[indice]?.arquivo?.message}
@@ -214,7 +221,10 @@ export function CriarClienteForm({
                       file={value}
                       onBlur={onBlur}
                       aria-invalid={!!errors.alteracoesContratuais?.[indice]?.arquivo}
-                      onChange={onChange}
+                      onChange={(arquivo) => {
+                        onChange(arquivo);
+                        onArquivoDaAlteracao(indice, arquivo);
+                      }}
                     />
                   )}
                 />

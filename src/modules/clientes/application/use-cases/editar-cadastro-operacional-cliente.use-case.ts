@@ -82,6 +82,7 @@ export class EditarCadastroOperacionalCliente implements EditarCadastroOperacion
         regime: clienteAtual.regime.valor,
         contratoSocialCaminho: clienteAtual.contratoSocialCaminho,
         alteracoesContratuais: clienteAtual.alteracoesContratuais.map((alteracao) => ({
+          numero: alteracao.numero,
           data: alteracao.data.toISOString().slice(0, 10),
           arquivoCaminho: alteracao.arquivoCaminho,
         })),

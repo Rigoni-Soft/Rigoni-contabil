@@ -45,7 +45,9 @@ async function criarClienteComContrato(cnpj: string): Promise<Cliente> {
     .comCnpj(cnpj)
     .comRegime("simples_nacional")
     .comContratoSocialCaminho("clientes/x/contrato-social/doc.pdf")
-    .comAlteracoesContratuais([{ data: "2026-01-10", arquivoCaminho: "clientes/x/alt/1.pdf" }])
+    .comAlteracoesContratuais([
+      { numero: 1, data: "2026-01-10", arquivoCaminho: "clientes/x/alt/1.pdf" },
+    ])
     .build();
   if (!construido.ok) throw new Error("setup inválido");
   const salvo = await new SupabaseClienteRepository(admin).criar(construido.value);

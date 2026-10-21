@@ -10,7 +10,7 @@ function clienteValido(): Cliente {
     .comRegime("simples_nacional")
     .comContratoSocialCaminho("clientes/1/contrato-social/doc.pdf")
     .comAlteracoesContratuais([
-      { data: "2026-02-01", arquivoCaminho: "clientes/1/alteracoes/0-doc.pdf" },
+      { numero: 1, data: "2026-02-01", arquivoCaminho: "clientes/1/alteracoes/0-doc.pdf" },
     ])
     .build();
   if (!resultado.ok) throw new Error("setup inválido");
@@ -29,7 +29,7 @@ describe("clienteParaDto", () => {
       contratoSocialCaminho: "clientes/1/contrato-social/doc.pdf",
       email: null,
       alteracoesContratuais: [
-        { data: "2026-02-01", arquivoCaminho: "clientes/1/alteracoes/0-doc.pdf" },
+        { numero: 1, data: "2026-02-01", arquivoCaminho: "clientes/1/alteracoes/0-doc.pdf" },
       ],
     });
   });

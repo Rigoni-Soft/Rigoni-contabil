@@ -16,7 +16,11 @@ import { Regime } from "@/modules/clientes/domain/value-objects/regime.vo";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-export type AlteracaoContratualRestaurar = { data: string; arquivoCaminho: string };
+export type AlteracaoContratualRestaurar = {
+  numero: number;
+  data: string;
+  arquivoCaminho: string;
+};
 export type ContatoRestaurar = { id?: string; nome: string; telefone: string; padrao: boolean };
 export type AtividadeMensalRestaurar = {
   anoMes: string;
@@ -118,6 +122,10 @@ export class ClienteBuilder {
     this.alteracoesContratuais = entradas.flatMap((entrada, indice) =>
       this.validarAlteracao(entrada, indice, erros),
     );
+    const repetido = this.alteracoesContratuais.find(
+      (alteracao, i, todas) => todas.findIndex((o) => o.numero === alteracao.numero) !== i,
+    );
+    if (repetido) erros.push(`nº ${repetido.numero} repetido`);
     if (erros.length > 0) this.camposInvalidos.alteracoesContratuais = erros;
     return this;
   }
@@ -127,7 +135,11 @@ export class ClienteBuilder {
     indice: number,
     erros: string[],
   ): AlteracaoContratual[] {
-    const resultado = AlteracaoContratual.criar(entrada.data, entrada.arquivoCaminho);
+    const resultado = AlteracaoContratual.criar(
+      entrada.numero,
+      entrada.data,
+      entrada.arquivoCaminho,
+    );
     if (!resultado.ok) {
       erros.push(`item ${indice + 1}: ${resultado.error.message}`);
       return [];

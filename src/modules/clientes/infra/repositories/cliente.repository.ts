@@ -38,6 +38,7 @@ export class SupabaseClienteRepository implements ClienteRepository {
       p_email: cliente.email?.valor ?? null,
       p_alteracoes: cliente.alteracoesContratuais.map((alteracao) => ({
         id: crypto.randomUUID(),
+        numero: alteracao.numero,
         data: alteracao.data.toISOString().slice(0, 10),
         arquivoCaminho: alteracao.arquivoCaminho,
       })),

@@ -9,6 +9,9 @@ import { Label } from "@/presentation/components/ui/label";
 
 type LinhaDeAlteracaoProps = {
   indice: number;
+  // Props do <input type="number"> do nº da alteração (o `register` com `valueAsNumber`).
+  numero: React.ComponentProps<"input">;
+  erroNumero?: string;
   // Props do <input type="date"> (o `register` do formulário, já resolvido por quem monta).
   data: React.ComponentProps<"input">;
   erroData?: string;
@@ -22,12 +25,15 @@ type LinhaDeAlteracaoProps = {
 // Uma alteração contratual: data + arquivo, com a ação de remover. A numeração é 1-based.
 export function LinhaDeAlteracao({
   indice,
+  numero,
+  erroNumero,
   data,
   erroData,
   arquivo,
   erroArquivo,
   onRemover,
 }: LinhaDeAlteracaoProps) {
+  const idNumero = `alteracoesContratuais.${indice}.numero`;
   const idData = `alteracoesContratuais.${indice}.data`;
   const idArquivo = `alteracoesContratuais.${indice}.arquivo`;
   return (
@@ -50,6 +56,20 @@ export function LinhaDeAlteracao({
       </Linha>
 
       <Grade colunas="1>2" espaco={3}>
+        <Pilha espaco="campo">
+          <Label htmlFor={idNumero}>{`Nº da alteração ${indice + 1}`}</Label>
+          <Input
+            id={idNumero}
+            type="number"
+            inputMode="numeric"
+            min={1}
+            step={1}
+            aria-invalid={!!erroNumero}
+            {...numero}
+          />
+          {erroNumero && <FieldError>{erroNumero}</FieldError>}
+        </Pilha>
+
         <Pilha espaco="campo">
           <Label htmlFor={idData}>{`Data da alteração ${indice + 1}`}</Label>
           <Input id={idData} type="date" aria-invalid={!!erroData} {...data} />
