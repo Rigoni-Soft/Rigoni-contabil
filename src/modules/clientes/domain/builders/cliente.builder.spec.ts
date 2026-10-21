@@ -101,7 +101,7 @@ describe("ClienteBuilder", () => {
 
     expect(resultado.ok).toBe(false);
     if (!resultado.ok) {
-      expect(resultado.error.fields?.alteracoesContratuais?.[0]).toContain("nº 2 repetido");
+      expect(resultado.error.fields?.alteracoesContratuais?.[0]).toContain("nº repetido");
     }
   });
 

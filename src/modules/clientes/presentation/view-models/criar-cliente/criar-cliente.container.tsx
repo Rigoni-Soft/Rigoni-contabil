@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
 
@@ -55,24 +55,17 @@ export function CriarClienteContainer() {
     });
   };
 
-  // Nº sugerido por linha (id do field array): só se sobrescreve o que ainda é a sugestão anterior
-  // ou está vazio, nunca o que o Admin digitou.
-  const sugeridos = useRef(new Map<string, number>());
-
-  // Sugere o nº pelo prefixo do arquivo (ou maior nº + 1).
+  // Sugere o nº pelo prefixo do arquivo (ou maior nº + 1), só com o campo vazio: nunca pisa no que
+  // o Admin digitou.
   const aoEscolherArquivoDaAlteracao = (indice: number, arquivo: File | undefined) => {
     if (!arquivo) return;
     const campo = `alteracoesContratuais.${indice}.numero` as const;
-    const atual = getValues(campo);
-    const idDaLinha = fields[indice].id;
-    if (Number.isInteger(atual) && atual !== sugeridos.current.get(idDaLinha)) return;
+    if (Number.isInteger(getValues(campo))) return;
     const outros = getValues("alteracoesContratuais")
       .filter((_, i) => i !== indice)
       .map((alteracao) => alteracao.numero)
       .filter(Number.isInteger);
-    const sugerido = sugerirNumero(arquivo.name, outros);
-    sugeridos.current.set(idDaLinha, sugerido);
-    setValue(campo, sugerido);
+    setValue(campo, sugerirNumero(arquivo.name, outros));
   };
 
   // Autopreenche Empresa/Regime via API pública ao sair do campo CNPJ, sem sobrescrever o que o

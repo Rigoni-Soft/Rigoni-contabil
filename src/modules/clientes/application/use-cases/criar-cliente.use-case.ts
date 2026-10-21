@@ -17,8 +17,6 @@ import { Cnpj } from "@/modules/clientes/domain/value-objects/cnpj.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
-import { ValidationError } from "@/shared/errors/validation.error";
-import { erroDoNumero } from "@/shared/kernel/numero-alteracao";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 export class CriarCliente implements CriarClientePort {
@@ -52,8 +50,6 @@ export class CriarCliente implements CriarClientePort {
     // Antes de qualquer upload: CNPJ inválido não deve nem tocar o Storage.
     const cnpj = Cnpj.criar(input.cnpj);
     if (!cnpj.ok) return cnpj;
-    const numeros = this.validarNumeros(input.alteracoesContratuais);
-    if (!numeros.ok) return numeros;
 
     // Opcional: só envia ao Storage quando o Admin anexou um arquivo.
     let contratoSocialCaminho: string | null = null;
@@ -87,19 +83,6 @@ export class CriarCliente implements CriarClientePort {
     if (!salvo.ok) return salvo;
 
     return ok({ cliente: clienteParaDto(construido.value) });
-  }
-
-  // Nº inválido ou repetido não deve tocar o Storage (mesma ideia do CNPJ).
-  private validarNumeros(
-    alteracoes: CriarClienteInput["alteracoesContratuais"],
-  ): Result<void, ValidationError> {
-    const vistos: number[] = [];
-    for (const { numero } of alteracoes) {
-      const erro = erroDoNumero(numero, vistos);
-      if (erro) return err(new ValidationError(erro, { alteracoesContratuais: [erro] }));
-      vistos.push(numero);
-    }
-    return ok(undefined);
   }
 
   private async enviarAlteracoes(

@@ -274,11 +274,11 @@ describe("CriarCliente", () => {
   it.each([
     ["repetido", [ALTERACAO_VALIDA, { ...ALTERACAO_VALIDA, arquivo: arquivo("outra.pdf") }]],
     ["zero", [{ ...ALTERACAO_VALIDA, numero: 0 }]],
-  ])("nº %s: rejeita antes de qualquer upload", async (_nome, alteracoes) => {
+  ])("nº %s: rejeita e remove o que já foi enviado", async (_nome, alteracoes) => {
     const { resultado, storage } = await falhando({ input: { alteracoesContratuais: alteracoes } });
 
     expect(resultado.ok).toBe(false);
-    expect(storage.enviados).toEqual([]);
+    expect(storage.removidos.sort()).toEqual([...storage.enviados].sort());
   });
 
   it("CNPJ inválido: rejeita antes de qualquer upload", async () => {

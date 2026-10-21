@@ -122,10 +122,8 @@ export class ClienteBuilder {
     this.alteracoesContratuais = entradas.flatMap((entrada, indice) =>
       this.validarAlteracao(entrada, indice, erros),
     );
-    const repetido = this.alteracoesContratuais.find(
-      (alteracao, i, todas) => todas.findIndex((o) => o.numero === alteracao.numero) !== i,
-    );
-    if (repetido) erros.push(`nº ${repetido.numero} repetido`);
+    const numeros = this.alteracoesContratuais.map((alteracao) => alteracao.numero);
+    if (new Set(numeros).size !== numeros.length) erros.push("nº repetido");
     if (erros.length > 0) this.camposInvalidos.alteracoesContratuais = erros;
     return this;
   }

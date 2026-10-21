@@ -22,11 +22,3 @@ export function erroDoNumero(numero: number, outrosNumeros: number[]): string | 
   if (outrosNumeros.includes(numero)) return `Já existe a alteração nº ${numero}`;
   return null;
 }
-
-type NumeroEData = { numero: number; data: string };
-
-// Alerta (não bloqueia): maior nº menor que o desta alteração cuja data é posterior à dela.
-export function divergenciaNumeroData(atual: NumeroEData, outras: NumeroEData[]): number | null {
-  const anteriores = outras.filter((o) => o.numero < atual.numero && o.data > atual.data);
-  return anteriores.length > 0 ? Math.max(...anteriores.map((o) => o.numero)) : null;
-}
