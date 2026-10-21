@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, CalendarOff, CircleUser, ListOrdered, UserPlus, Users } from "lucide-react";
+import { Building2, CalendarOff, CircleUser, UserPlus, Users } from "lucide-react";
 
 import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
@@ -97,16 +97,6 @@ export function ShellHeader({ nome, papel, setor, avisos, sair }: ShellHeaderPro
             <Users aria-hidden="true" />
             <Texto variante="soDesktop" como="span">
               Usuários
-            </Texto>
-          </Link>
-        )}
-        {/* Só o Admin: ele não tem Setor nem barra lateral na conversa e vê a Fila de qualquer
-            Setor aqui. Os demais têm a Fila na conversa e o cartão no dock. */}
-        {papel === "admin" && (
-          <Link href="/fila" aria-label="Fila" className={buttonVariants({ variant: "ghost" })}>
-            <ListOrdered aria-hidden="true" />
-            <Texto variante="soDesktop" como="span">
-              Fila
             </Texto>
           </Link>
         )}
