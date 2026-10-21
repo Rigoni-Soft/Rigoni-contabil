@@ -14,15 +14,6 @@ import { useConsultarCnpj } from "./use-consultar-cnpj.hook";
 
 type ClienteCriado = { empresa: string; cnpj: string };
 
-// A Server Action rejeitou em vez de devolver um erro de domínio: só `TypeError` (o fetch que não
-// saiu) é de rede; o resto é erro do servidor, em vez de culpar sempre a conexão.
-function mensagemDaFalha(erro: unknown): string {
-  if (erro instanceof TypeError) {
-    return "Sem conexão com o servidor. Verifique a internet e tente novamente.";
-  }
-  return "Erro inesperado no servidor ao cadastrar. Tente novamente; se continuar, avise o suporte.";
-}
-
 export function CriarClienteContainer() {
   const [pendente, setPendente] = useState(false);
   const [erroServidor, setErroServidor] = useState<string | undefined>();
@@ -166,7 +157,12 @@ export function CriarClienteContainer() {
       setCriado({ empresa: resultado.data.cliente.empresa, cnpj: resultado.data.cliente.cnpj });
     } catch (erro) {
       console.error("Falha ao cadastrar o Cliente", erro);
-      setErroServidor(mensagemDaFalha(erro));
+      // Só `TypeError` (o fetch que não saiu) é de rede; o resto é erro do servidor.
+      setErroServidor(
+        erro instanceof TypeError
+          ? "Sem conexão com o servidor. Verifique a internet e tente novamente."
+          : "Erro inesperado no servidor ao cadastrar. Tente novamente; se continuar, avise o suporte.",
+      );
     } finally {
       setPendente(false);
     }
