@@ -255,9 +255,11 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
       valor: setor,
       rotulo: SETOR_LABEL[setor],
     })),
-    // Como no menu da URA: o contrato primeiro, as alterações por nº decrescente.
-    servicos: [...conversa.documentos]
-      .sort((x, y) => (x.numero === null ? -1 : y.numero === null ? 1 : y.numero - x.numero))
-      .map((doc) => ({ valor: valorDaOpcao(doc), rotulo: doc.descricao, grupo: doc.tipo })),
+    // Já vêm na ordem do menu da URA: o contrato primeiro, as alterações por nº decrescente.
+    servicos: conversa.documentos.map((doc) => ({
+      valor: valorDaOpcao(doc),
+      rotulo: doc.descricao,
+      grupo: doc.tipo,
+    })),
   };
 }

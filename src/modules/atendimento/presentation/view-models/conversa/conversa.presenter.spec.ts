@@ -177,15 +177,14 @@ describe("conversaParaView", () => {
     expect(conversaParaView(semResumo).contexto).toBeNull();
   });
 
-  it("serviços viram opções com o nome que o cliente vê: contrato primeiro, alterações por nº decrescente", () => {
-    // Nº 2 com data mais recente que a do nº 3: a ordem é pelo nº, não pela data.
+  it("serviços viram opções com o nome que o cliente vê, na ordem recebida", () => {
     const antiga = {
       tipo: "alteracao" as const,
       numero: 2,
       data: "2026-05-10",
       descricao: "Alteração nº 2 - 10/05/2026",
     };
-    const documentos = [antiga, CONVERSA.documentos[1], CONVERSA.documentos[0]];
+    const documentos = [CONVERSA.documentos[0], CONVERSA.documentos[1], antiga];
 
     expect(conversaParaView({ ...CONVERSA, documentos }).servicos).toEqual([
       { valor: "contrato", rotulo: "Contrato social", grupo: "contrato" },

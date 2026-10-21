@@ -31,7 +31,10 @@ import type {
   SessaoAtendimento,
   SessaoAtendimentoPort,
 } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
-import { descreverDocumento } from "@/modules/atendimento/domain/services/documento-contratual.service";
+import {
+  descreverDocumento,
+  porNumeroDecrescente,
+} from "@/modules/atendimento/domain/services/documento-contratual.service";
 import {
   avisoDeFechado,
   estaAbertoEm,
@@ -479,7 +482,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
       contrato: lista.value.find((documento) => documento.tipo === "contrato") ?? null,
       alteracoes: lista.value
         .filter((documento) => documento.tipo === "alteracao")
-        .sort((primeira, segunda) => (segunda.numero ?? 0) - (primeira.numero ?? 0)),
+        .sort(porNumeroDecrescente),
     });
   }
 

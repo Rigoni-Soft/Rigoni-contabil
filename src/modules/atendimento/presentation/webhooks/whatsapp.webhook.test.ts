@@ -24,7 +24,8 @@ const TOKEN = "token-teste";
 let envio: EnvioMensagemFalsoGateway;
 let identificacao: ConstructorParameters<typeof ReceberMensagem>[0];
 const documentos: ConstructorParameters<typeof ReceberMensagem>[2] = {
-  listar: async () => ok([{ tipo: "contrato", numero: null, data: null, caminho: "c1/contrato.pdf" }]),
+  listar: async () =>
+    ok([{ tipo: "contrato", numero: null, data: null, caminho: "c1/contrato.pdf" }]),
   linkTemporario: async (caminho) => ok(`https://storage.test/${caminho}`),
 };
 

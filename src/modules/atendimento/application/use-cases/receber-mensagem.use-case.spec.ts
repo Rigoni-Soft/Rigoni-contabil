@@ -587,6 +587,22 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     expect(nomes(documentosEnviados)).toEqual(["Alteração nº 3 - 15/01/2020.pdf"]);
   });
 
+  it("regressão: 12 alterações paginam 10 + 2 por nº decrescente e o hash da lista guardado não muda", async () => {
+    const { caso, enviadas, gravadas } = montar({ documentos: alteracoes(12) });
+    await caso.execute({ telefone: FONE, texto: "1" });
+    await caso.execute({ telefone: FONE, texto: "2" });
+    const numeros = [...enviadas[1].texto.matchAll(/^\d+ - Alteração nº (\d+)/gm)].map(
+      (m) => +m[1],
+    );
+    expect(numeros).toEqual([12, 11, 10, 9, 8, 7, 6, 5, 4, 3]);
+    expect(enviadas[1].texto).toContain("página 1 de 2");
+    await caso.execute({ telefone: FONE, texto: "mais" });
+    expect(enviadas[2].texto).toContain("página 2 de 2");
+    // Valor fixo: o hash vem só dos caminhos, na ordem exibida (alt-12 … alt-1).
+    expect(gravadas[0]).toEqual({ etapa: "tipo_documento" });
+    expect(gravadas[1]).toMatchObject({ pagina: 1, lista: "1m5itzn0pj2" });
+  });
+
   it("sessão numa página que deixou de existir volta à última página", async () => {
     const { caso, enviadas, sessoes } = montar({ documentos: alteracoes(12) });
     await caso.execute({ telefone: FONE, texto: "1" });

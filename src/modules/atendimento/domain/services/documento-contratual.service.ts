@@ -12,3 +12,10 @@ export function descreverDocumento(documento: {
     ? `Alteração nº ${documento.numero} - ${formatarData(documento.data)}`
     : "Contrato social";
 }
+
+// Ordem de exibição: o contrato social (sem nº) primeiro, depois as alterações por nº decrescente.
+export function porNumeroDecrescente(x: { numero: number | null }, y: { numero: number | null }) {
+  if (x.numero === null) return y.numero === null ? 0 : -1;
+  if (y.numero === null) return 1;
+  return y.numero - x.numero;
+}
