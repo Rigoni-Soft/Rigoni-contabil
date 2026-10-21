@@ -46,7 +46,13 @@ export function CampoResponsavel({
           ))}
         </Select>
       ) : (
-        <Input id="responsavelId" value={nomeAtual} disabled readOnly />
+        <Input
+          id="responsavelId"
+          value={nomeAtual}
+          disabled
+          readOnly
+          className="disabled:opacity-100"
+        />
       )}
       {estadoLista === "erro" && (
         <Linha alinhar="centro" quebra className="gap-x-2">

@@ -618,6 +618,9 @@ Como o campo travado fica igual a um editável (só o cursor `not-allowed` o dis
 toque nem isso), cada um traz uma nota (`ajuda`, `Texto nota` ligado por `aria-describedby`):
 "Definido pelo sistema." no DAS enviado e "Preenchida pelo sistema quando o DAS é enviado."
 na data, que também explica por que ela está vazia antes do envio.
+No editar cadastro operacional há um só jeito de "travado": Empresa, CNPJ, Regime e
+Responsável (para quem não o atribui) também usam `disabled:opacity-100` (constante
+`TRAVADO` do formulário), e os três primeiros agora têm `Label htmlFor` ligado ao `Input`.
 
 **Campo Responsável no cadastro operacional (#65):** fica no cabeçalho de
 identidade do formulário, não no fim — a linha Empresa · CNPJ · Regime ·

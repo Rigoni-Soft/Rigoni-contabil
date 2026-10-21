@@ -114,6 +114,9 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     // O valor segue legível: sem a opacidade de desabilitado.
     await expect(page.getByLabel("DAS")).toHaveCSS("opacity", "1");
     await expect(page.getByLabel("Data de envio")).toHaveCSS("opacity", "1");
+    // Um só jeito de "travado" na tela: a identidade do Cliente também fica em cor plena.
+    await expect(page.getByLabel("Empresa", { exact: true })).toHaveCSS("opacity", "1");
+    await expect(page.getByLabel("CNPJ", { exact: true })).toHaveCSS("opacity", "1");
 
     await page.getByLabel("Observações gerais").fill("Edição com DAS já enviado.");
     await page.getByRole("button", { name: "Salvar" }).click();

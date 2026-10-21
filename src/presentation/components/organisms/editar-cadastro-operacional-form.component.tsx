@@ -42,6 +42,9 @@ const OPCOES_DAS = opcoes(
   DAS_STATUS_LABEL,
 );
 const OPCAO_DAS_ENVIADO = { valor: "enviado", rotulo: DAS_STATUS_LABEL.enviado };
+// Campo travado mostra um valor que não se edita: segue na cor plena, sem a opacidade de
+// desabilitado (DESIGN.md). Vale para a identidade do Cliente e para o DAS/data do sistema.
+const TRAVADO = "disabled:opacity-100";
 const OPCOES_PARCELAMENTO = opcoes(PARCELAMENTO_STATUSES, PARCELAMENTO_STATUS_LABEL);
 
 // View global não importa módulos (arquitetura.md §3.4) — o shape espelha
@@ -132,16 +135,22 @@ export function EditarCadastroOperacionalForm({
 
       <Grade colunas="1>2>cabecalho" espaco={4}>
         <Pilha espaco={1}>
-          <Label>Empresa</Label>
-          <Input value={cabecalho.empresa} disabled readOnly />
+          <Label htmlFor="empresa">Empresa</Label>
+          <Input id="empresa" value={cabecalho.empresa} disabled readOnly className={TRAVADO} />
         </Pilha>
         <Pilha espaco={1}>
-          <Label>CNPJ</Label>
-          <Input value={cabecalho.cnpj} disabled readOnly />
+          <Label htmlFor="cnpj">CNPJ</Label>
+          <Input id="cnpj" value={cabecalho.cnpj} disabled readOnly className={TRAVADO} />
         </Pilha>
         <Pilha espaco={1}>
-          <Label>Regime</Label>
-          <Input value={REGIME_LABEL[cabecalho.regime] ?? cabecalho.regime} disabled readOnly />
+          <Label htmlFor="regime">Regime</Label>
+          <Input
+            id="regime"
+            value={REGIME_LABEL[cabecalho.regime] ?? cabecalho.regime}
+            disabled
+            readOnly
+            className={TRAVADO}
+          />
         </Pilha>
         <CampoResponsavel
           editavel={responsavel.editavel}
@@ -181,7 +190,7 @@ export function EditarCadastroOperacionalForm({
           // "Enviado" é do sistema (#108): nem o Admin troca depois que o envio foi concluído. O valor
           // é a informação do campo: fica em cor plena, sem a opacidade de desabilitado (DESIGN.md).
           disabled={dasEnviadoPeloSistema}
-          classeDoSelect="disabled:opacity-100"
+          classeDoSelect={TRAVADO}
           ajuda={dasEnviadoPeloSistema ? "Definido pelo sistema." : undefined}
           {...register("dasStatus")}
         />
@@ -192,7 +201,7 @@ export function EditarCadastroOperacionalForm({
           className="gap-1"
           readOnly
           disabled
-          classeDoInput="disabled:opacity-100"
+          classeDoInput={TRAVADO}
           ajuda="Preenchida pelo sistema quando o DAS é enviado."
           {...register("dataEnvioDas")}
         />

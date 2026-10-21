@@ -265,6 +265,21 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(screen.getByLabelText(/data de envio/i)).toBeDisabled();
   });
 
+  it("Empresa, CNPJ, Regime e Responsável têm rótulo ligado ao campo e estão desativados", () => {
+    render(<EditarCadastroOperacionalContainer dados={dados} readOnly={false} />);
+
+    for (const [rotulo, valor] of [
+      ["Empresa", "Padaria Pão Quente Ltda"],
+      ["CNPJ", "11444777000161"],
+      ["Regime", "Simples Nacional"],
+      ["Responsável", "Sem responsável"],
+    ]) {
+      const campo = screen.getByLabelText(rotulo, { selector: "input" });
+      expect(campo).toBeDisabled();
+      expect(campo).toHaveValue(valor);
+    }
+  });
+
   it("explica por que a data de envio e o DAS enviado estão travados", () => {
     const { unmount } = render(
       <EditarCadastroOperacionalContainer dados={dados} readOnly={false} />,
