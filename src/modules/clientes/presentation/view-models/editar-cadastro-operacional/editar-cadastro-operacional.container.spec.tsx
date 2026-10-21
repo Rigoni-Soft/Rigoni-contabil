@@ -244,14 +244,17 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(screen.getByRole("link", { name: /cancelar/i })).toHaveAttribute("href", "/");
   });
 
-  it("DAS: 'Enviado' não é opção escolhível e a data de envio é só leitura (#108)", () => {
+  it("DAS: 'Enviado' não é opção escolhível; a data de envio é sempre só leitura e desativada (#108)", () => {
     render(<EditarCadastroOperacionalContainer dados={dados} readOnly={false} />);
 
     expect(screen.queryByRole("option", { name: "Enviado" })).not.toBeInTheDocument();
-    expect(screen.getByLabelText(/data de envio/i)).toHaveAttribute("readonly");
+    expect(screen.getByLabelText("DAS")).toBeEnabled();
+    const data = screen.getByLabelText(/data de envio/i);
+    expect(data).toHaveAttribute("readonly");
+    expect(data).toBeDisabled();
   });
 
-  it("DAS já enviado pelo sistema: exibe 'Enviado' selecionado com a data (#108)", () => {
+  it("DAS já enviado pelo sistema: 'Enviado' e a data aparecem, mas o campo DAS fica desativado", () => {
     render(
       <EditarCadastroOperacionalContainer
         dados={{ ...dados, dasStatus: "enviado", dataEnvioDas: "2026-10-05" }}
@@ -259,8 +262,29 @@ describe("EditarCadastroOperacionalContainer", () => {
       />,
     );
 
-    expect(screen.getByLabelText("DAS")).toHaveValue("enviado");
+    const das = screen.getByLabelText("DAS");
+    expect(das).toHaveValue("enviado");
+    expect(das).toBeDisabled();
     expect(screen.getByLabelText(/data de envio/i)).toHaveValue("2026-10-05");
+    expect(screen.getByLabelText(/data de envio/i)).toBeDisabled();
+  });
+
+  it("salvar com DAS já enviado mantém 'enviado' e a data no que vai ao servidor", async () => {
+    executeMock.mockResolvedValue({ ok: true, value: { clienteId: dados.id } });
+    const usuario = userEvent.setup();
+    render(
+      <EditarCadastroOperacionalContainer
+        dados={{ ...dados, dasStatus: "enviado", dataEnvioDas: "2026-10-05" }}
+        readOnly={false}
+      />,
+    );
+
+    await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+
+    await screen.findByText(/atualizado/i);
+    expect(executeMock).toHaveBeenCalledWith(
+      expect.objectContaining({ dasStatus: "enviado", dataEnvioDas: "2026-10-05" }),
+    );
   });
 
   it("'Limpar' desfaz uma edição não salva, voltando ao valor carregado do servidor", async () => {
