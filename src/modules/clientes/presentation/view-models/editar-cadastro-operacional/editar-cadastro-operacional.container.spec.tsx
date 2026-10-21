@@ -21,6 +21,10 @@ jest.mock("@/main/clientes.factory", () => ({
   makeEditarCadastroOperacionalCliente: () => ({ execute: executeMock }),
   makeAtribuirResponsavelCliente: () => ({ execute: atribuirMock }),
   makeListarResponsaveisElegiveis: () => ({ execute: listarMock }),
+  makeListarDocumentosContratuaisCliente: () => ({
+    execute: async () => ok([]),
+  }),
+  makeObterLinkDocumentoContratual: () => ({ execute: jest.fn() }),
 }));
 
 const dados: CadastroOperacionalClienteDto = {

@@ -13,6 +13,7 @@ import {
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { REGIME_LABEL, regimeTemCadastroOperacionalSn } from "@/shared/kernel/regimes";
 
+import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
 import { atribuirResponsavelAction } from "./atribuir-responsavel.actions";
 import { editarCadastroOperacionalAction } from "./editar-cadastro-operacional.actions";
 import { nomeResponsavelAtual, opcoesResponsavel } from "./editar-cadastro-operacional.presenter";
@@ -207,6 +208,7 @@ export function EditarCadastroOperacionalContainer({
       onRemoverContato={remove}
       onLimpar={aoLimpar}
       onCancelar={onCancelar}
+      documentoContratual={<DocumentoContratualDoClienteContainer clienteId={dados.id} />}
     />
   );
 }

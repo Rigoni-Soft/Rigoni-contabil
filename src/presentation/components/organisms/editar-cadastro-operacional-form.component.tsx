@@ -100,6 +100,8 @@ type EditarCadastroOperacionalFormProps = {
   // já está em "/" — um <Link href="/"> não dispara navegação nem reseta nada,
   // então o Container que abriu o form inline fecha o painel diretamente.
   onCancelar?: () => void;
+  // Botão "Visualizar alteração"/"contrato social" (só leitura); ausente = ator sem acesso.
+  documentoContratual?: React.ReactNode;
 };
 
 export function EditarCadastroOperacionalForm({
@@ -120,6 +122,7 @@ export function EditarCadastroOperacionalForm({
   onRemoverContato,
   onLimpar,
   onCancelar,
+  documentoContratual,
 }: EditarCadastroOperacionalFormProps) {
   return (
     <Pilha
@@ -155,6 +158,8 @@ export function EditarCadastroOperacionalForm({
           desabilitado={pendente}
         />
       </Grade>
+
+      {documentoContratual}
 
       <Grade colunas="1>2" como="fieldset" disabled={readOnly || pendente} className="gap-6">
         <CampoDeOpcoes
