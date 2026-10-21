@@ -111,7 +111,7 @@ describe("linhas de lista do formulário", () => {
     );
     expect(screen.getByLabelText("Nº da alteração 1")).toHaveAttribute("type", "number");
     expect(screen.getByLabelText("Nº da alteração 1")).toHaveAccessibleDescription(
-      "Já existe a alteração nº 1",
+      /Sugerido pelo início do nome do arquivo.*Já existe a alteração nº 1/,
     );
     expect(screen.getByLabelText("Data da alteração 1")).toHaveAccessibleDescription(
       "Informe a data.",

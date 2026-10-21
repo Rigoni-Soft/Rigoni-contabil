@@ -38,6 +38,7 @@ export function LinhaDeAlteracao({
   const idData = `alteracoesContratuais.${indice}.data`;
   const idArquivo = `alteracoesContratuais.${indice}.arquivo`;
   // O erro de cada campo é ligado ao input por aria-describedby (o alerta só soa quando aparece).
+  const idAjudaNumero = `${idNumero}-ajuda`;
   const idErroNumero = `${idNumero}-erro`;
   const idErroData = `${idData}-erro`;
   const idErroArquivo = `${idArquivo}-erro`;
@@ -71,9 +72,13 @@ export function LinhaDeAlteracao({
             max={NUMERO_MAXIMO}
             step={1}
             aria-invalid={!!erroNumero}
-            aria-describedby={erroNumero ? idErroNumero : undefined}
+            aria-describedby={erroNumero ? `${idAjudaNumero} ${idErroNumero}` : idAjudaNumero}
             {...numero}
           />
+          <Texto variante="nota" id={idAjudaNumero}>
+            Sugerido pelo início do nome do arquivo (ex.: 2-alteracao.pdf) ou o próximo da
+            sequência. Pode editar.
+          </Texto>
           {erroNumero && <FieldError id={idErroNumero}>{erroNumero}</FieldError>}
         </Pilha>
 
