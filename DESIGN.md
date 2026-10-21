@@ -609,13 +609,34 @@ dashboard normal (cards zerados) mais um aviso neutro,
 atribuídos a você aparecem aqui.") — a RLS esconde os clientes dos outros, não
 há tela de "sem acesso".
 
-**Campos só do sistema no cadastro operacional (#108):** o status DAS "Enviado" e a
-"Data de envio" nascem da entrega automática, não da digitação. "Enviado" não é
-opção do `Select` do DAS; só aparece enquanto o DAS **salvo** já está enviado, para
-exibir o valor atual. A "Data de envio" é o `Input type="date"` `readOnly`, `aria-readonly="true"`
-e `disabled`; o `Select` do DAS fica `disabled` quando o status salvo já é "Enviado". Os dois
-aparecem com o esmaecimento e o cursor `not-allowed` de qualquer campo desativado (como Empresa,
-CNPJ e Regime), para o usuário entender que não se alteram. Salvar preserva os valores.
+**Campos só do sistema e campo travado no cadastro operacional (#108):**
+
+- O DAS "Enviado" e a "Data de envio" vêm da entrega automática, não da digitação.
+  "Enviado" só é opção enquanto o DAS **salvo** já está enviado, e então o `Select` fica
+  `disabled`. A data é sempre `Input type="date"` com `readOnly` e `disabled`, vazia até o envio.
+- Travado é **esmaecido**, como todo campo desativado: `disabled:opacity-50` e cursor
+  `not-allowed` padrão de `Input` e `Select`, sem sobrescrita. Vale para Empresa, CNPJ, Regime e
+  Responsável (os rótulos têm `htmlFor`), para o DAS já enviado e para a Data de envio. **Decisão de
+  21/10/2026, revoga a de manter o travado em cor plena** (`TRAVADO`/`VALORES_LEGIVEIS`, removidos):
+  o esmaecimento é o sinal de "não editável". Só o campo que confirma a única escolha possível
+  (Papel/Setor do cadastro de usuário, #32) segue em cor plena. `disabled` é decisão do produto: o
+  valor segue no formulário, que lê o estado do React Hook Form; o custo é o campo sair da
+  tabulação e do leitor de tela.
+- Como o esmaecido não diz *por que* o campo está travado, cada campo do sistema traz uma nota
+  (`ajuda`, ligada por `aria-describedby`): "Definido pelo sistema." no DAS enviado e "Preenchida
+  pelo sistema quando o DAS é enviado." na data, o que também explica por que ela está vazia antes
+  do envio.
+- Na visualização ("Visualizar cadastro operacional") o `fieldset disabled` esmaece todos os campos
+  (e o salvar em andamento também esmaece, sem distinção). Não há "Adicionar contato" nem "Remover
+  contato" (`onRemover` do `LinhaDeContato` é opcional). Checkbox desativado segue no cinza do
+  navegador, mas marcado e desmarcado se distinguem.
+- O formulário vem oculto (`rc-oculto-ate-hidratar`) no servidor e na hidratação
+  (`useSyncExternalStore`): os campos não controlados só recebem os valores no cliente, e sem isso
+  apareceriam "Não definido" e `dd/mm/aaaa` no lugar do dado por um instante. Se o React nunca
+  hidratar (script que falhou), a classe revela o formulário após 3 s, em vez de deixá-lo invisível.
+  Medido em build de produção (rede de 1,6 Mbps com 150 ms, CPU 4× mais lenta, 8 execuções
+  intercaladas): com e sem a ocultação o formulário aparece no mesmo tempo, dentro da variação
+  (cache frio 2,54 s contra 2,62 s; quente 0,93 s contra 0,94 s), e o LCP não muda.
 
 **Campo Responsável no cadastro operacional (#65):** fica no cabeçalho de
 identidade do formulário, não no fim — a linha Empresa · CNPJ · Regime ·

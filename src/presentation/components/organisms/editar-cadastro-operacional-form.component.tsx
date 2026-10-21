@@ -16,6 +16,7 @@ import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
 import { Textarea } from "@/presentation/components/ui/textarea";
 import { formatarTelefone } from "@/presentation/lib/telefone-mask";
+import { cn } from "@/presentation/lib/utils";
 import { DAS_STATUS_LABEL, DAS_STATUSES, type DasStatusValor } from "@/shared/kernel/das-status";
 import {
   DOCUMENTO_OBRIGATORIO_STATUS_LABEL,
@@ -90,6 +91,9 @@ type EditarCadastroOperacionalFormProps = {
   dasEnviadoPeloSistema: boolean;
   erroServidor?: string;
   sucesso?: boolean;
+  // Até hidratar, os campos (não controlados) ainda não têm os valores: o HTML do servidor mostraria
+  // placeholders no lugar do dado. Oculto sem sair do layout (e revelado após 3 s se a hidratação falhar), aparece já preenchido.
+  oculto?: boolean;
   // Lista de campos do useFieldArray, montada no Container (View burra: sem hooks).
   contatos: { id: string }[];
   onAdicionarContato: () => void;
@@ -117,6 +121,7 @@ export function EditarCadastroOperacionalForm({
   dasEnviadoPeloSistema,
   erroServidor,
   sucesso,
+  oculto,
   contatos,
   onAdicionarContato,
   onRemoverContato,
@@ -129,7 +134,10 @@ export function EditarCadastroOperacionalForm({
       espaco="formulario"
       como="form"
       onSubmit={onSubmit}
-      className="rc-guilloche-frame rounded-lg border border-border bg-card p-5 shadow-sm"
+      className={cn(
+        "rc-guilloche-frame rounded-lg border border-border bg-card p-5 shadow-sm",
+        oculto && "rc-oculto-ate-hidratar",
+      )}
     >
       {!readOnly && <NotaDeObrigatorio />}
 
@@ -197,8 +205,10 @@ export function EditarCadastroOperacionalForm({
           opcoes={dasEnviadoPeloSistema ? [...OPCOES_DAS, OPCAO_DAS_ENVIADO] : OPCOES_DAS}
           placeholder="Não definido"
           className="gap-1"
-          // "Enviado" é do sistema (#108): nem o Admin troca depois que o envio foi concluído.
+          // "Enviado" é do sistema (#108): nem o Admin troca depois que o envio foi concluído. Fica
+          // esmaecido, como todo campo desativado: o esmaecimento é o sinal de não editável (DESIGN.md).
           disabled={dasEnviadoPeloSistema}
+          ajuda={dasEnviadoPeloSistema ? "Definido pelo sistema." : undefined}
           {...register("dasStatus")}
         />
         <CampoDeTexto
@@ -209,7 +219,7 @@ export function EditarCadastroOperacionalForm({
           readOnly
           // Só o sistema define a data: desativada, com o esmaecimento de qualquer campo travado.
           disabled
-          aria-readonly="true"
+          ajuda="Preenchida pelo sistema quando o DAS é enviado."
           {...register("dataEnvioDas")}
         />
 
@@ -257,7 +267,7 @@ export function EditarCadastroOperacionalForm({
                   padrao={register(`contatos.${indice}.padrao`)}
                   erroNome={errors.contatos?.[indice]?.nome?.message}
                   erroTelefone={errors.contatos?.[indice]?.telefone?.message}
-                  onRemover={() => onRemoverContato(indice)}
+                  onRemover={readOnly ? undefined : () => onRemoverContato(indice)}
                 />
               )}
             />
@@ -265,10 +275,12 @@ export function EditarCadastroOperacionalForm({
           {errors.contatos && typeof errors.contatos.message === "string" && (
             <FieldError>{errors.contatos.message}</FieldError>
           )}
-          <Button type="button" variant="outline" onClick={onAdicionarContato}>
-            <Plus className="size-4" aria-hidden="true" />
-            Adicionar contato
-          </Button>
+          {!readOnly && (
+            <Button type="button" variant="outline" onClick={onAdicionarContato}>
+              <Plus className="size-4" aria-hidden="true" />
+              Adicionar contato
+            </Button>
+          )}
         </Pilha>
 
         <Pilha espaco={1} className="sm:col-span-2 lg:col-span-4">

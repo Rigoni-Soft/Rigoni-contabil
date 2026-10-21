@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
@@ -53,6 +53,12 @@ export function EditarCadastroOperacionalContainer({
   const [pendente, setPendente] = useState(false);
   const [erroServidor, setErroServidor] = useState<string | undefined>();
   const [sucesso, setSucesso] = useState(false);
+  // Falso no servidor e na hidratação; verdadeiro assim que o cliente assume (snapshots do React).
+  const hidratado = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
   // Depois de salvar o cadastro e falhar só a atribuição, guarda o que
   // foi persistido (campos sem o Responsável); reenviar o mesmo formulário repete só a atribuição.
   // Se a pessoa mexer em outro campo, o retrato muda e o salvamento completo volta.
@@ -212,6 +218,7 @@ export function EditarCadastroOperacionalContainer({
       dasEnviadoPeloSistema={dados?.dasStatus === "enviado"}
       erroServidor={erroServidor}
       sucesso={sucesso}
+      oculto={!hidratado}
       contatos={fields}
       onAdicionarContato={() => append({ nome: "", telefone: "", padrao: fields.length === 0 })}
       onRemoverContato={remove}

@@ -13,7 +13,7 @@ type CampoDeTextoProps = React.ComponentProps<"input"> & {
   erro?: string;
   // Aviso que não é erro de validação (ex.: consulta pública sem confirmação): só aparece sem erro.
   aviso?: string;
-  // Dica fixa sob o campo (formato, de onde vem a sugestão); ligada ao campo por aria-describedby.
+  // Dica fixa sob o campo (por que está travado, de onde vem o valor); ligada ao campo por aria-describedby.
   ajuda?: string;
   // Classes do contêiner (espaçamento entre rótulo e campo muda por tela).
   className?: string;

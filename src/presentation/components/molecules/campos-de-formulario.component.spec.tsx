@@ -68,6 +68,19 @@ describe("CampoDeOpcoes", () => {
     expect(screen.getByLabelText("Regime")).toHaveAccessibleDescription("Escolha um regime.");
   });
 
+  it("a ajuda é a descrição do select", () => {
+    render(
+      <CampoDeOpcoes
+        id="r"
+        rotulo="Regime"
+        opcoes={[{ valor: "mei", rotulo: "MEI" }]}
+        ajuda="Definido pelo sistema."
+      />,
+    );
+
+    expect(screen.getByLabelText("Regime")).toHaveAccessibleDescription("Definido pelo sistema.");
+  });
+
   it("lista as opções e usa o placeholder desabilitado", () => {
     render(
       <CampoDeOpcoes
