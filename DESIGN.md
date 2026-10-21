@@ -854,3 +854,5 @@ ou o cliente escreve de novo.
   Responsável), depois o cartão do documento contratual e os campos operacionais em 4 colunas (Forma de
   envio, Documento recebido, DAS, Data de envio; parcelamento e atividade do mês em 2 cada); Contatos,
   Observações e as ações ocupam a linha toda. Abaixo de `lg`, 2 colunas; no celular, 1.
+- **Busca de Cliente por papel**: o Admin, ao escolher um resultado, vai à tela própria `/clientes/[id]`
+  (a única com "Anexar alteração"); Líder e Funcionário continuam no painel embutido na busca.
