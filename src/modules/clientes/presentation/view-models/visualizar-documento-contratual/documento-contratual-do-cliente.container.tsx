@@ -1,8 +1,7 @@
 "use client";
 
-import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
-import { BotaoDeLink } from "@/presentation/components/atoms/botao-de-link.component";
-import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
+import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { AvisoComAcao } from "@/presentation/components/molecules/aviso-com-acao.component";
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 
 import { useDocumentosContratuais } from "./documentos-contratuais.queries";
@@ -20,14 +19,11 @@ export function DocumentoContratualDoClienteContainer({ clienteId, documentosIni
   if (isPending) return <Caixa className="min-h-11" aria-hidden="true" />;
   if (isError) {
     return (
-      <Linha alinhar="centro" quebra espaco={2}>
-        <AvisoDeStatus
-          tipo="erro"
-          texto="Não foi possível carregar o contrato social e as alterações."
-          className="text-sm"
-        />
-        <BotaoDeLink onClick={() => void refetch()}>Tentar novamente</BotaoDeLink>
-      </Linha>
+      <AvisoComAcao
+        texto="Não foi possível carregar o contrato social e as alterações."
+        rotuloDaAcao="Tentar novamente"
+        onAcao={() => void refetch()}
+      />
     );
   }
   if (data.length === 0) return null;

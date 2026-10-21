@@ -1,10 +1,12 @@
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
+export type TipoDocumentoContratual = "contrato" | "alteracao";
+
 // Contrato social (sem nº/data) ou alteração contratual do Cliente. O caminho do objeto fica no
 // servidor: o caso de uso o descarta antes de a tela receber qualquer coisa.
 export type DocumentoContratualClienteDto = {
-  tipo: "contrato" | "alteracao";
+  tipo: TipoDocumentoContratual;
   numero: number | null;
   data: string | null;
   caminho: string;

@@ -1,9 +1,10 @@
+import type { TipoDocumentoContratual } from "@/modules/clientes/application/ports/out/documentos-contratuais-cliente.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
 // O que a tela recebe: nunca o caminho do arquivo.
 export type DocumentoContratualVisivelDto = {
-  tipo: "contrato" | "alteracao";
+  tipo: TipoDocumentoContratual;
   numero: number | null;
   data: string | null;
 };
@@ -15,7 +16,7 @@ export interface ListarDocumentosContratuaisClientePort {
 
 export type ObterLinkDocumentoContratualInput = {
   clienteId: string;
-  tipo: "contrato" | "alteracao";
+  tipo: TipoDocumentoContratual;
   numero: number | null;
 };
 

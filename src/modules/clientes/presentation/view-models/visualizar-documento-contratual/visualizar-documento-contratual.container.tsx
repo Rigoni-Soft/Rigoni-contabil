@@ -3,11 +3,7 @@
 import { VisualizarDocumentoContratual } from "@/presentation/components/organisms/visualizar-documento-contratual.component";
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 
-import {
-  chaveDoDocumento,
-  rotuloDoBotao,
-  rotuloDoDocumento,
-} from "./documentos-contratuais.presenter";
+import { paraOpcao, rotuloDoBotao } from "./documentos-contratuais.presenter";
 import { useVisualizarDocumentoContratual } from "./use-visualizar-documento-contratual.hook";
 
 // `documentos` não pode ser vazio: quem renderiza decide pela lista (sem acesso = sem botão).
@@ -15,11 +11,6 @@ type VisualizarDocumentoContratualContainerProps = {
   clienteId: string;
   documentos: DocumentoContratualVisivelDto[];
 };
-
-const paraOpcao = (documento: DocumentoContratualVisivelDto) => ({
-  valor: chaveDoDocumento(documento),
-  rotulo: rotuloDoDocumento(documento),
-});
 
 export function VisualizarDocumentoContratualContainer({
   clienteId,

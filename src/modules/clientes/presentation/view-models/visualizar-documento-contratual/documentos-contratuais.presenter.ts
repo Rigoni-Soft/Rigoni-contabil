@@ -14,6 +14,10 @@ export function rotuloDoDocumento(documento: DocumentoContratualVisivelDto): str
   return documento.data ? `${base} - ${formatarDataIso(documento.data)}` : base;
 }
 
+export function paraOpcao(documento: DocumentoContratualVisivelDto) {
+  return { valor: chaveDoDocumento(documento), rotulo: rotuloDoDocumento(documento) };
+}
+
 export function chaveDoDocumento(documento: DocumentoContratualVisivelDto): string {
   return documento.tipo === "contrato" ? "contrato" : `alteracao-${documento.numero}`;
 }

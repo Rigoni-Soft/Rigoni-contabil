@@ -2,6 +2,7 @@ import type { DocumentoContratualVisivelDto } from "@/modules/clientes/applicati
 
 import {
   chaveDoDocumento,
+  paraOpcao,
   rotuloDoBotao,
   rotuloDoDocumento,
 } from "./documentos-contratuais.presenter";
@@ -23,6 +24,13 @@ describe("documentos contratuais (presenter, #140)", () => {
     expect(rotuloDoDocumento(ALTERACAO)).toBe("Alteração nº 3 - 05/03/2025");
     expect(rotuloDoDocumento({ ...ALTERACAO, data: null })).toBe("Alteração nº 3");
     expect(rotuloDoDocumento(CONTRATO)).toBe("Contrato social");
+  });
+
+  it("opção do seletor junta a chave e o rótulo", () => {
+    expect(paraOpcao(ALTERACAO)).toEqual({
+      valor: "alteracao-3",
+      rotulo: "Alteração nº 3 - 05/03/2025",
+    });
   });
 
   it("chave é estável por documento", () => {

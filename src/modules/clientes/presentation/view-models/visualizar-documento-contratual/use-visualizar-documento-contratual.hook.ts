@@ -7,7 +7,7 @@ import { obterLinkDocumentoContratualAction } from "./visualizar-documento-contr
 
 const ERRO_ABRIR = "Não foi possível abrir o documento. Tente novamente.";
 const ERRO_ABA_BLOQUEADA =
-  "O navegador bloqueou a nova aba. Use o link abaixo, que vale 120 segundos.";
+  "O navegador bloqueou a nova aba. Use o link abaixo, que expira em poucos minutos.";
 
 // `documentos` já vem do mais recente (maior nº) para o contrato social: o primeiro é o destaque.
 export function useVisualizarDocumentoContratual(
