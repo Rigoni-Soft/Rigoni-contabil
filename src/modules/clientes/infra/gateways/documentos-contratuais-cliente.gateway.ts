@@ -50,7 +50,11 @@ export class SupabaseDocumentosContratuaisClienteGateway implements DocumentosCo
       .from(BUCKET)
       .createSignedUrl(caminho, validadeSegundos);
     if (error || !data) {
-      return err(new DocumentosContratuaisError("Não foi possível gerar o link do documento. Tente novamente."));
+      return err(
+        new DocumentosContratuaisError(
+          "Não foi possível gerar o link do documento. Tente novamente.",
+        ),
+      );
     }
     return ok(data.signedUrl);
   }

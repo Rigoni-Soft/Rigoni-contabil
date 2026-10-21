@@ -1,7 +1,4 @@
-function formatarData(iso: string): string {
-  const [ano, mes, dia] = iso.split("-");
-  return `${dia}/${mes}/${ano}`;
-}
+import { formatarDataIso } from "@/shared/kernel/data-iso";
 
 // Como cada guia do provedor fiscal é chamada ao cliente (menu da URA e Mensagem do painel).
 export const ROTULO_GUIA = {
@@ -17,6 +14,6 @@ export function descreverDocumento(documento: {
 }): string {
   if (documento.numero === null) return "Contrato social";
   return documento.data
-    ? `Alteração nº ${documento.numero} - ${formatarData(documento.data)}`
+    ? `Alteração nº ${documento.numero} - ${formatarDataIso(documento.data)}`
     : `Alteração nº ${documento.numero}`;
 }

@@ -11,9 +11,20 @@ import {
 import { useVisualizarDocumentoContratual } from "./use-visualizar-documento-contratual.hook";
 
 // `documentos` não pode ser vazio: quem renderiza decide pela lista (sem acesso = sem botão).
-type Props = { clienteId: string; documentos: DocumentoContratualVisivelDto[] };
+type VisualizarDocumentoContratualContainerProps = {
+  clienteId: string;
+  documentos: DocumentoContratualVisivelDto[];
+};
 
-export function VisualizarDocumentoContratualContainer({ clienteId, documentos }: Props) {
+const paraOpcao = (documento: DocumentoContratualVisivelDto) => ({
+  valor: chaveDoDocumento(documento),
+  rotulo: rotuloDoDocumento(documento),
+});
+
+export function VisualizarDocumentoContratualContainer({
+  clienteId,
+  documentos,
+}: VisualizarDocumentoContratualContainerProps) {
   const { selecionado, selecionar, abrir, abrindo, erro, linkAlternativo } =
     useVisualizarDocumentoContratual(clienteId, documentos);
 
@@ -21,8 +32,8 @@ export function VisualizarDocumentoContratualContainer({ clienteId, documentos }
     <VisualizarDocumentoContratual
       painelId={`documentos-contratuais-${clienteId}`}
       rotuloDoBotao={rotuloDoBotao(documentos)}
-      opcoes={documentos.map((d) => ({ valor: chaveDoDocumento(d), rotulo: rotuloDoDocumento(d) }))}
-      selecionado={{ valor: chaveDoDocumento(selecionado), rotulo: rotuloDoDocumento(selecionado) }}
+      opcoes={documentos.map(paraOpcao)}
+      selecionado={paraOpcao(selecionado)}
       onSelecionar={selecionar}
       onAbrir={() => void abrir()}
       abrindo={abrindo}
