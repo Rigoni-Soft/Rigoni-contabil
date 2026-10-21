@@ -105,24 +105,31 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await expect(page.getByRole("button", { name: "Salvar" })).not.toBeVisible();
   });
 
-  test("Contrato social nunca aparece nesta tela, pra nenhum perfil", async ({ page }) => {
+  test("Contrato social só tem botão para quem pode vê-lo (#140)", async ({ page }) => {
     const cnpjDigits = await criarClienteComoAdmin(page, "Cadastro Operacional Contrato E2E Ltda");
     const clienteId = await buscarClienteIdPorCnpj(cnpjDigits);
+    const botao = page.getByRole("button", { name: "Visualizar contrato social" });
 
     await page.goto(`/clientes/${clienteId}`);
-    await expect(page.getByText(/contrato social/i)).not.toBeVisible();
+    await expect(botao).toBeVisible();
 
     await logout(page);
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");
     // Simples Nacional é a página principal do próprio setor.
     await expect(page).toHaveURL("/simples-nacional");
+    // Não é Responsável deste Cliente: nem a tela abre.
     await page.goto(`/clientes/${clienteId}`);
-    await expect(page.getByText(/contrato social/i)).not.toBeVisible();
+    await expect(page).toHaveURL("/simples-nacional");
+    await expect(botao).toBeHidden();
 
     await logout(page);
     await login(page, "funcionario.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
+    // Outro Setor vê o cadastro só para leitura, sem acesso ao contrato.
     await page.goto(`/clientes/${clienteId}`);
-    await expect(page.getByText(/contrato social/i)).not.toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Visualizar cadastro operacional" }),
+    ).toBeVisible();
+    await expect(botao).toBeHidden();
   });
 });

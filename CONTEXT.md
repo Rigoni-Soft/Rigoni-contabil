@@ -44,7 +44,7 @@ O regime tributário do Cliente — Simples Nacional, Lucro Presumido, Lucro Rea
 _Avoid_: Regime de atendimento (não é isso).
 
 **Cadastro operacional**:
-O conjunto de campos que o Funcionário do Simples Nacional mantém atualizado por Cliente — forma de envio, Contatos, documento recebido, DAS, Parcelamento, Atividade do mês, observações gerais (#34). Nasce automaticamente quando o Cliente é cadastrado com Regime Simples Nacional ou MEI (#33), com os campos de status em suas opções negativa/pendente por padrão (documento recebido = negativo; DAS e Parcelamento = pendente) até o Funcionário atualizar de verdade — nunca fica em branco esperando o primeiro acesso. Outros Setores só visualizam; nunca inclui contrato social/alterações contratuais, mesmo pro próprio Funcionário do Simples Nacional.
+O conjunto de campos que o Funcionário do Simples Nacional mantém atualizado por Cliente — forma de envio, Contatos, documento recebido, DAS, Parcelamento, Atividade do mês, observações gerais (#34). Nasce automaticamente quando o Cliente é cadastrado com Regime Simples Nacional ou MEI (#33), com os campos de status em suas opções negativa/pendente por padrão (documento recebido = negativo; DAS e Parcelamento = pendente) até o Funcionário atualizar de verdade — nunca fica em branco esperando o primeiro acesso. Outros Setores só visualizam; nunca inclui contrato social/alterações contratuais (estes só se abrem pelo botão de visualização, para Admin, Líder do Simples Nacional e Responsável do Cliente — #140).
 _Avoid_: Cadastro do cliente (ambíguo com o cadastro básico do #33 — Empresa/CNPJ/Regime/documentos jurídicos).
 
 **Responsável**:
