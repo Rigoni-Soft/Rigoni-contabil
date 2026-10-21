@@ -15,6 +15,7 @@ import { Button } from "@/presentation/components/ui/button";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
 import { Textarea } from "@/presentation/components/ui/textarea";
+import { TRAVADO, VALORES_LEGIVEIS } from "@/presentation/lib/campo-travado";
 import { formatarTelefone } from "@/presentation/lib/telefone-mask";
 import { cn } from "@/presentation/lib/utils";
 import { DAS_STATUS_LABEL, DAS_STATUSES, type DasStatusValor } from "@/shared/kernel/das-status";
@@ -43,13 +44,6 @@ const OPCOES_DAS = opcoes(
   DAS_STATUS_LABEL,
 );
 const OPCAO_DAS_ENVIADO = { valor: "enviado", rotulo: DAS_STATUS_LABEL.enviado };
-// Campo travado mostra um valor que não se edita: segue na cor plena, sem a opacidade de
-// desabilitado (DESIGN.md). Vale para a identidade do Cliente e para o DAS/data do sistema.
-const TRAVADO = "disabled:opacity-100";
-// Na visualização (readOnly) o `fieldset disabled` apagaria os valores, que são o conteúdo da
-// tela: campos de valor seguem na cor plena; botões continuam esmaecidos (não há o que acionar).
-const VALORES_LEGIVEIS =
-  "[&_input:disabled]:opacity-100 [&_select:disabled]:opacity-100 [&_textarea:disabled]:opacity-100";
 const OPCOES_PARCELAMENTO = opcoes(PARCELAMENTO_STATUSES, PARCELAMENTO_STATUS_LABEL);
 
 // View global não importa módulos (arquitetura.md §3.4) — o shape espelha
