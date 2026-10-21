@@ -113,6 +113,8 @@ export function EditarCadastroOperacionalContainer({
     // try/finally: rejeição de transporte da Server Action não pode deixar o
     // botão preso em "Salvando...".
     try {
+      // O Responsável é salvo à parte: fica fora do retrato que decide se o cadastro mudou.
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { responsavelId: _responsavelId, ...cadastro } = valores;
       const retrato = JSON.stringify(cadastro);
       if (cadastroSalvo !== retrato) {
