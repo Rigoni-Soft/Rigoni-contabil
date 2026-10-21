@@ -178,6 +178,8 @@ export function EditarCadastroOperacionalForm({
           opcoes={dasEnviadoPeloSistema ? [...OPCOES_DAS, OPCAO_DAS_ENVIADO] : OPCOES_DAS}
           placeholder="Não definido"
           className="gap-1"
+          // "Enviado" é do sistema (#108): nem o Admin troca depois que o envio foi concluído.
+          disabled={dasEnviadoPeloSistema}
           {...register("dasStatus")}
         />
         <CampoDeTexto
@@ -186,6 +188,7 @@ export function EditarCadastroOperacionalForm({
           type="date"
           className="gap-1"
           readOnly
+          disabled
           aria-readonly="true"
           {...register("dataEnvioDas")}
         />

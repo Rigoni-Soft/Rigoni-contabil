@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
 import { expect, test } from "./fixtures";
+import { adminLocal } from "./support/admin-local";
 import {
   atribuirResponsavelComoLider,
   criarClienteComoAdmin,
@@ -65,6 +66,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     // "Enviado" e a data de envio são só do sistema (#108).
     await expect(page.getByLabel("DAS").getByRole("option", { name: "Enviado" })).toHaveCount(0);
     await expect(page.getByLabel("Data de envio")).toHaveAttribute("readonly", "");
+    await expect(page.getByLabel("Data de envio")).toBeDisabled();
     await page.getByLabel("DAS").selectOption("pronto");
     await page.getByRole("checkbox", { name: "Comércio" }).check();
     await page.getByLabel("Observações gerais").fill("Observação de teste E2E.");
@@ -85,6 +87,39 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await expect(page.getByLabel("DAS")).toHaveValue("pronto");
     await expect(page.getByRole("checkbox", { name: "Comércio" })).toBeChecked();
     await expect(page.getByLabel("Observações gerais")).toHaveValue("Observação de teste E2E.");
+  });
+
+  test("DAS já enviado pelo sistema: DAS e data ficam desativados e o salvar preserva os dois", async ({
+    page,
+  }) => {
+    const cnpjDigits = await criarClienteComoAdmin(page, "Cadastro DAS Enviado E2E Ltda");
+    const clienteId = await buscarClienteIdPorCnpj(cnpjDigits);
+    await atribuirResponsavelComoLider(cnpjDigits);
+    // Quem grava "enviado" e a data é o sistema (job, sem sessão): aqui, a chave de serviço.
+    const { error } = await adminLocal()
+      .from("cliente_cadastro_operacional_sn")
+      .update({ das_status: "enviado", data_envio_das: "2026-10-05" })
+      .eq("cliente_id", clienteId);
+    if (error) throw new Error(`Falha ao simular o envio do DAS: ${error.message}`);
+
+    await logout(page);
+    await login(page, "funcionario.sn@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL("/simples-nacional");
+    await page.goto(`/clientes/${clienteId}`);
+
+    await expect(page.getByLabel("DAS")).toHaveValue("enviado");
+    await expect(page.getByLabel("DAS")).toBeDisabled();
+    await expect(page.getByLabel("Data de envio")).toHaveValue("2026-10-05");
+    await expect(page.getByLabel("Data de envio")).toBeDisabled();
+
+    await page.getByLabel("Observações gerais").fill("Edição com DAS já enviado.");
+    await page.getByRole("button", { name: "Salvar" }).click();
+    await expect(page).toHaveURL("/simples-nacional");
+
+    await page.goto(`/clientes/${clienteId}`);
+    await expect(page.getByLabel("Observações gerais")).toHaveValue("Edição com DAS já enviado.");
+    await expect(page.getByLabel("DAS")).toHaveValue("enviado");
+    await expect(page.getByLabel("Data de envio")).toHaveValue("2026-10-05");
   });
 
   test("Funcionário de outro Setor só visualiza: campos desabilitados e sem botão Salvar", async ({
