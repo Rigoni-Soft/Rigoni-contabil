@@ -396,7 +396,7 @@ describe("CriarClienteContainer", () => {
     expect(screen.getByLabelText(/^Empresa/)).toHaveValue("");
   });
 
-  it("'Limpar' zera campos, alterações e erros sem cadastrar", async () => {
+  it("'Limpar' pede confirmação e, confirmado, zera campos, alterações e erros sem cadastrar", async () => {
     const usuario = userEvent.setup();
     render(<CriarClienteContainer />);
 
@@ -408,6 +408,7 @@ describe("CriarClienteContainer", () => {
     expect(await screen.findAllByRole("alert")).not.toHaveLength(0);
 
     await usuario.click(screen.getByRole("button", { name: "Limpar" }));
+    await usuario.click(screen.getByRole("button", { name: "Sim, limpar" }));
 
     expect(screen.getByLabelText(/^CNPJ/)).toHaveValue("");
     expect(screen.getByLabelText(/^Regime/)).toHaveValue("");
@@ -415,5 +416,29 @@ describe("CriarClienteContainer", () => {
     expect(screen.queryByLabelText("Nº da alteração 1")).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(executeMock).not.toHaveBeenCalled();
+  });
+
+  it("'Voltar' na confirmação do Limpar mantém tudo o que foi preenchido", async () => {
+    const usuario = userEvent.setup();
+    render(<CriarClienteContainer />);
+    await preencherCamposObrigatorios(usuario);
+
+    await usuario.click(screen.getByRole("button", { name: "Limpar" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Descartar tudo o que foi preenchido?");
+    expect(screen.getByRole("button", { name: "Voltar" })).toHaveFocus();
+    await usuario.click(screen.getByRole("button", { name: "Voltar" }));
+
+    expect(screen.getByLabelText(/^Empresa/)).toHaveValue("Padaria Pão Quente Ltda");
+    expect(screen.getByRole("button", { name: "Cadastrar" })).toBeInTheDocument();
+  });
+
+  it("'Limpar' em formulário em branco limpa direto, sem pedir confirmação", async () => {
+    const usuario = userEvent.setup();
+    render(<CriarClienteContainer />);
+
+    await usuario.click(screen.getByRole("button", { name: "Limpar" }));
+
+    expect(screen.queryByRole("button", { name: "Sim, limpar" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Limpar" })).toBeInTheDocument();
   });
 });

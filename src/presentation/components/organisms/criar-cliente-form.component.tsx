@@ -44,8 +44,12 @@ type CriarClienteFormProps = {
   criado?: ClienteCriado;
   // Chamado ao clicar "Cadastrar outro" na tela de confirmação — mesmo padrão do formulário de usuário.
   onCadastrarNovo: () => void;
-  // "Limpar": volta o formulário todo ao estado inicial (campos, alterações, avisos e erros).
+  // "Limpar" esvazia o formulário todo (campos, alterações, avisos e erros). Com algo preenchido, pede
+  // confirmação antes: `onPedirLimpar` abre o pedido, `onLimpar` confirma e `onCancelarLimpar` desiste.
+  confirmandoLimpar: boolean;
+  onPedirLimpar: () => void;
   onLimpar: () => void;
+  onCancelarLimpar: () => void;
   // Lista de campos do useFieldArray, montada no Container (View burra: sem hooks).
   alteracoes: { id: string }[];
   onAdicionarAlteracao: () => void;
@@ -71,7 +75,10 @@ export function CriarClienteForm({
   erroServidor,
   criado,
   onCadastrarNovo,
+  confirmandoLimpar,
+  onPedirLimpar,
   onLimpar,
+  onCancelarLimpar,
   alteracoes,
   onAdicionarAlteracao,
   onRemoverAlteracao,
@@ -250,11 +257,28 @@ export function CriarClienteForm({
       {erroServidor && <FieldError>{erroServidor}</FieldError>}
 
       {/* Botões do tamanho do rótulo, à direita: esticados na largura toda viram uma faixa. */}
-      <Linha justificar="fim" espaco={2}>
-        <Button type="button" variant="destructive" onClick={onLimpar} disabled={pendente}>
-          Limpar
-        </Button>
-        <BotaoDeEnvio pendente={pendente} rotulo="Cadastrar" rotuloPendente="Cadastrando…" />
+      <Linha justificar="fim" alinhar="centro" espaco={2} quebra>
+        {confirmandoLimpar ? (
+          <>
+            <Texto variante="apoio" como="p" role="alert" className="mr-auto">
+              Descartar tudo o que foi preenchido?
+            </Texto>
+            {/* Foco inicial no "Voltar": o padrão seguro, não o destrutivo. */}
+            <Button type="button" variant="outline" onClick={onCancelarLimpar} autoFocus>
+              Voltar
+            </Button>
+            <Button type="button" variant="destructive" onClick={onLimpar}>
+              Sim, limpar
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button type="button" variant="destructive" onClick={onPedirLimpar} disabled={pendente}>
+              Limpar
+            </Button>
+            <BotaoDeEnvio pendente={pendente} rotulo="Cadastrar" rotuloPendente="Cadastrando…" />
+          </>
+        )}
       </Linha>
     </Pilha>
   );

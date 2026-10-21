@@ -33,6 +33,7 @@ export function CriarClienteContainer() {
   const [criado, setCriado] = useState<ClienteCriado | undefined>();
   const [avisoCnpj, setAvisoCnpj] = useState<string | undefined>();
   const [avisoRegime, setAvisoRegime] = useState<string | undefined>();
+  const [confirmandoLimpar, setConfirmandoLimpar] = useState(false);
   const { consultar: consultarCnpj } = useConsultarCnpj();
 
   const {
@@ -44,7 +45,7 @@ export function CriarClienteContainer() {
     setValue,
     setError,
     trigger,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<CriarClienteFormValues>({
     resolver: zodResolver(criarClienteSchema),
     defaultValues: { alteracoesContratuais: [] },
@@ -60,10 +61,18 @@ export function CriarClienteContainer() {
 
   // Zera tudo, inclusive o que não é campo: erro do servidor e avisos da consulta de CNPJ.
   const aoLimpar = () => {
+    setConfirmandoLimpar(false);
     setErroServidor(undefined);
     setAvisoCnpj(undefined);
     setAvisoRegime(undefined);
     reset();
+  };
+
+  // Formulário em branco limpa direto; com algo preenchido (campo ou alteração), pede confirmação,
+  // porque o clique descarta arquivos escolhidos e não dá para desfazer.
+  const aoPedirLimpar = () => {
+    if (isDirty || fields.length > 0) setConfirmandoLimpar(true);
+    else aoLimpar();
   };
 
   const aoAdicionarAlteracao = () => {
@@ -139,6 +148,7 @@ export function CriarClienteContainer() {
   const aoAlterarEmpresa = () => setAvisoCnpj(undefined);
 
   const aoSubmeter = handleSubmit(async (valores) => {
+    setConfirmandoLimpar(false);
     setPendente(true);
     setErroServidor(undefined);
 
@@ -176,7 +186,10 @@ export function CriarClienteContainer() {
       erroServidor={erroServidor}
       criado={criado}
       onCadastrarNovo={aoCadastrarNovo}
+      confirmandoLimpar={confirmandoLimpar}
+      onPedirLimpar={aoPedirLimpar}
       onLimpar={aoLimpar}
+      onCancelarLimpar={() => setConfirmandoLimpar(false)}
       alteracoes={fields}
       onAdicionarAlteracao={aoAdicionarAlteracao}
       onRemoverAlteracao={remove}

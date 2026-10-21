@@ -138,7 +138,7 @@ export function EditarCadastroOperacionalForm({
         <Grade colunas="1>2>cabecalho" espaco={4}>
           <Pilha espaco={1}>
             <Label>Empresa</Label>
-            <Input value={cabecalho.empresa} disabled readOnly />
+            <Input value={cabecalho.empresa} title={cabecalho.empresa} disabled readOnly />
           </Pilha>
           <Pilha espaco={1}>
             <Label>CNPJ</Label>
@@ -218,7 +218,7 @@ export function EditarCadastroOperacionalForm({
 
         <Pilha espaco={1} className="lg:col-span-2">
           <Label>Atividade do mês</Label>
-          <Linha espaco={4} className="text-sm">
+          <Linha espaco={4} quebra className="text-sm">
             <CaixaDeMarcacao rotulo="Indústria" {...register("atividadeMes.industria")} />
             <CaixaDeMarcacao rotulo="Comércio" {...register("atividadeMes.comercio")} />
             <CaixaDeMarcacao rotulo="Serviço" {...register("atividadeMes.servico")} />

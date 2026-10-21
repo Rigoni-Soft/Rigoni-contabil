@@ -848,7 +848,10 @@ fixos, campo travado em cor plena, diálogo e lista das alterações); onde há 
   tem o tamanho do rótulo e fica à direita.
 - **Limpar (cadastro de Cliente)**: botão `destructive` à esquerda de "Cadastrar". Ao contrário do
   "Limpar" da edição (que volta ao valor do servidor), este **esvazia tudo**: campos, contrato,
-  alterações, avisos da consulta de CNPJ e erro do servidor, sem cadastrar nem confirmar.
+  alterações, avisos da consulta de CNPJ e erro do servidor, sem cadastrar. **Com algo preenchido
+  pede confirmação** inline: a linha dos botões troca por "Descartar tudo o que foi preenchido?"
+  (`role="alert"`) com "Voltar" (foco inicial, o lado seguro) e "Sim, limpar"; formulário em branco
+  limpa direto. Enviar cancela o pedido.
 - **Teto de arquivos**: a soma de contrato e alterações vai numa só Server Action e o Next corta
   em 11 MB (`bodySizeLimit`); o schema barra acima de 10 MB com "Os arquivos somam mais de 10 MB"
   (hoje ancorado no campo Contrato social).
@@ -871,6 +874,10 @@ fixos, campo travado em cor plena, diálogo e lista das alterações); onde há 
 - **Busca de Cliente por papel**: o Admin, ao escolher um resultado, vai à tela própria
   `/clientes/[id]` (a única com "Anexar alteração"); Líder e Funcionário continuam no painel
   embutido na busca.
+- **Campos longos e telas estreitas (harden)**: Empresa desativada traz o nome inteiro em `title`
+  (o campo trunca); "Atividade do mês" quebra de linha em vez de vazar a 320 px. Medido em 320 px e
+  1440 px com nome de empresa de 250+ caracteres e emoji: sem rolagem horizontal no cadastro nem na
+  edição.
 - **Editar cadastro operacional em 4 colunas**: cabeçalho (Empresa, CNPJ, Regime, Responsável),
   cartão do documento, e Forma de envio, Documento recebido, DAS, Data de envio na mesma linha;
   parcelamento e atividade do mês em 2 colunas cada; Contatos, Observações e as ações na linha
