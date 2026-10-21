@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
 
 import type {
   DocumentoContratualClienteDto,
@@ -8,6 +9,16 @@ import { AppError } from "@/shared/errors/app.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 const BUCKET = "documentos-clientes";
+
+// Row da RPC: falha alto se o banco divergir (arquitetura.md §3.9).
+const rowSchema = z.array(
+  z.object({
+    tipo: z.enum(["contrato", "alteracao"]),
+    numero: z.number().int().nullable(),
+    data: z.string().nullable(),
+    caminho: z.string().min(1),
+  }),
+);
 
 class DocumentosContratuaisError extends AppError {
   readonly code = "DOCUMENTOS_CONTRATUAIS_ERROR";
@@ -24,7 +35,11 @@ export class SupabaseDocumentosContratuaisClienteGateway implements DocumentosCo
     if (error) {
       return err(new DocumentosContratuaisError("Falha ao consultar os documentos do Cliente."));
     }
-    return ok(data as DocumentoContratualClienteDto[]);
+    const linhas = rowSchema.safeParse(data);
+    if (!linhas.success) {
+      return err(new DocumentosContratuaisError("Resposta inesperada ao consultar os documentos."));
+    }
+    return ok(linhas.data);
   }
 
   async linkTemporario(
