@@ -87,7 +87,7 @@ const COLUNAS = {
   rotuloValor: "grid-cols-[auto_1fr]",
   "1>rotulo-valor": "grid-cols-1 sm:grid-cols-[12rem_1fr]",
   // cabeçalho do cadastro: empresa larga, CNPJ, regime, responsável
-  "1>2>cabecalho": "grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1.5fr]",
+  "1>2>cabecalho": "grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.6fr_1.2fr_1.2fr_2fr]",
 } as const;
 
 type GradeProps<T extends ElementType> = CaixaProps<T> & {

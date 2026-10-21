@@ -126,10 +126,10 @@ export function EditarCadastroOperacionalForm({
 }: EditarCadastroOperacionalFormProps) {
   return (
     <Pilha
-      espaco={6}
+      espaco="formulario"
       como="form"
       onSubmit={onSubmit}
-      className="rc-guilloche-frame rounded-lg border border-border bg-card p-6 shadow-sm"
+      className="rc-guilloche-frame rounded-lg border border-border bg-card p-5 shadow-sm"
     >
       {!readOnly && <NotaDeObrigatorio />}
 
@@ -164,7 +164,7 @@ export function EditarCadastroOperacionalForm({
         {documentoContratual}
       </Pilha>
 
-      <Grade colunas="1>2" como="fieldset" disabled={readOnly || pendente} className="gap-6">
+      <Grade colunas="1>2>4" como="fieldset" disabled={readOnly || pendente} className="gap-4">
         <CampoDeOpcoes
           id="formaEnvio"
           rotulo="Forma de envio"
@@ -198,7 +198,7 @@ export function EditarCadastroOperacionalForm({
           {...register("dataEnvioDas")}
         />
 
-        <Pilha espaco={1}>
+        <Pilha espaco={1} className="lg:col-span-2">
           <CaixaDeMarcacao rotulo="Tem parcelamento" {...register("temParcelamento")} />
           {temParcelamento && (
             <CampoDeOpcoes
@@ -212,7 +212,7 @@ export function EditarCadastroOperacionalForm({
           )}
         </Pilha>
 
-        <Pilha espaco={1}>
+        <Pilha espaco={1} className="lg:col-span-2">
           <Label>Atividade do mês</Label>
           <Linha espaco={4} className="text-sm">
             <CaixaDeMarcacao rotulo="Indústria" {...register("atividadeMes.industria")} />
@@ -221,7 +221,7 @@ export function EditarCadastroOperacionalForm({
           </Linha>
         </Pilha>
 
-        <Pilha espaco={3} className="sm:col-span-2">
+        <Pilha espaco={3} className="sm:col-span-2 lg:col-span-4">
           <Label className="block">Contatos</Label>
           {contatos.map((campo, indice) => (
             <Controller
@@ -256,9 +256,9 @@ export function EditarCadastroOperacionalForm({
           </Button>
         </Pilha>
 
-        <Pilha espaco={1} className="sm:col-span-2">
+        <Pilha espaco={1} className="sm:col-span-2 lg:col-span-4">
           <Label htmlFor="observacoesGerais">Observações gerais</Label>
-          <Textarea id="observacoesGerais" {...register("observacoesGerais")} rows={4} />
+          <Textarea id="observacoesGerais" {...register("observacoesGerais")} rows={3} />
         </Pilha>
 
         {!readOnly && (

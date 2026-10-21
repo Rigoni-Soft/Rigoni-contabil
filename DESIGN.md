@@ -849,3 +849,8 @@ ou o cliente escreve de novo.
   escolha: ícone, "Contrato social e alterações", o documento mais recente (alteração de maior nº, ou o
   contrato social) e, à direita, o botão verde (`default`) "Abrir em nova aba", que abre o arquivo no
   primeiro clique. Enquanto carrega, reserva `min-h-20`.
+- **Editar cadastro operacional compacto**: a tela própria do Cliente usa a largura `cadastro`
+  (`max-w-4xl`), como o cadastro de Cliente. Cabeçalho em 4 colunas (Empresa, CNPJ, Regime,
+  Responsável), depois o cartão do documento contratual e os campos operacionais em 4 colunas (Forma de
+  envio, Documento recebido, DAS, Data de envio; parcelamento e atividade do mês em 2 cada); Contatos,
+  Observações e as ações ocupam a linha toda. Abaixo de `lg`, 2 colunas; no celular, 1.

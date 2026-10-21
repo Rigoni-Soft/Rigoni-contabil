@@ -23,7 +23,7 @@ export function EditarCadastroOperacionalPage({
   return (
     <TelaDeTrabalhoTemplate
       header={header}
-      largura="conteudo"
+      largura="cadastro"
       cabecalho={<CabecalhoDeTela voltarHref={voltarHref} titulo={titulo} />}
       conteudo={
         <Pilha espaco={6}>
