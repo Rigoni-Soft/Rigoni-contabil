@@ -89,7 +89,8 @@ export function LinhaDeAlteracao({
           {erroData && <FieldError id={idErroData}>{erroData}</FieldError>}
         </Pilha>
 
-        <Pilha espaco="campo">
+        {/* Arquivo ocupa a linha inteira: nº e data pareados em cima, o nome do arquivo respira embaixo. */}
+        <Pilha espaco="campo" className="sm:col-span-2">
           <Label htmlFor={idArquivo}>{`Arquivo da alteração ${indice + 1}`}</Label>
           {arquivo}
           {erroArquivo && <FieldError id={idErroArquivo}>{erroArquivo}</FieldError>}
