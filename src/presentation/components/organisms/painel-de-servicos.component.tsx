@@ -8,6 +8,7 @@ import { TituloDoGrupo } from "@/presentation/components/atoms/titulo-de-grupo.c
 import { CampoSelect } from "@/presentation/components/molecules/campo-select.component";
 import { Button } from "@/presentation/components/ui/button";
 
+const NOTA_EM_CONSTRUCAO = "servicos-em-construcao";
 const SERVICOS_EM_CONSTRUCAO = ["Guia de imposto", "Guia de parcelamento", "CND"];
 
 type PainelDeServicosProps = {
@@ -57,13 +58,15 @@ export function PainelDeServicos({
                 size="sm"
                 className="h-auto min-h-10 justify-start py-1.5 text-left leading-tight whitespace-normal pointer-coarse:min-h-11"
                 disabled
-                title="Em construção"
+                aria-describedby={NOTA_EM_CONSTRUCAO}
               >
                 {rotulo}
               </Button>
             ))}
           </Grade>
-          <Texto variante="nota">Guias e CND: em construção.</Texto>
+          <Texto variante="nota" id={NOTA_EM_CONSTRUCAO}>
+            Guias e CND: em construção.
+          </Texto>
           {!contrato && <Texto variante="nota">Contrato social não cadastrado.</Texto>}
           <Pilha
             espaco={2}

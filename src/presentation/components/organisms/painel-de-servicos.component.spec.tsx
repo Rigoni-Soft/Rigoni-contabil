@@ -8,13 +8,13 @@ const BASE = {
   servicos: [
     { valor: "contrato", rotulo: "Contrato social", grupo: "contrato" as const },
     {
-      valor: "alteracao:2026-03-01",
-      rotulo: "Alteração de 01/03/2026",
+      valor: "alteracao:3",
+      rotulo: "Alteração nº 3 - 01/03/2026",
       grupo: "alteracao" as const,
     },
     {
-      valor: "alteracao:2025-01-10",
-      rotulo: "Alteração de 10/01/2025",
+      valor: "alteracao:2",
+      rotulo: "Alteração nº 2 - 10/01/2025",
       grupo: "alteracao" as const,
     },
   ],
@@ -43,18 +43,26 @@ describe("PainelDeServicos", () => {
       within(seletor)
         .getAllByRole("option")
         .map((o) => o.textContent),
-    ).toEqual(["Escolha a alteração", "Alteração de 01/03/2026", "Alteração de 10/01/2025"]);
-    await usuario.selectOptions(seletor, "alteracao:2025-01-10");
+    ).toEqual([
+      "Escolha a alteração",
+      "Alteração nº 3 - 01/03/2026",
+      "Alteração nº 2 - 10/01/2025",
+    ]);
+    await usuario.selectOptions(seletor, "alteracao:2");
     await usuario.click(screen.getByRole("button", { name: "Enviar alteração" }));
 
-    expect(aoEnviar).toHaveBeenCalledWith("alteracao:2025-01-10");
+    expect(aoEnviar).toHaveBeenCalledWith("alteracao:2");
   });
 
   it("guia de imposto, de parcelamento e CND aparecem desabilitados enquanto a URA não os tem", () => {
     render(<PainelDeServicos {...BASE} />);
 
     for (const nome of [/Guia de imposto/, /Guia de parcelamento/, /CND/]) {
-      expect(screen.getByRole("button", { name: nome })).toBeDisabled();
+      const botao = screen.getByRole("button", { name: nome });
+      expect(botao).toBeDisabled();
+      // Dica que chega a leitor de tela e toque, não só a mouse (`title`).
+      expect(botao).toHaveAccessibleDescription("Guias e CND: em construção.");
+      expect(botao).not.toHaveAttribute("title");
     }
   });
 
