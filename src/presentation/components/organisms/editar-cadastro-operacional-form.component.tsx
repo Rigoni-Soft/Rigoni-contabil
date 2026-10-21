@@ -133,33 +133,36 @@ export function EditarCadastroOperacionalForm({
     >
       {!readOnly && <NotaDeObrigatorio />}
 
-      <Grade colunas="1>2>cabecalho" espaco={4}>
-        <Pilha espaco={1}>
-          <Label>Empresa</Label>
-          <Input value={cabecalho.empresa} disabled readOnly />
-        </Pilha>
-        <Pilha espaco={1}>
-          <Label>CNPJ</Label>
-          <Input value={cabecalho.cnpj} disabled readOnly />
-        </Pilha>
-        <Pilha espaco={1}>
-          <Label>Regime</Label>
-          <Input value={REGIME_LABEL[cabecalho.regime] ?? cabecalho.regime} disabled readOnly />
-        </Pilha>
-        <CampoResponsavel
-          editavel={responsavel.editavel}
-          nomeAtual={responsavel.nomeAtual}
-          opcoes={responsavel.opcoes}
-          semResponsavel={SEM_RESPONSAVEL_LABEL}
-          estadoLista={responsavel.estadoLista}
-          onAbrir={responsavel.onAbrir}
-          onTentarNovamente={responsavel.onTentarNovamente}
-          select={register("responsavelId")}
-          desabilitado={pendente}
-        />
-      </Grade>
+      {/* Identidade do Cliente + o documento dele: um grupo (proximidade), separado do restante. */}
+      <Pilha espaco={4}>
+        <Grade colunas="1>2>cabecalho" espaco={4}>
+          <Pilha espaco={1}>
+            <Label>Empresa</Label>
+            <Input value={cabecalho.empresa} disabled readOnly />
+          </Pilha>
+          <Pilha espaco={1}>
+            <Label>CNPJ</Label>
+            <Input value={cabecalho.cnpj} disabled readOnly />
+          </Pilha>
+          <Pilha espaco={1}>
+            <Label>Regime</Label>
+            <Input value={REGIME_LABEL[cabecalho.regime] ?? cabecalho.regime} disabled readOnly />
+          </Pilha>
+          <CampoResponsavel
+            editavel={responsavel.editavel}
+            nomeAtual={responsavel.nomeAtual}
+            opcoes={responsavel.opcoes}
+            semResponsavel={SEM_RESPONSAVEL_LABEL}
+            estadoLista={responsavel.estadoLista}
+            onAbrir={responsavel.onAbrir}
+            onTentarNovamente={responsavel.onTentarNovamente}
+            select={register("responsavelId")}
+            desabilitado={pendente}
+          />
+        </Grade>
 
-      {documentoContratual}
+        {documentoContratual}
+      </Pilha>
 
       <Grade colunas="1>2" como="fieldset" disabled={readOnly || pendente} className="gap-6">
         <CampoDeOpcoes
