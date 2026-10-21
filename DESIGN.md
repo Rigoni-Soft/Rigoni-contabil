@@ -626,6 +626,9 @@ há tela de "sem acesso".
   (`useSyncExternalStore`): os campos não controlados só recebem os valores no cliente, e sem isso
   apareceriam "Não definido" e `dd/mm/aaaa` no lugar do dado por um instante. Se o React nunca
   hidratar (script que falhou), a classe revela o formulário após 3 s, em vez de deixá-lo invisível.
+  Medido em build de produção (rede de 1,6 Mbps com 150 ms, CPU 4× mais lenta, 8 execuções
+  intercaladas): com e sem a ocultação o formulário aparece no mesmo tempo, dentro da variação
+  (cache frio 2,54 s contra 2,62 s; quente 0,93 s contra 0,94 s), e o LCP não muda.
 
 **Campo Responsável no cadastro operacional (#65):** fica no cabeçalho de
 identidade do formulário, não no fim — a linha Empresa · CNPJ · Regime ·
