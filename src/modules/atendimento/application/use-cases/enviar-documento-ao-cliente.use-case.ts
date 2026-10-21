@@ -73,9 +73,12 @@ export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
     }
 
     // Antes de registrar: documento ausente, guia sem autorização fiscal ou provedor fora do ar
-    // devolvem o erro sem deixar Mensagem no Atendimento.
+    // devolvem o erro sem deixar Mensagem no Atendimento, mas a tentativa fica auditada.
     const preparado = await this.preparar(atendimento.clienteId, documento);
-    if (!preparado.ok) return preparado;
+    if (!preparado.ok) {
+      await this.auditar(ator, atendimentoId, "falha");
+      return preparado;
+    }
     const { descricao, entregar } = preparado.value;
 
     // Registro antes da entrega, sob o lock do Atendimento (ver EnviarMensagemAoCliente).
@@ -131,7 +134,12 @@ export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
     let guia;
     try {
       guia = await this.guias.buscar(clienteId, tipo);
-    } catch {
+    } catch (erro) {
+      // Só a mensagem: o objeto de erro inteiro poderia levar o CNPJ ao log.
+      console.error(
+        `Falha inesperada ao buscar a guia ${tipo}:`,
+        erro instanceof Error ? erro.message : "erro desconhecido",
+      );
       return err(new ServicoExternoError("Não foi possível buscar o documento agora."));
     }
     if (!guia.ok) return guia;

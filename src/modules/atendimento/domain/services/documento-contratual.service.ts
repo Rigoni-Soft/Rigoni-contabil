@@ -15,7 +15,8 @@ export function descreverDocumento(documento: {
   numero: number | null;
   data: string | null;
 }): string {
+  if (documento.numero === null) return "Contrato social";
   return documento.data
     ? `Alteração nº ${documento.numero} - ${formatarData(documento.data)}`
-    : "Contrato social";
+    : `Alteração nº ${documento.numero}`;
 }

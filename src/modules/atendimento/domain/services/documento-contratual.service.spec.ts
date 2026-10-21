@@ -7,4 +7,8 @@ describe("descreverDocumento", () => {
       "Alteração nº 3 - 01/03/2026",
     );
   });
+
+  it("decide pelo nº: alteração sem data não vira 'Contrato social' nem 'nº null'", () => {
+    expect(descreverDocumento({ numero: 3, data: null })).toBe("Alteração nº 3");
+  });
 });

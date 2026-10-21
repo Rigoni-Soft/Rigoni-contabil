@@ -31,7 +31,10 @@ import type {
   SessaoAtendimento,
   SessaoAtendimentoPort,
 } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
-import { descreverDocumento } from "@/modules/atendimento/domain/services/documento-contratual.service";
+import {
+  descreverDocumento,
+  ROTULO_GUIA,
+} from "@/modules/atendimento/domain/services/documento-contratual.service";
 import {
   avisoDeFechado,
   estaAbertoEm,
@@ -48,9 +51,9 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 // do provedor fiscal. "Falar com atendente" é sempre a última.
 const OPCOES_MENU: { rotulo: string; guia?: TipoGuia }[] = [
   { rotulo: "Contrato social e alterações" },
-  { rotulo: "Guia de imposto", guia: "das" },
-  { rotulo: "Guia de parcelamento", guia: "parcelamento" },
-  { rotulo: "CND", guia: "cnd" },
+  { rotulo: ROTULO_GUIA.das, guia: "das" },
+  { rotulo: ROTULO_GUIA.parcelamento, guia: "parcelamento" },
+  { rotulo: ROTULO_GUIA.cnd, guia: "cnd" },
   { rotulo: "Falar com atendente" },
 ];
 // "Falar com atendente" é sempre a última opção do menu; a constante acompanha o array.

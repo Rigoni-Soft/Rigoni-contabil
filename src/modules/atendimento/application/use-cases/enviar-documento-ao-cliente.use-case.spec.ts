@@ -167,8 +167,8 @@ describe("EnviarDocumentoAoCliente", () => {
     },
   );
 
-  it("guia sem autorização fiscal do Cliente: devolve o erro e não registra nem envia nada", async () => {
-    const { caso, enviados, registradas } = montar({ guia: "sem_autorizacao" });
+  it("guia sem autorização fiscal do Cliente: devolve o erro, audita a falha e não registra nem envia nada", async () => {
+    const { caso, enviados, registradas, auditadas } = montar({ guia: "sem_autorizacao" });
     const r = await caso.execute({
       atendimentoId: "at-1",
       documento: { tipo: "das", numero: null },
@@ -176,10 +176,12 @@ describe("EnviarDocumentoAoCliente", () => {
     expect(!r.ok && r.error.code).toBe("FORBIDDEN");
     expect(registradas).toEqual([]);
     expect(enviados).toEqual([]);
+    expect(auditadas).toEqual([expect.objectContaining({ resultado: "falha", alvo: "at-1" })]);
   });
 
-  it("falha inesperada do provedor fiscal vira erro de serviço externo, sem registrar nem enviar", async () => {
-    const { caso, enviados, registradas } = montar({ guia: "lanca" });
+  it("falha inesperada do provedor fiscal vira erro de serviço externo, é auditada e logada só com a mensagem", async () => {
+    const log = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    const { caso, enviados, registradas, auditadas } = montar({ guia: "lanca" });
     const r = await caso.execute({
       atendimentoId: "at-1",
       documento: { tipo: "cnd", numero: null },
@@ -187,6 +189,20 @@ describe("EnviarDocumentoAoCliente", () => {
     expect(!r.ok && r.error).toBeInstanceOf(ServicoExternoError);
     expect(registradas).toEqual([]);
     expect(enviados).toEqual([]);
+    expect(auditadas).toEqual([expect.objectContaining({ resultado: "falha" })]);
+    // Só a mensagem, nunca o objeto de erro (poderia levar o CNPJ ao log).
+    expect(log).toHaveBeenCalledWith("Falha inesperada ao buscar a guia cnd:", "boom");
+    log.mockRestore();
+  });
+
+  it("documento que o Cliente não tem também audita a falha", async () => {
+    const { caso, auditadas } = montar();
+    const r = await caso.execute({
+      atendimentoId: "at-1",
+      documento: { tipo: "alteracao", numero: 99 },
+    });
+    expect(!r.ok && r.error.code).toBe("NOT_FOUND");
+    expect(auditadas).toEqual([expect.objectContaining({ resultado: "falha" })]);
   });
 
   it("o Líder do Setor envia em nome do Atendimento; outro Funcionário não", async () => {
