@@ -11,16 +11,22 @@ const alteracao = (numero: number, data: string): DocumentoContratualVisivelDto 
   tipo: "alteracao",
   numero,
   data,
+  arquivo: `${numero}-alteracao.pdf`,
 });
-const CONTRATO: DocumentoContratualVisivelDto = { tipo: "contrato", numero: null, data: null };
+const CONTRATO: DocumentoContratualVisivelDto = {
+  tipo: "contrato",
+  numero: null,
+  data: null,
+  arquivo: "contrato.pdf",
+};
 
 describe("alteracoesDaLista", () => {
   it("devolve só as alterações, do maior nº para o menor, mesmo com a lista fora de ordem", () => {
     const lista = [alteracao(1, "2024-01-10"), CONTRATO, alteracao(3, "2025-03-10")];
 
     expect(alteracoesDaLista(lista)).toEqual([
-      { numero: 3, rotulo: "Alteração nº 3 - 10/03/2025" },
-      { numero: 1, rotulo: "Alteração nº 1 - 10/01/2024" },
+      { numero: 3, rotulo: "Alteração nº 3 - 10/03/2025", arquivo: "3-alteracao.pdf" },
+      { numero: 1, rotulo: "Alteração nº 1 - 10/01/2024", arquivo: "1-alteracao.pdf" },
     ]);
   });
 });

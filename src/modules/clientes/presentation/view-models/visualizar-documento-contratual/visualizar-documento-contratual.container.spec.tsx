@@ -14,9 +14,19 @@ const hook = useVisualizarDocumentoContratual as jest.MockedFunction<
 >;
 
 const CLIENTE = "11111111-1111-1111-1111-111111111111";
-const ALTERACAO = { tipo: "alteracao" as const, numero: 3, data: "2025-03-05" };
-const ALTERACAO_ANTIGA = { tipo: "alteracao" as const, numero: 1, data: "2024-01-10" };
-const CONTRATO = { tipo: "contrato" as const, numero: null, data: null };
+const ALTERACAO = {
+  tipo: "alteracao" as const,
+  numero: 3,
+  data: "2025-03-05",
+  arquivo: "3-alteracao.pdf",
+};
+const ALTERACAO_ANTIGA = {
+  tipo: "alteracao" as const,
+  numero: 1,
+  data: "2024-01-10",
+  arquivo: "1-alteracao.pdf",
+};
+const CONTRATO = { tipo: "contrato" as const, numero: null, data: null, arquivo: "contrato.pdf" };
 
 function hookDevolvendo(selecionado: DocumentoContratualVisivelDto = ALTERACAO, sobrescrever = {}) {
   const retorno = {

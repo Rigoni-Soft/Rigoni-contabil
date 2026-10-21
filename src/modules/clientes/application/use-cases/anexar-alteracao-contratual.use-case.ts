@@ -10,11 +10,14 @@ import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ValidationError } from "@/shared/errors/validation.error";
-import { ERRO_ARQUIVO_GRANDE, LIMITE_ARQUIVO_BYTES } from "@/shared/kernel/limite-arquivo";
+import {
+  ERRO_ARQUIVO_GRANDE,
+  ERRO_DATA_FUTURA,
+  LIMITE_ARQUIVO_BYTES,
+} from "@/shared/kernel/limite-arquivo";
 import { hojeIso } from "@/shared/kernel/mes-atual";
+import { podeAnexarAlteracaoContratual } from "@/shared/kernel/papeis";
 import { err, type Result } from "@/shared/kernel/result";
-
-const ERRO_DATA_FUTURA = "A data da alteração não pode ser futura.";
 
 // A auditoria de sucesso (`cliente.anexar-alteracao`) e o aviso nascem de gatilhos no banco, na
 // mesma transação do INSERT: aqui só se sobe o arquivo e, se a gravação falhar, se desfaz o upload.
@@ -27,7 +30,7 @@ export class AnexarAlteracaoContratual implements AnexarAlteracaoContratualPort 
 
   async execute(input: AnexarAlteracaoContratualInput): Promise<Result<void, AppError>> {
     const ator = await this.sessao.usuarioAtual();
-    if (!ator || ator.papel !== "admin") {
+    if (!ator || !podeAnexarAlteracaoContratual(ator.papel)) {
       return err(new ForbiddenError("Só Admin anexa alteração contratual."));
     }
 

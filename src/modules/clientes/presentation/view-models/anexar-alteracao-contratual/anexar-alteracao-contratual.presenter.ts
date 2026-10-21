@@ -1,13 +1,17 @@
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 import { formatarDataIso } from "@/shared/kernel/data-iso";
-import { divergenciaNumeroData, sugerirNumero } from "@/shared/kernel/numero-alteracao";
+import {
+  divergenciaNumeroData,
+  erroNumeroRepetidoNoCliente,
+  sugerirNumero,
+} from "@/shared/kernel/numero-alteracao";
 
-type AlteracaoComData = { numero: number; data: string };
+type AlteracaoComData = { numero: number; data: string; arquivo: string };
 
 // Só as alterações (o contrato social não tem nº/data), com o que a regra de nº precisa.
 function alteracoesComData(documentos: DocumentoContratualVisivelDto[]): AlteracaoComData[] {
-  return documentos.flatMap(({ tipo, numero, data }) =>
-    tipo === "alteracao" && numero !== null && data !== null ? [{ numero, data }] : [],
+  return documentos.flatMap(({ tipo, numero, data, arquivo }) =>
+    tipo === "alteracao" && numero !== null && data !== null ? [{ numero, data, arquivo }] : [],
   );
 }
 
@@ -15,8 +19,9 @@ function alteracoesComData(documentos: DocumentoContratualVisivelDto[]): Alterac
 export function alteracoesDaLista(documentos: DocumentoContratualVisivelDto[]) {
   return alteracoesComData(documentos)
     .sort((a, b) => b.numero - a.numero)
-    .map(({ numero, data }) => ({
+    .map(({ numero, data, arquivo }) => ({
       numero,
+      arquivo,
       rotulo: `Alteração nº ${numero} - ${formatarDataIso(data)}`,
     }));
 }
@@ -37,7 +42,7 @@ export function erroDeNumeroRepetido(
   documentos: DocumentoContratualVisivelDto[],
 ): string | null {
   return alteracoesComData(documentos).some((a) => a.numero === numero)
-    ? `Já existe a alteração nº ${numero} deste Cliente.`
+    ? erroNumeroRepetidoNoCliente(numero)
     : null;
 }
 

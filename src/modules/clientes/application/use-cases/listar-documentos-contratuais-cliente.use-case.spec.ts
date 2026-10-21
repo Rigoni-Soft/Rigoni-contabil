@@ -34,9 +34,9 @@ describe("ListarDocumentosContratuaisCliente (#140)", () => {
     expect(resultado.ok).toBe(false);
   });
 
-  it("devolve só {tipo, número, data}, na ordem do gateway", async () => {
+  it("devolve {tipo, número, data, nome do arquivo} sem o caminho, na ordem do gateway", async () => {
     const documentos: DocumentoContratualClienteDto[] = [
-      { tipo: "alteracao", numero: 3, data: "2025-03-05", caminho: "c1/alt/3.pdf" },
+      { tipo: "alteracao", numero: 3, data: "2025-03-05", caminho: "c1/alt/3-ata.pdf" },
       { tipo: "contrato", numero: null, data: null, caminho: "c1/contrato-social/a.pdf" },
     ];
 
@@ -48,8 +48,8 @@ describe("ListarDocumentosContratuaisCliente (#140)", () => {
     expect(resultado).toEqual({
       ok: true,
       value: [
-        { tipo: "alteracao", numero: 3, data: "2025-03-05" },
-        { tipo: "contrato", numero: null, data: null },
+        { tipo: "alteracao", numero: 3, data: "2025-03-05", arquivo: "ata.pdf" },
+        { tipo: "contrato", numero: null, data: null, arquivo: "a.pdf" },
       ],
     });
   });
@@ -62,7 +62,7 @@ describe("ListarDocumentosContratuaisCliente (#140)", () => {
 
     expect(resultado).toEqual({
       ok: true,
-      value: [{ tipo: "contrato", numero: null, data: null }],
+      value: [{ tipo: "contrato", numero: null, data: null, arquivo: "x.pdf" }],
     });
   });
 

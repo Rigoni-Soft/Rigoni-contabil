@@ -13,9 +13,9 @@ const acao = obterLinkDocumentoContratualAction as jest.MockedFunction<
 
 const CLIENTE = "11111111-1111-1111-1111-111111111111";
 const DOCUMENTOS = [
-  { tipo: "alteracao" as const, numero: 3, data: "2025-03-05" },
-  { tipo: "alteracao" as const, numero: 1, data: "2024-01-10" },
-  { tipo: "contrato" as const, numero: null, data: null },
+  { tipo: "alteracao" as const, numero: 3, data: "2025-03-05", arquivo: "3-alteracao.pdf" },
+  { tipo: "alteracao" as const, numero: 1, data: "2024-01-10", arquivo: "1-alteracao.pdf" },
+  { tipo: "contrato" as const, numero: null, data: null, arquivo: "contrato.pdf" },
 ];
 const FALHA = {
   ok: false as const,

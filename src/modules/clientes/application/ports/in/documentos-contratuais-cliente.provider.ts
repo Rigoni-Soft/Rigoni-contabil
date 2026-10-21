@@ -2,11 +2,12 @@ import type { TipoDocumentoContratual } from "@/modules/clientes/application/dto
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
-// O que a tela recebe: nunca o caminho do arquivo.
+// O que a tela recebe: nunca o caminho do arquivo, só o nome dele.
 export type DocumentoContratualVisivelDto = {
   tipo: TipoDocumentoContratual;
   numero: number | null;
   data: string | null;
+  arquivo: string;
 };
 
 export interface ListarDocumentosContratuaisClientePort {

@@ -28,7 +28,7 @@ describe("DocumentoContratualDoClienteContainer (#140)", () => {
   beforeEach(() => refetch.mockReset());
 
   it("com documentos, entrega a lista ao container do botão", () => {
-    estado({ data: [{ tipo: "contrato", numero: null, data: null }] });
+    estado({ data: [{ tipo: "contrato", numero: null, data: null, arquivo: "contrato.pdf" }] });
 
     render(<DocumentoContratualDoClienteContainer clienteId={CLIENTE} />);
 
@@ -36,7 +36,9 @@ describe("DocumentoContratualDoClienteContainer (#140)", () => {
   });
 
   it("repassa a carga inicial do servidor à query", () => {
-    const iniciais = [{ tipo: "contrato" as const, numero: null, data: null }];
+    const iniciais = [
+      { tipo: "contrato" as const, numero: null, data: null, arquivo: "contrato.pdf" },
+    ];
     estado({ data: iniciais });
 
     render(

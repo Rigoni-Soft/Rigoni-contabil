@@ -7,6 +7,7 @@ import { clienteDoRow, type ClienteRow } from "@/modules/clientes/infra/mappers/
 import { AppError } from "@/shared/errors/app.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
+import { erroNumeroRepetidoNoCliente } from "@/shared/kernel/numero-alteracao";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 // Lê da view `clientes_basico` (sem contrato social/alterações): quem edita o cadastro operacional
@@ -77,7 +78,7 @@ export class SupabaseClienteRepository implements ClienteRepository {
     if (error) {
       if (error.code === "23505") {
         return err(
-          new ValidationError(`Já existe a alteração nº ${alteracao.numero} deste Cliente.`, {
+          new ValidationError(erroNumeroRepetidoNoCliente(alteracao.numero), {
             numero: ["já existe"],
           }),
         );

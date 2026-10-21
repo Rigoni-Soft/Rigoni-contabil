@@ -8,11 +8,17 @@ import {
   rotuloDoDocumento,
 } from "./documentos-contratuais.presenter";
 
-const CONTRATO: DocumentoContratualVisivelDto = { tipo: "contrato", numero: null, data: null };
+const CONTRATO: DocumentoContratualVisivelDto = {
+  tipo: "contrato",
+  numero: null,
+  data: null,
+  arquivo: "contrato.pdf",
+};
 const ALTERACAO: DocumentoContratualVisivelDto = {
   tipo: "alteracao",
   numero: 3,
   data: "2025-03-05",
+  arquivo: "3-alteracao.pdf",
 };
 
 describe("documentos contratuais (presenter, #140)", () => {

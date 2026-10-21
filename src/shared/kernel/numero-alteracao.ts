@@ -41,3 +41,8 @@ export function divergenciaNumeroData(
   );
   return anteriores.length > 0 ? Math.max(...anteriores.map((outra) => outra.numero)) : null;
 }
+
+// Nº já usado por outra alteração do mesmo Cliente (tela e banco dizem a mesma frase).
+export function erroNumeroRepetidoNoCliente(numero: number): string {
+  return `Já existe a alteração nº ${numero} deste Cliente.`;
+}

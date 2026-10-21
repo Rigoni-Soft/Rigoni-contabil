@@ -13,7 +13,9 @@ const listar = listarDocumentosContratuaisAction as jest.MockedFunction<
   typeof listarDocumentosContratuaisAction
 >;
 const CLIENTE = "11111111-1111-1111-1111-111111111111";
-const DOCUMENTOS = [{ tipo: "contrato" as const, numero: null, data: null }];
+const DOCUMENTOS = [
+  { tipo: "contrato" as const, numero: null, data: null, arquivo: "contrato.pdf" },
+];
 
 function wrapper({ children }: { children: ReactNode }) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });

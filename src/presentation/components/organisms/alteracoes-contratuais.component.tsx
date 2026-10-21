@@ -19,7 +19,7 @@ type Valores = { numero: number; data: string; arquivo: File };
 type AlteracoesContratuaisProps = {
   painelId: string;
   // Do maior nº para o menor.
-  alteracoes: { numero: number; rotulo: string }[];
+  alteracoes: { numero: number; rotulo: string; arquivo: string }[];
   register: UseFormRegister<Valores>;
   control: Control<Valores>;
   errors: FieldErrors<Valores>;
@@ -61,9 +61,12 @@ export function AlteracoesContratuais({
         <Texto variante="nota">Nenhuma alteração anexada.</Texto>
       ) : (
         <ListaComDivisores cartao>
-          {alteracoes.map(({ numero, rotulo }) => (
+          {alteracoes.map(({ numero, rotulo, arquivo }) => (
             <Caixa como="li" key={numero} className="px-3 py-2 text-sm">
               {rotulo}
+              <Texto variante="nota" como="span" className="block">
+                {arquivo}
+              </Texto>
             </Caixa>
           ))}
         </ListaComDivisores>

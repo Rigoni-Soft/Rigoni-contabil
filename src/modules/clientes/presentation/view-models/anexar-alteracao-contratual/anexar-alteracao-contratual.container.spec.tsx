@@ -6,9 +6,9 @@ import { useAnexarAlteracaoContratual } from "./use-anexar-alteracao-contratual.
 jest.mock("../visualizar-documento-contratual/documentos-contratuais.queries", () => ({
   useDocumentosContratuais: () => ({
     data: [
-      { tipo: "alteracao", numero: 1, data: "2024-01-10" },
-      { tipo: "contrato", numero: null, data: null },
-      { tipo: "alteracao", numero: 3, data: "2025-03-10" },
+      { tipo: "alteracao", numero: 1, data: "2024-01-10", arquivo: "1-alteracao.pdf" },
+      { tipo: "contrato", numero: null, data: null, arquivo: "contrato.pdf" },
+      { tipo: "alteracao", numero: 3, data: "2025-03-10", arquivo: "3-alteracao.pdf" },
     ],
   }),
 }));
@@ -50,7 +50,10 @@ describe("AnexarAlteracaoContratualContainer (#141)", () => {
     expect(screen.getByRole("heading", { name: "Alterações contratuais" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Anexar alteração" })).toBeInTheDocument();
     const itens = screen.getAllByRole("listitem").map((item) => item.textContent);
-    expect(itens).toEqual(["Alteração nº 3 - 10/03/2025", "Alteração nº 1 - 10/01/2024"]);
+    expect(itens).toEqual([
+      "Alteração nº 3 - 10/03/20253-alteracao.pdf",
+      "Alteração nº 1 - 10/01/20241-alteracao.pdf",
+    ]);
   });
 
   it("mostra no diálogo o alerta de divergência e o erro do servidor", () => {
