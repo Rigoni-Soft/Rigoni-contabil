@@ -52,7 +52,7 @@ export function LinhaDeAlteracao({
         <Button
           type="button"
           variant="ghost"
-          size="sm"
+          size="icon"
           aria-label={`Remover alteração ${indice + 1}`}
           onClick={onRemover}
         >
