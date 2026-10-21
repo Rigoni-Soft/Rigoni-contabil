@@ -73,6 +73,16 @@ describe("AnexarAlteracaoContratualContainer (#141)", () => {
     ).toBeInTheDocument();
   });
 
+  it("explica no campo de nº de onde vem a sugestão", () => {
+    simularHook();
+
+    render(<AnexarAlteracaoContratualContainer clienteId={CLIENTE} />);
+
+    expect(
+      screen.getByLabelText("Nº da alteração", { selector: "input" }),
+    ).toHaveAccessibleDescription(/Sugerido pelo início do nome do arquivo/);
+  });
+
   it("durante o envio, o botão do diálogo fica desabilitado", () => {
     simularHook({ pendente: true });
 

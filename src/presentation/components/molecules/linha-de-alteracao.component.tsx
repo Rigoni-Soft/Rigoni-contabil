@@ -6,7 +6,7 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Button } from "@/presentation/components/ui/button";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
-import { NUMERO_MAXIMO } from "@/shared/kernel/numero-alteracao";
+import { AJUDA_NUMERO_ALTERACAO, NUMERO_MAXIMO } from "@/shared/kernel/numero-alteracao";
 
 // Id do alerta de erro de um campo da linha; quem monta o campo de arquivo o usa no aria-describedby.
 export const idErroDoCampo = (idDoCampo: string) => `${idDoCampo}-erro`;
@@ -79,8 +79,7 @@ export function LinhaDeAlteracao({
             {...numero}
           />
           <Texto variante="nota" id={idAjudaNumero}>
-            Sugerido pelo início do nome do arquivo (ex.: 2-alteracao.pdf) ou o próximo da
-            sequência. Pode editar.
+            {AJUDA_NUMERO_ALTERACAO}
           </Texto>
           {erroNumero && <FieldError id={idErroNumero}>{erroNumero}</FieldError>}
         </Pilha>

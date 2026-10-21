@@ -1,6 +1,7 @@
 import { Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { RequiredMark } from "@/presentation/components/atoms/required-mark.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
 
@@ -11,6 +12,8 @@ type CampoDeTextoProps = React.ComponentProps<"input"> & {
   erro?: string;
   // Aviso que não é erro de validação (ex.: consulta pública sem confirmação): só aparece sem erro.
   aviso?: string;
+  // Dica fixa sob o campo (formato, de onde vem a sugestão); ligada ao campo por aria-describedby.
+  ajuda?: string;
   // Classes do contêiner (espaçamento entre rótulo e campo muda por tela).
   className?: string;
 };
@@ -22,6 +25,7 @@ export function CampoDeTexto({
   obrigatorio,
   erro,
   aviso,
+  ajuda,
   className,
   ...props
 }: CampoDeTextoProps) {
@@ -35,8 +39,14 @@ export function CampoDeTexto({
         id={id}
         aria-required={obrigatorio ? "true" : undefined}
         aria-invalid={!!erro}
+        aria-describedby={ajuda ? `${id}-ajuda` : undefined}
         {...props}
       />
+      {ajuda && (
+        <Texto variante="nota" id={`${id}-ajuda`}>
+          {ajuda}
+        </Texto>
+      )}
       {erro && <FieldError>{erro}</FieldError>}
       {!erro && aviso && <FieldError>{aviso}</FieldError>}
     </Pilha>

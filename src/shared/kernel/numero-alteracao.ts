@@ -2,6 +2,9 @@
 // valer igual no formulário, no schema e no domínio.
 
 export const NUMERO_MAXIMO = 999_999_999;
+// Texto de ajuda do campo de nº (criação do Cliente e anexar alteração dizem a mesma coisa).
+export const AJUDA_NUMERO_ALTERACAO =
+  "Sugerido pelo início do nome do arquivo (ex.: 2-alteracao.pdf) ou o próximo da sequência. Pode editar.";
 export const ERRO_NUMERO_INVALIDO = `Informe um nº inteiro de 1 a ${NUMERO_MAXIMO}`;
 
 // Prefixo numérico do nome do arquivo ("2-alteracao.pdf" → 2). Limitado a 9 dígitos: acima disso
