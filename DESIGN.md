@@ -111,7 +111,7 @@ em monitores largos):
 - **Conteúdo/listagem** (dashboard `/`, resumo do setor e seu drill-down
   `/clientes/resumo/[bucket]`, feed de auditoria `/admin/auditoria`): `w-[90%]` — telas de trabalho
   contínuo (ver, filtrar, navegar entre registros), ocupam a maior parte da
-  largura livre da tela. A largura `formulario` (`w-[80%]`) segue no template, hoje sem uso.
+  largura livre da tela.
 - **Conversa do Atendimento** (`/atendimento/[id]`, #49): exceção à regra
   de `%`, por decisão do usuário (2026-10-08, "muito apertado no centro"):
   ocupa a tela toda, com só `px-4 sm:px-6 lg:px-8`. Em tela larga (`lg`) a
@@ -863,8 +863,7 @@ fixos, campo travado em cor plena, diálogo e lista das alterações); onde há 
   e a dica ficam `aria-hidden` (o rótulo do campo já o nomeia); só o nome do arquivo escolhido entra no
   nome acessível, por ser o estado.
 - **Falha da Server Action**: rejeição vira mensagem pela causa (`TypeError` = sem conexão;
-  `NotReadableError` = arquivo ilegível, ex.: ainda só na nuvem do OneDrive; demais = erro
-  inesperado, com o erro completo no console). O texto "verifique a conexão" não é mais o padrão
+  demais = erro inesperado, com o erro completo no console). O texto "verifique a conexão" não é mais o padrão
   para tudo.
 - **Documento contratual (#140)**: cartão fixo no formulário de editar Cliente, **sem diálogo e sem
   seletor** (revisa o diálogo com "Escolher documento"): ícone, "Contrato social e alterações", o

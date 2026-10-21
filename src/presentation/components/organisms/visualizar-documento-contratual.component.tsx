@@ -1,6 +1,7 @@
 import { ExternalLink, FileText } from "lucide-react";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
+import { BotaoAnexarAlteracao } from "@/presentation/components/atoms/botao-anexar-alteracao.component";
 import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
@@ -14,8 +15,8 @@ type VisualizarDocumentoContratualProps = {
   erro?: string;
   // Link já gerado, oferecido quando o navegador bloqueia a nova aba.
   linkAlternativo?: string;
-  // Ação extra ao lado de "Abrir em nova aba" (só o Admin: "Anexar alteração").
-  acaoExtra?: React.ReactNode;
+  // Só o Admin: id do diálogo de anexar, aberto pelo botão ao lado de "Abrir em nova aba".
+  anexarPainelId?: string;
 };
 
 // Só leitura e sem diálogo: o documento mais recente (a alteração de maior nº) já aparece na tela,
@@ -26,7 +27,7 @@ export function VisualizarDocumentoContratual({
   abrindo,
   erro,
   linkAlternativo,
-  acaoExtra,
+  anexarPainelId,
 }: VisualizarDocumentoContratualProps) {
   return (
     <Pilha espaco={2} className="rounded-md border border-border p-3">
@@ -50,7 +51,7 @@ export function VisualizarDocumentoContratual({
             <ExternalLink className="size-4" aria-hidden="true" />
             {abrindo ? "Abrindo…" : "Abrir em nova aba"}
           </Button>
-          {acaoExtra}
+          {anexarPainelId && <BotaoAnexarAlteracao painelId={anexarPainelId} />}
         </Linha>
       </Linha>
       {erro && <AvisoDeStatus tipo="erro" texto={erro} className="text-sm" />}

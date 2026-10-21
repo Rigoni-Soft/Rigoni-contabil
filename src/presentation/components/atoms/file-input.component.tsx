@@ -41,7 +41,6 @@ export function FileInput({
   return (
     <label
       htmlFor={id}
-      onDragEnter={(evento) => arrastando(evento, true)}
       onDragOver={(evento) => arrastando(evento, true)}
       onDragLeave={(evento) => arrastando(evento, false)}
       onDrop={(evento) => {
@@ -73,14 +72,10 @@ export function FileInput({
       >
         {file ? file.name : "Arraste o arquivo aqui"}
       </span>
-      <span aria-hidden="true" className="text-xs text-muted-foreground">
-        {file ? "Clique ou arraste para trocar" : "ou clique para selecionar"}
+      <span aria-hidden="true" className="contents text-xs text-muted-foreground">
+        <span>{file ? "Clique ou arraste para trocar" : "ou clique para selecionar"}</span>
+        {dica && <span>{dica}</span>}
       </span>
-      {dica && (
-        <span aria-hidden="true" className="text-xs text-muted-foreground">
-          {dica}
-        </span>
-      )}
       <input
         id={id}
         name={name}

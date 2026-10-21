@@ -35,8 +35,8 @@ type Props = {
   voltarHrefAoSalvar?: string;
   // Carga inicial do servidor (tela própria); no painel embutido da busca vem vazia e o botão lê por action.
   documentosContratuais?: DocumentoContratualVisivelDto[];
-  // Só o Admin na tela própria: id do diálogo de anexar, cujo botão fica no cartão do documento.
-  anexarPainelId?: string;
+  // Só o Admin na tela própria: o botão de anexar fica no cartão do documento.
+  podeAnexar?: boolean;
 };
 
 export function EditarCadastroOperacionalContainer({
@@ -47,7 +47,7 @@ export function EditarCadastroOperacionalContainer({
   aoSalvarComSucesso,
   voltarHrefAoSalvar,
   documentosContratuais,
-  anexarPainelId,
+  podeAnexar,
 }: Props) {
   const router = useRouter();
   const [pendente, setPendente] = useState(false);
@@ -221,7 +221,7 @@ export function EditarCadastroOperacionalContainer({
         <DocumentoContratualDoClienteContainer
           clienteId={dados.id}
           documentosIniciais={documentosContratuais}
-          anexarPainelId={anexarPainelId}
+          podeAnexar={podeAnexar}
         />
       }
     />

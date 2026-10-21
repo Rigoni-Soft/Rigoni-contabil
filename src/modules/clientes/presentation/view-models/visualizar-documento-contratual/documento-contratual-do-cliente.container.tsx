@@ -5,6 +5,7 @@ import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { AvisoComAcao } from "@/presentation/components/molecules/aviso-com-acao.component";
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 
+import { idPainelAnexar } from "../anexar-alteracao-contratual/anexar-alteracao-contratual.presenter";
 import { useDocumentosContratuais } from "./documentos-contratuais.queries";
 import { VisualizarDocumentoContratualContainer } from "./visualizar-documento-contratual.container";
 
@@ -12,13 +13,13 @@ import { VisualizarDocumentoContratualContainer } from "./visualizar-documento-c
 type Props = {
   clienteId: string;
   documentosIniciais?: DocumentoContratualVisivelDto[];
-  anexarPainelId?: string;
+  podeAnexar?: boolean;
 };
 
 export function DocumentoContratualDoClienteContainer({
   clienteId,
   documentosIniciais,
-  anexarPainelId,
+  podeAnexar,
 }: Props) {
   const { data, isPending, isError, refetch } = useDocumentosContratuais(
     clienteId,
@@ -37,13 +38,13 @@ export function DocumentoContratualDoClienteContainer({
   }
   // Sem nada a abrir, o Admin ainda precisa de como anexar a primeira alteração.
   if (data.length === 0) {
-    return anexarPainelId ? <BotaoAnexarAlteracao painelId={anexarPainelId} /> : null;
+    return podeAnexar ? <BotaoAnexarAlteracao painelId={idPainelAnexar(clienteId)} /> : null;
   }
   return (
     <VisualizarDocumentoContratualContainer
       clienteId={clienteId}
       documentos={data}
-      anexarPainelId={anexarPainelId}
+      podeAnexar={podeAnexar}
     />
   );
 }

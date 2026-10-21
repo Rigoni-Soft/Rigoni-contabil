@@ -14,15 +14,11 @@ import { useConsultarCnpj } from "./use-consultar-cnpj.hook";
 
 type ClienteCriado = { empresa: string; cnpj: string };
 
-// A Server Action rejeitou em vez de devolver um erro de domínio: diz qual das causas é, em vez de
-// culpar sempre a conexão. Só `TypeError` (fetch que não saiu) é de rede; arquivo que o navegador
-// não consegue ler (alterado ou ainda só na nuvem do OneDrive) é `NotReadableError`.
+// A Server Action rejeitou em vez de devolver um erro de domínio: só `TypeError` (o fetch que não
+// saiu) é de rede; o resto é erro do servidor, em vez de culpar sempre a conexão.
 function mensagemDaFalha(erro: unknown): string {
   if (erro instanceof TypeError) {
     return "Sem conexão com o servidor. Verifique a internet e tente novamente.";
-  }
-  if (erro instanceof DOMException && erro.name === "NotReadableError") {
-    return "Não foi possível ler um dos arquivos. Copie-o para outra pasta (fora do OneDrive), escolha de novo e tente novamente.";
   }
   return "Erro inesperado no servidor ao cadastrar. Tente novamente; se continuar, avise o suporte.";
 }

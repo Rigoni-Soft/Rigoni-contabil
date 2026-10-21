@@ -53,8 +53,14 @@ describe("átomos de campo", () => {
       </>,
     );
     expect(screen.getByText("Arraste o arquivo aqui")).toHaveAttribute("aria-hidden", "true");
-    expect(screen.getByText("ou clique para selecionar")).toHaveAttribute("aria-hidden", "true");
-    expect(screen.getByText("PDF ou DOCX")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByText("ou clique para selecionar").closest("[aria-hidden]")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+    expect(screen.getByText("PDF ou DOCX").closest("[aria-hidden]")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
 
     const arquivo = new File(["x"], "contrato.pdf", { type: "application/pdf" });
     rerender(

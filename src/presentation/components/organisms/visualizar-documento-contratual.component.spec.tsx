@@ -55,11 +55,12 @@ describe("VisualizarDocumentoContratual (#140)", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Não foi possível abrir o documento.");
   });
 
-  it("mostra a ação extra (Anexar, do Admin) ao lado de 'Abrir em nova aba'", () => {
-    montar({ acaoExtra: <button type="button">Anexar alteração</button> });
+  it("com `anexarPainelId`, mostra 'Anexar alteração' ao lado de 'Abrir em nova aba'", () => {
+    montar({ anexarPainelId: "painel-anexar" });
 
     const abrir = screen.getByRole("button", { name: /^Abrir / });
     const anexar = screen.getByRole("button", { name: "Anexar alteração" });
+    expect(anexar).toHaveAttribute("popovertarget", "painel-anexar");
     expect(abrir.parentElement).toBe(anexar.parentElement);
   });
 });
