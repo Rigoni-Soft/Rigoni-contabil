@@ -1,7 +1,7 @@
 import { FileText } from "lucide-react";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
-import { Grade, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Grade, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { TituloDoGrupo } from "@/presentation/components/atoms/titulo-de-grupo.component";
@@ -65,8 +65,7 @@ export function PainelDeServicos({
           </Grade>
           <Texto variante="nota">Guias e CND: em construção.</Texto>
           {!contrato && <Texto variante="nota">Contrato social não cadastrado.</Texto>}
-          <Linha
-            alinhar="fim"
+          <Pilha
             espaco={2}
             como="form"
             onSubmit={(evento) => {
@@ -94,13 +93,13 @@ export function PainelDeServicos({
             <Button
               type="submit"
               size="sm"
-              className="pointer-coarse:h-11"
+              className="w-full pointer-coarse:h-11"
               aria-label="Enviar alteração"
               disabled={enviando || alteracoes.length === 0}
             >
               Enviar
             </Button>
-          </Linha>
+          </Pilha>
         </>
       )}
       {enviando && (
