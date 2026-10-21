@@ -137,16 +137,27 @@ export function EditarCadastroOperacionalForm({
       <Pilha espaco={4}>
         <Grade colunas="1>2>cabecalho" espaco={4}>
           <Pilha espaco={1}>
-            <Label>Empresa</Label>
-            <Input value={cabecalho.empresa} title={cabecalho.empresa} disabled readOnly />
+            <Label htmlFor="cabecalho-empresa">Empresa</Label>
+            <Input
+              id="cabecalho-empresa"
+              value={cabecalho.empresa}
+              title={cabecalho.empresa}
+              disabled
+              readOnly
+            />
           </Pilha>
           <Pilha espaco={1}>
-            <Label>CNPJ</Label>
-            <Input value={cabecalho.cnpj} disabled readOnly />
+            <Label htmlFor="cabecalho-cnpj">CNPJ</Label>
+            <Input id="cabecalho-cnpj" value={cabecalho.cnpj} disabled readOnly />
           </Pilha>
           <Pilha espaco={1}>
-            <Label>Regime</Label>
-            <Input value={REGIME_LABEL[cabecalho.regime] ?? cabecalho.regime} disabled readOnly />
+            <Label htmlFor="cabecalho-regime">Regime</Label>
+            <Input
+              id="cabecalho-regime"
+              value={REGIME_LABEL[cabecalho.regime] ?? cabecalho.regime}
+              disabled
+              readOnly
+            />
           </Pilha>
           <CampoResponsavel
             editavel={responsavel.editavel}

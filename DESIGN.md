@@ -881,6 +881,10 @@ fixos, campo travado em cor plena, diálogo e lista das alterações); onde há 
 - **Busca de Cliente por papel**: o Admin, ao escolher um resultado, vai à tela própria
   `/clientes/[id]` (a única com "Anexar alteração"); Líder e Funcionário continuam no painel
   embutido na busca.
+- **Rótulo em campo desativado (harden, axe)**: Empresa, CNPJ e Regime da edição têm `id` e o
+  `Label` com `htmlFor` (`cabecalho-empresa`, `cabecalho-cnpj`, `cabecalho-regime`). Campo desativado
+  sem rótulo associado é lido como "campo de edição" sem nome; o `title` não substitui o rótulo. Medido com
+  o axe-core em claro e escuro: sem violações na edição nem no diálogo de anexar.
 - **Campos longos e telas estreitas (harden)**: Empresa desativada traz o nome inteiro em `title`
   (o campo trunca); "Atividade do mês" quebra de linha em vez de vazar a 320 px. Medido em 320 px e
   1440 px com nome de empresa de 250+ caracteres e emoji: sem rolagem horizontal no cadastro nem na

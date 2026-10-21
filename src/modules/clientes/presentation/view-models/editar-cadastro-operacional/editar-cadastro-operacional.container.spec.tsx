@@ -372,4 +372,12 @@ describe("EditarCadastroOperacionalContainer", () => {
 
     expect(screen.getByText(/cliente não encontrado/i)).toBeInTheDocument();
   });
+
+  it("Empresa, CNPJ e Regime têm rótulo associado e aparecem desativados (acessibilidade)", () => {
+    render(<EditarCadastroOperacionalContainer dados={dados} readOnly={false} />);
+
+    for (const rotulo of ["Empresa", "CNPJ", "Regime"]) {
+      expect(screen.getByLabelText(rotulo, { exact: true })).toBeDisabled();
+    }
+  });
 });
