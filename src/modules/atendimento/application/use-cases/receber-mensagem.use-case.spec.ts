@@ -437,14 +437,14 @@ describe("ReceberMensagem — fora do expediente (#72)", () => {
 });
 
 function alteracoes(quantidade: number): DocumentoContratual[] {
-  // Nº crescente: a alteração i é mais recente que a i-1. As datas correm ao contrário, para
-  // provar que a ordem é pelo nº.
+  // Como o gateway entrega: nº decrescente. As datas correm ao contrário, para provar que a
+  // ordem é pelo nº.
   return Array.from({ length: quantidade }, (_, i) => ({
     tipo: "alteracao" as const,
     numero: i + 1,
     data: `2020-${String(quantidade - i).padStart(2, "0")}-15`,
     caminho: `c1/alt-${i + 1}.pdf`,
-  }));
+  })).reverse();
 }
 
 const nomes = (docs: DocumentoEnviado[]) => docs.map((d) => d.nomeArquivo);
@@ -834,7 +834,7 @@ describe("ReceberMensagem — mesmo número em mais de um Cliente", () => {
 
 describe("ReceberMensagem — lista de alterações mudou com a sessão aberta", () => {
   it.each([
-    ["uma alteração é incluída", (docs: DocumentoContratual[]) => docs.push(alteracoes(4)[3])],
+    ["uma alteração é incluída", (docs: DocumentoContratual[]) => docs.unshift(alteracoes(4)[0])],
     ["uma alteração é excluída", (docs: DocumentoContratual[]) => docs.splice(0, 1)],
   ])(
     "se %s entre a lista e a escolha, nada é entregue e a lista nova é mostrada",

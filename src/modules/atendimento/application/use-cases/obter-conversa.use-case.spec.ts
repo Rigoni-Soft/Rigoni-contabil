@@ -108,10 +108,9 @@ function montar(
     listar: async (clienteId: string) => {
       listados.push(clienteId);
       return ok([
-        // Fora de ordem; o nº 2 tem data mais recente que a do nº 3: a ordem é pelo nº.
-        { tipo: "alteracao" as const, numero: 2, data: "2026-05-10", caminho: "a/alt-2.pdf" },
         { tipo: "contrato" as const, numero: null, data: null, caminho: "a/contrato.pdf" },
         { tipo: "alteracao" as const, numero: 3, data: "2026-03-01", caminho: "a/alt.pdf" },
+        { tipo: "alteracao" as const, numero: 2, data: "2026-05-10", caminho: "a/alt-2.pdf" },
       ]);
     },
   } as unknown as DocumentosContratuaisPort;

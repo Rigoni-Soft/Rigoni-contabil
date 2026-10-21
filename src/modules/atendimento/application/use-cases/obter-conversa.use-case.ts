@@ -15,10 +15,7 @@ import type {
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { DocumentosContratuaisPort } from "@/modules/atendimento/application/ports/out/documentos-contratuais.provider";
 import type { SessaoPort } from "@/modules/atendimento/application/ports/out/sessao.provider";
-import {
-  descreverDocumento,
-  porNumeroDecrescente,
-} from "@/modules/atendimento/domain/services/documento-contratual.service";
+import { descreverDocumento } from "@/modules/atendimento/domain/services/documento-contratual.service";
 import { avisoPendenteAoFuncionario } from "@/modules/atendimento/domain/services/inatividade.service";
 import {
   CONVERSA_JANELA_MENSAGENS,
@@ -196,7 +193,7 @@ export class ObterConversa implements ObterConversaPort {
     const lista = await this.documentos.listar(clienteId);
     if (!lista.ok) return lista;
     return ok(
-      [...lista.value].sort(porNumeroDecrescente).map(({ tipo, numero, data }) => ({
+      lista.value.map(({ tipo, numero, data }) => ({
         tipo,
         numero,
         descricao: descreverDocumento({ numero, data }),

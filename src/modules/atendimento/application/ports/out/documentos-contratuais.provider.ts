@@ -10,7 +10,7 @@ export type DocumentoContratual = {
 };
 
 export interface DocumentosContratuaisPort {
-  // Contrato social primeiro, depois as alterações por nº crescente.
+  // Contrato social primeiro, depois as alterações por nº decrescente.
   listar(clienteId: string): Promise<Result<DocumentoContratual[], AppError>>;
   // Endereço de curta duração: só serve para o provedor de mensagens buscar o arquivo.
   linkTemporario(caminho: string): Promise<Result<string, AppError>>;

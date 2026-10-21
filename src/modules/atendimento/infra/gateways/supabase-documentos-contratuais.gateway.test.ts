@@ -67,14 +67,14 @@ afterAll(async () => {
 });
 
 describe("SupabaseDocumentosContratuaisGateway", () => {
-  it("lista o contrato social e depois as alterações por nº crescente", async () => {
+  it("lista o contrato social e depois as alterações por nº decrescente", async () => {
     const r = await gateway.listar(clienteId);
     expect(r).toEqual({
       ok: true,
       value: [
         { tipo: "contrato", numero: null, data: null, caminho: contrato },
-        { tipo: "alteracao", numero: 1, data: "2022-11-01", caminho: alteracaoN1 },
         { tipo: "alteracao", numero: 2, data: "2020-03-12", caminho: alteracaoN2 },
+        { tipo: "alteracao", numero: 1, data: "2022-11-01", caminho: alteracaoN1 },
       ],
     });
   });

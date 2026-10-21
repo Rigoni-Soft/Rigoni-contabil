@@ -31,10 +31,7 @@ import type {
   SessaoAtendimento,
   SessaoAtendimentoPort,
 } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
-import {
-  descreverDocumento,
-  porNumeroDecrescente,
-} from "@/modules/atendimento/domain/services/documento-contratual.service";
+import { descreverDocumento } from "@/modules/atendimento/domain/services/documento-contratual.service";
 import {
   avisoDeFechado,
   estaAbertoEm,
@@ -474,15 +471,13 @@ export class ReceberMensagem implements ReceberMensagemPort {
       : salva;
   }
 
-  // Contrato à parte; alterações por nº decrescente.
+  // Contrato à parte; alterações já vêm do gateway por nº decrescente.
   private async carregar(contato: ContatoIdentificado): Promise<Result<Documentos, AppError>> {
     const lista = await this.documentos.listar(contato.clienteId);
     if (!lista.ok) return lista;
     return ok({
       contrato: lista.value.find((documento) => documento.tipo === "contrato") ?? null,
-      alteracoes: lista.value
-        .filter((documento) => documento.tipo === "alteracao")
-        .sort(porNumeroDecrescente),
+      alteracoes: lista.value.filter((documento) => documento.tipo === "alteracao"),
     });
   }
 
