@@ -44,4 +44,25 @@ describe("átomos de campo", () => {
     expect(area.dataset.arrastando).toBe("false");
     expect(aoMudar).toHaveBeenCalledWith(arquivo);
   });
+
+  it("FileInput deixa as instruções e a dica fora do nome acessível, e mantém o nome do arquivo", () => {
+    const { rerender } = render(
+      <>
+        <label htmlFor="contrato">Contrato social</label>
+        <FileInput id="contrato" dica="PDF ou DOCX" onChange={jest.fn()} />
+      </>,
+    );
+    expect(screen.getByText("Arraste o arquivo aqui")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByText("ou clique para selecionar")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByText("PDF ou DOCX")).toHaveAttribute("aria-hidden", "true");
+
+    const arquivo = new File(["x"], "contrato.pdf", { type: "application/pdf" });
+    rerender(
+      <>
+        <label htmlFor="contrato">Contrato social</label>
+        <FileInput id="contrato" file={arquivo} onChange={jest.fn()} />
+      </>,
+    );
+    expect(screen.getByText("contrato.pdf")).not.toHaveAttribute("aria-hidden");
+  });
 });

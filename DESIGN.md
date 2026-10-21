@@ -859,7 +859,9 @@ fixos, campo travado em cor plena, diálogo e lista das alterações); onde há 
   saída, não só "mais de 10 MB"). O erro é do conjunto: usa o caminho `documentos` e aparece sob o
   título "Documentos", não sob o Contrato social.
 - **Dica de formato no campo de arquivo**: o `FileInput` aceita `dica` ("PDF ou DOCX"), uma linha
-  `text-xs` sob "ou clique para selecionar", para o formato ser dito antes de escolher e não só no erro.
+  `text-xs` sob "ou clique para selecionar", para o formato ser dito antes de escolher e não só no erro. As instruções
+  e a dica ficam `aria-hidden` (o rótulo do campo já o nomeia); só o nome do arquivo escolhido entra no
+  nome acessível, por ser o estado.
 - **Falha da Server Action**: rejeição vira mensagem pela causa (`TypeError` = sem conexão;
   `NotReadableError` = arquivo ilegível, ex.: ainda só na nuvem do OneDrive; demais = erro
   inesperado, com o erro completo no console). O texto "verifique a conexão" não é mais o padrão

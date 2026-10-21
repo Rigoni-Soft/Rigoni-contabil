@@ -61,7 +61,11 @@ export function FileInput({
       ) : (
         <Upload className="size-6 shrink-0 text-muted-foreground" aria-hidden="true" />
       )}
+      {/* O nome do arquivo escolhido entra no nome acessível do campo (é o estado); as instruções de
+          uso e a dica ficam fora dele (aria-hidden): o rótulo do campo já o nomeia, e ouvir
+          "Contrato social, arraste o arquivo aqui, ou clique para selecionar, PDF ou DOCX" é ruído. */}
       <span
+        aria-hidden={file ? undefined : "true"}
         className={cn(
           "max-w-full truncate",
           file ? "font-medium text-foreground" : "text-muted-foreground",
@@ -69,10 +73,14 @@ export function FileInput({
       >
         {file ? file.name : "Arraste o arquivo aqui"}
       </span>
-      <span className="text-xs text-muted-foreground">
+      <span aria-hidden="true" className="text-xs text-muted-foreground">
         {file ? "Clique ou arraste para trocar" : "ou clique para selecionar"}
       </span>
-      {dica && <span className="text-xs text-muted-foreground">{dica}</span>}
+      {dica && (
+        <span aria-hidden="true" className="text-xs text-muted-foreground">
+          {dica}
+        </span>
+      )}
       <input
         id={id}
         name={name}
