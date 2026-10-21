@@ -108,7 +108,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
   test("Contrato social só tem botão para quem pode vê-lo (#140)", async ({ page }) => {
     const cnpjDigits = await criarClienteComoAdmin(page, "Cadastro Operacional Contrato E2E Ltda");
     const clienteId = await buscarClienteIdPorCnpj(cnpjDigits);
-    const botao = page.getByRole("button", { name: "Visualizar contrato social" });
+    const botao = page.getByRole("button", { name: /^Abrir Contrato social/ });
 
     await page.goto(`/clientes/${clienteId}`);
     await expect(botao).toBeVisible();

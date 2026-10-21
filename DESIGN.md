@@ -845,3 +845,7 @@ ou o cliente escreve de novo.
   no celular 1.
 - **Limpar no cadastro de Cliente**: botão `destructive` ao lado de "Cadastrar" que devolve o formulário
   ao estado inicial (campos, alterações, avisos da consulta de CNPJ e erro do servidor), sem cadastrar.
+- **Documento contratual (#140)**: cartão fixo no formulário de editar Cliente, sem diálogo: ícone,
+  "Contrato social e alterações", o documento em destaque (alteração de maior nº, ou o contrato social)
+  e, à direita, o seletor "Escolher documento" (só com mais de um) e o botão `outline` "Abrir em nova
+  aba", que abre o arquivo no primeiro clique. Enquanto carrega, reserva `min-h-20`.

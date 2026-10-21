@@ -10,8 +10,6 @@ const OPCOES = [
 
 function montar(sobrescrever: Partial<Parameters<typeof VisualizarDocumentoContratual>[0]> = {}) {
   const props = {
-    painelId: "docs",
-    rotuloDoBotao: "Visualizar alteração",
     opcoes: OPCOES,
     selecionado: OPCOES[0],
     onSelecionar: jest.fn(),
@@ -24,21 +22,18 @@ function montar(sobrescrever: Partial<Parameters<typeof VisualizarDocumentoContr
 }
 
 describe("VisualizarDocumentoContratual (#140)", () => {
-  it("mostra o rótulo do botão e o documento em destaque", () => {
+  it("mostra o documento em destaque e o botão que abre em nova aba, sem diálogo", () => {
     montar();
 
-    expect(screen.getByRole("button", { name: "Visualizar alteração" })).toBeInTheDocument();
     expect(screen.getByText("Alteração nº 3 - 05/03/2025", { selector: "p" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Abrir / })).toHaveTextContent("Abrir em nova aba");
+    expect(screen.queryByRole("dialog", { hidden: true })).not.toBeInTheDocument();
   });
 
-  it("rótulo condicional: contrato social quando não há alteração", () => {
-    montar({
-      rotuloDoBotao: "Visualizar contrato social",
-      opcoes: [OPCOES[2]],
-      selecionado: OPCOES[2],
-    });
+  it("só o contrato social: sem seletor", () => {
+    montar({ opcoes: [OPCOES[2]], selecionado: OPCOES[2] });
 
-    expect(screen.getByRole("button", { name: "Visualizar contrato social" })).toBeInTheDocument();
+    expect(screen.getByText("Contrato social", { selector: "p" })).toBeInTheDocument();
     expect(screen.queryByLabelText("Escolher documento")).not.toBeInTheDocument();
   });
 
@@ -71,15 +66,6 @@ describe("VisualizarDocumentoContratual (#140)", () => {
     expect(link).toHaveAttribute("href", "https://storage/assinado");
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
-  });
-
-  it("o diálogo é nomeado pelo título e o 'Abrir' recebe o foco inicial", () => {
-    montar();
-
-    expect(screen.getByRole("dialog", { hidden: true })).toHaveAccessibleName(
-      "Contrato social e alterações",
-    );
-    expect(screen.getByRole("button", { name: /^Abrir / })).toHaveAttribute("autofocus");
   });
 
   it("mostra 'Abrindo…' desabilitado e o erro quando houver", () => {

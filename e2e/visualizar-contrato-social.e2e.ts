@@ -25,7 +25,7 @@ async function abrirCliente(page: Page, empresa: string) {
 }
 
 test.describe("Visualizar contrato social e alterações (#140)", () => {
-  test("sem alteração o botão é 'Visualizar contrato social' e o Responsável abre o documento @smoke", async ({
+  test("sem alteração o destaque é o contrato social e o Responsável abre o documento no primeiro clique @smoke", async ({
     page,
   }) => {
     const empresa = empresaUnica("Visualizar Contrato E2E Ltda");
@@ -35,7 +35,7 @@ test.describe("Visualizar contrato social e alterações (#140)", () => {
 
     await entrarEm(page, "funcionario.sn@rigonicontabil.local", "func123");
     await abrirCliente(page, empresa);
-    await page.getByRole("button", { name: "Visualizar contrato social" }).click();
+    await expect(page.getByText("Contrato social", { exact: true }).first()).toBeVisible();
     // O arquivo é baixado/visualizado na nova aba: o que se confere é a requisição ao link assinado.
     const [requisicao] = await Promise.all([
       page
@@ -70,7 +70,6 @@ test.describe("Visualizar contrato social e alterações (#140)", () => {
 
     await entrarEm(page, "lider.sn@rigonicontabil.local", "lider123");
     await abrirCliente(page, empresa);
-    await page.getByRole("button", { name: "Visualizar alteração" }).click();
 
     await expect(
       page.getByText("Alteração nº 2 - 01/03/2026", { exact: true }).first(),
@@ -94,7 +93,7 @@ test.describe("Visualizar contrato social e alterações (#140)", () => {
     await entrarEm(page, "lider.sn@rigonicontabil.local", "lider123");
     await page.goto(`/clientes/${clienteId}`);
 
-    await expect(page.getByRole("button", { name: "Visualizar contrato social" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Abrir Contrato social/ })).toBeVisible();
   });
 
   test("Funcionário que não é Responsável não chega ao documento", async ({ page }) => {
@@ -107,7 +106,7 @@ test.describe("Visualizar contrato social e alterações (#140)", () => {
 
     await expect(page).toHaveURL("/simples-nacional");
     await expect(
-      page.getByRole("button", { name: /Visualizar (alteração|contrato social)/ }),
+      page.getByRole("button", { name: /^Abrir (Alteração|Contrato social)/ }),
     ).toBeHidden();
   });
 });

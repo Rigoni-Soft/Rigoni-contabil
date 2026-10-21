@@ -4,7 +4,6 @@ import {
   chaveDoDocumento,
   documentoEmDestaque,
   paraOpcao,
-  rotuloDoBotao,
   rotuloDoDocumento,
 } from "./documentos-contratuais.presenter";
 
@@ -22,11 +21,6 @@ const ALTERACAO: DocumentoContratualVisivelDto = {
 };
 
 describe("documentos contratuais (presenter, #140)", () => {
-  it("botão vira 'Visualizar contrato social' quando não há alteração", () => {
-    expect(rotuloDoBotao([CONTRATO])).toBe("Visualizar contrato social");
-    expect(rotuloDoBotao([ALTERACAO, CONTRATO])).toBe("Visualizar alteração");
-  });
-
   it("rótulo do documento segue a URA: 'Alteração nº N - data' e 'Contrato social'", () => {
     expect(rotuloDoDocumento(ALTERACAO)).toBe("Alteração nº 3 - 05/03/2025");
     expect(rotuloDoDocumento({ ...ALTERACAO, data: null })).toBe("Alteração nº 3");

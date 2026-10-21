@@ -15,8 +15,8 @@ export function DocumentoContratualDoClienteContainer({ clienteId, documentosIni
     clienteId,
     documentosIniciais,
   );
-  // Reserva a altura do botão (h-11) enquanto carrega: ele não empurra o formulário ao chegar.
-  if (isPending) return <Caixa className="min-h-11" aria-hidden="true" />;
+  // Reserva a altura do cartão enquanto carrega: ele não empurra o formulário ao chegar.
+  if (isPending) return <Caixa className="min-h-20" aria-hidden="true" />;
   if (isError) {
     return (
       <AvisoComAcao

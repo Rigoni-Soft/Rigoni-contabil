@@ -43,7 +43,7 @@ function hookDevolvendo(selecionado: DocumentoContratualVisivelDto = ALTERACAO, 
 }
 
 describe("VisualizarDocumentoContratualContainer (#140)", () => {
-  it("entrega à View o destaque do hook e o rótulo 'Visualizar alteração'", () => {
+  it("entrega à View o destaque do hook e o botão 'Abrir em nova aba'", () => {
     hookDevolvendo();
 
     render(
@@ -53,16 +53,16 @@ describe("VisualizarDocumentoContratualContainer (#140)", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Visualizar alteração" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Abrir / })).toHaveTextContent("Abrir em nova aba");
     expect(screen.getByText("Alteração nº 3 - 05/03/2025", { selector: "p" })).toBeInTheDocument();
   });
 
-  it("sem alteração, o botão é 'Visualizar contrato social'", () => {
+  it("sem alteração, o destaque é o contrato social", () => {
     hookDevolvendo(CONTRATO);
 
     render(<VisualizarDocumentoContratualContainer clienteId={CLIENTE} documentos={[CONTRATO]} />);
 
-    expect(screen.getByRole("button", { name: "Visualizar contrato social" })).toBeInTheDocument();
+    expect(screen.getByText("Contrato social", { selector: "p" })).toBeInTheDocument();
   });
 
   it("'Abrir' chama abrir() do hook e o seletor chama selecionar() com a chave", () => {

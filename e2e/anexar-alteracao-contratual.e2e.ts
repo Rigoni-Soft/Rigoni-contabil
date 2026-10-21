@@ -76,7 +76,7 @@ test.describe("Admin anexa alteração contratual a Cliente existente (#141)", (
       await login(page, email, senha);
       await expect(page).toHaveURL("/simples-nacional");
       await page.goto(`/clientes/${clienteId}`);
-      await expect(page.getByRole("button", { name: "Visualizar alteração" })).toBeVisible();
+      await expect(page.getByRole("button", { name: /^Abrir Alteração nº/ })).toBeVisible();
       await expect(page.getByRole("region", { name: "Alterações contratuais" })).toBeHidden();
       await expect(page.getByRole("button", { name: "Anexar alteração" })).toBeHidden();
       await sair(page);

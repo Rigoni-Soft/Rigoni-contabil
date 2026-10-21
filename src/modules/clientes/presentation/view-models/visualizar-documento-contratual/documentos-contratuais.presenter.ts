@@ -1,13 +1,6 @@
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 import { formatarDataIso } from "@/shared/kernel/data-iso";
 
-// Botão: há alteração = "Visualizar alteração"; só o contrato social = "Visualizar contrato social".
-export function rotuloDoBotao(documentos: DocumentoContratualVisivelDto[]): string {
-  return documentos.some((d) => d.tipo === "alteracao")
-    ? "Visualizar alteração"
-    : "Visualizar contrato social";
-}
-
 export function rotuloDoDocumento(documento: DocumentoContratualVisivelDto): string {
   if (documento.tipo === "contrato") return "Contrato social";
   const base = `Alteração nº ${documento.numero}`;

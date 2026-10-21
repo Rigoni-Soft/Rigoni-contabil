@@ -100,7 +100,7 @@ type EditarCadastroOperacionalFormProps = {
   // já está em "/" — um <Link href="/"> não dispara navegação nem reseta nada,
   // então o Container que abriu o form inline fecha o painel diretamente.
   onCancelar?: () => void;
-  // Botão "Visualizar alteração"/"contrato social" (só leitura); ausente = ator sem acesso.
+  // Cartão do documento contratual com "Abrir em nova aba" (só leitura); ausente = ator sem acesso.
   documentoContratual?: React.ReactNode;
 };
 

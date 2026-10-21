@@ -48,12 +48,12 @@ describe("DocumentoContratualDoClienteContainer (#140)", () => {
     expect(query).toHaveBeenCalledWith(CLIENTE, iniciais);
   });
 
-  it("enquanto carrega, reserva o lugar do botão sem mostrar nada acionável", () => {
+  it("enquanto carrega, reserva o lugar do cartão sem mostrar nada acionável", () => {
     estado({ isPending: true });
     const { container } = render(<DocumentoContratualDoClienteContainer clienteId={CLIENTE} />);
 
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
-    expect(container.querySelector('[aria-hidden="true"]')).toHaveClass("min-h-11");
+    expect(container.querySelector('[aria-hidden="true"]')).toHaveClass("min-h-20");
   });
 
   it("sem acesso (lista vazia): nenhum botão e nenhum aviso", () => {
