@@ -856,3 +856,7 @@ ou o cliente escreve de novo.
   Observações e as ações ocupam a linha toda. Abaixo de `lg`, 2 colunas; no celular, 1.
 - **Busca de Cliente por papel**: o Admin, ao escolher um resultado, vai à tela própria `/clientes/[id]`
   (a única com "Anexar alteração"); Líder e Funcionário continuam no painel embutido na busca.
+- **Anexar alteração (#141) ao lado de "Abrir"**: o botão `outline` "Anexar alteração" (só Admin) fica no
+  cartão do documento contratual, junto de "Abrir em nova aba"; sem documento algum, aparece sozinho. O
+  diálogo continua na seção "Alterações contratuais", abaixo do formulário (fora dele: sem `<form>`
+  aninhado), ligado ao botão pelo id do painel.

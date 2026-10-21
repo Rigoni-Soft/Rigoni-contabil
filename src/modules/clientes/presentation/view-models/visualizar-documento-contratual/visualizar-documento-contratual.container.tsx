@@ -1,5 +1,6 @@
 "use client";
 
+import { BotaoAnexarAlteracao } from "@/presentation/components/atoms/botao-anexar-alteracao.component";
 import { VisualizarDocumentoContratual } from "@/presentation/components/organisms/visualizar-documento-contratual.component";
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 
@@ -10,11 +11,14 @@ import { useVisualizarDocumentoContratual } from "./use-visualizar-documento-con
 type VisualizarDocumentoContratualContainerProps = {
   clienteId: string;
   documentos: DocumentoContratualVisivelDto[];
+  // Só o Admin: id do diálogo de anexar, aberto pelo botão ao lado de "Abrir em nova aba".
+  anexarPainelId?: string;
 };
 
 export function VisualizarDocumentoContratualContainer({
   clienteId,
   documentos,
+  anexarPainelId,
 }: VisualizarDocumentoContratualContainerProps) {
   const { documento, abrir, abrindo, erro, linkAlternativo } = useVisualizarDocumentoContratual(
     clienteId,
@@ -28,6 +32,7 @@ export function VisualizarDocumentoContratualContainer({
       abrindo={abrindo}
       erro={erro}
       linkAlternativo={linkAlternativo}
+      acaoExtra={anexarPainelId && <BotaoAnexarAlteracao painelId={anexarPainelId} />}
     />
   );
 }

@@ -33,3 +33,6 @@ export function avisoDeDivergencia(
   );
   return anterior === null ? undefined : `Data anterior à da alteração nº ${anterior}, confere?`;
 }
+
+// Id do diálogo de anexar: o botão (ao lado de "Abrir em nova aba") e o diálogo (na seção) o compartilham.
+export const idPainelAnexar = (clienteId: string) => `anexar-alteracao-${clienteId}`;

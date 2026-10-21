@@ -4,7 +4,7 @@ import { AlteracoesContratuais } from "@/presentation/components/organisms/alter
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 
 import { useDocumentosContratuais } from "../visualizar-documento-contratual/documentos-contratuais.queries";
-import { alteracoesDaLista } from "./anexar-alteracao-contratual.presenter";
+import { alteracoesDaLista, idPainelAnexar } from "./anexar-alteracao-contratual.presenter";
 import { useAnexarAlteracaoContratual } from "./use-anexar-alteracao-contratual.hook";
 
 type Props = { clienteId: string; documentosIniciais?: DocumentoContratualVisivelDto[] };
@@ -13,7 +13,7 @@ type Props = { clienteId: string; documentosIniciais?: DocumentoContratualVisive
 // alteração": anexar a atualiza pela invalidação da query.
 export function AnexarAlteracaoContratualContainer({ clienteId, documentosIniciais }: Props) {
   const { data: documentos = [] } = useDocumentosContratuais(clienteId, documentosIniciais);
-  const painelId = `anexar-alteracao-${clienteId}`;
+  const painelId = idPainelAnexar(clienteId);
   const formulario = useAnexarAlteracaoContratual(clienteId, documentos, painelId);
 
   return (

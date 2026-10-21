@@ -1,4 +1,4 @@
-import { Paperclip, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Controller, type Control, type FieldErrors, type UseFormRegister } from "react-hook-form";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
@@ -37,7 +37,8 @@ type AlteracoesContratuaisProps = {
 };
 
 // Seção do Admin em /clientes/[id], fora do formulário do cadastro operacional (sem <form> aninhado):
-// lista das alterações + botão que abre o diálogo (popover nativo) de anexar.
+// lista das alterações + o diálogo (popover nativo) de anexar, aberto pelo botão "Anexar alteração"
+// que fica ao lado de "Abrir em nova aba" (BotaoAnexarAlteracao), pelo id do painel.
 export function AlteracoesContratuais({
   painelId,
   alteracoes,
@@ -54,15 +55,9 @@ export function AlteracoesContratuais({
 }: AlteracoesContratuaisProps) {
   return (
     <Pilha como="section" espaco={3} aria-labelledby={`${painelId}-secao`}>
-      <Linha alinhar="centro" justificar="entre" espaco={2} quebra>
-        <Texto variante="destaque" como="h2" id={`${painelId}-secao`}>
-          Alterações contratuais
-        </Texto>
-        <Button type="button" variant="outline" popoverTarget={painelId}>
-          <Paperclip className="size-4" aria-hidden="true" />
-          Anexar alteração
-        </Button>
-      </Linha>
+      <Texto variante="destaque" como="h2" id={`${painelId}-secao`}>
+        Alterações contratuais
+      </Texto>
 
       {sucesso && <AvisoDeStatus tipo="sucesso" texto={sucesso} className="text-sm" />}
 

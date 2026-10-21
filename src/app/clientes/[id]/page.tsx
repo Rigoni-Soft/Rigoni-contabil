@@ -5,6 +5,7 @@ import { EditarCadastroOperacionalPage } from "@/presentation/components/pages/e
 import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-button.container";
 import { carregarSessao } from "@/presentation/view-models/shell/shell.server";
 import { AnexarAlteracaoContratualContainer } from "@/modules/clientes/presentation/view-models/anexar-alteracao-contratual/anexar-alteracao-contratual.container";
+import { idPainelAnexar } from "@/modules/clientes/presentation/view-models/anexar-alteracao-contratual/anexar-alteracao-contratual.presenter";
 import { EditarCadastroOperacionalContainer } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.container";
 import { carregarCadastroOperacionalCliente } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.server";
 import { carregarDocumentosContratuais } from "@/modules/clientes/presentation/view-models/visualizar-documento-contratual/visualizar-documento-contratual.server";
@@ -70,6 +71,9 @@ export default async function Page({ params, searchParams }: Props) {
           readOnly={readOnly}
           // Se a carga do servidor falhar, o botão se lê por action (com aviso e "Tentar novamente").
           documentosContratuais={documentos.ok ? documentos.value : undefined}
+          anexarPainelId={
+            podeAnexarAlteracaoContratual(sessao.papel) ? idPainelAnexar(id) : undefined
+          }
           podeAtribuirResponsavel={podeAtribuirResponsavel(sessao.papel, sessao.setor)}
           voltarHrefAoSalvar={voltarHrefSeguro(voltarPara)}
         />

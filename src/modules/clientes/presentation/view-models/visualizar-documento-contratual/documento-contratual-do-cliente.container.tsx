@@ -1,5 +1,6 @@
 "use client";
 
+import { BotaoAnexarAlteracao } from "@/presentation/components/atoms/botao-anexar-alteracao.component";
 import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { AvisoComAcao } from "@/presentation/components/molecules/aviso-com-acao.component";
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
@@ -8,9 +9,17 @@ import { useDocumentosContratuais } from "./documentos-contratuais.queries";
 import { VisualizarDocumentoContratualContainer } from "./visualizar-documento-contratual.container";
 
 // Sem acesso (lista vazia): nada na tela. Falha ao consultar: aviso com saída, sem bloquear o form.
-type Props = { clienteId: string; documentosIniciais?: DocumentoContratualVisivelDto[] };
+type Props = {
+  clienteId: string;
+  documentosIniciais?: DocumentoContratualVisivelDto[];
+  anexarPainelId?: string;
+};
 
-export function DocumentoContratualDoClienteContainer({ clienteId, documentosIniciais }: Props) {
+export function DocumentoContratualDoClienteContainer({
+  clienteId,
+  documentosIniciais,
+  anexarPainelId,
+}: Props) {
   const { data, isPending, isError, refetch } = useDocumentosContratuais(
     clienteId,
     documentosIniciais,
@@ -26,6 +35,15 @@ export function DocumentoContratualDoClienteContainer({ clienteId, documentosIni
       />
     );
   }
-  if (data.length === 0) return null;
-  return <VisualizarDocumentoContratualContainer clienteId={clienteId} documentos={data} />;
+  // Sem nada a abrir, o Admin ainda precisa de como anexar a primeira alteração.
+  if (data.length === 0) {
+    return anexarPainelId ? <BotaoAnexarAlteracao painelId={anexarPainelId} /> : null;
+  }
+  return (
+    <VisualizarDocumentoContratualContainer
+      clienteId={clienteId}
+      documentos={data}
+      anexarPainelId={anexarPainelId}
+    />
+  );
 }

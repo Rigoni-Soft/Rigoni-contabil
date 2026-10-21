@@ -42,7 +42,7 @@ test.describe("Admin anexa alteração contratual a Cliente existente (#141)", (
     const secao = page.getByRole("region", { name: "Alterações contratuais" });
     await expect(secao.getByText("Alteração nº 1 - 01/02/2026")).toBeVisible();
 
-    await secao.getByRole("button", { name: "Anexar alteração" }).click();
+    await page.getByRole("button", { name: "Anexar alteração", exact: true }).click();
     const dialogo = page.getByRole("dialog", { name: "Anexar alteração contratual" });
     await dialogo.getByLabel(/^Arquivo/).setInputFiles(pdf("2-alteracao.pdf"));
     await expect(dialogo.getByLabel("Nº da alteração")).toHaveValue("2");
@@ -53,7 +53,7 @@ test.describe("Admin anexa alteração contratual a Cliente existente (#141)", (
     await expect(dialogo).toBeHidden();
 
     // Nº repetido: barrado pela lista já carregada, sem subir o arquivo.
-    await secao.getByRole("button", { name: "Anexar alteração" }).click();
+    await page.getByRole("button", { name: "Anexar alteração", exact: true }).click();
     await dialogo.getByLabel(/^Arquivo/).setInputFiles(pdf("2-outra.pdf"));
     await dialogo.getByLabel("Data da alteração").fill("2026-04-01");
     await dialogo.getByRole("button", { name: "Anexar", exact: true }).click();
