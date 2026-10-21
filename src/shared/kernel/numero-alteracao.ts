@@ -1,6 +1,9 @@
 // Regra do nº da alteração contratual: obrigatório, inteiro > 0 e único por Cliente. Pura, para
 // valer igual na criação do Cliente (form, schema, domínio) e no anexar posterior.
 
+export const NUMERO_MAXIMO = 999_999_999;
+export const ERRO_NUMERO_INVALIDO = `Informe um nº inteiro de 1 a ${NUMERO_MAXIMO}`;
+
 // Prefixo numérico do nome do arquivo ("2-alteracao.pdf" → 2). Limitado a 9 dígitos: acima disso
 // deixa de ser um nº de alteração e estoura o inteiro do banco.
 export function numeroDoNomeDoArquivo(nome: string): number | null {
@@ -13,7 +16,9 @@ export function sugerirNumero(nomeDoArquivo: string, numerosExistentes: number[]
 }
 
 export function erroDoNumero(numero: number, outrosNumeros: number[]): string | null {
-  if (!Number.isInteger(numero) || numero <= 0) return "Informe um nº inteiro maior que zero";
+  if (!Number.isInteger(numero) || numero <= 0 || numero > NUMERO_MAXIMO) {
+    return ERRO_NUMERO_INVALIDO;
+  }
   if (outrosNumeros.includes(numero)) return `Já existe a alteração nº ${numero}`;
   return null;
 }

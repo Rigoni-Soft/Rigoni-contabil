@@ -42,8 +42,8 @@ describe("erroDoNumero", () => {
     expect(erroDoNumero(3, [1, 2])).toBeNull();
   });
 
-  it.each([0, -1, 1.5, Number.NaN])("recusa %s", (numero) => {
-    expect(erroDoNumero(numero, [])).toBe("Informe um nº inteiro maior que zero");
+  it.each([0, -1, 1.5, Number.NaN, 1_000_000_000])("recusa %s", (numero) => {
+    expect(erroDoNumero(numero, [])).toBe("Informe um nº inteiro de 1 a 999999999");
   });
 
   it("recusa nº repetido", () => {

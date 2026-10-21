@@ -1,7 +1,11 @@
 import { z } from "zod";
 
 import { cnpjValido } from "@/shared/kernel/cnpj";
-import { erroDoNumero } from "@/shared/kernel/numero-alteracao";
+import {
+  ERRO_NUMERO_INVALIDO,
+  erroDoNumero,
+  NUMERO_MAXIMO,
+} from "@/shared/kernel/numero-alteracao";
 import { REGIMES } from "@/shared/kernel/regimes";
 
 // PDF ou DOCX — restringe tanto no `accept` do input (dica do navegador) quanto aqui (não confia
@@ -42,8 +46,9 @@ export const criarClienteSchema = z.object({
       z.object({
         numero: z
           .number({ error: "Nº obrigatório" })
-          .int("Informe um nº inteiro maior que zero")
-          .positive("Informe um nº inteiro maior que zero"),
+          .int(ERRO_NUMERO_INVALIDO)
+          .positive(ERRO_NUMERO_INVALIDO)
+          .max(NUMERO_MAXIMO, ERRO_NUMERO_INVALIDO),
         data: z.string().min(1, "Data obrigatória"),
         arquivo: arquivoDocumento("Arquivo obrigatório"),
       }),

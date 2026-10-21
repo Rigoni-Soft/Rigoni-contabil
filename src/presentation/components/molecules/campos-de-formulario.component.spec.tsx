@@ -110,6 +110,12 @@ describe("linhas de lista do formulário", () => {
       "alteracoesContratuais.0.arquivo",
     );
     expect(screen.getByLabelText("Nº da alteração 1")).toHaveAttribute("type", "number");
+    expect(screen.getByLabelText("Nº da alteração 1")).toHaveAccessibleDescription(
+      "Já existe a alteração nº 1",
+    );
+    expect(screen.getByLabelText("Data da alteração 1")).toHaveAccessibleDescription(
+      "Informe a data.",
+    );
     expect(screen.getAllByRole("alert").map((a) => a.textContent)).toEqual([
       "Já existe a alteração nº 1",
       "Informe a data.",

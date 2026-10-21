@@ -6,6 +6,7 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Button } from "@/presentation/components/ui/button";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
+import { NUMERO_MAXIMO } from "@/shared/kernel/numero-alteracao";
 
 type LinhaDeAlteracaoProps = {
   indice: number;
@@ -16,7 +17,7 @@ type LinhaDeAlteracaoProps = {
   data: React.ComponentProps<"input">;
   erroData?: string;
   // O campo de arquivo é controlado pelo formulário; o id dele é `alteracoesContratuais.<i>.arquivo`
-  // (o rótulo aponta para ele).
+  // (o rótulo aponta para ele); com erro, o id do alerta é `<id>-erro` (aria-describedby).
   arquivo: React.ReactNode;
   erroArquivo?: string;
   onRemover: () => void;
@@ -36,6 +37,10 @@ export function LinhaDeAlteracao({
   const idNumero = `alteracoesContratuais.${indice}.numero`;
   const idData = `alteracoesContratuais.${indice}.data`;
   const idArquivo = `alteracoesContratuais.${indice}.arquivo`;
+  // O erro de cada campo é ligado ao input por aria-describedby (o alerta só soa quando aparece).
+  const idErroNumero = `${idNumero}-erro`;
+  const idErroData = `${idData}-erro`;
+  const idErroArquivo = `${idArquivo}-erro`;
   return (
     <Caixa className="flex flex-col gap-2 rounded-md border border-border p-3">
       <Linha alinhar="centro" justificar="entre" espaco={2}>
@@ -63,23 +68,31 @@ export function LinhaDeAlteracao({
             type="number"
             inputMode="numeric"
             min={1}
+            max={NUMERO_MAXIMO}
             step={1}
             aria-invalid={!!erroNumero}
+            aria-describedby={erroNumero ? idErroNumero : undefined}
             {...numero}
           />
-          {erroNumero && <FieldError>{erroNumero}</FieldError>}
+          {erroNumero && <FieldError id={idErroNumero}>{erroNumero}</FieldError>}
         </Pilha>
 
         <Pilha espaco="campo">
           <Label htmlFor={idData}>{`Data da alteração ${indice + 1}`}</Label>
-          <Input id={idData} type="date" aria-invalid={!!erroData} {...data} />
-          {erroData && <FieldError>{erroData}</FieldError>}
+          <Input
+            id={idData}
+            type="date"
+            aria-invalid={!!erroData}
+            aria-describedby={erroData ? idErroData : undefined}
+            {...data}
+          />
+          {erroData && <FieldError id={idErroData}>{erroData}</FieldError>}
         </Pilha>
 
         <Pilha espaco="campo">
           <Label htmlFor={idArquivo}>{`Arquivo da alteração ${indice + 1}`}</Label>
           {arquivo}
-          {erroArquivo && <FieldError>{erroArquivo}</FieldError>}
+          {erroArquivo && <FieldError id={idErroArquivo}>{erroArquivo}</FieldError>}
         </Pilha>
       </Grade>
     </Caixa>

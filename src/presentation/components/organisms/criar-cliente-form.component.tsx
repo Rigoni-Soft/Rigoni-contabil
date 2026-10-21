@@ -221,6 +221,11 @@ export function CriarClienteForm({
                       file={value}
                       onBlur={onBlur}
                       aria-invalid={!!errors.alteracoesContratuais?.[indice]?.arquivo}
+                      aria-describedby={
+                        errors.alteracoesContratuais?.[indice]?.arquivo
+                          ? `alteracoesContratuais.${indice}.arquivo-erro`
+                          : undefined
+                      }
                       onChange={(arquivo) => {
                         onChange(arquivo);
                         onArquivoDaAlteracao(indice, arquivo);
