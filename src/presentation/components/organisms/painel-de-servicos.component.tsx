@@ -37,11 +37,27 @@ export function PainelDeServicos({
   const contrato = servicos.find((servico) => servico.grupo === "contrato");
   const alteracoes = servicos.filter((servico) => servico.grupo === "alteracao");
 
+  // Logo abaixo dos botões (e acima do formulário da alteração): perto de quem foi clicado, e
+  // dentro da área visível mesmo quando o painel rola por dentro.
+  const feedback = (
+    <>
+      {enviando && (
+        <Texto variante="nota" role="status">
+          Enviando...
+        </Texto>
+      )}
+      {aviso && <AvisoDeStatus {...aviso} />}
+    </>
+  );
+
   return (
     <Pilha espaco={2}>
       <TituloDoGrupo>Serviços do cliente</TituloDoGrupo>
       {semCliente ? (
-        <Texto variante="nota">Sem Cliente vinculado a este número.</Texto>
+        <>
+          <Texto variante="nota">Sem Cliente vinculado a este número.</Texto>
+          {feedback}
+        </>
       ) : (
         <>
           <Grade colunas="duas" espaco={2}>
@@ -72,6 +88,7 @@ export function PainelDeServicos({
             ))}
           </Grade>
           {!contrato && <Texto variante="nota">Contrato social não cadastrado.</Texto>}
+          {feedback}
           <Pilha
             espaco={2}
             como="form"
@@ -109,12 +126,6 @@ export function PainelDeServicos({
           </Pilha>
         </>
       )}
-      {enviando && (
-        <Texto variante="nota" role="status">
-          Enviando...
-        </Texto>
-      )}
-      {aviso && <AvisoDeStatus {...aviso} />}
     </Pilha>
   );
 }
