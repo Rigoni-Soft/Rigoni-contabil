@@ -41,7 +41,7 @@ test.describe("Visualizar contrato social e alterações (#140)", () => {
       page
         .context()
         .waitForEvent("request", (r) => r.url().includes("/object/sign/documentos-clientes/")),
-      page.getByRole("button", { name: "Abrir", exact: true }).click(),
+      page.getByRole("button", { name: /^Abrir / }).click(),
     ]);
 
     expect(requisicao.url()).toContain("token=");

@@ -55,8 +55,29 @@ describe("VisualizarDocumentoContratual (#140)", () => {
 
   it("'Abrir' dispara a abertura; desabilita e avisa enquanto abre", () => {
     const props = montar();
-    fireEvent.click(screen.getByRole("button", { name: "Abrir" }));
+    fireEvent.click(screen.getByRole("button", { name: "Abrir Alteração nº 3 - 05/03/2025" }));
     expect(props.onAbrir).toHaveBeenCalledTimes(1);
+  });
+
+  it("mostra o link alternativo, em nova aba, quando o navegador bloqueou a aba", () => {
+    montar({
+      erro: "O navegador bloqueou a nova aba.",
+      linkAlternativo: "https://storage/assinado",
+    });
+
+    const link = screen.getByRole("link", { name: "Abrir Alteração nº 3 - 05/03/2025" });
+    expect(link).toHaveAttribute("href", "https://storage/assinado");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("o diálogo é nomeado pelo título e o 'Abrir' recebe o foco inicial", () => {
+    montar();
+
+    expect(screen.getByRole("dialog", { hidden: true })).toHaveAccessibleName(
+      "Visualizar alteração",
+    );
+    expect(screen.getByRole("button", { name: /^Abrir / })).toHaveAttribute("autofocus");
   });
 
   it("mostra 'Abrindo…' desabilitado e o erro quando houver", () => {

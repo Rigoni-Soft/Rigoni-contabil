@@ -49,7 +49,7 @@ describe("VisualizarDocumentoContratualContainer (#140)", () => {
       target: { value: "alteracao-1" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Abrir" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Abrir / }));
 
     await waitFor(() => expect(aba.location.href).toBe("https://storage/assinado"));
     expect(acao).toHaveBeenCalledWith({ clienteId: CLIENTE, tipo: "alteracao", numero: 1 });
@@ -63,7 +63,7 @@ describe("VisualizarDocumentoContratualContainer (#140)", () => {
     });
     render(<VisualizarDocumentoContratualContainer clienteId={CLIENTE} documentos={DOCUMENTOS} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Abrir" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Abrir / }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Documento não encontrado.");
     expect(aba.close).toHaveBeenCalled();
@@ -73,10 +73,40 @@ describe("VisualizarDocumentoContratualContainer (#140)", () => {
     acao.mockRejectedValue(new Error("rede"));
     render(<VisualizarDocumentoContratualContainer clienteId={CLIENTE} documentos={DOCUMENTOS} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Abrir" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Abrir / }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível abrir");
-    expect(screen.getByRole("button", { name: "Abrir" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /^Abrir / })).toBeEnabled();
     expect(aba.close).toHaveBeenCalled();
+  });
+
+  it("pop-up bloqueado: oferece o link gerado e explica, sem dizer para tentar de novo", async () => {
+    window.open = jest.fn(() => null);
+    acao.mockResolvedValue({ ok: true, data: { url: "https://storage/assinado" } });
+    render(<VisualizarDocumentoContratualContainer clienteId={CLIENTE} documentos={DOCUMENTOS} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Abrir / }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("bloqueou a nova aba");
+    expect(screen.getByRole("link", { name: /^Abrir / })).toHaveAttribute(
+      "href",
+      "https://storage/assinado",
+    );
+  });
+
+  it("trocar de documento descarta o erro e o link do anterior", async () => {
+    acao.mockResolvedValue({
+      ok: false,
+      error: { code: "NOT_FOUND", message: "Documento não encontrado." },
+    });
+    render(<VisualizarDocumentoContratualContainer clienteId={CLIENTE} documentos={DOCUMENTOS} />);
+    fireEvent.click(screen.getByRole("button", { name: /^Abrir / }));
+    await screen.findByRole("alert");
+
+    fireEvent.change(screen.getByLabelText("Outros documentos"), {
+      target: { value: "contrato" },
+    });
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

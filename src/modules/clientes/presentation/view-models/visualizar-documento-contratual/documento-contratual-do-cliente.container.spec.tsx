@@ -48,6 +48,14 @@ describe("DocumentoContratualDoClienteContainer (#140)", () => {
     ).toBeInTheDocument();
   });
 
+  it("enquanto carrega, reserva o lugar do botão sem mostrar nada acionável", () => {
+    listar.mockReturnValue(new Promise(() => undefined));
+    const { container } = render();
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(container.querySelector('[aria-hidden="true"]')).toHaveClass("min-h-11");
+  });
+
   it("sem acesso (lista vazia) ou com erro: nenhum botão", async () => {
     listar.mockResolvedValue({ ok: true, data: [] });
     const { unmount } = render();

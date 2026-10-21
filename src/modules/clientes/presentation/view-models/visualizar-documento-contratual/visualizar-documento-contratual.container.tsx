@@ -14,14 +14,12 @@ import { useVisualizarDocumentoContratual } from "./use-visualizar-documento-con
 type Props = { clienteId: string; documentos: DocumentoVisivel[] };
 
 export function VisualizarDocumentoContratualContainer({ clienteId, documentos }: Props) {
-  const { selecionado, selecionar, abrir, abrindo, erro } = useVisualizarDocumentoContratual(
-    clienteId,
-    documentos,
-  );
+  const { selecionado, selecionar, abrir, abrindo, erro, linkAlternativo } =
+    useVisualizarDocumentoContratual(clienteId, documentos);
 
   return (
     <VisualizarDocumentoContratual
-      painelId="documentos-contratuais"
+      painelId={`documentos-contratuais-${clienteId}`}
       rotuloDoBotao={rotuloDoBotao(documentos)}
       opcoes={documentos.map((d) => ({ chave: chaveDoDocumento(d), rotulo: rotuloDoDocumento(d) }))}
       selecionado={{ chave: chaveDoDocumento(selecionado), rotulo: rotuloDoDocumento(selecionado) }}
@@ -29,6 +27,7 @@ export function VisualizarDocumentoContratualContainer({ clienteId, documentos }
       onAbrir={() => void abrir()}
       abrindo={abrindo}
       erro={erro}
+      linkAlternativo={linkAlternativo}
     />
   );
 }

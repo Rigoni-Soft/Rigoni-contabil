@@ -2,6 +2,7 @@ import { ExternalLink, FileText, X } from "lucide-react";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
 import { Button } from "@/presentation/components/ui/button";
@@ -19,6 +20,8 @@ type VisualizarDocumentoContratualProps = {
   onAbrir: () => void;
   abrindo: boolean;
   erro?: string;
+  // Link já gerado, oferecido quando o navegador bloqueia a nova aba.
+  linkAlternativo?: string;
 };
 
 // Botão + diálogo nativo (popover: fecha com Esc, fora ou pelo botão) só de leitura. O arquivo
@@ -32,6 +35,7 @@ export function VisualizarDocumentoContratual({
   onAbrir,
   abrindo,
   erro,
+  linkAlternativo,
 }: VisualizarDocumentoContratualProps) {
   return (
     <Caixa>
@@ -44,11 +48,13 @@ export function VisualizarDocumentoContratual({
         id={painelId}
         popover="auto"
         role="dialog"
-        aria-label={rotuloDoBotao}
+        aria-labelledby={`${painelId}-titulo`}
         className="m-auto w-[min(92vw,28rem)] rounded-xl border border-border bg-background p-4 text-foreground backdrop:bg-overlay"
       >
         <Linha alinhar="centro" justificar="entre" espaco={2}>
-          <Texto variante="destaque">{rotuloDoBotao}</Texto>
+          <Texto variante="destaque" como="h2" id={`${painelId}-titulo`}>
+            {rotuloDoBotao}
+          </Texto>
           <Button
             type="button"
             variant="ghost"
@@ -62,11 +68,23 @@ export function VisualizarDocumentoContratual({
           </Button>
         </Linha>
         <Texto variante="subtitulo">{selecionado.rotulo}</Texto>
-        <Button type="button" onClick={onAbrir} disabled={abrindo}>
+        <Button
+          type="button"
+          onClick={onAbrir}
+          disabled={abrindo}
+          aria-label={abrindo ? undefined : `Abrir ${selecionado.rotulo}`}
+          // Foco inicial ao abrir o diálogo (atributo nativo, como no PainelDePrevia).
+          ref={(botao) => botao?.setAttribute("autofocus", "")}
+        >
           <ExternalLink className="size-4" aria-hidden="true" />
           {abrindo ? "Abrindo…" : "Abrir"}
         </Button>
-        {erro && <AvisoDeStatus tipo="erro" texto={erro} />}
+        {erro && <AvisoDeStatus tipo="erro" texto={erro} className="text-sm" />}
+        {linkAlternativo && (
+          <LinkDeAcao href={linkAlternativo} externo>
+            Abrir {selecionado.rotulo}
+          </LinkDeAcao>
+        )}
         {opcoes.length > 1 && (
           <CampoDeOpcoes
             id={`${painelId}-seletor`}
