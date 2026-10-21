@@ -44,6 +44,8 @@ type CriarClienteFormProps = {
   criado?: ClienteCriado;
   // Chamado ao clicar "Cadastrar outro" na tela de confirmação — mesmo padrão do formulário de usuário.
   onCadastrarNovo: () => void;
+  // "Limpar": volta o formulário todo ao estado inicial (campos, alterações, avisos e erros).
+  onLimpar: () => void;
   // Lista de campos do useFieldArray, montada no Container (View burra: sem hooks).
   alteracoes: { id: string }[];
   onAdicionarAlteracao: () => void;
@@ -69,6 +71,7 @@ export function CriarClienteForm({
   erroServidor,
   criado,
   onCadastrarNovo,
+  onLimpar,
   alteracoes,
   onAdicionarAlteracao,
   onRemoverAlteracao,
@@ -246,8 +249,11 @@ export function CriarClienteForm({
 
       {erroServidor && <FieldError>{erroServidor}</FieldError>}
 
-      {/* Botão do tamanho do rótulo, à direita: esticado na largura toda ele vira uma faixa. */}
-      <Linha justificar="fim">
+      {/* Botões do tamanho do rótulo, à direita: esticados na largura toda viram uma faixa. */}
+      <Linha justificar="fim" espaco={2}>
+        <Button type="button" variant="destructive" onClick={onLimpar} disabled={pendente}>
+          Limpar
+        </Button>
         <BotaoDeEnvio pendente={pendente} rotulo="Cadastrar" rotuloPendente="Cadastrando…" />
       </Linha>
     </Pilha>

@@ -843,3 +843,5 @@ ou o cliente escreve de novo.
   Contrato social em 2); cada alteração contratual cabe numa fileira (nº, data, arquivo em 2) com a
   dica do nº embaixo; o "Cadastrar" tem o tamanho do rótulo, à direita. Em tela média são 2 colunas e
   no celular 1.
+- **Limpar no cadastro de Cliente**: botão `destructive` ao lado de "Cadastrar" que devolve o formulário
+  ao estado inicial (campos, alterações, avisos da consulta de CNPJ e erro do servidor), sem cadastrar.

@@ -45,6 +45,14 @@ export function CriarClienteContainer() {
     reset();
   };
 
+  // Zera tudo, inclusive o que não é campo: erro do servidor e avisos da consulta de CNPJ.
+  const aoLimpar = () => {
+    setErroServidor(undefined);
+    setAvisoCnpj(undefined);
+    setAvisoRegime(undefined);
+    reset();
+  };
+
   const aoAdicionarAlteracao = () => {
     // arquivo começa vazio (usuário ainda não escolheu); a validação de "obrigatório"
     // acontece no submit, mesmo padrão do contrato social.
@@ -154,6 +162,7 @@ export function CriarClienteContainer() {
       erroServidor={erroServidor}
       criado={criado}
       onCadastrarNovo={aoCadastrarNovo}
+      onLimpar={aoLimpar}
       alteracoes={fields}
       onAdicionarAlteracao={aoAdicionarAlteracao}
       onRemoverAlteracao={remove}

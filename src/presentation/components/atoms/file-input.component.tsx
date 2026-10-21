@@ -78,6 +78,7 @@ export function FileInput({
         aria-invalid={ariaInvalid}
         aria-describedby={ariaDescribedby}
         onBlur={onBlur}
+        onClick={(evento) => (evento.currentTarget.value = "")}
         onChange={(evento) => onChange(evento.target.files?.[0])}
       />
     </label>

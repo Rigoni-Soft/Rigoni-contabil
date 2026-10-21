@@ -383,4 +383,25 @@ describe("CriarClienteContainer", () => {
     expect(screen.queryByText(/cadastrado/)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/^Empresa/)).toHaveValue("");
   });
+
+  it("'Limpar' zera campos, alterações e erros sem cadastrar", async () => {
+    const usuario = userEvent.setup();
+    render(<CriarClienteContainer />);
+
+    await preencherCamposObrigatorios(usuario);
+    await usuario.click(screen.getByRole("button", { name: "Adicionar" }));
+    expect(screen.getByLabelText("Nº da alteração 1")).toBeInTheDocument();
+    await usuario.clear(screen.getByLabelText(/^Empresa/));
+    await usuario.click(screen.getByRole("button", { name: "Cadastrar" }));
+    expect(await screen.findAllByRole("alert")).not.toHaveLength(0);
+
+    await usuario.click(screen.getByRole("button", { name: "Limpar" }));
+
+    expect(screen.getByLabelText(/^CNPJ/)).toHaveValue("");
+    expect(screen.getByLabelText(/^Regime/)).toHaveValue("");
+    expect(screen.getByText("Arraste o arquivo aqui")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Nº da alteração 1")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(executeMock).not.toHaveBeenCalled();
+  });
 });
