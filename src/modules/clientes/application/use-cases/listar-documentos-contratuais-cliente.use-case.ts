@@ -9,7 +9,8 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 // Quem pode ver é decidido no banco (RLS/RPC, pode_ver_cliente + Setor SN): sem acesso a lista
-// vem vazia. Aqui só se exige sessão e se tira o caminho do que vai para a tela.
+// vem vazia. A ordem (alterações do maior nº para o menor, contrato por último) vem do RPC. Aqui só se
+// exige sessão e se tira o caminho do que vai para a tela.
 export class ListarDocumentosContratuaisCliente implements ListarDocumentosContratuaisClientePort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -22,9 +23,6 @@ export class ListarDocumentosContratuaisCliente implements ListarDocumentosContr
     }
     const lista = await this.documentos.listar(clienteId);
     if (!lista.ok) return lista;
-    const ordenados = [...lista.value].sort(
-      (a, b) => (b.numero ?? -Infinity) - (a.numero ?? -Infinity),
-    );
-    return ok(ordenados.map(({ tipo, numero, data }) => ({ tipo, numero, data })));
+    return ok(lista.value.map(({ tipo, numero, data }) => ({ tipo, numero, data })));
   }
 }

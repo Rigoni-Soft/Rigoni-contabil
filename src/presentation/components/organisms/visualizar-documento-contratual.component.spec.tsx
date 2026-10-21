@@ -3,9 +3,9 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { VisualizarDocumentoContratual } from "./visualizar-documento-contratual.component";
 
 const OPCOES = [
-  { chave: "alteracao-3", rotulo: "Alteração nº 3 - 05/03/2025" },
-  { chave: "alteracao-1", rotulo: "Alteração nº 1 - 10/01/2024" },
-  { chave: "contrato", rotulo: "Contrato social" },
+  { valor: "alteracao-3", rotulo: "Alteração nº 3 - 05/03/2025" },
+  { valor: "alteracao-1", rotulo: "Alteração nº 1 - 10/01/2024" },
+  { valor: "contrato", rotulo: "Contrato social" },
 ];
 
 function montar(sobrescrever: Partial<Parameters<typeof VisualizarDocumentoContratual>[0]> = {}) {
@@ -53,7 +53,7 @@ describe("VisualizarDocumentoContratual (#140)", () => {
     expect(screen.getAllByRole("option")).toHaveLength(3);
   });
 
-  it("'Abrir' dispara a abertura; desabilita e avisa enquanto abre", () => {
+  it("'Abrir' dispara a abertura", () => {
     const props = montar();
     fireEvent.click(
       screen.getByRole("button", { name: "Abrir Alteração nº 3 - 05/03/2025 em nova aba" }),

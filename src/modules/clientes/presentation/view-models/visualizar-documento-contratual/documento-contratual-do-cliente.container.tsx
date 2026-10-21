@@ -24,6 +24,6 @@ export function DocumentoContratualDoClienteContainer({ clienteId }: { clienteId
       </Linha>
     );
   }
-  if (!data || data.length === 0) return null;
+  if (data.length === 0) return null;
   return <VisualizarDocumentoContratualContainer clienteId={clienteId} documentos={data} />;
 }

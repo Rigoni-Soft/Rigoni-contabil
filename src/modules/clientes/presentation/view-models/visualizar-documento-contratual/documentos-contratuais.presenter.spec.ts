@@ -1,12 +1,17 @@
+import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
+
 import {
   chaveDoDocumento,
   rotuloDoBotao,
   rotuloDoDocumento,
-  type DocumentoVisivel,
 } from "./documentos-contratuais.presenter";
 
-const CONTRATO: DocumentoVisivel = { tipo: "contrato", numero: null, data: null };
-const ALTERACAO: DocumentoVisivel = { tipo: "alteracao", numero: 3, data: "2025-03-05" };
+const CONTRATO: DocumentoContratualVisivelDto = { tipo: "contrato", numero: null, data: null };
+const ALTERACAO: DocumentoContratualVisivelDto = {
+  tipo: "alteracao",
+  numero: 3,
+  data: "2025-03-05",
+};
 
 describe("documentos contratuais (presenter, #140)", () => {
   it("botão vira 'Visualizar contrato social' quando não há alteração", () => {

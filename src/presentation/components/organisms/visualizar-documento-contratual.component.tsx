@@ -7,10 +7,7 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
 import { Button } from "@/presentation/components/ui/button";
 
-// O botão diz o que abre agora; o título diz o que há dentro (o documento em destaque vem abaixo).
-const TITULO_DO_DIALOGO = "Contrato social e alterações";
-
-type OpcaoDocumento = { chave: string; rotulo: string };
+type OpcaoDocumento = { valor: string; rotulo: string };
 
 type VisualizarDocumentoContratualProps = {
   // Liga o botão ao diálogo; único na página.
@@ -56,7 +53,7 @@ export function VisualizarDocumentoContratual({
       >
         <Linha alinhar="centro" justificar="entre" espaco={2}>
           <Texto variante="destaque" como="h2" id={`${painelId}-titulo`}>
-            {TITULO_DO_DIALOGO}
+            Contrato social e alterações
           </Texto>
           <Button
             type="button"
@@ -92,8 +89,8 @@ export function VisualizarDocumentoContratual({
           <CampoDeOpcoes
             id={`${painelId}-seletor`}
             rotulo="Escolher documento"
-            opcoes={opcoes.map((opcao) => ({ valor: opcao.chave, rotulo: opcao.rotulo }))}
-            value={selecionado.chave}
+            opcoes={opcoes}
+            value={selecionado.valor}
             onChange={(evento) => onSelecionar(evento.target.value)}
           />
         )}

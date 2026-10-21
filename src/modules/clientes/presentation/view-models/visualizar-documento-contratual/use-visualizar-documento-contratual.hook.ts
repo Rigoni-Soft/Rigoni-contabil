@@ -1,6 +1,8 @@
 import { useState } from "react";
 
-import { chaveDoDocumento, type DocumentoVisivel } from "./documentos-contratuais.presenter";
+import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
+
+import { chaveDoDocumento } from "./documentos-contratuais.presenter";
 import { obterLinkDocumentoContratualAction } from "./visualizar-documento-contratual.actions";
 
 const ERRO_ABRIR = "Não foi possível abrir o documento. Tente novamente.";
@@ -10,7 +12,7 @@ const ERRO_ABA_BLOQUEADA =
 // `documentos` já vem do mais recente (maior nº) para o contrato social: o primeiro é o destaque.
 export function useVisualizarDocumentoContratual(
   clienteId: string,
-  documentos: DocumentoVisivel[],
+  documentos: DocumentoContratualVisivelDto[],
 ) {
   const [chave, setChave] = useState(() => chaveDoDocumento(documentos[0]));
   const [abrindo, setAbrindo] = useState(false);

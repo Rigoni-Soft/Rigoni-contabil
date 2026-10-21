@@ -34,12 +34,10 @@ describe("ListarDocumentosContratuaisCliente (#140)", () => {
     expect(resultado.ok).toBe(false);
   });
 
-  it("devolve só {tipo, número, data}, alterações do maior nº para o menor e contrato por último", async () => {
+  it("devolve só {tipo, número, data}, na ordem do gateway", async () => {
     const documentos: DocumentoContratualClienteDto[] = [
-      { tipo: "contrato", numero: null, data: null, caminho: "c1/contrato-social/a.pdf" },
-      { tipo: "alteracao", numero: 1, data: "2024-01-10", caminho: "c1/alt/1.pdf" },
       { tipo: "alteracao", numero: 3, data: "2025-03-05", caminho: "c1/alt/3.pdf" },
-      { tipo: "alteracao", numero: 2, data: "2024-06-01", caminho: "c1/alt/2.pdf" },
+      { tipo: "contrato", numero: null, data: null, caminho: "c1/contrato-social/a.pdf" },
     ];
 
     const resultado = await new ListarDocumentosContratuaisCliente(
@@ -51,8 +49,6 @@ describe("ListarDocumentosContratuaisCliente (#140)", () => {
       ok: true,
       value: [
         { tipo: "alteracao", numero: 3, data: "2025-03-05" },
-        { tipo: "alteracao", numero: 2, data: "2024-06-01" },
-        { tipo: "alteracao", numero: 1, data: "2024-01-10" },
         { tipo: "contrato", numero: null, data: null },
       ],
     });
