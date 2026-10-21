@@ -38,7 +38,7 @@ export default async function Page() {
           sair={<LogoutButtonContainer />}
         />
       }
-      nav={<ShellNav setores={setores} />}
+      nav={<ShellNav setores={setores} rotaAtual="/simples-nacional" />}
       erro={resumo.ok ? undefined : "Falha ao carregar o resumo do setor. Tente novamente."}
       resumo={
         resumo.ok && (
