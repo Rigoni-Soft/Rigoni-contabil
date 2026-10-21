@@ -178,8 +178,10 @@ export function EditarCadastroOperacionalForm({
           opcoes={dasEnviadoPeloSistema ? [...OPCOES_DAS, OPCAO_DAS_ENVIADO] : OPCOES_DAS}
           placeholder="Não definido"
           className="gap-1"
-          // "Enviado" é do sistema (#108): nem o Admin troca depois que o envio foi concluído.
+          // "Enviado" é do sistema (#108): nem o Admin troca depois que o envio foi concluído. O valor
+          // é a informação do campo: fica em cor plena, sem a opacidade de desabilitado (DESIGN.md).
           disabled={dasEnviadoPeloSistema}
+          classeDoSelect="disabled:opacity-100"
           {...register("dasStatus")}
         />
         <CampoDeTexto
@@ -189,7 +191,7 @@ export function EditarCadastroOperacionalForm({
           className="gap-1"
           readOnly
           disabled
-          aria-readonly="true"
+          classeDoInput="disabled:opacity-100"
           {...register("dataEnvioDas")}
         />
 

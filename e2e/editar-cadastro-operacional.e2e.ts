@@ -111,6 +111,9 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await expect(page.getByLabel("DAS")).toBeDisabled();
     await expect(page.getByLabel("Data de envio")).toHaveValue("2026-10-05");
     await expect(page.getByLabel("Data de envio")).toBeDisabled();
+    // O valor segue legível: sem a opacidade de desabilitado.
+    await expect(page.getByLabel("DAS")).toHaveCSS("opacity", "1");
+    await expect(page.getByLabel("Data de envio")).toHaveCSS("opacity", "1");
 
     await page.getByLabel("Observações gerais").fill("Edição com DAS já enviado.");
     await page.getByRole("button", { name: "Salvar" }).click();

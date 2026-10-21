@@ -13,6 +13,8 @@ type CampoDeTextoProps = React.ComponentProps<"input"> & {
   aviso?: string;
   // Classes do contêiner (espaçamento entre rótulo e campo muda por tela).
   className?: string;
+  // Classes do <input> (campo travado mantém a cor plena, por exemplo).
+  classeDoInput?: string;
 };
 
 // Rótulo visível + campo + erro. O `aria-invalid` e o `aria-required` saem de `erro` e `obrigatorio`.
@@ -23,6 +25,7 @@ export function CampoDeTexto({
   erro,
   aviso,
   className,
+  classeDoInput,
   ...props
 }: CampoDeTextoProps) {
   return (
@@ -35,6 +38,7 @@ export function CampoDeTexto({
         id={id}
         aria-required={obrigatorio ? "true" : undefined}
         aria-invalid={!!erro}
+        className={classeDoInput}
         {...props}
       />
       {erro && <FieldError>{erro}</FieldError>}
