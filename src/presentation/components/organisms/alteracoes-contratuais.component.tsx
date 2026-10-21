@@ -15,6 +15,9 @@ import { AJUDA_NUMERO_ALTERACAO, NUMERO_MAXIMO } from "@/shared/kernel/numero-al
 const ACCEPT_DOCUMENTO =
   ".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
+// Função estável: o ref não é refeito a cada render.
+const marcarFocoInicial = (painel: HTMLElement | null) => painel?.setAttribute("autofocus", "");
+
 type Valores = { numero: number; data: string; arquivo: File };
 
 type AlteracoesContratuaisProps = {
@@ -87,9 +90,9 @@ export function AlteracoesContratuais({
         popover="auto"
         // Foco inicial no diálogo ao abrir (atributo nativo, como em VisualizarDocumentoContratual).
         tabIndex={-1}
-        ref={(painel) => painel?.setAttribute("autofocus", "")}
+        ref={marcarFocoInicial}
         onToggle={(evento) => {
-          if ((evento as unknown as ToggleEvent).newState === "closed") aoFechar();
+          if (evento.newState === "closed") aoFechar();
         }}
         role="dialog"
         aria-labelledby={`${painelId}-titulo`}

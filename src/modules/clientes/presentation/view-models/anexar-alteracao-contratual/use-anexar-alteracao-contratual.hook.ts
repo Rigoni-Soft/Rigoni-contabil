@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm, useWatch } from "react-hook-form";
@@ -18,6 +18,8 @@ import { anexarAlteracaoContratualSchema } from "./anexar-alteracao-contratual.s
 const formSchema = anexarAlteracaoContratualSchema.omit({ clienteId: true });
 export type AnexarAlteracaoFormValues = z.infer<typeof formSchema>;
 
+// A confirmação some sozinha: o leitor de tela já a anunciou ao aparecer.
+const CONFIRMACAO_MS = 8000;
 const ERRO_TRANSPORTE = "Não foi possível anexar agora. Verifique a conexão e tente novamente.";
 
 export function useAnexarAlteracaoContratual(
@@ -41,6 +43,11 @@ export function useAnexarAlteracaoContratual(
     trigger,
     formState: { errors },
   } = useForm<AnexarAlteracaoFormValues>({ resolver: zodResolver(formSchema) });
+  useEffect(() => {
+    if (!sucesso) return;
+    const timer = setTimeout(() => setSucesso(undefined), CONFIRMACAO_MS);
+    return () => clearTimeout(timer);
+  }, [sucesso]);
   const [numero, data] = useWatch({ control, name: ["numero", "data"] });
 
   // Sugere o nº só com o campo vazio: nunca pisa no que o Admin digitou.
