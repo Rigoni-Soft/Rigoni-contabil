@@ -33,13 +33,3 @@ export function mudouParcelamentos(
     );
   });
 }
-
-// O que a Server Action recebe: sem o que só a tela exibe. O PDF só vai no Parcelamento novo.
-export const parcelamentosParaSalvar = (parcelamentos: ParcelamentoFormValues[]) =>
-  parcelamentos.map(({ id, codigo, parcelasRestantes, interno, arquivo }) => ({
-    id,
-    codigo,
-    parcelasRestantes,
-    interno,
-    arquivo: id ? undefined : arquivo,
-  }));

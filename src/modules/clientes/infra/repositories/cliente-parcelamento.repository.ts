@@ -17,10 +17,6 @@ class PersistenciaError extends AppError {
   readonly code = "PERSISTENCIA_ERROR";
 }
 
-// Gatilhos do banco recusam com 23514 e mensagem em português, própria para o usuário.
-const mensagemDe = (error: { code?: string; message: string }, padrao: string) =>
-  error.code === "23514" ? error.message : padrao;
-
 export class SupabaseClienteParcelamentoRepository implements ClienteParcelamentoRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
@@ -48,7 +44,10 @@ export class SupabaseClienteParcelamentoRepository implements ClienteParcelament
       console.error("Falha ao salvar Parcelamentos:", error.message);
       return err(
         new PersistenciaError(
-          mensagemDe(error, "Não foi possível salvar os Parcelamentos. Tente novamente."),
+          // Gatilhos do banco recusam com 23514 e mensagem em português, própria para o usuário.
+          error.code === "23514"
+            ? error.message
+            : "Não foi possível salvar os Parcelamentos. Tente novamente.",
         ),
       );
     }

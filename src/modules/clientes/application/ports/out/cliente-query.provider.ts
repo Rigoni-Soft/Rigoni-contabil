@@ -1,3 +1,4 @@
+import type { ParcelamentoSalvo } from "@/modules/clientes/application/ports/out/cliente-parcelamento.repository";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
@@ -5,19 +6,8 @@ import type { Result } from "@/shared/kernel/result";
 // Cliente. Deliberadamente SEM contratoSocialCaminho/alteracoesContratuais —
 // a confidencialidade destes campos nesta tela é garantida pelo shape do DTO,
 // não por lógica condicional na View (RLS é por linha, não por coluna).
-export type ParcelamentoDto = {
-  id: string;
-  codigo: string;
-  parcelasRestantes: number;
-  interno: boolean;
-  // Nome do PDF anexado, sem a pasta e o id do Parcelamento do caminho no Storage.
-  arquivoNome: string;
-  quitado: boolean;
-  // Com algum envio registrado a remoção é recusada.
-  temEnvio: boolean;
-  // Selo do mês: a parcela do mês corrente já tem registro de envio.
-  enviadoNoMes: boolean;
-};
+// Read model do Parcelamento: o nome do PDF no lugar do caminho no Storage.
+export type ParcelamentoDto = Omit<ParcelamentoSalvo, "arquivoCaminho"> & { arquivoNome: string };
 
 export type CadastroOperacionalClienteDto = {
   id: string;

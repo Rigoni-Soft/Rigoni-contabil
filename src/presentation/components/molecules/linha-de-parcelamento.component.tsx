@@ -9,6 +9,9 @@ import { cn } from "@/presentation/lib/utils";
 
 export type SeloDoParcelamento = "quitado" | "enviado" | "pendente";
 
+const DICA_INTERNO = "Marcado: a guia vai ao WhatsApp do financeiro, não ao Cliente.";
+const MOTIVO_SEM_REMOVER = "Já teve guia enviada: não pode ser removido.";
+
 // Estado de resultado: ícone + texto + cor, nunca só cor (DESIGN.md "Indicadores de estado"). Enviado
 // é `primary` (o dourado `success` é do selo "em dia" das telas de status do Simples Nacional);
 // pendente e quitado ficam neutros, sem o vermelho de falha.
@@ -53,15 +56,13 @@ type LinhaDeParcelamentoProps = {
   erroParcelas?: string;
   // Ausente na linha ainda não salva: o status do mês só existe para o Parcelamento gravado.
   selo?: SeloDoParcelamento;
-  // Dica da caixa "É interno": para onde a guia vai.
-  dicaInterno: string;
   // Nome do PDF já gravado; no Parcelamento novo, o campo de arquivo (controlado pelo formulário).
   arquivo: React.ReactNode;
   // Quitado não se edita: os campos ficam desabilitados.
   desabilitado?: boolean;
-  // Sem callback (visualização): o botão nem aparece. Com `motivoSemRemover`, aparece desabilitado.
+  // Sem callback (visualização): o botão nem aparece. Com envio registrado, aparece bloqueado.
   onRemover?: () => void;
-  motivoSemRemover?: string;
+  bloqueadoPorEnvio?: boolean;
   // Visualização: nada é obrigatório (não há o que preencher), então sem asterisco.
   somenteLeitura?: boolean;
 };
@@ -76,11 +77,10 @@ export function LinhaDeParcelamento({
   erroCodigo,
   erroParcelas,
   selo,
-  dicaInterno,
   arquivo,
   desabilitado,
   onRemover,
-  motivoSemRemover,
+  bloqueadoPorEnvio,
   somenteLeitura,
 }: LinhaDeParcelamentoProps) {
   const idDoMotivo = `parcelamentos.${indice}.motivo-remover`;
@@ -131,17 +131,17 @@ export function LinhaDeParcelamento({
           className={cn("w-full sm:ml-auto sm:w-auto", !selo && "justify-end")}
         >
           {selo && <SeloDeStatus selo={selo} />}
-          {(onRemover || motivoSemRemover) && (
+          {(onRemover || bloqueadoPorEnvio) && (
             <Button
               type="button"
               variant="ghost"
               size="icon"
               // aria-disabled, não disabled: o botão segue focável e o leitor de tela ouve o motivo.
-              onClick={motivoSemRemover ? undefined : onRemover}
-              aria-disabled={motivoSemRemover ? true : undefined}
+              onClick={bloqueadoPorEnvio ? undefined : onRemover}
+              aria-disabled={bloqueadoPorEnvio || undefined}
               className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
               aria-label={`Remover parcelamento ${indice + 1}`}
-              aria-describedby={motivoSemRemover ? idDoMotivo : undefined}
+              aria-describedby={bloqueadoPorEnvio ? idDoMotivo : undefined}
             >
               <Trash2 className="size-4" aria-hidden="true" />
             </Button>
@@ -155,11 +155,11 @@ export function LinhaDeParcelamento({
         // re-renderiza o formulário. O leitor de tela a ouve sempre.
         className="sr-only group-has-[:checked]/linha:not-sr-only"
       >
-        {dicaInterno}
+        {DICA_INTERNO}
       </Texto>
-      {motivoSemRemover && (
+      {bloqueadoPorEnvio && (
         <Texto variante="nota" id={idDoMotivo}>
-          {motivoSemRemover}
+          {MOTIVO_SEM_REMOVER}
         </Texto>
       )}
       {arquivo}

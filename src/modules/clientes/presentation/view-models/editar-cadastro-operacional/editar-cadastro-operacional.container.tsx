@@ -22,7 +22,6 @@ import {
   mudouParcelamentos,
   nomeResponsavelAtual,
   opcoesResponsavel,
-  parcelamentosParaSalvar,
 } from "./editar-cadastro-operacional.presenter";
 import { editarCadastroOperacionalFormSchema } from "./editar-cadastro-operacional.schema";
 import { useResponsaveisElegiveis } from "./responsaveis.queries";
@@ -161,7 +160,7 @@ export function EditarCadastroOperacionalContainer({
         etapa = "salvar os Parcelamentos";
         const salvos = await salvarParcelamentosAction({
           clienteId: dados.id,
-          parcelamentos: parcelamentosParaSalvar(valores.parcelamentos),
+          parcelamentos: valores.parcelamentos,
         });
         if (!salvos.ok) {
           setErroServidor(

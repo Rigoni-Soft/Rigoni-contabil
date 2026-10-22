@@ -45,15 +45,12 @@ const OPCOES_DAS = opcoes(
 );
 const OPCAO_DAS_ENVIADO = { valor: "enviado", rotulo: DAS_STATUS_LABEL.enviado };
 
-const DICA_INTERNO = "Marcado: a guia vai ao WhatsApp do financeiro, não ao Cliente.";
-const MOTIVO_SEM_REMOVER = "Já teve guia enviada: não pode ser removido.";
 // Linha ainda não salva não tem status do mês: sem selo.
 function seloDoParcelamento(p: ParcelamentoLinha): SeloDoParcelamento | undefined {
   if (!p.id) return undefined;
   if (p.quitado) return "quitado";
   return p.enviadoNoMes ? "enviado" : "pendente";
 }
-const PDF_ACEITO = "application/pdf";
 
 // Linha da lista de Parcelamentos: o que se edita (código, restantes, interno, PDF novo) e o que a
 // tela só exibe (selo do mês, quitado, nome do PDF gravado, se há envio).
@@ -310,13 +307,11 @@ export function EditarCadastroOperacionalForm({
 
         <Pilha espaco={3} className="sm:col-span-2 lg:col-span-4">
           <Label className="block">Parcelamentos</Label>
-          {parcelamentoCampos.map((campo, indice) => {
-            const atual = parcelamentos[indice];
-            if (!atual) return null;
+          {parcelamentos.map((atual, indice) => {
             const erros = errors.parcelamentos?.[indice];
             return (
               <LinhaDeParcelamento
-                key={campo.id}
+                key={parcelamentoCampos[indice].id}
                 somenteLeitura={readOnly}
                 indice={indice}
                 codigo={register(`parcelamentos.${indice}.codigo`)}
@@ -327,12 +322,11 @@ export function EditarCadastroOperacionalForm({
                 erroCodigo={erros?.codigo?.message}
                 erroParcelas={erros?.parcelasRestantes?.message}
                 selo={seloDoParcelamento(atual)}
-                dicaInterno={DICA_INTERNO}
                 desabilitado={atual.quitado}
                 onRemover={
                   readOnly || atual.temEnvio ? undefined : () => onRemoverParcelamento(indice)
                 }
-                motivoSemRemover={!readOnly && atual.temEnvio ? MOTIVO_SEM_REMOVER : undefined}
+                bloqueadoPorEnvio={!readOnly && atual.temEnvio}
                 arquivo={
                   atual.id ? (
                     <Texto variante="nota" className="[overflow-wrap:anywhere]">
@@ -347,7 +341,7 @@ export function EditarCadastroOperacionalForm({
                           id={`parcelamentos.${indice}.arquivo`}
                           rotulo="PDF do acordo"
                           name={name}
-                          accept={PDF_ACEITO}
+                          accept="application/pdf"
                           dica="PDF até 4 MB"
                           file={value}
                           onChange={onChange}

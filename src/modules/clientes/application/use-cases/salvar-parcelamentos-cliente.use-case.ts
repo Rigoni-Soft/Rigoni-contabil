@@ -25,20 +25,6 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 // vai a bucket privado, só pelo servidor, depois da checagem de papel daqui.
 type Upload = { caminho: string; arquivo: File };
 
-const gravarComo = ({
-  id,
-  codigo,
-  parcelasRestantes,
-  interno,
-  arquivoCaminho,
-}: ParcelamentoSalvo): ParcelamentoProps => ({
-  id,
-  codigo,
-  parcelasRestantes,
-  interno,
-  arquivoCaminho,
-});
-
 export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -120,7 +106,7 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
 
       // Quitado é decidido pelo banco e não se edita: volta exatamente como está.
       const item = atual?.quitado
-        ? ok(gravarComo(atual))
+        ? ok(atual)
         : validarParcelamento({
             id,
             codigo: entrada.codigo,
