@@ -58,6 +58,8 @@ test.describe("Sino de Avisos de cadastro (#143)", () => {
     await entrarComoLider(page);
     await page.clock.install();
     await page.reload();
+    // Linha de base só depois da primeira leitura do contador (sem selo = 0 ou ainda carregando).
+    await page.waitForLoadState("networkidle");
     const antes = await naoVistos(page);
 
     const admin = await (await browser.newContext()).newPage();

@@ -1,15 +1,11 @@
+import type { AvisoDeCadastro } from "@/presentation/components/molecules/item-de-aviso.component";
 import type {
   AvisoCadastroDto,
   TipoAvisoCadastro,
 } from "@/modules/clientes/application/dtos/aviso-cadastro.dto";
 
-export type AvisoCadastroView = {
-  id: string;
-  titulo: string;
-  quando: string;
-  visto: boolean;
-  href: string;
-};
+// O hook não importa a View (arquitetura.md): o tipo chega por aqui.
+export type { AvisoDeCadastro };
 
 const TITULO: Record<TipoAvisoCadastro, string> = {
   novo_cliente: "Novo Cliente no Cadastro operacional",
@@ -22,7 +18,7 @@ const QUANDO = new Intl.DateTimeFormat("pt-BR", {
   timeStyle: "short",
 });
 
-export function avisoCadastroParaView(aviso: AvisoCadastroDto): AvisoCadastroView {
+export function avisoCadastroParaView(aviso: AvisoCadastroDto): AvisoDeCadastro {
   return {
     id: aviso.id,
     titulo: TITULO[aviso.tipo],

@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { marcarAvisoVistoAction } from "@/modules/clientes/presentation/view-models/avisos-cadastro/avisos-cadastro.actions";
 import {
   avisoCadastroParaView,
-  type AvisoCadastroView,
+  type AvisoDeCadastro,
 } from "@/modules/clientes/presentation/view-models/avisos-cadastro/avisos-cadastro.presenter";
 import {
   avisosCadastroKeys,
@@ -23,8 +23,14 @@ export function useSinoAvisos() {
   const { refetch: recontar } = contador;
 
   // A cada navegação o contador relê, sem esperar os 30 s do polling.
+  // A leitura do mount já é da própria query: só as navegações seguintes relêem.
+  const primeiraRota = useRef(true);
   useEffect(() => {
-    void recontar({ cancelRefetch: false });
+    if (primeiraRota.current) {
+      primeiraRota.current = false;
+      return;
+    }
+    void recontar();
   }, [pathname, recontar]);
 
   const avisos = (lista.data?.pages ?? []).flatMap((pagina) => pagina.itens);
@@ -46,12 +52,11 @@ export function useSinoAvisos() {
       setAbriu(true);
     },
     aoCarregarMais: () => void lista.fetchNextPage(),
-    // Só o clique no aviso marca como visto e leva ao Cliente. A navegação não espera a marcação:
-    // se ela falhar, o aviso segue não visto e a próxima leitura o mostra de novo.
-    aoSelecionar: async (aviso: AvisoCadastroView) => {
+    // Só o clique no aviso marca como visto e leva ao Cliente. Marca antes de navegar; se a
+    // marcação falhar, navega mesmo assim e o aviso segue não visto na próxima leitura.
+    aoSelecionar: async (aviso: AvisoDeCadastro) => {
+      if (!aviso.visto) await marcarAvisoVistoAction(aviso.id);
       router.push(aviso.href);
-      if (aviso.visto) return;
-      await marcarAvisoVistoAction(aviso.id);
       await queryClient.invalidateQueries({ queryKey: avisosCadastroKeys.todos() });
     },
   };

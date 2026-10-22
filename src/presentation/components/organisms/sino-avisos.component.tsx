@@ -2,16 +2,12 @@ import { Bell, X } from "lucide-react";
 
 import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
+import {
+  ItemDeAviso,
+  type AvisoDeCadastro,
+} from "@/presentation/components/molecules/item-de-aviso.component";
 import { Button } from "@/presentation/components/ui/button";
 import { cn } from "@/presentation/lib/utils";
-
-export type AvisoDeCadastro = {
-  id: string;
-  titulo: string;
-  quando: string;
-  visto: boolean;
-  href: string;
-};
 
 type SinoAvisosProps = {
   // Liga o sino ao modal; único na página.
@@ -108,37 +104,12 @@ export function SinoAvisos({
             <Texto variante="apoio">Nenhum aviso de cadastro.</Texto>
           )}
           {avisos.map((aviso) => (
-            <Caixa
-              como="button"
+            <ItemDeAviso
               key={aviso.id}
-              type="button"
-              data-visto={aviso.visto}
-              onClick={(evento) => {
-                // O modal fecha ao escolher: a navegação entre Clientes não remonta o cabeçalho.
-                evento.currentTarget.closest<HTMLElement>("[popover]")?.hidePopover?.();
-                aoSelecionar(aviso);
-              }}
-              className={cn(
-                "flex min-h-11 w-full items-center justify-between gap-3 rounded-md border px-3 py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                aviso.visto
-                  ? "border-border bg-transparent text-muted-foreground"
-                  : "border-l-4 border-primary bg-accent font-medium text-foreground",
-              )}
-            >
-              <Caixa como="span" className="min-w-0">
-                <Texto como="span" variante="corpo" className="block text-inherit">
-                  {aviso.titulo}
-                </Texto>
-                <Texto como="span" variante="nota" className="block">
-                  {aviso.quando}
-                </Texto>
-              </Caixa>
-              {aviso.visto && (
-                <Texto como="span" variante="rotulo" className="shrink-0 uppercase">
-                  visto
-                </Texto>
-              )}
-            </Caixa>
+              aviso={aviso}
+              painelId={painelId}
+              aoSelecionar={aoSelecionar}
+            />
           ))}
           {temMais && (
             <Button
