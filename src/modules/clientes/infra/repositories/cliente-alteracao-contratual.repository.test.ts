@@ -153,3 +153,102 @@ describe("SupabaseClienteRepository.anexarAlteracaoContratual", () => {
     expect(await eventosDeAnexar(CNPJ_COM_ALTERACAO)).toEqual([]);
   });
 });
+
+describe("data não futura no banco (R170-03)", () => {
+  const AMANHA = new Date(Date.now() + 36 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  it("anexar com data futura é recusado pela RPC e nada é gravado", async () => {
+    const admin = await como("admin@rigonicontabil.local", "admin123");
+
+    const resultado = await new SupabaseClienteRepository(admin).anexarAlteracaoContratual(
+      clienteId,
+      alteracao(31, AMANHA),
+    );
+
+    expect(resultado).toMatchObject({
+      ok: false,
+      error: { message: "A data da alteração não pode ser futura." },
+    });
+    const { data } = await servico
+      .from("cliente_alteracoes_contratuais")
+      .select("numero")
+      .eq("cliente_id", clienteId)
+      .eq("numero", 31);
+    expect(data).toEqual([]);
+  });
+
+  it("INSERT direto com data futura também é recusado", async () => {
+    const { error } = await servico.from("cliente_alteracoes_contratuais").insert({
+      id: crypto.randomUUID(),
+      cliente_id: clienteId,
+      numero: 32,
+      data: AMANHA,
+      arquivo_caminho: `${clienteId}/alteracoes-contratuais/32-a.pdf`,
+    });
+
+    expect(error?.code).toBe("23514");
+  });
+
+  it("criar_cliente com alteração de data futura falha inteiro (sem Cliente)", async () => {
+    const id = crypto.randomUUID();
+    const { error } = await servico.rpc("criar_cliente", {
+      p_id: id,
+      p_empresa: "Data Futura Ltda",
+      p_cnpj: "45723174000110",
+      p_regime: "simples_nacional",
+      p_contrato_social_caminho: null,
+      p_alteracoes: [
+        { id: crypto.randomUUID(), numero: 1, data: AMANHA, arquivoCaminho: `${id}/a.pdf` },
+      ],
+    });
+
+    expect(error?.code).toBe("23514");
+    const { data } = await servico.from("clientes").select("id").eq("id", id);
+    expect(data).toEqual([]);
+  });
+});
+
+describe("SupabaseClienteRepository.alteracaoContratualGravada", () => {
+  it("confirma só o vínculo exato Cliente/nº/caminho", async () => {
+    const admin = await como("admin@rigonicontabil.local", "admin123");
+    const repo = new SupabaseClienteRepository(admin);
+    const caminho = `${clienteComAlteracaoId}/alteracoes-contratuais/1-a.pdf`;
+
+    expect(await repo.alteracaoContratualGravada(clienteComAlteracaoId, 1, caminho)).toEqual({
+      ok: true,
+      value: true,
+    });
+    expect(await repo.alteracaoContratualGravada(clienteComAlteracaoId, 1, "outro.pdf")).toEqual({
+      ok: true,
+      value: false,
+    });
+    expect(await repo.alteracaoContratualGravada(clienteComAlteracaoId, 9, caminho)).toEqual({
+      ok: true,
+      value: false,
+    });
+  });
+});
+
+describe("classificação de falha de transporte (R170-01)", () => {
+  // Fronteira de teste: a RPC "perde a resposta" (status 0) ou o gateway estoura (504).
+  const supabaseComStatus = (status: number) =>
+    ({
+      rpc: async () => ({ error: { code: "", message: "TypeError: fetch failed" }, status }),
+    }) as unknown as SupabaseClient;
+
+  it.each([0, 504])("status %s em anexar vira ResultadoIncertoError", async (status) => {
+    const resultado = await new SupabaseClienteRepository(
+      supabaseComStatus(status),
+    ).anexarAlteracaoContratual(clienteId, alteracao(40));
+
+    expect(!resultado.ok && resultado.error.code).toBe("RESULTADO_INCERTO");
+  });
+
+  it("erro com resposta do banco (400) continua erro definitivo", async () => {
+    const resultado = await new SupabaseClienteRepository(
+      supabaseComStatus(400),
+    ).anexarAlteracaoContratual(clienteId, alteracao(41));
+
+    expect(!resultado.ok && resultado.error.code).toBe("PERSISTENCIA_ERROR");
+  });
+});

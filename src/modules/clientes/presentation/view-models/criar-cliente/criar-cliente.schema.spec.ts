@@ -17,6 +17,19 @@ describe("criarClienteSchema", () => {
     expect(resultado.success).toBe(true);
   });
 
+  it("recusa alteração com data futura ou fora do formato ISO", () => {
+    for (const data of ["2100-01-01", "01/01/2100"]) {
+      const resultado = criarClienteSchema.safeParse({
+        empresa: "Padaria Pão Quente Ltda",
+        cnpj: "11.444.777/0001-61",
+        regime: "simples_nacional",
+        alteracoesContratuais: [{ numero: 1, data, arquivo: arquivo() }],
+      });
+
+      expect(resultado.success).toBe(false);
+    }
+  });
+
   it("aceita dados válidos sem nenhuma alteração contratual", () => {
     const resultado = criarClienteSchema.safeParse({
       empresa: "Padaria Pão Quente Ltda",

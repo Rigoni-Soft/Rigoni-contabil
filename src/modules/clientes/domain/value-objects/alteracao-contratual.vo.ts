@@ -14,8 +14,13 @@ export class AlteracaoContratual {
   ): Result<AlteracaoContratual, ValidationError> {
     const erroNumero = erroDeFormato(numero);
     if (erroNumero) return err(new ValidationError(erroNumero));
+    // Só "AAAA-MM-DD" real: `new Date` aceitaria "01/01/2100" e rolaria "2026-02-30" para março.
     const dataConvertida = new Date(data);
-    if (Number.isNaN(dataConvertida.getTime())) {
+    const valida =
+      /^\d{4}-\d{2}-\d{2}$/.test(data) &&
+      !Number.isNaN(dataConvertida.getTime()) &&
+      dataConvertida.toISOString().slice(0, 10) === data;
+    if (!valida) {
       return err(new ValidationError(`Data de alteração contratual inválida: ${data}`));
     }
     if (!arquivoCaminho.trim()) {

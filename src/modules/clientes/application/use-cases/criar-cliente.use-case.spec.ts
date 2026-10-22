@@ -16,6 +16,7 @@ import type { Cliente } from "@/modules/clientes/domain/entities/cliente.entity"
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { ResultadoIncertoError } from "@/shared/errors/resultado-incerto.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
@@ -33,15 +34,22 @@ class SessaoFalsa implements SessaoPort {
 class ClienteRepositoryFalso implements ClienteRepository {
   criado: Cliente | null = null;
   erroAoCriar = false;
+  // Transação confirmada, resposta perdida: grava e devolve ResultadoIncertoError.
+  respostaPerdida = false;
+  reconciliacao: Result<Cliente | null, AppError> = ok(null);
   async criar(cliente: Cliente): Promise<Result<void, AppError>> {
     if (this.erroAoCriar) return err(new ValidationError("falha ao salvar"));
+    if (this.respostaPerdida) return err(new ResultadoIncertoError("sem resposta"));
     this.criado = cliente;
     return ok(undefined);
   }
   async buscarPorId(): Promise<Result<Cliente | null, AppError>> {
-    throw new Error("não usado neste caso de uso");
+    return this.reconciliacao;
   }
   async anexarAlteracaoContratual(): Promise<Result<void, AppError>> {
+    throw new Error("não usado neste caso de uso");
+  }
+  async alteracaoContratualGravada(): Promise<Result<boolean, AppError>> {
     throw new Error("não usado neste caso de uso");
   }
   async atualizarOperacional(): Promise<Result<void, AppError>> {
@@ -326,5 +334,46 @@ describe("CriarCliente", () => {
     ]);
     expect(erroLog).toHaveBeenCalledWith(expect.stringContaining("caminhos="), expect.any(String));
     erroLog.mockRestore();
+  });
+
+  describe("resposta perdida da gravação (resultado incerto)", () => {
+    function executar(clientes: ClienteRepositoryFalso, storage = new ArquivoStorageFalso()) {
+      const caso = new CriarCliente(new SessaoFalsa(), clientes, storage, new AuditoriaFalsa());
+      return { storage, resultado: caso.execute(INPUT_VALIDO) };
+    }
+
+    it("Cliente já gravado: sucesso e nenhum arquivo removido", async () => {
+      const clientes = new ClienteRepositoryFalso();
+      clientes.respostaPerdida = true;
+      clientes.reconciliacao = ok({} as Cliente);
+
+      const { storage, resultado } = executar(clientes);
+
+      expect((await resultado).ok).toBe(true);
+      expect(storage.removidos).toEqual([]);
+    });
+
+    it("Cliente comprovadamente ausente: remove os uploads e devolve o erro", async () => {
+      const clientes = new ClienteRepositoryFalso();
+      clientes.respostaPerdida = true;
+      clientes.reconciliacao = ok(null);
+
+      const { storage, resultado } = executar(clientes);
+
+      expect((await resultado).ok).toBe(false);
+      expect(storage.removidos).toHaveLength(2);
+    });
+
+    it("reconciliação falha: mantém os arquivos e sinaliza estado inconsistente", async () => {
+      const clientes = new ClienteRepositoryFalso();
+      clientes.respostaPerdida = true;
+      clientes.reconciliacao = err(new ValidationError("leitura falhou"));
+
+      const { storage, resultado } = executar(clientes);
+
+      const final = await resultado;
+      expect(!final.ok && final.error).toBeInstanceOf(EstadoInconsistenteError);
+      expect(storage.removidos).toEqual([]);
+    });
   });
 });

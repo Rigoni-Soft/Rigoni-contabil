@@ -9,6 +9,7 @@ import type { AlteracaoContratual } from "@/modules/clientes/domain/value-object
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { ResultadoIncertoError } from "@/shared/errors/resultado-incerto.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
@@ -50,11 +51,18 @@ function montar() {
   const anexar = jest
     .fn<Promise<Result<void, AppError>>, [string, AlteracaoContratual]>()
     .mockResolvedValue(ok(undefined));
-  const clientes = { anexarAlteracaoContratual: anexar } as unknown as ClienteRepository;
+  const gravada = jest
+    .fn<Promise<Result<boolean, AppError>>, [string, number, string]>()
+    .mockResolvedValue(ok(false));
+  const clientes = {
+    anexarAlteracaoContratual: anexar,
+    alteracaoContratualGravada: gravada,
+  } as unknown as ClienteRepository;
   const storage = new ArquivoStorageFalso();
   return {
     sessao,
     anexar,
+    gravada,
     storage,
     caso: new AnexarAlteracaoContratual(sessao, clientes, storage),
   };
@@ -110,5 +118,44 @@ describe("AnexarAlteracaoContratual", () => {
     const resultado = await caso.execute(INPUT);
 
     expect(resultado).toMatchObject({ ok: false, error: expect.any(EstadoInconsistenteError) });
+  });
+
+  describe("resposta perdida da gravação (resultado incerto)", () => {
+    it("alteração já gravada: sucesso e arquivo preservado", async () => {
+      const { caso, anexar, gravada, storage } = montar();
+      anexar.mockResolvedValue(err(new ResultadoIncertoError("sem resposta")));
+      gravada.mockResolvedValue(ok(true));
+
+      const resultado = await caso.execute(INPUT);
+
+      expect(resultado.ok).toBe(true);
+      expect(gravada).toHaveBeenCalledWith(
+        CLIENTE_ID,
+        2,
+        `${CLIENTE_ID}/alteracoes-contratuais/2-alteracao.pdf`,
+      );
+      expect(storage.removidos).toEqual([]);
+    });
+
+    it("comprovadamente não gravada: remove o upload da tentativa", async () => {
+      const { caso, anexar, storage } = montar();
+      anexar.mockResolvedValue(err(new ResultadoIncertoError("sem resposta")));
+
+      const resultado = await caso.execute(INPUT);
+
+      expect(resultado.ok).toBe(false);
+      expect(storage.removidos).toEqual(storage.enviados);
+    });
+
+    it("reconciliação falha: mantém o arquivo e sinaliza estado inconsistente", async () => {
+      const { caso, anexar, gravada, storage } = montar();
+      anexar.mockResolvedValue(err(new ResultadoIncertoError("sem resposta")));
+      gravada.mockResolvedValue(err(new ValidationError("leitura falhou")));
+
+      const resultado = await caso.execute(INPUT);
+
+      expect(!resultado.ok && resultado.error).toBeInstanceOf(EstadoInconsistenteError);
+      expect(storage.removidos).toEqual([]);
+    });
   });
 });

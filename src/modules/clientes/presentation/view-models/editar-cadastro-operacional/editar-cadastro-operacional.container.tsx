@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 
+import { Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import {
   EditarCadastroOperacionalForm,
@@ -189,11 +190,19 @@ export function EditarCadastroOperacionalContainer({
   }
 
   if (!regimeTemCadastroOperacionalSn(dados.regime)) {
+    // Documento jurídico não depende do cadastro SN: Admin ainda abre e anexa em Lucro Presumido/Real.
     return (
-      <Texto variante="apoio" role="status">
-        O Cadastro operacional do Simples Nacional não se aplica ao Regime{" "}
-        {REGIME_LABEL[dados.regime] ?? dados.regime}.
-      </Texto>
+      <Pilha espaco={6}>
+        <Texto variante="apoio" role="status">
+          O Cadastro operacional do Simples Nacional não se aplica ao Regime{" "}
+          {REGIME_LABEL[dados.regime] ?? dados.regime}.
+        </Texto>
+        <DocumentoContratualDoClienteContainer
+          clienteId={dados.id}
+          documentosIniciais={documentosContratuais}
+          podeAnexar={podeAnexar}
+        />
+      </Pilha>
     );
   }
 

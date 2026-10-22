@@ -73,6 +73,23 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(screen.queryByRole("button", { name: /salvar/i })).not.toBeInTheDocument();
   });
 
+  it.each(["lucro_presumido", "lucro_real"])(
+    "Regime %s: Admin ainda tem como anexar a alteração contratual",
+    (regime) => {
+      render(
+        <EditarCadastroOperacionalContainer
+          dados={{ ...dados, regime }}
+          readOnly={false}
+          documentosContratuais={[]}
+          podeAnexar
+        />,
+      );
+
+      expect(screen.getByRole("button", { name: /anexar/i })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /salvar/i })).not.toBeInTheDocument();
+    },
+  );
+
   it("Responsável: sem permissão mostra o nome (campo desabilitado); Líder escolhe e salva via atribuir", async () => {
     const { unmount } = render(
       <EditarCadastroOperacionalContainer dados={dados} readOnly={false} />,

@@ -52,6 +52,9 @@ class ClienteRepositoryFalso implements ClienteRepository {
   async anexarAlteracaoContratual(): Promise<Result<void, AppError>> {
     throw new Error("não usado neste caso de uso");
   }
+  async alteracaoContratualGravada(): Promise<Result<boolean, AppError>> {
+    throw new Error("não usado neste caso de uso");
+  }
   async atualizarOperacional(cliente: Cliente): Promise<Result<void, AppError>> {
     if (this.erroAoAtualizar) return err(new ValidationError("falha ao atualizar"));
     this.atualizado = cliente;

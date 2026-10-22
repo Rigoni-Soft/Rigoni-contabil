@@ -22,6 +22,13 @@ describe("AlteracaoContratual", () => {
     expect(resultado.ok).toBe(false);
   });
 
+  it.each(["01/01/2100", "2026-02-30", "9999-99-99", "2026-1-5", ""])(
+    "rejeita data fora do formato AAAA-MM-DD real (%s)",
+    (data) => {
+      expect(AlteracaoContratual.criar(1, data, "clientes/1/alteracoes/1-doc.pdf").ok).toBe(false);
+    },
+  );
+
   it("rejeita caminho de arquivo vazio", () => {
     const resultado = AlteracaoContratual.criar(1, "2026-01-15", "");
 

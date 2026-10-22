@@ -17,6 +17,7 @@ import { Cnpj } from "@/modules/clientes/domain/value-objects/cnpj.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { ResultadoIncertoError } from "@/shared/errors/resultado-incerto.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 export class CriarCliente implements CriarClientePort {
@@ -80,7 +81,22 @@ export class CriarCliente implements CriarClientePort {
     // A auditoria de sucesso é gravada pelo banco na mesma transação deste
     // INSERT (trigger em `clientes`): sem evento, o cadastro inteiro falha.
     const salvo = await this.clientes.criar(construido.value);
-    if (!salvo.ok) return salvo;
+    if (!salvo.ok) {
+      if (!(salvo.error instanceof ResultadoIncertoError)) return salvo;
+      // Resposta perdida não prova rollback: se o Cliente existe, o cadastro valeu e os arquivos ficam.
+      const gravado = await this.clientes.buscarPorId(id);
+      if (!gravado.ok) {
+        enviados.length = 0; // arquivos mantidos: podem estar referenciados pelo Cliente gravado
+        return err(
+          new EstadoInconsistenteError(
+            "Não foi possível confirmar se o Cliente foi cadastrado. Os documentos foram mantidos; confira a lista de Clientes antes de tentar de novo.",
+            id,
+          ),
+        );
+      }
+      // ponytail: uma só leitura; commit tardio depois dela ainda perde os arquivos.
+      if (!gravado.value) return salvo;
+    }
 
     return ok({ cliente: clienteParaDto(construido.value) });
   }

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { cnpjValido } from "@/shared/kernel/cnpj";
+import { dataNaoFutura } from "@/shared/kernel/data-alteracao";
 import {
   ERRO_NUMERO_INVALIDO,
   erroDeDuplicidade,
@@ -56,7 +57,7 @@ export const criarClienteSchema = z
           numero: z
             .number({ error: "Nº obrigatório" })
             .refine((n) => !erroDeFormato(n), ERRO_NUMERO_INVALIDO),
-          data: z.string().min(1, "Data obrigatória"),
+          data: dataNaoFutura,
           arquivo: arquivoDocumento("Arquivo obrigatório"),
         }),
       )
