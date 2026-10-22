@@ -18,9 +18,15 @@ import { REGIME_LABEL, regimeTemCadastroOperacionalSn } from "@/shared/kernel/re
 import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
 import { atribuirResponsavelAction } from "./atribuir-responsavel.actions";
 import { editarCadastroOperacionalAction } from "./editar-cadastro-operacional.actions";
-import { nomeResponsavelAtual, opcoesResponsavel } from "./editar-cadastro-operacional.presenter";
+import {
+  mudouParcelamentos,
+  nomeResponsavelAtual,
+  opcoesResponsavel,
+  parcelamentosParaSalvar,
+} from "./editar-cadastro-operacional.presenter";
 import { editarCadastroOperacionalFormSchema } from "./editar-cadastro-operacional.schema";
 import { useResponsaveisElegiveis } from "./responsaveis.queries";
+import { salvarParcelamentosAction } from "./salvar-parcelamentos.actions";
 
 type Props = {
   dados: CadastroOperacionalClienteDto | null;
@@ -80,9 +86,7 @@ export function EditarCadastroOperacionalContainer({
           dados.documentoObrigatorio as EditarCadastroOperacionalFormValues["documentoObrigatorio"],
         dasStatus: dados.dasStatus as EditarCadastroOperacionalFormValues["dasStatus"],
         dataEnvioDas: dados.dataEnvioDas,
-        temParcelamento: dados.temParcelamento,
-        parcelamentoStatus:
-          dados.parcelamentoStatus as EditarCadastroOperacionalFormValues["parcelamentoStatus"],
+        parcelamentos: dados.parcelamentos,
         observacoesGerais: dados.observacoesGerais,
         atividadeMes: dados.atividadeMes,
         responsavelId: dados.responsavelId ?? "",
@@ -101,15 +105,13 @@ export function EditarCadastroOperacionalContainer({
     defaultValues: valoresIniciais,
   });
 
-  const temParcelamento = useWatch({
-    control,
-    name: "temParcelamento",
-    defaultValue: dados?.temParcelamento ?? false,
-  });
+  const parcelamentos =
+    useWatch({ control, name: "parcelamentos", defaultValue: dados?.parcelamentos ?? [] }) ?? [];
   // Lista de Funcionários só é buscada quando o Líder abre o Select.
   const [listaAberta, setListaAberta] = useState(false);
   const elegiveis = useResponsaveisElegiveis(podeAtribuirResponsavel && listaAberta);
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
+  const parcelamentoCampos = useFieldArray({ control, name: "parcelamentos" });
 
   const aoSubmeter = handleSubmit(async (valores) => {
     if (!dados) return;
@@ -125,7 +127,7 @@ export function EditarCadastroOperacionalContainer({
     try {
       // O Responsável é salvo à parte: fica fora do retrato que decide se o cadastro mudou.
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { responsavelId: _responsavelId, ...cadastro } = valores;
+      const { responsavelId: _responsavelId, parcelamentos: _parcelamentos, ...cadastro } = valores;
       const retrato = JSON.stringify(cadastro);
       if (cadastroSalvo !== retrato) {
         const resultado = await editarCadastroOperacionalAction({
@@ -149,6 +151,20 @@ export function EditarCadastroOperacionalContainer({
       // da atribuição, para valer também quando a atribuição rejeita por erro de transporte.
       setCadastroSalvo(retrato);
       cadastroPersistido = true;
+
+      // Parcelamentos têm PDF: vão por Server Action própria, depois do cadastro. Sem mudança, não vão.
+      if (mudouParcelamentos(valores.parcelamentos, dados.parcelamentos)) {
+        const salvos = await salvarParcelamentosAction({
+          clienteId: dados.id,
+          parcelamentos: parcelamentosParaSalvar(valores.parcelamentos),
+        });
+        if (!salvos.ok) {
+          setErroServidor(
+            `Os dados foram salvos, mas não os Parcelamentos. ${salvos.error.message}`,
+          );
+          return;
+        }
+      }
 
       if (podeAtribuirResponsavel && valores.responsavelId !== (dados.responsavelId ?? "")) {
         const atribuicao = await atribuirResponsavelAction({
@@ -227,7 +243,7 @@ export function EditarCadastroOperacionalContainer({
         estadoLista: elegiveis.isError ? "erro" : elegiveis.isLoading ? "carregando" : "ok",
         onTentarNovamente: () => void elegiveis.refetch(),
       }}
-      temParcelamento={temParcelamento}
+      parcelamentos={parcelamentos}
       dasEnviadoPeloSistema={dados?.dasStatus === "enviado"}
       erroServidor={erroServidor}
       sucesso={sucesso}
@@ -235,6 +251,19 @@ export function EditarCadastroOperacionalContainer({
       contatos={fields}
       onAdicionarContato={() => append({ nome: "", telefone: "", padrao: fields.length === 0 })}
       onRemoverContato={remove}
+      parcelamentoCampos={parcelamentoCampos.fields}
+      onAdicionarParcelamento={() =>
+        parcelamentoCampos.append({
+          codigo: "",
+          parcelasRestantes: 1,
+          interno: false,
+          quitado: false,
+          temEnvio: false,
+          enviadoNoMes: false,
+          arquivoNome: "",
+        })
+      }
+      onRemoverParcelamento={parcelamentoCampos.remove}
       onLimpar={aoLimpar}
       onCancelar={onCancelar}
       documentoContratual={

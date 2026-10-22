@@ -3,8 +3,6 @@ export type CadastroOperacionalRow = {
   documento_obrigatorio: string | null;
   das_status: string | null;
   data_envio_das: string | null;
-  tem_parcelamento: boolean;
-  parcelamento_status: string | null;
   observacoes_gerais: string;
   responsavel_id: string | null;
   responsavel: { nome: string } | null;

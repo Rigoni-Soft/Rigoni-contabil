@@ -91,25 +91,36 @@ insert into public.clientes (id, empresa, cnpj, regime) values
 -- Funcionário SN (2222…) é Responsável por todos, pra continuar enxergando o resumo populado
 -- (Funcionário só vê o que é dele).
 insert into public.cliente_cadastro_operacional_sn
-  (cliente_id, documento_obrigatorio, das_status, tem_parcelamento, parcelamento_status, responsavel_id)
+  (cliente_id, documento_obrigatorio, das_status, responsavel_id)
 values
   -- DAS emitidas (em dia/verde): DAS já enviada.
-  ('078a3aae-80fc-4df7-b113-657873d96176', 'positivo', 'enviado', false, null, '22222222-2222-2222-2222-222222222222'),
+  ('078a3aae-80fc-4df7-b113-657873d96176', 'positivo', 'enviado', '22222222-2222-2222-2222-222222222222'),
   -- Sem documento (atenção): documento ainda não recebido.
-  ('9238058c-cc25-4300-890e-93ca86288d41', 'negativo', 'pendente', false, null, '22222222-2222-2222-2222-222222222222'),
+  ('9238058c-cc25-4300-890e-93ca86288d41', 'negativo', 'pendente', '22222222-2222-2222-2222-222222222222'),
   -- DAS pendente (urgente): documento já recebido, DAS ainda não gerada.
-  ('68195e6c-03f6-4b15-8362-171a98175e13', 'positivo', 'pendente', false, null, '22222222-2222-2222-2222-222222222222'),
+  ('68195e6c-03f6-4b15-8362-171a98175e13', 'positivo', 'pendente', '22222222-2222-2222-2222-222222222222'),
   -- Sem movimento (informativo): não se aplica gerar DAS este mês.
-  ('2d0b7e0a-f1f1-410f-bdbc-a16e34e4c215', 'nao_se_aplica', 'sem_movimento', false, null, '22222222-2222-2222-2222-222222222222'),
+  ('2d0b7e0a-f1f1-410f-bdbc-a16e34e4c215', 'nao_se_aplica', 'sem_movimento', '22222222-2222-2222-2222-222222222222'),
   -- Esperando envio DAS (andamento): DAS pronta, aguardando o job de envio.
-  ('eec94956-1450-4ff1-b317-96546d30dd0e', 'positivo', 'pronto', false, null, '22222222-2222-2222-2222-222222222222'),
+  ('eec94956-1450-4ff1-b317-96546d30dd0e', 'positivo', 'pronto', '22222222-2222-2222-2222-222222222222'),
   -- Com parcelamento + Parcelamento pendente (urgente).
-  ('ef2c35e9-00b9-4fbc-8f8d-06b9d1aa20e8', 'positivo', 'enviado', true, 'pendente', '22222222-2222-2222-2222-222222222222'),
+  ('ef2c35e9-00b9-4fbc-8f8d-06b9d1aa20e8', 'positivo', 'enviado', '22222222-2222-2222-2222-222222222222'),
   -- Com parcelamento + Parcelamento interno (informativo).
-  ('168178df-7d67-4925-b293-66e0ec2def9d', 'positivo', 'enviado', true, 'interno', '22222222-2222-2222-2222-222222222222'),
+  ('168178df-7d67-4925-b293-66e0ec2def9d', 'positivo', 'enviado', '22222222-2222-2222-2222-222222222222'),
   -- Com parcelamento + Parcelamento enviado (em dia/verde).
-  ('3e999809-f99b-4b51-9fb9-07d37a5b3c23', 'positivo', 'enviado', true, 'enviado', '22222222-2222-2222-2222-222222222222'),
-  ('99ad8a31-1450-454f-8b5a-75c14fa77498', 'positivo', 'enviado', false, null, '22222222-2222-2222-2222-222222222222');
+  ('3e999809-f99b-4b51-9fb9-07d37a5b3c23', 'positivo', 'enviado', '22222222-2222-2222-2222-222222222222'),
+  ('99ad8a31-1450-454f-8b5a-75c14fa77498', 'positivo', 'enviado', '22222222-2222-2222-2222-222222222222');
+
+-- Parcelamentos (sem PDF real no Storage: o caminho é só referência). O envio do mês corrente de
+-- "Lanchonete" faz dela a Cliente com Parcelamento enviado.
+insert into public.cliente_parcelamentos (id, cliente_id, codigo, parcelas_restantes, interno, arquivo_caminho)
+values
+  ('a1000000-0000-4000-8000-000000000001', 'ef2c35e9-00b9-4fbc-8f8d-06b9d1aa20e8', 'PARC-0001', 24, false, 'ef2c35e9-00b9-4fbc-8f8d-06b9d1aa20e8/seed-pendente.pdf'),
+  ('a1000000-0000-4000-8000-000000000002', '168178df-7d67-4925-b293-66e0ec2def9d', 'PARC-0002', 12, true, '168178df-7d67-4925-b293-66e0ec2def9d/seed-interno.pdf'),
+  ('a1000000-0000-4000-8000-000000000003', '3e999809-f99b-4b51-9fb9-07d37a5b3c23', 'PARC-0003', 6, false, '3e999809-f99b-4b51-9fb9-07d37a5b3c23/seed-enviado.pdf');
+
+insert into public.cliente_parcelamento_envios (parcelamento_id, parcela)
+values ('a1000000-0000-4000-8000-000000000003', to_char(public.mes_corrente_sp(), 'YYYYMM'));
 
 -- Atividade do mês corrente pro gráfico "Atividade do mês" já nascer populado;
 -- flags independentes (um cliente pode ter mais de uma).

@@ -84,8 +84,6 @@ function comCadastroOperacional(
     .comDocumentoObrigatorio("positivo")
     .comDasStatus(das.status as "pronto")
     .comDataEnvioDas(das.data ? new Date(das.data) : null)
-    .comTemParcelamento(false)
-    .comParcelamentoStatus(null)
     .comObservacoesGerais("Cliente pontual.")
     .comAtividadeMesAtual({
       anoMes: mesAtual(),
@@ -531,8 +529,6 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
       forma_envio: "whatsapp",
       documento_obrigatorio: "negativo",
       das_status: "pendente",
-      tem_parcelamento: false,
-      parcelamento_status: "pendente",
       observacoes_gerais: "",
     });
   });

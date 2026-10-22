@@ -11,7 +11,6 @@ import { DasStatus } from "@/modules/clientes/domain/value-objects/das-status.vo
 import { DocumentoObrigatorioStatus } from "@/modules/clientes/domain/value-objects/documento-obrigatorio-status.vo";
 import { Email } from "@/modules/clientes/domain/value-objects/email.vo";
 import { FormaEnvio } from "@/modules/clientes/domain/value-objects/forma-envio.vo";
-import { ParcelamentoStatus } from "@/modules/clientes/domain/value-objects/parcelamento-status.vo";
 import { Regime } from "@/modules/clientes/domain/value-objects/regime.vo";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
@@ -42,8 +41,6 @@ export type ClienteRestaurar = {
   documentoObrigatorio?: string | null;
   dasStatus?: string | null;
   dataEnvioDas?: string | null;
-  temParcelamento?: boolean;
-  parcelamentoStatus?: string | null;
   observacoesGerais?: string;
   atividadeMesAtual?: AtividadeMensalRestaurar | null;
 };
@@ -66,8 +63,6 @@ export class ClienteBuilder {
   private documentoObrigatorio: DocumentoObrigatorioStatus | null = null;
   private dasStatus: DasStatus | null = null;
   private dataEnvioDas: Date | null = null;
-  private temParcelamento = false;
-  private parcelamentoStatus: ParcelamentoStatus | null = null;
   private observacoesGerais = "";
   private atividadeMesAtual: AtividadeMensal | null = null;
   private readonly camposInvalidos: Record<string, string[]> = {};
@@ -197,22 +192,6 @@ export class ClienteBuilder {
     return this;
   }
 
-  comTemParcelamento(valor: boolean): this {
-    this.temParcelamento = valor;
-    return this;
-  }
-
-  comParcelamentoStatus(entrada: string | null): this {
-    if (entrada === null) {
-      this.parcelamentoStatus = null;
-      return this;
-    }
-    const resultado = ParcelamentoStatus.criar(entrada);
-    if (resultado.ok) this.parcelamentoStatus = resultado.value;
-    else this.camposInvalidos.parcelamentoStatus = [resultado.error.message];
-    return this;
-  }
-
   comObservacoesGerais(texto: string): this {
     this.observacoesGerais = texto;
     return this;
@@ -244,9 +223,6 @@ export class ClienteBuilder {
     if (dados.dataEnvioDas !== undefined) {
       this.comDataEnvioDas(dados.dataEnvioDas ? new Date(dados.dataEnvioDas) : null);
     }
-    if (dados.temParcelamento !== undefined) this.comTemParcelamento(dados.temParcelamento);
-    if (dados.parcelamentoStatus !== undefined)
-      this.comParcelamentoStatus(dados.parcelamentoStatus);
     if (dados.observacoesGerais !== undefined) this.comObservacoesGerais(dados.observacoesGerais);
     if (dados.atividadeMesAtual !== undefined) this.comAtividadeMesAtual(dados.atividadeMesAtual);
     return this;
@@ -294,8 +270,6 @@ export class ClienteBuilder {
         documentoObrigatorio: this.documentoObrigatorio,
         dasStatus: this.dasStatus,
         dataEnvioDas: this.dataEnvioDas,
-        temParcelamento: this.temParcelamento,
-        parcelamentoStatus: this.parcelamentoStatus,
         observacoesGerais: this.observacoesGerais,
         atividadeMesAtual: this.atividadeMesAtual,
       }),

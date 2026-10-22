@@ -223,7 +223,7 @@ describe("SupabaseClienteQueryGateway.listarResumoOperacional (#36, integração
       documentoObrigatorio: "negativo",
       dasStatus: "pendente",
       temParcelamento: false,
-      parcelamentoStatus: "pendente",
+      parcelamentoStatus: null,
     });
   });
 

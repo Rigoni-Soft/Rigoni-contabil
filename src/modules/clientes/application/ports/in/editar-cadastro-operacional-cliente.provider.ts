@@ -12,8 +12,6 @@ export type EditarCadastroOperacionalClienteInput = {
   documentoObrigatorio: string | null;
   dasStatus: string | null;
   dataEnvioDas: string | null;
-  temParcelamento: boolean;
-  parcelamentoStatus: string | null;
   observacoesGerais: string;
   atividadeMes: AtividadeMensalInput;
 };

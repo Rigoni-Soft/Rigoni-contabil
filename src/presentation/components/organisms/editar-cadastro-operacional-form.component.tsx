@@ -6,11 +6,14 @@ import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcac
 import { Grade, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { NotaDeObrigatorio } from "@/presentation/components/atoms/nota-de-obrigatorio.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { AcoesDoFormulario } from "@/presentation/components/molecules/acoes-do-formulario.component";
+import { CampoDeArquivo } from "@/presentation/components/molecules/campo-de-arquivo.component";
 import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { CampoResponsavel } from "@/presentation/components/molecules/campo-responsavel.component";
 import { LinhaDeContato } from "@/presentation/components/molecules/linha-de-contato.component";
+import { LinhaDeParcelamento } from "@/presentation/components/molecules/linha-de-parcelamento.component";
 import { Button } from "@/presentation/components/ui/button";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
@@ -25,11 +28,6 @@ import {
 } from "@/shared/kernel/documento-obrigatorio-status";
 import { FORMA_ENVIO_LABEL, FORMAS_ENVIO, type FormaEnvioValor } from "@/shared/kernel/forma-envio";
 import { SEM_RESPONSAVEL_LABEL } from "@/shared/kernel/papeis";
-import {
-  PARCELAMENTO_STATUS_LABEL,
-  PARCELAMENTO_STATUSES,
-  type ParcelamentoStatusValor,
-} from "@/shared/kernel/parcelamento-status";
 import { REGIME_LABEL } from "@/shared/kernel/regimes";
 
 // Opções dos selects de status (valor/rótulo), montadas uma vez.
@@ -43,7 +41,24 @@ const OPCOES_DAS = opcoes(
   DAS_STATUS_LABEL,
 );
 const OPCAO_DAS_ENVIADO = { valor: "enviado", rotulo: DAS_STATUS_LABEL.enviado };
-const OPCOES_PARCELAMENTO = opcoes(PARCELAMENTO_STATUSES, PARCELAMENTO_STATUS_LABEL);
+
+const DICA_INTERNO = "Parcelamento interno: a guia vai ao WhatsApp do financeiro, não ao Cliente.";
+const MOTIVO_SEM_REMOVER = "Já teve guia enviada: não pode ser removido.";
+const PDF_ACEITO = "application/pdf";
+
+// Linha da lista de Parcelamentos: o que se edita (código, restantes, interno, PDF novo) e o que a
+// tela só exibe (selo do mês, quitado, nome do PDF gravado, se há envio).
+export type ParcelamentoLinha = {
+  id?: string;
+  codigo: string;
+  parcelasRestantes: number;
+  interno: boolean;
+  quitado: boolean;
+  temEnvio: boolean;
+  enviadoNoMes: boolean;
+  arquivoNome: string;
+  arquivo?: File;
+};
 
 // View global não importa módulos (arquitetura.md §3.4) — o shape espelha
 // EditarCadastroOperacionalFormValues (módulo clientes) por estrutura, não
@@ -54,8 +69,7 @@ export type EditarCadastroOperacionalFormValues = {
   documentoObrigatorio: DocumentoObrigatorioStatusValor | null;
   dasStatus: DasStatusValor | null;
   dataEnvioDas: string | null;
-  temParcelamento: boolean;
-  parcelamentoStatus: ParcelamentoStatusValor | null;
+  parcelamentos: ParcelamentoLinha[];
   observacoesGerais: string;
   atividadeMes: { industria: boolean; comercio: boolean; servico: boolean };
   // "" = Sem responsável.
@@ -86,7 +100,8 @@ type EditarCadastroOperacionalFormProps = {
   pendente: boolean;
   readOnly: boolean;
   responsavel: ResponsavelCampo;
-  temParcelamento: boolean;
+  // Linhas atuais do formulário (acompanham a edição): resumo "Sim (n)", selo e nome do PDF.
+  parcelamentos: ParcelamentoLinha[];
   // DAS já `enviado` pelo sistema: a opção aparece só pra exibir o valor atual.
   dasEnviadoPeloSistema: boolean;
   erroServidor?: string;
@@ -98,6 +113,9 @@ type EditarCadastroOperacionalFormProps = {
   contatos: { id: string }[];
   onAdicionarContato: () => void;
   onRemoverContato: (indice: number) => void;
+  parcelamentoCampos: { id: string }[];
+  onAdicionarParcelamento: () => void;
+  onRemoverParcelamento: (indice: number) => void;
   onLimpar: () => void;
   // Sem callback (uso em /clientes/[id]): "Cancelar" navega pro mesmo destino
   // do "Voltar" do topo. Com callback (uso inline na busca do dashboard):
@@ -117,7 +135,7 @@ export function EditarCadastroOperacionalForm({
   pendente,
   readOnly,
   responsavel,
-  temParcelamento,
+  parcelamentos,
   dasEnviadoPeloSistema,
   erroServidor,
   sucesso,
@@ -125,6 +143,9 @@ export function EditarCadastroOperacionalForm({
   contatos,
   onAdicionarContato,
   onRemoverContato,
+  parcelamentoCampos,
+  onAdicionarParcelamento,
+  onRemoverParcelamento,
   onLimpar,
   onCancelar,
   documentoContratual,
@@ -224,17 +245,11 @@ export function EditarCadastroOperacionalForm({
         />
 
         <Pilha espaco={1} className="lg:col-span-2">
-          <CaixaDeMarcacao rotulo="Tem parcelamento" {...register("temParcelamento")} />
-          {temParcelamento && (
-            <CampoDeOpcoes
-              id="parcelamentoStatus"
-              rotulo="Status do parcelamento"
-              opcoes={OPCOES_PARCELAMENTO}
-              placeholder="Não definido"
-              className="gap-1"
-              {...register("parcelamentoStatus")}
-            />
-          )}
+          <Label>Tem parcelamento</Label>
+          {/* Resumo derivado da lista abaixo: nunca digitado. */}
+          <Texto variante="corpo" role="status">
+            {parcelamentos.length > 0 ? `Sim (${parcelamentos.length})` : "Não"}
+          </Texto>
         </Pilha>
 
         <Pilha espaco={1} className="lg:col-span-2">
@@ -279,6 +294,64 @@ export function EditarCadastroOperacionalForm({
             <Button type="button" variant="outline" onClick={onAdicionarContato}>
               <Plus className="size-4" aria-hidden="true" />
               Adicionar contato
+            </Button>
+          )}
+        </Pilha>
+
+        <Pilha espaco={3} className="sm:col-span-2 lg:col-span-4">
+          <Label className="block">Parcelamentos</Label>
+          {parcelamentoCampos.map((campo, indice) => {
+            const atual = parcelamentos[indice];
+            if (!atual) return null;
+            const erros = errors.parcelamentos?.[indice];
+            return (
+              <LinhaDeParcelamento
+                key={campo.id}
+                indice={indice}
+                codigo={register(`parcelamentos.${indice}.codigo`)}
+                parcelas={register(`parcelamentos.${indice}.parcelasRestantes`, {
+                  valueAsNumber: true,
+                })}
+                interno={register(`parcelamentos.${indice}.interno`)}
+                erroCodigo={erros?.codigo?.message}
+                erroParcelas={erros?.parcelasRestantes?.message}
+                selo={atual.quitado ? "quitado" : atual.enviadoNoMes ? "enviado" : "pendente"}
+                dicaInterno={DICA_INTERNO}
+                desabilitado={atual.quitado}
+                onRemover={
+                  readOnly || atual.temEnvio ? undefined : () => onRemoverParcelamento(indice)
+                }
+                motivoSemRemover={!readOnly && atual.temEnvio ? MOTIVO_SEM_REMOVER : undefined}
+                arquivo={
+                  atual.id ? (
+                    <Texto variante="nota">PDF anexado: {atual.arquivoNome}</Texto>
+                  ) : (
+                    <Controller
+                      control={control}
+                      name={`parcelamentos.${indice}.arquivo`}
+                      render={({ field: { onChange, onBlur, value, name } }) => (
+                        <CampoDeArquivo
+                          id={`parcelamentos.${indice}.arquivo`}
+                          rotulo="PDF do acordo"
+                          name={name}
+                          accept={PDF_ACEITO}
+                          dica="PDF até 4 MB"
+                          file={value}
+                          onChange={onChange}
+                          onBlur={onBlur}
+                          erro={erros?.arquivo?.message}
+                        />
+                      )}
+                    />
+                  )
+                }
+              />
+            );
+          })}
+          {!readOnly && (
+            <Button type="button" variant="outline" onClick={onAdicionarParcelamento}>
+              <Plus className="size-4" aria-hidden="true" />
+              Adicionar parcelamento
             </Button>
           )}
         </Pilha>

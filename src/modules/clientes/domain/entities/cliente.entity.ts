@@ -7,7 +7,6 @@ import type { DasStatus } from "@/modules/clientes/domain/value-objects/das-stat
 import type { DocumentoObrigatorioStatus } from "@/modules/clientes/domain/value-objects/documento-obrigatorio-status.vo";
 import type { Email } from "@/modules/clientes/domain/value-objects/email.vo";
 import type { FormaEnvio } from "@/modules/clientes/domain/value-objects/forma-envio.vo";
-import type { ParcelamentoStatus } from "@/modules/clientes/domain/value-objects/parcelamento-status.vo";
 import type { Regime } from "@/modules/clientes/domain/value-objects/regime.vo";
 import type { Id } from "@/shared/kernel/id.types";
 
@@ -30,8 +29,6 @@ export type ClienteProps = {
   documentoObrigatorio: DocumentoObrigatorioStatus | null;
   dasStatus: DasStatus | null;
   dataEnvioDas: Date | null;
-  temParcelamento: boolean;
-  parcelamentoStatus: ParcelamentoStatus | null;
   observacoesGerais: string;
   atividadeMesAtual: AtividadeMensal | null;
 };
@@ -89,14 +86,6 @@ export class Cliente {
 
   get dataEnvioDas(): Date | null {
     return this.props.dataEnvioDas;
-  }
-
-  get temParcelamento(): boolean {
-    return this.props.temParcelamento;
-  }
-
-  get parcelamentoStatus(): ParcelamentoStatus | null {
-    return this.props.parcelamentoStatus;
   }
 
   get observacoesGerais(): string {

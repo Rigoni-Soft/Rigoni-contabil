@@ -5,6 +5,20 @@ import type { Result } from "@/shared/kernel/result";
 // Cliente. Deliberadamente SEM contratoSocialCaminho/alteracoesContratuais —
 // a confidencialidade destes campos nesta tela é garantida pelo shape do DTO,
 // não por lógica condicional na View (RLS é por linha, não por coluna).
+export type ParcelamentoDto = {
+  id: string;
+  codigo: string;
+  parcelasRestantes: number;
+  interno: boolean;
+  // Nome do PDF anexado, sem a pasta e o id do Parcelamento do caminho no Storage.
+  arquivoNome: string;
+  quitado: boolean;
+  // Com algum envio registrado a remoção é recusada.
+  temEnvio: boolean;
+  // Selo do mês: a parcela do mês corrente já tem registro de envio.
+  enviadoNoMes: boolean;
+};
+
 export type CadastroOperacionalClienteDto = {
   id: string;
   empresa: string;
@@ -15,8 +29,7 @@ export type CadastroOperacionalClienteDto = {
   documentoObrigatorio: string | null;
   dasStatus: string | null;
   dataEnvioDas: string | null;
-  temParcelamento: boolean;
-  parcelamentoStatus: string | null;
+  parcelamentos: ParcelamentoDto[];
   observacoesGerais: string;
   atividadeMes: { industria: boolean; comercio: boolean; servico: boolean };
   // Responsável: null = "Sem responsável". Nome vem null quando o RLS

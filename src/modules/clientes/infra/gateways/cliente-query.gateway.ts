@@ -11,6 +11,11 @@ import {
   operacionalUnico,
   type CadastroOperacionalRow,
 } from "@/modules/clientes/infra/mappers/cadastro-operacional-row.mapper";
+import {
+  EMBED_PARCELAMENTOS,
+  parcelamentoDoRow,
+  type ParcelamentoRow,
+} from "@/modules/clientes/infra/mappers/parcelamento-row.mapper";
 import { AppError } from "@/shared/errors/app.error";
 import { primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
@@ -30,6 +35,7 @@ type ClienteBasicoRow = {
   cliente_cadastro_operacional_sn: CadastroOperacionalRow | CadastroOperacionalRow[] | null;
   cliente_contatos: ContatoRow[] | null;
   cliente_atividades_mensais: AtividadeMensalRow[] | null;
+  cliente_parcelamentos: ParcelamentoRow[] | null;
 };
 
 const EMBED_OPERACIONAL =
@@ -46,8 +52,28 @@ const SELECT_CADASTRO_BASICO = `
   id, empresa, cnpj, regime,
   ${EMBED_OPERACIONAL},
   cliente_contatos(*),
-  cliente_atividades_mensais(*)
+  cliente_atividades_mensais(*),
+  ${EMBED_PARCELAMENTOS}
 `;
+
+// Caminho no Storage: `{clienteId}/{parcelamentoId}-{nome}`; a tela mostra só o nome.
+const nomeDoArquivo = (caminho: string) => caminho.replace(/^[^/]*\/[0-9a-f-]{36}-/, "");
+
+// Cards do dashboard (um status por Cliente): o Cliente com Parcelamento em aberto é "pendente" se
+// algum comum ainda não tem envio no mês, "enviado" se todos os comuns têm, "interno" se só há
+// internos. ponytail: aproximação até o dashboard contar por Parcelamento (cards não exclusivos).
+function resumoDeParcelamentos(parcelamentos: ReturnType<typeof parcelamentoDoRow>[]) {
+  const comuns = parcelamentos.filter((p) => !p.quitado && !p.interno);
+  const abertos = parcelamentos.filter((p) => !p.quitado);
+  const parcelamentoStatus = comuns.some((p) => !p.enviadoNoMes)
+    ? "pendente"
+    : comuns.length > 0
+      ? "enviado"
+      : abertos.length > 0
+        ? "interno"
+        : null;
+  return { temParcelamento: parcelamentos.length > 0, parcelamentoStatus };
+}
 
 export class SupabaseClienteQueryGateway implements ClienteQueryPort {
   constructor(private readonly supabase: SupabaseClient) {}
@@ -87,8 +113,16 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
       documentoObrigatorio: operacional?.documento_obrigatorio ?? null,
       dasStatus: operacional?.das_status ?? null,
       dataEnvioDas: operacional?.data_envio_das ?? null,
-      temParcelamento: operacional?.tem_parcelamento ?? false,
-      parcelamentoStatus: operacional?.parcelamento_status ?? null,
+      parcelamentos: (row.cliente_parcelamentos ?? []).map(parcelamentoDoRow).map((p) => ({
+        id: p.id,
+        codigo: p.codigo,
+        parcelasRestantes: p.parcelasRestantes,
+        interno: p.interno,
+        arquivoNome: nomeDoArquivo(p.arquivoCaminho),
+        quitado: p.quitado,
+        temEnvio: p.temEnvio,
+        enviadoNoMes: p.enviadoNoMes,
+      })),
       observacoesGerais: operacional?.observacoes_gerais ?? "",
       atividadeMes: {
         industria: atividade?.industria ?? false,
@@ -140,7 +174,9 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
     const anoMesAtual = primeiroDiaDoMesAtual();
     const { data, error } = await this.supabase
       .from("clientes_basico")
-      .select(`id, empresa, cnpj, ${EMBED_OPERACIONAL}, cliente_atividades_mensais(*)`)
+      .select(
+        `id, empresa, cnpj, ${EMBED_OPERACIONAL}, cliente_atividades_mensais(*), ${EMBED_PARCELAMENTOS}`,
+      )
       .eq("cliente_atividades_mensais.ano_mes", anoMesAtual)
       // Mesmo escopo da busca: só Regime com cadastro operacional de
       // verdade (nasce automático só pra Simples Nacional/MEI).
@@ -159,8 +195,7 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
           cnpj: linha.cnpj,
           documentoObrigatorio: operacional?.documento_obrigatorio ?? null,
           dasStatus: operacional?.das_status ?? null,
-          temParcelamento: operacional?.tem_parcelamento ?? false,
-          parcelamentoStatus: operacional?.parcelamento_status ?? null,
+          ...resumoDeParcelamentos((linha.cliente_parcelamentos ?? []).map(parcelamentoDoRow)),
           atividadeMes: {
             industria: atividade?.industria ?? false,
             comercio: atividade?.comercio ?? false,

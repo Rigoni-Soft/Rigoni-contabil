@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { makeRegistrarAcao } from "@/main/auditoria.factory";
 import { makeCertidaoCnd, makeObrigacoesFiscais } from "@/main/obrigacoes-fiscais.factory";
+import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
 import type { AnexarAlteracaoContratualPort } from "@/modules/clientes/application/ports/in/anexar-alteracao-contratual.provider";
 import type { AtribuirResponsavelClientePort } from "@/modules/clientes/application/ports/in/atribuir-responsavel-cliente.provider";
@@ -17,6 +18,7 @@ import type {
 import type { EditarCadastroOperacionalClientePort } from "@/modules/clientes/application/ports/in/editar-cadastro-operacional-cliente.provider";
 import type { ListarAvisosCadastroPort } from "@/modules/clientes/application/ports/in/listar-avisos-cadastro.provider";
 import type { MarcarAvisoVistoPort } from "@/modules/clientes/application/ports/in/marcar-aviso-visto.provider";
+import type { SalvarParcelamentosClientePort } from "@/modules/clientes/application/ports/in/salvar-parcelamentos-cliente.provider";
 import type { AuditoriaPort } from "@/modules/clientes/application/ports/out/auditoria.provider";
 import type {
   AtorSessaoDto,
@@ -37,9 +39,11 @@ import { MarcarAvisoVisto } from "@/modules/clientes/application/use-cases/marca
 import { ObterLinkDocumentoContratual } from "@/modules/clientes/application/use-cases/obter-link-documento-contratual.use-case";
 import { ObterResumoSetorSn } from "@/modules/clientes/application/use-cases/obter-resumo-setor-sn.use-case";
 import { SupabaseAvisosCadastroGateway } from "@/modules/clientes/infra/gateways/avisos-cadastro.gateway";
+import { SalvarParcelamentosCliente } from "@/modules/clientes/application/use-cases/salvar-parcelamentos-cliente.use-case";
 import { SupabaseClienteQueryGateway } from "@/modules/clientes/infra/gateways/cliente-query.gateway";
 import { SupabaseDocumentosContratuaisClienteGateway } from "@/modules/clientes/infra/gateways/documentos-contratuais-cliente.gateway";
 import { SupabaseArquivoStorageGateway } from "@/modules/clientes/infra/gateways/supabase-arquivo-storage.gateway";
+import { SupabaseClienteParcelamentoRepository } from "@/modules/clientes/infra/repositories/cliente-parcelamento.repository";
 import { SupabaseClienteRepository } from "@/modules/clientes/infra/repositories/cliente.repository";
 import { SupabaseResponsavelClienteRepository } from "@/modules/clientes/infra/repositories/responsavel-cliente.repository";
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
@@ -89,6 +93,18 @@ export async function makeAnexarAlteracaoContratual(): Promise<AnexarAlteracaoCo
     sessaoViaUsuarios(supabase),
     new SupabaseClienteRepository(supabase),
     new SupabaseArquivoStorageGateway(supabase),
+  );
+}
+
+// Bucket privado sem política de usuário: o PDF sobe e some pelo service role, depois de o caso de
+// uso checar o papel. As linhas do banco seguem pela sessão do usuário (RLS decide o Responsável).
+export async function makeSalvarParcelamentosCliente(): Promise<SalvarParcelamentosClientePort> {
+  const supabase = await createSupabaseServer();
+  return new SalvarParcelamentosCliente(
+    sessaoViaUsuarios(supabase),
+    new SupabaseClienteRepository(supabase),
+    new SupabaseClienteParcelamentoRepository(supabase),
+    new SupabaseArquivoStorageGateway(createSupabaseAdmin(), "parcelamentos-clientes"),
   );
 }
 
