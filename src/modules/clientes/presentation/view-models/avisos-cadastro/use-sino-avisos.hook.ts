@@ -19,15 +19,15 @@ function modalDo(painelId: string) {
   return document.getElementById(painelId) as HTMLDialogElement | null;
 }
 
-export function useSinoAvisos(painelId: string) {
+export function useSinoAvisos(painelId: string, usuarioId: string) {
   const router = useRouter();
   const pathname = usePathname();
   const queryClient = useQueryClient();
   const [abriu, setAbriu] = useState(false);
   const [anuncio, setAnuncio] = useState("");
   const contadorAnterior = useRef<number | null>(null);
-  const contador = useContadorAvisosQuery();
-  const lista = useListaAvisosQuery(abriu);
+  const contador = useContadorAvisosQuery(usuarioId);
+  const lista = useListaAvisosQuery(usuarioId, abriu);
   const { refetch: recontar } = contador;
 
   // A cada navegação o contador relê, sem esperar os 30 s do polling. Na leitura do mount reaproveita
@@ -70,13 +70,21 @@ export function useSinoAvisos(painelId: string) {
     aoCarregarMais: () => void lista.fetchNextPage(),
     aoTentarDeNovo: () => void lista.refetch(),
     // Só o clique no aviso marca como visto e leva ao Cliente. Marca antes de navegar; se a
-    // marcação falhar, navega mesmo assim e o aviso segue não visto na próxima leitura.
+    // marcação falhar (retorno de erro ou rejeição de transporte), navega mesmo assim e o aviso segue
+    // não visto na próxima leitura.
     aoSelecionar: async (aviso: AvisoDeCadastro) => {
       // Fecha já: a navegação entre Clientes não remonta o cabeçalho.
       modalDo(painelId)?.close();
-      if (!aviso.visto) await marcarAvisoVistoAction(aviso.id);
+      if (!aviso.visto) {
+        try {
+          await marcarAvisoVistoAction(aviso.id);
+        } catch {
+          // Falha de rede/transporte: a persistência é incerta, então não finge "visto"; a
+          // invalidação abaixo relê o estado real.
+        }
+      }
       router.push(aviso.href);
-      await queryClient.invalidateQueries({ queryKey: avisosCadastroKeys.todos() });
+      await queryClient.invalidateQueries({ queryKey: avisosCadastroKeys.todos(usuarioId) });
     },
   };
 }

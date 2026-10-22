@@ -29,7 +29,7 @@ export default async function Page() {
           papel={sessao.papel}
           setor={sessao.setor}
           sair={<LogoutButtonContainer />}
-          avisos={<SinoAvisosContainer />}
+          avisos={<SinoAvisosContainer usuarioId={sessao.id} />}
         />
       }
       fila={

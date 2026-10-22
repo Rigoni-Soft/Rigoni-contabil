@@ -54,7 +54,7 @@ export default async function Page({ params, searchParams }: Props) {
           papel={sessao.papel}
           setor={sessao.setor}
           sair={<LogoutButtonContainer />}
-          avisos={<SinoAvisosContainer />}
+          avisos={<SinoAvisosContainer usuarioId={sessao.id} />}
         />
       }
       titulo={readOnly ? "Visualizar cadastro operacional" : "Editar cadastro operacional"}

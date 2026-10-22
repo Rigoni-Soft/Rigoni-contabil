@@ -2,8 +2,8 @@ import { act, render } from "@testing-library/react";
 
 import { useFocoAoDestacar } from "./use-foco-ao-destacar.hook";
 
-function Tela({ destacar }: { destacar: boolean }) {
-  const ref = useFocoAoDestacar(destacar);
+function Tela({ destacar, destino = "c1:2" }: { destacar: boolean; destino?: string }) {
+  const ref = useFocoAoDestacar(destacar, destino);
   return (
     <>
       <button type="button">outro</button>
@@ -42,6 +42,26 @@ describe("useFocoAoDestacar (#144)", () => {
     render(<Tela destacar />);
 
     expect(alvo()).toHaveFocus();
+  });
+
+  it("outro aviso válido na mesma tela (destino novo, destacar continua true): foca de novo (R171-04)", () => {
+    const { rerender } = render(<Tela destacar destino="c1:2" />);
+    expect(alvo()).toHaveFocus();
+    act(() => document.querySelectorAll("button")[0].focus());
+    expect(alvo()).not.toHaveFocus();
+
+    rerender(<Tela destacar destino="c1:3" />);
+
+    expect(alvo()).toHaveFocus();
+  });
+
+  it("mesmo destino em novo render não refoca (não rouba foco a cada render)", () => {
+    const { rerender } = render(<Tela destacar destino="c1:2" />);
+    act(() => document.querySelectorAll("button")[0].focus());
+
+    rerender(<Tela destacar destino="c1:2" />);
+
+    expect(alvo()).not.toHaveFocus();
   });
 
   it("sem destacar: não foca nada", () => {

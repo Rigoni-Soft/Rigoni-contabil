@@ -32,7 +32,7 @@ export function VisualizarDocumentoContratualContainer({
 
   // Só destaca quando o nº do aviso existe: nº desconhecido abre a mais recente, sem anel nem foco.
   const destacar = alteracaoEmFoco !== undefined && documento.numero === alteracaoEmFoco;
-  const botaoAbrirRef = useFocoAoDestacar(destacar);
+  const botaoAbrirRef = useFocoAoDestacar(destacar, `${clienteId}:${documento.numero}`);
 
   return (
     <VisualizarDocumentoContratual

@@ -31,9 +31,8 @@ const aviso = (id: string, vistoEm: string | null = null): AvisoCadastroDto => (
   vistoEm,
 });
 
-function renderizar() {
-  const client = new QueryClient();
-  return renderHook(() => useSinoAvisos("painel"), {
+function renderizar(usuarioId = "user-a", client = new QueryClient()) {
+  return renderHook(() => useSinoAvisos("painel", usuarioId), {
     wrapper: ({ children }) => (
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     ),
@@ -142,6 +141,60 @@ describe("useSinoAvisos", () => {
     expect(marcarMock).toHaveBeenCalledWith("a1");
     expect(push).toHaveBeenCalledWith("/clientes/c-a1");
     await waitFor(() => expect(result.current.contador).toBe(1));
+  });
+
+  it("rejeição de transporte ao marcar visto não impede a navegação nem vira rejeição não tratada (R171-03)", async () => {
+    listarMock.mockResolvedValue({ ok: true, data: { itens: [aviso("a1")], proximoCursor: null } });
+    marcarMock.mockRejectedValue(new TypeError("Failed to fetch"));
+    const { result } = renderizar();
+    act(() => result.current.aoAbrir());
+    await waitFor(() => expect(result.current.avisos).toHaveLength(1));
+
+    await act(() => result.current.aoSelecionar(result.current.avisos[0]));
+
+    expect(push).toHaveBeenCalledWith("/clientes/c-a1");
+    expect(modal.close).toHaveBeenCalled();
+    // O estado real vem da releitura: a marcação incerta não é dada como feita.
+    expect(result.current.avisos[0].visto).toBe(false);
+  });
+
+  it("marcação com resultado de erro também navega", async () => {
+    listarMock.mockResolvedValue({ ok: true, data: { itens: [aviso("a1")], proximoCursor: null } });
+    marcarMock.mockResolvedValue({ ok: false, error: { code: "INTERNAL", message: "x" } });
+    const { result } = renderizar();
+    act(() => result.current.aoAbrir());
+    await waitFor(() => expect(result.current.avisos).toHaveLength(1));
+
+    await act(() => result.current.aoSelecionar(result.current.avisos[0]));
+
+    expect(push).toHaveBeenCalledWith("/clientes/c-a1");
+  });
+
+  it("A → B no mesmo QueryClient: nada de A aparece para B (leitura lenta, falha e resposta antiga de A) (R171-01)", async () => {
+    const client = new QueryClient();
+    listarMock.mockResolvedValue({
+      ok: true,
+      data: { itens: [aviso("aviso-A")], proximoCursor: null },
+    });
+    const a = renderizar("user-a", client);
+    await waitFor(() => expect(a.result.current.contador).toBe(2));
+    act(() => a.result.current.aoAbrir());
+    await waitFor(() => expect(a.result.current.avisos).toHaveLength(1));
+    a.unmount();
+
+    // B: contador 0, lista lenta e depois com falha.
+    contarMock.mockResolvedValue({ ok: true, data: 0 });
+    let falhar: (v: unknown) => void = () => {};
+    listarMock.mockReturnValue(new Promise((resolve) => (falhar = resolve)));
+    const b = renderizar("user-b", client);
+
+    expect(b.result.current.contador).toBe(0);
+    act(() => b.result.current.aoAbrir());
+    expect(b.result.current.avisos).toHaveLength(0);
+    await act(async () => falhar({ ok: false, error: { code: "INTERNAL", message: "x" } }));
+    await waitFor(() => expect(b.result.current.estado).toBe("erro"));
+    expect(b.result.current.avisos).toHaveLength(0);
+    expect(b.result.current.contador).toBe(0);
   });
 
   it("clicar num aviso já visto só navega", async () => {

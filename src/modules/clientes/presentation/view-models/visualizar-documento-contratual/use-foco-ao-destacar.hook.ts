@@ -5,8 +5,9 @@ const TENTATIVAS_MAXIMAS = 120;
 
 // Foca o botão ao chegar por aviso. O formulário fica `visibility: hidden` até hidratar, e o
 // `focus()` num elemento oculto não faz nada (o `autoFocus` do mount perdia essa corrida): tenta a
-// cada quadro até pegar. Desiste se o usuário já foi para outro controle ou ao esgotar as tentativas.
-export function useFocoAoDestacar(destacar: boolean) {
+// cada quadro até pegar. `destino` (Cliente + nº) refaz o foco quando outro aviso destaca outro
+// documento sem remontar o cartão. Desiste se o usuário já foi para outro controle ou ao esgotar as tentativas.
+export function useFocoAoDestacar(destacar: boolean, destino: string) {
   const ref = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -24,7 +25,7 @@ export function useFocoAoDestacar(destacar: boolean) {
     };
     tentar();
     return () => cancelAnimationFrame(quadro);
-  }, [destacar]);
+  }, [destacar, destino]);
 
   return ref;
 }
