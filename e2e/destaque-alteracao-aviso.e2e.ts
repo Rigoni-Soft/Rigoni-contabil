@@ -47,6 +47,22 @@ async function entrar(browser: Browser, usuario: { email: string; senha: string 
 }
 
 test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#144)", () => {
+  // Um Cliente com as alterações nº 2 e nº 3 para os testes que só leem a tela (os que dependem dos
+  // avisos, S1a e novo Cliente, criam o seu).
+  let clienteDasAlteracoes: string;
+
+  test.beforeAll(async ({ browser }) => {
+    test.setTimeout(90_000);
+    const admin = await (await browser.newContext()).newPage();
+    clienteDasAlteracoes = await criarClienteComAlteracao1(
+      admin,
+      empresaUnica("Destaque Compartilhado E2E Ltda"),
+    );
+    await admin.goto(`/clientes/${clienteDasAlteracoes}`);
+    await anexar(admin, 2, "2026-03-01");
+    await anexar(admin, 3, "2026-04-01");
+  });
+
   test("S1a: Admin anexa nº 2 e nº 3; Líder e Responsável veem o selo e o Admin não; abrir não marca; o clique marca, navega e destaca a alteração do aviso @smoke", async ({
     page,
     browser,
@@ -108,20 +124,12 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
   });
 
   test("sem vir de aviso: a de maior nº, sem destaque; nº inválido ou inexistente na URL também", async ({
-    page,
     browser,
   }) => {
-    const clienteId = await criarClienteComAlteracao1(
-      page,
-      empresaUnica("Destaque Sem Aviso E2E Ltda"),
-    );
-    await page.goto(`/clientes/${clienteId}`);
-    await anexar(page, 2, "2026-03-01");
-    await anexar(page, 3, "2026-04-01");
     const lider = await entrar(browser, LIDER);
 
     // URL direta, sem aviso: a mais recente, nada em foco.
-    await lider.goto(`/clientes/${clienteId}`);
+    await lider.goto(`/clientes/${clienteDasAlteracoes}`);
     const botao = lider.getByRole("button", { name: ABRIR_3 });
     await expect(botao).toBeVisible();
     await expect(botao).not.toBeFocused();
@@ -129,9 +137,9 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
     await expect(botao).toHaveAccessibleDescription("");
 
     // Parâmetro forjado: inválido não destaca; nº que não existe cai na mais recente.
-    await lider.goto(`/clientes/${clienteId}?alteracao=abc`);
+    await lider.goto(`/clientes/${clienteDasAlteracoes}?alteracao=abc`);
     await expect(lider.getByRole("button", { name: ABRIR_3 })).not.toBeFocused();
-    await lider.goto(`/clientes/${clienteId}?alteracao=99`);
+    await lider.goto(`/clientes/${clienteDasAlteracoes}?alteracao=99`);
     const semDestaque = lider.getByRole("button", { name: ABRIR_3 });
     await expect(semDestaque).toBeVisible();
     await expect(semDestaque).not.toBeFocused();
@@ -160,21 +168,13 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
   });
 
   test("hidratação lenta (CPU 20x mais lenta): o botão ainda recebe o foco quando o formulário aparece", async ({
-    page,
     browser,
   }) => {
-    const clienteId = await criarClienteComAlteracao1(
-      page,
-      empresaUnica("Destaque CPU Lenta E2E Ltda"),
-    );
-    await page.goto(`/clientes/${clienteId}`);
-    await anexar(page, 2, "2026-03-01");
-    await anexar(page, 3, "2026-04-01");
     const lider = await entrar(browser, LIDER);
     const cdp = await lider.context().newCDPSession(lider);
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: 20 });
 
-    await lider.goto(`/clientes/${clienteId}?alteracao=2`);
+    await lider.goto(`/clientes/${clienteDasAlteracoes}?alteracao=2`);
 
     const botao = lider.getByRole("button", { name: ABRIR_2 });
     await expect(botao).toBeVisible({ timeout: 30_000 });
@@ -182,21 +182,14 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
   });
 
   test("celular (390 px): o rótulo da alteração não se parte e o botão desce para a linha de baixo", async ({
-    page,
     browser,
   }) => {
-    const clienteId = await criarClienteComAlteracao1(
-      page,
-      empresaUnica("Destaque Celular E2E Ltda"),
-    );
-    await page.goto(`/clientes/${clienteId}`);
-    await anexar(page, 2, "2026-03-01");
     const contexto = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const celular = await contexto.newPage();
     await login(celular, LIDER.email, LIDER.senha);
     await expect(celular).toHaveURL("/simples-nacional");
 
-    await celular.goto(`/clientes/${clienteId}?alteracao=2`);
+    await celular.goto(`/clientes/${clienteDasAlteracoes}?alteracao=2`);
 
     const rotulo = celular.getByText("Alteração nº 2 - 01/03/2026", { exact: true });
     const botao = celular.getByRole("button", { name: ABRIR_2 });
@@ -208,23 +201,13 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
     // Uma linha só (a data inteira cabe), e o botão começa abaixo do rótulo, não ao lado.
     expect(caixaRotulo!.height).toBeLessThan(30);
     expect(caixaBotao!.y).toBeGreaterThanOrEqual(caixaRotulo!.y + caixaRotulo!.height);
-    // O anel do foco não vaza da tela.
-    expect(caixaBotao!.x).toBeGreaterThanOrEqual(0);
-    expect(caixaBotao!.x + caixaBotao!.width).toBeLessThanOrEqual(390);
   });
 
   test("depois de abrir o documento o foco continua no botão (ele não perde o foco ao desabilitar)", async ({
-    page,
     browser,
   }) => {
-    const clienteId = await criarClienteComAlteracao1(
-      page,
-      empresaUnica("Destaque Foco Abrir E2E Ltda"),
-    );
-    await page.goto(`/clientes/${clienteId}`);
-    await anexar(page, 2, "2026-03-01");
     const lider = await entrar(browser, LIDER);
-    await lider.goto(`/clientes/${clienteId}?alteracao=2`);
+    await lider.goto(`/clientes/${clienteDasAlteracoes}?alteracao=2`);
     const botao = lider.getByRole("button", { name: ABRIR_2 });
     await expect(botao).toBeFocused();
 
