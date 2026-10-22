@@ -176,4 +176,26 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
     await expect(botao).not.toBeFocused();
     await expect(botao).not.toHaveClass(/ring-4/);
   });
+
+  test("hidratação lenta (CPU 20x mais lenta): o botão ainda recebe o foco quando o formulário aparece", async ({
+    page,
+    browser,
+  }) => {
+    const clienteId = await criarClienteComAlteracao1(
+      page,
+      empresaUnica("Destaque CPU Lenta E2E Ltda"),
+    );
+    await page.goto(`/clientes/${clienteId}`);
+    await anexar(page, 2, "2026-03-01");
+    await anexar(page, 3, "2026-04-01");
+    const lider = await entrar(browser, LIDER);
+    const cdp = await lider.context().newCDPSession(lider);
+    await cdp.send("Emulation.setCPUThrottlingRate", { rate: 20 });
+
+    await lider.goto(`/clientes/${clienteId}?alteracao=2`);
+
+    const botao = lider.getByRole("button", { name: ABRIR_2 });
+    await expect(botao).toBeVisible({ timeout: 30_000 });
+    await expect(botao).toBeFocused({ timeout: 30_000 });
+  });
 });

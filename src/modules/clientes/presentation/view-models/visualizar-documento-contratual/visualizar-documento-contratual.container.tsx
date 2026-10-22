@@ -5,6 +5,7 @@ import type { DocumentoContratualVisivelDto } from "@/modules/clientes/applicati
 
 import { idPainelAnexar } from "../anexar-alteracao-contratual/anexar-alteracao-contratual.presenter";
 import { rotuloDoDocumento } from "./documentos-contratuais.presenter";
+import { useFocoAoDestacar } from "./use-foco-ao-destacar.hook";
 import { useVisualizarDocumentoContratual } from "./use-visualizar-documento-contratual.hook";
 
 // `documentos` não pode ser vazio: quem renderiza decide pela lista (sem acesso = sem cartão).
@@ -29,6 +30,10 @@ export function VisualizarDocumentoContratualContainer({
     alteracaoEmFoco,
   );
 
+  // Só destaca quando o nº do aviso existe: nº desconhecido abre a mais recente, sem anel nem foco.
+  const destacar = alteracaoEmFoco !== undefined && documento.numero === alteracaoEmFoco;
+  const botaoAbrirRef = useFocoAoDestacar(destacar);
+
   return (
     <VisualizarDocumentoContratual
       rotulo={rotuloDoDocumento(documento)}
@@ -37,8 +42,8 @@ export function VisualizarDocumentoContratualContainer({
       erro={erro}
       linkAlternativo={linkAlternativo}
       anexarPainelId={podeAnexar ? idPainelAnexar(clienteId) : undefined}
-      // Só destaca quando o nº do aviso existe: nº desconhecido abre a mais recente, sem anel.
-      destacar={alteracaoEmFoco !== undefined && documento.numero === alteracaoEmFoco}
+      destacar={destacar}
+      botaoAbrirRef={botaoAbrirRef}
     />
   );
 }

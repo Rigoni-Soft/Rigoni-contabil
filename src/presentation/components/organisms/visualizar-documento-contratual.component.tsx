@@ -18,8 +18,9 @@ type VisualizarDocumentoContratualProps = {
   linkAlternativo?: string;
   // Só o Admin: id do diálogo de anexar, aberto pelo botão ao lado de "Abrir em nova aba".
   anexarPainelId?: string;
-  // Chegou por um aviso de alteração: o botão de abrir vem em foco e com anel.
+  // Chegou por um aviso de alteração: o botão de abrir ganha anel. O foco quem dá é o Container, pelo ref.
   destacar?: boolean;
+  botaoAbrirRef?: React.Ref<HTMLButtonElement>;
 };
 
 // Só leitura e sem diálogo: o documento em destaque (a alteração de maior nº, ou a do aviso por onde
@@ -32,6 +33,7 @@ export function VisualizarDocumentoContratual({
   linkAlternativo,
   anexarPainelId,
   destacar,
+  botaoAbrirRef,
 }: VisualizarDocumentoContratualProps) {
   return (
     <Pilha espaco={2} className="rounded-md border border-border p-3">
@@ -52,7 +54,7 @@ export function VisualizarDocumentoContratual({
             disabled={abrindo}
             // O nome começa pelo texto visível (WCAG 2.5.3, comando de voz) e acrescenta qual documento abre.
             aria-label={abrindo ? undefined : `Abrir em nova aba: ${rotulo}`}
-            autoFocus={destacar}
+            ref={botaoAbrirRef}
             className={cn(destacar && "ring-4 ring-ring ring-offset-2 ring-offset-background")}
           >
             <ExternalLink className="size-4" aria-hidden="true" />

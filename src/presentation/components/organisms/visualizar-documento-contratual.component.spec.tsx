@@ -74,12 +74,17 @@ describe("VisualizarDocumentoContratual (#140)", () => {
 });
 
 describe("VisualizarDocumentoContratual: destaque ao chegar por aviso (#144)", () => {
-  it("destacar: o botão de abrir chega em foco e com anel", () => {
+  it("destacar: o botão de abrir ganha o anel (o foco é do Container, pelo ref)", () => {
     montar({ destacar: true });
 
-    const botao = screen.getByRole("button", { name: /^Abrir / });
-    expect(botao).toHaveFocus();
-    expect(botao).toHaveClass("ring-4");
+    expect(screen.getByRole("button", { name: /^Abrir / })).toHaveClass("ring-4");
+  });
+
+  it("repassa o ref ao botão de abrir", () => {
+    const ref = { current: null as HTMLButtonElement | null };
+    montar({ botaoAbrirRef: ref });
+
+    expect(ref.current).toBe(screen.getByRole("button", { name: /^Abrir / }));
   });
 
   it("sem destacar: nada em foco e sem anel", () => {
