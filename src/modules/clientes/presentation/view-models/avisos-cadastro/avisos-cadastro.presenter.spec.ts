@@ -32,8 +32,36 @@ describe("avisoCadastroParaView", () => {
       vistoEm: "2026-10-22T16:00:00.000Z",
     });
 
-    expect(view.titulo).toBe("Nova Alteração contratual");
+    expect(view.titulo).toBe("Nova Alteração contratual nº 2");
     expect(view.visto).toBe(true);
+  });
+});
+
+describe("avisoCadastroParaView: título da alteração (#144)", () => {
+  const ALTERACAO: AvisoCadastroDto = {
+    ...BASE,
+    tipo: "nova_alteracao",
+    alteracaoId: "alt1",
+    alteracaoNumero: 3,
+  };
+
+  it("diz o nº da alteração, para duas do mesmo Cliente não parecerem a mesma", () => {
+    expect(avisoCadastroParaView(ALTERACAO).titulo).toBe("Nova Alteração contratual nº 3");
+    expect(avisoCadastroParaView({ ...ALTERACAO, alteracaoNumero: 12 }).titulo).toBe(
+      "Nova Alteração contratual nº 12",
+    );
+  });
+
+  it("sem nº (aviso antigo ou alteração removida) mantém o título sem nº", () => {
+    expect(avisoCadastroParaView({ ...ALTERACAO, alteracaoNumero: null }).titulo).toBe(
+      "Nova Alteração contratual",
+    );
+  });
+
+  it("novo cliente não ganha nº, mesmo com nº no dado", () => {
+    expect(avisoCadastroParaView({ ...BASE, alteracaoNumero: 3 }).titulo).toBe(
+      "Novo Cliente no Cadastro operacional",
+    );
   });
 });
 

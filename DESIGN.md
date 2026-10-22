@@ -859,7 +859,7 @@ O sino abre direto um modal de verdade (`<dialog>` aberto com `showModal()`, vé
 `w-[min(92vw,32rem)]`, rolagem interna): foco preso, resto da página inerte, Esc e clique no véu
 fecham, e o foco volta ao sino. Exceção deliberada ao `popover` dos outros painéis (imagem, prévia,
 anexar): o aviso pede atenção do usuário, e o `popover` deixava o Tab sair para a página atrás do
-véu. O Container abre e fecha o `<dialog>` (a View só recebe props). Sem página `/avisos`. Cada aviso é um botão de 44 px: não
+véu. O Container abre e fecha o `<dialog>` (a View só recebe props). Sem página `/avisos`. Cada aviso é um botão de 44 px (o de alteração traz o nº no título, "Nova Alteração contratual nº 3", para duas do mesmo Cliente não parecerem iguais; sem nº, "Nova Alteração contratual"): não
 visto em destaque (`bg-accent`, `font-medium`, contorno `primary` e um ponto `primary` de 10 px antes do texto, com "novo" só para leitor de tela; sem barra lateral grossa); visto
 esmaecido (`muted-foreground`, sem fundo) com o selo "visto" em texto. "Carregar mais" (`outline`)
 fecha a lista de 30 em 30. Abrir o modal não marca nada: só o clique no aviso marca como visto,

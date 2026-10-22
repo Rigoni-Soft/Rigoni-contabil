@@ -26,10 +26,18 @@ function destinoDoAviso(aviso: AvisoCadastroDto): string {
     : cliente;
 }
 
+// O nº distingue duas alterações do mesmo Cliente na lista (o título era idêntico).
+function tituloDoAviso(aviso: AvisoCadastroDto): string {
+  const titulo = TITULO[aviso.tipo];
+  return aviso.tipo === "nova_alteracao" && aviso.alteracaoNumero !== null
+    ? `${titulo} nº ${aviso.alteracaoNumero}`
+    : titulo;
+}
+
 export function avisoCadastroParaView(aviso: AvisoCadastroDto): AvisoDeCadastro {
   return {
     id: aviso.id,
-    titulo: TITULO[aviso.tipo],
+    titulo: tituloDoAviso(aviso),
     quando: QUANDO.format(new Date(aviso.criadoEm)),
     visto: aviso.vistoEm !== null,
     href: destinoDoAviso(aviso),

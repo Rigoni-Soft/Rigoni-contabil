@@ -23,6 +23,17 @@ async function naoVistos(page: Page): Promise<number> {
   return (await selo.count()) === 0 ? 0 : Number((await selo.textContent()) ?? 0);
 }
 
+// A lista reúne os avisos de todos os Clientes: não vistos primeiro, do mais novo para o mais antigo,
+// então o primeiro não visto com aquele nº é o do Cliente do teste.
+function avisoDaAlteracao(page: Page, numero: number) {
+  return page
+    .locator('button[data-visto="false"]')
+    .filter({
+      has: page.getByText(`Nova Alteração contratual nº ${numero}`, { exact: true }),
+    })
+    .first();
+}
+
 // Admin cadastra um Cliente SN com a alteração nº 1 e o Funcionário SN como Responsável.
 async function criarClienteComAlteracao1(page: Page, empresa: string): Promise<string> {
   const cnpj = cnpjUnico();
@@ -92,12 +103,14 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
 
       // Abrir o modal não marca nada como visto; o aviso da nº 3 é o mais novo, o da nº 2 vem depois.
       await pessoa.getByRole("button", { name: SINO }).click();
-      const avisos = pessoa.getByRole("button", { name: /Nova Alteração contratual/ });
-      await expect(avisos.first()).toHaveAttribute("data-visto", "false");
+      const aviso3 = avisoDaAlteracao(pessoa, 3);
+      const aviso2 = avisoDaAlteracao(pessoa, 2);
+      await expect(aviso3).toHaveAttribute("data-visto", "false");
+      await expect(aviso2).toHaveAttribute("data-visto", "false");
       expect(await naoVistos(pessoa)).toBe(base + 2);
 
       // O clique no aviso da nº 2 marca visto, navega e abre a nº 2 (não a mais recente), em destaque.
-      await avisos.nth(1).click();
+      await aviso2.click();
       await expect(pessoa).toHaveURL(`/clientes/${clienteId}?alteracao=2`);
       const botao = pessoa.getByRole("button", { name: ABRIR_2 });
       await expect(botao).toBeFocused();
@@ -131,10 +144,7 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
 
     await lider.reload();
     await lider.getByRole("button", { name: SINO }).click();
-    await lider
-      .getByRole("button", { name: /Nova Alteração contratual/ })
-      .first()
-      .click();
+    await avisoDaAlteracao(lider, 2).click();
 
     await expect(lider).toHaveURL(`/clientes/${clienteId}?alteracao=2`);
     await expect(lider.getByRole("button", { name: ABRIR_2 })).toBeFocused();
