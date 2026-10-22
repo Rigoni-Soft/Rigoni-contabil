@@ -133,14 +133,10 @@ describe("SinoAvisos", () => {
     expect(aoFechar).toHaveBeenCalledTimes(1);
   });
 
-  it("clicar no véu fecha; clicar no conteúdo não", async () => {
-    const { aoFechar } = renderizar({ avisos: [NAO_VISTO] });
+  it("o véu fecha o modal por light dismiss nativo", () => {
+    renderizar();
 
-    await userEvent.click(screen.getByRole("dialog"));
-    expect(aoFechar).toHaveBeenCalledTimes(1);
-
-    await userEvent.click(screen.getByRole("heading", { name: "Avisos de cadastro" }));
-    expect(aoFechar).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("dialog")).toHaveAttribute("closedby", "any");
   });
 
   it("erro de leitura oferece 'Tentar de novo'", async () => {

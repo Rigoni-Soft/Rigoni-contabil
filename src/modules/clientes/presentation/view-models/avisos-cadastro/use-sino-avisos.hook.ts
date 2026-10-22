@@ -50,13 +50,11 @@ export function useSinoAvisos(painelId: string, papel: string) {
     setAnuncio(naoVistos > antes ? anuncioDeAvisos(naoVistos) : "");
   }, [naoVistos]);
 
-  const avisos = (lista.data?.pages ?? []).flatMap((pagina) => pagina.itens);
-
   return {
     // Falha de leitura (ex.: sessão expirada) mantém o último contador conhecido.
     contador: contador.data ?? 0,
     anuncio,
-    avisos: avisos.map(avisoCadastroParaView),
+    avisos: (lista.data?.pages ?? []).flatMap((pagina) => pagina.itens.map(avisoCadastroParaView)),
     estado: lista.isError
       ? ("erro" as const)
       : lista.isPending

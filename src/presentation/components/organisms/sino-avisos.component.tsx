@@ -81,10 +81,8 @@ export function SinoAvisos({
         como="dialog"
         id={painelId}
         aria-labelledby={`${painelId}-titulo`}
-        // O conteúdo ocupa toda a caixa: só o clique no véu tem o próprio <dialog> como alvo.
-        onClick={(evento) => {
-          if (evento.target === evento.currentTarget) aoFechar();
-        }}
+        // Clique no véu fecha, nativo (sem suporte, Esc e o botão Fechar seguem valendo).
+        closedby="any"
         className={cn(
           SUPERFICIE_DE_PAINEL,
           "max-h-[80dvh] w-[min(92vw,32rem)] flex-col overflow-hidden p-0 open:flex",
