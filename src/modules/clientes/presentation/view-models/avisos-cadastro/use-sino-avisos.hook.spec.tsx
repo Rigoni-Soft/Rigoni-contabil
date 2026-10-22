@@ -31,9 +31,9 @@ const aviso = (id: string, vistoEm: string | null = null): AvisoCadastroDto => (
   vistoEm,
 });
 
-function renderizar(papel = "lider_setor") {
+function renderizar() {
   const client = new QueryClient();
-  return renderHook(() => useSinoAvisos("painel", papel), {
+  return renderHook(() => useSinoAvisos("painel"), {
     wrapper: ({ children }) => (
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     ),
@@ -213,22 +213,5 @@ describe("useSinoAvisos", () => {
     await waitFor(() => expect(result.current.avisos).toHaveLength(1));
     await act(() => result.current.aoSelecionar(result.current.avisos[0]));
     expect(modal.close).toHaveBeenCalledTimes(2);
-  });
-
-  it("Admin não recebe aviso: não lê o contador, nem no polling nem na navegação", async () => {
-    jest.useFakeTimers();
-    try {
-      const { result, rerender } = renderizar("admin");
-      pathname = "/clientes/c1";
-      rerender();
-      await act(async () => {
-        await jest.advanceTimersByTimeAsync(60_000);
-      });
-
-      expect(contarMock).not.toHaveBeenCalled();
-      expect(result.current.contador).toBe(0);
-    } finally {
-      jest.useRealTimers();
-    }
   });
 });

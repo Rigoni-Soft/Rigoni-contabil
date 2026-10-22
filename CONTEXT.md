@@ -70,7 +70,7 @@ _Avoid_: Regime (é outro conceito — ver acima).
 Certidão Negativa de Débitos — documento que atesta a regularidade fiscal do Cliente, obtido via Serpro.
 
 **Aviso de cadastro**:
-O registro permanente, por destinatário, de que um Cliente entrou no Cadastro operacional (*novo cliente*) ou ganhou uma alteração contratual (*nova alteração*). O de novo cliente vai ao Líder do Setor Simples Nacional; o de nova alteração vai ao Líder e ao Responsável do Cliente (só ao Líder, se não houver Responsável ativo). Fica "não visto" até o destinatário abri-lo. Não expira.
+O registro permanente, por destinatário, de que um Cliente entrou no Cadastro operacional (*novo cliente*) ou ganhou uma alteração contratual (*nova alteração*). O de novo cliente vai ao Líder do Setor Simples Nacional; o de nova alteração vai ao Líder e ao Responsável do Cliente (só ao Líder, se não houver Responsável ativo). O Admin nunca é destinatário e não vê o sino de avisos: só os Setores são avisados. Fica "não visto" até o destinatário abri-lo. Não expira.
 _Avoid_: Notificação, aviso (aviso é o de Inatividade).
 
 **Alteração contratual**:

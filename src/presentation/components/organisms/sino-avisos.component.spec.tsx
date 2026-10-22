@@ -42,14 +42,16 @@ describe("SinoAvisos", () => {
   it("sem avisos não vistos: sem selo e sem destaque", () => {
     renderizar();
 
-    const sino = screen.getByRole("button", { name: "Avisos de cadastro" });
+    expect(screen.getByRole("button", { name: "Avisos de cadastro" })).toBeInTheDocument();
     expect(screen.queryByTestId("selo-avisos")).not.toBeInTheDocument();
   });
 
   it("com não vistos: selo com o contador, nome acessível com a quantidade e destaque", () => {
     renderizar({ contador: 3 });
 
-    const sino = screen.getByRole("button", { name: "Avisos de cadastro, 3 não vistos" });
+    expect(
+      screen.getByRole("button", { name: "Avisos de cadastro, 3 não vistos" }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("selo-avisos")).toHaveTextContent("3");
   });
 

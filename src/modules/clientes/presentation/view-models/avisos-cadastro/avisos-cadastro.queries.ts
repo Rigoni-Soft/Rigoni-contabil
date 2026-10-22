@@ -15,8 +15,7 @@ export const avisosCadastroKeys = {
 // tempo. Realtime (`*.realtime.ts`, arquitetura.md 4.2) quando o atraso incomodar.
 const INTERVALO_MS = 30_000;
 
-// `habilitado` falso: o papel não recebe avisos, então nem lê nem faz polling.
-export function useContadorAvisosQuery(habilitado: boolean) {
+export function useContadorAvisosQuery() {
   return useQuery({
     queryKey: [...avisosCadastroKeys.todos(), "contador"],
     queryFn: async () => {
@@ -24,7 +23,6 @@ export function useContadorAvisosQuery(habilitado: boolean) {
       if (!resultado.ok) throw new Error(resultado.error.message);
       return resultado.data;
     },
-    enabled: habilitado,
     refetchInterval: INTERVALO_MS,
     staleTime: INTERVALO_MS,
     retry: false,

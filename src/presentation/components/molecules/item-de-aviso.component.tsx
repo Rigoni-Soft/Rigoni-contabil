@@ -27,7 +27,7 @@ export function ItemDeAviso({ aviso, aoSelecionar }: ItemDeAvisoProps) {
       className={cn(
         "flex min-h-11 w-full items-center justify-between gap-3 rounded-md border px-3 py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring",
         aviso.visto
-          ? "border-border bg-transparent text-muted-foreground"
+          ? "border-input bg-transparent text-muted-foreground"
           : "border-primary bg-accent font-medium text-foreground",
       )}
     >

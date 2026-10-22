@@ -34,7 +34,7 @@ export default async function Page({ params }: Props) {
           papel={sessao.papel}
           setor={sessao.setor}
           sair={<LogoutButtonContainer />}
-          avisos={<SinoAvisosContainer papel={sessao.papel} />}
+          avisos={<SinoAvisosContainer />}
         />
       }
       titulo={card.titulo}

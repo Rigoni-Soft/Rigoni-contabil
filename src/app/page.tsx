@@ -31,7 +31,7 @@ export default async function Home() {
           papel={sessao.papel}
           setor={sessao.setor}
           sair={<LogoutButtonContainer />}
-          avisos={<SinoAvisosContainer papel={sessao.papel} />}
+          avisos={<SinoAvisosContainer />}
         />
       }
       nav={<ShellNav setores={setores} />}

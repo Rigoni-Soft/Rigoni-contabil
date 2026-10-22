@@ -847,8 +847,8 @@ Painel novo sobre véu parte desta constante em vez de repetir as classes.
 
 ### Sino de Avisos de cadastro (#143)
 
-Primeiro item da linha de ações do `ShellHeader`, em toda tela autenticada (Admin inclusive: o
-sino fica sem selo e sem consultar o contador, porque ele não recebe aviso). Botão redondo de 48 px (`size-12`, maior que o alvo
+Primeiro item da linha de ações do `ShellHeader`, em toda tela autenticada, menos para o Admin (ele não recebe
+aviso, então não vê o sino). Botão redondo de 48 px (`size-12`, maior que o alvo
 padrão de 44 px), ícone `Bell` de 24 px. Sem aviso não visto: contorno `input`, fundo transparente.
 Com algum: preenchido `primary` com `primary-foreground`, e um selo `destructive` (borda de 2 px na
 cor do fundo) no canto superior direito com o contador, `99+` acima de 99. O selo é decorativo
@@ -861,7 +861,7 @@ fecham, e o foco volta ao sino. Exceção deliberada ao `popover` dos outros pai
 anexar): o aviso pede atenção do usuário, e o `popover` deixava o Tab sair para a página atrás do
 véu. O Container abre e fecha o `<dialog>` (a View só recebe props). Sem página `/avisos`. Cada aviso é um botão de 44 px (o de alteração traz o nº no título, "Nova Alteração contratual nº 3", para duas do mesmo Cliente não parecerem iguais; sem nº, "Nova Alteração contratual"): não
 visto em destaque (`bg-accent`, `font-medium`, contorno `primary` e um ponto `primary` de 10 px antes do texto, com "novo" só para leitor de tela; sem barra lateral grossa); visto
-esmaecido (`muted-foreground`, sem fundo) com o selo "visto" em texto. "Carregar mais" (`outline`)
+esmaecido (`muted-foreground`, sem fundo, contorno `input` para o limite do alvo passar de 3:1 no tema claro) com o selo "visto" em texto. "Carregar mais" (`outline`)
 fecha a lista de 30 em 30. Abrir o modal não marca nada: só o clique no aviso marca como visto,
 fecha o modal e navega a `/clientes/[id]` (o aviso de nova alteração, a `/clientes/[id]?alteracao=N`,
 que destaca o botão do documento, ver "Destaque ao chegar por aviso"). Contador por polling de 30 s e a cada navegação, sem som.

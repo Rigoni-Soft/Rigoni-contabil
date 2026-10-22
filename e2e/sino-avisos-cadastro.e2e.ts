@@ -43,12 +43,12 @@ test.describe("Sino de Avisos de cadastro (#143)", () => {
     await expect.poll(() => naoVistos(page)).toBe(antes - 1);
   });
 
-  test("Admin não recebe Aviso de cadastro: o sino fica sem selo", async ({ page }) => {
+  test("Admin não recebe Aviso de cadastro: não vê o sino", async ({ page }) => {
     await login(page, "admin@rigonicontabil.local", "admin123");
     await expect(page).toHaveURL("/");
 
-    await expect(page.getByRole("button", { name: "Avisos de cadastro" })).toBeVisible();
-    await expect(page.getByTestId("selo-avisos")).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Meu perfil" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Avisos de cadastro/ })).toHaveCount(0);
   });
 
   test("polling: aviso criado por outra sessão entra no contador em até 30 s (relógio controlado)", async ({

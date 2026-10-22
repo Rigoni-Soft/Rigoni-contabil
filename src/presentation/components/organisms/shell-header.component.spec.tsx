@@ -17,6 +17,19 @@ describe("ShellHeader", () => {
     expect(screen.getByText(/acesso a todos os setores/)).toBeInTheDocument();
   });
 
+  it("Admin não vê o sino de avisos; Líder e Funcionário veem", () => {
+    const props = { nome: "N", setor: "simples_nacional", sair: <button>Sair</button> };
+    const { rerender } = render(
+      <ShellHeader {...props} papel="admin" avisos={<button>Avisos</button>} />,
+    );
+    expect(screen.queryByRole("button", { name: "Avisos" })).not.toBeInTheDocument();
+
+    for (const papel of ["lider_setor", "funcionario"]) {
+      rerender(<ShellHeader {...props} papel={papel} avisos={<button>Avisos</button>} />);
+      expect(screen.getByRole("button", { name: "Avisos" })).toBeInTheDocument();
+    }
+  });
+
   it("mostra o Setor para Funcionário", () => {
     render(
       <ShellHeader
@@ -191,19 +204,5 @@ describe("ShellHeader", () => {
       );
       expect(screen.queryByRole("link", { name: "Fila" })).not.toBeInTheDocument();
     }
-  });
-
-  it("renderiza o slot do sino de avisos para qualquer papel", () => {
-    render(
-      <ShellHeader
-        nome="Cledson"
-        papel="admin"
-        setor="administrativo"
-        avisos={<button>Avisos</button>}
-        sair={<button>Sair</button>}
-      />,
-    );
-
-    expect(screen.getByRole("button", { name: "Avisos" })).toBeInTheDocument();
   });
 });

@@ -21,7 +21,7 @@ export default async function Page() {
           papel={sessao.papel}
           setor={sessao.setor}
           sair={<LogoutButtonContainer />}
-          avisos={<SinoAvisosContainer papel={sessao.papel} />}
+          avisos={<SinoAvisosContainer />}
         />
       }
       formulario={<CriarClienteContainer />}

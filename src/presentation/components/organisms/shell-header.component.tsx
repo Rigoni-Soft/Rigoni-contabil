@@ -57,7 +57,8 @@ export function ShellHeader({ nome, papel, setor, avisos, sair }: ShellHeaderPro
       </Linha>
 
       <Linha alinhar="centro" espaco={1} quebra className="lg:shrink-0">
-        {avisos}
+        {/* O Admin não recebe Aviso de cadastro: sem sino. */}
+        {papel !== "admin" && avisos}
         {/* Único caminho de navegação até /admin/usuarios/novo — Admin e Líder
             cadastram (escopado por papel no próprio caso de uso); Funcionário não
             cadastra ninguém, então não vê o link. */}

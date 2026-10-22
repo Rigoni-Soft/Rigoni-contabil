@@ -83,9 +83,8 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
     await anexar(page, 3, "2026-04-01");
     await expect(page.getByRole("button", { name: ABRIR_3 })).toBeVisible();
 
-    // O Admin não é destinatário: sino sem selo.
-    await expect(page.getByRole("button", { name: "Avisos de cadastro" })).toBeVisible();
-    await expect(page.getByTestId("selo-avisos")).toHaveCount(0);
+    // O Admin não é destinatário: sem sino.
+    await expect(page.getByRole("button", { name: /Avisos de cadastro/ })).toHaveCount(0);
 
     for (const [pessoa, base] of [
       [lider, baseLider],
