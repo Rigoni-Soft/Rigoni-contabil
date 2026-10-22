@@ -43,4 +43,50 @@ describe("limparClientesDoE2E", () => {
 
     expect(remover).not.toHaveBeenCalled();
   });
+
+  describe("zerarAvisos (backlog de Avisos de cadastro)", () => {
+    it("Supabase local: zera, mesmo sem nada registrado para apagar", async () => {
+      const zerarAvisos = jest.fn().mockResolvedValue(undefined);
+
+      await limparClientesDoE2E({
+        baseUrl: undefined,
+        supabaseUrl: LOCAL,
+        cnpjs: [],
+        remover: jest.fn(),
+        zerarAvisos,
+      });
+
+      expect(zerarAvisos).toHaveBeenCalledTimes(1);
+    });
+
+    it("com BASE_URL definida não zera (o deploy não é da suíte)", async () => {
+      const zerarAvisos = jest.fn();
+
+      await limparClientesDoE2E({
+        baseUrl: "https://preview.example.invalid",
+        supabaseUrl: REMOTO,
+        cnpjs: CNPJS,
+        remover: jest.fn(),
+        zerarAvisos,
+      });
+
+      expect(zerarAvisos).not.toHaveBeenCalled();
+    });
+
+    it("Supabase remoto falha antes de zerar", async () => {
+      const zerarAvisos = jest.fn();
+
+      await expect(
+        limparClientesDoE2E({
+          baseUrl: undefined,
+          supabaseUrl: REMOTO,
+          cnpjs: CNPJS,
+          remover: jest.fn(),
+          zerarAvisos,
+        }),
+      ).rejects.toThrow(/local/i);
+
+      expect(zerarAvisos).not.toHaveBeenCalled();
+    });
+  });
 });
