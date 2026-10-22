@@ -138,8 +138,10 @@ export function LinhaDeParcelamento({
               type="button"
               variant="ghost"
               size="icon"
-              onClick={onRemover}
-              disabled={!!motivoSemRemover}
+              // aria-disabled, não disabled: o botão segue focável e o leitor de tela ouve o motivo.
+              onClick={motivoSemRemover ? undefined : onRemover}
+              aria-disabled={motivoSemRemover ? true : undefined}
+              className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
               aria-label={`Remover parcelamento ${indice + 1}`}
               aria-describedby={motivoSemRemover ? idDoMotivo : undefined}
             >
