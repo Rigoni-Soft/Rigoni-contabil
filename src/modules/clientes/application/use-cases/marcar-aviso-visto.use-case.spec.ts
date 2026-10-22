@@ -5,7 +5,10 @@ import { ok } from "@/shared/kernel/result";
 import { MarcarAvisoVisto } from "./marcar-aviso-visto.use-case";
 
 function gatewayFalso() {
-  const marcarVisto = jest.fn<ReturnType<AvisosCadastroPort["marcarVisto"]>, Parameters<AvisosCadastroPort["marcarVisto"]>>(async () => ok(undefined));
+  const marcarVisto = jest.fn<
+    ReturnType<AvisosCadastroPort["marcarVisto"]>,
+    Parameters<AvisosCadastroPort["marcarVisto"]>
+  >(async () => ok(undefined));
   const gateway: AvisosCadastroPort = {
     listar: async () => ok([]),
     contarNaoVistos: async () => ok(0),

@@ -7,18 +7,16 @@ import { makeCertidaoCnd, makeObrigacoesFiscais } from "@/main/obrigacoes-fiscai
 import { createSupabaseServer } from "@/main/supabase-server.factory";
 import type { AnexarAlteracaoContratualPort } from "@/modules/clientes/application/ports/in/anexar-alteracao-contratual.provider";
 import type { AtribuirResponsavelClientePort } from "@/modules/clientes/application/ports/in/atribuir-responsavel-cliente.provider";
-import type {
-  ContarAvisosNaoVistosPort,
-  ListarAvisosCadastroPort,
-  MarcarAvisoVistoPort,
-} from "@/modules/clientes/application/ports/in/avisos-cadastro.provider";
 import type { BuscarGuiaPort } from "@/modules/clientes/application/ports/in/buscar-guia.provider";
+import type { ContarAvisosNaoVistosPort } from "@/modules/clientes/application/ports/in/contar-avisos-nao-vistos.provider";
 import type { CriarClientePort } from "@/modules/clientes/application/ports/in/criar-cliente.provider";
 import type {
   ListarDocumentosContratuaisClientePort,
   ObterLinkDocumentoContratualPort,
 } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 import type { EditarCadastroOperacionalClientePort } from "@/modules/clientes/application/ports/in/editar-cadastro-operacional-cliente.provider";
+import type { ListarAvisosCadastroPort } from "@/modules/clientes/application/ports/in/listar-avisos-cadastro.provider";
+import type { MarcarAvisoVistoPort } from "@/modules/clientes/application/ports/in/marcar-aviso-visto.provider";
 import type { AuditoriaPort } from "@/modules/clientes/application/ports/out/auditoria.provider";
 import type {
   AtorSessaoDto,

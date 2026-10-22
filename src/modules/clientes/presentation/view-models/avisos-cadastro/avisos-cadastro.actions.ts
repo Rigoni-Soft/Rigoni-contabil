@@ -7,10 +7,7 @@ import {
   makeListarAvisosCadastro,
   makeMarcarAvisoVisto,
 } from "@/main/clientes.factory";
-import type {
-  CursorAvisoCadastro,
-  PaginaAvisosCadastro,
-} from "@/modules/clientes/application/dtos/aviso-cadastro.dto";
+import type { PaginaAvisosCadastro } from "@/modules/clientes/application/dtos/aviso-cadastro.dto";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
 import { toActionResult } from "@/shared/kernel/to-action-result";
 
@@ -42,7 +39,7 @@ export async function listarAvisosCadastroAction(
   if (!parsed.success) return invalido("Cursor inválido.", parsed.error);
 
   const listar = await makeListarAvisosCadastro();
-  return toActionResult(await listar.execute((parsed.data ?? null) as CursorAvisoCadastro | null));
+  return toActionResult(await listar.execute(parsed.data ?? null));
 }
 
 export async function contarAvisosNaoVistosAction(): Promise<ActionResult<number>> {

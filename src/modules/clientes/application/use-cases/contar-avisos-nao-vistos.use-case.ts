@@ -1,4 +1,4 @@
-import type { ContarAvisosNaoVistosPort } from "@/modules/clientes/application/ports/in/avisos-cadastro.provider";
+import type { ContarAvisosNaoVistosPort } from "@/modules/clientes/application/ports/in/contar-avisos-nao-vistos.provider";
 import type { AvisosCadastroPort } from "@/modules/clientes/application/ports/out/avisos-cadastro.provider";
 import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
 import type { AppError } from "@/shared/errors/app.error";

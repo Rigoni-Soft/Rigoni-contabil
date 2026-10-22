@@ -218,6 +218,28 @@ describe("listar_avisos_cadastro e contador (#142, S3c)", () => {
   });
 });
 
+describe("listar_avisos_cadastro: empate de criado_em (#142, S3c)", () => {
+  it("o id desempata: três avisos no mesmo instante, em páginas de 2, sem pular nem repetir", async () => {
+    await servico.from("avisos_cadastro").delete().eq("destinatario_id", LIDER_SN_ID);
+    const instante = "2026-05-01T10:00:00.123456Z";
+    const ids = await Promise.all([1, 2, 3].map(() => inserirAvisoDoLider(instante)));
+
+    const primeira = await lider.rpc("listar_avisos_cadastro", { p_limite: 2 });
+    const pagina1 = primeira.data as LinhaLista[];
+    const ultimo = pagina1[1];
+    const segunda = await lider.rpc("listar_avisos_cadastro", {
+      p_limite: 2,
+      p_cursor_visto: false,
+      p_cursor_criado_em: ultimo.criado_em,
+      p_cursor_id: ultimo.id,
+    });
+    const todos = [...pagina1, ...(segunda.data as LinhaLista[])].map((a) => a.id);
+
+    expect(todos).toHaveLength(3);
+    expect([...todos].sort()).toEqual([...ids].sort());
+  });
+});
+
 describe("auditoria (#142)", () => {
   it("marcar visto não grava em registros_auditoria", async () => {
     const id = await inserirAvisoDoLider("2026-04-01T00:00:00Z");
