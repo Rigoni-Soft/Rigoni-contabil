@@ -97,7 +97,7 @@ export function LinhaDeParcelamento({
         <CampoDeTexto
           id={`parcelamentos.${indice}.codigo`}
           rotulo="Código"
-          obrigatorio
+          obrigatorio={!desabilitado}
           maxLength={60}
           erro={erroCodigo}
           disabled={desabilitado}
@@ -111,7 +111,7 @@ export function LinhaDeParcelamento({
           min={1}
           step={1}
           inputMode="numeric"
-          obrigatorio
+          obrigatorio={!desabilitado}
           erro={erroParcelas}
           disabled={desabilitado}
           className="min-w-[8rem] flex-1 gap-1"
