@@ -1,7 +1,7 @@
 import { CheckCircle2, Clock, Trash2, type LucideIcon } from "lucide-react";
 
 import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcacao.component";
-import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { Button } from "@/presentation/components/ui/button";
@@ -26,13 +26,12 @@ const SELO: Record<SeloDoParcelamento, { rotulo: string; classes: string; Icone?
   },
 };
 
-function SeloDeStatus({ idDoSelo, selo }: { idDoSelo: string; selo: SeloDoParcelamento }) {
+function SeloDeStatus({ selo }: { selo: SeloDoParcelamento }) {
   const { rotulo, classes, Icone } = SELO[selo];
   return (
     <Texto
       variante="nota"
       como="span"
-      id={idDoSelo}
       className={cn(
         "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium",
         classes,
@@ -84,7 +83,6 @@ export function LinhaDeParcelamento({
   motivoSemRemover,
   somenteLeitura,
 }: LinhaDeParcelamentoProps) {
-  const idDoSelo = `parcelamentos.${indice}.selo`;
   const idDoMotivo = `parcelamentos.${indice}.motivo-remover`;
   return (
     <Pilha
@@ -130,9 +128,9 @@ export function LinhaDeParcelamento({
           alinhar="centro"
           justificar="entre"
           espaco={3}
-          className="w-full sm:ml-auto sm:w-auto"
+          className={cn("w-full sm:ml-auto sm:w-auto", !selo && "justify-end")}
         >
-          {selo ? <SeloDeStatus idDoSelo={idDoSelo} selo={selo} /> : <Caixa />}
+          {selo && <SeloDeStatus selo={selo} />}
           {(onRemover || motivoSemRemover) && (
             <Button
               type="button"

@@ -1,4 +1,4 @@
-import { Parcelamento } from "./parcelamento.vo";
+import { validarParcelamento } from "./parcelamento.vo";
 
 const base = {
   id: "p-1",
@@ -8,21 +8,21 @@ const base = {
   arquivoCaminho: "c/p.pdf",
 };
 
-describe("Parcelamento", () => {
+describe("validarParcelamento", () => {
   it("aceita código e parcelas restantes a partir de 1, sem espaços nas pontas", () => {
-    const r = Parcelamento.criar({ ...base, codigo: "  PARC-1 ", parcelasRestantes: 1 });
-    expect(r.ok && r.value.paraGravar()).toEqual({ ...base, parcelasRestantes: 1 });
+    const r = validarParcelamento({ ...base, codigo: "  PARC-1 ", parcelasRestantes: 1 });
+    expect(r.ok && r.value).toEqual({ ...base, parcelasRestantes: 1 });
   });
 
   it.each([0, -1, 1.5, Number.NaN])("recusa %p parcelas restantes (mínimo 1, inteiro)", (n) => {
-    expect(Parcelamento.criar({ ...base, parcelasRestantes: n }).ok).toBe(false);
+    expect(validarParcelamento({ ...base, parcelasRestantes: n }).ok).toBe(false);
   });
 
   it.each(["", "   ", "x".repeat(61)])("recusa o código %p", (codigo) => {
-    expect(Parcelamento.criar({ ...base, codigo }).ok).toBe(false);
+    expect(validarParcelamento({ ...base, codigo }).ok).toBe(false);
   });
 
   it("recusa sem anexo", () => {
-    expect(Parcelamento.criar({ ...base, arquivoCaminho: " " }).ok).toBe(false);
+    expect(validarParcelamento({ ...base, arquivoCaminho: " " }).ok).toBe(false);
   });
 });

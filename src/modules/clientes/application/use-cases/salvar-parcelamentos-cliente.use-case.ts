@@ -1,17 +1,18 @@
 import type {
-  ParcelamentoEntrada,
   SalvarParcelamentosClienteInput,
   SalvarParcelamentosClientePort,
 } from "@/modules/clientes/application/ports/in/salvar-parcelamentos-cliente.provider";
 import type { ArquivoStoragePort } from "@/modules/clientes/application/ports/out/arquivo-storage.provider";
 import type {
   ClienteParcelamentoRepository,
-  ParcelamentoGravar,
   ParcelamentoSalvo,
 } from "@/modules/clientes/application/ports/out/cliente-parcelamento.repository";
 import type { ClienteRepository } from "@/modules/clientes/application/ports/out/cliente.repository";
 import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
-import { Parcelamento } from "@/modules/clientes/domain/value-objects/parcelamento.vo";
+import {
+  validarParcelamento,
+  type ParcelamentoProps,
+} from "@/modules/clientes/domain/value-objects/parcelamento.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
@@ -23,7 +24,20 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 // Tamanho e tipo do PDF são barrados pelo schema da Server Action (única entrada da porta); o PDF
 // vai a bucket privado, só pelo servidor, depois da checagem de papel daqui.
 type Upload = { caminho: string; arquivo: File };
-type ItemMontado = { gravar: ParcelamentoGravar; upload?: Upload };
+
+const gravarComo = ({
+  id,
+  codigo,
+  parcelasRestantes,
+  interno,
+  arquivoCaminho,
+}: ParcelamentoSalvo): ParcelamentoProps => ({
+  id,
+  codigo,
+  parcelasRestantes,
+  interno,
+  arquivoCaminho,
+});
 
 export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePort {
   constructor(
@@ -83,69 +97,48 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
   private montar(
     input: SalvarParcelamentosClienteInput,
     existentes: ParcelamentoSalvo[],
-  ): Result<{ itens: ParcelamentoGravar[]; uploads: Upload[] }, AppError> {
-    const itens: ParcelamentoGravar[] = [];
+  ): Result<{ itens: ParcelamentoProps[]; uploads: Upload[] }, AppError> {
+    const itens: ParcelamentoProps[] = [];
     const uploads: Upload[] = [];
     const codigos = new Set<string>();
 
     for (const entrada of input.parcelamentos) {
-      const item = this.montarItem(input.clienteId, entrada, existentes);
+      const atual = existentes.find((p) => p.id === entrada.id);
+      if (entrada.id && !atual) {
+        return err(new ValidationError("Parcelamento não encontrado. Atualize a página."));
+      }
+      const id = atual?.id ?? crypto.randomUUID();
+      // PDF só no Parcelamento novo; o existente mantém o anexo gravado.
+      const upload =
+        atual || !entrada.arquivo
+          ? undefined
+          : {
+              caminho: `${input.clienteId}/${id}-${entrada.arquivo.name.replace(/[/\\]/g, "_")}`,
+              arquivo: entrada.arquivo,
+            };
+      if (!atual && !upload) return err(new ValidationError("Anexe o PDF do parcelamento."));
+
+      // Quitado é decidido pelo banco e não se edita: volta exatamente como está.
+      const item = atual?.quitado
+        ? ok(gravarComo(atual))
+        : validarParcelamento({
+            id,
+            codigo: entrada.codigo,
+            parcelasRestantes: entrada.parcelasRestantes,
+            interno: entrada.interno,
+            arquivoCaminho: atual?.arquivoCaminho ?? upload?.caminho ?? "",
+          });
       if (!item.ok) return item;
-      const chave = item.value.gravar.codigo.toLowerCase();
+
+      const chave = item.value.codigo.toLowerCase();
       if (codigos.has(chave)) {
-        return err(new ValidationError(`Código repetido: ${item.value.gravar.codigo}.`));
+        return err(new ValidationError(`Código repetido: ${item.value.codigo}.`));
       }
       codigos.add(chave);
-      itens.push(item.value.gravar);
-      if (item.value.upload) uploads.push(item.value.upload);
+      itens.push(item.value);
+      if (upload) uploads.push(upload);
     }
     return ok({ itens, uploads });
-  }
-
-  private montarItem(
-    clienteId: string,
-    entrada: ParcelamentoEntrada,
-    existentes: ParcelamentoSalvo[],
-  ): Result<ItemMontado, AppError> {
-    if (!entrada.id) return this.montarNovo(clienteId, entrada);
-    const atual = existentes.find((p) => p.id === entrada.id);
-    if (!atual) return err(new ValidationError("Parcelamento não encontrado. Atualize a página."));
-    return this.montarExistente(atual, entrada);
-  }
-
-  private montarExistente(atual: ParcelamentoSalvo, entrada: ParcelamentoEntrada) {
-    // Quitado é decidido pelo banco e não se edita: volta exatamente como está.
-    const { id, codigo, parcelasRestantes, interno, arquivoCaminho } = atual;
-    if (atual.quitado)
-      return ok({ gravar: { id, codigo, parcelasRestantes, interno, arquivoCaminho } });
-    const valido = Parcelamento.criar({
-      id,
-      codigo: entrada.codigo,
-      parcelasRestantes: entrada.parcelasRestantes,
-      interno: entrada.interno,
-      arquivoCaminho,
-    });
-    return valido.ok ? ok({ gravar: valido.value.paraGravar() }) : valido;
-  }
-
-  private montarNovo(
-    clienteId: string,
-    entrada: ParcelamentoEntrada,
-  ): Result<ItemMontado, AppError> {
-    const { arquivo } = entrada;
-    if (!arquivo) return err(new ValidationError("Anexe o PDF do parcelamento."));
-    const id = crypto.randomUUID();
-    const caminho = `${clienteId}/${id}-${arquivo.name.replace(/[/\\]/g, "_")}`;
-    const valido = Parcelamento.criar({
-      id,
-      codigo: entrada.codigo,
-      parcelasRestantes: entrada.parcelasRestantes,
-      interno: entrada.interno,
-      arquivoCaminho: caminho,
-    });
-    return valido.ok
-      ? ok({ gravar: valido.value.paraGravar(), upload: { caminho, arquivo } })
-      : valido;
   }
 
   // Sobe os PDFs novos; se um falhar, apaga os que já subiram.
@@ -167,7 +160,6 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
 
   // Falha ao apagar deixa PDF órfão em bucket privado: não desfaz o que já foi gravado.
   private async apagarAnexos(clienteId: string, caminhos: string[]): Promise<void> {
-    if (caminhos.length === 0) return;
     const removido = await this.storage.remover(caminhos);
     if (!removido.ok) {
       console.error(

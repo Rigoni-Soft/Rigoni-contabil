@@ -63,15 +63,12 @@ const nomeDoArquivo = (caminho: string) => caminho.replace(/^[^/]*\/[0-9a-f-]{36
 // algum comum ainda não tem envio no mês, "enviado" se todos os comuns têm, "interno" se só há
 // internos. ponytail: aproximação até o dashboard contar por Parcelamento (cards não exclusivos).
 function resumoDeParcelamentos(parcelamentos: ReturnType<typeof parcelamentoDoRow>[]) {
-  const comuns = parcelamentos.filter((p) => !p.quitado && !p.interno);
   const abertos = parcelamentos.filter((p) => !p.quitado);
-  const parcelamentoStatus = comuns.some((p) => !p.enviadoNoMes)
-    ? "pendente"
-    : comuns.length > 0
-      ? "enviado"
-      : abertos.length > 0
-        ? "interno"
-        : null;
+  const comuns = abertos.filter((p) => !p.interno);
+  let parcelamentoStatus: "pendente" | "enviado" | "interno" | null = null;
+  if (comuns.some((p) => !p.enviadoNoMes)) parcelamentoStatus = "pendente";
+  else if (comuns.length > 0) parcelamentoStatus = "enviado";
+  else if (abertos.length > 0) parcelamentoStatus = "interno";
   return { temParcelamento: parcelamentos.length > 0, parcelamentoStatus };
 }
 
@@ -116,16 +113,9 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
       documentoObrigatorio: operacional?.documento_obrigatorio ?? null,
       dasStatus: operacional?.das_status ?? null,
       dataEnvioDas: operacional?.data_envio_das ?? null,
-      parcelamentos: (row.cliente_parcelamentos ?? []).map(parcelamentoDoRow).map((p) => ({
-        id: p.id,
-        codigo: p.codigo,
-        parcelasRestantes: p.parcelasRestantes,
-        interno: p.interno,
-        arquivoNome: nomeDoArquivo(p.arquivoCaminho),
-        quitado: p.quitado,
-        temEnvio: p.temEnvio,
-        enviadoNoMes: p.enviadoNoMes,
-      })),
+      parcelamentos: (row.cliente_parcelamentos ?? [])
+        .map(parcelamentoDoRow)
+        .map(({ arquivoCaminho, ...p }) => ({ ...p, arquivoNome: nomeDoArquivo(arquivoCaminho) })),
       observacoesGerais: operacional?.observacoes_gerais ?? "",
       atividadeMes: {
         industria: atividade?.industria ?? false,

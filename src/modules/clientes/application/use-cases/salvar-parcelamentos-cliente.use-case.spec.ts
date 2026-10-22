@@ -2,7 +2,6 @@ import type { SalvarParcelamentosClienteInput } from "@/modules/clientes/applica
 import type { ArquivoStoragePort } from "@/modules/clientes/application/ports/out/arquivo-storage.provider";
 import type {
   ClienteParcelamentoRepository,
-  ParcelamentoGravar,
   ParcelamentoSalvo,
 } from "@/modules/clientes/application/ports/out/cliente-parcelamento.repository";
 import type { ClienteRepository } from "@/modules/clientes/application/ports/out/cliente.repository";
@@ -11,6 +10,7 @@ import type {
   SessaoPort,
 } from "@/modules/clientes/application/ports/out/sessao.provider";
 import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
+import type { ParcelamentoProps } from "@/modules/clientes/domain/value-objects/parcelamento.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ValidationError } from "@/shared/errors/validation.error";
@@ -67,7 +67,7 @@ function montar(
     buscarPorId: jest.fn().mockResolvedValue(ok(cliente.value)),
   } as unknown as ClienteRepository;
   const gravar = jest
-    .fn<Promise<Result<void, AppError>>, [string, ParcelamentoGravar[]]>()
+    .fn<Promise<Result<void, AppError>>, [string, ParcelamentoProps[]]>()
     .mockResolvedValue(ok(undefined));
   const parcelamentos: ClienteParcelamentoRepository = {
     listar: async () => ok(opcoes.existentes ?? []),

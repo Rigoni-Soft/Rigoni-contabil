@@ -2,9 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type {
   ClienteParcelamentoRepository,
-  ParcelamentoGravar,
   ParcelamentoSalvo,
 } from "@/modules/clientes/application/ports/out/cliente-parcelamento.repository";
+import type { ParcelamentoProps } from "@/modules/clientes/domain/value-objects/parcelamento.vo";
 import {
   parcelamentoDoRow,
   SELECT_PARCELAMENTO,
@@ -39,7 +39,7 @@ export class SupabaseClienteParcelamentoRepository implements ClienteParcelament
     return ok((data as ParcelamentoRow[]).map(parcelamentoDoRow));
   }
 
-  async salvar(clienteId: string, itens: ParcelamentoGravar[]): Promise<Result<void, AppError>> {
+  async salvar(clienteId: string, itens: ParcelamentoProps[]): Promise<Result<void, AppError>> {
     const { error } = await this.supabase.rpc("salvar_parcelamentos_cliente", {
       p_cliente_id: clienteId,
       p_itens: itens,

@@ -35,6 +35,11 @@ const pdfDoAcordo = z
   .refine((arquivo) => arquivo.type === "application/pdf", "Envie um arquivo PDF")
   .refine((arquivo) => arquivo.size <= LIMITE_PDF_BYTES, "O arquivo passa de 4 MB");
 
+const parcelasRestantes = z
+  .number({ error: "obrigatório" })
+  .int("número inteiro")
+  .min(1, "Informe 1 ou mais parcelas");
+
 const codigoDoParcelamento = z
   .string()
   .trim()
@@ -48,7 +53,7 @@ export const salvarParcelamentosSchema = z.object({
     z.object({
       id: z.guid().optional(),
       codigo: codigoDoParcelamento,
-      parcelasRestantes: z.number().int("número inteiro").min(1, "Informe 1 ou mais parcelas"),
+      parcelasRestantes,
       interno: z.boolean(),
       arquivo: pdfDoAcordo.optional(),
     }),
@@ -69,22 +74,16 @@ export const parcelamentoFormSchema = z
     arquivo: z.instanceof(File).optional(),
   })
   .superRefine((p, ctx) => {
-    // Quitado não se edita: o zero é do sistema.
-    if (!p.quitado && !(Number.isInteger(p.parcelasRestantes) && p.parcelasRestantes >= 1)) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["parcelasRestantes"],
-        message: "Informe 1 ou mais parcelas",
-      });
-    }
-    if (!p.id) {
-      const erro = p.arquivo ? pdfDoAcordo.safeParse(p.arquivo).error : null;
-      if (!p.arquivo || erro) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["arquivo"],
-          message: erro?.issues[0]?.message ?? "Anexe o PDF do parcelamento",
-        });
+    // Mesmas regras da Server Action; quitado não se edita (o zero é do sistema) e o PDF só vale no novo.
+    const regras = [
+      ...(p.quitado
+        ? []
+        : [["parcelasRestantes", parcelasRestantes.safeParse(p.parcelasRestantes)] as const]),
+      ...(p.id ? [] : [["arquivo", pdfDoAcordo.safeParse(p.arquivo)] as const]),
+    ];
+    for (const [campo, resultado] of regras) {
+      if (!resultado.success) {
+        ctx.addIssue({ code: "custom", path: [campo], message: resultado.error.issues[0].message });
       }
     }
   });
