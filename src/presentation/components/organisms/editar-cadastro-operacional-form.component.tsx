@@ -280,6 +280,7 @@ export function EditarCadastroOperacionalForm({
               render={({ field: { onChange, onBlur, value, name } }) => (
                 <LinhaDeContato
                   indice={indice}
+                  somenteLeitura={readOnly}
                   nome={register(`contatos.${indice}.nome`)}
                   // Sem `ref` (Input não usa forwardRef): só perde o foco automático em erro.
                   telefone={{
@@ -316,6 +317,7 @@ export function EditarCadastroOperacionalForm({
             return (
               <LinhaDeParcelamento
                 key={campo.id}
+                somenteLeitura={readOnly}
                 indice={indice}
                 codigo={register(`parcelamentos.${indice}.codigo`)}
                 parcelas={register(`parcelamentos.${indice}.parcelasRestantes`, {

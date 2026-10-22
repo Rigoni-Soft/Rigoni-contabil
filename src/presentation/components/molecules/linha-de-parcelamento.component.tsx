@@ -65,6 +65,8 @@ type LinhaDeParcelamentoProps = {
   // Sem callback (visualização): o botão nem aparece. Com `motivoSemRemover`, aparece desabilitado.
   onRemover?: () => void;
   motivoSemRemover?: string;
+  // Visualização: nada é obrigatório (não há o que preencher), então sem asterisco.
+  somenteLeitura?: boolean;
 };
 
 // Um Parcelamento do Cliente: código, parcelas restantes, "É interno", selo do mês e remover, com o
@@ -83,6 +85,7 @@ export function LinhaDeParcelamento({
   desabilitado,
   onRemover,
   motivoSemRemover,
+  somenteLeitura,
 }: LinhaDeParcelamentoProps) {
   const idDoSelo = `parcelamentos.${indice}.selo`;
   const idDoMotivo = `parcelamentos.${indice}.motivo-remover`;
@@ -97,7 +100,7 @@ export function LinhaDeParcelamento({
         <CampoDeTexto
           id={`parcelamentos.${indice}.codigo`}
           rotulo="Código"
-          obrigatorio={!desabilitado}
+          obrigatorio={!desabilitado && !somenteLeitura}
           maxLength={60}
           erro={erroCodigo}
           disabled={desabilitado}
@@ -111,7 +114,7 @@ export function LinhaDeParcelamento({
           min={1}
           step={1}
           inputMode="numeric"
-          obrigatorio={!desabilitado}
+          obrigatorio={!desabilitado && !somenteLeitura}
           erro={erroParcelas}
           disabled={desabilitado}
           className="min-w-[8rem] flex-1 gap-1"
