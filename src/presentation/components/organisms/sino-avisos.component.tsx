@@ -7,6 +7,7 @@ import {
   type AvisoDeCadastro,
 } from "@/presentation/components/molecules/item-de-aviso.component";
 import { Button } from "@/presentation/components/ui/button";
+import { SUPERFICIE_DE_PAINEL } from "@/presentation/lib/superficie-de-painel";
 import { cn } from "@/presentation/lib/utils";
 
 type SinoAvisosProps = {
@@ -85,7 +86,10 @@ export function SinoAvisos({
         onClick={(evento) => {
           if (evento.target === evento.currentTarget) aoFechar();
         }}
-        className="m-auto max-h-[80dvh] w-[min(92vw,32rem)] flex-col overflow-hidden rounded-xl border border-border bg-background p-0 text-foreground backdrop:bg-overlay open:flex"
+        className={cn(
+          SUPERFICIE_DE_PAINEL,
+          "max-h-[80dvh] w-[min(92vw,32rem)] flex-col overflow-hidden p-0 open:flex",
+        )}
       >
         <Linha alinhar="centro" justificar="entre" className="border-b border-border px-4 py-1">
           <Texto variante="subtitulo" como="h2" id={`${painelId}-titulo`}>

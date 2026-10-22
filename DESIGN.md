@@ -834,6 +834,17 @@ inferior (`bottom-[max(1rem,env(safe-area-inset-bottom))]`). O cartão entra com
 animação. O aviso sonoro (dois tons curtos) toca quando surge um Atendimento
 ou o cliente escreve de novo.
 
+### Superfície de painel nativo
+
+Os quatro painéis que abrem sobre um véu (imagem ampliada, prévia de documento, anexar alteração e
+modal do sino de Avisos) partilham o casco visual: `rounded-xl` (raio maior que o dos cartões),
+`border-border`, fundo `background`, texto `foreground` e véu `overlay` (`backdrop:bg-overlay`),
+centralizados (`m-auto`). Vive em `SUPERFICIE_DE_PAINEL`
+(`src/presentation/lib/superficie-de-painel.ts`); cada painel soma o próprio tamanho, rolagem e
+padding. O mecanismo não é partilhado de propósito: três usam `popover="auto"` (sem foco preso) e
+o sino usa `<dialog>` modal, porque pede atenção do usuário (ver "Sino de Avisos de cadastro").
+Painel novo sobre véu parte desta constante em vez de repetir as classes.
+
 ### Sino de Avisos de cadastro (#143)
 
 Primeiro item da linha de ações do `ShellHeader`, em toda tela autenticada (Admin inclusive: o

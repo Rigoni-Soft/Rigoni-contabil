@@ -8,6 +8,8 @@ import { CampoDeArquivo } from "@/presentation/components/molecules/campo-de-arq
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { Button } from "@/presentation/components/ui/button";
 import { ACCEPT_DOCUMENTO } from "@/presentation/lib/accept-documento";
+import { SUPERFICIE_DE_PAINEL } from "@/presentation/lib/superficie-de-painel";
+import { cn } from "@/presentation/lib/utils";
 import { hojeIso } from "@/shared/kernel/mes-atual";
 import { AJUDA_NUMERO_ALTERACAO, NUMERO_MAXIMO } from "@/shared/kernel/numero-alteracao";
 
@@ -66,7 +68,7 @@ export function AlteracoesContratuais({
         }}
         role="dialog"
         aria-labelledby={`${painelId}-titulo`}
-        className="m-auto max-h-[90dvh] w-[min(92vw,28rem)] overflow-auto rounded-xl border border-border bg-background text-foreground backdrop:bg-overlay"
+        className={cn(SUPERFICIE_DE_PAINEL, "max-h-[90dvh] w-[min(92vw,28rem)] overflow-auto")}
       >
         {/* Sem padding próprio: o cabeçalho fixo e o formulário trazem o deles. */}
         <Linha
