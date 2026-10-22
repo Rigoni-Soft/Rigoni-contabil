@@ -56,8 +56,6 @@ type LinhaDeParcelamentoProps = {
   selo?: SeloDoParcelamento;
   // Dica da caixa "É interno": para onde a guia vai.
   dicaInterno: string;
-  // A dica só aparece à vista com a caixa marcada (a consequência que importa); o leitor de tela a ouve sempre.
-  internoMarcado: boolean;
   // Nome do PDF já gravado; no Parcelamento novo, o campo de arquivo (controlado pelo formulário).
   arquivo: React.ReactNode;
   // Quitado não se edita: os campos ficam desabilitados.
@@ -80,7 +78,6 @@ export function LinhaDeParcelamento({
   erroParcelas,
   selo,
   dicaInterno,
-  internoMarcado,
   arquivo,
   desabilitado,
   onRemover,
@@ -94,7 +91,7 @@ export function LinhaDeParcelamento({
       espaco={2}
       role="group"
       aria-label={`Parcelamento ${indice + 1}`}
-      className="rounded-md border border-border p-3"
+      className="group/linha rounded-md border border-border p-3"
     >
       <Linha alinhar="fim" espaco={3} quebra>
         <CampoDeTexto
@@ -156,7 +153,9 @@ export function LinhaDeParcelamento({
       <Texto
         variante="nota"
         id={`parcelamentos.${indice}.interno-dica`}
-        className={internoMarcado ? undefined : "sr-only"}
+        // À vista só com a caixa marcada (a consequência que importa), por CSS: digitar na linha não
+        // re-renderiza o formulário. O leitor de tela a ouve sempre.
+        className="sr-only group-has-[:checked]/linha:not-sr-only"
       >
         {dicaInterno}
       </Texto>

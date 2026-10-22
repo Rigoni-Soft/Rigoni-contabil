@@ -3,7 +3,7 @@
 import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useFieldArray, useForm, useWatch } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 
 import { Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
@@ -98,6 +98,7 @@ export function EditarCadastroOperacionalContainer({
     control,
     handleSubmit,
     reset,
+    getValues,
     setError,
     formState: { errors },
   } = useForm<EditarCadastroOperacionalFormValues>({
@@ -105,8 +106,9 @@ export function EditarCadastroOperacionalContainer({
     defaultValues: valoresIniciais,
   });
 
-  const parcelamentos =
-    useWatch({ control, name: "parcelamentos", defaultValue: dados?.parcelamentos ?? [] }) ?? [];
+  // Lido no render, sem assinar o campo: o que a tela exibe (resumo, selo, quitado, nome do PDF) só
+  // muda quando uma linha entra ou sai (`parcelamentoCampos` re-renderiza), não a cada tecla.
+  const parcelamentos = getValues("parcelamentos") ?? dados?.parcelamentos ?? [];
   // Lista de Funcionários só é buscada quando o Líder abre o Select.
   const [listaAberta, setListaAberta] = useState(false);
   const elegiveis = useResponsaveisElegiveis(podeAtribuirResponsavel && listaAberta);
