@@ -1,7 +1,7 @@
 import { CheckCircle2, Clock, Trash2, type LucideIcon } from "lucide-react";
 
 import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcacao.component";
-import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { Button } from "@/presentation/components/ui/button";
@@ -34,7 +34,7 @@ function SeloDeStatus({ idDoSelo, selo }: { idDoSelo: string; selo: SeloDoParcel
       como="span"
       id={idDoSelo}
       className={cn(
-        "mb-2 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium",
+        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium",
         classes,
       )}
     >
@@ -119,25 +119,34 @@ export function LinhaDeParcelamento({
         />
         <CaixaDeMarcacao
           rotulo="É interno"
-          className="pb-2"
+          className="pb-2 pointer-coarse:min-h-11"
           disabled={desabilitado}
           aria-describedby={`parcelamentos.${indice}.interno-dica`}
           {...interno}
         />
-        {selo && <SeloDeStatus idDoSelo={idDoSelo} selo={selo} />}
-        {(onRemover || motivoSemRemover) && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={onRemover}
-            disabled={!!motivoSemRemover}
-            aria-label={`Remover parcelamento ${indice + 1}`}
-            aria-describedby={motivoSemRemover ? idDoMotivo : undefined}
-          >
-            <Trash2 className="size-4" aria-hidden="true" />
-          </Button>
-        )}
+        {/* Estado e ação juntos: no celular ocupam a linha toda (selo à esquerda, lixeira ao alcance do
+            polegar, à direita); a partir de sm ficam à direita dos campos. */}
+        <Linha
+          alinhar="centro"
+          justificar="entre"
+          espaco={3}
+          className="w-full sm:ml-auto sm:w-auto"
+        >
+          {selo ? <SeloDeStatus idDoSelo={idDoSelo} selo={selo} /> : <Caixa />}
+          {(onRemover || motivoSemRemover) && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onRemover}
+              disabled={!!motivoSemRemover}
+              aria-label={`Remover parcelamento ${indice + 1}`}
+              aria-describedby={motivoSemRemover ? idDoMotivo : undefined}
+            >
+              <Trash2 className="size-4" aria-hidden="true" />
+            </Button>
+          )}
+        </Linha>
       </Linha>
       <Texto
         variante="nota"
