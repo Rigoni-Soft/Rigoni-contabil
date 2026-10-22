@@ -23,6 +23,7 @@ jest.mock("./use-sino-avisos.hook", () => ({
     aoAbrir,
     aoSelecionar,
     aoCarregarMais: jest.fn(),
+    aoTentarDeNovo: jest.fn(),
   }),
 }));
 

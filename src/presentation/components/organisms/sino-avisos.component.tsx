@@ -21,6 +21,7 @@ type SinoAvisosProps = {
   aoAbrir: () => void;
   aoSelecionar: (aviso: AvisoDeCadastro) => void;
   aoCarregarMais: () => void;
+  aoTentarDeNovo: () => void;
 };
 
 const TETO_DO_SELO = 99;
@@ -38,10 +39,16 @@ export function SinoAvisos({
   aoAbrir,
   aoSelecionar,
   aoCarregarMais,
+  aoTentarDeNovo,
 }: SinoAvisosProps) {
   const destaque = contador > 0;
   return (
     <>
+      {/* O polling muda o contador sem o foco passar pelo sino: a região avisa o leitor de tela. */}
+      <Texto variante="somenteLeitor" como="span" role="status">
+        {destaque &&
+          `${contador} ${contador === 1 ? "aviso de cadastro não visto" : "avisos de cadastro não vistos"}`}
+      </Texto>
       <Button
         type="button"
         variant="outline"
@@ -70,11 +77,11 @@ export function SinoAvisos({
         id={painelId}
         popover="auto"
         role="dialog"
-        aria-label="Avisos de cadastro"
+        aria-labelledby={`${painelId}-titulo`}
         className="m-auto max-h-[80dvh] w-[min(92vw,32rem)] flex-col overflow-hidden rounded-xl border border-border bg-background p-0 text-foreground backdrop:bg-overlay [&:popover-open]:flex"
       >
         <Linha alinhar="centro" justificar="entre" className="border-b border-border px-4 py-1">
-          <Texto variante="subtitulo" como="h2">
+          <Texto variante="subtitulo" como="h2" id={`${painelId}-titulo`}>
             Avisos de cadastro
           </Texto>
           <Button
@@ -84,6 +91,8 @@ export function SinoAvisos({
             popoverTarget={painelId}
             popoverTargetAction="hide"
             aria-label="Fechar avisos"
+            // Foco inicial do modal: o popover nativo só o move para quem tem `autofocus`.
+            ref={(botao) => botao?.setAttribute("autofocus", "")}
             className="shrink-0 rounded-full"
           >
             <X className="size-5" aria-hidden="true" />
@@ -91,9 +100,14 @@ export function SinoAvisos({
         </Linha>
         <Pilha espaco={2} className="min-h-0 flex-1 overflow-auto p-3">
           {estado === "erro" && (
-            <Texto variante="alerta" role="alert">
-              Não foi possível carregar os avisos.
-            </Texto>
+            <Pilha espaco={2}>
+              <Texto variante="alerta" role="alert">
+                Não foi possível carregar os avisos.
+              </Texto>
+              <Button type="button" variant="outline" onClick={aoTentarDeNovo}>
+                Tentar de novo
+              </Button>
+            </Pilha>
           )}
           {estado === "carregando" && (
             <Texto variante="apoio" role="status">

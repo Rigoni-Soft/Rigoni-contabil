@@ -52,6 +52,7 @@ export function useSinoAvisos() {
       setAbriu(true);
     },
     aoCarregarMais: () => void lista.fetchNextPage(),
+    aoTentarDeNovo: () => void lista.refetch(),
     // Só o clique no aviso marca como visto e leva ao Cliente. Marca antes de navegar; se a
     // marcação falhar, navega mesmo assim e o aviso segue não visto na próxima leitura.
     aoSelecionar: async (aviso: AvisoDeCadastro) => {

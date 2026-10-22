@@ -144,4 +144,17 @@ describe("useSinoAvisos", () => {
     expect(marcarMock).not.toHaveBeenCalled();
     expect(push).toHaveBeenCalledWith("/clientes/c-a1");
   });
+
+  it("'tentar de novo' relê a lista depois de uma falha", async () => {
+    listarMock.mockResolvedValueOnce({ ok: false, error: { code: "INTERNAL", message: "x" } });
+    const { result } = renderizar();
+    act(() => result.current.aoAbrir());
+    await waitFor(() => expect(result.current.estado).toBe("erro"));
+    listarMock.mockResolvedValue({ ok: true, data: { itens: [aviso("a1")], proximoCursor: null } });
+
+    act(() => result.current.aoTentarDeNovo());
+
+    await waitFor(() => expect(result.current.estado).toBe("pronto"));
+    expect(result.current.avisos).toHaveLength(1);
+  });
 });

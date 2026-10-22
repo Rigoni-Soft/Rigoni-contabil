@@ -13,7 +13,12 @@ const NAO_VISTO = {
 const VISTO = { ...NAO_VISTO, id: "a2", titulo: "Nova Alteração contratual", visto: true };
 
 function renderizar(props: Partial<React.ComponentProps<typeof SinoAvisos>> = {}) {
-  const callbacks = { aoAbrir: jest.fn(), aoSelecionar: jest.fn(), aoCarregarMais: jest.fn() };
+  const callbacks = {
+    aoAbrir: jest.fn(),
+    aoSelecionar: jest.fn(),
+    aoCarregarMais: jest.fn(),
+    aoTentarDeNovo: jest.fn(),
+  };
   render(
     <SinoAvisos
       painelId="avisos"
@@ -98,6 +103,39 @@ describe("SinoAvisos", () => {
     renderizar();
 
     expect(screen.getByText("Nenhum aviso de cadastro.")).toBeInTheDocument();
+  });
+
+  it("o contador é anunciado a leitor de tela, no singular", () => {
+    renderizar({ contador: 1 });
+
+    expect(screen.getByRole("status")).toHaveTextContent("1 aviso de cadastro não visto");
+  });
+
+  it("o contador é anunciado a leitor de tela, no plural", () => {
+    renderizar({ contador: 3 });
+
+    expect(screen.getByRole("status")).toHaveTextContent("3 avisos de cadastro não vistos");
+  });
+
+  it("sem não vistos a região de anúncio fica vazia", () => {
+    renderizar();
+
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+  });
+
+  it("o modal se nomeia pelo título e o botão Fechar recebe o foco inicial", () => {
+    renderizar();
+
+    expect(screen.getByRole("dialog", { name: "Avisos de cadastro" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Fechar avisos" })).toHaveAttribute("autofocus");
+  });
+
+  it("erro de leitura oferece 'Tentar de novo'", async () => {
+    const { aoTentarDeNovo } = renderizar({ estado: "erro" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Tentar de novo" }));
+
+    expect(aoTentarDeNovo).toHaveBeenCalledTimes(1);
   });
 
   it("erro de leitura avisa sem apagar o que já estava na lista", () => {
