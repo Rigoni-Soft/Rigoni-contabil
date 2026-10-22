@@ -17,8 +17,8 @@ type ItemDeAvisoProps = {
   aoSelecionar: (aviso: AvisoDeCadastro) => void;
 };
 
-// Linha da lista de Avisos de cadastro: não visto em destaque; visto esmaecido, com o selo "visto"
-// em texto (a cor não é o único sinal).
+// Linha da lista de Avisos de cadastro: não visto em destaque (ponto `primary`, "novo" para leitor
+// de tela); visto esmaecido, com o selo "visto" em texto (a cor não é o único sinal).
 export function ItemDeAviso({ aviso, painelId, aoSelecionar }: ItemDeAvisoProps) {
   return (
     <Caixa
@@ -32,10 +32,22 @@ export function ItemDeAviso({ aviso, painelId, aoSelecionar }: ItemDeAvisoProps)
         "flex min-h-11 w-full items-center justify-between gap-3 rounded-md border px-3 py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring",
         aviso.visto
           ? "border-border bg-transparent text-muted-foreground"
-          : "border-l-4 border-primary bg-accent font-medium text-foreground",
+          : "border-primary bg-accent font-medium text-foreground",
       )}
     >
-      <Caixa como="span" className="min-w-0">
+      {!aviso.visto && (
+        <Caixa
+          como="span"
+          aria-hidden="true"
+          className="size-2.5 shrink-0 rounded-full bg-primary"
+        />
+      )}
+      <Caixa como="span" className="min-w-0 flex-1">
+        {!aviso.visto && (
+          <Texto variante="somenteLeitor" como="span">
+            novo:{" "}
+          </Texto>
+        )}
         <Texto como="span" variante="corpo" className="block text-inherit">
           {aviso.titulo}
         </Texto>

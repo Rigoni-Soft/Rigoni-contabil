@@ -846,7 +846,7 @@ Cor nunca é o único sinal: contador e nome acessível acompanham.
 
 O sino abre direto um modal nativo (`popover="auto"`, véu `overlay`, `w-[min(92vw,32rem)]`, rolagem
 interna), sem popover intermediário e sem página `/avisos`. Cada aviso é um botão de 44 px: não
-visto em destaque (`bg-accent`, `font-medium`, barra `primary` de 4 px à esquerda); visto
+visto em destaque (`bg-accent`, `font-medium`, contorno `primary` e um ponto `primary` de 10 px antes do texto, com "novo" só para leitor de tela; sem barra lateral grossa); visto
 esmaecido (`muted-foreground`, sem fundo) com o selo "visto" em texto. "Carregar mais" (`outline`)
 fecha a lista de 30 em 30. Abrir o modal não marca nada: só o clique no aviso marca como visto,
 fecha o modal e navega a `/clientes/[id]`. Contador por polling de 30 s e a cada navegação, sem som.
