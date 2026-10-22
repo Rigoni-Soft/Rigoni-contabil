@@ -152,7 +152,10 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
     await lider.goto(`/clientes/${clienteId}?alteracao=abc`);
     await expect(lider.getByRole("button", { name: ABRIR_3 })).not.toBeFocused();
     await lider.goto(`/clientes/${clienteId}?alteracao=99`);
-    await expect(lider.getByRole("button", { name: ABRIR_3 })).toBeVisible();
+    const semDestaque = lider.getByRole("button", { name: ABRIR_3 });
+    await expect(semDestaque).toBeVisible();
+    await expect(semDestaque).not.toBeFocused();
+    await expect(semDestaque).not.toHaveClass(/ring-4/);
   });
 
   test("aviso de novo Cliente leva ao formulário sem destaque", async ({ page, browser }) => {

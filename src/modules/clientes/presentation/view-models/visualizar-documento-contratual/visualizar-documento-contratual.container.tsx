@@ -37,7 +37,8 @@ export function VisualizarDocumentoContratualContainer({
       erro={erro}
       linkAlternativo={linkAlternativo}
       anexarPainelId={podeAnexar ? idPainelAnexar(clienteId) : undefined}
-      destacar={alteracaoEmFoco !== undefined}
+      // Só destaca quando o nº do aviso existe: nº desconhecido abre a mais recente, sem anel.
+      destacar={alteracaoEmFoco !== undefined && documento.numero === alteracaoEmFoco}
     />
   );
 }

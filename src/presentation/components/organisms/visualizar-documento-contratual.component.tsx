@@ -9,7 +9,7 @@ import { Button } from "@/presentation/components/ui/button";
 import { cn } from "@/presentation/lib/utils";
 
 type VisualizarDocumentoContratualProps = {
-  // Rótulo do documento mais recente: "Alteração nº N - data", ou "Contrato social" sem alteração.
+  // Rótulo do documento em destaque (o mais recente, ou a alteração do aviso): "Alteração nº N - data", ou "Contrato social" sem alteração.
   rotulo: string;
   onAbrir: () => void;
   abrindo: boolean;
@@ -22,8 +22,8 @@ type VisualizarDocumentoContratualProps = {
   destacar?: boolean;
 };
 
-// Só leitura e sem diálogo: o documento mais recente (a alteração de maior nº) já aparece na tela,
-// com o botão que o abre em nova aba no primeiro clique. A tela nunca conhece o caminho do arquivo.
+// Só leitura e sem diálogo: o documento em destaque (a alteração de maior nº, ou a do aviso por onde
+// se chegou) já aparece na tela, com o botão que o abre em nova aba no primeiro clique. A tela nunca conhece o caminho do arquivo.
 export function VisualizarDocumentoContratual({
   rotulo,
   onAbrir,

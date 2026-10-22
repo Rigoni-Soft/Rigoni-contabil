@@ -121,4 +121,18 @@ describe("VisualizarDocumentoContratualContainer: alteração do aviso (#144)", 
     expect(hook).toHaveBeenCalledWith(CLIENTE, DOCUMENTOS, undefined);
     expect(screen.getByRole("button", { name: /^Abrir / })).not.toHaveFocus();
   });
+
+  it("nº do aviso que não existe na lista: abre a mais recente, mas sem destaque", () => {
+    hookDevolvendo(ALTERACAO);
+
+    render(
+      <VisualizarDocumentoContratualContainer
+        clienteId={CLIENTE}
+        documentos={DOCUMENTOS}
+        alteracaoEmFoco={99}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /^Abrir / })).not.toHaveFocus();
+  });
 });
