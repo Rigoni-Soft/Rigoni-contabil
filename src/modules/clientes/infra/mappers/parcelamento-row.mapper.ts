@@ -12,7 +12,9 @@ export type ParcelamentoRow = {
 };
 
 // Embed que traz o Parcelamento com as parcelas já enviadas (status do mês, bloqueio de remoção).
-export const EMBED_PARCELAMENTOS = "cliente_parcelamentos(*, cliente_parcelamento_envios(parcela))";
+const ENVIOS = "cliente_parcelamento_envios(parcela)";
+export const SELECT_PARCELAMENTO = `*, ${ENVIOS}`;
+export const EMBED_PARCELAMENTOS = `cliente_parcelamentos(${SELECT_PARCELAMENTO})`;
 
 export function parcelamentoDoRow(linha: ParcelamentoRow): ParcelamentoSalvo {
   const parcelaDoMes = mesAtual().replace("-", "");

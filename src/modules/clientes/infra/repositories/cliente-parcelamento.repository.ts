@@ -7,6 +7,7 @@ import type {
 } from "@/modules/clientes/application/ports/out/cliente-parcelamento.repository";
 import {
   parcelamentoDoRow,
+  SELECT_PARCELAMENTO,
   type ParcelamentoRow,
 } from "@/modules/clientes/infra/mappers/parcelamento-row.mapper";
 import { AppError } from "@/shared/errors/app.error";
@@ -26,7 +27,7 @@ export class SupabaseClienteParcelamentoRepository implements ClienteParcelament
   async listar(clienteId: string): Promise<Result<ParcelamentoSalvo[], AppError>> {
     const { data, error } = await this.supabase
       .from("cliente_parcelamentos")
-      .select("*, cliente_parcelamento_envios(parcela)")
+      .select(SELECT_PARCELAMENTO)
       .eq("cliente_id", clienteId)
       .order("criado_em")
       .order("codigo");

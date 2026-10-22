@@ -25,7 +25,8 @@ CREATE TABLE public.cliente_parcelamentos (
 
 -- Registro de envio por parcelamento e parcela (AAAAMM): gravado pelo sistema na entrega aceita.
 -- Base do status do mês (o reset mensal é automático), da idempotência do desconto e do bloqueio
--- de remoção. Nasce travado: nenhuma sessão de usuário escreve.
+-- de remoção. Nasce travado: nenhuma sessão de usuário escreve, por isso não tem gatilho de auditoria
+-- (a auditoria é a do Parcelamento; o envio é do sistema).
 CREATE TABLE public.cliente_parcelamento_envios (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     parcelamento_id uuid NOT NULL,
@@ -183,7 +184,7 @@ $$;
 revoke all on function public.cliente_tem_parcelamento_pendente(uuid) from public, anon, authenticated;
 grant execute on function public.cliente_tem_parcelamento_pendente(uuid) to service_role;
 
--- O job de envio da guia de parcelamento (#87) segue vivo até a regra única o reescrever: "tem
+-- O job de envio da guia de parcelamento segue vivo até a regra única o reescrever: "tem
 -- parcelamento pendente" passa a ser "ao menos um Parcelamento em aberto sem registro de envio do
 -- mês corrente". ponytail: um envio marca todos os em aberto do mês; a regra por código é do job novo.
 CREATE OR REPLACE FUNCTION public.clientes_para_parcelamento(p_apos uuid DEFAULT NULL::uuid, p_limite integer DEFAULT 500) RETURNS TABLE(cliente_id uuid, empresa text, email text, forma_envio public.forma_envio, contato_nome text, contato_telefone text, ultima_mensagem_do_contato_em timestamp with time zone)
