@@ -50,7 +50,8 @@ export function VisualizarDocumentoContratual({
             type="button"
             onClick={onAbrir}
             disabled={abrindo}
-            aria-label={abrindo ? undefined : `Abrir ${rotulo} em nova aba`}
+            // O nome começa pelo texto visível (WCAG 2.5.3, comando de voz) e acrescenta qual documento abre.
+            aria-label={abrindo ? undefined : `Abrir em nova aba: ${rotulo}`}
             autoFocus={destacar}
             className={cn(destacar && "ring-4 ring-ring ring-offset-2 ring-offset-background")}
           >

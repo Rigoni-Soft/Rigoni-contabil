@@ -264,7 +264,7 @@ describe("EditarCadastroOperacionalContainer", () => {
       );
 
       const botao = screen.getByRole("button", {
-        name: "Abrir Alteração nº 1 - 10/01/2024 em nova aba",
+        name: "Abrir em nova aba: Alteração nº 1 - 10/01/2024",
       });
       expect(botao).toHaveFocus();
     });
@@ -281,7 +281,7 @@ describe("EditarCadastroOperacionalContainer", () => {
         );
 
         const botao = screen.getByRole("button", {
-          name: "Abrir Alteração nº 2 - 05/03/2025 em nova aba",
+          name: "Abrir em nova aba: Alteração nº 2 - 05/03/2025",
         });
         expect(botao).not.toHaveFocus();
       },

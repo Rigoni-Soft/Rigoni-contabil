@@ -22,6 +22,14 @@ describe("VisualizarDocumentoContratual (#140)", () => {
     expect(screen.queryByRole("dialog", { hidden: true })).not.toBeInTheDocument();
   });
 
+  it("o nome acessível do botão contém o texto visível, para o comando de voz (WCAG 2.5.3)", () => {
+    montar();
+
+    const botao = screen.getByRole("button", { name: /^Abrir / });
+    expect(botao).toHaveAccessibleName("Abrir em nova aba: Alteração nº 3 - 05/03/2025");
+    expect(botao).toHaveAccessibleName(expect.stringContaining(botao.textContent ?? ""));
+  });
+
   it("só o contrato social: mostra o contrato", () => {
     montar({ rotulo: "Contrato social" });
 
@@ -31,7 +39,7 @@ describe("VisualizarDocumentoContratual (#140)", () => {
   it("'Abrir' dispara a abertura", () => {
     const props = montar();
     fireEvent.click(
-      screen.getByRole("button", { name: "Abrir Alteração nº 3 - 05/03/2025 em nova aba" }),
+      screen.getByRole("button", { name: "Abrir em nova aba: Alteração nº 3 - 05/03/2025" }),
     );
     expect(props.onAbrir).toHaveBeenCalledTimes(1);
   });

@@ -9,8 +9,8 @@ import {
 } from "./support/criar-cliente";
 
 const SINO = /Avisos de cadastro/;
-const ABRIR_2 = "Abrir Alteração nº 2 - 01/03/2026 em nova aba";
-const ABRIR_3 = "Abrir Alteração nº 3 - 01/04/2026 em nova aba";
+const ABRIR_2 = "Abrir em nova aba: Alteração nº 2 - 01/03/2026";
+const ABRIR_3 = "Abrir em nova aba: Alteração nº 3 - 01/04/2026";
 
 const LIDER = { email: "lider.sn@rigonicontabil.local", senha: "lider123" };
 const RESPONSAVEL = { email: "funcionario.sn@rigonicontabil.local", senha: "func123" };
@@ -171,7 +171,7 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
 
     await expect(lider).toHaveURL(`/clientes/${clienteId}`);
     await expect(lider.getByLabel("Empresa")).toHaveValue(empresa);
-    const botao = lider.getByRole("button", { name: /^Abrir Alteração nº 1/ });
+    const botao = lider.getByRole("button", { name: /^Abrir em nova aba: Alteração nº 1/ });
     await expect(botao).toBeVisible();
     await expect(botao).not.toBeFocused();
     await expect(botao).not.toHaveClass(/ring-4/);
