@@ -143,7 +143,7 @@
       "refersTo": "button-primary",
       "description": "Ação principal da tela (Entrar, Trocar senha, Cadastrar); uma por formulário.",
       "html": "<button class=\"ds-btn-primary\">Trocar senha</button>",
-      "css": ".ds-btn-primary{height:44px;padding:8px 16px;border:0;border-radius:4px;background:var(--primary,#54a292);color:var(--primary-foreground,#0a1613);font:500 14px Roboto,sans-serif;cursor:pointer;transition:background .15s}.ds-btn-primary:hover{background:color-mix(in oklab,var(--primary,#54a292) 90%,transparent)}.ds-btn-primary:focus-visible{outline:2px solid var(--ring,#54a292);outline-offset:2px}"
+      "css": ".ds-btn-primary{height:36px;padding:8px 16px;border:0;border-radius:4px;background:var(--primary,#54a292);color:var(--primary-foreground,#0a1613);font:500 14px Roboto,sans-serif;cursor:pointer;transition:background .15s}.ds-btn-primary:hover{background:color-mix(in oklab,var(--primary,#54a292) 90%,transparent)}.ds-btn-primary:focus-visible{outline:2px solid var(--ring,#54a292);outline-offset:2px}"
     },
     {
       "name": "Ghost Button (ação do header)",
@@ -157,9 +157,9 @@
       "name": "Text Input",
       "kind": "input",
       "refersTo": "input",
-      "description": "Campo de texto de 44px; aria-invalid troca borda e anel para destructive.",
+      "description": "Campo de texto de 36px (44px em aparelho de toque); aria-invalid troca borda e anel para destructive.",
       "html": "<input class=\"ds-input\" placeholder=\"E-mail\" />",
-      "css": ".ds-input{box-sizing:border-box;width:100%;height:44px;padding:8px 12px;border:1px solid var(--input,#7a7765);border-radius:4px;background:var(--background,#23221f);color:var(--foreground,#ece7d8);font:400 14px Roboto,sans-serif;outline:none;transition:border-color .15s}.ds-input:focus-visible{outline:2px solid var(--ring,#54a292);outline-offset:2px}.ds-input[aria-invalid=true]{border-color:var(--destructive,#e0968c)}"
+      "css": ".ds-input{box-sizing:border-box;width:100%;height:36px;padding:8px 12px;border:1px solid var(--input,#7a7765);border-radius:4px;background:var(--background,#23221f);color:var(--foreground,#ece7d8);font:400 14px Roboto,sans-serif;outline:none;transition:border-color .15s}.ds-input:focus-visible{outline:2px solid var(--ring,#54a292);outline-offset:2px}.ds-input[aria-invalid=true]{border-color:var(--destructive,#e0968c)}"
     },
     {
       "name": "Password Input",

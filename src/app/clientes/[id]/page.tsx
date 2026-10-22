@@ -4,9 +4,15 @@ import { ShellHeader } from "@/presentation/components/organisms/shell-header.co
 import { EditarCadastroOperacionalPage } from "@/presentation/components/pages/editar-cadastro-operacional.page";
 import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-button.container";
 import { carregarSessao } from "@/presentation/view-models/shell/shell.server";
+import { AnexarAlteracaoContratualContainer } from "@/modules/clientes/presentation/view-models/anexar-alteracao-contratual/anexar-alteracao-contratual.container";
 import { EditarCadastroOperacionalContainer } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.container";
 import { carregarCadastroOperacionalCliente } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.server";
-import { podeAtribuirResponsavel, podeEditarCadastroOperacional } from "@/shared/kernel/papeis";
+import { carregarDocumentosContratuais } from "@/modules/clientes/presentation/view-models/visualizar-documento-contratual/visualizar-documento-contratual.server";
+import {
+  podeAnexarAlteracaoContratual,
+  podeAtribuirResponsavel,
+  podeEditarCadastroOperacional,
+} from "@/shared/kernel/papeis";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -25,9 +31,10 @@ function voltarHrefSeguro(valor: string | undefined): string {
 export default async function Page({ params, searchParams }: Props) {
   const { id } = await params;
   const { voltarPara } = await searchParams;
-  const [sessao, resultado] = await Promise.all([
+  const [sessao, resultado, documentos] = await Promise.all([
     carregarSessao(),
     carregarCadastroOperacionalCliente(id),
+    carregarDocumentosContratuais(id),
   ]);
   if (!sessao) redirect("/login");
   if (sessao.precisaTrocarSenha) redirect("/trocar-senha");
@@ -49,10 +56,21 @@ export default async function Page({ params, searchParams }: Props) {
       }
       titulo={readOnly ? "Visualizar cadastro operacional" : "Editar cadastro operacional"}
       voltarHref={voltarHrefSeguro(voltarPara)}
+      alteracoesContratuais={
+        podeAnexarAlteracaoContratual(sessao.papel) ? (
+          <AnexarAlteracaoContratualContainer
+            clienteId={id}
+            documentosIniciais={documentos.ok ? documentos.value : undefined}
+          />
+        ) : undefined
+      }
       formulario={
         <EditarCadastroOperacionalContainer
           dados={resultado.value}
           readOnly={readOnly}
+          // Se a carga do servidor falhar, o botão se lê por action (com aviso e "Tentar novamente").
+          documentosContratuais={documentos.ok ? documentos.value : undefined}
+          podeAnexar={podeAnexarAlteracaoContratual(sessao.papel)}
           podeAtribuirResponsavel={podeAtribuirResponsavel(sessao.papel, sessao.setor)}
           voltarHrefAoSalvar={voltarHrefSeguro(voltarPara)}
         />

@@ -193,10 +193,10 @@ export class ObterConversa implements ObterConversaPort {
     const lista = await this.documentos.listar(clienteId);
     if (!lista.ok) return lista;
     return ok(
-      lista.value.map(({ tipo, data }) => ({
+      lista.value.map(({ tipo, numero, data }) => ({
         tipo,
-        data,
-        descricao: descreverDocumento({ data }),
+        numero,
+        descricao: descreverDocumento({ numero, data }),
       })),
     );
   }

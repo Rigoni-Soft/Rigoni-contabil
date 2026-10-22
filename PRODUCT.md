@@ -31,7 +31,7 @@ Ferramenta interna proprietária, não um produto de mercado. O que a diferencia
 
 - RBAC por Papel (Admin, Líder de setor, Funcionário) e Setor; Admin acessa tudo, os demais só o próprio setor.
 - Quatro módulos de domínio: `usuarios` (RBAC/autenticação), `clientes` (cadastro básico por Admin + Cadastro operacional automático pra Regime Simples Nacional/MEI, editado pelo Funcionário do Simples Nacional — DAS, parcelamento, contrato social), `atendimento` (URA, fila, transferência, balanceamento mensal, Painel do Funcionário), `auditoria` (registro + consulta).
-- Nenhuma tela do setor Simples Nacional exibe contrato social ou alterações contratuais — mesmo o cadastro de outros setores é só leitura.
+- O contrato social e as alterações contratuais só são abertos, somente leitura, pelo Admin, pelo Líder do Setor Simples Nacional e pelo Funcionário Responsável do Cliente (cartão no formulário de editar, #140: a alteração de maior nº, ou o contrato social, já aparece com data e o botão "Abrir em nova aba", que abre o arquivo no primeiro clique, sem diálogo; sempre a mais recente, sem escolher outra); outros Setores e Funcionários não Responsáveis não os veem — o cadastro de outros setores é só leitura. Só o Admin anexa uma nova alteração a um Cliente existente (botão "Anexar alteração" ao lado de "Abrir em nova aba", em `/clientes/[id]`, com nº, data e arquivo de até 4 MB, #141; sem seção de lista abaixo do formulário); o Admin que escolhe um Cliente na busca vai direto a essa tela própria.
 - Terminologia do domínio fixada em `CONTEXT.md` (Setor, Papel, Atendente, URA, Cliente, Regime, Contato, Atendimento, Mensagem, Fila, Transferência, Balanceamento mensal, Atividade do mês) — qualquer trabalho futuro deve usar esses termos, sem sinônimos novos.
 - Spec funcional completa e os 27 tickets de implementação vivem no issue tracker do GitHub (`Rigoni-Soft/Rigoni-contabil`, issue #24 e filhos #28–#54), não neste arquivo.
 - Requisitos não-funcionais dimensionados para o porte real do escritório: ~50 usuários simultâneos, ~20 rps (pico ~50), 95% de disponibilidade.
@@ -55,7 +55,7 @@ Ferramenta interna proprietária, não um produto de mercado. O que a diferencia
 ## Product Principles
 
 1. RLS no Postgres nunca substitui a checagem de autorização no caso de uso — são duas camadas, sempre as duas.
-2. Nenhum dado de contrato social/alterações aparece fora das telas explicitamente autorizadas (hoje: cadastro pelo Admin); nunca em telas do Simples Nacional.
+2. Nenhum dado de contrato social/alterações aparece fora de quem a regra do banco autoriza (Admin, Líder do Setor Simples Nacional, Responsável do Cliente); a tela recebe só tipo, nº e data, nunca o caminho do arquivo, e o link assinado nasce no clique.
 3. Falha de integração externa (Serpro, WhatsApp) tenta de novo automaticamente algumas vezes antes de virar alerta pra um humano — nunca alarme na primeira falha, nunca silêncio permanente.
 4. Toda ação que muda estado é auditável (ator, data/hora, setor, alvo, resultado); leituras não são auditadas.
 5. O sistema reflete o estado de processos externos (procuração eletrônica, aprovação de template) — nunca tenta automatizá-los ou contorná-los.

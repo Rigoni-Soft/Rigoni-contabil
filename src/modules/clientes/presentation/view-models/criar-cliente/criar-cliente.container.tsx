@@ -6,6 +6,7 @@ import { useFieldArray, useForm } from "react-hook-form";
 
 import { CriarClienteForm } from "@/presentation/components/organisms/criar-cliente-form.component";
 import { normalizarCnpj } from "@/shared/kernel/cnpj";
+import { outrosNumeros, sugerirNumero } from "@/shared/kernel/numero-alteracao";
 
 import { criarClienteAction } from "./criar-cliente.actions";
 import { criarClienteSchema, type CriarClienteFormValues } from "./criar-cliente.schema";
@@ -19,6 +20,7 @@ export function CriarClienteContainer() {
   const [criado, setCriado] = useState<ClienteCriado | undefined>();
   const [avisoCnpj, setAvisoCnpj] = useState<string | undefined>();
   const [avisoRegime, setAvisoRegime] = useState<string | undefined>();
+  const [confirmandoLimpar, setConfirmandoLimpar] = useState(false);
   const { consultar: consultarCnpj } = useConsultarCnpj();
 
   const {
@@ -30,7 +32,7 @@ export function CriarClienteContainer() {
     setValue,
     setError,
     trigger,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<CriarClienteFormValues>({
     resolver: zodResolver(criarClienteSchema),
     defaultValues: { alteracoesContratuais: [] },
@@ -44,10 +46,42 @@ export function CriarClienteContainer() {
     reset();
   };
 
+  // Zera tudo, inclusive o que não é campo: erro do servidor e avisos da consulta de CNPJ.
+  const aoLimpar = () => {
+    setConfirmandoLimpar(false);
+    setErroServidor(undefined);
+    setAvisoCnpj(undefined);
+    setAvisoRegime(undefined);
+    reset();
+  };
+
+  // Formulário em branco limpa direto; com algo preenchido (campo ou alteração), pede confirmação,
+  // porque o clique descarta arquivos escolhidos e não dá para desfazer.
+  const aoPedirLimpar = () => {
+    if (isDirty) setConfirmandoLimpar(true);
+    else aoLimpar();
+  };
+
   const aoAdicionarAlteracao = () => {
     // arquivo começa vazio (usuário ainda não escolheu); a validação de "obrigatório"
     // acontece no submit, mesmo padrão do contrato social.
-    append({ data: "", arquivo: undefined as unknown as File });
+    append({
+      numero: undefined as unknown as number,
+      data: "",
+      arquivo: undefined as unknown as File,
+    });
+  };
+
+  // Sugere o nº pelo prefixo do arquivo (ou maior nº + 1), só com o campo vazio: nunca pisa no que
+  // o Admin digitou.
+  const aoEscolherArquivoDaAlteracao = (indice: number, arquivo: File | undefined) => {
+    if (!arquivo) return;
+    const campo = `alteracoesContratuais.${indice}.numero` as const;
+    if (Number.isInteger(getValues(campo))) return;
+    const outros = outrosNumeros(getValues("alteracoesContratuais"), indice).filter(
+      Number.isInteger,
+    );
+    setValue(campo, sugerirNumero(arquivo.name, outros));
   };
 
   // Autopreenche Empresa/Regime via API pública ao sair do campo CNPJ, sem sobrescrever o que o
@@ -101,6 +135,7 @@ export function CriarClienteContainer() {
   const aoAlterarEmpresa = () => setAvisoCnpj(undefined);
 
   const aoSubmeter = handleSubmit(async (valores) => {
+    setConfirmandoLimpar(false);
     setPendente(true);
     setErroServidor(undefined);
 
@@ -120,8 +155,14 @@ export function CriarClienteContainer() {
         return;
       }
       setCriado({ empresa: resultado.data.cliente.empresa, cnpj: resultado.data.cliente.cnpj });
-    } catch {
-      setErroServidor("Não foi possível cadastrar agora. Verifique a conexão e tente novamente.");
+    } catch (erro) {
+      console.error("Falha ao cadastrar o Cliente", erro);
+      // Só `TypeError` (o fetch que não saiu) é de rede; o resto é erro do servidor.
+      setErroServidor(
+        erro instanceof TypeError
+          ? "Sem conexão com o servidor. Verifique a internet e tente novamente."
+          : "Erro inesperado no servidor ao cadastrar. Tente novamente; se continuar, avise o suporte.",
+      );
     } finally {
       setPendente(false);
     }
@@ -137,9 +178,14 @@ export function CriarClienteContainer() {
       erroServidor={erroServidor}
       criado={criado}
       onCadastrarNovo={aoCadastrarNovo}
+      confirmandoLimpar={confirmandoLimpar}
+      onPedirLimpar={aoPedirLimpar}
+      onLimpar={aoLimpar}
+      onCancelarLimpar={() => setConfirmandoLimpar(false)}
       alteracoes={fields}
       onAdicionarAlteracao={aoAdicionarAlteracao}
       onRemoverAlteracao={remove}
+      onArquivoDaAlteracao={aoEscolherArquivoDaAlteracao}
       onCnpjBlur={aoDesfocarCnpj}
       avisoCnpj={avisoCnpj}
       avisoRegime={avisoRegime}

@@ -13,7 +13,7 @@ type AcoesDoFormularioProps = {
 // Salvar / Limpar / Cancelar, na ordem do contrato de ações de formulário do DESIGN.md.
 export function AcoesDoFormulario({ pendente, onLimpar, onCancelar }: AcoesDoFormularioProps) {
   return (
-    <Linha espaco={2} quebra className="sm:col-span-2">
+    <Linha espaco={2} quebra className="sm:col-span-2 lg:col-span-4">
       <Button type="submit">{pendente ? "Salvando..." : "Salvar"}</Button>
       <Button type="button" variant="outline" onClick={onLimpar} disabled={pendente}>
         Limpar

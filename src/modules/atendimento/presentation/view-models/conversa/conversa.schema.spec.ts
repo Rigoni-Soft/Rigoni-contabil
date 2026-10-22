@@ -16,18 +16,24 @@ describe("atendimentoIdSchema", () => {
 });
 
 describe("enviarDocumentoSchema", () => {
-  it("contrato sem data e alteração com data são válidos", () => {
-    const contrato = { atendimentoId: ID, documento: { tipo: "contrato", data: null } };
-    const alteracao = { atendimentoId: ID, documento: { tipo: "alteracao", data: "2026-03-01" } };
+  it("contrato sem nº e alteração com nº são válidos", () => {
+    const contrato = { atendimentoId: ID, documento: { tipo: "contrato", numero: null } };
+    const alteracao = { atendimentoId: ID, documento: { tipo: "alteracao", numero: 3 } };
     expect(enviarDocumentoSchema.safeParse(contrato).success).toBe(true);
     expect(enviarDocumentoSchema.safeParse(alteracao).success).toBe(true);
   });
 
+  it.each(["das", "parcelamento", "cnd"])("guia %s não tem nº e é válida", (tipo) => {
+    const guia = { atendimentoId: ID, documento: { tipo, numero: null } };
+    expect(enviarDocumentoSchema.safeParse(guia).success).toBe(true);
+  });
+
   it.each([
-    [{ tipo: "contrato", data: "2026-03-01" }],
-    [{ tipo: "alteracao", data: null }],
-    [{ tipo: "alteracao", data: "01/03/2026" }],
-    [{ tipo: "guia", data: null }],
+    [{ tipo: "contrato", numero: 3 }],
+    [{ tipo: "alteracao", numero: null }],
+    [{ tipo: "alteracao", numero: 0 }],
+    [{ tipo: "das", numero: 3 }],
+    [{ tipo: "guia", numero: null }],
   ])("recusa %p", (documento) => {
     expect(enviarDocumentoSchema.safeParse({ atendimentoId: ID, documento }).success).toBe(false);
   });

@@ -17,8 +17,8 @@ const gateway = new SupabaseDocumentosContratuaisGateway(admin);
 const clienteId = crypto.randomUUID();
 const semDocumentosId = crypto.randomUUID();
 const contrato = `${clienteId}/contrato.pdf`;
-const alteracaoNova = `${clienteId}/alt-nova.pdf`;
-const alteracaoAntiga = `${clienteId}/alt-antiga.pdf`;
+const alteracaoN2 = `${clienteId}/alt-n2.pdf`;
+const alteracaoN1 = `${clienteId}/alt-n1.pdf`;
 
 beforeAll(async () => {
   const clientes = await admin.from("clientes").insert([
@@ -37,19 +37,21 @@ beforeAll(async () => {
     },
   ]);
   if (clientes.error) throw clientes.error;
-  // Inseridas fora de ordem: a listagem tem que ordenar por data.
+  // Inseridas fora de ordem e com datas contrárias ao nº: a listagem tem que ordenar por nº.
   const alteracoes = await admin.from("cliente_alteracoes_contratuais").insert([
     {
       id: crypto.randomUUID(),
       cliente_id: clienteId,
-      data: "2022-11-01",
-      arquivo_caminho: alteracaoNova,
+      numero: 2,
+      data: "2020-03-12",
+      arquivo_caminho: alteracaoN2,
     },
     {
       id: crypto.randomUUID(),
       cliente_id: clienteId,
-      data: "2020-03-12",
-      arquivo_caminho: alteracaoAntiga,
+      numero: 1,
+      data: "2022-11-01",
+      arquivo_caminho: alteracaoN1,
     },
   ]);
   if (alteracoes.error) throw alteracoes.error;
@@ -65,14 +67,14 @@ afterAll(async () => {
 });
 
 describe("SupabaseDocumentosContratuaisGateway", () => {
-  it("lista o contrato social e depois as alterações da mais antiga para a mais nova", async () => {
+  it("lista o contrato social e depois as alterações por nº decrescente", async () => {
     const r = await gateway.listar(clienteId);
     expect(r).toEqual({
       ok: true,
       value: [
-        { tipo: "contrato", data: null, caminho: contrato },
-        { tipo: "alteracao", data: "2020-03-12", caminho: alteracaoAntiga },
-        { tipo: "alteracao", data: "2022-11-01", caminho: alteracaoNova },
+        { tipo: "contrato", numero: null, data: null, caminho: contrato },
+        { tipo: "alteracao", numero: 2, data: "2020-03-12", caminho: alteracaoN2 },
+        { tipo: "alteracao", numero: 1, data: "2022-11-01", caminho: alteracaoN1 },
       ],
     });
   });

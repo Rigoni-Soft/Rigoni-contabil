@@ -7,7 +7,7 @@ export function FeriadosPage({ header, conteudo }: FeriadosPageProps) {
   return (
     <TelaDeTrabalhoTemplate
       header={header}
-      largura="formulario"
+      largura="cadastro"
       cabecalho={<CabecalhoDeTela voltarHref="/" titulo="Feriados estaduais e municipais" />}
       conteudo={conteudo}
     />

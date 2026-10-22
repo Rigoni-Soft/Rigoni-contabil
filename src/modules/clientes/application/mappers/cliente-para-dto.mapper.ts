@@ -10,6 +10,7 @@ export function clienteParaDto(cliente: Cliente): ClienteDto {
     contratoSocialCaminho: cliente.contratoSocialCaminho,
     email: cliente.email?.valor ?? null,
     alteracoesContratuais: cliente.alteracoesContratuais.map((alteracao) => ({
+      numero: alteracao.numero,
       data: alteracao.data.toISOString().slice(0, 10),
       arquivoCaminho: alteracao.arquivoCaminho,
     })),

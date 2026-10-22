@@ -4,10 +4,11 @@ import type { TipoAnexoMensagem } from "@/shared/kernel/anexo";
 import type { Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
-// `data` (AAAA-MM-DD) só existe nas alterações contratuais; o contrato social não tem.
-export type DocumentoDisponivel = { tipo: "contrato" | "alteracao"; data: string | null };
+// `numero` identifica a alteração contratual (único por Cliente; a data pode se repetir); o
+// contrato social não tem.
+export type DocumentoDisponivel = { tipo: "contrato" | "alteracao"; numero: number | null };
 
-// `descricao` é como o cliente vê o documento (ex.: "Alteração de 01/03/2026").
+// `descricao` é como o cliente vê o documento (ex.: "Alteração nº 3 - 01/03/2026").
 export type DocumentoOferecido = DocumentoDisponivel & { descricao: string };
 
 // O anexo de uma Mensagem do Funcionário, com o link temporário já pedido (`expiraEm` em ISO).

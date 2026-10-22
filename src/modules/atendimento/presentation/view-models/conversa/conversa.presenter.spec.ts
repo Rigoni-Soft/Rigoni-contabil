@@ -59,8 +59,12 @@ const CONVERSA: ConversaVista = {
   avisoInatividade: false,
   setoresDestino: ["recepcao", "tributario"],
   documentos: [
-    { tipo: "contrato", data: null, descricao: "Contrato social" },
-    { tipo: "alteracao", data: "2026-03-01", descricao: "Alteração de 01/03/2026" },
+    { tipo: "contrato", numero: null, descricao: "Contrato social" },
+    {
+      tipo: "alteracao",
+      numero: 3,
+      descricao: "Alteração nº 3 - 01/03/2026",
+    },
   ],
 };
 
@@ -172,18 +176,18 @@ describe("conversaParaView", () => {
     expect(conversaParaView(semResumo).contexto).toBeNull();
   });
 
-  it("serviços viram opções com o nome que o cliente vê: contrato primeiro, alterações da mais recente para a mais antiga", () => {
+  it("serviços viram opções com o nome que o cliente vê, na ordem recebida", () => {
     const antiga = {
       tipo: "alteracao" as const,
-      data: "2025-01-10",
-      descricao: "Alteração de 10/01/2025",
+      numero: 2,
+      descricao: "Alteração nº 2 - 10/05/2026",
     };
-    const documentos = [antiga, CONVERSA.documentos[1], CONVERSA.documentos[0]];
+    const documentos = [CONVERSA.documentos[0], CONVERSA.documentos[1], antiga];
 
     expect(conversaParaView({ ...CONVERSA, documentos }).servicos).toEqual([
       { valor: "contrato", rotulo: "Contrato social", grupo: "contrato" },
-      { valor: "alteracao:2026-03-01", rotulo: "Alteração de 01/03/2026", grupo: "alteracao" },
-      { valor: "alteracao:2025-01-10", rotulo: "Alteração de 10/01/2025", grupo: "alteracao" },
+      { valor: "alteracao:3", rotulo: "Alteração nº 3 - 01/03/2026", grupo: "alteracao" },
+      { valor: "alteracao:2", rotulo: "Alteração nº 2 - 10/05/2026", grupo: "alteracao" },
     ]);
   });
 
@@ -211,11 +215,13 @@ describe("conversaParaView", () => {
 
 describe("documentoDaOpcao", () => {
   it("desfaz o valor da opção no documento", () => {
-    expect(documentoDaOpcao("contrato")).toEqual({ tipo: "contrato", data: null });
-    expect(documentoDaOpcao("alteracao:2026-03-01")).toEqual({
+    expect(documentoDaOpcao("contrato")).toEqual({ tipo: "contrato", numero: null });
+    expect(documentoDaOpcao("alteracao:3")).toEqual({
       tipo: "alteracao",
-      data: "2026-03-01",
+      numero: 3,
     });
+    expect(documentoDaOpcao("das")).toEqual({ tipo: "das", numero: null });
+    expect(documentoDaOpcao("cnd")).toEqual({ tipo: "cnd", numero: null });
   });
 });
 

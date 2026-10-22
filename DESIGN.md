@@ -102,13 +102,14 @@ em monitores largos):
   `muted-foreground` / valor `font-medium`), seguidos da seção "Trocar
   senha" separada por `border-t`. Sem cartão: são dois blocos de leitura e
   formulário, não superfícies elevadas.
-- **Formulário de criar algo** (ex.: cadastro de Cliente, cadastro de
-  Líder/Funcionário): `w-[80%]` — mais largo que antes, mas ainda contido,
-  porque continua sendo um fluxo de preenchimento linear único, não uma
-  grade densa de múltiplos grupos.
+- **Formulário de cadastro/edição** (cadastro de Cliente, de Líder/Funcionário,
+  Feriados e edição do cadastro operacional `/clientes/[id]`): largura `cadastro`,
+  `w-full max-w-4xl` (56 rem). **Decisão de 21/10/2026, revisa a de `w-[80%]`**: em monitor
+  largo 80% esticava campos e botões demais; o formulário passa a ter largura contida e se
+  organiza em 2 a 4 colunas (ver "Cadastro de Cliente e documentos contratuais"). É a exceção à
+  regra de `%` acima, por ser tela de preenchimento: a legibilidade do campo manda.
 - **Conteúdo/listagem** (dashboard `/`, resumo do setor e seu drill-down
-  `/clientes/resumo/[bucket]`, feed de auditoria `/admin/auditoria`, edição
-  do cadastro operacional `/clientes/[id]`): `w-[90%]` — telas de trabalho
+  `/clientes/resumo/[bucket]`, feed de auditoria `/admin/auditoria`): `w-[90%]` — telas de trabalho
   contínuo (ver, filtrar, navegar entre registros), ocupam a maior parte da
   largura livre da tela.
 - **Conversa do Atendimento** (`/atendimento/[id]`, #49): exceção à regra
@@ -118,11 +119,10 @@ em monitores largos):
   nenhum sentido**; só a lista de mensagens rola, por dentro. Em tela
   estreita volta a ser uma página comum.
 
-Formulário com elevação em 2 colunas (ex.: edição do cadastro operacional
-do Simples Nacional, #34): cartão `rounded-lg border bg-card shadow-sm`
-dentro do container de 90% acima — mais denso que um formulário isolado
-(Forma de envio, Documento, DAS, parcelamento, Atividade do mês, Contatos),
-por isso fica na categoria "conteúdo", não "formulário de criar".
+Formulário com elevação (edição do cadastro operacional do Simples Nacional, #34):
+cartão `rounded-lg border bg-card p-5 shadow-sm` dentro do container `cadastro`, em 4 colunas
+em tela larga (Forma de envio, Documento, DAS, Data de envio na mesma linha; ver
+"Cadastro de Cliente e documentos contratuais").
 
 Painel de filtro: campos em grid (`grid-cols-2 sm:grid-cols-4`), e as ações
 (Limpar/Filtrar) ficam numa linha própria abaixo dos campos, separada por
@@ -178,8 +178,8 @@ brigando com o verde-cheque do resto do produto. Primeiro uso real em
 sem precisar de classe.
 
 - `button.tsx` — variantes `default`/`destructive`/`outline`/`ghost`,
-  tamanhos `default` (44px), `sm` (40px), `icon` (44px). Alturas escolhidas
-  para bater o alvo de toque de 44px em controles primários. Exporta
+  tamanhos `default` (36px), `sm` (32px), `icon` (36px); em aparelho de toque
+  (`pointer-coarse:`) todos sobem para 44px, o alvo de toque. Exporta
   `buttonVariants` (a função `cva` por trás do componente) para qualquer
   elemento que precise da mesma aparência sem ser um `<button>` de verdade —
   o link "Meu perfil" do `ShellHeader` é o primeiro consumidor
@@ -218,7 +218,7 @@ sem precisar de classe.
   `FieldError`, `Input type="date"` com `Label` visível e lista em `card`
   com `divide-y`; remover é botão `ghost` só-ícone com `aria-label` que
   inclui a data.
-- `input.tsx` — 44px de altura; `aria-invalid` troca borda/anel para
+- `input.tsx` — 36px de altura (44px em aparelho de toque); `aria-invalid` troca borda/anel para
   `destructive` automaticamente. `input`, `select` e `textarea` usam
   `text-base sm:text-sm`, assim como `atoms/file-input.component.tsx`: 16 px no celular (abaixo
   disso o iOS dá zoom ao focar o campo), 14 px de `sm` em diante. Campo de texto
@@ -237,14 +237,15 @@ sem precisar de classe.
   deixou de ser um `<input type="file">` nu.
 - `atoms/file-input.component.tsx` (#33): `<input type="file">` nativo não aceita ser
   estilizado diretamente ("Choose File / No file chosen" do navegador era o
-  único controle do produto fora do sistema de design). Substituído por um
-  `<label>` do tamanho de `input.tsx`/`select.tsx` (44px, borda, raio, cores
-  do tema) envolvendo o input real como `sr-only` — mesmo padrão acessível
-  de sempre (o label aciona o seletor de arquivo do SO; foco por teclado no
-  input escondido acende o anel via `has-[:focus-visible]` no label). Ícone
-  `Upload` cinza + "Selecionar arquivo…" no estado vazio; `FileText` verde
-  (`text-primary`) + nome do arquivo depois de selecionado — mesmo
-  vocabulário de ícone-substitui-estado já usado em Indicadores de estado.
+  único controle do produto fora do sistema de design). Substituído por uma **área de soltar**:
+  `<label>` quase quadrado (`min-h-28`, borda tracejada, raio, cores do tema) envolvendo o input
+  real como `sr-only` — o clique aciona o seletor do SO, **arrastar e soltar** entrega o arquivo
+  (destaque em `primary` enquanto arrasta, via `data-arrastando`, sem estado) e o foco por teclado
+  no input escondido acende o anel via `has-[:focus-visible]`. Estado vazio: ícone `Upload` cinza,
+  "Arraste o arquivo aqui" e "ou clique para selecionar"; com arquivo: `FileText` verde
+  (`text-primary`), o nome e "Clique ou arraste para trocar". O tipo do arquivo solto não é
+  filtrado no átomo: o schema do formulário mostra o erro. No cadastro de Cliente o Contrato
+  social ocupa 1 coluna e o arquivo da alteração, 2.
   Qualquer novo campo de arquivo do produto reusa este componente em vez de
   um `<Input type="file">` cru.
 
@@ -262,7 +263,7 @@ sem precisar de classe.
   senha. O `aria-label` do botão ("Mostrar/Ocultar caracteres") evita a
   palavra "senha" de propósito, para não colidir com `getByLabel("Senha")`
   dos e2e.
-- `select.tsx` — mesmo tratamento visual do `input.tsx` (44px, mesmas
+- `select.tsx` — mesmo tratamento visual do `input.tsx` (36px, 44px no toque, mesmas
   bordas/foco, e o mesmo `aria-invalid` para borda/anel `destructive`).
   Introduzido no feed de auditoria para eliminar classes Tailwind duplicadas
   entre os dois `<select>` do filtro (Setor, Resultado); o cadastro de
@@ -285,7 +286,8 @@ sem precisar de classe.
   RBAC, às vezes reduzidas a 1) segue o mesmo padrão em vez de forçar uma
   seleção sem escolha real.
 
-  **Sem opacidade de desabilitado (revisão impeccable, 28/09/2026):** o
+  **Sem opacidade de desabilitado, só para confirmação de escolha (revisão impeccable, 28/09/2026;
+  escopo restrito em 21/10/2026):** o
   `disabled:opacity-50` padrão de `select.tsx` existe pra sinalizar "campo
   indisponível" — o oposto do que esse padrão precisa comunicar ("aqui está
   o que vai ser cadastrado", uma confirmação, não uma ausência). Por isso
@@ -293,7 +295,12 @@ sem precisar de classe.
   sobrescrever a opacidade herdada e manter o texto na cor plena — o cursor
   `not-allowed` (herdado, mantido) já basta pra sinalizar "sem interação
   aqui". Qualquer campo futuro que reuse o padrão de campo travado acima
-  reusa também esse override.
+  reusa também esse override. **Escopo (21/10/2026):** isto vale só para o campo que *confirma a
+  única escolha possível* (Papel/Setor do #32). O campo que *o usuário não pode alterar* (Empresa,
+  CNPJ, Regime, Responsável sem permissão, DAS já enviado, Data de envio, qualquer campo da
+  visualização somente leitura) **mantém o `disabled:opacity-50` e o cursor `not-allowed`
+  padrão**: o esmaecimento é o sinal de "não editável". A decisão de 28/09 de manter a cor plena
+  também nesses campos foi revertida a pedido do usuário.
 - `label.tsx`, `atoms/field-error.component.tsx` — erro de campo sempre ícone (`AlertCircle`)
   + texto + cor, nunca só cor (contrato "Talão de Cheque": estado por
   padrão/ícone além de cor).
@@ -366,7 +373,7 @@ texto), cada uma só um pouco mais larga que os dois botões lado a lado.
 
 ### Formulários de criar: campos lado a lado (#36)
 
-Com o container da página em `w-[80%]` (seção Layout acima), empilhar cada
+Com o container largo, empilhar cada
 campo numa linha própria (`flex flex-col gap-5`) deixa o formulário raso e
 alongado sem aproveitar a largura. Campos de identificação simples (texto
 curto, `Select` de poucas opções) agora ficam num `grid` — 2 ou 3 colunas
@@ -375,17 +382,16 @@ Observações, upload de arquivo e listas repetíveis continuam em coluna
 única, não cabem bem num grid raso):
 
 - `CriarUsuarioForm`: Nome/E-mail/Papel/Setor em `grid-cols-1 sm:grid-cols-2`.
-- `CriarClienteForm`: CNPJ/Empresa/Regime/E-mail em `grid-cols-1 sm:grid-cols-2`
-  (identificação do Cliente: 4 campos, 2 colunas); dentro de cada "Alteração contratual", Data e
-  Arquivo da alteração em `grid-cols-1 sm:grid-cols-2`. A seção "Documentos"
-  (Contrato social + lista de Alterações) continua fora do grid — upload de
-  arquivo e lista dinâmica não comprimem bem lado a lado.
-- `EditarCadastroOperacionalForm` já seguia esse padrão desde o #34 (3 e 2
-  colunas, conforme o grupo de campos) — nenhuma mudança necessária lá.
+- `CriarClienteForm`: malha `1>2>4` (1 coluna no celular, 2 em `sm`, 4 em `lg`); CNPJ, Empresa (2
+  colunas), Regime; E-mail (2 colunas); na seção "Documentos", Contrato social em 1 coluna e cada
+  alteração em uma fileira (nº, data, arquivo em 2). **Revisado em 21/10/2026**: antes eram 2
+  colunas e o arquivo em linha inteira; a área de soltar quadrada deixou de pedir a linha toda.
+- `EditarCadastroOperacionalForm`: também em 4 colunas (ver "Cadastro de Cliente e documentos
+  contratuais").
 
 Formulário isolado de coluna única (login, troca de senha) fica de fora
 dessa regra — container estreito (`max-w-sm`/`max-w-md`, não entra na
-regra de 80%/90%), poucos campos, grid não ajudaria.
+regra de largura de formulário), poucos campos, grid não ajudaria.
 
 ### Lista de itens repetíveis (campo dinâmico)
 
@@ -603,17 +609,39 @@ dashboard normal (cards zerados) mais um aviso neutro,
 atribuídos a você aparecem aqui.") — a RLS esconde os clientes dos outros, não
 há tela de "sem acesso".
 
-**Campos só do sistema no cadastro operacional (#108):** o status DAS "Enviado" e a
-"Data de envio" nascem da entrega automática, não da digitação. "Enviado" não é
-opção do `Select` do DAS; só aparece enquanto o DAS **salvo** já está enviado, para
-exibir o valor atual. A "Data de envio" é o `Input type="date"` com `readOnly` e
-`aria-readonly="true"`, mantendo o visual de campo (não `disabled`, que o tiraria da
-tabulação e do leitor de tela), e some quando o DAS volta a outro status.
+**Campos só do sistema e campo travado no cadastro operacional (#108):**
+
+- O DAS "Enviado" e a "Data de envio" vêm da entrega automática, não da digitação.
+  "Enviado" só é opção enquanto o DAS **salvo** já está enviado, e então o `Select` fica
+  `disabled`. A data é sempre `Input type="date"` com `readOnly` e `disabled`, vazia até o envio.
+- Travado é **esmaecido**, como todo campo desativado: `disabled:opacity-50` e cursor
+  `not-allowed` padrão de `Input` e `Select`, sem sobrescrita. Vale para Empresa, CNPJ, Regime e
+  Responsável (os rótulos têm `htmlFor`), para o DAS já enviado e para a Data de envio. **Decisão de
+  21/10/2026, revoga a de manter o travado em cor plena** (`TRAVADO`/`VALORES_LEGIVEIS`, removidos):
+  o esmaecimento é o sinal de "não editável". Só o campo que confirma a única escolha possível
+  (Papel/Setor do cadastro de usuário, #32) segue em cor plena. `disabled` é decisão do produto: o
+  valor segue no formulário, que lê o estado do React Hook Form; o custo é o campo sair da
+  tabulação e do leitor de tela.
+- Como o esmaecido não diz *por que* o campo está travado, cada campo do sistema traz uma nota
+  (`ajuda`, ligada por `aria-describedby`): "Definido pelo sistema." no DAS enviado e "Preenchida
+  pelo sistema quando o DAS é enviado." na data, o que também explica por que ela está vazia antes
+  do envio.
+- Na visualização ("Visualizar cadastro operacional") o `fieldset disabled` esmaece todos os campos
+  (e o salvar em andamento também esmaece, sem distinção). Não há "Adicionar contato" nem "Remover
+  contato" (`onRemover` do `LinhaDeContato` é opcional). Checkbox desativado segue no cinza do
+  navegador, mas marcado e desmarcado se distinguem.
+- O formulário vem oculto (`rc-oculto-ate-hidratar`) no servidor e na hidratação
+  (`useSyncExternalStore`): os campos não controlados só recebem os valores no cliente, e sem isso
+  apareceriam "Não definido" e `dd/mm/aaaa` no lugar do dado por um instante. Se o React nunca
+  hidratar (script que falhou), a classe revela o formulário após 3 s, em vez de deixá-lo invisível.
+  Medido em build de produção (rede de 1,6 Mbps com 150 ms, CPU 4× mais lenta, 8 execuções
+  intercaladas): com e sem a ocultação o formulário aparece no mesmo tempo, dentro da variação
+  (cache frio 2,54 s contra 2,62 s; quente 0,93 s contra 0,94 s), e o LCP não muda.
 
 **Campo Responsável no cadastro operacional (#65):** fica no cabeçalho de
 identidade do formulário, não no fim — a linha Empresa · CNPJ · Regime ·
-Responsável é uma grade `grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1.5fr]`
-(Empresa mais larga pra nomes longos). Os 3 primeiros são `Input`
+Responsável é uma grade `grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.6fr_1.2fr_1.2fr_2fr]`
+(Empresa e Responsável mais largos pra nomes longos; Regime e CNPJ sem cortar o texto). Os 3 primeiros são `Input`
 `disabled readOnly`; o Responsável é o único editável dessa linha, por isso o
 bloco deixou de ser um `fieldset disabled` (cada campo carrega o próprio
 `disabled`). Líder do SN vê um `Select` ("Sem responsável" + Funcionários do
@@ -744,11 +772,14 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   sair da barra o foco volta ao microfone. No balão, o áudio é o player nativo
   (`PlayerDeAudio`, 44 px, largura mínima de 12 rem) com play, progresso e duração.
 - **Painel de ações** (`PainelDeAcoes`, à direita, 19 rem; 22 rem em `2xl`):
-  compacto. Serviço "Contrato social" em botão `sm` (quando o Cliente não o
-  tem, o botão fica `disabled` com a frase "Contrato social não cadastrado."
-  visível, não só em `title`); alteração contratual e Setor de destino em **seletor** +
-  botão na mesma linha; resumo da transferência em `Textarea` baixo. Guias
-  e CND ficam `disabled` com `title="Em construção"`. Em janela baixa o painel
+  compacto. Serviços "Contrato social", "Guia de imposto", "Guia de
+  parcelamento" e "CND" em botões `sm` numa grade de duas colunas (o contrato,
+  quando o Cliente não o tem, fica `disabled` com a frase "Contrato social não
+  cadastrado." visível, não só em `title`; todos ficam `disabled` enquanto um
+  envio está em andamento); alteração contratual em **seletor** de largura
+  total com o botão abaixo (para o rótulo "Alteração nº N - data" caber nos
+  19 rem); Setor de destino em seletor + botão na mesma linha; resumo da
+  transferência em `Textarea` baixo. Em janela baixa o painel
   rola por dentro. Transferido, o painel troca tudo por um aviso e a tela
   sai da conversa.
 - **Aviso de inatividade** (#73, `CabecalhoDaConversa`): quando a URA avisou
@@ -814,9 +845,11 @@ ou o cliente escreve de novo.
 - Erro de servidor: bloco com borda/ícone `destructive`, `role="alert"`.
 - Sucesso de salvar no cadastro operacional: `role="status"` (anunciado por
   leitor de tela, ao contrário de um `<p>` mudo).
-- Alvos de toque: em aparelho de toque (`pointer-coarse:h-11`, inclusive no `Button` `sm`; `pointer-coarse:min-h-11` no "Voltar" e nas abas do shell) os controles do
-  painel de ações sobem para 44 px.
-  Com mouse o piso é de 24 px (WCAG 2.5.8): o "Voltar" tem `min-h-6`.
+- Alvos de toque: **todo controle** (`Input`, `Select`, `FileInput`, `Button` em todos os tamanhos)
+  tem 36 px (32 px no `sm`) com mouse e sobe para 44 px em aparelho de toque (`pointer-coarse:h-11`;
+  `pointer-coarse:min-h-11` no "Voltar" e nas abas do shell). **Decisão de 21/10/2026, revisa os
+  44 px fixos anteriores**: controles de 44 px em tela de mouse deixavam o formulário largo e
+  alto demais. Com mouse o piso é de 24 px (WCAG 2.5.8): o "Voltar" tem `min-h-6`.
 - Entrada do cartão do dock de Atendimentos: `motion-safe:animate-dock-entrada`.
   O estado (destaque, prévia, "nova mensagem") não depende da animação nem do
   som: quem pediu movimento reduzido ou está sem som perde só o enfeite.
@@ -824,6 +857,65 @@ ou o cliente escreve de novo.
   de novo; resposta nossa ou da URA e a primeira leitura da tela são
   silenciosas). Navegadores bloqueiam som antes do primeiro clique/tecla da
   página; até lá o aviso é mudo, sem erro.
+
+### Cadastro de Cliente e documentos contratuais (decisões de 21/10/2026; #33, #108, #138–#141)
+
+Estas decisões revisam registros anteriores deste arquivo (larguras de 80%/90%, controles de 44 px
+fixos, campo travado em cor plena, diálogo e lista das alterações); onde há conflito, vale esta seção.
+
+- **Cadastro de Cliente em colunas**: largura `cadastro`; em `lg`, 4 colunas (CNPJ, Empresa em 2,
+  Regime; E-mail em 2; Contrato social em 1; cada alteração numa fileira com nº, data e arquivo em
+  2, e a dica do nº embaixo, na largura da linha). Em `sm`, 2 colunas; no celular, 1. "Cadastrar"
+  tem o tamanho do rótulo e fica à direita.
+- **Limpar (cadastro de Cliente)**: botão `destructive` à esquerda de "Cadastrar". Ao contrário do
+  "Limpar" da edição (que volta ao valor do servidor), este **esvazia tudo**: campos, contrato,
+  alterações, avisos da consulta de CNPJ e erro do servidor, sem cadastrar. **Com algo preenchido
+  pede confirmação** inline: a linha dos botões troca por "Limpar o formulário? O que foi preenchido
+  e os arquivos escolhidos serão descartados." (`role="alert"`) com "Voltar" (foco inicial, o lado
+  seguro) e "Limpar tudo" (o botão repete a ação, não "Sim"); formulário em branco
+  limpa direto. Enviar cancela o pedido.
+- **Teto de arquivos**: a soma de contrato e alterações vai numa só Server Action e o Next corta
+  em 11 MB (`bodySizeLimit`); o schema barra acima de 10 MB com a mensagem "Os arquivos somam X,Y MB
+  e o limite é 10 MB. Envie arquivos menores ou anexe as alterações depois do cadastro." (total real e
+  saída, não só "mais de 10 MB"). O erro é do conjunto: usa o caminho `root` do schema (`errors.root`) e aparece sob o
+  título "Documentos", não sob o Contrato social.
+- **Dica de formato no campo de arquivo**: o `FileInput` aceita `dica` ("PDF ou DOCX"), uma linha
+  `text-xs` sob "ou clique para selecionar", para o formato ser dito antes de escolher e não só no erro. As instruções
+  e a dica ficam `aria-hidden` (o rótulo do campo já o nomeia); só o nome do arquivo escolhido entra no
+  nome acessível, por ser o estado.
+- **Falha da Server Action**: rejeição vira mensagem pela causa (`TypeError` = sem conexão;
+  demais = erro inesperado, com o erro completo no console). O texto "verifique a conexão" não é mais o padrão
+  para tudo.
+- **Documento contratual (#140)**: cartão fixo no formulário de editar Cliente, **sem diálogo e sem
+  seletor** (revisa o diálogo com "Escolher documento"): ícone, "Contrato social e alterações", o
+  documento mais recente (alteração de maior nº, ou o contrato social) e o botão verde
+  (`default`) "Abrir em nova aba", que abre o arquivo no primeiro clique. Enquanto carrega, reserva
+  `min-h-20`. As alterações antigas não têm lista na tela.
+- **Anexar alteração (#141)**: botão `outline` "Anexar alteração" (só Admin) no mesmo cartão, ao
+  lado de "Abrir em nova aba"; sem documento algum, aparece sozinho. **Não existe mais a seção
+  "Alterações contratuais" abaixo do formulário** (revisa o #141); ficam só o diálogo de anexar
+  (fora do `<form>`, para não aninhar formulários, ligado ao botão pelo id do painel) e a
+  confirmação depois de anexar ("Alteração nº N anexada."), que aparece **acima do formulário**, colada
+  ao cartão do documento que fica no topo dele (antes ficava abaixo, fora da vista). O contêiner do
+  diálogo é `display: contents`, para o diálogo fechado não abrir vão acima do formulário.
+- **Busca de Cliente por papel**: o Admin, ao escolher um resultado, vai à tela própria
+  `/clientes/[id]` (a única com "Anexar alteração"); Líder e Funcionário continuam no painel
+  embutido na busca.
+- **Rótulo em campo desativado (harden, axe)**: Empresa, CNPJ e Regime da edição têm `id` e o
+  `Label` com `htmlFor` (`cabecalho-empresa`, `cabecalho-cnpj`, `cabecalho-regime`). Campo desativado
+  sem rótulo associado é lido como "campo de edição" sem nome; o `title` não substitui o rótulo. Medido com
+  o axe-core em claro e escuro: sem violações na edição nem no diálogo de anexar.
+- **Campos longos e telas estreitas (harden)**: Empresa desativada traz o nome inteiro em `title`
+  (o campo trunca); "Atividade do mês" quebra de linha em vez de vazar a 320 px. Medido em 320 px e
+  1440 px com nome de empresa de 250+ caracteres e emoji: sem rolagem horizontal no cadastro nem na
+  edição.
+- **Editar cadastro operacional em 4 colunas**: cabeçalho (Empresa, CNPJ, Regime, Responsável),
+  cartão do documento, e Forma de envio, Documento recebido, DAS, Data de envio na mesma linha;
+  parcelamento e atividade do mês em 2 colunas cada; Contatos, Observações e as ações na linha
+  toda. Abaixo de `lg`, 2 colunas; no celular, 1.
+- **Navegação por abas (`ShellNav`)**: só a aba da tela aberta ganha o destaque cheio e
+  `aria-current="page"`; em "/" nenhuma está selecionada, e a única com tela (Simples Nacional)
+  é um link comum, não parece escolhida.
 
 ## O que ainda não existe
 

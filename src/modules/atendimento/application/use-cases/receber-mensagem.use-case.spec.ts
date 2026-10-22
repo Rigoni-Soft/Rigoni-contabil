@@ -49,6 +49,7 @@ const CNPJ_DESCONHECIDO = "11.222.333/0001-81";
 
 const CONTRATO: DocumentoContratual = {
   tipo: "contrato",
+  numero: null,
   data: null,
   caminho: "c1/contrato.pdf",
 };
@@ -436,12 +437,14 @@ describe("ReceberMensagem — fora do expediente (#72)", () => {
 });
 
 function alteracoes(quantidade: number): DocumentoContratual[] {
-  // Datas crescentes: a alteração i é mais recente que a i-1.
+  // Como o gateway entrega: nº decrescente. As datas correm ao contrário, para provar que a
+  // ordem é pelo nº.
   return Array.from({ length: quantidade }, (_, i) => ({
     tipo: "alteracao" as const,
-    data: `2020-${String(i + 1).padStart(2, "0")}-15`,
+    numero: i + 1,
+    data: `2020-${String(quantidade - i).padStart(2, "0")}-15`,
     caminho: `c1/alt-${i + 1}.pdf`,
-  }));
+  })).reverse();
 }
 
 const nomes = (docs: DocumentoEnviado[]) => docs.map((d) => d.nomeArquivo);
@@ -487,7 +490,7 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     });
     await caso.execute({ telefone: FONE, texto: "1" });
     await caso.execute({ telefone: FONE, texto: "2" });
-    expect(nomes(documentosEnviados)).toEqual(["Alteração de 15/01/2020.pdf"]);
+    expect(nomes(documentosEnviados)).toEqual(["Alteração nº 1 - 15/01/2020.pdf"]);
     expect(sessoes.size).toBe(0);
   });
 
@@ -499,17 +502,17 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     expect(enviadas[1].texto).toContain("Não encontramos");
   });
 
-  it("várias alterações: lista da mais recente à mais antiga e envia a escolhida", async () => {
+  it("várias alterações: lista por nº decrescente e envia a escolhida", async () => {
     const { caso, documentosEnviados, enviadas } = montar({
       documentos: [CONTRATO, ...alteracoes(3)],
     });
     await caso.execute({ telefone: FONE, texto: "1" });
     await caso.execute({ telefone: FONE, texto: "2" });
     const lista = enviadas[1].texto;
-    expect(lista.indexOf("15/03/2020")).toBeLessThan(lista.indexOf("15/02/2020"));
-    expect(lista.indexOf("15/02/2020")).toBeLessThan(lista.indexOf("15/01/2020"));
+    expect(lista.indexOf("nº 3")).toBeLessThan(lista.indexOf("nº 2"));
+    expect(lista.indexOf("nº 2")).toBeLessThan(lista.indexOf("nº 1"));
     await caso.execute({ telefone: FONE, texto: "1" });
-    expect(nomes(documentosEnviados)).toEqual(["Alteração de 15/03/2020.pdf"]);
+    expect(nomes(documentosEnviados)).toEqual(["Alteração nº 3 - 15/01/2020.pdf"]);
   });
 
   it("pagina de 10 em 10 com 'mais' e escolhe pelo número da página corrente", async () => {
@@ -532,7 +535,7 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     });
 
     await caso.execute({ telefone: FONE, texto: "2" });
-    expect(nomes(documentosEnviados)).toEqual(["Alteração de 15/01/2020.pdf"]);
+    expect(nomes(documentosEnviados)).toEqual(["Alteração nº 1 - 15/12/2020.pdf"]);
   });
 
   it("'mais' na última página e número fora da lista reapresentam a página", async () => {
@@ -543,7 +546,7 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     await caso.execute({ telefone: FONE, texto: "9" });
     expect(documentosEnviados).toHaveLength(0);
     expect(enviadas).toHaveLength(4);
-    expect(enviadas[3].texto).toContain("15/03/2020");
+    expect(enviadas[3].texto).toContain("Alteração nº 3");
   });
 
   it("ambos com várias alterações: após escolher, envia o contrato e a alteração", async () => {
@@ -561,7 +564,7 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     await caso.execute({ telefone: FONE, texto: "2" });
     expect(nomes(documentosEnviados)).toEqual([
       "Contrato social.pdf",
-      "Alteração de 15/02/2020.pdf",
+      "Alteração nº 2 - 15/02/2020.pdf",
     ]);
   });
 
@@ -571,7 +574,7 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     await caso.execute({ telefone: FONE, texto: "3" });
     expect(nomes(documentosEnviados)).toEqual([
       "Contrato social.pdf",
-      "Alteração de 15/01/2020.pdf",
+      "Alteração nº 1 - 15/01/2020.pdf",
     ]);
   });
 
@@ -581,7 +584,23 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     await caso.execute({ telefone: FONE, texto: "3" });
     await caso.execute({ telefone: FONE, texto: "1" });
     expect(enviadas.at(-1)?.texto).toContain("Não encontramos o contrato");
-    expect(nomes(documentosEnviados)).toEqual(["Alteração de 15/03/2020.pdf"]);
+    expect(nomes(documentosEnviados)).toEqual(["Alteração nº 3 - 15/01/2020.pdf"]);
+  });
+
+  it("regressão: 12 alterações paginam 10 + 2 por nº decrescente e o hash da lista guardado não muda", async () => {
+    const { caso, enviadas, gravadas } = montar({ documentos: alteracoes(12) });
+    await caso.execute({ telefone: FONE, texto: "1" });
+    await caso.execute({ telefone: FONE, texto: "2" });
+    const numeros = [...enviadas[1].texto.matchAll(/^\d+ - Alteração nº (\d+)/gm)].map(
+      (m) => +m[1],
+    );
+    expect(numeros).toEqual([12, 11, 10, 9, 8, 7, 6, 5, 4, 3]);
+    expect(enviadas[1].texto).toContain("página 1 de 2");
+    await caso.execute({ telefone: FONE, texto: "mais" });
+    expect(enviadas[2].texto).toContain("página 2 de 2");
+    // Valor fixo: o hash vem só dos caminhos, na ordem exibida (alt-12 … alt-1).
+    expect(gravadas[0]).toEqual({ etapa: "tipo_documento" });
+    expect(gravadas[1]).toMatchObject({ pagina: 1, lista: "1m5itzn0pj2" });
   });
 
   it("sessão numa página que deixou de existir volta à última página", async () => {
@@ -815,7 +834,7 @@ describe("ReceberMensagem — mesmo número em mais de um Cliente", () => {
 
 describe("ReceberMensagem — lista de alterações mudou com a sessão aberta", () => {
   it.each([
-    ["uma alteração é incluída", (docs: DocumentoContratual[]) => docs.push(alteracoes(4)[3])],
+    ["uma alteração é incluída", (docs: DocumentoContratual[]) => docs.unshift(alteracoes(4)[0])],
     ["uma alteração é excluída", (docs: DocumentoContratual[]) => docs.splice(0, 1)],
   ])(
     "se %s entre a lista e a escolha, nada é entregue e a lista nova é mostrada",

@@ -44,7 +44,7 @@ O regime tributário do Cliente — Simples Nacional, Lucro Presumido, Lucro Rea
 _Avoid_: Regime de atendimento (não é isso).
 
 **Cadastro operacional**:
-O conjunto de campos que o Funcionário do Simples Nacional mantém atualizado por Cliente — forma de envio, Contatos, documento recebido, DAS, Parcelamento, Atividade do mês, observações gerais (#34). Nasce automaticamente quando o Cliente é cadastrado com Regime Simples Nacional ou MEI (#33), com os campos de status em suas opções negativa/pendente por padrão (documento recebido = negativo; DAS e Parcelamento = pendente) até o Funcionário atualizar de verdade — nunca fica em branco esperando o primeiro acesso. Outros Setores só visualizam; nunca inclui contrato social/alterações contratuais, mesmo pro próprio Funcionário do Simples Nacional.
+O conjunto de campos que o Funcionário do Simples Nacional mantém atualizado por Cliente — forma de envio, Contatos, documento recebido, DAS, Parcelamento, Atividade do mês, observações gerais (#34). Nasce automaticamente quando o Cliente é cadastrado com Regime Simples Nacional ou MEI (#33), com os campos de status em suas opções negativa/pendente por padrão (documento recebido = negativo; DAS e Parcelamento = pendente) até o Funcionário atualizar de verdade — nunca fica em branco esperando o primeiro acesso. Outros Setores só visualizam; nunca inclui contrato social/alterações contratuais (estes só se abrem pelo botão de visualização, para Admin, Líder do Simples Nacional e Responsável do Cliente — #140).
 _Avoid_: Cadastro do cliente (ambíguo com o cadastro básico do #33 — Empresa/CNPJ/Regime/documentos jurídicos).
 
 **Responsável**:
@@ -68,6 +68,13 @@ _Avoid_: Regime (é outro conceito — ver acima).
 
 **CND**:
 Certidão Negativa de Débitos — documento que atesta a regularidade fiscal do Cliente, obtido via Serpro.
+
+**Aviso de cadastro**:
+O registro permanente, por destinatário, de que um Cliente entrou no Cadastro operacional (*novo cliente*) ou ganhou uma alteração contratual (*nova alteração*). O de novo cliente vai ao Líder do Setor Simples Nacional; o de nova alteração vai ao Líder e ao Responsável do Cliente (só ao Líder, se não houver Responsável ativo). Fica "não visto" até o destinatário abri-lo. Não expira.
+_Avoid_: Notificação, aviso (aviso é o de Inatividade).
+
+**Alteração contratual**:
+Documento que altera o contrato social do Cliente, anexado pelo Admin com a data e um número de sequência (1, 2, 3...) que é único por Cliente. A mais recente é a de maior número.
 
 ### Atendimento
 
@@ -99,7 +106,7 @@ A tela `/atendimento/[id]` em que o Funcionário conduz um Atendimento (#49): a 
 _Avoid_: Chat do funcionário, tela de atendimento (ambíguo com Atendimento).
 
 **Serviços do cliente**:
-Os mesmos serviços do menu da URA (contrato social, alterações contratuais, guia de imposto, guia de parcelamento, CND) disparados pelo Funcionário com um clique, usando o Cliente já vinculado ao Atendimento, sem perguntar o CNPJ de novo. Hoje funcionam o contrato social e as alterações (a alteração é escolhida num seletor, da mais recente para a mais antiga); guias e CND aparecem desabilitados, "em construção", como na URA (#42 e os adapters do Serpro, #66–#68).
+Os mesmos serviços do menu da URA (contrato social, alterações contratuais, guia de imposto, guia de parcelamento, CND) disparados pelo Funcionário com um clique, usando o Cliente já vinculado ao Atendimento, sem perguntar o CNPJ de novo. Cada serviço tem um botão no painel: o contrato social, a alteração (escolhida num seletor, por nº decrescente, identificada pelo nº) e as guias e a CND, buscadas no provedor fiscal como na URA (#42, #66). Guia sem autorização fiscal do Cliente ou provedor fora do ar devolvem o erro ao Funcionário, sem deixar Mensagem no Atendimento (a falha é auditada).
 
 **Dock de Atendimentos**:
 O cartão no canto inferior direito de toda tela autenticada com os Atendimentos em andamento do usuário, para ele trocar de tela sem perder o Atendimento. Mostra o Contato, a empresa e o começo da última mensagem; se o cliente escreveu por último, o cartão é destacado. Atualiza a cada 15 s: o cartão aparece com animação e toca um aviso sonoro quando surge um Atendimento ou o cliente escreve de novo. Some na própria conversa e nas telas de login e troca de senha.

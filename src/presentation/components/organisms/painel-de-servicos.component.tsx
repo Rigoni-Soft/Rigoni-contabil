@@ -1,14 +1,22 @@
-import { FileText } from "lucide-react";
+import { BadgeCheck, CalendarClock, FileText, Receipt } from "lucide-react";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
-import { Grade, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Grade, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { TituloDoGrupo } from "@/presentation/components/atoms/titulo-de-grupo.component";
 import { CampoSelect } from "@/presentation/components/molecules/campo-select.component";
 import { Button } from "@/presentation/components/ui/button";
 
-const SERVICOS_EM_CONSTRUCAO = ["Guia de imposto", "Guia de parcelamento", "CND"];
+// Guias e CND vêm do provedor fiscal, não da lista do Cliente: o `valor` é o tipo da guia.
+const GUIAS = [
+  { valor: "das", rotulo: "Guia de imposto", Icone: Receipt },
+  { valor: "parcelamento", rotulo: "Guia de parcelamento", Icone: CalendarClock },
+  { valor: "cnd", rotulo: "CND", Icone: BadgeCheck },
+];
+
+const CLASSE_SERVICO =
+  "h-auto min-h-10 justify-start py-1.5 text-left leading-tight whitespace-normal pointer-coarse:min-h-11";
 
 type PainelDeServicosProps = {
   semCliente: boolean;
@@ -18,8 +26,7 @@ type PainelDeServicosProps = {
   aviso?: { tipo: "erro" | "sucesso"; texto: string };
 };
 
-// Os mesmos serviços do menu da URA, a um clique. Guias e CND ainda respondem "em construção" lá
-// e passam a disparar quando existirem.
+// Os mesmos serviços do menu da URA, a um clique.
 export function PainelDeServicos({
   semCliente,
   servicos,
@@ -30,11 +37,27 @@ export function PainelDeServicos({
   const contrato = servicos.find((servico) => servico.grupo === "contrato");
   const alteracoes = servicos.filter((servico) => servico.grupo === "alteracao");
 
+  // Logo abaixo dos botões (e acima do formulário da alteração): perto de quem foi clicado, e
+  // dentro da área visível mesmo quando o painel rola por dentro.
+  const feedback = (
+    <>
+      {enviando && (
+        <Texto variante="nota" role="status">
+          Enviando...
+        </Texto>
+      )}
+      {aviso && <AvisoDeStatus {...aviso} />}
+    </>
+  );
+
   return (
     <Pilha espaco={2}>
       <TituloDoGrupo>Serviços do cliente</TituloDoGrupo>
       {semCliente ? (
-        <Texto variante="nota">Sem Cliente vinculado a este número.</Texto>
+        <>
+          <Texto variante="nota">Sem Cliente vinculado a este número.</Texto>
+          {feedback}
+        </>
       ) : (
         <>
           <Grade colunas="duas" espaco={2}>
@@ -42,31 +65,31 @@ export function PainelDeServicos({
               type="button"
               variant="outline"
               size="sm"
-              className="h-auto min-h-10 justify-start py-1.5 text-left leading-tight whitespace-normal pointer-coarse:min-h-11"
+              className={CLASSE_SERVICO}
               disabled={enviando || !contrato}
               onClick={() => contrato && onEnviarServico(contrato.valor)}
             >
               <FileText aria-hidden="true" />
               Contrato social
             </Button>
-            {SERVICOS_EM_CONSTRUCAO.map((rotulo) => (
+            {GUIAS.map(({ valor, rotulo, Icone }) => (
               <Button
-                key={rotulo}
+                key={valor}
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-auto min-h-10 justify-start py-1.5 text-left leading-tight whitespace-normal pointer-coarse:min-h-11"
-                disabled
-                title="Em construção"
+                className={CLASSE_SERVICO}
+                disabled={enviando}
+                onClick={() => onEnviarServico(valor)}
               >
+                <Icone aria-hidden="true" />
                 {rotulo}
               </Button>
             ))}
           </Grade>
-          <Texto variante="nota">Guias e CND: em construção.</Texto>
           {!contrato && <Texto variante="nota">Contrato social não cadastrado.</Texto>}
-          <Linha
-            alinhar="fim"
+          {feedback}
+          <Pilha
             espaco={2}
             como="form"
             onSubmit={(evento) => {
@@ -94,21 +117,15 @@ export function PainelDeServicos({
             <Button
               type="submit"
               size="sm"
-              className="pointer-coarse:h-11"
+              className="w-full pointer-coarse:h-11"
               aria-label="Enviar alteração"
               disabled={enviando || alteracoes.length === 0}
             >
               Enviar
             </Button>
-          </Linha>
+          </Pilha>
         </>
       )}
-      {enviando && (
-        <Texto variante="nota" role="status">
-          Enviando...
-        </Texto>
-      )}
-      {aviso && <AvisoDeStatus {...aviso} />}
     </Pilha>
   );
 }

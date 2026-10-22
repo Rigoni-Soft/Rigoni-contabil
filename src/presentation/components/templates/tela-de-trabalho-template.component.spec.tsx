@@ -37,8 +37,8 @@ describe("TelaDeTrabalhoTemplate", () => {
   });
 
   it("a largura vem da categoria da tela", () => {
-    render(<TelaDeTrabalhoTemplate header={null} largura="formulario" conteudo="x" />);
+    render(<TelaDeTrabalhoTemplate header={null} largura="cadastro" conteudo="x" />);
 
-    expect(screen.getByRole("main")).toHaveClass("w-[80%]");
+    expect(screen.getByRole("main")).toHaveClass("max-w-4xl");
   });
 });

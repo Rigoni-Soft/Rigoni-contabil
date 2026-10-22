@@ -1,8 +1,8 @@
 import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
 import { telefoneParaExibicao } from "@/presentation/lib/telefone-mask";
+import type { DocumentoParaEnviar } from "@/modules/atendimento/application/ports/in/enviar-documento-ao-cliente.provider";
 import type {
   ConversaVista,
-  DocumentoDisponivel,
   DocumentoOferecido,
   MensagemVista,
   UltimaTransferencia,
@@ -51,11 +51,12 @@ export type ConversaView = {
   setoresDestino: { valor: string; rotulo: string }[];
 };
 
-const valorDaOpcao = (d: DocumentoOferecido) => (d.data ? `${d.tipo}:${d.data}` : d.tipo);
+const valorDaOpcao = (d: DocumentoOferecido) =>
+  d.numero === null ? d.tipo : `${d.tipo}:${d.numero}`;
 
-export function documentoDaOpcao(valor: string): DocumentoDisponivel {
-  const [tipo, data] = valor.split(":");
-  return { tipo: tipo as DocumentoDisponivel["tipo"], data: data ?? null };
+export function documentoDaOpcao(valor: string): DocumentoParaEnviar {
+  const [tipo, numero] = valor.split(":");
+  return { tipo: tipo as DocumentoParaEnviar["tipo"], numero: numero ? Number(numero) : null };
 }
 
 const FORMATO_TAMANHO = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
@@ -255,9 +256,11 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
       valor: setor,
       rotulo: SETOR_LABEL[setor],
     })),
-    // Como no menu da URA: o contrato primeiro, as alterações da mais recente para a mais antiga.
-    servicos: [...conversa.documentos]
-      .sort((x, y) => (x.data === null ? -1 : y.data === null ? 1 : y.data.localeCompare(x.data)))
-      .map((doc) => ({ valor: valorDaOpcao(doc), rotulo: doc.descricao, grupo: doc.tipo })),
+    // Já vêm na ordem do menu da URA: o contrato primeiro, as alterações por nº decrescente.
+    servicos: conversa.documentos.map((doc) => ({
+      valor: valorDaOpcao(doc),
+      rotulo: doc.descricao,
+      grupo: doc.tipo,
+    })),
   };
 }

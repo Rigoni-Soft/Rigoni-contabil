@@ -21,7 +21,7 @@ const CNPJ = "90000010000110"; // fictício, com dígitos verificadores válidos
 const BUCKET = "documentos-clientes";
 const ARQUIVOS = new URL("../supabase/arquivos-seed/", import.meta.url);
 const CONTRATO = `${ID}/contrato-social/contrato-social.pdf`;
-const ALTERACAO = `${ID}/alteracoes-contratuais/0-alteracao-contratual.pdf`;
+const ALTERACAO = `${ID}/alteracoes-contratuais/1-alteracao-contratual.pdf`;
 
 const supabase = createClient(url, chave, { auth: { persistSession: false } });
 const falhou = (etapa, error) => {
@@ -55,7 +55,9 @@ if (!existente) {
     p_regime: "simples_nacional",
     p_contrato_social_caminho: CONTRATO,
     p_email: null,
-    p_alteracoes: [{ id: crypto.randomUUID(), data: "2026-01-07", arquivoCaminho: ALTERACAO }],
+    p_alteracoes: [
+      { id: crypto.randomUUID(), numero: 1, data: "2026-01-07", arquivoCaminho: ALTERACAO },
+    ],
   });
   falhou("criar_cliente", criado.error);
 

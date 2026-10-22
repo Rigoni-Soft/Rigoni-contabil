@@ -1,18 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 
+import { Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import {
   EditarCadastroOperacionalForm,
   type EditarCadastroOperacionalFormValues,
 } from "@/presentation/components/organisms/editar-cadastro-operacional-form.component";
+import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { REGIME_LABEL, regimeTemCadastroOperacionalSn } from "@/shared/kernel/regimes";
 
+import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
 import { atribuirResponsavelAction } from "./atribuir-responsavel.actions";
 import { editarCadastroOperacionalAction } from "./editar-cadastro-operacional.actions";
 import { nomeResponsavelAtual, opcoesResponsavel } from "./editar-cadastro-operacional.presenter";
@@ -31,6 +34,10 @@ type Props = {
   // um dos dois é passado por consumidor — `aoSalvarComSucesso` tem prioridade.
   aoSalvarComSucesso?: () => void;
   voltarHrefAoSalvar?: string;
+  // Carga inicial do servidor (tela própria); no painel embutido da busca vem vazia e o botão lê por action.
+  documentosContratuais?: DocumentoContratualVisivelDto[];
+  // Só o Admin na tela própria: o botão de anexar fica no cartão do documento.
+  podeAnexar?: boolean;
 };
 
 export function EditarCadastroOperacionalContainer({
@@ -40,11 +47,19 @@ export function EditarCadastroOperacionalContainer({
   onCancelar,
   aoSalvarComSucesso,
   voltarHrefAoSalvar,
+  documentosContratuais,
+  podeAnexar,
 }: Props) {
   const router = useRouter();
   const [pendente, setPendente] = useState(false);
   const [erroServidor, setErroServidor] = useState<string | undefined>();
   const [sucesso, setSucesso] = useState(false);
+  // Falso no servidor e na hidratação; verdadeiro assim que o cliente assume (snapshots do React).
+  const hidratado = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
   // Depois de salvar o cadastro e falhar só a atribuição, guarda o que
   // foi persistido (campos sem o Responsável); reenviar o mesmo formulário repete só a atribuição.
   // Se a pessoa mexer em outro campo, o retrato muda e o salvamento completo volta.
@@ -105,6 +120,8 @@ export function EditarCadastroOperacionalContainer({
     // try/finally: rejeição de transporte da Server Action não pode deixar o
     // botão preso em "Salvando...".
     try {
+      // O Responsável é salvo à parte: fica fora do retrato que decide se o cadastro mudou.
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { responsavelId: _responsavelId, ...cadastro } = valores;
       const retrato = JSON.stringify(cadastro);
       if (cadastroSalvo !== retrato) {
@@ -173,11 +190,19 @@ export function EditarCadastroOperacionalContainer({
   }
 
   if (!regimeTemCadastroOperacionalSn(dados.regime)) {
+    // Documento jurídico não depende do cadastro SN: Admin ainda abre e anexa em Lucro Presumido/Real.
     return (
-      <Texto variante="apoio" role="status">
-        O Cadastro operacional do Simples Nacional não se aplica ao Regime{" "}
-        {REGIME_LABEL[dados.regime] ?? dados.regime}.
-      </Texto>
+      <Pilha espaco={6}>
+        <Texto variante="apoio" role="status">
+          O Cadastro operacional do Simples Nacional não se aplica ao Regime{" "}
+          {REGIME_LABEL[dados.regime] ?? dados.regime}.
+        </Texto>
+        <DocumentoContratualDoClienteContainer
+          clienteId={dados.id}
+          documentosIniciais={documentosContratuais}
+          podeAnexar={podeAnexar}
+        />
+      </Pilha>
     );
   }
 
@@ -202,11 +227,19 @@ export function EditarCadastroOperacionalContainer({
       dasEnviadoPeloSistema={dados?.dasStatus === "enviado"}
       erroServidor={erroServidor}
       sucesso={sucesso}
+      oculto={!hidratado}
       contatos={fields}
       onAdicionarContato={() => append({ nome: "", telefone: "", padrao: fields.length === 0 })}
       onRemoverContato={remove}
       onLimpar={aoLimpar}
       onCancelar={onCancelar}
+      documentoContratual={
+        <DocumentoContratualDoClienteContainer
+          clienteId={dados.id}
+          documentosIniciais={documentosContratuais}
+          podeAnexar={podeAnexar}
+        />
+      }
     />
   );
 }

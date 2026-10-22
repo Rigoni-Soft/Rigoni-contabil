@@ -2,10 +2,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { ClienteRepository } from "@/modules/clientes/application/ports/out/cliente.repository";
 import type { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
+import type { AlteracaoContratual } from "@/modules/clientes/domain/value-objects/alteracao-contratual.vo";
 import { clienteDoRow, type ClienteRow } from "@/modules/clientes/infra/mappers/cliente.mapper";
 import { AppError } from "@/shared/errors/app.error";
+import { ResultadoIncertoError } from "@/shared/errors/resultado-incerto.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
+import { erroNumeroRepetidoNoCliente } from "@/shared/kernel/numero-alteracao";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 // Lê da view `clientes_basico` (sem contrato social/alterações): quem edita o cadastro operacional
@@ -22,6 +25,13 @@ class PersistenciaError extends AppError {
   readonly code = "PERSISTENCIA_ERROR";
 }
 
+const ERRO_DATA_FUTURA = "A data da alteração não pode ser futura.";
+
+// Sem resposta (status 0) ou gateway/timeout (502-504): o banco pode ter confirmado a transação.
+const semDesfechoConhecido = (status: number) => status === 0 || status >= 502;
+const dataFutura = (error: { code?: string; message: string }) =>
+  error.code === "23514" && error.message.includes("alteracao_contratual_data_futura");
+
 export class SupabaseClienteRepository implements ClienteRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
@@ -29,7 +39,7 @@ export class SupabaseClienteRepository implements ClienteRepository {
   // filhas, arquitetura.md seção 3.5): gravados juntos via RPC transacional
   // (`criar_cliente`) em vez de dois inserts soltos.
   async criar(cliente: Cliente): Promise<Result<void, AppError>> {
-    const { error } = await this.supabase.rpc("criar_cliente", {
+    const { error, status } = await this.supabase.rpc("criar_cliente", {
       p_id: cliente.id,
       p_empresa: cliente.empresa,
       p_cnpj: cliente.cnpj.valor,
@@ -38,6 +48,7 @@ export class SupabaseClienteRepository implements ClienteRepository {
       p_email: cliente.email?.valor ?? null,
       p_alteracoes: cliente.alteracoesContratuais.map((alteracao) => ({
         id: crypto.randomUUID(),
+        numero: alteracao.numero,
         data: alteracao.data.toISOString().slice(0, 10),
         arquivoCaminho: alteracao.arquivoCaminho,
       })),
@@ -54,10 +65,60 @@ export class SupabaseClienteRepository implements ClienteRepository {
           }),
         );
       }
+      if (dataFutura(error)) return err(new ValidationError(ERRO_DATA_FUTURA));
       console.error("Falha ao salvar cliente:", error.message);
+      if (semDesfechoConhecido(status)) {
+        return err(new ResultadoIncertoError("Não foi possível confirmar o cadastro do Cliente."));
+      }
       return err(new PersistenciaError("Não foi possível salvar o Cliente. Tente novamente."));
     }
     return ok(undefined);
+  }
+
+  async anexarAlteracaoContratual(
+    clienteId: string,
+    alteracao: AlteracaoContratual,
+  ): Promise<Result<void, AppError>> {
+    const { error, status } = await this.supabase.rpc("anexar_alteracao_contratual", {
+      p_cliente_id: clienteId,
+      p_id: crypto.randomUUID(),
+      p_numero: alteracao.numero,
+      p_data: alteracao.data.toISOString().slice(0, 10),
+      p_caminho: alteracao.arquivoCaminho,
+    });
+
+    if (error) {
+      if (error.code === "23505") {
+        return err(new ValidationError(erroNumeroRepetidoNoCliente(alteracao.numero)));
+      }
+      if (dataFutura(error)) return err(new ValidationError(ERRO_DATA_FUTURA));
+      console.error("Falha ao anexar alteração contratual:", error.message);
+      if (semDesfechoConhecido(status)) {
+        return err(new ResultadoIncertoError("Não foi possível confirmar o anexo da alteração."));
+      }
+      return err(new PersistenciaError("Não foi possível anexar a alteração. Tente novamente."));
+    }
+    return ok(undefined);
+  }
+
+  // Reconciliação após `ResultadoIncertoError`: o vínculo exato Cliente/nº/caminho prova o commit.
+  async alteracaoContratualGravada(
+    clienteId: string,
+    numero: number,
+    arquivoCaminho: string,
+  ): Promise<Result<boolean, AppError>> {
+    const { data, error } = await this.supabase
+      .from("cliente_alteracoes_contratuais")
+      .select("id")
+      .eq("cliente_id", clienteId)
+      .eq("numero", numero)
+      .eq("arquivo_caminho", arquivoCaminho)
+      .maybeSingle();
+    if (error) {
+      console.error("Falha ao reconciliar alteração contratual:", error.message);
+      return err(new PersistenciaError("Não foi possível confirmar a alteração."));
+    }
+    return ok(data !== null);
   }
 
   async buscarPorId(id: string): Promise<Result<Cliente | null, AppError>> {

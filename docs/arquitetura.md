@@ -336,6 +336,7 @@ DTOs são objetos simples (sem classes): a serialização do React Server Compon
 - `Result<T, E>` (em `shared`) representa falha esperada: validação, não encontrado, conflito, proibido.
 - Hierarquia base em `shared/errors`: `AppError` → `DomainError`, `ValidationError`, `ForbiddenError`, `NotFoundError`, `EstadoInconsistenteError`, `ServicoExternoError` (falha esperada de serviço de terceiros, como o Serpro).
 - A Server Action converte `Result`/`AppError` em `ActionResult` serializável; erros nunca atravessam a fronteira como exceção.
+- **Exceção inesperada e falha de transporte ainda rejeitam a Server Action** (bug no caso de uso, corpo acima de `bodySizeLimit`, arquivo que o navegador não lê, rede). A regra acima vale para o que é esperado; o Container que chama a action trata a rejeição com `try/catch/finally` (solta o botão pendente) e **diz a causa em vez de culpar sempre a conexão**: `TypeError` (o `fetch` não saiu) = sem conexão; qualquer outra = erro inesperado, com o erro completo em `console.error`. Exemplo: o `catch` de `criar-cliente.container.tsx`. O que o usuário pode corrigir antes do envio (ex.: soma de arquivos acima de 10 MB) é validado no schema, para nunca chegar ao transporte.
 
 ```ts
 export type ErrorDto = { code: string; message: string; fields?: Record<string, string[]> };

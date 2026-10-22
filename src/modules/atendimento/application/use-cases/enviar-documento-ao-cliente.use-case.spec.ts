@@ -5,7 +5,9 @@ import type {
 import type { AuditoriaPort } from "@/modules/atendimento/application/ports/out/auditoria.provider";
 import type { DocumentosContratuaisPort } from "@/modules/atendimento/application/ports/out/documentos-contratuais.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
+import type { GuiasFiscaisPort } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
 import type { AtorSessaoDto } from "@/modules/atendimento/application/ports/out/sessao.provider";
+import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok } from "@/shared/kernel/result";
 
@@ -21,8 +23,8 @@ const ATENDIMENTO: AtendimentoEmAndamento = {
   emAvisoDeInatividade: false,
 };
 const FUNCIONARIO: AtorSessaoDto = { id: "func-1", papel: "funcionario", setor: "contabil" };
-const CONTRATO = { tipo: "contrato" as const, data: null };
-const ALTERACAO = { tipo: "alteracao" as const, data: "2026-03-01" };
+const CONTRATO = { tipo: "contrato" as const, numero: null };
+const ALTERACAO = { tipo: "alteracao" as const, numero: 3 };
 
 type Opcoes = {
   ator?: AtorSessaoDto | null;
@@ -31,6 +33,7 @@ type Opcoes = {
   falhaRegistro?: boolean;
   falhaFinalizar?: boolean;
   veredito?: "registrada" | "encerrada" | "sem_autoridade";
+  guia?: "ok" | "sem_autorizacao" | "lanca";
 };
 
 function montar({
@@ -40,6 +43,7 @@ function montar({
   falhaRegistro = false,
   falhaFinalizar = false,
   veredito = "registrada",
+  guia = "ok",
 }: Opcoes = {}) {
   const enviados: unknown[] = [];
   const registradas: unknown[] = [];
@@ -60,11 +64,20 @@ function montar({
   const documentos = {
     listar: async () =>
       ok([
-        { ...CONTRATO, caminho: "a/contrato.pdf" },
-        { ...ALTERACAO, caminho: "a/alteracao.pdf" },
+        { ...CONTRATO, data: null, caminho: "a/contrato.pdf" },
+        { ...ALTERACAO, data: "2026-03-01", caminho: "a/alteracao.pdf" },
+        // Mesma data da nº 3: só o nº distingue as duas.
+        { tipo: "alteracao", numero: 2, data: "2026-03-01", caminho: "a/alteracao-2.pdf" },
       ]),
     linkTemporario: async (caminho: string) => ok(`https://link/${caminho}`),
   } as unknown as DocumentosContratuaisPort;
+  const guias: GuiasFiscaisPort = {
+    buscar: async () => {
+      if (guia === "lanca") throw new Error("boom");
+      if (guia === "sem_autorizacao") return err(new ForbiddenError("sem procuração"));
+      return ok({ nomeArquivo: "guia.pdf", pdfBase64: "UERG" });
+    },
+  };
   const envio = {
     enviarDocumento: async (d: unknown) => {
       enviados.push(d);
@@ -81,6 +94,7 @@ function montar({
       { usuarioAtual: async () => ator },
       repo,
       documentos,
+      guias,
       envio,
       auditoria,
     ),
@@ -96,12 +110,12 @@ describe("EnviarDocumentoAoCliente", () => {
       {
         telefone: "5561988887777",
         url: "https://link/a/alteracao.pdf",
-        nomeArquivo: "Alteração de 01/03/2026.pdf",
+        nomeArquivo: "Alteração nº 3 - 01/03/2026.pdf",
         chaveIdempotencia: "m-1",
       },
     ]);
     expect(registradas).toEqual([
-      ["at-1", FUNCIONARIO, "Enviou ao cliente: Alteração de 01/03/2026"],
+      ["at-1", FUNCIONARIO, "Enviou ao cliente: Alteração nº 3 - 01/03/2026"],
     ]);
     expect(auditadas).toEqual([
       {
@@ -112,6 +126,83 @@ describe("EnviarDocumentoAoCliente", () => {
         resultado: "sucesso",
       },
     ]);
+  });
+
+  it("duas alterações na mesma data: envia a de nº escolhido, não a primeira da data", async () => {
+    const { caso, enviados } = montar();
+    const r = await caso.execute({
+      atendimentoId: "at-1",
+      documento: { tipo: "alteracao", numero: 2 },
+    });
+    expect(r.ok).toBe(true);
+    expect(enviados).toEqual([
+      expect.objectContaining({
+        url: "https://link/a/alteracao-2.pdf",
+        nomeArquivo: "Alteração nº 2 - 01/03/2026.pdf",
+      }),
+    ]);
+  });
+
+  it.each([
+    ["das", "Guia de imposto"],
+    ["parcelamento", "Guia de parcelamento"],
+    ["cnd", "CND"],
+  ] as const)(
+    "guia %s: busca no provedor fiscal, envia o PDF, registra a Mensagem e audita",
+    async (tipo, rotulo) => {
+      const { caso, enviados, registradas, finalizadas, auditadas } = montar();
+      const r = await caso.execute({ atendimentoId: "at-1", documento: { tipo, numero: null } });
+      expect(r.ok).toBe(true);
+      expect(enviados).toEqual([
+        {
+          telefone: "5561988887777",
+          nomeArquivo: "guia.pdf",
+          pdfBase64: "UERG",
+          chaveIdempotencia: "m-1",
+        },
+      ]);
+      expect(registradas).toEqual([["at-1", FUNCIONARIO, `Enviou ao cliente: ${rotulo}`]]);
+      expect(finalizadas).toEqual([{ id: "m-1", entregue: true }]);
+      expect(auditadas).toEqual([expect.objectContaining({ resultado: "sucesso" })]);
+    },
+  );
+
+  it("guia sem autorização fiscal do Cliente: devolve o erro, audita a falha e não registra nem envia nada", async () => {
+    const { caso, enviados, registradas, auditadas } = montar({ guia: "sem_autorizacao" });
+    const r = await caso.execute({
+      atendimentoId: "at-1",
+      documento: { tipo: "das", numero: null },
+    });
+    expect(!r.ok && r.error.code).toBe("FORBIDDEN");
+    expect(registradas).toEqual([]);
+    expect(enviados).toEqual([]);
+    expect(auditadas).toEqual([expect.objectContaining({ resultado: "falha", alvo: "at-1" })]);
+  });
+
+  it("falha inesperada do provedor fiscal vira erro de serviço externo, é auditada e logada só com a mensagem", async () => {
+    const log = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    const { caso, enviados, registradas, auditadas } = montar({ guia: "lanca" });
+    const r = await caso.execute({
+      atendimentoId: "at-1",
+      documento: { tipo: "cnd", numero: null },
+    });
+    expect(!r.ok && r.error).toBeInstanceOf(ServicoExternoError);
+    expect(registradas).toEqual([]);
+    expect(enviados).toEqual([]);
+    expect(auditadas).toEqual([expect.objectContaining({ resultado: "falha" })]);
+    // Só a mensagem, nunca o objeto de erro (poderia levar o CNPJ ao log).
+    expect(log).toHaveBeenCalledWith("Falha inesperada ao buscar a guia cnd:", "boom");
+    log.mockRestore();
+  });
+
+  it("documento que o Cliente não tem também audita a falha", async () => {
+    const { caso, auditadas } = montar();
+    const r = await caso.execute({
+      atendimentoId: "at-1",
+      documento: { tipo: "alteracao", numero: 99 },
+    });
+    expect(!r.ok && r.error.code).toBe("NOT_FOUND");
+    expect(auditadas).toEqual([expect.objectContaining({ resultado: "falha" })]);
   });
 
   it("o Líder do Setor envia em nome do Atendimento; outro Funcionário não", async () => {
@@ -153,7 +244,7 @@ describe("EnviarDocumentoAoCliente", () => {
 
     const naoTem = await montar().caso.execute({
       atendimentoId: "at-1",
-      documento: { tipo: "alteracao", data: "2020-01-01" },
+      documento: { tipo: "alteracao", numero: 99 },
     });
     expect(!naoTem.ok && naoTem.error.code).toBe("NOT_FOUND");
   });

@@ -5,7 +5,8 @@ import { cn } from "@/presentation/lib/utils";
 const LARGURA = {
   conta: "max-w-md",
   lista: "max-w-3xl",
-  formulario: "w-[80%]",
+  // cadastro com muitos campos: colunas lado a lado, sem esticar os campos em tela larga
+  cadastro: "w-full max-w-4xl",
   conteudo: "w-[90%]",
 } as const;
 

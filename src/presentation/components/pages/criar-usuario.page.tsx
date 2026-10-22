@@ -7,7 +7,7 @@ export function CriarUsuarioPage({ header, formulario }: CriarUsuarioPageProps) 
   return (
     <TelaDeTrabalhoTemplate
       header={header}
-      largura="formulario"
+      largura="cadastro"
       cabecalho={<CabecalhoDeTela voltarHref="/" titulo="Cadastrar Líder ou Funcionário" />}
       conteudo={formulario}
     />

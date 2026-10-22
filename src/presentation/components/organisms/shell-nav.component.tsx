@@ -6,7 +6,9 @@ import { SETOR_LABEL } from "@/shared/kernel/setores";
 
 type SetorNav = { slug: string };
 
-type ShellNavProps = { setores: SetorNav[] };
+// `rotaAtual`: a aba da tela aberta ganha o destaque cheio (e `aria-current`); em "/" nenhuma está
+// selecionada, e as que têm tela são só links comuns.
+type ShellNavProps = { setores: SetorNav[]; rotaAtual?: string };
 
 // Única aba com tela de verdade por trás — as demais seguem como
 // placeholder desabilitado até ganharem painel próprio.
@@ -17,7 +19,7 @@ const ROTA_POR_SETOR: Record<string, string> = {
 const CHIP =
   "inline-flex items-center rounded-md border border-border px-3 py-1.5 text-sm pointer-coarse:min-h-11";
 
-export function ShellNav({ setores }: ShellNavProps) {
+export function ShellNav({ setores, rotaAtual }: ShellNavProps) {
   return (
     <Linha
       espaco={2}
@@ -33,7 +35,13 @@ export function ShellNav({ setores }: ShellNavProps) {
           <Link
             key={setor.slug}
             href={rota}
-            className={cn(CHIP, "font-medium text-foreground hover:bg-accent")}
+            aria-current={rota === rotaAtual ? "page" : undefined}
+            className={cn(
+              CHIP,
+              rota === rotaAtual
+                ? "border-primary bg-primary font-medium text-primary-foreground"
+                : "text-foreground hover:bg-accent",
+            )}
           >
             {label}
           </Link>

@@ -108,8 +108,9 @@ function montar(
     listar: async (clienteId: string) => {
       listados.push(clienteId);
       return ok([
-        { tipo: "contrato" as const, data: null, caminho: "a/contrato.pdf" },
-        { tipo: "alteracao" as const, data: "2026-03-01", caminho: "a/alt.pdf" },
+        { tipo: "contrato" as const, numero: null, data: null, caminho: "a/contrato.pdf" },
+        { tipo: "alteracao" as const, numero: 3, data: "2026-03-01", caminho: "a/alt.pdf" },
+        { tipo: "alteracao" as const, numero: 2, data: "2026-05-10", caminho: "a/alt-2.pdf" },
       ]);
     },
   } as unknown as DocumentosContratuaisPort;
@@ -274,8 +275,17 @@ describe("ObterConversa", () => {
         ura: CONVERSA.ura,
         avisoInatividade: false,
         documentos: [
-          { tipo: "contrato", data: null, descricao: "Contrato social" },
-          { tipo: "alteracao", data: "2026-03-01", descricao: "Alteração de 01/03/2026" },
+          { tipo: "contrato", numero: null, descricao: "Contrato social" },
+          {
+            tipo: "alteracao",
+            numero: 3,
+            descricao: "Alteração nº 3 - 01/03/2026",
+          },
+          {
+            tipo: "alteracao",
+            numero: 2,
+            descricao: "Alteração nº 2 - 10/05/2026",
+          },
         ],
         setoresDestino: expect.arrayContaining(["recepcao", "tributario"]),
       },

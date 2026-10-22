@@ -37,4 +37,17 @@ describe("ShellNav", () => {
     const item = screen.getByText("Financeiro");
     expect(item).toHaveAttribute("aria-disabled", "true");
   });
+
+  it("só a aba da tela aberta fica selecionada; em '/' nenhuma", () => {
+    const { rerender } = render(<ShellNav setores={[{ slug: "simples_nacional" }]} />);
+    expect(screen.getByRole("link", { name: "Simples Nacional" })).not.toHaveAttribute(
+      "aria-current",
+    );
+
+    rerender(<ShellNav setores={[{ slug: "simples_nacional" }]} rotaAtual="/simples-nacional" />);
+    expect(screen.getByRole("link", { name: "Simples Nacional" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
 });

@@ -157,6 +157,22 @@ input[type="radio"] {
 }
 
 /* Moldura de soltar arquivo sobre a conversa: aparece. Só roda com `motion-safe:`. */
+/*
+ * Oculto até hidratar, com saída de emergência: se o React nunca hidratar (script que falhou ao
+ * carregar), a animação de 0s revela o conteúdo depois de 3 s em vez de deixá-lo invisível para
+ * sempre. Não é movimento: só troca `visibility`, sem transição.
+ */
+.rc-oculto-ate-hidratar {
+  visibility: hidden;
+  animation: rc-revela 0s 3s forwards;
+}
+
+@keyframes rc-revela {
+  to {
+    visibility: visible;
+  }
+}
+
 @keyframes arraste-entrada {
   from {
     opacity: 0;

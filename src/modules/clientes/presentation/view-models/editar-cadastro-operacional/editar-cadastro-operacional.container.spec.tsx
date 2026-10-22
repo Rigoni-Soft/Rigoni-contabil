@@ -1,3 +1,4 @@
+import { renderToString } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render as renderRtl, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -21,6 +22,10 @@ jest.mock("@/main/clientes.factory", () => ({
   makeEditarCadastroOperacionalCliente: () => ({ execute: executeMock }),
   makeAtribuirResponsavelCliente: () => ({ execute: atribuirMock }),
   makeListarResponsaveisElegiveis: () => ({ execute: listarMock }),
+  makeListarDocumentosContratuaisCliente: () => ({
+    execute: async () => ok([]),
+  }),
+  makeObterLinkDocumentoContratual: () => ({ execute: jest.fn() }),
 }));
 
 const dados: CadastroOperacionalClienteDto = {
@@ -67,6 +72,23 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(screen.getByRole("status")).toHaveTextContent(`não se aplica ao Regime ${rotulo}`);
     expect(screen.queryByRole("button", { name: /salvar/i })).not.toBeInTheDocument();
   });
+
+  it.each(["lucro_presumido", "lucro_real"])(
+    "Regime %s: Admin ainda tem como anexar a alteração contratual",
+    (regime) => {
+      render(
+        <EditarCadastroOperacionalContainer
+          dados={{ ...dados, regime }}
+          readOnly={false}
+          documentosContratuais={[]}
+          podeAnexar
+        />,
+      );
+
+      expect(screen.getByRole("button", { name: /anexar/i })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /salvar/i })).not.toBeInTheDocument();
+    },
+  );
 
   it("Responsável: sem permissão mostra o nome (campo desabilitado); Líder escolhe e salva via atribuir", async () => {
     const { unmount } = render(
@@ -240,14 +262,17 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(screen.getByRole("link", { name: /cancelar/i })).toHaveAttribute("href", "/");
   });
 
-  it("DAS: 'Enviado' não é opção escolhível e a data de envio é só leitura (#108)", () => {
+  it("DAS: 'Enviado' não é opção escolhível; a data de envio é sempre só leitura e desativada (#108)", () => {
     render(<EditarCadastroOperacionalContainer dados={dados} readOnly={false} />);
 
     expect(screen.queryByRole("option", { name: "Enviado" })).not.toBeInTheDocument();
-    expect(screen.getByLabelText(/data de envio/i)).toHaveAttribute("readonly");
+    expect(screen.getByLabelText("DAS")).toBeEnabled();
+    const data = screen.getByLabelText(/data de envio/i);
+    expect(data).toHaveAttribute("readonly");
+    expect(data).toBeDisabled();
   });
 
-  it("DAS já enviado pelo sistema: exibe 'Enviado' selecionado com a data (#108)", () => {
+  it("DAS já enviado pelo sistema: 'Enviado' e a data aparecem, mas o campo DAS fica desativado", () => {
     render(
       <EditarCadastroOperacionalContainer
         dados={{ ...dados, dasStatus: "enviado", dataEnvioDas: "2026-10-05" }}
@@ -255,8 +280,100 @@ describe("EditarCadastroOperacionalContainer", () => {
       />,
     );
 
-    expect(screen.getByLabelText("DAS")).toHaveValue("enviado");
+    const das = screen.getByLabelText("DAS");
+    expect(das).toHaveValue("enviado");
+    expect(das).toBeDisabled();
     expect(screen.getByLabelText(/data de envio/i)).toHaveValue("2026-10-05");
+    expect(screen.getByLabelText(/data de envio/i)).toBeDisabled();
+  });
+
+  it("modo readOnly não oferece adicionar nem remover contato", () => {
+    render(<EditarCadastroOperacionalContainer dados={dados} readOnly />);
+
+    expect(screen.getByLabelText(/^Nome/, { selector: "input" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Adicionar contato" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /remover contato/i })).not.toBeInTheDocument();
+  });
+
+  it("editando, adicionar e remover contato continuam disponíveis", () => {
+    render(<EditarCadastroOperacionalContainer dados={dados} readOnly={false} />);
+
+    expect(screen.getByRole("button", { name: "Adicionar contato" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Remover contato 1" })).toBeEnabled();
+  });
+
+  it("no HTML do servidor o formulário vem oculto até hidratar (sem placeholders no lugar dos valores)", () => {
+    const client = new QueryClient();
+    const html = renderToString(
+      <QueryClientProvider client={client}>
+        <EditarCadastroOperacionalContainer dados={dados} readOnly={false} />
+      </QueryClientProvider>,
+    );
+
+    const abertura = html.match(/<form[^>]*>/)?.[0] ?? "";
+    expect(abertura).toContain("rc-oculto-ate-hidratar");
+  });
+
+  it("depois de hidratar, o formulário fica visível", () => {
+    const { container } = render(
+      <EditarCadastroOperacionalContainer dados={dados} readOnly={false} />,
+    );
+
+    expect(container.querySelector("form")).not.toHaveClass("rc-oculto-ate-hidratar");
+  });
+
+  it("Empresa, CNPJ, Regime e Responsável têm rótulo ligado ao campo e estão desativados", () => {
+    render(<EditarCadastroOperacionalContainer dados={dados} readOnly={false} />);
+
+    for (const [rotulo, valor] of [
+      ["Empresa", "Padaria Pão Quente Ltda"],
+      ["CNPJ", "11444777000161"],
+      ["Regime", "Simples Nacional"],
+      ["Responsável", "Sem responsável"],
+    ]) {
+      const campo = screen.getByLabelText(rotulo, { selector: "input" });
+      expect(campo).toBeDisabled();
+      expect(campo).toHaveValue(valor);
+    }
+  });
+
+  it("explica por que a data de envio e o DAS enviado estão travados", () => {
+    const { unmount } = render(
+      <EditarCadastroOperacionalContainer dados={dados} readOnly={false} />,
+    );
+
+    expect(screen.getByLabelText(/data de envio/i)).toHaveAccessibleDescription(
+      "Preenchida pelo sistema quando o DAS é enviado.",
+    );
+    // DAS ainda editável: sem texto de "travado".
+    expect(screen.getByLabelText("DAS")).not.toHaveAccessibleDescription();
+    unmount();
+
+    render(
+      <EditarCadastroOperacionalContainer
+        dados={{ ...dados, dasStatus: "enviado", dataEnvioDas: "2026-10-05" }}
+        readOnly={false}
+      />,
+    );
+    expect(screen.getByLabelText("DAS")).toHaveAccessibleDescription("Definido pelo sistema.");
+  });
+
+  it("salvar com DAS já enviado mantém 'enviado' e a data no que vai ao servidor", async () => {
+    executeMock.mockResolvedValue({ ok: true, value: { clienteId: dados.id } });
+    const usuario = userEvent.setup();
+    render(
+      <EditarCadastroOperacionalContainer
+        dados={{ ...dados, dasStatus: "enviado", dataEnvioDas: "2026-10-05" }}
+        readOnly={false}
+      />,
+    );
+
+    await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+
+    await screen.findByText(/atualizado/i);
+    expect(executeMock).toHaveBeenCalledWith(
+      expect.objectContaining({ dasStatus: "enviado", dataEnvioDas: "2026-10-05" }),
+    );
   });
 
   it("'Limpar' desfaz uma edição não salva, voltando ao valor carregado do servidor", async () => {

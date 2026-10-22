@@ -16,6 +16,7 @@ import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
 import { Textarea } from "@/presentation/components/ui/textarea";
 import { formatarTelefone } from "@/presentation/lib/telefone-mask";
+import { cn } from "@/presentation/lib/utils";
 import { DAS_STATUS_LABEL, DAS_STATUSES, type DasStatusValor } from "@/shared/kernel/das-status";
 import {
   DOCUMENTO_OBRIGATORIO_STATUS_LABEL,
@@ -90,6 +91,9 @@ type EditarCadastroOperacionalFormProps = {
   dasEnviadoPeloSistema: boolean;
   erroServidor?: string;
   sucesso?: boolean;
+  // Até hidratar, os campos (não controlados) ainda não têm os valores: o HTML do servidor mostraria
+  // placeholders no lugar do dado. Oculto sem sair do layout (e revelado após 3 s se a hidratação falhar), aparece já preenchido.
+  oculto?: boolean;
   // Lista de campos do useFieldArray, montada no Container (View burra: sem hooks).
   contatos: { id: string }[];
   onAdicionarContato: () => void;
@@ -100,6 +104,8 @@ type EditarCadastroOperacionalFormProps = {
   // já está em "/" — um <Link href="/"> não dispara navegação nem reseta nada,
   // então o Container que abriu o form inline fecha o painel diretamente.
   onCancelar?: () => void;
+  // Cartão do documento contratual com "Abrir em nova aba" (só leitura); ausente = ator sem acesso.
+  documentoContratual?: React.ReactNode;
 };
 
 export function EditarCadastroOperacionalForm({
@@ -115,48 +121,69 @@ export function EditarCadastroOperacionalForm({
   dasEnviadoPeloSistema,
   erroServidor,
   sucesso,
+  oculto,
   contatos,
   onAdicionarContato,
   onRemoverContato,
   onLimpar,
   onCancelar,
+  documentoContratual,
 }: EditarCadastroOperacionalFormProps) {
   return (
     <Pilha
-      espaco={6}
+      espaco="formulario"
       como="form"
       onSubmit={onSubmit}
-      className="rc-guilloche-frame rounded-lg border border-border bg-card p-6 shadow-sm"
+      className={cn(
+        "rc-guilloche-frame rounded-lg border border-border bg-card p-5 shadow-sm",
+        oculto && "rc-oculto-ate-hidratar",
+      )}
     >
       {!readOnly && <NotaDeObrigatorio />}
 
-      <Grade colunas="1>2>cabecalho" espaco={4}>
-        <Pilha espaco={1}>
-          <Label>Empresa</Label>
-          <Input value={cabecalho.empresa} disabled readOnly />
-        </Pilha>
-        <Pilha espaco={1}>
-          <Label>CNPJ</Label>
-          <Input value={cabecalho.cnpj} disabled readOnly />
-        </Pilha>
-        <Pilha espaco={1}>
-          <Label>Regime</Label>
-          <Input value={REGIME_LABEL[cabecalho.regime] ?? cabecalho.regime} disabled readOnly />
-        </Pilha>
-        <CampoResponsavel
-          editavel={responsavel.editavel}
-          nomeAtual={responsavel.nomeAtual}
-          opcoes={responsavel.opcoes}
-          semResponsavel={SEM_RESPONSAVEL_LABEL}
-          estadoLista={responsavel.estadoLista}
-          onAbrir={responsavel.onAbrir}
-          onTentarNovamente={responsavel.onTentarNovamente}
-          select={register("responsavelId")}
-          desabilitado={pendente}
-        />
-      </Grade>
+      {/* Identidade do Cliente + o documento dele: um grupo (proximidade), separado do restante. */}
+      <Pilha espaco={4}>
+        <Grade colunas="1>2>cabecalho" espaco={4}>
+          <Pilha espaco={1}>
+            <Label htmlFor="cabecalho-empresa">Empresa</Label>
+            <Input
+              id="cabecalho-empresa"
+              value={cabecalho.empresa}
+              title={cabecalho.empresa}
+              disabled
+              readOnly
+            />
+          </Pilha>
+          <Pilha espaco={1}>
+            <Label htmlFor="cabecalho-cnpj">CNPJ</Label>
+            <Input id="cabecalho-cnpj" value={cabecalho.cnpj} disabled readOnly />
+          </Pilha>
+          <Pilha espaco={1}>
+            <Label htmlFor="cabecalho-regime">Regime</Label>
+            <Input
+              id="cabecalho-regime"
+              value={REGIME_LABEL[cabecalho.regime] ?? cabecalho.regime}
+              disabled
+              readOnly
+            />
+          </Pilha>
+          <CampoResponsavel
+            editavel={responsavel.editavel}
+            nomeAtual={responsavel.nomeAtual}
+            opcoes={responsavel.opcoes}
+            semResponsavel={SEM_RESPONSAVEL_LABEL}
+            estadoLista={responsavel.estadoLista}
+            onAbrir={responsavel.onAbrir}
+            onTentarNovamente={responsavel.onTentarNovamente}
+            select={register("responsavelId")}
+            desabilitado={pendente}
+          />
+        </Grade>
 
-      <Grade colunas="1>2" como="fieldset" disabled={readOnly || pendente} className="gap-6">
+        {documentoContratual}
+      </Pilha>
+
+      <Grade colunas="1>2>4" como="fieldset" disabled={readOnly || pendente} className="gap-4">
         <CampoDeOpcoes
           id="formaEnvio"
           rotulo="Forma de envio"
@@ -178,6 +205,10 @@ export function EditarCadastroOperacionalForm({
           opcoes={dasEnviadoPeloSistema ? [...OPCOES_DAS, OPCAO_DAS_ENVIADO] : OPCOES_DAS}
           placeholder="Não definido"
           className="gap-1"
+          // "Enviado" é do sistema (#108): nem o Admin troca depois que o envio foi concluído. Fica
+          // esmaecido, como todo campo desativado: o esmaecimento é o sinal de não editável (DESIGN.md).
+          disabled={dasEnviadoPeloSistema}
+          ajuda={dasEnviadoPeloSistema ? "Definido pelo sistema." : undefined}
           {...register("dasStatus")}
         />
         <CampoDeTexto
@@ -186,11 +217,13 @@ export function EditarCadastroOperacionalForm({
           type="date"
           className="gap-1"
           readOnly
-          aria-readonly="true"
+          // Só o sistema define a data: desativada, com o esmaecimento de qualquer campo travado.
+          disabled
+          ajuda="Preenchida pelo sistema quando o DAS é enviado."
           {...register("dataEnvioDas")}
         />
 
-        <Pilha espaco={1}>
+        <Pilha espaco={1} className="lg:col-span-2">
           <CaixaDeMarcacao rotulo="Tem parcelamento" {...register("temParcelamento")} />
           {temParcelamento && (
             <CampoDeOpcoes
@@ -204,16 +237,16 @@ export function EditarCadastroOperacionalForm({
           )}
         </Pilha>
 
-        <Pilha espaco={1}>
+        <Pilha espaco={1} className="lg:col-span-2">
           <Label>Atividade do mês</Label>
-          <Linha espaco={4} className="text-sm">
+          <Linha espaco={4} quebra className="text-sm">
             <CaixaDeMarcacao rotulo="Indústria" {...register("atividadeMes.industria")} />
             <CaixaDeMarcacao rotulo="Comércio" {...register("atividadeMes.comercio")} />
             <CaixaDeMarcacao rotulo="Serviço" {...register("atividadeMes.servico")} />
           </Linha>
         </Pilha>
 
-        <Pilha espaco={3} className="sm:col-span-2">
+        <Pilha espaco={3} className="sm:col-span-2 lg:col-span-4">
           <Label className="block">Contatos</Label>
           {contatos.map((campo, indice) => (
             <Controller
@@ -234,7 +267,7 @@ export function EditarCadastroOperacionalForm({
                   padrao={register(`contatos.${indice}.padrao`)}
                   erroNome={errors.contatos?.[indice]?.nome?.message}
                   erroTelefone={errors.contatos?.[indice]?.telefone?.message}
-                  onRemover={() => onRemoverContato(indice)}
+                  onRemover={readOnly ? undefined : () => onRemoverContato(indice)}
                 />
               )}
             />
@@ -242,15 +275,17 @@ export function EditarCadastroOperacionalForm({
           {errors.contatos && typeof errors.contatos.message === "string" && (
             <FieldError>{errors.contatos.message}</FieldError>
           )}
-          <Button type="button" variant="outline" onClick={onAdicionarContato}>
-            <Plus className="size-4" aria-hidden="true" />
-            Adicionar contato
-          </Button>
+          {!readOnly && (
+            <Button type="button" variant="outline" onClick={onAdicionarContato}>
+              <Plus className="size-4" aria-hidden="true" />
+              Adicionar contato
+            </Button>
+          )}
         </Pilha>
 
-        <Pilha espaco={1} className="sm:col-span-2">
+        <Pilha espaco={1} className="sm:col-span-2 lg:col-span-4">
           <Label htmlFor="observacoesGerais">Observações gerais</Label>
-          <Textarea id="observacoesGerais" {...register("observacoesGerais")} rows={4} />
+          <Textarea id="observacoesGerais" {...register("observacoesGerais")} rows={3} />
         </Pilha>
 
         {!readOnly && (

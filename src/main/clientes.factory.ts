@@ -5,24 +5,33 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { makeRegistrarAcao } from "@/main/auditoria.factory";
 import { makeCertidaoCnd, makeObrigacoesFiscais } from "@/main/obrigacoes-fiscais.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
+import type { AnexarAlteracaoContratualPort } from "@/modules/clientes/application/ports/in/anexar-alteracao-contratual.provider";
 import type { AtribuirResponsavelClientePort } from "@/modules/clientes/application/ports/in/atribuir-responsavel-cliente.provider";
 import type { BuscarGuiaPort } from "@/modules/clientes/application/ports/in/buscar-guia.provider";
 import type { CriarClientePort } from "@/modules/clientes/application/ports/in/criar-cliente.provider";
+import type {
+  ListarDocumentosContratuaisClientePort,
+  ObterLinkDocumentoContratualPort,
+} from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 import type { EditarCadastroOperacionalClientePort } from "@/modules/clientes/application/ports/in/editar-cadastro-operacional-cliente.provider";
 import type { AuditoriaPort } from "@/modules/clientes/application/ports/out/auditoria.provider";
 import type {
   AtorSessaoDto,
   SessaoPort,
 } from "@/modules/clientes/application/ports/out/sessao.provider";
+import { AnexarAlteracaoContratual } from "@/modules/clientes/application/use-cases/anexar-alteracao-contratual.use-case";
 import { AtribuirResponsavelCliente } from "@/modules/clientes/application/use-cases/atribuir-responsavel-cliente.use-case";
 import { BuscarClientes } from "@/modules/clientes/application/use-cases/buscar-clientes.use-case";
 import { BuscarGuia } from "@/modules/clientes/application/use-cases/buscar-guia.use-case";
 import { ConsultarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/consultar-cadastro-operacional-cliente.use-case";
 import { CriarCliente } from "@/modules/clientes/application/use-cases/criar-cliente.use-case";
 import { EditarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/editar-cadastro-operacional-cliente.use-case";
+import { ListarDocumentosContratuaisCliente } from "@/modules/clientes/application/use-cases/listar-documentos-contratuais-cliente.use-case";
 import { ListarResponsaveisElegiveis } from "@/modules/clientes/application/use-cases/listar-responsaveis-elegiveis.use-case";
+import { ObterLinkDocumentoContratual } from "@/modules/clientes/application/use-cases/obter-link-documento-contratual.use-case";
 import { ObterResumoSetorSn } from "@/modules/clientes/application/use-cases/obter-resumo-setor-sn.use-case";
 import { SupabaseClienteQueryGateway } from "@/modules/clientes/infra/gateways/cliente-query.gateway";
+import { SupabaseDocumentosContratuaisClienteGateway } from "@/modules/clientes/infra/gateways/documentos-contratuais-cliente.gateway";
 import { SupabaseArquivoStorageGateway } from "@/modules/clientes/infra/gateways/supabase-arquivo-storage.gateway";
 import { SupabaseClienteRepository } from "@/modules/clientes/infra/repositories/cliente.repository";
 import { SupabaseResponsavelClienteRepository } from "@/modules/clientes/infra/repositories/responsavel-cliente.repository";
@@ -64,6 +73,15 @@ export async function makeCriarCliente(): Promise<CriarClientePort> {
     new SupabaseClienteRepository(supabase),
     new SupabaseArquivoStorageGateway(supabase),
     auditoriaViaModuloAuditoria(),
+  );
+}
+
+export async function makeAnexarAlteracaoContratual(): Promise<AnexarAlteracaoContratualPort> {
+  const supabase = await createSupabaseServer();
+  return new AnexarAlteracaoContratual(
+    sessaoViaUsuarios(supabase),
+    new SupabaseClienteRepository(supabase),
+    new SupabaseArquivoStorageGateway(supabase),
   );
 }
 
@@ -118,4 +136,21 @@ export async function makeObterResumoSetorSn(): Promise<ObterResumoSetorSn> {
 export async function makeBuscarGuia(): Promise<BuscarGuiaPort> {
   const supabase = await createSupabaseServer();
   return new BuscarGuia(sessaoViaUsuarios(supabase), makeObrigacoesFiscais(), makeCertidaoCnd());
+}
+
+// Sessão do usuário (RLS), sem service_role e sem o gateway do Atendimento.
+export async function makeListarDocumentosContratuaisCliente(): Promise<ListarDocumentosContratuaisClientePort> {
+  const supabase = await createSupabaseServer();
+  return new ListarDocumentosContratuaisCliente(
+    sessaoViaUsuarios(supabase),
+    new SupabaseDocumentosContratuaisClienteGateway(supabase),
+  );
+}
+
+export async function makeObterLinkDocumentoContratual(): Promise<ObterLinkDocumentoContratualPort> {
+  const supabase = await createSupabaseServer();
+  return new ObterLinkDocumentoContratual(
+    sessaoViaUsuarios(supabase),
+    new SupabaseDocumentosContratuaisClienteGateway(supabase),
+  );
 }

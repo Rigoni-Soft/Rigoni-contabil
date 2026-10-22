@@ -47,8 +47,12 @@ const CONVERSA: ConversaVista = {
   avisoInatividade: false,
   setoresDestino: ["recepcao", "tributario"],
   documentos: [
-    { tipo: "contrato", data: null, descricao: "Contrato social" },
-    { tipo: "alteracao", data: "2026-03-01", descricao: "Alteração de 01/03/2026" },
+    { tipo: "contrato", numero: null, descricao: "Contrato social" },
+    {
+      tipo: "alteracao",
+      numero: 3,
+      descricao: "Alteração nº 3 - 01/03/2026",
+    },
   ],
 };
 
@@ -74,10 +78,7 @@ describe("useAcoesConversa", () => {
     const { result } = renderizar();
 
     expect(result.current.visivel).toBe(true);
-    expect(result.current.servicos.map((s) => s.valor)).toEqual([
-      "contrato",
-      "alteracao:2026-03-01",
-    ]);
+    expect(result.current.servicos.map((s) => s.valor)).toEqual(["contrato", "alteracao:3"]);
     expect(result.current.setoresDestino.map((s) => s.rotulo)).toEqual(["Recepção", "Tributário"]);
   });
 
@@ -91,12 +92,12 @@ describe("useAcoesConversa", () => {
     enviar.mockResolvedValue({ ok: true, data: undefined });
     const { result } = renderizar();
 
-    act(() => result.current.aoEnviarServico("alteracao:2026-03-01"));
+    act(() => result.current.aoEnviarServico("alteracao:3"));
 
     await waitFor(() => expect(result.current.aviso?.tipo).toBe("sucesso"));
     expect(enviar).toHaveBeenCalledWith({
       atendimentoId: "at-1",
-      documento: { tipo: "alteracao", data: "2026-03-01" },
+      documento: { tipo: "alteracao", numero: 3 },
     });
   });
 

@@ -33,7 +33,11 @@ function clienteValido(cnpj: string): Cliente {
     .comRegime("simples_nacional")
     .comContratoSocialCaminho(`${crypto.randomUUID()}/contrato-social/doc.pdf`)
     .comAlteracoesContratuais([
-      { data: "2026-02-01", arquivoCaminho: `${crypto.randomUUID()}/alteracoes/0-doc.pdf` },
+      {
+        numero: 1,
+        data: "2026-02-01",
+        arquivoCaminho: `${crypto.randomUUID()}/alteracoes/1-doc.pdf`,
+      },
     ])
     .build();
   if (!resultado.ok) throw new Error("setup inválido");
@@ -47,6 +51,8 @@ const CNPJS_DA_SUITE = [
   "11444777000161",
   "20045044000145",
   "34028316000103",
+  "77700001000173",
+  "77700002000118",
 ] as const;
 beforeAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
 afterAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
@@ -71,6 +77,59 @@ describe("SupabaseClienteRepository (integração)", () => {
       .select("*")
       .eq("cliente_id", cliente.id);
     expect(alteracoes).toHaveLength(1);
+    expect(alteracoes?.[0].numero).toBe(1);
+  });
+
+  it("recusa nº repetido no lote de alterações e desfaz o cadastro inteiro (S2f)", async () => {
+    const supabase = await comoAdmin();
+    const id = crypto.randomUUID();
+    const item = (numero: number) => ({
+      id: crypto.randomUUID(),
+      numero,
+      data: "2026-02-01",
+      arquivoCaminho: `${id}/alteracoes-contratuais/${numero}-doc.pdf`,
+    });
+
+    const { error } = await supabase.rpc("criar_cliente", {
+      p_id: id,
+      p_empresa: "Padaria Pão Quente Ltda",
+      p_cnpj: "77700001000173",
+      p_regime: "simples_nacional",
+      p_contrato_social_caminho: null,
+      p_alteracoes: [item(2), item(2)],
+    });
+
+    expect(error?.code).toBe("23505");
+    const { data } = await supabase.from("clientes").select("id").eq("id", id);
+    expect(data).toEqual([]);
+  });
+
+  it("o mesmo nº vale em Clientes diferentes, mas não no mesmo (S2d)", async () => {
+    const admin = await comoAdmin();
+    const [a, b] = [clienteValido("77700001000173"), clienteValido("77700002000118")];
+    const repositorio = new SupabaseClienteRepository(admin);
+    expect((await repositorio.criar(a)).ok).toBe(true);
+    expect((await repositorio.criar(b)).ok).toBe(true);
+
+    const repetido = await admin.from("cliente_alteracoes_contratuais").insert({
+      id: crypto.randomUUID(),
+      cliente_id: a.id,
+      numero: 1,
+      data: "2026-03-01",
+      arquivo_caminho: "x/alteracoes-contratuais/1-outro.pdf",
+    });
+    expect(repetido.error?.code).toBe("23505");
+
+    for (const numero of [0, -1]) {
+      const invalido = await admin.from("cliente_alteracoes_contratuais").insert({
+        id: crypto.randomUUID(),
+        cliente_id: a.id,
+        numero,
+        data: "2026-03-01",
+        arquivo_caminho: `x/${numero}.pdf`,
+      });
+      expect(invalido.error?.code).toBe("23514");
+    }
   });
 
   it("Admin cadastra um Cliente sem contrato social (campo opcional, decisão de produto 2026-09-29)", async () => {
