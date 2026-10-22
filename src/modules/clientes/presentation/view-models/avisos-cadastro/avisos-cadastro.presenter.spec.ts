@@ -57,12 +57,6 @@ describe("avisoCadastroParaView: título da alteração (#144)", () => {
       "Nova Alteração contratual",
     );
   });
-
-  it("novo cliente não ganha nº, mesmo com nº no dado", () => {
-    expect(avisoCadastroParaView({ ...BASE, alteracaoNumero: 3 }).titulo).toBe(
-      "Novo Cliente no Cadastro operacional",
-    );
-  });
 });
 
 describe("avisoCadastroParaView: destino (#144)", () => {
@@ -81,10 +75,6 @@ describe("avisoCadastroParaView: destino (#144)", () => {
     expect(avisoCadastroParaView({ ...ALTERACAO, alteracaoNumero: 1 }).href).toBe(
       "/clientes/c1?alteracao=1",
     );
-  });
-
-  it("novo cliente leva ao formulário sem destaque, mesmo com nº no dado", () => {
-    expect(avisoCadastroParaView({ ...BASE, alteracaoNumero: 2 }).href).toBe("/clientes/c1");
   });
 
   it("nova alteração sem nº (aviso antigo ou alteração removida) cai no Cliente sem destaque", () => {

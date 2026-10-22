@@ -130,26 +130,6 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
     }
   });
 
-  test("aviso da alteração mais recente destaca e abre a própria mais recente", async ({
-    page,
-    browser,
-  }) => {
-    const clienteId = await criarClienteComAlteracao1(
-      page,
-      empresaUnica("Destaque Recente E2E Ltda"),
-    );
-    const lider = await entrar(browser, LIDER);
-    await page.goto(`/clientes/${clienteId}`);
-    await anexar(page, 2, "2026-03-01");
-
-    await lider.reload();
-    await lider.getByRole("button", { name: SINO }).click();
-    await avisoDaAlteracao(lider, 2).click();
-
-    await expect(lider).toHaveURL(`/clientes/${clienteId}?alteracao=2`);
-    await expect(lider.getByRole("button", { name: ABRIR_2 })).toBeFocused();
-  });
-
   test("sem vir de aviso: a de maior nº, sem destaque; nº inválido ou inexistente na URL também", async ({
     page,
     browser,

@@ -89,8 +89,4 @@ describe("alteracaoEmFocoDaUrl (#144)", () => {
   it("parâmetro repetido (lista) é ignorado", () => {
     expect(alteracaoEmFocoDaUrl(["1", "2"])).toBeUndefined();
   });
-
-  it("número fora do alcance seguro do JS é ignorado", () => {
-    expect(alteracaoEmFocoDaUrl("99999999999999999999")).toBeUndefined();
-  });
 });

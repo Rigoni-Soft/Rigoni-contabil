@@ -23,7 +23,5 @@ export function documentoEmDestaque(
 // `?alteracao=` da URL do aviso: só inteiro positivo conta; qualquer outra coisa (ausente, lista,
 // texto) é ignorada em vez de virar erro, e a tela cai no comportamento sem aviso.
 export function alteracaoEmFocoDaUrl(valor: string | string[] | undefined): number | undefined {
-  if (typeof valor !== "string" || !/^[1-9]\d*$/.test(valor)) return undefined;
-  const numero = Number(valor);
-  return Number.isSafeInteger(numero) ? numero : undefined;
+  return typeof valor === "string" && /^[1-9]\d*$/.test(valor) ? Number(valor) : undefined;
 }

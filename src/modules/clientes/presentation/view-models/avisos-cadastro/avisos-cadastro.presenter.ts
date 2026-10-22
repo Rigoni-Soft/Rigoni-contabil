@@ -18,29 +18,17 @@ const QUANDO = new Intl.DateTimeFormat("pt-BR", {
   timeStyle: "short",
 });
 
-// Só o aviso de alteração aponta uma alteração: a tela destaca o botão e abre aquela, não a mais recente.
-function destinoDoAviso(aviso: AvisoCadastroDto): string {
-  const cliente = `/clientes/${aviso.clienteId}`;
-  return aviso.tipo === "nova_alteracao" && aviso.alteracaoNumero !== null
-    ? `${cliente}?alteracao=${aviso.alteracaoNumero}`
-    : cliente;
-}
-
-// O nº distingue duas alterações do mesmo Cliente na lista (o título era idêntico).
-function tituloDoAviso(aviso: AvisoCadastroDto): string {
-  const titulo = TITULO[aviso.tipo];
-  return aviso.tipo === "nova_alteracao" && aviso.alteracaoNumero !== null
-    ? `${titulo} nº ${aviso.alteracaoNumero}`
-    : titulo;
-}
-
+// O nº só existe no aviso de alteração (a trigger o grava): vai no título, para duas alterações do mesmo
+// Cliente não parecerem iguais, e no destino, para a tela destacar o botão e abrir aquela alteração.
 export function avisoCadastroParaView(aviso: AvisoCadastroDto): AvisoDeCadastro {
+  const numero = aviso.alteracaoNumero;
+  const cliente = `/clientes/${aviso.clienteId}`;
   return {
     id: aviso.id,
-    titulo: tituloDoAviso(aviso),
+    titulo: numero === null ? TITULO[aviso.tipo] : `${TITULO[aviso.tipo]} nº ${numero}`,
     quando: QUANDO.format(new Date(aviso.criadoEm)),
     visto: aviso.vistoEm !== null,
-    href: destinoDoAviso(aviso),
+    href: numero === null ? cliente : `${cliente}?alteracao=${numero}`,
   };
 }
 
