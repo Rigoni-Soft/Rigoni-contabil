@@ -5,6 +5,7 @@ import { ShellHeader } from "@/presentation/components/organisms/shell-header.co
 import { ResumoSetorSnListaPage } from "@/presentation/components/pages/resumo-setor-sn-lista.page";
 import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-button.container";
 import { carregarSessao } from "@/presentation/view-models/shell/shell.server";
+import { SinoAvisosContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/sino-avisos.container";
 import { carregarResumoSetorSn } from "@/modules/clientes/presentation/view-models/resumo-setor-sn/resumo-setor-sn.server";
 import { podeVerDashboardSn } from "@/shared/kernel/papeis";
 
@@ -33,6 +34,7 @@ export default async function Page({ params }: Props) {
           papel={sessao.papel}
           setor={sessao.setor}
           sair={<LogoutButtonContainer />}
+          avisos={<SinoAvisosContainer />}
         />
       }
       titulo={card.titulo}

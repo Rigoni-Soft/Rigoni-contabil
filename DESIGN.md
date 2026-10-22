@@ -834,6 +834,23 @@ inferior (`bottom-[max(1rem,env(safe-area-inset-bottom))]`). O cartão entra com
 animação. O aviso sonoro (dois tons curtos) toca quando surge um Atendimento
 ou o cliente escreve de novo.
 
+### Sino de Avisos de cadastro (#143)
+
+Primeiro item da linha de ações do `ShellHeader`, em toda tela autenticada (Admin inclusive: o
+sino fica sem selo, ele não recebe aviso). Botão redondo de 48 px (`size-12`, maior que o alvo
+padrão de 44 px), ícone `Bell` de 24 px. Sem aviso não visto: contorno `input`, fundo transparente.
+Com algum: preenchido `primary` com `primary-foreground`, e um selo `destructive` (borda de 2 px na
+cor do fundo) no canto superior direito com o contador, `99+` acima de 99. O selo é decorativo
+(`aria-hidden`); o nome acessível do botão traz a quantidade ("Avisos de cadastro, 3 não vistos").
+Cor nunca é o único sinal: contador e nome acessível acompanham.
+
+O sino abre direto um modal nativo (`popover="auto"`, véu `overlay`, `w-[min(92vw,32rem)]`, rolagem
+interna), sem popover intermediário e sem página `/avisos`. Cada aviso é um botão de 44 px: não
+visto em destaque (`bg-accent`, `font-medium`, barra `primary` de 4 px à esquerda); visto
+esmaecido (`muted-foreground`, sem fundo) com o selo "visto" em texto. "Carregar mais" (`outline`)
+fecha a lista de 30 em 30. Abrir o modal não marca nada: só o clique no aviso marca como visto,
+fecha o modal e navega a `/clientes/[id]`. Contador por polling de 30 s e a cada navegação, sem som.
+
 ## Estados e motion
 
 - Loading do formulário de login: label muda para "Entrando…" e um

@@ -12,6 +12,8 @@ type ShellHeaderProps = {
   nome: string;
   papel: string;
   setor: string;
+  // Sino de Avisos de cadastro: é um Container (módulo clientes), que a View não importa.
+  avisos: React.ReactNode;
   sair: React.ReactNode;
 };
 
@@ -22,7 +24,7 @@ const CADASTRAR_LABEL: Record<string, string> = {
   lider_setor: "Cadastrar Funcionário",
 };
 
-export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
+export function ShellHeader({ nome, papel, setor, avisos, sair }: ShellHeaderProps) {
   const escopo =
     papel === "admin" ? "acesso a todos os setores" : `Setor: ${SETOR_LABEL[setor] ?? setor}`;
   const inicial = nome.charAt(0).toUpperCase();
@@ -55,6 +57,7 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
       </Linha>
 
       <Linha alinhar="centro" espaco={1} quebra className="lg:shrink-0">
+        {avisos}
         {/* Único caminho de navegação até /admin/usuarios/novo — Admin e Líder
             cadastram (escopado por papel no próprio caso de uso); Funcionário não
             cadastra ninguém, então não vê o link. */}

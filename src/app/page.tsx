@@ -8,6 +8,7 @@ import {
   carregarSessao,
   carregarSetoresDaNavegacao,
 } from "@/presentation/view-models/shell/shell.server";
+import { SinoAvisosContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/sino-avisos.container";
 import { BuscarClienteContainer } from "@/modules/clientes/presentation/view-models/buscar-cliente/buscar-cliente.container";
 
 // "/" é a home genérica — só pra quem não tem um dashboard de setor próprio ainda. O dashboard de
@@ -30,6 +31,7 @@ export default async function Home() {
           papel={sessao.papel}
           setor={sessao.setor}
           sair={<LogoutButtonContainer />}
+          avisos={<SinoAvisosContainer />}
         />
       }
       nav={<ShellNav setores={setores} />}

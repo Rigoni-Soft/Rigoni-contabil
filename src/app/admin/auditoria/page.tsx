@@ -6,6 +6,7 @@ import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-b
 import { carregarSessao } from "@/presentation/view-models/shell/shell.server";
 import { FeedContainer } from "@/modules/auditoria/presentation/view-models/feed/feed.container";
 import { carregarFeedAuditoria } from "@/modules/auditoria/presentation/view-models/feed/feed.server";
+import { SinoAvisosContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/sino-avisos.container";
 
 export default async function Page() {
   const [sessao, feed] = await Promise.all([carregarSessao(), carregarFeedAuditoria()]);
@@ -21,6 +22,7 @@ export default async function Page() {
           papel={sessao.papel}
           setor={sessao.setor}
           sair={<LogoutButtonContainer />}
+          avisos={<SinoAvisosContainer />}
         />
       }
       feed={<FeedContainer initialData={feed.value} />}

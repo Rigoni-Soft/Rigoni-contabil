@@ -9,6 +9,7 @@ describe("ShellHeader", () => {
         nome="Cledson"
         papel="admin"
         setor="administrativo"
+        avisos={<button>Avisos</button>}
         sair={<button>Sair</button>}
       />,
     );
@@ -22,6 +23,7 @@ describe("ShellHeader", () => {
         nome="Jéssica"
         papel="funcionario"
         setor="simples_nacional"
+        avisos={<button>Avisos</button>}
         sair={<button>Sair</button>}
       />,
     );
@@ -36,6 +38,7 @@ describe("ShellHeader", () => {
         nome="Jéssica"
         papel="lider_setor"
         setor="contabil"
+        avisos={<button>Avisos</button>}
         sair={<button>Sair</button>}
       />,
     );
@@ -49,6 +52,7 @@ describe("ShellHeader", () => {
         nome="Jéssica"
         papel="funcionario"
         setor="simples_nacional"
+        avisos={<button>Avisos</button>}
         sair={<button>Sair</button>}
       />,
     );
@@ -63,6 +67,7 @@ describe("ShellHeader", () => {
         nome="Cledson"
         papel="admin"
         setor="administrativo"
+        avisos={<button>Avisos</button>}
         sair={<button>Sair</button>}
       />,
     );
@@ -79,6 +84,7 @@ describe("ShellHeader", () => {
         nome="Jéssica"
         papel="lider_setor"
         setor="contabil"
+        avisos={<button>Avisos</button>}
         sair={<button>Sair</button>}
       />,
     );
@@ -95,6 +101,7 @@ describe("ShellHeader", () => {
         nome="Cledson"
         papel="admin"
         setor="administrativo"
+        avisos={<button>Avisos</button>}
         sair={<button>Sair</button>}
       />,
     );
@@ -111,6 +118,7 @@ describe("ShellHeader", () => {
         nome="Jéssica"
         papel="lider_setor"
         setor="contabil"
+        avisos={<button>Avisos</button>}
         sair={<button>Sair</button>}
       />,
     );
@@ -124,6 +132,7 @@ describe("ShellHeader", () => {
         nome="Jéssica"
         papel="funcionario"
         setor="simples_nacional"
+        avisos={<button>Avisos</button>}
         sair={<button>Sair</button>}
       />,
     );
@@ -133,7 +142,13 @@ describe("ShellHeader", () => {
 
   it("Admin vê o link 'Usuários' (desativação, #58); Líder não", () => {
     const { rerender } = render(
-      <ShellHeader nome="C" papel="admin" setor="administrativo" sair={<button>Sair</button>} />,
+      <ShellHeader
+        nome="C"
+        papel="admin"
+        setor="administrativo"
+        avisos={null}
+        sair={<button>Sair</button>}
+      />,
     );
     expect(screen.getByRole("link", { name: "Usuários" })).toHaveAttribute(
       "href",
@@ -141,22 +156,54 @@ describe("ShellHeader", () => {
     );
 
     rerender(
-      <ShellHeader nome="L" papel="lider_setor" setor="contabil" sair={<button>Sair</button>} />,
+      <ShellHeader
+        nome="L"
+        papel="lider_setor"
+        setor="contabil"
+        avisos={null}
+        sair={<button>Sair</button>}
+      />,
     );
     expect(screen.queryByRole("link", { name: "Usuários" })).not.toBeInTheDocument();
   });
 
   it("só o Admin vê o link 'Fila' (os demais têm a Fila na conversa, #70)", () => {
     const { rerender } = render(
-      <ShellHeader nome="C" papel="admin" setor="administrativo" sair={<button>Sair</button>} />,
+      <ShellHeader
+        nome="C"
+        papel="admin"
+        setor="administrativo"
+        avisos={null}
+        sair={<button>Sair</button>}
+      />,
     );
     expect(screen.getByRole("link", { name: "Fila" })).toHaveAttribute("href", "/fila");
 
     for (const papel of ["lider_setor", "funcionario"]) {
       rerender(
-        <ShellHeader nome="L" papel={papel} setor="contabil" sair={<button>Sair</button>} />,
+        <ShellHeader
+          nome="L"
+          papel={papel}
+          setor="contabil"
+          avisos={null}
+          sair={<button>Sair</button>}
+        />,
       );
       expect(screen.queryByRole("link", { name: "Fila" })).not.toBeInTheDocument();
     }
+  });
+
+  it("renderiza o slot do sino de avisos para qualquer papel", () => {
+    render(
+      <ShellHeader
+        nome="Cledson"
+        papel="admin"
+        setor="administrativo"
+        avisos={<button>Avisos</button>}
+        sair={<button>Sair</button>}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Avisos" })).toBeInTheDocument();
   });
 });

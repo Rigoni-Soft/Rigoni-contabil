@@ -6,6 +6,7 @@ import { UsuariosLista } from "@/presentation/components/organisms/usuarios-list
 import { UsuariosListaPage } from "@/presentation/components/pages/usuarios-lista.page";
 import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-button.container";
 import { carregarSessao } from "@/presentation/view-models/shell/shell.server";
+import { SinoAvisosContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/sino-avisos.container";
 import { AlterarPapelContainer } from "@/modules/usuarios/presentation/view-models/alterar-papel/alterar-papel.container";
 import { DesativarUsuarioContainer } from "@/modules/usuarios/presentation/view-models/desativar-usuario/desativar-usuario.container";
 import { carregarUsuarios } from "@/modules/usuarios/presentation/view-models/listar-usuarios/listar-usuarios.server";
@@ -24,6 +25,7 @@ export default async function Page() {
           papel={sessao.papel}
           setor={sessao.setor}
           sair={<LogoutButtonContainer />}
+          avisos={<SinoAvisosContainer />}
         />
       }
       lista={

@@ -7,6 +7,7 @@ import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-b
 import { carregarSessao } from "@/presentation/view-models/shell/shell.server";
 import { FeriadosContainer } from "@/modules/atendimento/presentation/view-models/feriados/feriados.container";
 import { carregarFeriados } from "@/modules/atendimento/presentation/view-models/feriados/feriados.server";
+import { SinoAvisosContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/sino-avisos.container";
 
 export default async function Page() {
   const sessao = await carregarSessao();
@@ -24,6 +25,7 @@ export default async function Page() {
           papel={sessao.papel}
           setor={sessao.setor}
           sair={<LogoutButtonContainer />}
+          avisos={<SinoAvisosContainer />}
         />
       }
       conteudo={
