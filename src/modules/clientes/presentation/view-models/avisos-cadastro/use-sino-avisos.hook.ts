@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { marcarAvisoVistoAction } from "@/modules/clientes/presentation/view-models/avisos-cadastro/avisos-cadastro.actions";
 import {
+  anuncioDeAvisos,
   avisoCadastroParaView,
   type AvisoDeCadastro,
 } from "@/modules/clientes/presentation/view-models/avisos-cadastro/avisos-cadastro.presenter";
@@ -18,6 +19,8 @@ export function useSinoAvisos() {
   const pathname = usePathname();
   const queryClient = useQueryClient();
   const [abriu, setAbriu] = useState(false);
+  const [anuncio, setAnuncio] = useState("");
+  const contadorAnterior = useRef<number | null>(null);
   const contador = useContadorAvisosQuery();
   const lista = useListaAvisosQuery(abriu);
   const { refetch: recontar } = contador;
@@ -33,11 +36,23 @@ export function useSinoAvisos() {
     void recontar();
   }, [pathname, recontar]);
 
+  // O leitor de tela só é avisado quando o número sobe depois da primeira leitura da tela: o nome do
+  // sino já traz a contagem de quem acabou de chegar.
+  const naoVistos = contador.data;
+  useEffect(() => {
+    if (naoVistos === undefined) return;
+    const antes = contadorAnterior.current;
+    contadorAnterior.current = naoVistos;
+    if (antes === null) return;
+    setAnuncio(naoVistos > antes ? anuncioDeAvisos(naoVistos) : "");
+  }, [naoVistos]);
+
   const avisos = (lista.data?.pages ?? []).flatMap((pagina) => pagina.itens);
 
   return {
     // Falha de leitura (ex.: sessão expirada) mantém o último contador conhecido.
     contador: contador.data ?? 0,
+    anuncio,
     avisos: avisos.map(avisoCadastroParaView),
     estado: lista.isError
       ? ("erro" as const)

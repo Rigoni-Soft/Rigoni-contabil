@@ -23,6 +23,7 @@ function renderizar(props: Partial<React.ComponentProps<typeof SinoAvisos>> = {}
     <SinoAvisos
       painelId="avisos"
       contador={0}
+      anuncio=""
       avisos={[]}
       estado="pronto"
       temMais={false}
@@ -105,20 +106,14 @@ describe("SinoAvisos", () => {
     expect(screen.getByText("Nenhum aviso de cadastro.")).toBeInTheDocument();
   });
 
-  it("o contador é anunciado a leitor de tela, no singular", () => {
-    renderizar({ contador: 1 });
-
-    expect(screen.getByRole("status")).toHaveTextContent("1 aviso de cadastro não visto");
-  });
-
-  it("o contador é anunciado a leitor de tela, no plural", () => {
-    renderizar({ contador: 3 });
+  it("o anúncio recebido é lido pela região de status", () => {
+    renderizar({ contador: 3, anuncio: "3 avisos de cadastro não vistos" });
 
     expect(screen.getByRole("status")).toHaveTextContent("3 avisos de cadastro não vistos");
   });
 
-  it("sem não vistos a região de anúncio fica vazia", () => {
-    renderizar();
+  it("sem anúncio a região de status fica vazia", () => {
+    renderizar({ contador: 3 });
 
     expect(screen.getByRole("status")).toBeEmptyDOMElement();
   });

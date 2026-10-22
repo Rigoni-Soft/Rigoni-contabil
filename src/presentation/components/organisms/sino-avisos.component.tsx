@@ -13,6 +13,8 @@ type SinoAvisosProps = {
   // Liga o sino ao modal; único na página.
   painelId: string;
   contador: number;
+  // Texto para leitor de tela quando chegam avisos novos; vazio fora disso.
+  anuncio: string;
   avisos: AvisoDeCadastro[];
   estado: "carregando" | "erro" | "pronto";
   temMais: boolean;
@@ -32,6 +34,7 @@ const TETO_DO_SELO = 99;
 export function SinoAvisos({
   painelId,
   contador,
+  anuncio,
   avisos,
   estado,
   temMais,
@@ -46,8 +49,7 @@ export function SinoAvisos({
     <>
       {/* O polling muda o contador sem o foco passar pelo sino: a região avisa o leitor de tela. */}
       <Texto variante="somenteLeitor" como="span" role="status">
-        {destaque &&
-          `${contador} ${contador === 1 ? "aviso de cadastro não visto" : "avisos de cadastro não vistos"}`}
+        {anuncio}
       </Texto>
       <Button
         type="button"

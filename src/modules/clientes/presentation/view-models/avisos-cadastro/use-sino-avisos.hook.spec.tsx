@@ -157,4 +157,30 @@ describe("useSinoAvisos", () => {
     await waitFor(() => expect(result.current.estado).toBe("pronto"));
     expect(result.current.avisos).toHaveLength(1);
   });
+
+  it("anuncia só quando o contador sobe depois da primeira leitura", async () => {
+    jest.useFakeTimers();
+    try {
+      const { result } = renderizar();
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(0);
+      });
+      expect(result.current.contador).toBe(2);
+      expect(result.current.anuncio).toBe("");
+
+      contarMock.mockResolvedValue({ ok: true, data: 3 });
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(30_001);
+      });
+      expect(result.current.anuncio).toBe("3 avisos de cadastro não vistos");
+
+      contarMock.mockResolvedValue({ ok: true, data: 1 });
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(30_001);
+      });
+      expect(result.current.anuncio).toBe("");
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });

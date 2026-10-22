@@ -27,3 +27,8 @@ export function avisoCadastroParaView(aviso: AvisoCadastroDto): AvisoDeCadastro 
     href: `/clientes/${aviso.clienteId}`,
   };
 }
+
+// Texto do anúncio ao leitor de tela quando chegam avisos novos.
+export function anuncioDeAvisos(naoVistos: number): string {
+  return `${naoVistos} ${naoVistos === 1 ? "aviso de cadastro não visto" : "avisos de cadastro não vistos"}`;
+}

@@ -16,6 +16,7 @@ const AVISO = {
 jest.mock("./use-sino-avisos.hook", () => ({
   useSinoAvisos: () => ({
     contador: 2,
+    anuncio: "",
     avisos: [AVISO],
     estado: "pronto",
     temMais: false,

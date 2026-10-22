@@ -1,6 +1,6 @@
 import type { AvisoCadastroDto } from "@/modules/clientes/application/dtos/aviso-cadastro.dto";
 
-import { avisoCadastroParaView } from "./avisos-cadastro.presenter";
+import { anuncioDeAvisos, avisoCadastroParaView } from "./avisos-cadastro.presenter";
 
 const BASE: AvisoCadastroDto = {
   id: "a1",
@@ -32,5 +32,12 @@ describe("avisoCadastroParaView", () => {
 
     expect(view.titulo).toBe("Nova Alteração contratual");
     expect(view.visto).toBe(true);
+  });
+});
+
+describe("anuncioDeAvisos", () => {
+  it("singular e plural", () => {
+    expect(anuncioDeAvisos(1)).toBe("1 aviso de cadastro não visto");
+    expect(anuncioDeAvisos(3)).toBe("3 avisos de cadastro não vistos");
   });
 });
