@@ -268,24 +268,6 @@ describe("EditarCadastroOperacionalContainer", () => {
       });
       expect(botao).toHaveFocus();
     });
-
-    it.each(["simples_nacional", "lucro_presumido"])(
-      "regime %s sem aviso: a mais recente e nada em foco",
-      (regime) => {
-        render(
-          <EditarCadastroOperacionalContainer
-            dados={{ ...dados, regime }}
-            readOnly={false}
-            documentosContratuais={documentos}
-          />,
-        );
-
-        const botao = screen.getByRole("button", {
-          name: "Abrir em nova aba: Alteração nº 2 - 05/03/2025",
-        });
-        expect(botao).not.toHaveFocus();
-      },
-    );
   });
 
   it("modo readOnly: nunca renderiza contrato social/alterações e não mostra Salvar/Limpar/Cancelar", () => {

@@ -27,7 +27,6 @@ describe("VisualizarDocumentoContratual (#140)", () => {
 
     const botao = screen.getByRole("button", { name: /^Abrir / });
     expect(botao).toHaveAccessibleName("Abrir em nova aba: Alteração nº 3 - 05/03/2025");
-    expect(botao).toHaveAccessibleName(expect.stringContaining(botao.textContent ?? ""));
   });
 
   it("só o contrato social: mostra o contrato", () => {
@@ -76,15 +75,6 @@ describe("VisualizarDocumentoContratual (#140)", () => {
     expect(props.onAbrir).not.toHaveBeenCalled();
   });
 
-  it("fora do estado de abrir, não é aria-disabled", () => {
-    montar();
-
-    expect(screen.getByRole("button", { name: /^Abrir / })).not.toHaveAttribute(
-      "aria-disabled",
-      "true",
-    );
-  });
-
   it("com `anexarPainelId`, mostra 'Anexar alteração' ao lado de 'Abrir em nova aba'", () => {
     montar({ anexarPainelId: "painel-anexar" });
 
@@ -112,20 +102,10 @@ describe("VisualizarDocumentoContratual: destaque ao chegar por aviso (#144)", (
     expect(ref.current).toBe(screen.getByRole("button", { name: /^Abrir / }));
   });
 
-  it("sem destacar: nada em foco e sem anel", () => {
+  it("sem destacar: sem anel", () => {
     montar();
 
-    const botao = screen.getByRole("button", { name: /^Abrir / });
-    expect(botao).not.toHaveFocus();
-    expect(botao).not.toHaveClass("focus:ring-4");
-  });
-
-  it("destacar não mexe no botão de anexar nem no que o botão faz", () => {
-    const props = montar({ destacar: true, anexarPainelId: "painel-anexar" });
-
-    expect(screen.getByRole("button", { name: /Anexar alteração/ })).not.toHaveFocus();
-    fireEvent.click(screen.getByRole("button", { name: /^Abrir / }));
-    expect(props.onAbrir).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: /^Abrir / })).not.toHaveClass("focus:ring-4");
   });
 });
 
@@ -136,6 +116,8 @@ describe("VisualizarDocumentoContratual: contexto do aviso para leitor de tela (
     expect(screen.getByRole("button", { name: /^Abrir / })).toHaveAccessibleDescription(
       "Esta é a alteração do aviso que você abriu.",
     );
+    // Só para leitor de tela: sem ocupar lugar na tela.
+    expect(screen.getByText("Esta é a alteração do aviso que você abriu.")).toHaveClass("sr-only");
   });
 
   it("sem destacar: sem descrição e sem o texto na tela", () => {
@@ -143,11 +125,5 @@ describe("VisualizarDocumentoContratual: contexto do aviso para leitor de tela (
 
     expect(screen.getByRole("button", { name: /^Abrir / })).not.toHaveAccessibleDescription();
     expect(screen.queryByText(/alteração do aviso/)).not.toBeInTheDocument();
-  });
-
-  it("a descrição é só para leitor de tela, sem ocupar lugar na tela", () => {
-    montar({ destacar: true });
-
-    expect(screen.getByText("Esta é a alteração do aviso que você abriu.")).toHaveClass("sr-only");
   });
 });

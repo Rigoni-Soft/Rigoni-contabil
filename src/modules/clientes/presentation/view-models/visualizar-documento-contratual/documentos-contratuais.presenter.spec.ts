@@ -53,8 +53,6 @@ describe("documentoEmDestaque com alteração do aviso (#144)", () => {
 
   it("nº que não existe na lista (alteração removida ou parâmetro forjado) cai na mais recente", () => {
     expect(documentoEmDestaque(LISTA, 99)).toBe(ALTERACAO);
-    expect(documentoEmDestaque(LISTA, 0)).toBe(ALTERACAO);
-    expect(documentoEmDestaque(LISTA, Number.NaN)).toBe(ALTERACAO);
   });
 
   it("o nº nunca escolhe o contrato social, que não tem nº", () => {

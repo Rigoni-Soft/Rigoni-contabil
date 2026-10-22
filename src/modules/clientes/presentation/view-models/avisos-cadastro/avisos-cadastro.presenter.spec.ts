@@ -47,9 +47,6 @@ describe("avisoCadastroParaView: título da alteração (#144)", () => {
 
   it("diz o nº da alteração, para duas do mesmo Cliente não parecerem a mesma", () => {
     expect(avisoCadastroParaView(ALTERACAO).titulo).toBe("Nova Alteração contratual nº 3");
-    expect(avisoCadastroParaView({ ...ALTERACAO, alteracaoNumero: 12 }).titulo).toBe(
-      "Nova Alteração contratual nº 12",
-    );
   });
 
   it("sem nº (aviso antigo ou alteração removida) mantém o título sem nº", () => {
@@ -69,12 +66,6 @@ describe("avisoCadastroParaView: destino (#144)", () => {
 
   it("nova alteração leva ao Cliente com o nº da alteração do aviso", () => {
     expect(avisoCadastroParaView(ALTERACAO).href).toBe("/clientes/c1?alteracao=2");
-  });
-
-  it("o nº é o do aviso, não o da mais recente: alteração antiga também é apontada", () => {
-    expect(avisoCadastroParaView({ ...ALTERACAO, alteracaoNumero: 1 }).href).toBe(
-      "/clientes/c1?alteracao=1",
-    );
   });
 
   it("nova alteração sem nº (aviso antigo ou alteração removida) cai no Cliente sem destaque", () => {

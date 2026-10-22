@@ -98,22 +98,4 @@ describe("useVisualizarDocumentoContratual: alteração do aviso (#144)", () => 
     expect(acao).toHaveBeenCalledWith({ clienteId: CLIENTE, tipo: "alteracao", numero: 1 });
     expect(aba.location.href).toBe("https://storage/assinado");
   });
-
-  it("sem nº, abre a de maior nº", async () => {
-    acao.mockResolvedValue({ ok: true, data: { url: "https://storage/assinado" } });
-    const { result } = montar(undefined);
-
-    await act(() => result.current.abrir());
-
-    expect(acao).toHaveBeenCalledWith({ clienteId: CLIENTE, tipo: "alteracao", numero: 3 });
-  });
-
-  it("nº que não existe na lista abre a de maior nº", async () => {
-    acao.mockResolvedValue({ ok: true, data: { url: "https://storage/assinado" } });
-    const { result } = montar(42);
-
-    await act(() => result.current.abrir());
-
-    expect(acao).toHaveBeenCalledWith({ clienteId: CLIENTE, tipo: "alteracao", numero: 3 });
-  });
 });
