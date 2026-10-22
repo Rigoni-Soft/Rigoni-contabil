@@ -56,6 +56,8 @@ type LinhaDeParcelamentoProps = {
   selo?: SeloDoParcelamento;
   // Dica da caixa "É interno": para onde a guia vai.
   dicaInterno: string;
+  // A dica só aparece à vista com a caixa marcada (a consequência que importa); o leitor de tela a ouve sempre.
+  internoMarcado: boolean;
   // Nome do PDF já gravado; no Parcelamento novo, o campo de arquivo (controlado pelo formulário).
   arquivo: React.ReactNode;
   // Quitado não se edita: os campos ficam desabilitados.
@@ -76,6 +78,7 @@ export function LinhaDeParcelamento({
   erroParcelas,
   selo,
   dicaInterno,
+  internoMarcado,
   arquivo,
   desabilitado,
   onRemover,
@@ -130,7 +133,11 @@ export function LinhaDeParcelamento({
           </Button>
         )}
       </Linha>
-      <Texto variante="nota" id={`parcelamentos.${indice}.interno-dica`}>
+      <Texto
+        variante="nota"
+        id={`parcelamentos.${indice}.interno-dica`}
+        className={internoMarcado ? undefined : "sr-only"}
+      >
         {dicaInterno}
       </Texto>
       {motivoSemRemover && (

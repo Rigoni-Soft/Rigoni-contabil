@@ -326,6 +326,7 @@ export function EditarCadastroOperacionalForm({
                 erroParcelas={erros?.parcelasRestantes?.message}
                 selo={seloDoParcelamento(atual)}
                 dicaInterno={DICA_INTERNO}
+                internoMarcado={atual.interno}
                 desabilitado={atual.quitado}
                 onRemover={
                   readOnly || atual.temEnvio ? undefined : () => onRemoverParcelamento(indice)
