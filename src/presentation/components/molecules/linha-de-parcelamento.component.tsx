@@ -26,6 +26,24 @@ const SELO: Record<SeloDoParcelamento, { rotulo: string; classes: string; Icone?
   },
 };
 
+function SeloDeStatus({ idDoSelo, selo }: { idDoSelo: string; selo: SeloDoParcelamento }) {
+  const { rotulo, classes, Icone } = SELO[selo];
+  return (
+    <Texto
+      variante="nota"
+      como="span"
+      id={idDoSelo}
+      className={cn(
+        "mb-2 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium",
+        classes,
+      )}
+    >
+      {Icone && <Icone className="size-3" aria-hidden="true" />}
+      {rotulo}
+    </Texto>
+  );
+}
+
 type LinhaDeParcelamentoProps = {
   indice: number;
   // Props dos inputs (o `register` do formulário, já resolvido por quem monta).
@@ -34,7 +52,8 @@ type LinhaDeParcelamentoProps = {
   interno: React.ComponentProps<"input">;
   erroCodigo?: string;
   erroParcelas?: string;
-  selo: SeloDoParcelamento;
+  // Ausente na linha ainda não salva: o status do mês só existe para o Parcelamento gravado.
+  selo?: SeloDoParcelamento;
   // Dica da caixa "É interno": para onde a guia vai.
   dicaInterno: string;
   // Nome do PDF já gravado; no Parcelamento novo, o campo de arquivo (controlado pelo formulário).
@@ -63,7 +82,6 @@ export function LinhaDeParcelamento({
   motivoSemRemover,
 }: LinhaDeParcelamentoProps) {
   const idDoSelo = `parcelamentos.${indice}.selo`;
-  const { rotulo, classes, Icone } = SELO[selo];
   const idDoMotivo = `parcelamentos.${indice}.motivo-remover`;
   return (
     <Pilha espaco={2} className="rounded-md border border-border p-3">
@@ -97,18 +115,7 @@ export function LinhaDeParcelamento({
           aria-describedby={`parcelamentos.${indice}.interno-dica`}
           {...interno}
         />
-        <Texto
-          variante="nota"
-          como="span"
-          id={idDoSelo}
-          className={cn(
-            "mb-2 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium",
-            classes,
-          )}
-        >
-          {Icone && <Icone className="size-3" aria-hidden="true" />}
-          {rotulo}
-        </Texto>
+        {selo && <SeloDeStatus idDoSelo={idDoSelo} selo={selo} />}
         {(onRemover || motivoSemRemover) && (
           <Button
             type="button"

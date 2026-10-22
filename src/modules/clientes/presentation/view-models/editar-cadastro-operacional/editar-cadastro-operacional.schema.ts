@@ -48,7 +48,7 @@ export const salvarParcelamentosSchema = z.object({
     z.object({
       id: z.guid().optional(),
       codigo: codigoDoParcelamento,
-      parcelasRestantes: z.number().int("número inteiro").min(1, "mínimo 1"),
+      parcelasRestantes: z.number().int("número inteiro").min(1, "Informe 1 ou mais parcelas"),
       interno: z.boolean(),
       arquivo: pdfDoAcordo.optional(),
     }),
@@ -71,7 +71,11 @@ export const parcelamentoFormSchema = z
   .superRefine((p, ctx) => {
     // Quitado não se edita: o zero é do sistema.
     if (!p.quitado && !(Number.isInteger(p.parcelasRestantes) && p.parcelasRestantes >= 1)) {
-      ctx.addIssue({ code: "custom", path: ["parcelasRestantes"], message: "mínimo 1" });
+      ctx.addIssue({
+        code: "custom",
+        path: ["parcelasRestantes"],
+        message: "Informe 1 ou mais parcelas",
+      });
     }
     if (!p.id) {
       const erro = p.arquivo ? pdfDoAcordo.safeParse(p.arquivo).error : null;

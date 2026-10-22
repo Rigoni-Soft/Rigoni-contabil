@@ -122,6 +122,8 @@ export function EditarCadastroOperacionalContainer({
     // Vira true quando o cadastro está persistido (nesta tentativa ou numa anterior): a mensagem
     // de erro de transporte precisa dizer isso em vez de sugerir que nada foi salvo.
     let cadastroPersistido = false;
+    // O que falta concluir depois do cadastro salvo: nomeia a etapa na mensagem de erro de transporte.
+    let etapa = "atribuir o Responsável";
     // try/finally: rejeição de transporte da Server Action não pode deixar o
     // botão preso em "Salvando...".
     try {
@@ -154,17 +156,19 @@ export function EditarCadastroOperacionalContainer({
 
       // Parcelamentos têm PDF: vão por Server Action própria, depois do cadastro. Sem mudança, não vão.
       if (mudouParcelamentos(valores.parcelamentos, dados.parcelamentos)) {
+        etapa = "salvar os Parcelamentos";
         const salvos = await salvarParcelamentosAction({
           clienteId: dados.id,
           parcelamentos: parcelamentosParaSalvar(valores.parcelamentos),
         });
         if (!salvos.ok) {
           setErroServidor(
-            `Os dados foram salvos, mas não os Parcelamentos. ${salvos.error.message}`,
+            `Os dados foram salvos, mas não foi possível salvar os Parcelamentos. ${salvos.error.message}`,
           );
           return;
         }
       }
+      etapa = "atribuir o Responsável";
 
       if (podeAtribuirResponsavel && valores.responsavelId !== (dados.responsavelId ?? "")) {
         const atribuicao = await atribuirResponsavelAction({
@@ -190,7 +194,7 @@ export function EditarCadastroOperacionalContainer({
     } catch {
       setErroServidor(
         cadastroPersistido
-          ? "Os dados foram salvos, mas não foi possível atribuir o Responsável. Verifique a conexão e tente novamente."
+          ? `Os dados foram salvos, mas não foi possível ${etapa}. Verifique a conexão e tente novamente.`
           : "Não foi possível salvar agora. Verifique a conexão e tente novamente.",
       );
     } finally {

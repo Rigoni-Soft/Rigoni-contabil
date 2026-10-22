@@ -20,7 +20,7 @@ export class Parcelamento {
       return err(new ValidationError("Código do parcelamento: de 1 a 60 caracteres."));
     }
     if (!Number.isInteger(entrada.parcelasRestantes) || entrada.parcelasRestantes < 1) {
-      return err(new ValidationError("Parcelas restantes: mínimo 1."));
+      return err(new ValidationError("Informe pelo menos 1 parcela restante."));
     }
     if (!entrada.arquivoCaminho.trim()) {
       return err(new ValidationError("Anexe o PDF do parcelamento."));

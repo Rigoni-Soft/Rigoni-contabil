@@ -13,7 +13,10 @@ import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opco
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { CampoResponsavel } from "@/presentation/components/molecules/campo-responsavel.component";
 import { LinhaDeContato } from "@/presentation/components/molecules/linha-de-contato.component";
-import { LinhaDeParcelamento } from "@/presentation/components/molecules/linha-de-parcelamento.component";
+import {
+  LinhaDeParcelamento,
+  type SeloDoParcelamento,
+} from "@/presentation/components/molecules/linha-de-parcelamento.component";
 import { Button } from "@/presentation/components/ui/button";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
@@ -42,8 +45,14 @@ const OPCOES_DAS = opcoes(
 );
 const OPCAO_DAS_ENVIADO = { valor: "enviado", rotulo: DAS_STATUS_LABEL.enviado };
 
-const DICA_INTERNO = "Parcelamento interno: a guia vai ao WhatsApp do financeiro, não ao Cliente.";
+const DICA_INTERNO = "Marcado: a guia vai ao WhatsApp do financeiro, não ao Cliente.";
 const MOTIVO_SEM_REMOVER = "Já teve guia enviada: não pode ser removido.";
+// Linha ainda não salva não tem status do mês: sem selo.
+function seloDoParcelamento(p: ParcelamentoLinha): SeloDoParcelamento | undefined {
+  if (!p.id) return undefined;
+  if (p.quitado) return "quitado";
+  return p.enviadoNoMes ? "enviado" : "pendente";
+}
 const PDF_ACEITO = "application/pdf";
 
 // Linha da lista de Parcelamentos: o que se edita (código, restantes, interno, PDF novo) e o que a
@@ -315,7 +324,7 @@ export function EditarCadastroOperacionalForm({
                 interno={register(`parcelamentos.${indice}.interno`)}
                 erroCodigo={erros?.codigo?.message}
                 erroParcelas={erros?.parcelasRestantes?.message}
-                selo={atual.quitado ? "quitado" : atual.enviadoNoMes ? "enviado" : "pendente"}
+                selo={seloDoParcelamento(atual)}
                 dicaInterno={DICA_INTERNO}
                 desabilitado={atual.quitado}
                 onRemover={
