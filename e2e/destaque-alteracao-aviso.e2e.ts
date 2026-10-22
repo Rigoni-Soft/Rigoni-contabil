@@ -101,10 +101,17 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
       await expect(pessoa).toHaveURL(`/clientes/${clienteId}?alteracao=2`);
       const botao = pessoa.getByRole("button", { name: ABRIR_2 });
       await expect(botao).toBeFocused();
+      await expect(botao).toHaveAccessibleDescription(
+        "Esta é a alteração do aviso que você abriu.",
+      );
       await expect(botao).toHaveCSS("box-shadow", ANEL_DE_4PX);
       // O anel acompanha o foco: ao sair do botão ele some.
       await pessoa.getByRole("heading", { level: 1 }).click();
       await expect(botao).toHaveCSS("box-shadow", "none");
+      // A descrição acompanha o destaque, não o foco: continua dizendo de onde se chegou.
+      await expect(botao).toHaveAccessibleDescription(
+        "Esta é a alteração do aviso que você abriu.",
+      );
       await expect(pessoa.getByRole("button", { name: ABRIR_3 })).toHaveCount(0);
       await expect.poll(() => naoVistos(pessoa)).toBe(base + 1);
     }
@@ -152,6 +159,7 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
     await expect(botao).toBeVisible();
     await expect(botao).not.toBeFocused();
     await expect(botao).toHaveCSS("box-shadow", "none");
+    await expect(botao).toHaveAccessibleDescription("");
 
     // Parâmetro forjado: inválido não destaca; nº que não existe cai na mais recente.
     await lider.goto(`/clientes/${clienteId}?alteracao=abc`);
@@ -161,6 +169,7 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
     await expect(semDestaque).toBeVisible();
     await expect(semDestaque).not.toBeFocused();
     await expect(semDestaque).toHaveCSS("box-shadow", "none");
+    await expect(semDestaque).toHaveAccessibleDescription("");
   });
 
   test("aviso de novo Cliente leva ao formulário sem destaque", async ({ page, browser }) => {
@@ -180,6 +189,7 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
     await expect(botao).toBeVisible();
     await expect(botao).not.toBeFocused();
     await expect(botao).toHaveCSS("box-shadow", "none");
+    await expect(botao).toHaveAccessibleDescription("");
   });
 
   test("hidratação lenta (CPU 20x mais lenta): o botão ainda recebe o foco quando o formulário aparece", async ({

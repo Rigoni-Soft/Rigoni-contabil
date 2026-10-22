@@ -128,3 +128,26 @@ describe("VisualizarDocumentoContratual: destaque ao chegar por aviso (#144)", (
     expect(props.onAbrir).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("VisualizarDocumentoContratual: contexto do aviso para leitor de tela (#144)", () => {
+  it("destacar: o botão ganha a descrição de que é a alteração do aviso", () => {
+    montar({ destacar: true });
+
+    expect(screen.getByRole("button", { name: /^Abrir / })).toHaveAccessibleDescription(
+      "Esta é a alteração do aviso que você abriu.",
+    );
+  });
+
+  it("sem destacar: sem descrição e sem o texto na tela", () => {
+    montar();
+
+    expect(screen.getByRole("button", { name: /^Abrir / })).not.toHaveAccessibleDescription();
+    expect(screen.queryByText(/alteração do aviso/)).not.toBeInTheDocument();
+  });
+
+  it("a descrição é só para leitor de tela, sem ocupar lugar na tela", () => {
+    montar({ destacar: true });
+
+    expect(screen.getByText("Esta é a alteração do aviso que você abriu.")).toHaveClass("sr-only");
+  });
+});

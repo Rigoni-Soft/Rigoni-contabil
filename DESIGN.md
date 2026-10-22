@@ -940,7 +940,10 @@ fixos, campo travado em cor plena, diálogo e lista das alterações); onde há 
   a linha de baixo do cartão em vez de espremer o rótulo (coluna do documento com base de 12rem).
   Enquanto o arquivo abre, o botão fica `aria-disabled` (não `disabled`, como no encerramento): mostra
   "Abrindo…" esmaecido, não reabre e **mantém o foco**; um `ref` no hook barra o segundo clique do
-  mesmo quadro. O destaque só
+  mesmo quadro.
+  Ao chegar por aviso, o botão ganha `aria-describedby` para um texto só de leitor de tela ("Esta é a
+  alteração do aviso que você abriu."): o foco vai ao botão e o leitor lê o nome e, depois, de onde se
+  chegou. Sem aviso, não há descrição. O destaque só
   vale quando o nº existe entre os documentos: nº ausente, inválido (só inteiro positivo conta) ou
   inexistente abre a de maior nº, sem foco nem anel. O aviso de novo Cliente leva ao formulário sem
   parâmetro, logo sem destaque.

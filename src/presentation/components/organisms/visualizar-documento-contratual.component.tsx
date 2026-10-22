@@ -8,6 +8,8 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Button } from "@/presentation/components/ui/button";
 import { cn } from "@/presentation/lib/utils";
 
+const ID_DESCRICAO_DO_AVISO = "descricao-alteracao-do-aviso";
+
 type VisualizarDocumentoContratualProps = {
   // Rótulo do documento em destaque (o mais recente, ou a alteração do aviso): "Alteração nº N - data", ou "Contrato social" sem alteração.
   rotulo: string;
@@ -57,6 +59,7 @@ export function VisualizarDocumentoContratual({
             // O nome começa pelo texto visível (WCAG 2.5.3, comando de voz) e acrescenta qual documento abre.
             aria-label={abrindo ? undefined : `Abrir em nova aba: ${rotulo}`}
             ref={botaoAbrirRef}
+            aria-describedby={destacar ? ID_DESCRICAO_DO_AVISO : undefined}
             // Anel só enquanto há foco: `focus:` cobre o foco por script depois de um clique de mouse (não casa
             // `:focus-visible`) e `focus-visible:ring-4` troca o `ring-2` padrão do Button.
             className={cn(
@@ -68,6 +71,12 @@ export function VisualizarDocumentoContratual({
             <ExternalLink className="size-4" aria-hidden="true" />
             {abrindo ? "Abrindo…" : "Abrir em nova aba"}
           </Button>
+          {/* O foco vai ao botão: o leitor de tela lê o nome e, depois, de onde se chegou. Um só cartão por tela. */}
+          {destacar && (
+            <Texto variante="somenteLeitor" como="span" id={ID_DESCRICAO_DO_AVISO}>
+              Esta é a alteração do aviso que você abriu.
+            </Texto>
+          )}
           {anexarPainelId && <BotaoAnexarAlteracao painelId={anexarPainelId} />}
         </Linha>
       </Linha>
