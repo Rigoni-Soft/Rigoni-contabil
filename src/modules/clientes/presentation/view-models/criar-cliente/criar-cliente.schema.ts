@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { cnpjValido } from "@/shared/kernel/cnpj";
-import { dataNaoFutura } from "@/shared/kernel/data-alteracao";
+import { hojeIso } from "@/shared/kernel/mes-atual";
 import {
   ERRO_NUMERO_INVALIDO,
   erroDeDuplicidade,
@@ -25,6 +25,13 @@ export const arquivoDocumento = (mensagem: string) =>
       (arquivo) => TIPOS_DOCUMENTO_ACEITOS.includes(arquivo.type),
       "Envie um arquivo PDF ou DOCX",
     );
+
+const ERRO_DATA_FUTURA = "A data da alteração não pode ser futura.";
+
+// Data canônica "AAAA-MM-DD" válida e não futura no fuso de negócio (São Paulo).
+export const dataNaoFutura = z.iso
+  .date({ error: (i) => (i.input === "" ? "Data obrigatória" : "Data inválida") })
+  .refine((data) => data <= hojeIso(), ERRO_DATA_FUTURA);
 
 // Os arquivos vão todos no corpo de uma só Server Action, que o Next corta em 11 MB (next.config.ts).
 // Acima disso a requisição falha antes do caso de uso e a tela só diria "verifique a conexão".

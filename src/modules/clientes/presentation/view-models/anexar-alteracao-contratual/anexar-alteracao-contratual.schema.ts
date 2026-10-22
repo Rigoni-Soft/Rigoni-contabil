@@ -1,7 +1,9 @@
 import { z } from "zod";
 
-import { arquivoDocumento } from "@/modules/clientes/presentation/view-models/criar-cliente/criar-cliente.schema";
-import { dataNaoFutura } from "@/shared/kernel/data-alteracao";
+import {
+  arquivoDocumento,
+  dataNaoFutura,
+} from "@/modules/clientes/presentation/view-models/criar-cliente/criar-cliente.schema";
 import { ERRO_NUMERO_INVALIDO, erroDeFormato } from "@/shared/kernel/numero-alteracao";
 
 // Teto de 4,5 MB do corpo de uma Server Action na Vercel (ADR 0007): 4 MB deixa folga para o resto.

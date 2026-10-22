@@ -1,4 +1,6 @@
-import { criarClienteSchema } from "./criar-cliente.schema";
+import { hojeIso } from "@/shared/kernel/mes-atual";
+
+import { criarClienteSchema, dataNaoFutura } from "./criar-cliente.schema";
 
 function arquivo(): File {
   return new File(["conteúdo"], "doc.pdf", { type: "application/pdf" });
@@ -149,5 +151,29 @@ describe("criarClienteSchema", () => {
     expect(resultado.success).toBe(false);
     expect(resultado.error?.issues[0]?.path).toEqual(["root"]);
     expect(resultado.error?.issues[0]?.message).toMatch(/somam 12,0 MB e o limite é 10 MB/);
+  });
+});
+
+const AMANHA = () => hojeIso(new Date(Date.now() + 24 * 60 * 60 * 1000));
+const ONTEM = () => hojeIso(new Date(Date.now() - 24 * 60 * 60 * 1000));
+
+describe("dataNaoFutura", () => {
+  it.each([() => hojeIso(), ONTEM])("aceita hoje e ontem", (data) => {
+    expect(dataNaoFutura.safeParse(data()).success).toBe(true);
+  });
+
+  it.each([
+    ["amanhã", AMANHA],
+    ["01/01/2100 (formato alternativo)", () => "01/01/2100"],
+    ["2100-01-01", () => "2100-01-01"],
+    ["data impossível", () => "2026-02-30"],
+    ["texto", () => "abc"],
+  ])("recusa %s", (_, data) => {
+    expect(dataNaoFutura.safeParse(data()).success).toBe(false);
+  });
+
+  it("vazio pede a data", () => {
+    const r = dataNaoFutura.safeParse("");
+    expect(!r.success && r.error.issues[0].message).toBe("Data obrigatória");
   });
 });
