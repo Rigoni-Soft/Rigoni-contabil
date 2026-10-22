@@ -19,12 +19,10 @@ function modalDo(painelId: string) {
   return document.getElementById(painelId) as HTMLDialogElement | null;
 }
 
-// O Admin não recebe Aviso de cadastro (o banco nunca o escolhe como destinatário): o sino fica sem
-// selo e sem consultar o contador.
-const PAPEL_SEM_AVISOS = "admin";
-
 export function useSinoAvisos(painelId: string, papel: string) {
-  const recebeAvisos = papel !== PAPEL_SEM_AVISOS;
+  // O Admin não recebe Aviso de cadastro (o banco nunca o escolhe como destinatário): o sino dele
+  // fica sem selo e sem consultar o contador.
+  const recebeAvisos = papel !== "admin";
   const router = useRouter();
   const pathname = usePathname();
   const queryClient = useQueryClient();
@@ -35,16 +33,10 @@ export function useSinoAvisos(painelId: string, papel: string) {
   const lista = useListaAvisosQuery(abriu);
   const { refetch: recontar } = contador;
 
-  // A cada navegação o contador relê, sem esperar os 30 s do polling.
-  // A leitura do mount já é da própria query: só as navegações seguintes relêem.
-  const primeiraRota = useRef(true);
+  // A cada navegação o contador relê, sem esperar os 30 s do polling. Na leitura do mount reaproveita
+  // a que a própria query já fez (`cancelRefetch: false`).
   useEffect(() => {
-    if (!recebeAvisos) return;
-    if (primeiraRota.current) {
-      primeiraRota.current = false;
-      return;
-    }
-    void recontar();
+    if (recebeAvisos) void recontar({ cancelRefetch: false });
   }, [pathname, recontar, recebeAvisos]);
 
   // O leitor de tela só é avisado quando o número sobe depois da primeira leitura da tela: o nome do

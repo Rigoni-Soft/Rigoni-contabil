@@ -63,6 +63,7 @@ describe("useSinoAvisos", () => {
     const { result } = renderizar();
 
     await waitFor(() => expect(result.current.contador).toBe(2));
+    expect(contarMock).toHaveBeenCalledTimes(1);
     expect(listarMock).not.toHaveBeenCalled();
   });
 

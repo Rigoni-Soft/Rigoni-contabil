@@ -7,10 +7,8 @@ import {
 } from "@/modules/clientes/presentation/view-models/avisos-cadastro/avisos-cadastro.actions";
 
 export const avisosCadastroKeys = {
-  // Prefixo de toda leitura de Avisos: invalida contador e lista de uma vez.
+  // Prefixo de toda leitura de Avisos (contador e lista): invalida as duas de uma vez.
   todos: () => ["clientes", "avisos-cadastro"] as const,
-  contador: () => [...avisosCadastroKeys.todos(), "contador"] as const,
-  lista: () => [...avisosCadastroKeys.todos(), "lista"] as const,
 };
 
 // ponytail: polling a cada 30 s (mais a cada navegação, no hook); o aviso aparece em até esse
@@ -20,7 +18,7 @@ const INTERVALO_MS = 30_000;
 // `habilitado` falso: o papel não recebe avisos, então nem lê nem faz polling.
 export function useContadorAvisosQuery(habilitado: boolean) {
   return useQuery({
-    queryKey: avisosCadastroKeys.contador(),
+    queryKey: [...avisosCadastroKeys.todos(), "contador"],
     queryFn: async () => {
       const resultado = await contarAvisosNaoVistosAction();
       if (!resultado.ok) throw new Error(resultado.error.message);
@@ -36,7 +34,7 @@ export function useContadorAvisosQuery(habilitado: boolean) {
 // Só lê depois que o modal abre (`habilitado`): o sino consulta o contador, não a lista.
 export function useListaAvisosQuery(habilitado: boolean) {
   return useInfiniteQuery({
-    queryKey: avisosCadastroKeys.lista(),
+    queryKey: [...avisosCadastroKeys.todos(), "lista"],
     queryFn: async ({ pageParam }) => {
       const resultado = await listarAvisosCadastroAction(pageParam);
       if (!resultado.ok) throw new Error(resultado.error.message);

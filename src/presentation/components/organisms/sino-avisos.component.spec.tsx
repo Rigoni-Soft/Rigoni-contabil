@@ -43,7 +43,6 @@ describe("SinoAvisos", () => {
     renderizar();
 
     const sino = screen.getByRole("button", { name: "Avisos de cadastro" });
-    expect(sino).toHaveAttribute("data-destaque", "false");
     expect(screen.queryByTestId("selo-avisos")).not.toBeInTheDocument();
   });
 
@@ -51,7 +50,6 @@ describe("SinoAvisos", () => {
     renderizar({ contador: 3 });
 
     const sino = screen.getByRole("button", { name: "Avisos de cadastro, 3 não vistos" });
-    expect(sino).toHaveAttribute("data-destaque", "true");
     expect(screen.getByTestId("selo-avisos")).toHaveTextContent("3");
   });
 

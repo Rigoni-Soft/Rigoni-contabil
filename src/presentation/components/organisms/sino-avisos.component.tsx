@@ -60,7 +60,6 @@ export function SinoAvisos({
         variant="outline"
         onClick={aoAbrir}
         aria-label={destaque ? `Avisos de cadastro, ${contador} não vistos` : "Avisos de cadastro"}
-        data-destaque={destaque}
         className={cn(
           "relative size-12 shrink-0 rounded-full pointer-coarse:size-12",
           destaque && "border-primary bg-primary text-primary-foreground hover:bg-primary/90",
@@ -108,14 +107,14 @@ export function SinoAvisos({
         </Linha>
         <Pilha espaco={2} className="min-h-0 flex-1 overflow-auto p-3">
           {estado === "erro" && (
-            <Pilha espaco={2}>
+            <>
               <Texto variante="alerta" role="alert">
                 Não foi possível carregar os avisos.
               </Texto>
               <Button type="button" variant="outline" onClick={aoTentarDeNovo}>
                 Tentar de novo
               </Button>
-            </Pilha>
+            </>
           )}
           {estado === "carregando" && (
             <Texto variante="apoio" role="status">
