@@ -32,16 +32,28 @@ const aviso = (id: string, vistoEm: string | null = null): AvisoCadastroDto => (
 
 function renderizar() {
   const client = new QueryClient();
-  return renderHook(() => useSinoAvisos(), {
+  return renderHook(() => useSinoAvisos("painel"), {
     wrapper: ({ children }) => (
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     ),
   });
 }
 
+// O jsdom não implementa showModal/close: o <dialog> do teste guarda só o estado `open`.
+let modal: HTMLDialogElement;
+
 describe("useSinoAvisos", () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    document.body.innerHTML = '<dialog id="painel"></dialog>';
+    modal = document.getElementById("painel") as HTMLDialogElement;
+    modal.open = false;
+    modal.showModal = jest.fn(() => {
+      modal.open = true;
+    });
+    modal.close = jest.fn(() => {
+      modal.open = false;
+    });
     pathname = "/";
     contarMock.mockResolvedValue({ ok: true, data: 2 });
     marcarMock.mockResolvedValue({ ok: true, data: undefined });
@@ -182,5 +194,22 @@ describe("useSinoAvisos", () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+
+  it("abrir o sino abre o modal uma vez só; fechar e selecionar o fecham", async () => {
+    listarMock.mockResolvedValue({ ok: true, data: { itens: [aviso("a1")], proximoCursor: null } });
+    const { result } = renderizar();
+
+    act(() => result.current.aoAbrir());
+    act(() => result.current.aoAbrir());
+    expect(modal.showModal).toHaveBeenCalledTimes(1);
+
+    act(() => result.current.aoFechar());
+    expect(modal.close).toHaveBeenCalledTimes(1);
+
+    act(() => result.current.aoAbrir());
+    await waitFor(() => expect(result.current.avisos).toHaveLength(1));
+    await act(() => result.current.aoSelecionar(result.current.avisos[0]));
+    expect(modal.close).toHaveBeenCalledTimes(2);
   });
 });

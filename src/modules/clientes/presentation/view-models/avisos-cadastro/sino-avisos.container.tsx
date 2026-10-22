@@ -7,5 +7,5 @@ import { useSinoAvisos } from "@/modules/clientes/presentation/view-models/aviso
 
 export function SinoAvisosContainer() {
   const painelId = useId();
-  return <SinoAvisos painelId={painelId} {...useSinoAvisos()} />;
+  return <SinoAvisos painelId={painelId} {...useSinoAvisos(painelId)} />;
 }

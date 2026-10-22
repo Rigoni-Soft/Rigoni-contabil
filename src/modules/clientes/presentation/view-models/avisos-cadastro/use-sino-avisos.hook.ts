@@ -14,7 +14,12 @@ import {
   useListaAvisosQuery,
 } from "@/modules/clientes/presentation/view-models/avisos-cadastro/avisos-cadastro.queries";
 
-export function useSinoAvisos() {
+// O <dialog> do sino é aberto e fechado por aqui (a View só recebe props), como o painel de anexar.
+function modalDo(painelId: string) {
+  return document.getElementById(painelId) as HTMLDialogElement | null;
+}
+
+export function useSinoAvisos(painelId: string) {
   const router = useRouter();
   const pathname = usePathname();
   const queryClient = useQueryClient();
@@ -65,12 +70,17 @@ export function useSinoAvisos() {
     aoAbrir: () => {
       if (abriu) void lista.refetch();
       setAbriu(true);
+      const modal = modalDo(painelId);
+      if (modal && !modal.open) modal.showModal();
     },
+    aoFechar: () => modalDo(painelId)?.close(),
     aoCarregarMais: () => void lista.fetchNextPage(),
     aoTentarDeNovo: () => void lista.refetch(),
     // Só o clique no aviso marca como visto e leva ao Cliente. Marca antes de navegar; se a
     // marcação falhar, navega mesmo assim e o aviso segue não visto na próxima leitura.
     aoSelecionar: async (aviso: AvisoDeCadastro) => {
+      // Fecha já: a navegação entre Clientes não remonta o cabeçalho.
+      modalDo(painelId)?.close();
       if (!aviso.visto) await marcarAvisoVistoAction(aviso.id);
       router.push(aviso.href);
       await queryClient.invalidateQueries({ queryKey: avisosCadastroKeys.todos() });

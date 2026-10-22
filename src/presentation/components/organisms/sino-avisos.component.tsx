@@ -10,7 +10,7 @@ import { Button } from "@/presentation/components/ui/button";
 import { cn } from "@/presentation/lib/utils";
 
 type SinoAvisosProps = {
-  // Liga o sino ao modal; único na página.
+  // Id do modal (e base dos ids internos); único na página.
   painelId: string;
   contador: number;
   // Texto para leitor de tela quando chegam avisos novos; vazio fora disso.
@@ -21,6 +21,7 @@ type SinoAvisosProps = {
   carregandoMais: boolean;
   // Chamado ao abrir: o Container carrega a lista. Abrir não marca nada como visto.
   aoAbrir: () => void;
+  aoFechar: () => void;
   aoSelecionar: (aviso: AvisoDeCadastro) => void;
   aoCarregarMais: () => void;
   aoTentarDeNovo: () => void;
@@ -30,7 +31,8 @@ const TETO_DO_SELO = 99;
 
 // Sino fixo do cabeçalho (DESIGN.md → Sino de Avisos de cadastro): maior que o ícone padrão de
 // 44 px, com selo de contador e cor de destaque enquanto houver aviso não visto. Abre direto um
-// modal nativo (popover) com a lista; só o clique no aviso o marca como visto.
+// <dialog> modal (o Container o abre com showModal: foco preso, fundo inerte, Esc fecha) com a
+// lista; só o clique no aviso o marca como visto.
 export function SinoAvisos({
   painelId,
   contador,
@@ -40,6 +42,7 @@ export function SinoAvisos({
   temMais,
   carregandoMais,
   aoAbrir,
+  aoFechar,
   aoSelecionar,
   aoCarregarMais,
   aoTentarDeNovo,
@@ -54,7 +57,6 @@ export function SinoAvisos({
       <Button
         type="button"
         variant="outline"
-        popoverTarget={painelId}
         onClick={aoAbrir}
         aria-label={destaque ? `Avisos de cadastro, ${contador} não vistos` : "Avisos de cadastro"}
         data-destaque={destaque}
@@ -76,11 +78,14 @@ export function SinoAvisos({
         )}
       </Button>
       <Caixa
+        como="dialog"
         id={painelId}
-        popover="auto"
-        role="dialog"
         aria-labelledby={`${painelId}-titulo`}
-        className="m-auto max-h-[80dvh] w-[min(92vw,32rem)] flex-col overflow-hidden rounded-xl border border-border bg-background p-0 text-foreground backdrop:bg-overlay [&:popover-open]:flex"
+        // O conteúdo ocupa toda a caixa: só o clique no véu tem o próprio <dialog> como alvo.
+        onClick={(evento) => {
+          if (evento.target === evento.currentTarget) aoFechar();
+        }}
+        className="m-auto max-h-[80dvh] w-[min(92vw,32rem)] flex-col overflow-hidden rounded-xl border border-border bg-background p-0 text-foreground backdrop:bg-overlay open:flex"
       >
         <Linha alinhar="centro" justificar="entre" className="border-b border-border px-4 py-1">
           <Texto variante="subtitulo" como="h2" id={`${painelId}-titulo`}>
@@ -90,11 +95,8 @@ export function SinoAvisos({
             type="button"
             variant="ghost"
             size="icon"
-            popoverTarget={painelId}
-            popoverTargetAction="hide"
+            onClick={aoFechar}
             aria-label="Fechar avisos"
-            // Foco inicial do modal: o popover nativo só o move para quem tem `autofocus`.
-            ref={(botao) => botao?.setAttribute("autofocus", "")}
             className="shrink-0 rounded-full"
           >
             <X className="size-5" aria-hidden="true" />
@@ -120,12 +122,7 @@ export function SinoAvisos({
             <Texto variante="apoio">Nenhum aviso de cadastro.</Texto>
           )}
           {avisos.map((aviso) => (
-            <ItemDeAviso
-              key={aviso.id}
-              aviso={aviso}
-              painelId={painelId}
-              aoSelecionar={aoSelecionar}
-            />
+            <ItemDeAviso key={aviso.id} aviso={aviso} aoSelecionar={aoSelecionar} />
           ))}
           {temMais && (
             <Button

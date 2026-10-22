@@ -68,4 +68,30 @@ test.describe("Sino de Avisos de cadastro (#143)", () => {
     await page.clock.fastForward(31_000);
     await expect.poll(() => naoVistos(page)).toBe(antes + 1);
   });
+
+  test("o modal é modal de verdade: foco preso, Esc fecha e devolve o foco ao sino, o véu fecha", async ({
+    page,
+  }) => {
+    await entrarComoLider(page);
+    const sino = page.getByRole("button", { name: SINO });
+    const modal = page.getByRole("dialog", { name: "Avisos de cadastro" });
+
+    await sino.click();
+    await expect(modal).toBeVisible();
+    await expect(page.getByRole("button", { name: "Fechar avisos" })).toBeFocused();
+
+    // O Tab não escapa do modal para a página atrás do véu.
+    for (let i = 0; i < 8; i++) await page.keyboard.press("Tab");
+    expect(await page.evaluate(() => !!document.activeElement?.closest("dialog"))).toBe(true);
+
+    await page.keyboard.press("Escape");
+    await expect(modal).toBeHidden();
+    await expect(sino).toBeFocused();
+
+    // Clique no véu (fora da caixa) também fecha.
+    await sino.click();
+    await expect(modal).toBeVisible();
+    await page.mouse.click(5, 5);
+    await expect(modal).toBeHidden();
+  });
 });

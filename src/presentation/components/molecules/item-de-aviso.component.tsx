@@ -12,20 +12,16 @@ export type AvisoDeCadastro = {
 
 type ItemDeAvisoProps = {
   aviso: AvisoDeCadastro;
-  // Modal que fecha ao escolher: a navegação entre Clientes não remonta o cabeçalho.
-  painelId: string;
   aoSelecionar: (aviso: AvisoDeCadastro) => void;
 };
 
 // Linha da lista de Avisos de cadastro: não visto em destaque (ponto `primary`, "novo" para leitor
 // de tela); visto esmaecido, com o selo "visto" em texto (a cor não é o único sinal).
-export function ItemDeAviso({ aviso, painelId, aoSelecionar }: ItemDeAvisoProps) {
+export function ItemDeAviso({ aviso, aoSelecionar }: ItemDeAvisoProps) {
   return (
     <Caixa
       como="button"
       type="button"
-      popoverTarget={painelId}
-      popoverTargetAction="hide"
       data-visto={aviso.visto}
       onClick={() => aoSelecionar(aviso)}
       className={cn(

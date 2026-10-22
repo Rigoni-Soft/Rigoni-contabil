@@ -15,6 +15,7 @@ const VISTO = { ...NAO_VISTO, id: "a2", titulo: "Nova Alteração contratual", v
 function renderizar(props: Partial<React.ComponentProps<typeof SinoAvisos>> = {}) {
   const callbacks = {
     aoAbrir: jest.fn(),
+    aoFechar: jest.fn(),
     aoSelecionar: jest.fn(),
     aoCarregarMais: jest.fn(),
     aoTentarDeNovo: jest.fn(),
@@ -32,6 +33,8 @@ function renderizar(props: Partial<React.ComponentProps<typeof SinoAvisos>> = {}
       {...props}
     />,
   );
+  // O Container abre o <dialog> com showModal (o jsdom não o implementa): aqui ele já nasce aberto.
+  document.querySelector("dialog")?.setAttribute("open", "");
   return callbacks;
 }
 
@@ -118,11 +121,28 @@ describe("SinoAvisos", () => {
     expect(screen.getByRole("status")).toBeEmptyDOMElement();
   });
 
-  it("o modal se nomeia pelo título e o botão Fechar recebe o foco inicial", () => {
+  it("o modal se nomeia pelo título", () => {
     renderizar();
 
     expect(screen.getByRole("dialog", { name: "Avisos de cadastro" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Fechar avisos" })).toHaveAttribute("autofocus");
+  });
+
+  it("o botão Fechar chama o Container", async () => {
+    const { aoFechar } = renderizar();
+
+    await userEvent.click(screen.getByRole("button", { name: "Fechar avisos" }));
+
+    expect(aoFechar).toHaveBeenCalledTimes(1);
+  });
+
+  it("clicar no véu fecha; clicar no conteúdo não", async () => {
+    const { aoFechar } = renderizar({ avisos: [NAO_VISTO] });
+
+    await userEvent.click(screen.getByRole("dialog"));
+    expect(aoFechar).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole("heading", { name: "Avisos de cadastro" }));
+    expect(aoFechar).toHaveBeenCalledTimes(1);
   });
 
   it("erro de leitura oferece 'Tentar de novo'", async () => {

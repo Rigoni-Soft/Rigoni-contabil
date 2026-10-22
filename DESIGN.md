@@ -36,7 +36,7 @@ com a preferência de SO do visitante.
 | `success` / `success-foreground` | `#d9bd7c` / `#2a1f0c` | `#96742f` / `#2a1f0c` | selo dourado "em dia" — reservado especificamente para as telas de status do Simples Nacional (#35–#37); não usar para resultado sucesso/falha genérico (isso é `primary`/`destructive`, ver Componentes → Indicadores de estado). Só em traço/ícone: no claro tem 3,8:1 sobre `background`, abaixo dos 4,5:1 de texto |
 | `border` / `ring` | `#47453e` | tons de contorno derivados do verde | bordas decorativas, foco |
 | `input` | `#7a7765` | `#857d66` | contorno de campo, select, textarea, botão outline e painel de emoji: ≥3:1 sobre `background` e `card` nos dois temas (WCAG 1.4.11) |
-| `overlay` | `#0f0e0c` a 70% | `#16231f` a 55% | véu atrás de diálogos nativos (`popover`: imagem ampliada, prévia de documento) — tinta de cada tema, não preto puro; só escurece o fundo, não carrega texto |
+| `overlay` | `#0f0e0c` a 70% | `#16231f` a 55% | véu atrás de diálogos nativos (`popover`: imagem ampliada, prévia de documento; `<dialog>` modal: sino de avisos) — tinta de cada tema, não preto puro; só escurece o fundo, não carrega texto |
 
 **Dark "leve":** a paleta dark original
 (`background` `#0c1512`, luminância relativa ~0,6%) lia como sombria demais —
@@ -844,8 +844,11 @@ cor do fundo) no canto superior direito com o contador, `99+` acima de 99. O sel
 (`aria-hidden`); o nome acessível do botão traz a quantidade ("Avisos de cadastro, 3 não vistos").
 Cor nunca é o único sinal: contador e nome acessível acompanham.
 
-O sino abre direto um modal nativo (`popover="auto"`, véu `overlay`, `w-[min(92vw,32rem)]`, rolagem
-interna), sem popover intermediário e sem página `/avisos`. Cada aviso é um botão de 44 px: não
+O sino abre direto um modal de verdade (`<dialog>` aberto com `showModal()`, véu `overlay`,
+`w-[min(92vw,32rem)]`, rolagem interna): foco preso, resto da página inerte, Esc e clique no véu
+fecham, e o foco volta ao sino. Exceção deliberada ao `popover` dos outros painéis (imagem, prévia,
+anexar): o aviso pede atenção do usuário, e o `popover` deixava o Tab sair para a página atrás do
+véu. O Container abre e fecha o `<dialog>` (a View só recebe props). Sem página `/avisos`. Cada aviso é um botão de 44 px: não
 visto em destaque (`bg-accent`, `font-medium`, contorno `primary` e um ponto `primary` de 10 px antes do texto, com "novo" só para leitor de tela; sem barra lateral grossa); visto
 esmaecido (`muted-foreground`, sem fundo) com o selo "visto" em texto. "Carregar mais" (`outline`)
 fecha a lista de 30 em 30. Abrir o modal não marca nada: só o clique no aviso marca como visto,
@@ -853,7 +856,7 @@ fecha o modal e navega a `/clientes/[id]`. Contador por polling de 30 s e a cada
 
 Robustez: uma região `status` visualmente oculta anuncia "N aviso(s) de cadastro não visto(s)"
 só quando o contador sobe depois da primeira leitura da tela (o foco não passa pelo sino durante o polling; o nome do botão já traz a contagem de quem acabou de chegar); o modal se nomeia pelo
-título (`aria-labelledby`) e abre com o foco no "Fechar avisos" (`autofocus`); erro de leitura mostra
+título (`aria-labelledby`) e abre com o foco no "Fechar avisos" (primeiro item focável); erro de leitura mostra
 o alerta com "Tentar de novo" e mantém a lista que já estava na tela.
 
 ## Estados e motion
