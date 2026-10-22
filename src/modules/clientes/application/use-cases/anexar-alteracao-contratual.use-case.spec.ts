@@ -137,14 +137,14 @@ describe("AnexarAlteracaoContratual", () => {
       expect(storage.removidos).toEqual([]);
     });
 
-    it("comprovadamente não gravada: remove o upload da tentativa", async () => {
+    it("leitura vazia (commit pode vir depois): mantém o arquivo e sinaliza estado inconsistente", async () => {
       const { caso, anexar, storage } = montar();
       anexar.mockResolvedValue(err(new ResultadoIncertoError("sem resposta")));
 
       const resultado = await caso.execute(INPUT);
 
-      expect(resultado.ok).toBe(false);
-      expect(storage.removidos).toEqual(storage.enviados);
+      expect(!resultado.ok && resultado.error).toBeInstanceOf(EstadoInconsistenteError);
+      expect(storage.removidos).toEqual([]);
     });
 
     it("reconciliação falha: mantém o arquivo e sinaliza estado inconsistente", async () => {

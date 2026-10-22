@@ -83,9 +83,10 @@ export class CriarCliente implements CriarClientePort {
     const salvo = await this.clientes.criar(construido.value);
     if (!salvo.ok) {
       if (!(salvo.error instanceof ResultadoIncertoError)) return salvo;
-      // Resposta perdida não prova rollback: se o Cliente existe, o cadastro valeu e os arquivos ficam.
+      // Resposta perdida não prova rollback, e leitura vazia também não: o INSERT original pode
+      // confirmar depois da leitura. Só Cliente visível vira sucesso; senão os arquivos ficam.
       const gravado = await this.clientes.buscarPorId(id);
-      if (!gravado.ok) {
+      if (!(gravado.ok && gravado.value)) {
         enviados.length = 0; // arquivos mantidos: podem estar referenciados pelo Cliente gravado
         return err(
           new EstadoInconsistenteError(
@@ -94,8 +95,6 @@ export class CriarCliente implements CriarClientePort {
           ),
         );
       }
-      // ponytail: uma só leitura; commit tardio depois dela ainda perde os arquivos.
-      if (!gravado.value) return salvo;
     }
 
     return ok({ cliente: clienteParaDto(construido.value) });

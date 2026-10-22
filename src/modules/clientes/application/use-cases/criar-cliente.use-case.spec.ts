@@ -353,15 +353,16 @@ describe("CriarCliente", () => {
       expect(storage.removidos).toEqual([]);
     });
 
-    it("Cliente comprovadamente ausente: remove os uploads e devolve o erro", async () => {
+    it("leitura vazia (commit pode vir depois): mantém os arquivos e sinaliza estado inconsistente", async () => {
       const clientes = new ClienteRepositoryFalso();
       clientes.respostaPerdida = true;
       clientes.reconciliacao = ok(null);
 
       const { storage, resultado } = executar(clientes);
 
-      expect((await resultado).ok).toBe(false);
-      expect(storage.removidos).toHaveLength(2);
+      const final = await resultado;
+      expect(!final.ok && final.error).toBeInstanceOf(EstadoInconsistenteError);
+      expect(storage.removidos).toEqual([]);
     });
 
     it("reconciliação falha: mantém os arquivos e sinaliza estado inconsistente", async () => {

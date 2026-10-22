@@ -40,35 +40,30 @@ export class AnexarAlteracaoContratual implements AnexarAlteracaoContratualPort 
     const salvo = await this.clientes.anexarAlteracaoContratual(input.clienteId, alteracao.value);
     if (salvo.ok) return salvo;
     if (salvo.error instanceof ResultadoIncertoError) {
-      return this.reconciliar(input.clienteId, alteracao.value, salvo.error);
+      return this.reconciliar(input.clienteId, alteracao.value);
     }
     return this.desfazerUpload(input.clienteId, caminho, salvo.error);
   }
 
-  // Resposta perdida não prova rollback: só remove o arquivo se a alteração comprovadamente não
-  // está gravada. Sem conseguir confirmar, o arquivo fica (apagar quebraria a alteração gravada).
-  // ponytail: uma só leitura; commit tardio depois dela ainda perde o arquivo. Reconciliar em job
-  // por identidade da operação se isso aparecer em produção.
+  // Resposta perdida não prova rollback, e leitura vazia também não: a gravação original pode
+  // confirmar depois da leitura. Só `true` vira sucesso; qualquer outro resultado mantém o arquivo
+  // (apagar quebraria uma alteração que ainda pode ser confirmada) e pede conferência manual.
   private async reconciliar(
     clienteId: string,
     alteracao: AlteracaoContratual,
-    erro: AppError,
   ): Promise<Result<void, AppError>> {
     const gravada = await this.clientes.alteracaoContratualGravada(
       clienteId,
       alteracao.numero,
       alteracao.arquivoCaminho,
     );
-    if (!gravada.ok) {
-      return err(
-        new EstadoInconsistenteError(
-          "Não foi possível confirmar se a alteração foi anexada. O arquivo foi mantido; confira o Cliente antes de tentar de novo.",
-          clienteId,
-        ),
-      );
-    }
-    if (gravada.value) return ok(undefined);
-    return this.desfazerUpload(clienteId, alteracao.arquivoCaminho, erro);
+    if (gravada.ok && gravada.value) return ok(undefined);
+    return err(
+      new EstadoInconsistenteError(
+        `Não foi possível confirmar se a alteração foi anexada. O arquivo foi mantido (${alteracao.arquivoCaminho}); confira o Cliente antes de tentar de novo.`,
+        clienteId,
+      ),
+    );
   }
 
   // Falha da própria remoção não é mascarada como o erro original: o arquivo ficou órfão.
