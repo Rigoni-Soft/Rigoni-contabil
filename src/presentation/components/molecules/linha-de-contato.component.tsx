@@ -28,7 +28,14 @@ export function LinhaDeContato({
   onRemover,
 }: LinhaDeContatoProps) {
   return (
-    <Linha alinhar="fim" espaco={3} quebra className="rounded-md border border-border p-3">
+    <Linha
+      alinhar="fim"
+      espaco={3}
+      quebra
+      role="group"
+      aria-label={`Contato ${indice + 1}`}
+      className="rounded-md border border-border p-3"
+    >
       <CampoDeTexto
         id={`contatos.${indice}.nome`}
         rotulo="Nome"

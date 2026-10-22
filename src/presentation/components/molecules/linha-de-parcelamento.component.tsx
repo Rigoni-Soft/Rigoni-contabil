@@ -87,12 +87,18 @@ export function LinhaDeParcelamento({
   const idDoSelo = `parcelamentos.${indice}.selo`;
   const idDoMotivo = `parcelamentos.${indice}.motivo-remover`;
   return (
-    <Pilha espaco={2} className="rounded-md border border-border p-3">
+    <Pilha
+      espaco={2}
+      role="group"
+      aria-label={`Parcelamento ${indice + 1}`}
+      className="rounded-md border border-border p-3"
+    >
       <Linha alinhar="fim" espaco={3} quebra>
         <CampoDeTexto
           id={`parcelamentos.${indice}.codigo`}
           rotulo="Código"
           obrigatorio
+          maxLength={60}
           erro={erroCodigo}
           disabled={desabilitado}
           className="min-w-[10rem] flex-1 gap-1"

@@ -334,7 +334,9 @@ export function EditarCadastroOperacionalForm({
                 motivoSemRemover={!readOnly && atual.temEnvio ? MOTIVO_SEM_REMOVER : undefined}
                 arquivo={
                   atual.id ? (
-                    <Texto variante="nota">PDF anexado: {atual.arquivoNome}</Texto>
+                    <Texto variante="nota" className="[overflow-wrap:anywhere]">
+                      PDF anexado: {atual.arquivoNome}
+                    </Texto>
                   ) : (
                     <Controller
                       control={control}

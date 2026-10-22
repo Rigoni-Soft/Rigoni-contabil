@@ -88,6 +88,9 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
       .select(SELECT_CADASTRO_BASICO)
       .eq("id", clienteId)
       .eq("cliente_atividades_mensais.ano_mes", anoMesAtual)
+      // Mesma ordem do repositório; sem isso o embed volta em ordem arbitrária entre leituras.
+      .order("criado_em", { referencedTable: "cliente_parcelamentos" })
+      .order("codigo", { referencedTable: "cliente_parcelamentos" })
       .maybeSingle();
 
     if (error)
