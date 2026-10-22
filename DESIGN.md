@@ -863,7 +863,8 @@ véu. O Container abre e fecha o `<dialog>` (a View só recebe props). Sem pági
 visto em destaque (`bg-accent`, `font-medium`, contorno `primary` e um ponto `primary` de 10 px antes do texto, com "novo" só para leitor de tela; sem barra lateral grossa); visto
 esmaecido (`muted-foreground`, sem fundo) com o selo "visto" em texto. "Carregar mais" (`outline`)
 fecha a lista de 30 em 30. Abrir o modal não marca nada: só o clique no aviso marca como visto,
-fecha o modal e navega a `/clientes/[id]`. Contador por polling de 30 s e a cada navegação, sem som.
+fecha o modal e navega a `/clientes/[id]` (o aviso de nova alteração, a `/clientes/[id]?alteracao=N`,
+que destaca o botão do documento, ver "Destaque ao chegar por aviso"). Contador por polling de 30 s e a cada navegação, sem som.
 
 Robustez: uma região `status` visualmente oculta anuncia "N aviso(s) de cadastro não visto(s)"
 só quando o contador sobe depois da primeira leitura da tela (o foco não passa pelo sino durante o polling; o nome do botão já traz a contagem de quem acabou de chegar); o modal se nomeia pelo
@@ -926,7 +927,17 @@ fixos, campo travado em cor plena, diálogo e lista das alterações); onde há 
   seletor** (revisa o diálogo com "Escolher documento"): ícone, "Contrato social e alterações", o
   documento mais recente (alteração de maior nº, ou o contrato social) e o botão verde
   (`default`) "Abrir em nova aba", que abre o arquivo no primeiro clique. Enquanto carrega, reserva
-  `min-h-20`. As alterações antigas não têm lista na tela.
+  `min-h-20`. As alterações antigas não têm lista na tela. O nome acessível do botão começa pelo
+  texto visível e acrescenta o documento ("Abrir em nova aba: Alteração nº 2 - 01/03/2026"), para o
+  comando de voz acionar pelo que se lê (WCAG 2.5.3).
+- **Destaque ao chegar por aviso (#144)**: quem chega por um aviso de nova alteração
+  (`/clientes/[id]?alteracao=N`) vê o cartão com **a alteração do aviso**, não a mais recente, e o
+  botão "Abrir em nova aba" chega **em foco** (`autoFocus`) e com anel `ring` de 4 px com
+  deslocamento de 2 px na cor do fundo (`ring-4 ring-ring ring-offset-2 ring-offset-background`),
+  que fica enquanto a tela estiver aberta. O anel é um sinal de forma, não só de cor. O destaque só
+  vale quando o nº existe entre os documentos: nº ausente, inválido (só inteiro positivo conta) ou
+  inexistente abre a de maior nº, sem foco nem anel. O aviso de novo Cliente leva ao formulário sem
+  parâmetro, logo sem destaque.
 - **Anexar alteração (#141)**: botão `outline` "Anexar alteração" (só Admin) no mesmo cartão, ao
   lado de "Abrir em nova aba"; sem documento algum, aparece sozinho. **Não existe mais a seção
   "Alterações contratuais" abaixo do formulário** (revisa o #141); ficam só o diálogo de anexar
