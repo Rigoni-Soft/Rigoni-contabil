@@ -111,4 +111,34 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
     await expect(page.getByRole("button", { name: "Remover parcelamento 1" })).toBeDisabled();
     await expect(page.getByText("Já teve guia enviada: não pode ser removido.")).toBeVisible();
   });
+  test("editar outro parcelamento não é barrado pelo quitado da lista, que volta intacto", async ({
+    page,
+  }) => {
+    const clienteId = await abrirComoFuncionarioSn(page, "Parcelamento Quitado E2E Ltda");
+    // Quitar é do sistema (job, sem sessão): aqui, a chave de serviço.
+    const admin = adminLocal();
+    const mk = async (codigo: string, parcelas: number, situacao: string) => {
+      const id = crypto.randomUUID();
+      await admin.from("cliente_parcelamentos").insert({
+        id,
+        cliente_id: clienteId,
+        codigo,
+        parcelas_restantes: parcelas,
+        situacao,
+        arquivo_caminho: `${clienteId}/${id}-${codigo}.pdf`,
+      });
+    };
+    await mk("QUITADO-1", 0, "quitado");
+    await mk("ABERTO-2", 5, "em_aberto");
+
+    await page.goto(`/clientes/${clienteId}`);
+    await expect(page.getByText("Quitado", { exact: true })).toBeVisible();
+    await page.locator("[id='parcelamentos.1.parcelasRestantes']").fill("4");
+    await page.getByRole("button", { name: "Salvar" }).click();
+    await expect(page).toHaveURL("/simples-nacional");
+
+    await page.goto(`/clientes/${clienteId}`);
+    await expect(page.locator("[id='parcelamentos.1.parcelasRestantes']")).toHaveValue("4");
+    await expect(page.locator("[id='parcelamentos.0.parcelasRestantes']")).toHaveValue("0");
+  });
 });

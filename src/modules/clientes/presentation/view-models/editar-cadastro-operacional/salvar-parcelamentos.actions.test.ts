@@ -34,7 +34,7 @@ describe("salvarParcelamentosAction (integração)", () => {
 
   it.each([
     ["código vazio", { codigo: " " }],
-    ["parcelas restantes 0", { parcelasRestantes: 0 }],
+    ["parcelas restantes negativa", { parcelasRestantes: -1 }],
     ["parcelas restantes fracionada", { parcelasRestantes: 1.5 }],
     ["arquivo de outro tipo", { arquivo: new File(["x"], "a.png", { type: "image/png" }) }],
     ["arquivo acima de 4 MB", { arquivo: pdf(4 * 1024 * 1024 + 1) }],

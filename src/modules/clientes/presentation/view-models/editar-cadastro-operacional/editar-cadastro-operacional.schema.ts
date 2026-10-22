@@ -53,7 +53,8 @@ export const salvarParcelamentosSchema = z.object({
     z.object({
       id: z.guid().optional(),
       codigo: codigoDoParcelamento,
-      parcelasRestantes,
+      // 0 vem do quitado, que volta intacto; o mínimo de 1 nos demais é do caso de uso e do banco.
+      parcelasRestantes: z.number().int("número inteiro").min(0),
       interno: z.boolean(),
       arquivo: pdfDoAcordo.optional(),
     }),
