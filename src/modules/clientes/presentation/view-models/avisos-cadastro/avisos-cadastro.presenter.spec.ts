@@ -7,6 +7,7 @@ const BASE: AvisoCadastroDto = {
   tipo: "novo_cliente",
   clienteId: "c1",
   alteracaoId: null,
+  alteracaoNumero: null,
   criadoEm: "2026-10-22T15:30:00.000Z",
   vistoEm: null,
 };
@@ -27,11 +28,41 @@ describe("avisoCadastroParaView", () => {
       ...BASE,
       tipo: "nova_alteracao",
       alteracaoId: "alt1",
+      alteracaoNumero: 2,
       vistoEm: "2026-10-22T16:00:00.000Z",
     });
 
     expect(view.titulo).toBe("Nova Alteração contratual");
     expect(view.visto).toBe(true);
+  });
+});
+
+describe("avisoCadastroParaView: destino (#144)", () => {
+  const ALTERACAO: AvisoCadastroDto = {
+    ...BASE,
+    tipo: "nova_alteracao",
+    alteracaoId: "alt1",
+    alteracaoNumero: 2,
+  };
+
+  it("nova alteração leva ao Cliente com o nº da alteração do aviso", () => {
+    expect(avisoCadastroParaView(ALTERACAO).href).toBe("/clientes/c1?alteracao=2");
+  });
+
+  it("o nº é o do aviso, não o da mais recente: alteração antiga também é apontada", () => {
+    expect(avisoCadastroParaView({ ...ALTERACAO, alteracaoNumero: 1 }).href).toBe(
+      "/clientes/c1?alteracao=1",
+    );
+  });
+
+  it("novo cliente leva ao formulário sem destaque, mesmo com nº no dado", () => {
+    expect(avisoCadastroParaView({ ...BASE, alteracaoNumero: 2 }).href).toBe("/clientes/c1");
+  });
+
+  it("nova alteração sem nº (aviso antigo ou alteração removida) cai no Cliente sem destaque", () => {
+    expect(avisoCadastroParaView({ ...ALTERACAO, alteracaoNumero: null }).href).toBe(
+      "/clientes/c1",
+    );
   });
 });
 

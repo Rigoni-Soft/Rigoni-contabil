@@ -14,12 +14,15 @@ type Props = {
   clienteId: string;
   documentosIniciais?: DocumentoContratualVisivelDto[];
   podeAnexar?: boolean;
+  // Nº da alteração do aviso por onde se chegou (#144).
+  alteracaoEmFoco?: number;
 };
 
 export function DocumentoContratualDoClienteContainer({
   clienteId,
   documentosIniciais,
   podeAnexar,
+  alteracaoEmFoco,
 }: Props) {
   const { data, isPending, isError, refetch } = useDocumentosContratuais(
     clienteId,
@@ -45,6 +48,7 @@ export function DocumentoContratualDoClienteContainer({
       clienteId={clienteId}
       documentos={data}
       podeAnexar={podeAnexar}
+      alteracaoEmFoco={alteracaoEmFoco}
     />
   );
 }

@@ -91,3 +91,34 @@ describe("VisualizarDocumentoContratualContainer (#140)", () => {
     expect(screen.getByRole("link", { name: /^Abrir / })).toHaveAttribute("href", "https://x");
   });
 });
+
+describe("VisualizarDocumentoContratualContainer: alteração do aviso (#144)", () => {
+  const DOCUMENTOS = [ALTERACAO, ALTERACAO_ANTIGA, CONTRATO];
+
+  beforeEach(() => hook.mockClear());
+
+  it("repassa o nº do aviso ao hook e destaca o botão", () => {
+    hookDevolvendo(ALTERACAO_ANTIGA);
+
+    render(
+      <VisualizarDocumentoContratualContainer
+        clienteId={CLIENTE}
+        documentos={DOCUMENTOS}
+        alteracaoEmFoco={1}
+      />,
+    );
+
+    expect(hook).toHaveBeenCalledWith(CLIENTE, DOCUMENTOS, 1);
+    expect(screen.getByRole("button", { name: /^Abrir / })).toHaveFocus();
+    expect(screen.getByText("Alteração nº 1 - 10/01/2024", { selector: "p" })).toBeInTheDocument();
+  });
+
+  it("sem aviso: o hook não recebe nº e o botão não é destacado", () => {
+    hookDevolvendo();
+
+    render(<VisualizarDocumentoContratualContainer clienteId={CLIENTE} documentos={DOCUMENTOS} />);
+
+    expect(hook).toHaveBeenCalledWith(CLIENTE, DOCUMENTOS, undefined);
+    expect(screen.getByRole("button", { name: /^Abrir / })).not.toHaveFocus();
+  });
+});

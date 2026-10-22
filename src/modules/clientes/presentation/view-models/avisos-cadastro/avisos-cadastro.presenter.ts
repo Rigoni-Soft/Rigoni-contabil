@@ -18,13 +18,21 @@ const QUANDO = new Intl.DateTimeFormat("pt-BR", {
   timeStyle: "short",
 });
 
+// Só o aviso de alteração aponta uma alteração: a tela destaca o botão e abre aquela, não a mais recente.
+function destinoDoAviso(aviso: AvisoCadastroDto): string {
+  const cliente = `/clientes/${aviso.clienteId}`;
+  return aviso.tipo === "nova_alteracao" && aviso.alteracaoNumero !== null
+    ? `${cliente}?alteracao=${aviso.alteracaoNumero}`
+    : cliente;
+}
+
 export function avisoCadastroParaView(aviso: AvisoCadastroDto): AvisoDeCadastro {
   return {
     id: aviso.id,
     titulo: TITULO[aviso.tipo],
     quando: QUANDO.format(new Date(aviso.criadoEm)),
     visto: aviso.vistoEm !== null,
-    href: `/clientes/${aviso.clienteId}`,
+    href: destinoDoAviso(aviso),
   };
 }
 

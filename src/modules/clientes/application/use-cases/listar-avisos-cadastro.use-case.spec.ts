@@ -16,6 +16,7 @@ function aviso(n: number): AvisoCadastroDto {
     tipo: "novo_cliente",
     clienteId: "c1",
     alteracaoId: null,
+    alteracaoNumero: null,
     criadoEm: `2026-02-01T10:${String(n).padStart(2, "0")}:00+00:00`,
     vistoEm: null,
   };

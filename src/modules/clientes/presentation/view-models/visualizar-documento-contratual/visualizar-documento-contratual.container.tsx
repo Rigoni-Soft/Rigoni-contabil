@@ -13,16 +13,20 @@ type VisualizarDocumentoContratualContainerProps = {
   documentos: DocumentoContratualVisivelDto[];
   // Só o Admin: botão "Anexar alteração" ao lado de "Abrir em nova aba".
   podeAnexar?: boolean;
+  // Nº da alteração do aviso por onde se chegou: abre aquela e destaca o botão (#144).
+  alteracaoEmFoco?: number;
 };
 
 export function VisualizarDocumentoContratualContainer({
   clienteId,
   documentos,
   podeAnexar,
+  alteracaoEmFoco,
 }: VisualizarDocumentoContratualContainerProps) {
   const { documento, abrir, abrindo, erro, linkAlternativo } = useVisualizarDocumentoContratual(
     clienteId,
     documentos,
+    alteracaoEmFoco,
   );
 
   return (
@@ -33,6 +37,7 @@ export function VisualizarDocumentoContratualContainer({
       erro={erro}
       linkAlternativo={linkAlternativo}
       anexarPainelId={podeAnexar ? idPainelAnexar(clienteId) : undefined}
+      destacar={alteracaoEmFoco !== undefined}
     />
   );
 }

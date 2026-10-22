@@ -64,3 +64,29 @@ describe("VisualizarDocumentoContratual (#140)", () => {
     expect(abrir.parentElement).toBe(anexar.parentElement);
   });
 });
+
+describe("VisualizarDocumentoContratual: destaque ao chegar por aviso (#144)", () => {
+  it("destacar: o botão de abrir chega em foco e com anel", () => {
+    montar({ destacar: true });
+
+    const botao = screen.getByRole("button", { name: /^Abrir / });
+    expect(botao).toHaveFocus();
+    expect(botao).toHaveClass("ring-4");
+  });
+
+  it("sem destacar: nada em foco e sem anel", () => {
+    montar();
+
+    const botao = screen.getByRole("button", { name: /^Abrir / });
+    expect(botao).not.toHaveFocus();
+    expect(botao).not.toHaveClass("ring-4");
+  });
+
+  it("destacar não mexe no botão de anexar nem no que o botão faz", () => {
+    const props = montar({ destacar: true, anexarPainelId: "painel-anexar" });
+
+    expect(screen.getByRole("button", { name: /Anexar alteração/ })).not.toHaveFocus();
+    fireEvent.click(screen.getByRole("button", { name: /^Abrir / }));
+    expect(props.onAbrir).toHaveBeenCalledTimes(1);
+  });
+});

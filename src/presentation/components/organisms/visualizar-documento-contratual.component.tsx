@@ -6,6 +6,7 @@ import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Button } from "@/presentation/components/ui/button";
+import { cn } from "@/presentation/lib/utils";
 
 type VisualizarDocumentoContratualProps = {
   // Rótulo do documento mais recente: "Alteração nº N - data", ou "Contrato social" sem alteração.
@@ -17,6 +18,8 @@ type VisualizarDocumentoContratualProps = {
   linkAlternativo?: string;
   // Só o Admin: id do diálogo de anexar, aberto pelo botão ao lado de "Abrir em nova aba".
   anexarPainelId?: string;
+  // Chegou por um aviso de alteração: o botão de abrir vem em foco e com anel.
+  destacar?: boolean;
 };
 
 // Só leitura e sem diálogo: o documento mais recente (a alteração de maior nº) já aparece na tela,
@@ -28,6 +31,7 @@ export function VisualizarDocumentoContratual({
   erro,
   linkAlternativo,
   anexarPainelId,
+  destacar,
 }: VisualizarDocumentoContratualProps) {
   return (
     <Pilha espaco={2} className="rounded-md border border-border p-3">
@@ -47,6 +51,8 @@ export function VisualizarDocumentoContratual({
             onClick={onAbrir}
             disabled={abrindo}
             aria-label={abrindo ? undefined : `Abrir ${rotulo} em nova aba`}
+            autoFocus={destacar}
+            className={cn(destacar && "ring-4 ring-ring ring-offset-2 ring-offset-background")}
           >
             <ExternalLink className="size-4" aria-hidden="true" />
             {abrindo ? "Abrindo…" : "Abrir em nova aba"}

@@ -24,7 +24,7 @@ const CNPJS = [CNPJ_SN, CNPJ_LUCRO];
 async function avisosDoCliente(clienteId: string) {
   const { data, error } = await servico
     .from("avisos_cadastro")
-    .select("destinatario_id, tipo, cliente_id, alteracao_id, visto_em")
+    .select("destinatario_id, tipo, cliente_id, alteracao_id, alteracao_numero, visto_em")
     .eq("cliente_id", clienteId);
   if (error) throw new Error(error.message);
   return data ?? [];
@@ -92,6 +92,7 @@ describe("Aviso de cadastro: gatilho novo cliente (#142, S2a)", () => {
         tipo: "novo_cliente",
         cliente_id: clienteId,
         alteracao_id: null,
+        alteracao_numero: null,
         visto_em: null,
       },
     ]);
@@ -136,6 +137,20 @@ describe("Aviso de cadastro: gatilho nova alteração (#142, S2b)", () => {
         .filter((a) => a.tipo === "nova_alteracao")
         .every((a) => a.alteracao_id === alteracaoId),
     ).toBe(true);
+  });
+
+  it("cada aviso leva o nº da alteração que o gerou, para quem não lê a tabela (#144)", async () => {
+    const clienteId = await criarClienteDeTeste(CNPJ_SN, "simples_nacional");
+    await atribuirResponsavel(clienteId, FUNCIONARIO_SN_ID);
+
+    const id2 = await anexarAlteracao(clienteId, 2);
+    const id7 = await anexarAlteracao(clienteId, 7);
+
+    const porAlteracao = (await avisosDoCliente(clienteId))
+      .filter((a) => a.tipo === "nova_alteracao")
+      .map((a) => `${a.alteracao_id}:${a.alteracao_numero}`)
+      .sort();
+    expect(porAlteracao).toEqual([`${id2}:2`, `${id2}:2`, `${id7}:7`, `${id7}:7`].sort());
   });
 
   it("Líder que também é o Responsável recebe uma linha só", async () => {

@@ -38,6 +38,8 @@ type Props = {
   documentosContratuais?: DocumentoContratualVisivelDto[];
   // Só o Admin na tela própria: o botão de anexar fica no cartão do documento.
   podeAnexar?: boolean;
+  // Nº da alteração do aviso por onde se chegou: o cartão do documento a abre e destaca o botão.
+  alteracaoEmFoco?: number;
 };
 
 export function EditarCadastroOperacionalContainer({
@@ -49,6 +51,7 @@ export function EditarCadastroOperacionalContainer({
   voltarHrefAoSalvar,
   documentosContratuais,
   podeAnexar,
+  alteracaoEmFoco,
 }: Props) {
   const router = useRouter();
   const [pendente, setPendente] = useState(false);
@@ -201,6 +204,7 @@ export function EditarCadastroOperacionalContainer({
           clienteId={dados.id}
           documentosIniciais={documentosContratuais}
           podeAnexar={podeAnexar}
+          alteracaoEmFoco={alteracaoEmFoco}
         />
       </Pilha>
     );
@@ -238,6 +242,7 @@ export function EditarCadastroOperacionalContainer({
           clienteId={dados.id}
           documentosIniciais={documentosContratuais}
           podeAnexar={podeAnexar}
+          alteracaoEmFoco={alteracaoEmFoco}
         />
       }
     />

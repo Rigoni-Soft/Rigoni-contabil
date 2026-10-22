@@ -26,6 +26,7 @@ const aviso = (id: string, vistoEm: string | null = null): AvisoCadastroDto => (
   tipo: "novo_cliente",
   clienteId: `c-${id}`,
   alteracaoId: null,
+  alteracaoNumero: null,
   criadoEm: "2026-10-22T15:30:00.000Z",
   vistoEm,
 });

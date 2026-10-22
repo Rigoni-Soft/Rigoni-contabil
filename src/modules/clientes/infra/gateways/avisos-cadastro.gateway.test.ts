@@ -4,6 +4,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 
+import { criarAdminLocal } from "../../../../../test-support/admin-supabase-local";
 import {
   criarClienteDeTeste,
   removerClientesDeTeste,
@@ -12,6 +13,9 @@ import { SupabaseAvisosCadastroGateway } from "./avisos-cadastro.gateway";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+const SERVICE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ??
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 const CNPJ = "11222333000181";
 let clienteId: string;
 
@@ -42,6 +46,34 @@ describe("SupabaseAvisosCadastroGateway (#142, integração)", () => {
       tipo: "novo_cliente",
       clienteId,
       alteracaoId: null,
+      alteracaoNumero: null,
+      criadoEm: expect.any(String),
+      vistoEm: null,
+    });
+  });
+
+  it("aviso de nova alteração chega ao Líder com o id e o nº da alteração (#144)", async () => {
+    const alteracaoId = crypto.randomUUID();
+    const admin = criarAdminLocal(SERVICE_KEY);
+    const { error } = await admin.from("cliente_alteracoes_contratuais").insert({
+      id: alteracaoId,
+      cliente_id: clienteId,
+      numero: 4,
+      data: "2025-03-10",
+      arquivo_caminho: `${clienteId}/alteracoes-contratuais/4-a.pdf`,
+    });
+    if (error) throw new Error(error.message);
+
+    const resultado = await gateway.listar(null, 31);
+
+    expect(resultado.ok).toBe(true);
+    if (!resultado.ok) return;
+    expect(resultado.value).toContainEqual({
+      id: expect.any(String),
+      tipo: "nova_alteracao",
+      clienteId,
+      alteracaoId,
+      alteracaoNumero: 4,
       criadoEm: expect.any(String),
       vistoEm: null,
     });

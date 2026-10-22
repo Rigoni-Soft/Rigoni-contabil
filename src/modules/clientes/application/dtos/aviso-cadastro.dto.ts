@@ -5,6 +5,8 @@ export type AvisoCadastroDto = {
   tipo: TipoAvisoCadastro;
   clienteId: string;
   alteracaoId: string | null;
+  // Nº da alteração do aviso: o Líder e o Responsável não leem a tabela, então o nº viaja no aviso.
+  alteracaoNumero: number | null;
   criadoEm: string;
   vistoEm: string | null;
 };
