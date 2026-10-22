@@ -235,4 +235,31 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
     expect(caixaBotao!.x).toBeGreaterThanOrEqual(0);
     expect(caixaBotao!.x + caixaBotao!.width).toBeLessThanOrEqual(390);
   });
+
+  test("depois de abrir o documento o foco continua no botão (ele não perde o foco ao desabilitar)", async ({
+    page,
+    browser,
+  }) => {
+    const clienteId = await criarClienteComAlteracao1(
+      page,
+      empresaUnica("Destaque Foco Abrir E2E Ltda"),
+    );
+    await page.goto(`/clientes/${clienteId}`);
+    await anexar(page, 2, "2026-03-01");
+    const lider = await entrar(browser, LIDER);
+    await lider.goto(`/clientes/${clienteId}?alteracao=2`);
+    const botao = lider.getByRole("button", { name: ABRIR_2 });
+    await expect(botao).toBeFocused();
+
+    // A requisição ao link assinado mostra que a action terminou; o botão volta a abrir de novo.
+    await Promise.all([
+      lider
+        .context()
+        .waitForEvent("request", (r) => r.url().includes("/object/sign/documentos-clientes/")),
+      botao.press("Enter"),
+    ]);
+
+    await expect(botao).toBeEnabled();
+    await expect(botao).toBeFocused();
+  });
 });

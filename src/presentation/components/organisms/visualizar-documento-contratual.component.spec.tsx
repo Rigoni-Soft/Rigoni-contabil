@@ -56,11 +56,33 @@ describe("VisualizarDocumentoContratual (#140)", () => {
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
   });
 
-  it("mostra 'Abrindo…' desabilitado e o erro quando houver", () => {
+  it("mostra 'Abrindo…' e o erro quando houver", () => {
     montar({ abrindo: true, erro: "Não foi possível abrir o documento." });
 
-    expect(screen.getByRole("button", { name: "Abrindo…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Abrindo…" })).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("Não foi possível abrir o documento.");
+  });
+
+  it("enquanto abre, 'aria-disabled' (não 'disabled') mantém o foco no botão e o clique não abre de novo", () => {
+    const props = montar({ abrindo: true });
+    const botao = screen.getByRole("button", { name: "Abrindo…" });
+
+    botao.focus();
+    fireEvent.click(botao);
+
+    expect(botao).toHaveAttribute("aria-disabled", "true");
+    expect(botao).not.toBeDisabled();
+    expect(botao).toHaveFocus();
+    expect(props.onAbrir).not.toHaveBeenCalled();
+  });
+
+  it("fora do estado de abrir, não é aria-disabled", () => {
+    montar();
+
+    expect(screen.getByRole("button", { name: /^Abrir / })).not.toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
   });
 
   it("com `anexarPainelId`, mostra 'Anexar alteração' ao lado de 'Abrir em nova aba'", () => {

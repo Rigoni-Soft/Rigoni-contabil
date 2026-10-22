@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 
@@ -17,12 +17,16 @@ export function useVisualizarDocumentoContratual(
   alteracaoEmFoco?: number,
 ) {
   const [abrindo, setAbrindo] = useState(false);
+  // Dois cliques no mesmo quadro chegam antes do re-render que mostra `abrindo`: o ref barra o segundo.
+  const emAndamento = useRef(false);
   // `link` só existe quando o navegador barra a nova aba: o link já gerado vira clicável na tela.
   const [aviso, setAviso] = useState<{ erro: string; link?: string }>();
 
   const documento = documentoEmDestaque(documentos, alteracaoEmFoco);
 
   const abrir = async () => {
+    if (emAndamento.current) return;
+    emAndamento.current = true;
     setAbrindo(true);
     setAviso(undefined);
     // A aba abre de forma síncrona no clique (senão o bloqueador de pop-up barra) e recebe o link
@@ -49,6 +53,7 @@ export function useVisualizarDocumentoContratual(
       aba?.close();
       setAviso({ erro: ERRO_ABRIR });
     } finally {
+      emAndamento.current = false;
       setAbrindo(false);
     }
   };

@@ -51,14 +51,16 @@ export function VisualizarDocumentoContratual({
         <Linha alinhar="centro" espaco={2} quebra>
           <Button
             type="button"
-            onClick={onAbrir}
-            disabled={abrindo}
+            // aria-disabled (não disabled) para o foco não se perder enquanto abre, como no encerramento.
+            onClick={() => !abrindo && onAbrir()}
+            aria-disabled={abrindo}
             // O nome começa pelo texto visível (WCAG 2.5.3, comando de voz) e acrescenta qual documento abre.
             aria-label={abrindo ? undefined : `Abrir em nova aba: ${rotulo}`}
             ref={botaoAbrirRef}
             // Anel só enquanto há foco: `focus:` cobre o foco por script depois de um clique de mouse (não casa
             // `:focus-visible`) e `focus-visible:ring-4` troca o `ring-2` padrão do Button.
             className={cn(
+              "aria-disabled:pointer-events-none aria-disabled:opacity-50",
               destacar &&
                 "focus:ring-4 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background focus-visible:ring-4",
             )}

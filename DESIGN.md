@@ -937,7 +937,10 @@ fixos, campo travado em cor plena, diálogo e lista das alterações); onde há 
   focus:ring-offset-background focus-visible:ring-4`), **só enquanto o botão tem foco**: some ao sair
   dele, e vale também para o foco por script depois de um clique de mouse (que não casa
   `:focus-visible`). O anel é um sinal de forma, não só de cor. No celular (390 px) o botão desce para
-  a linha de baixo do cartão em vez de espremer o rótulo (coluna do documento com base de 12rem). O destaque só
+  a linha de baixo do cartão em vez de espremer o rótulo (coluna do documento com base de 12rem).
+  Enquanto o arquivo abre, o botão fica `aria-disabled` (não `disabled`, como no encerramento): mostra
+  "Abrindo…" esmaecido, não reabre e **mantém o foco**; um `ref` no hook barra o segundo clique do
+  mesmo quadro. O destaque só
   vale quando o nº existe entre os documentos: nº ausente, inválido (só inteiro positivo conta) ou
   inexistente abre a de maior nº, sem foco nem anel. O aviso de novo Cliente leva ao formulário sem
   parâmetro, logo sem destaque.
