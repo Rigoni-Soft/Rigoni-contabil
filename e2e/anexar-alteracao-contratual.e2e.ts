@@ -1,33 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import {
-  atribuirResponsavelComoLider,
-  cnpjUnico,
-  empresaUnica,
-  login,
-  pdf,
-} from "./support/criar-cliente";
+import { criarClienteComAlteracao1, empresaUnica, login, pdf } from "./support/criar-cliente";
 
 async function sair(page: Page) {
   await page.getByRole("button", { name: "Sair" }).click();
   await expect(page).toHaveURL(/\/login$/);
-}
-
-// Admin cadastra um Cliente SN com a alteração nº 1; devolve o id para abrir /clientes/[id].
-async function criarClienteComAlteracao1(page: Page, empresa: string): Promise<string> {
-  const cnpj = cnpjUnico();
-  await login(page, "admin@rigonicontabil.local", "admin123");
-  await expect(page).toHaveURL("/");
-  await page.goto("/admin/clientes/novo");
-  await page.getByLabel("Empresa").fill(empresa);
-  await page.getByLabel("CNPJ").fill(cnpj);
-  await page.getByLabel("Regime").selectOption("simples_nacional");
-  await page.getByRole("button", { name: "Adicionar" }).click();
-  await page.getByLabel("Data da alteração 1").fill("2026-02-01");
-  await page.getByLabel("Arquivo da alteração 1").setInputFiles(pdf("1-alteracao.pdf"));
-  await page.getByRole("button", { name: "Cadastrar" }).click();
-  await expect(page.getByText(empresa)).toBeVisible();
-  return atribuirResponsavelComoLider(cnpj);
 }
 
 test.describe("Admin anexa alteração contratual a Cliente existente (#141)", () => {

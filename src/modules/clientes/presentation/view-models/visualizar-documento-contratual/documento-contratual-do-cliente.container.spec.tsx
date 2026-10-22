@@ -5,14 +5,8 @@ import { useDocumentosContratuais } from "./documentos-contratuais.queries";
 
 jest.mock("./documentos-contratuais.queries", () => ({ useDocumentosContratuais: jest.fn() }));
 jest.mock("./visualizar-documento-contratual.container", () => ({
-  VisualizarDocumentoContratualContainer: ({
-    documentos,
-    alteracaoEmFoco,
-  }: {
-    documentos: unknown[];
-    alteracaoEmFoco?: number;
-  }) => (
-    <button type="button">{`botão com ${documentos.length} documento(s), foco ${alteracaoEmFoco ?? "nenhum"}`}</button>
+  VisualizarDocumentoContratualContainer: ({ documentos }: { documentos: unknown[] }) => (
+    <button type="button">{`botão com ${documentos.length} documento(s)`}</button>
   ),
 }));
 
@@ -38,19 +32,7 @@ describe("DocumentoContratualDoClienteContainer (#140)", () => {
 
     render(<DocumentoContratualDoClienteContainer clienteId={CLIENTE} />);
 
-    expect(
-      screen.getByRole("button", { name: "botão com 1 documento(s), foco nenhum" }),
-    ).toBeInTheDocument();
-  });
-
-  it("repassa o nº da alteração do aviso ao container do botão (#144)", () => {
-    estado({ data: [{ tipo: "contrato", numero: null, data: null, arquivo: "contrato.pdf" }] });
-
-    render(<DocumentoContratualDoClienteContainer clienteId={CLIENTE} alteracaoEmFoco={2} />);
-
-    expect(
-      screen.getByRole("button", { name: "botão com 1 documento(s), foco 2" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "botão com 1 documento(s)" })).toBeInTheDocument();
   });
 
   it("repassa a carga inicial do servidor à query", () => {

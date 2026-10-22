@@ -1,12 +1,6 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 
-import {
-  atribuirResponsavelComoLider,
-  cnpjUnico,
-  empresaUnica,
-  login,
-  pdf,
-} from "./support/criar-cliente";
+import { criarClienteComAlteracao1, empresaUnica, login, pdf } from "./support/criar-cliente";
 
 const SINO = /Avisos de cadastro/;
 // Anel de 4 px + deslocamento de 2 px: o anel padrão do foco (2 px + 2 px) termina em 4 px.
@@ -32,23 +26,6 @@ function avisoDaAlteracao(page: Page, numero: number) {
       has: page.getByText(`Nova Alteração contratual nº ${numero}`, { exact: true }),
     })
     .first();
-}
-
-// Admin cadastra um Cliente SN com a alteração nº 1 e o Funcionário SN como Responsável.
-async function criarClienteComAlteracao1(page: Page, empresa: string): Promise<string> {
-  const cnpj = cnpjUnico();
-  await login(page, "admin@rigonicontabil.local", "admin123");
-  await expect(page).toHaveURL("/");
-  await page.goto("/admin/clientes/novo");
-  await page.getByLabel("Empresa").fill(empresa);
-  await page.getByLabel("CNPJ").fill(cnpj);
-  await page.getByLabel("Regime").selectOption("simples_nacional");
-  await page.getByRole("button", { name: "Adicionar" }).click();
-  await page.getByLabel("Data da alteração 1").fill("2026-02-01");
-  await page.getByLabel("Arquivo da alteração 1").setInputFiles(pdf("1-alteracao.pdf"));
-  await page.getByRole("button", { name: "Cadastrar" }).click();
-  await expect(page.getByText(empresa)).toBeVisible();
-  return atribuirResponsavelComoLider(cnpj);
 }
 
 async function anexar(page: Page, numero: number, data: string) {

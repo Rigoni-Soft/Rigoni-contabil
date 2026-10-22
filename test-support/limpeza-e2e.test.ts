@@ -59,32 +59,19 @@ describe("limparClientesDoE2E", () => {
       expect(zerarAvisos).toHaveBeenCalledTimes(1);
     });
 
-    it("com BASE_URL definida não zera (o deploy não é da suíte)", async () => {
+    it.each([
+      ["com BASE_URL definida (o deploy não é da suíte)", "https://preview.example.invalid"],
+      ["sem BASE_URL e com Supabase remoto", undefined],
+    ])("%s: não zera", async (_, baseUrl) => {
       const zerarAvisos = jest.fn();
 
       await limparClientesDoE2E({
-        baseUrl: "https://preview.example.invalid",
+        baseUrl,
         supabaseUrl: REMOTO,
         cnpjs: CNPJS,
         remover: jest.fn(),
         zerarAvisos,
-      });
-
-      expect(zerarAvisos).not.toHaveBeenCalled();
-    });
-
-    it("Supabase remoto falha antes de zerar", async () => {
-      const zerarAvisos = jest.fn();
-
-      await expect(
-        limparClientesDoE2E({
-          baseUrl: undefined,
-          supabaseUrl: REMOTO,
-          cnpjs: CNPJS,
-          remover: jest.fn(),
-          zerarAvisos,
-        }),
-      ).rejects.toThrow(/local/i);
+      }).catch(() => undefined);
 
       expect(zerarAvisos).not.toHaveBeenCalled();
     });

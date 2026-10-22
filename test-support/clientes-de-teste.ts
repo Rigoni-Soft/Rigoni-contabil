@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
+import { exigirSupabaseLocal } from "./exigir-supabase-local";
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ??
@@ -55,4 +57,15 @@ export async function criarClienteDeTeste(
   });
   if (error) throw new Error(`Falha ao criar Cliente de teste: ${error.message}`);
   return id;
+}
+
+// O selo do sino para em "99+": a suíte e2e parte de um backlog de Avisos de cadastro zerado.
+export async function marcarAvisosComoVistos(): Promise<void> {
+  exigirSupabaseLocal(SUPABASE_URL);
+  const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+  const { error } = await admin
+    .from("avisos_cadastro")
+    .update({ visto_em: new Date().toISOString() })
+    .is("visto_em", null);
+  if (error) throw new Error(`Falha ao zerar os Avisos de cadastro: ${error.message}`);
 }
