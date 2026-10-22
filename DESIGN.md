@@ -851,6 +851,11 @@ esmaecido (`muted-foreground`, sem fundo) com o selo "visto" em texto. "Carregar
 fecha a lista de 30 em 30. Abrir o modal não marca nada: só o clique no aviso marca como visto,
 fecha o modal e navega a `/clientes/[id]`. Contador por polling de 30 s e a cada navegação, sem som.
 
+Robustez: uma região `status` visualmente oculta anuncia "N aviso(s) de cadastro não visto(s)"
+quando o contador muda (o foco não passa pelo sino durante o polling); o modal se nomeia pelo
+título (`aria-labelledby`) e abre com o foco no "Fechar avisos" (`autofocus`); erro de leitura mostra
+o alerta com "Tentar de novo" e mantém a lista que já estava na tela.
+
 ## Estados e motion
 
 - Loading do formulário de login: label muda para "Entrando…" e um
