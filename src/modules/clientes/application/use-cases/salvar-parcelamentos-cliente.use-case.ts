@@ -102,7 +102,6 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
               caminho: `${input.clienteId}/${id}-${entrada.arquivo.name.replace(/[/\\]/g, "_")}`,
               arquivo: entrada.arquivo,
             };
-      if (!atual && !upload) return err(new ValidationError("Anexe o PDF do parcelamento."));
 
       // Quitado é decidido pelo banco e não se edita: volta exatamente como está.
       const item = atual?.quitado

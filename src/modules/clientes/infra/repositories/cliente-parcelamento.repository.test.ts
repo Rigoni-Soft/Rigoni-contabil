@@ -166,7 +166,7 @@ describe("Parcelamentos do Cliente", () => {
   it("anon não acessa a tabela nem o registro de envio", async () => {
     const anon = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     expect((await anon.from("cliente_parcelamentos").select("id")).error).not.toBeNull();
-    expect((await anon.from("cliente_parcelamento_envios").select("id")).error).not.toBeNull();
+    expect((await anon.from("cliente_parcelamento_envios").select("parcela")).error).not.toBeNull();
   });
 
   describe("campos só do sistema (gatilho BEFORE)", () => {
@@ -189,16 +189,14 @@ describe("Parcelamentos do Cliente", () => {
       expect((await direto({ arquivo_caminho: "troca.pdf" })).error).not.toBeNull();
       expect((await direto({ cliente_id: outroCliente })).error).not.toBeNull();
 
-      const nova = await admin
-        .from("cliente_parcelamentos")
-        .insert({
-          id: crypto.randomUUID(),
-          cliente_id: clienteId,
-          codigo: "Q-1",
-          parcelas_restantes: 3,
-          arquivo_caminho: "q.pdf",
-          situacao: "quitado",
-        });
+      const nova = await admin.from("cliente_parcelamentos").insert({
+        id: crypto.randomUUID(),
+        cliente_id: clienteId,
+        codigo: "Q-1",
+        parcelas_restantes: 3,
+        arquivo_caminho: "q.pdf",
+        situacao: "quitado",
+      });
       expect(nova.error).not.toBeNull();
     });
 
@@ -273,7 +271,7 @@ describe("Parcelamentos do Cliente", () => {
       await sessao.from("cliente_parcelamento_envios").delete().eq("parcelamento_id", p.id);
       const restou = await sistema
         .from("cliente_parcelamento_envios")
-        .select("id")
+        .select("parcela")
         .eq("parcelamento_id", p.id);
       expect(restou.data).toHaveLength(1);
 

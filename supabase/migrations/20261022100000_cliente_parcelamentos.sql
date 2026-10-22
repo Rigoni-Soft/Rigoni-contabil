@@ -28,14 +28,12 @@ CREATE TABLE public.cliente_parcelamentos (
 -- de remoção. Nasce travado: nenhuma sessão de usuário escreve, por isso não tem gatilho de auditoria
 -- (a auditoria é a do Parcelamento; o envio é do sistema).
 CREATE TABLE public.cliente_parcelamento_envios (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
     parcelamento_id uuid NOT NULL,
     parcela text NOT NULL,
     enviado_em timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT cliente_parcelamento_envios_pkey PRIMARY KEY (id),
+    CONSTRAINT cliente_parcelamento_envios_pkey PRIMARY KEY (parcelamento_id, parcela),
     CONSTRAINT cliente_parcelamento_envios_parcelamento_id_fkey FOREIGN KEY (parcelamento_id) REFERENCES public.cliente_parcelamentos(id) ON DELETE CASCADE,
-    CONSTRAINT cliente_parcelamento_envios_parcela_check CHECK (parcela ~ '^[0-9]{6}$'),
-    CONSTRAINT cliente_parcelamento_envios_parcelamento_id_parcela_key UNIQUE (parcelamento_id, parcela)
+    CONSTRAINT cliente_parcelamento_envios_parcela_check CHECK (parcela ~ '^[0-9]{6}$')
 );
 
 -- Regras que valem para a sessão de usuário (RPC ou Data API). Sem auth.uid() (job, seed,

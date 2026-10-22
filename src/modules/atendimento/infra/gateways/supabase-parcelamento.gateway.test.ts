@@ -112,7 +112,7 @@ async function statusDoParcelamento(id: string) {
   const envios = await ok(
     admin
       .from("cliente_parcelamento_envios")
-      .select("id, cliente_parcelamentos!inner(cliente_id)")
+      .select("parcela, cliente_parcelamentos!inner(cliente_id)")
       .eq("cliente_parcelamentos.cliente_id", id),
   );
   return envios.length > 0 ? "enviado" : "pendente";
