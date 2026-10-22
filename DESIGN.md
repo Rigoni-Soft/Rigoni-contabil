@@ -933,8 +933,11 @@ fixos, campo travado em cor plena, diálogo e lista das alterações); onde há 
 - **Destaque ao chegar por aviso (#144)**: quem chega por um aviso de nova alteração
   (`/clientes/[id]?alteracao=N`) vê o cartão com **a alteração do aviso**, não a mais recente, e o
   botão "Abrir em nova aba" chega **em foco** (o Container foca por `ref`, e tenta a cada quadro até pegar: o formulário fica `visibility: hidden` até hidratar e o foco num elemento oculto não faz nada; desiste se o usuário já foi para outro controle) e com anel `ring` de 4 px com
-  deslocamento de 2 px na cor do fundo (`ring-4 ring-ring ring-offset-2 ring-offset-background`),
-  que fica enquanto a tela estiver aberta. O anel é um sinal de forma, não só de cor. O destaque só
+  deslocamento de 2 px na cor do fundo (`focus:ring-4 focus:ring-ring focus:ring-offset-2
+  focus:ring-offset-background focus-visible:ring-4`), **só enquanto o botão tem foco**: some ao sair
+  dele, e vale também para o foco por script depois de um clique de mouse (que não casa
+  `:focus-visible`). O anel é um sinal de forma, não só de cor. No celular (390 px) o botão desce para
+  a linha de baixo do cartão em vez de espremer o rótulo (coluna do documento com base de 12rem). O destaque só
   vale quando o nº existe entre os documentos: nº ausente, inválido (só inteiro positivo conta) ou
   inexistente abre a de maior nº, sem foco nem anel. O aviso de novo Cliente leva ao formulário sem
   parâmetro, logo sem destaque.

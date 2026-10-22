@@ -9,6 +9,8 @@ import {
 } from "./support/criar-cliente";
 
 const SINO = /Avisos de cadastro/;
+// Anel de 4 px + deslocamento de 2 px: o anel padrão do foco (2 px + 2 px) termina em 4 px.
+const ANEL_DE_4PX = /0px 0px 0px 6px/;
 const ABRIR_2 = "Abrir em nova aba: Alteração nº 2 - 01/03/2026";
 const ABRIR_3 = "Abrir em nova aba: Alteração nº 3 - 01/04/2026";
 
@@ -99,7 +101,10 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
       await expect(pessoa).toHaveURL(`/clientes/${clienteId}?alteracao=2`);
       const botao = pessoa.getByRole("button", { name: ABRIR_2 });
       await expect(botao).toBeFocused();
-      await expect(botao).toHaveClass(/ring-4/);
+      await expect(botao).toHaveCSS("box-shadow", ANEL_DE_4PX);
+      // O anel acompanha o foco: ao sair do botão ele some.
+      await pessoa.getByRole("heading", { level: 1 }).click();
+      await expect(botao).toHaveCSS("box-shadow", "none");
       await expect(pessoa.getByRole("button", { name: ABRIR_3 })).toHaveCount(0);
       await expect.poll(() => naoVistos(pessoa)).toBe(base + 1);
     }
@@ -146,7 +151,7 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
     const botao = lider.getByRole("button", { name: ABRIR_3 });
     await expect(botao).toBeVisible();
     await expect(botao).not.toBeFocused();
-    await expect(botao).not.toHaveClass(/ring-4/);
+    await expect(botao).toHaveCSS("box-shadow", "none");
 
     // Parâmetro forjado: inválido não destaca; nº que não existe cai na mais recente.
     await lider.goto(`/clientes/${clienteId}?alteracao=abc`);
@@ -155,7 +160,7 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
     const semDestaque = lider.getByRole("button", { name: ABRIR_3 });
     await expect(semDestaque).toBeVisible();
     await expect(semDestaque).not.toBeFocused();
-    await expect(semDestaque).not.toHaveClass(/ring-4/);
+    await expect(semDestaque).toHaveCSS("box-shadow", "none");
   });
 
   test("aviso de novo Cliente leva ao formulário sem destaque", async ({ page, browser }) => {
@@ -174,7 +179,7 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
     const botao = lider.getByRole("button", { name: /^Abrir em nova aba: Alteração nº 1/ });
     await expect(botao).toBeVisible();
     await expect(botao).not.toBeFocused();
-    await expect(botao).not.toHaveClass(/ring-4/);
+    await expect(botao).toHaveCSS("box-shadow", "none");
   });
 
   test("hidratação lenta (CPU 20x mais lenta): o botão ainda recebe o foco quando o formulário aparece", async ({
@@ -197,5 +202,37 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
     const botao = lider.getByRole("button", { name: ABRIR_2 });
     await expect(botao).toBeVisible({ timeout: 30_000 });
     await expect(botao).toBeFocused({ timeout: 30_000 });
+  });
+
+  test("celular (390 px): o rótulo da alteração não se parte e o botão desce para a linha de baixo", async ({
+    page,
+    browser,
+  }) => {
+    const clienteId = await criarClienteComAlteracao1(
+      page,
+      empresaUnica("Destaque Celular E2E Ltda"),
+    );
+    await page.goto(`/clientes/${clienteId}`);
+    await anexar(page, 2, "2026-03-01");
+    const contexto = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const celular = await contexto.newPage();
+    await login(celular, LIDER.email, LIDER.senha);
+    await expect(celular).toHaveURL("/simples-nacional");
+
+    await celular.goto(`/clientes/${clienteId}?alteracao=2`);
+
+    const rotulo = celular.getByText("Alteração nº 2 - 01/03/2026", { exact: true });
+    const botao = celular.getByRole("button", { name: ABRIR_2 });
+    await expect(botao).toBeFocused();
+    const [caixaRotulo, caixaBotao] = await Promise.all([
+      rotulo.boundingBox(),
+      botao.boundingBox(),
+    ]);
+    // Uma linha só (a data inteira cabe), e o botão começa abaixo do rótulo, não ao lado.
+    expect(caixaRotulo!.height).toBeLessThan(30);
+    expect(caixaBotao!.y).toBeGreaterThanOrEqual(caixaRotulo!.y + caixaRotulo!.height);
+    // O anel do foco não vaza da tela.
+    expect(caixaBotao!.x).toBeGreaterThanOrEqual(0);
+    expect(caixaBotao!.x + caixaBotao!.width).toBeLessThanOrEqual(390);
   });
 });

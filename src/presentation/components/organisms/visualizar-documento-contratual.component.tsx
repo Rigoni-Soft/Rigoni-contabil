@@ -18,7 +18,7 @@ type VisualizarDocumentoContratualProps = {
   linkAlternativo?: string;
   // Só o Admin: id do diálogo de anexar, aberto pelo botão ao lado de "Abrir em nova aba".
   anexarPainelId?: string;
-  // Chegou por um aviso de alteração: o botão de abrir ganha anel. O foco quem dá é o Container, pelo ref.
+  // Chegou por um aviso de alteração: o botão de abrir ganha anel de 4 px enquanto estiver em foco. O foco quem dá é o Container, pelo ref.
   destacar?: boolean;
   botaoAbrirRef?: React.Ref<HTMLButtonElement>;
 };
@@ -38,7 +38,8 @@ export function VisualizarDocumentoContratual({
   return (
     <Pilha espaco={2} className="rounded-md border border-border p-3">
       <Linha alinhar="fim" justificar="entre" espaco={3} quebra>
-        <Linha alinhar="centro" espaco={2} className="min-w-0 flex-1">
+        {/* Base de 12rem (e não 0): sem ela o botão nunca quebra de linha e espreme o rótulo no celular. */}
+        <Linha alinhar="centro" espaco={2} className="min-w-0 flex-[1_1_12rem]">
           <FileText className="size-5 shrink-0 text-primary" aria-hidden="true" />
           <Pilha espaco={1} className="min-w-0">
             <Texto variante="apoio">Contrato social e alterações</Texto>
@@ -55,7 +56,12 @@ export function VisualizarDocumentoContratual({
             // O nome começa pelo texto visível (WCAG 2.5.3, comando de voz) e acrescenta qual documento abre.
             aria-label={abrindo ? undefined : `Abrir em nova aba: ${rotulo}`}
             ref={botaoAbrirRef}
-            className={cn(destacar && "ring-4 ring-ring ring-offset-2 ring-offset-background")}
+            // Anel só enquanto há foco: `focus:` cobre o foco por script depois de um clique de mouse (não casa
+            // `:focus-visible`) e `focus-visible:ring-4` troca o `ring-2` padrão do Button.
+            className={cn(
+              destacar &&
+                "focus:ring-4 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background focus-visible:ring-4",
+            )}
           >
             <ExternalLink className="size-4" aria-hidden="true" />
             {abrindo ? "Abrindo…" : "Abrir em nova aba"}

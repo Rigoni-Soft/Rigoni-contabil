@@ -74,10 +74,13 @@ describe("VisualizarDocumentoContratual (#140)", () => {
 });
 
 describe("VisualizarDocumentoContratual: destaque ao chegar por aviso (#144)", () => {
-  it("destacar: o botão de abrir ganha o anel (o foco é do Container, pelo ref)", () => {
+  it("destacar: o anel de 4 px vale enquanto o botão tem foco, com mouse ou teclado (o foco é do Container, pelo ref)", () => {
     montar({ destacar: true });
 
-    expect(screen.getByRole("button", { name: /^Abrir / })).toHaveClass("ring-4");
+    expect(screen.getByRole("button", { name: /^Abrir / })).toHaveClass(
+      "focus:ring-4",
+      "focus-visible:ring-4",
+    );
   });
 
   it("repassa o ref ao botão de abrir", () => {
@@ -92,7 +95,7 @@ describe("VisualizarDocumentoContratual: destaque ao chegar por aviso (#144)", (
 
     const botao = screen.getByRole("button", { name: /^Abrir / });
     expect(botao).not.toHaveFocus();
-    expect(botao).not.toHaveClass("ring-4");
+    expect(botao).not.toHaveClass("focus:ring-4");
   });
 
   it("destacar não mexe no botão de anexar nem no que o botão faz", () => {
