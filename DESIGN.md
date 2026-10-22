@@ -837,7 +837,7 @@ ou o cliente escreve de novo.
 ### Sino de Avisos de cadastro (#143)
 
 Primeiro item da linha de ações do `ShellHeader`, em toda tela autenticada (Admin inclusive: o
-sino fica sem selo, ele não recebe aviso). Botão redondo de 48 px (`size-12`, maior que o alvo
+sino fica sem selo e sem consultar o contador, porque ele não recebe aviso). Botão redondo de 48 px (`size-12`, maior que o alvo
 padrão de 44 px), ícone `Bell` de 24 px. Sem aviso não visto: contorno `input`, fundo transparente.
 Com algum: preenchido `primary` com `primary-foreground`, e um selo `destructive` (borda de 2 px na
 cor do fundo) no canto superior direito com o contador, `99+` acima de 99. O selo é decorativo
