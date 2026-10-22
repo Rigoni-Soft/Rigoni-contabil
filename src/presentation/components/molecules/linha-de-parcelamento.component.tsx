@@ -1,4 +1,4 @@
-import { Trash2 } from "lucide-react";
+import { CheckCircle2, Clock, Trash2, type LucideIcon } from "lucide-react";
 
 import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcacao.component";
 import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
@@ -9,10 +9,21 @@ import { cn } from "@/presentation/lib/utils";
 
 export type SeloDoParcelamento = "quitado" | "enviado" | "pendente";
 
-const SELO: Record<SeloDoParcelamento, { rotulo: string; classes: string }> = {
-  quitado: { rotulo: "Quitado", classes: "border border-border text-muted-foreground" },
-  enviado: { rotulo: "Enviado no mês", classes: "bg-success text-success-foreground" },
-  pendente: { rotulo: "Pendente no mês", classes: "border border-border bg-muted text-foreground" },
+// Estado de resultado: ícone + texto + cor, nunca só cor (DESIGN.md "Indicadores de estado"). Enviado
+// é `primary` (o dourado `success` é do selo "em dia" das telas de status do Simples Nacional);
+// pendente e quitado ficam neutros, sem o vermelho de falha.
+const SELO: Record<SeloDoParcelamento, { rotulo: string; classes: string; Icone?: LucideIcon }> = {
+  quitado: { rotulo: "Quitado", classes: "border-border text-muted-foreground" },
+  enviado: {
+    rotulo: "Enviado no mês",
+    classes: "border-primary text-primary",
+    Icone: CheckCircle2,
+  },
+  pendente: {
+    rotulo: "Pendente no mês",
+    classes: "border-border bg-muted text-foreground",
+    Icone: Clock,
+  },
 };
 
 type LinhaDeParcelamentoProps = {
@@ -52,6 +63,7 @@ export function LinhaDeParcelamento({
   motivoSemRemover,
 }: LinhaDeParcelamentoProps) {
   const idDoSelo = `parcelamentos.${indice}.selo`;
+  const { rotulo, classes, Icone } = SELO[selo];
   const idDoMotivo = `parcelamentos.${indice}.motivo-remover`;
   return (
     <Pilha espaco={2} className="rounded-md border border-border p-3">
@@ -89,9 +101,13 @@ export function LinhaDeParcelamento({
           variante="nota"
           como="span"
           id={idDoSelo}
-          className={cn("mb-2 rounded-full px-2 py-0.5 font-medium", SELO[selo].classes)}
+          className={cn(
+            "mb-2 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium",
+            classes,
+          )}
         >
-          {SELO[selo].rotulo}
+          {Icone && <Icone className="size-3" aria-hidden="true" />}
+          {rotulo}
         </Texto>
         {(onRemover || motivoSemRemover) && (
           <Button

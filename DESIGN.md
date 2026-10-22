@@ -324,6 +324,9 @@ de conta criada, fora de uma lista — confirma que o contrato é de indicador
 de resultado em geral, não específico de tabela. `success` (dourado) fica
 reservado ao selo "em dia" do Simples Nacional — não se usa aqui para não
 sobrepor dois significados no mesmo token.
+O selo de status do mês de cada Parcelamento no Editar cliente (#122) segue o mesmo contrato:
+"Enviado no mês" em `primary` com `CheckCircle2`, "Pendente no mês" em `muted` com `Clock` (pendente
+ali não é falha, então sem `destructive`) e "Quitado" neutro, só texto.
 
 **`FieldError` com texto longo:** o ícone alinha na primeira linha
 (`items-start` + `mt-[3px]`, 14 px de ícone sobre 20 px de linha), então o
