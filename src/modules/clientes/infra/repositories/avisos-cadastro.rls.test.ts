@@ -5,7 +5,10 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { criarAdminLocal } from "../../../../../test-support/admin-supabase-local";
-import { removerClientesDeTeste } from "../../../../../test-support/clientes-de-teste";
+import {
+  criarClienteDeTeste,
+  removerClientesDeTeste,
+} from "../../../../../test-support/clientes-de-teste";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
@@ -24,7 +27,7 @@ async function como(email: string, senha: string): Promise<SupabaseClient> {
 
 const LIDER_SN_ID = "88888888-8888-8888-8888-888888888888";
 const CNPJ = "11222333000181";
-const clienteId = crypto.randomUUID();
+let clienteId: string;
 
 let lider: SupabaseClient;
 let funcionario: SupabaseClient;
@@ -56,15 +59,7 @@ async function inserirAvisoDoLider(criadoEm: string, vistoEm: string | null = nu
 
 beforeAll(async () => {
   await removerClientesDeTeste([CNPJ]);
-  const { error } = await servico.rpc("criar_cliente", {
-    p_id: clienteId,
-    p_empresa: "Avisos RLS Ltda",
-    p_cnpj: CNPJ,
-    p_regime: "simples_nacional",
-    p_contrato_social_caminho: `${clienteId}/contrato-social/c.pdf`,
-    p_alteracoes: [],
-  });
-  if (error) throw new Error(error.message);
+  clienteId = await criarClienteDeTeste(CNPJ, "simples_nacional");
   [lider, funcionario, admin] = await Promise.all([
     como("lider.sn@rigonicontabil.local", "lider123"),
     como("funcionario.sn@rigonicontabil.local", "func123"),

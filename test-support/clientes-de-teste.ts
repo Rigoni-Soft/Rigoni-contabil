@@ -31,3 +31,28 @@ export async function removerClientesDeTeste(cnpjs: readonly string[]): Promise<
   if (clientes.error)
     throw new Error(`Falha ao limpar Clientes de teste: ${clientes.error.message}`);
 }
+
+// Cria um Cliente pelo `criar_cliente` (service_role) e devolve o id. As suítes limpam pelo CNPJ.
+export async function criarClienteDeTeste(
+  cnpj: string,
+  regime: string,
+  alteracoes: { numero: number; data: string }[] = [],
+): Promise<string> {
+  const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+  const id = crypto.randomUUID();
+  const { error } = await admin.rpc("criar_cliente", {
+    p_id: id,
+    p_empresa: "Cliente de Teste Ltda",
+    p_cnpj: cnpj,
+    p_regime: regime,
+    p_contrato_social_caminho: `${id}/contrato-social/c.pdf`,
+    p_alteracoes: alteracoes.map((a) => ({
+      id: crypto.randomUUID(),
+      numero: a.numero,
+      data: a.data,
+      arquivoCaminho: `${id}/alteracoes-contratuais/${a.numero}-a.pdf`,
+    })),
+  });
+  if (error) throw new Error(`Falha ao criar Cliente de teste: ${error.message}`);
+  return id;
+}

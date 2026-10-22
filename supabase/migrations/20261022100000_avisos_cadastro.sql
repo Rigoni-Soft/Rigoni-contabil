@@ -11,9 +11,6 @@ CREATE TABLE public.avisos_cadastro (
     criado_em timestamp with time zone DEFAULT now() NOT NULL,
     visto_em timestamp with time zone,
     CONSTRAINT avisos_cadastro_pkey PRIMARY KEY (id),
-    CONSTRAINT avisos_cadastro_tipo_check CHECK (
-      (tipo = 'novo_cliente' AND alteracao_id IS NULL) OR (tipo = 'nova_alteracao' AND alteracao_id IS NOT NULL)
-    ),
     CONSTRAINT avisos_cadastro_destinatario_id_fkey FOREIGN KEY (destinatario_id) REFERENCES public.perfis(id) ON DELETE CASCADE,
     CONSTRAINT avisos_cadastro_cliente_id_fkey FOREIGN KEY (cliente_id) REFERENCES public.clientes(id) ON DELETE CASCADE,
     CONSTRAINT avisos_cadastro_alteracao_id_fkey FOREIGN KEY (alteracao_id) REFERENCES public.cliente_alteracoes_contratuais(id) ON DELETE CASCADE

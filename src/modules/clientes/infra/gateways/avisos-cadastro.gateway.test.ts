@@ -4,33 +4,22 @@
  */
 import { createClient } from "@supabase/supabase-js";
 
-import { criarAdminLocal } from "../../../../../test-support/admin-supabase-local";
-import { removerClientesDeTeste } from "../../../../../test-support/clientes-de-teste";
+import {
+  criarClienteDeTeste,
+  removerClientesDeTeste,
+} from "../../../../../test-support/clientes-de-teste";
 import { SupabaseAvisosCadastroGateway } from "./avisos-cadastro.gateway";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
-const SERVICE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ??
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
-
-const servico = criarAdminLocal(SERVICE_KEY);
 const CNPJ = "11222333000181";
-const clienteId = crypto.randomUUID();
+let clienteId: string;
 
 let gateway: SupabaseAvisosCadastroGateway;
 
 beforeAll(async () => {
   await removerClientesDeTeste([CNPJ]);
-  const { error } = await servico.rpc("criar_cliente", {
-    p_id: clienteId,
-    p_empresa: "Gateway Avisos Ltda",
-    p_cnpj: CNPJ,
-    p_regime: "simples_nacional",
-    p_contrato_social_caminho: `${clienteId}/contrato-social/c.pdf`,
-    p_alteracoes: [],
-  });
-  if (error) throw new Error(error.message);
+  clienteId = await criarClienteDeTeste(CNPJ, "simples_nacional");
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const login = await supabase.auth.signInWithPassword({
     email: "lider.sn@rigonicontabil.local",
