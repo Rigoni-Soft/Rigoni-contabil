@@ -284,7 +284,15 @@ export function EditarCadastroOperacionalForm({
         </Pilha>
 
         <Pilha espaco={3} className="sm:col-span-2 lg:col-span-4">
-          <Label className="block">Contatos</Label>
+          <Linha alinhar="centro" justificar="entre" espaco={4}>
+            <Label className="block">Contatos</Label>
+            {!readOnly && (
+              <Button type="button" variant="ghost" size="sm" onClick={onAdicionarContato}>
+                <Plus className="size-4" aria-hidden="true" />
+                Adicionar contato
+              </Button>
+            )}
+          </Linha>
           {contatos.map((campo, indice) => (
             <Controller
               key={campo.id}
@@ -313,16 +321,18 @@ export function EditarCadastroOperacionalForm({
           {errors.contatos && typeof errors.contatos.message === "string" && (
             <FieldError>{errors.contatos.message}</FieldError>
           )}
-          {!readOnly && (
-            <Button type="button" variant="outline" onClick={onAdicionarContato}>
-              <Plus className="size-4" aria-hidden="true" />
-              Adicionar contato
-            </Button>
-          )}
         </Pilha>
 
         <Pilha espaco={3} className="sm:col-span-2 lg:col-span-4">
-          <Label className="block">Parcelamentos</Label>
+          <Linha alinhar="centro" justificar="entre" espaco={4}>
+            <Label className="block">Parcelamentos</Label>
+            {!readOnly && (
+              <Button type="button" variant="ghost" size="sm" onClick={onAdicionarParcelamento}>
+                <Plus className="size-4" aria-hidden="true" />
+                Adicionar parcelamento
+              </Button>
+            )}
+          </Linha>
           {/* Resumo derivado: só conta o que já foi salvo (linha com id), nunca o que está sendo digitado. */}
           <Texto variante="corpo" role="status">
             Tem parcelamento:{" "}
@@ -404,12 +414,6 @@ export function EditarCadastroOperacionalForm({
               />
             );
           })}
-          {!readOnly && (
-            <Button type="button" variant="outline" onClick={onAdicionarParcelamento}>
-              <Plus className="size-4" aria-hidden="true" />
-              Adicionar parcelamento
-            </Button>
-          )}
         </Pilha>
 
         <Pilha espaco={1} className="sm:col-span-2 lg:col-span-4">
