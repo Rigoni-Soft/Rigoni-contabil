@@ -14,8 +14,10 @@ import {
   type ParcelamentoProps,
 } from "@/modules/clientes/domain/value-objects/parcelamento.vo";
 import type { AppError } from "@/shared/errors/app.error";
+import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
+import { ResultadoIncertoError } from "@/shared/errors/resultado-incerto.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { podeEditarCadastroOperacional } from "@/shared/kernel/papeis";
 import { regimeTemCadastroOperacionalSn } from "@/shared/kernel/regimes";
@@ -68,14 +70,19 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
 
     const salvo = await this.parcelamentos.salvar(input.clienteId, itens);
     if (!salvo.ok) {
-      await this.apagarAnexos(input.clienteId, enviados.value);
-      return salvo;
+      const confirmado = await this.reconciliar(input.clienteId, salvo.error, enviados.value);
+      if (confirmado.ok && !confirmado.value) return salvo;
+      if (!confirmado.ok) return confirmado;
     }
 
+    // Só apaga o PDF de quem saiu do conjunto e cujo caminho nenhum Parcelamento mantido referencia.
     const mantidos = new Set(itens.map((item) => item.id));
+    const caminhosEmUso = new Set(itens.map((item) => item.arquivoCaminho));
     await this.apagarAnexos(
       input.clienteId,
-      existentes.value.filter((p) => !mantidos.has(p.id)).map((p) => p.arquivoCaminho),
+      existentes.value
+        .filter((p) => !mantidos.has(p.id) && !caminhosEmUso.has(p.arquivoCaminho))
+        .map((p) => p.arquivoCaminho),
     );
     return ok(undefined);
   }
@@ -125,6 +132,36 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
       if (upload) uploads.push(upload);
     }
     return ok({ itens, uploads });
+  }
+
+  // Falha definitiva: apaga os uploads (rollback provado). Resultado incerto: lê o banco antes de
+  // apagar qualquer PDF; gravado = segue como sucesso; sem desfecho provado = mantém os arquivos.
+  // ok(true) = o banco confirmou a gravação; ok(false) = rollback provado e uploads apagados.
+  private async reconciliar(
+    clienteId: string,
+    erro: AppError,
+    enviados: string[],
+  ): Promise<Result<boolean, AppError>> {
+    if (!(erro instanceof ResultadoIncertoError)) {
+      await this.apagarAnexos(clienteId, enviados);
+      return ok(false);
+    }
+    const atuais = await this.parcelamentos.listar(clienteId);
+    // Sem upload novo não há caminho que prove o desfecho: fica sem reconciliar.
+    if (atuais.ok && enviados.length > 0) {
+      const gravados = new Set(atuais.value.map((p) => p.arquivoCaminho));
+      if (enviados.every((c) => gravados.has(c))) return ok(true);
+      if (enviados.every((c) => !gravados.has(c))) {
+        await this.apagarAnexos(clienteId, enviados);
+        return ok(false);
+      }
+    }
+    return err(
+      new EstadoInconsistenteError(
+        "Não foi possível confirmar se os Parcelamentos foram salvos. Os PDFs foram mantidos; recarregue a página e confira antes de tentar de novo.",
+        clienteId,
+      ),
+    );
   }
 
   // Sobe os PDFs novos; se um falhar, apaga os que já subiram.

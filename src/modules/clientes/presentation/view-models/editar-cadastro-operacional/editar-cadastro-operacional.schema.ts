@@ -35,6 +35,11 @@ const pdfDoAcordo = z
   .refine((arquivo) => arquivo.type === "application/pdf", "Envie um arquivo PDF")
   .refine((arquivo) => arquivo.size <= LIMITE_PDF_BYTES, "O arquivo passa de 4 MB");
 
+// O teto de 4,5 MB é do corpo inteiro da Server Action, não de cada PDF: a soma dos anexos novos cabe nele.
+const somaDosPdfsCabe = (parcelamentos: { arquivo?: File }[]) =>
+  parcelamentos.reduce((total, p) => total + (p.arquivo?.size ?? 0), 0) <= LIMITE_PDF_BYTES;
+const MENSAGEM_SOMA_DOS_PDFS = "Os PDFs novos somam mais de 4 MB. Salve alguns de cada vez.";
+
 // Leitura do PDF na tela: o arquivo, com as mesmas regras do anexo, e o Cliente (para conferir o CNPJ).
 export const lerPdfDeParcelamentoSchema = z.object({ clienteId: z.guid(), arquivo: pdfDoAcordo });
 
@@ -60,17 +65,19 @@ const codigoDoParcelamento = z
 // Parcelamentos vão por Server Action própria (têm arquivo): o cadastro operacional não os carrega.
 export const salvarParcelamentosSchema = z.object({
   clienteId: z.guid(),
-  parcelamentos: z.array(
-    z.object({
-      id: z.guid().optional(),
-      codigo: codigoDoParcelamento,
-      // 0 vem do quitado, que volta intacto; o mínimo de 1 nos demais é do caso de uso e do banco.
-      parcelasRestantes: z.number().int("número inteiro").min(0),
-      interno: z.boolean(),
-      arquivo: pdfDoAcordo.optional(),
-      acordo: acordoDoPdf.optional(),
-    }),
-  ),
+  parcelamentos: z
+    .array(
+      z.object({
+        id: z.guid().optional(),
+        codigo: codigoDoParcelamento,
+        // 0 vem do quitado, que volta intacto; o mínimo de 1 nos demais é do caso de uso e do banco.
+        parcelasRestantes: z.number().int("número inteiro").min(0),
+        interno: z.boolean(),
+        arquivo: pdfDoAcordo.optional(),
+        acordo: acordoDoPdf.optional(),
+      }),
+    )
+    .refine(somaDosPdfsCabe, MENSAGEM_SOMA_DOS_PDFS),
 });
 
 // Linha do formulário: além do que se grava, traz o que a tela só exibe (selo, quitado, nome do PDF).
@@ -112,7 +119,10 @@ export type EditarCadastroOperacionalInput = z.infer<typeof editarCadastroOperac
 // action de edição o descarta.
 export const editarCadastroOperacionalFormSchema = editarCadastroOperacionalSchema
   .omit({ clienteId: true })
-  .extend({ responsavelId: z.string(), parcelamentos: z.array(parcelamentoFormSchema) });
+  .extend({
+    responsavelId: z.string(),
+    parcelamentos: z.array(parcelamentoFormSchema).refine(somaDosPdfsCabe, MENSAGEM_SOMA_DOS_PDFS),
+  });
 export type EditarCadastroOperacionalFormValues = z.infer<
   typeof editarCadastroOperacionalFormSchema
 >;

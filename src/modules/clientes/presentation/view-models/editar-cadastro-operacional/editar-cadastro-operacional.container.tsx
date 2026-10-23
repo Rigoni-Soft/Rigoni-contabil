@@ -148,8 +148,9 @@ export function EditarCadastroOperacionalContainer({
       const { responsavelId: _responsavelId, parcelamentos: _parcelamentos, ...cadastro } = valores;
       const retrato = JSON.stringify(cadastro);
       if (cadastroSalvo !== retrato) {
+        // `cadastro`, sem os Parcelamentos: os PDFs não podem viajar nesta chamada (teto de corpo da Vercel).
         const resultado = await editarCadastroOperacionalAction({
-          ...valores,
+          ...cadastro,
           clienteId: dados.id,
         });
 

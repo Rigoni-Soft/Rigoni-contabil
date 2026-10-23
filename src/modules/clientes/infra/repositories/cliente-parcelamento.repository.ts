@@ -11,11 +11,15 @@ import {
   type ParcelamentoRow,
 } from "@/modules/clientes/infra/mappers/parcelamento-row.mapper";
 import { AppError } from "@/shared/errors/app.error";
+import { ResultadoIncertoError } from "@/shared/errors/resultado-incerto.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 class PersistenciaError extends AppError {
   readonly code = "PERSISTENCIA_ERROR";
 }
+
+// Sem resposta (status 0) ou gateway/timeout (502-504): o banco pode ter confirmado a transação.
+const semDesfechoConhecido = (status: number) => status === 0 || status >= 502;
 
 export class SupabaseClienteParcelamentoRepository implements ClienteParcelamentoRepository {
   constructor(private readonly supabase: SupabaseClient) {}
@@ -36,12 +40,17 @@ export class SupabaseClienteParcelamentoRepository implements ClienteParcelament
   }
 
   async salvar(clienteId: string, itens: ParcelamentoProps[]): Promise<Result<void, AppError>> {
-    const { error } = await this.supabase.rpc("salvar_parcelamentos_cliente", {
+    const { error, status } = await this.supabase.rpc("salvar_parcelamentos_cliente", {
       p_cliente_id: clienteId,
       p_itens: itens,
     });
     if (error) {
       console.error("Falha ao salvar Parcelamentos:", error.message);
+      if (semDesfechoConhecido(status)) {
+        return err(
+          new ResultadoIncertoError("Não foi possível confirmar o salvamento dos Parcelamentos."),
+        );
+      }
       return err(
         new PersistenciaError(
           // Gatilhos do banco recusam com 23514 e mensagem em português, própria para o usuário.

@@ -13,6 +13,7 @@ import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
 import type { ParcelamentoProps } from "@/modules/clientes/domain/value-objects/parcelamento.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { ResultadoIncertoError } from "@/shared/errors/resultado-incerto.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
@@ -70,13 +71,14 @@ function montar(
     .fn<Promise<Result<void, AppError>>, [string, ParcelamentoProps[]]>()
     .mockResolvedValue(ok(undefined));
   const parcelamentos: ClienteParcelamentoRepository = {
-    listar: async () => ok(opcoes.existentes ?? []),
+    listar: jest.fn().mockResolvedValue(ok(opcoes.existentes ?? [])),
     salvar: gravar,
   };
   const storage = new StorageFalso();
   return {
     gravar,
     storage,
+    listar: parcelamentos.listar as jest.Mock,
     caso: new SalvarParcelamentosCliente(sessao, clientes, parcelamentos, storage),
   };
 }
@@ -262,5 +264,64 @@ describe("SalvarParcelamentosCliente", () => {
     expect(!r.ok && r.error.message).toBe("Parcelamento com guia enviada não pode ser removido.");
     expect(storage.removidos).toEqual(storage.enviados);
     expect(storage.removidos).not.toContain(existente.arquivoCaminho);
+  });
+
+  describe("resposta incerta do banco ao gravar", () => {
+    const novo = [{ codigo: "N-1", parcelasRestantes: 2, interno: false, arquivo: pdf() }];
+
+    it("commit realizado: mantém o PDF, apaga só o do removido e devolve sucesso", async () => {
+      const removido = salvo();
+      const { caso, gravar, storage, listar } = montar({ existentes: [removido] });
+      gravar.mockImplementation(async (_, itens) => {
+        listar.mockResolvedValue(ok(itens.map((i) => salvo(i))));
+        return err(new ResultadoIncertoError("504"));
+      });
+
+      const r = await caso.execute(entrada(novo));
+
+      expect(r.ok).toBe(true);
+      expect(storage.removidos).toEqual([removido.arquivoCaminho]);
+      expect(storage.removidos).not.toContain(storage.enviados[0]);
+    });
+
+    it("rollback provado: apaga os uploads novos e devolve o erro", async () => {
+      const existente = salvo();
+      const { caso, gravar, storage } = montar({ existentes: [existente] });
+      gravar.mockResolvedValue(err(new ResultadoIncertoError("504")));
+
+      const r = await caso.execute(entrada([{ ...existente, ...novo[0], id: undefined }]));
+
+      expect(r.ok).toBe(false);
+      expect(storage.removidos).toEqual(storage.enviados);
+    });
+
+    it("não consegue reconciliar: mantém todos os PDFs", async () => {
+      const existente = salvo();
+      const { caso, gravar, storage, listar } = montar({ existentes: [existente] });
+      gravar.mockImplementation(async () => {
+        listar.mockResolvedValue(err(new ResultadoIncertoError("fora do ar")));
+        return err(new ResultadoIncertoError("504"));
+      });
+
+      const r = await caso.execute(entrada(novo));
+
+      expect(r.ok).toBe(false);
+      expect(storage.removidos).toEqual([]);
+    });
+  });
+
+  it("não apaga o PDF de um removido cujo caminho outro Parcelamento mantido referencia", async () => {
+    const a = salvo();
+    const b = salvo({ id: "22222222-2222-4222-8222-222222222222", codigo: "B-1" });
+    const { caso, storage } = montar({
+      existentes: [a, { ...b, arquivoCaminho: a.arquivoCaminho }],
+    });
+
+    const r = await caso.execute(
+      entrada([{ id: a.id, codigo: "A-1", parcelasRestantes: 10, interno: false }]),
+    );
+
+    expect(r.ok).toBe(true);
+    expect(storage.removidos).toEqual([]);
   });
 });

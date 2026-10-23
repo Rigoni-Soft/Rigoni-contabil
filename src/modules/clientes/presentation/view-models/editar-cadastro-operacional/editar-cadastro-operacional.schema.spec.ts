@@ -1,4 +1,7 @@
-import { editarCadastroOperacionalSchema } from "./editar-cadastro-operacional.schema";
+import {
+  editarCadastroOperacionalSchema,
+  salvarParcelamentosSchema,
+} from "./editar-cadastro-operacional.schema";
 
 const CLIENTE_ID = "123e4567-e89b-42d3-a456-426614174000";
 
@@ -65,5 +68,31 @@ describe("editarCadastroOperacionalSchema", () => {
     });
 
     expect(resultado.success).toBe(false);
+  });
+});
+
+describe("salvarParcelamentosSchema", () => {
+  const pdfDe = (mib: number) =>
+    new File([new Uint8Array(mib * 1024 * 1024)], "a.pdf", { type: "application/pdf" });
+  const linha = (codigo: string, mib: number) => ({
+    codigo,
+    parcelasRestantes: 3,
+    interno: false,
+    arquivo: pdfDe(mib),
+  });
+
+  it("dois PDFs de 3 MiB passam cada um sob o teto, mas a soma não cabe no corpo da requisição", () => {
+    const um = salvarParcelamentosSchema.safeParse({
+      clienteId: CLIENTE_ID,
+      parcelamentos: [linha("A", 3)],
+    });
+    const dois = salvarParcelamentosSchema.safeParse({
+      clienteId: CLIENTE_ID,
+      parcelamentos: [linha("A", 3), linha("B", 3)],
+    });
+
+    expect(um.success).toBe(true);
+    expect(dois.success).toBe(false);
+    expect(!dois.success && dois.error.issues[0].message).toMatch(/somam mais de 4 MB/);
   });
 });
