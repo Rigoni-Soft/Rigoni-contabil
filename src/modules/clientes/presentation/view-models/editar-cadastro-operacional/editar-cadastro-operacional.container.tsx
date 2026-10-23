@@ -285,7 +285,7 @@ export function EditarCadastroOperacionalContainer({
         })
       }
       onRemoverParcelamento={(indice) => {
-        leitura.esquecer(parcelamentoCampos.fields[indice].id);
+        void leitura.ler(parcelamentoCampos.fields[indice].id, undefined); // esquece a leitura da linha
         parcelamentoCampos.remove(indice);
       }}
       leituras={Object.fromEntries(

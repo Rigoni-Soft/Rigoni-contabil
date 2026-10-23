@@ -31,7 +31,7 @@ export function useLeituraDoPdf(
   indiceDe: (id: string) => number,
 ) {
   const [leituras, setLeituras] = useState<Record<string, EstadoDaLeitura>>({});
-  // O PDF mais recente de cada linha: resposta de um PDF já trocado ou de uma linha removida é
+  // O PDF mais recente de cada linha: resposta de um PDF já trocado ou de uma linha removida (`ler(id, undefined)`) é
   // descartada.
   const vigente = useRef<Record<string, File | undefined>>({});
 
@@ -69,18 +69,11 @@ export function useLeituraDoPdf(
     if (vigente.current[id] === arquivo) definir(id, leitura);
   };
 
-  // Linha removida: some o estado dela (nenhum "lendo" órfão trava o Salvar) e a resposta tardia
-  // é descartada.
-  const esquecer = (id: string) => {
-    vigente.current[id] = undefined;
-    definir(id, undefined);
-  };
-
   // Formulário refeito (Limpar): todas as linhas somem, então nenhum estado nem resposta tardia vale.
   const esquecerTodas = () => {
     vigente.current = {};
     setLeituras({});
   };
 
-  return { leituras, ler, esquecer, esquecerTodas };
+  return { leituras, ler, esquecerTodas };
 }

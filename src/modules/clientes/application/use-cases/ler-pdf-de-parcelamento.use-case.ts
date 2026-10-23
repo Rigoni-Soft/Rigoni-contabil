@@ -1,4 +1,5 @@
 import type {
+  LerPdfDeParcelamentoInput,
   LerPdfDeParcelamentoPort,
   SugestaoDeParcelamento,
 } from "@/modules/clientes/application/ports/in/ler-pdf-de-parcelamento.provider";
@@ -20,10 +21,9 @@ export class LerPdfDeParcelamento implements LerPdfDeParcelamentoPort {
     private readonly leitor: LeitorDeParcelamentoPort,
   ) {}
 
-  async execute(input: {
-    pdf: Uint8Array;
-    clienteId: string;
-  }): Promise<Result<SugestaoDeParcelamento, AppError>> {
+  async execute(
+    input: LerPdfDeParcelamentoInput,
+  ): Promise<Result<SugestaoDeParcelamento, AppError>> {
     const ator = await this.sessao.usuarioAtual();
     if (!ator || !podeEditarCadastroOperacional(ator.papel, ator.setor)) {
       return err(

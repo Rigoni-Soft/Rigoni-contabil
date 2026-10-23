@@ -9,9 +9,8 @@ export type SugestaoDeParcelamento =
   | (Extract<SugestaoLida, { lido: true }> & { cnpjConfere: boolean | null })
   | Extract<SugestaoLida, { lido: false }>;
 
+export type LerPdfDeParcelamentoInput = { pdf: Uint8Array; clienteId: string };
+
 export interface LerPdfDeParcelamentoPort {
-  execute(input: {
-    pdf: Uint8Array;
-    clienteId: string;
-  }): Promise<Result<SugestaoDeParcelamento, AppError>>;
+  execute(input: LerPdfDeParcelamentoInput): Promise<Result<SugestaoDeParcelamento, AppError>>;
 }
