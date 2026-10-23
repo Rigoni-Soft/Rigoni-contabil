@@ -43,37 +43,25 @@ export function useLeituraDoPdf(
       return proximo;
     });
 
-  // Os dados do acordo pertencem ao PDF que os trouxe: trocar, remover ou falhar a leitura não pode
-  // deixar os do PDF anterior gravados junto do arquivo novo.
-  const limparAcordo = (id: string) => {
-    const indice = indiceDe(id);
-    if (indice >= 0) setValue(`parcelamentos.${indice}.acordo`, undefined);
-  };
-
   const ler = async (id: string, arquivo: File | undefined) => {
     vigente.current[id] = arquivo;
-    limparAcordo(id);
+    // Os dados do acordo pertencem ao PDF que os trouxe: trocar, remover ou falhar a leitura não pode
+    // deixar os do PDF anterior gravados junto do arquivo novo.
+    const atual = indiceDe(id);
+    if (atual >= 0) setValue(`parcelamentos.${atual}.acordo`, undefined);
     if (!arquivo) return definir(id, undefined);
     definir(id, { estado: "lendo" });
 
     let leitura: EstadoDaLeitura = { estado: "falhou" };
     try {
       const resultado = await comLimite(lerPdfDeParcelamentoAction({ clienteId, arquivo }));
-      if (resultado.ok && resultado.data.lido) {
-        const indice = indiceDe(id);
-        if (vigente.current[id] === arquivo && indice >= 0) {
-          setValue(`parcelamentos.${indice}.codigo`, resultado.data.codigo);
-          setValue(
-            `parcelamentos.${indice}.parcelasRestantes`,
-            resultado.data.quantidadeDeParcelas,
-          );
-          setValue(`parcelamentos.${indice}.acordo`, resultado.data.acordo);
-          leitura = {
-            estado: "sugerido",
-            codigoGerado: resultado.data.codigoGerado,
-            cnpjConfere: resultado.data.cnpjConfere,
-          };
-        }
+      const indice = indiceDe(id);
+      if (resultado.ok && resultado.data.lido && vigente.current[id] === arquivo && indice >= 0) {
+        const { codigo, quantidadeDeParcelas, acordo, codigoGerado, cnpjConfere } = resultado.data;
+        setValue(`parcelamentos.${indice}.codigo`, codigo);
+        setValue(`parcelamentos.${indice}.parcelasRestantes`, quantidadeDeParcelas);
+        setValue(`parcelamentos.${indice}.acordo`, acordo);
+        leitura = { estado: "sugerido", codigoGerado, cnpjConfere };
       }
     } catch {
       // Sem alerta: cai no "digite à mão".

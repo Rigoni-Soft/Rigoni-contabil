@@ -9,10 +9,9 @@ import { sugerirParcelamento } from "@/modules/clientes/domain/value-objects/par
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
+import { normalizarCnpj } from "@/shared/kernel/cnpj";
 import { podeEditarCadastroOperacional } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
-
-const soAlfanumericos = (cnpj: string) => cnpj.replace(/[^0-9A-Za-z]/g, "").toUpperCase();
 
 export class LerPdfDeParcelamento implements LerPdfDeParcelamentoPort {
   constructor(
@@ -45,10 +44,10 @@ export class LerPdfDeParcelamento implements LerPdfDeParcelamentoPort {
     const sugestao = sugerirParcelamento(leitura);
     if (!sugestao.lido) return ok(sugestao);
 
-    const cnpjLido = leitura.lido && leitura.cnpj ? soAlfanumericos(leitura.cnpj) : "";
+    const cnpjLido = leitura.lido && leitura.cnpj ? normalizarCnpj(leitura.cnpj) : "";
     return ok({
       ...sugestao,
-      cnpjConfere: cnpjLido ? cnpjLido === soAlfanumericos(cliente.value.cnpj.valor) : null,
+      cnpjConfere: cnpjLido ? cnpjLido === cliente.value.cnpj.valor : null,
     });
   }
 }

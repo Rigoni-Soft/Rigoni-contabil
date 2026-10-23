@@ -5,7 +5,11 @@ import type {
   LeituraDeParcelamento,
 } from "@/modules/clientes/application/ports/out/leitor-de-parcelamento.provider";
 
-type Lida = Extract<LeituraDeParcelamento, { lido: true }>;
+// O que cada parser lê; `interpretar` completa o que é igual nos dois modelos (CNPJ e o total de parcelas).
+type Lida = Omit<
+  Extract<LeituraDeParcelamento, { lido: true }>,
+  "cnpj" | "quantidadeDeParcelas" | "totalDeParcelas"
+> & { parcelas: number };
 
 const ILEGIVEL: LeituraDeParcelamento = { lido: false, motivo: "ilegivel" };
 
@@ -26,10 +30,8 @@ function lerReceita(texto: string): Lida | null {
   return {
     lido: true,
     codigo: null,
-    quantidadeDeParcelas: parcelas,
-    cnpj: pega(texto, /CNPJ\s*:\s*([0-9A-Z./-]{14,18})/) ?? null,
+    parcelas,
     origem: "receita_federal",
-    totalDeParcelas: parcelas,
     valorDaParcelaCentavos: centavos(
       pega(texto, /Valor das demais parcelas:\s*R\$\s*([\d.,]+)/) ??
         pega(texto, /Valor da primeira parcela:\s*R\$\s*([\d.,]+)/),
@@ -58,10 +60,8 @@ function lerPgfn(texto: string): Lida | null {
   return {
     lido: true,
     codigo: pega(texto, /Número da conta de negociação:\s*(\d+)/) ?? null,
-    quantidadeDeParcelas: total,
-    cnpj: pega(texto, /CNPJ\s*:\s*([0-9A-Z./-]{14,18})/) ?? null,
+    parcelas: total,
     origem: "pgfn",
-    totalDeParcelas: total,
     valorDaParcelaCentavos: centavos(prestacao.valor),
     dataDeAdesao: dataIso(pega(texto, /informações prestadas em (\d{2}\/\d{2}\/\d{4})/)),
   };
@@ -73,11 +73,17 @@ function lerPgfn(texto: string): Lida | null {
 function interpretar(texto: string): LeituraDeParcelamento {
   const lida = /RECIBO DE ADESÃO AO PARCELAMENTO DO SIMPLES NACIONAL/i.test(texto)
     ? lerReceita(texto)
-    : /Número da conta de negociação/i.test(texto) &&
-        /PGFN|Procuradoria-Geral da Fazenda Nacional/i.test(texto)
+    : /Número da conta de negociação/i.test(texto)
       ? lerPgfn(texto)
       : null;
-  return lida ?? ILEGIVEL;
+  if (!lida) return ILEGIVEL;
+  const { parcelas, ...resto } = lida;
+  return {
+    ...resto,
+    quantidadeDeParcelas: parcelas,
+    totalDeParcelas: parcelas,
+    cnpj: pega(texto, /CNPJ\s*:\s*([0-9A-Z./-]{14,18})/) ?? null,
+  };
 }
 
 // Lê direto a camada de texto do PDF (sem API externa: o dado fiscal não sai do servidor).
