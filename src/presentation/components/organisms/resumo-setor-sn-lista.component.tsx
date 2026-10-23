@@ -16,7 +16,8 @@ type Cliente = {
   parcelamentos?: { codigo: string; interno: boolean; status: SeloDoParcelamento }[];
 };
 
-type Props = { clientes: Cliente[]; bucket: string };
+// `vazio`: por que a lista está vazia (cada card sabe o seu); sem ele, a mensagem padrão.
+type Props = { clientes: Cliente[]; bucket: string; vazio?: string };
 
 function Parcelamentos({
   parcelamentos,
@@ -50,9 +51,9 @@ function Parcelamentos({
 
 // Lista filtrada de um bucket do resumo, aberta como tela própria. `voltarPara` manda a própria URL
 // desta lista, pra "Voltar" na tela de edição trazer de volta pra cá, não pro dashboard.
-export function ResumoSetorSnLista({ clientes, bucket }: Props) {
+export function ResumoSetorSnLista({ clientes, bucket, vazio }: Props) {
   if (clientes.length === 0) {
-    return <Texto variante="apoio">Nenhum cliente neste status.</Texto>;
+    return <Texto variante="apoio">{vazio ?? "Nenhum cliente neste status."}</Texto>;
   }
 
   return (

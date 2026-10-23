@@ -25,6 +25,8 @@ export type CardResumoSnDto = {
   quantidade: number;
   // O que o card conta, para a lista dizer em uma linha o que ela filtra (cards de parcelamento).
   descricao?: string;
+  // Por que a lista está vazia (cards de parcelamento); sem ela a lista usa a mensagem padrão.
+  mensagemVazia?: string;
   clientes: ClienteBucketDto[];
 };
 

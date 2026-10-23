@@ -297,6 +297,43 @@ describe("classificarResumoSetorSn", () => {
       expect(descricao("das_emitidas")).toBeUndefined();
     });
 
+    it("a descrição do atraso cita o dia em vigor no mês (28 em fevereiro comum)", () => {
+      const descricao = (agora: Date) =>
+        classificarResumoSetorSn([], agora).find((c) => c.id === "parcelamento_pendente_atraso")!
+          .descricao;
+
+      expect(descricao(DIA_28)).toMatch(/dia 29/);
+      expect(descricao(FEV_27)).toMatch(/dia 28/);
+    });
+
+    it("cada card de parcelamento explica por que a lista está vazia; o DAS usa a mensagem padrão", () => {
+      const cards = classificarResumoSetorSn([], DIA_28);
+      const vazia = (id: string) => cards.find((c) => c.id === id)!.mensagemVazia;
+
+      for (const id of [
+        "com_parcelamento",
+        "parcelamento_em_aberto",
+        "parcelamento_pendente",
+        "parcelamento_pendente_atraso",
+        "parcelamento_interno",
+        "parcelamento_enviado",
+      ]) {
+        expect(vazia(id)).toMatch(/^Nenhum cliente/);
+      }
+      expect(vazia("das_emitidas")).toBeUndefined();
+    });
+
+    it("a mensagem vazia do atraso distingue ainda-não-é-o-prazo de tudo-em-dia", () => {
+      const vazia = (agora: Date) =>
+        classificarResumoSetorSn([], agora).find((c) => c.id === "parcelamento_pendente_atraso")!
+          .mensagemVazia;
+
+      // A regra (dia 29) já está na descrição acima da lista: a mensagem não a repete.
+      expect(vazia(DIA_28)).toBe("Nenhum cliente em atraso por enquanto.");
+      expect(vazia(DIA_29)).toMatch(/enviad/);
+      expect(vazia(DIA_29)).not.toMatch(/por enquanto/);
+    });
+
     it("os cards de DAS não carregam parcelamentos na lista", () => {
       const cards = classificarResumoSetorSn(
         [linha({ dasStatus: "enviado", parcelamentos: [parcelamento()] })],

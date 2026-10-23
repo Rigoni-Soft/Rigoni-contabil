@@ -1,4 +1,4 @@
-import { primeiroDiaEmAtraso } from "./dias-do-job-parcelamento";
+import { jaEmAtraso, primeiroDiaEmAtraso } from "./dias-do-job-parcelamento";
 
 describe("primeiroDiaEmAtraso", () => {
   it.each([
@@ -8,5 +8,16 @@ describe("primeiroDiaEmAtraso", () => {
     ["2026-02-15T15:00:00Z", 28], // fevereiro comum: o atraso começa no último dia
   ])("%s → dia %i", (instante, esperado) => {
     expect(primeiroDiaEmAtraso(new Date(instante))).toBe(esperado);
+  });
+});
+
+describe("jaEmAtraso", () => {
+  it.each([
+    ["2026-10-28T15:00:00Z", false],
+    ["2026-10-29T15:00:00Z", true],
+    ["2026-02-27T15:00:00Z", false],
+    ["2026-02-28T15:00:00Z", true], // último dia de fevereiro comum
+  ])("%s → %s", (instante, esperado) => {
+    expect(jaEmAtraso(new Date(instante))).toBe(esperado);
   });
 });

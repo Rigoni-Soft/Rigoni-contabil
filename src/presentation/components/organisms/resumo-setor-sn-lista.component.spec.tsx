@@ -59,6 +59,19 @@ describe("ResumoSetorSnLista", () => {
     expect(screen.queryByText(/no mês/)).not.toBeInTheDocument();
   });
 
+  it("mostra a mensagem própria do card quando a lista está vazia", () => {
+    render(
+      <ResumoSetorSnLista
+        clientes={[]}
+        bucket="parcelamento_pendente_atraso"
+        vazio="Nenhum cliente em atraso por enquanto."
+      />,
+    );
+
+    expect(screen.getByText("Nenhum cliente em atraso por enquanto.")).toBeInTheDocument();
+    expect(screen.queryByText("Nenhum cliente neste status.")).not.toBeInTheDocument();
+  });
+
   it("mostra uma mensagem quando o bucket está vazio", () => {
     render(<ResumoSetorSnLista clientes={[]} bucket="sem_documento" />);
 

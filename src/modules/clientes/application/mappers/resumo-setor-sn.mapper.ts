@@ -5,13 +5,17 @@ import type {
   ParcelamentoBucketDto,
 } from "@/modules/clientes/application/ports/in/obter-resumo-setor-sn.provider";
 import type { ResumoOperacionalRow } from "@/modules/clientes/application/ports/out/cliente-query.provider";
-import { PRIMEIRO_DIA_EM_ATRASO } from "@/shared/kernel/dias-do-job-parcelamento";
+import { jaEmAtraso, primeiroDiaEmAtraso } from "@/shared/kernel/dias-do-job-parcelamento";
+
+// Texto fixo ou dependente do dia (o atraso começa no 29, ou no último dia de fevereiro comum).
+type Texto = string | ((agora: Date) => string);
 
 type Bucket = {
   id: string;
   titulo: string;
   cor: CorStatusResumo;
-  descricao?: string;
+  descricao?: Texto;
+  mensagemVazia?: Texto;
   pertence: (linha: ResumoOperacionalRow, agora: Date) => boolean;
   // Cards do grupo Parcelamento listam, por Cliente, a marca interno e o status do mês.
   comParcelamentos?: true;
@@ -61,6 +65,7 @@ const BUCKETS: readonly Bucket[] = [
   {
     id: "com_parcelamento",
     descricao: "Clientes com algum parcelamento cadastrado, em aberto ou quitado.",
+    mensagemVazia: "Nenhum cliente com parcelamento cadastrado.",
     titulo: "Com parcelamento",
     cor: "informativo",
     pertence: doGrupoParcelamento("comParcelamento"),
@@ -69,6 +74,7 @@ const BUCKETS: readonly Bucket[] = [
   {
     id: "parcelamento_em_aberto",
     descricao: "Clientes com algum parcelamento ainda não quitado.",
+    mensagemVazia: "Nenhum cliente com parcelamento em aberto.",
     titulo: "Em aberto",
     cor: "andamento",
     pertence: doGrupoParcelamento("emAberto"),
@@ -77,6 +83,8 @@ const BUCKETS: readonly Bucket[] = [
   {
     id: "parcelamento_pendente",
     descricao: "Clientes com parcelamento em aberto cuja guia deste mês ainda não foi enviada.",
+    mensagemVazia:
+      "Nenhum cliente com guia pendente neste mês: todas as guias dos parcelamentos em aberto já foram enviadas.",
     titulo: "Parcelamento pendente",
     cor: "atencao",
     pertence: doGrupoParcelamento("pendente"),
@@ -84,7 +92,12 @@ const BUCKETS: readonly Bucket[] = [
   },
   {
     id: "parcelamento_pendente_atraso",
-    descricao: `Clientes com guia de parcelamento pendente a partir do dia ${PRIMEIRO_DIA_EM_ATRASO}, depois da última rodada de envio do mês.`,
+    descricao: (agora) =>
+      `Clientes com guia de parcelamento pendente a partir do dia ${primeiroDiaEmAtraso(agora)}, depois da última rodada de envio do mês.`,
+    mensagemVazia: (agora) =>
+      jaEmAtraso(agora)
+        ? "Nenhum cliente em atraso: todas as guias pendentes foram enviadas."
+        : "Nenhum cliente em atraso por enquanto.",
     titulo: "Pendente em atraso",
     cor: "urgente",
     pertence: doGrupoParcelamento("pendenteEmAtraso"),
@@ -94,6 +107,7 @@ const BUCKETS: readonly Bucket[] = [
     id: "parcelamento_interno",
     descricao:
       "Clientes com parcelamento interno em aberto: a guia vai ao financeiro, não ao cliente.",
+    mensagemVazia: "Nenhum cliente com parcelamento interno em aberto.",
     titulo: "Parcelamento interno",
     cor: "informativo",
     pertence: doGrupoParcelamento("interno"),
@@ -102,6 +116,7 @@ const BUCKETS: readonly Bucket[] = [
   {
     id: "parcelamento_enviado",
     descricao: "Clientes cujos parcelamentos em aberto já tiveram a guia deste mês enviada.",
+    mensagemVazia: "Nenhum cliente com todas as guias do mês enviadas ainda.",
     titulo: "Parcelamento enviado",
     cor: "em_dia",
     pertence: doGrupoParcelamento("enviado"),
@@ -116,6 +131,8 @@ const parcelamentosDaLista = (linha: ResumoOperacionalRow): ParcelamentoBucketDt
     status: p.quitado ? "quitado" : p.enviadoNoMes ? "enviado" : "pendente",
   }));
 
+const texto = (t: Texto | undefined, agora: Date) => (typeof t === "function" ? t(agora) : t);
+
 // `agora` decide o "pendente em atraso" (dia ≥ 29 no fuso de São Paulo).
 export function classificarResumoSetorSn(
   linhas: ResumoOperacionalRow[],
@@ -127,7 +144,8 @@ export function classificarResumoSetorSn(
       id: bucket.id,
       titulo: bucket.titulo,
       cor: bucket.cor,
-      descricao: bucket.descricao,
+      descricao: texto(bucket.descricao, agora),
+      mensagemVazia: texto(bucket.mensagemVazia, agora),
       quantidade: clientes.length,
       clientes: clientes.map((c) => ({
         clienteId: c.clienteId,

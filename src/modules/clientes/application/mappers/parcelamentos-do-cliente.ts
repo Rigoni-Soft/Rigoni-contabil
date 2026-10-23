@@ -1,6 +1,5 @@
 import type { ResumoOperacionalRow } from "@/modules/clientes/application/ports/out/cliente-query.provider";
-import { primeiroDiaEmAtraso } from "@/shared/kernel/dias-do-job-parcelamento";
-import { diaDoMes } from "@/shared/kernel/mes-atual";
+import { jaEmAtraso } from "@/shared/kernel/dias-do-job-parcelamento";
 
 // Definições do grupo Parcelamento, por Cliente (não por parcelamento): os cards e os comparativos
 // leem daqui, então os números batem. Um Cliente cai em vários destes ao mesmo tempo.
@@ -25,7 +24,7 @@ export function situacaoDosParcelamentos(
     comParcelamento: parcelamentos.length > 0,
     emAberto: abertos.length > 0,
     pendente,
-    pendenteEmAtraso: pendente && diaDoMes(agora) >= primeiroDiaEmAtraso(agora),
+    pendenteEmAtraso: pendente && jaEmAtraso(agora),
     interno: abertos.some((p) => p.interno),
     enviado: abertos.length > 0 && !pendente,
   };
