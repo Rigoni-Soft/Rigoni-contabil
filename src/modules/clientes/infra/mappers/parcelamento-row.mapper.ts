@@ -20,8 +20,15 @@ export type ParcelamentoRow = {
 export const SELECT_PARCELAMENTO = "*, cliente_parcelamento_envios(parcela)";
 export const EMBED_PARCELAMENTOS = `cliente_parcelamentos(${SELECT_PARCELAMENTO})`;
 
+// Parcela (AAAAMM) do mês corrente, no fuso de São Paulo: a chave do registro de envio.
+export const parcelaDoMesAtual = () => mesAtual().replace("-", "");
+
+// Quitado: situação gravada pelo sistema ou parcelas restantes em zero.
+export const estaQuitado = (situacao: "em_aberto" | "quitado", parcelasRestantes: number) =>
+  situacao === "quitado" || parcelasRestantes === 0;
+
 export function parcelamentoDoRow(linha: ParcelamentoRow): ParcelamentoSalvo {
-  const parcelaDoMes = mesAtual().replace("-", "");
+  const parcelaDoMes = parcelaDoMesAtual();
   return {
     id: linha.id,
     codigo: linha.codigo,
@@ -34,7 +41,7 @@ export function parcelamentoDoRow(linha: ParcelamentoRow): ParcelamentoSalvo {
       valorDaParcelaCentavos: linha.valor_parcela_centavos,
       dataDeAdesao: linha.data_adesao,
     },
-    quitado: linha.situacao === "quitado" || linha.parcelas_restantes === 0,
+    quitado: estaQuitado(linha.situacao, linha.parcelas_restantes),
     temEnvio: linha.cliente_parcelamento_envios.length > 0,
     enviadoNoMes: linha.cliente_parcelamento_envios.some((e) => e.parcela === parcelaDoMes),
   };
