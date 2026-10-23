@@ -151,7 +151,9 @@ especialista da tela, organizando átomos e moléculas (formulários, listas,
 painéis). Template: organiza os slots da tela, sem marcação de conteúdo
 (`tela-de-trabalho`, `entrada`, `conversa`). Page: só renderiza o template com os
 slots preenchidos. **Nenhum elemento HTML cru fora de `atoms/` e `ui/`** (lint): o
-contêiner é `Caixa` (`como="section"|"ul"|"li"|"form"…`), o ritmo vertical é
+contêiner é `Caixa` (`como="section"|"ul"|"li"|"form"…`; `ul`/`ol` levam `role="list"`
+automático, porque o reset do Tailwind tira o marcador e o Safari/VoiceOver deixaria de anunciar a
+lista), o ritmo vertical é
 `Pilha espaco={1|2|3|4|6|8|"campo"|"formulario"}`, a linha é `Linha`
 (`alinhar`, `justificar`, `espaco`, `quebra`), a malha é `Grade colunas="1>2"|"1>3"|…`,
 e o texto é `Texto` com um

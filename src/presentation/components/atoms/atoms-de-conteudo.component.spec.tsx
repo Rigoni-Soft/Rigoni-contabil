@@ -22,6 +22,16 @@ describe("átomos de conteúdo", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Título" })).toHaveClass("text-primary");
   });
 
+  it("ListaComDivisores tem role=list explícito", () => {
+    render(
+      <ListaComDivisores>
+        <li>x</li>
+      </ListaComDivisores>,
+    );
+
+    expect(screen.getByRole("list")).toHaveAttribute("role", "list");
+  });
+
   it("ListaComDivisores é uma lista", () => {
     render(
       <ListaComDivisores cartao>

@@ -8,7 +8,10 @@ export type CaixaProps<T extends ElementType> = { como?: T } & Omit<ComponentPro
 // organismo, template e page agrupam conteúdo, sem elemento HTML cru (arquitetura.md 4.4).
 export function Caixa<T extends ElementType = "div">({ como, ...props }: CaixaProps<T>) {
   const Elemento: ElementType = como ?? "div";
-  return <Elemento {...props} />;
+  // O reset do Tailwind tira o marcador (`list-style: none`) e o Safari/VoiceOver deixa de anunciar
+  // a lista: o role explícito mantém a semântica. Um `role` dado pelo chamador prevalece.
+  const papel = Elemento === "ul" || Elemento === "ol" ? "list" : undefined;
+  return <Elemento role={papel} {...props} />;
 }
 
 // Os três átomos de layout abaixo nomeiam o ritmo e a malha do produto (DESIGN.md → Layout): o
