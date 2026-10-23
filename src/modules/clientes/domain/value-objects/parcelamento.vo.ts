@@ -14,12 +14,9 @@ export type DadosDoAcordo = {
 };
 
 // Entrada vinda do leitor ou do formulário: não se confia no formato, cada campo inválido vira nulo.
-export function normalizarAcordo(bruto: {
-  origem?: unknown;
-  totalDeParcelas?: unknown;
-  valorDaParcelaCentavos?: unknown;
-  dataDeAdesao?: unknown;
-}): DadosDoAcordo {
+type AcordoBruto = { [K in keyof DadosDoAcordo]?: unknown };
+
+export function normalizarAcordo(bruto: AcordoBruto): DadosDoAcordo {
   const inteiroPositivo = (v: unknown) =>
     Number.isInteger(v) && (v as number) >= 1 ? (v as number) : null;
   const data = typeof bruto.dataDeAdesao === "string" ? bruto.dataDeAdesao : "";
@@ -84,9 +81,7 @@ export type SugestaoLida =
 // guia só pela parcela, então o código serve de rótulo e pode ser trocado na tela.
 export function sugerirParcelamento(
   leitura:
-    | ({ lido: true; codigo: string | null; quantidadeDeParcelas: number } & Parameters<
-        typeof normalizarAcordo
-      >[0])
+    | ({ lido: true; codigo: string | null; quantidadeDeParcelas: number } & AcordoBruto)
     | { lido: false; motivo: MotivoDeLeituraFalha },
 ): SugestaoLida {
   if (!leitura.lido) return leitura;

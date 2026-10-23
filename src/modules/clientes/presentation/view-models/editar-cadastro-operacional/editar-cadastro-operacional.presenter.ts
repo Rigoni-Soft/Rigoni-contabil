@@ -1,5 +1,6 @@
 import type { LeituraDaLinha } from "@/presentation/components/organisms/editar-cadastro-operacional-form.component";
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
+import type { OrigemDoParcelamento } from "@/modules/clientes/domain/value-objects/parcelamento.vo";
 import type { ParcelamentoFormValues } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.schema";
 import { rotuloResponsavel } from "@/shared/kernel/papeis";
 
@@ -41,7 +42,10 @@ export function leituraDaLinha(leitura: EstadoDaLeitura): LeituraDaLinha {
   }
 }
 
-const ORIGEM_ROTULO: Record<string, string> = { receita_federal: "Receita Federal", pgfn: "PGFN" };
+const ORIGEM_ROTULO: Record<OrigemDoParcelamento, string> = {
+  receita_federal: "Receita Federal",
+  pgfn: "PGFN",
+};
 
 // Uma linha com o que o PDF trouxe do acordo ("PGFN · 5 parcelas · R$ 262,89 · adesão 27/01/2026");
 // vazia quando não há nada a mostrar (Parcelamento digitado à mão).
@@ -49,7 +53,7 @@ export function resumoDoAcordo(acordo: ParcelamentoFormValues["acordo"]): string
   if (!acordo) return "";
   const [ano, mes, dia] = acordo.dataDeAdesao?.split("-") ?? [];
   return [
-    acordo.origem && (ORIGEM_ROTULO[acordo.origem] ?? acordo.origem),
+    acordo.origem && ORIGEM_ROTULO[acordo.origem],
     acordo.totalDeParcelas &&
       `${acordo.totalDeParcelas} ${acordo.totalDeParcelas === 1 ? "parcela" : "parcelas"}`,
     acordo.valorDaParcelaCentavos &&

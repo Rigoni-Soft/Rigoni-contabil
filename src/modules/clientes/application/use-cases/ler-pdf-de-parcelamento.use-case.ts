@@ -43,9 +43,9 @@ export class LerPdfDeParcelamento implements LerPdfDeParcelamentoPort {
 
     const leitura = await this.leitor.ler(input.pdf);
     const sugestao = sugerirParcelamento(leitura);
-    if (!sugestao.lido || !leitura.lido) return ok(sugestao as SugestaoDeParcelamento);
+    if (!sugestao.lido) return ok(sugestao);
 
-    const cnpjLido = leitura.cnpj ? soAlfanumericos(leitura.cnpj) : "";
+    const cnpjLido = leitura.lido && leitura.cnpj ? soAlfanumericos(leitura.cnpj) : "";
     return ok({
       ...sugestao,
       cnpjConfere: cnpjLido ? cnpjLido === soAlfanumericos(cliente.value.cnpj.valor) : null,

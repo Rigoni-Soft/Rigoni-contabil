@@ -94,7 +94,5 @@ export function useLeituraDoPdf(
     setLeituras({});
   };
 
-  const lendo = Object.values(leituras).some((l) => l.estado === "lendo");
-
-  return { leituras, lendo, ler, esquecer, esquecerTodas };
+  return { leituras, ler, esquecer, esquecerTodas };
 }
