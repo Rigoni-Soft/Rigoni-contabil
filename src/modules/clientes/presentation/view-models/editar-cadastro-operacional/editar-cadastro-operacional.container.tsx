@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
@@ -26,6 +26,7 @@ import {
 import { editarCadastroOperacionalFormSchema } from "./editar-cadastro-operacional.schema";
 import { useResponsaveisElegiveis } from "./responsaveis.queries";
 import { salvarParcelamentosAction } from "./salvar-parcelamentos.actions";
+import { useLeituraDoPdf } from "./use-leitura-do-pdf.hook";
 
 type Props = {
   dados: CadastroOperacionalClienteDto | null;
@@ -98,6 +99,7 @@ export function EditarCadastroOperacionalContainer({
     handleSubmit,
     reset,
     getValues,
+    setValue,
     setError,
     formState: { errors },
   } = useForm<EditarCadastroOperacionalFormValues>({
@@ -113,6 +115,14 @@ export function EditarCadastroOperacionalContainer({
   const elegiveis = useResponsaveisElegiveis(podeAtribuirResponsavel && listaAberta);
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
   const parcelamentoCampos = useFieldArray({ control, name: "parcelamentos" });
+  // A leitura do PDF termina depois de a lista poder ter mudado: acha a linha pelo id, no momento.
+  const camposAtuais = useRef(parcelamentoCampos.fields);
+  useEffect(() => {
+    camposAtuais.current = parcelamentoCampos.fields;
+  });
+  const leitura = useLeituraDoPdf(setValue, (id) =>
+    camposAtuais.current.findIndex((campo) => campo.id === id),
+  );
 
   const aoSubmeter = handleSubmit(async (valores) => {
     if (!dados) return;
@@ -269,6 +279,10 @@ export function EditarCadastroOperacionalContainer({
         })
       }
       onRemoverParcelamento={parcelamentoCampos.remove}
+      leituras={leitura.leituras}
+      onArquivoEscolhido={(indice, arquivo) =>
+        void leitura.ler(parcelamentoCampos.fields[indice].id, arquivo)
+      }
       onLimpar={aoLimpar}
       onCancelar={onCancelar}
       documentoContratual={

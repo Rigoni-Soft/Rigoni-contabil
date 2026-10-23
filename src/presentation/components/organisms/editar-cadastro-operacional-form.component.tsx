@@ -66,6 +66,25 @@ export type ParcelamentoLinha = {
   arquivo?: File;
 };
 
+// Estado da leitura do PDF numa linha nova (só exibição; quem lê é o Container).
+export type LeituraDaLinha =
+  { estado: "lendo" } | { estado: "sugerido"; codigoGerado: boolean } | { estado: "falhou" };
+
+function textoDaLeitura(leitura: LeituraDaLinha | undefined): string {
+  switch (leitura?.estado) {
+    case "lendo":
+      return "Lendo o PDF…";
+    case "sugerido":
+      return leitura.codigoGerado
+        ? "Sugerido pelo PDF: confira. O PDF não traz código: gerei um, você pode trocar."
+        : "Sugerido pelo PDF: confira";
+    case "falhou":
+      return "não consegui ler: digite à mão";
+    default:
+      return "";
+  }
+}
+
 // View global não importa módulos (arquitetura.md §3.4) — o shape espelha
 // EditarCadastroOperacionalFormValues (módulo clientes) por estrutura, não
 // por import; o Container (dentro do módulo) garante a compatibilidade.
@@ -122,6 +141,10 @@ type EditarCadastroOperacionalFormProps = {
   parcelamentoCampos: { id: string }[];
   onAdicionarParcelamento: () => void;
   onRemoverParcelamento: (indice: number) => void;
+  // Leitura do PDF por linha (chave = id do campo do useFieldArray). Com leitura em andamento o
+  // Salvar fica desabilitado; o PDF escolhido (ou removido) volta ao Container para ser lido.
+  leituras: Record<string, LeituraDaLinha>;
+  onArquivoEscolhido: (indice: number, arquivo: File | undefined) => void;
   onLimpar: () => void;
   // Sem callback (uso em /clientes/[id]): "Cancelar" navega pro mesmo destino
   // do "Voltar" do topo. Com callback (uso inline na busca do dashboard):
@@ -152,6 +175,8 @@ export function EditarCadastroOperacionalForm({
   parcelamentoCampos,
   onAdicionarParcelamento,
   onRemoverParcelamento,
+  leituras,
+  onArquivoEscolhido,
   onLimpar,
   onCancelar,
   documentoContratual,
@@ -309,6 +334,7 @@ export function EditarCadastroOperacionalForm({
           <Label className="block">Parcelamentos</Label>
           {parcelamentos.map((atual, indice) => {
             const erros = errors.parcelamentos?.[indice];
+            const leitura = leituras[parcelamentoCampos[indice].id];
             return (
               <LinhaDeParcelamento
                 key={parcelamentoCampos[indice].id}
@@ -322,7 +348,7 @@ export function EditarCadastroOperacionalForm({
                 erroCodigo={erros?.codigo?.message}
                 erroParcelas={erros?.parcelasRestantes?.message}
                 selo={seloDoParcelamento(atual)}
-                desabilitado={atual.quitado}
+                desabilitado={atual.quitado || leitura?.estado === "lendo"}
                 onRemover={
                   readOnly || atual.temEnvio ? undefined : () => onRemoverParcelamento(indice)
                 }
@@ -333,23 +359,31 @@ export function EditarCadastroOperacionalForm({
                       PDF anexado: {atual.arquivoNome}
                     </Texto>
                   ) : (
-                    <Controller
-                      control={control}
-                      name={`parcelamentos.${indice}.arquivo`}
-                      render={({ field: { onChange, onBlur, value, name } }) => (
-                        <CampoDeArquivo
-                          id={`parcelamentos.${indice}.arquivo`}
-                          rotulo="PDF do acordo"
-                          name={name}
-                          accept="application/pdf"
-                          dica="PDF até 4 MB"
-                          file={value}
-                          onChange={onChange}
-                          onBlur={onBlur}
-                          erro={erros?.arquivo?.message}
-                        />
-                      )}
-                    />
+                    <>
+                      <Controller
+                        control={control}
+                        name={`parcelamentos.${indice}.arquivo`}
+                        render={({ field: { onChange, onBlur, value, name } }) => (
+                          <CampoDeArquivo
+                            id={`parcelamentos.${indice}.arquivo`}
+                            rotulo="PDF do acordo"
+                            name={name}
+                            accept="application/pdf"
+                            dica="PDF até 4 MB"
+                            file={value}
+                            onChange={(arquivo) => {
+                              onChange(arquivo);
+                              onArquivoEscolhido(indice, arquivo);
+                            }}
+                            onBlur={onBlur}
+                            erro={erros?.arquivo?.message}
+                          />
+                        )}
+                      />
+                      <Texto variante="nota" role="status">
+                        {textoDaLeitura(leitura)}
+                      </Texto>
+                    </>
                   )
                 }
               />
@@ -369,7 +403,12 @@ export function EditarCadastroOperacionalForm({
         </Pilha>
 
         {!readOnly && (
-          <AcoesDoFormulario pendente={pendente} onLimpar={onLimpar} onCancelar={onCancelar} />
+          <AcoesDoFormulario
+            pendente={pendente}
+            bloqueado={Object.values(leituras).some((l) => l.estado === "lendo")}
+            onLimpar={onLimpar}
+            onCancelar={onCancelar}
+          />
         )}
       </Grade>
 

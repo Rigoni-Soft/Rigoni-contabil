@@ -81,6 +81,15 @@ const resultado = z
     EMAIL_SMTP_USUARIO: z.string().min(1).optional(),
     EMAIL_SMTP_SENHA: z.string().min(1).optional(),
     EMAIL_REMETENTE: z.string().min(1).optional(),
+    // Leitor do PDF de parcelamento (#125): falso (determinístico) por padrão; "real" lê pela API da
+    // Anthropic, que exige a chave. O modelo é um ID fixo (sem alias móvel): trocar é trocar a string.
+    LEITURA_PDF_MODO: z.enum(["falso", "real"]).default("falso"),
+    ANTHROPIC_API_KEY: z.string().min(1).optional(),
+    LEITURA_PDF_MODELO: z.string().min(1).default("claude-haiku-5-5"),
+  })
+  .refine((v) => v.LEITURA_PDF_MODO !== "real" || v.ANTHROPIC_API_KEY, {
+    message: "LEITURA_PDF_MODO=real exige ANTHROPIC_API_KEY.",
+    path: ["ANTHROPIC_API_KEY"],
   })
   .refine(
     (v) =>
@@ -177,6 +186,9 @@ const resultado = z
     EMAIL_SMTP_USUARIO: process.env.EMAIL_SMTP_USUARIO || undefined,
     EMAIL_SMTP_SENHA: process.env.EMAIL_SMTP_SENHA || undefined,
     EMAIL_REMETENTE: process.env.EMAIL_REMETENTE || undefined,
+    LEITURA_PDF_MODO: process.env.LEITURA_PDF_MODO || undefined,
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || undefined,
+    LEITURA_PDF_MODELO: process.env.LEITURA_PDF_MODELO || undefined,
   });
 
 if (!resultado.success) {
@@ -218,4 +230,7 @@ export const {
   EMAIL_SMTP_USUARIO,
   EMAIL_SMTP_SENHA,
   EMAIL_REMETENTE,
+  LEITURA_PDF_MODO,
+  ANTHROPIC_API_KEY,
+  LEITURA_PDF_MODELO,
 } = resultado.data;

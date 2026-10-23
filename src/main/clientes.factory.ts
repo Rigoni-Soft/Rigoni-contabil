@@ -1,5 +1,6 @@
 import "server-only";
 
+import { ANTHROPIC_API_KEY, LEITURA_PDF_MODELO, LEITURA_PDF_MODO } from "@/env";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { makeRegistrarAcao } from "@/main/auditoria.factory";
@@ -16,10 +17,12 @@ import type {
   ObterLinkDocumentoContratualPort,
 } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 import type { EditarCadastroOperacionalClientePort } from "@/modules/clientes/application/ports/in/editar-cadastro-operacional-cliente.provider";
+import type { LerPdfDeParcelamentoPort } from "@/modules/clientes/application/ports/in/ler-pdf-de-parcelamento.provider";
 import type { ListarAvisosCadastroPort } from "@/modules/clientes/application/ports/in/listar-avisos-cadastro.provider";
 import type { MarcarAvisoVistoPort } from "@/modules/clientes/application/ports/in/marcar-aviso-visto.provider";
 import type { SalvarParcelamentosClientePort } from "@/modules/clientes/application/ports/in/salvar-parcelamentos-cliente.provider";
 import type { AuditoriaPort } from "@/modules/clientes/application/ports/out/auditoria.provider";
+import type { LeitorDeParcelamentoPort } from "@/modules/clientes/application/ports/out/leitor-de-parcelamento.provider";
 import type {
   AtorSessaoDto,
   SessaoPort,
@@ -32,16 +35,19 @@ import { ConsultarCadastroOperacionalCliente } from "@/modules/clientes/applicat
 import { ContarAvisosNaoVistos } from "@/modules/clientes/application/use-cases/contar-avisos-nao-vistos.use-case";
 import { CriarCliente } from "@/modules/clientes/application/use-cases/criar-cliente.use-case";
 import { EditarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/editar-cadastro-operacional-cliente.use-case";
+import { LerPdfDeParcelamento } from "@/modules/clientes/application/use-cases/ler-pdf-de-parcelamento.use-case";
 import { ListarAvisosCadastro } from "@/modules/clientes/application/use-cases/listar-avisos-cadastro.use-case";
 import { ListarDocumentosContratuaisCliente } from "@/modules/clientes/application/use-cases/listar-documentos-contratuais-cliente.use-case";
 import { ListarResponsaveisElegiveis } from "@/modules/clientes/application/use-cases/listar-responsaveis-elegiveis.use-case";
 import { MarcarAvisoVisto } from "@/modules/clientes/application/use-cases/marcar-aviso-visto.use-case";
 import { ObterLinkDocumentoContratual } from "@/modules/clientes/application/use-cases/obter-link-documento-contratual.use-case";
 import { ObterResumoSetorSn } from "@/modules/clientes/application/use-cases/obter-resumo-setor-sn.use-case";
-import { SupabaseAvisosCadastroGateway } from "@/modules/clientes/infra/gateways/avisos-cadastro.gateway";
 import { SalvarParcelamentosCliente } from "@/modules/clientes/application/use-cases/salvar-parcelamentos-cliente.use-case";
+import { SupabaseAvisosCadastroGateway } from "@/modules/clientes/infra/gateways/avisos-cadastro.gateway";
 import { SupabaseClienteQueryGateway } from "@/modules/clientes/infra/gateways/cliente-query.gateway";
 import { SupabaseDocumentosContratuaisClienteGateway } from "@/modules/clientes/infra/gateways/documentos-contratuais-cliente.gateway";
+import { LeitorDeParcelamentoAnthropicGateway } from "@/modules/clientes/infra/gateways/leitor-de-parcelamento-anthropic.gateway";
+import { LeitorDeParcelamentoFalsoGateway } from "@/modules/clientes/infra/gateways/leitor-de-parcelamento-falso.gateway";
 import { SupabaseArquivoStorageGateway } from "@/modules/clientes/infra/gateways/supabase-arquivo-storage.gateway";
 import { SupabaseClienteParcelamentoRepository } from "@/modules/clientes/infra/repositories/cliente-parcelamento.repository";
 import { SupabaseClienteRepository } from "@/modules/clientes/infra/repositories/cliente.repository";
@@ -106,6 +112,21 @@ export async function makeSalvarParcelamentosCliente(): Promise<SalvarParcelamen
     new SupabaseClienteParcelamentoRepository(supabase),
     new SupabaseArquivoStorageGateway(createSupabaseAdmin(), "parcelamentos-clientes"),
   );
+}
+
+// Falso por padrão (dev, CI e Preview): só o modo real fala com a API; env.ts garante a chave.
+function leitorDeParcelamento(): LeitorDeParcelamentoPort {
+  return LEITURA_PDF_MODO === "real"
+    ? new LeitorDeParcelamentoAnthropicGateway({
+        chave: ANTHROPIC_API_KEY!,
+        modelo: LEITURA_PDF_MODELO,
+      })
+    : new LeitorDeParcelamentoFalsoGateway();
+}
+
+export async function makeLerPdfDeParcelamento(): Promise<LerPdfDeParcelamentoPort> {
+  const supabase = await createSupabaseServer();
+  return new LerPdfDeParcelamento(sessaoViaUsuarios(supabase), leitorDeParcelamento());
 }
 
 export async function makeEditarCadastroOperacionalCliente(): Promise<EditarCadastroOperacionalClientePort> {

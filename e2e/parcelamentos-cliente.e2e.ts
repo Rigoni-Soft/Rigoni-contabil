@@ -8,11 +8,19 @@ import {
   login,
 } from "./support/criar-cliente";
 
-const pdf = (nome: string) => ({
+// O leitor falso (padrão em e2e) lê os marcadores do texto do PDF: sem marcador sugere
+// FALSO-123456 e 12 parcelas; `[leitor:falha]` não lê; `[leitor:sem-codigo]` lê só as 7 parcelas.
+const pdf = (nome: string, marcador = "") => ({
   name: nome,
   mimeType: "application/pdf",
-  buffer: Buffer.from("%PDF-1.4 teste"),
+  buffer: Buffer.from(`%PDF-1.4 teste ${marcador}`),
 });
+
+// Anexar dispara a leitura, que preenche a linha: quem digita depois não é sobrescrito.
+async function anexarEEsperarSugestao(page: Page, indice: number, arquivo: ReturnType<typeof pdf>) {
+  await page.locator(`[id='parcelamentos.${indice}.arquivo']`).setInputFiles(arquivo);
+  await expect(page.locator(`[id='parcelamentos.${indice}.codigo']`)).toHaveValue("FALSO-123456");
+}
 
 async function abrirComoFuncionarioSn(page: Page, empresa: string) {
   const cnpj = await criarClienteComoAdmin(page, empresa);
@@ -48,12 +56,14 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
     await page.getByRole("button", { name: "Salvar" }).click();
     await expect(page.getByText("Anexe o PDF do parcelamento")).toBeVisible();
 
-    await page.locator("[id='parcelamentos.0.arquivo']").setInputFiles(pdf("acordo-100.pdf"));
+    await anexarEEsperarSugestao(page, 0, pdf("acordo-100.pdf"));
+    await page.locator("[id='parcelamentos.0.codigo']").fill("PARC-100");
+    await page.locator("[id='parcelamentos.0.parcelasRestantes']").fill("24");
     await page.getByRole("button", { name: "Adicionar parcelamento" }).click();
+    await anexarEEsperarSugestao(page, 1, pdf("acordo-200.pdf"));
     await page.locator("[id='parcelamentos.1.codigo']").fill("PARC-200");
     await page.locator("[id='parcelamentos.1.parcelasRestantes']").fill("6");
     await page.getByRole("checkbox", { name: "É interno" }).nth(1).check();
-    await page.locator("[id='parcelamentos.1.arquivo']").setInputFiles(pdf("acordo-200.pdf"));
     await expect(page.getByRole("status").filter({ hasText: "Sim (2)" })).toBeVisible();
 
     await page.getByRole("button", { name: "Salvar" }).click();
@@ -85,13 +95,60 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
     expect(objetos?.map((o) => o.name).join(",")).not.toContain("acordo-200.pdf");
   });
 
+  test("PDF lido vira sugestão: corrige e salva; PDF sem código ganha um interno (#125) @smoke", async ({
+    page,
+  }) => {
+    const clienteId = await abrirComoFuncionarioSn(page, "Leitura PDF E2E Ltda");
+    await page.getByRole("button", { name: "Adicionar parcelamento" }).click();
+    await anexarEEsperarSugestao(page, 0, pdf("acordo-lido.pdf"));
+    await expect(page.getByText("Sugerido pelo PDF: confira")).toBeVisible();
+    await expect(page.locator("[id='parcelamentos.0.parcelasRestantes']")).toHaveValue("12");
+
+    // Recibo de Adesão: só a quantidade vem do PDF; o código é gerado e pode ser trocado.
+    await page.getByRole("button", { name: "Adicionar parcelamento" }).click();
+    await page
+      .locator("[id='parcelamentos.1.arquivo']")
+      .setInputFiles(pdf("recibo.pdf", "[leitor:sem-codigo]"));
+    await expect(page.getByText(/O PDF não traz código/)).toBeVisible();
+    await expect(page.locator("[id='parcelamentos.1.parcelasRestantes']")).toHaveValue("7");
+    await expect(page.locator("[id='parcelamentos.1.codigo']")).toHaveValue(/^PARC-[0-9A-F]{8}$/);
+
+    // Corrige a sugestão da primeira linha e salva.
+    await page.locator("[id='parcelamentos.0.parcelasRestantes']").fill("10");
+    await page.getByRole("button", { name: "Salvar" }).click();
+    await expect(page).toHaveURL("/simples-nacional");
+
+    await page.goto(`/clientes/${clienteId}`);
+    await expect(page.locator("[id='parcelamentos.0.codigo']")).toHaveValue("FALSO-123456");
+    await expect(page.locator("[id='parcelamentos.0.parcelasRestantes']")).toHaveValue("10");
+    await expect(page.locator("[id='parcelamentos.1.parcelasRestantes']")).toHaveValue("7");
+  });
+
+  test("leitura que falha libera os campos para digitar à mão (#125)", async ({ page }) => {
+    const clienteId = await abrirComoFuncionarioSn(page, "Leitura Falha E2E Ltda");
+    await page.getByRole("button", { name: "Adicionar parcelamento" }).click();
+    await page
+      .locator("[id='parcelamentos.0.arquivo']")
+      .setInputFiles(pdf("ilegivel.pdf", "[leitor:falha]"));
+
+    await expect(page.getByText("não consegui ler: digite à mão")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Salvar" })).toBeEnabled();
+    await page.locator("[id='parcelamentos.0.codigo']").fill("MANUAL-1");
+    await page.locator("[id='parcelamentos.0.parcelasRestantes']").fill("3");
+    await page.getByRole("button", { name: "Salvar" }).click();
+    await expect(page).toHaveURL("/simples-nacional");
+
+    await page.goto(`/clientes/${clienteId}`);
+    await expect(page.locator("[id='parcelamentos.0.codigo']")).toHaveValue("MANUAL-1");
+  });
+
   test("parcelamento com guia enviada mostra o selo Enviado e não pode ser removido", async ({
     page,
   }) => {
     const clienteId = await abrirComoFuncionarioSn(page, "Parcelamento Enviado E2E Ltda");
     await page.getByRole("button", { name: "Adicionar parcelamento" }).click();
+    await anexarEEsperarSugestao(page, 0, pdf("acordo-300.pdf"));
     await page.locator("[id='parcelamentos.0.codigo']").fill("PARC-300");
-    await page.locator("[id='parcelamentos.0.arquivo']").setInputFiles(pdf("acordo-300.pdf"));
     await page.getByRole("button", { name: "Salvar" }).click();
     await expect(page).toHaveURL("/simples-nacional");
 

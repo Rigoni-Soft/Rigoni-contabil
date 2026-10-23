@@ -4,6 +4,8 @@ import { Button } from "@/presentation/components/ui/button";
 
 type AcoesDoFormularioProps = {
   pendente: boolean;
+  // Algo ainda em andamento (ex.: leitura de PDF): Salvar espera.
+  bloqueado?: boolean;
   onLimpar: () => void;
   // Sem callback, "Cancelar" é um link para "/". Com callback (formulário inline na busca do
   // dashboard) já estamos em "/": quem abriu o painel o fecha direto.
@@ -11,10 +13,17 @@ type AcoesDoFormularioProps = {
 };
 
 // Salvar / Limpar / Cancelar, na ordem do contrato de ações de formulário do DESIGN.md.
-export function AcoesDoFormulario({ pendente, onLimpar, onCancelar }: AcoesDoFormularioProps) {
+export function AcoesDoFormulario({
+  pendente,
+  bloqueado,
+  onLimpar,
+  onCancelar,
+}: AcoesDoFormularioProps) {
   return (
     <Linha espaco={2} quebra className="sm:col-span-2 lg:col-span-4">
-      <Button type="submit">{pendente ? "Salvando..." : "Salvar"}</Button>
+      <Button type="submit" disabled={bloqueado}>
+        {pendente ? "Salvando..." : "Salvar"}
+      </Button>
       <Button type="button" variant="outline" onClick={onLimpar} disabled={pendente}>
         Limpar
       </Button>

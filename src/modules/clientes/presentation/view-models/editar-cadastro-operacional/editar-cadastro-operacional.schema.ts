@@ -35,6 +35,9 @@ const pdfDoAcordo = z
   .refine((arquivo) => arquivo.type === "application/pdf", "Envie um arquivo PDF")
   .refine((arquivo) => arquivo.size <= LIMITE_PDF_BYTES, "O arquivo passa de 4 MB");
 
+// Leitura do PDF na tela: só o arquivo, com as mesmas regras do anexo.
+export const lerPdfDeParcelamentoSchema = z.object({ arquivo: pdfDoAcordo });
+
 const parcelasRestantes = z
   .number({ error: "obrigatório" })
   .int("número inteiro")
