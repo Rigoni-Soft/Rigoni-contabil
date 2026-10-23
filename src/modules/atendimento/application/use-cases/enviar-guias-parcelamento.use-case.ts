@@ -24,14 +24,10 @@ import { formatarParcela } from "@/shared/kernel/data-iso";
 import { mesAtual } from "@/shared/kernel/mes-atual";
 import type { Result } from "@/shared/kernel/result";
 
-// Entrega as guias de parcelamento comum do Cliente (job e URA). O banco manda: só os parcelamentos
-// em aberto, não internos e sem registro de envio do mês entram, e sem nenhum o provedor fiscal não
-// é chamado. O provedor devolve as guias do CNPJ, que são atribuídas aos parcelamentos; cada
-// entrega aceita grava o registro de envio da parcela (que desconta uma parcela restante, uma vez
-// só). A falha de uma guia não trava as outras. Parcelamento pendente que ficou sem guia (código
-// desconhecido, valor que não casa, quitado no provedor) vira `parcelamento_sem_guia`: falha
-// fechado, nunca adivinha. Parcelamento interno ainda não é roteado aqui (fica pendente até o
-// financeiro).
+// Entrega as guias de parcelamento comum do Cliente (job e URA): o banco manda no que está pendente
+// e cada entrega aceita grava o registro de envio da parcela. Falha fechado: parcelamento pendente
+// sem guia vira `parcelamento_sem_guia`, nunca se adivinha. Regra completa em
+// docs/deploy/parcelamento-cron.md.
 export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
   constructor(
     private readonly parcelamentos: ParcelamentosDoClientePort,
@@ -62,10 +58,10 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
 
     const atribuidas = atribuirGuiasParcelamento(buscadas.value, emAberto.value);
     const andamentos: Andamento[] = [];
-    for (const { parcelamento, guia } of atribuidas) {
+    for (const { parcelamento, guia, parcela } of atribuidas) {
       // A guia de um parcelamento interno não vai ao Cliente.
       if (!parcelamento.interno) {
-        andamentos.push(await this.entregarGuia(cliente, agora, parcelamento, guia));
+        andamentos.push(await this.entregarGuia(cliente, agora, parcelamento, guia, parcela));
       }
     }
 
@@ -91,8 +87,8 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     agora: Date,
     parcelamento: ParcelamentoDoCliente,
     guia: GuiaFiscal,
+    parcela: string,
   ): Promise<Andamento> {
-    const parcela = guia.parcela ?? "";
     const descricao = `Parcelamento ${parcelamento.codigo} de ${cliente.empresa}`;
     const url = await this.repetir(() =>
       this.publicadas.publicar(cliente.clienteId, guia, { id: parcelamento.id, parcela }),

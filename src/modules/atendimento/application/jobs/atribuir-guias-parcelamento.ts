@@ -1,7 +1,11 @@
 import type { GuiaFiscal } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
 import type { ParcelamentoDoCliente } from "@/modules/atendimento/application/ports/out/parcelamentos-do-cliente.provider";
 
-export type GuiaAtribuida = { parcelamento: ParcelamentoDoCliente; guia: GuiaFiscal };
+export type GuiaAtribuida = {
+  parcelamento: ParcelamentoDoCliente;
+  guia: GuiaFiscal;
+  parcela: string;
+};
 
 // O provedor devolve as guias do CNPJ sem dizer de qual parcelamento é cada uma. Com um só em aberto
 // todas vão a ele; com vários, a guia é do de valor guardado mais próximo sem passar do valor dela
@@ -20,22 +24,20 @@ export function atribuirGuiasParcelamento(
   for (const guia of guias) {
     const { parcela, valorCentavos } = guia;
     if (!parcela) continue;
-    const candidatos =
-      parcelamentos.length === 1
-        ? parcelamentos
-        : parcelamentos.filter(
-            (p) =>
-              p.valorParcelaCentavos !== null &&
-              valorCentavos !== undefined &&
-              p.valorParcelaCentavos <= valorCentavos,
-          );
+    const candidatos = parcelamentos.filter(
+      (p) =>
+        parcelamentos.length === 1 ||
+        (p.valorParcelaCentavos !== null &&
+          valorCentavos !== undefined &&
+          p.valorParcelaCentavos <= valorCentavos),
+    );
     const maior = Math.max(...candidatos.map((p) => p.valorParcelaCentavos ?? 0));
-    const dono = candidatos
-      .filter((p) => parcelamentos.length === 1 || p.valorParcelaCentavos === maior)
-      .find((p) => !recebidas.get(p.id)?.has(parcela));
+    const dono = candidatos.find(
+      (p) => (p.valorParcelaCentavos ?? 0) === maior && !recebidas.get(p.id)?.has(parcela),
+    );
     if (!dono) continue;
     recebidas.get(dono.id)?.add(parcela);
-    atribuidas.push({ parcelamento: dono, guia });
+    atribuidas.push({ parcelamento: dono, guia, parcela });
   }
   return atribuidas;
 }

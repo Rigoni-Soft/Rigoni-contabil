@@ -23,10 +23,8 @@ Cliente (#122) e o provedor entregando as guias por CNPJ, sem dizer de qual Parc
   registro reenvia a guia na rodada seguinte (pelo menos uma vez); o contrário (registrar sem
   entregar) nunca acontece. A reserva do Cliente continua evitando entregas simultâneas e só é
   fechada ao concluir.
-- **Atribuição falha fechado.** As guias do CNPJ são atribuídas por referência e valor; sem candidato
-  a guia não é enviada e o setor é avisado, em vez de pagar o Parcelamento errado.
-- **Um núcleo para os dois gatilhos.** `EnviarGuiasParcelamento` serve o job e a URA; quem chama só
-  decide o que fazer com o `Andamento` devolvido.
+- **Atribuição falha fechado e um núcleo para os dois gatilhos** (job e URA): o passo a passo está em
+  `docs/deploy/parcelamento-cron.md`.
 
 ## Consequências
 
