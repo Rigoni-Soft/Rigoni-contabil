@@ -425,7 +425,11 @@ export function EditarCadastroOperacionalForm({
         {!readOnly && (
           <AcoesDoFormulario
             pendente={pendente}
-            bloqueado={Object.values(leituras).some((l) => l.estado === "lendo")}
+            motivoDoBloqueio={
+              Object.values(leituras).some((l) => l.estado === "lendo")
+                ? "Aguarde a leitura do PDF para salvar."
+                : undefined
+            }
             onLimpar={onLimpar}
             onCancelar={onCancelar}
           />

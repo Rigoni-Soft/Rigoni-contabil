@@ -282,7 +282,10 @@ export function EditarCadastroOperacionalContainer({
           arquivoNome: "",
         })
       }
-      onRemoverParcelamento={parcelamentoCampos.remove}
+      onRemoverParcelamento={(indice) => {
+        leitura.esquecer(parcelamentoCampos.fields[indice].id);
+        parcelamentoCampos.remove(indice);
+      }}
       leituras={leitura.leituras}
       onArquivoEscolhido={(indice, arquivo) =>
         void leitura.ler(parcelamentoCampos.fields[indice].id, arquivo)
