@@ -1,3 +1,4 @@
+import type { LeituraDaLinha } from "@/presentation/components/organisms/editar-cadastro-operacional-form.component";
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import type { ParcelamentoFormValues } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.schema";
 import { rotuloResponsavel } from "@/shared/kernel/papeis";
@@ -15,6 +16,30 @@ export function opcoesResponsavel(dados: CadastroOperacionalClienteDto, carregad
 
 export const nomeResponsavelAtual = (dados: CadastroOperacionalClienteDto) =>
   rotuloResponsavel(dados.responsavelId, dados.responsavelNome);
+
+// Estado da leitura do PDF numa linha nova, como o hook o guarda.
+export type EstadoDaLeitura =
+  | { estado: "lendo" }
+  | { estado: "sugerido"; codigoGerado: boolean; cnpjConfere: boolean | null }
+  | { estado: "falhou" };
+
+// O que a linha exibe do estado: o texto já pronto (a View não formata) e se o CNPJ do PDF divergiu.
+export function leituraDaLinha(leitura: EstadoDaLeitura): LeituraDaLinha {
+  switch (leitura.estado) {
+    case "lendo":
+      return { estado: "lendo", texto: "Lendo o PDF…" };
+    case "sugerido":
+      return {
+        estado: "sugerido",
+        texto: leitura.codigoGerado
+          ? "Sugerido pelo PDF: confira. O PDF não traz código: gerei um, você pode trocar."
+          : "Sugerido pelo PDF: confira",
+        cnpjDivergente: leitura.cnpjConfere === false,
+      };
+    case "falhou":
+      return { estado: "falhou", texto: "não consegui ler: digite à mão" };
+  }
+}
 
 const ORIGEM_ROTULO: Record<string, string> = { receita_federal: "Receita Federal", pgfn: "PGFN" };
 

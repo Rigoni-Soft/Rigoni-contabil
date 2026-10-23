@@ -1,11 +1,9 @@
 import { useRef, useState } from "react";
 import type { UseFormSetValue } from "react-hook-form";
 
-import type {
-  EditarCadastroOperacionalFormValues,
-  LeituraDaLinha,
-} from "@/presentation/components/organisms/editar-cadastro-operacional-form.component";
+import type { EditarCadastroOperacionalFormValues } from "@/presentation/components/organisms/editar-cadastro-operacional-form.component";
 
+import type { EstadoDaLeitura } from "./editar-cadastro-operacional.presenter";
 import { lerPdfDeParcelamentoAction } from "./ler-pdf-de-parcelamento.actions";
 
 // Sem resposta nesse tempo, a leitura vira "digite à mão": a Server Action não se cancela, mas a
@@ -32,12 +30,12 @@ export function useLeituraDoPdf(
   setValue: UseFormSetValue<EditarCadastroOperacionalFormValues>,
   indiceDe: (id: string) => number,
 ) {
-  const [leituras, setLeituras] = useState<Record<string, LeituraDaLinha>>({});
+  const [leituras, setLeituras] = useState<Record<string, EstadoDaLeitura>>({});
   // O PDF mais recente de cada linha: resposta de um PDF já trocado ou de uma linha removida é
   // descartada.
   const vigente = useRef<Record<string, File | undefined>>({});
 
-  const definir = (id: string, leitura: LeituraDaLinha | undefined) =>
+  const definir = (id: string, leitura: EstadoDaLeitura | undefined) =>
     setLeituras((atual) => {
       const proximo = { ...atual };
       if (leitura) proximo[id] = leitura;
@@ -58,7 +56,7 @@ export function useLeituraDoPdf(
     if (!arquivo) return definir(id, undefined);
     definir(id, { estado: "lendo" });
 
-    let leitura: LeituraDaLinha = { estado: "falhou" };
+    let leitura: EstadoDaLeitura = { estado: "falhou" };
     try {
       const resultado = await comLimite(lerPdfDeParcelamentoAction({ clienteId, arquivo }));
       if (resultado.ok && resultado.data.lido) {

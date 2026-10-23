@@ -12,6 +12,10 @@ import { CampoDeArquivo } from "@/presentation/components/molecules/campo-de-arq
 import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { CampoResponsavel } from "@/presentation/components/molecules/campo-responsavel.component";
+import {
+  IndicadorDeLeitura,
+  type EstadoDeLeitura,
+} from "@/presentation/components/molecules/indicador-de-leitura.component";
 import { LinhaDeContato } from "@/presentation/components/molecules/linha-de-contato.component";
 import {
   LinhaDeParcelamento,
@@ -74,26 +78,13 @@ export type ParcelamentoLinha = {
   acordoResumo?: string;
 };
 
-// Estado da leitura do PDF numa linha nova (só exibição; quem lê é o Container).
-export type LeituraDaLinha =
-  | { estado: "lendo" }
-  | { estado: "sugerido"; codigoGerado: boolean; cnpjConfere: boolean | null }
-  | { estado: "falhou" };
-
-function textoDaLeitura(leitura: LeituraDaLinha | undefined): string {
-  switch (leitura?.estado) {
-    case "lendo":
-      return "Lendo o PDF…";
-    case "sugerido":
-      return leitura.codigoGerado
-        ? "Sugerido pelo PDF: confira. O PDF não traz código: gerei um, você pode trocar."
-        : "Sugerido pelo PDF: confira";
-    case "falhou":
-      return "não consegui ler: digite à mão";
-    default:
-      return "";
-  }
-}
+// Estado da leitura do PDF numa linha nova (só exibição; quem lê é o Container, e o texto já vem pronto).
+export type LeituraDaLinha = {
+  estado: EstadoDeLeitura;
+  texto: string;
+  // O CNPJ lido do PDF é de outra empresa: alerta próprio, sem bloquear.
+  cnpjDivergente?: boolean;
+};
 
 // View global não importa módulos (arquitetura.md §3.4) — o shape espelha
 // EditarCadastroOperacionalFormValues (módulo clientes) por estrutura, não
@@ -345,15 +336,20 @@ export function EditarCadastroOperacionalForm({
           {parcelamentos.map((atual, indice) => {
             const erros = errors.parcelamentos?.[indice];
             const leitura = leituras[parcelamentoCampos[indice].id];
+            // O estado da leitura descreve os campos que ela preencheu (sugestão a conferir).
+            const descricaoDaLeitura = leitura
+              ? { "aria-describedby": `parcelamentos.${indice}.leitura` }
+              : undefined;
             return (
               <LinhaDeParcelamento
                 key={parcelamentoCampos[indice].id}
                 somenteLeitura={readOnly}
                 indice={indice}
-                codigo={register(`parcelamentos.${indice}.codigo`)}
-                parcelas={register(`parcelamentos.${indice}.parcelasRestantes`, {
-                  valueAsNumber: true,
-                })}
+                codigo={{ ...register(`parcelamentos.${indice}.codigo`), ...descricaoDaLeitura }}
+                parcelas={{
+                  ...register(`parcelamentos.${indice}.parcelasRestantes`, { valueAsNumber: true }),
+                  ...descricaoDaLeitura,
+                }}
                 interno={register(`parcelamentos.${indice}.interno`)}
                 erroCodigo={erros?.codigo?.message}
                 erroParcelas={erros?.parcelasRestantes?.message}
@@ -393,10 +389,12 @@ export function EditarCadastroOperacionalForm({
                           />
                         )}
                       />
-                      <Texto variante="nota" role="status">
-                        {textoDaLeitura(leitura)}
-                      </Texto>
-                      {leitura?.estado === "sugerido" && leitura.cnpjConfere === false && (
+                      <IndicadorDeLeitura
+                        id={`parcelamentos.${indice}.leitura`}
+                        estado={leitura?.estado}
+                        texto={leitura?.texto}
+                      />
+                      {leitura?.cnpjDivergente && (
                         <FieldError>
                           O CNPJ do PDF é diferente do CNPJ do Cliente. Confira se anexou o PDF
                           certo.

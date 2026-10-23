@@ -91,6 +91,13 @@ describe("Leitura do PDF de parcelamento no Editar cliente", () => {
     );
 
     expect(await screen.findByText("Sugerido pelo PDF: confira")).toBeInTheDocument();
+    // O estado da leitura é a descrição dos campos sugeridos (o leitor de tela sabe que são sugestão).
+    expect(screen.getByLabelText(/código/i)).toHaveAccessibleDescription(
+      "Sugerido pelo PDF: confira",
+    );
+    expect(screen.getByLabelText(/parcelas restantes/i)).toHaveAccessibleDescription(
+      "Sugerido pelo PDF: confira",
+    );
     expect(screen.getByLabelText(/código/i)).toHaveValue("A-77");
     expect(screen.getByLabelText(/parcelas restantes/i)).toHaveValue(7);
     expect(screen.getByLabelText(/código/i)).toBeEnabled();

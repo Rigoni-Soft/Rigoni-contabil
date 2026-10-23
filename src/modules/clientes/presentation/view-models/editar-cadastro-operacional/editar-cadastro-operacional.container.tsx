@@ -19,6 +19,7 @@ import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-c
 import { atribuirResponsavelAction } from "./atribuir-responsavel.actions";
 import { editarCadastroOperacionalAction } from "./editar-cadastro-operacional.actions";
 import {
+  leituraDaLinha,
   mudouParcelamentos,
   nomeResponsavelAtual,
   opcoesResponsavel,
@@ -286,7 +287,9 @@ export function EditarCadastroOperacionalContainer({
         leitura.esquecer(parcelamentoCampos.fields[indice].id);
         parcelamentoCampos.remove(indice);
       }}
-      leituras={leitura.leituras}
+      leituras={Object.fromEntries(
+        Object.entries(leitura.leituras).map(([id, estado]) => [id, leituraDaLinha(estado)]),
+      )}
       onArquivoEscolhido={(indice, arquivo) =>
         void leitura.ler(parcelamentoCampos.fields[indice].id, arquivo)
       }
