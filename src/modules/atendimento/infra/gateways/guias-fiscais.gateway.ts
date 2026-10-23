@@ -2,7 +2,7 @@ import type { ClienteCnpjPort } from "@/modules/atendimento/application/ports/ou
 import type {
   GuiaFiscal,
   GuiasFiscaisPort,
-  ParcelamentoDaGuia,
+  GuiasParcelamentoFiscaisPort,
   TipoGuia,
 } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
 import type { AppError } from "@/shared/errors/app.error";
@@ -15,10 +15,10 @@ import { err, type Result } from "@/shared/kernel/result";
 export interface ObrigacoesFiscais {
   consultarAutorizacao(cnpj: string): Promise<Result<{ vigente: boolean }, AppError>>;
   buscarDas(cnpj: string): Promise<Result<GuiaFiscal, AppError>>;
-  buscarGuiaParcelamento(
+  buscarGuiasParcelamento(
     cnpj: string,
-    pedido: ParcelamentoDaGuia & { regime: "simples_nacional" | "mei" },
-  ): Promise<Result<GuiaFiscal, AppError>>;
+    pedido: { regime: "simples_nacional" | "mei"; ignorar: readonly string[] },
+  ): Promise<Result<GuiaFiscal[], AppError>>;
 }
 
 // A CND vem de fonte própria (porta separada em `clientes`).
@@ -26,35 +26,42 @@ export interface CertidaoCnd {
   buscarCnd(cnpj: string): Promise<Result<GuiaFiscal, AppError>>;
 }
 
-export class GuiasFiscaisGateway implements GuiasFiscaisPort {
+export class GuiasFiscaisGateway implements GuiasFiscaisPort, GuiasParcelamentoFiscaisPort {
   constructor(
     private readonly clientes: ClienteCnpjPort,
     private readonly obrigacoes: ObrigacoesFiscais,
     private readonly certidoes: CertidaoCnd,
   ) {}
 
-  async buscar(
-    clienteId: string,
-    tipo: TipoGuia,
-    parcelamento?: ParcelamentoDaGuia,
-  ): Promise<Result<GuiaFiscal, AppError>> {
+  async buscar(clienteId: string, tipo: TipoGuia): Promise<Result<GuiaFiscal, AppError>> {
+    if (tipo === "parcelamento") {
+      return err(
+        new ValidationError("O parcelamento tem várias guias: use GuiasParcelamentoFiscaisPort."),
+      );
+    }
     const cadastro = await this.clientes.cadastroFiscalDoCliente(clienteId);
     if (!cadastro.ok) return cadastro;
-    const { cnpj, regime } = cadastro.value;
-    if (tipo === "parcelamento") {
-      // Só o Simples Nacional e o MEI têm parcelamento ordinário nesse provedor.
-      if (regime !== "simples_nacional" && regime !== "mei") {
-        return err(new ValidationError("Este regime não tem guia de parcelamento do Simples."));
-      }
-      if (!parcelamento) return err(new ValidationError("Informe o parcelamento da guia."));
-      // Direto, sem pré-consulta: o provedor consulta a autorização só se a guia falhar.
-      return this.obrigacoes.buscarGuiaParcelamento(cnpj, { ...parcelamento, regime });
-    }
+    const { cnpj } = cadastro.value;
     const autorizacao = await this.obrigacoes.consultarAutorizacao(cnpj);
     if (!autorizacao.ok) return autorizacao;
     if (!autorizacao.value.vigente) {
       return err(new ForbiddenError("Cliente sem autorização vigente para consulta fiscal."));
     }
     return tipo === "das" ? this.obrigacoes.buscarDas(cnpj) : this.certidoes.buscarCnd(cnpj);
+  }
+
+  async buscarGuiasParcelamento(
+    clienteId: string,
+    ignorar: readonly string[],
+  ): Promise<Result<GuiaFiscal[], AppError>> {
+    const cadastro = await this.clientes.cadastroFiscalDoCliente(clienteId);
+    if (!cadastro.ok) return cadastro;
+    const { cnpj, regime } = cadastro.value;
+    // Só o Simples Nacional e o MEI têm parcelamento ordinário nesse provedor.
+    if (regime !== "simples_nacional" && regime !== "mei") {
+      return err(new ValidationError("Este regime não tem guia de parcelamento do Simples."));
+    }
+    // Direto, sem pré-consulta: o provedor consulta a autorização só se a emissão falhar.
+    return this.obrigacoes.buscarGuiasParcelamento(cnpj, { regime, ignorar });
   }
 }

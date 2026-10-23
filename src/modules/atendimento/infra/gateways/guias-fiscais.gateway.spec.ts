@@ -1,12 +1,12 @@
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
-import { GuiaParcelamentoIndisponivelError } from "@/shared/errors/guia-parcelamento-indisponivel.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok } from "@/shared/kernel/result";
 
 import { GuiasFiscaisGateway, type ObrigacoesFiscais } from "./guias-fiscais.gateway";
 
-const PARCELAMENTO = { codigo: "PARC-AB12CD34", emAbertoDaReceita: 1 };
 const PDF = { nomeArquivo: "x.pdf", pdfBase64: "JVBERi0=" };
+const PARCELA_1 = { ...PDF, parcela: "202608", valorCentavos: 100 };
+const PARCELA_2 = { ...PDF, parcela: "202609", valorCentavos: 200 };
 
 function montar(
   autorizacao: "vigente" | "vencida" | "falha" = "vigente",
@@ -15,11 +15,10 @@ function montar(
   const consultados: string[] = [];
   const obrigacoes: ObrigacoesFiscais = {
     buscarDas: async (c) => (consultados.push(`das:${c}`), ok(PDF)),
-    buscarGuiaParcelamento: async (c, p) =>
-      p.codigo === "QUITADO"
-        ? err(new GuiaParcelamentoIndisponivelError("quitado"))
-        : (consultados.push(`parcelamento:${c}:${p.regime}:${p.codigo}:${p.emAbertoDaReceita}`),
-          ok(PDF)),
+    buscarGuiasParcelamento: async (c, p) => (
+      consultados.push(`parcelamentos:${c}:${p.regime}:${p.ignorar.join("+")}`),
+      ok([PARCELA_1, PARCELA_2].filter((g) => !p.ignorar.includes(g.parcela)))
+    ),
     consultarAutorizacao: async () => (
       consultados.push("autorizacao"),
       autorizacao === "falha"
@@ -42,49 +41,52 @@ function montar(
 }
 
 describe("GuiasFiscaisGateway", () => {
-  it.each(["das", "parcelamento", "cnd"] as const)(
-    "busca %s pelo CNPJ do cadastro do Cliente",
-    async (tipo) => {
+  it.each(["das", "cnd"] as const)("busca %s pelo CNPJ do cadastro do Cliente", async (tipo) => {
+    const { guias, consultados } = montar();
+    expect(await guias.buscar("c1", tipo)).toEqual({ ok: true, value: PDF });
+    expect(consultados.filter((c) => c !== "autorizacao")).toEqual([`${tipo}:11222333000181`]);
+  });
+
+  describe("guias de parcelamento", () => {
+    it("devolve todas as guias do CNPJ do cadastro, direto, sem pré-consulta de autorização", async () => {
       const { guias, consultados } = montar();
-      expect(await guias.buscar("c1", tipo, PARCELAMENTO)).toEqual({ ok: true, value: PDF });
-      expect(consultados.filter((c) => c !== "autorizacao")).toEqual([
-        tipo === "parcelamento"
-          ? "parcelamento:11222333000181:simples_nacional:PARC-AB12CD34:1"
-          : `${tipo}:11222333000181`,
-      ]);
-    },
-  );
 
-  it("guia de parcelamento vai direto ao provedor, sem pré-consulta de autorização", async () => {
-    const { guias, consultados } = montar();
+      const r = await guias.buscarGuiasParcelamento("c1", []);
 
-    await guias.buscar("c1", "parcelamento", PARCELAMENTO);
+      expect(r).toEqual({ ok: true, value: [PARCELA_1, PARCELA_2] });
+      expect(consultados).toEqual(["parcelamentos:11222333000181:simples_nacional:"]);
+    });
 
-    expect(consultados).not.toContain("autorizacao");
-  });
+    it("repassa as parcelas já entregues, que o provedor não emite de novo", async () => {
+      const { guias, consultados } = montar("vigente", "mei");
 
-  it("parcelamento sem o código do parcelamento é erro de validação, sem chamar o provedor", async () => {
-    const { guias, consultados } = montar();
+      const r = await guias.buscarGuiasParcelamento("c1", ["202608"]);
 
-    const r = await guias.buscar("c1", "parcelamento");
+      expect(r).toEqual({ ok: true, value: [PARCELA_2] });
+      expect(consultados).toEqual(["parcelamentos:11222333000181:mei:202608"]);
+    });
 
-    expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
-    expect(consultados).toEqual([]);
-  });
+    it("Cliente fora do Simples/MEI é erro de validação, sem chamar o provedor", async () => {
+      const { guias, consultados } = montar("vigente", "lucro_presumido");
 
-  it("repassa o motivo tipado de o provedor não emitir a guia", async () => {
-    const { guias } = montar();
+      const r = await guias.buscarGuiasParcelamento("c1", []);
 
-    const r = await guias.buscar("c1", "parcelamento", { ...PARCELAMENTO, codigo: "QUITADO" });
+      expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
+      expect(consultados).toEqual([]);
+    });
 
-    expect(!r.ok && r.error).toBeInstanceOf(GuiaParcelamentoIndisponivelError);
-  });
+    it("propaga a falha do cadastro", async () => {
+      expect((await montar().guias.buscarGuiasParcelamento("outro", [])).ok).toBe(false);
+    });
 
-  it("parcelamento de Cliente fora do Simples/MEI é erro de validação, sem chamar o provedor", async () => {
-    const { guias, consultados } = montar("vigente", "lucro_presumido");
-    const r = await guias.buscar("c1", "parcelamento", PARCELAMENTO);
-    expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
-    expect(consultados).toEqual([]);
+    it("a guia única de parcelamento não existe mais: `buscar` recusa o tipo", async () => {
+      const { guias, consultados } = montar();
+
+      const r = await guias.buscar("c1", "parcelamento");
+
+      expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
+      expect(consultados).toEqual([]);
+    });
   });
 
   it("sem autorização vigente é ForbiddenError e não busca o PDF", async () => {

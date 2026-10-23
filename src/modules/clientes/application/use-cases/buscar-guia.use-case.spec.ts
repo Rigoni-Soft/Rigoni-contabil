@@ -36,13 +36,8 @@ class FontesFalsas implements ObrigacoesFiscaisPort {
     });
   }
 
-  async buscarGuiaParcelamento(): Promise<Result<GuiaParcelamentoDto, AppError>> {
-    return this.responder({
-      ...pdf,
-      parcela: "202609",
-      valorCentavos: 1,
-      vencimento: "2026-10-31",
-    });
+  async buscarGuiasParcelamento(): Promise<Result<GuiaParcelamentoDto[], AppError>> {
+    return this.responder([]);
   }
 
   async consultarAutorizacao(): Promise<Result<AutorizacaoDto, AppError>> {

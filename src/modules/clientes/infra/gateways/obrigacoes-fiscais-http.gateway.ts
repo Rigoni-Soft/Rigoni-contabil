@@ -5,10 +5,9 @@ import type {
   GuiaDasDto,
   GuiaParcelamentoDto,
   ObrigacoesFiscaisPort,
-  PedidoGuiaParcelamento,
+  PedidoGuiasParcelamento,
 } from "@/modules/clientes/application/ports/out/obrigacoes-fiscais.provider";
 import type { AppError } from "@/shared/errors/app.error";
-import { GuiaParcelamentoIndisponivelError } from "@/shared/errors/guia-parcelamento-indisponivel.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
@@ -29,10 +28,7 @@ const parcelamentoSchema = z.object({
   valorCentavos: z.number().int().optional(),
   vencimento: dataIso.optional(),
 });
-// Recusa tipada da guia por código: 422 com o motivo (docs/contratos/obrigacoes-fiscais.md).
-const recusaSchema = z.object({
-  motivo: z.enum(["codigo_desconhecido", "quitado", "fora_do_periodo", "ambiguo"]),
-});
+const parcelamentosSchema = z.object({ guias: z.array(parcelamentoSchema) });
 const autorizacaoSchema = z.discriminatedUnion("vigente", [
   z.object({ vigente: z.literal(true), dataExpiracao: dataIso }),
   z.object({ vigente: z.literal(false) }),
@@ -51,12 +47,14 @@ export class ObrigacoesFiscaisHttpGateway implements ObrigacoesFiscaisPort {
     return this.obter(cnpj, "das", dasSchema);
   }
 
-  // `regime` e `emAbertoDaReceita` são do adapter do provedor: o contrato só conhece o código.
-  buscarGuiaParcelamento(
+  // O regime é do adapter do provedor: o contrato só leva as parcelas já entregues.
+  async buscarGuiasParcelamento(
     cnpj: string,
-    { codigo }: PedidoGuiaParcelamento,
-  ): Promise<Result<GuiaParcelamentoDto, AppError>> {
-    return this.obter(cnpj, `parcelamentos/${encodeURIComponent(codigo)}`, parcelamentoSchema);
+    { ignorar }: PedidoGuiasParcelamento,
+  ): Promise<Result<GuiaParcelamentoDto[], AppError>> {
+    const consulta = ignorar.length > 0 ? `?ignorar=${ignorar.join(",")}` : "";
+    const r = await this.obter(cnpj, `parcelamentos${consulta}`, parcelamentosSchema);
+    return r.ok ? ok(r.value.guias) : r;
   }
 
   consultarAutorizacao(cnpj: string): Promise<Result<AutorizacaoDto, AppError>> {
@@ -73,12 +71,6 @@ export class ObrigacoesFiscaisHttpGateway implements ObrigacoesFiscaisPort {
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
       if (!resposta.ok) {
-        const recusa = recusaSchema.safeParse(
-          resposta.status === 422 ? await resposta.json().catch(() => null) : null,
-        );
-        if (recusa.success) {
-          return err(new GuiaParcelamentoIndisponivelError(recusa.data.motivo));
-        }
         return err(new ServicoExternoError(`Serviço fiscal respondeu ${resposta.status}.`));
       }
       const dados = schema.safeParse(await resposta.json());

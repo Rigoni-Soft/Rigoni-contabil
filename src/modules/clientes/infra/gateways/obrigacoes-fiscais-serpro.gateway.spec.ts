@@ -1,5 +1,4 @@
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
-import { GuiaParcelamentoIndisponivelError } from "@/shared/errors/guia-parcelamento-indisponivel.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 
 import {
@@ -23,11 +22,7 @@ const CRED = {
 const CLIENTE = "11444777000161";
 const AGORA = () => new Date("2026-01-15T15:00:00Z"); // janeiro: mês anterior = dezembro
 
-const PEDIDO = {
-  codigo: "PARC-AB12CD34",
-  regime: "simples_nacional" as const,
-  emAbertoDaReceita: 1,
-};
+const PEDIDO = { regime: "simples_nacional" as const, ignorar: [] as string[] };
 
 const token = {
   status: 200,
@@ -82,121 +77,141 @@ describe("ObrigacoesFiscaisSerproGateway", () => {
     expect(JSON.parse(corpo.pedidoDados.dados)).toEqual({ periodoApuracao: "202512" });
   });
 
-  it("guia de parcelamento pede direto a parcela do mês corrente, sem consultar a autorização", async () => {
-    const { http, gw } = gateway(token, envelope({ docArrecadacaoPdfB64: "JVBERg==" }));
-
-    const r = await gw.buscarGuiaParcelamento(CLIENTE, PEDIDO);
-
-    expect(r).toEqual({
-      ok: true,
-      value: {
-        nomeArquivo: `parcelamento-${CLIENTE}-202601.pdf`,
-        pdfBase64: "JVBERg==",
-        parcela: "202601",
-      },
-    });
-    expect(http).toHaveBeenCalledTimes(2); // token + a guia: nenhuma consulta de autorização
-    expect(http.mock.calls[1][0].url).toBe("https://api.test/v1/Emitir");
-  });
-
-  it("o código é rótulo nosso: não vai ao Serpro, que emite só pela parcela", async () => {
-    const { http, gw } = gateway(token, envelope({ docArrecadacaoPdfB64: "x" }));
-
-    await gw.buscarGuiaParcelamento(CLIENTE, { ...PEDIDO, codigo: "PARC-AB12CD34" });
-
-    const corpo = http.mock.calls[1][0].corpo;
-    expect(corpo).not.toContain("PARC-AB12CD34");
-    expect(JSON.parse(JSON.parse(corpo).pedidoDados.dados)).toEqual({ parcelaParaEmitir: 202601 });
-  });
-
-  it("parcelamento usa o PARC do regime do Cliente: SN em PARCSN, MEI em PARCMEI", async () => {
-    for (const [regime, sistema, servico] of [
-      ["simples_nacional", "PARCSN", "GERARDAS161"],
-      ["mei", "PARCMEI", "GERARDAS201"],
-    ] as const) {
-      const { http, gw } = gateway(token, envelope({ docArrecadacaoPdfB64: "JVBERg==" }));
-
-      const r = await gw.buscarGuiaParcelamento(CLIENTE, { ...PEDIDO, regime });
-
-      expect(r.ok).toBe(true);
-      expect(JSON.parse(http.mock.calls[1][0].corpo).pedidoDados).toMatchObject({
-        idSistema: sistema,
-        idServico: servico,
-      });
-    }
-  });
-
-  describe("guia de parcelamento que o Serpro não emite", () => {
+  describe("guias de parcelamento", () => {
+    const lista = (...parcelas: [number, number][]) =>
+      envelope({ listaParcela: parcelas.map(([parcela, valor]) => ({ parcela, valor })) });
+    const pdf = envelope({ docArrecadacaoPdfB64: "JVBERg==" });
     // Respostas gravadas do Integra-Parcelamento (docs/pesquisa/serpro-guia-parcelamento.md): a
     // mensagem de negócio vem em `mensagens[].codigo`.
     const recusa = (er: string, status = 400) => ({
       status,
       corpo: JSON.stringify({ mensagens: [{ codigo: `[Aviso-PARCSN-${er}]`, texto: "..." }] }),
     });
-    const motivoDe = (
-      r: Awaited<ReturnType<ObrigacoesFiscaisSerproGateway["buscarGuiaParcelamento"]>>,
-    ) => (!r.ok && r.error instanceof GuiaParcelamentoIndisponivelError ? r.error.motivo : null);
+    const servico = (http: jest.Mock, n: number) =>
+      JSON.parse(http.mock.calls[n][0].corpo).pedidoDados.idServico;
+
+    it("lista as parcelas emitíveis e emite uma guia por parcela, sem consultar a autorização", async () => {
+      const { http, gw } = gateway(token, lista([202512, 100.5], [202601, 200]), pdf, pdf);
+
+      const r = await gw.buscarGuiasParcelamento(CLIENTE, PEDIDO);
+
+      expect(r).toEqual({
+        ok: true,
+        value: [
+          {
+            nomeArquivo: `parcelamento-${CLIENTE}-202512.pdf`,
+            pdfBase64: "JVBERg==",
+            parcela: "202512",
+            valorCentavos: 10050,
+          },
+          {
+            nomeArquivo: `parcelamento-${CLIENTE}-202601.pdf`,
+            pdfBase64: "JVBERg==",
+            parcela: "202601",
+            valorCentavos: 20000,
+          },
+        ],
+      });
+      expect(http).toHaveBeenCalledTimes(4); // token + lista + 2 guias
+      expect([1, 2, 3].map((n) => servico(http, n))).toEqual([
+        "PARCELASPARAGERAR162",
+        "GERARDAS161",
+        "GERARDAS161",
+      ]);
+      expect(http.mock.calls[2][0].url).toBe("https://api.test/v1/Emitir");
+      expect(JSON.parse(JSON.parse(http.mock.calls[3][0].corpo).pedidoDados.dados)).toEqual({
+        parcelaParaEmitir: 202601,
+      });
+    });
+
+    it("o regime escolhe o PARC: SN em PARCSN, MEI em PARCMEI", async () => {
+      for (const [regime, sistema, consulta, emissao] of [
+        ["simples_nacional", "PARCSN", "PARCELASPARAGERAR162", "GERARDAS161"],
+        ["mei", "PARCMEI", "PARCELASPARAGERAR202", "GERARDAS201"],
+      ] as const) {
+        const { http, gw } = gateway(token, lista([202601, 1]), pdf);
+
+        const r = await gw.buscarGuiasParcelamento(CLIENTE, { ...PEDIDO, regime });
+
+        expect(r.ok && r.value).toHaveLength(1);
+        for (const n of [1, 2]) {
+          expect(JSON.parse(http.mock.calls[n][0].corpo).pedidoDados).toMatchObject({
+            idSistema: sistema,
+            idServico: n === 1 ? consulta : emissao,
+          });
+        }
+      }
+    });
+
+    it("não emite (nem paga) as parcelas já entregues", async () => {
+      const { http, gw } = gateway(token, lista([202512, 1], [202601, 2]), pdf);
+
+      const r = await gw.buscarGuiasParcelamento(CLIENTE, { ...PEDIDO, ignorar: ["202512"] });
+
+      expect(r.ok && r.value.map((g) => g.parcela)).toEqual(["202601"]);
+      expect(http).toHaveBeenCalledTimes(3);
+    });
 
     it.each([
-      ["ER_E001", "codigo_desconhecido"], // sem parcelamento ativo
-      ["ER_N003", "quitado"], // sem saldo devedor
-      ["ER_N006", "fora_do_periodo"], // parcela inexistente, paga ou de mês futuro
-      ["ER_N005", "fora_do_periodo"], // parcela do mês só emitível a partir de certo dia
-      ["ER_N008", "fora_do_periodo"], // sem parcelas para emissão
-    ])("%s vira %s, sem consultar a autorização", async (er, motivo) => {
-      const { http, gw } = gateway(token, recusa(er));
+      ["lista vazia", lista()],
+      ["sem parcelamento ativo (ER_E001)", recusa("ER_E001")],
+      ["sem saldo devedor (ER_N003)", recusa("ER_N003")],
+      ["sem dados (404)", { status: 404, corpo: "" }],
+    ])("%s: nenhuma guia, e nenhuma emissão", async (_caso, resposta) => {
+      const { http, gw } = gateway(token, resposta);
 
-      const r = await gw.buscarGuiaParcelamento(CLIENTE, PEDIDO);
+      const r = await gw.buscarGuiasParcelamento(CLIENTE, PEDIDO);
 
-      expect(motivoDe(r)).toBe(motivo);
+      expect(r).toEqual({ ok: true, value: [] });
       expect(http).toHaveBeenCalledTimes(2);
     });
 
-    it("sem dados (404) é código desconhecido: o Serpro não tem parcelamento ativo", async () => {
-      const { gw } = gateway(token, { status: 404, corpo: "" });
-
-      expect(motivoDe(await gw.buscarGuiaParcelamento(CLIENTE, PEDIDO))).toBe(
-        "codigo_desconhecido",
+    it("parcela que o Serpro ainda não emite (ER_N005/ER_N006) fica de fora, as outras seguem", async () => {
+      const { gw } = gateway(
+        token,
+        lista([202512, 1], [202601, 2], [202602, 3]),
+        recusa("ER_N006"),
+        pdf,
+        recusa("ER_N005"),
       );
+
+      const r = await gw.buscarGuiasParcelamento(CLIENTE, PEDIDO);
+
+      expect(r.ok && r.value.map((g) => g.parcela)).toEqual(["202601"]);
     });
 
-    it("com mais de um parcelamento da Receita em aberto não atribui a guia: ambiguo, sem chamar o Serpro", async () => {
-      const { http, gw } = gateway();
+    it("queda no meio devolve as guias já baixadas; as outras vêm na próxima rodada", async () => {
+      const { gw } = gateway(token, lista([202512, 1], [202601, 2]), pdf, {
+        status: 500,
+        corpo: "",
+      });
 
-      const r = await gw.buscarGuiaParcelamento(CLIENTE, { ...PEDIDO, emAbertoDaReceita: 2 });
+      const r = await gw.buscarGuiasParcelamento(CLIENTE, PEDIDO);
 
-      expect(motivoDe(r)).toBe("ambiguo");
-      expect(http).not.toHaveBeenCalled();
+      expect(r.ok && r.value.map((g) => g.parcela)).toEqual(["202512"]);
     });
 
-    it("falha sem motivo conhecido consulta a autorização uma vez: vencida vira ForbiddenError", async () => {
+    it("falha sem nenhuma guia consulta a autorização uma vez: vencida vira ForbiddenError", async () => {
       const { http, gw } = gateway(token, { status: 403, corpo: "" }, envelope([]));
 
-      const r = await gw.buscarGuiaParcelamento(CLIENTE, PEDIDO);
+      const r = await gw.buscarGuiasParcelamento(CLIENTE, PEDIDO);
 
       expect(!r.ok && r.error).toBeInstanceOf(ForbiddenError);
       expect(http).toHaveBeenCalledTimes(3);
-      expect(JSON.parse(http.mock.calls[2][0].corpo).pedidoDados.idSistema).toBe("PROCURACOES");
+      expect(servico(http, 2)).toBe("OBTERPROCURACAO41");
     });
 
-    it("falha sem motivo conhecido com autorização vigente segue como indisponibilidade", async () => {
-      const { gw } = gateway(
-        token,
-        { status: 500, corpo: "" },
+    it("falha sem nenhuma guia com autorização vigente, ou sem resposta dela, é indisponibilidade", async () => {
+      for (const autorizacao of [
         envelope([{ dtexpiracao: "20991231" }]),
-      );
+        { status: 500, corpo: "" },
+      ]) {
+        const { gw } = gateway(token, { status: 500, corpo: "" }, autorizacao);
 
-      const r = await gw.buscarGuiaParcelamento(CLIENTE, PEDIDO);
+        const r = await gw.buscarGuiasParcelamento(CLIENTE, PEDIDO);
 
-      expect(!r.ok && r.error).toBeInstanceOf(ServicoExternoError);
-    });
-
-    it("se nem a autorização responde, a falha é a da guia (indisponibilidade)", async () => {
-      const { gw } = gateway(token, { status: 500, corpo: "" }, { status: 500, corpo: "" });
-
-      const r = await gw.buscarGuiaParcelamento(CLIENTE, PEDIDO);
-
-      expect(!r.ok && r.error).toBeInstanceOf(ServicoExternoError);
+        expect(!r.ok && r.error).toBeInstanceOf(ServicoExternoError);
+      }
     });
   });
 
@@ -205,13 +220,14 @@ describe("ObrigacoesFiscaisSerproGateway", () => {
       token,
       { status: 401, corpo: "" },
       token,
+      envelope({ listaParcela: [{ parcela: 202601, valor: 1 }] }),
       envelope({ docArrecadacaoPdfB64: "x" }),
     );
 
-    const r = await gw.buscarGuiaParcelamento(CLIENTE, PEDIDO);
+    const r = await gw.buscarGuiasParcelamento(CLIENTE, PEDIDO);
 
-    expect(r.ok).toBe(true);
-    expect(http).toHaveBeenCalledTimes(4);
+    expect(r.ok && r.value).toHaveLength(1);
+    expect(http).toHaveBeenCalledTimes(5);
   });
 
   it("procuração vigente devolve a maior data; vencida ou ausente, vigente:false", async () => {
@@ -255,17 +271,20 @@ describe("ObrigacoesFiscaisSerproGateway", () => {
   });
 
   it("trial usa o token de demonstração direto: sem autenticar, sem certificado, sem jwt_token", async () => {
-    const http = jest.fn().mockResolvedValue(envelope({ docArrecadacaoPdfB64: "JVBERg==" }));
+    const http = jest
+      .fn()
+      .mockResolvedValueOnce(envelope({ listaParcela: [{ parcela: 202601, valor: 1 }] }))
+      .mockResolvedValueOnce(envelope({ docArrecadacaoPdfB64: "JVBERg==" }));
     const trial = new ObrigacoesFiscaisSerproGateway(
       { ...CRED, acesso: { tipo: "trial", token: "demo" } },
       http,
       AGORA,
     );
 
-    const r = await trial.buscarGuiaParcelamento(CLIENTE, PEDIDO);
+    const r = await trial.buscarGuiasParcelamento(CLIENTE, PEDIDO);
 
-    expect(r.ok).toBe(true);
-    expect(http).toHaveBeenCalledTimes(1);
+    expect(r.ok && r.value).toHaveLength(1);
+    expect(http).toHaveBeenCalledTimes(2);
     expect(http.mock.calls[0][0].headers).toEqual({
       Authorization: "Bearer demo",
       "Content-Type": "application/json",

@@ -1,13 +1,12 @@
 // Mock do contrato neutro de docs/contratos/obrigacoes-fiscais.md — só pra
 // desenvolver e testar sem provedor real. `yarn mock:api` (porta 4010).
-// Controle de cenário: POST /__modo  {"modo":"normal"|"falha"|"sem_autorizacao"|<motivo>}
-// onde <motivo> (codigo_desconhecido|quitado|fora_do_periodo|ambiguo) recusa só a guia de parcelamento.
+// Controle de cenário: POST /__modo  {"modo":"normal"|"falha"|"sem_autorizacao"|"uma_parcela"|"sem_parcelas"}
+// `parcelamentos` devolve 2 guias (atrasada + do mês); `uma_parcela` 1; `sem_parcelas` nenhuma.
 import { createServer } from "node:http";
 
 import { PDF_BASE64 as PDF } from "./pdf-teste.mjs";
 
 let modo = "normal";
-const MOTIVOS = ["codigo_desconhecido", "quitado", "fora_do_periodo", "ambiguo"];
 
 const recursos = {
   autorizacao: () =>
@@ -21,14 +20,22 @@ const recursos = {
     valorCentavos: 150_000,
     vencimento: "2026-10-20",
   }),
-  // Guia por código de parcelamento (`/clientes/{cnpj}/parcelamentos/{codigo}`).
-  parcelamentos: (cnpj, codigo) => ({
-    nomeArquivo: `parcelamento-${cnpj}-${codigo}.pdf`,
-    pdfBase64: PDF,
-    parcela: "202609",
-    valorCentavos: 45_000,
-    vencimento: "2026-10-31",
-  }),
+  // Guias de parcelamento do CNPJ (`/clientes/{cnpj}/parcelamentos?ignorar=AAAAMM,...`): uma por
+  // parcela emitível, menos as já entregues.
+  parcelamentos: (cnpj, ignorar) => {
+    const parcelas = { normal: ["202608", "202609"], uma_parcela: ["202609"], sem_parcelas: [] };
+    return {
+      guias: (parcelas[modo] ?? parcelas.normal)
+        .filter((parcela) => !ignorar.includes(parcela))
+        .map((parcela) => ({
+          nomeArquivo: `parcelamento-${cnpj}-${parcela}.pdf`,
+          pdfBase64: PDF,
+          parcela,
+          valorCentavos: 45_000,
+          vencimento: `${parcela.slice(0, 4)}-${parcela.slice(4)}-28`,
+        })),
+    };
+  },
   cnd: (cnpj) => ({
     nomeArquivo: `cnd-${cnpj}.pdf`,
     pdfBase64: PDF,
@@ -52,17 +59,13 @@ export const servidor = createServer((req, res) => {
     return;
   }
 
-  const rota = /^\/clientes\/([0-9A-Z]{14})\/(\w+)(?:\/([^/]+))?$/.exec(req.url ?? "");
+  const url = new URL(req.url ?? "", "http://mock");
+  const rota = /^\/clientes\/([0-9A-Z]{14})\/(\w+)$/.exec(url.pathname);
   const recurso = rota && recursos[rota[2]];
-  // Só `parcelamentos` leva o código; os outros recursos não têm subcaminho.
-  if (req.method !== "GET" || !recurso || Boolean(rota[3]) !== (rota[2] === "parcelamentos")) {
-    return responder(res, 404, { erro: "não encontrado" });
-  }
+  if (req.method !== "GET" || !recurso) return responder(res, 404, { erro: "não encontrado" });
   if (modo === "falha") return responder(res, 503, { erro: "indisponível (simulado)" });
-  if (rota[2] === "parcelamentos" && MOTIVOS.includes(modo)) {
-    return responder(res, 422, { motivo: modo });
-  }
-  responder(res, 200, recurso(rota[1], rota[3] && decodeURIComponent(rota[3])));
+  const ignorar = (url.searchParams.get("ignorar") ?? "").split(",").filter(Boolean);
+  responder(res, 200, recurso(rota[1], ignorar));
 }).listen(Number(process.env.MOCK_API_PORT ?? 4010), () =>
   console.log(`mock-api em http://127.0.0.1:${servidor.address().port}`),
 );
