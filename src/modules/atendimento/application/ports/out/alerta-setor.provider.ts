@@ -3,7 +3,12 @@ import type { Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
 export type TipoAlertaSetor =
-  "das_pendente" | "falha_envio" | "contato_ausente" | "entrega_parcial";
+  | "das_pendente"
+  | "falha_envio"
+  | "contato_ausente"
+  | "entrega_parcial"
+  | "parcelamento_sem_guia"
+  | "financeiro_ausente";
 
 export type AlertaSetor = {
   setor: SetorSlug;

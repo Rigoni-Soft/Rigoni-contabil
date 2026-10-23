@@ -2,6 +2,7 @@ import type { ClienteCnpjPort } from "@/modules/atendimento/application/ports/ou
 import type {
   GuiaFiscal,
   GuiasFiscaisPort,
+  GuiasParcelamentoPort,
   TipoGuia,
 } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
 import type { AppError } from "@/shared/errors/app.error";
@@ -26,7 +27,7 @@ export interface CertidaoCnd {
   buscarCnd(cnpj: string): Promise<Result<GuiaFiscal, AppError>>;
 }
 
-export class GuiasFiscaisGateway implements GuiasFiscaisPort {
+export class GuiasFiscaisGateway implements GuiasFiscaisPort, GuiasParcelamentoPort {
   constructor(
     private readonly clientes: ClienteCnpjPort,
     private readonly obrigacoes: ObrigacoesFiscais,
@@ -46,9 +47,10 @@ export class GuiasFiscaisGateway implements GuiasFiscaisPort {
     return tipo === "das" ? this.obrigacoes.buscarDas(cnpj) : this.certidoes.buscarCnd(cnpj);
   }
 
-  // ponytail: job, painel e URA entregam uma guia só; a mais atrasada primeiro. A entrega de todas,
-  // atribuídas a cada parcelamento (#126/#128), chama `obrigacoes.buscarGuiasParcelamento` direto.
-  private async guiaMaisAtrasada(clienteId: string): Promise<Result<GuiaFiscal, AppError>> {
+  async buscarGuiasParcelamento(
+    clienteId: string,
+    ignorar: readonly string[],
+  ): Promise<Result<GuiaFiscal[], AppError>> {
     const cadastro = await this.clientes.cadastroFiscalDoCliente(clienteId);
     if (!cadastro.ok) return cadastro;
     const { cnpj, regime } = cadastro.value;
@@ -57,7 +59,12 @@ export class GuiasFiscaisGateway implements GuiasFiscaisPort {
       return err(new ValidationError("Este regime não tem guia de parcelamento do Simples."));
     }
     // Direto, sem pré-consulta: o provedor consulta a autorização só se a emissão falhar.
-    const guias = await this.obrigacoes.buscarGuiasParcelamento(cnpj, { regime, ignorar: [] });
+    return this.obrigacoes.buscarGuiasParcelamento(cnpj, { regime, ignorar });
+  }
+
+  // ponytail: painel e URA entregam uma guia só, a mais atrasada, até a #127/#128 entregarem todas.
+  private async guiaMaisAtrasada(clienteId: string): Promise<Result<GuiaFiscal, AppError>> {
+    const guias = await this.buscarGuiasParcelamento(clienteId, []);
     if (!guias.ok) return guias;
     const [maisAtrasada] = [...guias.value].sort((a, b) =>
       (a.parcela ?? "").localeCompare(b.parcela ?? ""),

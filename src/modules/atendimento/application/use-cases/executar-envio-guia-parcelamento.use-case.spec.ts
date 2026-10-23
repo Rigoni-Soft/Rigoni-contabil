@@ -2,6 +2,7 @@ import type { AlertaSetor } from "@/modules/atendimento/application/ports/out/al
 import type { ClienteParaParcelamento } from "@/modules/atendimento/application/ports/out/clientes-para-parcelamento.provider";
 import type { EmailParaEnvio } from "@/modules/atendimento/application/ports/out/envio-email.provider";
 import type { GuiaFiscal } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
+import { SEM_ANDAMENTO } from "@/modules/atendimento/application/jobs/alertas-da-rodada";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
@@ -10,8 +11,8 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { EntregarComunicacaoPorCanais } from "./entregar-comunicacao-por-canais.use-case";
 import { EnviarComunicacaoProativa } from "./enviar-comunicacao-proativa.use-case";
+import { EnviarGuiasParcelamento } from "./enviar-guias-parcelamento.use-case";
 import { ExecutarEnvioGuiaParcelamento } from "./executar-envio-guia-parcelamento.use-case";
-import { ObterGuiaParcelamentoParaEnvio } from "./obter-guia-parcelamento-para-envio.use-case";
 
 // 22/10/2026 09:00 em São Paulo.
 const diaDoJob = new Date("2026-10-22T12:00:00Z");
@@ -34,12 +35,13 @@ const guiaOk: GuiaFiscal = {
   pdfBase64: "JVBERi0=",
   parcela: "202609",
 };
+const emAberto = { id: "p1", codigo: "PARC-1", interno: false, valorParcelaCentavos: 10_000 };
 
 function montar(
   clientes: ClienteParaParcelamento[],
   opcoes: {
     agora?: Date;
-    buscar?: () => Promise<Result<GuiaFiscal, AppError>>;
+    buscar?: () => Promise<Result<GuiaFiscal[], AppError>>;
     falhas?: Record<string, number>;
     reservar?: Result<string | null, AppError>;
     // Por Cliente: sobrepõe `reservar` (um Cliente com a reserva ocupada ao lado de outro livre).
@@ -59,7 +61,7 @@ function montar(
   // Quantos templates já tinham saído quando cada conclusão foi pedida: concluir é depois do envio.
   const entregasAoConcluir: number[] = [];
   const resolvidos: { desde: Date; ids: string[] }[] = [];
-  const buscar = jest.fn(opcoes.buscar ?? (async () => ok(guiaOk)));
+  const buscar = jest.fn(opcoes.buscar ?? (async () => ok([guiaOk])));
   const job = new ExecutarEnvioGuiaParcelamento(
     {
       listarPendentes: async () => ok(clientes),
@@ -77,19 +79,23 @@ function montar(
         return opcoes.liberar ?? ok(undefined);
       },
     },
-    new ObterGuiaParcelamentoParaEnvio(
-      { buscar },
-      { publicar: async () => ok("https://storage.test/parcelamento.pdf") },
-      0,
-    ),
-    new EntregarComunicacaoPorCanais(
-      new EnviarComunicacaoProativa(envio, 3, 0),
+    new EnviarGuiasParcelamento(
       {
-        enviar: async (email) => {
-          emails.push(email);
-          return ok(undefined);
-        },
+        listarEmAberto: async () => ok([{ ...emAberto, parcelasEnviadas: [] }]),
+        registrarEnvio: async () => ok(true),
       },
+      { buscarGuiasParcelamento: buscar },
+      { publicar: async () => ok("https://storage.test/parcelamento.pdf") },
+      new EntregarComunicacaoPorCanais(
+        new EnviarComunicacaoProativa(envio, 3, 0),
+        {
+          enviar: async (email) => {
+            emails.push(email);
+            return ok(undefined);
+          },
+        },
+        0,
+      ),
       0,
     ),
     {
@@ -198,7 +204,7 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
     const { job, alertas, reservados } = montar([cliente()], {
       buscar: async () => {
         chamadas += 1;
-        return chamadas < 3 ? err(new ServicoExternoError("503")) : ok(guiaOk);
+        return chamadas < 3 ? err(new ServicoExternoError("503")) : ok([guiaOk]);
       },
     });
     await job.execute();
@@ -228,13 +234,13 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
     expect(alertas).toMatchObject([{ tipo: "falha_envio" }]);
   });
 
-  it("guia sem parcela: falha em vez de enviar um template sem a variável", async () => {
+  it("guia sem parcela: não é enviada e o parcelamento fica sem guia, avisando o setor", async () => {
     const { job, alertas, envio } = montar([cliente()], {
-      buscar: async () => ok({ nomeArquivo: "p.pdf", pdfBase64: "JVBERi0=" }),
+      buscar: async () => ok([{ nomeArquivo: "p.pdf", pdfBase64: "JVBERi0=" }]),
     });
     await job.execute();
     expect(envio.requisicoes).toHaveLength(0);
-    expect(alertas).toMatchObject([{ tipo: "falha_envio" }]);
+    expect(alertas).toMatchObject([{ tipo: "parcelamento_sem_guia" }]);
   });
 
   it("WhatsApp falha (limite de taxa): repete e depois alerta, sem concluir", async () => {
@@ -325,8 +331,7 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
         concluir: async () => ok(true),
         liberar: async () => ok(undefined),
       },
-      { execute: async () => err(new ServicoExternoError("x")) },
-      { execute: async () => err(new ServicoExternoError("x")) },
+      { execute: async () => SEM_ANDAMENTO },
       {
         alertar: async () => ok(undefined),
         resolverNaoRenovados: async () => {
@@ -349,7 +354,7 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
         buscar: async () => {
           chamada += 1;
           if (chamada === 1) throw new Error("processo caiu");
-          return ok(guiaOk);
+          return ok([guiaOk]);
         },
       },
     );

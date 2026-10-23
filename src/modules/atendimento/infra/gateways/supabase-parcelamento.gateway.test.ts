@@ -5,9 +5,8 @@
  */
 import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/use-cases/entregar-comunicacao-por-canais.use-case";
 import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
+import { EnviarGuiasParcelamento } from "@/modules/atendimento/application/use-cases/enviar-guias-parcelamento.use-case";
 import { ExecutarEnvioGuiaParcelamento } from "@/modules/atendimento/application/use-cases/executar-envio-guia-parcelamento.use-case";
-import { ObterGuiaParcelamentoParaEnvio } from "@/modules/atendimento/application/use-cases/obter-guia-parcelamento-para-envio.use-case";
-import { URA_ATOR_ID } from "@/modules/atendimento/domain/services/inatividade.service";
 import { soDigitosNacionais } from "@/modules/atendimento/domain/services/telefone.service";
 import { ok as sucesso } from "@/shared/kernel/result";
 
@@ -15,6 +14,7 @@ import { criarAdminLocal } from "../../../../../test-support/admin-supabase-loca
 import { EnvioMensagemFalsoGateway } from "./envio-mensagem-falso.gateway";
 import { SupabaseAlertaSetorGateway } from "./supabase-alerta-setor.gateway";
 import { SupabaseClientesParaParcelamentoGateway } from "./supabase-clientes-para-parcelamento.gateway";
+import { SupabaseParcelamentosDoClienteGateway } from "./supabase-parcelamentos-do-cliente.gateway";
 
 const SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ??
@@ -288,30 +288,19 @@ describe("reserva e conclusão do envio do Parcelamento", () => {
     expect(await statusDoParcelamento(pendente.id)).toBe("pendente");
   });
 
-  it("concluir com o token da reserva: enviado e uma auditoria da URA; repetir não tem efeito", async () => {
+  it("concluir com o token da reserva só fecha a reserva (o registro de envio é do núcleo); repetir não tem efeito", async () => {
     await admin.from("envios_automaticos").delete().eq("cliente_id", pendente.id);
     const reserva = await clientes.reservar(pendente.id);
     const token = reserva.ok ? reserva.value! : "";
 
     expect(await clientes.concluir(pendente.id, token)).toEqual({ ok: true, value: true });
 
-    expect(await statusDoParcelamento(pendente.id)).toBe("enviado");
-    const auditoria = await ok(
-      admin
-        .from("registros_auditoria")
-        .select("ator, setor, acao, resultado")
-        .eq("alvo", pendente.cnpj),
-    );
-    expect(auditoria).toEqual([
-      {
-        ator: URA_ATOR_ID,
-        setor: "simples_nacional",
-        acao: "cliente.enviar-parcelamento-automatico",
-        resultado: "sucesso",
-      },
-    ]);
+    expect(await statusDoParcelamento(pendente.id)).toBe("pendente");
     expect(await clientes.concluir(pendente.id, token)).toEqual({ ok: true, value: false });
-    expect(await clientes.reservar(pendente.id)).toEqual({ ok: true, value: null });
+    // Ainda há parcelamento sem registro do mês: a próxima rodada pode reservar de novo.
+    const proxima = await clientes.reservar(pendente.id);
+    expect(proxima.ok && typeof proxima.value).toBe("string");
+    await clientes.liberar(pendente.id, proxima.ok ? proxima.value! : "");
   });
 
   it("liberar devolve a reserva sem tocar no cadastro; token antigo não libera a de outra tentativa", async () => {
@@ -533,6 +522,22 @@ describe("alertas por origem e por Cliente avaliado", () => {
     expect(doAvaliado).toEqual([]);
   });
 
+  it.each(["parcelamento_sem_guia", "financeiro_ausente"] as const)(
+    "grava o alerta %s e o job de parcelamento o resolve quando não renova",
+    async (tipo) => {
+      const alvo = await criarCliente({ empresa: "Alerta Novo Ltda" });
+
+      const gravado = await alertasParcelamento.alertar({ ...base(alvo.id), tipo });
+      expect(gravado.ok).toBe(true);
+      await alertasParcelamento.resolverNaoRenovados(new Date(Date.now() + 60_000), [alvo.id]);
+
+      const abertos = await ok(
+        admin.from("alertas_setor").select("tipo").eq("cliente_id", alvo.id).is("resolvido_em", null),
+      );
+      expect(abertos).toEqual([]);
+    },
+  );
+
   it("o mesmo tipo de alerta do mesmo Cliente abre um alerta por origem", async () => {
     await alertasLembretes.alertar({ ...base(pendente.id), tipo: "falha_envio" });
     await alertasParcelamento.alertar({ ...base(pendente.id), tipo: "falha_envio" });
@@ -588,19 +593,20 @@ describe("rodada real com a reserva ocupada", () => {
       relogioDaRodada = agora;
       return new ExecutarEnvioGuiaParcelamento(
         apenasOAlvo,
-        new ObterGuiaParcelamentoParaEnvio(
+        new EnviarGuiasParcelamento(
+          new SupabaseParcelamentosDoClienteGateway(admin),
           {
-            buscar: async () => {
+            buscarGuiasParcelamento: async () => {
               if (quedaNaEntrega) throw new Error("processo caiu");
-              return sucesso({ nomeArquivo: "p.pdf", pdfBase64: "JVBERi0=", parcela: "202609" });
+              return sucesso([{ nomeArquivo: "p.pdf", pdfBase64: "JVBERi0=", parcela: "202610" }]);
             },
           },
           { publicar: async () => sucesso("https://storage.test/p.pdf") },
-          0,
-        ),
-        new EntregarComunicacaoPorCanais(
-          new EnviarComunicacaoProativa(envio, 1, 0),
-          { enviar: async () => sucesso(undefined) },
+          new EntregarComunicacaoPorCanais(
+            new EnviarComunicacaoProativa(envio, 1, 0),
+            { enviar: async () => sucesso(undefined) },
+            0,
+          ),
           0,
         ),
         alertasNoRelogioDaRodada,

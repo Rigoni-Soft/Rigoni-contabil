@@ -17,12 +17,17 @@ export class SupabaseGuiaPublicadaGateway implements GuiaPublicadaPort {
   async publicar(
     clienteId: string,
     guia: { nomeArquivo: string; pdfBase64: string },
+    parcelamento?: { id: string; parcela: string },
   ): Promise<Result<string, AppError>> {
-    // Um objeto por envio: o caminho nunca colide e o nome do arquivo não vira caminho.
-    const caminho = `${clienteId}/${crypto.randomUUID()}.pdf`;
+    // Sem parcelamento, um objeto por envio: o caminho nunca colide e o nome do arquivo não vira
+    // caminho. Com ele, cliente/parcelamento/AAAAMM: o mesmo caminho a cada tentativa.
+    const caminho = parcelamento
+      ? `${clienteId}/${parcelamento.id}/${parcelamento.parcela}.pdf`
+      : `${clienteId}/${crypto.randomUUID()}.pdf`;
     const bucket = this.supabaseAdmin.storage.from(BUCKET);
     const { error } = await bucket.upload(caminho, Buffer.from(guia.pdfBase64, "base64"), {
       contentType: "application/pdf",
+      upsert: Boolean(parcelamento),
     });
     if (error) return err(new ServicoExternoError("Falha ao guardar a guia."));
     const link = await bucket.createSignedUrl(caminho, VALIDADE_LINK_SEGUNDOS);

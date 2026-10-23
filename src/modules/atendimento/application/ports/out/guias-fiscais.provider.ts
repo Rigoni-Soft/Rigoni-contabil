@@ -12,6 +12,8 @@ export type GuiaFiscal = {
   competencia?: string;
   vencimento?: string;
   parcela?: string;
+  // Centavos que o provedor cobra pela guia; a #126 atribui as do parcelamento por ele.
+  valorCentavos?: number;
 };
 
 export interface GuiasFiscaisPort {
@@ -19,4 +21,14 @@ export interface GuiasFiscaisPort {
   // Cliente, devolve `ForbiddenError`; falha do provedor, `ServicoExternoError`. DAS e CND; o
   // parcelamento entrega só a guia mais atrasada.
   buscar(clienteId: string, tipo: TipoGuia): Promise<Result<GuiaFiscal, AppError>>;
+}
+
+export interface GuiasParcelamentoPort {
+  // Todas as guias de parcelamento que o provedor emite hoje para o CNPJ do Cliente (0..n, uma por
+  // parcela), sem as parcelas de `ignorar` (AAAAMM, já entregues: cada emissão é cobrada). O
+  // provedor não diz de qual parcelamento é cada uma.
+  buscarGuiasParcelamento(
+    clienteId: string,
+    ignorar: readonly string[],
+  ): Promise<Result<GuiaFiscal[], AppError>>;
 }
