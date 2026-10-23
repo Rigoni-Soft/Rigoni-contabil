@@ -8,7 +8,11 @@ const guia = (parcela: string, valorCentavos?: number): GuiaFiscal => ({
   valorCentavos,
 });
 
-const parcelamento = (id: string, valorParcelaCentavos: number | null, enviadas: string[] = []) => ({
+const parcelamento = (
+  id: string,
+  valorParcelaCentavos: number | null,
+  enviadas: string[] = [],
+) => ({
   id,
   codigo: `COD-${id}`,
   interno: false,

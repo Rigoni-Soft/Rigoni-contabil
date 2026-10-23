@@ -27,7 +27,7 @@ export class SupabaseGuiaPublicadaGateway implements GuiaPublicadaPort {
     const bucket = this.supabaseAdmin.storage.from(BUCKET);
     const { error } = await bucket.upload(caminho, Buffer.from(guia.pdfBase64, "base64"), {
       contentType: "application/pdf",
-      upsert: Boolean(parcelamento),
+      upsert: true,
     });
     if (error) return err(new ServicoExternoError("Falha ao guardar a guia."));
     const link = await bucket.createSignedUrl(caminho, VALIDADE_LINK_SEGUNDOS);

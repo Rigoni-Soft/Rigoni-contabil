@@ -131,7 +131,7 @@ Nos mesmos dias, a entrega da guia do DAS quando o DAS está pronto, pela forma 
 _Avoid_: Disparo.
 
 **Envio automático de guia de parcelamento**:
-Nos dias 20, 22, 24, 26 e 28, a entrega das guias de parcelamento aos Clientes com Parcelamento em aberto (não interno) sem registro de envio do mês, pela forma de envio do Cliente. O banco manda: sem Parcelamento cadastrado, quitado ou sem parcelas restantes, o provedor fiscal não é chamado. O provedor devolve as guias do CNPJ, que o sistema atribui aos Parcelamentos (pela referência e pelo valor); cada entrega aceita grava o registro de envio da parcela, auditado com a URA como ator, e desconta uma parcela restante (uma vez só por parcela; ao chegar a zero o Parcelamento quita, sem consultar o provedor). A falha de um Parcelamento não trava os outros. Se a entrega falha depois das tentativas nada é gravado e a rodada seguinte tenta de novo (#53, #126). O núcleo (`EnviarGuiasParcelamento`) é o mesmo para o job e para a URA. Parcelamento interno ainda não é roteado: fica pendente até o ticket do financeiro (#127).
+Nos dias 20, 22, 24, 26 e 28, a entrega das guias de parcelamento aos Clientes com Parcelamento em aberto (não interno) sem registro de envio do mês, pela forma de envio do Cliente. O banco manda: sem Parcelamento em aberto o provedor fiscal não é chamado. Cada entrega aceita grava o registro de envio da parcela, auditado com a URA como ator, e desconta uma parcela restante (quita ao zerar); a falha de um Parcelamento não trava os outros e a rodada seguinte tenta de novo (#53, #126). Parcelamento interno ainda não é roteado: fica pendente até o ticket do financeiro (#127).
 _Avoid_: Disparo.
 
 **Alerta do setor**:

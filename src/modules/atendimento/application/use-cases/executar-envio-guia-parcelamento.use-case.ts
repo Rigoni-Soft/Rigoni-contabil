@@ -21,14 +21,9 @@ import { temDestinatario } from "@/shared/kernel/forma-envio";
 import { diaDoMes } from "@/shared/kernel/mes-atual";
 import { ok, type Result } from "@/shared/kernel/result";
 
-// Job dos dias 20/22/24/26/28 (fuso de São Paulo): entrega as guias de parcelamento pela forma de
-// envio do Cliente que tem Parcelamento pendente, uma regra só para todos os parcelamentos comuns
-// (`EnviarGuiasParcelamento`, que grava o registro de envio de cada parcela aceita). Falha do
-// provedor fiscal ou do envio repete (no núcleo e nas portas) antes de alertar o setor Simples
-// Nacional, e o que não saiu segue pendente: a próxima rodada tenta de novo. A entrega é reservada
-// (token, com validade) antes de sair e liberada se nada foi aceito: execuções simultâneas ou o
-// Funcionário não geram envio em dobro, e uma queda no meio deixa a reserva expirar e a rodada
-// seguinte retomar. Cada Cliente é independente.
+// Job dos dias 20/22/24/26/28 (fuso de São Paulo): reserva o Cliente com parcelamento pendente e
+// delega a entrega das guias ao núcleo `EnviarGuiasParcelamento`; a reserva é liberada se nada foi
+// aceito e a rodada seguinte tenta de novo (`entregarComReserva`). Cada Cliente é independente.
 export class ExecutarEnvioGuiaParcelamento implements ExecutarEnvioGuiaParcelamentoPort {
   constructor(
     private readonly clientes: ClientesParaParcelamentoPort,

@@ -15,14 +15,11 @@ Cliente (#122) e o provedor entregando as guias por CNPJ, sem dizer de qual Parc
   parcelas restantes, não interno e sem registro de envio do mês. Sem isso o provedor fiscal não é
   chamado. O provedor nunca diz que o Parcelamento acabou: `quitado` no provedor com o Parcelamento
   em aberto aqui não o quita, vira alerta `parcelamento_sem_guia` (divergência é decisão humana).
-- **O registro de envio é a unidade do envio.** `registrar_envio_parcelamento(parcelamento, AAAAMM)`
-  grava o registro, desconta uma parcela restante e quita ao zerar, tudo na mesma transação e só na
-  primeira vez para aquela parcela (idempotente: repetir devolve `false`). Quitar não consulta o
-  provedor. O status do mês deriva do registro, então o reset mensal é automático.
-- **O registro é gravado guia a guia, depois do aceite da entrega.** Uma queda entre o aceite e o
-  registro reenvia a guia na rodada seguinte (pelo menos uma vez); o contrário (registrar sem
-  entregar) nunca acontece. A reserva do Cliente continua evitando entregas simultâneas e só é
-  fechada ao concluir.
+- **O registro de envio é a unidade do envio.** `registrar_envio_parcelamento` grava a parcela,
+  desconta uma restante e quita ao zerar numa transação, só na primeira vez (idempotente). O status
+  do mês deriva dele, então o reset mensal é automático.
+- **Gravado guia a guia, depois do aceite.** Uma queda entre o aceite e o registro reenvia a guia na
+  rodada seguinte (pelo menos uma vez); registrar sem entregar nunca acontece.
 - **Atribuição falha fechado e um núcleo para os dois gatilhos** (job e URA): o passo a passo está em
   `docs/deploy/parcelamento-cron.md`.
 
