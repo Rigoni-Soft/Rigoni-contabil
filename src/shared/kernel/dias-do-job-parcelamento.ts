@@ -4,12 +4,10 @@ import { diaDoMes, ultimoDiaDoMes } from "./mes-atual";
 // se roda e o dashboard decide quando o "pendente" vira "em atraso".
 export const DIAS_DO_JOB_PARCELAMENTO = [20, 22, 24, 26, 28];
 
-// Primeiro dia depois da última rodada: parcela do mês ainda sem envio daqui em diante é atraso nosso.
-export const PRIMEIRO_DIA_EM_ATRASO = Math.max(...DIAS_DO_JOB_PARCELAMENTO) + 1;
-
-// Em mês com menos dias que isso (fevereiro comum) o dia 29 não existe: o atraso começa no último dia.
+// Primeiro dia depois da última rodada (29): parcela do mês ainda sem envio daqui em diante é atraso
+// nosso. Em fevereiro comum o dia 29 não existe: o atraso começa no último dia do mês.
 export const primeiroDiaEmAtraso = (agora: Date): number =>
-  Math.min(PRIMEIRO_DIA_EM_ATRASO, ultimoDiaDoMes(agora));
+  Math.min(Math.max(...DIAS_DO_JOB_PARCELAMENTO) + 1, ultimoDiaDoMes(agora));
 
 // Hoje (São Paulo) já é dia de atraso: a parcela do mês ainda sem envio é atraso nosso.
 export const jaEmAtraso = (agora: Date): boolean => diaDoMes(agora) >= primeiroDiaEmAtraso(agora);

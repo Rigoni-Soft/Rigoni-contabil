@@ -108,6 +108,22 @@ describe("calcularComparativosSn", () => {
     });
   });
 
+  it("atividade e Responsáveis também levam cor: em dia, e neutro para Sem responsável", () => {
+    const c = calcularComparativosSn(
+      [
+        linha({ responsavelId: "a", responsavelNome: "Ana", dasStatus: "enviado" }),
+        linha({ responsavelId: null, dasStatus: "enviado" }),
+      ],
+      DIA_28,
+    );
+
+    expect(c.atividade.map((f) => f.cor)).toEqual(["em_dia", "em_dia", "em_dia"]);
+    expect(c.responsaveis.map((f) => [f.rotulo, f.cor])).toEqual([
+      ["Ana", "em_dia"],
+      ["Sem responsável", "informativo"],
+    ]);
+  });
+
   it("compara Responsáveis pela quantidade de DAS enviada (mais Sem responsável)", () => {
     const c = calcularComparativosSn(
       [

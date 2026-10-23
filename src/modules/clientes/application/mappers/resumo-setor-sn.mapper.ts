@@ -1,4 +1,7 @@
-import { situacaoDosParcelamentos } from "@/modules/clientes/application/mappers/parcelamentos-do-cliente";
+import {
+  situacaoDosParcelamentos,
+  type SituacaoParcelamentosDoCliente,
+} from "@/modules/clientes/application/mappers/parcelamentos-do-cliente";
 import type {
   CardResumoSnDto,
   CorStatusResumo,
@@ -22,7 +25,7 @@ type Bucket = {
 };
 
 const doGrupoParcelamento =
-  (campo: keyof ReturnType<typeof situacaoDosParcelamentos>): Bucket["pertence"] =>
+  (campo: keyof SituacaoParcelamentosDoCliente): Bucket["pertence"] =>
   (linha, agora) =>
     situacaoDosParcelamentos(linha, agora)[campo];
 

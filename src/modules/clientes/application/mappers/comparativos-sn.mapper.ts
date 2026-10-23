@@ -7,13 +7,13 @@ import type { ResumoOperacionalRow } from "@/modules/clientes/application/ports/
 import { rotuloResponsavel, SEM_RESPONSAVEL_ID } from "@/shared/kernel/papeis";
 
 function contar(
-  definicao: readonly (readonly [string, string, CorStatusResumo?])[],
+  definicao: readonly (readonly [string, string, CorStatusResumo])[],
   ocorrencias: (string | null)[],
 ): FatiaComparativoDto[] {
   return definicao.map(([id, rotulo, cor]) => ({
     id,
     rotulo,
-    ...(cor && { cor }),
+    cor,
     quantidade: ocorrencias.filter((o) => o === id).length,
   }));
 }
@@ -27,6 +27,7 @@ function porResponsavel(linhas: ResumoOperacionalRow[]): FatiaComparativoDto[] {
     const grupo = grupos.get(id) ?? {
       id,
       rotulo: rotuloResponsavel(l.responsavelId, l.responsavelNome),
+      cor: l.responsavelId ? "em_dia" : "informativo",
       quantidade: 0,
     };
     if (l.dasStatus === "enviado") grupo.quantidade += 1;
@@ -73,9 +74,9 @@ export function calcularComparativosSn(linhas: ResumoOperacionalRow[], agora: Da
     })),
     atividade: contar(
       [
-        ["industria", "Indústria"],
-        ["comercio", "Comércio"],
-        ["servico", "Serviço"],
+        ["industria", "Indústria", "em_dia"],
+        ["comercio", "Comércio", "em_dia"],
+        ["servico", "Serviço", "em_dia"],
       ],
       atividades,
     ),

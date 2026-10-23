@@ -73,20 +73,16 @@ const SELECT_RESUMO = `
   cliente_parcelamentos(codigo, interno, situacao, parcelas_restantes, cliente_parcelamento_envios(parcela))
 `;
 
+type OperacionalDoResumo = Pick<
+  CadastroOperacionalRow,
+  "documento_obrigatorio" | "das_status" | "responsavel_id" | "responsavel"
+>;
+
 type ResumoOperacionalRowDb = {
   id: string;
   empresa: string;
   cnpj: string;
-  cliente_cadastro_operacional_sn:
-    | Pick<
-        CadastroOperacionalRow,
-        "documento_obrigatorio" | "das_status" | "responsavel_id" | "responsavel"
-      >
-    | Pick<
-        CadastroOperacionalRow,
-        "documento_obrigatorio" | "das_status" | "responsavel_id" | "responsavel"
-      >[]
-    | null;
+  cliente_cadastro_operacional_sn: OperacionalDoResumo | OperacionalDoResumo[] | null;
   cliente_atividades_mensais: AtividadeMensalRow[] | null;
   cliente_parcelamentos:
     | (Pick<ParcelamentoRow, "codigo" | "interno" | "situacao" | "parcelas_restantes"> & {
