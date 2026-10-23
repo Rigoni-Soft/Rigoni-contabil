@@ -575,7 +575,11 @@ mais que o total. As listas `/clientes/resumo/<bucket>` desse grupo trazem sob o
 linha que define o que o card conta (texto do mapper, com o dia do atraso vindo da constante do
 job) e, em cada Cliente, abaixo da linha-link (nunca dentro dela), os parcelamentos em colunas
 alinhadas entre as linhas — código (até 20ch, o excesso quebra), marca "Interno" e selo do mês
-(`SeloDeParcelamento`, o mesmo do Editar cliente).
+(`SeloDeParcelamento`, o mesmo do Editar cliente). As linhas usam
+`content-visibility: auto` (o navegador pula layout e pintura do que está fora da tela; por isso o
+anel de foco da linha-link é desenhado por dentro, sem ser cortado). A lista não é paginada: com
+340 linhas são ~100 KB comprimidos e, simulando 3.400, o layout leva ~75 ms. Rever a paginação se
+uma lista passar de alguns milhares de linhas ou de ~300 KB comprimidos.
 
 **Título do card e contagem total via sr-only:** a proporção visual do anel
 (fração preenchida do círculo) não tem equivalente textual pra quem usa

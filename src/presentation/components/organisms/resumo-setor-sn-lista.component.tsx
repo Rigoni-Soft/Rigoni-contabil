@@ -59,7 +59,13 @@ export function ResumoSetorSnLista({ clientes, bucket, vazio }: Props) {
   return (
     <ListaComDivisores>
       {clientes.map((cliente) => (
-        <Caixa como="li" key={cliente.clienteId}>
+        // content-visibility: o navegador pula layout e pintura das linhas fora da tela (listas de
+        // centenas de Clientes); o tamanho estimado vale até a linha ser desenhada uma vez.
+        <Caixa
+          como="li"
+          key={cliente.clienteId}
+          className="[contain-intrinsic-size:auto_72px] [content-visibility:auto]"
+        >
           <LinhaDeCliente
             href={`/clientes/${cliente.clienteId}?voltarPara=/clientes/resumo/${bucket}`}
             empresa={cliente.empresa}
