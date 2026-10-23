@@ -139,7 +139,9 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
       .locator("[id='parcelamentos.0.arquivo']")
       .setInputFiles(pdf("outra-empresa.pdf", "[leitor:cnpj-outro]"));
 
-    await expect(page.getByText(/O CNPJ do PDF não confere com o do Cliente/)).toBeVisible();
+    await expect(
+      page.getByRole("alert").filter({ hasText: /CNPJ do PDF é diferente/ }),
+    ).toBeVisible();
     await expect(page.getByRole("button", { name: "Salvar" })).toBeEnabled();
   });
 

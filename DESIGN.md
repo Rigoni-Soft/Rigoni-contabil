@@ -345,6 +345,9 @@ inventar uma cor/ícone intermediário. O aviso é state do Container (não do
 schema Zod: `avisoCnpj`/`avisoRegime` em `criar-cliente.container.tsx`), e
 some assim que o usuário edita o campo correspondente a mão — nunca fica
 preso na tela depois que a pessoa já agiu sobre ele.
+O CNPJ lido do PDF de um Parcelamento (#125) diferente do CNPJ do Cliente segue o mesmo padrão: `FieldError`
+em linha própria, abaixo do estado da leitura ("Sugerido pelo PDF: confira"), sem bloquear o salvar; é state do
+Container (hook de leitura) e some ao trocar o PDF.
 
 ### Ações pós-sucesso (confirmação de cadastro)
 

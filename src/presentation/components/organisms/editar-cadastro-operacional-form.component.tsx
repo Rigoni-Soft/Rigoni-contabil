@@ -85,15 +85,9 @@ function textoDaLeitura(leitura: LeituraDaLinha | undefined): string {
     case "lendo":
       return "Lendo o PDF…";
     case "sugerido":
-      return [
-        leitura.codigoGerado
-          ? "Sugerido pelo PDF: confira. O PDF não traz código: gerei um, você pode trocar."
-          : "Sugerido pelo PDF: confira",
-        leitura.cnpjConfere === false &&
-          "O CNPJ do PDF não confere com o do Cliente: confira se é o PDF certo.",
-      ]
-        .filter(Boolean)
-        .join(" ");
+      return leitura.codigoGerado
+        ? "Sugerido pelo PDF: confira. O PDF não traz código: gerei um, você pode trocar."
+        : "Sugerido pelo PDF: confira";
     case "falhou":
       return "não consegui ler: digite à mão";
     default:
@@ -402,6 +396,12 @@ export function EditarCadastroOperacionalForm({
                       <Texto variante="nota" role="status">
                         {textoDaLeitura(leitura)}
                       </Texto>
+                      {leitura?.estado === "sugerido" && leitura.cnpjConfere === false && (
+                        <FieldError>
+                          O CNPJ do PDF é diferente do CNPJ do Cliente. Confira se anexou o PDF
+                          certo.
+                        </FieldError>
+                      )}
                       {atual.acordoResumo && <Texto variante="nota">{atual.acordoResumo}</Texto>}
                     </>
                   )

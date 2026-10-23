@@ -176,17 +176,36 @@ describe("Leitura do PDF de parcelamento no Editar cliente", () => {
       });
     });
 
-    it("CNPJ do PDF diferente do Cliente: avisa para conferir, sem bloquear o salvar", async () => {
+    it("CNPJ do PDF diferente do Cliente: alerta próprio, com o que fazer, sem bloquear o salvar", async () => {
       lerMock.mockResolvedValue(sugestao({ cnpjConfere: false }));
       const usuario = userEvent.setup();
       render();
 
       await anexarPdfNoParcelamentoNovo(usuario);
 
-      expect(
-        await screen.findByText(/o CNPJ do PDF não confere com o do Cliente/i),
-      ).toBeInTheDocument();
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "O CNPJ do PDF é diferente do CNPJ do Cliente. Confira se anexou o PDF certo.",
+      );
+      // O estado da leitura continua dizendo só o que foi sugerido.
+      expect(screen.getByText("Sugerido pelo PDF: confira")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /salvar/i })).toBeEnabled();
+    });
+
+    it("trocar o PDF por um do mesmo Cliente tira o alerta de CNPJ", async () => {
+      lerMock
+        .mockResolvedValueOnce(sugestao({ cnpjConfere: false }))
+        .mockResolvedValueOnce(sugestao({ cnpjConfere: true }));
+      const usuario = userEvent.setup();
+      render();
+      await anexarPdfNoParcelamentoNovo(usuario);
+      await screen.findByRole("alert");
+
+      await usuario.upload(
+        screen.getByLabelText(/pdf do acordo/i),
+        new File([new Uint8Array([7])], "certo.pdf", { type: "application/pdf" }),
+      );
+
+      await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
     });
   });
 
