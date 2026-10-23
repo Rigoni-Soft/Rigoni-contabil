@@ -26,7 +26,7 @@ export function DonutSvg({ fatias }: { fatias: Fatia[] }) {
                 strokeWidth="14"
                 strokeDasharray={`${comprimento} ${CIRCUNFERENCIA - comprimento}`}
                 strokeDashoffset={offset}
-                className={`fill-none ${corDaFatia(f.id).traco}`}
+                className={`fill-none ${corDaFatia(f).traco}`}
               />
             );
           })}

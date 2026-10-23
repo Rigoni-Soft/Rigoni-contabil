@@ -17,6 +17,10 @@ function linha(sobrescritas: Partial<ResumoOperacionalRow> = {}): ResumoOperacio
   };
 }
 
+// 2026-10-28 e 2026-10-29, meio-dia em São Paulo: antes e depois da última rodada do job.
+const DIA_28 = new Date("2026-10-28T15:00:00Z");
+const DIA_29 = new Date("2026-10-29T15:00:00Z");
+
 const qtd = (fatias: { id: string; quantidade: number }[]) =>
   Object.fromEntries(fatias.map((f) => [f.id, f.quantidade]));
 
@@ -25,7 +29,12 @@ describe("calcularComparativosSn", () => {
     const c = calcularComparativosSn([]);
 
     expect(c.das.map((f) => f.id)).toEqual(["enviado", "pendente", "sem_movimento", "pronto"]);
-    expect(c.parcelamento.map((f) => f.id)).toEqual(["enviado", "pendente", "interno"]);
+    expect(c.parcelamento.map((f) => f.id)).toEqual([
+      "enviado",
+      "pendente",
+      "em_atraso",
+      "interno",
+    ]);
     expect(c.atividade.map((f) => f.id)).toEqual(["industria", "comercio", "servico"]);
     expect([...c.das, ...c.parcelamento, ...c.atividade].every((f) => f.quantidade === 0)).toBe(
       true,
@@ -52,15 +61,35 @@ describe("calcularComparativosSn", () => {
       enviadoNoMes: false,
       ...o,
     });
-    const c = calcularComparativosSn([
+    const linhas = [
       linha({ parcelamentos: [p({ interno: true, enviadoNoMes: true }), p({ codigo: "Q" })] }),
       linha({ parcelamentos: [p({ enviadoNoMes: true })] }),
       linha({ parcelamentos: [p({ quitado: true, interno: true })] }),
       linha({ parcelamentos: [] }),
-    ]);
+    ];
 
     // 1º Cliente: pendente (Q sem envio) e interno; 2º: enviado; 3º (só quitado) e 4º: nenhum.
-    expect(qtd(c.parcelamento)).toEqual({ enviado: 1, pendente: 1, interno: 1 });
+    expect(qtd(calcularComparativosSn(linhas, DIA_28).parcelamento)).toEqual({
+      enviado: 1,
+      pendente: 1,
+      em_atraso: 0,
+      interno: 1,
+    });
+    // A partir do dia 29 o pendente também é atraso (mesma regra do card).
+    expect(qtd(calcularComparativosSn(linhas, DIA_29).parcelamento).em_atraso).toBe(1);
+  });
+
+  it("as fatias do parcelamento levam a cor semântica dos cards: pendente é atenção; só o atraso é urgente", () => {
+    const cores = Object.fromEntries(
+      calcularComparativosSn([]).parcelamento.map((f) => [f.id, f.cor]),
+    );
+
+    expect(cores).toEqual({
+      enviado: "em_dia",
+      pendente: "atencao",
+      em_atraso: "urgente",
+      interno: "informativo",
+    });
   });
 
   it("compara Responsáveis pela quantidade de DAS enviada (mais Sem responsável)", () => {

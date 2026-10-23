@@ -18,7 +18,7 @@ export function DonutDeFatias({ titulo, fatias }: { titulo: string; fatias: Fati
               <Caixa
                 como="span"
                 aria-hidden
-                className={cn("size-3 shrink-0 rounded-sm", corDaFatia(f.id).fundo)}
+                className={cn("size-3 shrink-0 rounded-sm", corDaFatia(f).fundo)}
               />
               <Texto como="span" variante="corpo">
                 {f.rotulo}

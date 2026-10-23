@@ -11,8 +11,9 @@ const DADOS = {
   ],
   parcelamento: [
     { id: "enviado", rotulo: "Enviado", quantidade: 1 },
-    { id: "pendente", rotulo: "Pendente", quantidade: 1 },
-    { id: "interno", rotulo: "Interno", quantidade: 1 },
+    { id: "pendente", rotulo: "Pendente", quantidade: 1, cor: "atencao" },
+    { id: "em_atraso", rotulo: "Em atraso", quantidade: 0, cor: "urgente" },
+    { id: "interno", rotulo: "Interno", quantidade: 1, cor: "informativo" },
   ],
   atividade: [
     { id: "industria", rotulo: "Indústria", quantidade: 2 },
@@ -35,6 +36,17 @@ describe("ComparativosSn", () => {
     const ativ = screen.getByRole("group", { name: "Atividade do mês" });
     expect(within(ativ).getByText("Comércio")).toBeInTheDocument();
     expect(within(ativ).getByText("5")).toBeInTheDocument();
+  });
+
+  it("a barra Pendente do parcelamento usa a tinta de atenção do card; o vermelho fica para o atraso", () => {
+    render(<ComparativosSn comparativos={DADOS} totalClientes={8} />);
+
+    const parc = screen.getByRole("group", { name: "Status do parcelamento" });
+    expect(parc.querySelectorAll(".bg-success")).toHaveLength(1);
+    expect(parc.querySelectorAll(".bg-destructive")).toHaveLength(1);
+    // O DAS segue pela cor do id: pendente continua vermelho.
+    const das = screen.getByRole("group", { name: "Status do DAS" });
+    expect(das.querySelectorAll(".bg-destructive")).toHaveLength(1);
   });
 
   it("não quebra com todas as contagens zeradas", () => {

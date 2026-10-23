@@ -29,7 +29,13 @@ export type CardResumoSnDto = {
 };
 
 // Fatia de um gráfico comparativo: id estável + rótulo pt-BR + contagem.
-export type FatiaComparativoDto = { id: string; rotulo: string; quantidade: number };
+// `cor`: a mesma escala semântica dos cards; sem ela a fatia usa a cor do próprio id.
+export type FatiaComparativoDto = {
+  id: string;
+  rotulo: string;
+  quantidade: number;
+  cor?: CorStatusResumo;
+};
 
 export type ComparativosSnDto = {
   das: FatiaComparativoDto[];

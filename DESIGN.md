@@ -608,8 +608,11 @@ exclusivas, sem biblioteca de gráfico, anel de fundo `stroke-border`); parcelam
 Atividade do mês são listas de barras proporcionais ao total de clientes, porque as
 situações não se excluem (um donut somaria o mesmo Cliente várias vezes, #129) e ocupa a largura toda
 no tablet (`md:col-span-2`). Só tokens existentes: `primary` (enviado),
-`destructive` (pendente), `success` (pronto), `muted-foreground` (sem
-movimento/interno). A cor nunca é o único
+`destructive` (pendente do DAS), `success` (pronto), `muted-foreground` (sem
+movimento/interno). As fatias de parcelamento seguem a escala dos cards
+(`cor-de-status.ts`, a mesma do anel): enviado `primary`, pendente `success`
+(atenção: ainda dentro do ciclo de envio), "Em atraso" `destructive` (a partir do dia 29)
+e interno `muted-foreground` — o vermelho de parcelamento é só do atraso. A cor nunca é o único
 canal: toda fatia tem legenda com rótulo e número.
 
 **4º comparativo — "Envio de DAS por Responsável" (#65, só Líder):** barras

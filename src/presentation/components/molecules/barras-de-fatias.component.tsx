@@ -43,7 +43,7 @@ export function BarrasDeFatias({
               </Linha>
               <Caixa aria-hidden className="h-2 rounded-full bg-border">
                 <Caixa
-                  className={cn("h-2 rounded-full", corDaFatia(f.id).fundo)}
+                  className={cn("h-2 rounded-full", corDaFatia(f).fundo)}
                   style={{ width: `${pct}%` }}
                 />
               </Caixa>

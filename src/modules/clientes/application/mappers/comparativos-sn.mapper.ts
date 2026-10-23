@@ -51,16 +51,19 @@ export function calcularComparativosSn(linhas: ResumoOperacionalRow[], agora: Da
       ],
       linhas.map((l) => l.dasStatus),
     ),
+    // Mesmas cores dos cards: pendente é atenção; só o atraso é urgente.
     parcelamento: (
       [
-        ["enviado", "Enviado"],
-        ["pendente", "Pendente"],
-        ["interno", "Interno"],
+        ["enviado", "Enviado", "em_dia", "enviado"],
+        ["pendente", "Pendente", "atencao", "pendente"],
+        ["em_atraso", "Em atraso", "urgente", "pendenteEmAtraso"],
+        ["interno", "Interno", "informativo", "interno"],
       ] as const
-    ).map(([id, rotulo]) => ({
+    ).map(([id, rotulo, cor, campo]) => ({
       id,
       rotulo,
-      quantidade: situacoes.filter((s) => s[id]).length,
+      cor,
+      quantidade: situacoes.filter((s) => s[campo]).length,
     })),
     atividade: contar(
       [
