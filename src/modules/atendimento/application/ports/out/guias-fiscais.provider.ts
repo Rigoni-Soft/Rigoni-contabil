@@ -14,8 +14,18 @@ export type GuiaFiscal = {
   parcela?: string;
 };
 
+// Qual parcelamento (da Receita; `pgfn` nunca chega ao provedor fiscal) a guia deve atender, e
+// quantos da Receita o Cliente tem em aberto: o provedor não sabe, e com mais de um não atribui a guia.
+export type ParcelamentoDaGuia = { codigo: string; emAbertoDaReceita: number };
+
 export interface GuiasFiscaisPort {
   // O CNPJ vem do cadastro do Cliente (nunca perguntado ao contato). Sem autorização vigente do
-  // Cliente, devolve `ForbiddenError`; falha do provedor, `ServicoExternoError`.
-  buscar(clienteId: string, tipo: TipoGuia): Promise<Result<GuiaFiscal, AppError>>;
+  // Cliente, devolve `ForbiddenError`; falha do provedor, `ServicoExternoError`. O tipo
+  // `parcelamento` exige `parcelamento` e pode devolver `GuiaParcelamentoIndisponivelError`
+  // (por motivo); a autorização dele só é consultada se a guia falhar, dentro do provedor.
+  buscar(
+    clienteId: string,
+    tipo: TipoGuia,
+    parcelamento?: ParcelamentoDaGuia,
+  ): Promise<Result<GuiaFiscal, AppError>>;
 }

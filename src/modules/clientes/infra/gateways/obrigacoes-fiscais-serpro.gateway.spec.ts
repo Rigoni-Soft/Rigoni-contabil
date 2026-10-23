@@ -1,3 +1,7 @@
+import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { GuiaParcelamentoIndisponivelError } from "@/shared/errors/guia-parcelamento-indisponivel.error";
+import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
+
 import {
   ObrigacoesFiscaisSerproGateway,
   type RequisicaoHttp,
@@ -18,6 +22,12 @@ const CRED = {
 };
 const CLIENTE = "11444777000161";
 const AGORA = () => new Date("2026-01-15T15:00:00Z"); // janeiro: mês anterior = dezembro
+
+const PEDIDO = {
+  codigo: "PARC-AB12CD34",
+  regime: "simples_nacional" as const,
+  emAbertoDaReceita: 1,
+};
 
 const token = {
   status: 200,
@@ -72,12 +82,31 @@ describe("ObrigacoesFiscaisSerproGateway", () => {
     expect(JSON.parse(corpo.pedidoDados.dados)).toEqual({ periodoApuracao: "202512" });
   });
 
-  it("guia de parcelamento traz só o PDF e a parcela do mês corrente", async () => {
-    const { gw } = gateway(token, envelope({ docArrecadacaoPdfB64: "JVBERg==" }));
+  it("guia de parcelamento pede direto a parcela do mês corrente, sem consultar a autorização", async () => {
+    const { http, gw } = gateway(token, envelope({ docArrecadacaoPdfB64: "JVBERg==" }));
 
-    const r = await gw.buscarGuiaParcelamento(CLIENTE, "simples_nacional");
+    const r = await gw.buscarGuiaParcelamento(CLIENTE, PEDIDO);
 
-    expect(r.ok && r.value).toMatchObject({ pdfBase64: "JVBERg==", parcela: "202601" });
+    expect(r).toEqual({
+      ok: true,
+      value: {
+        nomeArquivo: `parcelamento-${CLIENTE}-202601.pdf`,
+        pdfBase64: "JVBERg==",
+        parcela: "202601",
+      },
+    });
+    expect(http).toHaveBeenCalledTimes(2); // token + a guia: nenhuma consulta de autorização
+    expect(http.mock.calls[1][0].url).toBe("https://api.test/v1/Emitir");
+  });
+
+  it("o código é rótulo nosso: não vai ao Serpro, que emite só pela parcela", async () => {
+    const { http, gw } = gateway(token, envelope({ docArrecadacaoPdfB64: "x" }));
+
+    await gw.buscarGuiaParcelamento(CLIENTE, { ...PEDIDO, codigo: "PARC-AB12CD34" });
+
+    const corpo = http.mock.calls[1][0].corpo;
+    expect(corpo).not.toContain("PARC-AB12CD34");
+    expect(JSON.parse(JSON.parse(corpo).pedidoDados.dados)).toEqual({ parcelaParaEmitir: 202601 });
   });
 
   it("parcelamento usa o PARC do regime do Cliente: SN em PARCSN, MEI em PARCMEI", async () => {
@@ -87,7 +116,7 @@ describe("ObrigacoesFiscaisSerproGateway", () => {
     ] as const) {
       const { http, gw } = gateway(token, envelope({ docArrecadacaoPdfB64: "JVBERg==" }));
 
-      const r = await gw.buscarGuiaParcelamento(CLIENTE, regime);
+      const r = await gw.buscarGuiaParcelamento(CLIENTE, { ...PEDIDO, regime });
 
       expect(r.ok).toBe(true);
       expect(JSON.parse(http.mock.calls[1][0].corpo).pedidoDados).toMatchObject({
@@ -97,12 +126,78 @@ describe("ObrigacoesFiscaisSerproGateway", () => {
     }
   });
 
-  it("cliente sem parcelamento (404) é erro tratado", async () => {
-    const { gw } = gateway(token, { status: 404, corpo: "" });
+  describe("guia de parcelamento que o Serpro não emite", () => {
+    // Respostas gravadas do Integra-Parcelamento (docs/pesquisa/serpro-guia-parcelamento.md): a
+    // mensagem de negócio vem em `mensagens[].codigo`.
+    const recusa = (er: string, status = 400) => ({
+      status,
+      corpo: JSON.stringify({ mensagens: [{ codigo: `[Aviso-PARCSN-${er}]`, texto: "..." }] }),
+    });
+    const motivoDe = (
+      r: Awaited<ReturnType<ObrigacoesFiscaisSerproGateway["buscarGuiaParcelamento"]>>,
+    ) => (!r.ok && r.error instanceof GuiaParcelamentoIndisponivelError ? r.error.motivo : null);
 
-    const r = await gw.buscarGuiaParcelamento(CLIENTE, "mei");
+    it.each([
+      ["ER_E001", "codigo_desconhecido"], // sem parcelamento ativo
+      ["ER_N003", "quitado"], // sem saldo devedor
+      ["ER_N006", "fora_do_periodo"], // parcela inexistente, paga ou de mês futuro
+      ["ER_N005", "fora_do_periodo"], // parcela do mês só emitível a partir de certo dia
+      ["ER_N008", "fora_do_periodo"], // sem parcelas para emissão
+    ])("%s vira %s, sem consultar a autorização", async (er, motivo) => {
+      const { http, gw } = gateway(token, recusa(er));
 
-    expect(!r.ok && r.error.message).toMatch(/sem parcelamento/);
+      const r = await gw.buscarGuiaParcelamento(CLIENTE, PEDIDO);
+
+      expect(motivoDe(r)).toBe(motivo);
+      expect(http).toHaveBeenCalledTimes(2);
+    });
+
+    it("sem dados (404) é código desconhecido: o Serpro não tem parcelamento ativo", async () => {
+      const { gw } = gateway(token, { status: 404, corpo: "" });
+
+      expect(motivoDe(await gw.buscarGuiaParcelamento(CLIENTE, PEDIDO))).toBe(
+        "codigo_desconhecido",
+      );
+    });
+
+    it("com mais de um parcelamento da Receita em aberto não atribui a guia: ambiguo, sem chamar o Serpro", async () => {
+      const { http, gw } = gateway();
+
+      const r = await gw.buscarGuiaParcelamento(CLIENTE, { ...PEDIDO, emAbertoDaReceita: 2 });
+
+      expect(motivoDe(r)).toBe("ambiguo");
+      expect(http).not.toHaveBeenCalled();
+    });
+
+    it("falha sem motivo conhecido consulta a autorização uma vez: vencida vira ForbiddenError", async () => {
+      const { http, gw } = gateway(token, { status: 403, corpo: "" }, envelope([]));
+
+      const r = await gw.buscarGuiaParcelamento(CLIENTE, PEDIDO);
+
+      expect(!r.ok && r.error).toBeInstanceOf(ForbiddenError);
+      expect(http).toHaveBeenCalledTimes(3);
+      expect(JSON.parse(http.mock.calls[2][0].corpo).pedidoDados.idSistema).toBe("PROCURACOES");
+    });
+
+    it("falha sem motivo conhecido com autorização vigente segue como indisponibilidade", async () => {
+      const { gw } = gateway(
+        token,
+        { status: 500, corpo: "" },
+        envelope([{ dtexpiracao: "20991231" }]),
+      );
+
+      const r = await gw.buscarGuiaParcelamento(CLIENTE, PEDIDO);
+
+      expect(!r.ok && r.error).toBeInstanceOf(ServicoExternoError);
+    });
+
+    it("se nem a autorização responde, a falha é a da guia (indisponibilidade)", async () => {
+      const { gw } = gateway(token, { status: 500, corpo: "" }, { status: 500, corpo: "" });
+
+      const r = await gw.buscarGuiaParcelamento(CLIENTE, PEDIDO);
+
+      expect(!r.ok && r.error).toBeInstanceOf(ServicoExternoError);
+    });
   });
 
   it("reautentica uma vez quando o token expirou (401)", async () => {
@@ -113,7 +208,7 @@ describe("ObrigacoesFiscaisSerproGateway", () => {
       envelope({ docArrecadacaoPdfB64: "x" }),
     );
 
-    const r = await gw.buscarGuiaParcelamento(CLIENTE, "simples_nacional");
+    const r = await gw.buscarGuiaParcelamento(CLIENTE, PEDIDO);
 
     expect(r.ok).toBe(true);
     expect(http).toHaveBeenCalledTimes(4);
@@ -167,7 +262,7 @@ describe("ObrigacoesFiscaisSerproGateway", () => {
       AGORA,
     );
 
-    const r = await trial.buscarGuiaParcelamento(CLIENTE, "simples_nacional");
+    const r = await trial.buscarGuiaParcelamento(CLIENTE, PEDIDO);
 
     expect(r.ok).toBe(true);
     expect(http).toHaveBeenCalledTimes(1);

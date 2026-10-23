@@ -2,6 +2,7 @@ import type { ClienteCnpjPort } from "@/modules/atendimento/application/ports/ou
 import type {
   GuiaFiscal,
   GuiasFiscaisPort,
+  ParcelamentoDaGuia,
   TipoGuia,
 } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
 import type { AppError } from "@/shared/errors/app.error";
@@ -16,7 +17,7 @@ export interface ObrigacoesFiscais {
   buscarDas(cnpj: string): Promise<Result<GuiaFiscal, AppError>>;
   buscarGuiaParcelamento(
     cnpj: string,
-    regime: "simples_nacional" | "mei",
+    pedido: ParcelamentoDaGuia & { regime: "simples_nacional" | "mei" },
   ): Promise<Result<GuiaFiscal, AppError>>;
 }
 
@@ -32,26 +33,28 @@ export class GuiasFiscaisGateway implements GuiasFiscaisPort {
     private readonly certidoes: CertidaoCnd,
   ) {}
 
-  async buscar(clienteId: string, tipo: TipoGuia): Promise<Result<GuiaFiscal, AppError>> {
+  async buscar(
+    clienteId: string,
+    tipo: TipoGuia,
+    parcelamento?: ParcelamentoDaGuia,
+  ): Promise<Result<GuiaFiscal, AppError>> {
     const cadastro = await this.clientes.cadastroFiscalDoCliente(clienteId);
     if (!cadastro.ok) return cadastro;
     const { cnpj, regime } = cadastro.value;
+    if (tipo === "parcelamento") {
+      // Só o Simples Nacional e o MEI têm parcelamento ordinário nesse provedor.
+      if (regime !== "simples_nacional" && regime !== "mei") {
+        return err(new ValidationError("Este regime não tem guia de parcelamento do Simples."));
+      }
+      if (!parcelamento) return err(new ValidationError("Informe o parcelamento da guia."));
+      // Direto, sem pré-consulta: o provedor consulta a autorização só se a guia falhar.
+      return this.obrigacoes.buscarGuiaParcelamento(cnpj, { ...parcelamento, regime });
+    }
     const autorizacao = await this.obrigacoes.consultarAutorizacao(cnpj);
     if (!autorizacao.ok) return autorizacao;
     if (!autorizacao.value.vigente) {
       return err(new ForbiddenError("Cliente sem autorização vigente para consulta fiscal."));
     }
-    switch (tipo) {
-      case "das":
-        return this.obrigacoes.buscarDas(cnpj);
-      case "parcelamento":
-        // Só o Simples Nacional e o MEI têm parcelamento ordinário nesse provedor.
-        if (regime !== "simples_nacional" && regime !== "mei") {
-          return err(new ValidationError("Este regime não tem guia de parcelamento do Simples."));
-        }
-        return this.obrigacoes.buscarGuiaParcelamento(cnpj, regime);
-      case "cnd":
-        return this.certidoes.buscarCnd(cnpj);
-    }
+    return tipo === "das" ? this.obrigacoes.buscarDas(cnpj) : this.certidoes.buscarCnd(cnpj);
   }
 }

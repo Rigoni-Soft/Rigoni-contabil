@@ -1,11 +1,13 @@
 // Mock do contrato neutro de docs/contratos/obrigacoes-fiscais.md — só pra
 // desenvolver e testar sem provedor real. `yarn mock:api` (porta 4010).
-// Controle de cenário: POST /__modo  {"modo":"normal"|"falha"|"sem_autorizacao"}
+// Controle de cenário: POST /__modo  {"modo":"normal"|"falha"|"sem_autorizacao"|<motivo>}
+// onde <motivo> (codigo_desconhecido|quitado|fora_do_periodo|ambiguo) recusa só a guia de parcelamento.
 import { createServer } from "node:http";
 
 import { PDF_BASE64 as PDF } from "./pdf-teste.mjs";
 
 let modo = "normal";
+const MOTIVOS = ["codigo_desconhecido", "quitado", "fora_do_periodo", "ambiguo"];
 
 const recursos = {
   autorizacao: () =>
@@ -19,8 +21,9 @@ const recursos = {
     valorCentavos: 150_000,
     vencimento: "2026-10-20",
   }),
-  parcelamento: (cnpj) => ({
-    nomeArquivo: `parcelamento-${cnpj}.pdf`,
+  // Guia por código de parcelamento (`/clientes/{cnpj}/parcelamentos/{codigo}`).
+  parcelamentos: (cnpj, codigo) => ({
+    nomeArquivo: `parcelamento-${cnpj}-${codigo}.pdf`,
     pdfBase64: PDF,
     parcela: "202609",
     valorCentavos: 45_000,
@@ -38,7 +41,7 @@ function responder(res, status, corpo) {
   res.end(JSON.stringify(corpo));
 }
 
-createServer((req, res) => {
+export const servidor = createServer((req, res) => {
   if (req.method === "POST" && req.url === "/__modo") {
     let corpo = "";
     req.on("data", (parte) => (corpo += parte));
@@ -49,11 +52,17 @@ createServer((req, res) => {
     return;
   }
 
-  const rota = /^\/clientes\/([0-9A-Z]{14})\/(\w+)$/.exec(req.url ?? "");
+  const rota = /^\/clientes\/([0-9A-Z]{14})\/(\w+)(?:\/([^/]+))?$/.exec(req.url ?? "");
   const recurso = rota && recursos[rota[2]];
-  if (req.method !== "GET" || !recurso) return responder(res, 404, { erro: "não encontrado" });
+  // Só `parcelamentos` leva o código; os outros recursos não têm subcaminho.
+  if (req.method !== "GET" || !recurso || Boolean(rota[3]) !== (rota[2] === "parcelamentos")) {
+    return responder(res, 404, { erro: "não encontrado" });
+  }
   if (modo === "falha") return responder(res, 503, { erro: "indisponível (simulado)" });
-  responder(res, 200, recurso(rota[1]));
+  if (rota[2] === "parcelamentos" && MOTIVOS.includes(modo)) {
+    return responder(res, 422, { motivo: modo });
+  }
+  responder(res, 200, recurso(rota[1], rota[3] && decodeURIComponent(rota[3])));
 }).listen(Number(process.env.MOCK_API_PORT ?? 4010), () =>
-  console.log("mock-api em http://127.0.0.1:4010"),
+  console.log(`mock-api em http://127.0.0.1:${servidor.address().port}`),
 );

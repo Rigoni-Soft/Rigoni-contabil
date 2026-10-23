@@ -7,9 +7,15 @@ import type {
   GuiaDasDto,
   GuiaParcelamentoDto,
   ObrigacoesFiscaisPort,
+  PedidoGuiaParcelamento,
   RegimeParcelamento,
 } from "@/modules/clientes/application/ports/out/obrigacoes-fiscais.provider";
 import type { AppError } from "@/shared/errors/app.error";
+import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import {
+  GuiaParcelamentoIndisponivelError,
+  type MotivoGuiaIndisponivel,
+} from "@/shared/errors/guia-parcelamento-indisponivel.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { hojeIso, mesAtual } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
@@ -25,6 +31,16 @@ const CNPJ = 2; // tipo de identificador do Serpro
 const PARCELAMENTO_POR_REGIME: Record<RegimeParcelamento, readonly [string, string]> = {
   simples_nacional: ["PARCSN", "GERARDAS161"],
   mei: ["PARCMEI", "GERARDAS201"],
+};
+
+// Mensagens de negócio do Integra-Parcelamento (docs/pesquisa/serpro-guia-parcelamento.md) que
+// dizem por que não há guia. Qualquer outra falha é indisponibilidade (ou falta de autorização).
+const MOTIVO_POR_MENSAGEM: Record<string, MotivoGuiaIndisponivel> = {
+  ER_E001: "codigo_desconhecido", // não há parcelamento ativo
+  ER_N003: "quitado", // sem saldo devedor
+  ER_N005: "fora_do_periodo", // parcela do mês só emitível a partir de certo dia
+  ER_N006: "fora_do_periodo", // parcela inexistente, já paga ou de mês futuro
+  ER_N008: "fora_do_periodo", // sem parcelas para emissão
 };
 
 export type RespostaHttp = { status: number; corpo: string };
@@ -139,24 +155,44 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
   }
 
   // Parcelamento ordinário do regime do Cliente, parcela do mês corrente. A API devolve só o
-  // PDF: valor e vencimento ficam de fora (opcionais no contrato).
+  // PDF (valor e vencimento ficam de fora, opcionais no contrato) e não escolhe o parcelamento:
+  // o `codigo` é nosso, não vai ao Serpro. Com mais de um da Receita em aberto a guia não se
+  // atribui a um só, então falha fechado sem gastar a chamada. A guia vai direto, sem
+  // pré-consulta de autorização: ela só é consultada se a guia falhar, para classificar a falha.
   async buscarGuiaParcelamento(
     cnpj: string,
-    regime: RegimeParcelamento,
+    { regime, emAbertoDaReceita }: PedidoGuiaParcelamento,
   ): Promise<Result<GuiaParcelamentoDto, AppError>> {
+    if (emAbertoDaReceita > 1) {
+      return err(new GuiaParcelamentoIndisponivelError("ambiguo"));
+    }
     const parcela = mesAtual(this.agora()).replace("-", "");
     const [idSistema, idServico] = PARCELAMENTO_POR_REGIME[regime];
-    return this.executar(async () => {
+    const guia = await this.executar(async () => {
       const dados = await this.chamar("Emitir", cnpj, idSistema, idServico, "1.0", {
         parcelaParaEmitir: Number(parcela),
       });
-      if (dados === null) throw new ErroSerpro("Cliente sem parcelamento com parcela neste mês.");
+      if (dados === null)
+        throw new ErroSerpro("Cliente sem parcelamento ativo.", "codigo_desconhecido");
       return {
         nomeArquivo: `parcelamento-${cnpj}-${parcela}.pdf`,
         pdfBase64: parcelamentoSchema.parse(dados).docArrecadacaoPdfB64,
         parcela,
       };
     });
+    return guia.ok ? guia : this.classificarFalhaDaGuia(cnpj, guia.error);
+  }
+
+  private async classificarFalhaDaGuia(
+    cnpj: string,
+    falha: AppError,
+  ): Promise<Result<never, AppError>> {
+    if (falha instanceof GuiaParcelamentoIndisponivelError) return err(falha);
+    const autorizacao = await this.consultarAutorizacao(cnpj);
+    if (autorizacao.ok && !autorizacao.value.vigente) {
+      return err(new ForbiddenError("Cliente sem autorização vigente para consulta fiscal."));
+    }
+    return err(falha);
   }
 
   // Integra-Procurações: há procuração do Cliente ao escritório com validade a vencer?
@@ -184,6 +220,10 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
     try {
       return ok(await fn());
     } catch (e) {
+      const motivo = e instanceof ErroSerpro ? e.motivo : undefined;
+      if (motivo) {
+        return err(new GuiaParcelamentoIndisponivelError(motivo));
+      }
       return err(
         new ServicoExternoError(
           e instanceof ErroSerpro ? e.message : "Serviço fiscal indisponível ou fora do contrato.",
@@ -250,10 +290,24 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
       return this.chamar(operacao, contribuinte, idSistema, idServico, versaoSistema, dados, false);
     }
     if (r.status === 204 || r.status === 404) return null;
-    if (r.status !== 200) throw new ErroSerpro(`Serviço fiscal respondeu ${r.status}.`);
+    if (r.status !== 200) {
+      throw new ErroSerpro(`Serviço fiscal respondeu ${r.status}.`, motivoDaRecusa(r.corpo));
+    }
     const envelope = z.object({ dados: z.string() }).parse(JSON.parse(r.corpo));
     return JSON.parse(envelope.dados);
   }
 }
 
-class ErroSerpro extends Error {}
+function motivoDaRecusa(corpo: string): MotivoGuiaIndisponivel | undefined {
+  const er = /ER_[EN]\d{3}/.exec(corpo)?.[0];
+  return er ? MOTIVO_POR_MENSAGEM[er] : undefined;
+}
+
+class ErroSerpro extends Error {
+  constructor(
+    message: string,
+    readonly motivo?: MotivoGuiaIndisponivel,
+  ) {
+    super(message);
+  }
+}
