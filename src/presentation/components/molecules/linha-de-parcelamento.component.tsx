@@ -63,7 +63,7 @@ export function LinhaDeParcelamento({
         <CampoDeTexto
           id={`parcelamentos.${indice}.codigo`}
           rotulo="Código"
-          obrigatorio={!desabilitado && !somenteLeitura}
+          placeholder="Gerado pelo sistema"
           maxLength={60}
           erro={erroCodigo}
           disabled={desabilitado}

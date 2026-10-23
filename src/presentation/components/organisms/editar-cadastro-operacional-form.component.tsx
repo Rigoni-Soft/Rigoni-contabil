@@ -275,14 +275,6 @@ export function EditarCadastroOperacionalForm({
         />
 
         <Pilha espaco={1} className="lg:col-span-2">
-          <Label>Tem parcelamento</Label>
-          {/* Resumo derivado da lista abaixo: nunca digitado. */}
-          <Texto variante="corpo" role="status">
-            {parcelamentos.length > 0 ? `Sim (${parcelamentos.length})` : "Não"}
-          </Texto>
-        </Pilha>
-
-        <Pilha espaco={1} className="lg:col-span-2">
           <Label>Atividade do mês</Label>
           <Linha espaco={4} quebra className="text-sm">
             <CaixaDeMarcacao rotulo="Indústria" {...register("atividadeMes.industria")} />
@@ -331,6 +323,13 @@ export function EditarCadastroOperacionalForm({
 
         <Pilha espaco={3} className="sm:col-span-2 lg:col-span-4">
           <Label className="block">Parcelamentos</Label>
+          {/* Resumo derivado: só conta o que já foi salvo (linha com id), nunca o que está sendo digitado. */}
+          <Texto variante="corpo" role="status">
+            Tem parcelamento:{" "}
+            {parcelamentos.some((p) => p.id)
+              ? `Sim (${parcelamentos.filter((p) => p.id).length})`
+              : "Não"}
+          </Texto>
           {parcelamentos.map((atual, indice) => {
             const erros = errors.parcelamentos?.[indice];
             const leitura = leituras[parcelamentoCampos[indice].id];

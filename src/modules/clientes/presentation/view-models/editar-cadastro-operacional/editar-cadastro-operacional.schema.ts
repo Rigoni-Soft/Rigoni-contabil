@@ -56,11 +56,8 @@ const parcelasRestantes = z
   .int("número inteiro")
   .min(1, "Informe 1 ou mais parcelas");
 
-const codigoDoParcelamento = z
-  .string()
-  .trim()
-  .min(1, "obrigatório")
-  .max(60, "máximo 60 caracteres");
+// Opcional: em branco, o sistema gera um código (PARC-XXXXXXXX) ao salvar.
+const codigoDoParcelamento = z.string().trim().max(60, "máximo 60 caracteres");
 
 // Parcelamentos vão por Server Action própria (têm arquivo): o cadastro operacional não os carrega.
 export const salvarParcelamentosSchema = z.object({

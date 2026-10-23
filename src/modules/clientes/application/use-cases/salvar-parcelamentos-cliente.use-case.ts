@@ -10,6 +10,7 @@ import type {
 import type { ClienteRepository } from "@/modules/clientes/application/ports/out/cliente.repository";
 import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
 import {
+  gerarCodigoDeParcelamento,
   validarParcelamento,
   type ParcelamentoProps,
 } from "@/modules/clientes/domain/value-objects/parcelamento.vo";
@@ -115,7 +116,8 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
         ? ok(atual)
         : validarParcelamento({
             id,
-            codigo: entrada.codigo,
+            // Código em branco é opcional: mantém o gravado ou o sistema gera um.
+            codigo: entrada.codigo.trim() || atual?.codigo || gerarCodigoDeParcelamento(),
             parcelasRestantes: entrada.parcelasRestantes,
             interno: entrada.interno,
             arquivoCaminho: atual?.arquivoCaminho ?? upload?.caminho ?? "",

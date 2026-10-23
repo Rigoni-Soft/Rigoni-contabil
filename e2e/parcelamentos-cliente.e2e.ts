@@ -43,7 +43,9 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
   test("Funcionário SN cadastra parcelamentos com PDF, edita e remove @smoke", async ({ page }) => {
     const clienteId = await abrirComoFuncionarioSn(page, "Parcelamentos E2E Ltda");
     await expect(page.getByText("Tem parcelamento")).toBeVisible();
-    await expect(page.getByRole("status").filter({ hasText: /^Não$/ })).toBeVisible();
+    await expect(
+      page.getByRole("status").filter({ hasText: "Tem parcelamento: Não" }),
+    ).toBeVisible();
 
     // PDF é obrigatório; parcelas restantes têm mínimo 1.
     await page.getByRole("button", { name: "Adicionar parcelamento" }).click();
@@ -61,10 +63,14 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
     await page.locator("[id='parcelamentos.0.parcelasRestantes']").fill("24");
     await page.getByRole("button", { name: "Adicionar parcelamento" }).click();
     await anexarEEsperarSugestao(page, 1, pdf("acordo-200.pdf"));
-    await page.locator("[id='parcelamentos.1.codigo']").fill("PARC-200");
+    // Código é opcional: em branco, o sistema gera um ao salvar.
+    await page.locator("[id='parcelamentos.1.codigo']").fill("");
     await page.locator("[id='parcelamentos.1.parcelasRestantes']").fill("6");
     await page.getByRole("checkbox", { name: "É interno" }).nth(1).check();
-    await expect(page.getByRole("status").filter({ hasText: "Sim (2)" })).toBeVisible();
+    // O resumo só conta o que já foi salvo, não as linhas em digitação.
+    await expect(
+      page.getByRole("status").filter({ hasText: "Tem parcelamento: Não" }),
+    ).toBeVisible();
 
     await page.getByRole("button", { name: "Salvar" }).click();
     await expect(page).toHaveURL("/simples-nacional");
@@ -74,7 +80,7 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
     await expect(page.getByRole("status").filter({ hasText: "Sim (2)" })).toBeVisible();
     await expect(page.locator("[id='parcelamentos.0.codigo']")).toHaveValue("PARC-100");
     await expect(page.locator("[id='parcelamentos.0.parcelasRestantes']")).toHaveValue("24");
-    await expect(page.locator("[id='parcelamentos.1.codigo']")).toHaveValue("PARC-200");
+    await expect(page.locator("[id='parcelamentos.1.codigo']")).toHaveValue(/^PARC-[0-9A-F]{8}$/);
     await expect(page.getByRole("checkbox", { name: "É interno" }).nth(1)).toBeChecked();
     await expect(page.getByText("Pendente no mês")).toHaveCount(2);
     await expect(page.getByText(/PDF anexado: acordo-100\.pdf/)).toBeVisible();

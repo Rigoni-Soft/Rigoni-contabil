@@ -42,6 +42,10 @@ export type ParcelamentoProps = {
   acordo?: DadosDoAcordo;
 };
 
+// Rótulo interno quando o PDF e o usuário não trazem código (o Serpro emite a guia pela parcela).
+export const gerarCodigoDeParcelamento = () =>
+  `PARC-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+
 // Parcelamento digitado à mão: o mínimo de parcelas restantes é 1 (o zero só é gravado pelo sistema
 // ao quitar), e o anexo é obrigatório.
 export function validarParcelamento(
@@ -93,7 +97,7 @@ export function sugerirParcelamento(
   if (lido.length > 60) return { lido: false, motivo: "ilegivel" };
   return {
     lido: true,
-    codigo: lido || `PARC-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+    codigo: lido || gerarCodigoDeParcelamento(),
     codigoGerado: !lido,
     quantidadeDeParcelas: leitura.quantidadeDeParcelas,
     acordo: normalizarAcordo(leitura),

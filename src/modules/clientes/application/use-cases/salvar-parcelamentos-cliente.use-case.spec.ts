@@ -105,6 +105,23 @@ describe("SalvarParcelamentosCliente", () => {
     expect(storage.removidos).toEqual([]);
   });
 
+  it("código em branco é gerado pelo sistema; num existente, mantém o gravado", async () => {
+    const existente = salvo();
+    const { caso, gravar } = montar({ existentes: [existente] });
+
+    const r = await caso.execute(
+      entrada([
+        { id: existente.id, codigo: "  ", parcelasRestantes: 4, interno: false },
+        { codigo: "", parcelasRestantes: 2, interno: false, arquivo: pdf() },
+      ]),
+    );
+
+    expect(r.ok).toBe(true);
+    const itens = gravar.mock.calls[0][1];
+    expect(itens[0].codigo).toBe(existente.codigo);
+    expect(itens[1].codigo).toMatch(/^PARC-[0-9A-F]{8}$/);
+  });
+
   it("grava os dados do acordo lidos do PDF do Parcelamento novo, revalidados", async () => {
     const { caso, gravar } = montar();
 
@@ -171,7 +188,6 @@ describe("SalvarParcelamentosCliente", () => {
   it.each([
     ["sem PDF", { codigo: "A", parcelasRestantes: 2, interno: false }],
     ["parcelas restantes 0", { codigo: "A", parcelasRestantes: 0, interno: false, arquivo: pdf() }],
-    ["código vazio", { codigo: " ", parcelasRestantes: 2, interno: false, arquivo: pdf() }],
     [
       "id desconhecido",
       {
