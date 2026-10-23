@@ -12,17 +12,19 @@ function Grupo({
   titulo,
   cards,
   totalClientes,
+  colunas,
 }: {
   titulo: string;
   cards: Card[];
   totalClientes: number;
+  colunas: "2>3" | "2>3>5";
 }) {
   return (
     <Caixa>
       <Texto variante="secao" className="mb-3 border-b border-border pb-2">
         {titulo}
       </Texto>
-      <Grade colunas="2>3>5" espaco={4} como="ul">
+      <Grade colunas={colunas} espaco={4} como="ul">
         {cards.map((card) => (
           <Caixa como="li" key={card.id}>
             <CartaoDeResumo
@@ -56,8 +58,19 @@ export function ResumoSetorSn({ cards, totalClientes, busca }: Props) {
           cadastrados e atribuídos.
         </Texto>
       )}
-      <Grupo titulo="Documentos e DAS" cards={cards.slice(0, 5)} totalClientes={totalClientes} />
-      <Grupo titulo="Parcelamento" cards={cards.slice(5, 11)} totalClientes={totalClientes} />
+      <Grupo
+        titulo="Documentos e DAS"
+        cards={cards.slice(0, 5)}
+        totalClientes={totalClientes}
+        colunas="2>3>5"
+      />
+      {/* 6 cards: em 5 colunas sobraria um órfão; 3 colunas fecham 2 linhas cheias. */}
+      <Grupo
+        titulo="Parcelamento"
+        cards={cards.slice(5, 11)}
+        totalClientes={totalClientes}
+        colunas="2>3"
+      />
     </Pilha>
   );
 }

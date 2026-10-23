@@ -81,6 +81,7 @@ const COLUNAS = {
   "1>2": "grid-cols-1 sm:grid-cols-2",
   "1>3": "grid-cols-1 sm:grid-cols-3",
   "1>2>4": "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4",
+  "2>3": "grid-cols-2 sm:grid-cols-3",
   "2>4": "grid-cols-2 sm:grid-cols-4",
   "2>3>5": "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
   // lista de definição: rótulo ao lado do valor

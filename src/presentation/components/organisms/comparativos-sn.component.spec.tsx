@@ -31,6 +31,7 @@ describe("ComparativosSn", () => {
     expect(within(das).getAllByText("4").length).toBeGreaterThan(0);
     const parc = screen.getByRole("group", { name: "Status do parcelamento" });
     expect(within(parc).getByText("Interno")).toBeInTheDocument();
+    expect(within(parc).getByText(/mais de uma situação/)).toBeInTheDocument();
     const ativ = screen.getByRole("group", { name: "Atividade do mês" });
     expect(within(ativ).getByText("Comércio")).toBeInTheDocument();
     expect(within(ativ).getByText("5")).toBeInTheDocument();

@@ -558,7 +558,8 @@ ainda não existe" abaixo).
 **Grupo Parcelamento (#129):** os 6 cards contam **Clientes** (cada um uma vez por card) e
 **não são mutuamente exclusivos** — "Com parcelamento", "Em aberto", "Parcelamento pendente"
 (`atencao`), "Pendente em atraso" (`urgente`, a partir do dia 29, depois da última rodada do
-job), "Parcelamento interno" e "Parcelamento enviado". A definição única vive em
+job), "Parcelamento interno" e "Parcelamento enviado". A grade do grupo é `2>3` (2×3 no
+celular, 3×2 de `sm` em diante): 6 cards em 5 colunas deixariam um órfão. A definição única vive em
 `parcelamentos-do-cliente.ts` e alimenta cards e comparativos; os anéis, por isso, podem somar
 mais que o total. Nas listas `/clientes/resumo/<bucket>` desse grupo, cada Cliente mostra seus
 parcelamentos com o código, a marca "Interno" e o selo do mês (`SeloDeParcelamento`, o mesmo do
@@ -600,9 +601,10 @@ grid `md:grid-cols-2 lg:grid-cols-3` (3 gráficos) — o Líder do SN ganha um 4
 (`text-xl font-bold tracking-tight text-primary`) — h1 e h2 nunca com o mesmo
 tamanho; cada gráfico é um cartão
 `rounded-xl border bg-card` (mesma superfície dos cards do resumo, sem
-guilhochê) com `role="group"` + título. DAS e parcelamento são donuts SVG
-(sem biblioteca de gráfico, anel de fundo `stroke-border`); Atividade do mês
-é lista de barras proporcionais ao total de clientes e ocupa a largura toda
+guilhochê) com `role="group"` + título. O DAS é donut SVG (fatias
+exclusivas, sem biblioteca de gráfico, anel de fundo `stroke-border`); parcelamento e
+Atividade do mês são listas de barras proporcionais ao total de clientes, porque as
+situações não se excluem (um donut somaria o mesmo Cliente várias vezes, #129) e ocupa a largura toda
 no tablet (`md:col-span-2`). Só tokens existentes: `primary` (enviado),
 `destructive` (pendente), `success` (pronto), `muted-foreground` (sem
 movimento/interno). A cor nunca é o único
