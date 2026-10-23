@@ -2,6 +2,7 @@ import { calcularComparativosSn } from "@/modules/clientes/application/mappers/c
 import { classificarResumoSetorSn } from "@/modules/clientes/application/mappers/resumo-setor-sn.mapper";
 import type { ResumoSetorSnDto } from "@/modules/clientes/application/ports/in/obter-resumo-setor-sn.provider";
 import type { ClienteQueryPort } from "@/modules/clientes/application/ports/out/cliente-query.provider";
+import type { RelogioPort } from "@/modules/clientes/application/ports/out/relogio.provider";
 import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
@@ -16,6 +17,7 @@ export class ObterResumoSetorSn {
   constructor(
     private readonly sessao: SessaoPort,
     private readonly query: ClienteQueryPort,
+    private readonly relogio: RelogioPort,
   ) {}
 
   async execute(): Promise<Result<ResumoSetorSnDto, AppError>> {
@@ -28,11 +30,13 @@ export class ObterResumoSetorSn {
     const linhas = await this.query.listarResumoOperacional();
     if (!linhas.ok) return linhas;
 
-    const { responsaveis, ...comparativos } = calcularComparativosSn(linhas.value);
+    // Um só instante para cards e comparativos: o "pendente em atraso" depende do dia (São Paulo).
+    const agora = this.relogio.agora();
+    const { responsaveis, ...comparativos } = calcularComparativosSn(linhas.value, agora);
 
     return ok({
       totalClientes: linhas.value.length,
-      cards: classificarResumoSetorSn(linhas.value),
+      cards: classificarResumoSetorSn(linhas.value, agora),
       comparativos: podeAtribuirResponsavel(ator.papel, ator.setor)
         ? { ...comparativos, responsaveis }
         : comparativos,

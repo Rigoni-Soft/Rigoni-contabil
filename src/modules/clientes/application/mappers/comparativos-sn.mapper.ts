@@ -40,7 +40,7 @@ function porResponsavel(linhas: ResumoOperacionalRow[]): FatiaComparativoDto[] {
 // Gráficos: DAS usa o status bruto (não os buckets compostos dos cards, que se
 // sobrepõem); atividade do mês são 3 flags independentes; parcelamento usa as mesmas definições
 // dos cards (por Cliente, não exclusivas), então as fatias podem somar mais que o total.
-export function calcularComparativosSn(linhas: ResumoOperacionalRow[], agora: Date = new Date()) {
+export function calcularComparativosSn(linhas: ResumoOperacionalRow[], agora: Date) {
   const situacoes = linhas.map((l) => situacaoDosParcelamentos(l, agora));
   const atividades = linhas.flatMap((l) =>
     (["industria", "comercio", "servico"] as const).filter((a) => l.atividadeMes[a]),

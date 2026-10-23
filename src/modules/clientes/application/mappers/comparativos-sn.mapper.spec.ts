@@ -26,7 +26,7 @@ const qtd = (fatias: { id: string; quantidade: number }[]) =>
 
 describe("calcularComparativosSn", () => {
   it("devolve todas as fatias zeradas, na ordem, com lista vazia", () => {
-    const c = calcularComparativosSn([]);
+    const c = calcularComparativosSn([], DIA_28);
 
     expect(c.das.map((f) => f.id)).toEqual(["enviado", "pendente", "sem_movimento", "pronto"]);
     expect(c.parcelamento.map((f) => f.id)).toEqual([
@@ -42,13 +42,16 @@ describe("calcularComparativosSn", () => {
   });
 
   it("conta o status bruto do DAS (sem os buckets compostos dos cards) e ignora nulo", () => {
-    const c = calcularComparativosSn([
-      linha({ dasStatus: "enviado" }),
-      linha({ dasStatus: "enviado", documentoObrigatorio: "negativo" }),
-      linha({ dasStatus: "pendente" }),
-      linha({ dasStatus: "pronto" }),
-      linha({ dasStatus: null }),
-    ]);
+    const c = calcularComparativosSn(
+      [
+        linha({ dasStatus: "enviado" }),
+        linha({ dasStatus: "enviado", documentoObrigatorio: "negativo" }),
+        linha({ dasStatus: "pendente" }),
+        linha({ dasStatus: "pronto" }),
+        linha({ dasStatus: null }),
+      ],
+      DIA_28,
+    );
 
     expect(qtd(c.das)).toEqual({ enviado: 2, pendente: 1, sem_movimento: 0, pronto: 1 });
   });
@@ -80,7 +83,9 @@ describe("calcularComparativosSn", () => {
   });
 
   it("as fatias do DAS levam a cor semântica dos cards: pronto é atenção (aguarda envio), pendente é urgente", () => {
-    const cores = Object.fromEntries(calcularComparativosSn([]).das.map((f) => [f.id, f.cor]));
+    const cores = Object.fromEntries(
+      calcularComparativosSn([], DIA_28).das.map((f) => [f.id, f.cor]),
+    );
 
     expect(cores).toEqual({
       enviado: "em_dia",
@@ -92,7 +97,7 @@ describe("calcularComparativosSn", () => {
 
   it("as fatias do parcelamento levam a cor semântica dos cards: pendente é atenção; só o atraso é urgente", () => {
     const cores = Object.fromEntries(
-      calcularComparativosSn([]).parcelamento.map((f) => [f.id, f.cor]),
+      calcularComparativosSn([], DIA_28).parcelamento.map((f) => [f.id, f.cor]),
     );
 
     expect(cores).toEqual({
@@ -104,14 +109,17 @@ describe("calcularComparativosSn", () => {
   });
 
   it("compara Responsáveis pela quantidade de DAS enviada (mais Sem responsável)", () => {
-    const c = calcularComparativosSn([
-      linha({ responsavelId: "a", responsavelNome: "Ana", dasStatus: "enviado" }),
-      linha({ responsavelId: "a", responsavelNome: "Ana", dasStatus: "enviado" }),
-      linha({ responsavelId: "b", responsavelNome: "Bia", dasStatus: "enviado" }),
-      linha({ responsavelId: "b", responsavelNome: "Bia", dasStatus: "pronto" }),
-      linha({ responsavelId: null, dasStatus: "enviado" }),
-      linha({ responsavelId: "c", responsavelNome: "Caio", dasStatus: "pendente" }),
-    ]);
+    const c = calcularComparativosSn(
+      [
+        linha({ responsavelId: "a", responsavelNome: "Ana", dasStatus: "enviado" }),
+        linha({ responsavelId: "a", responsavelNome: "Ana", dasStatus: "enviado" }),
+        linha({ responsavelId: "b", responsavelNome: "Bia", dasStatus: "enviado" }),
+        linha({ responsavelId: "b", responsavelNome: "Bia", dasStatus: "pronto" }),
+        linha({ responsavelId: null, dasStatus: "enviado" }),
+        linha({ responsavelId: "c", responsavelNome: "Caio", dasStatus: "pendente" }),
+      ],
+      DIA_28,
+    );
 
     expect(c.responsaveis.map((f) => [f.rotulo, f.quantidade])).toEqual([
       ["Ana", 2],
@@ -122,10 +130,13 @@ describe("calcularComparativosSn", () => {
   });
 
   it("atividade do mês não é mutuamente exclusiva", () => {
-    const c = calcularComparativosSn([
-      linha({ atividadeMes: { industria: true, comercio: true, servico: false } }),
-      linha({ atividadeMes: { industria: false, comercio: true, servico: true } }),
-    ]);
+    const c = calcularComparativosSn(
+      [
+        linha({ atividadeMes: { industria: true, comercio: true, servico: false } }),
+        linha({ atividadeMes: { industria: false, comercio: true, servico: true } }),
+      ],
+      DIA_28,
+    );
 
     expect(qtd(c.atividade)).toEqual({ industria: 1, comercio: 2, servico: 1 });
   });

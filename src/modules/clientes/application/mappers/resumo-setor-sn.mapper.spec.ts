@@ -30,10 +30,13 @@ function quantidade(cards: ReturnType<typeof classificarResumoSetorSn>, id: stri
 // 2026-10-28 e 2026-10-29, meio-dia em São Paulo: antes e depois da última rodada do job.
 const DIA_28 = new Date("2026-10-28T15:00:00Z");
 const DIA_29 = new Date("2026-10-29T15:00:00Z");
+// Fevereiro de 2026 tem 28 dias: o dia 29 não existe.
+const FEV_27 = new Date("2026-02-27T15:00:00Z");
+const FEV_28 = new Date("2026-02-28T15:00:00Z");
 
 describe("classificarResumoSetorSn", () => {
   it("devolve os 11 cards (5 de DAS + 6 de parcelamento), mesmo com lista vazia", () => {
-    const cards = classificarResumoSetorSn([]);
+    const cards = classificarResumoSetorSn([], DIA_28);
 
     expect(cards).toHaveLength(11);
     expect(cards.every((c) => c.quantidade === 0 && c.clientes.length === 0)).toBe(true);
@@ -53,7 +56,7 @@ describe("classificarResumoSetorSn", () => {
   });
 
   it("classifica DAS emitidas (enviado) e dá a cor em_dia", () => {
-    const cards = classificarResumoSetorSn([linha({ dasStatus: "enviado" })]);
+    const cards = classificarResumoSetorSn([linha({ dasStatus: "enviado" })], DIA_28);
     const card = cards.find((c) => c.id === "das_emitidas")!;
 
     expect(card.quantidade).toBe(1);
@@ -64,9 +67,10 @@ describe("classificarResumoSetorSn", () => {
   });
 
   it("sem documento (atencao) conta documentoObrigatorio negativo, independente do DAS", () => {
-    const cards = classificarResumoSetorSn([
-      linha({ documentoObrigatorio: "negativo", dasStatus: "pendente" }),
-    ]);
+    const cards = classificarResumoSetorSn(
+      [linha({ documentoObrigatorio: "negativo", dasStatus: "pendente" })],
+      DIA_28,
+    );
 
     expect(quantidade(cards, "sem_documento")).toBe(1);
     // Sem documento recebido, a DAS pendente não conta como "DAS pendente"
@@ -75,9 +79,10 @@ describe("classificarResumoSetorSn", () => {
   });
 
   it("DAS pendente (urgente) só conta quando o documento já foi recebido", () => {
-    const cards = classificarResumoSetorSn([
-      linha({ dasStatus: "pendente", documentoObrigatorio: "positivo" }),
-    ]);
+    const cards = classificarResumoSetorSn(
+      [linha({ dasStatus: "pendente", documentoObrigatorio: "positivo" })],
+      DIA_28,
+    );
 
     expect(quantidade(cards, "das_pendente")).toBe(1);
     const card = cards.find((c) => c.id === "das_pendente")!;
@@ -85,16 +90,16 @@ describe("classificarResumoSetorSn", () => {
   });
 
   it("esperando envio DAS é atenção (aguarda o envio do escritório), a mesma cor da fatia Pronto do comparativo", () => {
-    const cards = classificarResumoSetorSn([linha({ dasStatus: "pronto" })]);
+    const cards = classificarResumoSetorSn([linha({ dasStatus: "pronto" })], DIA_28);
 
     expect(cards.find((c) => c.id === "esperando_envio_das")!.cor).toBe("atencao");
   });
 
   it("sem movimento e esperando envio mapeiam direto do das_status", () => {
-    const cards = classificarResumoSetorSn([
-      linha({ dasStatus: "sem_movimento" }),
-      linha({ dasStatus: "pronto" }),
-    ]);
+    const cards = classificarResumoSetorSn(
+      [linha({ dasStatus: "sem_movimento" }), linha({ dasStatus: "pronto" })],
+      DIA_28,
+    );
 
     expect(quantidade(cards, "sem_movimento")).toBe(1);
     expect(quantidade(cards, "esperando_envio_das")).toBe(1);
@@ -102,26 +107,32 @@ describe("classificarResumoSetorSn", () => {
 
   describe("grupo Parcelamento (conta Clientes, cards não exclusivos)", () => {
     it("com parcelamento conta quem tem algum cadastrado (inclusive quitado); em aberto só quem tem algum não quitado", () => {
-      const cards = classificarResumoSetorSn([
-        linha({ clienteId: "a", parcelamentos: [parcelamento()] }),
-        linha({ clienteId: "b", parcelamentos: [parcelamento({ quitado: true })] }),
-        linha({ clienteId: "c", parcelamentos: [] }),
-      ]);
+      const cards = classificarResumoSetorSn(
+        [
+          linha({ clienteId: "a", parcelamentos: [parcelamento()] }),
+          linha({ clienteId: "b", parcelamentos: [parcelamento({ quitado: true })] }),
+          linha({ clienteId: "c", parcelamentos: [] }),
+        ],
+        DIA_28,
+      );
 
       expect(quantidade(cards, "com_parcelamento")).toBe(2);
       expect(quantidade(cards, "parcelamento_em_aberto")).toBe(1);
     });
 
     it("conta o Cliente uma vez por card, mesmo com vários parcelamentos", () => {
-      const cards = classificarResumoSetorSn([
-        linha({
-          parcelamentos: [
-            parcelamento({ codigo: "P1" }),
-            parcelamento({ codigo: "P2" }),
-            parcelamento({ codigo: "P3", interno: true }),
-          ],
-        }),
-      ]);
+      const cards = classificarResumoSetorSn(
+        [
+          linha({
+            parcelamentos: [
+              parcelamento({ codigo: "P1" }),
+              parcelamento({ codigo: "P2" }),
+              parcelamento({ codigo: "P3", interno: true }),
+            ],
+          }),
+        ],
+        DIA_28,
+      );
 
       expect(quantidade(cards, "com_parcelamento")).toBe(1);
       expect(quantidade(cards, "parcelamento_em_aberto")).toBe(1);
@@ -130,40 +141,95 @@ describe("classificarResumoSetorSn", () => {
     });
 
     it("pendente: algum em aberto sem envio no mês; enviado: todos os em aberto enviados", () => {
-      const cards = classificarResumoSetorSn([
-        linha({
-          clienteId: "pendente",
-          parcelamentos: [parcelamento({ enviadoNoMes: true }), parcelamento({ codigo: "P2" })],
-        }),
-        linha({
-          clienteId: "enviado",
-          parcelamentos: [
-            parcelamento({ enviadoNoMes: true }),
-            parcelamento({ codigo: "P2", enviadoNoMes: true }),
-          ],
-        }),
-        linha({
-          // o quitado sem envio não segura o Cliente em "enviado"
-          clienteId: "enviado-com-quitado",
-          parcelamentos: [
-            parcelamento({ enviadoNoMes: true }),
-            parcelamento({ codigo: "P2", quitado: true }),
-          ],
-        }),
-        linha({ clienteId: "so-quitado", parcelamentos: [parcelamento({ quitado: true })] }),
-      ]);
+      const cards = classificarResumoSetorSn(
+        [
+          linha({
+            clienteId: "pendente",
+            parcelamentos: [parcelamento({ enviadoNoMes: true }), parcelamento({ codigo: "P2" })],
+          }),
+          linha({
+            clienteId: "enviado",
+            parcelamentos: [
+              parcelamento({ enviadoNoMes: true }),
+              parcelamento({ codigo: "P2", enviadoNoMes: true }),
+            ],
+          }),
+          linha({
+            // o quitado sem envio não segura o Cliente em "enviado"
+            clienteId: "enviado-com-quitado",
+            parcelamentos: [
+              parcelamento({ enviadoNoMes: true }),
+              parcelamento({ codigo: "P2", quitado: true }),
+            ],
+          }),
+          linha({ clienteId: "so-quitado", parcelamentos: [parcelamento({ quitado: true })] }),
+        ],
+        DIA_28,
+      );
 
       const ids = (id: string) => cards.find((c) => c.id === id)!.clientes.map((c) => c.clienteId);
       expect(ids("parcelamento_pendente")).toEqual(["pendente"]);
       expect(ids("parcelamento_enviado")).toEqual(["enviado", "enviado-com-quitado"]);
     });
 
-    it("interno: algum interno em aberto (interno quitado não conta)", () => {
-      const cards = classificarResumoSetorSn([
-        linha({ clienteId: "a", parcelamentos: [parcelamento({ interno: true })] }),
-        linha({ clienteId: "b", parcelamentos: [parcelamento({ interno: true, quitado: true })] }),
-        linha({ clienteId: "c", parcelamentos: [parcelamento()] }),
+    it("o interno segue o mesmo fluxo dos demais: conta em pendente, atraso e enviado", () => {
+      const cards = classificarResumoSetorSn(
+        [
+          // só interno, sem envio: pendente (e atraso no dia 29), como qualquer parcelamento
+          linha({
+            clienteId: "so-interno-pendente",
+            parcelamentos: [parcelamento({ interno: true })],
+          }),
+          // só interno, já enviado ao financeiro: enviado
+          linha({
+            clienteId: "so-interno-enviado",
+            parcelamentos: [parcelamento({ interno: true, enviadoNoMes: true })],
+          }),
+          // comum enviado + interno sem envio: o interno ainda segura o Cliente em pendente
+          linha({
+            clienteId: "comum-enviado-interno-pendente",
+            parcelamentos: [
+              parcelamento({ enviadoNoMes: true }),
+              parcelamento({ codigo: "P2", interno: true }),
+            ],
+          }),
+        ],
+        DIA_29,
+      );
+
+      const ids = (id: string) => cards.find((c) => c.id === id)!.clientes.map((c) => c.clienteId);
+      expect(ids("parcelamento_pendente")).toEqual([
+        "so-interno-pendente",
+        "comum-enviado-interno-pendente",
       ]);
+      expect(ids("parcelamento_pendente_atraso")).toEqual(ids("parcelamento_pendente"));
+      expect(ids("parcelamento_enviado")).toEqual(["so-interno-enviado"]);
+      expect(ids("parcelamento_interno")).toHaveLength(3);
+    });
+
+    it("em fevereiro (sem dia 29) o pendente vira atraso no último dia do mês", () => {
+      const linhas = [linha({ parcelamentos: [parcelamento()] })];
+
+      expect(
+        quantidade(classificarResumoSetorSn(linhas, FEV_27), "parcelamento_pendente_atraso"),
+      ).toBe(0);
+      expect(
+        quantidade(classificarResumoSetorSn(linhas, FEV_28), "parcelamento_pendente_atraso"),
+      ).toBe(1);
+    });
+
+    it("interno: algum interno em aberto (interno quitado não conta)", () => {
+      const cards = classificarResumoSetorSn(
+        [
+          linha({ clienteId: "a", parcelamentos: [parcelamento({ interno: true })] }),
+          linha({
+            clienteId: "b",
+            parcelamentos: [parcelamento({ interno: true, quitado: true })],
+          }),
+          linha({ clienteId: "c", parcelamentos: [parcelamento()] }),
+        ],
+        DIA_28,
+      );
 
       expect(
         cards.find((c) => c.id === "parcelamento_interno")!.clientes.map((c) => c.clienteId),
@@ -192,17 +258,20 @@ describe("classificarResumoSetorSn", () => {
     });
 
     it("a lista dos cards de parcelamento traz a marca interno e o status do mês por parcelamento", () => {
-      const cards = classificarResumoSetorSn([
-        linha({
-          parcelamentos: [
-            parcelamento({ codigo: "P1", enviadoNoMes: true }),
-            parcelamento({ codigo: "P2", interno: true }),
-            parcelamento({ codigo: "P3", quitado: true }),
-          ],
-        }),
-      ]);
+      const cards = classificarResumoSetorSn(
+        [
+          linha({
+            parcelamentos: [
+              parcelamento({ codigo: "P1", enviadoNoMes: true }),
+              parcelamento({ codigo: "P2", interno: true }),
+              parcelamento({ codigo: "P3", quitado: true }),
+            ],
+          }),
+        ],
+        DIA_28,
+      );
 
-      const cliente = cards.find((c) => c.id === "parcelamento_pendente")!.clientes[0];
+      const cliente = cards.find((c) => c.id === "com_parcelamento")!.clientes[0];
       expect(cliente.parcelamentos).toEqual([
         { codigo: "P1", interno: false, status: "enviado" },
         { codigo: "P2", interno: true, status: "pendente" },
@@ -211,7 +280,7 @@ describe("classificarResumoSetorSn", () => {
     });
 
     it("cada card de parcelamento traz uma definição que diz o que conta; o atraso cita o dia da regra", () => {
-      const cards = classificarResumoSetorSn([]);
+      const cards = classificarResumoSetorSn([], DIA_28);
       const descricao = (id: string) => cards.find((c) => c.id === id)!.descricao;
 
       for (const id of [
@@ -229,9 +298,10 @@ describe("classificarResumoSetorSn", () => {
     });
 
     it("os cards de DAS não carregam parcelamentos na lista", () => {
-      const cards = classificarResumoSetorSn([
-        linha({ dasStatus: "enviado", parcelamentos: [parcelamento()] }),
-      ]);
+      const cards = classificarResumoSetorSn(
+        [linha({ dasStatus: "enviado", parcelamentos: [parcelamento()] })],
+        DIA_28,
+      );
 
       expect(cards.find((c) => c.id === "das_emitidas")!.clientes[0]).not.toHaveProperty(
         "parcelamentos",

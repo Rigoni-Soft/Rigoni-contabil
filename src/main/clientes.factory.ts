@@ -48,6 +48,7 @@ import { SupabaseClienteQueryGateway } from "@/modules/clientes/infra/gateways/c
 import { SupabaseDocumentosContratuaisClienteGateway } from "@/modules/clientes/infra/gateways/documentos-contratuais-cliente.gateway";
 import { LeitorDeParcelamentoFalsoGateway } from "@/modules/clientes/infra/gateways/leitor-de-parcelamento-falso.gateway";
 import { LeitorDeParcelamentoTextoGateway } from "@/modules/clientes/infra/gateways/leitor-de-parcelamento-texto.gateway";
+import { RelogioSistemaGateway } from "@/modules/clientes/infra/gateways/relogio-sistema.gateway";
 import { SupabaseArquivoStorageGateway } from "@/modules/clientes/infra/gateways/supabase-arquivo-storage.gateway";
 import { SupabaseClienteParcelamentoRepository } from "@/modules/clientes/infra/repositories/cliente-parcelamento.repository";
 import { SupabaseClienteRepository } from "@/modules/clientes/infra/repositories/cliente.repository";
@@ -175,6 +176,7 @@ export async function makeObterResumoSetorSn(): Promise<ObterResumoSetorSn> {
   return new ObterResumoSetorSn(
     sessaoViaUsuarios(supabase),
     new SupabaseClienteQueryGateway(supabase),
+    new RelogioSistemaGateway(),
   );
 }
 

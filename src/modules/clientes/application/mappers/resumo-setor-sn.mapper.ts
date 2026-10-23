@@ -119,7 +119,7 @@ const parcelamentosDaLista = (linha: ResumoOperacionalRow): ParcelamentoBucketDt
 // `agora` decide o "pendente em atraso" (dia ≥ 29 no fuso de São Paulo).
 export function classificarResumoSetorSn(
   linhas: ResumoOperacionalRow[],
-  agora: Date = new Date(),
+  agora: Date,
 ): CardResumoSnDto[] {
   return BUCKETS.map((bucket) => {
     const clientes = linhas.filter((l) => bucket.pertence(l, agora));

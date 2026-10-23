@@ -560,7 +560,13 @@ ainda não existe" abaixo).
 **Grupo Parcelamento (#129):** os 6 cards contam **Clientes** (cada um uma vez por card) e
 **não são mutuamente exclusivos** — "Com parcelamento", "Em aberto", "Parcelamento pendente"
 (`atencao`), "Pendente em atraso" (`urgente`, a partir do dia 29, depois da última rodada do
-job), "Parcelamento interno" e "Parcelamento enviado". A grade do grupo é `2>3` (2×3 no
+job), "Parcelamento interno" e "Parcelamento enviado". O parcelamento interno segue o
+mesmo fluxo dos demais (pendente, atraso, enviado); só o destino da guia muda (financeiro, não o
+Cliente), e o Cliente nunca o vê. Em fevereiro comum (sem dia 29) o atraso começa no último dia do
+mês. O parcelamento interno vai ao
+financeiro, não ao Cliente: ele conta em "Com parcelamento", "Em aberto" e "Parcelamento interno",
+mas fica fora de "pendente", "em atraso" e "enviado", que medem a entrega ao Cliente. Em fevereiro
+comum (sem dia 29) o atraso começa no último dia do mês. A grade do grupo é `2>3` (2×3 no
 celular, 3×2 de `sm` em diante): 6 cards em 5 colunas deixariam um órfão. No celular (2 colunas), um grupo
 de número ímpar de cards ("Documentos e DAS", 5) faz o último ocupar a linha toda
 (`max-sm:last:odd:col-span-2` no item), em vez de ficar sozinho num canto. A definição única vive em
