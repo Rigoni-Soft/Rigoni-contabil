@@ -11,7 +11,12 @@ const CARDS = [
   { id: "com_parcelamento", titulo: "Com parcelamento", cor: "informativo", quantidade: 3 },
   { id: "parcelamento_em_aberto", titulo: "Em aberto", cor: "andamento", quantidade: 2 },
   { id: "parcelamento_pendente", titulo: "Parcelamento pendente", cor: "atencao", quantidade: 1 },
-  { id: "parcelamento_pendente_atraso", titulo: "Pendente em atraso", cor: "urgente", quantidade: 1 },
+  {
+    id: "parcelamento_pendente_atraso",
+    titulo: "Pendente em atraso",
+    cor: "urgente",
+    quantidade: 1,
+  },
   { id: "parcelamento_interno", titulo: "Parcelamento interno", cor: "informativo", quantidade: 1 },
   { id: "parcelamento_enviado", titulo: "Parcelamento enviado", cor: "em_dia", quantidade: 1 },
 ];
