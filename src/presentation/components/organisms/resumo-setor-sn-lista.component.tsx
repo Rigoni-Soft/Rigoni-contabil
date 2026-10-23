@@ -1,4 +1,4 @@
-import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Grade } from "@/presentation/components/atoms/caixa.component";
 import { ListaComDivisores } from "@/presentation/components/atoms/lista-com-divisores.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { LinhaDeCliente } from "@/presentation/components/molecules/linha-de-cliente.component";
@@ -24,13 +24,13 @@ function Parcelamentos({
   parcelamentos: NonNullable<Cliente["parcelamentos"]>;
 }) {
   return (
-    <Pilha como="ul" espaco={1} aria-label="Parcelamentos">
+    <Grade como="ul" colunas="parcelamentos" espaco={2} aria-label="Parcelamentos">
       {parcelamentos.map((p) => (
-        <Linha como="li" key={p.codigo} alinhar="centro" espaco={2} quebra>
+        <Caixa como="li" key={p.codigo} className="col-span-3 grid grid-cols-subgrid items-center">
           <Texto como="span" variante="apoio" className="min-w-0 break-all">
             {p.codigo}
           </Texto>
-          {p.interno && (
+          {p.interno ? (
             <Texto
               como="span"
               variante="nota"
@@ -38,11 +38,13 @@ function Parcelamentos({
             >
               Interno
             </Texto>
+          ) : (
+            <Caixa como="span" aria-hidden />
           )}
           <SeloDeParcelamento selo={p.status} />
-        </Linha>
+        </Caixa>
       ))}
-    </Pilha>
+    </Grade>
   );
 }
 

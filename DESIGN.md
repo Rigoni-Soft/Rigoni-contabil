@@ -561,9 +561,11 @@ ainda não existe" abaixo).
 job), "Parcelamento interno" e "Parcelamento enviado". A grade do grupo é `2>3` (2×3 no
 celular, 3×2 de `sm` em diante): 6 cards em 5 colunas deixariam um órfão. A definição única vive em
 `parcelamentos-do-cliente.ts` e alimenta cards e comparativos; os anéis, por isso, podem somar
-mais que o total. Nas listas `/clientes/resumo/<bucket>` desse grupo, cada Cliente mostra seus
-parcelamentos com o código, a marca "Interno" e o selo do mês (`SeloDeParcelamento`, o mesmo do
-Editar cliente).
+mais que o total. As listas `/clientes/resumo/<bucket>` desse grupo trazem sob o título uma
+linha que define o que o card conta (texto do mapper, com o dia do atraso vindo da constante do
+job) e, em cada Cliente, abaixo da linha-link (nunca dentro dela), os parcelamentos em colunas
+alinhadas entre as linhas — código (até 20ch, o excesso quebra), marca "Interno" e selo do mês
+(`SeloDeParcelamento`, o mesmo do Editar cliente).
 
 **Título do card e contagem total via sr-only:** a proporção visual do anel
 (fração preenchida do círculo) não tem equivalente textual pra quem usa

@@ -84,6 +84,8 @@ const COLUNAS = {
   "2>3": "grid-cols-2 sm:grid-cols-3",
   "2>4": "grid-cols-2 sm:grid-cols-4",
   "2>3>5": "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
+  // parcelamentos de um Cliente: código, marca "interno" e selo, alinhados em colunas entre as linhas (código até 20ch; o excesso quebra)
+  parcelamentos: "grid-cols-[minmax(0,20ch)_auto_auto] justify-start",
   // lista de definição: rótulo ao lado do valor
   rotuloValor: "grid-cols-[auto_1fr]",
   "1>rotulo-valor": "grid-cols-1 sm:grid-cols-[12rem_1fr]",
