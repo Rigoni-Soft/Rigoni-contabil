@@ -64,20 +64,36 @@ export type ParcelamentoLinha = {
   enviadoNoMes: boolean;
   arquivoNome: string;
   arquivo?: File;
+  // Dados lidos do PDF; o Container os resume numa linha (`acordoResumo`) para exibir.
+  acordo?: {
+    origem: "receita_federal" | "pgfn" | null;
+    totalDeParcelas: number | null;
+    valorDaParcelaCentavos: number | null;
+    dataDeAdesao: string | null;
+  };
+  acordoResumo?: string;
 };
 
 // Estado da leitura do PDF numa linha nova (só exibição; quem lê é o Container).
 export type LeituraDaLinha =
-  { estado: "lendo" } | { estado: "sugerido"; codigoGerado: boolean } | { estado: "falhou" };
+  | { estado: "lendo" }
+  | { estado: "sugerido"; codigoGerado: boolean; cnpjConfere: boolean | null }
+  | { estado: "falhou" };
 
 function textoDaLeitura(leitura: LeituraDaLinha | undefined): string {
   switch (leitura?.estado) {
     case "lendo":
       return "Lendo o PDF…";
     case "sugerido":
-      return leitura.codigoGerado
-        ? "Sugerido pelo PDF: confira. O PDF não traz código: gerei um, você pode trocar."
-        : "Sugerido pelo PDF: confira";
+      return [
+        leitura.codigoGerado
+          ? "Sugerido pelo PDF: confira. O PDF não traz código: gerei um, você pode trocar."
+          : "Sugerido pelo PDF: confira",
+        leitura.cnpjConfere === false &&
+          "O CNPJ do PDF não confere com o do Cliente: confira se é o PDF certo.",
+      ]
+        .filter(Boolean)
+        .join(" ");
     case "falhou":
       return "não consegui ler: digite à mão";
     default:
@@ -355,9 +371,12 @@ export function EditarCadastroOperacionalForm({
                 bloqueadoPorEnvio={!readOnly && atual.temEnvio}
                 arquivo={
                   atual.id ? (
-                    <Texto variante="nota" className="[overflow-wrap:anywhere]">
-                      PDF anexado: {atual.arquivoNome}
-                    </Texto>
+                    <>
+                      <Texto variante="nota" className="[overflow-wrap:anywhere]">
+                        PDF anexado: {atual.arquivoNome}
+                      </Texto>
+                      {atual.acordoResumo && <Texto variante="nota">{atual.acordoResumo}</Texto>}
+                    </>
                   ) : (
                     <>
                       <Controller
@@ -383,6 +402,7 @@ export function EditarCadastroOperacionalForm({
                       <Texto variante="nota" role="status">
                         {textoDaLeitura(leitura)}
                       </Texto>
+                      {atual.acordoResumo && <Texto variante="nota">{atual.acordoResumo}</Texto>}
                     </>
                   )
                 }

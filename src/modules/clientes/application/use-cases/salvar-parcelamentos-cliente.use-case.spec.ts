@@ -103,6 +103,34 @@ describe("SalvarParcelamentosCliente", () => {
     expect(storage.removidos).toEqual([]);
   });
 
+  it("grava os dados do acordo lidos do PDF do Parcelamento novo, revalidados", async () => {
+    const { caso, gravar } = montar();
+
+    await caso.execute(
+      entrada([
+        {
+          codigo: "PGFN-1",
+          parcelasRestantes: 5,
+          interno: false,
+          arquivo: pdf(),
+          acordo: {
+            origem: "pgfn",
+            totalDeParcelas: 5,
+            valorDaParcelaCentavos: -10,
+            dataDeAdesao: "2026-01-27",
+          },
+        },
+      ]),
+    );
+
+    expect(gravar.mock.calls[0][1][0].acordo).toEqual({
+      origem: "pgfn",
+      totalDeParcelas: 5,
+      valorDaParcelaCentavos: null,
+      dataDeAdesao: "2026-01-27",
+    });
+  });
+
   it.each([
     ["lider_setor", "simples_nacional", true],
     ["admin", "administrativo", true],

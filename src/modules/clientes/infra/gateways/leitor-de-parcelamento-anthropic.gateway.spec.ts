@@ -30,7 +30,16 @@ describe("LeitorDeParcelamentoAnthropicGateway", () => {
 
     const r = await gateway(http).ler(PDF);
 
-    expect(r).toEqual({ lido: true, codigo: "12345", quantidadeDeParcelas: 7 });
+    expect(r).toEqual({
+      lido: true,
+      codigo: "12345",
+      quantidadeDeParcelas: 7,
+      cnpj: null,
+      origem: null,
+      totalDeParcelas: null,
+      valorDaParcelaCentavos: null,
+      dataDeAdesao: null,
+    });
     const [url, init] = http.mock.calls[0];
     expect(url).toBe("https://api.anthropic.com/v1/messages");
     expect(init.headers["x-api-key"]).toBe("sk-teste");
@@ -41,16 +50,65 @@ describe("LeitorDeParcelamentoAnthropicGateway", () => {
       source: { type: "base64", media_type: "application/pdf", data: "JVBERg==" },
     });
     expect(corpo.output_config.format.type).toBe("json_schema");
+    expect(Object.keys(corpo.output_config.format.schema.properties).sort()).toEqual([
+      "cnpj",
+      "codigo",
+      "dataDeAdesao",
+      "origem",
+      "quantidadeDeParcelas",
+      "totalDeParcelas",
+      "valorDaParcelaCentavos",
+    ]);
     expect(corpo.tool_choice).toBeUndefined();
   });
 
-  it("PDF sem código (Recibo de Adesão): código nulo, quantidade lida", async () => {
-    const http = jest.fn().mockResolvedValue(mensagem('{"codigo":null,"quantidadeDeParcelas":7}'));
+  it("PDF sem código (Recibo de Adesão da Receita): código nulo, quantidade e dados do acordo lidos", async () => {
+    const http = jest.fn().mockResolvedValue(
+      mensagem(
+        JSON.stringify({
+          codigo: null,
+          quantidadeDeParcelas: 7,
+          cnpj: "51.217.712/0001-06",
+          origem: "receita_federal",
+          totalDeParcelas: 7,
+          valorDaParcelaCentavos: 31620,
+          dataDeAdesao: "2026-08-27",
+        }),
+      ),
+    );
 
     expect(await gateway(http).ler(PDF)).toEqual({
       lido: true,
       codigo: null,
       quantidadeDeParcelas: 7,
+      cnpj: "51.217.712/0001-06",
+      origem: "receita_federal",
+      totalDeParcelas: 7,
+      valorDaParcelaCentavos: 31620,
+      dataDeAdesao: "2026-08-27",
+    });
+  });
+
+  it("Recibo da PGFN: o número da conta de negociação é o código", async () => {
+    const http = jest.fn().mockResolvedValue(
+      mensagem(
+        JSON.stringify({
+          codigo: "15014167",
+          quantidadeDeParcelas: 5,
+          cnpj: "10.690.529/0001-38",
+          origem: "pgfn",
+          totalDeParcelas: 5,
+          valorDaParcelaCentavos: 26289,
+          dataDeAdesao: "2026-01-27",
+        }),
+      ),
+    );
+
+    expect(await gateway(http).ler(PDF)).toMatchObject({
+      lido: true,
+      codigo: "15014167",
+      origem: "pgfn",
+      quantidadeDeParcelas: 5,
     });
   });
 

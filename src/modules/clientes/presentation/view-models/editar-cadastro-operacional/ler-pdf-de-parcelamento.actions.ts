@@ -25,5 +25,5 @@ export async function lerPdfDeParcelamentoAction(
 
   const ler = await makeLerPdfDeParcelamento();
   const pdf = new Uint8Array(await parsed.data.arquivo.arrayBuffer());
-  return toActionResult(await ler.execute({ pdf }));
+  return toActionResult(await ler.execute({ pdf, clienteId: parsed.data.clienteId }));
 }

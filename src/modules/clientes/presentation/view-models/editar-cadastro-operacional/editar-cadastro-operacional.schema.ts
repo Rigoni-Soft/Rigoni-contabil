@@ -35,8 +35,16 @@ const pdfDoAcordo = z
   .refine((arquivo) => arquivo.type === "application/pdf", "Envie um arquivo PDF")
   .refine((arquivo) => arquivo.size <= LIMITE_PDF_BYTES, "O arquivo passa de 4 MB");
 
-// Leitura do PDF na tela: só o arquivo, com as mesmas regras do anexo.
-export const lerPdfDeParcelamentoSchema = z.object({ arquivo: pdfDoAcordo });
+// Leitura do PDF na tela: o arquivo, com as mesmas regras do anexo, e o Cliente (para conferir o CNPJ).
+export const lerPdfDeParcelamentoSchema = z.object({ clienteId: z.guid(), arquivo: pdfDoAcordo });
+
+// Dados do acordo lidos do PDF (informativos; o domínio revalida cada campo ao salvar).
+const acordoDoPdf = z.object({
+  origem: z.enum(["receita_federal", "pgfn"]).nullable(),
+  totalDeParcelas: z.number().nullable(),
+  valorDaParcelaCentavos: z.number().nullable(),
+  dataDeAdesao: z.string().nullable(),
+});
 
 const parcelasRestantes = z
   .number({ error: "obrigatório" })
@@ -60,6 +68,7 @@ export const salvarParcelamentosSchema = z.object({
       parcelasRestantes: z.number().int("número inteiro").min(0),
       interno: z.boolean(),
       arquivo: pdfDoAcordo.optional(),
+      acordo: acordoDoPdf.optional(),
     }),
   ),
 });
@@ -76,6 +85,7 @@ export const parcelamentoFormSchema = z
     enviadoNoMes: z.boolean(),
     arquivoNome: z.string(),
     arquivo: z.instanceof(File).optional(),
+    acordo: acordoDoPdf.optional(),
   })
   .superRefine((p, ctx) => {
     // Mesmas regras da Server Action; quitado não se edita (o zero é do sistema) e o PDF só vale no novo.

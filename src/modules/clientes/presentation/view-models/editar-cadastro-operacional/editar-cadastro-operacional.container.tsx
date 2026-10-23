@@ -22,6 +22,7 @@ import {
   mudouParcelamentos,
   nomeResponsavelAtual,
   opcoesResponsavel,
+  resumoDoAcordo,
 } from "./editar-cadastro-operacional.presenter";
 import { editarCadastroOperacionalFormSchema } from "./editar-cadastro-operacional.schema";
 import { useResponsaveisElegiveis } from "./responsaveis.queries";
@@ -109,7 +110,10 @@ export function EditarCadastroOperacionalContainer({
 
   // Lido no render, sem assinar o campo: o que a tela exibe (resumo, selo, quitado, nome do PDF) só
   // muda quando uma linha entra ou sai (`parcelamentoCampos` re-renderiza), não a cada tecla.
-  const parcelamentos = getValues("parcelamentos") ?? dados?.parcelamentos ?? [];
+  const parcelamentos = (getValues("parcelamentos") ?? dados?.parcelamentos ?? []).map((p) => ({
+    ...p,
+    acordoResumo: resumoDoAcordo(p.acordo),
+  }));
   // Lista de Funcionários só é buscada quando o Líder abre o Select.
   const [listaAberta, setListaAberta] = useState(false);
   const elegiveis = useResponsaveisElegiveis(podeAtribuirResponsavel && listaAberta);
@@ -120,7 +124,7 @@ export function EditarCadastroOperacionalContainer({
   useEffect(() => {
     camposAtuais.current = parcelamentoCampos.fields;
   });
-  const leitura = useLeituraDoPdf(setValue, (id) =>
+  const leitura = useLeituraDoPdf(dados?.id ?? "", setValue, (id) =>
     camposAtuais.current.findIndex((campo) => campo.id === id),
   );
 

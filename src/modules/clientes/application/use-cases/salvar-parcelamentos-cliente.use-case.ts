@@ -112,6 +112,7 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
             parcelasRestantes: entrada.parcelasRestantes,
             interno: entrada.interno,
             arquivoCaminho: atual?.arquivoCaminho ?? upload?.caminho ?? "",
+            acordo: atual ? undefined : entrada.acordo,
           });
       if (!item.ok) return item;
 

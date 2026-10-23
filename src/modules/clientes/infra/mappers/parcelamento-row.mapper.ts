@@ -1,4 +1,5 @@
 import type { ParcelamentoSalvo } from "@/modules/clientes/application/ports/out/cliente-parcelamento.repository";
+import type { OrigemDoParcelamento } from "@/modules/clientes/domain/value-objects/parcelamento.vo";
 import { mesAtual } from "@/shared/kernel/mes-atual";
 
 export type ParcelamentoRow = {
@@ -8,6 +9,10 @@ export type ParcelamentoRow = {
   interno: boolean;
   arquivo_caminho: string;
   situacao: "em_aberto" | "quitado";
+  origem: OrigemDoParcelamento | null;
+  total_parcelas: number | null;
+  valor_parcela_centavos: number | null;
+  data_adesao: string | null;
   cliente_parcelamento_envios: { parcela: string }[];
 };
 
@@ -23,6 +28,12 @@ export function parcelamentoDoRow(linha: ParcelamentoRow): ParcelamentoSalvo {
     parcelasRestantes: linha.parcelas_restantes,
     interno: linha.interno,
     arquivoCaminho: linha.arquivo_caminho,
+    acordo: {
+      origem: linha.origem,
+      totalDeParcelas: linha.total_parcelas,
+      valorDaParcelaCentavos: linha.valor_parcela_centavos,
+      dataDeAdesao: linha.data_adesao,
+    },
     quitado: linha.situacao === "quitado" || linha.parcelas_restantes === 0,
     temEnvio: linha.cliente_parcelamento_envios.length > 0,
     enviadoNoMes: linha.cliente_parcelamento_envios.some((e) => e.parcela === parcelaDoMes),

@@ -32,6 +32,24 @@ Preview e CI ficam em `falso`: nenhum teste chama a API.
   em CNPJ real (spec #121).
 - Limite do anexo na tela: 4 MB (teto do corpo de uma Server Action na Vercel, ADR 0007).
 
+## O que se lê e se guarda
+
+Dois modelos de PDF foram analisados (um da Receita Federal, do Simples Nacional; outro da PGFN, SISPAR/Regularize):
+
+| Dado | Receita (Simples) | PGFN | Destino |
+|---|---|---|---|
+| Código | não tem (o "Recibo: …" não é o número do parcelamento) | "Número da conta de negociação" | `codigo` (gerado `PARC-XXXXXXXX` se faltar) |
+| Parcelas | "Número de parcelas" | soma de Entrada + prestações (ex.: 1 + 4 = 5) | `parcelas_restantes` (sugerido) e `total_parcelas` |
+| Valor da parcela | "Valor das demais parcelas" | prestação "Básica" | `valor_parcela_centavos` |
+| Data | confirmação recebida em | informações prestadas em | `data_adesao` |
+| Órgão | Receita Federal | PGFN | `origem` (`receita_federal` ou `pgfn`) |
+| CNPJ | sim | sim | **não se grava**: só confere com o do Cliente (aviso na tela, sem bloquear) |
+
+Os quatro dados do acordo (`origem`, `total_parcelas`, `valor_parcela_centavos`, `data_adesao`) são informativos, nulos quando o PDF
+não os traz ou o Parcelamento foi digitado à mão, e só a criação os grava. Servem para conferir o valor da guia emitida, saber de
+onde veio o acordo e a data de adesão (a primeira parcela não paga derruba o acordo). A emissão da guia de `origem = pgfn` não
+usa o PARCSN do Serpro: ver a dívida técnica #172.
+
 ## Antes de ligar em Production
 
 - Validar a precisão da leitura com PDFs reais (recibo de adesão, extrato): a pesquisa não afirma precisão nenhuma.

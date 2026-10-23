@@ -1,3 +1,4 @@
+import type { DadosDoAcordo } from "@/modules/clientes/domain/value-objects/parcelamento.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
@@ -11,6 +12,8 @@ export type SalvarParcelamentosClienteInput = {
     parcelasRestantes: number;
     interno: boolean;
     arquivo?: File;
+    // Lidos do PDF (só no Parcelamento novo); o caso de uso os revalida.
+    acordo?: DadosDoAcordo;
   }[];
 };
 

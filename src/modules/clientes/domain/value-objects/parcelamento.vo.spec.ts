@@ -1,4 +1,4 @@
-import { validarParcelamento } from "./parcelamento.vo";
+import { sugerirParcelamento, validarParcelamento } from "./parcelamento.vo";
 
 const base = {
   id: "p-1",
@@ -24,5 +24,66 @@ describe("validarParcelamento", () => {
 
   it("recusa sem anexo", () => {
     expect(validarParcelamento({ ...base, arquivoCaminho: " " }).ok).toBe(false);
+  });
+});
+
+describe("dados do acordo (lidos do PDF)", () => {
+  const acordo = {
+    origem: "pgfn",
+    totalDeParcelas: 5,
+    valorDaParcelaCentavos: 26289,
+    dataDeAdesao: "2026-01-27",
+  } as const;
+
+  it("a sugestão leva os dados do acordo lidos", () => {
+    const r = sugerirParcelamento({
+      lido: true,
+      codigo: "15014167",
+      quantidadeDeParcelas: 5,
+      ...acordo,
+    });
+
+    expect(r).toMatchObject({ lido: true, codigo: "15014167", acordo });
+  });
+
+  it("dado do acordo inválido vira nulo, sem derrubar a leitura", () => {
+    const r = sugerirParcelamento({
+      lido: true,
+      codigo: "A-1",
+      quantidadeDeParcelas: 5,
+      origem: "outra" as never,
+      totalDeParcelas: 0,
+      valorDaParcelaCentavos: -1,
+      dataDeAdesao: "2026-13-40",
+    });
+
+    expect(r).toMatchObject({
+      lido: true,
+      acordo: {
+        origem: null,
+        totalDeParcelas: null,
+        valorDaParcelaCentavos: null,
+        dataDeAdesao: null,
+      },
+    });
+  });
+
+  it("ao salvar, o acordo vindo do formulário é revalidado (dado inválido vira nulo)", () => {
+    const r = validarParcelamento({
+      ...base,
+      acordo: { ...acordo, totalDeParcelas: 1.5, dataDeAdesao: "ontem" },
+    });
+
+    expect(r.ok && r.value.acordo).toEqual({
+      ...acordo,
+      totalDeParcelas: null,
+      dataDeAdesao: null,
+    });
+  });
+
+  it("sem acordo informado, nada é acrescentado", () => {
+    const r = validarParcelamento(base);
+
+    expect(r.ok && "acordo" in r.value).toBe(false);
   });
 });

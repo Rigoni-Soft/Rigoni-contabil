@@ -102,6 +102,9 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
     await page.getByRole("button", { name: "Adicionar parcelamento" }).click();
     await anexarEEsperarSugestao(page, 0, pdf("acordo-lido.pdf"));
     await expect(page.getByText("Sugerido pelo PDF: confira")).toBeVisible();
+    await expect(
+      page.getByText(/PGFN · 12 parcelas · R\$\s316,20 · adesão 27\/08\/2026/),
+    ).toBeVisible();
     await expect(page.locator("[id='parcelamentos.0.parcelasRestantes']")).toHaveValue("12");
 
     // Recibo de Adesão: só a quantidade vem do PDF; o código é gerado e pode ser trocado.
@@ -122,6 +125,22 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
     await expect(page.locator("[id='parcelamentos.0.codigo']")).toHaveValue("FALSO-123456");
     await expect(page.locator("[id='parcelamentos.0.parcelasRestantes']")).toHaveValue("10");
     await expect(page.locator("[id='parcelamentos.1.parcelasRestantes']")).toHaveValue("7");
+    // Os dados do acordo ficam gravados e voltam na tela.
+    await expect(page.getByText(/PGFN · 12 parcelas/)).toBeVisible();
+    await expect(page.getByText(/Receita Federal · 7 parcelas/)).toBeVisible();
+  });
+
+  test("PDF de outra empresa avisa para conferir, sem bloquear o salvar (#125)", async ({
+    page,
+  }) => {
+    await abrirComoFuncionarioSn(page, "Leitura CNPJ E2E Ltda");
+    await page.getByRole("button", { name: "Adicionar parcelamento" }).click();
+    await page
+      .locator("[id='parcelamentos.0.arquivo']")
+      .setInputFiles(pdf("outra-empresa.pdf", "[leitor:cnpj-outro]"));
+
+    await expect(page.getByText(/O CNPJ do PDF não confere com o do Cliente/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Salvar" })).toBeEnabled();
   });
 
   test("leitura que falha libera os campos para digitar à mão (#125)", async ({ page }) => {

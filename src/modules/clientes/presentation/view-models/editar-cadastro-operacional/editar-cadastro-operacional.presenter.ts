@@ -16,6 +16,28 @@ export function opcoesResponsavel(dados: CadastroOperacionalClienteDto, carregad
 export const nomeResponsavelAtual = (dados: CadastroOperacionalClienteDto) =>
   rotuloResponsavel(dados.responsavelId, dados.responsavelNome);
 
+const ORIGEM_ROTULO: Record<string, string> = { receita_federal: "Receita Federal", pgfn: "PGFN" };
+
+// Uma linha com o que o PDF trouxe do acordo ("PGFN · 5 parcelas · R$ 262,89 · adesão 27/01/2026");
+// vazia quando não há nada a mostrar (Parcelamento digitado à mão).
+export function resumoDoAcordo(acordo: ParcelamentoFormValues["acordo"]): string {
+  if (!acordo) return "";
+  const [ano, mes, dia] = acordo.dataDeAdesao?.split("-") ?? [];
+  return [
+    acordo.origem && (ORIGEM_ROTULO[acordo.origem] ?? acordo.origem),
+    acordo.totalDeParcelas &&
+      `${acordo.totalDeParcelas} ${acordo.totalDeParcelas === 1 ? "parcela" : "parcelas"}`,
+    acordo.valorDaParcelaCentavos &&
+      (acordo.valorDaParcelaCentavos / 100).toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      }),
+    acordo.dataDeAdesao && `adesão ${dia}/${mes}/${ano}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 // Só o que o Funcionário digita conta como mudança (selo e nome do PDF são da tela). Parcelamento
 // novo ou removido é mudança; quitado não se edita, então nunca é.
 export function mudouParcelamentos(

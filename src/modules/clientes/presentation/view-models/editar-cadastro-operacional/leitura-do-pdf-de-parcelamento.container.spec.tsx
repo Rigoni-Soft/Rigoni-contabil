@@ -131,6 +131,60 @@ describe("Leitura do PDF de parcelamento no Editar cliente", () => {
     expect(screen.getByLabelText(/código/i)).toHaveValue("PARC-1A2B3C4D");
   });
 
+  describe("dados do acordo e conferência do CNPJ", () => {
+    const sugestao = (extra: Record<string, unknown> = {}) =>
+      okAction({
+        lido: true,
+        codigo: "15014167",
+        codigoGerado: false,
+        quantidadeDeParcelas: 5,
+        cnpjConfere: true,
+        acordo: {
+          origem: "pgfn",
+          totalDeParcelas: 5,
+          valorDaParcelaCentavos: 26289,
+          dataDeAdesao: "2026-01-27",
+        },
+        ...extra,
+      });
+
+    it("lê pelo Cliente da tela e mostra o resumo do acordo; salvar leva o acordo junto", async () => {
+      lerMock.mockResolvedValue(sugestao());
+      const usuario = userEvent.setup();
+      render();
+
+      await anexarPdfNoParcelamentoNovo(usuario);
+
+      expect(
+        await screen.findByText(/PGFN · 5 parcelas · R\$\s?262,89 · adesão 27\/01\/2026/),
+      ).toBeInTheDocument();
+      expect(lerMock.mock.calls[0][0]).toMatchObject({ clienteId: dados.id });
+      expect(screen.queryByText(/CNPJ do PDF/i)).not.toBeInTheDocument();
+
+      await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+      await waitFor(() => expect(salvarParcelamentosMock).toHaveBeenCalled());
+      expect(salvarParcelamentosMock.mock.calls[0][0].parcelamentos[0].acordo).toEqual({
+        origem: "pgfn",
+        totalDeParcelas: 5,
+        valorDaParcelaCentavos: 26289,
+        dataDeAdesao: "2026-01-27",
+      });
+    });
+
+    it("CNPJ do PDF diferente do Cliente: avisa para conferir, sem bloquear o salvar", async () => {
+      lerMock.mockResolvedValue(sugestao({ cnpjConfere: false }));
+      const usuario = userEvent.setup();
+      render();
+
+      await anexarPdfNoParcelamentoNovo(usuario);
+
+      expect(
+        await screen.findByText(/o CNPJ do PDF não confere com o do Cliente/i),
+      ).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /salvar/i })).toBeEnabled();
+    });
+  });
+
   it.each([
     [
       "leitura que falha",

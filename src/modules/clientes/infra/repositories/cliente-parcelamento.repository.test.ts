@@ -49,6 +49,8 @@ const CNPJS_DA_SUITE = [
   "77310006000190",
   "77310007000134",
   "77310008000189",
+  "77310009000123",
+  "77310010000158",
 ] as const;
 beforeAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
 afterAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
@@ -115,6 +117,44 @@ describe("Parcelamentos do Cliente", () => {
       quitado: false,
       temEnvio: false,
       enviadoNoMes: false,
+    });
+  });
+
+  it("grava os dados do acordo lidos do PDF só na criação; a edição não os altera", async () => {
+    const clienteId = await criarClienteResponsavelFuncionarioSN("77310009000123");
+    const repo = new SupabaseClienteParcelamentoRepository(await comoFuncionarioSN());
+    const acordo = {
+      origem: "pgfn",
+      totalDeParcelas: 5,
+      valorDaParcelaCentavos: 26289,
+      dataDeAdesao: "2026-01-27",
+    } as const;
+    const a = parcelamento({ codigo: "PGFN-1", acordo });
+
+    expect((await repo.salvar(clienteId, [a])).ok).toBe(true);
+    const salvo = await repo.listar(clienteId);
+    expect(salvo.ok && salvo.value[0].acordo).toEqual(acordo);
+
+    // Editar as parcelas restantes devolve o mesmo acordo; o que vier de novo é ignorado.
+    await repo.salvar(clienteId, [
+      { ...a, parcelasRestantes: 3, acordo: { ...acordo, totalDeParcelas: 99 } },
+    ]);
+    const depois = await repo.listar(clienteId);
+    expect(depois.ok && depois.value[0].acordo).toEqual(acordo);
+  });
+
+  it("Parcelamento sem acordo (digitado à mão) volta com os dados do acordo nulos", async () => {
+    const clienteId = await criarClienteResponsavelFuncionarioSN("77310010000158");
+    const repo = new SupabaseClienteParcelamentoRepository(await comoFuncionarioSN());
+
+    await repo.salvar(clienteId, [parcelamento({ codigo: "MAO-1" })]);
+
+    const lista = await repo.listar(clienteId);
+    expect(lista.ok && lista.value[0].acordo).toEqual({
+      origem: null,
+      totalDeParcelas: null,
+      valorDaParcelaCentavos: null,
+      dataDeAdesao: null,
     });
   });
 

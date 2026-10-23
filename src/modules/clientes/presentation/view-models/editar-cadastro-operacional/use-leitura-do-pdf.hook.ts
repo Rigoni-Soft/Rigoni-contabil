@@ -12,6 +12,7 @@ import { lerPdfDeParcelamentoAction } from "./ler-pdf-de-parcelamento.actions";
 // própria Server Action) nunca bloqueia: a linha volta a ficar livre para digitar à mão.
 // `indiceDe` resolve o índice atual da linha pelo id do campo (a lista pode mudar durante a leitura).
 export function useLeituraDoPdf(
+  clienteId: string,
   setValue: UseFormSetValue<EditarCadastroOperacionalFormValues>,
   indiceDe: (id: string) => number,
 ) {
@@ -34,7 +35,7 @@ export function useLeituraDoPdf(
 
     let leitura: LeituraDaLinha = { estado: "falhou" };
     try {
-      const resultado = await lerPdfDeParcelamentoAction({ arquivo });
+      const resultado = await lerPdfDeParcelamentoAction({ clienteId, arquivo });
       if (resultado.ok && resultado.data.lido) {
         const indice = indiceDe(id);
         if (vigente.current[id] === arquivo && indice >= 0) {
@@ -43,7 +44,12 @@ export function useLeituraDoPdf(
             `parcelamentos.${indice}.parcelasRestantes`,
             resultado.data.quantidadeDeParcelas,
           );
-          leitura = { estado: "sugerido", codigoGerado: resultado.data.codigoGerado };
+          setValue(`parcelamentos.${indice}.acordo`, resultado.data.acordo);
+          leitura = {
+            estado: "sugerido",
+            codigoGerado: resultado.data.codigoGerado,
+            cnpjConfere: resultado.data.cnpjConfere,
+          };
         }
       }
     } catch {

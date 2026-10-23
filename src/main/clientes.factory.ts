@@ -126,7 +126,11 @@ function leitorDeParcelamento(): LeitorDeParcelamentoPort {
 
 export async function makeLerPdfDeParcelamento(): Promise<LerPdfDeParcelamentoPort> {
   const supabase = await createSupabaseServer();
-  return new LerPdfDeParcelamento(sessaoViaUsuarios(supabase), leitorDeParcelamento());
+  return new LerPdfDeParcelamento(
+    sessaoViaUsuarios(supabase),
+    new SupabaseClienteRepository(supabase),
+    leitorDeParcelamento(),
+  );
 }
 
 export async function makeEditarCadastroOperacionalCliente(): Promise<EditarCadastroOperacionalClientePort> {
