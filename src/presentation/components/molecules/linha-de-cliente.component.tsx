@@ -7,8 +7,9 @@ type LinhaDeClienteProps = {
   href: string;
   empresa: string;
   cnpj: string;
-  // Informação extra do Cliente na lista (ex.: parcelamentos). Fica abaixo da linha, fora do link:
-  // o nome acessível do link continua sendo só empresa e CNPJ, e a lista interna mantém a navegação.
+  // Informação extra do Cliente na lista (ex.: parcelamentos). Fica abaixo da linha, fora do link: o
+  // nome acessível do link continua sendo só empresa e CNPJ, e a lista interna mantém a navegação.
+  // O anel de foco do link fica por dentro da linha (não invade os detalhes nem é cortado).
   detalhes?: React.ReactNode;
 };
 
@@ -22,7 +23,7 @@ export function LinhaDeCliente({ href, empresa, cnpj, detalhes }: LinhaDeCliente
         alinhar="centro"
         justificar="entre"
         espaco={3}
-        className="px-4 py-3 hover:bg-accent/50"
+        className="px-4 py-3 hover:bg-accent/50 focus-visible:-outline-offset-2"
       >
         <Caixa className="min-w-0">
           <Texto variante="destaque" className="break-words">
@@ -34,7 +35,7 @@ export function LinhaDeCliente({ href, empresa, cnpj, detalhes }: LinhaDeCliente
           Ver cadastro →
         </Texto>
       </Linha>
-      {detalhes && <Caixa className="px-4 pb-3">{detalhes}</Caixa>}
+      {detalhes && <Caixa className="px-4 pt-1 pb-3">{detalhes}</Caixa>}
     </Caixa>
   );
 }
