@@ -84,6 +84,12 @@ describe("classificarResumoSetorSn", () => {
     expect(card.cor).toBe("urgente");
   });
 
+  it("esperando envio DAS é atenção (aguarda o envio do escritório), a mesma cor da fatia Pronto do comparativo", () => {
+    const cards = classificarResumoSetorSn([linha({ dasStatus: "pronto" })]);
+
+    expect(cards.find((c) => c.id === "esperando_envio_das")!.cor).toBe("atencao");
+  });
+
   it("sem movimento e esperando envio mapeiam direto do das_status", () => {
     const cards = classificarResumoSetorSn([
       linha({ dasStatus: "sem_movimento" }),

@@ -4,10 +4,10 @@ import { ComparativosSn } from "./comparativos-sn.component";
 
 const DADOS = {
   das: [
-    { id: "enviado", rotulo: "Enviada", quantidade: 4 },
-    { id: "pendente", rotulo: "Pendente", quantidade: 2 },
-    { id: "sem_movimento", rotulo: "Sem movimento", quantidade: 1 },
-    { id: "pronto", rotulo: "Pronto", quantidade: 1 },
+    { id: "enviado", rotulo: "Enviada", quantidade: 4, cor: "em_dia" },
+    { id: "pendente", rotulo: "Pendente", quantidade: 2, cor: "urgente" },
+    { id: "sem_movimento", rotulo: "Sem movimento", quantidade: 1, cor: "informativo" },
+    { id: "pronto", rotulo: "Pronto", quantidade: 1, cor: "atencao" },
   ],
   parcelamento: [
     { id: "enviado", rotulo: "Enviado", quantidade: 1 },
@@ -44,9 +44,12 @@ describe("ComparativosSn", () => {
     const parc = screen.getByRole("group", { name: "Status do parcelamento" });
     expect(parc.querySelectorAll(".bg-success")).toHaveLength(1);
     expect(parc.querySelectorAll(".bg-destructive")).toHaveLength(1);
-    // O DAS segue pela cor do id: pendente continua vermelho.
+    // O DAS também: pendente vermelho e "Pronto" (esperando envio) dourado, distintos de "Enviada"
+    // (verde) no donut.
     const das = screen.getByRole("group", { name: "Status do DAS" });
     expect(das.querySelectorAll(".bg-destructive")).toHaveLength(1);
+    expect(das.querySelectorAll(".bg-success")).toHaveLength(1);
+    expect(das.querySelectorAll(".bg-primary")).toHaveLength(1);
   });
 
   it("não quebra com todas as contagens zeradas", () => {

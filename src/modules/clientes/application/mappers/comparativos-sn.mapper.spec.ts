@@ -79,6 +79,17 @@ describe("calcularComparativosSn", () => {
     expect(qtd(calcularComparativosSn(linhas, DIA_29).parcelamento).em_atraso).toBe(1);
   });
 
+  it("as fatias do DAS levam a cor semântica dos cards: pronto é atenção (aguarda envio), pendente é urgente", () => {
+    const cores = Object.fromEntries(calcularComparativosSn([]).das.map((f) => [f.id, f.cor]));
+
+    expect(cores).toEqual({
+      enviado: "em_dia",
+      pendente: "urgente",
+      sem_movimento: "informativo",
+      pronto: "atencao",
+    });
+  });
+
   it("as fatias do parcelamento levam a cor semântica dos cards: pendente é atenção; só o atraso é urgente", () => {
     const cores = Object.fromEntries(
       calcularComparativosSn([]).parcelamento.map((f) => [f.id, f.cor]),

@@ -613,7 +613,9 @@ Atividade do mês são listas de barras proporcionais ao total de clientes, porq
 situações não se excluem (um donut somaria o mesmo Cliente várias vezes, #129) e ocupa a largura toda
 no tablet (`md:col-span-2`). Só tokens existentes: `primary` (enviado),
 `destructive` (pendente do DAS), `success` (pronto), `muted-foreground` (sem
-movimento/interno). As fatias de parcelamento seguem a escala dos cards
+movimento/interno). O dourado `success` quer dizer "aguarda ação do escritório": é a tinta de
+"Sem documento", "Esperando envio DAS" (a fatia "Pronto" do donut, que precisa de 4 tintas
+distintas: verde, vermelho, neutro e dourado) e "Parcelamento pendente". As fatias de parcelamento seguem a escala dos cards
 (`cor-de-status.ts`, a mesma do anel): enviado `primary`, pendente `success`
 (atenção: ainda dentro do ciclo de envio), "Em atraso" `destructive` (a partir do dia 29)
 e interno `muted-foreground` — o vermelho de parcelamento é só do atraso. A cor nunca é o único

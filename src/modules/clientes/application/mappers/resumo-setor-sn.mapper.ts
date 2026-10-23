@@ -55,7 +55,7 @@ const BUCKETS: readonly Bucket[] = [
   {
     id: "esperando_envio_das",
     titulo: "Esperando envio DAS",
-    cor: "andamento",
+    cor: "atencao",
     pertence: (l) => l.dasStatus === "pronto",
   },
   {

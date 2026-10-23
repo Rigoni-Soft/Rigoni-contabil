@@ -1,15 +1,19 @@
 import { situacaoDosParcelamentos } from "@/modules/clientes/application/mappers/parcelamentos-do-cliente";
-import type { FatiaComparativoDto } from "@/modules/clientes/application/ports/in/obter-resumo-setor-sn.provider";
+import type {
+  CorStatusResumo,
+  FatiaComparativoDto,
+} from "@/modules/clientes/application/ports/in/obter-resumo-setor-sn.provider";
 import type { ResumoOperacionalRow } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { rotuloResponsavel, SEM_RESPONSAVEL_ID } from "@/shared/kernel/papeis";
 
 function contar(
-  definicao: readonly (readonly [string, string])[],
+  definicao: readonly (readonly [string, string, CorStatusResumo?])[],
   ocorrencias: (string | null)[],
 ): FatiaComparativoDto[] {
-  return definicao.map(([id, rotulo]) => ({
+  return definicao.map(([id, rotulo, cor]) => ({
     id,
     rotulo,
+    ...(cor && { cor }),
     quantidade: ocorrencias.filter((o) => o === id).length,
   }));
 }
@@ -44,10 +48,12 @@ export function calcularComparativosSn(linhas: ResumoOperacionalRow[], agora: Da
   return {
     das: contar(
       [
-        ["enviado", "Enviada"],
-        ["pendente", "Pendente"],
-        ["sem_movimento", "Sem movimento"],
-        ["pronto", "Pronto"],
+        // Mesmas cores dos cards. "Pronto" (card "Esperando envio DAS") é atenção: aguarda o envio do
+        // escritório e precisa de tinta própria no donut, distinta de "Enviada".
+        ["enviado", "Enviada", "em_dia"],
+        ["pendente", "Pendente", "urgente"],
+        ["sem_movimento", "Sem movimento", "informativo"],
+        ["pronto", "Pronto", "atencao"],
       ],
       linhas.map((l) => l.dasStatus),
     ),
