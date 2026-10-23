@@ -2,7 +2,21 @@
 // design system na presentation (nunca aqui, application não conhece Tailwind).
 export type CorStatusResumo = "em_dia" | "atencao" | "urgente" | "informativo" | "andamento";
 
-export type ClienteBucketDto = { clienteId: string; empresa: string; cnpj: string };
+// Status do mês de um Parcelamento: quitado não gera mais guia; os demais dizem se a parcela do mês
+// já tem envio registrado.
+export type ParcelamentoBucketDto = {
+  codigo: string;
+  interno: boolean;
+  status: "pendente" | "enviado" | "quitado";
+};
+
+// `parcelamentos` só vem nos cards do grupo Parcelamento.
+export type ClienteBucketDto = {
+  clienteId: string;
+  empresa: string;
+  cnpj: string;
+  parcelamentos?: ParcelamentoBucketDto[];
+};
 
 export type CardResumoSnDto = {
   id: string;

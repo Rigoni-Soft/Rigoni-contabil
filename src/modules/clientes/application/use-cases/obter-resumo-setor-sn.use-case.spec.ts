@@ -37,7 +37,7 @@ const sessaoDe = (papel: string, setor: string): SessaoPort => ({
 const SEM_SESSAO: SessaoPort = { usuarioAtual: async () => null };
 
 describe("ObterResumoSetorSn", () => {
-  it("devolve o total de clientes e os 9 cards classificados", async () => {
+  it("devolve o total de clientes e os 11 cards classificados", async () => {
     const query = new ClienteQueryPortFalso();
     query.linhas = [
       {
@@ -46,8 +46,7 @@ describe("ObterResumoSetorSn", () => {
         cnpj: "1",
         documentoObrigatorio: null,
         dasStatus: "enviado",
-        temParcelamento: false,
-        parcelamentoStatus: null,
+        parcelamentos: [],
         atividadeMes: { industria: true, comercio: false, servico: false },
         responsavelId: null,
         responsavelNome: null,
@@ -58,8 +57,7 @@ describe("ObterResumoSetorSn", () => {
         cnpj: "2",
         documentoObrigatorio: "negativo",
         dasStatus: null,
-        temParcelamento: false,
-        parcelamentoStatus: null,
+        parcelamentos: [],
         atividadeMes: { industria: true, comercio: false, servico: false },
         responsavelId: null,
         responsavelNome: null,
@@ -74,13 +72,51 @@ describe("ObterResumoSetorSn", () => {
     expect(resultado.ok).toBe(true);
     if (!resultado.ok) return;
     expect(resultado.value.totalClientes).toBe(2);
-    expect(resultado.value.cards).toHaveLength(9);
+    expect(resultado.value.cards).toHaveLength(11);
     expect(resultado.value.comparativos.das.find((f) => f.id === "enviado")?.quantidade).toBe(1);
     expect(
       resultado.value.comparativos.atividade.find((f) => f.id === "industria")?.quantidade,
     ).toBe(2);
     expect(resultado.value.cards.find((c) => c.id === "das_emitidas")?.quantidade).toBe(1);
     expect(resultado.value.cards.find((c) => c.id === "sem_documento")?.quantidade).toBe(1);
+  });
+
+  it("cards e comparativos de parcelamento saem das mesmas definições (Clientes, não parcelamentos)", async () => {
+    const query = new ClienteQueryPortFalso();
+    const base = {
+      empresa: "E",
+      cnpj: "1",
+      documentoObrigatorio: null,
+      dasStatus: null,
+      responsavelId: null,
+      responsavelNome: null,
+      atividadeMes: { industria: false, comercio: false, servico: false },
+    };
+    const p = (o: object = {}) => ({
+      codigo: "P",
+      interno: false,
+      quitado: false,
+      enviadoNoMes: false,
+      ...o,
+    });
+    query.linhas = [
+      { ...base, clienteId: "1", parcelamentos: [p(), p({ codigo: "Q", interno: true })] },
+      { ...base, clienteId: "2", parcelamentos: [p({ enviadoNoMes: true })] },
+    ];
+
+    const r = await new ObterResumoSetorSn(
+      sessaoDe("funcionario", "simples_nacional"),
+      query,
+    ).execute();
+
+    if (!r.ok) throw new Error("falha inesperada");
+    const card = (id: string) => r.value.cards.find((c) => c.id === id)?.quantidade;
+    const fatia = (id: string) =>
+      r.value.comparativos.parcelamento.find((f) => f.id === id)?.quantidade;
+    expect(card("com_parcelamento")).toBe(2);
+    expect(card("parcelamento_pendente")).toBe(fatia("pendente"));
+    expect(card("parcelamento_enviado")).toBe(fatia("enviado"));
+    expect(card("parcelamento_interno")).toBe(fatia("interno"));
   });
 
   it("o 4º comparativo (Responsáveis) só vai pro Líder do Simples Nacional", async () => {

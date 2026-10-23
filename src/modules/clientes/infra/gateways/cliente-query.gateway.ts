@@ -59,19 +59,6 @@ const SELECT_CADASTRO_BASICO = `
 // Caminho no Storage: `{clienteId}/{parcelamentoId}-{nome}`; a tela mostra só o nome.
 const nomeDoArquivo = (caminho: string) => caminho.replace(/^[^/]*\/[0-9a-f-]{36}-/, "");
 
-// Cards do dashboard (um status por Cliente): o Cliente com Parcelamento em aberto é "pendente" se
-// algum comum ainda não tem envio no mês, "enviado" se todos os comuns têm, "interno" se só há
-// internos. ponytail: aproximação até o dashboard contar por Parcelamento (cards não exclusivos).
-function resumoDeParcelamentos(parcelamentos: ReturnType<typeof parcelamentoDoRow>[]) {
-  const abertos = parcelamentos.filter((p) => !p.quitado);
-  const comuns = abertos.filter((p) => !p.interno);
-  let parcelamentoStatus: "pendente" | "enviado" | "interno" | null = null;
-  if (comuns.some((p) => !p.enviadoNoMes)) parcelamentoStatus = "pendente";
-  else if (comuns.length > 0) parcelamentoStatus = "enviado";
-  else if (abertos.length > 0) parcelamentoStatus = "interno";
-  return { temParcelamento: parcelamentos.length > 0, parcelamentoStatus };
-}
-
 export class SupabaseClienteQueryGateway implements ClienteQueryPort {
   constructor(private readonly supabase: SupabaseClient) {}
 
@@ -188,7 +175,12 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
           cnpj: linha.cnpj,
           documentoObrigatorio: operacional?.documento_obrigatorio ?? null,
           dasStatus: operacional?.das_status ?? null,
-          ...resumoDeParcelamentos((linha.cliente_parcelamentos ?? []).map(parcelamentoDoRow)),
+          parcelamentos: (linha.cliente_parcelamentos ?? []).map(parcelamentoDoRow).map((p) => ({
+            codigo: p.codigo,
+            interno: p.interno,
+            quitado: p.quitado,
+            enviadoNoMes: p.enviadoNoMes,
+          })),
           atividadeMes: {
             industria: atividade?.industria ?? false,
             comercio: atividade?.comercio ?? false,

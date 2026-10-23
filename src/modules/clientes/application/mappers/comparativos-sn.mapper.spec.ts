@@ -9,8 +9,7 @@ function linha(sobrescritas: Partial<ResumoOperacionalRow> = {}): ResumoOperacio
     cnpj: "1",
     documentoObrigatorio: null,
     dasStatus: null,
-    temParcelamento: false,
-    parcelamentoStatus: null,
+    parcelamentos: [],
     atividadeMes: { industria: false, comercio: false, servico: false },
     responsavelId: null,
     responsavelNome: null,
@@ -45,14 +44,23 @@ describe("calcularComparativosSn", () => {
     expect(qtd(c.das)).toEqual({ enviado: 2, pendente: 1, sem_movimento: 0, pronto: 1 });
   });
 
-  it("conta parcelamento só de quem tem parcelamento", () => {
+  it("conta parcelamento por Cliente com as mesmas definições dos cards (não exclusivo; quitado não conta)", () => {
+    const p = (o: object = {}) => ({
+      codigo: "P",
+      interno: false,
+      quitado: false,
+      enviadoNoMes: false,
+      ...o,
+    });
     const c = calcularComparativosSn([
-      linha({ temParcelamento: true, parcelamentoStatus: "interno" }),
-      linha({ temParcelamento: true, parcelamentoStatus: "enviado" }),
-      linha({ temParcelamento: false, parcelamentoStatus: "pendente" }),
+      linha({ parcelamentos: [p({ interno: true, enviadoNoMes: true }), p({ codigo: "Q" })] }),
+      linha({ parcelamentos: [p({ enviadoNoMes: true })] }),
+      linha({ parcelamentos: [p({ quitado: true, interno: true })] }),
+      linha({ parcelamentos: [] }),
     ]);
 
-    expect(qtd(c.parcelamento)).toEqual({ enviado: 1, pendente: 0, interno: 1 });
+    // 1º Cliente: pendente (Q sem envio) e interno; 2º: enviado; 3º (só quitado) e 4º: nenhum.
+    expect(qtd(c.parcelamento)).toEqual({ enviado: 1, pendente: 1, interno: 1 });
   });
 
   it("compara Responsáveis pela quantidade de DAS enviada (mais Sem responsável)", () => {

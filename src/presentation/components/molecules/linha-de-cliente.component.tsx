@@ -7,10 +7,12 @@ type LinhaDeClienteProps = {
   href: string;
   empresa: string;
   cnpj: string;
+  // Informação extra do Cliente na lista (ex.: parcelamentos), abaixo do CNPJ.
+  detalhes?: React.ReactNode;
 };
 
 // Cliente em lista: leva ao cadastro operacional dele.
-export function LinhaDeCliente({ href, empresa, cnpj }: LinhaDeClienteProps) {
+export function LinhaDeCliente({ href, empresa, cnpj, detalhes }: LinhaDeClienteProps) {
   return (
     <Linha
       como={Link}
@@ -23,6 +25,7 @@ export function LinhaDeCliente({ href, empresa, cnpj }: LinhaDeClienteProps) {
       <Caixa>
         <Texto variante="destaque">{empresa}</Texto>
         <Texto variante="apoio">{cnpj}</Texto>
+        {detalhes}
       </Caixa>
       <Texto como="span" variante="apoio">
         Ver cadastro →

@@ -17,10 +17,8 @@ import {
   type EstadoDeLeitura,
 } from "@/presentation/components/molecules/indicador-de-leitura.component";
 import { LinhaDeContato } from "@/presentation/components/molecules/linha-de-contato.component";
-import {
-  LinhaDeParcelamento,
-  type SeloDoParcelamento,
-} from "@/presentation/components/molecules/linha-de-parcelamento.component";
+import { LinhaDeParcelamento } from "@/presentation/components/molecules/linha-de-parcelamento.component";
+import type { SeloDoParcelamento } from "@/presentation/components/molecules/selo-do-parcelamento.component";
 import { Button } from "@/presentation/components/ui/button";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";

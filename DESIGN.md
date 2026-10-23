@@ -539,8 +539,8 @@ contexto da troca de tela.
 ### Resumo do setor (anéis de status, #36)
 
 **`ResumoSetorSn` / `ResumoSetorSnLista` (/simples-nacional):**
-9 cards fixos (invariante do mapper, ordem garantida por teste) divididos em
-dois grupos — "Documentos e DAS" (5) e "Parcelamento" (4) — cada card é um
+11 cards fixos (invariante do mapper, ordem garantida por teste) divididos em
+dois grupos — "Documentos e DAS" (5) e "Parcelamento" (6) — cada card é um
 `Link` inteiro (não botão + link separados) pra
 `/clientes/resumo/<bucket>`, que abre a lista filtrada
 daquele status como tela própria (não modal, não accordion inline — mesma
@@ -554,6 +554,15 @@ mapeados 1:1 com as cores do protótipo aprovado na spec #24), sem introduzir
 nenhum token novo. É o primeiro uso visual real do token `success`
 (dourado) desde que foi definido — deixa de ser "token sem uso" (ver "O que
 ainda não existe" abaixo).
+
+**Grupo Parcelamento (#129):** os 6 cards contam **Clientes** (cada um uma vez por card) e
+**não são mutuamente exclusivos** — "Com parcelamento", "Em aberto", "Parcelamento pendente"
+(`atencao`), "Pendente em atraso" (`urgente`, a partir do dia 29, depois da última rodada do
+job), "Parcelamento interno" e "Parcelamento enviado". A definição única vive em
+`parcelamentos-do-cliente.ts` e alimenta cards e comparativos; os anéis, por isso, podem somar
+mais que o total. Nas listas `/clientes/resumo/<bucket>` desse grupo, cada Cliente mostra seus
+parcelamentos com o código, a marca "Interno" e o selo do mês (`SeloDeParcelamento`, o mesmo do
+Editar cliente).
 
 **Título do card e contagem total via sr-only:** a proporção visual do anel
 (fração preenchida do círculo) não tem equivalente textual pra quem usa

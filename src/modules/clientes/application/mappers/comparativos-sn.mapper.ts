@@ -1,3 +1,4 @@
+import { situacaoDosParcelamentos } from "@/modules/clientes/application/mappers/parcelamentos-do-cliente";
 import type { FatiaComparativoDto } from "@/modules/clientes/application/ports/in/obter-resumo-setor-sn.provider";
 import type { ResumoOperacionalRow } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { rotuloResponsavel, SEM_RESPONSAVEL_ID } from "@/shared/kernel/papeis";
@@ -33,8 +34,10 @@ function porResponsavel(linhas: ResumoOperacionalRow[]): FatiaComparativoDto[] {
 }
 
 // Gráficos: DAS usa o status bruto (não os buckets compostos dos cards, que se
-// sobrepõem); atividade do mês são 3 flags independentes.
-export function calcularComparativosSn(linhas: ResumoOperacionalRow[]) {
+// sobrepõem); atividade do mês são 3 flags independentes; parcelamento usa as mesmas definições
+// dos cards (por Cliente, não exclusivas), então as fatias podem somar mais que o total.
+export function calcularComparativosSn(linhas: ResumoOperacionalRow[], agora: Date = new Date()) {
+  const situacoes = linhas.map((l) => situacaoDosParcelamentos(l, agora));
   const atividades = linhas.flatMap((l) =>
     (["industria", "comercio", "servico"] as const).filter((a) => l.atividadeMes[a]),
   );
@@ -48,14 +51,17 @@ export function calcularComparativosSn(linhas: ResumoOperacionalRow[]) {
       ],
       linhas.map((l) => l.dasStatus),
     ),
-    parcelamento: contar(
+    parcelamento: (
       [
         ["enviado", "Enviado"],
         ["pendente", "Pendente"],
         ["interno", "Interno"],
-      ],
-      linhas.map((l) => (l.temParcelamento ? l.parcelamentoStatus : null)),
-    ),
+      ] as const
+    ).map(([id, rotulo]) => ({
+      id,
+      rotulo,
+      quantidade: situacoes.filter((s) => s[id]).length,
+    })),
     atividade: contar(
       [
         ["industria", "Indústria"],

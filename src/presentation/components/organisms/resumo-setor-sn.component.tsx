@@ -39,9 +39,8 @@ function Grupo({
   );
 }
 
-// A ordem dos 9 cards é um invariante do mapper (resumo-setor-sn.mapper.spec.ts
-// garante a ordem exata): os 5 primeiros são "Documentos e DAS", os 4
-// últimos são "Parcelamento" — mesmos dois grupos do protótipo aprovado.
+// A ordem dos 11 cards é um invariante do mapper (resumo-setor-sn.mapper.spec.ts garante a ordem
+// exata): os 5 primeiros são "Documentos e DAS", os 6 últimos são "Parcelamento".
 // `busca` entra como slot: o Buscar cliente é do módulo clientes (Container com
 // estado), essa view global não pode importá-lo direto (arquitetura.md §3.4).
 export function ResumoSetorSn({ cards, totalClientes, busca }: Props) {
@@ -58,7 +57,7 @@ export function ResumoSetorSn({ cards, totalClientes, busca }: Props) {
         </Texto>
       )}
       <Grupo titulo="Documentos e DAS" cards={cards.slice(0, 5)} totalClientes={totalClientes} />
-      <Grupo titulo="Parcelamento" cards={cards.slice(5, 9)} totalClientes={totalClientes} />
+      <Grupo titulo="Parcelamento" cards={cards.slice(5, 11)} totalClientes={totalClientes} />
     </Pilha>
   );
 }

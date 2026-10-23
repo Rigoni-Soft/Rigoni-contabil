@@ -9,18 +9,20 @@ const CARDS = [
   { id: "sem_movimento", titulo: "Sem movimento", cor: "informativo", quantidade: 1 },
   { id: "esperando_envio_das", titulo: "Esperando envio DAS", cor: "andamento", quantidade: 1 },
   { id: "com_parcelamento", titulo: "Com parcelamento", cor: "informativo", quantidade: 3 },
-  { id: "parcelamento_pendente", titulo: "Parcelamento pendente", cor: "urgente", quantidade: 1 },
+  { id: "parcelamento_em_aberto", titulo: "Em aberto", cor: "andamento", quantidade: 2 },
+  { id: "parcelamento_pendente", titulo: "Parcelamento pendente", cor: "atencao", quantidade: 1 },
+  { id: "parcelamento_pendente_atraso", titulo: "Pendente em atraso", cor: "urgente", quantidade: 1 },
   { id: "parcelamento_interno", titulo: "Parcelamento interno", cor: "informativo", quantidade: 1 },
   { id: "parcelamento_enviado", titulo: "Parcelamento enviado", cor: "em_dia", quantidade: 1 },
 ];
 
 describe("ResumoSetorSn", () => {
-  it("separa os 9 cards em 'Documentos e DAS' (5) e 'Parcelamento' (4)", () => {
+  it("separa os 11 cards em 'Documentos e DAS' (5) e 'Parcelamento' (6)", () => {
     render(<ResumoSetorSn cards={CARDS} totalClientes={9} busca={<div>busca</div>} />);
 
     expect(screen.getByText("Documentos e DAS")).toBeInTheDocument();
     expect(screen.getByText("Parcelamento")).toBeInTheDocument();
-    expect(screen.getAllByRole("link")).toHaveLength(9);
+    expect(screen.getAllByRole("link")).toHaveLength(11);
   });
 
   it("cada card é um link pra /clientes/resumo/<id do bucket>", () => {
