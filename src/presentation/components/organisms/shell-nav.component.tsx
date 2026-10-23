@@ -57,6 +57,10 @@ export function ShellNav({ setores, rotaAtual }: ShellNavProps) {
           </Caixa>
         );
       })}
+      {/* Aba de todo login, ao lado das de Setor: leva à Fila (antes um botão só do Admin). */}
+      <Link href="/fila" className={cn(CHIP, "font-medium text-foreground hover:bg-accent")}>
+        Atendimento
+      </Link>
     </Linha>
   );
 }

@@ -2,6 +2,8 @@ import { Eye, X } from "lucide-react";
 
 import { Button } from "@/presentation/components/ui/button";
 import type { PreviaCarregada } from "@/presentation/lib/previa-de-office";
+import { SUPERFICIE_DE_PAINEL } from "@/presentation/lib/superficie-de-painel";
+import { cn } from "@/presentation/lib/utils";
 
 type PainelDePreviaProps = {
   nome: string;
@@ -41,7 +43,10 @@ export function PainelDePrevia({ nome, painelId, estado, previa, aoAbrir }: Pain
         popover="auto"
         role="dialog"
         aria-label={`Visualização de ${nome}`}
-        className="m-auto h-[85dvh] w-[min(92vw,64rem)] flex-col overflow-hidden rounded-xl border border-border bg-background p-0 text-foreground backdrop:bg-overlay [&:popover-open]:flex"
+        className={cn(
+          SUPERFICIE_DE_PAINEL,
+          "h-[85dvh] w-[min(92vw,64rem)] flex-col overflow-hidden p-0 [&:popover-open]:flex",
+        )}
       >
         <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-1">
           <p className="truncate text-sm font-medium" title={nome}>

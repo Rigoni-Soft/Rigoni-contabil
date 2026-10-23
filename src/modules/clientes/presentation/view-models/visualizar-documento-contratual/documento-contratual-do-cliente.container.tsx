@@ -14,19 +14,24 @@ type Props = {
   clienteId: string;
   documentosIniciais?: DocumentoContratualVisivelDto[];
   podeAnexar?: boolean;
+  // Nº da alteração do aviso por onde se chegou (#144).
+  alteracaoEmFoco?: number;
 };
 
 export function DocumentoContratualDoClienteContainer({
   clienteId,
   documentosIniciais,
   podeAnexar,
+  alteracaoEmFoco,
 }: Props) {
-  const { data, isPending, isError, refetch } = useDocumentosContratuais(
+  const { data, isPending, confirmando, isError, refetch } = useDocumentosContratuais(
     clienteId,
     documentosIniciais,
+    alteracaoEmFoco,
   );
-  // Reserva a altura do cartão enquanto carrega: ele não empurra o formulário ao chegar.
-  if (isPending) return <Caixa className="min-h-20" aria-hidden="true" />;
+  // Reserva a altura do cartão enquanto carrega (ou confere se a alteração do aviso existe): ele não
+  // empurra o formulário ao chegar.
+  if (isPending || confirmando) return <Caixa className="min-h-20" aria-hidden="true" />;
   if (isError) {
     return (
       <AvisoComAcao
@@ -45,6 +50,7 @@ export function DocumentoContratualDoClienteContainer({
       clienteId={clienteId}
       documentos={data}
       podeAnexar={podeAnexar}
+      alteracaoEmFoco={alteracaoEmFoco}
     />
   );
 }

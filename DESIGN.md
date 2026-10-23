@@ -36,7 +36,7 @@ com a preferência de SO do visitante.
 | `success` / `success-foreground` | `#d9bd7c` / `#2a1f0c` | `#96742f` / `#2a1f0c` | selo dourado "em dia" — reservado especificamente para as telas de status do Simples Nacional (#35–#37); não usar para resultado sucesso/falha genérico (isso é `primary`/`destructive`, ver Componentes → Indicadores de estado). Só em traço/ícone: no claro tem 3,8:1 sobre `background`, abaixo dos 4,5:1 de texto |
 | `border` / `ring` | `#47453e` | tons de contorno derivados do verde | bordas decorativas, foco |
 | `input` | `#7a7765` | `#857d66` | contorno de campo, select, textarea, botão outline e painel de emoji: ≥3:1 sobre `background` e `card` nos dois temas (WCAG 1.4.11) |
-| `overlay` | `#0f0e0c` a 70% | `#16231f` a 55% | véu atrás de diálogos nativos (`popover`: imagem ampliada, prévia de documento) — tinta de cada tema, não preto puro; só escurece o fundo, não carrega texto |
+| `overlay` | `#0f0e0c` a 70% | `#16231f` a 55% | véu atrás de diálogos nativos (`popover`: imagem ampliada, prévia de documento; `<dialog>` modal: sino de avisos) — tinta de cada tema, não preto puro; só escurece o fundo, não carrega texto |
 
 **Dark "leve":** a paleta dark original
 (`background` `#0c1512`, luminância relativa ~0,6%) lia como sombria demais —
@@ -834,6 +834,43 @@ inferior (`bottom-[max(1rem,env(safe-area-inset-bottom))]`). O cartão entra com
 animação. O aviso sonoro (dois tons curtos) toca quando surge um Atendimento
 ou o cliente escreve de novo.
 
+### Superfície de painel nativo
+
+Os quatro painéis que abrem sobre um véu (imagem ampliada, prévia de documento, anexar alteração e
+modal do sino de Avisos) partilham o casco visual: `rounded-xl` (raio maior que o dos cartões),
+`border-border`, fundo `background`, texto `foreground` e véu `overlay` (`backdrop:bg-overlay`),
+centralizados (`m-auto`). Vive em `SUPERFICIE_DE_PAINEL`
+(`src/presentation/lib/superficie-de-painel.ts`); cada painel soma o próprio tamanho, rolagem e
+padding. O mecanismo não é partilhado de propósito: três usam `popover="auto"` (sem foco preso) e
+o sino usa `<dialog>` modal, porque pede atenção do usuário (ver "Sino de Avisos de cadastro").
+Painel novo sobre véu parte desta constante em vez de repetir as classes.
+
+### Sino de Avisos de cadastro (#143)
+
+Primeiro item da linha de ações do `ShellHeader`, em toda tela autenticada, menos para o Admin (ele não recebe
+aviso, então não vê o sino). Botão redondo de 48 px (`size-12`, maior que o alvo
+padrão de 44 px), ícone `Bell` de 24 px. Sem aviso não visto: contorno `input`, fundo transparente.
+Com algum: preenchido `primary` com `primary-foreground`, e um selo `destructive` (borda de 2 px na
+cor do fundo) no canto superior direito com o contador, `99+` acima de 99. O selo é decorativo
+(`aria-hidden`); o nome acessível do botão traz a quantidade ("Avisos de cadastro, 3 não vistos").
+Cor nunca é o único sinal: contador e nome acessível acompanham.
+
+O sino abre direto um modal de verdade (`<dialog>` aberto com `showModal()`, véu `overlay`,
+`w-[min(92vw,32rem)]`, rolagem interna): foco preso, resto da página inerte, Esc e clique no véu
+fecham, e o foco volta ao sino. Exceção deliberada ao `popover` dos outros painéis (imagem, prévia,
+anexar): o aviso pede atenção do usuário, e o `popover` deixava o Tab sair para a página atrás do
+véu. O Container abre e fecha o `<dialog>` (a View só recebe props). Sem página `/avisos`. Cada aviso é um botão de 44 px (o de alteração traz o nº no título, "Nova Alteração contratual nº 3", para duas do mesmo Cliente não parecerem iguais; sem nº, "Nova Alteração contratual"): não
+visto em destaque (`bg-accent`, `font-medium`, contorno `primary` e um ponto `primary` de 10 px antes do texto, com "novo" só para leitor de tela; sem barra lateral grossa); visto
+esmaecido (`muted-foreground`, sem fundo, contorno `input` para o limite do alvo passar de 3:1 no tema claro) com o selo "visto" em texto. "Carregar mais" (`outline`)
+fecha a lista de 30 em 30. Abrir o modal não marca nada: só o clique no aviso marca como visto,
+fecha o modal e navega a `/clientes/[id]` (o aviso de nova alteração, a `/clientes/[id]?alteracao=N`,
+que destaca o botão do documento, ver "Destaque ao chegar por aviso"). Contador por polling de 30 s e a cada navegação, sem som.
+
+Robustez: uma região `status` visualmente oculta anuncia "N aviso(s) de cadastro não visto(s)"
+só quando o contador sobe depois da primeira leitura da tela (o foco não passa pelo sino durante o polling; o nome do botão já traz a contagem de quem acabou de chegar); o modal se nomeia pelo
+título (`aria-labelledby`) e abre com o foco no "Fechar avisos" (primeiro item focável); erro de leitura mostra
+o alerta com "Tentar de novo" e mantém a lista que já estava na tela.
+
 ## Estados e motion
 
 - Loading do formulário de login: label muda para "Entrando…" e um
@@ -890,7 +927,26 @@ fixos, campo travado em cor plena, diálogo e lista das alterações); onde há 
   seletor** (revisa o diálogo com "Escolher documento"): ícone, "Contrato social e alterações", o
   documento mais recente (alteração de maior nº, ou o contrato social) e o botão verde
   (`default`) "Abrir em nova aba", que abre o arquivo no primeiro clique. Enquanto carrega, reserva
-  `min-h-20`. As alterações antigas não têm lista na tela.
+  `min-h-20`. As alterações antigas não têm lista na tela. O nome acessível do botão começa pelo
+  texto visível e acrescenta o documento ("Abrir em nova aba: Alteração nº 2 - 01/03/2026"), para o
+  comando de voz acionar pelo que se lê (WCAG 2.5.3).
+- **Destaque ao chegar por aviso (#144)**: quem chega por um aviso de nova alteração
+  (`/clientes/[id]?alteracao=N`) vê o cartão com **a alteração do aviso**, não a mais recente, e o
+  botão "Abrir em nova aba" chega **em foco** (o Container foca por `ref`, e tenta a cada quadro até pegar: o formulário fica `visibility: hidden` até hidratar e o foco num elemento oculto não faz nada; desiste se o usuário já foi para outro controle) e com anel `ring` de 4 px com
+  deslocamento de 2 px na cor do fundo (`focus:ring-4 focus:ring-ring focus:ring-offset-2
+  focus:ring-offset-background focus-visible:ring-4`), **só enquanto o botão tem foco**: some ao sair
+  dele, e vale também para o foco por script depois de um clique de mouse (que não casa
+  `:focus-visible`). O anel é um sinal de forma, não só de cor. No celular (390 px) o botão desce para
+  a linha de baixo do cartão em vez de espremer o rótulo (coluna do documento com base de 12rem).
+  Enquanto o arquivo abre, o botão fica `aria-disabled` (não `disabled`, como no encerramento): mostra
+  "Abrindo…" esmaecido, não reabre e **mantém o foco**; um `ref` no hook barra o segundo clique do
+  mesmo quadro.
+  Ao chegar por aviso, o botão ganha `aria-describedby` para um texto só de leitor de tela ("Esta é a
+  alteração do aviso que você abriu."): o foco vai ao botão e o leitor lê o nome e, depois, de onde se
+  chegou. Sem aviso, não há descrição. O destaque só
+  vale quando o nº existe entre os documentos: nº ausente, inválido (só inteiro positivo conta) ou
+  inexistente abre a de maior nº, sem foco nem anel. O aviso de novo Cliente leva ao formulário sem
+  parâmetro, logo sem destaque.
 - **Anexar alteração (#141)**: botão `outline` "Anexar alteração" (só Admin) no mesmo cartão, ao
   lado de "Abrir em nova aba"; sem documento algum, aparece sozinho. **Não existe mais a seção
   "Alterações contratuais" abaixo do formulário** (revisa o #141); ficam só o diálogo de anexar

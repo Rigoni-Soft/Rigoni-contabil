@@ -5,8 +5,10 @@ import { EditarCadastroOperacionalPage } from "@/presentation/components/pages/e
 import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-button.container";
 import { carregarSessao } from "@/presentation/view-models/shell/shell.server";
 import { AnexarAlteracaoContratualContainer } from "@/modules/clientes/presentation/view-models/anexar-alteracao-contratual/anexar-alteracao-contratual.container";
+import { SinoAvisosContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/sino-avisos.container";
 import { EditarCadastroOperacionalContainer } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.container";
 import { carregarCadastroOperacionalCliente } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.server";
+import { alteracaoEmFocoDaUrl } from "@/modules/clientes/presentation/view-models/visualizar-documento-contratual/documentos-contratuais.presenter";
 import { carregarDocumentosContratuais } from "@/modules/clientes/presentation/view-models/visualizar-documento-contratual/visualizar-documento-contratual.server";
 import {
   podeAnexarAlteracaoContratual,
@@ -16,7 +18,7 @@ import {
 
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ voltarPara?: string }>;
+  searchParams: Promise<{ voltarPara?: string; alteracao?: string | string[] }>;
 };
 
 // Só aceita caminho relativo do próprio site — nunca repassar o parâmetro de
@@ -30,7 +32,7 @@ function voltarHrefSeguro(valor: string | undefined): string {
 
 export default async function Page({ params, searchParams }: Props) {
   const { id } = await params;
-  const { voltarPara } = await searchParams;
+  const { voltarPara, alteracao } = await searchParams;
   const [sessao, resultado, documentos] = await Promise.all([
     carregarSessao(),
     carregarCadastroOperacionalCliente(id),
@@ -52,6 +54,7 @@ export default async function Page({ params, searchParams }: Props) {
           papel={sessao.papel}
           setor={sessao.setor}
           sair={<LogoutButtonContainer />}
+          avisos={<SinoAvisosContainer usuarioId={sessao.id} />}
         />
       }
       titulo={readOnly ? "Visualizar cadastro operacional" : "Editar cadastro operacional"}
@@ -71,6 +74,8 @@ export default async function Page({ params, searchParams }: Props) {
           // Se a carga do servidor falhar, o botão se lê por action (com aviso e "Tentar novamente").
           documentosContratuais={documentos.ok ? documentos.value : undefined}
           podeAnexar={podeAnexarAlteracaoContratual(sessao.papel)}
+          // Vindo de aviso de alteração: o botão do documento abre aquela alteração, em destaque.
+          alteracaoEmFoco={alteracaoEmFocoDaUrl(alteracao)}
           podeAtribuirResponsavel={podeAtribuirResponsavel(sessao.papel, sessao.setor)}
           voltarHrefAoSalvar={voltarHrefSeguro(voltarPara)}
         />

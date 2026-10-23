@@ -6,6 +6,7 @@ import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-b
 import { carregarSessao } from "@/presentation/view-models/shell/shell.server";
 import { FilaContainer } from "@/modules/atendimento/presentation/view-models/fila/fila.container";
 import { carregarFila } from "@/modules/atendimento/presentation/view-models/fila/fila.server";
+import { SinoAvisosContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/sino-avisos.container";
 import { ehSetor, SETORES } from "@/shared/kernel/setores";
 
 export default async function Page() {
@@ -28,6 +29,7 @@ export default async function Page() {
           papel={sessao.papel}
           setor={sessao.setor}
           sair={<LogoutButtonContainer />}
+          avisos={<SinoAvisosContainer usuarioId={sessao.id} />}
         />
       }
       fila={

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, CalendarOff, CircleUser, ListOrdered, UserPlus, Users } from "lucide-react";
+import { Building2, CalendarOff, CircleUser, UserPlus, Users } from "lucide-react";
 
 import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
@@ -12,6 +12,8 @@ type ShellHeaderProps = {
   nome: string;
   papel: string;
   setor: string;
+  // Sino de Avisos de cadastro: é um Container (módulo clientes), que a View não importa.
+  avisos: React.ReactNode;
   sair: React.ReactNode;
 };
 
@@ -22,7 +24,7 @@ const CADASTRAR_LABEL: Record<string, string> = {
   lider_setor: "Cadastrar Funcionário",
 };
 
-export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
+export function ShellHeader({ nome, papel, setor, avisos, sair }: ShellHeaderProps) {
   const escopo =
     papel === "admin" ? "acesso a todos os setores" : `Setor: ${SETOR_LABEL[setor] ?? setor}`;
   const inicial = nome.charAt(0).toUpperCase();
@@ -55,6 +57,8 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
       </Linha>
 
       <Linha alinhar="centro" espaco={1} quebra className="lg:shrink-0">
+        {/* O Admin não recebe Aviso de cadastro: sem sino. */}
+        {papel !== "admin" && avisos}
         {/* Único caminho de navegação até /admin/usuarios/novo — Admin e Líder
             cadastram (escopado por papel no próprio caso de uso); Funcionário não
             cadastra ninguém, então não vê o link. */}
@@ -93,16 +97,6 @@ export function ShellHeader({ nome, papel, setor, sair }: ShellHeaderProps) {
             <Users aria-hidden="true" />
             <Texto variante="soDesktop" como="span">
               Usuários
-            </Texto>
-          </Link>
-        )}
-        {/* Só o Admin: ele não tem Setor nem barra lateral na conversa e vê a Fila de qualquer
-            Setor aqui. Os demais têm a Fila na conversa e o cartão no dock. */}
-        {papel === "admin" && (
-          <Link href="/fila" aria-label="Fila" className={buttonVariants({ variant: "ghost" })}>
-            <ListOrdered aria-hidden="true" />
-            <Texto variante="soDesktop" como="span">
-              Fila
             </Texto>
           </Link>
         )}

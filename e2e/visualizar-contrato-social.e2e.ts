@@ -91,7 +91,9 @@ test.describe("Visualizar contrato social e alterações (#140)", () => {
     await entrarEm(page, "lider.sn@rigonicontabil.local", "lider123");
     await page.goto(`/clientes/${clienteId}`);
 
-    await expect(page.getByRole("button", { name: /^Abrir Contrato social/ })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /^Abrir em nova aba: Contrato social/ }),
+    ).toBeVisible();
   });
 
   test("Funcionário que não é Responsável não chega ao documento", async ({ page }) => {
@@ -104,7 +106,7 @@ test.describe("Visualizar contrato social e alterações (#140)", () => {
 
     await expect(page).toHaveURL("/simples-nacional");
     await expect(
-      page.getByRole("button", { name: /^Abrir (Alteração|Contrato social)/ }),
+      page.getByRole("button", { name: /^Abrir em nova aba: (Alteração|Contrato social)/ }),
     ).toBeHidden();
   });
 });

@@ -30,8 +30,8 @@ beforeEach(() => {
   window.open = jest.fn(() => aba as unknown as Window);
 });
 
-function montar() {
-  return renderHook(() => useVisualizarDocumentoContratual(CLIENTE, DOCUMENTOS));
+function montar(alteracaoEmFoco?: number) {
+  return renderHook(() => useVisualizarDocumentoContratual(CLIENTE, DOCUMENTOS, alteracaoEmFoco));
 }
 
 describe("useVisualizarDocumentoContratual (#140)", () => {
@@ -81,5 +81,21 @@ describe("useVisualizarDocumentoContratual (#140)", () => {
 
     expect(result.current.linkAlternativo).toBe("https://storage/assinado");
     expect(result.current.erro).toContain("bloqueou a nova aba");
+  });
+});
+
+describe("useVisualizarDocumentoContratual: alteração do aviso (#144)", () => {
+  it("com o nº do aviso, o documento é aquela alteração e não a mais recente", () => {
+    expect(montar(1).result.current.documento).toBe(DOCUMENTOS[1]);
+  });
+
+  it("abrir pede o link da alteração do aviso", async () => {
+    acao.mockResolvedValue({ ok: true, data: { url: "https://storage/assinado" } });
+    const { result } = montar(1);
+
+    await act(() => result.current.abrir());
+
+    expect(acao).toHaveBeenCalledWith({ clienteId: CLIENTE, tipo: "alteracao", numero: 1 });
+    expect(aba.location.href).toBe("https://storage/assinado");
   });
 });

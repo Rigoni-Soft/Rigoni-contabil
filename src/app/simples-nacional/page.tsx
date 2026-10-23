@@ -10,6 +10,7 @@ import {
   carregarSessao,
   carregarSetoresDaNavegacao,
 } from "@/presentation/view-models/shell/shell.server";
+import { SinoAvisosContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/sino-avisos.container";
 import { BuscarClienteContainer } from "@/modules/clientes/presentation/view-models/buscar-cliente/buscar-cliente.container";
 import { carregarResumoSetorSn } from "@/modules/clientes/presentation/view-models/resumo-setor-sn/resumo-setor-sn.server";
 import { podeVerDashboardSn } from "@/shared/kernel/papeis";
@@ -36,6 +37,7 @@ export default async function Page() {
           papel={sessao.papel}
           setor={sessao.setor}
           sair={<LogoutButtonContainer />}
+          avisos={<SinoAvisosContainer usuarioId={sessao.id} />}
         />
       }
       nav={<ShellNav setores={setores} rotaAtual="/simples-nacional" />}

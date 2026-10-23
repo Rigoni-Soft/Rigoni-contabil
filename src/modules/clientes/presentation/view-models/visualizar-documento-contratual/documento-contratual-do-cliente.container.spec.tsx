@@ -45,7 +45,7 @@ describe("DocumentoContratualDoClienteContainer (#140)", () => {
       <DocumentoContratualDoClienteContainer clienteId={CLIENTE} documentosIniciais={iniciais} />,
     );
 
-    expect(query).toHaveBeenCalledWith(CLIENTE, iniciais);
+    expect(query).toHaveBeenCalledWith(CLIENTE, iniciais, undefined);
   });
 
   it("enquanto carrega, reserva o lugar do cartão sem mostrar nada acionável", () => {

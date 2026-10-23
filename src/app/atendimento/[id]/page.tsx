@@ -11,6 +11,7 @@ import { carregarConversa } from "@/modules/atendimento/presentation/view-models
 import { MensagensConversaContainer } from "@/modules/atendimento/presentation/view-models/conversa/mensagens-conversa.container";
 import { FilaContainer } from "@/modules/atendimento/presentation/view-models/fila/fila.container";
 import { carregarFilaDoProprioSetor } from "@/modules/atendimento/presentation/view-models/fila/fila.server";
+import { SinoAvisosContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/sino-avisos.container";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -32,6 +33,7 @@ export default async function Page({ params }: Props) {
           papel={sessao.papel}
           setor={sessao.setor}
           sair={<LogoutButtonContainer />}
+          avisos={<SinoAvisosContainer usuarioId={sessao.id} />}
         />
       }
       fila={

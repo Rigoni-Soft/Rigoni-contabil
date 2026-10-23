@@ -8,12 +8,15 @@ import { createSupabaseServer } from "@/main/supabase-server.factory";
 import type { AnexarAlteracaoContratualPort } from "@/modules/clientes/application/ports/in/anexar-alteracao-contratual.provider";
 import type { AtribuirResponsavelClientePort } from "@/modules/clientes/application/ports/in/atribuir-responsavel-cliente.provider";
 import type { BuscarGuiaPort } from "@/modules/clientes/application/ports/in/buscar-guia.provider";
+import type { ContarAvisosNaoVistosPort } from "@/modules/clientes/application/ports/in/contar-avisos-nao-vistos.provider";
 import type { CriarClientePort } from "@/modules/clientes/application/ports/in/criar-cliente.provider";
 import type {
   ListarDocumentosContratuaisClientePort,
   ObterLinkDocumentoContratualPort,
 } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 import type { EditarCadastroOperacionalClientePort } from "@/modules/clientes/application/ports/in/editar-cadastro-operacional-cliente.provider";
+import type { ListarAvisosCadastroPort } from "@/modules/clientes/application/ports/in/listar-avisos-cadastro.provider";
+import type { MarcarAvisoVistoPort } from "@/modules/clientes/application/ports/in/marcar-aviso-visto.provider";
 import type { AuditoriaPort } from "@/modules/clientes/application/ports/out/auditoria.provider";
 import type {
   AtorSessaoDto,
@@ -24,12 +27,16 @@ import { AtribuirResponsavelCliente } from "@/modules/clientes/application/use-c
 import { BuscarClientes } from "@/modules/clientes/application/use-cases/buscar-clientes.use-case";
 import { BuscarGuia } from "@/modules/clientes/application/use-cases/buscar-guia.use-case";
 import { ConsultarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/consultar-cadastro-operacional-cliente.use-case";
+import { ContarAvisosNaoVistos } from "@/modules/clientes/application/use-cases/contar-avisos-nao-vistos.use-case";
 import { CriarCliente } from "@/modules/clientes/application/use-cases/criar-cliente.use-case";
 import { EditarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/editar-cadastro-operacional-cliente.use-case";
+import { ListarAvisosCadastro } from "@/modules/clientes/application/use-cases/listar-avisos-cadastro.use-case";
 import { ListarDocumentosContratuaisCliente } from "@/modules/clientes/application/use-cases/listar-documentos-contratuais-cliente.use-case";
 import { ListarResponsaveisElegiveis } from "@/modules/clientes/application/use-cases/listar-responsaveis-elegiveis.use-case";
+import { MarcarAvisoVisto } from "@/modules/clientes/application/use-cases/marcar-aviso-visto.use-case";
 import { ObterLinkDocumentoContratual } from "@/modules/clientes/application/use-cases/obter-link-documento-contratual.use-case";
 import { ObterResumoSetorSn } from "@/modules/clientes/application/use-cases/obter-resumo-setor-sn.use-case";
+import { SupabaseAvisosCadastroGateway } from "@/modules/clientes/infra/gateways/avisos-cadastro.gateway";
 import { SupabaseClienteQueryGateway } from "@/modules/clientes/infra/gateways/cliente-query.gateway";
 import { SupabaseDocumentosContratuaisClienteGateway } from "@/modules/clientes/infra/gateways/documentos-contratuais-cliente.gateway";
 import { SupabaseArquivoStorageGateway } from "@/modules/clientes/infra/gateways/supabase-arquivo-storage.gateway";
@@ -152,5 +159,30 @@ export async function makeObterLinkDocumentoContratual(): Promise<ObterLinkDocum
   return new ObterLinkDocumentoContratual(
     sessaoViaUsuarios(supabase),
     new SupabaseDocumentosContratuaisClienteGateway(supabase),
+  );
+}
+
+// Sessão do usuário (RLS): cada um só enxerga e marca os próprios avisos.
+export async function makeListarAvisosCadastro(): Promise<ListarAvisosCadastroPort> {
+  const supabase = await createSupabaseServer();
+  return new ListarAvisosCadastro(
+    sessaoViaUsuarios(supabase),
+    new SupabaseAvisosCadastroGateway(supabase),
+  );
+}
+
+export async function makeContarAvisosNaoVistos(): Promise<ContarAvisosNaoVistosPort> {
+  const supabase = await createSupabaseServer();
+  return new ContarAvisosNaoVistos(
+    sessaoViaUsuarios(supabase),
+    new SupabaseAvisosCadastroGateway(supabase),
+  );
+}
+
+export async function makeMarcarAvisoVisto(): Promise<MarcarAvisoVistoPort> {
+  const supabase = await createSupabaseServer();
+  return new MarcarAvisoVisto(
+    sessaoViaUsuarios(supabase),
+    new SupabaseAvisosCadastroGateway(supabase),
   );
 }

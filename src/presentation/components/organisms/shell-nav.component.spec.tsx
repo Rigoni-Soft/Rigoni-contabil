@@ -50,4 +50,10 @@ describe("ShellNav", () => {
       "page",
     );
   });
+
+  it("tem a aba 'Atendimento' para a tela da Fila, ao lado das de Setor", () => {
+    render(<ShellNav setores={[{ slug: "financeiro" }]} />);
+
+    expect(screen.getByRole("link", { name: "Atendimento" })).toHaveAttribute("href", "/fila");
+  });
 });

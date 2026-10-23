@@ -1,6 +1,7 @@
 import { Download, X } from "lucide-react";
 
 import { Button, buttonVariants } from "@/presentation/components/ui/button";
+import { SUPERFICIE_DE_PAINEL } from "@/presentation/lib/superficie-de-painel";
 import { cn } from "@/presentation/lib/utils";
 
 type ImagemAmpliavelProps = {
@@ -48,7 +49,10 @@ export function ImagemAmpliavel({
         popover="auto"
         role="dialog"
         aria-label={`Imagem ampliada: ${alt}`}
-        className="m-auto max-h-[90dvh] max-w-[min(90vw,64rem)] min-w-[min(90vw,16rem)] overflow-visible rounded-xl border border-border bg-background p-2 backdrop:bg-overlay"
+        className={cn(
+          SUPERFICIE_DE_PAINEL,
+          "max-h-[90dvh] max-w-[min(90vw,64rem)] min-w-[min(90vw,16rem)] overflow-visible p-2",
+        )}
       >
         {/* Ações numa faixa própria: sobre a foto cobririam justamente o que se quer ver. */}
         <div className="mb-2 flex items-center justify-end gap-2">

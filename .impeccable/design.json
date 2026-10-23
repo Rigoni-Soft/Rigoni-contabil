@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-05T17:55:50Z",
+  "generatedAt": "2026-10-22T13:00:48Z",
   "title": "Design System: Rigoni Contábil",
   "extensions": {
     "colorMeta": {
@@ -176,6 +176,22 @@
       "description": "Perfil: pares rótulo/valor em grid de duas colunas, sem cartão; valores longos quebram linha.",
       "html": "<dl class=\"ds-dl\"><dt>Nome</dt><dd>Funcionário Simples Nacional</dd><dt>Setor</dt><dd>Simples Nacional</dd></dl>",
       "css": ".ds-dl{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:0;font:400 14px Roboto,sans-serif}.ds-dl dt{color:var(--muted-foreground,#a6b3ab)}.ds-dl dd{margin:0;min-width:0;overflow-wrap:break-word;font-weight:500;color:var(--foreground,#ece7d8)}"
+    },
+    {
+      "name": "Sino de Avisos (cabeçalho)",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "Primeiro item da linha de ações do ShellHeader (#143): 48 px redondo; com aviso não visto fica preenchido em primary e ganha selo destructive com o contador (99+ acima de 99).",
+      "html": "<button class=\"ds-sino\" aria-label=\"Avisos de cadastro, 3 não vistos\" data-destaque=\"true\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.268 21a2 2 0 0 0 3.464 0\"/><path d=\"M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326\"/></svg><span class=\"ds-sino-selo\" aria-hidden=\"true\">3</span></button>",
+      "css": ".ds-sino{position:relative;display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:9999px;border:1px solid var(--primary,#54a292);background:var(--primary,#54a292);color:var(--primary-foreground,#0a1613);cursor:pointer;transition:background .15s}.ds-sino:hover{background:color-mix(in oklab,var(--primary,#54a292) 90%,transparent)}.ds-sino:focus-visible{outline:2px solid var(--ring,#54a292);outline-offset:2px}.ds-sino-selo{position:absolute;top:-4px;right:-4px;min-width:24px;padding:0 4px;display:flex;align-items:center;justify-content:center;border-radius:9999px;border:2px solid var(--background,#23221f);background:var(--destructive,#e0968c);color:var(--destructive-foreground,#2a0f0c);font:700 12px Roboto,sans-serif}"
+    },
+    {
+      "name": "Item de aviso (modal do sino)",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "Linha da lista de Avisos de cadastro (#143): não visto com contorno primary, fundo accent, ponto primary e texto em destaque; visto esmaecido, com o selo \"visto\" em texto.",
+      "html": "<div class=\"ds-aviso-lista\"><button class=\"ds-aviso\" data-visto=\"false\"><span class=\"ds-aviso-ponto\" aria-hidden=\"true\"></span><span class=\"ds-aviso-texto\"><span class=\"ds-aviso-titulo\">Novo Cliente no Cadastro operacional</span><span class=\"ds-aviso-quando\">22/10/2026, 12:30</span></span></button><button class=\"ds-aviso\" data-visto=\"true\"><span class=\"ds-aviso-texto\"><span class=\"ds-aviso-titulo\">Nova Alteração contratual</span><span class=\"ds-aviso-quando\">22/10/2026, 09:10</span></span><span class=\"ds-aviso-visto\">visto</span></button></div>",
+      "css": ".ds-aviso-lista{display:flex;flex-direction:column;gap:8px;width:min(92vw,28rem)}.ds-aviso{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding:8px 12px;border-radius:4px;border:1px solid var(--border,#47453e);background:transparent;color:var(--muted-foreground,#a6b3ab);text-align:left;font:400 14px Roboto,sans-serif;cursor:pointer}.ds-aviso[data-visto=false]{border-color:var(--primary,#54a292);background:var(--accent,#37352f);color:var(--foreground,#ece7d8);font-weight:500}.ds-aviso:focus-visible{outline:2px solid var(--ring,#54a292);outline-offset:2px}.ds-aviso-ponto{width:10px;height:10px;flex:none;border-radius:9999px;background:var(--primary,#54a292)}.ds-aviso-texto{flex:1;min-width:0}.ds-aviso-titulo,.ds-aviso-quando{display:block}.ds-aviso-quando{font-size:12px;font-weight:400;color:var(--muted-foreground,#a6b3ab)}.ds-aviso-visto{flex:none;font-size:12px;font-weight:600;text-transform:uppercase}"
     }
   ],
   "narrative": {

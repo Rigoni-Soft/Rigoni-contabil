@@ -243,6 +243,33 @@ describe("EditarCadastroOperacionalContainer", () => {
     });
   });
 
+  describe("alteração do aviso no cartão do documento (#144)", () => {
+    const documentos = [
+      { tipo: "alteracao" as const, numero: 2, data: "2025-03-05", arquivo: "2-a.pdf" },
+      { tipo: "alteracao" as const, numero: 1, data: "2024-01-10", arquivo: "1-a.pdf" },
+      { tipo: "contrato" as const, numero: null, data: null, arquivo: "contrato.pdf" },
+    ];
+
+    it.each([
+      ["no formulário do Simples Nacional", "simples_nacional"],
+      ["fora do Simples Nacional (só o documento)", "lucro_presumido"],
+    ])("%s: com o nº do aviso, abre aquela alteração com o botão em foco", (_, regime) => {
+      render(
+        <EditarCadastroOperacionalContainer
+          dados={{ ...dados, regime }}
+          readOnly={false}
+          documentosContratuais={documentos}
+          alteracaoEmFoco={1}
+        />,
+      );
+
+      const botao = screen.getByRole("button", {
+        name: "Abrir em nova aba: Alteração nº 1 - 10/01/2024",
+      });
+      expect(botao).toHaveFocus();
+    });
+  });
+
   it("modo readOnly: nunca renderiza contrato social/alterações e não mostra Salvar/Limpar/Cancelar", () => {
     render(<EditarCadastroOperacionalContainer dados={dados} readOnly />);
 

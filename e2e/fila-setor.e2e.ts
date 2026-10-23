@@ -88,11 +88,11 @@ test.describe("Fila do Setor (#70)", () => {
     await login(page, "funcionario.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
 
-    // Sem botão no cabeçalho: a Fila está na conversa e o cartão do dock leva à tela dela.
+    // Sem botão "Fila" no cabeçalho: a aba "Atendimento", ao lado das de Setor, leva à tela dela.
     await expect(page.getByRole("link", { name: "Fila", exact: true })).toHaveCount(0);
     await page
-      .getByRole("navigation", { name: "Atendimentos em andamento" })
-      .getByRole("link", { name: /Fila de atendimento/ })
+      .getByRole("navigation", { name: "Setores" })
+      .getByRole("link", { name: "Atendimento" })
       .click();
     await expect(page).toHaveURL("/fila");
 
@@ -202,7 +202,10 @@ test.describe("Fila do Setor (#70)", () => {
     await login(page, "admin@rigonicontabil.local", "admin123");
     await expect(page).toHaveURL("/");
 
-    await page.getByRole("link", { name: "Fila", exact: true }).click();
+    await page
+      .getByRole("navigation", { name: "Setores" })
+      .getByRole("link", { name: "Atendimento" })
+      .click();
     await expect(page).toHaveURL("/fila");
     await page.getByRole("combobox", { name: "Setor" }).selectOption("financeiro");
 

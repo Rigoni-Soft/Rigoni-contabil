@@ -4,6 +4,7 @@ import { ShellHeader } from "@/presentation/components/organisms/shell-header.co
 import { CriarClientePage } from "@/presentation/components/pages/criar-cliente.page";
 import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-button.container";
 import { carregarSessao } from "@/presentation/view-models/shell/shell.server";
+import { SinoAvisosContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/sino-avisos.container";
 import { CriarClienteContainer } from "@/modules/clientes/presentation/view-models/criar-cliente/criar-cliente.container";
 
 export default async function Page() {
@@ -20,6 +21,7 @@ export default async function Page() {
           papel={sessao.papel}
           setor={sessao.setor}
           sair={<LogoutButtonContainer />}
+          avisos={<SinoAvisosContainer usuarioId={sessao.id} />}
         />
       }
       formulario={<CriarClienteContainer />}
