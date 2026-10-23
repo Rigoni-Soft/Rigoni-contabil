@@ -28,7 +28,10 @@ O núcleo `EnviarGuiasParcelamento` (job e URA) segue, por Cliente:
 3. **Atribuição** (`atribuirGuiasParcelamento`): com um Parcelamento em aberto, todas vão a ele; com vários,
    cada guia vai ao de valor guardado mais próximo sem passar do valor dela (a atrasada pode vir com juros),
    e um Parcelamento nunca recebe duas da mesma parcela. Empate de valor é arbitrário. Guia sem candidato
-   fica de fora (falha fechado). Guia que cabe a um Parcelamento interno não vai ao Cliente.
+   fica de fora (falha fechado). Guia que cabe a um Parcelamento interno não vai ao Cliente. Nova emissão
+   de uma parcela que o dono já recebeu (o `ignorar` só pula as que todos receberam) é descartada, não
+   vai a outro Parcelamento. Guias de parcelas atrasadas entram como as do mês: cada uma é entregue,
+   registrada e desconta uma parcela restante; "pendente" é só não ter registro da parcela do mês.
 4. **Entrega e registro por guia.** A guia é guardada em `guias-fiscais` em `cliente/parcelamento/AAAAMM`,
    entregue, e só então `registrar_envio_parcelamento` grava o registro, desconta uma parcela restante (uma
    vez por parcela; repetir devolve `false`) e quita ao zerar, auditado com a URA. A falha de uma guia não
@@ -40,9 +43,9 @@ O núcleo `EnviarGuiasParcelamento` (job e URA) segue, por Cliente:
 - A migration `20261023110000` cria `registrar_envio_parcelamento`, reduz
   `concluir_envio_automatico_parcelamento` a fechar a reserva e acrescenta `parcelamento_sem_guia` e
   `financeiro_ausente` a `tipo_alerta_setor`. Aplicar junto com o código desta versão.
-- **Não validado contra o Serpro real**: a atribuição por valor é inferência (a guia atrasada pode vir
-  corrigida) e dev usa o adapter falso. Ligar primeiro para um CNPJ em produção: o pior caso da primeira
-  rodada é nenhuma guia e um alerta `parcelamento_sem_guia`.
+- A atribuição por valor é inferência (a guia atrasada pode vir corrigida) que dev e homolog não
+  validam, porque usam o adapter falso e a API de teste. Por isso falha fechado: o pior caso é nenhuma
+  guia e um alerta `parcelamento_sem_guia`. Ligar primeiro para um CNPJ em produção.
 - `quitado` do provedor com o Parcelamento em aberto não tem sinal no contrato por CNPJ (a lista vazia é o
   que o provedor devolve): vira `parcelamento_sem_guia` e o Parcelamento segue em aberto.
 - A migration `20261016090000` substitui as RPCs `registrar_alerta_setor` e

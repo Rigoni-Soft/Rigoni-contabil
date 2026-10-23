@@ -2,9 +2,9 @@ import type { ClienteCnpjPort } from "@/modules/atendimento/application/ports/ou
 import type {
   GuiaFiscal,
   GuiasFiscaisPort,
-  GuiasParcelamentoPort,
   TipoGuia,
 } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
+import type { GuiasParcelamentoPort } from "@/modules/atendimento/application/ports/out/guias-parcelamento.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";

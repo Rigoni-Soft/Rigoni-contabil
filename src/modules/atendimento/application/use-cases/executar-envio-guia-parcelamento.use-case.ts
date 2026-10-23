@@ -32,7 +32,7 @@ import { ok, type Result } from "@/shared/kernel/result";
 export class ExecutarEnvioGuiaParcelamento implements ExecutarEnvioGuiaParcelamentoPort {
   constructor(
     private readonly clientes: ClientesParaParcelamentoPort,
-    private readonly nucleo: EnviarGuiasParcelamentoPort,
+    private readonly guiasDoCliente: EnviarGuiasParcelamentoPort,
     private readonly alertas: AlertaSetorPort,
     private readonly relogio: RelogioPort,
   ) {}
@@ -66,7 +66,7 @@ export class ExecutarEnvioGuiaParcelamento implements ExecutarEnvioGuiaParcelame
     return entregarComReserva({
       descricao: `Parcelamento de ${cliente.empresa}`,
       reservar: () => this.clientes.reservar(cliente.clienteId),
-      entregar: () => this.nucleo.execute({ cliente, agora }),
+      entregar: () => this.guiasDoCliente.execute({ cliente, agora }),
       concluir: (token) => this.clientes.concluir(cliente.clienteId, token),
       liberar: (token) => this.clientes.liberar(cliente.clienteId, token),
     });

@@ -216,4 +216,49 @@ describe("EnviarGuiasParcelamento", () => {
     expect(buscarGuiasParcelamento).not.toHaveBeenCalled();
     expect(andamento.ocorrencias).toMatchObject([{ tipo: "falha_envio" }]);
   });
+
+  it("virada de mês: a parcela enviada em outubro não conta para novembro, que volta a ser pendente", async () => {
+    const { nucleo, buscarGuiasParcelamento, registrados } = montar(
+      ok([parcelamento("p1", { parcelasEnviadas: ["202610"] })]),
+      { guias: async () => ok([guia("202611")]) },
+    );
+
+    const andamento = await nucleo.execute({ cliente, agora: new Date("2026-11-20T12:00:00Z") });
+
+    expect(buscarGuiasParcelamento).toHaveBeenCalledWith("c1", ["202610"]);
+    expect(andamento.enviado).toBe(true);
+    expect(registrados).toEqual([["p1", "202611"]]);
+  });
+
+  it("entregue sem registro: avisa o setor e a rodada seguinte entrega de novo (pelo menos uma vez)", async () => {
+    let registro: Result<boolean, AppError> = err(new ServicoExternoError("banco fora"));
+    const { nucleo, envio } = montar(ok([parcelamento("p1")]), {
+      registrar: async () => registro,
+    });
+
+    const primeira = await nucleo.execute({ cliente, agora });
+    registro = ok(true);
+    const segunda = await nucleo.execute({ cliente, agora });
+
+    expect(primeira.enviado).toBe(true);
+    expect(primeira.ocorrencias).toMatchObject([
+      { tipo: "falha_envio", mensagem: expect.stringContaining("não foi registrado") },
+    ]);
+    expect(segunda).toEqual({ enviado: true, ocorrencias: [] });
+    expect(envio.templatesEnviados).toHaveLength(2);
+  });
+
+  it("nova emissão da guia de quem já a recebeu não vai ao outro parcelamento", async () => {
+    const { nucleo, registrados } = montar(
+      ok([
+        parcelamento("a", { valorParcelaCentavos: 30_000, parcelasEnviadas: ["202610"] }),
+        parcelamento("b", { valorParcelaCentavos: 10_000 }),
+      ]),
+      { guias: async () => ok([guia("202610", 30_000), guia("202610", 10_000)]) },
+    );
+
+    await nucleo.execute({ cliente, agora });
+
+    expect(registrados).toEqual([["b", "202610"]]);
+  });
 });
