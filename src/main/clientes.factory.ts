@@ -1,6 +1,6 @@
 import "server-only";
 
-import { ANTHROPIC_API_KEY, LEITURA_PDF_MODELO, LEITURA_PDF_MODO } from "@/env";
+import { LEITURA_PDF_MODO } from "@/env";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { makeRegistrarAcao } from "@/main/auditoria.factory";
@@ -46,8 +46,8 @@ import { SalvarParcelamentosCliente } from "@/modules/clientes/application/use-c
 import { SupabaseAvisosCadastroGateway } from "@/modules/clientes/infra/gateways/avisos-cadastro.gateway";
 import { SupabaseClienteQueryGateway } from "@/modules/clientes/infra/gateways/cliente-query.gateway";
 import { SupabaseDocumentosContratuaisClienteGateway } from "@/modules/clientes/infra/gateways/documentos-contratuais-cliente.gateway";
-import { LeitorDeParcelamentoAnthropicGateway } from "@/modules/clientes/infra/gateways/leitor-de-parcelamento-anthropic.gateway";
 import { LeitorDeParcelamentoFalsoGateway } from "@/modules/clientes/infra/gateways/leitor-de-parcelamento-falso.gateway";
+import { LeitorDeParcelamentoTextoGateway } from "@/modules/clientes/infra/gateways/leitor-de-parcelamento-texto.gateway";
 import { SupabaseArquivoStorageGateway } from "@/modules/clientes/infra/gateways/supabase-arquivo-storage.gateway";
 import { SupabaseClienteParcelamentoRepository } from "@/modules/clientes/infra/repositories/cliente-parcelamento.repository";
 import { SupabaseClienteRepository } from "@/modules/clientes/infra/repositories/cliente.repository";
@@ -114,13 +114,10 @@ export async function makeSalvarParcelamentosCliente(): Promise<SalvarParcelamen
   );
 }
 
-// Falso por padrão (dev, CI e Preview): só o modo real fala com a API; env.ts garante a chave.
+// Falso por padrão (dev, CI e Preview); "texto" lê a camada de texto do PDF no servidor.
 function leitorDeParcelamento(): LeitorDeParcelamentoPort {
-  return LEITURA_PDF_MODO === "real"
-    ? new LeitorDeParcelamentoAnthropicGateway({
-        chave: ANTHROPIC_API_KEY!,
-        modelo: LEITURA_PDF_MODELO,
-      })
+  return LEITURA_PDF_MODO === "texto"
+    ? new LeitorDeParcelamentoTextoGateway()
     : new LeitorDeParcelamentoFalsoGateway();
 }
 
