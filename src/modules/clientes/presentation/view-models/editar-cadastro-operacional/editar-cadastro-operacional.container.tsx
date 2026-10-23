@@ -220,6 +220,7 @@ export function EditarCadastroOperacionalContainer({
 
   const aoLimpar = () => {
     reset(valoresIniciais);
+    leitura.esquecerTodas();
     setErroServidor(undefined);
     setSucesso(false);
   };

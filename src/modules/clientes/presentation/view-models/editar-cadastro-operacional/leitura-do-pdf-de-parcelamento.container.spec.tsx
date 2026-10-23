@@ -311,6 +311,23 @@ describe("Leitura do PDF de parcelamento no Editar cliente", () => {
       expect(screen.queryByLabelText(/código/i)).not.toBeInTheDocument();
     });
 
+    it("Limpar durante a leitura desfaz a linha, libera o Salvar e descarta a resposta tardia", async () => {
+      let terminar!: (v: unknown) => void;
+      lerMock.mockReturnValue(new Promise((resolve) => (terminar = resolve)));
+      const usuario = userEvent.setup();
+      render();
+      await anexarPdfNoParcelamentoNovo(usuario);
+      expect(await screen.findByText("Lendo o PDF…")).toBeInTheDocument();
+
+      await usuario.click(screen.getByRole("button", { name: /limpar/i }));
+
+      expect(screen.queryByText("Lendo o PDF…")).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /salvar/i })).not.toHaveAttribute("aria-disabled");
+      await act(async () => terminar(comAcordo));
+      expect(screen.queryByText(/PGFN · 5 parcelas/)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/código/i)).not.toBeInTheDocument();
+    });
+
     it("Enter num campo enquanto lê não envia nem acusa erro nos campos que a leitura vai preencher", async () => {
       lerMock.mockReturnValue(new Promise(() => undefined));
       const usuario = userEvent.setup();

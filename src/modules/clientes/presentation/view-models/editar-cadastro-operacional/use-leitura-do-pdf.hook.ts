@@ -88,7 +88,13 @@ export function useLeituraDoPdf(
     definir(id, undefined);
   };
 
+  // Formulário refeito (Limpar): todas as linhas somem, então nenhum estado nem resposta tardia vale.
+  const esquecerTodas = () => {
+    vigente.current = {};
+    setLeituras({});
+  };
+
   const lendo = Object.values(leituras).some((l) => l.estado === "lendo");
 
-  return { leituras, lendo, ler, esquecer };
+  return { leituras, lendo, ler, esquecer, esquecerTodas };
 }
