@@ -46,23 +46,9 @@ export class GuiasFiscaisGateway implements GuiasFiscaisPort {
     return tipo === "das" ? this.obrigacoes.buscarDas(cnpj) : this.certidoes.buscarCnd(cnpj);
   }
 
-  // ponytail: job, painel e URA entregam uma guia só; a mais atrasada primeiro. Troca por
-  // `buscarGuiasParcelamento` quando a entrega por parcelamento (#126/#127) chegar.
+  // ponytail: job, painel e URA entregam uma guia só; a mais atrasada primeiro. A entrega de todas,
+  // atribuídas a cada parcelamento (#126/#128), chama `obrigacoes.buscarGuiasParcelamento` direto.
   private async guiaMaisAtrasada(clienteId: string): Promise<Result<GuiaFiscal, AppError>> {
-    const guias = await this.buscarGuiasParcelamento(clienteId, []);
-    if (!guias.ok) return guias;
-    const [maisAtrasada] = [...guias.value].sort((a, b) =>
-      (a.parcela ?? "").localeCompare(b.parcela ?? ""),
-    );
-    return maisAtrasada
-      ? ok(maisAtrasada)
-      : err(new ServicoExternoError("Cliente sem guia de parcelamento disponível."));
-  }
-
-  async buscarGuiasParcelamento(
-    clienteId: string,
-    ignorar: readonly string[],
-  ): Promise<Result<GuiaFiscal[], AppError>> {
     const cadastro = await this.clientes.cadastroFiscalDoCliente(clienteId);
     if (!cadastro.ok) return cadastro;
     const { cnpj, regime } = cadastro.value;
@@ -71,6 +57,13 @@ export class GuiasFiscaisGateway implements GuiasFiscaisPort {
       return err(new ValidationError("Este regime não tem guia de parcelamento do Simples."));
     }
     // Direto, sem pré-consulta: o provedor consulta a autorização só se a emissão falhar.
-    return this.obrigacoes.buscarGuiasParcelamento(cnpj, { regime, ignorar });
+    const guias = await this.obrigacoes.buscarGuiasParcelamento(cnpj, { regime, ignorar: [] });
+    if (!guias.ok) return guias;
+    const [maisAtrasada] = [...guias.value].sort((a, b) =>
+      (a.parcela ?? "").localeCompare(b.parcela ?? ""),
+    );
+    return maisAtrasada
+      ? ok(maisAtrasada)
+      : err(new ServicoExternoError("Cliente sem guia de parcelamento disponível."));
   }
 }

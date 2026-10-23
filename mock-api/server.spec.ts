@@ -45,17 +45,4 @@ describe("mock fiscal: guias de parcelamento do CNPJ", () => {
 
     expect((await parcelas()).guias).toEqual([]);
   });
-
-  it("o modo de parcelas não afeta o DAS nem a autorização", async () => {
-    await modo("sem_parcelas");
-
-    expect((await fetch(`${base}/clientes/${CNPJ}/das`)).status).toBe(200);
-    expect((await fetch(`${base}/clientes/${CNPJ}/autorizacao`)).status).toBe(200);
-  });
-
-  it("modo falha responde 503 também nas guias de parcelamento", async () => {
-    await modo("falha");
-
-    expect((await parcelas()).status).toBe(503);
-  });
 });

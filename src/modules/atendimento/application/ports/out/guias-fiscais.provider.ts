@@ -18,6 +18,6 @@ export type GuiaFiscal = {
 export interface GuiasFiscaisPort {
   // O CNPJ vem do cadastro do Cliente (nunca perguntado ao contato). Sem autorização vigente do
   // Cliente, devolve `ForbiddenError`; falha do provedor, `ServicoExternoError`. DAS e CND; o
-  // parcelamento entrega só a guia mais atrasada (todas: `GuiasFiscaisGateway.buscarGuiasParcelamento`).
+  // parcelamento entrega só a guia mais atrasada.
   buscar(clienteId: string, tipo: TipoGuia): Promise<Result<GuiaFiscal, AppError>>;
 }

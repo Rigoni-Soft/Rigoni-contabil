@@ -48,39 +48,21 @@ describe("GuiasFiscaisGateway", () => {
     expect(consultados.filter((c) => c !== "autorizacao")).toEqual([`${tipo}:11222333000181`]);
   });
 
-  describe("guias de parcelamento", () => {
-    it("devolve todas as guias do CNPJ do cadastro, direto, sem pré-consulta de autorização", async () => {
-      const { guias, consultados } = montar();
-
-      const r = await guias.buscarGuiasParcelamento("c1", []);
-
-      expect(r).toEqual({ ok: true, value: [PARCELA_2, PARCELA_1] });
-      expect(consultados).toEqual(["parcelamentos:11222333000181:simples_nacional:"]);
-    });
-
-    it("repassa as parcelas já entregues, que o provedor não emite de novo", async () => {
-      const { guias, consultados } = montar("vigente", "mei");
-
-      const r = await guias.buscarGuiasParcelamento("c1", ["202608"]);
-
-      expect(r).toEqual({ ok: true, value: [PARCELA_2] });
-      expect(consultados).toEqual(["parcelamentos:11222333000181:mei:202608"]);
-    });
-
+  // ponytail: job, painel e URA entregam uma guia só até a #126/#128 entregarem todas.
+  describe("guia de parcelamento", () => {
     it("Cliente fora do Simples/MEI é erro de validação, sem chamar o provedor", async () => {
       const { guias, consultados } = montar("vigente", "lucro_presumido");
 
-      const r = await guias.buscarGuiasParcelamento("c1", []);
+      const r = await guias.buscar("c1", "parcelamento");
 
       expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
       expect(consultados).toEqual([]);
     });
 
     it("propaga a falha do cadastro", async () => {
-      expect((await montar().guias.buscarGuiasParcelamento("outro", [])).ok).toBe(false);
+      expect((await montar().guias.buscar("outro", "parcelamento")).ok).toBe(false);
     });
 
-    // ponytail: job, painel e URA entregam uma guia só até a #126/#127 entregarem todas.
     it("`buscar` de parcelamento entrega a guia mais atrasada, direto e sem pré-consulta", async () => {
       const { guias, consultados } = montar();
 
