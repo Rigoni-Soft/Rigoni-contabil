@@ -26,7 +26,8 @@ function Grupo({
       </Texto>
       <Grade colunas={colunas} espaco={4} como="ul">
         {cards.map((card) => (
-          <Caixa como="li" key={card.id}>
+          // Em 2 colunas (celular) um grupo ímpar deixaria o último card sozinho: ele ocupa a linha toda.
+          <Caixa como="li" key={card.id} className="max-sm:last:odd:col-span-2">
             <CartaoDeResumo
               href={`/clientes/resumo/${card.id}`}
               titulo={card.titulo}

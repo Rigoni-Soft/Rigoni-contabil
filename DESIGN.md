@@ -561,7 +561,9 @@ ainda não existe" abaixo).
 **não são mutuamente exclusivos** — "Com parcelamento", "Em aberto", "Parcelamento pendente"
 (`atencao`), "Pendente em atraso" (`urgente`, a partir do dia 29, depois da última rodada do
 job), "Parcelamento interno" e "Parcelamento enviado". A grade do grupo é `2>3` (2×3 no
-celular, 3×2 de `sm` em diante): 6 cards em 5 colunas deixariam um órfão. A definição única vive em
+celular, 3×2 de `sm` em diante): 6 cards em 5 colunas deixariam um órfão. No celular (2 colunas), um grupo
+de número ímpar de cards ("Documentos e DAS", 5) faz o último ocupar a linha toda
+(`max-sm:last:odd:col-span-2` no item), em vez de ficar sozinho num canto. A definição única vive em
 `parcelamentos-do-cliente.ts` e alimenta cards e comparativos; os anéis, por isso, podem somar
 mais que o total. As listas `/clientes/resumo/<bucket>` desse grupo trazem sob o título uma
 linha que define o que o card conta (texto do mapper, com o dia do atraso vindo da constante do
