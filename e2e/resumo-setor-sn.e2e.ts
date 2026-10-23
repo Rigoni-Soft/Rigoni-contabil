@@ -126,7 +126,8 @@ test.describe("Resumo do setor (#36)", () => {
       await page.goto("/simples-nacional");
       await page.getByRole("link", { name: new RegExp(card) }).click();
       await expect(page).toHaveURL(new RegExp(`/clientes/resumo/${bucket}$`));
-      const linha = page.getByRole("link").filter({ hasText: empresa });
+      // Os parcelamentos ficam abaixo do link (fora dele): o item da lista os reúne com o Cliente.
+      const linha = page.getByRole("listitem").filter({ hasText: empresa }).first();
       await expect(linha).toContainText("PARC-COMUM");
       await expect(linha).toContainText("Enviado no mês");
       await expect(linha).toContainText("PARC-INTERNO");

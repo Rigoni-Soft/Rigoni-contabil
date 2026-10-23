@@ -24,10 +24,10 @@ function Parcelamentos({
   parcelamentos: NonNullable<Cliente["parcelamentos"]>;
 }) {
   return (
-    <Pilha como="ul" espaco={1} className="mt-2" aria-label="Parcelamentos">
+    <Pilha como="ul" espaco={1} aria-label="Parcelamentos">
       {parcelamentos.map((p) => (
         <Linha como="li" key={p.codigo} alinhar="centro" espaco={2} quebra>
-          <Texto como="span" variante="apoio">
+          <Texto como="span" variante="apoio" className="min-w-0 break-all">
             {p.codigo}
           </Texto>
           {p.interno && (

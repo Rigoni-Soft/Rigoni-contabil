@@ -42,7 +42,7 @@ export function CartaoDeResumo({
         {titulo}
         <Texto variante="somenteLeitor" como="span">
           {" "}
-          — {quantidade} de {totalClientes} clientes
+          — {quantidade} de {totalClientes} {totalClientes === 1 ? "cliente" : "clientes"}
         </Texto>
       </Texto>
     </Link>
