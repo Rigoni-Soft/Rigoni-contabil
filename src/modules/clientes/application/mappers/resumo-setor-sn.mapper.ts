@@ -1,7 +1,7 @@
 import {
   situacaoDosParcelamentos,
   type SituacaoParcelamentosDoCliente,
-} from "@/modules/clientes/application/mappers/parcelamentos-do-cliente";
+} from "@/modules/clientes/application/mappers/parcelamentos-do-cliente.mapper";
 import type {
   CardResumoSnDto,
   CorStatusResumo,

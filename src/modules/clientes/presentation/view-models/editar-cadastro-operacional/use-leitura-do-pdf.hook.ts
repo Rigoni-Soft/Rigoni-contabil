@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import type { UseFormSetValue } from "react-hook-form";
 
-import type { EditarCadastroOperacionalFormValues } from "@/presentation/components/organisms/editar-cadastro-operacional-form.component";
+import type { EditarCadastroOperacionalFormValues } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.schema";
 
 import type { EstadoDaLeitura } from "./editar-cadastro-operacional.presenter";
 import { lerPdfDeParcelamentoAction } from "./ler-pdf-de-parcelamento.actions";

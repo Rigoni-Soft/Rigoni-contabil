@@ -1,6 +1,5 @@
 import type { LeituraDaLinha } from "@/presentation/components/organisms/editar-cadastro-operacional-form.component";
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
-import type { OrigemDoParcelamento } from "@/modules/clientes/domain/value-objects/parcelamento.vo";
 import type { ParcelamentoFormValues } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.schema";
 import { rotuloResponsavel } from "@/shared/kernel/papeis";
 
@@ -42,7 +41,10 @@ export function leituraDaLinha(leitura: EstadoDaLeitura): LeituraDaLinha {
   }
 }
 
-const ORIGEM_ROTULO: Record<OrigemDoParcelamento, string> = {
+const ORIGEM_ROTULO: Record<
+  NonNullable<NonNullable<ParcelamentoFormValues["acordo"]>["origem"]>,
+  string
+> = {
   receita_federal: "Receita Federal",
   pgfn: "PGFN",
 };

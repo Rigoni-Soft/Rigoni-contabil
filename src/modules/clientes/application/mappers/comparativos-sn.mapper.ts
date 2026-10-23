@@ -1,4 +1,4 @@
-import { situacaoDosParcelamentos } from "@/modules/clientes/application/mappers/parcelamentos-do-cliente";
+import { situacaoDosParcelamentos } from "@/modules/clientes/application/mappers/parcelamentos-do-cliente.mapper";
 import type {
   CorStatusResumo,
   FatiaComparativoDto,
