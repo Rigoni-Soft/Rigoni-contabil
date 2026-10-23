@@ -25,7 +25,7 @@ no sistema — falha esperada, nunca derruba o restante.
 
 - **Só parcelamentos com `origem = receita_federal`.** `pgfn` nunca chega ao provedor fiscal (a guia dela é o PDF anexado pelo escritório): quem chama (job e URA) filtra por `origem` antes; porta e mock não conhecem a PGFN.
 - **O `codigo` é o rótulo do parcelamento no nosso sistema**, não um número que o provedor conheça: o Recibo de Adesão do Simples não imprime código, então o sistema gera `PARC-XXXXXXXX`. A emissão continua valendo com código gerado.
-- **Recusa tipada**: `422` com `{ "motivo": "codigo_desconhecido" | "quitado" | "fora_do_periodo" | "ambiguo" }`, que vira `GuiaParcelamentoIndisponivelError` com o `motivo`. Indisponibilidade (rede, timeout, 5xx, corpo fora do contrato) segue `ServicoExternoError`, que o consumidor repete. Sem autorização vigente, `ForbiddenError`.
+- **Recusa tipada**: `422` com `{ "motivo": "codigo_desconhecido" | "quitado" | "fora_do_periodo" | "ambiguo" }`, que vira `GuiaParcelamentoIndisponivelError` com o `motivo`. Indisponibilidade (rede, timeout, 5xx, corpo fora do contrato) segue `ServicoExternoError`, que o consumidor repete. Sem autorização vigente, o adapter real devolve `ForbiddenError` (o contrato HTTP/mock não modela autorização na guia por código).
 - **Nunca a "guia que vier".** `ambiguo` quando o Cliente tem mais de um parcelamento da Receita em aberto e a guia não se atribui a um só. O banco sabe quantos são; o consumidor informa na porta (`emAbertoDaReceita`, fora da URL do contrato).
 - `valorCentavos` é opcional: se vier, o consumidor pode compará-lo ao `valor_parcela_centavos` guardado (fora do escopo desta porta).
 
