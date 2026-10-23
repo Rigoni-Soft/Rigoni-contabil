@@ -5,7 +5,8 @@ import { SEM_RESPONSAVEL_ID } from "@/shared/kernel/papeis";
 // `cor` (escala dos cards) tem precedência sobre a cor do id.
 export type Fatia = { id: string; rotulo: string; quantidade: number; cor?: string };
 
-// Só tokens existentes (sem token novo); atenção = destructive.
+// Cor pelo id (DAS, atividade, Responsáveis); fatia com `cor` segue a escala dos cards. Só tokens
+// existentes (sem token novo); o pendente do DAS é destructive.
 // A cor nunca é o único canal: toda fatia aparece na legenda com rótulo e número.
 const COR_POR_ID: Record<string, { fundo: string; traco: string }> = {
   enviado: { fundo: "bg-primary", traco: "stroke-primary" },
