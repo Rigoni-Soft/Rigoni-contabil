@@ -11,13 +11,14 @@ const PARCELA_2 = { ...PDF, parcela: "202609", valorCentavos: 200 };
 function montar(
   autorizacao: "vigente" | "vencida" | "falha" = "vigente",
   regime = "simples_nacional",
+  disponiveis = [PARCELA_2, PARCELA_1], // fora de ordem de propósito
 ) {
   const consultados: string[] = [];
   const obrigacoes: ObrigacoesFiscais = {
     buscarDas: async (c) => (consultados.push(`das:${c}`), ok(PDF)),
     buscarGuiasParcelamento: async (c, p) => (
       consultados.push(`parcelamentos:${c}:${p.regime}:${p.ignorar.join("+")}`),
-      ok([PARCELA_1, PARCELA_2].filter((g) => !p.ignorar.includes(g.parcela)))
+      ok(disponiveis.filter((g) => !p.ignorar.includes(g.parcela)))
     ),
     consultarAutorizacao: async () => (
       consultados.push("autorizacao"),
@@ -53,7 +54,7 @@ describe("GuiasFiscaisGateway", () => {
 
       const r = await guias.buscarGuiasParcelamento("c1", []);
 
-      expect(r).toEqual({ ok: true, value: [PARCELA_1, PARCELA_2] });
+      expect(r).toEqual({ ok: true, value: [PARCELA_2, PARCELA_1] });
       expect(consultados).toEqual(["parcelamentos:11222333000181:simples_nacional:"]);
     });
 
@@ -79,13 +80,22 @@ describe("GuiasFiscaisGateway", () => {
       expect((await montar().guias.buscarGuiasParcelamento("outro", [])).ok).toBe(false);
     });
 
-    it("a guia única de parcelamento não existe mais: `buscar` recusa o tipo", async () => {
+    // ponytail: job, painel e URA entregam uma guia só até a #126/#127 entregarem todas.
+    it("`buscar` de parcelamento entrega a guia mais atrasada, direto e sem pré-consulta", async () => {
       const { guias, consultados } = montar();
 
       const r = await guias.buscar("c1", "parcelamento");
 
-      expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
-      expect(consultados).toEqual([]);
+      expect(r).toEqual({ ok: true, value: PARCELA_1 });
+      expect(consultados).toEqual(["parcelamentos:11222333000181:simples_nacional:"]);
+    });
+
+    it("`buscar` de parcelamento sem nenhuma guia é falha do serviço, que repete", async () => {
+      const { guias } = montar("vigente", "simples_nacional", []);
+
+      const r = await guias.buscar("c1", "parcelamento");
+
+      expect(!r.ok && r.error.code).toBe("EXTERNAL_SERVICE_ERROR");
     });
   });
 

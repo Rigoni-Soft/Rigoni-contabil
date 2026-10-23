@@ -7,8 +7,9 @@ import type {
 } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
-import { err, type Result } from "@/shared/kernel/result";
+import { err, ok, type Result } from "@/shared/kernel/result";
 
 // O que este gateway usa das obrigações fiscais; o `main` entrega o adapter de `clientes`
 // (arquitetura.md 3.11: módulos não se importam, a forma é a mesma da porta de lá).
@@ -34,11 +35,7 @@ export class GuiasFiscaisGateway implements GuiasFiscaisPort, GuiasParcelamentoF
   ) {}
 
   async buscar(clienteId: string, tipo: TipoGuia): Promise<Result<GuiaFiscal, AppError>> {
-    if (tipo === "parcelamento") {
-      return err(
-        new ValidationError("O parcelamento tem várias guias: use GuiasParcelamentoFiscaisPort."),
-      );
-    }
+    if (tipo === "parcelamento") return this.guiaMaisAtrasada(clienteId);
     const cadastro = await this.clientes.cadastroFiscalDoCliente(clienteId);
     if (!cadastro.ok) return cadastro;
     const { cnpj } = cadastro.value;
@@ -48,6 +45,19 @@ export class GuiasFiscaisGateway implements GuiasFiscaisPort, GuiasParcelamentoF
       return err(new ForbiddenError("Cliente sem autorização vigente para consulta fiscal."));
     }
     return tipo === "das" ? this.obrigacoes.buscarDas(cnpj) : this.certidoes.buscarCnd(cnpj);
+  }
+
+  // ponytail: job, painel e URA entregam uma guia só; a mais atrasada primeiro. Troca por
+  // `buscarGuiasParcelamento` quando a entrega por parcelamento (#126/#127) chegar.
+  private async guiaMaisAtrasada(clienteId: string): Promise<Result<GuiaFiscal, AppError>> {
+    const guias = await this.buscarGuiasParcelamento(clienteId, []);
+    if (!guias.ok) return guias;
+    const [maisAtrasada] = [...guias.value].sort((a, b) =>
+      (a.parcela ?? "").localeCompare(b.parcela ?? ""),
+    );
+    return maisAtrasada
+      ? ok(maisAtrasada)
+      : err(new ServicoExternoError("Cliente sem guia de parcelamento disponível."));
   }
 
   async buscarGuiasParcelamento(
