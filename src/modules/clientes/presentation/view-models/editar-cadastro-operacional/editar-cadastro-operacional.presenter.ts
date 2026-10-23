@@ -86,3 +86,60 @@ export function mudouParcelamentos(
     );
   });
 }
+
+// Linhas abertas de nascença (Contatos e Parcelamentos sem registros abrem com uma em branco, para a
+// seção não ficar vazia): a linha que ninguém tocou não conta e sai antes da validação e do envio.
+export const contatoNovo = (padrao: boolean) => ({ nome: "", telefone: "", padrao });
+
+export const parcelamentoNovo = (): ParcelamentoFormValues => ({
+  codigo: "",
+  parcelasRestantes: 1,
+  interno: false,
+  quitado: false,
+  temEnvio: false,
+  enviadoNoMes: false,
+  arquivoNome: "",
+});
+
+type ContatoDaLinha = { id?: string; nome: string; telefone: string };
+const contatoEmBranco = (c: ContatoDaLinha) =>
+  !c.id && !c.nome.trim() && !c.telefone.replace(/\D/g, "");
+const parcelamentoEmBranco = (p: ParcelamentoFormValues) =>
+  !p.id &&
+  !p.arquivo &&
+  !p.codigo.trim() &&
+  (Number.isNaN(p.parcelasRestantes) || p.parcelasRestantes === 1);
+
+// Devolve os valores sem as linhas em branco e, por lista, o índice original de cada linha mantida
+// (para devolver cada erro à linha certa da tela).
+export function descartarLinhasEmBranco<
+  T extends { contatos: ContatoDaLinha[]; parcelamentos: ParcelamentoFormValues[] },
+>(valores: T) {
+  const manter = <L>(linhas: L[], emBranco: (l: L) => boolean) =>
+    linhas.flatMap((linha, indice) => (emBranco(linha) ? [] : [indice]));
+  const contatos = manter(valores.contatos, contatoEmBranco);
+  const parcelamentos = manter(valores.parcelamentos, parcelamentoEmBranco);
+  return {
+    valores: {
+      ...valores,
+      contatos: contatos.map((i) => valores.contatos[i]),
+      parcelamentos: parcelamentos.map((i) => valores.parcelamentos[i]),
+    },
+    contatos,
+    parcelamentos,
+  };
+}
+
+// Erro da lista filtrada volta ao índice da linha na tela; as chaves não numéricas (mensagem da
+// lista toda) seguem como vieram.
+export function reposicionarErros(erros: unknown, indicesOriginais: number[]): unknown {
+  if (!Array.isArray(erros)) return erros;
+  const reposicionados: Record<string, unknown> & unknown[] = Object.assign(
+    [],
+    Object.fromEntries(Object.entries(erros).filter(([chave]) => Number.isNaN(Number(chave)))),
+  );
+  erros.forEach((erro, indice) => {
+    if (erro !== undefined) reposicionados[indicesOriginais[indice]] = erro;
+  });
+  return reposicionados;
+}

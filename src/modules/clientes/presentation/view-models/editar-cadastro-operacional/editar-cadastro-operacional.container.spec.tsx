@@ -469,6 +469,37 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(enviado).not.toHaveProperty("parcelamentos");
   });
 
+  it("sem Contatos nem Parcelamentos abre com uma linha em branco de cada, que não impede salvar", async () => {
+    executeMock.mockResolvedValue({ ok: true, value: { clienteId: dados.id } });
+    const usuario = userEvent.setup();
+    render(
+      <EditarCadastroOperacionalContainer
+        dados={{ ...dados, contatos: [], parcelamentos: [] }}
+        readOnly={false}
+      />,
+    );
+
+    expect(screen.getByLabelText(/^nome/i)).toHaveValue("");
+    expect(screen.getByLabelText(/código/i)).toHaveValue("");
+    await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+
+    expect(await screen.findByText(/atualizado/i)).toBeInTheDocument();
+    expect(executeMock).toHaveBeenCalledWith(expect.objectContaining({ contatos: [] }));
+  });
+
+  it("linha de Contato preenchida pela metade acusa o erro na linha certa", async () => {
+    const usuario = userEvent.setup();
+    render(
+      <EditarCadastroOperacionalContainer dados={{ ...dados, contatos: [] }} readOnly={false} />,
+    );
+
+    await usuario.type(screen.getByLabelText(/^nome/i), "Maria");
+    await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+
+    expect(await screen.findByText("obrigatório")).toBeInTheDocument();
+    expect(executeMock).not.toHaveBeenCalled();
+  });
+
   it("Promise rejeitada da Server Action não prende o botão em 'Salvando...'", async () => {
     executeMock.mockRejectedValue(new Error("falha de rede"));
     const usuario = userEvent.setup();

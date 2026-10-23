@@ -56,7 +56,7 @@ function render() {
 }
 
 async function anexarPdfNoParcelamentoNovo(usuario: ReturnType<typeof userEvent.setup>) {
-  await usuario.click(screen.getByRole("button", { name: /adicionar parcelamento/i }));
+  // Cliente sem Parcelamentos já abre com uma linha em branco: o PDF vai nela.
   await usuario.upload(screen.getByLabelText(/pdf do acordo/i), pdf);
 }
 
@@ -325,7 +325,8 @@ describe("Leitura do PDF de parcelamento no Editar cliente", () => {
       expect(screen.getByRole("button", { name: /salvar/i })).not.toHaveAttribute("aria-disabled");
       await act(async () => terminar(comAcordo));
       expect(screen.queryByText(/PGFN · 5 parcelas/)).not.toBeInTheDocument();
-      expect(screen.queryByLabelText(/código/i)).not.toBeInTheDocument();
+      // A linha volta ao estado de nascença: em branco, sem a sugestão da resposta tardia.
+      expect(screen.getByLabelText(/código/i)).toHaveValue("");
     });
 
     it("Enter num campo enquanto lê não envia nem acusa erro nos campos que a leitura vai preencher", async () => {

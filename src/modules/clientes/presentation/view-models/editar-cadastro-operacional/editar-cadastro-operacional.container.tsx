@@ -19,10 +19,14 @@ import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-c
 import { atribuirResponsavelAction } from "./atribuir-responsavel.actions";
 import { editarCadastroOperacionalAction } from "./editar-cadastro-operacional.actions";
 import {
+  contatoNovo,
+  descartarLinhasEmBranco,
   leituraDaLinha,
   mudouParcelamentos,
   nomeResponsavelAtual,
   opcoesResponsavel,
+  parcelamentoNovo,
+  reposicionarErros,
   resumoDoAcordo,
 } from "./editar-cadastro-operacional.presenter";
 import { editarCadastroOperacionalFormSchema } from "./editar-cadastro-operacional.schema";
@@ -83,12 +87,14 @@ export function EditarCadastroOperacionalContainer({
     ? {
         formaEnvio:
           (dados.formaEnvio as EditarCadastroOperacionalFormValues["formaEnvio"]) ?? "whatsapp",
-        contatos: dados.contatos,
+        // Seção sem registros abre com uma linha em branco (descartada se ninguém a tocar).
+        contatos: dados.contatos.length || readOnly ? dados.contatos : [contatoNovo(true)],
         documentoObrigatorio:
           dados.documentoObrigatorio as EditarCadastroOperacionalFormValues["documentoObrigatorio"],
         dasStatus: dados.dasStatus as EditarCadastroOperacionalFormValues["dasStatus"],
         dataEnvioDas: dados.dataEnvioDas,
-        parcelamentos: dados.parcelamentos,
+        parcelamentos:
+          dados.parcelamentos.length || readOnly ? dados.parcelamentos : [parcelamentoNovo()],
         observacoesGerais: dados.observacoesGerais,
         atividadeMes: dados.atividadeMes,
         responsavelId: dados.responsavelId ?? "",
@@ -105,7 +111,30 @@ export function EditarCadastroOperacionalContainer({
     setError,
     formState: { errors },
   } = useForm<EditarCadastroOperacionalFormValues>({
-    resolver: zodResolver(editarCadastroOperacionalFormSchema),
+    // Valida sem as linhas em branco; o que sai daqui (inclusive para o submit) já vem sem elas.
+    resolver: async (valores, contexto, opcoes) => {
+      const semBranco = descartarLinhasEmBranco(valores);
+      const resultado = await zodResolver(editarCadastroOperacionalFormSchema)(
+        semBranco.valores,
+        contexto,
+        opcoes,
+      );
+      return {
+        ...resultado,
+        errors: {
+          ...resultado.errors,
+          ...(resultado.errors.contatos && {
+            contatos: reposicionarErros(resultado.errors.contatos, semBranco.contatos),
+          }),
+          ...(resultado.errors.parcelamentos && {
+            parcelamentos: reposicionarErros(
+              resultado.errors.parcelamentos,
+              semBranco.parcelamentos,
+            ),
+          }),
+        },
+      } as typeof resultado;
+    },
     defaultValues: valoresIniciais,
   });
 
@@ -271,20 +300,10 @@ export function EditarCadastroOperacionalContainer({
       sucesso={sucesso}
       oculto={!hidratado}
       contatos={fields}
-      onAdicionarContato={() => append({ nome: "", telefone: "", padrao: fields.length === 0 })}
+      onAdicionarContato={() => append(contatoNovo(fields.length === 0))}
       onRemoverContato={remove}
       parcelamentoCampos={parcelamentoCampos.fields}
-      onAdicionarParcelamento={() =>
-        parcelamentoCampos.append({
-          codigo: "",
-          parcelasRestantes: 1,
-          interno: false,
-          quitado: false,
-          temEnvio: false,
-          enviadoNoMes: false,
-          arquivoNome: "",
-        })
-      }
+      onAdicionarParcelamento={() => parcelamentoCampos.append(parcelamentoNovo())}
       onRemoverParcelamento={(indice) => {
         void leitura.ler(parcelamentoCampos.fields[indice].id, undefined); // esquece a leitura da linha
         parcelamentoCampos.remove(indice);

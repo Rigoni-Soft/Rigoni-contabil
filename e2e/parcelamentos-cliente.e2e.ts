@@ -48,7 +48,6 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
     ).toBeVisible();
 
     // PDF é obrigatório; parcelas restantes têm mínimo 1.
-    await page.getByRole("button", { name: "Adicionar parcelamento" }).click();
     await page.locator("[id='parcelamentos.0.codigo']").fill("PARC-100");
     await expect(page.locator("[id='parcelamentos.0.parcelasRestantes']")).toHaveAttribute(
       "min",
@@ -105,7 +104,6 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
     page,
   }) => {
     const clienteId = await abrirComoFuncionarioSn(page, "Leitura PDF E2E Ltda");
-    await page.getByRole("button", { name: "Adicionar parcelamento" }).click();
     await anexarEEsperarSugestao(page, 0, pdf("acordo-lido.pdf"));
     await expect(page.getByText("Sugerido pelo PDF: confira")).toBeVisible();
     await expect(
@@ -140,7 +138,6 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
     page,
   }) => {
     await abrirComoFuncionarioSn(page, "Leitura CNPJ E2E Ltda");
-    await page.getByRole("button", { name: "Adicionar parcelamento" }).click();
     await page
       .locator("[id='parcelamentos.0.arquivo']")
       .setInputFiles(pdf("outra-empresa.pdf", "[leitor:cnpj-outro]"));
@@ -153,7 +150,6 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
 
   test("leitura que falha libera os campos para digitar à mão (#125)", async ({ page }) => {
     const clienteId = await abrirComoFuncionarioSn(page, "Leitura Falha E2E Ltda");
-    await page.getByRole("button", { name: "Adicionar parcelamento" }).click();
     await page
       .locator("[id='parcelamentos.0.arquivo']")
       .setInputFiles(pdf("ilegivel.pdf", "[leitor:falha]"));
@@ -173,7 +169,6 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
     page,
   }) => {
     const clienteId = await abrirComoFuncionarioSn(page, "Parcelamento Enviado E2E Ltda");
-    await page.getByRole("button", { name: "Adicionar parcelamento" }).click();
     await anexarEEsperarSugestao(page, 0, pdf("acordo-300.pdf"));
     await page.locator("[id='parcelamentos.0.codigo']").fill("PARC-300");
     await page.getByRole("button", { name: "Salvar" }).click();

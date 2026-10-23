@@ -1,4 +1,11 @@
-import { leituraDaLinha, resumoDoAcordo } from "./editar-cadastro-operacional.presenter";
+import {
+  contatoNovo,
+  descartarLinhasEmBranco,
+  leituraDaLinha,
+  parcelamentoNovo,
+  reposicionarErros,
+  resumoDoAcordo,
+} from "./editar-cadastro-operacional.presenter";
 
 describe("resumoDoAcordo", () => {
   it("junta órgão, parcelas, valor e data de adesão, na ordem", () => {
@@ -62,5 +69,45 @@ describe("leituraDaLinha", () => {
       estado: "falhou",
       texto: "não consegui ler: digite à mão",
     });
+  });
+});
+
+describe("linhas abertas de nascença", () => {
+  const contatoPreenchido = { nome: "Maria", telefone: "11999990000", padrao: true };
+
+  it("descarta contato e parcelamento que ninguém tocou e informa os índices mantidos", () => {
+    const r = descartarLinhasEmBranco({
+      contatos: [contatoNovo(true), contatoPreenchido],
+      parcelamentos: [parcelamentoNovo(), { ...parcelamentoNovo(), codigo: "A-1" }],
+    });
+
+    expect(r.valores.contatos).toEqual([contatoPreenchido]);
+    expect(r.valores.parcelamentos.map((p) => p.codigo)).toEqual(["A-1"]);
+    expect(r.contatos).toEqual([1]);
+    expect(r.parcelamentos).toEqual([1]);
+  });
+
+  it("linha com PDF, ou salva (com id), nunca é descartada", () => {
+    const pdf = new File(["%PDF"], "a.pdf", { type: "application/pdf" });
+    const r = descartarLinhasEmBranco({
+      contatos: [{ id: "c1", nome: "", telefone: "", padrao: true }],
+      parcelamentos: [
+        { ...parcelamentoNovo(), arquivo: pdf },
+        { ...parcelamentoNovo(), id: "p1" },
+      ],
+    });
+
+    expect(r.contatos).toEqual([0]);
+    expect(r.parcelamentos).toEqual([0, 1]);
+  });
+
+  it("devolve cada erro à linha que tem na tela", () => {
+    const erro = { message: "obrigatório" };
+
+    const r = reposicionarErros([erro], [2]) as unknown[];
+
+    expect(r[2]).toBe(erro);
+    expect(r[0]).toBeUndefined();
+    expect(reposicionarErros({ message: "lista" }, [2])).toEqual({ message: "lista" });
   });
 });
