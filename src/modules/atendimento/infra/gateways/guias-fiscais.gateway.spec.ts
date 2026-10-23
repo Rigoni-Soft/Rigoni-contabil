@@ -5,8 +5,8 @@ import { err, ok } from "@/shared/kernel/result";
 import { GuiasFiscaisGateway, type ObrigacoesFiscais } from "./guias-fiscais.gateway";
 
 const PDF = { nomeArquivo: "x.pdf", pdfBase64: "JVBERi0=" };
-const PARCELA_1 = { ...PDF, parcela: "202608", valorCentavos: 100 };
-const PARCELA_2 = { ...PDF, parcela: "202609", valorCentavos: 200 };
+const PARCELA_1 = { ...PDF, parcela: "202608" };
+const PARCELA_2 = { ...PDF, parcela: "202609" };
 
 function montar(
   autorizacao: "vigente" | "vencida" | "falha" = "vigente",

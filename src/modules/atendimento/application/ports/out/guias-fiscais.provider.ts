@@ -12,7 +12,6 @@ export type GuiaFiscal = {
   competencia?: string;
   vencimento?: string;
   parcela?: string;
-  valorCentavos?: number; // guia de parcelamento: o consumidor atribui a guia pelo valor
 };
 
 export interface GuiasFiscaisPort {
