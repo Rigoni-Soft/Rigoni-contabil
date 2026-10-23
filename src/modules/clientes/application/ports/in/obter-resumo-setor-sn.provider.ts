@@ -23,6 +23,8 @@ export type CardResumoSnDto = {
   titulo: string;
   cor: CorStatusResumo;
   quantidade: number;
+  // O que o card conta, para a lista dizer em uma linha o que ela filtra (cards de parcelamento).
+  descricao?: string;
   clientes: ClienteBucketDto[];
 };
 

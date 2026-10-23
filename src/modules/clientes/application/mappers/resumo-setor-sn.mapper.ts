@@ -5,11 +5,13 @@ import type {
   ParcelamentoBucketDto,
 } from "@/modules/clientes/application/ports/in/obter-resumo-setor-sn.provider";
 import type { ResumoOperacionalRow } from "@/modules/clientes/application/ports/out/cliente-query.provider";
+import { PRIMEIRO_DIA_EM_ATRASO } from "@/shared/kernel/dias-do-job-parcelamento";
 
 type Bucket = {
   id: string;
   titulo: string;
   cor: CorStatusResumo;
+  descricao?: string;
   pertence: (linha: ResumoOperacionalRow, agora: Date) => boolean;
   // Cards do grupo Parcelamento listam, por Cliente, a marca interno e o status do mês.
   comParcelamentos?: true;
@@ -58,6 +60,7 @@ const BUCKETS: readonly Bucket[] = [
   },
   {
     id: "com_parcelamento",
+    descricao: "Clientes com algum parcelamento cadastrado, em aberto ou quitado.",
     titulo: "Com parcelamento",
     cor: "informativo",
     pertence: doGrupoParcelamento("comParcelamento"),
@@ -65,6 +68,7 @@ const BUCKETS: readonly Bucket[] = [
   },
   {
     id: "parcelamento_em_aberto",
+    descricao: "Clientes com algum parcelamento ainda não quitado.",
     titulo: "Em aberto",
     cor: "andamento",
     pertence: doGrupoParcelamento("emAberto"),
@@ -72,6 +76,7 @@ const BUCKETS: readonly Bucket[] = [
   },
   {
     id: "parcelamento_pendente",
+    descricao: "Clientes com parcelamento em aberto cuja guia deste mês ainda não foi enviada.",
     titulo: "Parcelamento pendente",
     cor: "atencao",
     pertence: doGrupoParcelamento("pendente"),
@@ -79,6 +84,7 @@ const BUCKETS: readonly Bucket[] = [
   },
   {
     id: "parcelamento_pendente_atraso",
+    descricao: `Clientes com guia de parcelamento pendente a partir do dia ${PRIMEIRO_DIA_EM_ATRASO}, depois da última rodada de envio do mês.`,
     titulo: "Pendente em atraso",
     cor: "urgente",
     pertence: doGrupoParcelamento("pendenteEmAtraso"),
@@ -86,6 +92,8 @@ const BUCKETS: readonly Bucket[] = [
   },
   {
     id: "parcelamento_interno",
+    descricao:
+      "Clientes com parcelamento interno em aberto: a guia vai ao financeiro, não ao cliente.",
     titulo: "Parcelamento interno",
     cor: "informativo",
     pertence: doGrupoParcelamento("interno"),
@@ -93,6 +101,7 @@ const BUCKETS: readonly Bucket[] = [
   },
   {
     id: "parcelamento_enviado",
+    descricao: "Clientes cujos parcelamentos em aberto já tiveram a guia deste mês enviada.",
     titulo: "Parcelamento enviado",
     cor: "em_dia",
     pertence: doGrupoParcelamento("enviado"),
@@ -118,6 +127,7 @@ export function classificarResumoSetorSn(
       id: bucket.id,
       titulo: bucket.titulo,
       cor: bucket.cor,
+      descricao: bucket.descricao,
       quantidade: clientes.length,
       clientes: clientes.map((c) => ({
         clienteId: c.clienteId,

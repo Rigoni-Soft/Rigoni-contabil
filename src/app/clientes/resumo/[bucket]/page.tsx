@@ -38,6 +38,7 @@ export default async function Page({ params }: Props) {
         />
       }
       titulo={card.titulo}
+      descricao={card.descricao}
       lista={<ResumoSetorSnLista clientes={card.clientes} bucket={bucket} />}
     />
   );

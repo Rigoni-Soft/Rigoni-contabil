@@ -119,14 +119,16 @@ test.describe("Resumo do setor (#36)", () => {
     }
 
     // Pendente (o interno ainda sem envio) e interno listam o mesmo Cliente, com os dois parcelamentos.
-    for (const [card, bucket] of [
-      ["Parcelamento pendente", "parcelamento_pendente"],
-      ["Parcelamento interno", "parcelamento_interno"],
+    for (const [card, bucket, definicao] of [
+      ["Parcelamento pendente", "parcelamento_pendente", /guia deste mês ainda não foi enviada/],
+      ["Parcelamento interno", "parcelamento_interno", /a guia vai ao financeiro/],
     ] as const) {
       await page.goto("/simples-nacional");
       await page.getByRole("link", { name: new RegExp(card) }).click();
       await expect(page).toHaveURL(new RegExp(`/clientes/resumo/${bucket}$`));
       // Os parcelamentos ficam abaixo do link (fora dele): o item da lista os reúne com o Cliente.
+      // A lista diz em uma linha o que ela filtra (o título sozinho, ex. "Em aberto", não basta).
+      await expect(page.getByText(definicao)).toBeVisible();
       const linha = page.getByRole("listitem").filter({ hasText: empresa }).first();
       await expect(linha).toContainText("PARC-COMUM");
       await expect(linha).toContainText("Enviado no mês");

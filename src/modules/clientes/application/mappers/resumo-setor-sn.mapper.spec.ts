@@ -204,6 +204,24 @@ describe("classificarResumoSetorSn", () => {
       ]);
     });
 
+    it("cada card de parcelamento traz uma definição que diz o que conta; o atraso cita o dia da regra", () => {
+      const cards = classificarResumoSetorSn([]);
+      const descricao = (id: string) => cards.find((c) => c.id === id)!.descricao;
+
+      for (const id of [
+        "com_parcelamento",
+        "parcelamento_em_aberto",
+        "parcelamento_pendente",
+        "parcelamento_pendente_atraso",
+        "parcelamento_interno",
+        "parcelamento_enviado",
+      ]) {
+        expect(descricao(id)).toMatch(/parcelamento|guia/);
+      }
+      expect(descricao("parcelamento_pendente_atraso")).toMatch(/dia 29/);
+      expect(descricao("das_emitidas")).toBeUndefined();
+    });
+
     it("os cards de DAS não carregam parcelamentos na lista", () => {
       const cards = classificarResumoSetorSn([
         linha({ dasStatus: "enviado", parcelamentos: [parcelamento()] }),
