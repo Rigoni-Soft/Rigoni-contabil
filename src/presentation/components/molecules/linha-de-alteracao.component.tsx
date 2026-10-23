@@ -46,7 +46,11 @@ export function LinhaDeAlteracao({
   const idErroData = idErroDoCampo(idData);
   const idErroArquivo = idErroDoCampo(idArquivo);
   return (
-    <Caixa className="flex flex-col gap-2 rounded-md border border-border p-3">
+    <Caixa
+      role="group"
+      aria-label={`Alteração ${indice + 1}`}
+      className="flex flex-col gap-2 rounded-md border border-border p-3"
+    >
       <Linha alinhar="centro" justificar="entre" espaco={2}>
         <Texto
           variante="corpo"

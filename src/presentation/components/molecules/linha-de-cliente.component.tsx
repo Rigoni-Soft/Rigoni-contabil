@@ -7,26 +7,35 @@ type LinhaDeClienteProps = {
   href: string;
   empresa: string;
   cnpj: string;
+  // Informação extra do Cliente na lista (ex.: parcelamentos). Fica abaixo da linha, fora do link: o
+  // nome acessível do link continua sendo só empresa e CNPJ, e a lista interna mantém a navegação.
+  // O anel de foco do link fica por dentro da linha (não invade os detalhes nem é cortado).
+  detalhes?: React.ReactNode;
 };
 
 // Cliente em lista: leva ao cadastro operacional dele.
-export function LinhaDeCliente({ href, empresa, cnpj }: LinhaDeClienteProps) {
+export function LinhaDeCliente({ href, empresa, cnpj, detalhes }: LinhaDeClienteProps) {
   return (
-    <Linha
-      como={Link}
-      href={href}
-      alinhar="centro"
-      justificar="entre"
-      espaco={3}
-      className="px-4 py-3 hover:bg-accent/50"
-    >
-      <Caixa>
-        <Texto variante="destaque">{empresa}</Texto>
-        <Texto variante="apoio">{cnpj}</Texto>
-      </Caixa>
-      <Texto como="span" variante="apoio">
-        Ver cadastro →
-      </Texto>
-    </Linha>
+    <Caixa>
+      <Linha
+        como={Link}
+        href={href}
+        alinhar="centro"
+        justificar="entre"
+        espaco={3}
+        className="px-4 py-3 hover:bg-accent/50 focus-visible:-outline-offset-2"
+      >
+        <Caixa className="min-w-0">
+          <Texto variante="destaque" className="break-words">
+            {empresa}
+          </Texto>
+          <Texto variante="apoio">{cnpj}</Texto>
+        </Caixa>
+        <Texto como="span" variante="apoio" className="shrink-0">
+          Ver cadastro →
+        </Texto>
+      </Linha>
+      {detalhes && <Caixa className="px-4 pt-1 pb-3">{detalhes}</Caixa>}
+    </Caixa>
   );
 }

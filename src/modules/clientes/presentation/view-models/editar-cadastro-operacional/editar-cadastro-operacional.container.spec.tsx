@@ -7,7 +7,17 @@ import type { CadastroOperacionalClienteDto } from "@/modules/clientes/applicati
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok } from "@/shared/kernel/result";
 
+import { editarCadastroOperacionalAction } from "./editar-cadastro-operacional.actions";
 import { EditarCadastroOperacionalContainer } from "./editar-cadastro-operacional.container";
+
+// Passa a chamada adiante (a action real roda sobre o `executeMock`); só registra o que ela recebeu.
+jest.mock("./editar-cadastro-operacional.actions", () => {
+  const real = jest.requireActual("./editar-cadastro-operacional.actions");
+  return {
+    ...real,
+    editarCadastroOperacionalAction: jest.fn(real.editarCadastroOperacionalAction),
+  };
+});
 
 const routerPush = jest.fn();
 jest.mock("next/navigation", () => ({
@@ -38,8 +48,7 @@ const dados: CadastroOperacionalClienteDto = {
   documentoObrigatorio: "positivo",
   dasStatus: "pronto",
   dataEnvioDas: null,
-  temParcelamento: false,
-  parcelamentoStatus: null,
+  parcelamentos: [],
   observacoesGerais: "Cliente pontual.",
   atividadeMes: { industria: false, comercio: true, servico: false },
   responsavelId: null,
@@ -428,6 +437,67 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(executeMock).toHaveBeenCalledWith(
       expect.objectContaining({ clienteId: dados.id, observacoesGerais: "Atualizado." }),
     );
+  });
+
+  it("a action do cadastro não recebe os Parcelamentos (os PDFs vão só pela action própria)", async () => {
+    executeMock.mockResolvedValue({ ok: true, value: { clienteId: dados.id } });
+    const comParcelamento = {
+      ...dados,
+      parcelamentos: [
+        {
+          id: "11111111-1111-4111-8111-111111111111",
+          codigo: "A-1",
+          parcelasRestantes: 3,
+          interno: false,
+          quitado: false,
+          temEnvio: false,
+          enviadoNoMes: false,
+          arquivoNome: "acordo.pdf",
+        },
+      ],
+    } as CadastroOperacionalClienteDto;
+    const usuario = userEvent.setup();
+    render(<EditarCadastroOperacionalContainer dados={comParcelamento} readOnly={false} />);
+
+    await usuario.clear(screen.getByLabelText(/observações gerais/i));
+    await usuario.type(screen.getByLabelText(/observações gerais/i), "Atualizado.");
+    await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+
+    await screen.findByText(/atualizado/i);
+    const enviado = jest.mocked(editarCadastroOperacionalAction).mock.calls.at(-1)?.[0];
+    expect(enviado).toBeDefined();
+    expect(enviado).not.toHaveProperty("parcelamentos");
+  });
+
+  it("sem Contatos nem Parcelamentos abre com uma linha em branco de cada, que não impede salvar", async () => {
+    executeMock.mockResolvedValue({ ok: true, value: { clienteId: dados.id } });
+    const usuario = userEvent.setup();
+    render(
+      <EditarCadastroOperacionalContainer
+        dados={{ ...dados, contatos: [], parcelamentos: [] }}
+        readOnly={false}
+      />,
+    );
+
+    expect(screen.getByLabelText(/^nome/i)).toHaveValue("");
+    expect(screen.getByLabelText(/código/i)).toHaveValue("");
+    await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+
+    expect(await screen.findByText(/atualizado/i)).toBeInTheDocument();
+    expect(executeMock).toHaveBeenCalledWith(expect.objectContaining({ contatos: [] }));
+  });
+
+  it("linha de Contato preenchida pela metade acusa o erro na linha certa", async () => {
+    const usuario = userEvent.setup();
+    render(
+      <EditarCadastroOperacionalContainer dados={{ ...dados, contatos: [] }} readOnly={false} />,
+    );
+
+    await usuario.type(screen.getByLabelText(/^nome/i), "Maria");
+    await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+
+    expect(await screen.findByText("obrigatório")).toBeInTheDocument();
+    expect(executeMock).not.toHaveBeenCalled();
   });
 
   it("Promise rejeitada da Server Action não prende o botão em 'Salvando...'", async () => {

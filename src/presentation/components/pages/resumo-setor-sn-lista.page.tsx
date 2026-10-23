@@ -4,10 +4,16 @@ import { TelaDeTrabalhoTemplate } from "@/presentation/components/templates/tela
 type ResumoSetorSnListaPageProps = {
   header: React.ReactNode;
   titulo: string;
+  descricao?: string;
   lista: React.ReactNode;
 };
 
-export function ResumoSetorSnListaPage({ header, titulo, lista }: ResumoSetorSnListaPageProps) {
+export function ResumoSetorSnListaPage({
+  header,
+  titulo,
+  descricao,
+  lista,
+}: ResumoSetorSnListaPageProps) {
   return (
     <TelaDeTrabalhoTemplate
       header={header}
@@ -17,6 +23,7 @@ export function ResumoSetorSnListaPage({ header, titulo, lista }: ResumoSetorSnL
           voltarHref="/simples-nacional"
           voltarRotulo="Voltar ao resumo"
           titulo={titulo}
+          descricao={descricao}
         />
       }
       conteudo={lista}

@@ -52,8 +52,6 @@ export function clienteDoRow(row: ClienteRow): Cliente {
     documentoObrigatorio: operacional?.documento_obrigatorio ?? null,
     dasStatus: operacional?.das_status ?? null,
     dataEnvioDas: operacional?.data_envio_das ?? null,
-    temParcelamento: operacional?.tem_parcelamento ?? false,
-    parcelamentoStatus: operacional?.parcelamento_status ?? null,
     observacoesGerais: operacional?.observacoes_gerais ?? "",
     atividadeMesAtual: atividade
       ? {

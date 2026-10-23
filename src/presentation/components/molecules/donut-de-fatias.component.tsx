@@ -2,7 +2,8 @@ import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.compo
 import { CartaoDeGrafico } from "@/presentation/components/atoms/cartao-de-grafico.component";
 import { DonutSvg } from "@/presentation/components/atoms/donut-svg.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
-import { corDaFatia, type Fatia } from "@/presentation/lib/fatia-de-grafico";
+import { corDeStatus } from "@/presentation/lib/cor-de-status";
+import type { Fatia } from "@/presentation/lib/fatia-de-grafico";
 import { cn } from "@/presentation/lib/utils";
 
 // Donut de fatias com o total no centro e a legenda (cor + rótulo + número) ao lado. A cor nunca é
@@ -18,7 +19,7 @@ export function DonutDeFatias({ titulo, fatias }: { titulo: string; fatias: Fati
               <Caixa
                 como="span"
                 aria-hidden
-                className={cn("size-3 shrink-0 rounded-sm", corDaFatia(f.id).fundo)}
+                className={cn("size-3 shrink-0 rounded-sm", corDeStatus(f.cor).fundo)}
               />
               <Texto como="span" variante="corpo">
                 {f.rotulo}

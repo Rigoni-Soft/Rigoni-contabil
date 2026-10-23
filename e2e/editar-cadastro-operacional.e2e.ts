@@ -59,7 +59,6 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
 
     await page.getByLabel("Forma de envio").selectOption("email");
-    await page.getByRole("button", { name: "Adicionar contato" }).click();
     await page.getByLabel("Nome").fill("Maria Contato");
     await page.getByLabel("Telefone").fill("11999998888");
     await page.getByLabel("Documento recebido").selectOption("positivo");

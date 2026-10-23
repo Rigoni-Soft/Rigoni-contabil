@@ -151,7 +151,9 @@ especialista da tela, organizando átomos e moléculas (formulários, listas,
 painéis). Template: organiza os slots da tela, sem marcação de conteúdo
 (`tela-de-trabalho`, `entrada`, `conversa`). Page: só renderiza o template com os
 slots preenchidos. **Nenhum elemento HTML cru fora de `atoms/` e `ui/`** (lint): o
-contêiner é `Caixa` (`como="section"|"ul"|"li"|"form"…`), o ritmo vertical é
+contêiner é `Caixa` (`como="section"|"ul"|"li"|"form"…`; `ul`/`ol` levam `role="list"`
+automático, porque o reset do Tailwind tira o marcador e o Safari/VoiceOver deixaria de anunciar a
+lista), o ritmo vertical é
 `Pilha espaco={1|2|3|4|6|8|"campo"|"formulario"}`, a linha é `Linha`
 (`alinhar`, `justificar`, `espaco`, `quebra`), a malha é `Grade colunas="1>2"|"1>3"|…`,
 e o texto é `Texto` com um
@@ -324,6 +326,9 @@ de conta criada, fora de uma lista — confirma que o contrato é de indicador
 de resultado em geral, não específico de tabela. `success` (dourado) fica
 reservado ao selo "em dia" do Simples Nacional — não se usa aqui para não
 sobrepor dois significados no mesmo token.
+O selo de status do mês de cada Parcelamento no Editar cliente (#122) segue o mesmo contrato:
+"Enviado no mês" em `primary` com `CheckCircle2`, "Pendente no mês" em `muted` com `Clock` (pendente
+ali não é falha, então sem `destructive`) e "Quitado" neutro, só texto.
 
 **`FieldError` com texto longo:** o ícone alinha na primeira linha
 (`items-start` + `mt-[3px]`, 14 px de ícone sobre 20 px de linha), então o
@@ -342,6 +347,9 @@ inventar uma cor/ícone intermediário. O aviso é state do Container (não do
 schema Zod: `avisoCnpj`/`avisoRegime` em `criar-cliente.container.tsx`), e
 some assim que o usuário edita o campo correspondente a mão — nunca fica
 preso na tela depois que a pessoa já agiu sobre ele.
+O CNPJ lido do PDF de um Parcelamento (#125) diferente do CNPJ do Cliente segue o mesmo padrão: `FieldError`
+em linha própria, abaixo do estado da leitura ("Sugerido pelo PDF: confira"), sem bloquear o salvar; é state do
+Container (hook de leitura) e some ao trocar o PDF.
 
 ### Ações pós-sucesso (confirmação de cadastro)
 
@@ -533,8 +541,8 @@ contexto da troca de tela.
 ### Resumo do setor (anéis de status, #36)
 
 **`ResumoSetorSn` / `ResumoSetorSnLista` (/simples-nacional):**
-9 cards fixos (invariante do mapper, ordem garantida por teste) divididos em
-dois grupos — "Documentos e DAS" (5) e "Parcelamento" (4) — cada card é um
+11 cards fixos (invariante do mapper, ordem garantida por teste) divididos em
+dois grupos — "Documentos e DAS" (5) e "Parcelamento" (6) — cada card é um
 `Link` inteiro (não botão + link separados) pra
 `/clientes/resumo/<bucket>`, que abre a lista filtrada
 daquele status como tela própria (não modal, não accordion inline — mesma
@@ -548,6 +556,30 @@ mapeados 1:1 com as cores do protótipo aprovado na spec #24), sem introduzir
 nenhum token novo. É o primeiro uso visual real do token `success`
 (dourado) desde que foi definido — deixa de ser "token sem uso" (ver "O que
 ainda não existe" abaixo).
+
+**Grupo Parcelamento (#129):** os 6 cards contam **Clientes** (cada um uma vez por card) e
+**não são mutuamente exclusivos** — "Com parcelamento", "Em aberto", "Parcelamento pendente"
+(`atencao`), "Pendente em atraso" (`urgente`, a partir do dia 29, depois da última rodada do
+job), "Parcelamento interno" e "Parcelamento enviado". O parcelamento interno segue o
+mesmo fluxo dos demais (pendente, atraso, enviado); só o destino da guia muda (financeiro, não o
+Cliente), e o Cliente nunca o vê. Em fevereiro comum (sem dia 29) o atraso começa no último dia do
+mês. O parcelamento interno vai ao
+financeiro, não ao Cliente: ele conta em "Com parcelamento", "Em aberto" e "Parcelamento interno",
+mas fica fora de "pendente", "em atraso" e "enviado", que medem a entrega ao Cliente. Em fevereiro
+comum (sem dia 29) o atraso começa no último dia do mês. A grade do grupo é `2>3` (2×3 no
+celular, 3×2 de `sm` em diante): 6 cards em 5 colunas deixariam um órfão. No celular (2 colunas), um grupo
+de número ímpar de cards ("Documentos e DAS", 5) faz o último ocupar a linha toda
+(`max-sm:last:odd:col-span-2` no item), em vez de ficar sozinho num canto. A definição única vive em
+`parcelamentos-do-cliente.ts` e alimenta cards e comparativos; os anéis, por isso, podem somar
+mais que o total. As listas `/clientes/resumo/<bucket>` desse grupo trazem sob o título uma
+linha que define o que o card conta (texto do mapper, com o dia do atraso vindo da constante do
+job) e, em cada Cliente, abaixo da linha-link (nunca dentro dela), os parcelamentos em colunas
+alinhadas entre as linhas — código (até 20ch, o excesso quebra), marca "Interno" e selo do mês
+(`SeloDeParcelamento`, o mesmo do Editar cliente). As linhas usam
+`content-visibility: auto` (o navegador pula layout e pintura do que está fora da tela; por isso o
+anel de foco da linha-link é desenhado por dentro, sem ser cortado). A lista não é paginada: com
+340 linhas são ~100 KB comprimidos e, simulando 3.400, o layout leva ~75 ms. Rever a paginação se
+uma lista passar de alguns milhares de linhas ou de ~300 KB comprimidos.
 
 **Título do card e contagem total via sr-only:** a proporção visual do anel
 (fração preenchida do círculo) não tem equivalente textual pra quem usa
@@ -585,12 +617,18 @@ grid `md:grid-cols-2 lg:grid-cols-3` (3 gráficos) — o Líder do SN ganha um 4
 (`text-xl font-bold tracking-tight text-primary`) — h1 e h2 nunca com o mesmo
 tamanho; cada gráfico é um cartão
 `rounded-xl border bg-card` (mesma superfície dos cards do resumo, sem
-guilhochê) com `role="group"` + título. DAS e parcelamento são donuts SVG
-(sem biblioteca de gráfico, anel de fundo `stroke-border`); Atividade do mês
-é lista de barras proporcionais ao total de clientes e ocupa a largura toda
+guilhochê) com `role="group"` + título. O DAS é donut SVG (fatias
+exclusivas, sem biblioteca de gráfico, anel de fundo `stroke-border`); parcelamento e
+Atividade do mês são listas de barras proporcionais ao total de clientes, porque as
+situações não se excluem (um donut somaria o mesmo Cliente várias vezes, #129) e ocupa a largura toda
 no tablet (`md:col-span-2`). Só tokens existentes: `primary` (enviado),
-`destructive` (pendente), `success` (pronto), `muted-foreground` (sem
-movimento/interno). A cor nunca é o único
+`destructive` (pendente do DAS), `success` (pronto), `muted-foreground` (sem
+movimento/interno). O dourado `success` quer dizer "aguarda ação do escritório": é a tinta de
+"Sem documento", "Esperando envio DAS" (a fatia "Pronto" do donut, que precisa de 4 tintas
+distintas: verde, vermelho, neutro e dourado) e "Parcelamento pendente". As fatias de parcelamento seguem a escala dos cards
+(`cor-de-status.ts`, a mesma do anel): enviado `primary`, pendente `success`
+(atenção: ainda dentro do ciclo de envio), "Em atraso" `destructive` (a partir do dia 29)
+e interno `muted-foreground` — o vermelho de parcelamento é só do atraso. A cor nunca é o único
 canal: toda fatia tem legenda com rótulo e número.
 
 **4º comparativo — "Envio de DAS por Responsável" (#65, só Líder):** barras

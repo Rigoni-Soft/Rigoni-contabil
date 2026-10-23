@@ -176,8 +176,6 @@ describe("ClienteBuilder", () => {
       expect(resultado.value.documentoObrigatorio).toBeNull();
       expect(resultado.value.dasStatus).toBeNull();
       expect(resultado.value.dataEnvioDas).toBeNull();
-      expect(resultado.value.temParcelamento).toBe(false);
-      expect(resultado.value.parcelamentoStatus).toBeNull();
       expect(resultado.value.observacoesGerais).toBe("");
       expect(resultado.value.atividadeMesAtual).toBeNull();
     }
@@ -196,8 +194,6 @@ describe("ClienteBuilder", () => {
       .comDocumentoObrigatorio("positivo")
       .comDasStatus("pronto")
       .comDataEnvioDas(new Date("2026-09-10"))
-      .comTemParcelamento(true)
-      .comParcelamentoStatus("enviado")
       .comObservacoesGerais("Cliente pontual.")
       .comAtividadeMesAtual({ anoMes: "2026-09", industria: false, comercio: true, servico: false })
       .build();
@@ -208,8 +204,6 @@ describe("ClienteBuilder", () => {
       expect(resultado.value.contatos).toHaveLength(1);
       expect(resultado.value.documentoObrigatorio?.valor).toBe("positivo");
       expect(resultado.value.dasStatus?.valor).toBe("pronto");
-      expect(resultado.value.temParcelamento).toBe(true);
-      expect(resultado.value.parcelamentoStatus?.valor).toBe("enviado");
       expect(resultado.value.observacoesGerais).toBe("Cliente pontual.");
       expect(resultado.value.atividadeMesAtual?.comercio).toBe(true);
     }
@@ -262,8 +256,6 @@ describe("ClienteBuilder", () => {
         documentoObrigatorio: "positivo",
         dasStatus: "pronto",
         dataEnvioDas: "2026-09-10",
-        temParcelamento: true,
-        parcelamentoStatus: "enviado",
         observacoesGerais: "Cliente pontual.",
         atividadeMesAtual: { anoMes: "2026-09", industria: false, comercio: true, servico: false },
       })

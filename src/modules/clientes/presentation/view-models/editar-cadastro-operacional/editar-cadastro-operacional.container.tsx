@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useFieldArray, useForm, useWatch } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 
 import { Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
@@ -18,9 +18,21 @@ import { REGIME_LABEL, regimeTemCadastroOperacionalSn } from "@/shared/kernel/re
 import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
 import { atribuirResponsavelAction } from "./atribuir-responsavel.actions";
 import { editarCadastroOperacionalAction } from "./editar-cadastro-operacional.actions";
-import { nomeResponsavelAtual, opcoesResponsavel } from "./editar-cadastro-operacional.presenter";
+import {
+  contatoNovo,
+  descartarLinhasEmBranco,
+  leituraDaLinha,
+  mudouParcelamentos,
+  nomeResponsavelAtual,
+  opcoesResponsavel,
+  parcelamentoNovo,
+  reposicionarErros,
+  resumoDoAcordo,
+} from "./editar-cadastro-operacional.presenter";
 import { editarCadastroOperacionalFormSchema } from "./editar-cadastro-operacional.schema";
 import { useResponsaveisElegiveis } from "./responsaveis.queries";
+import { salvarParcelamentosAction } from "./salvar-parcelamentos.actions";
+import { useLeituraDoPdf } from "./use-leitura-do-pdf.hook";
 
 type Props = {
   dados: CadastroOperacionalClienteDto | null;
@@ -75,14 +87,14 @@ export function EditarCadastroOperacionalContainer({
     ? {
         formaEnvio:
           (dados.formaEnvio as EditarCadastroOperacionalFormValues["formaEnvio"]) ?? "whatsapp",
-        contatos: dados.contatos,
+        // Seção sem registros abre com uma linha em branco (descartada se ninguém a tocar).
+        contatos: dados.contatos.length || readOnly ? dados.contatos : [contatoNovo(true)],
         documentoObrigatorio:
           dados.documentoObrigatorio as EditarCadastroOperacionalFormValues["documentoObrigatorio"],
         dasStatus: dados.dasStatus as EditarCadastroOperacionalFormValues["dasStatus"],
         dataEnvioDas: dados.dataEnvioDas,
-        temParcelamento: dados.temParcelamento,
-        parcelamentoStatus:
-          dados.parcelamentoStatus as EditarCadastroOperacionalFormValues["parcelamentoStatus"],
+        parcelamentos:
+          dados.parcelamentos.length || readOnly ? dados.parcelamentos : [parcelamentoNovo()],
         observacoesGerais: dados.observacoesGerais,
         atividadeMes: dados.atividadeMes,
         responsavelId: dados.responsavelId ?? "",
@@ -94,22 +106,57 @@ export function EditarCadastroOperacionalContainer({
     control,
     handleSubmit,
     reset,
+    getValues,
+    setValue,
     setError,
     formState: { errors },
   } = useForm<EditarCadastroOperacionalFormValues>({
-    resolver: zodResolver(editarCadastroOperacionalFormSchema),
+    // Valida sem as linhas em branco; o que sai daqui (inclusive para o submit) já vem sem elas.
+    resolver: async (valores, contexto, opcoes) => {
+      const semBranco = descartarLinhasEmBranco(valores);
+      const resultado = await zodResolver(editarCadastroOperacionalFormSchema)(
+        semBranco.valores,
+        contexto,
+        opcoes,
+      );
+      return {
+        ...resultado,
+        errors: {
+          ...resultado.errors,
+          ...(resultado.errors.contatos && {
+            contatos: reposicionarErros(resultado.errors.contatos, semBranco.contatos),
+          }),
+          ...(resultado.errors.parcelamentos && {
+            parcelamentos: reposicionarErros(
+              resultado.errors.parcelamentos,
+              semBranco.parcelamentos,
+            ),
+          }),
+        },
+      } as typeof resultado;
+    },
     defaultValues: valoresIniciais,
   });
 
-  const temParcelamento = useWatch({
-    control,
-    name: "temParcelamento",
-    defaultValue: dados?.temParcelamento ?? false,
-  });
+  // Lido no render, sem assinar o campo: o que a tela exibe (resumo, selo, quitado, nome do PDF) só
+  // muda quando uma linha entra ou sai (`parcelamentoCampos` re-renderiza), não a cada tecla.
+  const parcelamentos = (getValues("parcelamentos") ?? dados?.parcelamentos ?? []).map((p) => ({
+    ...p,
+    acordoResumo: resumoDoAcordo(p.acordo),
+  }));
   // Lista de Funcionários só é buscada quando o Líder abre o Select.
   const [listaAberta, setListaAberta] = useState(false);
   const elegiveis = useResponsaveisElegiveis(podeAtribuirResponsavel && listaAberta);
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
+  const parcelamentoCampos = useFieldArray({ control, name: "parcelamentos" });
+  // A leitura do PDF termina depois de a lista poder ter mudado: acha a linha pelo id, no momento.
+  const camposAtuais = useRef(parcelamentoCampos.fields);
+  useEffect(() => {
+    camposAtuais.current = parcelamentoCampos.fields;
+  });
+  const leitura = useLeituraDoPdf(dados?.id ?? "", setValue, (id) =>
+    camposAtuais.current.findIndex((campo) => campo.id === id),
+  );
 
   const aoSubmeter = handleSubmit(async (valores) => {
     if (!dados) return;
@@ -120,16 +167,19 @@ export function EditarCadastroOperacionalContainer({
     // Vira true quando o cadastro está persistido (nesta tentativa ou numa anterior): a mensagem
     // de erro de transporte precisa dizer isso em vez de sugerir que nada foi salvo.
     let cadastroPersistido = false;
+    // O que falta concluir depois do cadastro salvo: nomeia a etapa na mensagem de erro de transporte.
+    let etapa = "atribuir o Responsável";
     // try/finally: rejeição de transporte da Server Action não pode deixar o
     // botão preso em "Salvando...".
     try {
       // O Responsável é salvo à parte: fica fora do retrato que decide se o cadastro mudou.
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { responsavelId: _responsavelId, ...cadastro } = valores;
+      const { responsavelId: _responsavelId, parcelamentos: _parcelamentos, ...cadastro } = valores;
       const retrato = JSON.stringify(cadastro);
       if (cadastroSalvo !== retrato) {
+        // `cadastro`, sem os Parcelamentos: os PDFs não podem viajar nesta chamada (teto de corpo da Vercel).
         const resultado = await editarCadastroOperacionalAction({
-          ...valores,
+          ...cadastro,
           clienteId: dados.id,
         });
 
@@ -149,6 +199,22 @@ export function EditarCadastroOperacionalContainer({
       // da atribuição, para valer também quando a atribuição rejeita por erro de transporte.
       setCadastroSalvo(retrato);
       cadastroPersistido = true;
+
+      // Parcelamentos têm PDF: vão por Server Action própria, depois do cadastro. Sem mudança, não vão.
+      if (mudouParcelamentos(valores.parcelamentos, dados.parcelamentos)) {
+        etapa = "salvar os Parcelamentos";
+        const salvos = await salvarParcelamentosAction({
+          clienteId: dados.id,
+          parcelamentos: valores.parcelamentos,
+        });
+        if (!salvos.ok) {
+          setErroServidor(
+            `Os dados foram salvos, mas não foi possível salvar os Parcelamentos. ${salvos.error.message}`,
+          );
+          return;
+        }
+      }
+      etapa = "atribuir o Responsável";
 
       if (podeAtribuirResponsavel && valores.responsavelId !== (dados.responsavelId ?? "")) {
         const atribuicao = await atribuirResponsavelAction({
@@ -174,7 +240,7 @@ export function EditarCadastroOperacionalContainer({
     } catch {
       setErroServidor(
         cadastroPersistido
-          ? "Os dados foram salvos, mas não foi possível atribuir o Responsável. Verifique a conexão e tente novamente."
+          ? `Os dados foram salvos, mas não foi possível ${etapa}. Verifique a conexão e tente novamente.`
           : "Não foi possível salvar agora. Verifique a conexão e tente novamente.",
       );
     } finally {
@@ -184,6 +250,7 @@ export function EditarCadastroOperacionalContainer({
 
   const aoLimpar = () => {
     reset(valoresIniciais);
+    leitura.esquecerTodas();
     setErroServidor(undefined);
     setSucesso(false);
   };
@@ -227,14 +294,26 @@ export function EditarCadastroOperacionalContainer({
         estadoLista: elegiveis.isError ? "erro" : elegiveis.isLoading ? "carregando" : "ok",
         onTentarNovamente: () => void elegiveis.refetch(),
       }}
-      temParcelamento={temParcelamento}
+      parcelamentos={parcelamentos}
       dasEnviadoPeloSistema={dados?.dasStatus === "enviado"}
       erroServidor={erroServidor}
       sucesso={sucesso}
       oculto={!hidratado}
       contatos={fields}
-      onAdicionarContato={() => append({ nome: "", telefone: "", padrao: fields.length === 0 })}
+      onAdicionarContato={() => append(contatoNovo(fields.length === 0))}
       onRemoverContato={remove}
+      parcelamentoCampos={parcelamentoCampos.fields}
+      onAdicionarParcelamento={() => parcelamentoCampos.append(parcelamentoNovo())}
+      onRemoverParcelamento={(indice) => {
+        void leitura.ler(parcelamentoCampos.fields[indice].id, undefined); // esquece a leitura da linha
+        parcelamentoCampos.remove(indice);
+      }}
+      leituras={Object.fromEntries(
+        Object.entries(leitura.leituras).map(([id, estado]) => [id, leituraDaLinha(estado)]),
+      )}
+      onArquivoEscolhido={(indice, arquivo) =>
+        void leitura.ler(parcelamentoCampos.fields[indice].id, arquivo)
+      }
       onLimpar={aoLimpar}
       onCancelar={onCancelar}
       documentoContratual={

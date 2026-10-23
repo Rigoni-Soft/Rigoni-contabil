@@ -6,11 +6,19 @@ import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcac
 import { Grade, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { NotaDeObrigatorio } from "@/presentation/components/atoms/nota-de-obrigatorio.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { AcoesDoFormulario } from "@/presentation/components/molecules/acoes-do-formulario.component";
+import { CampoDeArquivo } from "@/presentation/components/molecules/campo-de-arquivo.component";
 import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { CampoResponsavel } from "@/presentation/components/molecules/campo-responsavel.component";
+import {
+  IndicadorDeLeitura,
+  type EstadoDeLeitura,
+} from "@/presentation/components/molecules/indicador-de-leitura.component";
 import { LinhaDeContato } from "@/presentation/components/molecules/linha-de-contato.component";
+import { LinhaDeParcelamento } from "@/presentation/components/molecules/linha-de-parcelamento.component";
+import type { SeloDoParcelamento } from "@/presentation/components/molecules/selo-do-parcelamento.component";
 import { Button } from "@/presentation/components/ui/button";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
@@ -25,11 +33,6 @@ import {
 } from "@/shared/kernel/documento-obrigatorio-status";
 import { FORMA_ENVIO_LABEL, FORMAS_ENVIO, type FormaEnvioValor } from "@/shared/kernel/forma-envio";
 import { SEM_RESPONSAVEL_LABEL } from "@/shared/kernel/papeis";
-import {
-  PARCELAMENTO_STATUS_LABEL,
-  PARCELAMENTO_STATUSES,
-  type ParcelamentoStatusValor,
-} from "@/shared/kernel/parcelamento-status";
 import { REGIME_LABEL } from "@/shared/kernel/regimes";
 
 // Opções dos selects de status (valor/rótulo), montadas uma vez.
@@ -43,7 +46,43 @@ const OPCOES_DAS = opcoes(
   DAS_STATUS_LABEL,
 );
 const OPCAO_DAS_ENVIADO = { valor: "enviado", rotulo: DAS_STATUS_LABEL.enviado };
-const OPCOES_PARCELAMENTO = opcoes(PARCELAMENTO_STATUSES, PARCELAMENTO_STATUS_LABEL);
+
+// Linha ainda não salva não tem status do mês: sem selo.
+function seloDoParcelamento(p: ParcelamentoLinha): SeloDoParcelamento | undefined {
+  if (!p.id) return undefined;
+  if (p.quitado) return "quitado";
+  return p.enviadoNoMes ? "enviado" : "pendente";
+}
+
+// Linha da lista de Parcelamentos: o que se edita (código, restantes, interno, PDF novo) e o que a
+// tela só exibe (selo do mês, quitado, nome do PDF gravado, se há envio).
+export type ParcelamentoLinha = {
+  id?: string;
+  codigo: string;
+  parcelasRestantes: number;
+  interno: boolean;
+  quitado: boolean;
+  temEnvio: boolean;
+  enviadoNoMes: boolean;
+  arquivoNome: string;
+  arquivo?: File;
+  // Dados lidos do PDF; o Container os resume numa linha (`acordoResumo`) para exibir.
+  acordo?: {
+    origem: "receita_federal" | "pgfn" | null;
+    totalDeParcelas: number | null;
+    valorDaParcelaCentavos: number | null;
+    dataDeAdesao: string | null;
+  };
+  acordoResumo?: string;
+};
+
+// Estado da leitura do PDF numa linha nova (só exibição; quem lê é o Container, e o texto já vem pronto).
+export type LeituraDaLinha = {
+  estado: EstadoDeLeitura;
+  texto: string;
+  // O CNPJ lido do PDF é de outra empresa: alerta próprio, sem bloquear.
+  cnpjDivergente?: boolean;
+};
 
 // View global não importa módulos (arquitetura.md §3.4) — o shape espelha
 // EditarCadastroOperacionalFormValues (módulo clientes) por estrutura, não
@@ -54,8 +93,7 @@ export type EditarCadastroOperacionalFormValues = {
   documentoObrigatorio: DocumentoObrigatorioStatusValor | null;
   dasStatus: DasStatusValor | null;
   dataEnvioDas: string | null;
-  temParcelamento: boolean;
-  parcelamentoStatus: ParcelamentoStatusValor | null;
+  parcelamentos: ParcelamentoLinha[];
   observacoesGerais: string;
   atividadeMes: { industria: boolean; comercio: boolean; servico: boolean };
   // "" = Sem responsável.
@@ -86,7 +124,8 @@ type EditarCadastroOperacionalFormProps = {
   pendente: boolean;
   readOnly: boolean;
   responsavel: ResponsavelCampo;
-  temParcelamento: boolean;
+  // Linhas atuais do formulário (acompanham a edição): resumo "Sim (n)", selo e nome do PDF.
+  parcelamentos: ParcelamentoLinha[];
   // DAS já `enviado` pelo sistema: a opção aparece só pra exibir o valor atual.
   dasEnviadoPeloSistema: boolean;
   erroServidor?: string;
@@ -98,6 +137,13 @@ type EditarCadastroOperacionalFormProps = {
   contatos: { id: string }[];
   onAdicionarContato: () => void;
   onRemoverContato: (indice: number) => void;
+  parcelamentoCampos: { id: string }[];
+  onAdicionarParcelamento: () => void;
+  onRemoverParcelamento: (indice: number) => void;
+  // Leitura do PDF por linha (chave = id do campo do useFieldArray). Com leitura em andamento o
+  // Salvar fica desabilitado; o PDF escolhido (ou removido) volta ao Container para ser lido.
+  leituras: Record<string, LeituraDaLinha>;
+  onArquivoEscolhido: (indice: number, arquivo: File | undefined) => void;
   onLimpar: () => void;
   // Sem callback (uso em /clientes/[id]): "Cancelar" navega pro mesmo destino
   // do "Voltar" do topo. Com callback (uso inline na busca do dashboard):
@@ -117,7 +163,7 @@ export function EditarCadastroOperacionalForm({
   pendente,
   readOnly,
   responsavel,
-  temParcelamento,
+  parcelamentos,
   dasEnviadoPeloSistema,
   erroServidor,
   sucesso,
@@ -125,6 +171,11 @@ export function EditarCadastroOperacionalForm({
   contatos,
   onAdicionarContato,
   onRemoverContato,
+  parcelamentoCampos,
+  onAdicionarParcelamento,
+  onRemoverParcelamento,
+  leituras,
+  onArquivoEscolhido,
   onLimpar,
   onCancelar,
   documentoContratual,
@@ -224,20 +275,6 @@ export function EditarCadastroOperacionalForm({
         />
 
         <Pilha espaco={1} className="lg:col-span-2">
-          <CaixaDeMarcacao rotulo="Tem parcelamento" {...register("temParcelamento")} />
-          {temParcelamento && (
-            <CampoDeOpcoes
-              id="parcelamentoStatus"
-              rotulo="Status do parcelamento"
-              opcoes={OPCOES_PARCELAMENTO}
-              placeholder="Não definido"
-              className="gap-1"
-              {...register("parcelamentoStatus")}
-            />
-          )}
-        </Pilha>
-
-        <Pilha espaco={1} className="lg:col-span-2">
           <Label>Atividade do mês</Label>
           <Linha espaco={4} quebra className="text-sm">
             <CaixaDeMarcacao rotulo="Indústria" {...register("atividadeMes.industria")} />
@@ -247,7 +284,15 @@ export function EditarCadastroOperacionalForm({
         </Pilha>
 
         <Pilha espaco={3} className="sm:col-span-2 lg:col-span-4">
-          <Label className="block">Contatos</Label>
+          <Linha alinhar="centro" justificar="entre" espaco={4}>
+            <Label className="block">Contatos</Label>
+            {!readOnly && (
+              <Button type="button" variant="ghost" size="sm" onClick={onAdicionarContato}>
+                <Plus className="size-4" aria-hidden="true" />
+                Adicionar contato
+              </Button>
+            )}
+          </Linha>
           {contatos.map((campo, indice) => (
             <Controller
               key={campo.id}
@@ -256,6 +301,7 @@ export function EditarCadastroOperacionalForm({
               render={({ field: { onChange, onBlur, value, name } }) => (
                 <LinhaDeContato
                   indice={indice}
+                  somenteLeitura={readOnly}
                   nome={register(`contatos.${indice}.nome`)}
                   // Sem `ref` (Input não usa forwardRef): só perde o foco automático em erro.
                   telefone={{
@@ -275,12 +321,99 @@ export function EditarCadastroOperacionalForm({
           {errors.contatos && typeof errors.contatos.message === "string" && (
             <FieldError>{errors.contatos.message}</FieldError>
           )}
-          {!readOnly && (
-            <Button type="button" variant="outline" onClick={onAdicionarContato}>
-              <Plus className="size-4" aria-hidden="true" />
-              Adicionar contato
-            </Button>
-          )}
+        </Pilha>
+
+        <Pilha espaco={3} className="sm:col-span-2 lg:col-span-4">
+          <Linha alinhar="centro" justificar="entre" espaco={4}>
+            <Label className="block">Parcelamentos</Label>
+            {!readOnly && (
+              <Button type="button" variant="ghost" size="sm" onClick={onAdicionarParcelamento}>
+                <Plus className="size-4" aria-hidden="true" />
+                Adicionar parcelamento
+              </Button>
+            )}
+          </Linha>
+          {/* Resumo derivado: só conta o que já foi salvo (linha com id), nunca o que está sendo digitado. */}
+          <Texto variante="corpo" role="status">
+            Tem parcelamento:{" "}
+            {parcelamentos.some((p) => p.id)
+              ? `Sim (${parcelamentos.filter((p) => p.id).length})`
+              : "Não"}
+          </Texto>
+          {parcelamentos.map((atual, indice) => {
+            const erros = errors.parcelamentos?.[indice];
+            const leitura = leituras[parcelamentoCampos[indice].id];
+            // O estado da leitura descreve os campos que ela preencheu (sugestão a conferir).
+            const descricaoDaLeitura = leitura
+              ? { "aria-describedby": `parcelamentos.${indice}.leitura` }
+              : undefined;
+            return (
+              <LinhaDeParcelamento
+                key={parcelamentoCampos[indice].id}
+                somenteLeitura={readOnly}
+                indice={indice}
+                codigo={{ ...register(`parcelamentos.${indice}.codigo`), ...descricaoDaLeitura }}
+                parcelas={{
+                  ...register(`parcelamentos.${indice}.parcelasRestantes`, { valueAsNumber: true }),
+                  ...descricaoDaLeitura,
+                }}
+                interno={register(`parcelamentos.${indice}.interno`)}
+                erroCodigo={erros?.codigo?.message}
+                erroParcelas={erros?.parcelasRestantes?.message}
+                selo={seloDoParcelamento(atual)}
+                desabilitado={atual.quitado || leitura?.estado === "lendo"}
+                onRemover={
+                  readOnly || atual.temEnvio ? undefined : () => onRemoverParcelamento(indice)
+                }
+                bloqueadoPorEnvio={!readOnly && atual.temEnvio}
+                arquivo={
+                  atual.id ? (
+                    <>
+                      <Texto variante="nota" className="[overflow-wrap:anywhere]">
+                        PDF anexado: {atual.arquivoNome}
+                      </Texto>
+                      {atual.acordoResumo && <Texto variante="nota">{atual.acordoResumo}</Texto>}
+                    </>
+                  ) : (
+                    <>
+                      <Controller
+                        control={control}
+                        name={`parcelamentos.${indice}.arquivo`}
+                        render={({ field: { onChange, onBlur, value, name } }) => (
+                          <CampoDeArquivo
+                            id={`parcelamentos.${indice}.arquivo`}
+                            rotulo="PDF do acordo"
+                            name={name}
+                            accept="application/pdf"
+                            dica="PDF até 4 MB"
+                            file={value}
+                            onChange={(arquivo) => {
+                              onChange(arquivo);
+                              onArquivoEscolhido(indice, arquivo);
+                            }}
+                            onBlur={onBlur}
+                            erro={erros?.arquivo?.message}
+                          />
+                        )}
+                      />
+                      <IndicadorDeLeitura
+                        id={`parcelamentos.${indice}.leitura`}
+                        estado={leitura?.estado}
+                        texto={leitura?.texto}
+                      />
+                      {leitura?.cnpjDivergente && (
+                        <FieldError>
+                          O CNPJ do PDF é diferente do CNPJ do Cliente. Confira se anexou o PDF
+                          certo.
+                        </FieldError>
+                      )}
+                      {atual.acordoResumo && <Texto variante="nota">{atual.acordoResumo}</Texto>}
+                    </>
+                  )
+                }
+              />
+            );
+          })}
         </Pilha>
 
         <Pilha espaco={1} className="sm:col-span-2 lg:col-span-4">
@@ -289,7 +422,16 @@ export function EditarCadastroOperacionalForm({
         </Pilha>
 
         {!readOnly && (
-          <AcoesDoFormulario pendente={pendente} onLimpar={onLimpar} onCancelar={onCancelar} />
+          <AcoesDoFormulario
+            pendente={pendente}
+            motivoDoBloqueio={
+              Object.values(leituras).some((l) => l.estado === "lendo")
+                ? "Aguarde a leitura do PDF para salvar."
+                : undefined
+            }
+            onLimpar={onLimpar}
+            onCancelar={onCancelar}
+          />
         )}
       </Grade>
 

@@ -46,6 +46,34 @@ async function ok<T>(consulta: PromiseLike<{ data: T; error: { message: string }
   return data as NonNullable<T>;
 }
 
+async function criarParcelamento(clienteId: string) {
+  await ok(
+    admin.from("cliente_parcelamentos").insert({
+      id: crypto.randomUUID(),
+      cliente_id: clienteId,
+      codigo: "TESTE-1",
+      parcelas_restantes: 5,
+      arquivo_caminho: `${clienteId}/teste.pdf`,
+    }),
+  );
+}
+
+// "Pendente" = nenhum Parcelamento do Cliente tem registro de envio (a parcela do mês corrente).
+async function recolocarPendente(clienteId: string) {
+  const ids = await ok(
+    admin.from("cliente_parcelamentos").select("id").eq("cliente_id", clienteId),
+  );
+  await ok(
+    admin
+      .from("cliente_parcelamento_envios")
+      .delete()
+      .in(
+        "parcelamento_id",
+        ids.map((linha) => linha.id),
+      ),
+  );
+}
+
 async function criarCliente(
   opcoes: { temParcelamento?: boolean; telefone?: string; empresa?: string } = {},
 ): Promise<Fixture> {
@@ -63,10 +91,9 @@ async function criarCliente(
     admin.from("cliente_cadastro_operacional_sn").upsert({
       cliente_id: fixture.id,
       forma_envio: "whatsapp",
-      tem_parcelamento: opcoes.temParcelamento ?? true,
-      parcelamento_status: "pendente",
     }),
   );
+  if (opcoes.temParcelamento ?? true) await criarParcelamento(fixture.id);
   if (opcoes.telefone) {
     await ok(
       admin.from("cliente_contatos").insert({
@@ -82,14 +109,13 @@ async function criarCliente(
 }
 
 async function statusDoParcelamento(id: string) {
-  const linha = await ok(
+  const envios = await ok(
     admin
-      .from("cliente_cadastro_operacional_sn")
-      .select("parcelamento_status")
-      .eq("cliente_id", id)
-      .single(),
+      .from("cliente_parcelamento_envios")
+      .select("parcela, cliente_parcelamentos!inner(cliente_id)")
+      .eq("cliente_parcelamentos.cliente_id", id),
   );
-  return linha.parcelamento_status;
+  return envios.length > 0 ? "enviado" : "pendente";
 }
 
 let pendente: Fixture;
@@ -213,12 +239,18 @@ describe("leitura dos pendentes", () => {
       );
       criados.push(...parte);
       await ok(
-        admin.from("cliente_cadastro_operacional_sn").upsert(
+        admin
+          .from("cliente_cadastro_operacional_sn")
+          .upsert(parte.map((c) => ({ cliente_id: c.id, forma_envio: "whatsapp" }))),
+      );
+      await ok(
+        admin.from("cliente_parcelamentos").insert(
           parte.map((c) => ({
+            id: crypto.randomUUID(),
             cliente_id: c.id,
-            forma_envio: "whatsapp",
-            tem_parcelamento: true,
-            parcelamento_status: "pendente",
+            codigo: "VOLUME-1",
+            parcelas_restantes: 5,
+            arquivo_caminho: `${c.id}/volume.pdf`,
           })),
         ),
       );
@@ -283,12 +315,7 @@ describe("reserva e conclusão do envio do Parcelamento", () => {
   });
 
   it("liberar devolve a reserva sem tocar no cadastro; token antigo não libera a de outra tentativa", async () => {
-    await ok(
-      admin
-        .from("cliente_cadastro_operacional_sn")
-        .update({ parcelamento_status: "pendente" })
-        .eq("cliente_id", pendente.id),
-    );
+    await recolocarPendente(pendente.id);
     const a = await clientes.reservar(pendente.id);
     const tokenA = a.ok ? a.value! : "";
 
@@ -304,12 +331,7 @@ describe("reserva e conclusão do envio do Parcelamento", () => {
   });
 
   it("reserva expirada é retomada; o token antigo não sobrescreve a conclusão mais recente", async () => {
-    await ok(
-      admin
-        .from("cliente_cadastro_operacional_sn")
-        .update({ parcelamento_status: "pendente" })
-        .eq("cliente_id", pendente.id),
-    );
+    await recolocarPendente(pendente.id);
     await admin.from("envios_automaticos").delete().eq("cliente_id", pendente.id);
     const a = await clientes.reservar(pendente.id);
     const tokenA = a.ok ? a.value! : "";
@@ -326,12 +348,7 @@ describe("reserva e conclusão do envio do Parcelamento", () => {
     expect(await clientes.concluir(pendente.id, tokenB)).toEqual({ ok: true, value: true });
 
     // A volta atrasada (e o cadastro foi recolocado em pendente por alguém): sem posse, nada muda.
-    await ok(
-      admin
-        .from("cliente_cadastro_operacional_sn")
-        .update({ parcelamento_status: "pendente" })
-        .eq("cliente_id", pendente.id),
-    );
+    await recolocarPendente(pendente.id);
     expect(await clientes.concluir(pendente.id, tokenA)).toEqual({ ok: true, value: false });
     expect(await statusDoParcelamento(pendente.id)).toBe("pendente");
   });

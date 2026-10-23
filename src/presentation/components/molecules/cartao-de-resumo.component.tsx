@@ -2,15 +2,7 @@ import Link from "next/link";
 
 import { AnelDeProgresso } from "@/presentation/components/atoms/anel-de-progresso.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
-
-// "Em dia" e "em andamento" usam a mesma tinta.
-const ANEL_POR_COR: Record<string, string> = {
-  em_dia: "stroke-primary",
-  atencao: "stroke-success",
-  urgente: "stroke-destructive",
-  informativo: "stroke-muted-foreground",
-  andamento: "stroke-primary",
-};
+import { corDeStatus } from "@/presentation/lib/cor-de-status";
 
 type CartaoDeResumoProps = {
   href: string;
@@ -36,13 +28,13 @@ export function CartaoDeResumo({
       <AnelDeProgresso
         quantidade={quantidade}
         total={totalClientes}
-        classe={ANEL_POR_COR[cor] ?? ANEL_POR_COR.informativo}
+        classe={corDeStatus(cor).traco}
       />
       <Texto variante="corpo" className="font-semibold">
         {titulo}
         <Texto variante="somenteLeitor" como="span">
           {" "}
-          — {quantidade} de {totalClientes} clientes
+          — {quantidade} de {totalClientes} {totalClientes === 1 ? "cliente" : "clientes"}
         </Texto>
       </Texto>
     </Link>

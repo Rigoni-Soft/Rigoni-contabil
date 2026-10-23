@@ -81,6 +81,9 @@ const resultado = z
     EMAIL_SMTP_USUARIO: z.string().min(1).optional(),
     EMAIL_SMTP_SENHA: z.string().min(1).optional(),
     EMAIL_REMETENTE: z.string().min(1).optional(),
+    // Leitor do PDF de parcelamento: falso (determinístico, padrão em dev/CI/Preview) ou "texto" (lê a
+    // camada de texto do PDF no servidor, sem API externa).
+    LEITURA_PDF_MODO: z.enum(["falso", "texto"]).default("falso"),
   })
   .refine(
     (v) =>
@@ -177,6 +180,7 @@ const resultado = z
     EMAIL_SMTP_USUARIO: process.env.EMAIL_SMTP_USUARIO || undefined,
     EMAIL_SMTP_SENHA: process.env.EMAIL_SMTP_SENHA || undefined,
     EMAIL_REMETENTE: process.env.EMAIL_REMETENTE || undefined,
+    LEITURA_PDF_MODO: process.env.LEITURA_PDF_MODO || undefined,
   });
 
 if (!resultado.success) {
@@ -218,4 +222,5 @@ export const {
   EMAIL_SMTP_USUARIO,
   EMAIL_SMTP_SENHA,
   EMAIL_REMETENTE,
+  LEITURA_PDF_MODO,
 } = resultado.data;

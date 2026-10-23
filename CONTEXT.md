@@ -44,7 +44,7 @@ O regime tributário do Cliente — Simples Nacional, Lucro Presumido, Lucro Rea
 _Avoid_: Regime de atendimento (não é isso).
 
 **Cadastro operacional**:
-O conjunto de campos que o Funcionário do Simples Nacional mantém atualizado por Cliente — forma de envio, Contatos, documento recebido, DAS, Parcelamento, Atividade do mês, observações gerais (#34). Nasce automaticamente quando o Cliente é cadastrado com Regime Simples Nacional ou MEI (#33), com os campos de status em suas opções negativa/pendente por padrão (documento recebido = negativo; DAS e Parcelamento = pendente) até o Funcionário atualizar de verdade — nunca fica em branco esperando o primeiro acesso. Outros Setores só visualizam; nunca inclui contrato social/alterações contratuais (estes só se abrem pelo botão de visualização, para Admin, Líder do Simples Nacional e Responsável do Cliente — #140).
+O conjunto de campos que o Funcionário do Simples Nacional mantém atualizado por Cliente — forma de envio, Contatos, documento recebido, DAS, Atividade do mês, observações gerais (#34) e a lista de Parcelamentos (#122). Nasce automaticamente quando o Cliente é cadastrado com Regime Simples Nacional ou MEI (#33), com os campos de status em suas opções negativa/pendente por padrão (documento recebido = negativo; DAS = pendente; sem Parcelamentos) até o Funcionário atualizar de verdade — nunca fica em branco esperando o primeiro acesso. Outros Setores só visualizam; nunca inclui contrato social/alterações contratuais (estes só se abrem pelo botão de visualização, para Admin, Líder do Simples Nacional e Responsável do Cliente — #140).
 _Avoid_: Cadastro do cliente (ambíguo com o cadastro básico do #33 — Empresa/CNPJ/Regime/documentos jurídicos).
 
 **Responsável**:
@@ -60,7 +60,16 @@ Documento de Arrecadação do Simples Nacional — a guia de imposto mensal do C
 _Avoid_: Guia de imposto (usar DAS quando for especificamente essa guia).
 
 **Parcelamento**:
-Acordo de parcelamento de débitos tributários do Cliente junto à Receita, cuja guia também é obtida via Serpro.
+Acordo de parcelamento de débitos tributários do Cliente junto à Receita, cuja guia também é obtida via Serpro. Um Cliente tem zero, um ou vários, cada um com código, parcelas restantes, a marca "é interno" e o PDF do acordo anexado (obrigatório); "Tem parcelamento" é só o resumo derivado ("Sim (2)"). Quem edita o Cadastro operacional (Funcionário SN Responsável, Líder SN, Admin) cadastra à mão, com mínimo 1 parcela restante, e remove um Parcelamento sem registro de envio (o anexo vai junto). Dois eixos: a **situação** (em aberto → quitado) e o **status do mês** (pendente/enviado, derivado do registro de envio). Cliente sem Parcelamento cadastrado não tem guia a enviar. O PDF fica em bucket privado, só o servidor lê (#122).
+
+**Parcelamento em aberto / quitado**:
+Em aberto é o que ainda gera guia; quitado é o marcado como quitado ou com parcelas restantes em zero. Quem decide é o banco: a edição à mão nunca grava zero nem a situação (o zero vem do sistema, ao entregar a última parcela).
+
+**Parcelamento interno**:
+Parcelamento pago pelo escritório (marca "é interno"): a guia dele não vai ao Cliente, e sim ao financeiro (#127).
+
+**Registro de envio do Parcelamento**:
+Uma linha por Parcelamento e parcela (AAAAMM), gravada só pelo sistema quando a guia é entregue; nenhuma sessão de usuário escreve (ADR 0008). É a base do status do mês e trava a remoção do Parcelamento.
 
 **Atividade do mês**:
 Registro mensal por Cliente com três marcações independentes (Indústria, Comércio, Serviço), indicando os tipos de nota fiscal emitidos naquele mês — pode mudar mês a mês e não é exclusivo (um Cliente pode ter mais de um tipo marcado no mesmo mês). Usado para determinar o anexo do Simples Nacional aplicável ao cálculo do DAS.
@@ -122,7 +131,7 @@ Nos mesmos dias, a entrega da guia do DAS quando o DAS está pronto, pela forma 
 _Avoid_: Disparo.
 
 **Envio automático de guia de parcelamento**:
-Nos dias 20, 22, 24, 26 e 28, a entrega da guia de parcelamento aos Clientes com parcelamento positivo e Parcelamento pendente, pela forma de envio do Cliente. O Parcelamento passa a enviado, auditado com a URA como ator; se a entrega falha depois das tentativas, volta a pendente e a rodada seguinte tenta de novo (#53).
+Nos dias 20, 22, 24, 26 e 28, a entrega da guia de parcelamento aos Clientes com Parcelamento em aberto (não interno) sem registro de envio do mês, pela forma de envio do Cliente. A entrega aceita grava o registro de envio do mês, auditado com a URA como ator; se a entrega falha depois das tentativas, nada é gravado e a rodada seguinte tenta de novo (#53). Hoje um envio marca todos os Parcelamentos em aberto do Cliente; a regra por código é do job novo (#126).
 _Avoid_: Disparo.
 
 **Alerta do setor**:

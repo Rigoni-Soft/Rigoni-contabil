@@ -6,7 +6,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
 import { SupabaseClienteRepository } from "@/modules/clientes/infra/repositories/cliente.repository";
-import { primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
+import { mesAtual, primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
 
 import { removerClientesDeTeste } from "../../../../../test-support/clientes-de-teste";
 import { SupabaseClienteQueryGateway } from "./cliente-query.gateway";
@@ -222,9 +222,64 @@ describe("SupabaseClienteQueryGateway.listarResumoOperacional (#36, integração
       empresa,
       documentoObrigatorio: "negativo",
       dasStatus: "pendente",
-      temParcelamento: false,
-      parcelamentoStatus: "pendente",
+      parcelamentos: [],
     });
+  });
+
+  it("traz os parcelamentos do Cliente com marca interno, quitado e envio do mês corrente", async () => {
+    const admin = await comoAdmin();
+    const cliente = await criarClienteComContratoSocial(
+      admin,
+      "Resumo Parcelamentos Ltda",
+      cnpjUnico(),
+    );
+    const servidor = createClient(
+      SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY ??
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU",
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+    const ids = {
+      enviado: crypto.randomUUID(),
+      interno: crypto.randomUUID(),
+      quitado: crypto.randomUUID(),
+    };
+    const novo = (id: string, codigo: string, extra: object) => ({
+      id,
+      cliente_id: cliente.id,
+      codigo,
+      parcelas_restantes: 3,
+      interno: false,
+      situacao: "em_aberto",
+      arquivo_caminho: `${cliente.id}/${id}-acordo.pdf`,
+      ...extra,
+    });
+    const { error } = await servidor
+      .from("cliente_parcelamentos")
+      .insert([
+        novo(ids.enviado, "A-ENVIADO", {}),
+        novo(ids.interno, "B-INTERNO", { interno: true }),
+        novo(ids.quitado, "C-QUITADO", { parcelas_restantes: 0, situacao: "quitado" }),
+      ]);
+    expect(error).toBeNull();
+    const envios = await servidor.from("cliente_parcelamento_envios").insert([
+      { parcelamento_id: ids.enviado, parcela: mesAtual().replace("-", "") },
+      { parcelamento_id: ids.interno, parcela: "200001" }, // parcela de outro mês não conta
+    ]);
+    expect(envios.error).toBeNull();
+
+    const resultado = await new SupabaseClienteQueryGateway(admin).listarResumoOperacional();
+
+    expect(resultado.ok).toBe(true);
+    if (!resultado.ok) return;
+    const porCodigo = (
+      resultado.value.find((l) => l.clienteId === cliente.id)?.parcelamentos ?? []
+    ).sort((a, b) => a.codigo.localeCompare(b.codigo));
+    expect(porCodigo).toEqual([
+      { codigo: "A-ENVIADO", interno: false, quitado: false, enviadoNoMes: true },
+      { codigo: "B-INTERNO", interno: true, quitado: false, enviadoNoMes: false },
+      { codigo: "C-QUITADO", interno: false, quitado: true, enviadoNoMes: false },
+    ]);
   });
 
   it("traz a atividade do mês corrente (e tudo false sem registro)", async () => {
