@@ -40,13 +40,10 @@ describe("mock fiscal: guias de parcelamento do CNPJ", () => {
     expect((await parcelas("?ignorar=202608")).guias).toEqual(["202609"]);
   });
 
-  it.each([
-    ["uma_parcela", ["202609"]],
-    ["sem_parcelas", []],
-  ])("modo %s", async (m, esperado) => {
-    await modo(m);
+  it("modo sem_parcelas não devolve guia nenhuma", async () => {
+    await modo("sem_parcelas");
 
-    expect((await parcelas()).guias).toEqual(esperado);
+    expect((await parcelas()).guias).toEqual([]);
   });
 
   it("o modo de parcelas não afeta o DAS nem a autorização", async () => {

@@ -2,7 +2,6 @@ import type { ClienteCnpjPort } from "@/modules/atendimento/application/ports/ou
 import type {
   GuiaFiscal,
   GuiasFiscaisPort,
-  GuiasParcelamentoFiscaisPort,
   TipoGuia,
 } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
 import type { AppError } from "@/shared/errors/app.error";
@@ -27,7 +26,7 @@ export interface CertidaoCnd {
   buscarCnd(cnpj: string): Promise<Result<GuiaFiscal, AppError>>;
 }
 
-export class GuiasFiscaisGateway implements GuiasFiscaisPort, GuiasParcelamentoFiscaisPort {
+export class GuiasFiscaisGateway implements GuiasFiscaisPort {
   constructor(
     private readonly clientes: ClienteCnpjPort,
     private readonly obrigacoes: ObrigacoesFiscais,

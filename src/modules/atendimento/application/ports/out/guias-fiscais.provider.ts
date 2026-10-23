@@ -18,19 +18,6 @@ export type GuiaFiscal = {
 export interface GuiasFiscaisPort {
   // O CNPJ vem do cadastro do Cliente (nunca perguntado ao contato). Sem autorização vigente do
   // Cliente, devolve `ForbiddenError`; falha do provedor, `ServicoExternoError`. DAS e CND; o
-  // parcelamento entrega só a guia mais atrasada; todas: `GuiasParcelamentoFiscaisPort`.
+  // parcelamento entrega só a guia mais atrasada (todas: `GuiasFiscaisGateway.buscarGuiasParcelamento`).
   buscar(clienteId: string, tipo: TipoGuia): Promise<Result<GuiaFiscal, AppError>>;
-}
-
-// O parcelamento tem várias guias por Cliente; `buscar` entrega só a mais atrasada (ver o gateway).
-export interface GuiasParcelamentoFiscaisPort {
-  // Todas as guias de parcelamento da Receita que o provedor emite hoje para o Cliente, uma por
-  // parcela (0, 1 ou várias), menos as parcelas (AAAAMM) já entregues, que não são emitidas (nem
-  // cobradas) de novo. O provedor não diz de qual parcelamento é cada guia: quem chama atribui
-  // depois de baixar, e roteia o interno ao financeiro. Sem autorização, `ForbiddenError`, só
-  // consultada se a emissão falhar.
-  buscarGuiasParcelamento(
-    clienteId: string,
-    ignorar: readonly string[],
-  ): Promise<Result<GuiaFiscal[], AppError>>;
 }

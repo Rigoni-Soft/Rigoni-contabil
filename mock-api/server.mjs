@@ -1,7 +1,7 @@
 // Mock do contrato neutro de docs/contratos/obrigacoes-fiscais.md — só pra
 // desenvolver e testar sem provedor real. `yarn mock:api` (porta 4010).
-// Controle de cenário: POST /__modo  {"modo":"normal"|"falha"|"sem_autorizacao"|"uma_parcela"|"sem_parcelas"}
-// `parcelamentos` devolve 2 guias (atrasada + do mês); `uma_parcela` 1; `sem_parcelas` nenhuma.
+// Controle de cenário: POST /__modo  {"modo":"normal"|"falha"|"sem_autorizacao"|"sem_parcelas"}
+// `parcelamentos` devolve 2 guias (atrasada + do mês); `sem_parcelas` nenhuma.
 import { createServer } from "node:http";
 
 import { PDF_BASE64 as PDF } from "./pdf-teste.mjs";
@@ -23,7 +23,7 @@ const recursos = {
   // Guias de parcelamento do CNPJ (`/clientes/{cnpj}/parcelamentos?ignorar=AAAAMM,...`): uma por
   // parcela emitível, menos as já entregues.
   parcelamentos: (cnpj, ignorar) => {
-    const parcelas = { normal: ["202608", "202609"], uma_parcela: ["202609"], sem_parcelas: [] };
+    const parcelas = { normal: ["202608", "202609"], sem_parcelas: [] };
     return {
       guias: (parcelas[modo] ?? parcelas.normal)
         .filter((parcela) => !ignorar.includes(parcela))

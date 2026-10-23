@@ -38,5 +38,5 @@ A **CND** é porta separada (`CertidaoCndPort`, `CND_MODO`, 3 variáveis `SERPRO
 
 ## Mock
 
-`POST /__modo` com `{"modo": "normal" | "falha" | "sem_autorizacao" | "uma_parcela" | "sem_parcelas"}` troca o cenário:
-`falha` responde 503 em tudo; `sem_autorizacao` devolve `vigente: false`; no normal as guias de parcelamento são 2 (atrasada + do mês), `uma_parcela` devolve 1 e `sem_parcelas` nenhuma.
+`POST /__modo` com `{"modo": "normal" | "falha" | "sem_autorizacao" | "sem_parcelas"}` troca o cenário:
+`falha` responde 503 em tudo; `sem_autorizacao` devolve `vigente: false`; no normal as guias de parcelamento são 2 (atrasada + do mês), `sem_parcelas` nenhuma.
