@@ -74,7 +74,7 @@ describe("átomos de conteúdo", () => {
     render(
       <>
         <AnelDeProgresso quantidade={7} total={10} classe="stroke-primary" />
-        <DonutSvg fatias={[{ id: "enviado", rotulo: "Enviado", quantidade: 4 }]} />
+        <DonutSvg fatias={[{ id: "enviado", rotulo: "Enviado", quantidade: 4, cor: "em_dia" }]} />
       </>,
     );
 

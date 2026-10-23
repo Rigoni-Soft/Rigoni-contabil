@@ -20,14 +20,19 @@ type Bucket = {
   descricao?: Texto;
   mensagemVazia?: Texto;
   pertence: (linha: ResumoOperacionalRow, agora: Date) => boolean;
-  // Cards do grupo Parcelamento listam, por Cliente, a marca interno e o status do mês.
   comParcelamentos?: true;
 };
 
-const doGrupoParcelamento =
-  (campo: keyof SituacaoParcelamentosDoCliente): Bucket["pertence"] =>
-  (linha, agora) =>
-    situacaoDosParcelamentos(linha, agora)[campo];
+// Card do grupo Parcelamento: pertence conforme o campo da situação do Cliente e lista, por Cliente, a
+// marca interno e o status do mês.
+const doParcelamento = (
+  campo: keyof SituacaoParcelamentosDoCliente,
+  card: Omit<Bucket, "pertence" | "comParcelamentos">,
+): Bucket => ({
+  ...card,
+  pertence: (linha, agora) => situacaoDosParcelamentos(linha, agora)[campo],
+  comParcelamentos: true,
+});
 
 // Os 11 cards e cores do dashboard Simples Nacional. DAS: documentoObrigatorio
 // aqui é o campo que a UI rotula "Documento recebido" — positivo = já recebido.
@@ -65,35 +70,29 @@ const BUCKETS: readonly Bucket[] = [
     cor: "atencao",
     pertence: (l) => l.dasStatus === "pronto",
   },
-  {
+  doParcelamento("comParcelamento", {
     id: "com_parcelamento",
     descricao: "Clientes com algum parcelamento cadastrado, em aberto ou quitado.",
     mensagemVazia: "Nenhum cliente com parcelamento cadastrado.",
     titulo: "Com parcelamento",
     cor: "informativo",
-    pertence: doGrupoParcelamento("comParcelamento"),
-    comParcelamentos: true,
-  },
-  {
+  }),
+  doParcelamento("emAberto", {
     id: "parcelamento_em_aberto",
     descricao: "Clientes com algum parcelamento ainda não quitado.",
     mensagemVazia: "Nenhum cliente com parcelamento em aberto.",
     titulo: "Em aberto",
     cor: "andamento",
-    pertence: doGrupoParcelamento("emAberto"),
-    comParcelamentos: true,
-  },
-  {
+  }),
+  doParcelamento("pendente", {
     id: "parcelamento_pendente",
     descricao: "Clientes com parcelamento em aberto cuja guia deste mês ainda não foi enviada.",
     mensagemVazia:
       "Nenhum cliente com guia pendente neste mês: todas as guias dos parcelamentos em aberto já foram enviadas.",
     titulo: "Parcelamento pendente",
     cor: "atencao",
-    pertence: doGrupoParcelamento("pendente"),
-    comParcelamentos: true,
-  },
-  {
+  }),
+  doParcelamento("pendenteEmAtraso", {
     id: "parcelamento_pendente_atraso",
     descricao: (agora) =>
       `Clientes com guia de parcelamento pendente a partir do dia ${primeiroDiaEmAtraso(agora)}, depois da última rodada de envio do mês.`,
@@ -103,28 +102,22 @@ const BUCKETS: readonly Bucket[] = [
         : "Nenhum cliente em atraso por enquanto.",
     titulo: "Pendente em atraso",
     cor: "urgente",
-    pertence: doGrupoParcelamento("pendenteEmAtraso"),
-    comParcelamentos: true,
-  },
-  {
+  }),
+  doParcelamento("interno", {
     id: "parcelamento_interno",
     descricao:
       "Clientes com parcelamento interno em aberto: a guia vai ao financeiro, não ao cliente.",
     mensagemVazia: "Nenhum cliente com parcelamento interno em aberto.",
     titulo: "Parcelamento interno",
     cor: "informativo",
-    pertence: doGrupoParcelamento("interno"),
-    comParcelamentos: true,
-  },
-  {
+  }),
+  doParcelamento("enviado", {
     id: "parcelamento_enviado",
     descricao: "Clientes cujos parcelamentos em aberto já tiveram a guia deste mês enviada.",
     mensagemVazia: "Nenhum cliente com todas as guias do mês enviadas ainda.",
     titulo: "Parcelamento enviado",
     cor: "em_dia",
-    pertence: doGrupoParcelamento("enviado"),
-    comParcelamentos: true,
-  },
+  }),
 ] as const;
 
 const parcelamentosDaLista = (linha: ResumoOperacionalRow): ParcelamentoBucketDto[] =>

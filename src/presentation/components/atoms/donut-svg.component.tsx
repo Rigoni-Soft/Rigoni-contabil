@@ -1,4 +1,5 @@
-import { corDaFatia, type Fatia } from "@/presentation/lib/fatia-de-grafico";
+import { corDeStatus } from "@/presentation/lib/cor-de-status";
+import type { Fatia } from "@/presentation/lib/fatia-de-grafico";
 
 const RAIO = 40;
 const CIRCUNFERENCIA = 2 * Math.PI * RAIO;
@@ -26,7 +27,7 @@ export function DonutSvg({ fatias }: { fatias: Fatia[] }) {
                 strokeWidth="14"
                 strokeDasharray={`${comprimento} ${CIRCUNFERENCIA - comprimento}`}
                 strokeDashoffset={offset}
-                className={`fill-none ${corDaFatia(f).traco}`}
+                className={`fill-none ${corDeStatus(f.cor).traco}`}
               />
             );
           })}

@@ -10,15 +10,15 @@ const DADOS = {
     { id: "pronto", rotulo: "Pronto", quantidade: 1, cor: "atencao" },
   ],
   parcelamento: [
-    { id: "enviado", rotulo: "Enviado", quantidade: 1 },
+    { id: "enviado", rotulo: "Enviado", quantidade: 1, cor: "em_dia" },
     { id: "pendente", rotulo: "Pendente", quantidade: 1, cor: "atencao" },
     { id: "em_atraso", rotulo: "Em atraso", quantidade: 0, cor: "urgente" },
     { id: "interno", rotulo: "Interno", quantidade: 1, cor: "informativo" },
   ],
   atividade: [
-    { id: "industria", rotulo: "Indústria", quantidade: 2 },
-    { id: "comercio", rotulo: "Comércio", quantidade: 5 },
-    { id: "servico", rotulo: "Serviço", quantidade: 3 },
+    { id: "industria", rotulo: "Indústria", quantidade: 2, cor: "em_dia" },
+    { id: "comercio", rotulo: "Comércio", quantidade: 5, cor: "em_dia" },
+    { id: "servico", rotulo: "Serviço", quantidade: 3, cor: "em_dia" },
   ],
 };
 
