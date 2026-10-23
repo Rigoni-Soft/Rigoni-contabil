@@ -53,7 +53,7 @@ export function useLeituraDoPdf(
         }
       }
     } catch {
-      // Sem alerta (spec #121): cai no "digite à mão".
+      // Sem alerta: cai no "digite à mão".
     }
     if (vigente.current[id] === arquivo) definir(id, leitura);
   };

@@ -87,3 +87,36 @@ describe("dados do acordo (lidos do PDF)", () => {
     expect(r.ok && "acordo" in r.value).toBe(false);
   });
 });
+
+describe("sugerirParcelamento: código", () => {
+  const lida = (codigo: string | null) => ({
+    lido: true as const,
+    codigo,
+    quantidadeDeParcelas: 3,
+    origem: null,
+    totalDeParcelas: null,
+    valorDaParcelaCentavos: null,
+    dataDeAdesao: null,
+  });
+
+  it.each([null, "", "   "])("código %j ausente: gera um interno", (codigo) => {
+    const r = sugerirParcelamento(lida(codigo));
+
+    expect(r.lido && r.codigoGerado).toBe(true);
+    expect(r.lido && r.codigo).toMatch(/^PARC-[0-9A-F]{8}$/);
+  });
+
+  it("código lido é aparado e não é marcado como gerado", () => {
+    expect(sugerirParcelamento(lida("  15014167 "))).toMatchObject({
+      codigo: "15014167",
+      codigoGerado: false,
+    });
+  });
+
+  it("código lido com mais de 60 caracteres é leitura ilegível, não é trocado em silêncio", () => {
+    expect(sugerirParcelamento(lida("9".repeat(61)))).toEqual({
+      lido: false,
+      motivo: "ilegivel",
+    });
+  });
+});

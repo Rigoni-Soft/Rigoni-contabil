@@ -80,7 +80,7 @@ export type SugestaoLida =
   | { lido: false; motivo: MotivoDeLeituraFalha };
 
 // Validação final do que o leitor devolveu (o leitor só sugere): quantidade inteira >= 1, senão a
-// leitura não vale. PDF sem código (ou com código longo demais) recebe um interno; o Serpro emite a
+// leitura não vale. PDF sem código recebe um interno; o Serpro emite a
 // guia só pela parcela, então o código serve de rótulo e pode ser trocado na tela.
 export function sugerirParcelamento(
   leitura:
@@ -94,11 +94,12 @@ export function sugerirParcelamento(
     return { lido: false, motivo: "ilegivel" };
   }
   const lido = leitura.codigo?.trim() ?? "";
-  const valido = lido.length >= 1 && lido.length <= 60;
+  // Código lido longo demais não é um código: leitura ilegível, nunca trocado em silêncio.
+  if (lido.length > 60) return { lido: false, motivo: "ilegivel" };
   return {
     lido: true,
-    codigo: valido ? lido : `PARC-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
-    codigoGerado: !valido,
+    codigo: lido || `PARC-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+    codigoGerado: !lido,
     quantidadeDeParcelas: leitura.quantidadeDeParcelas,
     acordo: normalizarAcordo(leitura),
   };
