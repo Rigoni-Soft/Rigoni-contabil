@@ -33,7 +33,6 @@ describe("salvarParcelamentosAction (integração)", () => {
   beforeEach(() => executeMock.mockReset());
 
   it.each([
-    ["código vazio", { codigo: " " }],
     ["parcelas restantes negativa", { parcelasRestantes: -1 }],
     ["parcelas restantes fracionada", { parcelasRestantes: 1.5 }],
     ["arquivo de outro tipo", { arquivo: new File(["x"], "a.png", { type: "image/png" }) }],
@@ -55,6 +54,20 @@ describe("salvarParcelamentosAction (integração)", () => {
 
     expect(resultado.ok).toBe(true);
     expect(executeMock).toHaveBeenCalledWith(INPUT_VALIDO);
+  });
+
+  it("código em branco é válido (o sistema gera) e chega ao caso de uso aparado", async () => {
+    executeMock.mockResolvedValue(ok(undefined));
+
+    const resultado = await salvarParcelamentosAction({
+      ...INPUT_VALIDO,
+      parcelamentos: [{ ...INPUT_VALIDO.parcelamentos[0], codigo: " " }],
+    });
+
+    expect(resultado.ok).toBe(true);
+    expect(executeMock).toHaveBeenCalledWith(
+      expect.objectContaining({ parcelamentos: [expect.objectContaining({ codigo: "" })] }),
+    );
   });
 
   it("devolve o erro do caso de uso (ex.: Forbidden)", async () => {
