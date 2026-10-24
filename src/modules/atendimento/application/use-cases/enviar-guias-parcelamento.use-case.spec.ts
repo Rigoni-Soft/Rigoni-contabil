@@ -226,13 +226,26 @@ describe("EnviarGuiasParcelamento", () => {
         nome: "envio_guia_parcelamento_interno",
         telefone: telefoneFinanceiro,
         idioma: "pt_BR",
-        variaveis: ["3A Construções", "12345678000190", "COD-interno", "10/2026", "7"],
+        variaveis: ["3A Construções", "12345678000190", "COD-interno", "10/2026", "6"],
         documento: { url: "https://storage.test/interno/202610.pdf", nomeArquivo: "202610.pdf" },
       },
     ]);
     expect(registrados).toEqual([
       ["comum", "202610"],
       ["interno", "202610"],
+    ]);
+  });
+
+  it("parcelas restantes no template são as de depois do desconto, também com duas guias do mesmo interno", async () => {
+    const { nucleo, envio } = montar(ok([parcelamento("p1", { interno: true })]), {
+      guias: async () => ok([guia("202609"), guia("202610")]),
+    });
+
+    await nucleo.execute({ cliente, agora });
+
+    expect(envio.templatesEnviados.map((t) => [t.variaveis[3], t.variaveis[4]])).toEqual([
+      ["09/2026", "4"],
+      ["10/2026", "3"],
     ]);
   });
 

@@ -75,7 +75,7 @@ Disparado pelo mesmo job da seção 9 quando o Parcelamento está marcado "é in
   - `{{2}}` — CNPJ do Cliente
   - `{{3}}` — código do parcelamento
   - `{{4}}` — parcela (ex.: "10/2026")
-  - `{{5}}` — parcelas restantes (ex.: "7")
+  - `{{5}}` — parcelas restantes depois desta guia, já descontada (ex.: "6")
 - **Rodapé**: `Rigoni Contábil · Simples Nacional`
 - **Botões**: nenhum
 

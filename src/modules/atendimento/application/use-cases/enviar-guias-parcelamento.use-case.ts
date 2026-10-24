@@ -102,10 +102,21 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     const cnpjDoCliente = () =>
       (cadastro ??= this.financeiro.cnpjs.cadastroFiscalDoCliente(cliente.clienteId));
     const andamentos: Andamento[] = [];
+    // Cada guia entregue desconta uma parcela: o financeiro vê quantas restam depois dela.
+    const entregues = new Map<string, number>();
     for (const atribuida of atribuidas) {
-      if (alvos.includes(atribuida.parcelamento)) {
-        andamentos.push(await this.entregarGuia(cliente, agora, atribuida, cnpjDoCliente));
-      }
+      const { id, parcelasRestantes } = atribuida.parcelamento;
+      if (!alvos.includes(atribuida.parcelamento)) continue;
+      const restantesDepois = parcelasRestantes - (entregues.get(id) ?? 0) - 1;
+      const andamento = await this.entregarGuia(
+        cliente,
+        agora,
+        atribuida,
+        cnpjDoCliente,
+        restantesDepois,
+      );
+      if (andamento.enviado) entregues.set(id, (entregues.get(id) ?? 0) + 1);
+      andamentos.push(andamento);
     }
 
     // Guia só de parcela atrasada é entregue, mas o mês corrente continua sem guia.
@@ -133,6 +144,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     agora: Date,
     { parcelamento, guia, parcela }: GuiaAtribuida,
     cnpjDoCliente: () => Promise<Result<CadastroFiscalCliente, AppError>>,
+    restantesDepois: number,
   ): Promise<Andamento> {
     const descricao = `Parcelamento ${parcelamento.codigo} de ${cliente.empresa}`;
     const url = await this.repetir(() =>
@@ -148,6 +160,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
           documento,
           cnpjDoCliente,
           descricao,
+          restantesDepois,
         )
       : paraAndamento(
           await this.entrega.execute({
@@ -178,6 +191,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     documento: { url: string; nomeArquivo: string },
     cnpjDoCliente: () => Promise<Result<CadastroFiscalCliente, AppError>>,
     descricao: string,
+    restantesDepois: number,
   ): Promise<Andamento> {
     const { telefone, envio } = this.financeiro;
     if (!telefone) return falha(`${descricao}: sem telefone do financeiro.`);
@@ -193,7 +207,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
         cadastro.value.cnpj,
         parcelamento.codigo,
         formatarParcela(parcela),
-        String(parcelamento.parcelasRestantes),
+        String(restantesDepois),
       ],
       documento,
     };
