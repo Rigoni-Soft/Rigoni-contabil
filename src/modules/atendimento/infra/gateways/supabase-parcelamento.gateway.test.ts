@@ -437,6 +437,54 @@ describe("envio automático só com um acordo candidato (F3 do PR #191)", () => 
     expect(await clientes.concluir(cliente.id, token)).toEqual({ ok: true, value: false });
     expect(await enviadosDe(cliente.id)).toEqual([]);
   });
+
+  // A reserva fica presa ao acordo que existia nela: o candidato da conclusão tem de ser o mesmo,
+  // não "o único que sobrou". Contar de novo não basta (F3, 2ª revalidação).
+  it("acordo A trocado por B depois da reserva: a conclusão não registra a entrega de A em B", async () => {
+    const cliente = await criarCliente({ temParcelamento: false });
+    const a = await acordo(cliente.id, "receita_federal");
+    const reserva = await clientes.reservar(cliente.id);
+    const token = reserva.ok ? reserva.value! : "";
+    expect(token).not.toBe("");
+
+    await ok(admin.from("cliente_parcelamentos").delete().eq("id", a));
+    await acordo(cliente.id, "receita_federal");
+
+    expect(await clientes.concluir(cliente.id, token)).toEqual({ ok: true, value: false });
+    expect(await enviadosDe(cliente.id)).toEqual([]);
+  });
+
+  it("A vira interno e B é o único externo depois da reserva: B continua sem registro", async () => {
+    const cliente = await criarCliente({ temParcelamento: false });
+    const a = await acordo(cliente.id, "receita_federal");
+    const reserva = await clientes.reservar(cliente.id);
+    const token = reserva.ok ? reserva.value! : "";
+    expect(token).not.toBe("");
+
+    await ok(admin.from("cliente_parcelamentos").update({ interno: true }).eq("id", a));
+    await acordo(cliente.id, "receita_federal");
+
+    expect(await clientes.concluir(cliente.id, token)).toEqual({ ok: true, value: false });
+    expect(await enviadosDe(cliente.id)).toEqual([]);
+  });
+
+  it("depois de uma conclusão recusada a reserva é liberada: a rodada seguinte reserva o candidato de agora", async () => {
+    const cliente = await criarCliente({ temParcelamento: false });
+    const a = await acordo(cliente.id, "receita_federal");
+    const reserva = await clientes.reservar(cliente.id);
+    const token = reserva.ok ? reserva.value! : "";
+    await ok(admin.from("cliente_parcelamentos").delete().eq("id", a));
+    const b = await acordo(cliente.id, "receita_federal");
+    await clientes.concluir(cliente.id, token);
+
+    const proxima = await clientes.reservar(cliente.id);
+    expect(proxima.ok && typeof proxima.value).toBe("string");
+    expect(await clientes.concluir(cliente.id, proxima.ok ? proxima.value! : "")).toEqual({
+      ok: true,
+      value: true,
+    });
+    expect(await enviadosDe(cliente.id)).toEqual([b]);
+  });
 });
 
 describe("alertas por origem e por Cliente avaliado", () => {

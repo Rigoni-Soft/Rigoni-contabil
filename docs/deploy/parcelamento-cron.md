@@ -24,3 +24,10 @@ Mesmo gate, retentativa, reserva da entrega e alertas do job de lembrete/DAS
   `parcelamento`); a conclusão é `concluir_envio_automatico_parcelamento`. Leitura em páginas de
   500 por cursor (`cliente_id`), estável mesmo quando o próprio job tira Clientes do conjunto.
 - O Parcelamento `enviado` não volta a `pendente` sozinho: quem repõe é o Funcionário (como o DAS).
+- **Um acordo candidato (F3 do PR #191).** Até o envio por acordo e competência (#126), o job só age
+  quando há exatamente um acordo externo (não interno, não PGFN) em aberto e sem envio do mês; com dois
+  ou mais o Cliente sai do job (envio manual). A reserva guarda o ID desse acordo
+  (`envios_automaticos.parcelamento_id`) e a conclusão só registra o envio nele, e só se ele continuar
+  sendo o candidato único. Apagado, trocado, virado interno/PGFN ou acompanhado de outro: a reserva é
+  fechada sem registro e a rodada seguinte reserva o candidato de então. Aplicar a migration
+  `20261024105000` junto com o código desta versão.
