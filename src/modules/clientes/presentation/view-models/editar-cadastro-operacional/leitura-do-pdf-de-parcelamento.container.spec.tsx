@@ -369,4 +369,38 @@ describe("Leitura do PDF de parcelamento no Editar cliente", () => {
       expect(salvarParcelamentosMock.mock.calls[0][0].parcelamentos[0].codigo).toBe("MANUAL-9");
     },
   );
+
+  it("PDFs que somam mais de 4 MB: mostra o erro da lista, não salva e volta a salvar ao reduzir", async () => {
+    lerMock.mockResolvedValue(okAction({ lido: false, motivo: "ilegivel" }));
+    const grande = (nome: string) =>
+      new File([new Uint8Array(3 * 1024 * 1024)], nome, { type: "application/pdf" });
+    const usuario = userEvent.setup();
+    render();
+
+    await usuario.click(screen.getByRole("button", { name: /adicionar parcelamento/i }));
+    const [campoA, campoB] = screen.getAllByLabelText(/pdf do acordo/i);
+    await usuario.upload(campoA, grande("a.pdf"));
+    await usuario.upload(campoB, grande("b.pdf"));
+    const [codigoA, codigoB] = screen.getAllByLabelText(/código/i);
+    const [parcelasA, parcelasB] = screen.getAllByLabelText(/parcelas restantes/i);
+    await usuario.type(codigoA, "A-1");
+    await usuario.type(codigoB, "B-1");
+    await usuario.type(parcelasA, "3");
+    await usuario.type(parcelasB, "3");
+
+    await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+
+    expect(await screen.findByText(/somam mais de 4 MB/)).toBeInTheDocument();
+    expect(editarMock).not.toHaveBeenCalled();
+    expect(salvarParcelamentosMock).not.toHaveBeenCalled();
+
+    await usuario.upload(
+      screen.getAllByLabelText(/pdf do acordo/i)[1],
+      new File([new Uint8Array(8)], "b.pdf", { type: "application/pdf" }),
+    );
+    await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+
+    await waitFor(() => expect(salvarParcelamentosMock).toHaveBeenCalled());
+    expect(salvarParcelamentosMock.mock.calls[0][0].parcelamentos[0].arquivo.name).toBe("a.pdf");
+  });
 });

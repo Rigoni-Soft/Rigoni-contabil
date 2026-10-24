@@ -414,6 +414,15 @@ export function EditarCadastroOperacionalForm({
               />
             );
           })}
+          {/* Erro da lista (ex.: soma dos PDFs): o resolver o entrega em `message` ou em `root`. */}
+          {(errors.parcelamentos?.root?.message ?? errors.parcelamentos?.message) && (
+            <FieldError>
+              {errors.parcelamentos?.root?.message ?? errors.parcelamentos?.message}
+            </FieldError>
+          )}
+          <Texto variante="nota">
+            Parcelamentos da PGFN ficam fora do envio automático: o envio da guia é manual.
+          </Texto>
         </Pilha>
 
         <Pilha espaco={1} className="sm:col-span-2 lg:col-span-4">
