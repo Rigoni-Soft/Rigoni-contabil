@@ -35,7 +35,7 @@ import type { Result } from "@/shared/kernel/result";
 
 // WhatsApp do financeiro do escritório, destino das guias de parcelamento interno. `telefone` null:
 // não configurado (FINANCEIRO_TELEFONE ausente ou inválido).
-export type FinanceiroDoEscritorio = {
+type FinanceiroDoEscritorio = {
   envio: EnvioMensagemPort;
   cnpjs: ClienteCnpjPort;
   telefone: string | null;
