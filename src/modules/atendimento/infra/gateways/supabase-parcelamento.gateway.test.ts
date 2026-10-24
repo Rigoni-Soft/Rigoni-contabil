@@ -380,7 +380,11 @@ describe("reserva e conclusão do envio do Parcelamento", () => {
   });
 });
 
-describe("envio automático só com um acordo candidato (F3 do PR #191)", () => {
+// F3 do PR #191 (2ª revalidação): a conclusão nunca pode registrar envio num acordo diferente do
+// entregue. Com a regra única (#126) a conclusão só fecha a reserva do Cliente e o registro de envio é
+// gravado pelo ID do acordo entregue (`registrar_envio_parcelamento`), então trocar o acordo durante o
+// envio não desloca o registro para o substituto.
+describe("a conclusão não registra envio em acordo algum (F3 do PR #191, regra única do #126)", () => {
   async function acordo(clienteId: string, origem: "receita_federal" | "pgfn" | null) {
     const id = crypto.randomUUID();
     await ok(
@@ -405,54 +409,32 @@ describe("envio automático só com um acordo candidato (F3 do PR #191)", () => 
       )
     ).map((e) => e.parcelamento_id);
 
-  it("dois acordos da Receita: o Cliente sai do job, não reserva e nada é marcado", async () => {
+  it("dois acordos da Receita: o Cliente é pendente e a conclusão não marca nenhum deles", async () => {
     const cliente = await criarCliente({ temParcelamento: false });
     await acordo(cliente.id, "receita_federal");
     await acordo(cliente.id, "receita_federal");
 
     const lista = await clientes.listarPendentes();
-    expect(lista.ok && lista.value.map((c) => c.clienteId)).not.toContain(cliente.id);
-    expect(await clientes.reservar(cliente.id)).toEqual({ ok: true, value: null });
+    expect(lista.ok && lista.value.map((c) => c.clienteId)).toContain(cliente.id);
+    const reserva = await clientes.reservar(cliente.id);
+    expect(reserva.ok && typeof reserva.value).toBe("string");
+    await clientes.concluir(cliente.id, reserva.ok ? reserva.value! : "");
+
     expect(await enviadosDe(cliente.id)).toEqual([]);
   });
 
-  it("acordo sem origem conta como candidato: com a Receita, são dois e o job não age", async () => {
+  it("Receita + PGFN: só o da Receita é pendente e a conclusão não marca ninguém", async () => {
     const cliente = await criarCliente({ temParcelamento: false });
     await acordo(cliente.id, "receita_federal");
-    await acordo(cliente.id, null);
-
-    expect(await clientes.reservar(cliente.id)).toEqual({ ok: true, value: null });
-  });
-
-  it("Receita + PGFN: só o da Receita é candidato e só ele é marcado", async () => {
-    const cliente = await criarCliente({ temParcelamento: false });
-    const receita = await acordo(cliente.id, "receita_federal");
     await acordo(cliente.id, "pgfn");
 
     const reserva = await clientes.reservar(cliente.id);
     expect(reserva.ok && typeof reserva.value).toBe("string");
-    expect(await clientes.concluir(cliente.id, reserva.ok ? reserva.value! : "")).toEqual({
-      ok: true,
-      value: true,
-    });
-    expect(await enviadosDe(cliente.id)).toEqual([receita]);
-  });
+    await clientes.concluir(cliente.id, reserva.ok ? reserva.value! : "");
 
-  it("segundo acordo criado durante o envio: a conclusão não marca ninguém", async () => {
-    const cliente = await criarCliente({ temParcelamento: false });
-    await acordo(cliente.id, "receita_federal");
-    const reserva = await clientes.reservar(cliente.id);
-    const token = reserva.ok ? reserva.value! : "";
-    expect(token).not.toBe("");
-
-    await acordo(cliente.id, "receita_federal");
-
-    expect(await clientes.concluir(cliente.id, token)).toEqual({ ok: true, value: false });
     expect(await enviadosDe(cliente.id)).toEqual([]);
   });
 
-  // A reserva fica presa ao acordo que existia nela: o candidato da conclusão tem de ser o mesmo,
-  // não "o único que sobrou". Contar de novo não basta (F3, 2ª revalidação).
   it("acordo A trocado por B depois da reserva: a conclusão não registra a entrega de A em B", async () => {
     const cliente = await criarCliente({ temParcelamento: false });
     const a = await acordo(cliente.id, "receita_federal");
@@ -462,8 +444,8 @@ describe("envio automático só com um acordo candidato (F3 do PR #191)", () => 
 
     await ok(admin.from("cliente_parcelamentos").delete().eq("id", a));
     await acordo(cliente.id, "receita_federal");
+    await clientes.concluir(cliente.id, token);
 
-    expect(await clientes.concluir(cliente.id, token)).toEqual({ ok: true, value: false });
     expect(await enviadosDe(cliente.id)).toEqual([]);
   });
 
@@ -476,27 +458,23 @@ describe("envio automático só com um acordo candidato (F3 do PR #191)", () => 
 
     await ok(admin.from("cliente_parcelamentos").update({ interno: true }).eq("id", a));
     await acordo(cliente.id, "receita_federal");
+    await clientes.concluir(cliente.id, token);
 
-    expect(await clientes.concluir(cliente.id, token)).toEqual({ ok: true, value: false });
     expect(await enviadosDe(cliente.id)).toEqual([]);
   });
 
-  it("depois de uma conclusão recusada a reserva é liberada: a rodada seguinte reserva o candidato de agora", async () => {
+  it("o registro vai para o acordo entregue, mesmo que outro apareça depois", async () => {
     const cliente = await criarCliente({ temParcelamento: false });
     const a = await acordo(cliente.id, "receita_federal");
-    const reserva = await clientes.reservar(cliente.id);
-    const token = reserva.ok ? reserva.value! : "";
-    await ok(admin.from("cliente_parcelamentos").delete().eq("id", a));
-    const b = await acordo(cliente.id, "receita_federal");
-    await clientes.concluir(cliente.id, token);
+    await acordo(cliente.id, "receita_federal");
 
-    const proxima = await clientes.reservar(cliente.id);
-    expect(proxima.ok && typeof proxima.value).toBe("string");
-    expect(await clientes.concluir(cliente.id, proxima.ok ? proxima.value! : "")).toEqual({
-      ok: true,
-      value: true,
-    });
-    expect(await enviadosDe(cliente.id)).toEqual([b]);
+    const registrado = await new SupabaseParcelamentosDoClienteGateway(admin).registrarEnvio(
+      a,
+      "202610",
+    );
+
+    expect(registrado).toEqual({ ok: true, value: true });
+    expect(await enviadosDe(cliente.id)).toEqual([a]);
   });
 });
 
@@ -556,7 +534,11 @@ describe("alertas por origem e por Cliente avaliado", () => {
       await alertasParcelamento.resolverNaoRenovados(new Date(Date.now() + 60_000), [alvo.id]);
 
       const abertos = await ok(
-        admin.from("alertas_setor").select("tipo").eq("cliente_id", alvo.id).is("resolvido_em", null),
+        admin
+          .from("alertas_setor")
+          .select("tipo")
+          .eq("cliente_id", alvo.id)
+          .is("resolvido_em", null),
       );
       expect(abertos).toEqual([]);
     },

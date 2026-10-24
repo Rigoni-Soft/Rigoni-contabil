@@ -64,5 +64,5 @@ template `envio_guia_parcelamento_interno`, qualquer que seja a forma de envio d
 
 - Telefone ausente ou inválido não derruba o app: o interno não é enviado, segue pendente e abre
   `financeiro_ausente` até configurar. Definir no Production.
-- A migration `20261024100000` faz o interno contar em `cliente_tem_parcelamento_pendente`. Aplicar junto
+- A migration `20261024110000` faz o interno contar em `cliente_tem_parcelamento_pendente`. Aplicar junto
   com o código desta versão.
