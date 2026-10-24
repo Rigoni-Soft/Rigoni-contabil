@@ -35,7 +35,13 @@ const guiaOk: GuiaFiscal = {
   pdfBase64: "JVBERi0=",
   parcela: "202609",
 };
-const emAberto = { id: "p1", codigo: "PARC-1", interno: false, valorParcelaCentavos: 10_000 };
+const emAberto = {
+  id: "p1",
+  codigo: "PARC-1",
+  interno: false,
+  valorParcelaCentavos: 10_000,
+  parcelasRestantes: 5,
+};
 
 function montar(
   clientes: ClienteParaParcelamento[],
@@ -96,6 +102,11 @@ function montar(
         },
         0,
       ),
+      {
+        envio,
+        cnpjs: { cadastroFiscalDoCliente: async () => ok({ cnpj: "12345678000190", regime: "" }) },
+        telefone: null,
+      },
       0,
     ),
     {
@@ -189,10 +200,11 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
     ]);
   });
 
-  it("sem destinatário: alerta uma vez, sem buscar a guia nem reservar", async () => {
-    const { job, alertas, reservados, buscar } = montar([cliente({ contato: null })]);
+  it("sem destinatário: alerta uma vez, sem buscar a guia nem concluir, e libera a reserva", async () => {
+    const { job, alertas, liberados, concluidos, buscar } = montar([cliente({ contato: null })]);
     await job.execute();
-    expect(reservados).toHaveLength(0);
+    expect(liberados).toEqual([["c1", "tok-1"]]);
+    expect(concluidos).toHaveLength(0);
     expect(buscar).not.toHaveBeenCalled();
     expect(alertas).toMatchObject([
       { setor: "simples_nacional", tipo: "contato_ausente", clienteId: "c1" },

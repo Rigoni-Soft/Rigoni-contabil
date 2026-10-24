@@ -6,6 +6,7 @@ export type ParcelamentoDoCliente = {
   codigo: string;
   interno: boolean;
   valorParcelaCentavos: number | null;
+  parcelasRestantes: number;
   // Parcelas (AAAAMM) com registro de envio.
   parcelasEnviadas: string[];
 };

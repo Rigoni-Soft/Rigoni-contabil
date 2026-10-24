@@ -17,6 +17,7 @@ const parcelamento = (
   codigo: `COD-${id}`,
   interno: false,
   valorParcelaCentavos,
+  parcelasRestantes: 5,
   parcelasEnviadas: enviadas,
 });
 

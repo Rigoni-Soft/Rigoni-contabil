@@ -3,7 +3,7 @@
 > Ticket de origem: [#23](https://github.com/Rigoni-Soft/Rigoni-contabil/issues/23) — mapa wayfinder.
 > Provedor assumido: Meta Cloud API / categoria **Utility** (ver [pesquisa do BSP](./whatsapp-bsp.md)).
 
-Estes são os 3 templates que precisam de aprovação prévia da Meta, porque disparam **fora da janela de 24h** (seção 9 da spec original: lembrete de documento, envio de DAS, envio de guia de parcelamento). Dentro de uma conversa ativa (seção 12), a URA responde livremente com o template próprio do sistema — isso não precisa de aprovação.
+Estes são os 4 templates que precisam de aprovação prévia da Meta, porque disparam **fora da janela de 24h** (seção 9 da spec original: lembrete de documento, envio de DAS, envio de guia de parcelamento, envio de guia de parcelamento interno ao financeiro). Dentro de uma conversa ativa (seção 12), a URA responde livremente com o template próprio do sistema — isso não precisa de aprovação.
 
 Cada template segue o formato de submissão da Meta: nome (snake_case, imutável após aprovação), categoria, idioma, cabeçalho opcional, corpo com variáveis `{{n}}`, rodapé opcional, botões opcionais.
 
@@ -62,6 +62,25 @@ Disparado pelo job da seção 9 (dias 20/22/24/26/28) quando parcelamento = pend
 
 ---
 
+## 4. `envio_guia_parcelamento_interno`
+
+Disparado pelo mesmo job da seção 9 quando o Parcelamento está marcado "é interno". Vai **só ao WhatsApp do financeiro** do escritório (`FINANCEIRO_TELEFONE`), nunca ao Cliente, uma mensagem por guia. Sempre template (não há conversa aberta com o financeiro).
+
+- **Categoria**: Utility
+- **Idioma**: pt_BR
+- **Cabeçalho**: Documento (PDF, dinâmico)
+- **Corpo**:
+  > Guia de parcelamento interno de {{1}} (CNPJ {{2}}), código {{3}}, parcela {{4}}. Parcelas restantes: {{5}}.
+  - `{{1}}` — nome da empresa
+  - `{{2}}` — CNPJ do Cliente
+  - `{{3}}` — código do parcelamento
+  - `{{4}}` — parcela (ex.: "10/2026")
+  - `{{5}}` — parcelas restantes (ex.: "7")
+- **Rodapé**: `Rigoni Contábil · Simples Nacional`
+- **Botões**: nenhum
+
+---
+
 ## Fora do escopo de aprovação (não precisam de template Meta)
 
 - Resposta da URA dentro de uma conversa ativa (menu, coleta de CNPJ, entrega de contrato social/CND/guias já geradas) — template próprio do sistema, seção 12.
@@ -70,5 +89,5 @@ Disparado pelo job da seção 9 (dias 20/22/24/26/28) quando parcelamento = pend
 
 ## Pendências para quando o provedor for contratado
 
-- Submeter os 3 templates acima no Meta Business Manager (ou via 360dialog) para aprovação antes do go-live dos jobs da seção 9.
+- Submeter os 4 templates acima no Meta Business Manager (ou via 360dialog) para aprovação antes do go-live dos jobs da seção 9.
 - Confirmar se a Meta aceita cabeçalho de documento dinâmico por variável de mídia (sim, suportado — a URL do PDF é passada no envio, não no cadastro do template).

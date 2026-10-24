@@ -15,6 +15,7 @@ const linhaSchema = z.array(
     codigo: z.string(),
     interno: z.boolean(),
     valor_parcela_centavos: z.number().nullable(),
+    parcelas_restantes: z.number(),
     cliente_parcelamento_envios: z.array(z.object({ parcela: z.string() })),
   }),
 );
@@ -26,7 +27,9 @@ export class SupabaseParcelamentosDoClienteGateway implements ParcelamentosDoCli
   async listarEmAberto(clienteId: string): Promise<Result<ParcelamentoDoCliente[], AppError>> {
     const { data, error } = await this.supabaseAdmin
       .from("cliente_parcelamentos")
-      .select("id, codigo, interno, valor_parcela_centavos, cliente_parcelamento_envios(parcela)")
+      .select(
+        "id, codigo, interno, valor_parcela_centavos, parcelas_restantes, cliente_parcelamento_envios(parcela)",
+      )
       .eq("cliente_id", clienteId)
       .eq("situacao", "em_aberto")
       .gt("parcelas_restantes", 0)
@@ -41,6 +44,7 @@ export class SupabaseParcelamentosDoClienteGateway implements ParcelamentosDoCli
         codigo: linha.codigo,
         interno: linha.interno,
         valorParcelaCentavos: linha.valor_parcela_centavos,
+        parcelasRestantes: linha.parcelas_restantes,
         parcelasEnviadas: linha.cliente_parcelamento_envios.map((envio) => envio.parcela),
       })),
     );

@@ -12,6 +12,7 @@ import {
   EMAIL_SMTP_SENHA,
   EMAIL_SMTP_USUARIO,
   FFMPEG_PATH,
+  FINANCEIRO_TELEFONE,
   INATIVIDADE_AUTOMATICA,
   LEMBRETES_AUTOMATICOS,
   MENSAGERIA_MODO,
@@ -332,6 +333,7 @@ export function makeExecutarLembretesDocumentoEDas(): ExecutarLembretesDocumento
 // lembrete: os dois são comunicação automática ao Cliente.
 export function makeExecutarEnvioGuiaParcelamento(): ExecutarEnvioGuiaParcelamentoPort {
   const supabaseAdmin = createSupabaseAdmin();
+  const envio = makeEnvioMensagem();
   return new ExecutarEnvioGuiaParcelamento(
     new SupabaseClientesParaParcelamentoGateway(supabaseAdmin),
     new EnviarGuiasParcelamento(
@@ -339,9 +341,14 @@ export function makeExecutarEnvioGuiaParcelamento(): ExecutarEnvioGuiaParcelamen
       guiasFiscais(supabaseAdmin),
       new SupabaseGuiaPublicadaGateway(supabaseAdmin),
       new EntregarComunicacaoPorCanais(
-        new EnviarComunicacaoProativa(makeEnvioMensagem(), TENTATIVAS, ESPERA_MS),
+        new EnviarComunicacaoProativa(envio, TENTATIVAS, ESPERA_MS),
         makeEnvioEmail(),
       ),
+      {
+        envio,
+        cnpjs: new SupabaseClienteCnpjGateway(supabaseAdmin),
+        telefone: FINANCEIRO_TELEFONE ?? null,
+      },
     ),
     new SupabaseAlertaSetorGateway(supabaseAdmin, "parcelamento"),
     new RelogioSistemaGateway(),

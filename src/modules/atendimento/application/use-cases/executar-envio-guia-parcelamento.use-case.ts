@@ -1,7 +1,6 @@
 import {
   entregarComReserva,
   executarRodada,
-  semDestinatario,
   type Andamento,
 } from "@/modules/atendimento/application/jobs/alertas-da-rodada";
 import type { EnviarGuiasParcelamentoPort } from "@/modules/atendimento/application/ports/in/enviar-guias-parcelamento.provider";
@@ -17,13 +16,13 @@ import type {
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { DIAS_DO_JOB_PARCELAMENTO } from "@/shared/kernel/dias-do-job-parcelamento";
-import { temDestinatario } from "@/shared/kernel/forma-envio";
 import { diaDoMes } from "@/shared/kernel/mes-atual";
 import { ok, type Result } from "@/shared/kernel/result";
 
 // Job dos dias 20/22/24/26/28 (fuso de São Paulo): reserva o Cliente com parcelamento pendente e
-// delega a entrega das guias ao núcleo `EnviarGuiasParcelamento`; a reserva é liberada se nada foi
-// aceito e a rodada seguinte tenta de novo (`entregarComReserva`). Cada Cliente é independente.
+// delega a entrega das guias ao núcleo `EnviarGuiasParcelamento` (que decide o destino de cada
+// parcelamento: Cliente ou financeiro); a reserva é liberada se nada foi aceito e a rodada seguinte
+// tenta de novo (`entregarComReserva`). Cada Cliente é independente.
 export class ExecutarEnvioGuiaParcelamento implements ExecutarEnvioGuiaParcelamentoPort {
   constructor(
     private readonly clientes: ClientesParaParcelamentoPort,
@@ -57,7 +56,6 @@ export class ExecutarEnvioGuiaParcelamento implements ExecutarEnvioGuiaParcelame
   }
 
   private async enviar(cliente: ClienteParaParcelamento, agora: Date): Promise<Andamento> {
-    if (!temDestinatario(cliente)) return semDestinatario(cliente.empresa);
     return entregarComReserva({
       descricao: `Parcelamento de ${cliente.empresa}`,
       reservar: () => this.clientes.reservar(cliente.clienteId),

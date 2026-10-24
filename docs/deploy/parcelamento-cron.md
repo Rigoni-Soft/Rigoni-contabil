@@ -7,12 +7,12 @@ Mesmo gate, retentativa, reserva da entrega e alertas do job de lembrete/DAS
 | --- | --- | --- |
 | Rota | `/api/jobs/lembretes` | `/api/jobs/parcelamento` |
 | Dias (São Paulo, 08h) | 01/05/10/15 | 20/22/24/26/28 |
-| Cliente | DAS pronto | ao menos um Parcelamento em aberto, não interno, sem registro de envio do mês |
+| Cliente | DAS pronto | ao menos um Parcelamento em aberto (comum ou interno) sem registro de envio do mês |
 | Reserva → conclusão | reserva; DAS pronto → enviado ao concluir | reserva do Cliente; o registro de envio é gravado guia a guia (a reserva só é fechada ao concluir; sem guia aceita é liberada) |
 | Auditoria (ator URA) | `cliente.enviar-das-automatico` | `cliente.enviar-parcelamento-automatico` |
 
 - Mesma flag `LEMBRETES_AUTOMATICOS=ligada` e mesmos pré-requisitos (mensageria real, e-mail real,
-  template `envio_guia_parcelamento` aprovado).
+  templates `envio_guia_parcelamento` e `envio_guia_parcelamento_interno` aprovados).
 - `alertas_setor.origem = 'parcelamento'`: cada job renova e resolve só os seus alertas.
 - A parcela do provedor (`AAAAMM`) vai como `MM/AAAA`; guia sem parcela não é atribuída a ninguém.
 - Não há data de envio do Parcelamento (o DAS tem): o registro de envio e a auditoria dizem quando.
@@ -22,13 +22,13 @@ Mesmo gate, retentativa, reserva da entrega e alertas do job de lembrete/DAS
 O núcleo `EnviarGuiasParcelamento` (job e URA) segue, por Cliente:
 
 1. **O banco manda.** Lê os Parcelamentos em aberto com parcelas restantes (`registrar_envio_parcelamento`
-   recusa o resto). Sem nenhum pendente (interno ou já com registro do mês) o provedor não é chamado.
-2. **Uma consulta por CNPJ**, com `ignorar` = parcelas que todos os comuns já receberam (cada emissão é
+   recusa o resto). Sem nenhum pendente (todos já com registro do mês, ou sem destino: ver Parcelamento interno) o provedor não é chamado.
+2. **Uma consulta por CNPJ**, com `ignorar` = parcelas que todos os Parcelamentos com destino já receberam (cada emissão é
    cobrada). O provedor devolve 0..n guias e não diz de qual Parcelamento é cada uma.
 3. **Atribuição** (`atribuirGuiasParcelamento`): com um Parcelamento em aberto, todas vão a ele; com vários,
    cada guia vai ao de valor guardado mais próximo sem passar do valor dela (a atrasada pode vir com juros),
    e um Parcelamento nunca recebe duas da mesma parcela. Empate de valor é arbitrário. Guia sem candidato
-   fica de fora (falha fechado). Guia que cabe a um Parcelamento interno não vai ao Cliente. Nova emissão
+   fica de fora (falha fechado). A atribuição vê todos os em aberto: a guia de um Parcelamento sem destino não cai em outro. Nova emissão
    de uma parcela que o dono já recebeu (o `ignorar` só pula as que todos receberam) é descartada, não
    vai a outro Parcelamento. Guias de parcelas atrasadas entram como as do mês: cada uma é entregue,
    registrada e desconta uma parcela restante; "pendente" é só não ter registro da parcela do mês.
@@ -56,3 +56,20 @@ O núcleo `EnviarGuiasParcelamento` (job e URA) segue, por Cliente:
   `parcelamento`); a conclusão (`concluir_envio_automatico_parcelamento`) só fecha a reserva. Leitura em páginas de
   500 por cursor (`cliente_id`), estável mesmo quando o próprio job tira Clientes do conjunto.
 - O status do mês deriva do registro de envio e volta a pendente sozinho no mês seguinte (reset mensal automático).
+
+## Parcelamento interno (#127)
+
+O interno ignora a forma de envio do Cliente e vai sempre e só ao WhatsApp do financeiro, por template
+`envio_guia_parcelamento_interno` (uma mensagem por guia, sempre template, nunca texto livre nem e-mail).
+Nunca cai para o Cliente, e um Cliente sem contato ainda recebe o interno no financeiro (o `contato_ausente`
+vale só para os comuns).
+
+- `FINANCEIRO_TELEFONE`: só dígitos com DDI (ex.: `5511999990000`), validado em `env.ts`. Ausente ou
+  inválido não derruba o app: o interno não é enviado, o provedor fiscal não é chamado por ele, ele segue
+  pendente e abre `financeiro_ausente` (renovado a cada rodada até configurar). Definir no Production e,
+  se quiser ver o fluxo, no Preview (lá o adapter falso não envia nada de verdade).
+- Variáveis do template: empresa, CNPJ do Cliente, código, parcela (`MM/AAAA`), parcelas restantes.
+- Entrega aceita grava o registro de envio e desconta, como nos comuns; falha de uma guia (CNPJ ilegível ou
+  entrega recusada) vira `falha_envio` e não afeta as outras.
+- A migration `20261024100000` faz o interno contar em `cliente_tem_parcelamento_pendente` (o Cliente que
+  só tem interno passa a ser lido e reservado pelo job). Aplicar junto com o código desta versão.

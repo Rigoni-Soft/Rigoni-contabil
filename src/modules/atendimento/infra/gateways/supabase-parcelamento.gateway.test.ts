@@ -13,6 +13,7 @@ import { ok as sucesso } from "@/shared/kernel/result";
 import { criarAdminLocal } from "../../../../../test-support/admin-supabase-local";
 import { EnvioMensagemFalsoGateway } from "./envio-mensagem-falso.gateway";
 import { SupabaseAlertaSetorGateway } from "./supabase-alerta-setor.gateway";
+import { SupabaseClienteCnpjGateway } from "./supabase-cliente-cnpj.gateway";
 import { SupabaseClientesParaParcelamentoGateway } from "./supabase-clientes-para-parcelamento.gateway";
 import { SupabaseParcelamentosDoClienteGateway } from "./supabase-parcelamentos-do-cliente.gateway";
 
@@ -46,13 +47,14 @@ async function ok<T>(consulta: PromiseLike<{ data: T; error: { message: string }
   return data as NonNullable<T>;
 }
 
-async function criarParcelamento(clienteId: string) {
+async function criarParcelamento(clienteId: string, interno = false) {
   await ok(
     admin.from("cliente_parcelamentos").insert({
       id: crypto.randomUUID(),
       cliente_id: clienteId,
       codigo: "TESTE-1",
       parcelas_restantes: 5,
+      interno,
       arquivo_caminho: `${clienteId}/teste.pdf`,
     }),
   );
@@ -174,6 +176,15 @@ describe("leitura dos pendentes", () => {
     expect(ids).not.toContain(semParcelamento.id);
     const nacional = soDigitosNacionais(`(61) 9${sufixo.slice(0, 4)}-${sufixo.slice(4)}`);
     expect(itens.find((c) => c.clienteId === pendente.id)?.contato?.telefone).toBe(`55${nacional}`);
+  });
+
+  it("Cliente que só tem parcelamento interno em aberto também é pendente (o destino é decidido no envio)", async () => {
+    const soInterno = await criarCliente({ temParcelamento: false, empresa: "Só Interno Ltda" });
+    await criarParcelamento(soInterno.id, true);
+
+    const lista = await clientes.listarPendentes();
+
+    expect(lista.ok && lista.value.map((c) => c.clienteId)).toContain(soInterno.id);
   });
 
   it("janela de 24h pela chave nacional: mensagem recente do contato escolhe o texto livre", async () => {
@@ -607,6 +618,7 @@ describe("rodada real com a reserva ocupada", () => {
             { enviar: async () => sucesso(undefined) },
             0,
           ),
+          { envio, cnpjs: new SupabaseClienteCnpjGateway(admin), telefone: null },
           0,
         ),
         alertasNoRelogioDaRodada,

@@ -89,6 +89,7 @@ describe("SupabaseParcelamentosDoClienteGateway", () => {
       codigo: "ABERTO",
       interno: false,
       valorParcelaCentavos: 12_345,
+      parcelasRestantes: 3,
       parcelasEnviadas: ["202609"],
     });
     expect(lista.ok && lista.value.find((p) => p.id === interno)?.valorParcelaCentavos).toBeNull();
