@@ -12,7 +12,7 @@ adapter falso o DAS ficaria `enviado` sem o cliente ter recebido.
 
 Antes de ligar em produção:
 
-1. Mensageria real no ar (#68) e os 4 templates aprovados na Meta (#67).
+1. Mensageria real no ar (#68) e os 3 templates do lembrete e do DAS aprovados na Meta (#67). O quarto, `envio_guia_parcelamento_interno`, é do job de parcelamento ([parcelamento-cron.md](./parcelamento-cron.md)).
 2. E-mail real. Hoje só existe o adapter falso, e em produção o canal e-mail falha de forma
    explícita (`EnvioEmailIndisponivelGateway`): o DAS não é marcado como enviado e o setor recebe
    alerta, em vez de o adapter falso responder ok. O destino é `clientes.email`,

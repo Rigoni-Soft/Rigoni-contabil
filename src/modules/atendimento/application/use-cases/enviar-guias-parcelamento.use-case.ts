@@ -75,8 +75,9 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
       p.interno ? this.financeiro.telefone !== null : temDestinatario(cliente);
     const pendente = (p: ParcelamentoDoCliente) => !p.parcelasEnviadas.includes(mes);
     const alvos = emAberto.value.filter(entregavel);
+    const idsDosAlvos = new Set(alvos.map((p) => p.id));
     const aEntregar = alvos.filter(pendente);
-    const semDestino = emAberto.value.filter((p) => pendente(p) && !alvos.includes(p));
+    const semDestino = emAberto.value.filter((p) => pendente(p) && !idsDosAlvos.has(p.id));
     const ocorrencias: OcorrenciaDeEntrega[] = [];
     const internos = semDestino.filter((p) => p.interno);
     if (internos.length > 0) {
@@ -104,7 +105,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     const andamentos = await this.entregarGuias(
       cliente,
       agora,
-      atribuidas.filter((a) => alvos.includes(a.parcelamento)),
+      atribuidas.filter((a) => idsDosAlvos.has(a.parcelamento.id)),
     );
 
     // Guia só de parcela atrasada é entregue, mas o mês corrente continua sem guia.

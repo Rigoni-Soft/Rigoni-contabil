@@ -12,7 +12,7 @@ Cliente (#122) e o provedor entregando as guias por CNPJ, sem dizer de qual Parc
 ## Decisão
 
 - **O banco manda.** Quem decide se há guia a enviar é o estado gravado: Parcelamento em aberto, com
-  parcelas restantes, não interno e sem registro de envio do mês. Sem isso o provedor fiscal não é
+  parcelas restantes (comum ou interno, nunca PGFN) e sem registro de envio do mês. Sem isso o provedor fiscal não é
   chamado. O provedor nunca diz que o Parcelamento acabou: `quitado` no provedor com o Parcelamento
   em aberto aqui não o quita, vira alerta `parcelamento_sem_guia` (divergência é decisão humana).
 - **O registro de envio é a unidade do envio.** `registrar_envio_parcelamento` grava a parcela,
@@ -26,7 +26,7 @@ Cliente (#122) e o provedor entregando as guias por CNPJ, sem dizer de qual Parc
 ## Consequências
 
 - Os alertas `parcelamento_sem_guia` e `financeiro_ausente` entram em `tipo_alerta_setor` (o segundo é
-  usado quando o Parcelamento interno for roteado ao financeiro).
+  usado quando há Parcelamento interno pendente e `FINANCEIRO_TELEFONE` está ausente ou inválido).
 - A atribuição por valor é inferência não confirmada contra o Serpro real: ligar primeiro para um CNPJ
   em produção.
 - A guia fica em `guias-fiscais` por cliente/parcelamento/AAAAMM, o mesmo caminho a cada tentativa.
