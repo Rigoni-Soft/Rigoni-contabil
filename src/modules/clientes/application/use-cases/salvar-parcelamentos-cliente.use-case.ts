@@ -136,9 +136,9 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
     return ok({ itens, uploads });
   }
 
-  // Falha definitiva: apaga os uploads (rollback provado). Resultado incerto: lê o banco antes de
-  // apagar qualquer PDF; gravado = segue como sucesso; sem desfecho provado = mantém os arquivos.
-  // ok(true) = o banco confirmou a gravação; ok(false) = rollback provado e uploads apagados.
+  // Falha definitiva: apaga os uploads. Resultado incerto: lê o banco; gravado = segue como sucesso;
+  // qualquer outro desfecho mantém os arquivos (nunca apaga sob incerteza).
+  // ok(true) = o banco confirmou a gravação; ok(false) = falha definitiva e uploads apagados.
   private async reconciliar(
     clienteId: string,
     erro: AppError,
@@ -150,13 +150,11 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
     }
     const atuais = await this.parcelamentos.listar(clienteId);
     // Sem upload novo não há caminho que prove o desfecho: fica sem reconciliar.
+    // Ausência na leitura NÃO prova rollback (commit tardio, linha oculta por RLS): só a presença
+    // de todos os caminhos confirma; qualquer outra coisa preserva os PDFs.
     if (atuais.ok && enviados.length > 0) {
       const gravados = new Set(atuais.value.map((p) => p.arquivoCaminho));
       if (enviados.every((c) => gravados.has(c))) return ok(true);
-      if (enviados.every((c) => !gravados.has(c))) {
-        await this.apagarAnexos(clienteId, enviados);
-        return ok(false);
-      }
     }
     return err(
       new EstadoInconsistenteError(

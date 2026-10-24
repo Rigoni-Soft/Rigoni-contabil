@@ -300,7 +300,7 @@ describe("SalvarParcelamentosCliente", () => {
       expect(storage.removidos).not.toContain(storage.enviados[0]);
     });
 
-    it("rollback provado: apaga os uploads novos e devolve o erro", async () => {
+    it("ausente na leitura não prova rollback: mantém os uploads e devolve o erro", async () => {
       const existente = salvo();
       const { caso, gravar, storage } = montar({ existentes: [existente] });
       gravar.mockResolvedValue(err(new ResultadoIncertoError("504")));
@@ -308,7 +308,38 @@ describe("SalvarParcelamentosCliente", () => {
       const r = await caso.execute(entrada([{ ...existente, ...novo[0], id: undefined }]));
 
       expect(r.ok).toBe(false);
-      expect(storage.removidos).toEqual(storage.enviados);
+      expect(storage.enviados).toHaveLength(1);
+      expect(storage.removidos).toEqual([]);
+    });
+
+    it("commit tardio (depois da leitura): mantém o PDF do que acabou gravado", async () => {
+      const existente = salvo();
+      const { caso, gravar, storage, listar } = montar({ existentes: [existente] });
+      // A leitura da reconciliação ainda não vê o commit, que conclui logo depois.
+      gravar.mockImplementation(async (_, itens) => {
+        listar.mockResolvedValueOnce(ok([existente]));
+        queueMicrotask(() => listar.mockResolvedValue(ok(itens.map((i) => salvo(i)))));
+        return err(new ResultadoIncertoError("504"));
+      });
+
+      const r = await caso.execute(entrada(novo));
+
+      expect(r.ok).toBe(false);
+      expect(storage.removidos).not.toContain(storage.enviados[0]);
+    });
+
+    it("leitura parcial (um dos uploads oculto): mantém todos os PDFs", async () => {
+      const dois = [novo[0], { ...novo[0], codigo: "N-2" }];
+      const { caso, gravar, storage, listar } = montar({ existentes: [] });
+      gravar.mockImplementation(async (_, itens) => {
+        listar.mockResolvedValue(ok([salvo(itens[0])]));
+        return err(new ResultadoIncertoError("504"));
+      });
+
+      const r = await caso.execute(entrada(dois));
+
+      expect(r.ok).toBe(false);
+      expect(storage.removidos).toEqual([]);
     });
 
     it("não consegue reconciliar: mantém todos os PDFs", async () => {
