@@ -367,6 +367,78 @@ describe("reserva e conclusão do envio do Parcelamento", () => {
   });
 });
 
+describe("envio automático só com um acordo candidato (F3 do PR #191)", () => {
+  async function acordo(clienteId: string, origem: "receita_federal" | "pgfn" | null) {
+    const id = crypto.randomUUID();
+    await ok(
+      admin.from("cliente_parcelamentos").insert({
+        id,
+        cliente_id: clienteId,
+        codigo: `AC-${id.slice(0, 8)}`,
+        parcelas_restantes: 5,
+        arquivo_caminho: `${clienteId}/${id}-a.pdf`,
+        origem,
+      }),
+    );
+    return id;
+  }
+  const enviadosDe = async (clienteId: string) =>
+    (
+      await ok(
+        admin
+          .from("cliente_parcelamento_envios")
+          .select("parcelamento_id, cliente_parcelamentos!inner(cliente_id)")
+          .eq("cliente_parcelamentos.cliente_id", clienteId),
+      )
+    ).map((e) => e.parcelamento_id);
+
+  it("dois acordos da Receita: o Cliente sai do job, não reserva e nada é marcado", async () => {
+    const cliente = await criarCliente({ temParcelamento: false });
+    await acordo(cliente.id, "receita_federal");
+    await acordo(cliente.id, "receita_federal");
+
+    const lista = await clientes.listarPendentes();
+    expect(lista.ok && lista.value.map((c) => c.clienteId)).not.toContain(cliente.id);
+    expect(await clientes.reservar(cliente.id)).toEqual({ ok: true, value: null });
+    expect(await enviadosDe(cliente.id)).toEqual([]);
+  });
+
+  it("acordo sem origem conta como candidato: com a Receita, são dois e o job não age", async () => {
+    const cliente = await criarCliente({ temParcelamento: false });
+    await acordo(cliente.id, "receita_federal");
+    await acordo(cliente.id, null);
+
+    expect(await clientes.reservar(cliente.id)).toEqual({ ok: true, value: null });
+  });
+
+  it("Receita + PGFN: só o da Receita é candidato e só ele é marcado", async () => {
+    const cliente = await criarCliente({ temParcelamento: false });
+    const receita = await acordo(cliente.id, "receita_federal");
+    await acordo(cliente.id, "pgfn");
+
+    const reserva = await clientes.reservar(cliente.id);
+    expect(reserva.ok && typeof reserva.value).toBe("string");
+    expect(await clientes.concluir(cliente.id, reserva.ok ? reserva.value! : "")).toEqual({
+      ok: true,
+      value: true,
+    });
+    expect(await enviadosDe(cliente.id)).toEqual([receita]);
+  });
+
+  it("segundo acordo criado durante o envio: a conclusão não marca ninguém", async () => {
+    const cliente = await criarCliente({ temParcelamento: false });
+    await acordo(cliente.id, "receita_federal");
+    const reserva = await clientes.reservar(cliente.id);
+    const token = reserva.ok ? reserva.value! : "";
+    expect(token).not.toBe("");
+
+    await acordo(cliente.id, "receita_federal");
+
+    expect(await clientes.concluir(cliente.id, token)).toEqual({ ok: true, value: false });
+    expect(await enviadosDe(cliente.id)).toEqual([]);
+  });
+});
+
 describe("alertas por origem e por Cliente avaliado", () => {
   const base = (clienteId: string) =>
     ({ setor: "simples_nacional", clienteId, mensagem: "x" }) as const;
