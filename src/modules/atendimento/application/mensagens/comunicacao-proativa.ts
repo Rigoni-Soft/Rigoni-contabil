@@ -26,30 +26,6 @@ export type ComunicacaoProativa =
       guia: Guia;
     };
 
-// Guia de parcelamento interno, ao financeiro do escritório: sempre template (não há conversa
-// aberta com o financeiro), nunca texto livre nem e-mail.
-export type GuiaParcelamentoInterno = {
-  empresa: string;
-  cnpj: string;
-  codigo: string;
-  parcela: string;
-  parcelasRestantes: number;
-  guia: Guia;
-};
-
-export function montarTemplateInterno(
-  guia: GuiaParcelamentoInterno,
-  telefone: string,
-): TemplateEnviado {
-  return {
-    telefone,
-    nome: "envio_guia_parcelamento_interno",
-    idioma: "pt_BR",
-    variaveis: [guia.empresa, guia.cnpj, guia.codigo, guia.parcela, String(guia.parcelasRestantes)],
-    documento: guia.guia,
-  };
-}
-
 // A janela de 24h conta da última mensagem recebida do contato.
 export function janelaAberta(ultimaMensagemDoContatoEm: Date | null, agora: Date): boolean {
   return (

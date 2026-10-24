@@ -5,7 +5,6 @@ import {
   type Andamento,
 } from "@/modules/atendimento/application/jobs/alertas-da-rodada";
 import { atribuirGuiasParcelamento } from "@/modules/atendimento/application/jobs/atribuir-guias-parcelamento";
-import { montarTemplateInterno } from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
 import type {
   EntregarComunicacaoPorCanaisPort,
   OcorrenciaDeEntrega,
@@ -14,7 +13,10 @@ import type {
   EnviarGuiasParcelamentoInput,
   EnviarGuiasParcelamentoPort,
 } from "@/modules/atendimento/application/ports/in/enviar-guias-parcelamento.provider";
-import type { ClienteCnpjPort } from "@/modules/atendimento/application/ports/out/cliente-cnpj.provider";
+import type {
+  CadastroFiscalCliente,
+  ClienteCnpjPort,
+} from "@/modules/atendimento/application/ports/out/cliente-cnpj.provider";
 import type { ClienteParaParcelamento } from "@/modules/atendimento/application/ports/out/clientes-para-parcelamento.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type { GuiaPublicadaPort } from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
@@ -64,13 +66,21 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     // pendente e o setor é avisado; o outro destino não depende deste.
     const entregavel = (p: ParcelamentoDoCliente) =>
       p.interno ? this.financeiro.telefone !== null : temDestinatario(cliente);
-    const pendentes = emAberto.value.filter((p) => !p.parcelasEnviadas.includes(mes));
-    const ocorrencias = this.ocorrenciasSemDestino(
-      cliente,
-      pendentes.filter((p) => !entregavel(p)),
-    );
+    const pendente = (p: ParcelamentoDoCliente) => !p.parcelasEnviadas.includes(mes);
     const alvos = emAberto.value.filter(entregavel);
-    const aEntregar = pendentes.filter(entregavel);
+    const aEntregar = alvos.filter(pendente);
+    const semDestino = emAberto.value.filter((p) => pendente(p) && !alvos.includes(p));
+    const ocorrencias: OcorrenciaDeEntrega[] = [];
+    const internos = semDestino.filter((p) => p.interno);
+    if (internos.length > 0) {
+      ocorrencias.push({
+        tipo: "financeiro_ausente",
+        mensagem: `Parcelamento ${internos.map((p) => p.codigo).join(", ")} de ${cliente.empresa}: sem telefone do financeiro (FINANCEIRO_TELEFONE).`,
+      });
+    }
+    if (semDestino.some((p) => !p.interno)) {
+      ocorrencias.push(...semDestinatario(cliente.empresa).ocorrencias);
+    }
     if (aEntregar.length === 0) return { enviado: false, ocorrencias };
 
     // Parcelas que todos os alvos já receberam: o provedor cobra cada emissão.
@@ -84,10 +94,16 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
 
     // A atribuição vê todos os em aberto: a guia de quem não tem destino não cai em outro.
     const atribuidas = atribuirGuiasParcelamento(buscadas.value, emAberto.value);
+    // O CNPJ só é lido se houver interno a entregar, e uma vez por Cliente.
+    let cadastro: Promise<Result<CadastroFiscalCliente, AppError>> | undefined;
+    const cnpjDoCliente = () =>
+      (cadastro ??= this.financeiro.cnpjs.cadastroFiscalDoCliente(cliente.clienteId));
     const andamentos: Andamento[] = [];
     for (const { parcelamento, guia, parcela } of atribuidas) {
-      if (entregavel(parcelamento)) {
-        andamentos.push(await this.entregarGuia(cliente, agora, parcelamento, guia, parcela));
+      if (alvos.includes(parcelamento)) {
+        andamentos.push(
+          await this.entregarGuia(cliente, agora, parcelamento, guia, parcela, cnpjDoCliente),
+        );
       }
     }
 
@@ -103,24 +119,6 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     return { enviado: andamentos.some((a) => a.enviado), ocorrencias };
   }
 
-  private ocorrenciasSemDestino(
-    cliente: ClienteParaParcelamento,
-    pendentesSemDestino: ParcelamentoDoCliente[],
-  ): OcorrenciaDeEntrega[] {
-    const ocorrencias: OcorrenciaDeEntrega[] = [];
-    const internos = pendentesSemDestino.filter((p) => p.interno);
-    if (internos.length > 0) {
-      ocorrencias.push({
-        tipo: "financeiro_ausente",
-        mensagem: `Parcelamento ${internos.map((p) => p.codigo).join(", ")} de ${cliente.empresa}: sem telefone do financeiro (FINANCEIRO_TELEFONE).`,
-      });
-    }
-    if (pendentesSemDestino.some((p) => !p.interno)) {
-      ocorrencias.push(...semDestinatario(cliente.empresa).ocorrencias);
-    }
-    return ocorrencias;
-  }
-
   // Falha do serviço externo repete antes de devolver o erro.
   private repetir<T>(operacao: () => Promise<Result<T, AppError>>) {
     return comTentativas(operacao, TENTATIVAS, this.esperaEntreTentativasMs);
@@ -132,6 +130,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     parcelamento: ParcelamentoDoCliente,
     guia: GuiaFiscal,
     parcela: string,
+    cnpjDoCliente: () => Promise<Result<CadastroFiscalCliente, AppError>>,
   ): Promise<Andamento> {
     const descricao = `Parcelamento ${parcelamento.codigo} de ${cliente.empresa}`;
     const url = await this.repetir(() =>
@@ -139,8 +138,9 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     );
     if (!url.ok) return falha(`${descricao}: ${url.error.message}`);
 
+    const documento = { url: url.value, nomeArquivo: guia.nomeArquivo };
     const andamento = parcelamento.interno
-      ? await this.entregarAoFinanceiro(cliente, parcelamento, guia, parcela, url.value, descricao)
+      ? await this.entregarAoFinanceiro(cliente, parcelamento, parcela, documento, cnpjDoCliente)
       : paraAndamento(
           await this.entrega.execute({
             cliente,
@@ -149,7 +149,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
               contato: cliente.contato?.nome ?? cliente.empresa,
               empresa: cliente.empresa,
               parcela: formatarParcela(parcela),
-              guia: { url: url.value, nomeArquivo: guia.nomeArquivo },
+              guia: documento,
             },
             agora,
           }),
@@ -167,27 +167,29 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
   private async entregarAoFinanceiro(
     cliente: ClienteParaParcelamento,
     parcelamento: ParcelamentoDoCliente,
-    guia: GuiaFiscal,
     parcela: string,
-    url: string,
-    descricao: string,
+    documento: { url: string; nomeArquivo: string },
+    cnpjDoCliente: () => Promise<Result<CadastroFiscalCliente, AppError>>,
   ): Promise<Andamento> {
-    const { telefone, cnpjs, envio } = this.financeiro;
+    const descricao = `Parcelamento ${parcelamento.codigo} de ${cliente.empresa}`;
+    const { telefone, envio } = this.financeiro;
     if (!telefone) return falha(`${descricao}: sem telefone do financeiro.`);
-    const cadastro = await cnpjs.cadastroFiscalDoCliente(cliente.clienteId);
+    const cadastro = await cnpjDoCliente();
     if (!cadastro.ok) return falha(`${descricao}: ${cadastro.error.message}`);
 
-    const template = montarTemplateInterno(
-      {
-        empresa: cliente.empresa,
-        cnpj: cadastro.value.cnpj,
-        codigo: parcelamento.codigo,
-        parcela: formatarParcela(parcela),
-        parcelasRestantes: parcelamento.parcelasRestantes,
-        guia: { url, nomeArquivo: guia.nomeArquivo },
-      },
+    const template = {
       telefone,
-    );
+      nome: "envio_guia_parcelamento_interno",
+      idioma: "pt_BR",
+      variaveis: [
+        cliente.empresa,
+        cadastro.value.cnpj,
+        parcelamento.codigo,
+        formatarParcela(parcela),
+        String(parcelamento.parcelasRestantes),
+      ],
+      documento,
+    };
     const enviada = await this.repetir(() => envio.enviarTemplate(template));
     if (!enviada.ok) return falha(`${descricao}: ${enviada.error.message}`);
     return { enviado: true, ocorrencias: [] };

@@ -59,17 +59,10 @@ O núcleo `EnviarGuiasParcelamento` (job e URA) segue, por Cliente:
 
 ## Parcelamento interno (#127)
 
-O interno ignora a forma de envio do Cliente e vai sempre e só ao WhatsApp do financeiro, por template
-`envio_guia_parcelamento_interno` (uma mensagem por guia, sempre template, nunca texto livre nem e-mail).
-Nunca cai para o Cliente, e um Cliente sem contato ainda recebe o interno no financeiro (o `contato_ausente`
-vale só para os comuns).
+O interno vai sempre e só ao WhatsApp do financeiro (`FINANCEIRO_TELEFONE`, só dígitos com DDI), por
+template `envio_guia_parcelamento_interno`, qualquer que seja a forma de envio do Cliente; nunca ao Cliente.
 
-- `FINANCEIRO_TELEFONE`: só dígitos com DDI (ex.: `5511999990000`), validado em `env.ts`. Ausente ou
-  inválido não derruba o app: o interno não é enviado, o provedor fiscal não é chamado por ele, ele segue
-  pendente e abre `financeiro_ausente` (renovado a cada rodada até configurar). Definir no Production e,
-  se quiser ver o fluxo, no Preview (lá o adapter falso não envia nada de verdade).
-- Variáveis do template: empresa, CNPJ do Cliente, código, parcela (`MM/AAAA`), parcelas restantes.
-- Entrega aceita grava o registro de envio e desconta, como nos comuns; falha de uma guia (CNPJ ilegível ou
-  entrega recusada) vira `falha_envio` e não afeta as outras.
-- A migration `20261024100000` faz o interno contar em `cliente_tem_parcelamento_pendente` (o Cliente que
-  só tem interno passa a ser lido e reservado pelo job). Aplicar junto com o código desta versão.
+- Telefone ausente ou inválido não derruba o app: o interno não é enviado, segue pendente e abre
+  `financeiro_ausente` até configurar. Definir no Production.
+- A migration `20261024100000` faz o interno contar em `cliente_tem_parcelamento_pendente`. Aplicar junto
+  com o código desta versão.
