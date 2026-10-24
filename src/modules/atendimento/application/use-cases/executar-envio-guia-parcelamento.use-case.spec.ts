@@ -33,7 +33,7 @@ function cliente(extra: Partial<ClienteParaParcelamento> = {}): ClienteParaParce
 const guiaOk: GuiaFiscal = {
   nomeArquivo: "parcelamento.pdf",
   pdfBase64: "JVBERi0=",
-  parcela: "202609",
+  parcela: "202610",
 };
 const emAberto = {
   id: "p1",
@@ -173,7 +173,7 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
       {
         nome: "envio_guia_parcelamento",
         telefone,
-        variaveis: ["Ângela", "3A Construções", "09/2026"],
+        variaveis: ["Ângela", "3A Construções", "10/2026"],
         documento: {
           url: "https://storage.test/parcelamento.pdf",
           nomeArquivo: "parcelamento.pdf",

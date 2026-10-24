@@ -1,7 +1,8 @@
 -- Parcelamento interno vai ao WhatsApp do financeiro (#127). O interno passa a contar como
 -- pendente: o job reserva o Cliente que só tem interno em aberto, e o núcleo de envio decide o
 -- destino (financeiro, nunca o Cliente). Cliente com Parcelamento em aberto sem registro de envio do
--- mês corrente é pendente, comum ou interno.
+-- mês corrente é pendente, comum ou interno. A PGFN fica de fora: a guia dela é o PDF do escritório
+-- (#173), o job não a envia nem a reserva.
 CREATE OR REPLACE FUNCTION public.cliente_tem_parcelamento_pendente(p_cliente_id uuid) RETURNS boolean
     LANGUAGE sql STABLE
     SET search_path TO 'public'
@@ -10,6 +11,7 @@ CREATE OR REPLACE FUNCTION public.cliente_tem_parcelamento_pendente(p_cliente_id
     select 1 from public.cliente_parcelamentos p
      where p.cliente_id = p_cliente_id
        and p.situacao = 'em_aberto' and p.parcelas_restantes > 0
+       and p.origem is distinct from 'pgfn'
        and not exists (
          select 1 from public.cliente_parcelamento_envios e
           where e.parcelamento_id = p.id

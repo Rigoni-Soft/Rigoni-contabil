@@ -31,9 +31,10 @@ export function atribuirGuiasParcelamento(
           valorCentavos !== undefined &&
           p.valorParcelaCentavos <= valorCentavos),
     );
-    const maior = Math.max(...candidatos.map((p) => p.valorParcelaCentavos ?? 0));
+    if (candidatos.length === 0) continue;
+    const maiorValor = Math.max(...candidatos.map((p) => p.valorParcelaCentavos ?? 0));
     const dono = candidatos.find(
-      (p) => (p.valorParcelaCentavos ?? 0) === maior && !recebidas.get(p.id)?.has(parcela),
+      (p) => (p.valorParcelaCentavos ?? 0) === maiorValor && !recebidas.get(p.id)?.has(parcela),
     );
     if (!dono) continue;
     recebidas.get(dono.id)?.add(parcela);

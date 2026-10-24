@@ -33,6 +33,9 @@ export class SupabaseParcelamentosDoClienteGateway implements ParcelamentosDoCli
       .eq("cliente_id", clienteId)
       .eq("situacao", "em_aberto")
       .gt("parcelas_restantes", 0)
+      // PGFN tem outro caminho (o PDF do escritório, #173): nunca vai ao provedor fiscal. Origem nula
+      // (digitado à mão) é tratada como Receita.
+      .or("origem.is.null,origem.eq.receita_federal")
       .order("criado_em");
     const lidas = linhaSchema.safeParse(data);
     if (error || !lidas.success) {

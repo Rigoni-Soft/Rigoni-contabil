@@ -22,11 +22,12 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 const TIMEOUT_MS = 15_000;
 const CNPJ = 2; // tipo de identificador do Serpro
 
-// [idSistema, consultar parcelas, emitir guia] do parcelamento ordinário (PARC), o único
-// contínuo; PERT e RELP estão fechados a novas adesões.
-const PARCELAMENTO_POR_REGIME: Record<RegimeParcelamento, readonly [string, string, string]> = {
-  simples_nacional: ["PARCSN", "PARCELASPARAGERAR162", "GERARDAS161"],
-  mei: ["PARCMEI", "PARCELASPARAGERAR202", "GERARDAS201"],
+// Serviços do parcelamento ordinário (PARC), o único contínuo; PERT e RELP estão fechados a novas
+// adesões. `consulta` lista as parcelas, `emissao` emite a guia.
+type ServicosDoParcelamento = { sistema: string; consulta: string; emissao: string };
+const PARCELAMENTO_POR_REGIME: Record<RegimeParcelamento, ServicosDoParcelamento> = {
+  simples_nacional: { sistema: "PARCSN", consulta: "PARCELASPARAGERAR162", emissao: "GERARDAS161" },
+  mei: { sistema: "PARCMEI", consulta: "PARCELASPARAGERAR202", emissao: "GERARDAS201" },
 };
 
 // Mensagens de negócio do Integra-Parcelamento (docs/pesquisa/serpro-guia-parcelamento.md).
@@ -166,7 +167,11 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
     cnpj: string,
     { regime, ignorar }: PedidoGuiasParcelamento,
   ): Promise<Result<GuiaParcelamentoDto[], AppError>> {
-    const [idSistema, idConsulta, idEmissao] = PARCELAMENTO_POR_REGIME[regime];
+    const {
+      sistema: idSistema,
+      consulta: idConsulta,
+      emissao: idEmissao,
+    } = PARCELAMENTO_POR_REGIME[regime];
     const guias: GuiaParcelamentoDto[] = [];
     try {
       const parcelas = await this.comRecusa("sem_guias", [], async () => {

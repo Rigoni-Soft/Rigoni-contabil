@@ -31,6 +31,7 @@ async function criarParcelamento(extra: {
   restantes: number;
   interno?: boolean;
   valor?: number;
+  origem?: "receita_federal" | "pgfn";
   situacao?: "em_aberto" | "quitado";
 }) {
   const id = crypto.randomUUID();
@@ -42,6 +43,7 @@ async function criarParcelamento(extra: {
       parcelas_restantes: extra.restantes,
       interno: extra.interno ?? false,
       valor_parcela_centavos: extra.valor ?? null,
+      origem: extra.origem ?? null,
       situacao: extra.situacao ?? "em_aberto",
       arquivo_caminho: `${clienteId}/${extra.codigo}.pdf`,
     }),
@@ -93,6 +95,18 @@ describe("SupabaseParcelamentosDoClienteGateway", () => {
       parcelasEnviadas: ["202609"],
     });
     expect(lista.ok && lista.value.find((p) => p.id === interno)?.valorParcelaCentavos).toBeNull();
+  });
+
+  it("parcelamento da PGFN nunca entra (a guia dele é o PDF do escritório); origem nula ou Receita entram", async () => {
+    await criarParcelamento({ codigo: "RECEITA", restantes: 1, origem: "receita_federal" });
+    await criarParcelamento({ codigo: "PGFN", restantes: 1, origem: "pgfn" });
+    await criarParcelamento({ codigo: "SEM-ORIGEM", restantes: 1 });
+
+    const lista = await parcelamentos.listarEmAberto(clienteId);
+    const codigos = lista.ok ? lista.value.map((p) => p.codigo) : [];
+
+    expect(codigos).toEqual(expect.arrayContaining(["RECEITA", "SEM-ORIGEM"]));
+    expect(codigos).not.toContain("PGFN");
   });
 
   it("registrar o envio grava a parcela, desconta uma restante e audita com a URA; repetir não tem efeito", async () => {

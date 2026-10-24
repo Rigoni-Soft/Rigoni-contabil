@@ -4,7 +4,10 @@ import {
   semDestinatario,
   type Andamento,
 } from "@/modules/atendimento/application/jobs/alertas-da-rodada";
-import { atribuirGuiasParcelamento } from "@/modules/atendimento/application/jobs/atribuir-guias-parcelamento";
+import {
+  atribuirGuiasParcelamento,
+  type GuiaAtribuida,
+} from "@/modules/atendimento/application/jobs/atribuir-guias-parcelamento";
 import type {
   EntregarComunicacaoPorCanaisPort,
   OcorrenciaDeEntrega,
@@ -99,15 +102,16 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     const cnpjDoCliente = () =>
       (cadastro ??= this.financeiro.cnpjs.cadastroFiscalDoCliente(cliente.clienteId));
     const andamentos: Andamento[] = [];
-    for (const { parcelamento, guia, parcela } of atribuidas) {
-      if (alvos.includes(parcelamento)) {
-        andamentos.push(
-          await this.entregarGuia(cliente, agora, parcelamento, guia, parcela, cnpjDoCliente),
-        );
+    for (const atribuida of atribuidas) {
+      if (alvos.includes(atribuida.parcelamento)) {
+        andamentos.push(await this.entregarGuia(cliente, agora, atribuida, cnpjDoCliente));
       }
     }
 
-    const comGuia = new Set(atribuidas.map((a) => a.parcelamento.id));
+    // Guia só de parcela atrasada é entregue, mas o mês corrente continua sem guia.
+    const comGuia = new Set(
+      atribuidas.filter((a) => a.parcela === mes).map((a) => a.parcelamento.id),
+    );
     const semGuia = aEntregar.filter((p) => !comGuia.has(p.id));
     ocorrencias.push(...andamentos.flatMap((a) => a.ocorrencias));
     if (semGuia.length > 0) {
@@ -127,9 +131,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
   private async entregarGuia(
     cliente: ClienteParaParcelamento,
     agora: Date,
-    parcelamento: ParcelamentoDoCliente,
-    guia: GuiaFiscal,
-    parcela: string,
+    { parcelamento, guia, parcela }: GuiaAtribuida,
     cnpjDoCliente: () => Promise<Result<CadastroFiscalCliente, AppError>>,
   ): Promise<Andamento> {
     const descricao = `Parcelamento ${parcelamento.codigo} de ${cliente.empresa}`;
@@ -140,7 +142,13 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
 
     const documento = { url: url.value, nomeArquivo: guia.nomeArquivo };
     const andamento = parcelamento.interno
-      ? await this.entregarAoFinanceiro(cliente, parcelamento, parcela, documento, cnpjDoCliente)
+      ? await this.entregarAoFinanceiro(
+          cliente,
+          { parcelamento, parcela },
+          documento,
+          cnpjDoCliente,
+          descricao,
+        )
       : paraAndamento(
           await this.entrega.execute({
             cliente,
@@ -166,12 +174,11 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
   // Sempre template, direto ao financeiro: sem janela, sem forma de envio do Cliente, sem e-mail.
   private async entregarAoFinanceiro(
     cliente: ClienteParaParcelamento,
-    parcelamento: ParcelamentoDoCliente,
-    parcela: string,
+    { parcelamento, parcela }: Pick<GuiaAtribuida, "parcelamento" | "parcela">,
     documento: { url: string; nomeArquivo: string },
     cnpjDoCliente: () => Promise<Result<CadastroFiscalCliente, AppError>>,
+    descricao: string,
   ): Promise<Andamento> {
-    const descricao = `Parcelamento ${parcelamento.codigo} de ${cliente.empresa}`;
     const { telefone, envio } = this.financeiro;
     if (!telefone) return falha(`${descricao}: sem telefone do financeiro.`);
     const cadastro = await cnpjDoCliente();

@@ -352,6 +352,20 @@ describe("EnviarGuiasParcelamento", () => {
     expect(registrados).toEqual([]);
   });
 
+  it("só veio a guia atrasada: ela é entregue, mas o mês corrente segue sem guia e avisa o setor", async () => {
+    const { nucleo, registrados } = montar(ok([parcelamento("p1")]), {
+      guias: async () => ok([guia("202609")]),
+    });
+
+    const andamento = await nucleo.execute({ cliente, agora });
+
+    expect(registrados).toEqual([["p1", "202609"]]);
+    expect(andamento.enviado).toBe(true);
+    expect(andamento.ocorrencias).toMatchObject([
+      { tipo: "parcelamento_sem_guia", mensagem: expect.stringContaining("COD-p1") },
+    ]);
+  });
+
   it("envio já registrado por outra execução não é erro", async () => {
     const { nucleo } = montar(ok([parcelamento("p1")]), { registrar: async () => ok(false) });
 
