@@ -249,6 +249,21 @@ describe("EnviarGuiasParcelamento", () => {
     ]);
   });
 
+  it("guia entregue mas não descontada pelo banco (registro falhou ou já existia) não entra na conta das restantes", async () => {
+    let chamadas = 0;
+    const { nucleo, envio } = montar(ok([parcelamento("p1", { interno: true })]), {
+      guias: async () => ok([guia("202609"), guia("202610")]),
+      registrar: async () => {
+        chamadas += 1;
+        return chamadas === 1 ? err(new ServicoExternoError("banco fora")) : ok(true);
+      },
+    });
+
+    await nucleo.execute({ cliente, agora });
+
+    expect(envio.templatesEnviados.map((t) => t.variaveis[4])).toEqual(["4", "4"]);
+  });
+
   it("interno ignora a forma de envio e a janela de 24h do Cliente: sempre template, nunca e-mail", async () => {
     const { nucleo, envio, emails } = montar(ok([parcelamento("p1", { interno: true })]));
     const comJanelaAberta = {

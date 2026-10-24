@@ -23,7 +23,6 @@ import type {
 import type { ClienteParaParcelamento } from "@/modules/atendimento/application/ports/out/clientes-para-parcelamento.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type { GuiaPublicadaPort } from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
-import type { GuiaFiscal } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
 import type { GuiasParcelamentoPort } from "@/modules/atendimento/application/ports/out/guias-parcelamento.provider";
 import type {
   ParcelamentoDoCliente,
@@ -43,6 +42,11 @@ type FinanceiroDoEscritorio = {
   cnpjs: ClienteCnpjPort;
   telefone: string | null;
 };
+
+// A guia atribuída com as parcelas que restam depois de entregá-la.
+type GuiaAEntregar = GuiaAtribuida & { restantesDepois: number };
+// `descontou`: o banco descontou uma parcela restante nesta entrega.
+type EntregaDeGuia = { andamento: Andamento; descontou: boolean };
 
 // Entrega as guias de parcelamento do Cliente (job e URA): o banco manda no que está pendente e cada
 // entrega aceita grava o registro de envio da parcela. O comum vai ao Cliente pela forma de envio
@@ -87,37 +91,21 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     if (aEntregar.length === 0) return { enviado: false, ocorrencias };
 
     // Parcelas que todos os alvos já receberam: o provedor cobra cada emissão.
-    const jaEntregues = alvos[0].parcelasEnviadas.filter((parcela) =>
+    const parcelasQueTodosRecebem = alvos[0].parcelasEnviadas.filter((parcela) =>
       alvos.every((p) => p.parcelasEnviadas.includes(parcela)),
     );
     const buscadas = await this.repetir(() =>
-      this.guias.buscarGuiasParcelamento(cliente.clienteId, jaEntregues),
+      this.guias.buscarGuiasParcelamento(cliente.clienteId, parcelasQueTodosRecebem),
     );
     if (!buscadas.ok) return falha(`${descricao}: ${buscadas.error.message}`);
 
     // A atribuição vê todos os em aberto: a guia de quem não tem destino não cai em outro.
     const atribuidas = atribuirGuiasParcelamento(buscadas.value, emAberto.value);
-    // O CNPJ só é lido se houver interno a entregar, e uma vez por Cliente.
-    let cadastro: Promise<Result<CadastroFiscalCliente, AppError>> | undefined;
-    const cnpjDoCliente = () =>
-      (cadastro ??= this.financeiro.cnpjs.cadastroFiscalDoCliente(cliente.clienteId));
-    const andamentos: Andamento[] = [];
-    // Cada guia entregue desconta uma parcela: o financeiro vê quantas restam depois dela.
-    const entregues = new Map<string, number>();
-    for (const atribuida of atribuidas) {
-      const { id, parcelasRestantes } = atribuida.parcelamento;
-      if (!alvos.includes(atribuida.parcelamento)) continue;
-      const restantesDepois = parcelasRestantes - (entregues.get(id) ?? 0) - 1;
-      const andamento = await this.entregarGuia(
-        cliente,
-        agora,
-        atribuida,
-        cnpjDoCliente,
-        restantesDepois,
-      );
-      if (andamento.enviado) entregues.set(id, (entregues.get(id) ?? 0) + 1);
-      andamentos.push(andamento);
-    }
+    const andamentos = await this.entregarGuias(
+      cliente,
+      agora,
+      atribuidas.filter((a) => alvos.includes(a.parcelamento)),
+    );
 
     // Guia só de parcela atrasada é entregue, mas o mês corrente continua sem guia.
     const comGuia = new Set(
@@ -139,29 +127,51 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     return comTentativas(operacao, TENTATIVAS, this.esperaEntreTentativasMs);
   }
 
+  // Entrega uma guia por vez. Cada uma que o banco desconta tira uma parcela restante, então o
+  // financeiro vê quantas restam depois dela, contando as da própria rodada. O CNPJ só é lido se
+  // houver interno a entregar, e uma vez por Cliente.
+  private async entregarGuias(
+    cliente: ClienteParaParcelamento,
+    agora: Date,
+    atribuidas: GuiaAtribuida[],
+  ): Promise<Andamento[]> {
+    let cadastro: Promise<Result<CadastroFiscalCliente, AppError>> | undefined;
+    const cnpjDoCliente = () =>
+      (cadastro ??= this.financeiro.cnpjs.cadastroFiscalDoCliente(cliente.clienteId));
+    const descontadas = new Map<string, number>();
+    const andamentos: Andamento[] = [];
+    for (const atribuida of atribuidas) {
+      const { id, parcelasRestantes } = atribuida.parcelamento;
+      const restantesDepois = parcelasRestantes - (descontadas.get(id) ?? 0) - 1;
+      const entrega = await this.entregarGuia(
+        cliente,
+        agora,
+        { ...atribuida, restantesDepois },
+        cnpjDoCliente,
+      );
+      if (entrega.descontou) descontadas.set(id, (descontadas.get(id) ?? 0) + 1);
+      andamentos.push(entrega.andamento);
+    }
+    return andamentos;
+  }
+
   private async entregarGuia(
     cliente: ClienteParaParcelamento,
     agora: Date,
-    { parcelamento, guia, parcela }: GuiaAtribuida,
+    atribuida: GuiaAEntregar,
     cnpjDoCliente: () => Promise<Result<CadastroFiscalCliente, AppError>>,
-    restantesDepois: number,
-  ): Promise<Andamento> {
+  ): Promise<EntregaDeGuia> {
+    const { parcelamento, guia, parcela } = atribuida;
     const descricao = `Parcelamento ${parcelamento.codigo} de ${cliente.empresa}`;
     const url = await this.repetir(() =>
       this.publicadas.publicar(cliente.clienteId, guia, { id: parcelamento.id, parcela }),
     );
-    if (!url.ok) return falha(`${descricao}: ${url.error.message}`);
+    if (!url.ok)
+      return { andamento: falha(`${descricao}: ${url.error.message}`), descontou: false };
 
     const documento = { url: url.value, nomeArquivo: guia.nomeArquivo };
     const andamento = parcelamento.interno
-      ? await this.entregarAoFinanceiro(
-          cliente,
-          { parcelamento, parcela },
-          documento,
-          cnpjDoCliente,
-          descricao,
-          restantesDepois,
-        )
+      ? await this.entregarAoFinanceiro(cliente, atribuida, documento, cnpjDoCliente, descricao)
       : paraAndamento(
           await this.entrega.execute({
             cliente,
@@ -176,22 +186,28 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
           }),
           descricao,
         );
-    if (!andamento.enviado) return andamento;
+    if (!andamento.enviado) return { andamento, descontou: false };
 
     const registro = await this.parcelamentos.registrarEnvio(parcelamento.id, parcela);
-    if (registro.ok) return andamento;
+    // `false`: o registro já existia e nada foi descontado agora.
+    if (registro.ok) return { andamento, descontou: registro.value };
     const aviso = `${descricao}: entregue, mas o envio não foi registrado (${registro.error.message}).`;
-    return { enviado: true, ocorrencias: [...andamento.ocorrencias, ...falha(aviso).ocorrencias] };
+    return {
+      andamento: {
+        enviado: true,
+        ocorrencias: [...andamento.ocorrencias, ...falha(aviso).ocorrencias],
+      },
+      descontou: false,
+    };
   }
 
   // Sempre template, direto ao financeiro: sem janela, sem forma de envio do Cliente, sem e-mail.
   private async entregarAoFinanceiro(
     cliente: ClienteParaParcelamento,
-    { parcelamento, parcela }: Pick<GuiaAtribuida, "parcelamento" | "parcela">,
+    { parcelamento, parcela, restantesDepois }: GuiaAEntregar,
     documento: { url: string; nomeArquivo: string },
     cnpjDoCliente: () => Promise<Result<CadastroFiscalCliente, AppError>>,
     descricao: string,
-    restantesDepois: number,
   ): Promise<Andamento> {
     const { telefone, envio } = this.financeiro;
     if (!telefone) return falha(`${descricao}: sem telefone do financeiro.`);

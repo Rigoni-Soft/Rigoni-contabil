@@ -47,14 +47,18 @@ async function ok<T>(consulta: PromiseLike<{ data: T; error: { message: string }
   return data as NonNullable<T>;
 }
 
-async function criarParcelamento(clienteId: string, interno = false) {
+async function criarParcelamento(
+  clienteId: string,
+  opcoes: { interno?: boolean; origem?: "receita_federal" | "pgfn" } = {},
+) {
   await ok(
     admin.from("cliente_parcelamentos").insert({
       id: crypto.randomUUID(),
       cliente_id: clienteId,
       codigo: "TESTE-1",
       parcelas_restantes: 5,
-      interno,
+      interno: opcoes.interno ?? false,
+      origem: opcoes.origem ?? null,
       arquivo_caminho: `${clienteId}/teste.pdf`,
     }),
   );
@@ -180,11 +184,20 @@ describe("leitura dos pendentes", () => {
 
   it("Cliente que só tem parcelamento interno em aberto também é pendente (o destino é decidido no envio)", async () => {
     const soInterno = await criarCliente({ temParcelamento: false, empresa: "Só Interno Ltda" });
-    await criarParcelamento(soInterno.id, true);
+    await criarParcelamento(soInterno.id, { interno: true });
 
     const lista = await clientes.listarPendentes();
 
     expect(lista.ok && lista.value.map((c) => c.clienteId)).toContain(soInterno.id);
+  });
+
+  it("Cliente que só tem parcelamento da PGFN não é pendente (a guia dele é o PDF do escritório)", async () => {
+    const soPgfn = await criarCliente({ temParcelamento: false, empresa: "Só PGFN Ltda" });
+    await criarParcelamento(soPgfn.id, { origem: "pgfn" });
+
+    const lista = await clientes.listarPendentes();
+
+    expect(lista.ok && lista.value.map((c) => c.clienteId)).not.toContain(soPgfn.id);
   });
 
   it("janela de 24h pela chave nacional: mensagem recente do contato escolhe o texto livre", async () => {
