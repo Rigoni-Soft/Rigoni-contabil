@@ -141,4 +141,29 @@ describe("atribuirGuiasParcelamento", () => {
       ),
     ).toEqual([]);
   });
+
+  it("acordo de valor desconhecido continua possível dono: com outro acordo, a guia não é atribuída", () => {
+    const sintetica = guia("202610", 30_500);
+    const nulo = parcelamento("a", null);
+    const conhecido = parcelamento("b", 10_000);
+    expect(atribuirGuiasParcelamento([sintetica], [nulo, conhecido])).toEqual([]);
+    expect(atribuirGuiasParcelamento([sintetica], [conhecido, nulo])).toEqual([]);
+    expect(
+      atribuirGuiasParcelamento(
+        [sintetica],
+        [
+          { ...nulo, interno: true },
+          { ...conhecido, interno: false },
+        ],
+      ),
+    ).toEqual([]);
+  });
+
+  it("valor desconhecido só atribui quando é o único compatível comprovável", () => {
+    const atribuidas = atribuirGuiasParcelamento(
+      [guia("202610", 30_500)],
+      [parcelamento("a", null), parcelamento("b", 50_000)],
+    );
+    expect(ids(atribuidas)).toEqual(["a"]);
+  });
 });

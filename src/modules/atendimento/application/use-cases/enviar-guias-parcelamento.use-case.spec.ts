@@ -339,6 +339,28 @@ describe("EnviarGuiasParcelamento", () => {
     ]);
   });
 
+  it.each([
+    ["interno sem valor, comum com valor", true],
+    ["comum sem valor, interno com valor", false],
+  ])(
+    "acordo sem valor cadastrado não some do conjunto: %s, a guia ambígua não é entregue nem registrada",
+    async (_, internoSemValor) => {
+      const { nucleo, envio, registrados } = montar(
+        ok([
+          parcelamento("a", { interno: internoSemValor, valorParcelaCentavos: null }),
+          parcelamento("b", { interno: !internoSemValor, valorParcelaCentavos: 10_000 }),
+        ]),
+        { guias: async () => ok([guia("202610", 30_500)]) },
+      );
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(envio.requisicoes).toHaveLength(0);
+      expect(registrados).toEqual([]);
+      expect(andamento.ocorrencias.map((o) => o.tipo)).toContain("parcelamento_sem_guia");
+    },
+  );
+
   it("uma mensagem por guia: a falha de entrega de uma vira falha_envio e não afeta a outra", async () => {
     const { nucleo, envio, registrados } = montar(ok([parcelamento("a", { interno: true })]), {
       guias: async () => ok([guia("202609"), guia("202610")]),

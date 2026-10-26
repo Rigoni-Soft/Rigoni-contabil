@@ -54,12 +54,13 @@ export function atribuirGuiasParcelamento(
       (e) => e.parcela === parcela && !abertos.has(e.parcelamentoId) && e.identidade !== identidade,
     );
     if (deAcordoQuitado) continue;
+    // Valor desconhecido (acordo ou guia) não exclui: só sai quem comprovadamente passa do valor da guia.
     const candidatos = parcelamentos.filter(
       (p) =>
         parcelamentos.length === 1 ||
-        (p.valorParcelaCentavos !== null &&
-          valorCentavos !== undefined &&
-          p.valorParcelaCentavos <= valorCentavos),
+        p.valorParcelaCentavos === null ||
+        valorCentavos === undefined ||
+        p.valorParcelaCentavos <= valorCentavos,
     );
     if (candidatos.length === 0) continue;
     if (candidatos.length > 1) continue;
