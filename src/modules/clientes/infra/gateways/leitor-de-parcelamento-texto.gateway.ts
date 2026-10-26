@@ -13,15 +13,15 @@ type Lida = Omit<
 
 const ILEGIVEL: LeituraDeParcelamento = { lido: false, motivo: "ilegivel" };
 
-async function extrairTextoDoPdf(pdf: Uint8Array): Promise<string> {
+export async function extrairTextoDoPdf(pdf: Uint8Array): Promise<string> {
   const documento = await getDocumentProxy(new Uint8Array(pdf));
   return (await extractText(documento, { mergePages: true })).text;
 }
 
-const pega = (texto: string, re: RegExp) => re.exec(texto)?.[1];
-const centavos = (v?: string) =>
+export const pega = (texto: string, re: RegExp) => re.exec(texto)?.[1];
+export const centavos = (v?: string) =>
   v ? Math.round(Number(v.replace(/\./g, "").replace(",", ".")) * 100) : null;
-const dataIso = (v?: string) => (v ? v.split("/").reverse().join("-") : null);
+export const dataIso = (v?: string) => (v ? v.split("/").reverse().join("-") : null);
 
 // Recibo de Adesão ao Parcelamento do Simples Nacional (Receita Federal): não imprime código.
 function lerReceita(texto: string): Lida | null {

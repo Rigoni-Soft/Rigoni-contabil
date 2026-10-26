@@ -4,6 +4,7 @@ import type {
   GuiaParcelaPgfnRepository,
   ParcelamentoDaGuia,
 } from "@/modules/clientes/application/ports/out/guia-parcela-pgfn.repository";
+import type { LeitorDeGuiaDeParcelaPort } from "@/modules/clientes/application/ports/out/leitor-de-guia-de-parcela.provider";
 import type {
   AtorSessaoDto,
   SessaoPort,
@@ -20,6 +21,20 @@ import { AnexarGuiaParcelaPgfn } from "./anexar-guia-parcela-pgfn.use-case";
 
 const CLIENTE_ID = "c1c1c1c1-c1c1-4c1c-8c1c-c1c1c1c1c1c1";
 const PARCELAMENTO_ID = "d2d2d2d2-d2d2-4d2d-8d2d-d2d2d2d2d2d2";
+const PARCELAMENTO: ParcelamentoDaGuia = {
+  clienteId: CLIENTE_ID,
+  origem: "pgfn",
+  cnpj: "10690529000138",
+  codigo: "150141670",
+};
+const LIDA_CONFERINDO = {
+  lido: true,
+  cnpj: "10.690.529/0001-38",
+  contaNegociacao: "150141670",
+  competencia: "202610",
+  vencimento: "2026-11-30",
+  valorCentavos: 26289,
+} as const;
 
 class SessaoFalsa implements SessaoPort {
   ator: AtorSessaoDto | null = { id: "f-1", papel: "funcionario", setor: "simples_nacional" };
@@ -55,10 +70,12 @@ const INPUT: AnexarGuiaParcelaPgfnInput = {
   competencia: "202610",
   contaNegociacao: " 123456 ",
   arquivo: new File(["pdf"], "guia.pdf", { type: "application/pdf" }),
+  pdf: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
 };
 
 function montar(
-  parcelamento: ParcelamentoDaGuia | null = { clienteId: CLIENTE_ID, origem: "pgfn" },
+  parcelamento: ParcelamentoDaGuia | null = PARCELAMENTO,
+  leitura: Awaited<ReturnType<LeitorDeGuiaDeParcelaPort["ler"]>> = { lido: false },
 ) {
   const sessao = new SessaoFalsa();
   const anexar = jest
@@ -67,18 +84,25 @@ function montar(
   const gravada = jest
     .fn<Promise<Result<boolean, AppError>>, unknown[]>()
     .mockResolvedValue(ok(false));
+  const confirmar = jest
+    .fn<Promise<Result<void, AppError>>, unknown[]>()
+    .mockResolvedValue(ok(undefined));
   const guias = {
     parcelamento: async () => ok(parcelamento),
     anexar,
+    confirmar,
     gravada,
   } as unknown as GuiaParcelaPgfnRepository;
+  const ler = jest.fn(async () => leitura);
   const storage = new StorageFalso();
   return {
     sessao,
     anexar,
+    confirmar,
     gravada,
+    ler,
     storage,
-    caso: new AnexarGuiaParcelaPgfn(sessao, guias, storage),
+    caso: new AnexarGuiaParcelaPgfn(sessao, guias, storage, { ler }),
   };
 }
 
@@ -90,7 +114,12 @@ describe("AnexarGuiaParcelaPgfn", () => {
 
     expect(resultado).toEqual({
       ok: true,
-      value: { competencia: "202610", contaNegociacao: "123456", estado: "a_confirmar" },
+      value: {
+        competencia: "202610",
+        contaNegociacao: "123456",
+        estado: "a_confirmar",
+        motivo: "Não consegui ler o PDF: confira a guia à mão.",
+      },
     });
     expect(storage.enviados).toHaveLength(1);
     expect(storage.enviados[0]).toMatch(
@@ -128,10 +157,77 @@ describe("AnexarGuiaParcelaPgfn", () => {
     expect(storage.enviados).toEqual([]);
   });
 
+  describe("leitura do PDF", () => {
+    const SEM_DIGITADO = { ...INPUT, competencia: undefined, contaNegociacao: undefined };
+
+    it("CNPJ, conta e competência conferindo: nasce confirmada na hora, sem digitar nada", async () => {
+      const { caso, anexar, confirmar, ler } = montar(PARCELAMENTO, LIDA_CONFERINDO);
+
+      const resultado = await caso.execute(SEM_DIGITADO);
+
+      expect(resultado).toEqual({
+        ok: true,
+        value: { competencia: "202610", contaNegociacao: "150141670", estado: "confirmada" },
+      });
+      expect(ler).toHaveBeenCalledWith(expect.any(Uint8Array));
+      expect(anexar).toHaveBeenCalledTimes(1);
+      expect(confirmar).toHaveBeenCalledWith(PARCELAMENTO_ID, "202610");
+    });
+
+    it("conta diferente da do Parcelamento: fica a confirmar, com o motivo", async () => {
+      const { caso, confirmar } = montar(PARCELAMENTO, {
+        ...LIDA_CONFERINDO,
+        contaNegociacao: "999",
+      });
+
+      const resultado = await caso.execute(SEM_DIGITADO);
+
+      expect(resultado).toMatchObject({
+        ok: true,
+        value: { estado: "a_confirmar", motivo: expect.stringContaining("999") },
+      });
+      expect(confirmar).not.toHaveBeenCalled();
+    });
+
+    it("confirmação que falha na hora: a guia fica a confirmar para o Funcionário confirmar à mão", async () => {
+      const { caso, confirmar } = montar(PARCELAMENTO, LIDA_CONFERINDO);
+      confirmar.mockResolvedValue(err(new ValidationError("falha")));
+
+      expect(await caso.execute(SEM_DIGITADO)).toMatchObject({
+        ok: true,
+        value: { estado: "a_confirmar", motivo: expect.stringContaining("à mão") },
+      });
+    });
+
+    it("CNPJ de outra empresa recusa o anexo e não deixa objeto nem linha", async () => {
+      const { caso, anexar, storage } = montar(PARCELAMENTO, {
+        ...LIDA_CONFERINDO,
+        cnpj: "11.444.777/0001-61",
+      });
+
+      expect(await caso.execute(SEM_DIGITADO)).toMatchObject({
+        ok: false,
+        error: expect.any(ValidationError),
+      });
+      expect(storage.enviados).toEqual([]);
+      expect(anexar).not.toHaveBeenCalled();
+    });
+
+    it("PDF não lido e sem competência digitada: pede a competência, sem upload", async () => {
+      const { caso, storage } = montar();
+
+      expect(await caso.execute(SEM_DIGITADO)).toMatchObject({
+        ok: false,
+        error: { message: expect.stringContaining("competência") },
+      });
+      expect(storage.enviados).toEqual([]);
+    });
+  });
+
   it.each(["receita_federal", null] as const)(
     "Parcelamento de origem %p não recebe guia",
     async (origem) => {
-      const { caso, storage } = montar({ clienteId: CLIENTE_ID, origem });
+      const { caso, storage } = montar({ ...PARCELAMENTO, origem });
 
       expect(await caso.execute(INPUT)).toMatchObject({
         ok: false,

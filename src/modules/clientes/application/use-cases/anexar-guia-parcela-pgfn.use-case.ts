@@ -7,8 +7,10 @@ import type {
   GuiaDaParcela,
   GuiaParcelaPgfnRepository,
 } from "@/modules/clientes/application/ports/out/guia-parcela-pgfn.repository";
+import type { LeitorDeGuiaDeParcelaPort } from "@/modules/clientes/application/ports/out/leitor-de-guia-de-parcela.provider";
 import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
 import {
+  conferirGuiaLida,
   validarGuiaParcelaPgfn,
   type GuiaParcelaPgfnProps,
 } from "@/modules/clientes/domain/value-objects/guia-parcela-pgfn.vo";
@@ -24,13 +26,12 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 // Mesmo teto da Server Action (corpo de 4,5 MB na Vercel, ADR 0007): o Storage é relido aqui.
 const LIMITE_BYTES = 4 * 1024 * 1024;
 
-const guiaCriada = (guia: GuiaParcelaPgfnProps): GuiaDaParcela => ({
-  competencia: guia.competencia,
-  contaNegociacao: guia.contaNegociacao,
-  estado: "a_confirmar",
-});
+// Motivo da confirmação que o banco não aceitou na hora: o Funcionário confirma à mão.
+const MOTIVO_CONFIRMACAO_FALHOU =
+  "Não consegui confirmar a guia na hora: confira e confirme à mão.";
 
-// A guia nasce "a confirmar"; confirmar é outro passo. Segundo anexo na competência, competência já
+// O PDF é lido e conferido antes de subir: CNPJ de outra empresa recusa sem tocar no Storage. Tudo
+// conferindo, a guia é confirmada na hora; senão nasce "a confirmar" com o motivo. Segundo anexo na competência, competência já
 // enviada e Parcelamento que não é da PGFN são recusados pelo banco. O arquivo vai ao bucket privado
 // antes da linha; qualquer recusa depois do upload o apaga.
 export class AnexarGuiaParcelaPgfn implements AnexarGuiaParcelaPgfnPort {
@@ -38,6 +39,7 @@ export class AnexarGuiaParcelaPgfn implements AnexarGuiaParcelaPgfnPort {
     private readonly sessao: SessaoPort,
     private readonly guias: GuiaParcelaPgfnRepository,
     private readonly storage: ArquivoInspecionavelPort,
+    private readonly leitor: LeitorDeGuiaDeParcelaPort,
   ) {}
 
   async execute(input: AnexarGuiaParcelaPgfnInput): Promise<Result<GuiaDaParcela, AppError>> {
@@ -59,12 +61,20 @@ export class AnexarGuiaParcelaPgfn implements AnexarGuiaParcelaPgfnPort {
       return err(new ValidationError("Só Parcelamento da PGFN recebe guia anexada."));
     }
 
-    // O nome do arquivo não entra no caminho: dois anexos da mesma competência nunca colidem no
-    // Storage, e quem decide a duplicidade é o banco.
-    const caminho = `${parcelamento.value.clienteId}/guias-pgfn/${input.parcelamentoId}/${input.competencia}-${crypto.randomUUID()}.pdf`;
-    const guia = validarGuiaParcelaPgfn({
+    const leitura = await this.leitor.ler(input.pdf);
+    const conferencia = conferirGuiaLida(leitura.lido ? leitura : null, parcelamento.value, {
       competencia: input.competencia,
       contaNegociacao: input.contaNegociacao,
+    });
+    if (!conferencia.ok) return conferencia;
+    const { competencia, motivo } = conferencia.value;
+
+    // O nome do arquivo não entra no caminho: dois anexos da mesma competência nunca colidem no
+    // Storage, e quem decide a duplicidade é o banco.
+    const caminho = `${parcelamento.value.clienteId}/guias-pgfn/${input.parcelamentoId}/${competencia}-${crypto.randomUUID()}.pdf`;
+    const guia = validarGuiaParcelaPgfn({
+      competencia,
+      contaNegociacao: conferencia.value.contaNegociacao,
       arquivoCaminho: caminho,
     });
     if (!guia.ok) return guia;
@@ -76,11 +86,25 @@ export class AnexarGuiaParcelaPgfn implements AnexarGuiaParcelaPgfnPort {
     if (recusa) return this.desfazerUpload(input.parcelamentoId, caminho, recusa);
 
     const salvo = await this.guias.anexar(input.parcelamentoId, guia.value);
-    if (salvo.ok) return ok(guiaCriada(guia.value));
+    if (salvo.ok) return this.liberar(input.parcelamentoId, guia.value, motivo);
     if (salvo.error instanceof ResultadoIncertoError) {
-      return this.reconciliar(input.parcelamentoId, guia.value);
+      return this.reconciliar(input.parcelamentoId, guia.value, motivo);
     }
     return this.desfazerUpload(input.parcelamentoId, caminho, salvo.error);
+  }
+
+  // Sem motivo a guia é confirmada na hora; se o banco recusar, ela segue "a confirmar" (a confirmação
+  // à mão continua valendo) e o arquivo e a linha não se perdem.
+  private async liberar(
+    parcelamentoId: string,
+    guia: GuiaParcelaPgfnProps,
+    motivo: string | null,
+  ): Promise<Result<GuiaDaParcela, AppError>> {
+    const base = { competencia: guia.competencia, contaNegociacao: guia.contaNegociacao };
+    if (motivo) return ok({ ...base, estado: "a_confirmar", motivo });
+    const confirmada = await this.guias.confirmar(parcelamentoId, guia.competencia);
+    if (confirmada.ok) return ok({ ...base, estado: "confirmada" });
+    return ok({ ...base, estado: "a_confirmar", motivo: MOTIVO_CONFIRMACAO_FALHOU });
   }
 
   private async revalidarNoStorage(caminho: string): Promise<AppError | null> {
@@ -101,9 +125,10 @@ export class AnexarGuiaParcelaPgfn implements AnexarGuiaParcelaPgfnPort {
   private async reconciliar(
     parcelamentoId: string,
     guia: GuiaParcelaPgfnProps,
+    motivo: string | null,
   ): Promise<Result<GuiaDaParcela, AppError>> {
     const gravada = await this.guias.gravada(parcelamentoId, guia.competencia, guia.arquivoCaminho);
-    if (gravada.ok && gravada.value) return ok(guiaCriada(guia));
+    if (gravada.ok && gravada.value) return this.liberar(parcelamentoId, guia, motivo);
     return err(
       new EstadoInconsistenteError(
         `Não foi possível confirmar se a guia foi anexada. O arquivo foi mantido (${guia.arquivoCaminho}); recarregue a página e confira antes de tentar de novo.`,

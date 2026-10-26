@@ -4,9 +4,12 @@ import type { Result } from "@/shared/kernel/result";
 
 export type AnexarGuiaParcelaPgfnInput = {
   parcelamentoId: string;
-  competencia: string;
-  contaNegociacao: string;
+  // Digitadas só quando o PDF não pôde ser lido (ou para corrigir o que ele traz).
+  competencia?: string;
+  contaNegociacao?: string;
   arquivo: File;
+  // Os bytes do mesmo arquivo, para o leitor (a Server Action os lê do File).
+  pdf: Uint8Array;
 };
 
 export interface AnexarGuiaParcelaPgfnPort {

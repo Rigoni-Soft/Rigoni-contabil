@@ -16,13 +16,29 @@ describe("anexarGuiaParcelaPgfnSchema", () => {
     expect(r.success && r.data.contaNegociacao).toBe("123456");
   });
 
-  it.each(["", "2026-10", "202613"])("recusa a competência %p", (competencia) => {
+  it.each(["2026-10", "202613"])("recusa a competência %p", (competencia) => {
     expect(anexarGuiaParcelaPgfnSchema.safeParse({ ...base, competencia }).success).toBe(false);
   });
 
-  it.each(["", "   ", "9".repeat(41)])("recusa a conta %p", (contaNegociacao) => {
+  it("recusa a conta com mais de 40 caracteres", () => {
+    const contaNegociacao = "9".repeat(41);
     expect(anexarGuiaParcelaPgfnSchema.safeParse({ ...base, contaNegociacao }).success).toBe(false);
   });
+
+  it.each(["", "   "])(
+    "competência e conta vazias (%p) valem ausentes: o servidor lê o PDF",
+    (v) => {
+      const r = anexarGuiaParcelaPgfnSchema.safeParse({
+        ...base,
+        competencia: v,
+        contaNegociacao: v,
+      });
+      expect(r.success && [r.data.competencia, r.data.contaNegociacao]).toEqual([
+        undefined,
+        undefined,
+      ]);
+    },
+  );
 
   it("recusa arquivo que não é PDF ou passa de 4 MB, aceita exatamente 4 MB", () => {
     const tentar = (arquivo: File) => anexarGuiaParcelaPgfnSchema.safeParse({ ...base, arquivo });

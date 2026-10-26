@@ -26,14 +26,30 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
   async parcelamento(parcelamentoId: string): Promise<Result<ParcelamentoDaGuia | null, AppError>> {
     const { data, error } = await this.supabase
       .from("cliente_parcelamentos")
-      .select("cliente_id, origem")
+      .select("cliente_id, origem, codigo")
       .eq("id", parcelamentoId)
       .maybeSingle();
     if (error) {
       console.error("Falha ao buscar o Parcelamento da guia:", error.message);
       return err(new PersistenciaError("Não foi possível carregar o Parcelamento."));
     }
-    return ok(data ? { clienteId: data.cliente_id, origem: data.origem } : null);
+    if (!data) return ok(null);
+    // O CNPJ vem da view que quem edita o cadastro operacional pode ler (a tabela é só do Admin).
+    const cliente = await this.supabase
+      .from("clientes_basico")
+      .select("cnpj")
+      .eq("id", data.cliente_id)
+      .maybeSingle();
+    if (cliente.error || !cliente.data) {
+      console.error("Falha ao buscar o Cliente da guia:", cliente.error?.message);
+      return err(new PersistenciaError("Não foi possível carregar o Cliente do Parcelamento."));
+    }
+    return ok({
+      clienteId: data.cliente_id,
+      origem: data.origem,
+      codigo: data.codigo,
+      cnpj: cliente.data.cnpj,
+    });
   }
 
   async listar(parcelamentoId: string): Promise<Result<GuiaDaParcela[], AppError>> {

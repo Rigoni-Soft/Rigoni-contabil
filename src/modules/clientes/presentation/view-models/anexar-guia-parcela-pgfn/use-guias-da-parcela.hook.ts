@@ -83,7 +83,12 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
       setMes("");
       setContaNegociacao("");
       setArquivo(undefined);
-      setSucesso("Guia anexada. Confirme para liberá-la ao envio.");
+      const anexada = resultado.data;
+      setSucesso(
+        anexada.estado === "confirmada"
+          ? "Guia anexada e confirmada: liberada ao envio."
+          : `Guia anexada, a confirmar. ${anexada.motivo ?? ""} Confirme para liberá-la ao envio.`,
+      );
       await queryClient.invalidateQueries({ queryKey: chave });
     });
   };

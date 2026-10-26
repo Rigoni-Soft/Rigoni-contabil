@@ -31,7 +31,8 @@ export async function anexarGuiaParcelaPgfnAction(
   if (!parsed.success) return dadosInvalidos(parsed.error);
 
   const anexar = await makeAnexarGuiaParcelaPgfn();
-  return toActionResult(await anexar.execute(parsed.data));
+  const pdf = new Uint8Array(await parsed.data.arquivo.arrayBuffer());
+  return toActionResult(await anexar.execute({ ...parsed.data, pdf }));
 }
 
 export async function confirmarGuiaParcelaPgfnAction(input: unknown): Promise<ActionResult<void>> {

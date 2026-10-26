@@ -10,9 +10,17 @@ export type GuiaDaParcela = {
   competencia: string;
   contaNegociacao: string;
   estado: EstadoDaGuiaPgfn;
+  // O que conferir quando a guia ficou "a confirmar" ao anexar; só vem na resposta do anexo.
+  motivo?: string;
 };
 
-export type ParcelamentoDaGuia = { clienteId: string; origem: OrigemDoParcelamento | null };
+// `cnpj` é o do Cliente e `codigo` a conta de negociação do Parcelamento: com o que o PDF é conferido.
+export type ParcelamentoDaGuia = {
+  clienteId: string;
+  origem: OrigemDoParcelamento | null;
+  cnpj: string;
+  codigo: string;
+};
 
 // Tudo passa pela sessão do usuário: a RLS decide quem vê, anexa e confirma; os gatilhos do banco
 // recusam competência já enviada, segundo anexo na competência e Parcelamento que não é da PGFN.

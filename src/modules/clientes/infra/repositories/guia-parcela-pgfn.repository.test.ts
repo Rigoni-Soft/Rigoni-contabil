@@ -105,6 +105,21 @@ const guia = (competencia = "202610") => ({
 });
 
 describe("guia anexada da parcela PGFN", () => {
+  it("o Funcionário SN responsável lê o CNPJ e a conta do Parcelamento para conferir o PDF", async () => {
+    const clienteId = await criarClienteResponsavelFuncionarioSN("77330099000114");
+    const parcelamentoId = await criarParcelamento(clienteId);
+    const repo = new SupabaseGuiaParcelaPgfnRepository(await comoFuncionarioSN());
+
+    const lido = await repo.parcelamento(parcelamentoId);
+
+    expect(lido.ok && lido.value).toEqual({
+      clienteId,
+      origem: "pgfn",
+      codigo: "pgfn-1",
+      cnpj: "77330099000114",
+    });
+  });
+
   it("o Funcionário SN responsável anexa (a confirmar) e confirma; lista reflete", async () => {
     const clienteId = await criarClienteResponsavelFuncionarioSN("77330001000129");
     const parcelamentoId = await criarParcelamento(clienteId);

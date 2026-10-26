@@ -119,10 +119,11 @@ export function GuiasDaParcelaPgfn({
       )}
 
       <Pilha espaco={3}>
+        <Texto variante="nota">O sistema lê o PDF; digite só se ele não conseguir.</Texto>
         <Linha alinhar="fim" espaco={3} quebra>
           <CampoDeTexto
             id={`${id}-competencia`}
-            rotulo="Competência"
+            rotulo="Competência (opcional)"
             type="month"
             // Navegador sem seletor de mês (ex.: Firefox no desktop) mostra texto livre: o formato vai no placeholder.
             placeholder="AAAA-MM"
@@ -134,7 +135,7 @@ export function GuiasDaParcelaPgfn({
           />
           <CampoDeTexto
             id={`${id}-conta`}
-            rotulo="Conta de negociação"
+            rotulo="Conta de negociação (opcional)"
             maxLength={40}
             value={contaNegociacao}
             onChange={(evento) => onContaNegociacao(evento.target.value)}

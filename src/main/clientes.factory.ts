@@ -23,6 +23,7 @@ import type { ListarGuiasParcelaPgfnPort } from "@/modules/clientes/application/
 import type { MarcarAvisoVistoPort } from "@/modules/clientes/application/ports/in/marcar-aviso-visto.provider";
 import type { SalvarParcelamentosClientePort } from "@/modules/clientes/application/ports/in/salvar-parcelamentos-cliente.provider";
 import type { AuditoriaPort } from "@/modules/clientes/application/ports/out/auditoria.provider";
+import type { LeitorDeGuiaDeParcelaPort } from "@/modules/clientes/application/ports/out/leitor-de-guia-de-parcela.provider";
 import type { LeitorDeParcelamentoPort } from "@/modules/clientes/application/ports/out/leitor-de-parcelamento.provider";
 import type {
   AtorSessaoDto,
@@ -49,6 +50,8 @@ import { SalvarParcelamentosCliente } from "@/modules/clientes/application/use-c
 import { SupabaseAvisosCadastroGateway } from "@/modules/clientes/infra/gateways/avisos-cadastro.gateway";
 import { SupabaseClienteQueryGateway } from "@/modules/clientes/infra/gateways/cliente-query.gateway";
 import { SupabaseDocumentosContratuaisClienteGateway } from "@/modules/clientes/infra/gateways/documentos-contratuais-cliente.gateway";
+import { LeitorDeGuiaDeParcelaFalsoGateway } from "@/modules/clientes/infra/gateways/leitor-de-guia-de-parcela-falso.gateway";
+import { LeitorDeGuiaDeParcelaTextoGateway } from "@/modules/clientes/infra/gateways/leitor-de-guia-de-parcela-texto.gateway";
 import { LeitorDeParcelamentoFalsoGateway } from "@/modules/clientes/infra/gateways/leitor-de-parcelamento-falso.gateway";
 import { LeitorDeParcelamentoTextoGateway } from "@/modules/clientes/infra/gateways/leitor-de-parcelamento-texto.gateway";
 import { RelogioSistemaGateway } from "@/modules/clientes/infra/gateways/relogio-sistema.gateway";
@@ -127,6 +130,7 @@ export async function makeAnexarGuiaParcelaPgfn(): Promise<AnexarGuiaParcelaPgfn
     sessaoViaUsuarios(supabase),
     new SupabaseGuiaParcelaPgfnRepository(supabase),
     new SupabaseArquivoStorageGateway(createSupabaseAdmin(), "parcelamentos-clientes"),
+    leitorDeGuiaDeParcela(),
   );
 }
 
@@ -144,6 +148,12 @@ export async function makeListarGuiasParcelaPgfn(): Promise<ListarGuiasParcelaPg
 }
 
 // Falso por padrão (dev, CI e Preview); "texto" lê a camada de texto do PDF no servidor.
+function leitorDeGuiaDeParcela(): LeitorDeGuiaDeParcelaPort {
+  return LEITURA_PDF_MODO === "texto"
+    ? new LeitorDeGuiaDeParcelaTextoGateway()
+    : new LeitorDeGuiaDeParcelaFalsoGateway();
+}
+
 function leitorDeParcelamento(): LeitorDeParcelamentoPort {
   return LEITURA_PDF_MODO === "texto"
     ? new LeitorDeParcelamentoTextoGateway()

@@ -154,15 +154,54 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     expect(screen.getByText(/10\/2026 · conta 123456/).closest("li")).toHaveFocus();
   });
 
-  it("campos faltando: aponta cada um e não chama a action", async () => {
+  it("só o PDF é obrigatório: competência e conta vazias seguem para o servidor ler", async () => {
+    anexarMock.mockResolvedValue({
+      ok: true,
+      data: { competencia: "202610", contaNegociacao: "150141670", estado: "confirmada" },
+    });
+    const usuario = userEvent.setup();
+    render();
+    const regiao = within(await regiaoDaGuia());
+
+    await usuario.upload(regiao.getByLabelText(/pdf da guia/i), pdf);
+    await usuario.click(regiao.getByRole("button", { name: "Anexar guia" }));
+
+    expect(anexarMock).toHaveBeenCalledWith({
+      parcelamentoId: PARCELAMENTO_PGFN,
+      competencia: undefined,
+      contaNegociacao: undefined,
+      arquivo: pdf,
+    });
+    expect(await screen.findByText(/anexada e confirmada/i)).toBeInTheDocument();
+  });
+
+  it("guia que ficou a confirmar mostra o motivo na tela", async () => {
+    anexarMock.mockResolvedValue({
+      ok: true,
+      data: {
+        competencia: "202610",
+        contaNegociacao: "999",
+        estado: "a_confirmar",
+        motivo: "A conta do PDF (999) é diferente da conta do Parcelamento (PGFN-1).",
+      },
+    });
+    const usuario = userEvent.setup();
+    render();
+    const regiao = within(await regiaoDaGuia());
+
+    await usuario.upload(regiao.getByLabelText(/pdf da guia/i), pdf);
+    await usuario.click(regiao.getByRole("button", { name: "Anexar guia" }));
+
+    expect(await screen.findByText(/conta do PDF .999. é diferente/)).toBeInTheDocument();
+  });
+
+  it("campos faltando: aponta o PDF e não chama a action", async () => {
     const usuario = userEvent.setup();
     render();
     const regiao = within(await regiaoDaGuia());
 
     await usuario.click(regiao.getByRole("button", { name: "Anexar guia" }));
 
-    expect(regiao.getByText("Informe o mês e o ano da guia, como 2026-10.")).toBeInTheDocument();
-    expect(regiao.getByText("Informe a conta de negociação.")).toBeInTheDocument();
     expect(regiao.getByText("Anexe o PDF da guia.")).toBeInTheDocument();
     expect(anexarMock).not.toHaveBeenCalled();
   });
@@ -270,14 +309,18 @@ describe("avisos de erro ao corrigir", () => {
     render();
     const regiao = within(await regiaoDaGuia());
 
+    const conta = regiao.getByLabelText(/conta de negociação/i);
+    // maxLength do campo barra a digitação; o schema ainda guarda o limite.
+    fireEvent.change(conta, { target: { value: "9".repeat(41) } });
     await usuario.click(regiao.getByRole("button", { name: "Anexar guia" }));
-    expect(regiao.getByText("Informe a conta de negociação.")).toBeInTheDocument();
-    await usuario.type(regiao.getByLabelText(/conta de negociação/i), "1");
-    expect(regiao.queryByText("Informe a conta de negociação.")).not.toBeInTheDocument();
+    expect(regiao.getByText("Conta de negociação: no máximo 40 caracteres.")).toBeInTheDocument();
+    fireEvent.change(conta, { target: { value: "123" } });
+    expect(
+      regiao.queryByText("Conta de negociação: no máximo 40 caracteres."),
+    ).not.toBeInTheDocument();
     // Os outros campos seguem acusando o que falta.
     expect(regiao.getByText("Anexe o PDF da guia.")).toBeInTheDocument();
 
-    await usuario.type(regiao.getByLabelText(/competência/i), "2026-10");
     await usuario.upload(regiao.getByLabelText(/pdf da guia/i), pdf);
     await usuario.click(regiao.getByRole("button", { name: "Anexar guia" }));
     expect(await screen.findByText(/já existe guia anexada/i)).toBeInTheDocument();
