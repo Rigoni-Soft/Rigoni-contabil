@@ -2,7 +2,10 @@ import { createHash } from "node:crypto";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { GuiaPublicadaPort } from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
+import type {
+  GuiaGuardadaPort,
+  GuiaPublicadaPort,
+} from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
@@ -11,9 +14,11 @@ const BUCKET = "guias-fiscais";
 // O provedor busca o arquivo logo após o envio; o e-mail pode ser aberto depois, então 7 dias.
 const VALIDADE_LINK_SEGUNDOS = 7 * 24 * 60 * 60;
 
+const pastaDoParcelamento = (clienteId: string, id: string) => `${clienteId}/${id}`;
+
 // Usa o client service_role (docs/adr/0001): o job não tem sessão de usuário.
 // ponytail: o PDF enviado fica no bucket para sempre; limpar por data se o volume pesar.
-export class SupabaseGuiaPublicadaGateway implements GuiaPublicadaPort {
+export class SupabaseGuiaPublicadaGateway implements GuiaPublicadaPort, GuiaGuardadaPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 
   async publicar(
@@ -26,7 +31,7 @@ export class SupabaseGuiaPublicadaGateway implements GuiaPublicadaPort {
     // caminho. Com ele, cliente/parcelamento/AAAAMM-hash: a mesma guia cai no mesmo caminho a cada
     // tentativa e uma guia reemitida com outros bytes nunca sobrescreve a já entregue.
     const caminho = parcelamento
-      ? `${clienteId}/${parcelamento.id}/${parcelamento.parcela}-${createHash("sha256").update(bytes).digest("hex").slice(0, 16)}.pdf`
+      ? `${pastaDoParcelamento(clienteId, parcelamento.id)}/${parcelamento.parcela}-${createHash("sha256").update(bytes).digest("hex").slice(0, 16)}.pdf`
       : `${clienteId}/${crypto.randomUUID()}.pdf`;
     const bucket = this.supabaseAdmin.storage.from(BUCKET);
     const { error } = await bucket.upload(caminho, bytes, {
@@ -40,6 +45,27 @@ export class SupabaseGuiaPublicadaGateway implements GuiaPublicadaPort {
     if (link.error || !link.data) {
       // Só o objeto criado por esta tentativa é limpo: o que já existia pode ter sido entregue.
       if (!jaExistia) await bucket.remove([caminho]);
+      return err(new ServicoExternoError("Falha ao gerar o link da guia."));
+    }
+    return ok(link.data.signedUrl);
+  }
+
+  // A guia entregue é a mais antiga da parcela: uma reemitida com outros bytes cai em outro caminho.
+  async reencontrar(
+    clienteId: string,
+    chave: { id: string; parcela: string },
+  ): Promise<Result<string | null, AppError>> {
+    const bucket = this.supabaseAdmin.storage.from(BUCKET);
+    const pasta = pastaDoParcelamento(clienteId, chave.id);
+    const lista = await bucket.list(pasta, {
+      search: chave.parcela,
+      sortBy: { column: "created_at", order: "asc" },
+    });
+    if (lista.error) return err(new ServicoExternoError("Falha ao procurar a guia guardada."));
+    const guardada = lista.data.find(({ name }) => name.startsWith(`${chave.parcela}-`));
+    if (!guardada) return ok(null);
+    const link = await bucket.createSignedUrl(`${pasta}/${guardada.name}`, VALIDADE_LINK_SEGUNDOS);
+    if (link.error || !link.data) {
       return err(new ServicoExternoError("Falha ao gerar o link da guia."));
     }
     return ok(link.data.signedUrl);

@@ -4,6 +4,8 @@ import { z } from "zod";
 import type {
   ClienteParaLembrete,
   ClientesParaLembretePort,
+  DasDoCliente,
+  DasDoClientePort,
 } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
 import {
   linhaDestinatarioSchema,
@@ -22,8 +24,12 @@ const linhaSchema = linhaDestinatarioSchema.extend({
   data_envio_das: z.string().nullable(),
 });
 
+const linhaDasSchema = linhaSchema.pick({ das_status: true, data_envio_das: true });
+
 // Usa o client service_role (docs/adr/0001): o job não tem sessão de usuário.
-export class SupabaseClientesParaLembreteGateway implements ClientesParaLembretePort {
+export class SupabaseClientesParaLembreteGateway
+  implements ClientesParaLembretePort, DasDoClientePort
+{
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 
   async listar(): Promise<Result<ClienteParaLembrete[], AppError>> {
@@ -46,6 +52,20 @@ export class SupabaseClientesParaLembreteGateway implements ClientesParaLembrete
         dasStatus: l.das_status,
         dataEnvioDas: l.data_envio_das,
       })),
+    );
+  }
+
+  async obterDas(clienteId: string): Promise<Result<DasDoCliente | null, AppError>> {
+    const { data, error } = await this.supabaseAdmin
+      .from("cliente_cadastro_operacional_sn")
+      .select("das_status, data_envio_das")
+      .eq("cliente_id", clienteId)
+      .maybeSingle();
+    const lida = linhaDasSchema.nullable().safeParse(data);
+    if (error || !lida.success)
+      return err(new ServicoExternoError("Falha ao ler o DAS do Cliente."));
+    return ok(
+      lida.data && { dasStatus: lida.data.das_status, dataEnvioDas: lida.data.data_envio_das },
     );
   }
 

@@ -11,6 +11,9 @@ import { ESPERA_MS } from "@/shared/kernel/com-tentativas";
 import { formatarCompetencia, formatarDataIso } from "@/shared/kernel/data-iso";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
+// A guia do DAS fica guardada em cliente/das/AAAAMM do mês do envio, para a URA reenviá-la sem provedor.
+export const chaveDoDas = (mes: string) => ({ id: "das", parcela: mes.replace("-", "") });
+
 // Busca a guia do DAS no provedor fiscal e a publica.
 export class ObterGuiaDasParaEnvio implements ObterGuiaDasParaEnvioPort {
   constructor(
@@ -19,7 +22,7 @@ export class ObterGuiaDasParaEnvio implements ObterGuiaDasParaEnvioPort {
     private readonly esperaEntreTentativasMs = ESPERA_MS,
   ) {}
 
-  execute(clienteId: string): Promise<Result<GuiaDasParaEnvio, AppError>> {
+  execute(clienteId: string, mes: string): Promise<Result<GuiaDasParaEnvio, AppError>> {
     return obterGuiaPublicada(
       this.guias,
       this.publicadas,
@@ -33,6 +36,7 @@ export class ObterGuiaDasParaEnvio implements ObterGuiaDasParaEnvioPort {
               vencimento: formatarDataIso(vencimento),
             })
           : err(new ServicoExternoError("Guia do DAS sem competência ou vencimento.")),
+      chaveDoDas(mes),
     );
   }
 }

@@ -35,3 +35,10 @@ export interface ClientesParaLembretePort {
   // A entrega falhou sem aceite: libera a reserva (token antigo não libera a de outra tentativa).
   liberarDas(clienteId: string, token: string): Promise<Result<void, AppError>>;
 }
+
+export type DasDoCliente = { dasStatus: DasStatusValor | null; dataEnvioDas: string | null };
+
+export interface DasDoClientePort {
+  // Estado do DAS de um Cliente; null se ele não tem Cadastro operacional.
+  obterDas(clienteId: string): Promise<Result<DasDoCliente | null, AppError>>;
+}

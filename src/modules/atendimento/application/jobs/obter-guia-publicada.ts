@@ -17,6 +17,7 @@ export function obterGuiaPublicada<T>(
   clienteId: string,
   tipo: TipoGuia,
   extrair: (guia: GuiaFiscal) => Result<T, AppError>,
+  chave?: { id: string; parcela: string },
 ): Promise<Result<T & { guia: { url: string; nomeArquivo: string } }, AppError>> {
   return comTentativas(
     async () => {
@@ -24,7 +25,7 @@ export function obterGuiaPublicada<T>(
       if (!buscada.ok) return buscada;
       const extraido = extrair(buscada.value);
       if (!extraido.ok) return extraido;
-      const url = await publicadas.publicar(clienteId, buscada.value);
+      const url = await publicadas.publicar(clienteId, buscada.value, chave);
       if (!url.ok) return url;
       return ok({
         ...extraido.value,

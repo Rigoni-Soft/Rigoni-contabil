@@ -11,3 +11,12 @@ export interface GuiaPublicadaPort {
     parcelamento?: { id: string; parcela: string },
   ): Promise<Result<string, AppError>>;
 }
+
+export interface GuiaGuardadaPort {
+  // Novo endereço da guia já publicada com essa chave (cliente/id/parcela), ou null se não existe:
+  // reenvio sem chamar o provedor fiscal.
+  reencontrar(
+    clienteId: string,
+    chave: { id: string; parcela: string },
+  ): Promise<Result<string | null, AppError>>;
+}

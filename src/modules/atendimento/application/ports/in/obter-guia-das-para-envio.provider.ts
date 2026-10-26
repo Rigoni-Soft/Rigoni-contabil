@@ -10,5 +10,6 @@ export type GuiaDasParaEnvio = {
 };
 
 export interface ObterGuiaDasParaEnvioPort {
-  execute(clienteId: string): Promise<Result<GuiaDasParaEnvio, AppError>>;
+  // `mes` (AAAA-MM) é o mês do envio: a guia fica guardada nele para o reenvio.
+  execute(clienteId: string, mes: string): Promise<Result<GuiaDasParaEnvio, AppError>>;
 }

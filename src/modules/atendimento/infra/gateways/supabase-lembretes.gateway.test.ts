@@ -5,6 +5,7 @@
  * Supabase local e limpa pelos IDs da própria execução. Requer `npx supabase start`.
  */
 import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/use-cases/entregar-comunicacao-por-canais.use-case";
+import { EntregarDasNaUra } from "@/modules/atendimento/application/use-cases/entregar-das-na-ura.use-case";
 import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
 import { ExecutarLembretesDocumentoEDas } from "@/modules/atendimento/application/use-cases/executar-lembretes-documento-e-das.use-case";
 import { ObterGuiaDasParaEnvio } from "@/modules/atendimento/application/use-cases/obter-guia-das-para-envio.use-case";
@@ -624,5 +625,138 @@ describe("guia publicada", () => {
     const baixado = await fetch(url);
     expect(baixado.status).toBe(200);
     expect(await baixado.text()).toBe("%PDF-1.4 teste");
+  });
+});
+
+describe("DAS pedido pela URA (#124)", () => {
+  const AGORA = new Date("2026-10-05T12:00:00Z");
+  const PDF = "%PDF-1.4 das da ura";
+  let alvo: Fixture;
+  let chamadasAoProvedor = 0;
+  const provedor = {
+    buscar: async () => {
+      chamadasAoProvedor += 1;
+      return sucesso({
+        nomeArquivo: "das.pdf",
+        pdfBase64: Buffer.from(PDF).toString("base64"),
+        competencia: "2026-09",
+        vencimento: "2026-10-20",
+      });
+    },
+  };
+  const guiaDas = new ObterGuiaDasParaEnvio(provedor, guias, 0);
+  const montarUra = (envio: EnvioMensagemFalsoGateway) =>
+    new EntregarDasNaUra(clientes, guiaDas, guias, envio, { agora: () => AGORA });
+
+  beforeAll(async () => {
+    alvo = await criarCliente(`(21) 9${sufixo.slice(0, 4)}-${sufixo.slice(4)}`);
+    publicados.push(`${alvo.id}/das/202610.pdf`);
+  });
+
+  it("DAS pendente: avisa o contato, sem provedor, reserva nem alerta ao setor", async () => {
+    await ok(
+      admin
+        .from("cliente_cadastro_operacional_sn")
+        .update({ das_status: "pendente" })
+        .eq("cliente_id", alvo.id),
+    );
+    const envio = new EnvioMensagemFalsoGateway();
+    chamadasAoProvedor = 0;
+
+    const r = await montarUra(envio).execute({ clienteId: alvo.id, telefone: "5521999990000" });
+
+    expect(r.ok).toBe(true);
+    expect(envio.enviadas).toHaveLength(1);
+    expect(envio.documentosEnviados).toHaveLength(0);
+    expect(chamadasAoProvedor).toBe(0);
+    expect(
+      await ok(admin.from("envios_automaticos").select("tipo").eq("cliente_id", alvo.id)),
+    ).toEqual([]);
+    expect(await ok(admin.from("alertas_setor").select("tipo").eq("cliente_id", alvo.id))).toEqual(
+      [],
+    );
+    expect(await statusDoDas(alvo.id)).toEqual({ das_status: "pendente", data_envio_das: null });
+  });
+
+  it("DAS pronto: a URA entrega, marca enviado com a data e a URA como ator, e o job do mês não reenvia", async () => {
+    await ok(
+      admin
+        .from("cliente_cadastro_operacional_sn")
+        .update({ das_status: "pronto" })
+        .eq("cliente_id", alvo.id),
+    );
+    const envio = new EnvioMensagemFalsoGateway();
+    chamadasAoProvedor = 0;
+
+    const r = await montarUra(envio).execute({ clienteId: alvo.id, telefone: "5521999990000" });
+
+    expect(r.ok).toBe(true);
+    expect(envio.documentosEnviados).toHaveLength(1);
+    expect(chamadasAoProvedor).toBe(1);
+    expect(await statusDoDas(alvo.id)).toEqual({
+      das_status: "enviado",
+      data_envio_das: "2026-10-05",
+    });
+    const auditoria = await ok(
+      admin
+        .from("registros_auditoria")
+        .select("ator, setor, acao, resultado")
+        .eq("alvo", alvo.cnpj),
+    );
+    expect(auditoria).toEqual([
+      {
+        ator: URA_ATOR_ID,
+        setor: "simples_nacional",
+        acao: "cliente.enviar-das-automatico",
+        resultado: "sucesso",
+      },
+    ]);
+
+    // O job do mesmo dia lê o Cliente já enviado: não reenvia nem chama o provedor.
+    const envioDoJob = new EnvioMensagemFalsoGateway();
+    jest.spyOn(console, "info").mockImplementation(() => undefined);
+    const apenasOAlvo = {
+      listar: async () => {
+        const todos = await clientes.listar();
+        return todos.ok ? sucesso(todos.value.filter((c) => c.clienteId === alvo.id)) : todos;
+      },
+      reservarDas: (id: string) => clientes.reservarDas(id),
+      concluirDas: (id: string, token: string, data: string) =>
+        clientes.concluirDas(id, token, data),
+      liberarDas: (id: string, token: string) => clientes.liberarDas(id, token),
+    };
+    const rodada = await new ExecutarLembretesDocumentoEDas(
+      apenasOAlvo,
+      guiaDas,
+      new EntregarComunicacaoPorCanais(
+        new EnviarComunicacaoProativa(envioDoJob, 1, 0),
+        { enviar: async () => sucesso(undefined) },
+        0,
+      ),
+      alertas,
+      { agora: () => AGORA },
+    ).execute();
+
+    expect(rodada.ok && rodada.value.dasEnviados).toBe(0);
+    expect(chamadasAoProvedor).toBe(1);
+  });
+
+  it("DAS já enviado: reenvia o PDF guardado do mês do envio, sem provedor", async () => {
+    const envio = new EnvioMensagemFalsoGateway();
+    chamadasAoProvedor = 0;
+
+    const r = await montarUra(envio).execute({ clienteId: alvo.id, telefone: "5521999990000" });
+
+    expect(r.ok).toBe(true);
+    expect(chamadasAoProvedor).toBe(0);
+    expect(envio.documentosEnviados).toHaveLength(1);
+    const documento = envio.documentosEnviados[0];
+    const baixado = await fetch("url" in documento ? documento.url : "");
+    expect(baixado.status).toBe(200);
+    expect(await baixado.text()).toBe(PDF);
+    expect(await statusDoDas(alvo.id)).toEqual({
+      das_status: "enviado",
+      data_envio_das: "2026-10-05",
+    });
   });
 });

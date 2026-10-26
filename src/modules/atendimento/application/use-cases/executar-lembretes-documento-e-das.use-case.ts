@@ -25,7 +25,7 @@ import type {
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { temDestinatario } from "@/shared/kernel/forma-envio";
-import { diaDoMes, hojeIso } from "@/shared/kernel/mes-atual";
+import { diaDoMes, hojeIso, mesAtual } from "@/shared/kernel/mes-atual";
 import { ok, type Result } from "@/shared/kernel/result";
 
 const DIAS_DO_JOB = [1, 5, 10, 15];
@@ -117,7 +117,7 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
   }
 
   private async entregarGuia(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento> {
-    const guia = await this.guiaDas.execute(cliente.clienteId);
+    const guia = await this.guiaDas.execute(cliente.clienteId, mesAtual(agora));
     if (!guia.ok) return falha(`DAS de ${cliente.empresa}: ${guia.error.message}`);
     const comunicacao: ComunicacaoProativa = {
       tipo: "envio_guia_das",
