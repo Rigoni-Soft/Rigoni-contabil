@@ -2,10 +2,8 @@ import { createHash } from "node:crypto";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type {
-  GuiaGuardadaPort,
-  GuiaPublicadaPort,
-} from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
+import type { GuiaPublicadaPort } from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
+import type { ChaveGuia } from "@/modules/atendimento/domain/services/guia-guardada.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
@@ -14,25 +12,23 @@ const BUCKET = "guias-fiscais";
 // O provedor busca o arquivo logo após o envio; o e-mail pode ser aberto depois, então 7 dias.
 const VALIDADE_LINK_SEGUNDOS = 7 * 24 * 60 * 60;
 
-const pastaDoParcelamento = (clienteId: string, id: string) => `${clienteId}/${id}`;
+const pastaDaGuia = (clienteId: string, { id }: ChaveGuia) => `${clienteId}/${id}`;
 
 // Usa o client service_role (docs/adr/0001): o job não tem sessão de usuário.
 // ponytail: o PDF enviado fica no bucket para sempre; limpar por data se o volume pesar.
-export class SupabaseGuiaPublicadaGateway implements GuiaPublicadaPort, GuiaGuardadaPort {
+export class SupabaseGuiaPublicadaGateway implements GuiaPublicadaPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 
   async publicar(
     clienteId: string,
     guia: { nomeArquivo: string; pdfBase64: string },
-    parcelamento?: { id: string; parcela: string },
+    chave: ChaveGuia,
   ): Promise<Result<string, AppError>> {
     const bytes = Buffer.from(guia.pdfBase64, "base64");
-    // Sem parcelamento, um objeto por envio: o caminho nunca colide e o nome do arquivo não vira
-    // caminho. Com ele, cliente/parcelamento/AAAAMM-hash: a mesma guia cai no mesmo caminho a cada
-    // tentativa e uma guia reemitida com outros bytes nunca sobrescreve a já entregue.
-    const caminho = parcelamento
-      ? `${pastaDoParcelamento(clienteId, parcelamento.id)}/${parcelamento.parcela}-${createHash("sha256").update(bytes).digest("hex").slice(0, 16)}.pdf`
-      : `${clienteId}/${crypto.randomUUID()}.pdf`;
+    // O nome do arquivo não vira caminho. cliente/id/AAAAMM-hash: a mesma guia cai no mesmo caminho a
+    // cada tentativa e uma guia reemitida com outros bytes nunca sobrescreve a já entregue.
+    const hash = createHash("sha256").update(bytes).digest("hex").slice(0, 16);
+    const caminho = `${pastaDaGuia(clienteId, chave)}/${chave.periodo}-${hash}.pdf`;
     const bucket = this.supabaseAdmin.storage.from(BUCKET);
     const { error } = await bucket.upload(caminho, bytes, {
       contentType: "application/pdf",
@@ -50,19 +46,16 @@ export class SupabaseGuiaPublicadaGateway implements GuiaPublicadaPort, GuiaGuar
     return ok(link.data.signedUrl);
   }
 
-  // A guia entregue é a mais antiga da parcela: uma reemitida com outros bytes cai em outro caminho.
-  async reencontrar(
-    clienteId: string,
-    chave: { id: string; parcela: string },
-  ): Promise<Result<string | null, AppError>> {
+  // A guia entregue é a mais antiga do período: uma reemitida com outros bytes cai em outro caminho.
+  async reencontrar(clienteId: string, chave: ChaveGuia): Promise<Result<string | null, AppError>> {
     const bucket = this.supabaseAdmin.storage.from(BUCKET);
-    const pasta = pastaDoParcelamento(clienteId, chave.id);
+    const pasta = pastaDaGuia(clienteId, chave);
     const lista = await bucket.list(pasta, {
-      search: chave.parcela,
+      search: chave.periodo,
       sortBy: { column: "created_at", order: "asc" },
     });
     if (lista.error) return err(new ServicoExternoError("Falha ao procurar a guia guardada."));
-    const guardada = lista.data.find(({ name }) => name.startsWith(`${chave.parcela}-`));
+    const guardada = lista.data.find(({ name }) => name.startsWith(`${chave.periodo}-`));
     if (!guardada) return ok(null);
     const link = await bucket.createSignedUrl(`${pasta}/${guardada.name}`, VALIDADE_LINK_SEGUNDOS);
     if (link.error || !link.data) {

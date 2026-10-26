@@ -1,5 +1,5 @@
-// Onde a guia fica guardada no Storage: cliente/id/AAAAMM. A chave é estável, então cada tentativa
-// sobrescreve a anterior e o reenvio reencontra o PDF sem chamar o provedor fiscal.
+// Onde a guia fica guardada no Storage: cliente/id/AAAAMM-hash. A chave é estável, então o reenvio
+// reencontra o PDF sem chamar o provedor fiscal.
 export type ChaveGuia = { id: string; periodo: string };
 
 // `mesOuData`: "AAAA-MM" ou "AAAA-MM-DD". O DAS é guardado pelo mês do envio.

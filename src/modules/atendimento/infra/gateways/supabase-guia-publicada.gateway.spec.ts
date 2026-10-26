@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { ok } from "@/shared/kernel/result";
+
 import { SupabaseGuiaPublicadaGateway } from "./supabase-guia-publicada.gateway";
 
 // Storage em memória: upload não sobrescreve (409), remove apaga, a assinatura pode falhar.
@@ -18,6 +20,13 @@ function montar(assinaturaFalha: () => boolean) {
         ? { data: null, error: { message: "falha temporária" } }
         : { data: { signedUrl: `https://storage.test/${caminho}` }, error: null },
     ),
+    // Na ordem de criação, como o `sortBy: created_at asc` do Storage.
+    list: jest.fn(async (pasta: string) => ({
+      data: [...objetos.keys()]
+        .filter((c) => c.startsWith(`${pasta}/`))
+        .map((c) => ({ name: c.slice(pasta.length + 1) })),
+      error: null,
+    })),
     remove: jest.fn(async (caminhos: string[]) => {
       caminhos.forEach((c) => objetos.delete(c));
       return { error: null };
@@ -68,12 +77,23 @@ describe("SupabaseGuiaPublicadaGateway", () => {
     expect([...objetos.values()].map((x) => x.toString()).sort()).toEqual(["A", "B"]);
   });
 
-  it("sem parcelamento, o objeto novo sem link é limpo (o caminho é só desta tentativa)", async () => {
+  it("objeto novo sem link é limpo (o caminho é só desta tentativa)", async () => {
     const { gateway, objetos, bucket } = montar(() => true);
 
-    expect((await gateway.publicar("c1", guia("x"))).ok).toBe(false);
+    expect((await gateway.publicar("c1", guia("x"), acordo)).ok).toBe(false);
 
     expect(bucket.remove).toHaveBeenCalledTimes(1);
     expect(objetos.size).toBe(0);
+  });
+
+  it("reencontra a guia guardada, a mais antiga do período, e não acha onde não há", async () => {
+    const { gateway } = montar(() => false);
+    const a = await gateway.publicar("c1", guia("A"), acordo);
+    await gateway.publicar("c1", guia("B"), acordo);
+    await gateway.publicar("c1", guia("C"), { id: "acordo", periodo: "202611" });
+
+    expect(await gateway.reencontrar("c1", acordo)).toEqual(a);
+    expect(await gateway.reencontrar("c1", { id: "acordo", periodo: "202609" })).toEqual(ok(null));
+    expect(await gateway.reencontrar("c1", { id: "outro", periodo: "202610" })).toEqual(ok(null));
   });
 });
