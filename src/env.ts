@@ -84,6 +84,14 @@ const resultado = z
     // Leitor do PDF de parcelamento: falso (determinístico, padrão em dev/CI/Preview) ou "texto" (lê a
     // camada de texto do PDF no servidor, sem API externa).
     LEITURA_PDF_MODO: z.enum(["falso", "texto"]).default("falso"),
+    // WhatsApp do financeiro do escritório (só dígitos, com DDI), destino das guias de parcelamento
+    // interno (#127). Ausente ou inválido não derruba o app: o job não envia o interno, ele segue
+    // pendente e abre o alerta `financeiro_ausente`.
+    FINANCEIRO_TELEFONE: z
+      .string()
+      .regex(/^[1-9]\d{9,14}$/)
+      .optional()
+      .catch(undefined),
   })
   .refine(
     (v) =>
@@ -181,6 +189,7 @@ const resultado = z
     EMAIL_SMTP_SENHA: process.env.EMAIL_SMTP_SENHA || undefined,
     EMAIL_REMETENTE: process.env.EMAIL_REMETENTE || undefined,
     LEITURA_PDF_MODO: process.env.LEITURA_PDF_MODO || undefined,
+    FINANCEIRO_TELEFONE: process.env.FINANCEIRO_TELEFONE || undefined,
   });
 
 if (!resultado.success) {
@@ -223,4 +232,5 @@ export const {
   EMAIL_SMTP_SENHA,
   EMAIL_REMETENTE,
   LEITURA_PDF_MODO,
+  FINANCEIRO_TELEFONE,
 } = resultado.data;

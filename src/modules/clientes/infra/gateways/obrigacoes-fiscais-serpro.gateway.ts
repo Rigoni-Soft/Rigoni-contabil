@@ -7,9 +7,11 @@ import type {
   GuiaDasDto,
   GuiaParcelamentoDto,
   ObrigacoesFiscaisPort,
+  PedidoGuiasParcelamento,
   RegimeParcelamento,
 } from "@/modules/clientes/application/ports/out/obrigacoes-fiscais.provider";
 import type { AppError } from "@/shared/errors/app.error";
+import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { hojeIso, mesAtual } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
@@ -20,11 +22,24 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 const TIMEOUT_MS = 15_000;
 const CNPJ = 2; // tipo de identificador do Serpro
 
-// [idSistema, idServico] de "Emitir Documento de Arrecadação" do parcelamento ordinário (PARC),
-// o único contínuo; PERT e RELP estão fechados a novas adesões.
-const PARCELAMENTO_POR_REGIME: Record<RegimeParcelamento, readonly [string, string]> = {
-  simples_nacional: ["PARCSN", "GERARDAS161"],
-  mei: ["PARCMEI", "GERARDAS201"],
+// Serviços do parcelamento ordinário (PARC), o único contínuo; PERT e RELP estão fechados a novas
+// adesões. `consulta` lista as parcelas, `emissao` emite a guia.
+type ServicosDoParcelamento = { sistema: string; consulta: string; emissao: string };
+const PARCELAMENTO_POR_REGIME: Record<RegimeParcelamento, ServicosDoParcelamento> = {
+  simples_nacional: { sistema: "PARCSN", consulta: "PARCELASPARAGERAR162", emissao: "GERARDAS161" },
+  mei: { sistema: "PARCMEI", consulta: "PARCELASPARAGERAR202", emissao: "GERARDAS201" },
+};
+
+// Mensagens de negócio do Integra-Parcelamento (docs/pesquisa/serpro-guia-parcelamento.md).
+// `sem_guias`: não há o que emitir para o CNPJ; `parcela_indisponivel`: só aquela parcela não sai
+// agora. Qualquer outra falha é indisponibilidade (ou falta de autorização).
+type Recusa = "sem_guias" | "parcela_indisponivel";
+const RECUSA_POR_MENSAGEM: Record<string, Recusa> = {
+  ER_E001: "sem_guias", // não há parcelamento ativo
+  ER_N003: "sem_guias", // sem saldo devedor
+  ER_N008: "sem_guias", // sem parcelas para emissão
+  ER_N005: "parcela_indisponivel", // parcela do mês só emitível a partir de certo dia
+  ER_N006: "parcela_indisponivel", // parcela inexistente, já paga ou de mês futuro
 };
 
 export type RespostaHttp = { status: number; corpo: string };
@@ -100,6 +115,11 @@ const dasSchema = umOuLista(
   }),
 );
 const parcelamentoSchema = umOuLista(z.object({ docArrecadacaoPdfB64: z.string() }));
+const parcelasSchema = z.object({
+  listaParcela: z.array(
+    z.object({ parcela: z.coerce.string().regex(/^\d{6}$/), valor: z.number() }),
+  ),
+});
 const procuracoesSchema = z.array(z.object({ dtexpiracao: z.string().regex(/^\d{8}$/) }));
 
 const dataIso = (aaaammdd: string) =>
@@ -138,25 +158,60 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
     });
   }
 
-  // Parcelamento ordinário do regime do Cliente, parcela do mês corrente. A API devolve só o
-  // PDF: valor e vencimento ficam de fora (opcionais no contrato).
-  async buscarGuiaParcelamento(
+  // Parcelamento ordinário do regime do Cliente: lista as parcelas emitíveis (1 consulta) e emite
+  // uma guia por parcela, menos as de `ignorar`. A emissão só aceita a parcela (não escolhe o
+  // parcelamento), então a atribuição ao parcelamento do Cliente é de quem chama. Direto, sem
+  // pré-consulta de autorização: ela só é consultada se nada vier, para classificar a falha. Queda
+  // no meio devolve as guias já baixadas (pagas); as outras vêm na rodada seguinte.
+  async buscarGuiasParcelamento(
     cnpj: string,
-    regime: RegimeParcelamento,
-  ): Promise<Result<GuiaParcelamentoDto, AppError>> {
-    const parcela = mesAtual(this.agora()).replace("-", "");
-    const [idSistema, idServico] = PARCELAMENTO_POR_REGIME[regime];
-    return this.executar(async () => {
-      const dados = await this.chamar("Emitir", cnpj, idSistema, idServico, "1.0", {
-        parcelaParaEmitir: Number(parcela),
+    { regime, ignorar }: PedidoGuiasParcelamento,
+  ): Promise<Result<GuiaParcelamentoDto[], AppError>> {
+    const {
+      sistema: idSistema,
+      consulta: idConsulta,
+      emissao: idEmissao,
+    } = PARCELAMENTO_POR_REGIME[regime];
+    const guias: GuiaParcelamentoDto[] = [];
+    try {
+      const parcelas = await this.comRecusa("sem_guias", [], async () => {
+        const dados = await this.chamar("Consultar", cnpj, idSistema, idConsulta, "1.0", {});
+        return dados === null ? [] : parcelasSchema.parse(dados).listaParcela;
       });
-      if (dados === null) throw new ErroSerpro("Cliente sem parcelamento com parcela neste mês.");
-      return {
-        nomeArquivo: `parcelamento-${cnpj}-${parcela}.pdf`,
-        pdfBase64: parcelamentoSchema.parse(dados).docArrecadacaoPdfB64,
-        parcela,
-      };
-    });
+      for (const { parcela, valor } of parcelas.filter((p) => !ignorar.includes(p.parcela))) {
+        const pdf = await this.comRecusa("parcela_indisponivel", null, async () => {
+          const dados = await this.chamar("Emitir", cnpj, idSistema, idEmissao, "1.0", {
+            parcelaParaEmitir: Number(parcela),
+          });
+          return dados === null ? null : parcelamentoSchema.parse(dados).docArrecadacaoPdfB64;
+        });
+        if (pdf === null) continue;
+        guias.push({
+          nomeArquivo: `parcelamento-${cnpj}-${parcela}.pdf`,
+          pdfBase64: pdf,
+          parcela,
+          valorCentavos: Math.round(valor * 100),
+        });
+      }
+      return ok(guias);
+    } catch (e) {
+      if (guias.length > 0) return ok(guias);
+      const autorizacao = await this.consultarAutorizacao(cnpj);
+      if (autorizacao.ok && !autorizacao.value.vigente) {
+        return err(new ForbiddenError("Cliente sem autorização vigente para consulta fiscal."));
+      }
+      return err(falhaDeServico(e));
+    }
+  }
+
+  // A recusa de negócio indicada vira `quandoRecusa`; qualquer outra falha segue lançando.
+  private async comRecusa<T>(recusa: Recusa, quandoRecusa: T, fn: () => Promise<T>): Promise<T> {
+    try {
+      return await fn();
+    } catch (e) {
+      if (e instanceof ErroSerpro && e.recusa === recusa) return quandoRecusa;
+      throw e;
+    }
   }
 
   // Integra-Procurações: há procuração do Cliente ao escritório com validade a vencer?
@@ -184,11 +239,7 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
     try {
       return ok(await fn());
     } catch (e) {
-      return err(
-        new ServicoExternoError(
-          e instanceof ErroSerpro ? e.message : "Serviço fiscal indisponível ou fora do contrato.",
-        ),
-      );
+      return err(falhaDeServico(e));
     }
   }
 
@@ -250,10 +301,30 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
       return this.chamar(operacao, contribuinte, idSistema, idServico, versaoSistema, dados, false);
     }
     if (r.status === 204 || r.status === 404) return null;
-    if (r.status !== 200) throw new ErroSerpro(`Serviço fiscal respondeu ${r.status}.`);
+    if (r.status !== 200) {
+      throw new ErroSerpro(`Serviço fiscal respondeu ${r.status}.`, recusaDaResposta(r.corpo));
+    }
     const envelope = z.object({ dados: z.string() }).parse(JSON.parse(r.corpo));
     return JSON.parse(envelope.dados);
   }
 }
 
-class ErroSerpro extends Error {}
+function recusaDaResposta(corpo: string): Recusa | undefined {
+  const er = /ER_[EN]\d{3}/.exec(corpo)?.[0];
+  return er ? RECUSA_POR_MENSAGEM[er] : undefined;
+}
+
+function falhaDeServico(e: unknown): ServicoExternoError {
+  return new ServicoExternoError(
+    e instanceof ErroSerpro ? e.message : "Serviço fiscal indisponível ou fora do contrato.",
+  );
+}
+
+class ErroSerpro extends Error {
+  constructor(
+    message: string,
+    readonly recusa?: Recusa,
+  ) {
+    super(message);
+  }
+}

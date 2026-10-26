@@ -27,11 +27,23 @@ export type AutorizacaoDto = { vigente: true; dataExpiracao: string } | { vigent
 // Regimes com parcelamento ordinário (PARC): cada um tem o seu no provedor.
 export type RegimeParcelamento = "simples_nacional" | "mei";
 
+// `ignorar`: parcelas (AAAAMM) já entregues, que o provedor não precisa emitir de novo (cada
+// emissão é cobrada). O regime escolhe o parcelamento ordinário do provedor (PARCSN ou PARCMEI).
+export type PedidoGuiasParcelamento = {
+  regime: RegimeParcelamento;
+  ignorar: readonly string[];
+};
+
 export interface ObrigacoesFiscaisPort {
   buscarDas(cnpj: string): Promise<Result<GuiaDasDto, AppError>>;
-  buscarGuiaParcelamento(
+  // Todas as guias de parcelamento que o provedor emite hoje para o CNPJ (atrasadas e a vencer),
+  // uma por parcela: 0, 1 ou várias. Só dos parcelamentos da Receita (`origem = receita_federal`;
+  // `pgfn` nunca chega aqui). O provedor não diz de qual parcelamento do Cliente é cada guia: quem
+  // chama atribui depois de baixar. Sem guias não é erro (lista vazia); indisponibilidade é
+  // `ServicoExternoError`, e sem autorização vigente, `ForbiddenError` (consultada só se falhar).
+  buscarGuiasParcelamento(
     cnpj: string,
-    regime: RegimeParcelamento,
-  ): Promise<Result<GuiaParcelamentoDto, AppError>>;
+    pedido: PedidoGuiasParcelamento,
+  ): Promise<Result<GuiaParcelamentoDto[], AppError>>;
   consultarAutorizacao(cnpj: string): Promise<Result<AutorizacaoDto, AppError>>;
 }

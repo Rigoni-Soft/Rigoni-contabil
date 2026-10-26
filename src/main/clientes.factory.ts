@@ -4,12 +4,10 @@ import { LEITURA_PDF_MODO } from "@/env";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { makeRegistrarAcao } from "@/main/auditoria.factory";
-import { makeCertidaoCnd, makeObrigacoesFiscais } from "@/main/obrigacoes-fiscais.factory";
 import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
 import type { AnexarAlteracaoContratualPort } from "@/modules/clientes/application/ports/in/anexar-alteracao-contratual.provider";
 import type { AtribuirResponsavelClientePort } from "@/modules/clientes/application/ports/in/atribuir-responsavel-cliente.provider";
-import type { BuscarGuiaPort } from "@/modules/clientes/application/ports/in/buscar-guia.provider";
 import type { ContarAvisosNaoVistosPort } from "@/modules/clientes/application/ports/in/contar-avisos-nao-vistos.provider";
 import type { CriarClientePort } from "@/modules/clientes/application/ports/in/criar-cliente.provider";
 import type {
@@ -30,7 +28,6 @@ import type {
 import { AnexarAlteracaoContratual } from "@/modules/clientes/application/use-cases/anexar-alteracao-contratual.use-case";
 import { AtribuirResponsavelCliente } from "@/modules/clientes/application/use-cases/atribuir-responsavel-cliente.use-case";
 import { BuscarClientes } from "@/modules/clientes/application/use-cases/buscar-clientes.use-case";
-import { BuscarGuia } from "@/modules/clientes/application/use-cases/buscar-guia.use-case";
 import { ConsultarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/consultar-cadastro-operacional-cliente.use-case";
 import { ContarAvisosNaoVistos } from "@/modules/clientes/application/use-cases/contar-avisos-nao-vistos.use-case";
 import { CriarCliente } from "@/modules/clientes/application/use-cases/criar-cliente.use-case";
@@ -178,11 +175,6 @@ export async function makeObterResumoSetorSn(): Promise<ObterResumoSetorSn> {
     new SupabaseClienteQueryGateway(supabase),
     new RelogioSistemaGateway(),
   );
-}
-
-export async function makeBuscarGuia(): Promise<BuscarGuiaPort> {
-  const supabase = await createSupabaseServer();
-  return new BuscarGuia(sessaoViaUsuarios(supabase), makeObrigacoesFiscais(), makeCertidaoCnd());
 }
 
 // Sessão do usuário (RLS), sem service_role e sem o gateway do Atendimento.

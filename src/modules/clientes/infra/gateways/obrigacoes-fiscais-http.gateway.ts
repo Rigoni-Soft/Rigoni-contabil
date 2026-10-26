@@ -5,6 +5,7 @@ import type {
   GuiaDasDto,
   GuiaParcelamentoDto,
   ObrigacoesFiscaisPort,
+  PedidoGuiasParcelamento,
 } from "@/modules/clientes/application/ports/out/obrigacoes-fiscais.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -27,6 +28,7 @@ const parcelamentoSchema = z.object({
   valorCentavos: z.number().int().optional(),
   vencimento: dataIso.optional(),
 });
+const parcelamentosSchema = z.object({ guias: z.array(parcelamentoSchema) });
 const autorizacaoSchema = z.discriminatedUnion("vigente", [
   z.object({ vigente: z.literal(true), dataExpiracao: dataIso }),
   z.object({ vigente: z.literal(false) }),
@@ -45,8 +47,14 @@ export class ObrigacoesFiscaisHttpGateway implements ObrigacoesFiscaisPort {
     return this.obter(cnpj, "das", dasSchema);
   }
 
-  buscarGuiaParcelamento(cnpj: string): Promise<Result<GuiaParcelamentoDto, AppError>> {
-    return this.obter(cnpj, "parcelamento", parcelamentoSchema);
+  // O regime é do adapter do provedor: o contrato só leva as parcelas já entregues.
+  async buscarGuiasParcelamento(
+    cnpj: string,
+    { ignorar }: PedidoGuiasParcelamento,
+  ): Promise<Result<GuiaParcelamentoDto[], AppError>> {
+    const consulta = ignorar.length > 0 ? `?ignorar=${ignorar.join(",")}` : "";
+    const r = await this.obter(cnpj, `parcelamentos${consulta}`, parcelamentosSchema);
+    return r.ok ? ok(r.value.guias) : r;
   }
 
   consultarAutorizacao(cnpj: string): Promise<Result<AutorizacaoDto, AppError>> {

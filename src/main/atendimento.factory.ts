@@ -12,6 +12,7 @@ import {
   EMAIL_SMTP_SENHA,
   EMAIL_SMTP_USUARIO,
   FFMPEG_PATH,
+  FINANCEIRO_TELEFONE,
   INATIVIDADE_AUTOMATICA,
   LEMBRETES_AUTOMATICOS,
   MENSAGERIA_MODO,
@@ -72,6 +73,7 @@ import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/
 import { EnviarAnexoAoCliente } from "@/modules/atendimento/application/use-cases/enviar-anexo-ao-cliente.use-case";
 import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
 import { EnviarDocumentoAoCliente } from "@/modules/atendimento/application/use-cases/enviar-documento-ao-cliente.use-case";
+import { EnviarGuiasParcelamento } from "@/modules/atendimento/application/use-cases/enviar-guias-parcelamento.use-case";
 import { EnviarMensagemAoCliente } from "@/modules/atendimento/application/use-cases/enviar-mensagem-ao-cliente.use-case";
 import { ExecutarEnvioGuiaParcelamento } from "@/modules/atendimento/application/use-cases/executar-envio-guia-parcelamento.use-case";
 import { ExecutarLembretesDocumentoEDas } from "@/modules/atendimento/application/use-cases/executar-lembretes-documento-e-das.use-case";
@@ -80,7 +82,6 @@ import { ListarFila } from "@/modules/atendimento/application/use-cases/listar-f
 import { ListarMeusAtendimentos } from "@/modules/atendimento/application/use-cases/listar-meus-atendimentos.use-case";
 import { ObterConversa } from "@/modules/atendimento/application/use-cases/obter-conversa.use-case";
 import { ObterGuiaDasParaEnvio } from "@/modules/atendimento/application/use-cases/obter-guia-das-para-envio.use-case";
-import { ObterGuiaParcelamentoParaEnvio } from "@/modules/atendimento/application/use-cases/obter-guia-parcelamento-para-envio.use-case";
 import { PrepararAnexoParaEnvio } from "@/modules/atendimento/application/use-cases/preparar-anexo-para-envio.use-case";
 import { ReagirAMensagem } from "@/modules/atendimento/application/use-cases/reagir-a-mensagem.use-case";
 import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/receber-mensagem.use-case";
@@ -109,6 +110,7 @@ import { SupabaseClientesParaParcelamentoGateway } from "@/modules/atendimento/i
 import { SupabaseDocumentosContratuaisGateway } from "@/modules/atendimento/infra/gateways/supabase-documentos-contratuais.gateway";
 import { SupabaseGuiaPublicadaGateway } from "@/modules/atendimento/infra/gateways/supabase-guia-publicada.gateway";
 import { SupabaseIdentificacaoContatoGateway } from "@/modules/atendimento/infra/gateways/supabase-identificacao-contato.gateway";
+import { SupabaseParcelamentosDoClienteGateway } from "@/modules/atendimento/infra/gateways/supabase-parcelamentos-do-cliente.gateway";
 import { SupabaseSessaoAtendimentoGateway } from "@/modules/atendimento/infra/gateways/supabase-sessao-atendimento.gateway";
 import { SupabaseAtendimentoRepository } from "@/modules/atendimento/infra/repositories/atendimento.repository";
 import { SupabaseFeriadoRepository } from "@/modules/atendimento/infra/repositories/feriado.repository";
@@ -331,15 +333,22 @@ export function makeExecutarLembretesDocumentoEDas(): ExecutarLembretesDocumento
 // lembrete: os dois são comunicação automática ao Cliente.
 export function makeExecutarEnvioGuiaParcelamento(): ExecutarEnvioGuiaParcelamentoPort {
   const supabaseAdmin = createSupabaseAdmin();
+  const envio = makeEnvioMensagem();
   return new ExecutarEnvioGuiaParcelamento(
     new SupabaseClientesParaParcelamentoGateway(supabaseAdmin),
-    new ObterGuiaParcelamentoParaEnvio(
+    new EnviarGuiasParcelamento(
+      new SupabaseParcelamentosDoClienteGateway(supabaseAdmin),
       guiasFiscais(supabaseAdmin),
       new SupabaseGuiaPublicadaGateway(supabaseAdmin),
-    ),
-    new EntregarComunicacaoPorCanais(
-      new EnviarComunicacaoProativa(makeEnvioMensagem(), TENTATIVAS, ESPERA_MS),
-      makeEnvioEmail(),
+      new EntregarComunicacaoPorCanais(
+        new EnviarComunicacaoProativa(envio, TENTATIVAS, ESPERA_MS),
+        makeEnvioEmail(),
+      ),
+      {
+        envio,
+        cnpjs: new SupabaseClienteCnpjGateway(supabaseAdmin),
+        telefone: FINANCEIRO_TELEFONE ?? null,
+      },
     ),
     new SupabaseAlertaSetorGateway(supabaseAdmin, "parcelamento"),
     new RelogioSistemaGateway(),

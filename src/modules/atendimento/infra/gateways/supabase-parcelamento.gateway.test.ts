@@ -5,16 +5,17 @@
  */
 import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/use-cases/entregar-comunicacao-por-canais.use-case";
 import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
+import { EnviarGuiasParcelamento } from "@/modules/atendimento/application/use-cases/enviar-guias-parcelamento.use-case";
 import { ExecutarEnvioGuiaParcelamento } from "@/modules/atendimento/application/use-cases/executar-envio-guia-parcelamento.use-case";
-import { ObterGuiaParcelamentoParaEnvio } from "@/modules/atendimento/application/use-cases/obter-guia-parcelamento-para-envio.use-case";
-import { URA_ATOR_ID } from "@/modules/atendimento/domain/services/inatividade.service";
 import { soDigitosNacionais } from "@/modules/atendimento/domain/services/telefone.service";
 import { ok as sucesso } from "@/shared/kernel/result";
 
 import { criarAdminLocal } from "../../../../../test-support/admin-supabase-local";
 import { EnvioMensagemFalsoGateway } from "./envio-mensagem-falso.gateway";
 import { SupabaseAlertaSetorGateway } from "./supabase-alerta-setor.gateway";
+import { SupabaseClienteCnpjGateway } from "./supabase-cliente-cnpj.gateway";
 import { SupabaseClientesParaParcelamentoGateway } from "./supabase-clientes-para-parcelamento.gateway";
+import { SupabaseParcelamentosDoClienteGateway } from "./supabase-parcelamentos-do-cliente.gateway";
 
 const SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ??
@@ -46,13 +47,18 @@ async function ok<T>(consulta: PromiseLike<{ data: T; error: { message: string }
   return data as NonNullable<T>;
 }
 
-async function criarParcelamento(clienteId: string) {
+async function criarParcelamento(
+  clienteId: string,
+  opcoes: { interno?: boolean; origem?: "receita_federal" | "pgfn" } = {},
+) {
   await ok(
     admin.from("cliente_parcelamentos").insert({
       id: crypto.randomUUID(),
       cliente_id: clienteId,
       codigo: "TESTE-1",
       parcelas_restantes: 5,
+      interno: opcoes.interno ?? false,
+      origem: opcoes.origem ?? null,
       arquivo_caminho: `${clienteId}/teste.pdf`,
     }),
   );
@@ -176,6 +182,24 @@ describe("leitura dos pendentes", () => {
     expect(itens.find((c) => c.clienteId === pendente.id)?.contato?.telefone).toBe(`55${nacional}`);
   });
 
+  it("Cliente que só tem parcelamento interno em aberto também é pendente (o destino é decidido no envio)", async () => {
+    const soInterno = await criarCliente({ temParcelamento: false, empresa: "Só Interno Ltda" });
+    await criarParcelamento(soInterno.id, { interno: true });
+
+    const lista = await clientes.listarPendentes();
+
+    expect(lista.ok && lista.value.map((c) => c.clienteId)).toContain(soInterno.id);
+  });
+
+  it("Cliente que só tem parcelamento da PGFN não é pendente (a guia dele é o PDF do escritório)", async () => {
+    const soPgfn = await criarCliente({ temParcelamento: false, empresa: "Só PGFN Ltda" });
+    await criarParcelamento(soPgfn.id, { origem: "pgfn" });
+
+    const lista = await clientes.listarPendentes();
+
+    expect(lista.ok && lista.value.map((c) => c.clienteId)).not.toContain(soPgfn.id);
+  });
+
   it("janela de 24h pela chave nacional: mensagem recente do contato escolhe o texto livre", async () => {
     const nacional = soDigitosNacionais(`(61) 9${sufixo.slice(0, 4)}-${sufixo.slice(4)}`);
     const criado = await ok(
@@ -288,30 +312,19 @@ describe("reserva e conclusão do envio do Parcelamento", () => {
     expect(await statusDoParcelamento(pendente.id)).toBe("pendente");
   });
 
-  it("concluir com o token da reserva: enviado e uma auditoria da URA; repetir não tem efeito", async () => {
+  it("concluir com o token da reserva só fecha a reserva (o registro de envio é do núcleo); repetir não tem efeito", async () => {
     await admin.from("envios_automaticos").delete().eq("cliente_id", pendente.id);
     const reserva = await clientes.reservar(pendente.id);
     const token = reserva.ok ? reserva.value! : "";
 
     expect(await clientes.concluir(pendente.id, token)).toEqual({ ok: true, value: true });
 
-    expect(await statusDoParcelamento(pendente.id)).toBe("enviado");
-    const auditoria = await ok(
-      admin
-        .from("registros_auditoria")
-        .select("ator, setor, acao, resultado")
-        .eq("alvo", pendente.cnpj),
-    );
-    expect(auditoria).toEqual([
-      {
-        ator: URA_ATOR_ID,
-        setor: "simples_nacional",
-        acao: "cliente.enviar-parcelamento-automatico",
-        resultado: "sucesso",
-      },
-    ]);
+    expect(await statusDoParcelamento(pendente.id)).toBe("pendente");
     expect(await clientes.concluir(pendente.id, token)).toEqual({ ok: true, value: false });
-    expect(await clientes.reservar(pendente.id)).toEqual({ ok: true, value: null });
+    // Ainda há parcelamento sem registro do mês: a próxima rodada pode reservar de novo.
+    const proxima = await clientes.reservar(pendente.id);
+    expect(proxima.ok && typeof proxima.value).toBe("string");
+    await clientes.liberar(pendente.id, proxima.ok ? proxima.value! : "");
   });
 
   it("liberar devolve a reserva sem tocar no cadastro; token antigo não libera a de outra tentativa", async () => {
@@ -367,7 +380,11 @@ describe("reserva e conclusão do envio do Parcelamento", () => {
   });
 });
 
-describe("envio automático só com um acordo candidato (F3 do PR #191)", () => {
+// F3 do PR #191 (2ª revalidação): a conclusão nunca pode registrar envio num acordo diferente do
+// entregue. Com a regra única (#126) a conclusão só fecha a reserva do Cliente e o registro de envio é
+// gravado pelo ID do acordo entregue (`registrar_envio_parcelamento`), então trocar o acordo durante o
+// envio não desloca o registro para o substituto.
+describe("a conclusão não registra envio em acordo algum (F3 do PR #191, regra única do #126)", () => {
   async function acordo(clienteId: string, origem: "receita_federal" | "pgfn" | null) {
     const id = crypto.randomUUID();
     await ok(
@@ -392,54 +409,32 @@ describe("envio automático só com um acordo candidato (F3 do PR #191)", () => 
       )
     ).map((e) => e.parcelamento_id);
 
-  it("dois acordos da Receita: o Cliente sai do job, não reserva e nada é marcado", async () => {
+  it("dois acordos da Receita: o Cliente é pendente e a conclusão não marca nenhum deles", async () => {
     const cliente = await criarCliente({ temParcelamento: false });
     await acordo(cliente.id, "receita_federal");
     await acordo(cliente.id, "receita_federal");
 
     const lista = await clientes.listarPendentes();
-    expect(lista.ok && lista.value.map((c) => c.clienteId)).not.toContain(cliente.id);
-    expect(await clientes.reservar(cliente.id)).toEqual({ ok: true, value: null });
+    expect(lista.ok && lista.value.map((c) => c.clienteId)).toContain(cliente.id);
+    const reserva = await clientes.reservar(cliente.id);
+    expect(reserva.ok && typeof reserva.value).toBe("string");
+    await clientes.concluir(cliente.id, reserva.ok ? reserva.value! : "");
+
     expect(await enviadosDe(cliente.id)).toEqual([]);
   });
 
-  it("acordo sem origem conta como candidato: com a Receita, são dois e o job não age", async () => {
+  it("Receita + PGFN: só o da Receita é pendente e a conclusão não marca ninguém", async () => {
     const cliente = await criarCliente({ temParcelamento: false });
     await acordo(cliente.id, "receita_federal");
-    await acordo(cliente.id, null);
-
-    expect(await clientes.reservar(cliente.id)).toEqual({ ok: true, value: null });
-  });
-
-  it("Receita + PGFN: só o da Receita é candidato e só ele é marcado", async () => {
-    const cliente = await criarCliente({ temParcelamento: false });
-    const receita = await acordo(cliente.id, "receita_federal");
     await acordo(cliente.id, "pgfn");
 
     const reserva = await clientes.reservar(cliente.id);
     expect(reserva.ok && typeof reserva.value).toBe("string");
-    expect(await clientes.concluir(cliente.id, reserva.ok ? reserva.value! : "")).toEqual({
-      ok: true,
-      value: true,
-    });
-    expect(await enviadosDe(cliente.id)).toEqual([receita]);
-  });
+    await clientes.concluir(cliente.id, reserva.ok ? reserva.value! : "");
 
-  it("segundo acordo criado durante o envio: a conclusão não marca ninguém", async () => {
-    const cliente = await criarCliente({ temParcelamento: false });
-    await acordo(cliente.id, "receita_federal");
-    const reserva = await clientes.reservar(cliente.id);
-    const token = reserva.ok ? reserva.value! : "";
-    expect(token).not.toBe("");
-
-    await acordo(cliente.id, "receita_federal");
-
-    expect(await clientes.concluir(cliente.id, token)).toEqual({ ok: true, value: false });
     expect(await enviadosDe(cliente.id)).toEqual([]);
   });
 
-  // A reserva fica presa ao acordo que existia nela: o candidato da conclusão tem de ser o mesmo,
-  // não "o único que sobrou". Contar de novo não basta (F3, 2ª revalidação).
   it("acordo A trocado por B depois da reserva: a conclusão não registra a entrega de A em B", async () => {
     const cliente = await criarCliente({ temParcelamento: false });
     const a = await acordo(cliente.id, "receita_federal");
@@ -449,8 +444,8 @@ describe("envio automático só com um acordo candidato (F3 do PR #191)", () => 
 
     await ok(admin.from("cliente_parcelamentos").delete().eq("id", a));
     await acordo(cliente.id, "receita_federal");
+    await clientes.concluir(cliente.id, token);
 
-    expect(await clientes.concluir(cliente.id, token)).toEqual({ ok: true, value: false });
     expect(await enviadosDe(cliente.id)).toEqual([]);
   });
 
@@ -463,27 +458,24 @@ describe("envio automático só com um acordo candidato (F3 do PR #191)", () => 
 
     await ok(admin.from("cliente_parcelamentos").update({ interno: true }).eq("id", a));
     await acordo(cliente.id, "receita_federal");
+    await clientes.concluir(cliente.id, token);
 
-    expect(await clientes.concluir(cliente.id, token)).toEqual({ ok: true, value: false });
     expect(await enviadosDe(cliente.id)).toEqual([]);
   });
 
-  it("depois de uma conclusão recusada a reserva é liberada: a rodada seguinte reserva o candidato de agora", async () => {
+  it("o registro vai para o acordo entregue, mesmo que outro apareça depois", async () => {
     const cliente = await criarCliente({ temParcelamento: false });
     const a = await acordo(cliente.id, "receita_federal");
-    const reserva = await clientes.reservar(cliente.id);
-    const token = reserva.ok ? reserva.value! : "";
-    await ok(admin.from("cliente_parcelamentos").delete().eq("id", a));
-    const b = await acordo(cliente.id, "receita_federal");
-    await clientes.concluir(cliente.id, token);
+    await acordo(cliente.id, "receita_federal");
 
-    const proxima = await clientes.reservar(cliente.id);
-    expect(proxima.ok && typeof proxima.value).toBe("string");
-    expect(await clientes.concluir(cliente.id, proxima.ok ? proxima.value! : "")).toEqual({
-      ok: true,
-      value: true,
-    });
-    expect(await enviadosDe(cliente.id)).toEqual([b]);
+    const registrado = await new SupabaseParcelamentosDoClienteGateway(admin).registrarEnvio(
+      a,
+      "202610",
+      "202610:10000",
+    );
+
+    expect(registrado).toEqual({ ok: true, value: "registrado" });
+    expect(await enviadosDe(cliente.id)).toEqual([a]);
   });
 });
 
@@ -532,6 +524,26 @@ describe("alertas por origem e por Cliente avaliado", () => {
     );
     expect(doAvaliado).toEqual([]);
   });
+
+  it.each(["parcelamento_sem_guia", "financeiro_ausente"] as const)(
+    "grava o alerta %s e o job de parcelamento o resolve quando não renova",
+    async (tipo) => {
+      const alvo = await criarCliente({ empresa: "Alerta Novo Ltda" });
+
+      const gravado = await alertasParcelamento.alertar({ ...base(alvo.id), tipo });
+      expect(gravado.ok).toBe(true);
+      await alertasParcelamento.resolverNaoRenovados(new Date(Date.now() + 60_000), [alvo.id]);
+
+      const abertos = await ok(
+        admin
+          .from("alertas_setor")
+          .select("tipo")
+          .eq("cliente_id", alvo.id)
+          .is("resolvido_em", null),
+      );
+      expect(abertos).toEqual([]);
+    },
+  );
 
   it("o mesmo tipo de alerta do mesmo Cliente abre um alerta por origem", async () => {
     await alertasLembretes.alertar({ ...base(pendente.id), tipo: "falha_envio" });
@@ -588,19 +600,21 @@ describe("rodada real com a reserva ocupada", () => {
       relogioDaRodada = agora;
       return new ExecutarEnvioGuiaParcelamento(
         apenasOAlvo,
-        new ObterGuiaParcelamentoParaEnvio(
+        new EnviarGuiasParcelamento(
+          new SupabaseParcelamentosDoClienteGateway(admin),
           {
-            buscar: async () => {
+            buscarGuiasParcelamento: async () => {
               if (quedaNaEntrega) throw new Error("processo caiu");
-              return sucesso({ nomeArquivo: "p.pdf", pdfBase64: "JVBERi0=", parcela: "202609" });
+              return sucesso([{ nomeArquivo: "p.pdf", pdfBase64: "JVBERi0=", parcela: "202610" }]);
             },
           },
           { publicar: async () => sucesso("https://storage.test/p.pdf") },
-          0,
-        ),
-        new EntregarComunicacaoPorCanais(
-          new EnviarComunicacaoProativa(envio, 1, 0),
-          { enviar: async () => sucesso(undefined) },
+          new EntregarComunicacaoPorCanais(
+            new EnviarComunicacaoProativa(envio, 1, 0),
+            { enviar: async () => sucesso(undefined) },
+            0,
+          ),
+          { envio, cnpjs: new SupabaseClienteCnpjGateway(admin), telefone: null },
           0,
         ),
         alertasNoRelogioDaRodada,

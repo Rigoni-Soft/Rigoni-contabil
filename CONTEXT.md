@@ -66,7 +66,7 @@ Acordo de parcelamento de débitos tributários do Cliente junto à Receita, cuj
 Em aberto é o que ainda gera guia; quitado é o marcado como quitado ou com parcelas restantes em zero. Quem decide é o banco: a edição à mão nunca grava zero nem a situação (o zero vem do sistema, ao entregar a última parcela).
 
 **Parcelamento interno**:
-Parcelamento pago pelo escritório (marca "é interno"): a guia dele não vai ao Cliente, e sim ao financeiro (#127).
+Parcelamento pago pelo escritório (marca "é interno"): a guia dele não vai ao Cliente, e sim ao WhatsApp do financeiro (`FINANCEIRO_TELEFONE`), por template próprio e qualquer que seja a forma de envio do Cliente (#127).
 
 **Registro de envio do Parcelamento**:
 Uma linha por Parcelamento e parcela (AAAAMM), gravada só pelo sistema quando a guia é entregue; nenhuma sessão de usuário escreve (ADR 0008). É a base do status do mês e trava a remoção do Parcelamento.
@@ -131,11 +131,11 @@ Nos mesmos dias, a entrega da guia do DAS quando o DAS está pronto, pela forma 
 _Avoid_: Disparo.
 
 **Envio automático de guia de parcelamento**:
-Nos dias 20, 22, 24, 26 e 28, a entrega da guia de parcelamento aos Clientes com Parcelamento em aberto (não interno) sem registro de envio do mês, pela forma de envio do Cliente. A entrega aceita grava o registro de envio do mês, auditado com a URA como ator; se a entrega falha depois das tentativas, nada é gravado e a rodada seguinte tenta de novo (#53). Hoje um envio marca todos os Parcelamentos em aberto do Cliente; a regra por código é do job novo (#126).
+Nos dias 20, 22, 24, 26 e 28, a entrega das guias de parcelamento aos Clientes com Parcelamento em aberto sem registro de envio do mês: o comum pela forma de envio do Cliente, o interno ao WhatsApp do financeiro. O banco manda: sem Parcelamento em aberto o provedor fiscal não é chamado. Cada entrega aceita grava o registro de envio da parcela, auditado com a URA como ator, e desconta uma parcela restante (quita ao zerar); a falha de um Parcelamento não trava os outros e a rodada seguinte tenta de novo (#53, #126). Sem telefone do financeiro válido o interno não é enviado e segue pendente (#127).
 _Avoid_: Disparo.
 
 **Alerta do setor**:
-Registro que o job grava para o setor Simples Nacional quando algo pede ação humana: DAS pendente com o documento em dia (`das_pendente`), envio que falhou depois das tentativas (`falha_envio`), Cliente sem contato ou e-mail para a forma de envio (`contato_ausente`) e guia entregue por um canal só (`entrega_parcial`). Há um alerta aberto por Cliente e tipo; o job o renova enquanto a condição existe e o resolve quando ela some, exceto `entrega_parcial`, que só uma pessoa resolve. Cada alerta tem a origem do job que o gerou (`lembretes` ou `parcelamento`): um job renova e resolve só os seus.
+Registro que o job grava para o setor Simples Nacional quando algo pede ação humana: DAS pendente com o documento em dia (`das_pendente`), envio que falhou depois das tentativas (`falha_envio`), Cliente sem contato ou e-mail para a forma de envio (`contato_ausente`) e guia entregue por um canal só (`entrega_parcial`), Parcelamento pendente que o provedor não entregou ou que não casou com nenhuma guia (`parcelamento_sem_guia`, a mensagem lista os códigos) e telefone do financeiro ausente ou inválido, com Parcelamento interno pendente (`financeiro_ausente`). Há um alerta aberto por Cliente e tipo; o job o renova enquanto a condição existe e o resolve quando ela some, exceto `entrega_parcial`, que só uma pessoa resolve. Cada alerta tem a origem do job que o gerou (`lembretes` ou `parcelamento`): um job renova e resolve só os seus.
 _Avoid_: Notificação, aviso (aviso é o de Inatividade).
 
 ### Auditoria
