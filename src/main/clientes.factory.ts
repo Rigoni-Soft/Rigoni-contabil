@@ -21,7 +21,10 @@ import type { LerPdfDeParcelamentoPort } from "@/modules/clientes/application/po
 import type { ListarAvisosCadastroPort } from "@/modules/clientes/application/ports/in/listar-avisos-cadastro.provider";
 import type { ListarGuiasParcelaPgfnPort } from "@/modules/clientes/application/ports/in/listar-guias-parcela-pgfn.provider";
 import type { MarcarAvisoVistoPort } from "@/modules/clientes/application/ports/in/marcar-aviso-visto.provider";
+import type { ObterLinkGuiaParcelaPgfnPort } from "@/modules/clientes/application/ports/in/obter-link-guia-parcela-pgfn.provider";
+import type { RemoverGuiaParcelaPgfnPort } from "@/modules/clientes/application/ports/in/remover-guia-parcela-pgfn.provider";
 import type { SalvarParcelamentosClientePort } from "@/modules/clientes/application/ports/in/salvar-parcelamentos-cliente.provider";
+import type { TrocarGuiaParcelaPgfnPort } from "@/modules/clientes/application/ports/in/trocar-guia-parcela-pgfn.provider";
 import type { AuditoriaPort } from "@/modules/clientes/application/ports/out/auditoria.provider";
 import type { LeitorDeGuiaDeParcelaPort } from "@/modules/clientes/application/ports/out/leitor-de-guia-de-parcela.provider";
 import type { LeitorDeParcelamentoPort } from "@/modules/clientes/application/ports/out/leitor-de-parcelamento.provider";
@@ -45,8 +48,11 @@ import { ListarGuiasParcelaPgfn } from "@/modules/clientes/application/use-cases
 import { ListarResponsaveisElegiveis } from "@/modules/clientes/application/use-cases/listar-responsaveis-elegiveis.use-case";
 import { MarcarAvisoVisto } from "@/modules/clientes/application/use-cases/marcar-aviso-visto.use-case";
 import { ObterLinkDocumentoContratual } from "@/modules/clientes/application/use-cases/obter-link-documento-contratual.use-case";
+import { ObterLinkGuiaParcelaPgfn } from "@/modules/clientes/application/use-cases/obter-link-guia-parcela-pgfn.use-case";
 import { ObterResumoSetorSn } from "@/modules/clientes/application/use-cases/obter-resumo-setor-sn.use-case";
+import { RemoverGuiaParcelaPgfn } from "@/modules/clientes/application/use-cases/remover-guia-parcela-pgfn.use-case";
 import { SalvarParcelamentosCliente } from "@/modules/clientes/application/use-cases/salvar-parcelamentos-cliente.use-case";
+import { TrocarGuiaParcelaPgfn } from "@/modules/clientes/application/use-cases/trocar-guia-parcela-pgfn.use-case";
 import { SupabaseAvisosCadastroGateway } from "@/modules/clientes/infra/gateways/avisos-cadastro.gateway";
 import { SupabaseClienteQueryGateway } from "@/modules/clientes/infra/gateways/cliente-query.gateway";
 import { SupabaseDocumentosContratuaisClienteGateway } from "@/modules/clientes/infra/gateways/documentos-contratuais-cliente.gateway";
@@ -129,7 +135,7 @@ export async function makeAnexarGuiaParcelaPgfn(): Promise<AnexarGuiaParcelaPgfn
   return new AnexarGuiaParcelaPgfn(
     sessaoViaUsuarios(supabase),
     new SupabaseGuiaParcelaPgfnRepository(supabase),
-    new SupabaseArquivoStorageGateway(createSupabaseAdmin(), "parcelamentos-clientes"),
+    guiasStorage(),
     leitorDeGuiaDeParcela(),
   );
 }
@@ -145,6 +151,38 @@ export async function makeConfirmarGuiaParcelaPgfn(): Promise<ConfirmarGuiaParce
 export async function makeListarGuiasParcelaPgfn(): Promise<ListarGuiasParcelaPgfnPort> {
   const supabase = await createSupabaseServer();
   return new ListarGuiasParcelaPgfn(new SupabaseGuiaParcelaPgfnRepository(supabase));
+}
+
+const guiasStorage = () =>
+  new SupabaseArquivoStorageGateway(createSupabaseAdmin(), "parcelamentos-clientes");
+
+export async function makeTrocarGuiaParcelaPgfn(): Promise<TrocarGuiaParcelaPgfnPort> {
+  const supabase = await createSupabaseServer();
+  return new TrocarGuiaParcelaPgfn(
+    sessaoViaUsuarios(supabase),
+    new SupabaseGuiaParcelaPgfnRepository(supabase),
+    guiasStorage(),
+    leitorDeGuiaDeParcela(),
+  );
+}
+
+export async function makeRemoverGuiaParcelaPgfn(): Promise<RemoverGuiaParcelaPgfnPort> {
+  const supabase = await createSupabaseServer();
+  return new RemoverGuiaParcelaPgfn(
+    sessaoViaUsuarios(supabase),
+    new SupabaseGuiaParcelaPgfnRepository(supabase),
+    guiasStorage(),
+  );
+}
+
+// O caminho vem da leitura pela sessão (RLS); o link é assinado pelo service role.
+export async function makeObterLinkGuiaParcelaPgfn(): Promise<ObterLinkGuiaParcelaPgfnPort> {
+  const supabase = await createSupabaseServer();
+  return new ObterLinkGuiaParcelaPgfn(
+    sessaoViaUsuarios(supabase),
+    new SupabaseGuiaParcelaPgfnRepository(supabase),
+    guiasStorage(),
+  );
 }
 
 // Falso por padrão (dev, CI e Preview); "texto" lê a camada de texto do PDF no servidor.

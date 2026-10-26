@@ -12,6 +12,8 @@ export type GuiaDaParcela = {
   estado: EstadoDaGuiaPgfn;
   // O que conferir enquanto a guia está "a confirmar"; some quando ela é confirmada.
   motivo?: string;
+  // A competência já tem registro de envio: a guia não troca nem remove. Só a listagem preenche.
+  enviada?: boolean;
 };
 
 // `cnpj` é o do Cliente e `codigo` a conta de negociação do Parcelamento: com o que o PDF é conferido.
@@ -34,6 +36,17 @@ export interface GuiaParcelaPgfnRepository {
     motivo: string | null,
   ): Promise<Result<void, AppError>>;
   confirmar(parcelamentoId: string, competencia: string): Promise<Result<void, AppError>>;
+  // O caminho do PDF anexado; null = a guia não existe ou a RLS a esconde.
+  arquivo(parcelamentoId: string, competencia: string): Promise<Result<string | null, AppError>>;
+  // Troca o PDF da guia ainda não enviada: o banco a devolve a "a confirmar".
+  substituir(
+    parcelamentoId: string,
+    competencia: string,
+    nova: Pick<GuiaParcelaPgfnProps, "contaNegociacao" | "arquivoCaminho">,
+    motivo: string | null,
+  ): Promise<Result<void, AppError>>;
+  // Remove o registro da guia ainda não enviada (o arquivo é apagado por quem chama).
+  remover(parcelamentoId: string, competencia: string): Promise<Result<void, AppError>>;
   // O registro dessa competência aponta para esse arquivo (reconciliação de resposta perdida).
   gravada(
     parcelamentoId: string,

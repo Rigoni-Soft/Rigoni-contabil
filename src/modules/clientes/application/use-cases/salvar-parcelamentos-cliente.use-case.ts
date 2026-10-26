@@ -111,18 +111,20 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
               arquivo: entrada.arquivo,
             };
 
-      // Quitado é decidido pelo banco e não se edita: volta exatamente como está.
-      const item = atual?.quitado
-        ? ok(atual)
-        : validarParcelamento({
-            id,
-            // Código em branco é opcional: mantém o gravado ou o sistema gera um.
-            codigo: entrada.codigo.trim() || atual?.codigo || gerarCodigoDeParcelamento(),
-            parcelasRestantes: entrada.parcelasRestantes,
-            interno: entrada.interno,
-            arquivoCaminho: atual?.arquivoCaminho ?? upload?.caminho ?? "",
-            acordo: atual ? undefined : entrada.acordo,
-          });
+      // Quitado é decidido pelo banco, e o da PGFN só ganha guias (as restantes mudam pelo sistema):
+      // nenhum dos dois se edita, voltam exatamente como estão.
+      const item =
+        atual?.quitado || atual?.acordo?.origem === "pgfn"
+          ? ok(atual)
+          : validarParcelamento({
+              id,
+              // Código em branco é opcional: mantém o gravado ou o sistema gera um.
+              codigo: entrada.codigo.trim() || atual?.codigo || gerarCodigoDeParcelamento(),
+              parcelasRestantes: entrada.parcelasRestantes,
+              interno: entrada.interno,
+              arquivoCaminho: atual?.arquivoCaminho ?? upload?.caminho ?? "",
+              acordo: atual ? undefined : entrada.acordo,
+            });
       if (!item.ok) return item;
 
       const chave = item.value.codigo.toLowerCase();

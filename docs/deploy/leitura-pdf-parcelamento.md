@@ -58,13 +58,13 @@ usa o PARCSN do Serpro: ver a dívida técnica #172.
 O leitor falso (modo `falso`) lê marcadores no texto do PDF: sem marcador sugere `FALSO-123456` com 12 parcelas; `[leitor:falha]` não lê;
 `[leitor:sem-codigo]` lê só as 7 parcelas; `[leitor:cnpj-outro]` lê o CNPJ de outra empresa.
 
-## Guia mensal da parcela PGFN (anexo, leitura e confirmação, #183 e #185)
+## Guia mensal da parcela PGFN (anexo, leitura, confirmação, troca e remoção, #183, #185 e #184)
 
 Na linha de um Parcelamento de `origem = pgfn` já salvo, o Funcionário SN Responsável, o Líder SN ou o Admin anexa a guia do mês (PDF
 até 4 MB). Nada a configurar além de `LEITURA_PDF_MODO` (a mesma variável do acordo): usa o bucket privado `parcelamentos-clientes`, no
 prefixo `{cliente}/guias-pgfn/{parcelamento}/{AAAAMM}-{uuid}.pdf`, sem policy de usuário (só o servidor lê e grava). Tabela
 `cliente_parcelamento_guias` (uma linha por Parcelamento e competência; quem anexou/confirmou e quando; auditoria
-`parcelamento.anexar-guia` e `parcelamento.confirmar-guia`).
+`parcelamento.anexar-guia`, `parcelamento.confirmar-guia`, `parcelamento.trocar-guia` e `parcelamento.remover-guia`).
 
 **Leitura (porta `LeitorDeGuiaDeParcelaPort`, irmã da do acordo, nunca rejeita).** Um modelo só: o "Documento de Arrecadação do
 Simples Nacional" (DAS do SENDA), igual na entrada e na parcela mensal. Lê CNPJ, conta de negociação (Observações, `PGFN-SISPAR:`),
@@ -81,6 +81,14 @@ e o Parcelamento:
 Vencimento e valor são informativos e não bloqueiam. O motivo é gravado na guia (coluna `motivo`, até 300 caracteres) e aparece sob o selo "A confirmar" na lista, também depois de
 recarregar; confirmar a guia (à mão ou na hora) apaga o motivo. A confirmação à mão continua valendo para qualquer guia "a confirmar".
 Se a confirmação automática falhar depois do anexo, o aviso aparece só na resposta daquele anexo.
+
+**Trocar, remover e visualizar (#184).** Até o envio, o Funcionário troca o PDF da guia (a leitura e a conferência são refeitas,
+a guia volta a "a confirmar" ou nasce confirmada, e o objeto antigo é apagado só depois de o banco aceitar a troca) ou a remove
+(registro e objeto). A troca vale só para a mesma competência: PDF de outro mês é recusado (remova e anexe de novo). Competência
+com registro de envio trava as duas (gatilho do banco). Resposta perdida do banco nunca apaga arquivo: só a releitura provando o
+desfecho libera. "Ver" gera um link temporário (120 s) no servidor, depois de ler a guia pela sessão do usuário (RLS do
+Parcelamento); o bucket segue sem policy de usuário. Um Parcelamento PGFN já cadastrado só ganha guias: código, origem, "é
+interno" e parcelas restantes não mudam pela sessão (gatilho do banco); as restantes só mudam pelo sistema.
 
 **Falso (dev, CI, Preview)**: sem marcador lê sem nada conferível (a guia fica a confirmar); `[leitor:falha]` não lê;
 `[leitor:cnpj-outro]` lê o CNPJ de outra empresa; `[leitor:guia=<cnpj>;<conta>;<AAAAMM>]` lê esses três (para a guia nascer confirmada).

@@ -20,7 +20,13 @@ jest.mock("@/main/clientes.factory", () => ({
 const anexarMock = jest.fn();
 const confirmarMock = jest.fn();
 const listarMock = jest.fn();
+const trocarMock = jest.fn();
+const removerMock = jest.fn();
+const obterLinkMock = jest.fn();
 jest.mock("./anexar-guia-parcela-pgfn.actions", () => ({
+  trocarGuiaParcelaPgfnAction: (...args: unknown[]) => trocarMock(...args),
+  removerGuiaParcelaPgfnAction: (...args: unknown[]) => removerMock(...args),
+  obterLinkGuiaParcelaPgfnAction: (...args: unknown[]) => obterLinkMock(...args),
   anexarGuiaParcelaPgfnAction: (...args: unknown[]) => anexarMock(...args),
   confirmarGuiaParcelaPgfnAction: (...args: unknown[]) => confirmarMock(...args),
   listarGuiasParcelaPgfnAction: (...args: unknown[]) => listarMock(...args),
@@ -465,5 +471,186 @@ describe("falha ao carregar a lista de guias", () => {
     expect(
       screen.queryByText("Não foi possível carregar as guias anexadas."),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("trocar, remover e visualizar a guia anexada (#184)", () => {
+  const naoEnviada: GuiaDaParcela = {
+    competencia: "202610",
+    contaNegociacao: "123456",
+    estado: "confirmada",
+  };
+
+  beforeEach(() => {
+    trocarMock.mockReset();
+    removerMock.mockReset();
+    obterLinkMock.mockReset();
+    listarMock.mockReset();
+    listarMock.mockResolvedValue({ ok: true, data: [naoEnviada] });
+  });
+
+  it("guia não enviada oferece Ver, Trocar e Remover; a enviada só Ver", async () => {
+    listarMock.mockResolvedValue({
+      ok: true,
+      data: [naoEnviada, { ...naoEnviada, competencia: "202609", enviada: true }],
+    });
+    render();
+    const regiao = within(await regiaoDaGuia());
+
+    expect(await regiao.findByRole("button", { name: "Ver guia de 10/2026" })).toBeInTheDocument();
+    expect(regiao.getByLabelText("Trocar guia de 10/2026")).toBeInTheDocument();
+    expect(regiao.getByRole("button", { name: "Remover guia de 10/2026" })).toBeInTheDocument();
+    expect(regiao.getByRole("button", { name: "Ver guia de 09/2026" })).toBeInTheDocument();
+    expect(regiao.queryByLabelText("Trocar guia de 09/2026")).not.toBeInTheDocument();
+    expect(
+      regiao.queryByRole("button", { name: "Remover guia de 09/2026" }),
+    ).not.toBeInTheDocument();
+    expect(regiao.getByText("Enviada")).toBeInTheDocument();
+  });
+
+  it("troca: manda o PDF novo da competência e avisa que a guia foi trocada e confirmada", async () => {
+    trocarMock.mockResolvedValue({ ok: true, data: naoEnviada });
+    const usuario = userEvent.setup();
+    render();
+    const regiao = within(await regiaoDaGuia());
+
+    await usuario.upload(await regiao.findByLabelText("Trocar guia de 10/2026"), pdf);
+
+    expect(trocarMock).toHaveBeenCalledWith({
+      parcelamentoId: PARCELAMENTO_PGFN,
+      competencia: "202610",
+      arquivo: pdf,
+    });
+    expect(await regiao.findByText(/guia trocada e confirmada/i)).toBeInTheDocument();
+  });
+
+  it("troca que volta a guia a confirmar avisa com o motivo", async () => {
+    trocarMock.mockResolvedValue({
+      ok: true,
+      data: { ...naoEnviada, estado: "a_confirmar", motivo: "A conta do PDF é diferente." },
+    });
+    const usuario = userEvent.setup();
+    render();
+    const regiao = within(await regiaoDaGuia());
+
+    await usuario.upload(await regiao.findByLabelText("Trocar guia de 10/2026"), pdf);
+
+    expect(await regiao.findByText(/guia trocada, mas ainda não liberada/i)).toBeInTheDocument();
+  });
+
+  it("troca recusada pelo servidor (outra competência) mostra o motivo", async () => {
+    trocarMock.mockResolvedValue({
+      ok: false,
+      error: { code: "VALIDATION_ERROR", message: "O PDF é de outra competência." },
+    });
+    const usuario = userEvent.setup();
+    render();
+    const regiao = within(await regiaoDaGuia());
+
+    await usuario.upload(await regiao.findByLabelText("Trocar guia de 10/2026"), pdf);
+
+    expect(await regiao.findByText("O PDF é de outra competência.")).toBeInTheDocument();
+  });
+
+  it("arquivo que não é PDF nem chega ao servidor", async () => {
+    const usuario = userEvent.setup({ applyAccept: false });
+    render();
+    const regiao = within(await regiaoDaGuia());
+    const texto = new File(["x"], "guia.txt", { type: "text/plain" });
+
+    await usuario.upload(await regiao.findByLabelText("Trocar guia de 10/2026"), texto);
+
+    expect(trocarMock).not.toHaveBeenCalled();
+    expect(await regiao.findByText("Envie um arquivo PDF.")).toBeInTheDocument();
+  });
+
+  it("remove: chama a action e a guia some da lista", async () => {
+    removerMock.mockResolvedValue({ ok: true, data: undefined });
+    const usuario = userEvent.setup();
+    render();
+    const regiao = within(await regiaoDaGuia());
+    const botao = await regiao.findByRole("button", { name: "Remover guia de 10/2026" });
+    listarMock.mockResolvedValue({ ok: true, data: [] });
+
+    await usuario.click(botao);
+
+    expect(removerMock).toHaveBeenCalledWith({
+      parcelamentoId: PARCELAMENTO_PGFN,
+      competencia: "202610",
+    });
+    expect(await regiao.findByText("Nenhuma guia anexada.")).toBeInTheDocument();
+    expect(regiao.getByText("Guia removida.")).toBeInTheDocument();
+  });
+
+  it("remoção recusada (guia já enviada) mostra o motivo e mantém a guia", async () => {
+    removerMock.mockResolvedValue({
+      ok: false,
+      error: { code: "PERSISTENCIA_ERROR", message: "Competência já enviada." },
+    });
+    const usuario = userEvent.setup();
+    render();
+    const regiao = within(await regiaoDaGuia());
+
+    await usuario.click(await regiao.findByRole("button", { name: "Remover guia de 10/2026" }));
+
+    expect(await regiao.findByText("Competência já enviada.")).toBeInTheDocument();
+    expect(regiao.getByText(/10\/2026 · conta 123456/)).toBeInTheDocument();
+  });
+
+  it("ver: abre o link temporário numa aba nova", async () => {
+    obterLinkMock.mockResolvedValue({ ok: true, data: { url: "https://storage.exemplo/guia" } });
+    // A aba abre no clique (senão o bloqueador de pop-up barra) e recebe o link quando ele chega.
+    const aba = { location: { href: "" }, close: jest.fn(), opener: {} };
+    const abrir = jest.spyOn(window, "open").mockReturnValue(aba as unknown as Window);
+    const usuario = userEvent.setup();
+    render();
+    const regiao = within(await regiaoDaGuia());
+
+    await usuario.click(await regiao.findByRole("button", { name: "Ver guia de 10/2026" }));
+
+    expect(obterLinkMock).toHaveBeenCalledWith({
+      parcelamentoId: PARCELAMENTO_PGFN,
+      competencia: "202610",
+    });
+    expect(abrir).toHaveBeenCalledWith("about:blank", "_blank");
+    expect(aba.location.href).toBe("https://storage.exemplo/guia");
+    expect(aba.opener).toBeNull();
+    abrir.mockRestore();
+  });
+
+  it("ver sem permissão mostra o erro e não abre aba", async () => {
+    obterLinkMock.mockResolvedValue({
+      ok: false,
+      error: { code: "NOT_FOUND", message: "Guia não encontrada." },
+    });
+    const aba = { location: { href: "" }, close: jest.fn(), opener: {} };
+    const abrir = jest.spyOn(window, "open").mockReturnValue(aba as unknown as Window);
+    const usuario = userEvent.setup();
+    render();
+    const regiao = within(await regiaoDaGuia());
+
+    await usuario.click(await regiao.findByRole("button", { name: "Ver guia de 10/2026" }));
+
+    expect(await regiao.findByText("Guia não encontrada.")).toBeInTheDocument();
+    expect(aba.close).toHaveBeenCalled();
+    expect(aba.location.href).toBe("");
+    abrir.mockRestore();
+  });
+});
+
+describe("Parcelamento PGFN cadastrado só ganha guias (#184)", () => {
+  it("código, parcelas restantes e É interno ficam desabilitados no PGFN; o da Receita segue editável", async () => {
+    listarMock.mockReset();
+    listarMock.mockResolvedValue({ ok: true, data: [] });
+    render();
+    await regiaoDaGuia();
+
+    const grupos = screen.getAllByRole("group", { name: /^Parcelamento \d$/ });
+    const [pgfn, receita] = grupos.map((grupo) => within(grupo));
+    expect(pgfn.getByLabelText("Código")).toBeDisabled();
+    expect(pgfn.getByLabelText(/parcelas restantes/i)).toBeDisabled();
+    expect(pgfn.getByLabelText("É interno")).toBeDisabled();
+    expect(receita.getByLabelText("Código")).toBeEnabled();
+    expect(receita.getByLabelText(/parcelas restantes/i)).toBeEnabled();
   });
 });

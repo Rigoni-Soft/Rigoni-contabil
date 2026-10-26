@@ -1,6 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { ArquivoInspecionavelPort } from "@/modules/clientes/application/ports/out/arquivo-storage.provider";
+import type {
+  ArquivoComLinkPort,
+  ArquivoInspecionavelPort,
+} from "@/modules/clientes/application/ports/out/arquivo-storage.provider";
 import { AppError } from "@/shared/errors/app.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
@@ -8,7 +11,7 @@ class ArmazenamentoError extends AppError {
   readonly code = "ARMAZENAMENTO_ERROR";
 }
 
-export class SupabaseArquivoStorageGateway implements ArquivoInspecionavelPort {
+export class SupabaseArquivoStorageGateway implements ArquivoInspecionavelPort, ArquivoComLinkPort {
   constructor(
     private readonly supabase: SupabaseClient,
     private readonly bucket = "documentos-clientes",
@@ -43,5 +46,18 @@ export class SupabaseArquivoStorageGateway implements ArquivoInspecionavelPort {
       );
     }
     return ok(undefined);
+  }
+
+  async linkTemporario(
+    caminho: string,
+    validadeSegundos: number,
+  ): Promise<Result<string, AppError>> {
+    const { data, error } = await this.supabase.storage
+      .from(this.bucket)
+      .createSignedUrl(caminho, validadeSegundos);
+    if (error || !data) {
+      return err(new ArmazenamentoError("Não foi possível gerar o link do arquivo."));
+    }
+    return ok(data.signedUrl);
   }
 }

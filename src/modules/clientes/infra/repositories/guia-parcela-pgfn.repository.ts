@@ -67,12 +67,22 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
       console.error("Falha ao listar guias da parcela:", error.message);
       return err(new PersistenciaError("Não foi possível carregar as guias anexadas."));
     }
+    const envios = await this.supabase
+      .from("cliente_parcelamento_envios")
+      .select("parcela")
+      .eq("parcelamento_id", parcelamentoId);
+    if (envios.error) {
+      console.error("Falha ao listar envios da parcela:", envios.error.message);
+      return err(new PersistenciaError("Não foi possível carregar as guias anexadas."));
+    }
+    const enviadas = new Set(envios.data.map((e) => e.parcela));
     return ok(
       (data as GuiaRow[]).map((g) => ({
         competencia: g.competencia,
         contaNegociacao: g.conta_negociacao,
         estado: g.estado,
         motivo: g.motivo ?? undefined,
+        enviada: enviadas.has(g.competencia),
       })),
     );
   }
@@ -128,6 +138,85 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
       return err(new NotFoundError("Não encontramos esta guia. Atualize a página."));
     }
     return ok(undefined);
+  }
+
+  async arquivo(
+    parcelamentoId: string,
+    competencia: string,
+  ): Promise<Result<string | null, AppError>> {
+    const { data, error } = await this.supabase
+      .from("cliente_parcelamento_guias")
+      .select("arquivo_caminho")
+      .eq("parcelamento_id", parcelamentoId)
+      .eq("competencia", competencia)
+      .maybeSingle();
+    if (error) {
+      console.error("Falha ao buscar o PDF da guia da parcela:", error.message);
+      return err(new PersistenciaError("Não foi possível carregar a guia."));
+    }
+    return ok(data?.arquivo_caminho ?? null);
+  }
+
+  async substituir(
+    parcelamentoId: string,
+    competencia: string,
+    nova: Pick<GuiaParcelaPgfnProps, "contaNegociacao" | "arquivoCaminho">,
+    motivo: string | null,
+  ): Promise<Result<void, AppError>> {
+    // `.select()` devolve as linhas atualizadas: RLS que esconde a guia não dá erro, dá zero linhas.
+    const { data, error, status } = await this.supabase
+      .from("cliente_parcelamento_guias")
+      .update({
+        arquivo_caminho: nova.arquivoCaminho,
+        conta_negociacao: nova.contaNegociacao,
+        motivo,
+      })
+      .eq("parcelamento_id", parcelamentoId)
+      .eq("competencia", competencia)
+      .select("competencia");
+    if (error) {
+      console.error("Falha ao trocar a guia da parcela:", error.message);
+      return err(
+        this.falha(error, status, "trocar", "Não foi possível confirmar a troca da guia."),
+      );
+    }
+    if (data.length === 0) {
+      return err(new NotFoundError("Não encontramos esta guia. Atualize a página."));
+    }
+    return ok(undefined);
+  }
+
+  async remover(parcelamentoId: string, competencia: string): Promise<Result<void, AppError>> {
+    const { data, error, status } = await this.supabase
+      .from("cliente_parcelamento_guias")
+      .delete()
+      .eq("parcelamento_id", parcelamentoId)
+      .eq("competencia", competencia)
+      .select("competencia");
+    if (error) {
+      console.error("Falha ao remover a guia da parcela:", error.message);
+      return err(
+        this.falha(error, status, "remover", "Não foi possível confirmar a remoção da guia."),
+      );
+    }
+    if (data.length === 0) {
+      return err(new NotFoundError("Não encontramos esta guia. Atualize a página."));
+    }
+    return ok(undefined);
+  }
+
+  // Sem desfecho conhecido o banco pode ter confirmado; gatilhos recusam com 23514 e mensagem em
+  // português, própria para o usuário.
+  private falha(
+    error: { code?: string; message: string },
+    status: number,
+    acao: "trocar" | "remover",
+    incerto: string,
+  ): AppError {
+    if (semDesfechoConhecido(status)) return new ResultadoIncertoError(incerto);
+    return new PersistenciaError(
+      error.code === "23514" ? error.message : `Não foi possível ${acao} a guia. Tente novamente.`,
+    );
   }
 
   async gravada(

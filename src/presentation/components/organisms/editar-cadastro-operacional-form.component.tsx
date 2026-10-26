@@ -364,7 +364,12 @@ export function EditarCadastroOperacionalForm({
                 erroCodigo={erros?.codigo?.message}
                 erroParcelas={erros?.parcelasRestantes?.message}
                 selo={seloDoParcelamento(atual)}
-                desabilitado={atual.quitado || leitura?.estado === "lendo"}
+                // Quitado e PGFN cadastrado não se editam (o PGFN só ganha guias): o servidor ignora o que vier.
+                desabilitado={
+                  atual.quitado ||
+                  (Boolean(atual.id) && atual.acordo?.origem === "pgfn") ||
+                  leitura?.estado === "lendo"
+                }
                 onRemover={
                   readOnly || atual.temEnvio ? undefined : () => onRemoverParcelamento(indice)
                 }

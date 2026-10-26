@@ -7,12 +7,21 @@ import {
   anexarGuiaParcelaPgfnAction,
   confirmarGuiaParcelaPgfnAction,
   listarGuiasParcelaPgfnAction,
+  obterLinkGuiaParcelaPgfnAction,
+  removerGuiaParcelaPgfnAction,
+  trocarGuiaParcelaPgfnAction,
 } from "./anexar-guia-parcela-pgfn.actions";
-import { competenciaDoMes, idDaGuia } from "./anexar-guia-parcela-pgfn.presenter";
-import { anexarGuiaParcelaPgfnSchema } from "./anexar-guia-parcela-pgfn.schema";
+import { competenciaDoMes, idDaGuia, idDaRegiao } from "./anexar-guia-parcela-pgfn.presenter";
+import {
+  anexarGuiaParcelaPgfnSchema,
+  trocarGuiaParcelaPgfnSchema,
+} from "./anexar-guia-parcela-pgfn.schema";
 
-const AVISO_ANEXADA =
-  "Guia anexada, mas ainda não liberada ao envio. Confira o motivo na lista e confirme.";
+const avisoAConfirmar = (
+  verbo: "anexada" | "trocada",
+  motivo = "Confira o motivo na lista e confirme.",
+) => `Guia ${verbo}, mas ainda não liberada ao envio. ${motivo}`;
+const ERRO_ABRIR = "Não foi possível abrir a guia. Tente novamente.";
 const ERRO_TRANSPORTE = "Não foi possível concluir agora. Verifique a conexão e tente novamente.";
 
 type ResultadoDaAcao = { tipo: "sucesso" | "atencao"; texto: string };
@@ -28,7 +37,9 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   const [arquivo, setArquivo] = useState<File | undefined>();
   const [erros, setErros] = useState<Erros>({});
   // Qual ação está em curso: só o envio do PDF troca o rótulo do botão Anexar.
-  const [acaoEmCurso, setAcaoEmCurso] = useState<"anexar" | "confirmar" | undefined>();
+  const [acaoEmCurso, setAcaoEmCurso] = useState<
+    "anexar" | "confirmar" | "trocar" | "remover" | "ver" | undefined
+  >();
   const pendente = acaoEmCurso !== undefined;
   const [erroServidor, setErroServidor] = useState<string | undefined>();
   // "atencao": guia anexada e gravada, mas ainda não liberada (pede conferência; não é sucesso nem erro).
@@ -43,9 +54,9 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     },
   });
 
-  // Anexar e confirmar compartilham o ciclo: limpa os avisos, roda, e a lista é relida do banco.
+  // As ações compartilham o ciclo: limpa os avisos, roda, e a lista é relida do banco.
   const executar = async (
-    qual: "anexar" | "confirmar",
+    qual: NonNullable<typeof acaoEmCurso>,
     acao: () => Promise<string | undefined>,
   ) => {
     // Os botões ficam aria-disabled (não perdem o foco) e por isso ainda recebem o clique.
@@ -88,27 +99,74 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
       setMes("");
       setContaNegociacao("");
       setArquivo(undefined);
-      const anexada = resultado.data;
-      const confirmada = anexada.estado === "confirmada";
-      // Sai já, sem esperar a lista.
-      setResultado(
-        confirmada
-          ? { tipo: "sucesso", texto: "Guia anexada e confirmada: liberada ao envio." }
-          : { tipo: "atencao", texto: AVISO_ANEXADA },
-      );
-      await queryClient.invalidateQueries({ queryKey: chave });
-      if (confirmada) return;
-      // Exceção: o motivo não está na lista (a confirmação automática falhou e esse motivo não é
-      // gravado); o aviso passa a trazê-lo, se ainda estiver na tela (a pessoa pode tê-lo limpado).
-      const naLista = queryClient
-        .getQueryData<GuiaDaParcela[]>(chave)
-        ?.find((guia) => guia.competencia === anexada.competencia)?.motivo;
-      if (!naLista && anexada.motivo) {
-        const comMotivo = `Guia anexada, mas ainda não liberada ao envio. ${anexada.motivo}`;
-        setResultado((atual) => (atual ? { tipo: "atencao", texto: comMotivo } : atual));
-      }
+      await avisarGuiaGravada(resultado.data, "anexada");
     });
   };
+
+  // Anexo e troca terminam igual: aviso de confirmada, ou de "a confirmar" com o que conferir.
+  const avisarGuiaGravada = async (guia: GuiaDaParcela, verbo: "anexada" | "trocada") => {
+    const confirmada = guia.estado === "confirmada";
+    // Sai já, sem esperar a lista.
+    setResultado(
+      confirmada
+        ? { tipo: "sucesso", texto: `Guia ${verbo} e confirmada: liberada ao envio.` }
+        : { tipo: "atencao", texto: avisoAConfirmar(verbo) },
+    );
+    await queryClient.invalidateQueries({ queryKey: chave });
+    if (confirmada) return;
+    // Exceção: o motivo não está na lista (a confirmação automática falhou e esse motivo não é
+    // gravado); o aviso passa a trazê-lo, se ainda estiver na tela (a pessoa pode tê-lo limpado).
+    const naLista = queryClient
+      .getQueryData<GuiaDaParcela[]>(chave)
+      ?.find((g) => g.competencia === guia.competencia)?.motivo;
+    if (!naLista && guia.motivo) {
+      const comMotivo = avisoAConfirmar(verbo, guia.motivo);
+      setResultado((atual) => (atual ? { tipo: "atencao", texto: comMotivo } : atual));
+    }
+  };
+
+  const trocar = (competencia: string, novo: File) =>
+    executar("trocar", async () => {
+      const validado = trocarGuiaParcelaPgfnSchema.safeParse({
+        parcelamentoId,
+        competencia,
+        arquivo: novo,
+      });
+      if (!validado.success) return validado.error.issues[0].message;
+      const resultado = await trocarGuiaParcelaPgfnAction(validado.data);
+      if (!resultado.ok) return resultado.error.message;
+      await avisarGuiaGravada(resultado.data, "trocada");
+    });
+
+  const remover = (competencia: string) =>
+    executar("remover", async () => {
+      const resultado = await removerGuiaParcelaPgfnAction({ parcelamentoId, competencia });
+      if (!resultado.ok) return resultado.error.message;
+      setResultado({ tipo: "sucesso", texto: "Guia removida." });
+      await queryClient.invalidateQueries({ queryKey: chave });
+      // A linha some com o botão: sem isto o foco cairia no topo da página.
+      document.getElementById(idDaRegiao(prefixo))?.focus();
+    });
+
+  const visualizar = (competencia: string) =>
+    executar("ver", async () => {
+      // A aba abre no clique (senão o bloqueador de pop-up barra) e recebe o link depois que a
+      // Server Action devolve; `opener` zerado no lugar de `noopener`, para guardar a referência.
+      const aba = window.open("about:blank", "_blank");
+      if (aba) aba.opener = null;
+      try {
+        const resultado = await obterLinkGuiaParcelaPgfnAction({ parcelamentoId, competencia });
+        if (resultado.ok && aba) {
+          aba.location.href = resultado.data.url;
+          return;
+        }
+        aba?.close();
+        return resultado.ok ? ERRO_ABRIR : resultado.error.message;
+      } catch (erro) {
+        aba?.close();
+        throw erro;
+      }
+    });
 
   const confirmar = (competencia: string) =>
     executar("confirmar", async () => {
@@ -148,5 +206,8 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     resultado,
     anexar,
     confirmar,
+    trocar,
+    remover,
+    visualizar,
   };
 }

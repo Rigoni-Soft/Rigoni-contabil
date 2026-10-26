@@ -1,4 +1,5 @@
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
+import { BotaoDeArquivo } from "@/presentation/components/atoms/botao-de-arquivo.component";
 import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
@@ -21,6 +22,8 @@ type GuiaDaListaDto = {
   confirmada: boolean;
   // O que conferir numa guia "a confirmar" (vem do leitor do PDF; some ao confirmar).
   motivo?: string;
+  // Já tem registro de envio: só pode ser aberta, não troca nem remove.
+  enviada: boolean;
 };
 
 type GuiasDaParcelaPgfnProps = {
@@ -45,7 +48,13 @@ type GuiasDaParcelaPgfnProps = {
   resultado?: { tipo: "sucesso" | "atencao"; texto: string };
   onAnexar: () => void;
   onConfirmar: (competencia: string) => void;
+  onTrocar: (competencia: string, arquivo: File) => void;
+  onRemover: (competencia: string) => void;
+  onVisualizar: (competencia: string) => void;
 };
+
+const BOTAO_DA_GUIA =
+  "aria-disabled:pointer-events-none aria-disabled:opacity-50 pointer-coarse:min-h-11";
 
 // "Anexar guia do mês" na linha de um Parcelamento PGFN. Fica dentro do formulário do cadastro, então
 // nada aqui é <form> (nem submete): os botões são `button` e cada ação vai por Server Action própria.
@@ -68,13 +77,18 @@ export function GuiasDaParcelaPgfn({
   resultado,
   onAnexar,
   onConfirmar,
+  onTrocar,
+  onRemover,
+  onVisualizar,
 }: GuiasDaParcelaPgfnProps) {
   return (
     <Pilha
       espaco={3}
       role="group"
       aria-label="Guias da parcela"
-      className="border-t border-border pt-3"
+      id={`${id}-regiao`}
+      tabIndex={-1}
+      className="border-t border-border pt-3 outline-none"
     >
       <Pilha espaco={1}>
         <Texto variante="rotulo">Guias da parcela (PGFN)</Texto>
@@ -103,9 +117,10 @@ export function GuiasDaParcelaPgfn({
                 <Texto variante="corpo" className="min-w-0 [overflow-wrap:anywhere] tabular-nums">
                   {guia.rotulo} · conta {guia.contaNegociacao}
                 </Texto>
-                <Linha alinhar="centro" espaco={3}>
+                <Linha alinhar="centro" espaco={3} quebra>
                   <SeloDaGuia confirmada={guia.confirmada} />
-                  {!guia.confirmada && (
+                  {guia.enviada && <Texto variante="nota">Enviada</Texto>}
+                  {!guia.confirmada && !guia.enviada && (
                     <Button
                       type="button"
                       variant="outline"
@@ -114,10 +129,43 @@ export function GuiasDaParcelaPgfn({
                       onClick={() => onConfirmar(guia.competencia)}
                       aria-label={`Confirmar guia de ${guia.rotulo}`}
                       aria-describedby={guia.motivo ? `${guia.id}-motivo` : undefined}
-                      className="aria-disabled:pointer-events-none aria-disabled:opacity-50 pointer-coarse:min-h-11"
+                      className={BOTAO_DA_GUIA}
                     >
                       Confirmar
                     </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-disabled={pendente || undefined}
+                    onClick={() => onVisualizar(guia.competencia)}
+                    aria-label={`Ver guia de ${guia.rotulo}`}
+                    className={BOTAO_DA_GUIA}
+                  >
+                    Ver
+                  </Button>
+                  {!guia.enviada && (
+                    <>
+                      <BotaoDeArquivo
+                        rotulo="Trocar"
+                        rotuloAcessivel={`Trocar guia de ${guia.rotulo}`}
+                        aceitar="application/pdf"
+                        disabled={pendente}
+                        onEscolher={(novo) => onTrocar(guia.competencia, novo)}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-disabled={pendente || undefined}
+                        onClick={() => onRemover(guia.competencia)}
+                        aria-label={`Remover guia de ${guia.rotulo}`}
+                        className={BOTAO_DA_GUIA}
+                      >
+                        Remover
+                      </Button>
+                    </>
                   )}
                 </Linha>
               </Linha>
@@ -180,7 +228,7 @@ export function GuiasDaParcelaPgfn({
           size="sm"
           aria-disabled={pendente || undefined}
           onClick={onAnexar}
-          className="aria-disabled:pointer-events-none aria-disabled:opacity-50 pointer-coarse:min-h-11"
+          className={BOTAO_DA_GUIA}
         >
           {anexando ? "Enviando..." : "Anexar guia"}
         </Button>

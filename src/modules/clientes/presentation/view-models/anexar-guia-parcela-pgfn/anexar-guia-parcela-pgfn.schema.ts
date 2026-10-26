@@ -13,6 +13,14 @@ const opcionalVazio = <T extends z.ZodType>(schema: T) =>
     schema.optional(),
   );
 
+const arquivoDaGuia = z
+  .instanceof(File, { message: "Anexe o PDF da guia." })
+  .refine((arquivo) => arquivo.type === "application/pdf", "Envie um arquivo PDF.")
+  .refine(
+    (arquivo) => arquivo.size <= LIMITE_ARQUIVO_BYTES,
+    "O arquivo passa de 4 MB. Envie um arquivo menor.",
+  );
+
 // Vazio vira ausente: competência e conta só se digitam quando o PDF não pôde ser lido (ou para
 // corrigir o que ele traz); o servidor lê o PDF e confere. Segundo anexo na competência e competência já enviada não entram aqui: o banco recusa.
 export const anexarGuiaParcelaPgfnSchema = z.object({
@@ -21,16 +29,17 @@ export const anexarGuiaParcelaPgfnSchema = z.object({
   contaNegociacao: opcionalVazio(
     z.string().max(40, "Conta de negociação: no máximo 40 caracteres."),
   ),
-  arquivo: z
-    .instanceof(File, { message: "Anexe o PDF da guia." })
-    .refine((arquivo) => arquivo.type === "application/pdf", "Envie um arquivo PDF.")
-    .refine(
-      (arquivo) => arquivo.size <= LIMITE_ARQUIVO_BYTES,
-      "O arquivo passa de 4 MB. Envie um arquivo menor.",
-    ),
+  arquivo: arquivoDaGuia,
 });
 
 export const confirmarGuiaParcelaPgfnSchema = z.object({
   parcelamentoId: z.guid(),
   competencia,
+});
+
+// Trocar, remover e abrir a guia: a chave é a mesma da guia anexada. A troca refaz a leitura do PDF.
+export const guiaDaParcelaPgfnSchema = confirmarGuiaParcelaPgfnSchema;
+
+export const trocarGuiaParcelaPgfnSchema = guiaDaParcelaPgfnSchema.extend({
+  arquivo: arquivoDaGuia,
 });

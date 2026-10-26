@@ -15,3 +15,8 @@ export interface ArquivoInspecionavelPort extends ArquivoStoragePort {
     caminho: string,
   ): Promise<Result<{ tipoMime: string; tamanho: number } | null, AppError>>;
 }
+
+// Para quem deixa o usuário abrir um arquivo do bucket privado: o servidor checa a permissão antes.
+export interface ArquivoComLinkPort {
+  linkTemporario(caminho: string, validadeSegundos: number): Promise<Result<string, AppError>>;
+}
