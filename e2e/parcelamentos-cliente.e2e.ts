@@ -284,6 +284,7 @@ test.describe("Guia anexada da parcela PGFN: trocar, visualizar e remover (#184)
 
     // Remover apaga o registro e o objeto.
     await regiao.getByRole("button", { name: "Remover guia de 10/2026" }).click();
+    await regiao.getByRole("button", { name: "Confirmar remoção da guia de 10/2026" }).click();
     await expect(regiao.getByText("Guia removida.")).toBeVisible();
     await expect(regiao.getByText("Nenhuma guia anexada.")).toBeVisible();
     expect((await objetos()).data).toHaveLength(0);

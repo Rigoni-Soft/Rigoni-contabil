@@ -16,6 +16,10 @@ export function competenciaDoMes(mes: string) {
 // Id do item no DOM: o foco volta a ele quando o botão Confirmar some.
 export const idDaGuia = (prefixo: string, competencia: string) => `${prefixo}-guia-${competencia}`;
 
+// Id do botão Remover da guia: o foco volta a ele quando a confirmação é cancelada.
+export const idDaRemocao = (prefixo: string, competencia: string) =>
+  `${idDaGuia(prefixo, competencia)}-remover`;
+
 // Id da região das guias: o foco volta a ela quando a guia removida leva o botão embora.
 export const idDaRegiao = (prefixo: string) => `${prefixo}-regiao`;
 
@@ -28,4 +32,5 @@ export const linhasDeGuias = (guias: GuiaDaParcela[], prefixo: string) =>
     confirmada: guia.estado === "confirmada",
     motivo: guia.motivo,
     enviada: guia.enviada === true,
+    idDaRemocao: idDaRemocao(prefixo, guia.competencia),
   }));

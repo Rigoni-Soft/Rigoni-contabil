@@ -11,7 +11,12 @@ import {
   removerGuiaParcelaPgfnAction,
   trocarGuiaParcelaPgfnAction,
 } from "./anexar-guia-parcela-pgfn.actions";
-import { competenciaDoMes, idDaGuia, idDaRegiao } from "./anexar-guia-parcela-pgfn.presenter";
+import {
+  competenciaDoMes,
+  idDaGuia,
+  idDaRegiao,
+  idDaRemocao,
+} from "./anexar-guia-parcela-pgfn.presenter";
 import {
   anexarGuiaParcelaPgfnSchema,
   trocarGuiaParcelaPgfnSchema,
@@ -44,6 +49,8 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   const [erroServidor, setErroServidor] = useState<string | undefined>();
   // "atencao": guia anexada e gravada, mas ainda não liberada (pede conferência; não é sucesso nem erro).
   const [resultado, setResultado] = useState<ResultadoDaAcao | undefined>();
+  // Remover apaga o registro e o PDF sem desfazer: pede confirmação na linha antes de chamar a action.
+  const [removendo, setRemovendo] = useState<string | undefined>();
 
   const lista = useQuery<GuiaDaParcela[]>({
     queryKey: chave,
@@ -138,8 +145,23 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
       await avisarGuiaGravada(resultado.data, "trocada");
     });
 
+  const pedirRemocao = (competencia: string) => {
+    setResultado(undefined);
+    setErroServidor(undefined);
+    setRemovendo(competencia);
+  };
+
+  const cancelarRemocao = (competencia: string) => {
+    setRemovendo(undefined);
+    // O botão Remover volta com a confirmação fechada: o foco volta a ele.
+    requestAnimationFrame(() =>
+      document.getElementById(idDaRemocao(prefixo, competencia))?.focus(),
+    );
+  };
+
   const remover = (competencia: string) =>
     executar("remover", async () => {
+      setRemovendo(undefined);
       const resultado = await removerGuiaParcelaPgfnAction({ parcelamentoId, competencia });
       if (!resultado.ok) return resultado.error.message;
       setResultado({ tipo: "sucesso", texto: "Guia removida." });
@@ -207,6 +229,9 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     anexar,
     confirmar,
     trocar,
+    removendo,
+    pedirRemocao,
+    cancelarRemocao,
     remover,
     visualizar,
   };

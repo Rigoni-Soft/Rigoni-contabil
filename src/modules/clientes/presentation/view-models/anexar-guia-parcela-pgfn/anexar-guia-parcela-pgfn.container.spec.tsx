@@ -573,6 +573,11 @@ describe("trocar, remover e visualizar a guia anexada (#184)", () => {
     listarMock.mockResolvedValue({ ok: true, data: [] });
 
     await usuario.click(botao);
+    // Um clique só não apaga: pede confirmação na própria linha.
+    expect(removerMock).not.toHaveBeenCalled();
+    await usuario.click(
+      regiao.getByRole("button", { name: "Confirmar remoção da guia de 10/2026" }),
+    );
 
     expect(removerMock).toHaveBeenCalledWith({
       parcelamentoId: PARCELAMENTO_PGFN,
@@ -580,6 +585,40 @@ describe("trocar, remover e visualizar a guia anexada (#184)", () => {
     });
     expect(await regiao.findByText("Nenhuma guia anexada.")).toBeInTheDocument();
     expect(regiao.getByText("Guia removida.")).toBeInTheDocument();
+  });
+
+  it("cancelar a remoção não chama a action e devolve o foco ao botão Remover", async () => {
+    const usuario = userEvent.setup();
+    render();
+    const regiao = within(await regiaoDaGuia());
+
+    await usuario.click(await regiao.findByRole("button", { name: "Remover guia de 10/2026" }));
+    expect(
+      regiao.getByRole("button", { name: "Cancelar remoção da guia de 10/2026" }),
+    ).toHaveFocus();
+    await usuario.click(
+      regiao.getByRole("button", { name: "Cancelar remoção da guia de 10/2026" }),
+    );
+
+    expect(removerMock).not.toHaveBeenCalled();
+    expect(regiao.getByRole("button", { name: "Remover guia de 10/2026" })).toHaveFocus();
+  });
+
+  it("o campo de trocar segue focável enquanto outra ação está em curso", async () => {
+    let concluir: (valor: unknown) => void = () => undefined;
+    trocarMock.mockReturnValue(new Promise((resolve) => (concluir = resolve)));
+    const usuario = userEvent.setup();
+    render();
+    const regiao = within(await regiaoDaGuia());
+    const campo = await regiao.findByLabelText("Trocar guia de 10/2026");
+    campo.focus();
+
+    await usuario.upload(campo, pdf);
+
+    expect(campo).toBeEnabled();
+    expect(campo).toHaveAttribute("aria-disabled", "true");
+    expect(campo).toHaveFocus();
+    concluir({ ok: true, data: naoEnviada });
   });
 
   it("remoção recusada (guia já enviada) mostra o motivo e mantém a guia", async () => {
@@ -592,6 +631,9 @@ describe("trocar, remover e visualizar a guia anexada (#184)", () => {
     const regiao = within(await regiaoDaGuia());
 
     await usuario.click(await regiao.findByRole("button", { name: "Remover guia de 10/2026" }));
+    await usuario.click(
+      regiao.getByRole("button", { name: "Confirmar remoção da guia de 10/2026" }),
+    );
 
     expect(await regiao.findByText("Competência já enviada.")).toBeInTheDocument();
     expect(regiao.getByText(/10\/2026 · conta 123456/)).toBeInTheDocument();

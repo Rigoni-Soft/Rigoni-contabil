@@ -22,6 +22,8 @@ type GuiaDaListaDto = {
   confirmada: boolean;
   // O que conferir numa guia "a confirmar" (vem do leitor do PDF; some ao confirmar).
   motivo?: string;
+  // Id do botão Remover (alvo do foco ao cancelar a confirmação).
+  idDaRemocao: string;
   // Já tem registro de envio: só pode ser aberta, não troca nem remove.
   enviada: boolean;
 };
@@ -51,6 +53,10 @@ type GuiasDaParcelaPgfnProps = {
   onAnexar: () => void;
   onConfirmar: (competencia: string) => void;
   onTrocar: (competencia: string, arquivo: File) => void;
+  // Competência cuja remoção espera confirmação (apaga registro e PDF, sem desfazer).
+  removendo?: string;
+  onPedirRemocao: (competencia: string) => void;
+  onCancelarRemocao: (competencia: string) => void;
   onRemover: (competencia: string) => void;
   onVisualizar: (competencia: string) => void;
 };
@@ -81,6 +87,9 @@ export function GuiasDaParcelaPgfn({
   onAnexar,
   onConfirmar,
   onTrocar,
+  removendo,
+  onPedirRemocao,
+  onCancelarRemocao,
   onRemover,
   onVisualizar,
 }: GuiasDaParcelaPgfnProps) {
@@ -154,20 +163,52 @@ export function GuiasDaParcelaPgfn({
                         rotulo="Trocar"
                         rotuloAcessivel={`Trocar guia de ${guia.rotulo}`}
                         aceitar="application/pdf"
-                        disabled={pendente}
+                        ocupado={pendente}
                         onEscolher={(novo) => onTrocar(guia.competencia, novo)}
                       />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        aria-disabled={pendente || undefined}
-                        onClick={() => onRemover(guia.competencia)}
-                        aria-label={`Remover guia de ${guia.rotulo}`}
-                        className={BOTAO_DA_GUIA}
-                      >
-                        Remover
-                      </Button>
+                      {removendo === guia.competencia ? (
+                        <>
+                          <Texto variante="nota" role="alert">
+                            Apaga a guia e o PDF.
+                          </Texto>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            aria-disabled={pendente || undefined}
+                            onClick={() => onRemover(guia.competencia)}
+                            aria-label={`Confirmar remoção da guia de ${guia.rotulo}`}
+                            className={BOTAO_DA_GUIA}
+                          >
+                            Confirmar remoção
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            // Quem abriu a confirmação sem querer cai no gesto seguro.
+                            autoFocus
+                            onClick={() => onCancelarRemocao(guia.competencia)}
+                            aria-label={`Cancelar remoção da guia de ${guia.rotulo}`}
+                            className={BOTAO_DA_GUIA}
+                          >
+                            Cancelar
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          type="button"
+                          id={guia.idDaRemocao}
+                          variant="ghost"
+                          size="sm"
+                          aria-disabled={pendente || undefined}
+                          onClick={() => onPedirRemocao(guia.competencia)}
+                          aria-label={`Remover guia de ${guia.rotulo}`}
+                          className={BOTAO_DA_GUIA}
+                        >
+                          Remover
+                        </Button>
+                      )}
                     </>
                   )}
                 </Linha>

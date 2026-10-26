@@ -33,6 +33,9 @@ export function AnexarGuiaParcelaPgfnContainer({ parcelamentoId }: Props) {
       onAnexar={() => void guias.anexar()}
       onConfirmar={(competencia) => void guias.confirmar(competencia)}
       onTrocar={(competencia, arquivo) => void guias.trocar(competencia, arquivo)}
+      removendo={guias.removendo}
+      onPedirRemocao={guias.pedirRemocao}
+      onCancelarRemocao={guias.cancelarRemocao}
       onRemover={(competencia) => void guias.remover(competencia)}
       onVisualizar={(competencia) => void guias.visualizar(competencia)}
     />
