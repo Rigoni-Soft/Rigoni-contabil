@@ -145,6 +145,10 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
 
     expect(await screen.findByText(/conta do PDF .999. é diferente/)).toBeInTheDocument();
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
+    // Quem confirma com leitor de tela ouve o que conferir junto do botão.
+    expect(
+      screen.getByRole("button", { name: "Confirmar guia de 10/2026" }),
+    ).toHaveAccessibleDescription(/conta do PDF .999. é diferente/);
   });
 
   it("confirma à mão: chama a action e a guia passa a confirmada, sem botão", async () => {

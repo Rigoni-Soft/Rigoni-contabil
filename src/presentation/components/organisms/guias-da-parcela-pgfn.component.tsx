@@ -115,6 +115,7 @@ export function GuiasDaParcelaPgfn({
                       aria-disabled={pendente || undefined}
                       onClick={() => onConfirmar(guia.competencia)}
                       aria-label={`Confirmar guia de ${guia.rotulo}`}
+                      aria-describedby={guia.motivo ? `${guia.id}-motivo` : undefined}
                       className="aria-disabled:pointer-events-none aria-disabled:opacity-50 pointer-coarse:min-h-11"
                     >
                       Confirmar
@@ -123,7 +124,11 @@ export function GuiasDaParcelaPgfn({
                 </Linha>
               </Linha>
               {!guia.confirmada && guia.motivo && (
-                <Texto variante="nota" className="mt-1 text-sm [overflow-wrap:anywhere]">
+                <Texto
+                  variante="nota"
+                  id={`${guia.id}-motivo`}
+                  className="mt-1 text-sm [overflow-wrap:anywhere]"
+                >
                   {guia.motivo}
                 </Texto>
               )}
