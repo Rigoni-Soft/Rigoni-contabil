@@ -129,9 +129,7 @@ export function GuiasDaParcelaPgfn({
                 <Texto variante="corpo" className="min-w-0 [overflow-wrap:anywhere] tabular-nums">
                   {guia.rotulo} · conta {guia.contaNegociacao}
                 </Texto>
-                <Linha alinhar="centro" espaco={2} quebra>
-                  <SeloDaGuia confirmada={guia.confirmada} enviada={guia.enviada} />
-                </Linha>
+                <SeloDaGuia confirmada={guia.confirmada} enviada={guia.enviada} />
               </Linha>
               {!guia.confirmada && guia.motivo && (
                 <Texto
