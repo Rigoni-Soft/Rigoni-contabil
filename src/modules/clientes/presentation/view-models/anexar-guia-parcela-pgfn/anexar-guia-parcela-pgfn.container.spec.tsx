@@ -1,5 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render as renderRtl, screen, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render as renderRtl,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
@@ -601,7 +608,9 @@ describe("trocar, remover e visualizar a guia anexada (#184)", () => {
     );
 
     expect(removerMock).not.toHaveBeenCalled();
-    expect(regiao.getByRole("button", { name: "Remover guia de 10/2026" })).toHaveFocus();
+    await waitFor(() =>
+      expect(regiao.getByRole("button", { name: "Remover guia de 10/2026" })).toHaveFocus(),
+    );
   });
 
   it("o campo de trocar segue focável enquanto outra ação está em curso", async () => {

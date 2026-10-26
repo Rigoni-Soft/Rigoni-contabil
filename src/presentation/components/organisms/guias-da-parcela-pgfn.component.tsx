@@ -129,23 +129,36 @@ export function GuiasDaParcelaPgfn({
                 <Texto variante="corpo" className="min-w-0 [overflow-wrap:anywhere] tabular-nums">
                   {guia.rotulo} · conta {guia.contaNegociacao}
                 </Texto>
-                <Linha alinhar="centro" espaco={3} quebra>
+                <Linha alinhar="centro" espaco={2} quebra>
                   <SeloDaGuia confirmada={guia.confirmada} />
                   {guia.enviada && <Texto variante="nota">Enviada</Texto>}
-                  {!guia.confirmada && !guia.enviada && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      aria-disabled={pendente || undefined}
-                      onClick={() => onConfirmar(guia.competencia)}
-                      aria-label={`Confirmar guia de ${guia.rotulo}`}
-                      aria-describedby={guia.motivo ? `${guia.id}-motivo` : undefined}
-                      className={BOTAO_DA_GUIA}
-                    >
-                      Confirmar
-                    </Button>
-                  )}
+                </Linha>
+              </Linha>
+              {!guia.confirmada && guia.motivo && (
+                <Texto
+                  variante="nota"
+                  id={`${guia.id}-motivo`}
+                  className="mt-1 text-sm [overflow-wrap:anywhere]"
+                >
+                  {guia.motivo}
+                </Texto>
+              )}
+              <Linha alinhar="centro" espaco={2} quebra className="mt-2">
+                {!guia.confirmada && !guia.enviada && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    aria-disabled={pendente || undefined}
+                    onClick={() => onConfirmar(guia.competencia)}
+                    aria-label={`Confirmar guia de ${guia.rotulo}`}
+                    aria-describedby={guia.motivo ? `${guia.id}-motivo` : undefined}
+                    className={BOTAO_DA_GUIA}
+                  >
+                    Confirmar
+                  </Button>
+                )}
+                <Linha alinhar="centro" espaco={1} quebra className="ml-auto">
                   <Button
                     type="button"
                     variant="ghost"
@@ -213,15 +226,6 @@ export function GuiasDaParcelaPgfn({
                   )}
                 </Linha>
               </Linha>
-              {!guia.confirmada && guia.motivo && (
-                <Texto
-                  variante="nota"
-                  id={`${guia.id}-motivo`}
-                  className="mt-1 text-sm [overflow-wrap:anywhere]"
-                >
-                  {guia.motivo}
-                </Texto>
-              )}
             </Caixa>
           ))}
         </Pilha>
