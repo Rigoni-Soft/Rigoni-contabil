@@ -116,14 +116,14 @@ export function GuiasDaParcelaPgfn({
         )}
       </Pilha>
       {guias.length > 0 && (
-        <Pilha como="ul" espaco={2}>
+        <Pilha como="ul" espaco={1} className="divide-y divide-border">
           {guias.map((guia) => (
             <Caixa
               como="li"
               key={guia.competencia}
               id={guia.id}
               tabIndex={-1}
-              className="rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="rounded-sm py-3 outline-none first:pt-0 last:pb-0 focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Linha alinhar="centro" justificar="entre" espaco={3} quebra>
                 <Texto variante="corpo" className="min-w-0 [overflow-wrap:anywhere] tabular-nums">
