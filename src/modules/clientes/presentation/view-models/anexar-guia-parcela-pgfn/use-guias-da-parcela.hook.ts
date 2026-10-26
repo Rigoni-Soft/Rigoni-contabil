@@ -90,7 +90,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
       setArquivo(undefined);
       const anexada = resultado.data;
       const confirmada = anexada.estado === "confirmada";
-      // O resultado sai já, sem esperar a lista, e a atenção aponta para o motivo na lista em vez de repeti-lo.
+      // Sai já, sem esperar a lista.
       setResultado(
         confirmada
           ? { tipo: "sucesso", texto: "Guia anexada e confirmada: liberada ao envio." }

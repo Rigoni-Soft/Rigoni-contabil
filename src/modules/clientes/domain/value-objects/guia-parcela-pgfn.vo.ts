@@ -28,12 +28,12 @@ export function validarGuiaParcelaPgfn(
 }
 
 // O que o leitor devolveu da guia (nulo = o PDF não traz) e o que o Funcionário digitou à mão.
-export type GuiaLida = {
+type GuiaLida = {
   cnpj: string | null;
   contaNegociacao: string | null;
   competencia: string | null;
 };
-export type GuiaDigitada = { competencia?: string; contaNegociacao?: string };
+type GuiaDigitada = { competencia?: string; contaNegociacao?: string };
 
 // Confere o PDF lido com o Parcelamento. CNPJ de outra empresa recusa o anexo; conta, competência ou
 // leitura que não conferem deixam a guia "a confirmar" com o motivo. A competência é a chave da
