@@ -2,7 +2,10 @@ import { createHash } from "node:crypto";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { GuiaPublicadaPort } from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
+import type {
+  GuiaPublicada,
+  GuiaPublicadaPort,
+} from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
 import type { ChaveGuia } from "@/modules/atendimento/domain/services/guia-guardada.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -15,7 +18,9 @@ const VALIDADE_LINK_SEGUNDOS = 7 * 24 * 60 * 60;
 const pastaDaGuia = (clienteId: string, { id }: ChaveGuia) => `${clienteId}/${id}`;
 
 // Usa o client service_role (docs/adr/0001): o job não tem sessão de usuário.
-// ponytail: o PDF enviado fica no bucket para sempre; limpar por data se o volume pesar.
+// ponytail: nenhum objeto é removido depois de publicado (recusado, sem registro ou entregue): só o
+// registro do envio diz qual foi entregue, e apagar por "não há registro" perderia um aceite. Limpar
+// por data, só dos não referenciados, se o volume pesar.
 export class SupabaseGuiaPublicadaGateway implements GuiaPublicadaPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 
@@ -23,7 +28,7 @@ export class SupabaseGuiaPublicadaGateway implements GuiaPublicadaPort {
     clienteId: string,
     guia: { nomeArquivo: string; pdfBase64: string },
     chave: ChaveGuia,
-  ): Promise<Result<string, AppError>> {
+  ): Promise<Result<GuiaPublicada, AppError>> {
     const bytes = Buffer.from(guia.pdfBase64, "base64");
     // O nome do arquivo não vira caminho. cliente/id/AAAAMM-hash: a mesma guia cai no mesmo caminho a
     // cada tentativa e uma guia reemitida com outros bytes nunca sobrescreve a já entregue.
@@ -43,31 +48,13 @@ export class SupabaseGuiaPublicadaGateway implements GuiaPublicadaPort {
       if (!jaExistia) await bucket.remove([caminho]);
       return err(new ServicoExternoError("Falha ao gerar o link da guia."));
     }
-    return ok(link.data.signedUrl);
+    return ok({ url: link.data.signedUrl, caminho });
   }
 
-  async descartar(clienteId: string, chave: ChaveGuia): Promise<void> {
-    const bucket = this.supabaseAdmin.storage.from(BUCKET);
-    const pasta = pastaDaGuia(clienteId, chave);
-    const lista = await bucket.list(pasta, { search: chave.periodo });
-    if (lista.error) return;
-    const nomes = lista.data.filter(({ name }) => name.startsWith(`${chave.periodo}-`));
-    if (nomes.length > 0) await bucket.remove(nomes.map(({ name }) => `${pasta}/${name}`));
-  }
-
-  // Uma recusa descarta o publicado (`descartar`), então o que sobra no período foi entregue; uma
-  // reemitida com outros bytes cai em outro caminho e, entre entregues, vale a mais antiga.
-  async reencontrar(clienteId: string, chave: ChaveGuia): Promise<Result<string | null, AppError>> {
-    const bucket = this.supabaseAdmin.storage.from(BUCKET);
-    const pasta = pastaDaGuia(clienteId, chave);
-    const lista = await bucket.list(pasta, {
-      search: chave.periodo,
-      sortBy: { column: "created_at", order: "asc" },
-    });
-    if (lista.error) return err(new ServicoExternoError("Falha ao procurar a guia guardada."));
-    const guardada = lista.data.find(({ name }) => name.startsWith(`${chave.periodo}-`));
-    if (!guardada) return ok(null);
-    const link = await bucket.createSignedUrl(`${pasta}/${guardada.name}`, VALIDADE_LINK_SEGUNDOS);
+  async reencontrar(caminho: string): Promise<Result<string, AppError>> {
+    const link = await this.supabaseAdmin.storage
+      .from(BUCKET)
+      .createSignedUrl(caminho, VALIDADE_LINK_SEGUNDOS);
     if (link.error || !link.data) {
       return err(new ServicoExternoError("Falha ao gerar o link da guia."));
     }

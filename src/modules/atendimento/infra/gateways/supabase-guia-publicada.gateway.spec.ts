@@ -1,7 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { ok } from "@/shared/kernel/result";
-
 import { SupabaseGuiaPublicadaGateway } from "./supabase-guia-publicada.gateway";
 
 // Storage em memória: upload não sobrescreve (409), remove apaga, a assinatura pode falhar.
@@ -73,7 +71,7 @@ describe("SupabaseGuiaPublicadaGateway", () => {
     expect([...objetos.values()].map((b) => b.toString())).toEqual(["A"]);
     falha = false;
     const b = await gateway.publicar("c1", guia("B"), acordo);
-    expect(b.ok && a.ok && b.value !== a.value).toBe(true);
+    expect(b.ok && a.ok && b.value.caminho !== a.value.caminho).toBe(true);
     expect([...objetos.values()].map((x) => x.toString()).sort()).toEqual(["A", "B"]);
   });
 
@@ -86,36 +84,30 @@ describe("SupabaseGuiaPublicadaGateway", () => {
     expect(objetos.size).toBe(0);
   });
 
-  it("reencontra a guia guardada, a mais antiga do período, e não acha onde não há", async () => {
+  it("reencontra o objeto exato pelo caminho, sem escolher entre versões do período", async () => {
     const { gateway } = montar(() => false);
     const a = await gateway.publicar("c1", guia("A"), acordo);
-    await gateway.publicar("c1", guia("B"), acordo);
-    await gateway.publicar("c1", guia("C"), { id: "acordo", periodo: "202611" });
-
-    expect(await gateway.reencontrar("c1", acordo)).toEqual(a);
-    expect(await gateway.reencontrar("c1", { id: "acordo", periodo: "202609" })).toEqual(ok(null));
-    expect(await gateway.reencontrar("c1", { id: "outro", periodo: "202610" })).toEqual(ok(null));
-  });
-
-  it("A recusado e descartado, B aceito: o reenvio reencontra B, e outro acordo não é tocado", async () => {
-    const { gateway, objetos } = montar(() => false);
-    await gateway.publicar("c1", guia("A"), acordo);
-    await gateway.publicar("c1", guia("outro"), { id: "outro", periodo: "202610" });
-    await gateway.descartar("c1", acordo);
-
-    await gateway.publicar("c1", guia("B"), acordo);
-    const reenvio = await gateway.reencontrar("c1", acordo);
-
     const b = await gateway.publicar("c1", guia("B"), acordo);
-    expect(reenvio).toEqual(b);
-    expect(objetos.size).toBe(2);
-    expect([...objetos.values()].map((x) => x.toString()).sort()).toEqual(["B", "outro"]);
+    if (!a.ok || !b.ok) throw new Error("publicação falhou");
+
+    expect(await gateway.reencontrar(b.value.caminho)).toEqual({ ok: true, value: b.value.url });
+    expect(await gateway.reencontrar(a.value.caminho)).toEqual({ ok: true, value: a.value.url });
   });
 
-  it("descartar sem nada publicado, ou com a listagem falhando, não lança", async () => {
-    const { gateway, bucket } = montar(() => false);
-    await expect(gateway.descartar("c1", acordo)).resolves.toBeUndefined();
-    bucket.list.mockResolvedValueOnce({ data: null as never, error: { message: "x" } as never });
-    await expect(gateway.descartar("c1", acordo)).resolves.toBeUndefined();
+  it("falha ao gerar o link no reenvio é erro, não 'sem guia'", async () => {
+    const { gateway } = montar(() => true);
+    expect((await gateway.reencontrar("c1/acordo/202610-x.pdf")).ok).toBe(false);
+  });
+
+  it("nunca remove um objeto publicado e aceito: nada do gateway apaga por chave", async () => {
+    const { gateway, objetos, bucket } = montar(() => false);
+    const a = await gateway.publicar("c1", guia("A"), acordo);
+    await gateway.publicar("c1", guia("B"), acordo);
+    if (!a.ok) throw new Error("publicação falhou");
+
+    await gateway.reencontrar(a.value.caminho);
+
+    expect(bucket.remove).not.toHaveBeenCalled();
+    expect(objetos.size).toBe(2);
   });
 });

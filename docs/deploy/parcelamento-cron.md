@@ -49,8 +49,8 @@ Passos do núcleo:
    vez por parcela) e quita ao zerar, auditado com a URA. Devolve `registrado`, `ja_registrado` (repetir)
    ou `nao_elegivel` (acordo quitado ou removido durante a rodada: entregue sem registro vira `falha_envio`).
    Sem saldo para a guia (o acordo quitou na rodada) ela não é entregue e vira `falha_envio`. A falha de uma
-   guia não trava as outras. A guia republicada na retentativa não apaga a anterior no Storage (caminho
-   estável por acordo e parcela).
+   guia não trava as outras. Nenhum PDF publicado é apagado, nem o da entrega recusada: o
+   registro do envio guarda o `caminho` exato do PDF entregue e o reenvio lê só esse caminho.
 5. **Alertas.** `falha_envio` (provedor, entrega ou registro) e `parcelamento_sem_guia` (Parcelamento
    pendente sem guia; a mensagem lista os códigos), de origem `parcelamento`, renovados e resolvidos só
    por este job.
@@ -82,3 +82,7 @@ template `envio_guia_parcelamento_interno`, qualquer que seja a forma de envio d
   `financeiro_ausente` até configurar. Definir no Production.
 - A migration `20261024110000` faz o interno contar em `cliente_tem_parcelamento_pendente`. Aplicar junto
   com o código desta versão.
+- A migration `20261026130000` guarda o caminho do PDF entregue (`caminho_guia_das` no cadastro e
+  `caminho` no envio do parcelamento) e troca as assinaturas de `concluir_envio_automatico_das` e
+  `registrar_envio_parcelamento`: aplicar junto com o código; voltar só o código quebra as duas RPCs.
+  Envio anterior à migration fica sem caminho e o reenvio dele responde que a guia não está guardada.

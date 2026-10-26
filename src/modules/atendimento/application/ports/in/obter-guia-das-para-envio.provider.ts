@@ -7,6 +7,8 @@ export type GuiaDasParaEnvio = {
   competencia: string; // MM/AAAA
   vencimento: string; // DD/MM/AAAA
   guia: { url: string; nomeArquivo: string };
+  // Objeto publicado: quem registra o envio aceito o guarda para o reenvio.
+  caminho: string;
 };
 
 export interface ObterGuiaDasParaEnvioPort {

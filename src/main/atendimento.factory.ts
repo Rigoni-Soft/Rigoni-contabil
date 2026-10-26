@@ -355,7 +355,6 @@ export function makeExecutarLembretesDocumentoEDas(): ExecutarLembretesDocumento
     ),
     new SupabaseAlertaSetorGateway(supabaseAdmin, "lembretes"),
     new RelogioSistemaGateway(),
-    publicadas,
   );
 }
 

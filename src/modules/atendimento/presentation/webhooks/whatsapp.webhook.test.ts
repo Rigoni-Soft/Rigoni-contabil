@@ -88,7 +88,8 @@ jest.mock("@/main/atendimento.factory", () => ({
       // DAS pronto: a opção 2 adianta o envio pelo caso de uso real, só com portas em memória.
       new EntregarDasNaUra(
         {
-          obterDas: async () => ok({ dasStatus: "pronto" as const, dataEnvioDas: null }),
+          obterDas: async () =>
+            ok({ dasStatus: "pronto" as const, dataEnvioDas: null, caminhoGuiaDas: null }),
           reservarDas: async () => ok("token-1"),
           concluirDas: async () => ok(true),
           liberarDas: async () => ok(undefined),
@@ -99,9 +100,10 @@ jest.mock("@/main/atendimento.factory", () => ({
               competencia: "09/2026",
               vencimento: "20/10/2026",
               guia: { url: "https://storage.test/das.pdf", nomeArquivo: "DAS.pdf" },
+              caminho: "c1/das/202610-hash.pdf",
             }),
         },
-        { reencontrar: async () => ok(null), descartar: async () => undefined },
+        { reencontrar: async () => ok("https://storage.test/das.pdf") },
         envio,
         { agora: () => new Date("2026-10-07T10:00:00-03:00") },
       ),

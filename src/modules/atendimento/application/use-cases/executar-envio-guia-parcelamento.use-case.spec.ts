@@ -94,9 +94,12 @@ function montar(
       },
       { buscarGuiasParcelamento: buscar },
       {
-        publicar: async () => ok("https://storage.test/parcelamento.pdf"),
-        reencontrar: async () => ok(null),
-        descartar: async () => undefined,
+        publicar: async () =>
+          ok({
+            url: "https://storage.test/parcelamento.pdf",
+            caminho: "c1/p1/202610-hash.pdf",
+          }),
+        reencontrar: async () => ok("https://storage.test/parcelamento.pdf"),
       },
       new EntregarComunicacaoPorCanais(
         new EnviarComunicacaoProativa(envio, 3, 0),

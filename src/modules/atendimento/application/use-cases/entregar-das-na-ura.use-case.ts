@@ -21,7 +21,7 @@ const DAS_EM_ENVIO =
 // A opção do DAS na URA segue o processo do job: o banco manda. Não pronto → só avisa (sem provedor
 // e sem alerta ao setor: só o job abre). Pronto → o pedido adianta o envio; o DAS só vira enviado
 // (data de hoje, URA como ator) depois do aceite da entrega, com a mesma reserva do job, que por
-// isso não o reenvia. Já enviado → reenvia a guia guardada, sem provedor.
+// isso não o reenvia. Já enviado → reenvia o PDF cujo caminho o envio aceito guardou, sem provedor.
 export class EntregarDasNaUra implements EntregarNaUraPort {
   constructor(
     private readonly clientes: Pick<
@@ -29,7 +29,7 @@ export class EntregarDasNaUra implements EntregarNaUraPort {
       "obterDas" | "reservarDas" | "concluirDas" | "liberarDas"
     >,
     private readonly guiaDas: ObterGuiaDasParaEnvioPort,
-    private readonly publicadas: Pick<GuiaPublicadaPort, "reencontrar" | "descartar">,
+    private readonly publicadas: Pick<GuiaPublicadaPort, "reencontrar">,
     private readonly envio: EnvioMensagemPort,
     private readonly relogio: RelogioPort,
   ) {}
@@ -38,15 +38,17 @@ export class EntregarDasNaUra implements EntregarNaUraPort {
     const das = await this.clientes.obterDas(clienteId);
     if (!das.ok) return das;
     if (das.value?.dasStatus === "enviado") {
-      // O sistema sempre grava a data junto do `enviado`; sem ela (dado legado) a chave do mês de
-      // hoje é a melhor aposta, e sem PDF guardado cai no erro de guia indisponível.
-      const chave = chaveDoDas(das.value.dataEnvioDas ?? hojeIso(this.relogio.agora()));
-      const url = await this.publicadas.reencontrar(clienteId, chave);
+      // O sistema sempre grava a data e o caminho junto do `enviado`; sem o caminho (dado legado)
+      // não há como saber qual PDF foi entregue, então cai no erro de guia indisponível.
+      if (!das.value.caminhoGuiaDas) {
+        return err(new ServicoExternoError("Guia do DAS enviada não está guardada."));
+      }
+      const url = await this.publicadas.reencontrar(das.value.caminhoGuiaDas);
       if (!url.ok) return url;
-      if (!url.value) return err(new ServicoExternoError("Guia do DAS enviada não está guardada."));
+      const periodo = chaveDoDas(das.value.dataEnvioDas ?? hojeIso(this.relogio.agora())).periodo;
       return this.envio.enviarDocumento({
         telefone,
-        nomeArquivo: `das-${chave.periodo}.pdf`,
+        nomeArquivo: `das-${periodo}.pdf`,
         url: url.value,
       });
     }
@@ -67,14 +69,19 @@ export class EntregarDasNaUra implements EntregarNaUraPort {
     const entrega = guia.ok
       ? await this.envio.enviarDocumento({ telefone, ...guia.value.guia })
       : guia;
-    if (!entrega.ok) {
-      if (guia.ok) await this.publicadas.descartar(clienteId, chaveDoDas(mesAtual(agora)));
+    // O PDF publicado fica no Storage: só o registro do envio aceito o aponta (ver o gateway).
+    if (!guia.ok || !entrega.ok) {
       await this.clientes.liberarDas(clienteId, reserva.value);
-      return entrega;
+      return guia.ok ? entrega : guia;
     }
     // A guia já saiu: se a conclusão não vale (reserva substituída ou cadastro alterado no meio) o
     // DAS segue pronto e o job pode reenviá-la. Não vira erro para o contato, mas deixa rastro.
-    const concluida = await this.clientes.concluirDas(clienteId, reserva.value, hojeIso(agora));
+    const concluida = await this.clientes.concluirDas(
+      clienteId,
+      reserva.value,
+      hojeIso(agora),
+      guia.value.caminho,
+    );
     if (!concluida.ok || !concluida.value) {
       console.error("DAS entregue pela URA, mas o cadastro não foi marcado como enviado.");
     }

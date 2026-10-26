@@ -13,7 +13,13 @@ export type ParcelamentoDoCliente = {
 
 // Guia já entregue a um acordo do Cliente (em aberto ou quitado): prende o documento ao acordo.
 // `identidade` nula: envio anterior à identidade, não se sabe qual guia foi.
-export type GuiaEntregue = { parcelamentoId: string; parcela: string; identidade: string | null };
+export type GuiaEntregue = {
+  parcelamentoId: string;
+  parcela: string;
+  identidade: string | null;
+  // PDF entregue no envio aceito; null no registro anterior ao caminho guardado.
+  caminho: string | null;
+};
 
 // `ja_registrado`: a parcela já tinha registro, nada mudou. `nao_elegivel`: o parcelamento não está
 // mais em aberto (quitado, zerado ou removido), nada mudou.
@@ -32,5 +38,6 @@ export interface ParcelamentosDoClientePort {
     parcelamentoId: string,
     parcela: string,
     identidade: string,
+    caminho: string,
   ): Promise<Result<EnvioRegistrado, AppError>>;
 }

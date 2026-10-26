@@ -11,6 +11,7 @@ import type { GuiaPublicadaPort } from "@/modules/atendimento/application/ports/
 import type { GuiaFiscal } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
 import type { GuiasParcelamentoPort } from "@/modules/atendimento/application/ports/out/guias-parcelamento.provider";
 import type {
+  GuiaEntregue,
   ParcelamentoDoCliente,
   ParcelamentosDoClientePort,
 } from "@/modules/atendimento/application/ports/out/parcelamentos-do-cliente.provider";
@@ -24,8 +25,14 @@ const SEM_PARCELAMENTO = "Não encontramos parcelamento vigente para a sua empre
 const TODOS_QUITADOS = "Todos os parcelamentos da sua empresa foram quitados.";
 
 // `nova`: guia emitida agora, ainda sem envio nem registro. Sem ela a parcela já tem registro e o
-// PDF guardado é reenviado. `parcela` null: não há guia para entregar.
-type Alvo = { parcelamento: ParcelamentoDoCliente; parcela: string | null; nova?: GuiaFiscal };
+// PDF do `caminho` guardado nele é reenviado (null: registro sem caminho, não há o que reenviar).
+// `parcela` null: não há guia para entregar.
+type Alvo = {
+  parcelamento: ParcelamentoDoCliente;
+  parcela: string | null;
+  nova?: GuiaFiscal;
+  caminho?: string | null;
+};
 
 type GuiaNova = { parcela: string; guia: GuiaFiscal };
 
@@ -109,11 +116,30 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
     const agora = this.relogio.agora();
     const mes = mesAtual(agora).replace("-", "");
     const anterior = mesAnterior(agora);
-    const novas = await this.buscarNovas(clienteId, emAberto, comuns, mes, anterior);
+    const entregues = await this.parcelamentos.guiasEntregues(clienteId);
+    if (!entregues.ok) {
+      console.error("Guias já entregues do Cliente indisponíveis para a URA.");
+      return comuns.map((parcelamento) => ({ parcelamento, parcela: null }));
+    }
+    const novas = await this.buscarNovas(
+      clienteId,
+      emAberto,
+      comuns,
+      entregues.value,
+      mes,
+      anterior,
+    );
     // Falha ao emitir não impede o reenvio do que já está registrado e guardado: só os parcelamentos
     // que dependiam de guia nova ficam sem alvo e entram na lista de falhas.
     if (!novas.ok) console.error("Guias novas do parcelamento indisponíveis para a URA.");
-    return comuns.map((p) => escolherAlvo(p, novas.ok ? novas.value : new Map(), mes, anterior));
+    return comuns.map((p) => {
+      const alvo = escolherAlvo(p, novas.ok ? novas.value : new Map(), mes, anterior);
+      if (alvo.nova || !alvo.parcela) return alvo;
+      const entregue = entregues.value.find(
+        (e) => e.parcelamentoId === p.id && e.parcela === alvo.parcela,
+      );
+      return { ...alvo, caminho: entregue?.caminho ?? null };
+    });
   }
 
   // O provedor só é chamado se algum comum ainda não tem a parcela do mês registrada.
@@ -121,6 +147,7 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
     clienteId: string,
     emAberto: ParcelamentoDoCliente[],
     comuns: ParcelamentoDoCliente[],
+    entregues: GuiaEntregue[],
     mes: string,
     anterior: string,
   ): Promise<Result<Map<string, GuiaNova>, AppError>> {
@@ -132,10 +159,8 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
     );
     const buscadas = await this.guias.buscarGuiasParcelamento(clienteId, jaRecebidas);
     if (!buscadas.ok) return buscadas;
-    const entregues = await this.parcelamentos.guiasEntregues(clienteId);
-    if (!entregues.ok) return entregues;
     // A atribuição vê todos os em aberto: a guia de um interno não cai num comum.
-    const atribuidas = atribuirGuiasParcelamento(buscadas.value, emAberto, entregues.value);
+    const atribuidas = atribuirGuiasParcelamento(buscadas.value, emAberto, entregues);
     const doPeriodo = atribuidas.filter((a) => a.parcela === mes || a.parcela === anterior);
     for (const { parcelamento, guia, parcela } of doPeriodo) {
       novas.set(parcelamento.id, preferirDoMes(novas.get(parcelamento.id), { parcela, guia }, mes));
@@ -147,24 +172,40 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
   private async entregar(
     clienteId: string,
     telefone: string,
-    { parcelamento, parcela, nova }: Alvo,
+    { parcelamento, parcela, nova, caminho }: Alvo,
   ): Promise<boolean> {
     if (!parcela) return false;
-    const chave = chaveDoParcelamento(parcelamento.id, parcela);
     const nomeArquivo = `parcelamento-${parcelamento.codigo}-${parcela}.pdf`;
-    const url = nova
-      ? await this.publicadas.publicar(clienteId, nova, chave)
-      : await this.publicadas.reencontrar(clienteId, chave);
-    if (!url.ok || !url.value) return false;
-    const enviada = await this.envio.enviarDocumento({ telefone, nomeArquivo, url: url.value });
-    if (!enviada.ok && nova) await this.publicadas.descartar(clienteId, chave);
-    if (!enviada.ok || !nova) return enviada.ok;
+    if (!nova) {
+      // Reenvio: o PDF que o envio aceito guardou, sem escolher entre versões do período.
+      if (!caminho) return false;
+      const url = await this.publicadas.reencontrar(caminho);
+      if (!url.ok) return false;
+      const reenviada = await this.envio.enviarDocumento({ telefone, nomeArquivo, url: url.value });
+      return reenviada.ok;
+    }
+
+    // O PDF publicado fica no Storage mesmo se a entrega for recusada: só o registro do envio
+    // aceito o aponta (ver o gateway).
+    const publicada = await this.publicadas.publicar(
+      clienteId,
+      nova,
+      chaveDoParcelamento(parcelamento.id, parcela),
+    );
+    if (!publicada.ok) return false;
+    const enviada = await this.envio.enviarDocumento({
+      telefone,
+      nomeArquivo,
+      url: publicada.value.url,
+    });
+    if (!enviada.ok) return false;
 
     // A guia já saiu: se o registro falha, o contato recebeu e o rastro fica no log.
     const registro = await this.parcelamentos.registrarEnvio(
       parcelamento.id,
       parcela,
       identidadeDaGuia(nova),
+      publicada.value.caminho,
     );
     if (!registro.ok || registro.value === "nao_elegivel") {
       console.error("Guia de parcelamento entregue pela URA, mas o envio não foi registrado.");

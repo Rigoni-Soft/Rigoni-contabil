@@ -18,7 +18,12 @@ export type ClienteParaLembrete = {
   ultimaMensagemDoContatoEm: Date | null;
 };
 
-export type DasDoCliente = { dasStatus: DasStatusValor | null; dataEnvioDas: string | null };
+export type DasDoCliente = {
+  dasStatus: DasStatusValor | null;
+  dataEnvioDas: string | null;
+  // PDF entregue no envio aceito; null no DAS que não foi enviado pelo sistema.
+  caminhoGuiaDas: string | null;
+};
 
 export interface ClientesParaLembretePort {
   // Todos os Clientes do Cadastro operacional (leitura paginada por cursor, completa ou erro).
@@ -29,12 +34,14 @@ export interface ClientesParaLembretePort {
   // (outro job ou o Funcionário mexeu antes) ou outra tentativa vigente o reservou. Não muda o
   // estado do DAS: ele só vira enviado ao concluir.
   reservarDas(clienteId: string): Promise<Result<string | null, AppError>>;
-  // A entrega foi aceita: DAS pronto → enviado com a data de envio, auditado com a URA como ator,
-  // só com a posse da reserva (token). false: sem a posse ou o Funcionário já havia mexido.
+  // A entrega foi aceita: DAS pronto → enviado com a data de envio e o caminho do PDF entregue,
+  // auditado com a URA como ator, só com a posse da reserva (token). false: sem a posse ou o
+  // Funcionário já havia mexido.
   concluirDas(
     clienteId: string,
     token: string,
     dataIso: string,
+    caminho: string,
   ): Promise<Result<boolean, AppError>>;
   // A entrega falhou sem aceite: libera a reserva (token antigo não libera a de outra tentativa).
   liberarDas(clienteId: string, token: string): Promise<Result<void, AppError>>;

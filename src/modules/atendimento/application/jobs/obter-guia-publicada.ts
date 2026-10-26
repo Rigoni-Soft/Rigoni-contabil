@@ -30,18 +30,21 @@ export function obterGuiaPublicada<T>({
   tipo,
   extrair,
   chave,
-}: Pedido<T>): Promise<Result<T & { guia: { url: string; nomeArquivo: string } }, AppError>> {
+}: Pedido<T>): Promise<
+  Result<T & { guia: { url: string; nomeArquivo: string }; caminho: string }, AppError>
+> {
   return comTentativas(
     async () => {
       const buscada = await guias.buscar(clienteId, tipo);
       if (!buscada.ok) return buscada;
       const extraido = extrair(buscada.value);
       if (!extraido.ok) return extraido;
-      const url = await publicadas.publicar(clienteId, buscada.value, chave);
-      if (!url.ok) return url;
+      const publicada = await publicadas.publicar(clienteId, buscada.value, chave);
+      if (!publicada.ok) return publicada;
       return ok({
         ...extraido.value,
-        guia: { url: url.value, nomeArquivo: buscada.value.nomeArquivo },
+        guia: { url: publicada.value.url, nomeArquivo: buscada.value.nomeArquivo },
+        caminho: publicada.value.caminho,
       });
     },
     TENTATIVAS,

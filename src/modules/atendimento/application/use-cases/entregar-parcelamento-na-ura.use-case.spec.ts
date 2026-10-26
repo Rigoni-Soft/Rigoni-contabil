@@ -5,6 +5,7 @@ import type {
 import type { GuiaFiscal } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
 import type {
   EnvioRegistrado,
+  GuiaEntregue,
   ParcelamentoDoCliente,
 } from "@/modules/atendimento/application/ports/out/parcelamentos-do-cliente.provider";
 import type { ChaveGuia } from "@/modules/atendimento/domain/services/guia-guardada.service";
@@ -44,7 +45,8 @@ function montar(
   opcoes: {
     comuns?: number;
     guias?: Result<GuiaFiscal[], AppError>;
-    guardada?: string | null;
+    semCaminho?: boolean;
+    entreguesFalha?: boolean;
     publicarFalha?: boolean;
     documentoFalha?: boolean;
     registro?: EnvioRegistrado;
@@ -52,18 +54,27 @@ function montar(
 ) {
   const mensagens: MensagemEnviada[] = [];
   const documentos: DocumentoEnviado[] = [];
-  const registrados: [string, string, string][] = [];
-  const reencontradas: ChaveGuia[] = [];
+  const registrados: [string, string, string, string][] = [];
+  const reencontradas: string[] = [];
   const publicadas: ChaveGuia[] = [];
-  const descartadas: ChaveGuia[] = [];
   let buscas = 0;
+  // O envio já registrado de cada parcela guarda o caminho do PDF que foi entregue.
+  const entregues: GuiaEntregue[] = emAberto.flatMap((p) =>
+    p.parcelasEnviadas.map((parcela) => ({
+      parcelamentoId: p.id,
+      parcela,
+      identidade: `${parcela}:10000`,
+      caminho: opcoes.semCaminho ? null : `c1/${p.id}/${parcela}-entregue.pdf`,
+    })),
+  );
   const caso = new EntregarParcelamentoNaUra(
     {
       listarEmAberto: async () => ok(emAberto),
       contarComuns: async () => ok(opcoes.comuns ?? emAberto.filter((p) => !p.interno).length),
-      guiasEntregues: async () => ok([]),
-      registrarEnvio: async (id, parcela, identidade) => {
-        registrados.push([id, parcela, identidade]);
+      guiasEntregues: async () =>
+        opcoes.entreguesFalha ? err(new ServicoExternoError("banco")) : ok(entregues),
+      registrarEnvio: async (id, parcela, identidade, caminho) => {
+        registrados.push([id, parcela, identidade, caminho]);
         return ok(opcoes.registro ?? "registrado");
       },
     },
@@ -77,14 +88,14 @@ function montar(
       publicar: async (_cliente, { nomeArquivo }, chave) => {
         publicadas.push(chave);
         if (opcoes.publicarFalha) return err(new ServicoExternoError("storage"));
-        return ok(`https://storage/${nomeArquivo}`);
+        return ok({
+          url: `https://storage/${nomeArquivo}`,
+          caminho: `c1/${chave.id}/${chave.periodo}-novo.pdf`,
+        });
       },
-      reencontrar: async (_cliente, chave) => {
-        reencontradas.push(chave);
-        return ok(opcoes.guardada === undefined ? "https://storage/guardada.pdf" : opcoes.guardada);
-      },
-      descartar: async (_cliente, chave) => {
-        descartadas.push(chave);
+      reencontrar: async (caminho) => {
+        reencontradas.push(caminho);
+        return ok(`https://storage/${caminho}`);
       },
     },
     {
@@ -111,7 +122,6 @@ function montar(
     registrados,
     reencontradas,
     publicadas,
-    descartadas,
     buscas: () => buscas,
   };
 }
@@ -156,7 +166,7 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
       },
     ]);
     expect(publicadas).toEqual([{ id: "1", periodo: "202610" }]);
-    expect(registrados).toEqual([["1", "202610", "202610:10000"]]);
+    expect(registrados).toEqual([["1", "202610", "202610:10000", "c1/1/202610-novo.pdf"]]);
     expect(mensagens).toHaveLength(0);
   });
 
@@ -166,7 +176,7 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
     });
     expect((await executar()).ok).toBe(true);
     expect(documentos[0].nomeArquivo).toBe("parcelamento-COD-1-202609.pdf");
-    expect(registrados).toEqual([["1", "202609", "202609:10000"]]);
+    expect(registrados).toEqual([["1", "202609", "202609:10000", "c1/1/202609-novo.pdf"]]);
   });
 
   it("envia a guia do comum e ignora o interno, cuja guia também o comum comporta", async () => {
@@ -179,7 +189,7 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
     );
     expect((await executar()).ok).toBe(true);
     expect(documentos.map((d) => d.nomeArquivo)).toEqual(["parcelamento-COD-1-202610.pdf"]);
-    expect(registrados).toEqual([["1", "202610", "202610:10000"]]);
+    expect(registrados).toEqual([["1", "202610", "202610:10000", "c1/1/202610-novo.pdf"]]);
     expect(mensagens).toHaveLength(0);
   });
 
@@ -188,12 +198,12 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
       parcelamento("1", { parcelasEnviadas: ["202610"] }),
     ]);
     expect((await executar()).ok).toBe(true);
-    expect(reencontradas).toEqual([{ id: "1", periodo: "202610" }]);
+    expect(reencontradas).toEqual(["c1/1/202610-entregue.pdf"]);
     expect(documentos).toEqual([
       {
         telefone: TELEFONE,
         nomeArquivo: "parcelamento-COD-1-202610.pdf",
-        url: "https://storage/guardada.pdf",
+        url: "https://storage/c1/1/202610-entregue.pdf",
       },
     ]);
     expect(registrados).toHaveLength(0);
@@ -206,7 +216,7 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
         parcelamento("1", { parcelasEnviadas: ["202610"], valorParcelaCentavos: 20_000 }),
         parcelamento("2", { valorParcelaCentavos: 10_000 }),
       ],
-      { guardada: null, guias: ok([guia("202609", 10_000)]) },
+      { semCaminho: true, guias: ok([guia("202609", 10_000)]) },
     );
     expect((await executar()).ok).toBe(true);
     expect(documentos.map((d) => d.nomeArquivo)).toEqual(["parcelamento-COD-2-202609.pdf"]);
@@ -238,7 +248,7 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
     });
     expect((await executar()).ok).toBe(true);
     expect(documentos.map((d) => d.nomeArquivo)).toEqual(["parcelamento-COD-1-202610.pdf"]);
-    expect(registrados).toEqual([["1", "202610", "202610:10000"]]);
+    expect(registrados).toEqual([["1", "202610", "202610:10000", "c1/1/202610-novo.pdf"]]);
   });
 
   it("mês anterior já registrado e provedor sem a do mês: reenvia o PDF guardado do anterior", async () => {
@@ -249,19 +259,44 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
     expect((await executar()).ok).toBe(true);
     // O provedor é consultado pela parcela do mês, que ainda não tem registro.
     expect(buscas()).toBe(1);
-    expect(reencontradas).toEqual([{ id: "1", periodo: "202609" }]);
+    expect(reencontradas).toEqual(["c1/1/202609-entregue.pdf"]);
     expect(documentos.map((d) => d.nomeArquivo)).toEqual(["parcelamento-COD-1-202609.pdf"]);
     expect(registrados).toHaveLength(0);
   });
 
-  it("documento que o WhatsApp recusou não é registrado nem descontado, e o publicado é descartado", async () => {
-    const { executar, registrados, mensagens, descartadas } = montar([parcelamento("1")], {
+  it("documento que o WhatsApp recusou não é registrado nem descontado, e não deixa caminho para reenvio", async () => {
+    const { executar, registrados, mensagens, reencontradas } = montar([parcelamento("1")], {
       documentoFalha: true,
     });
     expect((await executar()).ok).toBe(true);
     expect(registrados).toHaveLength(0);
-    expect(descartadas).toEqual([{ id: "1", periodo: "202610" }]);
+    expect(reencontradas).toHaveLength(0);
     expect(mensagens[0].texto).toContain("COD-1");
+  });
+
+  it("registro sem caminho (anterior à referência): não reenvia versão adivinhada e lista o parcelamento", async () => {
+    const { executar, documentos, reencontradas, mensagens } = montar(
+      [parcelamento("1", { parcelasEnviadas: ["202610"] })],
+      { semCaminho: true },
+    );
+    expect((await executar()).ok).toBe(true);
+    expect(reencontradas).toHaveLength(0);
+    expect(documentos).toHaveLength(0);
+    expect(mensagens[0].texto).toContain("COD-1");
+  });
+
+  it("falha ao ler as guias já entregues: nada é emitido nem enviado e todos os comuns são listados", async () => {
+    const log = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    const { executar, documentos, registrados, buscas, mensagens } = montar(
+      [parcelamento("1"), parcelamento("2", { parcelasEnviadas: ["202610"] })],
+      { entreguesFalha: true },
+    );
+    expect((await executar()).ok).toBe(true);
+    expect(documentos).toHaveLength(0);
+    expect(registrados).toHaveLength(0);
+    expect(buscas()).toBe(0);
+    expect(mensagens[0].texto).toMatch(/COD-1.*COD-2/);
+    log.mockRestore();
   });
 
   it("registro não elegível após o envio: o contato recebeu, então não há aviso de falha", async () => {
@@ -298,14 +333,13 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
     "%s ao emitir a nova de um: reenvia o já registrado e lista só o afetado",
     async (_nome, guias) => {
       jest.spyOn(console, "error").mockImplementation(() => undefined);
-      const { executar, documentos, mensagens, registrados, descartadas } = montar(
+      const { executar, documentos, mensagens, registrados } = montar(
         [parcelamento("1"), parcelamento("2", { parcelasEnviadas: ["202610"] })],
         { guias },
       );
       expect((await executar()).ok).toBe(true);
       expect(documentos.map((d) => d.nomeArquivo)).toEqual(["parcelamento-COD-2-202610.pdf"]);
       expect(registrados).toHaveLength(0);
-      expect(descartadas).toHaveLength(0);
       expect(mensagens).toHaveLength(1);
       expect(mensagens[0].texto).toContain("COD-1");
       expect(mensagens[0].texto).not.toContain("COD-2");

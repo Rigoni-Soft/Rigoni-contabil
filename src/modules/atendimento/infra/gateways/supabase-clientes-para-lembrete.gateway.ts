@@ -24,7 +24,11 @@ const linhaSchema = linhaDestinatarioSchema.extend({
 });
 
 const dasSchema = z
-  .object({ dasStatus: z.enum(DAS_STATUSES).nullable(), dataEnvioDas: z.string().nullable() })
+  .object({
+    dasStatus: z.enum(DAS_STATUSES).nullable(),
+    dataEnvioDas: z.string().nullable(),
+    caminhoGuiaDas: z.string().nullable(),
+  })
   .nullable();
 
 // Usa o client service_role (docs/adr/0001): o job não tem sessão de usuário.
@@ -57,7 +61,7 @@ export class SupabaseClientesParaLembreteGateway implements ClientesParaLembrete
   async obterDas(clienteId: string): Promise<Result<DasDoCliente | null, AppError>> {
     const { data, error } = await this.supabaseAdmin
       .from("cliente_cadastro_operacional_sn")
-      .select("dasStatus:das_status, dataEnvioDas:data_envio_das")
+      .select("dasStatus:das_status, dataEnvioDas:data_envio_das, caminhoGuiaDas:caminho_guia_das")
       .eq("cliente_id", clienteId)
       .maybeSingle();
     const lida = dasSchema.safeParse(data);
@@ -81,11 +85,13 @@ export class SupabaseClientesParaLembreteGateway implements ClientesParaLembrete
     clienteId: string,
     token: string,
     dataIso: string,
+    caminho: string,
   ): Promise<Result<boolean, AppError>> {
     const { data, error } = await this.supabaseAdmin.rpc("concluir_envio_automatico_das", {
       p_cliente_id: clienteId,
       p_token: token,
       p_data: dataIso,
+      p_caminho: caminho,
     });
     if (error || typeof data !== "boolean") {
       return err(new ServicoExternoError("Falha ao registrar o envio do DAS."));

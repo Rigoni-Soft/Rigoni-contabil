@@ -194,6 +194,8 @@ afterAll(async () => {
   expect(erros).toEqual([]);
 });
 
+const CAMINHO_DAS = "c1/das/202610-hash.pdf";
+
 describe("leitura dos Clientes e janela de 24h", () => {
   it("telefone de envio com DDI e sem mensagem do contato: janela fechada, template", async () => {
     const c = await doLista(principal.id);
@@ -275,7 +277,12 @@ describe("reserva e conclusão do envio do DAS", () => {
   });
 
   it("token desconhecido não conclui nem altera o cadastro", async () => {
-    const conclusao = await clientes.concluirDas(principal.id, crypto.randomUUID(), "2026-10-05");
+    const conclusao = await clientes.concluirDas(
+      principal.id,
+      crypto.randomUUID(),
+      "2026-10-05",
+      CAMINHO_DAS,
+    );
 
     expect(conclusao).toEqual({ ok: true, value: false });
     expect(await statusDoDas(principal.id)).toEqual({ das_status: "pronto", data_envio_das: null });
@@ -286,7 +293,7 @@ describe("reserva e conclusão do envio do DAS", () => {
     const reserva = await clientes.reservarDas(principal.id);
     const token = reserva.ok ? reserva.value! : "";
 
-    expect(await clientes.concluirDas(principal.id, token, "2026-10-05")).toEqual({
+    expect(await clientes.concluirDas(principal.id, token, "2026-10-05", CAMINHO_DAS)).toEqual({
       ok: true,
       value: true,
     });
@@ -294,6 +301,10 @@ describe("reserva e conclusão do envio do DAS", () => {
     expect(await statusDoDas(principal.id)).toEqual({
       das_status: "enviado",
       data_envio_das: "2026-10-05",
+    });
+    expect(await clientes.obterDas(principal.id)).toMatchObject({
+      ok: true,
+      value: { dasStatus: "enviado", caminhoGuiaDas: CAMINHO_DAS },
     });
     const auditoria = await ok(
       admin
@@ -310,7 +321,7 @@ describe("reserva e conclusão do envio do DAS", () => {
       },
     ]);
     // Já concluída: o mesmo token não conclui de novo e não há nova reserva (DAS não está pronto).
-    expect(await clientes.concluirDas(principal.id, token, "2026-10-10")).toEqual({
+    expect(await clientes.concluirDas(principal.id, token, "2026-10-10", CAMINHO_DAS)).toEqual({
       ok: true,
       value: false,
     });
@@ -331,7 +342,7 @@ describe("reserva e conclusão do envio do DAS", () => {
     // O token A é antigo: liberar não derruba a reserva B, que conclui normalmente.
     await clientes.liberarDas(principal.id, tokenA);
     expect(await clientes.reservarDas(principal.id)).toEqual({ ok: true, value: null });
-    expect(await clientes.concluirDas(principal.id, tokenB, "2026-10-05")).toEqual({
+    expect(await clientes.concluirDas(principal.id, tokenB, "2026-10-05", CAMINHO_DAS)).toEqual({
       ok: true,
       value: true,
     });
@@ -362,13 +373,13 @@ describe("reserva e conclusão do envio do DAS", () => {
     const b = await clientes.reservarDas(principal.id);
     const tokenB = b.ok ? b.value! : "";
     expect(tokenB).not.toBe(tokenA);
-    expect(await clientes.concluirDas(principal.id, tokenB, "2026-10-15")).toEqual({
+    expect(await clientes.concluirDas(principal.id, tokenB, "2026-10-15", CAMINHO_DAS)).toEqual({
       ok: true,
       value: true,
     });
 
     // A volta atrasada: sem posse, não altera a conclusão de B nem a data.
-    expect(await clientes.concluirDas(principal.id, tokenA, "2026-10-01")).toEqual({
+    expect(await clientes.concluirDas(principal.id, tokenA, "2026-10-01", CAMINHO_DAS)).toEqual({
       ok: true,
       value: false,
     });
@@ -392,7 +403,7 @@ describe("reserva e conclusão do envio do DAS", () => {
         .eq("cliente_id", principal.id),
     );
 
-    expect(await clientes.concluirDas(principal.id, token, "2026-10-05")).toEqual({
+    expect(await clientes.concluirDas(principal.id, token, "2026-10-05", CAMINHO_DAS)).toEqual({
       ok: true,
       value: false,
     });
@@ -522,8 +533,8 @@ describe("rodada real com a reserva ocupada", () => {
       },
       obterDas: (id: string) => clientes.obterDas(id),
       reservarDas: (id: string) => clientes.reservarDas(id),
-      concluirDas: (id: string, token: string, data: string) =>
-        clientes.concluirDas(id, token, data),
+      concluirDas: (id: string, token: string, data: string, caminho: string) =>
+        clientes.concluirDas(id, token, data, caminho),
       liberarDas: (id: string, token: string) => clientes.liberarDas(id, token),
     };
     let quedaNaEntrega = true;
@@ -562,9 +573,9 @@ describe("rodada real com a reserva ocupada", () => {
             },
           },
           {
-            publicar: async () => sucesso("https://storage.test/das.pdf"),
-            reencontrar: async () => sucesso(null),
-            descartar: async () => undefined,
+            publicar: async () =>
+              sucesso({ url: "https://storage.test/das.pdf", caminho: CAMINHO_DAS }),
+            reencontrar: async () => sucesso("https://storage.test/das.pdf"),
           },
           0,
         ),
@@ -575,7 +586,6 @@ describe("rodada real com a reserva ocupada", () => {
         ),
         alertasNoRelogioDaRodada,
         { agora: () => agora },
-        { descartar: async () => undefined },
       );
     };
     const abertos = async () =>
@@ -627,11 +637,12 @@ describe("guia publicada", () => {
       { id: "teste", periodo: "202610" },
     );
 
-    expect(link.ok && link.value).toContain("/guias-fiscais/");
-    const url = link.ok ? link.value : "";
+    expect(link.ok && link.value.url).toContain("/guias-fiscais/");
+    const url = link.ok ? link.value.url : "";
     // O objeto é limpo no teardown pelo caminho que o link carrega.
     const caminho = new URL(url).pathname.split("/guias-fiscais/")[1];
     if (caminho) publicados.push(decodeURIComponent(caminho));
+    expect(link.ok && link.value.caminho).toBe(decodeURIComponent(caminho ?? ""));
     const baixado = await fetch(url);
     expect(baixado.status).toBe(200);
     expect(await baixado.text()).toBe("%PDF-1.4 teste");
@@ -732,8 +743,8 @@ describe("DAS pedido pela URA (#124)", () => {
       },
       obterDas: (id: string) => clientes.obterDas(id),
       reservarDas: (id: string) => clientes.reservarDas(id),
-      concluirDas: (id: string, token: string, data: string) =>
-        clientes.concluirDas(id, token, data),
+      concluirDas: (id: string, token: string, data: string, caminho: string) =>
+        clientes.concluirDas(id, token, data, caminho),
       liberarDas: (id: string, token: string) => clientes.liberarDas(id, token),
     };
     const rodada = await new ExecutarLembretesDocumentoEDas(
@@ -746,7 +757,6 @@ describe("DAS pedido pela URA (#124)", () => {
       ),
       alertas,
       { agora: () => AGORA },
-      { descartar: async () => undefined },
     ).execute();
 
     expect(rodada.ok && rodada.value.dasEnviados).toBe(0);

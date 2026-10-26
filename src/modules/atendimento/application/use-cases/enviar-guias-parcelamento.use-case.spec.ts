@@ -65,8 +65,8 @@ function montar(
   const emails: unknown[] = [];
   const registrados: [string, string][] = [];
   const identidades: string[] = [];
+  const caminhos: string[] = [];
   const publicadas: unknown[] = [];
-  const descartadas: unknown[] = [];
   const ignorados: (readonly string[])[] = [];
   const buscarGuiasParcelamento = jest.fn(async (_: string, ignorar: readonly string[]) => {
     ignorados.push(ignorar);
@@ -77,9 +77,10 @@ function montar(
       listarEmAberto: async () => parcelamentos,
       contarComuns: async () => ok(0),
       guiasEntregues: async () => ok(opcoes.entregues ?? []),
-      registrarEnvio: async (id, parcela, identidade) => {
+      registrarEnvio: async (id, parcela, identidade, caminho) => {
         registrados.push([id, parcela]);
         identidades.push(identidade);
+        caminhos.push(caminho);
         return opcoes.registrar?.(id, parcela) ?? ok("registrado");
       },
     },
@@ -87,12 +88,12 @@ function montar(
     {
       publicar: async (_clienteId, _guia, destino) => {
         publicadas.push(destino);
-        return ok(`https://storage.test/${destino?.id}/${destino?.periodo}.pdf`);
+        return ok({
+          url: `https://storage.test/${destino?.id}/${destino?.periodo}.pdf`,
+          caminho: `c1/${destino?.id}/${destino?.periodo}-hash.pdf`,
+        });
       },
-      reencontrar: async () => ok(null),
-      descartar: async (_clienteId, chave) => {
-        descartadas.push(chave);
-      },
+      reencontrar: async (caminho) => ok(`https://storage.test/${caminho}`),
     },
     new EntregarComunicacaoPorCanais(new EnviarComunicacaoProativa(envio, 3, 0), {
       enviar: async (email) => {
@@ -117,7 +118,7 @@ function montar(
     registrados,
     identidades,
     publicadas,
-    descartadas,
+    caminhos,
     ignorados,
     buscarGuiasParcelamento,
   };
@@ -129,7 +130,7 @@ describe("EnviarGuiasParcelamento", () => {
   });
 
   it("entrega a guia do parcelamento em aberto e registra o envio com a identidade da guia", async () => {
-    const { nucleo, envio, registrados, identidades, publicadas } = montar(
+    const { nucleo, envio, registrados, identidades, caminhos, publicadas } = montar(
       ok([parcelamento("p1")]),
     );
 
@@ -147,6 +148,7 @@ describe("EnviarGuiasParcelamento", () => {
     expect(publicadas).toEqual([{ id: "p1", periodo: "202610" }]);
     expect(registrados).toEqual([["p1", "202610"]]);
     expect(identidades).toEqual(["202610:10000"]);
+    expect(caminhos).toEqual(["c1/p1/202610-hash.pdf"]);
   });
 
   it.each([
@@ -369,7 +371,7 @@ describe("EnviarGuiasParcelamento", () => {
   );
 
   it("uma mensagem por guia: a falha de entrega de uma vira falha_envio e não afeta a outra", async () => {
-    const { nucleo, envio, registrados, descartadas } = montar(
+    const { nucleo, envio, registrados, caminhos } = montar(
       ok([parcelamento("a", { interno: true })]),
       { guias: async () => ok([guia("202609"), guia("202610")]) },
     );
@@ -390,7 +392,8 @@ describe("EnviarGuiasParcelamento", () => {
     ]);
     expect(envio.templatesEnviados).toHaveLength(1);
     expect(registrados).toEqual([["a", "202610"]]);
-    expect(descartadas).toEqual([{ id: "a", periodo: "202609" }]);
+    // A entrega recusada (202609) fica publicada, mas só a aceita grava o caminho no registro.
+    expect(caminhos).toEqual(["c1/a/202610-hash.pdf"]);
   });
 
   it("CNPJ do Cliente ilegível: falha_envio e nada é enviado nem registrado", async () => {
@@ -550,7 +553,9 @@ describe("EnviarGuiasParcelamento", () => {
     // a quitou depois de receber 202610 e saiu da lista; b é o único em aberto.
     const { nucleo, envio, registrados } = montar(ok([parcelamento("b")]), {
       guias: async () => ok([guia("202610", 10_000)]),
-      entregues: [{ parcelamentoId: "a", parcela: "202610", identidade: "202610:10000" }],
+      entregues: [
+        { parcelamentoId: "a", parcela: "202610", identidade: "202610:10000", caminho: null },
+      ],
     });
 
     const andamento = await nucleo.execute({ cliente, agora });

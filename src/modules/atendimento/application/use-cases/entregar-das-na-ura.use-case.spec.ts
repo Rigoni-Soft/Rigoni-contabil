@@ -6,7 +6,6 @@ import type {
   MensagemEnviada,
 } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type { GuiaPublicadaPort } from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
-import type { ChaveGuia } from "@/modules/atendimento/domain/services/guia-guardada.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -24,7 +23,9 @@ const GUIA: GuiaDasParaEnvio = {
   competencia: "09/2026",
   vencimento: "20/10/2026",
   guia: { url: "https://storage/das-nova.pdf", nomeArquivo: "das-09-2026.pdf" },
+  caminho: "c1/das/202610-nova.pdf",
 };
+const CAMINHO_ENTREGUE = "c1/das/202610-entregue.pdf";
 
 function montar(
   opcoes: {
@@ -33,7 +34,8 @@ function montar(
     dataEnvioDas?: string | null;
     reserva?: string | null;
     guia?: Result<GuiaDasParaEnvio, AppError>;
-    guardada?: string | null;
+    caminhoGuiaDas?: string | null;
+    reencontroFalha?: boolean;
     envioFalha?: boolean;
     concluiu?: boolean;
   } = {},
@@ -41,10 +43,10 @@ function montar(
   const chamadas: string[] = [];
   const mensagens: MensagemEnviada[] = [];
   const documentos: DocumentoEnviado[] = [];
-  const conclusoes: { token: string; dataIso: string }[] = [];
+  const conclusoes: { token: string; dataIso: string; caminho: string }[] = [];
   const liberacoes: string[] = [];
   const guiasPedidas: { clienteId: string; mes: string }[] = [];
-  const guardadasLidas: ChaveGuia[] = [];
+  const caminhosLidos: string[] = [];
 
   const clientes: Pick<
     ClientesParaLembretePort,
@@ -58,6 +60,8 @@ function montar(
           : {
               dasStatus: opcoes.dasStatus === undefined ? "pronto" : opcoes.dasStatus,
               dataEnvioDas: opcoes.dataEnvioDas ?? null,
+              caminhoGuiaDas:
+                opcoes.caminhoGuiaDas === undefined ? CAMINHO_ENTREGUE : opcoes.caminhoGuiaDas,
             },
       );
     },
@@ -65,9 +69,9 @@ function montar(
       chamadas.push("reservarDas");
       return ok(opcoes.reserva === undefined ? "token-1" : opcoes.reserva);
     },
-    concluirDas: async (_clienteId, token, dataIso) => {
+    concluirDas: async (_clienteId, token, dataIso, caminho) => {
       chamadas.push("concluirDas");
-      conclusoes.push({ token, dataIso });
+      conclusoes.push({ token, dataIso, caminho });
       return ok(opcoes.concluiu ?? true);
     },
     liberarDas: async (_clienteId, token) => {
@@ -83,17 +87,13 @@ function montar(
       return opcoes.guia ?? ok(GUIA);
     },
   };
-  const descartadas: ChaveGuia[] = [];
-  const publicadas: Pick<GuiaPublicadaPort, "reencontrar" | "descartar"> = {
-    descartar: async (_clienteId, chave) => {
-      descartadas.push(chave);
-    },
-    reencontrar: async (_clienteId, chave) => {
+  const publicadas: Pick<GuiaPublicadaPort, "reencontrar"> = {
+    reencontrar: async (caminho) => {
       chamadas.push("reencontrar");
-      guardadasLidas.push(chave);
-      return ok(
-        opcoes.guardada === undefined ? "https://storage/das-guardada.pdf" : opcoes.guardada,
-      );
+      caminhosLidos.push(caminho);
+      return opcoes.reencontroFalha
+        ? err(new ServicoExternoError("sem link"))
+        : ok("https://storage/das-guardada.pdf");
     },
   };
   const envio = {
@@ -116,8 +116,7 @@ function montar(
     conclusoes,
     liberacoes,
     guiasPedidas,
-    guardadasLidas,
-    descartadas,
+    caminhosLidos,
   };
 }
 
@@ -160,7 +159,9 @@ describe("EntregarDasNaUra", () => {
         { telefone: TELEFONE, nomeArquivo: "das-09-2026.pdf", url: "https://storage/das-nova.pdf" },
       ]);
       expect(guiasPedidas).toEqual([{ clienteId: CLIENTE, mes: "2026-10" }]);
-      expect(conclusoes).toEqual([{ token: "token-1", dataIso: "2026-10-20" }]);
+      expect(conclusoes).toEqual([
+        { token: "token-1", dataIso: "2026-10-20", caminho: "c1/das/202610-nova.pdf" },
+      ]);
       expect(chamadas).toEqual([
         "obterDas",
         "reservarDas",
@@ -170,20 +171,19 @@ describe("EntregarDasNaUra", () => {
       ]);
     });
 
-    it("com o envio recusado descarta o publicado, libera a reserva, não grava enviado e devolve o erro", async () => {
-      const { caso, conclusoes, liberacoes, descartadas } = montar({ envioFalha: true });
+    it("com o envio recusado libera a reserva, não grava enviado nem caminho e devolve o erro", async () => {
+      const { caso, conclusoes, liberacoes } = montar({ envioFalha: true });
 
       const r = await caso.execute({ clienteId: CLIENTE, telefone: TELEFONE });
 
       expect(r.ok).toBe(false);
       expect(conclusoes).toEqual([]);
       expect(liberacoes).toEqual(["token-1"]);
-      expect(descartadas).toEqual([{ id: "das", periodo: "202610" }]);
     });
 
     it("com falha do provedor libera a reserva e devolve o erro sem enviar nada", async () => {
       const proibido = new ForbiddenError("sem procuração");
-      const { caso, documentos, conclusoes, liberacoes, descartadas } = montar({
+      const { caso, documentos, conclusoes, liberacoes } = montar({
         guia: err(proibido),
       });
 
@@ -193,7 +193,6 @@ describe("EntregarDasNaUra", () => {
       expect(documentos).toEqual([]);
       expect(conclusoes).toEqual([]);
       expect(liberacoes).toEqual(["token-1"]);
-      expect(descartadas).toEqual([]);
     });
 
     it("com reserva ocupada por outra tentativa avisa que o envio está em andamento, sem provedor", async () => {
@@ -222,13 +221,13 @@ describe("EntregarDasNaUra", () => {
   describe("DAS já enviado", () => {
     const enviado = { dasStatus: "enviado", dataEnvioDas: "2026-10-05" } as const;
 
-    it("reenvia a guia guardada do mês do envio, sem provedor, reserva nem nova baixa", async () => {
-      const { caso, chamadas, documentos, guardadasLidas } = montar(enviado);
+    it("reenvia o PDF do caminho guardado no envio aceito, sem provedor, reserva nem nova baixa", async () => {
+      const { caso, chamadas, documentos, caminhosLidos } = montar(enviado);
 
       const r = await caso.execute({ clienteId: CLIENTE, telefone: TELEFONE });
 
       expect(r.ok).toBe(true);
-      expect(guardadasLidas).toEqual([{ id: "das", periodo: "202610" }]);
+      expect(caminhosLidos).toEqual([CAMINHO_ENTREGUE]);
       expect(documentos).toEqual([
         {
           telefone: TELEFONE,
@@ -239,18 +238,27 @@ describe("EntregarDasNaUra", () => {
       expect(chamadas).toEqual(["obterDas", "reencontrar", "enviarDocumento"]);
     });
 
-    it("enviado sem data (dado legado) procura a guia do mês de hoje, e não diz que está indisponível", async () => {
-      const { caso, guardadasLidas, mensagens } = montar({ dasStatus: "enviado" });
+    it("enviado sem data (dado legado) reenvia o caminho guardado e nomeia pelo mês de hoje", async () => {
+      const { caso, documentos, mensagens } = montar({ dasStatus: "enviado" });
 
       const r = await caso.execute({ clienteId: CLIENTE, telefone: TELEFONE });
 
       expect(r.ok).toBe(true);
-      expect(guardadasLidas).toEqual([{ id: "das", periodo: "202610" }]);
+      expect(documentos.map((d) => d.nomeArquivo)).toEqual(["das-202610.pdf"]);
       expect(mensagens).toEqual([]);
     });
 
-    it("sem guia guardada devolve erro em vez de chamar o provedor", async () => {
-      const { caso, chamadas } = montar({ ...enviado, guardada: null });
+    it("enviado sem caminho guardado devolve erro, sem adivinhar versão nem chamar o provedor", async () => {
+      const { caso, chamadas } = montar({ ...enviado, caminhoGuiaDas: null });
+
+      const r = await caso.execute({ clienteId: CLIENTE, telefone: TELEFONE });
+
+      expect(r.ok).toBe(false);
+      expect(chamadas).toEqual(["obterDas"]);
+    });
+
+    it("falha ao gerar o link do caminho guardado é erro, sem enviar documento", async () => {
+      const { caso, chamadas } = montar({ ...enviado, reencontroFalha: true });
 
       const r = await caso.execute({ clienteId: CLIENTE, telefone: TELEFONE });
 
