@@ -63,7 +63,7 @@ export async function desfazerUpload(
   );
   return err(
     new EstadoInconsistenteError(
-      "Não foi possível anexar a guia nem remover o arquivo enviado. Avise o suporte.",
+      "Não foi possível gravar a guia nem remover o arquivo enviado. Avise o suporte.",
       parcelamentoId,
     ),
   );

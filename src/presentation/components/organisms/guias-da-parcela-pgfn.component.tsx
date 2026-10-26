@@ -29,6 +29,8 @@ type GuiaDaListaDto = {
 type GuiasDaParcelaPgfnProps = {
   // Prefixo dos ids (um conjunto de campos por Parcelamento na mesma tela).
   id: string;
+  // Id da região (alvo do foco depois de remover uma guia); vem pronto do presenter.
+  idDaRegiao: string;
   guias: GuiaDaListaDto[];
   carregando: boolean;
   erroDaLista?: string;
@@ -60,6 +62,7 @@ const BOTAO_DA_GUIA =
 // nada aqui é <form> (nem submete): os botões são `button` e cada ação vai por Server Action própria.
 export function GuiasDaParcelaPgfn({
   id,
+  idDaRegiao,
   guias,
   carregando,
   erroDaLista,
@@ -86,7 +89,7 @@ export function GuiasDaParcelaPgfn({
       espaco={3}
       role="group"
       aria-label="Guias da parcela"
-      id={`${id}-regiao`}
+      id={idDaRegiao}
       tabIndex={-1}
       className="border-t border-border pt-3 outline-none"
     >
