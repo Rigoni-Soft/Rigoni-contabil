@@ -28,6 +28,8 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   const pendente = acaoEmCurso !== undefined;
   const [erroServidor, setErroServidor] = useState<string | undefined>();
   const [sucesso, setSucesso] = useState<string | undefined>();
+  // Guia anexada que ainda não foi liberada: não é sucesso (pede conferência) nem erro (foi gravada).
+  const [aviso, setAviso] = useState<string | undefined>();
 
   const lista = useQuery<GuiaDaParcela[]>({
     queryKey: chave,
@@ -48,6 +50,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     setAcaoEmCurso(qual);
     setErroServidor(undefined);
     setSucesso(undefined);
+    setAviso(undefined);
     try {
       const erro = await acao();
       if (erro) setErroServidor(erro);
@@ -84,11 +87,11 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
       setContaNegociacao("");
       setArquivo(undefined);
       const anexada = resultado.data;
-      setSucesso(
-        anexada.estado === "confirmada"
-          ? "Guia anexada e confirmada: liberada ao envio."
-          : `Guia anexada, a confirmar. ${anexada.motivo ?? ""} Confirme para liberá-la ao envio.`,
-      );
+      if (anexada.estado === "confirmada") {
+        setSucesso("Guia anexada e confirmada: liberada ao envio.");
+      } else {
+        setAviso(`Guia anexada, mas ainda não liberada ao envio. ${anexada.motivo ?? ""}`.trim());
+      }
       await queryClient.invalidateQueries({ queryKey: chave });
     });
   };
@@ -108,6 +111,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     <T>(campo: keyof Erros, definir: (valor: T) => void) =>
     (valor: T) => {
       setSucesso(undefined);
+      setAviso(undefined);
       setErroServidor(undefined);
       setErros((atuais) => ({ ...atuais, [campo]: undefined }));
       definir(valor);
@@ -129,6 +133,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     anexando: acaoEmCurso === "anexar",
     erroServidor,
     sucesso,
+    aviso,
     anexar,
     confirmar,
   };

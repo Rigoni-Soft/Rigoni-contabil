@@ -193,6 +193,9 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     await usuario.click(regiao.getByRole("button", { name: "Anexar guia" }));
 
     expect(await screen.findByText(/conta do PDF .999. é diferente/)).toBeInTheDocument();
+    expect(screen.getByText(/ainda não liberada ao envio/)).toBeInTheDocument();
+    // Pede conferência, não comemora: nada de "anexada e confirmada".
+    expect(screen.queryByText(/anexada e confirmada/i)).not.toBeInTheDocument();
   });
 
   it("campos faltando: aponta o PDF e não chama a action", async () => {

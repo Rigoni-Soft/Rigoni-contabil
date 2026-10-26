@@ -329,6 +329,10 @@ sobrepor dois significados no mesmo token.
 O selo de status do mês de cada Parcelamento no Editar cliente (#122) segue o mesmo contrato:
 "Enviado no mês" em `primary` com `CheckCircle2`, "Pendente no mês" em `muted` com `Clock` (pendente
 ali não é falha, então sem `destructive`) e "Quitado" neutro, só texto.
+O que não falhou nem terminou, mas pede conferência (ex.: guia da parcela PGFN anexada e ainda "a
+confirmar"), usa `AvisoDeStatus tipo="atencao"`: `Clock` em `foreground`, anunciado como `status`, o
+mesmo par do selo "A confirmar". Nunca o check de sucesso: o Funcionário leria "liberada" onde ainda
+falta conferir.
 
 **`FieldError` com texto longo:** o ícone alinha na primeira linha
 (`items-start` + `mt-[3px]`, 14 px de ícone sobre 20 px de linha), então o
