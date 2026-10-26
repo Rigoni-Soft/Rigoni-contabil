@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { abrirEmNovaAba } from "@/presentation/lib/abrir-em-nova-aba";
 import type { GuiaDaParcela } from "@/modules/clientes/application/ports/out/guia-parcela-pgfn.repository";
 
 import {
@@ -60,6 +61,11 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     },
   });
 
+  const limparAvisos = () => {
+    setErroServidor(undefined);
+    setResultado(undefined);
+  };
+
   // As ações compartilham o ciclo: limpa os avisos, roda, e a lista é relida do banco.
   const executar = async (acao: () => Promise<string | undefined>, ehAnexo = false) => {
     // Os botões ficam aria-disabled (não perdem o foco) e por isso ainda recebem o clique: ele não
@@ -71,8 +77,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     }
     setPendente(true);
     setAnexando(ehAnexo);
-    setErroServidor(undefined);
-    setResultado(undefined);
+    limparAvisos();
     try {
       const erro = await acao();
       if (erro) setErroServidor(erro);
@@ -149,8 +154,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     });
 
   const pedirRemocao = (competencia: string) => {
-    setResultado(undefined);
-    setErroServidor(undefined);
+    limparAvisos();
     setRemovendo(competencia);
   };
 
@@ -175,22 +179,11 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
 
   const visualizar = (competencia: string) =>
     executar(async () => {
-      // A aba abre no clique (senão o bloqueador de pop-up barra) e recebe o link depois que a
-      // Server Action devolve; `opener` zerado no lugar de `noopener`, para guardar a referência.
-      const aba = window.open("about:blank", "_blank");
-      if (aba) aba.opener = null;
-      try {
-        const resultado = await obterLinkGuiaParcelaPgfnAction({ parcelamentoId, competencia });
-        if (resultado.ok && aba) {
-          aba.location.href = resultado.data.url;
-          return;
-        }
-        aba?.close();
-        return resultado.ok ? ERRO_ABRIR : resultado.error.message;
-      } catch (erro) {
-        aba?.close();
-        throw erro;
-      }
+      const aba = await abrirEmNovaAba(() =>
+        obterLinkGuiaParcelaPgfnAction({ parcelamentoId, competencia }),
+      );
+      if (aba.tipo === "erro") return aba.mensagem;
+      if (aba.tipo === "bloqueada") return ERRO_ABRIR;
     });
 
   const confirmar = (competencia: string) =>
@@ -207,8 +200,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   const aoEditar =
     <T>(campo: keyof Erros, definir: (valor: T) => void) =>
     (valor: T) => {
-      setResultado(undefined);
-      setErroServidor(undefined);
+      limparAvisos();
       setErros((atuais) => ({ ...atuais, [campo]: undefined }));
       definir(valor);
     };

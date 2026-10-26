@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { abrirEmNovaAba } from "@/presentation/lib/abrir-em-nova-aba";
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 
 import { documentoEmDestaque } from "./documentos-contratuais.presenter";
@@ -25,28 +26,17 @@ export function useVisualizarDocumentoContratual(
   const abrir = async () => {
     setAbrindo(true);
     setAviso(undefined);
-    // A aba abre de forma síncrona no clique (senão o bloqueador de pop-up barra) e recebe o link
-    // depois que a Server Action devolve; sem `noopener` para guardar a referência, `opener` é zerado.
-    const aba = window.open("about:blank", "_blank");
-    if (aba) aba.opener = null;
     try {
-      const resultado = await obterLinkDocumentoContratualAction({
-        clienteId,
-        tipo: documento.tipo,
-        numero: documento.numero,
-      });
-      if (resultado.ok && aba) {
-        aba.location.href = resultado.data.url;
-        return;
-      }
-      aba?.close();
-      if (resultado.ok) {
-        setAviso({ erro: ERRO_ABA_BLOQUEADA, link: resultado.data.url });
-        return;
-      }
-      setAviso({ erro: resultado.error.message });
+      const aba = await abrirEmNovaAba(() =>
+        obterLinkDocumentoContratualAction({
+          clienteId,
+          tipo: documento.tipo,
+          numero: documento.numero,
+        }),
+      );
+      if (aba.tipo === "bloqueada") setAviso({ erro: ERRO_ABA_BLOQUEADA, link: aba.url });
+      if (aba.tipo === "erro") setAviso({ erro: aba.mensagem });
     } catch {
-      aba?.close();
       setAviso({ erro: ERRO_ABRIR });
     } finally {
       setAbrindo(false);
