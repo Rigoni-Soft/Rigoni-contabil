@@ -89,19 +89,22 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
       const anexada = resultado.data;
       if (anexada.estado === "confirmada") {
         setSucesso("Guia anexada e confirmada: liberada ao envio.");
+        await queryClient.invalidateQueries({ queryKey: chave });
+        return;
       }
+      // O aviso sai já, completo, sem esperar a lista (rede lenta não deixa a pessoa sem resposta)...
+      setAviso(`Guia anexada, mas ainda não liberada ao envio. ${anexada.motivo ?? ""}`.trim());
       await queryClient.invalidateQueries({ queryKey: chave });
-      if (anexada.estado === "confirmada") return;
-      // Motivo já na lista: o aviso só aponta para ele (dizer duas vezes é ruído). Sem ele na lista
-      // (a confirmação automática falhou depois do anexo), o aviso é o único lugar que o traz.
+      // ...e encurta quando o motivo já está na lista (dizer duas vezes é ruído). Sem ele lá (a
+      // confirmação automática falhou depois do anexo), o aviso completo é o único lugar que o traz.
       const naLista = queryClient
         .getQueryData<GuiaDaParcela[]>(chave)
         ?.find((guia) => guia.competencia === anexada.competencia)?.motivo;
-      setAviso(
-        naLista
-          ? "Guia anexada, mas ainda não liberada ao envio. Confira o motivo na lista e confirme."
-          : `Guia anexada, mas ainda não liberada ao envio. ${anexada.motivo ?? ""}`.trim(),
-      );
+      if (naLista) {
+        setAviso(
+          "Guia anexada, mas ainda não liberada ao envio. Confira o motivo na lista e confirme.",
+        );
+      }
     });
   };
 

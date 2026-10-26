@@ -221,6 +221,28 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     expect(screen.queryByText(/anexada e confirmada/i)).not.toBeInTheDocument();
   });
 
+  it("o aviso do anexo aparece sem esperar a lista recarregar", async () => {
+    const guia = {
+      competencia: "202610",
+      contaNegociacao: "999",
+      estado: "a_confirmar",
+      motivo: "Conferir a conta.",
+    };
+    anexarMock.mockResolvedValue({ ok: true, data: guia });
+    const usuario = userEvent.setup();
+    render();
+    const regiao = within(await regiaoDaGuia());
+    // A relistagem do anexo nunca responde: o aviso não pode depender dela.
+    listarMock.mockReturnValue(new Promise(() => undefined));
+
+    await usuario.upload(regiao.getByLabelText(/pdf da guia/i), pdf);
+    await usuario.click(regiao.getByRole("button", { name: "Anexar guia" }));
+
+    expect(
+      await screen.findByText(/ainda não liberada ao envio. Conferir a conta./),
+    ).toBeInTheDocument();
+  });
+
   it("com o motivo já na lista, o aviso só aponta para ele (o texto aparece uma vez)", async () => {
     const motivo = "A conta do PDF (999) é diferente da conta do Parcelamento (PGFN-1).";
     const guia = { competencia: "202610", contaNegociacao: "999", estado: "a_confirmar", motivo };
