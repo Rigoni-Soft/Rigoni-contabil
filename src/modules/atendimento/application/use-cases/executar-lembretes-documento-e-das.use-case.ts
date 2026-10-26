@@ -22,7 +22,9 @@ import type {
   ClienteParaLembrete,
   ClientesParaLembretePort,
 } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
+import type { GuiaPublicadaPort } from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
+import { chaveDoDas } from "@/modules/atendimento/domain/services/guia-guardada.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { temDestinatario } from "@/shared/kernel/forma-envio";
 import { diaDoMes, hojeIso, mesAtual } from "@/shared/kernel/mes-atual";
@@ -46,6 +48,7 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     private readonly entrega: EntregarComunicacaoPorCanaisPort,
     private readonly alertas: AlertaSetorPort,
     private readonly relogio: RelogioPort,
+    private readonly publicadas: Pick<GuiaPublicadaPort, "descartar">,
   ) {}
 
   async execute(): Promise<Result<LembretesExecutados, AppError>> {
@@ -125,7 +128,11 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
       empresa: cliente.empresa,
       ...guia.value,
     };
-    return this.entregar(cliente, comunicacao, agora);
+    const andamento = await this.entregar(cliente, comunicacao, agora);
+    if (!andamento.enviado) {
+      await this.publicadas.descartar(cliente.clienteId, chaveDoDas(mesAtual(agora)));
+    }
+    return andamento;
   }
 
   private async entregar(

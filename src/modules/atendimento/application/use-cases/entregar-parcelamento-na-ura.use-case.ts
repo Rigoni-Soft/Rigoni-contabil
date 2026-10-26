@@ -71,9 +71,7 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
     if (comuns.length === 0) return this.avisarSemParcelamento(clienteId, telefone);
 
     const alvos = await this.definirAlvos(clienteId, emAberto.value, comuns);
-    if (!alvos.ok) return alvos;
-
-    const falhas = await this.entregarTodos(clienteId, telefone, alvos.value);
+    const falhas = await this.entregarTodos(clienteId, telefone, alvos);
     return falhas.length === 0
       ? ok(undefined)
       : this.envio.enviar({
@@ -107,17 +105,18 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
     clienteId: string,
     emAberto: ParcelamentoDoCliente[],
     comuns: ParcelamentoDoCliente[],
-  ): Promise<Result<Alvo[], AppError>> {
+  ): Promise<Alvo[]> {
     const agora = this.relogio.agora();
     const mes = mesAtual(agora).replace("-", "");
     const anterior = mesAnterior(agora);
     const novas = await this.buscarNovas(clienteId, emAberto, comuns, mes, anterior);
-    if (!novas.ok) return novas;
-    return ok(comuns.map((p) => escolherAlvo(p, novas.value, mes, anterior)));
+    // Falha ao emitir não impede o reenvio do que já está registrado e guardado: só os parcelamentos
+    // que dependiam de guia nova ficam sem alvo e entram na lista de falhas.
+    if (!novas.ok) console.error("Guias novas do parcelamento indisponíveis para a URA.");
+    return comuns.map((p) => escolherAlvo(p, novas.ok ? novas.value : new Map(), mes, anterior));
   }
 
-  // O provedor só é chamado se algum comum ainda não tem a parcela do mês registrada. O erro dele
-  // (sem autorização, fora do ar) sobe antes de qualquer envio.
+  // O provedor só é chamado se algum comum ainda não tem a parcela do mês registrada.
   private async buscarNovas(
     clienteId: string,
     emAberto: ParcelamentoDoCliente[],
@@ -158,6 +157,7 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
       : await this.publicadas.reencontrar(clienteId, chave);
     if (!url.ok || !url.value) return false;
     const enviada = await this.envio.enviarDocumento({ telefone, nomeArquivo, url: url.value });
+    if (!enviada.ok && nova) await this.publicadas.descartar(clienteId, chave);
     if (!enviada.ok || !nova) return enviada.ok;
 
     // A guia já saiu: se o registro falha, o contato recebeu e o rastro fica no log.

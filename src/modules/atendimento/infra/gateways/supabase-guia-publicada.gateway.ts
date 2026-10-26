@@ -46,7 +46,17 @@ export class SupabaseGuiaPublicadaGateway implements GuiaPublicadaPort {
     return ok(link.data.signedUrl);
   }
 
-  // A guia entregue é a mais antiga do período: uma reemitida com outros bytes cai em outro caminho.
+  async descartar(clienteId: string, chave: ChaveGuia): Promise<void> {
+    const bucket = this.supabaseAdmin.storage.from(BUCKET);
+    const pasta = pastaDaGuia(clienteId, chave);
+    const lista = await bucket.list(pasta, { search: chave.periodo });
+    if (lista.error) return;
+    const nomes = lista.data.filter(({ name }) => name.startsWith(`${chave.periodo}-`));
+    if (nomes.length > 0) await bucket.remove(nomes.map(({ name }) => `${pasta}/${name}`));
+  }
+
+  // Uma recusa descarta o publicado (`descartar`), então o que sobra no período foi entregue; uma
+  // reemitida com outros bytes cai em outro caminho e, entre entregues, vale a mais antiga.
   async reencontrar(clienteId: string, chave: ChaveGuia): Promise<Result<string | null, AppError>> {
     const bucket = this.supabaseAdmin.storage.from(BUCKET);
     const pasta = pastaDaGuia(clienteId, chave);

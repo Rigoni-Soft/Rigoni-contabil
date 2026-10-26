@@ -96,4 +96,26 @@ describe("SupabaseGuiaPublicadaGateway", () => {
     expect(await gateway.reencontrar("c1", { id: "acordo", periodo: "202609" })).toEqual(ok(null));
     expect(await gateway.reencontrar("c1", { id: "outro", periodo: "202610" })).toEqual(ok(null));
   });
+
+  it("A recusado e descartado, B aceito: o reenvio reencontra B, e outro acordo não é tocado", async () => {
+    const { gateway, objetos } = montar(() => false);
+    await gateway.publicar("c1", guia("A"), acordo);
+    await gateway.publicar("c1", guia("outro"), { id: "outro", periodo: "202610" });
+    await gateway.descartar("c1", acordo);
+
+    await gateway.publicar("c1", guia("B"), acordo);
+    const reenvio = await gateway.reencontrar("c1", acordo);
+
+    const b = await gateway.publicar("c1", guia("B"), acordo);
+    expect(reenvio).toEqual(b);
+    expect(objetos.size).toBe(2);
+    expect([...objetos.values()].map((x) => x.toString()).sort()).toEqual(["B", "outro"]);
+  });
+
+  it("descartar sem nada publicado, ou com a listagem falhando, não lança", async () => {
+    const { gateway, bucket } = montar(() => false);
+    await expect(gateway.descartar("c1", acordo)).resolves.toBeUndefined();
+    bucket.list.mockResolvedValueOnce({ data: null as never, error: { message: "x" } as never });
+    await expect(gateway.descartar("c1", acordo)).resolves.toBeUndefined();
+  });
 });

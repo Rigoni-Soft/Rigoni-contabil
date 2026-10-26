@@ -83,7 +83,11 @@ function montar(
       return opcoes.guia ?? ok(GUIA);
     },
   };
-  const publicadas: Pick<GuiaPublicadaPort, "reencontrar"> = {
+  const descartadas: ChaveGuia[] = [];
+  const publicadas: Pick<GuiaPublicadaPort, "reencontrar" | "descartar"> = {
+    descartar: async (_clienteId, chave) => {
+      descartadas.push(chave);
+    },
     reencontrar: async (_clienteId, chave) => {
       chamadas.push("reencontrar");
       guardadasLidas.push(chave);
@@ -113,6 +117,7 @@ function montar(
     liberacoes,
     guiasPedidas,
     guardadasLidas,
+    descartadas,
   };
 }
 
@@ -165,19 +170,22 @@ describe("EntregarDasNaUra", () => {
       ]);
     });
 
-    it("com o envio recusado libera a reserva, não grava enviado e devolve o erro", async () => {
-      const { caso, conclusoes, liberacoes } = montar({ envioFalha: true });
+    it("com o envio recusado descarta o publicado, libera a reserva, não grava enviado e devolve o erro", async () => {
+      const { caso, conclusoes, liberacoes, descartadas } = montar({ envioFalha: true });
 
       const r = await caso.execute({ clienteId: CLIENTE, telefone: TELEFONE });
 
       expect(r.ok).toBe(false);
       expect(conclusoes).toEqual([]);
       expect(liberacoes).toEqual(["token-1"]);
+      expect(descartadas).toEqual([{ id: "das", periodo: "202610" }]);
     });
 
     it("com falha do provedor libera a reserva e devolve o erro sem enviar nada", async () => {
       const proibido = new ForbiddenError("sem procuração");
-      const { caso, documentos, conclusoes, liberacoes } = montar({ guia: err(proibido) });
+      const { caso, documentos, conclusoes, liberacoes, descartadas } = montar({
+        guia: err(proibido),
+      });
 
       const r = await caso.execute({ clienteId: CLIENTE, telefone: TELEFONE });
 
@@ -185,6 +193,7 @@ describe("EntregarDasNaUra", () => {
       expect(documentos).toEqual([]);
       expect(conclusoes).toEqual([]);
       expect(liberacoes).toEqual(["token-1"]);
+      expect(descartadas).toEqual([]);
     });
 
     it("com reserva ocupada por outra tentativa avisa que o envio está em andamento, sem provedor", async () => {

@@ -206,7 +206,13 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
           }),
           descricao,
         );
-    if (!andamento.enviado) return { andamento, descontou: false };
+    if (!andamento.enviado) {
+      await this.publicadas.descartar(
+        cliente.clienteId,
+        chaveDoParcelamento(parcelamento.id, parcela),
+      );
+      return { andamento, descontou: false };
+    }
 
     const registro = await this.parcelamentos.registrarEnvio(
       parcelamento.id,

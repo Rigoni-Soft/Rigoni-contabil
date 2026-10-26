@@ -66,6 +66,7 @@ function montar(
   const registrados: [string, string][] = [];
   const identidades: string[] = [];
   const publicadas: unknown[] = [];
+  const descartadas: unknown[] = [];
   const ignorados: (readonly string[])[] = [];
   const buscarGuiasParcelamento = jest.fn(async (_: string, ignorar: readonly string[]) => {
     ignorados.push(ignorar);
@@ -89,6 +90,9 @@ function montar(
         return ok(`https://storage.test/${destino?.id}/${destino?.periodo}.pdf`);
       },
       reencontrar: async () => ok(null),
+      descartar: async (_clienteId, chave) => {
+        descartadas.push(chave);
+      },
     },
     new EntregarComunicacaoPorCanais(new EnviarComunicacaoProativa(envio, 3, 0), {
       enviar: async (email) => {
@@ -113,6 +117,7 @@ function montar(
     registrados,
     identidades,
     publicadas,
+    descartadas,
     ignorados,
     buscarGuiasParcelamento,
   };
@@ -364,9 +369,10 @@ describe("EnviarGuiasParcelamento", () => {
   );
 
   it("uma mensagem por guia: a falha de entrega de uma vira falha_envio e não afeta a outra", async () => {
-    const { nucleo, envio, registrados } = montar(ok([parcelamento("a", { interno: true })]), {
-      guias: async () => ok([guia("202609"), guia("202610")]),
-    });
+    const { nucleo, envio, registrados, descartadas } = montar(
+      ok([parcelamento("a", { interno: true })]),
+      { guias: async () => ok([guia("202609"), guia("202610")]) },
+    );
     const enviarTemplate = envio.enviarTemplate.bind(envio);
     jest
       .spyOn(envio, "enviarTemplate")
@@ -384,6 +390,7 @@ describe("EnviarGuiasParcelamento", () => {
     ]);
     expect(envio.templatesEnviados).toHaveLength(1);
     expect(registrados).toEqual([["a", "202610"]]);
+    expect(descartadas).toEqual([{ id: "a", periodo: "202609" }]);
   });
 
   it("CNPJ do Cliente ilegível: falha_envio e nada é enviado nem registrado", async () => {

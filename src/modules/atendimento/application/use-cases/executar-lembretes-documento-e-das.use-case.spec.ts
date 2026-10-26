@@ -63,6 +63,7 @@ function montar(
   const entregasAoConcluir: number[] = [];
   const resolvidos: { desde: Date; ids: string[] }[] = [];
   const buscar = jest.fn(opcoes.buscar ?? (async () => ok(guiaOk)));
+  const descartadas: [string, string][] = [];
   const job = new ExecutarLembretesDocumentoEDas(
     {
       listar: async () => ok(clientes),
@@ -83,6 +84,7 @@ function montar(
       {
         publicar: async () => ok("https://storage.test/das.pdf"),
         reencontrar: async () => ok(null),
+        descartar: async () => undefined,
       },
       0,
     ),
@@ -107,9 +109,15 @@ function montar(
       },
     },
     { agora: () => opcoes.agora ?? diaDoJob },
+    {
+      descartar: async (clienteId, chave) => {
+        descartadas.push([clienteId, chave.periodo]);
+      },
+    },
   );
   return {
     job,
+    descartadas,
     envio,
     emails,
     alertas,
@@ -334,19 +342,21 @@ describe("ExecutarLembretesDocumentoEDas", () => {
   });
 
   it("entrega falhou: libera a reserva e não conclui (o cadastro nunca saiu de pronto)", async () => {
-    const { job, liberados, marcados } = montar(
+    const { job, liberados, marcados, descartadas } = montar(
       [cliente({ dasStatus: "pronto", dataEnvioDas: "2026-09-10" })],
       { falhas: { [telefone]: 131026 } },
     );
     await job.execute();
     expect(liberados).toEqual([["c1", "tok-1"]]);
     expect(marcados).toHaveLength(0);
+    expect(descartadas).toEqual([["c1", "202610"]]);
   });
 
-  it("entrega concluída não libera a reserva", async () => {
-    const { job, liberados } = montar([cliente({ dasStatus: "pronto" })]);
+  it("entrega concluída não libera a reserva nem descarta a guia", async () => {
+    const { job, liberados, descartadas } = montar([cliente({ dasStatus: "pronto" })]);
     await job.execute();
     expect(liberados).toHaveLength(0);
+    expect(descartadas).toHaveLength(0);
   });
 
   it("sem destinatário: alerta uma vez, sem buscar a guia nem reservar o DAS", async () => {
@@ -467,6 +477,7 @@ describe("ExecutarLembretesDocumentoEDas", () => {
       { execute: async () => err(new ServicoExternoError("x")) },
       { alertar: async () => ok(undefined), resolverNaoRenovados: resolver },
       { agora: () => diaDoJob },
+      { descartar: async () => undefined },
     );
     expect((await job.execute()).ok).toBe(false);
     expect(resolver).not.toHaveBeenCalled();

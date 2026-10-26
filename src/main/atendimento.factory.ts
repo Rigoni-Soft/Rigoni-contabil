@@ -345,18 +345,17 @@ function makeEnvioEmail(): EnvioEmailPort {
 // Job (service_role, sem sessão de usuário): lembrete de documento e envio de DAS.
 export function makeExecutarLembretesDocumentoEDas(): ExecutarLembretesDocumentoEDasPort {
   const supabaseAdmin = createSupabaseAdmin();
+  const publicadas = new SupabaseGuiaPublicadaGateway(supabaseAdmin);
   return new ExecutarLembretesDocumentoEDas(
     new SupabaseClientesParaLembreteGateway(supabaseAdmin),
-    new ObterGuiaDasParaEnvio(
-      guiasFiscais(supabaseAdmin),
-      new SupabaseGuiaPublicadaGateway(supabaseAdmin),
-    ),
+    new ObterGuiaDasParaEnvio(guiasFiscais(supabaseAdmin), publicadas),
     new EntregarComunicacaoPorCanais(
       new EnviarComunicacaoProativa(makeEnvioMensagem(), TENTATIVAS, ESPERA_MS),
       makeEnvioEmail(),
     ),
     new SupabaseAlertaSetorGateway(supabaseAdmin, "lembretes"),
     new RelogioSistemaGateway(),
+    publicadas,
   );
 }
 

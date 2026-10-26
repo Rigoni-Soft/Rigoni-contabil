@@ -101,7 +101,7 @@ jest.mock("@/main/atendimento.factory", () => ({
               guia: { url: "https://storage.test/das.pdf", nomeArquivo: "DAS.pdf" },
             }),
         },
-        { reencontrar: async () => ok(null) },
+        { reencontrar: async () => ok(null), descartar: async () => undefined },
         envio,
         { agora: () => new Date("2026-10-07T10:00:00-03:00") },
       ),

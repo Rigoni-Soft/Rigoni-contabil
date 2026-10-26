@@ -55,6 +55,7 @@ function montar(
   const registrados: [string, string, string][] = [];
   const reencontradas: ChaveGuia[] = [];
   const publicadas: ChaveGuia[] = [];
+  const descartadas: ChaveGuia[] = [];
   let buscas = 0;
   const caso = new EntregarParcelamentoNaUra(
     {
@@ -82,6 +83,9 @@ function montar(
         reencontradas.push(chave);
         return ok(opcoes.guardada === undefined ? "https://storage/guardada.pdf" : opcoes.guardada);
       },
+      descartar: async (_cliente, chave) => {
+        descartadas.push(chave);
+      },
     },
     {
       enviar: async (m) => {
@@ -107,6 +111,7 @@ function montar(
     registrados,
     reencontradas,
     publicadas,
+    descartadas,
     buscas: () => buscas,
   };
 }
@@ -164,24 +169,18 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
     expect(registrados).toEqual([["1", "202609", "202609:10000"]]);
   });
 
-  it("envia uma guia por parcelamento comum e ignora o interno", async () => {
-    const { executar, documentos, registrados } = montar(
+  it("envia a guia do comum e ignora o interno, cuja guia também o comum comporta", async () => {
+    const { executar, documentos, registrados, mensagens } = montar(
       [
         parcelamento("1", { valorParcelaCentavos: 10_000 }),
-        parcelamento("2", { valorParcelaCentavos: 20_000 }),
         parcelamento("3", { interno: true, valorParcelaCentavos: 30_000 }),
       ],
-      { guias: ok([guia("202610", 10_000), guia("202610", 20_000), guia("202610", 30_000)]) },
+      { guias: ok([guia("202610", 10_000), guia("202610", 30_000)]) },
     );
     expect((await executar()).ok).toBe(true);
-    expect(documentos.map((d) => d.nomeArquivo).sort()).toEqual([
-      "parcelamento-COD-1-202610.pdf",
-      "parcelamento-COD-2-202610.pdf",
-    ]);
-    expect(registrados.sort()).toEqual([
-      ["1", "202610", "202610:10000"],
-      ["2", "202610", "202610:20000"],
-    ]);
+    expect(documentos.map((d) => d.nomeArquivo)).toEqual(["parcelamento-COD-1-202610.pdf"]);
+    expect(registrados).toEqual([["1", "202610", "202610:10000"]]);
+    expect(mensagens).toHaveLength(0);
   });
 
   it("parcela do mês já registrada: reenvia o PDF guardado, sem provedor e sem novo desconto", async () => {
@@ -204,10 +203,10 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
   it("falha de um parcelamento não impede os outros e a resposta lista os que falharam", async () => {
     const { executar, documentos, mensagens } = montar(
       [
-        parcelamento("1", { parcelasEnviadas: ["202610"] }),
-        parcelamento("2", { valorParcelaCentavos: 20_000 }),
+        parcelamento("1", { parcelasEnviadas: ["202610"], valorParcelaCentavos: 20_000 }),
+        parcelamento("2", { valorParcelaCentavos: 10_000 }),
       ],
-      { guardada: null, guias: ok([guia("202609", 20_000)]) },
+      { guardada: null, guias: ok([guia("202609", 10_000)]) },
     );
     expect((await executar()).ok).toBe(true);
     expect(documentos.map((d) => d.nomeArquivo)).toEqual(["parcelamento-COD-2-202609.pdf"]);
@@ -255,12 +254,13 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
     expect(registrados).toHaveLength(0);
   });
 
-  it("documento que o WhatsApp recusou não é registrado nem descontado", async () => {
-    const { executar, registrados, mensagens } = montar([parcelamento("1")], {
+  it("documento que o WhatsApp recusou não é registrado nem descontado, e o publicado é descartado", async () => {
+    const { executar, registrados, mensagens, descartadas } = montar([parcelamento("1")], {
       documentoFalha: true,
     });
     expect((await executar()).ok).toBe(true);
     expect(registrados).toHaveLength(0);
+    expect(descartadas).toEqual([{ id: "1", periodo: "202610" }]);
     expect(mensagens[0].texto).toContain("COD-1");
   });
 
@@ -279,7 +279,7 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
   it("guia que pertence ao interno não é entregue ao comum nem o interno é mencionado", async () => {
     const { executar, documentos, registrados, mensagens } = montar(
       [
-        parcelamento("1", { valorParcelaCentavos: 10_000 }),
+        parcelamento("1", { valorParcelaCentavos: 30_000 }),
         parcelamento("2", { interno: true, valorParcelaCentavos: 24_000 }),
       ],
       { guias: ok([guia("202610", 25_000)]) },
@@ -291,14 +291,34 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
     expect(mensagens[0].texto).not.toMatch(/COD-2|intern/i);
   });
 
-  it("sem autorização: devolve o erro antes de enviar qualquer coisa", async () => {
-    const { executar, documentos, mensagens } = montar(
-      [parcelamento("1"), parcelamento("2", { parcelasEnviadas: ["202610"] })],
-      { guias: err(new ForbiddenError("sem autorização")) },
-    );
-    const r = await executar();
-    expect(r.ok).toBe(false);
+  it.each([
+    ["sem autorização", err(new ForbiddenError("sem autorização"))],
+    ["provedor fora do ar", err(new ServicoExternoError("serpro"))],
+  ])(
+    "%s ao emitir a nova de um: reenvia o já registrado e lista só o afetado",
+    async (_nome, guias) => {
+      jest.spyOn(console, "error").mockImplementation(() => undefined);
+      const { executar, documentos, mensagens, registrados, descartadas } = montar(
+        [parcelamento("1"), parcelamento("2", { parcelasEnviadas: ["202610"] })],
+        { guias },
+      );
+      expect((await executar()).ok).toBe(true);
+      expect(documentos.map((d) => d.nomeArquivo)).toEqual(["parcelamento-COD-2-202610.pdf"]);
+      expect(registrados).toHaveLength(0);
+      expect(descartadas).toHaveLength(0);
+      expect(mensagens).toHaveLength(1);
+      expect(mensagens[0].texto).toContain("COD-1");
+      expect(mensagens[0].texto).not.toContain("COD-2");
+    },
+  );
+
+  it("falha ao emitir com todos sem registro: lista todos os afetados", async () => {
+    jest.spyOn(console, "error").mockImplementation(() => undefined);
+    const { executar, documentos, mensagens } = montar([parcelamento("1"), parcelamento("2")], {
+      guias: err(new ServicoExternoError("serpro")),
+    });
+    expect((await executar()).ok).toBe(true);
     expect(documentos).toHaveLength(0);
-    expect(mensagens).toHaveLength(0);
+    expect(mensagens[0].texto).toMatch(/COD-1.*COD-2/);
   });
 });

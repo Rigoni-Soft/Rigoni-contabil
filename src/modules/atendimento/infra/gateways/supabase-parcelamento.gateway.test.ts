@@ -611,6 +611,7 @@ describe("rodada real com a reserva ocupada", () => {
           {
             publicar: async () => sucesso("https://storage.test/p.pdf"),
             reencontrar: async () => sucesso(null),
+            descartar: async () => undefined,
           },
           new EntregarComunicacaoPorCanais(
             new EnviarComunicacaoProativa(envio, 1, 0),

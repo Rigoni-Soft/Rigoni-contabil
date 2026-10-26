@@ -564,6 +564,7 @@ describe("rodada real com a reserva ocupada", () => {
           {
             publicar: async () => sucesso("https://storage.test/das.pdf"),
             reencontrar: async () => sucesso(null),
+            descartar: async () => undefined,
           },
           0,
         ),
@@ -574,6 +575,7 @@ describe("rodada real com a reserva ocupada", () => {
         ),
         alertasNoRelogioDaRodada,
         { agora: () => agora },
+        { descartar: async () => undefined },
       );
     };
     const abertos = async () =>
@@ -744,6 +746,7 @@ describe("DAS pedido pela URA (#124)", () => {
       ),
       alertas,
       { agora: () => AGORA },
+      { descartar: async () => undefined },
     ).execute();
 
     expect(rodada.ok && rodada.value.dasEnviados).toBe(0);

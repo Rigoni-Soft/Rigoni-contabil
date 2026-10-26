@@ -96,6 +96,7 @@ function montar(
       {
         publicar: async () => ok("https://storage.test/parcelamento.pdf"),
         reencontrar: async () => ok(null),
+        descartar: async () => undefined,
       },
       new EntregarComunicacaoPorCanais(
         new EnviarComunicacaoProativa(envio, 3, 0),

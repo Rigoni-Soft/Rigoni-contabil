@@ -29,7 +29,7 @@ export class EntregarDasNaUra implements EntregarNaUraPort {
       "obterDas" | "reservarDas" | "concluirDas" | "liberarDas"
     >,
     private readonly guiaDas: ObterGuiaDasParaEnvioPort,
-    private readonly publicadas: Pick<GuiaPublicadaPort, "reencontrar">,
+    private readonly publicadas: Pick<GuiaPublicadaPort, "reencontrar" | "descartar">,
     private readonly envio: EnvioMensagemPort,
     private readonly relogio: RelogioPort,
   ) {}
@@ -68,6 +68,7 @@ export class EntregarDasNaUra implements EntregarNaUraPort {
       ? await this.envio.enviarDocumento({ telefone, ...guia.value.guia })
       : guia;
     if (!entrega.ok) {
+      if (guia.ok) await this.publicadas.descartar(clienteId, chaveDoDas(mesAtual(agora)));
       await this.clientes.liberarDas(clienteId, reserva.value);
       return entrega;
     }
