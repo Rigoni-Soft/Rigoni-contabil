@@ -14,7 +14,6 @@ import type { GuiaDaParcela } from "@/modules/clientes/application/ports/out/gui
 import {
   anexarGuiaParcelaPgfnSchema,
   confirmarGuiaParcelaPgfnSchema,
-  guiaDaParcelaPgfnSchema,
   trocarGuiaParcelaPgfnSchema,
 } from "@/modules/clientes/presentation/view-models/anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.schema";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
@@ -70,7 +69,7 @@ export async function trocarGuiaParcelaPgfnAction(
 }
 
 export async function removerGuiaParcelaPgfnAction(input: unknown): Promise<ActionResult<void>> {
-  const parsed = guiaDaParcelaPgfnSchema.safeParse(input);
+  const parsed = confirmarGuiaParcelaPgfnSchema.safeParse(input);
   if (!parsed.success) return dadosInvalidos(parsed.error);
 
   const remover = await makeRemoverGuiaParcelaPgfn();
@@ -80,7 +79,7 @@ export async function removerGuiaParcelaPgfnAction(input: unknown): Promise<Acti
 export async function obterLinkGuiaParcelaPgfnAction(
   input: unknown,
 ): Promise<ActionResult<{ url: string }>> {
-  const parsed = guiaDaParcelaPgfnSchema.safeParse(input);
+  const parsed = confirmarGuiaParcelaPgfnSchema.safeParse(input);
   if (!parsed.success) return dadosInvalidos(parsed.error);
 
   const obterLink = await makeObterLinkGuiaParcelaPgfn();

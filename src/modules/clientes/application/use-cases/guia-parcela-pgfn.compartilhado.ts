@@ -1,4 +1,7 @@
-import type { ArquivoInspecionavelPort } from "@/modules/clientes/application/ports/out/arquivo-storage.provider";
+import type {
+  ArquivoInspecionavelPort,
+  ArquivoStoragePort,
+} from "@/modules/clientes/application/ports/out/arquivo-storage.provider";
 import type {
   GuiaDaParcela,
   GuiaParcelaPgfnRepository,
@@ -46,6 +49,22 @@ export async function confirmarOuManter(
   const confirmada = await guias.confirmar(parcelamentoId, guia.competencia);
   if (confirmada.ok) return ok({ ...base, estado: "confirmada" });
   return ok({ ...base, estado: "a_confirmar", motivo: MOTIVO_CONFIRMACAO_FALHOU });
+}
+
+// Remove o PDF que a guia deixou de usar. Falha deixa objeto órfão em bucket privado, só logada: não
+// desfaz o que já foi gravado.
+export async function apagarObjeto(
+  storage: ArquivoStoragePort,
+  contexto: string,
+  caminho: string,
+): Promise<void> {
+  const removido = await storage.remover([caminho]);
+  if (!removido.ok) {
+    console.error(
+      `Falha ao remover o PDF da guia (${contexto}, caminho=${caminho}):`,
+      removido.error.message,
+    );
+  }
 }
 
 // Falha da própria remoção não é mascarada como o erro original: o arquivo ficou órfão.

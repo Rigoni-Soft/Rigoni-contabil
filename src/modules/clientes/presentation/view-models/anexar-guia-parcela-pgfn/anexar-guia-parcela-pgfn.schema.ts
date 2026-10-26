@@ -37,9 +37,7 @@ export const confirmarGuiaParcelaPgfnSchema = z.object({
   competencia,
 });
 
-// Trocar, remover e abrir a guia: a chave é a mesma da guia anexada. A troca refaz a leitura do PDF.
-export const guiaDaParcelaPgfnSchema = confirmarGuiaParcelaPgfnSchema;
-
-export const trocarGuiaParcelaPgfnSchema = guiaDaParcelaPgfnSchema.extend({
+// Confirmar, trocar, remover e abrir a guia: a chave é a mesma da guia anexada. A troca refaz a leitura do PDF.
+export const trocarGuiaParcelaPgfnSchema = confirmarGuiaParcelaPgfnSchema.extend({
   arquivo: arquivoDaGuia,
 });

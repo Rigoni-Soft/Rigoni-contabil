@@ -10,6 +10,7 @@ import type {
 import type { LeitorDeGuiaDeParcelaPort } from "@/modules/clientes/application/ports/out/leitor-de-guia-de-parcela.provider";
 import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
 import {
+  apagarObjeto,
   confirmarOuManter,
   desfazerUpload,
   revalidarPdfNoStorage,
@@ -98,23 +99,12 @@ export class TrocarGuiaParcelaPgfn implements TrocarGuiaParcelaPgfnPort {
       }
     }
 
-    await this.apagarAntigo(input.parcelamentoId, antigo.value);
+    await apagarObjeto(this.storage, `troca, parcelamento=${input.parcelamentoId}`, antigo.value);
     return confirmarOuManter(
       this.guias,
       input.parcelamentoId,
       { competencia, contaNegociacao },
       motivo,
     );
-  }
-
-  // Falha ao apagar deixa PDF órfão em bucket privado: não desfaz a troca já gravada.
-  private async apagarAntigo(parcelamentoId: string, caminho: string): Promise<void> {
-    const removido = await this.storage.remover([caminho]);
-    if (!removido.ok) {
-      console.error(
-        `Falha ao remover guia substituída (parcelamento=${parcelamentoId}, caminho=${caminho}):`,
-        removido.error.message,
-      );
-    }
   }
 }

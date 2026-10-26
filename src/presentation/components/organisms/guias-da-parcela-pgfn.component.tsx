@@ -117,120 +117,123 @@ export function GuiasDaParcelaPgfn({
       </Pilha>
       {guias.length > 0 && (
         <Pilha como="ul" espaco={1} className="divide-y divide-border">
-          {guias.map((guia) => (
-            <Caixa
-              como="li"
-              key={guia.competencia}
-              id={guia.id}
-              tabIndex={-1}
-              className="rounded-sm py-3 outline-none first:pt-0 last:pb-0 focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Linha alinhar="centro" justificar="entre" espaco={3} quebra>
-                <Texto variante="corpo" className="min-w-0 [overflow-wrap:anywhere] tabular-nums">
-                  {guia.rotulo} · conta {guia.contaNegociacao}
-                </Texto>
-                <SeloDaGuia confirmada={guia.confirmada} enviada={guia.enviada} />
-              </Linha>
-              {!guia.confirmada && guia.motivo && (
-                <Texto
-                  variante="nota"
-                  id={`${guia.id}-motivo`}
-                  className="mt-1 text-sm [overflow-wrap:anywhere]"
-                >
-                  {guia.motivo}
-                </Texto>
-              )}
-              <Linha alinhar="centro" espaco={2} quebra className="mt-2">
-                {!guia.confirmada && !guia.enviada && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    aria-disabled={pendente || undefined}
-                    onClick={() => onConfirmar(guia.competencia)}
-                    aria-label={`Confirmar guia de ${guia.rotulo}`}
-                    aria-describedby={guia.motivo ? `${guia.id}-motivo` : undefined}
-                    className={BOTAO_DA_GUIA}
+          {guias.map((guia) => {
+            const confirmando = removendo === guia.competencia;
+            return (
+              <Caixa
+                como="li"
+                key={guia.competencia}
+                id={guia.id}
+                tabIndex={-1}
+                className="rounded-sm py-3 outline-none first:pt-0 last:pb-0 focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Linha alinhar="centro" justificar="entre" espaco={3} quebra>
+                  <Texto variante="corpo" className="min-w-0 [overflow-wrap:anywhere] tabular-nums">
+                    {guia.rotulo} · conta {guia.contaNegociacao}
+                  </Texto>
+                  <SeloDaGuia confirmada={guia.confirmada} enviada={guia.enviada} />
+                </Linha>
+                {!guia.confirmada && guia.motivo && (
+                  <Texto
+                    variante="nota"
+                    id={`${guia.id}-motivo`}
+                    className="mt-1 text-sm [overflow-wrap:anywhere]"
                   >
-                    Confirmar
-                  </Button>
+                    {guia.motivo}
+                  </Texto>
                 )}
-                <Linha alinhar="centro" espaco={1} quebra className="ml-auto">
-                  {removendo !== guia.competencia && (
-                    <>
-                      <Button
-                        type="button"
-                        variant="link"
-                        size="sm"
-                        aria-disabled={pendente || undefined}
-                        onClick={() => onVisualizar(guia.competencia)}
-                        aria-label={`Ver guia de ${guia.rotulo}`}
-                        className={BOTAO_DA_GUIA}
-                      >
-                        Ver
-                      </Button>
-                    </>
+                <Linha alinhar="centro" espaco={2} quebra className="mt-2">
+                  {!guia.confirmada && !guia.enviada && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      aria-disabled={pendente || undefined}
+                      onClick={() => onConfirmar(guia.competencia)}
+                      aria-label={`Confirmar guia de ${guia.rotulo}`}
+                      aria-describedby={guia.motivo ? `${guia.id}-motivo` : undefined}
+                      className={BOTAO_DA_GUIA}
+                    >
+                      Confirmar
+                    </Button>
                   )}
-                  {!guia.enviada && (
-                    <>
-                      {removendo !== guia.competencia && (
-                        <BotaoDeArquivo
-                          rotulo="Trocar"
-                          rotuloAcessivel={`Trocar guia de ${guia.rotulo}`}
-                          aceitar="application/pdf"
-                          ocupado={pendente}
-                          onEscolher={(novo) => onTrocar(guia.competencia, novo)}
-                        />
-                      )}
-                      {removendo === guia.competencia ? (
-                        <>
-                          <Texto variante="nota" role="alert">
-                            Apaga a guia e o PDF.
-                          </Texto>
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="sm"
-                            aria-disabled={pendente || undefined}
-                            onClick={() => onRemover(guia.competencia)}
-                            aria-label={`Confirmar remoção da guia de ${guia.rotulo}`}
-                            className={BOTAO_DA_GUIA}
-                          >
-                            Confirmar remoção
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            // Quem abriu a confirmação sem querer cai no gesto seguro.
-                            autoFocus
-                            onClick={() => onCancelarRemocao(guia.competencia)}
-                            aria-label={`Cancelar remoção da guia de ${guia.rotulo}`}
-                            className={BOTAO_DA_GUIA}
-                          >
-                            Cancelar
-                          </Button>
-                        </>
-                      ) : (
+                  <Linha alinhar="centro" espaco={1} quebra className="ml-auto">
+                    {!confirmando && (
+                      <>
                         <Button
                           type="button"
-                          id={guia.idDaRemocao}
                           variant="link"
                           size="sm"
                           aria-disabled={pendente || undefined}
-                          onClick={() => onPedirRemocao(guia.competencia)}
-                          aria-label={`Remover guia de ${guia.rotulo}`}
+                          onClick={() => onVisualizar(guia.competencia)}
+                          aria-label={`Ver guia de ${guia.rotulo}`}
                           className={BOTAO_DA_GUIA}
                         >
-                          Remover
+                          Ver
                         </Button>
-                      )}
-                    </>
-                  )}
+                      </>
+                    )}
+                    {!guia.enviada && (
+                      <>
+                        {!confirmando && (
+                          <BotaoDeArquivo
+                            rotulo="Trocar"
+                            rotuloAcessivel={`Trocar guia de ${guia.rotulo}`}
+                            aceitar="application/pdf"
+                            ocupado={pendente}
+                            onEscolher={(novo) => onTrocar(guia.competencia, novo)}
+                          />
+                        )}
+                        {confirmando ? (
+                          <>
+                            <Texto variante="nota" role="alert">
+                              Apaga a guia e o PDF.
+                            </Texto>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              aria-disabled={pendente || undefined}
+                              onClick={() => onRemover(guia.competencia)}
+                              aria-label={`Confirmar remoção da guia de ${guia.rotulo}`}
+                              className={BOTAO_DA_GUIA}
+                            >
+                              Confirmar remoção
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              // Quem abriu a confirmação sem querer cai no gesto seguro.
+                              autoFocus
+                              onClick={() => onCancelarRemocao(guia.competencia)}
+                              aria-label={`Cancelar remoção da guia de ${guia.rotulo}`}
+                              className={BOTAO_DA_GUIA}
+                            >
+                              Cancelar
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            type="button"
+                            id={guia.idDaRemocao}
+                            variant="link"
+                            size="sm"
+                            aria-disabled={pendente || undefined}
+                            onClick={() => onPedirRemocao(guia.competencia)}
+                            aria-label={`Remover guia de ${guia.rotulo}`}
+                            className={BOTAO_DA_GUIA}
+                          >
+                            Remover
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </Linha>
                 </Linha>
-              </Linha>
-            </Caixa>
-          ))}
+              </Caixa>
+            );
+          })}
         </Pilha>
       )}
 

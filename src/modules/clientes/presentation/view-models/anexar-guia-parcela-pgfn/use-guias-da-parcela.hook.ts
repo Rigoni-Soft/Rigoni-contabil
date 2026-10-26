@@ -42,11 +42,9 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   const [contaNegociacao, setContaNegociacao] = useState("");
   const [arquivo, setArquivo] = useState<File | undefined>();
   const [erros, setErros] = useState<Erros>({});
-  // Qual ação está em curso: só o envio do PDF troca o rótulo do botão Anexar.
-  const [acaoEmCurso, setAcaoEmCurso] = useState<
-    "anexar" | "confirmar" | "trocar" | "remover" | "ver" | undefined
-  >();
-  const pendente = acaoEmCurso !== undefined;
+  // Alguma ação em curso; só o envio do PDF (`anexando`) troca o rótulo do botão Anexar.
+  const [pendente, setPendente] = useState(false);
+  const [anexando, setAnexando] = useState(false);
   const [erroServidor, setErroServidor] = useState<string | undefined>();
   // "atencao": guia anexada e gravada, mas ainda não liberada (pede conferência; não é sucesso nem erro).
   const [resultado, setResultado] = useState<ResultadoDaAcao | undefined>();
@@ -63,10 +61,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   });
 
   // As ações compartilham o ciclo: limpa os avisos, roda, e a lista é relida do banco.
-  const executar = async (
-    qual: NonNullable<typeof acaoEmCurso>,
-    acao: () => Promise<string | undefined>,
-  ) => {
+  const executar = async (acao: () => Promise<string | undefined>, ehAnexo = false) => {
     // Os botões ficam aria-disabled (não perdem o foco) e por isso ainda recebem o clique: ele não
     // some em silêncio: a pessoa é avisada de que há uma ação em curso (espera, não erro).
     if (pendente) {
@@ -74,7 +69,8 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
       setResultado({ tipo: "atencao", texto: AVISO_AGUARDE });
       return;
     }
-    setAcaoEmCurso(qual);
+    setPendente(true);
+    setAnexando(ehAnexo);
     setErroServidor(undefined);
     setResultado(undefined);
     try {
@@ -83,7 +79,8 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     } catch {
       setErroServidor(ERRO_TRANSPORTE);
     } finally {
-      setAcaoEmCurso(undefined);
+      setPendente(false);
+      setAnexando(false);
     }
   };
 
@@ -105,7 +102,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
       return;
     }
     setErros({});
-    return executar("anexar", async () => {
+    return executar(async () => {
       const resultado = await anexarGuiaParcelaPgfnAction(validado.data);
       // O arquivo e a competência ficam no formulário em caso de erro, para corrigir e reenviar.
       if (!resultado.ok) return resultado.error.message;
@@ -113,7 +110,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
       setContaNegociacao("");
       setArquivo(undefined);
       await avisarGuiaGravada(resultado.data, "anexada");
-    });
+    }, true);
   };
 
   // Anexo e troca terminam igual: aviso de confirmada, ou de "a confirmar" com o que conferir.
@@ -139,7 +136,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   };
 
   const trocar = (competencia: string, novo: File) =>
-    executar("trocar", async () => {
+    executar(async () => {
       const validado = trocarGuiaParcelaPgfnSchema.safeParse({
         parcelamentoId,
         competencia,
@@ -166,7 +163,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   };
 
   const remover = (competencia: string) =>
-    executar("remover", async () => {
+    executar(async () => {
       setRemovendo(undefined);
       const resultado = await removerGuiaParcelaPgfnAction({ parcelamentoId, competencia });
       if (!resultado.ok) return resultado.error.message;
@@ -177,7 +174,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     });
 
   const visualizar = (competencia: string) =>
-    executar("ver", async () => {
+    executar(async () => {
       // A aba abre no clique (senão o bloqueador de pop-up barra) e recebe o link depois que a
       // Server Action devolve; `opener` zerado no lugar de `noopener`, para guardar a referência.
       const aba = window.open("about:blank", "_blank");
@@ -197,7 +194,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     });
 
   const confirmar = (competencia: string) =>
-    executar("confirmar", async () => {
+    executar(async () => {
       const resultado = await confirmarGuiaParcelaPgfnAction({ parcelamentoId, competencia });
       if (!resultado.ok) return resultado.error.message;
       setResultado({ tipo: "sucesso", texto: "Guia confirmada." });
@@ -229,7 +226,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     setArquivo: aoEditar("arquivo", setArquivo),
     erros,
     pendente,
-    anexando: acaoEmCurso === "anexar",
+    anexando,
     erroServidor,
     resultado,
     anexar,

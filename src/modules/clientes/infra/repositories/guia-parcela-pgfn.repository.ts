@@ -18,6 +18,8 @@ class PersistenciaError extends AppError {
 // Sem resposta (status 0) ou gateway/timeout (502-504): o banco pode ter confirmado a gravação.
 const semDesfechoConhecido = (status: number) => status === 0 || status >= 502;
 
+type Tabela = ReturnType<SupabaseClient["from"]>;
+
 type GuiaRow = {
   competencia: string;
   conta_negociacao: string;
@@ -163,60 +165,49 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
     nova: Pick<GuiaParcelaPgfnProps, "contaNegociacao" | "arquivoCaminho">,
     motivo: string | null,
   ): Promise<Result<void, AppError>> {
-    // `.select()` devolve as linhas atualizadas: RLS que esconde a guia não dá erro, dá zero linhas.
-    const { data, error, status } = await this.supabase
-      .from("cliente_parcelamento_guias")
-      .update({
+    return this.mutar("trocar", parcelamentoId, competencia, (tabela) =>
+      tabela.update({
         arquivo_caminho: nova.arquivoCaminho,
         conta_negociacao: nova.contaNegociacao,
         motivo,
-      })
-      .eq("parcelamento_id", parcelamentoId)
-      .eq("competencia", competencia)
-      .select("competencia");
-    if (error) {
-      console.error("Falha ao trocar a guia da parcela:", error.message);
-      return err(
-        this.falha(error, status, "trocar", "Não foi possível confirmar a troca da guia."),
-      );
-    }
-    if (data.length === 0) {
-      return err(new NotFoundError("Não encontramos esta guia. Atualize a página."));
-    }
-    return ok(undefined);
+      }),
+    );
   }
 
   async remover(parcelamentoId: string, competencia: string): Promise<Result<void, AppError>> {
-    const { data, error, status } = await this.supabase
-      .from("cliente_parcelamento_guias")
-      .delete()
+    return this.mutar("remover", parcelamentoId, competencia, (tabela) => tabela.delete());
+  }
+
+  // Troca e remoção da guia de uma competência. `.select()` devolve as linhas afetadas: RLS que esconde
+  // a guia não dá erro, dá zero linhas. Sem desfecho conhecido o banco pode ter confirmado; gatilhos
+  // recusam com 23514 e mensagem em português, própria para o usuário.
+  private async mutar(
+    acao: "trocar" | "remover",
+    parcelamentoId: string,
+    competencia: string,
+    operar: (tabela: Tabela) => ReturnType<Tabela["update"]> | ReturnType<Tabela["delete"]>,
+  ): Promise<Result<void, AppError>> {
+    const { data, error, status } = await operar(this.supabase.from("cliente_parcelamento_guias"))
       .eq("parcelamento_id", parcelamentoId)
       .eq("competencia", competencia)
       .select("competencia");
     if (error) {
-      console.error("Falha ao remover a guia da parcela:", error.message);
+      console.error(`Falha ao ${acao} a guia da parcela:`, error.message);
+      if (semDesfechoConhecido(status)) {
+        return err(new ResultadoIncertoError(`Não foi possível confirmar: ${acao} a guia.`));
+      }
       return err(
-        this.falha(error, status, "remover", "Não foi possível confirmar a remoção da guia."),
+        new PersistenciaError(
+          error.code === "23514"
+            ? error.message
+            : `Não foi possível ${acao} a guia. Tente novamente.`,
+        ),
       );
     }
     if (data.length === 0) {
       return err(new NotFoundError("Não encontramos esta guia. Atualize a página."));
     }
     return ok(undefined);
-  }
-
-  // Sem desfecho conhecido o banco pode ter confirmado; gatilhos recusam com 23514 e mensagem em
-  // português, própria para o usuário.
-  private falha(
-    error: { code?: string; message: string },
-    status: number,
-    acao: "trocar" | "remover",
-    incerto: string,
-  ): AppError {
-    if (semDesfechoConhecido(status)) return new ResultadoIncertoError(incerto);
-    return new PersistenciaError(
-      error.code === "23514" ? error.message : `Não foi possível ${acao} a guia. Tente novamente.`,
-    );
   }
 
   async gravada(
