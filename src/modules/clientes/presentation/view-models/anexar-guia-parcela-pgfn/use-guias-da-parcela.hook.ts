@@ -68,9 +68,10 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     acao: () => Promise<string | undefined>,
   ) => {
     // Os botões ficam aria-disabled (não perdem o foco) e por isso ainda recebem o clique: ele não
-    // some em silêncio, a pessoa é avisada de que há uma ação em curso.
+    // some em silêncio: a pessoa é avisada de que há uma ação em curso (espera, não erro).
     if (pendente) {
-      setErroServidor(AVISO_AGUARDE);
+      setErroServidor(undefined);
+      setResultado({ tipo: "atencao", texto: AVISO_AGUARDE });
       return;
     }
     setAcaoEmCurso(qual);

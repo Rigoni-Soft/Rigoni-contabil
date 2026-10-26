@@ -644,7 +644,10 @@ describe("trocar, remover e visualizar a guia anexada (#184)", () => {
     await usuario.upload(regiao.getByLabelText("Trocar guia de 10/2026"), pdf);
 
     expect(trocarMock).not.toHaveBeenCalled();
-    expect(await regiao.findByText(/aguarde a ação em andamento/i)).toBeInTheDocument();
+    // Não é erro: é espera, anunciada como status (com a mesma apresentação de "atenção").
+    const aviso = await regiao.findByRole("status");
+    expect(aviso).toHaveTextContent(/aguarde a ação em andamento/i);
+    expect(regiao.queryByRole("alert", { name: /aguarde/i })).not.toBeInTheDocument();
     concluir({ ok: true, data: undefined });
   });
 
