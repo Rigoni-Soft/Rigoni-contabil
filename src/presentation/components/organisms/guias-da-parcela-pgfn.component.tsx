@@ -158,26 +158,32 @@ export function GuiasDaParcelaPgfn({
                   </Button>
                 )}
                 <Linha alinhar="centro" espaco={1} quebra className="ml-auto">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    aria-disabled={pendente || undefined}
-                    onClick={() => onVisualizar(guia.competencia)}
-                    aria-label={`Ver guia de ${guia.rotulo}`}
-                    className={BOTAO_DA_GUIA}
-                  >
-                    Ver
-                  </Button>
+                  {removendo !== guia.competencia && (
+                    <>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-disabled={pendente || undefined}
+                        onClick={() => onVisualizar(guia.competencia)}
+                        aria-label={`Ver guia de ${guia.rotulo}`}
+                        className={BOTAO_DA_GUIA}
+                      >
+                        Ver
+                      </Button>
+                    </>
+                  )}
                   {!guia.enviada && (
                     <>
-                      <BotaoDeArquivo
-                        rotulo="Trocar"
-                        rotuloAcessivel={`Trocar guia de ${guia.rotulo}`}
-                        aceitar="application/pdf"
-                        ocupado={pendente}
-                        onEscolher={(novo) => onTrocar(guia.competencia, novo)}
-                      />
+                      {removendo !== guia.competencia && (
+                        <BotaoDeArquivo
+                          rotulo="Trocar"
+                          rotuloAcessivel={`Trocar guia de ${guia.rotulo}`}
+                          aceitar="application/pdf"
+                          ocupado={pendente}
+                          onEscolher={(novo) => onTrocar(guia.competencia, novo)}
+                        />
+                      )}
                       {removendo === guia.competencia ? (
                         <>
                           <Texto variante="nota" role="alert">
