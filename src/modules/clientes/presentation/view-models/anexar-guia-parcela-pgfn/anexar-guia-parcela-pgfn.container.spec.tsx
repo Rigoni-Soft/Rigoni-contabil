@@ -217,6 +217,17 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     expect(screen.queryByText(/anexada e confirmada/i)).not.toBeInTheDocument();
   });
 
+  it("a nota de que o sistema lê o PDF descreve a competência e a conta", async () => {
+    render();
+    const regiao = within(await regiaoDaGuia());
+
+    const nota = regiao.getByText("O sistema lê o PDF; digite só se ele não conseguir.");
+    expect(regiao.getByLabelText(/competência/i)).toHaveAccessibleDescription(nota.textContent!);
+    expect(regiao.getByLabelText(/conta de negociação/i)).toHaveAccessibleDescription(
+      nota.textContent!,
+    );
+  });
+
   it("campos faltando: aponta o PDF e não chama a action", async () => {
     const usuario = userEvent.setup();
     render();

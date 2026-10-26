@@ -133,7 +133,9 @@ export function GuiasDaParcelaPgfn({
       )}
 
       <Pilha espaco={3}>
-        <Texto variante="nota">O sistema lê o PDF; digite só se ele não conseguir.</Texto>
+        <Texto variante="nota" id={`${id}-leitura`}>
+          O sistema lê o PDF; digite só se ele não conseguir.
+        </Texto>
         <Linha alinhar="fim" espaco={3} quebra>
           <CampoDeTexto
             id={`${id}-competencia`}
@@ -141,6 +143,7 @@ export function GuiasDaParcelaPgfn({
             type="month"
             // Navegador sem seletor de mês (ex.: Firefox no desktop) mostra texto livre: o formato vai no placeholder.
             placeholder="AAAA-MM"
+            aria-describedby={`${id}-leitura`}
             value={competencia}
             onChange={(evento) => onCompetencia(evento.target.value)}
             erro={erros.competencia}
@@ -151,6 +154,7 @@ export function GuiasDaParcelaPgfn({
             id={`${id}-conta`}
             rotulo="Conta de negociação (opcional)"
             maxLength={40}
+            aria-describedby={`${id}-leitura`}
             value={contaNegociacao}
             onChange={(evento) => onContaNegociacao(evento.target.value)}
             erro={erros.contaNegociacao}
