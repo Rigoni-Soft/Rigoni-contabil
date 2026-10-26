@@ -35,13 +35,6 @@ export type GuiaLida = {
 };
 export type GuiaDigitada = { competencia?: string; contaNegociacao?: string };
 
-export type ConferenciaDaGuia = {
-  competencia: string;
-  contaNegociacao: string;
-  // Nulo = tudo conferiu e a guia nasce confirmada; senão, o que o Funcionário deve conferir.
-  motivo: string | null;
-};
-
 // Confere o PDF lido com o Parcelamento. CNPJ de outra empresa recusa o anexo; conta, competência ou
 // leitura que não conferem deixam a guia "a confirmar" com o motivo. A competência é a chave da
 // parcela: sem ela (nem lida, nem digitada) não há o que gravar. A conta lida é só conferência: sem
@@ -50,7 +43,11 @@ export function conferirGuiaLida(
   lida: GuiaLida | null,
   parcelamento: { cnpj: string; codigo: string },
   digitada: GuiaDigitada,
-): Result<ConferenciaDaGuia, ValidationError> {
+  // `motivo` nulo = tudo conferiu e a guia nasce confirmada; senão, o que o Funcionário deve conferir.
+): Result<
+  { competencia: string; contaNegociacao: string; motivo: string | null },
+  ValidationError
+> {
   if (lida?.cnpj && normalizarCnpj(lida.cnpj) !== normalizarCnpj(parcelamento.cnpj)) {
     return err(new ValidationError("O CNPJ da guia é de outra empresa: o anexo foi recusado."));
   }

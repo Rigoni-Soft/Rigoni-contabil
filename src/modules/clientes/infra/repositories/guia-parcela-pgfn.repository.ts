@@ -75,7 +75,7 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
         competencia: g.competencia,
         contaNegociacao: g.conta_negociacao,
         estado: g.estado,
-        ...(g.motivo ? { motivo: g.motivo } : {}),
+        motivo: g.motivo ?? undefined,
       })),
     );
   }

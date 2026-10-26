@@ -15,6 +15,8 @@ const AVISO_ANEXADA =
   "Guia anexada, mas ainda não liberada ao envio. Confira o motivo na lista e confirme.";
 const ERRO_TRANSPORTE = "Não foi possível concluir agora. Verifique a conexão e tente novamente.";
 
+type ResultadoDaAcao = { tipo: "sucesso" | "atencao"; texto: string };
+
 type Erros = { competencia?: string; contaNegociacao?: string; arquivo?: string };
 
 // `prefixo`: o mesmo que a View usa nos ids; o foco volta ao item da guia confirmada.
@@ -29,9 +31,8 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   const [acaoEmCurso, setAcaoEmCurso] = useState<"anexar" | "confirmar" | undefined>();
   const pendente = acaoEmCurso !== undefined;
   const [erroServidor, setErroServidor] = useState<string | undefined>();
-  const [sucesso, setSucesso] = useState<string | undefined>();
-  // Guia anexada que ainda não foi liberada: não é sucesso (pede conferência) nem erro (foi gravada).
-  const [aviso, setAviso] = useState<string | undefined>();
+  // "atencao": guia anexada e gravada, mas ainda não liberada (pede conferência; não é sucesso nem erro).
+  const [resultado, setResultado] = useState<ResultadoDaAcao | undefined>();
 
   const lista = useQuery<GuiaDaParcela[]>({
     queryKey: chave,
@@ -51,8 +52,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     if (pendente) return;
     setAcaoEmCurso(qual);
     setErroServidor(undefined);
-    setSucesso(undefined);
-    setAviso(undefined);
+    setResultado(undefined);
     try {
       const erro = await acao();
       if (erro) setErroServidor(erro);
@@ -90,14 +90,14 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
       setArquivo(undefined);
       const anexada = resultado.data;
       if (anexada.estado === "confirmada") {
-        setSucesso("Guia anexada e confirmada: liberada ao envio.");
+        setResultado({ tipo: "sucesso", texto: "Guia anexada e confirmada: liberada ao envio." });
         await queryClient.invalidateQueries({ queryKey: chave });
         return;
       }
       // O aviso sai já, sem esperar a lista (rede lenta não deixa a pessoa sem resposta), e aponta
       // para o motivo na lista em vez de repeti-lo (dizer duas vezes é ruído). Normalmente fica assim,
       // sem trocar de texto (o leitor de tela anuncia uma vez só).
-      setAviso(AVISO_ANEXADA);
+      setResultado({ tipo: "atencao", texto: AVISO_ANEXADA });
       await queryClient.invalidateQueries({ queryKey: chave });
       // Exceção: o motivo não chegou na lista (a confirmação automática falhou depois do anexo, e esse
       // motivo não é gravado). Aí o aviso passa a trazê-lo. Só mexe num aviso que ainda está na tela:
@@ -107,7 +107,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
         ?.find((guia) => guia.competencia === anexada.competencia)?.motivo;
       if (!naLista && anexada.motivo) {
         const comMotivo = `Guia anexada, mas ainda não liberada ao envio. ${anexada.motivo}`;
-        setAviso((atual) => (atual ? comMotivo : atual));
+        setResultado((atual) => (atual ? { tipo: "atencao", texto: comMotivo } : atual));
       }
     });
   };
@@ -116,7 +116,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     executar("confirmar", async () => {
       const resultado = await confirmarGuiaParcelaPgfnAction({ parcelamentoId, competencia });
       if (!resultado.ok) return resultado.error.message;
-      setSucesso("Guia confirmada.");
+      setResultado({ tipo: "sucesso", texto: "Guia confirmada." });
       await queryClient.invalidateQueries({ queryKey: chave });
       // O botão Confirmar some com a guia confirmada: sem isto o foco cairia no topo da página.
       document.getElementById(idDaGuia(prefixo, competencia))?.focus();
@@ -126,8 +126,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   const aoEditar =
     <T>(campo: keyof Erros, definir: (valor: T) => void) =>
     (valor: T) => {
-      setSucesso(undefined);
-      setAviso(undefined);
+      setResultado(undefined);
       setErroServidor(undefined);
       setErros((atuais) => ({ ...atuais, [campo]: undefined }));
       definir(valor);
@@ -148,8 +147,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     pendente,
     anexando: acaoEmCurso === "anexar",
     erroServidor,
-    sucesso,
-    aviso,
+    resultado,
     anexar,
     confirmar,
   };

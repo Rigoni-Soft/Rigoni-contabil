@@ -28,8 +28,7 @@ export function AnexarGuiaParcelaPgfnContainer({ parcelamentoId }: Props) {
       pendente={guias.pendente}
       anexando={guias.anexando}
       erroServidor={guias.erroServidor}
-      sucesso={guias.sucesso}
-      aviso={guias.aviso}
+      resultado={guias.resultado}
       onAnexar={() => void guias.anexar()}
       onConfirmar={(competencia) => void guias.confirmar(competencia)}
     />

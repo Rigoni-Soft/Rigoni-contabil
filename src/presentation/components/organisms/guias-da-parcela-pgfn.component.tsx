@@ -41,9 +41,8 @@ type GuiasDaParcelaPgfnProps = {
   pendente: boolean;
   anexando: boolean;
   erroServidor?: string;
-  sucesso?: string;
-  // Anexada, mas "a confirmar": o motivo e o que fazer (não é sucesso nem erro).
-  aviso?: string;
+  // Sucesso, ou atenção (anexada mas "a confirmar": o que fazer; não é sucesso nem erro).
+  resultado?: { tipo: "sucesso" | "atencao"; texto: string };
   onAnexar: () => void;
   onConfirmar: (competencia: string) => void;
 };
@@ -66,8 +65,7 @@ export function GuiasDaParcelaPgfn({
   pendente,
   anexando,
   erroServidor,
-  sucesso,
-  aviso,
+  resultado,
   onAnexar,
   onConfirmar,
 }: GuiasDaParcelaPgfnProps) {
@@ -187,8 +185,9 @@ export function GuiasDaParcelaPgfn({
           {anexando ? "Enviando..." : "Anexar guia"}
         </Button>
         {erroServidor && <FieldError>{erroServidor}</FieldError>}
-        {sucesso && <AvisoDeStatus tipo="sucesso" texto={sucesso} className={AVISO_LEGIVEL} />}
-        {aviso && <AvisoDeStatus tipo="atencao" texto={aviso} className={AVISO_LEGIVEL} />}
+        {resultado && (
+          <AvisoDeStatus tipo={resultado.tipo} texto={resultado.texto} className={AVISO_LEGIVEL} />
+        )}
       </Pilha>
     </Pilha>
   );

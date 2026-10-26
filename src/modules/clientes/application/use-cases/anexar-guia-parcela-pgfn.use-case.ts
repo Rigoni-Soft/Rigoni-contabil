@@ -30,10 +30,9 @@ const LIMITE_BYTES = 4 * 1024 * 1024;
 const MOTIVO_CONFIRMACAO_FALHOU =
   "Não consegui confirmar a guia na hora: confira e confirme à mão.";
 
-// O PDF é lido e conferido antes de subir: CNPJ de outra empresa recusa sem tocar no Storage. Tudo
-// conferindo, a guia é confirmada na hora; senão nasce "a confirmar" com o motivo. Segundo anexo na competência, competência já
-// enviada e Parcelamento que não é da PGFN são recusados pelo banco. O arquivo vai ao bucket privado
-// antes da linha; qualquer recusa depois do upload o apaga.
+// O PDF é lido e conferido antes de subir (CNPJ de outra empresa recusa sem tocar no Storage); tudo
+// conferindo, a guia é confirmada na hora, senão nasce "a confirmar" com o motivo. O banco recusa
+// segundo anexo, competência já enviada e Parcelamento que não é da PGFN; recusa depois do upload o apaga.
 export class AnexarGuiaParcelaPgfn implements AnexarGuiaParcelaPgfnPort {
   constructor(
     private readonly sessao: SessaoPort,
