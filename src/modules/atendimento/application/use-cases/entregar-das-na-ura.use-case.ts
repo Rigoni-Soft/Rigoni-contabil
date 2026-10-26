@@ -7,7 +7,7 @@ import type { ClientesParaLembretePort } from "@/modules/atendimento/application
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type { GuiaPublicadaPort } from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
-import { chaveDoDas } from "@/modules/atendimento/application/use-cases/obter-guia-das-para-envio.use-case";
+import { chaveDoDas } from "@/modules/atendimento/domain/services/guia-guardada.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { hojeIso, mesAtual } from "@/shared/kernel/mes-atual";
@@ -15,6 +15,8 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const DAS_NAO_PRONTO =
   "O DAS deste mês ainda não está pronto. Assim que estiver, o escritório envia para você.";
+const DAS_EM_ENVIO =
+  "Estamos enviando o seu DAS neste momento. Se ele não chegar em alguns minutos, fale com o escritório.";
 
 // A opção do DAS na URA segue o processo do job: o banco manda. Não pronto → só avisa (sem provedor
 // e sem alerta ao setor: só o job abre). Pronto → o pedido adianta o envio; o DAS só vira enviado
@@ -35,14 +37,16 @@ export class EntregarDasNaUra implements EntregarDasNaUraPort {
   async execute({ clienteId, telefone }: EntregarDasNaUraInput): Promise<Result<void, AppError>> {
     const das = await this.clientes.obterDas(clienteId);
     if (!das.ok) return das;
-    if (das.value?.dasStatus === "enviado" && das.value.dataEnvioDas) {
-      const chave = chaveDoDas(das.value.dataEnvioDas.slice(0, 7));
+    if (das.value?.dasStatus === "enviado") {
+      // O sistema sempre grava a data junto do `enviado`; sem ela (dado legado) a chave do mês de
+      // hoje é a melhor aposta, e sem PDF guardado cai no erro de guia indisponível.
+      const chave = chaveDoDas(das.value.dataEnvioDas ?? hojeIso(this.relogio.agora()));
       const url = await this.publicadas.reencontrar(clienteId, chave);
       if (!url.ok) return url;
       if (!url.value) return err(new ServicoExternoError("Guia do DAS enviada não está guardada."));
       return this.envio.enviarDocumento({
         telefone,
-        nomeArquivo: `das-${chave.parcela}.pdf`,
+        nomeArquivo: `das-${chave.periodo}.pdf`,
         url: url.value,
       });
     }
@@ -55,11 +59,8 @@ export class EntregarDasNaUra implements EntregarDasNaUraPort {
   private async adiantar(clienteId: string, telefone: string): Promise<Result<void, AppError>> {
     const reserva = await this.clientes.reservarDas(clienteId);
     if (!reserva.ok) return reserva;
-    if (reserva.value === null) {
-      return err(
-        new ServicoExternoError("DAS em envio por outra tentativa ou já não está pronto."),
-      );
-    }
+    // Outra tentativa (job ou outro pedido) está entregando, ou o DAS deixou de estar pronto.
+    if (reserva.value === null) return this.envio.enviar({ telefone, texto: DAS_EM_ENVIO });
 
     const agora = this.relogio.agora();
     const guia = await this.guiaDas.execute(clienteId, mesAtual(agora));
@@ -70,8 +71,12 @@ export class EntregarDasNaUra implements EntregarDasNaUraPort {
       await this.clientes.liberarDas(clienteId, reserva.value);
       return entrega;
     }
-    // Se a conclusão não vale (cadastro mudou no meio) a guia já foi entregue: não vira erro.
-    await this.clientes.concluirDas(clienteId, reserva.value, hojeIso(agora));
+    // A guia já saiu: se a conclusão não vale (reserva substituída ou cadastro alterado no meio) o
+    // DAS segue pronto e o job pode reenviá-la. Não vira erro para o contato, mas deixa rastro.
+    const concluida = await this.clientes.concluirDas(clienteId, reserva.value, hojeIso(agora));
+    if (!concluida.ok || !concluida.value) {
+      console.error("DAS entregue pela URA, mas o cadastro não foi marcado como enviado.");
+    }
     return ok(undefined);
   }
 }

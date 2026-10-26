@@ -1,8 +1,6 @@
+import type { ChaveGuia } from "@/modules/atendimento/domain/services/guia-guardada.service";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
-
-// Onde a guia fica guardada: cliente/id/AAAAMM, o mesmo caminho a cada tentativa e a cada reenvio.
-export type ChaveGuia = { id: string; parcela: string };
 
 // Guarda o PDF da guia e devolve o endereço temporário que o provedor de mensagem/e-mail busca.
 export interface GuiaPublicadaPort {

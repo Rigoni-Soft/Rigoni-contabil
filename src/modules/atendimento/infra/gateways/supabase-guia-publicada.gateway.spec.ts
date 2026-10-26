@@ -31,7 +31,7 @@ const guia = (pdf: string) => ({
   nomeArquivo: "g.pdf",
   pdfBase64: Buffer.from(pdf).toString("base64"),
 });
-const acordo = { id: "acordo", parcela: "202610" };
+const acordo = { id: "acordo", periodo: "202610" };
 
 describe("SupabaseGuiaPublicadaGateway", () => {
   it("falha na assinatura da retentativa preserva a guia já publicada e a recupera depois", async () => {

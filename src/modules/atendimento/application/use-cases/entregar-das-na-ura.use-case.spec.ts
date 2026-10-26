@@ -6,6 +6,7 @@ import type {
   MensagemEnviada,
 } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type { GuiaPublicadaPort } from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
+import type { ChaveGuia } from "@/modules/atendimento/domain/services/guia-guardada.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -43,7 +44,7 @@ function montar(
   const conclusoes: { token: string; dataIso: string }[] = [];
   const liberacoes: string[] = [];
   const guiasPedidas: { clienteId: string; mes: string }[] = [];
-  const guardadasLidas: { id: string; parcela: string }[] = [];
+  const guardadasLidas: ChaveGuia[] = [];
 
   const clientes: Pick<
     ClientesParaLembretePort,
@@ -186,21 +187,26 @@ describe("EntregarDasNaUra", () => {
       expect(liberacoes).toEqual(["token-1"]);
     });
 
-    it("com reserva ocupada por outra tentativa não chama o provedor e devolve erro", async () => {
-      const { caso, chamadas } = montar({ reserva: null });
+    it("com reserva ocupada por outra tentativa avisa que o envio está em andamento, sem provedor", async () => {
+      const { caso, chamadas, mensagens } = montar({ reserva: null });
 
       const r = await caso.execute({ clienteId: CLIENTE, telefone: TELEFONE });
 
-      expect(r.ok).toBe(false);
+      expect(r.ok).toBe(true);
+      expect(mensagens).toHaveLength(1);
+      expect(mensagens[0].texto).toContain("enviando");
       expect(chamadas).toEqual(["obterDas", "reservarDas"]);
     });
 
-    it("se a conclusão não vale (cadastro mudou), a guia já entregue não vira erro", async () => {
+    it("se a conclusão não vale (cadastro mudou), a guia já entregue não vira erro, mas deixa rastro", async () => {
+      const log = jest.spyOn(console, "error").mockImplementation(() => undefined);
       const { caso } = montar({ concluiu: false });
 
       const r = await caso.execute({ clienteId: CLIENTE, telefone: TELEFONE });
 
       expect(r.ok).toBe(true);
+      expect(log).toHaveBeenCalledTimes(1);
+      log.mockRestore();
     });
   });
 
@@ -213,7 +219,7 @@ describe("EntregarDasNaUra", () => {
       const r = await caso.execute({ clienteId: CLIENTE, telefone: TELEFONE });
 
       expect(r.ok).toBe(true);
-      expect(guardadasLidas).toEqual([{ id: "das", parcela: "202610" }]);
+      expect(guardadasLidas).toEqual([{ id: "das", periodo: "202610" }]);
       expect(documentos).toEqual([
         {
           telefone: TELEFONE,
@@ -222,6 +228,16 @@ describe("EntregarDasNaUra", () => {
         },
       ]);
       expect(chamadas).toEqual(["obterDas", "reencontrar", "enviarDocumento"]);
+    });
+
+    it("enviado sem data (dado legado) procura a guia do mês de hoje, e não diz que está indisponível", async () => {
+      const { caso, guardadasLidas, mensagens } = montar({ dasStatus: "enviado" });
+
+      const r = await caso.execute({ clienteId: CLIENTE, telefone: TELEFONE });
+
+      expect(r.ok).toBe(true);
+      expect(guardadasLidas).toEqual([{ id: "das", periodo: "202610" }]);
+      expect(mensagens).toEqual([]);
     });
 
     it("sem guia guardada devolve erro em vez de chamar o provedor", async () => {

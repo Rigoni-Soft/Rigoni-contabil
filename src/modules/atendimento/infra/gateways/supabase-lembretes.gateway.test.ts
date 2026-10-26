@@ -622,7 +622,7 @@ describe("guia publicada", () => {
         nomeArquivo: "das.pdf",
         pdfBase64: Buffer.from("%PDF-1.4 teste").toString("base64"),
       },
-      { id: "teste", parcela: "202610" },
+      { id: "teste", periodo: "202610" },
     );
 
     expect(link.ok && link.value).toContain("/guias-fiscais/");

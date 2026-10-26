@@ -85,7 +85,7 @@ function montar(
     {
       publicar: async (_clienteId, _guia, destino) => {
         publicadas.push(destino);
-        return ok(`https://storage.test/${destino?.id}/${destino?.parcela}.pdf`);
+        return ok(`https://storage.test/${destino?.id}/${destino?.periodo}.pdf`);
       },
       reencontrar: async () => ok(null),
     },
@@ -138,7 +138,7 @@ describe("EnviarGuiasParcelamento", () => {
         documento: { url: "https://storage.test/p1/202610.pdf", nomeArquivo: "202610.pdf" },
       },
     ]);
-    expect(publicadas).toEqual([{ id: "p1", parcela: "202610" }]);
+    expect(publicadas).toEqual([{ id: "p1", periodo: "202610" }]);
     expect(registrados).toEqual([["p1", "202610"]]);
     expect(identidades).toEqual(["202610:10000"]);
   });

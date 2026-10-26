@@ -29,6 +29,7 @@ import type {
   ParcelamentoDoCliente,
   ParcelamentosDoClientePort,
 } from "@/modules/atendimento/application/ports/out/parcelamentos-do-cliente.provider";
+import { chaveDoParcelamento } from "@/modules/atendimento/domain/services/guia-guardada.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { comTentativas, ESPERA_MS, TENTATIVAS } from "@/shared/kernel/com-tentativas";
 import { formatarParcela } from "@/shared/kernel/data-iso";
@@ -179,7 +180,11 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     const { parcelamento, guia, parcela } = atribuida;
     const descricao = `Parcelamento ${parcelamento.codigo} de ${cliente.empresa}`;
     const url = await this.repetir(() =>
-      this.publicadas.publicar(cliente.clienteId, guia, { id: parcelamento.id, parcela }),
+      this.publicadas.publicar(
+        cliente.clienteId,
+        guia,
+        chaveDoParcelamento(parcelamento.id, parcela),
+      ),
     );
     if (!url.ok)
       return { andamento: falha(`${descricao}: ${url.error.message}`), descontou: false };
