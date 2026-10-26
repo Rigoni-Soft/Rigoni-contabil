@@ -86,7 +86,7 @@ export class AnexarGuiaParcelaPgfn implements AnexarGuiaParcelaPgfnPort {
     if (recusa) return this.desfazerUpload(input.parcelamentoId, caminho, recusa);
 
     const salvo = await this.guias.anexar(input.parcelamentoId, guia.value);
-    if (salvo.ok) return this.liberar(input.parcelamentoId, guia.value, motivo);
+    if (salvo.ok) return this.confirmarOuManter(input.parcelamentoId, guia.value, motivo);
     if (salvo.error instanceof ResultadoIncertoError) {
       return this.reconciliar(input.parcelamentoId, guia.value, motivo);
     }
@@ -95,7 +95,7 @@ export class AnexarGuiaParcelaPgfn implements AnexarGuiaParcelaPgfnPort {
 
   // Sem motivo a guia é confirmada na hora; se o banco recusar, ela segue "a confirmar" (a confirmação
   // à mão continua valendo) e o arquivo e a linha não se perdem.
-  private async liberar(
+  private async confirmarOuManter(
     parcelamentoId: string,
     guia: GuiaParcelaPgfnProps,
     motivo: string | null,
@@ -128,7 +128,7 @@ export class AnexarGuiaParcelaPgfn implements AnexarGuiaParcelaPgfnPort {
     motivo: string | null,
   ): Promise<Result<GuiaDaParcela, AppError>> {
     const gravada = await this.guias.gravada(parcelamentoId, guia.competencia, guia.arquivoCaminho);
-    if (gravada.ok && gravada.value) return this.liberar(parcelamentoId, guia, motivo);
+    if (gravada.ok && gravada.value) return this.confirmarOuManter(parcelamentoId, guia, motivo);
     return err(
       new EstadoInconsistenteError(
         `Não foi possível confirmar se a guia foi anexada. O arquivo foi mantido (${guia.arquivoCaminho}); recarregue a página e confira antes de tentar de novo.`,

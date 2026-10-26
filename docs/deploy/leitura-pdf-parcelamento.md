@@ -75,8 +75,8 @@ e o Parcelamento:
 |---|---|
 | CNPJ, conta (= `codigo` do Parcelamento) e competência conferem | a guia nasce **confirmada** na hora |
 | CNPJ de **outra empresa** | anexo **recusado**; nada vai ao Storage (sem objeto órfão) |
-| conta diferente, PDF sem CNPJ/conta/competência, texto digitado diferente do PDF | **a confirmar**, com o motivo na resposta do anexo |
-| PDF ilegível, escaneado, corrompido ou modelo desconhecido | **a confirmar**; competência e conta (opcional: vale a do Parcelamento) são digitadas à mão. Sem competência lida nem digitada, o anexo pede a competência |
+| conta diferente, PDF sem CNPJ ou competência | **a confirmar**, com o motivo na resposta do anexo (o que o PDF traz prevalece sobre o digitado) |
+| PDF ilegível, escaneado, corrompido, modelo desconhecido ou DAS sem a observação `PGFN-SISPAR` | **a confirmar**; competência e conta (opcional: vale a do Parcelamento) são digitadas à mão. Sem competência lida nem digitada, o anexo pede a competência |
 
 Vencimento e valor são informativos e não bloqueiam. O motivo aparece na tela ao anexar, mas **não é gravado**: depois de recarregar a
 guia aparece só como "A confirmar". A confirmação à mão continua valendo para qualquer guia "a confirmar".

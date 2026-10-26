@@ -7,17 +7,19 @@ const competencia = z
   .string()
   .regex(/^\d{4}(0[1-9]|1[0-2])$/, "Informe o mês e o ano da guia, como 2026-10.");
 
+const opcionalVazio = <T extends z.ZodType>(schema: T) =>
+  z.preprocess(
+    (valor) => (typeof valor === "string" ? valor.trim() || undefined : valor),
+    schema.optional(),
+  );
+
 // Vazio vira ausente: competência e conta só se digitam quando o PDF não pôde ser lido (ou para
 // corrigir o que ele traz); o servidor lê o PDF e confere. Segundo anexo na competência e competência já enviada não entram aqui: o banco recusa.
 export const anexarGuiaParcelaPgfnSchema = z.object({
   parcelamentoId: z.guid(),
-  competencia: z.preprocess(
-    (valor) => (typeof valor === "string" ? valor.trim() || undefined : valor),
-    competencia.optional(),
-  ),
-  contaNegociacao: z.preprocess(
-    (valor) => (typeof valor === "string" ? valor.trim() || undefined : valor),
-    z.string().max(40, "Conta de negociação: no máximo 40 caracteres.").optional(),
+  competencia: opcionalVazio(competencia),
+  contaNegociacao: opcionalVazio(
+    z.string().max(40, "Conta de negociação: no máximo 40 caracteres."),
   ),
   arquivo: z
     .instanceof(File, { message: "Anexe o PDF da guia." })

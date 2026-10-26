@@ -29,12 +29,8 @@ describe("LeitorDeGuiaDeParcelaTextoGateway", () => {
     });
   });
 
-  it("sem a observação PGFN-SISPAR, a conta vem nula e o resto é lido", async () => {
-    expect(await ler(DAS("Pagamento em dia"))).toMatchObject({
-      lido: true,
-      contaNegociacao: null,
-      competencia: "202610",
-    });
+  it("DAS sem a observação PGFN-SISPAR (não é de parcelamento PGFN) não é lido", async () => {
+    expect(await ler(DAS("Pagamento em dia"))).toEqual({ lido: false });
   });
 
   it("sem Período de Apuração, a competência vem nula", async () => {

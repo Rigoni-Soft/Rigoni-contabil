@@ -75,9 +75,12 @@ describe("conferirGuiaLida", () => {
     expect(!r.ok && r.error.message).toMatch(/competência/i);
   });
 
-  it("digitado diferente do lido deixa a confirmar", () => {
-    const r = conferirGuiaLida(lida, parcelamento, { competencia: "202611" });
-    expect(r.ok && r.value.competencia).toBe("202611");
-    expect(r.ok && r.value.motivo).not.toBeNull();
+  it("o lido prevalece sobre o digitado", () => {
+    const r = conferirGuiaLida(lida, parcelamento, { competencia: "202611", contaNegociacao: "1" });
+    expect(r.ok && r.value).toEqual({
+      competencia: "202610",
+      contaNegociacao: "150141670",
+      motivo: null,
+    });
   });
 });

@@ -54,27 +54,31 @@ export function conferirGuiaLida(
   if (lida?.cnpj && normalizarCnpj(lida.cnpj) !== normalizarCnpj(parcelamento.cnpj)) {
     return err(new ValidationError("O CNPJ da guia é de outra empresa: o anexo foi recusado."));
   }
-  const competencia = digitada.competencia || lida?.competencia;
+  // O que o PDF traz prevalece; o digitado só preenche o que ele não trouxe.
+  const competencia = lida?.competencia || digitada.competencia;
   if (!competencia) {
     return err(
       new ValidationError("Não consegui ler a competência do PDF: informe o mês e o ano da guia."),
     );
   }
-  const contaDigitada = digitada.contaNegociacao?.trim() || undefined;
-  const contaNegociacao = contaDigitada ?? lida?.contaNegociacao ?? parcelamento.codigo;
+  const contaNegociacao =
+    lida?.contaNegociacao || digitada.contaNegociacao?.trim() || parcelamento.codigo;
 
-  const motivo = !lida
-    ? "Não consegui ler o PDF: confira a guia à mão."
-    : !lida.cnpj
-      ? "O PDF não traz o CNPJ: confira a guia à mão."
-      : !lida.contaNegociacao
-        ? "O PDF não traz a conta de negociação: confira a guia à mão."
-        : !lida.competencia
-          ? "Não consegui ler a competência do PDF: confira a guia à mão."
-          : lida.contaNegociacao !== parcelamento.codigo
-            ? `A conta do PDF (${lida.contaNegociacao}) é diferente da conta do Parcelamento (${parcelamento.codigo}).`
-            : competencia !== lida.competencia || contaNegociacao !== lida.contaNegociacao
-              ? "O que você digitou é diferente do PDF: confira a guia à mão."
-              : null;
-  return ok({ competencia, contaNegociacao, motivo });
+  return ok({
+    competencia,
+    contaNegociacao,
+    motivo: motivoParaConferir(lida, parcelamento.codigo),
+  });
+}
+
+// Nulo = tudo conferiu. Cada regra devolve o que o Funcionário deve conferir à mão.
+function motivoParaConferir(lida: GuiaLida | null, codigo: string): string | null {
+  if (!lida) return "Não consegui ler o PDF: confira a guia à mão.";
+  if (!lida.cnpj) return "O PDF não traz o CNPJ: confira a guia à mão.";
+  if (!lida.contaNegociacao) return "O PDF não traz a conta de negociação: confira a guia à mão.";
+  if (!lida.competencia) return "Não consegui ler a competência do PDF: confira a guia à mão.";
+  if (lida.contaNegociacao !== codigo) {
+    return `A conta do PDF (${lida.contaNegociacao}) é diferente da conta do Parcelamento (${codigo}).`;
+  }
+  return null;
 }
