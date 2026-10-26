@@ -8,6 +8,10 @@ import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto
 import { SeloDaGuia } from "@/presentation/components/molecules/selo-da-guia.component";
 import { Button } from "@/presentation/components/ui/button";
 
+// O resultado do anexo e o motivo da pendência são o que o Funcionário precisa ler e agir: 14 px, não
+// os 12 px do aviso padrão. O ícone desce 2 px para ficar na primeira linha de 20 px (como o FieldError).
+const AVISO_LEGIVEL = "text-sm [&>svg]:mt-[3px]";
+
 type GuiaDaListaDto = {
   // Id do item no DOM (alvo do foco depois de confirmar).
   id: string;
@@ -119,7 +123,7 @@ export function GuiasDaParcelaPgfn({
                 </Linha>
               </Linha>
               {!guia.confirmada && guia.motivo && (
-                <Texto variante="nota" className="mt-1 [overflow-wrap:anywhere]">
+                <Texto variante="nota" className="mt-1 text-sm [overflow-wrap:anywhere]">
                   {guia.motivo}
                 </Texto>
               )}
@@ -174,8 +178,8 @@ export function GuiasDaParcelaPgfn({
           {anexando ? "Enviando..." : "Anexar guia"}
         </Button>
         {erroServidor && <FieldError>{erroServidor}</FieldError>}
-        {sucesso && <AvisoDeStatus tipo="sucesso" texto={sucesso} />}
-        {aviso && <AvisoDeStatus tipo="atencao" texto={aviso} />}
+        {sucesso && <AvisoDeStatus tipo="sucesso" texto={sucesso} className={AVISO_LEGIVEL} />}
+        {aviso && <AvisoDeStatus tipo="atencao" texto={aviso} className={AVISO_LEGIVEL} />}
       </Pilha>
     </Pilha>
   );
