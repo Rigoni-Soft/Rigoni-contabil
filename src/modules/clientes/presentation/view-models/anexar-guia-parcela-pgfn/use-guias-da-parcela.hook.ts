@@ -89,19 +89,17 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
       setContaNegociacao("");
       setArquivo(undefined);
       const anexada = resultado.data;
-      if (anexada.estado === "confirmada") {
-        setResultado({ tipo: "sucesso", texto: "Guia anexada e confirmada: liberada ao envio." });
-        await queryClient.invalidateQueries({ queryKey: chave });
-        return;
-      }
-      // O aviso sai já, sem esperar a lista (rede lenta não deixa a pessoa sem resposta), e aponta
-      // para o motivo na lista em vez de repeti-lo (dizer duas vezes é ruído). Normalmente fica assim,
-      // sem trocar de texto (o leitor de tela anuncia uma vez só).
-      setResultado({ tipo: "atencao", texto: AVISO_ANEXADA });
+      const confirmada = anexada.estado === "confirmada";
+      // O resultado sai já, sem esperar a lista, e a atenção aponta para o motivo na lista em vez de repeti-lo.
+      setResultado(
+        confirmada
+          ? { tipo: "sucesso", texto: "Guia anexada e confirmada: liberada ao envio." }
+          : { tipo: "atencao", texto: AVISO_ANEXADA },
+      );
       await queryClient.invalidateQueries({ queryKey: chave });
-      // Exceção: o motivo não chegou na lista (a confirmação automática falhou depois do anexo, e esse
-      // motivo não é gravado). Aí o aviso passa a trazê-lo. Só mexe num aviso que ainda está na tela:
-      // se a pessoa já editou um campo e o limpou, a lista tardia não o traz de volta.
+      if (confirmada) return;
+      // Exceção: o motivo não está na lista (a confirmação automática falhou e esse motivo não é
+      // gravado); o aviso passa a trazê-lo, se ainda estiver na tela (a pessoa pode tê-lo limpado).
       const naLista = queryClient
         .getQueryData<GuiaDaParcela[]>(chave)
         ?.find((guia) => guia.competencia === anexada.competencia)?.motivo;

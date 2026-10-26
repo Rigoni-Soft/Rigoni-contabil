@@ -7,13 +7,12 @@ import { centavos, dataIso, extrairTextoDoPdf, pega } from "./leitura-pdf.util";
 
 const NAO_LIDA: LeituraDeGuia = { lido: false };
 
-// ponytail: um modelo só, o DAS do SENDA com a observação PGFN-SISPAR (entrada e parcela mensal têm o
-// mesmo). Um DAS comum do Simples, outro modelo, PDF
-// escaneado (sem camada de texto) ou corrompido cai em `lido: false` e a guia fica "a confirmar";
-// modelo novo = parser novo aqui, escaneado = OCR, só se aparecer na prática.
+// ponytail: um modelo só, o DAS do SENDA com `PGFN-SISPAR`. Outro modelo, PDF escaneado ou corrompido
+// vira `lido: false` e a guia fica "a confirmar"; modelo novo = parser novo, escaneado = OCR só se aparecer.
 function interpretar(texto: string): LeituraDeGuia {
-  if (!/Documento de Arrecadação do Simples Nacional/i.test(texto)) return NAO_LIDA;
-  if (!/PGFN-SISPAR/.test(texto)) return NAO_LIDA;
+  if (!/Documento de Arrecadação do Simples Nacional/i.test(texto) || !/PGFN-SISPAR/.test(texto)) {
+    return NAO_LIDA;
+  }
   const periodo = /Período de Apuração\s*:?\s*(\d{2})\/(\d{4})/.exec(texto);
   return {
     lido: true,

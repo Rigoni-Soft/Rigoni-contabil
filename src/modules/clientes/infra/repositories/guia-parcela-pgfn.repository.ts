@@ -25,9 +25,6 @@ type GuiaRow = {
   motivo: string | null;
 };
 
-// Limite do CHECK da coluna `motivo`: o motivo traz a conta lida do PDF, que não tem tamanho certo.
-const MOTIVO_MAX = 300;
-
 export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
@@ -90,7 +87,7 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
       competencia: guia.competencia,
       conta_negociacao: guia.contaNegociacao,
       arquivo_caminho: guia.arquivoCaminho,
-      motivo: motivo?.slice(0, MOTIVO_MAX) ?? null,
+      motivo,
     });
     if (!error) return ok(undefined);
 
