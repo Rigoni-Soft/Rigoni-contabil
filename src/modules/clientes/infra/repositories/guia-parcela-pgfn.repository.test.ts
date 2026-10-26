@@ -61,6 +61,7 @@ const CNPJS_DA_SUITE = [
   "77330016000197",
   "77330017000131",
   "77330018000186",
+  "77330019000120",
 ] as const;
 beforeAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
 afterAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
@@ -105,13 +106,16 @@ async function criarParcelamento(clienteId: string, origem: "pgfn" | "receita_fe
     ],
   );
   if (!salvo.ok) throw new Error("falha ao criar parcelamento: " + salvo.error.message);
+  ultimo = { clienteId, parcelamentoId: id };
   return id;
 }
 
+// O caminho tem de ser o do Parcelamento (o banco recusa outro): guia() usa o último criado no teste.
+let ultimo = { clienteId: "", parcelamentoId: "" };
 const guia = (competencia = "202610") => ({
   competencia,
   contaNegociacao: "123456",
-  arquivoCaminho: `c/guias-pgfn/p/${competencia}-${crypto.randomUUID()}.pdf`,
+  arquivoCaminho: `${ultimo.clienteId}/guias-pgfn/${ultimo.parcelamentoId}/${competencia}-${crypto.randomUUID()}.pdf`,
 });
 
 describe("guia anexada da parcela PGFN", () => {
@@ -176,7 +180,11 @@ describe("guia anexada da parcela PGFN", () => {
 
     await funcionario.from("cliente_parcelamento_guias").insert({
       parcelamento_id: parcelamentoId,
-      ...{ competencia: "202611", conta_negociacao: "1", arquivo_caminho: "x.pdf" },
+      ...{
+        competencia: "202611",
+        conta_negociacao: "1",
+        arquivo_caminho: guia("202611").arquivoCaminho,
+      },
       estado: "confirmada",
       anexado_por: outroAtor,
       confirmado_por: outroAtor,
@@ -407,6 +415,29 @@ describe("guia anexada da parcela PGFN", () => {
         .eq("parcelamento_id", parcelamentoId);
 
       expect(mexer.error).not.toBeNull();
+    });
+
+    it("o PDF da guia tem de ser do próprio Parcelamento: caminho de outro Cliente é recusado", async () => {
+      const clienteId = await criarClienteResponsavelFuncionarioSN("77330019000120");
+      const parcelamentoId = await criarParcelamento(clienteId);
+      const repo = new SupabaseGuiaParcelaPgfnRepository(await comoFuncionarioSN());
+      const alheio = {
+        ...guia("202610"),
+        arquivoCaminho: `${crypto.randomUUID()}/guias-pgfn/${parcelamentoId}/202610-x.pdf`,
+      };
+
+      const anexo = await repo.anexar(parcelamentoId, alheio, null);
+      await repo.anexar(parcelamentoId, guia("202610"), null);
+      const troca = await repo.substituir(
+        parcelamentoId,
+        "202610",
+        { contaNegociacao: "1", arquivoCaminho: alheio.arquivoCaminho },
+        null,
+      );
+
+      const recusa = "O PDF da guia não pertence a este Parcelamento.";
+      expect(anexo).toMatchObject({ ok: false, error: { message: recusa } });
+      expect(troca).toMatchObject({ ok: false, error: { message: recusa } });
     });
 
     it("guia de competência já enviada não troca nem remove", async () => {
