@@ -100,9 +100,13 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
       const naLista = queryClient
         .getQueryData<GuiaDaParcela[]>(chave)
         ?.find((guia) => guia.competencia === anexada.competencia)?.motivo;
+      // Só encurta um aviso que ainda está na tela: se a pessoa já mexeu num campo (e o aviso foi
+      // limpo), a lista que chega tarde não o traz de volta.
       if (naLista) {
-        setAviso(
-          "Guia anexada, mas ainda não liberada ao envio. Confira o motivo na lista e confirme.",
+        setAviso((atual) =>
+          atual
+            ? "Guia anexada, mas ainda não liberada ao envio. Confira o motivo na lista e confirme."
+            : atual,
         );
       }
     });

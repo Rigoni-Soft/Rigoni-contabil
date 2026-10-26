@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render as renderRtl, screen, within } from "@testing-library/react";
+import { act, fireEvent, render as renderRtl, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
@@ -241,6 +241,33 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     expect(
       await screen.findByText(/ainda não liberada ao envio. Conferir a conta./),
     ).toBeInTheDocument();
+  });
+
+  it("lista que chega depois de a pessoa editar um campo não traz o aviso de volta", async () => {
+    const guia = {
+      competencia: "202610",
+      contaNegociacao: "999",
+      estado: "a_confirmar",
+      motivo: "Conferir a conta.",
+    };
+    anexarMock.mockResolvedValue({ ok: true, data: guia });
+    const usuario = userEvent.setup();
+    render();
+    const regiao = within(await regiaoDaGuia());
+    let chegou: (valor: unknown) => void = () => undefined;
+    listarMock.mockReturnValue(new Promise((resolve) => (chegou = resolve)));
+
+    await usuario.upload(regiao.getByLabelText(/pdf da guia/i), pdf);
+    await usuario.click(regiao.getByRole("button", { name: "Anexar guia" }));
+    expect(await screen.findByText(/ainda não liberada ao envio/)).toBeInTheDocument();
+    // Os campos de texto travam durante o envio; o seletor de PDF não, e trocar o arquivo é editar.
+    await usuario.upload(regiao.getByLabelText(/pdf da guia/i), pdf);
+    expect(screen.queryByText(/ainda não liberada ao envio/)).not.toBeInTheDocument();
+
+    await act(async () => chegou({ ok: true, data: [guia] }));
+
+    expect(screen.queryByText(/ainda não liberada ao envio/)).not.toBeInTheDocument();
+    expect(await screen.findByText("Conferir a conta.")).toBeInTheDocument();
   });
 
   it("com o motivo já na lista, o aviso só aponta para ele (o texto aparece uma vez)", async () => {
