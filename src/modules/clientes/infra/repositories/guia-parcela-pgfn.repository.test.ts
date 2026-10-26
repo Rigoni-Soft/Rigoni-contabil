@@ -133,6 +133,7 @@ describe("guia anexada da parcela PGFN", () => {
       competencia: "202610",
       contaNegociacao: "123456",
       estado: "confirmada",
+      enviada: false,
     });
   });
 
@@ -159,7 +160,7 @@ describe("guia anexada da parcela PGFN", () => {
     expect((await repo.anexar(parcelamentoId, guia(), null)).ok).toBe(true);
     let lista = await repo.listar(parcelamentoId);
     expect(lista.ok && lista.value).toEqual([
-      { competencia: "202610", contaNegociacao: "123456", estado: "a_confirmar" },
+      { competencia: "202610", contaNegociacao: "123456", estado: "a_confirmar", enviada: false },
     ]);
 
     expect((await repo.confirmar(parcelamentoId, "202610")).ok).toBe(true);
@@ -367,6 +368,7 @@ describe("guia anexada da parcela PGFN", () => {
           contaNegociacao: "999",
           estado: "a_confirmar",
           motivo: "Conferir a conta.",
+          enviada: false,
         },
       ]);
       const linha = await servico()
