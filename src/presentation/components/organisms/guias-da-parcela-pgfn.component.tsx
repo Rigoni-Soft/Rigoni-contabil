@@ -130,8 +130,7 @@ export function GuiasDaParcelaPgfn({
                   {guia.rotulo} · conta {guia.contaNegociacao}
                 </Texto>
                 <Linha alinhar="centro" espaco={2} quebra>
-                  <SeloDaGuia confirmada={guia.confirmada} />
-                  {guia.enviada && <Texto variante="nota">Enviada</Texto>}
+                  <SeloDaGuia confirmada={guia.confirmada} enviada={guia.enviada} />
                 </Linha>
               </Linha>
               {!guia.confirmada && guia.motivo && (

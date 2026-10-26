@@ -26,7 +26,7 @@ export function BotaoDeArquivo({
     <label
       className={cn(
         buttonVariants({ variant: "ghost", size: "sm" }),
-        "cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring pointer-coarse:min-h-11",
+        "cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-background pointer-coarse:min-h-11",
         ocupado && "pointer-events-none opacity-50",
       )}
     >
