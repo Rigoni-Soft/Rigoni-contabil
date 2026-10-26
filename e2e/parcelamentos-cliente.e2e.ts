@@ -221,3 +221,71 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
     await expect(page.locator("[id='parcelamentos.0.parcelasRestantes']")).toHaveValue("0");
   });
 });
+
+test.describe("Guia anexada da parcela PGFN: trocar, visualizar e remover (#184)", () => {
+  test("troca, abre por link temporário, remove e o acordo cadastrado só ganha guias @smoke", async ({
+    page,
+  }) => {
+    const clienteId = await abrirComoFuncionarioSn(page, "Guia Parcela E2E Ltda");
+    const { data: cliente } = await adminLocal()
+      .from("clientes")
+      .select("cnpj")
+      .eq("id", clienteId)
+      .single();
+    // O leitor falso lê o acordo como PGFN (código FALSO-123456); a guia confirma quando o PDF traz
+    // o CNPJ do Cliente, a conta do acordo e a competência.
+    const guia = (competencia: string) =>
+      pdf(`guia-${competencia}.pdf`, `[leitor:guia=${cliente!.cnpj};FALSO-123456;${competencia}]`);
+    await anexarEEsperarSugestao(page, 0, pdf("acordo-guia.pdf"));
+    await page.getByRole("button", { name: "Salvar" }).click();
+    await expect(page).toHaveURL("/simples-nacional");
+    await page.goto(`/clientes/${clienteId}`);
+    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+
+    // Acordo PGFN cadastrado só ganha guias: código, restantes e "É interno" não se editam.
+    await expect(page.locator("[id='parcelamentos.0.codigo']")).toBeDisabled();
+    await expect(page.locator("[id='parcelamentos.0.parcelasRestantes']")).toBeDisabled();
+    await expect(page.getByRole("checkbox", { name: "É interno" })).toBeDisabled();
+
+    const regiao = page.getByRole("group", { name: "Guias da parcela" });
+    await regiao.getByLabel(/pdf da guia/i).setInputFiles(guia("202610"));
+    await regiao.getByRole("button", { name: "Anexar guia" }).click();
+    await expect(regiao.getByText("Guia anexada e confirmada: liberada ao envio.")).toBeVisible();
+    await expect(regiao.getByText(/10\/2026 · conta FALSO-123456/)).toBeVisible();
+
+    // Troca por um PDF que não confere: a guia volta a "a confirmar" e o motivo aparece.
+    await regiao.getByLabel("Trocar guia de 10/2026").setInputFiles(pdf("guia-sem-dados.pdf"));
+    await expect(regiao.getByText(/guia trocada, mas ainda não liberada/i)).toBeVisible();
+    await expect(regiao.getByText("A confirmar")).toBeVisible();
+    // Troca por um PDF de outro mês é recusada e a guia fica como estava.
+    await regiao.getByLabel("Trocar guia de 10/2026").setInputFiles(guia("202611"));
+    await expect(regiao.getByText(/PDF é de outra competência/i)).toBeVisible();
+    await expect(regiao.getByText("A confirmar")).toBeVisible();
+    await regiao.getByLabel("Trocar guia de 10/2026").setInputFiles(guia("202610"));
+    await expect(regiao.getByText(/guia trocada e confirmada/i)).toBeVisible();
+    // Só o PDF atual sobra no Storage (o antigo é apagado a cada troca).
+    const { data: parcelamento } = await adminLocal()
+      .from("cliente_parcelamentos")
+      .select("id")
+      .eq("cliente_id", clienteId)
+      .single();
+    const prefixo = `${clienteId}/guias-pgfn/${parcelamento!.id}`;
+    const objetos = () => adminLocal().storage.from("parcelamentos-clientes").list(prefixo);
+    expect((await objetos()).data).toHaveLength(1);
+
+    // Visualizar: o link temporário abre numa aba nova.
+    const [requisicao] = await Promise.all([
+      page
+        .context()
+        .waitForEvent("request", (r) => r.url().includes("/object/sign/parcelamentos-clientes/")),
+      regiao.getByRole("button", { name: "Ver guia de 10/2026", exact: true }).click(),
+    ]);
+    expect(requisicao.url()).toContain("token=");
+
+    // Remover apaga o registro e o objeto.
+    await regiao.getByRole("button", { name: "Remover guia de 10/2026" }).click();
+    await expect(regiao.getByText("Guia removida.")).toBeVisible();
+    await expect(regiao.getByText("Nenhuma guia anexada.")).toBeVisible();
+    expect((await objetos()).data).toHaveLength(0);
+  });
+});
