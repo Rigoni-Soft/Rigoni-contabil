@@ -608,7 +608,10 @@ describe("rodada real com a reserva ocupada", () => {
               return sucesso([{ nomeArquivo: "p.pdf", pdfBase64: "JVBERi0=", parcela: "202610" }]);
             },
           },
-          { publicar: async () => sucesso("https://storage.test/p.pdf") },
+          {
+            publicar: async () => sucesso("https://storage.test/p.pdf"),
+            reencontrar: async () => sucesso(null),
+          },
           new EntregarComunicacaoPorCanais(
             new EnviarComunicacaoProativa(envio, 1, 0),
             { enviar: async () => sucesso(undefined) },

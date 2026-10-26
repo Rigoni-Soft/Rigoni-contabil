@@ -1,4 +1,7 @@
-import type { GuiaPublicadaPort } from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
+import type {
+  ChaveGuia,
+  GuiaPublicadaPort,
+} from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
 import type {
   GuiaFiscal,
   GuiasFiscaisPort,
@@ -17,7 +20,7 @@ export function obterGuiaPublicada<T>(
   clienteId: string,
   tipo: TipoGuia,
   extrair: (guia: GuiaFiscal) => Result<T, AppError>,
-  chave?: { id: string; parcela: string },
+  chave: ChaveGuia,
 ): Promise<Result<T & { guia: { url: string; nomeArquivo: string } }, AppError>> {
   return comTentativas(
     async () => {

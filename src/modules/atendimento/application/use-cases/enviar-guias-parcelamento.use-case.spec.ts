@@ -87,6 +87,7 @@ function montar(
         publicadas.push(destino);
         return ok(`https://storage.test/${destino?.id}/${destino?.parcela}.pdf`);
       },
+      reencontrar: async () => ok(null),
     },
     new EntregarComunicacaoPorCanais(new EnviarComunicacaoProativa(envio, 3, 0), {
       enviar: async (email) => {

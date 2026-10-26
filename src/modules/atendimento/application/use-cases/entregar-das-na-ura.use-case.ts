@@ -3,12 +3,9 @@ import type {
   EntregarDasNaUraPort,
 } from "@/modules/atendimento/application/ports/in/entregar-das-na-ura.provider";
 import type { ObterGuiaDasParaEnvioPort } from "@/modules/atendimento/application/ports/in/obter-guia-das-para-envio.provider";
-import type {
-  ClientesParaLembretePort,
-  DasDoClientePort,
-} from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
+import type { ClientesParaLembretePort } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
-import type { GuiaGuardadaPort } from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
+import type { GuiaPublicadaPort } from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import { chaveDoDas } from "@/modules/atendimento/application/use-cases/obter-guia-das-para-envio.use-case";
 import type { AppError } from "@/shared/errors/app.error";
@@ -25,10 +22,12 @@ const DAS_NAO_PRONTO =
 // isso não o reenvia. Já enviado → reenvia a guia guardada, sem provedor.
 export class EntregarDasNaUra implements EntregarDasNaUraPort {
   constructor(
-    private readonly clientes: DasDoClientePort &
-      Pick<ClientesParaLembretePort, "reservarDas" | "concluirDas" | "liberarDas">,
+    private readonly clientes: Pick<
+      ClientesParaLembretePort,
+      "obterDas" | "reservarDas" | "concluirDas" | "liberarDas"
+    >,
     private readonly guiaDas: ObterGuiaDasParaEnvioPort,
-    private readonly publicadas: GuiaGuardadaPort,
+    private readonly publicadas: Pick<GuiaPublicadaPort, "reencontrar">,
     private readonly envio: EnvioMensagemPort,
     private readonly relogio: RelogioPort,
   ) {}
@@ -37,28 +36,20 @@ export class EntregarDasNaUra implements EntregarDasNaUraPort {
     const das = await this.clientes.obterDas(clienteId);
     if (!das.ok) return das;
     if (das.value?.dasStatus === "enviado" && das.value.dataEnvioDas) {
-      return this.reenviar(clienteId, telefone, das.value.dataEnvioDas.slice(0, 7));
+      const chave = chaveDoDas(das.value.dataEnvioDas.slice(0, 7));
+      const url = await this.publicadas.reencontrar(clienteId, chave);
+      if (!url.ok) return url;
+      if (!url.value) return err(new ServicoExternoError("Guia do DAS enviada não está guardada."));
+      return this.envio.enviarDocumento({
+        telefone,
+        nomeArquivo: `das-${chave.parcela}.pdf`,
+        url: url.value,
+      });
     }
     if (das.value?.dasStatus !== "pronto") {
       return this.envio.enviar({ telefone, texto: DAS_NAO_PRONTO });
     }
     return this.adiantar(clienteId, telefone);
-  }
-
-  private async reenviar(
-    clienteId: string,
-    telefone: string,
-    mes: string,
-  ): Promise<Result<void, AppError>> {
-    const chave = chaveDoDas(mes);
-    const url = await this.publicadas.reencontrar(clienteId, chave);
-    if (!url.ok) return url;
-    if (!url.value) return err(new ServicoExternoError("Guia do DAS enviada não está guardada."));
-    return this.envio.enviarDocumento({
-      telefone,
-      nomeArquivo: `das-${chave.parcela}.pdf`,
-      url: url.value,
-    });
   }
 
   private async adiantar(clienteId: string, telefone: string): Promise<Result<void, AppError>> {

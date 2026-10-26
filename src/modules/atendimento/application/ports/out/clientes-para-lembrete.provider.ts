@@ -18,9 +18,13 @@ export type ClienteParaLembrete = {
   ultimaMensagemDoContatoEm: Date | null;
 };
 
+export type DasDoCliente = { dasStatus: DasStatusValor | null; dataEnvioDas: string | null };
+
 export interface ClientesParaLembretePort {
   // Todos os Clientes do Cadastro operacional (leitura paginada por cursor, completa ou erro).
   listar(): Promise<Result<ClienteParaLembrete[], AppError>>;
+  // Estado do DAS de um Cliente; null se ele não tem Cadastro operacional.
+  obterDas(clienteId: string): Promise<Result<DasDoCliente | null, AppError>>;
   // Reserva a entrega do DAS: devolve o token da tentativa, ou null se o DAS já não está pronto
   // (outro job ou o Funcionário mexeu antes) ou outra tentativa vigente o reservou. Não muda o
   // estado do DAS: ele só vira enviado ao concluir.
@@ -34,11 +38,4 @@ export interface ClientesParaLembretePort {
   ): Promise<Result<boolean, AppError>>;
   // A entrega falhou sem aceite: libera a reserva (token antigo não libera a de outra tentativa).
   liberarDas(clienteId: string, token: string): Promise<Result<void, AppError>>;
-}
-
-export type DasDoCliente = { dasStatus: DasStatusValor | null; dataEnvioDas: string | null };
-
-export interface DasDoClientePort {
-  // Estado do DAS de um Cliente; null se ele não tem Cadastro operacional.
-  obterDas(clienteId: string): Promise<Result<DasDoCliente | null, AppError>>;
 }

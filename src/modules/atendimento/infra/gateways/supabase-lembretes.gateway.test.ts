@@ -520,6 +520,7 @@ describe("rodada real com a reserva ocupada", () => {
         const todos = await clientes.listar();
         return todos.ok ? sucesso(todos.value.filter((c) => c.clienteId === alvo.id)) : todos;
       },
+      obterDas: (id: string) => clientes.obterDas(id),
       reservarDas: (id: string) => clientes.reservarDas(id),
       concluirDas: (id: string, token: string, data: string) =>
         clientes.concluirDas(id, token, data),
@@ -560,7 +561,10 @@ describe("rodada real com a reserva ocupada", () => {
               });
             },
           },
-          { publicar: async () => sucesso("https://storage.test/das.pdf") },
+          {
+            publicar: async () => sucesso("https://storage.test/das.pdf"),
+            reencontrar: async () => sucesso(null),
+          },
           0,
         ),
         new EntregarComunicacaoPorCanais(
@@ -612,10 +616,14 @@ describe("rodada real com a reserva ocupada", () => {
 
 describe("guia publicada", () => {
   it("publica o PDF no bucket e devolve um link assinado", async () => {
-    const link = await guias.publicar(principal.id, {
-      nomeArquivo: "das.pdf",
-      pdfBase64: Buffer.from("%PDF-1.4 teste").toString("base64"),
-    });
+    const link = await guias.publicar(
+      principal.id,
+      {
+        nomeArquivo: "das.pdf",
+        pdfBase64: Buffer.from("%PDF-1.4 teste").toString("base64"),
+      },
+      { id: "teste", parcela: "202610" },
+    );
 
     expect(link.ok && link.value).toContain("/guias-fiscais/");
     const url = link.ok ? link.value : "";
@@ -720,6 +728,7 @@ describe("DAS pedido pela URA (#124)", () => {
         const todos = await clientes.listar();
         return todos.ok ? sucesso(todos.value.filter((c) => c.clienteId === alvo.id)) : todos;
       },
+      obterDas: (id: string) => clientes.obterDas(id),
       reservarDas: (id: string) => clientes.reservarDas(id),
       concluirDas: (id: string, token: string, data: string) =>
         clientes.concluirDas(id, token, data),

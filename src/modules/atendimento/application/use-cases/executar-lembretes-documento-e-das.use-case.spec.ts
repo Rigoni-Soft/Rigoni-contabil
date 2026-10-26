@@ -66,6 +66,7 @@ function montar(
   const job = new ExecutarLembretesDocumentoEDas(
     {
       listar: async () => ok(clientes),
+      obterDas: async () => ok(null),
       reservarDas: async (id) => opcoes.reservarPor?.[id] ?? opcoes.reservar ?? ok("tok-1"),
       concluirDas: async (id, _token, data) => {
         marcados.push([id, data]);
@@ -79,7 +80,10 @@ function montar(
     },
     new ObterGuiaDasParaEnvio(
       { buscar },
-      { publicar: async () => ok("https://storage.test/das.pdf") },
+      {
+        publicar: async () => ok("https://storage.test/das.pdf"),
+        reencontrar: async () => ok(null),
+      },
       0,
     ),
     new EntregarComunicacaoPorCanais(
@@ -454,6 +458,7 @@ describe("ExecutarLembretesDocumentoEDas", () => {
     const job = new ExecutarLembretesDocumentoEDas(
       {
         listar: async () => err(new ServicoExternoError("banco")),
+        obterDas: async () => ok(null),
         reservarDas: async () => ok("t"),
         concluirDas: async () => ok(true),
         liberarDas: async () => ok(undefined),

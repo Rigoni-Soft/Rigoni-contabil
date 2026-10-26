@@ -5,7 +5,6 @@ import type {
   ClienteParaLembrete,
   ClientesParaLembretePort,
   DasDoCliente,
-  DasDoClientePort,
 } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
 import {
   linhaDestinatarioSchema,
@@ -27,9 +26,7 @@ const linhaSchema = linhaDestinatarioSchema.extend({
 const linhaDasSchema = linhaSchema.pick({ das_status: true, data_envio_das: true });
 
 // Usa o client service_role (docs/adr/0001): o job não tem sessão de usuário.
-export class SupabaseClientesParaLembreteGateway
-  implements ClientesParaLembretePort, DasDoClientePort
-{
+export class SupabaseClientesParaLembreteGateway implements ClientesParaLembretePort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 
   async listar(): Promise<Result<ClienteParaLembrete[], AppError>> {

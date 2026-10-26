@@ -1,14 +1,11 @@
 import type { GuiaDasParaEnvio } from "@/modules/atendimento/application/ports/in/obter-guia-das-para-envio.provider";
-import type {
-  ClientesParaLembretePort,
-  DasDoClientePort,
-} from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
+import type { ClientesParaLembretePort } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
 import type {
   DocumentoEnviado,
   EnvioMensagemPort,
   MensagemEnviada,
 } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
-import type { GuiaGuardadaPort } from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
+import type { GuiaPublicadaPort } from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -48,8 +45,10 @@ function montar(
   const guiasPedidas: { clienteId: string; mes: string }[] = [];
   const guardadasLidas: { id: string; parcela: string }[] = [];
 
-  const clientes: DasDoClientePort &
-    Pick<ClientesParaLembretePort, "reservarDas" | "concluirDas" | "liberarDas"> = {
+  const clientes: Pick<
+    ClientesParaLembretePort,
+    "obterDas" | "reservarDas" | "concluirDas" | "liberarDas"
+  > = {
     obterDas: async () => {
       chamadas.push("obterDas");
       return ok(
@@ -83,7 +82,7 @@ function montar(
       return opcoes.guia ?? ok(GUIA);
     },
   };
-  const publicadas: GuiaGuardadaPort = {
+  const publicadas: Pick<GuiaPublicadaPort, "reencontrar"> = {
     reencontrar: async (_clienteId, chave) => {
       chamadas.push("reencontrar");
       guardadasLidas.push(chave);

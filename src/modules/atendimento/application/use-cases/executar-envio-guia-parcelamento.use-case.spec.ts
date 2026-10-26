@@ -92,7 +92,10 @@ function montar(
         registrarEnvio: async () => ok("registrado"),
       },
       { buscarGuiasParcelamento: buscar },
-      { publicar: async () => ok("https://storage.test/parcelamento.pdf") },
+      {
+        publicar: async () => ok("https://storage.test/parcelamento.pdf"),
+        reencontrar: async () => ok(null),
+      },
       new EntregarComunicacaoPorCanais(
         new EnviarComunicacaoProativa(envio, 3, 0),
         {
