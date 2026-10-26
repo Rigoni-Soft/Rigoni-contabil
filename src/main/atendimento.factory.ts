@@ -73,8 +73,8 @@ import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/
 import { EnviarAnexoAoCliente } from "@/modules/atendimento/application/use-cases/enviar-anexo-ao-cliente.use-case";
 import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
 import { EnviarDocumentoAoCliente } from "@/modules/atendimento/application/use-cases/enviar-documento-ao-cliente.use-case";
-import { EnviarMensagemAoCliente } from "@/modules/atendimento/application/use-cases/enviar-mensagem-ao-cliente.use-case";
 import { EnviarGuiasParcelamento } from "@/modules/atendimento/application/use-cases/enviar-guias-parcelamento.use-case";
+import { EnviarMensagemAoCliente } from "@/modules/atendimento/application/use-cases/enviar-mensagem-ao-cliente.use-case";
 import { ExecutarEnvioGuiaParcelamento } from "@/modules/atendimento/application/use-cases/executar-envio-guia-parcelamento.use-case";
 import { ExecutarLembretesDocumentoEDas } from "@/modules/atendimento/application/use-cases/executar-lembretes-documento-e-das.use-case";
 import { ListarFeriados } from "@/modules/atendimento/application/use-cases/listar-feriados.use-case";
@@ -106,11 +106,11 @@ import { SupabaseAlertaSetorGateway } from "@/modules/atendimento/infra/gateways
 import { SupabaseAnexosAtendimentoGateway } from "@/modules/atendimento/infra/gateways/supabase-anexos-atendimento.gateway";
 import { SupabaseClienteCnpjGateway } from "@/modules/atendimento/infra/gateways/supabase-cliente-cnpj.gateway";
 import { SupabaseClientesParaLembreteGateway } from "@/modules/atendimento/infra/gateways/supabase-clientes-para-lembrete.gateway";
-import { SupabaseParcelamentosDoClienteGateway } from "@/modules/atendimento/infra/gateways/supabase-parcelamentos-do-cliente.gateway";
 import { SupabaseClientesParaParcelamentoGateway } from "@/modules/atendimento/infra/gateways/supabase-clientes-para-parcelamento.gateway";
 import { SupabaseDocumentosContratuaisGateway } from "@/modules/atendimento/infra/gateways/supabase-documentos-contratuais.gateway";
 import { SupabaseGuiaPublicadaGateway } from "@/modules/atendimento/infra/gateways/supabase-guia-publicada.gateway";
 import { SupabaseIdentificacaoContatoGateway } from "@/modules/atendimento/infra/gateways/supabase-identificacao-contato.gateway";
+import { SupabaseParcelamentosDoClienteGateway } from "@/modules/atendimento/infra/gateways/supabase-parcelamentos-do-cliente.gateway";
 import { SupabaseSessaoAtendimentoGateway } from "@/modules/atendimento/infra/gateways/supabase-sessao-atendimento.gateway";
 import { SupabaseAtendimentoRepository } from "@/modules/atendimento/infra/repositories/atendimento.repository";
 import { SupabaseFeriadoRepository } from "@/modules/atendimento/infra/repositories/feriado.repository";

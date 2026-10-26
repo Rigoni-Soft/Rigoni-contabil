@@ -2,6 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import type {
+  EnvioRegistrado,
+  GuiaEntregue,
   ParcelamentoDoCliente,
   ParcelamentosDoClientePort,
 } from "@/modules/atendimento/application/ports/out/parcelamentos-do-cliente.provider";
@@ -19,6 +21,11 @@ const linhaSchema = z.array(
     cliente_parcelamento_envios: z.array(z.object({ parcela: z.string() })),
   }),
 );
+
+const entreguesSchema = z.array(
+  z.object({ parcelamento_id: z.string(), parcela: z.string(), identidade: z.string() }),
+);
+const registroSchema = z.enum(["registrado", "ja_registrado", "nao_elegivel"]);
 
 // Usa o client service_role (docs/adr/0001): o job não tem sessão de usuário.
 export class SupabaseParcelamentosDoClienteGateway implements ParcelamentosDoClientePort {
@@ -53,14 +60,39 @@ export class SupabaseParcelamentosDoClienteGateway implements ParcelamentosDoCli
     );
   }
 
-  async registrarEnvio(parcelamentoId: string, parcela: string): Promise<Result<boolean, AppError>> {
+  async guiasEntregues(clienteId: string): Promise<Result<GuiaEntregue[], AppError>> {
+    const { data, error } = await this.supabaseAdmin
+      .from("cliente_parcelamento_envios")
+      .select("parcelamento_id, parcela, identidade, cliente_parcelamentos!inner(cliente_id)")
+      .eq("cliente_parcelamentos.cliente_id", clienteId)
+      .not("identidade", "is", null);
+    const lidas = entreguesSchema.safeParse(data);
+    if (error || !lidas.success) {
+      return err(new ServicoExternoError("Falha ao ler as guias já entregues do Cliente."));
+    }
+    return ok(
+      lidas.data.map((e) => ({
+        parcelamentoId: e.parcelamento_id,
+        parcela: e.parcela,
+        identidade: e.identidade,
+      })),
+    );
+  }
+
+  async registrarEnvio(
+    parcelamentoId: string,
+    parcela: string,
+    identidade: string,
+  ): Promise<Result<EnvioRegistrado, AppError>> {
     const { data, error } = await this.supabaseAdmin.rpc("registrar_envio_parcelamento", {
       p_parcelamento_id: parcelamentoId,
       p_parcela: parcela,
+      p_identidade: identidade,
     });
-    if (error || typeof data !== "boolean") {
+    const status = registroSchema.safeParse(data);
+    if (error || !status.success) {
       return err(new ServicoExternoError("Falha ao registrar o envio do parcelamento."));
     }
-    return ok(data);
+    return ok(status.data);
   }
 }

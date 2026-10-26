@@ -53,7 +53,11 @@ async function criarParcelamento(extra: {
 
 async function dadosDoParcelamento(id: string) {
   return ok(
-    admin.from("cliente_parcelamentos").select("parcelas_restantes, situacao").eq("id", id).single(),
+    admin
+      .from("cliente_parcelamentos")
+      .select("parcelas_restantes, situacao")
+      .eq("id", id)
+      .single(),
   );
 }
 
@@ -80,7 +84,9 @@ describe("SupabaseParcelamentosDoClienteGateway", () => {
     const interno = await criarParcelamento({ codigo: "INTERNO", restantes: 2, interno: true });
     await criarParcelamento({ codigo: "QUITADO", restantes: 0, situacao: "quitado" });
     await ok(
-      admin.from("cliente_parcelamento_envios").insert({ parcelamento_id: aberto, parcela: "202609" }),
+      admin
+        .from("cliente_parcelamento_envios")
+        .insert({ parcelamento_id: aberto, parcela: "202609" }),
     );
 
     const lista = await parcelamentos.listarEmAberto(clienteId);
@@ -112,14 +118,23 @@ describe("SupabaseParcelamentosDoClienteGateway", () => {
   it("registrar o envio grava a parcela, desconta uma restante e audita com a URA; repetir não tem efeito", async () => {
     const id = await criarParcelamento({ codigo: "DESCONTA", restantes: 3 });
 
-    expect(await parcelamentos.registrarEnvio(id, "202610")).toEqual({ ok: true, value: true });
-    expect(await parcelamentos.registrarEnvio(id, "202610")).toEqual({ ok: true, value: false });
+    expect(await parcelamentos.registrarEnvio(id, "202610", "202610:10000")).toEqual({
+      ok: true,
+      value: "registrado",
+    });
+    expect(await parcelamentos.registrarEnvio(id, "202610", "202610:10000")).toEqual({
+      ok: true,
+      value: "ja_registrado",
+    });
 
     expect(await dadosDoParcelamento(id)).toEqual({ parcelas_restantes: 2, situacao: "em_aberto" });
     const envios = await ok(
-      admin.from("cliente_parcelamento_envios").select("parcela").eq("parcelamento_id", id),
+      admin
+        .from("cliente_parcelamento_envios")
+        .select("parcela, identidade")
+        .eq("parcelamento_id", id),
     );
-    expect(envios).toEqual([{ parcela: "202610" }]);
+    expect(envios).toEqual([{ parcela: "202610", identidade: "202610:10000" }]);
     const auditoria = await ok(
       admin
         .from("registros_auditoria")
@@ -138,13 +153,35 @@ describe("SupabaseParcelamentosDoClienteGateway", () => {
   it("a última parcela quita o parcelamento, que sai da lista; depois de quitado nada mais é registrado", async () => {
     const id = await criarParcelamento({ codigo: "ULTIMA", restantes: 1 });
 
-    expect(await parcelamentos.registrarEnvio(id, "202610")).toEqual({ ok: true, value: true });
+    expect(await parcelamentos.registrarEnvio(id, "202610", "202610:10000")).toEqual({
+      ok: true,
+      value: "registrado",
+    });
 
     expect(await dadosDoParcelamento(id)).toEqual({ parcelas_restantes: 0, situacao: "quitado" });
     const lista = await parcelamentos.listarEmAberto(clienteId);
     expect(lista.ok && lista.value.map((p) => p.id)).not.toContain(id);
 
-    expect(await parcelamentos.registrarEnvio(id, "202611")).toEqual({ ok: true, value: false });
+    expect(await parcelamentos.registrarEnvio(id, "202611", "202611:10000")).toEqual({
+      ok: true,
+      value: "nao_elegivel",
+    });
     expect(await dadosDoParcelamento(id)).toEqual({ parcelas_restantes: 0, situacao: "quitado" });
+  });
+
+  it("as guias entregues do Cliente incluem as de acordo quitado e as de outro Cliente ficam de fora", async () => {
+    const id = await criarParcelamento({ codigo: "ENTREGUE", restantes: 1 });
+    await parcelamentos.registrarEnvio(id, "202610", "202610:10000");
+
+    const entregues = await parcelamentos.guiasEntregues(clienteId);
+
+    expect(entregues).toEqual({
+      ok: true,
+      value: expect.arrayContaining([
+        { parcelamentoId: id, parcela: "202610", identidade: "202610:10000" },
+      ]),
+    });
+    const outro = await parcelamentos.guiasEntregues("00000000-0000-0000-0000-000000000000");
+    expect(outro).toEqual({ ok: true, value: [] });
   });
 });

@@ -88,7 +88,8 @@ function montar(
     new EnviarGuiasParcelamento(
       {
         listarEmAberto: async () => ok([{ ...emAberto, parcelasEnviadas: [] }]),
-        registrarEnvio: async () => ok(true),
+        guiasEntregues: async () => ok([]),
+        registrarEnvio: async () => ok("registrado"),
       },
       { buscarGuiasParcelamento: buscar },
       { publicar: async () => ok("https://storage.test/parcelamento.pdf") },

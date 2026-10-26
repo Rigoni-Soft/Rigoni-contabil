@@ -471,9 +471,10 @@ describe("a conclusão não registra envio em acordo algum (F3 do PR #191, regra
     const registrado = await new SupabaseParcelamentosDoClienteGateway(admin).registrarEnvio(
       a,
       "202610",
+      "202610:10000",
     );
 
-    expect(registrado).toEqual({ ok: true, value: true });
+    expect(registrado).toEqual({ ok: true, value: "registrado" });
     expect(await enviadosDe(cliente.id)).toEqual([a]);
   });
 });

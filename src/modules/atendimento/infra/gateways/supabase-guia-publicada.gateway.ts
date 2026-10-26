@@ -32,8 +32,10 @@ export class SupabaseGuiaPublicadaGateway implements GuiaPublicadaPort {
     if (error) return err(new ServicoExternoError("Falha ao guardar a guia."));
     const link = await bucket.createSignedUrl(caminho, VALIDADE_LINK_SEGUNDOS);
     if (link.error || !link.data) {
-      // Sem link o arquivo não serve a ninguém: não deixa órfão para a próxima tentativa.
-      await bucket.remove([caminho]);
+      // Só o objeto de um envio sem parcelamento (UUID, novo e só desta tentativa) é limpo. O caminho
+      // do parcelamento é estável: pode ser a guia já entregue por uma tentativa anterior, e a
+      // próxima tentativa o sobrescreve, então nunca fica órfão.
+      if (!parcelamento) await bucket.remove([caminho]);
       return err(new ServicoExternoError("Falha ao gerar o link da guia."));
     }
     return ok(link.data.signedUrl);

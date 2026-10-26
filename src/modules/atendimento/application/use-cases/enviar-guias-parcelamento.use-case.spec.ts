@@ -1,7 +1,11 @@
 import type { CadastroFiscalCliente } from "@/modules/atendimento/application/ports/out/cliente-cnpj.provider";
 import type { ClienteParaParcelamento } from "@/modules/atendimento/application/ports/out/clientes-para-parcelamento.provider";
 import type { GuiaFiscal } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
-import type { ParcelamentoDoCliente } from "@/modules/atendimento/application/ports/out/parcelamentos-do-cliente.provider";
+import type {
+  EnvioRegistrado,
+  GuiaEntregue,
+  ParcelamentoDoCliente,
+} from "@/modules/atendimento/application/ports/out/parcelamentos-do-cliente.provider";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -49,7 +53,9 @@ function montar(
   parcelamentos: Result<ParcelamentoDoCliente[], AppError>,
   opcoes: {
     guias?: () => Promise<Result<GuiaFiscal[], AppError>>;
-    registrar?: (id: string, parcela: string) => Promise<Result<boolean, AppError>>;
+    registrar?: (id: string, parcela: string) => Promise<Result<EnvioRegistrado, AppError>>;
+    // Guias já entregues a acordos do Cliente (inclusive quitados).
+    entregues?: GuiaEntregue[];
     // Telefone do financeiro; null = não configurado.
     financeiro?: string | null;
     cnpj?: () => Promise<Result<CadastroFiscalCliente, AppError>>;
@@ -58,6 +64,7 @@ function montar(
   const envio = new EnvioMensagemFalsoGateway();
   const emails: unknown[] = [];
   const registrados: [string, string][] = [];
+  const identidades: string[] = [];
   const publicadas: unknown[] = [];
   const ignorados: (readonly string[])[] = [];
   const buscarGuiasParcelamento = jest.fn(async (_: string, ignorar: readonly string[]) => {
@@ -67,9 +74,11 @@ function montar(
   const nucleo = new EnviarGuiasParcelamento(
     {
       listarEmAberto: async () => parcelamentos,
-      registrarEnvio: async (id, parcela) => {
+      guiasEntregues: async () => ok(opcoes.entregues ?? []),
+      registrarEnvio: async (id, parcela, identidade) => {
         registrados.push([id, parcela]);
-        return opcoes.registrar?.(id, parcela) ?? ok(true);
+        identidades.push(identidade);
+        return opcoes.registrar?.(id, parcela) ?? ok("registrado");
       },
     },
     { buscarGuiasParcelamento },
@@ -95,7 +104,16 @@ function montar(
     },
     0,
   );
-  return { nucleo, envio, emails, registrados, publicadas, ignorados, buscarGuiasParcelamento };
+  return {
+    nucleo,
+    envio,
+    emails,
+    registrados,
+    identidades,
+    publicadas,
+    ignorados,
+    buscarGuiasParcelamento,
+  };
 }
 
 describe("EnviarGuiasParcelamento", () => {
@@ -103,8 +121,10 @@ describe("EnviarGuiasParcelamento", () => {
     jest.spyOn(console, "info").mockImplementation(() => undefined);
   });
 
-  it("entrega a guia do parcelamento em aberto e registra o envio da parcela", async () => {
-    const { nucleo, envio, registrados, publicadas } = montar(ok([parcelamento("p1")]));
+  it("entrega a guia do parcelamento em aberto e registra o envio com a identidade da guia", async () => {
+    const { nucleo, envio, registrados, identidades, publicadas } = montar(
+      ok([parcelamento("p1")]),
+    );
 
     const andamento = await nucleo.execute({ cliente, agora });
 
@@ -119,6 +139,7 @@ describe("EnviarGuiasParcelamento", () => {
     ]);
     expect(publicadas).toEqual([{ id: "p1", parcela: "202610" }]);
     expect(registrados).toEqual([["p1", "202610"]]);
+    expect(identidades).toEqual(["202610:10000"]);
   });
 
   it.each([
@@ -156,7 +177,7 @@ describe("EnviarGuiasParcelamento", () => {
       {
         guias: async () => ok([guia("202610", 10_000), guia("202610", 30_000)]),
         registrar: async (id) =>
-          id === "p1" ? err(new ServicoExternoError("banco fora")) : ok(true),
+          id === "p1" ? err(new ServicoExternoError("banco fora")) : ok("registrado"),
       },
     );
 
@@ -255,7 +276,7 @@ describe("EnviarGuiasParcelamento", () => {
       guias: async () => ok([guia("202609"), guia("202610")]),
       registrar: async () => {
         chamadas += 1;
-        return chamadas === 1 ? err(new ServicoExternoError("banco fora")) : ok(true);
+        return chamadas === 1 ? err(new ServicoExternoError("banco fora")) : ok("registrado");
       },
     });
 
@@ -395,7 +416,9 @@ describe("EnviarGuiasParcelamento", () => {
   });
 
   it("envio já registrado por outra execução não é erro", async () => {
-    const { nucleo } = montar(ok([parcelamento("p1")]), { registrar: async () => ok(false) });
+    const { nucleo } = montar(ok([parcelamento("p1")]), {
+      registrar: async () => ok("ja_registrado"),
+    });
 
     expect(await nucleo.execute({ cliente, agora })).toEqual({ enviado: true, ocorrencias: [] });
   });
@@ -423,13 +446,13 @@ describe("EnviarGuiasParcelamento", () => {
   });
 
   it("entregue sem registro: avisa o setor e a rodada seguinte entrega de novo (pelo menos uma vez)", async () => {
-    let registro: Result<boolean, AppError> = err(new ServicoExternoError("banco fora"));
+    let registro: Result<EnvioRegistrado, AppError> = err(new ServicoExternoError("banco fora"));
     const { nucleo, envio } = montar(ok([parcelamento("p1")]), {
       registrar: async () => registro,
     });
 
     const primeira = await nucleo.execute({ cliente, agora });
-    registro = ok(true);
+    registro = ok("registrado");
     const segunda = await nucleo.execute({ cliente, agora });
 
     expect(primeira.enviado).toBe(true);
@@ -452,5 +475,102 @@ describe("EnviarGuiasParcelamento", () => {
     await nucleo.execute({ cliente, agora });
 
     expect(registrados).toEqual([["b", "202610"]]);
+  });
+
+  it("acordo que quita na rodada: a guia de sobra não é entregue, não anuncia saldo negativo e vira ocorrência", async () => {
+    const { nucleo, envio, registrados } = montar(
+      ok([parcelamento("p1", { interno: true, parcelasRestantes: 1 })]),
+      { guias: async () => ok([guia("202609"), guia("202610")]) },
+    );
+
+    const andamento = await nucleo.execute({ cliente, agora });
+
+    expect(envio.templatesEnviados.map((t) => [t.variaveis[3], t.variaveis[4]])).toEqual([
+      ["09/2026", "0"],
+    ]);
+    expect(registrados).toEqual([["p1", "202609"]]);
+    expect(andamento.enviado).toBe(true);
+    expect(andamento.ocorrencias).toMatchObject([
+      { tipo: "falha_envio", mensagem: expect.stringContaining("10/2026 de sobra") },
+    ]);
+  });
+
+  it("a guia de sobra de um acordo não impede as guias dos outros", async () => {
+    const { nucleo, registrados } = montar(
+      ok([
+        parcelamento("a", { parcelasRestantes: 1, valorParcelaCentavos: 10_000 }),
+        parcelamento("b", { valorParcelaCentavos: 30_000 }),
+      ]),
+      {
+        guias: async () =>
+          ok([guia("202609", 10_000), guia("202610", 10_000), guia("202610", 30_000)]),
+      },
+    );
+
+    await nucleo.execute({ cliente, agora });
+
+    expect(registrados).toEqual([
+      ["a", "202609"],
+      ["b", "202610"],
+    ]);
+  });
+
+  it("acordo que deixou de estar em aberto durante a rodada: entregue sem registro vira ocorrência rastreável", async () => {
+    const { nucleo } = montar(ok([parcelamento("p1")]), {
+      registrar: async () => ok("nao_elegivel"),
+    });
+
+    const andamento = await nucleo.execute({ cliente, agora });
+
+    expect(andamento.enviado).toBe(true);
+    expect(andamento.ocorrencias).toMatchObject([
+      { tipo: "falha_envio", mensagem: expect.stringContaining("deixou de estar em aberto") },
+    ]);
+  });
+
+  it("a mesma guia reemitida na rodada seguinte não migra para outro acordo de mesmo valor", async () => {
+    // a recebeu 202610 e b não; o provedor devolve o mesmo PDF (não se sabe de quem é).
+    const { nucleo, envio, registrados } = montar(
+      ok([parcelamento("a", { parcelasEnviadas: ["202610"] }), parcelamento("b")]),
+      { guias: async () => ok([guia("202610", 10_000)]) },
+    );
+
+    const andamento = await nucleo.execute({ cliente, agora });
+
+    expect(envio.templatesEnviados).toHaveLength(0);
+    expect(registrados).toEqual([]);
+    expect(andamento.ocorrencias).toMatchObject([
+      { tipo: "parcelamento_sem_guia", mensagem: expect.stringContaining("COD-b") },
+    ]);
+  });
+
+  it("guia de acordo já quitado, reemitida, não vai ao único acordo que sobrou", async () => {
+    // a quitou depois de receber 202610 e saiu da lista; b é o único em aberto.
+    const { nucleo, envio, registrados } = montar(ok([parcelamento("b")]), {
+      guias: async () => ok([guia("202610", 10_000)]),
+      entregues: [{ parcelamentoId: "a", parcela: "202610", identidade: "202610:10000" }],
+    });
+
+    const andamento = await nucleo.execute({ cliente, agora });
+
+    expect(envio.templatesEnviados).toHaveLength(0);
+    expect(registrados).toEqual([]);
+    expect(andamento.ocorrencias).toMatchObject([{ tipo: "parcelamento_sem_guia" }]);
+  });
+
+  it("guia reemitida de acordo de valor maior, só com valor corrigido, não vai ao de valor menor", async () => {
+    // a (R$ 300) já recebeu 202610 e está em aberto; a reemissão vem com juros e b (R$ 100) é
+    // candidato a ela: o grupo de maior valor é o de a, que já recebeu, então nada se atribui.
+    const { nucleo, registrados } = montar(
+      ok([
+        parcelamento("a", { valorParcelaCentavos: 30_000, parcelasEnviadas: ["202610"] }),
+        parcelamento("b", { valorParcelaCentavos: 10_000 }),
+      ]),
+      { guias: async () => ok([guia("202610", 30_500)]) },
+    );
+
+    await nucleo.execute({ cliente, agora });
+
+    expect(registrados).toEqual([]);
   });
 });

@@ -6,6 +6,7 @@ import {
 } from "@/modules/atendimento/application/jobs/alertas-da-rodada";
 import {
   atribuirGuiasParcelamento,
+  identidadeDaGuia,
   type GuiaAtribuida,
 } from "@/modules/atendimento/application/jobs/atribuir-guias-parcelamento";
 import type {
@@ -48,7 +49,7 @@ type GuiaAEntregar = GuiaAtribuida & { restantesDepois: number };
 // `descontou`: o banco descontou uma parcela restante nesta entrega.
 type EntregaDeGuia = { andamento: Andamento; descontou: boolean };
 
-// Entrega as guias de parcelamento do Cliente (job e URA): o banco manda no que está pendente e cada
+// Entrega as guias de parcelamento do Cliente (job hoje, URA no #128): o banco manda no que está pendente e cada
 // entrega aceita grava o registro de envio da parcela. O comum vai ao Cliente pela forma de envio
 // dele; o interno só ao financeiro, por template, e nunca ao Cliente. Falha fechado: parcelamento
 // pendente sem guia vira `parcelamento_sem_guia`, nunca se adivinha. Regra completa em
@@ -100,8 +101,11 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     );
     if (!buscadas.ok) return falha(`${descricao}: ${buscadas.error.message}`);
 
+    const entregues = await this.parcelamentos.guiasEntregues(cliente.clienteId);
+    if (!entregues.ok) return falha(`${descricao}: ${entregues.error.message}`);
+
     // A atribuição vê todos os em aberto: a guia de quem não tem destino não cai em outro.
-    const atribuidas = atribuirGuiasParcelamento(buscadas.value, emAberto.value);
+    const atribuidas = atribuirGuiasParcelamento(buscadas.value, emAberto.value, entregues.value);
     const andamentos = await this.entregarGuias(
       cliente,
       agora,
@@ -129,7 +133,8 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
   }
 
   // Entrega uma guia por vez. Cada uma que o banco desconta tira uma parcela restante, então o
-  // financeiro vê quantas restam depois dela, contando as da própria rodada. O CNPJ só é lido se
+  // financeiro vê quantas restam depois dela, contando as da própria rodada. Sem saldo para a guia
+  // (o acordo quitou nesta rodada) nada é entregue e o excesso vira ocorrência. O CNPJ só é lido se
   // houver interno a entregar, e uma vez por Cliente.
   private async entregarGuias(
     cliente: ClienteParaParcelamento,
@@ -144,6 +149,15 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     for (const atribuida of atribuidas) {
       const { id, parcelasRestantes } = atribuida.parcelamento;
       const restantesDepois = parcelasRestantes - (descontadas.get(id) ?? 0) - 1;
+      if (restantesDepois < 0) {
+        const { codigo } = atribuida.parcelamento;
+        andamentos.push(
+          falha(
+            `Parcelamento ${codigo} de ${cliente.empresa}: guia ${formatarParcela(atribuida.parcela)} de sobra, o parcelamento já quitou; nada foi enviado. Conferir com o provedor.`,
+          ),
+        );
+        continue;
+      }
       const entrega = await this.entregarGuia(
         cliente,
         agora,
@@ -189,10 +203,18 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
         );
     if (!andamento.enviado) return { andamento, descontou: false };
 
-    const registro = await this.parcelamentos.registrarEnvio(parcelamento.id, parcela);
-    // `false`: o registro já existia e nada foi descontado agora.
-    if (registro.ok) return { andamento, descontou: registro.value };
-    const aviso = `${descricao}: entregue, mas o envio não foi registrado (${registro.error.message}).`;
+    const registro = await this.parcelamentos.registrarEnvio(
+      parcelamento.id,
+      parcela,
+      identidadeDaGuia(guia),
+    );
+    // `ja_registrado`: a parcela já tinha registro e nada foi descontado agora.
+    if (registro.ok && registro.value !== "nao_elegivel") {
+      return { andamento, descontou: registro.value === "registrado" };
+    }
+    const aviso = registro.ok
+      ? `${descricao}: entregue, mas o parcelamento deixou de estar em aberto e o envio não foi registrado.`
+      : `${descricao}: entregue, mas o envio não foi registrado (${registro.error.message}).`;
     return {
       andamento: {
         enviado: true,

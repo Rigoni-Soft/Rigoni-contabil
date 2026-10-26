@@ -1,7 +1,7 @@
 -- Parcelamento interno vai ao WhatsApp do financeiro (#127), e a regra única (#126) substitui a regra
 -- provisória do F3 do PR #191.
 --
--- As migrations 20261024100000 e 20261024105000 (F3 do PR #191) rodam depois de 20261023110000 (#126)
+-- As migrations 20261024100000 e 20261024105000 (F3 do PR #191) rodam antes de 20261024108000 (#126)
 -- e recolocam a regra de um acordo candidato: só um acordo externo é elegível e a conclusão registra o
 -- envio desse acordo. Com a regra única o registro é gravado pelo ID do acordo entregue
 -- (`registrar_envio_parcelamento`), na entrega de cada guia, então esta migration restabelece o que o
