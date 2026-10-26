@@ -16,10 +16,12 @@ export const identidadeDaGuia = ({ parcela, valorCentavos }: GuiaFiscal) =>
   `${parcela}:${valorCentavos ?? ""}`;
 
 // O provedor devolve as guias do CNPJ sem dizer de qual parcelamento é cada uma. Com um só em aberto
-// todas vão a ele; com vários, a guia é do de valor guardado mais próximo sem passar do valor dela
-// (a atrasada pode vir com juros e multa). Um parcelamento nunca recebe duas da mesma parcela.
+// todas vão a ele; com vários, só vai ao único cujo valor guardado não passa do valor dela (a atrasada
+// pode vir com juros e multa). Um parcelamento nunca recebe duas da mesma parcela.
 //
-// A atribuição por valor não prova a quem a guia pertence, então falha fechado. Ficam de fora, sem ir a
+// Valor não prova a quem a guia pertence (ponytail: proteção provisória até o provedor devolver o acordo
+// da guia), então falha fechado: com mais de um candidato compatível, mesmo de valores diferentes, nenhum
+// recebe. Ficam de fora, sem ir a
 // outro parcelamento: a guia sem parcela ou sem candidato; a reemissão de uma guia já entregue (mesma
 // identidade em `entregues`, de qualquer acordo do Cliente, inclusive quitado); a de parcela já entregue
 // a acordo quitado com outra identidade ou sem identidade (pode ser a reemissão dela, com valor
@@ -60,10 +62,8 @@ export function atribuirGuiasParcelamento(
           p.valorParcelaCentavos <= valorCentavos),
     );
     if (candidatos.length === 0) continue;
-    const maiorValor = Math.max(...candidatos.map((p) => p.valorParcelaCentavos ?? 0));
-    const grupo = candidatos.filter((p) => (p.valorParcelaCentavos ?? 0) === maiorValor);
-    if (grupo.length > 1) continue;
-    const dono = grupo[0];
+    if (candidatos.length > 1) continue;
+    const dono = candidatos[0];
     if (recebidas.get(dono.id)?.has(parcela)) continue;
     recebidas.get(dono.id)?.add(parcela);
     atribuidas.push({ parcelamento: dono, guia, parcela });

@@ -168,25 +168,19 @@ describe("EnviarGuiasParcelamento", () => {
     expect(ignorados).toEqual([["202609"]]);
   });
 
-  it("dois parcelamentos: cada guia vai ao seu e a falha do registro de um não trava o outro", async () => {
-    const { nucleo, envio, registrados } = montar(
-      ok([
-        parcelamento("p1", { valorParcelaCentavos: 10_000 }),
-        parcelamento("p2", { valorParcelaCentavos: 30_000 }),
-      ]),
-      {
-        guias: async () => ok([guia("202610", 10_000), guia("202610", 30_000)]),
-        registrar: async (id) =>
-          id === "p1" ? err(new ServicoExternoError("banco fora")) : ok("registrado"),
-      },
-    );
+  it("a falha do registro de uma guia não trava a outra do mesmo acordo", async () => {
+    const { nucleo, envio, registrados } = montar(ok([parcelamento("p1")]), {
+      guias: async () => ok([guia("202609"), guia("202610")]),
+      registrar: async (_id, parcela) =>
+        parcela === "202609" ? err(new ServicoExternoError("banco fora")) : ok("registrado"),
+    });
 
     const andamento = await nucleo.execute({ cliente, agora });
 
     expect(envio.templatesEnviados).toHaveLength(2);
     expect(registrados).toEqual([
+      ["p1", "202609"],
       ["p1", "202610"],
-      ["p2", "202610"],
     ]);
     expect(andamento.enviado).toBe(true);
     expect(andamento.ocorrencias).toMatchObject([
@@ -227,22 +221,14 @@ describe("EnviarGuiasParcelamento", () => {
 
   it("guia do parcelamento interno vai ao WhatsApp do financeiro, nunca ao Cliente", async () => {
     const { nucleo, envio, registrados } = montar(
-      ok([
-        parcelamento("comum", { valorParcelaCentavos: 10_000 }),
-        parcelamento("interno", {
-          interno: true,
-          valorParcelaCentavos: 30_000,
-          parcelasRestantes: 7,
-        }),
-      ]),
-      { guias: async () => ok([guia("202610", 10_000), guia("202610", 30_000)]) },
+      ok([parcelamento("interno", { interno: true, parcelasRestantes: 7 })]),
+      { guias: async () => ok([guia("202610")]) },
     );
 
     const andamento = await nucleo.execute({ cliente, agora });
 
     expect(andamento).toEqual({ enviado: true, ocorrencias: [] });
     expect(envio.templatesEnviados).toMatchObject([
-      { nome: "envio_guia_parcelamento", telefone },
       {
         nome: "envio_guia_parcelamento_interno",
         telefone: telefoneFinanceiro,
@@ -251,10 +237,7 @@ describe("EnviarGuiasParcelamento", () => {
         documento: { url: "https://storage.test/interno/202610.pdf", nomeArquivo: "202610.pdf" },
       },
     ]);
-    expect(registrados).toEqual([
-      ["comum", "202610"],
-      ["interno", "202610"],
-    ]);
+    expect(registrados).toEqual([["interno", "202610"]]);
   });
 
   it("parcelas restantes no template são as de depois do desconto, também com duas guias do mesmo interno", async () => {
@@ -304,22 +287,17 @@ describe("EnviarGuiasParcelamento", () => {
     ]);
   });
 
-  it("Cliente sem contato recebe o interno no financeiro; só o comum fica com contato_ausente", async () => {
-    const { nucleo, envio } = montar(
-      ok([
-        parcelamento("comum", { valorParcelaCentavos: 10_000 }),
-        parcelamento("interno", { interno: true, valorParcelaCentavos: 30_000 }),
-      ]),
-      { guias: async () => ok([guia("202610", 10_000), guia("202610", 30_000)]) },
-    );
+  it("Cliente sem contato ainda recebe o interno no financeiro", async () => {
+    const { nucleo, envio } = montar(ok([parcelamento("interno", { interno: true })]), {
+      guias: async () => ok([guia("202610")]),
+    });
 
     const andamento = await nucleo.execute({
       cliente: { ...cliente, contato: null, email: null },
       agora,
     });
 
-    expect(andamento.enviado).toBe(true);
-    expect(andamento.ocorrencias).toMatchObject([{ tipo: "contato_ausente" }]);
+    expect(andamento).toMatchObject({ enviado: true, ocorrencias: [] });
     expect(envio.templatesEnviados).toMatchObject([
       { nome: "envio_guia_parcelamento_interno", telefone: telefoneFinanceiro },
     ]);
@@ -361,19 +339,15 @@ describe("EnviarGuiasParcelamento", () => {
     ]);
   });
 
-  it("uma mensagem por guia: a falha de entrega de um interno vira falha_envio e não afeta o outro", async () => {
-    const { nucleo, envio, registrados } = montar(
-      ok([
-        parcelamento("a", { interno: true, valorParcelaCentavos: 10_000 }),
-        parcelamento("b", { interno: true, valorParcelaCentavos: 30_000 }),
-      ]),
-      { guias: async () => ok([guia("202610", 10_000), guia("202610", 30_000)]) },
-    );
+  it("uma mensagem por guia: a falha de entrega de uma vira falha_envio e não afeta a outra", async () => {
+    const { nucleo, envio, registrados } = montar(ok([parcelamento("a", { interno: true })]), {
+      guias: async () => ok([guia("202609"), guia("202610")]),
+    });
     const enviarTemplate = envio.enviarTemplate.bind(envio);
     jest
       .spyOn(envio, "enviarTemplate")
       .mockImplementation(async (template) =>
-        template.variaveis[2] === "COD-a"
+        template.variaveis[3] === "09/2026"
           ? err(new ServicoExternoError("meta fora"))
           : enviarTemplate(template),
       );
@@ -385,7 +359,7 @@ describe("EnviarGuiasParcelamento", () => {
       { tipo: "falha_envio", mensagem: expect.stringContaining("COD-a") },
     ]);
     expect(envio.templatesEnviados).toHaveLength(1);
-    expect(registrados).toEqual([["b", "202610"]]);
+    expect(registrados).toEqual([["a", "202610"]]);
   });
 
   it("CNPJ do Cliente ilegível: falha_envio e nada é enviado nem registrado", async () => {
@@ -495,7 +469,7 @@ describe("EnviarGuiasParcelamento", () => {
     ]);
   });
 
-  it("a guia de sobra de um acordo não impede as guias dos outros", async () => {
+  it("a guia de sobra de um acordo não vai a outro: o de valor maior fica sem guia", async () => {
     const { nucleo, registrados } = montar(
       ok([
         parcelamento("a", { parcelasRestantes: 1, valorParcelaCentavos: 10_000 }),
@@ -509,10 +483,7 @@ describe("EnviarGuiasParcelamento", () => {
 
     await nucleo.execute({ cliente, agora });
 
-    expect(registrados).toEqual([
-      ["a", "202609"],
-      ["b", "202610"],
-    ]);
+    expect(registrados).toEqual([["a", "202609"]]);
   });
 
   it("acordo que deixou de estar em aberto durante a rodada: entregue sem registro vira ocorrência rastreável", async () => {

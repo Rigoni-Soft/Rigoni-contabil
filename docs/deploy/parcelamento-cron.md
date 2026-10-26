@@ -29,12 +29,12 @@ cobertura de WhatsApp real. Passos do núcleo:
 2. **Uma consulta por CNPJ**, com `ignorar` = parcelas que todos os Parcelamentos com destino já receberam (cada emissão é
    cobrada). O provedor devolve 0..n guias e não diz de qual Parcelamento é cada uma.
 3. **Atribuição** (`atribuirGuiasParcelamento`): com um Parcelamento em aberto, todas vão a ele; com vários,
-   cada guia vai ao de valor guardado mais próximo sem passar do valor dela (a atrasada pode vir com juros),
+   cada guia só vai ao único cujo valor guardado não passa do valor dela (a atrasada pode vir com juros),
    e um Parcelamento nunca recebe duas da mesma parcela. O valor não prova a quem a guia pertence, então
-   falha fechado: guia sem candidato fica de fora; a reemissão de uma guia já entregue (mesma identidade,
+   falha fechado: guia sem candidato, ou com mais de um candidato compatível (mesmo de valores diferentes), fica de fora, proteção provisória até o provedor devolver o acordo da guia; a reemissão de uma guia já entregue (mesma identidade,
    `parcela:valor` enquanto o provedor não devolver o número do documento, gravada em
    `cliente_parcelamento_envios.identidade` e lida de qualquer acordo do Cliente, inclusive quitado) é
-   descartada; e num grupo de mesmo valor em que só alguns já receberam a parcela nada é atribuído (não se
+   descartada; e com mais de um compatível nada é atribuído, ainda que só alguns já tenham recebido a parcela (não se
    sabe se é a reemissão de um ou a guia de outro). Quem ficou sem guia vira `parcelamento_sem_guia`, para
    conferência. A atribuição vê todos os em aberto: a guia de um Parcelamento sem destino não cai em outro.
    Nova emissão de uma parcela que o dono já recebeu (o `ignorar` só pula as que todos receberam) é

@@ -36,12 +36,31 @@ describe("atribuirGuiasParcelamento", () => {
     ]);
   });
 
-  it("com vários, a guia vai ao de valor guardado mais próximo sem passar do valor da guia", () => {
+  it("com vários, a guia vai ao único cujo valor guardado não passa do valor dela", () => {
     const atribuidas = atribuirGuiasParcelamento(
       [guia("202610", 25_000)],
-      [parcelamento("barato", 10_000), parcelamento("medio", 24_000), parcelamento("caro", 40_000)],
+      [parcelamento("medio", 24_000), parcelamento("caro", 40_000)],
     );
     expect(ids(atribuidas)).toEqual(["medio"]);
+  });
+
+  it("dois candidatos compatíveis de valores diferentes bloqueiam, com A aberto e já entregue", () => {
+    expect(
+      atribuirGuiasParcelamento(
+        [guia("202610", 30_500)],
+        [parcelamento("a", 30_000, ["202610"]), parcelamento("b", 30_200)],
+        [{ parcelamentoId: "a", parcela: "202610", identidade: "202610:30000" }],
+      ),
+    ).toEqual([]);
+  });
+
+  it.each([
+    [[30_000, 30_200], 30_500],
+    [[10_000, 24_000, 25_000], 26_000],
+    [[1, 2], 999_999],
+  ])("com valores %j e guia de %i, nenhum acordo recebe", (valores, valorGuia) => {
+    const parcelamentos = valores.map((v, i) => parcelamento(`p${i}`, v));
+    expect(atribuirGuiasParcelamento([guia("202610", valorGuia)], parcelamentos)).toEqual([]);
   });
 
   it("dois parcelamentos de mesmo valor, mesmo sem envio, não recebem guia (nada prova de qual é)", () => {
