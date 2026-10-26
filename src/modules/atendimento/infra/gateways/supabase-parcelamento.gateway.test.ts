@@ -46,6 +46,34 @@ async function ok<T>(consulta: PromiseLike<{ data: T; error: { message: string }
   return data as NonNullable<T>;
 }
 
+async function criarParcelamento(clienteId: string) {
+  await ok(
+    admin.from("cliente_parcelamentos").insert({
+      id: crypto.randomUUID(),
+      cliente_id: clienteId,
+      codigo: "TESTE-1",
+      parcelas_restantes: 5,
+      arquivo_caminho: `${clienteId}/teste.pdf`,
+    }),
+  );
+}
+
+// "Pendente" = nenhum Parcelamento do Cliente tem registro de envio (a parcela do mês corrente).
+async function recolocarPendente(clienteId: string) {
+  const ids = await ok(
+    admin.from("cliente_parcelamentos").select("id").eq("cliente_id", clienteId),
+  );
+  await ok(
+    admin
+      .from("cliente_parcelamento_envios")
+      .delete()
+      .in(
+        "parcelamento_id",
+        ids.map((linha) => linha.id),
+      ),
+  );
+}
+
 async function criarCliente(
   opcoes: { temParcelamento?: boolean; telefone?: string; empresa?: string } = {},
 ): Promise<Fixture> {
@@ -63,10 +91,9 @@ async function criarCliente(
     admin.from("cliente_cadastro_operacional_sn").upsert({
       cliente_id: fixture.id,
       forma_envio: "whatsapp",
-      tem_parcelamento: opcoes.temParcelamento ?? true,
-      parcelamento_status: "pendente",
     }),
   );
+  if (opcoes.temParcelamento ?? true) await criarParcelamento(fixture.id);
   if (opcoes.telefone) {
     await ok(
       admin.from("cliente_contatos").insert({
@@ -82,14 +109,13 @@ async function criarCliente(
 }
 
 async function statusDoParcelamento(id: string) {
-  const linha = await ok(
+  const envios = await ok(
     admin
-      .from("cliente_cadastro_operacional_sn")
-      .select("parcelamento_status")
-      .eq("cliente_id", id)
-      .single(),
+      .from("cliente_parcelamento_envios")
+      .select("parcela, cliente_parcelamentos!inner(cliente_id)")
+      .eq("cliente_parcelamentos.cliente_id", id),
   );
-  return linha.parcelamento_status;
+  return envios.length > 0 ? "enviado" : "pendente";
 }
 
 let pendente: Fixture;
@@ -213,12 +239,18 @@ describe("leitura dos pendentes", () => {
       );
       criados.push(...parte);
       await ok(
-        admin.from("cliente_cadastro_operacional_sn").upsert(
+        admin
+          .from("cliente_cadastro_operacional_sn")
+          .upsert(parte.map((c) => ({ cliente_id: c.id, forma_envio: "whatsapp" }))),
+      );
+      await ok(
+        admin.from("cliente_parcelamentos").insert(
           parte.map((c) => ({
+            id: crypto.randomUUID(),
             cliente_id: c.id,
-            forma_envio: "whatsapp",
-            tem_parcelamento: true,
-            parcelamento_status: "pendente",
+            codigo: "VOLUME-1",
+            parcelas_restantes: 5,
+            arquivo_caminho: `${c.id}/volume.pdf`,
           })),
         ),
       );
@@ -283,12 +315,7 @@ describe("reserva e conclusão do envio do Parcelamento", () => {
   });
 
   it("liberar devolve a reserva sem tocar no cadastro; token antigo não libera a de outra tentativa", async () => {
-    await ok(
-      admin
-        .from("cliente_cadastro_operacional_sn")
-        .update({ parcelamento_status: "pendente" })
-        .eq("cliente_id", pendente.id),
-    );
+    await recolocarPendente(pendente.id);
     const a = await clientes.reservar(pendente.id);
     const tokenA = a.ok ? a.value! : "";
 
@@ -304,12 +331,7 @@ describe("reserva e conclusão do envio do Parcelamento", () => {
   });
 
   it("reserva expirada é retomada; o token antigo não sobrescreve a conclusão mais recente", async () => {
-    await ok(
-      admin
-        .from("cliente_cadastro_operacional_sn")
-        .update({ parcelamento_status: "pendente" })
-        .eq("cliente_id", pendente.id),
-    );
+    await recolocarPendente(pendente.id);
     await admin.from("envios_automaticos").delete().eq("cliente_id", pendente.id);
     const a = await clientes.reservar(pendente.id);
     const tokenA = a.ok ? a.value! : "";
@@ -326,12 +348,7 @@ describe("reserva e conclusão do envio do Parcelamento", () => {
     expect(await clientes.concluir(pendente.id, tokenB)).toEqual({ ok: true, value: true });
 
     // A volta atrasada (e o cadastro foi recolocado em pendente por alguém): sem posse, nada muda.
-    await ok(
-      admin
-        .from("cliente_cadastro_operacional_sn")
-        .update({ parcelamento_status: "pendente" })
-        .eq("cliente_id", pendente.id),
-    );
+    await recolocarPendente(pendente.id);
     expect(await clientes.concluir(pendente.id, tokenA)).toEqual({ ok: true, value: false });
     expect(await statusDoParcelamento(pendente.id)).toBe("pendente");
   });
@@ -347,6 +364,126 @@ describe("reserva e conclusão do envio do Parcelamento", () => {
     const tokens = [x, y].map((r) => (r.ok ? r.value : "erro"));
     expect(tokens.filter((t) => typeof t === "string" && t !== "erro")).toHaveLength(1);
     expect(tokens.filter((t) => t === null)).toHaveLength(1);
+  });
+});
+
+describe("envio automático só com um acordo candidato (F3 do PR #191)", () => {
+  async function acordo(clienteId: string, origem: "receita_federal" | "pgfn" | null) {
+    const id = crypto.randomUUID();
+    await ok(
+      admin.from("cliente_parcelamentos").insert({
+        id,
+        cliente_id: clienteId,
+        codigo: `AC-${id.slice(0, 8)}`,
+        parcelas_restantes: 5,
+        arquivo_caminho: `${clienteId}/${id}-a.pdf`,
+        origem,
+      }),
+    );
+    return id;
+  }
+  const enviadosDe = async (clienteId: string) =>
+    (
+      await ok(
+        admin
+          .from("cliente_parcelamento_envios")
+          .select("parcelamento_id, cliente_parcelamentos!inner(cliente_id)")
+          .eq("cliente_parcelamentos.cliente_id", clienteId),
+      )
+    ).map((e) => e.parcelamento_id);
+
+  it("dois acordos da Receita: o Cliente sai do job, não reserva e nada é marcado", async () => {
+    const cliente = await criarCliente({ temParcelamento: false });
+    await acordo(cliente.id, "receita_federal");
+    await acordo(cliente.id, "receita_federal");
+
+    const lista = await clientes.listarPendentes();
+    expect(lista.ok && lista.value.map((c) => c.clienteId)).not.toContain(cliente.id);
+    expect(await clientes.reservar(cliente.id)).toEqual({ ok: true, value: null });
+    expect(await enviadosDe(cliente.id)).toEqual([]);
+  });
+
+  it("acordo sem origem conta como candidato: com a Receita, são dois e o job não age", async () => {
+    const cliente = await criarCliente({ temParcelamento: false });
+    await acordo(cliente.id, "receita_federal");
+    await acordo(cliente.id, null);
+
+    expect(await clientes.reservar(cliente.id)).toEqual({ ok: true, value: null });
+  });
+
+  it("Receita + PGFN: só o da Receita é candidato e só ele é marcado", async () => {
+    const cliente = await criarCliente({ temParcelamento: false });
+    const receita = await acordo(cliente.id, "receita_federal");
+    await acordo(cliente.id, "pgfn");
+
+    const reserva = await clientes.reservar(cliente.id);
+    expect(reserva.ok && typeof reserva.value).toBe("string");
+    expect(await clientes.concluir(cliente.id, reserva.ok ? reserva.value! : "")).toEqual({
+      ok: true,
+      value: true,
+    });
+    expect(await enviadosDe(cliente.id)).toEqual([receita]);
+  });
+
+  it("segundo acordo criado durante o envio: a conclusão não marca ninguém", async () => {
+    const cliente = await criarCliente({ temParcelamento: false });
+    await acordo(cliente.id, "receita_federal");
+    const reserva = await clientes.reservar(cliente.id);
+    const token = reserva.ok ? reserva.value! : "";
+    expect(token).not.toBe("");
+
+    await acordo(cliente.id, "receita_federal");
+
+    expect(await clientes.concluir(cliente.id, token)).toEqual({ ok: true, value: false });
+    expect(await enviadosDe(cliente.id)).toEqual([]);
+  });
+
+  // A reserva fica presa ao acordo que existia nela: o candidato da conclusão tem de ser o mesmo,
+  // não "o único que sobrou". Contar de novo não basta (F3, 2ª revalidação).
+  it("acordo A trocado por B depois da reserva: a conclusão não registra a entrega de A em B", async () => {
+    const cliente = await criarCliente({ temParcelamento: false });
+    const a = await acordo(cliente.id, "receita_federal");
+    const reserva = await clientes.reservar(cliente.id);
+    const token = reserva.ok ? reserva.value! : "";
+    expect(token).not.toBe("");
+
+    await ok(admin.from("cliente_parcelamentos").delete().eq("id", a));
+    await acordo(cliente.id, "receita_federal");
+
+    expect(await clientes.concluir(cliente.id, token)).toEqual({ ok: true, value: false });
+    expect(await enviadosDe(cliente.id)).toEqual([]);
+  });
+
+  it("A vira interno e B é o único externo depois da reserva: B continua sem registro", async () => {
+    const cliente = await criarCliente({ temParcelamento: false });
+    const a = await acordo(cliente.id, "receita_federal");
+    const reserva = await clientes.reservar(cliente.id);
+    const token = reserva.ok ? reserva.value! : "";
+    expect(token).not.toBe("");
+
+    await ok(admin.from("cliente_parcelamentos").update({ interno: true }).eq("id", a));
+    await acordo(cliente.id, "receita_federal");
+
+    expect(await clientes.concluir(cliente.id, token)).toEqual({ ok: true, value: false });
+    expect(await enviadosDe(cliente.id)).toEqual([]);
+  });
+
+  it("depois de uma conclusão recusada a reserva é liberada: a rodada seguinte reserva o candidato de agora", async () => {
+    const cliente = await criarCliente({ temParcelamento: false });
+    const a = await acordo(cliente.id, "receita_federal");
+    const reserva = await clientes.reservar(cliente.id);
+    const token = reserva.ok ? reserva.value! : "";
+    await ok(admin.from("cliente_parcelamentos").delete().eq("id", a));
+    const b = await acordo(cliente.id, "receita_federal");
+    await clientes.concluir(cliente.id, token);
+
+    const proxima = await clientes.reservar(cliente.id);
+    expect(proxima.ok && typeof proxima.value).toBe("string");
+    expect(await clientes.concluir(cliente.id, proxima.ok ? proxima.value! : "")).toEqual({
+      ok: true,
+      value: true,
+    });
+    expect(await enviadosDe(cliente.id)).toEqual([b]);
   });
 });
 

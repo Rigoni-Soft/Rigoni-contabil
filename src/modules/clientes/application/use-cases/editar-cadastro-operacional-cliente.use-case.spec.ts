@@ -76,8 +76,6 @@ const INPUT_VALIDO: EditarCadastroOperacionalClienteInput = {
   documentoObrigatorio: "positivo",
   dasStatus: "pronto",
   dataEnvioDas: null,
-  temParcelamento: false,
-  parcelamentoStatus: null,
   observacoesGerais: "Cliente pontual.",
   atividadeMes: { industria: false, comercio: true, servico: false },
 };

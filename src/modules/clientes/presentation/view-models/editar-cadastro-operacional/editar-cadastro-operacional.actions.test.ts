@@ -22,8 +22,6 @@ const INPUT_VALIDO = {
   documentoObrigatorio: "positivo",
   dasStatus: "pronto",
   dataEnvioDas: "2026-02-01",
-  temParcelamento: false,
-  parcelamentoStatus: null,
   observacoesGerais: "",
   atividadeMes: { industria: false, comercio: true, servico: false },
 };

@@ -20,11 +20,10 @@ import type {
 } from "@/modules/atendimento/application/ports/out/clientes-para-parcelamento.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import type { AppError } from "@/shared/errors/app.error";
+import { DIAS_DO_JOB_PARCELAMENTO } from "@/shared/kernel/dias-do-job-parcelamento";
 import { temDestinatario } from "@/shared/kernel/forma-envio";
 import { diaDoMes } from "@/shared/kernel/mes-atual";
 import { ok, type Result } from "@/shared/kernel/result";
-
-const DIAS_DO_JOB = [20, 22, 24, 26, 28];
 
 // Job dos dias 20/22/24/26/28 (fuso de São Paulo): envia a guia de parcelamento pela forma de
 // envio do Cliente que tem Parcelamento pendente e o marca como enviado. Falha do provedor fiscal
@@ -46,7 +45,7 @@ export class ExecutarEnvioGuiaParcelamento implements ExecutarEnvioGuiaParcelame
   async execute(): Promise<Result<EnvioGuiaParcelamentoExecutado, AppError>> {
     const agora = this.relogio.agora();
     const resumo: EnvioGuiaParcelamentoExecutado = {
-      executado: DIAS_DO_JOB.includes(diaDoMes(agora)),
+      executado: DIAS_DO_JOB_PARCELAMENTO.includes(diaDoMes(agora)),
       enviados: 0,
       alertas: 0,
       falhas: 0,

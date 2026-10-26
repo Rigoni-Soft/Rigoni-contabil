@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+import { adminLocal } from "./support/admin-local";
 import {
   atribuirResponsavelComoLider,
   criarClienteComoAdmin,
@@ -72,5 +73,72 @@ test.describe("Resumo do setor (#36)", () => {
     await page.getByRole("link", { name: /DAS pendente/ }).click();
 
     await expect(page.getByText(empresa)).toBeVisible();
+  });
+
+  // Grupo Parcelamento: 6 cards que contam Clientes e não se excluem; as listas mostram a marca
+  // "interno" e o status do mês por parcelamento.
+  test("os cards de parcelamento contam o Cliente em mais de um card e a lista mostra interno e status do mês", async ({
+    page,
+  }) => {
+    const empresa = empresaUnica("Resumo Parcelamento E2E Ltda");
+    const cnpj = await criarClienteComoAdmin(page, empresa);
+    const admin = adminLocal();
+    const { data } = await admin.from("clientes").select("id").eq("cnpj", cnpj).single();
+    const clienteId = data!.id as string;
+    const comum = crypto.randomUUID();
+    const interno = crypto.randomUUID();
+    const novo = (id: string, codigo: string, ehInterno: boolean) => ({
+      id,
+      cliente_id: clienteId,
+      codigo,
+      parcelas_restantes: 5,
+      interno: ehInterno,
+      situacao: "em_aberto",
+      arquivo_caminho: `${clienteId}/${id}-acordo.pdf`,
+    });
+    await admin
+      .from("cliente_parcelamentos")
+      .insert([novo(comum, "PARC-COMUM", false), novo(interno, "PARC-INTERNO", true)]);
+    // Só o comum tem a guia do mês enviada (o sistema grava; aqui, a chave de serviço).
+    const parcela = new Date()
+      .toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" })
+      .slice(0, 7)
+      .replace("-", "");
+    await admin.from("cliente_parcelamento_envios").insert({ parcelamento_id: comum, parcela });
+
+    await page.goto("/simples-nacional");
+    for (const titulo of [
+      "Com parcelamento",
+      "Em aberto",
+      "Parcelamento pendente",
+      "Pendente em atraso",
+      "Parcelamento interno",
+      "Parcelamento enviado",
+    ]) {
+      await expect(page.getByRole("link", { name: new RegExp(titulo) }).first()).toBeVisible();
+    }
+
+    // Pendente (o interno ainda sem envio) e interno listam o mesmo Cliente, com os dois parcelamentos.
+    for (const [card, bucket, definicao] of [
+      ["Parcelamento pendente", "parcelamento_pendente", /guia deste mês ainda não foi enviada/],
+      ["Parcelamento interno", "parcelamento_interno", /a guia vai ao financeiro/],
+    ] as const) {
+      await page.goto("/simples-nacional");
+      await page.getByRole("link", { name: new RegExp(card) }).click();
+      await expect(page).toHaveURL(new RegExp(`/clientes/resumo/${bucket}$`));
+      // Os parcelamentos ficam abaixo do link (fora dele): o item da lista os reúne com o Cliente.
+      // A lista diz em uma linha o que ela filtra (o título sozinho, ex. "Em aberto", não basta).
+      await expect(page.getByText(definicao)).toBeVisible();
+      const linha = page.getByRole("listitem").filter({ hasText: empresa }).first();
+      await expect(linha).toContainText("PARC-COMUM");
+      await expect(linha).toContainText("Enviado no mês");
+      await expect(linha).toContainText("PARC-INTERNO");
+      await expect(linha).toContainText("Interno");
+      await expect(linha).toContainText("Pendente no mês");
+    }
+
+    // Não está "enviado" (falta o interno) nem "em atraso" antes do dia 29, mas o card sempre abre.
+    await page.goto("/clientes/resumo/parcelamento_enviado");
+    await expect(page.getByText(empresa)).not.toBeVisible();
   });
 });

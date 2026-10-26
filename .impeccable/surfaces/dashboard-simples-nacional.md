@@ -21,7 +21,7 @@ OWN-WORLD: Verde-cheque profundo (#0d3b36) como base/acento, papel de segurança
 
 STORY: O funcionário abre o dashboard e reconhece, sem precisar pensar, "isso é sério, isso passou por verificação" — cada anel de status é um selo carimbado, nunca um ícone genérico de painel.
 
-FIRST VIEWPORT: Sidebar verde-cheque escuro com os setores (Simples Nacional ativo, demais desabilitados); topo com busca; seção "Resumo do setor" com os 9 cards emoldurados em guilhochê fino, anel central onde ficaria o valor por extenso do cheque; seção "Comparativos" com os donuts na mesma moldura; seção "Buscar cliente" com o painel do cliente selecionado como se fosse a própria folha do talão preenchida.
+FIRST VIEWPORT: Sidebar verde-cheque escuro com os setores (Simples Nacional ativo, demais desabilitados); topo com busca; seção "Resumo do setor" com os 11 cards emoldurados em guilhochê fino, anel central onde ficaria o valor por extenso do cheque; seção "Comparativos" com os donuts na mesma moldura; seção "Buscar cliente" com o painel do cliente selecionado como se fosse a própria folha do talão preenchida.
 
 FORM: Talão de Cheque (model-pick / IMPECCABLE'S PICK), candidato #1 da lista ordenada por ressonância (à frente do sorteado, Livro Razão, que doou as marcações de estado por traço/padrão). Seed key: afb48a0e.
 

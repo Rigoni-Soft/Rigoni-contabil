@@ -91,8 +91,6 @@ export class EditarCadastroOperacionalCliente implements EditarCadastroOperacion
         documentoObrigatorio: input.documentoObrigatorio,
         dasStatus: input.dasStatus,
         dataEnvioDas: input.dataEnvioDas,
-        temParcelamento: input.temParcelamento,
-        parcelamentoStatus: input.parcelamentoStatus,
         observacoesGerais: input.observacoesGerais,
         atividadeMesAtual: {
           anoMes: mesAtual(),

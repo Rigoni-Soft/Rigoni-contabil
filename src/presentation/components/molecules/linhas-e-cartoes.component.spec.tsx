@@ -76,6 +76,33 @@ describe("moléculas de lista e de tela", () => {
     expect(screen.getByRole("link")).toHaveTextContent("Em dia — 4 de 10 clientes");
   });
 
+  it("CartaoDeResumo usa o singular para 1 cliente", () => {
+    render(
+      <ul>
+        <CartaoDeResumo href="/x" titulo="Em dia" cor="em_dia" quantidade={1} totalClientes={1} />
+      </ul>,
+    );
+
+    expect(screen.getByRole("link")).toHaveTextContent("Em dia — 1 de 1 cliente");
+    expect(screen.getByRole("link")).not.toHaveTextContent("clientes");
+  });
+
+  it("LinhaDeCliente mantém os detalhes fora do link, para o nome do link ser só empresa e CNPJ", () => {
+    render(
+      <ul>
+        <LinhaDeCliente
+          href="/clientes/1"
+          empresa="Padaria"
+          cnpj="11.444.777/0001-61"
+          detalhes={<p>detalhe do cliente</p>}
+        />
+      </ul>,
+    );
+
+    expect(screen.getByRole("link")).not.toHaveTextContent("detalhe do cliente");
+    expect(screen.getByText("detalhe do cliente")).toBeInTheDocument();
+  });
+
   it("CampoDeArquivo liga o rótulo e mostra o erro", () => {
     render(
       <CampoDeArquivo

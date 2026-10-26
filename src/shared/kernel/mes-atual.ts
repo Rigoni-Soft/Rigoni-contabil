@@ -21,6 +21,12 @@ export function mesAtual(agora: Date = new Date()): string {
   return hojeIso(agora).slice(0, 7);
 }
 
+// Último dia (28-31) do mês corrente no fuso de negócio.
+export function ultimoDiaDoMes(agora: Date = new Date()): number {
+  const [ano, mes] = mesAtual(agora).split("-").map(Number);
+  return new Date(Date.UTC(ano, mes, 0)).getUTCDate();
+}
+
 export function primeiroDiaDoMesAtual(agora: Date = new Date()): string {
   return `${mesAtual(agora)}-01`;
 }

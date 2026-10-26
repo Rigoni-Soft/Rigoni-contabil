@@ -96,8 +96,6 @@ const paramsEdicao = (clienteId: string) => ({
   p_documento_obrigatorio: "positivo",
   p_das_status: "pronto",
   p_data_envio_das: null,
-  p_tem_parcelamento: false,
-  p_parcelamento_status: null,
   p_observacoes_gerais: "teste",
   p_contatos: [{ id: crypto.randomUUID(), nome: "Maria", telefone: "11999990000", padrao: true }],
   p_ano_mes: primeiroDiaDoMesAtual(),

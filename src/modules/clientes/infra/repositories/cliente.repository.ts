@@ -155,8 +155,6 @@ export class SupabaseClienteRepository implements ClienteRepository {
       p_data_envio_das: cliente.dataEnvioDas
         ? cliente.dataEnvioDas.toISOString().slice(0, 10)
         : null,
-      p_tem_parcelamento: cliente.temParcelamento,
-      p_parcelamento_status: cliente.parcelamentoStatus?.valor ?? null,
       p_observacoes_gerais: cliente.observacoesGerais,
       p_contatos: cliente.contatos.map((contato) => ({
         id: contato.id ?? crypto.randomUUID(),

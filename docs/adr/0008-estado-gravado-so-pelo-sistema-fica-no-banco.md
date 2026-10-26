@@ -36,8 +36,10 @@ Data API.
   onde as duas vias passam.
 - **Erro quando a data diverge:** quebraria o salvar do formulário de quem só mudou outro campo
   (a tela reenvia a data atual). Descartar em silêncio é seguro porque o valor é sempre derivado.
-- **Parcelamento `enviado`:** mesma natureza (só o sistema grava), mas fora do escopo do #108; o
-  Parcelamento muda de modelo em outro ticket e o gatilho se estende a ele lá.
+- **Parcelamento `enviado`:** mesma natureza (só o sistema grava), mas fora do escopo do #108. No
+  novo modelo (#122) o status do mês é derivado do registro de envio por parcela
+  (`cliente_parcelamento_envios`), que nenhuma sessão escreve (gatilho BEFORE), e a situação
+  "quitado" e o zero de parcelas restantes também só vêm do sistema.
 
 ## Consequências
 

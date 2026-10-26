@@ -15,6 +15,8 @@ type LinhaDeContatoProps = {
   erroTelefone?: string;
   // Sem callback (visualização): não há o que remover, o botão nem aparece.
   onRemover?: () => void;
+  // Visualização: nada é obrigatório (não há o que preencher), então sem asterisco.
+  somenteLeitura?: boolean;
 };
 
 // Um Contato do Cliente: nome, telefone, "Padrão" e a ação de remover. A numeração é 1-based.
@@ -26,13 +28,21 @@ export function LinhaDeContato({
   erroNome,
   erroTelefone,
   onRemover,
+  somenteLeitura,
 }: LinhaDeContatoProps) {
   return (
-    <Linha alinhar="fim" espaco={3} quebra className="rounded-md border border-border p-3">
+    <Linha
+      alinhar="fim"
+      espaco={3}
+      quebra
+      role="group"
+      aria-label={`Contato ${indice + 1}`}
+      className="rounded-md border border-border p-3"
+    >
       <CampoDeTexto
         id={`contatos.${indice}.nome`}
         rotulo="Nome"
-        obrigatorio
+        obrigatorio={!somenteLeitura}
         erro={erroNome}
         className="min-w-[10rem] flex-1 gap-1"
         {...nome}
@@ -40,7 +50,7 @@ export function LinhaDeContato({
       <CampoDeTexto
         id={`contatos.${indice}.telefone`}
         rotulo="Telefone"
-        obrigatorio
+        obrigatorio={!somenteLeitura}
         erro={erroTelefone}
         className="min-w-[10rem] flex-1 gap-1"
         {...telefone}
