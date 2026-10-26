@@ -57,3 +57,12 @@ usa o PARCSN do Serpro: ver a dívida técnica #172.
 
 O leitor falso (modo `falso`) lê marcadores no texto do PDF: sem marcador sugere `FALSO-123456` com 12 parcelas; `[leitor:falha]` não lê;
 `[leitor:sem-codigo]` lê só as 7 parcelas; `[leitor:cnpj-outro]` lê o CNPJ de outra empresa.
+
+## Guia mensal da parcela PGFN (anexo e confirmação à mão, #183)
+
+Na linha de um Parcelamento de `origem = pgfn` já salvo, o Funcionário SN Responsável, o Líder SN ou o Admin anexa a guia do mês (PDF
+até 4 MB), informa a competência e a conta de negociação e a confirma. O PDF **não é lido** nesta etapa: a guia nasce "a confirmar" e só a
+confirmação à mão a libera para envio. Nada a configurar: usa o bucket privado `parcelamentos-clientes`, no prefixo
+`{cliente}/guias-pgfn/{parcelamento}/{AAAAMM}-{uuid}.pdf`, sem policy de usuário (só o servidor lê e grava). O servidor relê tipo e
+tamanho no Storage depois do upload e apaga o objeto recusado. Tabela `cliente_parcelamento_guias` (uma linha por Parcelamento e
+competência; quem anexou/confirmou e quando; auditoria `parcelamento.anexar-guia` e `parcelamento.confirmar-guia`).

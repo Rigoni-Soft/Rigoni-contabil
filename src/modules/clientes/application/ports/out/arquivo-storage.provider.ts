@@ -7,3 +7,11 @@ export interface ArquivoStoragePort {
   // Só é ok se TODOS foram removidos.
   remover(caminhos: string[]): Promise<Result<void, AppError>>;
 }
+
+// Para quem revalida o que o Storage guardou (tipo e tamanho), em vez de confiar só na tela.
+export interface ArquivoInspecionavelPort extends ArquivoStoragePort {
+  // null = o objeto não está lá (ou o Storage não o devolveu).
+  inspecionar(
+    caminho: string,
+  ): Promise<Result<{ tipoMime: string; tamanho: number } | null, AppError>>;
+}

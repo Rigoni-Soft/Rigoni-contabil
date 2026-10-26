@@ -15,6 +15,7 @@ import type { DocumentoContratualVisivelDto } from "@/modules/clientes/applicati
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { REGIME_LABEL, regimeTemCadastroOperacionalSn } from "@/shared/kernel/regimes";
 
+import { AnexarGuiaParcelaPgfnContainer } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.container";
 import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
 import { atribuirResponsavelAction } from "./atribuir-responsavel.actions";
 import { editarCadastroOperacionalAction } from "./editar-cadastro-operacional.actions";
@@ -316,6 +317,9 @@ export function EditarCadastroOperacionalContainer({
       }
       onLimpar={aoLimpar}
       onCancelar={onCancelar}
+      guiasDaParcela={(parcelamentoId) => (
+        <AnexarGuiaParcelaPgfnContainer parcelamentoId={parcelamentoId} />
+      )}
       documentoContratual={
         <DocumentoContratualDoClienteContainer
           clienteId={dados.id}

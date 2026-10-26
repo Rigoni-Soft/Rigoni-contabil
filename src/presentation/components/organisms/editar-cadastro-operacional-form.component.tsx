@@ -152,6 +152,8 @@ type EditarCadastroOperacionalFormProps = {
   onCancelar?: () => void;
   // Cartão do documento contratual com "Abrir em nova aba" (só leitura); ausente = ator sem acesso.
   documentoContratual?: React.ReactNode;
+  // Guias mensais de um Parcelamento PGFN já salvo: o Container monta a região (ela tem estado próprio).
+  guiasDaParcela?: (parcelamentoId: string) => React.ReactNode;
 };
 
 export function EditarCadastroOperacionalForm({
@@ -179,6 +181,7 @@ export function EditarCadastroOperacionalForm({
   onLimpar,
   onCancelar,
   documentoContratual,
+  guiasDaParcela,
 }: EditarCadastroOperacionalFormProps) {
   return (
     <Pilha
@@ -366,6 +369,11 @@ export function EditarCadastroOperacionalForm({
                   readOnly || atual.temEnvio ? undefined : () => onRemoverParcelamento(indice)
                 }
                 bloqueadoPorEnvio={!readOnly && atual.temEnvio}
+                guias={
+                  !readOnly && atual.id && atual.acordo?.origem === "pgfn" && !atual.quitado
+                    ? guiasDaParcela?.(atual.id)
+                    : undefined
+                }
                 arquivo={
                   atual.id ? (
                     <>

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { ArquivoStoragePort } from "@/modules/clientes/application/ports/out/arquivo-storage.provider";
+import type { ArquivoInspecionavelPort } from "@/modules/clientes/application/ports/out/arquivo-storage.provider";
 import { AppError } from "@/shared/errors/app.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
@@ -8,7 +8,7 @@ class ArmazenamentoError extends AppError {
   readonly code = "ARMAZENAMENTO_ERROR";
 }
 
-export class SupabaseArquivoStorageGateway implements ArquivoStoragePort {
+export class SupabaseArquivoStorageGateway implements ArquivoInspecionavelPort {
   constructor(
     private readonly supabase: SupabaseClient,
     private readonly bucket = "documentos-clientes",
@@ -19,6 +19,15 @@ export class SupabaseArquivoStorageGateway implements ArquivoStoragePort {
 
     if (error) return err(new ArmazenamentoError(`Falha ao enviar arquivo: ${error.message}`));
     return ok({ caminho });
+  }
+
+  async inspecionar(
+    caminho: string,
+  ): Promise<Result<{ tipoMime: string; tamanho: number } | null, AppError>> {
+    const { data, error } = await this.supabase.storage.from(this.bucket).info(caminho);
+    // O Storage não distingue objeto inexistente de falha de rede: os dois viram "não está lá".
+    if (error || !data) return ok(null);
+    return ok({ tipoMime: data.contentType ?? "", tamanho: data.size ?? 0 });
   }
 
   async remover(caminhos: string[]): Promise<Result<void, AppError>> {
