@@ -60,7 +60,6 @@ export class EntregarDasNaUra implements EntregarDasNaUraPort {
         new ServicoExternoError("DAS em envio por outra tentativa ou já não está pronto."),
       );
     }
-    const token = reserva.value;
 
     const agora = this.relogio.agora();
     const guia = await this.guiaDas.execute(clienteId, mesAtual(agora));
@@ -68,11 +67,11 @@ export class EntregarDasNaUra implements EntregarDasNaUraPort {
       ? await this.envio.enviarDocumento({ telefone, ...guia.value.guia })
       : guia;
     if (!entrega.ok) {
-      await this.clientes.liberarDas(clienteId, token);
+      await this.clientes.liberarDas(clienteId, reserva.value);
       return entrega;
     }
     // Se a conclusão não vale (cadastro mudou no meio) a guia já foi entregue: não vira erro.
-    await this.clientes.concluirDas(clienteId, token, hojeIso(agora));
+    await this.clientes.concluirDas(clienteId, reserva.value, hojeIso(agora));
     return ok(undefined);
   }
 }
