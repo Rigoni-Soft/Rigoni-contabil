@@ -160,7 +160,7 @@ export function GuiasDaParcelaPgfn({
                     <>
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="link"
                         size="sm"
                         aria-disabled={pendente || undefined}
                         onClick={() => onVisualizar(guia.competencia)}
@@ -215,7 +215,7 @@ export function GuiasDaParcelaPgfn({
                         <Button
                           type="button"
                           id={guia.idDaRemocao}
-                          variant="ghost"
+                          variant="link"
                           size="sm"
                           aria-disabled={pendente || undefined}
                           onClick={() => onPedirRemocao(guia.competencia)}
