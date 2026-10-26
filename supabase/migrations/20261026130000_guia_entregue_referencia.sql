@@ -78,3 +78,47 @@ $$;
 
 revoke all on function public.registrar_envio_parcelamento(uuid, text, text, text) from public, anon, authenticated;
 grant execute on function public.registrar_envio_parcelamento(uuid, text, text, text) to service_role;
+
+-- O caminho é derivado da entrega, como `data_envio_das` (#108): sessão humana não o define nem o
+-- apaga, nem por DML direto nem por upsert. No INSERT vai nulo (se já havia linha, o UPDATE do ON
+-- CONFLICT o restaura aqui); no UPDATE preserva o atual. Sem sessão (job) nada muda.
+CREATE OR REPLACE FUNCTION public.proteger_das_enviado_do_sistema() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'public'
+    AS $$
+declare
+  v_atual public.das_status;
+begin
+  if auth.uid() is null then
+    return new;
+  end if;
+
+  if tg_op = 'UPDATE' and new.cliente_id is distinct from old.cliente_id then
+    raise exception 'O Cliente do cadastro operacional não pode ser trocado.' using errcode = '23514';
+  end if;
+
+  if tg_op = 'UPDATE' then
+    v_atual := old.das_status;
+  else
+    select das_status into v_atual from public.cliente_cadastro_operacional_sn where cliente_id = new.cliente_id;
+  end if;
+
+  if new.das_status = 'enviado' and v_atual is distinct from 'enviado' then
+    raise exception 'O status DAS "enviado" é definido apenas pelo sistema.' using errcode = '23514';
+  end if;
+
+  if tg_op = 'UPDATE' and new.das_status = 'enviado' then
+    new.data_envio_das := old.data_envio_das;
+  else
+    new.data_envio_das := null;
+  end if;
+
+  if tg_op = 'UPDATE' then
+    new.caminho_guia_das := old.caminho_guia_das;
+  else
+    new.caminho_guia_das := null;
+  end if;
+
+  return new;
+end;
+$$;

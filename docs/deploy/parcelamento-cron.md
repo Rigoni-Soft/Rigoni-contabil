@@ -86,3 +86,15 @@ template `envio_guia_parcelamento_interno`, qualquer que seja a forma de envio d
   `caminho` no envio do parcelamento) e troca as assinaturas de `concluir_envio_automatico_das` e
   `registrar_envio_parcelamento`: aplicar junto com o código; voltar só o código quebra as duas RPCs.
   Envio anterior à migration fica sem caminho e o reenvio dele responde que a guia não está guardada.
+  - **Implantação e reversão conjuntas:** aplicar a migration e o código no mesmo deploy, com o job
+    de envio pausado (um job em curso com a assinatura antiga falha na RPC e libera a reserva; a
+    requisição da URA que cai nessa janela responde indisponível). Reverter exige o código anterior
+    e uma migration inversa que recrie as duas assinaturas antigas; nunca `db reset` em produção.
+  - **Legado sem caminho:** antes do go-live, inventariar `cliente_cadastro_operacional_sn` com
+    `das_status = 'enviado'` e `caminho_guia_das is null`, e `cliente_parcelamento_envios` com
+    `caminho is null`. Esses reenvios respondem "não está guardada" e vão para atendimento manual
+    (Funcionário reemite a guia); o caminho nunca é inferido pela idade ou pela listagem do Storage.
+  - **Referência só do sistema:** `caminho_guia_das` é protegida pelo gatilho
+    `proteger_das_enviado_do_sistema` (sessão humana não troca nem apaga) e o gateway só assina caminho
+    que começa pelo id do Cliente. Objetos publicados sem referência (entrega recusada, assinatura
+    que falhou) ficam no Storage; limpeza futura só com expiração e sem referência, nunca síncrona.

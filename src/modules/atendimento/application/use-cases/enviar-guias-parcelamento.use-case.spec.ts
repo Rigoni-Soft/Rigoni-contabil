@@ -93,7 +93,7 @@ function montar(
           caminho: `c1/${destino?.id}/${destino?.periodo}-hash.pdf`,
         });
       },
-      reencontrar: async (caminho) => ok(`https://storage.test/${caminho}`),
+      reencontrar: async (_clienteId, caminho) => ok(`https://storage.test/${caminho}`),
     },
     new EntregarComunicacaoPorCanais(new EnviarComunicacaoProativa(envio, 3, 0), {
       enviar: async (email) => {

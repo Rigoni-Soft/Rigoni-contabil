@@ -179,7 +179,7 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
     if (!nova) {
       // Reenvio: o PDF que o envio aceito guardou, sem escolher entre versões do período.
       if (!caminho) return false;
-      const url = await this.publicadas.reencontrar(caminho);
+      const url = await this.publicadas.reencontrar(clienteId, caminho);
       if (!url.ok) return false;
       const reenviada = await this.envio.enviarDocumento({ telefone, nomeArquivo, url: url.value });
       return reenviada.ok;

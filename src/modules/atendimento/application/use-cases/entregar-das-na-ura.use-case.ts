@@ -43,7 +43,7 @@ export class EntregarDasNaUra implements EntregarNaUraPort {
       if (!das.value.caminhoGuiaDas) {
         return err(new ServicoExternoError("Guia do DAS enviada não está guardada."));
       }
-      const url = await this.publicadas.reencontrar(das.value.caminhoGuiaDas);
+      const url = await this.publicadas.reencontrar(clienteId, das.value.caminhoGuiaDas);
       if (!url.ok) return url;
       const periodo = chaveDoDas(das.value.dataEnvioDas ?? hojeIso(this.relogio.agora())).periodo;
       return this.envio.enviarDocumento({

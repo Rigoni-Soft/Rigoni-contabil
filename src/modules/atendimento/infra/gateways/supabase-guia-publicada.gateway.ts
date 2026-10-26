@@ -44,14 +44,18 @@ export class SupabaseGuiaPublicadaGateway implements GuiaPublicadaPort {
     if (error && !jaExistia) return err(new ServicoExternoError("Falha ao guardar a guia."));
     const link = await bucket.createSignedUrl(caminho, VALIDADE_LINK_SEGUNDOS);
     if (link.error || !link.data) {
-      // Só o objeto criado por esta tentativa é limpo: o que já existia pode ter sido entregue.
-      if (!jaExistia) await bucket.remove([caminho]);
+      // Não apaga: o caminho leva o hash, então outra tentativa concorrente pode estar usando o mesmo
+      // objeto. A assinatura é recuperável; o arquivo sem referência fica no Storage.
       return err(new ServicoExternoError("Falha ao gerar o link da guia."));
     }
     return ok({ url: link.data.signedUrl, caminho });
   }
 
-  async reencontrar(caminho: string): Promise<Result<string, AppError>> {
+  async reencontrar(clienteId: string, caminho: string): Promise<Result<string, AppError>> {
+    // O caminho nasce em `${clienteId}/...`: o de outro Cliente nunca é assinado.
+    if (!caminho.startsWith(`${clienteId}/`) || caminho.includes("..")) {
+      return err(new ServicoExternoError("Guia não pertence ao cliente."));
+    }
     const link = await this.supabaseAdmin.storage
       .from(BUCKET)
       .createSignedUrl(caminho, VALIDADE_LINK_SEGUNDOS);

@@ -14,6 +14,7 @@ export interface GuiaPublicadaPort {
     chave: ChaveGuia,
   ): Promise<Result<GuiaPublicada, AppError>>;
   // Novo endereço do objeto exato que foi entregue (o `caminho` guardado no registro do envio):
-  // reenvio sem chamar o provedor fiscal. Nunca escolhe entre versões do período.
-  reencontrar(caminho: string): Promise<Result<string, AppError>>;
+  // reenvio sem chamar o provedor fiscal. Nunca escolhe entre versões do período; o caminho de outro
+  // Cliente é recusado.
+  reencontrar(clienteId: string, caminho: string): Promise<Result<string, AppError>>;
 }

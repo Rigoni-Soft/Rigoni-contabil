@@ -308,6 +308,60 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
       expect(linhaB).toEqual([]);
     });
 
+    it("caminho do PDF entregue é só do sistema: sessão humana não troca, apaga nem injeta (#193)", async () => {
+      const { admin, clienteBase, repositorio } = await prepararFuncionarioSN("62785037001010");
+      await repositorio.atualizarOperacional(comCadastroOperacional(clienteBase));
+      const funcionarioSN = await comoFuncionarioSN();
+      const lerCaminho = async () =>
+        (
+          await admin
+            .from("cliente_cadastro_operacional_sn")
+            .select("caminho_guia_das")
+            .eq("cliente_id", clienteBase.id)
+            .single()
+        ).data?.caminho_guia_das;
+
+      // Injeção por update direto antes de haver entrega: ignorada.
+      await funcionarioSN
+        .from("cliente_cadastro_operacional_sn")
+        .update({ caminho_guia_das: "outro/acordo/x.pdf" })
+        .eq("cliente_id", clienteBase.id);
+      expect(await lerCaminho()).toBeNull();
+
+      await comoSistema()
+        .from("cliente_cadastro_operacional_sn")
+        .update({
+          das_status: "enviado",
+          data_envio_das: "2026-10-05",
+          caminho_guia_das: "c/das/ok.pdf",
+        })
+        .eq("cliente_id", clienteBase.id);
+
+      const trocar = await funcionarioSN
+        .from("cliente_cadastro_operacional_sn")
+        .update({ caminho_guia_das: "outro/das/x.pdf" })
+        .eq("cliente_id", clienteBase.id);
+      expect(trocar.error).toBeNull();
+      expect(await lerCaminho()).toBe("c/das/ok.pdf");
+
+      await funcionarioSN
+        .from("cliente_cadastro_operacional_sn")
+        .update({ caminho_guia_das: null })
+        .eq("cliente_id", clienteBase.id);
+      expect(await lerCaminho()).toBe("c/das/ok.pdf");
+
+      await funcionarioSN
+        .from("cliente_cadastro_operacional_sn")
+        .upsert({ cliente_id: clienteBase.id, caminho_guia_das: "outro/das/y.pdf" });
+      expect(await lerCaminho()).toBe("c/das/ok.pdf");
+
+      // Edição comum pela application preserva a referência.
+      await repositorio.atualizarOperacional(
+        comCadastroOperacional(clienteBase, { status: "enviado", data: "2026-10-05" }),
+      );
+      expect(await lerCaminho()).toBe("c/das/ok.pdf");
+    });
+
     it("sair de `enviado` limpa a data de envio", async () => {
       const { admin, clienteBase, repositorio } = await prepararFuncionarioSN("62785037000634");
       await repositorio.atualizarOperacional(comCadastroOperacional(clienteBase));

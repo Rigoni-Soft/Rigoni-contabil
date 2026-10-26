@@ -68,20 +68,38 @@ describe("SupabaseGuiaPublicadaGateway", () => {
     expect((await gateway.publicar("c1", guia("B"), acordo)).ok).toBe(false);
     expect((await gateway.publicar("c1", guia("B"), acordo)).ok).toBe(false);
 
-    expect([...objetos.values()].map((b) => b.toString())).toEqual(["A"]);
+    // B fica no Storage (a assinatura é recuperável) e A nunca é sobrescrita.
+    expect([...objetos.values()].map((b) => b.toString()).sort()).toEqual(["A", "B"]);
     falha = false;
     const b = await gateway.publicar("c1", guia("B"), acordo);
     expect(b.ok && a.ok && b.value.caminho !== a.value.caminho).toBe(true);
     expect([...objetos.values()].map((x) => x.toString()).sort()).toEqual(["A", "B"]);
   });
 
-  it("objeto novo sem link é limpo (o caminho é só desta tentativa)", async () => {
-    const { gateway, objetos, bucket } = montar(() => true);
+  it("assinatura que falha não apaga o objeto: outra tentativa com os mesmos bytes pode tê-lo aceito", async () => {
+    const assinaturas = [true, false]; // a primeira falha, a segunda funciona
+    const { gateway, objetos, bucket } = montar(() => assinaturas.shift() ?? false);
+    const [t1, t2] = await Promise.all([
+      gateway.publicar("c1", guia("X"), acordo),
+      gateway.publicar("c1", guia("X"), acordo),
+    ]);
+    expect(t1.ok).toBe(false);
 
-    expect((await gateway.publicar("c1", guia("x"), acordo)).ok).toBe(false);
+    expect(bucket.remove).not.toHaveBeenCalled();
+    expect(objetos.size).toBe(1);
+    if (!t2.ok) throw new Error("publicação falhou");
+    expect((await gateway.reencontrar("c1", t2.value.caminho)).ok).toBe(true);
+  });
 
-    expect(bucket.remove).toHaveBeenCalledTimes(1);
-    expect(objetos.size).toBe(0);
+  it("recusa o caminho de outro cliente", async () => {
+    const { gateway, bucket } = montar(() => false);
+    const outro = await gateway.publicar("c2", guia("Y"), acordo);
+    if (!outro.ok) throw new Error("publicação falhou");
+
+    bucket.createSignedUrl.mockClear();
+
+    expect((await gateway.reencontrar("c1", outro.value.caminho)).ok).toBe(false);
+    expect(bucket.createSignedUrl).not.toHaveBeenCalled();
   });
 
   it("reencontra o objeto exato pelo caminho, sem escolher entre versões do período", async () => {
@@ -90,13 +108,19 @@ describe("SupabaseGuiaPublicadaGateway", () => {
     const b = await gateway.publicar("c1", guia("B"), acordo);
     if (!a.ok || !b.ok) throw new Error("publicação falhou");
 
-    expect(await gateway.reencontrar(b.value.caminho)).toEqual({ ok: true, value: b.value.url });
-    expect(await gateway.reencontrar(a.value.caminho)).toEqual({ ok: true, value: a.value.url });
+    expect(await gateway.reencontrar("c1", b.value.caminho)).toEqual({
+      ok: true,
+      value: b.value.url,
+    });
+    expect(await gateway.reencontrar("c1", a.value.caminho)).toEqual({
+      ok: true,
+      value: a.value.url,
+    });
   });
 
   it("falha ao gerar o link no reenvio é erro, não 'sem guia'", async () => {
     const { gateway } = montar(() => true);
-    expect((await gateway.reencontrar("c1/acordo/202610-x.pdf")).ok).toBe(false);
+    expect((await gateway.reencontrar("c1", "c1/acordo/202610-x.pdf")).ok).toBe(false);
   });
 
   it("nunca remove um objeto publicado e aceito: nada do gateway apaga por chave", async () => {
@@ -105,7 +129,7 @@ describe("SupabaseGuiaPublicadaGateway", () => {
     await gateway.publicar("c1", guia("B"), acordo);
     if (!a.ok) throw new Error("publicação falhou");
 
-    await gateway.reencontrar(a.value.caminho);
+    await gateway.reencontrar("c1", a.value.caminho);
 
     expect(bucket.remove).not.toHaveBeenCalled();
     expect(objetos.size).toBe(2);

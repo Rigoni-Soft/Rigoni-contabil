@@ -88,7 +88,7 @@ function montar(
     },
   };
   const publicadas: Pick<GuiaPublicadaPort, "reencontrar"> = {
-    reencontrar: async (caminho) => {
+    reencontrar: async (_clienteId, caminho) => {
       chamadas.push("reencontrar");
       caminhosLidos.push(caminho);
       return opcoes.reencontroFalha

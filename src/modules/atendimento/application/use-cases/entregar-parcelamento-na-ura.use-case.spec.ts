@@ -93,7 +93,7 @@ function montar(
           caminho: `c1/${chave.id}/${chave.periodo}-novo.pdf`,
         });
       },
-      reencontrar: async (caminho) => {
+      reencontrar: async (_clienteId, caminho) => {
         reencontradas.push(caminho);
         return ok(`https://storage/${caminho}`);
       },
