@@ -8,7 +8,8 @@ type BotaoDeArquivoProps = {
   rotuloAcessivel: string;
   // Tipos que o seletor do sistema oferece (`accept`).
   aceitar: string;
-  // Ação em curso: o campo segue focável (aria-disabled, como os botões irmãos) e a escolha é ignorada.
+  // Ação em curso: o campo segue focável (aria-disabled, como os botões irmãos); quem decide o que fazer
+  // com a escolha é o chamador (o hook avisa que há uma ação em andamento).
   ocupado?: boolean;
   onEscolher: (arquivo: File) => void;
 };
@@ -41,7 +42,7 @@ export function BotaoDeArquivo({
           const arquivo = evento.target.files?.[0];
           // Esvazia para que escolher o mesmo arquivo de novo (depois de uma recusa) dispare onChange.
           evento.target.value = "";
-          if (arquivo && !ocupado) onEscolher(arquivo);
+          if (arquivo) onEscolher(arquivo);
         }}
       />
     </label>

@@ -26,6 +26,7 @@ const avisoAConfirmar = (
   verbo: "anexada" | "trocada",
   motivo = "Confira o motivo na lista e confirme.",
 ) => `Guia ${verbo}, mas ainda não liberada ao envio. ${motivo}`;
+const AVISO_AGUARDE = "Aguarde a ação em andamento terminar.";
 const ERRO_ABRIR = "Não foi possível abrir a guia. Tente novamente.";
 const ERRO_TRANSPORTE = "Não foi possível concluir agora. Verifique a conexão e tente novamente.";
 
@@ -66,8 +67,12 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     qual: NonNullable<typeof acaoEmCurso>,
     acao: () => Promise<string | undefined>,
   ) => {
-    // Os botões ficam aria-disabled (não perdem o foco) e por isso ainda recebem o clique.
-    if (pendente) return;
+    // Os botões ficam aria-disabled (não perdem o foco) e por isso ainda recebem o clique: ele não
+    // some em silêncio, a pessoa é avisada de que há uma ação em curso.
+    if (pendente) {
+      setErroServidor(AVISO_AGUARDE);
+      return;
+    }
     setAcaoEmCurso(qual);
     setErroServidor(undefined);
     setResultado(undefined);

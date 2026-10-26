@@ -630,6 +630,24 @@ describe("trocar, remover e visualizar a guia anexada (#184)", () => {
     concluir({ ok: true, data: naoEnviada });
   });
 
+  it("escolher um arquivo para trocar durante outra ação avisa para aguardar, sem chamar a action", async () => {
+    let concluir: (valor: unknown) => void = () => undefined;
+    removerMock.mockReturnValue(new Promise((resolve) => (concluir = resolve)));
+    const usuario = userEvent.setup();
+    render();
+    const regiao = within(await regiaoDaGuia());
+    await usuario.click(await regiao.findByRole("button", { name: "Remover guia de 10/2026" }));
+    await usuario.click(
+      regiao.getByRole("button", { name: "Confirmar remoção da guia de 10/2026" }),
+    );
+
+    await usuario.upload(regiao.getByLabelText("Trocar guia de 10/2026"), pdf);
+
+    expect(trocarMock).not.toHaveBeenCalled();
+    expect(await regiao.findByText(/aguarde a ação em andamento/i)).toBeInTheDocument();
+    concluir({ ok: true, data: undefined });
+  });
+
   it("remoção recusada (guia já enviada) mostra o motivo e mantém a guia", async () => {
     removerMock.mockResolvedValue({
       ok: false,
