@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { GuiaPublicadaPort } from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
@@ -19,23 +21,25 @@ export class SupabaseGuiaPublicadaGateway implements GuiaPublicadaPort {
     guia: { nomeArquivo: string; pdfBase64: string },
     parcelamento?: { id: string; parcela: string },
   ): Promise<Result<string, AppError>> {
+    const bytes = Buffer.from(guia.pdfBase64, "base64");
     // Sem parcelamento, um objeto por envio: o caminho nunca colide e o nome do arquivo não vira
-    // caminho. Com ele, cliente/parcelamento/AAAAMM: o mesmo caminho a cada tentativa.
+    // caminho. Com ele, cliente/parcelamento/AAAAMM-hash: a mesma guia cai no mesmo caminho a cada
+    // tentativa e uma guia reemitida com outros bytes nunca sobrescreve a já entregue.
     const caminho = parcelamento
-      ? `${clienteId}/${parcelamento.id}/${parcelamento.parcela}.pdf`
+      ? `${clienteId}/${parcelamento.id}/${parcelamento.parcela}-${createHash("sha256").update(bytes).digest("hex").slice(0, 16)}.pdf`
       : `${clienteId}/${crypto.randomUUID()}.pdf`;
     const bucket = this.supabaseAdmin.storage.from(BUCKET);
-    const { error } = await bucket.upload(caminho, Buffer.from(guia.pdfBase64, "base64"), {
+    const { error } = await bucket.upload(caminho, bytes, {
       contentType: "application/pdf",
-      upsert: true,
+      upsert: false,
     });
-    if (error) return err(new ServicoExternoError("Falha ao guardar a guia."));
+    // 409: o objeto já existe com estes mesmos bytes (o caminho leva o hash), de uma tentativa anterior.
+    const jaExistia = (error as { statusCode?: string } | null)?.statusCode === "409";
+    if (error && !jaExistia) return err(new ServicoExternoError("Falha ao guardar a guia."));
     const link = await bucket.createSignedUrl(caminho, VALIDADE_LINK_SEGUNDOS);
     if (link.error || !link.data) {
-      // Só o objeto de um envio sem parcelamento (UUID, novo e só desta tentativa) é limpo. O caminho
-      // do parcelamento é estável: pode ser a guia já entregue por uma tentativa anterior, e a
-      // próxima tentativa o sobrescreve, então nunca fica órfão.
-      if (!parcelamento) await bucket.remove([caminho]);
+      // Só o objeto criado por esta tentativa é limpo: o que já existia pode ter sido entregue.
+      if (!jaExistia) await bucket.remove([caminho]);
       return err(new ServicoExternoError("Falha ao gerar o link da guia."));
     }
     return ok(link.data.signedUrl);

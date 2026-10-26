@@ -23,7 +23,7 @@ const linhaSchema = z.array(
 );
 
 const entreguesSchema = z.array(
-  z.object({ parcelamento_id: z.string(), parcela: z.string(), identidade: z.string() }),
+  z.object({ parcelamento_id: z.string(), parcela: z.string(), identidade: z.string().nullable() }),
 );
 const registroSchema = z.enum(["registrado", "ja_registrado", "nao_elegivel"]);
 
@@ -64,8 +64,7 @@ export class SupabaseParcelamentosDoClienteGateway implements ParcelamentosDoCli
     const { data, error } = await this.supabaseAdmin
       .from("cliente_parcelamento_envios")
       .select("parcelamento_id, parcela, identidade, cliente_parcelamentos!inner(cliente_id)")
-      .eq("cliente_parcelamentos.cliente_id", clienteId)
-      .not("identidade", "is", null);
+      .eq("cliente_parcelamentos.cliente_id", clienteId);
     const lidas = entreguesSchema.safeParse(data);
     if (error || !lidas.success) {
       return err(new ServicoExternoError("Falha ao ler as guias já entregues do Cliente."));

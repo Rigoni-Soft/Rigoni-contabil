@@ -44,20 +44,38 @@ describe("atribuirGuiasParcelamento", () => {
     expect(ids(atribuidas)).toEqual(["medio"]);
   });
 
-  it("um parcelamento nunca recebe duas guias da mesma parcela; a segunda vai ao outro de mesmo valor", () => {
-    const atribuidas = atribuirGuiasParcelamento(
-      [guia("202610", 10_000), guia("202610", 10_000)],
-      [parcelamento("a", 10_000), parcelamento("b", 10_000)],
-    );
-    expect(ids(atribuidas).sort()).toEqual(["a", "b"]);
+  it("dois parcelamentos de mesmo valor, mesmo sem envio, não recebem guia (nada prova de qual é)", () => {
+    expect(
+      atribuirGuiasParcelamento(
+        [guia("202610", 10_000), guia("202610", 10_000)],
+        [parcelamento("a", 10_000), parcelamento("b", 10_000)],
+      ),
+    ).toEqual([]);
+    expect(
+      atribuirGuiasParcelamento(
+        [guia("202610", 10_000)],
+        [parcelamento("a", 10_000, ["202610"]), parcelamento("b", 10_000)],
+      ),
+    ).toEqual([]);
   });
 
-  it("parcela já enviada a só um de dois de mesmo valor não vai ao outro (reemissão ou guia nova, não se sabe)", () => {
-    const atribuidas = atribuirGuiasParcelamento(
-      [guia("202610", 10_000)],
-      [parcelamento("a", 10_000, ["202610"]), parcelamento("b", 10_000)],
-    );
-    expect(atribuidas).toEqual([]);
+  it("reemissão com valor corrigido de acordo quitado não vai ao único acordo em aberto", () => {
+    const entregues = [
+      { parcelamentoId: "quitado", parcela: "202610", identidade: "202610:30000" },
+    ];
+    expect(
+      atribuirGuiasParcelamento([guia("202610", 30_500)], [parcelamento("b", 10_000)], entregues),
+    ).toEqual([]);
+  });
+
+  it("envio de acordo quitado sem identidade (legado) bloqueia a guia da mesma parcela", () => {
+    const entregues = [{ parcelamentoId: "quitado", parcela: "202610", identidade: null }];
+    expect(
+      atribuirGuiasParcelamento([guia("202610", 10_000)], [parcelamento("b", 10_000)], entregues),
+    ).toEqual([]);
+    expect(
+      atribuirGuiasParcelamento([guia("202611", 10_000)], [parcelamento("b", 10_000)], entregues),
+    ).toHaveLength(1);
   });
 
   it("guia de identidade já entregue (mesmo a acordo quitado, fora da lista) é descartada", () => {
