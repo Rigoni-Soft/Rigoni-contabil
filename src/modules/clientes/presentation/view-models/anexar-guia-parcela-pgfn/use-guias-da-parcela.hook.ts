@@ -11,6 +11,8 @@ import {
 import { competenciaDoMes, idDaGuia } from "./anexar-guia-parcela-pgfn.presenter";
 import { anexarGuiaParcelaPgfnSchema } from "./anexar-guia-parcela-pgfn.schema";
 
+const AVISO_ANEXADA =
+  "Guia anexada, mas ainda não liberada ao envio. Confira o motivo na lista e confirme.";
 const ERRO_TRANSPORTE = "Não foi possível concluir agora. Verifique a conexão e tente novamente.";
 
 type Erros = { competencia?: string; contaNegociacao?: string; arquivo?: string };
@@ -92,22 +94,20 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
         await queryClient.invalidateQueries({ queryKey: chave });
         return;
       }
-      // O aviso sai já, completo, sem esperar a lista (rede lenta não deixa a pessoa sem resposta)...
-      setAviso(`Guia anexada, mas ainda não liberada ao envio. ${anexada.motivo ?? ""}`.trim());
+      // O aviso sai já, sem esperar a lista (rede lenta não deixa a pessoa sem resposta), e aponta
+      // para o motivo na lista em vez de repeti-lo (dizer duas vezes é ruído). Normalmente fica assim,
+      // sem trocar de texto (o leitor de tela anuncia uma vez só).
+      setAviso(AVISO_ANEXADA);
       await queryClient.invalidateQueries({ queryKey: chave });
-      // ...e encurta quando o motivo já está na lista (dizer duas vezes é ruído). Sem ele lá (a
-      // confirmação automática falhou depois do anexo), o aviso completo é o único lugar que o traz.
+      // Exceção: o motivo não chegou na lista (a confirmação automática falhou depois do anexo, e esse
+      // motivo não é gravado). Aí o aviso passa a trazê-lo. Só mexe num aviso que ainda está na tela:
+      // se a pessoa já editou um campo e o limpou, a lista tardia não o traz de volta.
       const naLista = queryClient
         .getQueryData<GuiaDaParcela[]>(chave)
         ?.find((guia) => guia.competencia === anexada.competencia)?.motivo;
-      // Só encurta um aviso que ainda está na tela: se a pessoa já mexeu num campo (e o aviso foi
-      // limpo), a lista que chega tarde não o traz de volta.
-      if (naLista) {
-        setAviso((atual) =>
-          atual
-            ? "Guia anexada, mas ainda não liberada ao envio. Confira o motivo na lista e confirme."
-            : atual,
-        );
+      if (!naLista && anexada.motivo) {
+        const comMotivo = `Guia anexada, mas ainda não liberada ao envio. ${anexada.motivo}`;
+        setAviso((atual) => (atual ? comMotivo : atual));
       }
     });
   };

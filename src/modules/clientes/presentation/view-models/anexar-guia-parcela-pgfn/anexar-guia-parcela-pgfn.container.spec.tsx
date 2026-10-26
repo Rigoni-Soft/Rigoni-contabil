@@ -238,9 +238,8 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     await usuario.upload(regiao.getByLabelText(/pdf da guia/i), pdf);
     await usuario.click(regiao.getByRole("button", { name: "Anexar guia" }));
 
-    expect(
-      await screen.findByText(/ainda não liberada ao envio. Conferir a conta./),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/ainda não liberada ao envio/)).toBeInTheDocument();
+    expect(screen.queryByText("Conferir a conta.")).not.toBeInTheDocument();
   });
 
   it("lista que chega depois de a pessoa editar um campo não traz o aviso de volta", async () => {
