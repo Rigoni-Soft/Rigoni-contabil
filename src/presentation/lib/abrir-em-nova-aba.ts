@@ -1,6 +1,6 @@
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
 
-export type ResultadoDaAba =
+type ResultadoDaAba =
   | { tipo: "aberta" }
   // O navegador barrou a aba: o link já gerado pode ser oferecido na tela.
   | { tipo: "bloqueada"; url: string }
