@@ -88,6 +88,7 @@ function montar(
     new EnviarGuiasParcelamento(
       {
         listarEmAberto: async () => ok([{ ...emAberto, parcelasEnviadas: [] }]),
+        contarComuns: async () => ok(0),
         guiasEntregues: async () => ok([]),
         registrarEnvio: async () => ok("registrado"),
       },

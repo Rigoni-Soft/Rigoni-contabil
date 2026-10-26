@@ -115,6 +115,17 @@ describe("SupabaseParcelamentosDoClienteGateway", () => {
     expect(codigos).not.toContain("PGFN");
   });
 
+  it("conta os comuns em aberto ou quitados; interno e PGFN ficam de fora", async () => {
+    const antes = await parcelamentos.contarComuns(clienteId);
+    await criarParcelamento({ codigo: "CONTA-QUITADO", restantes: 0, situacao: "quitado" });
+    await criarParcelamento({ codigo: "CONTA-INTERNO", restantes: 1, interno: true });
+    await criarParcelamento({ codigo: "CONTA-PGFN", restantes: 1, origem: "pgfn" });
+
+    const depois = await parcelamentos.contarComuns(clienteId);
+
+    expect(antes.ok && depois.ok && depois.value - antes.value).toBe(1);
+  });
+
   it("registrar o envio grava a parcela, desconta uma restante e audita com a URA; repetir não tem efeito", async () => {
     const id = await criarParcelamento({ codigo: "DESCONTA", restantes: 3 });
 

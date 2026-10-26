@@ -74,6 +74,7 @@ function montar(
   const nucleo = new EnviarGuiasParcelamento(
     {
       listarEmAberto: async () => parcelamentos,
+      contarComuns: async () => ok(0),
       guiasEntregues: async () => ok(opcoes.entregues ?? []),
       registrarEnvio: async (id, parcela, identidade) => {
         registrados.push([id, parcela]);

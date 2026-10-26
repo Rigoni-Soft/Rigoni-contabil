@@ -5,6 +5,7 @@ import type {
 } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type { AnexarMensagemAtendimentoPort } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
 import type { EntregarDasNaUraPort } from "@/modules/atendimento/application/ports/in/entregar-das-na-ura.provider";
+import type { EntregarParcelamentoNaUraPort } from "@/modules/atendimento/application/ports/in/entregar-parcelamento-na-ura.provider";
 import type {
   DocumentoContratual,
   DocumentosContratuaisPort,
@@ -73,6 +74,7 @@ function montar(
     feriadosFalha?: boolean;
     guiaFalha?: AppError | "lanca";
     dasFalha?: AppError | "lanca";
+    parcelamentoFalha?: AppError | "lanca";
   } = {},
 ) {
   const buscados: string[] = [];
@@ -185,9 +187,19 @@ function montar(
       return ok(undefined);
     },
   };
+  const parcelamentoPedidos: { clienteId: string; telefone: string }[] = [];
+  const parcelamento: EntregarParcelamentoNaUraPort = {
+    execute: async (pedido) => {
+      parcelamentoPedidos.push(pedido);
+      if (opcoes.parcelamentoFalha === "lanca") throw new Error("rede");
+      if (opcoes.parcelamentoFalha) return err(opcoes.parcelamentoFalha);
+      return ok(undefined);
+    },
+  };
   return {
     guiasBuscadas,
     dasPedidos,
+    parcelamentoPedidos,
     anexadas,
     tentativasDeAnexar,
     abertos,
@@ -202,6 +214,7 @@ function montar(
       feriados,
       guias,
       das,
+      parcelamento,
     ),
     sessoes,
     gravadas,
@@ -232,21 +245,51 @@ describe("ReceberMensagem", () => {
     }
   });
 
-  it.each([
-    ["3", "parcelamento"],
-    ["4", "cnd"],
-    [" 3 ", "parcelamento"],
-  ])("opção %p do menu entrega o PDF de %s do Cliente do contato", async (texto, tipo) => {
-    const { caso, enviadas, documentosEnviados, guiasBuscadas } = montar();
-    const r = await caso.execute({ telefone: "5511912345678", texto });
+  it("opção 3 (parcelamento) segue o processo do job: delega ao caso do parcelamento, sem buscar a guia direto", async () => {
+    const { caso, parcelamentoPedidos, guiasBuscadas, enviadas, documentosEnviados } = montar();
+    const r = await caso.execute({ telefone: "5511912345678", texto: " 3 " });
     expect(r.ok).toBe(true);
-    // O CNPJ nunca é perguntado: a busca usa o Cliente ligado ao contato.
-    expect(guiasBuscadas).toEqual([{ clienteId: ana.clienteId, tipo }]);
-    expect(documentosEnviados).toEqual([
-      { telefone: "5511912345678", nomeArquivo: `${tipo}.pdf`, pdfBase64: `pdf-${tipo}` },
-    ]);
+    expect(parcelamentoPedidos).toEqual([{ clienteId: ana.clienteId, telefone: "5511912345678" }]);
+    expect(guiasBuscadas).toEqual([]);
     expect(enviadas).toHaveLength(0);
+    expect(documentosEnviados).toHaveLength(0);
   });
+
+  it("parcelamento sem autorização vigente avisa o contato e oferece o atendente", async () => {
+    const { caso, enviadas } = montar({ parcelamentoFalha: new ForbiddenError("sem autorização") });
+    const r = await caso.execute({ telefone: "11912345678", texto: "3" });
+    expect(r.ok).toBe(true);
+    expect(enviadas[0].texto).toContain("autorização");
+    expect(enviadas[0].texto).toContain("*5*");
+  });
+
+  it.each([new ServicoExternoError("fora do ar"), "lanca" as const])(
+    "falha do parcelamento (%p) não derruba: registra no log e avisa o contato",
+    async (parcelamentoFalha) => {
+      const log = jest.spyOn(console, "error").mockImplementation(() => undefined);
+      const { caso, enviadas } = montar({ parcelamentoFalha });
+      const r = await caso.execute({ telefone: "11912345678", texto: "3" });
+      expect(r.ok).toBe(true);
+      expect(enviadas[0].texto).toContain("agora");
+      expect(log).toHaveBeenCalledTimes(1);
+      log.mockRestore();
+    },
+  );
+
+  it.each([["4", "cnd"]])(
+    "opção %p do menu entrega o PDF de %s do Cliente do contato",
+    async (texto, tipo) => {
+      const { caso, enviadas, documentosEnviados, guiasBuscadas } = montar();
+      const r = await caso.execute({ telefone: "5511912345678", texto });
+      expect(r.ok).toBe(true);
+      // O CNPJ nunca é perguntado: a busca usa o Cliente ligado ao contato.
+      expect(guiasBuscadas).toEqual([{ clienteId: ana.clienteId, tipo }]);
+      expect(documentosEnviados).toEqual([
+        { telefone: "5511912345678", nomeArquivo: `${tipo}.pdf`, pdfBase64: `pdf-${tipo}` },
+      ]);
+      expect(enviadas).toHaveLength(0);
+    },
+  );
 
   it("opção 2 (DAS) segue o processo do job: delega ao caso do DAS, sem buscar a guia direto", async () => {
     const { caso, dasPedidos, guiasBuscadas, enviadas, documentosEnviados } = montar();
@@ -284,7 +327,7 @@ describe("ReceberMensagem", () => {
     const { caso, enviadas, documentosEnviados } = montar({
       guiaFalha: new ForbiddenError("sem autorização"),
     });
-    const r = await caso.execute({ telefone: "11912345678", texto: "3" });
+    const r = await caso.execute({ telefone: "11912345678", texto: "4" });
     expect(r.ok).toBe(true);
     expect(documentosEnviados).toHaveLength(0);
     expect(enviadas[0].texto).toContain("autorização");
@@ -312,7 +355,7 @@ describe("ReceberMensagem", () => {
 
   it("falha ao enviar o PDF devolve erro para a Meta reenviar", async () => {
     const { caso } = montar({ envioFalha: true });
-    const r = await caso.execute({ telefone: "11912345678", texto: "3" });
+    const r = await caso.execute({ telefone: "11912345678", texto: "4" });
     expect(r).toEqual({ ok: false, error: expect.any(ServicoExternoError) });
   });
 
@@ -364,6 +407,7 @@ describe("ReceberMensagem", () => {
       { agora: () => new Date("2026-10-07T10:00:00-03:00") },
       { listarDatas: async () => ok([]) },
       { buscar: async () => err(new ServicoExternoError("fiscal")) },
+      { execute: async () => ok(undefined) },
       { execute: async () => ok(undefined) },
     );
     const r = await caso.execute({ telefone: "11912345678", texto: "oi" });

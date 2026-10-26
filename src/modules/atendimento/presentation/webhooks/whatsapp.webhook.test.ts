@@ -105,6 +105,7 @@ jest.mock("@/main/atendimento.factory", () => ({
         envio,
         { agora: () => new Date("2026-10-07T10:00:00-03:00") },
       ),
+      { execute: async () => ok(undefined) },
     ),
   makeAutenticarWebhook: () =>
     new AutenticarWebhook(new HmacAutenticacaoWebhookGateway(SEGREDO, TOKEN)),

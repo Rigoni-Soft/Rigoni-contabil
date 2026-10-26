@@ -22,6 +22,9 @@ export type EnvioRegistrado = "registrado" | "ja_registrado" | "nao_elegivel";
 export interface ParcelamentosDoClientePort {
   // Só os em aberto e com parcelas restantes (o banco manda).
   listarEmAberto(clienteId: string): Promise<Result<ParcelamentoDoCliente[], AppError>>;
+  // Quantos parcelamentos comuns o Cliente tem, em aberto ou quitados: separa "nenhum" de "todos
+  // quitados" na resposta da URA.
+  contarComuns(clienteId: string): Promise<Result<number, AppError>>;
   // Guias já entregues a qualquer acordo do Cliente, quitado ou não, inclusive as sem identidade.
   guiasEntregues(clienteId: string): Promise<Result<GuiaEntregue[], AppError>>;
   // Registro de envio, desconto de uma parcela restante e auditoria da URA, uma vez só por parcela.

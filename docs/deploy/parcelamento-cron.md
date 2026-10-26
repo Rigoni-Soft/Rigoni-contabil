@@ -19,10 +19,14 @@ Mesmo gate, retentativa, reserva da entrega e alertas do job de lembrete/DAS
 
 ## Regra única (#126)
 
-O núcleo `EnviarGuiasParcelamento` (o job hoje; a URA passa a usá-lo no #128) segue, por Cliente.
-Até o #128 a opção de parcelamento da URA continua pelo caminho legado (`GuiasFiscaisGateway.buscar`,
-a guia mais atrasada do CNPJ, sem consultar os acordos): ele não separa interno de comum e não tem
-cobertura de WhatsApp real. Passos do núcleo:
+O núcleo `EnviarGuiasParcelamento` (o job) segue, por Cliente. A opção de parcelamento da URA
+(`EntregarParcelamentoNaUra`, #128) usa a mesma atribuição e o mesmo registro de envio, mas só para os
+comuns e uma guia por Parcelamento: a parcela do mês ou, se o provedor não a emite, a do mês anterior;
+parcela já registrada reenvia o PDF guardado sem provedor e sem novo desconto; "sem parcelamento
+vigente" e "quitados" saem do banco sem chamar o provedor; falha parcial é listada por código. Sem a
+reserva por Cliente do job (job e URA simultâneos podem duplicar o PDF, nunca o desconto). A opção do
+Funcionário no painel segue pelo caminho legado (`GuiasFiscaisGateway.buscar`, a guia mais atrasada).
+Passos do núcleo:
 
 1. **O banco manda.** Lê os Parcelamentos em aberto com parcelas restantes (`registrar_envio_parcelamento`
    recusa o resto). Sem nenhum pendente (todos já com registro do mês, ou sem destino: ver Parcelamento interno) o provedor não é chamado.

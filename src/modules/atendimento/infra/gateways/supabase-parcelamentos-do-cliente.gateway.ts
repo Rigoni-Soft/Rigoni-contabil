@@ -60,6 +60,19 @@ export class SupabaseParcelamentosDoClienteGateway implements ParcelamentosDoCli
     );
   }
 
+  async contarComuns(clienteId: string): Promise<Result<number, AppError>> {
+    const { count, error } = await this.supabaseAdmin
+      .from("cliente_parcelamentos")
+      .select("id", { count: "exact", head: true })
+      .eq("cliente_id", clienteId)
+      .eq("interno", false)
+      .or("origem.is.null,origem.eq.receita_federal");
+    if (error || count === null) {
+      return err(new ServicoExternoError("Falha ao ler os parcelamentos do Cliente."));
+    }
+    return ok(count);
+  }
+
   async guiasEntregues(clienteId: string): Promise<Result<GuiaEntregue[], AppError>> {
     const { data, error } = await this.supabaseAdmin
       .from("cliente_parcelamento_envios")
