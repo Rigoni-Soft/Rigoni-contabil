@@ -30,3 +30,9 @@ export function ultimoDiaDoMes(agora: Date = new Date()): number {
 export function primeiroDiaDoMesAtual(agora: Date = new Date()): string {
   return `${mesAtual(agora)}-01`;
 }
+
+// Mês anterior ao corrente no fuso de negócio, "AAAAMM" (formato do provedor).
+export function mesAnterior(agora: Date = new Date()): string {
+  const [ano, mes] = mesAtual(agora).split("-").map(Number);
+  return mes === 1 ? `${ano - 1}12` : `${ano}${String(mes - 1).padStart(2, "0")}`;
+}

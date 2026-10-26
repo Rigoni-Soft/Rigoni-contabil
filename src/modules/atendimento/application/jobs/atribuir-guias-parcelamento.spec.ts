@@ -63,6 +63,15 @@ describe("atribuirGuiasParcelamento", () => {
     expect(atribuirGuiasParcelamento([guia("202610", valorGuia)], parcelamentos)).toEqual([]);
   });
 
+  it("comum e interno compatíveis com a guia: nenhum recebe (o interno não é preferido)", () => {
+    expect(
+      atribuirGuiasParcelamento(
+        [guia("202610", 25_000)],
+        [parcelamento("comum", 10_000), { ...parcelamento("interno", 24_000), interno: true }],
+      ),
+    ).toEqual([]);
+  });
+
   it("dois parcelamentos de mesmo valor, mesmo sem envio, não recebem guia (nada prova de qual é)", () => {
     expect(
       atribuirGuiasParcelamento(

@@ -62,7 +62,7 @@ export class GuiasFiscaisGateway implements GuiasFiscaisPort, GuiasParcelamentoP
     return this.obrigacoes.buscarGuiasParcelamento(cnpj, { regime, ignorar });
   }
 
-  // ponytail: o painel do Funcionário entrega uma guia só, a mais atrasada; a URA usa `EntregarParcelamentoNaUra`.
+  // ponytail: o painel do Funcionário entrega só a guia mais atrasada.
   private async guiaMaisAtrasada(clienteId: string): Promise<Result<GuiaFiscal, AppError>> {
     const guias = await this.buscarGuiasParcelamento(clienteId, []);
     if (!guias.ok) return guias;

@@ -3,7 +3,10 @@ import type {
   MensagemEnviada,
 } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type { GuiaFiscal } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
-import type { ParcelamentoDoCliente } from "@/modules/atendimento/application/ports/out/parcelamentos-do-cliente.provider";
+import type {
+  EnvioRegistrado,
+  ParcelamentoDoCliente,
+} from "@/modules/atendimento/application/ports/out/parcelamentos-do-cliente.provider";
 import type { ChaveGuia } from "@/modules/atendimento/domain/services/guia-guardada.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
@@ -43,6 +46,8 @@ function montar(
     guias?: Result<GuiaFiscal[], AppError>;
     guardada?: string | null;
     publicarFalha?: boolean;
+    documentoFalha?: boolean;
+    registro?: EnvioRegistrado;
   } = {},
 ) {
   const mensagens: MensagemEnviada[] = [];
@@ -58,7 +63,7 @@ function montar(
       guiasEntregues: async () => ok([]),
       registrarEnvio: async (id, parcela, identidade) => {
         registrados.push([id, parcela, identidade]);
-        return ok("registrado");
+        return ok(opcoes.registro ?? "registrado");
       },
     },
     {
@@ -84,6 +89,7 @@ function montar(
         return ok(undefined);
       },
       enviarDocumento: async (d) => {
+        if (opcoes.documentoFalha) return err(new ServicoExternoError("whatsapp"));
         documentos.push(d);
         return ok(undefined);
       },
@@ -107,19 +113,16 @@ function montar(
 
 describe("EntregarParcelamentoNaUra (#128)", () => {
   it("nenhum parcelamento comum cadastrado: avisa sem chamar o provedor", async () => {
-    const { executar, mensagens, buscas } = montar([], { comuns: 0 });
+    const { executar, mensagens, buscas } = montar([]);
     expect((await executar()).ok).toBe(true);
     expect(mensagens[0].texto).toContain("parcelamento vigente");
     expect(buscas()).toBe(0);
   });
 
   it("só internos: responde como se não houvesse parcelamento, sem mencioná-los", async () => {
-    const { executar, mensagens, documentos, buscas } = montar(
-      [parcelamento("1", { interno: true })],
-      {
-        comuns: 0,
-      },
-    );
+    const { executar, mensagens, documentos, buscas } = montar([
+      parcelamento("1", { interno: true }),
+    ]);
     expect((await executar()).ok).toBe(true);
     expect(mensagens).toHaveLength(1);
     expect(mensagens[0].texto).toContain("parcelamento vigente");
@@ -152,7 +155,7 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
     expect(mensagens).toHaveLength(0);
   });
 
-  it("provedor sem a parcela do mês (fora do período): entrega a do mês anterior sem registro", async () => {
+  it("provedor sem a parcela do mês (fora do período): entrega a do mês anterior e a registra", async () => {
     const { executar, documentos, registrados } = montar([parcelamento("1")], {
       guias: ok([guia("202609")]),
     });
@@ -175,7 +178,10 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
       "parcelamento-COD-1-202610.pdf",
       "parcelamento-COD-2-202610.pdf",
     ]);
-    expect(registrados.map(([id]) => id).sort()).toEqual(["1", "2"]);
+    expect(registrados.sort()).toEqual([
+      ["1", "202610", "202610:10000"],
+      ["2", "202610", "202610:20000"],
+    ]);
   });
 
   it("parcela do mês já registrada: reenvia o PDF guardado, sem provedor e sem novo desconto", async () => {
@@ -211,10 +217,11 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
   });
 
   it("guia que não saiu não é registrada nem descontada", async () => {
-    const { executar, registrados, mensagens } = montar([parcelamento("1")], {
+    const { executar, registrados, mensagens, documentos } = montar([parcelamento("1")], {
       publicarFalha: true,
     });
     expect((await executar()).ok).toBe(true);
+    expect(documentos).toHaveLength(0);
     expect(registrados).toHaveLength(0);
     expect(mensagens[0].texto).toContain("COD-1");
   });
@@ -224,6 +231,64 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
     expect((await executar()).ok).toBe(true);
     expect(documentos).toHaveLength(0);
     expect(mensagens[0].texto).toContain("COD-1");
+  });
+
+  it("provedor devolve a parcela do mês e a do mês anterior: entrega só a do mês", async () => {
+    const { executar, documentos, registrados } = montar([parcelamento("1")], {
+      guias: ok([guia("202609"), guia("202610")]),
+    });
+    expect((await executar()).ok).toBe(true);
+    expect(documentos.map((d) => d.nomeArquivo)).toEqual(["parcelamento-COD-1-202610.pdf"]);
+    expect(registrados).toEqual([["1", "202610", "202610:10000"]]);
+  });
+
+  it("mês anterior já registrado e provedor sem a do mês: reenvia o PDF guardado do anterior", async () => {
+    const { executar, documentos, registrados, reencontradas, buscas } = montar(
+      [parcelamento("1", { parcelasEnviadas: ["202609"] })],
+      { guias: ok([]) },
+    );
+    expect((await executar()).ok).toBe(true);
+    // O provedor é consultado pela parcela do mês, que ainda não tem registro.
+    expect(buscas()).toBe(1);
+    expect(reencontradas).toEqual([{ id: "1", periodo: "202609" }]);
+    expect(documentos.map((d) => d.nomeArquivo)).toEqual(["parcelamento-COD-1-202609.pdf"]);
+    expect(registrados).toHaveLength(0);
+  });
+
+  it("documento que o WhatsApp recusou não é registrado nem descontado", async () => {
+    const { executar, registrados, mensagens } = montar([parcelamento("1")], {
+      documentoFalha: true,
+    });
+    expect((await executar()).ok).toBe(true);
+    expect(registrados).toHaveLength(0);
+    expect(mensagens[0].texto).toContain("COD-1");
+  });
+
+  it("registro não elegível após o envio: o contato recebeu, então não há aviso de falha", async () => {
+    const log = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    const { executar, documentos, mensagens } = montar([parcelamento("1")], {
+      registro: "nao_elegivel",
+    });
+    expect((await executar()).ok).toBe(true);
+    expect(documentos).toHaveLength(1);
+    expect(mensagens).toHaveLength(0);
+    expect(log).toHaveBeenCalledTimes(1);
+    log.mockRestore();
+  });
+
+  it("guia que pertence ao interno não é entregue ao comum nem o interno é mencionado", async () => {
+    const { executar, documentos, registrados, mensagens } = montar(
+      [
+        parcelamento("1", { valorParcelaCentavos: 10_000 }),
+        parcelamento("2", { interno: true, valorParcelaCentavos: 24_000 }),
+      ],
+      { guias: ok([guia("202610", 25_000)]) },
+    );
+    expect((await executar()).ok).toBe(true);
+    expect(documentos).toHaveLength(0);
+    expect(registrados).toHaveLength(0);
+    expect(mensagens[0].texto).toContain("COD-1");
+    expect(mensagens[0].texto).not.toMatch(/COD-2|intern/i);
   });
 
   it("sem autorização: devolve o erro antes de enviar qualquer coisa", async () => {

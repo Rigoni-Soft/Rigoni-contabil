@@ -4,8 +4,7 @@ import type {
   NovaMensagem,
 } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type { AnexarMensagemAtendimentoPort } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
-import type { EntregarDasNaUraPort } from "@/modules/atendimento/application/ports/in/entregar-das-na-ura.provider";
-import type { EntregarParcelamentoNaUraPort } from "@/modules/atendimento/application/ports/in/entregar-parcelamento-na-ura.provider";
+import type { EntregarNaUraPort } from "@/modules/atendimento/application/ports/in/entregar-na-ura.provider";
 import type {
   DocumentoContratual,
   DocumentosContratuaisPort,
@@ -179,7 +178,7 @@ function montar(
     },
   };
   const dasPedidos: { clienteId: string; telefone: string }[] = [];
-  const das: EntregarDasNaUraPort = {
+  const das: EntregarNaUraPort = {
     execute: async (pedido) => {
       dasPedidos.push(pedido);
       if (opcoes.dasFalha === "lanca") throw new Error("rede");
@@ -188,7 +187,7 @@ function montar(
     },
   };
   const parcelamentoPedidos: { clienteId: string; telefone: string }[] = [];
-  const parcelamento: EntregarParcelamentoNaUraPort = {
+  const parcelamento: EntregarNaUraPort = {
     execute: async (pedido) => {
       parcelamentoPedidos.push(pedido);
       if (opcoes.parcelamentoFalha === "lanca") throw new Error("rede");
@@ -276,20 +275,17 @@ describe("ReceberMensagem", () => {
     },
   );
 
-  it.each([["4", "cnd"]])(
-    "opção %p do menu entrega o PDF de %s do Cliente do contato",
-    async (texto, tipo) => {
-      const { caso, enviadas, documentosEnviados, guiasBuscadas } = montar();
-      const r = await caso.execute({ telefone: "5511912345678", texto });
-      expect(r.ok).toBe(true);
-      // O CNPJ nunca é perguntado: a busca usa o Cliente ligado ao contato.
-      expect(guiasBuscadas).toEqual([{ clienteId: ana.clienteId, tipo }]);
-      expect(documentosEnviados).toEqual([
-        { telefone: "5511912345678", nomeArquivo: `${tipo}.pdf`, pdfBase64: `pdf-${tipo}` },
-      ]);
-      expect(enviadas).toHaveLength(0);
-    },
-  );
+  it("opção 4 do menu entrega o PDF de CND do Cliente do contato", async () => {
+    const { caso, enviadas, documentosEnviados, guiasBuscadas } = montar();
+    const r = await caso.execute({ telefone: "5511912345678", texto: "4" });
+    expect(r.ok).toBe(true);
+    // O CNPJ nunca é perguntado: a busca usa o Cliente ligado ao contato.
+    expect(guiasBuscadas).toEqual([{ clienteId: ana.clienteId, tipo: "cnd" }]);
+    expect(documentosEnviados).toEqual([
+      { telefone: "5511912345678", nomeArquivo: "cnd.pdf", pdfBase64: "pdf-cnd" },
+    ]);
+    expect(enviadas).toHaveLength(0);
+  });
 
   it("opção 2 (DAS) segue o processo do job: delega ao caso do DAS, sem buscar a guia direto", async () => {
     const { caso, dasPedidos, guiasBuscadas, enviadas, documentosEnviados } = montar();

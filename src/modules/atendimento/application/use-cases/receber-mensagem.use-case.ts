@@ -4,8 +4,7 @@ import {
 } from "@/modules/atendimento/application/dtos/sessao-identificacao.dto";
 import type { AbrirAtendimentoPort } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type { AnexarMensagemAtendimentoPort } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
-import type { EntregarDasNaUraPort } from "@/modules/atendimento/application/ports/in/entregar-das-na-ura.provider";
-import type { EntregarParcelamentoNaUraPort } from "@/modules/atendimento/application/ports/in/entregar-parcelamento-na-ura.provider";
+import type { EntregarNaUraPort } from "@/modules/atendimento/application/ports/in/entregar-na-ura.provider";
 import type {
   MensagemRecebida,
   ReceberMensagemPort,
@@ -175,8 +174,8 @@ export class ReceberMensagem implements ReceberMensagemPort {
     private readonly relogio: RelogioPort,
     private readonly feriados: FeriadosPort,
     private readonly guias: GuiasFiscaisPort,
-    private readonly das: EntregarDasNaUraPort,
-    private readonly parcelamento: EntregarParcelamentoNaUraPort,
+    private readonly dasNaUra: EntregarNaUraPort,
+    private readonly parcelamentoNaUra: EntregarNaUraPort,
   ) {}
 
   async execute(mensagem: MensagemRecebida): Promise<Result<void, AppError>> {
@@ -367,8 +366,9 @@ export class ReceberMensagem implements ReceberMensagemPort {
       });
     }
     const guia = GUIAS_DO_MENU.get(texto);
-    if (guia === "das") return this.entregarDoBanco(conversa, "das", this.das);
-    if (guia === "parcelamento") return this.entregarDoBanco(conversa, guia, this.parcelamento);
+    if (guia === "das") return this.entregarPelaUra(conversa, guia, this.dasNaUra);
+    if (guia === "parcelamento")
+      return this.entregarPelaUra(conversa, guia, this.parcelamentoNaUra);
     if (guia) return this.entregarGuia(conversa, guia);
     const menu = OPCOES_MENU.map(({ rotulo }, i) => `${i + 1} - ${rotulo}`).join("\n");
     return this.enviar(
@@ -396,10 +396,10 @@ export class ReceberMensagem implements ReceberMensagemPort {
 
   // DAS e parcelamento seguem o processo do job: o caso de uso confere o banco, responde ao contato
   // e só chama o provedor quando há o que entregar. A falha da guia é tratada como a das demais.
-  private async entregarDoBanco(
+  private async entregarPelaUra(
     { telefone, contato }: Conversa,
     tipo: TipoGuia,
-    caso: EntregarDasNaUraPort,
+    caso: EntregarNaUraPort,
   ): Promise<Result<void, AppError>> {
     try {
       const entrega = await caso.execute({ clienteId: contato.clienteId, telefone });

@@ -1,7 +1,7 @@
 import type {
-  EntregarDasNaUraInput,
-  EntregarDasNaUraPort,
-} from "@/modules/atendimento/application/ports/in/entregar-das-na-ura.provider";
+  EntregarNaUraInput,
+  EntregarNaUraPort,
+} from "@/modules/atendimento/application/ports/in/entregar-na-ura.provider";
 import type { ObterGuiaDasParaEnvioPort } from "@/modules/atendimento/application/ports/in/obter-guia-das-para-envio.provider";
 import type { ClientesParaLembretePort } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
@@ -22,7 +22,7 @@ const DAS_EM_ENVIO =
 // e sem alerta ao setor: só o job abre). Pronto → o pedido adianta o envio; o DAS só vira enviado
 // (data de hoje, URA como ator) depois do aceite da entrega, com a mesma reserva do job, que por
 // isso não o reenvia. Já enviado → reenvia a guia guardada, sem provedor.
-export class EntregarDasNaUra implements EntregarDasNaUraPort {
+export class EntregarDasNaUra implements EntregarNaUraPort {
   constructor(
     private readonly clientes: Pick<
       ClientesParaLembretePort,
@@ -34,7 +34,7 @@ export class EntregarDasNaUra implements EntregarDasNaUraPort {
     private readonly relogio: RelogioPort,
   ) {}
 
-  async execute({ clienteId, telefone }: EntregarDasNaUraInput): Promise<Result<void, AppError>> {
+  async execute({ clienteId, telefone }: EntregarNaUraInput): Promise<Result<void, AppError>> {
     const das = await this.clientes.obterDas(clienteId);
     if (!das.ok) return das;
     if (das.value?.dasStatus === "enviado") {
