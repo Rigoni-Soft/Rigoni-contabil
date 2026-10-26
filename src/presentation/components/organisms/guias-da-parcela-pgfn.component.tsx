@@ -15,6 +15,8 @@ type GuiaDaListaDto = {
   rotulo: string;
   contaNegociacao: string;
   confirmada: boolean;
+  // O que conferir numa guia "a confirmar" (vem do leitor do PDF; some ao confirmar).
+  motivo?: string;
 };
 
 type GuiasDaParcelaPgfnProps = {
@@ -116,6 +118,11 @@ export function GuiasDaParcelaPgfn({
                   )}
                 </Linha>
               </Linha>
+              {!guia.confirmada && guia.motivo && (
+                <Texto variante="nota" className="mt-1 [overflow-wrap:anywhere]">
+                  {guia.motivo}
+                </Texto>
+              )}
             </Caixa>
           ))}
         </Pilha>

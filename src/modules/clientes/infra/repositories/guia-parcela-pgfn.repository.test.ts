@@ -105,6 +105,27 @@ const guia = (competencia = "202610") => ({
 });
 
 describe("guia anexada da parcela PGFN", () => {
+  it("o motivo de ficar a confirmar é gravado, listado e apagado ao confirmar", async () => {
+    const clienteId = await criarClienteResponsavelFuncionarioSN("77330011000164");
+    const parcelamentoId = await criarParcelamento(clienteId);
+    const repo = new SupabaseGuiaParcelaPgfnRepository(await comoFuncionarioSN());
+
+    expect((await repo.anexar(parcelamentoId, guia(), "Conferir a conta.")).ok).toBe(true);
+    let lista = await repo.listar(parcelamentoId);
+    expect(lista.ok && lista.value[0]).toMatchObject({
+      estado: "a_confirmar",
+      motivo: "Conferir a conta.",
+    });
+
+    expect((await repo.confirmar(parcelamentoId, "202610")).ok).toBe(true);
+    lista = await repo.listar(parcelamentoId);
+    expect(lista.ok && lista.value[0]).toEqual({
+      competencia: "202610",
+      contaNegociacao: "123456",
+      estado: "confirmada",
+    });
+  });
+
   it("o Funcionário SN responsável lê o CNPJ e a conta do Parcelamento para conferir o PDF", async () => {
     const clienteId = await criarClienteResponsavelFuncionarioSN("77330099000114");
     const parcelamentoId = await criarParcelamento(clienteId);
@@ -125,7 +146,7 @@ describe("guia anexada da parcela PGFN", () => {
     const parcelamentoId = await criarParcelamento(clienteId);
     const repo = new SupabaseGuiaParcelaPgfnRepository(await comoFuncionarioSN());
 
-    expect((await repo.anexar(parcelamentoId, guia())).ok).toBe(true);
+    expect((await repo.anexar(parcelamentoId, guia(), null)).ok).toBe(true);
     let lista = await repo.listar(parcelamentoId);
     expect(lista.ok && lista.value).toEqual([
       { competencia: "202610", contaNegociacao: "123456", estado: "a_confirmar" },
@@ -182,13 +203,13 @@ describe("guia anexada da parcela PGFN", () => {
     const parcelamentoId = await criarParcelamento(clienteId);
     const repo = new SupabaseGuiaParcelaPgfnRepository(await comoFuncionarioSN());
 
-    expect((await repo.anexar(parcelamentoId, guia("202610"))).ok).toBe(true);
-    const repetido = await repo.anexar(parcelamentoId, guia("202610"));
+    expect((await repo.anexar(parcelamentoId, guia("202610"), null)).ok).toBe(true);
+    const repetido = await repo.anexar(parcelamentoId, guia("202610"), null);
     expect(repetido).toMatchObject({
       ok: false,
       error: { message: "Já existe guia anexada para esta competência." },
     });
-    expect((await repo.anexar(parcelamentoId, guia("202611"))).ok).toBe(true);
+    expect((await repo.anexar(parcelamentoId, guia("202611"), null)).ok).toBe(true);
   });
 
   it("competência com registro de envio não aceita anexo", async () => {
@@ -199,13 +220,13 @@ describe("guia anexada da parcela PGFN", () => {
       .insert({ parcelamento_id: parcelamentoId, parcela: "202610" });
     const repo = new SupabaseGuiaParcelaPgfnRepository(await comoFuncionarioSN());
 
-    const recusado = await repo.anexar(parcelamentoId, guia("202610"));
+    const recusado = await repo.anexar(parcelamentoId, guia("202610"), null);
 
     expect(recusado).toMatchObject({
       ok: false,
       error: { message: "Competência já enviada: não aceita guia nova nem alteração." },
     });
-    expect((await repo.anexar(parcelamentoId, guia("202611"))).ok).toBe(true);
+    expect((await repo.anexar(parcelamentoId, guia("202611"), null)).ok).toBe(true);
   });
 
   it("só Parcelamento da PGFN recebe guia", async () => {
@@ -213,7 +234,7 @@ describe("guia anexada da parcela PGFN", () => {
     const parcelamentoId = await criarParcelamento(clienteId, "receita_federal");
     const repo = new SupabaseGuiaParcelaPgfnRepository(await comoFuncionarioSN());
 
-    expect(await repo.anexar(parcelamentoId, guia())).toMatchObject({
+    expect(await repo.anexar(parcelamentoId, guia(), null)).toMatchObject({
       ok: false,
       error: { message: "Só Parcelamento da PGFN recebe guia anexada." },
     });
@@ -224,7 +245,7 @@ describe("guia anexada da parcela PGFN", () => {
     const parcelamentoId = await criarParcelamento(clienteId);
     const funcionario = await comoFuncionarioSN();
     const repo = new SupabaseGuiaParcelaPgfnRepository(funcionario);
-    await repo.anexar(parcelamentoId, guia());
+    await repo.anexar(parcelamentoId, guia(), null);
     await repo.confirmar(parcelamentoId, "202610");
 
     expect((await repo.confirmar(parcelamentoId, "202610")).ok).toBe(false);
@@ -239,7 +260,7 @@ describe("guia anexada da parcela PGFN", () => {
     const clienteId = await criarClienteResponsavelFuncionarioSN("77330007000104");
     const parcelamentoId = await criarParcelamento(clienteId);
     const funcionario = await comoFuncionarioSN();
-    await new SupabaseGuiaParcelaPgfnRepository(funcionario).anexar(parcelamentoId, guia());
+    await new SupabaseGuiaParcelaPgfnRepository(funcionario).anexar(parcelamentoId, guia(), null);
 
     const trocar = await funcionario
       .from("cliente_parcelamento_guias")
@@ -262,14 +283,14 @@ describe("guia anexada da parcela PGFN", () => {
     const parcelamentoId = await criarParcelamento(clienteId);
 
     const lider = new SupabaseGuiaParcelaPgfnRepository(await comoLiderSN());
-    expect((await lider.anexar(parcelamentoId, guia("202610"))).ok).toBe(true);
+    expect((await lider.anexar(parcelamentoId, guia("202610"), null)).ok).toBe(true);
     const admin = new SupabaseGuiaParcelaPgfnRepository(await comoAdmin());
-    expect((await admin.anexar(parcelamentoId, guia("202611"))).ok).toBe(true);
+    expect((await admin.anexar(parcelamentoId, guia("202611"), null)).ok).toBe(true);
     expect((await admin.confirmar(parcelamentoId, "202610")).ok).toBe(true);
 
     for (const sessao of [await comoFuncionario2SN(), await comoFuncionarioFinanceiro()]) {
       const repo = new SupabaseGuiaParcelaPgfnRepository(sessao);
-      expect((await repo.anexar(parcelamentoId, guia("202612"))).ok).toBe(false);
+      expect((await repo.anexar(parcelamentoId, guia("202612"), null)).ok).toBe(false);
       expect((await repo.confirmar(parcelamentoId, "202611")).ok).toBe(false);
     }
 
@@ -285,6 +306,7 @@ describe("guia anexada da parcela PGFN", () => {
     await new SupabaseGuiaParcelaPgfnRepository(await comoFuncionarioSN()).anexar(
       parcelamentoId,
       guia(),
+      null,
     );
 
     const financeiro = await comoFuncionarioFinanceiro();
@@ -299,6 +321,7 @@ describe("guia anexada da parcela PGFN", () => {
     await new SupabaseGuiaParcelaPgfnRepository(await comoFuncionarioSN()).anexar(
       parcelamentoId,
       guia(),
+      null,
     );
 
     await new SupabaseClienteParcelamentoRepository(await comoFuncionarioSN()).salvar(

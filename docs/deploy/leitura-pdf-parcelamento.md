@@ -78,8 +78,9 @@ e o Parcelamento:
 | conta diferente, PDF sem CNPJ ou competência | **a confirmar**, com o motivo na resposta do anexo (o que o PDF traz prevalece sobre o digitado) |
 | PDF ilegível, escaneado, corrompido, modelo desconhecido ou DAS sem a observação `PGFN-SISPAR` | **a confirmar**; competência e conta (opcional: vale a do Parcelamento) são digitadas à mão. Sem competência lida nem digitada, o anexo pede a competência |
 
-Vencimento e valor são informativos e não bloqueiam. O motivo aparece na tela ao anexar, mas **não é gravado**: depois de recarregar a
-guia aparece só como "A confirmar". A confirmação à mão continua valendo para qualquer guia "a confirmar".
+Vencimento e valor são informativos e não bloqueiam. O motivo é gravado na guia (coluna `motivo`, até 300 caracteres) e aparece sob o selo "A confirmar" na lista, também depois de
+recarregar; confirmar a guia (à mão ou na hora) apaga o motivo. A confirmação à mão continua valendo para qualquer guia "a confirmar".
+Se a confirmação automática falhar depois do anexo, o aviso aparece só na resposta daquele anexo.
 
 **Falso (dev, CI, Preview)**: sem marcador lê sem nada conferível (a guia fica a confirmar); `[leitor:falha]` não lê;
 `[leitor:cnpj-outro]` lê o CNPJ de outra empresa; `[leitor:guia=<cnpj>;<conta>;<AAAAMM>]` lê esses três (para a guia nascer confirmada).

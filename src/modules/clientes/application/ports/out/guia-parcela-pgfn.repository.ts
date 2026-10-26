@@ -10,7 +10,7 @@ export type GuiaDaParcela = {
   competencia: string;
   contaNegociacao: string;
   estado: EstadoDaGuiaPgfn;
-  // O que conferir quando a guia ficou "a confirmar" ao anexar; só vem na resposta do anexo.
+  // O que conferir enquanto a guia está "a confirmar"; some quando ela é confirmada.
   motivo?: string;
 };
 
@@ -28,7 +28,11 @@ export interface GuiaParcelaPgfnRepository {
   // null = não existe ou a RLS o esconde.
   parcelamento(parcelamentoId: string): Promise<Result<ParcelamentoDaGuia | null, AppError>>;
   listar(parcelamentoId: string): Promise<Result<GuiaDaParcela[], AppError>>;
-  anexar(parcelamentoId: string, guia: GuiaParcelaPgfnProps): Promise<Result<void, AppError>>;
+  anexar(
+    parcelamentoId: string,
+    guia: GuiaParcelaPgfnProps,
+    motivo: string | null,
+  ): Promise<Result<void, AppError>>;
   confirmar(parcelamentoId: string, competencia: string): Promise<Result<void, AppError>>;
   // O registro dessa competência aponta para esse arquivo (reconciliação de resposta perdida).
   gravada(

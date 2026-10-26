@@ -85,7 +85,7 @@ export class AnexarGuiaParcelaPgfn implements AnexarGuiaParcelaPgfnPort {
     const recusa = await this.revalidarNoStorage(caminho);
     if (recusa) return this.desfazerUpload(input.parcelamentoId, caminho, recusa);
 
-    const salvo = await this.guias.anexar(input.parcelamentoId, guia.value);
+    const salvo = await this.guias.anexar(input.parcelamentoId, guia.value, motivo);
     if (salvo.ok) return this.confirmarOuManter(input.parcelamentoId, guia.value, motivo);
     if (salvo.error instanceof ResultadoIncertoError) {
       return this.reconciliar(input.parcelamentoId, guia.value, motivo);

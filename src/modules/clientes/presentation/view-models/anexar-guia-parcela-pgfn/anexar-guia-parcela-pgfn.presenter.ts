@@ -23,4 +23,5 @@ export const linhasDeGuias = (guias: GuiaDaParcela[], prefixo: string) =>
     rotulo: rotuloDaCompetencia(guia.competencia),
     contaNegociacao: guia.contaNegociacao,
     confirmada: guia.estado === "confirmada",
+    motivo: guia.motivo,
   }));

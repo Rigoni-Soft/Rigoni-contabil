@@ -18,7 +18,15 @@ class PersistenciaError extends AppError {
 // Sem resposta (status 0) ou gateway/timeout (502-504): o banco pode ter confirmado a gravação.
 const semDesfechoConhecido = (status: number) => status === 0 || status >= 502;
 
-type GuiaRow = { competencia: string; conta_negociacao: string; estado: GuiaDaParcela["estado"] };
+type GuiaRow = {
+  competencia: string;
+  conta_negociacao: string;
+  estado: GuiaDaParcela["estado"];
+  motivo: string | null;
+};
+
+// Limite do CHECK da coluna `motivo`: o motivo traz a conta lida do PDF, que não tem tamanho certo.
+const MOTIVO_MAX = 300;
 
 export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnRepository {
   constructor(private readonly supabase: SupabaseClient) {}
@@ -55,7 +63,7 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
   async listar(parcelamentoId: string): Promise<Result<GuiaDaParcela[], AppError>> {
     const { data, error } = await this.supabase
       .from("cliente_parcelamento_guias")
-      .select("competencia, conta_negociacao, estado")
+      .select("competencia, conta_negociacao, estado, motivo")
       .eq("parcelamento_id", parcelamentoId)
       .order("competencia", { ascending: false });
     if (error) {
@@ -67,6 +75,7 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
         competencia: g.competencia,
         contaNegociacao: g.conta_negociacao,
         estado: g.estado,
+        ...(g.motivo ? { motivo: g.motivo } : {}),
       })),
     );
   }
@@ -74,12 +83,14 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
   async anexar(
     parcelamentoId: string,
     guia: GuiaParcelaPgfnProps,
+    motivo: string | null,
   ): Promise<Result<void, AppError>> {
     const { error, status } = await this.supabase.from("cliente_parcelamento_guias").insert({
       parcelamento_id: parcelamentoId,
       competencia: guia.competencia,
       conta_negociacao: guia.contaNegociacao,
       arquivo_caminho: guia.arquivoCaminho,
+      motivo: motivo?.slice(0, MOTIVO_MAX) ?? null,
     });
     if (!error) return ok(undefined);
 

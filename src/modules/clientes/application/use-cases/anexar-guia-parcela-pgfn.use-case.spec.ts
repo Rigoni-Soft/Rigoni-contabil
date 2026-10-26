@@ -125,11 +125,15 @@ describe("AnexarGuiaParcelaPgfn", () => {
     expect(storage.enviados[0]).toMatch(
       new RegExp(`^${CLIENTE_ID}/guias-pgfn/${PARCELAMENTO_ID}/202610-[0-9a-f-]{36}\\.pdf$`),
     );
-    expect(anexar).toHaveBeenCalledWith(PARCELAMENTO_ID, {
-      competencia: "202610",
-      contaNegociacao: "123456",
-      arquivoCaminho: storage.enviados[0],
-    });
+    expect(anexar).toHaveBeenCalledWith(
+      PARCELAMENTO_ID,
+      {
+        competencia: "202610",
+        contaNegociacao: "123456",
+        arquivoCaminho: storage.enviados[0],
+      },
+      "Não consegui ler o PDF: confira a guia à mão.",
+    );
     expect(storage.removidos).toEqual([]);
   });
 
@@ -171,6 +175,7 @@ describe("AnexarGuiaParcelaPgfn", () => {
       });
       expect(ler).toHaveBeenCalledWith(expect.any(Uint8Array));
       expect(anexar).toHaveBeenCalledTimes(1);
+      expect(anexar).toHaveBeenCalledWith(PARCELAMENTO_ID, expect.anything(), null);
       expect(confirmar).toHaveBeenCalledWith(PARCELAMENTO_ID, "202610");
     });
 

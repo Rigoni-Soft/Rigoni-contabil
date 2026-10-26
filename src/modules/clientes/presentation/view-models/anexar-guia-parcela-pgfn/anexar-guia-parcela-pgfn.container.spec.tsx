@@ -128,6 +128,25 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     expect(screen.getByText(/guia anexada/i)).toBeInTheDocument();
   });
 
+  it("a lista mostra o motivo da guia a confirmar, e não o da confirmada", async () => {
+    listarMock.mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          competencia: "202610",
+          contaNegociacao: "999",
+          estado: "a_confirmar",
+          motivo: "A conta do PDF (999) é diferente da conta do Parcelamento (PGFN-1).",
+        },
+        { competencia: "202609", contaNegociacao: "123456", estado: "confirmada" },
+      ],
+    });
+    render();
+
+    expect(await screen.findByText(/conta do PDF .999. é diferente/)).toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+  });
+
   it("confirma à mão: chama a action e a guia passa a confirmada, sem botão", async () => {
     listarMock.mockResolvedValue({
       ok: true,
