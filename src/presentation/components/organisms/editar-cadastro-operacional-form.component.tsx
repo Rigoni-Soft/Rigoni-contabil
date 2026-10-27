@@ -156,7 +156,7 @@ type EditarCadastroOperacionalFormProps = {
   documentoContratual?: React.ReactNode;
   // Guias mensais de um Parcelamento PGFN já salvo: o Container monta a região (ela tem estado próprio).
   // `codigo` nomeia a região de cada Parcelamento para o leitor de tela.
-  guiasDaParcela?: (parcelamentoId: string, codigo: string) => React.ReactNode;
+  guiasDaParcela?: (parcelamentoId: string, codigo: string, interno: boolean) => React.ReactNode;
 };
 
 export function EditarCadastroOperacionalForm({
@@ -379,7 +379,7 @@ export function EditarCadastroOperacionalForm({
                 bloqueadoPorEnvio={!readOnly && atual.temEnvio}
                 guias={
                   !readOnly && atual.id && atual.acordo?.origem === "pgfn" && !atual.quitado
-                    ? guiasDaParcela?.(atual.id, atual.codigo)
+                    ? guiasDaParcela?.(atual.id, atual.codigo, atual.interno)
                     : undefined
                 }
                 arquivo={
@@ -457,7 +457,8 @@ export function EditarCadastroOperacionalForm({
             </FieldError>
           )}
           <Texto variante="nota">
-            Parcelamentos da PGFN ficam fora do envio automático: o envio da guia é manual.
+            Parcelamento da PGFN: a guia de cada mês é anexada aqui, confirmada à mão e segue ao
+            Cliente pelo envio automático.
           </Texto>
         </Pilha>
 

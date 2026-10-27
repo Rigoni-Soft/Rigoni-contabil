@@ -1,4 +1,4 @@
-import { Clock } from "lucide-react";
+import { CalendarClock } from "lucide-react";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { BotaoDeArquivo } from "@/presentation/components/atoms/botao-de-arquivo.component";
@@ -11,6 +11,7 @@ import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto
 import { SeloDaGuia } from "@/presentation/components/molecules/selo-da-guia.component";
 import { Button } from "@/presentation/components/ui/button";
 import { cn } from "@/presentation/lib/utils";
+import { DIAS_DO_JOB_PARCELAMENTO } from "@/shared/kernel/dias-do-job-parcelamento";
 
 type GuiaDaListaDto = {
   // Id do item no DOM (alvo do foco depois de confirmar).
@@ -36,6 +37,8 @@ type GuiasDaParcelaPgfnProps = {
   id: string;
   // Código do Parcelamento: nomeia a região (há uma por Parcelamento PGFN na mesma tela).
   codigo: string;
+  // Parcelamento interno: a guia vai ao financeiro do escritório, nunca ao Cliente.
+  interno: boolean;
   // Id da região (alvo do foco depois de remover uma guia); vem pronto do presenter.
   idDaRegiao: string;
   guias: GuiaDaListaDto[];
@@ -81,6 +84,8 @@ type GuiasDaParcelaPgfnProps = {
 // Nota que a pessoa precisa ler para agir: 14 px, não os 12 px da variante `nota`.
 const NOTA_LEGIVEL = "text-sm";
 
+const DIAS_DO_ENVIO = DIAS_DO_JOB_PARCELAMENTO.join(", ");
+
 const DICA_DE_TROCAR = "Troca o PDF e a guia volta a «a confirmar».";
 
 const BOTAO_DA_GUIA =
@@ -91,6 +96,7 @@ const BOTAO_DA_GUIA =
 export function GuiasDaParcelaPgfn({
   id,
   codigo,
+  interno,
   idDaRegiao,
   guias,
   carregando,
@@ -225,6 +231,11 @@ export function GuiasDaParcelaPgfn({
           </Texto>
           <SeloDaGuia confirmada={guia.confirmada} enviada={guia.enviada} />
         </Linha>
+        {guia.confirmada && !guia.enviada && (
+          <Texto variante="nota" className={cn("mt-1", NOTA_LEGIVEL)}>
+            Trocar o PDF devolve a guia a «a confirmar».
+          </Texto>
+        )}
         {guia.enviada && (
           <Texto variante="nota" className={cn("mt-1", NOTA_LEGIVEL)}>
             Já enviada ao Cliente: só pode ser aberta.
@@ -240,14 +251,30 @@ export function GuiasDaParcelaPgfn({
           </Texto>
         )}
         <Linha alinhar="centro" espaco={2} quebra className="mt-2">
+          {!confirmando && (
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              aria-disabled={pendente || undefined}
+              onClick={() => onVisualizar(guia.competencia)}
+              aria-label={`Ver guia de ${guia.rotulo}`}
+              className={BOTAO_DA_GUIA}
+            >
+              Ver
+            </Button>
+          )}
           {!guia.confirmada &&
             !guia.enviada &&
             (liberando === guia.competencia ? (
               <>
                 <Texto variante="corpo" role="alert" className="basis-full">
-                  Libera a guia de {guia.rotulo} (conta {guia.contaNegociacao}) para envio. Ela vai
-                  ao Cliente pela forma de envio dele (WhatsApp ou e-mail), ou ao financeiro se o
-                  Parcelamento for interno. Não dá para desfazer.
+                  Libera a guia de {guia.rotulo} (conta {guia.contaNegociacao}).{" "}
+                  {interno
+                    ? "Vai ao WhatsApp do financeiro do escritório, não ao Cliente."
+                    : "Vai ao Cliente, pela forma de envio do cadastro."}{" "}
+                  Sai no envio automático (dias {DIAS_DO_ENVIO}) ou quando o Cliente pedir; até lá
+                  ainda dá para trocar ou remover. Depois de enviada, não se altera.
                 </Texto>
                 <Button
                   type="button"
@@ -288,20 +315,7 @@ export function GuiasDaParcelaPgfn({
                 Confirmar e liberar
               </Button>
             ))}
-          <Linha alinhar="centro" espaco={1} quebra className="ml-auto">
-            {!confirmando && (
-              <Button
-                type="button"
-                variant="link"
-                size="sm"
-                aria-disabled={pendente || undefined}
-                onClick={() => onVisualizar(guia.competencia)}
-                aria-label={`Ver guia de ${guia.rotulo}`}
-                className={BOTAO_DA_GUIA}
-              >
-                Ver
-              </Button>
-            )}
+          <Linha alinhar="centro" espaco={1} quebra className="ml-auto pointer-coarse:gap-3">
             {!guia.enviada && (
               <>
                 {!confirmando && (
@@ -316,7 +330,7 @@ export function GuiasDaParcelaPgfn({
                 )}
                 {confirmando ? (
                   <>
-                    <Texto variante="nota" role="alert">
+                    <Texto variante="nota" role="alert" className={NOTA_LEGIVEL}>
                       Apaga a guia de {guia.rotulo} e o PDF, sem desfazer.
                     </Texto>
                     <Button
@@ -352,7 +366,10 @@ export function GuiasDaParcelaPgfn({
                     aria-disabled={pendente || undefined}
                     onClick={() => onPedirRemocao(guia.competencia)}
                     aria-label={`Remover guia de ${guia.rotulo}`}
-                    className={cn(BOTAO_DA_GUIA, "text-destructive")}
+                    className={cn(
+                      BOTAO_DA_GUIA,
+                      "text-muted-foreground hover:text-destructive focus-visible:text-destructive",
+                    )}
                   >
                     Remover
                   </Button>
@@ -378,10 +395,11 @@ export function GuiasDaParcelaPgfn({
       aria-busy={pendente || undefined}
       id={idDaRegiao}
       tabIndex={-1}
-      className="border-t border-border pt-3 outline-none"
+      className="rounded-sm border-t border-border pt-3 outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <Pilha espaco={1}>
         <Texto variante="rotulo">Guias da parcela (PGFN)</Texto>
+        <Texto variante="nota">As ações das guias valem na hora, sem precisar de Salvar.</Texto>
         {erroDaLista && (
           <AvisoComAcao
             texto={erroDaLista}
@@ -395,7 +413,11 @@ export function GuiasDaParcelaPgfn({
           </Texto>
         )}
         {!carregando && !erroDaLista && guias.length === 0 && (
-          <Texto variante="nota" className={NOTA_LEGIVEL}>
+          <Texto
+            variante="nota"
+            className={cn("flex items-start gap-1.5 text-foreground", NOTA_LEGIVEL)}
+          >
+            <CalendarClock className="mt-[3px] size-3.5 shrink-0" aria-hidden="true" />
             Nenhuma guia anexada.
           </Texto>
         )}
@@ -405,7 +427,7 @@ export function GuiasDaParcelaPgfn({
           variante="nota"
           className={cn("flex items-start gap-1.5 text-foreground", NOTA_LEGIVEL)}
         >
-          <Clock className="mt-[3px] size-3.5 shrink-0" aria-hidden="true" />
+          <CalendarClock className="mt-[3px] size-3.5 shrink-0" aria-hidden="true" />
           Falta a guia de {competenciaEmFalta}.
         </Texto>
       )}

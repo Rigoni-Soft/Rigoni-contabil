@@ -245,6 +245,35 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     concluir({ ok: true, data: undefined });
   });
 
+  it("abrir a remoção fecha a conferência de liberar: só uma pergunta de risco por vez", async () => {
+    listarMock.mockResolvedValue({
+      ok: true,
+      data: [{ competencia: "202610", contaNegociacao: "123456", estado: "a_confirmar" }],
+    });
+    const usuario = userEvent.setup();
+    render();
+    const regiao = within(await regiaoDaGuia());
+
+    await usuario.click(await regiao.findByRole("button", { name: NOME_CONFIRMAR }));
+    expect(regiao.getByRole("button", { name: NOME_LIBERAR })).toBeInTheDocument();
+    await usuario.click(regiao.getByRole("button", { name: "Remover guia de 10/2026" }));
+
+    expect(regiao.queryByRole("button", { name: NOME_LIBERAR })).not.toBeInTheDocument();
+    expect(
+      regiao.getByRole("button", { name: "Confirmar remoção da guia de 10/2026" }),
+    ).toBeInTheDocument();
+    expect(regiao.getByRole("button", { name: NOME_CONFIRMAR })).toBeInTheDocument();
+  });
+
+  it("as ações das guias dizem que valem na hora, sem Salvar", async () => {
+    render();
+    const regiao = within(await regiaoDaGuia());
+
+    expect(
+      regiao.getByText("As ações das guias valem na hora, sem precisar de Salvar."),
+    ).toBeInTheDocument();
+  });
+
   it("o resultado de liberar aparece dentro do item da guia agida, não no fim da região", async () => {
     listarMock.mockResolvedValue({
       ok: true,
@@ -280,7 +309,7 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
 
     // Diz o que será liberado (mês, conta), que vai ao Cliente e que não se desfaz.
     expect(screen.getByRole("alert")).toHaveTextContent(
-      /Libera a guia de 10\/2026 \(conta 123456\) para envio\. Ela vai ao Cliente pela forma de envio dele .* ou ao financeiro se o Parcelamento for interno\. Não dá para desfazer\./,
+      /Libera a guia de 10\/2026 \(conta 123456\)\. Vai ao Cliente, pela forma de envio do cadastro\. Sai no envio automático \(dias 20, 22, 24, 26, 28\) ou quando o Cliente pedir; até lá ainda dá para trocar ou remover\. Depois de enviada, não se altera\./,
     );
     expect(confirmarMock).not.toHaveBeenCalled();
     // Quem abriu sem querer cai no gesto seguro.

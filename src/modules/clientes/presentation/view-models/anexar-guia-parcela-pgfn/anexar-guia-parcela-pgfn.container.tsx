@@ -9,9 +9,9 @@ import {
 } from "./anexar-guia-parcela-pgfn.presenter";
 import { useGuiasDaParcela } from "./use-guias-da-parcela.hook";
 
-type Props = { parcelamentoId: string; codigo: string };
+type Props = { parcelamentoId: string; codigo: string; interno: boolean };
 
-export function AnexarGuiaParcelaPgfnContainer({ parcelamentoId, codigo }: Props) {
+export function AnexarGuiaParcelaPgfnContainer({ parcelamentoId, codigo, interno }: Props) {
   const prefixo = `guias-${parcelamentoId}`;
   const guias = useGuiasDaParcela(parcelamentoId, prefixo);
 
@@ -19,6 +19,7 @@ export function AnexarGuiaParcelaPgfnContainer({ parcelamentoId, codigo }: Props
     <GuiasDaParcelaPgfn
       id={prefixo}
       codigo={codigo}
+      interno={interno}
       idDaRegiao={idDaRegiao(prefixo)}
       guias={linhasDeGuias(guias.guias, prefixo)}
       carregando={guias.carregando}

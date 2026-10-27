@@ -71,6 +71,12 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     },
   });
 
+  // Anexar ou trocar muda a guia sob uma pergunta de risco aberta: a pergunta fecha.
+  const fecharConfirmacoes = () => {
+    setLiberando(undefined);
+    setRemovendo(undefined);
+  };
+
   const limparAvisos = () => {
     setAlvoDoAviso(undefined);
     setErroServidor(undefined);
@@ -126,6 +132,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
       return;
     }
     setErros({});
+    fecharConfirmacoes();
     return executar(async () => {
       const resultado = await anexarGuiaParcelaPgfnAction(validado.data);
       // O arquivo e a competência ficam no formulário em caso de erro, para corrigir e reenviar.
@@ -162,6 +169,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   const trocar = (competencia: string, novo: File) =>
     executar(
       async () => {
+        fecharConfirmacoes();
         const validado = trocarGuiaParcelaPgfnSchema.safeParse({
           parcelamentoId,
           competencia,
@@ -178,6 +186,8 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
 
   const pedirRemocao = (competencia: string) => {
     limparAvisos();
+    // Uma pergunta de risco por vez.
+    setLiberando(undefined);
     setRemovendo(competencia);
   };
 
@@ -221,6 +231,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
 
   const pedirLiberacao = (competencia: string) => {
     limparAvisos();
+    setRemovendo(undefined);
     setLiberando(competencia);
   };
 
