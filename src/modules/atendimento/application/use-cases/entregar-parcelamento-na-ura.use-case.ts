@@ -2,6 +2,7 @@ import {
   atribuirGuiasParcelamento,
   identidadeDaGuia,
 } from "@/modules/atendimento/application/jobs/atribuir-guias-parcelamento";
+import { guiasPgfnAEntregar } from "@/modules/atendimento/application/jobs/guias-pgfn-a-entregar";
 import type {
   EntregarNaUraInput,
   EntregarNaUraPort,
@@ -10,6 +11,10 @@ import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/
 import type { GuiaPublicadaPort } from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
 import type { GuiaFiscal } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
 import type { GuiasParcelamentoPort } from "@/modules/atendimento/application/ports/out/guias-parcelamento.provider";
+import type {
+  GuiasPgfnPort,
+  ParcelamentoPgfn,
+} from "@/modules/atendimento/application/ports/out/guias-pgfn.provider";
 import type {
   GuiaEntregue,
   ParcelamentoDoCliente,
@@ -60,6 +65,10 @@ function escolherAlvo(
 // guardado, sem provedor e sem novo desconto; só a primeira entrega chama o provedor, registra o
 // envio e desconta. Internos são ignorados e nunca mencionados. O banco decide "sem parcelamento" e
 // "quitados" antes de qualquer chamada ao provedor.
+// O parcelamento da PGFN (#186) entrega as guias confirmadas à mão ainda sem registro, até o mês
+// corrente e da mais antiga para a mais nova, com o PDF do banco; sem nenhuma pendente, reenvia a do
+// mês já enviada (mesmo PDF, sem novo registro nem desconto). Sem guia confirmada o contato recebe
+// "ainda não disponível", sem alerta ao setor.
 // ponytail: sem a reserva por Cliente do job; job e URA simultâneos podem duplicar o PDF, nunca o
 // desconto (o registro é único por parcela). Reservar se virar problema.
 export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
@@ -67,6 +76,7 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
     private readonly parcelamentos: ParcelamentosDoClientePort,
     private readonly guias: GuiasParcelamentoPort,
     private readonly publicadas: GuiaPublicadaPort,
+    private readonly pgfn: GuiasPgfnPort,
     private readonly envio: EnvioMensagemPort,
     private readonly relogio: RelogioPort,
   ) {}
@@ -75,16 +85,104 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
     const emAberto = await this.parcelamentos.listarEmAberto(clienteId);
     if (!emAberto.ok) return emAberto;
     const comuns = emAberto.value.filter((p) => !p.interno);
-    if (comuns.length === 0) return this.avisarSemParcelamento(clienteId, telefone);
+    const emAbertoPgfn = await this.pgfn.listarEmAberto(clienteId);
+    if (!emAbertoPgfn.ok) return emAbertoPgfn;
+    const comunsPgfn = emAbertoPgfn.value.filter((p) => !p.interno);
+    if (comuns.length === 0 && comunsPgfn.length === 0) {
+      return this.avisarSemParcelamento(clienteId, telefone);
+    }
 
-    const alvos = await this.definirAlvos(clienteId, emAberto.value, comuns);
+    const alvos =
+      comuns.length === 0 ? [] : await this.definirAlvos(clienteId, emAberto.value, comuns);
     const falhas = await this.entregarTodos(clienteId, telefone, alvos);
-    return falhas.length === 0
-      ? ok(undefined)
-      : this.envio.enviar({
-          telefone,
-          texto: `Não conseguimos enviar a guia do parcelamento ${falhas.join(", ")}. Tente novamente em alguns minutos ou fale com o escritório.`,
-        });
+    const pgfn = await this.entregarPgfn(clienteId, telefone, comunsPgfn);
+    falhas.push(...pgfn.falhas);
+    const avisos = [
+      falhas.length > 0 &&
+        `Não conseguimos enviar a guia do parcelamento ${falhas.join(", ")}. Tente novamente em alguns minutos ou fale com o escritório.`,
+      pgfn.indisponiveis.length > 0 &&
+        `A guia do parcelamento ${pgfn.indisponiveis.join(", ")} ainda não está disponível. O escritório enviará assim que estiver.`,
+    ].filter((texto): texto is string => texto !== false);
+    for (const texto of avisos) {
+      const enviado = await this.envio.enviar({ telefone, texto });
+      if (!enviado.ok) return enviado;
+    }
+    return ok(undefined);
+  }
+
+  // Um parcelamento PGFN por vez; para na primeira guia que não chegou ao contato, para não pular a
+  // ordem. `indisponiveis`: sem guia confirmada para entregar nem reenviar.
+  private async entregarPgfn(
+    clienteId: string,
+    telefone: string,
+    parcelamentos: ParcelamentoPgfn[],
+  ): Promise<{ falhas: string[]; indisponiveis: string[] }> {
+    const mes = mesAtual(this.relogio.agora()).replace("-", "");
+    const novas = guiasPgfnAEntregar(parcelamentos, mes);
+    const falhas: string[] = [];
+    const indisponiveis: string[] = [];
+    for (const parcelamento of parcelamentos) {
+      // Nunca mais guias novas do que parcelas restantes: o acordo quitaria antes do fim da lista.
+      let guias = novas
+        .filter((g) => g.parcelamento.id === parcelamento.id)
+        .slice(0, parcelamento.parcelasRestantes);
+      if (guias.length === 0) {
+        const doMes = parcelamento.guias.find(
+          (g) => g.competencia === mes && parcelamento.parcelasEnviadas.includes(mes),
+        );
+        guias = doMes ? [{ ...doMes, parcelamento }] : [];
+      }
+      if (guias.length === 0) {
+        indisponiveis.push(parcelamento.codigo);
+        continue;
+      }
+      for (const { competencia, caminho } of guias) {
+        if (
+          !(await this.entregarGuiaPgfn(clienteId, telefone, parcelamento, competencia, caminho))
+        ) {
+          falhas.push(parcelamento.codigo);
+          break;
+        }
+      }
+    }
+    return { falhas, indisponiveis };
+  }
+
+  // `true` se o contato recebeu o PDF. O registro é único por parcela: o reenvio não desconta outra.
+  private async entregarGuiaPgfn(
+    clienteId: string,
+    telefone: string,
+    parcelamento: ParcelamentoPgfn,
+    competencia: string,
+    caminho: string,
+  ): Promise<boolean> {
+    const pdf = await this.pgfn.ler(clienteId, caminho);
+    if (!pdf.ok) return false;
+    const nomeArquivo = `parcelamento-${parcelamento.codigo}-${competencia}.pdf`;
+    const guia = { nomeArquivo, pdfBase64: pdf.value, parcela: competencia };
+    const publicada = await this.publicadas.publicar(
+      clienteId,
+      guia,
+      chaveDoParcelamento(parcelamento.id, competencia),
+    );
+    if (!publicada.ok) return false;
+    const enviada = await this.envio.enviarDocumento({
+      telefone,
+      nomeArquivo,
+      url: publicada.value.url,
+    });
+    if (!enviada.ok) return false;
+
+    const registro = await this.parcelamentos.registrarEnvio(
+      parcelamento.id,
+      competencia,
+      identidadeDaGuia(guia),
+      publicada.value.caminho,
+    );
+    if (!registro.ok || registro.value === "nao_elegivel") {
+      console.error("Guia PGFN entregue pela URA, mas o envio não foi registrado.");
+    }
+    return true;
   }
 
   private async avisarSemParcelamento(

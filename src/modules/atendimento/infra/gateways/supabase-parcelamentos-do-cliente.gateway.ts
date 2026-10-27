@@ -70,8 +70,7 @@ export class SupabaseParcelamentosDoClienteGateway implements ParcelamentosDoCli
       .from("cliente_parcelamentos")
       .select("id", { count: "exact", head: true })
       .eq("cliente_id", clienteId)
-      .eq("interno", false)
-      .or("origem.is.null,origem.eq.receita_federal");
+      .eq("interno", false);
     if (error || count === null) {
       return err(new ServicoExternoError("Falha ao ler os parcelamentos do Cliente."));
     }
@@ -84,7 +83,10 @@ export class SupabaseParcelamentosDoClienteGateway implements ParcelamentosDoCli
       .select(
         "parcelamento_id, parcela, identidade, caminho, cliente_parcelamentos!inner(cliente_id)",
       )
-      .eq("cliente_parcelamentos.cliente_id", clienteId);
+      .eq("cliente_parcelamentos.cliente_id", clienteId)
+      // A identidade só prende guia do provedor fiscal a acordo dele: o envio PGFN (PDF do escritório)
+      // não pode excluir nem consumir guia da Receita da mesma parcela.
+      .or("origem.is.null,origem.eq.receita_federal", { referencedTable: "cliente_parcelamentos" });
     const lidas = entreguesSchema.safeParse(data);
     if (error || !lidas.success) {
       return err(new ServicoExternoError("Falha ao ler as guias já entregues do Cliente."));

@@ -3,6 +3,7 @@ import type {
   MensagemEnviada,
 } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type { GuiaFiscal } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
+import type { ParcelamentoPgfn } from "@/modules/atendimento/application/ports/out/guias-pgfn.provider";
 import type {
   EnvioRegistrado,
   GuiaEntregue,
@@ -50,12 +51,14 @@ function montar(
     publicarFalha?: boolean;
     documentoFalha?: boolean;
     registro?: EnvioRegistrado;
+    pgfn?: ParcelamentoPgfn[];
   } = {},
 ) {
   const mensagens: MensagemEnviada[] = [];
   const documentos: DocumentoEnviado[] = [];
   const registrados: [string, string, string, string][] = [];
   const reencontradas: string[] = [];
+  const lidos: string[] = [];
   const publicadas: ChaveGuia[] = [];
   let buscas = 0;
   // O envio já registrado de cada parcela guarda o caminho do PDF que foi entregue.
@@ -99,11 +102,18 @@ function montar(
       },
     },
     {
-      enviar: async (m) => {
+      listarEmAberto: async () => ok(opcoes.pgfn ?? []),
+      ler: async (_clienteId, caminho) => {
+        lidos.push(caminho);
+        return ok("JVBERi0=");
+      },
+    },
+    {
+      enviar: async (m: MensagemEnviada) => {
         mensagens.push(m);
         return ok(undefined);
       },
-      enviarDocumento: async (d) => {
+      enviarDocumento: async (d: DocumentoEnviado) => {
         if (opcoes.documentoFalha) return err(new ServicoExternoError("whatsapp"));
         documentos.push(d);
         return ok(undefined);
@@ -121,10 +131,24 @@ function montar(
     documentos,
     registrados,
     reencontradas,
+    lidos,
     publicadas,
     buscas: () => buscas,
   };
 }
+
+const pgfn = (
+  id: string,
+  guias: string[],
+  extra: Partial<ParcelamentoPgfn> = {},
+): ParcelamentoPgfn => ({
+  ...parcelamento(id),
+  guias: guias.map((competencia) => ({
+    competencia,
+    caminho: `c1/guias-pgfn/${id}/${competencia}.pdf`,
+  })),
+  ...extra,
+});
 
 describe("EntregarParcelamentoNaUra (#128)", () => {
   it("nenhum parcelamento comum cadastrado: avisa sem chamar o provedor", async () => {
@@ -354,5 +378,75 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
     expect((await executar()).ok).toBe(true);
     expect(documentos).toHaveLength(0);
     expect(mensagens[0].texto).toMatch(/COD-1.*COD-2/);
+  });
+
+  describe("Parcelamento PGFN (#186)", () => {
+    it("entrega as guias confirmadas até o mês corrente em ordem, registra e não chama o provedor", async () => {
+      const { executar, documentos, registrados, lidos, buscas } = montar([], {
+        comuns: 1,
+        pgfn: [pgfn("g1", ["202610", "202609", "202611"])],
+      });
+
+      expect((await executar()).ok).toBe(true);
+
+      expect(documentos.map((d) => d.nomeArquivo)).toEqual([
+        "parcelamento-COD-g1-202609.pdf",
+        "parcelamento-COD-g1-202610.pdf",
+      ]);
+      expect(registrados.map(([id, parcela]) => [id, parcela])).toEqual([
+        ["g1", "202609"],
+        ["g1", "202610"],
+      ]);
+      expect(lidos).toHaveLength(2);
+      expect(buscas()).toBe(0);
+    });
+
+    it("sem guia confirmada: avisa que ainda não está disponível, sem registrar", async () => {
+      const { executar, mensagens, documentos, registrados } = montar([], {
+        pgfn: [pgfn("g1", [])],
+      });
+
+      expect((await executar()).ok).toBe(true);
+
+      expect(mensagens).toHaveLength(1);
+      expect(mensagens[0].texto).toContain("ainda não está disponível");
+      expect(documentos).toHaveLength(0);
+      expect(registrados).toEqual([]);
+    });
+
+    it("pedido repetido: reenvia a guia do mês já enviada, e o registro único não desconta de novo", async () => {
+      const { executar, documentos, registrados } = montar([], {
+        pgfn: [pgfn("g1", ["202610"], { parcelasEnviadas: ["202610"] })],
+        registro: "ja_registrado",
+      });
+
+      expect((await executar()).ok).toBe(true);
+
+      expect(documentos.map((d) => d.nomeArquivo)).toEqual(["parcelamento-COD-g1-202610.pdf"]);
+      expect(registrados).toHaveLength(1);
+    });
+
+    it("PGFN interno não vai ao Cliente: responde como se não houvesse parcelamento", async () => {
+      const { executar, mensagens, documentos } = montar([], {
+        pgfn: [pgfn("g1", ["202610"], { interno: true })],
+      });
+
+      expect((await executar()).ok).toBe(true);
+
+      expect(mensagens[0].texto).toContain("parcelamento vigente");
+      expect(documentos).toHaveLength(0);
+    });
+
+    it("documento que o WhatsApp recusou não é registrado e o parcelamento é listado", async () => {
+      const { executar, mensagens, registrados } = montar([], {
+        pgfn: [pgfn("g1", ["202610"])],
+        documentoFalha: true,
+      });
+
+      expect((await executar()).ok).toBe(true);
+
+      expect(registrados).toEqual([]);
+      expect(mensagens[0].texto).toContain("COD-g1");
+    });
   });
 });
