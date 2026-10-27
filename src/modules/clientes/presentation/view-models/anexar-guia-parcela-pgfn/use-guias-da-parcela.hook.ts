@@ -1,12 +1,6 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type {
-  AcaoDaGuia,
-  AcoesDasGuias,
-  DadosDoAnexo,
-  ResultadoDaGuia,
-} from "@/presentation/components/organisms/guias-da-parcela-pgfn.component";
 import { abrirEmNovaAba } from "@/presentation/lib/abrir-em-nova-aba";
 import type { GuiaDaParcela } from "@/modules/clientes/application/ports/out/guia-parcela-pgfn.repository";
 import { TEXTO_ENVIO_AUTOMATICO } from "@/shared/kernel/dias-do-job-parcelamento";
@@ -25,6 +19,10 @@ import {
   idDaLiberacao,
   idDaRegiao,
   idDaRemocao,
+  type AcaoDaGuia,
+  type AcoesDasGuias,
+  type DadosDoAnexo,
+  type ResultadoDaGuia,
 } from "./anexar-guia-parcela-pgfn.presenter";
 import {
   anexarGuiaParcelaPgfnSchema,

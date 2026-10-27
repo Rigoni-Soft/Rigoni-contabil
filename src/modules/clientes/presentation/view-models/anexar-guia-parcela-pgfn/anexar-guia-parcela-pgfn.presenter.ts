@@ -1,6 +1,14 @@
 import type { GuiaDaParcela } from "@/modules/clientes/application/ports/out/guia-parcela-pgfn.repository";
 import { mesAtual } from "@/shared/kernel/mes-atual";
 
+// Os tipos do organismo passam por aqui: o hook (que não importa a View) os recebe do presenter.
+export type {
+  AcaoDaGuia,
+  AcoesDasGuias,
+  DadosDoAnexo,
+  ResultadoDaGuia,
+} from "@/presentation/components/organisms/guias-da-parcela-pgfn.component";
+
 // "202610" → "10/2026".
 const rotuloDaCompetencia = (competencia: string) =>
   `${competencia.slice(4)}/${competencia.slice(0, 4)}`;
