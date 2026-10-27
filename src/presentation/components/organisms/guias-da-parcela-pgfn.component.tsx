@@ -28,8 +28,14 @@ type GuiaDaListaDto = {
   idDaLiberacao: string;
   // Já tem registro de envio: só pode ser aberta, não troca nem remove.
   enviada: boolean;
-  // A confirmar ou do mês corrente; as demais ficam recolhidas em "Ver histórico".
-  recente: boolean;
+};
+
+// A pergunta de risco aberta numa guia (uma por vez): liberar ao envio ou remover. `emCurso`: a
+// pessoa já confirmou e o servidor ainda responde.
+export type AcaoDaGuia = {
+  tipo: "liberar" | "remover";
+  competencia: string;
+  emCurso: boolean;
 };
 
 type GuiasDaParcelaPgfnProps = {
@@ -58,25 +64,14 @@ type GuiasDaParcelaPgfnProps = {
   erroServidor?: string;
   // Sucesso, ou atenção (anexada mas "a confirmar": o que fazer; não é sucesso nem erro).
   resultado?: { tipo: "sucesso" | "atencao"; texto: string };
-  // Guia a que o erro ou resultado se refere: ele aparece no item dela; sem alvo, num ponto fixo acima do formulário.
-  alvoDoAviso?: string;
   // Rótulo ("10/2026") da guia do mês corrente que ainda não foi anexada.
   competenciaEmFalta?: string;
   onAnexar: () => void;
   onConfirmar: (competencia: string) => void;
   onTrocar: (competencia: string, arquivo: File) => void;
-  // Competência cuja liberação espera conferência (vai ao Cliente, sem desfazer).
-  liberando?: string;
-  onPedirLiberacao: (competencia: string) => void;
-  onCancelarLiberacao: (competencia: string) => void;
-  // Competência cuja confirmação está em curso.
-  confirmando?: string;
-  // Competência cuja remoção está em curso.
-  apagando?: string;
-  // Competência cuja remoção espera confirmação (apaga registro e PDF, sem desfazer).
-  removendo?: string;
-  onPedirRemocao: (competencia: string) => void;
-  onCancelarRemocao: (competencia: string) => void;
+  acao?: AcaoDaGuia;
+  onPedirAcao: (tipo: AcaoDaGuia["tipo"], competencia: string) => void;
+  onCancelarAcao: () => void;
   onRemover: (competencia: string) => void;
   onVisualizar: (competencia: string) => void;
 };
@@ -90,6 +85,9 @@ const DICA_DE_TROCAR = "Troca o PDF e a guia volta a «a confirmar».";
 
 const BOTAO_DA_GUIA =
   "aria-disabled:pointer-events-none aria-disabled:opacity-50 pointer-coarse:min-h-11";
+
+const RESUMO =
+  "w-fit cursor-pointer rounded-sm text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11 pointer-coarse:py-2";
 
 // "Anexar guia do mês" na linha de um Parcelamento PGFN. Fica dentro do formulário do cadastro, então
 // nada aqui é <form> (nem submete): os botões são `button` e cada ação vai por Server Action própria.
@@ -113,107 +111,25 @@ export function GuiasDaParcelaPgfn({
   anexando,
   erroServidor,
   resultado,
-  alvoDoAviso,
   competenciaEmFalta,
   onAnexar,
   onConfirmar,
   onTrocar,
-  liberando,
-  onPedirLiberacao,
-  onCancelarLiberacao,
-  confirmando: confirmandoGuia,
-  apagando,
-  removendo,
-  onPedirRemocao,
-  onCancelarRemocao,
+  acao,
+  onPedirAcao,
+  onCancelarAcao,
   onRemover,
   onVisualizar,
 }: GuiasDaParcelaPgfnProps) {
-  const recentes = guias.filter((g) => g.recente);
-  const historico = guias.filter((g) => !g.recente);
-  const temDigitado = Boolean(
+  // Mês e conta à mão abrem sozinhos se já têm valor ou erro, para a recusa nunca ficar escondida.
+  const abrirManual = Boolean(
     competencia || contaNegociacao || erros.competencia || erros.contaNegociacao,
   );
 
-  const avisos = (
-    <>
-      {erroServidor && <FieldError>{erroServidor}</FieldError>}
-      {resultado && <AvisoDeStatus tipo={resultado.tipo} texto={resultado.texto} legivel />}
-    </>
-  );
-  const avisoNoItem = Boolean(alvoDoAviso) && guias.some((g) => g.competencia === alvoDoAviso);
-  const abrirManual = temDigitado || Boolean(erroServidor && !alvoDoAviso);
-
-  const formularioDeAnexo = (
-    <>
-      <CampoDeArquivo
-        id={`${id}-arquivo`}
-        rotulo="PDF da guia"
-        accept="application/pdf"
-        dica="PDF até 4 MB"
-        compacto
-        file={arquivo}
-        onChange={onArquivo}
-        erro={erros.arquivo}
-      />
-      {/* O sistema lê o mês e a conta do PDF: os campos só se abrem para quem precisa digitar. Abre
-          sozinho se já tem valor ou erro, para a recusa nunca ficar escondida. */}
-      <Caixa como="details" open={abrirManual || undefined}>
-        <Caixa
-          como="summary"
-          className="w-fit cursor-pointer rounded-sm text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11 pointer-coarse:py-2"
-        >
-          Preencher mês e conta à mão
-        </Caixa>
-        <Pilha espaco={3} className="pt-3">
-          <Texto variante="nota" id={`${id}-leitura`}>
-            O sistema lê o PDF; digite só se ele não conseguir.
-          </Texto>
-          <Linha alinhar="fim" espaco={3} quebra>
-            <CampoDeTexto
-              id={`${id}-competencia`}
-              rotulo="Competência"
-              type="month"
-              // Navegador sem seletor de mês (ex.: Firefox no desktop) mostra texto livre: o formato vai no placeholder.
-              placeholder="AAAA-MM"
-              aria-describedby={`${id}-leitura`}
-              value={competencia}
-              onChange={(evento) => onCompetencia(evento.target.value)}
-              erro={erros.competencia}
-              disabled={anexando}
-              className="min-w-[10rem] flex-1 gap-1"
-            />
-            <CampoDeTexto
-              id={`${id}-conta`}
-              rotulo="Conta de negociação"
-              maxLength={40}
-              aria-describedby={`${id}-leitura`}
-              value={contaNegociacao}
-              onChange={(evento) => onContaNegociacao(evento.target.value)}
-              erro={erros.contaNegociacao}
-              disabled={anexando}
-              className="min-w-[10rem] flex-1 gap-1"
-            />
-          </Linha>
-        </Pilha>
-      </Caixa>
-      <Button
-        type="button"
-        variant={arquivo ? "default" : "outline"}
-        size="sm"
-        aria-disabled={pendente || undefined}
-        onClick={onAnexar}
-        className={cn(BOTAO_DA_GUIA, "self-start")}
-      >
-        {anexando ? "Enviando..." : "Anexar guia"}
-      </Button>
-    </>
-  );
-  // Com a guia do mês já anexada, o formulário não pesa tanto quanto a lista: fica recolhido.
-  const recolherAnexo = guias.length > 0 && !competenciaEmFalta;
-
   const renderGuia = (guia: GuiaDaListaDto) => {
-    const confirmando = removendo === guia.competencia;
+    const daAcao = acao?.competencia === guia.competencia ? acao : undefined;
+    const liberando = daAcao?.tipo === "liberar";
+    const removendo = daAcao?.tipo === "remover";
     return (
       <Caixa
         como="li"
@@ -251,7 +167,7 @@ export function GuiasDaParcelaPgfn({
           </Texto>
         )}
         <Linha alinhar="centro" espaco={2} quebra className="mt-2">
-          {!confirmando && (
+          {!removendo && (
             <Button
               type="button"
               variant="link"
@@ -266,7 +182,7 @@ export function GuiasDaParcelaPgfn({
           )}
           {!guia.confirmada &&
             !guia.enviada &&
-            (liberando === guia.competencia ? (
+            (liberando ? (
               <>
                 <Texto variante="corpo" role="alert" className="basis-full">
                   Libera a guia de {guia.rotulo} (conta {guia.contaNegociacao}).{" "}
@@ -285,7 +201,7 @@ export function GuiasDaParcelaPgfn({
                   aria-label={`Liberar ${guia.rotulo} ao envio`}
                   className={BOTAO_DA_GUIA}
                 >
-                  {confirmandoGuia === guia.competencia ? "Liberando..." : `Liberar ${guia.rotulo}`}
+                  {daAcao?.emCurso ? "Liberando..." : `Liberar ${guia.rotulo}`}
                 </Button>
                 <Button
                   type="button"
@@ -293,7 +209,7 @@ export function GuiasDaParcelaPgfn({
                   size="sm"
                   // Quem abriu a conferência sem querer cai no gesto seguro.
                   autoFocus
-                  onClick={() => onCancelarLiberacao(guia.competencia)}
+                  onClick={onCancelarAcao}
                   aria-label={`Cancelar liberação da guia de ${guia.rotulo}`}
                   className={BOTAO_DA_GUIA}
                 >
@@ -307,7 +223,7 @@ export function GuiasDaParcelaPgfn({
                 variant="default"
                 size="sm"
                 aria-disabled={pendente || undefined}
-                onClick={() => onPedirLiberacao(guia.competencia)}
+                onClick={() => onPedirAcao("liberar", guia.competencia)}
                 aria-label={`Confirmar e liberar guia de ${guia.rotulo} ao envio`}
                 aria-describedby={guia.motivo ? `${guia.id}-motivo` : undefined}
                 className={BOTAO_DA_GUIA}
@@ -318,17 +234,16 @@ export function GuiasDaParcelaPgfn({
           <Linha alinhar="centro" espaco={1} quebra className="ml-auto pointer-coarse:gap-3">
             {!guia.enviada && (
               <>
-                {!confirmando && (
+                {!removendo && (
                   <BotaoDeArquivo
                     rotulo="Trocar"
                     rotuloAcessivel={`Trocar guia de ${guia.rotulo}. ${DICA_DE_TROCAR}`}
-                    dica={DICA_DE_TROCAR}
                     aceitar="application/pdf"
                     ocupado={pendente}
                     onEscolher={(novo) => onTrocar(guia.competencia, novo)}
                   />
                 )}
-                {confirmando ? (
+                {removendo ? (
                   <>
                     <Texto variante="nota" role="alert" className={NOTA_LEGIVEL}>
                       Apaga a guia de {guia.rotulo} e o PDF, sem desfazer.
@@ -342,7 +257,7 @@ export function GuiasDaParcelaPgfn({
                       aria-label={`Confirmar remoção da guia de ${guia.rotulo}`}
                       className={BOTAO_DA_GUIA}
                     >
-                      {apagando === guia.competencia ? "Removendo..." : "Confirmar remoção"}
+                      {daAcao?.emCurso ? "Removendo..." : "Confirmar remoção"}
                     </Button>
                     <Button
                       type="button"
@@ -350,7 +265,7 @@ export function GuiasDaParcelaPgfn({
                       size="sm"
                       // Quem abriu a confirmação sem querer cai no gesto seguro.
                       autoFocus
-                      onClick={() => onCancelarRemocao(guia.competencia)}
+                      onClick={onCancelarAcao}
                       aria-label={`Cancelar remoção da guia de ${guia.rotulo}`}
                       className={BOTAO_DA_GUIA}
                     >
@@ -364,7 +279,7 @@ export function GuiasDaParcelaPgfn({
                     variant="link"
                     size="sm"
                     aria-disabled={pendente || undefined}
-                    onClick={() => onPedirRemocao(guia.competencia)}
+                    onClick={() => onPedirAcao("remover", guia.competencia)}
                     aria-label={`Remover guia de ${guia.rotulo}`}
                     className={cn(
                       BOTAO_DA_GUIA,
@@ -378,10 +293,6 @@ export function GuiasDaParcelaPgfn({
             )}
           </Linha>
         </Linha>
-        {/* Região viva sempre presente: o aviso inserido nela é anunciado (uma região nova nem sempre é). */}
-        <Caixa aria-live="polite" className="mt-2 space-y-1 empty:hidden">
-          {avisoNoItem && alvoDoAviso === guia.competencia && avisos}
-        </Caixa>
       </Caixa>
     );
   };
@@ -430,50 +341,76 @@ export function GuiasDaParcelaPgfn({
           Falta a guia de {competenciaEmFalta}.
         </Texto>
       )}
-      {recentes.length > 0 && (
+      {guias.length > 0 && (
         <Pilha como="ul" espaco={1} className="divide-y divide-border">
-          {recentes.map(renderGuia)}
+          {guias.map(renderGuia)}
         </Pilha>
       )}
-      {historico.length > 0 && (
-        <Caixa
-          como="details"
-          open={historico.some((g) => g.competencia === alvoDoAviso) || undefined}
-        >
-          <Caixa
-            como="summary"
-            className="w-fit cursor-pointer rounded-sm text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11 pointer-coarse:py-2"
-          >
-            Ver histórico ({historico.length})
-          </Caixa>
-          <Pilha como="ul" espaco={1} className="divide-y divide-border pt-3">
-            {historico.map(renderGuia)}
-          </Pilha>
-        </Caixa>
-      )}
 
+      {/* Ponto fixo dos avisos (região viva sempre presente: o aviso inserido nela é anunciado). */}
       <Caixa aria-live="polite" className="space-y-1 empty:hidden">
-        {!avisoNoItem && avisos}
+        {erroServidor && <FieldError>{erroServidor}</FieldError>}
+        {resultado && <AvisoDeStatus tipo={resultado.tipo} texto={resultado.texto} legivel />}
       </Caixa>
 
-      {recolherAnexo ? (
-        <Caixa
-          como="details"
-          open={arquivo || abrirManual || erros.arquivo || undefined ? true : undefined}
-        >
-          <Caixa
-            como="summary"
-            className="w-fit cursor-pointer rounded-sm text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11 pointer-coarse:py-2"
-          >
-            Anexar outra guia
+      <Pilha espaco={3}>
+        <CampoDeArquivo
+          id={`${id}-arquivo`}
+          rotulo="PDF da guia"
+          accept="application/pdf"
+          dica="PDF até 4 MB"
+          compacto
+          file={arquivo}
+          onChange={onArquivo}
+          erro={erros.arquivo}
+        />
+        <Caixa como="details" open={abrirManual || undefined}>
+          <Caixa como="summary" className={RESUMO}>
+            Preencher mês e conta à mão
           </Caixa>
           <Pilha espaco={3} className="pt-3">
-            {formularioDeAnexo}
+            <Texto variante="nota" id={`${id}-leitura`}>
+              O sistema lê o PDF; digite só se ele não conseguir.
+            </Texto>
+            <Linha alinhar="fim" espaco={3} quebra>
+              <CampoDeTexto
+                id={`${id}-competencia`}
+                rotulo="Competência"
+                type="month"
+                // Navegador sem seletor de mês (ex.: Firefox no desktop) mostra texto livre: o formato vai no placeholder.
+                placeholder="AAAA-MM"
+                aria-describedby={`${id}-leitura`}
+                value={competencia}
+                onChange={(evento) => onCompetencia(evento.target.value)}
+                erro={erros.competencia}
+                disabled={anexando}
+                className="min-w-[10rem] flex-1 gap-1"
+              />
+              <CampoDeTexto
+                id={`${id}-conta`}
+                rotulo="Conta de negociação"
+                maxLength={40}
+                aria-describedby={`${id}-leitura`}
+                value={contaNegociacao}
+                onChange={(evento) => onContaNegociacao(evento.target.value)}
+                erro={erros.contaNegociacao}
+                disabled={anexando}
+                className="min-w-[10rem] flex-1 gap-1"
+              />
+            </Linha>
           </Pilha>
         </Caixa>
-      ) : (
-        <Pilha espaco={3}>{formularioDeAnexo}</Pilha>
-      )}
+        <Button
+          type="button"
+          variant={arquivo ? "default" : "outline"}
+          size="sm"
+          aria-disabled={pendente || undefined}
+          onClick={onAnexar}
+          className={cn(BOTAO_DA_GUIA, "self-start")}
+        >
+          {anexando ? "Enviando..." : "Anexar guia"}
+        </Button>
+      </Pilha>
     </Pilha>
   );
 }

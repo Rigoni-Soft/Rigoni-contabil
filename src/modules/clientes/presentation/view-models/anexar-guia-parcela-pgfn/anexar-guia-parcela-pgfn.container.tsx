@@ -36,19 +36,13 @@ export function AnexarGuiaParcelaPgfnContainer({ parcelamentoId, codigo, interno
       anexando={guias.anexando}
       erroServidor={guias.erroServidor}
       resultado={guias.resultado}
-      alvoDoAviso={guias.alvoDoAviso}
       competenciaEmFalta={competenciaEmFalta(guias.guias)}
       onAnexar={() => void guias.anexar()}
       onConfirmar={(competencia) => void guias.confirmar(competencia)}
       onTrocar={(competencia, arquivo) => void guias.trocar(competencia, arquivo)}
-      liberando={guias.liberando}
-      onPedirLiberacao={guias.pedirLiberacao}
-      onCancelarLiberacao={guias.cancelarLiberacao}
-      confirmando={guias.confirmando}
-      apagando={guias.apagando}
-      removendo={guias.removendo}
-      onPedirRemocao={guias.pedirRemocao}
-      onCancelarRemocao={guias.cancelarRemocao}
+      acao={guias.acao}
+      onPedirAcao={guias.pedirAcao}
+      onCancelarAcao={guias.cancelarAcao}
       onRemover={(competencia) => void guias.remover(competencia)}
       onVisualizar={(competencia) => void guias.visualizar(competencia)}
     />

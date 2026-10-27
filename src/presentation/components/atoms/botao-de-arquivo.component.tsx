@@ -6,8 +6,6 @@ type BotaoDeArquivoProps = {
   rotulo: string;
   // O que o leitor de tela ouve (o campo precisa dizer de qual item se trata).
   rotuloAcessivel: string;
-  // Efeito da escolha, dito antes ao ponteiro (title); quem usa leitor de tela o ouve no `rotuloAcessivel`.
-  dica?: string;
   // Tipos que o seletor do sistema oferece (`accept`).
   aceitar: string;
   // Ação em curso: o campo segue focável (aria-disabled, como os botões irmãos); quem decide o que fazer
@@ -21,14 +19,12 @@ type BotaoDeArquivoProps = {
 export function BotaoDeArquivo({
   rotulo,
   rotuloAcessivel,
-  dica,
   aceitar,
   ocupado,
   onEscolher,
 }: BotaoDeArquivoProps) {
   return (
     <label
-      title={dica}
       className={cn(
         buttonVariants({ variant: "link", size: "sm" }),
         "cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-background pointer-coarse:min-h-11",

@@ -28,12 +28,8 @@ export const idDaLiberacao = (prefixo: string, competencia: string) =>
 // Id da região das guias: o foco volta a ela quando a guia removida leva o botão embora.
 export const idDaRegiao = (prefixo: string) => `${prefixo}-regiao`;
 
-// `recente`: a guia a confirmar ou a de competência mais nova; as demais (histórico) ficam recolhidas.
-// Sem depender do relógio: a mais nova anexada é a que a pessoa está acompanhando.
-export const linhasDeGuias = (guias: GuiaDaParcela[], prefixo: string) => {
-  const maisNova = guias.reduce((maior, g) => (g.competencia > maior ? g.competencia : maior), "");
-  return guias.map((guia) => ({
-    recente: guia.estado !== "confirmada" || guia.competencia === maisNova,
+export const linhasDeGuias = (guias: GuiaDaParcela[], prefixo: string) =>
+  guias.map((guia) => ({
     id: idDaGuia(prefixo, guia.competencia),
     competencia: guia.competencia,
     rotulo: rotuloDaCompetencia(guia.competencia),
@@ -44,7 +40,6 @@ export const linhasDeGuias = (guias: GuiaDaParcela[], prefixo: string) => {
     idDaRemocao: idDaRemocao(prefixo, guia.competencia),
     idDaLiberacao: idDaLiberacao(prefixo, guia.competencia),
   }));
-};
 
 // Rótulo ("10/2026") da guia do mês corrente que ainda não foi anexada, para o aviso de que falta; nulo
 // se não há nenhuma guia (a lista já diz que não há) ou se a do mês já está lá.

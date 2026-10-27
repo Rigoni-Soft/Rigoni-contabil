@@ -201,28 +201,6 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     expect(screen.getByText(/10\/2026 · conta 123456/).closest("li")).toHaveFocus();
   });
 
-  it("a guia mais nova e as a confirmar ficam à vista; as outras, recolhidas em Ver histórico", async () => {
-    listarMock.mockResolvedValue({
-      ok: true,
-      data: [
-        { competencia: "202608", contaNegociacao: "123456", estado: "confirmada", enviada: true },
-        { competencia: "202609", contaNegociacao: "123456", estado: "confirmada" },
-        { competencia: "202610", contaNegociacao: "123456", estado: "confirmada" },
-      ],
-    });
-    render();
-    const regiao = within(await regiaoDaGuia());
-
-    const resumo = await regiao.findByText("Ver histórico (2)");
-    const historico = resumo.closest("details") as HTMLElement;
-    expect(historico).not.toHaveAttribute("open");
-    expect(within(historico).getByText(/08\/2026 · conta 123456/)).toBeInTheDocument();
-    expect(within(historico).getByText(/09\/2026 · conta 123456/)).toBeInTheDocument();
-    expect(historico).not.toContainElement(regiao.getByText(/10\/2026 · conta 123456/));
-    // Guia enviada diz por que não troca nem remove.
-    expect(regiao.getByText("Já enviada ao Cliente: só pode ser aberta.")).toBeInTheDocument();
-  });
-
   it("remover mostra Removendo... enquanto o servidor responde", async () => {
     let concluir: (valor: unknown) => void = () => undefined;
     listarMock.mockResolvedValue({
@@ -272,29 +250,6 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     expect(
       regiao.getByText("As ações das guias valem na hora, sem precisar de Salvar."),
     ).toBeInTheDocument();
-  });
-
-  it("o resultado de liberar aparece dentro do item da guia agida, não no fim da região", async () => {
-    listarMock.mockResolvedValue({
-      ok: true,
-      data: [
-        { competencia: "202609", contaNegociacao: "111", estado: "a_confirmar" },
-        { competencia: "202610", contaNegociacao: "222", estado: "a_confirmar" },
-      ],
-    });
-    confirmarMock.mockResolvedValue({ ok: true, data: undefined });
-    const usuario = userEvent.setup();
-    render();
-    const regiao = within(await regiaoDaGuia());
-    await usuario.click(
-      await regiao.findByRole("button", { name: "Confirmar e liberar guia de 09/2026 ao envio" }),
-    );
-    await usuario.click(regiao.getByRole("button", { name: "Liberar 09/2026 ao envio" }));
-
-    const aviso = await regiao.findByText(/^Guia confirmada e liberada ao envio./);
-    const itemAgido = regiao.getByText(/09\/2026 · conta 111/).closest("li");
-    expect(itemAgido).toContainElement(aviso);
-    expect(regiao.getByText(/10\/2026 · conta 222/).closest("li")).not.toContainElement(aviso);
   });
 
   it("Confirmar e liberar pede conferência: sem confirmar não chama o servidor, e cancelar devolve o foco", async () => {

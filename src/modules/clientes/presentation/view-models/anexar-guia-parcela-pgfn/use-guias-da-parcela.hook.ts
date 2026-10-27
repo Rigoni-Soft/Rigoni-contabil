@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
+import type { AcaoDaGuia } from "@/presentation/components/organisms/guias-da-parcela-pgfn.component";
 import { abrirEmNovaAba } from "@/presentation/lib/abrir-em-nova-aba";
 import type { GuiaDaParcela } from "@/modules/clientes/application/ports/out/guia-parcela-pgfn.repository";
 import { DIAS_DO_JOB_PARCELAMENTO } from "@/shared/kernel/dias-do-job-parcelamento";
@@ -51,19 +52,11 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   const [pendente, setPendente] = useState(false);
   const [anexando, setAnexando] = useState(false);
   const [erroServidor, setErroServidor] = useState<string | undefined>();
-  // Competência da guia a que o aviso se refere (confirmar, trocar, remover, ver): ele aparece no item
-  // dela. Sem alvo (anexo) ou com a guia fora da lista (removida), aparece num ponto fixo acima do formulário.
-  const [alvoDoAviso, setAlvoDoAviso] = useState<string | undefined>();
   // "atencao": guia anexada e gravada, mas ainda não liberada (pede conferência; não é sucesso nem erro).
   const [resultado, setResultado] = useState<ResultadoDaAcao | undefined>();
-  // Remover apaga o registro e o PDF sem desfazer: pede confirmação na linha antes de chamar a action.
-  // Competência cuja confirmação está em curso (rótulo de progresso no botão dela).
-  // Confirmar libera a guia ao envio ao Cliente: pede a conferência na linha antes de chamar a action.
-  const [liberando, setLiberando] = useState<string | undefined>();
-  const [confirmando, setConfirmando] = useState<string | undefined>();
-  const [removendo, setRemovendo] = useState<string | undefined>();
-  // Competência cuja remoção está em curso (rótulo de progresso no botão dela).
-  const [apagando, setApagando] = useState<string | undefined>();
+  // Liberar ao envio e remover não se desfazem: pedem confirmação na linha antes de chamar a action.
+  // Uma pergunta de risco por vez; `emCurso`: já confirmada, o servidor ainda responde.
+  const [acao, setAcao] = useState<AcaoDaGuia | undefined>();
 
   const lista = useQuery<GuiaDaParcela[]>({
     queryKey: chave,
@@ -74,28 +67,16 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     },
   });
 
-  // Anexar ou trocar muda a guia sob uma pergunta de risco aberta: a pergunta fecha.
-  const fecharConfirmacoes = () => {
-    setLiberando(undefined);
-    setRemovendo(undefined);
-  };
-
   const limparAvisos = () => {
-    setAlvoDoAviso(undefined);
     setErroServidor(undefined);
     setResultado(undefined);
   };
 
   // As ações compartilham o ciclo: limpa os avisos, roda, e a lista é relida do banco.
-  const executar = async (
-    acao: () => Promise<string | undefined>,
-    ehAnexo = false,
-    alvo?: string,
-  ) => {
+  const executar = async (rodar: () => Promise<string | undefined>, ehAnexo = false) => {
     // Os botões ficam aria-disabled (não perdem o foco) e por isso ainda recebem o clique: ele não
     // some em silêncio: a pessoa é avisada de que há uma ação em curso (espera, não erro).
     if (pendente) {
-      setAlvoDoAviso(alvo);
       setErroServidor(undefined);
       setResultado({ tipo: "atencao", texto: AVISO_AGUARDE });
       return;
@@ -103,17 +84,14 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     setPendente(true);
     setAnexando(ehAnexo);
     limparAvisos();
-    setAlvoDoAviso(alvo);
     try {
-      const erro = await acao();
+      const erro = await rodar();
       if (erro) setErroServidor(erro);
     } catch {
       setErroServidor(ERRO_TRANSPORTE);
     } finally {
       setPendente(false);
       setAnexando(false);
-      setConfirmando(undefined);
-      setApagando(undefined);
     }
   };
 
@@ -135,7 +113,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
       return;
     }
     setErros({});
-    fecharConfirmacoes();
+    setAcao(undefined);
     return executar(async () => {
       const resultado = await anexarGuiaParcelaPgfnAction(validado.data);
       // O arquivo e a competência ficam no formulário em caso de erro, para corrigir e reenviar.
@@ -170,98 +148,78 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   };
 
   const trocar = (competencia: string, novo: File) =>
-    executar(
-      async () => {
-        fecharConfirmacoes();
-        const validado = trocarGuiaParcelaPgfnSchema.safeParse({
-          parcelamentoId,
-          competencia,
-          arquivo: novo,
-        });
-        if (!validado.success) return validado.error.issues[0].message;
-        const resultado = await trocarGuiaParcelaPgfnAction(validado.data);
-        if (!resultado.ok) return resultado.error.message;
-        await avisarGuiaGravada(resultado.data, "trocada");
-      },
-      false,
-      competencia,
-    );
+    executar(async () => {
+      setAcao(undefined);
+      const validado = trocarGuiaParcelaPgfnSchema.safeParse({
+        parcelamentoId,
+        competencia,
+        arquivo: novo,
+      });
+      if (!validado.success) return validado.error.issues[0].message;
+      const resultado = await trocarGuiaParcelaPgfnAction(validado.data);
+      if (!resultado.ok) return resultado.error.message;
+      await avisarGuiaGravada(resultado.data, "trocada");
+    });
 
-  const pedirRemocao = (competencia: string) => {
+  const pedirAcao = (tipo: AcaoDaGuia["tipo"], competencia: string) => {
     limparAvisos();
-    // Uma pergunta de risco por vez.
-    setLiberando(undefined);
-    setRemovendo(competencia);
+    setAcao({ tipo, competencia, emCurso: false });
   };
 
-  const cancelarRemocao = (competencia: string) => {
-    setRemovendo(undefined);
-    // O botão Remover volta com a confirmação fechada: o foco volta a ele.
+  // O botão que abriu a pergunta volta: o foco volta a ele.
+  const cancelarAcao = () => {
+    const cancelada = acao;
+    setAcao(undefined);
+    if (!cancelada) return;
+    const idDoBotao = cancelada.tipo === "liberar" ? idDaLiberacao : idDaRemocao;
     requestAnimationFrame(() =>
-      document.getElementById(idDaRemocao(prefixo, competencia))?.focus(),
+      document.getElementById(idDoBotao(prefixo, cancelada.competencia))?.focus(),
     );
   };
+
+  // A pergunta fica aberta enquanto o servidor responde (o botão mostra "Removendo..." ou "Liberando...").
+  const comAcao = (
+    tipo: AcaoDaGuia["tipo"],
+    competencia: string,
+    rodar: () => Promise<string | undefined>,
+  ) =>
+    executar(async () => {
+      setAcao({ tipo, competencia, emCurso: true });
+      try {
+        return await rodar();
+      } finally {
+        setAcao(undefined);
+      }
+    });
 
   const remover = (competencia: string) =>
-    executar(
-      async () => {
-        setApagando(competencia);
-        const resultado = await removerGuiaParcelaPgfnAction({ parcelamentoId, competencia });
-        // A confirmação fica aberta enquanto o servidor responde (o botão mostra "Removendo...").
-        setRemovendo(undefined);
-        if (!resultado.ok) return resultado.error.message;
-        setResultado({ tipo: "sucesso", texto: "Guia removida." });
-        await queryClient.invalidateQueries({ queryKey: chave });
-        // A linha some com o botão: sem isto o foco cairia no topo da página.
-        document.getElementById(idDaRegiao(prefixo))?.focus();
-      },
-      false,
-      competencia,
-    );
+    comAcao("remover", competencia, async () => {
+      const resultado = await removerGuiaParcelaPgfnAction({ parcelamentoId, competencia });
+      if (!resultado.ok) return resultado.error.message;
+      setResultado({ tipo: "sucesso", texto: "Guia removida." });
+      await queryClient.invalidateQueries({ queryKey: chave });
+      // A linha some com o botão: sem isto o foco cairia no topo da página.
+      document.getElementById(idDaRegiao(prefixo))?.focus();
+    });
 
   const visualizar = (competencia: string) =>
-    executar(
-      async () => {
-        const aba = await abrirEmNovaAba(() =>
-          obterLinkGuiaParcelaPgfnAction({ parcelamentoId, competencia }),
-        );
-        if (aba.tipo === "erro") return aba.mensagem;
-        if (aba.tipo === "bloqueada") return ERRO_ABRIR;
-      },
-      false,
-      competencia,
-    );
-
-  const pedirLiberacao = (competencia: string) => {
-    limparAvisos();
-    setRemovendo(undefined);
-    setLiberando(competencia);
-  };
-
-  const cancelarLiberacao = (competencia: string) => {
-    setLiberando(undefined);
-    // O botão que abriu a conferência volta: o foco volta a ele.
-    requestAnimationFrame(() =>
-      document.getElementById(idDaLiberacao(prefixo, competencia))?.focus(),
-    );
-  };
+    executar(async () => {
+      const aba = await abrirEmNovaAba(() =>
+        obterLinkGuiaParcelaPgfnAction({ parcelamentoId, competencia }),
+      );
+      if (aba.tipo === "erro") return aba.mensagem;
+      if (aba.tipo === "bloqueada") return ERRO_ABRIR;
+    });
 
   const confirmar = (competencia: string) =>
-    executar(
-      async () => {
-        setConfirmando(competencia);
-        const resultado = await confirmarGuiaParcelaPgfnAction({ parcelamentoId, competencia });
-        // A conferência fica aberta enquanto o servidor responde (o botão mostra "Liberando...").
-        setLiberando(undefined);
-        if (!resultado.ok) return resultado.error.message;
-        setResultado({ tipo: "sucesso", texto: TEXTO_LIBERADA });
-        await queryClient.invalidateQueries({ queryKey: chave });
-        // O botão Confirmar some com a guia confirmada: sem isto o foco cairia no topo da página.
-        document.getElementById(idDaGuia(prefixo, competencia))?.focus();
-      },
-      false,
-      competencia,
-    );
+    comAcao("liberar", competencia, async () => {
+      const resultado = await confirmarGuiaParcelaPgfnAction({ parcelamentoId, competencia });
+      if (!resultado.ok) return resultado.error.message;
+      setResultado({ tipo: "sucesso", texto: TEXTO_LIBERADA });
+      await queryClient.invalidateQueries({ queryKey: chave });
+      // O botão Confirmar some com a guia confirmada: sem isto o foco cairia no topo da página.
+      document.getElementById(idDaGuia(prefixo, competencia))?.focus();
+    });
 
   // Mexer num campo tira da tela o aviso do anexo anterior, a recusa do servidor e o erro daquele campo.
   const aoEditar =
@@ -288,18 +246,12 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     anexando,
     erroServidor,
     resultado,
-    alvoDoAviso,
     anexar,
     confirmar,
     trocar,
-    liberando,
-    pedirLiberacao,
-    cancelarLiberacao,
-    confirmando,
-    apagando,
-    removendo,
-    pedirRemocao,
-    cancelarRemocao,
+    acao,
+    pedirAcao,
+    cancelarAcao,
     remover,
     visualizar,
   };
