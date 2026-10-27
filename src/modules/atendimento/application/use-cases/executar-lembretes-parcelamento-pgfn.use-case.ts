@@ -1,7 +1,7 @@
 import {
+  comOcorrencia,
   executarRodada,
   SEM_ANDAMENTO,
-  type Andamento,
 } from "@/modules/atendimento/application/jobs/alertas-da-rodada";
 import type {
   ExecutarLembretesParcelamentoPgfnPort,
@@ -21,23 +21,20 @@ import { ok, type Result } from "@/shared/kernel/result";
 // Fixos, também em fim de semana: o lembrete é para a equipe, não depende de dia útil.
 const DIAS_DO_JOB = [1, 10, 15];
 
-const ROTULO: Record<EstadoDaGuiaPgfn, string> = {
-  sem_guia: "Falta anexar",
-  a_confirmar: "A confirmar",
-};
-
 // "2026-10" -> "10/2026".
 const competencia = (agora: Date) => mesAtual(agora).split("-").reverse().join("/");
 
 function mensagem(cliente: ClienteComParcelamentoPgfn, agora: Date): string {
-  const grupos = (Object.keys(ROTULO) as EstadoDaGuiaPgfn[])
-    .map((estado) => ({
-      estado,
-      codigos: cliente.pendencias.filter((p) => p.estado === estado).map((p) => p.codigo),
-    }))
-    .filter(({ codigos }) => codigos.length > 0)
-    .map(({ estado, codigos }) => `${ROTULO[estado]}: ${codigos.join(", ")}.`);
-  return `${cliente.empresa}: Parcelamento PGFN sem guia confirmada de ${competencia(agora)}. ${grupos.join(" ")}`;
+  const codigos = (estado: EstadoDaGuiaPgfn) =>
+    cliente.pendencias
+      .filter((p) => p.estado === estado)
+      .map((p) => p.codigo)
+      .join(", ");
+  const grupos = [
+    codigos("sem_guia") && `Falta anexar: ${codigos("sem_guia")}.`,
+    codigos("a_confirmar") && `A confirmar: ${codigos("a_confirmar")}.`,
+  ];
+  return `${cliente.empresa}: Parcelamento PGFN sem guia confirmada de ${competencia(agora)}. ${grupos.filter(Boolean).join(" ")}`;
 }
 
 // Job dos dias 1/10/15 (fuso de São Paulo): alerta o setor Simples Nacional, um por Cliente, dos
@@ -60,20 +57,11 @@ export class ExecutarLembretesParcelamentoPgfn implements ExecutarLembretesParce
     const clientes = await this.clientes.listar();
     if (!clientes.ok) return clientes;
 
-    const rodada = await executarRodada(
-      this.alertas,
-      agora,
-      clientes.value,
-      async (cliente): Promise<Andamento[]> =>
-        cliente.pendencias.length === 0
-          ? [SEM_ANDAMENTO]
-          : [
-              {
-                enviado: false,
-                ocorrencias: [{ tipo: "guia_pgfn_pendente", mensagem: mensagem(cliente, agora) }],
-              },
-            ],
-    );
+    const rodada = await executarRodada(this.alertas, agora, clientes.value, async (cliente) => [
+      cliente.pendencias.length > 0
+        ? comOcorrencia("guia_pgfn_pendente", mensagem(cliente, agora))
+        : SEM_ANDAMENTO,
+    ]);
     return ok({ executado: true, alertas: rodada.alertas, falhas: rodada.falhas });
   }
 }

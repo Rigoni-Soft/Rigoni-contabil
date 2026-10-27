@@ -32,7 +32,7 @@ export const RESERVA_OCUPADA: Andamento = {
   naoReavaliado: true,
 };
 
-const comOcorrencia = (tipo: TipoAlertaSetor, mensagem: string): Andamento => ({
+export const comOcorrencia = (tipo: TipoAlertaSetor, mensagem: string): Andamento => ({
   enviado: false,
   ocorrencias: [{ tipo, mensagem }],
 });
