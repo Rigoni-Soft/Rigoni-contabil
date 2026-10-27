@@ -53,6 +53,8 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   // "atencao": guia anexada e gravada, mas ainda não liberada (pede conferência; não é sucesso nem erro).
   const [resultado, setResultado] = useState<ResultadoDaAcao | undefined>();
   // Remover apaga o registro e o PDF sem desfazer: pede confirmação na linha antes de chamar a action.
+  // Competência cuja confirmação está em curso (rótulo de progresso no botão dela).
+  const [confirmando, setConfirmando] = useState<string | undefined>();
   const [removendo, setRemovendo] = useState<string | undefined>();
 
   const lista = useQuery<GuiaDaParcela[]>({
@@ -90,6 +92,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     } finally {
       setPendente(false);
       setAnexando(false);
+      setConfirmando(undefined);
     }
   };
 
@@ -192,6 +195,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
 
   const confirmar = (competencia: string) =>
     executar(async () => {
+      setConfirmando(competencia);
       const resultado = await confirmarGuiaParcelaPgfnAction({ parcelamentoId, competencia });
       if (!resultado.ok) return resultado.error.message;
       setResultado({ tipo: "sucesso", texto: "Guia confirmada." });
@@ -229,6 +233,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     anexar,
     confirmar,
     trocar,
+    confirmando,
     removendo,
     pedirRemocao,
     cancelarRemocao,

@@ -58,6 +58,8 @@ type GuiasDaParcelaPgfnProps = {
   onAnexar: () => void;
   onConfirmar: (competencia: string) => void;
   onTrocar: (competencia: string, arquivo: File) => void;
+  // Competência cuja confirmação está em curso.
+  confirmando?: string;
   // Competência cuja remoção espera confirmação (apaga registro e PDF, sem desfazer).
   removendo?: string;
   onPedirRemocao: (competencia: string) => void;
@@ -94,6 +96,7 @@ export function GuiasDaParcelaPgfn({
   onAnexar,
   onConfirmar,
   onTrocar,
+  confirmando: confirmandoGuia,
   removendo,
   onPedirRemocao,
   onCancelarRemocao,
@@ -118,6 +121,7 @@ export function GuiasDaParcelaPgfn({
       espaco={3}
       role="group"
       aria-label={`Guias da parcela ${codigo}`}
+      aria-busy={pendente || undefined}
       id={idDaRegiao}
       tabIndex={-1}
       className="border-t border-border pt-3 outline-none"
@@ -174,7 +178,9 @@ export function GuiasDaParcelaPgfn({
                       aria-describedby={guia.motivo ? `${guia.id}-motivo` : undefined}
                       className={BOTAO_DA_GUIA}
                     >
-                      Confirmar e liberar
+                      {confirmandoGuia === guia.competencia
+                        ? "Confirmando..."
+                        : "Confirmar e liberar"}
                     </Button>
                   )}
                   <Linha alinhar="centro" espaco={1} quebra className="ml-auto">

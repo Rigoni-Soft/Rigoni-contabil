@@ -194,6 +194,27 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     expect(screen.getByText(/10\/2026 · conta 123456/).closest("li")).toHaveFocus();
   });
 
+  it("enquanto confirma, o botão diz que está confirmando e a região fica ocupada", async () => {
+    listarMock.mockResolvedValue({
+      ok: true,
+      data: [{ competencia: "202610", contaNegociacao: "123456", estado: "a_confirmar" }],
+    });
+    let concluir: (valor: { ok: true; data: undefined }) => void = () => undefined;
+    confirmarMock.mockReturnValue(new Promise((resolve) => (concluir = resolve)));
+    const usuario = userEvent.setup();
+    render();
+    const botao = await screen.findByRole("button", {
+      name: "Confirmar e liberar guia de 10/2026 ao envio",
+    });
+
+    await usuario.click(botao);
+
+    expect(botao).toHaveTextContent("Confirmando...");
+    expect(await regiaoDaGuia()).toHaveAttribute("aria-busy", "true");
+    concluir({ ok: true, data: undefined });
+    await waitFor(() => expect(botao).not.toHaveTextContent("Confirmando..."));
+  });
+
   it("só o PDF é obrigatório: competência e conta vazias seguem para o servidor ler", async () => {
     anexarMock.mockResolvedValue({
       ok: true,
