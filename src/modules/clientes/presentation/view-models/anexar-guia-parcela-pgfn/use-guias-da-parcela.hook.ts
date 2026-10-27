@@ -4,6 +4,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   AcaoDaGuia,
   AcoesDasGuias,
+  DadosDoAnexo,
+  ResultadoDaGuia,
 } from "@/presentation/components/organisms/guias-da-parcela-pgfn.component";
 import { abrirEmNovaAba } from "@/presentation/lib/abrir-em-nova-aba";
 import type { GuiaDaParcela } from "@/modules/clientes/application/ports/out/guia-parcela-pgfn.repository";
@@ -39,10 +41,6 @@ const AVISO_AGUARDE = "Aguarde a ação em andamento terminar.";
 const ERRO_ABRIR = "Não foi possível abrir a guia. Tente novamente.";
 const ERRO_TRANSPORTE = "Não foi possível concluir agora. Verifique a conexão e tente novamente.";
 
-type ResultadoDaAcao = { tipo: "sucesso" | "atencao"; texto: string };
-
-type Erros = { competencia?: string; contaNegociacao?: string; arquivo?: string };
-
 // `prefixo`: o mesmo que a View usa nos ids; o foco volta ao item da guia confirmada.
 export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   const queryClient = useQueryClient();
@@ -50,13 +48,13 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   const [mes, setMes] = useState("");
   const [contaNegociacao, setContaNegociacao] = useState("");
   const [arquivo, setArquivo] = useState<File | undefined>();
-  const [erros, setErros] = useState<Erros>({});
+  const [erros, setErros] = useState<DadosDoAnexo["erros"]>({});
   // Alguma ação em curso; só o envio do PDF ("anexo") troca o rótulo do botão Anexar.
   const [emCurso, setEmCurso] = useState<"anexo" | "outra" | undefined>();
   const pendente = emCurso !== undefined;
   const [erroServidor, setErroServidor] = useState<string | undefined>();
   // "atencao": guia anexada e gravada, mas ainda não liberada (pede conferência; não é sucesso nem erro).
-  const [resultado, setResultado] = useState<ResultadoDaAcao | undefined>();
+  const [resultado, setResultado] = useState<ResultadoDaGuia | undefined>();
   // Liberar ao envio e remover não se desfazem: pedem confirmação na linha antes de chamar a action.
   // Uma pergunta de risco por vez; `emCurso`: já confirmada, o servidor ainda responde.
   const [acao, setAcao] = useState<AcaoDaGuia | undefined>();
@@ -213,7 +211,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
 
   // Mexer num campo tira da tela o aviso do anexo anterior, a recusa do servidor e o erro daquele campo.
   const aoEditar =
-    <T>(campo: keyof Erros, definir: (valor: T) => void) =>
+    <T>(campo: keyof DadosDoAnexo["erros"], definir: (valor: T) => void) =>
     (valor: T) => {
       limparAvisos();
       setErros((atuais) => ({ ...atuais, [campo]: undefined }));

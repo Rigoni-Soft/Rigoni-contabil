@@ -31,6 +31,9 @@ type GuiaDaListaDto = {
   enviada: boolean;
 };
 
+// Sucesso, ou atenção (anexada mas "a confirmar": o que fazer; não é sucesso nem erro).
+export type ResultadoDaGuia = { tipo: "sucesso" | "atencao"; texto: string };
+
 // A pergunta de risco aberta numa guia (uma por vez): liberar ao envio ou remover. `emCurso`: a
 // pessoa já confirmou e o servidor ainda responde.
 export type AcaoDaGuia = {
@@ -79,8 +82,7 @@ type GuiasDaParcelaPgfnProps = {
   pendente: boolean;
   anexando: boolean;
   erroServidor?: string;
-  // Sucesso, ou atenção (anexada mas "a confirmar": o que fazer; não é sucesso nem erro).
-  resultado?: { tipo: "sucesso" | "atencao"; texto: string };
+  resultado?: ResultadoDaGuia;
   // Rótulo ("10/2026") da guia do mês corrente que ainda não foi anexada.
   competenciaEmFalta?: string;
   acao?: AcaoDaGuia;
