@@ -2,7 +2,10 @@ import {
   atribuirGuiasParcelamento,
   identidadeDaGuia,
 } from "@/modules/atendimento/application/jobs/atribuir-guias-parcelamento";
-import { guiasPgfnAEntregar } from "@/modules/atendimento/application/jobs/guias-pgfn-a-entregar";
+import {
+  guiaPgfn,
+  guiasPgfnAEntregar,
+} from "@/modules/atendimento/application/jobs/guias-pgfn-a-entregar";
 import type {
   EntregarNaUraInput,
   EntregarNaUraPort,
@@ -118,20 +121,14 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
     parcelamentos: ParcelamentoPgfn[],
   ): Promise<{ falhas: string[]; indisponiveis: string[] }> {
     const mes = mesAtual(this.relogio.agora()).replace("-", "");
-    const novas = guiasPgfnAEntregar(parcelamentos, mes);
+    const todas = guiasPgfnAEntregar(parcelamentos, mes, true);
     const falhas: string[] = [];
     const indisponiveis: string[] = [];
     for (const parcelamento of parcelamentos) {
-      // Nunca mais guias novas do que parcelas restantes: o acordo quitaria antes do fim da lista.
-      let guias = novas
+      // Nunca mais guias do que parcelas restantes: o acordo quitaria antes do fim da lista.
+      const guias = todas
         .filter((g) => g.parcelamento.id === parcelamento.id)
         .slice(0, parcelamento.parcelasRestantes);
-      if (guias.length === 0) {
-        const doMes = parcelamento.guias.find(
-          (g) => g.competencia === mes && parcelamento.parcelasEnviadas.includes(mes),
-        );
-        guias = doMes ? [{ ...doMes, parcelamento }] : [];
-      }
       if (guias.length === 0) {
         indisponiveis.push(parcelamento.codigo);
         continue;
@@ -158,31 +155,8 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
   ): Promise<boolean> {
     const pdf = await this.pgfn.ler(clienteId, caminho);
     if (!pdf.ok) return false;
-    const nomeArquivo = `parcelamento-${parcelamento.codigo}-${competencia}.pdf`;
-    const guia = { nomeArquivo, pdfBase64: pdf.value, parcela: competencia };
-    const publicada = await this.publicadas.publicar(
-      clienteId,
-      guia,
-      chaveDoParcelamento(parcelamento.id, competencia),
-    );
-    if (!publicada.ok) return false;
-    const enviada = await this.envio.enviarDocumento({
-      telefone,
-      nomeArquivo,
-      url: publicada.value.url,
-    });
-    if (!enviada.ok) return false;
-
-    const registro = await this.parcelamentos.registrarEnvio(
-      parcelamento.id,
-      competencia,
-      identidadeDaGuia(guia),
-      publicada.value.caminho,
-    );
-    if (!registro.ok || registro.value === "nao_elegivel") {
-      console.error("Guia PGFN entregue pela URA, mas o envio não foi registrado.");
-    }
-    return true;
+    const guia = guiaPgfn(parcelamento.codigo, competencia, pdf.value);
+    return this.entregarNova(clienteId, telefone, parcelamento, competencia, guia);
   }
 
   private async avisarSemParcelamento(
@@ -283,8 +257,20 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
       return reenviada.ok;
     }
 
-    // O PDF publicado fica no Storage mesmo se a entrega for recusada: só o registro do envio
-    // aceito o aponta (ver o gateway).
+    return this.entregarNova(clienteId, telefone, parcelamento, parcela, nova);
+  }
+
+  // Primeira entrega da guia: publica o PDF, envia e registra (desconta uma parcela). O PDF publicado
+  // fica no Storage mesmo se a entrega for recusada: só o registro do envio aceito o aponta (ver o
+  // gateway). `true` se o contato recebeu.
+  private async entregarNova(
+    clienteId: string,
+    telefone: string,
+    parcelamento: { id: string; codigo: string },
+    parcela: string,
+    nova: GuiaFiscal,
+  ): Promise<boolean> {
+    const nomeArquivo = `parcelamento-${parcelamento.codigo}-${parcela}.pdf`;
     const publicada = await this.publicadas.publicar(
       clienteId,
       nova,

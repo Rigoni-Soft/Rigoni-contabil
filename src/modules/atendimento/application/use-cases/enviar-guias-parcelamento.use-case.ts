@@ -9,7 +9,10 @@ import {
   identidadeDaGuia,
   type GuiaAtribuida,
 } from "@/modules/atendimento/application/jobs/atribuir-guias-parcelamento";
-import { guiasPgfnAEntregar } from "@/modules/atendimento/application/jobs/guias-pgfn-a-entregar";
+import {
+  guiaPgfn,
+  guiasPgfnAEntregar,
+} from "@/modules/atendimento/application/jobs/guias-pgfn-a-entregar";
 import type {
   EntregarComunicacaoPorCanaisPort,
   OcorrenciaDeEntrega,
@@ -114,36 +117,34 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     const semDestino = emAberto.value.filter(
       (p) => !this.entregavel(cliente, p) && pendentes.some((g) => g.parcelamento.id === p.id),
     );
-    const ocorrencias = this.ocorrenciasSemDestino(cliente, semDestino);
-
     // A mais antiga que não puder ser lida trava as seguintes do mesmo parcelamento: a ordem se mantém.
     const travados = new Set<string>();
+    const andamentos: Andamento[] = [];
     const atribuidas: GuiaAtribuida[] = [];
     for (const { parcelamento, competencia, caminho } of pendentes) {
       if (!this.entregavel(cliente, parcelamento) || travados.has(parcelamento.id)) continue;
       const pdf = await this.repetir(() => this.pgfn.ler(cliente.clienteId, caminho));
       if (!pdf.ok) {
         travados.add(parcelamento.id);
-        ocorrencias.push(
-          ...falha(
-            `Parcelamento ${parcelamento.codigo} de ${cliente.empresa}: ${pdf.error.message}`,
-          ).ocorrencias,
+        andamentos.push(
+          falha(`Parcelamento ${parcelamento.codigo} de ${cliente.empresa}: ${pdf.error.message}`),
         );
         continue;
       }
       atribuidas.push({
         parcelamento,
         parcela: competencia,
-        guia: {
-          nomeArquivo: `parcelamento-${parcelamento.codigo}-${competencia}.pdf`,
-          pdfBase64: pdf.value,
-          parcela: competencia,
-        },
+        guia: guiaPgfn(parcelamento.codigo, competencia, pdf.value),
       });
     }
-    const andamentos = await this.entregarGuias(cliente, agora, atribuidas);
-    ocorrencias.push(...andamentos.flatMap((a) => a.ocorrencias));
-    return { enviado: andamentos.some((a) => a.enviado), ocorrencias };
+    andamentos.push(...(await this.entregarGuias(cliente, agora, atribuidas)));
+    return {
+      enviado: andamentos.some((a) => a.enviado),
+      ocorrencias: [
+        ...this.ocorrenciasSemDestino(cliente, semDestino),
+        ...andamentos.flatMap((a) => a.ocorrencias),
+      ],
+    };
   }
 
   private async enviarReceita({
