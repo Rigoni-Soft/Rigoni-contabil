@@ -87,7 +87,7 @@ function render(readOnly = false) {
 const regiaoDaGuia = () => screen.findByRole("group", { name: "Guias da parcela PGFN-1" });
 
 const NOME_CONFIRMAR = "Confirmar e liberar guia de 10/2026 ao envio";
-const NOME_LIBERAR = "Liberar guia de 10/2026 ao envio";
+const NOME_LIBERAR = "Liberar 10/2026 ao envio";
 
 // Confirmar libera a guia ao Cliente: abre a conferência e só a segunda ação chama o servidor.
 async function liberarGuia(usuario: ReturnType<typeof userEvent.setup>) {
@@ -245,6 +245,29 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     concluir({ ok: true, data: undefined });
   });
 
+  it("o resultado de liberar aparece dentro do item da guia agida, não no fim da região", async () => {
+    listarMock.mockResolvedValue({
+      ok: true,
+      data: [
+        { competencia: "202609", contaNegociacao: "111", estado: "a_confirmar" },
+        { competencia: "202610", contaNegociacao: "222", estado: "a_confirmar" },
+      ],
+    });
+    confirmarMock.mockResolvedValue({ ok: true, data: undefined });
+    const usuario = userEvent.setup();
+    render();
+    const regiao = within(await regiaoDaGuia());
+    await usuario.click(
+      await regiao.findByRole("button", { name: "Confirmar e liberar guia de 09/2026 ao envio" }),
+    );
+    await usuario.click(regiao.getByRole("button", { name: "Liberar 09/2026 ao envio" }));
+
+    const aviso = await regiao.findByText("Guia confirmada e liberada ao envio.");
+    const itemAgido = regiao.getByText(/09\/2026 · conta 111/).closest("li");
+    expect(itemAgido).toContainElement(aviso);
+    expect(regiao.getByText(/10\/2026 · conta 222/).closest("li")).not.toContainElement(aviso);
+  });
+
   it("Confirmar e liberar pede conferência: sem confirmar não chama o servidor, e cancelar devolve o foco", async () => {
     listarMock.mockResolvedValue({
       ok: true,
@@ -257,7 +280,7 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
 
     // Diz o que será liberado (mês, conta), que vai ao Cliente e que não se desfaz.
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Libera a guia de 10/2026 (conta 123456) para envio ao Cliente, sem desfazer.",
+      /Libera a guia de 10\/2026 \(conta 123456\) para envio\. Ela vai ao Cliente pela forma de envio dele .* ou ao financeiro se o Parcelamento for interno\. Não dá para desfazer\./,
     );
     expect(confirmarMock).not.toHaveBeenCalled();
     // Quem abriu sem querer cai no gesto seguro.

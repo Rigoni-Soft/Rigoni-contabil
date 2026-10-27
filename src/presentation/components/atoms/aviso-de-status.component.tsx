@@ -5,6 +5,9 @@ import { cn } from "@/presentation/lib/utils";
 type AvisoDeStatusProps = {
   tipo: "erro" | "sucesso" | "atencao";
   texto: React.ReactNode;
+  // Texto que a pessoa precisa ler para agir (resultado de uma ação): 14 px em vez dos 12 px do aviso
+  // padrão; o ícone desce 2 px para ficar na primeira linha de 20 px.
+  legivel?: boolean;
   className?: string;
 };
 
@@ -18,11 +21,17 @@ const POR_TIPO = {
   atencao: { Icone: Clock, cor: "text-foreground", role: "status" },
 } as const;
 
-export function AvisoDeStatus({ tipo, texto, className }: AvisoDeStatusProps) {
+export function AvisoDeStatus({ tipo, texto, legivel, className }: AvisoDeStatusProps) {
   const { Icone, cor, role } = POR_TIPO[tipo];
   return (
-    <p role={role} className={cn("flex items-start gap-1.5 text-xs", cor, className)}>
-      <Icone className="mt-px size-3.5 shrink-0" aria-hidden="true" />
+    <p
+      role={role}
+      className={cn("flex items-start gap-1.5", legivel ? "text-sm" : "text-xs", cor, className)}
+    >
+      <Icone
+        className={cn("size-3.5 shrink-0", legivel ? "mt-[3px]" : "mt-px")}
+        aria-hidden="true"
+      />
       <span>{texto}</span>
     </p>
   );

@@ -10,10 +10,6 @@ import { SeloDaGuia } from "@/presentation/components/molecules/selo-da-guia.com
 import { Button } from "@/presentation/components/ui/button";
 import { cn } from "@/presentation/lib/utils";
 
-// O resultado do anexo e o motivo da pendência são o que o Funcionário precisa ler e agir: 14 px, não
-// os 12 px do aviso padrão. O ícone desce 2 px para ficar na primeira linha de 20 px (como o FieldError).
-const AVISO_LEGIVEL = "text-sm [&>svg]:mt-[3px]";
-
 type GuiaDaListaDto = {
   // Id do item no DOM (alvo do foco depois de confirmar).
   id: string;
@@ -57,6 +53,10 @@ type GuiasDaParcelaPgfnProps = {
   erroServidor?: string;
   // Sucesso, ou atenção (anexada mas "a confirmar": o que fazer; não é sucesso nem erro).
   resultado?: { tipo: "sucesso" | "atencao"; texto: string };
+  // Guia a que o erro ou resultado se refere: ele aparece no item dela; sem alvo, num ponto fixo acima do formulário.
+  alvoDoAviso?: string;
+  // Rótulo ("10/2026") da guia do mês corrente que ainda não foi anexada.
+  competenciaEmFalta?: string;
   onAnexar: () => void;
   onConfirmar: (competencia: string) => void;
   onTrocar: (competencia: string, arquivo: File) => void;
@@ -100,6 +100,8 @@ export function GuiasDaParcelaPgfn({
   anexando,
   erroServidor,
   resultado,
+  alvoDoAviso,
+  competenciaEmFalta,
   onAnexar,
   onConfirmar,
   onTrocar,
@@ -158,9 +160,10 @@ export function GuiasDaParcelaPgfn({
             !guia.enviada &&
             (liberando === guia.competencia ? (
               <>
-                <Texto variante="nota" role="alert">
-                  Libera a guia de {guia.rotulo} (conta {guia.contaNegociacao}) para envio ao
-                  Cliente, sem desfazer.
+                <Texto variante="corpo" role="alert" className="basis-full">
+                  Libera a guia de {guia.rotulo} (conta {guia.contaNegociacao}) para envio. Ela vai
+                  ao Cliente pela forma de envio dele (WhatsApp ou e-mail), ou ao financeiro se o
+                  Parcelamento for interno. Não dá para desfazer.
                 </Texto>
                 <Button
                   type="button"
@@ -168,10 +171,10 @@ export function GuiasDaParcelaPgfn({
                   size="sm"
                   aria-disabled={pendente || undefined}
                   onClick={() => onConfirmar(guia.competencia)}
-                  aria-label={`Liberar guia de ${guia.rotulo} ao envio`}
+                  aria-label={`Liberar ${guia.rotulo} ao envio`}
                   className={BOTAO_DA_GUIA}
                 >
-                  {confirmandoGuia === guia.competencia ? "Liberando..." : "Liberar guia"}
+                  {confirmandoGuia === guia.competencia ? "Liberando..." : `Liberar ${guia.rotulo}`}
                 </Button>
                 <Button
                   type="button"
@@ -273,6 +276,11 @@ export function GuiasDaParcelaPgfn({
             )}
           </Linha>
         </Linha>
+        {avisoNoItem && alvoDoAviso === guia.competencia && (
+          <Pilha espaco={1} className="mt-2">
+            {avisos}
+          </Pilha>
+        )}
       </Caixa>
     );
   };
@@ -280,11 +288,11 @@ export function GuiasDaParcelaPgfn({
   const avisos = (
     <>
       {erroServidor && <FieldError>{erroServidor}</FieldError>}
-      {resultado && (
-        <AvisoDeStatus tipo={resultado.tipo} texto={resultado.texto} className={AVISO_LEGIVEL} />
-      )}
+      {resultado && <AvisoDeStatus tipo={resultado.tipo} texto={resultado.texto} legivel />}
     </>
   );
+  const avisoNoItem = Boolean(alvoDoAviso) && guias.some((g) => g.competencia === alvoDoAviso);
+  const abrirManual = temDigitado || Boolean(erroServidor && !alvoDoAviso);
 
   return (
     <Pilha
@@ -316,13 +324,21 @@ export function GuiasDaParcelaPgfn({
           </Texto>
         )}
       </Pilha>
+      {competenciaEmFalta && (
+        <Texto variante="nota" className="text-sm">
+          Falta a guia de {competenciaEmFalta}.
+        </Texto>
+      )}
       {recentes.length > 0 && (
         <Pilha como="ul" espaco={1} className="divide-y divide-border">
           {recentes.map(renderGuia)}
         </Pilha>
       )}
       {historico.length > 0 && (
-        <Caixa como="details">
+        <Caixa
+          como="details"
+          open={historico.some((g) => g.competencia === alvoDoAviso) || undefined}
+        >
           <Caixa
             como="summary"
             className="w-fit cursor-pointer rounded-sm text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11 pointer-coarse:py-2"
@@ -335,7 +351,7 @@ export function GuiasDaParcelaPgfn({
         </Caixa>
       )}
 
-      {avisos}
+      {!avisoNoItem && avisos}
 
       <Pilha espaco={3}>
         <CampoDeArquivo
@@ -350,7 +366,7 @@ export function GuiasDaParcelaPgfn({
         />
         {/* O sistema lê o mês e a conta do PDF: os campos só se abrem para quem precisa digitar. Abre
           sozinho se já tem valor ou erro, para a recusa nunca ficar escondida. */}
-        <Caixa como="details" open={temDigitado || undefined}>
+        <Caixa como="details" open={abrirManual || undefined}>
           <Caixa
             como="summary"
             className="w-fit cursor-pointer rounded-sm text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11 pointer-coarse:py-2"

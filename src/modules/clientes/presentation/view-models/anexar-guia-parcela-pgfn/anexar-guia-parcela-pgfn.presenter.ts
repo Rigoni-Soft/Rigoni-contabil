@@ -1,4 +1,5 @@
 import type { GuiaDaParcela } from "@/modules/clientes/application/ports/out/guia-parcela-pgfn.repository";
+import { mesAtual } from "@/shared/kernel/mes-atual";
 
 // "202610" → "10/2026".
 const rotuloDaCompetencia = (competencia: string) =>
@@ -43,4 +44,12 @@ export const linhasDeGuias = (guias: GuiaDaParcela[], prefixo: string) => {
     idDaRemocao: idDaRemocao(prefixo, guia.competencia),
     idDaLiberacao: idDaLiberacao(prefixo, guia.competencia),
   }));
+};
+
+// Rótulo ("10/2026") da guia do mês corrente que ainda não foi anexada, para o aviso de que falta; nulo
+// se não há nenhuma guia (a lista já diz que não há) ou se a do mês já está lá.
+export const competenciaEmFalta = (guias: GuiaDaParcela[], agora = new Date()) => {
+  const mes = mesAtual(agora).replace("-", "");
+  if (guias.length === 0 || guias.some((g) => g.competencia === mes)) return undefined;
+  return rotuloDaCompetencia(mes);
 };

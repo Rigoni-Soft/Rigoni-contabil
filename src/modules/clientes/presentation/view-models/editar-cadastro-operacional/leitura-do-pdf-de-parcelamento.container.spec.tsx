@@ -173,7 +173,7 @@ describe("Leitura do PDF de parcelamento no Editar cliente", () => {
       const usuario = userEvent.setup();
       render();
       await anexarPdfNoParcelamentoNovo(usuario);
-      await usuario.upload(await screen.findByLabelText(/guia do mês/i), guia);
+      await usuario.upload(await screen.findByLabelText(/pdf da guia \(opcional\)/i), guia);
 
       await usuario.click(screen.getByRole("button", { name: /salvar/i }));
 
@@ -201,13 +201,15 @@ describe("Leitura do PDF de parcelamento no Editar cliente", () => {
       const usuario = userEvent.setup();
       render();
       await anexarPdfNoParcelamentoNovo(usuario);
-      await usuario.upload(await screen.findByLabelText(/guia do mês/i), guia);
+      await usuario.upload(await screen.findByLabelText(/pdf da guia \(opcional\)/i), guia);
 
       await usuario.upload(
         screen.getByLabelText(/pdf do acordo/i),
         new File([new Uint8Array([2])], "outro.pdf", { type: "application/pdf" }),
       );
-      await waitFor(() => expect(screen.queryByLabelText(/guia do mês/i)).not.toBeInTheDocument());
+      await waitFor(() =>
+        expect(screen.queryByLabelText(/pdf da guia \(opcional\)/i)).not.toBeInTheDocument(),
+      );
       await usuario.click(screen.getByRole("button", { name: /salvar/i }));
 
       await waitFor(() => expect(salvarParcelamentosMock).toHaveBeenCalled());
@@ -235,7 +237,7 @@ describe("Leitura do PDF de parcelamento no Editar cliente", () => {
       const usuario = userEvent.setup();
       render();
       await anexarPdfNoParcelamentoNovo(usuario);
-      await usuario.upload(await screen.findByLabelText(/guia do mês/i), guia);
+      await usuario.upload(await screen.findByLabelText(/pdf da guia \(opcional\)/i), guia);
 
       await usuario.click(screen.getByRole("button", { name: /salvar/i }));
 
@@ -243,7 +245,7 @@ describe("Leitura do PDF de parcelamento no Editar cliente", () => {
         await screen.findByText(/Parcelamento foi salvo, mas a guia não foi anexada/),
       ).toBeInTheDocument();
       // O motivo também aparece junto do campo da guia.
-      expect(screen.getByLabelText(/guia do mês/i)).toHaveAccessibleDescription(
+      expect(screen.getByLabelText(/pdf da guia \(opcional\)/i)).toHaveAccessibleDescription(
         /O CNPJ da guia é de outra empresa/,
       );
       expect(salvarParcelamentosMock).toHaveBeenCalledTimes(1);

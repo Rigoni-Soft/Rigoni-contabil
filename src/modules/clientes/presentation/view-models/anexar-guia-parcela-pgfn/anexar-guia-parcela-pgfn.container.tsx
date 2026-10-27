@@ -2,7 +2,11 @@
 
 import { GuiasDaParcelaPgfn } from "@/presentation/components/organisms/guias-da-parcela-pgfn.component";
 
-import { idDaRegiao, linhasDeGuias } from "./anexar-guia-parcela-pgfn.presenter";
+import {
+  competenciaEmFalta,
+  idDaRegiao,
+  linhasDeGuias,
+} from "./anexar-guia-parcela-pgfn.presenter";
 import { useGuiasDaParcela } from "./use-guias-da-parcela.hook";
 
 type Props = { parcelamentoId: string; codigo: string };
@@ -31,6 +35,8 @@ export function AnexarGuiaParcelaPgfnContainer({ parcelamentoId, codigo }: Props
       anexando={guias.anexando}
       erroServidor={guias.erroServidor}
       resultado={guias.resultado}
+      alvoDoAviso={guias.alvoDoAviso}
+      competenciaEmFalta={competenciaEmFalta(guias.guias)}
       onAnexar={() => void guias.anexar()}
       onConfirmar={(competencia) => void guias.confirmar(competencia)}
       onTrocar={(competencia, arquivo) => void guias.trocar(competencia, arquivo)}

@@ -431,10 +431,10 @@ export function EditarCadastroOperacionalForm({
                           render={({ field: { onChange, onBlur, value, name } }) => (
                             <CampoDeArquivo
                               id={`parcelamentos.${indice}.guia`}
-                              rotulo="PDF da guia do mês (opcional)"
+                              rotulo="PDF da guia (opcional)"
                               name={name}
                               accept="application/pdf"
-                              dica="PDF até 4 MB"
+                              dica="PDF até 4 MB. Sobe ao salvar; depois anexe as demais em Guias da parcela."
                               compacto
                               file={value}
                               onChange={onChange}
