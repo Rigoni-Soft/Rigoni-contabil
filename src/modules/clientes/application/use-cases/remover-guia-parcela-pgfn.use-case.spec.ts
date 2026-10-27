@@ -5,6 +5,7 @@ import type {
   SessaoPort,
 } from "@/modules/clientes/application/ports/out/sessao.provider";
 import type { AppError } from "@/shared/errors/app.error";
+import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ResultadoIncertoError } from "@/shared/errors/resultado-incerto.error";
@@ -92,15 +93,15 @@ describe("RemoverGuiaParcelaPgfn", () => {
     expect(removidos).toEqual([]);
   });
 
-  it("resposta perdida do banco: só apaga o objeto se a leitura mostra a guia removida", async () => {
+  it("resposta perdida e a releitura vazia (RLS escondeu a guia): não prova remoção, o objeto fica", async () => {
     const { caso, arquivo, remover, removidos } = montar();
     remover.mockResolvedValue(err(new ResultadoIncertoError("sem resposta")));
     arquivo.mockResolvedValueOnce(ok(CAMINHO)).mockResolvedValueOnce(ok(null));
 
     const resultado = await caso.execute(INPUT);
 
-    expect(resultado.ok).toBe(true);
-    expect(removidos).toEqual([CAMINHO]);
+    expect(resultado).toEqual({ ok: false, error: expect.any(EstadoInconsistenteError) });
+    expect(removidos).toEqual([]);
   });
 
   it("resposta perdida e a guia ainda lá: erro e o objeto fica", async () => {

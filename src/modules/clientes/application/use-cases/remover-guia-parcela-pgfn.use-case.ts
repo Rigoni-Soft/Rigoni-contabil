@@ -42,17 +42,16 @@ export class RemoverGuiaParcelaPgfn implements RemoverGuiaParcelaPgfnPort {
 
     const removida = await this.guias.remover(input.parcelamentoId, input.competencia);
     if (!removida.ok) {
-      // Resposta perdida não prova rollback: só a leitura mostrando a guia ausente libera o objeto.
+      // Resposta perdida não prova rollback, e a releitura vazia não prova remoção (a RLS pode ter
+      // escondido a guia, por exemplo numa troca de Responsável): nenhum objeto é apagado sem desfecho
+      // conhecido. Fica um PDF órfão no bucket privado, e quem remove confere a tela.
       if (!(removida.error instanceof ResultadoIncertoError)) return removida;
-      const depois = await this.guias.arquivo(input.parcelamentoId, input.competencia);
-      if (!depois.ok || depois.value) {
-        return err(
-          new EstadoInconsistenteError(
-            "Não foi possível confirmar se a guia foi removida. Recarregue a página e confira antes de tentar de novo.",
-            input.parcelamentoId,
-          ),
-        );
-      }
+      return err(
+        new EstadoInconsistenteError(
+          "Não foi possível confirmar se a guia foi removida. Recarregue a página e confira antes de tentar de novo.",
+          input.parcelamentoId,
+        ),
+      );
     }
 
     await apagarObjeto(
