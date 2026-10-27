@@ -19,6 +19,7 @@ const BUCKET = "parcelamentos-clientes";
 
 const linhaSchema = z.array(
   parcelamentoSchema.extend({
+    entregues: z.array(z.object({ parcela: z.string(), caminho: z.string().nullable() })),
     cliente_parcelamento_guias: z.array(
       z.object({
         competencia: z.string(),
@@ -37,7 +38,7 @@ export class SupabaseGuiasPgfnGateway implements GuiasPgfnPort {
     const { data, error } = await this.supabaseAdmin
       .from("cliente_parcelamentos")
       .select(
-        `${COLUNAS_DO_PARCELAMENTO}, cliente_parcelamento_guias(competencia, arquivo_caminho, estado)`,
+        `${COLUNAS_DO_PARCELAMENTO}, entregues:cliente_parcelamento_envios(parcela, caminho), cliente_parcelamento_guias(competencia, arquivo_caminho, estado)`,
       )
       .eq("cliente_id", clienteId)
       .eq("origem", "pgfn")
@@ -51,6 +52,7 @@ export class SupabaseGuiasPgfnGateway implements GuiasPgfnPort {
     return ok(
       lidas.data.map((linha) => ({
         ...paraParcelamento(linha),
+        entregues: linha.entregues.map((e) => ({ competencia: e.parcela, caminho: e.caminho })),
         guias: linha.cliente_parcelamento_guias
           .filter((g) => g.estado === "confirmada")
           .map((g) => ({ competencia: g.competencia, caminho: g.arquivo_caminho })),

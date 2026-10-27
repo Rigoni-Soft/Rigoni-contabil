@@ -16,23 +16,23 @@ export const guiaPgfn = (codigo: string, competencia: string, pdfBase64: string)
 
 // As guias confirmadas e ainda sem registro de envio, até a competência do mês corrente (AAAAMM),
 // da mais antiga para a mais nova. Guia futura fica guardada; guia não confirmada nem entra na lista.
-// `reenviarDoMes` (URA): o parcelamento sem nenhuma pendente devolve a guia do mês já enviada, para
-// o pedido repetido reenviar o mesmo PDF.
 export function guiasPgfnAEntregar(
   parcelamentos: ParcelamentoPgfn[],
   mes: string,
-  reenviarDoMes = false,
 ): GuiaPgfnAEntregar[] {
   return parcelamentos
-    .flatMap((parcelamento) => {
-      const pendentes = parcelamento.guias.filter(
-        (g) => g.competencia <= mes && !parcelamento.parcelasEnviadas.includes(g.competencia),
-      );
-      const aEntregar =
-        pendentes.length === 0 && reenviarDoMes
-          ? parcelamento.guias.filter((g) => g.competencia === mes)
-          : pendentes;
-      return aEntregar.map((g) => ({ ...g, parcelamento }));
-    })
+    .flatMap((parcelamento) =>
+      parcelamento.guias
+        .filter(
+          (g) => g.competencia <= mes && !parcelamento.parcelasEnviadas.includes(g.competencia),
+        )
+        .map((g) => ({ ...g, parcelamento })),
+    )
     .sort((a, b) => a.competencia.localeCompare(b.competencia));
+}
+
+// URA, sem nenhuma pendente: a guia mais recente já entregue, para o pedido repetido reenviar o PDF
+// registrado nela (nunca o anexo, que pode ter sido trocado), qualquer que seja a competência.
+export function guiaPgfnAReenviar(parcelamento: ParcelamentoPgfn) {
+  return [...parcelamento.entregues].sort((a, b) => b.competencia.localeCompare(a.competencia))[0];
 }

@@ -53,7 +53,8 @@ type FinanceiroDoEscritorio = {
 // A guia atribuída com as parcelas que restam depois de entregá-la.
 type GuiaAEntregar = GuiaAtribuida & { restantesDepois: number };
 // `descontou`: o banco descontou uma parcela restante nesta entrega.
-type EntregaDeGuia = { andamento: Andamento; descontou: boolean };
+// `completa`: entregue e registrada; qualquer outro desfecho trava o resto do acordo PGFN.
+type EntregaDeGuia = { andamento: Andamento; descontou: boolean; completa: boolean };
 
 // Entrega as guias de parcelamento do Cliente (job): o banco manda no que está pendente e cada
 // entrega aceita grava o registro de envio da parcela. O Parcelamento da Receita vem do provedor
@@ -137,7 +138,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
         guia: guiaPgfn(parcelamento.codigo, competencia, pdf.value),
       });
     }
-    andamentos.push(...(await this.entregarGuias(cliente, agora, atribuidas)));
+    andamentos.push(...(await this.entregarGuias(cliente, agora, atribuidas, true)));
     return {
       enviado: andamentos.some((a) => a.enviado),
       ocorrencias: [
@@ -213,14 +214,19 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     cliente: ClienteParaParcelamento,
     agora: Date,
     atribuidas: GuiaAtribuida[],
+    pararNoAcordo = false,
   ): Promise<Andamento[]> {
     let cadastro: Promise<Result<CadastroFiscalCliente, AppError>> | undefined;
     const cnpjDoCliente = () =>
       (cadastro ??= this.financeiro.cnpjs.cadastroFiscalDoCliente(cliente.clienteId));
     const descontadas = new Map<string, number>();
     const andamentos: Andamento[] = [];
+    // PGFN: guia sem entrega registrada trava as seguintes do mesmo acordo, para não pular a ordem
+    // nem quitar por uma guia posterior; ela segue pendente para a próxima rodada.
+    const travados = new Set<string>();
     for (const atribuida of atribuidas) {
       const { id, parcelasRestantes } = atribuida.parcelamento;
+      if (travados.has(id)) continue;
       const restantesDepois = parcelasRestantes - (descontadas.get(id) ?? 0) - 1;
       if (restantesDepois < 0) {
         const { codigo } = atribuida.parcelamento;
@@ -237,6 +243,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
         { ...atribuida, restantesDepois },
         cnpjDoCliente,
       );
+      if (pararNoAcordo && !entrega.completa) travados.add(id);
       if (entrega.descontou) descontadas.set(id, (descontadas.get(id) ?? 0) + 1);
       andamentos.push(entrega.andamento);
     }
@@ -259,7 +266,11 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
       ),
     );
     if (!publicada.ok) {
-      return { andamento: falha(`${descricao}: ${publicada.error.message}`), descontou: false };
+      return {
+        andamento: falha(`${descricao}: ${publicada.error.message}`),
+        descontou: false,
+        completa: false,
+      };
     }
 
     const documento = { url: publicada.value.url, nomeArquivo: guia.nomeArquivo };
@@ -281,7 +292,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
         );
     // O PDF publicado fica no Storage mesmo se a entrega for recusada: só o registro do envio
     // aceito o aponta (ver o gateway).
-    if (!andamento.enviado) return { andamento, descontou: false };
+    if (!andamento.enviado) return { andamento, descontou: false, completa: false };
 
     const registro = await this.parcelamentos.registrarEnvio(
       parcelamento.id,
@@ -291,7 +302,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     );
     // `ja_registrado`: a parcela já tinha registro e nada foi descontado agora.
     if (registro.ok && registro.value !== "nao_elegivel") {
-      return { andamento, descontou: registro.value === "registrado" };
+      return { andamento, descontou: registro.value === "registrado", completa: true };
     }
     const aviso = registro.ok
       ? `${descricao}: entregue, mas o parcelamento deixou de estar em aberto e o envio não foi registrado.`
@@ -302,6 +313,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
         ocorrencias: [...andamento.ocorrencias, ...falha(aviso).ocorrencias],
       },
       descontou: false,
+      completa: false,
     };
   }
 

@@ -4,6 +4,7 @@ import {
 } from "@/modules/atendimento/application/jobs/atribuir-guias-parcelamento";
 import {
   guiaPgfn,
+  guiaPgfnAReenviar,
   guiasPgfnAEntregar,
 } from "@/modules/atendimento/application/jobs/guias-pgfn-a-entregar";
 import type {
@@ -69,8 +70,8 @@ function escolherAlvo(
 // envio e desconta. Internos são ignorados e nunca mencionados. O banco decide "sem parcelamento" e
 // "quitados" antes de qualquer chamada ao provedor.
 // O parcelamento da PGFN (#186) entrega as guias confirmadas à mão ainda sem registro, até o mês
-// corrente e da mais antiga para a mais nova, com o PDF do banco; sem nenhuma pendente, reenvia a do
-// mês já enviada (mesmo PDF, sem novo registro nem desconto). Sem guia confirmada o contato recebe
+// corrente e da mais antiga para a mais nova, com o PDF do banco; sem nenhuma pendente, reenvia a
+// última já entregue (o PDF do registro, sem novo registro nem desconto). Sem guia confirmada o contato recebe
 // "ainda não disponível", sem alerta ao setor.
 // ponytail: sem a reserva por Cliente do job; job e URA simultâneos podem duplicar o PDF, nunca o
 // desconto (o registro é único por parcela). Reservar se virar problema.
@@ -123,7 +124,7 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
     parcelamentos: ParcelamentoPgfn[],
   ): Promise<{ falhas: string[]; indisponiveis: string[] }> {
     const mes = mesAtual(this.relogio.agora()).replace("-", "");
-    const todas = guiasPgfnAEntregar(parcelamentos, mes, true);
+    const todas = guiasPgfnAEntregar(parcelamentos, mes);
     const falhas: string[] = [];
     const indisponiveis: string[] = [];
     for (const parcelamento of parcelamentos) {
@@ -132,7 +133,19 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
         .filter((g) => g.parcelamento.id === parcelamento.id)
         .slice(0, parcelamento.parcelasRestantes);
       if (guias.length === 0) {
-        indisponiveis.push(parcelamento.codigo);
+        // Reenvio: o PDF do registro da entrega, de qualquer competência (inclusive atrasada).
+        const entregue = guiaPgfnAReenviar(parcelamento);
+        if (!entregue) {
+          indisponiveis.push(parcelamento.codigo);
+        } else if (
+          !(await this.entregar(clienteId, telefone, {
+            parcelamento,
+            parcela: entregue.competencia,
+            caminho: entregue.caminho,
+          }))
+        ) {
+          falhas.push(parcelamento.codigo);
+        }
         continue;
       }
       for (const { competencia, caminho } of guias) {

@@ -5,10 +5,16 @@ import type { Result } from "@/shared/kernel/result";
 // Guia anexada e confirmada à mão pelo escritório (#183); `caminho` é o PDF no bucket dos acordos.
 export type GuiaPgfnConfirmada = { competencia: string; caminho: string };
 
-export type ParcelamentoPgfn = ParcelamentoDoCliente & { guias: GuiaPgfnConfirmada[] };
+// Guia já entregue: `caminho` é o PDF publicado no envio aceito (null: registro anterior ao caminho guardado).
+export type GuiaPgfnEntregue = { competencia: string; caminho: string | null };
+
+export type ParcelamentoPgfn = ParcelamentoDoCliente & {
+  guias: GuiaPgfnConfirmada[];
+  entregues: GuiaPgfnEntregue[];
+};
 
 export interface GuiasPgfnPort {
-  // Parcelamentos PGFN em aberto e com parcelas restantes, com as guias confirmadas de cada um.
+  // Parcelamentos PGFN em aberto e com parcelas restantes, com as guias confirmadas e as já entregues de cada um.
   listarEmAberto(clienteId: string): Promise<Result<ParcelamentoPgfn[], AppError>>;
   // PDF da guia em base64: sempre do banco, nunca do provedor fiscal. O caminho de outro Cliente é
   // recusado.

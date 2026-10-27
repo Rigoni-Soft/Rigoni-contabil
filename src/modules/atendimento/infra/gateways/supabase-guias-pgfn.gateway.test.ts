@@ -102,7 +102,9 @@ describe("SupabaseGuiasPgfnGateway (#186)", () => {
     const caminho = await anexarGuia(id, "202610");
     await anexarGuia(id, "202611", "a_confirmar");
     await ok(
-      admin.from("cliente_parcelamento_envios").insert({ parcelamento_id: id, parcela: "202609" }),
+      admin
+        .from("cliente_parcelamento_envios")
+        .insert({ parcelamento_id: id, parcela: "202609", caminho: "c/entregue.pdf" }),
     );
 
     const lista = await guias.listarEmAberto(clienteId);
@@ -112,6 +114,7 @@ describe("SupabaseGuiasPgfnGateway (#186)", () => {
       parcelasRestantes: 3,
       parcelasEnviadas: ["202609"],
       guias: [{ competencia: "202610", caminho }],
+      entregues: [{ competencia: "202609", caminho: "c/entregue.pdf" }],
     });
   });
 

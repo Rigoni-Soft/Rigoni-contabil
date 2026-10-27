@@ -63,6 +63,8 @@ function montar(
     // Parcelamentos PGFN em aberto com as guias confirmadas (#186).
     pgfn?: Result<ParcelamentoPgfn[], AppError>;
     lerFalha?: boolean;
+    // Parcela cuja publicação falha.
+    publicarFalha?: string;
   } = {},
 ) {
   const envio = new EnvioMensagemFalsoGateway();
@@ -92,6 +94,9 @@ function montar(
     { buscarGuiasParcelamento },
     {
       publicar: async (_clienteId, _guia, destino) => {
+        if (destino?.periodo === opcoes.publicarFalha) {
+          return err(new ServicoExternoError("storage"));
+        }
         publicadas.push(destino);
         return ok({
           url: `https://storage.test/${destino?.id}/${destino?.periodo}.pdf`,
@@ -146,6 +151,10 @@ const pgfn = (
   guias: guias.map((competencia) => ({
     competencia,
     caminho: `c1/guias-pgfn/${id}/${competencia}.pdf`,
+  })),
+  entregues: (extra.parcelasEnviadas ?? []).map((competencia) => ({
+    competencia,
+    caminho: `c1/guias-pgfn/${id}/${competencia}-entregue.pdf`,
   })),
   ...extra,
 });
@@ -657,6 +666,42 @@ describe("EnviarGuiasParcelamento", () => {
       expect(andamento.enviado).toBe(false);
       expect(andamento.ocorrencias).toHaveLength(1);
       expect(registrados).toEqual([]);
+    });
+
+    it("falha de publicação da guia antiga trava as seguintes do acordo e não quita por elas (F2)", async () => {
+      const { nucleo, registrados } = montar(ok([]), {
+        pgfn: ok([pgfn("g1", ["202609", "202610"], { parcelasRestantes: 1 })]),
+        publicarFalha: "202609",
+      });
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(andamento.enviado).toBe(false);
+      expect(andamento.ocorrencias).toHaveLength(1);
+      expect(registrados).toEqual([]);
+    });
+
+    it("registro incerto da guia antiga trava as seguintes (F2)", async () => {
+      const { nucleo, registrados } = montar(ok([]), {
+        pgfn: ok([pgfn("g1", ["202609", "202610"], { parcelasRestantes: 1 })]),
+        registrar: async () => err(new ServicoExternoError("banco")),
+      });
+
+      await nucleo.execute({ cliente, agora });
+
+      expect(registrados).toEqual([["g1", "202609"]]);
+    });
+
+    it("a trava vale só para o acordo: outro acordo do Cliente segue entregue (F2)", async () => {
+      const { nucleo, registrados } = montar(ok([]), {
+        pgfn: ok([pgfn("g1", ["202609", "202610"]), pgfn("g2", ["202610"])]),
+        publicarFalha: "202609",
+      });
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(andamento.enviado).toBe(true);
+      expect(registrados).toEqual([["g2", "202610"]]);
     });
 
     it("não entrega mais guias do que parcelas restantes", async () => {

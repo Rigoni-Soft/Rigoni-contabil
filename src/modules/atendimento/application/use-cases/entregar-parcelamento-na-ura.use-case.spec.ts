@@ -147,6 +147,10 @@ const pgfn = (
     competencia,
     caminho: `c1/guias-pgfn/${id}/${competencia}.pdf`,
   })),
+  entregues: (extra.parcelasEnviadas ?? []).map((competencia) => ({
+    competencia,
+    caminho: `c1/guias-pgfn/${id}/${competencia}-entregue.pdf`,
+  })),
   ...extra,
 });
 
@@ -414,16 +418,57 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
       expect(registrados).toEqual([]);
     });
 
-    it("pedido repetido: reenvia a guia do mês já enviada, e o registro único não desconta de novo", async () => {
+    it("pedido repetido: reenvia a guia do mês já enviada, sem novo registro nem desconto", async () => {
       const { executar, documentos, registrados } = montar([], {
         pgfn: [pgfn("g1", ["202610"], { parcelasEnviadas: ["202610"] })],
-        registro: "ja_registrado",
       });
 
       expect((await executar()).ok).toBe(true);
 
       expect(documentos.map((d) => d.nomeArquivo)).toEqual(["parcelamento-COD-g1-202610.pdf"]);
-      expect(registrados).toHaveLength(1);
+      expect(registrados).toEqual([]);
+    });
+
+    it("reenvio pelo registro da entrega: o anexo trocado depois não substitui o PDF entregue (F1)", async () => {
+      const { executar, documentos, registrados, lidos, reencontradas } = montar([], {
+        pgfn: [pgfn("g1", ["202610"], { parcelasEnviadas: ["202610"] })],
+      });
+
+      expect((await executar()).ok).toBe(true);
+
+      expect(reencontradas).toEqual(["c1/guias-pgfn/g1/202610-entregue.pdf"]);
+      expect(documentos).toHaveLength(1);
+      expect(lidos).toEqual([]);
+      expect(registrados).toEqual([]);
+    });
+
+    it("reenvio sem caminho guardado no registro: falha explícita, sem enviar outro PDF (F1)", async () => {
+      const { executar, mensagens, documentos } = montar([], {
+        pgfn: [
+          pgfn("g1", ["202610"], {
+            parcelasEnviadas: ["202610"],
+            entregues: [{ competencia: "202610", caminho: null }],
+          }),
+        ],
+      });
+
+      expect((await executar()).ok).toBe(true);
+
+      expect(documentos).toHaveLength(0);
+      expect(mensagens[0].texto).toContain("COD-g1");
+    });
+
+    it("pedido repetido recupera a guia atrasada recém-entregue, sem novo registro nem provedor (F3)", async () => {
+      const { executar, documentos, registrados, buscas, reencontradas } = montar([], {
+        pgfn: [pgfn("g1", ["202609"], { parcelasEnviadas: ["202609"] })],
+      });
+
+      expect((await executar()).ok).toBe(true);
+
+      expect(documentos.map((d) => d.nomeArquivo)).toEqual(["parcelamento-COD-g1-202609.pdf"]);
+      expect(reencontradas).toEqual(["c1/guias-pgfn/g1/202609-entregue.pdf"]);
+      expect(registrados).toEqual([]);
+      expect(buscas()).toBe(0);
     });
 
     it("PGFN interno não vai ao Cliente: responde como se não houvesse parcelamento", async () => {
