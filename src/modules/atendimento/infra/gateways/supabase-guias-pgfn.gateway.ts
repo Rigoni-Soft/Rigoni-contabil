@@ -5,6 +5,11 @@ import type {
   GuiasPgfnPort,
   ParcelamentoPgfn,
 } from "@/modules/atendimento/application/ports/out/guias-pgfn.provider";
+import {
+  COLUNAS_DO_PARCELAMENTO,
+  paraParcelamento,
+  parcelamentoSchema,
+} from "@/modules/atendimento/infra/gateways/supabase-parcelamentos-do-cliente.gateway";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
@@ -13,13 +18,7 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 const BUCKET = "parcelamentos-clientes";
 
 const linhaSchema = z.array(
-  z.object({
-    id: z.string(),
-    codigo: z.string(),
-    interno: z.boolean(),
-    valor_parcela_centavos: z.number().nullable(),
-    parcelas_restantes: z.number(),
-    cliente_parcelamento_envios: z.array(z.object({ parcela: z.string() })),
+  parcelamentoSchema.extend({
     cliente_parcelamento_guias: z.array(
       z.object({
         competencia: z.string(),
@@ -38,7 +37,7 @@ export class SupabaseGuiasPgfnGateway implements GuiasPgfnPort {
     const { data, error } = await this.supabaseAdmin
       .from("cliente_parcelamentos")
       .select(
-        "id, codigo, interno, valor_parcela_centavos, parcelas_restantes, cliente_parcelamento_envios(parcela), cliente_parcelamento_guias(competencia, arquivo_caminho, estado)",
+        `${COLUNAS_DO_PARCELAMENTO}, cliente_parcelamento_guias(competencia, arquivo_caminho, estado)`,
       )
       .eq("cliente_id", clienteId)
       .eq("origem", "pgfn")
@@ -51,12 +50,7 @@ export class SupabaseGuiasPgfnGateway implements GuiasPgfnPort {
     }
     return ok(
       lidas.data.map((linha) => ({
-        id: linha.id,
-        codigo: linha.codigo,
-        interno: linha.interno,
-        valorParcelaCentavos: linha.valor_parcela_centavos,
-        parcelasRestantes: linha.parcelas_restantes,
-        parcelasEnviadas: linha.cliente_parcelamento_envios.map((e) => e.parcela),
+        ...paraParcelamento(linha),
         guias: linha.cliente_parcelamento_guias
           .filter((g) => g.estado === "confirmada")
           .map((g) => ({ competencia: g.competencia, caminho: g.arquivo_caminho })),

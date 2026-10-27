@@ -11,16 +11,31 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-const linhaSchema = z.array(
-  z.object({
-    id: z.string(),
-    codigo: z.string(),
-    interno: z.boolean(),
-    valor_parcela_centavos: z.number().nullable(),
-    parcelas_restantes: z.number(),
-    cliente_parcelamento_envios: z.array(z.object({ parcela: z.string() })),
-  }),
-);
+// O que se lê de um Parcelamento em aberto; a leitura das guias PGFN acrescenta só as guias.
+export const COLUNAS_DO_PARCELAMENTO =
+  "id, codigo, interno, valor_parcela_centavos, parcelas_restantes, cliente_parcelamento_envios(parcela)";
+
+export const parcelamentoSchema = z.object({
+  id: z.string(),
+  codigo: z.string(),
+  interno: z.boolean(),
+  valor_parcela_centavos: z.number().nullable(),
+  parcelas_restantes: z.number(),
+  cliente_parcelamento_envios: z.array(z.object({ parcela: z.string() })),
+});
+
+export const paraParcelamento = (
+  linha: z.infer<typeof parcelamentoSchema>,
+): ParcelamentoDoCliente => ({
+  id: linha.id,
+  codigo: linha.codigo,
+  interno: linha.interno,
+  valorParcelaCentavos: linha.valor_parcela_centavos,
+  parcelasRestantes: linha.parcelas_restantes,
+  parcelasEnviadas: linha.cliente_parcelamento_envios.map((envio) => envio.parcela),
+});
+
+const linhaSchema = z.array(parcelamentoSchema);
 
 const entreguesSchema = z.array(
   z.object({
@@ -39,9 +54,7 @@ export class SupabaseParcelamentosDoClienteGateway implements ParcelamentosDoCli
   async listarEmAberto(clienteId: string): Promise<Result<ParcelamentoDoCliente[], AppError>> {
     const { data, error } = await this.supabaseAdmin
       .from("cliente_parcelamentos")
-      .select(
-        "id, codigo, interno, valor_parcela_centavos, parcelas_restantes, cliente_parcelamento_envios(parcela)",
-      )
+      .select(COLUNAS_DO_PARCELAMENTO)
       .eq("cliente_id", clienteId)
       .eq("situacao", "em_aberto")
       .gt("parcelas_restantes", 0)
@@ -53,16 +66,7 @@ export class SupabaseParcelamentosDoClienteGateway implements ParcelamentosDoCli
     if (error || !lidas.success) {
       return err(new ServicoExternoError("Falha ao ler os parcelamentos do Cliente."));
     }
-    return ok(
-      lidas.data.map((linha) => ({
-        id: linha.id,
-        codigo: linha.codigo,
-        interno: linha.interno,
-        valorParcelaCentavos: linha.valor_parcela_centavos,
-        parcelasRestantes: linha.parcelas_restantes,
-        parcelasEnviadas: linha.cliente_parcelamento_envios.map((envio) => envio.parcela),
-      })),
-    );
+    return ok(lidas.data.map(paraParcelamento));
   }
 
   async contarComuns(clienteId: string): Promise<Result<number, AppError>> {
