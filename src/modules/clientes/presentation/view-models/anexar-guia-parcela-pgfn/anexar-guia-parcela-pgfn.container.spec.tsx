@@ -162,7 +162,7 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
     // Quem confirma com leitor de tela ouve o que conferir junto do botão.
     expect(
-      screen.getByRole("button", { name: "Confirmar guia de 10/2026" }),
+      screen.getByRole("button", { name: "Confirmar e liberar guia de 10/2026 ao envio" }),
     ).toHaveAccessibleDescription(/conta do PDF .999. é diferente/);
   });
 
@@ -174,7 +174,9 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     confirmarMock.mockResolvedValue({ ok: true, data: undefined });
     const usuario = userEvent.setup();
     render();
-    const botao = await screen.findByRole("button", { name: "Confirmar guia de 10/2026" });
+    const botao = await screen.findByRole("button", {
+      name: "Confirmar e liberar guia de 10/2026 ao envio",
+    });
     listarMock.mockResolvedValue({
       ok: true,
       data: [{ competencia: "202610", contaNegociacao: "123456", estado: "confirmada" }],
@@ -373,7 +375,9 @@ describe("rótulo do botão durante a ação em curso", () => {
     confirmarMock.mockReturnValue(new Promise((resolve) => (concluir = resolve)));
     const usuario = userEvent.setup();
     render();
-    const confirmar = await screen.findByRole("button", { name: "Confirmar guia de 10/2026" });
+    const confirmar = await screen.findByRole("button", {
+      name: "Confirmar e liberar guia de 10/2026 ao envio",
+    });
 
     await usuario.click(confirmar);
 
@@ -453,7 +457,9 @@ describe("avisos de erro ao corrigir", () => {
     const usuario = userEvent.setup();
     render();
 
-    await usuario.click(await screen.findByRole("button", { name: "Confirmar guia de 10/2026" }));
+    await usuario.click(
+      await screen.findByRole("button", { name: "Confirmar e liberar guia de 10/2026 ao envio" }),
+    );
 
     expect(screen.getByLabelText(/conta de negociação/i)).toBeEnabled();
     expect(screen.getByLabelText(/competência/i)).toBeEnabled();
@@ -594,6 +600,24 @@ describe("trocar, remover e visualizar a guia anexada (#184)", () => {
     });
     expect(await regiao.findByText("Nenhuma guia anexada.")).toBeInTheDocument();
     expect(regiao.getByText("Guia removida.")).toBeInTheDocument();
+  });
+
+  it("o resultado de uma ação sobre a guia aparece junto da lista, antes do formulário de anexo", async () => {
+    removerMock.mockResolvedValue({ ok: true, data: undefined });
+    const usuario = userEvent.setup();
+    render();
+    const regiao = within(await regiaoDaGuia());
+    await usuario.click(await regiao.findByRole("button", { name: "Remover guia de 10/2026" }));
+    listarMock.mockResolvedValue({ ok: true, data: [] });
+    await usuario.click(
+      regiao.getByRole("button", { name: "Confirmar remoção da guia de 10/2026" }),
+    );
+
+    const aviso = await regiao.findByText("Guia removida.");
+    const campoDoPdf = regiao.getByLabelText(/pdf da guia/i);
+    expect(
+      aviso.compareDocumentPosition(campoDoPdf) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("cancelar a remoção não chama a action e devolve o foco ao botão Remover", async () => {

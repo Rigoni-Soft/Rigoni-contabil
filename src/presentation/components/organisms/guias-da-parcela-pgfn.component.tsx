@@ -52,6 +52,8 @@ type GuiasDaParcelaPgfnProps = {
   erroServidor?: string;
   // Sucesso, ou atenção (anexada mas "a confirmar": o que fazer; não é sucesso nem erro).
   resultado?: { tipo: "sucesso" | "atencao"; texto: string };
+  // Onde mostrar o erro e o resultado: junto do formulário (anexo) ou da lista (ações sobre uma guia).
+  avisoEm: "anexo" | "lista";
   onAnexar: () => void;
   onConfirmar: (competencia: string) => void;
   onTrocar: (competencia: string, arquivo: File) => void;
@@ -87,6 +89,7 @@ export function GuiasDaParcelaPgfn({
   anexando,
   erroServidor,
   resultado,
+  avisoEm,
   onAnexar,
   onConfirmar,
   onTrocar,
@@ -96,6 +99,15 @@ export function GuiasDaParcelaPgfn({
   onRemover,
   onVisualizar,
 }: GuiasDaParcelaPgfnProps) {
+  const avisos = (
+    <>
+      {erroServidor && <FieldError>{erroServidor}</FieldError>}
+      {resultado && (
+        <AvisoDeStatus tipo={resultado.tipo} texto={resultado.texto} className={AVISO_LEGIVEL} />
+      )}
+    </>
+  );
+
   return (
     <Pilha
       espaco={3}
@@ -153,11 +165,11 @@ export function GuiasDaParcelaPgfn({
                       size="sm"
                       aria-disabled={pendente || undefined}
                       onClick={() => onConfirmar(guia.competencia)}
-                      aria-label={`Confirmar guia de ${guia.rotulo}`}
+                      aria-label={`Confirmar e liberar guia de ${guia.rotulo} ao envio`}
                       aria-describedby={guia.motivo ? `${guia.id}-motivo` : undefined}
                       className={BOTAO_DA_GUIA}
                     >
-                      Confirmar
+                      Confirmar e liberar
                     </Button>
                   )}
                   <Linha alinhar="centro" espaco={1} quebra className="ml-auto">
@@ -188,7 +200,7 @@ export function GuiasDaParcelaPgfn({
                         {confirmando ? (
                           <>
                             <Texto variante="nota" role="alert">
-                              Apaga a guia e o PDF.
+                              Apaga a guia de {guia.rotulo} e o PDF, sem desfazer.
                             </Texto>
                             <Button
                               type="button"
@@ -237,6 +249,8 @@ export function GuiasDaParcelaPgfn({
           })}
         </Pilha>
       )}
+
+      {avisoEm === "lista" && avisos}
 
       <Pilha espaco={3}>
         <Texto variante="nota" id={`${id}-leitura`}>
@@ -287,10 +301,7 @@ export function GuiasDaParcelaPgfn({
         >
           {anexando ? "Enviando..." : "Anexar guia"}
         </Button>
-        {erroServidor && <FieldError>{erroServidor}</FieldError>}
-        {resultado && (
-          <AvisoDeStatus tipo={resultado.tipo} texto={resultado.texto} className={AVISO_LEGIVEL} />
-        )}
+        {avisoEm === "anexo" && avisos}
       </Pilha>
     </Pilha>
   );
