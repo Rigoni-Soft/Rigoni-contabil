@@ -87,9 +87,10 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
   async execute({ clienteId, telefone }: EntregarNaUraInput): Promise<Result<void, AppError>> {
     const emAberto = await this.parcelamentos.listarEmAberto(clienteId);
     if (!emAberto.ok) return emAberto;
-    const comuns = emAberto.value.filter((p) => !p.interno);
     const emAbertoPgfn = await this.pgfn.listarEmAberto(clienteId);
     if (!emAbertoPgfn.ok) return emAbertoPgfn;
+    // Interno nunca vai ao Cliente: some da resposta, como se não existisse.
+    const comuns = emAberto.value.filter((p) => !p.interno);
     const comunsPgfn = emAbertoPgfn.value.filter((p) => !p.interno);
     if (comuns.length === 0 && comunsPgfn.length === 0) {
       return this.avisarSemParcelamento(clienteId, telefone);
@@ -100,13 +101,14 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
     const falhas = await this.entregarTodos(clienteId, telefone, alvos);
     const pgfn = await this.entregarPgfn(clienteId, telefone, comunsPgfn);
     falhas.push(...pgfn.falhas);
-    const avisos = [
+    const textos = [
       falhas.length > 0 &&
         `Não conseguimos enviar a guia do parcelamento ${falhas.join(", ")}. Tente novamente em alguns minutos ou fale com o escritório.`,
       pgfn.indisponiveis.length > 0 &&
         `A guia do parcelamento ${pgfn.indisponiveis.join(", ")} ainda não está disponível. O escritório enviará assim que estiver.`,
-    ].filter((texto): texto is string => texto !== false);
-    for (const texto of avisos) {
+    ];
+    for (const texto of textos) {
+      if (!texto) continue;
       const enviado = await this.envio.enviar({ telefone, texto });
       if (!enviado.ok) return enviado;
     }

@@ -28,8 +28,10 @@ export function guiasPgfnAEntregar(
       const pendentes = parcelamento.guias.filter(
         (g) => g.competencia <= mes && !parcelamento.parcelasEnviadas.includes(g.competencia),
       );
-      const doMes = parcelamento.guias.filter((g) => g.competencia === mes);
-      const aEntregar = pendentes.length === 0 && reenviarDoMes ? doMes : pendentes;
+      const aEntregar =
+        pendentes.length === 0 && reenviarDoMes
+          ? parcelamento.guias.filter((g) => g.competencia === mes)
+          : pendentes;
       return aEntregar.map((g) => ({ ...g, parcelamento }));
     })
     .sort((a, b) => a.competencia.localeCompare(b.competencia));
