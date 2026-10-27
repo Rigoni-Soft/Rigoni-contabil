@@ -8,6 +8,7 @@ export type TipoAlertaSetor =
   | "contato_ausente"
   | "entrega_parcial"
   | "parcelamento_sem_guia"
+  | "guia_pgfn_pendente"
   | "financeiro_ausente";
 
 export type AlertaSetor = {

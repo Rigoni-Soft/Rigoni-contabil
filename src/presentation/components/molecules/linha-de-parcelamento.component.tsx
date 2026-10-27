@@ -26,6 +26,8 @@ type LinhaDeParcelamentoProps = {
   selo?: SeloDoParcelamento;
   // Nome do PDF já gravado; no Parcelamento novo, o campo de arquivo (controlado pelo formulário).
   arquivo: React.ReactNode;
+  // Guias mensais anexadas (só o Parcelamento PGFN já salvo); ausente nos demais.
+  guias?: React.ReactNode;
   // Quitado não se edita: os campos ficam desabilitados.
   desabilitado?: boolean;
   // Sem callback (visualização): o botão nem aparece. Com envio registrado, aparece bloqueado.
@@ -46,6 +48,7 @@ export function LinhaDeParcelamento({
   erroParcelas,
   selo,
   arquivo,
+  guias,
   desabilitado,
   onRemover,
   bloqueadoPorEnvio,
@@ -131,6 +134,7 @@ export function LinhaDeParcelamento({
         </Texto>
       )}
       {arquivo}
+      {guias}
     </Pilha>
   );
 }

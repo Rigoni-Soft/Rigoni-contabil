@@ -1,5 +1,7 @@
-import { FileText, Upload } from "lucide-react";
+import { FileText, Upload, X } from "lucide-react";
 
+import { Button } from "@/presentation/components/ui/button";
+import { descricaoDoCampo } from "@/presentation/lib/descricao-do-campo";
 import { cn } from "@/presentation/lib/utils";
 
 type FileInputProps = {
@@ -9,6 +11,8 @@ type FileInputProps = {
   file?: File;
   // Formato e limite, ditos antes de escolher (ex.: "PDF ou DOCX"), não só no erro depois.
   dica?: string;
+  // Campo secundário (ex.: anexo opcional ao lado de um principal): área baixa, em linha, para não repetir o peso da primeira.
+  compacto?: boolean;
   onChange: (file: File | undefined) => void;
   onBlur?: () => void;
   "aria-invalid"?: boolean;
@@ -33,61 +37,89 @@ export function FileInput({
   accept,
   file,
   dica,
+  compacto,
   onChange,
   onBlur,
   "aria-invalid": ariaInvalid,
   "aria-describedby": ariaDescribedby,
 }: FileInputProps) {
   return (
-    <label
-      htmlFor={id}
-      onDragOver={(evento) => arrastando(evento, true)}
-      onDragLeave={(evento) => arrastando(evento, false)}
-      onDrop={(evento) => {
-        arrastando(evento, false);
-        onChange(evento.dataTransfer.files?.[0]);
-      }}
-      className={cn(
-        "flex min-h-28 w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed border-input bg-background px-3 py-3 text-center text-sm",
-        "transition-colors hover:bg-accent/50 data-[arrastando=true]:border-primary data-[arrastando=true]:bg-accent",
-        "*:pointer-events-none",
-        "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-background",
-        ariaInvalid && "border-destructive has-[:focus-visible]:ring-destructive",
-      )}
-    >
-      {file ? (
-        <FileText className="size-6 shrink-0 text-primary" aria-hidden="true" />
-      ) : (
-        <Upload className="size-6 shrink-0 text-muted-foreground" aria-hidden="true" />
-      )}
-      {/* O nome do arquivo escolhido entra no nome acessível do campo (é o estado); as instruções de
-          uso e a dica ficam fora dele (aria-hidden): o rótulo do campo já o nomeia, e ouvir
-          "Contrato social, arraste o arquivo aqui, ou clique para selecionar, PDF ou DOCX" é ruído. */}
-      <span
-        aria-hidden={file ? undefined : "true"}
+    <>
+      <label
+        htmlFor={id}
+        onDragOver={(evento) => arrastando(evento, true)}
+        onDragLeave={(evento) => arrastando(evento, false)}
+        onDrop={(evento) => {
+          arrastando(evento, false);
+          onChange(evento.dataTransfer.files?.[0]);
+        }}
         className={cn(
-          "max-w-full truncate",
-          file ? "font-medium text-foreground" : "text-muted-foreground",
+          "flex w-full cursor-pointer items-center justify-center rounded-md border border-dashed border-input bg-background px-3 py-3 text-center text-sm",
+          compacto ? "min-h-14 flex-row flex-wrap gap-x-3 gap-y-1" : "min-h-28 flex-col gap-1",
+          "transition-colors hover:bg-accent/50 data-[arrastando=true]:border-primary data-[arrastando=true]:bg-accent",
+          "*:pointer-events-none",
+          "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-background",
+          ariaInvalid && "border-destructive has-[:focus-visible]:ring-destructive",
         )}
       >
-        {file ? file.name : "Arraste o arquivo aqui"}
-      </span>
-      <span aria-hidden="true" className="contents text-xs text-muted-foreground">
-        <span>{file ? "Clique ou arraste para trocar" : "ou clique para selecionar"}</span>
-        {dica && <span>{dica}</span>}
-      </span>
-      <input
-        id={id}
-        name={name}
-        type="file"
-        accept={accept}
-        className="sr-only"
-        aria-invalid={ariaInvalid}
-        aria-describedby={ariaDescribedby}
-        onBlur={onBlur}
-        onClick={(evento) => (evento.currentTarget.value = "")}
-        onChange={(evento) => onChange(evento.target.files?.[0])}
-      />
-    </label>
+        {file ? (
+          <FileText className="size-6 shrink-0 text-primary" aria-hidden="true" />
+        ) : (
+          <Upload className="size-6 shrink-0 text-muted-foreground" aria-hidden="true" />
+        )}
+        {/* O nome do arquivo escolhido entra no nome acessível do campo (é o estado); as instruções de
+          uso e a dica ficam fora dele (aria-hidden): o rótulo do campo já o nomeia, e ouvir
+          "Contrato social, arraste o arquivo aqui, ou clique para selecionar, PDF ou DOCX" é ruído. */}
+        <span
+          aria-hidden={file ? undefined : "true"}
+          className={cn(
+            "max-w-full truncate",
+            file ? "font-medium text-foreground" : "text-muted-foreground",
+          )}
+        >
+          {file ? file.name : "Arraste o arquivo aqui"}
+        </span>
+        <span aria-hidden="true" className="contents text-xs text-muted-foreground">
+          <span>{file ? "Clique ou arraste para trocar" : "ou clique para selecionar"}</span>
+          {dica && <span>{dica}</span>}
+        </span>
+        {/* A dica (formato e limite) visível é aria-hidden; esta cópia só para leitor de tela a diz antes do erro. */}
+        {dica && (
+          <span id={`${id}-dica`} className="sr-only">
+            {dica}
+          </span>
+        )}
+        <input
+          id={id}
+          name={name}
+          type="file"
+          accept={accept}
+          className="sr-only"
+          aria-invalid={ariaInvalid}
+          aria-describedby={descricaoDoCampo(ariaDescribedby, dica && `${id}-dica`)}
+          onBlur={onBlur}
+          onClick={(evento) => (evento.currentTarget.value = "")}
+          onChange={(evento) => onChange(evento.target.files?.[0])}
+        />
+      </label>
+      {/* Fora do <label>: o clique no botão não pode abrir o seletor. Escolheu o arquivo errado, tira. */}
+      {file && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="self-start pointer-coarse:min-h-11"
+          aria-label={`Remover arquivo ${file.name}`}
+          onClick={() => {
+            onChange(undefined);
+            // O botão some ao limpar: o foco volta ao campo, não ao body.
+            document.getElementById(id)?.focus();
+          }}
+        >
+          <X aria-hidden="true" className="size-4" />
+          Remover arquivo
+        </Button>
+      )}
+    </>
   );
 }

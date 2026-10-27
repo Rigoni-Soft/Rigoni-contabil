@@ -10,6 +10,10 @@
       "schedule": "0 11 1,5,10,15 * *"
     },
     {
+      "path": "/api/jobs/lembretes-pgfn",
+      "schedule": "0 11 1,10,15 * *"
+    },
+    {
       "path": "/api/jobs/parcelamento",
       "schedule": "0 11 20,22,24,26,28 * *"
     }

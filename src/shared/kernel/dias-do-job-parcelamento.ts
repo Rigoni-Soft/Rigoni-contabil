@@ -11,3 +11,6 @@ export const primeiroDiaEmAtraso = (agora: Date): number =>
 
 // Hoje (São Paulo) já é dia de atraso: a parcela do mês ainda sem envio é atraso nosso.
 export const jaEmAtraso = (agora: Date): boolean => diaDoMes(agora) >= primeiroDiaEmAtraso(agora);
+
+// A frase que a tela diz quando uma guia é liberada: quando ela sai.
+export const TEXTO_ENVIO_AUTOMATICO = `Sai no envio automático (dias ${DIAS_DO_JOB_PARCELAMENTO.join(", ")}) ou quando o Cliente pedir`;

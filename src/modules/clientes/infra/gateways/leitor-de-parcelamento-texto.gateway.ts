@@ -1,9 +1,9 @@
-import { extractText, getDocumentProxy } from "unpdf";
-
-import type {
+﻿import type {
   LeitorDeParcelamentoPort,
   LeituraDeParcelamento,
 } from "@/modules/clientes/application/ports/out/leitor-de-parcelamento.provider";
+
+import { centavos, dataIso, extrairTextoDoPdf, pega } from "./leitura-pdf.gateway";
 
 // O que cada parser lê; `interpretar` completa o que é igual nos dois modelos (CNPJ e o total de parcelas).
 type Lida = Omit<
@@ -12,16 +12,6 @@ type Lida = Omit<
 > & { parcelas: number };
 
 const ILEGIVEL: LeituraDeParcelamento = { lido: false, motivo: "ilegivel" };
-
-async function extrairTextoDoPdf(pdf: Uint8Array): Promise<string> {
-  const documento = await getDocumentProxy(new Uint8Array(pdf));
-  return (await extractText(documento, { mergePages: true })).text;
-}
-
-const pega = (texto: string, re: RegExp) => re.exec(texto)?.[1];
-const centavos = (v?: string) =>
-  v ? Math.round(Number(v.replace(/\./g, "").replace(",", ".")) * 100) : null;
-const dataIso = (v?: string) => (v ? v.split("/").reverse().join("-") : null);
 
 // Recibo de Adesão ao Parcelamento do Simples Nacional (Receita Federal): não imprime código.
 function lerReceita(texto: string): Lida | null {

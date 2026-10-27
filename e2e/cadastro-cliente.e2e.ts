@@ -1,12 +1,5 @@
 import { expect, test } from "./fixtures";
-import { cnpjUnico, empresaUnica } from "./support/criar-cliente";
-
-async function login(page: import("@playwright/test").Page, email: string, senha: string) {
-  await page.goto("/login");
-  await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill(senha);
-  await page.getByRole("button", { name: "Entrar" }).click();
-}
+import { cnpjUnico, empresaUnica, login } from "./support/criar-cliente";
 
 function pdf(nome: string) {
   return { name: nome, mimeType: "application/pdf", buffer: Buffer.from("conteúdo de teste") };

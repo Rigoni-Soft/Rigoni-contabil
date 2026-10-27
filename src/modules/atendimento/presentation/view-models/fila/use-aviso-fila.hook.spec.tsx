@@ -102,9 +102,9 @@ describe("useAvisoFila", () => {
   it("toca quando alguém entra na Fila, em qualquer tela, e não repete se nada mudou", async () => {
     pathname = "/atendimento/at-1";
     acao.mockResolvedValue({ ok: true, data: [item("a")] });
-    const { reler } = renderizar();
-    await waitFor(() => expect(acao).toHaveBeenCalledTimes(1));
-    await act(async () => {}); // a primeira leitura chega ao hook antes da segunda
+    const { result, reler } = renderizar();
+    // a primeira leitura chega ao hook (e ao efeito que a registra) antes da segunda
+    await waitFor(() => expect(result.current.aviso).not.toBeNull());
 
     acao.mockResolvedValue({ ok: true, data: [item("a"), item("b")] });
     await reler();
@@ -116,9 +116,8 @@ describe("useAvisoFila", () => {
 
   it("saída da Fila não toca", async () => {
     acao.mockResolvedValue({ ok: true, data: [item("a"), item("b")] });
-    const { reler } = renderizar();
-    await waitFor(() => expect(acao).toHaveBeenCalledTimes(1));
-    await act(async () => {});
+    const { result, reler } = renderizar();
+    await waitFor(() => expect(result.current.aviso).not.toBeNull());
 
     acao.mockResolvedValue({ ok: true, data: [item("b")] });
     await reler();

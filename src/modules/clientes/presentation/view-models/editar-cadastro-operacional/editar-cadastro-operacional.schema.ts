@@ -89,6 +89,8 @@ export const parcelamentoFormSchema = z
     enviadoNoMes: z.boolean(),
     arquivoNome: z.string(),
     arquivo: z.instanceof(File).optional(),
+    // Primeira guia do Parcelamento PGFN novo: sobe por Server Action própria, depois de salvar.
+    guia: pdfDoAcordo.optional(),
     acordo: acordoDoPdf.optional(),
   })
   .superRefine((p, ctx) => {

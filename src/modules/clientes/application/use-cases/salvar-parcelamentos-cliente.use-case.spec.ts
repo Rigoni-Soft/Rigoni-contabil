@@ -255,6 +255,30 @@ describe("SalvarParcelamentosCliente", () => {
     });
   });
 
+  it("Parcelamento PGFN cadastrado volta intacto: código, origem, interno e restantes são fixos", async () => {
+    const pgfn = salvo({
+      acordo: {
+        origem: "pgfn",
+        totalDeParcelas: 60,
+        valorDaParcelaCentavos: 26289,
+        dataDeAdesao: "2026-01-15",
+      },
+    });
+    const { caso, gravar } = montar({ existentes: [pgfn] });
+
+    const r = await caso.execute(
+      entrada([{ id: pgfn.id, codigo: "OUTRO", parcelasRestantes: 7, interno: true }]),
+    );
+
+    expect(r.ok).toBe(true);
+    expect(gravar.mock.calls[0][1][0]).toMatchObject({
+      codigo: "A-1",
+      parcelasRestantes: 10,
+      interno: false,
+      acordo: { origem: "pgfn" },
+    });
+  });
+
   it("remover apaga o PDF do Parcelamento depois de gravar", async () => {
     const existente = salvo();
     const { caso, gravar, storage } = montar({ existentes: [existente] });

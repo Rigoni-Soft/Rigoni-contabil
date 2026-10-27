@@ -1,18 +1,12 @@
 import { expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
+import { login } from "./support/criar-cliente";
 
 const admin = adminLocal();
 
 // Locators presos ao alvo do seed ("funcionario.sn@..."/"CNPJ de teste"), não a
 // textos genéricos como "usuario.criar": outros e2e (ex.: cadastro-usuario)
 // também gravam auditoria de verdade e duplicariam um texto solto.
-
-async function login(page: import("@playwright/test").Page, email: string, senha: string) {
-  await page.goto("/login");
-  await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill(senha);
-  await page.getByRole("button", { name: "Entrar" }).click();
-}
 
 function linhaSucessoSeed(page: import("@playwright/test").Page) {
   return page.getByRole("row").filter({ hasText: "funcionario.sn@rigonicontabil.local" });

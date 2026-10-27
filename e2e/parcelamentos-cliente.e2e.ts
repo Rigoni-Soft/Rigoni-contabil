@@ -54,7 +54,7 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
       "1",
     );
     await page.locator("[id='parcelamentos.0.parcelasRestantes']").fill("24");
-    await page.getByRole("button", { name: "Salvar" }).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
     await expect(page.getByText("Anexe o PDF do parcelamento")).toBeVisible();
 
     await anexarEEsperarSugestao(page, 0, pdf("acordo-100.pdf"));
@@ -71,7 +71,7 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
       page.getByRole("status").filter({ hasText: "Tem parcelamento: Não" }),
     ).toBeVisible();
 
-    await page.getByRole("button", { name: "Salvar" }).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
     await expect(page).toHaveURL("/simples-nacional");
 
     // Persistiu: resumo, códigos, interno, selo do mês e nome do PDF.
@@ -84,15 +84,16 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
     await expect(page.getByText("Pendente no mês")).toHaveCount(2);
     await expect(page.getByText(/PDF anexado: acordo-100\.pdf/)).toBeVisible();
 
-    // Edita as parcelas e remove o segundo (o PDF dele sai do Storage junto).
-    await page.locator("[id='parcelamentos.0.parcelasRestantes']").fill("20");
+    // O leitor falso lê todo acordo como PGFN: cadastrado, ele não se edita (só ganha guias, #184).
+    await expect(page.locator("[id='parcelamentos.0.parcelasRestantes']")).toBeDisabled();
+    // Remove o segundo (o PDF dele sai do Storage junto).
     await page.getByRole("button", { name: "Remover parcelamento 2" }).click();
-    await page.getByRole("button", { name: "Salvar" }).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
     await expect(page).toHaveURL("/simples-nacional");
 
     await page.goto(`/clientes/${clienteId}`);
     await expect(page.getByRole("status").filter({ hasText: "Sim (1)" })).toBeVisible();
-    await expect(page.locator("[id='parcelamentos.0.parcelasRestantes']")).toHaveValue("20");
+    await expect(page.locator("[id='parcelamentos.0.parcelasRestantes']")).toHaveValue("24");
     const { data: objetos } = await adminLocal()
       .storage.from("parcelamentos-clientes")
       .list(clienteId);
@@ -122,7 +123,7 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
 
     // Corrige a sugestão da primeira linha e salva.
     await page.locator("[id='parcelamentos.0.parcelasRestantes']").fill("10");
-    await page.getByRole("button", { name: "Salvar" }).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
     await expect(page).toHaveURL("/simples-nacional");
 
     await page.goto(`/clientes/${clienteId}`);
@@ -145,7 +146,7 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
     await expect(
       page.getByRole("alert").filter({ hasText: /CNPJ do PDF é diferente/ }),
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: "Salvar" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Salvar", exact: true })).toBeEnabled();
   });
 
   test("leitura que falha libera os campos para digitar à mão (#125)", async ({ page }) => {
@@ -155,10 +156,10 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
       .setInputFiles(pdf("ilegivel.pdf", "[leitor:falha]"));
 
     await expect(page.getByText("não consegui ler: digite à mão")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Salvar" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Salvar", exact: true })).toBeEnabled();
     await page.locator("[id='parcelamentos.0.codigo']").fill("MANUAL-1");
     await page.locator("[id='parcelamentos.0.parcelasRestantes']").fill("3");
-    await page.getByRole("button", { name: "Salvar" }).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
     await expect(page).toHaveURL("/simples-nacional");
 
     await page.goto(`/clientes/${clienteId}`);
@@ -171,7 +172,7 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
     const clienteId = await abrirComoFuncionarioSn(page, "Parcelamento Enviado E2E Ltda");
     await anexarEEsperarSugestao(page, 0, pdf("acordo-300.pdf"));
     await page.locator("[id='parcelamentos.0.codigo']").fill("PARC-300");
-    await page.getByRole("button", { name: "Salvar" }).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
     await expect(page).toHaveURL("/simples-nacional");
 
     // Quem registra o envio é o sistema (job, sem sessão): aqui, a chave de serviço.
@@ -213,11 +214,121 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
     await page.goto(`/clientes/${clienteId}`);
     await expect(page.getByText("Quitado", { exact: true })).toBeVisible();
     await page.locator("[id='parcelamentos.1.parcelasRestantes']").fill("4");
-    await page.getByRole("button", { name: "Salvar" }).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
     await expect(page).toHaveURL("/simples-nacional");
 
     await page.goto(`/clientes/${clienteId}`);
     await expect(page.locator("[id='parcelamentos.1.parcelasRestantes']")).toHaveValue("4");
     await expect(page.locator("[id='parcelamentos.0.parcelasRestantes']")).toHaveValue("0");
+  });
+});
+
+test.describe("Parcelamento da Receita cadastrado segue editável (#184)", () => {
+  test("edita parcelas e código; só o PGFN ficou imutável @smoke", async ({ page }) => {
+    const clienteId = await abrirComoFuncionarioSn(page, "Parcelamento Receita E2E Ltda");
+    const id = crypto.randomUUID();
+    const { error } = await adminLocal()
+      .from("cliente_parcelamentos")
+      .insert({
+        id,
+        cliente_id: clienteId,
+        codigo: "RFB-100",
+        parcelas_restantes: 10,
+        interno: false,
+        arquivo_caminho: `${clienteId}/${id}-receita.pdf`,
+        origem: "receita_federal",
+        total_parcelas: 12,
+        valor_parcela_centavos: 10000,
+        data_adesao: "2026-01-27",
+      });
+    expect(error).toBeNull();
+    await page.goto(`/clientes/${clienteId}`);
+    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+
+    await expect(page.locator("[id='parcelamentos.0.codigo']")).toBeEnabled();
+    await page.locator("[id='parcelamentos.0.codigo']").fill("RFB-200");
+    await page.locator("[id='parcelamentos.0.parcelasRestantes']").fill("8");
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
+    await expect(page).toHaveURL("/simples-nacional");
+
+    await page.goto(`/clientes/${clienteId}`);
+    await expect(page.locator("[id='parcelamentos.0.codigo']")).toHaveValue("RFB-200");
+    await expect(page.locator("[id='parcelamentos.0.parcelasRestantes']")).toHaveValue("8");
+  });
+});
+
+test.describe("Guia anexada da parcela PGFN: trocar, visualizar e remover (#184)", () => {
+  test("troca, abre por link temporário, remove e o acordo cadastrado só ganha guias @smoke", async ({
+    page,
+  }) => {
+    const clienteId = await abrirComoFuncionarioSn(page, "Guia Parcela E2E Ltda");
+    const { data: cliente } = await adminLocal()
+      .from("clientes")
+      .select("cnpj")
+      .eq("id", clienteId)
+      .single();
+    // O leitor falso lê o acordo como PGFN (código FALSO-123456); a guia confirma quando o PDF traz
+    // o CNPJ do Cliente, a conta do acordo e a competência.
+    const guia = (competencia: string) =>
+      pdf(`guia-${competencia}.pdf`, `[leitor:guia=${cliente!.cnpj};FALSO-123456;${competencia}]`);
+    await anexarEEsperarSugestao(page, 0, pdf("acordo-guia.pdf"));
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
+    await expect(page).toHaveURL("/simples-nacional");
+    await page.goto(`/clientes/${clienteId}`);
+    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+
+    // Acordo PGFN cadastrado só ganha guias: código, restantes e "É interno" não se editam.
+    await expect(page.locator("[id='parcelamentos.0.codigo']")).toBeDisabled();
+    await expect(page.locator("[id='parcelamentos.0.parcelasRestantes']")).toBeDisabled();
+    await expect(page.getByRole("checkbox", { name: "É interno" })).toBeDisabled();
+
+    const regiao = page.getByRole("group", { name: "Guias da parcela" });
+    // O aviso sai antes de a lista recarregar: agir nesse meio-tempo cai no "Aguarde", não na ação.
+    const livre = () => expect(regiao).not.toHaveAttribute("aria-busy", "true");
+    await regiao.getByLabel(/pdf da guia/i).setInputFiles(guia("202610"));
+    await regiao.getByRole("button", { name: "Anexar guia" }).click();
+    await expect(regiao.getByText("Guia anexada e confirmada: liberada ao envio.")).toBeVisible();
+    await expect(regiao.getByText(/10\/2026 · conta FALSO-123456/)).toBeVisible();
+
+    // Troca por um PDF que não confere: a guia volta a "a confirmar" e o motivo aparece.
+    await livre();
+    await regiao.getByLabel("Trocar guia de 10/2026").setInputFiles(pdf("guia-sem-dados.pdf"));
+    await expect(regiao.getByText(/guia trocada, mas ainda não liberada/i)).toBeVisible();
+    await expect(regiao.getByText("A confirmar")).toBeVisible();
+    // Troca por um PDF de outro mês é recusada e a guia fica como estava.
+    await livre();
+    await regiao.getByLabel("Trocar guia de 10/2026").setInputFiles(guia("202611"));
+    await expect(regiao.getByText(/PDF é de outra competência/i)).toBeVisible();
+    await expect(regiao.getByText("A confirmar")).toBeVisible();
+    await livre();
+    await regiao.getByLabel("Trocar guia de 10/2026").setInputFiles(guia("202610"));
+    await expect(regiao.getByText(/guia trocada e confirmada/i)).toBeVisible();
+    // Só o PDF atual sobra no Storage (o antigo é apagado a cada troca).
+    const { data: parcelamento } = await adminLocal()
+      .from("cliente_parcelamentos")
+      .select("id")
+      .eq("cliente_id", clienteId)
+      .single();
+    const prefixo = `${clienteId}/guias-pgfn/${parcelamento!.id}`;
+    const objetos = () => adminLocal().storage.from("parcelamentos-clientes").list(prefixo);
+    expect((await objetos()).data).toHaveLength(1);
+
+    // Visualizar: o link temporário abre numa aba nova.
+    await livre();
+    const [requisicao] = await Promise.all([
+      page
+        .context()
+        .waitForEvent("request", (r) => r.url().includes("/object/sign/parcelamentos-clientes/")),
+      regiao.getByRole("button", { name: "Ver guia de 10/2026", exact: true }).click(),
+    ]);
+    expect(requisicao.url()).toContain("token=");
+
+    // Remover apaga o registro e o objeto.
+    await livre();
+    await regiao.getByRole("button", { name: "Remover guia de 10/2026" }).click();
+    await regiao.getByRole("button", { name: "Confirmar remoção da guia de 10/2026" }).click();
+    await expect(regiao.getByText("Guia removida.")).toBeVisible();
+    await expect(regiao.getByText("Nenhuma guia anexada.")).toBeVisible();
+    expect((await objetos()).data).toHaveLength(0);
   });
 });

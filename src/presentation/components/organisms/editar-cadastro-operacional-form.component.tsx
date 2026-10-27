@@ -66,6 +66,8 @@ export type ParcelamentoLinha = {
   enviadoNoMes: boolean;
   arquivoNome: string;
   arquivo?: File;
+  // Primeira guia do mês (só no Parcelamento PGFN novo); sobe depois de salvar.
+  guia?: File;
   // Dados lidos do PDF; o Container os resume numa linha (`acordoResumo`) para exibir.
   acordo?: {
     origem: "receita_federal" | "pgfn" | null;
@@ -152,6 +154,9 @@ type EditarCadastroOperacionalFormProps = {
   onCancelar?: () => void;
   // Cartão do documento contratual com "Abrir em nova aba" (só leitura); ausente = ator sem acesso.
   documentoContratual?: React.ReactNode;
+  // Guias mensais de um Parcelamento PGFN já salvo: o Container monta a região (ela tem estado próprio).
+  // `codigo` nomeia a região de cada Parcelamento para o leitor de tela.
+  guiasDaParcela?: (parcelamentoId: string, codigo: string, interno: boolean) => React.ReactNode;
 };
 
 export function EditarCadastroOperacionalForm({
@@ -179,6 +184,7 @@ export function EditarCadastroOperacionalForm({
   onLimpar,
   onCancelar,
   documentoContratual,
+  guiasDaParcela,
 }: EditarCadastroOperacionalFormProps) {
   return (
     <Pilha
@@ -361,11 +367,21 @@ export function EditarCadastroOperacionalForm({
                 erroCodigo={erros?.codigo?.message}
                 erroParcelas={erros?.parcelasRestantes?.message}
                 selo={seloDoParcelamento(atual)}
-                desabilitado={atual.quitado || leitura?.estado === "lendo"}
+                // Quitado e PGFN cadastrado não se editam (o PGFN só ganha guias): o servidor ignora o que vier.
+                desabilitado={
+                  atual.quitado ||
+                  (Boolean(atual.id) && atual.acordo?.origem === "pgfn") ||
+                  leitura?.estado === "lendo"
+                }
                 onRemover={
                   readOnly || atual.temEnvio ? undefined : () => onRemoverParcelamento(indice)
                 }
                 bloqueadoPorEnvio={!readOnly && atual.temEnvio}
+                guias={
+                  !readOnly && atual.id && atual.acordo?.origem === "pgfn" && !atual.quitado
+                    ? guiasDaParcela?.(atual.id, atual.codigo, atual.interno)
+                    : undefined
+                }
                 arquivo={
                   atual.id ? (
                     <>
@@ -408,6 +424,26 @@ export function EditarCadastroOperacionalForm({
                         </FieldError>
                       )}
                       {atual.acordoResumo && <Texto variante="nota">{atual.acordoResumo}</Texto>}
+                      {atual.acordo?.origem === "pgfn" && (
+                        <Controller
+                          control={control}
+                          name={`parcelamentos.${indice}.guia`}
+                          render={({ field: { onChange, onBlur, value, name } }) => (
+                            <CampoDeArquivo
+                              id={`parcelamentos.${indice}.guia`}
+                              rotulo="PDF da guia (opcional)"
+                              name={name}
+                              accept="application/pdf"
+                              dica="PDF até 4 MB. Sobe ao salvar; depois anexe as demais em Guias da parcela."
+                              compacto
+                              file={value}
+                              onChange={onChange}
+                              onBlur={onBlur}
+                              erro={erros?.guia?.message}
+                            />
+                          )}
+                        />
+                      )}
                     </>
                   )
                 }
@@ -421,7 +457,8 @@ export function EditarCadastroOperacionalForm({
             </FieldError>
           )}
           <Texto variante="nota">
-            Parcelamentos da PGFN ficam fora do envio automático: o envio da guia é manual.
+            Parcelamento da PGFN: a guia de cada mês é anexada aqui, confirmada à mão e segue ao
+            Cliente pelo envio automático.
           </Texto>
         </Pilha>
 

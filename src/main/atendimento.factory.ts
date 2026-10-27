@@ -15,6 +15,7 @@ import {
   FINANCEIRO_TELEFONE,
   INATIVIDADE_AUTOMATICA,
   LEMBRETES_AUTOMATICOS,
+  LEMBRETES_PGFN_AUTOMATICOS,
   MENSAGERIA_MODO,
   MENSAGERIA_SEGREDO_ASSINATURA,
   MENSAGERIA_SEGREDO_SESSAO,
@@ -42,6 +43,7 @@ import type { EnviarDocumentoAoClientePort } from "@/modules/atendimento/applica
 import type { EnviarMensagemAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-mensagem-ao-cliente.provider";
 import type { ExecutarEnvioGuiaParcelamentoPort } from "@/modules/atendimento/application/ports/in/executar-envio-guia-parcelamento.provider";
 import type { ExecutarLembretesDocumentoEDasPort } from "@/modules/atendimento/application/ports/in/executar-lembretes-documento-e-das.provider";
+import type { ExecutarLembretesParcelamentoPgfnPort } from "@/modules/atendimento/application/ports/in/executar-lembretes-parcelamento-pgfn.provider";
 import type {
   CadastrarFeriadoPort,
   ListarFeriadosPort,
@@ -79,6 +81,7 @@ import { EnviarGuiasParcelamento } from "@/modules/atendimento/application/use-c
 import { EnviarMensagemAoCliente } from "@/modules/atendimento/application/use-cases/enviar-mensagem-ao-cliente.use-case";
 import { ExecutarEnvioGuiaParcelamento } from "@/modules/atendimento/application/use-cases/executar-envio-guia-parcelamento.use-case";
 import { ExecutarLembretesDocumentoEDas } from "@/modules/atendimento/application/use-cases/executar-lembretes-documento-e-das.use-case";
+import { ExecutarLembretesParcelamentoPgfn } from "@/modules/atendimento/application/use-cases/executar-lembretes-parcelamento-pgfn.use-case";
 import { ListarFeriados } from "@/modules/atendimento/application/use-cases/listar-feriados.use-case";
 import { ListarFila } from "@/modules/atendimento/application/use-cases/listar-fila.use-case";
 import { ListarMeusAtendimentos } from "@/modules/atendimento/application/use-cases/listar-meus-atendimentos.use-case";
@@ -107,6 +110,7 @@ import { resolverFfmpeg } from "@/modules/atendimento/infra/gateways/resolver-ff
 import { SupabaseAlertaSetorGateway } from "@/modules/atendimento/infra/gateways/supabase-alerta-setor.gateway";
 import { SupabaseAnexosAtendimentoGateway } from "@/modules/atendimento/infra/gateways/supabase-anexos-atendimento.gateway";
 import { SupabaseClienteCnpjGateway } from "@/modules/atendimento/infra/gateways/supabase-cliente-cnpj.gateway";
+import { SupabaseClientesComParcelamentoPgfnGateway } from "@/modules/atendimento/infra/gateways/supabase-clientes-com-parcelamento-pgfn.gateway";
 import { SupabaseClientesParaLembreteGateway } from "@/modules/atendimento/infra/gateways/supabase-clientes-para-lembrete.gateway";
 import { SupabaseClientesParaParcelamentoGateway } from "@/modules/atendimento/infra/gateways/supabase-clientes-para-parcelamento.gateway";
 import { SupabaseDocumentosContratuaisGateway } from "@/modules/atendimento/infra/gateways/supabase-documentos-contratuais.gateway";
@@ -314,6 +318,11 @@ export function lembretesAutomaticosAtivos(): boolean {
   return jobAutomaticoAtivo(LEMBRETES_AUTOMATICOS);
 }
 
+// Só alerta o setor, não fala com o Cliente: vale a flag, sem a exigência de mensageria real.
+export function lembretesParcelamentoPgfnAtivos(): boolean {
+  return LEMBRETES_PGFN_AUTOMATICOS === "ligada";
+}
+
 // Job (service_role, sem sessão de usuário): a URA verifica a inatividade dos Atendimentos.
 export function makeVerificarInatividade(): VerificarInatividadePort {
   const supabaseAdmin = createSupabaseAdmin();
@@ -354,6 +363,16 @@ export function makeExecutarLembretesDocumentoEDas(): ExecutarLembretesDocumento
       makeEnvioEmail(),
     ),
     new SupabaseAlertaSetorGateway(supabaseAdmin, "lembretes"),
+    new RelogioSistemaGateway(),
+  );
+}
+
+// Job (service_role, sem sessão de usuário): lembrete dos Parcelamentos PGFN sem guia do mês.
+export function makeExecutarLembretesParcelamentoPgfn(): ExecutarLembretesParcelamentoPgfnPort {
+  const supabaseAdmin = createSupabaseAdmin();
+  return new ExecutarLembretesParcelamentoPgfn(
+    new SupabaseClientesComParcelamentoPgfnGateway(supabaseAdmin),
+    new SupabaseAlertaSetorGateway(supabaseAdmin, "lembrete_pgfn"),
     new RelogioSistemaGateway(),
   );
 }

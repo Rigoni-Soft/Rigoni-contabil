@@ -15,6 +15,8 @@ import type { DocumentoContratualVisivelDto } from "@/modules/clientes/applicati
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { REGIME_LABEL, regimeTemCadastroOperacionalSn } from "@/shared/kernel/regimes";
 
+import { anexarGuiaParcelaPgfnAction } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.actions";
+import { AnexarGuiaParcelaPgfnContainer } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.container";
 import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
 import { atribuirResponsavelAction } from "./atribuir-responsavel.actions";
 import { editarCadastroOperacionalAction } from "./editar-cadastro-operacional.actions";
@@ -205,13 +207,44 @@ export function EditarCadastroOperacionalContainer({
         etapa = "salvar os Parcelamentos";
         const salvos = await salvarParcelamentosAction({
           clienteId: dados.id,
-          parcelamentos: valores.parcelamentos,
+          // A guia sobe à parte, depois: o corpo desta chamada tem o teto de 4,5 MB.
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          parcelamentos: valores.parcelamentos.map(({ guia: _guia, ...p }) => p),
         });
         if (!salvos.ok) {
           setErroServidor(
             `Os dados foram salvos, mas não foi possível salvar os Parcelamentos. ${salvos.error.message}`,
           );
           return;
+        }
+
+        // Os ids voltam para as linhas antes de anexar: uma nova tentativa (guia recusada, falha de
+        // transporte) atualiza os acordos já salvos, em vez de recriá-los e apagar suas guias em cascata.
+        // `ids` segue a lista enviada, sem as linhas em branco: o índice da tela vem do mesmo descarte do resolver.
+        const indicesNaTela = descartarLinhasEmBranco(getValues()).parcelamentos;
+        salvos.data.ids.forEach((id, indice) =>
+          setValue(`parcelamentos.${indicesNaTela[indice]}.id`, id),
+        );
+
+        // Guia recusada (ex.: CNPJ de outra empresa) não desfaz o Parcelamento: avisa e a guia se anexa na linha.
+        etapa = "anexar a guia";
+        for (const [indice, linha] of valores.parcelamentos.entries()) {
+          // O campo some se o PDF do acordo passa a não ser da PGFN, mas o arquivo escolhido fica no formulário.
+          if (!linha.guia || linha.acordo?.origem !== "pgfn") continue;
+          const guia = await anexarGuiaParcelaPgfnAction({
+            parcelamentoId: salvos.data.ids[indice],
+            arquivo: linha.guia,
+          });
+          // Anexada ou recusada, a guia sai do formulário: a linha já é um acordo salvo (sem o campo da
+          // guia) e a retentativa não reenvia o arquivo; a recusada se anexa em "Guias da parcela".
+          const tela = getValues("parcelamentos").findIndex((p) => p.guia === linha.guia);
+          if (tela >= 0) setValue(`parcelamentos.${tela}.guia`, undefined);
+          if (!guia.ok) {
+            setErroServidor(
+              `O Parcelamento foi salvo, mas a guia não foi anexada. ${guia.error.message} Anexe-a em "Guias da parcela", na linha do Parcelamento.`,
+            );
+            return;
+          }
         }
       }
       etapa = "atribuir o Responsável";
@@ -316,6 +349,13 @@ export function EditarCadastroOperacionalContainer({
       }
       onLimpar={aoLimpar}
       onCancelar={onCancelar}
+      guiasDaParcela={(parcelamentoId, codigo, interno) => (
+        <AnexarGuiaParcelaPgfnContainer
+          parcelamentoId={parcelamentoId}
+          codigo={codigo}
+          interno={interno}
+        />
+      )}
       documentoContratual={
         <DocumentoContratualDoClienteContainer
           clienteId={dados.id}
