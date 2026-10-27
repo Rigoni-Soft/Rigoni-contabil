@@ -25,6 +25,6 @@ export class ConfirmarGuiaParcelaPgfn implements ConfirmarGuiaParcelaPgfnPort {
         ),
       );
     }
-    return this.guias.confirmar(input.parcelamentoId, input.competencia);
+    return this.guias.confirmar(input.parcelamentoId, input.competencia, input.versao);
   }
 }

@@ -23,6 +23,7 @@ type Tabela = ReturnType<SupabaseClient["from"]>;
 type GuiaRow = {
   competencia: string;
   conta_negociacao: string;
+  arquivo_caminho: string;
   estado: GuiaDaParcela["estado"];
   motivo: string | null;
 };
@@ -62,7 +63,7 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
   async listar(parcelamentoId: string): Promise<Result<GuiaDaParcela[], AppError>> {
     const { data, error } = await this.supabase
       .from("cliente_parcelamento_guias")
-      .select("competencia, conta_negociacao, estado, motivo")
+      .select("competencia, conta_negociacao, arquivo_caminho, estado, motivo")
       .eq("parcelamento_id", parcelamentoId)
       .order("competencia", { ascending: false });
     if (error) {
@@ -82,6 +83,7 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
       (data as GuiaRow[]).map((g) => ({
         competencia: g.competencia,
         contaNegociacao: g.conta_negociacao,
+        versao: g.arquivo_caminho,
         estado: g.estado,
         motivo: g.motivo ?? undefined,
         enviada: enviadas.has(g.competencia),
@@ -118,13 +120,18 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
     );
   }
 
-  async confirmar(parcelamentoId: string, competencia: string): Promise<Result<void, AppError>> {
+  async confirmar(
+    parcelamentoId: string,
+    competencia: string,
+    versao: string,
+  ): Promise<Result<void, AppError>> {
     // `.select()` devolve as linhas atualizadas: RLS que esconde a guia não dá erro, dá zero linhas.
     const { data, error } = await this.supabase
       .from("cliente_parcelamento_guias")
       .update({ estado: "confirmada" })
       .eq("parcelamento_id", parcelamentoId)
       .eq("competencia", competencia)
+      .eq("arquivo_caminho", versao)
       .select("competencia");
     if (error) {
       console.error("Falha ao confirmar guia da parcela:", error.message);
@@ -137,7 +144,9 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
       );
     }
     if (data.length === 0) {
-      return err(new NotFoundError("Não encontramos esta guia. Atualize a página."));
+      return err(
+        new NotFoundError("A guia mudou ou não existe mais. Atualize a página e confira."),
+      );
     }
     return ok(undefined);
   }

@@ -29,6 +29,7 @@ describe("competenciaEmFalta", () => {
   const guia = (competencia: string) => ({
     competencia,
     contaNegociacao: "1",
+    versao: "v-1",
     estado: "confirmada" as const,
   });
 

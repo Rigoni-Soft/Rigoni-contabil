@@ -32,12 +32,17 @@ export const anexarGuiaParcelaPgfnSchema = z.object({
   arquivo: arquivoDaGuia,
 });
 
-export const confirmarGuiaParcelaPgfnSchema = z.object({
+// Trocar, remover e abrir a guia: a chave é a mesma da guia anexada. A troca refaz a leitura do PDF.
+export const chaveDaGuiaParcelaPgfnSchema = z.object({
   parcelamentoId: z.guid(),
   competencia,
 });
 
-// Confirmar, trocar, remover e abrir a guia: a chave é a mesma da guia anexada. A troca refaz a leitura do PDF.
-export const trocarGuiaParcelaPgfnSchema = confirmarGuiaParcelaPgfnSchema.extend({
+// Confirmar vale para a versão que a tela mostrava: se outro PDF entrou depois, a confirmação é recusada.
+export const confirmarGuiaParcelaPgfnSchema = chaveDaGuiaParcelaPgfnSchema.extend({
+  versao: z.string().min(1),
+});
+
+export const trocarGuiaParcelaPgfnSchema = chaveDaGuiaParcelaPgfnSchema.extend({
   arquivo: arquivoDaGuia,
 });

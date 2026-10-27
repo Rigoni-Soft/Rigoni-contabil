@@ -117,6 +117,7 @@ describe("AnexarGuiaParcelaPgfn", () => {
       value: {
         competencia: "202610",
         contaNegociacao: "123456",
+        versao: storage.enviados[0],
         estado: "a_confirmar",
         motivo: "Não consegui ler o PDF: confira a guia à mão.",
       },
@@ -165,18 +166,33 @@ describe("AnexarGuiaParcelaPgfn", () => {
     const SEM_DIGITADO = { ...INPUT, competencia: undefined, contaNegociacao: undefined };
 
     it("CNPJ, conta e competência conferindo: nasce confirmada na hora, sem digitar nada", async () => {
-      const { caso, anexar, confirmar, ler } = montar(PARCELAMENTO, LIDA_CONFERINDO);
+      const { caso, anexar, confirmar, ler, storage } = montar(PARCELAMENTO, LIDA_CONFERINDO);
 
       const resultado = await caso.execute(SEM_DIGITADO);
 
       expect(resultado).toEqual({
         ok: true,
-        value: { competencia: "202610", contaNegociacao: "150141670", estado: "confirmada" },
+        value: {
+          competencia: "202610",
+          contaNegociacao: "150141670",
+          versao: expect.stringMatching(/\/guias-pgfn\/.+\/202610-.+\.pdf$/),
+          estado: "confirmada",
+        },
       });
       expect(ler).toHaveBeenCalledWith(expect.any(Uint8Array));
       expect(anexar).toHaveBeenCalledTimes(1);
       expect(anexar).toHaveBeenCalledWith(PARCELAMENTO_ID, expect.anything(), null);
-      expect(confirmar).toHaveBeenCalledWith(PARCELAMENTO_ID, "202610");
+      // A confirmação vale só para a versão lida: o caminho do PDF gravado vai junto (F3 da PR #194).
+      expect(confirmar).toHaveBeenCalledWith(PARCELAMENTO_ID, "202610", storage.enviados[0]);
+    });
+
+    it("outro PDF entrou antes da confirmação: ela é recusada e a guia segue a confirmar", async () => {
+      const { caso, confirmar } = montar(PARCELAMENTO, LIDA_CONFERINDO);
+      confirmar.mockResolvedValue(err(new NotFoundError("A guia mudou.")));
+
+      const resultado = await caso.execute(SEM_DIGITADO);
+
+      expect(resultado).toMatchObject({ ok: true, value: { estado: "a_confirmar" } });
     });
 
     it("conta diferente da do Parcelamento: fica a confirmar, com o motivo", async () => {

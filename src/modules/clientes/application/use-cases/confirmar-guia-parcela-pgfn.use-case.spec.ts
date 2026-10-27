@@ -6,7 +6,11 @@ import { err, ok } from "@/shared/kernel/result";
 
 import { ConfirmarGuiaParcelaPgfn } from "./confirmar-guia-parcela-pgfn.use-case";
 
-const INPUT = { parcelamentoId: "d2d2d2d2-d2d2-4d2d-8d2d-d2d2d2d2d2d2", competencia: "202610" };
+const INPUT = {
+  parcelamentoId: "d2d2d2d2-d2d2-4d2d-8d2d-d2d2d2d2d2d2",
+  competencia: "202610",
+  versao: "caminho-conferido.pdf",
+};
 
 function montar(ator: { id: string; papel: string; setor: string } | null) {
   const confirmar = jest.fn().mockResolvedValue(ok(undefined));
@@ -24,7 +28,7 @@ describe("ConfirmarGuiaParcelaPgfn", () => {
     const { caso, confirmar } = montar({ id: "u-1", papel, setor });
 
     expect((await caso.execute(INPUT)).ok).toBe(true);
-    expect(confirmar).toHaveBeenCalledWith(INPUT.parcelamentoId, INPUT.competencia);
+    expect(confirmar).toHaveBeenCalledWith(INPUT.parcelamentoId, INPUT.competencia, INPUT.versao);
   });
 
   it.each([

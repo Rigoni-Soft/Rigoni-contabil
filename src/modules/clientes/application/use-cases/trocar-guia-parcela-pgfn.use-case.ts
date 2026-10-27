@@ -103,7 +103,7 @@ export class TrocarGuiaParcelaPgfn implements TrocarGuiaParcelaPgfnPort {
     return confirmarOuManter(
       this.guias,
       input.parcelamentoId,
-      { competencia, contaNegociacao },
+      { competencia, contaNegociacao, arquivoCaminho: caminho },
       motivo,
     );
   }

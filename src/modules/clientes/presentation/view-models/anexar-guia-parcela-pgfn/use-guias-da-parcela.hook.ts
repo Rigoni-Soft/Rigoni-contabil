@@ -201,8 +201,19 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
 
   const confirmar = (competencia: string) =>
     comAcao("liberar", competencia, async () => {
-      const resultado = await confirmarGuiaParcelaPgfnAction({ parcelamentoId, competencia });
-      if (!resultado.ok) return resultado.error.message;
+      // Confirma o PDF que a tela mostrava; se outro entrou no meio, o servidor recusa.
+      const versao = lista.data?.find((g) => g.competencia === competencia)?.versao;
+      if (!versao) return "Não encontramos esta guia. Atualize a página.";
+      const resultado = await confirmarGuiaParcelaPgfnAction({
+        parcelamentoId,
+        competencia,
+        versao,
+      });
+      if (!resultado.ok) {
+        // A guia que sobrou na tela é a antiga: relê para mostrar a que está valendo.
+        await queryClient.invalidateQueries({ queryKey: chave });
+        return resultado.error.message;
+      }
       setResultado({ tipo: "sucesso", texto: TEXTO_LIBERADA });
       await queryClient.invalidateQueries({ queryKey: chave });
       // O botão Confirmar some com a guia confirmada: sem isto o foco cairia no topo da página.

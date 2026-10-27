@@ -10,6 +10,8 @@ export type GuiaDaParcela = {
   competencia: string;
   contaNegociacao: string;
   estado: EstadoDaGuiaPgfn;
+  // Identifica o PDF atual da guia (o caminho no Storage): confirmar vale só para a versão conferida.
+  versao: string;
   // O que conferir enquanto a guia está "a confirmar"; some quando ela é confirmada.
   motivo?: string;
   // A competência já tem registro de envio: a guia não troca nem remove. Só a listagem preenche.
@@ -35,7 +37,12 @@ export interface GuiaParcelaPgfnRepository {
     guia: GuiaParcelaPgfnProps,
     motivo: string | null,
   ): Promise<Result<void, AppError>>;
-  confirmar(parcelamentoId: string, competencia: string): Promise<Result<void, AppError>>;
+  // Confirma só se o PDF atual ainda é a `versao` conferida: outro PDF entrou no meio, nada é liberado.
+  confirmar(
+    parcelamentoId: string,
+    competencia: string,
+    versao: string,
+  ): Promise<Result<void, AppError>>;
   // O caminho do PDF anexado; null = a guia não existe ou a RLS a esconde.
   arquivo(parcelamentoId: string, competencia: string): Promise<Result<string | null, AppError>>;
   // Troca o PDF da guia ainda não enviada: o banco a devolve a "a confirmar".

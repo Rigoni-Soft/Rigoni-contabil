@@ -131,6 +131,7 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     const guia: GuiaDaParcela = {
       competencia: "202610",
       contaNegociacao: "123456",
+      versao: "v-1",
       estado: "a_confirmar",
     };
     anexarMock.mockResolvedValue({ ok: true, data: guia });
@@ -159,10 +160,11 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
         {
           competencia: "202610",
           contaNegociacao: "999",
+          versao: "v-1",
           estado: "a_confirmar",
           motivo: "A conta do PDF (999) é diferente da conta do Parcelamento (PGFN-1).",
         },
-        { competencia: "202609", contaNegociacao: "123456", estado: "confirmada" },
+        { competencia: "202609", contaNegociacao: "123456", versao: "v-1", estado: "confirmada" },
       ],
     });
     render();
@@ -178,7 +180,9 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
   it("confirma à mão: chama a action e a guia passa a confirmada, sem botão", async () => {
     listarMock.mockResolvedValue({
       ok: true,
-      data: [{ competencia: "202610", contaNegociacao: "123456", estado: "a_confirmar" }],
+      data: [
+        { competencia: "202610", contaNegociacao: "123456", versao: "v-1", estado: "a_confirmar" },
+      ],
     });
     confirmarMock.mockResolvedValue({ ok: true, data: undefined });
     const usuario = userEvent.setup();
@@ -186,7 +190,9 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     await screen.findByRole("button", { name: NOME_CONFIRMAR });
     listarMock.mockResolvedValue({
       ok: true,
-      data: [{ competencia: "202610", contaNegociacao: "123456", estado: "confirmada" }],
+      data: [
+        { competencia: "202610", contaNegociacao: "123456", versao: "v-1", estado: "confirmada" },
+      ],
     });
 
     await liberarGuia(usuario);
@@ -194,6 +200,7 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     expect(confirmarMock).toHaveBeenCalledWith({
       parcelamentoId: PARCELAMENTO_PGFN,
       competencia: "202610",
+      versao: "v-1",
     });
     expect(await screen.findByText("Liberada ao envio")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /confirmar guia/i })).not.toBeInTheDocument();
@@ -205,7 +212,9 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     let concluir: (valor: unknown) => void = () => undefined;
     listarMock.mockResolvedValue({
       ok: true,
-      data: [{ competencia: "202610", contaNegociacao: "123456", estado: "confirmada" }],
+      data: [
+        { competencia: "202610", contaNegociacao: "123456", versao: "v-1", estado: "confirmada" },
+      ],
     });
     removerMock.mockReturnValue(new Promise((resolve) => (concluir = resolve)));
     const usuario = userEvent.setup();
@@ -226,7 +235,9 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
   it("abrir a remoção fecha a conferência de liberar: só uma pergunta de risco por vez", async () => {
     listarMock.mockResolvedValue({
       ok: true,
-      data: [{ competencia: "202610", contaNegociacao: "123456", estado: "a_confirmar" }],
+      data: [
+        { competencia: "202610", contaNegociacao: "123456", versao: "v-1", estado: "a_confirmar" },
+      ],
     });
     const usuario = userEvent.setup();
     render();
@@ -255,7 +266,9 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
   it("Confirmar e liberar pede conferência: sem confirmar não chama o servidor, e cancelar devolve o foco", async () => {
     listarMock.mockResolvedValue({
       ok: true,
-      data: [{ competencia: "202610", contaNegociacao: "123456", estado: "a_confirmar" }],
+      data: [
+        { competencia: "202610", contaNegociacao: "123456", versao: "v-1", estado: "a_confirmar" },
+      ],
     });
     const usuario = userEvent.setup();
     render();
@@ -280,7 +293,9 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
   it("enquanto confirma, o botão diz que está confirmando e a região fica ocupada", async () => {
     listarMock.mockResolvedValue({
       ok: true,
-      data: [{ competencia: "202610", contaNegociacao: "123456", estado: "a_confirmar" }],
+      data: [
+        { competencia: "202610", contaNegociacao: "123456", versao: "v-1", estado: "a_confirmar" },
+      ],
     });
     let concluir: (valor: { ok: true; data: undefined }) => void = () => undefined;
     confirmarMock.mockReturnValue(new Promise((resolve) => (concluir = resolve)));
@@ -302,7 +317,12 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
   it("só o PDF é obrigatório: competência e conta vazias seguem para o servidor ler", async () => {
     anexarMock.mockResolvedValue({
       ok: true,
-      data: { competencia: "202610", contaNegociacao: "150141670", estado: "confirmada" },
+      data: {
+        competencia: "202610",
+        contaNegociacao: "150141670",
+        versao: "v-1",
+        estado: "confirmada",
+      },
     });
     const usuario = userEvent.setup();
     render();
@@ -326,6 +346,7 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
       data: {
         competencia: "202610",
         contaNegociacao: "999",
+        versao: "v-1",
         estado: "a_confirmar",
         motivo: "A conta do PDF (999) é diferente da conta do Parcelamento (PGFN-1).",
       },
@@ -347,6 +368,7 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     const guia = {
       competencia: "202610",
       contaNegociacao: "999",
+      versao: "v-1",
       estado: "a_confirmar",
       motivo: "Conferir a conta.",
     };
@@ -368,6 +390,7 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     const guia = {
       competencia: "202610",
       contaNegociacao: "999",
+      versao: "v-1",
       estado: "a_confirmar",
       motivo: "Conferir a conta.",
     };
@@ -393,7 +416,13 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
 
   it("o aviso do anexo traz o motivo, que também está no item da lista", async () => {
     const motivo = "A conta do PDF (999) é diferente da conta do Parcelamento (PGFN-1).";
-    const guia = { competencia: "202610", contaNegociacao: "999", estado: "a_confirmar", motivo };
+    const guia = {
+      competencia: "202610",
+      contaNegociacao: "999",
+      versao: "v-1",
+      estado: "a_confirmar",
+      motivo,
+    };
     anexarMock.mockResolvedValue({ ok: true, data: guia });
     const usuario = userEvent.setup();
     render();
@@ -456,7 +485,12 @@ describe("competência digitada sem seletor de mês", () => {
   it("aceita MM/AAAA e manda AAAAMM", async () => {
     anexarMock.mockResolvedValue({
       ok: true,
-      data: { competencia: "202610", contaNegociacao: "123456", estado: "a_confirmar" },
+      data: {
+        competencia: "202610",
+        contaNegociacao: "123456",
+        versao: "v-1",
+        estado: "a_confirmar",
+      },
     });
     const usuario = userEvent.setup();
     listarMock.mockResolvedValue({ ok: true, data: [] });
@@ -477,7 +511,9 @@ describe("rótulo do botão durante a ação em curso", () => {
   it("confirmar não faz o botão Anexar dizer que está enviando", async () => {
     listarMock.mockResolvedValue({
       ok: true,
-      data: [{ competencia: "202610", contaNegociacao: "123456", estado: "a_confirmar" }],
+      data: [
+        { competencia: "202610", contaNegociacao: "123456", versao: "v-1", estado: "a_confirmar" },
+      ],
     });
     let concluir: (valor: unknown) => void = () => undefined;
     confirmarMock.mockReturnValue(new Promise((resolve) => (concluir = resolve)));
@@ -511,7 +547,12 @@ describe("mensagem de sucesso", () => {
   it("some quando começa um novo preenchimento", async () => {
     anexarMock.mockResolvedValue({
       ok: true,
-      data: { competencia: "202610", contaNegociacao: "123456", estado: "a_confirmar" },
+      data: {
+        competencia: "202610",
+        contaNegociacao: "123456",
+        versao: "v-1",
+        estado: "a_confirmar",
+      },
     });
     const usuario = userEvent.setup();
     render();
@@ -558,7 +599,9 @@ describe("avisos de erro ao corrigir", () => {
   it("confirmar não trava os campos do formulário de anexar", async () => {
     listarMock.mockResolvedValue({
       ok: true,
-      data: [{ competencia: "202610", contaNegociacao: "123456", estado: "a_confirmar" }],
+      data: [
+        { competencia: "202610", contaNegociacao: "123456", versao: "v-1", estado: "a_confirmar" },
+      ],
     });
     confirmarMock.mockReturnValue(new Promise(() => undefined));
     const usuario = userEvent.setup();
@@ -582,7 +625,9 @@ describe("falha ao carregar a lista de guias", () => {
     expect(await screen.findByText("Não foi possível carregar as guias anexadas.")).toBeVisible();
     listarMock.mockResolvedValue({
       ok: true,
-      data: [{ competencia: "202610", contaNegociacao: "123456", estado: "confirmada" }],
+      data: [
+        { competencia: "202610", contaNegociacao: "123456", versao: "v-1", estado: "confirmada" },
+      ],
     });
 
     await usuario.click(screen.getByRole("button", { name: "Tentar novamente" }));
@@ -598,6 +643,7 @@ describe("trocar, remover e visualizar a guia anexada (#184)", () => {
   const naoEnviada: GuiaDaParcela = {
     competencia: "202610",
     contaNegociacao: "123456",
+    versao: "v-1",
     estado: "confirmada",
   };
 
@@ -783,7 +829,9 @@ describe("trocar, remover e visualizar a guia anexada (#184)", () => {
     let concluir: (valor: unknown) => void = () => undefined;
     listarMock.mockResolvedValue({
       ok: true,
-      data: [{ competencia: "202610", contaNegociacao: "123456", estado: "a_confirmar" }],
+      data: [
+        { competencia: "202610", contaNegociacao: "123456", versao: "v-1", estado: "a_confirmar" },
+      ],
     });
     confirmarMock.mockReturnValue(new Promise((resolve) => (concluir = resolve)));
     const usuario = userEvent.setup();

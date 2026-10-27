@@ -103,7 +103,12 @@ describe("TrocarGuiaParcelaPgfn", () => {
 
     expect(resultado).toEqual({
       ok: true,
-      value: { competencia: "202610", contaNegociacao: "150141670", estado: "confirmada" },
+      value: {
+        competencia: "202610",
+        contaNegociacao: "150141670",
+        versao: storage.enviados[0],
+        estado: "confirmada",
+      },
     });
     expect(storage.enviados).toHaveLength(1);
     expect(storage.enviados[0]).toMatch(
@@ -115,7 +120,7 @@ describe("TrocarGuiaParcelaPgfn", () => {
       { contaNegociacao: "150141670", arquivoCaminho: storage.enviados[0] },
       null,
     );
-    expect(confirmar).toHaveBeenCalledWith(PARCELAMENTO_ID, "202610");
+    expect(confirmar).toHaveBeenCalledWith(PARCELAMENTO_ID, "202610", storage.enviados[0]);
     expect(storage.removidos).toEqual([CAMINHO_ANTIGO]);
   });
 
@@ -155,7 +160,7 @@ describe("TrocarGuiaParcelaPgfn", () => {
   });
 
   it("PDF que não conferiu volta a guia a confirmar, com o motivo, e não confirma", async () => {
-    const { caso, confirmar } = montar({ lido: false });
+    const { caso, confirmar, storage } = montar({ lido: false });
 
     const resultado = await caso.execute(INPUT);
 
@@ -164,6 +169,7 @@ describe("TrocarGuiaParcelaPgfn", () => {
       value: {
         competencia: "202610",
         contaNegociacao: "150141670",
+        versao: storage.enviados[0],
         estado: "a_confirmar",
         motivo: "Não consegui ler o PDF: confira a guia à mão.",
       },

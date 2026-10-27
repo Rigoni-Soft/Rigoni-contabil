@@ -36,17 +36,22 @@ export async function revalidarPdfNoStorage(
   return null;
 }
 
-// Sem motivo a guia é confirmada na hora; se o banco recusar, ela segue "a confirmar" (a confirmação
-// à mão continua valendo) e o arquivo e a linha não se perdem.
+// Sem motivo a guia é confirmada na hora; se o banco recusar (ou outro PDF já a substituiu), ela segue
+// "a confirmar" (a confirmação à mão continua valendo) e o arquivo e a linha não se perdem.
 export async function confirmarOuManter(
   guias: GuiaParcelaPgfnRepository,
   parcelamentoId: string,
-  guia: Pick<GuiaParcelaPgfnProps, "competencia" | "contaNegociacao">,
+  guia: GuiaParcelaPgfnProps,
   motivo: string | null,
 ): Promise<Result<GuiaDaParcela, AppError>> {
-  const base = { competencia: guia.competencia, contaNegociacao: guia.contaNegociacao };
+  const base = {
+    competencia: guia.competencia,
+    contaNegociacao: guia.contaNegociacao,
+    versao: guia.arquivoCaminho,
+  };
   if (motivo) return ok({ ...base, estado: "a_confirmar", motivo });
-  const confirmada = await guias.confirmar(parcelamentoId, guia.competencia);
+  // Só a versão lida confirma: se outro PDF entrou no meio, o dele segue "a confirmar".
+  const confirmada = await guias.confirmar(parcelamentoId, guia.competencia, guia.arquivoCaminho);
   if (confirmada.ok) return ok({ ...base, estado: "confirmada" });
   return ok({ ...base, estado: "a_confirmar", motivo: MOTIVO_CONFIRMACAO_FALHOU });
 }
