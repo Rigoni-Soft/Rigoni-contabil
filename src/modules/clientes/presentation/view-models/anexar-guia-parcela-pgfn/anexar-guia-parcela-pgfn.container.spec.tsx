@@ -391,7 +391,7 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     expect(await screen.findByText("Conferir a conta.")).toBeInTheDocument();
   });
 
-  it("com o motivo já na lista, o aviso só aponta para ele (o texto aparece uma vez)", async () => {
+  it("o aviso do anexo traz o motivo, que também está no item da lista", async () => {
     const motivo = "A conta do PDF (999) é diferente da conta do Parcelamento (PGFN-1).";
     const guia = { competencia: "202610", contaNegociacao: "999", estado: "a_confirmar", motivo };
     anexarMock.mockResolvedValue({ ok: true, data: guia });
@@ -403,8 +403,11 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     await usuario.upload(regiao.getByLabelText(/pdf da guia/i), pdf);
     await usuario.click(regiao.getByRole("button", { name: "Anexar guia" }));
 
-    expect(await screen.findByText(/confira o motivo na lista/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/conta do PDF .999. é diferente/)).toHaveLength(1);
+    expect(
+      await screen.findByText(/ainda não liberada ao envio\. A conta do PDF/i),
+    ).toBeInTheDocument();
+    // O motivo aparece no aviso e no item da lista: a pessoa o lê onde estiver olhando.
+    expect(screen.getAllByText(/conta do PDF .999. é diferente/)).toHaveLength(2);
   });
 
   it("a nota de que o sistema lê o PDF descreve a competência e a conta", async () => {

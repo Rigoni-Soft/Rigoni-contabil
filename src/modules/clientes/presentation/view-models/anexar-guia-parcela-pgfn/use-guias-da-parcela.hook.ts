@@ -128,24 +128,13 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
 
   // Anexo e troca terminam igual: aviso de confirmada, ou de "a confirmar" com o que conferir.
   const avisarGuiaGravada = async (guia: GuiaDaParcela, verbo: "anexada" | "trocada") => {
-    const confirmada = guia.estado === "confirmada";
     // Sai já, sem esperar a lista.
     setResultado(
-      confirmada
+      guia.estado === "confirmada"
         ? { tipo: "sucesso", texto: `Guia ${verbo} e confirmada: liberada ao envio.` }
-        : { tipo: "atencao", texto: avisoAConfirmar(verbo) },
+        : { tipo: "atencao", texto: avisoAConfirmar(verbo, guia.motivo) },
     );
     await queryClient.invalidateQueries({ queryKey: chave });
-    if (confirmada) return;
-    // Exceção: o motivo não está na lista (a confirmação automática falhou e esse motivo não é
-    // gravado); o aviso passa a trazê-lo, se ainda estiver na tela (a pessoa pode tê-lo limpado).
-    const naLista = queryClient
-      .getQueryData<GuiaDaParcela[]>(chave)
-      ?.find((g) => g.competencia === guia.competencia)?.motivo;
-    if (!naLista && guia.motivo) {
-      const comMotivo = avisoAConfirmar(verbo, guia.motivo);
-      setResultado((atual) => (atual ? { tipo: "atencao", texto: comMotivo } : atual));
-    }
   };
 
   const trocar = (competencia: string, novo: File) =>
