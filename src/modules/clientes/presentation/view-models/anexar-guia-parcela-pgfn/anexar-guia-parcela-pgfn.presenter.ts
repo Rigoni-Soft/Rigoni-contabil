@@ -20,6 +20,10 @@ export const idDaGuia = (prefixo: string, competencia: string) => `${prefixo}-gu
 export const idDaRemocao = (prefixo: string, competencia: string) =>
   `${idDaGuia(prefixo, competencia)}-remover`;
 
+// Id do botão que abre a conferência da liberação: o foco volta a ele quando ela é cancelada.
+export const idDaLiberacao = (prefixo: string, competencia: string) =>
+  `${idDaGuia(prefixo, competencia)}-liberar`;
+
 // Id da região das guias: o foco volta a ela quando a guia removida leva o botão embora.
 export const idDaRegiao = (prefixo: string) => `${prefixo}-regiao`;
 
@@ -33,4 +37,5 @@ export const linhasDeGuias = (guias: GuiaDaParcela[], prefixo: string) =>
     motivo: guia.motivo,
     enviada: guia.enviada === true,
     idDaRemocao: idDaRemocao(prefixo, guia.competencia),
+    idDaLiberacao: idDaLiberacao(prefixo, guia.competencia),
   }));

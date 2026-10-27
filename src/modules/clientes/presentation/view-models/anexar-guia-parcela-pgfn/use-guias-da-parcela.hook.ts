@@ -15,6 +15,7 @@ import {
 import {
   competenciaDoMes,
   idDaGuia,
+  idDaLiberacao,
   idDaRegiao,
   idDaRemocao,
 } from "./anexar-guia-parcela-pgfn.presenter";
@@ -54,6 +55,8 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   const [resultado, setResultado] = useState<ResultadoDaAcao | undefined>();
   // Remover apaga o registro e o PDF sem desfazer: pede confirmação na linha antes de chamar a action.
   // Competência cuja confirmação está em curso (rótulo de progresso no botão dela).
+  // Confirmar libera a guia ao envio ao Cliente: pede a conferência na linha antes de chamar a action.
+  const [liberando, setLiberando] = useState<string | undefined>();
   const [confirmando, setConfirmando] = useState<string | undefined>();
   const [removendo, setRemovendo] = useState<string | undefined>();
 
@@ -193,12 +196,27 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
       if (aba.tipo === "bloqueada") return ERRO_ABRIR;
     });
 
+  const pedirLiberacao = (competencia: string) => {
+    limparAvisos();
+    setLiberando(competencia);
+  };
+
+  const cancelarLiberacao = (competencia: string) => {
+    setLiberando(undefined);
+    // O botão que abriu a conferência volta: o foco volta a ele.
+    requestAnimationFrame(() =>
+      document.getElementById(idDaLiberacao(prefixo, competencia))?.focus(),
+    );
+  };
+
   const confirmar = (competencia: string) =>
     executar(async () => {
       setConfirmando(competencia);
       const resultado = await confirmarGuiaParcelaPgfnAction({ parcelamentoId, competencia });
+      // A conferência fica aberta enquanto o servidor responde (o botão mostra "Liberando...").
+      setLiberando(undefined);
       if (!resultado.ok) return resultado.error.message;
-      setResultado({ tipo: "sucesso", texto: "Guia confirmada." });
+      setResultado({ tipo: "sucesso", texto: "Guia confirmada e liberada ao envio." });
       await queryClient.invalidateQueries({ queryKey: chave });
       // O botão Confirmar some com a guia confirmada: sem isto o foco cairia no topo da página.
       document.getElementById(idDaGuia(prefixo, competencia))?.focus();
@@ -233,6 +251,9 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     anexar,
     confirmar,
     trocar,
+    liberando,
+    pedirLiberacao,
+    cancelarLiberacao,
     confirmando,
     removendo,
     pedirRemocao,

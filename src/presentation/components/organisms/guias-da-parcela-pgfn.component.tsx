@@ -25,6 +25,8 @@ type GuiaDaListaDto = {
   motivo?: string;
   // Id do botão Remover (alvo do foco ao cancelar a confirmação).
   idDaRemocao: string;
+  // Id do botão "Confirmar e liberar" (alvo do foco ao cancelar a conferência).
+  idDaLiberacao: string;
   // Já tem registro de envio: só pode ser aberta, não troca nem remove.
   enviada: boolean;
 };
@@ -58,6 +60,10 @@ type GuiasDaParcelaPgfnProps = {
   onAnexar: () => void;
   onConfirmar: (competencia: string) => void;
   onTrocar: (competencia: string, arquivo: File) => void;
+  // Competência cuja liberação espera conferência (vai ao Cliente, sem desfazer).
+  liberando?: string;
+  onPedirLiberacao: (competencia: string) => void;
+  onCancelarLiberacao: (competencia: string) => void;
   // Competência cuja confirmação está em curso.
   confirmando?: string;
   // Competência cuja remoção espera confirmação (apaga registro e PDF, sem desfazer).
@@ -96,6 +102,9 @@ export function GuiasDaParcelaPgfn({
   onAnexar,
   onConfirmar,
   onTrocar,
+  liberando,
+  onPedirLiberacao,
+  onCancelarLiberacao,
   confirmando: confirmandoGuia,
   removendo,
   onPedirRemocao,
@@ -167,22 +176,53 @@ export function GuiasDaParcelaPgfn({
                   </Texto>
                 )}
                 <Linha alinhar="centro" espaco={2} quebra className="mt-2">
-                  {!guia.confirmada && !guia.enviada && (
-                    <Button
-                      type="button"
-                      variant="default"
-                      size="sm"
-                      aria-disabled={pendente || undefined}
-                      onClick={() => onConfirmar(guia.competencia)}
-                      aria-label={`Confirmar e liberar guia de ${guia.rotulo} ao envio`}
-                      aria-describedby={guia.motivo ? `${guia.id}-motivo` : undefined}
-                      className={BOTAO_DA_GUIA}
-                    >
-                      {confirmandoGuia === guia.competencia
-                        ? "Confirmando..."
-                        : "Confirmar e liberar"}
-                    </Button>
-                  )}
+                  {!guia.confirmada &&
+                    !guia.enviada &&
+                    (liberando === guia.competencia ? (
+                      <>
+                        <Texto variante="nota" role="alert">
+                          Libera a guia de {guia.rotulo} (conta {guia.contaNegociacao}) para envio
+                          ao Cliente, sem desfazer.
+                        </Texto>
+                        <Button
+                          type="button"
+                          variant="default"
+                          size="sm"
+                          aria-disabled={pendente || undefined}
+                          onClick={() => onConfirmar(guia.competencia)}
+                          aria-label={`Liberar guia de ${guia.rotulo} ao envio`}
+                          className={BOTAO_DA_GUIA}
+                        >
+                          {confirmandoGuia === guia.competencia ? "Liberando..." : "Liberar guia"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          // Quem abriu a conferência sem querer cai no gesto seguro.
+                          autoFocus
+                          onClick={() => onCancelarLiberacao(guia.competencia)}
+                          aria-label={`Cancelar liberação da guia de ${guia.rotulo}`}
+                          className={BOTAO_DA_GUIA}
+                        >
+                          Cancelar
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        type="button"
+                        id={guia.idDaLiberacao}
+                        variant="default"
+                        size="sm"
+                        aria-disabled={pendente || undefined}
+                        onClick={() => onPedirLiberacao(guia.competencia)}
+                        aria-label={`Confirmar e liberar guia de ${guia.rotulo} ao envio`}
+                        aria-describedby={guia.motivo ? `${guia.id}-motivo` : undefined}
+                        className={BOTAO_DA_GUIA}
+                      >
+                        Confirmar e liberar
+                      </Button>
+                    ))}
                   <Linha alinhar="centro" espaco={1} quebra className="ml-auto">
                     {!confirmando && (
                       <Button

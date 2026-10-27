@@ -86,6 +86,15 @@ function render(readOnly = false) {
 
 const regiaoDaGuia = () => screen.findByRole("group", { name: "Guias da parcela PGFN-1" });
 
+const NOME_CONFIRMAR = "Confirmar e liberar guia de 10/2026 ao envio";
+const NOME_LIBERAR = "Liberar guia de 10/2026 ao envio";
+
+// Confirmar libera a guia ao Cliente: abre a conferência e só a segunda ação chama o servidor.
+async function liberarGuia(usuario: ReturnType<typeof userEvent.setup>) {
+  await usuario.click(await screen.findByRole("button", { name: NOME_CONFIRMAR }));
+  await usuario.click(screen.getByRole("button", { name: NOME_LIBERAR }));
+}
+
 async function preencherEAnexar(usuario: ReturnType<typeof userEvent.setup>) {
   const regiao = within(await regiaoDaGuia());
   await usuario.type(regiao.getByLabelText(/competência/i), "2026-10");
@@ -174,15 +183,13 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     confirmarMock.mockResolvedValue({ ok: true, data: undefined });
     const usuario = userEvent.setup();
     render();
-    const botao = await screen.findByRole("button", {
-      name: "Confirmar e liberar guia de 10/2026 ao envio",
-    });
+    await screen.findByRole("button", { name: NOME_CONFIRMAR });
     listarMock.mockResolvedValue({
       ok: true,
       data: [{ competencia: "202610", contaNegociacao: "123456", estado: "confirmada" }],
     });
 
-    await usuario.click(botao);
+    await liberarGuia(usuario);
 
     expect(confirmarMock).toHaveBeenCalledWith({
       parcelamentoId: PARCELAMENTO_PGFN,
@@ -194,6 +201,31 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     expect(screen.getByText(/10\/2026 · conta 123456/).closest("li")).toHaveFocus();
   });
 
+  it("Confirmar e liberar pede conferência: sem confirmar não chama o servidor, e cancelar devolve o foco", async () => {
+    listarMock.mockResolvedValue({
+      ok: true,
+      data: [{ competencia: "202610", contaNegociacao: "123456", estado: "a_confirmar" }],
+    });
+    const usuario = userEvent.setup();
+    render();
+
+    await usuario.click(await screen.findByRole("button", { name: NOME_CONFIRMAR }));
+
+    // Diz o que será liberado (mês, conta), que vai ao Cliente e que não se desfaz.
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Libera a guia de 10/2026 (conta 123456) para envio ao Cliente, sem desfazer.",
+    );
+    expect(confirmarMock).not.toHaveBeenCalled();
+    // Quem abriu sem querer cai no gesto seguro.
+    const cancelar = screen.getByRole("button", { name: "Cancelar liberação da guia de 10/2026" });
+    expect(cancelar).toHaveFocus();
+
+    await usuario.click(cancelar);
+
+    expect(confirmarMock).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByRole("button", { name: NOME_CONFIRMAR })).toHaveFocus());
+  });
+
   it("enquanto confirma, o botão diz que está confirmando e a região fica ocupada", async () => {
     listarMock.mockResolvedValue({
       ok: true,
@@ -203,16 +235,17 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     confirmarMock.mockReturnValue(new Promise((resolve) => (concluir = resolve)));
     const usuario = userEvent.setup();
     render();
-    const botao = await screen.findByRole("button", {
-      name: "Confirmar e liberar guia de 10/2026 ao envio",
-    });
 
-    await usuario.click(botao);
+    await liberarGuia(usuario);
 
-    expect(botao).toHaveTextContent("Confirmando...");
+    const botao = screen.getByRole("button", { name: NOME_LIBERAR });
+    expect(botao).toHaveTextContent("Liberando...");
     expect(await regiaoDaGuia()).toHaveAttribute("aria-busy", "true");
     concluir({ ok: true, data: undefined });
-    await waitFor(() => expect(botao).not.toHaveTextContent("Confirmando..."));
+    // Terminou: a conferência fecha.
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: NOME_LIBERAR })).not.toBeInTheDocument(),
+    );
   });
 
   it("só o PDF é obrigatório: competência e conta vazias seguem para o servidor ler", async () => {
@@ -396,11 +429,8 @@ describe("rótulo do botão durante a ação em curso", () => {
     confirmarMock.mockReturnValue(new Promise((resolve) => (concluir = resolve)));
     const usuario = userEvent.setup();
     render();
-    const confirmar = await screen.findByRole("button", {
-      name: "Confirmar e liberar guia de 10/2026 ao envio",
-    });
 
-    await usuario.click(confirmar);
+    await liberarGuia(usuario);
 
     expect(screen.getByRole("button", { name: "Anexar guia" })).toBeInTheDocument();
     expect(screen.queryByText("Enviando...")).not.toBeInTheDocument();
@@ -478,9 +508,7 @@ describe("avisos de erro ao corrigir", () => {
     const usuario = userEvent.setup();
     render();
 
-    await usuario.click(
-      await screen.findByRole("button", { name: "Confirmar e liberar guia de 10/2026 ao envio" }),
-    );
+    await liberarGuia(usuario);
 
     expect(screen.getByLabelText(/conta de negociação/i)).toBeEnabled();
     expect(screen.getByLabelText(/competência/i)).toBeEnabled();
