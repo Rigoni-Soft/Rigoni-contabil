@@ -98,6 +98,3 @@ testes usam texto sintético. Com um PDF real em mãos (fora do repositório), c
 ("Período de Apuração", "Data de Vencimento", "Valor Total do Documento", `PGFN-SISPAR:`); se não, o efeito é a guia ficar "a confirmar".
 
 **Depois de confirmada**: a guia segue ao Cliente pelo job de parcelamento e pela URA ([parcelamento-cron.md](./parcelamento-cron.md)), e a que falta anexar ou confirmar vira alerta ao setor no dia 1, 10 e 15 ([lembretes-pgfn-cron.md](./lembretes-pgfn-cron.md)). As variáveis são as desses dois jobs.
-
-**E2E (`@smoke`, `e2e/parcelamentos-cliente.e2e.ts`)**: com o leitor falso, anexar uma guia que confere nasce confirmada; uma de conta
-diferente (`[leitor:guia=<cnpj>;OUTRA-999;<AAAAMM>]`) fica "a confirmar" e o Funcionário a libera em "Confirmar e liberar".

@@ -362,9 +362,9 @@ test.describe("Guia mensal da parcela PGFN: anexar, ver a confirmar e confirmar 
 
     // Confirmar pede conferência na linha antes de liberar.
     await regiao
-      .getByRole("button", { name: `Confirmar e liberar guia de 10/2026 ao envio` })
+      .getByRole("button", { name: "Confirmar e liberar guia de 10/2026 ao envio" })
       .click();
-    await regiao.getByRole("button", { name: `Liberar 10/2026 ao envio` }).click();
+    await regiao.getByRole("button", { name: "Liberar 10/2026 ao envio" }).click();
     await expect(regiao.getByText(/Guia confirmada e liberada ao envio/)).toBeVisible();
     await expect(regiao.getByText("A confirmar", { exact: true })).toHaveCount(0);
   });
