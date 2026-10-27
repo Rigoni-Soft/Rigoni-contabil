@@ -39,11 +39,23 @@ export type AcaoDaGuia = {
   emCurso: boolean;
 };
 
+// O formulário de anexo: o que se digitou e o erro de cada campo.
+export type DadosDoAnexo = {
+  competencia: string;
+  onCompetencia: (valor: string) => void;
+  contaNegociacao: string;
+  onContaNegociacao: (valor: string) => void;
+  arquivo?: File;
+  onArquivo: (arquivo: File | undefined) => void;
+  erros: { competencia?: string; contaNegociacao?: string; arquivo?: string };
+};
+
 // O que a pessoa pode fazer numa guia; o hook as entrega prontas (sem promessa solta).
 export type AcoesDasGuias = {
   pedir: (tipo: AcaoDaGuia["tipo"], competencia: string) => void;
   cancelar: () => void;
   confirmar: (competencia: string) => void;
+  anexar: () => void;
   trocar: (competencia: string, arquivo: File) => void;
   remover: (competencia: string) => void;
   visualizar: (competencia: string) => void;
@@ -62,13 +74,7 @@ type GuiasDaParcelaPgfnProps = {
   carregando: boolean;
   erroDaLista?: string;
   onTentarNovamente: () => void;
-  competencia: string;
-  onCompetencia: (valor: string) => void;
-  contaNegociacao: string;
-  onContaNegociacao: (valor: string) => void;
-  arquivo?: File;
-  onArquivo: (arquivo: File | undefined) => void;
-  erros: { competencia?: string; contaNegociacao?: string; arquivo?: string };
+  anexo: DadosDoAnexo;
   // Qualquer ação em curso (trava os controles); `anexando` é só o envio do PDF (rótulo do botão).
   pendente: boolean;
   anexando: boolean;
@@ -77,16 +83,12 @@ type GuiasDaParcelaPgfnProps = {
   resultado?: { tipo: "sucesso" | "atencao"; texto: string };
   // Rótulo ("10/2026") da guia do mês corrente que ainda não foi anexada.
   competenciaEmFalta?: string;
-  onAnexar: () => void;
   acao?: AcaoDaGuia;
   acoes: AcoesDasGuias;
 };
 
 // Nota que a pessoa precisa ler para agir: 14 px, não os 12 px da variante `nota`.
 const NOTA_LEGIVEL = "text-sm";
-
-const RESUMO =
-  "w-fit cursor-pointer rounded-sm text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11 pointer-coarse:py-2";
 
 // "Anexar guia do mês" na linha de um Parcelamento PGFN. Fica dentro do formulário do cadastro, então
 // nada aqui é <form> (nem submete): os botões são `button` e cada ação vai por Server Action própria.
@@ -99,22 +101,24 @@ export function GuiasDaParcelaPgfn({
   carregando,
   erroDaLista,
   onTentarNovamente,
-  competencia,
-  onCompetencia,
-  contaNegociacao,
-  onContaNegociacao,
-  arquivo,
-  onArquivo,
-  erros,
+  anexo,
   pendente,
   anexando,
   erroServidor,
   resultado,
   competenciaEmFalta,
-  onAnexar,
   acao,
   acoes,
 }: GuiasDaParcelaPgfnProps) {
+  const {
+    competencia,
+    onCompetencia,
+    contaNegociacao,
+    onContaNegociacao,
+    arquivo,
+    onArquivo,
+    erros,
+  } = anexo;
   // Mês e conta à mão abrem sozinhos se já têm valor ou erro, para a recusa nunca ficar escondida.
   const abrirManual = Boolean(
     competencia || contaNegociacao || erros.competencia || erros.contaNegociacao,
@@ -312,7 +316,10 @@ export function GuiasDaParcelaPgfn({
           erro={erros.arquivo}
         />
         <Caixa como="details" open={abrirManual || undefined}>
-          <Caixa como="summary" className={RESUMO}>
+          <Caixa
+            como="summary"
+            className="w-fit cursor-pointer rounded-sm text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11 pointer-coarse:py-2"
+          >
             Preencher mês e conta à mão
           </Caixa>
           <Pilha espaco={3} className="pt-3">
@@ -350,7 +357,7 @@ export function GuiasDaParcelaPgfn({
         <BotaoDaGuia
           variant={arquivo ? "default" : "outline"}
           ocupado={pendente}
-          onClick={onAnexar}
+          onClick={acoes.anexar}
           className="self-start"
         >
           {anexando ? "Enviando..." : "Anexar guia"}

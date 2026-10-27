@@ -25,19 +25,12 @@ export function AnexarGuiaParcelaPgfnContainer({ parcelamentoId, codigo, interno
       carregando={guias.carregando}
       erroDaLista={guias.erroDaLista}
       onTentarNovamente={guias.recarregar}
-      competencia={guias.mes}
-      onCompetencia={guias.setMes}
-      contaNegociacao={guias.contaNegociacao}
-      onContaNegociacao={guias.setContaNegociacao}
-      arquivo={guias.arquivo}
-      onArquivo={guias.setArquivo}
-      erros={guias.erros}
+      anexo={guias.anexo}
       pendente={guias.pendente}
       anexando={guias.anexando}
       erroServidor={guias.erroServidor}
       resultado={guias.resultado}
       competenciaEmFalta={competenciaEmFalta(guias.guias)}
-      onAnexar={() => void guias.anexar()}
       acao={guias.acao}
       acoes={guias.acoes}
     />
