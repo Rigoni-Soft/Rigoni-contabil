@@ -101,8 +101,8 @@ export function FileInput({
           type="button"
           variant="ghost"
           size="sm"
-          className="self-start"
-          aria-label={`Remover ${file.name}`}
+          className="self-start pointer-coarse:min-h-11"
+          aria-label={`Remover arquivo ${file.name}`}
           onClick={() => {
             onChange(undefined);
             // O botão some ao limpar: o foco volta ao campo, não ao body.

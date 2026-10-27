@@ -344,8 +344,8 @@ export function EditarCadastroOperacionalContainer({
       }
       onLimpar={aoLimpar}
       onCancelar={onCancelar}
-      guiasDaParcela={(parcelamentoId) => (
-        <AnexarGuiaParcelaPgfnContainer parcelamentoId={parcelamentoId} />
+      guiasDaParcela={(parcelamentoId, codigo) => (
+        <AnexarGuiaParcelaPgfnContainer parcelamentoId={parcelamentoId} codigo={codigo} />
       )}
       documentoContratual={
         <DocumentoContratualDoClienteContainer

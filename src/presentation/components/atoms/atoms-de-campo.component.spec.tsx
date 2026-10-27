@@ -39,7 +39,7 @@ describe("átomos de campo", () => {
 
     rerender(<FileInput id="contrato" file={arquivo} onChange={aoMudar} />);
     // O nome diz qual arquivo sai (há vários campos de arquivo na mesma tela).
-    fireEvent.click(screen.getByRole("button", { name: "Remover contrato.pdf" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remover arquivo contrato.pdf" }));
 
     expect(aoMudar).toHaveBeenCalledWith(undefined);
     expect(document.getElementById("contrato")).toHaveFocus();

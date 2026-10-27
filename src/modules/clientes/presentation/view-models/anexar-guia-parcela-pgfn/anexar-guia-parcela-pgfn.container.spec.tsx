@@ -84,7 +84,7 @@ function render(readOnly = false) {
   );
 }
 
-const regiaoDaGuia = () => screen.findByRole("group", { name: "Guias da parcela" });
+const regiaoDaGuia = () => screen.findByRole("group", { name: "Guias da parcela PGFN-1" });
 
 async function preencherEAnexar(usuario: ReturnType<typeof userEvent.setup>) {
   const regiao = within(await regiaoDaGuia());
@@ -106,14 +106,16 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     render();
 
     expect(await regiaoDaGuia()).toBeInTheDocument();
-    expect(screen.getAllByRole("group", { name: "Guias da parcela" })).toHaveLength(1);
+    expect(screen.getAllByRole("group", { name: "Guias da parcela PGFN-1" })).toHaveLength(1);
     expect(listarMock).toHaveBeenCalledWith({ parcelamentoId: PARCELAMENTO_PGFN });
   });
 
   it("visualização (somente leitura) não mostra o campo de anexar", () => {
     render(true);
 
-    expect(screen.queryByRole("group", { name: "Guias da parcela" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: "Guias da parcela PGFN-1" }),
+    ).not.toBeInTheDocument();
   });
 
   it("anexa: manda competência AAAAMM, conta e PDF; a guia aparece a confirmar", async () => {
