@@ -102,7 +102,12 @@ export function FileInput({
           variant="ghost"
           size="sm"
           className="self-start"
-          onClick={() => onChange(undefined)}
+          aria-label={`Remover ${file.name}`}
+          onClick={() => {
+            onChange(undefined);
+            // O botão some ao limpar: o foco volta ao campo, não ao body.
+            document.getElementById(id)?.focus();
+          }}
         >
           <X aria-hidden="true" className="size-4" />
           Remover arquivo

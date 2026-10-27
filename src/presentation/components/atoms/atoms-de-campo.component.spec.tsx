@@ -35,12 +35,14 @@ describe("átomos de campo", () => {
     const aoMudar = jest.fn();
     const arquivo = new File(["x"], "contrato.pdf", { type: "application/pdf" });
     const { rerender } = render(<FileInput id="contrato" onChange={aoMudar} />);
-    expect(screen.queryByRole("button", { name: /remover arquivo/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /remover/i })).not.toBeInTheDocument();
 
     rerender(<FileInput id="contrato" file={arquivo} onChange={aoMudar} />);
-    fireEvent.click(screen.getByRole("button", { name: /remover arquivo/i }));
+    // O nome diz qual arquivo sai (há vários campos de arquivo na mesma tela).
+    fireEvent.click(screen.getByRole("button", { name: "Remover contrato.pdf" }));
 
     expect(aoMudar).toHaveBeenCalledWith(undefined);
+    expect(document.getElementById("contrato")).toHaveFocus();
   });
 
   it("FileInput aceita arquivo arrastado e solto", () => {
