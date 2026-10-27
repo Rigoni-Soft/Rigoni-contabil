@@ -203,6 +203,20 @@ describe("ciclo do alerta", () => {
     expect(await abertos(cliente.id, "lembretes")).toHaveLength(1);
   });
 
+  it("confirmar a última guia pendente resolve o alerta na hora, sem esperar o job", async () => {
+    const cliente = await criarCliente("PGFN Confirma Ltda");
+    const a = await criarParcelamento(cliente.id, "CONF-A");
+    const b = await criarParcelamento(cliente.id, "CONF-B");
+    await new ExecutarLembretesParcelamentoPgfn(clientes, alertas, relogio).execute();
+    expect(await abertos(cliente.id, "lembrete_pgfn")).toHaveLength(1);
+
+    await anexarGuia(a, competenciaAtual, "confirmada");
+    expect(await abertos(cliente.id, "lembrete_pgfn")).toHaveLength(1);
+
+    await anexarGuia(b, competenciaAtual, "confirmada");
+    expect(await abertos(cliente.id, "lembrete_pgfn")).toHaveLength(0);
+  });
+
   it("Parcelamento que sai de aberto com alerta pendente também resolve o alerta", async () => {
     const cliente = await criarCliente("PGFN Quitou Ltda");
     const parcelamento = await criarParcelamento(cliente.id, "QUITA-1");
