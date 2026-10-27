@@ -1,6 +1,7 @@
 import { CalendarClock } from "lucide-react";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
+import { BotaoDaGuia } from "@/presentation/components/atoms/botao-da-guia.component";
 import { BotaoDeArquivo } from "@/presentation/components/atoms/botao-de-arquivo.component";
 import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
@@ -8,12 +9,8 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 import { AvisoComAcao } from "@/presentation/components/molecules/aviso-com-acao.component";
 import { CampoDeArquivo } from "@/presentation/components/molecules/campo-de-arquivo.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
-import {
-  BOTAO_DA_GUIA,
-  ConfirmacaoEmLinha,
-} from "@/presentation/components/molecules/confirmacao-em-linha.component";
+import { ConfirmacaoEmLinha } from "@/presentation/components/molecules/confirmacao-em-linha.component";
 import { SeloDaGuia } from "@/presentation/components/molecules/selo-da-guia.component";
-import { Button } from "@/presentation/components/ui/button";
 import { cn } from "@/presentation/lib/utils";
 import { TEXTO_ENVIO_AUTOMATICO } from "@/shared/kernel/dias-do-job-parcelamento";
 
@@ -40,6 +37,16 @@ export type AcaoDaGuia = {
   tipo: "liberar" | "remover";
   competencia: string;
   emCurso: boolean;
+};
+
+// O que a pessoa pode fazer numa guia; o hook as entrega prontas (sem promessa solta).
+export type AcoesDasGuias = {
+  pedir: (tipo: AcaoDaGuia["tipo"], competencia: string) => void;
+  cancelar: () => void;
+  confirmar: (competencia: string) => void;
+  trocar: (competencia: string, arquivo: File) => void;
+  remover: (competencia: string) => void;
+  visualizar: (competencia: string) => void;
 };
 
 type GuiasDaParcelaPgfnProps = {
@@ -71,13 +78,8 @@ type GuiasDaParcelaPgfnProps = {
   // Rótulo ("10/2026") da guia do mês corrente que ainda não foi anexada.
   competenciaEmFalta?: string;
   onAnexar: () => void;
-  onConfirmar: (competencia: string) => void;
-  onTrocar: (competencia: string, arquivo: File) => void;
   acao?: AcaoDaGuia;
-  onPedirAcao: (tipo: AcaoDaGuia["tipo"], competencia: string) => void;
-  onCancelarAcao: () => void;
-  onRemover: (competencia: string) => void;
-  onVisualizar: (competencia: string) => void;
+  acoes: AcoesDasGuias;
 };
 
 // Nota que a pessoa precisa ler para agir: 14 px, não os 12 px da variante `nota`.
@@ -110,13 +112,8 @@ export function GuiasDaParcelaPgfn({
   resultado,
   competenciaEmFalta,
   onAnexar,
-  onConfirmar,
-  onTrocar,
   acao,
-  onPedirAcao,
-  onCancelarAcao,
-  onRemover,
-  onVisualizar,
+  acoes,
 }: GuiasDaParcelaPgfnProps) {
   // Mês e conta à mão abrem sozinhos se já têm valor ou erro, para a recusa nunca ficar escondida.
   const abrirManual = Boolean(
@@ -150,14 +147,11 @@ export function GuiasDaParcelaPgfn({
           </Texto>
           <SeloDaGuia confirmada={guia.confirmada} enviada={guia.enviada} />
         </Linha>
-        {guia.confirmada && !guia.enviada && (
+        {(guia.enviada || guia.confirmada) && (
           <Texto variante="nota" className={cn("mt-1", NOTA_LEGIVEL)}>
-            Trocar o PDF devolve a guia a «a confirmar».
-          </Texto>
-        )}
-        {guia.enviada && (
-          <Texto variante="nota" className={cn("mt-1", NOTA_LEGIVEL)}>
-            Já enviada ao Cliente: só pode ser aberta.
+            {guia.enviada
+              ? "Já enviada ao Cliente: só pode ser aberta."
+              : "Trocar o PDF devolve a guia a «a confirmar»."}
           </Texto>
         )}
         {!guia.confirmada && guia.motivo && (
@@ -171,17 +165,14 @@ export function GuiasDaParcelaPgfn({
         )}
         <Linha alinhar="centro" espaco={2} quebra className="mt-2">
           {!removendo && (
-            <Button
-              type="button"
+            <BotaoDaGuia
               variant="link"
-              size="sm"
-              aria-disabled={pendente || undefined}
-              onClick={() => onVisualizar(guia.competencia)}
+              ocupado={pendente}
+              onClick={() => acoes.visualizar(guia.competencia)}
               aria-label={`Ver guia de ${guia.rotulo}`}
-              className={BOTAO_DA_GUIA}
             >
               Ver
-            </Button>
+            </BotaoDaGuia>
           )}
           {!guia.confirmada &&
             !guia.enviada &&
@@ -203,23 +194,19 @@ export function GuiasDaParcelaPgfn({
                 nomeDoCancelar={`Cancelar liberação da guia de ${guia.rotulo}`}
                 emCurso={daAcao.emCurso}
                 ocupado={pendente}
-                onConfirmar={() => onConfirmar(guia.competencia)}
-                onCancelar={onCancelarAcao}
+                onConfirmar={() => acoes.confirmar(guia.competencia)}
+                onCancelar={acoes.cancelar}
               />
             ) : (
-              <Button
-                type="button"
+              <BotaoDaGuia
                 id={guia.idDaLiberacao}
-                variant="default"
-                size="sm"
-                aria-disabled={pendente || undefined}
-                onClick={() => onPedirAcao("liberar", guia.competencia)}
+                ocupado={pendente}
+                onClick={() => acoes.pedir("liberar", guia.competencia)}
                 aria-label={`Confirmar e liberar guia de ${guia.rotulo} ao envio`}
                 aria-describedby={guia.motivo ? `${guia.id}-motivo` : undefined}
-                className={BOTAO_DA_GUIA}
               >
                 Confirmar e liberar
-              </Button>
+              </BotaoDaGuia>
             ))}
           <Linha alinhar="centro" espaco={1} quebra className="ml-auto pointer-coarse:gap-3">
             {!guia.enviada && (
@@ -230,7 +217,7 @@ export function GuiasDaParcelaPgfn({
                     rotuloAcessivel={`Trocar guia de ${guia.rotulo}`}
                     aceitar="application/pdf"
                     ocupado={pendente}
-                    onEscolher={(novo) => onTrocar(guia.competencia, novo)}
+                    onEscolher={(novo) => acoes.trocar(guia.competencia, novo)}
                   />
                 )}
                 {removendo ? (
@@ -243,25 +230,20 @@ export function GuiasDaParcelaPgfn({
                     destrutiva
                     emCurso={daAcao.emCurso}
                     ocupado={pendente}
-                    onConfirmar={() => onRemover(guia.competencia)}
-                    onCancelar={onCancelarAcao}
+                    onConfirmar={() => acoes.remover(guia.competencia)}
+                    onCancelar={acoes.cancelar}
                   />
                 ) : (
-                  <Button
-                    type="button"
+                  <BotaoDaGuia
                     id={guia.idDaRemocao}
                     variant="link"
-                    size="sm"
-                    aria-disabled={pendente || undefined}
-                    onClick={() => onPedirAcao("remover", guia.competencia)}
+                    ocupado={pendente}
+                    onClick={() => acoes.pedir("remover", guia.competencia)}
                     aria-label={`Remover guia de ${guia.rotulo}`}
-                    className={cn(
-                      BOTAO_DA_GUIA,
-                      "text-muted-foreground hover:text-destructive focus-visible:text-destructive",
-                    )}
+                    className="text-muted-foreground hover:text-destructive focus-visible:text-destructive"
                   >
                     Remover
-                  </Button>
+                  </BotaoDaGuia>
                 )}
               </>
             )}
@@ -365,16 +347,14 @@ export function GuiasDaParcelaPgfn({
             </Linha>
           </Pilha>
         </Caixa>
-        <Button
-          type="button"
+        <BotaoDaGuia
           variant={arquivo ? "default" : "outline"}
-          size="sm"
-          aria-disabled={pendente || undefined}
+          ocupado={pendente}
           onClick={onAnexar}
-          className={cn(BOTAO_DA_GUIA, "self-start")}
+          className="self-start"
         >
           {anexando ? "Enviando..." : "Anexar guia"}
-        </Button>
+        </BotaoDaGuia>
       </Pilha>
     </Pilha>
   );

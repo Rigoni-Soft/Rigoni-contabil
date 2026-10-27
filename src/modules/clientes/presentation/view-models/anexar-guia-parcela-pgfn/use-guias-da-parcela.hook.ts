@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { AcaoDaGuia } from "@/presentation/components/organisms/guias-da-parcela-pgfn.component";
+import type {
+  AcaoDaGuia,
+  AcoesDasGuias,
+} from "@/presentation/components/organisms/guias-da-parcela-pgfn.component";
 import { abrirEmNovaAba } from "@/presentation/lib/abrir-em-nova-aba";
 import type { GuiaDaParcela } from "@/modules/clientes/application/ports/out/guia-parcela-pgfn.repository";
 import { TEXTO_ENVIO_AUTOMATICO } from "@/shared/kernel/dias-do-job-parcelamento";
@@ -48,9 +51,9 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   const [contaNegociacao, setContaNegociacao] = useState("");
   const [arquivo, setArquivo] = useState<File | undefined>();
   const [erros, setErros] = useState<Erros>({});
-  // Alguma ação em curso; só o envio do PDF (`anexando`) troca o rótulo do botão Anexar.
-  const [pendente, setPendente] = useState(false);
-  const [anexando, setAnexando] = useState(false);
+  // Alguma ação em curso; só o envio do PDF ("anexo") troca o rótulo do botão Anexar.
+  const [emCurso, setEmCurso] = useState<"anexo" | "outra" | undefined>();
+  const pendente = emCurso !== undefined;
   const [erroServidor, setErroServidor] = useState<string | undefined>();
   // "atencao": guia anexada e gravada, mas ainda não liberada (pede conferência; não é sucesso nem erro).
   const [resultado, setResultado] = useState<ResultadoDaAcao | undefined>();
@@ -81,8 +84,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
       setResultado({ tipo: "atencao", texto: AVISO_AGUARDE });
       return;
     }
-    setPendente(true);
-    setAnexando(ehAnexo);
+    setEmCurso(ehAnexo ? "anexo" : "outra");
     limparAvisos();
     try {
       const erro = await rodar();
@@ -90,8 +92,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     } catch {
       setErroServidor(ERRO_TRANSPORTE);
     } finally {
-      setPendente(false);
-      setAnexando(false);
+      setEmCurso(undefined);
     }
   };
 
@@ -230,6 +231,15 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
       definir(valor);
     };
 
+  const acoes: AcoesDasGuias = {
+    pedir: pedirAcao,
+    cancelar: cancelarAcao,
+    confirmar: (competencia) => void confirmar(competencia),
+    trocar: (competencia, arquivo) => void trocar(competencia, arquivo),
+    remover: (competencia) => void remover(competencia),
+    visualizar: (competencia) => void visualizar(competencia),
+  };
+
   return {
     guias: lista.data ?? [],
     carregando: lista.isLoading,
@@ -243,16 +253,11 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     setArquivo: aoEditar("arquivo", setArquivo),
     erros,
     pendente,
-    anexando,
+    anexando: emCurso === "anexo",
     erroServidor,
     resultado,
     anexar,
-    confirmar,
-    trocar,
     acao,
-    pedirAcao,
-    cancelarAcao,
-    remover,
-    visualizar,
+    acoes,
   };
 }

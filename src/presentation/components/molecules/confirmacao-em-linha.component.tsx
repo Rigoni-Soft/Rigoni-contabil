@@ -1,9 +1,5 @@
+import { BotaoDaGuia } from "@/presentation/components/atoms/botao-da-guia.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
-import { Button } from "@/presentation/components/ui/button";
-
-// Botões da linha de uma guia: ficam aria-disabled (não perdem o foco) durante uma ação em curso.
-export const BOTAO_DA_GUIA =
-  "aria-disabled:pointer-events-none aria-disabled:opacity-50 pointer-coarse:min-h-11";
 
 type ConfirmacaoEmLinhaProps = {
   // O que vai acontecer, dito antes (anunciado como alerta ao abrir).
@@ -40,28 +36,17 @@ export function ConfirmacaoEmLinha({
       <Texto variante="corpo" role="alert" className="basis-full">
         {texto}
       </Texto>
-      <Button
-        type="button"
+      <BotaoDaGuia
         variant={destrutiva ? "destructive" : "default"}
-        size="sm"
-        aria-disabled={ocupado || undefined}
+        ocupado={ocupado}
         onClick={onConfirmar}
         aria-label={nomeDoConfirmar}
-        className={BOTAO_DA_GUIA}
       >
         {emCurso ? rotuloEmCurso : rotuloDoConfirmar}
-      </Button>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        autoFocus
-        onClick={onCancelar}
-        aria-label={nomeDoCancelar}
-        className={BOTAO_DA_GUIA}
-      >
+      </BotaoDaGuia>
+      <BotaoDaGuia variant="outline" autoFocus onClick={onCancelar} aria-label={nomeDoCancelar}>
         Cancelar
-      </Button>
+      </BotaoDaGuia>
     </>
   );
 }
