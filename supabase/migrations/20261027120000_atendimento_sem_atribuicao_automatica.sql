@@ -35,23 +35,15 @@ end;
 $$;
 
 -- Encerra o Atendimento do Funcionário (null = um em espera), com a auditoria de sucesso. Devolve
--- 'inexistente' se não está em andamento com esse dono (ou o Setor mudou no meio). Quem encerra não
+-- 'inexistente' se não está em andamento com esse dono. Quem encerra não
 -- puxa mais ninguém da espera.
 CREATE OR REPLACE FUNCTION public.encerrar_atendimento(p_atendimento_id uuid, p_funcionario_id uuid, p_ator uuid, p_ator_setor public.setor_slug) RETURNS jsonb
     LANGUAGE plpgsql
     SET search_path TO 'public'
     AS $$
-declare
-  v_setor public.setor_slug;
 begin
-  select setor into v_setor from public.atendimentos where id = p_atendimento_id;
-  if v_setor is null then
-    return jsonb_build_object('status', 'inexistente');
-  end if;
-  perform pg_advisory_xact_lock(hashtext('atendimento:' || v_setor::text));
-
   update public.atendimentos set status = 'encerrado'
-  where id = p_atendimento_id and status = 'em_andamento' and setor = v_setor
+  where id = p_atendimento_id and status = 'em_andamento'
     and funcionario_id is not distinct from p_funcionario_id;
   if not found then
     return jsonb_build_object('status', 'inexistente');
@@ -100,13 +92,6 @@ declare
   v_empresa text;
   v_cnpj text;
 begin
-  perform pg_advisory_xact_lock(
-    hashtext('atendimento:' || least(p_setor_destino::text, p_setor_origem::text)));
-  if p_setor_origem <> p_setor_destino then
-    perform pg_advisory_xact_lock(
-      hashtext('atendimento:' || greatest(p_setor_destino::text, p_setor_origem::text)));
-  end if;
-
   select * into v_atendimento from public.atendimentos
   where id = p_atendimento_id and status = 'em_andamento'
   for update;
@@ -173,15 +158,11 @@ CREATE OR REPLACE FUNCTION public.desativar_usuario(alvo_id uuid, ator_id uuid) 
 declare
   v_alvo public.perfis;
   v_ator public.perfis;
-  v_setor public.setor_slug;
 begin
-  select setor into v_setor from public.perfis where id = alvo_id;
+  select * into v_alvo from public.perfis where id = alvo_id for update;
   if not found then
     raise exception 'perfil inexistente.';
   end if;
-  perform pg_advisory_xact_lock(hashtext('atendimento:' || v_setor::text));
-
-  select * into v_alvo from public.perfis where id = alvo_id for update;
   if v_alvo.desativado_em is not null then
     return;
   end if;

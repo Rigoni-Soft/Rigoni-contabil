@@ -13,22 +13,15 @@ export function useFila(
   podeEscolherSetor: boolean,
 ) {
   const [setor, setSetor] = useState<SetorSlug>(setorInicial);
-  // Sem relógio no primeiro render: servidor e navegador mostram a espera calculada pelo servidor
-  // (um `Date.now()` aqui difere entre os dois e quebra a hidratação).
-  const [agora, setAgora] = useState<number>();
+  const [agora, setAgora] = useState(() => Date.now());
   const query = useFilaQuery(
     podeEscolherSetor ? setor : null,
     setor === setorInicial ? inicial : undefined,
   );
 
   useEffect(() => {
-    const atualizar = () => setAgora(Date.now());
-    const primeira = setTimeout(atualizar, 0);
-    const timer = setInterval(atualizar, 1000);
-    return () => {
-      clearTimeout(primeira);
-      clearInterval(timer);
-    };
+    const timer = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
   return {

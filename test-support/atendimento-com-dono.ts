@@ -18,7 +18,7 @@ export async function abrirComDono(
   return aberto.value.id;
 }
 
-export async function atribuir(
+async function atribuir(
   admin: SupabaseClient,
   atendimentoId: string,
   funcionarioId: string,

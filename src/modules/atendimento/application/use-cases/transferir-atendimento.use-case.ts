@@ -7,7 +7,6 @@ import type {
 import type {
   AtendimentoEmAndamento,
   AtendimentoRepositoryPort,
-  NovaTransferencia,
   ResultadoTransferencia,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { AuditoriaPort } from "@/modules/atendimento/application/ports/out/auditoria.provider";
@@ -28,9 +27,6 @@ import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import { SETOR_LABEL, type SetorSlug } from "@/shared/kernel/setores";
-
-// Espera dirigida (`funcionarioId`) ou do Setor (null).
-type DestinoFixo = { funcionarioId: string | null };
 
 const RESUMO_TAMANHO_MAXIMO = 1000; // repetido na CHECK de `transferencias.resumo`
 
@@ -54,20 +50,20 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
 
     const atendimento = await this.validar(ator, input);
     if (!atendimento.ok) return atendimento;
-    const fixo = await this.destinoFixo(atendimento.value, input.setorDestino);
-    if (!fixo.ok) return fixo;
+    const dirigidoA = await this.dirigidoA(atendimento.value, input.setorDestino);
+    if (!dirigidoA.ok) return dirigidoA;
     const resumo = input.resumo.trim();
 
-    const gravada = await this.gravar(
-      {
+    const gravada = this.exigirTransferido(
+      await this.repositorio.transferir({
         atendimentoId: input.atendimentoId,
         origemFuncionarioId: atendimento.value.funcionarioId,
         setorOrigem: atendimento.value.setor,
         setorDestino: input.setorDestino,
+        dirigidoA: dirigidoA.value,
         resumo,
         ator: { id: ator.id, setor: ator.setor },
-      },
-      fixo.value,
+      }),
     );
     if (!gravada.ok) {
       await this.auditarFalha(ator, input.atendimentoId);
@@ -138,10 +134,10 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
 
   // Setor Simples Nacional: só Cliente do Simples Nacional/MEI; fica dirigido ao Responsável do
   // Cliente, ou ao Líder se não houver. Outros Setores: null.
-  private async destinoFixo(
+  private async dirigidoA(
     atendimento: AtendimentoEmAndamento,
     setorDestino: SetorSlug,
-  ): Promise<Result<DestinoFixo | null, AppError>> {
+  ): Promise<Result<string | null, AppError>> {
     if (setorDestino !== "simples_nacional") return ok(null);
     const roteamento = atendimento.clienteId
       ? await this.repositorio.roteamentoDoCliente(atendimento.clienteId)
@@ -154,19 +150,8 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
         }),
       );
     }
-    if (roteamento.value.responsavelId)
-      return ok({ funcionarioId: roteamento.value.responsavelId });
-    const lider = await this.repositorio.liderDoSetor(setorDestino);
-    return lider.ok ? ok({ funcionarioId: lider.value }) : lider;
-  }
-
-  private async gravar(
-    dados: Omit<NovaTransferencia, "dirigidoA">,
-    fixo: DestinoFixo | null,
-  ): Promise<Result<Transferido, AppError>> {
-    return this.exigirTransferido(
-      await this.repositorio.transferir({ ...dados, dirigidoA: fixo?.funcionarioId ?? null }),
-    );
+    if (roteamento.value.responsavelId) return ok(roteamento.value.responsavelId);
+    return this.repositorio.liderDoSetor(setorDestino);
   }
 
   private exigirTransferido(
