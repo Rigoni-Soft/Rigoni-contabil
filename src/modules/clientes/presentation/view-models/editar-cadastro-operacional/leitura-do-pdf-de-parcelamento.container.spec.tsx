@@ -16,6 +16,10 @@ const lerMock = jest.fn();
 jest.mock("./ler-pdf-de-parcelamento.actions", () => ({
   lerPdfDeParcelamentoAction: (...args: unknown[]) => lerMock(...args),
 }));
+const anexarGuiaMock = jest.fn();
+jest.mock("../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.actions", () => ({
+  anexarGuiaParcelaPgfnAction: (...args: unknown[]) => anexarGuiaMock(...args),
+}));
 const salvarParcelamentosMock = jest.fn();
 const editarMock = jest.fn();
 jest.mock("@/main/clientes.factory", () => ({
@@ -42,6 +46,7 @@ const dados: CadastroOperacionalClienteDto = {
   responsavelNome: null,
 };
 
+const PARCELAMENTO_ID = "5b1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7e";
 const okAction = <T,>(data: T) => ({ ok: true as const, data });
 
 const pdf = new File([new Uint8Array([1, 2, 3])], "acordo.pdf", { type: "application/pdf" });
@@ -64,9 +69,10 @@ describe("Leitura do PDF de parcelamento no Editar cliente", () => {
   beforeEach(() => {
     lerMock.mockReset();
     salvarParcelamentosMock.mockReset();
+    anexarGuiaMock.mockReset();
     editarMock.mockReset();
     editarMock.mockResolvedValue(ok({ clienteId: dados.id }));
-    salvarParcelamentosMock.mockResolvedValue(ok(undefined));
+    salvarParcelamentosMock.mockResolvedValue(ok({ ids: [PARCELAMENTO_ID] }));
   });
 
   it("enquanto lê: avisa, desabilita os campos da linha e o Salvar; depois sugere e libera", async () => {
@@ -159,6 +165,56 @@ describe("Leitura do PDF de parcelamento no Editar cliente", () => {
         },
         ...extra,
       });
+
+    it("guia anexada no cadastro: sobe depois de salvar, no Parcelamento criado, fora do corpo do salvar", async () => {
+      lerMock.mockResolvedValue(sugestao());
+      anexarGuiaMock.mockResolvedValue(okAction({}));
+      const guia = new File([new Uint8Array([1])], "guia.pdf", { type: "application/pdf" });
+      const usuario = userEvent.setup();
+      render();
+      await anexarPdfNoParcelamentoNovo(usuario);
+      await usuario.upload(await screen.findByLabelText(/guia do mês/i), guia);
+
+      await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+
+      await waitFor(() => expect(anexarGuiaMock).toHaveBeenCalled());
+      expect(anexarGuiaMock.mock.calls[0][0]).toEqual({
+        parcelamentoId: PARCELAMENTO_ID,
+        arquivo: guia,
+      });
+      expect(salvarParcelamentosMock.mock.calls[0][0].parcelamentos[0]).not.toHaveProperty("guia");
+    });
+
+    it("sem guia no cadastro: não chama o anexo", async () => {
+      lerMock.mockResolvedValue(sugestao());
+      const usuario = userEvent.setup();
+      render();
+      await anexarPdfNoParcelamentoNovo(usuario);
+      await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+
+      await waitFor(() => expect(salvarParcelamentosMock).toHaveBeenCalled());
+      expect(anexarGuiaMock).not.toHaveBeenCalled();
+    });
+
+    it("guia recusada (CNPJ de outra empresa): o Parcelamento fica salvo e a tela avisa", async () => {
+      lerMock.mockResolvedValue(sugestao());
+      anexarGuiaMock.mockResolvedValue({
+        ok: false,
+        error: { code: "VALIDATION_ERROR", message: "O CNPJ da guia é de outra empresa." },
+      });
+      const guia = new File([new Uint8Array([1])], "guia.pdf", { type: "application/pdf" });
+      const usuario = userEvent.setup();
+      render();
+      await anexarPdfNoParcelamentoNovo(usuario);
+      await usuario.upload(await screen.findByLabelText(/guia do mês/i), guia);
+
+      await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+
+      expect(
+        await screen.findByText(/Parcelamento foi salvo, mas a guia não foi anexada/),
+      ).toBeInTheDocument();
+      expect(salvarParcelamentosMock).toHaveBeenCalledTimes(1);
+    });
 
     it("lê pelo Cliente da tela e mostra o resumo do acordo; salvar leva o acordo junto", async () => {
       lerMock.mockResolvedValue(sugestao());

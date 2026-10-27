@@ -40,6 +40,13 @@ const somaDosPdfsCabe = (parcelamentos: { arquivo?: File }[]) =>
   parcelamentos.reduce((total, p) => total + (p.arquivo?.size ?? 0), 0) <= LIMITE_PDF_BYTES;
 const MENSAGEM_SOMA_DOS_PDFS = "Os PDFs novos somam mais de 4 MB. Salve alguns de cada vez.";
 
+// A primeira guia do Parcelamento PGFN novo: vai por Server Action própria, depois de salvar (não
+// entra no corpo de salvarParcelamentosSchema nem na soma dos PDFs).
+const guiaDaParcela = z
+  .instanceof(File)
+  .refine((arquivo) => arquivo.type === "application/pdf", "Envie um arquivo PDF")
+  .refine((arquivo) => arquivo.size <= LIMITE_PDF_BYTES, "O arquivo passa de 4 MB");
+
 // Leitura do PDF na tela: o arquivo, com as mesmas regras do anexo, e o Cliente (para conferir o CNPJ).
 export const lerPdfDeParcelamentoSchema = z.object({ clienteId: z.guid(), arquivo: pdfDoAcordo });
 
@@ -89,6 +96,7 @@ export const parcelamentoFormSchema = z
     enviadoNoMes: z.boolean(),
     arquivoNome: z.string(),
     arquivo: z.instanceof(File).optional(),
+    guia: guiaDaParcela.optional(),
     acordo: acordoDoPdf.optional(),
   })
   .superRefine((p, ctx) => {

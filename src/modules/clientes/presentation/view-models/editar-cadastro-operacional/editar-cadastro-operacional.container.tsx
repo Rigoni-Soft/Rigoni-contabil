@@ -17,6 +17,7 @@ import { REGIME_LABEL, regimeTemCadastroOperacionalSn } from "@/shared/kernel/re
 
 import { AnexarGuiaParcelaPgfnContainer } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.container";
 import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
+import { anexarGuiaParcelaPgfnAction } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.actions";
 import { atribuirResponsavelAction } from "./atribuir-responsavel.actions";
 import { editarCadastroOperacionalAction } from "./editar-cadastro-operacional.actions";
 import {
@@ -206,13 +207,31 @@ export function EditarCadastroOperacionalContainer({
         etapa = "salvar os Parcelamentos";
         const salvos = await salvarParcelamentosAction({
           clienteId: dados.id,
-          parcelamentos: valores.parcelamentos,
+          // A guia sobe à parte, depois: o corpo desta chamada tem o teto de 4,5 MB.
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          parcelamentos: valores.parcelamentos.map(({ guia: _guia, ...p }) => p),
         });
         if (!salvos.ok) {
           setErroServidor(
             `Os dados foram salvos, mas não foi possível salvar os Parcelamentos. ${salvos.error.message}`,
           );
           return;
+        }
+
+        // Guia recusada (ex.: CNPJ de outra empresa) não desfaz o Parcelamento: avisa e a guia se anexa na linha.
+        etapa = "anexar a guia";
+        for (const [indice, linha] of valores.parcelamentos.entries()) {
+          if (!linha.guia) continue;
+          const guia = await anexarGuiaParcelaPgfnAction({
+            parcelamentoId: salvos.data.ids[indice],
+            arquivo: linha.guia,
+          });
+          if (!guia.ok) {
+            setErroServidor(
+              `O Parcelamento foi salvo, mas a guia não foi anexada. ${guia.error.message} Recarregue a página e anexe a guia na linha do Parcelamento.`,
+            );
+            return;
+          }
         }
       }
       etapa = "atribuir o Responsável";

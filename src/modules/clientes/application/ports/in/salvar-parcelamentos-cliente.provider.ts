@@ -17,6 +17,7 @@ export type SalvarParcelamentosClienteInput = {
   }[];
 };
 
+// `ids`: o id de cada Parcelamento, na ordem enviada (o novo só ganha id aqui).
 export interface SalvarParcelamentosClientePort {
-  execute(input: SalvarParcelamentosClienteInput): Promise<Result<void, AppError>>;
+  execute(input: SalvarParcelamentosClienteInput): Promise<Result<{ ids: string[] }, AppError>>;
 }

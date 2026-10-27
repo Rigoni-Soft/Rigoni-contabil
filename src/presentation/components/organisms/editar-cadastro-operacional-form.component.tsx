@@ -66,6 +66,8 @@ export type ParcelamentoLinha = {
   enviadoNoMes: boolean;
   arquivoNome: string;
   arquivo?: File;
+  // Primeira guia do mês (só no Parcelamento PGFN novo); sobe depois de salvar.
+  guia?: File;
   // Dados lidos do PDF; o Container os resume numa linha (`acordoResumo`) para exibir.
   acordo?: {
     origem: "receita_federal" | "pgfn" | null;
@@ -421,6 +423,25 @@ export function EditarCadastroOperacionalForm({
                         </FieldError>
                       )}
                       {atual.acordoResumo && <Texto variante="nota">{atual.acordoResumo}</Texto>}
+                      {atual.acordo?.origem === "pgfn" && (
+                        <Controller
+                          control={control}
+                          name={`parcelamentos.${indice}.guia`}
+                          render={({ field: { onChange, onBlur, value, name } }) => (
+                            <CampoDeArquivo
+                              id={`parcelamentos.${indice}.guia`}
+                              rotulo="Guia do mês (opcional)"
+                              name={name}
+                              accept="application/pdf"
+                              dica="PDF até 4 MB"
+                              file={value}
+                              onChange={onChange}
+                              onBlur={onBlur}
+                              erro={erros?.guia?.message}
+                            />
+                          )}
+                        />
+                      )}
                     </>
                   )
                 }

@@ -36,7 +36,9 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
     private readonly storage: ArquivoStoragePort,
   ) {}
 
-  async execute(input: SalvarParcelamentosClienteInput): Promise<Result<void, AppError>> {
+  async execute(
+    input: SalvarParcelamentosClienteInput,
+  ): Promise<Result<{ ids: string[] }, AppError>> {
     const ator = await this.sessao.usuarioAtual();
     if (!ator || !podeEditarCadastroOperacional(ator.papel, ator.setor)) {
       return err(
@@ -85,7 +87,7 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
         .filter((p) => !mantidos.has(p.id) && !caminhosEmUso.has(p.arquivoCaminho))
         .map((p) => p.arquivoCaminho),
     );
-    return ok(undefined);
+    return ok({ ids: itens.map((item) => item.id) });
   }
 
   private montar(
