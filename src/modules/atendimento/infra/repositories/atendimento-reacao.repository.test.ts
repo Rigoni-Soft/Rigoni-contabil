@@ -30,13 +30,12 @@ describe("SupabaseAtendimentoRepository — reação (#84)", () => {
       chave: TELEFONE,
       clienteId: null,
       setor: "recepcao",
-      funcionarioId: null,
       mensagens: [
         { autor: "contato", texto: "preciso do contrato", idExterno: "wamid.ABERTURA" },
         { autor: "ura", texto: "Já vamos te atender" },
       ],
     });
-    if (!aberto.ok || aberto.value.status !== "aberto") throw new Error("abertura falhou");
+    if (!aberto.ok) throw new Error("abertura falhou");
     atendimentoId = aberto.value.id;
 
     const anexada = await repositorio.anexarMensagem(TELEFONE, {
@@ -99,10 +98,9 @@ describe("reentrega do webhook (#84)", () => {
       chave: "61955584002",
       clienteId: null,
       setor: "recepcao",
-      funcionarioId: null,
       mensagens: [{ autor: "contato", texto: "oi", idExterno: "wamid.A" }],
     });
-    if (!aberto.ok || aberto.value.status !== "aberto") throw new Error("abertura falhou");
+    if (!aberto.ok) throw new Error("abertura falhou");
     const mensagem = { autor: "contato" as const, texto: "tudo bem?", idExterno: "wamid.B" };
 
     const primeira = await repositorio.anexarMensagem("61955584002", mensagem);

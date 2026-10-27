@@ -1,13 +1,11 @@
 /**
  * Integração infra ↔ Supabase (testes.md, seção 3): desativar um
- * usuário não deixa Atendimento preso a uma conta irrecuperável, e a escolha automática de
- * atendente (fallback) não grava um perfil desativado. Requer `npx supabase start` local com
- * migrations + seed.
+ * usuário não deixa Atendimento preso a uma conta irrecuperável: volta à espera do Setor, sem
+ * atribuição automática. Requer `npx supabase start` local com migrations + seed.
  */
-import { execFile, spawnSync } from "node:child_process";
-
 import { createClient } from "@supabase/supabase-js";
 
+import { abrirComDono } from "../../../../../test-support/atendimento-com-dono";
 import { SupabaseAtendimentoRepository } from "./atendimento.repository";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
@@ -52,22 +50,24 @@ function numero(): string {
 
 async function abrir(
   funcionarioId: string | null,
-  opcoes: { setor?: typeof SETOR | typeof OUTRO_SETOR; livre?: boolean; mensagens?: number } = {},
+  opcoes: { setor?: typeof SETOR | typeof OUTRO_SETOR; mensagens?: number } = {},
 ) {
   const tel = numero();
-  const r = await repositorio.abrir({
+  const abertura = {
     telefone: tel,
     chave: tel,
     clienteId: null,
     setor: opcoes.setor ?? SETOR,
-    funcionarioId,
-    atribuirLivreSeVazia: opcoes.livre,
     mensagens: Array.from({ length: opcoes.mensagens ?? 1 }, (_, i) => ({
       autor: "contato" as const,
       texto: `mensagem ${i + 1}`,
     })),
-  });
-  if (!r.ok || r.value.status !== "aberto") throw new Error("setup: não abriu");
+  };
+  if (funcionarioId) {
+    return { telefone: tel, id: await abrirComDono(admin, repositorio, abertura, funcionarioId) };
+  }
+  const r = await repositorio.abrir(abertura);
+  if (!r.ok) throw new Error("setup: não abriu");
   return { telefone: tel, id: r.value.id };
 }
 
@@ -157,7 +157,7 @@ describe("desativação × Atendimento em andamento", () => {
     expect(await auditoriasDe("atendimento.devolver-fila", id)).toHaveLength(1);
   });
 
-  it("quem esperava na fila PESSOAL do desativado volta à Fila do Setor", async () => {
+  it("quem esperava dirigido ao desativado volta à espera do Setor", async () => {
     const destino = await criarPerfil("Destino Pessoal");
     const { id } = await abrir(null);
     await admin.from("atendimentos").update({ fila_funcionario_id: destino }).eq("id", id);
@@ -173,37 +173,18 @@ describe("desativação × Atendimento em andamento", () => {
     expect(await auditoriasDe("atendimento.devolver-fila", id)).toHaveLength(1);
   });
 
-  it("com Funcionário ativo livre no Setor, ele assume o mais antigo da Fila, com crédito e auditoria", async () => {
+  it("com colega livre no Setor o devolvido continua na espera: ninguém é atribuído", async () => {
     const dono = await criarPerfil("Dono Com Colega");
-    const colega = await criarPerfil("Colega Livre");
+    await criarPerfil("Colega Livre");
     const { id } = await abrir(dono, { mensagens: 2 });
 
     await desativar(dono);
 
     const depois = await atendimento(id);
-    expect(depois.funcionario_id).toBe(colega);
-    expect(depois.assumido_em).not.toBeNull();
+    expect(depois.funcionario_id).toBeNull();
+    expect(depois.fila_desde).not.toBeNull();
     expect(await mensagensDe(id)).toEqual(["mensagem 1", "mensagem 2"]);
-    expect(await assuncoesDe(id)).toEqual([dono, colega].sort());
-    expect(await auditoriasDe("atendimento.reatribuir", id)).toHaveLength(1);
-  });
-
-  it("FIFO cronológico: quem já esperava na Fila vem antes do devolvido, mesmo aberto depois dele", async () => {
-    const dono = await criarPerfil("Dono Fifo");
-    // t1: A é assumido pelo dono (não está na Fila).
-    const { id: devolvido } = await abrir(dono);
-    // t2: sem ninguém livre, B entra na Fila.
-    const { id: esperava } = await abrir(null);
-    const colega = await criarPerfil("Colega Fifo");
-
-    // t3 > t2: A volta à Fila, agora atrás de B.
-    await desativar(dono);
-
-    expect((await atendimento(esperava)).funcionario_id).toBe(colega);
-    expect((await atendimento(devolvido)).funcionario_id).toBeNull();
-    const fila = await repositorio.filaDoSetor(SETOR);
-    if (!fila.ok) throw new Error("setup: fila");
-    expect(fila.value.map((item) => [item.id, item.posicao])).toEqual([[devolvido, 1]]);
+    expect(await auditoriasDe("atendimento.reatribuir", id)).toHaveLength(0);
   });
 
   it("FIFO: o devolvido entra na Fila no instante da desativação, depois de quem já esperava", async () => {
@@ -218,7 +199,7 @@ describe("desativação × Atendimento em andamento", () => {
     expect(new Date(depois.fila_desde!).getTime()).toBeGreaterThan(
       new Date(antes.fila_desde!).getTime(),
     );
-    // Sem colega livre, os dois esperam e B (que já esperava) está na frente.
+    // Os dois esperam e B (que já esperava) está na frente.
     const fila = await repositorio.filaDoSetor(SETOR);
     if (!fila.ok) throw new Error("setup: fila");
     expect(fila.value.map((item) => item.id)).toEqual([esperava, devolvido]);
@@ -235,78 +216,5 @@ describe("desativação × Atendimento em andamento", () => {
 
     expect((await atendimento(doColega)).funcionario_id).toBe(colegaOcupado);
     expect((await atendimento(doOutro)).funcionario_id).toBe(deOutroSetor);
-  });
-});
-
-// Concorrência de verdade: uma segunda conexão (psql dentro do container do Supabase local) mantém
-// a desativação ABERTA enquanto a abertura/transferência escolhe o atendente. A escolha automática
-// só enxerga o perfil como ativo (a desativação ainda não confirmou); a revalidação com lock tem de
-// esperar a confirmação e recusar o perfil. Sem Docker/container, a suíte é ignorada.
-const CONTAINER = process.env.SUPABASE_DB_CONTAINER ?? "supabase_db_Rigoni-contabil";
-const dockerDisponivel = spawnSync("docker", ["exec", CONTAINER, "true"]).status === 0;
-const descreveComDocker = dockerDisponivel ? describe : describe.skip;
-
-function desativarEmVoo(perfilId: string, segundos: number): Promise<void> {
-  const sql = `begin; update public.perfis set desativado_em = clock_timestamp() where id = '${perfilId}'; select pg_sleep(${segundos}); commit;`;
-  return new Promise((resolve, reject) =>
-    execFile(
-      "docker",
-      ["exec", CONTAINER, "psql", "-U", "postgres", "-v", "ON_ERROR_STOP=1", "-c", sql],
-      (erro) => (erro ? reject(erro) : resolve()),
-    ),
-  );
-}
-
-const esperar = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-descreveComDocker("escolha automática (fallback) com desativação em voo", () => {
-  it("abrir: o livre escolhido que está sendo desativado não recebe; o Atendimento espera na Fila", async () => {
-    const livre = await criarPerfil("Livre Abrir");
-    const tel = numero();
-
-    const desativacao = desativarEmVoo(livre, 2);
-    await esperar(600);
-    const aberto = await repositorio.abrir({
-      telefone: tel,
-      chave: tel,
-      clienteId: null,
-      setor: SETOR,
-      funcionarioId: null,
-      atribuirLivreSeVazia: true,
-      mensagens: [{ autor: "contato", texto: "oi" }],
-    });
-    await desativacao;
-
-    if (!aberto.ok || aberto.value.status !== "aberto") throw new Error("não abriu");
-    expect(aberto.value.funcionarioId).toBeNull();
-    const gravado = await atendimento(aberto.value.id);
-    expect(gravado.funcionario_id).toBeNull();
-    expect(gravado.fila_desde).not.toBeNull();
-  });
-
-  it("transferir: o livre escolhido que está sendo desativado não recebe; o Atendimento espera na Fila", async () => {
-    const origem = await criarPerfil("Origem Transf", OUTRO_SETOR);
-    const livre = await criarPerfil("Livre Transf");
-    const { id } = await abrir(origem, { setor: OUTRO_SETOR });
-
-    const desativacao = desativarEmVoo(livre, 2);
-    await esperar(600);
-    const r = await repositorio.transferir({
-      atendimentoId: id,
-      origemFuncionarioId: origem,
-      setorOrigem: OUTRO_SETOR,
-      setorDestino: SETOR,
-      funcionarioDestinoId: null,
-      enfileirarSeOcupado: false,
-      atribuirLivreSeVazia: true,
-      resumo: "x",
-      ator: { id: origem, setor: OUTRO_SETOR },
-    });
-    await desativacao;
-
-    if (!r.ok || r.value.status !== "transferido") throw new Error("não transferiu");
-    const gravado = await atendimento(id);
-    expect(gravado).toMatchObject({ funcionario_id: null, fila_funcionario_id: null });
-    expect(gravado.fila_desde).not.toBeNull();
   });
 });

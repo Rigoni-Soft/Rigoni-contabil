@@ -4,7 +4,6 @@ import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 
 export type ItemDaFilaProps = {
-  posicao: number;
   contato: string;
   empresa: string;
   cnpj: string | null;
@@ -15,7 +14,6 @@ export type ItemDaFilaProps = {
 };
 
 export function ItemDaFila({
-  posicao,
   contato,
   empresa,
   cnpj,
@@ -30,15 +28,6 @@ export function ItemDaFila({
       espaco={3}
       className="rounded-lg border border-border bg-card px-4 py-3"
     >
-      <Caixa
-        como="span"
-        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground"
-      >
-        <Texto como="span" variante="somenteLeitor">
-          Posição{" "}
-        </Texto>
-        {posicao}
-      </Caixa>
       <Caixa className="min-w-0 flex-1">
         <Texto variante="destaque" className="break-words">
           {contato}

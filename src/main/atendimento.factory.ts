@@ -208,7 +208,7 @@ export async function makeReceberMensagem(): Promise<ReceberMensagemPort> {
     envio,
     new SupabaseDocumentosContratuaisGateway(supabaseAdmin),
     new SupabaseSessaoAtendimentoGateway(supabaseAdmin, MENSAGERIA_SEGREDO_SESSAO),
-    new AbrirAtendimento(atendimentos, new AvisarCliente(envio, atendimentos)),
+    new AbrirAtendimento(atendimentos),
     new AnexarMensagemAtendimento(atendimentos),
     new RelogioSistemaGateway(),
     new SupabaseFeriadoRepository(supabaseAdmin),

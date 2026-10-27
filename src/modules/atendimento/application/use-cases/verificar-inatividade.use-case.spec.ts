@@ -80,7 +80,6 @@ function montar(
       return ok(
         opcoes.encerramento ?? {
           status: "encerrado" as const,
-          proximo: null,
           reivindicacao: "tok-1",
         },
       );
@@ -200,22 +199,15 @@ describe("VerificarInatividade", () => {
     expect(encerrados).toEqual([]);
   });
 
-  it("9m59 depois do aviso não encerra; 10m00 encerra como URA com a mensagem final e avisa cliente e próximo da Fila", async () => {
+  it("9m59 depois do aviso não encerra; 10m00 encerra como URA com a mensagem final e avisa o cliente", async () => {
     const a = avisado("funcionario");
     const antes = montar([a], sp("2026-10-07T12:09:59"));
     await antes.caso.execute();
     expect(antes.encerrados).toEqual([]);
 
-    const proximo = {
-      id: "a2",
-      telefone: "5561911112222",
-      chave: "61911112222",
-      funcionarioNome: "Ana",
-    };
     const { caso, encerrados, enviados, confirmadosEncerramento } = montar(
       [a],
       sp("2026-10-07T12:10:00"),
-      { encerramento: { status: "encerrado", proximo, reivindicacao: "tok-1" } },
     );
     const r = await caso.execute();
     expect(r.ok && r.value.encerrados).toBe(1);
@@ -223,10 +215,7 @@ describe("VerificarInatividade", () => {
       ["a1", "f1", { id: URA_ATOR_ID, setor: "societario" }, AVISO_ENCERRAMENTO_AO_CLIENTE],
     ]);
     // A mensagem final já está no histórico (gravada na transação): o envio não a registra de novo.
-    expect(enviados.map((e) => [e.telefone, e.registrar])).toEqual([
-      ["5561988887777", false],
-      ["5561911112222", undefined],
-    ]);
+    expect(enviados.map((e) => [e.telefone, e.registrar])).toEqual([["5561988887777", false]]);
     // Confirma com o token que o próprio encerramento reivindicou.
     expect(confirmadosEncerramento).toEqual(["a1:tok-1"]);
   });

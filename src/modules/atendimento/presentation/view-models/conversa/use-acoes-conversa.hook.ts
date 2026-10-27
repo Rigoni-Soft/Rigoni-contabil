@@ -20,9 +20,7 @@ export function useAcoesConversa(atendimentoId: string, initialData: ConversaVis
   const transferencia = useTransferirAtendimentoMutation(atendimentoId);
   const encerramento = useEncerrarAtendimentoMutation(atendimentoId);
   const [confirmandoEncerramento, setConfirmandoEncerramento] = useState(false);
-  // Sai da conversa: abre o Atendimento da Fila que o Funcionário assumiu, ou volta ao início.
-  const irParaProximo = (proximoDaFila: string | null) =>
-    router.push(proximoDaFila ? `/atendimento/${proximoDaFila}` : "/");
+  const sairDaConversa = () => router.push("/");
 
   const aviso = envio.isError
     ? { tipo: "erro" as const, texto: envio.error.message }
@@ -42,22 +40,21 @@ export function useAcoesConversa(atendimentoId: string, initialData: ConversaVis
     enviando: envio.isPending,
     aviso,
     setoresDestino: conversa.setoresDestino,
-    // Transferido, o Funcionário perde o controle e a visão da conversa: a tela sai dela e abre o
-    // Atendimento da Fila que ele assumiu ao ficar livre; sem ele, volta ao início.
+    // Transferido, o Funcionário perde o controle e a visão da conversa: a tela volta ao início.
     aoTransferir: (setorDestino: string, resumo: string) =>
-      transferencia.mutate({ setorDestino, resumo }, { onSuccess: irParaProximo }),
+      transferencia.mutate({ setorDestino, resumo }, { onSuccess: sairDaConversa }),
     transferindo: transferencia.isPending,
     avisoTransferencia: transferencia.isError
       ? { tipo: "erro" as const, texto: transferencia.error.message }
       : undefined,
     // Encerrar não tem volta: pede confirmação. Encerrado, o Funcionário sai da conversa como na
-    // transferência (abre a do próximo da Fila que assumiu, ou volta ao início).
+    // transferência.
     confirmandoEncerramento,
     aoPedirEncerramento: () => setConfirmandoEncerramento(true),
     aoCancelarEncerramento: () => setConfirmandoEncerramento(false),
     aoConfirmarEncerramento: () =>
       encerramento.mutate(undefined, {
-        onSuccess: irParaProximo,
+        onSuccess: sairDaConversa,
         onSettled: () => setConfirmandoEncerramento(false),
       }),
     encerrando: encerramento.isPending,

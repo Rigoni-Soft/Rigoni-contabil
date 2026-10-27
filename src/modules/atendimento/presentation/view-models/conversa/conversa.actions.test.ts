@@ -124,12 +124,12 @@ describe("enviarMensagemAction (integração)", () => {
 describe("encerrarAtendimentoAction (integração)", () => {
   beforeEach(() => encerrarMock.mockReset());
 
-  it("chama o caso de uso e devolve o próximo da Fila que o Funcionário assumiu", async () => {
-    encerrarMock.mockResolvedValue(ok({ proximoDaFila: "at-9" }));
+  it("chama o caso de uso e devolve o resultado", async () => {
+    encerrarMock.mockResolvedValue(ok(undefined));
 
     const r = await encerrarAtendimentoAction(ID);
 
-    expect(r).toEqual({ ok: true, data: { proximoDaFila: "at-9" } });
+    expect(r).toEqual({ ok: true, data: undefined });
     expect(encerrarMock).toHaveBeenCalledWith({ atendimentoId: ID });
   });
 

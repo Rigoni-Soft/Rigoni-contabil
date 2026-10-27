@@ -226,7 +226,7 @@ describe("POST /api/webhooks/whatsapp (notificação)", () => {
   it("opção 5 do menu (falar com atendente) encaminha o contato reconhecido à recepção", async () => {
     const r = await enviar(notificacao([texto("5")]));
     expect(r.status).toBe(200);
-    expect(envio.enviadas).toHaveLength(1);
+    expect(envio.enviadas).toHaveLength(2);
     expect(envio.enviadas[0].texto).toContain("recepção");
   });
 

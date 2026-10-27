@@ -16,18 +16,14 @@ export type DadosDoContato = {
   cnpj: string | null;
 };
 
-// O que o Funcionário de destino recebe.
-// `destinatarioNome` null = ninguém escolhido (nenhum usuário livre no Setor: fila do Setor).
-// `naFila` = o destino escolhido estava ocupado e o Atendimento entrou na fila dele.
+// O que o destino recebe.
+// `destinatarioNome` null = espera do Setor; senão o Atendimento espera dirigido a essa pessoa.
 export type TransferenciaConcluida = {
   destinatarioNome: string | null;
-  naFila: boolean;
   contato: DadosDoContato;
   origemSetor: SetorSlug;
   origemNome: string | null;
   resumo: string;
-  // Atendimento da Fila que o Funcionário de origem, agora livre, assumiu; null se não havia.
-  proximoDaFila: string | null;
 };
 
 export interface TransferirAtendimentoPort {

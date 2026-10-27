@@ -137,11 +137,9 @@ export function useTransferirAtendimentoMutation(atendimentoId: string) {
 
   return useMutation({
     mutationKey: conversaKeys.transferencia(atendimentoId),
-    // Devolve o Atendimento da Fila que o Funcionário liberado assumiu (null se não havia).
     mutationFn: async (dados: { setorDestino: string; resumo: string }) => {
       const resultado = await transferirAtendimentoAction({ atendimentoId, ...dados });
       if (!resultado.ok) throw new Error(resultado.error.message);
-      return resultado.data.proximoDaFila;
     },
     // O Atendimento mudou de mãos: a lista do dock precisa refletir.
     onSettled: () => queryClient.invalidateQueries({ queryKey: meusAtendimentosKeys.lista() }),
@@ -152,14 +150,11 @@ export function useEncerrarAtendimentoMutation(atendimentoId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    // Devolve o Atendimento da Fila que o Funcionário liberado assumiu (null se não havia).
     mutationFn: async () => {
       const resultado = await encerrarAtendimentoAction(atendimentoId);
       if (!resultado.ok) throw new Error(resultado.error.message);
-      return resultado.data.proximoDaFila;
     },
-    // Também no erro: um encerramento feito mas com aviso falho já deve aparecer na conversa. O dock
-    // e a Fila refletem o Funcionário livre e o Atendimento que ele assumiu.
+    // Também no erro: um encerramento feito mas com aviso falho já deve aparecer na conversa.
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: conversaKeys.conversa(atendimentoId) }),

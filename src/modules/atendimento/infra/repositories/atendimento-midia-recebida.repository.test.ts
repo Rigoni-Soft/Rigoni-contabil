@@ -31,10 +31,9 @@ describe("SupabaseAtendimentoRepository — mídia recebida (#81)", () => {
       chave: TELEFONE,
       clienteId: null,
       setor: "recepcao",
-      funcionarioId: null,
       mensagens: [{ autor: "contato", texto: "oi" }],
     });
-    if (!aberto.ok || aberto.value.status !== "aberto") throw new Error("abertura falhou");
+    if (!aberto.ok) throw new Error("abertura falhou");
     atendimentoId = aberto.value.id;
   });
 

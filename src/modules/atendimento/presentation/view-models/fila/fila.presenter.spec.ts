@@ -4,7 +4,6 @@ import { avisoDaFila, itemDaFilaParaView, tituloDaFila } from "./fila.presenter"
 
 const ITEM: ItemDaFilaVisto = {
   atendimentoId: "at-1",
-  posicao: 1,
   telefone: "5561988887777",
   contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
   resumo: "Quer o contrato social",
@@ -17,7 +16,6 @@ describe("itemDaFilaParaView", () => {
   it("formata Contato, Empresa, CNPJ e telefone para exibição", () => {
     expect(itemDaFilaParaView(ITEM)).toMatchObject({
       id: "at-1",
-      posicao: 1,
       contato: "Maria",
       empresa: "Padaria Ltda",
       cnpj: "11.444.777/0001-61",

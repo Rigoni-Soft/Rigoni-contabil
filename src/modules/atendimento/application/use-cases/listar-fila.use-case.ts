@@ -36,7 +36,6 @@ export class ListarFila implements ListarFilaPort {
     return ok(
       fila.value.map((item) => ({
         atendimentoId: item.id,
-        posicao: item.posicao,
         telefone: item.telefone,
         contato: item.contato,
         resumo: item.resumo,

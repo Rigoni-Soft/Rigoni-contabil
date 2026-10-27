@@ -6,13 +6,12 @@ import { SETOR_LABEL, type SetorSlug } from "@/shared/kernel/setores";
 
 export type ItemDaFilaView = {
   id: string;
-  posicao: number;
   contato: string;
   empresa: string;
   cnpj: string | null;
   telefone: string;
   resumo: string | null;
-  // Fila de um usuário (não a do Setor): o item só sai quando ele ficar livre.
+  // Dirigido a um usuário (não à espera do Setor): só ele assume.
   daFilaDeUsuario: boolean;
   espera: string;
 };
@@ -22,7 +21,6 @@ export function itemDaFilaParaView(item: ItemDaFilaVisto, agora?: number): ItemD
   const filaDesdeMs = new Date(item.filaDesde).getTime();
   return {
     id: item.atendimentoId,
-    posicao: item.posicao,
     contato: item.contato.contatoNome ?? "Contato não identificado",
     empresa: item.contato.empresa ?? "Cliente não identificado",
     cnpj: item.contato.cnpj ? formatarCnpj(item.contato.cnpj) : null,

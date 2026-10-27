@@ -116,7 +116,7 @@ describe("useAcoesConversa", () => {
   });
 
   it("transfere para o Setor escolhido, passa a mostrar para onde foi e volta ao início", async () => {
-    transferir.mockResolvedValue({ ok: true, data: { proximoDaFila: null } as never });
+    transferir.mockResolvedValue({ ok: true, data: undefined as never });
     const { result } = renderizar();
 
     act(() => result.current.aoTransferir("tributario", "DAS em atraso"));
@@ -129,15 +129,6 @@ describe("useAcoesConversa", () => {
       resumo: "DAS em atraso",
     });
     await waitFor(() => expect(push).toHaveBeenCalledWith("/"));
-  });
-
-  it("se ficou livre e assumiu o próximo da Fila, abre a conversa dele", async () => {
-    transferir.mockResolvedValue({ ok: true, data: { proximoDaFila: "at-2" } as never });
-    const { result } = renderizar();
-
-    act(() => result.current.aoTransferir("tributario", "DAS"));
-
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/atendimento/at-2"));
   });
 
   it("mostra o erro da transferência e não marca como transferido", async () => {
@@ -173,22 +164,13 @@ describe("useAcoesConversa", () => {
     });
 
     it("confirmado, encerra e volta ao início", async () => {
-      encerrar.mockResolvedValue({ ok: true, data: { proximoDaFila: null } });
+      encerrar.mockResolvedValue({ ok: true, data: undefined });
       const { result } = renderizar();
 
       act(() => result.current.aoConfirmarEncerramento());
 
       await waitFor(() => expect(push).toHaveBeenCalledWith("/"));
       expect(encerrar).toHaveBeenCalledWith("at-1");
-    });
-
-    it("se ficou livre e assumiu o próximo da Fila, abre a conversa dele", async () => {
-      encerrar.mockResolvedValue({ ok: true, data: { proximoDaFila: "at-2" } });
-      const { result } = renderizar();
-
-      act(() => result.current.aoConfirmarEncerramento());
-
-      await waitFor(() => expect(push).toHaveBeenCalledWith("/atendimento/at-2"));
     });
 
     it("mostra o erro e não sai da conversa", async () => {

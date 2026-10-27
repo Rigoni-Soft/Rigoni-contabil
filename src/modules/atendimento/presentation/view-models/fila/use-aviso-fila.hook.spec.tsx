@@ -19,7 +19,6 @@ const acao = jest.mocked(listarFilaAction);
 const tocar = jest.mocked(tocarNotificacao);
 const item = (id: string) => ({
   atendimentoId: id,
-  posicao: 1,
   telefone: "5561988887777",
   contato: { contatoNome: "Maria", empresa: null, cnpj: null },
   resumo: null,
