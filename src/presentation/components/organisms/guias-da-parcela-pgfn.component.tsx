@@ -29,6 +29,8 @@ type GuiaDaListaDto = {
   idDaLiberacao: string;
   // Já tem registro de envio: só pode ser aberta, não troca nem remove.
   enviada: boolean;
+  // A confirmar ou do mês corrente; as demais ficam recolhidas em "Ver histórico".
+  recente: boolean;
 };
 
 type GuiasDaParcelaPgfnProps = {
@@ -55,8 +57,6 @@ type GuiasDaParcelaPgfnProps = {
   erroServidor?: string;
   // Sucesso, ou atenção (anexada mas "a confirmar": o que fazer; não é sucesso nem erro).
   resultado?: { tipo: "sucesso" | "atencao"; texto: string };
-  // Onde mostrar o erro e o resultado: junto do formulário (anexo) ou da lista (ações sobre uma guia).
-  avisoEm: "anexo" | "lista";
   onAnexar: () => void;
   onConfirmar: (competencia: string) => void;
   onTrocar: (competencia: string, arquivo: File) => void;
@@ -66,6 +66,8 @@ type GuiasDaParcelaPgfnProps = {
   onCancelarLiberacao: (competencia: string) => void;
   // Competência cuja confirmação está em curso.
   confirmando?: string;
+  // Competência cuja remoção está em curso.
+  apagando?: string;
   // Competência cuja remoção espera confirmação (apaga registro e PDF, sem desfazer).
   removendo?: string;
   onPedirRemocao: (competencia: string) => void;
@@ -98,7 +100,6 @@ export function GuiasDaParcelaPgfn({
   anexando,
   erroServidor,
   resultado,
-  avisoEm,
   onAnexar,
   onConfirmar,
   onTrocar,
@@ -106,15 +107,175 @@ export function GuiasDaParcelaPgfn({
   onPedirLiberacao,
   onCancelarLiberacao,
   confirmando: confirmandoGuia,
+  apagando,
   removendo,
   onPedirRemocao,
   onCancelarRemocao,
   onRemover,
   onVisualizar,
 }: GuiasDaParcelaPgfnProps) {
+  const recentes = guias.filter((g) => g.recente);
+  const historico = guias.filter((g) => !g.recente);
   const temDigitado = Boolean(
     competencia || contaNegociacao || erros.competencia || erros.contaNegociacao,
   );
+
+  const renderGuia = (guia: GuiaDaListaDto) => {
+    const confirmando = removendo === guia.competencia;
+    return (
+      <Caixa
+        como="li"
+        key={guia.competencia}
+        id={guia.id}
+        tabIndex={-1}
+        className="rounded-sm py-3 outline-none first:pt-0 last:pb-0 focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Linha alinhar="centro" justificar="entre" espaco={3} quebra>
+          <Texto
+            variante="corpo"
+            className="min-w-0 font-medium [overflow-wrap:anywhere] tabular-nums"
+          >
+            {guia.rotulo} · conta {guia.contaNegociacao}
+          </Texto>
+          <SeloDaGuia confirmada={guia.confirmada} enviada={guia.enviada} />
+        </Linha>
+        {guia.enviada && (
+          <Texto variante="nota" className="mt-1 text-sm">
+            Já enviada ao Cliente: só pode ser aberta.
+          </Texto>
+        )}
+        {!guia.confirmada && guia.motivo && (
+          <Texto
+            variante="nota"
+            id={`${guia.id}-motivo`}
+            className="mt-1 text-sm [overflow-wrap:anywhere]"
+          >
+            {guia.motivo}
+          </Texto>
+        )}
+        <Linha alinhar="centro" espaco={2} quebra className="mt-2">
+          {!guia.confirmada &&
+            !guia.enviada &&
+            (liberando === guia.competencia ? (
+              <>
+                <Texto variante="nota" role="alert">
+                  Libera a guia de {guia.rotulo} (conta {guia.contaNegociacao}) para envio ao
+                  Cliente, sem desfazer.
+                </Texto>
+                <Button
+                  type="button"
+                  variant="default"
+                  size="sm"
+                  aria-disabled={pendente || undefined}
+                  onClick={() => onConfirmar(guia.competencia)}
+                  aria-label={`Liberar guia de ${guia.rotulo} ao envio`}
+                  className={BOTAO_DA_GUIA}
+                >
+                  {confirmandoGuia === guia.competencia ? "Liberando..." : "Liberar guia"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  // Quem abriu a conferência sem querer cai no gesto seguro.
+                  autoFocus
+                  onClick={() => onCancelarLiberacao(guia.competencia)}
+                  aria-label={`Cancelar liberação da guia de ${guia.rotulo}`}
+                  className={BOTAO_DA_GUIA}
+                >
+                  Cancelar
+                </Button>
+              </>
+            ) : (
+              <Button
+                type="button"
+                id={guia.idDaLiberacao}
+                variant="default"
+                size="sm"
+                aria-disabled={pendente || undefined}
+                onClick={() => onPedirLiberacao(guia.competencia)}
+                aria-label={`Confirmar e liberar guia de ${guia.rotulo} ao envio`}
+                aria-describedby={guia.motivo ? `${guia.id}-motivo` : undefined}
+                className={BOTAO_DA_GUIA}
+              >
+                Confirmar e liberar
+              </Button>
+            ))}
+          <Linha alinhar="centro" espaco={1} quebra className="ml-auto">
+            {!confirmando && (
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                aria-disabled={pendente || undefined}
+                onClick={() => onVisualizar(guia.competencia)}
+                aria-label={`Ver guia de ${guia.rotulo}`}
+                className={BOTAO_DA_GUIA}
+              >
+                Ver
+              </Button>
+            )}
+            {!guia.enviada && (
+              <>
+                {!confirmando && (
+                  <BotaoDeArquivo
+                    rotulo="Trocar"
+                    rotuloAcessivel={`Trocar guia de ${guia.rotulo}`}
+                    aceitar="application/pdf"
+                    ocupado={pendente}
+                    onEscolher={(novo) => onTrocar(guia.competencia, novo)}
+                  />
+                )}
+                {confirmando ? (
+                  <>
+                    <Texto variante="nota" role="alert">
+                      Apaga a guia de {guia.rotulo} e o PDF, sem desfazer.
+                    </Texto>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      aria-disabled={pendente || undefined}
+                      onClick={() => onRemover(guia.competencia)}
+                      aria-label={`Confirmar remoção da guia de ${guia.rotulo}`}
+                      className={BOTAO_DA_GUIA}
+                    >
+                      {apagando === guia.competencia ? "Removendo..." : "Confirmar remoção"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      // Quem abriu a confirmação sem querer cai no gesto seguro.
+                      autoFocus
+                      onClick={() => onCancelarRemocao(guia.competencia)}
+                      aria-label={`Cancelar remoção da guia de ${guia.rotulo}`}
+                      className={BOTAO_DA_GUIA}
+                    >
+                      Cancelar
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    type="button"
+                    id={guia.idDaRemocao}
+                    variant="link"
+                    size="sm"
+                    aria-disabled={pendente || undefined}
+                    onClick={() => onPedirRemocao(guia.competencia)}
+                    aria-label={`Remover guia de ${guia.rotulo}`}
+                    className={cn(BOTAO_DA_GUIA, "text-destructive")}
+                  >
+                    Remover
+                  </Button>
+                )}
+              </>
+            )}
+          </Linha>
+        </Linha>
+      </Caixa>
+    );
+  };
 
   const avisos = (
     <>
@@ -144,164 +305,37 @@ export function GuiasDaParcelaPgfn({
             onAcao={onTentarNovamente}
           />
         )}
+        {carregando && (
+          <Texto variante="nota" className="text-sm">
+            Carregando guias...
+          </Texto>
+        )}
         {!carregando && !erroDaLista && guias.length === 0 && (
-          <Texto variante="nota">Nenhuma guia anexada.</Texto>
+          <Texto variante="nota" className="text-sm">
+            Nenhuma guia anexada.
+          </Texto>
         )}
       </Pilha>
-      {guias.length > 0 && (
+      {recentes.length > 0 && (
         <Pilha como="ul" espaco={1} className="divide-y divide-border">
-          {guias.map((guia) => {
-            const confirmando = removendo === guia.competencia;
-            return (
-              <Caixa
-                como="li"
-                key={guia.competencia}
-                id={guia.id}
-                tabIndex={-1}
-                className="rounded-sm py-3 outline-none first:pt-0 last:pb-0 focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <Linha alinhar="centro" justificar="entre" espaco={3} quebra>
-                  <Texto variante="corpo" className="min-w-0 [overflow-wrap:anywhere] tabular-nums">
-                    {guia.rotulo} · conta {guia.contaNegociacao}
-                  </Texto>
-                  <SeloDaGuia confirmada={guia.confirmada} enviada={guia.enviada} />
-                </Linha>
-                {!guia.confirmada && guia.motivo && (
-                  <Texto
-                    variante="nota"
-                    id={`${guia.id}-motivo`}
-                    className="mt-1 text-sm [overflow-wrap:anywhere]"
-                  >
-                    {guia.motivo}
-                  </Texto>
-                )}
-                <Linha alinhar="centro" espaco={2} quebra className="mt-2">
-                  {!guia.confirmada &&
-                    !guia.enviada &&
-                    (liberando === guia.competencia ? (
-                      <>
-                        <Texto variante="nota" role="alert">
-                          Libera a guia de {guia.rotulo} (conta {guia.contaNegociacao}) para envio
-                          ao Cliente, sem desfazer.
-                        </Texto>
-                        <Button
-                          type="button"
-                          variant="default"
-                          size="sm"
-                          aria-disabled={pendente || undefined}
-                          onClick={() => onConfirmar(guia.competencia)}
-                          aria-label={`Liberar guia de ${guia.rotulo} ao envio`}
-                          className={BOTAO_DA_GUIA}
-                        >
-                          {confirmandoGuia === guia.competencia ? "Liberando..." : "Liberar guia"}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          // Quem abriu a conferência sem querer cai no gesto seguro.
-                          autoFocus
-                          onClick={() => onCancelarLiberacao(guia.competencia)}
-                          aria-label={`Cancelar liberação da guia de ${guia.rotulo}`}
-                          className={BOTAO_DA_GUIA}
-                        >
-                          Cancelar
-                        </Button>
-                      </>
-                    ) : (
-                      <Button
-                        type="button"
-                        id={guia.idDaLiberacao}
-                        variant="default"
-                        size="sm"
-                        aria-disabled={pendente || undefined}
-                        onClick={() => onPedirLiberacao(guia.competencia)}
-                        aria-label={`Confirmar e liberar guia de ${guia.rotulo} ao envio`}
-                        aria-describedby={guia.motivo ? `${guia.id}-motivo` : undefined}
-                        className={BOTAO_DA_GUIA}
-                      >
-                        Confirmar e liberar
-                      </Button>
-                    ))}
-                  <Linha alinhar="centro" espaco={1} quebra className="ml-auto">
-                    {!confirmando && (
-                      <Button
-                        type="button"
-                        variant="link"
-                        size="sm"
-                        aria-disabled={pendente || undefined}
-                        onClick={() => onVisualizar(guia.competencia)}
-                        aria-label={`Ver guia de ${guia.rotulo}`}
-                        className={BOTAO_DA_GUIA}
-                      >
-                        Ver
-                      </Button>
-                    )}
-                    {!guia.enviada && (
-                      <>
-                        {!confirmando && (
-                          <BotaoDeArquivo
-                            rotulo="Trocar"
-                            rotuloAcessivel={`Trocar guia de ${guia.rotulo}`}
-                            aceitar="application/pdf"
-                            ocupado={pendente}
-                            onEscolher={(novo) => onTrocar(guia.competencia, novo)}
-                          />
-                        )}
-                        {confirmando ? (
-                          <>
-                            <Texto variante="nota" role="alert">
-                              Apaga a guia de {guia.rotulo} e o PDF, sem desfazer.
-                            </Texto>
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="sm"
-                              aria-disabled={pendente || undefined}
-                              onClick={() => onRemover(guia.competencia)}
-                              aria-label={`Confirmar remoção da guia de ${guia.rotulo}`}
-                              className={BOTAO_DA_GUIA}
-                            >
-                              Confirmar remoção
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              // Quem abriu a confirmação sem querer cai no gesto seguro.
-                              autoFocus
-                              onClick={() => onCancelarRemocao(guia.competencia)}
-                              aria-label={`Cancelar remoção da guia de ${guia.rotulo}`}
-                              className={BOTAO_DA_GUIA}
-                            >
-                              Cancelar
-                            </Button>
-                          </>
-                        ) : (
-                          <Button
-                            type="button"
-                            id={guia.idDaRemocao}
-                            variant="link"
-                            size="sm"
-                            aria-disabled={pendente || undefined}
-                            onClick={() => onPedirRemocao(guia.competencia)}
-                            aria-label={`Remover guia de ${guia.rotulo}`}
-                            className={cn(BOTAO_DA_GUIA, "text-destructive")}
-                          >
-                            Remover
-                          </Button>
-                        )}
-                      </>
-                    )}
-                  </Linha>
-                </Linha>
-              </Caixa>
-            );
-          })}
+          {recentes.map(renderGuia)}
         </Pilha>
       )}
+      {historico.length > 0 && (
+        <Caixa como="details">
+          <Caixa
+            como="summary"
+            className="w-fit cursor-pointer rounded-sm text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11 pointer-coarse:py-2"
+          >
+            Ver histórico ({historico.length})
+          </Caixa>
+          <Pilha como="ul" espaco={1} className="divide-y divide-border pt-3">
+            {historico.map(renderGuia)}
+          </Pilha>
+        </Caixa>
+      )}
 
-      {avisoEm === "lista" && avisos}
+      {avisos}
 
       <Pilha espaco={3}>
         <CampoDeArquivo
@@ -330,7 +364,7 @@ export function GuiasDaParcelaPgfn({
             <Linha alinhar="fim" espaco={3} quebra>
               <CampoDeTexto
                 id={`${id}-competencia`}
-                rotulo="Competência (opcional)"
+                rotulo="Competência"
                 type="month"
                 // Navegador sem seletor de mês (ex.: Firefox no desktop) mostra texto livre: o formato vai no placeholder.
                 placeholder="AAAA-MM"
@@ -343,7 +377,7 @@ export function GuiasDaParcelaPgfn({
               />
               <CampoDeTexto
                 id={`${id}-conta`}
-                rotulo="Conta de negociação (opcional)"
+                rotulo="Conta de negociação"
                 maxLength={40}
                 aria-describedby={`${id}-leitura`}
                 value={contaNegociacao}
@@ -357,7 +391,7 @@ export function GuiasDaParcelaPgfn({
         </Caixa>
         <Button
           type="button"
-          variant="default"
+          variant={arquivo ? "default" : "outline"}
           size="sm"
           aria-disabled={pendente || undefined}
           onClick={onAnexar}
@@ -365,7 +399,6 @@ export function GuiasDaParcelaPgfn({
         >
           {anexando ? "Enviando..." : "Anexar guia"}
         </Button>
-        {avisoEm === "anexo" && avisos}
       </Pilha>
     </Pilha>
   );

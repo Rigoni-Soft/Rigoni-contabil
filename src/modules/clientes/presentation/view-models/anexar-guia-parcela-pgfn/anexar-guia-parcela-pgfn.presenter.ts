@@ -27,8 +27,12 @@ export const idDaLiberacao = (prefixo: string, competencia: string) =>
 // Id da região das guias: o foco volta a ela quando a guia removida leva o botão embora.
 export const idDaRegiao = (prefixo: string) => `${prefixo}-regiao`;
 
-export const linhasDeGuias = (guias: GuiaDaParcela[], prefixo: string) =>
-  guias.map((guia) => ({
+// `recente`: a guia a confirmar ou a de competência mais nova; as demais (histórico) ficam recolhidas.
+// Sem depender do relógio: a mais nova anexada é a que a pessoa está acompanhando.
+export const linhasDeGuias = (guias: GuiaDaParcela[], prefixo: string) => {
+  const maisNova = guias.reduce((maior, g) => (g.competencia > maior ? g.competencia : maior), "");
+  return guias.map((guia) => ({
+    recente: guia.estado !== "confirmada" || guia.competencia === maisNova,
     id: idDaGuia(prefixo, guia.competencia),
     competencia: guia.competencia,
     rotulo: rotuloDaCompetencia(guia.competencia),
@@ -39,3 +43,4 @@ export const linhasDeGuias = (guias: GuiaDaParcela[], prefixo: string) =>
     idDaRemocao: idDaRemocao(prefixo, guia.competencia),
     idDaLiberacao: idDaLiberacao(prefixo, guia.competencia),
   }));
+};

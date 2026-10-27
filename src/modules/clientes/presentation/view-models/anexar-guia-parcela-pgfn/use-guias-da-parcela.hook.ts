@@ -48,9 +48,6 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   const [pendente, setPendente] = useState(false);
   const [anexando, setAnexando] = useState(false);
   const [erroServidor, setErroServidor] = useState<string | undefined>();
-  // Onde o aviso aparece: o do anexo, junto do formulário; o das ações sobre uma guia (confirmar,
-  // trocar, remover, ver), junto da lista, onde a pessoa está olhando.
-  const [avisoEm, setAvisoEm] = useState<"anexo" | "lista">("anexo");
   // "atencao": guia anexada e gravada, mas ainda não liberada (pede conferência; não é sucesso nem erro).
   const [resultado, setResultado] = useState<ResultadoDaAcao | undefined>();
   // Remover apaga o registro e o PDF sem desfazer: pede confirmação na linha antes de chamar a action.
@@ -59,6 +56,8 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   const [liberando, setLiberando] = useState<string | undefined>();
   const [confirmando, setConfirmando] = useState<string | undefined>();
   const [removendo, setRemovendo] = useState<string | undefined>();
+  // Competência cuja remoção está em curso (rótulo de progresso no botão dela).
+  const [apagando, setApagando] = useState<string | undefined>();
 
   const lista = useQuery<GuiaDaParcela[]>({
     queryKey: chave,
@@ -76,7 +75,6 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
 
   // As ações compartilham o ciclo: limpa os avisos, roda, e a lista é relida do banco.
   const executar = async (acao: () => Promise<string | undefined>, ehAnexo = false) => {
-    setAvisoEm(ehAnexo ? "anexo" : "lista");
     // Os botões ficam aria-disabled (não perdem o foco) e por isso ainda recebem o clique: ele não
     // some em silêncio: a pessoa é avisada de que há uma ação em curso (espera, não erro).
     if (pendente) {
@@ -96,6 +94,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
       setPendente(false);
       setAnexando(false);
       setConfirmando(undefined);
+      setApagando(undefined);
     }
   };
 
@@ -178,8 +177,10 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
 
   const remover = (competencia: string) =>
     executar(async () => {
-      setRemovendo(undefined);
+      setApagando(competencia);
       const resultado = await removerGuiaParcelaPgfnAction({ parcelamentoId, competencia });
+      // A confirmação fica aberta enquanto o servidor responde (o botão mostra "Removendo...").
+      setRemovendo(undefined);
       if (!resultado.ok) return resultado.error.message;
       setResultado({ tipo: "sucesso", texto: "Guia removida." });
       await queryClient.invalidateQueries({ queryKey: chave });
@@ -247,7 +248,6 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     anexando,
     erroServidor,
     resultado,
-    avisoEm,
     anexar,
     confirmar,
     trocar,
@@ -255,6 +255,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     pedirLiberacao,
     cancelarLiberacao,
     confirmando,
+    apagando,
     removendo,
     pedirRemocao,
     cancelarRemocao,
