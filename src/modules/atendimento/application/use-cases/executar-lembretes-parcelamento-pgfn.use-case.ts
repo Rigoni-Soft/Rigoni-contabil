@@ -30,17 +30,19 @@ function mensagem(cliente: ClienteComParcelamentoPgfn, agora: Date): string {
       .filter((p) => p.estado === estado)
       .map((p) => p.codigo)
       .join(", ");
+  const faltam = codigos("sem_guia");
+  const aConfirmar = codigos("a_confirmar");
   const grupos = [
-    codigos("sem_guia") && `Falta anexar: ${codigos("sem_guia")}.`,
-    codigos("a_confirmar") && `A confirmar: ${codigos("a_confirmar")}.`,
+    faltam && `Falta anexar: ${faltam}.`,
+    aConfirmar && `A confirmar: ${aConfirmar}.`,
   ];
   return `${cliente.empresa}: Parcelamento PGFN sem guia confirmada de ${competencia(agora)}. ${grupos.filter(Boolean).join(" ")}`;
 }
 
 // Job dos dias 1/10/15 (fuso de São Paulo): alerta o setor Simples Nacional, um por Cliente, dos
 // Parcelamentos PGFN sem guia confirmada da competência do mês. Competência atrasada não alerta. Não
-// envia nada ao Cliente. O alerta é renovado a cada rodada e resolvido quando a guia confirmada do
-// mês entra (o Cliente volta sem pendência) pelo mesmo mecanismo do job de lembretes.
+// envia nada ao Cliente. O alerta é renovado a cada rodada e resolvido quando o Cliente volta
+// sem pendência.
 export class ExecutarLembretesParcelamentoPgfn implements ExecutarLembretesParcelamentoPgfnPort {
   constructor(
     private readonly clientes: ClientesComParcelamentoPgfnPort,
