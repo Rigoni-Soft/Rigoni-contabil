@@ -7,9 +7,8 @@ type BotaoDaGuiaProps = Omit<React.ComponentProps<typeof Button>, "type" | "size
   ocupado?: boolean;
 };
 
-// Botão pequeno das ações de uma guia: alvo de 44 px em qualquer ponteiro (em ponteiro fino a área
-// extra é invisível, `before:`, e o botão segue com 32 px) e aria-disabled em vez de `disabled`, para
-// o foco não se perder durante uma ação em curso.
+// Botão pequeno das ações de uma guia: alvo de 44 px (com mouse, área invisível `before:`) e
+// aria-disabled em vez de `disabled`, para o foco não se perder durante uma ação em curso.
 export function BotaoDaGuia({ ocupado, className, ...props }: BotaoDaGuiaProps) {
   return (
     <Button
