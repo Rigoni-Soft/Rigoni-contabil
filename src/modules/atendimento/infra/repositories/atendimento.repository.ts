@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import type {
   AberturaAtendimento,
+  AtendimentoAberto,
   NovaMensagem,
 } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type { AnexarMensagemOutput } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
@@ -89,7 +90,7 @@ function paraMensagemLida(m: z.infer<typeof mensagemDaConversaRowSchema>): Mensa
 export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 
-  async abrir(atendimento: AberturaAtendimento): Promise<Result<{ id: string }, AppError>> {
+  async abrir(atendimento: AberturaAtendimento): Promise<Result<AtendimentoAberto, AppError>> {
     const { data, error } = await this.supabaseAdmin.rpc("abrir_atendimento", {
       p_telefone: atendimento.telefone,
       p_chave: atendimento.chave,

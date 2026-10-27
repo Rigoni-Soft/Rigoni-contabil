@@ -1,5 +1,6 @@
 import type {
   AberturaAtendimento,
+  AtendimentoAberto,
   NovaMensagem,
 } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type { AnexarMensagemOutput } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
@@ -181,7 +182,7 @@ export type MensagensAnteriores = {
 export type MensagensPorId = Omit<MensagensAnteriores, "temMaisAntigas">;
 
 export interface AtendimentoRepositoryPort {
-  abrir(atendimento: AberturaAtendimento): Promise<Result<{ id: string }, AppError>>;
+  abrir(atendimento: AberturaAtendimento): Promise<Result<AtendimentoAberto, AppError>>;
   anexarMensagem(
     chave: string,
     mensagem: NovaMensagem,
