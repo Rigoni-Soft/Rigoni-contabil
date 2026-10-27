@@ -15,9 +15,9 @@ import type { DocumentoContratualVisivelDto } from "@/modules/clientes/applicati
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { REGIME_LABEL, regimeTemCadastroOperacionalSn } from "@/shared/kernel/regimes";
 
+import { anexarGuiaParcelaPgfnAction } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.actions";
 import { AnexarGuiaParcelaPgfnContainer } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.container";
 import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
-import { anexarGuiaParcelaPgfnAction } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.actions";
 import { atribuirResponsavelAction } from "./atribuir-responsavel.actions";
 import { editarCadastroOperacionalAction } from "./editar-cadastro-operacional.actions";
 import {
@@ -35,6 +35,9 @@ import { editarCadastroOperacionalFormSchema } from "./editar-cadastro-operacion
 import { useResponsaveisElegiveis } from "./responsaveis.queries";
 import { salvarParcelamentosAction } from "./salvar-parcelamentos.actions";
 import { useLeituraDoPdf } from "./use-leitura-do-pdf.hook";
+
+// O erro da guia mora no campo; o Parcelamento já existe, então a saída é anexar na linha dele.
+const RECUPERAR_GUIA = "Recarregue a página e anexe a guia na linha do Parcelamento.";
 
 type Props = {
   dados: CadastroOperacionalClienteDto | null;
@@ -221,14 +224,22 @@ export function EditarCadastroOperacionalContainer({
         // Guia recusada (ex.: CNPJ de outra empresa) não desfaz o Parcelamento: avisa e a guia se anexa na linha.
         etapa = "anexar a guia";
         for (const [indice, linha] of valores.parcelamentos.entries()) {
-          if (!linha.guia) continue;
+          // O campo some se o PDF do acordo passa a não ser da PGFN, mas o arquivo escolhido fica no formulário.
+          if (!linha.guia || linha.acordo?.origem !== "pgfn") continue;
           const guia = await anexarGuiaParcelaPgfnAction({
             parcelamentoId: salvos.data.ids[indice],
             arquivo: linha.guia,
           });
           if (!guia.ok) {
+            // O motivo aparece junto do campo da linha, não só no topo do formulário.
+            const tela = getValues("parcelamentos").findIndex((p) => p.guia === linha.guia);
+            if (tela >= 0) {
+              setError(`parcelamentos.${tela}.guia`, {
+                message: `${guia.error.message} ${RECUPERAR_GUIA}`,
+              });
+            }
             setErroServidor(
-              `O Parcelamento foi salvo, mas a guia não foi anexada. ${guia.error.message} Recarregue a página e anexe a guia na linha do Parcelamento.`,
+              `O Parcelamento foi salvo, mas a guia não foi anexada. ${guia.error.message}`,
             );
             return;
           }

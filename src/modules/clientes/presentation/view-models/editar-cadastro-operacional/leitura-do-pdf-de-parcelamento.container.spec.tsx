@@ -185,6 +185,35 @@ describe("Leitura do PDF de parcelamento no Editar cliente", () => {
       expect(salvarParcelamentosMock.mock.calls[0][0].parcelamentos[0]).not.toHaveProperty("guia");
     });
 
+    it("PDF do acordo trocado por um que não é da PGFN: a guia escolhida não é enviada", async () => {
+      lerMock.mockResolvedValueOnce(sugestao());
+      lerMock.mockResolvedValueOnce(
+        sugestao({
+          acordo: {
+            origem: "receita_federal",
+            totalDeParcelas: 5,
+            valorDaParcelaCentavos: 26289,
+            dataDeAdesao: "2026-01-27",
+          },
+        }),
+      );
+      const guia = new File([new Uint8Array([1])], "guia.pdf", { type: "application/pdf" });
+      const usuario = userEvent.setup();
+      render();
+      await anexarPdfNoParcelamentoNovo(usuario);
+      await usuario.upload(await screen.findByLabelText(/guia do mês/i), guia);
+
+      await usuario.upload(
+        screen.getByLabelText(/pdf do acordo/i),
+        new File([new Uint8Array([2])], "outro.pdf", { type: "application/pdf" }),
+      );
+      await waitFor(() => expect(screen.queryByLabelText(/guia do mês/i)).not.toBeInTheDocument());
+      await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+
+      await waitFor(() => expect(salvarParcelamentosMock).toHaveBeenCalled());
+      expect(anexarGuiaMock).not.toHaveBeenCalled();
+    });
+
     it("sem guia no cadastro: não chama o anexo", async () => {
       lerMock.mockResolvedValue(sugestao());
       const usuario = userEvent.setup();
@@ -213,6 +242,10 @@ describe("Leitura do PDF de parcelamento no Editar cliente", () => {
       expect(
         await screen.findByText(/Parcelamento foi salvo, mas a guia não foi anexada/),
       ).toBeInTheDocument();
+      // O motivo também aparece junto do campo da guia.
+      expect(screen.getByLabelText(/guia do mês/i)).toHaveAccessibleDescription(
+        /O CNPJ da guia é de outra empresa/,
+      );
       expect(salvarParcelamentosMock).toHaveBeenCalledTimes(1);
     });
 
