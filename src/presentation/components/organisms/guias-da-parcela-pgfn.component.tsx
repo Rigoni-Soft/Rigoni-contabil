@@ -100,6 +100,10 @@ export function GuiasDaParcelaPgfn({
   onRemover,
   onVisualizar,
 }: GuiasDaParcelaPgfnProps) {
+  const temDigitado = Boolean(
+    competencia || contaNegociacao || erros.competencia || erros.contaNegociacao,
+  );
+
   const avisos = (
     <>
       {erroServidor && <FieldError>{erroServidor}</FieldError>}
@@ -254,51 +258,64 @@ export function GuiasDaParcelaPgfn({
       {avisoEm === "lista" && avisos}
 
       <Pilha espaco={3}>
-        <Texto variante="nota" id={`${id}-leitura`}>
-          O sistema lê o PDF; digite só se ele não conseguir.
-        </Texto>
-        <Linha alinhar="fim" espaco={3} quebra>
-          <CampoDeTexto
-            id={`${id}-competencia`}
-            rotulo="Competência (opcional)"
-            type="month"
-            // Navegador sem seletor de mês (ex.: Firefox no desktop) mostra texto livre: o formato vai no placeholder.
-            placeholder="AAAA-MM"
-            aria-describedby={`${id}-leitura`}
-            value={competencia}
-            onChange={(evento) => onCompetencia(evento.target.value)}
-            erro={erros.competencia}
-            disabled={anexando}
-            className="min-w-[10rem] flex-1 gap-1"
-          />
-          <CampoDeTexto
-            id={`${id}-conta`}
-            rotulo="Conta de negociação (opcional)"
-            maxLength={40}
-            aria-describedby={`${id}-leitura`}
-            value={contaNegociacao}
-            onChange={(evento) => onContaNegociacao(evento.target.value)}
-            erro={erros.contaNegociacao}
-            disabled={anexando}
-            className="min-w-[10rem] flex-1 gap-1"
-          />
-        </Linha>
         <CampoDeArquivo
           id={`${id}-arquivo`}
           rotulo="PDF da guia"
           accept="application/pdf"
           dica="PDF até 4 MB"
+          compacto
           file={arquivo}
           onChange={onArquivo}
           erro={erros.arquivo}
         />
+        {/* O sistema lê o mês e a conta do PDF: os campos só se abrem para quem precisa digitar. Abre
+          sozinho se já tem valor ou erro, para a recusa nunca ficar escondida. */}
+        <Caixa como="details" open={temDigitado || undefined}>
+          <Caixa
+            como="summary"
+            className="w-fit cursor-pointer rounded-sm text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11 pointer-coarse:py-2"
+          >
+            Preencher mês e conta à mão
+          </Caixa>
+          <Pilha espaco={3} className="pt-3">
+            <Texto variante="nota" id={`${id}-leitura`}>
+              O sistema lê o PDF; digite só se ele não conseguir.
+            </Texto>
+            <Linha alinhar="fim" espaco={3} quebra>
+              <CampoDeTexto
+                id={`${id}-competencia`}
+                rotulo="Competência (opcional)"
+                type="month"
+                // Navegador sem seletor de mês (ex.: Firefox no desktop) mostra texto livre: o formato vai no placeholder.
+                placeholder="AAAA-MM"
+                aria-describedby={`${id}-leitura`}
+                value={competencia}
+                onChange={(evento) => onCompetencia(evento.target.value)}
+                erro={erros.competencia}
+                disabled={anexando}
+                className="min-w-[10rem] flex-1 gap-1"
+              />
+              <CampoDeTexto
+                id={`${id}-conta`}
+                rotulo="Conta de negociação (opcional)"
+                maxLength={40}
+                aria-describedby={`${id}-leitura`}
+                value={contaNegociacao}
+                onChange={(evento) => onContaNegociacao(evento.target.value)}
+                erro={erros.contaNegociacao}
+                disabled={anexando}
+                className="min-w-[10rem] flex-1 gap-1"
+              />
+            </Linha>
+          </Pilha>
+        </Caixa>
         <Button
           type="button"
-          variant="outline"
+          variant="default"
           size="sm"
           aria-disabled={pendente || undefined}
           onClick={onAnexar}
-          className={BOTAO_DA_GUIA}
+          className={cn(BOTAO_DA_GUIA, "self-start")}
         >
           {anexando ? "Enviando..." : "Anexar guia"}
         </Button>

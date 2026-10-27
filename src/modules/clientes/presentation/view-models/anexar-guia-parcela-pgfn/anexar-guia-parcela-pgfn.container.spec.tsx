@@ -602,6 +602,23 @@ describe("trocar, remover e visualizar a guia anexada (#184)", () => {
     expect(regiao.getByText("Guia removida.")).toBeInTheDocument();
   });
 
+  it("o PDF vem primeiro; mês e conta ficam recolhidos e abrem sozinhos quando há valor", async () => {
+    const usuario = userEvent.setup();
+    render();
+    const regiao = within(await regiaoDaGuia());
+    const detalhes = regiao.getByText("Preencher mês e conta à mão").closest("details");
+
+    expect(detalhes).not.toHaveAttribute("open");
+    const pdf = regiao.getByLabelText(/pdf da guia/i);
+    const competencia = regiao.getByLabelText(/competência/i);
+    expect(
+      pdf.compareDocumentPosition(competencia) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    await usuario.type(competencia, "2026-10");
+    expect(detalhes).toHaveAttribute("open");
+  });
+
   it("o resultado de uma ação sobre a guia aparece junto da lista, antes do formulário de anexo", async () => {
     removerMock.mockResolvedValue({ ok: true, data: undefined });
     const usuario = userEvent.setup();
