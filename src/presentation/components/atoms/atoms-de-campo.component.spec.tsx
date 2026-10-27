@@ -45,6 +45,12 @@ describe("átomos de campo", () => {
     expect(document.getElementById("contrato")).toHaveFocus();
   });
 
+  it("FileInput diz o formato e o limite ao leitor de tela antes de qualquer erro", () => {
+    render(<FileInput id="guia" dica="PDF até 4 MB" onChange={jest.fn()} />);
+
+    expect(document.getElementById("guia")).toHaveAccessibleDescription("PDF até 4 MB");
+  });
+
   it("FileInput aceita arquivo arrastado e solto", () => {
     const aoMudar = jest.fn();
     render(<FileInput id="contrato" onChange={aoMudar} />);
@@ -71,10 +77,11 @@ describe("átomos de campo", () => {
       "aria-hidden",
       "true",
     );
-    expect(screen.getByText("PDF ou DOCX").closest("[aria-hidden]")).toHaveAttribute(
-      "aria-hidden",
-      "true",
-    );
+    // A dica visível fica fora do nome; a cópia só para leitor de tela entra na descrição, não no nome.
+    const [dicaVisivel, dicaDoLeitor] = screen.getAllByText("PDF ou DOCX");
+    expect(dicaVisivel.closest("[aria-hidden]")).toHaveAttribute("aria-hidden", "true");
+    expect(dicaDoLeitor).toHaveClass("sr-only");
+    expect(document.getElementById("contrato")).toHaveAccessibleDescription("PDF ou DOCX");
 
     const arquivo = new File(["x"], "contrato.pdf", { type: "application/pdf" });
     rerender(

@@ -378,11 +378,10 @@ export function GuiasDaParcelaPgfn({
             )}
           </Linha>
         </Linha>
-        {avisoNoItem && alvoDoAviso === guia.competencia && (
-          <Pilha espaco={1} className="mt-2">
-            {avisos}
-          </Pilha>
-        )}
+        {/* Região viva sempre presente: o aviso inserido nela é anunciado (uma região nova nem sempre é). */}
+        <Caixa aria-live="polite" className="mt-2 space-y-1 empty:hidden">
+          {avisoNoItem && alvoDoAviso === guia.competencia && avisos}
+        </Caixa>
       </Caixa>
     );
   };
@@ -453,7 +452,9 @@ export function GuiasDaParcelaPgfn({
         </Caixa>
       )}
 
-      {!avisoNoItem && avisos}
+      <Caixa aria-live="polite" className="space-y-1 empty:hidden">
+        {!avisoNoItem && avisos}
+      </Caixa>
 
       {recolherAnexo ? (
         <Caixa

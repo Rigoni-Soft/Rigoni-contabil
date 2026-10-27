@@ -1,6 +1,7 @@
 import { FileText, Upload, X } from "lucide-react";
 
 import { Button } from "@/presentation/components/ui/button";
+import { descricaoDoCampo } from "@/presentation/lib/descricao-do-campo";
 import { cn } from "@/presentation/lib/utils";
 
 type FileInputProps = {
@@ -82,6 +83,12 @@ export function FileInput({
           <span>{file ? "Clique ou arraste para trocar" : "ou clique para selecionar"}</span>
           {dica && <span>{dica}</span>}
         </span>
+        {/* A dica (formato e limite) visível é aria-hidden; esta cópia só para leitor de tela a diz antes do erro. */}
+        {dica && (
+          <span id={`${id}-dica`} className="sr-only">
+            {dica}
+          </span>
+        )}
         <input
           id={id}
           name={name}
@@ -89,7 +96,7 @@ export function FileInput({
           accept={accept}
           className="sr-only"
           aria-invalid={ariaInvalid}
-          aria-describedby={ariaDescribedby}
+          aria-describedby={descricaoDoCampo(ariaDescribedby, dica && `${id}-dica`)}
           onBlur={onBlur}
           onClick={(evento) => (evento.currentTarget.value = "")}
           onChange={(evento) => onChange(evento.target.files?.[0])}

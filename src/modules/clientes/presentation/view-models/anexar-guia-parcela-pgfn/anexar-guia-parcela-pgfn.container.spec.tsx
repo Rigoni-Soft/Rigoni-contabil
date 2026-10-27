@@ -291,7 +291,7 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     );
     await usuario.click(regiao.getByRole("button", { name: "Liberar 09/2026 ao envio" }));
 
-    const aviso = await regiao.findByText("Guia confirmada e liberada ao envio.");
+    const aviso = await regiao.findByText(/^Guia confirmada e liberada ao envio./);
     const itemAgido = regiao.getByText(/09\/2026 · conta 111/).closest("li");
     expect(itemAgido).toContainElement(aviso);
     expect(regiao.getByText(/10\/2026 · conta 222/).closest("li")).not.toContainElement(aviso);
