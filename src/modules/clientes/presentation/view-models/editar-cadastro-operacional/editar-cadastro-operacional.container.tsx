@@ -220,7 +220,11 @@ export function EditarCadastroOperacionalContainer({
 
         // Os ids voltam para as linhas antes de anexar: uma nova tentativa (guia recusada, falha de
         // transporte) atualiza os acordos já salvos, em vez de recriá-los e apagar suas guias em cascata.
-        salvos.data.ids.forEach((id, indice) => setValue(`parcelamentos.${indice}.id`, id));
+        // `ids` segue a lista enviada, sem as linhas em branco: o índice da tela vem do mesmo descarte do resolver.
+        const indicesNaTela = descartarLinhasEmBranco(getValues()).parcelamentos;
+        salvos.data.ids.forEach((id, indice) =>
+          setValue(`parcelamentos.${indicesNaTela[indice]}.id`, id),
+        );
 
         // Guia recusada (ex.: CNPJ de outra empresa) não desfaz o Parcelamento: avisa e a guia se anexa na linha.
         etapa = "anexar a guia";
