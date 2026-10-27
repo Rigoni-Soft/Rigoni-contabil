@@ -283,19 +283,24 @@ test.describe("Guia anexada da parcela PGFN: trocar, visualizar e remover (#184)
     await expect(page.getByRole("checkbox", { name: "É interno" })).toBeDisabled();
 
     const regiao = page.getByRole("group", { name: "Guias da parcela" });
+    // O aviso sai antes de a lista recarregar: agir nesse meio-tempo cai no "Aguarde", não na ação.
+    const livre = () => expect(regiao).not.toHaveAttribute("aria-busy", "true");
     await regiao.getByLabel(/pdf da guia/i).setInputFiles(guia("202610"));
     await regiao.getByRole("button", { name: "Anexar guia" }).click();
     await expect(regiao.getByText("Guia anexada e confirmada: liberada ao envio.")).toBeVisible();
     await expect(regiao.getByText(/10\/2026 · conta FALSO-123456/)).toBeVisible();
 
     // Troca por um PDF que não confere: a guia volta a "a confirmar" e o motivo aparece.
+    await livre();
     await regiao.getByLabel("Trocar guia de 10/2026").setInputFiles(pdf("guia-sem-dados.pdf"));
     await expect(regiao.getByText(/guia trocada, mas ainda não liberada/i)).toBeVisible();
     await expect(regiao.getByText("A confirmar")).toBeVisible();
     // Troca por um PDF de outro mês é recusada e a guia fica como estava.
+    await livre();
     await regiao.getByLabel("Trocar guia de 10/2026").setInputFiles(guia("202611"));
     await expect(regiao.getByText(/PDF é de outra competência/i)).toBeVisible();
     await expect(regiao.getByText("A confirmar")).toBeVisible();
+    await livre();
     await regiao.getByLabel("Trocar guia de 10/2026").setInputFiles(guia("202610"));
     await expect(regiao.getByText(/guia trocada e confirmada/i)).toBeVisible();
     // Só o PDF atual sobra no Storage (o antigo é apagado a cada troca).
@@ -309,6 +314,7 @@ test.describe("Guia anexada da parcela PGFN: trocar, visualizar e remover (#184)
     expect((await objetos()).data).toHaveLength(1);
 
     // Visualizar: o link temporário abre numa aba nova.
+    await livre();
     const [requisicao] = await Promise.all([
       page
         .context()
@@ -318,6 +324,7 @@ test.describe("Guia anexada da parcela PGFN: trocar, visualizar e remover (#184)
     expect(requisicao.url()).toContain("token=");
 
     // Remover apaga o registro e o objeto.
+    await livre();
     await regiao.getByRole("button", { name: "Remover guia de 10/2026" }).click();
     await regiao.getByRole("button", { name: "Confirmar remoção da guia de 10/2026" }).click();
     await expect(regiao.getByText("Guia removida.")).toBeVisible();
