@@ -1,4 +1,4 @@
--- Job de lembretes PGFN (#187): alerta do setor, um por Cliente, dos Parcelamentos PGFN em aberto
+-- Job de lembretes PGFN: alerta do setor, um por Cliente, dos Parcelamentos PGFN em aberto
 -- (inclusive interno) sem guia confirmada da competência do mês. Origem própria: o job renova e
 -- resolve só os alertas dele, sem tocar nos do job de DAS/documento nem nos do de parcelamento.
 
