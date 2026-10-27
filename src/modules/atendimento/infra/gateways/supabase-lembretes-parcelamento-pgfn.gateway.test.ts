@@ -84,7 +84,7 @@ async function anexarGuia(
       parcelamento_id: parcelamentoId,
       competencia,
       conta_negociacao: "123",
-      arquivo_caminho: "x/guia.pdf",
+      arquivo_caminho: `x/guia-${crypto.randomUUID()}.pdf`,
       estado,
     }),
   );
