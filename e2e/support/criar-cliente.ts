@@ -13,8 +13,14 @@ const SUPABASE_ANON_KEY =
 // Compartilhado pelos e2e que precisam logar como Admin e cadastrar um Cliente Simples Nacional
 // válido antes do cenário que testam de fato.
 
+// Único login dos e2e. Em `next dev` o clique em "Entrar" antes da hidratação faz o formulário ser
+// enviado nativamente (GET /login, campos vazios) e o teste fica em /login: espere o React assumir o form.
 export async function login(page: Page, email: string, senha: string) {
   await page.goto("/login");
+  await page.waitForFunction(() => {
+    const form = document.querySelector("form");
+    return !!form && Object.keys(form).some((chave) => chave.startsWith("__reactProps"));
+  });
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Senha").fill(senha);
   await page.getByRole("button", { name: "Entrar" }).click();

@@ -1,13 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const SETOR = "condominios";
+import { login } from "./support/criar-cliente";
 
-async function login(page: Page, email: string, senha: string) {
-  await page.goto("/login");
-  await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill(senha);
-  await page.getByRole("button", { name: "Entrar" }).click();
-}
+const SETOR = "condominios";
 
 async function cadastrarFuncionario(page: Page, nome: string) {
   await page.goto("/admin/usuarios/novo");

@@ -1,11 +1,5 @@
 import { expect, test } from "./fixtures";
-
-async function login(page: import("@playwright/test").Page, email: string, senha: string) {
-  await page.goto("/login");
-  await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill(senha);
-  await page.getByRole("button", { name: "Entrar" }).click();
-}
+import { login } from "./support/criar-cliente";
 
 test.describe("Cadastro de Líder/Funcionário (Admin only)", () => {
   test("Admin cadastra um Funcionário e vê a senha provisória @smoke", async ({ page }) => {
