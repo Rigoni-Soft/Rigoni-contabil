@@ -35,6 +35,8 @@ const avisoAConfirmar = (
 ) => `Guia ${verbo}, mas ainda não liberada ao envio. ${motivo}`;
 // Diz também quando a guia sai: a pessoa não fica sem saber o desfecho.
 const TEXTO_LIBERADA = `Guia confirmada e liberada ao envio. ${TEXTO_ENVIO_AUTOMATICO}.`;
+// Mesma referência a cada render enquanto a lista não chegou.
+const SEM_GUIAS: GuiaDaParcela[] = [];
 const AVISO_AGUARDE = "Aguarde a ação em andamento terminar.";
 const ERRO_ABRIR = "Não foi possível abrir a guia. Tente novamente.";
 const ERRO_TRANSPORTE = "Não foi possível concluir agora. Verifique a conexão e tente novamente.";
@@ -59,6 +61,9 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
 
   const lista = useQuery<GuiaDaParcela[]>({
     queryKey: chave,
+    // Toda ação da própria pessoa invalida a lista; sem isto, cada foco da janela relia as guias de
+    // todos os Parcelamentos PGFN da tela.
+    staleTime: 30_000,
     queryFn: async () => {
       const resultado = await listarGuiasParcelaPgfnAction({ parcelamentoId });
       if (!resultado.ok) throw new Error(resultado.error.message);
@@ -238,7 +243,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   };
 
   return {
-    guias: lista.data ?? [],
+    guias: lista.data ?? SEM_GUIAS,
     carregando: lista.isLoading,
     erroDaLista: lista.isError ? "Não foi possível carregar as guias anexadas." : undefined,
     recarregar: () => void lista.refetch(),

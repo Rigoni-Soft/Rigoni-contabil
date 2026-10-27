@@ -294,12 +294,12 @@ test.describe("Guia anexada da parcela PGFN: trocar, visualizar e remover (#184)
     await livre();
     await regiao.getByLabel("Trocar guia de 10/2026").setInputFiles(pdf("guia-sem-dados.pdf"));
     await expect(regiao.getByText(/guia trocada, mas ainda não liberada/i)).toBeVisible();
-    await expect(regiao.getByText("A confirmar")).toBeVisible();
+    await expect(regiao.getByText("A confirmar", { exact: true })).toBeVisible();
     // Troca por um PDF de outro mês é recusada e a guia fica como estava.
     await livre();
     await regiao.getByLabel("Trocar guia de 10/2026").setInputFiles(guia("202611"));
     await expect(regiao.getByText(/PDF é de outra competência/i)).toBeVisible();
-    await expect(regiao.getByText("A confirmar")).toBeVisible();
+    await expect(regiao.getByText("A confirmar", { exact: true })).toBeVisible();
     await livre();
     await regiao.getByLabel("Trocar guia de 10/2026").setInputFiles(guia("202610"));
     await expect(regiao.getByText(/guia trocada e confirmada/i)).toBeVisible();
