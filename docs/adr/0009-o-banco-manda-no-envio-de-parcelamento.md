@@ -20,7 +20,7 @@ Cliente (#122) e o provedor entregando as guias por CNPJ, sem dizer de qual Parc
   do mês deriva dele, então o reset mensal é automático.
 - **Gravado guia a guia, depois do aceite.** Uma queda entre o aceite e o registro reenvia a guia na
   rodada seguinte (pelo menos uma vez); registrar sem entregar nunca acontece.
-- **Atribuição falha fechado e um núcleo para os dois gatilhos** (job hoje, URA no #128): o passo a passo está em
+- **Atribuição falha fechado e um núcleo para os dois gatilhos** (job e URA, #128): o passo a passo está em
   `docs/deploy/parcelamento-cron.md`.
 
 ## Consequências

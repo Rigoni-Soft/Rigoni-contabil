@@ -19,10 +19,14 @@ Mesmo gate, retentativa, reserva da entrega e alertas do job de lembrete/DAS
 
 ## Regra única (#126)
 
-O núcleo `EnviarGuiasParcelamento` (o job hoje; a URA passa a usá-lo no #128) segue, por Cliente.
-Até o #128 a opção de parcelamento da URA continua pelo caminho legado (`GuiasFiscaisGateway.buscar`,
-a guia mais atrasada do CNPJ, sem consultar os acordos): ele não separa interno de comum e não tem
-cobertura de WhatsApp real. Passos do núcleo:
+O núcleo `EnviarGuiasParcelamento` (o job) segue, por Cliente. A opção de parcelamento da URA
+(`EntregarParcelamentoNaUra`, #128) usa a mesma atribuição e o mesmo registro de envio, mas só para os
+comuns e uma guia por Parcelamento: a parcela do mês ou, se o provedor não a emite, a do mês anterior;
+parcela já registrada reenvia o PDF guardado sem provedor e sem novo desconto; "sem parcelamento
+vigente" e "quitados" saem do banco sem chamar o provedor; falha parcial é listada por código. Sem a
+reserva por Cliente do job (job e URA simultâneos podem duplicar o PDF, nunca o desconto). A opção do
+Funcionário no painel segue pelo caminho legado (`GuiasFiscaisGateway.buscar`, a guia mais atrasada).
+Passos do núcleo:
 
 1. **O banco manda.** Lê os Parcelamentos em aberto com parcelas restantes (`registrar_envio_parcelamento`
    recusa o resto). Sem nenhum pendente (todos já com registro do mês, ou sem destino: ver Parcelamento interno) o provedor não é chamado.
@@ -45,8 +49,8 @@ cobertura de WhatsApp real. Passos do núcleo:
    vez por parcela) e quita ao zerar, auditado com a URA. Devolve `registrado`, `ja_registrado` (repetir)
    ou `nao_elegivel` (acordo quitado ou removido durante a rodada: entregue sem registro vira `falha_envio`).
    Sem saldo para a guia (o acordo quitou na rodada) ela não é entregue e vira `falha_envio`. A falha de uma
-   guia não trava as outras. A guia republicada na retentativa não apaga a anterior no Storage (caminho
-   estável por acordo e parcela).
+   guia não trava as outras. Nenhum PDF publicado é apagado, nem o da entrega recusada: o
+   registro do envio guarda o `caminho` exato do PDF entregue e o reenvio lê só esse caminho.
 5. **Alertas.** `falha_envio` (provedor, entrega ou registro) e `parcelamento_sem_guia` (Parcelamento
    pendente sem guia; a mensagem lista os códigos), de origem `parcelamento`, renovados e resolvidos só
    por este job.
@@ -78,3 +82,19 @@ template `envio_guia_parcelamento_interno`, qualquer que seja a forma de envio d
   `financeiro_ausente` até configurar. Definir no Production.
 - A migration `20261024110000` faz o interno contar em `cliente_tem_parcelamento_pendente`. Aplicar junto
   com o código desta versão.
+- A migration `20261026130000` guarda o caminho do PDF entregue (`caminho_guia_das` no cadastro e
+  `caminho` no envio do parcelamento) e troca as assinaturas de `concluir_envio_automatico_das` e
+  `registrar_envio_parcelamento`: aplicar junto com o código; voltar só o código quebra as duas RPCs.
+  Envio anterior à migration fica sem caminho e o reenvio dele responde que a guia não está guardada.
+  - **Implantação e reversão conjuntas:** aplicar a migration e o código no mesmo deploy, com o job
+    de envio pausado (um job em curso com a assinatura antiga falha na RPC e libera a reserva; a
+    requisição da URA que cai nessa janela responde indisponível). Reverter exige o código anterior
+    e uma migration inversa que recrie as duas assinaturas antigas; nunca `db reset` em produção.
+  - **Legado sem caminho:** antes do go-live, inventariar `cliente_cadastro_operacional_sn` com
+    `das_status = 'enviado'` e `caminho_guia_das is null`, e `cliente_parcelamento_envios` com
+    `caminho is null`. Esses reenvios respondem "não está guardada" e vão para atendimento manual
+    (Funcionário reemite a guia); o caminho nunca é inferido pela idade ou pela listagem do Storage.
+  - **Referência só do sistema:** `caminho_guia_das` é protegida pelo gatilho
+    `proteger_das_enviado_do_sistema` (sessão humana não troca nem apaga) e o gateway só assina caminho
+    que começa pelo id do Cliente. Objetos publicados sem referência (entrega recusada, assinatura
+    que falhou) ficam no Storage; limpeza futura só com expiração e sem referência, nunca síncrona.

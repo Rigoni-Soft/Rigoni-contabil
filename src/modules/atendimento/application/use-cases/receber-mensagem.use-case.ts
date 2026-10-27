@@ -4,6 +4,7 @@ import {
 } from "@/modules/atendimento/application/dtos/sessao-identificacao.dto";
 import type { AbrirAtendimentoPort } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type { AnexarMensagemAtendimentoPort } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
+import type { EntregarNaUraPort } from "@/modules/atendimento/application/ports/in/entregar-na-ura.provider";
 import type {
   MensagemRecebida,
   ReceberMensagemPort,
@@ -173,6 +174,8 @@ export class ReceberMensagem implements ReceberMensagemPort {
     private readonly relogio: RelogioPort,
     private readonly feriados: FeriadosPort,
     private readonly guias: GuiasFiscaisPort,
+    private readonly dasNaUra: EntregarNaUraPort,
+    private readonly parcelamentoNaUra: EntregarNaUraPort,
   ) {}
 
   async execute(mensagem: MensagemRecebida): Promise<Result<void, AppError>> {
@@ -363,6 +366,9 @@ export class ReceberMensagem implements ReceberMensagemPort {
       });
     }
     const guia = GUIAS_DO_MENU.get(texto);
+    if (guia === "das") return this.entregarPelaUra(conversa, guia, this.dasNaUra);
+    if (guia === "parcelamento")
+      return this.entregarPelaUra(conversa, guia, this.parcelamentoNaUra);
     if (guia) return this.entregarGuia(conversa, guia);
     const menu = OPCOES_MENU.map(({ rotulo }, i) => `${i + 1} - ${rotulo}`).join("\n");
     return this.enviar(
@@ -382,23 +388,42 @@ export class ReceberMensagem implements ReceberMensagemPort {
     try {
       guia = await this.guias.buscar(contato.clienteId, tipo);
     } catch (erro) {
-      // Só a mensagem: o objeto de erro inteiro poderia levar o CNPJ ao log.
-      console.error(
-        `Falha inesperada ao buscar a guia ${tipo}:`,
-        erro instanceof Error ? erro.message : "erro desconhecido",
-      );
-      return this.enviar(telefone, GUIA_INDISPONIVEL);
+      return this.falhaInesperadaDaGuia(telefone, tipo, erro);
     }
-    if (!guia.ok) {
-      // Sem autorização é esperado por Cliente; o resto (Cliente sumido, CNPJ inválido, provedor
-      // fora do ar) é problema do sistema e precisa de rastro. Sem CNPJ no log.
-      if (guia.error instanceof ForbiddenError) {
-        return this.enviar(telefone, SEM_AUTORIZACAO_FISCAL);
-      }
-      console.error(`Falha ao buscar a guia ${tipo}:`, guia.error.message);
-      return this.enviar(telefone, GUIA_INDISPONIVEL);
-    }
+    if (!guia.ok) return this.falhaDaGuia(telefone, tipo, guia.error);
     return this.despacharDocumento({ telefone, ...guia.value });
+  }
+
+  // DAS e parcelamento seguem o processo do job: o caso de uso confere o banco, responde ao contato
+  // e só chama o provedor quando há o que entregar. A falha da guia é tratada como a das demais.
+  private async entregarPelaUra(
+    { telefone, contato }: Conversa,
+    tipo: TipoGuia,
+    caso: EntregarNaUraPort,
+  ): Promise<Result<void, AppError>> {
+    try {
+      const entrega = await caso.execute({ clienteId: contato.clienteId, telefone });
+      return entrega.ok ? entrega : this.falhaDaGuia(telefone, tipo, entrega.error);
+    } catch (erro) {
+      return this.falhaInesperadaDaGuia(telefone, tipo, erro);
+    }
+  }
+
+  // Só a mensagem: o objeto de erro inteiro poderia levar o CNPJ ao log.
+  private falhaInesperadaDaGuia(telefone: string, tipo: TipoGuia, erro: unknown) {
+    console.error(
+      `Falha inesperada ao buscar a guia ${tipo}:`,
+      erro instanceof Error ? erro.message : "erro desconhecido",
+    );
+    return this.enviar(telefone, GUIA_INDISPONIVEL);
+  }
+
+  // Sem autorização é esperado por Cliente; o resto (Cliente sumido, CNPJ inválido, provedor
+  // fora do ar) é problema do sistema e precisa de rastro. Sem CNPJ no log.
+  private falhaDaGuia(telefone: string, tipo: TipoGuia, erro: AppError) {
+    if (erro instanceof ForbiddenError) return this.enviar(telefone, SEM_AUTORIZACAO_FISCAL);
+    console.error(`Falha ao buscar a guia ${tipo}:`, erro.message);
+    return this.enviar(telefone, GUIA_INDISPONIVEL);
   }
 
   private async escolherTipo(conversa: Conversa, texto: string): Promise<Result<void, AppError>> {

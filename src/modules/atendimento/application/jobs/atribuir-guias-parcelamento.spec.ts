@@ -49,7 +49,7 @@ describe("atribuirGuiasParcelamento", () => {
       atribuirGuiasParcelamento(
         [guia("202610", 30_500)],
         [parcelamento("a", 30_000, ["202610"]), parcelamento("b", 30_200)],
-        [{ parcelamentoId: "a", parcela: "202610", identidade: "202610:30000" }],
+        [{ parcelamentoId: "a", parcela: "202610", identidade: "202610:30000", caminho: null }],
       ),
     ).toEqual([]);
   });
@@ -61,6 +61,15 @@ describe("atribuirGuiasParcelamento", () => {
   ])("com valores %j e guia de %i, nenhum acordo recebe", (valores, valorGuia) => {
     const parcelamentos = valores.map((v, i) => parcelamento(`p${i}`, v));
     expect(atribuirGuiasParcelamento([guia("202610", valorGuia)], parcelamentos)).toEqual([]);
+  });
+
+  it("comum e interno compatíveis com a guia: nenhum recebe (o interno não é preferido)", () => {
+    expect(
+      atribuirGuiasParcelamento(
+        [guia("202610", 25_000)],
+        [parcelamento("comum", 10_000), { ...parcelamento("interno", 24_000), interno: true }],
+      ),
+    ).toEqual([]);
   });
 
   it("dois parcelamentos de mesmo valor, mesmo sem envio, não recebem guia (nada prova de qual é)", () => {
@@ -80,7 +89,7 @@ describe("atribuirGuiasParcelamento", () => {
 
   it("reemissão com valor corrigido de acordo quitado não vai ao único acordo em aberto", () => {
     const entregues = [
-      { parcelamentoId: "quitado", parcela: "202610", identidade: "202610:30000" },
+      { parcelamentoId: "quitado", parcela: "202610", identidade: "202610:30000", caminho: null },
     ];
     expect(
       atribuirGuiasParcelamento([guia("202610", 30_500)], [parcelamento("b", 10_000)], entregues),
@@ -88,7 +97,9 @@ describe("atribuirGuiasParcelamento", () => {
   });
 
   it("envio de acordo quitado sem identidade (legado) bloqueia a guia da mesma parcela", () => {
-    const entregues = [{ parcelamentoId: "quitado", parcela: "202610", identidade: null }];
+    const entregues = [
+      { parcelamentoId: "quitado", parcela: "202610", identidade: null, caminho: null },
+    ];
     expect(
       atribuirGuiasParcelamento([guia("202610", 10_000)], [parcelamento("b", 10_000)], entregues),
     ).toEqual([]);
@@ -99,7 +110,7 @@ describe("atribuirGuiasParcelamento", () => {
 
   it("guia de identidade já entregue (mesmo a acordo quitado, fora da lista) é descartada", () => {
     const entregues = [
-      { parcelamentoId: "quitado", parcela: "202610", identidade: "202610:10000" },
+      { parcelamentoId: "quitado", parcela: "202610", identidade: "202610:10000", caminho: null },
     ];
     expect(
       atribuirGuiasParcelamento([guia("202610", 10_000)], [parcelamento("b", 10_000)], entregues),
@@ -107,7 +118,9 @@ describe("atribuirGuiasParcelamento", () => {
   });
 
   it("cada entrega anterior consome só uma guia de mesma identidade; a que sobra é atribuída", () => {
-    const entregues = [{ parcelamentoId: "a", parcela: "202610", identidade: "202610:10000" }];
+    const entregues = [
+      { parcelamentoId: "a", parcela: "202610", identidade: "202610:10000", caminho: null },
+    ];
     const atribuidas = atribuirGuiasParcelamento(
       [guia("202610", 10_000), guia("202610", 10_000)],
       [parcelamento("b", 10_000)],

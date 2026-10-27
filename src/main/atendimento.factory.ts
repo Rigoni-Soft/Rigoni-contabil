@@ -70,6 +70,8 @@ import { AvisarCliente } from "@/modules/atendimento/application/use-cases/avisa
 import { CadastrarFeriado } from "@/modules/atendimento/application/use-cases/cadastrar-feriado.use-case";
 import { EncerrarAtendimento } from "@/modules/atendimento/application/use-cases/encerrar-atendimento.use-case";
 import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/use-cases/entregar-comunicacao-por-canais.use-case";
+import { EntregarDasNaUra } from "@/modules/atendimento/application/use-cases/entregar-das-na-ura.use-case";
+import { EntregarParcelamentoNaUra } from "@/modules/atendimento/application/use-cases/entregar-parcelamento-na-ura.use-case";
 import { EnviarAnexoAoCliente } from "@/modules/atendimento/application/use-cases/enviar-anexo-ao-cliente.use-case";
 import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
 import { EnviarDocumentoAoCliente } from "@/modules/atendimento/application/use-cases/enviar-documento-ao-cliente.use-case";
@@ -165,6 +167,33 @@ function guiasFiscais(supabaseAdmin: SupabaseClient): GuiasFiscaisGateway {
   );
 }
 
+function entregarDasNaUra(
+  supabaseAdmin: SupabaseClient,
+  envio: EnvioMensagemPort,
+): EntregarDasNaUra {
+  const publicadas = new SupabaseGuiaPublicadaGateway(supabaseAdmin);
+  return new EntregarDasNaUra(
+    new SupabaseClientesParaLembreteGateway(supabaseAdmin),
+    new ObterGuiaDasParaEnvio(guiasFiscais(supabaseAdmin), publicadas),
+    publicadas,
+    envio,
+    new RelogioSistemaGateway(),
+  );
+}
+
+function entregarParcelamentoNaUra(
+  supabaseAdmin: SupabaseClient,
+  envio: EnvioMensagemPort,
+): EntregarParcelamentoNaUra {
+  return new EntregarParcelamentoNaUra(
+    new SupabaseParcelamentosDoClienteGateway(supabaseAdmin),
+    guiasFiscais(supabaseAdmin),
+    new SupabaseGuiaPublicadaGateway(supabaseAdmin),
+    envio,
+    new RelogioSistemaGateway(),
+  );
+}
+
 export async function makeReceberMensagem(): Promise<ReceberMensagemPort> {
   exigirSegredosDeProducao();
   const supabaseAdmin = createSupabaseAdmin();
@@ -180,6 +209,8 @@ export async function makeReceberMensagem(): Promise<ReceberMensagemPort> {
     new RelogioSistemaGateway(),
     new SupabaseFeriadoRepository(supabaseAdmin),
     guiasFiscais(supabaseAdmin),
+    entregarDasNaUra(supabaseAdmin, envio),
+    entregarParcelamentoNaUra(supabaseAdmin, envio),
   );
 }
 
@@ -314,12 +345,10 @@ function makeEnvioEmail(): EnvioEmailPort {
 // Job (service_role, sem sessão de usuário): lembrete de documento e envio de DAS.
 export function makeExecutarLembretesDocumentoEDas(): ExecutarLembretesDocumentoEDasPort {
   const supabaseAdmin = createSupabaseAdmin();
+  const publicadas = new SupabaseGuiaPublicadaGateway(supabaseAdmin);
   return new ExecutarLembretesDocumentoEDas(
     new SupabaseClientesParaLembreteGateway(supabaseAdmin),
-    new ObterGuiaDasParaEnvio(
-      guiasFiscais(supabaseAdmin),
-      new SupabaseGuiaPublicadaGateway(supabaseAdmin),
-    ),
+    new ObterGuiaDasParaEnvio(guiasFiscais(supabaseAdmin), publicadas),
     new EntregarComunicacaoPorCanais(
       new EnviarComunicacaoProativa(makeEnvioMensagem(), TENTATIVAS, ESPERA_MS),
       makeEnvioEmail(),

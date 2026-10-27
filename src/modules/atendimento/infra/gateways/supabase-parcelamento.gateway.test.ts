@@ -472,6 +472,7 @@ describe("a conclusão não registra envio em acordo algum (F3 do PR #191, regra
       a,
       "202610",
       "202610:10000",
+      "c1/a/202610-hash.pdf",
     );
 
     expect(registrado).toEqual({ ok: true, value: "registrado" });
@@ -608,7 +609,11 @@ describe("rodada real com a reserva ocupada", () => {
               return sucesso([{ nomeArquivo: "p.pdf", pdfBase64: "JVBERi0=", parcela: "202610" }]);
             },
           },
-          { publicar: async () => sucesso("https://storage.test/p.pdf") },
+          {
+            publicar: async () =>
+              sucesso({ url: "https://storage.test/p.pdf", caminho: "c1/p/202610-hash.pdf" }),
+            reencontrar: async () => sucesso("https://storage.test/p.pdf"),
+          },
           new EntregarComunicacaoPorCanais(
             new EnviarComunicacaoProativa(envio, 1, 0),
             { enviar: async () => sucesso(undefined) },

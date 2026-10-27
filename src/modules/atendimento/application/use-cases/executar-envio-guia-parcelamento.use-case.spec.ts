@@ -88,11 +88,19 @@ function montar(
     new EnviarGuiasParcelamento(
       {
         listarEmAberto: async () => ok([{ ...emAberto, parcelasEnviadas: [] }]),
+        contarComuns: async () => ok(0),
         guiasEntregues: async () => ok([]),
         registrarEnvio: async () => ok("registrado"),
       },
       { buscarGuiasParcelamento: buscar },
-      { publicar: async () => ok("https://storage.test/parcelamento.pdf") },
+      {
+        publicar: async () =>
+          ok({
+            url: "https://storage.test/parcelamento.pdf",
+            caminho: "c1/p1/202610-hash.pdf",
+          }),
+        reencontrar: async () => ok("https://storage.test/parcelamento.pdf"),
+      },
       new EntregarComunicacaoPorCanais(
         new EnviarComunicacaoProativa(envio, 3, 0),
         {

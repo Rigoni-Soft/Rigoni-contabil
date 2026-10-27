@@ -29,6 +29,7 @@ import type {
   ParcelamentoDoCliente,
   ParcelamentosDoClientePort,
 } from "@/modules/atendimento/application/ports/out/parcelamentos-do-cliente.provider";
+import { chaveDoParcelamento } from "@/modules/atendimento/domain/services/guia-guardada.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { comTentativas, ESPERA_MS, TENTATIVAS } from "@/shared/kernel/com-tentativas";
 import { formatarParcela } from "@/shared/kernel/data-iso";
@@ -178,13 +179,18 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
   ): Promise<EntregaDeGuia> {
     const { parcelamento, guia, parcela } = atribuida;
     const descricao = `Parcelamento ${parcelamento.codigo} de ${cliente.empresa}`;
-    const url = await this.repetir(() =>
-      this.publicadas.publicar(cliente.clienteId, guia, { id: parcelamento.id, parcela }),
+    const publicada = await this.repetir(() =>
+      this.publicadas.publicar(
+        cliente.clienteId,
+        guia,
+        chaveDoParcelamento(parcelamento.id, parcela),
+      ),
     );
-    if (!url.ok)
-      return { andamento: falha(`${descricao}: ${url.error.message}`), descontou: false };
+    if (!publicada.ok) {
+      return { andamento: falha(`${descricao}: ${publicada.error.message}`), descontou: false };
+    }
 
-    const documento = { url: url.value, nomeArquivo: guia.nomeArquivo };
+    const documento = { url: publicada.value.url, nomeArquivo: guia.nomeArquivo };
     const andamento = parcelamento.interno
       ? await this.entregarAoFinanceiro(cliente, atribuida, documento, cnpjDoCliente, descricao)
       : paraAndamento(
@@ -201,12 +207,15 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
           }),
           descricao,
         );
+    // O PDF publicado fica no Storage mesmo se a entrega for recusada: só o registro do envio
+    // aceito o aponta (ver o gateway).
     if (!andamento.enviado) return { andamento, descontou: false };
 
     const registro = await this.parcelamentos.registrarEnvio(
       parcelamento.id,
       parcela,
       identidadeDaGuia(guia),
+      publicada.value.caminho,
     );
     // `ja_registrado`: a parcela já tinha registro e nada foi descontado agora.
     if (registro.ok && registro.value !== "nao_elegivel") {

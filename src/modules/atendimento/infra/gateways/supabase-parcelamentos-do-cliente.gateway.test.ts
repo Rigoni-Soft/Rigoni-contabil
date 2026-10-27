@@ -78,6 +78,8 @@ afterAll(async () => {
   await admin.from("clientes").delete().eq("id", clienteId);
 });
 
+const CAMINHO = "c1/acordo/202610-hash.pdf";
+
 describe("SupabaseParcelamentosDoClienteGateway", () => {
   it("lista só os em aberto com parcelas restantes, com valor, interno e parcelas enviadas", async () => {
     const aberto = await criarParcelamento({ codigo: "ABERTO", restantes: 3, valor: 12_345 });
@@ -115,26 +117,37 @@ describe("SupabaseParcelamentosDoClienteGateway", () => {
     expect(codigos).not.toContain("PGFN");
   });
 
+  it("conta os comuns em aberto ou quitados; interno e PGFN ficam de fora", async () => {
+    const antes = await parcelamentos.contarComuns(clienteId);
+    await criarParcelamento({ codigo: "CONTA-QUITADO", restantes: 0, situacao: "quitado" });
+    await criarParcelamento({ codigo: "CONTA-INTERNO", restantes: 1, interno: true });
+    await criarParcelamento({ codigo: "CONTA-PGFN", restantes: 1, origem: "pgfn" });
+
+    const depois = await parcelamentos.contarComuns(clienteId);
+
+    expect(antes.ok && depois.ok && depois.value - antes.value).toBe(1);
+  });
+
   it("registrar o envio grava a parcela, desconta uma restante e audita com a URA; repetir não tem efeito", async () => {
     const id = await criarParcelamento({ codigo: "DESCONTA", restantes: 3 });
 
-    expect(await parcelamentos.registrarEnvio(id, "202610", "202610:10000")).toEqual({
+    expect(await parcelamentos.registrarEnvio(id, "202610", "202610:10000", CAMINHO)).toEqual({
       ok: true,
       value: "registrado",
     });
-    expect(await parcelamentos.registrarEnvio(id, "202610", "202610:10000")).toEqual({
-      ok: true,
-      value: "ja_registrado",
-    });
+    // Quem repete o registro com outro caminho não troca o do envio aceito.
+    expect(
+      await parcelamentos.registrarEnvio(id, "202610", "202610:10000", "c1/outro/202610-z.pdf"),
+    ).toEqual({ ok: true, value: "ja_registrado" });
 
     expect(await dadosDoParcelamento(id)).toEqual({ parcelas_restantes: 2, situacao: "em_aberto" });
     const envios = await ok(
       admin
         .from("cliente_parcelamento_envios")
-        .select("parcela, identidade")
+        .select("parcela, identidade, caminho")
         .eq("parcelamento_id", id),
     );
-    expect(envios).toEqual([{ parcela: "202610", identidade: "202610:10000" }]);
+    expect(envios).toEqual([{ parcela: "202610", identidade: "202610:10000", caminho: CAMINHO }]);
     const auditoria = await ok(
       admin
         .from("registros_auditoria")
@@ -153,7 +166,7 @@ describe("SupabaseParcelamentosDoClienteGateway", () => {
   it("a última parcela quita o parcelamento, que sai da lista; depois de quitado nada mais é registrado", async () => {
     const id = await criarParcelamento({ codigo: "ULTIMA", restantes: 1 });
 
-    expect(await parcelamentos.registrarEnvio(id, "202610", "202610:10000")).toEqual({
+    expect(await parcelamentos.registrarEnvio(id, "202610", "202610:10000", CAMINHO)).toEqual({
       ok: true,
       value: "registrado",
     });
@@ -162,7 +175,7 @@ describe("SupabaseParcelamentosDoClienteGateway", () => {
     const lista = await parcelamentos.listarEmAberto(clienteId);
     expect(lista.ok && lista.value.map((p) => p.id)).not.toContain(id);
 
-    expect(await parcelamentos.registrarEnvio(id, "202611", "202611:10000")).toEqual({
+    expect(await parcelamentos.registrarEnvio(id, "202611", "202611:10000", CAMINHO)).toEqual({
       ok: true,
       value: "nao_elegivel",
     });
@@ -171,14 +184,14 @@ describe("SupabaseParcelamentosDoClienteGateway", () => {
 
   it("as guias entregues do Cliente incluem as de acordo quitado e as de outro Cliente ficam de fora", async () => {
     const id = await criarParcelamento({ codigo: "ENTREGUE", restantes: 1 });
-    await parcelamentos.registrarEnvio(id, "202610", "202610:10000");
+    await parcelamentos.registrarEnvio(id, "202610", "202610:10000", CAMINHO);
 
     const entregues = await parcelamentos.guiasEntregues(clienteId);
 
     expect(entregues).toEqual({
       ok: true,
       value: expect.arrayContaining([
-        { parcelamentoId: id, parcela: "202610", identidade: "202610:10000" },
+        { parcelamentoId: id, parcela: "202610", identidade: "202610:10000", caminho: CAMINHO },
       ]),
     });
     const outro = await parcelamentos.guiasEntregues("00000000-0000-0000-0000-000000000000");

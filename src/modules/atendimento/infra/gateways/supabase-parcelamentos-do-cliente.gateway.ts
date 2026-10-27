@@ -23,7 +23,12 @@ const linhaSchema = z.array(
 );
 
 const entreguesSchema = z.array(
-  z.object({ parcelamento_id: z.string(), parcela: z.string(), identidade: z.string().nullable() }),
+  z.object({
+    parcelamento_id: z.string(),
+    parcela: z.string(),
+    identidade: z.string().nullable(),
+    caminho: z.string().nullable(),
+  }),
 );
 const registroSchema = z.enum(["registrado", "ja_registrado", "nao_elegivel"]);
 
@@ -60,10 +65,25 @@ export class SupabaseParcelamentosDoClienteGateway implements ParcelamentosDoCli
     );
   }
 
+  async contarComuns(clienteId: string): Promise<Result<number, AppError>> {
+    const { count, error } = await this.supabaseAdmin
+      .from("cliente_parcelamentos")
+      .select("id", { count: "exact", head: true })
+      .eq("cliente_id", clienteId)
+      .eq("interno", false)
+      .or("origem.is.null,origem.eq.receita_federal");
+    if (error || count === null) {
+      return err(new ServicoExternoError("Falha ao ler os parcelamentos do Cliente."));
+    }
+    return ok(count);
+  }
+
   async guiasEntregues(clienteId: string): Promise<Result<GuiaEntregue[], AppError>> {
     const { data, error } = await this.supabaseAdmin
       .from("cliente_parcelamento_envios")
-      .select("parcelamento_id, parcela, identidade, cliente_parcelamentos!inner(cliente_id)")
+      .select(
+        "parcelamento_id, parcela, identidade, caminho, cliente_parcelamentos!inner(cliente_id)",
+      )
       .eq("cliente_parcelamentos.cliente_id", clienteId);
     const lidas = entreguesSchema.safeParse(data);
     if (error || !lidas.success) {
@@ -74,6 +94,7 @@ export class SupabaseParcelamentosDoClienteGateway implements ParcelamentosDoCli
         parcelamentoId: e.parcelamento_id,
         parcela: e.parcela,
         identidade: e.identidade,
+        caminho: e.caminho,
       })),
     );
   }
@@ -82,11 +103,13 @@ export class SupabaseParcelamentosDoClienteGateway implements ParcelamentosDoCli
     parcelamentoId: string,
     parcela: string,
     identidade: string,
+    caminho: string,
   ): Promise<Result<EnvioRegistrado, AppError>> {
     const { data, error } = await this.supabaseAdmin.rpc("registrar_envio_parcelamento", {
       p_parcelamento_id: parcelamentoId,
       p_parcela: parcela,
       p_identidade: identidade,
+      p_caminho: caminho,
     });
     const status = registroSchema.safeParse(data);
     if (error || !status.success) {

@@ -1,4 +1,11 @@
-import { diaDoMes, hojeIso, mesAtual, primeiroDiaDoMesAtual, ultimoDiaDoMes } from "./mes-atual";
+import {
+  diaDoMes,
+  hojeIso,
+  mesAnterior,
+  mesAtual,
+  primeiroDiaDoMesAtual,
+  ultimoDiaDoMes,
+} from "./mes-atual";
 
 describe("mesAtual (America/Sao_Paulo)", () => {
   it("ainda é o mês anterior em Brasília quando UTC já virou o mês", () => {
@@ -33,5 +40,15 @@ describe("mesAtual (America/Sao_Paulo)", () => {
     it("usa o mês de São Paulo (01/03 01:00 UTC ainda é fevereiro em Brasília)", () => {
       expect(ultimoDiaDoMes(new Date("2026-03-01T01:00:00Z"))).toBe(28);
     });
+  });
+});
+
+describe("mesAnterior", () => {
+  it.each([
+    ["2026-10-20T15:00:00Z", "202609"],
+    ["2026-01-15T15:00:00Z", "202512"], // vira o ano
+    ["2026-02-01T01:00:00Z", "202512"], // 31/01 22:00 em Brasília: o corrente ainda é janeiro
+  ])("%s → %s", (instante, esperado) => {
+    expect(mesAnterior(new Date(instante))).toBe(esperado);
   });
 });

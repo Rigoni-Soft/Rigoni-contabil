@@ -5,6 +5,7 @@
  * Supabase local e limpa pelos IDs da própria execução. Requer `npx supabase start`.
  */
 import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/use-cases/entregar-comunicacao-por-canais.use-case";
+import { EntregarDasNaUra } from "@/modules/atendimento/application/use-cases/entregar-das-na-ura.use-case";
 import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
 import { ExecutarLembretesDocumentoEDas } from "@/modules/atendimento/application/use-cases/executar-lembretes-documento-e-das.use-case";
 import { ObterGuiaDasParaEnvio } from "@/modules/atendimento/application/use-cases/obter-guia-das-para-envio.use-case";
@@ -193,6 +194,8 @@ afterAll(async () => {
   expect(erros).toEqual([]);
 });
 
+const CAMINHO_DAS = "c1/das/202610-hash.pdf";
+
 describe("leitura dos Clientes e janela de 24h", () => {
   it("telefone de envio com DDI e sem mensagem do contato: janela fechada, template", async () => {
     const c = await doLista(principal.id);
@@ -274,7 +277,12 @@ describe("reserva e conclusão do envio do DAS", () => {
   });
 
   it("token desconhecido não conclui nem altera o cadastro", async () => {
-    const conclusao = await clientes.concluirDas(principal.id, crypto.randomUUID(), "2026-10-05");
+    const conclusao = await clientes.concluirDas(
+      principal.id,
+      crypto.randomUUID(),
+      "2026-10-05",
+      CAMINHO_DAS,
+    );
 
     expect(conclusao).toEqual({ ok: true, value: false });
     expect(await statusDoDas(principal.id)).toEqual({ das_status: "pronto", data_envio_das: null });
@@ -285,7 +293,7 @@ describe("reserva e conclusão do envio do DAS", () => {
     const reserva = await clientes.reservarDas(principal.id);
     const token = reserva.ok ? reserva.value! : "";
 
-    expect(await clientes.concluirDas(principal.id, token, "2026-10-05")).toEqual({
+    expect(await clientes.concluirDas(principal.id, token, "2026-10-05", CAMINHO_DAS)).toEqual({
       ok: true,
       value: true,
     });
@@ -293,6 +301,10 @@ describe("reserva e conclusão do envio do DAS", () => {
     expect(await statusDoDas(principal.id)).toEqual({
       das_status: "enviado",
       data_envio_das: "2026-10-05",
+    });
+    expect(await clientes.obterDas(principal.id)).toMatchObject({
+      ok: true,
+      value: { dasStatus: "enviado", caminhoGuiaDas: CAMINHO_DAS },
     });
     const auditoria = await ok(
       admin
@@ -309,7 +321,7 @@ describe("reserva e conclusão do envio do DAS", () => {
       },
     ]);
     // Já concluída: o mesmo token não conclui de novo e não há nova reserva (DAS não está pronto).
-    expect(await clientes.concluirDas(principal.id, token, "2026-10-10")).toEqual({
+    expect(await clientes.concluirDas(principal.id, token, "2026-10-10", CAMINHO_DAS)).toEqual({
       ok: true,
       value: false,
     });
@@ -330,7 +342,7 @@ describe("reserva e conclusão do envio do DAS", () => {
     // O token A é antigo: liberar não derruba a reserva B, que conclui normalmente.
     await clientes.liberarDas(principal.id, tokenA);
     expect(await clientes.reservarDas(principal.id)).toEqual({ ok: true, value: null });
-    expect(await clientes.concluirDas(principal.id, tokenB, "2026-10-05")).toEqual({
+    expect(await clientes.concluirDas(principal.id, tokenB, "2026-10-05", CAMINHO_DAS)).toEqual({
       ok: true,
       value: true,
     });
@@ -361,13 +373,13 @@ describe("reserva e conclusão do envio do DAS", () => {
     const b = await clientes.reservarDas(principal.id);
     const tokenB = b.ok ? b.value! : "";
     expect(tokenB).not.toBe(tokenA);
-    expect(await clientes.concluirDas(principal.id, tokenB, "2026-10-15")).toEqual({
+    expect(await clientes.concluirDas(principal.id, tokenB, "2026-10-15", CAMINHO_DAS)).toEqual({
       ok: true,
       value: true,
     });
 
     // A volta atrasada: sem posse, não altera a conclusão de B nem a data.
-    expect(await clientes.concluirDas(principal.id, tokenA, "2026-10-01")).toEqual({
+    expect(await clientes.concluirDas(principal.id, tokenA, "2026-10-01", CAMINHO_DAS)).toEqual({
       ok: true,
       value: false,
     });
@@ -391,7 +403,7 @@ describe("reserva e conclusão do envio do DAS", () => {
         .eq("cliente_id", principal.id),
     );
 
-    expect(await clientes.concluirDas(principal.id, token, "2026-10-05")).toEqual({
+    expect(await clientes.concluirDas(principal.id, token, "2026-10-05", CAMINHO_DAS)).toEqual({
       ok: true,
       value: false,
     });
@@ -519,9 +531,10 @@ describe("rodada real com a reserva ocupada", () => {
         const todos = await clientes.listar();
         return todos.ok ? sucesso(todos.value.filter((c) => c.clienteId === alvo.id)) : todos;
       },
+      obterDas: (id: string) => clientes.obterDas(id),
       reservarDas: (id: string) => clientes.reservarDas(id),
-      concluirDas: (id: string, token: string, data: string) =>
-        clientes.concluirDas(id, token, data),
+      concluirDas: (id: string, token: string, data: string, caminho: string) =>
+        clientes.concluirDas(id, token, data, caminho),
       liberarDas: (id: string, token: string) => clientes.liberarDas(id, token),
     };
     let quedaNaEntrega = true;
@@ -559,7 +572,11 @@ describe("rodada real com a reserva ocupada", () => {
               });
             },
           },
-          { publicar: async () => sucesso("https://storage.test/das.pdf") },
+          {
+            publicar: async () =>
+              sucesso({ url: "https://storage.test/das.pdf", caminho: CAMINHO_DAS }),
+            reencontrar: async () => sucesso("https://storage.test/das.pdf"),
+          },
           0,
         ),
         new EntregarComunicacaoPorCanais(
@@ -611,18 +628,157 @@ describe("rodada real com a reserva ocupada", () => {
 
 describe("guia publicada", () => {
   it("publica o PDF no bucket e devolve um link assinado", async () => {
-    const link = await guias.publicar(principal.id, {
-      nomeArquivo: "das.pdf",
-      pdfBase64: Buffer.from("%PDF-1.4 teste").toString("base64"),
-    });
+    const link = await guias.publicar(
+      principal.id,
+      {
+        nomeArquivo: "das.pdf",
+        pdfBase64: Buffer.from("%PDF-1.4 teste").toString("base64"),
+      },
+      { id: "teste", periodo: "202610" },
+    );
 
-    expect(link.ok && link.value).toContain("/guias-fiscais/");
-    const url = link.ok ? link.value : "";
+    expect(link.ok && link.value.url).toContain("/guias-fiscais/");
+    const url = link.ok ? link.value.url : "";
     // O objeto é limpo no teardown pelo caminho que o link carrega.
     const caminho = new URL(url).pathname.split("/guias-fiscais/")[1];
     if (caminho) publicados.push(decodeURIComponent(caminho));
+    expect(link.ok && link.value.caminho).toBe(decodeURIComponent(caminho ?? ""));
     const baixado = await fetch(url);
     expect(baixado.status).toBe(200);
     expect(await baixado.text()).toBe("%PDF-1.4 teste");
+  });
+});
+
+describe("DAS pedido pela URA (#124)", () => {
+  const AGORA = new Date("2026-10-05T12:00:00Z");
+  const PDF = "%PDF-1.4 das da ura";
+  let alvo: Fixture;
+  let chamadasAoProvedor = 0;
+  const provedor = {
+    buscar: async () => {
+      chamadasAoProvedor += 1;
+      return sucesso({
+        nomeArquivo: "das.pdf",
+        pdfBase64: Buffer.from(PDF).toString("base64"),
+        competencia: "2026-09",
+        vencimento: "2026-10-20",
+      });
+    },
+  };
+  const guiaDas = new ObterGuiaDasParaEnvio(provedor, guias, 0);
+  const montarUra = (envio: EnvioMensagemFalsoGateway) =>
+    new EntregarDasNaUra(clientes, guiaDas, guias, envio, { agora: () => AGORA });
+
+  beforeAll(async () => {
+    alvo = await criarCliente(`(21) 9${sufixo.slice(0, 4)}-${sufixo.slice(4)}`);
+    publicados.push(`${alvo.id}/das/202610.pdf`);
+  });
+
+  it("DAS pendente: avisa o contato, sem provedor, reserva nem alerta ao setor", async () => {
+    await ok(
+      admin
+        .from("cliente_cadastro_operacional_sn")
+        .update({ das_status: "pendente" })
+        .eq("cliente_id", alvo.id),
+    );
+    const envio = new EnvioMensagemFalsoGateway();
+    chamadasAoProvedor = 0;
+
+    const r = await montarUra(envio).execute({ clienteId: alvo.id, telefone: "5521999990000" });
+
+    expect(r.ok).toBe(true);
+    expect(envio.enviadas).toHaveLength(1);
+    expect(envio.documentosEnviados).toHaveLength(0);
+    expect(chamadasAoProvedor).toBe(0);
+    expect(
+      await ok(admin.from("envios_automaticos").select("tipo").eq("cliente_id", alvo.id)),
+    ).toEqual([]);
+    expect(await ok(admin.from("alertas_setor").select("tipo").eq("cliente_id", alvo.id))).toEqual(
+      [],
+    );
+    expect(await statusDoDas(alvo.id)).toEqual({ das_status: "pendente", data_envio_das: null });
+  });
+
+  it("DAS pronto: a URA entrega, marca enviado com a data e a URA como ator, e o job do mês não reenvia", async () => {
+    await ok(
+      admin
+        .from("cliente_cadastro_operacional_sn")
+        .update({ das_status: "pronto" })
+        .eq("cliente_id", alvo.id),
+    );
+    const envio = new EnvioMensagemFalsoGateway();
+    chamadasAoProvedor = 0;
+
+    const r = await montarUra(envio).execute({ clienteId: alvo.id, telefone: "5521999990000" });
+
+    expect(r.ok).toBe(true);
+    expect(envio.documentosEnviados).toHaveLength(1);
+    expect(chamadasAoProvedor).toBe(1);
+    expect(await statusDoDas(alvo.id)).toEqual({
+      das_status: "enviado",
+      data_envio_das: "2026-10-05",
+    });
+    const auditoria = await ok(
+      admin
+        .from("registros_auditoria")
+        .select("ator, setor, acao, resultado")
+        .eq("alvo", alvo.cnpj),
+    );
+    expect(auditoria).toEqual([
+      {
+        ator: URA_ATOR_ID,
+        setor: "simples_nacional",
+        acao: "cliente.enviar-das-automatico",
+        resultado: "sucesso",
+      },
+    ]);
+
+    // O job do mesmo dia lê o Cliente já enviado: não reenvia nem chama o provedor.
+    const envioDoJob = new EnvioMensagemFalsoGateway();
+    jest.spyOn(console, "info").mockImplementation(() => undefined);
+    const apenasOAlvo = {
+      listar: async () => {
+        const todos = await clientes.listar();
+        return todos.ok ? sucesso(todos.value.filter((c) => c.clienteId === alvo.id)) : todos;
+      },
+      obterDas: (id: string) => clientes.obterDas(id),
+      reservarDas: (id: string) => clientes.reservarDas(id),
+      concluirDas: (id: string, token: string, data: string, caminho: string) =>
+        clientes.concluirDas(id, token, data, caminho),
+      liberarDas: (id: string, token: string) => clientes.liberarDas(id, token),
+    };
+    const rodada = await new ExecutarLembretesDocumentoEDas(
+      apenasOAlvo,
+      guiaDas,
+      new EntregarComunicacaoPorCanais(
+        new EnviarComunicacaoProativa(envioDoJob, 1, 0),
+        { enviar: async () => sucesso(undefined) },
+        0,
+      ),
+      alertas,
+      { agora: () => AGORA },
+    ).execute();
+
+    expect(rodada.ok && rodada.value.dasEnviados).toBe(0);
+    expect(chamadasAoProvedor).toBe(1);
+  });
+
+  it("DAS já enviado: reenvia o PDF guardado do mês do envio, sem provedor", async () => {
+    const envio = new EnvioMensagemFalsoGateway();
+    chamadasAoProvedor = 0;
+
+    const r = await montarUra(envio).execute({ clienteId: alvo.id, telefone: "5521999990000" });
+
+    expect(r.ok).toBe(true);
+    expect(chamadasAoProvedor).toBe(0);
+    expect(envio.documentosEnviados).toHaveLength(1);
+    const documento = envio.documentosEnviados[0];
+    const baixado = await fetch("url" in documento ? documento.url : "");
+    expect(baixado.status).toBe(200);
+    expect(await baixado.text()).toBe(PDF);
+    expect(await statusDoDas(alvo.id)).toEqual({
+      das_status: "enviado",
+      data_envio_das: "2026-10-05",
+    });
   });
 });

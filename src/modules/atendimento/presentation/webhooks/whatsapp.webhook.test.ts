@@ -9,6 +9,7 @@ import type { AnexosAtendimentoPort } from "@/modules/atendimento/application/po
 import type { AtendimentoRepositoryPort } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { SessaoAtendimento } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
 import { AutenticarWebhook } from "@/modules/atendimento/application/use-cases/autenticar-webhook.use-case";
+import { EntregarDasNaUra } from "@/modules/atendimento/application/use-cases/entregar-das-na-ura.use-case";
 import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/receber-mensagem.use-case";
 import { ReceberMidia } from "@/modules/atendimento/application/use-cases/receber-midia.use-case";
 import { DownloadMidiaFalsoGateway } from "@/modules/atendimento/infra/gateways/download-midia-falso.gateway";
@@ -84,6 +85,29 @@ jest.mock("@/main/atendimento.factory", () => ({
       { agora: () => new Date("2026-10-07T10:00:00-03:00") },
       { listarDatas: async () => ok([]) },
       { buscar: async () => ok({ nomeArquivo: "DAS.pdf", pdfBase64: "JVBERi0=" }) },
+      // DAS pronto: a opção 2 adianta o envio pelo caso de uso real, só com portas em memória.
+      new EntregarDasNaUra(
+        {
+          obterDas: async () =>
+            ok({ dasStatus: "pronto" as const, dataEnvioDas: null, caminhoGuiaDas: null }),
+          reservarDas: async () => ok("token-1"),
+          concluirDas: async () => ok(true),
+          liberarDas: async () => ok(undefined),
+        },
+        {
+          execute: async () =>
+            ok({
+              competencia: "09/2026",
+              vencimento: "20/10/2026",
+              guia: { url: "https://storage.test/das.pdf", nomeArquivo: "DAS.pdf" },
+              caminho: "c1/das/202610-hash.pdf",
+            }),
+        },
+        { reencontrar: async () => ok("https://storage.test/das.pdf") },
+        envio,
+        { agora: () => new Date("2026-10-07T10:00:00-03:00") },
+      ),
+      { execute: async () => ok(undefined) },
     ),
   makeAutenticarWebhook: () =>
     new AutenticarWebhook(new HmacAutenticacaoWebhookGateway(SEGREDO, TOKEN)),
@@ -195,7 +219,7 @@ describe("POST /api/webhooks/whatsapp (notificação)", () => {
     expect(r.status).toBe(200);
     expect(envio.enviadas).toHaveLength(1);
     expect(envio.documentosEnviados).toEqual([
-      { telefone: "5511999990000", nomeArquivo: "DAS.pdf", pdfBase64: "JVBERi0=" },
+      { telefone: "5511999990000", nomeArquivo: "DAS.pdf", url: "https://storage.test/das.pdf" },
     ]);
   });
 

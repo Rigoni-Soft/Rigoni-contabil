@@ -13,7 +13,7 @@ import type {
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
-import { hojeIso, mesAtual } from "@/shared/kernel/mes-atual";
+import { hojeIso, mesAnterior, mesAtual } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 // Adapter do Integra Contador (docs/pesquisa/serpro-api.md) para o contrato neutro. Só este
@@ -124,12 +124,6 @@ const procuracoesSchema = z.array(z.object({ dtexpiracao: z.string().regex(/^\d{
 
 const dataIso = (aaaammdd: string) =>
   `${aaaammdd.slice(0, 4)}-${aaaammdd.slice(4, 6)}-${aaaammdd.slice(6)}`;
-
-// Mês anterior ao corrente (fuso de negócio): o DAS vence no mês seguinte à apuração.
-function mesAnterior(agora: Date): string {
-  const [ano, mes] = mesAtual(agora).split("-").map(Number);
-  return mes === 1 ? `${ano - 1}12` : `${ano}${String(mes - 1).padStart(2, "0")}`;
-}
 
 export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
   private token: { access: string; jwt: string; expiraEm: number } | null = null;
