@@ -36,8 +36,13 @@ describe("useFila", () => {
   });
   afterEach(() => jest.useRealTimers());
 
-  it("mostra a carga inicial já com o tempo de espera", () => {
+  it("mostra a carga inicial com a espera do servidor e, já no primeiro tique, a do relógio do navegador", () => {
     const { result } = renderizar();
+    expect(result.current.itens[0].espera).toBe("00:00");
+
+    act(() => {
+      jest.advanceTimersByTime(0);
+    });
 
     expect(result.current.itens[0]).toMatchObject({ contato: "Maria", espera: "00:05" });
   });

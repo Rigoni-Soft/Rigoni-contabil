@@ -12,7 +12,7 @@ export type ItemDaFilaView = {
   telefone: string;
   resumo: string | null;
   // Dirigido a um usuário (não à espera do Setor): só ele assume.
-  daFilaDeUsuario: boolean;
+  dirigido: boolean;
   espera: string;
 };
 
@@ -26,7 +26,7 @@ export function itemDaFilaParaView(item: ItemDaFilaVisto, agora?: number): ItemD
     cnpj: item.contato.cnpj ? formatarCnpj(item.contato.cnpj) : null,
     telefone: telefoneParaExibicao(item.telefone),
     resumo: item.resumo,
-    daFilaDeUsuario: item.filaDoFuncionarioId !== null,
+    dirigido: item.filaDoFuncionarioId !== null,
     espera: agora === undefined ? item.espera : formatarEspera(agora - filaDesdeMs),
   };
 }
@@ -53,7 +53,7 @@ export function avisoDaFila(itens: ItemDaFilaVisto[]): AvisoDaFilaView | null {
     href: "/fila",
     titulo: "Fila de atendimento",
     detalhe: itens.length === 1 ? "1 cliente aguardando" : `${itens.length} clientes aguardando`,
-    previa: `Próximo: ${itemDaFilaParaView(itens[0]).contato}`,
+    previa: `Mais antigo: ${itemDaFilaParaView(itens[0]).contato}`,
     aguardando: true,
     // Muda quando a Fila muda: o cartão é recriado e a animação de entrada roda de novo.
     sinal: itens.map((i) => i.atendimentoId).join(","),

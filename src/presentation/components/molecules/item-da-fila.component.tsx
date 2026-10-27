@@ -9,7 +9,7 @@ export type ItemDaFilaProps = {
   cnpj: string | null;
   telefone: string;
   resumo: string | null;
-  daFilaDeUsuario: boolean;
+  dirigido: boolean;
   espera: string;
 };
 
@@ -19,7 +19,7 @@ export function ItemDaFila({
   cnpj,
   telefone,
   resumo,
-  daFilaDeUsuario,
+  dirigido,
   espera,
 }: ItemDaFilaProps) {
   return (
@@ -49,9 +49,9 @@ export function ItemDaFila({
             {resumo}
           </Texto>
         )}
-        {daFilaDeUsuario && (
+        {dirigido && (
           <Texto variante="apoio" className="mt-1">
-            Fila de um usuário
+            Dirigido a um usuário
           </Texto>
         )}
       </Caixa>
@@ -60,7 +60,11 @@ export function ItemDaFila({
         <Texto como="span" variante="somenteLeitor">
           Esperando há{" "}
         </Texto>
-        <Caixa como="span">{espera}</Caixa>
+        {/* A espera nasce de relógios diferentes (servidor, cache compartilhado com o aviso do Dock e
+            navegador): o texto muda de propósito a cada segundo. */}
+        <Caixa como="span" suppressHydrationWarning>
+          {espera}
+        </Caixa>
       </Linha>
     </Linha>
   );

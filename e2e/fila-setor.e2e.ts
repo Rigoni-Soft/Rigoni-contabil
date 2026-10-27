@@ -44,7 +44,7 @@ test.describe("Fila do Setor (#70)", () => {
         telefone: `55${TELEFONES[1]}`,
         chave_telefone: TELEFONES[1],
         setor: "financeiro",
-        // Fila de um usuário: destino fixo ocupado.
+        // Dirigido a um usuário: destino fixo ocupado.
         fila_funcionario_id: FUNCIONARIO,
         fila_desde: new Date(agora - 60_000).toISOString(),
       },
@@ -110,9 +110,9 @@ test.describe("Fila do Setor (#70)", () => {
     await expect(itens.nth(0)).toContainText("(61) 95557-3001");
     await expect(itens.nth(0)).toContainText(/\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}|\d{14}/);
     await expect(itens.nth(0)).toContainText("Cliente quer segunda via do boleto");
-    await expect(itens.nth(0)).not.toContainText("Fila de um usuário");
+    await expect(itens.nth(0)).not.toContainText("Dirigido a um usuário");
     await expect(itens.nth(1)).toContainText("Contato não identificado");
-    await expect(itens.nth(1)).toContainText("Fila de um usuário");
+    await expect(itens.nth(1)).toContainText("Dirigido a um usuário");
 
     // O tempo corre sem recarregar a página.
     const espera = itens.nth(0).getByText(/^\d{2}:\d{2}$/);
