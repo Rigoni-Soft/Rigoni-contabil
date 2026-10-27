@@ -434,6 +434,7 @@ export function EditarCadastroOperacionalForm({
                               name={name}
                               accept="application/pdf"
                               dica="PDF até 4 MB"
+                              compacto
                               file={value}
                               onChange={onChange}
                               onBlur={onBlur}

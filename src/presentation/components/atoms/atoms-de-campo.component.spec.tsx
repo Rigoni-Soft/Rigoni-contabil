@@ -31,6 +31,18 @@ describe("átomos de campo", () => {
     expect(aoMudar).toHaveBeenCalledWith(arquivo);
   });
 
+  it("FileInput com arquivo escolhido oferece Remover, que limpa sem abrir o seletor", () => {
+    const aoMudar = jest.fn();
+    const arquivo = new File(["x"], "contrato.pdf", { type: "application/pdf" });
+    const { rerender } = render(<FileInput id="contrato" onChange={aoMudar} />);
+    expect(screen.queryByRole("button", { name: /remover arquivo/i })).not.toBeInTheDocument();
+
+    rerender(<FileInput id="contrato" file={arquivo} onChange={aoMudar} />);
+    fireEvent.click(screen.getByRole("button", { name: /remover arquivo/i }));
+
+    expect(aoMudar).toHaveBeenCalledWith(undefined);
+  });
+
   it("FileInput aceita arquivo arrastado e solto", () => {
     const aoMudar = jest.fn();
     render(<FileInput id="contrato" onChange={aoMudar} />);
