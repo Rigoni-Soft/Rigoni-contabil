@@ -223,6 +223,40 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
   });
 });
 
+test.describe("Parcelamento da Receita cadastrado segue editável (#184)", () => {
+  test("edita parcelas e código; só o PGFN ficou imutável @smoke", async ({ page }) => {
+    const clienteId = await abrirComoFuncionarioSn(page, "Parcelamento Receita E2E Ltda");
+    const id = crypto.randomUUID();
+    const { error } = await adminLocal()
+      .from("cliente_parcelamentos")
+      .insert({
+        id,
+        cliente_id: clienteId,
+        codigo: "RFB-100",
+        parcelas_restantes: 10,
+        interno: false,
+        arquivo_caminho: `${clienteId}/${id}-receita.pdf`,
+        origem: "receita_federal",
+        total_parcelas: 12,
+        valor_parcela_centavos: 10000,
+        data_adesao: "2026-01-27",
+      });
+    expect(error).toBeNull();
+    await page.goto(`/clientes/${clienteId}`);
+    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+
+    await expect(page.locator("[id='parcelamentos.0.codigo']")).toBeEnabled();
+    await page.locator("[id='parcelamentos.0.codigo']").fill("RFB-200");
+    await page.locator("[id='parcelamentos.0.parcelasRestantes']").fill("8");
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
+    await expect(page).toHaveURL("/simples-nacional");
+
+    await page.goto(`/clientes/${clienteId}`);
+    await expect(page.locator("[id='parcelamentos.0.codigo']")).toHaveValue("RFB-200");
+    await expect(page.locator("[id='parcelamentos.0.parcelasRestantes']")).toHaveValue("8");
+  });
+});
+
 test.describe("Guia anexada da parcela PGFN: trocar, visualizar e remover (#184)", () => {
   test("troca, abre por link temporário, remove e o acordo cadastrado só ganha guias @smoke", async ({
     page,

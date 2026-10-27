@@ -33,7 +33,10 @@ competência do mês, abre um alerta `guia_pgfn_pendente` ao setor Simples Nacio
 ## Antes de ligar
 
 O painel do Funcionário ainda não lê `alertas_setor` (vale para todos os tipos de alerta: a tabela e
-a RLS existem, a tela não). Sem ele o setor não vê o alerta; ligar o job só faz sentido com a tela.
+a RLS existem, a tela não). Sem ele o setor não vê o alerta: gravar alerta invisível não notifica
+ninguém. **Mantenha `LEMBRETES_PGFN_AUTOMATICOS=desligada` até existir a tela** que exibe o alerta
+com o isolamento por Responsável/Líder; a exibição no painel (parte da #187) é entrega à parte, não
+desta PR.
 
 ## Variáveis
 
