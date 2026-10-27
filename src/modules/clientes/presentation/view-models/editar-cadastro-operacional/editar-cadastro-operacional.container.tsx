@@ -36,9 +36,6 @@ import { useResponsaveisElegiveis } from "./responsaveis.queries";
 import { salvarParcelamentosAction } from "./salvar-parcelamentos.actions";
 import { useLeituraDoPdf } from "./use-leitura-do-pdf.hook";
 
-// O erro da guia mora no campo; o Parcelamento já existe, então a saída é anexar na linha dele.
-const RECUPERAR_GUIA = "Recarregue a página e anexe a guia na linha do Parcelamento.";
-
 type Props = {
   dados: CadastroOperacionalClienteDto | null;
   readOnly: boolean;
@@ -235,7 +232,7 @@ export function EditarCadastroOperacionalContainer({
             const tela = getValues("parcelamentos").findIndex((p) => p.guia === linha.guia);
             if (tela >= 0) {
               setError(`parcelamentos.${tela}.guia`, {
-                message: `${guia.error.message} ${RECUPERAR_GUIA}`,
+                message: `${guia.error.message} Recarregue a página e anexe a guia na linha do Parcelamento.`,
               });
             }
             setErroServidor(

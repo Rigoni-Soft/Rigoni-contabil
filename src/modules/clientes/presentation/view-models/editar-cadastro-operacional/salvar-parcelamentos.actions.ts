@@ -7,7 +7,9 @@ import { salvarParcelamentosSchema } from "@/modules/clientes/presentation/view-
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
 import { toActionResult } from "@/shared/kernel/to-action-result";
 
-export async function salvarParcelamentosAction(input: unknown): Promise<ActionResult<{ ids: string[] }>> {
+export async function salvarParcelamentosAction(
+  input: unknown,
+): Promise<ActionResult<{ ids: string[] }>> {
   const parsed = salvarParcelamentosSchema.safeParse(input);
   if (!parsed.success) {
     return {
