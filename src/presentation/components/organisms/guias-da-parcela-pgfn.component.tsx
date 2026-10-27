@@ -8,6 +8,7 @@ import { CampoDeArquivo } from "@/presentation/components/molecules/campo-de-arq
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { SeloDaGuia } from "@/presentation/components/molecules/selo-da-guia.component";
 import { Button } from "@/presentation/components/ui/button";
+import { cn } from "@/presentation/lib/utils";
 
 // O resultado do anexo e o motivo da pendência são o que o Funcionário precisa ler e agir: 14 px, não
 // os 12 px do aviso padrão. O ícone desce 2 px para ficar na primeira linha de 20 px (como o FieldError).
@@ -161,7 +162,7 @@ export function GuiasDaParcelaPgfn({
                   {!guia.confirmada && !guia.enviada && (
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="default"
                       size="sm"
                       aria-disabled={pendente || undefined}
                       onClick={() => onConfirmar(guia.competencia)}
@@ -235,7 +236,7 @@ export function GuiasDaParcelaPgfn({
                             aria-disabled={pendente || undefined}
                             onClick={() => onPedirRemocao(guia.competencia)}
                             aria-label={`Remover guia de ${guia.rotulo}`}
-                            className={BOTAO_DA_GUIA}
+                            className={cn(BOTAO_DA_GUIA, "text-destructive")}
                           >
                             Remover
                           </Button>
