@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { AcaoDaGuia } from "@/presentation/components/organisms/guias-da-parcela-pgfn.component";
 import { abrirEmNovaAba } from "@/presentation/lib/abrir-em-nova-aba";
 import type { GuiaDaParcela } from "@/modules/clientes/application/ports/out/guia-parcela-pgfn.repository";
-import { DIAS_DO_JOB_PARCELAMENTO } from "@/shared/kernel/dias-do-job-parcelamento";
+import { TEXTO_ENVIO_AUTOMATICO } from "@/shared/kernel/dias-do-job-parcelamento";
 
 import {
   anexarGuiaParcelaPgfnAction,
@@ -31,7 +31,7 @@ const avisoAConfirmar = (
   motivo = 'Confira o motivo na lista e, estando certa, use "Confirmar e liberar".',
 ) => `Guia ${verbo}, mas ainda não liberada ao envio. ${motivo}`;
 // Diz também quando a guia sai: a pessoa não fica sem saber o desfecho.
-const TEXTO_LIBERADA = `Guia confirmada e liberada ao envio. Sai no envio automático (dias ${DIAS_DO_JOB_PARCELAMENTO.join(", ")}) ou quando o Cliente pedir.`;
+const TEXTO_LIBERADA = `Guia confirmada e liberada ao envio. ${TEXTO_ENVIO_AUTOMATICO}.`;
 const AVISO_AGUARDE = "Aguarde a ação em andamento terminar.";
 const ERRO_ABRIR = "Não foi possível abrir a guia. Tente novamente.";
 const ERRO_TRANSPORTE = "Não foi possível concluir agora. Verifique a conexão e tente novamente.";

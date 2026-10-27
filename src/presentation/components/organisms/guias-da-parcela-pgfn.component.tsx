@@ -8,10 +8,14 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 import { AvisoComAcao } from "@/presentation/components/molecules/aviso-com-acao.component";
 import { CampoDeArquivo } from "@/presentation/components/molecules/campo-de-arquivo.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
+import {
+  BOTAO_DA_GUIA,
+  ConfirmacaoEmLinha,
+} from "@/presentation/components/molecules/confirmacao-em-linha.component";
 import { SeloDaGuia } from "@/presentation/components/molecules/selo-da-guia.component";
 import { Button } from "@/presentation/components/ui/button";
 import { cn } from "@/presentation/lib/utils";
-import { DIAS_DO_JOB_PARCELAMENTO } from "@/shared/kernel/dias-do-job-parcelamento";
+import { TEXTO_ENVIO_AUTOMATICO } from "@/shared/kernel/dias-do-job-parcelamento";
 
 type GuiaDaListaDto = {
   // Id do item no DOM (alvo do foco depois de confirmar).
@@ -79,13 +83,6 @@ type GuiasDaParcelaPgfnProps = {
 // Nota que a pessoa precisa ler para agir: 14 px, não os 12 px da variante `nota`.
 const NOTA_LEGIVEL = "text-sm";
 
-const DIAS_DO_ENVIO = DIAS_DO_JOB_PARCELAMENTO.join(", ");
-
-const DICA_DE_TROCAR = "Troca o PDF e a guia volta a «a confirmar».";
-
-const BOTAO_DA_GUIA =
-  "aria-disabled:pointer-events-none aria-disabled:opacity-50 pointer-coarse:min-h-11";
-
 const RESUMO =
   "w-fit cursor-pointer rounded-sm text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11 pointer-coarse:py-2";
 
@@ -125,6 +122,12 @@ export function GuiasDaParcelaPgfn({
   const abrirManual = Boolean(
     competencia || contaNegociacao || erros.competencia || erros.contaNegociacao,
   );
+
+  // O que falta anexar: tudo (lista vazia) ou a guia do mês corrente.
+  const pendencia =
+    !carregando && !erroDaLista && guias.length === 0
+      ? "Nenhuma guia anexada."
+      : competenciaEmFalta && `Falta a guia de ${competenciaEmFalta}.`;
 
   const renderGuia = (guia: GuiaDaListaDto) => {
     const daAcao = acao?.competencia === guia.competencia ? acao : undefined;
@@ -183,39 +186,26 @@ export function GuiasDaParcelaPgfn({
           {!guia.confirmada &&
             !guia.enviada &&
             (liberando ? (
-              <>
-                <Texto variante="corpo" role="alert" className="basis-full">
-                  Libera a guia de {guia.rotulo} (conta {guia.contaNegociacao}).{" "}
-                  {interno
-                    ? "Vai ao WhatsApp do financeiro do escritório, não ao Cliente."
-                    : "Vai ao Cliente, pela forma de envio do cadastro."}{" "}
-                  Sai no envio automático (dias {DIAS_DO_ENVIO}) ou quando o Cliente pedir; até lá
-                  ainda dá para trocar ou remover. Depois de enviada, não se altera.
-                </Texto>
-                <Button
-                  type="button"
-                  variant="default"
-                  size="sm"
-                  aria-disabled={pendente || undefined}
-                  onClick={() => onConfirmar(guia.competencia)}
-                  aria-label={`Liberar ${guia.rotulo} ao envio`}
-                  className={BOTAO_DA_GUIA}
-                >
-                  {daAcao?.emCurso ? "Liberando..." : `Liberar ${guia.rotulo}`}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  // Quem abriu a conferência sem querer cai no gesto seguro.
-                  autoFocus
-                  onClick={onCancelarAcao}
-                  aria-label={`Cancelar liberação da guia de ${guia.rotulo}`}
-                  className={BOTAO_DA_GUIA}
-                >
-                  Cancelar
-                </Button>
-              </>
+              <ConfirmacaoEmLinha
+                texto={
+                  <>
+                    Libera a guia de {guia.rotulo} (conta {guia.contaNegociacao}).{" "}
+                    {interno
+                      ? "Vai ao WhatsApp do financeiro do escritório, não ao Cliente."
+                      : "Vai ao Cliente, pela forma de envio do cadastro."}{" "}
+                    {TEXTO_ENVIO_AUTOMATICO}; até lá ainda dá para trocar ou remover. Depois de
+                    enviada, não se altera.
+                  </>
+                }
+                rotuloDoConfirmar={`Liberar ${guia.rotulo}`}
+                rotuloEmCurso="Liberando..."
+                nomeDoConfirmar={`Liberar ${guia.rotulo} ao envio`}
+                nomeDoCancelar={`Cancelar liberação da guia de ${guia.rotulo}`}
+                emCurso={daAcao.emCurso}
+                ocupado={pendente}
+                onConfirmar={() => onConfirmar(guia.competencia)}
+                onCancelar={onCancelarAcao}
+              />
             ) : (
               <Button
                 type="button"
@@ -237,41 +227,25 @@ export function GuiasDaParcelaPgfn({
                 {!removendo && (
                   <BotaoDeArquivo
                     rotulo="Trocar"
-                    rotuloAcessivel={`Trocar guia de ${guia.rotulo}. ${DICA_DE_TROCAR}`}
+                    rotuloAcessivel={`Trocar guia de ${guia.rotulo}`}
                     aceitar="application/pdf"
                     ocupado={pendente}
                     onEscolher={(novo) => onTrocar(guia.competencia, novo)}
                   />
                 )}
                 {removendo ? (
-                  <>
-                    <Texto variante="nota" role="alert" className={NOTA_LEGIVEL}>
-                      Apaga a guia de {guia.rotulo} e o PDF, sem desfazer.
-                    </Texto>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      aria-disabled={pendente || undefined}
-                      onClick={() => onRemover(guia.competencia)}
-                      aria-label={`Confirmar remoção da guia de ${guia.rotulo}`}
-                      className={BOTAO_DA_GUIA}
-                    >
-                      {daAcao?.emCurso ? "Removendo..." : "Confirmar remoção"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      // Quem abriu a confirmação sem querer cai no gesto seguro.
-                      autoFocus
-                      onClick={onCancelarAcao}
-                      aria-label={`Cancelar remoção da guia de ${guia.rotulo}`}
-                      className={BOTAO_DA_GUIA}
-                    >
-                      Cancelar
-                    </Button>
-                  </>
+                  <ConfirmacaoEmLinha
+                    texto={`Apaga a guia de ${guia.rotulo} e o PDF, sem desfazer.`}
+                    rotuloDoConfirmar="Confirmar remoção"
+                    rotuloEmCurso="Removendo..."
+                    nomeDoConfirmar={`Confirmar remoção da guia de ${guia.rotulo}`}
+                    nomeDoCancelar={`Cancelar remoção da guia de ${guia.rotulo}`}
+                    destrutiva
+                    emCurso={daAcao.emCurso}
+                    ocupado={pendente}
+                    onConfirmar={() => onRemover(guia.competencia)}
+                    onCancelar={onCancelarAcao}
+                  />
                 ) : (
                   <Button
                     type="button"
@@ -322,23 +296,14 @@ export function GuiasDaParcelaPgfn({
             Carregando guias...
           </Texto>
         )}
-        {!carregando && !erroDaLista && guias.length === 0 && (
-          <Texto
-            variante="nota"
-            className={cn("flex items-start gap-1.5 text-foreground", NOTA_LEGIVEL)}
-          >
-            <CalendarClock className="mt-[3px] size-3.5 shrink-0" aria-hidden="true" />
-            Nenhuma guia anexada.
-          </Texto>
-        )}
       </Pilha>
-      {competenciaEmFalta && (
+      {pendencia && (
         <Texto
           variante="nota"
           className={cn("flex items-start gap-1.5 text-foreground", NOTA_LEGIVEL)}
         >
           <CalendarClock className="mt-[3px] size-3.5 shrink-0" aria-hidden="true" />
-          Falta a guia de {competenciaEmFalta}.
+          {pendencia}
         </Texto>
       )}
       {guias.length > 0 && (
