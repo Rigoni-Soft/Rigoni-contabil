@@ -75,6 +75,9 @@ const resultado = z
     FFMPEG_PATH: z.string().min(1).optional(),
     // Liga o job de lembrete de documento e envio de DAS. Mesma regra da inatividade.
     LEMBRETES_AUTOMATICOS: z.enum(["desligada", "ligada"]).default("desligada"),
+    // Liga o job de lembretes PGFN (alerta do setor dos dias 1, 10 e 15). Não envia nada ao Cliente,
+    // então não exige mensageria real.
+    LEMBRETES_PGFN_AUTOMATICOS: z.enum(["desligada", "ligada"]).default("desligada"),
     // Adapter de e-mail (#86): falso por padrão. Com "real": SMTP do Gmail com senha de app (a conta
     // precisa de verificação em duas etapas) e o `from`, ex.: "Rigoni Contábil <conta@gmail.com>".
     EMAIL_MODO: z.enum(["falso", "real"]).default("falso"),
@@ -184,6 +187,7 @@ const resultado = z
     INATIVIDADE_AUTOMATICA: process.env.INATIVIDADE_AUTOMATICA || undefined,
     FFMPEG_PATH: process.env.FFMPEG_PATH || undefined,
     LEMBRETES_AUTOMATICOS: process.env.LEMBRETES_AUTOMATICOS || undefined,
+    LEMBRETES_PGFN_AUTOMATICOS: process.env.LEMBRETES_PGFN_AUTOMATICOS || undefined,
     EMAIL_MODO: process.env.EMAIL_MODO || undefined,
     EMAIL_SMTP_USUARIO: process.env.EMAIL_SMTP_USUARIO || undefined,
     EMAIL_SMTP_SENHA: process.env.EMAIL_SMTP_SENHA || undefined,
@@ -227,6 +231,7 @@ export const {
   INATIVIDADE_AUTOMATICA,
   FFMPEG_PATH,
   LEMBRETES_AUTOMATICOS,
+  LEMBRETES_PGFN_AUTOMATICOS,
   EMAIL_MODO,
   EMAIL_SMTP_USUARIO,
   EMAIL_SMTP_SENHA,
