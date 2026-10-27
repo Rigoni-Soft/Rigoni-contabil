@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   TrocarGuiaParcelaPgfnInput,
   TrocarGuiaParcelaPgfnPort,
 } from "@/modules/clientes/application/ports/in/trocar-guia-parcela-pgfn.provider";
@@ -14,7 +14,7 @@ import {
   confirmarOuManter,
   desfazerUpload,
   revalidarPdfNoStorage,
-} from "@/modules/clientes/application/use-cases/guia-parcela-pgfn.compartilhado";
+} from "@/modules/clientes/application/use-cases/guia-parcela-pgfn-compartilhado.use-case";
 import { conferirGuiaLida } from "@/modules/clientes/domain/value-objects/guia-parcela-pgfn.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";

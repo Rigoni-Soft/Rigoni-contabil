@@ -42,8 +42,8 @@ import type { EnviarAnexoAoClientePort } from "@/modules/atendimento/application
 import type { EnviarDocumentoAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-documento-ao-cliente.provider";
 import type { EnviarMensagemAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-mensagem-ao-cliente.provider";
 import type { ExecutarEnvioGuiaParcelamentoPort } from "@/modules/atendimento/application/ports/in/executar-envio-guia-parcelamento.provider";
-import type { ExecutarLembretesParcelamentoPgfnPort } from "@/modules/atendimento/application/ports/in/executar-lembretes-parcelamento-pgfn.provider";
 import type { ExecutarLembretesDocumentoEDasPort } from "@/modules/atendimento/application/ports/in/executar-lembretes-documento-e-das.provider";
+import type { ExecutarLembretesParcelamentoPgfnPort } from "@/modules/atendimento/application/ports/in/executar-lembretes-parcelamento-pgfn.provider";
 import type {
   CadastrarFeriadoPort,
   ListarFeriadosPort,

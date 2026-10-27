@@ -1,11 +1,11 @@
-import type {
+﻿import type {
   RemoverGuiaParcelaPgfnInput,
   RemoverGuiaParcelaPgfnPort,
 } from "@/modules/clientes/application/ports/in/remover-guia-parcela-pgfn.provider";
 import type { ArquivoStoragePort } from "@/modules/clientes/application/ports/out/arquivo-storage.provider";
 import type { GuiaParcelaPgfnRepository } from "@/modules/clientes/application/ports/out/guia-parcela-pgfn.repository";
 import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
-import { apagarObjeto } from "@/modules/clientes/application/use-cases/guia-parcela-pgfn.compartilhado";
+import { apagarObjeto } from "@/modules/clientes/application/use-cases/guia-parcela-pgfn-compartilhado.use-case";
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";

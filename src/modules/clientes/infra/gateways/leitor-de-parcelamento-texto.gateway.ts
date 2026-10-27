@@ -1,9 +1,9 @@
-import type {
+﻿import type {
   LeitorDeParcelamentoPort,
   LeituraDeParcelamento,
 } from "@/modules/clientes/application/ports/out/leitor-de-parcelamento.provider";
 
-import { centavos, dataIso, extrairTextoDoPdf, pega } from "./leitura-pdf.util";
+import { centavos, dataIso, extrairTextoDoPdf, pega } from "./leitura-pdf.gateway";
 
 // O que cada parser lê; `interpretar` completa o que é igual nos dois modelos (CNPJ e o total de parcelas).
 type Lida = Omit<

@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   AnexarGuiaParcelaPgfnInput,
   AnexarGuiaParcelaPgfnPort,
 } from "@/modules/clientes/application/ports/in/anexar-guia-parcela-pgfn.provider";
@@ -13,7 +13,7 @@ import {
   confirmarOuManter,
   desfazerUpload,
   revalidarPdfNoStorage,
-} from "@/modules/clientes/application/use-cases/guia-parcela-pgfn.compartilhado";
+} from "@/modules/clientes/application/use-cases/guia-parcela-pgfn-compartilhado.use-case";
 import {
   conferirGuiaLida,
   validarGuiaParcelaPgfn,

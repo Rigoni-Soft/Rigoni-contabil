@@ -1,9 +1,9 @@
-import type {
+﻿import type {
   LeitorDeGuiaDeParcelaPort,
   LeituraDeGuia,
 } from "@/modules/clientes/application/ports/out/leitor-de-guia-de-parcela.provider";
 
-import { centavos, dataIso, extrairTextoDoPdf, pega } from "./leitura-pdf.util";
+import { centavos, dataIso, extrairTextoDoPdf, pega } from "./leitura-pdf.gateway";
 
 const NAO_LIDA: LeituraDeGuia = { lido: false };
 
