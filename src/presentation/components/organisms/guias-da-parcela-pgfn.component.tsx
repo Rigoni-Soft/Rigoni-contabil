@@ -162,19 +162,17 @@ export function GuiasDaParcelaPgfn({
                   )}
                   <Linha alinhar="centro" espaco={1} quebra className="ml-auto">
                     {!confirmando && (
-                      <>
-                        <Button
-                          type="button"
-                          variant="link"
-                          size="sm"
-                          aria-disabled={pendente || undefined}
-                          onClick={() => onVisualizar(guia.competencia)}
-                          aria-label={`Ver guia de ${guia.rotulo}`}
-                          className={BOTAO_DA_GUIA}
-                        >
-                          Ver
-                        </Button>
-                      </>
+                      <Button
+                        type="button"
+                        variant="link"
+                        size="sm"
+                        aria-disabled={pendente || undefined}
+                        onClick={() => onVisualizar(guia.competencia)}
+                        aria-label={`Ver guia de ${guia.rotulo}`}
+                        className={BOTAO_DA_GUIA}
+                      >
+                        Ver
+                      </Button>
                     )}
                     {!guia.enviada && (
                       <>
