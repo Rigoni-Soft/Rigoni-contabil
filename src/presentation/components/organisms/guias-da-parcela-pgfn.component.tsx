@@ -312,7 +312,6 @@ export function GuiasDaParcelaPgfn({
           rotulo="PDF da guia"
           accept="application/pdf"
           dica="PDF até 4 MB"
-          compacto
           file={arquivo}
           onChange={onArquivo}
           erro={erros.arquivo}
