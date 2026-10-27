@@ -7,8 +7,17 @@ import { cn } from "@/presentation/lib/utils";
 // par do selo do Parcelamento: confirmada é `primary` (liberada ao envio); a confirmar é neutra.
 // Enviada (registro de envio) vem depois de confirmada e prevalece: é o estado final da guia.
 const ESTADOS = {
-  enviada: { Icone: Send, texto: "Enviada", classes: "border-primary text-primary" },
-  confirmada: { Icone: CheckCircle2, texto: "Confirmada", classes: "border-primary text-primary" },
+  // Enviada é o marco final e irreversível: preenchida. Liberada ao envio ainda pode sair do fluxo: contorno.
+  enviada: {
+    Icone: Send,
+    texto: "Enviada",
+    classes: "border-primary bg-primary text-primary-foreground",
+  },
+  confirmada: {
+    Icone: CheckCircle2,
+    texto: "Liberada ao envio",
+    classes: "border-primary text-primary",
+  },
   a_confirmar: {
     Icone: Clock,
     texto: "A confirmar",

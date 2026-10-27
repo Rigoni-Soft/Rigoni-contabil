@@ -195,7 +195,7 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
       parcelamentoId: PARCELAMENTO_PGFN,
       competencia: "202610",
     });
-    expect(await screen.findByText("Confirmada")).toBeInTheDocument();
+    expect(await screen.findByText("Liberada ao envio")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /confirmar guia/i })).not.toBeInTheDocument();
     // O botão sumiu: o foco vai ao item da guia, não cai no topo da página.
     expect(screen.getByText(/10\/2026 · conta 123456/).closest("li")).toHaveFocus();
@@ -539,6 +539,8 @@ describe("mensagem de sucesso", () => {
 
 describe("avisos de erro ao corrigir", () => {
   it("o erro do campo e a recusa do servidor somem quando a pessoa corrige", async () => {
+    // Sem nenhuma guia anexada o formulário de anexo fica à vista (com guia do mês, recolhido).
+    listarMock.mockResolvedValue({ ok: true, data: [] });
     anexarMock.mockResolvedValue({
       ok: false,
       error: { code: "X", message: "Já existe guia anexada para esta competência." },
@@ -629,10 +631,10 @@ describe("trocar, remover e visualizar a guia anexada (#184)", () => {
     const regiao = within(await regiaoDaGuia());
 
     expect(await regiao.findByRole("button", { name: "Ver guia de 10/2026" })).toBeInTheDocument();
-    expect(regiao.getByLabelText("Trocar guia de 10/2026")).toBeInTheDocument();
+    expect(regiao.getByLabelText(/^Trocar guia de 10\/2026/)).toBeInTheDocument();
     expect(regiao.getByRole("button", { name: "Remover guia de 10/2026" })).toBeInTheDocument();
     expect(regiao.getByRole("button", { name: "Ver guia de 09/2026" })).toBeInTheDocument();
-    expect(regiao.queryByLabelText("Trocar guia de 09/2026")).not.toBeInTheDocument();
+    expect(regiao.queryByLabelText(/^Trocar guia de 09\/2026/)).not.toBeInTheDocument();
     expect(
       regiao.queryByRole("button", { name: "Remover guia de 09/2026" }),
     ).not.toBeInTheDocument();
@@ -645,7 +647,7 @@ describe("trocar, remover e visualizar a guia anexada (#184)", () => {
     render();
     const regiao = within(await regiaoDaGuia());
 
-    await usuario.upload(await regiao.findByLabelText("Trocar guia de 10/2026"), pdf);
+    await usuario.upload(await regiao.findByLabelText(/^Trocar guia de 10\/2026/), pdf);
 
     expect(trocarMock).toHaveBeenCalledWith({
       parcelamentoId: PARCELAMENTO_PGFN,
@@ -664,7 +666,7 @@ describe("trocar, remover e visualizar a guia anexada (#184)", () => {
     render();
     const regiao = within(await regiaoDaGuia());
 
-    await usuario.upload(await regiao.findByLabelText("Trocar guia de 10/2026"), pdf);
+    await usuario.upload(await regiao.findByLabelText(/^Trocar guia de 10\/2026/), pdf);
 
     expect(await regiao.findByText(/guia trocada, mas ainda não liberada/i)).toBeInTheDocument();
   });
@@ -678,7 +680,7 @@ describe("trocar, remover e visualizar a guia anexada (#184)", () => {
     render();
     const regiao = within(await regiaoDaGuia());
 
-    await usuario.upload(await regiao.findByLabelText("Trocar guia de 10/2026"), pdf);
+    await usuario.upload(await regiao.findByLabelText(/^Trocar guia de 10\/2026/), pdf);
 
     expect(await regiao.findByText("O PDF é de outra competência.")).toBeInTheDocument();
   });
@@ -689,7 +691,7 @@ describe("trocar, remover e visualizar a guia anexada (#184)", () => {
     const regiao = within(await regiaoDaGuia());
     const texto = new File(["x"], "guia.txt", { type: "text/plain" });
 
-    await usuario.upload(await regiao.findByLabelText("Trocar guia de 10/2026"), texto);
+    await usuario.upload(await regiao.findByLabelText(/^Trocar guia de 10\/2026/), texto);
 
     expect(trocarMock).not.toHaveBeenCalled();
     expect(await regiao.findByText("Envie um arquivo PDF.")).toBeInTheDocument();
@@ -719,6 +721,7 @@ describe("trocar, remover e visualizar a guia anexada (#184)", () => {
   });
 
   it("o PDF vem primeiro; mês e conta ficam recolhidos e abrem sozinhos quando há valor", async () => {
+    listarMock.mockResolvedValue({ ok: true, data: [] });
     const usuario = userEvent.setup();
     render();
     const regiao = within(await regiaoDaGuia());
@@ -778,7 +781,7 @@ describe("trocar, remover e visualizar a guia anexada (#184)", () => {
     const usuario = userEvent.setup();
     render();
     const regiao = within(await regiaoDaGuia());
-    const campo = await regiao.findByLabelText("Trocar guia de 10/2026");
+    const campo = await regiao.findByLabelText(/^Trocar guia de 10\/2026/);
     campo.focus();
 
     await usuario.upload(campo, pdf);
@@ -801,7 +804,7 @@ describe("trocar, remover e visualizar a guia anexada (#184)", () => {
     const regiao = within(await regiaoDaGuia());
     await liberarGuia(usuario);
 
-    await usuario.upload(regiao.getByLabelText("Trocar guia de 10/2026"), pdf);
+    await usuario.upload(regiao.getByLabelText(/^Trocar guia de 10\/2026/), pdf);
 
     expect(trocarMock).not.toHaveBeenCalled();
     // Não é erro: é espera, anunciada como status (com a mesma apresentação de "atenção").

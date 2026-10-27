@@ -1,3 +1,5 @@
+import { Clock } from "lucide-react";
+
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { BotaoDeArquivo } from "@/presentation/components/atoms/botao-de-arquivo.component";
 import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
@@ -76,6 +78,11 @@ type GuiasDaParcelaPgfnProps = {
   onVisualizar: (competencia: string) => void;
 };
 
+// Nota que a pessoa precisa ler para agir: 14 px, não os 12 px da variante `nota`.
+const NOTA_LEGIVEL = "text-sm";
+
+const DICA_DE_TROCAR = "Troca o PDF e a guia volta a «a confirmar».";
+
 const BOTAO_DA_GUIA =
   "aria-disabled:pointer-events-none aria-disabled:opacity-50 pointer-coarse:min-h-11";
 
@@ -122,6 +129,83 @@ export function GuiasDaParcelaPgfn({
     competencia || contaNegociacao || erros.competencia || erros.contaNegociacao,
   );
 
+  const avisos = (
+    <>
+      {erroServidor && <FieldError>{erroServidor}</FieldError>}
+      {resultado && <AvisoDeStatus tipo={resultado.tipo} texto={resultado.texto} legivel />}
+    </>
+  );
+  const avisoNoItem = Boolean(alvoDoAviso) && guias.some((g) => g.competencia === alvoDoAviso);
+  const abrirManual = temDigitado || Boolean(erroServidor && !alvoDoAviso);
+
+  const formularioDeAnexo = (
+    <>
+      <CampoDeArquivo
+        id={`${id}-arquivo`}
+        rotulo="PDF da guia"
+        accept="application/pdf"
+        dica="PDF até 4 MB"
+        compacto
+        file={arquivo}
+        onChange={onArquivo}
+        erro={erros.arquivo}
+      />
+      {/* O sistema lê o mês e a conta do PDF: os campos só se abrem para quem precisa digitar. Abre
+          sozinho se já tem valor ou erro, para a recusa nunca ficar escondida. */}
+      <Caixa como="details" open={abrirManual || undefined}>
+        <Caixa
+          como="summary"
+          className="w-fit cursor-pointer rounded-sm text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11 pointer-coarse:py-2"
+        >
+          Preencher mês e conta à mão
+        </Caixa>
+        <Pilha espaco={3} className="pt-3">
+          <Texto variante="nota" id={`${id}-leitura`}>
+            O sistema lê o PDF; digite só se ele não conseguir.
+          </Texto>
+          <Linha alinhar="fim" espaco={3} quebra>
+            <CampoDeTexto
+              id={`${id}-competencia`}
+              rotulo="Competência"
+              type="month"
+              // Navegador sem seletor de mês (ex.: Firefox no desktop) mostra texto livre: o formato vai no placeholder.
+              placeholder="AAAA-MM"
+              aria-describedby={`${id}-leitura`}
+              value={competencia}
+              onChange={(evento) => onCompetencia(evento.target.value)}
+              erro={erros.competencia}
+              disabled={anexando}
+              className="min-w-[10rem] flex-1 gap-1"
+            />
+            <CampoDeTexto
+              id={`${id}-conta`}
+              rotulo="Conta de negociação"
+              maxLength={40}
+              aria-describedby={`${id}-leitura`}
+              value={contaNegociacao}
+              onChange={(evento) => onContaNegociacao(evento.target.value)}
+              erro={erros.contaNegociacao}
+              disabled={anexando}
+              className="min-w-[10rem] flex-1 gap-1"
+            />
+          </Linha>
+        </Pilha>
+      </Caixa>
+      <Button
+        type="button"
+        variant={arquivo ? "default" : "outline"}
+        size="sm"
+        aria-disabled={pendente || undefined}
+        onClick={onAnexar}
+        className={cn(BOTAO_DA_GUIA, "self-start")}
+      >
+        {anexando ? "Enviando..." : "Anexar guia"}
+      </Button>
+    </>
+  );
+  // Com a guia do mês já anexada, o formulário não pesa tanto quanto a lista: fica recolhido.
+  const recolherAnexo = guias.length > 0 && !competenciaEmFalta;
+
   const renderGuia = (guia: GuiaDaListaDto) => {
     const confirmando = removendo === guia.competencia;
     return (
@@ -142,7 +226,7 @@ export function GuiasDaParcelaPgfn({
           <SeloDaGuia confirmada={guia.confirmada} enviada={guia.enviada} />
         </Linha>
         {guia.enviada && (
-          <Texto variante="nota" className="mt-1 text-sm">
+          <Texto variante="nota" className={cn("mt-1", NOTA_LEGIVEL)}>
             Já enviada ao Cliente: só pode ser aberta.
           </Texto>
         )}
@@ -150,7 +234,7 @@ export function GuiasDaParcelaPgfn({
           <Texto
             variante="nota"
             id={`${guia.id}-motivo`}
-            className="mt-1 text-sm [overflow-wrap:anywhere]"
+            className={cn("mt-1 [overflow-wrap:anywhere]", NOTA_LEGIVEL)}
           >
             {guia.motivo}
           </Texto>
@@ -223,7 +307,8 @@ export function GuiasDaParcelaPgfn({
                 {!confirmando && (
                   <BotaoDeArquivo
                     rotulo="Trocar"
-                    rotuloAcessivel={`Trocar guia de ${guia.rotulo}`}
+                    rotuloAcessivel={`Trocar guia de ${guia.rotulo}. ${DICA_DE_TROCAR}`}
+                    dica={DICA_DE_TROCAR}
                     aceitar="application/pdf"
                     ocupado={pendente}
                     onEscolher={(novo) => onTrocar(guia.competencia, novo)}
@@ -285,15 +370,6 @@ export function GuiasDaParcelaPgfn({
     );
   };
 
-  const avisos = (
-    <>
-      {erroServidor && <FieldError>{erroServidor}</FieldError>}
-      {resultado && <AvisoDeStatus tipo={resultado.tipo} texto={resultado.texto} legivel />}
-    </>
-  );
-  const avisoNoItem = Boolean(alvoDoAviso) && guias.some((g) => g.competencia === alvoDoAviso);
-  const abrirManual = temDigitado || Boolean(erroServidor && !alvoDoAviso);
-
   return (
     <Pilha
       espaco={3}
@@ -314,18 +390,22 @@ export function GuiasDaParcelaPgfn({
           />
         )}
         {carregando && (
-          <Texto variante="nota" className="text-sm">
+          <Texto variante="nota" className={NOTA_LEGIVEL}>
             Carregando guias...
           </Texto>
         )}
         {!carregando && !erroDaLista && guias.length === 0 && (
-          <Texto variante="nota" className="text-sm">
+          <Texto variante="nota" className={NOTA_LEGIVEL}>
             Nenhuma guia anexada.
           </Texto>
         )}
       </Pilha>
       {competenciaEmFalta && (
-        <Texto variante="nota" className="text-sm">
+        <Texto
+          variante="nota"
+          className={cn("flex items-start gap-1.5 text-foreground", NOTA_LEGIVEL)}
+        >
+          <Clock className="mt-[3px] size-3.5 shrink-0" aria-hidden="true" />
           Falta a guia de {competenciaEmFalta}.
         </Texto>
       )}
@@ -353,69 +433,24 @@ export function GuiasDaParcelaPgfn({
 
       {!avisoNoItem && avisos}
 
-      <Pilha espaco={3}>
-        <CampoDeArquivo
-          id={`${id}-arquivo`}
-          rotulo="PDF da guia"
-          accept="application/pdf"
-          dica="PDF até 4 MB"
-          compacto
-          file={arquivo}
-          onChange={onArquivo}
-          erro={erros.arquivo}
-        />
-        {/* O sistema lê o mês e a conta do PDF: os campos só se abrem para quem precisa digitar. Abre
-          sozinho se já tem valor ou erro, para a recusa nunca ficar escondida. */}
-        <Caixa como="details" open={abrirManual || undefined}>
+      {recolherAnexo ? (
+        <Caixa
+          como="details"
+          open={arquivo || abrirManual || erros.arquivo || undefined ? true : undefined}
+        >
           <Caixa
             como="summary"
             className="w-fit cursor-pointer rounded-sm text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11 pointer-coarse:py-2"
           >
-            Preencher mês e conta à mão
+            Anexar outra guia
           </Caixa>
           <Pilha espaco={3} className="pt-3">
-            <Texto variante="nota" id={`${id}-leitura`}>
-              O sistema lê o PDF; digite só se ele não conseguir.
-            </Texto>
-            <Linha alinhar="fim" espaco={3} quebra>
-              <CampoDeTexto
-                id={`${id}-competencia`}
-                rotulo="Competência"
-                type="month"
-                // Navegador sem seletor de mês (ex.: Firefox no desktop) mostra texto livre: o formato vai no placeholder.
-                placeholder="AAAA-MM"
-                aria-describedby={`${id}-leitura`}
-                value={competencia}
-                onChange={(evento) => onCompetencia(evento.target.value)}
-                erro={erros.competencia}
-                disabled={anexando}
-                className="min-w-[10rem] flex-1 gap-1"
-              />
-              <CampoDeTexto
-                id={`${id}-conta`}
-                rotulo="Conta de negociação"
-                maxLength={40}
-                aria-describedby={`${id}-leitura`}
-                value={contaNegociacao}
-                onChange={(evento) => onContaNegociacao(evento.target.value)}
-                erro={erros.contaNegociacao}
-                disabled={anexando}
-                className="min-w-[10rem] flex-1 gap-1"
-              />
-            </Linha>
+            {formularioDeAnexo}
           </Pilha>
         </Caixa>
-        <Button
-          type="button"
-          variant={arquivo ? "default" : "outline"}
-          size="sm"
-          aria-disabled={pendente || undefined}
-          onClick={onAnexar}
-          className={cn(BOTAO_DA_GUIA, "self-start")}
-        >
-          {anexando ? "Enviando..." : "Anexar guia"}
-        </Button>
-      </Pilha>
+      ) : (
+        <Pilha espaco={3}>{formularioDeAnexo}</Pilha>
+      )}
     </Pilha>
   );
 }
