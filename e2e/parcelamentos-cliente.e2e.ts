@@ -334,6 +334,9 @@ test.describe("Guia anexada da parcela PGFN: trocar, visualizar e remover (#184)
 });
 
 test.describe("Guia mensal da parcela PGFN: anexar, ver a confirmar e confirmar (#190)", () => {
+  const COMPETENCIA = "202610";
+  const ROTULO = "10/2026";
+
   test("guia que não confere fica a confirmar, com o motivo, e o Funcionário a confirma @smoke", async ({
     page,
   }) => {
@@ -354,7 +357,7 @@ test.describe("Guia mensal da parcela PGFN: anexar, ver a confirmar e confirmar 
     await regiao
       .getByLabel(/pdf da guia/i)
       .setInputFiles(
-        pdf("guia-outra-conta.pdf", `[leitor:guia=${cliente!.cnpj};OUTRA-999;202610]`),
+        pdf("guia-outra-conta.pdf", `[leitor:guia=${cliente!.cnpj};OUTRA-999;${COMPETENCIA}]`),
       );
     await regiao.getByRole("button", { name: "Anexar guia" }).click();
     await expect(regiao.getByText(/ainda não liberada/i)).toBeVisible();
@@ -362,9 +365,9 @@ test.describe("Guia mensal da parcela PGFN: anexar, ver a confirmar e confirmar 
 
     // Confirmar pede conferência na linha antes de liberar.
     await regiao
-      .getByRole("button", { name: "Confirmar e liberar guia de 10/2026 ao envio" })
+      .getByRole("button", { name: `Confirmar e liberar guia de ${ROTULO} ao envio` })
       .click();
-    await regiao.getByRole("button", { name: "Liberar 10/2026 ao envio" }).click();
+    await regiao.getByRole("button", { name: `Liberar ${ROTULO} ao envio` }).click();
     await expect(regiao.getByText(/Guia confirmada e liberada ao envio/)).toBeVisible();
     await expect(regiao.getByText("A confirmar", { exact: true })).toHaveCount(0);
   });
