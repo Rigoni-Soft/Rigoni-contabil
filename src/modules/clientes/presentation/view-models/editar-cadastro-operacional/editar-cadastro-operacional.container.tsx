@@ -218,6 +218,10 @@ export function EditarCadastroOperacionalContainer({
           return;
         }
 
+        // Os ids voltam para as linhas antes de anexar: uma nova tentativa (guia recusada, falha de
+        // transporte) atualiza os acordos já salvos, em vez de recriá-los e apagar suas guias em cascata.
+        salvos.data.ids.forEach((id, indice) => setValue(`parcelamentos.${indice}.id`, id));
+
         // Guia recusada (ex.: CNPJ de outra empresa) não desfaz o Parcelamento: avisa e a guia se anexa na linha.
         etapa = "anexar a guia";
         for (const [indice, linha] of valores.parcelamentos.entries()) {
@@ -227,16 +231,13 @@ export function EditarCadastroOperacionalContainer({
             parcelamentoId: salvos.data.ids[indice],
             arquivo: linha.guia,
           });
+          // Anexada ou recusada, a guia sai do formulário: a linha já é um acordo salvo (sem o campo da
+          // guia) e a retentativa não reenvia o arquivo; a recusada se anexa em "Guias da parcela".
+          const tela = getValues("parcelamentos").findIndex((p) => p.guia === linha.guia);
+          if (tela >= 0) setValue(`parcelamentos.${tela}.guia`, undefined);
           if (!guia.ok) {
-            // O motivo aparece junto do campo da linha, não só no topo do formulário.
-            const tela = getValues("parcelamentos").findIndex((p) => p.guia === linha.guia);
-            if (tela >= 0) {
-              setError(`parcelamentos.${tela}.guia`, {
-                message: `${guia.error.message} Recarregue a página e anexe a guia na linha do Parcelamento.`,
-              });
-            }
             setErroServidor(
-              `O Parcelamento foi salvo, mas a guia não foi anexada. ${guia.error.message}`,
+              `O Parcelamento foi salvo, mas a guia não foi anexada. ${guia.error.message} Anexe-a em "Guias da parcela", na linha do Parcelamento.`,
             );
             return;
           }

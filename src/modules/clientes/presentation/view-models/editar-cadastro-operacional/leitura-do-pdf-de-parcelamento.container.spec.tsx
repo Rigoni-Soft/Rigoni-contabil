@@ -244,11 +244,30 @@ describe("Leitura do PDF de parcelamento no Editar cliente", () => {
       expect(
         await screen.findByText(/Parcelamento foi salvo, mas a guia não foi anexada/),
       ).toBeInTheDocument();
-      // O motivo também aparece junto do campo da guia.
-      expect(screen.getByLabelText(/pdf da guia \(opcional\)/i)).toHaveAccessibleDescription(
-        /O CNPJ da guia é de outra empresa/,
-      );
+      // O motivo vem no aviso do formulário, com o caminho certo: anexar na região "Guias da parcela".
+      expect(screen.getByText(/O CNPJ da guia é de outra empresa\./)).toBeInTheDocument();
       expect(salvarParcelamentosMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("guia recusada e novo Salvar: atualiza o acordo já salvo (mesmo id) e não reenvia a guia (F4 da PR #194)", async () => {
+      lerMock.mockResolvedValue(sugestao());
+      anexarGuiaMock.mockResolvedValue({
+        ok: false,
+        error: { code: "VALIDATION_ERROR", message: "O CNPJ da guia é de outra empresa." },
+      });
+      const guia = new File([new Uint8Array([1])], "guia.pdf", { type: "application/pdf" });
+      const usuario = userEvent.setup();
+      render();
+      await anexarPdfNoParcelamentoNovo(usuario);
+      await usuario.upload(await screen.findByLabelText(/pdf da guia \(opcional\)/i), guia);
+      await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+      await screen.findByText(/Parcelamento foi salvo, mas a guia não foi anexada/);
+
+      await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+
+      await waitFor(() => expect(salvarParcelamentosMock).toHaveBeenCalledTimes(2));
+      expect(salvarParcelamentosMock.mock.calls[1][0].parcelamentos[0].id).toBe(PARCELAMENTO_ID);
+      expect(anexarGuiaMock).toHaveBeenCalledTimes(1);
     });
 
     it("lê pelo Cliente da tela e mostra o resumo do acordo; salvar leva o acordo junto", async () => {
