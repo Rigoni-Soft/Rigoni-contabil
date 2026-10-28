@@ -53,7 +53,8 @@ export type OrigemUra = { resumo: string | null; cnpjInformado: string | null };
 export type ConversaVista = {
   atendimentoId: string;
   encerrado: boolean;
-  // Só o dono responde e transfere; Líder do Setor e Admin leem em supervisão (e encerram).
+  // Dono com o Atendimento em andamento: só ele responde e transfere; Líder do Setor e Admin leem
+  // em supervisão (e encerram).
   podeAtender: boolean;
   telefone: string;
   contato: DadosDoContato;

@@ -205,10 +205,11 @@ describe("EnviarDocumentoAoCliente", () => {
     expect(auditadas).toEqual([expect.objectContaining({ resultado: "falha" })]);
   });
 
-  it("só o dono envia: Líder do Setor, Admin e outro Funcionário não", async () => {
+  it("só o dono envia: Líder do Setor, Líder de outro Setor, Admin e outro Funcionário não", async () => {
     const atores = [
       { ...FUNCIONARIO, id: "func-2" },
       { id: "lid", papel: "lider_setor" as const, setor: "contabil" as const },
+      { id: "lid2", papel: "lider_setor" as const, setor: "rh" as const },
       { id: "adm", papel: "admin" as const, setor: "administrativo" as const },
     ];
     for (const ator of atores) {
