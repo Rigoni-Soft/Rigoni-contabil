@@ -911,10 +911,11 @@ na espera ou cliente que escreve de novo numa conversa não aberta; a primeira l
   início, mesmo vazia) lê "Atendimento: 3 pendentes." — a primeira leitura é silenciosa, diminuir não
   é novidade e, na tela Atendimento, quem anuncia é a própria tela (região da lista).
 - **Card de espera** (`CardDeEspera`): o card inteiro é o botão de assumir (`rounded-lg border
-  bg-card px-3 py-2`, `hover:bg-accent`). Mostra Contato (`destaque`), empresa (`apoio`), resumo
+  bg-card px-3 py-2`, `hover:bg-accent`). Mostra Contato (`destaque`), empresa (`apoio`), origem
+  (`nota`, só em Atendimento transferido: "Transferido de Financeiro por Fulano"), resumo
   (`nota`) e, à direita, ícone de relógio com o tempo de espera em `tabular-nums` (mm:ss, h:mm:ss a
   partir de 1h; o texto muda a cada segundo, por isso `suppressHydrationWarning`). O nome
-  acessível é "Assumir o atendimento de" + Contato + empresa (`aria-labelledby`); resumo e espera
+  acessível é "Assumir o atendimento de" + Contato + empresa (`aria-labelledby`); origem, resumo e espera
   entram como descrição (`aria-describedby`), nunca um `aria-label` que os esconda. Dirigido a outro
   usuário: só informa "Dirigido a outro usuário", com borda tracejada e sem fundo de cartão para não
   parecer clicável (um tom de fundo some no tema escuro; a borda vale nos dois). **Para Líder e Admin
