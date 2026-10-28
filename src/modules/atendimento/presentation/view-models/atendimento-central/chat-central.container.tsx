@@ -2,7 +2,6 @@
 
 import { Fragment } from "react";
 
-import { ID_DO_PAINEL_DE_ACOES } from "@/presentation/components/organisms/painel-de-acoes.component";
 import { PainelDoChat } from "@/presentation/components/organisms/painel-do-chat.component";
 import { useAtendimentoCentralStore } from "@/modules/atendimento/presentation/view-models/atendimento-central/atendimento-central.store";
 import { useConversaAberta } from "@/modules/atendimento/presentation/view-models/atendimento-central/use-conversa-aberta.hook";
@@ -25,7 +24,7 @@ export function ChatCentralContainer() {
       estado={estado}
       onVoltar={fecharConversa}
       ref={foco}
-      ancoraDasAcoes={aberta.data?.encerrado === false ? ID_DO_PAINEL_DE_ACOES : undefined}
+      comAcoes={aberta.data?.encerrado === false}
     >
       {abertoId !== null && aberta.data && (
         // `key`: trocar de conversa recomeça o estado local (rascunho, emoji, gravação).

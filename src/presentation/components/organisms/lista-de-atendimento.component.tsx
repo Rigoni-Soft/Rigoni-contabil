@@ -7,6 +7,8 @@ import { cn } from "@/presentation/lib/utils";
 
 export type AbaDoAtendimento = "espera" | "atendimento";
 
+const plural = (n: number, palavra: string) => `${n} ${palavra}${n === 1 ? "" : "s"}`;
+
 type ListaDeAtendimentoProps = {
   aba: AbaDoAtendimento;
   onEscolherAba: (aba: AbaDoAtendimento) => void;
@@ -71,13 +73,13 @@ export function ListaDeAtendimento({
             valor: "espera",
             rotulo: "Em espera",
             contador: contadores.espera,
-            contadorTexto: `${contadores.espera} ${contadores.espera === 1 ? "cliente" : "clientes"}`,
+            contadorTexto: plural(contadores.espera, "cliente"),
           },
           {
             valor: "atendimento",
             rotulo: "Em atendimento",
             contador: contadores.atendimento,
-            contadorTexto: `${contadores.atendimento} ${contadores.atendimento === 1 ? "atendimento" : "atendimentos"}`,
+            contadorTexto: plural(contadores.atendimento, "atendimento"),
           },
         ]}
         ativa={aba}

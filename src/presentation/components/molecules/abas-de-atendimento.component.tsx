@@ -4,7 +4,7 @@ import { cn } from "@/presentation/lib/utils";
 
 // `contadorTexto`: o contador dito por extenso ("2 clientes"), para o leitor de tela; a pílula visual
 // é só o número.
-export type AbaView<T extends string> = {
+type AbaView<T extends string> = {
   valor: T;
   rotulo: string;
   contador: number;

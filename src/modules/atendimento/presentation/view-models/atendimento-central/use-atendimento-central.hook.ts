@@ -12,7 +12,7 @@ import type { SetorSlug } from "@/shared/kernel/setores";
 
 const AVISO_DE_ASSUNCAO_MS = 8_000;
 
-type Entrada = {
+export type EntradaDaLista = {
   usuarioId: string;
   setorInicial: SetorSlug;
   filaInicial: ItemDaFilaVisto[];
@@ -28,7 +28,7 @@ export function useAtendimentoCentral({
   filaInicial,
   meusInicial,
   podeEscolherSetor,
-}: Entrada) {
+}: EntradaDaLista) {
   const fila = useFila(setorInicial, filaInicial, podeEscolherSetor, usuarioId);
   const meus = useMeusAtendimentosQuery(true, meusInicial);
   const assumir = useAssumirAtendimentoMutation();
@@ -51,7 +51,6 @@ export function useAtendimentoCentral({
       reset();
       escolherAba(nova);
     },
-    espera: fila.itens,
     anuncio,
     emAtendimento,
     abertoId,
