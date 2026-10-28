@@ -98,7 +98,7 @@ describe("useAtendimentoCentral", () => {
   it("quem não supervisiona não lê os Atendimentos da equipe", () => {
     const { result } = renderizar();
 
-    expect(result.current.supervisiona).toBe(false);
+    expect(result.current.aoLer).toBeUndefined();
     expect(result.current.daEquipe).toBeUndefined();
     expect(listarAtendimentosDaEquipeAction).not.toHaveBeenCalled();
   });
