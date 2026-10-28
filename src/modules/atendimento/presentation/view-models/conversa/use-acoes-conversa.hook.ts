@@ -10,13 +10,7 @@ import {
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.queries";
 import { useConversa } from "@/modules/atendimento/presentation/view-models/conversa/use-conversa.hook";
 
-// `aoSair`: onde a tela vai quando a conversa deixa de ser do usuário; sem ele, volta ao início
-// (a conversa em rota própria). O chat central da aba Atendimento passa o seu: fecha o painel.
-export function useAcoesConversa(
-  atendimentoId: string,
-  initialData: ConversaVista,
-  aoSair?: () => void,
-) {
+export function useAcoesConversa(atendimentoId: string, initialData: ConversaVista) {
   const { conversa, transferidoPara, transferido, erroDeLeitura } = useConversa(
     atendimentoId,
     initialData,
@@ -26,7 +20,7 @@ export function useAcoesConversa(
   const transferencia = useTransferirAtendimentoMutation(atendimentoId);
   const encerramento = useEncerrarAtendimentoMutation(atendimentoId);
   const [confirmandoEncerramento, setConfirmandoEncerramento] = useState(false);
-  const sairDaConversa = aoSair ?? (() => router.push("/"));
+  const sairDaConversa = () => router.push("/");
 
   const aviso = envio.isError
     ? { tipo: "erro" as const, texto: envio.error.message }
@@ -40,7 +34,6 @@ export function useAcoesConversa(
     // Encerrado não tem ações; transferido mostra só o aviso de para onde foi.
     visivel: !conversa.encerrado || transferido,
     transferidoPara,
-    somenteLeitura: conversa.somenteLeitura,
     semCliente: conversa.semCliente,
     servicos: conversa.servicos,
     aoEnviarServico: (valor: string) => envio.mutate(documentoDaOpcao(valor)),

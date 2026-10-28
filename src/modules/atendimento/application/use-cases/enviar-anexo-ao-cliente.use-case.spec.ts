@@ -243,19 +243,14 @@ describe("EnviarAnexoAoCliente", () => {
     expect(r.ok).toBe(true);
   });
 
-  it("só o dono envia: Líder do Setor, Líder de outro Setor, Admin e outro Funcionário não", async () => {
-    const atores = [
-      { ...FUNCIONARIO, id: "func-2" },
-      { id: "lid", papel: "lider_setor" as const, setor: "contabil" as const },
-      { id: "lid2", papel: "lider_setor" as const, setor: "rh" as const },
-      { id: "adm", papel: "admin" as const, setor: "administrativo" as const },
-    ];
-    for (const ator of atores) {
-      const { caso, guardados } = montar({ ator });
-      const negado = await caso.execute({ atendimentoId: "at-1", arquivo: PDF });
-      expect(!negado.ok && negado.error.code).toBe("FORBIDDEN");
-      expect(guardados).toEqual([]);
-    }
+  it("o Líder do Setor envia; outro Funcionário não", async () => {
+    const outro = montar({ ator: { ...FUNCIONARIO, id: "func-2" } });
+    const negado = await outro.caso.execute({ atendimentoId: "at-1", arquivo: PDF });
+    expect(!negado.ok && negado.error.code).toBe("FORBIDDEN");
+    expect(outro.guardados).toEqual([]);
+
+    const lider = montar({ ator: { id: "lid", papel: "lider_setor", setor: "contabil" } });
+    expect((await lider.caso.execute({ atendimentoId: "at-1", arquivo: PDF })).ok).toBe(true);
   });
 
   it("recusa sem sessão e Atendimento que não está em andamento", async () => {

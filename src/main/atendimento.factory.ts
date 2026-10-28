@@ -50,7 +50,6 @@ import type {
   ListarFeriadosPort,
   RemoverFeriadoPort,
 } from "@/modules/atendimento/application/ports/in/gerenciar-feriados.provider";
-import type { ListarAtendimentosDaEquipePort } from "@/modules/atendimento/application/ports/in/listar-atendimentos-da-equipe.provider";
 import type { ListarFilaPort } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
 import type { ListarMeusAtendimentosPort } from "@/modules/atendimento/application/ports/in/listar-meus-atendimentos.provider";
 import type { ObterConversaPort } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
@@ -85,7 +84,6 @@ import { EnviarMensagemAoCliente } from "@/modules/atendimento/application/use-c
 import { ExecutarEnvioGuiaParcelamento } from "@/modules/atendimento/application/use-cases/executar-envio-guia-parcelamento.use-case";
 import { ExecutarLembretesDocumentoEDas } from "@/modules/atendimento/application/use-cases/executar-lembretes-documento-e-das.use-case";
 import { ExecutarLembretesParcelamentoPgfn } from "@/modules/atendimento/application/use-cases/executar-lembretes-parcelamento-pgfn.use-case";
-import { ListarAtendimentosDaEquipe } from "@/modules/atendimento/application/use-cases/listar-atendimentos-da-equipe.use-case";
 import { ListarFeriados } from "@/modules/atendimento/application/use-cases/listar-feriados.use-case";
 import { ListarFila } from "@/modules/atendimento/application/use-cases/listar-fila.use-case";
 import { ListarMeusAtendimentos } from "@/modules/atendimento/application/use-cases/listar-meus-atendimentos.use-case";
@@ -419,13 +417,6 @@ export async function makeListarFila(): Promise<ListarFilaPort> {
     sessaoViaUsuarios(await createSupabaseServer()),
     new SupabaseAtendimentoRepository(createSupabaseAdmin()),
     new RelogioSistemaGateway(),
-  );
-}
-
-export async function makeListarAtendimentosDaEquipe(): Promise<ListarAtendimentosDaEquipePort> {
-  return new ListarAtendimentosDaEquipe(
-    sessaoViaUsuarios(await createSupabaseServer()),
-    new SupabaseAtendimentoRepository(createSupabaseAdmin()),
   );
 }
 

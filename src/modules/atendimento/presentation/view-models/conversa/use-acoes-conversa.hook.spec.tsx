@@ -37,7 +37,6 @@ const encerrar = jest.mocked(encerrarAtendimentoAction);
 const CONVERSA: ConversaVista = {
   atendimentoId: "at-1",
   encerrado: false,
-  podeAtender: true,
   telefone: "5561988887777",
   contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
   clienteVinculado: true,
@@ -57,9 +56,9 @@ const CONVERSA: ConversaVista = {
   ],
 };
 
-function renderizar(conversa: ConversaVista = CONVERSA, aoSair?: () => void) {
+function renderizar(conversa: ConversaVista = CONVERSA) {
   const cliente = new QueryClient();
-  return renderHook(() => useAcoesConversa("at-1", conversa, aoSair), {
+  return renderHook(() => useAcoesConversa("at-1", conversa), {
     wrapper: ({ children }) => (
       <QueryClientProvider client={cliente}>{children}</QueryClientProvider>
     ),
@@ -87,14 +86,6 @@ describe("useAcoesConversa", () => {
     const { result } = renderizar({ ...CONVERSA, encerrado: true });
 
     expect(result.current.visivel).toBe(false);
-  });
-
-  it("leitura de supervisão mantém o painel (encerrar), marcado como somente leitura", () => {
-    const { result } = renderizar({ ...CONVERSA, podeAtender: false });
-
-    expect(result.current.visivel).toBe(true);
-    expect(result.current.somenteLeitura).toBe(true);
-    expect(renderizar().result.current.somenteLeitura).toBe(false);
   });
 
   it("envia o documento escolhido e avisa o sucesso", async () => {
@@ -180,17 +171,6 @@ describe("useAcoesConversa", () => {
 
       await waitFor(() => expect(push).toHaveBeenCalledWith("/"));
       expect(encerrar).toHaveBeenCalledWith("at-1");
-    });
-
-    it("com `aoSair` (chat central), encerra e fecha o painel em vez de ir ao início", async () => {
-      encerrar.mockResolvedValue({ ok: true, data: undefined });
-      const aoSair = jest.fn();
-      const { result } = renderizar(CONVERSA, aoSair);
-
-      act(() => result.current.aoConfirmarEncerramento());
-
-      await waitFor(() => expect(aoSair).toHaveBeenCalled());
-      expect(push).not.toHaveBeenCalled();
     });
 
     it("mostra o erro e não sai da conversa", async () => {

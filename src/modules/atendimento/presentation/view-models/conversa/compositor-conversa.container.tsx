@@ -1,6 +1,5 @@
 "use client";
 
-import { AvisoDeLeitura } from "@/presentation/components/molecules/aviso-de-leitura.component";
 import { CompositorDeMensagem } from "@/presentation/components/organisms/compositor-de-mensagem.component";
 import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import { useCompositor } from "@/modules/atendimento/presentation/view-models/conversa/use-compositor.hook";
@@ -16,7 +15,6 @@ export function CompositorConversaContainer({
 }) {
   const {
     visivel,
-    somenteLeitura,
     aoEnviar,
     enviando,
     erro,
@@ -36,7 +34,6 @@ export function CompositorConversaContainer({
     aoCancelarAudio,
   });
 
-  if (somenteLeitura) return <AvisoDeLeitura />;
   if (!visivel) return null;
   return (
     <CompositorDeMensagem

@@ -10,7 +10,7 @@ logado não lê nem escreve nelas direto.
 
 O Painel do Funcionário (#49) precisa de leitura (meus Atendimentos, conversa) e escrita (resposta, envio de documento,
 transferência, encerramento) por um usuário logado. As regras de quem pode agir já existem no domínio
-(`podeSupervisionar` para ver e encerrar: dono, Líder do Setor onde está o Atendimento, ou Admin; `podeAtender` para responder, enviar e transferir: só o dono) e dependem de dados que a policy teria de
+(`podeTransferir`: dono, Líder do Setor onde está o Atendimento, ou Admin) e dependem de dados que a policy teria de
 reproduzir em SQL (Setor atual, dono, Papel), além de a Transferência e o encerramento mexerem em várias tabelas numa
 transação (RPC `security invoker` chamada com `service_role`).
 
@@ -20,7 +20,7 @@ transação (RPC `security invoker` chamada com `service_role`).
   `makeEnviarMensagemAoCliente`, `makeTransferirAtendimento`, `makeEncerrarAtendimento`, `makeListarFila`) montam o
   repositório com `createSupabaseAdmin()`, no `main`, **só no servidor**.
 - A **autorização fica no caso de uso**: a sessão vem da porta `SessaoPort` (cliente com a sessão do usuário) e cada caso
-  de uso aplica a regra de acesso antes de ler ou gravar: `podeSupervisionar` (dono, Líder do Setor ou Admin) ou `podeAtender` (só o dono) sobre um Atendimento, "só os meus" na lista do dock e "só o meu Setor" na Fila. Nenhuma Server Action devolve dado sem passar por um caso de uso.
+  de uso aplica a regra de acesso antes de ler ou gravar: `podeTransferir` sobre um Atendimento (dono, Líder do Setor ou Admin), "só os meus" na lista do dock e "só o meu Setor" na Fila. Nenhuma Server Action devolve dado sem passar por um caso de uso.
 - Não se criam policies de RLS para essas tabelas nesta rodada.
 
 ## Consequências

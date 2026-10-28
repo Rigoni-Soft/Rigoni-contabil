@@ -15,7 +15,6 @@ import {
 const CONVERSA: ConversaVista = {
   atendimentoId: "at-1",
   encerrado: false,
-  podeAtender: true,
   telefone: "5561988887777",
   contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
   clienteVinculado: true,
@@ -70,14 +69,6 @@ const CONVERSA: ConversaVista = {
 };
 
 describe("conversaParaView", () => {
-  it("somenteLeitura: só quando o Atendimento está em andamento e o usuário não é o dono", () => {
-    expect(conversaParaView(CONVERSA).somenteLeitura).toBe(false);
-    expect(conversaParaView({ ...CONVERSA, podeAtender: false }).somenteLeitura).toBe(true);
-    expect(
-      conversaParaView({ ...CONVERSA, podeAtender: false, encerrado: true }).somenteLeitura,
-    ).toBe(false);
-  });
-
   it("repassa o aviso de inatividade ao Funcionário", () => {
     expect(conversaParaView(CONVERSA).avisoInatividade).toBe(false);
     expect(conversaParaView({ ...CONVERSA, avisoInatividade: true }).avisoInatividade).toBe(true);

@@ -163,7 +163,7 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
     expect(resultado.ok).toBe(false);
   });
 
-  it("Funcionário de outro Setor só visualiza o Cliente se for Responsável dele naquele Setor", async () => {
+  it("Funcionário de outro Setor CONSEGUE visualizar o cadastro básico (RLS de SELECT libera qualquer perfil)", async () => {
     const admin = await comoAdmin();
     const clienteBase = await criarClienteBase(admin, "11444777000404");
     await atribuirComoLider(clienteBase.id, FUNCIONARIO_SN_ID);
@@ -171,25 +171,13 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
     await new SupabaseClienteRepository(funcionarioSN).atualizarOperacional(
       comCadastroOperacional(clienteBase),
     );
-    const repositorio = new SupabaseClienteRepository(await comoFuncionarioFinanceiro());
+    const funcionarioFinanceiro = await comoFuncionarioFinanceiro();
+    const repositorio = new SupabaseClienteRepository(funcionarioFinanceiro);
 
-    // Sem ser Responsável no Financeiro, o Cliente não existe para ele.
-    const semAtribuicao = await repositorio.buscarPorId(clienteBase.id);
-    expect(semAtribuicao.ok && semAtribuicao.value).toBeNull();
+    const resultado = await repositorio.buscarPorId(clienteBase.id);
 
-    // Responsável no Financeiro: passa a ver (o cadastro operacional é do SN, mas a leitura é dele).
-    const servico = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-      auth: { persistSession: false },
-    });
-    const atribuido = await servico.from("cliente_responsaveis").insert({
-      cliente_id: clienteBase.id,
-      setor: "financeiro",
-      responsavel_id: FUNCIONARIO_FINANCEIRO_ID,
-    });
-    if (atribuido.error) throw atribuido.error;
-    const comAtribuicao = await repositorio.buscarPorId(clienteBase.id);
-    expect(comAtribuicao.ok).toBe(true);
-    if (comAtribuicao.ok) expect(comAtribuicao.value?.formaEnvio.valor).toBe("email");
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) expect(resultado.value?.formaEnvio.valor).toBe("email");
   });
 
   it("buscarPorId reconstitui a entidade Cliente com os campos operacionais salvos", async () => {

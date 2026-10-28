@@ -17,7 +17,7 @@ import type {
 import { AVISO_AGUARDE } from "@/modules/atendimento/domain/services/aviso-fila.service";
 import {
   atendidoPeloSimplesNacional,
-  podeAtender,
+  podeTransferir,
 } from "@/modules/atendimento/domain/services/transferencia.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
@@ -104,7 +104,7 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
     if (!encontrado.ok) return encontrado;
     const atendimento = encontrado.value;
     if (!atendimento) return err(new NotFoundError("Atendimento não encontrado."));
-    if (!podeAtender(ator, atendimento)) {
+    if (!podeTransferir(ator, atendimento)) {
       return err(new ForbiddenError("Você não pode transferir este Atendimento."));
     }
     if (atendimento.emAvisoDeInatividade) {
@@ -132,30 +132,25 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
     return ok(atendimento);
   }
 
-  // Fica dirigido ao Responsável do Cliente naquele Setor, ou ao Líder se não houver (sem Líder
-  // ativo, cai na espera do Setor). A Recepção é a exceção: todos os Funcionários e o Líder
-  // respondem por todo cliente que chega, então a espera dela é sempre comum. O Simples Nacional
-  // ainda só recebe Cliente do Simples Nacional/MEI.
+  // Setor Simples Nacional: só Cliente do Simples Nacional/MEI; fica dirigido ao Responsável do
+  // Cliente, ou ao Líder se não houver. Outros Setores: null.
   private async dirigidoA(
     atendimento: AtendimentoEmAndamento,
     setorDestino: SetorSlug,
   ): Promise<Result<string | null, AppError>> {
-    if (setorDestino === "recepcao") return ok(null);
+    if (setorDestino !== "simples_nacional") return ok(null);
     const roteamento = atendimento.clienteId
-      ? await this.repositorio.roteamentoDoCliente(atendimento.clienteId, setorDestino)
+      ? await this.repositorio.roteamentoDoCliente(atendimento.clienteId)
       : ok(null);
     if (!roteamento.ok) return roteamento;
-    if (
-      setorDestino === "simples_nacional" &&
-      (!roteamento.value || !atendidoPeloSimplesNacional(roteamento.value.regime))
-    ) {
+    if (!roteamento.value || !atendidoPeloSimplesNacional(roteamento.value.regime)) {
       return err(
         new ValidationError("Só Cliente do Simples Nacional ou MEI vai para o Simples Nacional.", {
           setorDestino: ["Cliente fora do Simples Nacional/MEI"],
         }),
       );
     }
-    if (roteamento.value?.responsavelId) return ok(roteamento.value.responsavelId);
+    if (roteamento.value.responsavelId) return ok(roteamento.value.responsavelId);
     return this.repositorio.liderDoSetor(setorDestino);
   }
 

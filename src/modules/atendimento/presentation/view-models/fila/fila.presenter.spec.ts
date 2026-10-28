@@ -7,7 +7,6 @@ const ITEM: ItemDaFilaVisto = {
   telefone: "5561988887777",
   contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
   resumo: "Quer o contrato social",
-  origem: null,
   filaDesde: new Date("2026-10-09T12:00:00Z"),
   espera: "00:05",
   filaDoFuncionarioId: null,
@@ -39,15 +38,6 @@ describe("itemDaFilaParaView", () => {
       cnpj: null,
       resumo: null,
     });
-  });
-
-  it("diz de onde veio o Atendimento transferido, com e sem o Funcionário de origem", () => {
-    const origem = (nome: string | null) =>
-      itemDaFilaParaView({ ...ITEM, origem: { setor: "financeiro", nome } }).origem;
-
-    expect(origem("Ana")).toBe("Transferido de Financeiro por Ana");
-    expect(origem(null)).toBe("Transferido de Financeiro");
-    expect(itemDaFilaParaView(ITEM).origem).toBeNull();
   });
 
   it("indica quando é a fila de um usuário", () => {

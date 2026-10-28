@@ -51,61 +51,9 @@ describe("ShellNav", () => {
     );
   });
 
-  it("tem a aba 'Atendimento' para a tela de Atendimento, ao lado das de Setor", () => {
+  it("tem a aba 'Atendimento' para a tela da Fila, ao lado das de Setor", () => {
     render(<ShellNav setores={[{ slug: "financeiro" }]} />);
 
-    expect(screen.getByRole("link", { name: "Atendimento" })).toHaveAttribute(
-      "href",
-      "/atendimento",
-    );
-  });
-
-  it("marca a aba 'Atendimento' como a página atual quando é a tela aberta", () => {
-    render(<ShellNav setores={[{ slug: "financeiro" }]} rotaAtual="/atendimento" />);
-
-    expect(screen.getByRole("link", { name: "Atendimento" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
-  });
-});
-
-describe("ShellNav — pendentes de Atendimento (#163)", () => {
-  it("mostra o contador no link e o diz por extenso no nome acessível", () => {
-    render(<ShellNav setores={[]} pendentesDeAtendimento={3} />);
-
-    const link = screen.getByRole("link", { name: "Atendimento, 3 pendentes" });
-    expect(link).toHaveAttribute("href", "/atendimento");
-    expect(link).toHaveTextContent("3");
-  });
-
-  it("sem pendentes o link fica sem contador e com o nome de sempre", () => {
-    render(<ShellNav setores={[]} pendentesDeAtendimento={0} />);
-
-    expect(screen.getByRole("link", { name: "Atendimento" })).toBeInTheDocument();
-  });
-
-  it("um pendente fala no singular", () => {
-    render(<ShellNav setores={[]} pendentesDeAtendimento={1} />);
-
-    expect(screen.getByRole("link", { name: "Atendimento, 1 pendente" })).toBeInTheDocument();
-  });
-
-  it("acima de 99 a pílula mostra 99+ e o nome acessível traz o número inteiro", () => {
-    render(<ShellNav setores={[]} pendentesDeAtendimento={120} />);
-
-    const link = screen.getByRole("link", { name: "Atendimento, 120 pendentes" });
-    expect(link).toHaveTextContent("99+");
-    expect(link).not.toHaveTextContent("120");
-  });
-
-  it("diz o aviso numa região de status para leitor de tela, que existe mesmo vazia", () => {
-    const { rerender } = render(<ShellNav setores={[]} anuncio="" />);
-    const regiao = screen.getByRole("status");
-    expect(regiao).toBeEmptyDOMElement();
-
-    rerender(<ShellNav setores={[]} anuncio="Atendimento: 3 pendentes." />);
-
-    expect(screen.getByRole("status")).toHaveTextContent("Atendimento: 3 pendentes.");
+    expect(screen.getByRole("link", { name: "Atendimento" })).toHaveAttribute("href", "/fila");
   });
 });
