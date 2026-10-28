@@ -98,8 +98,11 @@ describe("useAtendimentoCentral", () => {
     expect(listarAtendimentosDaEquipeAction).not.toHaveBeenCalled();
   });
 
-  it("Líder/Admin leem os Atendimentos da equipe, com o nome do dono", async () => {
+  it("Líder/Admin leem os Atendimentos da equipe, com o nome do dono, só na aba Em atendimento", async () => {
     const { result } = renderizar(true);
+
+    expect(listarAtendimentosDaEquipeAction).not.toHaveBeenCalled();
+    act(() => result.current.escolherAba("atendimento"));
 
     await waitFor(() => expect(result.current.daEquipe?.length).toBe(1));
     expect(result.current.daEquipe?.[0]).toMatchObject({
@@ -115,6 +118,7 @@ describe("useAtendimentoCentral", () => {
       error: { code: "SERVICO_EXTERNO", message: "falhou" },
     });
     const { result } = renderizar(true);
+    act(() => result.current.escolherAba("atendimento"));
 
     expect(result.current.daEquipe).toBeUndefined();
     await waitFor(() => expect(result.current.indisponivel).toBe(true));
