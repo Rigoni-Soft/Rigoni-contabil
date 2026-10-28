@@ -31,9 +31,9 @@ export function PainelDeEspera({
   if (itens.length === 0) return <Texto variante="apoio">Nenhum cliente em espera.</Texto>;
   return (
     <Pilha espaco={2} como="ol" aria-label="Clientes em espera">
-      {itens.map(({ id, ...card }) => (
-        <Caixa como="li" key={id}>
-          <CardDeEspera {...card} assumindo={assumindo} onAssumir={() => onAssumir(id)} />
+      {itens.map((card) => (
+        <Caixa como="li" key={card.id}>
+          <CardDeEspera {...card} assumindo={assumindo} onAssumir={() => onAssumir(card.id)} />
         </Caixa>
       ))}
     </Pilha>
