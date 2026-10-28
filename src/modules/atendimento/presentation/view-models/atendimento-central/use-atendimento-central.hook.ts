@@ -5,6 +5,7 @@ import type { AtendimentoVisto } from "@/modules/atendimento/application/ports/i
 import { useAtendimentoCentralStore } from "@/modules/atendimento/presentation/view-models/atendimento-central/atendimento-central.store";
 import { useAnuncioDaLista } from "@/modules/atendimento/presentation/view-models/atendimento-central/use-anuncio-da-lista.hook";
 import { useAssumirAtendimentoMutation } from "@/modules/atendimento/presentation/view-models/fila/assumir.queries";
+import { useSomDaLista } from "@/modules/atendimento/presentation/view-models/atendimento-central/use-som-da-lista.hook";
 import { useFila } from "@/modules/atendimento/presentation/view-models/fila/use-fila.hook";
 import { atendimentoParaView } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.presenter";
 import { useMeusAtendimentosQuery } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.queries";
@@ -36,6 +37,7 @@ export function useAtendimentoCentral({
   const { isError, reset } = assumir;
   const emAtendimento = (meus.data ?? []).map(atendimentoParaView);
   const anuncio = useAnuncioDaLista(fila.itens, emAtendimento, abertoId);
+  useSomDaLista(fila.itens.map((item) => item.id), emAtendimento, abertoId);
 
   // "Já assumido" informa uma tentativa, não um estado da tela: some sozinho, e ao trocar de aba.
   useEffect(() => {

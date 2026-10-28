@@ -883,21 +883,28 @@ escreveu por último o cartão ganha uma bolinha `destructive` e a prévia em
 inferior (`bottom-[max(1rem,env(safe-area-inset-bottom))]`). O cartão entra com `animate-dock-entrada` (sobe e aparece, 0,35 s,
 `cubic-bezier(0.16, 1, 0.3, 1)`, keyframes em `globals.css`) e é recriado a cada mensagem nova, repetindo a
 animação. O aviso sonoro (dois tons curtos) toca quando surge um Atendimento
-ou o cliente escreve de novo. Na tela Atendimento (`/atendimento`) o Dock não renderiza cartões; o
-som segue.
+ou o cliente escreve de novo. Na tela Atendimento (`/atendimento`) o Dock não renderiza cartões nem
+toca: o som é da própria tela (#163).
 
 ### Tela Atendimento (#162)
 
 A tela em que a equipe assume e conduz Atendimentos, sem trocar de rota: duas abas sobrepostas
 ("Em espera" e "Em atendimento"), o chat no centro e as ações à direita. Convive com o Dock até o
-corte; nela o Dock **não mostra cartões** (a lista já está à vista e cobriria o painel de ações), mas
-o aviso sonoro continua. Modo Operate: cor só para ação e estado, tudo em tokens.
+corte; nela o Dock **não mostra cartões** (a lista já está à vista e cobriria o painel de ações) e
+**não toca**: o aviso sonoro é da própria tela (`useSomDaLista`, os mesmos dois tons: Atendimento novo
+na espera ou cliente que escreve de novo numa conversa não aberta; a primeira leitura é silenciosa). Modo Operate: cor só para ação e estado, tudo em tokens.
 
 - **Abas** (`AbasDeAtendimento`, molécula genérica no valor da aba): `role="tablist"`, aba ativa com
   `border-b-2 border-primary text-primary`, inativas `text-muted-foreground`. O contador é uma pílula
-  `bg-primary text-primary-foreground text-xs` que **some em zero**; é `aria-hidden` e o leitor
-  de tela ouve o contador por extenso no nome da aba ("Em espera, 2 clientes"). Teclado no padrão ARIA: só a ativa
+  `bg-primary text-primary-foreground text-xs` que **some em zero** (em "Em espera", os clientes na
+  espera; em "Em atendimento", só as conversas em que o cliente escreveu por último); é `aria-hidden` e o leitor
+  de tela ouve o contador por extenso no nome da aba ("Em espera, 2 clientes"; "Em atendimento, 1 cliente aguardando"). Teclado no padrão ARIA: só a ativa
   entra no Tab (`tabIndex` 0/-1); ← → movem o foco e já ativam, dando a volta; Home/End vão às pontas.
+- **Contador no menu** (`ShellNav`, #163): o link "Atendimento" ganha uma pílula `bg-destructive
+  text-destructive-foreground text-xs` com a espera do Setor + as conversas com o cliente aguardando;
+  some em zero, é `aria-hidden` e o link ganha o nome "Atendimento, 3 pendentes" (`aria-label`). Cor
+  própria porque o link da tela ativa já é `primary` e a pílula `primary` sumiria nele. Lê as mesmas
+  consultas do aviso global e da tela (sem leitura nova; o Admin, sem Setor próprio, vê zero).
 - **Card de espera** (`CardDeEspera`): o card inteiro é o botão de assumir (`rounded-lg border
   bg-card px-3 py-2`, `hover:bg-accent`). Mostra Contato (`destaque`), empresa (`apoio`), resumo
   (`nota`) e, à direita, ícone de relógio com o tempo de espera em `tabular-nums` (mm:ss, h:mm:ss a

@@ -69,3 +69,25 @@ describe("ShellNav", () => {
     );
   });
 });
+
+describe("ShellNav — pendentes de Atendimento (#163)", () => {
+  it("mostra o contador no link e o diz por extenso no nome acessível", () => {
+    render(<ShellNav setores={[]} pendentesDeAtendimento={3} />);
+
+    const link = screen.getByRole("link", { name: "Atendimento, 3 pendentes" });
+    expect(link).toHaveAttribute("href", "/atendimento");
+    expect(link).toHaveTextContent("3");
+  });
+
+  it("sem pendentes o link fica sem contador e com o nome de sempre", () => {
+    render(<ShellNav setores={[]} pendentesDeAtendimento={0} />);
+
+    expect(screen.getByRole("link", { name: "Atendimento" })).toBeInTheDocument();
+  });
+
+  it("um pendente fala no singular", () => {
+    render(<ShellNav setores={[]} pendentesDeAtendimento={1} />);
+
+    expect(screen.getByRole("link", { name: "Atendimento, 1 pendente" })).toBeInTheDocument();
+  });
+});

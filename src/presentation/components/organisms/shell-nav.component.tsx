@@ -9,7 +9,8 @@ type SetorNav = { slug: string };
 
 // `rotaAtual`: a aba da tela aberta ganha o destaque cheio (e `aria-current`); em "/" nenhuma está
 // selecionada, e as que têm tela são só links comuns.
-type ShellNavProps = { setores: SetorNav[]; rotaAtual?: string };
+// `pendentesDeAtendimento`: espera do Setor + conversas com o cliente aguardando (#163).
+type ShellNavProps = { setores: SetorNav[]; rotaAtual?: string; pendentesDeAtendimento?: number };
 
 // Única aba com tela de verdade por trás — as demais seguem como
 // placeholder desabilitado até ganharem painel próprio.
@@ -20,7 +21,7 @@ const ROTA_POR_SETOR: Record<string, string> = {
 const CHIP =
   "inline-flex items-center rounded-md border border-border px-3 py-1.5 text-sm pointer-coarse:min-h-11";
 
-export function ShellNav({ setores, rotaAtual }: ShellNavProps) {
+export function ShellNav({ setores, rotaAtual, pendentesDeAtendimento = 0 }: ShellNavProps) {
   return (
     <Linha
       espaco={2}
@@ -62,6 +63,11 @@ export function ShellNav({ setores, rotaAtual }: ShellNavProps) {
       <Link
         href={ROTA_ATENDIMENTO}
         aria-current={rotaAtual === ROTA_ATENDIMENTO ? "page" : undefined}
+        aria-label={
+          pendentesDeAtendimento > 0
+            ? `Atendimento, ${pendentesDeAtendimento} ${pendentesDeAtendimento === 1 ? "pendente" : "pendentes"}`
+            : undefined
+        }
         className={cn(
           CHIP,
           "font-medium",
@@ -71,6 +77,16 @@ export function ShellNav({ setores, rotaAtual }: ShellNavProps) {
         )}
       >
         Atendimento
+        {/* Zero some. Cor própria: o link ativo já é `primary` e a pílula sumiria nele. */}
+        {pendentesDeAtendimento > 0 && (
+          <Caixa
+            como="span"
+            aria-hidden="true"
+            className="ml-2 rounded-full bg-destructive px-1.5 text-xs text-destructive-foreground"
+          >
+            {pendentesDeAtendimento}
+          </Caixa>
+        )}
       </Link>
     </Linha>
   );

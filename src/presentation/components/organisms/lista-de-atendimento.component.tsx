@@ -79,7 +79,7 @@ export function ListaDeAtendimento({
             valor: "atendimento",
             rotulo: "Em atendimento",
             contador: contadores.atendimento,
-            contadorTexto: plural(contadores.atendimento, "atendimento"),
+            contadorTexto: `${plural(contadores.atendimento, "cliente")} aguardando`,
           },
         ]}
         ativa={aba}

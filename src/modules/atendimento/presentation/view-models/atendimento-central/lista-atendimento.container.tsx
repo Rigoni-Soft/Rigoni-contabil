@@ -7,6 +7,7 @@ import {
   useAtendimentoCentral,
   type EntradaDaLista,
 } from "@/modules/atendimento/presentation/view-models/atendimento-central/use-atendimento-central.hook";
+import { totalDePendentes } from "@/modules/atendimento/presentation/view-models/atendimento-central/pendentes.presenter";
 import { useFocoNaLista } from "@/modules/atendimento/presentation/view-models/atendimento-central/use-foco-da-tela.hook";
 import { OPCOES_DE_SETOR } from "@/modules/atendimento/presentation/view-models/fila/fila.presenter";
 
@@ -18,7 +19,10 @@ export function ListaAtendimentoContainer(entrada: EntradaDaLista) {
     <ListaDeAtendimento
       aba={lista.aba}
       onEscolherAba={lista.escolherAba}
-      contadores={{ espera: lista.itens.length, atendimento: lista.emAtendimento.length }}
+      contadores={{
+        espera: lista.itens.length,
+        atendimento: totalDePendentes(0, lista.emAtendimento),
+      }}
       aviso={lista.avisoDeAssuncao}
       indisponivel={lista.indisponivel}
       escondidaNoCelular={lista.abertoId !== null}

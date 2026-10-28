@@ -168,4 +168,19 @@ describe("useAvisoFila", () => {
       expect(acao.mock.calls.length).toBeGreaterThan(1);
     });
   });
+
+  it("na tela Atendimento não toca: o som é da própria tela (#163)", async () => {
+    pathname = "/atendimento";
+    acao.mockResolvedValue({ ok: true, data: [item("a")] });
+    const { reler } = renderizar();
+    await waitFor(() => expect(acao).toHaveBeenCalledTimes(1));
+    // sem cartão na tela não há o que esperar: deixa a primeira leitura registrar a base
+    await act(async () => {});
+
+    acao.mockResolvedValue({ ok: true, data: [item("a"), item("b")] });
+    await reler();
+    await waitFor(() => expect(acao).toHaveBeenCalledTimes(2));
+
+    expect(tocar).not.toHaveBeenCalled();
+  });
 });
