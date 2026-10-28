@@ -1,5 +1,3 @@
-import { useId } from "react";
-
 import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import {
@@ -28,6 +26,7 @@ export function PainelDeEmAtendimento({
   return (
     <Pilha espaco={4}>
       <ListaDeConversas
+        idDoTitulo="titulo-meus-atendimentos"
         titulo="Meus atendimentos"
         vazio="Você não tem atendimentos em andamento."
         itens={itens}
@@ -37,6 +36,7 @@ export function PainelDeEmAtendimento({
       />
       {equipe && (
         <ListaDeConversas
+          idDoTitulo="titulo-atendimentos-da-equipe"
           titulo="Da equipe (somente leitura)"
           vazio="Ninguém mais está em atendimento."
           itens={equipe}
@@ -50,6 +50,7 @@ export function PainelDeEmAtendimento({
 }
 
 function ListaDeConversas({
+  idDoTitulo,
   titulo,
   vazio,
   itens,
@@ -57,6 +58,7 @@ function ListaDeConversas({
   onAbrir,
   comTitulo = false,
 }: {
+  idDoTitulo: string;
   titulo: string;
   vazio: string;
   itens: ConversaView[];
@@ -65,7 +67,6 @@ function ListaDeConversas({
   // Com a seção da equipe ao lado, cada lista diz de quem é.
   comTitulo?: boolean;
 }) {
-  const idDoTitulo = useId();
   // Com título visível a lista se nomeia por ele (uma frase só para o leitor de tela).
   const lista =
     itens.length === 0 ? (

@@ -210,7 +210,8 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       ? null
       : setorDestino === "simples_nacional"
         ? (linha.cliente_cadastro_operacional_sn?.responsavel_id ?? null)
-        : (linha.cliente_responsaveis.find((r) => r.setor === setorDestino)?.responsavel_id ?? null);
+        : (linha.cliente_responsaveis.find((r) => r.setor === setorDestino)?.responsavel_id ??
+          null);
     if (!responsavelId) return ok({ regime: linha.regime, responsavelId: null });
     // Responsável desativado não recebe: o Atendimento cai no Líder.
     const ativo = await this.supabaseAdmin

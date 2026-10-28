@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import type { AbaDoAtendimento } from "@/presentation/components/organisms/lista-de-atendimento.component";
+type AbaDoAtendimento = "espera" | "atendimento";
 
 // Estado da tela Atendimento que as regiões dividem (lista, chat e ações): qual aba está aberta e
 // qual conversa está no centro. É seleção do cliente, não dado do servidor (arquitetura.md, 4.7).
