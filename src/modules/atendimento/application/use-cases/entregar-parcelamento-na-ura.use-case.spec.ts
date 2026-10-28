@@ -50,6 +50,7 @@ function montar(
     entreguesFalha?: boolean;
     publicarFalha?: boolean;
     documentoFalha?: boolean;
+    reservaNegada?: boolean;
     registro?: EnvioRegistrado;
     pgfn?: ParcelamentoPgfn[];
   } = {},
@@ -59,6 +60,7 @@ function montar(
   const registrados: [string, string, string, string][] = [];
   const reencontradas: string[] = [];
   const lidos: string[] = [];
+  const liberadas: string[] = [];
   const publicadas: ChaveGuia[] = [];
   let buscas = 0;
   // O envio já registrado de cada parcela guarda o caminho do PDF que foi entregue.
@@ -107,6 +109,11 @@ function montar(
         lidos.push(caminho);
         return ok("JVBERi0=");
       },
+      reservar: async () => ok(!opcoes.reservaNegada),
+      liberar: async (_id, competencia) => {
+        liberadas.push(competencia);
+        return ok(undefined);
+      },
     },
     {
       enviar: async (m: MensagemEnviada) => {
@@ -132,6 +139,7 @@ function montar(
     registrados,
     reencontradas,
     lidos,
+    liberadas,
     publicadas,
     buscas: () => buscas,
   };
@@ -385,6 +393,33 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
   });
 
   describe("Parcelamento PGFN (#186)", () => {
+    it("guia alterada desde a listagem (reserva negada) não é entregue e o contato é avisado (P1)", async () => {
+      const { executar, documentos, registrados, lidos, mensagens } = montar([], {
+        comuns: 1,
+        pgfn: [pgfn("g1", ["202610"])],
+        reservaNegada: true,
+      });
+
+      expect((await executar()).ok).toBe(true);
+
+      expect(lidos).toEqual([]);
+      expect(documentos).toHaveLength(0);
+      expect(registrados).toHaveLength(0);
+      expect(mensagens[0].texto).toContain("g1");
+    });
+
+    it("a reserva é liberada depois da tentativa, entregue ou não (P1)", async () => {
+      const { executar, liberadas } = montar([], {
+        comuns: 1,
+        pgfn: [pgfn("g1", ["202610"])],
+        documentoFalha: true,
+      });
+
+      expect((await executar()).ok).toBe(true);
+
+      expect(liberadas).toEqual(["202610"]);
+    });
+
     it("entrega as guias confirmadas até o mês corrente em ordem, registra e não chama o provedor", async () => {
       const { executar, documentos, registrados, lidos, buscas } = montar([], {
         comuns: 1,

@@ -113,6 +113,11 @@ Mesmo job, reserva, canais e registro de envio; só muda a origem da guia: as gu
 - Cada entrega aceita grava o registro (`registrar_envio_parcelamento`, identidade `AAAAMM:`) e desconta
   uma parcela restante; a última quita. O envio PGFN não entra nas guias entregues da Receita.
 - Interno PGFN segue a regra do interno: financeiro por template, nunca o Cliente.
-- URA: as mesmas guias dos Parcelamentos PGFN comuns; sem nenhuma pendente, reenvia a do mês já enviada
-  (mesmo PDF, `ja_registrado`, sem novo desconto); sem guia confirmada responde "ainda não está
+- Antes de ler o PDF, o job e a URA reservam a versão listada da guia (`reservar_guia_pgfn_para_envio`,
+  `em_envio_ate`, 15 min). Enquanto durar, troca e remoção são recusadas ("Guia em envio"); guia que
+  mudou desde a listagem não é entregue e segue pendente. Registrada a entrega, a competência trava
+  sozinha; sem entrega, `liberar_guia_pgfn_do_envio` solta a reserva. Entrega que passe dos 15 min perde
+  a proteção: o registro continua apontando o PDF efetivamente entregue.
+- URA: as mesmas guias dos Parcelamentos PGFN comuns; sem nenhuma pendente, reenvia o PDF da última
+  guia entregue (`caminho` do registro, de qualquer competência; sem novo registro nem desconto); sem guia confirmada responde "ainda não está
   disponível", sem alerta.

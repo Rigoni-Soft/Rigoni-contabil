@@ -6,6 +6,7 @@ import {
   guiaPgfn,
   guiaPgfnAReenviar,
   guiasPgfnAEntregar,
+  reservarELerGuiaPgfn,
 } from "@/modules/atendimento/application/jobs/guias-pgfn-a-entregar";
 import type {
   EntregarNaUraInput,
@@ -168,10 +169,18 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
     competencia: string,
     caminho: string,
   ): Promise<boolean> {
-    const pdf = await this.pgfn.ler(clienteId, caminho);
-    if (!pdf.ok) return false;
-    const guia = guiaPgfn(parcelamento.codigo, competencia, pdf.value);
-    return this.entregarNova(clienteId, telefone, parcelamento, competencia, guia);
+    try {
+      const pdf = await reservarELerGuiaPgfn(this.pgfn, clienteId, parcelamento.id, {
+        competencia,
+        caminho,
+      });
+      if (!pdf.ok) return false;
+      const guia = guiaPgfn(parcelamento.codigo, competencia, pdf.value);
+      return await this.entregarNova(clienteId, telefone, parcelamento, competencia, guia);
+    } finally {
+      // Registrada, a competência já trava sozinha; sem entrega, a guia volta a ser editável.
+      await this.pgfn.liberar(parcelamento.id, competencia);
+    }
   }
 
   private async avisarSemParcelamento(

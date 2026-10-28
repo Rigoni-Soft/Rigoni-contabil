@@ -69,4 +69,29 @@ export class SupabaseGuiasPgfnGateway implements GuiasPgfnPort {
     if (error || !data) return err(new ServicoExternoError("Falha ao ler a guia do parcelamento."));
     return ok(Buffer.from(await data.arrayBuffer()).toString("base64"));
   }
+
+  async reservar(
+    parcelamentoId: string,
+    competencia: string,
+    caminho: string,
+  ): Promise<Result<boolean, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("reservar_guia_pgfn_para_envio", {
+      p_parcelamento_id: parcelamentoId,
+      p_competencia: competencia,
+      p_caminho: caminho,
+    });
+    if (error || typeof data !== "boolean") {
+      return err(new ServicoExternoError("Falha ao reservar a guia do parcelamento."));
+    }
+    return ok(data);
+  }
+
+  async liberar(parcelamentoId: string, competencia: string): Promise<Result<void, AppError>> {
+    const { error } = await this.supabaseAdmin.rpc("liberar_guia_pgfn_do_envio", {
+      p_parcelamento_id: parcelamentoId,
+      p_competencia: competencia,
+    });
+    if (error) return err(new ServicoExternoError("Falha ao liberar a guia do parcelamento."));
+    return ok(undefined);
+  }
 }

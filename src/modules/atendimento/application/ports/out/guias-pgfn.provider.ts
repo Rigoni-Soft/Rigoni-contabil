@@ -19,4 +19,13 @@ export interface GuiasPgfnPort {
   // PDF da guia em base64: sempre do banco, nunca do provedor fiscal. O caminho de outro Cliente é
   // recusado.
   ler(clienteId: string, caminho: string): Promise<Result<string, AppError>>;
+  // Reserva a versão da guia (o caminho listado) para a primeira entrega: enquanto durar, troca e
+  // remoção são recusadas. `false`: a guia mudou desde a listagem e não deve ser entregue.
+  reservar(
+    parcelamentoId: string,
+    competencia: string,
+    caminho: string,
+  ): Promise<Result<boolean, AppError>>;
+  // Solta a reserva (entrega que não se completou). Sem efeito se o envio já foi registrado.
+  liberar(parcelamentoId: string, competencia: string): Promise<Result<void, AppError>>;
 }

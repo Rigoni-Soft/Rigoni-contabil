@@ -12,6 +12,7 @@ import {
 import {
   guiaPgfn,
   guiasPgfnAEntregar,
+  reservarELerGuiaPgfn,
 } from "@/modules/atendimento/application/jobs/guias-pgfn-a-entregar";
 import type {
   EntregarComunicacaoPorCanaisPort,
@@ -122,9 +123,17 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     const travados = new Set<string>();
     const andamentos: Andamento[] = [];
     const atribuidas: GuiaAtribuida[] = [];
+    const reservas: { id: string; competencia: string }[] = [];
     for (const { parcelamento, competencia, caminho } of pendentes) {
       if (!this.entregavel(cliente, parcelamento) || travados.has(parcelamento.id)) continue;
-      const pdf = await this.repetir(() => this.pgfn.ler(cliente.clienteId, caminho));
+      // A versão lida fica reservada até o fim da rodada.
+      reservas.push({ id: parcelamento.id, competencia });
+      const pdf = await this.repetir(() =>
+        reservarELerGuiaPgfn(this.pgfn, cliente.clienteId, parcelamento.id, {
+          competencia,
+          caminho,
+        }),
+      );
       if (!pdf.ok) {
         travados.add(parcelamento.id);
         andamentos.push(
@@ -138,7 +147,12 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
         guia: guiaPgfn(parcelamento.codigo, competencia, pdf.value),
       });
     }
-    andamentos.push(...(await this.entregarGuias(cliente, agora, atribuidas, true)));
+    try {
+      andamentos.push(...(await this.entregarGuias(cliente, agora, atribuidas, true)));
+    } finally {
+      // Registrada, a competência já trava sozinha; as demais voltam a ser editáveis.
+      await Promise.all(reservas.map((r) => this.pgfn.liberar(r.id, r.competencia)));
+    }
     return {
       enviado: andamentos.some((a) => a.enviado),
       ocorrencias: [

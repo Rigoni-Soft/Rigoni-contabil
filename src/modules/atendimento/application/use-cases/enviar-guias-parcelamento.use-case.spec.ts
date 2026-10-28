@@ -63,6 +63,7 @@ function montar(
     // Parcelamentos PGFN em aberto com as guias confirmadas (#186).
     pgfn?: Result<ParcelamentoPgfn[], AppError>;
     lerFalha?: boolean;
+    reservaNegada?: boolean;
     // Parcela cuja publicação falha.
     publicarFalha?: string;
   } = {},
@@ -75,6 +76,7 @@ function montar(
   const publicadas: unknown[] = [];
   const ignorados: (readonly string[])[] = [];
   const lidos: string[] = [];
+  const liberadas: string[] = [];
   const buscarGuiasParcelamento = jest.fn(async (_: string, ignorar: readonly string[]) => {
     ignorados.push(ignorar);
     return (await opcoes.guias?.()) ?? ok([guia("202610")]);
@@ -125,6 +127,11 @@ function montar(
         lidos.push(caminho);
         return opcoes.lerFalha ? err(new ServicoExternoError("storage")) : ok("JVBERi0=");
       },
+      reservar: async () => ok(!opcoes.reservaNegada),
+      liberar: async (_id, competencia) => {
+        liberadas.push(competencia);
+        return ok(undefined);
+      },
     },
     0,
   );
@@ -138,6 +145,7 @@ function montar(
     caminhos,
     ignorados,
     lidos,
+    liberadas,
     buscarGuiasParcelamento,
   };
 }
@@ -666,6 +674,32 @@ describe("EnviarGuiasParcelamento", () => {
       expect(andamento.enviado).toBe(false);
       expect(andamento.ocorrencias).toHaveLength(1);
       expect(registrados).toEqual([]);
+    });
+
+    it("guia alterada desde a listagem (reserva negada) não é lida nem entregue e trava o acordo (P1)", async () => {
+      const { nucleo, registrados, lidos, envio } = montar(ok([]), {
+        pgfn: ok([pgfn("g1", ["202609", "202610"])]),
+        reservaNegada: true,
+      });
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(andamento.enviado).toBe(false);
+      expect(andamento.ocorrencias).toHaveLength(1);
+      expect(lidos).toEqual([]);
+      expect(registrados).toEqual([]);
+      expect(envio.templatesEnviados).toHaveLength(0);
+    });
+
+    it("a reserva é liberada ao fim da rodada, inclusive quando a entrega falha (P1)", async () => {
+      const { nucleo, liberadas } = montar(ok([]), {
+        pgfn: ok([pgfn("g1", ["202609", "202610"], { parcelasRestantes: 1 })]),
+        publicarFalha: "202609",
+      });
+
+      await nucleo.execute({ cliente, agora });
+
+      expect(liberadas).toEqual(["202609", "202610"]);
     });
 
     it("falha de publicação da guia antiga trava as seguintes do acordo e não quita por elas (F2)", async () => {

@@ -135,6 +135,27 @@ describe("SupabaseGuiasPgfnGateway (#186)", () => {
     expect(alheio.ok).toBe(false);
   });
 
+  it("reserva só a versão confirmada e atual da guia, e a libera (P1 da PR #195)", async () => {
+    const id = await criarParcelamento(1);
+    const caminho = await anexarGuia(id, "202610");
+    const emEnvio = async () =>
+      (
+        await ok(
+          admin.from("cliente_parcelamento_guias").select("em_envio_ate").eq("parcelamento_id", id),
+        )
+      )[0].em_envio_ate;
+
+    expect(await guias.reservar(id, "202610", `${caminho}-antiga`)).toEqual({
+      ok: true,
+      value: false,
+    });
+    expect(await emEnvio()).toBeNull();
+    expect(await guias.reservar(id, "202610", caminho)).toEqual({ ok: true, value: true });
+    expect(await emEnvio()).not.toBeNull();
+    expect((await guias.liberar(id, "202610")).ok).toBe(true);
+    expect(await emEnvio()).toBeNull();
+  });
+
   it("o envio da guia PGFN não entra nas guias entregues da Receita", async () => {
     const id = await criarParcelamento(2);
     await parcelamentos.registrarEnvio(id, "202511", "202511:", "c/x.pdf");

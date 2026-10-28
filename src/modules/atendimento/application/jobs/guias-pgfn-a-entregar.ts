@@ -1,8 +1,12 @@
 import type { GuiaFiscal } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
 import type {
   GuiaPgfnConfirmada,
+  GuiasPgfnPort,
   ParcelamentoPgfn,
 } from "@/modules/atendimento/application/ports/out/guias-pgfn.provider";
+import type { AppError } from "@/shared/errors/app.error";
+import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
+import { err, type Result } from "@/shared/kernel/result";
 
 export type GuiaPgfnAEntregar = GuiaPgfnConfirmada & { parcelamento: ParcelamentoPgfn };
 
@@ -13,6 +17,24 @@ export const guiaPgfn = (codigo: string, competencia: string, pdfBase64: string)
   pdfBase64,
   parcela: competencia,
 });
+
+// Reserva a versão listada da guia e lê o PDF dela: troca ou remoção no meio da primeira entrega é
+// recusada até a reserva ser liberada. Guia que mudou desde a listagem não é lida nem entregue.
+export async function reservarELerGuiaPgfn(
+  pgfn: GuiasPgfnPort,
+  clienteId: string,
+  parcelamentoId: string,
+  { competencia, caminho }: GuiaPgfnConfirmada,
+): Promise<Result<string, AppError>> {
+  const reservada = await pgfn.reservar(parcelamentoId, competencia, caminho);
+  if (!reservada.ok) return reservada;
+  if (!reservada.value) {
+    return err(
+      new ServicoExternoError("A guia foi alterada; segue pendente para a próxima rodada."),
+    );
+  }
+  return pgfn.ler(clienteId, caminho);
+}
 
 // As guias confirmadas e ainda sem registro de envio, até a competência do mês corrente (AAAAMM),
 // da mais antiga para a mais nova. Guia futura fica guardada; guia não confirmada nem entra na lista.
