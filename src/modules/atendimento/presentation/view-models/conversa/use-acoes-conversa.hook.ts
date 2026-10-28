@@ -40,6 +40,7 @@ export function useAcoesConversa(
     // Encerrado não tem ações; transferido mostra só o aviso de para onde foi.
     visivel: !conversa.encerrado || transferido,
     transferidoPara,
+    somenteLeitura: conversa.somenteLeitura,
     semCliente: conversa.semCliente,
     servicos: conversa.servicos,
     aoEnviarServico: (valor: string) => envio.mutate(documentoDaOpcao(valor)),

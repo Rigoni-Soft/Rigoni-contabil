@@ -1,18 +1,22 @@
 import type { Papel } from "@/shared/kernel/papeis";
 import { SETORES, type SetorSlug } from "@/shared/kernel/setores";
 
-// Quem transfere: o Funcionário dono do Atendimento, o Líder do Setor onde ele está, ou o Admin.
-// ponytail: o nome ficou estreito, a regra também decide quem vê, responde e envia documento no
-// Atendimento. Renomear para `podeAgirNoAtendimento`.
-export function podeTransferir(
-  ator: { id: string; papel: Papel; setor: SetorSlug },
-  atendimento: { setor: SetorSlug; funcionarioId: string | null },
-): boolean {
+type Ator = { id: string; papel: Papel; setor: SetorSlug };
+type AtendimentoDoSetor = { setor: SetorSlug; funcionarioId: string | null };
+
+// Quem vê e encerra: o dono, o Líder do Setor onde o Atendimento está, ou o Admin. Líder e Admin
+// enxergam o Atendimento dos outros em leitura de supervisão (inclusive a espera dirigida).
+export function podeSupervisionar(ator: Ator, atendimento: AtendimentoDoSetor): boolean {
   return (
     ator.papel === "admin" ||
     (ator.papel === "lider_setor" && ator.setor === atendimento.setor) ||
     ator.id === atendimento.funcionarioId
   );
+}
+
+// Quem responde, envia arquivo/documento, reage e transfere: só o dono. Sem dono (espera), ninguém.
+export function podeAtender(ator: Ator, atendimento: AtendimentoDoSetor): boolean {
+  return ator.id === atendimento.funcionarioId;
 }
 
 // Só Cliente do Simples Nacional ou MEI é atendido (e transferido) pelo setor Simples Nacional.

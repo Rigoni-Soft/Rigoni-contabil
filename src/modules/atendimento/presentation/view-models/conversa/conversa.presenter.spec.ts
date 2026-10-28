@@ -15,6 +15,7 @@ import {
 const CONVERSA: ConversaVista = {
   atendimentoId: "at-1",
   encerrado: false,
+  podeAtender: true,
   telefone: "5561988887777",
   contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
   clienteVinculado: true,

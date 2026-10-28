@@ -3,7 +3,7 @@ import type { EncerrarAtendimentoPort } from "@/modules/atendimento/application/
 import type { AtendimentoRepositoryPort } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { SessaoPort } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { AVISO_ENCERRAMENTO_AO_CLIENTE } from "@/modules/atendimento/domain/services/aviso-fila.service";
-import { podeTransferir } from "@/modules/atendimento/domain/services/transferencia.service";
+import { podeSupervisionar } from "@/modules/atendimento/domain/services/transferencia.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
@@ -26,7 +26,7 @@ export class EncerrarAtendimento implements EncerrarAtendimentoPort {
     if (!encontrado.ok) return encontrado;
     const atendimento = encontrado.value;
     if (!atendimento) return err(new NotFoundError("Atendimento não encontrado."));
-    if (!podeTransferir(ator, atendimento)) {
+    if (!podeSupervisionar(ator, atendimento)) {
       return err(new ForbiddenError("Você não pode encerrar este Atendimento."));
     }
 

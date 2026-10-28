@@ -205,23 +205,18 @@ describe("EnviarDocumentoAoCliente", () => {
     expect(auditadas).toEqual([expect.objectContaining({ resultado: "falha" })]);
   });
 
-  it("o Líder do Setor envia em nome do Atendimento; outro Funcionário não", async () => {
-    const outro = montar({ ator: { ...FUNCIONARIO, id: "func-2" } });
-    const negado = await outro.caso.execute({ atendimentoId: "at-1", documento: CONTRATO });
-    expect(!negado.ok && negado.error.code).toBe("FORBIDDEN");
-    expect(outro.enviados).toEqual([]);
-
-    const lider = montar({ ator: { id: "lid", papel: "lider_setor", setor: "contabil" } });
-    expect((await lider.caso.execute({ atendimentoId: "at-1", documento: CONTRATO })).ok).toBe(
-      true,
-    );
-    expect(lider.registradas).toEqual([
-      [
-        "at-1",
-        { id: "lid", papel: "lider_setor", setor: "contabil" },
-        "Enviou ao cliente: Contrato social",
-      ],
-    ]);
+  it("só o dono envia: Líder do Setor, Admin e outro Funcionário não", async () => {
+    const atores = [
+      { ...FUNCIONARIO, id: "func-2" },
+      { id: "lid", papel: "lider_setor" as const, setor: "contabil" as const },
+      { id: "adm", papel: "admin" as const, setor: "administrativo" as const },
+    ];
+    for (const ator of atores) {
+      const { caso, enviados } = montar({ ator });
+      const negado = await caso.execute({ atendimentoId: "at-1", documento: CONTRATO });
+      expect(!negado.ok && negado.error.code).toBe("FORBIDDEN");
+      expect(enviados).toEqual([]);
+    }
   });
 
   it("recusa sem sessão, Atendimento que não está em andamento, sem Cliente e documento que o Cliente não tem", async () => {
