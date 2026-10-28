@@ -35,6 +35,7 @@ import {
 } from "@/main/segredos-mensageria.factory";
 import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
+import type { AssumirAtendimentoPort } from "@/modules/atendimento/application/ports/in/assumir-atendimento.provider";
 import type { AutenticarWebhookPort } from "@/modules/atendimento/application/ports/in/autenticar-webhook.provider";
 import type { AvisarClientePort } from "@/modules/atendimento/application/ports/in/avisar-cliente.provider";
 import type { EncerrarAtendimentoPort } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
@@ -67,6 +68,7 @@ import type {
 } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { AbrirAtendimento } from "@/modules/atendimento/application/use-cases/abrir-atendimento.use-case";
 import { AnexarMensagemAtendimento } from "@/modules/atendimento/application/use-cases/anexar-mensagem-atendimento.use-case";
+import { AssumirAtendimento } from "@/modules/atendimento/application/use-cases/assumir-atendimento.use-case";
 import { AutenticarWebhook } from "@/modules/atendimento/application/use-cases/autenticar-webhook.use-case";
 import { AvisarCliente } from "@/modules/atendimento/application/use-cases/avisar-cliente.use-case";
 import { CadastrarFeriado } from "@/modules/atendimento/application/use-cases/cadastrar-feriado.use-case";
@@ -291,6 +293,13 @@ export async function makeTransferirAtendimento(): Promise<TransferirAtendimento
     repositorio,
     auditoriaViaModuloAuditoria(),
     makeAvisarCliente(repositorio, await makeEnvioMensagemDaRequisicao()),
+  );
+}
+
+export async function makeAssumirAtendimento(): Promise<AssumirAtendimentoPort> {
+  return new AssumirAtendimento(
+    sessaoViaUsuarios(await createSupabaseServer()),
+    new SupabaseAtendimentoRepository(createSupabaseAdmin()),
   );
 }
 

@@ -22,6 +22,7 @@ import type {
   MensagensAnteriores,
   MensagensPorId,
   NovaTransferencia,
+  ResultadoAssuncao,
   ResultadoEncerramento,
   ResultadoEncerramentoPorInatividade,
   ResultadoRegistroDoFuncionario,
@@ -37,6 +38,7 @@ import {
 import {
   aberturaRowSchema,
   anexoRowSchema,
+  assuncaoRowSchema,
   atendimentoDoFuncionarioRowSchema,
   atendimentoEmAndamentoRowSchema,
   atendimentoIdRowSchema,
@@ -266,6 +268,18 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
           resumo: linha.resumo,
         })),
     );
+  }
+
+  async assumir(
+    atendimentoId: string,
+    atorId: string,
+  ): Promise<Result<ResultadoAssuncao, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("assumir_atendimento", {
+      p_atendimento_id: atendimentoId,
+      p_ator: atorId,
+    });
+    if (error) return err(new ServicoExternoError("Falha ao assumir o Atendimento."));
+    return ok(assuncaoRowSchema.parse(data));
   }
 
   encerrar(

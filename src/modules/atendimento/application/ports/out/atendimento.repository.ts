@@ -56,6 +56,14 @@ export type ResultadoTransferencia =
 // "inexistente": não está em andamento com esse dono.
 export type ResultadoEncerramento = { status: "encerrado" } | { status: "inexistente" };
 
+// "inelegivel": o ator está desativado ou é de outro Setor. "ja_assumido": outro clique venceu.
+// "inexistente": o Atendimento não existe ou já terminou.
+export type ResultadoAssuncao =
+  | { status: "assumido" }
+  | { status: "inelegivel" }
+  | { status: "ja_assumido" }
+  | { status: "inexistente" };
+
 // Regime e Responsável do Cliente, para decidir a Transferência ao Simples Nacional.
 export type RoteamentoDoCliente = { regime: RegimeValor; responsavelId: string | null };
 
@@ -210,6 +218,9 @@ export interface AtendimentoRepositoryPort {
   roteamentoDoCliente(clienteId: string): Promise<Result<RoteamentoDoCliente | null, AppError>>;
   liderDoSetor(setor: SetorSlug): Promise<Result<string | null, AppError>>;
   transferir(transferencia: NovaTransferencia): Promise<Result<ResultadoTransferencia, AppError>>;
+  // Assume o Atendimento da espera do Setor para o ator, atômico: o primeiro vence. Grava o evento
+  // de assunção e a auditoria na mesma transação.
+  assumir(atendimentoId: string, atorId: string): Promise<Result<ResultadoAssuncao, AppError>>;
   filaDoSetor(setor: SetorSlug): Promise<Result<ItemDaFila[], AppError>>;
   // `funcionarioId` null = Atendimento em espera.
   encerrar(
