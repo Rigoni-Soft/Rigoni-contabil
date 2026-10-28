@@ -39,12 +39,14 @@ export function ListaAtendimentoContainer(entrada: EntradaDaLista) {
           carregando={lista.carregando}
           assumindo={lista.assumindo}
           onAssumir={lista.assumir}
+          onLer={lista.supervisiona ? lista.abrir : undefined}
         />
       ) : (
         <PainelDeEmAtendimento
           itens={lista.emAtendimento}
           abertoId={lista.abertoId}
           onAbrir={lista.abrir}
+          equipe={lista.supervisiona ? lista.daEquipe : undefined}
         />
       )}
     </ListaDeAtendimento>

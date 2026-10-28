@@ -110,6 +110,8 @@ const clienteComContatosRowSchema = z
 
 export const atendimentoDoFuncionarioRowSchema = z.object({
   id: z.string(),
+  funcionario_id: z.string().nullable(),
+  dono: z.object({ nome: z.string() }).nullable(),
   telefone: z.string(),
   chave_telefone: z.string(),
   criado_em: z.string(),

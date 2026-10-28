@@ -11,15 +11,56 @@ type PainelDeEmAtendimentoProps = {
   itens: ConversaView[];
   abertoId: string | null;
   onAbrir: (id: string) => void;
+  // Líder e Admin: os Atendimentos dos outros, só para leitura.
+  equipe?: ConversaView[];
 };
 
-// A aba "Em atendimento": os Atendimentos do usuário; clicar abre o chat no centro.
-export function PainelDeEmAtendimento({ itens, abertoId, onAbrir }: PainelDeEmAtendimentoProps) {
-  if (itens.length === 0) {
-    return <Texto variante="apoio">Você não tem atendimentos em andamento.</Texto>;
-  }
+// A aba "Em atendimento": os Atendimentos do usuário; clicar abre o chat no centro. Quem
+// supervisiona vê também os dos outros, abertos em leitura.
+export function PainelDeEmAtendimento({
+  itens,
+  abertoId,
+  onAbrir,
+  equipe,
+}: PainelDeEmAtendimentoProps) {
   return (
-    <Pilha espaco={2} como="ol" aria-label="Meus atendimentos">
+    <Pilha espaco={4}>
+      <ListaDeConversas
+        titulo="Meus atendimentos"
+        vazio="Você não tem atendimentos em andamento."
+        itens={itens}
+        abertoId={abertoId}
+        onAbrir={onAbrir}
+      />
+      {equipe && (
+        <ListaDeConversas
+          titulo="Da equipe (somente leitura)"
+          vazio="Ninguém mais está em atendimento."
+          itens={equipe}
+          abertoId={abertoId}
+          onAbrir={onAbrir}
+        />
+      )}
+    </Pilha>
+  );
+}
+
+function ListaDeConversas({
+  titulo,
+  vazio,
+  itens,
+  abertoId,
+  onAbrir,
+}: {
+  titulo: string;
+  vazio: string;
+  itens: ConversaView[];
+  abertoId: string | null;
+  onAbrir: (id: string) => void;
+}) {
+  if (itens.length === 0) return <Texto variante="apoio">{vazio}</Texto>;
+  return (
+    <Pilha espaco={2} como="ol" aria-label={titulo}>
       {itens.map(({ id, ...card }) => (
         <Caixa como="li" key={id}>
           <CardDeConversa {...card} aberto={id === abertoId} onAbrir={() => onAbrir(id)} />

@@ -108,6 +108,8 @@ export type ResultadoEncerramentoPorInatividade =
 // Atendimento em andamento de um Funcionário, para a lista dele (painel do Funcionário).
 export type AtendimentoDoFuncionario = {
   id: string;
+  funcionarioId: string | null;
+  funcionarioNome: string | null;
   telefone: string;
   criadoEm: string;
   contato: DadosDoContato;
@@ -267,6 +269,8 @@ export interface AtendimentoRepositoryPort {
   emAndamentoDoFuncionario(
     funcionarioId: string,
   ): Promise<Result<AtendimentoDoFuncionario[], AppError>>;
+  // Em atendimento (com dono) no Setor, de qualquer dono: a leitura de supervisão do Líder/Admin.
+  emAndamentoDoSetor(setor: SetorSlug): Promise<Result<AtendimentoDoFuncionario[], AppError>>;
   conversa(atendimentoId: string): Promise<Result<ConversaLida | null, AppError>>;
   // Até `limite` Mensagens estritamente anteriores a `antes`, da mais antiga à mais nova; null se o
   // Atendimento não existe.

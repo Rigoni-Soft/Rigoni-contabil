@@ -12,6 +12,8 @@ type PainelDeEsperaProps = {
   carregando?: boolean;
   assumindo: boolean;
   onAssumir: (id: string) => void;
+  // Líder e Admin: o card dirigido a outro abre a conversa em leitura de supervisão.
+  onLer?: (id: string) => void;
 };
 
 // A aba "Em espera": os clientes do Setor, do mais antigo ao mais novo (a ordem vem pronta).
@@ -20,6 +22,7 @@ export function PainelDeEspera({
   carregando = false,
   assumindo,
   onAssumir,
+  onLer,
 }: PainelDeEsperaProps) {
   if (carregando) {
     return (
@@ -33,7 +36,12 @@ export function PainelDeEspera({
     <Pilha espaco={2} como="ol" aria-label="Clientes em espera">
       {itens.map((card) => (
         <Caixa como="li" key={card.id}>
-          <CardDeEspera {...card} assumindo={assumindo} onAssumir={() => onAssumir(card.id)} />
+          <CardDeEspera
+            {...card}
+            assumindo={assumindo}
+            onAssumir={() => onAssumir(card.id)}
+            onLer={onLer && (() => onLer(card.id))}
+          />
         </Caixa>
       ))}
     </Pilha>

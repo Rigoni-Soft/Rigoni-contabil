@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 
 import { ShellHeader } from "@/presentation/components/organisms/shell-header.component";
-import { ShellNavContainer } from "@/modules/atendimento/presentation/view-models/atendimento-central/shell-nav.container";
 import { AtendimentoTemplate } from "@/presentation/components/templates/atendimento-template.component";
 import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-button.container";
 import {
@@ -11,6 +10,7 @@ import {
 import { AcoesCentralContainer } from "@/modules/atendimento/presentation/view-models/atendimento-central/acoes-central.container";
 import { ChatCentralContainer } from "@/modules/atendimento/presentation/view-models/atendimento-central/chat-central.container";
 import { ListaAtendimentoContainer } from "@/modules/atendimento/presentation/view-models/atendimento-central/lista-atendimento.container";
+import { ShellNavContainer } from "@/modules/atendimento/presentation/view-models/atendimento-central/shell-nav.container";
 import { carregarFila } from "@/modules/atendimento/presentation/view-models/fila/fila.server";
 import { carregarMeusAtendimentos } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.server";
 import { SinoAvisosContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/sino-avisos.container";
@@ -54,6 +54,7 @@ export default async function Page() {
           filaInicial={fila.ok ? fila.value : []}
           meusInicial={meus.ok ? meus.value : []}
           podeEscolherSetor={ehAdmin}
+          supervisiona={ehAdmin || sessao.papel === "lider_setor"}
         />
       }
       chat={<ChatCentralContainer />}
