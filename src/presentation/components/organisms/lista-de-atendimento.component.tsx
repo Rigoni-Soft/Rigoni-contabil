@@ -67,8 +67,18 @@ export function ListaDeAtendimento({
       )}
       <AbasDeAtendimento
         abas={[
-          { valor: "espera", rotulo: "Em espera", contador: contadores.espera },
-          { valor: "atendimento", rotulo: "Em atendimento", contador: contadores.atendimento },
+          {
+            valor: "espera",
+            rotulo: "Em espera",
+            contador: contadores.espera,
+            contadorTexto: `${contadores.espera} ${contadores.espera === 1 ? "cliente" : "clientes"}`,
+          },
+          {
+            valor: "atendimento",
+            rotulo: "Em atendimento",
+            contador: contadores.atendimento,
+            contadorTexto: `${contadores.atendimento} ${contadores.atendimento === 1 ? "atendimento" : "atendimentos"}`,
+          },
         ]}
         ativa={aba}
         onEscolher={onEscolherAba}
