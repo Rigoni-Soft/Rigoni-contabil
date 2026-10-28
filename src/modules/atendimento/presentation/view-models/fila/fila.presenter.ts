@@ -14,10 +14,16 @@ export type ItemDaFilaView = {
   // Dirigido a um usuário (não à espera do Setor): só ele assume.
   dirigido: boolean;
   espera: string;
+  // Espera do Setor: qualquer um assume. Dirigida: só o destinatário (Líder e Admin só leem).
+  assumivel: boolean;
 };
 
 // `agora` em ms: o cronômetro da tela recalcula `espera` a cada segundo com o relógio do navegador.
-export function itemDaFilaParaView(item: ItemDaFilaVisto, agora?: number): ItemDaFilaView {
+export function itemDaFilaParaView(
+  item: ItemDaFilaVisto,
+  agora?: number,
+  usuarioId?: string,
+): ItemDaFilaView {
   const filaDesdeMs = new Date(item.filaDesde).getTime();
   return {
     id: item.atendimentoId,
@@ -28,6 +34,7 @@ export function itemDaFilaParaView(item: ItemDaFilaVisto, agora?: number): ItemD
     resumo: item.resumo,
     dirigido: item.filaDoFuncionarioId !== null,
     espera: agora === undefined ? item.espera : formatarEspera(agora - filaDesdeMs),
+    assumivel: item.filaDoFuncionarioId === null || item.filaDoFuncionarioId === usuarioId,
   };
 }
 

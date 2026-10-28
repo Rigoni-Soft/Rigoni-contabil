@@ -80,15 +80,18 @@ describe("useAvisoFila", () => {
     await waitFor(() => expect(result.current.aviso).toMatchObject({ soEmTelaEstreita: false }));
   });
 
-  it("em /fila não mostra o aviso (a Fila já está na tela)", async () => {
-    pathname = "/fila";
-    acao.mockResolvedValue({ ok: true, data: [item("a")] });
+  it.each(["/fila", "/atendimento"])(
+    "em %s não mostra o aviso (a Fila já está na tela)",
+    async (rota) => {
+      pathname = rota;
+      acao.mockResolvedValue({ ok: true, data: [item("a")] });
 
-    const { result } = renderizar();
+      const { result } = renderizar();
 
-    await waitFor(() => expect(acao).toHaveBeenCalled());
-    expect(result.current.aviso).toBeNull();
-  });
+      await waitFor(() => expect(acao).toHaveBeenCalled());
+      expect(result.current.aviso).toBeNull();
+    },
+  );
 
   it.each(["/login", "/trocar-senha"])("em %s não consulta", (rota) => {
     pathname = rota;

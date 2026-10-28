@@ -56,9 +56,9 @@ const CONVERSA: ConversaVista = {
   ],
 };
 
-function renderizar(conversa: ConversaVista = CONVERSA) {
+function renderizar(conversa: ConversaVista = CONVERSA, aoSair?: () => void) {
   const cliente = new QueryClient();
-  return renderHook(() => useAcoesConversa("at-1", conversa), {
+  return renderHook(() => useAcoesConversa("at-1", conversa, aoSair), {
     wrapper: ({ children }) => (
       <QueryClientProvider client={cliente}>{children}</QueryClientProvider>
     ),
@@ -171,6 +171,17 @@ describe("useAcoesConversa", () => {
 
       await waitFor(() => expect(push).toHaveBeenCalledWith("/"));
       expect(encerrar).toHaveBeenCalledWith("at-1");
+    });
+
+    it("com `aoSair` (chat central), encerra e fecha o painel em vez de ir ao início", async () => {
+      encerrar.mockResolvedValue({ ok: true, data: undefined });
+      const aoSair = jest.fn();
+      const { result } = renderizar(CONVERSA, aoSair);
+
+      act(() => result.current.aoConfirmarEncerramento());
+
+      await waitFor(() => expect(aoSair).toHaveBeenCalled());
+      expect(push).not.toHaveBeenCalled();
     });
 
     it("mostra o erro e não sai da conversa", async () => {

@@ -10,11 +10,13 @@ import { useAcoesConversa } from "@/modules/atendimento/presentation/view-models
 export function AcoesConversaContainer({
   atendimentoId,
   initialData,
+  aoSair,
 }: {
   atendimentoId: string;
   initialData: ConversaVista;
+  aoSair?: () => void;
 }) {
-  const acoes = useAcoesConversa(atendimentoId, initialData);
+  const acoes = useAcoesConversa(atendimentoId, initialData, aoSair);
 
   if (!acoes.visivel) return null;
   return (
