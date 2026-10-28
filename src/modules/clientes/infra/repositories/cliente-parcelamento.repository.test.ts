@@ -199,22 +199,11 @@ describe("Parcelamentos do Cliente", () => {
       ).ok,
     ).toBe(false);
 
-    // outro Setor só lê se for Responsável do Cliente (e mesmo assim não grava); o Funcionário
-    // SN não responsável e o de outro Setor sem atribuição nem leem
-    const financeiro = new SupabaseClienteParcelamentoRepository(await comoFuncionarioFinanceiro());
-    const semAtribuicao = await financeiro.listar(clienteId);
-    expect(semAtribuicao.ok && semAtribuicao.value).toEqual([]);
-    const atribuido = await servico().from("cliente_responsaveis").insert({
-      cliente_id: clienteId,
-      setor: "financeiro",
-      responsavel_id: "33333333-3333-3333-3333-333333333333",
-    });
-    if (atribuido.error) throw atribuido.error;
-    const doOutroSetor = await financeiro.listar(clienteId);
+    // outro Setor lê (como lê o resto do cadastro), mas não grava; o Funcionário SN não responsável nem lê
+    const doOutroSetor = await new SupabaseClienteParcelamentoRepository(
+      await comoFuncionarioFinanceiro(),
+    ).listar(clienteId);
     expect(doOutroSetor.ok && doOutroSetor.value).toHaveLength(1);
-    expect(
-      (await financeiro.salvar(clienteId, [parcelamento(clienteId, { codigo: "F-2" })])).ok,
-    ).toBe(false);
     const doNaoResponsavel = await new SupabaseClienteParcelamentoRepository(
       await comoFuncionario2SN(),
     ).listar(clienteId);

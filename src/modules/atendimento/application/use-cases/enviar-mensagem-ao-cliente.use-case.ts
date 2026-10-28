@@ -6,7 +6,7 @@ import type {
   AtorSessaoDto,
   SessaoPort,
 } from "@/modules/atendimento/application/ports/out/sessao.provider";
-import { podeAtender } from "@/modules/atendimento/domain/services/transferencia.service";
+import { podeTransferir } from "@/modules/atendimento/domain/services/transferencia.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
@@ -54,7 +54,7 @@ export class EnviarMensagemAoCliente implements EnviarMensagemAoClientePort {
     if (!encontrado.ok) return encontrado;
     const atendimento = encontrado.value;
     if (!atendimento) return err(new NotFoundError("Atendimento não encontrado."));
-    if (!podeAtender(ator, atendimento)) {
+    if (!podeTransferir(ator, atendimento)) {
       return err(new ForbiddenError("Você não pode responder neste Atendimento."));
     }
 

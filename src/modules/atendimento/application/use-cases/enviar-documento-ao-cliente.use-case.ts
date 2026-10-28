@@ -21,7 +21,7 @@ import {
   descreverDocumento,
   ROTULO_GUIA,
 } from "@/modules/atendimento/domain/services/documento-contratual.service";
-import { podeAtender } from "@/modules/atendimento/domain/services/transferencia.service";
+import { podeTransferir } from "@/modules/atendimento/domain/services/transferencia.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
@@ -65,7 +65,7 @@ export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
     if (!encontrado.ok) return encontrado;
     const atendimento = encontrado.value;
     if (!atendimento) return err(new NotFoundError("Atendimento não encontrado."));
-    if (!podeAtender(ator, atendimento)) {
+    if (!podeTransferir(ator, atendimento)) {
       return err(new ForbiddenError("Você não pode enviar documentos neste Atendimento."));
     }
     if (!atendimento.clienteId) {

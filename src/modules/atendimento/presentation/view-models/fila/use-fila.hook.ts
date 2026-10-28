@@ -11,7 +11,6 @@ export function useFila(
   setorInicial: SetorSlug,
   inicial: ItemDaFilaVisto[],
   podeEscolherSetor: boolean,
-  usuarioId?: string,
 ) {
   const [setor, setSetor] = useState<SetorSlug>(setorInicial);
   const [agora, setAgora] = useState(() => Date.now());
@@ -31,7 +30,7 @@ export function useFila(
     escolherSetor: (valor: string) => {
       if (ehSetor(valor)) setSetor(valor);
     },
-    itens: (query.data ?? []).map((item) => itemDaFilaParaView(item, agora, usuarioId)),
+    itens: (query.data ?? []).map((item) => itemDaFilaParaView(item, agora)),
     // Falha de leitura (ex.: sessão expirada) mantém o que já estava na tela.
     // Setor ainda sem leitura (ex.: o Admin acabou de trocar): não é o mesmo que Fila vazia.
     carregando: query.isPending,

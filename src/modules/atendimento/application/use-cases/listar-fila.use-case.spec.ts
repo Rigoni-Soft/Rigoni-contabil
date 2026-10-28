@@ -18,7 +18,6 @@ const ITENS: ItemDaFila[] = [
     telefone: "5561988887777",
     contato: CONTATO,
     resumo: "DAS",
-    origem: { setor: "financeiro", nome: "Ana" },
   },
   {
     id: "at-2",
@@ -27,7 +26,6 @@ const ITENS: ItemDaFila[] = [
     telefone: "5561977776666",
     contato: { contatoNome: null, empresa: null, cnpj: null },
     resumo: null,
-    origem: null,
   },
 ];
 
@@ -47,7 +45,7 @@ const FUNCIONARIO = { id: "func-1", papel: "funcionario" as const, setor: "conta
 
 describe("ListarFila", () => {
   it("lista do mais antigo ao mais novo, com a posição em cada Fila, o que já foi coletado e a espera", async () => {
-    const { caso } = montar({ id: "lid", papel: "lider_setor", setor: "contabil" });
+    const { caso } = montar(FUNCIONARIO);
     const r = await caso.execute({ setor: "contabil" });
     expect(r).toEqual({
       ok: true,
@@ -57,7 +55,6 @@ describe("ListarFila", () => {
           telefone: "5561988887777",
           contato: CONTATO,
           resumo: "DAS",
-          origem: { setor: "financeiro", nome: "Ana" },
           filaDesde: ITENS[0].filaDesde,
           espera: "1:05:07",
           filaDoFuncionarioId: null,
@@ -71,35 +68,6 @@ describe("ListarFila", () => {
     });
   });
 
-  it("só o destinatário vê o Atendimento; sem destinatário, fora da Recepção, só Líder e Admin leem", async () => {
-    const ids = async (ator: AtorSessaoDto, setor: "contabil" | "recepcao" = "contabil") => {
-      const r = await montar(ator).caso.execute({ setor });
-      return r.ok ? r.value.map((i) => i.atendimentoId) : null;
-    };
-
-    // at-1 não tem destinatário e at-2 é dirigido a func-1.
-    expect(await ids({ id: "func-2", papel: "funcionario", setor: "contabil" })).toEqual([]);
-    expect(await ids(FUNCIONARIO)).toEqual(["at-2"]);
-    expect(await ids({ id: "lid", papel: "lider_setor", setor: "contabil" })).toEqual([
-      "at-1",
-      "at-2",
-    ]);
-    expect(await ids({ id: "adm", papel: "admin", setor: "administrativo" })).toEqual([
-      "at-1",
-      "at-2",
-    ]);
-  });
-
-  it("a Recepção tem espera comum: todo Funcionário dela vê o Atendimento sem destinatário, e não o dirigido a outro", async () => {
-    const r = await montar({
-      id: "rec-1",
-      papel: "funcionario",
-      setor: "recepcao",
-    }).caso.execute({ setor: "recepcao" });
-
-    expect(r.ok && r.value.map((i) => i.atendimentoId)).toEqual(["at-1"]);
-  });
-
   it("Setor vê só a própria Fila; Admin vê a de qualquer Setor", async () => {
     const outro = montar(FUNCIONARIO);
     const r = await outro.caso.execute({ setor: "tributario" });
@@ -109,16 +77,6 @@ describe("ListarFila", () => {
     const admin = montar({ id: "adm", papel: "admin", setor: "administrativo" });
     expect((await admin.caso.execute({ setor: "tributario" })).ok).toBe(true);
     expect(admin.consultados).toEqual(["tributario"]);
-  });
-
-  it("a Recepção é um Setor como os outros: o Funcionário dela não vê a espera de outro Setor", async () => {
-    const recepcao = { id: "rec-1", papel: "funcionario" as const, setor: "recepcao" as const };
-    const outro = montar(recepcao);
-
-    const r = await outro.caso.execute({ setor: "contabil" });
-
-    expect(!r.ok && r.error.code).toBe("FORBIDDEN");
-    expect(outro.consultados).toEqual([]);
   });
 
   it("sem sessão nega e falha de leitura devolve o erro", async () => {

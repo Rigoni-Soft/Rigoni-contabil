@@ -3,8 +3,7 @@ import type { SetorSlug } from "@/shared/kernel/setores";
 
 import {
   atendidoPeloSimplesNacional,
-  podeAtender,
-  podeSupervisionar,
+  podeTransferir,
   setoresDeDestino,
 } from "./transferencia.service";
 
@@ -12,44 +11,21 @@ type Ator = { id: string; papel: Papel; setor: SetorSlug };
 
 const atendimento = { setor: "recepcao" as const, funcionarioId: "dono" };
 
-const ATORES: [string, Ator][] = [
-  ["Admin", { id: "x", papel: "admin", setor: "contabil" }],
-  ["Líder do Setor", { id: "x", papel: "lider_setor", setor: "recepcao" }],
-  ["dono", { id: "dono", papel: "funcionario", setor: "recepcao" }],
-  ["Líder de outro Setor", { id: "x", papel: "lider_setor", setor: "contabil" }],
-  ["outro Funcionário", { id: "x", papel: "funcionario", setor: "recepcao" }],
-];
-
-describe("podeSupervisionar (ver e encerrar)", () => {
-  it.each([
-    ["Admin", true],
-    ["Líder do Setor", true],
-    ["dono", true],
-    ["Líder de outro Setor", false],
-    ["outro Funcionário", false],
-  ])("%s → %s", (nome, esperado) => {
-    const ator = ATORES.find(([n]) => n === nome)![1];
-    expect(podeSupervisionar(ator, atendimento)).toBe(esperado);
-  });
-});
-
-describe("podeAtender (responder, reagir, enviar e transferir)", () => {
-  it.each([
-    ["Admin", false],
-    ["Líder do Setor", false],
-    ["dono", true],
-    ["Líder de outro Setor", false],
-    ["outro Funcionário", false],
-  ])("%s → %s", (nome, esperado) => {
-    const ator = ATORES.find(([n]) => n === nome)![1];
-    expect(podeAtender(ator, atendimento)).toBe(esperado);
+describe("podeTransferir", () => {
+  it.each<[Ator, boolean]>([
+    [{ id: "x", papel: "admin", setor: "contabil" }, true],
+    [{ id: "x", papel: "lider_setor", setor: "recepcao" }, true],
+    [{ id: "dono", papel: "funcionario", setor: "recepcao" }, true],
+    [{ id: "x", papel: "lider_setor", setor: "contabil" }, false],
+    [{ id: "x", papel: "funcionario", setor: "recepcao" }, false],
+  ])("%j → %s", (ator, esperado) => {
+    expect(podeTransferir(ator, atendimento)).toBe(esperado);
   });
 
-  it("espera (sem dono): ninguém atende, só Admin/Líder supervisionam", () => {
+  it("Atendimento sem dono só é transferido por Admin ou Líder", () => {
     const semDono = { setor: "recepcao" as const, funcionarioId: null };
-    expect(podeAtender({ id: "x", papel: "funcionario", setor: "recepcao" }, semDono)).toBe(false);
-    expect(podeSupervisionar({ id: "x", papel: "lider_setor", setor: "recepcao" }, semDono)).toBe(
-      true,
+    expect(podeTransferir({ id: "x", papel: "funcionario", setor: "recepcao" }, semDono)).toBe(
+      false,
     );
   });
 });

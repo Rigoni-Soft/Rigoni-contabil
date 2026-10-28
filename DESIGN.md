@@ -118,15 +118,6 @@ em monitores largos):
   página tem exatamente a altura da janela (`h-dvh`) e **não rola em
   nenhum sentido**; só a lista de mensagens rola, por dentro. Em tela
   estreita volta a ser uma página comum.
-- **Tela Atendimento** (`/atendimento`, #162): mesma exceção da conversa (tela toda,
-  `px-4 sm:px-6 lg:px-8`, `lg:h-dvh` sem rolagem na página). Colunas: lista de 20 rem (22 rem em
-  `2xl`) | chat | ações de 19 rem (22 rem em `2xl`); cada uma rola por dentro. A coluna de ações só
-  existe com uma conversa aberta e não encerrada (a grade ganha a terceira coluna por
-  `has-[[data-acoes]:not(:empty)]`); sem ela o chat ocupa a largura. Abaixo de `xl` as ações vão
-  para baixo do chat, com `max-h-[36dvh]` e rolagem própria, para não esmagar as mensagens. Abaixo
-  de `lg` há uma coluna por vez: a lista, ou o chat quando há conversa aberta (a lista se esconde),
-  com "← Voltar à lista" e o atalho "Ir para as ações ↓" no topo do chat. Ver Componentes → Tela
-  Atendimento.
 
 Formulário com elevação (edição do cadastro operacional do Simples Nacional, #34):
 cartão `rounded-lg border bg-card p-5 shadow-sm` dentro do container `cadastro`, em 4 colunas
@@ -883,81 +874,7 @@ escreveu por último o cartão ganha uma bolinha `destructive` e a prévia em
 inferior (`bottom-[max(1rem,env(safe-area-inset-bottom))]`). O cartão entra com `animate-dock-entrada` (sobe e aparece, 0,35 s,
 `cubic-bezier(0.16, 1, 0.3, 1)`, keyframes em `globals.css`) e é recriado a cada mensagem nova, repetindo a
 animação. O aviso sonoro (dois tons curtos) toca quando surge um Atendimento
-ou o cliente escreve de novo. Na tela Atendimento (`/atendimento`) o Dock não renderiza cartões nem
-toca: o som é da própria tela (#163).
-
-### Tela Atendimento (#162)
-
-A tela em que a equipe assume e conduz Atendimentos, sem trocar de rota: duas abas sobrepostas
-("Em espera" e "Em atendimento"), o chat no centro e as ações à direita. Convive com o Dock até o
-corte; nela o Dock **não mostra cartões** (a lista já está à vista e cobriria o painel de ações) e
-**não toca**: o aviso sonoro é da própria tela (`useSomDaLista`, os mesmos dois tons: Atendimento novo
-na espera ou cliente que escreve de novo numa conversa não aberta; a primeira leitura é silenciosa). Modo Operate: cor só para ação e estado, tudo em tokens.
-
-- **Abas** (`AbasDeAtendimento`, molécula genérica no valor da aba): `role="tablist"`, aba ativa com
-  `border-b-2 border-primary text-primary`, inativas `text-muted-foreground`. O contador é uma pílula
-  `bg-primary text-primary-foreground text-xs` que **some em zero** (em "Em espera", os clientes na
-  espera; em "Em atendimento", só as conversas em que o cliente escreveu por último); é `aria-hidden` e o leitor
-  de tela ouve o contador por extenso no nome da aba ("Em espera, 2 clientes"; "Em atendimento, 1 cliente aguardando"). Teclado no padrão ARIA: só a ativa
-  entra no Tab (`tabIndex` 0/-1); ← → movem o foco e já ativam, dando a volta; Home/End vão às pontas.
-- **Contador no menu** (`ShellNav`, #163): o link "Atendimento" ganha uma pílula `bg-destructive
-  text-destructive-foreground text-xs` com a espera do Setor + as conversas com o cliente aguardando;
-  some em zero, vira `99+` acima de 99, é `aria-hidden` e o link ganha o nome "Atendimento, 3
-  pendentes" (`aria-label`, com o número inteiro). Cor própria porque o link da tela ativa já é
-  `primary` e a pílula `primary` sumiria nele: ali ela ganha um anel de 2 px `card` que a separa do
-  fundo; nos demais links o anel tem a cor da própria pílula (sem aro no hover). Lê as mesmas
-  consultas do aviso global e da tela (sem leitura nova; o Admin, sem Setor próprio, vê zero).
-  Quando o contador **cresce**, uma região `sr-only role="status"` dentro do `nav` (montada desde o
-  início, mesmo vazia) lê "Atendimento: 3 pendentes." — a primeira leitura é silenciosa, diminuir não
-  é novidade e, na tela Atendimento, quem anuncia é a própria tela (região da lista).
-- **Card de espera** (`CardDeEspera`): o card inteiro é o botão de assumir (`rounded-lg border
-  bg-card px-3 py-2`, `hover:bg-accent`). Mostra Contato (`destaque`), empresa (`apoio`), origem
-  (`nota`, só em Atendimento transferido: "Transferido de Financeiro por Fulano"), resumo
-  (`nota`) e, à direita, ícone de relógio com o tempo de espera em `tabular-nums` (mm:ss, h:mm:ss a
-  partir de 1h; o texto muda a cada segundo, por isso `suppressHydrationWarning`). O nome
-  acessível é "Assumir o atendimento de" + Contato + empresa (`aria-labelledby`); origem, resumo e espera
-  entram como descrição (`aria-describedby`), nunca um `aria-label` que os esconda. Dirigido a outro
-  usuário: só informa "Dirigido a outro usuário", com borda tracejada e sem fundo de cartão para não
-  parecer clicável (um tom de fundo some no tema escuro; a borda vale nos dois). **Para Líder e Admin
-  (supervisão, #165)** o mesmo card vira botão de *leitura*: mantém a borda tracejada (não confunde
-  com o que assume), ganha o ícone de olho e a nota "Dirigido a outro usuário · só leitura", e o
-  nome acessível passa a "Ler o atendimento de"; abre a conversa sem assumir. A espera vem em ordem de antiguidade. Todo controle da tela
-  (abas, cards, "Voltar à lista", "Ir para as ações") usa o anel de foco do sistema: `outline-none
-  focus-visible:ring-2 ring-ring ring-offset-2`.
-- **Card de conversa** (`CardDeConversa`): mesmo molde, ícone de mensagem; a conversa aberta ganha
-  `border-primary bg-accent` e `aria-current`; o cliente aguardando resposta ganha a bolinha
-  `destructive` (e "nova mensagem" só para leitor de tela) e a prévia em `font-medium`.
-- **Lista** (`ListaDeAtendimento` + `PainelDeEspera`/`PainelDeEmAtendimento`): o Admin escolhe o Setor
-  num `CampoSelect` no topo; os demais veem o próprio. **Equipe (supervisão, #165):** Líder do Setor e
-  Admin veem, na aba "Em atendimento", uma segunda lista, "Da equipe (somente leitura)", com os
-  Atendimentos dos outros no Setor; cada card mostra o dono primeiro ("Com Caio · Mercado") para o
-  nome não ser cortado. As duas listas ganham título visível (`rotuloDeSecao`, `h2`, como os painéis de ação) só quando as duas
-  existem. A equipe só é lida com a aba "Em atendimento" ativa (polling de 15 s) e, enquanto carrega
-  ou se a leitura falha, a seção não aparece (a falha acende o aviso de lista indisponível): nunca um
-  "ninguém em atendimento" falso. "Atendimento já assumido por outra pessoa."
-  aparece em `role="alert"` (`alerta`) e **some sozinho em 8 s** ou ao trocar de aba; o card some da
-  espera na releitura. Uma região `sr-only role="status"` anuncia "Novo cliente em espera. Total na
-  espera: N." para quem usa leitor de tela (a primeira leitura é silenciosa; quem sai não conta). A mesma região avisa "[Contato] escreveu." quando
-  o cliente escreve de novo numa conversa que não está aberta (a que o usuário lê não é anunciada), e
-  um aviso igual ao anterior ganha um espaço sem quebra no fim para o leitor de tela reanunciar.
-- **Chat** (`PainelDoChat`): quatro estados: `vazio` ("Escolha um atendimento para conversar.", só em
-  tela larga), `abrindo` (`status`), `erro` (`alert`) e `pronto` (cabeçalho, mensagens e compositor
-  do Painel do Funcionário). Em tela estreita o topo traz "← Voltar à lista" e, só com ações
-  disponíveis, "Ir para as ações ↓" (âncora para o painel de ações, id `acoes-do-atendimento`).
-  **Leitura de supervisão (#165):** quando Líder ou Admin abre a conversa de outro, o compositor dá
-  lugar a `AvisoDeLeitura` (`role="status"`, borda tracejada, ícone de olho: "Leitura de supervisão.
-  Só quem assumiu o atendimento responde."), e o painel de ações mantém só o Encerrar, sem o divisor
-  de seção solto no topo; serviços e transferência não aparecem. A regra vem do servidor
-  (`podeAtender`), a tela só obedece.
-- **Foco**: ao abrir uma conversa (inclui assumir) o foco vai para o painel do chat, uma vez por
-  conversa; ao fechá-la (voltar, encerrar, transferir) volta para a região da lista. Sem isso o card
-  que some deixaria o foco no `<body>`. O destino é a região (`tabIndex={-1}`), não o campo de
-  resposta, para não abrir o teclado do celular sem pedido.
-- **Estrutura** (`AtendimentoTemplate`): os slots (`lista`, `chat`, `acoes`) ficam em wrappers
-  `contents` abaixo de `lg`, para que cada View decida se aparece (a lista se esconde com a conversa
-  aberta, o chat com `vazio`) sem deixar linha vazia na grade. A `page` (Server) monta o template;
-  a aba ativa e a conversa aberta ficam num store local da tela (Zustand), dividido por três
-  Containers pequenos (lista, chat, ações).
+ou o cliente escreve de novo.
 
 ### Superfície de painel nativo
 

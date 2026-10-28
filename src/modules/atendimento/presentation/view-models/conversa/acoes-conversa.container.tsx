@@ -10,38 +10,32 @@ import { useAcoesConversa } from "@/modules/atendimento/presentation/view-models
 export function AcoesConversaContainer({
   atendimentoId,
   initialData,
-  aoSair,
 }: {
   atendimentoId: string;
   initialData: ConversaVista;
-  aoSair?: () => void;
 }) {
-  const acoes = useAcoesConversa(atendimentoId, initialData, aoSair);
+  const acoes = useAcoesConversa(atendimentoId, initialData);
 
   if (!acoes.visivel) return null;
   return (
     <PainelDeAcoes
       transferidoPara={acoes.transferidoPara}
       servicos={
-        !acoes.somenteLeitura && (
-          <PainelDeServicos
-            semCliente={acoes.semCliente}
-            servicos={acoes.servicos}
-            onEnviarServico={acoes.aoEnviarServico}
-            enviando={acoes.enviando}
-            aviso={acoes.aviso}
-          />
-        )
+        <PainelDeServicos
+          semCliente={acoes.semCliente}
+          servicos={acoes.servicos}
+          onEnviarServico={acoes.aoEnviarServico}
+          enviando={acoes.enviando}
+          aviso={acoes.aviso}
+        />
       }
       transferencia={
-        !acoes.somenteLeitura && (
-          <PainelDeTransferencia
-            setoresDestino={acoes.setoresDestino}
-            onTransferir={acoes.aoTransferir}
-            transferindo={acoes.transferindo}
-            aviso={acoes.avisoTransferencia}
-          />
-        )
+        <PainelDeTransferencia
+          setoresDestino={acoes.setoresDestino}
+          onTransferir={acoes.aoTransferir}
+          transferindo={acoes.transferindo}
+          aviso={acoes.avisoTransferencia}
+        />
       }
       encerramento={
         <PainelDeEncerramento

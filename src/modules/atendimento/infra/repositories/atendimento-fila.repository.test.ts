@@ -183,11 +183,6 @@ describe("SupabaseAtendimentoRepository — espera do Setor", () => {
     });
 
     expect(r.ok && r.value.status === "transferido" && r.value.destinatarioNome).toBeNull();
-    const filaDoRh = await repositorio.filaDoSetor("rh");
-    expect(filaDoRh.ok && filaDoRh.value.find((i) => i.id === atendimentoId)).toMatchObject({
-      resumo: "Folha",
-      origem: { setor: SETOR, nome: "Origem Transfere 47" },
-    });
     expect(await linha(atendimentoId)).toMatchObject({
       setor: "rh",
       funcionario_id: null,

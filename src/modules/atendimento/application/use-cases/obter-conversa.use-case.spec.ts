@@ -262,7 +262,6 @@ describe("ObterConversa", () => {
       value: {
         atendimentoId: "at-1",
         encerrado: false,
-        podeAtender: true,
         telefone: "5561988887777",
         contato: CONTATO,
         clienteVinculado: true,
@@ -395,20 +394,6 @@ describe("ObterConversa", () => {
       atendimentoId: "at-1",
     });
     expect(admin.ok).toBe(true);
-  });
-
-  it("Líder do Setor e Admin leem em supervisão: sem atender, sem serviços nem destinos", async () => {
-    for (const ator of [
-      { id: "l", papel: "lider_setor" as const, setor: "contabil" as const },
-      { id: "a", papel: "admin" as const, setor: "administrativo" as const },
-    ]) {
-      const r = await montar(ator).caso.execute({ atendimentoId: "at-1" });
-      expect(r.ok && r.value).toMatchObject({
-        podeAtender: false,
-        documentos: [],
-        setoresDestino: [],
-      });
-    }
   });
 
   it("sem sessão nega, inexistente não é encontrado e falha de leitura devolve o erro", async () => {

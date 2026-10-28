@@ -20,8 +20,6 @@ const TELEFONE = "61955550001";
 const TELEFONE_SEM_CLIENTE = "61955550002";
 const TELEFONE_RESUMO = "61955550005";
 const TELEFONE_SETOR = "61955550006";
-const TELEFONES_URA = ["61955550010", "61955550011", "61955550012", "61955550013", "61955550014"];
-
 const clienteId = crypto.randomUUID();
 const CNPJ = `8${Date.now()}`.slice(0, 14);
 const usuarios: string[] = [];
@@ -82,13 +80,7 @@ afterAll(async () => {
   await admin
     .from("atendimentos")
     .delete()
-    .in("telefone", [
-      TELEFONE,
-      TELEFONE_SEM_CLIENTE,
-      TELEFONE_RESUMO,
-      TELEFONE_SETOR,
-      ...TELEFONES_URA,
-    ]);
+    .in("telefone", [TELEFONE, TELEFONE_SEM_CLIENTE, TELEFONE_RESUMO, TELEFONE_SETOR]);
   await admin.from("clientes").delete().eq("id", clienteId);
   for (const id of usuarios) await admin.auth.admin.deleteUser(id);
 });
@@ -230,7 +222,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
   });
 
   it("lê Regime e Responsável do Cliente e o Líder do Setor", async () => {
-    expect(await repositorio.roteamentoDoCliente(clienteId, "simples_nacional")).toEqual({
+    expect(await repositorio.roteamentoDoCliente(clienteId)).toEqual({
       ok: true,
       value: { regime: "simples_nacional", responsavelId: null },
     });
@@ -238,7 +230,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       .from("cliente_cadastro_operacional_sn")
       .insert({ cliente_id: clienteId, responsavel_id: destinoId });
     if (op.error) throw op.error;
-    expect(await repositorio.roteamentoDoCliente(clienteId, "simples_nacional")).toEqual({
+    expect(await repositorio.roteamentoDoCliente(clienteId)).toEqual({
       ok: true,
       value: { regime: "simples_nacional", responsavelId: destinoId },
     });
@@ -255,161 +247,6 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       .single();
     expect(data).toEqual({ papel: "lider_setor", setor: "condominios" });
     expect(liderCondominios).toBeTruthy();
-  });
-
-  it("lê o Responsável do Cliente em Setor fora do Simples Nacional, só no Setor pedido, e o banco protege a atribuição", async () => {
-    const respContabil = await criarFuncionario("Resp Contabil 165", "contabil");
-    const respOutroSetor = await criarFuncionario("Resp Outro Setor 165", "recepcao");
-
-    // Só Funcionário ativo do próprio Setor pode ser Responsável.
-    const invalido = await admin
-      .from("cliente_responsaveis")
-      .insert({ cliente_id: clienteId, setor: "contabil", responsavel_id: respOutroSetor });
-    expect(invalido.error?.code).toBe("23514");
-
-    const ok = await admin
-      .from("cliente_responsaveis")
-      .insert({ cliente_id: clienteId, setor: "contabil", responsavel_id: respContabil });
-    if (ok.error) throw ok.error;
-
-    expect(await repositorio.roteamentoDoCliente(clienteId, "contabil")).toEqual({
-      ok: true,
-      value: { regime: "simples_nacional", responsavelId: respContabil },
-    });
-    // Outro Setor e consulta sem Setor não herdam o Responsável do Contábil.
-    expect(await repositorio.roteamentoDoCliente(clienteId, "financeiro")).toMatchObject({
-      value: { responsavelId: null },
-    });
-    expect(await repositorio.roteamentoDoCliente(clienteId)).toMatchObject({
-      value: { responsavelId: null },
-    });
-
-    await comDesativado(respContabil, async () => {
-      expect(await repositorio.roteamentoDoCliente(clienteId, "contabil")).toMatchObject({
-        value: { responsavelId: null },
-      });
-    });
-  });
-
-  it("desativar o Responsável de um Setor o remove do Cliente e audita", async () => {
-    const resp = await criarFuncionario("Resp Desativado 165", "contabil");
-    const atribuido = await admin
-      .from("cliente_responsaveis")
-      .upsert({ cliente_id: clienteId, setor: "contabil", responsavel_id: resp });
-    if (atribuido.error) throw atribuido.error;
-
-    const desativado = await admin.rpc("desativar_usuario", {
-      alvo_id: resp,
-      ator_id: "11111111-1111-1111-1111-111111111111",
-    });
-    if (desativado.error) throw desativado.error;
-
-    const restante = await admin
-      .from("cliente_responsaveis")
-      .select("responsavel_id")
-      .eq("cliente_id", clienteId)
-      .eq("setor", "contabil");
-    expect(restante.data).toEqual([]);
-    const auditoria = await admin
-      .from("registros_auditoria")
-      .select("acao, setor")
-      .eq("alvo", CNPJ)
-      .eq("acao", "cliente.remover-responsavel");
-    expect(auditoria.data).toEqual([{ acao: "cliente.remover-responsavel", setor: "contabil" }]);
-  });
-
-  it("a URA encaminha ao Responsável do Cliente no Setor, ou ao Líder, ou à espera comum; a Recepção é sempre comum", async () => {
-    const resp = await criarFuncionario("Resp Ura 165", "condominios");
-    const abrirNaUra = async (
-      telefone: string,
-      cliente: string | null,
-      setor: "condominios" | "recepcao",
-    ) => {
-      const r = await repositorio.abrir({
-        telefone,
-        chave: telefone,
-        clienteId: cliente,
-        setor,
-        mensagens: [{ autor: "contato", texto: "oi" }],
-      });
-      if (!r.ok) throw new Error("abertura falhou");
-      const { data } = await admin
-        .from("atendimentos")
-        .select("funcionario_id, fila_funcionario_id")
-        .eq("id", r.value.id)
-        .single();
-      return data;
-    };
-    const atribuido = await admin
-      .from("cliente_responsaveis")
-      .upsert({ cliente_id: clienteId, setor: "condominios", responsavel_id: resp });
-    if (atribuido.error) throw atribuido.error;
-
-    // Com Responsável ativo no Setor: só ele.
-    expect(await abrirNaUra(TELEFONES_URA[0], clienteId, "condominios")).toEqual({
-      funcionario_id: null,
-      fila_funcionario_id: resp,
-    });
-    // A Recepção responde por todo cliente: espera comum, sem destinatário.
-    expect(await abrirNaUra(TELEFONES_URA[3], clienteId, "recepcao")).toEqual({
-      funcionario_id: null,
-      fila_funcionario_id: null,
-    });
-
-    // Responsável desativado: o Líder do Setor. Cliente não identificado também.
-    await comDesativado(resp, async () => {
-      expect(await abrirNaUra(TELEFONES_URA[1], clienteId, "condominios")).toEqual({
-        funcionario_id: null,
-        fila_funcionario_id: liderCondominios,
-      });
-    });
-    await admin.from("atendimentos").delete().eq("chave_telefone", TELEFONES_URA[1]);
-    expect(await abrirNaUra(TELEFONES_URA[1], null, "condominios")).toEqual({
-      funcionario_id: null,
-      fila_funcionario_id: liderCondominios,
-    });
-
-    // Sem Líder ativo nem Responsável: espera comum do Setor.
-    await comDesativado(liderCondominios, async () => {
-      expect(await abrirNaUra(TELEFONES_URA[2], null, "condominios")).toEqual({
-        funcionario_id: null,
-        fila_funcionario_id: null,
-      });
-    });
-  });
-
-  it("desativar o Responsável devolve o Atendimento dele ao Líder do Setor, não à espera comum", async () => {
-    const resp = await criarFuncionario("Resp Atendendo 165", "condominios");
-    const atribuido = await admin
-      .from("cliente_responsaveis")
-      .upsert({ cliente_id: clienteId, setor: "condominios", responsavel_id: resp });
-    if (atribuido.error) throw atribuido.error;
-    const aberto = await admin
-      .from("atendimentos")
-      .insert({
-        telefone: TELEFONES_URA[4],
-        chave_telefone: TELEFONES_URA[4],
-        cliente_id: clienteId,
-        setor: "condominios",
-        funcionario_id: resp,
-        assumido_em: new Date().toISOString(),
-      })
-      .select("id")
-      .single();
-    if (aberto.error) throw aberto.error;
-
-    const desativado = await admin.rpc("desativar_usuario", {
-      alvo_id: resp,
-      ator_id: "11111111-1111-1111-1111-111111111111",
-    });
-    if (desativado.error) throw desativado.error;
-
-    const { data } = await admin
-      .from("atendimentos")
-      .select("funcionario_id, fila_funcionario_id")
-      .eq("id", aberto.data.id)
-      .single();
-    expect(data).toEqual({ funcionario_id: null, fila_funcionario_id: liderCondominios });
   });
 
   it("resumo vazio ou acima de 1000 caracteres é recusado pelo banco", async () => {
@@ -462,7 +299,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       .upsert({ cliente_id: clienteId, responsavel_id: destinoId });
     if (op.error) throw op.error;
     await comDesativado(destinoId, async () => {
-      expect(await repositorio.roteamentoDoCliente(clienteId, "simples_nacional")).toEqual({
+      expect(await repositorio.roteamentoDoCliente(clienteId)).toEqual({
         ok: true,
         value: { regime: "simples_nacional", responsavelId: null },
       });

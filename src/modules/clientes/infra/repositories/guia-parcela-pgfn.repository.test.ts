@@ -332,7 +332,7 @@ describe("guia anexada da parcela PGFN", () => {
     ).not.toBeNull();
   });
 
-  it("mesma visibilidade do Parcelamento: outro Setor só lê a lista se for Responsável do Cliente", async () => {
+  it("mesma visibilidade do Parcelamento: outro Setor lê a lista (e só lê)", async () => {
     const clienteId = await criarClienteResponsavelFuncionarioSN("77330009000195");
     const parcelamentoId = await criarParcelamento(clienteId);
     await new SupabaseGuiaParcelaPgfnRepository(await comoFuncionarioSN()).anexar(
@@ -341,18 +341,10 @@ describe("guia anexada da parcela PGFN", () => {
       null,
     );
 
-    const financeiro = new SupabaseGuiaParcelaPgfnRepository(await comoFuncionarioFinanceiro());
-    const semAtribuicao = await financeiro.listar(parcelamentoId);
-    expect(semAtribuicao.ok && semAtribuicao.value).toHaveLength(0);
+    const financeiro = await comoFuncionarioFinanceiro();
+    const lista = await new SupabaseGuiaParcelaPgfnRepository(financeiro).listar(parcelamentoId);
 
-    const atribuido = await servico().from("cliente_responsaveis").insert({
-      cliente_id: clienteId,
-      setor: "financeiro",
-      responsavel_id: "33333333-3333-3333-3333-333333333333",
-    });
-    if (atribuido.error) throw atribuido.error;
-    const comAtribuicao = await financeiro.listar(parcelamentoId);
-    expect(comAtribuicao.ok && comAtribuicao.value).toHaveLength(1);
+    expect(lista.ok && lista.value).toHaveLength(1);
   });
 
   it("remover o Parcelamento leva as guias junto (cascata)", async () => {
