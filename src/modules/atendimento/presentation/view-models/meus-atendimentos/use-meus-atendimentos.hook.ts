@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { prepararSom, tocarNotificacao } from "@/presentation/lib/notificacao-sonora";
 import { atendimentoParaView } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.presenter";
 import { useMeusAtendimentosQuery } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.queries";
+import { ROTA_ATENDIMENTO } from "@/shared/kernel/rotas";
 
 // Sem sessão (login, troca de senha obrigatória) não há o que consultar; na própria conversa o
 // Atendimento já está na tela e a conversa faz a sua leitura (uma leitura reativa por tela,
@@ -11,7 +12,6 @@ import { useMeusAtendimentosQuery } from "@/modules/atendimento/presentation/vie
 const SEM_ATENDIMENTOS = ["/login", "/trocar-senha", "/atendimento/"];
 // Na tela Atendimento a lista já está à vista (aba "Em atendimento"): o aviso sonoro segue, o cartão
 // do dock não (cobriria o painel de ações).
-const TELA_DE_ATENDIMENTO = "/atendimento";
 
 export function useMeusAtendimentos() {
   const pathname = usePathname();
@@ -40,6 +40,6 @@ export function useMeusAtendimentos() {
     anterior.current = new Map(atuais.map((a) => [a.id, a.sinal]));
   }, [query.data, habilitado]);
 
-  const aVista = habilitado && pathname !== TELA_DE_ATENDIMENTO;
+  const aVista = habilitado && pathname !== ROTA_ATENDIMENTO;
   return { atendimentos: aVista ? (query.data ?? []).map(atendimentoParaView) : [] };
 }

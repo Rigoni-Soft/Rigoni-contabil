@@ -1,16 +1,20 @@
 import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
 import { cn } from "@/presentation/lib/utils";
 
-export type AbaView = { valor: string; rotulo: string; contador: number };
+export type AbaView<T extends string> = { valor: T; rotulo: string; contador: number };
 
-type AbasDeAtendimentoProps = {
-  abas: AbaView[];
-  ativa: string;
-  onEscolher: (valor: string) => void;
+type AbasDeAtendimentoProps<T extends string> = {
+  abas: AbaView<T>[];
+  ativa: T;
+  onEscolher: (valor: T) => void;
 };
 
 // Abas sobrepostas: só o painel da ativa fica na tela. O contador avisa de trabalho novo.
-export function AbasDeAtendimento({ abas, ativa, onEscolher }: AbasDeAtendimentoProps) {
+export function AbasDeAtendimento<T extends string>({
+  abas,
+  ativa,
+  onEscolher,
+}: AbasDeAtendimentoProps<T>) {
   return (
     <Linha role="tablist" aria-label="Atendimento" espaco={1} className="border-b border-border">
       {abas.map(({ valor, rotulo, contador }) => (

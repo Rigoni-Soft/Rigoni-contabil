@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 
 import { assumirAtendimentoAction, listarFilaAction } from "../fila/fila.actions";
 import { listarMeusAtendimentosAction } from "../meus-atendimentos/meus-atendimentos.actions";
+import { useAtendimentoCentralStore } from "./atendimento-central.store";
 import { useAtendimentoCentral } from "./use-atendimento-central.hook";
 
 jest.mock("../fila/fila.actions", () => ({
@@ -49,6 +50,7 @@ describe("useAtendimentoCentral", () => {
     jest.mocked(listarFilaAction).mockResolvedValue({ ok: true, data: [ESPERA, DIRIGIDO] });
     jest.mocked(listarMeusAtendimentosAction).mockResolvedValue({ ok: true, data: [] });
     assumir.mockReset();
+    useAtendimentoCentralStore.setState({ aba: "espera", abertoId: null });
   });
 
   it("começa na aba Em espera, sem conversa aberta, e só deixa assumir o que não é dirigido a outro", () => {
@@ -95,7 +97,7 @@ describe("useAtendimentoCentral", () => {
     act(() => result.current.assumir("at-1"));
     await waitFor(() => expect(result.current.abertoId).toBe("at-1"));
 
-    act(() => result.current.fecharConversa());
+    act(() => useAtendimentoCentralStore.getState().fecharConversa());
 
     expect(result.current.abertoId).toBeNull();
   });

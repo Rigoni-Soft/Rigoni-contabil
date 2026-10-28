@@ -4,7 +4,7 @@ import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { cn } from "@/presentation/lib/utils";
 
-type CardDeConversaProps = {
+export type CardDeConversaProps = {
   titulo: string;
   detalhe: string;
   previa?: string | null;
