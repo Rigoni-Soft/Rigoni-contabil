@@ -74,7 +74,8 @@ export function useAtendimentoCentral({
     anuncio,
     emAtendimento,
     daEquipe,
-    supervisiona,
+    // Só quem supervisiona lê o card dirigido a outro.
+    aoLer: supervisiona ? abrir : undefined,
     abertoId,
     abrir,
     assumir: (atendimentoId: string) =>
