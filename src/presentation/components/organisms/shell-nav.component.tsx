@@ -82,9 +82,9 @@ export function ShellNav({ setores, rotaAtual, pendentesDeAtendimento = 0 }: She
           <Caixa
             como="span"
             aria-hidden="true"
-            className="ml-2 rounded-full bg-destructive px-1.5 text-xs text-destructive-foreground"
+            className="ml-2 rounded-full border-2 border-card bg-destructive px-1.5 text-xs text-destructive-foreground"
           >
-            {pendentesDeAtendimento}
+            {pendentesDeAtendimento > 99 ? "99+" : pendentesDeAtendimento}
           </Caixa>
         )}
       </Link>

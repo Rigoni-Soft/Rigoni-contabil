@@ -90,4 +90,12 @@ describe("ShellNav — pendentes de Atendimento (#163)", () => {
 
     expect(screen.getByRole("link", { name: "Atendimento, 1 pendente" })).toBeInTheDocument();
   });
+
+  it("acima de 99 a pílula mostra 99+ e o nome acessível traz o número inteiro", () => {
+    render(<ShellNav setores={[]} pendentesDeAtendimento={120} />);
+
+    const link = screen.getByRole("link", { name: "Atendimento, 120 pendentes" });
+    expect(link).toHaveTextContent("99+");
+    expect(link).not.toHaveTextContent("120");
+  });
 });
