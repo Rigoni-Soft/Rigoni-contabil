@@ -1,15 +1,20 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
+import { tocarNotificacao } from "@/presentation/lib/notificacao-sonora";
+
+import { listarAtendimentosDaEquipeAction } from "../equipe/equipe.actions";
 import { assumirAtendimentoAction, listarFilaAction } from "../fila/fila.actions";
 import { listarMeusAtendimentosAction } from "../meus-atendimentos/meus-atendimentos.actions";
-import { tocarNotificacao } from "@/presentation/lib/notificacao-sonora";
 import { useAtendimentoCentralStore } from "./atendimento-central.store";
 import { useAtendimentoCentral } from "./use-atendimento-central.hook";
 
 jest.mock("../fila/fila.actions", () => ({
   assumirAtendimentoAction: jest.fn(),
   listarFilaAction: jest.fn(),
+}));
+jest.mock("../equipe/equipe.actions", () => ({
+  listarAtendimentosDaEquipeAction: jest.fn(),
 }));
 jest.mock("../meus-atendimentos/meus-atendimentos.actions", () => ({
   listarMeusAtendimentosAction: jest.fn(),
@@ -31,7 +36,7 @@ const ESPERA = {
 };
 const DIRIGIDO = { ...ESPERA, atendimentoId: "at-2", filaDoFuncionarioId: "outro-usuario" };
 
-function renderizar() {
+function renderizar(supervisiona = false) {
   const cliente = new QueryClient();
   const renderizado = renderHook(
     () =>
@@ -41,6 +46,7 @@ function renderizar() {
         filaInicial: [ESPERA, DIRIGIDO],
         meusInicial: [],
         podeEscolherSetor: false,
+        supervisiona,
       }),
     {
       wrapper: ({ children }) => (
@@ -55,6 +61,20 @@ describe("useAtendimentoCentral", () => {
   beforeEach(() => {
     jest.mocked(listarFilaAction).mockResolvedValue({ ok: true, data: [ESPERA, DIRIGIDO] });
     jest.mocked(listarMeusAtendimentosAction).mockResolvedValue({ ok: true, data: [] });
+    jest.mocked(listarAtendimentosDaEquipeAction).mockReset();
+    jest.mocked(listarAtendimentosDaEquipeAction).mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          atendimentoId: "at-9",
+          telefone: "5561988887777",
+          criadoEm: "2026-10-09T12:00:00Z",
+          contato: { contatoNome: "Joana", empresa: "Mercado", cnpj: null },
+          ultimaMensagem: null,
+          donoNome: "Caio",
+        },
+      ],
+    });
     assumir.mockReset();
     useAtendimentoCentralStore.setState({ aba: "espera", abertoId: null });
   });
@@ -68,6 +88,25 @@ describe("useAtendimentoCentral", () => {
       ["at-1", true],
       ["at-2", false],
     ]);
+  });
+
+  it("quem não supervisiona não lê os Atendimentos da equipe", () => {
+    const { result } = renderizar();
+
+    expect(result.current.supervisiona).toBe(false);
+    expect(result.current.daEquipe).toEqual([]);
+    expect(listarAtendimentosDaEquipeAction).not.toHaveBeenCalled();
+  });
+
+  it("Líder/Admin leem os Atendimentos da equipe, com o nome do dono", async () => {
+    const { result } = renderizar(true);
+
+    await waitFor(() => expect(result.current.daEquipe).toHaveLength(1));
+    expect(result.current.daEquipe[0]).toMatchObject({
+      id: "at-9",
+      titulo: "Joana",
+      detalhe: "Mercado · com Caio",
+    });
   });
 
   it("ao assumir, vai para Em atendimento com a conversa aberta", async () => {

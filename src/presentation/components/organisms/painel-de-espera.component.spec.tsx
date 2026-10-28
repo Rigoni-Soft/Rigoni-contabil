@@ -36,6 +36,16 @@ describe("PainelDeEspera", () => {
     expect(onAssumir).toHaveBeenCalledWith("a");
   });
 
+  it("para quem supervisiona, o dirigido a outro abre a leitura e não assume", async () => {
+    const onAssumir = jest.fn();
+    const onLer = jest.fn();
+    render(<PainelDeEspera itens={ITENS} assumindo={false} onAssumir={onAssumir} onLer={onLer} />);
+
+    await userEvent.click(screen.getByRole("button", { name: /Ler o atendimento de João/ }));
+    expect(onLer).toHaveBeenCalledWith("b");
+    expect(onAssumir).not.toHaveBeenCalled();
+  });
+
   it("mostra o vazio e o carregando", () => {
     const { rerender } = render(
       <PainelDeEspera itens={[]} assumindo={false} onAssumir={jest.fn()} />,

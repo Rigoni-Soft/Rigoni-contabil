@@ -4,8 +4,9 @@ import type { ItemDaFilaVisto } from "@/modules/atendimento/application/ports/in
 import type { AtendimentoVisto } from "@/modules/atendimento/application/ports/in/listar-meus-atendimentos.provider";
 import { useAtendimentoCentralStore } from "@/modules/atendimento/presentation/view-models/atendimento-central/atendimento-central.store";
 import { useAnuncioDaLista } from "@/modules/atendimento/presentation/view-models/atendimento-central/use-anuncio-da-lista.hook";
-import { useAssumirAtendimentoMutation } from "@/modules/atendimento/presentation/view-models/fila/assumir.queries";
 import { useSomDaLista } from "@/modules/atendimento/presentation/view-models/atendimento-central/use-som-da-lista.hook";
+import { useEquipeQuery } from "@/modules/atendimento/presentation/view-models/equipe/equipe.queries";
+import { useAssumirAtendimentoMutation } from "@/modules/atendimento/presentation/view-models/fila/assumir.queries";
 import { useFila } from "@/modules/atendimento/presentation/view-models/fila/use-fila.hook";
 import { atendimentoParaView } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.presenter";
 import { useMeusAtendimentosQuery } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.queries";
@@ -19,6 +20,8 @@ export type EntradaDaLista = {
   filaInicial: ItemDaFilaVisto[];
   meusInicial: AtendimentoVisto[];
   podeEscolherSetor: boolean;
+  // Líder do Setor ou Admin: leem os Atendimentos dos outros e a espera dirigida, sem agir.
+  supervisiona: boolean;
 };
 
 // A região da lista: a espera do Setor, os Atendimentos do usuário e o assumir. Aba e conversa
@@ -29,15 +32,25 @@ export function useAtendimentoCentral({
   filaInicial,
   meusInicial,
   podeEscolherSetor,
+  supervisiona,
 }: EntradaDaLista) {
   const fila = useFila(setorInicial, filaInicial, podeEscolherSetor, usuarioId);
   const meus = useMeusAtendimentosQuery(true, meusInicial);
+  const equipe = useEquipeQuery(supervisiona ? fila.setor : null);
   const assumir = useAssumirAtendimentoMutation();
   const { aba, abertoId, escolherAba, abrir, aoAssumir } = useAtendimentoCentralStore();
   const { isError, reset } = assumir;
   const emAtendimento = (meus.data ?? []).map(atendimentoParaView);
+  const daEquipe = (equipe.data ?? []).map((a) => ({
+    ...atendimentoParaView(a),
+    detalhe: `${a.contato.empresa ?? "Cliente não identificado"} · com ${a.donoNome ?? "outro usuário"}`,
+  }));
   const anuncio = useAnuncioDaLista(fila.itens, emAtendimento, abertoId);
-  useSomDaLista(fila.itens.map((item) => item.id), emAtendimento, abertoId);
+  useSomDaLista(
+    fila.itens.map((item) => item.id),
+    emAtendimento,
+    abertoId,
+  );
 
   // "Já assumido" informa uma tentativa, não um estado da tela: some sozinho, e ao trocar de aba.
   useEffect(() => {
@@ -55,6 +68,8 @@ export function useAtendimentoCentral({
     },
     anuncio,
     emAtendimento,
+    daEquipe,
+    supervisiona,
     abertoId,
     abrir,
     assumir: (atendimentoId: string) =>

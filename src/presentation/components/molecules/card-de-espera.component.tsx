@@ -16,6 +16,8 @@ export type CardDeEsperaProps = {
   assumivel: boolean;
   assumindo?: boolean;
   onAssumir: () => void;
+  // Dirigido a outro, para quem supervisiona: abre a conversa só para leitura.
+  onLer?: () => void;
 };
 
 const MOLDURA = "w-full rounded-lg border border-border px-3 py-2 text-left";
@@ -29,12 +31,14 @@ export function CardDeEspera({
   assumivel,
   assumindo = false,
   onAssumir,
+  onLer,
 }: CardDeEsperaProps) {
+  const clicavel = assumivel || onLer !== undefined;
   const conteudo = (
     <Linha alinhar="inicio" espaco={3}>
       <Caixa como="span" className="min-w-0 flex-1">
         <Texto como="span" variante="somenteLeitor" id={`${id}-acao`}>
-          Assumir o atendimento de
+          {assumivel ? "Assumir o atendimento de" : "Ler o atendimento de"}
         </Texto>
         <Texto como="span" variante="destaque" className="block truncate" id={`${id}-contato`}>
           {contato}
@@ -66,11 +70,11 @@ export function CardDeEspera({
     </Linha>
   );
 
-  return assumivel ? (
+  return clicavel ? (
     <Caixa
       como="button"
       type="button"
-      onClick={onAssumir}
+      onClick={assumivel ? onAssumir : onLer}
       disabled={assumindo}
       // O nome é a ação e quem espera; o resumo e o tempo de espera entram como descrição, para o
       // leitor de tela dizer o que decide quem assumir (um aria-label os esconderia).
