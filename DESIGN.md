@@ -915,7 +915,9 @@ o aviso sonoro continua. Modo Operate: cor só para ação e estado, tudo em tok
   num `CampoSelect` no topo; os demais veem o próprio. "Atendimento já assumido por outra pessoa."
   aparece em `role="alert"` (`alerta`) e **some sozinho em 8 s** ou ao trocar de aba; o card some da
   espera na releitura. Uma região `sr-only role="status"` anuncia "Novo cliente em espera. Total na
-  espera: N." para quem usa leitor de tela (a primeira leitura é silenciosa; quem sai não conta).
+  espera: N." para quem usa leitor de tela (a primeira leitura é silenciosa; quem sai não conta). A mesma região avisa "[Contato] escreveu." quando
+  o cliente escreve de novo numa conversa que não está aberta (a que o usuário lê não é anunciada), e
+  um aviso igual ao anterior ganha um espaço sem quebra no fim para o leitor de tela reanunciar.
 - **Chat** (`PainelDoChat`): quatro estados: `vazio` ("Escolha um atendimento para conversar.", só em
   tela larga), `abrindo` (`status`), `erro` (`alert`) e `pronto` (cabeçalho, mensagens e compositor
   do Painel do Funcionário). Em tela estreita o topo traz "← Voltar à lista" e, só com ações
