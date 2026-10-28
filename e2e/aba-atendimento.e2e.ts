@@ -2,7 +2,7 @@ import { expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
-// Os Atendimentos nascem direto no banco, já na espera do Setor (sem Funcionário).
+// Os Atendimentos nascem pela RPC de abertura da URA, já na espera do Setor (sem Funcionário).
 const admin = adminLocal();
 
 const TELEFONE = "61955574001";
@@ -26,25 +26,17 @@ test.describe("Aba Atendimento: Em espera / Em atendimento (#162)", () => {
       padrao: true,
     });
     if (contato.error) throw contato.error;
-    const atendimento = await admin
-      .from("atendimentos")
-      .insert({
-        telefone: `55${TELEFONE}`,
-        chave_telefone: TELEFONE,
-        cliente_id: CLIENTE,
-        setor: "financeiro",
-        fila_desde: new Date(Date.now() - 5 * 60_000).toISOString(),
-      })
-      .select("id")
-      .single();
-    if (atendimento.error) throw atendimento.error;
-    const mensagem = await admin.from("mensagens").insert({
-      atendimento_id: atendimento.data.id,
-      autor: "contato",
-      texto: "Preciso da segunda via do boleto",
-      id_externo: "wamid.E2E-ABA",
+    // Pela mesma RPC que a URA chama: o Atendimento nasce na espera do Setor, sem dono.
+    const aberto = await admin.rpc("abrir_atendimento", {
+      p_telefone: `55${TELEFONE}`,
+      p_chave: TELEFONE,
+      p_cliente_id: CLIENTE,
+      p_setor: "financeiro",
+      p_mensagens: [
+        { autor: "contato", texto: "Preciso da segunda via do boleto", idExterno: "wamid.E2E-ABA" },
+      ],
     });
-    if (mensagem.error) throw mensagem.error;
+    if (aberto.error) throw aberto.error;
   });
 
   test.afterAll(async () => {
@@ -114,14 +106,16 @@ test.describe("Aba Atendimento: Em espera / Em atendimento (#162)", () => {
   });
 
   test("o Admin escolhe o Setor da espera", async ({ page }) => {
-    await admin
+    const volta = await admin
       .from("atendimentos")
       .update({
         status: "em_andamento",
         funcionario_id: null,
+        assumido_em: null,
         fila_desde: new Date().toISOString(),
       })
       .eq("chave_telefone", TELEFONE);
+    if (volta.error) throw volta.error;
     await login(page, "admin@rigonicontabil.local", "admin123");
     await expect(page).toHaveURL("/");
 
@@ -131,5 +125,47 @@ test.describe("Aba Atendimento: Em espera / Em atendimento (#162)", () => {
     await expect(
       page.getByRole("button", { name: /Assumir o atendimento de Dona Aba/ }),
     ).toBeVisible();
+  });
+
+  test("após a transferência, o destino encontra o Atendimento na espera e o assume pela tela", async ({
+    browser,
+  }) => {
+    const origem = await (await browser.newContext()).newPage();
+    await login(origem, "funcionario.financeiro@rigonicontabil.local", "func123");
+    await expect(origem).toHaveURL("/");
+    await origem
+      .getByRole("navigation", { name: "Setores" })
+      .getByRole("link", { name: "Atendimento" })
+      .click();
+    await origem.getByRole("button", { name: /Assumir o atendimento de Dona Aba/ }).click();
+    await expect(origem.getByRole("tab", { name: /Em atendimento/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    const painel = origem.getByRole("complementary", { name: "Ações do Atendimento" });
+    await painel.getByLabel("Setor de destino").selectOption({ label: "Contábil" });
+    await painel.getByLabel("Resumo do assunto").fill("Segunda via do boleto");
+    await painel.getByRole("button", { name: "Transferir" }).click();
+    await expect(origem.getByText("Você não tem atendimentos em andamento.")).toBeVisible();
+
+    const destino = await (await browser.newContext()).newPage();
+    await login(destino, "lider.contabil@rigonicontabil.local", "lider123");
+    await expect(destino).toHaveURL("/");
+    await destino.goto("/atendimento");
+    await destino.getByRole("button", { name: /Assumir o atendimento de Dona Aba/ }).click();
+    await expect(
+      destino
+        .getByRole("list", { name: "Mensagens" })
+        .getByText("Preciso da segunda via do boleto"),
+    ).toBeVisible();
+
+    const assumido = await admin
+      .from("atendimentos")
+      .select("status, setor, funcionario_id")
+      .eq("chave_telefone", TELEFONE)
+      .single();
+    expect(assumido.data).toMatchObject({ status: "em_andamento", setor: "contabil" });
+    expect(assumido.data?.funcionario_id).not.toBeNull();
   });
 });
