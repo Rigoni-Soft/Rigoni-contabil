@@ -31,6 +31,7 @@ export function PainelDeEmAtendimento({
         itens={itens}
         abertoId={abertoId}
         onAbrir={onAbrir}
+        comTitulo={equipe !== undefined}
       />
       {equipe && (
         <ListaDeConversas
@@ -39,6 +40,7 @@ export function PainelDeEmAtendimento({
           itens={equipe}
           abertoId={abertoId}
           onAbrir={onAbrir}
+          comTitulo
         />
       )}
     </Pilha>
@@ -51,21 +53,35 @@ function ListaDeConversas({
   itens,
   abertoId,
   onAbrir,
+  comTitulo = false,
 }: {
   titulo: string;
   vazio: string;
   itens: ConversaView[];
   abertoId: string | null;
   onAbrir: (id: string) => void;
+  // Com a seção da equipe ao lado, cada lista diz de quem é.
+  comTitulo?: boolean;
 }) {
-  if (itens.length === 0) return <Texto variante="apoio">{vazio}</Texto>;
+  const lista =
+    itens.length === 0 ? (
+      <Texto variante="apoio">{vazio}</Texto>
+    ) : (
+      <Pilha espaco={2} como="ol" aria-label={titulo}>
+        {itens.map(({ id, ...card }) => (
+          <Caixa como="li" key={id}>
+            <CardDeConversa {...card} aberto={id === abertoId} onAbrir={() => onAbrir(id)} />
+          </Caixa>
+        ))}
+      </Pilha>
+    );
+  if (!comTitulo) return lista;
   return (
-    <Pilha espaco={2} como="ol" aria-label={titulo}>
-      {itens.map(({ id, ...card }) => (
-        <Caixa como="li" key={id}>
-          <CardDeConversa {...card} aberto={id === abertoId} onAbrir={() => onAbrir(id)} />
-        </Caixa>
-      ))}
+    <Pilha espaco={2} como="section" aria-label={titulo}>
+      <Texto como="h3" variante="rotuloDeSecao">
+        {titulo}
+      </Texto>
+      {lista}
     </Pilha>
   );
 }

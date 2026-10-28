@@ -41,6 +41,7 @@ describe("PainelDeEspera", () => {
     const onLer = jest.fn();
     render(<PainelDeEspera itens={ITENS} assumindo={false} onAssumir={onAssumir} onLer={onLer} />);
 
+    expect(screen.getByText(/só leitura/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /Ler o atendimento de João/ }));
     expect(onLer).toHaveBeenCalledWith("b");
     expect(onAssumir).not.toHaveBeenCalled();

@@ -22,4 +22,25 @@ describe("PainelDeEmAtendimento", () => {
 
     expect(screen.getByText("Você não tem atendimentos em andamento.")).toBeInTheDocument();
   });
+
+  it("com a equipe, cada lista ganha um título visível e a da equipe abre em leitura", async () => {
+    const onAbrir = jest.fn();
+    const equipe = [{ id: "e", titulo: "Joana", detalhe: "Mercado · com Caio" }];
+    render(
+      <PainelDeEmAtendimento itens={ITENS} abertoId={null} onAbrir={onAbrir} equipe={equipe} />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Meus atendimentos" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Da equipe (somente leitura)" }),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Joana/ }));
+    expect(onAbrir).toHaveBeenCalledWith("e");
+  });
+
+  it("sem a equipe não repete o título da lista única", () => {
+    render(<PainelDeEmAtendimento itens={ITENS} abertoId={null} onAbrir={jest.fn()} />);
+
+    expect(screen.queryByRole("heading")).not.toBeInTheDocument();
+  });
 });

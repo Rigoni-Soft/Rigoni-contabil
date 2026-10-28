@@ -1,4 +1,4 @@
-import { Clock } from "lucide-react";
+import { Clock, Eye } from "lucide-react";
 
 import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
@@ -53,7 +53,8 @@ export function CardDeEspera({
         )}
         {!assumivel && (
           <Texto como="span" variante="nota" className="block">
-            Dirigido a outro usuário
+            {onLer && <Eye aria-hidden="true" className="mr-1 inline size-3.5 align-text-bottom" />}
+            Dirigido a outro usuário{onLer && " · só leitura"}
           </Texto>
         )}
       </Caixa>
@@ -75,7 +76,7 @@ export function CardDeEspera({
       como="button"
       type="button"
       onClick={assumivel ? onAssumir : onLer}
-      disabled={assumindo}
+      disabled={assumivel && assumindo}
       // O nome é a ação e quem espera; o resumo e o tempo de espera entram como descrição, para o
       // leitor de tela dizer o que decide quem assumir (um aria-label os esconderia).
       aria-labelledby={`${id}-acao ${id}-contato ${id}-empresa`}
@@ -83,6 +84,7 @@ export function CardDeEspera({
       className={cn(
         MOLDURA,
         "bg-card hover:bg-accent disabled:opacity-60 pointer-coarse:min-h-11",
+        !assumivel && "border-dashed",
         "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
       )}
     >

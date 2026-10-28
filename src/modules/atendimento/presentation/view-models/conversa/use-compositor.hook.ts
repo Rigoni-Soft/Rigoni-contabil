@@ -50,6 +50,8 @@ export function useCompositor(atendimentoId: string, initialData: ConversaVista)
   return {
     // Encerrado ou transferido: a conversa não é mais do usuário.
     visivel,
+    // Líder/Admin lendo a conversa de outro: o campo dá lugar ao aviso.
+    somenteLeitura: conversa.somenteLeitura && !transferido,
     arraste,
     // Com arquivo escolhido, o texto é a legenda.
     aoEnviar: (texto: string) => {

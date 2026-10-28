@@ -71,7 +71,10 @@ describe("useCompositor", () => {
   });
 
   it("leitura de supervisão (Líder/Admin em conversa de outro) não mostra o campo de resposta", () => {
-    expect(renderizar({ ...CONVERSA, podeAtender: false }).result.current.visivel).toBe(false);
+    const supervisao = renderizar({ ...CONVERSA, podeAtender: false }).result.current;
+    expect(supervisao.visivel).toBe(false);
+    expect(supervisao.somenteLeitura).toBe(true);
+    expect(renderizar({ ...CONVERSA, encerrado: true }).result.current.somenteLeitura).toBe(false);
   });
 
   it("envia a mensagem e conta o envio para esvaziar o campo", async () => {
