@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import {
@@ -63,11 +65,18 @@ function ListaDeConversas({
   // Com a seção da equipe ao lado, cada lista diz de quem é.
   comTitulo?: boolean;
 }) {
+  const idDoTitulo = useId();
+  // Com título visível a lista se nomeia por ele (uma frase só para o leitor de tela).
   const lista =
     itens.length === 0 ? (
       <Texto variante="apoio">{vazio}</Texto>
     ) : (
-      <Pilha espaco={2} como="ol" aria-label={titulo}>
+      <Pilha
+        espaco={2}
+        como="ol"
+        aria-label={comTitulo ? undefined : titulo}
+        aria-labelledby={comTitulo ? idDoTitulo : undefined}
+      >
         {itens.map(({ id, ...card }) => (
           <Caixa como="li" key={id}>
             <CardDeConversa {...card} aberto={id === abertoId} onAbrir={() => onAbrir(id)} />
@@ -77,8 +86,8 @@ function ListaDeConversas({
     );
   if (!comTitulo) return lista;
   return (
-    <Pilha espaco={2} como="section" aria-label={titulo}>
-      <Texto como="h3" variante="rotuloDeSecao">
+    <Pilha espaco={2}>
+      <Texto como="h3" variante="rotuloDeSecao" id={idDoTitulo}>
         {titulo}
       </Texto>
       {lista}
