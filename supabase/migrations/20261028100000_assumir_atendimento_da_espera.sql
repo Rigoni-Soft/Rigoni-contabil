@@ -23,12 +23,15 @@ begin
   perform pg_advisory_xact_lock(hashtext('atendimento:' || v_setor::text));
 
   select * into v_atendimento from public.atendimentos
-  where id = p_atendimento_id and status = 'em_andamento' and setor = v_setor
+  where id = p_atendimento_id and status = 'em_andamento'
   for update;
   if not found then
     return jsonb_build_object('status', 'inexistente');
   end if;
 
+  -- O lock do Setor foi tomado sobre a primeira leitura; uma Transferência no meio muda o Setor,
+  -- mas ela segura a linha: depois do `for update` o Setor da linha é o valor estável.
+  v_setor := v_atendimento.setor;
   -- Elegibilidade antes do dono: quem não pode assumir não descobre se alguém já assumiu.
   if not public.atendente_elegivel(p_ator, v_setor)
      or (v_atendimento.fila_funcionario_id is not null
