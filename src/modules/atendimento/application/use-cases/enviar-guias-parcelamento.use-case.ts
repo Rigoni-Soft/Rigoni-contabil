@@ -123,11 +123,9 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     const travados = new Set<string>();
     const andamentos: Andamento[] = [];
     const atribuidas: GuiaAtribuida[] = [];
-    const reservas: { id: string; competencia: string }[] = [];
+    const reservas: { id: string; competencia: string; token: string }[] = [];
     for (const { parcelamento, competencia, caminho } of pendentes) {
       if (!this.entregavel(cliente, parcelamento) || travados.has(parcelamento.id)) continue;
-      // A versão lida fica reservada até o fim da rodada.
-      reservas.push({ id: parcelamento.id, competencia });
       const pdf = await this.repetir(() =>
         reservarELerGuiaPgfn(this.pgfn, cliente.clienteId, parcelamento.id, {
           competencia,
@@ -141,17 +139,19 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
         );
         continue;
       }
+      // A versão lida fica reservada até o fim da rodada.
+      reservas.push({ id: parcelamento.id, competencia, token: pdf.value.token });
       atribuidas.push({
         parcelamento,
         parcela: competencia,
-        guia: guiaPgfn(parcelamento.codigo, competencia, pdf.value),
+        guia: guiaPgfn(parcelamento.codigo, competencia, pdf.value.pdf),
       });
     }
     try {
       andamentos.push(...(await this.entregarGuias(cliente, agora, atribuidas, true)));
     } finally {
       // Registrada, a competência já trava sozinha; as demais voltam a ser editáveis.
-      await Promise.all(reservas.map((r) => this.pgfn.liberar(r.id, r.competencia)));
+      await Promise.all(reservas.map((r) => this.pgfn.liberar(r.id, r.competencia, r.token)));
     }
     return {
       enviado: andamentos.some((a) => a.enviado),

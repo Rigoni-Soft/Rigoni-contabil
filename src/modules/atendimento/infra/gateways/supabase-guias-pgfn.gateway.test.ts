@@ -147,12 +147,44 @@ describe("SupabaseGuiasPgfnGateway (#186)", () => {
 
     expect(await guias.reservar(id, "202610", `${caminho}-antiga`)).toEqual({
       ok: true,
-      value: false,
+      value: null,
     });
     expect(await emEnvio()).toBeNull();
-    expect(await guias.reservar(id, "202610", caminho)).toEqual({ ok: true, value: true });
+    const dono = await guias.reservar(id, "202610", caminho);
+    expect(dono.ok && dono.value).toEqual(expect.any(String));
+    const token = dono.ok ? (dono.value as string) : "";
     expect(await emEnvio()).not.toBeNull();
-    expect((await guias.liberar(id, "202610")).ok).toBe(true);
+
+    // Posse: a vigente não é adquirida de novo e a tentativa recusada não a libera (P1 da 2ª revalidação).
+    expect(await guias.reservar(id, "202610", caminho)).toEqual({ ok: true, value: null });
+    expect((await guias.liberar(id, "202610", "00000000-0000-0000-0000-000000000000")).ok).toBe(
+      true,
+    );
+    expect(await emEnvio()).not.toBeNull();
+
+    // Reservas simultâneas: só uma ganha (a vigente acima já está liberada abaixo).
+    expect((await guias.liberar(id, "202610", token)).ok).toBe(true);
+    expect(await emEnvio()).toBeNull();
+    const [a, b] = await Promise.all([
+      guias.reservar(id, "202610", caminho),
+      guias.reservar(id, "202610", caminho),
+    ]);
+    expect([a, b].filter((r) => r.ok && r.value !== null)).toHaveLength(1);
+    const vencedor = [a, b].find((r) => r.ok && r.value !== null);
+    const tokenVencedor = vencedor?.ok ? (vencedor.value as string) : "";
+
+    // Dono antigo após expiração e nova aquisição: o token velho não solta a reserva nova.
+    await ok(
+      admin
+        .from("cliente_parcelamento_guias")
+        .update({ em_envio_ate: "2000-01-01T00:00:00Z" })
+        .eq("parcelamento_id", id),
+    );
+    const novo = await guias.reservar(id, "202610", caminho);
+    expect(novo.ok && novo.value).toEqual(expect.any(String));
+    await guias.liberar(id, "202610", tokenVencedor);
+    expect(await emEnvio()).not.toBeNull();
+    await guias.liberar(id, "202610", novo.ok ? (novo.value as string) : "");
     expect(await emEnvio()).toBeNull();
   });
 

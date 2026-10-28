@@ -509,8 +509,9 @@ describe("guia anexada da parcela PGFN", () => {
         });
 
       // Versão que já não é a atual não é reservada.
-      expect((await reservar(guia("202610").arquivoCaminho)).data).toBe(false);
-      expect((await reservar(original.arquivoCaminho)).data).toBe(true);
+      expect((await reservar(guia("202610").arquivoCaminho)).data).toBeNull();
+      const token = (await reservar(original.arquivoCaminho)).data as string;
+      expect(token).toEqual(expect.any(String));
 
       const nova = { contaNegociacao: "123456", arquivoCaminho: guia("202610").arquivoCaminho };
       const reservada = "Guia em envio: tente novamente em instantes.";
@@ -530,6 +531,7 @@ describe("guia anexada da parcela PGFN", () => {
       await sistema.rpc("liberar_guia_pgfn_do_envio", {
         p_parcelamento_id: parcelamentoId,
         p_competencia: "202610",
+        p_token: token,
       });
       expect((await repo.substituir(parcelamentoId, "202610", nova, null)).ok).toBe(true);
     });

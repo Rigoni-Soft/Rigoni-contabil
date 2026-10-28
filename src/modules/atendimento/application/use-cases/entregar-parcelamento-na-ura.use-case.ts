@@ -169,17 +169,17 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
     competencia: string,
     caminho: string,
   ): Promise<boolean> {
+    const lida = await reservarELerGuiaPgfn(this.pgfn, clienteId, parcelamento.id, {
+      competencia,
+      caminho,
+    });
+    if (!lida.ok) return false;
     try {
-      const pdf = await reservarELerGuiaPgfn(this.pgfn, clienteId, parcelamento.id, {
-        competencia,
-        caminho,
-      });
-      if (!pdf.ok) return false;
-      const guia = guiaPgfn(parcelamento.codigo, competencia, pdf.value);
+      const guia = guiaPgfn(parcelamento.codigo, competencia, lida.value.pdf);
       return await this.entregarNova(clienteId, telefone, parcelamento, competencia, guia);
     } finally {
       // Registrada, a competência já trava sozinha; sem entrega, a guia volta a ser editável.
-      await this.pgfn.liberar(parcelamento.id, competencia);
+      await this.pgfn.liberar(parcelamento.id, competencia, lida.value.token);
     }
   }
 

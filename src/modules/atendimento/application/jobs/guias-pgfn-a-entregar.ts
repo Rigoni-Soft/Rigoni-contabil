@@ -6,7 +6,7 @@ import type {
 } from "@/modules/atendimento/application/ports/out/guias-pgfn.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
-import { err, type Result } from "@/shared/kernel/result";
+import { err, ok, type Result } from "@/shared/kernel/result";
 
 export type GuiaPgfnAEntregar = GuiaPgfnConfirmada & { parcelamento: ParcelamentoPgfn };
 
@@ -19,21 +19,28 @@ export const guiaPgfn = (codigo: string, competencia: string, pdfBase64: string)
 });
 
 // Reserva a versão listada da guia e lê o PDF dela: troca ou remoção no meio da primeira entrega é
-// recusada até a reserva ser liberada. Guia que mudou desde a listagem não é lida nem entregue.
+// recusada até a reserva ser liberada com o token devolvido. Guia que mudou desde a listagem, ou que
+// outra tentativa detém, não é lida nem entregue. Leitura que falha libera a reserva aqui mesmo.
 export async function reservarELerGuiaPgfn(
   pgfn: GuiasPgfnPort,
   clienteId: string,
   parcelamentoId: string,
   { competencia, caminho }: GuiaPgfnConfirmada,
-): Promise<Result<string, AppError>> {
+): Promise<Result<{ pdf: string; token: string }, AppError>> {
   const reservada = await pgfn.reservar(parcelamentoId, competencia, caminho);
   if (!reservada.ok) return reservada;
-  if (!reservada.value) {
+  const token = reservada.value;
+  if (!token) {
     return err(
       new ServicoExternoError("A guia foi alterada; segue pendente para a próxima rodada."),
     );
   }
-  return pgfn.ler(clienteId, caminho);
+  const pdf = await pgfn.ler(clienteId, caminho);
+  if (!pdf.ok) {
+    await pgfn.liberar(parcelamentoId, competencia, token);
+    return pdf;
+  }
+  return ok({ pdf: pdf.value, token });
 }
 
 // As guias confirmadas e ainda sem registro de envio, até a competência do mês corrente (AAAAMM),

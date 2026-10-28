@@ -127,9 +127,9 @@ function montar(
         lidos.push(caminho);
         return opcoes.lerFalha ? err(new ServicoExternoError("storage")) : ok("JVBERi0=");
       },
-      reservar: async () => ok(!opcoes.reservaNegada),
-      liberar: async (_id, competencia) => {
-        liberadas.push(competencia);
+      reservar: async () => ok(opcoes.reservaNegada ? null : "tok"),
+      liberar: async (_id, competencia, token) => {
+        liberadas.push(token === "tok" ? competencia : "token-errado");
         return ok(undefined);
       },
     },
@@ -677,7 +677,7 @@ describe("EnviarGuiasParcelamento", () => {
     });
 
     it("guia alterada desde a listagem (reserva negada) não é lida nem entregue e trava o acordo (P1)", async () => {
-      const { nucleo, registrados, lidos, envio } = montar(ok([]), {
+      const { nucleo, registrados, lidos, envio, liberadas } = montar(ok([]), {
         pgfn: ok([pgfn("g1", ["202609", "202610"])]),
         reservaNegada: true,
       });
@@ -689,6 +689,8 @@ describe("EnviarGuiasParcelamento", () => {
       expect(lidos).toEqual([]);
       expect(registrados).toEqual([]);
       expect(envio.templatesEnviados).toHaveLength(0);
+      // Quem não adquiriu a reserva não libera a de outra tentativa.
+      expect(liberadas).toEqual([]);
     });
 
     it("a reserva é liberada ao fim da rodada, inclusive quando a entrega falha (P1)", async () => {

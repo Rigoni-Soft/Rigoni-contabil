@@ -119,7 +119,7 @@ function montar(
       {
         listarEmAberto: async () => ok([]),
         ler: async () => ok(""),
-        reservar: async () => ok(true),
+        reservar: async () => ok("tok"),
         liberar: async () => ok(undefined),
       },
       0,

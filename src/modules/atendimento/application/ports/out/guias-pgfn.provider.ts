@@ -20,12 +20,17 @@ export interface GuiasPgfnPort {
   // recusado.
   ler(clienteId: string, caminho: string): Promise<Result<string, AppError>>;
   // Reserva a versão da guia (o caminho listado) para a primeira entrega: enquanto durar, troca e
-  // remoção são recusadas. `false`: a guia mudou desde a listagem e não deve ser entregue.
+  // remoção são recusadas. Devolve o token do dono. `null`: a guia mudou desde a listagem ou outra
+  // tentativa a detém; não deve ser entregue.
   reservar(
     parcelamentoId: string,
     competencia: string,
     caminho: string,
-  ): Promise<Result<boolean, AppError>>;
-  // Solta a reserva (entrega que não se completou). Sem efeito se o envio já foi registrado.
-  liberar(parcelamentoId: string, competencia: string): Promise<Result<void, AppError>>;
+  ): Promise<Result<string | null, AppError>>;
+  // Solta a reserva do dono (entrega que não se completou); token alheio ou vencido não tem efeito.
+  liberar(
+    parcelamentoId: string,
+    competencia: string,
+    token: string,
+  ): Promise<Result<void, AppError>>;
 }

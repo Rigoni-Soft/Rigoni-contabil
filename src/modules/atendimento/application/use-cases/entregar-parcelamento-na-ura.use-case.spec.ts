@@ -109,9 +109,9 @@ function montar(
         lidos.push(caminho);
         return ok("JVBERi0=");
       },
-      reservar: async () => ok(!opcoes.reservaNegada),
-      liberar: async (_id, competencia) => {
-        liberadas.push(competencia);
+      reservar: async () => ok(opcoes.reservaNegada ? null : "tok"),
+      liberar: async (_id, competencia, token) => {
+        liberadas.push(token === "tok" ? competencia : "token-errado");
         return ok(undefined);
       },
     },
@@ -394,7 +394,7 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
 
   describe("Parcelamento PGFN (#186)", () => {
     it("guia alterada desde a listagem (reserva negada) não é entregue e o contato é avisado (P1)", async () => {
-      const { executar, documentos, registrados, lidos, mensagens } = montar([], {
+      const { executar, documentos, registrados, lidos, mensagens, liberadas } = montar([], {
         comuns: 1,
         pgfn: [pgfn("g1", ["202610"])],
         reservaNegada: true,
@@ -406,6 +406,8 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
       expect(documentos).toHaveLength(0);
       expect(registrados).toHaveLength(0);
       expect(mensagens[0].texto).toContain("g1");
+      // Quem não adquiriu a reserva não libera a de outra tentativa.
+      expect(liberadas).toEqual([]);
     });
 
     it("a reserva é liberada depois da tentativa, entregue ou não (P1)", async () => {
