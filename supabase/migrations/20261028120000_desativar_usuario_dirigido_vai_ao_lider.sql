@@ -1,6 +1,4 @@
--- #166 (spec #160): desativar usuário devolve os Atendimentos em andamento dele à espera do Setor e
--- manda os dirigidos a ele à espera dirigida ao Líder do Setor (sem Líder ativo, à espera do Setor).
--- Nada é atribuído; cada devolução é auditada. Só muda o destino do dirigido: o resto é a #164.
+-- #166 (spec #160): o dirigido ao desativado vai à espera dirigida ao Líder ativo do Setor; o resto é a #164.
 
 CREATE OR REPLACE FUNCTION public.desativar_usuario(alvo_id uuid, ator_id uuid) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
@@ -46,7 +44,7 @@ begin
     update public.atendimentos a
     set funcionario_id = null,
         -- Dirigido ao desativado vai à espera dirigida ao Líder do Setor (o desativado, se for ele o
-        -- Líder, já não conta); sem Líder ativo, cai na espera do Setor. Em atendimento: espera do Setor.
+        -- Líder, já não conta); sem Líder ativo, cai na espera do Setor.
         fila_funcionario_id = case
           when a.fila_funcionario_id = alvo_id then (
             select p.id from public.perfis p

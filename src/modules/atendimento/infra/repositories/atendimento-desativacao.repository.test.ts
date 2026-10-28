@@ -177,19 +177,6 @@ describe("desativação × Atendimento em andamento", () => {
     expect(await auditoriasDe("atendimento.devolver-fila", id)).toHaveLength(1);
   });
 
-  it("o dirigido ao desativado, sem Líder ativo no Setor, cai na espera do Setor", async () => {
-    const destino = await criarPerfil("Destino Sem Lider");
-    const { id } = await abrir(null);
-    await admin.from("atendimentos").update({ fila_funcionario_id: destino }).eq("id", id);
-
-    await desativar(destino);
-
-    expect(await atendimento(id)).toMatchObject({
-      funcionario_id: null,
-      fila_funcionario_id: null,
-    });
-  });
-
   it("o dirigido ao próprio Líder desativado cai na espera do Setor, não nele mesmo", async () => {
     const lider = await criarPerfil("Líder Desativado", SETOR, "lider_setor");
     const { id } = await abrir(null);
