@@ -87,7 +87,7 @@ function ListaDeConversas({
   if (!comTitulo) return lista;
   return (
     <Pilha espaco={2}>
-      <Texto como="h3" variante="rotuloDeSecao" id={idDoTitulo}>
+      <Texto como="h2" variante="rotuloDeSecao" id={idDoTitulo}>
         {titulo}
       </Texto>
       {lista}
