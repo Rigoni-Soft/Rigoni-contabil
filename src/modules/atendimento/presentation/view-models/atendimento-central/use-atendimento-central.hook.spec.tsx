@@ -59,7 +59,7 @@ describe("useAtendimentoCentral", () => {
 
     expect(result.current.aba).toBe("espera");
     expect(result.current.abertoId).toBeNull();
-    expect(result.current.espera.map((c) => [c.id, c.assumivel])).toEqual([
+    expect(result.current.itens.map((c) => [c.id, c.assumivel])).toEqual([
       ["at-1", true],
       ["at-2", false],
     ]);

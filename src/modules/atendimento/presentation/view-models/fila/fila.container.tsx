@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import { FilaDoSetor } from "@/presentation/components/organisms/fila-do-setor.component";
 import type { ItemDaFilaVisto } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
 import { useAssumirAtendimentoMutation } from "@/modules/atendimento/presentation/view-models/fila/assumir.queries";
-import { tituloDaFila } from "@/modules/atendimento/presentation/view-models/fila/fila.presenter";
+import {
+  OPCOES_DE_SETOR,
+  tituloDaFila,
+} from "@/modules/atendimento/presentation/view-models/fila/fila.presenter";
 import { useFila } from "@/modules/atendimento/presentation/view-models/fila/use-fila.hook";
-import { SETOR_LABEL, SETORES, type SetorSlug } from "@/shared/kernel/setores";
+import type { SetorSlug } from "@/shared/kernel/setores";
 
 type FilaContainerProps = {
   nome: string;
@@ -16,8 +19,6 @@ type FilaContainerProps = {
   initialData: ItemDaFilaVisto[];
   podeEscolherSetor: boolean;
 };
-
-const OPCOES = SETORES.map((valor) => ({ valor, rotulo: SETOR_LABEL[valor] }));
 
 export function FilaContainer({
   nome,
@@ -46,7 +47,7 @@ export function FilaContainer({
       assumindoId={assumir.isPending ? assumir.variables : null}
       erroAoAssumir={assumir.error?.message ?? null}
       escolhaDeSetor={
-        podeEscolherSetor ? { setor, opcoes: OPCOES, onChange: escolherSetor } : undefined
+        podeEscolherSetor ? { setor, opcoes: OPCOES_DE_SETOR, onChange: escolherSetor } : undefined
       }
     />
   );

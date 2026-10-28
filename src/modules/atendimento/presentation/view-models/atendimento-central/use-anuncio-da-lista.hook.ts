@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 
+import type { AtendimentoEmAndamentoView } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.presenter";
+
 // Espaço sem quebra: não é lido, mas muda o texto da região para o leitor de tela reanunciar.
 const ESPACO_INVISIVEL = String.fromCharCode(0x00a0);
 
 type Espera = { id: string };
-type Conversa = { id: string; titulo: string; aguardando: boolean; sinal: string };
+type Conversa = Pick<AtendimentoEmAndamentoView, "id" | "titulo" | "aguardando" | "sinal">;
 
 // O som avisa quem ouve; este texto avisa o leitor de tela (WCAG 4.1.3), numa região `status`. Dois
 // avisos: cliente novo na espera, e cliente que escreve de novo numa conversa que não está aberta.
@@ -18,11 +20,6 @@ export function useAnuncioDaLista(
   const vezes = useRef(0);
   const esperaAnterior = useRef<Set<string> | null>(null);
   const conversasAnterior = useRef<Map<string, string> | null>(null);
-  const aberto = useRef(abertoId);
-  // Antes dos outros efeitos: eles leem a conversa aberta de agora.
-  useEffect(() => {
-    aberto.current = abertoId;
-  }, [abertoId]);
 
   // Um leitor de tela só reanuncia quando o texto muda: um aviso igual ao anterior (ex.: um cliente
   // sai e outro entra, mesmo total) ganha um espaço invisível no fim, alternando a cada aviso.
@@ -57,7 +54,7 @@ export function useAnuncioDaLista(
     // Escreveu de novo: aguardando agora e sem estar na leitura anterior, ou com outro sinal (nova
     // mensagem). A conversa que o usuário está lendo já está na tela dele.
     const escreveram = emAtendimento.filter(
-      (c) => c.aguardando && c.id !== aberto.current && antes.get(c.id) !== c.sinal,
+      (c) => c.aguardando && c.id !== abertoId && antes.get(c.id) !== c.sinal,
     );
     if (escreveram.length === 0) return;
     anunciar(
@@ -66,7 +63,7 @@ export function useAnuncioDaLista(
         : `${escreveram.length} clientes escreveram.`,
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sinaisDasConversas]);
+  }, [sinaisDasConversas, abertoId]);
 
   return anuncio;
 }

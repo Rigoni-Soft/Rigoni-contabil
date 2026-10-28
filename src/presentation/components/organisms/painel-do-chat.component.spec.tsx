@@ -35,13 +35,13 @@ describe("PainelDoChat", () => {
 
   it("em tela estreita oferece o atalho para as ações, só quando a conversa as tem", () => {
     const { rerender } = render(
-      <PainelDoChat estado="pronto" onVoltar={jest.fn()} ancoraDasAcoes="acoes">
+      <PainelDoChat estado="pronto" onVoltar={jest.fn()} comAcoes>
         <p>mensagens</p>
       </PainelDoChat>,
     );
     expect(screen.getByRole("link", { name: /Ir para as ações/ })).toHaveAttribute(
       "href",
-      "#acoes",
+      "#acoes-do-atendimento",
     );
 
     rerender(

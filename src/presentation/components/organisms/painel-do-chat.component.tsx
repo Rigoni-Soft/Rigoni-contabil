@@ -2,6 +2,7 @@ import { ArrowDown } from "lucide-react";
 
 import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
+import { ID_DO_PAINEL_DE_ACOES } from "@/presentation/components/organisms/painel-de-acoes.component";
 import { cn } from "@/presentation/lib/utils";
 
 type PainelDoChatProps = {
@@ -9,9 +10,9 @@ type PainelDoChatProps = {
   estado: "vazio" | "abrindo" | "erro" | "pronto";
   // "Voltar à lista", só em tela estreita.
   onVoltar: () => void;
-  // Em tela estreita as ações ficam depois do campo de resposta: com `ancoraDasAcoes` há um atalho
+  // Em tela estreita as ações ficam depois do campo de resposta: com `comAcoes` há um atalho
   // para elas no topo do chat (omitido quando a conversa não tem ações, ex.: encerrada).
-  ancoraDasAcoes?: string;
+  comAcoes?: boolean;
   // Destino do foco quando a conversa abre.
   ref?: React.Ref<HTMLElement>;
   // As regiões do chat (cabeçalho, mensagens, compositor), quando `pronto`.
@@ -23,7 +24,7 @@ type PainelDoChatProps = {
 export function PainelDoChat({
   estado,
   onVoltar,
-  ancoraDasAcoes,
+  comAcoes = false,
   ref,
   children,
 }: PainelDoChatProps) {
@@ -48,10 +49,10 @@ export function PainelDoChat({
           >
             ← Voltar à lista
           </Caixa>
-          {estado === "pronto" && ancoraDasAcoes && (
+          {estado === "pronto" && comAcoes && (
             <Caixa
               como="a"
-              href={`#${ancoraDasAcoes}`}
+              href={`#${ID_DO_PAINEL_DE_ACOES}`}
               className="inline-flex min-h-6 items-center gap-1 rounded-sm text-sm font-medium text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background pointer-coarse:min-h-11"
             >
               Ir para as ações

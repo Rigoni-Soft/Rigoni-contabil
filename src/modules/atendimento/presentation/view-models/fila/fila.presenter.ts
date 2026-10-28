@@ -2,7 +2,7 @@ import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
 import { telefoneParaExibicao } from "@/presentation/lib/telefone-mask";
 import type { ItemDaFilaVisto } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
 import { formatarEspera } from "@/shared/kernel/espera";
-import { SETOR_LABEL, type SetorSlug } from "@/shared/kernel/setores";
+import { SETOR_LABEL, SETORES, type SetorSlug } from "@/shared/kernel/setores";
 
 export type ItemDaFilaView = {
   id: string;
@@ -66,3 +66,6 @@ export function avisoDaFila(itens: ItemDaFilaVisto[]): AvisoDaFilaView | null {
     sinal: itens.map((i) => i.atendimentoId).join(","),
   };
 }
+
+// As opções do seletor de Setor (só o Admin escolhe) da Fila e da tela Atendimento.
+export const OPCOES_DE_SETOR = SETORES.map((valor) => ({ valor, rotulo: SETOR_LABEL[valor] }));
