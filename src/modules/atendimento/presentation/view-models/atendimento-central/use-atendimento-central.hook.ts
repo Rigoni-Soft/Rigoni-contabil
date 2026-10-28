@@ -41,7 +41,8 @@ export function useAtendimentoCentral({
   const { aba, abertoId, escolherAba, abrir, aoAssumir } = useAtendimentoCentralStore();
   const { isError, reset } = assumir;
   const emAtendimento = (meus.data ?? []).map(atendimentoParaView);
-  const daEquipe = (equipe.data ?? []).map((a) => ({
+  // Sem leitura (carregando ou falhou) a seção não existe: "ninguém em atendimento" seria mentira.
+  const daEquipe = equipe.data?.map((a) => ({
     ...atendimentoParaView(a),
     detalhe: `Com ${a.donoNome ?? "outro usuário"} · ${a.contato.empresa ?? "Cliente não identificado"}`,
   }));
@@ -61,6 +62,7 @@ export function useAtendimentoCentral({
 
   return {
     ...fila,
+    indisponivel: fila.indisponivel || equipe.isError,
     aba,
     escolherAba: (nova: typeof aba) => {
       reset();

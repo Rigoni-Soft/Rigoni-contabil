@@ -94,19 +94,31 @@ describe("useAtendimentoCentral", () => {
     const { result } = renderizar();
 
     expect(result.current.supervisiona).toBe(false);
-    expect(result.current.daEquipe).toEqual([]);
+    expect(result.current.daEquipe).toBeUndefined();
     expect(listarAtendimentosDaEquipeAction).not.toHaveBeenCalled();
   });
 
   it("Líder/Admin leem os Atendimentos da equipe, com o nome do dono", async () => {
     const { result } = renderizar(true);
 
-    await waitFor(() => expect(result.current.daEquipe).toHaveLength(1));
-    expect(result.current.daEquipe[0]).toMatchObject({
+    await waitFor(() => expect(result.current.daEquipe?.length).toBe(1));
+    expect(result.current.daEquipe?.[0]).toMatchObject({
       id: "at-9",
       titulo: "Joana",
       detalhe: "Com Caio · Mercado",
     });
+  });
+
+  it("falha ao ler a equipe não vira 'ninguém em atendimento': some a seção e a lista fica indisponível", async () => {
+    jest.mocked(listarAtendimentosDaEquipeAction).mockResolvedValue({
+      ok: false,
+      error: { code: "SERVICO_EXTERNO", message: "falhou" },
+    });
+    const { result } = renderizar(true);
+
+    expect(result.current.daEquipe).toBeUndefined();
+    await waitFor(() => expect(result.current.indisponivel).toBe(true));
+    expect(result.current.daEquipe).toBeUndefined();
   });
 
   it("ao assumir, vai para Em atendimento com a conversa aberta", async () => {
