@@ -7,6 +7,5 @@ export type AtendimentoDaEquipeVisto = AtendimentoVisto & { donoNome: string | n
 
 // Leitura de supervisão: os Atendimentos dos outros no Setor. Só Líder do Setor e Admin.
 export interface ListarAtendimentosDaEquipePort {
-  // Sem `setor`: o do próprio usuário (Admin não tem um e precisa informar).
-  execute(input: { setor?: SetorSlug }): Promise<Result<AtendimentoDaEquipeVisto[], AppError>>;
+  execute(input: { setor: SetorSlug }): Promise<Result<AtendimentoDaEquipeVisto[], AppError>>;
 }

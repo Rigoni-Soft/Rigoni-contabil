@@ -11,7 +11,7 @@ export function useEquipeQuery(setor: SetorSlug | null) {
   return useQuery({
     queryKey: ["atendimento", "equipe", setor],
     queryFn: async () => {
-      const resultado = await listarAtendimentosDaEquipeAction(setor ?? undefined);
+      const resultado = await listarAtendimentosDaEquipeAction(setor);
       if (!resultado.ok) throw new Error(resultado.error.message);
       return resultado.data;
     },

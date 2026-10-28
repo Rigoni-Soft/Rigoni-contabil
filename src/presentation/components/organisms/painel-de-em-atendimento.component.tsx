@@ -71,12 +71,7 @@ function ListaDeConversas({
     itens.length === 0 ? (
       <Texto variante="apoio">{vazio}</Texto>
     ) : (
-      <Pilha
-        espaco={2}
-        como="ol"
-        aria-label={comTitulo ? undefined : titulo}
-        aria-labelledby={comTitulo ? idDoTitulo : undefined}
-      >
+      <Pilha espaco={2} como="ol" aria-labelledby={comTitulo ? idDoTitulo : undefined}>
         {itens.map(({ id, ...card }) => (
           <Caixa como="li" key={id}>
             <CardDeConversa {...card} aberto={id === abertoId} onAbrir={() => onAbrir(id)} />
