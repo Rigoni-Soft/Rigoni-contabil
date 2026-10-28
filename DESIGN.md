@@ -906,6 +906,9 @@ na espera ou cliente que escreve de novo numa conversa não aberta; a primeira l
   pendentes" (`aria-label`, com o número inteiro). Cor própria e borda de 2 px `card` porque o link da
   tela ativa já é `primary` e a pílula `primary` sumiria nele (a borda a separa do fundo ativo). Lê as mesmas
   consultas do aviso global e da tela (sem leitura nova; o Admin, sem Setor próprio, vê zero).
+  Quando o contador **cresce**, uma região `sr-only role="status"` dentro do `nav` (montada desde o
+  início, mesmo vazia) lê "Atendimento: 3 pendentes." — a primeira leitura é silenciosa, diminuir não
+  é novidade e, na tela Atendimento, quem anuncia é a própria tela (região da lista).
 - **Card de espera** (`CardDeEspera`): o card inteiro é o botão de assumir (`rounded-lg border
   bg-card px-3 py-2`, `hover:bg-accent`). Mostra Contato (`destaque`), empresa (`apoio`), resumo
   (`nota`) e, à direita, ícone de relógio com o tempo de espera em `tabular-nums` (mm:ss, h:mm:ss a

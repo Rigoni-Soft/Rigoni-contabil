@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { cn } from "@/presentation/lib/utils";
 import { ROTA_ATENDIMENTO } from "@/shared/kernel/rotas";
 import { SETOR_LABEL } from "@/shared/kernel/setores";
@@ -9,8 +10,14 @@ type SetorNav = { slug: string };
 
 // `rotaAtual`: a aba da tela aberta ganha o destaque cheio (e `aria-current`); em "/" nenhuma está
 // selecionada, e as que têm tela são só links comuns.
-// `pendentesDeAtendimento`: espera do Setor + conversas com o cliente aguardando (#163).
-type ShellNavProps = { setores: SetorNav[]; rotaAtual?: string; pendentesDeAtendimento?: number };
+// `pendentesDeAtendimento`: espera do Setor + conversas com o cliente aguardando (#163). `anuncio`: o
+// texto que o leitor de tela lê quando esse contador cresce.
+type ShellNavProps = {
+  setores: SetorNav[];
+  rotaAtual?: string;
+  pendentesDeAtendimento?: number;
+  anuncio?: string;
+};
 
 // Única aba com tela de verdade por trás — as demais seguem como
 // placeholder desabilitado até ganharem painel próprio.
@@ -21,7 +28,12 @@ const ROTA_POR_SETOR: Record<string, string> = {
 const CHIP =
   "inline-flex items-center rounded-md border border-border px-3 py-1.5 text-sm pointer-coarse:min-h-11";
 
-export function ShellNav({ setores, rotaAtual, pendentesDeAtendimento = 0 }: ShellNavProps) {
+export function ShellNav({
+  setores,
+  rotaAtual,
+  pendentesDeAtendimento = 0,
+  anuncio = "",
+}: ShellNavProps) {
   return (
     <Linha
       espaco={2}
@@ -88,6 +100,10 @@ export function ShellNav({ setores, rotaAtual, pendentesDeAtendimento = 0 }: She
           </Caixa>
         )}
       </Link>
+      {/* Montada desde o início (mesmo vazia): leitor de tela só anuncia região que já existia. */}
+      <Texto como="span" variante="somenteLeitor" role="status">
+        {anuncio}
+      </Texto>
     </Linha>
   );
 }

@@ -45,7 +45,8 @@ describe("usePendentesDoMenu", () => {
 
     const { result } = renderizar();
 
-    await waitFor(() => expect(result.current).toBe(2));
+    expect(result.current).toEqual({ total: 0, pronto: false });
+    await waitFor(() => expect(result.current).toEqual({ total: 2, pronto: true }));
   });
 
   it("é zero enquanto não há leitura ou quando a Fila é negada (Admin sem Setor)", async () => {
@@ -57,8 +58,8 @@ describe("usePendentesDoMenu", () => {
 
     const { result } = renderizar();
 
-    expect(result.current).toBe(0);
-    await waitFor(() => expect(listarFilaAction).toHaveBeenCalled());
-    expect(result.current).toBe(0);
+    // negada é leitura encerrada: vale zero, e a leitura de Atendimentos segue contando
+    await waitFor(() => expect(result.current.pronto).toBe(true));
+    expect(result.current.total).toBe(0);
   });
 });
