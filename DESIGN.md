@@ -930,7 +930,7 @@ na espera ou cliente que escreve de novo numa conversa não aberta; a primeira l
   num `CampoSelect` no topo; os demais veem o próprio. **Equipe (supervisão, #165):** Líder do Setor e
   Admin veem, na aba "Em atendimento", uma segunda lista, "Da equipe (somente leitura)", com os
   Atendimentos dos outros no Setor; cada card mostra o dono primeiro ("Com Caio · Mercado") para o
-  nome não ser cortado. As duas listas ganham título visível (`rotuloDeSecao`, `h3`) só quando as duas
+  nome não ser cortado. As duas listas ganham título visível (`rotuloDeSecao`, `h2`, como os painéis de ação) só quando as duas
   existem. A equipe só é lida com a aba "Em atendimento" ativa (polling de 15 s) e, enquanto carrega
   ou se a leitura falha, a seção não aparece (a falha acende o aviso de lista indisponível): nunca um
   "ninguém em atendimento" falso. "Atendimento já assumido por outra pessoa."
