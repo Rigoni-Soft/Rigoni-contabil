@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { ShellHeader } from "@/presentation/components/organisms/shell-header.component";
-import { ShellNav } from "@/presentation/components/organisms/shell-nav.component";
+import { ShellNavContainer } from "@/modules/atendimento/presentation/view-models/atendimento-central/shell-nav.container";
 import { AtendimentoTemplate } from "@/presentation/components/templates/atendimento-template.component";
 import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-button.container";
 import {
@@ -44,7 +44,7 @@ export default async function Page() {
           avisos={<SinoAvisosContainer usuarioId={sessao.id} />}
         />
       }
-      nav={<ShellNav setores={setores} rotaAtual={ROTA_ATENDIMENTO} />}
+      nav={<ShellNavContainer setores={setores} rotaAtual={ROTA_ATENDIMENTO} />}
       // Falha na carga inicial não expulsa da tela: a lista começa vazia e o polling a recupera
       // (ou avisa que está indisponível).
       lista={

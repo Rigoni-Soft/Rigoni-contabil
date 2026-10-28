@@ -14,7 +14,8 @@ const TELA_DA_FILA = "/fila";
 // cartão continua sendo o caminho até ela.
 const CONVERSA = "/atendimento/";
 
-// Aviso global da Fila do Setor do usuário: som quando alguém entra, em qualquer tela; cartão no
+// Aviso global da Fila do Setor do usuário: som quando alguém entra, em qualquer tela menos a
+// Atendimento (o som é dela); cartão no
 // dock quando a Fila não está à vista (na conversa, só em tela estreita). Admin não tem Setor próprio: a leitura falha e o aviso some.
 export function useAvisoFila() {
   const pathname = usePathname();
@@ -33,9 +34,12 @@ export function useAvisoFila() {
     if (!query.data) return;
     const atuais = new Set(query.data.map((item) => item.atendimentoId));
     const antes = anterior.current;
-    if (antes && [...atuais].some((id) => !antes.has(id))) tocarNotificacao();
+    // Na tela Atendimento o som é da própria tela (useSomDaLista): aqui tocaria em dobro.
+    if (antes && pathname !== ROTA_ATENDIMENTO && [...atuais].some((id) => !antes.has(id))) {
+      tocarNotificacao();
+    }
     anterior.current = atuais;
-  }, [query.data, habilitado]);
+  }, [query.data, habilitado, pathname]);
 
   const aviso = habilitado && query.data ? avisoDaFila(query.data) : null;
   if (!aviso || pathname.startsWith(TELA_DA_FILA) || pathname === ROTA_ATENDIMENTO) {

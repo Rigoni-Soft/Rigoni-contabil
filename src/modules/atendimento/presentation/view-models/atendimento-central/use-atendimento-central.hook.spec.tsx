@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 
 import { assumirAtendimentoAction, listarFilaAction } from "../fila/fila.actions";
 import { listarMeusAtendimentosAction } from "../meus-atendimentos/meus-atendimentos.actions";
+import { tocarNotificacao } from "@/presentation/lib/notificacao-sonora";
 import { useAtendimentoCentralStore } from "./atendimento-central.store";
 import { useAtendimentoCentral } from "./use-atendimento-central.hook";
 
@@ -12,6 +13,10 @@ jest.mock("../fila/fila.actions", () => ({
 }));
 jest.mock("../meus-atendimentos/meus-atendimentos.actions", () => ({
   listarMeusAtendimentosAction: jest.fn(),
+}));
+jest.mock("@/presentation/lib/notificacao-sonora", () => ({
+  prepararSom: jest.fn(),
+  tocarNotificacao: jest.fn(),
 }));
 
 const assumir = jest.mocked(assumirAtendimentoAction);
@@ -154,6 +159,73 @@ describe("useAtendimentoCentral", () => {
       } finally {
         jest.useRealTimers();
       }
+    });
+  });
+
+  describe("aviso sonoro (#163)", () => {
+    const tocar = jest.mocked(tocarNotificacao);
+    const NOVO = { ...ESPERA, atendimentoId: "at-3" };
+    const conversa = (criadoEm: string) => ({
+      atendimentoId: "at-9",
+      telefone: "5561988887777",
+      criadoEm: "2026-10-08T12:00:00Z",
+      ultimaMensagem: { autor: "contato" as const, texto: "oi", criadoEm, anexoTipo: null },
+      contato: { contatoNome: "João", empresa: null, cnpj: null },
+    });
+
+    beforeEach(() => tocar.mockReset());
+
+    it("não toca na primeira leitura; toca quando surge Atendimento na espera", async () => {
+      const { result, cliente } = renderizar();
+      expect(tocar).not.toHaveBeenCalled();
+
+      jest.mocked(listarFilaAction).mockResolvedValue({ ok: true, data: [ESPERA, DIRIGIDO, NOVO] });
+      await act(async () => {
+        await cliente.refetchQueries();
+      });
+
+      await waitFor(() => expect(tocar).toHaveBeenCalledTimes(1));
+      expect(result.current.itens).toHaveLength(3);
+    });
+
+    it("toca quando o cliente escreve de novo, e não toca na releitura igual", async () => {
+      const { cliente } = renderizar();
+      const reler = () =>
+        act(async () => {
+          await cliente.refetchQueries();
+        });
+
+      jest.mocked(listarMeusAtendimentosAction).mockResolvedValue({
+        ok: true,
+        data: [conversa("2026-10-08T12:05:00Z")],
+      });
+      await reler();
+      await waitFor(() => expect(tocar).toHaveBeenCalledTimes(1));
+
+      await reler();
+      expect(tocar).toHaveBeenCalledTimes(1);
+
+      jest.mocked(listarMeusAtendimentosAction).mockResolvedValue({
+        ok: true,
+        data: [conversa("2026-10-08T12:06:00Z")],
+      });
+      await reler();
+      await waitFor(() => expect(tocar).toHaveBeenCalledTimes(2));
+    });
+
+    it("não toca quando o cliente escreve na conversa que está aberta", async () => {
+      useAtendimentoCentralStore.setState({ aba: "atendimento", abertoId: "at-9" });
+      const { cliente } = renderizar();
+
+      jest.mocked(listarMeusAtendimentosAction).mockResolvedValue({
+        ok: true,
+        data: [conversa("2026-10-08T12:05:00Z")],
+      });
+      await act(async () => {
+        await cliente.refetchQueries();
+      });
+
+      expect(tocar).not.toHaveBeenCalled();
     });
   });
 });

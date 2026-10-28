@@ -10,8 +10,8 @@ import { ROTA_ATENDIMENTO } from "@/shared/kernel/rotas";
 // Atendimento já está na tela e a conversa faz a sua leitura (uma leitura reativa por tela,
 // arquitetura.md 4.9).
 const SEM_ATENDIMENTOS = ["/login", "/trocar-senha", "/atendimento/"];
-// Na tela Atendimento a lista já está à vista (aba "Em atendimento"): o aviso sonoro segue, o cartão
-// do dock não (cobriria o painel de ações).
+// Na tela Atendimento a lista já está à vista (aba "Em atendimento") e o som é dela: nem cartão nem
+// aviso sonoro do dock (o cartão cobriria o painel de ações).
 
 export function useMeusAtendimentos() {
   const pathname = usePathname();
@@ -36,9 +36,10 @@ export function useMeusAtendimentos() {
     const novidade = atuais.some(
       (a) => antes !== null && (!antes.has(a.id) || (a.aguardando && antes.get(a.id) !== a.sinal)),
     );
-    if (novidade) tocarNotificacao();
+    // Na tela Atendimento o som é da própria tela (useSomDaLista): aqui tocaria em dobro.
+    if (novidade && pathname !== ROTA_ATENDIMENTO) tocarNotificacao();
     anterior.current = new Map(atuais.map((a) => [a.id, a.sinal]));
-  }, [query.data, habilitado]);
+  }, [query.data, habilitado, pathname]);
 
   const aVista = habilitado && pathname !== ROTA_ATENDIMENTO;
   return { atendimentos: aVista ? (query.data ?? []).map(atendimentoParaView) : [] };
