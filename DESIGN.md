@@ -904,8 +904,8 @@ o aviso sonoro continua. Modo Operate: cor só para ação e estado, tudo em tok
   partir de 1h; o texto muda a cada segundo, por isso `suppressHydrationWarning`). O nome
   acessível é "Assumir o atendimento de" + Contato + empresa (`aria-labelledby`); resumo e espera
   entram como descrição (`aria-describedby`), nunca um `aria-label` que os esconda. Dirigido a outro
-  usuário: não é botão, só informa "Dirigido a outro usuário", com `bg-muted/50` no lugar do
-  fundo de cartão para não parecer clicável. A espera vem em ordem de antiguidade. Todo controle da tela
+  usuário: não é botão, só informa "Dirigido a outro usuário", com borda tracejada e sem fundo
+  de cartão para não parecer clicável (um tom de fundo some no tema escuro; a borda vale nos dois). A espera vem em ordem de antiguidade. Todo controle da tela
   (abas, cards, "Voltar à lista", "Ir para as ações") usa o anel de foco do sistema: `outline-none
   focus-visible:ring-2 ring-ring ring-offset-2`.
 - **Card de conversa** (`CardDeConversa`): mesmo molde, ícone de mensagem; a conversa aberta ganha

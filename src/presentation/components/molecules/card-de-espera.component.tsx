@@ -86,6 +86,6 @@ export function CardDeEspera({
     </Caixa>
   ) : (
     // Só informa: sem o fundo de cartão clicável, para não parecer um botão.
-    <Caixa className={cn(MOLDURA, "bg-muted/50")}>{conteudo}</Caixa>
+    <Caixa className={cn(MOLDURA, "border-dashed bg-transparent")}>{conteudo}</Caixa>
   );
 }
