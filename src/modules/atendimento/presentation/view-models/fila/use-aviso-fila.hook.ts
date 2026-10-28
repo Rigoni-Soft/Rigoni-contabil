@@ -15,8 +15,8 @@ const TELA_DA_FILA = "/fila";
 const CONVERSA = "/atendimento/";
 
 // Aviso global da Fila do Setor do usuário: som quando alguém entra, em qualquer tela menos a
-// Atendimento (o som é dela); cartão no
-// dock quando a Fila não está à vista (na conversa, só em tela estreita). Admin não tem Setor próprio: a leitura falha e o aviso some.
+// Atendimento (o som é dela); cartão no dock quando a Fila não está à vista (na conversa, só em
+// tela estreita). Admin não tem Setor próprio: a leitura falha e o aviso some.
 export function useAvisoFila() {
   const pathname = usePathname();
   const habilitado = !SEM_FILA.some((rota) => pathname.startsWith(rota));

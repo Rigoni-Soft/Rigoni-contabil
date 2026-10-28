@@ -1,4 +1,4 @@
-import { totalDePendentes } from "./pendentes.presenter";
+import { contarAguardando, totalDePendentes } from "./pendentes.presenter";
 
 describe("totalDePendentes", () => {
   it("soma a espera e só as conversas em que o cliente escreveu por último", () => {
@@ -9,5 +9,11 @@ describe("totalDePendentes", () => {
 
   it("é zero sem espera e sem cliente aguardando", () => {
     expect(totalDePendentes(0, [{ aguardando: false }])).toBe(0);
+  });
+});
+
+describe("contarAguardando", () => {
+  it("conta só as conversas em que o cliente escreveu por último", () => {
+    expect(contarAguardando([{ aguardando: true }, { aguardando: false }])).toBe(1);
   });
 });
