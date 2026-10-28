@@ -1,5 +1,5 @@
+import { contarAguardando } from "@/modules/atendimento/presentation/view-models/atendimento-central/pendentes.presenter";
 import { useFilaQuery } from "@/modules/atendimento/presentation/view-models/fila/fila.queries";
-import { totalDePendentes } from "@/modules/atendimento/presentation/view-models/atendimento-central/pendentes.presenter";
 import { atendimentoParaView } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.presenter";
 import { useMeusAtendimentosQuery } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.queries";
 
@@ -10,7 +10,7 @@ export function usePendentesDoMenu() {
   const fila = useFilaQuery(null, undefined, false);
   const meus = useMeusAtendimentosQuery(false);
   return {
-    total: totalDePendentes(fila.data?.length ?? 0, (meus.data ?? []).map(atendimentoParaView)),
+    total: (fila.data?.length ?? 0) + contarAguardando((meus.data ?? []).map(atendimentoParaView)),
     pronto: !fila.isPending && !meus.isPending,
   };
 }

@@ -12,7 +12,7 @@ type SetorNav = { slug: string };
 // selecionada, e as que têm tela são só links comuns.
 // `pendentesDeAtendimento`: espera do Setor + conversas com o cliente aguardando (#163). `anuncio`: o
 // texto que o leitor de tela lê quando esse contador cresce.
-type ShellNavProps = {
+export type ShellNavProps = {
   setores: SetorNav[];
   rotaAtual?: string;
   pendentesDeAtendimento?: number;
@@ -34,6 +34,7 @@ export function ShellNav({
   pendentesDeAtendimento = 0,
   anuncio = "",
 }: ShellNavProps) {
+  const ativa = rotaAtual === ROTA_ATENDIMENTO;
   return (
     <Linha
       espaco={2}
@@ -74,7 +75,7 @@ export function ShellNav({
       {/* Aba de todo login, ao lado das de Setor: leva à tela Atendimento (espera do Setor e conversas). */}
       <Link
         href={ROTA_ATENDIMENTO}
-        aria-current={rotaAtual === ROTA_ATENDIMENTO ? "page" : undefined}
+        aria-current={ativa ? "page" : undefined}
         aria-label={
           pendentesDeAtendimento > 0
             ? `Atendimento, ${pendentesDeAtendimento} ${pendentesDeAtendimento === 1 ? "pendente" : "pendentes"}`
@@ -83,7 +84,7 @@ export function ShellNav({
         className={cn(
           CHIP,
           "font-medium",
-          rotaAtual === ROTA_ATENDIMENTO
+          ativa
             ? "border-primary bg-primary text-primary-foreground"
             : "text-foreground hover:bg-accent",
         )}
@@ -98,7 +99,7 @@ export function ShellNav({
             aria-hidden="true"
             className={cn(
               "ml-2 rounded-full border-2 bg-destructive px-1.5 text-xs text-destructive-foreground",
-              rotaAtual === ROTA_ATENDIMENTO ? "border-card" : "border-destructive",
+              ativa ? "border-card" : "border-destructive",
             )}
           >
             {pendentesDeAtendimento > 99 ? "99+" : pendentesDeAtendimento}
