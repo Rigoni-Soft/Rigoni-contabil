@@ -51,9 +51,21 @@ describe("ShellNav", () => {
     );
   });
 
-  it("tem a aba 'Atendimento' para a tela da Fila, ao lado das de Setor", () => {
+  it("tem a aba 'Atendimento' para a tela de Atendimento, ao lado das de Setor", () => {
     render(<ShellNav setores={[{ slug: "financeiro" }]} />);
 
-    expect(screen.getByRole("link", { name: "Atendimento" })).toHaveAttribute("href", "/fila");
+    expect(screen.getByRole("link", { name: "Atendimento" })).toHaveAttribute(
+      "href",
+      "/atendimento",
+    );
+  });
+
+  it("marca a aba 'Atendimento' como a página atual quando é a tela aberta", () => {
+    render(<ShellNav setores={[{ slug: "financeiro" }]} rotaAtual="/atendimento" />);
+
+    expect(screen.getByRole("link", { name: "Atendimento" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   });
 });

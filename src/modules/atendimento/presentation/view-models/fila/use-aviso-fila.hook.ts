@@ -7,8 +7,8 @@ import { useFilaQuery } from "@/modules/atendimento/presentation/view-models/fil
 
 // Sem sessão não há Fila para consultar.
 const SEM_FILA = ["/login", "/trocar-senha"];
-// Na tela da Fila ela já está à vista: sem cartão.
-const TELA_DA_FILA = "/fila";
+// Na tela da Fila e na aba Atendimento ela já está à vista: sem cartão.
+const TELAS_COM_FILA = ["/fila", "/atendimento"];
 // Na conversa a Fila fica na barra lateral, que só existe em tela larga (xl): em tela estreita o
 // cartão continua sendo o caminho até ela.
 const CONVERSA = "/atendimento/";
@@ -37,6 +37,9 @@ export function useAvisoFila() {
   }, [query.data, habilitado]);
 
   const aviso = habilitado && query.data ? avisoDaFila(query.data) : null;
-  if (!aviso || pathname.startsWith(TELA_DA_FILA)) return { aviso: null };
-  return { aviso: { ...aviso, soEmTelaEstreita: pathname.startsWith(CONVERSA) } };
+  const conversa = pathname.startsWith(CONVERSA);
+  if (!aviso || (!conversa && TELAS_COM_FILA.some((rota) => pathname.startsWith(rota)))) {
+    return { aviso: null };
+  }
+  return { aviso: { ...aviso, soEmTelaEstreita: conversa } };
 }

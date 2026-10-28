@@ -111,6 +111,10 @@ Para o Setor Simples Nacional só vale para Cliente do Simples Nacional ou MEI: 
 A tela `/atendimento/[id]` em que o Funcionário conduz um Atendimento (#49): a conversa em balões, o campo de resposta e, ao lado, os Serviços do cliente e a Transferência. Quem pode abri-la e agir é o dono do Atendimento, o Líder do Setor onde ele está ou o Admin (mesma regra da Transferência). O balão do cliente mostra o nome do Contato cujo número bate com o do Atendimento (o Contato padrão desempata) e o CNPJ da empresa — ou "CNPJ não definido" quando o número não foi identificado ou é cliente novo; o balão do atendente mostra nome e Setor de quem escreveu. O cabeçalho avisa o dono quando a URA vai encerrar o Atendimento por inatividade dele (#73).
 _Avoid_: Chat do funcionário, tela de atendimento (ambíguo com Atendimento).
 
+**Aba Atendimento**:
+A tela `/atendimento`, ao lado do Dashboard em todo Setor (#162), com duas abas sobrepostas: "Em espera" (os cards da espera do Setor, do mais antigo ao mais novo, assumidos por clique; o primeiro clique vence e o outro recebe "já assumido") e "Em atendimento" (os Atendimentos do usuário). O chat abre no centro, sem rota própria, com Serviços do cliente, Transferência e Encerrar; o Admin escolhe o Setor. Em tela estreita lista e chat alternam. Convive com o Dock e o Painel do Funcionário (`/atendimento/[id]`) até o corte; nela o Dock não mostra cartões.
+_Avoid_: Fila de espera (como tela).
+
 **Serviços do cliente**:
 Os mesmos serviços do menu da URA (contrato social, alterações contratuais, guia de imposto, guia de parcelamento, CND) disparados pelo Funcionário com um clique, usando o Cliente já vinculado ao Atendimento, sem perguntar o CNPJ de novo. Cada serviço tem um botão no painel: o contrato social, a alteração (escolhida num seletor, por nº decrescente, identificada pelo nº) e as guias e a CND, buscadas no provedor fiscal como na URA (#42, #66). Guia sem autorização fiscal do Cliente ou provedor fora do ar devolvem o erro ao Funcionário, sem deixar Mensagem no Atendimento (a falha é auditada).
 

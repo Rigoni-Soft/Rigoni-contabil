@@ -9,6 +9,9 @@ import { useMeusAtendimentosQuery } from "@/modules/atendimento/presentation/vie
 // Atendimento já está na tela e a conversa faz a sua leitura (uma leitura reativa por tela,
 // arquitetura.md 4.9).
 const SEM_ATENDIMENTOS = ["/login", "/trocar-senha", "/atendimento/"];
+// Na tela Atendimento a lista já está à vista (aba "Em atendimento"): o aviso sonoro segue, o cartão
+// do dock não (cobriria o painel de ações).
+const TELA_DE_ATENDIMENTO = "/atendimento";
 
 export function useMeusAtendimentos() {
   const pathname = usePathname();
@@ -37,5 +40,6 @@ export function useMeusAtendimentos() {
     anterior.current = new Map(atuais.map((a) => [a.id, a.sinal]));
   }, [query.data, habilitado]);
 
-  return { atendimentos: habilitado ? (query.data ?? []).map(atendimentoParaView) : [] };
+  const aVista = habilitado && pathname !== TELA_DE_ATENDIMENTO;
+  return { atendimentos: aVista ? (query.data ?? []).map(atendimentoParaView) : [] };
 }
