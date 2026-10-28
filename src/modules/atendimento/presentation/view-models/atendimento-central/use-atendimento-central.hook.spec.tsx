@@ -28,7 +28,7 @@ const DIRIGIDO = { ...ESPERA, atendimentoId: "at-2", filaDoFuncionarioId: "outro
 
 function renderizar() {
   const cliente = new QueryClient();
-  return renderHook(
+  const renderizado = renderHook(
     () =>
       useAtendimentoCentral({
         usuarioId: "eu",
@@ -43,6 +43,7 @@ function renderizar() {
       ),
     },
   );
+  return { ...renderizado, cliente };
 }
 
 describe("useAtendimentoCentral", () => {
@@ -100,6 +101,24 @@ describe("useAtendimentoCentral", () => {
     act(() => useAtendimentoCentralStore.getState().fecharConversa());
 
     expect(result.current.abertoId).toBeNull();
+  });
+
+  describe("anúncio de cliente novo na espera", () => {
+    const NOVO = { ...ESPERA, atendimentoId: "at-3" };
+
+    it("a primeira leitura é silenciosa e uma entrada vira texto para o leitor de tela", async () => {
+      const { result, cliente } = renderizar();
+      expect(result.current.anuncio).toBe("");
+
+      jest.mocked(listarFilaAction).mockResolvedValue({ ok: true, data: [ESPERA, DIRIGIDO, NOVO] });
+      await act(async () => {
+        await cliente.refetchQueries();
+      });
+
+      await waitFor(() =>
+        expect(result.current.anuncio).toBe("Novo cliente em espera. Total na espera: 3."),
+      );
+    });
   });
 
   describe("aviso de 'já assumido'", () => {

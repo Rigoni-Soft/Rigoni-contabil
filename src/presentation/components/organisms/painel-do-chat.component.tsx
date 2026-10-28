@@ -12,17 +12,27 @@ type PainelDoChatProps = {
   // Em tela estreita as ações ficam depois do campo de resposta: com `ancoraDasAcoes` há um atalho
   // para elas no topo do chat (omitido quando a conversa não tem ações, ex.: encerrada).
   ancoraDasAcoes?: string;
+  // Destino do foco quando a conversa abre.
+  ref?: React.Ref<HTMLElement>;
   // As regiões do chat (cabeçalho, mensagens, compositor), quando `pronto`.
   children?: React.ReactNode;
 };
 
 // O centro da tela Atendimento. Em tela estreita só aparece com conversa aberta; em tela larga
 // está sempre lá, com o convite quando não há conversa.
-export function PainelDoChat({ estado, onVoltar, ancoraDasAcoes, children }: PainelDoChatProps) {
+export function PainelDoChat({
+  estado,
+  onVoltar,
+  ancoraDasAcoes,
+  ref,
+  children,
+}: PainelDoChatProps) {
   return (
     <Caixa
       como="section"
       aria-label="Conversa"
+      ref={ref}
+      tabIndex={-1}
       className={cn(
         "min-h-0 flex-1 flex-col gap-3 lg:flex",
         estado === "vazio" ? "hidden lg:flex" : "flex",
