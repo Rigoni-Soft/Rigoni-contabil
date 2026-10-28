@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
 import { cn } from "@/presentation/lib/utils";
+import { ROTA_ATENDIMENTO } from "@/shared/kernel/rotas";
 import { SETOR_LABEL } from "@/shared/kernel/setores";
 
 type SetorNav = { slug: string };
@@ -57,14 +58,14 @@ export function ShellNav({ setores, rotaAtual }: ShellNavProps) {
           </Caixa>
         );
       })}
-      {/* Aba de todo login, ao lado das de Setor: leva à Fila (antes um botão só do Admin). */}
+      {/* Aba de todo login, ao lado das de Setor: leva à tela Atendimento (espera do Setor e conversas). */}
       <Link
-        href="/atendimento"
-        aria-current={rotaAtual === "/atendimento" ? "page" : undefined}
+        href={ROTA_ATENDIMENTO}
+        aria-current={rotaAtual === ROTA_ATENDIMENTO ? "page" : undefined}
         className={cn(
           CHIP,
           "font-medium",
-          rotaAtual === "/atendimento"
+          rotaAtual === ROTA_ATENDIMENTO
             ? "border-primary bg-primary text-primary-foreground"
             : "text-foreground hover:bg-accent",
         )}

@@ -1,14 +1,11 @@
-import { useState } from "react";
-
 import type { ItemDaFilaVisto } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
 import type { AtendimentoVisto } from "@/modules/atendimento/application/ports/in/listar-meus-atendimentos.provider";
+import { useAtendimentoCentralStore } from "@/modules/atendimento/presentation/view-models/atendimento-central/atendimento-central.store";
 import { useAssumirAtendimentoMutation } from "@/modules/atendimento/presentation/view-models/fila/assumir.queries";
 import { useFila } from "@/modules/atendimento/presentation/view-models/fila/use-fila.hook";
 import { atendimentoParaView } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.presenter";
 import { useMeusAtendimentosQuery } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.queries";
 import type { SetorSlug } from "@/shared/kernel/setores";
-
-export type AbaDoAtendimento = "espera" | "atendimento";
 
 type Entrada = {
   usuarioId: string;
@@ -18,8 +15,8 @@ type Entrada = {
   podeEscolherSetor: boolean;
 };
 
-// Estado da tela Atendimento: a espera do Setor, os Atendimentos do usuário e qual conversa está
-// aberta no centro (sem rota própria: o id vive aqui, não na URL).
+// A região da lista: a espera do Setor, os Atendimentos do usuário e o assumir. Aba e conversa
+// aberta ficam no store da tela, porque o chat e as ações também dependem delas.
 export function useAtendimentoCentral({
   usuarioId,
   setorInicial,
@@ -30,28 +27,18 @@ export function useAtendimentoCentral({
   const fila = useFila(setorInicial, filaInicial, podeEscolherSetor, usuarioId);
   const meus = useMeusAtendimentosQuery(true, meusInicial);
   const assumir = useAssumirAtendimentoMutation();
-  const [aba, setAba] = useState<AbaDoAtendimento>("espera");
-  const [abertoId, setAbertoId] = useState<string | null>(null);
-
-  const emAtendimento = (meus.data ?? []).map(atendimentoParaView);
+  const { aba, abertoId, escolherAba, abrir, aoAssumir } = useAtendimentoCentralStore();
 
   return {
     ...fila,
     aba,
-    escolherAba: setAba,
+    escolherAba,
     espera: fila.itens,
-    emAtendimento,
+    emAtendimento: (meus.data ?? []).map(atendimentoParaView),
     abertoId,
-    abrir: setAbertoId,
-    fecharConversa: () => setAbertoId(null),
-    // Assumiu: o Atendimento é do usuário, então a tela já o mostra aberto em "Em atendimento".
+    abrir,
     assumir: (atendimentoId: string) =>
-      assumir.mutate(atendimentoId, {
-        onSuccess: () => {
-          setAba("atendimento");
-          setAbertoId(atendimentoId);
-        },
-      }),
+      assumir.mutate(atendimentoId, { onSuccess: () => aoAssumir(atendimentoId) }),
     assumindo: assumir.isPending,
     avisoDeAssuncao: assumir.isError ? assumir.error.message : undefined,
   };

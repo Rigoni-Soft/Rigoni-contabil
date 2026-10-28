@@ -4,7 +4,7 @@ import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { cn } from "@/presentation/lib/utils";
 
-type CardDeEsperaProps = {
+export type CardDeEsperaProps = {
   contato: string;
   empresa: string;
   // O que o cliente já disse ou escolheu antes de chegar à espera.
