@@ -8,7 +8,7 @@ import type { ActionResult } from "@/shared/dtos/action-result.dto";
 import { SETORES } from "@/shared/kernel/setores";
 import { toActionResult } from "@/shared/kernel/to-action-result";
 
-const setorSchema = z.enum(SETORES).optional();
+const setorSchema = z.enum(SETORES);
 
 export async function listarAtendimentosDaEquipeAction(
   setor: unknown,

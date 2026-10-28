@@ -41,25 +41,23 @@ const ADMIN: AtorSessaoDto = { id: "adm", papel: "admin", setor: "administrativo
 describe("ListarAtendimentosDaEquipe", () => {
   it("Líder vê os Atendimentos dos outros no seu Setor, sem os dele", async () => {
     const { caso, setoresLidos } = montar(LIDER);
-    const r = await caso.execute({});
+    const r = await caso.execute({ setor: "contabil" });
     expect(r.ok && r.value.map((a) => [a.atendimentoId, a.donoNome])).toEqual([
       ["a2", "Nome func-2"],
     ]);
     expect(setoresLidos).toEqual(["contabil"]);
   });
 
-  it("Admin lê o Setor que informa e precisa informar um", async () => {
+  it("Admin lê o Setor que informa", async () => {
     const { caso, setoresLidos } = montar(ADMIN);
     expect((await caso.execute({ setor: "rh" })).ok).toBe(true);
     expect(setoresLidos).toEqual(["rh"]);
-    const sem = await caso.execute({});
-    expect(!sem.ok && sem.error.code).toBe("FORBIDDEN");
   });
 
-  it.each<[string, AtorSessaoDto | null, SetorSlug | undefined]>([
+  it.each<[string, AtorSessaoDto | null, SetorSlug]>([
     ["Funcionário do Setor", { id: "f", papel: "funcionario", setor: "contabil" }, "contabil"],
     ["Líder de outro Setor", LIDER, "rh"],
-    ["sem sessão", null, undefined],
+    ["sem sessão", null, "contabil"],
   ])("%s é recusado e nada é lido", async (_nome, ator, setor) => {
     const { caso, setoresLidos } = montar(ator);
     const r = await caso.execute({ setor });
@@ -68,7 +66,7 @@ describe("ListarAtendimentosDaEquipe", () => {
   });
 
   it("repassa a falha do repositório", async () => {
-    const r = await montar(LIDER, true).caso.execute({});
+    const r = await montar(LIDER, true).caso.execute({ setor: "contabil" });
     expect(r.ok).toBe(false);
   });
 });

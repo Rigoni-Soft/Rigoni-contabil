@@ -16,17 +16,14 @@ export class ListarAtendimentosDaEquipe implements ListarAtendimentosDaEquipePor
   ) {}
 
   async execute(input: {
-    setor?: SetorSlug;
+    setor: SetorSlug;
   }): Promise<Result<AtendimentoDaEquipeVisto[], AppError>> {
     const ator = await this.sessao.usuarioAtual();
     if (!ator) return err(new ForbiddenError("Faça login para ver os Atendimentos da equipe."));
     if (ator.papel === "funcionario") {
       return err(new ForbiddenError("Só Líder e Admin supervisionam os Atendimentos da equipe."));
     }
-    if (!input.setor && ator.papel === "admin") {
-      return err(new ForbiddenError("Informe o Setor."));
-    }
-    const setor = input.setor ?? ator.setor;
+    const { setor } = input;
     if (ator.papel !== "admin" && ator.setor !== setor) {
       return err(new ForbiddenError("Você só supervisiona o seu Setor."));
     }
