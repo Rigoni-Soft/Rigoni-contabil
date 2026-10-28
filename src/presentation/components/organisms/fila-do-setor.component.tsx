@@ -22,6 +22,10 @@ type FilaDoSetorProps = {
   };
   carregando?: boolean;
   indisponivel?: boolean;
+  onAssumir?: (id: string) => void;
+  // O item cuja assunção está em curso; os demais ficam livres.
+  assumindoId?: string | null;
+  erroAoAssumir?: string | null;
 };
 
 export function FilaDoSetor({
@@ -31,6 +35,9 @@ export function FilaDoSetor({
   escolhaDeSetor,
   carregando = false,
   indisponivel = false,
+  onAssumir,
+  assumindoId = null,
+  erroAoAssumir = null,
 }: FilaDoSetorProps) {
   const Titulo = nivelDoTitulo === 1 ? "h1" : "h2";
   return (
@@ -57,6 +64,11 @@ export function FilaDoSetor({
           Não foi possível atualizar a Fila agora. Tentando de novo.
         </Texto>
       )}
+      {erroAoAssumir && (
+        <Texto variante="alerta" role="alert">
+          {erroAoAssumir}
+        </Texto>
+      )}
       {carregando ? (
         <Texto variante="apoio" role="status">
           Carregando a Fila…
@@ -67,7 +79,11 @@ export function FilaDoSetor({
         <Pilha espaco={2} como="ol">
           {itens.map(({ id, ...item }) => (
             <Caixa como="li" key={id}>
-              <ItemDaFila {...item} />
+              <ItemDaFila
+                {...item}
+                onAssumir={onAssumir && (() => onAssumir(id))}
+                assumindo={assumindoId === id}
+              />
             </Caixa>
           ))}
         </Pilha>

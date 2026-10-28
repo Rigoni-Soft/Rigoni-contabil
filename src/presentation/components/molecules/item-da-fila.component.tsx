@@ -2,6 +2,7 @@ import { Clock } from "lucide-react";
 
 import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
+import { cn } from "@/presentation/lib/utils";
 
 export type ItemDaFilaProps = {
   contato: string;
@@ -11,6 +12,9 @@ export type ItemDaFilaProps = {
   resumo: string | null;
   dirigido: boolean;
   espera: string;
+  // A Fila não distribui sozinha: quem está nela é assumido por um usuário do Setor, por aqui.
+  onAssumir?: () => void;
+  assumindo?: boolean;
 };
 
 export function ItemDaFila({
@@ -21,6 +25,8 @@ export function ItemDaFila({
   resumo,
   dirigido,
   espera,
+  onAssumir,
+  assumindo = false,
 }: ItemDaFilaProps) {
   return (
     <Linha
@@ -53,6 +59,22 @@ export function ItemDaFila({
           <Texto variante="apoio" className="mt-1">
             Dirigido a um usuário
           </Texto>
+        )}
+        {onAssumir && (
+          <Caixa
+            como="button"
+            type="button"
+            onClick={onAssumir}
+            disabled={assumindo}
+            aria-label={`Assumir o atendimento de ${contato}`}
+            className={cn(
+              "mt-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium",
+              "hover:bg-accent disabled:opacity-60 pointer-coarse:min-h-11",
+              "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+            )}
+          >
+            Assumir
+          </Caixa>
         )}
       </Caixa>
       <Linha como="span" alinhar="centro" espaco={1} className="shrink-0 text-sm tabular-nums">

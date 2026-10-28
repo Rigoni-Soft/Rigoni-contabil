@@ -212,4 +212,57 @@ test.describe("Fila do Setor (#70)", () => {
     await expect(page.getByRole("listitem").filter({ hasText: "Seu Fila" })).toBeVisible();
     await expect(page.getByRole("heading", { level: 1, name: /setor Financeiro$/ })).toBeVisible();
   });
+
+  test("o usuário assume pela Fila: abre a conversa e o Atendimento passa a ser dele (196-F1)", async ({
+    page,
+  }) => {
+    const cliente = crypto.randomUUID();
+    const telefone = "61955573009";
+    await admin.from("atendimentos").delete().eq("chave_telefone", telefone);
+    const criado = await admin.from("clientes").insert({
+      id: cliente,
+      empresa: "Assume E2E Ltda",
+      cnpj: `6${Date.now()}`.slice(0, 14),
+      regime: "lucro_presumido",
+    });
+    if (criado.error) throw criado.error;
+    const contato = await admin.from("cliente_contatos").insert({
+      id: crypto.randomUUID(),
+      cliente_id: cliente,
+      nome: "Dona Assume",
+      telefone: "(61) 95557-3009",
+      padrao: true,
+    });
+    if (contato.error) throw contato.error;
+    // Pela mesma RPC que a URA chama: nasce na espera do Setor, sem dono.
+    const aberto = await admin.rpc("abrir_atendimento", {
+      p_telefone: `55${telefone}`,
+      p_chave: telefone,
+      p_cliente_id: cliente,
+      p_setor: "contabil",
+      p_mensagens: [
+        { autor: "contato", texto: "Quero assumir isso", idExterno: "wamid.E2E-ASSUME" },
+      ],
+    });
+    if (aberto.error) throw aberto.error;
+
+    try {
+      await login(page, "lider.contabil@rigonicontabil.local", "lider123");
+      await expect(page).toHaveURL("/");
+      await page.goto("/fila");
+      await page.getByRole("button", { name: "Assumir o atendimento de Dona Assume" }).click();
+
+      await expect(page).toHaveURL(/\/atendimento\/[0-9a-f-]{36}$/);
+      const assumido = await admin
+        .from("atendimentos")
+        .select("id, funcionario_id")
+        .eq("chave_telefone", telefone)
+        .single();
+      expect(assumido.data?.funcionario_id).not.toBeNull();
+      expect(page.url()).toContain(assumido.data?.id);
+    } finally {
+      await admin.from("atendimentos").delete().eq("chave_telefone", telefone);
+      await admin.from("clientes").delete().eq("id", cliente);
+    }
+  });
 });
