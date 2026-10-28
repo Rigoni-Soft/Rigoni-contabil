@@ -58,6 +58,6 @@ export function useAtendimentoCentral({
     assumir: (atendimentoId: string) =>
       assumir.mutate(atendimentoId, { onSuccess: () => aoAssumir(atendimentoId) }),
     assumindo: assumir.isPending,
-    avisoDeAssuncao: assumir.isError ? assumir.error.message : undefined,
+    avisoDeAssuncao: assumir.error?.message,
   };
 }
