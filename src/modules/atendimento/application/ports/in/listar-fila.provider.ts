@@ -10,6 +10,7 @@ export type ItemDaFilaVisto = {
   telefone: string;
   contato: DadosDoContato;
   resumo: string | null;
+  origem: { setor: SetorSlug; nome: string | null } | null;
   filaDesde: Date;
   espera: string;
   filaDoFuncionarioId: string | null;

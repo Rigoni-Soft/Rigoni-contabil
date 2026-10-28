@@ -53,6 +53,9 @@ export type OrigemUra = { resumo: string | null; cnpjInformado: string | null };
 export type ConversaVista = {
   atendimentoId: string;
   encerrado: boolean;
+  // Dono com o Atendimento em andamento: só ele responde e transfere; Líder do Setor e Admin leem
+  // em supervisão (e encerram).
+  podeAtender: boolean;
   telefone: string;
   contato: DadosDoContato;
   // Sem Cliente vinculado (ex.: número não identificado) não há CNPJ para disparar serviços.

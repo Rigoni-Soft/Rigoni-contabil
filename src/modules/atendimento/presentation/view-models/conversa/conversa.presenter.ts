@@ -41,6 +41,8 @@ export type ConversaView = {
   titulo: string;
   subtitulo: string;
   encerrado: boolean;
+  // Líder do Setor ou Admin lendo a conversa de outro: sem responder, serviços nem transferência.
+  somenteLeitura: boolean;
   semCliente: boolean;
   avisoInatividade: boolean;
   // De onde veio o Atendimento: a última Transferência ou, sem ela, o que a URA já sabia.
@@ -220,6 +222,7 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
           ? `Provável cliente novo · CNPJ informado ${formatarCnpj(conversa.ura.cnpjInformado)} · ${telefone}`
           : "Cliente não identificado",
     encerrado: conversa.encerrado,
+    somenteLeitura: !conversa.encerrado && !conversa.podeAtender,
     semCliente: !conversa.clienteVinculado,
     avisoInatividade: conversa.avisoInatividade,
     contexto: contextoDaConversa(conversa),

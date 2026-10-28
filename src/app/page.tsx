@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { ShellHeader } from "@/presentation/components/organisms/shell-header.component";
-import { ShellNav } from "@/presentation/components/organisms/shell-nav.component";
+import { ShellNavContainer } from "@/modules/atendimento/presentation/view-models/atendimento-central/shell-nav.container";
 import { HomePage } from "@/presentation/components/pages/home.page";
 import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-button.container";
 import {
@@ -34,7 +34,7 @@ export default async function Home() {
           avisos={<SinoAvisosContainer usuarioId={sessao.id} />}
         />
       }
-      nav={<ShellNav setores={setores} />}
+      nav={<ShellNavContainer setores={setores} />}
       busca={<BuscarClienteContainer papel={sessao.papel} setor={sessao.setor} />}
     />
   );

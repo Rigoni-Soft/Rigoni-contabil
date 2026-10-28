@@ -27,6 +27,8 @@ const TELEFONES = [
   "61955571008",
   "61955571009",
   "61955571010",
+  "61955571011",
+  "61955571012",
 ];
 const clienteId = crypto.randomUUID();
 const CNPJ = `8${Date.now()}`.slice(0, 14);
@@ -107,6 +109,8 @@ describe("SupabaseAtendimentoRepository — painel do Funcionário", () => {
       value: [
         {
           id: dela,
+          funcionarioId: ana,
+          funcionarioNome: "Ana Painel 49",
           telefone: TELEFONES[0],
           criadoEm: expect.any(String),
           contato: { contatoNome: "Seu Painel", empresa: "Painel Ltda", cnpj: CNPJ },
@@ -123,6 +127,24 @@ describe("SupabaseAtendimentoRepository — painel do Funcionário", () => {
 
     await admin.from("atendimentos").update({ status: "encerrado" }).eq("id", dela);
     expect(await repositorio.emAndamentoDoFuncionario(ana)).toEqual({ ok: true, value: [] });
+  });
+
+  it("lista os Atendimentos com dono do Setor, de qualquer dono, com o nome dele", async () => {
+    const cris = await criarFuncionario("Cris Painel 165");
+    const dani = await criarFuncionario("Dani Painel 165");
+    const deCris = await abrir(TELEFONES[10], cris, null);
+    const deDani = await abrir(TELEFONES[11], dani, null);
+
+    const lista = await repositorio.emAndamentoDoSetor(SETOR);
+    const doTeste = lista.ok
+      ? lista.value
+          .filter((a) => [deCris, deDani].includes(a.id))
+          .map((a) => [a.id, a.funcionarioNome])
+      : lista;
+    expect(doTeste).toEqual([
+      [deCris, "Cris Painel 165"],
+      [deDani, "Dani Painel 165"],
+    ]);
   });
 
   it("devolve a conversa em ordem, com nome e Setor de quem escreveu cada Mensagem do Funcionário", async () => {
