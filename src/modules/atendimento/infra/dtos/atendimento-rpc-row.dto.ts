@@ -37,6 +37,8 @@ export const atendimentoEmAndamentoRowSchema = z.object({
 export const roteamentoDoClienteRowSchema = z.object({
   regime: z.enum(REGIMES),
   cliente_cadastro_operacional_sn: z.object({ responsavel_id: z.string().nullable() }).nullable(),
+  // Responsável dos Setores fora do Simples Nacional (um por Setor).
+  cliente_responsaveis: z.array(z.object({ setor: z.enum(SETORES), responsavel_id: z.string() })),
 });
 
 export const liderRowSchema = z.object({ id: z.string() });
@@ -61,6 +63,8 @@ export const filaRowSchema = z.object({
   empresa: z.string().nullable(),
   cnpj: z.string().nullable(),
   resumo: z.string().nullable(),
+  origem_setor: z.enum(SETORES).nullable(),
+  origem_nome: z.string().nullable(),
 });
 
 // `atendimentos_para_inatividade`.

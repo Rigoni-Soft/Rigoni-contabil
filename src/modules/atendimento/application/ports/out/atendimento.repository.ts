@@ -64,7 +64,7 @@ export type ResultadoAssuncao =
   | { status: "ja_assumido" }
   | { status: "inexistente" };
 
-// Regime e Responsável do Cliente, para decidir a Transferência ao Simples Nacional.
+// Regime do Cliente e Responsável dele no Setor de destino, para decidir a Transferência.
 export type RoteamentoDoCliente = { regime: RegimeValor; responsavelId: string | null };
 
 // Atendimento sem Funcionário: espera do Setor (`filaFuncionarioId` null) ou dirigida a um usuário.
@@ -76,6 +76,8 @@ export type ItemDaFila = {
   telefone: string;
   contato: DadosDoContato;
   resumo: string | null;
+  // De onde veio, se foi transferido; `nome` null quando o Funcionário de origem não existe mais.
+  origem: { setor: SetorSlug; nome: string | null } | null;
 };
 
 // Atendimento em andamento com Funcionário, com o que a verificação de inatividade precisa:
@@ -217,7 +219,11 @@ export interface AtendimentoRepositoryPort {
       anexo?: AnexoDaMensagem;
     },
   ): Promise<Result<ResultadoRegistroRecebido, AppError>>;
-  roteamentoDoCliente(clienteId: string): Promise<Result<RoteamentoDoCliente | null, AppError>>;
+  // `responsavelId` é o do Setor informado (null sem Setor, sem atribuição ou desativado).
+  roteamentoDoCliente(
+    clienteId: string,
+    setorDestino?: SetorSlug,
+  ): Promise<Result<RoteamentoDoCliente | null, AppError>>;
   liderDoSetor(setor: SetorSlug): Promise<Result<string | null, AppError>>;
   transferir(transferencia: NovaTransferencia): Promise<Result<ResultadoTransferencia, AppError>>;
   // Assume o Atendimento da espera do Setor para o ator, atômico: o primeiro vence. Grava o evento

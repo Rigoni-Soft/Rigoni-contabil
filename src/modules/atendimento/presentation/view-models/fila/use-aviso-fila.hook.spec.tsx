@@ -22,6 +22,7 @@ const item = (id: string) => ({
   telefone: "5561988887777",
   contato: { contatoNome: "Maria", empresa: null, cnpj: null },
   resumo: null,
+  origem: null,
   filaDesde: new Date("2026-10-09T12:00:00Z"),
   espera: "00:00",
   filaDoFuncionarioId: null,
