@@ -67,6 +67,11 @@ export const encerramentoRowSchema = z.discriminatedUnion("status", [
   z.object({ status: z.literal("inexistente") }),
 ]);
 
+// `assumir_atendimento`.
+export const assuncaoRowSchema = z.object({
+  status: z.enum(["assumido", "inelegivel", "ja_assumido", "inexistente"]),
+});
+
 export const filaRowSchema = z.object({
   id: z.string(),
   posicao: z.number().int(),
