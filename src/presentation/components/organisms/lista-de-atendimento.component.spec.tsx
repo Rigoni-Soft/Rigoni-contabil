@@ -53,4 +53,10 @@ describe("ListaDeAtendimento", () => {
 
     expect(screen.getByRole("combobox", { name: "Setor" })).toBeInTheDocument();
   });
+
+  it("anuncia cliente novo ao leitor de tela numa região de status", () => {
+    renderizar({ anuncio: "Novo cliente em espera. Total na espera: 3." });
+
+    expect(screen.getByRole("status")).toHaveTextContent("Novo cliente em espera");
+  });
 });

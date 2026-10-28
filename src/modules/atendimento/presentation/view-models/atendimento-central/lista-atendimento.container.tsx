@@ -6,6 +6,7 @@ import { PainelDeEspera } from "@/presentation/components/organisms/painel-de-es
 import type { ItemDaFilaVisto } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
 import type { AtendimentoVisto } from "@/modules/atendimento/application/ports/in/listar-meus-atendimentos.provider";
 import { useAtendimentoCentral } from "@/modules/atendimento/presentation/view-models/atendimento-central/use-atendimento-central.hook";
+import { useFocoNaLista } from "@/modules/atendimento/presentation/view-models/atendimento-central/use-foco-da-tela.hook";
 import { SETOR_LABEL, SETORES, type SetorSlug } from "@/shared/kernel/setores";
 
 type ListaAtendimentoContainerProps = {
@@ -20,6 +21,7 @@ const OPCOES = SETORES.map((valor) => ({ valor, rotulo: SETOR_LABEL[valor] }));
 
 export function ListaAtendimentoContainer(entrada: ListaAtendimentoContainerProps) {
   const lista = useAtendimentoCentral(entrada);
+  const foco = useFocoNaLista(lista.abertoId);
 
   return (
     <ListaDeAtendimento
@@ -29,6 +31,8 @@ export function ListaAtendimentoContainer(entrada: ListaAtendimentoContainerProp
       aviso={lista.avisoDeAssuncao}
       indisponivel={lista.indisponivel}
       escondidaNoCelular={lista.abertoId !== null}
+      anuncio={lista.anuncio}
+      ref={foco}
       escolhaDeSetor={
         entrada.podeEscolherSetor
           ? { setor: lista.setor, opcoes: OPCOES, onChange: lista.escolherSetor }

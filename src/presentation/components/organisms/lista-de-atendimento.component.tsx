@@ -21,6 +21,10 @@ type ListaDeAtendimentoProps = {
   };
   // Em tela estreita o chat aberto ocupa o lugar da lista.
   escondidaNoCelular?: boolean;
+  // Avisa o leitor de tela de cliente novo na espera (o som é o único outro sinal).
+  anuncio?: string;
+  // Destino do foco quando a conversa fecha.
+  ref?: React.Ref<HTMLElement>;
   // O painel da aba ativa (`PainelDeEspera` ou `PainelDeEmAtendimento`).
   children: React.ReactNode;
 };
@@ -34,6 +38,8 @@ export function ListaDeAtendimento({
   indisponivel = false,
   escolhaDeSetor,
   escondidaNoCelular = false,
+  anuncio,
+  ref,
   children,
 }: ListaDeAtendimentoProps) {
   return (
@@ -41,6 +47,8 @@ export function ListaDeAtendimento({
       espaco={3}
       como="section"
       aria-label="Atendimentos"
+      ref={ref}
+      tabIndex={-1}
       className={cn(escondidaNoCelular && "hidden lg:block")}
     >
       {escolhaDeSetor && (
@@ -65,6 +73,9 @@ export function ListaDeAtendimento({
         ativa={aba}
         onEscolher={onEscolherAba}
       />
+      <Texto variante="somenteLeitor" role="status">
+        {anuncio}
+      </Texto>
       {aviso && (
         <Texto variante="alerta" role="alert">
           {aviso}
