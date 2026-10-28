@@ -916,15 +916,24 @@ na espera ou cliente que escreve de novo numa conversa não aberta; a primeira l
   partir de 1h; o texto muda a cada segundo, por isso `suppressHydrationWarning`). O nome
   acessível é "Assumir o atendimento de" + Contato + empresa (`aria-labelledby`); resumo e espera
   entram como descrição (`aria-describedby`), nunca um `aria-label` que os esconda. Dirigido a outro
-  usuário: não é botão, só informa "Dirigido a outro usuário", com borda tracejada e sem fundo
-  de cartão para não parecer clicável (um tom de fundo some no tema escuro; a borda vale nos dois). A espera vem em ordem de antiguidade. Todo controle da tela
+  usuário: só informa "Dirigido a outro usuário", com borda tracejada e sem fundo de cartão para não
+  parecer clicável (um tom de fundo some no tema escuro; a borda vale nos dois). **Para Líder e Admin
+  (supervisão, #165)** o mesmo card vira botão de *leitura*: mantém a borda tracejada (não confunde
+  com o que assume), ganha o ícone de olho e a nota "Dirigido a outro usuário · só leitura", e o
+  nome acessível passa a "Ler o atendimento de"; abre a conversa sem assumir. A espera vem em ordem de antiguidade. Todo controle da tela
   (abas, cards, "Voltar à lista", "Ir para as ações") usa o anel de foco do sistema: `outline-none
   focus-visible:ring-2 ring-ring ring-offset-2`.
 - **Card de conversa** (`CardDeConversa`): mesmo molde, ícone de mensagem; a conversa aberta ganha
   `border-primary bg-accent` e `aria-current`; o cliente aguardando resposta ganha a bolinha
   `destructive` (e "nova mensagem" só para leitor de tela) e a prévia em `font-medium`.
 - **Lista** (`ListaDeAtendimento` + `PainelDeEspera`/`PainelDeEmAtendimento`): o Admin escolhe o Setor
-  num `CampoSelect` no topo; os demais veem o próprio. "Atendimento já assumido por outra pessoa."
+  num `CampoSelect` no topo; os demais veem o próprio. **Equipe (supervisão, #165):** Líder do Setor e
+  Admin veem, na aba "Em atendimento", uma segunda lista, "Da equipe (somente leitura)", com os
+  Atendimentos dos outros no Setor; cada card mostra o dono primeiro ("Com Caio · Mercado") para o
+  nome não ser cortado. As duas listas ganham título visível (`rotuloDeSecao`, `h3`) só quando as duas
+  existem. A equipe só é lida com a aba "Em atendimento" ativa (polling de 15 s) e, enquanto carrega
+  ou se a leitura falha, a seção não aparece (a falha acende o aviso de lista indisponível): nunca um
+  "ninguém em atendimento" falso. "Atendimento já assumido por outra pessoa."
   aparece em `role="alert"` (`alerta`) e **some sozinho em 8 s** ou ao trocar de aba; o card some da
   espera na releitura. Uma região `sr-only role="status"` anuncia "Novo cliente em espera. Total na
   espera: N." para quem usa leitor de tela (a primeira leitura é silenciosa; quem sai não conta). A mesma região avisa "[Contato] escreveu." quando
@@ -934,6 +943,11 @@ na espera ou cliente que escreve de novo numa conversa não aberta; a primeira l
   tela larga), `abrindo` (`status`), `erro` (`alert`) e `pronto` (cabeçalho, mensagens e compositor
   do Painel do Funcionário). Em tela estreita o topo traz "← Voltar à lista" e, só com ações
   disponíveis, "Ir para as ações ↓" (âncora para o painel de ações, id `acoes-do-atendimento`).
+  **Leitura de supervisão (#165):** quando Líder ou Admin abre a conversa de outro, o compositor dá
+  lugar a `AvisoDeLeitura` (`role="status"`, borda tracejada, ícone de olho: "Leitura de supervisão.
+  Só quem assumiu o atendimento responde."), e o painel de ações mantém só o Encerrar, sem o divisor
+  de seção solto no topo; serviços e transferência não aparecem. A regra vem do servidor
+  (`podeAtender`), a tela só obedece.
 - **Foco**: ao abrir uma conversa (inclui assumir) o foco vai para o painel do chat, uma vez por
   conversa; ao fechá-la (voltar, encerrar, transferir) volta para a região da lista. Sem isso o card
   que some deixaria o foco no `<body>`. O destino é a região (`tabIndex={-1}`), não o campo de
