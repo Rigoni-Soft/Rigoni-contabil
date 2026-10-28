@@ -9,6 +9,29 @@ type AbasDeAtendimentoProps<T extends string> = {
   onEscolher: (valor: T) => void;
 };
 
+// Padrão WAI-ARIA de abas: só a ativa entra na ordem do Tab; as setas, Home e End movem o foco entre
+// as abas e já as ativam.
+function aoTeclar<T extends string>(
+  evento: React.KeyboardEvent<HTMLElement>,
+  abas: AbaView<T>[],
+  indice: number,
+  onEscolher: (valor: T) => void,
+) {
+  const ultimo = abas.length - 1;
+  const destino = {
+    ArrowRight: indice === ultimo ? 0 : indice + 1,
+    ArrowLeft: indice === 0 ? ultimo : indice - 1,
+    Home: 0,
+    End: ultimo,
+  }[evento.key];
+  if (destino === undefined) return;
+  evento.preventDefault();
+  onEscolher(abas[destino].valor);
+  evento.currentTarget.parentElement
+    ?.querySelectorAll<HTMLElement>('[role="tab"]')
+    [destino]?.focus();
+}
+
 // Abas sobrepostas: só o painel da ativa fica na tela. O contador avisa de trabalho novo.
 export function AbasDeAtendimento<T extends string>({
   abas,
@@ -17,7 +40,7 @@ export function AbasDeAtendimento<T extends string>({
 }: AbasDeAtendimentoProps<T>) {
   return (
     <Linha role="tablist" aria-label="Atendimento" espaco={1} className="border-b border-border">
-      {abas.map(({ valor, rotulo, contador }) => (
+      {abas.map(({ valor, rotulo, contador }, indice) => (
         <Caixa
           como="button"
           key={valor}
@@ -26,7 +49,9 @@ export function AbasDeAtendimento<T extends string>({
           id={`aba-${valor}`}
           aria-selected={valor === ativa}
           aria-controls="painel-de-atendimento"
+          tabIndex={valor === ativa ? 0 : -1}
           onClick={() => onEscolher(valor)}
+          onKeyDown={(evento) => aoTeclar(evento, abas, indice, onEscolher)}
           className={cn(
             "-mb-px border-b-2 px-3 py-2 text-sm font-medium pointer-coarse:min-h-11",
             valor === ativa
