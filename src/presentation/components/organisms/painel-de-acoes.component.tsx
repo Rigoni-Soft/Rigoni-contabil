@@ -2,6 +2,9 @@ import { Pilha } from "@/presentation/components/atoms/caixa.component";
 import { SecaoComDivisor } from "@/presentation/components/atoms/secao-com-divisor.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 
+// Alvo do atalho "Ir para as ações" do chat central, em tela estreita.
+export const ID_DO_PAINEL_DE_ACOES = "acoes-do-atendimento";
+
 type PainelDeAcoesProps = {
   // Nome do Setor para onde o Atendimento acabou de ir; troca as ações por um aviso.
   transferidoPara?: string;
@@ -21,6 +24,7 @@ export function PainelDeAcoes({
     <Pilha
       espaco={4}
       como="aside"
+      id={ID_DO_PAINEL_DE_ACOES}
       aria-label="Ações do Atendimento"
       className="min-h-0 self-start overflow-y-auto rounded-xl border border-border bg-card p-3 lg:max-h-full"
     >
