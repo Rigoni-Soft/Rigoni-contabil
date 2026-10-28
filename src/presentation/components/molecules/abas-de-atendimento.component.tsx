@@ -53,7 +53,8 @@ export function AbasDeAtendimento<T extends string>({
           onClick={() => onEscolher(valor)}
           onKeyDown={(evento) => aoTeclar(evento, abas, indice, onEscolher)}
           className={cn(
-            "-mb-px border-b-2 px-3 py-2 text-sm font-medium pointer-coarse:min-h-11",
+            "-mb-px rounded-t-md border-b-2 px-3 py-2 text-sm font-medium pointer-coarse:min-h-11",
+            "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
             valor === ativa
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground",

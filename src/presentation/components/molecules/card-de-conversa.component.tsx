@@ -31,6 +31,7 @@ export function CardDeConversa({
       aria-current={aberto ? "true" : undefined}
       className={cn(
         "flex w-full items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 text-left hover:bg-accent pointer-coarse:min-h-11",
+        "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         aberto && "border-primary bg-accent",
       )}
     >

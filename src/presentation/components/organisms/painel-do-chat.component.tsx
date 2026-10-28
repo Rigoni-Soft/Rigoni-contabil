@@ -34,7 +34,7 @@ export function PainelDoChat({
       ref={ref}
       tabIndex={-1}
       className={cn(
-        "min-h-0 flex-1 flex-col gap-3 lg:flex",
+        "min-h-0 flex-1 flex-col gap-3 outline-none lg:flex",
         estado === "vazio" ? "hidden lg:flex" : "flex",
       )}
     >
@@ -44,7 +44,7 @@ export function PainelDoChat({
             como="button"
             type="button"
             onClick={onVoltar}
-            className="inline-flex min-h-6 items-center text-sm text-muted-foreground hover:text-foreground hover:underline pointer-coarse:min-h-11"
+            className="inline-flex min-h-6 items-center rounded-sm text-sm text-muted-foreground outline-none hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background pointer-coarse:min-h-11"
           >
             ← Voltar à lista
           </Caixa>
@@ -52,7 +52,7 @@ export function PainelDoChat({
             <Caixa
               como="a"
               href={`#${ancoraDasAcoes}`}
-              className="inline-flex min-h-6 items-center gap-1 text-sm font-medium text-primary hover:underline pointer-coarse:min-h-11"
+              className="inline-flex min-h-6 items-center gap-1 rounded-sm text-sm font-medium text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background pointer-coarse:min-h-11"
             >
               Ir para as ações
               <ArrowDown aria-hidden="true" className="size-4" />
