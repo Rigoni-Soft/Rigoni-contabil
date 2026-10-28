@@ -36,6 +36,21 @@ describe("PainelDeEspera", () => {
     expect(onAssumir).toHaveBeenCalledWith("a");
   });
 
+  it("o card diz de onde o Atendimento veio e o resumo, e os dois entram na descrição do botão", () => {
+    render(
+      <PainelDeEspera
+        itens={[{ ...ITENS[0], origem: "Transferido de Financeiro por Ana" }]}
+        assumindo={false}
+        onAssumir={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Transferido de Financeiro por Ana")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Assumir o atendimento de Maria/ }),
+    ).toHaveAccessibleDescription("Transferido de Financeiro por Ana Segunda via do boleto 05:00");
+  });
+
   it("para quem supervisiona, o dirigido a outro abre a leitura e não assume", async () => {
     const onAssumir = jest.fn();
     const onLer = jest.fn();

@@ -11,6 +11,8 @@ export type ItemDaFilaView = {
   cnpj: string | null;
   telefone: string;
   resumo: string | null;
+  // "Transferido de Financeiro por Fulano"; null se o Atendimento não veio de Transferência.
+  origem: string | null;
   // Dirigido a um usuário (não à espera do Setor): só ele assume.
   dirigido: boolean;
   espera: string;
@@ -32,10 +34,15 @@ export function itemDaFilaParaView(
     cnpj: item.contato.cnpj ? formatarCnpj(item.contato.cnpj) : null,
     telefone: telefoneParaExibicao(item.telefone),
     resumo: item.resumo,
+    origem: item.origem && textoDaOrigem(item.origem),
     dirigido: item.filaDoFuncionarioId !== null,
     espera: agora === undefined ? item.espera : formatarEspera(agora - filaDesdeMs),
     assumivel: item.filaDoFuncionarioId === null || item.filaDoFuncionarioId === usuarioId,
   };
+}
+
+function textoDaOrigem({ setor, nome }: NonNullable<ItemDaFilaVisto["origem"]>): string {
+  return `Transferido de ${SETOR_LABEL[setor]}${nome ? ` por ${nome}` : ""}`;
 }
 
 export function tituloDaFila(nome: string, setor: SetorSlug): string {

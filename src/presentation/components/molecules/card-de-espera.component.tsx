@@ -11,6 +11,8 @@ export type CardDeEsperaProps = {
   empresa: string;
   // O que o cliente já disse ou escolheu antes de chegar à espera.
   resumo: string | null;
+  // De onde veio, se foi transferido ("Transferido de Financeiro por Fulano").
+  origem?: string | null;
   espera: string;
   // Dirigido a outro usuário: o card só informa, não assume.
   assumivel: boolean;
@@ -27,6 +29,7 @@ export function CardDeEspera({
   contato,
   empresa,
   resumo,
+  origem,
   espera,
   assumivel,
   assumindo = false,
@@ -46,6 +49,11 @@ export function CardDeEspera({
         <Texto como="span" variante="apoio" className="block truncate" id={`${id}-empresa`}>
           {empresa}
         </Texto>
+        {origem && (
+          <Texto como="span" variante="nota" className="block truncate" id={`${id}-origem`}>
+            {origem}
+          </Texto>
+        )}
         {resumo && (
           <Texto como="span" variante="nota" className="block truncate" id={`${id}-resumo`}>
             {resumo}
@@ -80,7 +88,9 @@ export function CardDeEspera({
       // O nome é a ação e quem espera; o resumo e o tempo de espera entram como descrição, para o
       // leitor de tela dizer o que decide quem assumir (um aria-label os esconderia).
       aria-labelledby={`${id}-acao ${id}-contato ${id}-empresa`}
-      aria-describedby={resumo ? `${id}-resumo ${id}-espera` : `${id}-espera`}
+      aria-describedby={[origem && `${id}-origem`, resumo && `${id}-resumo`, `${id}-espera`]
+        .filter(Boolean)
+        .join(" ")}
       className={cn(
         MOLDURA,
         "bg-card hover:bg-accent disabled:opacity-60 pointer-coarse:min-h-11",

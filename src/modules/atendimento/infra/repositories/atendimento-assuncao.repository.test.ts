@@ -14,8 +14,9 @@ const SERVICE_KEY =
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 const repositorio = new SupabaseAtendimentoRepository(admin);
 
-const SETOR = "rh" as const;
-const OUTRO_SETOR = "recepcao" as const;
+// A espera comum (sem destinatário) existe só na Recepção: é onde dois Funcionários disputam o clique.
+const SETOR = "recepcao" as const;
+const OUTRO_SETOR = "rh" as const;
 const TELEFONES = [
   "61955580001",
   "61955580002",
@@ -174,6 +175,25 @@ describe("SupabaseAtendimentoRepository — assumir da espera", () => {
       ok: true,
       value: { status: "assumido" },
     });
+  });
+
+  it("fora da Recepção, Atendimento sem destinatário não é assumido por ninguém do Setor", async () => {
+    const funcionario = await criarUsuario("Fábio Funcionario", "funcionario", OUTRO_SETOR);
+    const lider = await criarUsuario("Lúcia Lider", "lider_setor", OUTRO_SETOR);
+    const { data, error } = await admin
+      .from("atendimentos")
+      .insert({ telefone: "61955580009", chave_telefone: "61955580009", setor: OUTRO_SETOR })
+      .select("id")
+      .single();
+    if (error) throw error;
+    TELEFONES.push("61955580009");
+
+    for (const quem of [funcionario, lider]) {
+      expect(await repositorio.assumir(data.id, quem)).toEqual({
+        ok: true,
+        value: { status: "inelegivel" },
+      });
+    }
   });
 
   it("Atendimento inexistente ou encerrado não é assumido", async () => {
