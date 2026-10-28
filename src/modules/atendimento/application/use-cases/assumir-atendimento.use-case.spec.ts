@@ -32,10 +32,10 @@ function montar(
 const INPUT = { atendimentoId: "at-1" };
 
 describe("AssumirAtendimento", () => {
-  it("assume em nome do usuário logado e devolve o Atendimento", async () => {
+  it("assume em nome do usuário logado", async () => {
     const { caso, chamadas } = montar();
     const r = await caso.execute(INPUT);
-    expect(r).toEqual({ ok: true, value: { atendimentoId: "at-1" } });
+    expect(r.ok).toBe(true);
     expect(chamadas).toEqual([["at-1", "func-1"]]);
   });
 

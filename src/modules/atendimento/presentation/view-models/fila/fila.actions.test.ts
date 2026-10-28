@@ -49,9 +49,9 @@ describe("assumirAtendimentoAction (integração)", () => {
   beforeEach(() => assumirMock.mockReset());
 
   it("assume o Atendimento pedido", async () => {
-    assumirMock.mockResolvedValue(ok({ atendimentoId: ID }));
+    assumirMock.mockResolvedValue(ok(undefined));
 
-    expect(await assumirAtendimentoAction(ID)).toEqual({ ok: true, data: { atendimentoId: ID } });
+    expect(await assumirAtendimentoAction(ID)).toEqual({ ok: true, data: undefined });
     expect(assumirMock).toHaveBeenCalledWith({ atendimentoId: ID });
   });
 

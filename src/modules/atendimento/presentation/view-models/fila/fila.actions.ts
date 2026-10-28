@@ -3,7 +3,6 @@
 import { z } from "zod";
 
 import { makeAssumirAtendimento, makeListarFila } from "@/main/atendimento.factory";
-import type { AtendimentoAssumidoPeloUsuario } from "@/modules/atendimento/application/ports/in/assumir-atendimento.provider";
 import type { ItemDaFilaVisto } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
 import { atendimentoIdSchema } from "@/modules/atendimento/presentation/view-models/conversa/conversa.schema";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
@@ -28,7 +27,7 @@ export async function listarFilaAction(setor: unknown): Promise<ActionResult<Ite
 
 export async function assumirAtendimentoAction(
   atendimentoId: unknown,
-): Promise<ActionResult<AtendimentoAssumidoPeloUsuario>> {
+): Promise<ActionResult<void>> {
   const parsed = atendimentoIdSchema.safeParse(atendimentoId);
   if (!parsed.success) {
     return { ok: false, error: { code: "VALIDATION_ERROR", message: "Atendimento inválido." } };
