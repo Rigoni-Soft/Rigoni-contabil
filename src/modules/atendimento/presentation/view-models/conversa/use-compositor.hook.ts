@@ -37,7 +37,7 @@ export function useCompositor(atendimentoId: string, initialData: ConversaVista)
         ? anexoMutation
         : mensagem;
 
-  const visivel = !conversa.encerrado && !transferido;
+  const visivel = !conversa.encerrado && !conversa.somenteLeitura && !transferido;
   const aoAnexar = (novo: File) => {
     // Trocar o arquivo no meio do envio faria o sucesso limpar o arquivo novo.
     if (envio.isPending) return;

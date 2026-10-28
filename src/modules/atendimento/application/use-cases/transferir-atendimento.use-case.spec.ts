@@ -119,23 +119,19 @@ describe("TransferirAtendimento", () => {
     expect(anexadas).toEqual([texto]);
   });
 
-  it("Líder do Setor do Atendimento e Admin transferem; outro Funcionário não", async () => {
-    const lider = { id: "l", papel: "lider_setor" as const, setor: "recepcao" as const };
-    const admin = { id: "ad", papel: "admin" as const, setor: "administrativo" as const };
-    const outro = { id: "x", papel: "funcionario" as const, setor: "recepcao" as const };
-    expect((await montar({ ator: lider }).caso.execute(INPUT)).ok).toBe(true);
-    expect((await montar({ ator: admin }).caso.execute(INPUT)).ok).toBe(true);
-    const negado = montar({ ator: outro });
-    const r = await negado.caso.execute(INPUT);
-    expect(!r.ok && r.error.code).toBe("FORBIDDEN");
-    expect(negado.transferencias).toEqual([]);
-  });
-
-  it("Líder de outro Setor não transfere", async () => {
-    const r = await montar({
-      ator: { id: "l", papel: "lider_setor" as const, setor: "contabil" as const },
-    }).caso.execute(INPUT);
-    expect(!r.ok && r.error.code).toBe("FORBIDDEN");
+  it("só o dono transfere: Líder do Setor, Líder de outro Setor, Admin e outro Funcionário não", async () => {
+    const atores = [
+      { id: "l", papel: "lider_setor" as const, setor: "recepcao" as const },
+      { id: "l2", papel: "lider_setor" as const, setor: "contabil" as const },
+      { id: "ad", papel: "admin" as const, setor: "administrativo" as const },
+      { id: "x", papel: "funcionario" as const, setor: "recepcao" as const },
+    ];
+    for (const ator of atores) {
+      const { caso, transferencias } = montar({ ator });
+      const r = await caso.execute(INPUT);
+      expect(!r.ok && r.error.code).toBe("FORBIDDEN");
+      expect(transferencias).toEqual([]);
+    }
   });
 
   it("sem sessão: proibido", async () => {

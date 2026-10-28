@@ -17,7 +17,7 @@ import type {
 import { AVISO_AGUARDE } from "@/modules/atendimento/domain/services/aviso-fila.service";
 import {
   atendidoPeloSimplesNacional,
-  podeTransferir,
+  podeAtender,
 } from "@/modules/atendimento/domain/services/transferencia.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
@@ -104,7 +104,7 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
     if (!encontrado.ok) return encontrado;
     const atendimento = encontrado.value;
     if (!atendimento) return err(new NotFoundError("Atendimento não encontrado."));
-    if (!podeTransferir(ator, atendimento)) {
+    if (!podeAtender(ator, atendimento)) {
       return err(new ForbiddenError("Você não pode transferir este Atendimento."));
     }
     if (atendimento.emAvisoDeInatividade) {

@@ -8,8 +8,9 @@ export const ID_DO_PAINEL_DE_ACOES = "acoes-do-atendimento";
 type PainelDeAcoesProps = {
   // Nome do Setor para onde o Atendimento acabou de ir; troca as ações por um aviso.
   transferidoPara?: string;
-  servicos: React.ReactNode;
-  transferencia: React.ReactNode;
+  // Ausentes na leitura de supervisão: só o encerramento resta.
+  servicos?: React.ReactNode;
+  transferencia?: React.ReactNode;
   encerramento: React.ReactNode;
 };
 
@@ -38,7 +39,7 @@ export function PainelDeAcoes({
       ) : (
         <>
           {servicos}
-          <SecaoComDivisor>{transferencia}</SecaoComDivisor>
+          {transferencia && <SecaoComDivisor>{transferencia}</SecaoComDivisor>}
           <SecaoComDivisor>{encerramento}</SecaoComDivisor>
         </>
       )}

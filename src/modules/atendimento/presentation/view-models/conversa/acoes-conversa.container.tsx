@@ -23,21 +23,25 @@ export function AcoesConversaContainer({
     <PainelDeAcoes
       transferidoPara={acoes.transferidoPara}
       servicos={
-        <PainelDeServicos
-          semCliente={acoes.semCliente}
-          servicos={acoes.servicos}
-          onEnviarServico={acoes.aoEnviarServico}
-          enviando={acoes.enviando}
-          aviso={acoes.aviso}
-        />
+        !acoes.somenteLeitura && (
+          <PainelDeServicos
+            semCliente={acoes.semCliente}
+            servicos={acoes.servicos}
+            onEnviarServico={acoes.aoEnviarServico}
+            enviando={acoes.enviando}
+            aviso={acoes.aviso}
+          />
+        )
       }
       transferencia={
-        <PainelDeTransferencia
-          setoresDestino={acoes.setoresDestino}
-          onTransferir={acoes.aoTransferir}
-          transferindo={acoes.transferindo}
-          aviso={acoes.avisoTransferencia}
-        />
+        !acoes.somenteLeitura && (
+          <PainelDeTransferencia
+            setoresDestino={acoes.setoresDestino}
+            onTransferir={acoes.aoTransferir}
+            transferindo={acoes.transferindo}
+            aviso={acoes.avisoTransferencia}
+          />
+        )
       }
       encerramento={
         <PainelDeEncerramento

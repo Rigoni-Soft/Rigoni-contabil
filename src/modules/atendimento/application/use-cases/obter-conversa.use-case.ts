@@ -23,7 +23,8 @@ import {
   type CursorDaConversa,
 } from "@/modules/atendimento/domain/services/janela-da-conversa.service";
 import {
-  podeTransferir,
+  podeAtender,
+  podeSupervisionar,
   setoresDeDestino,
 } from "@/modules/atendimento/domain/services/transferencia.service";
 import type { AppError } from "@/shared/errors/app.error";
@@ -54,21 +55,23 @@ export class ObterConversa implements ObterConversaPort {
     if (!lida.ok) return lida;
     const conversa = lida.value;
     if (!conversa) return err(new NotFoundError("Atendimento não encontrado."));
-    if (!podeTransferir(ator, conversa)) {
+    if (!podeSupervisionar(ator, conversa)) {
       return err(new ForbiddenError("Você não pode ver este Atendimento."));
     }
 
     const encerrado = conversa.status === "encerrado";
+    const podeAgir = !encerrado && podeAtender(ator, conversa);
     // Em aviso de inatividade a Transferência é recusada pelo backend: não a oferece.
-    const semDestinos = encerrado || conversa.aviso !== null;
+    const semDestinos = !podeAgir || conversa.aviso !== null;
     const destinos = semDestinos ? ok([]) : await this.destinos(conversa.setor, conversa.clienteId);
     if (!destinos.ok) return destinos;
     const disponiveis =
-      encerrado || !conversa.clienteId ? ok([]) : await this.servicos(conversa.clienteId);
+      !podeAgir || !conversa.clienteId ? ok([]) : await this.servicos(conversa.clienteId);
     if (!disponiveis.ok) return disponiveis;
     return ok({
       atendimentoId: conversa.id,
       encerrado,
+      podeAtender: podeAgir,
       telefone: conversa.telefone,
       contato: conversa.contato,
       clienteVinculado: conversa.clienteId !== null,
@@ -111,7 +114,7 @@ export class ObterConversa implements ObterConversaPort {
     );
     if (!lida.ok) return lida;
     if (!lida.value) return err(new NotFoundError("Atendimento não encontrado."));
-    if (!podeTransferir(ator, lida.value)) {
+    if (!podeSupervisionar(ator, lida.value)) {
       return err(new ForbiddenError("Você não pode ver este Atendimento."));
     }
     return ok({
@@ -137,7 +140,7 @@ export class ObterConversa implements ObterConversaPort {
     );
     if (!lida.ok) return lida;
     if (!lida.value) return err(new NotFoundError("Atendimento não encontrado."));
-    if (!podeTransferir(ator, lida.value)) {
+    if (!podeSupervisionar(ator, lida.value)) {
       return err(new ForbiddenError("Você não pode ver este Atendimento."));
     }
     const comAnexo = lida.value.mensagens.filter((m) => m.anexo);
