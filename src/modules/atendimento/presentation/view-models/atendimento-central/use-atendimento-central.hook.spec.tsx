@@ -101,4 +101,40 @@ describe("useAtendimentoCentral", () => {
 
     expect(result.current.abertoId).toBeNull();
   });
+
+  describe("aviso de 'já assumido'", () => {
+    const PERDEU = {
+      ok: false as const,
+      error: { code: "CONFLICT" as const, message: "Atendimento já assumido por outra pessoa." },
+    };
+
+    it("some ao trocar de aba", async () => {
+      assumir.mockResolvedValue(PERDEU);
+      const { result } = renderizar();
+      act(() => result.current.assumir("at-1"));
+      await waitFor(() => expect(result.current.avisoDeAssuncao).toBeDefined());
+
+      act(() => result.current.escolherAba("atendimento"));
+
+      expect(result.current.avisoDeAssuncao).toBeUndefined();
+    });
+
+    it("some sozinho depois de alguns segundos", async () => {
+      jest.useFakeTimers({ doNotFake: ["nextTick"] });
+      try {
+        assumir.mockResolvedValue(PERDEU);
+        const { result } = renderizar();
+        act(() => result.current.assumir("at-1"));
+        await waitFor(() => expect(result.current.avisoDeAssuncao).toBeDefined());
+
+        act(() => {
+          jest.advanceTimersByTime(8_000);
+        });
+
+        expect(result.current.avisoDeAssuncao).toBeUndefined();
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+  });
 });

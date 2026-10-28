@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+
 import type { ItemDaFilaVisto } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
 import type { AtendimentoVisto } from "@/modules/atendimento/application/ports/in/listar-meus-atendimentos.provider";
 import { useAtendimentoCentralStore } from "@/modules/atendimento/presentation/view-models/atendimento-central/atendimento-central.store";
@@ -6,6 +8,8 @@ import { useFila } from "@/modules/atendimento/presentation/view-models/fila/use
 import { atendimentoParaView } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.presenter";
 import { useMeusAtendimentosQuery } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.queries";
 import type { SetorSlug } from "@/shared/kernel/setores";
+
+const AVISO_DE_ASSUNCAO_MS = 8_000;
 
 type Entrada = {
   usuarioId: string;
@@ -28,11 +32,22 @@ export function useAtendimentoCentral({
   const meus = useMeusAtendimentosQuery(true, meusInicial);
   const assumir = useAssumirAtendimentoMutation();
   const { aba, abertoId, escolherAba, abrir, aoAssumir } = useAtendimentoCentralStore();
+  const { isError, reset } = assumir;
+
+  // "Já assumido" informa uma tentativa, não um estado da tela: some sozinho, e ao trocar de aba.
+  useEffect(() => {
+    if (!isError) return;
+    const timer = setTimeout(reset, AVISO_DE_ASSUNCAO_MS);
+    return () => clearTimeout(timer);
+  }, [isError, reset]);
 
   return {
     ...fila,
     aba,
-    escolherAba,
+    escolherAba: (nova: typeof aba) => {
+      reset();
+      escolherAba(nova);
+    },
     espera: fila.itens,
     emAtendimento: (meus.data ?? []).map(atendimentoParaView),
     abertoId,

@@ -5,6 +5,8 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 import { cn } from "@/presentation/lib/utils";
 
 export type CardDeEsperaProps = {
+  // Base dos ids que ligam o nome e a descrição do botão ao texto do card.
+  id: string;
   contato: string;
   empresa: string;
   // O que o cliente já disse ou escolheu antes de chegar à espera.
@@ -19,6 +21,7 @@ export type CardDeEsperaProps = {
 const MOLDURA = "w-full rounded-lg border border-border bg-card px-3 py-2 text-left";
 
 export function CardDeEspera({
+  id,
   contato,
   empresa,
   resumo,
@@ -30,14 +33,17 @@ export function CardDeEspera({
   const conteudo = (
     <Linha alinhar="inicio" espaco={3}>
       <Caixa como="span" className="min-w-0 flex-1">
-        <Texto como="span" variante="destaque" className="block truncate">
+        <Texto como="span" variante="somenteLeitor" id={`${id}-acao`}>
+          Assumir o atendimento de
+        </Texto>
+        <Texto como="span" variante="destaque" className="block truncate" id={`${id}-contato`}>
           {contato}
         </Texto>
-        <Texto como="span" variante="apoio" className="block truncate">
+        <Texto como="span" variante="apoio" className="block truncate" id={`${id}-empresa`}>
           {empresa}
         </Texto>
         {resumo && (
-          <Texto como="span" variante="nota" className="block truncate">
+          <Texto como="span" variante="nota" className="block truncate" id={`${id}-resumo`}>
             {resumo}
           </Texto>
         )}
@@ -53,7 +59,7 @@ export function CardDeEspera({
           Esperando há{" "}
         </Texto>
         {/* O relógio do navegador difere do servidor: o texto muda de propósito a cada segundo. */}
-        <Caixa como="span" suppressHydrationWarning>
+        <Caixa como="span" suppressHydrationWarning id={`${id}-espera`}>
           {espera}
         </Caixa>
       </Linha>
@@ -66,7 +72,10 @@ export function CardDeEspera({
       type="button"
       onClick={onAssumir}
       disabled={assumindo}
-      aria-label={`Assumir o atendimento de ${contato}, ${empresa}`}
+      // O nome é a ação e quem espera; o resumo e o tempo de espera entram como descrição, para o
+      // leitor de tela dizer o que decide quem assumir (um aria-label os esconderia).
+      aria-labelledby={`${id}-acao ${id}-contato ${id}-empresa`}
+      aria-describedby={resumo ? `${id}-resumo ${id}-espera` : `${id}-espera`}
       className={cn(MOLDURA, "hover:bg-accent disabled:opacity-60 pointer-coarse:min-h-11")}
     >
       {conteudo}
