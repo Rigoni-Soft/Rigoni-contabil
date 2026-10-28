@@ -2,7 +2,9 @@ import { expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
-// Os Atendimentos nascem pela RPC de abertura da URA, já na espera do Setor (sem Funcionário).
+// Os Atendimentos nascem pela RPC de abertura da URA. A espera comum (sem destinatário), onde dois
+// Funcionários disputam o clique, existe só na Recepção; nos demais Setores o Atendimento vai ao
+// Responsável do Cliente ou ao Líder.
 const admin = adminLocal();
 
 const TELEFONE = "61955574001";
@@ -13,7 +15,7 @@ test.describe("Aba Atendimento: Em espera / Em atendimento (#162)", () => {
   test.beforeAll(async () => {
     await admin.from("atendimentos").delete().eq("chave_telefone", TELEFONE);
     // A espera é do Setor inteiro: Atendimentos soltos de outras execuções mudariam as contagens.
-    await admin.from("atendimentos").delete().eq("setor", "financeiro").is("funcionario_id", null);
+    await admin.from("atendimentos").delete().eq("setor", "recepcao").is("funcionario_id", null);
     const cliente = await admin
       .from("clientes")
       .insert({ id: CLIENTE, empresa: "Aba E2E Ltda", cnpj: CNPJ, regime: "lucro_presumido" });
@@ -31,7 +33,7 @@ test.describe("Aba Atendimento: Em espera / Em atendimento (#162)", () => {
       p_telefone: `55${TELEFONE}`,
       p_chave: TELEFONE,
       p_cliente_id: CLIENTE,
-      p_setor: "financeiro",
+      p_setor: "recepcao",
       p_mensagens: [
         { autor: "contato", texto: "Preciso da segunda via do boleto", idExterno: "wamid.E2E-ABA" },
       ],
@@ -50,9 +52,9 @@ test.describe("Aba Atendimento: Em espera / Em atendimento (#162)", () => {
     const ana = await (await browser.newContext()).newPage();
     const beto = await (await browser.newContext()).newPage();
 
-    await login(ana, "funcionario.financeiro@rigonicontabil.local", "func123");
+    await login(ana, "funcionario.recepcao@rigonicontabil.local", "func123");
     await expect(ana).toHaveURL("/");
-    await login(beto, "funcionario2.financeiro@rigonicontabil.local", "func123");
+    await login(beto, "funcionario2.recepcao@rigonicontabil.local", "func123");
     await expect(beto).toHaveURL("/");
 
     // A aba "Atendimento" do menu leva à tela, com as duas abas sobrepostas.
@@ -120,7 +122,7 @@ test.describe("Aba Atendimento: Em espera / Em atendimento (#162)", () => {
     await expect(page).toHaveURL("/");
 
     await page.goto("/atendimento");
-    await page.getByRole("combobox", { name: "Setor" }).selectOption("financeiro");
+    await page.getByRole("combobox", { name: "Setor" }).selectOption("recepcao");
 
     await expect(
       page.getByRole("button", { name: /Assumir o atendimento de Dona Aba/ }),
@@ -131,7 +133,7 @@ test.describe("Aba Atendimento: Em espera / Em atendimento (#162)", () => {
     browser,
   }) => {
     const origem = await (await browser.newContext()).newPage();
-    await login(origem, "funcionario.financeiro@rigonicontabil.local", "func123");
+    await login(origem, "funcionario.recepcao@rigonicontabil.local", "func123");
     await expect(origem).toHaveURL("/");
     await origem
       .getByRole("navigation", { name: "Setores" })

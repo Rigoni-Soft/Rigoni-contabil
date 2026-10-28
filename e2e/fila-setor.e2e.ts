@@ -3,11 +3,12 @@ import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
 // Os Atendimentos nascem direto no banco, já na Fila (sem Funcionário), com a espera começando no passado.
+// A espera comum (sem destinatário) existe só na Recepção, então a Fila do Setor é testada nela.
 const admin = adminLocal();
 
 const CLIENTE = crypto.randomUUID();
 const CNPJ = `7${Date.now()}`.slice(0, 14);
-const FUNCIONARIO = "33333333-3333-3333-3333-333333333333"; // funcionario.financeiro
+const FUNCIONARIO = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"; // funcionario.recepcao
 const TELEFONES = ["61955573001", "61955573002", "61955573003", "61955573004", "61955573005"];
 const PRIMEIRO = crypto.randomUUID();
 
@@ -15,7 +16,7 @@ test.describe("Fila do Setor (#70)", () => {
   test.beforeAll(async () => {
     await admin.from("atendimentos").delete().in("chave_telefone", TELEFONES);
     // A Fila é do Setor inteiro: Atendimentos soltos de outras execuções mudariam as posições.
-    await admin.from("atendimentos").delete().eq("setor", "financeiro").is("funcionario_id", null);
+    await admin.from("atendimentos").delete().eq("setor", "recepcao").is("funcionario_id", null);
     const cliente = await admin
       .from("clientes")
       .insert({ id: CLIENTE, empresa: "Fila E2E Ltda", cnpj: CNPJ, regime: "lucro_presumido" });
@@ -36,14 +37,14 @@ test.describe("Fila do Setor (#70)", () => {
         telefone: `55${TELEFONES[0]}`,
         chave_telefone: TELEFONES[0],
         cliente_id: CLIENTE,
-        setor: "financeiro",
+        setor: "recepcao",
         fila_desde: new Date(agora - 5 * 60_000).toISOString(),
       },
       {
         id: crypto.randomUUID(),
         telefone: `55${TELEFONES[1]}`,
         chave_telefone: TELEFONES[1],
-        setor: "financeiro",
+        setor: "recepcao",
         // Dirigido a um usuário: destino fixo ocupado.
         fila_funcionario_id: FUNCIONARIO,
         fila_desde: new Date(agora - 60_000).toISOString(),
@@ -53,11 +54,11 @@ test.describe("Fila do Setor (#70)", () => {
         id: crypto.randomUUID(),
         telefone: `55${TELEFONES[3]}`,
         chave_telefone: TELEFONES[3],
-        setor: "financeiro",
+        setor: "recepcao",
         funcionario_id: FUNCIONARIO,
         assumido_em: new Date(agora).toISOString(),
       },
-      // Fila de outro Setor: o Funcionário do financeiro não a enxerga.
+      // Fila de outro Setor: o Funcionário da recepção não a enxerga.
       {
         id: crypto.randomUUID(),
         telefone: `55${TELEFONES[2]}`,
@@ -71,7 +72,7 @@ test.describe("Fila do Setor (#70)", () => {
     const transferencia = await admin.from("transferencias").insert({
       atendimento_id: PRIMEIRO,
       setor_origem: "rh",
-      setor_destino: "financeiro",
+      setor_destino: "recepcao",
       resumo: "Cliente quer segunda via do boleto",
     });
     if (transferencia.error) throw transferencia.error;
@@ -85,7 +86,7 @@ test.describe("Fila do Setor (#70)", () => {
   test("o Funcionário vê a Fila do próprio Setor, do mais antigo ao mais novo, com cronômetro correndo @smoke", async ({
     page,
   }) => {
-    await login(page, "funcionario.financeiro@rigonicontabil.local", "func123");
+    await login(page, "funcionario.recepcao@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
 
     // A tela da Fila (a do dock) segue em /fila; a aba "Atendimento" do menu leva à tela nova (#162).
@@ -95,7 +96,7 @@ test.describe("Fila do Setor (#70)", () => {
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: /^Fila de atendimento do .+, setor Financeiro$/,
+        name: /^Fila de atendimento do .+, setor Recepção$/,
       }),
     ).toBeVisible();
 
@@ -116,7 +117,7 @@ test.describe("Fila do Setor (#70)", () => {
     await expect(espera).not.toHaveText(antes ?? "");
 
     // Funcionário não escolhe Setor: só vê a própria Fila.
-    // Nem a Fila de outro Setor (RH): só os 2 do financeiro, e o telefone do RH não aparece.
+    // Nem a Fila de outro Setor (RH): só os 2 da recepção, e o telefone do RH não aparece.
     await expect(page.getByRole("combobox", { name: "Setor" })).toHaveCount(0);
     await expect(itens).toHaveCount(2);
     await expect(page.getByText("(61) 95557-3003")).toHaveCount(0);
@@ -124,7 +125,7 @@ test.describe("Fila do Setor (#70)", () => {
 
   test("a lista se atualiza quando a Fila muda (entrada, promoção, saída)", async ({ page }) => {
     test.setTimeout(90_000);
-    await login(page, "funcionario.financeiro@rigonicontabil.local", "func123");
+    await login(page, "funcionario.recepcao@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
     await page.goto("/fila");
     const itens = page.getByRole("region", { name: "Fila do Setor" }).getByRole("listitem");
@@ -134,7 +135,7 @@ test.describe("Fila do Setor (#70)", () => {
     const entrada = await admin.from("atendimentos").insert({
       telefone: `55${TELEFONES[4]}`,
       chave_telefone: TELEFONES[4],
-      setor: "financeiro",
+      setor: "recepcao",
       fila_desde: new Date(agora).toISOString(),
     });
     if (entrada.error) throw entrada.error;
@@ -159,7 +160,7 @@ test.describe("Fila do Setor (#70)", () => {
   test("na conversa a Fila fica na barra lateral esquerda, com o título do Funcionário e do Setor @smoke", async ({
     page,
   }) => {
-    await login(page, "funcionario.financeiro@rigonicontabil.local", "func123");
+    await login(page, "funcionario.recepcao@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
 
     // Fora da conversa e da Fila, o dock avisa que há gente esperando.
@@ -171,7 +172,7 @@ test.describe("Fila do Setor (#70)", () => {
     await expect(
       lateral.getByRole("heading", {
         level: 2,
-        name: /^Fila de atendimento do .+, setor Financeiro$/,
+        name: /^Fila de atendimento do .+, setor Recepção$/,
       }),
     ).toBeVisible();
     await expect(lateral.getByText("Seu Fila")).toBeVisible();
@@ -183,7 +184,7 @@ test.describe("Fila do Setor (#70)", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 1024, height: 768 });
-    await login(page, "funcionario.financeiro@rigonicontabil.local", "func123");
+    await login(page, "funcionario.recepcao@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
 
     const dock = page.getByRole("navigation", { name: "Atendimentos em andamento" });
@@ -199,10 +200,10 @@ test.describe("Fila do Setor (#70)", () => {
     await expect(page).toHaveURL("/");
 
     await page.goto("/fila");
-    await page.getByRole("combobox", { name: "Setor" }).selectOption("financeiro");
+    await page.getByRole("combobox", { name: "Setor" }).selectOption("recepcao");
 
     await expect(page.getByRole("listitem").filter({ hasText: "Seu Fila" })).toBeVisible();
-    await expect(page.getByRole("heading", { level: 1, name: /setor Financeiro$/ })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: /setor Recepção$/ })).toBeVisible();
   });
 
   test("o usuário assume pela Fila: abre a conversa e o Atendimento passa a ser dele (196-F1)", async ({
