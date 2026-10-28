@@ -24,7 +24,13 @@ with usuario (id, email, senha, nome, papel, setor) as (
     ('88888888-8888-8888-8888-888888888888', 'lider.sn@rigonicontabil.local', 'lider123',
      'Líder Simples Nacional', 'lider_setor', 'simples_nacional'),
     ('99999999-9999-9999-9999-999999999999', 'funcionario2.sn@rigonicontabil.local', 'func123',
-     'Funcionário 2 Simples Nacional', 'funcionario', 'simples_nacional')
+     'Funcionário 2 Simples Nacional', 'funcionario', 'simples_nacional'),
+    -- Recepção: a URA abre todo Atendimento aqui, e quem transfere ao Setor pedido é este Setor.
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'funcionario.recepcao@rigonicontabil.local', 'func123',
+     'Funcionário Recepção', 'funcionario', 'recepcao'),
+    -- Segundo da Recepção: a espera dela é a única comum, onde dois Funcionários disputam o clique.
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'funcionario2.recepcao@rigonicontabil.local', 'func123',
+     'Segundo Funcionário Recepção', 'funcionario', 'recepcao')
 ),
 conta as (
   insert into auth.users (
