@@ -49,7 +49,7 @@ export function ListaDeAtendimento({
       aria-label="Atendimentos"
       ref={ref}
       tabIndex={-1}
-      className={cn(escondidaNoCelular && "hidden lg:block")}
+      className={cn("outline-none", escondidaNoCelular && "hidden lg:block")}
     >
       {escolhaDeSetor && (
         <CampoSelect

@@ -18,7 +18,7 @@ export type CardDeEsperaProps = {
   onAssumir: () => void;
 };
 
-const MOLDURA = "w-full rounded-lg border border-border bg-card px-3 py-2 text-left";
+const MOLDURA = "w-full rounded-lg border border-border px-3 py-2 text-left";
 
 export function CardDeEspera({
   id,
@@ -76,11 +76,16 @@ export function CardDeEspera({
       // leitor de tela dizer o que decide quem assumir (um aria-label os esconderia).
       aria-labelledby={`${id}-acao ${id}-contato ${id}-empresa`}
       aria-describedby={resumo ? `${id}-resumo ${id}-espera` : `${id}-espera`}
-      className={cn(MOLDURA, "hover:bg-accent disabled:opacity-60 pointer-coarse:min-h-11")}
+      className={cn(
+        MOLDURA,
+        "bg-card hover:bg-accent disabled:opacity-60 pointer-coarse:min-h-11",
+        "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+      )}
     >
       {conteudo}
     </Caixa>
   ) : (
-    <Caixa className={MOLDURA}>{conteudo}</Caixa>
+    // Só informa: sem o fundo de cartão clicável, para não parecer um botão.
+    <Caixa className={cn(MOLDURA, "bg-muted/50")}>{conteudo}</Caixa>
   );
 }
