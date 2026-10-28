@@ -45,6 +45,8 @@ export function useAtendimentoCentral({
   // Sem leitura (carregando ou falhou) a seção não existe: "ninguém em atendimento" seria mentira.
   const daEquipe = equipe.data?.map((a) => ({
     ...atendimentoParaView(a),
+    // Quem supervisiona não responde: sem o sinal de "cliente aguardando", que não conta no contador nem no som.
+    aguardando: false,
     detalhe: `Com ${a.donoNome ?? "outro usuário"} · ${a.contato.empresa ?? "Cliente não identificado"}`,
   }));
   const anuncio = useAnuncioDaLista(fila.itens, emAtendimento, abertoId);

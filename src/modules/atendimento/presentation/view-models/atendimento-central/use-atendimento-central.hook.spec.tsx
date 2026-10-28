@@ -70,7 +70,12 @@ describe("useAtendimentoCentral", () => {
           telefone: "5561988887777",
           criadoEm: "2026-10-09T12:00:00Z",
           contato: { contatoNome: "Joana", empresa: "Mercado", cnpj: null },
-          ultimaMensagem: null,
+          ultimaMensagem: {
+            autor: "contato",
+            texto: "Oi",
+            criadoEm: "2026-10-09T12:00:00Z",
+            anexoTipo: null,
+          },
           donoNome: "Caio",
         },
       ],
@@ -109,6 +114,8 @@ describe("useAtendimentoCentral", () => {
       id: "at-9",
       titulo: "Joana",
       detalhe: "Com Caio · Mercado",
+      // O cliente escreveu por último, mas quem supervisiona não responde: sem sinal de urgência.
+      aguardando: false,
     });
   });
 
