@@ -105,7 +105,7 @@ describe("useAtendimentoCentral", () => {
     expect(result.current.daEquipe[0]).toMatchObject({
       id: "at-9",
       titulo: "Joana",
-      detalhe: "Mercado · com Caio",
+      detalhe: "Com Caio · Mercado",
     });
   });
 

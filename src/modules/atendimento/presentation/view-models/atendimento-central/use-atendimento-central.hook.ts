@@ -43,7 +43,7 @@ export function useAtendimentoCentral({
   const emAtendimento = (meus.data ?? []).map(atendimentoParaView);
   const daEquipe = (equipe.data ?? []).map((a) => ({
     ...atendimentoParaView(a),
-    detalhe: `${a.contato.empresa ?? "Cliente não identificado"} · com ${a.donoNome ?? "outro usuário"}`,
+    detalhe: `Com ${a.donoNome ?? "outro usuário"} · ${a.contato.empresa ?? "Cliente não identificado"}`,
   }));
   const anuncio = useAnuncioDaLista(fila.itens, emAtendimento, abertoId);
   useSomDaLista(

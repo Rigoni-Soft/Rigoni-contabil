@@ -40,7 +40,12 @@ export function PainelDeAcoes({
         <>
           {servicos}
           {transferencia && <SecaoComDivisor>{transferencia}</SecaoComDivisor>}
-          <SecaoComDivisor>{encerramento}</SecaoComDivisor>
+          {/* Em leitura não há o que separar: sem divisor solto no topo do painel. */}
+          {servicos || transferencia ? (
+            <SecaoComDivisor>{encerramento}</SecaoComDivisor>
+          ) : (
+            encerramento
+          )}
         </>
       )}
     </Pilha>
