@@ -903,8 +903,9 @@ na espera ou cliente que escreve de novo numa conversa não aberta; a primeira l
 - **Contador no menu** (`ShellNav`, #163): o link "Atendimento" ganha uma pílula `bg-destructive
   text-destructive-foreground text-xs` com a espera do Setor + as conversas com o cliente aguardando;
   some em zero, vira `99+` acima de 99, é `aria-hidden` e o link ganha o nome "Atendimento, 3
-  pendentes" (`aria-label`, com o número inteiro). Cor própria e borda de 2 px `card` porque o link da
-  tela ativa já é `primary` e a pílula `primary` sumiria nele (a borda a separa do fundo ativo). Lê as mesmas
+  pendentes" (`aria-label`, com o número inteiro). Cor própria porque o link da tela ativa já é
+  `primary` e a pílula `primary` sumiria nele: ali ela ganha um anel de 2 px `card` que a separa do
+  fundo; nos demais links o anel tem a cor da própria pílula (sem aro no hover). Lê as mesmas
   consultas do aviso global e da tela (sem leitura nova; o Admin, sem Setor próprio, vê zero).
   Quando o contador **cresce**, uma região `sr-only role="status"` dentro do `nav` (montada desde o
   início, mesmo vazia) lê "Atendimento: 3 pendentes." — a primeira leitura é silenciosa, diminuir não
