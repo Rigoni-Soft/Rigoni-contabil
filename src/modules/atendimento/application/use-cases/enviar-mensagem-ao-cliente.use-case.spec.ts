@@ -120,10 +120,11 @@ describe("EnviarMensagemAoCliente", () => {
     expect(enviados).toHaveLength(1);
   });
 
-  it("só o dono responde: Líder do Setor, Admin e outro Funcionário leem, mas não respondem", async () => {
+  it("só o dono responde: Líder do Setor, Líder de outro Setor, Admin e outro Funcionário leem, mas não respondem", async () => {
     const atores = [
       { ...FUNCIONARIO, id: "func-2" },
       { id: "lid", papel: "lider_setor" as const, setor: "contabil" as const },
+      { id: "lid2", papel: "lider_setor" as const, setor: "rh" as const },
       { id: "adm", papel: "admin" as const, setor: "administrativo" as const },
     ];
     for (const ator of atores) {

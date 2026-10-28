@@ -89,6 +89,14 @@ describe("useAcoesConversa", () => {
     expect(result.current.visivel).toBe(false);
   });
 
+  it("leitura de supervisão mantém o painel (encerrar), marcado como somente leitura", () => {
+    const { result } = renderizar({ ...CONVERSA, podeAtender: false });
+
+    expect(result.current.visivel).toBe(true);
+    expect(result.current.somenteLeitura).toBe(true);
+    expect(renderizar().result.current.somenteLeitura).toBe(false);
+  });
+
   it("envia o documento escolhido e avisa o sucesso", async () => {
     enviar.mockResolvedValue({ ok: true, data: undefined });
     const { result } = renderizar();
