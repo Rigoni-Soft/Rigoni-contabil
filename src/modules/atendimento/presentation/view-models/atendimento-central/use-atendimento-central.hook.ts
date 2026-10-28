@@ -36,9 +36,10 @@ export function useAtendimentoCentral({
 }: EntradaDaLista) {
   const fila = useFila(setorInicial, filaInicial, podeEscolherSetor, usuarioId);
   const meus = useMeusAtendimentosQuery(true, meusInicial);
-  const equipe = useEquipeQuery(supervisiona ? fila.setor : null);
   const assumir = useAssumirAtendimentoMutation();
   const { aba, abertoId, escolherAba, abrir, aoAssumir } = useAtendimentoCentralStore();
+  // A equipe só aparece na aba "Em atendimento": fora dela não há motivo para ler a cada 15 s.
+  const equipe = useEquipeQuery(supervisiona && aba === "atendimento" ? fila.setor : null);
   const { isError, reset } = assumir;
   const emAtendimento = (meus.data ?? []).map(atendimentoParaView);
   // Sem leitura (carregando ou falhou) a seção não existe: "ninguém em atendimento" seria mentira.
