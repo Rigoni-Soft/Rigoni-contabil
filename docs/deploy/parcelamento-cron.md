@@ -98,3 +98,28 @@ template `envio_guia_parcelamento_interno`, qualquer que seja a forma de envio d
     `proteger_das_enviado_do_sistema` (sessão humana não troca nem apaga) e o gateway só assina caminho
     que começa pelo id do Cliente. Objetos publicados sem referência (entrega recusada, assinatura
     que falhou) ficam no Storage; limpeza futura só com expiração e sem referência, nunca síncrona.
+
+## Parcelamento PGFN (#186)
+
+Mesmo job, reserva, canais e registro de envio; só muda a origem da guia: as guias confirmadas à mão
+(#183), com o PDF lido do banco (bucket dos acordos), nunca do provedor fiscal.
+
+- Entrega, por Parcelamento PGFN em aberto, as guias confirmadas e sem registro de envio, até a
+  competência do mês corrente e da mais antiga para a mais nova (guia futura fica guardada). Não entrega
+  mais guias do que parcelas restantes. Guia que não pôde ser lida trava as seguintes do mesmo Parcelamento.
+- O Cliente é "pendente" (reserva e listagem) também com guia PGFN confirmada ainda não enviada
+  (`cliente_tem_parcelamento_pendente`). Sem guia confirmada o job apenas pula, sem alerta (o lembrete
+  da PGFN avisa o setor); Cliente com Receita e PGFN recebe as duas.
+- Cada entrega aceita grava o registro (`registrar_envio_parcelamento`, identidade `AAAAMM:`) e desconta
+  uma parcela restante; a última quita. O envio PGFN não entra nas guias entregues da Receita.
+- Interno PGFN segue a regra do interno: financeiro por template, nunca o Cliente.
+- Antes de ler o PDF, o job e a URA reservam a versão listada da guia (`reservar_guia_pgfn_para_envio`,
+  `em_envio_ate`, 15 min). Enquanto durar, troca e remoção são recusadas ("Guia em envio"); guia que
+  mudou desde a listagem, ou que outra tentativa (job ou URA) já detém, não é entregue e segue
+  pendente. A reserva é exclusiva e devolve um token: só o dono o usa em `liberar_guia_pgfn_do_envio`
+  (token alheio ou vencido não solta nada). Registrada a entrega, a competência trava sozinha; sem
+  entrega, o dono solta a reserva. Entrega que passe dos 15 min perde
+  a proteção: o registro continua apontando o PDF efetivamente entregue.
+- URA: as mesmas guias dos Parcelamentos PGFN comuns; sem nenhuma pendente, reenvia o PDF da última
+  guia entregue (`caminho` do registro, de qualquer competência; sem novo registro nem desconto); sem guia confirmada responde "ainda não está
+  disponível", sem alerta.

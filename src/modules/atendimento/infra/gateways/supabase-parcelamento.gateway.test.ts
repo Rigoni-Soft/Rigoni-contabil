@@ -15,6 +15,7 @@ import { EnvioMensagemFalsoGateway } from "./envio-mensagem-falso.gateway";
 import { SupabaseAlertaSetorGateway } from "./supabase-alerta-setor.gateway";
 import { SupabaseClienteCnpjGateway } from "./supabase-cliente-cnpj.gateway";
 import { SupabaseClientesParaParcelamentoGateway } from "./supabase-clientes-para-parcelamento.gateway";
+import { SupabaseGuiasPgfnGateway } from "./supabase-guias-pgfn.gateway";
 import { SupabaseParcelamentosDoClienteGateway } from "./supabase-parcelamentos-do-cliente.gateway";
 
 const SERVICE_KEY =
@@ -620,6 +621,7 @@ describe("rodada real com a reserva ocupada", () => {
             0,
           ),
           { envio, cnpjs: new SupabaseClienteCnpjGateway(admin), telefone: null },
+          new SupabaseGuiasPgfnGateway(admin),
           0,
         ),
         alertasNoRelogioDaRodada,

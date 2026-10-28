@@ -117,6 +117,7 @@ import { SupabaseClientesParaLembreteGateway } from "@/modules/atendimento/infra
 import { SupabaseClientesParaParcelamentoGateway } from "@/modules/atendimento/infra/gateways/supabase-clientes-para-parcelamento.gateway";
 import { SupabaseDocumentosContratuaisGateway } from "@/modules/atendimento/infra/gateways/supabase-documentos-contratuais.gateway";
 import { SupabaseGuiaPublicadaGateway } from "@/modules/atendimento/infra/gateways/supabase-guia-publicada.gateway";
+import { SupabaseGuiasPgfnGateway } from "@/modules/atendimento/infra/gateways/supabase-guias-pgfn.gateway";
 import { SupabaseIdentificacaoContatoGateway } from "@/modules/atendimento/infra/gateways/supabase-identificacao-contato.gateway";
 import { SupabaseParcelamentosDoClienteGateway } from "@/modules/atendimento/infra/gateways/supabase-parcelamentos-do-cliente.gateway";
 import { SupabaseSessaoAtendimentoGateway } from "@/modules/atendimento/infra/gateways/supabase-sessao-atendimento.gateway";
@@ -195,6 +196,7 @@ function entregarParcelamentoNaUra(
     new SupabaseParcelamentosDoClienteGateway(supabaseAdmin),
     guiasFiscais(supabaseAdmin),
     new SupabaseGuiaPublicadaGateway(supabaseAdmin),
+    new SupabaseGuiasPgfnGateway(supabaseAdmin),
     envio,
     new RelogioSistemaGateway(),
   );
@@ -406,6 +408,7 @@ export function makeExecutarEnvioGuiaParcelamento(): ExecutarEnvioGuiaParcelamen
         cnpjs: new SupabaseClienteCnpjGateway(supabaseAdmin),
         telefone: FINANCEIRO_TELEFONE ?? null,
       },
+      new SupabaseGuiasPgfnGateway(supabaseAdmin),
     ),
     new SupabaseAlertaSetorGateway(supabaseAdmin, "parcelamento"),
     new RelogioSistemaGateway(),

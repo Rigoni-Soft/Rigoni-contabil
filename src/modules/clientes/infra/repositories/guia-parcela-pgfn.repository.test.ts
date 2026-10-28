@@ -66,6 +66,7 @@ const CNPJS_DA_SUITE = [
   "77330021000108",
   "77330022000144",
   "77330023000199",
+  "77330024000133",
 ] as const;
 beforeAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
 afterAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
@@ -487,6 +488,52 @@ describe("guia anexada da parcela PGFN", () => {
         ok: true,
         value: original.arquivoCaminho,
       });
+    });
+
+    it("guia reservada para a primeira entrega não troca nem remove; liberada, volta a editar (P1 da PR #195)", async () => {
+      const clienteId = await criarClienteResponsavelFuncionarioSN("77330024000133");
+      const parcelamentoId = await criarParcelamento(clienteId);
+      const repo = new SupabaseGuiaParcelaPgfnRepository(await comoFuncionarioSN());
+      const original = guia("202610");
+      await repo.anexar(parcelamentoId, original, null);
+      const sistema = servico();
+      await sistema
+        .from("cliente_parcelamento_guias")
+        .update({ estado: "confirmada" })
+        .eq("parcelamento_id", parcelamentoId);
+      const reservar = (caminho: string) =>
+        sistema.rpc("reservar_guia_pgfn_para_envio", {
+          p_parcelamento_id: parcelamentoId,
+          p_competencia: "202610",
+          p_caminho: caminho,
+        });
+
+      // Versão que já não é a atual não é reservada.
+      expect((await reservar(guia("202610").arquivoCaminho)).data).toBeNull();
+      const token = (await reservar(original.arquivoCaminho)).data as string;
+      expect(token).toEqual(expect.any(String));
+
+      const nova = { contaNegociacao: "123456", arquivoCaminho: guia("202610").arquivoCaminho };
+      const reservada = "Guia em envio: tente novamente em instantes.";
+      expect(await repo.substituir(parcelamentoId, "202610", nova, null)).toMatchObject({
+        ok: false,
+        error: { message: reservada },
+      });
+      expect(await repo.remover(parcelamentoId, "202610")).toMatchObject({
+        ok: false,
+        error: { message: reservada },
+      });
+      expect(await repo.arquivo(parcelamentoId, "202610")).toEqual({
+        ok: true,
+        value: original.arquivoCaminho,
+      });
+
+      await sistema.rpc("liberar_guia_pgfn_do_envio", {
+        p_parcelamento_id: parcelamentoId,
+        p_competencia: "202610",
+        p_token: token,
+      });
+      expect((await repo.substituir(parcelamentoId, "202610", nova, null)).ok).toBe(true);
     });
 
     it("remove a guia não enviada e audita; a competência pode ser anexada de novo", async () => {

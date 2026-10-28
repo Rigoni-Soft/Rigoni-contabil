@@ -33,11 +33,11 @@ export function SeloDaGuia({ confirmada, enviada }: { confirmada: boolean; envia
       variante="nota"
       como="span"
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium",
+        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-sm font-medium",
         classes,
       )}
     >
-      <Icone className="size-3" aria-hidden="true" />
+      <Icone className="size-3.5" aria-hidden="true" />
       {texto}
     </Texto>
   );

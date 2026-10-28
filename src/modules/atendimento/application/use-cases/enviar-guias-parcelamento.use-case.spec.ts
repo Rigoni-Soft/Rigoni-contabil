@@ -1,6 +1,7 @@
 import type { CadastroFiscalCliente } from "@/modules/atendimento/application/ports/out/cliente-cnpj.provider";
 import type { ClienteParaParcelamento } from "@/modules/atendimento/application/ports/out/clientes-para-parcelamento.provider";
 import type { GuiaFiscal } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
+import type { ParcelamentoPgfn } from "@/modules/atendimento/application/ports/out/guias-pgfn.provider";
 import type {
   EnvioRegistrado,
   GuiaEntregue,
@@ -59,6 +60,12 @@ function montar(
     // Telefone do financeiro; null = não configurado.
     financeiro?: string | null;
     cnpj?: () => Promise<Result<CadastroFiscalCliente, AppError>>;
+    // Parcelamentos PGFN em aberto com as guias confirmadas (#186).
+    pgfn?: Result<ParcelamentoPgfn[], AppError>;
+    lerFalha?: boolean;
+    reservaNegada?: boolean;
+    // Parcela cuja publicação falha.
+    publicarFalha?: string;
   } = {},
 ) {
   const envio = new EnvioMensagemFalsoGateway();
@@ -68,6 +75,8 @@ function montar(
   const caminhos: string[] = [];
   const publicadas: unknown[] = [];
   const ignorados: (readonly string[])[] = [];
+  const lidos: string[] = [];
+  const liberadas: string[] = [];
   const buscarGuiasParcelamento = jest.fn(async (_: string, ignorar: readonly string[]) => {
     ignorados.push(ignorar);
     return (await opcoes.guias?.()) ?? ok([guia("202610")]);
@@ -87,6 +96,9 @@ function montar(
     { buscarGuiasParcelamento },
     {
       publicar: async (_clienteId, _guia, destino) => {
+        if (destino?.periodo === opcoes.publicarFalha) {
+          return err(new ServicoExternoError("storage"));
+        }
         publicadas.push(destino);
         return ok({
           url: `https://storage.test/${destino?.id}/${destino?.periodo}.pdf`,
@@ -109,6 +121,18 @@ function montar(
       },
       telefone: opcoes.financeiro === undefined ? telefoneFinanceiro : opcoes.financeiro,
     },
+    {
+      listarEmAberto: async () => opcoes.pgfn ?? ok([]),
+      ler: async (_clienteId, caminho) => {
+        lidos.push(caminho);
+        return opcoes.lerFalha ? err(new ServicoExternoError("storage")) : ok("JVBERi0=");
+      },
+      reservar: async () => ok(opcoes.reservaNegada ? null : "tok"),
+      liberar: async (_id, competencia, token) => {
+        liberadas.push(token === "tok" ? competencia : "token-errado");
+        return ok(undefined);
+      },
+    },
     0,
   );
   return {
@@ -120,9 +144,28 @@ function montar(
     publicadas,
     caminhos,
     ignorados,
+    lidos,
+    liberadas,
     buscarGuiasParcelamento,
   };
 }
+
+const pgfn = (
+  id: string,
+  guias: string[],
+  extra: Partial<ParcelamentoPgfn> = {},
+): ParcelamentoPgfn => ({
+  ...parcelamento(id),
+  guias: guias.map((competencia) => ({
+    competencia,
+    caminho: `c1/guias-pgfn/${id}/${competencia}.pdf`,
+  })),
+  entregues: (extra.parcelasEnviadas ?? []).map((competencia) => ({
+    competencia,
+    caminho: `c1/guias-pgfn/${id}/${competencia}-entregue.pdf`,
+  })),
+  ...extra,
+});
 
 describe("EnviarGuiasParcelamento", () => {
   beforeEach(() => {
@@ -579,5 +622,159 @@ describe("EnviarGuiasParcelamento", () => {
     await nucleo.execute({ cliente, agora });
 
     expect(registrados).toEqual([]);
+  });
+
+  describe("Parcelamento PGFN (#186)", () => {
+    it("entrega as guias confirmadas até o mês corrente, da mais antiga à mais nova, com o PDF do banco e sem o provedor fiscal", async () => {
+      const { nucleo, envio, registrados, identidades, lidos, buscarGuiasParcelamento } = montar(
+        ok([]),
+        { pgfn: ok([pgfn("g1", ["202610", "202609", "202611"])]) },
+      );
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(andamento).toEqual({ enviado: true, ocorrencias: [] });
+      expect(registrados).toEqual([
+        ["g1", "202609"],
+        ["g1", "202610"],
+      ]);
+      expect(identidades).toEqual(["202609:", "202610:"]);
+      expect(lidos).toEqual(["c1/guias-pgfn/g1/202609.pdf", "c1/guias-pgfn/g1/202610.pdf"]);
+      expect(envio.templatesEnviados.map((t) => t.documento?.nomeArquivo)).toEqual([
+        "parcelamento-COD-g1-202609.pdf",
+        "parcelamento-COD-g1-202610.pdf",
+      ]);
+      expect(buscarGuiasParcelamento).not.toHaveBeenCalled();
+    });
+
+    it("sem guia confirmada para entregar (sem guia, só futura ou já enviada): pula sem alerta", async () => {
+      const { nucleo, envio, registrados } = montar(ok([]), {
+        pgfn: ok([
+          pgfn("g1", []),
+          pgfn("g2", ["202611"]),
+          pgfn("g3", ["202610"], { parcelasEnviadas: ["202610"] }),
+        ]),
+      });
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(andamento).toEqual({ enviado: false, ocorrencias: [] });
+      expect(envio.templatesEnviados).toHaveLength(0);
+      expect(registrados).toEqual([]);
+    });
+
+    it("guia que não pôde ser lida trava as seguintes do mesmo parcelamento e vira alerta", async () => {
+      const { nucleo, registrados } = montar(ok([]), {
+        pgfn: ok([pgfn("g1", ["202609", "202610"])]),
+        lerFalha: true,
+      });
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(andamento.enviado).toBe(false);
+      expect(andamento.ocorrencias).toHaveLength(1);
+      expect(registrados).toEqual([]);
+    });
+
+    it("guia alterada desde a listagem (reserva negada) não é lida nem entregue e trava o acordo (P1)", async () => {
+      const { nucleo, registrados, lidos, envio, liberadas } = montar(ok([]), {
+        pgfn: ok([pgfn("g1", ["202609", "202610"])]),
+        reservaNegada: true,
+      });
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(andamento.enviado).toBe(false);
+      expect(andamento.ocorrencias).toHaveLength(1);
+      expect(lidos).toEqual([]);
+      expect(registrados).toEqual([]);
+      expect(envio.templatesEnviados).toHaveLength(0);
+      // Quem não adquiriu a reserva não libera a de outra tentativa.
+      expect(liberadas).toEqual([]);
+    });
+
+    it("a reserva é liberada ao fim da rodada, inclusive quando a entrega falha (P1)", async () => {
+      const { nucleo, liberadas } = montar(ok([]), {
+        pgfn: ok([pgfn("g1", ["202609", "202610"], { parcelasRestantes: 1 })]),
+        publicarFalha: "202609",
+      });
+
+      await nucleo.execute({ cliente, agora });
+
+      expect(liberadas).toEqual(["202609", "202610"]);
+    });
+
+    it("falha de publicação da guia antiga trava as seguintes do acordo e não quita por elas (F2)", async () => {
+      const { nucleo, registrados } = montar(ok([]), {
+        pgfn: ok([pgfn("g1", ["202609", "202610"], { parcelasRestantes: 1 })]),
+        publicarFalha: "202609",
+      });
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(andamento.enviado).toBe(false);
+      expect(andamento.ocorrencias).toHaveLength(1);
+      expect(registrados).toEqual([]);
+    });
+
+    it("registro incerto da guia antiga trava as seguintes (F2)", async () => {
+      const { nucleo, registrados } = montar(ok([]), {
+        pgfn: ok([pgfn("g1", ["202609", "202610"], { parcelasRestantes: 1 })]),
+        registrar: async () => err(new ServicoExternoError("banco")),
+      });
+
+      await nucleo.execute({ cliente, agora });
+
+      expect(registrados).toEqual([["g1", "202609"]]);
+    });
+
+    it("a trava vale só para o acordo: outro acordo do Cliente segue entregue (F2)", async () => {
+      const { nucleo, registrados } = montar(ok([]), {
+        pgfn: ok([pgfn("g1", ["202609", "202610"]), pgfn("g2", ["202610"])]),
+        publicarFalha: "202609",
+      });
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(andamento.enviado).toBe(true);
+      expect(registrados).toEqual([["g2", "202610"]]);
+    });
+
+    it("não entrega mais guias do que parcelas restantes", async () => {
+      const { nucleo, registrados } = montar(ok([]), {
+        pgfn: ok([pgfn("g1", ["202609", "202610"], { parcelasRestantes: 1 })]),
+      });
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(registrados).toEqual([["g1", "202609"]]);
+      expect(andamento.ocorrencias).toHaveLength(1);
+    });
+
+    it("entrega junto com o parcelamento da Receita do mesmo Cliente", async () => {
+      const { nucleo, registrados } = montar(ok([parcelamento("p1")]), {
+        pgfn: ok([pgfn("g1", ["202610"])]),
+      });
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(andamento).toEqual({ enviado: true, ocorrencias: [] });
+      expect(registrados).toEqual([
+        ["p1", "202610"],
+        ["g1", "202610"],
+      ]);
+    });
+
+    it("PGFN interno vai ao financeiro, nunca ao Cliente", async () => {
+      const { nucleo, envio } = montar(ok([]), {
+        pgfn: ok([pgfn("g1", ["202610"], { interno: true })]),
+      });
+
+      await nucleo.execute({ cliente, agora });
+
+      expect(envio.templatesEnviados).toMatchObject([
+        { nome: "envio_guia_parcelamento_interno", telefone: telefoneFinanceiro },
+      ]);
+    });
   });
 });

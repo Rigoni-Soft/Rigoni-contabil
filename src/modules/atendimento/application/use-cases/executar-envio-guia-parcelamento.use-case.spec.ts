@@ -116,6 +116,12 @@ function montar(
         cnpjs: { cadastroFiscalDoCliente: async () => ok({ cnpj: "12345678000190", regime: "" }) },
         telefone: null,
       },
+      {
+        listarEmAberto: async () => ok([]),
+        ler: async () => ok(""),
+        reservar: async () => ok("tok"),
+        liberar: async () => ok(undefined),
+      },
       0,
     ),
     {

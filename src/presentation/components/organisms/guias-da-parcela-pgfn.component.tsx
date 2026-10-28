@@ -1,4 +1,4 @@
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, ChevronRight } from "lucide-react";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { BotaoDaGuia } from "@/presentation/components/atoms/botao-da-guia.component";
@@ -312,16 +312,20 @@ export function GuiasDaParcelaPgfn({
           rotulo="PDF da guia"
           accept="application/pdf"
           dica="PDF até 4 MB"
-          compacto
           file={arquivo}
           onChange={onArquivo}
           erro={erros.arquivo}
         />
-        <Caixa como="details" open={abrirManual || undefined}>
+        <Caixa como="details" open={abrirManual || undefined} className="group">
           <Caixa
             como="summary"
-            className="w-fit cursor-pointer rounded-sm text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11 pointer-coarse:py-2"
+            className="flex w-fit cursor-pointer items-center gap-1 rounded-sm text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11 pointer-coarse:py-2"
           >
+            {/* A seta é o aviso de que abre, também em tela de toque, sem o hover. */}
+            <ChevronRight
+              className="size-4 shrink-0 transition-transform group-open:rotate-90 motion-reduce:transition-none"
+              aria-hidden="true"
+            />
             Preencher mês e conta à mão
           </Caixa>
           <Pilha espaco={3} className="pt-3">

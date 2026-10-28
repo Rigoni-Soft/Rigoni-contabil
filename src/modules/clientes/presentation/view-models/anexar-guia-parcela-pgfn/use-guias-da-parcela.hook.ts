@@ -59,6 +59,8 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
 
   const lista = useQuery<GuiaDaParcela[]>({
     queryKey: chave,
+    // Toda ação da própria pessoa invalida a lista: sem isto, cada foco da janela a relia.
+    staleTime: 30_000,
     queryFn: async () => {
       const resultado = await listarGuiasParcelaPgfnAction({ parcelamentoId });
       if (!resultado.ok) throw new Error(resultado.error.message);

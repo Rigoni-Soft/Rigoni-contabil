@@ -294,12 +294,12 @@ test.describe("Guia anexada da parcela PGFN: trocar, visualizar e remover (#184)
     await livre();
     await regiao.getByLabel("Trocar guia de 10/2026").setInputFiles(pdf("guia-sem-dados.pdf"));
     await expect(regiao.getByText(/guia trocada, mas ainda não liberada/i)).toBeVisible();
-    await expect(regiao.getByText("A confirmar")).toBeVisible();
+    await expect(regiao.getByText("A confirmar", { exact: true })).toBeVisible();
     // Troca por um PDF de outro mês é recusada e a guia fica como estava.
     await livre();
     await regiao.getByLabel("Trocar guia de 10/2026").setInputFiles(guia("202611"));
     await expect(regiao.getByText(/PDF é de outra competência/i)).toBeVisible();
-    await expect(regiao.getByText("A confirmar")).toBeVisible();
+    await expect(regiao.getByText("A confirmar", { exact: true })).toBeVisible();
     await livre();
     await regiao.getByLabel("Trocar guia de 10/2026").setInputFiles(guia("202610"));
     await expect(regiao.getByText(/guia trocada e confirmada/i)).toBeVisible();
@@ -330,5 +330,42 @@ test.describe("Guia anexada da parcela PGFN: trocar, visualizar e remover (#184)
     await expect(regiao.getByText("Guia removida.")).toBeVisible();
     await expect(regiao.getByText("Nenhuma guia anexada.")).toBeVisible();
     expect((await objetos()).data).toHaveLength(0);
+  });
+});
+
+test.describe("Guia mensal da parcela PGFN: anexar, ver a confirmar e confirmar (#190)", () => {
+  test("guia que não confere fica a confirmar, com o motivo, e o Funcionário a confirma @smoke", async ({
+    page,
+  }) => {
+    const clienteId = await abrirComoFuncionarioSn(page, "Guia Confirmar E2E Ltda");
+    const { data: cliente } = await adminLocal()
+      .from("clientes")
+      .select("cnpj")
+      .eq("id", clienteId)
+      .single();
+    await anexarEEsperarSugestao(page, 0, pdf("acordo-confirmar.pdf"));
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
+    await expect(page).toHaveURL("/simples-nacional");
+    await page.goto(`/clientes/${clienteId}`);
+    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+
+    // A conta do PDF difere da do acordo: a guia é gravada, mas não liberada ao envio.
+    const regiao = page.getByRole("group", { name: "Guias da parcela" });
+    await regiao
+      .getByLabel(/pdf da guia/i)
+      .setInputFiles(
+        pdf("guia-outra-conta.pdf", `[leitor:guia=${cliente!.cnpj};OUTRA-999;202610]`),
+      );
+    await regiao.getByRole("button", { name: "Anexar guia" }).click();
+    await expect(regiao.getByText(/ainda não liberada/i)).toBeVisible();
+    await expect(regiao.getByText("A confirmar", { exact: true })).toBeVisible();
+
+    // Confirmar pede conferência na linha antes de liberar.
+    await regiao
+      .getByRole("button", { name: "Confirmar e liberar guia de 10/2026 ao envio" })
+      .click();
+    await regiao.getByRole("button", { name: "Liberar 10/2026 ao envio" }).click();
+    await expect(regiao.getByText(/Guia confirmada e liberada ao envio/)).toBeVisible();
+    await expect(regiao.getByText("A confirmar", { exact: true })).toHaveCount(0);
   });
 });
