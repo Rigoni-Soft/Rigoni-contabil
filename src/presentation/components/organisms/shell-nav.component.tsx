@@ -89,12 +89,17 @@ export function ShellNav({
         )}
       >
         Atendimento
-        {/* Zero some. Cor própria: o link ativo já é `primary` e a pílula sumiria nele. */}
+        {/* Zero some; acima de 99 vira 99+. Cor própria: o link ativo já é `primary` e a pílula sumiria
+            nele, então ali ela ganha um anel `card`; nos demais o anel tem a cor do fundo da pílula (o
+            hover do link não mostra um aro). */}
         {pendentesDeAtendimento > 0 && (
           <Caixa
             como="span"
             aria-hidden="true"
-            className="ml-2 rounded-full border-2 border-card bg-destructive px-1.5 text-xs text-destructive-foreground"
+            className={cn(
+              "ml-2 rounded-full border-2 bg-destructive px-1.5 text-xs text-destructive-foreground",
+              rotaAtual === ROTA_ATENDIMENTO ? "border-card" : "border-destructive",
+            )}
           >
             {pendentesDeAtendimento > 99 ? "99+" : pendentesDeAtendimento}
           </Caixa>
