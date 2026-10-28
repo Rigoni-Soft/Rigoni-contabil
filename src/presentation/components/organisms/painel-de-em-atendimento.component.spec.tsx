@@ -25,7 +25,7 @@ describe("PainelDeEmAtendimento", () => {
 
   it("com a equipe, cada lista ganha um título visível e a da equipe abre em leitura", async () => {
     const onAbrir = jest.fn();
-    const equipe = [{ id: "e", titulo: "Joana", detalhe: "Mercado · com Caio" }];
+    const equipe = [{ id: "e", titulo: "Joana", detalhe: "Com Caio · Mercado" }];
     render(
       <PainelDeEmAtendimento itens={ITENS} abertoId={null} onAbrir={onAbrir} equipe={equipe} />,
     );
