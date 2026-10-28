@@ -8,12 +8,10 @@ import type { ActionResult } from "@/shared/dtos/action-result.dto";
 import { SETORES } from "@/shared/kernel/setores";
 import { toActionResult } from "@/shared/kernel/to-action-result";
 
-const setorSchema = z.enum(SETORES);
-
 export async function listarAtendimentosDaEquipeAction(
   setor: unknown,
 ): Promise<ActionResult<AtendimentoDaEquipeVisto[]>> {
-  const parsed = setorSchema.safeParse(setor);
+  const parsed = z.enum(SETORES).safeParse(setor);
   if (!parsed.success) {
     return { ok: false, error: { code: "VALIDATION_ERROR", message: "Setor inválido." } };
   }
