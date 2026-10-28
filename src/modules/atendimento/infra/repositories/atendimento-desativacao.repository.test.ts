@@ -24,7 +24,11 @@ const usuarios: string[] = [];
 const telefonesUsados: string[] = [];
 let proximoNumero = 1;
 
-async function criarPerfil(nome: string, setor: string = SETOR): Promise<string> {
+async function criarPerfil(
+  nome: string,
+  setor: string = SETOR,
+  papel: "funcionario" | "lider_setor" = "funcionario",
+): Promise<string> {
   const { data } = await admin.auth.admin.createUser({
     email: `desativacao-77-${nome.replace(/\W/g, "")}-${Date.now()}-${proximoNumero}@teste.local`,
     password: "senha-de-teste-123",
@@ -34,7 +38,7 @@ async function criarPerfil(nome: string, setor: string = SETOR): Promise<string>
   usuarios.push(id);
   const { error } = await admin
     .from("perfis")
-    .insert({ id, nome, email: data.user!.email, papel: "funcionario", setor });
+    .insert({ id, nome, email: data.user!.email, papel, setor });
   if (error) throw error;
   return id;
 }
@@ -157,8 +161,9 @@ describe("desativação × Atendimento em andamento", () => {
     expect(await auditoriasDe("atendimento.devolver-fila", id)).toHaveLength(1);
   });
 
-  it("quem esperava dirigido ao desativado volta à espera do Setor", async () => {
-    const destino = await criarPerfil("Destino Pessoal");
+  it("o dirigido ao desativado passa à espera dirigida ao Líder, mantendo a entrada na espera", async () => {
+    const destino = await criarPerfil("Destino Dirigido");
+    const lider = await criarPerfil("Líder Ativo", SETOR, "lider_setor");
     const { id } = await abrir(null);
     await admin.from("atendimentos").update({ fila_funcionario_id: destino }).eq("id", id);
     const antes = await atendimento(id);
@@ -166,11 +171,36 @@ describe("desativação × Atendimento em andamento", () => {
     await desativar(destino);
 
     const depois = await atendimento(id);
-    expect(depois.fila_funcionario_id).toBeNull();
+    expect(depois.fila_funcionario_id).toBe(lider);
     expect(depois.funcionario_id).toBeNull();
-    // Já estava na Fila: mantém a antiga entrada.
     expect(depois.fila_desde).toBe(antes.fila_desde);
     expect(await auditoriasDe("atendimento.devolver-fila", id)).toHaveLength(1);
+  });
+
+  it("o dirigido ao desativado, sem Líder ativo no Setor, cai na espera do Setor", async () => {
+    const destino = await criarPerfil("Destino Sem Lider");
+    const { id } = await abrir(null);
+    await admin.from("atendimentos").update({ fila_funcionario_id: destino }).eq("id", id);
+
+    await desativar(destino);
+
+    expect(await atendimento(id)).toMatchObject({
+      funcionario_id: null,
+      fila_funcionario_id: null,
+    });
+  });
+
+  it("o dirigido ao próprio Líder desativado cai na espera do Setor, não nele mesmo", async () => {
+    const lider = await criarPerfil("Líder Desativado", SETOR, "lider_setor");
+    const { id } = await abrir(null);
+    await admin.from("atendimentos").update({ fila_funcionario_id: lider }).eq("id", id);
+
+    await desativar(lider);
+
+    expect(await atendimento(id)).toMatchObject({
+      funcionario_id: null,
+      fila_funcionario_id: null,
+    });
   });
 
   it("com colega livre no Setor o devolvido continua na espera: ninguém é atribuído", async () => {
