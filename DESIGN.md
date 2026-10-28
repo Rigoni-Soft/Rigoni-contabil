@@ -902,8 +902,9 @@ na espera ou cliente que escreve de novo numa conversa não aberta; a primeira l
   entra no Tab (`tabIndex` 0/-1); ← → movem o foco e já ativam, dando a volta; Home/End vão às pontas.
 - **Contador no menu** (`ShellNav`, #163): o link "Atendimento" ganha uma pílula `bg-destructive
   text-destructive-foreground text-xs` com a espera do Setor + as conversas com o cliente aguardando;
-  some em zero, é `aria-hidden` e o link ganha o nome "Atendimento, 3 pendentes" (`aria-label`). Cor
-  própria porque o link da tela ativa já é `primary` e a pílula `primary` sumiria nele. Lê as mesmas
+  some em zero, vira `99+` acima de 99, é `aria-hidden` e o link ganha o nome "Atendimento, 3
+  pendentes" (`aria-label`, com o número inteiro). Cor própria e borda de 2 px `card` porque o link da
+  tela ativa já é `primary` e a pílula `primary` sumiria nele (a borda a separa do fundo ativo). Lê as mesmas
   consultas do aviso global e da tela (sem leitura nova; o Admin, sem Setor próprio, vê zero).
 - **Card de espera** (`CardDeEspera`): o card inteiro é o botão de assumir (`rounded-lg border
   bg-card px-3 py-2`, `hover:bg-accent`). Mostra Contato (`destaque`), empresa (`apoio`), resumo
