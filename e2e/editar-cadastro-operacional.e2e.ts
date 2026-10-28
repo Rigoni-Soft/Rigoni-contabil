@@ -38,6 +38,17 @@ async function buscarClienteIdPorCnpj(cnpjDigits: string): Promise<string> {
   return data.id as string;
 }
 
+// Em todo Setor o Funcionário só enxerga os Clientes de que é Responsável (#165): para o Funcionário
+// do Financeiro ver o cadastro só para leitura, o e2e o atribui como Responsável no Financeiro.
+async function tornarFinanceiroResponsavel(clienteId: string) {
+  const { error } = await adminLocal().from("cliente_responsaveis").insert({
+    cliente_id: clienteId,
+    setor: "financeiro",
+    responsavel_id: "33333333-3333-3333-3333-333333333333",
+  });
+  if (error) throw new Error(`Falha ao atribuir Responsável no Financeiro: ${error.message}`);
+}
+
 test.describe("Editar cadastro operacional do Cliente (#34)", () => {
   test("Funcionário SN edita o cadastro operacional, salvar fecha a tela e a alteração persiste", async ({
     page,
@@ -150,6 +161,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
   }) => {
     const cnpjDigits = await criarClienteComoAdmin(page, "Cadastro Operacional Visual E2E Ltda");
     const clienteId = await buscarClienteIdPorCnpj(cnpjDigits);
+    await tornarFinanceiroResponsavel(clienteId);
 
     await logout(page);
     await login(page, "funcionario.financeiro@rigonicontabil.local", "func123");
@@ -170,6 +182,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
   test("Contrato social só tem botão para quem pode vê-lo (#140)", async ({ page }) => {
     const cnpjDigits = await criarClienteComoAdmin(page, "Cadastro Operacional Contrato E2E Ltda");
     const clienteId = await buscarClienteIdPorCnpj(cnpjDigits);
+    await tornarFinanceiroResponsavel(clienteId);
     const botao = page.getByRole("button", { name: /^Abrir em nova aba: Contrato social/ });
 
     await page.goto(`/clientes/${clienteId}`);
@@ -187,7 +200,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await logout(page);
     await login(page, "funcionario.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
-    // Outro Setor vê o cadastro só para leitura, sem acesso ao contrato.
+    // Responsável em outro Setor vê o cadastro só para leitura, sem acesso ao contrato.
     await page.goto(`/clientes/${clienteId}`);
     await expect(
       page.getByRole("heading", { name: "Visualizar cadastro operacional" }),

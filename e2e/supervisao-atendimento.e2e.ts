@@ -82,7 +82,7 @@ test.describe("Supervisão de Líder/Admin e espera dirigida (#165)", () => {
   }) => {
     const lider = await (await browser.newContext()).newPage();
     await login(lider, "lider.sn@rigonicontabil.local", "lider123");
-    await expect(lider).toHaveURL("/");
+    await expect(lider).toHaveURL("/simples-nacional");
     await lider.goto("/atendimento");
 
     // Espera dirigida a outro: o card abre a leitura, não assume.
@@ -107,7 +107,7 @@ test.describe("Supervisão de Líder/Admin e espera dirigida (#165)", () => {
     // Quem não é o destinatário nem supervisiona não sabe do Atendimento: a espera dele fica vazia.
     const dono = await (await browser.newContext()).newPage();
     await login(dono, "funcionario.sn@rigonicontabil.local", "func123");
-    await expect(dono).toHaveURL("/");
+    await expect(dono).toHaveURL("/simples-nacional");
     await dono.goto("/atendimento");
     await expect(dono.getByText("Nenhum cliente em espera.")).toBeVisible();
     await expect(dono.getByText(/Dona Dirigida/)).toHaveCount(0);
@@ -115,7 +115,7 @@ test.describe("Supervisão de Líder/Admin e espera dirigida (#165)", () => {
     // O destinatário assume e a conversa abre com o campo de resposta.
     const destinatario = await (await browser.newContext()).newPage();
     await login(destinatario, "funcionario2.sn@rigonicontabil.local", "func123");
-    await expect(destinatario).toHaveURL("/");
+    await expect(destinatario).toHaveURL("/simples-nacional");
     await destinatario.goto("/atendimento");
     await destinatario
       .getByRole("button", { name: /Assumir o atendimento de Dona Dirigida/ })
