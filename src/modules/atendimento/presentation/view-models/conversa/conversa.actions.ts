@@ -11,7 +11,6 @@ import {
   makeReagirAMensagem,
   makeTransferirAtendimento,
 } from "@/main/atendimento.factory";
-import type { AtendimentoEncerrado } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
 import type {
   ConversaVista,
   MensagemVista,
@@ -92,7 +91,7 @@ export async function transferirAtendimentoAction(
 
 export async function encerrarAtendimentoAction(
   atendimentoId: unknown,
-): Promise<ActionResult<AtendimentoEncerrado>> {
+): Promise<ActionResult<void>> {
   const parsed = atendimentoIdSchema.safeParse(atendimentoId);
   if (!parsed.success) return entradaInvalida(parsed.error);
 

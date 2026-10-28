@@ -6,14 +6,13 @@ import { SETOR_LABEL, type SetorSlug } from "@/shared/kernel/setores";
 
 export type ItemDaFilaView = {
   id: string;
-  posicao: number;
   contato: string;
   empresa: string;
   cnpj: string | null;
   telefone: string;
   resumo: string | null;
-  // Fila de um usuário (não a do Setor): o item só sai quando ele ficar livre.
-  daFilaDeUsuario: boolean;
+  // Dirigido a um usuário (não à espera do Setor): só ele assume.
+  dirigido: boolean;
   espera: string;
 };
 
@@ -22,13 +21,12 @@ export function itemDaFilaParaView(item: ItemDaFilaVisto, agora?: number): ItemD
   const filaDesdeMs = new Date(item.filaDesde).getTime();
   return {
     id: item.atendimentoId,
-    posicao: item.posicao,
     contato: item.contato.contatoNome ?? "Contato não identificado",
     empresa: item.contato.empresa ?? "Cliente não identificado",
     cnpj: item.contato.cnpj ? formatarCnpj(item.contato.cnpj) : null,
     telefone: telefoneParaExibicao(item.telefone),
     resumo: item.resumo,
-    daFilaDeUsuario: item.filaDoFuncionarioId !== null,
+    dirigido: item.filaDoFuncionarioId !== null,
     espera: agora === undefined ? item.espera : formatarEspera(agora - filaDesdeMs),
   };
 }
@@ -55,7 +53,7 @@ export function avisoDaFila(itens: ItemDaFilaVisto[]): AvisoDaFilaView | null {
     href: "/fila",
     titulo: "Fila de atendimento",
     detalhe: itens.length === 1 ? "1 cliente aguardando" : `${itens.length} clientes aguardando`,
-    previa: `Próximo: ${itemDaFilaParaView(itens[0]).contato}`,
+    previa: `Mais antigo: ${itemDaFilaParaView(itens[0]).contato}`,
     aguardando: true,
     // Muda quando a Fila muda: o cartão é recriado e a animação de entrada roda de novo.
     sinal: itens.map((i) => i.atendimentoId).join(","),

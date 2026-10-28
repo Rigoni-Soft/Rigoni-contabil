@@ -1,5 +1,5 @@
 /**
- * Integração infra ↔ Supabase (testes.md, seção 3) do Atendimento/Mensagem e do balanceamento.
+ * Integração infra ↔ Supabase (testes.md, seção 3) do Atendimento/Mensagem.
  * Requer `npx supabase start` local com migrations + seed aplicados.
  */
 import { createClient } from "@supabase/supabase-js";
@@ -15,27 +15,8 @@ const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: 
 const gateway = new SupabaseAtendimentoRepository(admin);
 const TELEFONE = "61977776666";
 const TELEFONE_B = "61977776667"; // índice único: um Atendimento em andamento por número
-let funcionarioId: string;
-
-beforeAll(async () => {
-  const { data } = await admin.auth.admin.createUser({
-    email: `atendimento-44-${Date.now()}@teste.local`,
-    password: "senha-de-teste-123",
-    email_confirm: true,
-  });
-  funcionarioId = data.user!.id;
-  await admin.from("perfis").insert({
-    id: funcionarioId,
-    nome: "Func Teste 44",
-    email: data.user!.email,
-    papel: "funcionario",
-    setor: "recepcao",
-  });
-});
-
 afterAll(async () => {
   await admin.from("atendimentos").delete().in("telefone", [TELEFONE, TELEFONE_B]);
-  await admin.auth.admin.deleteUser(funcionarioId);
 });
 
 describe("SupabaseAtendimentoRepository", () => {
@@ -45,7 +26,6 @@ describe("SupabaseAtendimentoRepository", () => {
       chave: TELEFONE,
       clienteId: null,
       setor: "recepcao",
-      funcionarioId: null,
       mensagens: [
         { autor: "contato", texto: "oi" },
         { autor: "ura", texto: "aguarde" },
@@ -55,7 +35,7 @@ describe("SupabaseAtendimentoRepository", () => {
     const { data } = await admin
       .from("mensagens")
       .select("autor, texto")
-      .eq("atendimento_id", r.ok && r.value.status === "aberto" ? r.value.id : "")
+      .eq("atendimento_id", r.ok ? r.value.id : "")
       .order("criado_em");
     expect(data).toEqual([
       { autor: "contato", texto: "oi" },
@@ -63,46 +43,31 @@ describe("SupabaseAtendimentoRepository", () => {
     ]);
   });
 
-  it("só Atendimento com Funcionário conta no mês e o ocupa", async () => {
-    const antes = await gateway.funcionariosDoSetor("recepcao");
-    const f = antes.ok ? antes.value.find((x) => x.id === funcionarioId) : undefined;
-    expect(f).toEqual({ id: funcionarioId, atendimentosNoMes: 0, livre: true });
-
-    await gateway.abrir({
+  it("abre na espera do Setor: sem Funcionário, sem assunção e com a hora de entrada na espera", async () => {
+    const r = await gateway.abrir({
       telefone: TELEFONE_B,
       chave: TELEFONE_B,
       clienteId: null,
       setor: "recepcao",
-      funcionarioId,
       mensagens: [{ autor: "contato", texto: "oi" }],
     });
-    const depois = await gateway.funcionariosDoSetor("recepcao");
-    expect(depois.ok && depois.value.find((x) => x.id === funcionarioId)).toEqual({
-      id: funcionarioId,
-      atendimentosNoMes: 1,
-      livre: false,
-    });
-  });
-
-  it("recusa (conflito) atribuir a Funcionário já ocupado, sem gravar nada", async () => {
-    const { count: antes } = await admin
+    if (!r.ok) throw new Error("abertura falhou");
+    const linha = await admin
       .from("atendimentos")
-      .select("*", { count: "exact", head: true })
-      .eq("telefone", TELEFONE_B + "9");
-    const r = await gateway.abrir({
-      telefone: TELEFONE_B + "9",
-      chave: TELEFONE_B + "9",
-      clienteId: null,
-      setor: "recepcao",
-      funcionarioId,
-      mensagens: [{ autor: "contato", texto: "outro" }],
+      .select("funcionario_id, fila_funcionario_id, assumido_em, fila_desde")
+      .eq("id", r.value.id)
+      .single();
+    expect(linha.data).toMatchObject({
+      funcionario_id: null,
+      fila_funcionario_id: null,
+      assumido_em: null,
     });
-    expect(r).toEqual({ ok: true, value: { status: "conflito" } });
-    const { count: depois } = await admin
-      .from("atendimentos")
-      .select("*", { count: "exact", head: true })
-      .eq("telefone", TELEFONE_B + "9");
-    expect(depois).toBe(antes);
+    expect(linha.data?.fila_desde).not.toBeNull();
+    const assuncoes = await admin
+      .from("assuncoes_atendimento")
+      .select("id", { count: "exact", head: true })
+      .eq("atendimento_id", r.value.id);
+    expect(assuncoes.count).toBe(0);
   });
 
   it("não abre um segundo Atendimento em andamento para o mesmo número (índice único)", async () => {
@@ -111,7 +76,6 @@ describe("SupabaseAtendimentoRepository", () => {
       chave: TELEFONE,
       clienteId: null,
       setor: "recepcao",
-      funcionarioId: null,
       mensagens: [{ autor: "contato", texto: "duplicado" }],
     });
     expect(r.ok).toBe(false);
@@ -158,7 +122,6 @@ describe("SupabaseAtendimentoRepository — origem URA (#46)", () => {
       chave: telefone,
       clienteId: null,
       setor: "recepcao",
-      funcionarioId: null,
       mensagens: [{ autor: "contato", texto: "oi" }],
       ...extra,
     });

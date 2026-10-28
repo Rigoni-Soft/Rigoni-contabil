@@ -4,6 +4,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 
+import { abrirComDono } from "../../../../../test-support/atendimento-com-dono";
 import { SupabaseAtendimentoRepository } from "./atendimento.repository";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
@@ -46,18 +47,19 @@ async function criarFuncionario(nome: string): Promise<string> {
 }
 
 async function abrir(telefone: string, funcionarioId: string | null, cliente: string | null) {
-  const r = await repositorio.abrir({
+  const abertura = {
     telefone,
     chave: telefone,
     clienteId: cliente,
     setor: SETOR,
-    funcionarioId,
     mensagens: [
-      { autor: "contato", texto: "preciso do contrato" },
-      { autor: "ura", texto: "Já vamos te atender" },
+      { autor: "contato" as const, texto: "preciso do contrato" },
+      { autor: "ura" as const, texto: "Já vamos te atender" },
     ],
-  });
-  if (!r.ok || r.value.status !== "aberto") throw new Error("abertura falhou");
+  };
+  if (funcionarioId) return abrirComDono(admin, repositorio, abertura, funcionarioId);
+  const r = await repositorio.abrir(abertura);
+  if (!r.ok) throw new Error("abertura falhou");
   return r.value.id;
 }
 

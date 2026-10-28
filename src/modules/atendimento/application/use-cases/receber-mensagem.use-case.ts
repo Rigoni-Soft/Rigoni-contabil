@@ -32,6 +32,7 @@ import type {
   SessaoAtendimento,
   SessaoAtendimentoPort,
 } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
+import { AVISO_AGUARDE } from "@/modules/atendimento/domain/services/aviso-fila.service";
 import {
   descreverDocumento,
   ROTULO_GUIA,
@@ -338,15 +339,12 @@ export class ReceberMensagem implements ReceberMensagemPort {
     if (!aberto.ok) return aberto;
     const limpa = await this.sessoes.limpar(chave);
     if (!limpa.ok) return limpa;
-    // Sem Funcionário livre o Atendimento entrou na Fila: o cliente fica sabendo a posição. O aviso
-    // vem depois de abrir porque a posição só existe com o Atendimento criado.
-    if (aberto.value.posicao === undefined) return ok(undefined);
-    const avisoFila = `Você está na posição ${aberto.value.posicao} da fila de atendimento. Aguarde, por favor.`;
-    const enviado = await this.enviar(telefone, avisoFila);
+    // O Atendimento espera no Setor: o cliente só é avisado de que vão atendê-lo, sem posição.
+    const enviado = await this.enviar(telefone, AVISO_AGUARDE);
     if (!enviado.ok) return enviado;
     const registrada = await this.mensagens.execute({
       chave,
-      mensagem: { autor: "ura", texto: avisoFila },
+      mensagem: { autor: "ura", texto: AVISO_AGUARDE },
     });
     return registrada.ok ? ok(undefined) : registrada;
   }

@@ -11,7 +11,6 @@ jest.mock("./fila.actions", () => ({ listarFilaAction: jest.fn() }));
 const acao = jest.mocked(listarFilaAction);
 const ITEM = {
   atendimentoId: "at-1",
-  posicao: 1,
   telefone: "5561988887777",
   contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
   resumo: null,

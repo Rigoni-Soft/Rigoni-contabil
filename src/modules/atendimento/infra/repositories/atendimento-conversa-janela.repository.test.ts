@@ -27,10 +27,9 @@ async function conversaCom(telefone: string, total: number, empatadas = 0) {
     chave: telefone,
     clienteId: null,
     setor: "condominios",
-    funcionarioId: null,
     mensagens: [],
   });
-  if (!aberto.ok || aberto.value.status !== "aberto") throw new Error("abertura falhou");
+  if (!aberto.ok) throw new Error("abertura falhou");
   const atendimentoId = aberto.value.id;
   const linhas = Array.from({ length: total }, (_, i) => {
     const instante = i >= total - empatadas ? total - empatadas : i;

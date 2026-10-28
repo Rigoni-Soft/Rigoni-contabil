@@ -4,6 +4,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 
+import { abrirComDono } from "../../../../../test-support/atendimento-com-dono";
 import { SupabaseAtendimentoRepository } from "./atendimento.repository";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
@@ -17,10 +18,8 @@ const repositorio = new SupabaseAtendimentoRepository(admin);
 // Números e CNPJ desta suíte, longe do seed e das outras.
 const TELEFONE = "61955550001";
 const TELEFONE_SEM_CLIENTE = "61955550002";
-const TELEFONE_FILA = "61955550003";
 const TELEFONE_RESUMO = "61955550005";
 const TELEFONE_SETOR = "61955550006";
-const TELEFONE_PROPRIO = "61955550004";
 const clienteId = crypto.randomUUID();
 const CNPJ = `8${Date.now()}`.slice(0, 14);
 const usuarios: string[] = [];
@@ -46,15 +45,16 @@ async function criarFuncionario(
 }
 
 async function abrir(telefone: string, cliente: string | null, funcionarioId: string | null) {
-  const r = await repositorio.abrir({
+  const abertura = {
     telefone,
     chave: telefone,
     clienteId: cliente,
-    setor: "recepcao",
-    funcionarioId,
-    mensagens: [{ autor: "contato", texto: "oi" }],
-  });
-  if (!r.ok || r.value.status !== "aberto") throw new Error("abertura falhou");
+    setor: "recepcao" as const,
+    mensagens: [{ autor: "contato" as const, texto: "oi" }],
+  };
+  if (funcionarioId) return abrirComDono(admin, repositorio, abertura, funcionarioId);
+  const r = await repositorio.abrir(abertura);
+  if (!r.ok) throw new Error("abertura falhou");
   return r.value.id;
 }
 
@@ -80,26 +80,14 @@ afterAll(async () => {
   await admin
     .from("atendimentos")
     .delete()
-    .in("telefone", [
-      TELEFONE,
-      TELEFONE_SEM_CLIENTE,
-      TELEFONE_FILA,
-      TELEFONE_PROPRIO,
-      TELEFONE_RESUMO,
-      TELEFONE_SETOR,
-    ]);
+    .in("telefone", [TELEFONE, TELEFONE_SEM_CLIENTE, TELEFONE_RESUMO, TELEFONE_SETOR]);
   await admin.from("clientes").delete().eq("id", clienteId);
   for (const id of usuarios) await admin.auth.admin.deleteUser(id);
 });
 
 describe("SupabaseAtendimentoRepository — Transferência", () => {
-  it("Líder e Admin do Setor também entram no balanceamento, como qualquer Funcionário", async () => {
-    const lider = await criarFuncionario("Lider 45", "condominios", "lider_setor");
-    liderCondominios = lider;
-    const admin = await criarFuncionario("Admin 45", "condominios", "admin");
-    const r = await repositorio.funcionariosDoSetor("condominios");
-    const ids = r.ok ? r.value.map((f) => f.id) : [];
-    expect(ids).toEqual(expect.arrayContaining([lider, admin]));
+  it("prepara o Líder de Condomínios", async () => {
+    liderCondominios = await criarFuncionario("Lider 45", "condominios", "lider_setor");
   });
 
   it("lê o Atendimento em andamento e devolve null para id desconhecido", async () => {
@@ -127,8 +115,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       origemFuncionarioId: destinoId,
       setorOrigem: "recepcao",
       setorDestino: "simples_nacional",
-      funcionarioDestinoId: destinoId,
-      enfileirarSeOcupado: false,
+      dirigidoA: destinoId,
       resumo: "x",
       ator: { id: origemId, setor: "recepcao" },
     });
@@ -140,14 +127,13 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
     expect(count).toBe(0);
   });
 
-  it("transfere: muda Setor/Funcionário, grava origem e resumo, audita e devolve o contexto", async () => {
+  it("transfere dirigido: muda Setor, espera o destinatário sem dono, grava origem e resumo, audita e devolve o contexto", async () => {
     const r = await repositorio.transferir({
       atendimentoId,
       origemFuncionarioId: origemId,
       setorOrigem: "recepcao",
       setorDestino: "simples_nacional",
-      funcionarioDestinoId: destinoId,
-      enfileirarSeOcupado: false,
+      dirigidoA: destinoId,
       resumo: "  DAS em atraso  ",
       ator: { id: origemId, setor: "recepcao" },
     });
@@ -155,9 +141,6 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       ok: true,
       value: {
         status: "transferido",
-        naFila: false,
-        proximoDaOrigem: null,
-        promovidoNoDestino: null,
         destinatarioNome: "Destino 45",
         origemNome: "Origem 45",
         contato: { contatoNome: "Dona Lia", empresa: "Transfere Ltda", cnpj: CNPJ },
@@ -166,12 +149,14 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
 
     const { data: atendimento } = await admin
       .from("atendimentos")
-      .select("setor, funcionario_id, status")
+      .select("setor, funcionario_id, fila_funcionario_id, assumido_em, status")
       .eq("id", atendimentoId)
       .single();
     expect(atendimento).toEqual({
       setor: "simples_nacional",
-      funcionario_id: destinoId,
+      funcionario_id: null,
+      fila_funcionario_id: destinoId,
+      assumido_em: null,
       status: "em_andamento",
     });
     const { data: transferencia } = await admin
@@ -194,15 +179,14 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
     expect(auditoria).toEqual([{ ator: origemId, setor: "recepcao", resultado: "sucesso" }]);
   });
 
-  it("recusa (conflito) transferir a Funcionário já ocupado, sem gravar nada", async () => {
+  it("recusa (conflito) dirigir a quem não é do Setor de destino, sem gravar nada", async () => {
     const outro = await abrir(TELEFONE_SEM_CLIENTE, null, null);
     const r = await repositorio.transferir({
       atendimentoId: outro,
       origemFuncionarioId: null,
       setorOrigem: "recepcao",
-      setorDestino: "simples_nacional",
-      funcionarioDestinoId: destinoId,
-      enfileirarSeOcupado: false,
+      setorDestino: "contabil",
+      dirigidoA: destinoId,
       resumo: "x",
       ator: { id: origemId, setor: "recepcao" },
     });
@@ -211,7 +195,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
     expect(data).toEqual({ setor: "recepcao" });
   });
 
-  it("transfere sem Funcionário (Fila) e sem Contato identificado", async () => {
+  it("transfere para a espera do Setor, sem Contato identificado", async () => {
     const { data } = await admin
       .from("atendimentos")
       .select("id")
@@ -222,8 +206,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       origemFuncionarioId: null,
       setorOrigem: "recepcao",
       setorDestino: "contabil",
-      funcionarioDestinoId: null,
-      enfileirarSeOcupado: false,
+      dirigidoA: null,
       resumo: "dúvida",
       ator: { id: origemId, setor: "recepcao" },
     });
@@ -231,9 +214,6 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       ok: true,
       value: {
         status: "transferido",
-        naFila: false,
-        proximoDaOrigem: null,
-        promovidoNoDestino: null,
         destinatarioNome: null,
         origemNome: null,
         contato: { contatoNome: null, empresa: null, cnpj: null },
@@ -269,56 +249,6 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
     expect(liderCondominios).toBeTruthy();
   });
 
-  it("destino fixo ocupado: o Atendimento entra na fila dele, sem dono", async () => {
-    // `destinoId` já está com o Atendimento transferido nos testes acima.
-    const novo = await abrir(TELEFONE_FILA, null, null);
-    const r = await repositorio.transferir({
-      atendimentoId: novo,
-      origemFuncionarioId: null,
-      setorOrigem: "recepcao",
-      setorDestino: "simples_nacional",
-      funcionarioDestinoId: destinoId,
-      enfileirarSeOcupado: true,
-      resumo: "fila",
-      ator: { id: origemId, setor: "recepcao" },
-    });
-    expect(r.ok && r.value.status === "transferido" && r.value.naFila).toBe(true);
-    expect(r.ok && r.value.status === "transferido" && r.value.destinatarioNome).toBe("Destino 45");
-    const { data } = await admin
-      .from("atendimentos")
-      .select("setor, funcionario_id, fila_funcionario_id, assumido_em")
-      .eq("id", novo)
-      .single();
-    expect(data).toEqual({
-      setor: "simples_nacional",
-      funcionario_id: null,
-      fila_funcionario_id: destinoId,
-      assumido_em: null,
-    });
-  });
-
-  it("destino fixo que já é o dono do próprio Atendimento: não conta como ocupado, fica com ele", async () => {
-    const dono = await criarFuncionario("Dono 45", "recepcao", "admin");
-    const meu = await abrir(TELEFONE_PROPRIO, null, dono);
-    const r = await repositorio.transferir({
-      atendimentoId: meu,
-      origemFuncionarioId: dono,
-      setorOrigem: "recepcao",
-      setorDestino: "recepcao",
-      funcionarioDestinoId: dono,
-      enfileirarSeOcupado: true,
-      resumo: "eu mesmo",
-      ator: { id: dono, setor: "recepcao" },
-    });
-    expect(r.ok && r.value.status === "transferido" && r.value.naFila).toBe(false);
-    const { data } = await admin
-      .from("atendimentos")
-      .select("funcionario_id, fila_funcionario_id")
-      .eq("id", meu)
-      .single();
-    expect(data).toEqual({ funcionario_id: dono, fila_funcionario_id: null });
-  });
-
   it("resumo vazio ou acima de 1000 caracteres é recusado pelo banco", async () => {
     const id = await abrir(TELEFONE_RESUMO, null, null);
     for (const resumo of ["   ", "a".repeat(1001)]) {
@@ -327,8 +257,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
         origemFuncionarioId: null,
         setorOrigem: "recepcao",
         setorDestino: "contabil",
-        funcionarioDestinoId: null,
-        enfileirarSeOcupado: false,
+        dirigidoA: null,
         resumo,
         ator: { id: origemId, setor: "recepcao" },
       });
@@ -345,8 +274,7 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       origemFuncionarioId: null,
       setorOrigem: "financeiro",
       setorDestino: "contabil",
-      funcionarioDestinoId: null,
-      enfileirarSeOcupado: false,
+      dirigidoA: null,
       resumo: "x",
       ator: { id: origemId, setor: "recepcao" },
     });
@@ -364,15 +292,6 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       await admin.from("perfis").update({ desativado_em: null }).eq("id", id);
     }
   }
-
-  it("usuário desativado sai do Balanceamento", async () => {
-    await comDesativado(destinoId, async () => {
-      const r = await repositorio.funcionariosDoSetor("simples_nacional");
-      expect(r.ok && r.value.map((f) => f.id)).not.toContain(destinoId);
-    });
-    const depois = await repositorio.funcionariosDoSetor("simples_nacional");
-    expect(depois.ok && depois.value.map((f) => f.id)).toContain(destinoId);
-  });
 
   it("Responsável desativado não é destino: o Cliente fica sem Responsável", async () => {
     const op = await admin

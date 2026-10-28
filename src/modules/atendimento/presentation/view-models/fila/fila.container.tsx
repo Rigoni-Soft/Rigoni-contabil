@@ -1,7 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { FilaDoSetor } from "@/presentation/components/organisms/fila-do-setor.component";
 import type { ItemDaFilaVisto } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
+import { useAssumirAtendimentoMutation } from "@/modules/atendimento/presentation/view-models/fila/assumir.queries";
 import { tituloDaFila } from "@/modules/atendimento/presentation/view-models/fila/fila.presenter";
 import { useFila } from "@/modules/atendimento/presentation/view-models/fila/use-fila.hook";
 import { SETOR_LABEL, SETORES, type SetorSlug } from "@/shared/kernel/setores";
@@ -29,6 +32,9 @@ export function FilaContainer({
     podeEscolherSetor,
   );
 
+  const router = useRouter();
+  const assumir = useAssumirAtendimentoMutation();
+
   return (
     <FilaDoSetor
       titulo={tituloDaFila(nome, setor)}
@@ -36,6 +42,9 @@ export function FilaContainer({
       itens={itens}
       carregando={carregando}
       indisponivel={indisponivel}
+      onAssumir={(id) => assumir.mutate(id, { onSuccess: () => router.push(`/atendimento/${id}`) })}
+      assumindoId={assumir.isPending ? assumir.variables : null}
+      erroAoAssumir={assumir.error?.message ?? null}
       escolhaDeSetor={
         podeEscolherSetor ? { setor, opcoes: OPCOES, onChange: escolherSetor } : undefined
       }

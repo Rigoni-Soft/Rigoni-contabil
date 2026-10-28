@@ -5,6 +5,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 
+import { abrirComDono } from "../../../../../test-support/atendimento-com-dono";
 import { SupabaseAtendimentoRepository } from "./atendimento.repository";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
@@ -45,37 +46,42 @@ describe("SupabaseAtendimentoRepository — desconexão do Funcionário", () => 
       setor: SETOR,
     });
 
-    const aberto = await repositorio.abrir({
-      telefone: TELEFONES[0],
-      chave: TELEFONES[0],
-      clienteId: null,
-      setor: SETOR,
+    const atendimentoId = await abrirComDono(
+      admin,
+      repositorio,
+      {
+        telefone: TELEFONES[0],
+        chave: TELEFONES[0],
+        clienteId: null,
+        setor: SETOR,
+        mensagens: [
+          { autor: "contato", texto: "oi" },
+          { autor: "funcionario", texto: "bom dia" },
+        ],
+      },
       funcionarioId,
-      mensagens: [
-        { autor: "contato", texto: "oi" },
-        { autor: "funcionario", texto: "bom dia" },
-      ],
-    });
-    if (!aberto.ok || aberto.value.status !== "aberto") throw new Error("abertura falhou");
-    const atendimentoId = aberto.value.id;
+    );
 
     // Conecta e desconecta de verdade.
     const sessao = createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false } });
     expect((await sessao.auth.signInWithPassword({ email, password: SENHA })).error).toBeNull();
     expect((await sessao.auth.signOut()).error).toBeNull();
 
-    // Atendimento novo no mesmo Setor, sem atribuicao livre: nao herda o dono offline.
+    // Atendimento novo no mesmo Setor: espera sem dono e não herda o dono offline.
     const novo = await repositorio.abrir({
       telefone: TELEFONES[1],
       chave: TELEFONES[1],
       clienteId: null,
       setor: SETOR,
-      funcionarioId: null,
       mensagens: [{ autor: "contato", texto: "alô" }],
     });
-    if (!novo.ok || novo.value.status !== "aberto") throw new Error("abertura falhou");
-    expect(novo.value.funcionarioId).toBeNull();
-    expect(await repositorio.posicaoNaFila(novo.value.id)).toEqual({ ok: true, value: 1 });
+    if (!novo.ok) throw new Error("abertura falhou");
+    const gravado = await admin
+      .from("atendimentos")
+      .select("funcionario_id")
+      .eq("id", novo.value.id)
+      .single();
+    expect(gravado.data?.funcionario_id).toBeNull();
 
     // Continua atribuído a ele, em andamento.
     expect(await repositorio.buscarEmAndamento(atendimentoId)).toMatchObject({

@@ -3,8 +3,7 @@ import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
 // O Funcionário transfere pelo painel e o destino lê, na conversa, o contato, a empresa, o CNPJ,
-// quem transferiu e o resumo. O Líder do Contábil lê mesmo que o Balanceamento tenha mandado o
-// Atendimento para a Fila.
+// quem transferiu e o resumo. O Líder do Contábil lê o Atendimento mesmo na espera do Setor.
 const admin = adminLocal();
 
 const FUNCIONARIO = "55555555-5555-5555-5555-555555555555";
@@ -73,12 +72,15 @@ test.describe("Contexto da Transferência (#74)", () => {
     await expect(page).toHaveURL("/");
     await page.goto(`/atendimento/${atendimento.data.id}`);
 
+    // O Atendimento está na espera do Setor, que também aparece na tela: lê só o contexto.
+    const contexto = page.getByRole("region", { name: "Contexto do Atendimento" });
     await expect(page.getByRole("heading", { name: "Seu Contexto" })).toBeVisible();
-    await expect(page.getByText("Contexto E2E Ltda ·")).toBeVisible();
+    // O cabeçalho da conversa traz o telefone; o cartão da espera, não.
+    await expect(page.getByText(/Contexto E2E Ltda · \S+ · \(61\)/)).toBeVisible();
     await expect(
-      page.getByText("Transferido por Segundo Funcionário Financeiro · Financeiro"),
+      contexto.getByText("Transferido por Segundo Funcionário Financeiro · Financeiro"),
     ).toBeVisible();
-    await expect(page.getByText(RESUMO)).toBeVisible();
+    await expect(contexto.getByText(RESUMO)).toBeVisible();
   });
 
   test("o Atendimento aberto pela URA mostra o resumo e, sem Cliente, o CNPJ informado @smoke", async ({

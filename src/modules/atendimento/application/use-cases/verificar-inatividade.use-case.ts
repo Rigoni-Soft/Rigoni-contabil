@@ -9,7 +9,6 @@ import type {
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { FeriadosPort } from "@/modules/atendimento/application/ports/out/feriados.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
-import { avisoDeVez } from "@/modules/atendimento/domain/services/aviso-fila.service";
 import {
   AVISO_ENCERRAMENTO_AO_CLIENTE,
   AVISO_INATIVIDADE_AO_CLIENTE,
@@ -133,24 +132,15 @@ export class VerificarInatividade implements VerificarInatividadePort {
     // Mudou ou foi encerrado por outro caminho entre a leitura e agora: nada a fazer.
     if (encerrado.value.status === "inexistente") return ok(false);
 
-    // Fechado, com a mensagem final já no histórico. Falhar nos avisos não desfaz nada: a do
-    // cliente fica pendente (o job a reenvia); a do próximo da Fila aparece na contagem de falhas.
+    // Fechado, com a mensagem final já no histórico. Falhar no aviso não desfaz nada: fica
+    // pendente e o job o reenvia.
     const entregue = await this.entregarEncerramento(
       atendimento.id,
       encerrado.value.reivindicacao,
       atendimento.telefone,
       atendimento.chave,
     );
-    const proximo = encerrado.value.proximo;
-    const avisoDoProximo = proximo
-      ? await this.avisar.execute({
-          telefone: proximo.telefone,
-          chave: proximo.chave,
-          texto: avisoDeVez(proximo.funcionarioNome),
-        })
-      : ok(undefined);
-    if (!entregue.ok) return entregue;
-    return avisoDoProximo.ok ? ok(true) : err(avisoDoProximo.error);
+    return entregue.ok ? ok(true) : entregue;
   }
 
   // `reivindicacao`: o token de posse; liberar e confirmar só valem para quem o detém.

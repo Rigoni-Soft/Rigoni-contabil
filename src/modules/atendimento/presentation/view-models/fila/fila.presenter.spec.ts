@@ -4,7 +4,6 @@ import { avisoDaFila, itemDaFilaParaView, tituloDaFila } from "./fila.presenter"
 
 const ITEM: ItemDaFilaVisto = {
   atendimentoId: "at-1",
-  posicao: 1,
   telefone: "5561988887777",
   contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
   resumo: "Quer o contrato social",
@@ -17,13 +16,12 @@ describe("itemDaFilaParaView", () => {
   it("formata Contato, Empresa, CNPJ e telefone para exibição", () => {
     expect(itemDaFilaParaView(ITEM)).toMatchObject({
       id: "at-1",
-      posicao: 1,
       contato: "Maria",
       empresa: "Padaria Ltda",
       cnpj: "11.444.777/0001-61",
       telefone: "(61) 98888-7777",
       resumo: "Quer o contrato social",
-      daFilaDeUsuario: false,
+      dirigido: false,
     });
   });
 
@@ -43,7 +41,7 @@ describe("itemDaFilaParaView", () => {
   });
 
   it("indica quando é a fila de um usuário", () => {
-    expect(itemDaFilaParaView({ ...ITEM, filaDoFuncionarioId: "u-1" }).daFilaDeUsuario).toBe(true);
+    expect(itemDaFilaParaView({ ...ITEM, filaDoFuncionarioId: "u-1" }).dirigido).toBe(true);
   });
 });
 
@@ -64,7 +62,7 @@ describe("avisoDaFila", () => {
     expect(avisoDaFila([ITEM, { ...ITEM, atendimentoId: "at-2" }])).toMatchObject({
       href: "/fila",
       detalhe: "2 clientes aguardando",
-      previa: "Próximo: Maria",
+      previa: "Mais antigo: Maria",
       aguardando: true,
       sinal: "at-1,at-2",
     });

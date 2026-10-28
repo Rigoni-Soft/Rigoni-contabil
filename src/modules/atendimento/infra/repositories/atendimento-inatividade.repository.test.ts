@@ -9,6 +9,7 @@ import {
   URA_ATOR_ID,
 } from "@/modules/atendimento/domain/services/inatividade.service";
 
+import { abrirComDono } from "../../../../../test-support/atendimento-com-dono";
 import { exigirSupabaseLocal } from "../../../../../test-support/exigir-supabase-local";
 import { SupabaseAtendimentoRepository } from "./atendimento.repository";
 
@@ -52,20 +53,24 @@ async function criarFuncionario(nome: string): Promise<string> {
 }
 
 async function abrir(telefone: string, funcionarioId: string | null) {
-  const r = await repositorio.abrir({
+  const abertura = {
     telefone,
     chave: telefone,
     clienteId: null,
     setor: SETOR,
-    funcionarioId,
-    mensagens: [{ autor: "contato", texto: "oi" }],
-  });
-  if (!r.ok || r.value.status !== "aberto") throw new Error("abertura falhou");
-  atendimentosCriados.push(r.value.id);
-  return r.value.id;
+    mensagens: [{ autor: "contato" as const, texto: "oi" }],
+  };
+  const id = funcionarioId
+    ? await abrirComDono(admin, repositorio, abertura, funcionarioId)
+    : await (async () => {
+        const r = await repositorio.abrir(abertura);
+        if (!r.ok) throw new Error("abertura falhou");
+        return r.value.id;
+      })();
+  atendimentosCriados.push(id);
+  return id;
 }
 
-// Dono já em atendimento, gravado direto: com alguém esperando na Fila, `abrir` (corretamente) faria o dono assumir o mais antigo. Este teste precisa do estado "dono ocupado + Fila".
 async function abrirDireto(telefone: string, funcionarioId: string): Promise<string> {
   const { data, error } = await admin
     .from("atendimentos")
@@ -212,8 +217,7 @@ describe("SupabaseAtendimentoRepository — inatividade", () => {
     await repositorio.limparAvisoInatividade(id);
     await repositorio.marcarAvisoInatividade(id, "funcionario", new Date());
     const r = await repositorio.encerrarPorInatividade(id, funcionario, ATOR, TEXTO_FINAL);
-    // O Funcionário liberado assume o Atendimento que estava na Fila do Setor.
-    expect(r.ok && r.value.status === "encerrado" && r.value.proximo?.chave).toBe(TELEFONES[1]);
+    expect(r.ok && r.value.status).toBe("encerrado");
     expect(await doAtendimento(id)).toBeUndefined();
 
     const auditoria = await admin
