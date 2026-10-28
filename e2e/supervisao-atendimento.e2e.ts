@@ -104,13 +104,13 @@ test.describe("Supervisão de Líder/Admin e espera dirigida (#165)", () => {
     await expect(painel.getByLabel("Setor de destino")).toHaveCount(0);
     await expect(painel.getByRole("button", { name: "Encerrar atendimento" })).toBeVisible();
 
-    // Quem não é o destinatário nem supervisiona só vê o card informativo.
+    // Quem não é o destinatário nem supervisiona não sabe do Atendimento: a espera dele fica vazia.
     const dono = await (await browser.newContext()).newPage();
     await login(dono, "funcionario.sn@rigonicontabil.local", "func123");
     await expect(dono).toHaveURL("/");
     await dono.goto("/atendimento");
-    await expect(dono.getByText("Dirigido a outro usuário")).toBeVisible();
-    await expect(dono.getByRole("button", { name: /Dona Dirigida/ })).toHaveCount(0);
+    await expect(dono.getByText("Nenhum cliente em espera.")).toBeVisible();
+    await expect(dono.getByText(/Dona Dirigida/)).toHaveCount(0);
 
     // O destinatário assume e a conversa abre com o campo de resposta.
     const destinatario = await (await browser.newContext()).newPage();
