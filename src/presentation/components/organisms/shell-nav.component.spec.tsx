@@ -98,4 +98,14 @@ describe("ShellNav — pendentes de Atendimento (#163)", () => {
     expect(link).toHaveTextContent("99+");
     expect(link).not.toHaveTextContent("120");
   });
+
+  it("diz o aviso numa região de status para leitor de tela, que existe mesmo vazia", () => {
+    const { rerender } = render(<ShellNav setores={[]} anuncio="" />);
+    const regiao = screen.getByRole("status");
+    expect(regiao).toBeEmptyDOMElement();
+
+    rerender(<ShellNav setores={[]} anuncio="Atendimento: 3 pendentes." />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("Atendimento: 3 pendentes.");
+  });
 });
