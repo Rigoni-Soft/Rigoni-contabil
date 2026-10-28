@@ -895,7 +895,8 @@ o aviso sonoro continua. Modo Operate: cor só para ação e estado, tudo em tok
 
 - **Abas** (`AbasDeAtendimento`, molécula genérica no valor da aba): `role="tablist"`, aba ativa com
   `border-b-2 border-primary text-primary`, inativas `text-muted-foreground`. O contador é uma pílula
-  `bg-primary text-primary-foreground text-xs` que **some em zero**. Teclado no padrão ARIA: só a ativa
+  `bg-primary text-primary-foreground text-xs` que **some em zero**; é `aria-hidden` e o leitor
+  de tela ouve o contador por extenso no nome da aba ("Em espera, 2 clientes"). Teclado no padrão ARIA: só a ativa
   entra no Tab (`tabIndex` 0/-1); ← → movem o foco e já ativam, dando a volta; Home/End vão às pontas.
 - **Card de espera** (`CardDeEspera`): o card inteiro é o botão de assumir (`rounded-lg border
   bg-card px-3 py-2`, `hover:bg-accent`). Mostra Contato (`destaque`), empresa (`apoio`), resumo

@@ -58,4 +58,28 @@ describe("AbasDeAtendimento", () => {
 
     expect(onEscolher).not.toHaveBeenCalled();
   });
+
+  it("o contador é dito por extenso ao leitor de tela e a pílula só mostra o número", () => {
+    render(
+      <AbasDeAtendimento
+        abas={[{ valor: "a", rotulo: "Primeira", contador: 2, contadorTexto: "2 clientes" }]}
+        ativa="a"
+        onEscolher={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("tab", { name: "Primeira , 2 clientes" })).toBeInTheDocument();
+  });
+
+  it("sem itens (contador zero) o nome da aba é só o rótulo", () => {
+    render(
+      <AbasDeAtendimento
+        abas={[{ valor: "a", rotulo: "Primeira", contador: 0, contadorTexto: "0 clientes" }]}
+        ativa="a"
+        onEscolher={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("tab", { name: "Primeira" })).toBeInTheDocument();
+  });
 });

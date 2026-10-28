@@ -1,7 +1,15 @@
 import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { cn } from "@/presentation/lib/utils";
 
-export type AbaView<T extends string> = { valor: T; rotulo: string; contador: number };
+// `contadorTexto`: o contador dito por extenso ("2 clientes"), para o leitor de tela; a pílula visual
+// é só o número.
+export type AbaView<T extends string> = {
+  valor: T;
+  rotulo: string;
+  contador: number;
+  contadorTexto?: string;
+};
 
 type AbasDeAtendimentoProps<T extends string> = {
   abas: AbaView<T>[];
@@ -40,7 +48,7 @@ export function AbasDeAtendimento<T extends string>({
 }: AbasDeAtendimentoProps<T>) {
   return (
     <Linha role="tablist" aria-label="Atendimento" espaco={1} className="border-b border-border">
-      {abas.map(({ valor, rotulo, contador }, indice) => (
+      {abas.map(({ valor, rotulo, contador, contadorTexto }, indice) => (
         <Caixa
           como="button"
           key={valor}
@@ -63,12 +71,18 @@ export function AbasDeAtendimento<T extends string>({
           {rotulo}
           {/* Zero some: o contador só aparece quando há o que fazer. */}
           {contador > 0 && (
-            <Caixa
-              como="span"
-              className="ml-2 rounded-full bg-primary px-1.5 text-xs text-primary-foreground"
-            >
-              {contador}
-            </Caixa>
+            <>
+              <Caixa
+                como="span"
+                aria-hidden="true"
+                className="ml-2 rounded-full bg-primary px-1.5 text-xs text-primary-foreground"
+              >
+                {contador}
+              </Caixa>
+              <Texto como="span" variante="somenteLeitor">
+                , {contadorTexto ?? contador}
+              </Texto>
+            </>
           )}
         </Caixa>
       ))}
