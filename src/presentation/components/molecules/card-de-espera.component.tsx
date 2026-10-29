@@ -58,7 +58,12 @@ export function CardDeEspera({
           </Texto>
         )}
         {resumo && (
-          <Texto como="span" variante="nota" className="block truncate" id={`${id}-resumo`}>
+          <Texto
+            como="span"
+            variante="nota"
+            className="line-clamp-2 break-words"
+            id={`${id}-resumo`}
+          >
             {resumo}
           </Texto>
         )}

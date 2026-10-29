@@ -881,7 +881,8 @@ na espera ou cliente que escreve de novo numa conversa não aberta; a primeira l
 - **Card de espera** (`CardDeEspera`): o card inteiro é o botão de assumir (`rounded-lg border
   bg-card px-3 py-2`, `hover:bg-accent`). Mostra Contato (`destaque`), empresa (`apoio`), origem
   (`nota`, só em Atendimento transferido: "Transferido de Financeiro por Fulano"), resumo
-  (`nota`) e, à direita, ícone de relógio com o tempo de espera em `tabular-nums` (mm:ss, h:mm:ss a
+  (`nota`, até duas linhas com reticências, `line-clamp-2 break-words`: é o que decide quem assumir)
+  e, à direita, ícone de relógio com o tempo de espera em `tabular-nums` (mm:ss, h:mm:ss a
   partir de 1h; o texto muda a cada segundo, por isso `suppressHydrationWarning`) e, abaixo dele, o
   verbo "Assumir" (`text-sm font-medium text-primary`, "Assumindo…" enquanto grava; `aria-hidden`,
   pois o nome acessível já o diz) só no card que o usuário assume. O nome
