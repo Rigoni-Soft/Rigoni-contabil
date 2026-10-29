@@ -22,9 +22,11 @@ const item = (id: string) => ({
   telefone: "5561988887777",
   contato: { contatoNome: "Maria", empresa: null, cnpj: null },
   resumo: null,
+  origem: null,
   filaDesde: new Date("2026-10-09T12:00:00Z"),
   espera: "00:00",
   filaDoFuncionarioId: null,
+  esperaComum: true,
 });
 
 function renderizar() {
@@ -80,15 +82,18 @@ describe("useAvisoFila", () => {
     await waitFor(() => expect(result.current.aviso).toMatchObject({ soEmTelaEstreita: false }));
   });
 
-  it("em /fila não mostra o aviso (a Fila já está na tela)", async () => {
-    pathname = "/fila";
-    acao.mockResolvedValue({ ok: true, data: [item("a")] });
+  it.each(["/fila", "/atendimento"])(
+    "em %s não mostra o aviso (a Fila já está na tela)",
+    async (rota) => {
+      pathname = rota;
+      acao.mockResolvedValue({ ok: true, data: [item("a")] });
 
-    const { result } = renderizar();
+      const { result } = renderizar();
 
-    await waitFor(() => expect(acao).toHaveBeenCalled());
-    expect(result.current.aviso).toBeNull();
-  });
+      await waitFor(() => expect(acao).toHaveBeenCalled());
+      expect(result.current.aviso).toBeNull();
+    },
+  );
 
   it.each(["/login", "/trocar-senha"])("em %s não consulta", (rota) => {
     pathname = rota;
@@ -164,5 +169,20 @@ describe("useAvisoFila", () => {
 
       expect(acao.mock.calls.length).toBeGreaterThan(1);
     });
+  });
+
+  it("na tela Atendimento não toca: o som é da própria tela (#163)", async () => {
+    pathname = "/atendimento";
+    acao.mockResolvedValue({ ok: true, data: [item("a")] });
+    const { reler } = renderizar();
+    await waitFor(() => expect(acao).toHaveBeenCalledTimes(1));
+    // sem cartão na tela não há o que esperar: deixa a primeira leitura registrar a base
+    await act(async () => {});
+
+    acao.mockResolvedValue({ ok: true, data: [item("a"), item("b")] });
+    await reler();
+    await waitFor(() => expect(acao).toHaveBeenCalledTimes(2));
+
+    expect(tocar).not.toHaveBeenCalled();
   });
 });

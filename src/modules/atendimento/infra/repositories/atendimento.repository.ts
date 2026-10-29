@@ -193,16 +193,25 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
 
   async roteamentoDoCliente(
     clienteId: string,
+    setorDestino?: SetorSlug,
   ): Promise<Result<RoteamentoDoCliente | null, AppError>> {
     const { data, error } = await this.supabaseAdmin
       .from("clientes")
-      .select("regime, cliente_cadastro_operacional_sn(responsavel_id)")
+      .select(
+        "regime, cliente_cadastro_operacional_sn(responsavel_id), cliente_responsaveis(setor, responsavel_id)",
+      )
       .eq("id", clienteId)
       .maybeSingle();
     if (error) return err(new ServicoExternoError("Falha ao consultar o Cliente."));
     if (!data) return ok(null);
     const linha = roteamentoDoClienteRowSchema.parse(data);
-    const responsavelId = linha.cliente_cadastro_operacional_sn?.responsavel_id ?? null;
+    // O Simples Nacional guarda o Responsável no cadastro operacional; os demais Setores, em tabela própria.
+    const responsavelId = !setorDestino
+      ? null
+      : setorDestino === "simples_nacional"
+        ? (linha.cliente_cadastro_operacional_sn?.responsavel_id ?? null)
+        : (linha.cliente_responsaveis.find((r) => r.setor === setorDestino)?.responsavel_id ??
+          null);
     if (!responsavelId) return ok({ regime: linha.regime, responsavelId: null });
     // Responsável desativado não recebe: o Atendimento cai no Líder.
     const ativo = await this.supabaseAdmin
@@ -266,6 +275,9 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
           telefone: linha.telefone,
           contato: { contatoNome: linha.contato_nome, empresa: linha.empresa, cnpj: linha.cnpj },
           resumo: linha.resumo,
+          origem: linha.origem_setor
+            ? { setor: linha.origem_setor, nome: linha.origem_nome }
+            : null,
         })),
     );
   }
@@ -463,17 +475,30 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     return ok(undefined);
   }
 
-  async emAndamentoDoFuncionario(
+  emAndamentoDoFuncionario(
     funcionarioId: string,
+  ): Promise<Result<AtendimentoDoFuncionario[], AppError>> {
+    return this.emAndamento("funcionario_id", funcionarioId);
+  }
+
+  emAndamentoDoSetor(setor: SetorSlug): Promise<Result<AtendimentoDoFuncionario[], AppError>> {
+    return this.emAndamento("setor", setor);
+  }
+
+  // Em atendimento (com dono), pelo dono ou pelo Setor, do assumido há mais tempo ao mais recente.
+  private async emAndamento(
+    coluna: "funcionario_id" | "setor",
+    valor: string,
   ): Promise<Result<AtendimentoDoFuncionario[], AppError>> {
     const { data, error } = await this.supabaseAdmin
       .from("atendimentos")
       .select(
-        "id, telefone, chave_telefone, criado_em, clientes(empresa, cnpj, cliente_contatos(nome, telefone, padrao, criado_em)), mensagens(autor, texto, criado_em, anexo_tipo)",
+        "id, funcionario_id, dono:perfis!funcionario_id(nome), telefone, chave_telefone, criado_em, clientes(empresa, cnpj, cliente_contatos(nome, telefone, padrao, criado_em)), mensagens(autor, texto, criado_em, anexo_tipo)",
       )
       .order("criado_em", { referencedTable: "mensagens", ascending: false })
       .limit(1, { referencedTable: "mensagens" })
-      .eq("funcionario_id", funcionarioId)
+      .eq(coluna, valor)
+      .not("funcionario_id", "is", null)
       .eq("status", "em_andamento")
       .order("assumido_em")
       .order("id");
@@ -484,6 +509,8 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
         .parse(data)
         .map((linha) => ({
           id: linha.id,
+          funcionarioId: linha.funcionario_id,
+          funcionarioNome: linha.dono?.nome ?? null,
           telefone: linha.telefone,
           criadoEm: linha.criado_em,
           contato: dadosDoContato(linha.clientes, linha.chave_telefone),

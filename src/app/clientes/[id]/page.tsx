@@ -8,6 +8,8 @@ import { AnexarAlteracaoContratualContainer } from "@/modules/clientes/presentat
 import { SinoAvisosContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/sino-avisos.container";
 import { EditarCadastroOperacionalContainer } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.container";
 import { carregarCadastroOperacionalCliente } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.server";
+import { ResponsavelDoSetorContainer } from "@/modules/clientes/presentation/view-models/responsavel-do-setor/responsavel-do-setor.container";
+import { carregarResponsavelDoSetor } from "@/modules/clientes/presentation/view-models/responsavel-do-setor/responsavel-do-setor.server";
 import { alteracaoEmFocoDaUrl } from "@/modules/clientes/presentation/view-models/visualizar-documento-contratual/documentos-contratuais.presenter";
 import { carregarDocumentosContratuais } from "@/modules/clientes/presentation/view-models/visualizar-documento-contratual/visualizar-documento-contratual.server";
 import {
@@ -15,6 +17,7 @@ import {
   podeAtribuirResponsavel,
   podeEditarCadastroOperacional,
 } from "@/shared/kernel/papeis";
+import { ehSetor, SETOR_LABEL } from "@/shared/kernel/setores";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -44,6 +47,13 @@ export default async function Page({ params, searchParams }: Props) {
 
   // Só Admin ou Funcionário do setor Simples Nacional edita — qualquer outro
   // perfil autenticado só visualiza.
+  // O SN atribui no próprio cadastro; o Líder dos demais Setores, no bloco do Setor dele.
+  const atribuiNoCadastro = sessao.setor === "simples_nacional";
+  const atribuiNoSetor =
+    !atribuiNoCadastro &&
+    ehSetor(sessao.setor) &&
+    podeAtribuirResponsavel(sessao.papel, sessao.setor);
+  const responsavelDoSetor = atribuiNoSetor ? await carregarResponsavelDoSetor(id) : null;
   const readOnly = !podeEditarCadastroOperacional(sessao.papel, sessao.setor);
 
   return (
@@ -67,6 +77,15 @@ export default async function Page({ params, searchParams }: Props) {
           />
         ) : undefined
       }
+      responsavelDoSetor={
+        atribuiNoSetor && ehSetor(sessao.setor) && responsavelDoSetor?.ok ? (
+          <ResponsavelDoSetorContainer
+            clienteId={id}
+            setorRotulo={SETOR_LABEL[sessao.setor]}
+            atual={responsavelDoSetor.value}
+          />
+        ) : undefined
+      }
       formulario={
         <EditarCadastroOperacionalContainer
           dados={resultado.value}
@@ -76,7 +95,9 @@ export default async function Page({ params, searchParams }: Props) {
           podeAnexar={podeAnexarAlteracaoContratual(sessao.papel)}
           // Vindo de aviso de alteração: o botão do documento abre aquela alteração, em destaque.
           alteracaoEmFoco={alteracaoEmFocoDaUrl(alteracao)}
-          podeAtribuirResponsavel={podeAtribuirResponsavel(sessao.papel, sessao.setor)}
+          podeAtribuirResponsavel={
+            atribuiNoCadastro && podeAtribuirResponsavel(sessao.papel, sessao.setor)
+          }
           voltarHrefAoSalvar={voltarHrefSeguro(voltarPara)}
         />
       }

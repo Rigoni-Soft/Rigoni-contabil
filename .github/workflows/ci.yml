@@ -104,6 +104,14 @@ jobs:
 
       - run: yarn test:e2e
 
+      - name: Guarda trace e capturas das falhas do E2E
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: test-results/
+          if-no-files-found: ignore
+
       - name: Encerra o Supabase local
         if: always()
         run: supabase stop

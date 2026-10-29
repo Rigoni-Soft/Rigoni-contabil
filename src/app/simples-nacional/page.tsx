@@ -3,13 +3,13 @@ import { redirect } from "next/navigation";
 import { ComparativosSn } from "@/presentation/components/organisms/comparativos-sn.component";
 import { ResumoSetorSn } from "@/presentation/components/organisms/resumo-setor-sn.component";
 import { ShellHeader } from "@/presentation/components/organisms/shell-header.component";
-import { ShellNav } from "@/presentation/components/organisms/shell-nav.component";
 import { ResumoSetorSnPage } from "@/presentation/components/pages/resumo-setor-sn.page";
 import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-button.container";
 import {
   carregarSessao,
   carregarSetoresDaNavegacao,
 } from "@/presentation/view-models/shell/shell.server";
+import { ShellNavContainer } from "@/modules/atendimento/presentation/view-models/atendimento-central/shell-nav.container";
 import { SinoAvisosContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/sino-avisos.container";
 import { BuscarClienteContainer } from "@/modules/clientes/presentation/view-models/buscar-cliente/buscar-cliente.container";
 import { carregarResumoSetorSn } from "@/modules/clientes/presentation/view-models/resumo-setor-sn/resumo-setor-sn.server";
@@ -40,7 +40,7 @@ export default async function Page() {
           avisos={<SinoAvisosContainer usuarioId={sessao.id} />}
         />
       }
-      nav={<ShellNav setores={setores} rotaAtual="/simples-nacional" />}
+      nav={<ShellNavContainer setores={setores} rotaAtual="/simples-nacional" />}
       erro={resumo.ok ? undefined : "Falha ao carregar o resumo do setor. Tente novamente."}
       resumo={
         resumo.ok && (

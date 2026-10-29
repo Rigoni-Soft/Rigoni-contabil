@@ -38,6 +38,7 @@ import { AtribuirResponsavelCliente } from "@/modules/clientes/application/use-c
 import { BuscarClientes } from "@/modules/clientes/application/use-cases/buscar-clientes.use-case";
 import { ConfirmarGuiaParcelaPgfn } from "@/modules/clientes/application/use-cases/confirmar-guia-parcela-pgfn.use-case";
 import { ConsultarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/consultar-cadastro-operacional-cliente.use-case";
+import { ConsultarResponsavelDoSetor } from "@/modules/clientes/application/use-cases/consultar-responsavel-do-setor.use-case";
 import { ContarAvisosNaoVistos } from "@/modules/clientes/application/use-cases/contar-avisos-nao-vistos.use-case";
 import { CriarCliente } from "@/modules/clientes/application/use-cases/criar-cliente.use-case";
 import { EditarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/editar-cadastro-operacional-cliente.use-case";
@@ -223,6 +224,14 @@ export async function makeAtribuirResponsavelCliente(): Promise<AtribuirResponsa
     new SupabaseClienteQueryGateway(supabase),
     new SupabaseResponsavelClienteRepository(supabase),
     auditoriaViaModuloAuditoria(),
+  );
+}
+
+export async function makeConsultarResponsavelDoSetor(): Promise<ConsultarResponsavelDoSetor> {
+  const supabase = await createSupabaseServer();
+  return new ConsultarResponsavelDoSetor(
+    sessaoViaUsuarios(supabase),
+    new SupabaseClienteQueryGateway(supabase),
   );
 }
 

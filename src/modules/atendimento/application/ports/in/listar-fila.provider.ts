@@ -10,9 +10,12 @@ export type ItemDaFilaVisto = {
   telefone: string;
   contato: DadosDoContato;
   resumo: string | null;
+  origem: { setor: SetorSlug; nome: string | null } | null;
   filaDesde: Date;
   espera: string;
   filaDoFuncionarioId: string | null;
+  // Sem destinatário, só a Recepção tem espera comum (qualquer um assume); fora dela é supervisão.
+  esperaComum: boolean;
 };
 
 export interface ListarFilaPort {

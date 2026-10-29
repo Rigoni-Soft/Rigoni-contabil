@@ -11,10 +11,12 @@ export default defineConfig({
   // Contra o preview cada ação passa por rede, função serverless (cold start) e Supabase remoto:
   // os 5 s/30 s do dev local estouram por latência, não por defeito. O trace guarda a tela das falhas.
   timeout: remoto ? 60_000 : 30_000,
-  expect: { timeout: remoto ? 15_000 : 5_000 },
+  expect: { timeout: remoto ? 15_000 : process.env.CI ? 10_000 : 5_000 },
+  // No CI o `next dev` compila rota por demanda; o envio de anexo encadeia upload, action e releitura
+  // da conversa, e 5 s não cobrem isso sob carga. Sem retry: defeito real tem de continuar vermelho.
   use: {
     baseURL: process.env.BASE_URL ?? `http://localhost:${PORT}`,
-    trace: remoto ? "retain-on-failure" : "off",
+    trace: remoto || process.env.CI ? "retain-on-failure" : "off",
     // Num deploy com mensageria real, este cabeçalho (mesmo valor de E2E_ADAPTER_SECRET no Preview)
     // faz o app usar o adapter falso nas requisições da suíte: nada vai à Meta.
     extraHTTPHeaders: process.env.E2E_ADAPTER_SECRET

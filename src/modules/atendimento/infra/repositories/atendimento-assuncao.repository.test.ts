@@ -14,9 +14,17 @@ const SERVICE_KEY =
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 const repositorio = new SupabaseAtendimentoRepository(admin);
 
-const SETOR = "rh" as const;
-const OUTRO_SETOR = "recepcao" as const;
-const TELEFONES = ["61955580001", "61955580002", "61955580003", "61955580004", "61955580005"];
+// A espera comum (sem destinatário) existe só na Recepção: é onde dois Funcionários disputam o clique.
+const SETOR = "recepcao" as const;
+const OUTRO_SETOR = "rh" as const;
+const TELEFONES = [
+  "61955580001",
+  "61955580002",
+  "61955580003",
+  "61955580004",
+  "61955580005",
+  "61955580008",
+];
 const usuarios: string[] = [];
 
 async function criarUsuario(
@@ -147,6 +155,45 @@ describe("SupabaseAtendimentoRepository — assumir da espera", () => {
       .select("*", { count: "exact", head: true })
       .eq("atendimento_id", id);
     expect(count).toBe(0);
+  });
+
+  it("espera dirigida: só o destinatário assume; Líder, Admin e colega do Setor são inelegíveis", async () => {
+    const destinatario = await criarUsuario("Rita Responsavel");
+    const lider = await criarUsuario("Lia Lider", "lider_setor");
+    const adm = await criarUsuario("Ari Admin", "admin", "administrativo");
+    const colega = await criarUsuario("Caio Colega");
+    const id = await emEspera("61955580008");
+    await admin.from("atendimentos").update({ fila_funcionario_id: destinatario }).eq("id", id);
+
+    for (const quem of [lider, adm, colega]) {
+      expect(await repositorio.assumir(id, quem)).toEqual({
+        ok: true,
+        value: { status: "inelegivel" },
+      });
+    }
+    expect(await repositorio.assumir(id, destinatario)).toEqual({
+      ok: true,
+      value: { status: "assumido" },
+    });
+  });
+
+  it("fora da Recepção, Atendimento sem destinatário não é assumido por ninguém do Setor", async () => {
+    const funcionario = await criarUsuario("Fábio Funcionario", "funcionario", OUTRO_SETOR);
+    const lider = await criarUsuario("Lúcia Lider", "lider_setor", OUTRO_SETOR);
+    const { data, error } = await admin
+      .from("atendimentos")
+      .insert({ telefone: "61955580009", chave_telefone: "61955580009", setor: OUTRO_SETOR })
+      .select("id")
+      .single();
+    if (error) throw error;
+    TELEFONES.push("61955580009");
+
+    for (const quem of [funcionario, lider]) {
+      expect(await repositorio.assumir(data.id, quem)).toEqual({
+        ok: true,
+        value: { status: "inelegivel" },
+      });
+    }
   });
 
   it("Atendimento inexistente ou encerrado não é assumido", async () => {

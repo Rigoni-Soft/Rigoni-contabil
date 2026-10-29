@@ -16,7 +16,7 @@ arquivo por HTTP Range no link temporário do Storage.
 - Isso exige uma policy de INSERT em `storage.objects` (a URL de upload assinada não vale para a
   TUS): `anexos_atendimento_envio_do_funcionario`, que só deixa gravar em `anexos-atendimento/{atendimento}/…`
   quando `pode_anexar_ao_atendimento` confirma que o usuário (ativo) é o dono do Atendimento em
-  andamento, Líder do setor dele ou Admin — a mesma regra de `podeTransferir`.
+  andamento, Líder do setor dele ou Admin — mais larga que a do servidor, que só aceita o dono (`podeAtender`).
 - O bucket continua sem policy de leitura e de remoção: o arquivo só sai por link temporário e só o
   servidor (service_role) remove. Tipo e tamanho também são barrados pelo bucket (415/413).
 - O servidor continua sendo quem decide: a Server Action recebe só o caminho; `EnviarAnexoAoCliente`
@@ -28,7 +28,7 @@ arquivo por HTTP Range no link temporário do Storage.
 
 ## Consequências
 
-- A regra de quem pode anexar existe em dois lugares (SQL e `podeTransferir`); a do servidor é a que
+- A regra de quem pode anexar existe em dois lugares (SQL e `podeAtender`); a do servidor, mais estrita (só o dono), é a que
   decide, a do SQL é a trava de quem escreve direto no Storage.
 - Objeto subido e nunca finalizado (aba fechada antes de a Server Action rodar) fica órfão no bucket;
   uma limpeza por data entra se o volume justificar.

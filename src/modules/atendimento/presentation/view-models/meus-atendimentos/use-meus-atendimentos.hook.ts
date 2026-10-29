@@ -4,12 +4,12 @@ import { usePathname } from "next/navigation";
 import { prepararSom, tocarNotificacao } from "@/presentation/lib/notificacao-sonora";
 import { atendimentoParaView } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.presenter";
 import { useMeusAtendimentosQuery } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.queries";
+import { ROTA_ATENDIMENTO } from "@/shared/kernel/rotas";
 
 // Sem sessão (login, troca de senha obrigatória) não há o que consultar; na própria conversa o
 // Atendimento já está na tela e a conversa faz a sua leitura (uma leitura reativa por tela,
 // arquitetura.md 4.9).
 const SEM_ATENDIMENTOS = ["/login", "/trocar-senha", "/atendimento/"];
-
 export function useMeusAtendimentos() {
   const pathname = usePathname();
   const habilitado = !SEM_ATENDIMENTOS.some((rota) => pathname.startsWith(rota));
@@ -33,9 +33,12 @@ export function useMeusAtendimentos() {
     const novidade = atuais.some(
       (a) => antes !== null && (!antes.has(a.id) || (a.aguardando && antes.get(a.id) !== a.sinal)),
     );
-    if (novidade) tocarNotificacao();
+    if (novidade && pathname !== ROTA_ATENDIMENTO) tocarNotificacao();
     anterior.current = new Map(atuais.map((a) => [a.id, a.sinal]));
-  }, [query.data, habilitado]);
+  }, [query.data, habilitado, pathname]);
 
-  return { atendimentos: habilitado ? (query.data ?? []).map(atendimentoParaView) : [] };
+  // Na tela Atendimento a lista já está à vista (aba "Em atendimento") e o som é dela: sem cartão
+  // (cobriria o painel de ações) e sem aviso sonoro do dock.
+  const aVista = habilitado && pathname !== ROTA_ATENDIMENTO;
+  return { atendimentos: aVista ? (query.data ?? []).map(atendimentoParaView) : [] };
 }

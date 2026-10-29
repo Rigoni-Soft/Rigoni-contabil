@@ -86,8 +86,8 @@ function montar(
 }
 
 describe("TransferirAtendimento", () => {
-  it("transfere para a espera do Setor, sem escolher Funcionário, e devolve o que o destino recebe", async () => {
-    const { caso, transferencias } = montar();
+  it("sem Responsável nem Líder no Setor, transfere para a espera do Setor e devolve o que o destino recebe", async () => {
+    const { caso, transferencias } = montar({ lider: null });
     const r = await caso.execute(INPUT);
     expect(r).toEqual({
       ok: true,
@@ -119,23 +119,19 @@ describe("TransferirAtendimento", () => {
     expect(anexadas).toEqual([texto]);
   });
 
-  it("Líder do Setor do Atendimento e Admin transferem; outro Funcionário não", async () => {
-    const lider = { id: "l", papel: "lider_setor" as const, setor: "recepcao" as const };
-    const admin = { id: "ad", papel: "admin" as const, setor: "administrativo" as const };
-    const outro = { id: "x", papel: "funcionario" as const, setor: "recepcao" as const };
-    expect((await montar({ ator: lider }).caso.execute(INPUT)).ok).toBe(true);
-    expect((await montar({ ator: admin }).caso.execute(INPUT)).ok).toBe(true);
-    const negado = montar({ ator: outro });
-    const r = await negado.caso.execute(INPUT);
-    expect(!r.ok && r.error.code).toBe("FORBIDDEN");
-    expect(negado.transferencias).toEqual([]);
-  });
-
-  it("Líder de outro Setor não transfere", async () => {
-    const r = await montar({
-      ator: { id: "l", papel: "lider_setor" as const, setor: "contabil" as const },
-    }).caso.execute(INPUT);
-    expect(!r.ok && r.error.code).toBe("FORBIDDEN");
+  it("só o dono transfere: Líder do Setor, Líder de outro Setor, Admin e outro Funcionário não", async () => {
+    const atores = [
+      { id: "l", papel: "lider_setor" as const, setor: "recepcao" as const },
+      { id: "l2", papel: "lider_setor" as const, setor: "contabil" as const },
+      { id: "ad", papel: "admin" as const, setor: "administrativo" as const },
+      { id: "x", papel: "funcionario" as const, setor: "recepcao" as const },
+    ];
+    for (const ator of atores) {
+      const { caso, transferencias } = montar({ ator });
+      const r = await caso.execute(INPUT);
+      expect(!r.ok && r.error.code).toBe("FORBIDDEN");
+      expect(transferencias).toEqual([]);
+    }
   });
 
   it("sem sessão: proibido", async () => {
@@ -198,6 +194,50 @@ describe("TransferirAtendimento", () => {
 
     const limite = montar();
     expect((await limite.caso.execute({ ...INPUT, resumo: "a".repeat(1000) })).ok).toBe(true);
+  });
+
+  describe("para qualquer Setor (a regra é do sistema)", () => {
+    it("fica dirigido ao Responsável do Cliente naquele Setor", async () => {
+      const { caso, transferencias } = montar({
+        roteamento: { regime: "lucro_presumido", responsavelId: "resp-contabil" },
+      });
+      const r = await caso.execute(INPUT);
+      expect(r.ok).toBe(true);
+      expect(transferencias[0]).toMatchObject({
+        setorDestino: "contabil",
+        dirigidoA: "resp-contabil",
+      });
+    });
+
+    it("sem Responsável fica dirigido ao Líder do Setor de destino", async () => {
+      const { caso, transferencias } = montar({
+        roteamento: { regime: "lucro_presumido", responsavelId: null },
+        lider: "lider-contabil",
+      });
+      await caso.execute(INPUT);
+      expect(transferencias[0]).toMatchObject({ dirigidoA: "lider-contabil" });
+    });
+
+    it("a Recepção é exceção: espera comum, mesmo com Líder", async () => {
+      const { caso, transferencias } = montar({
+        ator: { id: "func-origem", papel: "funcionario", setor: "contabil" },
+        atendimento: { ...ATENDIMENTO, setor: "contabil" },
+        lider: "lider-recepcao",
+      });
+      const r = await caso.execute({ ...INPUT, setorDestino: "recepcao" });
+      expect(r.ok).toBe(true);
+      expect(transferencias[0]).toMatchObject({ setorDestino: "recepcao", dirigidoA: null });
+    });
+
+    it("Atendimento sem Cliente identificado também vai ao Líder, sem recusar", async () => {
+      const { caso, transferencias } = montar({
+        atendimento: { ...ATENDIMENTO, clienteId: null },
+        lider: "lider-contabil",
+      });
+      const r = await caso.execute(INPUT);
+      expect(r.ok).toBe(true);
+      expect(transferencias[0]).toMatchObject({ dirigidoA: "lider-contabil" });
+    });
   });
 
   describe("para o Simples Nacional", () => {

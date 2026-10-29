@@ -1,14 +1,23 @@
 import Link from "next/link";
 
 import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { cn } from "@/presentation/lib/utils";
+import { ROTA_ATENDIMENTO } from "@/shared/kernel/rotas";
 import { SETOR_LABEL } from "@/shared/kernel/setores";
 
 type SetorNav = { slug: string };
 
 // `rotaAtual`: a aba da tela aberta ganha o destaque cheio (e `aria-current`); em "/" nenhuma está
 // selecionada, e as que têm tela são só links comuns.
-type ShellNavProps = { setores: SetorNav[]; rotaAtual?: string };
+// `pendentesDeAtendimento`: espera do Setor + conversas com o cliente aguardando (#163). `anuncio`: o
+// texto que o leitor de tela lê quando esse contador cresce.
+export type ShellNavProps = {
+  setores: SetorNav[];
+  rotaAtual?: string;
+  pendentesDeAtendimento?: number;
+  anuncio?: string;
+};
 
 // Única aba com tela de verdade por trás — as demais seguem como
 // placeholder desabilitado até ganharem painel próprio.
@@ -19,7 +28,13 @@ const ROTA_POR_SETOR: Record<string, string> = {
 const CHIP =
   "inline-flex items-center rounded-md border border-border px-3 py-1.5 text-sm pointer-coarse:min-h-11";
 
-export function ShellNav({ setores, rotaAtual }: ShellNavProps) {
+export function ShellNav({
+  setores,
+  rotaAtual,
+  pendentesDeAtendimento = 0,
+  anuncio = "",
+}: ShellNavProps) {
+  const ativa = rotaAtual === ROTA_ATENDIMENTO;
   return (
     <Linha
       espaco={2}
@@ -57,10 +72,44 @@ export function ShellNav({ setores, rotaAtual }: ShellNavProps) {
           </Caixa>
         );
       })}
-      {/* Aba de todo login, ao lado das de Setor: leva à Fila (antes um botão só do Admin). */}
-      <Link href="/fila" className={cn(CHIP, "font-medium text-foreground hover:bg-accent")}>
+      {/* Aba de todo login, ao lado das de Setor: leva à tela Atendimento (espera do Setor e conversas). */}
+      <Link
+        href={ROTA_ATENDIMENTO}
+        aria-current={ativa ? "page" : undefined}
+        aria-label={
+          pendentesDeAtendimento > 0
+            ? `Atendimento, ${pendentesDeAtendimento} ${pendentesDeAtendimento === 1 ? "pendente" : "pendentes"}`
+            : undefined
+        }
+        className={cn(
+          CHIP,
+          "font-medium",
+          ativa
+            ? "border-primary bg-primary text-primary-foreground"
+            : "text-foreground hover:bg-accent",
+        )}
+      >
         Atendimento
+        {/* Zero some; acima de 99 vira 99+. Cor própria: o link ativo já é `primary` e a pílula sumiria
+            nele, então ali ela ganha um anel `card`; nos demais o anel tem a cor do fundo da pílula (o
+            hover do link não mostra um aro). */}
+        {pendentesDeAtendimento > 0 && (
+          <Caixa
+            como="span"
+            aria-hidden="true"
+            className={cn(
+              "ml-2 rounded-full border-2 bg-destructive px-1.5 text-xs text-destructive-foreground",
+              ativa ? "border-card" : "border-destructive",
+            )}
+          >
+            {pendentesDeAtendimento > 99 ? "99+" : pendentesDeAtendimento}
+          </Caixa>
+        )}
       </Link>
+      {/* Montada desde o início (mesmo vazia): leitor de tela só anuncia região que já existia. */}
+      <Texto como="span" variante="somenteLeitor" role="status">
+        {anuncio}
+      </Texto>
     </Linha>
   );
 }

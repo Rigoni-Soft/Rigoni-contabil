@@ -24,6 +24,14 @@ export async function login(page: Page, email: string, senha: string) {
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Senha").fill(senha);
   await page.getByRole("button", { name: "Entrar" }).click();
+  // Só volta com o login resolvido: saiu de /login (a navegação de /, que redireciona, pode levar
+  // mais que os 5 s do expect no next dev) ou o formulário mostrou o alerta de recusa. Quem chama
+  // decide o que esperar; sem isso o teste corria contra o relógio logo após o clique.
+  const desfecho = [
+    page.waitForURL((url) => url.pathname !== "/login", { timeout: 30_000 }),
+    page.getByRole("alert").first().waitFor({ timeout: 30_000 }),
+  ].map((p) => p.catch(() => undefined));
+  await Promise.race(desfecho);
 }
 
 export function pdf(nome: string) {

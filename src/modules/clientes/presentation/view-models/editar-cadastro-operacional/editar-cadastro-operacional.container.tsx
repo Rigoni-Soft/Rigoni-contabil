@@ -39,7 +39,7 @@ import { useLeituraDoPdf } from "./use-leitura-do-pdf.hook";
 type Props = {
   dados: CadastroOperacionalClienteDto | null;
   readOnly: boolean;
-  // Só o Líder do SN: troca o Select de Responsável editável.
+  // Só o Líder do SN, neste cadastro (os outros Setores têm o bloco próprio): troca o Select de Responsável editável.
   podeAtribuirResponsavel?: boolean;
   onCancelar?: () => void;
   // Depois de salvar com sucesso, o painel precisa fechar/voltar: painel embutido no dashboard
