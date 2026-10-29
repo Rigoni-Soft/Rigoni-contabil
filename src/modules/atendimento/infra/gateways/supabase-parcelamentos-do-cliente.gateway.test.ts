@@ -4,7 +4,7 @@
  * restante uma vez só, quitação ao zerar, auditoria da URA). Destrutiva: só roda no Supabase local
  * e limpa pelos IDs da própria execução. Requer `npx supabase start`.
  */
-import { URA_ATOR_ID } from "@/modules/atendimento/domain/services/inatividade.service";
+import { URA_ATOR_ID } from "@/modules/atendimento/domain/services/encerramento-automatico.service";
 
 import { criarAdminLocal } from "../../../../../test-support/admin-supabase-local";
 import { SupabaseParcelamentosDoClienteGateway } from "./supabase-parcelamentos-do-cliente.gateway";

@@ -21,7 +21,6 @@ const ATENDIMENTO: AtendimentoEmAndamento = {
   funcionarioId: "func-1",
   telefone: "5561988887777",
   chave: "61988887777",
-  emAvisoDeInatividade: false,
 };
 const FUNCIONARIO: AtorSessaoDto = { id: "func-1", papel: "funcionario", setor: "contabil" };
 // Primeira página de um ogg com Opus / com Vorbis (o que a conferência de codec lê).

@@ -182,10 +182,8 @@ describe("SupabaseAtendimentoRepository — painel do Funcionário", () => {
           }),
         ],
         temMaisAntigas: false,
-        ultimaDoFuncionarioEm: null,
         ultimaTransferencia: null,
         ura: null,
-        aviso: null,
       },
     });
   });

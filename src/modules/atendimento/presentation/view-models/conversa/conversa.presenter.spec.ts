@@ -57,7 +57,6 @@ const CONVERSA: ConversaVista = {
   ultimaTransferencia: null,
   ura: null,
   temMaisAnteriores: false,
-  avisoInatividade: false,
   setoresDestino: ["recepcao", "tributario"],
   documentos: [
     { tipo: "contrato", numero: null, descricao: "Contrato social" },
@@ -76,11 +75,6 @@ describe("conversaParaView", () => {
     expect(
       conversaParaView({ ...CONVERSA, podeAtender: false, encerrado: true }).somenteLeitura,
     ).toBe(false);
-  });
-
-  it("repassa o aviso de inatividade ao Funcionário", () => {
-    expect(conversaParaView(CONVERSA).avisoInatividade).toBe(false);
-    expect(conversaParaView({ ...CONVERSA, avisoInatividade: true }).avisoInatividade).toBe(true);
   });
 
   it("balão do cliente mostra o nome do Contato e o do atendente mostra nome e Setor", () => {

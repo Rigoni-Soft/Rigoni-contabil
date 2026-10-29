@@ -66,14 +66,14 @@ const resultado = z
     WHATSAPP_PHONE_NUMBER_ID: z.string().min(1).optional(),
     // Bearer das rotas de job (agendador). Sem valor, as rotas recusam tudo.
     CRON_SECRET: z.string().min(1).optional(),
-    // Liga o encerramento automático por inatividade. Desligada por padrão: ter o CRON_SECRET não
-    // basta. Em produção só age com mensageria real e o aviso visível ao Funcionário
-    // (docs/contratos/mensageria.md).
-    INATIVIDADE_AUTOMATICA: z.enum(["desligada", "ligada"]).default("desligada"),
+    // Liga o encerramento automático dos Atendimentos 23h50 após a última Mensagem do cliente.
+    // Desligada por padrão: ter o CRON_SECRET não basta. Não fala com o cliente, então não exige
+    // mensageria real.
+    ENCERRAMENTO_AUTOMATICO: z.enum(["desligada", "ligada"]).default("desligada"),
     // Binário do ffmpeg que converte o áudio gravado em webm (docs/adr/0006). Sem valor, usa o
     // do pacote `ffmpeg-static`.
     FFMPEG_PATH: z.string().min(1).optional(),
-    // Liga o job de lembrete de documento e envio de DAS. Mesma regra da inatividade.
+    // Liga o job de lembrete de documento e envio de DAS. Desligada por padrão, como o encerramento.
     LEMBRETES_AUTOMATICOS: z.enum(["desligada", "ligada"]).default("desligada"),
     // Liga o job de lembretes PGFN (alerta do setor dos dias 1, 10 e 15). Não envia nada ao Cliente,
     // então não exige mensageria real.
@@ -184,7 +184,7 @@ const resultado = z
     WHATSAPP_TOKEN: process.env.WHATSAPP_TOKEN || undefined,
     WHATSAPP_PHONE_NUMBER_ID: process.env.WHATSAPP_PHONE_NUMBER_ID || undefined,
     CRON_SECRET: process.env.CRON_SECRET || undefined,
-    INATIVIDADE_AUTOMATICA: process.env.INATIVIDADE_AUTOMATICA || undefined,
+    ENCERRAMENTO_AUTOMATICO: process.env.ENCERRAMENTO_AUTOMATICO || undefined,
     FFMPEG_PATH: process.env.FFMPEG_PATH || undefined,
     LEMBRETES_AUTOMATICOS: process.env.LEMBRETES_AUTOMATICOS || undefined,
     LEMBRETES_PGFN_AUTOMATICOS: process.env.LEMBRETES_PGFN_AUTOMATICOS || undefined,
@@ -228,7 +228,7 @@ export const {
   WHATSAPP_TOKEN,
   WHATSAPP_PHONE_NUMBER_ID,
   CRON_SECRET,
-  INATIVIDADE_AUTOMATICA,
+  ENCERRAMENTO_AUTOMATICO,
   FFMPEG_PATH,
   LEMBRETES_AUTOMATICOS,
   LEMBRETES_PGFN_AUTOMATICOS,

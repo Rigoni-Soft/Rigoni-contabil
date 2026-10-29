@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 // Rotas que só existem no deploy (cron e webhook): provam que estão publicadas e protegidas.
 // Não enviam nenhum segredo, então nada é executado nem alterado.
 test.describe("Rotas de job e webhook no deploy", () => {
-  for (const job of ["inatividade", "lembretes", "parcelamento"]) {
+  for (const job of ["encerramento", "lembretes", "parcelamento"]) {
     test(`/api/jobs/${job} recusa chamada sem o segredo do agendador @smoke`, async ({
       request,
     }) => {

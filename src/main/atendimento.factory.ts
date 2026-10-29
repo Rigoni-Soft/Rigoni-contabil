@@ -11,9 +11,9 @@ import {
   EMAIL_REMETENTE,
   EMAIL_SMTP_SENHA,
   EMAIL_SMTP_USUARIO,
+  ENCERRAMENTO_AUTOMATICO,
   FFMPEG_PATH,
   FINANCEIRO_TELEFONE,
-  INATIVIDADE_AUTOMATICA,
   LEMBRETES_AUTOMATICOS,
   LEMBRETES_PGFN_AUTOMATICOS,
   MENSAGERIA_MODO,
@@ -39,6 +39,7 @@ import type { AssumirAtendimentoPort } from "@/modules/atendimento/application/p
 import type { AutenticarWebhookPort } from "@/modules/atendimento/application/ports/in/autenticar-webhook.provider";
 import type { AvisarClientePort } from "@/modules/atendimento/application/ports/in/avisar-cliente.provider";
 import type { EncerrarAtendimentoPort } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
+import type { EncerrarPorSilencioPort } from "@/modules/atendimento/application/ports/in/encerrar-por-silencio.provider";
 import type { EnviarAnexoAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-anexo-ao-cliente.provider";
 import type { EnviarDocumentoAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-documento-ao-cliente.provider";
 import type { EnviarMensagemAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-mensagem-ao-cliente.provider";
@@ -58,7 +59,6 @@ import type { ReagirAMensagemPort } from "@/modules/atendimento/application/port
 import type { ReceberMensagemPort } from "@/modules/atendimento/application/ports/in/receber-mensagem.provider";
 import type { ReceberMidiaPort } from "@/modules/atendimento/application/ports/in/receber-midia.provider";
 import type { TransferirAtendimentoPort } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
-import type { VerificarInatividadePort } from "@/modules/atendimento/application/ports/in/verificar-inatividade.provider";
 import type { AuditoriaPort } from "@/modules/atendimento/application/ports/out/auditoria.provider";
 import type { AutenticacaoJobPort } from "@/modules/atendimento/application/ports/out/autenticacao-job.provider";
 import type { EnvioEmailPort } from "@/modules/atendimento/application/ports/out/envio-email.provider";
@@ -74,6 +74,7 @@ import { AutenticarWebhook } from "@/modules/atendimento/application/use-cases/a
 import { AvisarCliente } from "@/modules/atendimento/application/use-cases/avisar-cliente.use-case";
 import { CadastrarFeriado } from "@/modules/atendimento/application/use-cases/cadastrar-feriado.use-case";
 import { EncerrarAtendimento } from "@/modules/atendimento/application/use-cases/encerrar-atendimento.use-case";
+import { EncerrarPorSilencio } from "@/modules/atendimento/application/use-cases/encerrar-por-silencio.use-case";
 import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/use-cases/entregar-comunicacao-por-canais.use-case";
 import { EntregarDasNaUra } from "@/modules/atendimento/application/use-cases/entregar-das-na-ura.use-case";
 import { EntregarParcelamentoNaUra } from "@/modules/atendimento/application/use-cases/entregar-parcelamento-na-ura.use-case";
@@ -97,7 +98,6 @@ import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/rec
 import { ReceberMidia } from "@/modules/atendimento/application/use-cases/receber-midia.use-case";
 import { RemoverFeriado } from "@/modules/atendimento/application/use-cases/remover-feriado.use-case";
 import { TransferirAtendimento } from "@/modules/atendimento/application/use-cases/transferir-atendimento.use-case";
-import { VerificarInatividade } from "@/modules/atendimento/application/use-cases/verificar-inatividade.use-case";
 import { BearerAutenticacaoJobGateway } from "@/modules/atendimento/infra/gateways/bearer-autenticacao-job.gateway";
 import { DownloadMidiaFalsoGateway } from "@/modules/atendimento/infra/gateways/download-midia-falso.gateway";
 import { DownloadMidiaWhatsappGateway } from "@/modules/atendimento/infra/gateways/download-midia-whatsapp.gateway";
@@ -317,14 +317,15 @@ export async function makeEncerrarAtendimento(): Promise<EncerrarAtendimentoPort
 }
 
 // O job só age com a flag ligada, e em produção só com mensageria real: o adapter falso "envia"
-// sem avisar ninguém (encerraria Atendimento ou marcaria DAS como enviado sem o cliente saber).
+// sem avisar ninguém (marcaria DAS como enviado sem o cliente saber).
 // Autenticar o job (CRON_SECRET) não autoriza executá-lo.
 function jobAutomaticoAtivo(flag: string): boolean {
   return flag === "ligada" && !(NODE_ENV === "production" && MENSAGERIA_MODO === "falso");
 }
 
-export function inatividadeAutomaticaAtiva(): boolean {
-  return jobAutomaticoAtivo(INATIVIDADE_AUTOMATICA);
+// Não fala com o Cliente: vale a flag, sem a exigência de mensageria real.
+export function encerramentoAutomaticoAtivo(): boolean {
+  return ENCERRAMENTO_AUTOMATICO === "ligada";
 }
 
 export function lembretesAutomaticosAtivos(): boolean {
@@ -336,15 +337,11 @@ export function lembretesParcelamentoPgfnAtivos(): boolean {
   return LEMBRETES_PGFN_AUTOMATICOS === "ligada";
 }
 
-// Job (service_role, sem sessão de usuário): a URA verifica a inatividade dos Atendimentos.
-export function makeVerificarInatividade(): VerificarInatividadePort {
-  const supabaseAdmin = createSupabaseAdmin();
-  const repositorio = new SupabaseAtendimentoRepository(supabaseAdmin);
-  return new VerificarInatividade(
-    repositorio,
-    makeAvisarCliente(repositorio),
+// Job (service_role, sem sessão de usuário): o sistema encerra os Atendimentos sem resposta do cliente.
+export function makeEncerrarPorSilencio(): EncerrarPorSilencioPort {
+  return new EncerrarPorSilencio(
+    new SupabaseAtendimentoRepository(createSupabaseAdmin()),
     new RelogioSistemaGateway(),
-    new SupabaseFeriadoRepository(supabaseAdmin),
   );
 }
 

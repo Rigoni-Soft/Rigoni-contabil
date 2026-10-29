@@ -20,7 +20,8 @@ Dois apps na Meta: um de **homolog** (número de teste, grátis, até 5 destinat
 | `MENSAGERIA_TOKEN_VERIFICACAO` | string aleatória | outra | Inventada; colada igual no "Verify token" do webhook |
 | `MENSAGERIA_SEGREDO_SESSAO` | `openssl rand -hex 32` | outro | Gerado; nunca reaproveitar entre ambientes |
 | `CRON_SECRET` | string aleatória | outra | Gerado; a Vercel o envia como Bearer nos crons |
-| `INATIVIDADE_AUTOMATICA`, `LEMBRETES_AUTOMATICOS` | `desligada` | `desligada` até os gates | Ligar só com templates (#67) aprovados, `CRON_SECRET` e plano da Vercel definidos |
+| `ENCERRAMENTO_AUTOMATICO` | `desligada` | `desligada` até o QA | Encerra Atendimento 23h50 após a última Mensagem do cliente; não fala com o cliente e só pede `CRON_SECRET` (ver `docs/deploy/encerramento-cron.md`) |
+| `LEMBRETES_AUTOMATICOS` | `desligada` | `desligada` até os gates | Ligar só com templates (#67) aprovados, `CRON_SECRET` e plano da Vercel definidos |
 
 Também nos dois ambientes: `SUPABASE_SERVICE_ROLE_KEY`, chaves públicas do Supabase e `OBRIGACOES_FISCAIS_URL` (o padrão `127.0.0.1` não funciona na Vercel).
 
@@ -172,8 +173,4 @@ alteração repete o contrato). Exige teste de lote parcial + retry. Hoje o modo
 real.
 
 Também com a #68: credenciais reais, observabilidade e o adapter HTTP real. A decisão janela/template (#51) já existe em `EnviarComunicacaoProativa`, mas ainda não tem chamador nem composição em `main`.
-**Recuperação de Mensagens pendentes (R85-01.B, revalidação 2):** uma Mensagem do Funcionário fica `pendente` até o adapter responder (`entregue` ou `falha`). Não há reconciliação automática após queda do processo nem reenvio automático: a linha pendente segue visível como "Envio não confirmado", não conta como resposta e só adia o aviso/encerramento por inatividade por 5 minutos. `entregue` significa aceite do adapter, não leitura pelo destinatário, e não há garantia de exatamente-uma-vez no provedor. A definição operacional (quem reenvia, em que prazo, com que observabilidade de pendências) entra com a ativação da mensageria real, junto do gate acima. Integrar na `develop` não libera mensageria real, cron nem inatividade automática em produção.
-
-## Inatividade (#73)
-
-O aviso de 10 minutos e a mensagem final de encerramento saem pelo mesmo `enviar`. O aviso é reservado no banco antes do envio e o encerramento só ocorre com o aviso entregue; a mensagem final fica no histórico (gravada na transação que fecha) e, se o envio falhar, o job a reenvia. O job só roda com `INATIVIDADE_AUTOMATICA=ligada` e, em produção, com `MENSAGERIA_MODO=real` (ver `docs/deploy/inatividade-cron.md`).
+**Recuperação de Mensagens pendentes (R85-01.B, revalidação 2):** uma Mensagem do Funcionário fica `pendente` até o adapter responder (`entregue` ou `falha`). Não há reconciliação automática após queda do processo nem reenvio automático: a linha pendente segue visível como "Envio não confirmado" e não conta como resposta. `entregue` significa aceite do adapter, não leitura pelo destinatário, e não há garantia de exatamente-uma-vez no provedor. A definição operacional (quem reenvia, em que prazo, com que observabilidade de pendências) entra com a ativação da mensageria real, junto do gate acima. Integrar na `develop` não libera mensageria real nem cron em produção.

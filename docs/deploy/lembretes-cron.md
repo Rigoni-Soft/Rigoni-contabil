@@ -5,7 +5,7 @@ Paulo). O próprio job confere o dia no fuso de São Paulo e não faz nada fora 
 
 ## Gate de ativação
 
-Mesma regra da inatividade ([inatividade-cron.md](./inatividade-cron.md)): `CRON_SECRET` autentica,
+Mesma regra do encerramento automático ([encerramento-cron.md](./encerramento-cron.md)): `CRON_SECRET` autentica,
 mas só `LEMBRETES_AUTOMATICOS=ligada` autoriza executar (desligada responde
 `200 { "ativa": false }`). Em `NODE_ENV=production` exige também `MENSAGERIA_MODO=real`: com o
 adapter falso o DAS ficaria `enviado` sem o cliente ter recebido.

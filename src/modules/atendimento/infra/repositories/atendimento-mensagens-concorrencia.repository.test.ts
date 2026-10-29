@@ -317,29 +317,21 @@ describe("Entrega da Mensagem do Funcionário: pendente → entregue | falha", (
     return data?.entrega;
   }
 
-  async function ultimaDoFuncionario(id: string) {
-    const { data } = await admin.rpc("atendimentos_para_inatividade");
-    return (data as { id: string; ultima_do_funcionario: string | null }[]).find((a) => a.id === id)
-      ?.ultima_do_funcionario;
-  }
-
-  it("nasce pendente, não conta como resposta e só vira entregue com o aceite (idempotente)", async () => {
+  it("nasce pendente e só vira entregue com o aceite (idempotente)", async () => {
     const { id, funcionario } = await atendimentoComDono("Entrega ok");
     const c = await conexao();
     const registrada = (await c.query(DO_FUNCIONARIO, [id, funcionario, "oi", null])).rows[0].r;
 
     expect(await entregaDe(registrada.id)).toBe("pendente");
-    expect(await ultimaDoFuncionario(id)).toBeNull();
 
     expect((await c.query(FINALIZAR, [registrada.id, true])).rows[0].r).toBe(true);
     expect(await entregaDe(registrada.id)).toBe("entregue");
-    expect(await ultimaDoFuncionario(id)).not.toBeNull();
     // Reentrega da confirmação, ou uma falha tardia, não muda o que já foi fechado.
     expect((await c.query(FINALIZAR, [registrada.id, false])).rows[0].r).toBe(false);
     expect(await entregaDe(registrada.id)).toBe("entregue");
   });
 
-  it("falha fica na conversa (evidência), não conta como resposta e não toca a Mensagem do contato", async () => {
+  it("falha fica na conversa (evidência) e não toca a Mensagem do contato", async () => {
     const { id, funcionario } = await atendimentoComDono("Entrega falha");
     const c = await conexao();
     const registrada = (
@@ -362,27 +354,10 @@ describe("Entrega da Mensagem do Funcionário: pendente → entregue | falha", (
 
     expect(await entregaDe(registrada.id)).toBe("falha");
     expect(await entregaDe(doContato.data!.id)).toBe("entregue");
-    expect(await ultimaDoFuncionario(id)).toBeNull();
     // A linha e o anexo continuam (referência preservada).
     expect(await mensagensDe(id)).toEqual([
       { autor: "contato", texto: "oi", anexo_tipo: null },
       { autor: "funcionario", texto: "vai falhar", anexo_tipo: "documento" },
     ]);
-  });
-
-  it("envio pendente recente adia o aviso de inatividade; a falha o libera", async () => {
-    const { id, funcionario } = await atendimentoComDono("Aviso e pendente");
-    const c = await conexao();
-    // A leitura do job é posterior à Mensagem do contato e anterior ao envio que sai agora.
-    // Relógio do banco (o do Node pode estar defasado em relação ao do container).
-    const visto = (await c.query("select clock_timestamp() as t")).rows[0].t.toISOString();
-    await esperar(50);
-    const registrada = (await c.query(DO_FUNCIONARIO, [id, funcionario, "saindo", null])).rows[0].r;
-    const MARCAR =
-      "select public.marcar_aviso_inatividade($1::uuid, 'contato'::public.autor_mensagem, $2::timestamptz) as r";
-
-    expect((await c.query(MARCAR, [id, visto])).rows[0].r).toBe(false);
-    await c.query(FINALIZAR, [registrada.id, false]);
-    expect((await c.query(MARCAR, [id, visto])).rows[0].r).toBe(true);
   });
 });

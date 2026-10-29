@@ -760,7 +760,7 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
 - **Envio não confirmado**: a mensagem do Funcionário que o provedor ainda não
   aceitou (ou recusou) mostra "Envio não confirmado ·" em `font-semibold` antes da hora,
   no próprio balão, sem trocar a cor dele: o texto e o anexo continuam visíveis e a
-  mensagem não conta como resposta para a inatividade. O estado vem do texto, não da cor.
+  mensagem não conta como resposta. O estado vem do texto, não da cor.
 - **Reação do escritório** (#84): o balão do cliente tem, fora dele à direita
   (`left-full`, largura reservada no `max-w`), o botão `ghost` redondo de 28 px
   "Reagir à mensagem de <nome>" (mesmo `SeletorDeEmoji`, `compacto`). O glifo
@@ -833,13 +833,6 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   transferência em `Textarea` baixo. Em janela baixa o painel
   rola por dentro. Transferido, o painel troca tudo por um aviso e a tela
   sai da conversa.
-- **Aviso de inatividade** (#73, `CabecalhoDaConversa`): quando a URA avisou
-  que vai encerrar o Atendimento por falta de resposta do Funcionário, o
-  cabeçalho mostra um `FieldError` (ícone + texto, `role="alert"`) logo abaixo
-  do contexto. Só o dono do Atendimento o vê, e some assim que ele escreve ou o
-  Atendimento encerra. Não há alerta no dock. Contraste conferido: 8,42:1 no
-  claro e 6,75:1 no escuro; em 360 px o texto quebra em 3 linhas e a página
-  rola, em 1024×600 o chat mantém ~230 px.
 - **Encerrar atendimento** (no fim do `PainelDeAcoes`, separado por `border-t`):
   botão `outline`; o primeiro clique só abre a confirmação (`role="alertdialog"`
   com o aviso de que o cliente será avisado) com "Confirmar encerramento"

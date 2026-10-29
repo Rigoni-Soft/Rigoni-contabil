@@ -80,7 +80,7 @@ Certidão Negativa de Débitos — documento que atesta a regularidade fiscal do
 
 **Aviso de cadastro**:
 O registro permanente, por destinatário, de que um Cliente entrou no Cadastro operacional (*novo cliente*) ou ganhou uma alteração contratual (*nova alteração*). O de novo cliente vai ao Líder do Setor Simples Nacional; o de nova alteração vai ao Líder e ao Responsável do Cliente (só ao Líder, se não houver Responsável ativo). O Admin nunca é destinatário e não vê o sino de avisos: só os Setores são avisados. Fica "não visto" até o destinatário abri-lo. Não expira.
-_Avoid_: Notificação, aviso (aviso é o de Inatividade).
+_Avoid_: Notificação.
 
 **Alteração contratual**:
 Documento que altera o contrato social do Cliente, anexado pelo Admin com a data e um número de sequência (1, 2, 3...) que é único por Cliente. A mais recente é a de maior número.
@@ -96,8 +96,8 @@ _Avoid_: Conversa, ticket, chamado.
 Uma única troca dentro de um Atendimento (um "balão"), enviada pelo Contato ou por um Atendente.
 _Avoid_: Balão (usar só informalmente), texto.
 
-**Inatividade**:
-Atendimento em andamento com Funcionário parado por 2 horas de expediente (a noite, o fim de semana e os feriados não contam): a última Mensagem é do Funcionário e o cliente não responde, ou é do cliente e o Funcionário não responde. A URA avisa quem está inativo (o cliente pelo WhatsApp; o Funcionário no cabeçalho da conversa do Painel do Funcionário, só o dono do Atendimento, e o aviso some assim que ele escreve; sem alerta no dock) e, sem ação em 10 minutos de expediente, encerra o Atendimento como o encerramento comum, auditado com a URA como ator. Mensagem de quem estava inativo cancela o encerramento. O Funcionário segue dono do Atendimento até lá. Atendimento na Fila não entra.
+**Encerramento automático**:
+O sistema encerra o Atendimento em atendimento (com Funcionário) 23h50 depois da última Mensagem do cliente; a Mensagem do Funcionário não reinicia a contagem. O relógio é corrido (noite, fim de semana e feriado contam) e o job roda também fora do expediente. É o encerramento comum, auditado com o sistema (a URA) como ator; ninguém é avisado. Não reabre: o cliente que volta abre um Atendimento novo pela URA. Atendimento na Fila não entra. Substituiu a antiga Inatividade (2 horas, avisos ao cliente e ao Funcionário, encerramento pela URA), que não existe mais.
 
 **Fila**:
 O estado de um Atendimento aguardando que alguém o assuma — ao abrir, ou depois de uma Transferência. Não é uma entidade separada do Atendimento — é um estado dele. Todo Atendimento novo (a URA o encaminha ao Setor) ou transferido cai na espera do Setor, sem escolha automática de Funcionário: o sistema não distribui, não há fila pessoal e o cliente não recebe posição, só "aguarde, já vamos atendê-lo". A espera é **dirigida** quando o Setor tem destinatário: o Responsável do Cliente naquele Setor ou, sem ele, o Líder do Setor. A **Recepção** é a exceção: todos os Funcionários e o Líder respondem por todo cliente que chega, então a espera dela é a única comum: qualquer Funcionário ou Líder da Recepção a vê e a assume, e o primeiro clique vence. Só o destinatário a vê e a assume; Líder do Setor e Admin a leem em supervisão; os demais usuários, do Setor ou de outros, não sabem dela. Não há espera comum fora da Recepção: sem Responsável nem Líder ativo, o Atendimento fica sem destinatário, só Líder e Admin o leem e ninguém o assume até haver um. O Setor vê quem espera, com o que já foi coletado e o tempo de espera (mm:ss, h:mm:ss a partir de 1h), do mais antigo ao mais novo. Encerrar ou transferir um Atendimento não puxa ninguém da espera. Desativar um usuário devolve à espera do Setor os Atendimentos dele (e os que esperavam dirigidos a ele), com auditoria e sem atribuição. A **assunção** continua gravada como evento imutável, sem efeito na distribuição; a desconexão temporária (#48) segue só mantendo a atribuição.
@@ -108,7 +108,7 @@ A ação de mover um Atendimento de um Atendente/Setor para outro. O Funcionári
 A regra de destino é do sistema: o Atendimento fica dirigido ao Responsável do Cliente ou, sem Responsável, ao Líder do Setor de destino. Vale em todo Setor de destino, menos a Recepção (espera sempre comum); o Simples Nacional ainda só recebe Cliente do Simples Nacional ou MEI. A URA aplica a mesma regra ao encaminhar o cliente ao Setor pedido. Sem Responsável e sem Líder ativo no Setor, o Atendimento fica sem destinatário (só Líder e Admin o leem). Responsável inativo (usuário desativado, #58) não conta: o Atendimento vai ao Líder.
 
 **Painel do Funcionário**:
-A tela `/atendimento/[id]` em que o Funcionário conduz um Atendimento (#49): a conversa em balões, o campo de resposta e, ao lado, os Serviços do cliente e a Transferência. Quem pode abri-la é o dono do Atendimento, o Líder do Setor onde ele está ou o Admin; só o dono responde, envia e transfere, enquanto Líder e Admin ficam em **leitura de supervisão** (veem a conversa, inclusive de outros e da espera dirigida, e podem encerrar). O balão do cliente mostra o nome do Contato cujo número bate com o do Atendimento (o Contato padrão desempata) e o CNPJ da empresa — ou "CNPJ não definido" quando o número não foi identificado ou é cliente novo; o balão do atendente mostra nome e Setor de quem escreveu. O cabeçalho avisa o dono quando a URA vai encerrar o Atendimento por inatividade dele (#73).
+A tela `/atendimento/[id]` em que o Funcionário conduz um Atendimento (#49): a conversa em balões, o campo de resposta e, ao lado, os Serviços do cliente e a Transferência. Quem pode abri-la é o dono do Atendimento, o Líder do Setor onde ele está ou o Admin; só o dono responde, envia e transfere, enquanto Líder e Admin ficam em **leitura de supervisão** (veem a conversa, inclusive de outros e da espera dirigida, e podem encerrar). O balão do cliente mostra o nome do Contato cujo número bate com o do Atendimento (o Contato padrão desempata) e o CNPJ da empresa — ou "CNPJ não definido" quando o número não foi identificado ou é cliente novo; o balão do atendente mostra nome e Setor de quem escreveu.
 _Avoid_: Chat do funcionário, tela de atendimento (ambíguo com Atendimento).
 
 **Aba Atendimento**:
@@ -137,7 +137,7 @@ _Avoid_: Disparo.
 
 **Alerta do setor**:
 Registro que o job grava para o setor Simples Nacional quando algo pede ação humana: DAS pendente com o documento em dia (`das_pendente`), envio que falhou depois das tentativas (`falha_envio`), Cliente sem contato ou e-mail para a forma de envio (`contato_ausente`) e guia entregue por um canal só (`entrega_parcial`), Parcelamento pendente que o provedor não entregou ou que não casou com nenhuma guia (`parcelamento_sem_guia`, a mensagem lista os códigos) e telefone do financeiro ausente ou inválido, com Parcelamento interno pendente (`financeiro_ausente`). Há um alerta aberto por Cliente e tipo; o job o renova enquanto a condição existe e o resolve quando ela some, exceto `entrega_parcial`, que só uma pessoa resolve. Cada alerta tem a origem do job que o gerou (`lembretes` ou `parcelamento`): um job renova e resolve só os seus.
-_Avoid_: Notificação, aviso (aviso é o de Inatividade).
+_Avoid_: Notificação.
 
 ### Auditoria
 
