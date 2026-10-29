@@ -9,7 +9,10 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const ERRO_POR_STATUS = {
   ja_assumido: () => new ConflictError("Atendimento já assumido por outra pessoa."),
-  inelegivel: () => new ForbiddenError("Você não pode assumir Atendimentos deste Setor."),
+  inelegivel: () =>
+    new ForbiddenError(
+      "Você não pode assumir este Atendimento: ele é de outro Setor ou está dirigido a outra pessoa.",
+    ),
   inexistente: () => new NotFoundError("Atendimento não encontrado ou já encerrado."),
 };
 

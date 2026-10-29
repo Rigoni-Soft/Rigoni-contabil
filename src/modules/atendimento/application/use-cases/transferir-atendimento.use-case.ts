@@ -162,7 +162,11 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
         new NotFoundError("O Atendimento mudou ou foi encerrado. Atualize e tente novamente."),
       );
     }
-    return err(new ServicoExternoError("O destinatário do Setor não está mais disponível."));
+    return err(
+      new ServicoExternoError(
+        "O Setor de destino ficou sem quem receba o Atendimento agora. Escolha outro Setor ou tente de novo em instantes.",
+      ),
+    );
   }
 
   private async auditarFalha(ator: AtorSessaoDto, atendimentoId: string): Promise<void> {
