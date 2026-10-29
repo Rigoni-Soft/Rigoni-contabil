@@ -11,7 +11,10 @@ export default defineConfig({
   // Contra o preview cada ação passa por rede, função serverless (cold start) e Supabase remoto:
   // os 5 s/30 s do dev local estouram por latência, não por defeito. O trace guarda a tela das falhas.
   timeout: remoto ? 60_000 : 30_000,
-  expect: { timeout: remoto ? 15_000 : 5_000 },
+  expect: { timeout: remoto ? 15_000 : process.env.CI ? 10_000 : 5_000 },
+  // No CI o `next dev` compila rota por demanda e engasga sob carga (ECONNRESET): uma nova tentativa
+  // absorve esse ruído sem esconder defeito real, que falha de novo e continua vermelho.
+  retries: process.env.CI ? 1 : 0,
   use: {
     baseURL: process.env.BASE_URL ?? `http://localhost:${PORT}`,
     trace: remoto ? "retain-on-failure" : "off",
