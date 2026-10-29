@@ -205,4 +205,45 @@ describe("ShellHeader", () => {
       expect(screen.queryByRole("link", { name: "Fila" })).not.toBeInTheDocument();
     }
   });
+
+  describe("menu do celular", () => {
+    const base = {
+      nome: "Jéssica",
+      setor: "contabil",
+      avisos: <button>Avisos</button>,
+      sair: <button>Sair</button>,
+    };
+
+    it("o botão Menu aponta para o painel que reúne as ações (popover nativo)", () => {
+      render(<ShellHeader {...base} papel="funcionario" />);
+
+      const botao = screen.getByRole("button", { name: "Menu" });
+      const painel = document.getElementById(botao.getAttribute("popovertarget") ?? "");
+      expect(painel).toHaveAttribute("popover", "auto");
+      expect(painel).toContainElement(screen.getByRole("link", { name: "Meu perfil" }));
+      expect(painel).toContainElement(screen.getByRole("button", { name: "Sair" }));
+    });
+
+    it("o sino fica fora do menu, sempre à vista", () => {
+      render(<ShellHeader {...base} papel="funcionario" />);
+
+      const botao = screen.getByRole("button", { name: "Menu" });
+      const painel = document.getElementById(botao.getAttribute("popovertarget") ?? "");
+      expect(painel).not.toContainElement(screen.getByRole("button", { name: "Avisos" }));
+    });
+
+    it("as ações por Papel moram no menu: Admin tem as do Admin, Líder cadastra Funcionário", () => {
+      const { rerender } = render(<ShellHeader {...base} papel="admin" />);
+      for (const nome of ["Cadastrar Líder", "Cadastrar Cliente", "Usuários", "Feriados"]) {
+        expect(screen.getByRole("link", { name: nome })).toBeInTheDocument();
+      }
+
+      rerender(<ShellHeader {...base} papel="lider_setor" />);
+      expect(screen.getByRole("link", { name: "Cadastrar Funcionário" })).toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "Feriados" })).not.toBeInTheDocument();
+
+      rerender(<ShellHeader {...base} papel="funcionario" />);
+      expect(screen.queryByRole("link", { name: /Cadastrar/ })).not.toBeInTheDocument();
+    });
+  });
 });
