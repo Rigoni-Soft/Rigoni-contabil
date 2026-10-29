@@ -1,6 +1,6 @@
 import type { ItemDaFilaVisto } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
 
-import { avisoDaFila, itemDaFilaParaView, tituloDaFila } from "./fila.presenter";
+import { itemDaFilaParaView } from "./fila.presenter";
 
 const ITEM: ItemDaFilaVisto = {
   atendimentoId: "at-1",
@@ -68,29 +68,5 @@ describe("assumivel", () => {
   it("dirigida, só o destinatário assume", () => {
     expect(assumivel({ filaDoFuncionarioId: "u-1" })).toBe(true);
     expect(assumivel({ filaDoFuncionarioId: "u-2" })).toBe(false);
-  });
-});
-
-describe("tituloDaFila", () => {
-  it("nomeia o Funcionário e o Setor", () => {
-    expect(tituloDaFila("Ana", "simples_nacional")).toBe(
-      "Fila de atendimento do Ana, setor Simples Nacional",
-    );
-  });
-});
-
-describe("avisoDaFila", () => {
-  it("sem ninguém na Fila não há aviso", () => {
-    expect(avisoDaFila([])).toBeNull();
-  });
-
-  it("resume a Fila e aponta para a tela dela", () => {
-    expect(avisoDaFila([ITEM, { ...ITEM, atendimentoId: "at-2" }])).toMatchObject({
-      href: "/fila",
-      detalhe: "2 clientes aguardando",
-      previa: "Mais antigo: Maria",
-      aguardando: true,
-      sinal: "at-1,at-2",
-    });
   });
 });

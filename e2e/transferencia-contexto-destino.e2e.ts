@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { abrirConversaEmAtendimento } from "./support/abrir-conversa";
 import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
@@ -48,16 +49,13 @@ test.describe("Contexto da Transferência (#74)", () => {
   }) => {
     await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
-    await page
-      .getByRole("navigation", { name: "Atendimentos em andamento" })
-      .getByRole("link")
-      .click();
+    await abrirConversaEmAtendimento(page, /Seu Contexto/);
 
     const painel = page.getByRole("complementary", { name: "Ações do Atendimento" });
     await painel.getByLabel("Setor de destino").selectOption({ label: "Contábil" });
     await painel.getByLabel("Resumo do assunto").fill(RESUMO);
     await painel.getByRole("button", { name: "Transferir" }).click();
-    await expect(page).toHaveURL("/");
+    await expect(page.getByText("Você não tem atendimentos em andamento.")).toBeVisible();
 
     const atendimento = await admin
       .from("atendimentos")
@@ -70,9 +68,10 @@ test.describe("Contexto da Transferência (#74)", () => {
     await page.context().clearCookies({ name: /^sb-/ });
     await login(page, "lider.contabil@rigonicontabil.local", "lider123");
     await expect(page).toHaveURL("/");
-    await page.goto(`/atendimento/${atendimento.data.id}`);
+    await page.goto("/atendimento");
+    // Está na espera do Setor, dirigida ou não ao Líder: o card abre a conversa (assume ou só lê).
+    await page.getByRole("button", { name: /(Assumir|Ler) o atendimento de Seu Contexto/ }).click();
 
-    // O Atendimento está na espera do Setor, que também aparece na tela: lê só o contexto.
     const contexto = page.getByRole("region", { name: "Contexto do Atendimento" });
     await expect(page.getByRole("heading", { name: "Seu Contexto" })).toBeVisible();
     // O cabeçalho da conversa traz o telefone; o cartão da espera, não.
@@ -93,6 +92,7 @@ test.describe("Contexto da Transferência (#74)", () => {
         telefone: `55${telefone}`,
         chave_telefone: telefone,
         setor: "recepcao",
+        fila_desde: new Date().toISOString(),
         resumo_ura: "Quer abrir uma empresa nova",
         cnpj_informado: "11444777000161",
       })
@@ -101,9 +101,13 @@ test.describe("Contexto da Transferência (#74)", () => {
     if (aberto.error) throw aberto.error;
 
     try {
-      await login(page, "admin@rigonicontabil.local", "admin123");
+      await login(page, "funcionario.recepcao@rigonicontabil.local", "func123");
       await expect(page).toHaveURL("/");
-      await page.goto(`/atendimento/${aberto.data.id}`);
+      await page.goto("/atendimento");
+      await page
+        .getByRole("button", { name: /(Assumir|Ler) o atendimento de/ })
+        .filter({ hasText: "Quer abrir uma empresa nova" })
+        .click();
 
       await expect(page.getByText("Aberto pela URA")).toBeVisible();
       await expect(page.getByText("Quer abrir uma empresa nova")).toBeVisible();

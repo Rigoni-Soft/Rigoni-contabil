@@ -1,3 +1,2 @@
-// Tela Atendimento (#162): a lista, o chat central e as ações. As telas que a evitam (aviso do dock) e o
-// menu apontam para a mesma rota.
+// Tela Atendimento (#162): a lista, o chat central e as ações. O menu aponta para ela.
 export const ROTA_ATENDIMENTO = "/atendimento";

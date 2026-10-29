@@ -2,7 +2,7 @@ import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
 import { telefoneParaExibicao } from "@/presentation/lib/telefone-mask";
 import type { ItemDaFilaVisto } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
 import { formatarEspera } from "@/shared/kernel/espera";
-import { SETOR_LABEL, SETORES, type SetorSlug } from "@/shared/kernel/setores";
+import { SETOR_LABEL, SETORES } from "@/shared/kernel/setores";
 
 export type ItemDaFilaView = {
   id: string;
@@ -44,35 +44,6 @@ export function itemDaFilaParaView(
 
 function textoDaOrigem({ setor, nome }: NonNullable<ItemDaFilaVisto["origem"]>): string {
   return `Transferido de ${SETOR_LABEL[setor]}${nome ? ` por ${nome}` : ""}`;
-}
-
-export function tituloDaFila(nome: string, setor: SetorSlug): string {
-  return `Fila de atendimento do ${nome}, setor ${SETOR_LABEL[setor]}`;
-}
-
-// O cartão do dock fora da conversa e da tela da Fila (mesmo formato do de Atendimentos).
-export type AvisoDaFilaView = {
-  id: string;
-  href: string;
-  titulo: string;
-  detalhe: string;
-  previa: string;
-  aguardando: boolean;
-  sinal: string;
-};
-
-export function avisoDaFila(itens: ItemDaFilaVisto[]): AvisoDaFilaView | null {
-  if (itens.length === 0) return null;
-  return {
-    id: "fila",
-    href: "/fila",
-    titulo: "Fila de atendimento",
-    detalhe: itens.length === 1 ? "1 cliente aguardando" : `${itens.length} clientes aguardando`,
-    previa: `Mais antigo: ${itemDaFilaParaView(itens[0]).contato}`,
-    aguardando: true,
-    // Muda quando a Fila muda: o cartão é recriado e a animação de entrada roda de novo.
-    sinal: itens.map((i) => i.atendimentoId).join(","),
-  };
 }
 
 // As opções do seletor de Setor (só o Admin escolhe) da Fila e da tela Atendimento.

@@ -30,8 +30,7 @@ const conversa = (id: string, autor: "contato" | "funcionario") => ({
   contato: { contatoNome: "João", empresa: null, cnpj: null },
 });
 
-// O contador só lê o cache: quem consulta e repete a leitura (polling) são o aviso global do Dock e
-// a tela Atendimento. Um observador a mais com o próprio intervalo dobraria as chamadas.
+// O contador consulta as mesmas chaves da tela Atendimento: um único polling para as duas.
 function renderizar(preencher: (cliente: QueryClient) => void = () => {}) {
   const cliente = new QueryClient();
   preencher(cliente);
@@ -57,21 +56,26 @@ describe("usePendentesDoMenu", () => {
       ]);
     });
 
-    expect(result.current).toEqual({ total: 2, pronto: true });
+    expect(result.current).toMatchObject({ total: 2, pronto: true, idsDaEspera: ["e-1"] });
   });
 
-  it("não consulta por conta própria: sem leitura no cache é zero e não pronto", () => {
+  it("consulta a espera e as conversas por conta própria: antes da resposta é zero e não pronto", async () => {
+    jest.mocked(listarFilaAction).mockResolvedValue({ ok: true, data: [ESPERA] } as never);
+    jest
+      .mocked(listarMeusAtendimentosAction)
+      .mockResolvedValue({ ok: true, data: [conversa("a-1", "contato")] } as never);
     const { result } = renderizar();
 
-    expect(result.current).toEqual({ total: 0, pronto: false });
-    expect(listarFilaAction).not.toHaveBeenCalled();
-    expect(listarMeusAtendimentosAction).not.toHaveBeenCalled();
+    expect(result.current).toMatchObject({ total: 0, pronto: false });
+    await waitFor(() => expect(result.current).toMatchObject({ total: 2, pronto: true }));
+    expect(listarFilaAction).toHaveBeenCalled();
+    expect(listarMeusAtendimentosAction).toHaveBeenCalled();
   });
 
   it("Fila negada (Admin sem Setor) é leitura encerrada: vale zero e as conversas seguem contando", async () => {
     const { result } = renderizar((cliente) => {
       cliente.setQueryData(meusAtendimentosKeys.lista(), [conversa("a-1", "contato")]);
-      // erro da Fila no cache, como o Dock o deixa
+      // erro da Fila no cache
       void cliente
         .fetchQuery({
           queryKey: filaKeys.setor(null),
@@ -81,6 +85,6 @@ describe("usePendentesDoMenu", () => {
         .catch(() => {});
     });
 
-    await waitFor(() => expect(result.current).toEqual({ total: 1, pronto: true }));
+    await waitFor(() => expect(result.current).toMatchObject({ total: 1, pronto: true }));
   });
 });

@@ -228,7 +228,7 @@ describe("SupabaseAtendimentoRepository — painel do Funcionário", () => {
     });
   });
 
-  it("Mensagem com anexo guarda legenda e anexo (#79): a conversa e a lista do dock os trazem", async () => {
+  it("Mensagem com anexo guarda legenda e anexo (#79): a conversa e a lista os trazem", async () => {
     const fabi = await criarFuncionario("Fabi Painel 79");
     const id = await abrir(TELEFONES[5], fabi, null);
     const anexo = {

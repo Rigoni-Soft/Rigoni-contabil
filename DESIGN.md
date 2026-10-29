@@ -840,17 +840,6 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   pediu a confirmação some). A pergunta descreve o diálogo (`aria-describedby`)
   e, enquanto encerra, "Cancelar" fica `aria-disabled` (não `disabled`), sem
   perder o foco. Encerrar não tem volta.
-- **Fila do Setor** (`FilaDoSetor` + `ItemDaFila`, #70): na tela `/fila`
-  (`max-w-3xl`, h1 "Fila de atendimento do <nome>, setor <Setor>", seletor de
-  Setor só para o Admin) e como barra lateral esquerda da conversa (18 rem; 20
-  rem em `2xl`) **só de `xl` para cima**, para o chat não espremer em `lg`.
-  Cada item é `rounded-lg border bg-card`: posição em círculo `primary`,
-  contato/empresa/telefone e a espera em `tabular-nums` com ícone de relógio
-  (`mm:ss`; `h:mm:ss` a partir de 1 h). O CNPJ vai junto da empresa e nunca
-  quebra no meio do número (`whitespace-nowrap`); resumo da Transferência em
-  `text-sm` e "Fila de um usuário" em `text-sm muted` quando a Fila é de um
-  usuário (destino fixo ocupado).
-  Abaixo de `xl` a barra some e o cartão da Fila entra no dock.
 - **Aviso de status** (`AvisoDeStatus`): feedback de envio/transferência no
   painel e no campo de resposta. Segue "Indicadores de estado": ícone
   (`AlertCircle`/`CheckCircle2`) + texto + cor, erro em `destructive` e sucesso
@@ -865,26 +854,10 @@ novo" e "Ir para o início". `CarregandoPage` (`app/loading.tsx`) é um `role="s
 `motion-safe` e "Carregando…"; só aparece depois de 250 ms (`animate-carregando`, um atraso de opacidade sem
 movimento, por isso sem `motion-safe:`), para a navegação rápida não piscar.
 
-### Dock de Atendimentos (#49)
-
-Cartões fixos no canto inferior direito (`fixed right-4 bottom-4`), um por
-Atendimento em andamento: ícone, Contato, empresa e o começo da última
-mensagem (prefixo "Você:" / "URA:" quando não é do cliente). Quando o cliente
-escreveu por último o cartão ganha uma bolinha `destructive` e a prévia em
-`font-medium` (e "nova mensagem" só para leitor de tela); o contêiner é
-`aria-live="polite"` e fica acima da safe-area de aparelhos com barra
-inferior (`bottom-[max(1rem,env(safe-area-inset-bottom))]`). O cartão entra com `animate-dock-entrada` (sobe e aparece, 0,35 s,
-`cubic-bezier(0.16, 1, 0.3, 1)`, keyframes em `globals.css`) e é recriado a cada mensagem nova, repetindo a
-animação. O aviso sonoro (dois tons curtos) toca quando surge um Atendimento
-ou o cliente escreve de novo. Na tela Atendimento (`/atendimento`) o Dock não renderiza cartões nem
-toca: o som é da própria tela (#163).
-
 ### Tela Atendimento (#162)
 
 A tela em que a equipe assume e conduz Atendimentos, sem trocar de rota: duas abas sobrepostas
-("Em espera" e "Em atendimento"), o chat no centro e as ações à direita. Convive com o Dock até o
-corte; nela o Dock **não mostra cartões** (a lista já está à vista e cobriria o painel de ações) e
-**não toca**: o aviso sonoro é da própria tela (`useSomDaLista`, os mesmos dois tons: Atendimento novo
+("Em espera" e "Em atendimento"), o chat no centro e as ações à direita. Substituiu o Dock de Atendimentos e a rota própria da conversa (#168). O aviso sonoro é da tela (`useSomDaLista`, os mesmos dois tons: Atendimento novo
 na espera ou cliente que escreve de novo numa conversa não aberta; a primeira leitura é silenciosa). Modo Operate: cor só para ação e estado, tudo em tokens.
 
 - **Abas** (`AbasDeAtendimento`, molécula genérica no valor da aba): `role="tablist"`, aba ativa com
@@ -935,7 +908,7 @@ na espera ou cliente que escreve de novo numa conversa não aberta; a primeira l
   um aviso igual ao anterior ganha um espaço sem quebra no fim para o leitor de tela reanunciar.
 - **Chat** (`PainelDoChat`): quatro estados: `vazio` ("Escolha um atendimento para conversar.", só em
   tela larga), `abrindo` (`status`), `erro` (`alert`) e `pronto` (cabeçalho, mensagens e compositor
-  do Painel do Funcionário). Em tela estreita o topo traz "← Voltar à lista" e, só com ações
+  da conversa). Em tela estreita o topo traz "← Voltar à lista" e, só com ações
   disponíveis, "Ir para as ações ↓" (âncora para o painel de ações, id `acoes-do-atendimento`).
   **Leitura de supervisão (#165):** quando Líder ou Admin abre a conversa de outro, o compositor dá
   lugar a `AvisoDeLeitura` (`role="status"`, borda tracejada, ícone de olho: "Leitura de supervisão.
@@ -1005,9 +978,6 @@ o alerta com "Tentar de novo" e mantém a lista que já estava na tela.
   `pointer-coarse:min-h-11` no "Voltar" e nas abas do shell). **Decisão de 21/10/2026, revisa os
   44 px fixos anteriores**: controles de 44 px em tela de mouse deixavam o formulário largo e
   alto demais. Com mouse o piso é de 24 px (WCAG 2.5.8): o "Voltar" tem `min-h-6`.
-- Entrada do cartão do dock de Atendimentos: `motion-safe:animate-dock-entrada`.
-  O estado (destaque, prévia, "nova mensagem") não depende da animação nem do
-  som: quem pediu movimento reduzido ou está sem som perde só o enfeite.
 - Aviso sonoro: só quando há novidade (Atendimento novo ou cliente escreveu
   de novo; resposta nossa ou da URA e a primeira leitura da tela são
   silenciosas). Navegadores bloqueiam som antes do primeiro clique/tecla da

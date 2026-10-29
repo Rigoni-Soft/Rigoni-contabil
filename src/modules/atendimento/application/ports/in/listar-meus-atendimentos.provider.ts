@@ -17,8 +17,8 @@ export type AtendimentoVisto = {
   } | null;
 };
 
-// Os Atendimentos em andamento do usuário logado: o que o painel mantém visível enquanto ele
-// troca de tela.
+// Os Atendimentos em andamento do usuário logado: a aba "Em atendimento" da tela Atendimento
+// (os que ele assumiu).
 export interface ListarMeusAtendimentosPort {
   execute(): Promise<Result<AtendimentoVisto[], AppError>>;
 }

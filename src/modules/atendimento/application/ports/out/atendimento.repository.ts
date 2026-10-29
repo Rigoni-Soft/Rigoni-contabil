@@ -85,7 +85,7 @@ export type AtendimentoDoFuncionario = {
   telefone: string;
   criadoEm: string;
   contato: DadosDoContato;
-  // A mensagem mais recente da conversa (null se ainda não há), para o dock avisar de novidade.
+  // A mensagem mais recente da conversa (null se ainda não há), para a lista avisar de novidade.
   ultimaMensagem: {
     autor: "contato" | "ura" | "funcionario";
     texto: string;

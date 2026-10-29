@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { abrirConversaEmAtendimento } from "./support/abrir-conversa";
 import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
@@ -57,18 +58,20 @@ test.describe("Encerrar Atendimento", () => {
   }) => {
     await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
-    await page.goto(`/atendimento/${atendimentoId}`);
+    await abrirConversaEmAtendimento(page, /95557-4001/);
 
     // Pede confirmação: o primeiro clique não encerra.
     await page.getByRole("button", { name: "Encerrar atendimento" }).click();
     await expect(page.getByRole("alertdialog")).toContainText("cliente será avisado");
     await page.getByRole("button", { name: "Cancelar" }).click();
-    await expect(page).toHaveURL(`/atendimento/${atendimentoId}`);
+    await expect(page.getByLabel("Mensagem ao cliente")).toBeVisible();
 
     await page.getByRole("button", { name: "Encerrar atendimento" }).click();
     await page.getByRole("button", { name: "Confirmar encerramento" }).click();
 
-    await expect(page).toHaveURL("/");
+    // A conversa fecha, sem trocar de rota.
+    await expect(page.getByText("Escolha um atendimento para conversar.")).toBeVisible();
+    await expect(page).toHaveURL("/atendimento");
 
     const encerrado = await admin
       .from("atendimentos")

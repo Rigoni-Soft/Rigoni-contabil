@@ -141,7 +141,7 @@ export function useTransferirAtendimentoMutation(atendimentoId: string) {
       const resultado = await transferirAtendimentoAction({ atendimentoId, ...dados });
       if (!resultado.ok) throw new Error(resultado.error.message);
     },
-    // O Atendimento mudou de mãos: a lista do dock precisa refletir.
+    // O Atendimento mudou de mãos: a lista precisa refletir.
     onSettled: () => queryClient.invalidateQueries({ queryKey: meusAtendimentosKeys.lista() }),
   });
 }
