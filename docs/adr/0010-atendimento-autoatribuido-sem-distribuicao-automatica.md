@@ -32,13 +32,8 @@ própria com um Dock em toda tela. O escritório quer que a equipe veja quem esp
 - Quem esquece de encerrar fica aberto até 23h50 após a última mensagem do cliente; com o cron diário do plano Hobby,
   até ~24h depois (ver `docs/deploy/encerramento-cron.md`).
 - Esperar dirigida a um Responsável ausente não tem tratamento automático (fora de escopo na spec): fica com o Líder.
-- **Carga do polling, medida (29/10/2026, ambiente local, janela de 62 s por cenário):** Funcionário
-  parado em `/` faz ~10 requisições/min (espera e Atendimentos a cada 15 s, mais o sino); com a conversa
-  aberta em `/atendimento` sobe a ~21/min (a conversa lê a cada 5 s e é 12 delas; com a conversa
-  parada há mais de 2 min a leitura espaça a 15 s e o total cai a ~13/min, e a Mensagem nova volta ao
-  ritmo de 5 s, `intervaloDaConversa`); o Admin na aba
-  "Em atendimento" faz ~12/min (inclui a equipe, a cada 15 s). Cada requisição leva ~100–125 ms. Com 50
-  usuários todos com conversa aberta (pior caso) são ~18 req/s, dentro dos ~20 req/s do dimensionamento;
-  o uso típico fica perto de metade disso. Cada requisição valida o token duas vezes no servidor de
-  autenticação (o proxy e o caso de uso chamam `auth.getUser()`), o que é deliberado: um usuário
-  desativado perde o acesso na hora, e `getClaims` o manteria até o token vencer.
+- **Carga medida (29/10/2026, local):** ~10 (parado) a ~21 (conversa ativa) requisições/min por usuário; a conversa
+  parada há mais de 2 min espaça a leitura a 15 s (`intervaloDaConversa`) e cai a ~13. Com 50 usuários no
+  pior caso são ~18 req/s, dentro dos ~20 do dimensionamento. Cada requisição valida o token duas vezes
+  (proxy e caso de uso), de propósito: o usuário desativado perde o acesso na hora (`getClaims` o manteria
+  até o token vencer).
