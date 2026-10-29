@@ -195,7 +195,7 @@ export function GuiasDaParcelaPgfn({
                   </>
                 }
                 rotuloDoConfirmar={`Liberar ${guia.rotulo}`}
-                rotuloEmCurso="Liberando..."
+                rotuloEmCurso="Liberando…"
                 nomeDoConfirmar={`Liberar ${guia.rotulo} ao envio`}
                 nomeDoCancelar={`Cancelar liberação da guia de ${guia.rotulo}`}
                 emCurso={daAcao.emCurso}
@@ -230,7 +230,7 @@ export function GuiasDaParcelaPgfn({
                   <ConfirmacaoEmLinha
                     texto={`Apaga a guia de ${guia.rotulo} e o PDF, sem desfazer.`}
                     rotuloDoConfirmar="Confirmar remoção"
-                    rotuloEmCurso="Removendo..."
+                    rotuloEmCurso="Removendo…"
                     nomeDoConfirmar={`Confirmar remoção da guia de ${guia.rotulo}`}
                     nomeDoCancelar={`Cancelar remoção da guia de ${guia.rotulo}`}
                     destrutiva
@@ -281,7 +281,7 @@ export function GuiasDaParcelaPgfn({
         )}
         {carregando && (
           <Texto variante="nota" className={NOTA_LEGIVEL}>
-            Carregando guias...
+            Carregando guias…
           </Texto>
         )}
       </Pilha>
@@ -366,7 +366,7 @@ export function GuiasDaParcelaPgfn({
           onClick={acoes.anexar}
           className="self-start"
         >
-          {anexando ? "Enviando..." : "Anexar guia"}
+          {anexando ? "Enviando…" : "Anexar guia"}
         </BotaoDaGuia>
       </Pilha>
     </Pilha>

@@ -208,7 +208,7 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     expect(screen.getByText(/10\/2026 · conta 123456/).closest("li")).toHaveFocus();
   });
 
-  it("remover mostra Removendo... enquanto o servidor responde", async () => {
+  it("remover mostra Removendo… enquanto o servidor responde", async () => {
     let concluir: (valor: unknown) => void = () => undefined;
     listarMock.mockResolvedValue({
       ok: true,
@@ -228,7 +228,7 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
 
     expect(
       regiao.getByRole("button", { name: "Confirmar remoção da guia de 10/2026" }),
-    ).toHaveTextContent("Removendo...");
+    ).toHaveTextContent("Removendo…");
     concluir({ ok: true, data: undefined });
   });
 
@@ -305,7 +305,7 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     await liberarGuia(usuario);
 
     const botao = screen.getByRole("button", { name: NOME_LIBERAR });
-    expect(botao).toHaveTextContent("Liberando...");
+    expect(botao).toHaveTextContent("Liberando…");
     expect(await regiaoDaGuia()).toHaveAttribute("aria-busy", "true");
     concluir({ ok: true, data: undefined });
     // Terminou: a conferência fecha.
@@ -523,11 +523,11 @@ describe("rótulo do botão durante a ação em curso", () => {
     await liberarGuia(usuario);
 
     expect(screen.getByRole("button", { name: "Anexar guia" })).toBeInTheDocument();
-    expect(screen.queryByText("Enviando...")).not.toBeInTheDocument();
+    expect(screen.queryByText("Enviando…")).not.toBeInTheDocument();
     concluir({ ok: true, data: undefined });
   });
 
-  it("anexar mostra Enviando... enquanto o PDF sobe", async () => {
+  it("anexar mostra Enviando… enquanto o PDF sobe", async () => {
     let concluir: (valor: unknown) => void = () => undefined;
     anexarMock.mockReturnValue(new Promise((resolve) => (concluir = resolve)));
     const usuario = userEvent.setup();
@@ -535,7 +535,7 @@ describe("rótulo do botão durante a ação em curso", () => {
 
     await preencherEAnexar(usuario);
 
-    expect(screen.getByRole("button", { name: "Enviando..." })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Enviando…" })).toHaveAttribute(
       "aria-disabled",
       "true",
     );

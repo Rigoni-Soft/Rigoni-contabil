@@ -46,7 +46,7 @@ describe("CriarUsuarioContainer", () => {
   });
 
   // Promise rejeitada (erro de rede/transporte, não um ActionResult de erro) não
-  // pode deixar o botão preso em "Cadastrando...".
+  // pode deixar o botão preso em "Cadastrando…".
   it("Promise rejeitada limpa o estado pendente e mostra erro genérico", async () => {
     executeMock.mockRejectedValue(new Error("falha de rede"));
     const usuario = userEvent.setup();

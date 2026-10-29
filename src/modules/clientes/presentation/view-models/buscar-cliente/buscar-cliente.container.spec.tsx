@@ -109,7 +109,7 @@ describe("BuscarClienteContainer", () => {
     expect(buscarClientesActionMock).toHaveBeenCalledWith({ termo: "Pão", apenasSnMei: true });
   });
 
-  it("mostra 'Buscando...' enquanto a query está em andamento", async () => {
+  it("mostra 'Buscando…' enquanto a query está em andamento", async () => {
     let resolver: (value: { ok: true; data: [] }) => void = () => {};
     buscarClientesActionMock.mockReturnValue(
       new Promise((resolve) => {
@@ -124,14 +124,14 @@ describe("BuscarClienteContainer", () => {
       jest.advanceTimersByTime(300);
     });
 
-    expect(screen.getAllByText("Buscando...").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Buscando…").length).toBeGreaterThan(0);
 
     await act(async () => {
       resolver({ ok: true, data: [] });
     });
 
     await waitFor(() => {
-      expect(screen.queryAllByText("Buscando...")).toHaveLength(0);
+      expect(screen.queryAllByText("Buscando…")).toHaveLength(0);
     });
   });
 

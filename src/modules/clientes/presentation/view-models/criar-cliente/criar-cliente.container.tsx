@@ -140,7 +140,7 @@ export function CriarClienteContainer() {
     setErroServidor(undefined);
 
     // try/finally: rejeição de transporte da Server Action não pode deixar o
-    // botão preso em "Cadastrando...".
+    // botão preso em "Cadastrando…".
     try {
       const resultado = await criarClienteAction(valores);
       if (!resultado.ok) {

@@ -31,7 +31,7 @@ export function AcoesDoFormulario({
         onClick={motivoDoBloqueio ? (evento) => evento.preventDefault() : undefined}
         className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
       >
-        {pendente ? "Salvando..." : "Salvar"}
+        {pendente ? "Salvando…" : "Salvar"}
       </Button>
       {motivoDoBloqueio && (
         <Texto variante="nota" id="salvar-bloqueado" className="self-center">

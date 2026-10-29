@@ -90,7 +90,7 @@ describe("PainelDeServicos", () => {
     render(<PainelDeServicos {...BASE} enviando />);
 
     expect(screen.getByRole("button", { name: "Contrato social" })).toBeDisabled();
-    expect(screen.getByText("Enviando...")).toBeInTheDocument();
+    expect(screen.getByText("Enviando…")).toBeInTheDocument();
   });
 
   it("sem Cliente vinculado explica por que não há serviços", () => {
@@ -108,10 +108,10 @@ describe("PainelDeServicos", () => {
     const antes = (a: HTMLElement, b: HTMLElement) =>
       Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
     const seletor = screen.getByLabelText("Alteração contratual");
-    expect(
-      antes(screen.getByRole("button", { name: "CND" }), screen.getByText("Enviando...")),
-    ).toBe(true);
-    expect(antes(screen.getByText("Enviando..."), seletor)).toBe(true);
+    expect(antes(screen.getByRole("button", { name: "CND" }), screen.getByText("Enviando…"))).toBe(
+      true,
+    );
+    expect(antes(screen.getByText("Enviando…"), seletor)).toBe(true);
     expect(antes(screen.getByText("Falha ao enviar"), seletor)).toBe(true);
   });
 

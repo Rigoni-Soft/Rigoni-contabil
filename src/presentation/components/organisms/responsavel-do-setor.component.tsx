@@ -59,7 +59,7 @@ export function ResponsavelDoSetor({
       {salvo && <AvisoDeStatus tipo="sucesso" texto="Responsável atualizado." />}
       <Caixa>
         <Button type="button" onClick={onSalvar} disabled={!alterado || pendente}>
-          {pendente ? "Salvando..." : "Salvar Responsável"}
+          {pendente ? "Salvando…" : "Salvar Responsável"}
         </Button>
       </Caixa>
     </Pilha>

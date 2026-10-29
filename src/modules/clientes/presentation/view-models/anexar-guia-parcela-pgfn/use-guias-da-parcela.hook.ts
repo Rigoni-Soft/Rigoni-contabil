@@ -165,7 +165,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     );
   };
 
-  // A pergunta fica aberta enquanto o servidor responde (o botão mostra "Removendo..." ou "Liberando...").
+  // A pergunta fica aberta enquanto o servidor responde (o botão mostra "Removendo…" ou "Liberando…").
   const comAcao = (
     tipo: AcaoDaGuia["tipo"],
     competencia: string,
