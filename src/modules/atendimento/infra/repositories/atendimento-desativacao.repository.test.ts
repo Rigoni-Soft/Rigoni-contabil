@@ -139,7 +139,7 @@ describe("desativação × Atendimento em andamento", () => {
       fila_funcionario_id: null,
       assumido_em: null,
     });
-    // A posição na Fila é a da entrada nela (a devolução), não a da abertura do Atendimento.
+    // O tempo de espera conta da entrada na espera (a devolução), não a da abertura do Atendimento.
     expect(new Date(depois.fila_desde!).getTime()).toBeGreaterThan(
       new Date(antes.criado_em).getTime(),
     );
