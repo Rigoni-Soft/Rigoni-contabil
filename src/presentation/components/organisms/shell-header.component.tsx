@@ -34,11 +34,12 @@ export function ShellHeader({ nome, papel, setor, avisos, sair }: ShellHeaderPro
     <Linha
       espaco={3}
       como="header"
-      // Abaixo de lg a identidade e as ações empilham: o Admin tem 5 ações + tema + Sair e não cabem
-      // lado a lado (reflow a 320 px, WCAG 1.4.10). De lg para cima, uma linha só.
-      className="flex-col items-stretch border-b border-border bg-card px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:gap-4"
+      // Identidade e ações dividem a linha quando cabem (Funcionário e Líder: poucos ícones) e quebram
+      // para a linha de baixo quando não cabem (o Admin tem 5 ações + tema + Sair; reflow a 320 px,
+      // WCAG 1.4.10). De lg para cima, uma linha só.
+      className="flex-wrap items-center justify-between gap-y-2 border-b border-border bg-card px-4 py-3 sm:px-6 lg:flex-nowrap lg:gap-4"
     >
-      <Linha alinhar="centro" espaco={3} className="min-w-0">
+      <Linha alinhar="centro" espaco={3} className="min-w-0 flex-1 basis-40">
         <Caixa
           como="span"
           aria-hidden="true"
@@ -56,7 +57,7 @@ export function ShellHeader({ nome, papel, setor, avisos, sair }: ShellHeaderPro
         </Caixa>
       </Linha>
 
-      <Linha alinhar="centro" espaco={1} quebra className="lg:shrink-0">
+      <Linha alinhar="centro" espaco={1} quebra className="max-w-full lg:shrink-0">
         {/* O Admin não recebe Aviso de cadastro: sem sino. */}
         {papel !== "admin" && avisos}
         {/* Único caminho de navegação até /admin/usuarios/novo — Admin e Líder

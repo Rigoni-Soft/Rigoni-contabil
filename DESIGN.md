@@ -200,7 +200,9 @@ sem precisar de classe.
 
   **Rótulo de ação oculto abaixo de `lg` (#32; subiu de `sm` para `lg` em
   13/10/2026, quando a sonda de reflow mostrou rolagem horizontal do Admin a 320 e 768 px;
-  abaixo de `lg` a identidade e as ações também empilham em duas linhas):** os
+  abaixo de `lg` a identidade e as ações quebram em duas linhas quando não cabem lado a lado, e
+  dividem a linha quando cabem — Funcionário e Líder em tablet, #168; o Admin e o celular seguem
+  empilhados, e o reflow a 320 px é preservado):** os
   links de ação do `ShellHeader` (hoje "Cadastrar Líder"/"Cadastrar
   Funcionário", "Usuários" e "Meu perfil") escondem o texto do rótulo em telas
   estreitas (`Texto variante="soDesktop"`, `hidden lg:inline`) mantendo só o ícone —

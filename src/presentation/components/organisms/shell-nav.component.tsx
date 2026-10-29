@@ -66,7 +66,7 @@ export function ShellNav({
             key={setor.slug}
             aria-disabled="true"
             title="Tela ainda não construída"
-            className={cn(CHIP, "cursor-not-allowed text-muted-foreground")}
+            className={cn(CHIP, "cursor-not-allowed text-muted-foreground pointer-coarse:min-h-0")}
           >
             {label}
           </Caixa>
