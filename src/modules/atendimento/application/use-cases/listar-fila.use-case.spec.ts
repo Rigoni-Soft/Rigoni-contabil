@@ -61,6 +61,7 @@ describe("ListarFila", () => {
           filaDesde: ITENS[0].filaDesde,
           espera: "1:05:07",
           filaDoFuncionarioId: null,
+          esperaComum: false,
         },
         expect.objectContaining({
           atendimentoId: "at-2",

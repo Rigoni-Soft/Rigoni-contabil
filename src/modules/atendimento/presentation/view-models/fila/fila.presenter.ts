@@ -37,7 +37,8 @@ export function itemDaFilaParaView(
     origem: item.origem && textoDaOrigem(item.origem),
     dirigido: item.filaDoFuncionarioId !== null,
     espera: agora === undefined ? item.espera : formatarEspera(agora - filaDesdeMs),
-    assumivel: item.filaDoFuncionarioId === null || item.filaDoFuncionarioId === usuarioId,
+    assumivel:
+      item.filaDoFuncionarioId === null ? item.esperaComum : item.filaDoFuncionarioId === usuarioId,
   };
 }
 

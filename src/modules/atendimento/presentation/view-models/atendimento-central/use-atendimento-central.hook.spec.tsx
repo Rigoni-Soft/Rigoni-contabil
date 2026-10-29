@@ -34,6 +34,7 @@ const ESPERA = {
   filaDesde: new Date("2026-10-09T12:00:00Z"),
   espera: "00:00",
   filaDoFuncionarioId: null,
+  esperaComum: true,
 };
 const DIRIGIDO = { ...ESPERA, atendimentoId: "at-2", filaDoFuncionarioId: "outro-usuario" };
 

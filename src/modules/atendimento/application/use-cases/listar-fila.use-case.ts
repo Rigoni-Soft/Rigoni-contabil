@@ -53,6 +53,7 @@ export class ListarFila implements ListarFilaPort {
         filaDesde: item.filaDesde,
         espera: formatarEspera(agora - item.filaDesde.getTime()),
         filaDoFuncionarioId: item.filaFuncionarioId,
+        esperaComum: esperaComum && item.filaFuncionarioId === null,
       })),
     );
   }

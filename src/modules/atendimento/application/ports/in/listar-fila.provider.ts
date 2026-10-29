@@ -14,6 +14,8 @@ export type ItemDaFilaVisto = {
   filaDesde: Date;
   espera: string;
   filaDoFuncionarioId: string | null;
+  // Sem destinatário, só a Recepção tem espera comum (qualquer um assume); fora dela é supervisão.
+  esperaComum: boolean;
 };
 
 export interface ListarFilaPort {

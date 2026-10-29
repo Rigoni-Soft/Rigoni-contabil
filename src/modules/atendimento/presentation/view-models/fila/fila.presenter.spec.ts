@@ -11,6 +11,7 @@ const ITEM: ItemDaFilaVisto = {
   filaDesde: new Date("2026-10-09T12:00:00Z"),
   espera: "00:05",
   filaDoFuncionarioId: null,
+  esperaComum: true,
 };
 
 describe("itemDaFilaParaView", () => {
@@ -52,6 +53,21 @@ describe("itemDaFilaParaView", () => {
 
   it("indica quando é a fila de um usuário", () => {
     expect(itemDaFilaParaView({ ...ITEM, filaDoFuncionarioId: "u-1" }).dirigido).toBe(true);
+  });
+});
+
+describe("assumivel", () => {
+  const assumivel = (parcial: Partial<ItemDaFilaVisto>, usuarioId = "u-1") =>
+    itemDaFilaParaView({ ...ITEM, ...parcial }, undefined, usuarioId).assumivel;
+
+  it("espera comum (Recepção) é de todos; sem destinatário fora dela é só supervisão", () => {
+    expect(assumivel({ filaDoFuncionarioId: null, esperaComum: true })).toBe(true);
+    expect(assumivel({ filaDoFuncionarioId: null, esperaComum: false })).toBe(false);
+  });
+
+  it("dirigida, só o destinatário assume", () => {
+    expect(assumivel({ filaDoFuncionarioId: "u-1" })).toBe(true);
+    expect(assumivel({ filaDoFuncionarioId: "u-2" })).toBe(false);
   });
 });
 
