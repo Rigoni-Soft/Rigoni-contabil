@@ -70,16 +70,25 @@ export function CardDeEspera({
           </Texto>
         )}
       </Caixa>
-      <Linha como="span" alinhar="centro" espaco={1} className="shrink-0 text-sm tabular-nums">
-        <Clock aria-hidden="true" className="size-4 text-muted-foreground" />
-        <Texto como="span" variante="somenteLeitor">
-          Esperando há{" "}
-        </Texto>
-        {/* O relógio do navegador difere do servidor: o texto muda de propósito a cada segundo. */}
-        <Caixa como="span" suppressHydrationWarning id={`${id}-espera`}>
-          {espera}
-        </Caixa>
-      </Linha>
+      <Caixa como="span" className="flex shrink-0 flex-col items-end gap-1.5">
+        <Linha como="span" alinhar="centro" espaco={1} className="text-sm tabular-nums">
+          <Clock aria-hidden="true" className="size-4 text-muted-foreground" />
+          <Texto como="span" variante="somenteLeitor">
+            Esperando há{" "}
+          </Texto>
+          {/* O relógio do navegador difere do servidor: o texto muda de propósito a cada segundo. */}
+          <Caixa como="span" suppressHydrationWarning id={`${id}-espera`}>
+            {espera}
+          </Caixa>
+        </Linha>
+        {/* O verbo à vista: o card inteiro é o botão, mas só o leitor de tela ouvia "Assumir". O nome
+            acessível já o diz (aria-labelledby), por isso este texto não é lido de novo. */}
+        {assumivel && (
+          <Caixa como="span" aria-hidden="true" className="text-sm font-medium text-primary">
+            {assumindo ? "Assumindo…" : "Assumir"}
+          </Caixa>
+        )}
+      </Caixa>
     </Linha>
   );
 
