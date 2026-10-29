@@ -70,3 +70,11 @@ describe("assumivel", () => {
     expect(assumivel({ filaDoFuncionarioId: "u-2" })).toBe(false);
   });
 });
+
+describe("quem não assume (Admin, sem Setor próprio)", () => {
+  it("a espera comum vira leitura, sem deixar de ser do Setor", () => {
+    const view = itemDaFilaParaView(ITEM, undefined, "admin-1", false);
+
+    expect(view).toMatchObject({ assumivel: false, dirigido: false });
+  });
+});

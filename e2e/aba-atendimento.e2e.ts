@@ -124,9 +124,12 @@ test.describe("Aba Atendimento: Em espera / Em atendimento (#162)", () => {
     await page.goto("/atendimento");
     await page.getByRole("combobox", { name: "Setor" }).selectOption("recepcao");
 
+    // O Admin não tem Setor próprio e o banco não o deixa assumir: o card é leitura, não "Assumir".
+    await expect(page.getByRole("button", { name: /Ler o atendimento de Dona Aba/ })).toBeVisible();
+    await expect(page.getByText("Espera do Setor · só leitura")).toBeVisible();
     await expect(
       page.getByRole("button", { name: /Assumir o atendimento de Dona Aba/ }),
-    ).toBeVisible();
+    ).toHaveCount(0);
   });
 
   test("após a transferência, o destino encontra o Atendimento na espera e o assume pela tela", async ({

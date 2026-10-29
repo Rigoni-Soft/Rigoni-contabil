@@ -14,8 +14,10 @@ export type CardDeEsperaProps = {
   // De onde veio, se foi transferido ("Transferido de Financeiro por Fulano").
   origem?: string | null;
   espera: string;
-  // Dirigido a outro usuário: o card só informa, não assume.
+  // Dirigido a outro usuário ou sem permissão de assumir: o card só informa, não assume.
   assumivel: boolean;
+  // A espera é dirigida a um usuário (e não a do Setor): muda o motivo de não assumir.
+  dirigido?: boolean;
   assumindo?: boolean;
   onAssumir: () => void;
   // Dirigido a outro, para quem supervisiona: abre a conversa só para leitura.
@@ -32,6 +34,7 @@ export function CardDeEspera({
   origem,
   espera,
   assumivel,
+  dirigido = true,
   assumindo = false,
   onAssumir,
   onLer,
@@ -62,7 +65,8 @@ export function CardDeEspera({
         {!assumivel && (
           <Texto como="span" variante="nota" className="block">
             {onLer && <Eye aria-hidden="true" className="mr-1 inline size-3.5 align-text-bottom" />}
-            Dirigido a outro usuário{onLer && " · só leitura"}
+            {dirigido ? "Dirigido a outro usuário" : "Espera do Setor"}
+            {onLer && " · só leitura"}
           </Texto>
         )}
       </Caixa>

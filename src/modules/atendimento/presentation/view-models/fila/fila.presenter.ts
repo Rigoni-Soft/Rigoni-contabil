@@ -25,6 +25,8 @@ export function itemDaFilaParaView(
   item: ItemDaFilaVisto,
   agora?: number,
   usuarioId?: string,
+  // Falso para quem não assume atendimento nenhum (o Admin, sem Setor próprio): o card vira leitura.
+  podeAssumir = true,
 ): ItemDaFilaView {
   const filaDesdeMs = new Date(item.filaDesde).getTime();
   return {
@@ -38,7 +40,10 @@ export function itemDaFilaParaView(
     dirigido: item.filaDoFuncionarioId !== null,
     espera: agora === undefined ? item.espera : formatarEspera(agora - filaDesdeMs),
     assumivel:
-      item.filaDoFuncionarioId === null ? item.esperaComum : item.filaDoFuncionarioId === usuarioId,
+      podeAssumir &&
+      (item.filaDoFuncionarioId === null
+        ? item.esperaComum
+        : item.filaDoFuncionarioId === usuarioId),
   };
 }
 
