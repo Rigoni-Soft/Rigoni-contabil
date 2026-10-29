@@ -31,10 +31,9 @@ const ID_DO_MENU = "menu-do-shell";
 // As ações são um só conjunto de elementos. Abaixo de `sm` ele é um menu (popover nativo: fecha com
 // Esc ou clicando fora e devolve o foco ao botão): cada item ganha o rótulo e ocupa a largura toda.
 // De `sm` para cima o popover vira a linha de ações de sempre (só ícones até `lg`), sem posição de
-// camada nem moldura. O sino fica fora dele, sempre à vista. Sem popover no navegador, o botão alterna
-// `data-aberto` (ver `useMenuDoShell`).
+// camada nem moldura. O sino fica fora dele, sempre à vista.
 const MENU =
-  "max-sm:fixed max-sm:inset-auto max-sm:top-[4.5rem] max-sm:right-4 max-sm:m-0 max-sm:w-[min(18rem,calc(100vw-2rem))] max-sm:flex-col max-sm:items-stretch max-sm:gap-1 max-sm:rounded-lg max-sm:border max-sm:border-border max-sm:bg-card max-sm:p-2 max-sm:text-foreground max-sm:shadow-md max-sm:hidden max-sm:data-[aberto=true]:flex max-sm:[&:popover-open]:flex " +
+  "max-sm:fixed max-sm:inset-auto max-sm:top-[4.5rem] max-sm:right-4 max-sm:m-0 max-sm:w-[min(18rem,calc(100vw-2rem))] max-sm:flex-col max-sm:items-stretch max-sm:gap-1 max-sm:rounded-lg max-sm:border max-sm:border-border max-sm:bg-card max-sm:p-2 max-sm:text-foreground max-sm:shadow-md max-sm:[&:popover-open]:flex " +
   "sm:static sm:m-0 sm:flex sm:flex-wrap sm:items-center sm:gap-1 sm:overflow-visible sm:border-0 sm:bg-transparent sm:p-0";
 const ITEM = "max-sm:w-full max-sm:justify-start max-sm:gap-2 max-sm:px-4";
 // O rótulo aparece no menu (celular) e, como antes, só de `lg` para cima na linha.

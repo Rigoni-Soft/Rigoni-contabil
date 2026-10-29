@@ -266,8 +266,7 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
   };
 }
 
-// Polling da conversa aberta: rápido enquanto a conversa está acontecendo (Mensagem recente ou envio
-// ainda pendente) e espaçado quando parada. Parada, a Mensagem nova do cliente aparece em até 15 s
+// Polling da conversa aberta: rápido enquanto a conversa está acontecendo (Mensagem recente) e espaçado quando parada. Parada, a Mensagem nova do cliente aparece em até 15 s
 // (o aviso global já o avisa nesse prazo) e, ao chegar, a conversa volta ao ritmo rápido.
 export const POLLING_RAPIDO_MS = 5_000;
 export const POLLING_LENTO_MS = 15_000;
@@ -275,8 +274,7 @@ const JANELA_ATIVA_MS = 120_000;
 
 export function intervaloDaConversa(conversa: ConversaVista | undefined, agora: number): number {
   const ultima = conversa?.mensagens.at(-1);
-  if (!ultima || conversa?.mensagens.some((m) => m.entrega === "pendente"))
-    return POLLING_RAPIDO_MS;
+  if (!ultima) return POLLING_RAPIDO_MS;
   return agora - new Date(ultima.criadoEm).getTime() < JANELA_ATIVA_MS
     ? POLLING_RAPIDO_MS
     : POLLING_LENTO_MS;

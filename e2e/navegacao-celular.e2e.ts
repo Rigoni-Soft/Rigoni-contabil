@@ -42,14 +42,6 @@ test.describe("Navegação no celular", () => {
     expect(altura).toBeLessThan(80);
   });
 
-  test("o Líder vê Cadastrar Funcionário no menu", async ({ page }) => {
-    await login(page, ...LIDER);
-    await expect(page).toHaveURL("/");
-    await page.getByRole("button", { name: "Menu" }).click();
-
-    await expect(page.getByRole("link", { name: "Cadastrar Funcionário" })).toBeVisible();
-  });
-
   test("o Admin tem todas as ações no menu e troca os chips por um seletor de Setor @smoke", async ({
     page,
   }) => {

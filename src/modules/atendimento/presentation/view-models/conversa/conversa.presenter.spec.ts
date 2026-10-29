@@ -523,16 +523,13 @@ describe("formatarCronometro", () => {
 
 describe("intervaloDaConversa", () => {
   const agora = new Date("2026-10-29T12:00:00Z").getTime();
-  const conversaCom = (
-    ...mensagens: Array<{ minutosAtras: number; entrega?: "pendente" | "entregue" }>
-  ) =>
+  const conversaCom = (...mensagens: Array<{ minutosAtras: number }>) =>
     ({
       mensagens: mensagens.map((m, i) => ({
         id: `m-${i}`,
         autor: "contato",
         texto: "oi",
         criadoEm: new Date(agora - m.minutosAtras * 60_000).toISOString(),
-        entrega: m.entrega ?? "entregue",
       })),
     }) as unknown as ConversaVista;
 
@@ -542,12 +539,6 @@ describe("intervaloDaConversa", () => {
 
   it("conversa parada há mais de 2 minutos espaça a leitura", () => {
     expect(intervaloDaConversa(conversaCom({ minutosAtras: 3 }), agora)).toBe(POLLING_LENTO_MS);
-  });
-
-  it("envio ainda pendente mantém o ritmo rápido mesmo numa conversa parada", () => {
-    const parada = conversaCom({ minutosAtras: 10 }, { minutosAtras: 5, entrega: "pendente" });
-
-    expect(intervaloDaConversa(parada, agora)).toBe(POLLING_RAPIDO_MS);
   });
 
   it("sem leitura ou sem Mensagens (conversa recém-aberta) começa no ritmo rápido", () => {
