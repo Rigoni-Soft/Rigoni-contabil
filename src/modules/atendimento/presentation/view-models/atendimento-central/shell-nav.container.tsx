@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import {
   ShellNav,
   type ShellNavProps,
@@ -9,7 +11,15 @@ import { usePendentesDoMenu } from "@/modules/atendimento/presentation/view-mode
 import { ROTA_ATENDIMENTO } from "@/shared/kernel/rotas";
 
 export function ShellNavContainer(props: Pick<ShellNavProps, "setores" | "rotaAtual">) {
+  const router = useRouter();
   const { total, pronto } = usePendentesDoMenu();
   const anuncio = useAnuncioDoMenu(total, pronto, props.rotaAtual !== ROTA_ATENDIMENTO);
-  return <ShellNav {...props} pendentesDeAtendimento={total} anuncio={anuncio} />;
+  return (
+    <ShellNav
+      {...props}
+      pendentesDeAtendimento={total}
+      anuncio={anuncio}
+      onIrParaSetor={(rota) => router.push(rota)}
+    />
+  );
 }

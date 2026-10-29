@@ -1,7 +1,9 @@
 import Link from "next/link";
 
 import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
+import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
+import { Select } from "@/presentation/components/ui/select";
 import { cn } from "@/presentation/lib/utils";
 import { ROTA_ATENDIMENTO } from "@/shared/kernel/rotas";
 import { SETOR_LABEL } from "@/shared/kernel/setores";
@@ -17,6 +19,9 @@ export type ShellNavProps = {
   rotaAtual?: string;
   pendentesDeAtendimento?: number;
   anuncio?: string;
+  // Com muitos Setores (o Admin) e este destino, o celular troca os chips por um seletor; sem ele
+  // (ou com poucos Setores) os chips seguem em todo tamanho.
+  onIrParaSetor?: (rota: string) => void;
 };
 
 // Única aba com tela de verdade por trás — as demais seguem como
@@ -33,8 +38,13 @@ export function ShellNav({
   rotaAtual,
   pendentesDeAtendimento = 0,
   anuncio = "",
+  onIrParaSetor,
 }: ShellNavProps) {
   const ativa = rotaAtual === ROTA_ATENDIMENTO;
+  const comSeletor = onIrParaSetor !== undefined && setores.length > 2;
+  // Só um Setor com tela pode ser o atual (sem rota, `undefined === undefined` casaria o primeiro).
+  const setorAtual =
+    (rotaAtual && setores.find((s) => ROTA_POR_SETOR[s.slug] === rotaAtual)?.slug) || "";
   return (
     <Linha
       espaco={2}
@@ -43,6 +53,25 @@ export function ShellNav({
       aria-label="Setores"
       className="border-b border-border bg-card px-4 py-3 sm:px-6"
     >
+      {comSeletor && (
+        <Select
+          aria-label="Ir para o Setor"
+          value={setorAtual}
+          onChange={(e) => {
+            const rota = ROTA_POR_SETOR[e.target.value];
+            if (rota) onIrParaSetor(rota);
+          }}
+          className="min-w-0 flex-1 sm:hidden"
+        >
+          <Opcao value="">Setor</Opcao>
+          {setores.map(({ slug }) => (
+            <Opcao key={slug} value={slug} disabled={!ROTA_POR_SETOR[slug]}>
+              {SETOR_LABEL[slug] ?? slug}
+              {ROTA_POR_SETOR[slug] ? "" : " — em breve"}
+            </Opcao>
+          ))}
+        </Select>
+      )}
       {setores.map((setor) => {
         const rota = ROTA_POR_SETOR[setor.slug];
         const label = SETOR_LABEL[setor.slug] ?? setor.slug;
@@ -53,6 +82,7 @@ export function ShellNav({
             aria-current={rota === rotaAtual ? "page" : undefined}
             className={cn(
               CHIP,
+              comSeletor && "max-sm:hidden",
               rota === rotaAtual
                 ? "border-primary bg-primary font-medium text-primary-foreground"
                 : "text-foreground hover:bg-accent",
@@ -66,7 +96,11 @@ export function ShellNav({
             key={setor.slug}
             aria-disabled="true"
             title="Tela ainda não construída"
-            className={cn(CHIP, "cursor-not-allowed text-muted-foreground pointer-coarse:min-h-0")}
+            className={cn(
+              CHIP,
+              comSeletor && "max-sm:hidden",
+              "cursor-not-allowed text-muted-foreground pointer-coarse:min-h-0",
+            )}
           >
             {label}
           </Caixa>

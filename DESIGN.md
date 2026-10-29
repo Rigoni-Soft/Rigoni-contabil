@@ -201,8 +201,16 @@ sem precisar de classe.
   **Rótulo de ação oculto abaixo de `lg` (#32; subiu de `sm` para `lg` em
   13/10/2026, quando a sonda de reflow mostrou rolagem horizontal do Admin a 320 e 768 px;
   abaixo de `lg` a identidade e as ações quebram em duas linhas quando não cabem lado a lado, e
-  dividem a linha quando cabem — Funcionário e Líder em tablet, #168; o Admin e o celular seguem
-  empilhados, e o reflow a 320 px é preservado):** os
+  dividem a linha quando cabem — Funcionário e Líder em tablet, #168; o Admin segue empilhado; o
+  reflow a 320 px é preservado). **Abaixo de `sm` (celular, #168) o cabeçalho é uma barra de uma
+  linha (~70 px): inicial e nome truncados, o sino sempre à vista e o botão `Menu` (`popoverTarget`).
+  As ações viram um menu — o mesmo painel com `popover="auto"` (Esc e clique fora fecham, o foco
+  volta ao botão), que de `sm` para cima perde a posição de camada e a moldura e volta a ser a linha
+  de ações. No menu cada item mostra o rótulo e ocupa a largura toda (Perfil, tema, Sair e, no Admin
+  e no Líder, os cadastros); o rótulo "Tema escuro/claro" só aparece ali. Na `ShellNav` do Admin
+  (9 Setores) os chips viram, abaixo de `sm`, um `Select` "Ir para o Setor" ao lado do link
+  Atendimento (sempre à vista, com o contador); os Setores sem tela aparecem desabilitados com "— em
+  breve", e Funcionário e Líder mantêm os chips (são 1 ou 2).** Os
   links de ação do `ShellHeader` (hoje "Cadastrar Líder"/"Cadastrar
   Funcionário", "Usuários" e "Meu perfil") escondem o texto do rótulo em telas
   estreitas (`Texto variante="soDesktop"`, `hidden lg:inline`) mantendo só o ícone —
