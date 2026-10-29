@@ -803,7 +803,7 @@ Valores iniciais, a calibrar por medição:
 
 - Toda mutation invalida por **prefixo** de chave, não a árvore inteira.
 - A carga inicial vem como `initialData` do loader; use `staleTime` ≥ 30 s para não refazer a busca ao montar.
-- **Exceção:** query com `refetchInterval` (polling, ex.: a conversa do Atendimento, 5 s, e a lista da aba Atendimento, 15 s) usa `staleTime` igual ao intervalo: o `initialData` só vale até o primeiro ciclo, e o polling é o que mantém o dado atual.
+- **Exceção:** query com `refetchInterval` (polling, ex.: a conversa do Atendimento, 5 s com atividade recente e 15 s parada, e a lista da aba Atendimento, 15 s) usa `staleTime` igual ao intervalo: o `initialData` só vale até o primeiro ciclo, e o polling é o que mantém o dado atual.
 
 ### 6.8 Anti-duplicação
 

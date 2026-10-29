@@ -24,7 +24,9 @@ import {
   acrescentarAnteriores,
   aplicarLinksRenovados,
   idsComLinkVencendo,
+  intervaloDaConversa,
   manterHistorico,
+  POLLING_RAPIDO_MS,
   reaproveitarLinks,
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.presenter";
 import { filaKeys } from "@/modules/atendimento/presentation/view-models/fila/fila.queries";
@@ -36,9 +38,9 @@ export const conversaKeys = {
   transferencia: (atendimentoId: string) => ["atendimento", "transferir", atendimentoId] as const,
 };
 
-// ponytail: polling a cada 5 s para a Mensagem do cliente aparecer; Realtime (`*.realtime.ts`,
-// arquitetura.md 4.2) quando o atraso incomodar.
-const INTERVALO_MS = 5_000;
+// ponytail: polling de 5 s com a conversa ativa e 15 s parada (`intervaloDaConversa`); Realtime
+// (`*.realtime.ts`, arquitetura.md 4.2) quando o atraso incomodar. O `staleTime` é o intervalo rápido.
+const INTERVALO_MS = POLLING_RAPIDO_MS;
 
 // Por rodada de polling: o lote de renovação e o tempo antes de pedir de novo o mesmo anexo (um
 // objeto ausente não é pedido a cada 5 s).
@@ -92,7 +94,7 @@ export function useConversaQuery(atendimentoId: string, initialData: ConversaVis
     },
     initialData,
     staleTime: INTERVALO_MS,
-    refetchInterval: ativa ? INTERVALO_MS : false,
+    refetchInterval: ativa ? (query) => intervaloDaConversa(query.state.data, Date.now()) : false,
     retry: false,
   });
 }
