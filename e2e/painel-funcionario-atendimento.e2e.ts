@@ -307,7 +307,7 @@ test.describe("Painel do Funcionário (#49)", () => {
     await expect(page.getByRole("img", { name: "Reação do escritório: 👍" })).toHaveCount(0);
   });
 
-  test("mensagem nova do cliente, com o Funcionário em outra tela, soma ao contador do menu", async ({
+  test("mensagem nova do cliente soma ao contador do menu na leitura seguinte", async ({
     page,
   }) => {
     await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
@@ -328,9 +328,11 @@ test.describe("Painel do Funcionário (#49)", () => {
     });
     if (nova.error) throw nova.error;
 
-    // O menu consulta a cada 15 s: o contador sobe sem sair da tela.
-    await expect(menu.getByRole("link", { name: /^Atendimento, \d+ pendentes?$/ })).toBeVisible({
-      timeout: 30_000,
+    // Estímulo determinístico: um carregamento novo lê na hora, sem esperar o ciclo de 15 s do
+    // polling (esse é coberto pelo spec do hook). Antes da mensagem o menu não tinha contador.
+    await page.reload();
+    await expect(menu.getByRole("link", { name: "Atendimento, 1 pendente" })).toBeVisible({
+      timeout: 10_000,
     });
   });
 
