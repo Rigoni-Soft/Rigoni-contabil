@@ -8,6 +8,8 @@ type EditarCadastroOperacionalPageProps = {
   formulario: React.ReactNode;
   // Só o Admin: diálogo de anexar alteração contratual e sua confirmação, fora do formulário.
   alteracoesContratuais?: React.ReactNode;
+  // Líder de Setor fora do Simples Nacional: o Responsável do Cliente no Setor dele.
+  responsavelDoSetor?: React.ReactNode;
   // De onde a tela foi aberta (ex.: a lista de um bucket do resumo do setor): "Voltar" leva
   // para lá, não sempre para o dashboard.
   voltarHref?: string;
@@ -18,6 +20,7 @@ export function EditarCadastroOperacionalPage({
   titulo,
   formulario,
   alteracoesContratuais,
+  responsavelDoSetor,
   voltarHref = "/",
 }: EditarCadastroOperacionalPageProps) {
   return (
@@ -30,6 +33,7 @@ export function EditarCadastroOperacionalPage({
           {/* Antes do formulário: a confirmação de anexar aparece colada ao cartão do documento, que
               fica no topo dele, em vez de lá embaixo, fora da vista. */}
           {alteracoesContratuais}
+          {responsavelDoSetor}
           {formulario}
         </Pilha>
       }

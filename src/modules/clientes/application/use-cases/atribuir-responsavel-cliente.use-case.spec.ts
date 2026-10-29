@@ -173,7 +173,7 @@ describe("AtribuirResponsavelCliente", () => {
       [CLIENTE_ID, "financeiro", FUNC_ID],
       [CLIENTE_ID, "financeiro", null],
     ]);
-    expect(query.setoresListados).toEqual(["financeiro", "financeiro"]);
+    expect(query.setoresListados).toEqual(["financeiro"]);
     expect(auditoria.registros).toEqual([]);
   });
 
