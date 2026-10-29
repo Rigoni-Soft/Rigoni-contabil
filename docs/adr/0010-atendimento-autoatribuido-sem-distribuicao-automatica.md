@@ -21,7 +21,7 @@ própria com um Dock em toda tela. O escritório quer que a equipe veja quem esp
   tem 23h50 ou mais (a do Funcionário não reinicia), com o sistema como ator e auditoria, mesmo fora do expediente.
   Não reabre: quem volta cria um Atendimento novo pela URA. Substitui a Inatividade, que foi removida por completo.
 - **Uma tela só.** A aba Atendimento (`/atendimento`) concentra a espera, os Atendimentos do usuário e o chat central.
-  O Dock e a rota própria da conversa deixam de existir; o contador e o aviso sonoro vivem no menu (polling de 15 s).
+  O Dock e a rota própria da conversa deixam de existir; o polling de 15 s e o aviso sonoro vivem num observador global no layout, e o contador no menu.
 - **Autorização continua no caso de uso** com `service_role` (ADR 0005); sem policies novas de RLS.
 
 ## Consequências
