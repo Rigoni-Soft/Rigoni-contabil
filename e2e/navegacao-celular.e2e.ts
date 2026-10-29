@@ -18,7 +18,9 @@ test.describe("Navegação no celular", () => {
 
     const menu = page.getByRole("button", { name: "Menu" });
     await expect(page.getByRole("link", { name: "Meu perfil" })).toBeHidden();
+    await expect(menu).toHaveAttribute("aria-expanded", "false");
     await menu.click();
+    await expect(menu).toHaveAttribute("aria-expanded", "true");
 
     await expect(page.getByRole("link", { name: "Meu perfil" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Meu perfil" })).toContainText("Meu perfil");
@@ -30,6 +32,7 @@ test.describe("Navegação no celular", () => {
     await page.keyboard.press("Escape");
     await expect(page.getByRole("link", { name: "Meu perfil" })).toBeHidden();
     await expect(menu).toBeFocused();
+    await expect(menu).toHaveAttribute("aria-expanded", "false");
 
     // O sino fica fora do menu, sempre à vista.
     await expect(page.getByRole("button", { name: /Avisos/ })).toBeVisible();
