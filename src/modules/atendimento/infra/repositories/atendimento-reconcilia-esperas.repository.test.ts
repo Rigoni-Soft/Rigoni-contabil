@@ -9,6 +9,8 @@ import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { Client } from "pg";
 
+import type { SetorSlug } from "@/shared/kernel/setores";
+
 import { exigirSupabaseLocal } from "../../../../../test-support/exigir-supabase-local";
 import { SupabaseAtendimentoRepository } from "./atendimento.repository";
 
@@ -50,7 +52,11 @@ async function criarPerfil(nome: string, papel: "funcionario" | "lider_setor"): 
   return id;
 }
 
-async function abrirSemDestinatario(telefone: string, cliente: string | null, setor = SETOR) {
+async function abrirSemDestinatario(
+  telefone: string,
+  cliente: string | null,
+  setor: SetorSlug = SETOR,
+) {
   const r = await repositorio.abrir({
     telefone,
     chave: telefone,

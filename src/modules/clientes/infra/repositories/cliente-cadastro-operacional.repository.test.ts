@@ -47,6 +47,7 @@ async function atribuirComoLider(clienteId: string, responsavelId: string | null
   const lider = await comoLiderSN();
   const resultado = await new SupabaseResponsavelClienteRepository(lider).atribuir(
     clienteId,
+    "simples_nacional",
     responsavelId,
   );
   if (!resultado.ok) throw new Error("falha ao atribuir: " + resultado.error.message);
@@ -420,6 +421,7 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
         .eq("cliente_id", clienteBase.id);
       const viaGateway = await new SupabaseResponsavelClienteRepository(funcionarioSN).atribuir(
         clienteBase.id,
+        "simples_nacional",
         null,
       );
 
@@ -433,6 +435,7 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
 
       const resultado = await new SupabaseResponsavelClienteRepository(admin).atribuir(
         clienteBase.id,
+        "simples_nacional",
         FUNCIONARIO_SN_ID,
       );
 
@@ -446,6 +449,7 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
 
       const resultado = await new SupabaseResponsavelClienteRepository(lider).atribuir(
         clienteBase.id,
+        "simples_nacional",
         FUNCIONARIO_FINANCEIRO_ID,
       );
 

@@ -352,7 +352,9 @@ describe("SupabaseClienteQueryGateway.listarResumoOperacional (#36, integração
   it("lista os Funcionários do SN como Responsáveis elegíveis (nunca Líder nem outro Setor)", async () => {
     const lider = await comoLiderSN();
 
-    const resultado = await new SupabaseClienteQueryGateway(lider).listarResponsaveisElegiveis();
+    const resultado = await new SupabaseClienteQueryGateway(lider).listarResponsaveisElegiveis(
+      "simples_nacional",
+    );
 
     expect(resultado.ok).toBe(true);
     if (!resultado.ok) return;
@@ -387,7 +389,7 @@ describe("SupabaseClienteQueryGateway.listarResumoOperacional (#36, integração
 
     const resultado = await new SupabaseClienteQueryGateway(
       await comoLiderSN(),
-    ).listarResponsaveisElegiveis();
+    ).listarResponsaveisElegiveis("simples_nacional");
 
     await servidor.from("perfis").delete().eq("id", id);
     expect(resultado.ok && resultado.value.map((r) => r.id)).not.toContain(id);

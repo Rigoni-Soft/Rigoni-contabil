@@ -30,6 +30,9 @@ class ClienteQueryPortFalso implements ClienteQueryPort {
   async listarResponsaveisElegiveis() {
     return ok([]);
   }
+  async buscarResponsavelDoSetor() {
+    return ok(null);
+  }
 }
 
 const sessaoDe = (papel: string, setor: string): SessaoPort => ({

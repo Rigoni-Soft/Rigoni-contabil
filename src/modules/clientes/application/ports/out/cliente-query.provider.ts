@@ -1,6 +1,7 @@
 import type { ParcelamentoSalvo } from "@/modules/clientes/application/ports/out/cliente-parcelamento.repository";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
+import type { SetorSlug } from "@/shared/kernel/setores";
 
 // Read model puro (arquitetura.md, seção 3.6): nunca passa pelo builder/entidade
 // Cliente. Deliberadamente SEM contratoSocialCaminho/alteracoesContratuais —
@@ -66,6 +67,12 @@ export interface ClienteQueryPort {
 
   listarResumoOperacional(): Promise<Result<ResumoOperacionalRow[], AppError>>;
 
-  // Funcionários do Setor Simples Nacional visíveis a quem chama.
-  listarResponsaveisElegiveis(): Promise<Result<ResponsavelOpcaoDto[], AppError>>;
+  // Funcionários ativos do Setor, candidatos a Responsável.
+  listarResponsaveisElegiveis(setor: SetorSlug): Promise<Result<ResponsavelOpcaoDto[], AppError>>;
+
+  // Responsável do Cliente num Setor fora do Simples Nacional (este vive no cadastro operacional).
+  buscarResponsavelDoSetor(
+    clienteId: string,
+    setor: SetorSlug,
+  ): Promise<Result<ResponsavelOpcaoDto | null, AppError>>;
 }

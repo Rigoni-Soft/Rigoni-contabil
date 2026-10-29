@@ -15,8 +15,9 @@ import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { podeAtribuirResponsavel } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
+import { ehSetor, type SetorSlug } from "@/shared/kernel/setores";
 
-// Só o Líder do Simples Nacional atribui/troca/remove o Responsável. O banco repete a regra
+// Só o Líder do Setor atribui/troca/remove o Responsável do Cliente naquele Setor. O banco repete a regra
 // (trigger + RLS) — aqui é a primeira barreira e o ponto que registra a auditoria de falha (a ação
 // distingue atribuir, trocar e remover). A de sucesso nasce no banco, na mesma transação da escrita
 // (trigger `auditar_responsavel_cliente`), inclusive quando o Líder grava pela Data API.
@@ -30,8 +31,8 @@ export class AtribuirResponsavelCliente implements AtribuirResponsavelClientePor
 
   async execute(input: AtribuirResponsavelClienteInput): Promise<Result<void, AppError>> {
     const ator = await this.sessao.usuarioAtual();
-    if (!ator || !podeAtribuirResponsavel(ator.papel, ator.setor)) {
-      return err(new ForbiddenError("Só o Líder do Simples Nacional atribui o Responsável."));
+    if (!ator || !ehSetor(ator.setor) || !podeAtribuirResponsavel(ator.papel, ator.setor)) {
+      return err(new ForbiddenError("Só o Líder do Setor atribui o Responsável."));
     }
 
     const cliente = await this.query.buscarCadastroOperacional(input.clienteId);
@@ -42,17 +43,27 @@ export class AtribuirResponsavelCliente implements AtribuirResponsavelClientePor
       );
     }
 
+    const atual = await this.responsavelAtual(
+      ator.setor,
+      cliente.value.responsavelId,
+      input.clienteId,
+    );
+    if (!atual.ok) return atual;
     // Sem mudança: nada a gravar nem a auditar.
-    if (cliente.value.responsavelId === input.responsavelId) return ok(undefined);
+    if (atual.value === input.responsavelId) return ok(undefined);
 
-    const acao = this.nomeDaAcao(cliente.value.responsavelId, input.responsavelId);
-    const elegivel = await this.validarElegivel(input.responsavelId);
+    const acao = this.nomeDaAcao(atual.value, input.responsavelId);
+    const elegivel = await this.validarElegivel(ator.setor, input.responsavelId);
     if (!elegivel.ok) {
       await this.registrarAuditoria(ator, acao, cliente.value.cnpj);
       return elegivel;
     }
 
-    const salvo = await this.responsaveis.atribuir(input.clienteId, input.responsavelId);
+    const salvo = await this.responsaveis.atribuir(
+      input.clienteId,
+      ator.setor,
+      input.responsavelId,
+    );
     if (!salvo.ok) await this.registrarAuditoria(ator, acao, cliente.value.cnpj);
     return salvo;
   }
@@ -62,13 +73,27 @@ export class AtribuirResponsavelCliente implements AtribuirResponsavelClientePor
     return atual === null ? "cliente.atribuir-responsavel" : "cliente.trocar-responsavel";
   }
 
-  private async validarElegivel(responsavelId: string | null): Promise<Result<void, AppError>> {
+  // O SN lê do cadastro operacional; os demais Setores, de `cliente_responsaveis`.
+  private async responsavelAtual(
+    setor: SetorSlug,
+    doCadastroSn: string | null,
+    clienteId: string,
+  ): Promise<Result<string | null, AppError>> {
+    if (setor === "simples_nacional") return ok(doCadastroSn);
+    const atual = await this.query.buscarResponsavelDoSetor(clienteId, setor);
+    return atual.ok ? ok(atual.value?.id ?? null) : atual;
+  }
+
+  private async validarElegivel(
+    setor: SetorSlug,
+    responsavelId: string | null,
+  ): Promise<Result<void, AppError>> {
     if (responsavelId === null) return ok(undefined);
-    const elegiveis = await this.query.listarResponsaveisElegiveis();
+    const elegiveis = await this.query.listarResponsaveisElegiveis(setor);
     if (!elegiveis.ok) return elegiveis;
     if (!elegiveis.value.some((funcionario) => funcionario.id === responsavelId)) {
       return err(
-        new ValidationError("O Responsável deve ser Funcionário do Simples Nacional.", {
+        new ValidationError("O Responsável deve ser Funcionário ativo do Setor.", {
           responsavelId: ["Funcionário inválido"],
         }),
       );

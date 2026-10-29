@@ -21,6 +21,7 @@ import {
 import { AppError } from "@/shared/errors/app.error";
 import { primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
+import type { SetorSlug } from "@/shared/kernel/setores";
 
 class ConsultaError extends AppError {
   readonly code = "CONSULTA_ERROR";
@@ -145,16 +146,33 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
     });
   }
 
-  async listarResponsaveisElegiveis(): Promise<Result<ResponsavelOpcaoDto[], AppError>> {
+  async listarResponsaveisElegiveis(
+    setor: SetorSlug,
+  ): Promise<Result<ResponsavelOpcaoDto[], AppError>> {
     const { data, error } = await this.supabase
       .from("perfis")
       .select("id, nome")
       .eq("papel", "funcionario")
-      .eq("setor", "simples_nacional")
+      .eq("setor", setor)
       .is("desativado_em", null)
       .order("nome");
     if (error) return err(new ConsultaError(`Erro ao listar Responsáveis: ${error.message}`));
     return ok((data as ResponsavelOpcaoDto[]) ?? []);
+  }
+
+  async buscarResponsavelDoSetor(
+    clienteId: string,
+    setor: SetorSlug,
+  ): Promise<Result<ResponsavelOpcaoDto | null, AppError>> {
+    const { data, error } = await this.supabase
+      .from("cliente_responsaveis")
+      .select("responsavel:perfis!responsavel_id(id, nome)")
+      .eq("cliente_id", clienteId)
+      .eq("setor", setor)
+      .maybeSingle();
+    if (error) return err(new ConsultaError(`Erro ao buscar o Responsável: ${error.message}`));
+    const responsavel = (data as { responsavel: ResponsavelOpcaoDto | null } | null)?.responsavel;
+    return ok(responsavel ?? null);
   }
 
   async buscarPorTermo(

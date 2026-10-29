@@ -84,6 +84,7 @@ async function criarClienteResponsavelFuncionarioSN(cnpj: string): Promise<strin
   if (!criado.ok) throw new Error("falha ao criar cliente: " + criado.error.message);
   const atribuido = await new SupabaseResponsavelClienteRepository(await comoLiderSN()).atribuir(
     construido.value.id,
+    "simples_nacional",
     FUNCIONARIO_SN_ID,
   );
   if (!atribuido.ok) throw new Error("falha ao atribuir: " + atribuido.error.message);
