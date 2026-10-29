@@ -11,7 +11,7 @@ const TELEFONE = "61955572001";
 const CLIENTE = crypto.randomUUID();
 const CNPJ = `6${Date.now()}`.slice(0, 14);
 
-test.describe("Painel do Funcionário (#49)", () => {
+test.describe("Conversa na tela Atendimento (#49)", () => {
   test.beforeAll(async () => {
     await admin.from("atendimentos").delete().eq("funcionario_id", FUNCIONARIO);
     const cliente = await admin

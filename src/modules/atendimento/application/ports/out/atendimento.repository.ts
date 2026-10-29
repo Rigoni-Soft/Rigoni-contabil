@@ -77,7 +77,7 @@ export type ItemDaFila = {
   origem: { setor: SetorSlug; nome: string | null } | null;
 };
 
-// Atendimento em andamento de um Funcionário, para a lista dele (painel do Funcionário).
+// Atendimento em andamento de um Funcionário, para a aba "Em atendimento" dele.
 export type AtendimentoDoFuncionario = {
   id: string;
   funcionarioId: string | null;

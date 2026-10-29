@@ -12,7 +12,7 @@ const SEM_SESSAO = ["/login", "/trocar-senha"];
 // dela (aqui tocaria em dobro) e este hook fica mudo.
 const SEM_CONVERSA_ABERTA = null;
 
-// O polling de 15 s e o aviso sonoro em toda tela autenticada (o que o Dock fazia, sem cartão): o
+// O polling de 15 s e o aviso sonoro em toda tela autenticada, sem interface própria: o
 // contador do menu e a tela Atendimento só leem o mesmo cache. Admin não tem Setor próprio: a
 // leitura da espera é negada e só as conversas contam.
 export function useAvisoGlobal() {

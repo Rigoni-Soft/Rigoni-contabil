@@ -10,7 +10,7 @@ import { CabecalhoConversaContainer } from "@/modules/atendimento/presentation/v
 import { CompositorConversaContainer } from "@/modules/atendimento/presentation/view-models/conversa/compositor-conversa.container";
 import { MensagensConversaContainer } from "@/modules/atendimento/presentation/view-models/conversa/mensagens-conversa.container";
 
-// O chat da conversa aberta, no centro. Reaproveita as regiões do Painel do Funcionário; a
+// O chat da conversa aberta, no centro. Reaproveita as regiões da conversa; a
 // conversa em si vem da mesma leitura que as ações usam (uma consulta só).
 export function ChatCentralContainer() {
   const { abertoId, fecharConversa } = useAtendimentoCentralStore();
