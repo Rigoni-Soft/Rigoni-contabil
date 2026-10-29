@@ -28,7 +28,7 @@ própria com um Dock em toda tela. O escritório quer que a equipe veja quem esp
 
 - Os Atendimentos abertos na virada não precisaram de migração própria: o estado já é derivado (com Funcionário =
   em atendimento; sem = em espera, do Setor ou dirigida), as esperas sem destinatário foram reconciliadas
-  (`20261028180000`) e as colunas de aviso de Inatividade foram descartadas com seus dados (`20261029130000`).
+  (`20261028180000`) e as colunas de aviso de Inatividade foram descartadas com seus dados (`20261029150000`).
 - Quem esquece de encerrar fica aberto até 23h50 após a última mensagem do cliente; com o cron diário do plano Hobby,
   até ~24h depois (ver `docs/deploy/encerramento-cron.md`).
 - Esperar dirigida a um Responsável ausente não tem tratamento automático (fora de escopo na spec): fica com o Líder.
