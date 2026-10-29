@@ -18,7 +18,7 @@ const requisicao = () => new Request("http://localhost/api/jobs/encerramento");
 describe("job de encerramento automático", () => {
   beforeEach(() => {
     executar.mockReset();
-    executar.mockResolvedValue({ ok: true, value: { encerrados: 3 } });
+    executar.mockResolvedValue({ ok: true, value: { encerrados: 3, falhas: 0 } });
     ativo = false;
     autorizado = true;
   });
@@ -48,7 +48,7 @@ describe("job de encerramento automático", () => {
 
     expect(resposta.status).toBe(200);
     expect(executar).toHaveBeenCalledTimes(1);
-    expect(await resposta.json()).toEqual({ encerrados: 3 });
+    expect(await resposta.json()).toEqual({ encerrados: 3, falhas: 0 });
   });
 
   it("falha do banco responde 502", async () => {

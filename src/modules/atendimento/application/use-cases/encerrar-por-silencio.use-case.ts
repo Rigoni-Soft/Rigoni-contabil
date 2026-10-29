@@ -25,6 +25,6 @@ export class EncerrarPorSilencio implements EncerrarPorSilencioPort {
       corteDoEncerramento(this.relogio.agora()),
       URA_ATOR_ID,
     );
-    return encerrados.ok ? ok({ encerrados: encerrados.value }) : encerrados;
+    return encerrados.ok ? ok({ encerrados: encerrados.value, falhas: 0 }) : encerrados;
   }
 }

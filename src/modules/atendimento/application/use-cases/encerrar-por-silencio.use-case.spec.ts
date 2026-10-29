@@ -37,7 +37,7 @@ describe("EncerrarPorSilencio", () => {
     const resultado = await caso.execute();
 
     expect(encerrados).toEqual(["vencido", "noLimite"]);
-    expect(resultado).toEqual(ok({ encerrados: 2 }));
+    expect(resultado).toEqual(ok({ encerrados: 2, falhas: 0 }));
   });
 
   it("roda com o relógio fora do expediente (madrugada de domingo) sem esperar a abertura", async () => {
@@ -47,14 +47,6 @@ describe("EncerrarPorSilencio", () => {
     await caso.execute();
 
     expect(chamadas).toEqual([{ corte: new Date("2026-10-10T05:10:00.000Z"), ator: URA_ATOR_ID }]);
-  });
-
-  it("o ator da auditoria é o sistema (URA)", async () => {
-    const { caso, chamadas } = montar(agora, {});
-
-    await caso.execute();
-
-    expect(chamadas[0]?.ator).toBe(URA_ATOR_ID);
   });
 
   it("repassa a falha do repositório", async () => {

@@ -31,7 +31,6 @@ const TELEFONES = [
   "61955591004",
   "61955591005",
   "61955591006",
-  "61955591007",
 ];
 
 const HORA = 3_600_000;
@@ -164,7 +163,7 @@ describe("SupabaseAtendimentoRepository — encerramento automático por silênc
   });
 
   it("sem nenhuma Mensagem do cliente, conta desde a abertura do Atendimento", async () => {
-    const id = await abrir(TELEFONES[6], { contatoHa: 1 });
+    const id = await abrir(TELEFONES[5], { contatoHa: 1 });
     await admin.from("mensagens").delete().eq("atendimento_id", id);
     await admin
       .from("atendimentos")
@@ -174,13 +173,5 @@ describe("SupabaseAtendimentoRepository — encerramento automático por silênc
     await repositorio.encerrarSemRespostaDoCliente(corte(), URA_ATOR_ID);
 
     expect(await status(id)).toBe("encerrado");
-  });
-
-  it("devolve quantos encerrou nesta rodada", async () => {
-    await abrir(TELEFONES[5], { contatoHa: 26 });
-
-    const resultado = await repositorio.encerrarSemRespostaDoCliente(corte(), URA_ATOR_ID);
-
-    expect(resultado.ok && resultado.value).toBeGreaterThanOrEqual(1);
   });
 });

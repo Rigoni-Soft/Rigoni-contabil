@@ -25,4 +25,4 @@ real.
 
 ## Resposta
 
-`200 { "encerrados": n }`; falha do banco responde `502`.
+`200 { "encerrados": n, "falhas": 0 }`; falha do banco responde `502`.
