@@ -887,7 +887,9 @@ na espera ou cliente que escreve de novo numa conversa não aberta; a primeira l
   parecer clicável (um tom de fundo some no tema escuro; a borda vale nos dois). **Para Líder e Admin
   (supervisão, #165)** o mesmo card vira botão de *leitura*: mantém a borda tracejada (não confunde
   com o que assume), ganha o ícone de olho e a nota "Dirigido a outro usuário · só leitura", e o
-  nome acessível passa a "Ler o atendimento de"; abre a conversa sem assumir. A espera vem em ordem de antiguidade. Todo controle da tela
+  nome acessível passa a "Ler o atendimento de"; abre a conversa sem assumir. O Admin, que não tem
+  Setor próprio e não assume, lê também a espera comum do Setor: a nota é "Espera do Setor · só
+  leitura" (o prop `dirigido` do card escolhe entre as duas notas; #168). A espera vem em ordem de antiguidade. Todo controle da tela
   (abas, cards, "Voltar à lista", "Ir para as ações") usa o anel de foco do sistema: `outline-none
   focus-visible:ring-2 ring-ring ring-offset-2`.
 - **Card de conversa** (`CardDeConversa`): mesmo molde, ícone de mensagem; a conversa aberta ganha
