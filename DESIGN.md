@@ -123,7 +123,7 @@ em monitores largos):
   `2xl`) | chat | ações de 19 rem (22 rem em `2xl`); cada uma rola por dentro. A coluna de ações só
   existe com uma conversa aberta e não encerrada (a grade ganha a terceira coluna por
   `has-[[data-acoes]:not(:empty)]`); sem ela o chat ocupa a largura. Abaixo de `xl` as ações vão
-  para baixo do chat, com `max-h-[36dvh]` e rolagem própria, para não esmagar as mensagens. Abaixo
+  para baixo do chat, com `max-h-[28dvh]` e rolagem própria, para não esmagar as mensagens (a 36% o tablet em paisagem, 1024×768, deixava ~170 px para a conversa). Abaixo
   de `lg` há uma coluna por vez: a lista, ou o chat quando há conversa aberta (a lista se esconde),
   com "← Voltar à lista" e o atalho "Ir para as ações ↓" no topo do chat. Ver Componentes → Tela
   Atendimento.
