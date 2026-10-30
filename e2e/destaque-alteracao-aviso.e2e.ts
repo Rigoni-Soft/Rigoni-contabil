@@ -1,5 +1,6 @@
-import { expect, test, type Browser, type Page } from "@playwright/test";
+import type { Browser, Page } from "@playwright/test";
 
+import { expect, test } from "./fixtures";
 import { criarClienteComAlteracao1, empresaUnica, login, pdf } from "./support/criar-cliente";
 
 const SINO = /Avisos de cadastro/;
@@ -73,8 +74,9 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
     );
     const lider = await entrar(browser, LIDER);
     const responsavel = await entrar(browser, RESPONSAVEL);
-    await lider.waitForLoadState("networkidle");
-    await responsavel.waitForLoadState("networkidle");
+    // Teto curto: no preview a rede nunca fica ociosa (ver e2e/fixtures.ts).
+    await lider.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+    await responsavel.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
     const baseLider = await naoVistos(lider);
     const baseResponsavel = await naoVistos(responsavel);
 
