@@ -28,7 +28,15 @@ const rule = (...s) => ({ "no-restricted-syntax": ["error", ...s] });
 export default defineConfig([
   ...nextVitals,
   ...nextTs,
-  globalIgnores([".next/**", "out/**", "build/**", "coverage/**", "next-env.d.ts"]),
+  globalIgnores([
+    ".next/**",
+    "out/**",
+    "build/**",
+    "coverage/**",
+    "next-env.d.ts",
+    ".claude/**",
+    ".agents/**",
+  ]),
   {
     files: ["src/**/*.{ts,tsx}"],
     rules: {

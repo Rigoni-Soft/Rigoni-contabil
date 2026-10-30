@@ -2,7 +2,7 @@ import nextJest from "next/jest.js";
 
 const criarConfig = nextJest({ dir: "./" });
 
-const ignorar = ["/node_modules/", "/e2e/"]; // e2e/ é do Playwright
+const ignorar = ["/node_modules/", "/e2e/", "/.claude/", "/.agents/"]; // e2e/ é do Playwright
 
 const comum = {
   moduleNameMapper: { "^@/(.*)$": "<rootDir>/src/$1" },
