@@ -33,7 +33,7 @@ describe("PainelDeEncerramento", () => {
   it("enquanto encerra os botões ficam travados e o foco não se perde", async () => {
     const { onCancelar } = montar({ confirmando: true, encerrando: true });
 
-    expect(screen.getByRole("button", { name: "Encerrando..." })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Encerrando…" })).toBeDisabled();
     const cancelar = screen.getByRole("button", { name: "Cancelar" });
     expect(cancelar).toHaveAttribute("aria-disabled", "true");
     expect(cancelar).toHaveFocus();

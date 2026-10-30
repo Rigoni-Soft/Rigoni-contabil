@@ -3,7 +3,7 @@ import localFont from "next/font/local";
 
 import { QueryProvider } from "@/presentation/providers/query.provider";
 import { ThemeProvider } from "@/presentation/providers/theme.provider";
-import { MeusAtendimentosContainer } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.container";
+import { AvisoGlobalContainer } from "@/modules/atendimento/presentation/view-models/atendimento-central/aviso-global.container";
 
 import "./globals.css";
 
@@ -28,8 +28,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <ThemeProvider>
           <QueryProvider>
             {children}
-            {/* Persiste entre as telas: o Funcionário não perde o Atendimento ao trocar de aba. */}
-            <MeusAtendimentosContainer />
+            {/* Persiste entre as telas: o contador e o aviso sonoro não dependem da tela aberta. */}
+            <AvisoGlobalContainer />
           </QueryProvider>
         </ThemeProvider>
       </body>

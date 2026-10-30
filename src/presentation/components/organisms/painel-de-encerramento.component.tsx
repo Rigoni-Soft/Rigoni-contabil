@@ -44,7 +44,7 @@ export function PainelDeEncerramento({
               disabled={encerrando}
               onClick={onConfirmar}
             >
-              {encerrando ? "Encerrando..." : "Confirmar encerramento"}
+              {encerrando ? "Encerrando…" : "Confirmar encerramento"}
             </Button>
             <Button
               type="button"

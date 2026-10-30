@@ -30,7 +30,6 @@ export const atendimentoEmAndamentoRowSchema = z.object({
   funcionario_id: z.string().nullable(),
   telefone: z.string(),
   chave_telefone: z.string(),
-  aviso_inatividade_em: z.string().nullable(),
 });
 
 // `clientes` com o cadastro operacional embutido (1:1; só MEI/Simples Nacional têm linha).
@@ -67,35 +66,6 @@ export const filaRowSchema = z.object({
   origem_nome: z.string().nullable(),
 });
 
-// `atendimentos_para_inatividade`.
-export const inatividadeRowSchema = z.object({
-  id: z.string(),
-  setor: z.enum(SETORES),
-  funcionario_id: z.string(),
-  telefone: z.string(),
-  chave_telefone: z.string(),
-  ultima_do_contato: z.string().nullable(),
-  ultima_do_funcionario: z.string().nullable(),
-  aviso_inatividade_em: z.string().nullable(),
-  aviso_inatividade_de: z.enum(["contato", "funcionario"]).nullable(),
-  aviso_entregue_em: z.string().nullable(),
-});
-
-export const encerramentoPendenteRowSchema = z.object({
-  id: z.string(),
-  telefone: z.string(),
-  texto: z.string().nullable(),
-  reivindicacao: z.string(),
-});
-
-// `encerrar_atendimento_por_inatividade`: o encerrado traz o token da reivindicação.
-export const encerramentoPorInatividadeRowSchema = z.discriminatedUnion("status", [
-  z.object({
-    status: z.literal("encerrado"),
-    reivindicacao: z.string(),
-  }),
-  z.object({ status: z.literal("inexistente") }),
-]);
 // `clientes` embutido num Atendimento, com os Contatos para achar quem escreve pelo telefone.
 const clienteComContatosRowSchema = z
   .object({
@@ -158,8 +128,6 @@ export const conversaRowSchema = z.object({
   chave_telefone: z.string(),
   resumo_ura: z.string().nullable(),
   cnpj_informado: z.string().nullable(),
-  aviso_inatividade_em: z.string().nullable(),
-  aviso_inatividade_de: z.enum(["contato", "funcionario"]).nullable(),
   clientes: clienteComContatosRowSchema,
   mensagens: z.array(mensagemDaConversaRowSchema),
   transferencias: z.array(

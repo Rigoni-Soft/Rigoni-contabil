@@ -8,7 +8,10 @@ import {
   formatarCronometro,
   formatarTamanho,
   idsComLinkVencendo,
+  intervaloDaConversa,
   manterHistorico,
+  POLLING_LENTO_MS,
+  POLLING_RAPIDO_MS,
   reaproveitarLinks,
 } from "./conversa.presenter";
 
@@ -57,7 +60,6 @@ const CONVERSA: ConversaVista = {
   ultimaTransferencia: null,
   ura: null,
   temMaisAnteriores: false,
-  avisoInatividade: false,
   setoresDestino: ["recepcao", "tributario"],
   documentos: [
     { tipo: "contrato", numero: null, descricao: "Contrato social" },
@@ -76,11 +78,6 @@ describe("conversaParaView", () => {
     expect(
       conversaParaView({ ...CONVERSA, podeAtender: false, encerrado: true }).somenteLeitura,
     ).toBe(false);
-  });
-
-  it("repassa o aviso de inatividade ao Funcionário", () => {
-    expect(conversaParaView(CONVERSA).avisoInatividade).toBe(false);
-    expect(conversaParaView({ ...CONVERSA, avisoInatividade: true }).avisoInatividade).toBe(true);
   });
 
   it("balão do cliente mostra o nome do Contato e o do atendente mostra nome e Setor", () => {
@@ -521,5 +518,31 @@ describe("formatarCronometro", () => {
     expect(formatarCronometro(0)).toBe("00:00");
     expect(formatarCronometro(65)).toBe("01:05");
     expect(formatarCronometro(300)).toBe("05:00");
+  });
+});
+
+describe("intervaloDaConversa", () => {
+  const agora = new Date("2026-10-29T12:00:00Z").getTime();
+  const conversaCom = (...mensagens: Array<{ minutosAtras: number }>) =>
+    ({
+      mensagens: mensagens.map((m, i) => ({
+        id: `m-${i}`,
+        autor: "contato",
+        texto: "oi",
+        criadoEm: new Date(agora - m.minutosAtras * 60_000).toISOString(),
+      })),
+    }) as unknown as ConversaVista;
+
+  it("conversa com Mensagem recente segue no ritmo rápido", () => {
+    expect(intervaloDaConversa(conversaCom({ minutosAtras: 1 }), agora)).toBe(POLLING_RAPIDO_MS);
+  });
+
+  it("conversa parada há mais de 2 minutos espaça a leitura", () => {
+    expect(intervaloDaConversa(conversaCom({ minutosAtras: 3 }), agora)).toBe(POLLING_LENTO_MS);
+  });
+
+  it("sem leitura ou sem Mensagens (conversa recém-aberta) começa no ritmo rápido", () => {
+    expect(intervaloDaConversa(undefined, agora)).toBe(POLLING_RAPIDO_MS);
+    expect(intervaloDaConversa(conversaCom(), agora)).toBe(POLLING_RAPIDO_MS);
   });
 });

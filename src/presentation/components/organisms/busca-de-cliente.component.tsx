@@ -21,7 +21,7 @@ type BuscaDeClienteProps = {
 };
 
 function anuncio(buscando: boolean, quantidade: number) {
-  if (buscando) return "Buscando...";
+  if (buscando) return "Buscando…";
   if (quantidade === 0) return "";
   const plural = quantidade > 1;
   return `${quantidade} sugest${plural ? "ões" : "ão"} encontrada${plural ? "s" : ""}.`;
@@ -64,7 +64,7 @@ export function BuscaDeCliente({
       <Texto variante="somenteLeitor" role="status" aria-live="polite">
         {anuncio(buscando, sugestoes.length)}
       </Texto>
-      {buscando && <Texto variante="apoio">Buscando...</Texto>}
+      {buscando && <Texto variante="apoio">Buscando…</Texto>}
 
       {sugestoes.length > 0 && (
         <Caixa

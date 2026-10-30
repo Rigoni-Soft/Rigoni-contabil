@@ -136,7 +136,7 @@ export function AlteracoesContratuais({
           />
           {erroServidor && <AvisoDeStatus tipo="erro" texto={erroServidor} className="text-sm" />}
           <Button type="submit" disabled={pendente}>
-            {pendente ? "Anexando..." : "Anexar"}
+            {pendente ? "Anexando…" : "Anexar"}
           </Button>
         </Pilha>
       </Pilha>

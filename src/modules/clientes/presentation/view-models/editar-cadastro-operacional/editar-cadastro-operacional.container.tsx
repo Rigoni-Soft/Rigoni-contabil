@@ -172,7 +172,7 @@ export function EditarCadastroOperacionalContainer({
     // O que falta concluir depois do cadastro salvo: nomeia a etapa na mensagem de erro de transporte.
     let etapa = "atribuir o Responsável";
     // try/finally: rejeição de transporte da Server Action não pode deixar o
-    // botão preso em "Salvando...".
+    // botão preso em "Salvando…".
     try {
       // O Responsável é salvo à parte: fica fora do retrato que decide se o cadastro mudou.
       // eslint-disable-next-line @typescript-eslint/no-unused-vars

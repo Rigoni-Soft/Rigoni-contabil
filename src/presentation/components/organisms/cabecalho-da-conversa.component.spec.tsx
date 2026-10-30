@@ -12,18 +12,6 @@ describe("CabecalhoDaConversa", () => {
     expect(screen.queryByText("Atendimento encerrado.")).not.toBeInTheDocument();
   });
 
-  it("avisa o Funcionário da inatividade", () => {
-    render(
-      <CabecalhoDaConversa
-        titulo="Maria"
-        subtitulo="Padaria Ltda"
-        encerrado={false}
-        avisoInatividade
-      />,
-    );
-    expect(screen.getByRole("alert")).toHaveTextContent("sem ação em 10 minutos de expediente");
-  });
-
   it("avisa quando o Atendimento está encerrado", () => {
     render(<CabecalhoDaConversa titulo="Maria" subtitulo="Padaria Ltda" encerrado />);
 

@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import { ShellNav } from "./shell-nav.component";
 
@@ -107,5 +108,48 @@ describe("ShellNav — pendentes de Atendimento (#163)", () => {
     rerender(<ShellNav setores={[]} anuncio="Atendimento: 3 pendentes." />);
 
     expect(screen.getByRole("status")).toHaveTextContent("Atendimento: 3 pendentes.");
+  });
+
+  describe("seletor de Setor no celular", () => {
+    const admin = [
+      { slug: "simples_nacional" },
+      { slug: "financeiro" },
+      { slug: "administrativo" },
+    ];
+
+    it("sem o destino de navegação (ou com poucos Setores) não há seletor", () => {
+      const { rerender } = render(<ShellNav setores={admin} />);
+      expect(screen.queryByRole("combobox", { name: "Ir para o Setor" })).not.toBeInTheDocument();
+
+      rerender(<ShellNav setores={[{ slug: "simples_nacional" }]} onIrParaSetor={jest.fn()} />);
+      expect(screen.queryByRole("combobox", { name: "Ir para o Setor" })).not.toBeInTheDocument();
+    });
+
+    it("lista os Setores; só os que têm tela são escolhíveis, os outros dizem que vêm em breve", () => {
+      render(<ShellNav setores={admin} onIrParaSetor={jest.fn()} />);
+
+      const seletor = screen.getByRole("combobox", { name: "Ir para o Setor" });
+      expect(seletor).toHaveValue("");
+      expect(screen.getByRole("option", { name: "Simples Nacional" })).toBeEnabled();
+      expect(screen.getByRole("option", { name: "Financeiro — em breve" })).toBeDisabled();
+    });
+
+    it("escolher um Setor com tela navega até ela; o Setor da tela aberta vem selecionado", async () => {
+      const onIrParaSetor = jest.fn();
+      const { rerender } = render(<ShellNav setores={admin} onIrParaSetor={onIrParaSetor} />);
+
+      await userEvent.selectOptions(
+        screen.getByRole("combobox", { name: "Ir para o Setor" }),
+        "simples_nacional",
+      );
+      expect(onIrParaSetor).toHaveBeenCalledWith("/simples-nacional");
+
+      rerender(
+        <ShellNav setores={admin} onIrParaSetor={onIrParaSetor} rotaAtual="/simples-nacional" />,
+      );
+      expect(screen.getByRole("combobox", { name: "Ir para o Setor" })).toHaveValue(
+        "simples_nacional",
+      );
+    });
   });
 });

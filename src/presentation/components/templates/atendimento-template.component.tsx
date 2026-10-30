@@ -28,7 +28,7 @@ export function AtendimentoTemplate({ header, nav, lista, chat, acoes }: Atendim
               o chat ocupa a largura. */}
           <Caixa
             data-acoes=""
-            className="contents lg:col-start-2 lg:max-h-[36dvh] lg:overflow-y-auto lg:not-empty:block xl:col-start-3 xl:row-span-2 xl:row-start-1 xl:max-h-none"
+            className="contents lg:col-start-2 lg:max-h-[28dvh] lg:overflow-y-auto lg:not-empty:block xl:col-start-3 xl:row-span-2 xl:row-start-1 xl:max-h-none"
           >
             {acoes}
           </Caixa>

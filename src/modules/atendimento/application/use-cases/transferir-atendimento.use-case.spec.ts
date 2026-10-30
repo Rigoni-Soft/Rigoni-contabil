@@ -20,7 +20,6 @@ const ATENDIMENTO: AtendimentoEmAndamento = {
   funcionarioId: "func-origem",
   telefone: "5561988887777",
   chave: "61988887777",
-  emAvisoDeInatividade: false,
 };
 const TRANSFERIDO = {
   status: "transferido" as const,
@@ -142,15 +141,6 @@ describe("TransferirAtendimento", () => {
   it("Atendimento inexistente: não encontrado", async () => {
     const r = await montar({ atendimento: null }).caso.execute(INPUT);
     expect(!r.ok && r.error.code).toBe("NOT_FOUND");
-  });
-
-  it("Atendimento em aviso de inatividade não é transferido, sem gravar", async () => {
-    const { caso, transferencias } = montar({
-      atendimento: { ...ATENDIMENTO, emAvisoDeInatividade: true },
-    });
-    const r = await caso.execute(INPUT);
-    expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
-    expect(transferencias).toEqual([]);
   });
 
   it("recusa o mesmo Setor e resumo vazio, sem gravar", async () => {

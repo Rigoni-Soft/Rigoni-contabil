@@ -44,10 +44,8 @@ const CONVERSA: ConversaLida = {
     },
   ],
   temMaisAntigas: false,
-  ultimaDoFuncionarioEm: null,
   ultimaTransferencia: { setorOrigem: "recepcao", origemNome: "Ana", resumo: "Dúvida no DAS" },
   ura: { resumo: "Quer o contrato", cnpjInformado: null },
-  aviso: null,
 };
 const COM_ANEXO: ConversaLida = {
   ...CONVERSA,
@@ -170,22 +168,6 @@ describe("ObterConversa", () => {
     expect(r.ok && r.value.temMaisAnteriores).toBe(true);
   });
 
-  it("o aviso de inatividade usa a última Mensagem do Funcionário, mesmo fora da janela", async () => {
-    const aviso = { de: "funcionario" as const, em: "2026-10-08T12:05:00Z" };
-    const pendente = montar(FUNCIONARIO, { ...CONVERSA, aviso, ultimaDoFuncionarioEm: null });
-    const respondido = montar(FUNCIONARIO, {
-      ...CONVERSA,
-      aviso,
-      ultimaDoFuncionarioEm: "2026-10-08T12:06:00Z",
-    });
-
-    const a = await pendente.caso.execute({ atendimentoId: "at-1" });
-    const b = await respondido.caso.execute({ atendimentoId: "at-1" });
-
-    expect(a.ok && a.value.avisoInatividade).toBe(true);
-    expect(b.ok && b.value.avisoInatividade).toBe(false);
-  });
-
   describe("mensagensAnteriores", () => {
     it("devolve a página anterior ao cursor, na janela, para quem pode ver o Atendimento", async () => {
       const { caso, chamadasAnteriores } = montar(FUNCIONARIO);
@@ -274,7 +256,6 @@ describe("ObterConversa", () => {
         temMaisAnteriores: false,
         ultimaTransferencia: CONVERSA.ultimaTransferencia,
         ura: CONVERSA.ura,
-        avisoInatividade: false,
         documentos: [
           { tipo: "contrato", numero: null, descricao: "Contrato social" },
           {
@@ -295,58 +276,6 @@ describe("ObterConversa", () => {
     expect(r.ok && r.value.setoresDestino).not.toContain("contabil");
     expect(r.ok && r.value.setoresDestino).not.toContain("simples_nacional");
     expect(listados).toEqual(["cli-1"]);
-  });
-
-  describe("aviso de inatividade ao Funcionário", () => {
-    const aviso = (de: "contato" | "funcionario", em: string) => ({
-      ...CONVERSA,
-      aviso: { de, em },
-    });
-    const avisoVisto = async (conversa: ConversaLida, ator: AtorSessaoDto = FUNCIONARIO) => {
-      const r = await montar(ator, conversa).caso.execute({ atendimentoId: "at-1" });
-      if (!r.ok) throw new Error("ObterConversa falhou");
-      return r.value.avisoInatividade;
-    };
-
-    it("só o dono do Atendimento é avisado, não o Líder nem o Admin que abrem a conversa", async () => {
-      const pendente = aviso("funcionario", "2026-10-08T14:00:00Z");
-      const lider: AtorSessaoDto = { id: "lider-1", papel: "lider_setor", setor: "contabil" };
-      const admin: AtorSessaoDto = { id: "adm-1", papel: "admin", setor: "contabil" };
-      expect(await avisoVisto(pendente, lider)).toBe(false);
-      expect(await avisoVisto(pendente, admin)).toBe(false);
-    });
-
-    it("aparece quando o Funcionário é o inativo e não escreveu depois do aviso", async () => {
-      expect(await avisoVisto(aviso("funcionario", "2026-10-08T14:00:00Z"))).toBe(true);
-    });
-
-    it("some quando o Funcionário escreveu depois do aviso, antes de o job cancelar", async () => {
-      const conversa = {
-        ...aviso("funcionario", "2026-10-08T12:00:30Z"),
-        ultimaDoFuncionarioEm: "2026-10-08T12:01:00Z",
-      };
-      expect(await avisoVisto(conversa)).toBe(false);
-    });
-
-    it("não aparece quando o inativo é o contato (o aviso foi ao cliente)", async () => {
-      expect(await avisoVisto(aviso("contato", "2026-10-08T14:00:00Z"))).toBe(false);
-    });
-
-    it("não aparece com o Atendimento encerrado", async () => {
-      const encerrado = {
-        ...aviso("funcionario", "2026-10-08T14:00:00Z"),
-        status: "encerrado" as const,
-      };
-      expect(await avisoVisto(encerrado)).toBe(false);
-    });
-
-    it("em aviso de inatividade não oferece Setores de destino (o backend recusaria a Transferência)", async () => {
-      const r = await montar(
-        FUNCIONARIO,
-        aviso("funcionario", "2026-10-08T14:00:00Z"),
-      ).caso.execute({ atendimentoId: "at-1" });
-      expect(r.ok && r.value.setoresDestino).toEqual([]);
-    });
   });
 
   it("sem Cliente vinculado ou encerrado não oferece serviços e nem consulta os documentos", async () => {

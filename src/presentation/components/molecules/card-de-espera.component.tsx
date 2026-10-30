@@ -14,8 +14,10 @@ export type CardDeEsperaProps = {
   // De onde veio, se foi transferido ("Transferido de Financeiro por Fulano").
   origem?: string | null;
   espera: string;
-  // Dirigido a outro usuário: o card só informa, não assume.
+  // Dirigido a outro usuário ou sem permissão de assumir: o card só informa, não assume.
   assumivel: boolean;
+  // A espera é dirigida a um usuário (e não a do Setor): muda o motivo de não assumir.
+  dirigido?: boolean;
   assumindo?: boolean;
   onAssumir: () => void;
   // Dirigido a outro, para quem supervisiona: abre a conversa só para leitura.
@@ -32,6 +34,7 @@ export function CardDeEspera({
   origem,
   espera,
   assumivel,
+  dirigido = true,
   assumindo = false,
   onAssumir,
   onLer,
@@ -55,27 +58,42 @@ export function CardDeEspera({
           </Texto>
         )}
         {resumo && (
-          <Texto como="span" variante="nota" className="block truncate" id={`${id}-resumo`}>
+          <Texto
+            como="span"
+            variante="nota"
+            className="line-clamp-2 break-words"
+            id={`${id}-resumo`}
+          >
             {resumo}
           </Texto>
         )}
         {!assumivel && (
           <Texto como="span" variante="nota" className="block">
             {onLer && <Eye aria-hidden="true" className="mr-1 inline size-3.5 align-text-bottom" />}
-            Dirigido a outro usuário{onLer && " · só leitura"}
+            {dirigido ? "Dirigido a outro usuário" : "Espera do Setor"}
+            {onLer && " · só leitura"}
           </Texto>
         )}
       </Caixa>
-      <Linha como="span" alinhar="centro" espaco={1} className="shrink-0 text-sm tabular-nums">
-        <Clock aria-hidden="true" className="size-4 text-muted-foreground" />
-        <Texto como="span" variante="somenteLeitor">
-          Esperando há{" "}
-        </Texto>
-        {/* O relógio do navegador difere do servidor: o texto muda de propósito a cada segundo. */}
-        <Caixa como="span" suppressHydrationWarning id={`${id}-espera`}>
-          {espera}
-        </Caixa>
-      </Linha>
+      <Caixa como="span" className="flex shrink-0 flex-col items-end gap-1.5">
+        <Linha como="span" alinhar="centro" espaco={1} className="text-sm tabular-nums">
+          <Clock aria-hidden="true" className="size-4 text-muted-foreground" />
+          <Texto como="span" variante="somenteLeitor">
+            Esperando há{" "}
+          </Texto>
+          {/* O relógio do navegador difere do servidor: o texto muda de propósito a cada segundo. */}
+          <Caixa como="span" suppressHydrationWarning id={`${id}-espera`}>
+            {espera}
+          </Caixa>
+        </Linha>
+        {/* O verbo à vista: o card inteiro é o botão, mas só o leitor de tela ouvia "Assumir". O nome
+            acessível já o diz (aria-labelledby), por isso este texto não é lido de novo. */}
+        {assumivel && (
+          <Caixa como="span" aria-hidden="true" className="text-sm font-medium text-primary">
+            {assumindo ? "Assumindo…" : "Assumir"}
+          </Caixa>
+        )}
+      </Caixa>
     </Linha>
   );
 

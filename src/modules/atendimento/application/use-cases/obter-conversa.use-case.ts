@@ -16,7 +16,6 @@ import type {
 import type { DocumentosContratuaisPort } from "@/modules/atendimento/application/ports/out/documentos-contratuais.provider";
 import type { SessaoPort } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { descreverDocumento } from "@/modules/atendimento/domain/services/documento-contratual.service";
-import { avisoPendenteAoFuncionario } from "@/modules/atendimento/domain/services/inatividade.service";
 import {
   CONVERSA_JANELA_MENSAGENS,
   RENOVACAO_LINKS_MAXIMO,
@@ -61,9 +60,7 @@ export class ObterConversa implements ObterConversaPort {
 
     const encerrado = conversa.status === "encerrado";
     const podeAgir = !encerrado && podeAtender(ator, conversa);
-    // Em aviso de inatividade a Transferência é recusada pelo backend: não a oferece.
-    const semDestinos = !podeAgir || conversa.aviso !== null;
-    const destinos = semDestinos ? ok([]) : await this.destinos(conversa.setor, conversa.clienteId);
+    const destinos = !podeAgir ? ok([]) : await this.destinos(conversa.setor, conversa.clienteId);
     if (!destinos.ok) return destinos;
     const disponiveis =
       !podeAgir || !conversa.clienteId ? ok([]) : await this.servicos(conversa.clienteId);
@@ -79,17 +76,6 @@ export class ObterConversa implements ObterConversaPort {
       temMaisAnteriores: conversa.temMaisAntigas,
       ultimaTransferencia: conversa.ultimaTransferencia,
       ura: conversa.ura,
-      // Só o dono é o "inativo"; Líder e Admin que abrem a conversa não são avisados.
-      avisoInatividade:
-        !encerrado &&
-        conversa.funcionarioId === ator.id &&
-        avisoPendenteAoFuncionario(
-          conversa.aviso,
-          // A janela pode não alcançar a última Mensagem do Funcionário: ela vem à parte.
-          conversa.ultimaDoFuncionarioEm
-            ? [{ autor: "funcionario", criadoEm: conversa.ultimaDoFuncionarioEm }]
-            : [],
-        ),
       documentos: disponiveis.value,
       setoresDestino: destinos.value,
     });

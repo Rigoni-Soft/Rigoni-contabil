@@ -9,7 +9,7 @@ import { EntregarDasNaUra } from "@/modules/atendimento/application/use-cases/en
 import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
 import { ExecutarLembretesDocumentoEDas } from "@/modules/atendimento/application/use-cases/executar-lembretes-documento-e-das.use-case";
 import { ObterGuiaDasParaEnvio } from "@/modules/atendimento/application/use-cases/obter-guia-das-para-envio.use-case";
-import { URA_ATOR_ID } from "@/modules/atendimento/domain/services/inatividade.service";
+import { URA_ATOR_ID } from "@/modules/atendimento/domain/services/encerramento-automatico.service";
 import { soDigitosNacionais } from "@/modules/atendimento/domain/services/telefone.service";
 import { ok as sucesso } from "@/shared/kernel/result";
 

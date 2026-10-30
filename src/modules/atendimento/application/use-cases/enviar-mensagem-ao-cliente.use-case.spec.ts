@@ -17,7 +17,6 @@ const ATENDIMENTO: AtendimentoEmAndamento = {
   funcionarioId: "func-1",
   telefone: "5561988887777",
   chave: "61988887777",
-  emAvisoDeInatividade: false,
 };
 const FUNCIONARIO: AtorSessaoDto = { id: "func-1", papel: "funcionario", setor: "contabil" };
 

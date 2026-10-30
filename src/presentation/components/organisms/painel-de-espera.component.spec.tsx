@@ -23,6 +23,20 @@ const ITENS = [
 ];
 
 describe("PainelDeEspera", () => {
+  it("a espera do Setor em leitura não diz que foi dirigida a alguém", () => {
+    render(
+      <PainelDeEspera
+        itens={[{ ...ITENS[1], dirigido: false }]}
+        assumindo={false}
+        onAssumir={jest.fn()}
+        onLer={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/Espera do Setor/)).toHaveTextContent("Espera do Setor · só leitura");
+    expect(screen.queryByText(/Dirigido a outro usuário/)).not.toBeInTheDocument();
+  });
+
   it("assumir é clicar no card; o dirigido a outro só informa", async () => {
     const onAssumir = jest.fn();
     render(<PainelDeEspera itens={ITENS} assumindo={false} onAssumir={onAssumir} />);

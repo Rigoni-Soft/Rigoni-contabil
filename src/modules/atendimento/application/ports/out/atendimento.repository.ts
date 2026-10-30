@@ -9,7 +9,6 @@ import type {
   UltimaTransferencia,
 } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import type { DadosDoContato } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
-import type { Inativo } from "@/modules/atendimento/domain/services/inatividade.service";
 import type { CursorDaConversa } from "@/modules/atendimento/domain/services/janela-da-conversa.service";
 import type { AppError } from "@/shared/errors/app.error";
 import type { TipoAnexoMensagem } from "@/shared/kernel/anexo";
@@ -24,8 +23,6 @@ export type AtendimentoEmAndamento = {
   funcionarioId: string | null;
   telefone: string;
   chave: string;
-  // O aviso de encerramento por inatividade foi enviado e ainda vale: não se transfere.
-  emAvisoDeInatividade: boolean;
 };
 
 export type NovaTransferencia = {
@@ -80,34 +77,7 @@ export type ItemDaFila = {
   origem: { setor: SetorSlug; nome: string | null } | null;
 };
 
-// Atendimento em andamento com Funcionário, com o que a verificação de inatividade precisa:
-// quando cada lado escreveu pela última vez e o aviso de encerramento já enviado (se houver).
-export type AtendimentoParaInatividade = {
-  id: string;
-  setor: SetorSlug;
-  funcionarioId: string;
-  telefone: string;
-  chave: string;
-  ultimaDoContato: Date | null;
-  ultimaDoFuncionario: Date | null;
-  aviso: { em: Date; de: Inativo } | null;
-  // O aviso chegou a quem estava inativo (o do cliente só depois de enviado).
-  avisoEntregue: boolean;
-};
-
-// Encerramento por inatividade cuja mensagem final ainda não foi entregue ao cliente.
-// `reivindicacao` é o token de posse: só quem o detém libera ou confirma.
-export type EncerramentoPendente = {
-  atendimentoId: string;
-  telefone: string;
-  texto: string;
-  reivindicacao: string;
-};
-
-// Encerrado por inatividade: já nasce com a reivindicação da própria mensagem final.
-export type ResultadoEncerramentoPorInatividade =
-  { status: "encerrado"; reivindicacao: string } | { status: "inexistente" };
-// Atendimento em andamento de um Funcionário, para a lista dele (painel do Funcionário).
+// Atendimento em andamento de um Funcionário, para a aba "Em atendimento" dele.
 export type AtendimentoDoFuncionario = {
   id: string;
   funcionarioId: string | null;
@@ -115,7 +85,7 @@ export type AtendimentoDoFuncionario = {
   telefone: string;
   criadoEm: string;
   contato: DadosDoContato;
-  // A mensagem mais recente da conversa (null se ainda não há), para o dock avisar de novidade.
+  // A mensagem mais recente da conversa (null se ainda não há), para a lista avisar de novidade.
   ultimaMensagem: {
     autor: "contato" | "ura" | "funcionario";
     texto: string;
@@ -163,8 +133,7 @@ export type MensagemParaReacao = {
 };
 
 // O Atendimento em qualquer status, com as Mensagens mais recentes (a janela) da mais antiga à mais
-// nova. `temMaisAntigas`: há histórico antes da primeira; `ultimaDoFuncionarioEm`: a última Mensagem
-// de Funcionário do Atendimento, esteja ou não na janela (o aviso de inatividade depende dela).
+// nova. `temMaisAntigas`: há histórico antes da primeira.
 export type ConversaLida = {
   id: string;
   status: "em_andamento" | "encerrado";
@@ -175,11 +144,8 @@ export type ConversaLida = {
   contato: DadosDoContato;
   mensagens: MensagemLida[];
   temMaisAntigas: boolean;
-  ultimaDoFuncionarioEm: string | null;
   ultimaTransferencia: UltimaTransferencia | null;
   ura: OrigemUra | null;
-  // Aviso de inatividade pendente: quem estava inativo e quando a URA avisou.
-  aviso: { de: Inativo; em: string } | null;
 };
 
 // Uma página do histórico anterior ao cursor, com o que decide quem pode vê-la.
@@ -236,42 +202,9 @@ export interface AtendimentoRepositoryPort {
     funcionarioId: string | null,
     ator: { id: string; setor: SetorSlug },
   ): Promise<Result<ResultadoEncerramento, AppError>>;
-  // Como `encerrar`, mas só se o aviso de inatividade foi entregue e continua marcado, e quem
-  // estava inativo não escreveu depois dele (a Mensagem que chega e o encerramento se serializam).
-  // A mensagem final da URA (`textoFinal`) entra no histórico na mesma transação que fecha.
-  encerrarPorInatividade(
-    atendimentoId: string,
-    funcionarioId: string,
-    ator: { id: string; setor: SetorSlug },
-    textoFinal: string,
-  ): Promise<Result<ResultadoEncerramentoPorInatividade, AppError>>;
-  paraInatividade(): Promise<Result<AtendimentoParaInatividade[], AppError>>;
-  // Reserva o aviso: true só se este chamador marcou. false se já estava marcado ou se entrou
-  // Mensagem depois de `vistoAte` (a decisão é de uma leitura velha; a próxima rodada reavalia).
-  marcarAvisoInatividade(
-    atendimentoId: string,
-    de: Inativo,
-    vistoAte: Date,
-  ): Promise<Result<boolean, AppError>>;
-  // O aviso ao cliente saiu. false se o aviso já não existe.
-  confirmarAvisoEntregue(atendimentoId: string): Promise<Result<boolean, AppError>>;
-  limparAvisoInatividade(atendimentoId: string): Promise<Result<void, AppError>>;
-  // Reivindica até `limite` mensagens finais não entregues: um job por vez (lease no banco; vencido,
-  // volta a ser elegível). Nunca tentadas primeiro, depois a tentativa mais antiga; quem falha espera
-  // um backoff crescente. Quem reivindica entrega e confirma, ou libera se o envio falhou, sempre
-  // com o token da reivindicação (um job cujo lease venceu não altera a posse de outro).
-  reivindicarEncerramentosPendentes(
-    limite: number,
-  ): Promise<Result<EncerramentoPendente[], AppError>>;
-  liberarEncerramentoPendente(
-    atendimentoId: string,
-    reivindicacao: string,
-  ): Promise<Result<void, AppError>>;
-  // false se a posse já não é de quem confirma.
-  confirmarEncerramentoEntregue(
-    atendimentoId: string,
-    reivindicacao: string,
-  ): Promise<Result<boolean, AppError>>;
+  // Encerra, com `ator` na auditoria, os Atendimentos com Funcionário cuja última Mensagem do
+  // cliente é de `corte` ou anterior (a do Funcionário não conta). Devolve quantos encerrou.
+  encerrarSemRespostaDoCliente(corte: Date, ator: string): Promise<Result<number, AppError>>;
   emAndamentoDoFuncionario(
     funcionarioId: string,
   ): Promise<Result<AtendimentoDoFuncionario[], AppError>>;
@@ -297,7 +230,7 @@ export interface AtendimentoRepositoryPort {
   // fechamento, a transferência, a desativação ou a perda do papel que vencem a corrida viram
   // `encerrada`/`sem_autoridade`. A intenção é gravada `pendente` ANTES da entrega ao provedor
   // (sem transação aberta durante o HTTP) e fechada por `finalizarEntregaDoFuncionario`: ela nunca
-  // é apagada, e só `entregue` conta na inatividade.
+  // é apagada.
   registrarMensagemDoFuncionario(
     atendimentoId: string,
     ator: { id: string },

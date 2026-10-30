@@ -35,7 +35,7 @@ describe("BuscaDeCliente", () => {
   it("buscando mostra o aviso e não a lista", () => {
     render(<BuscaDeCliente {...BASE} buscando sugestoes={[]} indiceAtivo={null} />);
 
-    expect(screen.getAllByText("Buscando...").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Buscando…").length).toBeGreaterThan(0);
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 });

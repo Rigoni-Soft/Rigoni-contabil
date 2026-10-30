@@ -8,7 +8,7 @@ web
 
 ## Users
 
-Funcionários, Líderes de setor e Admin da Rigoni Contábil, um escritório de contabilidade de porte pequeno/médio (~1.000 clientes, 1.000+ CNPJs entre matriz e filiais, 10 setores, 3 cidades pequenas/médias). Nesta rodada, o único setor com dashboard e cadastro é o Simples Nacional; o Painel do Funcionário (conduzir o Atendimento por WhatsApp) vale para todos os setores, e os demais setores ainda não têm tela de gestão própria.
+Funcionários, Líderes de setor e Admin da Rigoni Contábil, um escritório de contabilidade de porte pequeno/médio (~1.000 clientes, 1.000+ CNPJs entre matriz e filiais, 10 setores, 3 cidades pequenas/médias). Nesta rodada, o único setor com dashboard e cadastro é o Simples Nacional; a aba Atendimento (conduzir o Atendimento por WhatsApp) vale para todos os setores, e os demais setores ainda não têm tela de gestão própria.
 
 Indiretamente, os clientes do escritório (empresas atendidas) interagem com o sistema pelo WhatsApp, sem acessar nenhuma tela — a experiência deles é 100% conversacional (URA + atendente humano).
 
@@ -30,10 +30,10 @@ Ferramenta interna proprietária, não um produto de mercado. O que a diferencia
 ## Capabilities and Constraints
 
 - RBAC por Papel (Admin, Líder de setor, Funcionário) e Setor; Admin acessa tudo, os demais só o próprio setor.
-- Quatro módulos de domínio: `usuarios` (RBAC/autenticação), `clientes` (cadastro básico por Admin + Cadastro operacional automático pra Regime Simples Nacional/MEI, editado pelo Funcionário do Simples Nacional — DAS, parcelamento, contrato social), `atendimento` (URA, espera do Setor dirigida ao Responsável do Cliente ou ao Líder — comum só na Recepção —, supervisão de Líder/Admin, transferência, Painel do Funcionário), `auditoria` (registro + consulta).
+- Quatro módulos de domínio: `usuarios` (RBAC/autenticação), `clientes` (cadastro básico por Admin + Cadastro operacional automático pra Regime Simples Nacional/MEI, editado pelo Funcionário do Simples Nacional — DAS, parcelamento, contrato social), `atendimento` (URA, espera do Setor dirigida ao Responsável do Cliente ou ao Líder — comum só na Recepção —, supervisão de Líder/Admin, transferência, aba Atendimento), `auditoria` (registro + consulta).
 - O contrato social e as alterações contratuais só são abertos, somente leitura, pelo Admin, pelo Líder do Setor Simples Nacional e pelo Funcionário Responsável do Cliente no Simples Nacional (cartão no formulário de editar, #140: a alteração de maior nº, ou o contrato social, já aparece com data e o botão "Abrir em nova aba", que abre o arquivo no primeiro clique, sem diálogo; a mais recente, sem escolher outra, ou, quando se chega por um aviso de nova alteração, a alteração daquele aviso, com o botão em foco e destacado, #144); outros Setores e Funcionários não Responsáveis não os veem — o cadastro de outros setores é só leitura. Só o Admin anexa uma nova alteração a um Cliente existente (botão "Anexar alteração" ao lado de "Abrir em nova aba", em `/clientes/[id]`, com nº, data e arquivo de até 4 MB, #141; sem seção de lista abaixo do formulário); o Admin que escolhe um Cliente na busca vai direto a essa tela própria.
 - Os Avisos de cadastro (novo Cliente, nova alteração) vão só aos Setores (Líder do Setor Simples Nacional e Responsável do Cliente), por um sino no cabeçalho com contador e modal (#142, #143); o Admin não recebe aviso nem vê o sino.
-- Terminologia do domínio fixada em `CONTEXT.md` (Setor, Papel, Atendente, URA, Cliente, Regime, Contato, Atendimento, Mensagem, Fila, Transferência, Atividade do mês) — qualquer trabalho futuro deve usar esses termos, sem sinônimos novos.
+- Terminologia do domínio fixada em `CONTEXT.md` (Setor, Papel, Atendente, URA, Cliente, Regime, Contato, Atendimento, Mensagem, Espera, Transferência, Atividade do mês) — qualquer trabalho futuro deve usar esses termos, sem sinônimos novos.
 - Spec funcional completa e os 27 tickets de implementação vivem no issue tracker do GitHub (`Rigoni-Soft/Rigoni-contabil`, issue #24 e filhos #28–#54), não neste arquivo.
 - Requisitos não-funcionais dimensionados para o porte real do escritório: ~50 usuários simultâneos, ~20 rps (pico ~50), 95% de disponibilidade.
 

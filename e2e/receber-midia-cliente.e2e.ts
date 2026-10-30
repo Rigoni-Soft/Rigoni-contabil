@@ -3,6 +3,7 @@ import { createHmac } from "node:crypto";
 import type { APIRequestContext } from "@playwright/test";
 
 import { expect, test } from "./fixtures";
+import { abrirConversaEmAtendimento } from "./support/abrir-conversa";
 import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
@@ -119,10 +120,7 @@ test.describe("Mídia recebida do cliente (#81)", () => {
 
     await login(page, "funcionario2.sn@rigonicontabil.local", "func123");
     await expect(page).toHaveURL(/\/(simples-nacional)?$/);
-    await page
-      .getByRole("navigation", { name: "Atendimentos em andamento" })
-      .getByRole("link", { name: /Seu Midia/ })
-      .click();
+    await abrirConversaEmAtendimento(page, /Seu Midia/);
     await expect(page.getByText("segue o balanço")).toBeVisible();
 
     // PDF: "Visualizar" abre numa aba nova, já no navegador (sem forçar download).
@@ -174,10 +172,7 @@ test.describe("Mídia recebida do cliente (#81)", () => {
 
     await login(page, "funcionario2.sn@rigonicontabil.local", "func123");
     await expect(page).toHaveURL(/\/(simples-nacional)?$/);
-    await page
-      .getByRole("navigation", { name: "Atendimentos em andamento" })
-      .getByRole("link", { name: /Seu Midia/ })
-      .click();
+    await abrirConversaEmAtendimento(page, /Seu Midia/);
 
     // Word: o conteúdo aparece num painel (iframe isolado) e fecha pelo botão.
     await page.getByRole("button", { name: "Visualizar contrato.docx" }).click();
@@ -225,11 +220,8 @@ test.describe("Mídia recebida do cliente (#81)", () => {
     await login(page, "funcionario2.sn@rigonicontabil.local", "func123");
     // O Funcionário do Simples Nacional cai no painel do setor, os demais em "/".
     await expect(page).toHaveURL(/\/(simples-nacional)?$/);
-    await page
-      .getByRole("navigation", { name: "Atendimentos em andamento" })
-      .getByRole("link", { name: /Seu Midia/ })
-      .click();
-    await expect(page).toHaveURL(/\/atendimento\/[0-9a-f-]{36}$/);
+    await abrirConversaEmAtendimento(page, /Seu Midia/);
+    await expect(page).toHaveURL("/atendimento");
 
     const balao = page
       .getByRole("listitem")

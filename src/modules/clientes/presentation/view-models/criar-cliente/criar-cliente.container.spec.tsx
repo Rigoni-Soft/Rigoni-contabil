@@ -214,7 +214,7 @@ describe("CriarClienteContainer", () => {
     ["erro inesperado do servidor", new Error("boom"), /Erro inesperado no servidor/],
     ["falha de rede", new TypeError("Failed to fetch"), /Sem conexão com o servidor/],
   ])(
-    "Promise rejeitada (%s) diz a causa e não prende o botão em 'Cadastrando...'",
+    "Promise rejeitada (%s) diz a causa e não prende o botão em 'Cadastrando…'",
     async (_, erro, mensagem) => {
       jest.spyOn(console, "error").mockImplementation(() => undefined);
       executeMock.mockRejectedValue(erro);

@@ -37,10 +37,13 @@ test.describe("Login e shell autenticado", () => {
     await expect(page.getByText("Admin de Teste")).toBeVisible();
     await expect(page.getByText(/acesso a todos os setores/i)).toBeVisible();
 
+    // De 640 px para cima são chips; o <option> do seletor do celular existe, mas está oculto.
     const nav = page.getByRole("navigation", { name: "Setores" });
-    await expect(nav.getByText("Simples Nacional")).toBeVisible();
-    await expect(nav.getByText("Financeiro")).toBeVisible();
-    await expect(nav.getByText("Contábil", { exact: true })).toBeVisible();
+    await expect(nav.getByText("Simples Nacional").filter({ visible: true })).toBeVisible();
+    await expect(nav.getByText("Financeiro").filter({ visible: true })).toBeVisible();
+    await expect(
+      nav.getByText("Contábil", { exact: true }).filter({ visible: true }),
+    ).toBeVisible();
 
     await page.getByRole("button", { name: "Sair" }).click();
     await expect(page).toHaveURL(/\/login$/);

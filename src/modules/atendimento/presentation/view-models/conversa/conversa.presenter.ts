@@ -44,7 +44,6 @@ export type ConversaView = {
   // Líder do Setor ou Admin lendo a conversa de outro: sem responder, serviços nem transferência.
   somenteLeitura: boolean;
   semCliente: boolean;
-  avisoInatividade: boolean;
   // De onde veio o Atendimento: a última Transferência ou, sem ela, o que a URA já sabia.
   contexto: { origem: string; resumo: string } | null;
   mensagens: MensagemView[];
@@ -224,7 +223,6 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
     encerrado: conversa.encerrado,
     somenteLeitura: !conversa.encerrado && !conversa.podeAtender,
     semCliente: !conversa.clienteVinculado,
-    avisoInatividade: conversa.avisoInatividade,
     contexto: contextoDaConversa(conversa),
     temMaisAnteriores: conversa.temMaisAnteriores,
     mensagens: conversa.mensagens.map((m) => ({
@@ -266,4 +264,18 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
       grupo: doc.tipo,
     })),
   };
+}
+
+// Polling da conversa aberta: rápido enquanto a conversa está acontecendo (Mensagem recente) e espaçado quando parada. Parada, a Mensagem nova do cliente aparece em até 15 s
+// (o aviso global já o avisa nesse prazo) e, ao chegar, a conversa volta ao ritmo rápido.
+export const POLLING_RAPIDO_MS = 5_000;
+export const POLLING_LENTO_MS = 15_000;
+const JANELA_ATIVA_MS = 120_000;
+
+export function intervaloDaConversa(conversa: ConversaVista | undefined, agora: number): number {
+  const ultima = conversa?.mensagens.at(-1);
+  if (!ultima) return POLLING_RAPIDO_MS;
+  return agora - new Date(ultima.criadoEm).getTime() < JANELA_ATIVA_MS
+    ? POLLING_RAPIDO_MS
+    : POLLING_LENTO_MS;
 }

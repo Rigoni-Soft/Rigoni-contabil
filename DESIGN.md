@@ -123,7 +123,7 @@ em monitores largos):
   `2xl`) | chat | ações de 19 rem (22 rem em `2xl`); cada uma rola por dentro. A coluna de ações só
   existe com uma conversa aberta e não encerrada (a grade ganha a terceira coluna por
   `has-[[data-acoes]:not(:empty)]`); sem ela o chat ocupa a largura. Abaixo de `xl` as ações vão
-  para baixo do chat, com `max-h-[36dvh]` e rolagem própria, para não esmagar as mensagens. Abaixo
+  para baixo do chat, com `max-h-[28dvh]` e rolagem própria, para não esmagar as mensagens (a 36% o tablet em paisagem, 1024×768, deixava ~170 px para a conversa). Abaixo
   de `lg` há uma coluna por vez: a lista, ou o chat quando há conversa aberta (a lista se esconde),
   com "← Voltar à lista" e o atalho "Ir para as ações ↓" no topo do chat. Ver Componentes → Tela
   Atendimento.
@@ -200,7 +200,18 @@ sem precisar de classe.
 
   **Rótulo de ação oculto abaixo de `lg` (#32; subiu de `sm` para `lg` em
   13/10/2026, quando a sonda de reflow mostrou rolagem horizontal do Admin a 320 e 768 px;
-  abaixo de `lg` a identidade e as ações também empilham em duas linhas):** os
+  abaixo de `lg` a identidade e as ações quebram em duas linhas quando não cabem lado a lado, e
+  dividem a linha quando cabem — Funcionário e Líder em tablet, #168; o Admin segue empilhado; o
+  reflow a 320 px é preservado). **Abaixo de `sm` (celular, #168) o cabeçalho é uma barra de uma
+  linha (~70 px): inicial e nome truncados, o sino sempre à vista e o botão `Menu` (`popoverTarget`).
+  As ações viram um menu — o mesmo painel com `popover="auto"` (Esc e clique fora fecham, o foco
+  volta ao botão; o estado vai em `aria-expanded`, espelhando o evento `toggle`; sem fallback para
+  navegador sem popover, como nos demais popovers do projeto), que de `sm` para cima perde a posição de camada e a moldura e volta a ser a linha
+  de ações. No menu cada item mostra o rótulo e ocupa a largura toda (Perfil, tema, Sair e, no Admin
+  e no Líder, os cadastros); o rótulo "Tema escuro/claro" só aparece ali. Na `ShellNav` do Admin
+  (9 Setores) os chips viram, abaixo de `sm`, um `Select` "Ir para o Setor" ao lado do link
+  Atendimento (sempre à vista, com o contador); os Setores sem tela aparecem desabilitados com "— em
+  breve", e Funcionário e Líder mantêm os chips (são 1 ou 2).** Os
   links de ação do `ShellHeader` (hoje "Cadastrar Líder"/"Cadastrar
   Funcionário", "Usuários" e "Meu perfil") escondem o texto do rótulo em telas
   estreitas (`Texto variante="soDesktop"`, `hidden lg:inline`) mantendo só o ícone —
@@ -760,7 +771,7 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
 - **Envio não confirmado**: a mensagem do Funcionário que o provedor ainda não
   aceitou (ou recusou) mostra "Envio não confirmado ·" em `font-semibold` antes da hora,
   no próprio balão, sem trocar a cor dele: o texto e o anexo continuam visíveis e a
-  mensagem não conta como resposta para a inatividade. O estado vem do texto, não da cor.
+  mensagem não conta como resposta. O estado vem do texto, não da cor.
 - **Reação do escritório** (#84): o balão do cliente tem, fora dele à direita
   (`left-full`, largura reservada no `max-w`), o botão `ghost` redondo de 28 px
   "Reagir à mensagem de <nome>" (mesmo `SeletorDeEmoji`, `compacto`). O glifo
@@ -833,13 +844,6 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   transferência em `Textarea` baixo. Em janela baixa o painel
   rola por dentro. Transferido, o painel troca tudo por um aviso e a tela
   sai da conversa.
-- **Aviso de inatividade** (#73, `CabecalhoDaConversa`): quando a URA avisou
-  que vai encerrar o Atendimento por falta de resposta do Funcionário, o
-  cabeçalho mostra um `FieldError` (ícone + texto, `role="alert"`) logo abaixo
-  do contexto. Só o dono do Atendimento o vê, e some assim que ele escreve ou o
-  Atendimento encerra. Não há alerta no dock. Contraste conferido: 8,42:1 no
-  claro e 6,75:1 no escuro; em 360 px o texto quebra em 3 linhas e a página
-  rola, em 1024×600 o chat mantém ~230 px.
 - **Encerrar atendimento** (no fim do `PainelDeAcoes`, separado por `border-t`):
   botão `outline`; o primeiro clique só abre a confirmação (`role="alertdialog"`
   com o aviso de que o cliente será avisado) com "Confirmar encerramento"
@@ -847,17 +851,6 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   pediu a confirmação some). A pergunta descreve o diálogo (`aria-describedby`)
   e, enquanto encerra, "Cancelar" fica `aria-disabled` (não `disabled`), sem
   perder o foco. Encerrar não tem volta.
-- **Fila do Setor** (`FilaDoSetor` + `ItemDaFila`, #70): na tela `/fila`
-  (`max-w-3xl`, h1 "Fila de atendimento do <nome>, setor <Setor>", seletor de
-  Setor só para o Admin) e como barra lateral esquerda da conversa (18 rem; 20
-  rem em `2xl`) **só de `xl` para cima**, para o chat não espremer em `lg`.
-  Cada item é `rounded-lg border bg-card`: posição em círculo `primary`,
-  contato/empresa/telefone e a espera em `tabular-nums` com ícone de relógio
-  (`mm:ss`; `h:mm:ss` a partir de 1 h). O CNPJ vai junto da empresa e nunca
-  quebra no meio do número (`whitespace-nowrap`); resumo da Transferência em
-  `text-sm` e "Fila de um usuário" em `text-sm muted` quando a Fila é de um
-  usuário (destino fixo ocupado).
-  Abaixo de `xl` a barra some e o cartão da Fila entra no dock.
 - **Aviso de status** (`AvisoDeStatus`): feedback de envio/transferência no
   painel e no campo de resposta. Segue "Indicadores de estado": ícone
   (`AlertCircle`/`CheckCircle2`) + texto + cor, erro em `destructive` e sucesso
@@ -872,26 +865,10 @@ novo" e "Ir para o início". `CarregandoPage` (`app/loading.tsx`) é um `role="s
 `motion-safe` e "Carregando…"; só aparece depois de 250 ms (`animate-carregando`, um atraso de opacidade sem
 movimento, por isso sem `motion-safe:`), para a navegação rápida não piscar.
 
-### Dock de Atendimentos (#49)
-
-Cartões fixos no canto inferior direito (`fixed right-4 bottom-4`), um por
-Atendimento em andamento: ícone, Contato, empresa e o começo da última
-mensagem (prefixo "Você:" / "URA:" quando não é do cliente). Quando o cliente
-escreveu por último o cartão ganha uma bolinha `destructive` e a prévia em
-`font-medium` (e "nova mensagem" só para leitor de tela); o contêiner é
-`aria-live="polite"` e fica acima da safe-area de aparelhos com barra
-inferior (`bottom-[max(1rem,env(safe-area-inset-bottom))]`). O cartão entra com `animate-dock-entrada` (sobe e aparece, 0,35 s,
-`cubic-bezier(0.16, 1, 0.3, 1)`, keyframes em `globals.css`) e é recriado a cada mensagem nova, repetindo a
-animação. O aviso sonoro (dois tons curtos) toca quando surge um Atendimento
-ou o cliente escreve de novo. Na tela Atendimento (`/atendimento`) o Dock não renderiza cartões nem
-toca: o som é da própria tela (#163).
-
 ### Tela Atendimento (#162)
 
 A tela em que a equipe assume e conduz Atendimentos, sem trocar de rota: duas abas sobrepostas
-("Em espera" e "Em atendimento"), o chat no centro e as ações à direita. Convive com o Dock até o
-corte; nela o Dock **não mostra cartões** (a lista já está à vista e cobriria o painel de ações) e
-**não toca**: o aviso sonoro é da própria tela (`useSomDaLista`, os mesmos dois tons: Atendimento novo
+("Em espera" e "Em atendimento"), o chat no centro e as ações à direita. Substituiu o Dock de Atendimentos e a rota própria da conversa (#168). O aviso sonoro é da tela (`useSomDaLista`, os mesmos dois tons: Atendimento novo
 na espera ou cliente que escreve de novo numa conversa não aberta; a primeira leitura é silenciosa). Modo Operate: cor só para ação e estado, tudo em tokens.
 
 - **Abas** (`AbasDeAtendimento`, molécula genérica no valor da aba): `role="tablist"`, aba ativa com
@@ -913,15 +890,20 @@ na espera ou cliente que escreve de novo numa conversa não aberta; a primeira l
 - **Card de espera** (`CardDeEspera`): o card inteiro é o botão de assumir (`rounded-lg border
   bg-card px-3 py-2`, `hover:bg-accent`). Mostra Contato (`destaque`), empresa (`apoio`), origem
   (`nota`, só em Atendimento transferido: "Transferido de Financeiro por Fulano"), resumo
-  (`nota`) e, à direita, ícone de relógio com o tempo de espera em `tabular-nums` (mm:ss, h:mm:ss a
-  partir de 1h; o texto muda a cada segundo, por isso `suppressHydrationWarning`). O nome
+  (`nota`, até duas linhas com reticências, `line-clamp-2 break-words`: é o que decide quem assumir)
+  e, à direita, ícone de relógio com o tempo de espera em `tabular-nums` (mm:ss, h:mm:ss a
+  partir de 1h; o texto muda a cada segundo, por isso `suppressHydrationWarning`) e, abaixo dele, o
+  verbo "Assumir" (`text-sm font-medium text-primary`, "Assumindo…" enquanto grava; `aria-hidden`,
+  pois o nome acessível já o diz) só no card que o usuário assume. O nome
   acessível é "Assumir o atendimento de" + Contato + empresa (`aria-labelledby`); origem, resumo e espera
   entram como descrição (`aria-describedby`), nunca um `aria-label` que os esconda. Dirigido a outro
   usuário: só informa "Dirigido a outro usuário", com borda tracejada e sem fundo de cartão para não
   parecer clicável (um tom de fundo some no tema escuro; a borda vale nos dois). **Para Líder e Admin
   (supervisão, #165)** o mesmo card vira botão de *leitura*: mantém a borda tracejada (não confunde
   com o que assume), ganha o ícone de olho e a nota "Dirigido a outro usuário · só leitura", e o
-  nome acessível passa a "Ler o atendimento de"; abre a conversa sem assumir. A espera vem em ordem de antiguidade. Todo controle da tela
+  nome acessível passa a "Ler o atendimento de"; abre a conversa sem assumir. O Admin, que não tem
+  Setor próprio e não assume, lê também a espera comum do Setor: a nota é "Espera do Setor · só
+  leitura" (o prop `dirigido` do card escolhe entre as duas notas; #168). A espera vem em ordem de antiguidade. Todo controle da tela
   (abas, cards, "Voltar à lista", "Ir para as ações") usa o anel de foco do sistema: `outline-none
   focus-visible:ring-2 ring-ring ring-offset-2`.
 - **Card de conversa** (`CardDeConversa`): mesmo molde, ícone de mensagem; a conversa aberta ganha
@@ -942,7 +924,7 @@ na espera ou cliente que escreve de novo numa conversa não aberta; a primeira l
   um aviso igual ao anterior ganha um espaço sem quebra no fim para o leitor de tela reanunciar.
 - **Chat** (`PainelDoChat`): quatro estados: `vazio` ("Escolha um atendimento para conversar.", só em
   tela larga), `abrindo` (`status`), `erro` (`alert`) e `pronto` (cabeçalho, mensagens e compositor
-  do Painel do Funcionário). Em tela estreita o topo traz "← Voltar à lista" e, só com ações
+  da conversa). Em tela estreita o topo traz "← Voltar à lista" e, só com ações
   disponíveis, "Ir para as ações ↓" (âncora para o painel de ações, id `acoes-do-atendimento`).
   **Leitura de supervisão (#165):** quando Líder ou Admin abre a conversa de outro, o compositor dá
   lugar a `AvisoDeLeitura` (`role="status"`, borda tracejada, ícone de olho: "Leitura de supervisão.
@@ -1012,9 +994,6 @@ o alerta com "Tentar de novo" e mantém a lista que já estava na tela.
   `pointer-coarse:min-h-11` no "Voltar" e nas abas do shell). **Decisão de 21/10/2026, revisa os
   44 px fixos anteriores**: controles de 44 px em tela de mouse deixavam o formulário largo e
   alto demais. Com mouse o piso é de 24 px (WCAG 2.5.8): o "Voltar" tem `min-h-6`.
-- Entrada do cartão do dock de Atendimentos: `motion-safe:animate-dock-entrada`.
-  O estado (destaque, prévia, "nova mensagem") não depende da animação nem do
-  som: quem pediu movimento reduzido ou está sem som perde só o enfeite.
 - Aviso sonoro: só quando há novidade (Atendimento novo ou cliente escreveu
   de novo; resposta nossa ou da URA e a primeira leitura da tela são
   silenciosas). Navegadores bloqueiam som antes do primeiro clique/tecla da

@@ -48,7 +48,7 @@ export function PainelDeTransferencia({
           ))}
         </CampoSelect>
         <Button type="submit" size="sm" className="pointer-coarse:h-11" disabled={transferindo}>
-          {transferindo ? "Transferindo..." : "Transferir"}
+          {transferindo ? "Transferindo…" : "Transferir"}
         </Button>
       </Linha>
       <CampoTextarea

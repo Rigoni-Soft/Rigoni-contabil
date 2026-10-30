@@ -6,7 +6,7 @@ import { useFilaQuery } from "@/modules/atendimento/presentation/view-models/fil
 import { ehSetor, type SetorSlug } from "@/shared/kernel/setores";
 
 // `inicial` é a carga do servidor para `setorInicial`; outro Setor (Admin) lê pela Server Action.
-// Só o Admin escolhe o Setor; os demais leem sempre a Fila do próprio Setor.
+// Só o Admin escolhe o Setor (e, sem Setor próprio, só lê a espera); os demais leem a do próprio Setor.
 export function useFila(
   setorInicial: SetorSlug,
   inicial: ItemDaFilaVisto[],
@@ -31,7 +31,9 @@ export function useFila(
     escolherSetor: (valor: string) => {
       if (ehSetor(valor)) setSetor(valor);
     },
-    itens: (query.data ?? []).map((item) => itemDaFilaParaView(item, agora, usuarioId)),
+    itens: (query.data ?? []).map((item) =>
+      itemDaFilaParaView(item, agora, usuarioId, !podeEscolherSetor),
+    ),
     // Falha de leitura (ex.: sessão expirada) mantém o que já estava na tela.
     // Setor ainda sem leitura (ex.: o Admin acabou de trocar): não é o mesmo que Fila vazia.
     carregando: query.isPending,

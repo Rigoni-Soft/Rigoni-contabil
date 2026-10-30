@@ -20,7 +20,7 @@ const TEXTO_TAMANHO_MAXIMO = 4096; // limite de uma mensagem de texto do WhatsAp
 
 // Mesma regra de quem pode agir que a Transferência. A intenção é gravada `pendente` e só vira
 // `entregue` com o aceite do adapter; falhou ou ficou incerto, a linha continua (`falha`/`pendente`)
-// e não conta como resposta na inatividade.
+// e não conta como resposta.
 export class EnviarMensagemAoCliente implements EnviarMensagemAoClientePort {
   constructor(
     private readonly sessao: SessaoPort,

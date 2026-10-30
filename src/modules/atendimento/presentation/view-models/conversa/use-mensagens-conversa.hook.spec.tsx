@@ -36,7 +36,6 @@ const CONVERSA: ConversaVista = {
   ultimaTransferencia: null,
   ura: null,
   temMaisAnteriores: false,
-  avisoInatividade: false,
   setoresDestino: [],
   documentos: [],
 };

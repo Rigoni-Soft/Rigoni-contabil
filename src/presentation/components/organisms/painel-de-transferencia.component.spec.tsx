@@ -50,7 +50,7 @@ describe("PainelDeTransferencia", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Transferindo..." })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Transferindo…" })).toBeDisabled();
     expect(screen.getByRole("alert")).toHaveTextContent("Só Cliente do Simples Nacional");
   });
 });

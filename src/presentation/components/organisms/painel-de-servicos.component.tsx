@@ -43,7 +43,7 @@ export function PainelDeServicos({
     <>
       {enviando && (
         <Texto variante="nota" role="status">
-          Enviando...
+          Enviando…
         </Texto>
       )}
       {aviso && <AvisoDeStatus {...aviso} />}

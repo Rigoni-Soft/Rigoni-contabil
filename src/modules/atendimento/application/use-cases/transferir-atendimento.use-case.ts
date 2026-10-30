@@ -107,13 +107,6 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
     if (!podeAtender(ator, atendimento)) {
       return err(new ForbiddenError("Você não pode transferir este Atendimento."));
     }
-    if (atendimento.emAvisoDeInatividade) {
-      return err(
-        new ValidationError(
-          "Este Atendimento está em aviso de encerramento por inatividade e não pode ser transferido.",
-        ),
-      );
-    }
     if (setorDestino === atendimento.setor) {
       return err(
         new ValidationError("Escolha outro Setor.", { setorDestino: ["Setor de origem"] }),
@@ -169,7 +162,11 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
         new NotFoundError("O Atendimento mudou ou foi encerrado. Atualize e tente novamente."),
       );
     }
-    return err(new ServicoExternoError("O destinatário do Setor não está mais disponível."));
+    return err(
+      new ServicoExternoError(
+        "O Setor de destino ficou sem quem receba o Atendimento agora. Escolha outro Setor ou tente de novo em instantes.",
+      ),
+    );
   }
 
   private async auditarFalha(ator: AtorSessaoDto, atendimentoId: string): Promise<void> {

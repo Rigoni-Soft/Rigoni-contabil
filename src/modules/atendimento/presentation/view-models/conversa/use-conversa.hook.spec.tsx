@@ -59,7 +59,6 @@ const CONVERSA: ConversaVista = {
   ultimaTransferencia: null,
   ura: null,
   temMaisAnteriores: false,
-  avisoInatividade: false,
   setoresDestino: ["recepcao", "tributario"],
   documentos: [],
 };
@@ -87,21 +86,11 @@ describe("regiões da conversa que leem a mesma consulta", () => {
       titulo: "Maria",
       subtitulo: "Padaria Ltda · 11.444.777/0001-61 · (61) 98888-7777",
       encerrado: false,
-      avisoInatividade: false,
       contexto: null,
       resumoLongo: false,
       resumoAberto: false,
       alternarResumo: expect.any(Function),
     });
-  });
-
-  it("o cabeçalho repassa o aviso de inatividade ao Funcionário", () => {
-    const { result } = renderHook(
-      () => useCabecalhoConversa("at-1", { ...CONVERSA, avisoInatividade: true }),
-      { wrapper: criarWrapper() },
-    );
-
-    expect(result.current.avisoInatividade).toBe(true);
   });
 
   it("resumo de mais de 160 caracteres é longo e o cabeçalho alterna entre recolhido e aberto", () => {
