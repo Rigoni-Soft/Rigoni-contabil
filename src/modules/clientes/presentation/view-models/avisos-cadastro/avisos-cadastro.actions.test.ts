@@ -1,5 +1,5 @@
 /**
- * Integração presentation ↔ application (#142, S4a): o `main` é substituído por uma composição com
+ * Integração presentation ↔ application: o `main` é substituído por uma composição com
  * casos de uso falsos (testes.md, seção 3), sem tocar Supabase real.
  */
 import { ForbiddenError } from "@/shared/errors/forbidden.error";

@@ -2,6 +2,7 @@ import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
 import { telefoneParaExibicao } from "@/presentation/lib/telefone-mask";
 import type { ItemDaFilaVisto } from "@/modules/atendimento/application/ports/in/listar-fila.provider";
 import { formatarEspera } from "@/shared/kernel/espera";
+import { opcoesDe } from "@/shared/kernel/opcoes";
 import { SETOR_LABEL, SETORES } from "@/shared/kernel/setores";
 
 export type ItemDaFilaView = {
@@ -52,4 +53,4 @@ function textoDaOrigem({ setor, nome }: NonNullable<ItemDaFilaVisto["origem"]>):
 }
 
 // As opções do seletor de Setor (só o Admin escolhe) da Fila e da tela Atendimento.
-export const OPCOES_DE_SETOR = SETORES.map((valor) => ({ valor, rotulo: SETOR_LABEL[valor] }));
+export const OPCOES_DE_SETOR = opcoesDe(SETORES, SETOR_LABEL);

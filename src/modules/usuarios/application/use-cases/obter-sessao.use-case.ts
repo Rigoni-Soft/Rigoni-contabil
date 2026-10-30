@@ -1,6 +1,7 @@
 import type { UsuarioDto } from "@/modules/usuarios/application/dtos/usuario.dto";
 import { usuarioParaDto } from "@/modules/usuarios/application/mappers/usuario-para-dto.mapper";
 import type { ObterSessaoPort } from "@/modules/usuarios/application/ports/in/obter-sessao.provider";
+import type { RegistroDeErrosPort } from "@/modules/usuarios/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
 
@@ -8,6 +9,7 @@ export class ObterSessao implements ObterSessaoPort {
   constructor(
     private readonly sessao: SessaoPort,
     private readonly usuarios: UsuarioRepository,
+    private readonly erros: RegistroDeErrosPort,
   ) {}
 
   async execute(): Promise<UsuarioDto | null> {
@@ -18,7 +20,7 @@ export class ObterSessao implements ObterSessaoPort {
     // Leitura best-effort da própria sessão: falha técnica também vira "sem sessão"
     // para quem chama, mas fica registrada no log em vez de sumir dentro do `null`.
     if (!perfil.ok) {
-      console.error("Falha ao carregar perfil da sessão:", perfil.error.message);
+      this.erros.registrar("Falha ao carregar perfil da sessão:", perfil.error.message);
       return null;
     }
     if (!perfil.value) return null;

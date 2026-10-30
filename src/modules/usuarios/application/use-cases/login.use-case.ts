@@ -1,6 +1,7 @@
 import type { UsuarioDto } from "@/modules/usuarios/application/dtos/usuario.dto";
 import { usuarioParaDto } from "@/modules/usuarios/application/mappers/usuario-para-dto.mapper";
 import type { LoginInput, LoginPort } from "@/modules/usuarios/application/ports/in/login.provider";
+import type { RegistroDeErrosPort } from "@/modules/usuarios/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
 import type { AppError } from "@/shared/errors/app.error";
@@ -11,6 +12,7 @@ export class Login implements LoginPort {
   constructor(
     private readonly sessao: SessaoPort,
     private readonly usuarios: UsuarioRepository,
+    private readonly erros: RegistroDeErrosPort,
   ) {}
 
   async execute({ email, senha }: LoginInput): Promise<Result<UsuarioDto, AppError>> {
@@ -51,11 +53,11 @@ export class Login implements LoginPort {
     detalheTecnico?: AppError,
   ): Promise<Result<UsuarioDto, AppError>> {
     if (detalheTecnico) {
-      console.error("Falha ao carregar perfil durante login:", detalheTecnico.message);
+      this.erros.registrar("Falha ao carregar perfil durante login:", detalheTecnico.message);
     }
     const encerrado = await this.sessao.encerrar();
     if (!encerrado.ok) {
-      console.error("Falha ao encerrar sessão órfã após login:", encerrado.error.message);
+      this.erros.registrar("Falha ao encerrar sessão órfã após login:", encerrado.error.message);
     }
     return err(new ForbiddenError(mensagem));
   }

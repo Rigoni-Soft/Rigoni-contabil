@@ -1,5 +1,6 @@
 import type { ArquivoStoragePort } from "@/modules/clientes/application/ports/out/arquivo-storage.provider";
 import type { GuiaParcelaPgfnRepository } from "@/modules/clientes/application/ports/out/guia-parcela-pgfn.repository";
+import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
 import type {
   AtorSessaoDto,
   SessaoPort,
@@ -13,6 +14,8 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { RemoverGuiaParcelaPgfn } from "./remover-guia-parcela-pgfn.use-case";
+
+const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 const PARCELAMENTO_ID = "d2d2d2d2-d2d2-4d2d-8d2d-d2d2d2d2d2d2";
 const CAMINHO = "c1/guias-pgfn/d2/202610-abc.pdf";
@@ -47,7 +50,7 @@ function montar() {
     remover,
     storage,
     removidos,
-    caso: new RemoverGuiaParcelaPgfn(sessao, guias, storage),
+    caso: new RemoverGuiaParcelaPgfn(sessao, guias, storage, erros),
   };
 }
 
@@ -117,7 +120,6 @@ describe("RemoverGuiaParcelaPgfn", () => {
   it("falha ao apagar o objeto não desfaz a remoção do registro", async () => {
     const { caso, storage } = montar();
     storage.remover.mockResolvedValue(err(new ValidationError("falha")));
-    jest.spyOn(console, "error").mockImplementation(() => undefined);
 
     const resultado = await caso.execute(INPUT);
 

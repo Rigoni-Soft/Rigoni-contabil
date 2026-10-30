@@ -1,5 +1,5 @@
 /**
- * Integração infra ↔ Supabase: guia anexada da parcela PGFN (`cliente_parcelamento_guias`, #183).
+ * Integração infra ↔ Supabase: guia anexada da parcela PGFN (`cliente_parcelamento_guias`).
  * Requer `npx supabase start` com migrations + seed aplicados. Prova a RLS por papel, as travas dos
  * gatilhos (só PGFN, um anexo por competência, competência já enviada, só a->confirmada), os grants
  * (UPDATE só de estado, arquivo, conta e motivo, DELETE da guia não enviada, anon nada), a troca e a

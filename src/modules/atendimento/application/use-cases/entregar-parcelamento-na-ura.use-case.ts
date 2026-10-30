@@ -25,6 +25,7 @@ import type {
   ParcelamentoDoCliente,
   ParcelamentosDoClientePort,
 } from "@/modules/atendimento/application/ports/out/parcelamentos-do-cliente.provider";
+import type { RegistroDeErrosPort } from "@/modules/atendimento/application/ports/out/registro-de-erros.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import { chaveDoParcelamento } from "@/modules/atendimento/domain/services/guia-guardada.service";
 import type { AppError } from "@/shared/errors/app.error";
@@ -70,7 +71,7 @@ function escolherAlvo(
 // guardado, sem provedor e sem novo desconto; só a primeira entrega chama o provedor, registra o
 // envio e desconta. Internos são ignorados e nunca mencionados. O banco decide "sem parcelamento" e
 // "quitados" antes de qualquer chamada ao provedor.
-// O parcelamento da PGFN (#186) entrega as guias confirmadas à mão ainda sem registro, até o mês
+// O parcelamento da PGFN entrega as guias confirmadas à mão ainda sem registro, até o mês
 // corrente e da mais antiga para a mais nova, com o PDF do banco; sem nenhuma pendente, reenvia a
 // última já entregue (o PDF do registro, sem novo registro nem desconto). Sem guia confirmada o contato recebe
 // "ainda não disponível", sem alerta ao setor.
@@ -84,6 +85,7 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
     private readonly pgfn: GuiasPgfnPort,
     private readonly envio: EnvioMensagemPort,
     private readonly relogio: RelogioPort,
+    private readonly erros: RegistroDeErrosPort,
   ) {}
 
   async execute({ clienteId, telefone }: EntregarNaUraInput): Promise<Result<void, AppError>> {
@@ -131,34 +133,46 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
     for (const parcelamento of parcelamentos) {
       // Nunca mais guias do que parcelas restantes: o acordo quitaria antes do fim da lista.
       const guias = todas
-        .filter((g) => g.parcelamento.id === parcelamento.id)
+        .filter((guia) => guia.parcelamento.id === parcelamento.id)
         .slice(0, parcelamento.parcelasRestantes);
-      if (guias.length === 0) {
-        // Reenvio: o PDF do registro da entrega, de qualquer competência (inclusive atrasada).
-        const entregue = guiaPgfnAReenviar(parcelamento);
-        if (!entregue) {
-          indisponiveis.push(parcelamento.codigo);
-        } else if (
-          !(await this.entregar(clienteId, telefone, {
-            parcelamento,
-            parcela: entregue.competencia,
-            caminho: entregue.caminho,
-          }))
-        ) {
-          falhas.push(parcelamento.codigo);
-        }
-        continue;
-      }
-      for (const { competencia, caminho } of guias) {
-        if (
-          !(await this.entregarGuiaPgfn(clienteId, telefone, parcelamento, competencia, caminho))
-        ) {
-          falhas.push(parcelamento.codigo);
-          break;
-        }
-      }
+      const resultado =
+        guias.length === 0
+          ? await this.reenviar(clienteId, telefone, parcelamento)
+          : await this.entregarGuias(clienteId, telefone, parcelamento, guias);
+      if (resultado === "indisponivel") indisponiveis.push(parcelamento.codigo);
+      if (resultado === "falhou") falhas.push(parcelamento.codigo);
     }
     return { falhas, indisponiveis };
+  }
+
+  // Reenvio: o PDF do registro da entrega, de qualquer competência (inclusive atrasada).
+  private async reenviar(
+    clienteId: string,
+    telefone: string,
+    parcelamento: ParcelamentoPgfn,
+  ): Promise<"entregue" | "indisponivel" | "falhou"> {
+    const entregue = guiaPgfnAReenviar(parcelamento);
+    if (!entregue) return "indisponivel";
+    const recebeu = await this.entregar(clienteId, telefone, {
+      parcelamento,
+      parcela: entregue.competencia,
+      caminho: entregue.caminho,
+    });
+    return recebeu ? "entregue" : "falhou";
+  }
+
+  private async entregarGuias(
+    clienteId: string,
+    telefone: string,
+    parcelamento: ParcelamentoPgfn,
+    guias: { competencia: string; caminho: string }[],
+  ): Promise<"entregue" | "falhou"> {
+    for (const { competencia, caminho } of guias) {
+      if (!(await this.entregarGuiaPgfn(clienteId, telefone, parcelamento, competencia, caminho))) {
+        return "falhou";
+      }
+    }
+    return "entregue";
   }
 
   // `true` se o contato recebeu o PDF. O registro é único por parcela: o reenvio não desconta outra.
@@ -214,7 +228,7 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
     const anterior = mesAnterior(agora);
     const entregues = await this.parcelamentos.guiasEntregues(clienteId);
     if (!entregues.ok) {
-      console.error("Guias já entregues do Cliente indisponíveis para a URA.");
+      this.erros.registrar("Guias já entregues do Cliente indisponíveis para a URA.");
       return comuns.map((parcelamento) => ({ parcelamento, parcela: null }));
     }
     const novas = await this.buscarNovas(
@@ -227,7 +241,7 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
     );
     // Falha ao emitir não impede o reenvio do que já está registrado e guardado: só os parcelamentos
     // que dependiam de guia nova ficam sem alvo e entram na lista de falhas.
-    if (!novas.ok) console.error("Guias novas do parcelamento indisponíveis para a URA.");
+    if (!novas.ok) this.erros.registrar("Guias novas do parcelamento indisponíveis para a URA.");
     return comuns.map((p) => {
       const alvo = escolherAlvo(p, novas.ok ? novas.value : new Map(), mes, anterior);
       if (alvo.nova || !alvo.parcela) return alvo;
@@ -316,7 +330,9 @@ export class EntregarParcelamentoNaUra implements EntregarNaUraPort {
       publicada.value.caminho,
     );
     if (!registro.ok || registro.value === "nao_elegivel") {
-      console.error("Guia de parcelamento entregue pela URA, mas o envio não foi registrado.");
+      this.erros.registrar(
+        "Guia de parcelamento entregue pela URA, mas o envio não foi registrado.",
+      );
     }
     return true;
   }

@@ -6,6 +6,7 @@ import type {
 } from "@/modules/usuarios/application/ports/in/criar-usuario.provider";
 import type { AuditoriaPort } from "@/modules/usuarios/application/ports/out/auditoria.provider";
 import type { AuthAdminPort } from "@/modules/usuarios/application/ports/out/auth-admin.provider";
+import type { RegistroDeErrosPort } from "@/modules/usuarios/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
 import { Usuario } from "@/modules/usuarios/domain/entities/usuario.entity";
@@ -22,6 +23,7 @@ export class CriarUsuario implements CriarUsuarioPort {
     private readonly usuarios: UsuarioRepository,
     private readonly authAdmin: AuthAdminPort,
     private readonly auditoria: AuditoriaPort,
+    private readonly erros: RegistroDeErrosPort,
     private readonly autorizacao = new AutorizacaoService(),
   ) {}
 
@@ -116,7 +118,7 @@ export class CriarUsuario implements CriarUsuarioPort {
   ): Promise<Result<CriarUsuarioOutput, AppError>> {
     const removido = await this.authAdmin.removerConta(contaId);
     if (!removido.ok) {
-      console.error(
+      this.erros.registrar(
         `Falha ao compensar conta Auth órfã (id=${contaId}, email=${input.email}, etapa=${etapa}) ` +
           `após erro original (${resultadoComErro.error.message}):`,
         removido.error.message,
@@ -148,6 +150,7 @@ export class CriarUsuario implements CriarUsuarioPort {
       alvo: input.email,
       resultado,
     });
-    if (!registrado.ok) console.error("Falha ao registrar auditoria:", registrado.error.message);
+    if (!registrado.ok)
+      this.erros.registrar("Falha ao registrar auditoria:", registrado.error.message);
   }
 }

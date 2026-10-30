@@ -1,9 +1,12 @@
+import { ConsoleRegistroDeErrosGateway as ConsoleClientes } from "@/modules/clientes/infra/gateways/console-registro-de-erros.gateway";
+import { ConsoleRegistroDeErrosGateway as ConsoleUsuarios } from "@/modules/usuarios/infra/gateways/console-registro-de-erros.gateway";
+
 import "server-only";
 
 import { LEITURA_PDF_MODO } from "@/env";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { makeRegistrarAcao } from "@/main/auditoria.factory";
+import { auditoriaBestEffort } from "@/main/auditoria.factory";
 import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
 import type { AnexarAlteracaoContratualPort } from "@/modules/clientes/application/ports/in/anexar-alteracao-contratual.provider";
@@ -25,7 +28,6 @@ import type { ObterLinkGuiaParcelaPgfnPort } from "@/modules/clientes/applicatio
 import type { RemoverGuiaParcelaPgfnPort } from "@/modules/clientes/application/ports/in/remover-guia-parcela-pgfn.provider";
 import type { SalvarParcelamentosClientePort } from "@/modules/clientes/application/ports/in/salvar-parcelamentos-cliente.provider";
 import type { TrocarGuiaParcelaPgfnPort } from "@/modules/clientes/application/ports/in/trocar-guia-parcela-pgfn.provider";
-import type { AuditoriaPort } from "@/modules/clientes/application/ports/out/auditoria.provider";
 import type { LeitorDeGuiaDeParcelaPort } from "@/modules/clientes/application/ports/out/leitor-de-guia-de-parcela.provider";
 import type { LeitorDeParcelamentoPort } from "@/modules/clientes/application/ports/out/leitor-de-parcelamento.provider";
 import type {
@@ -71,6 +73,9 @@ import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sess
 import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabase-sessao.gateway";
 import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories/usuario.repository";
 
+const errosClientes = new ConsoleClientes();
+const errosUsuarios = new ConsoleUsuarios();
+
 // Adapta a sessão do módulo usuarios à porta própria de clientes (arquitetura.md,
 // seção 3.11) — monta o ObterSessao direto (não chama usuarios.factory) pra não
 // criar import circular entre as duas factories, mesmo motivo do auditoria.factory.
@@ -78,22 +83,12 @@ function sessaoViaUsuarios(supabase: SupabaseClient): SessaoPort {
   const obterSessao = new ObterSessao(
     new SupabaseSessaoGateway(supabase),
     new SupabaseUsuarioRepository(supabase),
+    errosUsuarios,
   );
   return {
     usuarioAtual: async (): Promise<AtorSessaoDto | null> => {
       const usuario = await obterSessao.execute();
       return usuario ? { id: usuario.id, papel: usuario.papel, setor: usuario.setor } : null;
-    },
-  };
-}
-
-// Best-effort: falha ao auditar não derruba o cadastro (mesmo contrato do usuarios.factory).
-function auditoriaViaModuloAuditoria(): AuditoriaPort {
-  return {
-    registrar: async (input) => {
-      const registrarAcao = await makeRegistrarAcao();
-      const resultado = await registrarAcao.execute(input);
-      if (!resultado.ok) console.error("Falha ao registrar auditoria:", resultado.error.message);
     },
   };
 }
@@ -104,7 +99,8 @@ export async function makeCriarCliente(): Promise<CriarClientePort> {
     sessaoViaUsuarios(supabase),
     new SupabaseClienteRepository(supabase),
     new SupabaseArquivoStorageGateway(supabase),
-    auditoriaViaModuloAuditoria(),
+    auditoriaBestEffort(errosClientes),
+    errosClientes,
   );
 }
 
@@ -114,6 +110,7 @@ export async function makeAnexarAlteracaoContratual(): Promise<AnexarAlteracaoCo
     sessaoViaUsuarios(supabase),
     new SupabaseClienteRepository(supabase),
     new SupabaseArquivoStorageGateway(supabase),
+    errosClientes,
   );
 }
 
@@ -126,6 +123,7 @@ export async function makeSalvarParcelamentosCliente(): Promise<SalvarParcelamen
     new SupabaseClienteRepository(supabase),
     new SupabaseClienteParcelamentoRepository(supabase),
     new SupabaseArquivoStorageGateway(createSupabaseAdmin(), "parcelamentos-clientes"),
+    errosClientes,
   );
 }
 
@@ -138,6 +136,7 @@ export async function makeAnexarGuiaParcelaPgfn(): Promise<AnexarGuiaParcelaPgfn
     new SupabaseGuiaParcelaPgfnRepository(supabase),
     guiasStorage(),
     leitorDeGuiaDeParcela(),
+    errosClientes,
   );
 }
 
@@ -164,6 +163,7 @@ export async function makeTrocarGuiaParcelaPgfn(): Promise<TrocarGuiaParcelaPgfn
     new SupabaseGuiaParcelaPgfnRepository(supabase),
     guiasStorage(),
     leitorDeGuiaDeParcela(),
+    errosClientes,
   );
 }
 
@@ -173,6 +173,7 @@ export async function makeRemoverGuiaParcelaPgfn(): Promise<RemoverGuiaParcelaPg
     sessaoViaUsuarios(supabase),
     new SupabaseGuiaParcelaPgfnRepository(supabase),
     guiasStorage(),
+    errosClientes,
   );
 }
 
@@ -213,7 +214,7 @@ export async function makeEditarCadastroOperacionalCliente(): Promise<EditarCada
   return new EditarCadastroOperacionalCliente(
     sessaoViaUsuarios(supabase),
     new SupabaseClienteRepository(supabase),
-    auditoriaViaModuloAuditoria(),
+    auditoriaBestEffort(errosClientes),
   );
 }
 
@@ -223,7 +224,7 @@ export async function makeAtribuirResponsavelCliente(): Promise<AtribuirResponsa
     sessaoViaUsuarios(supabase),
     new SupabaseClienteQueryGateway(supabase),
     new SupabaseResponsavelClienteRepository(supabase),
-    auditoriaViaModuloAuditoria(),
+    auditoriaBestEffort(errosClientes),
   );
 }
 

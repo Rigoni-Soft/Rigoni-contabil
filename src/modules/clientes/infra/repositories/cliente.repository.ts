@@ -1,8 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { ClienteRepository } from "@/modules/clientes/application/ports/out/cliente.repository";
+import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
 import type { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
 import type { AlteracaoContratual } from "@/modules/clientes/domain/value-objects/alteracao-contratual.vo";
+import { ConsoleRegistroDeErrosGateway } from "@/modules/clientes/infra/gateways/console-registro-de-erros.gateway";
 import { clienteDoRow, type ClienteRow } from "@/modules/clientes/infra/mappers/cliente.mapper";
 import { AppError } from "@/shared/errors/app.error";
 import { ResultadoIncertoError } from "@/shared/errors/resultado-incerto.error";
@@ -33,7 +35,10 @@ const dataFutura = (error: { code?: string; message: string }) =>
   error.code === "23514" && error.message.includes("alteracao_contratual_data_futura");
 
 export class SupabaseClienteRepository implements ClienteRepository {
-  constructor(private readonly supabase: SupabaseClient) {}
+  constructor(
+    private readonly supabase: SupabaseClient,
+    private readonly erros: RegistroDeErrosPort = new ConsoleRegistroDeErrosGateway(),
+  ) {}
 
   // Cliente e suas Alterações contratuais são o mesmo agregado (raiz + entidades
   // filhas, arquitetura.md seção 3.5): gravados juntos via RPC transacional
@@ -66,7 +71,7 @@ export class SupabaseClienteRepository implements ClienteRepository {
         );
       }
       if (dataFutura(error)) return err(new ValidationError(ERRO_DATA_FUTURA));
-      console.error("Falha ao salvar cliente:", error.message);
+      this.erros.registrar("Falha ao salvar cliente:", error.message);
       if (semDesfechoConhecido(status)) {
         return err(new ResultadoIncertoError("Não foi possível confirmar o cadastro do Cliente."));
       }
@@ -92,7 +97,7 @@ export class SupabaseClienteRepository implements ClienteRepository {
         return err(new ValidationError(erroNumeroRepetidoNoCliente(alteracao.numero)));
       }
       if (dataFutura(error)) return err(new ValidationError(ERRO_DATA_FUTURA));
-      console.error("Falha ao anexar alteração contratual:", error.message);
+      this.erros.registrar("Falha ao anexar alteração contratual:", error.message);
       if (semDesfechoConhecido(status)) {
         return err(new ResultadoIncertoError("Não foi possível confirmar o anexo da alteração."));
       }
@@ -115,7 +120,7 @@ export class SupabaseClienteRepository implements ClienteRepository {
       .eq("arquivo_caminho", arquivoCaminho)
       .maybeSingle();
     if (error) {
-      console.error("Falha ao reconciliar alteração contratual:", error.message);
+      this.erros.registrar("Falha ao reconciliar alteração contratual:", error.message);
       return err(new PersistenciaError("Não foi possível confirmar a alteração."));
     }
     return ok(data !== null);
@@ -132,7 +137,7 @@ export class SupabaseClienteRepository implements ClienteRepository {
       .maybeSingle();
 
     if (error) {
-      console.error("Falha ao buscar cliente:", error.message);
+      this.erros.registrar("Falha ao buscar cliente:", error.message);
       return err(new PersistenciaError("Não foi possível carregar o Cliente. Tente novamente."));
     }
     if (!data) return ok(null);
@@ -169,7 +174,7 @@ export class SupabaseClienteRepository implements ClienteRepository {
     });
 
     if (error) {
-      console.error("Falha ao atualizar cliente:", error.message);
+      this.erros.registrar("Falha ao atualizar cliente:", error.message);
       return err(
         new PersistenciaError(
           "Não foi possível atualizar o cadastro operacional. Tente novamente.",

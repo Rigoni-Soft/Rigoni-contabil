@@ -1,7 +1,8 @@
 // Expediente da URA: aberto em dia útil (não sábado/domingo/feriado), das 8h às 18h, horário de
 // São Paulo. As datas civis circulam como "AAAA-MM-DD"; os cálculos de calendário usam UTC só
 // como aritmética de dias, sem relação com o fuso.
-const FUSO = "America/Sao_Paulo";
+import { FUSO_DE_NEGOCIO as FUSO } from "@/shared/kernel/mes-atual";
+
 const ABRE = 8;
 const FECHA = 18;
 const DIAS_SEMANA = [
@@ -103,14 +104,14 @@ export function proximaAbertura(instante: Date, extras: ReadonlySet<string>): st
 export function avisoDeFechado(instante: Date, extras: ReadonlySet<string>): string {
   const { data: hoje } = partesEmSp(instante);
   const volta = proximaAbertura(instante, extras);
-  let quando: string;
-  if (volta === hoje) quando = "hoje";
-  else if (volta === somarDias(hoje, 1)) quando = "amanhã";
-  else {
-    const [, mes, dia] = volta.split("-");
-    quando = `${DIAS_SEMANA[diaDaSemana(volta)]}, ${dia}/${mes}`;
-  }
-  return `Olá! No momento o escritório está fechado. Voltamos a atender ${quando}, às ${ABRE}h.`;
+  return `Olá! No momento o escritório está fechado. Voltamos a atender ${quandoVoltamos(hoje, volta)}, às ${ABRE}h.`;
+}
+
+function quandoVoltamos(hoje: string, volta: string): string {
+  if (volta === hoje) return "hoje";
+  if (volta === somarDias(hoje, 1)) return "amanhã";
+  const [, mes, dia] = volta.split("-");
+  return `${DIAS_SEMANA[diaDaSemana(volta)]}, ${dia}/${mes}`;
 }
 
 // Tempo (ms) de expediente aberto entre dois instantes: a noite, o fim de semana e os feriados não

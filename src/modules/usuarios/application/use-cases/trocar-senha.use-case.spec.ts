@@ -3,6 +3,7 @@ import type {
   RegistrarAcaoAuditoria,
 } from "@/modules/usuarios/application/ports/out/auditoria.provider";
 import type { FinalizarTrocaSenhaPort } from "@/modules/usuarios/application/ports/out/finalizar-troca-senha.provider";
+import type { RegistroDeErrosPort } from "@/modules/usuarios/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
 import { Usuario, type UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
@@ -13,6 +14,8 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { TrocarSenha } from "./trocar-senha.use-case";
+
+const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 const ID = "11111111-1111-1111-1111-111111111111";
 
@@ -126,7 +129,7 @@ function montar() {
   const usuarios = new UsuarioRepositoryFalso();
   const finalizar = new FinalizarTrocaSenhaFalsa();
   const auditoria = new AuditoriaFalsa();
-  const useCase = new TrocarSenha(sessao, usuarios, finalizar, auditoria);
+  const useCase = new TrocarSenha(sessao, usuarios, finalizar, auditoria, erros);
   return { sessao, usuarios, finalizar, auditoria, useCase };
 }
 

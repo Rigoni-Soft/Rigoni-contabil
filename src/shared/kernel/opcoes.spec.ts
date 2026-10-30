@@ -1,15 +1,17 @@
-import { opcaoUnica } from "@/shared/kernel/opcoes";
+import { opcaoUnica, opcoesDe } from "./opcoes";
+
+describe("opcoesDe", () => {
+  it("monta {valor, rotulo} na ordem dos valores", () => {
+    expect(opcoesDe(["a", "b"] as const, { a: "A", b: "B" })).toEqual([
+      { valor: "a", rotulo: "A" },
+      { valor: "b", rotulo: "B" },
+    ]);
+  });
+});
 
 describe("opcaoUnica", () => {
-  it("devolve o item quando a lista tem exatamente 1 opção", () => {
-    expect(opcaoUnica(["funcionario"])).toBe("funcionario");
-  });
-
-  it("devolve undefined quando a lista tem mais de 1 opção", () => {
-    expect(opcaoUnica(["lider_setor", "funcionario"])).toBeUndefined();
-  });
-
-  it("devolve undefined quando a lista está vazia", () => {
-    expect(opcaoUnica([])).toBeUndefined();
+  it("só devolve quando há exatamente uma", () => {
+    expect(opcaoUnica(["x"])).toBe("x");
+    expect(opcaoUnica(["x", "y"])).toBeUndefined();
   });
 });

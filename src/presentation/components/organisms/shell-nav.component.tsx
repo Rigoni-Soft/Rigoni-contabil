@@ -12,7 +12,7 @@ type SetorNav = { slug: string };
 
 // `rotaAtual`: a aba da tela aberta ganha o destaque cheio (e `aria-current`); em "/" nenhuma está
 // selecionada, e as que têm tela são só links comuns.
-// `pendentesDeAtendimento`: espera do Setor + conversas com o cliente aguardando (#163). `anuncio`: o
+// `pendentesDeAtendimento`: espera do Setor + conversas com o cliente aguardando. `anuncio`: o
 // texto que o leitor de tela lê quando esse contador cresce.
 export type ShellNavProps = {
   setores: SetorNav[];

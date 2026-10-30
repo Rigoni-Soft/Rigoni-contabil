@@ -117,19 +117,18 @@ async function levantarAlertas(
   clienteId: string,
   ocorrencias: OcorrenciaDeEntrega[],
 ): Promise<{ gravados: number; naoGravados: number }> {
+  const porTipo = agruparPorTipo(ocorrencias);
   let gravados = 0;
-  let naoGravados = 0;
-  for (const [tipo, mensagens] of agruparPorTipo(ocorrencias)) {
+  for (const [tipo, mensagens] of porTipo) {
     const gravado = await alertas.alertar({
       setor: "simples_nacional",
       tipo,
       clienteId,
       mensagem: mensagens.join(" | "),
     });
-    if (gravado.ok) gravados += 1;
-    else naoGravados += 1;
+    gravados += Number(gravado.ok);
   }
-  return { gravados, naoGravados };
+  return { gravados, naoGravados: porTipo.size - gravados };
 }
 
 // Alerta que o job não renovou nesta rodada deixou de valer, mas só para os Clientes que ela

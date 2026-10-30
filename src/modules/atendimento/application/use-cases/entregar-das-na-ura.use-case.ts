@@ -6,6 +6,7 @@ import type { ObterGuiaDasParaEnvioPort } from "@/modules/atendimento/applicatio
 import type { ClientesParaLembretePort } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type { GuiaPublicadaPort } from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
+import type { RegistroDeErrosPort } from "@/modules/atendimento/application/ports/out/registro-de-erros.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import { chaveDoDas } from "@/modules/atendimento/domain/services/guia-guardada.service";
 import type { AppError } from "@/shared/errors/app.error";
@@ -32,6 +33,7 @@ export class EntregarDasNaUra implements EntregarNaUraPort {
     private readonly publicadas: Pick<GuiaPublicadaPort, "reencontrar">,
     private readonly envio: EnvioMensagemPort,
     private readonly relogio: RelogioPort,
+    private readonly erros: RegistroDeErrosPort,
   ) {}
 
   async execute({ clienteId, telefone }: EntregarNaUraInput): Promise<Result<void, AppError>> {
@@ -83,7 +85,7 @@ export class EntregarDasNaUra implements EntregarNaUraPort {
       guia.value.caminho,
     );
     if (!concluida.ok || !concluida.value) {
-      console.error("DAS entregue pela URA, mas o cadastro não foi marcado como enviado.");
+      this.erros.registrar("DAS entregue pela URA, mas o cadastro não foi marcado como enviado.");
     }
     return ok(undefined);
   }

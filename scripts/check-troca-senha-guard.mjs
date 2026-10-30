@@ -1,8 +1,8 @@
 // yarn check:guard-senha  →  falha se alguma página autenticada sob src/app
 // esquecer o bloqueio de troca obrigatória de senha (precisaTrocarSenha).
 //
-// Cada page.tsx repete `if (sessao.precisaTrocarSenha) redirect("/trocar-senha")` em vez de
-// centralizar num layout/guard comum (poucas rotas autenticadas por ora). Este script é a rede de
+// Cada page.tsx chama exigirSessao()/validarSessao() (shell.server), que aplicam o redirect de
+// troca de senha, em vez de centralizar num layout/guard comum. Este script é a rede de
 // segurança mais barata pra isso não virar um bypass silencioso numa rota nova.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -30,6 +30,8 @@ export function paginas(dir, prefixo = "") {
 // montar uma árvore de arquivos de verdade.
 export function classificarPagina(pagina, conteudo) {
   if (PAGINAS_PUBLICAS.has(pagina)) return null;
+  // exigirSessao/validarSessao (shell.server) carregam a sessão e já aplicam o redirect de troca de senha.
+  if (new RegExp("(exigirSessao|validarSessao)[(]").test(conteudo)) return null;
 
   if (!conteudo.includes("carregarSessao")) {
     return `${pagina}: não carrega a sessão (carregarSessao) — se for pública de propósito, adicione a PAGINAS_PUBLICAS`;

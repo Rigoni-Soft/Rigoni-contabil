@@ -55,7 +55,7 @@ Passos do núcleo:
    pendente sem guia; a mensagem lista os códigos), de origem `parcelamento`, renovados e resolvidos só
    por este job.
 
-- A migration `20261024108000` (numerada depois das do F3 do PR #191, para atualizar um banco já migrado)
+- A migration `20261024108000` (numerada depois das migrations da atribuição das guias, para atualizar um banco já migrado)
   cria `registrar_envio_parcelamento`, a coluna `identidade` dos envios, reduz
   `concluir_envio_automatico_parcelamento` a fechar a reserva e acrescenta `parcelamento_sem_guia` e
   `financeiro_ausente` a `tipo_alerta_setor`. Aplicar junto com o código desta versão.

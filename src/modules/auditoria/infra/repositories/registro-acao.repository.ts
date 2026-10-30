@@ -21,8 +21,8 @@ export class SupabaseRegistroAcaoRepository implements RegistroAcaoRepository {
   async salvar(registro: RegistroAcao): Promise<Result<void, AppError>> {
     const { error } = await this.supabase.rpc("registrar_acao_auditoria", {
       p_id: registro.id,
-      p_ator: registro.ator,
-      p_setor: registro.setor,
+      p_ator: registro.ator.valor,
+      p_setor: registro.setor.slug,
       p_acao: registro.acao,
       p_alvo: registro.alvo,
       p_resultado: registro.resultado.valor,

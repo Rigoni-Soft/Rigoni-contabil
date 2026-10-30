@@ -2,6 +2,8 @@
   LeitorDeParcelamentoPort,
   LeituraDeParcelamento,
 } from "@/modules/clientes/application/ports/out/leitor-de-parcelamento.provider";
+import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
+import { ConsoleRegistroDeErrosGateway } from "@/modules/clientes/infra/gateways/console-registro-de-erros.gateway";
 
 import { centavos, dataIso, extrairTextoDoPdf, pega } from "./leitura-pdf.gateway";
 
@@ -80,13 +82,14 @@ function interpretar(texto: string): LeituraDeParcelamento {
 export class LeitorDeParcelamentoTextoGateway implements LeitorDeParcelamentoPort {
   constructor(
     private readonly extrairTexto: (pdf: Uint8Array) => Promise<string> = extrairTextoDoPdf,
+    private readonly erros: RegistroDeErrosPort = new ConsoleRegistroDeErrosGateway(),
   ) {}
 
   async ler(pdf: Uint8Array): Promise<LeituraDeParcelamento> {
     try {
       return interpretar((await this.extrairTexto(pdf)).replace(/\s+/g, " ").trim());
     } catch {
-      console.error("Leitor de PDF: falha ao extrair o texto do PDF.");
+      this.erros.registrar("Leitor de PDF: falha ao extrair o texto do PDF.");
       return ILEGIVEL;
     }
   }

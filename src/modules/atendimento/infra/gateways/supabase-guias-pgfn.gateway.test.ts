@@ -1,5 +1,5 @@
 /**
- * Integração infra ↔ Supabase (testes.md, seção 3) do envio da guia PGFN ao Cliente (#186): leitura
+ * Integração infra ↔ Supabase (testes.md, seção 3) do envio da guia PGFN ao Cliente: leitura
  * dos Parcelamentos PGFN com as guias confirmadas, PDF vindo do Storage, regra de "pendente" do job
  * e registro de envio (um só por competência, quitação ao zerar). Destrutiva: só roda no Supabase
  * local e limpa pelos IDs da própria execução. Requer `npx supabase start`.
@@ -155,7 +155,7 @@ describe("SupabaseGuiasPgfnGateway (#186)", () => {
     const token = dono.ok ? (dono.value as string) : "";
     expect(await emEnvio()).not.toBeNull();
 
-    // Posse: a vigente não é adquirida de novo e a tentativa recusada não a libera (P1 da 2ª revalidação).
+    // Posse: a vigente não é adquirida de novo e a tentativa recusada não a libera.
     expect(await guias.reservar(id, "202610", caminho)).toEqual({ ok: true, value: null });
     expect((await guias.liberar(id, "202610", "00000000-0000-0000-0000-000000000000")).ok).toBe(
       true,

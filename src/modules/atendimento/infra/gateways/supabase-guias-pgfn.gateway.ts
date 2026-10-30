@@ -14,7 +14,7 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Bucket privado dos acordos, onde a guia anexada (#183) fica guardada.
+// Bucket privado dos acordos, onde a guia anexada fica guardada.
 const BUCKET = "parcelamentos-clientes";
 
 const linhaSchema = z.array(

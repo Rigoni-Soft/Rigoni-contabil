@@ -6,6 +6,7 @@ import type {
   GuiaDaParcela,
   GuiaParcelaPgfnRepository,
 } from "@/modules/clientes/application/ports/out/guia-parcela-pgfn.repository";
+import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
 import type { GuiaParcelaPgfnProps } from "@/modules/clientes/domain/value-objects/guia-parcela-pgfn.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
@@ -60,12 +61,13 @@ export async function confirmarOuManter(
 // desfaz o que já foi gravado.
 export async function apagarObjeto(
   storage: ArquivoStoragePort,
+  erros: RegistroDeErrosPort,
   contexto: string,
   caminho: string,
 ): Promise<void> {
   const removido = await storage.remover([caminho]);
   if (!removido.ok) {
-    console.error(
+    erros.registrar(
       `Falha ao remover o PDF da guia (${contexto}, caminho=${caminho}):`,
       removido.error.message,
     );
@@ -75,13 +77,14 @@ export async function apagarObjeto(
 // Falha da própria remoção não é mascarada como o erro original: o arquivo ficou órfão.
 export async function desfazerUpload(
   storage: ArquivoInspecionavelPort,
+  erros: RegistroDeErrosPort,
   parcelamentoId: string,
   caminho: string,
   erro: AppError,
 ): Promise<Result<never, AppError>> {
   const removido = await storage.remover([caminho]);
   if (removido.ok) return err(erro);
-  console.error(
+  erros.registrar(
     `Falha ao remover guia órfã (parcelamento=${parcelamentoId}, caminho=${caminho}):`,
     removido.error.message,
   );

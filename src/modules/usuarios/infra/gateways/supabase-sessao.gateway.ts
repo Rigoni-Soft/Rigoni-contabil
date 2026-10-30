@@ -1,7 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import type { RegistroDeErrosPort } from "@/modules/usuarios/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
+import { ConsoleRegistroDeErrosGateway } from "@/modules/usuarios/infra/gateways/console-registro-de-erros.gateway";
 import { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
@@ -29,7 +31,10 @@ export class SenhaJaDefinidaError extends AppError {
 }
 
 export class SupabaseSessaoGateway implements SessaoPort {
-  constructor(private readonly supabase: SupabaseClient) {}
+  constructor(
+    private readonly supabase: SupabaseClient,
+    private readonly erros: RegistroDeErrosPort = new ConsoleRegistroDeErrosGateway(),
+  ) {}
 
   async autenticar(email: string, senha: string): Promise<Result<void, AppError>> {
     const { error } = await this.supabase.auth.signInWithPassword({ email, password: senha });
@@ -43,7 +48,7 @@ export class SupabaseSessaoGateway implements SessaoPort {
     // direto pro navegador, então a mensagem do AppError nunca pode carregar o
     // texto cru do Supabase (poderia expor detalhe interno pra um visitante
     // não autenticado).
-    console.error("Falha técnica ao autenticar no Supabase:", error.message);
+    this.erros.registrar("Falha técnica ao autenticar no Supabase:", error.message);
     return err(
       new AutenticacaoIndisponivelError("Não foi possível autenticar agora. Tente novamente."),
     );
@@ -52,7 +57,7 @@ export class SupabaseSessaoGateway implements SessaoPort {
   async encerrar(): Promise<Result<void, AppError>> {
     const { error } = await this.supabase.auth.signOut();
     if (error) {
-      console.error("Falha técnica ao encerrar sessão no Supabase:", error.message);
+      this.erros.registrar("Falha técnica ao encerrar sessão no Supabase:", error.message);
       return err(new AutenticacaoIndisponivelError("Não foi possível encerrar a sessão agora."));
     }
     return ok(undefined);
@@ -71,7 +76,7 @@ export class SupabaseSessaoGateway implements SessaoPort {
       if (error.code === CODIGO_SENHA_JA_DEFINIDA) {
         return err(new SenhaJaDefinidaError("A nova senha é igual à senha atual."));
       }
-      console.error("Falha técnica ao trocar senha no Supabase:", error.message);
+      this.erros.registrar("Falha técnica ao trocar senha no Supabase:", error.message);
       return err(new AutenticacaoIndisponivelError("Não foi possível trocar a senha agora."));
     }
     return ok(undefined);

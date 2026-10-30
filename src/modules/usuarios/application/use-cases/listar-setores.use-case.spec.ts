@@ -1,3 +1,4 @@
+import type { RegistroDeErrosPort } from "@/modules/usuarios/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
 import { Usuario, type UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
@@ -7,6 +8,8 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { ListarSetores } from "./listar-setores.use-case";
+
+const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 function usuarioFalso(papel: string, setor: string): Usuario {
   const resultado = Usuario.builder()
@@ -75,7 +78,12 @@ describe("ListarSetores", () => {
     if (!resultado.ok) throw new Error("setup inválido");
     usuarios.usuario = resultado.value;
 
-    const setores = await new ListarSetores(sessao, usuarios, new AutorizacaoService()).execute();
+    const setores = await new ListarSetores(
+      sessao,
+      usuarios,
+      erros,
+      new AutorizacaoService(),
+    ).execute();
 
     expect(setores).toEqual([]);
   });
@@ -85,7 +93,12 @@ describe("ListarSetores", () => {
     const usuarios = new UsuarioRepositoryFalso();
     usuarios.usuario = usuarioFalso("admin", "administrativo");
 
-    const setores = await new ListarSetores(sessao, usuarios, new AutorizacaoService()).execute();
+    const setores = await new ListarSetores(
+      sessao,
+      usuarios,
+      erros,
+      new AutorizacaoService(),
+    ).execute();
     const slugs = setores.map((s) => s.slug);
 
     expect(slugs).toContain("simples_nacional");
@@ -101,7 +114,12 @@ describe("ListarSetores", () => {
     const usuarios = new UsuarioRepositoryFalso();
     usuarios.usuario = usuarioFalso("funcionario", "simples_nacional");
 
-    const setores = await new ListarSetores(sessao, usuarios, new AutorizacaoService()).execute();
+    const setores = await new ListarSetores(
+      sessao,
+      usuarios,
+      erros,
+      new AutorizacaoService(),
+    ).execute();
 
     expect(setores).toEqual([{ slug: "simples_nacional" }]);
   });
@@ -111,7 +129,12 @@ describe("ListarSetores", () => {
     const usuarios = new UsuarioRepositoryFalso();
     usuarios.usuario = usuarioFalso("lider_setor", "contabil");
 
-    const setores = await new ListarSetores(sessao, usuarios, new AutorizacaoService()).execute();
+    const setores = await new ListarSetores(
+      sessao,
+      usuarios,
+      erros,
+      new AutorizacaoService(),
+    ).execute();
 
     expect(setores).toEqual([{ slug: "contabil" }]);
   });
@@ -121,7 +144,12 @@ describe("ListarSetores", () => {
     sessao.id = null;
     const usuarios = new UsuarioRepositoryFalso();
 
-    const setores = await new ListarSetores(sessao, usuarios, new AutorizacaoService()).execute();
+    const setores = await new ListarSetores(
+      sessao,
+      usuarios,
+      erros,
+      new AutorizacaoService(),
+    ).execute();
 
     expect(setores).toEqual([]);
   });
@@ -131,7 +159,12 @@ describe("ListarSetores", () => {
     const usuarios = new UsuarioRepositoryFalso();
     usuarios.erroTecnico = new ForbiddenError("Falha ao buscar perfil: conexão recusada");
 
-    const setores = await new ListarSetores(sessao, usuarios, new AutorizacaoService()).execute();
+    const setores = await new ListarSetores(
+      sessao,
+      usuarios,
+      erros,
+      new AutorizacaoService(),
+    ).execute();
 
     expect(setores).toEqual([]);
   });

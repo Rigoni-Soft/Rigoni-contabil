@@ -4,6 +4,7 @@ import {
   makeAutenticarWebhook,
   makeReceberMensagem,
   makeReceberMidia,
+  makeRegistroDeErros,
 } from "@/main/atendimento.factory";
 import {
   classificarMensagem,
@@ -92,7 +93,7 @@ export async function POST(request: Request): Promise<Response> {
     if (resultado.error instanceof ServicoExternoError) {
       return resposta("Falha transitória; reenvie.", 502);
     }
-    console.error(`Mensagem ${mensagem.id} descartada:`, resultado.error.message);
+    makeRegistroDeErros().registrar(`Mensagem ${mensagem.id} descartada:`, resultado.error.message);
   }
   // `statuses` (sent/delivered/read/failed) e tipos não suportados caem aqui: 200 sem efeito.
   return resposta("EVENT_RECEIVED", 200);

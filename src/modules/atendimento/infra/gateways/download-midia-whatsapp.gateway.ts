@@ -10,7 +10,7 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 const VERSAO_API = "v21.0";
 const TIMEOUT_MS = 15_000;
 
-// Adapter real da porta DownloadMidiaPort (#68), pela WhatsApp Cloud API: GET /{id} devolve o
+// Adapter real da porta DownloadMidiaPort, pela WhatsApp Cloud API: GET /{id} devolve o
 // endereço temporário e o mime; o arquivo sai de lá com o mesmo bearer. 404 (mídia expirada) e 400
 // (id inválido) não melhoram ao repetir: ValidationError. O resto (401/403, 429, 5xx, rede) é
 // falha do serviço: ServicoExternoError, e a Meta reenvia o evento.

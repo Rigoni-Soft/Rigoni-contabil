@@ -17,7 +17,7 @@ export type TransporteEmail = { sendMail(mensagem: object): Promise<unknown> };
 
 export type ConfigSmtp = { usuario: string; senha: string; remetente: string };
 
-// Adapter real da porta EnvioEmailPort (#86), por SMTP do Gmail com senha de app. Endereço
+// Adapter real da porta EnvioEmailPort, por SMTP do Gmail com senha de app. Endereço
 // recusado (EENVELOPE ou 550-553) não melhora ao repetir: ValidationError. O resto (senha de app
 // inválida, limite diário, indisponibilidade, rede) é falha do serviço: ServicoExternoError.
 // O Gmail não deduplica envios: uma falha após o aceite pode repetir o e-mail na retentativa.

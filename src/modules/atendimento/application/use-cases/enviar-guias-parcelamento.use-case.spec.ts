@@ -60,7 +60,7 @@ function montar(
     // Telefone do financeiro; null = não configurado.
     financeiro?: string | null;
     cnpj?: () => Promise<Result<CadastroFiscalCliente, AppError>>;
-    // Parcelamentos PGFN em aberto com as guias confirmadas (#186).
+    // Parcelamentos PGFN em aberto com as guias confirmadas.
     pgfn?: Result<ParcelamentoPgfn[], AppError>;
     lerFalha?: boolean;
     reservaNegada?: boolean;

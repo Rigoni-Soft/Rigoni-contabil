@@ -1,6 +1,13 @@
 import type { LeituraDaLinha } from "@/presentation/components/organisms/editar-cadastro-operacional-form.component";
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import type { ParcelamentoFormValues } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.schema";
+import { DAS_STATUS_LABEL, DAS_STATUSES } from "@/shared/kernel/das-status";
+import {
+  DOCUMENTO_OBRIGATORIO_STATUS_LABEL,
+  DOCUMENTO_OBRIGATORIO_STATUSES,
+} from "@/shared/kernel/documento-obrigatorio-status";
+import { FORMA_ENVIO_LABEL, FORMAS_ENVIO } from "@/shared/kernel/forma-envio";
+import { opcoesDe } from "@/shared/kernel/opcoes";
 import { rotuloResponsavel } from "@/shared/kernel/papeis";
 
 type Opcao = { id: string; nome: string };
@@ -146,3 +153,18 @@ export function reposicionarErros(erros: unknown, indicesOriginais: number[]): u
   });
   return reposicionados;
 }
+
+// Opções dos selects de status (valor/rótulo).
+export const OPCOES_FORMA_ENVIO = opcoesDe(FORMAS_ENVIO, FORMA_ENVIO_LABEL);
+export const OPCOES_DOCUMENTO = opcoesDe(
+  DOCUMENTO_OBRIGATORIO_STATUSES,
+  DOCUMENTO_OBRIGATORIO_STATUS_LABEL,
+);
+// "Enviado" é gravado só pelo sistema: fora das opções escolhíveis, e só aparece (travado) quando já é o valor atual.
+const OPCOES_DAS = opcoesDe(
+  DAS_STATUSES.filter((status) => status !== "enviado"),
+  DAS_STATUS_LABEL,
+);
+const OPCAO_DAS_ENVIADO = opcoesDe(["enviado"] as const, DAS_STATUS_LABEL);
+export const opcoesDeDas = (enviadoPeloSistema: boolean) =>
+  enviadoPeloSistema ? [...OPCOES_DAS, ...OPCAO_DAS_ENVIADO] : OPCOES_DAS;

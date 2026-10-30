@@ -1,6 +1,7 @@
 import type { AvisarClientePort } from "@/modules/atendimento/application/ports/in/avisar-cliente.provider";
 import type { EncerrarAtendimentoPort } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
 import type { AtendimentoRepositoryPort } from "@/modules/atendimento/application/ports/out/atendimento.repository";
+import type { RegistroDeErrosPort } from "@/modules/atendimento/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { AVISO_ENCERRAMENTO_AO_CLIENTE } from "@/modules/atendimento/domain/services/aviso-fila.service";
 import { podeSupervisionar } from "@/modules/atendimento/domain/services/transferencia.service";
@@ -16,6 +17,7 @@ export class EncerrarAtendimento implements EncerrarAtendimentoPort {
     private readonly sessao: SessaoPort,
     private readonly repositorio: AtendimentoRepositoryPort,
     private readonly avisar: AvisarClientePort,
+    private readonly erros: RegistroDeErrosPort,
   ) {}
 
   async execute({ atendimentoId }: { atendimentoId: string }): Promise<Result<void, AppError>> {
@@ -48,7 +50,7 @@ export class EncerrarAtendimento implements EncerrarAtendimentoPort {
       texto: AVISO_ENCERRAMENTO_AO_CLIENTE,
     });
     if (!aviso.ok) {
-      console.error(
+      this.erros.registrar(
         `Atendimento ${atendimentoId} encerrado, mas o aviso ao cliente falhou:`,
         aviso.error.message,
       );

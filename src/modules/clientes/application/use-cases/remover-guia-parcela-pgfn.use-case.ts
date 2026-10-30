@@ -1,9 +1,10 @@
-﻿import type {
+import type {
   RemoverGuiaParcelaPgfnInput,
   RemoverGuiaParcelaPgfnPort,
 } from "@/modules/clientes/application/ports/in/remover-guia-parcela-pgfn.provider";
 import type { ArquivoStoragePort } from "@/modules/clientes/application/ports/out/arquivo-storage.provider";
 import type { GuiaParcelaPgfnRepository } from "@/modules/clientes/application/ports/out/guia-parcela-pgfn.repository";
+import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
 import { apagarObjeto } from "@/modules/clientes/application/use-cases/guia-parcela-pgfn-compartilhado.use-case";
 import type { AppError } from "@/shared/errors/app.error";
@@ -22,6 +23,7 @@ export class RemoverGuiaParcelaPgfn implements RemoverGuiaParcelaPgfnPort {
     private readonly sessao: SessaoPort,
     private readonly guias: GuiaParcelaPgfnRepository,
     private readonly storage: ArquivoStoragePort,
+    private readonly erros: RegistroDeErrosPort,
   ) {}
 
   async execute(input: RemoverGuiaParcelaPgfnInput): Promise<Result<void, AppError>> {
@@ -56,6 +58,7 @@ export class RemoverGuiaParcelaPgfn implements RemoverGuiaParcelaPgfnPort {
 
     await apagarObjeto(
       this.storage,
+      this.erros,
       `remoção, parcelamento=${input.parcelamentoId}`,
       caminho.value,
     );

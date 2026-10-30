@@ -6,6 +6,7 @@ import type {
   MensagemEnviada,
 } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type { GuiaPublicadaPort } from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
+import type { RegistroDeErrosPort } from "@/modules/atendimento/application/ports/out/registro-de-erros.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -13,6 +14,8 @@ import type { DasStatusValor } from "@/shared/kernel/das-status";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { EntregarDasNaUra } from "./entregar-das-na-ura.use-case";
+
+const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 const CLIENTE = "cliente-1";
 const TELEFONE = "5511912345678";
@@ -109,7 +112,7 @@ function montar(
   } as unknown as EnvioMensagemPort;
 
   return {
-    caso: new EntregarDasNaUra(clientes, guiaDas, publicadas, envio, { agora: () => AGORA }),
+    caso: new EntregarDasNaUra(clientes, guiaDas, publicadas, envio, { agora: () => AGORA }, erros),
     chamadas,
     mensagens,
     documentos,
@@ -207,14 +210,13 @@ describe("EntregarDasNaUra", () => {
     });
 
     it("se a conclusão não vale (cadastro mudou), a guia já entregue não vira erro, mas deixa rastro", async () => {
-      const log = jest.spyOn(console, "error").mockImplementation(() => undefined);
+      const log = jest.mocked(erros.registrar).mockClear();
       const { caso } = montar({ concluiu: false });
 
       const r = await caso.execute({ clienteId: CLIENTE, telefone: TELEFONE });
 
       expect(r.ok).toBe(true);
       expect(log).toHaveBeenCalledTimes(1);
-      log.mockRestore();
     });
   });
 

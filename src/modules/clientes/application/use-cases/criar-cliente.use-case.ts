@@ -7,6 +7,7 @@ import type {
 import type { ArquivoStoragePort } from "@/modules/clientes/application/ports/out/arquivo-storage.provider";
 import type { AuditoriaPort } from "@/modules/clientes/application/ports/out/auditoria.provider";
 import type { ClienteRepository } from "@/modules/clientes/application/ports/out/cliente.repository";
+import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
 import type {
   AtorSessaoDto,
   SessaoPort,
@@ -26,6 +27,7 @@ export class CriarCliente implements CriarClientePort {
     private readonly clientes: ClienteRepository,
     private readonly storage: ArquivoStoragePort,
     private readonly auditoria: AuditoriaPort,
+    private readonly erros: RegistroDeErrosPort,
   ) {}
 
   async execute(input: CriarClienteInput): Promise<Result<CriarClienteOutput, AppError>> {
@@ -139,7 +141,7 @@ export class CriarCliente implements CriarClientePort {
       return err(erro);
     }
 
-    console.error(
+    this.erros.registrar(
       `Falha ao compensar uploads órfãos (cliente=${clienteId}, cnpj=${input.cnpj}, caminhos=${enviados.join(",")}):`,
       removido.error.message,
     );

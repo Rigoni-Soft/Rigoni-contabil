@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   AnexarGuiaParcelaPgfnInput,
   AnexarGuiaParcelaPgfnPort,
 } from "@/modules/clientes/application/ports/in/anexar-guia-parcela-pgfn.provider";
@@ -8,6 +8,7 @@ import type {
   GuiaParcelaPgfnRepository,
 } from "@/modules/clientes/application/ports/out/guia-parcela-pgfn.repository";
 import type { LeitorDeGuiaDeParcelaPort } from "@/modules/clientes/application/ports/out/leitor-de-guia-de-parcela.provider";
+import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
 import {
   confirmarOuManter,
@@ -37,6 +38,7 @@ export class AnexarGuiaParcelaPgfn implements AnexarGuiaParcelaPgfnPort {
     private readonly guias: GuiaParcelaPgfnRepository,
     private readonly storage: ArquivoInspecionavelPort,
     private readonly leitor: LeitorDeGuiaDeParcelaPort,
+    private readonly erros: RegistroDeErrosPort,
   ) {}
 
   async execute(input: AnexarGuiaParcelaPgfnInput): Promise<Result<GuiaDaParcela, AppError>> {
@@ -80,14 +82,15 @@ export class AnexarGuiaParcelaPgfn implements AnexarGuiaParcelaPgfnPort {
     if (!enviado.ok) return enviado;
 
     const recusa = await revalidarPdfNoStorage(this.storage, caminho);
-    if (recusa) return desfazerUpload(this.storage, input.parcelamentoId, caminho, recusa);
+    if (recusa)
+      return desfazerUpload(this.storage, this.erros, input.parcelamentoId, caminho, recusa);
 
     const salvo = await this.guias.anexar(input.parcelamentoId, guia.value, motivo);
     if (salvo.ok) return confirmarOuManter(this.guias, input.parcelamentoId, guia.value, motivo);
     if (salvo.error instanceof ResultadoIncertoError) {
       return this.reconciliar(input.parcelamentoId, guia.value, motivo);
     }
-    return desfazerUpload(this.storage, input.parcelamentoId, caminho, salvo.error);
+    return desfazerUpload(this.storage, this.erros, input.parcelamentoId, caminho, salvo.error);
   }
 
   // Resposta perdida não prova rollback: só a leitura confirmando a linha vira sucesso; senão o

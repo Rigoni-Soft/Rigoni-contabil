@@ -4,7 +4,9 @@ import type {
   ClienteParcelamentoRepository,
   ParcelamentoSalvo,
 } from "@/modules/clientes/application/ports/out/cliente-parcelamento.repository";
+import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
 import type { ParcelamentoProps } from "@/modules/clientes/domain/value-objects/parcelamento.vo";
+import { ConsoleRegistroDeErrosGateway } from "@/modules/clientes/infra/gateways/console-registro-de-erros.gateway";
 import {
   parcelamentoDoRow,
   SELECT_PARCELAMENTO,
@@ -22,7 +24,10 @@ class PersistenciaError extends AppError {
 const semDesfechoConhecido = (status: number) => status === 0 || status >= 502;
 
 export class SupabaseClienteParcelamentoRepository implements ClienteParcelamentoRepository {
-  constructor(private readonly supabase: SupabaseClient) {}
+  constructor(
+    private readonly supabase: SupabaseClient,
+    private readonly erros: RegistroDeErrosPort = new ConsoleRegistroDeErrosGateway(),
+  ) {}
 
   async listar(clienteId: string): Promise<Result<ParcelamentoSalvo[], AppError>> {
     const { data, error } = await this.supabase
@@ -32,7 +37,7 @@ export class SupabaseClienteParcelamentoRepository implements ClienteParcelament
       .order("criado_em")
       .order("codigo");
     if (error) {
-      console.error("Falha ao listar Parcelamentos:", error.message);
+      this.erros.registrar("Falha ao listar Parcelamentos:", error.message);
       return err(new PersistenciaError("Não foi possível carregar os Parcelamentos."));
     }
 
@@ -45,7 +50,7 @@ export class SupabaseClienteParcelamentoRepository implements ClienteParcelament
       p_itens: itens,
     });
     if (error) {
-      console.error("Falha ao salvar Parcelamentos:", error.message);
+      this.erros.registrar("Falha ao salvar Parcelamentos:", error.message);
       if (semDesfechoConhecido(status)) {
         return err(
           new ResultadoIncertoError("Não foi possível confirmar o salvamento dos Parcelamentos."),

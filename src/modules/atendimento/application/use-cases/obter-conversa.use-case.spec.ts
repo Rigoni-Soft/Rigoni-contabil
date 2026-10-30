@@ -6,6 +6,7 @@ import type {
 import type { DocumentosContratuaisPort } from "@/modules/atendimento/application/ports/out/documentos-contratuais.provider";
 import type { AtorSessaoDto } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
+import type { RegimeValor } from "@/shared/kernel/regimes";
 import { err, ok } from "@/shared/kernel/result";
 
 import { ObterConversa } from "./obter-conversa.use-case";
@@ -72,14 +73,17 @@ const COM_ANEXO: ConversaLida = {
 };
 const FUNCIONARIO: AtorSessaoDto = { id: "func-1", papel: "funcionario", setor: "contabil" };
 
+// Fake parcial de uma porta: só os métodos que o caso de uso chama neste teste.
+const fake = <T>(parcial: Partial<T>) => parcial as T;
+
 function montar(
   ator: AtorSessaoDto | null,
   conversa: ConversaLida | null | "falha" = CONVERSA,
-  regime = "lucro_presumido",
+  regime: RegimeValor = "lucro_presumido",
 ) {
   const chamadasAnteriores: { antes: { id: string }; limite: number }[] = [];
   const pedidosPorId: string[][] = [];
-  const repo = {
+  const repo = fake<AtendimentoRepositoryPort>({
     conversa: async () =>
       conversa === "falha" ? err(new ServicoExternoError("banco")) : ok(conversa),
     roteamentoDoCliente: async () => ok({ regime: regime, responsavelId: null }),
@@ -100,9 +104,9 @@ function montar(
         temMaisAntigas: true,
       });
     },
-  } as unknown as AtendimentoRepositoryPort;
+  });
   const listados: string[] = [];
-  const documentos = {
+  const documentos = fake<DocumentosContratuaisPort>({
     listar: async (clienteId: string) => {
       listados.push(clienteId);
       return ok([
@@ -111,9 +115,9 @@ function montar(
         { tipo: "alteracao" as const, numero: 2, data: "2026-05-10", caminho: "a/alt-2.pdf" },
       ]);
     },
-  } as unknown as DocumentosContratuaisPort;
+  });
   const pedidos: string[][] = [];
-  const anexos = {
+  const anexos = fake<AnexosAtendimentoPort>({
     linksTemporarios: async (caminhos: string[]) => {
       pedidos.push(caminhos);
       return ok(
@@ -129,7 +133,7 @@ function montar(
         ),
       );
     },
-  } as unknown as AnexosAtendimentoPort;
+  });
   return {
     listados,
     pedidos,
@@ -141,18 +145,14 @@ function montar(
 
 // O mesmo caso de uso, com o Storage trocável para o teste de falha dos links.
 function montarComFalhaDeLinks() {
-  const anexos = { linksTemporarios: async () => ok({}) } as unknown as AnexosAtendimentoPort & {
-    linksTemporarios: () => Promise<unknown>;
-  };
-  const repo = {
+  const anexos = fake<AnexosAtendimentoPort>({ linksTemporarios: async () => ok({}) });
+  const repo = fake<AtendimentoRepositoryPort>({
     conversa: async () => ok(COM_ANEXO),
     roteamentoDoCliente: async () => ok({ regime: "lucro_presumido", responsavelId: null }),
     mensagensPorId: async () =>
       ok({ setor: "contabil" as const, funcionarioId: "func-1", mensagens: COM_ANEXO.mensagens }),
-  } as unknown as AtendimentoRepositoryPort;
-  const documentos = {
-    listar: async () => ok([]),
-  } as unknown as DocumentosContratuaisPort;
+  });
+  const documentos = fake<DocumentosContratuaisPort>({ listar: async () => ok([]) });
   return {
     anexos,
     caso: new ObterConversa({ usuarioAtual: async () => FUNCIONARIO }, repo, documentos, anexos),

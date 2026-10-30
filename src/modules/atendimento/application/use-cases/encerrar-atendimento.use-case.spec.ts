@@ -3,12 +3,15 @@ import type {
   AtendimentoRepositoryPort,
   ResultadoEncerramento,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
+import type { RegistroDeErrosPort } from "@/modules/atendimento/application/ports/out/registro-de-erros.provider";
 import type { AtorSessaoDto } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { AVISO_ENCERRAMENTO_AO_CLIENTE } from "@/modules/atendimento/domain/services/aviso-fila.service";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok } from "@/shared/kernel/result";
 
 import { EncerrarAtendimento } from "./encerrar-atendimento.use-case";
+
+const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 const ATENDIMENTO: AtendimentoEmAndamento = {
   id: "at-1",
@@ -47,6 +50,7 @@ function montar(
         return opcoes.avisoEncerramentoFalha ? err(new ServicoExternoError("meta")) : ok(undefined);
       },
     },
+    erros,
   );
   return { caso, encerrados, avisos };
 }
@@ -100,13 +104,12 @@ describe("EncerrarAtendimento", () => {
   });
 
   it("falha ao avisar o cliente do encerramento só vai ao log: o Atendimento já está encerrado", async () => {
-    const log = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    const log = jest.mocked(erros.registrar).mockClear();
     const { caso, encerrados } = montar({ avisoEncerramentoFalha: true });
 
     expect(await caso.execute(INPUT)).toEqual({ ok: true, value: undefined });
 
     expect(encerrados).toHaveLength(1);
     expect(log).toHaveBeenCalledWith(expect.stringContaining("at-1"), "meta");
-    log.mockRestore();
   });
 });
