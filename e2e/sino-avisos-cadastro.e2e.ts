@@ -59,7 +59,8 @@ test.describe("Sino de Avisos de cadastro (#143)", () => {
     await page.clock.install();
     await page.reload();
     // Linha de base só depois da primeira leitura do contador (sem selo = 0 ou ainda carregando).
-    await page.waitForLoadState("networkidle");
+    // Teto curto: no preview a rede nunca fica ociosa (ver e2e/fixtures.ts).
+    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
     const antes = await naoVistos(page);
 
     const admin = await (await browser.newContext()).newPage();
