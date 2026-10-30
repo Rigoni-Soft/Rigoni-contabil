@@ -7,8 +7,9 @@ import type { CadastroOperacionalClienteDto } from "@/modules/clientes/applicati
 import { BuscarClienteContainer } from "./buscar-cliente.container";
 
 const routerRefresh = jest.fn();
+const routerPush = jest.fn();
 jest.mock("next/navigation", () => ({
-  useRouter: () => ({ push: jest.fn(), refresh: routerRefresh }),
+  useRouter: () => ({ push: routerPush, refresh: routerRefresh }),
 }));
 
 const buscarClientesActionMock = jest.fn();
@@ -34,8 +35,7 @@ const CADASTRO: CadastroOperacionalClienteDto = {
   documentoObrigatorio: null,
   dasStatus: null,
   dataEnvioDas: null,
-  temParcelamento: false,
-  parcelamentoStatus: null,
+  parcelamentos: [],
   observacoesGerais: "",
   atividadeMes: { industria: false, comercio: false, servico: false },
   responsavelId: null,
@@ -44,11 +44,12 @@ const CADASTRO: CadastroOperacionalClienteDto = {
 
 // Sem retry: com fake timers, o backoff de retry do React Query enfileira
 // setTimeout extras que os testes não avançam, travando o findBy.
-function renderComQueryClient() {
+// Padrão: Funcionário do Simples Nacional (edita no painel embutido); o Admin vai à tela própria.
+function renderComQueryClient(papel = "funcionario", setor = "simples_nacional") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <BuscarClienteContainer papel="admin" setor="administrativo" />
+      <BuscarClienteContainer papel={papel} setor={setor} />
     </QueryClientProvider>,
   );
 }
@@ -59,6 +60,7 @@ describe("BuscarClienteContainer", () => {
     carregarCadastroOperacionalActionMock.mockReset();
     editarExecuteMock.mockReset();
     routerRefresh.mockReset();
+    routerPush.mockReset();
     jest.useFakeTimers();
   });
 
@@ -107,7 +109,7 @@ describe("BuscarClienteContainer", () => {
     expect(buscarClientesActionMock).toHaveBeenCalledWith({ termo: "Pão", apenasSnMei: true });
   });
 
-  it("mostra 'Buscando...' enquanto a query está em andamento", async () => {
+  it("mostra 'Buscando…' enquanto a query está em andamento", async () => {
     let resolver: (value: { ok: true; data: [] }) => void = () => {};
     buscarClientesActionMock.mockReturnValue(
       new Promise((resolve) => {
@@ -122,14 +124,14 @@ describe("BuscarClienteContainer", () => {
       jest.advanceTimersByTime(300);
     });
 
-    expect(screen.getAllByText("Buscando...").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Buscando…").length).toBeGreaterThan(0);
 
     await act(async () => {
       resolver({ ok: true, data: [] });
     });
 
     await waitFor(() => {
-      expect(screen.queryAllByText("Buscando...")).toHaveLength(0);
+      expect(screen.queryAllByText("Buscando…")).toHaveLength(0);
     });
   });
 
@@ -194,6 +196,25 @@ describe("BuscarClienteContainer", () => {
 
     expect(carregarCadastroOperacionalActionMock).toHaveBeenCalledWith(CADASTRO.id);
     expect(await screen.findByLabelText(/forma de envio/i)).toBeInTheDocument();
+  });
+
+  it("Admin, ao escolher um Cliente, vai à tela própria dele em vez do painel embutido", async () => {
+    buscarClientesActionMock.mockResolvedValue({
+      ok: true,
+      data: [{ id: CADASTRO.id, empresa: CADASTRO.empresa, cnpj: CADASTRO.cnpj }],
+    });
+    const usuario = userEvent.setup({ delay: null });
+    renderComQueryClient("admin", "administrativo");
+
+    await usuario.type(screen.getByLabelText(/empresa ou cnpj/i), "Pão");
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+    await usuario.click(await screen.findByText(CADASTRO.empresa));
+
+    expect(routerPush).toHaveBeenCalledWith(`/clientes/${CADASTRO.id}`);
+    expect(carregarCadastroOperacionalActionMock).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText(/forma de envio/i)).not.toBeInTheDocument();
   });
 
   it("o campo de busca é um combobox acessível ligado à lista de sugestões", async () => {

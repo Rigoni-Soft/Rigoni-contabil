@@ -37,6 +37,7 @@ const encerrar = jest.mocked(encerrarAtendimentoAction);
 const CONVERSA: ConversaVista = {
   atendimentoId: "at-1",
   encerrado: false,
+  podeAtender: true,
   telefone: "5561988887777",
   contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
   clienteVinculado: true,
@@ -44,17 +45,20 @@ const CONVERSA: ConversaVista = {
   ultimaTransferencia: null,
   ura: null,
   temMaisAnteriores: false,
-  avisoInatividade: false,
   setoresDestino: ["recepcao", "tributario"],
   documentos: [
-    { tipo: "contrato", data: null, descricao: "Contrato social" },
-    { tipo: "alteracao", data: "2026-03-01", descricao: "Alteração de 01/03/2026" },
+    { tipo: "contrato", numero: null, descricao: "Contrato social" },
+    {
+      tipo: "alteracao",
+      numero: 3,
+      descricao: "Alteração nº 3 - 01/03/2026",
+    },
   ],
 };
 
-function renderizar(conversa: ConversaVista = CONVERSA) {
+function renderizar(conversa: ConversaVista = CONVERSA, aoSair?: () => void) {
   const cliente = new QueryClient();
-  return renderHook(() => useAcoesConversa("at-1", conversa), {
+  return renderHook(() => useAcoesConversa("at-1", conversa, aoSair), {
     wrapper: ({ children }) => (
       <QueryClientProvider client={cliente}>{children}</QueryClientProvider>
     ),
@@ -74,10 +78,7 @@ describe("useAcoesConversa", () => {
     const { result } = renderizar();
 
     expect(result.current.visivel).toBe(true);
-    expect(result.current.servicos.map((s) => s.valor)).toEqual([
-      "contrato",
-      "alteracao:2026-03-01",
-    ]);
+    expect(result.current.servicos.map((s) => s.valor)).toEqual(["contrato", "alteracao:3"]);
     expect(result.current.setoresDestino.map((s) => s.rotulo)).toEqual(["Recepção", "Tributário"]);
   });
 
@@ -87,16 +88,24 @@ describe("useAcoesConversa", () => {
     expect(result.current.visivel).toBe(false);
   });
 
+  it("leitura de supervisão mantém o painel (encerrar), marcado como somente leitura", () => {
+    const { result } = renderizar({ ...CONVERSA, podeAtender: false });
+
+    expect(result.current.visivel).toBe(true);
+    expect(result.current.somenteLeitura).toBe(true);
+    expect(renderizar().result.current.somenteLeitura).toBe(false);
+  });
+
   it("envia o documento escolhido e avisa o sucesso", async () => {
     enviar.mockResolvedValue({ ok: true, data: undefined });
     const { result } = renderizar();
 
-    act(() => result.current.aoEnviarServico("alteracao:2026-03-01"));
+    act(() => result.current.aoEnviarServico("alteracao:3"));
 
     await waitFor(() => expect(result.current.aviso?.tipo).toBe("sucesso"));
     expect(enviar).toHaveBeenCalledWith({
       atendimentoId: "at-1",
-      documento: { tipo: "alteracao", data: "2026-03-01" },
+      documento: { tipo: "alteracao", numero: 3 },
     });
   });
 
@@ -115,7 +124,7 @@ describe("useAcoesConversa", () => {
   });
 
   it("transfere para o Setor escolhido, passa a mostrar para onde foi e volta ao início", async () => {
-    transferir.mockResolvedValue({ ok: true, data: { proximoDaFila: null } as never });
+    transferir.mockResolvedValue({ ok: true, data: undefined as never });
     const { result } = renderizar();
 
     act(() => result.current.aoTransferir("tributario", "DAS em atraso"));
@@ -128,15 +137,6 @@ describe("useAcoesConversa", () => {
       resumo: "DAS em atraso",
     });
     await waitFor(() => expect(push).toHaveBeenCalledWith("/"));
-  });
-
-  it("se ficou livre e assumiu o próximo da Fila, abre a conversa dele", async () => {
-    transferir.mockResolvedValue({ ok: true, data: { proximoDaFila: "at-2" } as never });
-    const { result } = renderizar();
-
-    act(() => result.current.aoTransferir("tributario", "DAS"));
-
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/atendimento/at-2"));
   });
 
   it("mostra o erro da transferência e não marca como transferido", async () => {
@@ -172,7 +172,7 @@ describe("useAcoesConversa", () => {
     });
 
     it("confirmado, encerra e volta ao início", async () => {
-      encerrar.mockResolvedValue({ ok: true, data: { proximoDaFila: null } });
+      encerrar.mockResolvedValue({ ok: true, data: undefined });
       const { result } = renderizar();
 
       act(() => result.current.aoConfirmarEncerramento());
@@ -181,13 +181,15 @@ describe("useAcoesConversa", () => {
       expect(encerrar).toHaveBeenCalledWith("at-1");
     });
 
-    it("se ficou livre e assumiu o próximo da Fila, abre a conversa dele", async () => {
-      encerrar.mockResolvedValue({ ok: true, data: { proximoDaFila: "at-2" } });
-      const { result } = renderizar();
+    it("com `aoSair` (chat central), encerra e fecha o painel em vez de ir ao início", async () => {
+      encerrar.mockResolvedValue({ ok: true, data: undefined });
+      const aoSair = jest.fn();
+      const { result } = renderizar(CONVERSA, aoSair);
 
       act(() => result.current.aoConfirmarEncerramento());
 
-      await waitFor(() => expect(push).toHaveBeenCalledWith("/atendimento/at-2"));
+      await waitFor(() => expect(aoSair).toHaveBeenCalled());
+      expect(push).not.toHaveBeenCalled();
     });
 
     it("mostra o erro e não sai da conversa", async () => {

@@ -1,14 +1,8 @@
 import { expect, test } from "./fixtures";
+import { login } from "./support/criar-cliente";
 
 // Data distante para não colidir com outros cenários.
 const DATA = "2031-03-17";
-
-async function login(page: import("@playwright/test").Page, email: string, senha: string) {
-  await page.goto("/login");
-  await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill(senha);
-  await page.getByRole("button", { name: "Entrar" }).click();
-}
 
 test.describe("Feriados (Admin only)", () => {
   test("Admin cadastra e remove um feriado @smoke", async ({ page }) => {

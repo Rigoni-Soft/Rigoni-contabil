@@ -12,9 +12,9 @@ export const filaKeys = {
   setor: (setor: SetorSlug | null) => [...filaKeys.todas(), setor ?? "minha"] as const,
 };
 
-// ponytail: polling a cada 5 s; entrada, saída e promoção aparecem em até esse tempo. Realtime
+// ponytail: polling a cada 15 s (o mesmo dos Atendimentos do usuário); entrada e saída aparecem em até esse tempo. Realtime
 // (`*.realtime.ts`, arquitetura.md 4.2) quando o atraso incomodar.
-const INTERVALO_MS = 5_000;
+const INTERVALO_MS = 15_000;
 
 export function useFilaQuery(
   setor: SetorSlug | null,

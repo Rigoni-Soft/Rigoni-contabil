@@ -3,6 +3,7 @@ import type {
   RegistrarAcaoAuditoria,
 } from "@/modules/usuarios/application/ports/out/auditoria.provider";
 import type { AuthAdminPort } from "@/modules/usuarios/application/ports/out/auth-admin.provider";
+import type { RegistroDeErrosPort } from "@/modules/usuarios/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
 import { Usuario, type UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
@@ -14,6 +15,8 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { CriarUsuario } from "./criar-usuario.use-case";
+
+const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 function usuarioFalso(id: string, papel: string, setor = "administrativo"): Usuario {
   const resultado = Usuario.builder()
@@ -121,6 +124,7 @@ describe("CriarUsuario", () => {
       usuarios,
       authAdmin,
       auditoria,
+      erros,
       new AutorizacaoService(),
     ).execute(INPUT_VALIDO);
 
@@ -154,6 +158,7 @@ describe("CriarUsuario", () => {
       usuarios,
       authAdmin,
       auditoria,
+      erros,
       new AutorizacaoService(),
     ).execute(INPUT_VALIDO);
 
@@ -173,6 +178,7 @@ describe("CriarUsuario", () => {
       usuarios,
       authAdmin,
       auditoria,
+      erros,
       new AutorizacaoService(),
     ).execute(INPUT_VALIDO);
 
@@ -193,6 +199,7 @@ describe("CriarUsuario", () => {
       usuarios,
       authAdmin,
       auditoria,
+      erros,
       new AutorizacaoService(),
     ).execute({
       ...INPUT_VALIDO,
@@ -216,6 +223,7 @@ describe("CriarUsuario", () => {
       usuarios,
       authAdmin,
       auditoria,
+      erros,
       new AutorizacaoService(),
     ).execute(INPUT_VALIDO);
 
@@ -242,6 +250,7 @@ describe("CriarUsuario", () => {
       usuarios,
       new AuthAdminFalso(),
       new AuditoriaFalsa(),
+      erros,
       new AutorizacaoService(),
     ).execute(INPUT_VALIDO);
 
@@ -262,6 +271,7 @@ describe("CriarUsuario", () => {
       usuarios,
       authAdmin,
       auditoria,
+      erros,
       new AutorizacaoService(),
     ).execute(INPUT_VALIDO);
 
@@ -278,6 +288,7 @@ describe("CriarUsuario", () => {
       new UsuarioRepositoryFalso(),
       new AuthAdminFalso(),
       new AuditoriaFalsa(),
+      erros,
       new AutorizacaoService(),
     ).execute(INPUT_VALIDO);
 
@@ -296,6 +307,7 @@ describe("CriarUsuario", () => {
       usuarios,
       authAdmin,
       auditoria,
+      erros,
       new AutorizacaoService(),
     ).execute(INPUT_VALIDO);
 
@@ -316,6 +328,7 @@ describe("CriarUsuario", () => {
       usuarios,
       authAdmin,
       auditoria,
+      erros,
       new AutorizacaoService(),
     ).execute(INPUT_VALIDO);
 
@@ -337,6 +350,7 @@ describe("CriarUsuario", () => {
       usuarios,
       authAdmin,
       auditoria,
+      erros,
       new AutorizacaoService(),
     ).execute(INPUT_VALIDO);
 
@@ -355,6 +369,7 @@ describe("CriarUsuario", () => {
       usuarios,
       authAdmin,
       auditoria,
+      erros,
       new AutorizacaoService(),
     ).execute(INPUT_VALIDO);
 
@@ -374,13 +389,14 @@ describe("CriarUsuario", () => {
     const authAdmin = new AuthAdminFalso();
     authAdmin.erroAoRemover = new ValidationError("falha ao remover conta");
     const auditoria = new AuditoriaFalsa();
-    const erroConsole = jest.spyOn(console, "error").mockImplementation(() => {});
+    jest.mocked(erros.registrar).mockClear();
 
     const resultado = await new CriarUsuario(
       sessao,
       usuarios,
       authAdmin,
       auditoria,
+      erros,
       new AutorizacaoService(),
     ).execute(INPUT_VALIDO);
 
@@ -392,9 +408,9 @@ describe("CriarUsuario", () => {
     expect(auditoria.registros).toEqual([
       expect.objectContaining({ resultado: "falha_compensacao" }),
     ]);
-    const [, ...mensagensLogadas] = erroConsole.mock.calls[0] as unknown as string[];
+    const [, ...mensagensLogadas] = jest.mocked(erros.registrar).mock
+      .calls[0] as unknown as string[];
     expect(mensagensLogadas.join(" ")).not.toContain(authAdmin.senhaGerada);
-    erroConsole.mockRestore();
   });
 
   it("quando a compensação tem sucesso, devolve o erro original (não o de estado inconsistente) e audita 'falha'", async () => {
@@ -409,6 +425,7 @@ describe("CriarUsuario", () => {
       usuarios,
       authAdmin,
       auditoria,
+      erros,
       new AutorizacaoService(),
     ).execute(INPUT_VALIDO);
 

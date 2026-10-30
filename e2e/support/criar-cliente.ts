@@ -13,11 +13,25 @@ const SUPABASE_ANON_KEY =
 // Compartilhado pelos e2e que precisam logar como Admin e cadastrar um Cliente Simples Nacional
 // válido antes do cenário que testam de fato.
 
+// Único login dos e2e. Em `next dev` o clique em "Entrar" antes da hidratação faz o formulário ser
+// enviado nativamente (GET /login, campos vazios) e o teste fica em /login: espere o React assumir o form.
 export async function login(page: Page, email: string, senha: string) {
   await page.goto("/login");
+  await page.waitForFunction(() => {
+    const form = document.querySelector("form");
+    return !!form && Object.keys(form).some((chave) => chave.startsWith("__reactProps"));
+  });
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Senha").fill(senha);
   await page.getByRole("button", { name: "Entrar" }).click();
+  // Só volta com o login resolvido: saiu de /login (a navegação de /, que redireciona, pode levar
+  // mais que os 5 s do expect no next dev) ou o formulário mostrou o alerta de recusa. Quem chama
+  // decide o que esperar; sem isso o teste corria contra o relógio logo após o clique.
+  const desfecho = [
+    page.waitForURL((url) => url.pathname !== "/login", { timeout: 30_000 }),
+    page.getByRole("alert").first().waitFor({ timeout: 30_000 }),
+  ].map((p) => p.catch(() => undefined));
+  await Promise.race(desfecho);
 }
 
 export function pdf(nome: string) {
@@ -104,4 +118,21 @@ export async function criarClienteComoAdmin(
 
   await expect(page.getByText(empresa)).toBeVisible();
   return cnpjDigits;
+}
+
+// Admin cadastra um Cliente SN com a alteração nº 1; devolve o id para abrir /clientes/[id].
+export async function criarClienteComAlteracao1(page: Page, empresa: string): Promise<string> {
+  const cnpj = cnpjUnico();
+  await login(page, "admin@rigonicontabil.local", "admin123");
+  await expect(page).toHaveURL("/");
+  await page.goto("/admin/clientes/novo");
+  await page.getByLabel("Empresa").fill(empresa);
+  await page.getByLabel("CNPJ").fill(cnpj);
+  await page.getByLabel("Regime").selectOption("simples_nacional");
+  await page.getByRole("button", { name: "Adicionar" }).click();
+  await page.getByLabel("Data da alteração 1").fill("2026-02-01");
+  await page.getByLabel("Arquivo da alteração 1").setInputFiles(pdf("1-alteracao.pdf"));
+  await page.getByRole("button", { name: "Cadastrar" }).click();
+  await expect(page.getByText(empresa)).toBeVisible();
+  return atribuirResponsavelComoLider(cnpj);
 }

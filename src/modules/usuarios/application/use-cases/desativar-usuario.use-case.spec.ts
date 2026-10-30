@@ -1,5 +1,6 @@
 import type { AuthAdminPort } from "@/modules/usuarios/application/ports/out/auth-admin.provider";
 import type { DesativacaoPort } from "@/modules/usuarios/application/ports/out/desativacao.provider";
+import type { RegistroDeErrosPort } from "@/modules/usuarios/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
 import { Usuario, type UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
@@ -7,6 +8,8 @@ import { AppError } from "@/shared/errors/app.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { DesativarUsuario } from "./desativar-usuario.use-case";
+
+const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 class FalhaTecnica extends AppError {
   readonly code = "PERSISTENCIA_ERROR";
@@ -59,7 +62,7 @@ function montar(opcoes: { atorId?: string | null; perfis?: Usuario[] } = {}) {
   } as unknown as AuthAdminPort;
 
   return {
-    casoDeUso: new DesativarUsuario(sessao, usuarios, desativacao, authAdmin),
+    casoDeUso: new DesativarUsuario(sessao, usuarios, desativacao, authAdmin, erros),
     chamadas,
     falhas,
   };

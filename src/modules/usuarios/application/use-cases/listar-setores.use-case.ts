@@ -2,6 +2,7 @@ import type {
   ListarSetoresPort,
   SetorDto,
 } from "@/modules/usuarios/application/ports/in/listar-setores.provider";
+import type { RegistroDeErrosPort } from "@/modules/usuarios/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
 import { AutorizacaoService } from "@/modules/usuarios/domain/services/autorizacao.service";
@@ -11,6 +12,7 @@ export class ListarSetores implements ListarSetoresPort {
   constructor(
     private readonly sessao: SessaoPort,
     private readonly usuarios: UsuarioRepository,
+    private readonly erros: RegistroDeErrosPort,
     private readonly autorizacao = new AutorizacaoService(),
   ) {}
 
@@ -20,7 +22,7 @@ export class ListarSetores implements ListarSetoresPort {
 
     const perfil = await this.usuarios.buscarPorId(id);
     if (!perfil.ok) {
-      console.error("Falha ao carregar perfil para listar setores:", perfil.error.message);
+      this.erros.registrar("Falha ao carregar perfil para listar setores:", perfil.error.message);
       return [];
     }
     // JWT de quem foi desativado vale até expirar; o perfil é a fonte da verdade.

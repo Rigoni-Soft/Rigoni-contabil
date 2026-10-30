@@ -60,7 +60,7 @@ describe("enviarDocumentoAction (integração)", () => {
 
   it("chama o caso de uso com o documento escolhido", async () => {
     enviarMock.mockResolvedValue(ok(undefined));
-    const entrada = { atendimentoId: ID, documento: { tipo: "alteracao", data: "2026-03-01" } };
+    const entrada = { atendimentoId: ID, documento: { tipo: "alteracao", numero: 3 } };
     const r = await enviarDocumentoAction(entrada);
     expect(r.ok).toBe(true);
     expect(enviarMock).toHaveBeenCalledWith(entrada);
@@ -69,7 +69,7 @@ describe("enviarDocumentoAction (integração)", () => {
   it("devolve VALIDATION_ERROR sem chamar o caso de uso quando o documento é inválido", async () => {
     const r = await enviarDocumentoAction({
       atendimentoId: ID,
-      documento: { tipo: "alteracao", data: null },
+      documento: { tipo: "alteracao", numero: null },
     });
     expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
     expect(enviarMock).not.toHaveBeenCalled();
@@ -124,12 +124,12 @@ describe("enviarMensagemAction (integração)", () => {
 describe("encerrarAtendimentoAction (integração)", () => {
   beforeEach(() => encerrarMock.mockReset());
 
-  it("chama o caso de uso e devolve o próximo da Fila que o Funcionário assumiu", async () => {
-    encerrarMock.mockResolvedValue(ok({ proximoDaFila: "at-9" }));
+  it("chama o caso de uso e devolve o resultado", async () => {
+    encerrarMock.mockResolvedValue(ok(undefined));
 
     const r = await encerrarAtendimentoAction(ID);
 
-    expect(r).toEqual({ ok: true, data: { proximoDaFila: "at-9" } });
+    expect(r).toEqual({ ok: true, data: undefined });
     expect(encerrarMock).toHaveBeenCalledWith({ atendimentoId: ID });
   });
 

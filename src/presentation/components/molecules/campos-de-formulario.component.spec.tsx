@@ -21,6 +21,30 @@ describe("CampoDeTexto", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("CNPJ inválido.");
   });
 
+  it("a ajuda fica sob o campo e é a descrição dele", () => {
+    render(<CampoDeTexto id="n" rotulo="Nº" ajuda="Pode editar." />);
+
+    expect(screen.getByLabelText("Nº")).toHaveAccessibleDescription("Pode editar.");
+  });
+
+  it("erro e aviso são a descrição do campo, junto da ajuda e do que o chamador ligou", () => {
+    const { rerender } = render(
+      <CampoDeTexto
+        id="n"
+        rotulo="Nº"
+        ajuda="Pode editar."
+        aria-describedby="externo"
+        erro="Obrigatório."
+      />,
+    );
+    const campo = screen.getByLabelText("Nº");
+    expect(campo).toHaveAccessibleDescription(/Obrigatório\./);
+    expect(campo).toHaveAccessibleDescription(/Pode editar\./);
+
+    rerender(<CampoDeTexto id="n" rotulo="Nº" aviso="Confira o nº." />);
+    expect(screen.getByLabelText("Nº")).toHaveAccessibleDescription("Confira o nº.");
+  });
+
   it("o aviso só aparece quando não há erro", () => {
     const { rerender } = render(<CampoDeTexto id="e" rotulo="Empresa" aviso="Confirme à mão." />);
     expect(screen.getByRole("alert")).toHaveTextContent("Confirme à mão.");
@@ -31,6 +55,32 @@ describe("CampoDeTexto", () => {
 });
 
 describe("CampoDeOpcoes", () => {
+  it("o erro é a descrição do select", () => {
+    render(
+      <CampoDeOpcoes
+        id="r"
+        rotulo="Regime"
+        opcoes={[{ valor: "mei", rotulo: "MEI" }]}
+        erro="Escolha um regime."
+      />,
+    );
+
+    expect(screen.getByLabelText("Regime")).toHaveAccessibleDescription("Escolha um regime.");
+  });
+
+  it("a ajuda é a descrição do select", () => {
+    render(
+      <CampoDeOpcoes
+        id="r"
+        rotulo="Regime"
+        opcoes={[{ valor: "mei", rotulo: "MEI" }]}
+        ajuda="Definido pelo sistema."
+      />,
+    );
+
+    expect(screen.getByLabelText("Regime")).toHaveAccessibleDescription("Definido pelo sistema.");
+  });
+
   it("lista as opções e usa o placeholder desabilitado", () => {
     render(
       <CampoDeOpcoes
@@ -95,6 +145,8 @@ describe("linhas de lista do formulário", () => {
     render(
       <LinhaDeAlteracao
         indice={0}
+        numero={{}}
+        erroNumero="Já existe a alteração nº 1"
         data={{}}
         erroData="Informe a data."
         erroArquivo="Envie o arquivo."
@@ -107,7 +159,15 @@ describe("linhas de lista do formulário", () => {
       "id",
       "alteracoesContratuais.0.arquivo",
     );
+    expect(screen.getByLabelText("Nº da alteração 1")).toHaveAttribute("type", "number");
+    expect(screen.getByLabelText("Nº da alteração 1")).toHaveAccessibleDescription(
+      /Sugerido pelo início do nome do arquivo.*Já existe a alteração nº 1/,
+    );
+    expect(screen.getByLabelText("Data da alteração 1")).toHaveAccessibleDescription(
+      "Informe a data.",
+    );
     expect(screen.getAllByRole("alert").map((a) => a.textContent)).toEqual([
+      "Já existe a alteração nº 1",
       "Informe a data.",
       "Envie o arquivo.",
     ]);

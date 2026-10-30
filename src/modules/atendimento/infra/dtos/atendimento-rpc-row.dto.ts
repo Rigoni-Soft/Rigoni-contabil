@@ -3,33 +3,15 @@ import { z } from "zod";
 import { REGIMES } from "@/shared/kernel/regimes";
 import { SETORES } from "@/shared/kernel/setores";
 
-// `abrir_atendimento`: o Atendimento e o Funcionário que ficou com ele (null = Fila), ou null se o
-// Funcionário escolhido foi ocupado.
-export const aberturaRowSchema = z
-  .object({
-    id: z.string(),
-    funcionario_id: z.string().nullable(),
-    promovido: z.lazy(() => assumidoRowSchema).nullable(),
-  })
-  .nullable();
+// `abrir_atendimento`: o Atendimento aberto na espera do Setor.
+export const aberturaRowSchema = z.object({ id: z.string() });
 // `anexar_mensagem_atendimento`: true se havia Atendimento em andamento.
 export const anexoRowSchema = z.boolean();
-
-// Atendimento que um Funcionário liberado assumiu da Fila (`assumir_proximo_da_fila`).
-const assumidoRowSchema = z.object({
-  id: z.string(),
-  telefone: z.string(),
-  chave: z.string(),
-  funcionario_nome: z.string().nullable(),
-});
 
 // `transferir_atendimento`: `status` e, quando transferido, os nomes/dados do destino.
 export const transferenciaRowSchema = z.discriminatedUnion("status", [
   z.object({
     status: z.literal("transferido"),
-    proximo_da_origem: assumidoRowSchema.nullable(),
-    promovido: assumidoRowSchema.nullable(),
-    na_fila: z.boolean(),
     destinatario_nome: z.string().nullable(),
     origem_nome: z.string().nullable(),
     contato_nome: z.string().nullable(),
@@ -48,28 +30,31 @@ export const atendimentoEmAndamentoRowSchema = z.object({
   funcionario_id: z.string().nullable(),
   telefone: z.string(),
   chave_telefone: z.string(),
-  aviso_inatividade_em: z.string().nullable(),
 });
 
 // `clientes` com o cadastro operacional embutido (1:1; só MEI/Simples Nacional têm linha).
 export const roteamentoDoClienteRowSchema = z.object({
   regime: z.enum(REGIMES),
   cliente_cadastro_operacional_sn: z.object({ responsavel_id: z.string().nullable() }).nullable(),
+  // Responsável dos Setores fora do Simples Nacional (um por Setor).
+  cliente_responsaveis: z.array(z.object({ setor: z.enum(SETORES), responsavel_id: z.string() })),
 });
 
 export const liderRowSchema = z.object({ id: z.string() });
 
-// `posicao_na_fila`: null se o Atendimento não está em Fila.
-export const posicaoRowSchema = z.number().int().nullable();
 // `encerrar_atendimento`: `inexistente` se não estava em andamento com o dono informado.
 export const encerramentoRowSchema = z.discriminatedUnion("status", [
-  z.object({ status: z.literal("encerrado"), proximo: assumidoRowSchema.nullable() }),
+  z.object({ status: z.literal("encerrado") }),
   z.object({ status: z.literal("inexistente") }),
 ]);
 
+// `assumir_atendimento`.
+export const assuncaoRowSchema = z.object({
+  status: z.enum(["assumido", "inelegivel", "ja_assumido", "inexistente"]),
+});
+
 export const filaRowSchema = z.object({
   id: z.string(),
-  posicao: z.number().int(),
   fila_funcionario_id: z.string().nullable(),
   fila_desde: z.string(),
   telefone: z.string(),
@@ -77,38 +62,10 @@ export const filaRowSchema = z.object({
   empresa: z.string().nullable(),
   cnpj: z.string().nullable(),
   resumo: z.string().nullable(),
+  origem_setor: z.enum(SETORES).nullable(),
+  origem_nome: z.string().nullable(),
 });
 
-// `atendimentos_para_inatividade`.
-export const inatividadeRowSchema = z.object({
-  id: z.string(),
-  setor: z.enum(SETORES),
-  funcionario_id: z.string(),
-  telefone: z.string(),
-  chave_telefone: z.string(),
-  ultima_do_contato: z.string().nullable(),
-  ultima_do_funcionario: z.string().nullable(),
-  aviso_inatividade_em: z.string().nullable(),
-  aviso_inatividade_de: z.enum(["contato", "funcionario"]).nullable(),
-  aviso_entregue_em: z.string().nullable(),
-});
-
-export const encerramentoPendenteRowSchema = z.object({
-  id: z.string(),
-  telefone: z.string(),
-  texto: z.string().nullable(),
-  reivindicacao: z.string(),
-});
-
-// `encerrar_atendimento_por_inatividade`: o encerrado traz o token da reivindicação.
-export const encerramentoPorInatividadeRowSchema = z.discriminatedUnion("status", [
-  z.object({
-    status: z.literal("encerrado"),
-    proximo: assumidoRowSchema.nullable(),
-    reivindicacao: z.string(),
-  }),
-  z.object({ status: z.literal("inexistente") }),
-]);
 // `clientes` embutido num Atendimento, com os Contatos para achar quem escreve pelo telefone.
 const clienteComContatosRowSchema = z
   .object({
@@ -127,6 +84,8 @@ const clienteComContatosRowSchema = z
 
 export const atendimentoDoFuncionarioRowSchema = z.object({
   id: z.string(),
+  funcionario_id: z.string().nullable(),
+  dono: z.object({ nome: z.string() }).nullable(),
   telefone: z.string(),
   chave_telefone: z.string(),
   criado_em: z.string(),
@@ -169,8 +128,6 @@ export const conversaRowSchema = z.object({
   chave_telefone: z.string(),
   resumo_ura: z.string().nullable(),
   cnpj_informado: z.string().nullable(),
-  aviso_inatividade_em: z.string().nullable(),
-  aviso_inatividade_de: z.enum(["contato", "funcionario"]).nullable(),
   clientes: clienteComContatosRowSchema,
   mensagens: z.array(mensagemDaConversaRowSchema),
   transferencias: z.array(

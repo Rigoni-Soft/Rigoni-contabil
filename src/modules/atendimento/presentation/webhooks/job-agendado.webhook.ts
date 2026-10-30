@@ -4,8 +4,8 @@ import type { Result } from "@/shared/kernel/result";
 
 // Rota de job do agendador (Vercel Cron chama com GET; POST serve a outros agendadores).
 // Autenticar (CRON_SECRET) não autoriza executar: a flag do job manda, e desligado nada é lido,
-// enviado nem alterado. Falha por item não passa por 200: o agendador e o monitoramento veem a
-// rodada falha, e o resumo vai no corpo.
+// enviado nem alterado. Falha por item não passa por 200: o agendador e o
+// monitoramento veem a rodada falha, e o resumo vai no corpo.
 export function jobAgendadoWebhook(
   ativo: () => boolean,
   executar: () => Promise<Result<{ falhas: number }, AppError>>,

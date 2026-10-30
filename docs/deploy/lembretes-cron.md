@@ -5,14 +5,14 @@ Paulo). O próprio job confere o dia no fuso de São Paulo e não faz nada fora 
 
 ## Gate de ativação
 
-Mesma regra da inatividade ([inatividade-cron.md](./inatividade-cron.md)): `CRON_SECRET` autentica,
+Mesma regra do encerramento automático ([encerramento-cron.md](./encerramento-cron.md)): `CRON_SECRET` autentica,
 mas só `LEMBRETES_AUTOMATICOS=ligada` autoriza executar (desligada responde
 `200 { "ativa": false }`). Em `NODE_ENV=production` exige também `MENSAGERIA_MODO=real`: com o
 adapter falso o DAS ficaria `enviado` sem o cliente ter recebido.
 
 Antes de ligar em produção:
 
-1. Mensageria real no ar (#68) e os 3 templates aprovados na Meta (#67).
+1. Mensageria real no ar (#68) e os 3 templates do lembrete e do DAS aprovados na Meta (#67). O quarto, `envio_guia_parcelamento_interno`, é do job de parcelamento ([parcelamento-cron.md](./parcelamento-cron.md)).
 2. E-mail real. Hoje só existe o adapter falso, e em produção o canal e-mail falha de forma
    explícita (`EnvioEmailIndisponivelGateway`): o DAS não é marcado como enviado e o setor recebe
    alerta, em vez de o adapter falso responder ok. O destino é `clientes.email`,
@@ -33,7 +33,7 @@ Antes de ligar em produção:
   até 3 vezes (2 s entre elas) antes de virar alerta `falha_envio`. Cada envio repete sozinho: o
   texto que já chegou não sai de novo quando só o documento falhou. Sem autorização vigente ou
   destinatário inválido não repete.
-- **Reserva do envio do DAS (R87-01):** antes de buscar e enviar, o job reserva a entrega
+- **Reserva do envio do DAS:** antes de buscar e enviar, o job reserva a entrega
   (`reservar_envio_automatico`, tabela `envios_automaticos`: um token por Cliente e tipo, validade
   de 15 min). A reserva **não muda o DAS**: ele só vira `enviado` (com a data, auditado com a URA)
   ao concluir, depois de a entrega ser aceita, e só com o token da reserva. Quem não reservou (outro
@@ -41,6 +41,11 @@ Antes de ligar em produção:
   segue `pronto`. Queda no meio deixa o DAS como estava e a reserva expira: a rodada seguinte
   retoma. Conclusão ou liberação com token antigo não têm efeito (a tentativa mais recente não é
   sobrescrita).
+- **Só o job marca `enviado` (#108):** nenhum usuário (Admin inclusive) define o DAS `enviado` nem
+  a data de envio pela tela, pela RPC de edição ou pela Data API; um gatilho no banco barra (erro
+  `23514`), e a data é sempre derivada. O job passa porque grava com `service_role`, sem sessão
+  (`auth.uid()` nulo). Definir `enviado` por engano não é possível pela tela; para desfazer um `enviado`
+  basta mudar o status para outro valor (a data é limpa). ADR 0008.
 - **Forma de envio:** WhatsApp e e-mail são independentes; o DAS vira `enviado` se ao menos um
   canal entregou. Canal que falha ou não tem destinatário gera alerta e não derruba o outro. Quando
   a guia do DAS tem os dois canais na forma de envio e só um entregou, abre-se também
@@ -49,10 +54,10 @@ Antes de ligar em produção:
   outro canal.
 - **Guia no template:** o PDF vai para o bucket privado `guias-fiscais` e o provedor busca por link
   assinado (7 dias). Os PDFs não são removidos (ver `ponytail:` no gateway).
-- **Leitura completa (R87-03):** os Clientes vêm em páginas de 500 por cursor (`cliente_id`),
+- **Leitura completa:** os Clientes vêm em páginas de 500 por cursor (`cliente_id`),
   abaixo do `max_rows` do PostgREST. A leitura é completa ou erro: página que falha não vira rodada
   parcial.
-- **Janela de 24h (R87-04):** consultada pela chave **nacional** do telefone (DDD + número, a que o
+- **Janela de 24h:** consultada pela chave **nacional** do telefone (DDD + número, a que o
   recebimento grava em `atendimentos.chave_telefone`); o telefone de envio vai com o DDI 55.
 - **Alertas:** `alertas_setor`, um aberto por Cliente e tipo (índice parcial). Repetir o alerta
   renova a mensagem e a data; ao fim da rodada o que não foi renovado é resolvido (o Cliente

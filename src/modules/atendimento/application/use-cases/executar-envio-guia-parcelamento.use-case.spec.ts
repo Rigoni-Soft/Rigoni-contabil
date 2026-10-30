@@ -1,3 +1,4 @@
+import { SEM_ANDAMENTO } from "@/modules/atendimento/application/jobs/alertas-da-rodada";
 import type { AlertaSetor } from "@/modules/atendimento/application/ports/out/alerta-setor.provider";
 import type { ClienteParaParcelamento } from "@/modules/atendimento/application/ports/out/clientes-para-parcelamento.provider";
 import type { EmailParaEnvio } from "@/modules/atendimento/application/ports/out/envio-email.provider";
@@ -10,8 +11,8 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { EntregarComunicacaoPorCanais } from "./entregar-comunicacao-por-canais.use-case";
 import { EnviarComunicacaoProativa } from "./enviar-comunicacao-proativa.use-case";
+import { EnviarGuiasParcelamento } from "./enviar-guias-parcelamento.use-case";
 import { ExecutarEnvioGuiaParcelamento } from "./executar-envio-guia-parcelamento.use-case";
-import { ObterGuiaParcelamentoParaEnvio } from "./obter-guia-parcelamento-para-envio.use-case";
 
 // 22/10/2026 09:00 em São Paulo.
 const diaDoJob = new Date("2026-10-22T12:00:00Z");
@@ -32,14 +33,21 @@ function cliente(extra: Partial<ClienteParaParcelamento> = {}): ClienteParaParce
 const guiaOk: GuiaFiscal = {
   nomeArquivo: "parcelamento.pdf",
   pdfBase64: "JVBERi0=",
-  parcela: "202609",
+  parcela: "202610",
+};
+const emAberto = {
+  id: "p1",
+  codigo: "PARC-1",
+  interno: false,
+  valorParcelaCentavos: 10_000,
+  parcelasRestantes: 5,
 };
 
 function montar(
   clientes: ClienteParaParcelamento[],
   opcoes: {
     agora?: Date;
-    buscar?: () => Promise<Result<GuiaFiscal, AppError>>;
+    buscar?: () => Promise<Result<GuiaFiscal[], AppError>>;
     falhas?: Record<string, number>;
     reservar?: Result<string | null, AppError>;
     // Por Cliente: sobrepõe `reservar` (um Cliente com a reserva ocupada ao lado de outro livre).
@@ -59,7 +67,7 @@ function montar(
   // Quantos templates já tinham saído quando cada conclusão foi pedida: concluir é depois do envio.
   const entregasAoConcluir: number[] = [];
   const resolvidos: { desde: Date; ids: string[] }[] = [];
-  const buscar = jest.fn(opcoes.buscar ?? (async () => ok(guiaOk)));
+  const buscar = jest.fn(opcoes.buscar ?? (async () => ok([guiaOk])));
   const job = new ExecutarEnvioGuiaParcelamento(
     {
       listarPendentes: async () => ok(clientes),
@@ -77,18 +85,42 @@ function montar(
         return opcoes.liberar ?? ok(undefined);
       },
     },
-    new ObterGuiaParcelamentoParaEnvio(
-      { buscar },
-      { publicar: async () => ok("https://storage.test/parcelamento.pdf") },
-      0,
-    ),
-    new EntregarComunicacaoPorCanais(
-      new EnviarComunicacaoProativa(envio, 3, 0),
+    new EnviarGuiasParcelamento(
       {
-        enviar: async (email) => {
-          emails.push(email);
-          return ok(undefined);
+        listarEmAberto: async () => ok([{ ...emAberto, parcelasEnviadas: [] }]),
+        contarComuns: async () => ok(0),
+        guiasEntregues: async () => ok([]),
+        registrarEnvio: async () => ok("registrado"),
+      },
+      { buscarGuiasParcelamento: buscar },
+      {
+        publicar: async () =>
+          ok({
+            url: "https://storage.test/parcelamento.pdf",
+            caminho: "c1/p1/202610-hash.pdf",
+          }),
+        reencontrar: async () => ok("https://storage.test/parcelamento.pdf"),
+      },
+      new EntregarComunicacaoPorCanais(
+        new EnviarComunicacaoProativa(envio, 3, 0),
+        {
+          enviar: async (email) => {
+            emails.push(email);
+            return ok(undefined);
+          },
         },
+        0,
+      ),
+      {
+        envio,
+        cnpjs: { cadastroFiscalDoCliente: async () => ok({ cnpj: "12345678000190", regime: "" }) },
+        telefone: null,
+      },
+      {
+        listarEmAberto: async () => ok([]),
+        ler: async () => ok(""),
+        reservar: async () => ok("tok"),
+        liberar: async () => ok(undefined),
       },
       0,
     ),
@@ -156,7 +188,7 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
       {
         nome: "envio_guia_parcelamento",
         telefone,
-        variaveis: ["Ângela", "3A Construções", "09/2026"],
+        variaveis: ["Ângela", "3A Construções", "10/2026"],
         documento: {
           url: "https://storage.test/parcelamento.pdf",
           nomeArquivo: "parcelamento.pdf",
@@ -183,10 +215,11 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
     ]);
   });
 
-  it("sem destinatário: alerta uma vez, sem buscar a guia nem reservar", async () => {
-    const { job, alertas, reservados, buscar } = montar([cliente({ contato: null })]);
+  it("sem destinatário: alerta uma vez, sem buscar a guia nem concluir, e libera a reserva", async () => {
+    const { job, alertas, liberados, concluidos, buscar } = montar([cliente({ contato: null })]);
     await job.execute();
-    expect(reservados).toHaveLength(0);
+    expect(liberados).toEqual([["c1", "tok-1"]]);
+    expect(concluidos).toHaveLength(0);
     expect(buscar).not.toHaveBeenCalled();
     expect(alertas).toMatchObject([
       { setor: "simples_nacional", tipo: "contato_ausente", clienteId: "c1" },
@@ -198,7 +231,7 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
     const { job, alertas, reservados } = montar([cliente()], {
       buscar: async () => {
         chamadas += 1;
-        return chamadas < 3 ? err(new ServicoExternoError("503")) : ok(guiaOk);
+        return chamadas < 3 ? err(new ServicoExternoError("503")) : ok([guiaOk]);
       },
     });
     await job.execute();
@@ -228,13 +261,13 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
     expect(alertas).toMatchObject([{ tipo: "falha_envio" }]);
   });
 
-  it("guia sem parcela: falha em vez de enviar um template sem a variável", async () => {
+  it("guia sem parcela: não é enviada e o parcelamento fica sem guia, avisando o setor", async () => {
     const { job, alertas, envio } = montar([cliente()], {
-      buscar: async () => ok({ nomeArquivo: "p.pdf", pdfBase64: "JVBERi0=" }),
+      buscar: async () => ok([{ nomeArquivo: "p.pdf", pdfBase64: "JVBERi0=" }]),
     });
     await job.execute();
     expect(envio.requisicoes).toHaveLength(0);
-    expect(alertas).toMatchObject([{ tipo: "falha_envio" }]);
+    expect(alertas).toMatchObject([{ tipo: "parcelamento_sem_guia" }]);
   });
 
   it("WhatsApp falha (limite de taxa): repete e depois alerta, sem concluir", async () => {
@@ -325,8 +358,7 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
         concluir: async () => ok(true),
         liberar: async () => ok(undefined),
       },
-      { execute: async () => err(new ServicoExternoError("x")) },
-      { execute: async () => err(new ServicoExternoError("x")) },
+      { execute: async () => SEM_ANDAMENTO },
       {
         alertar: async () => ok(undefined),
         resolverNaoRenovados: async () => {
@@ -349,7 +381,7 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
         buscar: async () => {
           chamada += 1;
           if (chamada === 1) throw new Error("processo caiu");
-          return ok(guiaOk);
+          return ok([guiaOk]);
         },
       },
     );

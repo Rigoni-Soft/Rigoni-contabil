@@ -17,7 +17,6 @@ const ATENDIMENTO: AtendimentoEmAndamento = {
   funcionarioId: "func-1",
   telefone: "5561988887777",
   chave: "61988887777",
-  emAvisoDeInatividade: false,
 };
 const FUNCIONARIO: AtorSessaoDto = { id: "func-1", papel: "funcionario", setor: "contabil" };
 
@@ -120,17 +119,19 @@ describe("EnviarMensagemAoCliente", () => {
     expect(enviados).toHaveLength(1);
   });
 
-  it("o Líder do Setor responde em nome do Atendimento; outro Funcionário não", async () => {
-    const outro = montar({ ator: { ...FUNCIONARIO, id: "func-2" } });
-    const negado = await outro.caso.execute({ atendimentoId: "at-1", texto: "oi" });
-    expect(!negado.ok && negado.error.code).toBe("FORBIDDEN");
-    expect(outro.enviados).toEqual([]);
-
-    const lider = montar({ ator: { id: "lid", papel: "lider_setor", setor: "contabil" } });
-    expect((await lider.caso.execute({ atendimentoId: "at-1", texto: "oi" })).ok).toBe(true);
-    expect(lider.registradas).toEqual([
-      ["at-1", { id: "lid", papel: "lider_setor", setor: "contabil" }, "oi"],
-    ]);
+  it("só o dono responde: Líder do Setor, Líder de outro Setor, Admin e outro Funcionário leem, mas não respondem", async () => {
+    const atores = [
+      { ...FUNCIONARIO, id: "func-2" },
+      { id: "lid", papel: "lider_setor" as const, setor: "contabil" as const },
+      { id: "lid2", papel: "lider_setor" as const, setor: "rh" as const },
+      { id: "adm", papel: "admin" as const, setor: "administrativo" as const },
+    ];
+    for (const ator of atores) {
+      const { caso, enviados } = montar({ ator });
+      const negado = await caso.execute({ atendimentoId: "at-1", texto: "oi" });
+      expect(!negado.ok && negado.error.code).toBe("FORBIDDEN");
+      expect(enviados).toEqual([]);
+    }
   });
 
   it("recusa sem sessão e Atendimento que não está em andamento", async () => {

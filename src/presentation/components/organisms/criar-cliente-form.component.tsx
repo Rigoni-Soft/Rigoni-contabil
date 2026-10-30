@@ -11,15 +11,15 @@ import { CampoDeArquivo } from "@/presentation/components/molecules/campo-de-arq
 import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { ConfirmacaoDeCadastro } from "@/presentation/components/molecules/confirmacao-de-cadastro.component";
-import { LinhaDeAlteracao } from "@/presentation/components/molecules/linha-de-alteracao.component";
+import {
+  idErroDoCampo,
+  LinhaDeAlteracao,
+} from "@/presentation/components/molecules/linha-de-alteracao.component";
 import { Button } from "@/presentation/components/ui/button";
 import { Label } from "@/presentation/components/ui/label";
+import { ACCEPT_DOCUMENTO } from "@/presentation/lib/accept-documento";
 import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
 import { REGIME_LABEL, REGIMES } from "@/shared/kernel/regimes";
-
-// PDF ou DOCX — dica do navegador; a validação de verdade fica no schema Zod (não confia só no `accept`).
-const ACCEPT_DOCUMENTO =
-  ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 const OPCOES_REGIME = REGIMES.map((valor) => ({ valor, rotulo: REGIME_LABEL[valor] }));
 
@@ -29,7 +29,7 @@ export type CriarClienteFormValues = {
   regime: (typeof REGIMES)[number];
   email?: string;
   contratoSocial?: File;
-  alteracoesContratuais: { data: string; arquivo: File }[];
+  alteracoesContratuais: { numero: number; data: string; arquivo: File }[];
 };
 
 type ClienteCriado = { empresa: string; cnpj: string };
@@ -44,10 +44,18 @@ type CriarClienteFormProps = {
   criado?: ClienteCriado;
   // Chamado ao clicar "Cadastrar outro" na tela de confirmação — mesmo padrão do formulário de usuário.
   onCadastrarNovo: () => void;
+  // "Limpar" esvazia o formulário todo (campos, alterações, avisos e erros). Com algo preenchido, pede
+  // confirmação antes: `onPedirLimpar` abre o pedido, `onLimpar` confirma e `onCancelarLimpar` desiste.
+  confirmandoLimpar: boolean;
+  onPedirLimpar: () => void;
+  onLimpar: () => void;
+  onCancelarLimpar: () => void;
   // Lista de campos do useFieldArray, montada no Container (View burra: sem hooks).
   alteracoes: { id: string }[];
   onAdicionarAlteracao: () => void;
   onRemoverAlteracao: (indice: number) => void;
+  // Escolheu/limpou o arquivo da alteração: o Container sugere o nº pelo prefixo do nome.
+  onArquivoDaAlteracao: (indice: number, arquivo: File | undefined) => void;
   // CNPJ→autopreenchimento de Empresa/Regime via API pública — a consulta em si mora no Container.
   onCnpjBlur: (cnpjMascarado: string) => void;
   // Avisos da consulta de CNPJ (não são erro de validação — o Zod não sabe
@@ -67,9 +75,14 @@ export function CriarClienteForm({
   erroServidor,
   criado,
   onCadastrarNovo,
+  confirmandoLimpar,
+  onPedirLimpar,
+  onLimpar,
+  onCancelarLimpar,
   alteracoes,
   onAdicionarAlteracao,
   onRemoverAlteracao,
+  onArquivoDaAlteracao,
   onCnpjBlur,
   avisoCnpj,
   avisoRegime,
@@ -99,9 +112,9 @@ export function CriarClienteForm({
       <NotaDeObrigatorio />
 
       {/* CNPJ primeiro: autopreenche Empresa/Regime ao perder o foco, antes do resto do formulário ser
-          preenchido à mão. 2 colunas aproveitam a largura do formulário (80% da tela) em vez de empilhar os
-          4 campos; o E-mail (opcional, destino do envio por e-mail) fecha o par com o Regime. */}
-      <Grade colunas="1>2" espaco={5}>
+          preenchido à mão. Em tela larga, 4 colunas: CNPJ, Empresa (dobro), Regime e, na linha de baixo, o
+          E-mail (opcional, destino do envio por e-mail); em tela média, 2 colunas; no celular, 1. */}
+      <Grade colunas="1>2>4" espaco={4}>
         <Controller
           control={control}
           name="cnpj"
@@ -129,6 +142,7 @@ export function CriarClienteForm({
           id="empresa"
           rotulo="Empresa"
           obrigatorio
+          className="lg:col-span-2"
           erro={errors.empresa?.message}
           {...register("empresa", { onChange: onEmpresaChange })}
         />
@@ -144,7 +158,7 @@ export function CriarClienteForm({
           aviso={avisoRegime}
           {...register("regime", { onChange: onRegimeChange })}
         />
-        <Pilha espaco={1}>
+        <Pilha espaco={1} className="lg:col-span-2">
           <CampoDeTexto
             id="email"
             rotulo="E-mail do Cliente"
@@ -167,23 +181,28 @@ export function CriarClienteForm({
         <Texto variante="rotuloDeSecao" como="h2">
           Documentos
         </Texto>
+        {/* Erro do conjunto (soma dos arquivos acima do limite): do bloco, não de um arquivo só. */}
+        {errors.root && <FieldError>{errors.root.message}</FieldError>}
 
-        <Controller
-          control={control}
-          name="contratoSocial"
-          render={({ field: { onChange, onBlur, name, value } }) => (
-            <CampoDeArquivo
-              id="contratoSocial"
-              rotulo="Contrato social"
-              name={name}
-              accept={ACCEPT_DOCUMENTO}
-              file={value}
-              onBlur={onBlur}
-              erro={errors.contratoSocial?.message}
-              onChange={onChange}
-            />
-          )}
-        />
+        <Caixa className="sm:w-1/2 lg:w-1/4">
+          <Controller
+            control={control}
+            name="contratoSocial"
+            render={({ field: { onChange, onBlur, name, value } }) => (
+              <CampoDeArquivo
+                id="contratoSocial"
+                rotulo="Contrato social"
+                name={name}
+                accept={ACCEPT_DOCUMENTO}
+                dica="PDF ou DOCX"
+                file={value}
+                onBlur={onBlur}
+                erro={errors.contratoSocial?.message}
+                onChange={onChange}
+              />
+            )}
+          />
+        </Caixa>
 
         <Caixa className="flex flex-col gap-3">
           <Linha alinhar="centro" justificar="entre">
@@ -198,6 +217,10 @@ export function CriarClienteForm({
             <LinhaDeAlteracao
               key={alteracao.id}
               indice={indice}
+              numero={register(`alteracoesContratuais.${indice}.numero` as const, {
+                valueAsNumber: true,
+              })}
+              erroNumero={errors.alteracoesContratuais?.[indice]?.numero?.message}
               data={register(`alteracoesContratuais.${indice}.data` as const)}
               erroData={errors.alteracoesContratuais?.[indice]?.data?.message}
               erroArquivo={errors.alteracoesContratuais?.[indice]?.arquivo?.message}
@@ -211,10 +234,19 @@ export function CriarClienteForm({
                       id={`alteracoesContratuais.${indice}.arquivo`}
                       name={name}
                       accept={ACCEPT_DOCUMENTO}
+                      dica="PDF ou DOCX"
                       file={value}
                       onBlur={onBlur}
                       aria-invalid={!!errors.alteracoesContratuais?.[indice]?.arquivo}
-                      onChange={onChange}
+                      aria-describedby={
+                        errors.alteracoesContratuais?.[indice]?.arquivo
+                          ? idErroDoCampo(`alteracoesContratuais.${indice}.arquivo`)
+                          : undefined
+                      }
+                      onChange={(arquivo) => {
+                        onChange(arquivo);
+                        onArquivoDaAlteracao(indice, arquivo);
+                      }}
                     />
                   )}
                 />
@@ -226,7 +258,30 @@ export function CriarClienteForm({
 
       {erroServidor && <FieldError>{erroServidor}</FieldError>}
 
-      <BotaoDeEnvio pendente={pendente} rotulo="Cadastrar" rotuloPendente="Cadastrando…" />
+      {/* Botões do tamanho do rótulo, à direita: esticados na largura toda viram uma faixa. */}
+      <Linha justificar="fim" alinhar="centro" espaco={2} quebra>
+        {confirmandoLimpar ? (
+          <>
+            <Texto variante="apoio" como="p" role="alert" className="mr-auto">
+              Limpar o formulário? O que foi preenchido e os arquivos escolhidos serão descartados.
+            </Texto>
+            {/* Foco inicial no "Voltar": o padrão seguro, não o destrutivo. */}
+            <Button type="button" variant="outline" onClick={onCancelarLimpar} autoFocus>
+              Voltar
+            </Button>
+            <Button type="button" variant="destructive" onClick={onLimpar}>
+              Limpar tudo
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button type="button" variant="destructive" onClick={onPedirLimpar} disabled={pendente}>
+              Limpar
+            </Button>
+            <BotaoDeEnvio pendente={pendente} rotulo="Cadastrar" rotuloPendente="Cadastrando…" />
+          </>
+        )}
+      </Linha>
     </Pilha>
   );
 }

@@ -27,10 +27,9 @@ async function conversaCom(telefone: string, total: number, empatadas = 0) {
     chave: telefone,
     clienteId: null,
     setor: "condominios",
-    funcionarioId: null,
     mensagens: [],
   });
-  if (!aberto.ok || aberto.value.status !== "aberto") throw new Error("abertura falhou");
+  if (!aberto.ok) throw new Error("abertura falhou");
   const atendimentoId = aberto.value.id;
   const linhas = Array.from({ length: total }, (_, i) => {
     const instante = i >= total - empatadas ? total - empatadas : i;
@@ -102,30 +101,5 @@ describe("SupabaseAtendimentoRepository — conversa por janela", () => {
     expect(todas).toHaveLength(2000);
     expect(new Set(todas).size).toBe(2000);
     expect(todas).toEqual(ids);
-  });
-
-  it("a última Mensagem do Funcionário vem à parte, mesmo fora da janela", async () => {
-    const { atendimentoId } = await conversaCom(TELEFONES[3], CONVERSA_JANELA_MENSAGENS + 20);
-    const antiga = new Date(INICIO - 60_000).toISOString();
-    await admin.from("mensagens").insert({
-      atendimento_id: atendimentoId,
-      autor: "funcionario",
-      texto: "oi",
-      criado_em: antiga,
-    });
-    await admin
-      .from("atendimentos")
-      .update({
-        aviso_inatividade_de: "funcionario",
-        aviso_inatividade_em: new Date(INICIO - 30_000).toISOString(),
-      })
-      .eq("id", atendimentoId);
-
-    const conversa = await repositorio.conversa(atendimentoId);
-
-    expect(conversa.ok && conversa.value?.mensagens.some((m) => m.autor === "funcionario")).toBe(
-      false,
-    );
-    expect(conversa.ok && conversa.value?.ultimaDoFuncionarioEm).toEqual(expect.any(String));
   });
 });

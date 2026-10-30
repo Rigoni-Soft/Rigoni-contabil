@@ -18,8 +18,7 @@ const DTO: CadastroOperacionalClienteDto = {
   documentoObrigatorio: null,
   dasStatus: null,
   dataEnvioDas: null,
-  temParcelamento: false,
-  parcelamentoStatus: null,
+  parcelamentos: [],
   observacoesGerais: "",
   atividadeMes: { industria: false, comercio: false, servico: false },
   responsavelId: null,
@@ -47,6 +46,9 @@ class ClienteQueryPortFalso implements ClienteQueryPort {
   }
   async listarResponsaveisElegiveis() {
     return ok([]);
+  }
+  async buscarResponsavelDoSetor() {
+    return ok(null);
   }
 }
 

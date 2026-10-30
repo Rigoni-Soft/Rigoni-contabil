@@ -26,6 +26,44 @@ describe("átomos estruturais", () => {
     expect(screen.getByRole("listitem")).toHaveTextContent("item");
   });
 
+  // Safari/VoiceOver deixa de anunciar lista quando o marcador some (o reset do Tailwind remove).
+  it("ul e ol ganham role=list explícito, em Caixa e nos átomos que delegam a ele", () => {
+    render(
+      <>
+        <Caixa como="ul" aria-label="a">
+          <li>x</li>
+        </Caixa>
+        <Pilha como="ol" espaco={1} aria-label="b">
+          <li>x</li>
+        </Pilha>
+        <Grade como="ul" colunas="duas" aria-label="c">
+          <li>x</li>
+        </Grade>
+        <Linha como="ul" aria-label="d">
+          <li>x</li>
+        </Linha>
+      </>,
+    );
+
+    for (const nome of ["a", "b", "c", "d"]) {
+      expect(screen.getByLabelText(nome)).toHaveAttribute("role", "list");
+    }
+  });
+
+  it("um role dado explicitamente prevalece e outros elementos não ganham role", () => {
+    render(
+      <>
+        <Caixa como="ul" role="menu" aria-label="menu">
+          <li>x</li>
+        </Caixa>
+        <Caixa aria-label="div">x</Caixa>
+      </>,
+    );
+
+    expect(screen.getByLabelText("menu")).toHaveAttribute("role", "menu");
+    expect(screen.getByLabelText("div")).not.toHaveAttribute("role");
+  });
+
   it("Caixa como form dispara o onSubmit", async () => {
     const aoEnviar = jest.fn((evento: React.FormEvent) => evento.preventDefault());
     render(

@@ -28,6 +28,7 @@ const obter = jest.mocked(obterConversaAction);
 const CONVERSA: ConversaVista = {
   atendimentoId: "at-1",
   encerrado: false,
+  podeAtender: true,
   telefone: "5561988887777",
   contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
   clienteVinculado: true,
@@ -35,7 +36,6 @@ const CONVERSA: ConversaVista = {
   ultimaTransferencia: null,
   ura: null,
   temMaisAnteriores: false,
-  avisoInatividade: false,
   setoresDestino: [],
   documentos: [],
 };

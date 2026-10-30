@@ -1,15 +1,17 @@
 import type {
-  AtendimentoAssumido,
   AtendimentoEmAndamento,
   AtendimentoRepositoryPort,
   ResultadoEncerramento,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
+import type { RegistroDeErrosPort } from "@/modules/atendimento/application/ports/out/registro-de-erros.provider";
 import type { AtorSessaoDto } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { AVISO_ENCERRAMENTO_AO_CLIENTE } from "@/modules/atendimento/domain/services/aviso-fila.service";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok } from "@/shared/kernel/result";
 
 import { EncerrarAtendimento } from "./encerrar-atendimento.use-case";
+
+const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 const ATENDIMENTO: AtendimentoEmAndamento = {
   id: "at-1",
@@ -18,22 +20,14 @@ const ATENDIMENTO: AtendimentoEmAndamento = {
   funcionarioId: "func-1",
   telefone: "5561988887777",
   chave: "61988887777",
-  emAvisoDeInatividade: false,
 };
 const DONO: AtorSessaoDto = { id: "func-1", papel: "funcionario", setor: "contabil" };
-const PROXIMO: AtendimentoAssumido = {
-  id: "at-9",
-  telefone: "5561977776666",
-  chave: "61977776666",
-  funcionarioNome: "Ana",
-};
 
 function montar(
   opcoes: {
     ator?: AtorSessaoDto | null;
     atendimento?: AtendimentoEmAndamento | null;
     encerramento?: ResultadoEncerramento;
-    avisoFalha?: boolean;
     avisoEncerramentoFalha?: boolean;
   } = {},
 ) {
@@ -44,7 +38,7 @@ function montar(
       ok(opcoes.atendimento === undefined ? ATENDIMENTO : opcoes.atendimento),
     encerrar: async (...args: unknown[]) => {
       encerrados.push(args);
-      return ok(opcoes.encerramento ?? { status: "encerrado" as const, proximo: null });
+      return ok(opcoes.encerramento ?? { status: "encerrado" as const });
     },
   } as unknown as AtendimentoRepositoryPort;
   const caso = new EncerrarAtendimento(
@@ -53,12 +47,10 @@ function montar(
     {
       execute: async (aviso) => {
         avisos.push(aviso);
-        const falha =
-          opcoes.avisoFalha ||
-          (opcoes.avisoEncerramentoFalha && aviso.texto === AVISO_ENCERRAMENTO_AO_CLIENTE);
-        return falha ? err(new ServicoExternoError("meta")) : ok(undefined);
+        return opcoes.avisoEncerramentoFalha ? err(new ServicoExternoError("meta")) : ok(undefined);
       },
     },
+    erros,
   );
   return { caso, encerrados, avisos };
 }
@@ -66,25 +58,10 @@ function montar(
 const INPUT = { atendimentoId: "at-1" };
 
 describe("EncerrarAtendimento", () => {
-  it("encerra, e o cliente da Fila que o Funcionário liberado assumiu é avisado", async () => {
-    const { caso, encerrados, avisos } = montar({
-      encerramento: { status: "encerrado", proximo: PROXIMO },
-    });
-    expect(await caso.execute(INPUT)).toEqual({ ok: true, value: { proximoDaFila: "at-9" } });
+  it("encerra e avisa o cliente de que o Atendimento foi encerrado, sem puxar ninguém da espera", async () => {
+    const { caso, encerrados, avisos } = montar();
+    expect(await caso.execute(INPUT)).toEqual({ ok: true, value: undefined });
     expect(encerrados).toEqual([["at-1", "func-1", { id: "func-1", setor: "contabil" }]]);
-    expect(avisos).toEqual([
-      { telefone: "5561988887777", chave: "61988887777", texto: AVISO_ENCERRAMENTO_AO_CLIENTE },
-      {
-        telefone: "5561977776666",
-        chave: "61977776666",
-        texto: "Chegou a sua vez! Ana vai te atender agora.",
-      },
-    ]);
-  });
-
-  it("Fila vazia: encerra e avisa só o cliente de que o Atendimento foi encerrado", async () => {
-    const { caso, avisos } = montar();
-    expect(await caso.execute(INPUT)).toEqual({ ok: true, value: { proximoDaFila: null } });
     expect(avisos).toEqual([
       { telefone: "5561988887777", chave: "61988887777", texto: AVISO_ENCERRAMENTO_AO_CLIENTE },
     ]);
@@ -126,27 +103,13 @@ describe("EncerrarAtendimento", () => {
     expect(!mudou.ok && mudou.error.code).toBe("NOT_FOUND");
   });
 
-  it("falha ao avisar o cliente do encerramento só vai ao log: o Funcionário abre o da Fila que assumiu", async () => {
-    const log = jest.spyOn(console, "error").mockImplementation(() => undefined);
-    const { caso, avisos } = montar({
-      encerramento: { status: "encerrado", proximo: PROXIMO },
-      avisoEncerramentoFalha: true,
-    });
+  it("falha ao avisar o cliente do encerramento só vai ao log: o Atendimento já está encerrado", async () => {
+    const log = jest.mocked(erros.registrar).mockClear();
+    const { caso, encerrados } = montar({ avisoEncerramentoFalha: true });
 
-    expect(await caso.execute(INPUT)).toEqual({ ok: true, value: { proximoDaFila: "at-9" } });
+    expect(await caso.execute(INPUT)).toEqual({ ok: true, value: undefined });
 
-    expect(avisos).toHaveLength(2);
-    expect(log).toHaveBeenCalledWith(expect.stringContaining("at-1"), "meta");
-    log.mockRestore();
-  });
-
-  it("falha ao avisar o cliente da Fila: erro de estado, já encerrado e assumido", async () => {
-    const { caso, encerrados } = montar({
-      encerramento: { status: "encerrado", proximo: PROXIMO },
-      avisoFalha: true,
-    });
-    const r = await caso.execute(INPUT);
-    expect(!r.ok && r.error.code).toBe("INCONSISTENT_STATE");
     expect(encerrados).toHaveLength(1);
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("at-1"), "meta");
   });
 });

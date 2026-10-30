@@ -6,6 +6,7 @@ import type {
 import type { DocumentosContratuaisPort } from "@/modules/atendimento/application/ports/out/documentos-contratuais.provider";
 import type { AtorSessaoDto } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
+import type { RegimeValor } from "@/shared/kernel/regimes";
 import { err, ok } from "@/shared/kernel/result";
 
 import { ObterConversa } from "./obter-conversa.use-case";
@@ -44,10 +45,8 @@ const CONVERSA: ConversaLida = {
     },
   ],
   temMaisAntigas: false,
-  ultimaDoFuncionarioEm: null,
   ultimaTransferencia: { setorOrigem: "recepcao", origemNome: "Ana", resumo: "Dúvida no DAS" },
   ura: { resumo: "Quer o contrato", cnpjInformado: null },
-  aviso: null,
 };
 const COM_ANEXO: ConversaLida = {
   ...CONVERSA,
@@ -74,14 +73,17 @@ const COM_ANEXO: ConversaLida = {
 };
 const FUNCIONARIO: AtorSessaoDto = { id: "func-1", papel: "funcionario", setor: "contabil" };
 
+// Fake parcial de uma porta: só os métodos que o caso de uso chama neste teste.
+const fake = <T>(parcial: Partial<T>) => parcial as T;
+
 function montar(
   ator: AtorSessaoDto | null,
   conversa: ConversaLida | null | "falha" = CONVERSA,
-  regime = "lucro_presumido",
+  regime: RegimeValor = "lucro_presumido",
 ) {
   const chamadasAnteriores: { antes: { id: string }; limite: number }[] = [];
   const pedidosPorId: string[][] = [];
-  const repo = {
+  const repo = fake<AtendimentoRepositoryPort>({
     conversa: async () =>
       conversa === "falha" ? err(new ServicoExternoError("banco")) : ok(conversa),
     roteamentoDoCliente: async () => ok({ regime: regime, responsavelId: null }),
@@ -102,19 +104,20 @@ function montar(
         temMaisAntigas: true,
       });
     },
-  } as unknown as AtendimentoRepositoryPort;
+  });
   const listados: string[] = [];
-  const documentos = {
+  const documentos = fake<DocumentosContratuaisPort>({
     listar: async (clienteId: string) => {
       listados.push(clienteId);
       return ok([
-        { tipo: "contrato" as const, data: null, caminho: "a/contrato.pdf" },
-        { tipo: "alteracao" as const, data: "2026-03-01", caminho: "a/alt.pdf" },
+        { tipo: "contrato" as const, numero: null, data: null, caminho: "a/contrato.pdf" },
+        { tipo: "alteracao" as const, numero: 3, data: "2026-03-01", caminho: "a/alt.pdf" },
+        { tipo: "alteracao" as const, numero: 2, data: "2026-05-10", caminho: "a/alt-2.pdf" },
       ]);
     },
-  } as unknown as DocumentosContratuaisPort;
+  });
   const pedidos: string[][] = [];
-  const anexos = {
+  const anexos = fake<AnexosAtendimentoPort>({
     linksTemporarios: async (caminhos: string[]) => {
       pedidos.push(caminhos);
       return ok(
@@ -130,7 +133,7 @@ function montar(
         ),
       );
     },
-  } as unknown as AnexosAtendimentoPort;
+  });
   return {
     listados,
     pedidos,
@@ -142,18 +145,14 @@ function montar(
 
 // O mesmo caso de uso, com o Storage trocável para o teste de falha dos links.
 function montarComFalhaDeLinks() {
-  const anexos = { linksTemporarios: async () => ok({}) } as unknown as AnexosAtendimentoPort & {
-    linksTemporarios: () => Promise<unknown>;
-  };
-  const repo = {
+  const anexos = fake<AnexosAtendimentoPort>({ linksTemporarios: async () => ok({}) });
+  const repo = fake<AtendimentoRepositoryPort>({
     conversa: async () => ok(COM_ANEXO),
     roteamentoDoCliente: async () => ok({ regime: "lucro_presumido", responsavelId: null }),
     mensagensPorId: async () =>
       ok({ setor: "contabil" as const, funcionarioId: "func-1", mensagens: COM_ANEXO.mensagens }),
-  } as unknown as AtendimentoRepositoryPort;
-  const documentos = {
-    listar: async () => ok([]),
-  } as unknown as DocumentosContratuaisPort;
+  });
+  const documentos = fake<DocumentosContratuaisPort>({ listar: async () => ok([]) });
   return {
     anexos,
     caso: new ObterConversa({ usuarioAtual: async () => FUNCIONARIO }, repo, documentos, anexos),
@@ -167,22 +166,6 @@ describe("ObterConversa", () => {
     const { caso } = montar(FUNCIONARIO, { ...CONVERSA, temMaisAntigas: true });
     const r = await caso.execute({ atendimentoId: "at-1" });
     expect(r.ok && r.value.temMaisAnteriores).toBe(true);
-  });
-
-  it("o aviso de inatividade usa a última Mensagem do Funcionário, mesmo fora da janela", async () => {
-    const aviso = { de: "funcionario" as const, em: "2026-10-08T12:05:00Z" };
-    const pendente = montar(FUNCIONARIO, { ...CONVERSA, aviso, ultimaDoFuncionarioEm: null });
-    const respondido = montar(FUNCIONARIO, {
-      ...CONVERSA,
-      aviso,
-      ultimaDoFuncionarioEm: "2026-10-08T12:06:00Z",
-    });
-
-    const a = await pendente.caso.execute({ atendimentoId: "at-1" });
-    const b = await respondido.caso.execute({ atendimentoId: "at-1" });
-
-    expect(a.ok && a.value.avisoInatividade).toBe(true);
-    expect(b.ok && b.value.avisoInatividade).toBe(false);
   });
 
   describe("mensagensAnteriores", () => {
@@ -261,6 +244,7 @@ describe("ObterConversa", () => {
       value: {
         atendimentoId: "at-1",
         encerrado: false,
+        podeAtender: true,
         telefone: "5561988887777",
         contato: CONTATO,
         clienteVinculado: true,
@@ -272,10 +256,18 @@ describe("ObterConversa", () => {
         temMaisAnteriores: false,
         ultimaTransferencia: CONVERSA.ultimaTransferencia,
         ura: CONVERSA.ura,
-        avisoInatividade: false,
         documentos: [
-          { tipo: "contrato", data: null, descricao: "Contrato social" },
-          { tipo: "alteracao", data: "2026-03-01", descricao: "Alteração de 01/03/2026" },
+          { tipo: "contrato", numero: null, descricao: "Contrato social" },
+          {
+            tipo: "alteracao",
+            numero: 3,
+            descricao: "Alteração nº 3 - 01/03/2026",
+          },
+          {
+            tipo: "alteracao",
+            numero: 2,
+            descricao: "Alteração nº 2 - 10/05/2026",
+          },
         ],
         setoresDestino: expect.arrayContaining(["recepcao", "tributario"]),
       },
@@ -284,58 +276,6 @@ describe("ObterConversa", () => {
     expect(r.ok && r.value.setoresDestino).not.toContain("contabil");
     expect(r.ok && r.value.setoresDestino).not.toContain("simples_nacional");
     expect(listados).toEqual(["cli-1"]);
-  });
-
-  describe("aviso de inatividade ao Funcionário", () => {
-    const aviso = (de: "contato" | "funcionario", em: string) => ({
-      ...CONVERSA,
-      aviso: { de, em },
-    });
-    const avisoVisto = async (conversa: ConversaLida, ator: AtorSessaoDto = FUNCIONARIO) => {
-      const r = await montar(ator, conversa).caso.execute({ atendimentoId: "at-1" });
-      if (!r.ok) throw new Error("ObterConversa falhou");
-      return r.value.avisoInatividade;
-    };
-
-    it("só o dono do Atendimento é avisado, não o Líder nem o Admin que abrem a conversa", async () => {
-      const pendente = aviso("funcionario", "2026-10-08T14:00:00Z");
-      const lider: AtorSessaoDto = { id: "lider-1", papel: "lider_setor", setor: "contabil" };
-      const admin: AtorSessaoDto = { id: "adm-1", papel: "admin", setor: "contabil" };
-      expect(await avisoVisto(pendente, lider)).toBe(false);
-      expect(await avisoVisto(pendente, admin)).toBe(false);
-    });
-
-    it("aparece quando o Funcionário é o inativo e não escreveu depois do aviso", async () => {
-      expect(await avisoVisto(aviso("funcionario", "2026-10-08T14:00:00Z"))).toBe(true);
-    });
-
-    it("some quando o Funcionário escreveu depois do aviso, antes de o job cancelar", async () => {
-      const conversa = {
-        ...aviso("funcionario", "2026-10-08T12:00:30Z"),
-        ultimaDoFuncionarioEm: "2026-10-08T12:01:00Z",
-      };
-      expect(await avisoVisto(conversa)).toBe(false);
-    });
-
-    it("não aparece quando o inativo é o contato (o aviso foi ao cliente)", async () => {
-      expect(await avisoVisto(aviso("contato", "2026-10-08T14:00:00Z"))).toBe(false);
-    });
-
-    it("não aparece com o Atendimento encerrado", async () => {
-      const encerrado = {
-        ...aviso("funcionario", "2026-10-08T14:00:00Z"),
-        status: "encerrado" as const,
-      };
-      expect(await avisoVisto(encerrado)).toBe(false);
-    });
-
-    it("em aviso de inatividade não oferece Setores de destino (o backend recusaria a Transferência)", async () => {
-      const r = await montar(
-        FUNCIONARIO,
-        aviso("funcionario", "2026-10-08T14:00:00Z"),
-      ).caso.execute({ atendimentoId: "at-1" });
-      expect(r.ok && r.value.setoresDestino).toEqual([]);
-    });
   });
 
   it("sem Cliente vinculado ou encerrado não oferece serviços e nem consulta os documentos", async () => {
@@ -384,6 +324,20 @@ describe("ObterConversa", () => {
       atendimentoId: "at-1",
     });
     expect(admin.ok).toBe(true);
+  });
+
+  it("Líder do Setor e Admin leem em supervisão: sem atender, sem serviços nem destinos", async () => {
+    for (const ator of [
+      { id: "l", papel: "lider_setor" as const, setor: "contabil" as const },
+      { id: "a", papel: "admin" as const, setor: "administrativo" as const },
+    ]) {
+      const r = await montar(ator).caso.execute({ atendimentoId: "at-1" });
+      expect(r.ok && r.value).toMatchObject({
+        podeAtender: false,
+        documentos: [],
+        setoresDestino: [],
+      });
+    }
   });
 
   it("sem sessão nega, inexistente não é encontrado e falha de leitura devolve o erro", async () => {

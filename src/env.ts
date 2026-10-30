@@ -18,7 +18,7 @@ const resultado = z
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
     // Fonte das obrigações fiscais (docs/contratos): por padrão o mock de mock-api/.
     OBRIGACOES_FISCAIS_URL: z.url().default("http://127.0.0.1:4010"),
-    // Provedor das obrigações fiscais: o mock acima (padrão) ou o Serpro real (#66).
+    // Provedor das obrigações fiscais: o mock acima (padrão) ou o Serpro real.
     OBRIGACOES_FISCAIS_MODO: z.enum(["mock", "serpro"]).default("mock"),
     // Só com OBRIGACOES_FISCAIS_MODO=serpro: credenciais do contrato (Consumer Key/Secret) e
     // certificado e-CNPJ do escritório (.p12 em base64, pois a Vercel não tem arquivos) + senha.
@@ -66,21 +66,35 @@ const resultado = z
     WHATSAPP_PHONE_NUMBER_ID: z.string().min(1).optional(),
     // Bearer das rotas de job (agendador). Sem valor, as rotas recusam tudo.
     CRON_SECRET: z.string().min(1).optional(),
-    // Liga o encerramento automático por inatividade. Desligada por padrão: ter o CRON_SECRET não
-    // basta. Em produção só age com mensageria real e o aviso visível ao Funcionário
-    // (docs/contratos/mensageria.md).
-    INATIVIDADE_AUTOMATICA: z.enum(["desligada", "ligada"]).default("desligada"),
+    // Liga o encerramento automático dos Atendimentos 23h50 após a última Mensagem do cliente.
+    // Desligada por padrão: ter o CRON_SECRET não basta. Não fala com o cliente, então não exige
+    // mensageria real.
+    ENCERRAMENTO_AUTOMATICO: z.enum(["desligada", "ligada"]).default("desligada"),
     // Binário do ffmpeg que converte o áudio gravado em webm (docs/adr/0006). Sem valor, usa o
     // do pacote `ffmpeg-static`.
     FFMPEG_PATH: z.string().min(1).optional(),
-    // Liga o job de lembrete de documento e envio de DAS. Mesma regra da inatividade.
+    // Liga o job de lembrete de documento e envio de DAS. Desligada por padrão, como o encerramento.
     LEMBRETES_AUTOMATICOS: z.enum(["desligada", "ligada"]).default("desligada"),
-    // Adapter de e-mail (#86): falso por padrão. Com "real": SMTP do Gmail com senha de app (a conta
+    // Liga o job de lembretes PGFN (alerta do setor dos dias 1, 10 e 15). Não envia nada ao Cliente,
+    // então não exige mensageria real.
+    LEMBRETES_PGFN_AUTOMATICOS: z.enum(["desligada", "ligada"]).default("desligada"),
+    // Adapter de e-mail: falso por padrão. Com "real": SMTP do Gmail com senha de app (a conta
     // precisa de verificação em duas etapas) e o `from`, ex.: "Rigoni Contábil <conta@gmail.com>".
     EMAIL_MODO: z.enum(["falso", "real"]).default("falso"),
     EMAIL_SMTP_USUARIO: z.string().min(1).optional(),
     EMAIL_SMTP_SENHA: z.string().min(1).optional(),
     EMAIL_REMETENTE: z.string().min(1).optional(),
+    // Leitor do PDF de parcelamento: falso (determinístico, padrão em dev/CI/Preview) ou "texto" (lê a
+    // camada de texto do PDF no servidor, sem API externa).
+    LEITURA_PDF_MODO: z.enum(["falso", "texto"]).default("falso"),
+    // WhatsApp do financeiro do escritório (só dígitos, com DDI), destino das guias de parcelamento
+    // interno. Ausente ou inválido não derruba o app: o job não envia o interno, ele segue
+    // pendente e abre o alerta `financeiro_ausente`.
+    FINANCEIRO_TELEFONE: z
+      .string()
+      .regex(/^[1-9]\d{9,14}$/)
+      .optional()
+      .catch(undefined),
   })
   .refine(
     (v) =>
@@ -170,13 +184,16 @@ const resultado = z
     WHATSAPP_TOKEN: process.env.WHATSAPP_TOKEN || undefined,
     WHATSAPP_PHONE_NUMBER_ID: process.env.WHATSAPP_PHONE_NUMBER_ID || undefined,
     CRON_SECRET: process.env.CRON_SECRET || undefined,
-    INATIVIDADE_AUTOMATICA: process.env.INATIVIDADE_AUTOMATICA || undefined,
+    ENCERRAMENTO_AUTOMATICO: process.env.ENCERRAMENTO_AUTOMATICO || undefined,
     FFMPEG_PATH: process.env.FFMPEG_PATH || undefined,
     LEMBRETES_AUTOMATICOS: process.env.LEMBRETES_AUTOMATICOS || undefined,
+    LEMBRETES_PGFN_AUTOMATICOS: process.env.LEMBRETES_PGFN_AUTOMATICOS || undefined,
     EMAIL_MODO: process.env.EMAIL_MODO || undefined,
     EMAIL_SMTP_USUARIO: process.env.EMAIL_SMTP_USUARIO || undefined,
     EMAIL_SMTP_SENHA: process.env.EMAIL_SMTP_SENHA || undefined,
     EMAIL_REMETENTE: process.env.EMAIL_REMETENTE || undefined,
+    LEITURA_PDF_MODO: process.env.LEITURA_PDF_MODO || undefined,
+    FINANCEIRO_TELEFONE: process.env.FINANCEIRO_TELEFONE || undefined,
   });
 
 if (!resultado.success) {
@@ -211,11 +228,14 @@ export const {
   WHATSAPP_TOKEN,
   WHATSAPP_PHONE_NUMBER_ID,
   CRON_SECRET,
-  INATIVIDADE_AUTOMATICA,
+  ENCERRAMENTO_AUTOMATICO,
   FFMPEG_PATH,
   LEMBRETES_AUTOMATICOS,
+  LEMBRETES_PGFN_AUTOMATICOS,
   EMAIL_MODO,
   EMAIL_SMTP_USUARIO,
   EMAIL_SMTP_SENHA,
   EMAIL_REMETENTE,
+  LEITURA_PDF_MODO,
+  FINANCEIRO_TELEFONE,
 } = resultado.data;

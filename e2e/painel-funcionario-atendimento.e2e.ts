@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { abrirConversaEmAtendimento } from "./support/abrir-conversa";
 import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
@@ -10,7 +11,7 @@ const TELEFONE = "61955572001";
 const CLIENTE = crypto.randomUUID();
 const CNPJ = `6${Date.now()}`.slice(0, 14);
 
-test.describe("Painel do Funcionário (#49)", () => {
+test.describe("Conversa na tela Atendimento (#49)", () => {
   test.beforeAll(async () => {
     await admin.from("atendimentos").delete().eq("funcionario_id", FUNCIONARIO);
     const cliente = await admin
@@ -67,25 +68,19 @@ test.describe("Painel do Funcionário (#49)", () => {
     await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
 
-    const atendimentos = page.getByRole("navigation", { name: "Atendimentos em andamento" });
-    await expect(atendimentos.getByRole("link", { name: /Dona Painel/ })).toBeVisible();
-
-    // Navegação do cliente (sem recarregar): o Atendimento não some ao trocar de tela.
-    await page.getByRole("link", { name: "Meu perfil" }).click();
-    await expect(page).toHaveURL("/perfil");
-    await expect(atendimentos.getByRole("link", { name: /Dona Painel/ })).toBeVisible();
-
-    await atendimentos.getByRole("link", { name: /Dona Painel/ }).click();
-    await expect(page).toHaveURL(/\/atendimento\/[0-9a-f-]{36}$/);
+    // A conversa abre no centro da tela Atendimento, sem rota própria.
+    await abrirConversaEmAtendimento(page, /Dona Painel/);
+    await expect(page).toHaveURL("/atendimento");
 
     await expect(page.getByRole("heading", { name: "Dona Painel" })).toBeVisible();
     await expect(page.getByText("Painel E2E Ltda ·")).toBeVisible();
-    const balaoDoCliente = page
+    const mensagens = page.getByRole("list", { name: "Mensagens" });
+    const balaoDoCliente = mensagens
       .getByRole("listitem")
       .filter({ hasText: "Preciso do contrato social" });
     await expect(balaoDoCliente).toContainText("Dona Painel");
     await expect(balaoDoCliente).toContainText("CNPJ");
-    const balaoDoAtendente = page.getByRole("listitem").filter({ hasText: "Já te envio" });
+    const balaoDoAtendente = mensagens.getByRole("listitem").filter({ hasText: "Já te envio" });
     await expect(balaoDoAtendente).toContainText("Segundo Funcionário Financeiro · Financeiro");
 
     // Em tela larga a página não rola em nenhum sentido: só a lista de mensagens rola.
@@ -104,10 +99,7 @@ test.describe("Painel do Funcionário (#49)", () => {
   }) => {
     await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
-    await page
-      .getByRole("navigation", { name: "Atendimentos em andamento" })
-      .getByRole("link")
-      .click();
+    await abrirConversaEmAtendimento(page, /Dona Painel/);
 
     const campo = page.getByLabel("Mensagem ao cliente");
     await campo.fill("Bom dia, Dona Painel! Já estou vendo.");
@@ -125,10 +117,7 @@ test.describe("Painel do Funcionário (#49)", () => {
   }) => {
     await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
-    await page
-      .getByRole("navigation", { name: "Atendimentos em andamento" })
-      .getByRole("link")
-      .click();
+    await abrirConversaEmAtendimento(page, /Dona Painel/);
 
     const campo = page.getByLabel("Mensagem ao cliente");
     await campo.fill("Recebido");
@@ -146,10 +135,7 @@ test.describe("Painel do Funcionário (#49)", () => {
   }) => {
     await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
-    await page
-      .getByRole("navigation", { name: "Atendimentos em andamento" })
-      .getByRole("link")
-      .click();
+    await abrirConversaEmAtendimento(page, /Dona Painel/);
 
     const campo = page.getByLabel("Mensagem ao cliente");
     const clipe = page.getByLabel("Anexar arquivo");
@@ -225,7 +211,7 @@ test.describe("Painel do Funcionário (#49)", () => {
     await expect(page.getByRole("button", { name: "Remover script.html" })).toHaveCount(0);
 
     // Limpa o que o teste criou: os balões com mídia alongam a conversa e os testes seguintes
-    // (reação, dock) a esperam curta; o Storage não fica com os arquivos de teste.
+    // (reação) a esperam curta; o Storage não fica com os arquivos de teste.
     const anexos = await admin
       .from("mensagens")
       .select("id, anexo_caminho, atendimentos!inner(cliente_id)")
@@ -249,10 +235,7 @@ test.describe("Painel do Funcionário (#49)", () => {
   }) => {
     await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
-    await page
-      .getByRole("navigation", { name: "Atendimentos em andamento" })
-      .getByRole("link")
-      .click();
+    await abrirConversaEmAtendimento(page, /Dona Painel/);
 
     await page.getByRole("button", { name: "Gravar áudio" }).click();
     await expect(page.getByRole("button", { name: "Enviar áudio" })).toBeVisible();
@@ -270,10 +253,7 @@ test.describe("Painel do Funcionário (#49)", () => {
   }) => {
     await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
-    await page
-      .getByRole("navigation", { name: "Atendimentos em andamento" })
-      .getByRole("link")
-      .click();
+    await abrirConversaEmAtendimento(page, /Dona Painel/);
 
     await page.getByRole("button", { name: "Gravar áudio" }).click();
     await expect(page.getByText(/Gravando: 00:0[1-9]/)).toBeVisible();
@@ -309,10 +289,7 @@ test.describe("Painel do Funcionário (#49)", () => {
   }) => {
     await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
-    await page
-      .getByRole("navigation", { name: "Atendimentos em andamento" })
-      .getByRole("link")
-      .click();
+    await abrirConversaEmAtendimento(page, /Dona Painel/);
 
     await page.getByRole("button", { name: "Reagir à mensagem de Dona Painel" }).click();
     await page
@@ -330,13 +307,13 @@ test.describe("Painel do Funcionário (#49)", () => {
     await expect(page.getByRole("img", { name: "Reação do escritório: 👍" })).toHaveCount(0);
   });
 
-  test("mensagem nova do cliente, com o Funcionário em outra tela, aparece no dock com prévia e destaque", async ({
+  test("mensagem nova do cliente soma ao contador do menu na leitura seguinte", async ({
     page,
   }) => {
     await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
-    await page.getByRole("link", { name: "Meu perfil" }).click();
-    await expect(page).toHaveURL("/perfil");
+    const menu = page.getByRole("navigation", { name: "Setores" });
+    await expect(menu.getByRole("link", { name: "Atendimento", exact: true })).toBeVisible();
 
     const atendimento = await admin
       .from("atendimentos")
@@ -351,12 +328,12 @@ test.describe("Painel do Funcionário (#49)", () => {
     });
     if (nova.error) throw nova.error;
 
-    // O dock consulta a cada 15 s: a prévia e o destaque aparecem sem sair da tela.
-    const cartao = page
-      .getByRole("navigation", { name: "Atendimentos em andamento" })
-      .getByRole("link", { name: /Dona Painel/ });
-    await expect(cartao).toContainText("Chegou outra dúvida sobre o contrato", { timeout: 30_000 });
-    await expect(cartao).toContainText("nova mensagem");
+    // Estímulo determinístico: um carregamento novo lê na hora, sem esperar o ciclo de 15 s do
+    // polling (esse é coberto pelo spec do hook). Antes da mensagem o menu não tinha contador.
+    await page.reload();
+    await expect(menu.getByRole("link", { name: "Atendimento, 1 pendente" })).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test("o Funcionário transfere o Atendimento a outro Setor, que não oferece o Setor atual nem o Simples Nacional @smoke", async ({
@@ -364,10 +341,7 @@ test.describe("Painel do Funcionário (#49)", () => {
   }) => {
     await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
-    await page
-      .getByRole("navigation", { name: "Atendimentos em andamento" })
-      .getByRole("link")
-      .click();
+    await abrirConversaEmAtendimento(page, /Dona Painel/);
 
     const painel = page.getByRole("complementary", { name: "Ações do Atendimento" });
     const setores = painel.getByLabel("Setor de destino");
@@ -379,10 +353,8 @@ test.describe("Painel do Funcionário (#49)", () => {
     await painel.getByLabel("Resumo do assunto").fill("Cliente quer revisar o DAS");
     await painel.getByRole("button", { name: "Transferir" }).click();
 
-    // Transferido, o Funcionário perde a conversa: a tela sai dela e o Atendimento some do dock.
-    await expect(page).toHaveURL("/");
-    await expect(page.getByRole("navigation", { name: "Atendimentos em andamento" })).toHaveCount(
-      0,
-    );
+    // Transferido, o Funcionário perde a conversa: ela fecha e a aba "Em atendimento" fica vazia.
+    await expect(page.getByText("Escolha um atendimento para conversar.")).toBeVisible();
+    await expect(page.getByText("Você não tem atendimentos em andamento.")).toBeVisible();
   });
 });

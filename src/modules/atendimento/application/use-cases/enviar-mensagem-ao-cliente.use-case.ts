@@ -6,7 +6,7 @@ import type {
   AtorSessaoDto,
   SessaoPort,
 } from "@/modules/atendimento/application/ports/out/sessao.provider";
-import { podeTransferir } from "@/modules/atendimento/domain/services/transferencia.service";
+import { podeAtender } from "@/modules/atendimento/domain/services/transferencia.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
@@ -20,7 +20,7 @@ const TEXTO_TAMANHO_MAXIMO = 4096; // limite de uma mensagem de texto do WhatsAp
 
 // Mesma regra de quem pode agir que a Transferência. A intenção é gravada `pendente` e só vira
 // `entregue` com o aceite do adapter; falhou ou ficou incerto, a linha continua (`falha`/`pendente`)
-// e não conta como resposta na inatividade.
+// e não conta como resposta.
 export class EnviarMensagemAoCliente implements EnviarMensagemAoClientePort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -54,7 +54,7 @@ export class EnviarMensagemAoCliente implements EnviarMensagemAoClientePort {
     if (!encontrado.ok) return encontrado;
     const atendimento = encontrado.value;
     if (!atendimento) return err(new NotFoundError("Atendimento não encontrado."));
-    if (!podeTransferir(ator, atendimento)) {
+    if (!podeAtender(ator, atendimento)) {
       return err(new ForbiddenError("Você não pode responder neste Atendimento."));
     }
 

@@ -1,7 +1,6 @@
 import type {
   AtendimentoEmAndamento,
   AtendimentoRepositoryPort,
-  FuncionarioDoSetor,
   NovaTransferencia,
   ResultadoTransferencia,
   RoteamentoDoCliente,
@@ -21,14 +20,10 @@ const ATENDIMENTO: AtendimentoEmAndamento = {
   funcionarioId: "func-origem",
   telefone: "5561988887777",
   chave: "61988887777",
-  emAvisoDeInatividade: false,
 };
 const TRANSFERIDO = {
   status: "transferido" as const,
-  naFila: false,
-  proximoDaOrigem: null,
-  promovidoNoDestino: null,
-  destinatarioNome: "Ana",
+  destinatarioNome: null,
   origemNome: "Beto",
   contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
 };
@@ -39,14 +34,10 @@ function montar(
   opcoes: {
     ator?: AtorSessaoDto | null;
     atendimento?: AtendimentoEmAndamento | null;
-    funcionarios?: FuncionarioDoSetor[];
     resultados?: ResultadoTransferencia[];
     roteamento?: RoteamentoDoCliente | null;
     lider?: string | null;
     envioFalha?: boolean;
-    // Índices (0 = aviso ao transferido, 1 = aviso ao cliente da Fila da origem) que falham.
-    avisoFalha?: number[];
-    posicao?: number | null;
   } = {},
 ) {
   const ator =
@@ -58,9 +49,7 @@ function montar(
   const anexadas: string[] = [];
   const enviadas: MensagemEnviada[] = [];
   const auditadas: RegistrarAcaoAuditoria[] = [];
-  let chamadas = 0;
   const repo = {
-    posicaoNaFila: async () => ok(opcoes.posicao === undefined ? null : opcoes.posicao),
     buscarEmAndamento: async () =>
       ok(opcoes.atendimento === undefined ? ATENDIMENTO : opcoes.atendimento),
     roteamentoDoCliente: async () =>
@@ -70,8 +59,6 @@ function montar(
           : opcoes.roteamento,
       ),
     liderDoSetor: async () => ok(opcoes.lider === undefined ? "lider-sn" : opcoes.lider),
-    funcionariosDoSetor: async () =>
-      ok(opcoes.funcionarios ?? [{ id: "func-destino", atendimentosNoMes: 0, livre: true }]),
     transferir: async (t: NovaTransferencia) => {
       transferencias.push(t);
       return ok(resultados.shift() ?? TRANSFERIDO);
@@ -87,10 +74,7 @@ function montar(
     },
     {
       execute: async ({ telefone, texto }) => {
-        const indice = chamadas++;
-        if (opcoes.envioFalha || opcoes.avisoFalha?.includes(indice)) {
-          return err(new ServicoExternoError("meta"));
-        }
+        if (opcoes.envioFalha) return err(new ServicoExternoError("meta"));
         enviadas.push({ telefone, texto });
         anexadas.push(texto);
         return ok(undefined);
@@ -101,187 +85,52 @@ function montar(
 }
 
 describe("TransferirAtendimento", () => {
-  it("transfere ao Funcionário menos carregado e devolve o que o destino recebe", async () => {
-    const { caso, transferencias } = montar({
-      funcionarios: [
-        { id: "a", atendimentosNoMes: 5, livre: true },
-        { id: "b", atendimentosNoMes: 2, livre: true },
-        { id: "c", atendimentosNoMes: 0, livre: false },
-      ],
-    });
+  it("sem Responsável nem Líder no Setor, transfere para a espera do Setor e devolve o que o destino recebe", async () => {
+    const { caso, transferencias } = montar({ lider: null });
     const r = await caso.execute(INPUT);
     expect(r).toEqual({
       ok: true,
       value: {
-        destinatarioNome: "Ana",
-        naFila: false,
+        destinatarioNome: null,
         contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
         origemSetor: "recepcao",
         origemNome: "Beto",
         resumo: "DAS",
-        proximoDaFila: null,
       },
     });
+    expect(transferencias).toHaveLength(1);
     expect(transferencias[0]).toMatchObject({
       atendimentoId: "at-1",
       origemFuncionarioId: "func-origem",
       setorOrigem: "recepcao",
       setorDestino: "contabil",
-      funcionarioDestinoId: "b",
-      enfileirarSeOcupado: false,
+      dirigidoA: null,
       resumo: "DAS",
       ator: { id: "func-origem", setor: "recepcao" },
     });
   });
 
-  it("avisa o cliente nomeando o Setor e o atendente, e guarda a Mensagem", async () => {
+  it("avisa o cliente só para aguardar, sem posição, e guarda a Mensagem", async () => {
     const { caso, anexadas, enviadas } = montar();
     await caso.execute(INPUT);
-    const texto =
-      "Estamos transferindo você para o setor Contábil, com Ana. Aguarde um instante, por favor.";
+    const texto = "Aguarde, já vamos atendê-lo.";
     expect(enviadas).toEqual([{ telefone: "5561988887777", texto }]);
     expect(anexadas).toEqual([texto]);
   });
 
-  it("sem Funcionário livre transfere sem atribuição e o aviso nomeia só o Setor", async () => {
-    const { caso, transferencias, enviadas } = montar({
-      funcionarios: [],
-      resultados: [{ ...TRANSFERIDO, destinatarioNome: null }],
-    });
-    await caso.execute(INPUT);
-    expect(transferencias[0].funcionarioDestinoId).toBeNull();
-    expect(enviadas[0].texto).toBe("Você está na fila do setor Contábil. Aguarde, por favor.");
-  });
-
-  it("sem Funcionário livre o aviso diz a posição na Fila do Setor", async () => {
-    const { caso, enviadas } = montar({
-      funcionarios: [],
-      resultados: [{ ...TRANSFERIDO, destinatarioNome: null }],
-      posicao: 3,
-    });
-    await caso.execute(INPUT);
-    expect(enviadas[0].texto).toBe(
-      "Você está na fila do setor Contábil, na posição 3. Aguarde, por favor.",
-    );
-  });
-
-  describe("Fila do Funcionário de origem", () => {
-    const PROXIMO = {
-      id: "at-2",
-      telefone: "5561977776666",
-      chave: "61977776666",
-      funcionarioNome: "Beto",
-    };
-    const COM_PROXIMO = [{ ...TRANSFERIDO, proximoDaOrigem: PROXIMO }];
-
-    it("devolve o Atendimento da Fila que a origem liberada assumiu, para o painel abrir", async () => {
-      const { caso } = montar({ resultados: COM_PROXIMO });
-
-      const r = await caso.execute(INPUT);
-
-      expect(r.ok && r.value.proximoDaFila).toBe("at-2");
-    });
-
-    it("o cliente da Fila que a origem liberada assumiu é avisado de quem vai atendê-lo", async () => {
-      const { caso, enviadas } = montar({ resultados: COM_PROXIMO });
-      expect((await caso.execute(INPUT)).ok).toBe(true);
-      expect(enviadas[1]).toEqual({
-        telefone: "5561977776666",
-        texto: "Chegou a sua vez! Beto vai te atender agora.",
-      });
-    });
-
-    it("sem ninguém na Fila da origem só o transferido é avisado", async () => {
-      const { caso, enviadas } = montar();
-      await caso.execute(INPUT);
-      expect(enviadas).toHaveLength(1);
-    });
-
-    it("o cliente da Fila é avisado mesmo se o aviso ao transferido falhou", async () => {
-      const { caso, enviadas } = montar({ resultados: COM_PROXIMO, avisoFalha: [0] });
-      const r = await caso.execute(INPUT);
-      expect(!r.ok && r.error.code).toBe("INCONSISTENT_STATE");
-      expect(enviadas).toHaveLength(1);
-      expect(enviadas[0].telefone).toBe("5561977776666");
-    });
-
-    it("se os dois avisos falharem o erro diz isso, sem perder a falha da origem", async () => {
-      const { caso } = montar({ resultados: COM_PROXIMO, avisoFalha: [0, 1] });
-      const r = await caso.execute(INPUT);
-      expect(!r.ok && r.error.message).toContain("avisos ao cliente e ao da Fila da origem");
-    });
-
-    it("falha ao avisar o cliente da Fila da origem devolve o erro, já transferido", async () => {
-      const { caso, transferencias } = montar({ resultados: COM_PROXIMO, avisoFalha: [1] });
-      const r = await caso.execute(INPUT);
-      expect(!r.ok && r.error.code).toBe("INCONSISTENT_STATE");
-      expect(transferencias).toHaveLength(1);
-    });
-  });
-
-  describe("cliente mais antigo da Fila do destino passa na frente", () => {
-    const PROMOVIDO = {
-      id: "at-9",
-      telefone: "5561955554444",
-      chave: "61955554444",
-      funcionarioNome: "Ana",
-    };
-    const COM_PROMOVIDO = [
-      { ...TRANSFERIDO, destinatarioNome: null, promovidoNoDestino: PROMOVIDO },
+  it("só o dono transfere: Líder do Setor, Líder de outro Setor, Admin e outro Funcionário não", async () => {
+    const atores = [
+      { id: "l", papel: "lider_setor" as const, setor: "recepcao" as const },
+      { id: "l2", papel: "lider_setor" as const, setor: "contabil" as const },
+      { id: "ad", papel: "admin" as const, setor: "administrativo" as const },
+      { id: "x", papel: "funcionario" as const, setor: "recepcao" as const },
     ];
-
-    it("o cliente promovido no destino é avisado de quem o atende, além do transferido", async () => {
-      const { caso, enviadas } = montar({ resultados: COM_PROMOVIDO });
-
-      expect((await caso.execute(INPUT)).ok).toBe(true);
-
-      expect(enviadas).toHaveLength(2);
-      expect(enviadas[1]).toEqual({
-        telefone: "5561955554444",
-        texto: "Chegou a sua vez! Ana vai te atender agora.",
-      });
-    });
-
-    it("falha ao avisar o promovido devolve o erro, já transferido", async () => {
-      const { caso, transferencias } = montar({ resultados: COM_PROMOVIDO, avisoFalha: [1] });
-
+    for (const ator of atores) {
+      const { caso, transferencias } = montar({ ator });
       const r = await caso.execute(INPUT);
-
-      expect(!r.ok && r.error.code).toBe("INCONSISTENT_STATE");
-      expect(transferencias).toHaveLength(1);
-    });
-  });
-
-  it("relista e tenta de novo no conflito; esgotadas as tentativas transfere sem atribuição", async () => {
-    const conflito: ResultadoTransferencia = { status: "conflito" };
-    const { caso, transferencias } = montar({ resultados: [conflito, conflito, conflito] });
-    const r = await caso.execute(INPUT);
-    expect(r.ok).toBe(true);
-    expect(transferencias.map((t) => t.funcionarioDestinoId)).toEqual([
-      "func-destino",
-      "func-destino",
-      "func-destino",
-      null,
-    ]);
-  });
-
-  it("Líder do Setor do Atendimento e Admin transferem; outro Funcionário não", async () => {
-    const lider = { id: "l", papel: "lider_setor" as const, setor: "recepcao" as const };
-    const admin = { id: "ad", papel: "admin" as const, setor: "administrativo" as const };
-    const outro = { id: "x", papel: "funcionario" as const, setor: "recepcao" as const };
-    expect((await montar({ ator: lider }).caso.execute(INPUT)).ok).toBe(true);
-    expect((await montar({ ator: admin }).caso.execute(INPUT)).ok).toBe(true);
-    const negado = montar({ ator: outro });
-    const r = await negado.caso.execute(INPUT);
-    expect(!r.ok && r.error.code).toBe("FORBIDDEN");
-    expect(negado.transferencias).toEqual([]);
-  });
-
-  it("Líder de outro Setor não transfere", async () => {
-    const r = await montar({
-      ator: { id: "l", papel: "lider_setor" as const, setor: "contabil" as const },
-    }).caso.execute(INPUT);
-    expect(!r.ok && r.error.code).toBe("FORBIDDEN");
+      expect(!r.ok && r.error.code).toBe("FORBIDDEN");
+      expect(transferencias).toEqual([]);
+    }
   });
 
   it("sem sessão: proibido", async () => {
@@ -292,15 +141,6 @@ describe("TransferirAtendimento", () => {
   it("Atendimento inexistente: não encontrado", async () => {
     const r = await montar({ atendimento: null }).caso.execute(INPUT);
     expect(!r.ok && r.error.code).toBe("NOT_FOUND");
-  });
-
-  it("Atendimento em aviso de inatividade não é transferido, sem gravar", async () => {
-    const { caso, transferencias } = montar({
-      atendimento: { ...ATENDIMENTO, emAvisoDeInatividade: true },
-    });
-    const r = await caso.execute(INPUT);
-    expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
-    expect(transferencias).toEqual([]);
   });
 
   it("recusa o mesmo Setor e resumo vazio, sem gravar", async () => {
@@ -346,47 +186,81 @@ describe("TransferirAtendimento", () => {
     expect((await limite.caso.execute({ ...INPUT, resumo: "a".repeat(1000) })).ok).toBe(true);
   });
 
+  describe("para qualquer Setor (a regra é do sistema)", () => {
+    it("fica dirigido ao Responsável do Cliente naquele Setor", async () => {
+      const { caso, transferencias } = montar({
+        roteamento: { regime: "lucro_presumido", responsavelId: "resp-contabil" },
+      });
+      const r = await caso.execute(INPUT);
+      expect(r.ok).toBe(true);
+      expect(transferencias[0]).toMatchObject({
+        setorDestino: "contabil",
+        dirigidoA: "resp-contabil",
+      });
+    });
+
+    it("sem Responsável fica dirigido ao Líder do Setor de destino", async () => {
+      const { caso, transferencias } = montar({
+        roteamento: { regime: "lucro_presumido", responsavelId: null },
+        lider: "lider-contabil",
+      });
+      await caso.execute(INPUT);
+      expect(transferencias[0]).toMatchObject({ dirigidoA: "lider-contabil" });
+    });
+
+    it("a Recepção é exceção: espera comum, mesmo com Líder", async () => {
+      const { caso, transferencias } = montar({
+        ator: { id: "func-origem", papel: "funcionario", setor: "contabil" },
+        atendimento: { ...ATENDIMENTO, setor: "contabil" },
+        lider: "lider-recepcao",
+      });
+      const r = await caso.execute({ ...INPUT, setorDestino: "recepcao" });
+      expect(r.ok).toBe(true);
+      expect(transferencias[0]).toMatchObject({ setorDestino: "recepcao", dirigidoA: null });
+    });
+
+    it("Atendimento sem Cliente identificado também vai ao Líder, sem recusar", async () => {
+      const { caso, transferencias } = montar({
+        atendimento: { ...ATENDIMENTO, clienteId: null },
+        lider: "lider-contabil",
+      });
+      const r = await caso.execute(INPUT);
+      expect(r.ok).toBe(true);
+      expect(transferencias[0]).toMatchObject({ dirigidoA: "lider-contabil" });
+    });
+  });
+
   describe("para o Simples Nacional", () => {
-    it("vai direto ao Responsável do Cliente, ignorando o Balanceamento", async () => {
+    it("fica dirigido ao Responsável do Cliente", async () => {
       const { caso, transferencias } = montar({
         roteamento: { regime: "mei", responsavelId: "resp-1" },
-        funcionarios: [{ id: "livre", atendimentosNoMes: 0, livre: true }],
       });
       const r = await caso.execute(INPUT_SN);
       expect(r.ok).toBe(true);
       expect(transferencias).toHaveLength(1);
-      expect(transferencias[0]).toMatchObject({
-        funcionarioDestinoId: "resp-1",
-        enfileirarSeOcupado: true,
-      });
+      expect(transferencias[0]).toMatchObject({ dirigidoA: "resp-1" });
     });
 
-    it("sem Responsável vai ao Líder do Setor", async () => {
+    it("sem Responsável fica dirigido ao Líder do Setor", async () => {
       const { caso, transferencias } = montar();
       await caso.execute(INPUT_SN);
-      expect(transferencias[0]).toMatchObject({
-        funcionarioDestinoId: "lider-sn",
-        enfileirarSeOcupado: true,
-      });
+      expect(transferencias[0]).toMatchObject({ dirigidoA: "lider-sn" });
     });
 
-    it("sem Responsável nem Líder fica na fila do Setor (sem destino)", async () => {
+    it("sem Responsável nem Líder fica na espera do Setor (sem destino)", async () => {
       const { caso, transferencias } = montar({ lider: null });
       await caso.execute(INPUT_SN);
-      expect(transferencias[0]).toMatchObject({ funcionarioDestinoId: null });
+      expect(transferencias[0]).toMatchObject({ dirigidoA: null });
     });
 
-    it("destino ocupado: entra na fila dele e o aviso diz isso", async () => {
+    it("destinatário que deixou de ser elegível no meio: erro, sem avisar o cliente", async () => {
       const { caso, enviadas } = montar({
         roteamento: { regime: "simples_nacional", responsavelId: "resp-1" },
-        resultados: [{ ...TRANSFERIDO, naFila: true }],
-        posicao: 2,
+        resultados: [{ status: "conflito" }],
       });
       const r = await caso.execute(INPUT_SN);
-      expect(r.ok && r.value.naFila).toBe(true);
-      expect(enviadas[0].texto).toBe(
-        "Você está na fila de atendimento de Ana no setor Simples Nacional, na posição 2. Aguarde, por favor.",
-      );
+      expect(r.ok).toBe(false);
+      expect(enviadas).toEqual([]);
     });
 
     it("recusa Cliente de outro Regime e Atendimento sem Cliente, sem gravar", async () => {

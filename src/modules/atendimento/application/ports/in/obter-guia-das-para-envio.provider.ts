@@ -7,8 +7,11 @@ export type GuiaDasParaEnvio = {
   competencia: string; // MM/AAAA
   vencimento: string; // DD/MM/AAAA
   guia: { url: string; nomeArquivo: string };
+  // Objeto publicado: quem registra o envio aceito o guarda para o reenvio.
+  caminho: string;
 };
 
 export interface ObterGuiaDasParaEnvioPort {
-  execute(clienteId: string): Promise<Result<GuiaDasParaEnvio, AppError>>;
+  // `mes` (AAAA-MM) é o mês do envio: a guia fica guardada nele para o reenvio.
+  execute(clienteId: string, mes: string): Promise<Result<GuiaDasParaEnvio, AppError>>;
 }

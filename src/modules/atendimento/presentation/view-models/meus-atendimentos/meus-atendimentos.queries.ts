@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
+import type { AtendimentoVisto } from "@/modules/atendimento/application/ports/in/listar-meus-atendimentos.provider";
 import { listarMeusAtendimentosAction } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.actions";
 
 export const meusAtendimentosKeys = {
@@ -10,7 +11,7 @@ export const meusAtendimentosKeys = {
 // (`*.realtime.ts`, arquitetura.md 4.2) quando o tempo de espera incomodar.
 const INTERVALO_MS = 15_000;
 
-export function useMeusAtendimentosQuery(habilitado: boolean) {
+export function useMeusAtendimentosQuery(habilitado: boolean, initialData?: AtendimentoVisto[]) {
   return useQuery({
     queryKey: meusAtendimentosKeys.lista(),
     queryFn: async () => {
@@ -18,6 +19,7 @@ export function useMeusAtendimentosQuery(habilitado: boolean) {
       if (!resultado.ok) throw new Error(resultado.error.message);
       return resultado.data;
     },
+    initialData,
     enabled: habilitado,
     refetchInterval: INTERVALO_MS,
     staleTime: INTERVALO_MS,

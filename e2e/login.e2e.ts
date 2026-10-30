@@ -1,14 +1,8 @@
 import { expect, test } from "./fixtures";
+import { login } from "./support/criar-cliente";
 
 const EMAIL = "admin@rigonicontabil.local";
 const SENHA = "admin123";
-
-async function login(page: import("@playwright/test").Page, email: string, senha: string) {
-  await page.goto("/login");
-  await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill(senha);
-  await page.getByRole("button", { name: "Entrar" }).click();
-}
 
 test.describe("Login e shell autenticado", () => {
   test("visitante sem sessão é redirecionado para /login @smoke", async ({ page }) => {
@@ -19,11 +13,7 @@ test.describe("Login e shell autenticado", () => {
   test("credenciais inválidas mostram erro e mantêm o visitante em /login @smoke", async ({
     page,
   }) => {
-    await page.goto("/login");
-
-    await page.getByLabel("E-mail").fill(EMAIL);
-    await page.getByLabel("Senha").fill("senha-errada");
-    await page.getByRole("button", { name: "Entrar" }).click();
+    await login(page, EMAIL, "senha-errada");
 
     await expect(page.getByRole("alert")).toBeVisible();
     await expect(page).toHaveURL(/\/login$/);
@@ -47,10 +37,13 @@ test.describe("Login e shell autenticado", () => {
     await expect(page.getByText("Admin de Teste")).toBeVisible();
     await expect(page.getByText(/acesso a todos os setores/i)).toBeVisible();
 
+    // De 640 px para cima são chips; o <option> do seletor do celular existe, mas está oculto.
     const nav = page.getByRole("navigation", { name: "Setores" });
-    await expect(nav.getByText("Simples Nacional")).toBeVisible();
-    await expect(nav.getByText("Financeiro")).toBeVisible();
-    await expect(nav.getByText("Contábil", { exact: true })).toBeVisible();
+    await expect(nav.getByText("Simples Nacional").filter({ visible: true })).toBeVisible();
+    await expect(nav.getByText("Financeiro").filter({ visible: true })).toBeVisible();
+    await expect(
+      nav.getByText("Contábil", { exact: true }).filter({ visible: true }),
+    ).toBeVisible();
 
     await page.getByRole("button", { name: "Sair" }).click();
     await expect(page).toHaveURL(/\/login$/);

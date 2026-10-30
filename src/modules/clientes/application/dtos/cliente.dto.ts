@@ -1,4 +1,4 @@
-export type AlteracaoContratualDto = { data: string; arquivoCaminho: string };
+export type AlteracaoContratualDto = { numero: number; data: string; arquivoCaminho: string };
 
 export type ClienteDto = {
   id: string;

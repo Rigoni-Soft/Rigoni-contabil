@@ -37,7 +37,7 @@ export function useCompositor(atendimentoId: string, initialData: ConversaVista)
         ? anexoMutation
         : mensagem;
 
-  const visivel = !conversa.encerrado && !transferido;
+  const visivel = !conversa.encerrado && !conversa.somenteLeitura && !transferido;
   const aoAnexar = (novo: File) => {
     // Trocar o arquivo no meio do envio faria o sucesso limpar o arquivo novo.
     if (envio.isPending) return;
@@ -50,6 +50,8 @@ export function useCompositor(atendimentoId: string, initialData: ConversaVista)
   return {
     // Encerrado ou transferido: a conversa não é mais do usuário.
     visivel,
+    // Líder/Admin lendo a conversa de outro: o campo dá lugar ao aviso.
+    somenteLeitura: conversa.somenteLeitura && !transferido,
     arraste,
     // Com arquivo escolhido, o texto é a legenda.
     aoEnviar: (texto: string) => {

@@ -1,11 +1,5 @@
 import { expect, test } from "./fixtures";
-
-async function login(page: import("@playwright/test").Page, email: string, senha: string) {
-  await page.goto("/login");
-  await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill(senha);
-  await page.getByRole("button", { name: "Entrar" }).click();
-}
+import { cnpjUnico, empresaUnica, login } from "./support/criar-cliente";
 
 function pdf(nome: string) {
   return { name: nome, mimeType: "application/pdf", buffer: Buffer.from("conteúdo de teste") };
@@ -28,11 +22,44 @@ test.describe("Cadastro de Cliente (Admin only)", () => {
     await page.getByRole("button", { name: "Adicionar" }).click();
     await page.getByLabel("Data da alteração 1").fill("2026-02-01");
     await page.getByLabel("Arquivo da alteração 1").setInputFiles(pdf("alteracao-1.pdf"));
+    // Sem prefixo no nome do arquivo: sugere o maior nº + 1 (1, sem outras alterações).
+    await expect(page.getByLabel("Nº da alteração 1")).toHaveValue("1");
 
     await page.getByRole("button", { name: "Cadastrar" }).click();
 
     await expect(page.getByText("Padaria Pão Quente E2E Ltda")).toBeVisible();
     await expect(page.getByText("11444777000161")).toBeVisible();
+  });
+
+  test("nº da alteração: pré-preenche pelo nome do arquivo e barra nº repetido no formulário", async ({
+    page,
+  }) => {
+    const empresa = empresaUnica("Cliente Nº Alteração");
+    await login(page, "admin@rigonicontabil.local", "admin123");
+    await expect(page).toHaveURL("/");
+    await page.goto("/admin/clientes/novo");
+
+    await page.getByLabel("Empresa").fill(empresa);
+    await page.getByLabel("CNPJ").fill(cnpjUnico());
+    await page.getByLabel("Regime").selectOption("simples_nacional");
+
+    await page.getByRole("button", { name: "Adicionar" }).click();
+    await page.getByLabel("Data da alteração 1").fill("2026-02-01");
+    await page.getByLabel("Arquivo da alteração 1").setInputFiles(pdf("2-alteracao.pdf"));
+    await expect(page.getByLabel("Nº da alteração 1")).toHaveValue("2");
+
+    await page.getByRole("button", { name: "Adicionar" }).click();
+    await page.getByLabel("Data da alteração 2").fill("2026-03-01");
+    await page.getByLabel("Arquivo da alteração 2").setInputFiles(pdf("alteracao-b.pdf"));
+    await expect(page.getByLabel("Nº da alteração 2")).toHaveValue("3");
+
+    await page.getByLabel("Nº da alteração 2").fill("2");
+    await page.getByRole("button", { name: "Cadastrar" }).click();
+    await expect(page.getByText("Já existe a alteração nº 2")).toHaveCount(2);
+
+    await page.getByLabel("Nº da alteração 2").fill("3");
+    await page.getByRole("button", { name: "Cadastrar" }).click();
+    await expect(page.getByText(empresa)).toBeVisible();
   });
 
   test("'Cadastrar outro' volta pro formulário limpo; 'Finalizar' leva pra home", async ({

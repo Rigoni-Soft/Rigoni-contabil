@@ -12,10 +12,13 @@ export type GuiaFiscal = {
   competencia?: string;
   vencimento?: string;
   parcela?: string;
+  // Centavos que o provedor cobra pela guia; atribui as do parcelamento aos parcelamentos do Cliente.
+  valorCentavos?: number;
 };
 
 export interface GuiasFiscaisPort {
   // O CNPJ vem do cadastro do Cliente (nunca perguntado ao contato). Sem autorização vigente do
-  // Cliente, devolve `ForbiddenError`; falha do provedor, `ServicoExternoError`.
+  // Cliente, devolve `ForbiddenError`; falha do provedor, `ServicoExternoError`. DAS e CND; o
+  // parcelamento entrega só a guia mais atrasada.
   buscar(clienteId: string, tipo: TipoGuia): Promise<Result<GuiaFiscal, AppError>>;
 }

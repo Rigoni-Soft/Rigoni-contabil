@@ -72,6 +72,36 @@ describe("SupabaseArquivoStorageGateway (integração)", () => {
     expect(resultado.ok).toBe(false);
   });
 
+  it("inspecionar devolve tipo e tamanho gravados no Storage; objeto ausente vira null", async () => {
+    const gateway = new SupabaseArquivoStorageGateway(await comoAdmin());
+    const caminho = `${crypto.randomUUID()}/contrato-social/doc.pdf`;
+    await gateway.enviar(caminho, arquivo());
+
+    const achado = await gateway.inspecionar(caminho);
+    const ausente = await gateway.inspecionar(`${crypto.randomUUID()}/nao-existe.pdf`);
+
+    expect(achado).toEqual({
+      ok: true,
+      value: { tipoMime: "application/pdf", tamanho: arquivo().size },
+    });
+    expect(ausente).toEqual({ ok: true, value: null });
+    await gateway.remover([caminho]);
+  });
+
+  it("linkTemporario devolve uma URL assinada que baixa o arquivo; objeto ausente é erro", async () => {
+    const gateway = new SupabaseArquivoStorageGateway(await comoAdmin());
+    const caminho = `${crypto.randomUUID()}/contrato-social/doc.pdf`;
+    await gateway.enviar(caminho, arquivo());
+
+    const link = await gateway.linkTemporario(caminho, 60);
+    const ausente = await gateway.linkTemporario(`${crypto.randomUUID()}/nao-existe.pdf`, 60);
+
+    expect(link.ok).toBe(true);
+    if (link.ok) expect(await (await fetch(link.value)).text()).toBe("conteúdo de teste");
+    expect(ausente.ok).toBe(false);
+    await gateway.remover([caminho]);
+  });
+
   it("Funcionário não consegue remover arquivo do bucket (RLS de DELETE)", async () => {
     const admin = new SupabaseArquivoStorageGateway(await comoAdmin());
     const caminho = `${crypto.randomUUID()}/contrato-social/doc.pdf`;

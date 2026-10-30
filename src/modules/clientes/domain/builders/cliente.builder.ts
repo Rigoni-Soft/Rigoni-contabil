@@ -11,12 +11,15 @@ import { DasStatus } from "@/modules/clientes/domain/value-objects/das-status.vo
 import { DocumentoObrigatorioStatus } from "@/modules/clientes/domain/value-objects/documento-obrigatorio-status.vo";
 import { Email } from "@/modules/clientes/domain/value-objects/email.vo";
 import { FormaEnvio } from "@/modules/clientes/domain/value-objects/forma-envio.vo";
-import { ParcelamentoStatus } from "@/modules/clientes/domain/value-objects/parcelamento-status.vo";
 import { Regime } from "@/modules/clientes/domain/value-objects/regime.vo";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-export type AlteracaoContratualRestaurar = { data: string; arquivoCaminho: string };
+export type AlteracaoContratualRestaurar = {
+  numero: number;
+  data: string;
+  arquivoCaminho: string;
+};
 export type ContatoRestaurar = { id?: string; nome: string; telefone: string; padrao: boolean };
 export type AtividadeMensalRestaurar = {
   anoMes: string;
@@ -38,8 +41,6 @@ export type ClienteRestaurar = {
   documentoObrigatorio?: string | null;
   dasStatus?: string | null;
   dataEnvioDas?: string | null;
-  temParcelamento?: boolean;
-  parcelamentoStatus?: string | null;
   observacoesGerais?: string;
   atividadeMesAtual?: AtividadeMensalRestaurar | null;
 };
@@ -62,8 +63,6 @@ export class ClienteBuilder {
   private documentoObrigatorio: DocumentoObrigatorioStatus | null = null;
   private dasStatus: DasStatus | null = null;
   private dataEnvioDas: Date | null = null;
-  private temParcelamento = false;
-  private parcelamentoStatus: ParcelamentoStatus | null = null;
   private observacoesGerais = "";
   private atividadeMesAtual: AtividadeMensal | null = null;
   private readonly camposInvalidos: Record<string, string[]> = {};
@@ -83,15 +82,21 @@ export class ClienteBuilder {
 
   comCnpj(entrada: string): this {
     const resultado = Cnpj.criar(entrada);
-    if (resultado.ok) this.cnpj = resultado.value;
-    else this.camposInvalidos.cnpj = [resultado.error.message];
+    if (!resultado.ok) {
+      this.camposInvalidos.cnpj = [resultado.error.message];
+      return this;
+    }
+    this.cnpj = resultado.value;
     return this;
   }
 
   comRegime(entrada: string): this {
     const resultado = Regime.criar(entrada);
-    if (resultado.ok) this.regime = resultado.value;
-    else this.camposInvalidos.regime = [resultado.error.message];
+    if (!resultado.ok) {
+      this.camposInvalidos.regime = [resultado.error.message];
+      return this;
+    }
+    this.regime = resultado.value;
     return this;
   }
 
@@ -108,8 +113,11 @@ export class ClienteBuilder {
       return this;
     }
     const resultado = Email.criar(texto);
-    if (resultado.ok) this.email = resultado.value;
-    else this.camposInvalidos.email = [resultado.error.message];
+    if (!resultado.ok) {
+      this.camposInvalidos.email = [resultado.error.message];
+      return this;
+    }
+    this.email = resultado.value;
     return this;
   }
 
@@ -118,6 +126,8 @@ export class ClienteBuilder {
     this.alteracoesContratuais = entradas.flatMap((entrada, indice) =>
       this.validarAlteracao(entrada, indice, erros),
     );
+    const numeros = this.alteracoesContratuais.map((alteracao) => alteracao.numero);
+    if (new Set(numeros).size !== numeros.length) erros.push("nº repetido");
     if (erros.length > 0) this.camposInvalidos.alteracoesContratuais = erros;
     return this;
   }
@@ -127,7 +137,11 @@ export class ClienteBuilder {
     indice: number,
     erros: string[],
   ): AlteracaoContratual[] {
-    const resultado = AlteracaoContratual.criar(entrada.data, entrada.arquivoCaminho);
+    const resultado = AlteracaoContratual.criar(
+      entrada.numero,
+      entrada.data,
+      entrada.arquivoCaminho,
+    );
     if (!resultado.ok) {
       erros.push(`item ${indice + 1}: ${resultado.error.message}`);
       return [];
@@ -137,8 +151,11 @@ export class ClienteBuilder {
 
   comFormaEnvio(entrada: string): this {
     const resultado = FormaEnvio.criar(entrada);
-    if (resultado.ok) this.formaEnvio = resultado.value;
-    else this.camposInvalidos.formaEnvio = [resultado.error.message];
+    if (!resultado.ok) {
+      this.camposInvalidos.formaEnvio = [resultado.error.message];
+      return this;
+    }
+    this.formaEnvio = resultado.value;
     return this;
   }
 
@@ -166,8 +183,11 @@ export class ClienteBuilder {
       return this;
     }
     const resultado = DocumentoObrigatorioStatus.criar(entrada);
-    if (resultado.ok) this.documentoObrigatorio = resultado.value;
-    else this.camposInvalidos.documentoObrigatorio = [resultado.error.message];
+    if (!resultado.ok) {
+      this.camposInvalidos.documentoObrigatorio = [resultado.error.message];
+      return this;
+    }
+    this.documentoObrigatorio = resultado.value;
     return this;
   }
 
@@ -177,29 +197,16 @@ export class ClienteBuilder {
       return this;
     }
     const resultado = DasStatus.criar(entrada);
-    if (resultado.ok) this.dasStatus = resultado.value;
-    else this.camposInvalidos.dasStatus = [resultado.error.message];
+    if (!resultado.ok) {
+      this.camposInvalidos.dasStatus = [resultado.error.message];
+      return this;
+    }
+    this.dasStatus = resultado.value;
     return this;
   }
 
   comDataEnvioDas(data: Date | null): this {
     this.dataEnvioDas = data;
-    return this;
-  }
-
-  comTemParcelamento(valor: boolean): this {
-    this.temParcelamento = valor;
-    return this;
-  }
-
-  comParcelamentoStatus(entrada: string | null): this {
-    if (entrada === null) {
-      this.parcelamentoStatus = null;
-      return this;
-    }
-    const resultado = ParcelamentoStatus.criar(entrada);
-    if (resultado.ok) this.parcelamentoStatus = resultado.value;
-    else this.camposInvalidos.parcelamentoStatus = [resultado.error.message];
     return this;
   }
 
@@ -234,9 +241,6 @@ export class ClienteBuilder {
     if (dados.dataEnvioDas !== undefined) {
       this.comDataEnvioDas(dados.dataEnvioDas ? new Date(dados.dataEnvioDas) : null);
     }
-    if (dados.temParcelamento !== undefined) this.comTemParcelamento(dados.temParcelamento);
-    if (dados.parcelamentoStatus !== undefined)
-      this.comParcelamentoStatus(dados.parcelamentoStatus);
     if (dados.observacoesGerais !== undefined) this.comObservacoesGerais(dados.observacoesGerais);
     if (dados.atividadeMesAtual !== undefined) this.comAtividadeMesAtual(dados.atividadeMesAtual);
     return this;
@@ -284,8 +288,6 @@ export class ClienteBuilder {
         documentoObrigatorio: this.documentoObrigatorio,
         dasStatus: this.dasStatus,
         dataEnvioDas: this.dataEnvioDas,
-        temParcelamento: this.temParcelamento,
-        parcelamentoStatus: this.parcelamentoStatus,
         observacoesGerais: this.observacoesGerais,
         atividadeMesAtual: this.atividadeMesAtual,
       }),

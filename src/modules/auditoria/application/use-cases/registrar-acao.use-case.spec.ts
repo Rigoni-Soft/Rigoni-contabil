@@ -32,7 +32,7 @@ describe("RegistrarAcao", () => {
     });
 
     expect(resultado.ok).toBe(true);
-    expect(repositorio.salvo?.ator).toBe("11111111-1111-1111-1111-111111111111");
+    expect(repositorio.salvo?.ator.valor).toBe("11111111-1111-1111-1111-111111111111");
     expect(repositorio.salvo?.acao).toBe("usuario.criar");
     expect(repositorio.salvo?.resultado.valor).toBe("sucesso");
     expect(repositorio.salvo?.dataHora).toBeInstanceOf(Date);

@@ -36,7 +36,7 @@ com a preferência de SO do visitante.
 | `success` / `success-foreground` | `#d9bd7c` / `#2a1f0c` | `#96742f` / `#2a1f0c` | selo dourado "em dia" — reservado especificamente para as telas de status do Simples Nacional (#35–#37); não usar para resultado sucesso/falha genérico (isso é `primary`/`destructive`, ver Componentes → Indicadores de estado). Só em traço/ícone: no claro tem 3,8:1 sobre `background`, abaixo dos 4,5:1 de texto |
 | `border` / `ring` | `#47453e` | tons de contorno derivados do verde | bordas decorativas, foco |
 | `input` | `#7a7765` | `#857d66` | contorno de campo, select, textarea, botão outline e painel de emoji: ≥3:1 sobre `background` e `card` nos dois temas (WCAG 1.4.11) |
-| `overlay` | `#0f0e0c` a 70% | `#16231f` a 55% | véu atrás de diálogos nativos (`popover`: imagem ampliada, prévia de documento) — tinta de cada tema, não preto puro; só escurece o fundo, não carrega texto |
+| `overlay` | `#0f0e0c` a 70% | `#16231f` a 55% | véu atrás de diálogos nativos (`popover`: imagem ampliada, prévia de documento; `<dialog>` modal: sino de avisos) — tinta de cada tema, não preto puro; só escurece o fundo, não carrega texto |
 
 **Dark "leve":** a paleta dark original
 (`background` `#0c1512`, luminância relativa ~0,6%) lia como sombria demais —
@@ -102,13 +102,14 @@ em monitores largos):
   `muted-foreground` / valor `font-medium`), seguidos da seção "Trocar
   senha" separada por `border-t`. Sem cartão: são dois blocos de leitura e
   formulário, não superfícies elevadas.
-- **Formulário de criar algo** (ex.: cadastro de Cliente, cadastro de
-  Líder/Funcionário): `w-[80%]` — mais largo que antes, mas ainda contido,
-  porque continua sendo um fluxo de preenchimento linear único, não uma
-  grade densa de múltiplos grupos.
+- **Formulário de cadastro/edição** (cadastro de Cliente, de Líder/Funcionário,
+  Feriados e edição do cadastro operacional `/clientes/[id]`): largura `cadastro`,
+  `w-full max-w-4xl` (56 rem). **Decisão de 21/10/2026, revisa a de `w-[80%]`**: em monitor
+  largo 80% esticava campos e botões demais; o formulário passa a ter largura contida e se
+  organiza em 2 a 4 colunas (ver "Cadastro de Cliente e documentos contratuais"). É a exceção à
+  regra de `%` acima, por ser tela de preenchimento: a legibilidade do campo manda.
 - **Conteúdo/listagem** (dashboard `/`, resumo do setor e seu drill-down
-  `/clientes/resumo/[bucket]`, feed de auditoria `/admin/auditoria`, edição
-  do cadastro operacional `/clientes/[id]`): `w-[90%]` — telas de trabalho
+  `/clientes/resumo/[bucket]`, feed de auditoria `/admin/auditoria`): `w-[90%]` — telas de trabalho
   contínuo (ver, filtrar, navegar entre registros), ocupam a maior parte da
   largura livre da tela.
 - **Conversa do Atendimento** (`/atendimento/[id]`, #49): exceção à regra
@@ -117,12 +118,20 @@ em monitores largos):
   página tem exatamente a altura da janela (`h-dvh`) e **não rola em
   nenhum sentido**; só a lista de mensagens rola, por dentro. Em tela
   estreita volta a ser uma página comum.
+- **Tela Atendimento** (`/atendimento`, #162): mesma exceção da conversa (tela toda,
+  `px-4 sm:px-6 lg:px-8`, `lg:h-dvh` sem rolagem na página). Colunas: lista de 20 rem (22 rem em
+  `2xl`) | chat | ações de 19 rem (22 rem em `2xl`); cada uma rola por dentro. A coluna de ações só
+  existe com uma conversa aberta e não encerrada (a grade ganha a terceira coluna por
+  `has-[[data-acoes]:not(:empty)]`); sem ela o chat ocupa a largura. Abaixo de `xl` as ações vão
+  para baixo do chat, com `max-h-[28dvh]` e rolagem própria, para não esmagar as mensagens (a 36% o tablet em paisagem, 1024×768, deixava ~170 px para a conversa). Abaixo
+  de `lg` há uma coluna por vez: a lista, ou o chat quando há conversa aberta (a lista se esconde),
+  com "← Voltar à lista" e o atalho "Ir para as ações ↓" no topo do chat. Ver Componentes → Tela
+  Atendimento.
 
-Formulário com elevação em 2 colunas (ex.: edição do cadastro operacional
-do Simples Nacional, #34): cartão `rounded-lg border bg-card shadow-sm`
-dentro do container de 90% acima — mais denso que um formulário isolado
-(Forma de envio, Documento, DAS, parcelamento, Atividade do mês, Contatos),
-por isso fica na categoria "conteúdo", não "formulário de criar".
+Formulário com elevação (edição do cadastro operacional do Simples Nacional, #34):
+cartão `rounded-lg border bg-card p-5 shadow-sm` dentro do container `cadastro`, em 4 colunas
+em tela larga (Forma de envio, Documento, DAS, Data de envio na mesma linha; ver
+"Cadastro de Cliente e documentos contratuais").
 
 Painel de filtro: campos em grid (`grid-cols-2 sm:grid-cols-4`), e as ações
 (Limpar/Filtrar) ficam numa linha própria abaixo dos campos, separada por
@@ -151,7 +160,9 @@ especialista da tela, organizando átomos e moléculas (formulários, listas,
 painéis). Template: organiza os slots da tela, sem marcação de conteúdo
 (`tela-de-trabalho`, `entrada`, `conversa`). Page: só renderiza o template com os
 slots preenchidos. **Nenhum elemento HTML cru fora de `atoms/` e `ui/`** (lint): o
-contêiner é `Caixa` (`como="section"|"ul"|"li"|"form"…`), o ritmo vertical é
+contêiner é `Caixa` (`como="section"|"ul"|"li"|"form"…`; `ul`/`ol` levam `role="list"`
+automático, porque o reset do Tailwind tira o marcador e o Safari/VoiceOver deixaria de anunciar a
+lista), o ritmo vertical é
 `Pilha espaco={1|2|3|4|6|8|"campo"|"formulario"}`, a linha é `Linha`
 (`alinhar`, `justificar`, `espaco`, `quebra`), a malha é `Grade colunas="1>2"|"1>3"|…`,
 e o texto é `Texto` com um
@@ -178,8 +189,8 @@ brigando com o verde-cheque do resto do produto. Primeiro uso real em
 sem precisar de classe.
 
 - `button.tsx` — variantes `default`/`destructive`/`outline`/`ghost`,
-  tamanhos `default` (44px), `sm` (40px), `icon` (44px). Alturas escolhidas
-  para bater o alvo de toque de 44px em controles primários. Exporta
+  tamanhos `default` (36px), `sm` (32px), `icon` (36px); em aparelho de toque
+  (`pointer-coarse:`) todos sobem para 44px, o alvo de toque. Exporta
   `buttonVariants` (a função `cva` por trás do componente) para qualquer
   elemento que precise da mesma aparência sem ser um `<button>` de verdade —
   o link "Meu perfil" do `ShellHeader` é o primeiro consumidor
@@ -189,7 +200,18 @@ sem precisar de classe.
 
   **Rótulo de ação oculto abaixo de `lg` (#32; subiu de `sm` para `lg` em
   13/10/2026, quando a sonda de reflow mostrou rolagem horizontal do Admin a 320 e 768 px;
-  abaixo de `lg` a identidade e as ações também empilham em duas linhas):** os
+  abaixo de `lg` a identidade e as ações quebram em duas linhas quando não cabem lado a lado, e
+  dividem a linha quando cabem — Funcionário e Líder em tablet, #168; o Admin segue empilhado; o
+  reflow a 320 px é preservado). **Abaixo de `sm` (celular, #168) o cabeçalho é uma barra de uma
+  linha (~70 px): inicial e nome truncados, o sino sempre à vista e o botão `Menu` (`popoverTarget`).
+  As ações viram um menu — o mesmo painel com `popover="auto"` (Esc e clique fora fecham, o foco
+  volta ao botão; o estado vai em `aria-expanded`, espelhando o evento `toggle`; sem fallback para
+  navegador sem popover, como nos demais popovers do projeto), que de `sm` para cima perde a posição de camada e a moldura e volta a ser a linha
+  de ações. No menu cada item mostra o rótulo e ocupa a largura toda (Perfil, tema, Sair e, no Admin
+  e no Líder, os cadastros); o rótulo "Tema escuro/claro" só aparece ali. Na `ShellNav` do Admin
+  (9 Setores) os chips viram, abaixo de `sm`, um `Select` "Ir para o Setor" ao lado do link
+  Atendimento (sempre à vista, com o contador); os Setores sem tela aparecem desabilitados com "— em
+  breve", e Funcionário e Líder mantêm os chips (são 1 ou 2).** Os
   links de ação do `ShellHeader` (hoje "Cadastrar Líder"/"Cadastrar
   Funcionário", "Usuários" e "Meu perfil") escondem o texto do rótulo em telas
   estreitas (`Texto variante="soDesktop"`, `hidden lg:inline`) mantendo só o ícone —
@@ -218,7 +240,7 @@ sem precisar de classe.
   `FieldError`, `Input type="date"` com `Label` visível e lista em `card`
   com `divide-y`; remover é botão `ghost` só-ícone com `aria-label` que
   inclui a data.
-- `input.tsx` — 44px de altura; `aria-invalid` troca borda/anel para
+- `input.tsx` — 36px de altura (44px em aparelho de toque); `aria-invalid` troca borda/anel para
   `destructive` automaticamente. `input`, `select` e `textarea` usam
   `text-base sm:text-sm`, assim como `atoms/file-input.component.tsx`: 16 px no celular (abaixo
   disso o iOS dá zoom ao focar o campo), 14 px de `sm` em diante. Campo de texto
@@ -237,14 +259,15 @@ sem precisar de classe.
   deixou de ser um `<input type="file">` nu.
 - `atoms/file-input.component.tsx` (#33): `<input type="file">` nativo não aceita ser
   estilizado diretamente ("Choose File / No file chosen" do navegador era o
-  único controle do produto fora do sistema de design). Substituído por um
-  `<label>` do tamanho de `input.tsx`/`select.tsx` (44px, borda, raio, cores
-  do tema) envolvendo o input real como `sr-only` — mesmo padrão acessível
-  de sempre (o label aciona o seletor de arquivo do SO; foco por teclado no
-  input escondido acende o anel via `has-[:focus-visible]` no label). Ícone
-  `Upload` cinza + "Selecionar arquivo…" no estado vazio; `FileText` verde
-  (`text-primary`) + nome do arquivo depois de selecionado — mesmo
-  vocabulário de ícone-substitui-estado já usado em Indicadores de estado.
+  único controle do produto fora do sistema de design). Substituído por uma **área de soltar**:
+  `<label>` quase quadrado (`min-h-28`, borda tracejada, raio, cores do tema) envolvendo o input
+  real como `sr-only` — o clique aciona o seletor do SO, **arrastar e soltar** entrega o arquivo
+  (destaque em `primary` enquanto arrasta, via `data-arrastando`, sem estado) e o foco por teclado
+  no input escondido acende o anel via `has-[:focus-visible]`. Estado vazio: ícone `Upload` cinza,
+  "Arraste o arquivo aqui" e "ou clique para selecionar"; com arquivo: `FileText` verde
+  (`text-primary`), o nome e "Clique ou arraste para trocar". O tipo do arquivo solto não é
+  filtrado no átomo: o schema do formulário mostra o erro. No cadastro de Cliente o Contrato
+  social ocupa 1 coluna e o arquivo da alteração, 2.
   Qualquer novo campo de arquivo do produto reusa este componente em vez de
   um `<Input type="file">` cru.
 
@@ -262,7 +285,7 @@ sem precisar de classe.
   senha. O `aria-label` do botão ("Mostrar/Ocultar caracteres") evita a
   palavra "senha" de propósito, para não colidir com `getByLabel("Senha")`
   dos e2e.
-- `select.tsx` — mesmo tratamento visual do `input.tsx` (44px, mesmas
+- `select.tsx` — mesmo tratamento visual do `input.tsx` (36px, 44px no toque, mesmas
   bordas/foco, e o mesmo `aria-invalid` para borda/anel `destructive`).
   Introduzido no feed de auditoria para eliminar classes Tailwind duplicadas
   entre os dois `<select>` do filtro (Setor, Resultado); o cadastro de
@@ -285,7 +308,8 @@ sem precisar de classe.
   RBAC, às vezes reduzidas a 1) segue o mesmo padrão em vez de forçar uma
   seleção sem escolha real.
 
-  **Sem opacidade de desabilitado (revisão impeccable, 28/09/2026):** o
+  **Sem opacidade de desabilitado, só para confirmação de escolha (revisão impeccable, 28/09/2026;
+  escopo restrito em 21/10/2026):** o
   `disabled:opacity-50` padrão de `select.tsx` existe pra sinalizar "campo
   indisponível" — o oposto do que esse padrão precisa comunicar ("aqui está
   o que vai ser cadastrado", uma confirmação, não uma ausência). Por isso
@@ -293,7 +317,12 @@ sem precisar de classe.
   sobrescrever a opacidade herdada e manter o texto na cor plena — o cursor
   `not-allowed` (herdado, mantido) já basta pra sinalizar "sem interação
   aqui". Qualquer campo futuro que reuse o padrão de campo travado acima
-  reusa também esse override.
+  reusa também esse override. **Escopo (21/10/2026):** isto vale só para o campo que *confirma a
+  única escolha possível* (Papel/Setor do #32). O campo que *o usuário não pode alterar* (Empresa,
+  CNPJ, Regime, Responsável sem permissão, DAS já enviado, Data de envio, qualquer campo da
+  visualização somente leitura) **mantém o `disabled:opacity-50` e o cursor `not-allowed`
+  padrão**: o esmaecimento é o sinal de "não editável". A decisão de 28/09 de manter a cor plena
+  também nesses campos foi revertida a pedido do usuário.
 - `label.tsx`, `atoms/field-error.component.tsx` — erro de campo sempre ícone (`AlertCircle`)
   + texto + cor, nunca só cor (contrato "Talão de Cheque": estado por
   padrão/ícone além de cor).
@@ -317,6 +346,13 @@ de conta criada, fora de uma lista — confirma que o contrato é de indicador
 de resultado em geral, não específico de tabela. `success` (dourado) fica
 reservado ao selo "em dia" do Simples Nacional — não se usa aqui para não
 sobrepor dois significados no mesmo token.
+O selo de status do mês de cada Parcelamento no Editar cliente (#122) segue o mesmo contrato:
+"Enviado no mês" em `primary` com `CheckCircle2`, "Pendente no mês" em `muted` com `Clock` (pendente
+ali não é falha, então sem `destructive`) e "Quitado" neutro, só texto.
+O que não falhou nem terminou, mas pede conferência (ex.: guia da parcela PGFN anexada e ainda "a
+confirmar"), usa `AvisoDeStatus tipo="atencao"`: `Clock` em `foreground`, anunciado como `status`, o
+mesmo par do selo "A confirmar". Nunca o check de sucesso: o Funcionário leria "liberada" onde ainda
+falta conferir.
 
 **`FieldError` com texto longo:** o ícone alinha na primeira linha
 (`items-start` + `mt-[3px]`, 14 px de ícone sobre 20 px de linha), então o
@@ -335,6 +371,9 @@ inventar uma cor/ícone intermediário. O aviso é state do Container (não do
 schema Zod: `avisoCnpj`/`avisoRegime` em `criar-cliente.container.tsx`), e
 some assim que o usuário edita o campo correspondente a mão — nunca fica
 preso na tela depois que a pessoa já agiu sobre ele.
+O CNPJ lido do PDF de um Parcelamento (#125) diferente do CNPJ do Cliente segue o mesmo padrão: `FieldError`
+em linha própria, abaixo do estado da leitura ("Sugerido pelo PDF: confira"), sem bloquear o salvar; é state do
+Container (hook de leitura) e some ao trocar o PDF.
 
 ### Ações pós-sucesso (confirmação de cadastro)
 
@@ -366,7 +405,7 @@ texto), cada uma só um pouco mais larga que os dois botões lado a lado.
 
 ### Formulários de criar: campos lado a lado (#36)
 
-Com o container da página em `w-[80%]` (seção Layout acima), empilhar cada
+Com o container largo, empilhar cada
 campo numa linha própria (`flex flex-col gap-5`) deixa o formulário raso e
 alongado sem aproveitar a largura. Campos de identificação simples (texto
 curto, `Select` de poucas opções) agora ficam num `grid` — 2 ou 3 colunas
@@ -375,17 +414,16 @@ Observações, upload de arquivo e listas repetíveis continuam em coluna
 única, não cabem bem num grid raso):
 
 - `CriarUsuarioForm`: Nome/E-mail/Papel/Setor em `grid-cols-1 sm:grid-cols-2`.
-- `CriarClienteForm`: CNPJ/Empresa/Regime/E-mail em `grid-cols-1 sm:grid-cols-2`
-  (identificação do Cliente: 4 campos, 2 colunas); dentro de cada "Alteração contratual", Data e
-  Arquivo da alteração em `grid-cols-1 sm:grid-cols-2`. A seção "Documentos"
-  (Contrato social + lista de Alterações) continua fora do grid — upload de
-  arquivo e lista dinâmica não comprimem bem lado a lado.
-- `EditarCadastroOperacionalForm` já seguia esse padrão desde o #34 (3 e 2
-  colunas, conforme o grupo de campos) — nenhuma mudança necessária lá.
+- `CriarClienteForm`: malha `1>2>4` (1 coluna no celular, 2 em `sm`, 4 em `lg`); CNPJ, Empresa (2
+  colunas), Regime; E-mail (2 colunas); na seção "Documentos", Contrato social em 1 coluna e cada
+  alteração em uma fileira (nº, data, arquivo em 2). **Revisado em 21/10/2026**: antes eram 2
+  colunas e o arquivo em linha inteira; a área de soltar quadrada deixou de pedir a linha toda.
+- `EditarCadastroOperacionalForm`: também em 4 colunas (ver "Cadastro de Cliente e documentos
+  contratuais").
 
 Formulário isolado de coluna única (login, troca de senha) fica de fora
 dessa regra — container estreito (`max-w-sm`/`max-w-md`, não entra na
-regra de 80%/90%), poucos campos, grid não ajudaria.
+regra de largura de formulário), poucos campos, grid não ajudaria.
 
 ### Lista de itens repetíveis (campo dinâmico)
 
@@ -527,8 +565,8 @@ contexto da troca de tela.
 ### Resumo do setor (anéis de status, #36)
 
 **`ResumoSetorSn` / `ResumoSetorSnLista` (/simples-nacional):**
-9 cards fixos (invariante do mapper, ordem garantida por teste) divididos em
-dois grupos — "Documentos e DAS" (5) e "Parcelamento" (4) — cada card é um
+11 cards fixos (invariante do mapper, ordem garantida por teste) divididos em
+dois grupos — "Documentos e DAS" (5) e "Parcelamento" (6) — cada card é um
 `Link` inteiro (não botão + link separados) pra
 `/clientes/resumo/<bucket>`, que abre a lista filtrada
 daquele status como tela própria (não modal, não accordion inline — mesma
@@ -542,6 +580,30 @@ mapeados 1:1 com as cores do protótipo aprovado na spec #24), sem introduzir
 nenhum token novo. É o primeiro uso visual real do token `success`
 (dourado) desde que foi definido — deixa de ser "token sem uso" (ver "O que
 ainda não existe" abaixo).
+
+**Grupo Parcelamento (#129):** os 6 cards contam **Clientes** (cada um uma vez por card) e
+**não são mutuamente exclusivos** — "Com parcelamento", "Em aberto", "Parcelamento pendente"
+(`atencao`), "Pendente em atraso" (`urgente`, a partir do dia 29, depois da última rodada do
+job), "Parcelamento interno" e "Parcelamento enviado". O parcelamento interno segue o
+mesmo fluxo dos demais (pendente, atraso, enviado); só o destino da guia muda (financeiro, não o
+Cliente), e o Cliente nunca o vê. Em fevereiro comum (sem dia 29) o atraso começa no último dia do
+mês. O parcelamento interno vai ao
+financeiro, não ao Cliente: ele conta em "Com parcelamento", "Em aberto" e "Parcelamento interno",
+mas fica fora de "pendente", "em atraso" e "enviado", que medem a entrega ao Cliente. Em fevereiro
+comum (sem dia 29) o atraso começa no último dia do mês. A grade do grupo é `2>3` (2×3 no
+celular, 3×2 de `sm` em diante): 6 cards em 5 colunas deixariam um órfão. No celular (2 colunas), um grupo
+de número ímpar de cards ("Documentos e DAS", 5) faz o último ocupar a linha toda
+(`max-sm:last:odd:col-span-2` no item), em vez de ficar sozinho num canto. A definição única vive em
+`parcelamentos-do-cliente.ts` e alimenta cards e comparativos; os anéis, por isso, podem somar
+mais que o total. As listas `/clientes/resumo/<bucket>` desse grupo trazem sob o título uma
+linha que define o que o card conta (texto do mapper, com o dia do atraso vindo da constante do
+job) e, em cada Cliente, abaixo da linha-link (nunca dentro dela), os parcelamentos em colunas
+alinhadas entre as linhas — código (até 20ch, o excesso quebra), marca "Interno" e selo do mês
+(`SeloDeParcelamento`, o mesmo do Editar cliente). As linhas usam
+`content-visibility: auto` (o navegador pula layout e pintura do que está fora da tela; por isso o
+anel de foco da linha-link é desenhado por dentro, sem ser cortado). A lista não é paginada: com
+340 linhas são ~100 KB comprimidos e, simulando 3.400, o layout leva ~75 ms. Rever a paginação se
+uma lista passar de alguns milhares de linhas ou de ~300 KB comprimidos.
 
 **Título do card e contagem total via sr-only:** a proporção visual do anel
 (fração preenchida do círculo) não tem equivalente textual pra quem usa
@@ -579,12 +641,18 @@ grid `md:grid-cols-2 lg:grid-cols-3` (3 gráficos) — o Líder do SN ganha um 4
 (`text-xl font-bold tracking-tight text-primary`) — h1 e h2 nunca com o mesmo
 tamanho; cada gráfico é um cartão
 `rounded-xl border bg-card` (mesma superfície dos cards do resumo, sem
-guilhochê) com `role="group"` + título. DAS e parcelamento são donuts SVG
-(sem biblioteca de gráfico, anel de fundo `stroke-border`); Atividade do mês
-é lista de barras proporcionais ao total de clientes e ocupa a largura toda
+guilhochê) com `role="group"` + título. O DAS é donut SVG (fatias
+exclusivas, sem biblioteca de gráfico, anel de fundo `stroke-border`); parcelamento e
+Atividade do mês são listas de barras proporcionais ao total de clientes, porque as
+situações não se excluem (um donut somaria o mesmo Cliente várias vezes, #129) e ocupa a largura toda
 no tablet (`md:col-span-2`). Só tokens existentes: `primary` (enviado),
-`destructive` (pendente), `success` (pronto), `muted-foreground` (sem
-movimento/interno). A cor nunca é o único
+`destructive` (pendente do DAS), `success` (pronto), `muted-foreground` (sem
+movimento/interno). O dourado `success` quer dizer "aguarda ação do escritório": é a tinta de
+"Sem documento", "Esperando envio DAS" (a fatia "Pronto" do donut, que precisa de 4 tintas
+distintas: verde, vermelho, neutro e dourado) e "Parcelamento pendente". As fatias de parcelamento seguem a escala dos cards
+(`cor-de-status.ts`, a mesma do anel): enviado `primary`, pendente `success`
+(atenção: ainda dentro do ciclo de envio), "Em atraso" `destructive` (a partir do dia 29)
+e interno `muted-foreground` — o vermelho de parcelamento é só do atraso. A cor nunca é o único
 canal: toda fatia tem legenda com rótulo e número.
 
 **4º comparativo — "Envio de DAS por Responsável" (#65, só Líder):** barras
@@ -603,10 +671,39 @@ dashboard normal (cards zerados) mais um aviso neutro,
 atribuídos a você aparecem aqui.") — a RLS esconde os clientes dos outros, não
 há tela de "sem acesso".
 
+**Campos só do sistema e campo travado no cadastro operacional (#108):**
+
+- O DAS "Enviado" e a "Data de envio" vêm da entrega automática, não da digitação.
+  "Enviado" só é opção enquanto o DAS **salvo** já está enviado, e então o `Select` fica
+  `disabled`. A data é sempre `Input type="date"` com `readOnly` e `disabled`, vazia até o envio.
+- Travado é **esmaecido**, como todo campo desativado: `disabled:opacity-50` e cursor
+  `not-allowed` padrão de `Input` e `Select`, sem sobrescrita. Vale para Empresa, CNPJ, Regime e
+  Responsável (os rótulos têm `htmlFor`), para o DAS já enviado e para a Data de envio. **Decisão de
+  21/10/2026, revoga a de manter o travado em cor plena** (`TRAVADO`/`VALORES_LEGIVEIS`, removidos):
+  o esmaecimento é o sinal de "não editável". Só o campo que confirma a única escolha possível
+  (Papel/Setor do cadastro de usuário, #32) segue em cor plena. `disabled` é decisão do produto: o
+  valor segue no formulário, que lê o estado do React Hook Form; o custo é o campo sair da
+  tabulação e do leitor de tela.
+- Como o esmaecido não diz *por que* o campo está travado, cada campo do sistema traz uma nota
+  (`ajuda`, ligada por `aria-describedby`): "Definido pelo sistema." no DAS enviado e "Preenchida
+  pelo sistema quando o DAS é enviado." na data, o que também explica por que ela está vazia antes
+  do envio.
+- Na visualização ("Visualizar cadastro operacional") o `fieldset disabled` esmaece todos os campos
+  (e o salvar em andamento também esmaece, sem distinção). Não há "Adicionar contato" nem "Remover
+  contato" (`onRemover` do `LinhaDeContato` é opcional). Checkbox desativado segue no cinza do
+  navegador, mas marcado e desmarcado se distinguem.
+- O formulário vem oculto (`rc-oculto-ate-hidratar`) no servidor e na hidratação
+  (`useSyncExternalStore`): os campos não controlados só recebem os valores no cliente, e sem isso
+  apareceriam "Não definido" e `dd/mm/aaaa` no lugar do dado por um instante. Se o React nunca
+  hidratar (script que falhou), a classe revela o formulário após 3 s, em vez de deixá-lo invisível.
+  Medido em build de produção (rede de 1,6 Mbps com 150 ms, CPU 4× mais lenta, 8 execuções
+  intercaladas): com e sem a ocultação o formulário aparece no mesmo tempo, dentro da variação
+  (cache frio 2,54 s contra 2,62 s; quente 0,93 s contra 0,94 s), e o LCP não muda.
+
 **Campo Responsável no cadastro operacional (#65):** fica no cabeçalho de
 identidade do formulário, não no fim — a linha Empresa · CNPJ · Regime ·
-Responsável é uma grade `grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1.5fr]`
-(Empresa mais larga pra nomes longos). Os 3 primeiros são `Input`
+Responsável é uma grade `grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.6fr_1.2fr_1.2fr_2fr]`
+(Empresa e Responsável mais largos pra nomes longos; Regime e CNPJ sem cortar o texto). Os 3 primeiros são `Input`
 `disabled readOnly`; o Responsável é o único editável dessa linha, por isso o
 bloco deixou de ser um `fieldset disabled` (cada campo carrega o próprio
 `disabled`). Líder do SN vê um `Select` ("Sem responsável" + Funcionários do
@@ -674,7 +771,7 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
 - **Envio não confirmado**: a mensagem do Funcionário que o provedor ainda não
   aceitou (ou recusou) mostra "Envio não confirmado ·" em `font-semibold` antes da hora,
   no próprio balão, sem trocar a cor dele: o texto e o anexo continuam visíveis e a
-  mensagem não conta como resposta para a inatividade. O estado vem do texto, não da cor.
+  mensagem não conta como resposta. O estado vem do texto, não da cor.
 - **Reação do escritório** (#84): o balão do cliente tem, fora dele à direita
   (`left-full`, largura reservada no `max-w`), o botão `ghost` redondo de 28 px
   "Reagir à mensagem de <nome>" (mesmo `SeletorDeEmoji`, `compacto`). O glifo
@@ -737,20 +834,16 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   sair da barra o foco volta ao microfone. No balão, o áudio é o player nativo
   (`PlayerDeAudio`, 44 px, largura mínima de 12 rem) com play, progresso e duração.
 - **Painel de ações** (`PainelDeAcoes`, à direita, 19 rem; 22 rem em `2xl`):
-  compacto. Serviço "Contrato social" em botão `sm` (quando o Cliente não o
-  tem, o botão fica `disabled` com a frase "Contrato social não cadastrado."
-  visível, não só em `title`); alteração contratual e Setor de destino em **seletor** +
-  botão na mesma linha; resumo da transferência em `Textarea` baixo. Guias
-  e CND ficam `disabled` com `title="Em construção"`. Em janela baixa o painel
+  compacto. Serviços "Contrato social", "Guia de imposto", "Guia de
+  parcelamento" e "CND" em botões `sm` numa grade de duas colunas (o contrato,
+  quando o Cliente não o tem, fica `disabled` com a frase "Contrato social não
+  cadastrado." visível, não só em `title`; todos ficam `disabled` enquanto um
+  envio está em andamento); alteração contratual em **seletor** de largura
+  total com o botão abaixo (para o rótulo "Alteração nº N - data" caber nos
+  19 rem); Setor de destino em seletor + botão na mesma linha; resumo da
+  transferência em `Textarea` baixo. Em janela baixa o painel
   rola por dentro. Transferido, o painel troca tudo por um aviso e a tela
   sai da conversa.
-- **Aviso de inatividade** (#73, `CabecalhoDaConversa`): quando a URA avisou
-  que vai encerrar o Atendimento por falta de resposta do Funcionário, o
-  cabeçalho mostra um `FieldError` (ícone + texto, `role="alert"`) logo abaixo
-  do contexto. Só o dono do Atendimento o vê, e some assim que ele escreve ou o
-  Atendimento encerra. Não há alerta no dock. Contraste conferido: 8,42:1 no
-  claro e 6,75:1 no escuro; em 360 px o texto quebra em 3 linhas e a página
-  rola, em 1024×600 o chat mantém ~230 px.
 - **Encerrar atendimento** (no fim do `PainelDeAcoes`, separado por `border-t`):
   botão `outline`; o primeiro clique só abre a confirmação (`role="alertdialog"`
   com o aviso de que o cliente será avisado) com "Confirmar encerramento"
@@ -758,17 +851,6 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   pediu a confirmação some). A pergunta descreve o diálogo (`aria-describedby`)
   e, enquanto encerra, "Cancelar" fica `aria-disabled` (não `disabled`), sem
   perder o foco. Encerrar não tem volta.
-- **Fila do Setor** (`FilaDoSetor` + `ItemDaFila`, #70): na tela `/fila`
-  (`max-w-3xl`, h1 "Fila de atendimento do <nome>, setor <Setor>", seletor de
-  Setor só para o Admin) e como barra lateral esquerda da conversa (18 rem; 20
-  rem em `2xl`) **só de `xl` para cima**, para o chat não espremer em `lg`.
-  Cada item é `rounded-lg border bg-card`: posição em círculo `primary`,
-  contato/empresa/telefone e a espera em `tabular-nums` com ícone de relógio
-  (`mm:ss`; `h:mm:ss` a partir de 1 h). O CNPJ vai junto da empresa e nunca
-  quebra no meio do número (`whitespace-nowrap`); resumo da Transferência em
-  `text-sm` e "Fila de um usuário" em `text-sm muted` quando a Fila é de um
-  usuário (destino fixo ocupado).
-  Abaixo de `xl` a barra some e o cartão da Fila entra no dock.
 - **Aviso de status** (`AvisoDeStatus`): feedback de envio/transferência no
   painel e no campo de resposta. Segue "Indicadores de estado": ícone
   (`AlertCircle`/`CheckCircle2`) + texto + cor, erro em `destructive` e sucesso
@@ -783,18 +865,118 @@ novo" e "Ir para o início". `CarregandoPage` (`app/loading.tsx`) é um `role="s
 `motion-safe` e "Carregando…"; só aparece depois de 250 ms (`animate-carregando`, um atraso de opacidade sem
 movimento, por isso sem `motion-safe:`), para a navegação rápida não piscar.
 
-### Dock de Atendimentos (#49)
+### Tela Atendimento (#162)
 
-Cartões fixos no canto inferior direito (`fixed right-4 bottom-4`), um por
-Atendimento em andamento: ícone, Contato, empresa e o começo da última
-mensagem (prefixo "Você:" / "URA:" quando não é do cliente). Quando o cliente
-escreveu por último o cartão ganha uma bolinha `destructive` e a prévia em
-`font-medium` (e "nova mensagem" só para leitor de tela); o contêiner é
-`aria-live="polite"` e fica acima da safe-area de aparelhos com barra
-inferior (`bottom-[max(1rem,env(safe-area-inset-bottom))]`). O cartão entra com `animate-dock-entrada` (sobe e aparece, 0,35 s,
-`cubic-bezier(0.16, 1, 0.3, 1)`, keyframes em `globals.css`) e é recriado a cada mensagem nova, repetindo a
-animação. O aviso sonoro (dois tons curtos) toca quando surge um Atendimento
-ou o cliente escreve de novo.
+A tela em que a equipe assume e conduz Atendimentos, sem trocar de rota: duas abas sobrepostas
+("Em espera" e "Em atendimento"), o chat no centro e as ações à direita. Substituiu o Dock de Atendimentos e a rota própria da conversa (#168). O aviso sonoro é da tela (`useSomDaLista`, os mesmos dois tons: Atendimento novo
+na espera ou cliente que escreve de novo numa conversa não aberta; a primeira leitura é silenciosa). Modo Operate: cor só para ação e estado, tudo em tokens.
+
+- **Abas** (`AbasDeAtendimento`, molécula genérica no valor da aba): `role="tablist"`, aba ativa com
+  `border-b-2 border-primary text-primary`, inativas `text-muted-foreground`. O contador é uma pílula
+  `bg-primary text-primary-foreground text-xs` que **some em zero** (em "Em espera", os clientes na
+  espera; em "Em atendimento", só as conversas em que o cliente escreveu por último); é `aria-hidden` e o leitor
+  de tela ouve o contador por extenso no nome da aba ("Em espera, 2 clientes"; "Em atendimento, 1 cliente aguardando"). Teclado no padrão ARIA: só a ativa
+  entra no Tab (`tabIndex` 0/-1); ← → movem o foco e já ativam, dando a volta; Home/End vão às pontas.
+- **Contador no menu** (`ShellNav`, #163): o link "Atendimento" ganha uma pílula `bg-destructive
+  text-destructive-foreground text-xs` com a espera do Setor + as conversas com o cliente aguardando;
+  some em zero, vira `99+` acima de 99, é `aria-hidden` e o link ganha o nome "Atendimento, 3
+  pendentes" (`aria-label`, com o número inteiro). Cor própria porque o link da tela ativa já é
+  `primary` e a pílula `primary` sumiria nele: ali ela ganha um anel de 2 px `card` que a separa do
+  fundo; nos demais links o anel tem a cor da própria pílula (sem aro no hover). Lê as mesmas
+  consultas do aviso global e da tela (sem leitura nova; o Admin, sem Setor próprio, vê zero).
+  Quando o contador **cresce**, uma região `sr-only role="status"` dentro do `nav` (montada desde o
+  início, mesmo vazia) lê "Atendimento: 3 pendentes." — a primeira leitura é silenciosa, diminuir não
+  é novidade e, na tela Atendimento, quem anuncia é a própria tela (região da lista).
+- **Card de espera** (`CardDeEspera`): o card inteiro é o botão de assumir (`rounded-lg border
+  bg-card px-3 py-2`, `hover:bg-accent`). Mostra Contato (`destaque`), empresa (`apoio`), origem
+  (`nota`, só em Atendimento transferido: "Transferido de Financeiro por Fulano"), resumo
+  (`nota`, até duas linhas com reticências, `line-clamp-2 break-words`: é o que decide quem assumir)
+  e, à direita, ícone de relógio com o tempo de espera em `tabular-nums` (mm:ss, h:mm:ss a
+  partir de 1h; o texto muda a cada segundo, por isso `suppressHydrationWarning`) e, abaixo dele, o
+  verbo "Assumir" (`text-sm font-medium text-primary`, "Assumindo…" enquanto grava; `aria-hidden`,
+  pois o nome acessível já o diz) só no card que o usuário assume. O nome
+  acessível é "Assumir o atendimento de" + Contato + empresa (`aria-labelledby`); origem, resumo e espera
+  entram como descrição (`aria-describedby`), nunca um `aria-label` que os esconda. Dirigido a outro
+  usuário: só informa "Dirigido a outro usuário", com borda tracejada e sem fundo de cartão para não
+  parecer clicável (um tom de fundo some no tema escuro; a borda vale nos dois). **Para Líder e Admin
+  (supervisão, #165)** o mesmo card vira botão de *leitura*: mantém a borda tracejada (não confunde
+  com o que assume), ganha o ícone de olho e a nota "Dirigido a outro usuário · só leitura", e o
+  nome acessível passa a "Ler o atendimento de"; abre a conversa sem assumir. O Admin, que não tem
+  Setor próprio e não assume, lê também a espera comum do Setor: a nota é "Espera do Setor · só
+  leitura" (o prop `dirigido` do card escolhe entre as duas notas; #168). A espera vem em ordem de antiguidade. Todo controle da tela
+  (abas, cards, "Voltar à lista", "Ir para as ações") usa o anel de foco do sistema: `outline-none
+  focus-visible:ring-2 ring-ring ring-offset-2`.
+- **Card de conversa** (`CardDeConversa`): mesmo molde, ícone de mensagem; a conversa aberta ganha
+  `border-primary bg-accent` e `aria-current`; o cliente aguardando resposta ganha a bolinha
+  `destructive` (e "nova mensagem" só para leitor de tela) e a prévia em `font-medium`.
+- **Lista** (`ListaDeAtendimento` + `PainelDeEspera`/`PainelDeEmAtendimento`): o Admin escolhe o Setor
+  num `CampoSelect` no topo; os demais veem o próprio. **Equipe (supervisão, #165):** Líder do Setor e
+  Admin veem, na aba "Em atendimento", uma segunda lista, "Da equipe (somente leitura)", com os
+  Atendimentos dos outros no Setor; cada card mostra o dono primeiro ("Com Caio · Mercado") para o
+  nome não ser cortado. As duas listas ganham título visível (`rotuloDeSecao`, `h2`, como os painéis de ação) só quando as duas
+  existem. A equipe só é lida com a aba "Em atendimento" ativa (polling de 15 s) e, enquanto carrega
+  ou se a leitura falha, a seção não aparece (a falha acende o aviso de lista indisponível): nunca um
+  "ninguém em atendimento" falso. "Atendimento já assumido por outra pessoa."
+  aparece em `role="alert"` (`alerta`) e **some sozinho em 8 s** ou ao trocar de aba; o card some da
+  espera na releitura. Uma região `sr-only role="status"` anuncia "Novo cliente em espera. Total na
+  espera: N." para quem usa leitor de tela (a primeira leitura é silenciosa; quem sai não conta). A mesma região avisa "[Contato] escreveu." quando
+  o cliente escreve de novo numa conversa que não está aberta (a que o usuário lê não é anunciada), e
+  um aviso igual ao anterior ganha um espaço sem quebra no fim para o leitor de tela reanunciar.
+- **Chat** (`PainelDoChat`): quatro estados: `vazio` ("Escolha um atendimento para conversar.", só em
+  tela larga), `abrindo` (`status`), `erro` (`alert`) e `pronto` (cabeçalho, mensagens e compositor
+  da conversa). Em tela estreita o topo traz "← Voltar à lista" e, só com ações
+  disponíveis, "Ir para as ações ↓" (âncora para o painel de ações, id `acoes-do-atendimento`).
+  **Leitura de supervisão (#165):** quando Líder ou Admin abre a conversa de outro, o compositor dá
+  lugar a `AvisoDeLeitura` (`role="status"`, borda tracejada, ícone de olho: "Leitura de supervisão.
+  Só quem assumiu o atendimento responde."), e o painel de ações mantém só o Encerrar, sem o divisor
+  de seção solto no topo; serviços e transferência não aparecem. A regra vem do servidor
+  (`podeAtender`), a tela só obedece.
+- **Foco**: ao abrir uma conversa (inclui assumir) o foco vai para o painel do chat, uma vez por
+  conversa; ao fechá-la (voltar, encerrar, transferir) volta para a região da lista. Sem isso o card
+  que some deixaria o foco no `<body>`. O destino é a região (`tabIndex={-1}`), não o campo de
+  resposta, para não abrir o teclado do celular sem pedido.
+- **Estrutura** (`AtendimentoTemplate`): os slots (`lista`, `chat`, `acoes`) ficam em wrappers
+  `contents` abaixo de `lg`, para que cada View decida se aparece (a lista se esconde com a conversa
+  aberta, o chat com `vazio`) sem deixar linha vazia na grade. A `page` (Server) monta o template;
+  a aba ativa e a conversa aberta ficam num store local da tela (Zustand), dividido por três
+  Containers pequenos (lista, chat, ações).
+
+### Superfície de painel nativo
+
+Os quatro painéis que abrem sobre um véu (imagem ampliada, prévia de documento, anexar alteração e
+modal do sino de Avisos) partilham o casco visual: `rounded-xl` (raio maior que o dos cartões),
+`border-border`, fundo `background`, texto `foreground` e véu `overlay` (`backdrop:bg-overlay`),
+centralizados (`m-auto`). Vive em `SUPERFICIE_DE_PAINEL`
+(`src/presentation/lib/superficie-de-painel.ts`); cada painel soma o próprio tamanho, rolagem e
+padding. O mecanismo não é partilhado de propósito: três usam `popover="auto"` (sem foco preso) e
+o sino usa `<dialog>` modal, porque pede atenção do usuário (ver "Sino de Avisos de cadastro").
+Painel novo sobre véu parte desta constante em vez de repetir as classes.
+
+### Sino de Avisos de cadastro (#143)
+
+Primeiro item da linha de ações do `ShellHeader`, em toda tela autenticada, menos para o Admin (ele não recebe
+aviso, então não vê o sino). Botão redondo de 48 px (`size-12`, maior que o alvo
+padrão de 44 px), ícone `Bell` de 24 px. Sem aviso não visto: contorno `input`, fundo transparente.
+Com algum: preenchido `primary` com `primary-foreground`, e um selo `destructive` (borda de 2 px na
+cor do fundo) no canto superior direito com o contador, `99+` acima de 99. O selo é decorativo
+(`aria-hidden`); o nome acessível do botão traz a quantidade ("Avisos de cadastro, 3 não vistos").
+Cor nunca é o único sinal: contador e nome acessível acompanham.
+
+O sino abre direto um modal de verdade (`<dialog>` aberto com `showModal()`, véu `overlay`,
+`w-[min(92vw,32rem)]`, rolagem interna): foco preso, resto da página inerte, Esc e clique no véu
+fecham, e o foco volta ao sino. Exceção deliberada ao `popover` dos outros painéis (imagem, prévia,
+anexar): o aviso pede atenção do usuário, e o `popover` deixava o Tab sair para a página atrás do
+véu. O Container abre e fecha o `<dialog>` (a View só recebe props). Sem página `/avisos`. Cada aviso é um botão de 44 px (o de alteração traz o nº no título, "Nova Alteração contratual nº 3", para duas do mesmo Cliente não parecerem iguais; sem nº, "Nova Alteração contratual"): não
+visto em destaque (`bg-accent`, `font-medium`, contorno `primary` e um ponto `primary` de 10 px antes do texto, com "novo" só para leitor de tela; sem barra lateral grossa); visto
+esmaecido (`muted-foreground`, sem fundo, contorno `input` para o limite do alvo passar de 3:1 no tema claro) com o selo "visto" em texto. "Carregar mais" (`outline`)
+fecha a lista de 30 em 30. Abrir o modal não marca nada: só o clique no aviso marca como visto,
+fecha o modal e navega a `/clientes/[id]` (o aviso de nova alteração, a `/clientes/[id]?alteracao=N`,
+que destaca o botão do documento, ver "Destaque ao chegar por aviso"). Contador por polling de 30 s e a cada navegação, sem som.
+
+Robustez: uma região `status` visualmente oculta anuncia "N aviso(s) de cadastro não visto(s)"
+só quando o contador sobe depois da primeira leitura da tela (o foco não passa pelo sino durante o polling; o nome do botão já traz a contagem de quem acabou de chegar); o modal se nomeia pelo
+título (`aria-labelledby`) e abre com o foco no "Fechar avisos" (primeiro item focável); erro de leitura mostra
+o alerta com "Tentar de novo" e mantém a lista que já estava na tela.
 
 ## Estados e motion
 
@@ -807,16 +989,93 @@ ou o cliente escreve de novo.
 - Erro de servidor: bloco com borda/ícone `destructive`, `role="alert"`.
 - Sucesso de salvar no cadastro operacional: `role="status"` (anunciado por
   leitor de tela, ao contrário de um `<p>` mudo).
-- Alvos de toque: em aparelho de toque (`pointer-coarse:h-11`, inclusive no `Button` `sm`; `pointer-coarse:min-h-11` no "Voltar" e nas abas do shell) os controles do
-  painel de ações sobem para 44 px.
-  Com mouse o piso é de 24 px (WCAG 2.5.8): o "Voltar" tem `min-h-6`.
-- Entrada do cartão do dock de Atendimentos: `motion-safe:animate-dock-entrada`.
-  O estado (destaque, prévia, "nova mensagem") não depende da animação nem do
-  som: quem pediu movimento reduzido ou está sem som perde só o enfeite.
+- Alvos de toque: **todo controle** (`Input`, `Select`, `FileInput`, `Button` em todos os tamanhos)
+  tem 36 px (32 px no `sm`) com mouse e sobe para 44 px em aparelho de toque (`pointer-coarse:h-11`;
+  `pointer-coarse:min-h-11` no "Voltar" e nas abas do shell). **Decisão de 21/10/2026, revisa os
+  44 px fixos anteriores**: controles de 44 px em tela de mouse deixavam o formulário largo e
+  alto demais. Com mouse o piso é de 24 px (WCAG 2.5.8): o "Voltar" tem `min-h-6`.
 - Aviso sonoro: só quando há novidade (Atendimento novo ou cliente escreveu
   de novo; resposta nossa ou da URA e a primeira leitura da tela são
   silenciosas). Navegadores bloqueiam som antes do primeiro clique/tecla da
   página; até lá o aviso é mudo, sem erro.
+
+### Cadastro de Cliente e documentos contratuais (decisões de 21/10/2026; #33, #108, #138–#141)
+
+Estas decisões revisam registros anteriores deste arquivo (larguras de 80%/90%, controles de 44 px
+fixos, campo travado em cor plena, diálogo e lista das alterações); onde há conflito, vale esta seção.
+
+- **Cadastro de Cliente em colunas**: largura `cadastro`; em `lg`, 4 colunas (CNPJ, Empresa em 2,
+  Regime; E-mail em 2; Contrato social em 1; cada alteração numa fileira com nº, data e arquivo em
+  2, e a dica do nº embaixo, na largura da linha). Em `sm`, 2 colunas; no celular, 1. "Cadastrar"
+  tem o tamanho do rótulo e fica à direita.
+- **Limpar (cadastro de Cliente)**: botão `destructive` à esquerda de "Cadastrar". Ao contrário do
+  "Limpar" da edição (que volta ao valor do servidor), este **esvazia tudo**: campos, contrato,
+  alterações, avisos da consulta de CNPJ e erro do servidor, sem cadastrar. **Com algo preenchido
+  pede confirmação** inline: a linha dos botões troca por "Limpar o formulário? O que foi preenchido
+  e os arquivos escolhidos serão descartados." (`role="alert"`) com "Voltar" (foco inicial, o lado
+  seguro) e "Limpar tudo" (o botão repete a ação, não "Sim"); formulário em branco
+  limpa direto. Enviar cancela o pedido.
+- **Teto de arquivos**: a soma de contrato e alterações vai numa só Server Action e o Next corta
+  em 11 MB (`bodySizeLimit`); o schema barra acima de 10 MB com a mensagem "Os arquivos somam X,Y MB
+  e o limite é 10 MB. Envie arquivos menores ou anexe as alterações depois do cadastro." (total real e
+  saída, não só "mais de 10 MB"). O erro é do conjunto: usa o caminho `root` do schema (`errors.root`) e aparece sob o
+  título "Documentos", não sob o Contrato social.
+- **Dica de formato no campo de arquivo**: o `FileInput` aceita `dica` ("PDF ou DOCX"), uma linha
+  `text-xs` sob "ou clique para selecionar", para o formato ser dito antes de escolher e não só no erro. As instruções
+  e a dica ficam `aria-hidden` (o rótulo do campo já o nomeia); só o nome do arquivo escolhido entra no
+  nome acessível, por ser o estado.
+- **Falha da Server Action**: rejeição vira mensagem pela causa (`TypeError` = sem conexão;
+  demais = erro inesperado, com o erro completo no console). O texto "verifique a conexão" não é mais o padrão
+  para tudo.
+- **Documento contratual (#140)**: cartão fixo no formulário de editar Cliente, **sem diálogo e sem
+  seletor** (revisa o diálogo com "Escolher documento"): ícone, "Contrato social e alterações", o
+  documento mais recente (alteração de maior nº, ou o contrato social) e o botão verde
+  (`default`) "Abrir em nova aba", que abre o arquivo no primeiro clique. Enquanto carrega, reserva
+  `min-h-20`. As alterações antigas não têm lista na tela. O nome acessível do botão começa pelo
+  texto visível e acrescenta o documento ("Abrir em nova aba: Alteração nº 2 - 01/03/2026"), para o
+  comando de voz acionar pelo que se lê (WCAG 2.5.3).
+- **Destaque ao chegar por aviso (#144)**: quem chega por um aviso de nova alteração
+  (`/clientes/[id]?alteracao=N`) vê o cartão com **a alteração do aviso**, não a mais recente, e o
+  botão "Abrir em nova aba" chega **em foco** (o Container foca por `ref`, e tenta a cada quadro até pegar: o formulário fica `visibility: hidden` até hidratar e o foco num elemento oculto não faz nada; desiste se o usuário já foi para outro controle) e com anel `ring` de 4 px com
+  deslocamento de 2 px na cor do fundo (`focus:ring-4 focus:ring-ring focus:ring-offset-2
+  focus:ring-offset-background focus-visible:ring-4`), **só enquanto o botão tem foco**: some ao sair
+  dele, e vale também para o foco por script depois de um clique de mouse (que não casa
+  `:focus-visible`). O anel é um sinal de forma, não só de cor. No celular (390 px) o botão desce para
+  a linha de baixo do cartão em vez de espremer o rótulo (coluna do documento com base de 12rem).
+  Enquanto o arquivo abre, o botão fica `aria-disabled` (não `disabled`, como no encerramento): mostra
+  "Abrindo…" esmaecido, não reabre e **mantém o foco**; um `ref` no hook barra o segundo clique do
+  mesmo quadro.
+  Ao chegar por aviso, o botão ganha `aria-describedby` para um texto só de leitor de tela ("Esta é a
+  alteração do aviso que você abriu."): o foco vai ao botão e o leitor lê o nome e, depois, de onde se
+  chegou. Sem aviso, não há descrição. O destaque só
+  vale quando o nº existe entre os documentos: nº ausente, inválido (só inteiro positivo conta) ou
+  inexistente abre a de maior nº, sem foco nem anel. O aviso de novo Cliente leva ao formulário sem
+  parâmetro, logo sem destaque.
+- **Anexar alteração (#141)**: botão `outline` "Anexar alteração" (só Admin) no mesmo cartão, ao
+  lado de "Abrir em nova aba"; sem documento algum, aparece sozinho. **Não existe mais a seção
+  "Alterações contratuais" abaixo do formulário** (revisa o #141); ficam só o diálogo de anexar
+  (fora do `<form>`, para não aninhar formulários, ligado ao botão pelo id do painel) e a
+  confirmação depois de anexar ("Alteração nº N anexada."), que aparece **acima do formulário**, colada
+  ao cartão do documento que fica no topo dele (antes ficava abaixo, fora da vista). O contêiner do
+  diálogo é `display: contents`, para o diálogo fechado não abrir vão acima do formulário.
+- **Busca de Cliente por papel**: o Admin, ao escolher um resultado, vai à tela própria
+  `/clientes/[id]` (a única com "Anexar alteração"); Líder e Funcionário continuam no painel
+  embutido na busca.
+- **Rótulo em campo desativado (harden, axe)**: Empresa, CNPJ e Regime da edição têm `id` e o
+  `Label` com `htmlFor` (`cabecalho-empresa`, `cabecalho-cnpj`, `cabecalho-regime`). Campo desativado
+  sem rótulo associado é lido como "campo de edição" sem nome; o `title` não substitui o rótulo. Medido com
+  o axe-core em claro e escuro: sem violações na edição nem no diálogo de anexar.
+- **Campos longos e telas estreitas (harden)**: Empresa desativada traz o nome inteiro em `title`
+  (o campo trunca); "Atividade do mês" quebra de linha em vez de vazar a 320 px. Medido em 320 px e
+  1440 px com nome de empresa de 250+ caracteres e emoji: sem rolagem horizontal no cadastro nem na
+  edição.
+- **Editar cadastro operacional em 4 colunas**: cabeçalho (Empresa, CNPJ, Regime, Responsável),
+  cartão do documento, e Forma de envio, Documento recebido, DAS, Data de envio na mesma linha;
+  parcelamento e atividade do mês em 2 colunas cada; Contatos, Observações e as ações na linha
+  toda. Abaixo de `lg`, 2 colunas; no celular, 1.
+- **Navegação por abas (`ShellNav`)**: só a aba da tela aberta ganha o destaque cheio e
+  `aria-current="page"`; em "/" nenhuma está selecionada, e a única com tela (Simples Nacional)
+  é um link comum, não parece escolhida.
 
 ## O que ainda não existe
 

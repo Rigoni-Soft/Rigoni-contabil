@@ -66,7 +66,6 @@
 }
 
 @theme inline {
-  --animate-dock-entrada: dock-entrada 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   --animate-carregando: carregando-entrada 0.25s step-end;
   --animate-arraste-entrada: arraste-entrada 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   --font-sans: var(--font-roboto);
@@ -157,6 +156,22 @@ input[type="radio"] {
 }
 
 /* Moldura de soltar arquivo sobre a conversa: aparece. Só roda com `motion-safe:`. */
+/*
+ * Oculto até hidratar, com saída de emergência: se o React nunca hidratar (script que falhou ao
+ * carregar), a animação de 0s revela o conteúdo depois de 3 s em vez de deixá-lo invisível para
+ * sempre. Não é movimento: só troca `visibility`, sem transição.
+ */
+.rc-oculto-ate-hidratar {
+  visibility: hidden;
+  animation: rc-revela 0s 3s forwards;
+}
+
+@keyframes rc-revela {
+  to {
+    visibility: visible;
+  }
+}
+
 @keyframes arraste-entrada {
   from {
     opacity: 0;
@@ -172,17 +187,5 @@ input[type="radio"] {
 @keyframes carregando-entrada {
   from {
     opacity: 0;
-  }
-}
-
-/* Cartão do dock de Atendimentos: sobe e aparece. Só roda com `motion-safe:`. */
-@keyframes dock-entrada {
-  from {
-    opacity: 0;
-    transform: translateY(0.75rem) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
   }
 }

@@ -22,12 +22,74 @@ describe("átomos de campo", () => {
     const aoMudar = jest.fn();
     render(<FileInput id="contrato" onChange={aoMudar} />);
 
-    expect(screen.getByText("Selecionar arquivo…")).toBeInTheDocument();
+    expect(screen.getByText("Arraste o arquivo aqui")).toBeInTheDocument();
     const arquivo = new File(["x"], "contrato.pdf", { type: "application/pdf" });
     fireEvent.change(document.getElementById("contrato") as HTMLInputElement, {
       target: { files: [arquivo] },
     });
 
     expect(aoMudar).toHaveBeenCalledWith(arquivo);
+  });
+
+  it("FileInput com arquivo escolhido oferece Remover, que limpa sem abrir o seletor", () => {
+    const aoMudar = jest.fn();
+    const arquivo = new File(["x"], "contrato.pdf", { type: "application/pdf" });
+    const { rerender } = render(<FileInput id="contrato" onChange={aoMudar} />);
+    expect(screen.queryByRole("button", { name: /remover/i })).not.toBeInTheDocument();
+
+    rerender(<FileInput id="contrato" file={arquivo} onChange={aoMudar} />);
+    // O nome diz qual arquivo sai (há vários campos de arquivo na mesma tela).
+    fireEvent.click(screen.getByRole("button", { name: "Remover arquivo contrato.pdf" }));
+
+    expect(aoMudar).toHaveBeenCalledWith(undefined);
+    expect(document.getElementById("contrato")).toHaveFocus();
+  });
+
+  it("FileInput diz o formato e o limite ao leitor de tela antes de qualquer erro", () => {
+    render(<FileInput id="guia" dica="PDF até 4 MB" onChange={jest.fn()} />);
+
+    expect(document.getElementById("guia")).toHaveAccessibleDescription("PDF até 4 MB");
+  });
+
+  it("FileInput aceita arquivo arrastado e solto", () => {
+    const aoMudar = jest.fn();
+    render(<FileInput id="contrato" onChange={aoMudar} />);
+
+    const arquivo = new File(["x"], "solto.pdf", { type: "application/pdf" });
+    const area = screen.getByText("Arraste o arquivo aqui").closest("label") as HTMLLabelElement;
+    fireEvent.dragOver(area);
+    expect(area.dataset.arrastando).toBe("true");
+    fireEvent.drop(area, { dataTransfer: { files: [arquivo] } });
+
+    expect(area.dataset.arrastando).toBe("false");
+    expect(aoMudar).toHaveBeenCalledWith(arquivo);
+  });
+
+  it("FileInput deixa as instruções e a dica fora do nome acessível, e mantém o nome do arquivo", () => {
+    const { rerender } = render(
+      <>
+        <label htmlFor="contrato">Contrato social</label>
+        <FileInput id="contrato" dica="PDF ou DOCX" onChange={jest.fn()} />
+      </>,
+    );
+    expect(screen.getByText("Arraste o arquivo aqui")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByText("ou clique para selecionar").closest("[aria-hidden]")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+    // A dica visível fica fora do nome; a cópia só para leitor de tela entra na descrição, não no nome.
+    const [dicaVisivel, dicaDoLeitor] = screen.getAllByText("PDF ou DOCX");
+    expect(dicaVisivel.closest("[aria-hidden]")).toHaveAttribute("aria-hidden", "true");
+    expect(dicaDoLeitor).toHaveClass("sr-only");
+    expect(document.getElementById("contrato")).toHaveAccessibleDescription("PDF ou DOCX");
+
+    const arquivo = new File(["x"], "contrato.pdf", { type: "application/pdf" });
+    rerender(
+      <>
+        <label htmlFor="contrato">Contrato social</label>
+        <FileInput id="contrato" file={arquivo} onChange={jest.fn()} />
+      </>,
+    );
+    expect(screen.getByText("contrato.pdf")).not.toHaveAttribute("aria-hidden");
   });
 });

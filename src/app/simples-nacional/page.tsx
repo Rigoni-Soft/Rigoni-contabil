@@ -2,22 +2,19 @@ import { redirect } from "next/navigation";
 
 import { ComparativosSn } from "@/presentation/components/organisms/comparativos-sn.component";
 import { ResumoSetorSn } from "@/presentation/components/organisms/resumo-setor-sn.component";
-import { ShellHeader } from "@/presentation/components/organisms/shell-header.component";
-import { ShellNav } from "@/presentation/components/organisms/shell-nav.component";
 import { ResumoSetorSnPage } from "@/presentation/components/pages/resumo-setor-sn.page";
-import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-button.container";
 import {
-  carregarSessao,
   carregarSetoresDaNavegacao,
+  exigirSessao,
 } from "@/presentation/view-models/shell/shell.server";
+import { ShellNavContainer } from "@/modules/atendimento/presentation/view-models/atendimento-central/shell-nav.container";
+import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import { BuscarClienteContainer } from "@/modules/clientes/presentation/view-models/buscar-cliente/buscar-cliente.container";
 import { carregarResumoSetorSn } from "@/modules/clientes/presentation/view-models/resumo-setor-sn/resumo-setor-sn.server";
 import { podeVerDashboardSn } from "@/shared/kernel/papeis";
 
 export default async function Page() {
-  const sessao = await carregarSessao();
-  if (!sessao) redirect("/login");
-  if (sessao.precisaTrocarSenha) redirect("/trocar-senha");
+  const sessao = await exigirSessao();
 
   // Admin vê (acesso de suporte a qualquer setor, mesmo raciocínio de
   // podeEditarCadastroOperacional); qualquer outro setor fora do SN não.
@@ -30,15 +27,8 @@ export default async function Page() {
 
   return (
     <ResumoSetorSnPage
-      header={
-        <ShellHeader
-          nome={sessao.nome}
-          papel={sessao.papel}
-          setor={sessao.setor}
-          sair={<LogoutButtonContainer />}
-        />
-      }
-      nav={<ShellNav setores={setores} />}
+      header={<CabecalhoDoShellContainer sessao={sessao} />}
+      nav={<ShellNavContainer setores={setores} rotaAtual="/simples-nacional" />}
       erro={resumo.ok ? undefined : "Falha ao carregar o resumo do setor. Tente novamente."}
       resumo={
         resumo.ok && (

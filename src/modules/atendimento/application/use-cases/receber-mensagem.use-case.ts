@@ -4,6 +4,7 @@ import {
 } from "@/modules/atendimento/application/dtos/sessao-identificacao.dto";
 import type { AbrirAtendimentoPort } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type { AnexarMensagemAtendimentoPort } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
+import type { EntregarNaUraPort } from "@/modules/atendimento/application/ports/in/entregar-na-ura.provider";
 import type {
   MensagemRecebida,
   ReceberMensagemPort,
@@ -26,12 +27,17 @@ import type {
   ContatoIdentificado,
   IdentificacaoContatoPort,
 } from "@/modules/atendimento/application/ports/out/identificacao-contato.provider";
+import type { RegistroDeErrosPort } from "@/modules/atendimento/application/ports/out/registro-de-erros.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import type {
   SessaoAtendimento,
   SessaoAtendimentoPort,
 } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
-import { descreverDocumento } from "@/modules/atendimento/domain/services/documento-contratual.service";
+import { AVISO_AGUARDE } from "@/modules/atendimento/domain/services/aviso-fila.service";
+import {
+  descreverDocumento,
+  ROTULO_GUIA,
+} from "@/modules/atendimento/domain/services/documento-contratual.service";
 import {
   avisoDeFechado,
   estaAbertoEm,
@@ -48,9 +54,9 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 // do provedor fiscal. "Falar com atendente" é sempre a última.
 const OPCOES_MENU: { rotulo: string; guia?: TipoGuia }[] = [
   { rotulo: "Contrato social e alterações" },
-  { rotulo: "Guia de imposto", guia: "das" },
-  { rotulo: "Guia de parcelamento", guia: "parcelamento" },
-  { rotulo: "CND", guia: "cnd" },
+  { rotulo: ROTULO_GUIA.das, guia: "das" },
+  { rotulo: ROTULO_GUIA.parcelamento, guia: "parcelamento" },
+  { rotulo: ROTULO_GUIA.cnd, guia: "cnd" },
   { rotulo: "Falar com atendente" },
 ];
 // "Falar com atendente" é sempre a última opção do menu; a constante acompanha o array.
@@ -170,6 +176,9 @@ export class ReceberMensagem implements ReceberMensagemPort {
     private readonly relogio: RelogioPort,
     private readonly feriados: FeriadosPort,
     private readonly guias: GuiasFiscaisPort,
+    private readonly dasNaUra: EntregarNaUraPort,
+    private readonly parcelamentoNaUra: EntregarNaUraPort,
+    private readonly erros: RegistroDeErrosPort,
   ) {}
 
   async execute(mensagem: MensagemRecebida): Promise<Result<void, AppError>> {
@@ -332,15 +341,12 @@ export class ReceberMensagem implements ReceberMensagemPort {
     if (!aberto.ok) return aberto;
     const limpa = await this.sessoes.limpar(chave);
     if (!limpa.ok) return limpa;
-    // Sem Funcionário livre o Atendimento entrou na Fila: o cliente fica sabendo a posição. O aviso
-    // vem depois de abrir porque a posição só existe com o Atendimento criado.
-    if (aberto.value.posicao === undefined) return ok(undefined);
-    const avisoFila = `Você está na posição ${aberto.value.posicao} da fila de atendimento. Aguarde, por favor.`;
-    const enviado = await this.enviar(telefone, avisoFila);
+    // O Atendimento espera no Setor: o cliente só é avisado de que vão atendê-lo, sem posição.
+    const enviado = await this.enviar(telefone, AVISO_AGUARDE);
     if (!enviado.ok) return enviado;
     const registrada = await this.mensagens.execute({
       chave,
-      mensagem: { autor: "ura", texto: avisoFila },
+      mensagem: { autor: "ura", texto: AVISO_AGUARDE },
     });
     return registrada.ok ? ok(undefined) : registrada;
   }
@@ -360,6 +366,9 @@ export class ReceberMensagem implements ReceberMensagemPort {
       });
     }
     const guia = GUIAS_DO_MENU.get(texto);
+    if (guia === "das") return this.entregarPelaUra(conversa, guia, this.dasNaUra);
+    if (guia === "parcelamento")
+      return this.entregarPelaUra(conversa, guia, this.parcelamentoNaUra);
     if (guia) return this.entregarGuia(conversa, guia);
     const menu = OPCOES_MENU.map(({ rotulo }, i) => `${i + 1} - ${rotulo}`).join("\n");
     return this.enviar(
@@ -379,23 +388,42 @@ export class ReceberMensagem implements ReceberMensagemPort {
     try {
       guia = await this.guias.buscar(contato.clienteId, tipo);
     } catch (erro) {
-      // Só a mensagem: o objeto de erro inteiro poderia levar o CNPJ ao log.
-      console.error(
-        `Falha inesperada ao buscar a guia ${tipo}:`,
-        erro instanceof Error ? erro.message : "erro desconhecido",
-      );
-      return this.enviar(telefone, GUIA_INDISPONIVEL);
+      return this.falhaInesperadaDaGuia(telefone, tipo, erro);
     }
-    if (!guia.ok) {
-      // Sem autorização é esperado por Cliente; o resto (Cliente sumido, CNPJ inválido, provedor
-      // fora do ar) é problema do sistema e precisa de rastro. Sem CNPJ no log.
-      if (guia.error instanceof ForbiddenError) {
-        return this.enviar(telefone, SEM_AUTORIZACAO_FISCAL);
-      }
-      console.error(`Falha ao buscar a guia ${tipo}:`, guia.error.message);
-      return this.enviar(telefone, GUIA_INDISPONIVEL);
-    }
+    if (!guia.ok) return this.falhaDaGuia(telefone, tipo, guia.error);
     return this.despacharDocumento({ telefone, ...guia.value });
+  }
+
+  // DAS e parcelamento seguem o processo do job: o caso de uso confere o banco, responde ao contato
+  // e só chama o provedor quando há o que entregar. A falha da guia é tratada como a das demais.
+  private async entregarPelaUra(
+    { telefone, contato }: Conversa,
+    tipo: TipoGuia,
+    caso: EntregarNaUraPort,
+  ): Promise<Result<void, AppError>> {
+    try {
+      const entrega = await caso.execute({ clienteId: contato.clienteId, telefone });
+      return entrega.ok ? entrega : this.falhaDaGuia(telefone, tipo, entrega.error);
+    } catch (erro) {
+      return this.falhaInesperadaDaGuia(telefone, tipo, erro);
+    }
+  }
+
+  // Só a mensagem: o objeto de erro inteiro poderia levar o CNPJ ao log.
+  private falhaInesperadaDaGuia(telefone: string, tipo: TipoGuia, erro: unknown) {
+    this.erros.registrar(
+      `Falha inesperada ao buscar a guia ${tipo}:`,
+      erro instanceof Error ? erro.message : "erro desconhecido",
+    );
+    return this.enviar(telefone, GUIA_INDISPONIVEL);
+  }
+
+  // Sem autorização é esperado por Cliente; o resto (Cliente sumido, CNPJ inválido, provedor
+  // fora do ar) é problema do sistema e precisa de rastro. Sem CNPJ no log.
+  private falhaDaGuia(telefone: string, tipo: TipoGuia, erro: AppError) {
+    if (erro instanceof ForbiddenError) return this.enviar(telefone, SEM_AUTORIZACAO_FISCAL);
+    this.erros.registrar(`Falha ao buscar a guia ${tipo}:`, erro.message);
+    return this.enviar(telefone, GUIA_INDISPONIVEL);
   }
 
   private async escolherTipo(conversa: Conversa, texto: string): Promise<Result<void, AppError>> {
@@ -471,15 +499,13 @@ export class ReceberMensagem implements ReceberMensagemPort {
       : salva;
   }
 
-  // Contrato à parte; alterações da mais recente para a mais antiga.
+  // Contrato à parte; alterações já vêm do gateway por nº decrescente.
   private async carregar(contato: ContatoIdentificado): Promise<Result<Documentos, AppError>> {
     const lista = await this.documentos.listar(contato.clienteId);
     if (!lista.ok) return lista;
     return ok({
       contrato: lista.value.find((documento) => documento.tipo === "contrato") ?? null,
-      alteracoes: lista.value
-        .filter((documento) => documento.tipo === "alteracao")
-        .sort((primeira, segunda) => (segunda.data ?? "").localeCompare(primeira.data ?? "")),
+      alteracoes: lista.value.filter((documento) => documento.tipo === "alteracao"),
     });
   }
 

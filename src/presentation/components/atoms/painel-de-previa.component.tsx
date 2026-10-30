@@ -2,6 +2,8 @@ import { Eye, X } from "lucide-react";
 
 import { Button } from "@/presentation/components/ui/button";
 import type { PreviaCarregada } from "@/presentation/lib/previa-de-office";
+import { SUPERFICIE_DE_PAINEL } from "@/presentation/lib/superficie-de-painel";
+import { cn } from "@/presentation/lib/utils";
 
 type PainelDePreviaProps = {
   nome: string;
@@ -16,7 +18,7 @@ type PainelDePreviaProps = {
 // Estilo do documento dentro do iframe: o HTML do arquivo não herda o da página. O Word é "papel":
 // fica claro (fundo branco, texto escuro) nos dois temas, como numa folha impressa.
 const ESTILO_DO_DOCUMENTO =
-  "<style>body{font:15px/1.5 system-ui,sans-serif;margin:16px;color:#1c1917}img{max-width:100%}table{border-collapse:collapse}td,th{border:1px solid #d6d3d1;padding:4px 8px}</style>";
+  "<style>html{color-scheme:light}body{font:15px/1.5 system-ui,sans-serif;margin:16px;color:#1c1917}img{max-width:100%}table{border-collapse:collapse}td,th{border:1px solid #d6d3d1;padding:4px 8px}</style>";
 
 // Botão "Visualizar" que abre o conteúdo de um Word/Excel num popover nativo (fecha com Esc, fora
 // ou pelo botão). O arquivo vem do cliente: o HTML do Word fica num iframe sem script nem
@@ -41,7 +43,10 @@ export function PainelDePrevia({ nome, painelId, estado, previa, aoAbrir }: Pain
         popover="auto"
         role="dialog"
         aria-label={`Visualização de ${nome}`}
-        className="m-auto h-[85dvh] w-[min(92vw,64rem)] flex-col overflow-hidden rounded-xl border border-border bg-background p-0 text-foreground backdrop:bg-overlay [&:popover-open]:flex"
+        className={cn(
+          SUPERFICIE_DE_PAINEL,
+          "h-[85dvh] w-[min(92vw,64rem)] flex-col overflow-hidden p-0 [&:popover-open]:flex",
+        )}
       >
         <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-1">
           <p className="truncate text-sm font-medium" title={nome}>

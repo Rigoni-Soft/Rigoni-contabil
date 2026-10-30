@@ -49,6 +49,12 @@ class ClienteRepositoryFalso implements ClienteRepository {
   async buscarPorId(): Promise<Result<Cliente | null, AppError>> {
     return ok(this.cliente);
   }
+  async anexarAlteracaoContratual(): Promise<Result<void, AppError>> {
+    throw new Error("não usado neste caso de uso");
+  }
+  async alteracaoContratualGravada(): Promise<Result<boolean, AppError>> {
+    throw new Error("não usado neste caso de uso");
+  }
   async atualizarOperacional(cliente: Cliente): Promise<Result<void, AppError>> {
     if (this.erroAoAtualizar) return err(new ValidationError("falha ao atualizar"));
     this.atualizado = cliente;
@@ -70,8 +76,6 @@ const INPUT_VALIDO: EditarCadastroOperacionalClienteInput = {
   documentoObrigatorio: "positivo",
   dasStatus: "pronto",
   dataEnvioDas: null,
-  temParcelamento: false,
-  parcelamentoStatus: null,
   observacoesGerais: "Cliente pontual.",
   atividadeMes: { industria: false, comercio: true, servico: false },
 };

@@ -42,7 +42,13 @@ export function podeVerDashboardSn(papel: string, setor: string): boolean {
   return papel === "admin" || setor === "simples_nacional";
 }
 
-// Só o Líder do Simples Nacional atribui/troca/remove o Responsável.
+// O Líder de cada Setor atribui/troca/remove o Responsável do Cliente naquele Setor. A Recepção não
+// tem Responsável: a espera dela é comum.
 export function podeAtribuirResponsavel(papel: string, setor: string): boolean {
-  return papel === "lider_setor" && setor === "simples_nacional";
+  return papel === "lider_setor" && setor !== "recepcao";
+}
+
+// Anexar alteração contratual a um Cliente existente é dado jurídico: só o Admin.
+export function podeAnexarAlteracaoContratual(papel: string): boolean {
+  return papel === "admin";
 }

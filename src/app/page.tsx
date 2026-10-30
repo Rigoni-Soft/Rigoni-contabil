@@ -1,13 +1,12 @@
 import { redirect } from "next/navigation";
 
-import { ShellHeader } from "@/presentation/components/organisms/shell-header.component";
-import { ShellNav } from "@/presentation/components/organisms/shell-nav.component";
 import { HomePage } from "@/presentation/components/pages/home.page";
-import { LogoutButtonContainer } from "@/presentation/view-models/shell/logout-button.container";
 import {
-  carregarSessao,
   carregarSetoresDaNavegacao,
+  exigirSessao,
 } from "@/presentation/view-models/shell/shell.server";
+import { ShellNavContainer } from "@/modules/atendimento/presentation/view-models/atendimento-central/shell-nav.container";
+import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import { BuscarClienteContainer } from "@/modules/clientes/presentation/view-models/buscar-cliente/buscar-cliente.container";
 
 // "/" é a home genérica — só pra quem não tem um dashboard de setor próprio ainda. O dashboard de
@@ -15,24 +14,15 @@ import { BuscarClienteContainer } from "@/modules/clientes/presentation/view-mod
 // cai direto em /simples-nacional ao entrar. Admin não pertence a um setor operacional — continua
 // em "/" com a busca geral, sem restrição de Regime, e alcança qualquer setor pela aba do ShellNav.
 export default async function Home() {
-  const sessao = await carregarSessao();
-  if (!sessao) redirect("/login");
-  if (sessao.precisaTrocarSenha) redirect("/trocar-senha");
+  const sessao = await exigirSessao();
   if (sessao.setor === "simples_nacional") redirect("/simples-nacional");
 
   const setores = await carregarSetoresDaNavegacao();
 
   return (
     <HomePage
-      header={
-        <ShellHeader
-          nome={sessao.nome}
-          papel={sessao.papel}
-          setor={sessao.setor}
-          sair={<LogoutButtonContainer />}
-        />
-      }
-      nav={<ShellNav setores={setores} />}
+      header={<CabecalhoDoShellContainer sessao={sessao} />}
+      nav={<ShellNavContainer setores={setores} />}
       busca={<BuscarClienteContainer papel={sessao.papel} setor={sessao.setor} />}
     />
   );

@@ -1,7 +1,8 @@
 import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { CartaoDeGrafico } from "@/presentation/components/atoms/cartao-de-grafico.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
-import { corDaFatia, type Fatia } from "@/presentation/lib/fatia-de-grafico";
+import { corDeStatus } from "@/presentation/lib/cor-de-status";
+import type { Fatia } from "@/presentation/lib/fatia-de-grafico";
 import { cn } from "@/presentation/lib/utils";
 
 type BarrasDeFatiasProps = {
@@ -43,7 +44,7 @@ export function BarrasDeFatias({
               </Linha>
               <Caixa aria-hidden className="h-2 rounded-full bg-border">
                 <Caixa
-                  className={cn("h-2 rounded-full", corDaFatia(f.id).fundo)}
+                  className={cn("h-2 rounded-full", corDeStatus(f.cor).fundo)}
                   style={{ width: `${pct}%` }}
                 />
               </Caixa>

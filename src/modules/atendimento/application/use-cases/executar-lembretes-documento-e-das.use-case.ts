@@ -24,9 +24,10 @@ import type {
 } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import type { AppError } from "@/shared/errors/app.error";
+import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { temDestinatario } from "@/shared/kernel/forma-envio";
-import { diaDoMes, hojeIso } from "@/shared/kernel/mes-atual";
-import { ok, type Result } from "@/shared/kernel/result";
+import { diaDoMes, hojeIso, mesAtual } from "@/shared/kernel/mes-atual";
+import { err, ok, type Result } from "@/shared/kernel/result";
 
 const DIAS_DO_JOB = [1, 5, 10, 15];
 
@@ -107,23 +108,34 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
 
   private async enviarDas(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento> {
     if (!temDestinatario(cliente)) return semDestinatario(cliente.empresa);
+    // O PDF publicado fica no Storage mesmo se a entrega falhar: só o envio aceito guarda o caminho.
+    const publicado: { caminho?: string } = {};
     return entregarComReserva({
       descricao: `DAS de ${cliente.empresa}`,
       reservar: () => this.clientes.reservarDas(cliente.clienteId),
-      entregar: () => this.entregarGuia(cliente, agora),
-      concluir: (token) => this.clientes.concluirDas(cliente.clienteId, token, hojeIso(agora)),
+      entregar: () => this.entregarGuia(cliente, agora, publicado),
+      concluir: async (token) =>
+        publicado.caminho
+          ? this.clientes.concluirDas(cliente.clienteId, token, hojeIso(agora), publicado.caminho)
+          : err(new ServicoExternoError("Caminho da guia do DAS entregue desconhecido.")),
       liberar: (token) => this.clientes.liberarDas(cliente.clienteId, token),
     });
   }
 
-  private async entregarGuia(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento> {
-    const guia = await this.guiaDas.execute(cliente.clienteId);
+  private async entregarGuia(
+    cliente: ClienteParaLembrete,
+    agora: Date,
+    publicado: { caminho?: string },
+  ): Promise<Andamento> {
+    const guia = await this.guiaDas.execute(cliente.clienteId, mesAtual(agora));
     if (!guia.ok) return falha(`DAS de ${cliente.empresa}: ${guia.error.message}`);
+    const { caminho, ...conteudo } = guia.value;
+    publicado.caminho = caminho;
     const comunicacao: ComunicacaoProativa = {
       tipo: "envio_guia_das",
       contato: nomeDoContato(cliente),
       empresa: cliente.empresa,
-      ...guia.value,
+      ...conteudo,
     };
     return this.entregar(cliente, comunicacao, agora);
   }

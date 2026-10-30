@@ -1,4 +1,4 @@
-# Job de envio da guia de parcelamento (#53)
+# Job de envio da guia de parcelamento (#53, #126)
 
 Mesmo gate, retentativa, reserva da entrega e alertas do job de lembrete/DAS
 ([lembretes-cron.md](./lembretes-cron.md)); só mudam:
@@ -7,20 +7,119 @@ Mesmo gate, retentativa, reserva da entrega e alertas do job de lembrete/DAS
 | --- | --- | --- |
 | Rota | `/api/jobs/lembretes` | `/api/jobs/parcelamento` |
 | Dias (São Paulo, 08h) | 01/05/10/15 | 20/22/24/26/28 |
-| Cliente | DAS pronto | tem parcelamento positivo e Parcelamento pendente |
-| Reserva → conclusão | reserva; DAS pronto → enviado ao concluir | reserva; Parcelamento pendente → enviado ao concluir (segue pendente se a entrega falha) |
+| Cliente | DAS pronto | ao menos um Parcelamento em aberto (comum ou interno) sem registro de envio do mês |
+| Reserva → conclusão | reserva; DAS pronto → enviado ao concluir | reserva do Cliente; o registro de envio é gravado guia a guia (a reserva só é fechada ao concluir; sem guia aceita é liberada) |
 | Auditoria (ator URA) | `cliente.enviar-das-automatico` | `cliente.enviar-parcelamento-automatico` |
 
 - Mesma flag `LEMBRETES_AUTOMATICOS=ligada` e mesmos pré-requisitos (mensageria real, e-mail real,
-  template `envio_guia_parcelamento` aprovado).
+  templates `envio_guia_parcelamento` e `envio_guia_parcelamento_interno` aprovados).
 - `alertas_setor.origem = 'parcelamento'`: cada job renova e resolve só os seus alertas.
-- A parcela do provedor (`AAAAMM`) vai como `MM/AAAA`; guia sem parcela falha.
-- Não há data de envio do Parcelamento (o DAS tem): a auditoria registra quando.
+- A parcela do provedor (`AAAAMM`) vai como `MM/AAAA`; guia sem parcela não é atribuída a ninguém.
+- Não há data de envio do Parcelamento (o DAS tem): o registro de envio e a auditoria dizem quando.
+
+## Regra única (#126)
+
+O núcleo `EnviarGuiasParcelamento` (o job) segue, por Cliente. A opção de parcelamento da URA
+(`EntregarParcelamentoNaUra`, #128) usa a mesma atribuição e o mesmo registro de envio, mas só para os
+comuns e uma guia por Parcelamento: a parcela do mês ou, se o provedor não a emite, a do mês anterior;
+parcela já registrada reenvia o PDF guardado sem provedor e sem novo desconto; "sem parcelamento
+vigente" e "quitados" saem do banco sem chamar o provedor; falha parcial é listada por código. Sem a
+reserva por Cliente do job (job e URA simultâneos podem duplicar o PDF, nunca o desconto). A opção do
+Funcionário no painel segue pelo caminho legado (`GuiasFiscaisGateway.buscar`, a guia mais atrasada).
+Passos do núcleo:
+
+1. **O banco manda.** Lê os Parcelamentos em aberto com parcelas restantes (`registrar_envio_parcelamento`
+   recusa o resto). Sem nenhum pendente (todos já com registro do mês, ou sem destino: ver Parcelamento interno) o provedor não é chamado.
+2. **Uma consulta por CNPJ**, com `ignorar` = parcelas que todos os Parcelamentos com destino já receberam (cada emissão é
+   cobrada). O provedor devolve 0..n guias e não diz de qual Parcelamento é cada uma.
+3. **Atribuição** (`atribuirGuiasParcelamento`): com um Parcelamento em aberto, todas vão a ele; com vários,
+   cada guia só vai ao único cujo valor guardado não passa do valor dela (a atrasada pode vir com juros),
+   e um Parcelamento nunca recebe duas da mesma parcela. O valor não prova a quem a guia pertence, então
+   falha fechado: guia sem candidato, ou com mais de um candidato compatível (mesmo de valores diferentes), fica de fora, proteção provisória até o provedor devolver o acordo da guia; a reemissão de uma guia já entregue (mesma identidade,
+   `parcela:valor` enquanto o provedor não devolver o número do documento, gravada em
+   `cliente_parcelamento_envios.identidade` e lida de qualquer acordo do Cliente, inclusive quitado) é
+   descartada; e com mais de um compatível nada é atribuído, ainda que só alguns já tenham recebido a parcela (não se
+   sabe se é a reemissão de um ou a guia de outro). Quem ficou sem guia vira `parcelamento_sem_guia`, para
+   conferência. A atribuição vê todos os em aberto: a guia de um Parcelamento sem destino não cai em outro.
+   Nova emissão de uma parcela que o dono já recebeu (o `ignorar` só pula as que todos receberam) é
+   descartada, não vai a outro Parcelamento. Guias de parcelas atrasadas entram como as do mês: cada uma é entregue,
+   registrada e desconta uma parcela restante; "pendente" é só não ter registro da parcela do mês.
+4. **Entrega e registro por guia.** A guia é guardada em `guias-fiscais` em `cliente/parcelamento/AAAAMM`,
+   entregue, e só então `registrar_envio_parcelamento` grava o registro, desconta uma parcela restante (uma
+   vez por parcela) e quita ao zerar, auditado com a URA. Devolve `registrado`, `ja_registrado` (repetir)
+   ou `nao_elegivel` (acordo quitado ou removido durante a rodada: entregue sem registro vira `falha_envio`).
+   Sem saldo para a guia (o acordo quitou na rodada) ela não é entregue e vira `falha_envio`. A falha de uma
+   guia não trava as outras. Nenhum PDF publicado é apagado, nem o da entrega recusada: o
+   registro do envio guarda o `caminho` exato do PDF entregue e o reenvio lê só esse caminho.
+5. **Alertas.** `falha_envio` (provedor, entrega ou registro) e `parcelamento_sem_guia` (Parcelamento
+   pendente sem guia; a mensagem lista os códigos), de origem `parcelamento`, renovados e resolvidos só
+   por este job.
+
+- A migration `20261024108000` (numerada depois das migrations da atribuição das guias, para atualizar um banco já migrado)
+  cria `registrar_envio_parcelamento`, a coluna `identidade` dos envios, reduz
+  `concluir_envio_automatico_parcelamento` a fechar a reserva e acrescenta `parcelamento_sem_guia` e
+  `financeiro_ausente` a `tipo_alerta_setor`. Aplicar junto com o código desta versão.
+- A atribuição por valor é inferência (a guia atrasada pode vir corrigida) que dev e homolog não
+  validam, porque usam o adapter falso e a API de teste. Por isso falha fechado: o pior caso é nenhuma
+  guia e um alerta `parcelamento_sem_guia`. Ligar primeiro para um CNPJ em produção.
+- `quitado` do provedor com o Parcelamento em aberto não tem sinal no contrato por CNPJ (a lista vazia é o
+  que o provedor devolve): vira `parcelamento_sem_guia` e o Parcelamento segue em aberto.
 - A migration `20261016090000` substitui as RPCs `registrar_alerta_setor` e
   `resolver_alertas_setor_nao_renovados` do #52 (parâmetros `p_origem` e `p_cliente_ids`) e
   recria o índice único de `alertas_setor`. Aplicar junto com o código desta versão: o código do #52
   anterior chama as assinaturas antigas, que deixam de existir.
 - A reserva reutiliza `reservar_envio_automatico`/`liberar_envio_automatico` do #52 (tipo
-  `parcelamento`); a conclusão é `concluir_envio_automatico_parcelamento`. Leitura em páginas de
+  `parcelamento`); a conclusão (`concluir_envio_automatico_parcelamento`) só fecha a reserva. Leitura em páginas de
   500 por cursor (`cliente_id`), estável mesmo quando o próprio job tira Clientes do conjunto.
-- O Parcelamento `enviado` não volta a `pendente` sozinho: quem repõe é o Funcionário (como o DAS).
+- O status do mês deriva do registro de envio e volta a pendente sozinho no mês seguinte (reset mensal automático).
+
+## Parcelamento interno (#127)
+
+O interno vai sempre e só ao WhatsApp do financeiro (`FINANCEIRO_TELEFONE`, só dígitos com DDI), por
+template `envio_guia_parcelamento_interno`, qualquer que seja a forma de envio do Cliente; nunca ao Cliente.
+
+- Telefone ausente ou inválido não derruba o app: o interno não é enviado, segue pendente e abre
+  `financeiro_ausente` até configurar. Definir no Production.
+- A migration `20261024110000` faz o interno contar em `cliente_tem_parcelamento_pendente`. Aplicar junto
+  com o código desta versão.
+- A migration `20261026130000` guarda o caminho do PDF entregue (`caminho_guia_das` no cadastro e
+  `caminho` no envio do parcelamento) e troca as assinaturas de `concluir_envio_automatico_das` e
+  `registrar_envio_parcelamento`: aplicar junto com o código; voltar só o código quebra as duas RPCs.
+  Envio anterior à migration fica sem caminho e o reenvio dele responde que a guia não está guardada.
+  - **Implantação e reversão conjuntas:** aplicar a migration e o código no mesmo deploy, com o job
+    de envio pausado (um job em curso com a assinatura antiga falha na RPC e libera a reserva; a
+    requisição da URA que cai nessa janela responde indisponível). Reverter exige o código anterior
+    e uma migration inversa que recrie as duas assinaturas antigas; nunca `db reset` em produção.
+  - **Legado sem caminho:** antes do go-live, inventariar `cliente_cadastro_operacional_sn` com
+    `das_status = 'enviado'` e `caminho_guia_das is null`, e `cliente_parcelamento_envios` com
+    `caminho is null`. Esses reenvios respondem "não está guardada" e vão para atendimento manual
+    (Funcionário reemite a guia); o caminho nunca é inferido pela idade ou pela listagem do Storage.
+  - **Referência só do sistema:** `caminho_guia_das` é protegida pelo gatilho
+    `proteger_das_enviado_do_sistema` (sessão humana não troca nem apaga) e o gateway só assina caminho
+    que começa pelo id do Cliente. Objetos publicados sem referência (entrega recusada, assinatura
+    que falhou) ficam no Storage; limpeza futura só com expiração e sem referência, nunca síncrona.
+
+## Parcelamento PGFN (#186)
+
+Mesmo job, reserva, canais e registro de envio; só muda a origem da guia: as guias confirmadas à mão
+(#183), com o PDF lido do banco (bucket dos acordos), nunca do provedor fiscal.
+
+- Entrega, por Parcelamento PGFN em aberto, as guias confirmadas e sem registro de envio, até a
+  competência do mês corrente e da mais antiga para a mais nova (guia futura fica guardada). Não entrega
+  mais guias do que parcelas restantes. Guia que não pôde ser lida trava as seguintes do mesmo Parcelamento.
+- O Cliente é "pendente" (reserva e listagem) também com guia PGFN confirmada ainda não enviada
+  (`cliente_tem_parcelamento_pendente`). Sem guia confirmada o job apenas pula, sem alerta (o lembrete
+  da PGFN avisa o setor); Cliente com Receita e PGFN recebe as duas.
+- Cada entrega aceita grava o registro (`registrar_envio_parcelamento`, identidade `AAAAMM:`) e desconta
+  uma parcela restante; a última quita. O envio PGFN não entra nas guias entregues da Receita.
+- Interno PGFN segue a regra do interno: financeiro por template, nunca o Cliente.
+- Antes de ler o PDF, o job e a URA reservam a versão listada da guia (`reservar_guia_pgfn_para_envio`,
+  `em_envio_ate`, 15 min). Enquanto durar, troca e remoção são recusadas ("Guia em envio"); guia que
+  mudou desde a listagem, ou que outra tentativa (job ou URA) já detém, não é entregue e segue
+  pendente. A reserva é exclusiva e devolve um token: só o dono o usa em `liberar_guia_pgfn_do_envio`
+  (token alheio ou vencido não solta nada). Registrada a entrega, a competência trava sozinha; sem
+  entrega, o dono solta a reserva. Entrega que passe dos 15 min perde
+  a proteção: o registro continua apontando o PDF efetivamente entregue.
+- URA: as mesmas guias dos Parcelamentos PGFN comuns; sem nenhuma pendente, reenvia o PDF da última
+  guia entregue (`caminho` do registro, de qualquer competência; sem novo registro nem desconto); sem guia confirmada responde "ainda não está
+  disponível", sem alerta.

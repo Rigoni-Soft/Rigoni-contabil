@@ -175,17 +175,59 @@ describe("CriarClienteContainer", () => {
     expect(screen.getByLabelText(/^Regime/)).toHaveValue("");
   });
 
-  it("Promise rejeitada da Server Action não prende o botão em 'Cadastrando...'", async () => {
-    executeMock.mockRejectedValue(new Error("falha de rede"));
+  it("descarta a resposta do CNPJ que chega depois de 'Cadastrar outro' sem lançar exceção", async () => {
+    let responderA: (dados: unknown) => void = () => undefined;
+    consultarMock.mockImplementationOnce(() => new Promise((resolver) => (responderA = resolver)));
+    executeMock.mockResolvedValue(
+      ok({
+        cliente: {
+          id: "1",
+          empresa: "Padaria Pão Quente Ltda",
+          cnpj: "11444777000161",
+          regime: "simples_nacional",
+          contratoSocialCaminho: "1/contrato-social/doc.pdf",
+          alteracoesContratuais: [],
+        },
+      }),
+    );
+    const rejeicoes: unknown[] = [];
+    const aoRejeitar = (motivo: unknown) => rejeicoes.push(motivo);
+    process.on("unhandledRejection", aoRejeitar);
     const usuario = userEvent.setup();
     render(<CriarClienteContainer />);
 
-    await preencherCamposObrigatorios(usuario);
+    await preencherCamposObrigatorios(usuario); // blur do CNPJ deixa a consulta A pendente
     await usuario.click(screen.getByRole("button", { name: "Cadastrar" }));
+    await screen.findByText(/cadastrado/);
+    await usuario.click(screen.getByRole("button", { name: "Cadastrar outro" }));
 
-    expect(await screen.findByText(/Não foi possível cadastrar agora/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Cadastrar" })).toBeEnabled();
+    await act(async () => responderA({ empresa: "Empresa A", regime: "simples_nacional" }));
+    await new Promise((resolver) => setTimeout(resolver, 10)); // folga pro setTimeout(0) interno
+    process.off("unhandledRejection", aoRejeitar);
+
+    expect(rejeicoes).toEqual([]);
+    expect(screen.getByLabelText(/^Empresa/)).toHaveValue("");
+    expect(screen.getByLabelText(/^Regime/)).toHaveValue("");
   });
+
+  it.each([
+    ["erro inesperado do servidor", new Error("boom"), /Erro inesperado no servidor/],
+    ["falha de rede", new TypeError("Failed to fetch"), /Sem conexão com o servidor/],
+  ])(
+    "Promise rejeitada (%s) diz a causa e não prende o botão em 'Cadastrando…'",
+    async (_, erro, mensagem) => {
+      jest.spyOn(console, "error").mockImplementation(() => undefined);
+      executeMock.mockRejectedValue(erro);
+      const usuario = userEvent.setup();
+      render(<CriarClienteContainer />);
+
+      await preencherCamposObrigatorios(usuario);
+      await usuario.click(screen.getByRole("button", { name: "Cadastrar" }));
+
+      expect(await screen.findByText(mensagem)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Cadastrar" })).toBeEnabled();
+    },
+  );
 
   it("aplica a máscara de CNPJ enquanto digita", async () => {
     const usuario = userEvent.setup();
@@ -239,7 +281,9 @@ describe("CriarClienteContainer", () => {
           cnpj: "11444777000161",
           regime: "simples_nacional",
           contratoSocialCaminho: "1/contrato-social/doc.pdf",
-          alteracoesContratuais: [{ data: "2026-02-01", arquivoCaminho: "1/alteracoes/0-doc.pdf" }],
+          alteracoesContratuais: [
+            { numero: 1, data: "2026-02-01", arquivoCaminho: "1/alteracoes/1-doc.pdf" },
+          ],
         },
       }),
     );
@@ -262,9 +306,63 @@ describe("CriarClienteContainer", () => {
     expect(await screen.findByText(/cadastrado/)).toBeInTheDocument();
     expect(executeMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        alteracoesContratuais: [expect.objectContaining({ data: "2026-02-01" })],
+        alteracoesContratuais: [expect.objectContaining({ numero: 1, data: "2026-02-01" })],
       }),
     );
+  });
+
+  describe("nº da alteração", () => {
+    const escolherArquivo = async (
+      usuario: ReturnType<typeof userEvent.setup>,
+      indice: number,
+      nome: string,
+    ) => {
+      await usuario.click(screen.getByRole("button", { name: "Adicionar" }));
+      await usuario.upload(screen.getByLabelText(`Arquivo da alteração ${indice}`), arquivo(nome));
+    };
+
+    it("pré-preenche pelo prefixo do arquivo e, sem prefixo, com o maior nº + 1", async () => {
+      const usuario = userEvent.setup();
+      render(<CriarClienteContainer />);
+
+      await escolherArquivo(usuario, 1, "3-alteracao.pdf");
+      await escolherArquivo(usuario, 2, "alteracao.pdf");
+
+      expect(screen.getByLabelText("Nº da alteração 1")).toHaveValue(3);
+      expect(screen.getByLabelText("Nº da alteração 2")).toHaveValue(4);
+    });
+
+    it("não sobrescreve o nº que o Admin digitou", async () => {
+      const usuario = userEvent.setup();
+      render(<CriarClienteContainer />);
+
+      await usuario.click(screen.getByRole("button", { name: "Adicionar" }));
+      await usuario.type(screen.getByLabelText("Nº da alteração 1"), "7");
+      await usuario.upload(screen.getByLabelText("Arquivo da alteração 1"), arquivo("2-alt.pdf"));
+
+      expect(screen.getByLabelText("Nº da alteração 1")).toHaveValue(7);
+    });
+
+    it("barra nº repetido no formulário, sem chamar o servidor", async () => {
+      const usuario = userEvent.setup();
+      render(<CriarClienteContainer />);
+
+      await preencherCamposObrigatorios(usuario);
+      await escolherArquivo(usuario, 1, "1-a.pdf");
+      await escolherArquivo(usuario, 2, "1-b.pdf");
+      fireEvent.change(screen.getByLabelText("Data da alteração 1"), {
+        target: { value: "2026-02-01" },
+      });
+      fireEvent.change(screen.getByLabelText("Data da alteração 2"), {
+        target: { value: "2026-03-01" },
+      });
+      await usuario.click(screen.getByRole("button", { name: "Cadastrar" }));
+
+      expect(await screen.findAllByText("Já existe a alteração nº 1 deste Cliente.")).toHaveLength(
+        2,
+      );
+      expect(executeMock).not.toHaveBeenCalled();
+    });
   });
 
   it("'Cadastrar outro' volta pro formulário limpo", async () => {
@@ -291,5 +389,68 @@ describe("CriarClienteContainer", () => {
 
     expect(screen.queryByText(/cadastrado/)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/^Empresa/)).toHaveValue("");
+  });
+
+  it("'Limpar' pede confirmação e, confirmado, zera campos, alterações e erros sem cadastrar", async () => {
+    const usuario = userEvent.setup();
+    render(<CriarClienteContainer />);
+
+    await preencherCamposObrigatorios(usuario);
+    await usuario.click(screen.getByRole("button", { name: "Adicionar" }));
+    expect(screen.getByLabelText("Nº da alteração 1")).toBeInTheDocument();
+    await usuario.clear(screen.getByLabelText(/^Empresa/));
+    await usuario.click(screen.getByRole("button", { name: "Cadastrar" }));
+    expect(await screen.findAllByRole("alert")).not.toHaveLength(0);
+
+    await usuario.click(screen.getByRole("button", { name: "Limpar" }));
+    await usuario.click(screen.getByRole("button", { name: "Limpar tudo" }));
+
+    expect(screen.getByLabelText(/^CNPJ/)).toHaveValue("");
+    expect(screen.getByLabelText(/^Regime/)).toHaveValue("");
+    expect(screen.getByText("Arraste o arquivo aqui")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Nº da alteração 1")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(executeMock).not.toHaveBeenCalled();
+  });
+
+  it("'Voltar' na confirmação do Limpar mantém tudo o que foi preenchido", async () => {
+    const usuario = userEvent.setup();
+    render(<CriarClienteContainer />);
+    await preencherCamposObrigatorios(usuario);
+
+    await usuario.click(screen.getByRole("button", { name: "Limpar" }));
+    expect(screen.getByRole("alert")).toHaveTextContent(/Limpar o formulário\?/);
+    expect(screen.getByRole("button", { name: "Voltar" })).toHaveFocus();
+    await usuario.click(screen.getByRole("button", { name: "Voltar" }));
+
+    expect(screen.getByLabelText(/^Empresa/)).toHaveValue("Padaria Pão Quente Ltda");
+    expect(screen.getByRole("button", { name: "Cadastrar" })).toBeInTheDocument();
+  });
+
+  it("'Limpar' em formulário em branco limpa direto, sem pedir confirmação", async () => {
+    const usuario = userEvent.setup();
+    render(<CriarClienteContainer />);
+
+    await usuario.click(screen.getByRole("button", { name: "Limpar" }));
+
+    expect(screen.queryByRole("button", { name: "Limpar tudo" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Limpar" })).toBeInTheDocument();
+  });
+
+  it("arquivos que passam do limite: o erro aparece no bloco Documentos, com o total e o limite", async () => {
+    const usuario = userEvent.setup();
+    render(<CriarClienteContainer />);
+    await usuario.type(screen.getByLabelText(/^CNPJ/), "11.444.777/0001-61");
+    await usuario.type(screen.getByLabelText(/^Empresa/), "Padaria Pão Quente Ltda");
+    await usuario.selectOptions(screen.getByLabelText(/^Regime/), "simples_nacional");
+    const grande = new File([new Uint8Array(11 * 1024 * 1024)], "g.pdf", {
+      type: "application/pdf",
+    });
+    await usuario.upload(screen.getByLabelText("Contrato social"), grande);
+
+    await usuario.click(screen.getByRole("button", { name: "Cadastrar" }));
+
+    expect(await screen.findByText(/somam 11,0 MB e o limite é 10 MB/)).toBeInTheDocument();
+    expect(executeMock).not.toHaveBeenCalled();
   });
 });

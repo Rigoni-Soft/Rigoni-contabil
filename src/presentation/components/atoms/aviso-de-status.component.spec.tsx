@@ -14,4 +14,11 @@ describe("AvisoDeStatus", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent("Enviado");
   });
+
+  it("atenção é anunciada como status, sem o check do sucesso", () => {
+    const { container } = render(<AvisoDeStatus tipo="atencao" texto="Confira" />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("Confira");
+    expect(container.querySelector("svg.lucide-circle-check")).toBeNull();
+  });
 });

@@ -1,13 +1,17 @@
 import { RegistroAcaoBuilder } from "@/modules/auditoria/domain/builders/registro-acao.builder";
+import type { AtorId } from "@/modules/auditoria/domain/value-objects/ator-id.vo";
 import type { ResultadoAcao } from "@/modules/auditoria/domain/value-objects/resultado-acao.vo";
+import type { SetorDoAtor } from "@/modules/auditoria/domain/value-objects/setor-do-ator.vo";
 import type { Id } from "@/shared/kernel/id.types";
 
 export type RegistroAcaoId = Id<"RegistroAcao">;
 
 export type RegistroAcaoProps = {
   id: RegistroAcaoId;
-  ator: string;
-  setor: string;
+  ator: AtorId;
+  setor: SetorDoAtor;
+  // acao e alvo ficam string: texto livre (convenção "dominio.verbo", mas o banco é text e
+  // o alvo descreve qualquer entidade); a única regra é não-vazio, validada no builder.
   acao: string;
   alvo: string;
   resultado: ResultadoAcao;
@@ -25,11 +29,11 @@ export class RegistroAcao {
     return this.props.id;
   }
 
-  get ator(): string {
+  get ator(): AtorId {
     return this.props.ator;
   }
 
-  get setor(): string {
+  get setor(): SetorDoAtor {
     return this.props.setor;
   }
 

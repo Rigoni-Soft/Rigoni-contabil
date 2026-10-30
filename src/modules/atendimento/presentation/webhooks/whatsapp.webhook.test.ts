@@ -7,8 +7,10 @@ import { createHmac } from "node:crypto";
 
 import type { AnexosAtendimentoPort } from "@/modules/atendimento/application/ports/out/anexos-atendimento.provider";
 import type { AtendimentoRepositoryPort } from "@/modules/atendimento/application/ports/out/atendimento.repository";
+import type { RegistroDeErrosPort } from "@/modules/atendimento/application/ports/out/registro-de-erros.provider";
 import type { SessaoAtendimento } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
 import { AutenticarWebhook } from "@/modules/atendimento/application/use-cases/autenticar-webhook.use-case";
+import { EntregarDasNaUra } from "@/modules/atendimento/application/use-cases/entregar-das-na-ura.use-case";
 import { ReceberMensagem } from "@/modules/atendimento/application/use-cases/receber-mensagem.use-case";
 import { ReceberMidia } from "@/modules/atendimento/application/use-cases/receber-midia.use-case";
 import { DownloadMidiaFalsoGateway } from "@/modules/atendimento/infra/gateways/download-midia-falso.gateway";
@@ -19,12 +21,15 @@ import { err, ok } from "@/shared/kernel/result";
 
 import { GET, POST } from "./whatsapp.webhook";
 
+const erros: RegistroDeErrosPort = { registrar: jest.fn() };
+
 const SEGREDO = "segredo-teste";
 const TOKEN = "token-teste";
 let envio: EnvioMensagemFalsoGateway;
 let identificacao: ConstructorParameters<typeof ReceberMensagem>[0];
 const documentos: ConstructorParameters<typeof ReceberMensagem>[2] = {
-  listar: async () => ok([{ tipo: "contrato", data: null, caminho: "c1/contrato.pdf" }]),
+  listar: async () =>
+    ok([{ tipo: "contrato", numero: null, data: null, caminho: "c1/contrato.pdf" }]),
   linkTemporario: async (caminho) => ok(`https://storage.test/${caminho}`),
 };
 
@@ -67,6 +72,7 @@ const anexosDeMidia = {
 } as unknown as AnexosAtendimentoPort;
 
 jest.mock("@/main/atendimento.factory", () => ({
+  makeRegistroDeErros: () => ({ registrar: () => undefined }),
   makeReceberMidia: () =>
     new ReceberMidia(repositorioDeMidia, new DownloadMidiaFalsoGateway(), anexosDeMidia, envio),
   makeReceberMensagem: () =>
@@ -83,6 +89,31 @@ jest.mock("@/main/atendimento.factory", () => ({
       { agora: () => new Date("2026-10-07T10:00:00-03:00") },
       { listarDatas: async () => ok([]) },
       { buscar: async () => ok({ nomeArquivo: "DAS.pdf", pdfBase64: "JVBERi0=" }) },
+      // DAS pronto: a opção 2 adianta o envio pelo caso de uso real, só com portas em memória.
+      new EntregarDasNaUra(
+        {
+          obterDas: async () =>
+            ok({ dasStatus: "pronto" as const, dataEnvioDas: null, caminhoGuiaDas: null }),
+          reservarDas: async () => ok("token-1"),
+          concluirDas: async () => ok(true),
+          liberarDas: async () => ok(undefined),
+        },
+        {
+          execute: async () =>
+            ok({
+              competencia: "09/2026",
+              vencimento: "20/10/2026",
+              guia: { url: "https://storage.test/das.pdf", nomeArquivo: "DAS.pdf" },
+              caminho: "c1/das/202610-hash.pdf",
+            }),
+        },
+        { reencontrar: async () => ok("https://storage.test/das.pdf") },
+        envio,
+        { agora: () => new Date("2026-10-07T10:00:00-03:00") },
+        erros,
+      ),
+      { execute: async () => ok(undefined) },
+      erros,
     ),
   makeAutenticarWebhook: () =>
     new AutenticarWebhook(new HmacAutenticacaoWebhookGateway(SEGREDO, TOKEN)),
@@ -144,7 +175,6 @@ beforeEach(() => {
     cnpjCadastrado: async () => ok(true),
   };
   jest.spyOn(console, "info").mockImplementation(() => undefined);
-  jest.spyOn(console, "error").mockImplementation(() => undefined);
 });
 
 describe("GET /api/webhooks/whatsapp (handshake de verificação)", () => {
@@ -194,14 +224,14 @@ describe("POST /api/webhooks/whatsapp (notificação)", () => {
     expect(r.status).toBe(200);
     expect(envio.enviadas).toHaveLength(1);
     expect(envio.documentosEnviados).toEqual([
-      { telefone: "5511999990000", nomeArquivo: "DAS.pdf", pdfBase64: "JVBERi0=" },
+      { telefone: "5511999990000", nomeArquivo: "DAS.pdf", url: "https://storage.test/das.pdf" },
     ]);
   });
 
   it("opção 5 do menu (falar com atendente) encaminha o contato reconhecido à recepção", async () => {
     const r = await enviar(notificacao([texto("5")]));
     expect(r.status).toBe(200);
-    expect(envio.enviadas).toHaveLength(1);
+    expect(envio.enviadas).toHaveLength(2);
     expect(envio.enviadas[0].texto).toContain("recepção");
   });
 

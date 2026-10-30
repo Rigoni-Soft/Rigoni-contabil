@@ -34,6 +34,7 @@ const subir = jest.mocked(subirAnexoEmPartes);
 const CONVERSA: ConversaVista = {
   atendimentoId: "at-1",
   encerrado: false,
+  podeAtender: true,
   telefone: "5561988887777",
   contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
   clienteVinculado: true,
@@ -41,7 +42,6 @@ const CONVERSA: ConversaVista = {
   ultimaTransferencia: null,
   ura: null,
   temMaisAnteriores: false,
-  avisoInatividade: false,
   setoresDestino: [],
   documentos: [],
 };
@@ -67,6 +67,13 @@ describe("useCompositor", () => {
   it("está visível num Atendimento em andamento e escondido num encerrado", () => {
     expect(renderizar().result.current.visivel).toBe(true);
     expect(renderizar({ ...CONVERSA, encerrado: true }).result.current.visivel).toBe(false);
+  });
+
+  it("leitura de supervisão (Líder/Admin em conversa de outro) não mostra o campo de resposta", () => {
+    const supervisao = renderizar({ ...CONVERSA, podeAtender: false }).result.current;
+    expect(supervisao.visivel).toBe(false);
+    expect(supervisao.somenteLeitura).toBe(true);
+    expect(renderizar({ ...CONVERSA, encerrado: true }).result.current.somenteLeitura).toBe(false);
   });
 
   it("envia a mensagem e conta o envio para esvaziar o campo", async () => {

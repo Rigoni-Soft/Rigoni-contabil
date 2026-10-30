@@ -4,6 +4,7 @@ import type {
   NovaMensagem,
 } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type { AnexarMensagemAtendimentoPort } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
+import type { EntregarNaUraPort } from "@/modules/atendimento/application/ports/in/entregar-na-ura.provider";
 import type {
   DocumentoContratual,
   DocumentosContratuaisPort,
@@ -24,6 +25,7 @@ import type {
   ContatoIdentificado,
   IdentificacaoContatoPort,
 } from "@/modules/atendimento/application/ports/out/identificacao-contato.provider";
+import type { RegistroDeErrosPort } from "@/modules/atendimento/application/ports/out/registro-de-erros.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import type {
   SessaoAtendimento,
@@ -38,6 +40,8 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { ReceberMensagem } from "./receber-mensagem.use-case";
 
+const erros: RegistroDeErrosPort = { registrar: jest.fn() };
+
 const ana: ContatoIdentificado = {
   clienteId: "cliente-1",
   nome: "Ana",
@@ -49,6 +53,7 @@ const CNPJ_DESCONHECIDO = "11.222.333/0001-81";
 
 const CONTRATO: DocumentoContratual = {
   tipo: "contrato",
+  numero: null,
   data: null,
   caminho: "c1/contrato.pdf",
 };
@@ -63,13 +68,14 @@ function montar(
     limparFalha?: boolean;
     aberturaFalha?: boolean;
     emAndamento?: boolean;
-    posicaoNaFila?: number;
     cnpjsCadastrados?: string[];
     cnpjFalha?: boolean;
     agora?: Date;
     feriados?: string[];
     feriadosFalha?: boolean;
     guiaFalha?: AppError | "lanca";
+    dasFalha?: AppError | "lanca";
+    parcelamentoFalha?: AppError | "lanca";
   } = {},
 ) {
   const buscados: string[] = [];
@@ -149,11 +155,7 @@ function montar(
     execute: async (a) => {
       if (opcoes.aberturaFalha) return err(new ServicoExternoError("banco"));
       abertos.push(a);
-      return ok({
-        id: "at-1",
-        funcionarioId: null,
-        ...(opcoes.posicaoNaFila ? { posicao: opcoes.posicaoNaFila } : {}),
-      });
+      return ok({ id: "at-1" });
     },
   };
   // Por padrão: quarta-feira, 10h em São Paulo (expediente aberto).
@@ -173,8 +175,28 @@ function montar(
       return ok<GuiaFiscal>({ nomeArquivo: `${tipo}.pdf`, pdfBase64: `pdf-${tipo}` });
     },
   };
+  const dasPedidos: { clienteId: string; telefone: string }[] = [];
+  const das: EntregarNaUraPort = {
+    execute: async (pedido) => {
+      dasPedidos.push(pedido);
+      if (opcoes.dasFalha === "lanca") throw new Error("rede");
+      if (opcoes.dasFalha) return err(opcoes.dasFalha);
+      return ok(undefined);
+    },
+  };
+  const parcelamentoPedidos: { clienteId: string; telefone: string }[] = [];
+  const parcelamento: EntregarNaUraPort = {
+    execute: async (pedido) => {
+      parcelamentoPedidos.push(pedido);
+      if (opcoes.parcelamentoFalha === "lanca") throw new Error("rede");
+      if (opcoes.parcelamentoFalha) return err(opcoes.parcelamentoFalha);
+      return ok(undefined);
+    },
+  };
   return {
     guiasBuscadas,
+    dasPedidos,
+    parcelamentoPedidos,
     anexadas,
     tentativasDeAnexar,
     abertos,
@@ -188,6 +210,9 @@ function montar(
       relogio,
       feriados,
       guias,
+      das,
+      parcelamento,
+      erros,
     ),
     sessoes,
     gravadas,
@@ -218,28 +243,84 @@ describe("ReceberMensagem", () => {
     }
   });
 
-  it.each([
-    ["2", "das"],
-    ["3", "parcelamento"],
-    ["4", "cnd"],
-    [" 3 ", "parcelamento"],
-  ])("opção %p do menu entrega o PDF de %s do Cliente do contato", async (texto, tipo) => {
+  it("opção 3 (parcelamento) segue o processo do job: delega ao caso do parcelamento, sem buscar a guia direto", async () => {
+    const { caso, parcelamentoPedidos, guiasBuscadas, enviadas, documentosEnviados } = montar();
+    const r = await caso.execute({ telefone: "5511912345678", texto: " 3 " });
+    expect(r.ok).toBe(true);
+    expect(parcelamentoPedidos).toEqual([{ clienteId: ana.clienteId, telefone: "5511912345678" }]);
+    expect(guiasBuscadas).toEqual([]);
+    expect(enviadas).toHaveLength(0);
+    expect(documentosEnviados).toHaveLength(0);
+  });
+
+  it("parcelamento sem autorização vigente avisa o contato e oferece o atendente", async () => {
+    const { caso, enviadas } = montar({ parcelamentoFalha: new ForbiddenError("sem autorização") });
+    const r = await caso.execute({ telefone: "11912345678", texto: "3" });
+    expect(r.ok).toBe(true);
+    expect(enviadas[0].texto).toContain("autorização");
+    expect(enviadas[0].texto).toContain("*5*");
+  });
+
+  it.each([new ServicoExternoError("fora do ar"), "lanca" as const])(
+    "falha do parcelamento (%p) não derruba: registra no log e avisa o contato",
+    async (parcelamentoFalha) => {
+      const log = jest.mocked(erros.registrar).mockClear();
+      const { caso, enviadas } = montar({ parcelamentoFalha });
+      const r = await caso.execute({ telefone: "11912345678", texto: "3" });
+      expect(r.ok).toBe(true);
+      expect(enviadas[0].texto).toContain("agora");
+      expect(log).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("opção 4 do menu entrega o PDF de CND do Cliente do contato", async () => {
     const { caso, enviadas, documentosEnviados, guiasBuscadas } = montar();
-    const r = await caso.execute({ telefone: "5511912345678", texto });
+    const r = await caso.execute({ telefone: "5511912345678", texto: "4" });
     expect(r.ok).toBe(true);
     // O CNPJ nunca é perguntado: a busca usa o Cliente ligado ao contato.
-    expect(guiasBuscadas).toEqual([{ clienteId: ana.clienteId, tipo }]);
+    expect(guiasBuscadas).toEqual([{ clienteId: ana.clienteId, tipo: "cnd" }]);
     expect(documentosEnviados).toEqual([
-      { telefone: "5511912345678", nomeArquivo: `${tipo}.pdf`, pdfBase64: `pdf-${tipo}` },
+      { telefone: "5511912345678", nomeArquivo: "cnd.pdf", pdfBase64: "pdf-cnd" },
     ]);
     expect(enviadas).toHaveLength(0);
   });
+
+  it("opção 2 (DAS) segue o processo do job: delega ao caso do DAS, sem buscar a guia direto", async () => {
+    const { caso, dasPedidos, guiasBuscadas, enviadas, documentosEnviados } = montar();
+    const r = await caso.execute({ telefone: "5511912345678", texto: "2" });
+    expect(r.ok).toBe(true);
+    expect(dasPedidos).toEqual([{ clienteId: ana.clienteId, telefone: "5511912345678" }]);
+    expect(guiasBuscadas).toEqual([]);
+    expect(enviadas).toHaveLength(0);
+    expect(documentosEnviados).toHaveLength(0);
+  });
+
+  it("DAS sem autorização vigente avisa o contato e oferece o atendente", async () => {
+    const { caso, enviadas } = montar({ dasFalha: new ForbiddenError("sem autorização") });
+    const r = await caso.execute({ telefone: "11912345678", texto: "2" });
+    expect(r.ok).toBe(true);
+    expect(enviadas[0].texto).toContain("autorização");
+    expect(enviadas[0].texto).toContain("*5*");
+  });
+
+  it.each([new ServicoExternoError("fora do ar"), "lanca" as const])(
+    "falha do DAS (%p) não derruba: registra no log, avisa o contato e oferece o atendente",
+    async (dasFalha) => {
+      const log = jest.mocked(erros.registrar).mockClear();
+      const { caso, enviadas } = montar({ dasFalha });
+      const r = await caso.execute({ telefone: "11912345678", texto: "2" });
+      expect(r.ok).toBe(true);
+      expect(enviadas[0].texto).toContain("agora");
+      expect(enviadas[0].texto).toContain("*5*");
+      expect(log).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it("guia sem autorização vigente avisa o contato e oferece o atendente", async () => {
     const { caso, enviadas, documentosEnviados } = montar({
       guiaFalha: new ForbiddenError("sem autorização"),
     });
-    const r = await caso.execute({ telefone: "11912345678", texto: "2" });
+    const r = await caso.execute({ telefone: "11912345678", texto: "4" });
     expect(r.ok).toBe(true);
     expect(documentosEnviados).toHaveLength(0);
     expect(enviadas[0].texto).toContain("autorização");
@@ -253,7 +334,7 @@ describe("ReceberMensagem", () => {
   ])(
     "falha do provedor fiscal (%p) não derruba: registra no log, avisa o contato e oferece o atendente",
     async (guiaFalha) => {
-      const log = jest.spyOn(console, "error").mockImplementation(() => undefined);
+      const log = jest.mocked(erros.registrar).mockClear();
       const { caso, enviadas, documentosEnviados } = montar({ guiaFalha });
       const r = await caso.execute({ telefone: "11912345678", texto: "4" });
       expect(r.ok).toBe(true);
@@ -261,13 +342,12 @@ describe("ReceberMensagem", () => {
       expect(enviadas[0].texto).toContain("agora");
       expect(enviadas[0].texto).toContain("*5*");
       expect(log).toHaveBeenCalledTimes(1);
-      log.mockRestore();
     },
   );
 
   it("falha ao enviar o PDF devolve erro para a Meta reenviar", async () => {
     const { caso } = montar({ envioFalha: true });
-    const r = await caso.execute({ telefone: "11912345678", texto: "2" });
+    const r = await caso.execute({ telefone: "11912345678", texto: "4" });
     expect(r).toEqual({ ok: false, error: expect.any(ServicoExternoError) });
   });
 
@@ -314,11 +394,14 @@ describe("ReceberMensagem", () => {
         salvar: async () => ok(undefined),
         limpar: async () => ok(undefined),
       },
-      { execute: async () => ok({ id: "at-1", funcionarioId: null }) },
+      { execute: async () => ok({ id: "at-1" }) },
       { execute: async () => ok({ anexada: false }) },
       { agora: () => new Date("2026-10-07T10:00:00-03:00") },
       { listarDatas: async () => ok([]) },
       { buscar: async () => err(new ServicoExternoError("fiscal")) },
+      { execute: async () => ok(undefined) },
+      { execute: async () => ok(undefined) },
+      erros,
     );
     const r = await caso.execute({ telefone: "11912345678", texto: "oi" });
     expect(r.ok).toBe(false);
@@ -436,12 +519,14 @@ describe("ReceberMensagem — fora do expediente (#72)", () => {
 });
 
 function alteracoes(quantidade: number): DocumentoContratual[] {
-  // Datas crescentes: a alteração i é mais recente que a i-1.
+  // Como o gateway entrega: nº decrescente. As datas correm ao contrário, para provar que a
+  // ordem é pelo nº.
   return Array.from({ length: quantidade }, (_, i) => ({
     tipo: "alteracao" as const,
-    data: `2020-${String(i + 1).padStart(2, "0")}-15`,
+    numero: i + 1,
+    data: `2020-${String(quantidade - i).padStart(2, "0")}-15`,
     caminho: `c1/alt-${i + 1}.pdf`,
-  }));
+  })).reverse();
 }
 
 const nomes = (docs: DocumentoEnviado[]) => docs.map((d) => d.nomeArquivo);
@@ -487,7 +572,7 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     });
     await caso.execute({ telefone: FONE, texto: "1" });
     await caso.execute({ telefone: FONE, texto: "2" });
-    expect(nomes(documentosEnviados)).toEqual(["Alteração de 15/01/2020.pdf"]);
+    expect(nomes(documentosEnviados)).toEqual(["Alteração nº 1 - 15/01/2020.pdf"]);
     expect(sessoes.size).toBe(0);
   });
 
@@ -499,17 +584,17 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     expect(enviadas[1].texto).toContain("Não encontramos");
   });
 
-  it("várias alterações: lista da mais recente à mais antiga e envia a escolhida", async () => {
+  it("várias alterações: lista por nº decrescente e envia a escolhida", async () => {
     const { caso, documentosEnviados, enviadas } = montar({
       documentos: [CONTRATO, ...alteracoes(3)],
     });
     await caso.execute({ telefone: FONE, texto: "1" });
     await caso.execute({ telefone: FONE, texto: "2" });
     const lista = enviadas[1].texto;
-    expect(lista.indexOf("15/03/2020")).toBeLessThan(lista.indexOf("15/02/2020"));
-    expect(lista.indexOf("15/02/2020")).toBeLessThan(lista.indexOf("15/01/2020"));
+    expect(lista.indexOf("nº 3")).toBeLessThan(lista.indexOf("nº 2"));
+    expect(lista.indexOf("nº 2")).toBeLessThan(lista.indexOf("nº 1"));
     await caso.execute({ telefone: FONE, texto: "1" });
-    expect(nomes(documentosEnviados)).toEqual(["Alteração de 15/03/2020.pdf"]);
+    expect(nomes(documentosEnviados)).toEqual(["Alteração nº 3 - 15/01/2020.pdf"]);
   });
 
   it("pagina de 10 em 10 com 'mais' e escolhe pelo número da página corrente", async () => {
@@ -532,7 +617,7 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     });
 
     await caso.execute({ telefone: FONE, texto: "2" });
-    expect(nomes(documentosEnviados)).toEqual(["Alteração de 15/01/2020.pdf"]);
+    expect(nomes(documentosEnviados)).toEqual(["Alteração nº 1 - 15/12/2020.pdf"]);
   });
 
   it("'mais' na última página e número fora da lista reapresentam a página", async () => {
@@ -543,7 +628,7 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     await caso.execute({ telefone: FONE, texto: "9" });
     expect(documentosEnviados).toHaveLength(0);
     expect(enviadas).toHaveLength(4);
-    expect(enviadas[3].texto).toContain("15/03/2020");
+    expect(enviadas[3].texto).toContain("Alteração nº 3");
   });
 
   it("ambos com várias alterações: após escolher, envia o contrato e a alteração", async () => {
@@ -561,7 +646,7 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     await caso.execute({ telefone: FONE, texto: "2" });
     expect(nomes(documentosEnviados)).toEqual([
       "Contrato social.pdf",
-      "Alteração de 15/02/2020.pdf",
+      "Alteração nº 2 - 15/02/2020.pdf",
     ]);
   });
 
@@ -571,7 +656,7 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     await caso.execute({ telefone: FONE, texto: "3" });
     expect(nomes(documentosEnviados)).toEqual([
       "Contrato social.pdf",
-      "Alteração de 15/01/2020.pdf",
+      "Alteração nº 1 - 15/01/2020.pdf",
     ]);
   });
 
@@ -581,7 +666,23 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     await caso.execute({ telefone: FONE, texto: "3" });
     await caso.execute({ telefone: FONE, texto: "1" });
     expect(enviadas.at(-1)?.texto).toContain("Não encontramos o contrato");
-    expect(nomes(documentosEnviados)).toEqual(["Alteração de 15/03/2020.pdf"]);
+    expect(nomes(documentosEnviados)).toEqual(["Alteração nº 3 - 15/01/2020.pdf"]);
+  });
+
+  it("regressão: 12 alterações paginam 10 + 2 por nº decrescente e o hash da lista guardado não muda", async () => {
+    const { caso, enviadas, gravadas } = montar({ documentos: alteracoes(12) });
+    await caso.execute({ telefone: FONE, texto: "1" });
+    await caso.execute({ telefone: FONE, texto: "2" });
+    const numeros = [...enviadas[1].texto.matchAll(/^\d+ - Alteração nº (\d+)/gm)].map(
+      (m) => +m[1],
+    );
+    expect(numeros).toEqual([12, 11, 10, 9, 8, 7, 6, 5, 4, 3]);
+    expect(enviadas[1].texto).toContain("página 1 de 2");
+    await caso.execute({ telefone: FONE, texto: "mais" });
+    expect(enviadas[2].texto).toContain("página 2 de 2");
+    // Valor fixo: o hash vem só dos caminhos, na ordem exibida (alt-12 … alt-1).
+    expect(gravadas[0]).toEqual({ etapa: "tipo_documento" });
+    expect(gravadas[1]).toMatchObject({ pagina: 1, lista: "1m5itzn0pj2" });
   });
 
   it("sessão numa página que deixou de existir volta à última página", async () => {
@@ -742,10 +843,10 @@ describe("ReceberMensagem — número não cadastrado (#43)", () => {
     expect(abertos[0].mensagens[0].texto).toBe("90.000.001/0001-29");
   });
 
-  it("sem Funcionário livre o cliente recebe a posição na Fila, depois do aviso da recepção", async () => {
-    const { caso, enviadas, tentativasDeAnexar } = montar({ contato: null, posicaoNaFila: 3 });
+  it("depois do aviso da recepção o cliente só recebe para aguardar, sem posição", async () => {
+    const { caso, enviadas, tentativasDeAnexar } = montar({ contato: null });
     for (const t of ["oi", "sim", "90.000.001/0001-29"]) await dizer(caso, t);
-    const texto = "Você está na posição 3 da fila de atendimento. Aguarde, por favor.";
+    const texto = "Aguarde, já vamos atendê-lo.";
     expect(enviadas.map((e) => e.texto)).toEqual([
       expect.stringContaining("Você já é cliente"),
       expect.stringContaining("Informe o CNPJ"),
@@ -753,12 +854,6 @@ describe("ReceberMensagem — número não cadastrado (#43)", () => {
       texto,
     ]);
     expect(tentativasDeAnexar.filter((m) => m.autor === "ura")).toEqual([{ autor: "ura", texto }]);
-  });
-
-  it("com Funcionário livre não manda posição de Fila", async () => {
-    const { caso, enviadas } = montar({ contato: null });
-    for (const t of ["oi", "sim", "90.000.001/0001-29"]) await dizer(caso, t);
-    expect(enviadas).toHaveLength(3);
   });
 
   it("falha ao abrir o Atendimento devolve o erro e mantém a sessão", async () => {
@@ -800,7 +895,7 @@ describe("ReceberMensagem — mesmo número em mais de um Cliente", () => {
 
       expect((await caso.execute({ telefone: FONE, texto })).ok).toBe(true);
 
-      expect(enviadas).toHaveLength(1);
+      expect(enviadas).toHaveLength(2);
       expect(enviadas[0].texto).toContain("mais de uma empresa");
       expect(enviadas[0].texto).toContain("recepção");
       expect(enviadas[0].texto).not.toContain("1 - Contrato");
@@ -815,7 +910,7 @@ describe("ReceberMensagem — mesmo número em mais de um Cliente", () => {
 
 describe("ReceberMensagem — lista de alterações mudou com a sessão aberta", () => {
   it.each([
-    ["uma alteração é incluída", (docs: DocumentoContratual[]) => docs.push(alteracoes(4)[3])],
+    ["uma alteração é incluída", (docs: DocumentoContratual[]) => docs.unshift(alteracoes(4)[0])],
     ["uma alteração é excluída", (docs: DocumentoContratual[]) => docs.splice(0, 1)],
   ])(
     "se %s entre a lista e a escolha, nada é entregue e a lista nova é mostrada",
@@ -999,17 +1094,17 @@ describe("ReceberMensagem — opção falar com atendente (#46)", () => {
   it("avisa que vai à recepção, sem o stub 'em construção'", async () => {
     const { caso, enviadas } = montar();
     await pedir(caso);
-    expect(enviadas).toHaveLength(1);
+    expect(enviadas).toHaveLength(2);
     expect(enviadas[0].texto).toContain("recepção");
     expect(enviadas[0].texto).not.toContain("em construção");
   });
 
-  it("sem Funcionário livre manda a posição na Fila depois do aviso", async () => {
-    const { caso, enviadas } = montar({ posicaoNaFila: 2 });
+  it("manda o aviso para aguardar depois do aviso da recepção", async () => {
+    const { caso, enviadas } = montar();
     await pedir(caso);
     expect(enviadas.map((e) => e.texto)).toEqual([
       expect.stringContaining("recepção"),
-      "Você está na posição 2 da fila de atendimento. Aguarde, por favor.",
+      "Aguarde, já vamos atendê-lo.",
     ]);
   });
 

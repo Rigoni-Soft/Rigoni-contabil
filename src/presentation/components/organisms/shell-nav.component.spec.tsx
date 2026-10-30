@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import { ShellNav } from "./shell-nav.component";
 
@@ -36,5 +37,119 @@ describe("ShellNav", () => {
 
     const item = screen.getByText("Financeiro");
     expect(item).toHaveAttribute("aria-disabled", "true");
+  });
+
+  it("só a aba da tela aberta fica selecionada; em '/' nenhuma", () => {
+    const { rerender } = render(<ShellNav setores={[{ slug: "simples_nacional" }]} />);
+    expect(screen.getByRole("link", { name: "Simples Nacional" })).not.toHaveAttribute(
+      "aria-current",
+    );
+
+    rerender(<ShellNav setores={[{ slug: "simples_nacional" }]} rotaAtual="/simples-nacional" />);
+    expect(screen.getByRole("link", { name: "Simples Nacional" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+
+  it("tem a aba 'Atendimento' para a tela de Atendimento, ao lado das de Setor", () => {
+    render(<ShellNav setores={[{ slug: "financeiro" }]} />);
+
+    expect(screen.getByRole("link", { name: "Atendimento" })).toHaveAttribute(
+      "href",
+      "/atendimento",
+    );
+  });
+
+  it("marca a aba 'Atendimento' como a página atual quando é a tela aberta", () => {
+    render(<ShellNav setores={[{ slug: "financeiro" }]} rotaAtual="/atendimento" />);
+
+    expect(screen.getByRole("link", { name: "Atendimento" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+});
+
+describe("ShellNav — pendentes de Atendimento (#163)", () => {
+  it("mostra o contador no link e o diz por extenso no nome acessível", () => {
+    render(<ShellNav setores={[]} pendentesDeAtendimento={3} />);
+
+    const link = screen.getByRole("link", { name: "Atendimento, 3 pendentes" });
+    expect(link).toHaveAttribute("href", "/atendimento");
+    expect(link).toHaveTextContent("3");
+  });
+
+  it("sem pendentes o link fica sem contador e com o nome de sempre", () => {
+    render(<ShellNav setores={[]} pendentesDeAtendimento={0} />);
+
+    expect(screen.getByRole("link", { name: "Atendimento" })).toBeInTheDocument();
+  });
+
+  it("um pendente fala no singular", () => {
+    render(<ShellNav setores={[]} pendentesDeAtendimento={1} />);
+
+    expect(screen.getByRole("link", { name: "Atendimento, 1 pendente" })).toBeInTheDocument();
+  });
+
+  it("acima de 99 a pílula mostra 99+ e o nome acessível traz o número inteiro", () => {
+    render(<ShellNav setores={[]} pendentesDeAtendimento={120} />);
+
+    const link = screen.getByRole("link", { name: "Atendimento, 120 pendentes" });
+    expect(link).toHaveTextContent("99+");
+    expect(link).not.toHaveTextContent("120");
+  });
+
+  it("diz o aviso numa região de status para leitor de tela, que existe mesmo vazia", () => {
+    const { rerender } = render(<ShellNav setores={[]} anuncio="" />);
+    const regiao = screen.getByRole("status");
+    expect(regiao).toBeEmptyDOMElement();
+
+    rerender(<ShellNav setores={[]} anuncio="Atendimento: 3 pendentes." />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("Atendimento: 3 pendentes.");
+  });
+
+  describe("seletor de Setor no celular", () => {
+    const admin = [
+      { slug: "simples_nacional" },
+      { slug: "financeiro" },
+      { slug: "administrativo" },
+    ];
+
+    it("sem o destino de navegação (ou com poucos Setores) não há seletor", () => {
+      const { rerender } = render(<ShellNav setores={admin} />);
+      expect(screen.queryByRole("combobox", { name: "Ir para o Setor" })).not.toBeInTheDocument();
+
+      rerender(<ShellNav setores={[{ slug: "simples_nacional" }]} onIrParaSetor={jest.fn()} />);
+      expect(screen.queryByRole("combobox", { name: "Ir para o Setor" })).not.toBeInTheDocument();
+    });
+
+    it("lista os Setores; só os que têm tela são escolhíveis, os outros dizem que vêm em breve", () => {
+      render(<ShellNav setores={admin} onIrParaSetor={jest.fn()} />);
+
+      const seletor = screen.getByRole("combobox", { name: "Ir para o Setor" });
+      expect(seletor).toHaveValue("");
+      expect(screen.getByRole("option", { name: "Simples Nacional" })).toBeEnabled();
+      expect(screen.getByRole("option", { name: "Financeiro — em breve" })).toBeDisabled();
+    });
+
+    it("escolher um Setor com tela navega até ela; o Setor da tela aberta vem selecionado", async () => {
+      const onIrParaSetor = jest.fn();
+      const { rerender } = render(<ShellNav setores={admin} onIrParaSetor={onIrParaSetor} />);
+
+      await userEvent.selectOptions(
+        screen.getByRole("combobox", { name: "Ir para o Setor" }),
+        "simples_nacional",
+      );
+      expect(onIrParaSetor).toHaveBeenCalledWith("/simples-nacional");
+
+      rerender(
+        <ShellNav setores={admin} onIrParaSetor={onIrParaSetor} rotaAtual="/simples-nacional" />,
+      );
+      expect(screen.getByRole("combobox", { name: "Ir para o Setor" })).toHaveValue(
+        "simples_nacional",
+      );
+    });
   });
 });

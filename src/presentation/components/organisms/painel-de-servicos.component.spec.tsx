@@ -8,13 +8,13 @@ const BASE = {
   servicos: [
     { valor: "contrato", rotulo: "Contrato social", grupo: "contrato" as const },
     {
-      valor: "alteracao:2026-03-01",
-      rotulo: "Alteração de 01/03/2026",
+      valor: "alteracao:3",
+      rotulo: "Alteração nº 3 - 01/03/2026",
       grupo: "alteracao" as const,
     },
     {
-      valor: "alteracao:2025-01-10",
-      rotulo: "Alteração de 10/01/2025",
+      valor: "alteracao:2",
+      rotulo: "Alteração nº 2 - 10/01/2025",
       grupo: "alteracao" as const,
     },
   ],
@@ -43,19 +43,39 @@ describe("PainelDeServicos", () => {
       within(seletor)
         .getAllByRole("option")
         .map((o) => o.textContent),
-    ).toEqual(["Escolha a alteração", "Alteração de 01/03/2026", "Alteração de 10/01/2025"]);
-    await usuario.selectOptions(seletor, "alteracao:2025-01-10");
+    ).toEqual([
+      "Escolha a alteração",
+      "Alteração nº 3 - 01/03/2026",
+      "Alteração nº 2 - 10/01/2025",
+    ]);
+    await usuario.selectOptions(seletor, "alteracao:2");
     await usuario.click(screen.getByRole("button", { name: "Enviar alteração" }));
 
-    expect(aoEnviar).toHaveBeenCalledWith("alteracao:2025-01-10");
+    expect(aoEnviar).toHaveBeenCalledWith("alteracao:2");
   });
 
-  it("guia de imposto, de parcelamento e CND aparecem desabilitados enquanto a URA não os tem", () => {
-    render(<PainelDeServicos {...BASE} />);
+  it.each([
+    ["Guia de imposto", "das"],
+    ["Guia de parcelamento", "parcelamento"],
+    ["CND", "cnd"],
+  ])("um clique em %s dispara o envio da guia", async (nome, valor) => {
+    const aoEnviar = jest.fn();
+    const usuario = userEvent.setup();
+    render(<PainelDeServicos {...BASE} onEnviarServico={aoEnviar} />);
 
-    for (const nome of [/Guia de imposto/, /Guia de parcelamento/, /CND/]) {
+    await usuario.click(screen.getByRole("button", { name: nome }));
+
+    expect(aoEnviar).toHaveBeenCalledWith(valor);
+  });
+
+  it("enquanto envia, as guias ficam desabilitadas; sem Cliente, não aparecem", () => {
+    const { rerender } = render(<PainelDeServicos {...BASE} enviando />);
+    for (const nome of ["Guia de imposto", "Guia de parcelamento", "CND"]) {
       expect(screen.getByRole("button", { name: nome })).toBeDisabled();
     }
+
+    rerender(<PainelDeServicos {...BASE} semCliente />);
+    expect(screen.queryByRole("button", { name: "CND" })).not.toBeInTheDocument();
   });
 
   it("Cliente sem contrato ou sem alterações mostra tudo desabilitado", () => {
@@ -70,7 +90,7 @@ describe("PainelDeServicos", () => {
     render(<PainelDeServicos {...BASE} enviando />);
 
     expect(screen.getByRole("button", { name: "Contrato social" })).toBeDisabled();
-    expect(screen.getByText("Enviando...")).toBeInTheDocument();
+    expect(screen.getByText("Enviando…")).toBeInTheDocument();
   });
 
   it("sem Cliente vinculado explica por que não há serviços", () => {
@@ -78,6 +98,21 @@ describe("PainelDeServicos", () => {
 
     expect(screen.getByText(/Sem Cliente vinculado/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Contrato social" })).not.toBeInTheDocument();
+  });
+
+  it("o feedback do envio fica logo abaixo dos botões, antes do seletor de alteração", () => {
+    render(
+      <PainelDeServicos {...BASE} enviando aviso={{ tipo: "erro", texto: "Falha ao enviar" }} />,
+    );
+
+    const antes = (a: HTMLElement, b: HTMLElement) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    const seletor = screen.getByLabelText("Alteração contratual");
+    expect(antes(screen.getByRole("button", { name: "CND" }), screen.getByText("Enviando…"))).toBe(
+      true,
+    );
+    expect(antes(screen.getByText("Enviando…"), seletor)).toBe(true);
+    expect(antes(screen.getByText("Falha ao enviar"), seletor)).toBe(true);
   });
 
   it("mostra o aviso do envio", () => {

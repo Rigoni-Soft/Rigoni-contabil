@@ -23,7 +23,12 @@ export function ComparativosSn({ comparativos, responsaveis, totalClientes }: Pr
         }
       >
         <DonutDeFatias titulo="Status do DAS" fatias={comparativos.das} />
-        <DonutDeFatias titulo="Status do parcelamento" fatias={comparativos.parcelamento} />
+        <BarrasDeFatias
+          titulo="Status do parcelamento"
+          fatias={comparativos.parcelamento}
+          totalClientes={totalClientes}
+          nota="Um cliente pode estar em mais de uma situação."
+        />
         <BarrasDeFatias
           titulo="Atividade do mês"
           fatias={comparativos.atividade}

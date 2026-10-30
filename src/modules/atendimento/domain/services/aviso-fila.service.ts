@@ -1,9 +1,5 @@
-// Aviso ao cliente que saiu da Fila: o Funcionário que o assumiu.
-export function avisoDeVez(funcionarioNome: string | null): string {
-  return funcionarioNome
-    ? `Chegou a sua vez! ${funcionarioNome} vai te atender agora.`
-    : "Chegou a sua vez! Um atendente vai te atender agora.";
-}
+// Avisos ao cliente que espera: sem posição, quem atende é quem assume o Atendimento.
+export const AVISO_AGUARDE = "Aguarde, já vamos atendê-lo.";
 
 // Aviso ao cliente de que o Funcionário encerrou o Atendimento.
 export const AVISO_ENCERRAMENTO_AO_CLIENTE =

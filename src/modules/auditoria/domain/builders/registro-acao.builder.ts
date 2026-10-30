@@ -3,7 +3,9 @@ import type {
   RegistroAcaoId,
   RegistroAcaoProps,
 } from "@/modules/auditoria/domain/entities/registro-acao.entity";
+import { AtorId } from "@/modules/auditoria/domain/value-objects/ator-id.vo";
 import { ResultadoAcao } from "@/modules/auditoria/domain/value-objects/resultado-acao.vo";
+import { SetorDoAtor } from "@/modules/auditoria/domain/value-objects/setor-do-ator.vo";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
@@ -19,8 +21,8 @@ export type RegistroAcaoRestaurar = {
 
 export class RegistroAcaoBuilder {
   private id?: RegistroAcaoId;
-  private ator?: string;
-  private setor?: string;
+  private ator?: AtorId;
+  private setor?: SetorDoAtor;
   private acao?: string;
   private alvo?: string;
   private resultado?: ResultadoAcao;
@@ -34,15 +36,23 @@ export class RegistroAcaoBuilder {
     return this;
   }
 
-  comAtor(ator: string): this {
-    if (!ator.trim()) this.camposInvalidos.ator = ["obrigatório"];
-    this.ator = ator;
+  comAtor(entrada: string): this {
+    const ator = AtorId.criar(entrada);
+    if (!ator.ok) {
+      this.camposInvalidos.ator = [entrada.trim() ? ator.error.message : "obrigatório"];
+      return this;
+    }
+    this.ator = ator.value;
     return this;
   }
 
-  comSetor(setor: string): this {
-    if (!setor.trim()) this.camposInvalidos.setor = ["obrigatório"];
-    this.setor = setor;
+  comSetor(entrada: string): this {
+    const setor = SetorDoAtor.criar(entrada);
+    if (!setor.ok) {
+      this.camposInvalidos.setor = [entrada.trim() ? setor.error.message : "obrigatório"];
+      return this;
+    }
+    this.setor = setor.value;
     return this;
   }
 

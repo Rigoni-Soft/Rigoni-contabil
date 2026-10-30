@@ -63,6 +63,11 @@ O unitário é o nível priorizado: toda classe, função e método com lógica 
 | Fluxos afetados pelo diff | E2E do diff | Playwright CLI | nenhuma | A mudança funciona de ponta a ponta |
 | Aplicação inteira | E2E completo | Playwright CLI | nenhuma | A mudança não quebrou o que já funcionava |
 
+> **Dado que só o sistema grava (#108):** teste de integração que precisa de um DAS `enviado` o
+> marca com um cliente `service_role` (como o job faz), nunca como Admin ou Funcionário: o gatilho
+> `proteger_das_enviado_do_sistema` barra qualquer sessão de usuário. Os testes do gatilho cobrem as
+> duas vias (RPC de edição e DML direto pela Data API).
+
 ## 4. Regras por nível
 
 ### 4.1 Unitário e componente (`*.spec.ts`, `*.spec.tsx`)
@@ -78,7 +83,7 @@ O unitário é o nível priorizado: toda classe, função e método com lógica 
 - **`infra`:** com frequência não é testável unitariamente, porque existe para encapsular a dependência externa. Não se força um teste unitário mockando o próprio Supabase; o teste de integração é o substituto legítimo, não um extra.
 - **Supertest** é uma ferramenta, não um nível: o teste de webhook que o usa é um teste de integração como os demais e usa o sufixo `*.test.ts`. Só entra onde há HTTP real (o handler de webhook).
 - **Ambiente:** Supabase local (seção 5); o próprio teste monta o estado inicial de que precisa.
-- **Execução serial:** as suítes de integração dividem o mesmo banco e as mesmas regras globais por Setor (Balanceamento, Fila), então `yarn test:int` roda uma de cada vez (`--runInBand`), como o E2E. Em paralelo, a Fila de um Setor numa suíte muda a atribuição de outra.
+- **Execução serial:** as suítes de integração dividem o mesmo banco e as mesmas regras globais por Setor (a espera), então `yarn test:int` roda uma de cada vez (`--runInBand`), como o E2E.
 - **Dados de teste:** nunca um `DELETE` amplo (nem em `globalSetup`). Cada suíte que usa CNPJ fixo declara a lista e a limpa antes e depois com `removerClientesDeTeste` (`test-support/`), que apaga só esses CNPJs e os eventos de auditoria deles, e só no Supabase local; os CNPJs listados nas suítes são reservados para teste. Clientes e usuários de outra origem (seed, teste manual) ficam intactos, e a suíte roda repetidas vezes sem `db reset`.
 
 ### 4.3 E2E (`*.e2e.ts`, Playwright CLI)

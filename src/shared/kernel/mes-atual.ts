@@ -1,5 +1,8 @@
+// Fuso de negócio do escritório: todo "hoje", mês e horário exibido usa este.
+export const FUSO_DE_NEGOCIO = "America/Sao_Paulo";
+
 const FORMATO_DATA = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "America/Sao_Paulo",
+  timeZone: FUSO_DE_NEGOCIO,
   year: "numeric",
   month: "2-digit",
   day: "2-digit",
@@ -21,6 +24,18 @@ export function mesAtual(agora: Date = new Date()): string {
   return hojeIso(agora).slice(0, 7);
 }
 
+// Último dia (28-31) do mês corrente no fuso de negócio.
+export function ultimoDiaDoMes(agora: Date = new Date()): number {
+  const [ano, mes] = mesAtual(agora).split("-").map(Number);
+  return new Date(Date.UTC(ano, mes, 0)).getUTCDate();
+}
+
 export function primeiroDiaDoMesAtual(agora: Date = new Date()): string {
   return `${mesAtual(agora)}-01`;
+}
+
+// Mês anterior ao corrente no fuso de negócio, "AAAAMM" (formato do provedor).
+export function mesAnterior(agora: Date = new Date()): string {
+  const [ano, mes] = mesAtual(agora).split("-").map(Number);
+  return mes === 1 ? `${ano - 1}12` : `${ano}${String(mes - 1).padStart(2, "0")}`;
 }

@@ -29,6 +29,13 @@ export function BuscarClienteContainer({ papel, setor, apenasSnMei = false }: Pr
     podeAtribuirResponsavel,
   } = useBuscarCliente(papel, setor, apenasSnMei);
 
+  // O Admin segue para a tela própria do Cliente (`/clientes/[id]`), a única com "Anexar alteração";
+  // os demais papéis editam/visualizam no painel embutido.
+  const aoSelecionar = (id: string) => {
+    if (papel === "admin") router.push(`/clientes/${id}`);
+    else selecionarCliente(id);
+  };
+
   // Destaque de teclado (ArrowUp/ArrowDown/Enter) na lista de sugestões —
   // estado puramente visual/efêmero, então fica no Container, não no hook
   // (arquitetura.md §4.7: "UI efêmera e visual... useState no Container").
@@ -62,7 +69,7 @@ export function BuscarClienteContainer({ papel, setor, apenasSnMei = false }: Pr
       );
     } else if (evento.key === "Enter" && indiceAtivoValido !== null) {
       evento.preventDefault();
-      selecionarCliente(sugestoesVisiveis[indiceAtivoValido].id);
+      aoSelecionar(sugestoesVisiveis[indiceAtivoValido].id);
     } else if (evento.key === "Escape") {
       setTermo("");
     }
@@ -83,9 +90,12 @@ export function BuscarClienteContainer({ papel, setor, apenasSnMei = false }: Pr
           // Salvar fecha o painel (volta pra busca) e atualiza os dados da
           // página — se esta busca estiver embutida no resumo do setor
           // (/simples-nacional), os cards refletem a mudança na hora.
-          aoSalvarComSucesso={() => {
-            fecharPainel();
-            router.refresh();
+          aoSalvar={{
+            tipo: "fechar",
+            executar: () => {
+              fecharPainel();
+              router.refresh();
+            },
           }}
         />
       </PainelDoCliente>
@@ -105,7 +115,7 @@ export function BuscarClienteContainer({ papel, setor, apenasSnMei = false }: Pr
       }))}
       indiceAtivo={indiceAtivoValido}
       onDestacar={setIndiceAtivo}
-      onSelecionar={selecionarCliente}
+      onSelecionar={aoSelecionar}
       idLista={ID_LISTA}
       idOpcao={idOpcao}
     />

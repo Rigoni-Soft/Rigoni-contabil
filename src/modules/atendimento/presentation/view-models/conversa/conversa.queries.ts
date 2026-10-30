@@ -6,10 +6,8 @@ import {
   type QueryClient,
 } from "@tanstack/react-query";
 
-import type {
-  ConversaVista,
-  DocumentoDisponivel,
-} from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
+import type { DocumentoParaEnviar } from "@/modules/atendimento/application/ports/in/enviar-documento-ao-cliente.provider";
+import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import { subirAnexoEmPartes } from "@/modules/atendimento/presentation/view-models/conversa/anexo-em-partes.upload";
 import {
   encerrarAtendimentoAction,
@@ -26,7 +24,9 @@ import {
   acrescentarAnteriores,
   aplicarLinksRenovados,
   idsComLinkVencendo,
+  intervaloDaConversa,
   manterHistorico,
+  POLLING_RAPIDO_MS,
   reaproveitarLinks,
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.presenter";
 import { filaKeys } from "@/modules/atendimento/presentation/view-models/fila/fila.queries";
@@ -38,9 +38,9 @@ export const conversaKeys = {
   transferencia: (atendimentoId: string) => ["atendimento", "transferir", atendimentoId] as const,
 };
 
-// ponytail: polling a cada 5 s para a Mensagem do cliente aparecer; Realtime (`*.realtime.ts`,
-// arquitetura.md 4.2) quando o atraso incomodar.
-const INTERVALO_MS = 5_000;
+// ponytail: polling de 5 s com a conversa ativa e 15 s parada (`intervaloDaConversa`); Realtime
+// (`*.realtime.ts`, arquitetura.md 4.2) quando o atraso incomodar. O `staleTime` é o intervalo rápido.
+const INTERVALO_MS = POLLING_RAPIDO_MS;
 
 // Por rodada de polling: o lote de renovação e o tempo antes de pedir de novo o mesmo anexo (um
 // objeto ausente não é pedido a cada 5 s).
@@ -94,7 +94,7 @@ export function useConversaQuery(atendimentoId: string, initialData: ConversaVis
     },
     initialData,
     staleTime: INTERVALO_MS,
-    refetchInterval: ativa ? INTERVALO_MS : false,
+    refetchInterval: ativa ? (query) => intervaloDaConversa(query.state.data, Date.now()) : false,
     retry: false,
   });
 }
@@ -125,7 +125,7 @@ export function useEnviarDocumentoMutation(atendimentoId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (documento: DocumentoDisponivel) => {
+    mutationFn: async (documento: DocumentoParaEnviar) => {
       const resultado = await enviarDocumentoAction({ atendimentoId, documento });
       if (!resultado.ok) throw new Error(resultado.error.message);
     },
@@ -139,13 +139,11 @@ export function useTransferirAtendimentoMutation(atendimentoId: string) {
 
   return useMutation({
     mutationKey: conversaKeys.transferencia(atendimentoId),
-    // Devolve o Atendimento da Fila que o Funcionário liberado assumiu (null se não havia).
     mutationFn: async (dados: { setorDestino: string; resumo: string }) => {
       const resultado = await transferirAtendimentoAction({ atendimentoId, ...dados });
       if (!resultado.ok) throw new Error(resultado.error.message);
-      return resultado.data.proximoDaFila;
     },
-    // O Atendimento mudou de mãos: a lista do dock precisa refletir.
+    // O Atendimento mudou de mãos: a lista precisa refletir.
     onSettled: () => queryClient.invalidateQueries({ queryKey: meusAtendimentosKeys.lista() }),
   });
 }
@@ -154,14 +152,11 @@ export function useEncerrarAtendimentoMutation(atendimentoId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    // Devolve o Atendimento da Fila que o Funcionário liberado assumiu (null se não havia).
     mutationFn: async () => {
       const resultado = await encerrarAtendimentoAction(atendimentoId);
       if (!resultado.ok) throw new Error(resultado.error.message);
-      return resultado.data.proximoDaFila;
     },
-    // Também no erro: um encerramento feito mas com aviso falho já deve aparecer na conversa. O dock
-    // e a Fila refletem o Funcionário livre e o Atendimento que ele assumiu.
+    // Também no erro: um encerramento feito mas com aviso falho já deve aparecer na conversa.
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: conversaKeys.conversa(atendimentoId) }),

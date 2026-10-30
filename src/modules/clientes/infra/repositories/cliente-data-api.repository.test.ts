@@ -45,7 +45,9 @@ async function criarClienteComContrato(cnpj: string): Promise<Cliente> {
     .comCnpj(cnpj)
     .comRegime("simples_nacional")
     .comContratoSocialCaminho("clientes/x/contrato-social/doc.pdf")
-    .comAlteracoesContratuais([{ data: "2026-01-10", arquivoCaminho: "clientes/x/alt/1.pdf" }])
+    .comAlteracoesContratuais([
+      { numero: 1, data: "2026-01-10", arquivoCaminho: "clientes/x/alt/1.pdf" },
+    ])
     .build();
   if (!construido.ok) throw new Error("setup inválido");
   const salvo = await new SupabaseClienteRepository(admin).criar(construido.value);
@@ -80,6 +82,16 @@ async function criarContaEmPrimeiroAcesso(): Promise<{ id: string; email: string
 
 // Funcionário SN só vê/edita Cliente do qual é Responsável. service_role
 // atribui direto (sem auth.uid() o gatilho confia no servidor).
+// Responsável do Cliente no Financeiro (fora do SN): é o que faz o Funcionário de lá enxergá-lo.
+async function tornarResponsavelNoFinanceiro(clienteId: string): Promise<void> {
+  const { error } = await serviceRole().from("cliente_responsaveis").insert({
+    cliente_id: clienteId,
+    setor: "financeiro",
+    responsavel_id: "33333333-3333-3333-3333-333333333333",
+  });
+  if (error) throw error;
+}
+
 async function tornarResponsavel(clienteId: string, perfilId: string): Promise<void> {
   const { error } = await serviceRole()
     .from("cliente_cadastro_operacional_sn")
@@ -94,8 +106,6 @@ const paramsEdicao = (clienteId: string) => ({
   p_documento_obrigatorio: "positivo",
   p_das_status: "pronto",
   p_data_envio_das: null,
-  p_tem_parcelamento: false,
-  p_parcelamento_status: null,
   p_observacoes_gerais: "teste",
   p_contatos: [{ id: crypto.randomUUID(), nome: "Maria", telefone: "11999990000", padrao: true }],
   p_ano_mes: primeiroDiaDoMesAtual(),
@@ -115,6 +125,7 @@ const CNPJS_DA_SUITE = [
   "11444777002024",
   "11444777002105",
   "11444777002296",
+  "11222333000181",
   "45723174000110",
   "45723174000200",
   "45723174000382",
@@ -129,6 +140,16 @@ describe("Data API — confidencialidade dos documentos jurídicos", () => {
   it("Funcionário SN e de outro Setor não leem clientes nem alterações contratuais direto; a projeção segura vale pra quem pode ver o Cliente", async () => {
     const cliente = await criarClienteComContrato("45723174000110");
     await tornarResponsavel(cliente.id, FUNCIONARIO_SN_ID);
+
+    // Funcionário de outro Setor só vê a projeção do Cliente se for Responsável dele naquele Setor.
+    const semAtribuicao = await (
+      await comoFuncionarioFinanceiro()
+    )
+      .from("clientes_basico")
+      .select("id")
+      .eq("id", cliente.id);
+    expect(semAtribuicao.data).toEqual([]);
+    await tornarResponsavelNoFinanceiro(cliente.id);
 
     for (const supabase of [await comoFuncionarioSN(), await comoFuncionarioFinanceiro()]) {
       const direto = await supabase.from("clientes").select("*").eq("id", cliente.id);
@@ -294,6 +315,7 @@ describe("Data API — revalidação (view, auditoria e gatilhos)", () => {
   it("B1: clientes_basico é só leitura — INSERT, UPDATE e DELETE falham para qualquer Funcionário e o Cliente fica intacto", async () => {
     const cliente = await criarClienteComContrato("11444777001486");
     await tornarResponsavel(cliente.id, FUNCIONARIO_SN_ID);
+    await tornarResponsavelNoFinanceiro(cliente.id);
 
     for (const supabase of [await comoFuncionarioSN(), await comoFuncionarioFinanceiro()]) {
       const insercao = await supabase
@@ -316,6 +338,51 @@ describe("Data API — revalidação (view, auditoria e gatilhos)", () => {
 
     const { data } = await serviceRole().from("clientes").select("empresa").eq("id", cliente.id);
     expect(data).toEqual([{ empresa: "Padaria Pão Quente Ltda" }]);
+  });
+
+  it("em todo Setor o Funcionário só vê o Cliente de que é Responsável; Líder, Admin e a Recepção veem todos os Clientes (só o cadastro, não os Atendimentos dos Setores) (#165)", async () => {
+    const cliente = await criarClienteComContrato("11222333000181");
+    const ver = async (supabase: SupabaseClient) =>
+      (await supabase.from("clientes_basico").select("id").eq("id", cliente.id)).data;
+
+    const comoLiderContabil = await clienteAutenticado(
+      "lider.contabil@rigonicontabil.local",
+      "lider123",
+    );
+    const comoRecepcao = await clienteAutenticado(
+      "funcionario.recepcao@rigonicontabil.local",
+      "func123",
+    );
+
+    // Sem atribuição, nenhum Funcionário de Setor com Responsável enxerga o Cliente.
+    expect(await ver(await comoFuncionarioFinanceiro())).toEqual([]);
+    expect(await ver(await comoFuncionarioSN())).toEqual([]);
+    // Líder de qualquer Setor, Admin e Funcionário da Recepção (que responde por todo cliente) veem.
+    const visto = [{ id: cliente.id }];
+    expect(await ver(comoLiderContabil)).toEqual(visto);
+    expect(await ver(await comoAdmin())).toEqual(visto);
+    expect(await ver(comoRecepcao)).toEqual(visto);
+
+    // Responsável no Financeiro passa a ver; o do SN continua sem ver (é Responsável só no Financeiro).
+    await tornarResponsavelNoFinanceiro(cliente.id);
+    expect(await ver(await comoFuncionarioFinanceiro())).toEqual(visto);
+    expect(await ver(await comoFuncionarioSN())).toEqual([]);
+
+    // A atribuição só é lida por quem a recebeu, pelo Líder do Setor e pelo Admin.
+    const atribuicoes = async (supabase: SupabaseClient) =>
+      (
+        await supabase
+          .from("cliente_responsaveis")
+          .select("cliente_id")
+          .eq("cliente_id", cliente.id)
+      ).data;
+    expect(await atribuicoes(await comoFuncionarioFinanceiro())).toEqual([
+      { cliente_id: cliente.id },
+    ]);
+    expect(await atribuicoes(await comoFuncionarioSN())).toEqual([]);
+    expect(await atribuicoes(comoRecepcao)).toEqual([]);
+    expect(await atribuicoes(comoLiderContabil)).toEqual([]);
+    expect(await atribuicoes(await comoAdmin())).toEqual([{ cliente_id: cliente.id }]);
   });
 
   it("B2: escrita direta nas tabelas operacionais também gera o evento, e o cadastro do Cliente não gera evento de edição", async () => {

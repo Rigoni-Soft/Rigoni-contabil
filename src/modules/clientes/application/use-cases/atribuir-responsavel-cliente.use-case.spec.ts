@@ -33,8 +33,7 @@ function cadastro(responsavelId: string | null): CadastroOperacionalClienteDto {
     documentoObrigatorio: null,
     dasStatus: null,
     dataEnvioDas: null,
-    temParcelamento: false,
-    parcelamentoStatus: null,
+    parcelamentos: [],
     observacoesGerais: "",
     atividadeMes: { industria: false, comercio: false, servico: false },
     responsavelId,
@@ -56,17 +55,30 @@ class QueryFalsa implements Partial<ClienteQueryPort> {
   > {
     return ok(this.cliente);
   }
-  async listarResponsaveisElegiveis(): Promise<Result<ResponsavelOpcaoDto[], AppError>> {
-    return ok([{ id: FUNC_ID, nome: "Funcionário SN" }]);
+  // Responsável atual do Cliente num Setor fora do SN.
+  doSetor: ResponsavelOpcaoDto | null = null;
+  setoresListados: string[] = [];
+  async listarResponsaveisElegiveis(
+    setor: string,
+  ): Promise<Result<ResponsavelOpcaoDto[], AppError>> {
+    this.setoresListados.push(setor);
+    return ok([{ id: FUNC_ID, nome: "Funcionário do Setor" }]);
+  }
+  async buscarResponsavelDoSetor(): Promise<Result<ResponsavelOpcaoDto | null, AppError>> {
+    return ok(this.doSetor);
   }
 }
 
 class ResponsaveisFalso implements ResponsavelClienteRepository {
-  chamadas: [string, string | null][] = [];
+  chamadas: [string, string, string | null][] = [];
   falha = false;
-  async atribuir(clienteId: string, responsavelId: string | null): Promise<Result<void, AppError>> {
+  async atribuir(
+    clienteId: string,
+    setor: string,
+    responsavelId: string | null,
+  ): Promise<Result<void, AppError>> {
     if (this.falha) return err(new ValidationError("falha"));
-    this.chamadas.push([clienteId, responsavelId]);
+    this.chamadas.push([clienteId, setor, responsavelId]);
     return ok(undefined);
   }
 }
@@ -99,7 +111,7 @@ describe("AtribuirResponsavelCliente", () => {
     const r = await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: FUNC_ID });
 
     expect(r.ok).toBe(true);
-    expect(responsaveis.chamadas).toEqual([[CLIENTE_ID, FUNC_ID]]);
+    expect(responsaveis.chamadas).toEqual([[CLIENTE_ID, "simples_nacional", FUNC_ID]]);
     expect(auditoria.registros).toEqual([]);
   });
 
@@ -136,7 +148,7 @@ describe("AtribuirResponsavelCliente", () => {
   it.each([
     ["funcionario", "simples_nacional"],
     ["admin", "administrativo"],
-    ["lider_setor", "financeiro"],
+    ["lider_setor", "recepcao"],
   ])("recusa %s do setor %s", async (papel, setor) => {
     const { useCase, sessao, responsaveis } = montar();
     sessao.ator = { id: "x", papel, setor };
@@ -145,6 +157,39 @@ describe("AtribuirResponsavelCliente", () => {
 
     expect(r.ok).toBe(false);
     expect(responsaveis.chamadas).toEqual([]);
+  });
+
+  it("Líder de Setor fora do SN atribui, troca e remove no próprio Setor, lendo o atual de cliente_responsaveis", async () => {
+    const { useCase, sessao, query, responsaveis, auditoria } = montar();
+    sessao.ator = { id: "lider-fin", papel: "lider_setor", setor: "financeiro" };
+
+    await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: FUNC_ID });
+    query.doSetor = { id: FUNC_ID, nome: "Funcionário do Setor" };
+    const igual = await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: FUNC_ID });
+    await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: null });
+
+    expect(igual.ok).toBe(true);
+    expect(responsaveis.chamadas).toEqual([
+      [CLIENTE_ID, "financeiro", FUNC_ID],
+      [CLIENTE_ID, "financeiro", null],
+    ]);
+    expect(query.setoresListados).toEqual(["financeiro"]);
+    expect(auditoria.registros).toEqual([]);
+  });
+
+  it("Líder de Setor fora do SN recusa quem não é Funcionário do Setor e audita a falha", async () => {
+    const { useCase, sessao, responsaveis, auditoria } = montar();
+    sessao.ator = { id: "lider-fin", papel: "lider_setor", setor: "financeiro" };
+
+    const r = await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: OUTRO_FUNC_ID });
+
+    expect(r.ok).toBe(false);
+    expect(responsaveis.chamadas).toEqual([]);
+    expect(auditoria.registros[0]).toMatchObject({
+      acao: "cliente.atribuir-responsavel",
+      setor: "financeiro",
+      resultado: "falha",
+    });
   });
 
   it("recusa quem não é Funcionário do SN e audita falha", async () => {

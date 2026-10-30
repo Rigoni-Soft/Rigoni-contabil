@@ -1,39 +1,26 @@
 import type { AvisarClientePort } from "@/modules/atendimento/application/ports/in/avisar-cliente.provider";
-import type {
-  AtendimentoEncerrado,
-  EncerrarAtendimentoPort,
-} from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
-import type {
-  AtendimentoAssumido,
-  AtendimentoRepositoryPort,
-} from "@/modules/atendimento/application/ports/out/atendimento.repository";
+import type { EncerrarAtendimentoPort } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
+import type { AtendimentoRepositoryPort } from "@/modules/atendimento/application/ports/out/atendimento.repository";
+import type { RegistroDeErrosPort } from "@/modules/atendimento/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/atendimento/application/ports/out/sessao.provider";
-import {
-  AVISO_ENCERRAMENTO_AO_CLIENTE,
-  avisoDeVez,
-} from "@/modules/atendimento/domain/services/aviso-fila.service";
-import { podeTransferir } from "@/modules/atendimento/domain/services/transferencia.service";
+import { AVISO_ENCERRAMENTO_AO_CLIENTE } from "@/modules/atendimento/domain/services/aviso-fila.service";
+import { podeSupervisionar } from "@/modules/atendimento/domain/services/transferencia.service";
 import type { AppError } from "@/shared/errors/app.error";
-import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Encerrar libera o Funcionário: o repositório já o põe no cliente mais antigo da Fila (na mesma
-// operação, nada fura a Fila) e aqui esse cliente é avisado. Mesma regra de quem pode agir sobre o
-// Atendimento que a Transferência (dono, Líder do Setor ou Admin).
+// Mesma regra de quem pode agir sobre o Atendimento que a Transferência (dono, Líder do Setor ou
+// Admin). Encerrar não puxa ninguém da espera.
 export class EncerrarAtendimento implements EncerrarAtendimentoPort {
   constructor(
     private readonly sessao: SessaoPort,
     private readonly repositorio: AtendimentoRepositoryPort,
     private readonly avisar: AvisarClientePort,
+    private readonly erros: RegistroDeErrosPort,
   ) {}
 
-  async execute({
-    atendimentoId,
-  }: {
-    atendimentoId: string;
-  }): Promise<Result<AtendimentoEncerrado, AppError>> {
+  async execute({ atendimentoId }: { atendimentoId: string }): Promise<Result<void, AppError>> {
     const ator = await this.sessao.usuarioAtual();
     if (!ator) return err(new ForbiddenError("Faça login para encerrar o Atendimento."));
 
@@ -41,7 +28,7 @@ export class EncerrarAtendimento implements EncerrarAtendimentoPort {
     if (!encontrado.ok) return encontrado;
     const atendimento = encontrado.value;
     if (!atendimento) return err(new NotFoundError("Atendimento não encontrado."));
-    if (!podeTransferir(ator, atendimento)) {
+    if (!podeSupervisionar(ator, atendimento)) {
       return err(new ForbiddenError("Você não pode encerrar este Atendimento."));
     }
 
@@ -56,42 +43,18 @@ export class EncerrarAtendimento implements EncerrarAtendimentoPort {
       );
     }
 
-    // Já encerrado: falhar nos avisos não desfaz nada. O mesmo caminho do encerramento por
-    // inatividade: o cliente é avisado do encerramento e o da Fila, da vez.
-    const avisoDoEncerramento = await this.avisar.execute({
+    // Já encerrado: falhar no aviso não desfaz nada, e a despedida não vale um erro para quem encerrou.
+    const aviso = await this.avisar.execute({
       telefone: atendimento.telefone,
       chave: atendimento.chave,
       texto: AVISO_ENCERRAMENTO_AO_CLIENTE,
     });
-    // O aviso de despedida não vale um erro para quem encerrou: o Funcionário já foi liberado e,
-    // com erro, a tela não abriria o Atendimento da Fila que ele assumiu. Fica só no log.
-    if (!avisoDoEncerramento.ok) {
-      console.error(
-        `Atendimento ${atendimentoId} encerrado, mas o aviso ao cliente falhou:`,
-        avisoDoEncerramento.error.message,
-      );
-    }
-    const proximo = encerrado.value.proximo;
-    return proximo ? this.avisarProximo(proximo) : ok({ proximoDaFila: null });
-  }
-
-  // Assumido: falhar aqui não desfaz nada; o erro diz que o cliente não foi avisado.
-  private async avisarProximo(
-    proximo: AtendimentoAssumido,
-  ): Promise<Result<AtendimentoEncerrado, AppError>> {
-    const aviso = await this.avisar.execute({
-      telefone: proximo.telefone,
-      chave: proximo.chave,
-      texto: avisoDeVez(proximo.funcionarioNome),
-    });
     if (!aviso.ok) {
-      return err(
-        new EstadoInconsistenteError(
-          "Atendimento assumido da Fila, mas o aviso ao cliente falhou.",
-          proximo.id,
-        ),
+      this.erros.registrar(
+        `Atendimento ${atendimentoId} encerrado, mas o aviso ao cliente falhou:`,
+        aviso.error.message,
       );
     }
-    return ok({ proximoDaFila: proximo.id });
+    return ok(undefined);
   }
 }

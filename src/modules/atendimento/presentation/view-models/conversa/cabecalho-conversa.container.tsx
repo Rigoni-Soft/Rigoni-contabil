@@ -18,7 +18,6 @@ export function CabecalhoConversaContainer({
       titulo={cabecalho.titulo}
       subtitulo={cabecalho.subtitulo}
       encerrado={cabecalho.encerrado}
-      avisoInatividade={cabecalho.avisoInatividade}
       contexto={cabecalho.contexto}
       resumoLongo={cabecalho.resumoLongo}
       resumoAberto={cabecalho.resumoAberto}

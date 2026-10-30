@@ -1,13 +1,15 @@
 import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
 import { telefoneParaExibicao } from "@/presentation/lib/telefone-mask";
+import type { DocumentoParaEnviar } from "@/modules/atendimento/application/ports/in/enviar-documento-ao-cliente.provider";
 import type {
   ConversaVista,
-  DocumentoDisponivel,
   DocumentoOferecido,
   MensagemVista,
   UltimaTransferencia,
 } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import { ANEXO_LINK_MARGEM_MS, type TipoAnexoMensagem } from "@/shared/kernel/anexo";
+import { FUSO_DE_NEGOCIO } from "@/shared/kernel/mes-atual";
+import { opcoesDe } from "@/shared/kernel/opcoes";
 import { SETOR_LABEL } from "@/shared/kernel/setores";
 
 export type AnexoView = {
@@ -41,8 +43,9 @@ export type ConversaView = {
   titulo: string;
   subtitulo: string;
   encerrado: boolean;
+  // Líder do Setor ou Admin lendo a conversa de outro: sem responder, serviços nem transferência.
+  somenteLeitura: boolean;
   semCliente: boolean;
-  avisoInatividade: boolean;
   // De onde veio o Atendimento: a última Transferência ou, sem ela, o que a URA já sabia.
   contexto: { origem: string; resumo: string } | null;
   mensagens: MensagemView[];
@@ -51,11 +54,12 @@ export type ConversaView = {
   setoresDestino: { valor: string; rotulo: string }[];
 };
 
-const valorDaOpcao = (d: DocumentoOferecido) => (d.data ? `${d.tipo}:${d.data}` : d.tipo);
+const valorDaOpcao = (d: DocumentoOferecido) =>
+  d.numero === null ? d.tipo : `${d.tipo}:${d.numero}`;
 
-export function documentoDaOpcao(valor: string): DocumentoDisponivel {
-  const [tipo, data] = valor.split(":");
-  return { tipo: tipo as DocumentoDisponivel["tipo"], data: data ?? null };
+export function documentoDaOpcao(valor: string): DocumentoParaEnviar {
+  const [tipo, numero] = valor.split(":");
+  return { tipo: tipo as DocumentoParaEnviar["tipo"], numero: numero ? Number(numero) : null };
 }
 
 const FORMATO_TAMANHO = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
@@ -175,7 +179,7 @@ export function antesDe(
 // Mesmo fuso de negócio do feed de auditoria (não o do navegador). Um formatter só, reusado por
 // todas as Mensagens.
 const FORMATO_HORA = new Intl.DateTimeFormat("pt-BR", {
-  timeZone: "America/Sao_Paulo",
+  timeZone: FUSO_DE_NEGOCIO,
   day: "2-digit",
   month: "2-digit",
   hour: "2-digit",
@@ -219,8 +223,8 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
           ? `Provável cliente novo · CNPJ informado ${formatarCnpj(conversa.ura.cnpjInformado)} · ${telefone}`
           : "Cliente não identificado",
     encerrado: conversa.encerrado,
+    somenteLeitura: !conversa.encerrado && !conversa.podeAtender,
     semCliente: !conversa.clienteVinculado,
-    avisoInatividade: conversa.avisoInatividade,
     contexto: contextoDaConversa(conversa),
     temMaisAnteriores: conversa.temMaisAnteriores,
     mensagens: conversa.mensagens.map((m) => ({
@@ -251,13 +255,26 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
           }
         : null,
     })),
-    setoresDestino: conversa.setoresDestino.map((setor) => ({
-      valor: setor,
-      rotulo: SETOR_LABEL[setor],
+    setoresDestino: opcoesDe(conversa.setoresDestino, SETOR_LABEL),
+    // Já vêm na ordem do menu da URA: o contrato primeiro, as alterações por nº decrescente.
+    servicos: conversa.documentos.map((doc) => ({
+      valor: valorDaOpcao(doc),
+      rotulo: doc.descricao,
+      grupo: doc.tipo,
     })),
-    // Como no menu da URA: o contrato primeiro, as alterações da mais recente para a mais antiga.
-    servicos: [...conversa.documentos]
-      .sort((x, y) => (x.data === null ? -1 : y.data === null ? 1 : y.data.localeCompare(x.data)))
-      .map((doc) => ({ valor: valorDaOpcao(doc), rotulo: doc.descricao, grupo: doc.tipo })),
   };
+}
+
+// Polling da conversa aberta: rápido enquanto a conversa está acontecendo (Mensagem recente) e espaçado quando parada. Parada, a Mensagem nova do cliente aparece em até 15 s
+// (o aviso global já o avisa nesse prazo) e, ao chegar, a conversa volta ao ritmo rápido.
+export const POLLING_RAPIDO_MS = 5_000;
+export const POLLING_LENTO_MS = 15_000;
+const JANELA_ATIVA_MS = 120_000;
+
+export function intervaloDaConversa(conversa: ConversaVista | undefined, agora: number): number {
+  const ultima = conversa?.mensagens.at(-1);
+  if (!ultima) return POLLING_RAPIDO_MS;
+  return agora - new Date(ultima.criadoEm).getTime() < JANELA_ATIVA_MS
+    ? POLLING_RAPIDO_MS
+    : POLLING_LENTO_MS;
 }

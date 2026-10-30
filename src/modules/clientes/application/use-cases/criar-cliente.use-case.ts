@@ -7,6 +7,7 @@ import type {
 import type { ArquivoStoragePort } from "@/modules/clientes/application/ports/out/arquivo-storage.provider";
 import type { AuditoriaPort } from "@/modules/clientes/application/ports/out/auditoria.provider";
 import type { ClienteRepository } from "@/modules/clientes/application/ports/out/cliente.repository";
+import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
 import type {
   AtorSessaoDto,
   SessaoPort,
@@ -17,6 +18,7 @@ import { Cnpj } from "@/modules/clientes/domain/value-objects/cnpj.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { ResultadoIncertoError } from "@/shared/errors/resultado-incerto.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 export class CriarCliente implements CriarClientePort {
@@ -25,6 +27,7 @@ export class CriarCliente implements CriarClientePort {
     private readonly clientes: ClienteRepository,
     private readonly storage: ArquivoStoragePort,
     private readonly auditoria: AuditoriaPort,
+    private readonly erros: RegistroDeErrosPort,
   ) {}
 
   async execute(input: CriarClienteInput): Promise<Result<CriarClienteOutput, AppError>> {
@@ -80,7 +83,21 @@ export class CriarCliente implements CriarClientePort {
     // A auditoria de sucesso é gravada pelo banco na mesma transação deste
     // INSERT (trigger em `clientes`): sem evento, o cadastro inteiro falha.
     const salvo = await this.clientes.criar(construido.value);
-    if (!salvo.ok) return salvo;
+    if (!salvo.ok) {
+      if (!(salvo.error instanceof ResultadoIncertoError)) return salvo;
+      // Resposta perdida não prova rollback, e leitura vazia também não: o INSERT original pode
+      // confirmar depois da leitura. Só Cliente visível vira sucesso; senão os arquivos ficam.
+      const gravado = await this.clientes.buscarPorId(id);
+      if (!(gravado.ok && gravado.value)) {
+        enviados.length = 0; // arquivos mantidos: podem estar referenciados pelo Cliente gravado
+        return err(
+          new EstadoInconsistenteError(
+            "Não foi possível confirmar se o Cliente foi cadastrado. Os documentos foram mantidos; confira a lista de Clientes antes de tentar de novo.",
+            id,
+          ),
+        );
+      }
+    }
 
     return ok({ cliente: clienteParaDto(construido.value) });
   }
@@ -91,14 +108,18 @@ export class CriarCliente implements CriarClientePort {
     enviados: string[],
   ): Promise<Result<AlteracaoContratualRestaurar[], AppError>> {
     const restauradas: AlteracaoContratualRestaurar[] = [];
-    for (const [indice, alteracao] of alteracoes.entries()) {
+    for (const alteracao of alteracoes) {
       const enviado = await this.storage.enviar(
-        `${clienteId}/alteracoes-contratuais/${indice}-${alteracao.arquivo.name}`,
+        `${clienteId}/alteracoes-contratuais/${alteracao.numero}-${alteracao.arquivo.name}`,
         alteracao.arquivo,
       );
       if (!enviado.ok) return enviado;
       enviados.push(enviado.value.caminho);
-      restauradas.push({ data: alteracao.data, arquivoCaminho: enviado.value.caminho });
+      restauradas.push({
+        numero: alteracao.numero,
+        data: alteracao.data,
+        arquivoCaminho: enviado.value.caminho,
+      });
     }
     return ok(restauradas);
   }
@@ -120,7 +141,7 @@ export class CriarCliente implements CriarClientePort {
       return err(erro);
     }
 
-    console.error(
+    this.erros.registrar(
       `Falha ao compensar uploads órfãos (cliente=${clienteId}, cnpj=${input.cnpj}, caminhos=${enviados.join(",")}):`,
       removido.error.message,
     );

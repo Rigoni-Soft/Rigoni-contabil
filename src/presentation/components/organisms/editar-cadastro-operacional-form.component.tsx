@@ -1,43 +1,28 @@
-import { Plus } from "lucide-react";
-import { Controller, type Control, type FieldErrors, type UseFormRegister } from "react-hook-form";
+import { type Control, type FieldErrors, type UseFormRegister } from "react-hook-form";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
-import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcacao.component";
-import { Grade, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Grade, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { NotaDeObrigatorio } from "@/presentation/components/atoms/nota-de-obrigatorio.component";
 import { AcoesDoFormulario } from "@/presentation/components/molecules/acoes-do-formulario.component";
-import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
-import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
-import { CampoResponsavel } from "@/presentation/components/molecules/campo-responsavel.component";
-import { LinhaDeContato } from "@/presentation/components/molecules/linha-de-contato.component";
-import { Button } from "@/presentation/components/ui/button";
-import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
 import { Textarea } from "@/presentation/components/ui/textarea";
-import { formatarTelefone } from "@/presentation/lib/telefone-mask";
-import { DAS_STATUS_LABEL, DAS_STATUSES, type DasStatusValor } from "@/shared/kernel/das-status";
-import {
-  DOCUMENTO_OBRIGATORIO_STATUS_LABEL,
-  DOCUMENTO_OBRIGATORIO_STATUSES,
-  type DocumentoObrigatorioStatusValor,
-} from "@/shared/kernel/documento-obrigatorio-status";
-import { FORMA_ENVIO_LABEL, FORMAS_ENVIO, type FormaEnvioValor } from "@/shared/kernel/forma-envio";
-import { SEM_RESPONSAVEL_LABEL } from "@/shared/kernel/papeis";
-import {
-  PARCELAMENTO_STATUS_LABEL,
-  PARCELAMENTO_STATUSES,
-  type ParcelamentoStatusValor,
-} from "@/shared/kernel/parcelamento-status";
-import { REGIME_LABEL } from "@/shared/kernel/regimes";
+import { cn } from "@/presentation/lib/utils";
+import type { DasStatusValor } from "@/shared/kernel/das-status";
+import type { DocumentoObrigatorioStatusValor } from "@/shared/kernel/documento-obrigatorio-status";
+import type { FormaEnvioValor } from "@/shared/kernel/forma-envio";
 
-// Opções dos selects de status (valor/rótulo), montadas uma vez.
-const opcoes = <T extends string>(valores: readonly T[], rotulos: Record<T, string>) =>
-  valores.map((valor) => ({ valor, rotulo: rotulos[valor] }));
-const OPCOES_FORMA_ENVIO = opcoes(FORMAS_ENVIO, FORMA_ENVIO_LABEL);
-const OPCOES_DOCUMENTO = opcoes(DOCUMENTO_OBRIGATORIO_STATUSES, DOCUMENTO_OBRIGATORIO_STATUS_LABEL);
-const OPCOES_DAS = opcoes(DAS_STATUSES, DAS_STATUS_LABEL);
-const OPCOES_PARCELAMENTO = opcoes(PARCELAMENTO_STATUSES, PARCELAMENTO_STATUS_LABEL);
+import { CabecalhoDoCadastro, type CabecalhoCliente } from "./cabecalho-do-cadastro.component";
+import { ContatosDoCadastro } from "./contatos-do-cadastro.component";
+import { DasDoCadastro } from "./das-do-cadastro.component";
+import {
+  ParcelamentosDoCadastro,
+  type LeituraDaLinha,
+  type ParcelamentoLinha,
+} from "./parcelamentos-do-cadastro.component";
+import { ResponsavelDoCadastro, type ResponsavelCampo } from "./responsavel-do-cadastro.component";
+
+export type { LeituraDaLinha, ParcelamentoLinha };
 
 // View global não importa módulos (arquitetura.md §3.4) — o shape espelha
 // EditarCadastroOperacionalFormValues (módulo clientes) por estrutura, não
@@ -48,28 +33,14 @@ export type EditarCadastroOperacionalFormValues = {
   documentoObrigatorio: DocumentoObrigatorioStatusValor | null;
   dasStatus: DasStatusValor | null;
   dataEnvioDas: string | null;
-  temParcelamento: boolean;
-  parcelamentoStatus: ParcelamentoStatusValor | null;
+  parcelamentos: ParcelamentoLinha[];
   observacoesGerais: string;
   atividadeMes: { industria: boolean; comercio: boolean; servico: boolean };
   // "" = Sem responsável.
   responsavelId: string;
 };
 
-// Responsável: só o Líder do SN edita (Select); os demais veem o nome.
-type ResponsavelCampo = {
-  editavel: boolean;
-  nomeAtual: string;
-  opcoes: { id: string; nome: string }[];
-  // Lista carrega só quando o Select é aberto; enquanto isso (ou se falhar)
-  // aparece como opção desabilitada.
-  onAbrir: () => void;
-  // "erro": aviso próprio com saída (tentar de novo), nunca só uma opção.
-  estadoLista: "ok" | "carregando" | "erro";
-  onTentarNovamente: () => void;
-};
-
-type CabecalhoCliente = { empresa: string; cnpj: string; regime: string };
+type Opcao = { valor: string; rotulo: string };
 
 type EditarCadastroOperacionalFormProps = {
   cabecalho: CabecalhoCliente;
@@ -80,19 +51,39 @@ type EditarCadastroOperacionalFormProps = {
   pendente: boolean;
   readOnly: boolean;
   responsavel: ResponsavelCampo;
-  temParcelamento: boolean;
+  // Linhas atuais do formulário (acompanham a edição): resumo "Sim (n)", selo e nome do PDF.
+  parcelamentos: ParcelamentoLinha[];
+  // DAS já `enviado` pelo sistema: a opção aparece só pra exibir o valor atual.
+  dasEnviadoPeloSistema: boolean;
+  // Opções dos selects de status (valor/rótulo), vindas do Container (dado de domínio fora da View).
+  opcoes: { formaEnvio: Opcao[]; documento: Opcao[]; das: Opcao[] };
   erroServidor?: string;
   sucesso?: boolean;
+  // Até hidratar, os campos (não controlados) ainda não têm os valores: o HTML do servidor mostraria
+  // placeholders no lugar do dado. Oculto sem sair do layout (e revelado após 3 s se a hidratação falhar), aparece já preenchido.
+  oculto?: boolean;
   // Lista de campos do useFieldArray, montada no Container (View burra: sem hooks).
   contatos: { id: string }[];
   onAdicionarContato: () => void;
   onRemoverContato: (indice: number) => void;
+  parcelamentoCampos: { id: string }[];
+  onAdicionarParcelamento: () => void;
+  onRemoverParcelamento: (indice: number) => void;
+  // Leitura do PDF por linha (chave = id do campo do useFieldArray). Com leitura em andamento o
+  // Salvar fica desabilitado; o PDF escolhido (ou removido) volta ao Container para ser lido.
+  leituras: Record<string, LeituraDaLinha>;
+  onArquivoEscolhido: (indice: number, arquivo: File | undefined) => void;
   onLimpar: () => void;
   // Sem callback (uso em /clientes/[id]): "Cancelar" navega pro mesmo destino
   // do "Voltar" do topo. Com callback (uso inline na busca do dashboard):
   // já está em "/" — um <Link href="/"> não dispara navegação nem reseta nada,
   // então o Container que abriu o form inline fecha o painel diretamente.
   onCancelar?: () => void;
+  // Cartão do documento contratual com "Abrir em nova aba" (só leitura); ausente = ator sem acesso.
+  documentoContratual?: React.ReactNode;
+  // Guias mensais de um Parcelamento PGFN já salvo: o Container monta a região (ela tem estado próprio).
+  // `codigo` nomeia a região de cada Parcelamento para o leitor de tela.
+  guiasDaParcela?: (parcelamentoId: string, codigo: string, interno: boolean) => React.ReactNode;
 };
 
 export function EditarCadastroOperacionalForm({
@@ -104,147 +95,92 @@ export function EditarCadastroOperacionalForm({
   pendente,
   readOnly,
   responsavel,
-  temParcelamento,
+  parcelamentos,
+  dasEnviadoPeloSistema,
+  opcoes,
   erroServidor,
   sucesso,
+  oculto,
   contatos,
   onAdicionarContato,
   onRemoverContato,
+  parcelamentoCampos,
+  onAdicionarParcelamento,
+  onRemoverParcelamento,
+  leituras,
+  onArquivoEscolhido,
   onLimpar,
   onCancelar,
+  documentoContratual,
+  guiasDaParcela,
 }: EditarCadastroOperacionalFormProps) {
   return (
     <Pilha
-      espaco={6}
+      espaco="formulario"
       como="form"
       onSubmit={onSubmit}
-      className="rc-guilloche-frame rounded-lg border border-border bg-card p-6 shadow-sm"
+      className={cn(
+        "rc-guilloche-frame rounded-lg border border-border bg-card p-5 shadow-sm",
+        oculto && "rc-oculto-ate-hidratar",
+      )}
     >
       {!readOnly && <NotaDeObrigatorio />}
 
-      <Grade colunas="1>2>cabecalho" espaco={4}>
-        <Pilha espaco={1}>
-          <Label>Empresa</Label>
-          <Input value={cabecalho.empresa} disabled readOnly />
-        </Pilha>
-        <Pilha espaco={1}>
-          <Label>CNPJ</Label>
-          <Input value={cabecalho.cnpj} disabled readOnly />
-        </Pilha>
-        <Pilha espaco={1}>
-          <Label>Regime</Label>
-          <Input value={REGIME_LABEL[cabecalho.regime] ?? cabecalho.regime} disabled readOnly />
-        </Pilha>
-        <CampoResponsavel
-          editavel={responsavel.editavel}
-          nomeAtual={responsavel.nomeAtual}
-          opcoes={responsavel.opcoes}
-          semResponsavel={SEM_RESPONSAVEL_LABEL}
-          estadoLista={responsavel.estadoLista}
-          onAbrir={responsavel.onAbrir}
-          onTentarNovamente={responsavel.onTentarNovamente}
+      <CabecalhoDoCadastro cabecalho={cabecalho} documentoContratual={documentoContratual}>
+        <ResponsavelDoCadastro
+          responsavel={responsavel}
           select={register("responsavelId")}
           desabilitado={pendente}
         />
-      </Grade>
+      </CabecalhoDoCadastro>
 
-      <Grade colunas="1>2" como="fieldset" disabled={readOnly || pendente} className="gap-6">
-        <CampoDeOpcoes
-          id="formaEnvio"
-          rotulo="Forma de envio"
-          opcoes={OPCOES_FORMA_ENVIO}
-          className="gap-1"
-          {...register("formaEnvio")}
-        />
-        <CampoDeOpcoes
-          id="documentoObrigatorio"
-          rotulo="Documento recebido"
-          opcoes={OPCOES_DOCUMENTO}
-          placeholder="Não definido"
-          className="gap-1"
-          {...register("documentoObrigatorio")}
-        />
-        <CampoDeOpcoes
-          id="dasStatus"
-          rotulo="DAS"
-          opcoes={OPCOES_DAS}
-          placeholder="Não definido"
-          className="gap-1"
-          {...register("dasStatus")}
-        />
-        <CampoDeTexto
-          id="dataEnvioDas"
-          rotulo="Data de envio"
-          type="date"
-          className="gap-1"
-          {...register("dataEnvioDas")}
+      <Grade colunas="1>2>4" como="fieldset" disabled={readOnly || pendente} className="gap-4">
+        <DasDoCadastro
+          register={register}
+          opcoes={opcoes}
+          dasEnviadoPeloSistema={dasEnviadoPeloSistema}
         />
 
-        <Pilha espaco={1}>
-          <CaixaDeMarcacao rotulo="Tem parcelamento" {...register("temParcelamento")} />
-          {temParcelamento && (
-            <CampoDeOpcoes
-              id="parcelamentoStatus"
-              rotulo="Status do parcelamento"
-              opcoes={OPCOES_PARCELAMENTO}
-              placeholder="Não definido"
-              className="gap-1"
-              {...register("parcelamentoStatus")}
-            />
-          )}
-        </Pilha>
+        <ContatosDoCadastro
+          register={register}
+          control={control}
+          errors={errors}
+          readOnly={readOnly}
+          contatos={contatos}
+          onAdicionar={onAdicionarContato}
+          onRemover={onRemoverContato}
+        />
 
-        <Pilha espaco={1}>
-          <Label>Atividade do mês</Label>
-          <Linha espaco={4} className="text-sm">
-            <CaixaDeMarcacao rotulo="Indústria" {...register("atividadeMes.industria")} />
-            <CaixaDeMarcacao rotulo="Comércio" {...register("atividadeMes.comercio")} />
-            <CaixaDeMarcacao rotulo="Serviço" {...register("atividadeMes.servico")} />
-          </Linha>
-        </Pilha>
+        <ParcelamentosDoCadastro
+          register={register}
+          control={control}
+          errors={errors}
+          readOnly={readOnly}
+          parcelamentos={parcelamentos}
+          parcelamentoCampos={parcelamentoCampos}
+          onAdicionar={onAdicionarParcelamento}
+          onRemover={onRemoverParcelamento}
+          leituras={leituras}
+          onArquivoEscolhido={onArquivoEscolhido}
+          guiasDaParcela={guiasDaParcela}
+        />
 
-        <Pilha espaco={3} className="sm:col-span-2">
-          <Label className="block">Contatos</Label>
-          {contatos.map((campo, indice) => (
-            <Controller
-              key={campo.id}
-              control={control}
-              name={`contatos.${indice}.telefone`}
-              render={({ field: { onChange, onBlur, value, name } }) => (
-                <LinhaDeContato
-                  indice={indice}
-                  nome={register(`contatos.${indice}.nome`)}
-                  // Sem `ref` (Input não usa forwardRef): só perde o foco automático em erro.
-                  telefone={{
-                    name,
-                    value,
-                    onBlur,
-                    onChange: (evento) => onChange(formatarTelefone(evento.target.value)),
-                  }}
-                  padrao={register(`contatos.${indice}.padrao`)}
-                  erroNome={errors.contatos?.[indice]?.nome?.message}
-                  erroTelefone={errors.contatos?.[indice]?.telefone?.message}
-                  onRemover={() => onRemoverContato(indice)}
-                />
-              )}
-            />
-          ))}
-          {errors.contatos && typeof errors.contatos.message === "string" && (
-            <FieldError>{errors.contatos.message}</FieldError>
-          )}
-          <Button type="button" variant="outline" onClick={onAdicionarContato}>
-            <Plus className="size-4" aria-hidden="true" />
-            Adicionar contato
-          </Button>
-        </Pilha>
-
-        <Pilha espaco={1} className="sm:col-span-2">
+        <Pilha espaco={1} className="sm:col-span-2 lg:col-span-4">
           <Label htmlFor="observacoesGerais">Observações gerais</Label>
-          <Textarea id="observacoesGerais" {...register("observacoesGerais")} rows={4} />
+          <Textarea id="observacoesGerais" {...register("observacoesGerais")} rows={3} />
         </Pilha>
 
         {!readOnly && (
-          <AcoesDoFormulario pendente={pendente} onLimpar={onLimpar} onCancelar={onCancelar} />
+          <AcoesDoFormulario
+            pendente={pendente}
+            motivoDoBloqueio={
+              Object.values(leituras).some((l) => l.estado === "lendo")
+                ? "Aguarde a leitura do PDF para salvar."
+                : undefined
+            }
+            onLimpar={onLimpar}
+            onCancelar={onCancelar}
+          />
         )}
       </Grade>
 

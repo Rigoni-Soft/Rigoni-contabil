@@ -4,7 +4,7 @@ import {
   type CadastroOperacionalRow,
 } from "@/modules/clientes/infra/mappers/cadastro-operacional-row.mapper";
 
-type AlteracaoRow = { data: string; arquivo_caminho: string };
+type AlteracaoRow = { numero: number; data: string; arquivo_caminho: string };
 type ContatoRow = { id: string; nome: string; telefone: string; padrao: boolean };
 type AtividadeMensalRow = {
   ano_mes: string;
@@ -38,6 +38,7 @@ export function clienteDoRow(row: ClienteRow): Cliente {
     contratoSocialCaminho: row.contrato_social_caminho ?? null,
     email: row.email ?? null,
     alteracoesContratuais: (row.cliente_alteracoes_contratuais ?? []).map((alteracao) => ({
+      numero: alteracao.numero,
       data: alteracao.data,
       arquivoCaminho: alteracao.arquivo_caminho,
     })),
@@ -51,8 +52,6 @@ export function clienteDoRow(row: ClienteRow): Cliente {
     documentoObrigatorio: operacional?.documento_obrigatorio ?? null,
     dasStatus: operacional?.das_status ?? null,
     dataEnvioDas: operacional?.data_envio_das ?? null,
-    temParcelamento: operacional?.tem_parcelamento ?? false,
-    parcelamentoStatus: operacional?.parcelamento_status ?? null,
     observacoesGerais: operacional?.observacoes_gerais ?? "",
     atividadeMesAtual: atividade
       ? {

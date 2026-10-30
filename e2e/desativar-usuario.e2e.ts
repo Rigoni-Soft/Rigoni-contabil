@@ -1,11 +1,6 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
-async function login(page: Page, email: string, senha: string) {
-  await page.goto("/login");
-  await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill(senha);
-  await page.getByRole("button", { name: "Entrar" }).click();
-}
+import { login } from "./support/criar-cliente";
 
 test("Admin desativa um Funcionário e ele não consegue mais logar", async ({ page }) => {
   await login(page, "admin@rigonicontabil.local", "admin123");

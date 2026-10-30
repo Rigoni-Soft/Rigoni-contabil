@@ -6,21 +6,21 @@ import { contarCaracteres, emojiValido } from "@/shared/kernel/texto";
 // z.guid(), não z.uuid(): mesmo critério do feed de auditoria (a coluna aceita qualquer 8-4-4-4-12).
 export const atendimentoIdSchema = z.guid("Atendimento inválido.");
 
-// Contrato social não tem data; alteração contratual tem (AAAA-MM-DD).
+// Contrato social, guias e CND não têm nº; alteração contratual tem (único por Cliente).
 export const enviarDocumentoSchema = z
   .object({
     atendimentoId: atendimentoIdSchema,
     documento: z.object({
-      tipo: z.enum(["contrato", "alteracao"]),
-      data: z.iso.date().nullable(),
+      tipo: z.enum(["contrato", "alteracao", "das", "parcelamento", "cnd"]),
+      numero: z.number().int().positive().nullable(),
     }),
   })
   .superRefine(({ documento }, ctx) => {
-    if ((documento.tipo === "alteracao") !== (documento.data !== null)) {
+    if ((documento.tipo === "alteracao") !== (documento.numero !== null)) {
       ctx.addIssue({
         code: "custom",
-        message: "Só a alteração contratual tem data.",
-        path: ["documento", "data"],
+        message: "Só a alteração contratual tem nº.",
+        path: ["documento", "numero"],
       });
     }
   });

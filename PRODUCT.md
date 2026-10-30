@@ -8,13 +8,13 @@ web
 
 ## Users
 
-Funcionários, Líderes de setor e Admin da Rigoni Contábil, um escritório de contabilidade de porte pequeno/médio (~1.000 clientes, 1.000+ CNPJs entre matriz e filiais, 10 setores, 3 cidades pequenas/médias). Nesta rodada, o único setor com dashboard e cadastro é o Simples Nacional; o Painel do Funcionário (conduzir o Atendimento por WhatsApp) vale para todos os setores, e os demais setores ainda não têm tela de gestão própria.
+Funcionários, Líderes de setor e Admin da Rigoni Contábil, um escritório de contabilidade de porte pequeno/médio (~1.000 clientes, 1.000+ CNPJs entre matriz e filiais, 10 setores, 3 cidades pequenas/médias). Nesta rodada, o único setor com dashboard e cadastro é o Simples Nacional; a aba Atendimento (conduzir o Atendimento por WhatsApp) vale para todos os setores, e os demais setores ainda não têm tela de gestão própria.
 
 Indiretamente, os clientes do escritório (empresas atendidas) interagem com o sistema pelo WhatsApp, sem acessar nenhuma tela — a experiência deles é 100% conversacional (URA + atendente humano).
 
 ## Product Purpose
 
-Substituir o atendimento manual por WhatsApp (sem fila, sem histórico estruturado, sem transferência rastreável entre setores) e o controle do setor Simples Nacional feito à mão numa planilha (`CONTROLE SIMPLES NACIONAL`) por um sistema único: atendimento com URA, fila e balanceamento entre funcionários, e um dashboard/cadastro que dá visão consolidada de documentos, DAS e parcelamentos.
+Substituir o atendimento manual por WhatsApp (sem fila, sem histórico estruturado, sem transferência rastreável entre setores) e o controle do setor Simples Nacional feito à mão numa planilha (`CONTROLE SIMPLES NACIONAL`) por um sistema único: atendimento com URA, espera do Setor em que a equipe assume o cliente, e um dashboard/cadastro que dá visão consolidada de documentos, DAS e parcelamentos.
 
 ## Positioning
 
@@ -30,9 +30,10 @@ Ferramenta interna proprietária, não um produto de mercado. O que a diferencia
 ## Capabilities and Constraints
 
 - RBAC por Papel (Admin, Líder de setor, Funcionário) e Setor; Admin acessa tudo, os demais só o próprio setor.
-- Quatro módulos de domínio: `usuarios` (RBAC/autenticação), `clientes` (cadastro básico por Admin + Cadastro operacional automático pra Regime Simples Nacional/MEI, editado pelo Funcionário do Simples Nacional — DAS, parcelamento, contrato social), `atendimento` (URA, fila, transferência, balanceamento mensal, Painel do Funcionário), `auditoria` (registro + consulta).
-- Nenhuma tela do setor Simples Nacional exibe contrato social ou alterações contratuais — mesmo o cadastro de outros setores é só leitura.
-- Terminologia do domínio fixada em `CONTEXT.md` (Setor, Papel, Atendente, URA, Cliente, Regime, Contato, Atendimento, Mensagem, Fila, Transferência, Balanceamento mensal, Atividade do mês) — qualquer trabalho futuro deve usar esses termos, sem sinônimos novos.
+- Quatro módulos de domínio: `usuarios` (RBAC/autenticação), `clientes` (cadastro básico por Admin + Cadastro operacional automático pra Regime Simples Nacional/MEI, editado pelo Funcionário do Simples Nacional — DAS, parcelamento, contrato social), `atendimento` (URA, espera do Setor dirigida ao Responsável do Cliente ou ao Líder — comum só na Recepção —, supervisão de Líder/Admin, transferência, aba Atendimento), `auditoria` (registro + consulta).
+- O contrato social e as alterações contratuais só são abertos, somente leitura, pelo Admin, pelo Líder do Setor Simples Nacional e pelo Funcionário Responsável do Cliente no Simples Nacional (cartão no formulário de editar, #140: a alteração de maior nº, ou o contrato social, já aparece com data e o botão "Abrir em nova aba", que abre o arquivo no primeiro clique, sem diálogo; a mais recente, sem escolher outra, ou, quando se chega por um aviso de nova alteração, a alteração daquele aviso, com o botão em foco e destacado, #144); outros Setores e Funcionários não Responsáveis não os veem — o cadastro de outros setores é só leitura. Só o Admin anexa uma nova alteração a um Cliente existente (botão "Anexar alteração" ao lado de "Abrir em nova aba", em `/clientes/[id]`, com nº, data e arquivo de até 4 MB, #141; sem seção de lista abaixo do formulário); o Admin que escolhe um Cliente na busca vai direto a essa tela própria.
+- Os Avisos de cadastro (novo Cliente, nova alteração) vão só aos Setores (Líder do Setor Simples Nacional e Responsável do Cliente), por um sino no cabeçalho com contador e modal (#142, #143); o Admin não recebe aviso nem vê o sino.
+- Terminologia do domínio fixada em `CONTEXT.md` (Setor, Papel, Atendente, URA, Cliente, Regime, Contato, Atendimento, Mensagem, Espera, Transferência, Atividade do mês) — qualquer trabalho futuro deve usar esses termos, sem sinônimos novos.
 - Spec funcional completa e os 27 tickets de implementação vivem no issue tracker do GitHub (`Rigoni-Soft/Rigoni-contabil`, issue #24 e filhos #28–#54), não neste arquivo.
 - Requisitos não-funcionais dimensionados para o porte real do escritório: ~50 usuários simultâneos, ~20 rps (pico ~50), 95% de disponibilidade.
 
@@ -55,10 +56,11 @@ Ferramenta interna proprietária, não um produto de mercado. O que a diferencia
 ## Product Principles
 
 1. RLS no Postgres nunca substitui a checagem de autorização no caso de uso — são duas camadas, sempre as duas.
-2. Nenhum dado de contrato social/alterações aparece fora das telas explicitamente autorizadas (hoje: cadastro pelo Admin); nunca em telas do Simples Nacional.
+2. Nenhum dado de contrato social/alterações aparece fora de quem a regra do banco autoriza (Admin, Líder do Setor Simples Nacional, Responsável do Cliente); a tela recebe só tipo, nº e data, nunca o caminho do arquivo, e o link assinado nasce no clique.
 3. Falha de integração externa (Serpro, WhatsApp) tenta de novo automaticamente algumas vezes antes de virar alerta pra um humano — nunca alarme na primeira falha, nunca silêncio permanente.
 4. Toda ação que muda estado é auditável (ator, data/hora, setor, alvo, resultado); leituras não são auditadas.
 5. O sistema reflete o estado de processos externos (procuração eletrônica, aprovação de template) — nunca tenta automatizá-los ou contorná-los.
+6. O que só o sistema sabe, só o sistema grava: DAS "enviado" e a data de envio resultam da entrega aceita pelo job (#52) e nenhuma pessoa os define, nem Admin. A trava está no banco, e a tela só exibe (#108).
 
 ## Accessibility & Inclusion
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-05T17:55:50Z",
+  "generatedAt": "2026-10-23T17:24:57Z",
   "title": "Design System: Rigoni Contábil",
   "extensions": {
     "colorMeta": {
@@ -143,7 +143,7 @@
       "refersTo": "button-primary",
       "description": "Ação principal da tela (Entrar, Trocar senha, Cadastrar); uma por formulário.",
       "html": "<button class=\"ds-btn-primary\">Trocar senha</button>",
-      "css": ".ds-btn-primary{height:44px;padding:8px 16px;border:0;border-radius:4px;background:var(--primary,#54a292);color:var(--primary-foreground,#0a1613);font:500 14px Roboto,sans-serif;cursor:pointer;transition:background .15s}.ds-btn-primary:hover{background:color-mix(in oklab,var(--primary,#54a292) 90%,transparent)}.ds-btn-primary:focus-visible{outline:2px solid var(--ring,#54a292);outline-offset:2px}"
+      "css": ".ds-btn-primary{height:36px;padding:8px 16px;border:0;border-radius:4px;background:var(--primary,#54a292);color:var(--primary-foreground,#0a1613);font:500 14px Roboto,sans-serif;cursor:pointer;transition:background .15s}.ds-btn-primary:hover{background:color-mix(in oklab,var(--primary,#54a292) 90%,transparent)}.ds-btn-primary:focus-visible{outline:2px solid var(--ring,#54a292);outline-offset:2px}"
     },
     {
       "name": "Ghost Button (ação do header)",
@@ -157,9 +157,9 @@
       "name": "Text Input",
       "kind": "input",
       "refersTo": "input",
-      "description": "Campo de texto de 44px; aria-invalid troca borda e anel para destructive.",
+      "description": "Campo de texto de 36px (44px em aparelho de toque); aria-invalid troca borda e anel para destructive.",
       "html": "<input class=\"ds-input\" placeholder=\"E-mail\" />",
-      "css": ".ds-input{box-sizing:border-box;width:100%;height:44px;padding:8px 12px;border:1px solid var(--input,#7a7765);border-radius:4px;background:var(--background,#23221f);color:var(--foreground,#ece7d8);font:400 14px Roboto,sans-serif;outline:none;transition:border-color .15s}.ds-input:focus-visible{outline:2px solid var(--ring,#54a292);outline-offset:2px}.ds-input[aria-invalid=true]{border-color:var(--destructive,#e0968c)}"
+      "css": ".ds-input{box-sizing:border-box;width:100%;height:36px;padding:8px 12px;border:1px solid var(--input,#7a7765);border-radius:4px;background:var(--background,#23221f);color:var(--foreground,#ece7d8);font:400 14px Roboto,sans-serif;outline:none;transition:border-color .15s}.ds-input:focus-visible{outline:2px solid var(--ring,#54a292);outline-offset:2px}.ds-input[aria-invalid=true]{border-color:var(--destructive,#e0968c)}"
     },
     {
       "name": "Password Input",
@@ -176,6 +176,57 @@
       "description": "Perfil: pares rótulo/valor em grid de duas colunas, sem cartão; valores longos quebram linha.",
       "html": "<dl class=\"ds-dl\"><dt>Nome</dt><dd>Funcionário Simples Nacional</dd><dt>Setor</dt><dd>Simples Nacional</dd></dl>",
       "css": ".ds-dl{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:0;font:400 14px Roboto,sans-serif}.ds-dl dt{color:var(--muted-foreground,#a6b3ab)}.ds-dl dd{margin:0;min-width:0;overflow-wrap:break-word;font-weight:500;color:var(--foreground,#ece7d8)}"
+    },
+    {
+      "name": "Sino de Avisos (cabeçalho)",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "Primeiro item da linha de ações do ShellHeader (#143): 48 px redondo; com aviso não visto fica preenchido em primary e ganha selo destructive com o contador (99+ acima de 99).",
+      "html": "<button class=\"ds-sino\" aria-label=\"Avisos de cadastro, 3 não vistos\" data-destaque=\"true\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.268 21a2 2 0 0 0 3.464 0\"/><path d=\"M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326\"/></svg><span class=\"ds-sino-selo\" aria-hidden=\"true\">3</span></button>",
+      "css": ".ds-sino{position:relative;display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:9999px;border:1px solid var(--primary,#54a292);background:var(--primary,#54a292);color:var(--primary-foreground,#0a1613);cursor:pointer;transition:background .15s}.ds-sino:hover{background:color-mix(in oklab,var(--primary,#54a292) 90%,transparent)}.ds-sino:focus-visible{outline:2px solid var(--ring,#54a292);outline-offset:2px}.ds-sino-selo{position:absolute;top:-4px;right:-4px;min-width:24px;padding:0 4px;display:flex;align-items:center;justify-content:center;border-radius:9999px;border:2px solid var(--background,#23221f);background:var(--destructive,#e0968c);color:var(--destructive-foreground,#2a0f0c);font:700 12px Roboto,sans-serif}"
+    },
+    {
+      "name": "Item de aviso (modal do sino)",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "Linha da lista de Avisos de cadastro (#143): não visto com contorno primary, fundo accent, ponto primary e texto em destaque; visto esmaecido, com o selo \"visto\" em texto.",
+      "html": "<div class=\"ds-aviso-lista\"><button class=\"ds-aviso\" data-visto=\"false\"><span class=\"ds-aviso-ponto\" aria-hidden=\"true\"></span><span class=\"ds-aviso-texto\"><span class=\"ds-aviso-titulo\">Novo Cliente no Cadastro operacional</span><span class=\"ds-aviso-quando\">22/10/2026, 12:30</span></span></button><button class=\"ds-aviso\" data-visto=\"true\"><span class=\"ds-aviso-texto\"><span class=\"ds-aviso-titulo\">Nova Alteração contratual</span><span class=\"ds-aviso-quando\">22/10/2026, 09:10</span></span><span class=\"ds-aviso-visto\">visto</span></button></div>",
+      "css": ".ds-aviso-lista{display:flex;flex-direction:column;gap:8px;width:min(92vw,28rem)}.ds-aviso{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding:8px 12px;border-radius:4px;border:1px solid var(--border,#47453e);background:transparent;color:var(--muted-foreground,#a6b3ab);text-align:left;font:400 14px Roboto,sans-serif;cursor:pointer}.ds-aviso[data-visto=false]{border-color:var(--primary,#54a292);background:var(--accent,#37352f);color:var(--foreground,#ece7d8);font-weight:500}.ds-aviso:focus-visible{outline:2px solid var(--ring,#54a292);outline-offset:2px}.ds-aviso-ponto{width:10px;height:10px;flex:none;border-radius:9999px;background:var(--primary,#54a292)}.ds-aviso-texto{flex:1;min-width:0}.ds-aviso-titulo,.ds-aviso-quando{display:block}.ds-aviso-quando{font-size:12px;font-weight:400;color:var(--muted-foreground,#a6b3ab)}.ds-aviso-visto{flex:none;font-size:12px;font-weight:600;text-transform:uppercase}"
+    },
+    {
+      "name": "Cartão de resumo (anel)",
+      "kind": "card",
+      "description": "Um status do resumo do setor: anel proporcional a quantidade/total, número tabular no centro e título; o cartão inteiro é o link para a lista. Cada card conta Clientes e os do grupo Parcelamento não se excluem.",
+      "html": "<a class=\"ds-resumo\" href=\"#\"><div class=\"ds-resumo-anel\"><svg viewBox=\"0 0 68 68\" width=\"64\" height=\"64\" style=\"transform:rotate(-90deg)\" aria-hidden=\"true\"><circle class=\"ds-resumo-trilho\" cx=\"34\" cy=\"34\" r=\"26\" stroke-width=\"8\" fill=\"none\"/><circle class=\"ds-resumo-traco\" cx=\"34\" cy=\"34\" r=\"26\" stroke-width=\"8\" stroke-linecap=\"round\" fill=\"none\" stroke-dasharray=\"163.36\" stroke-dashoffset=\"130.69\"/></svg><span class=\"ds-resumo-num\">40</span></div><span>Parcelamento pendente</span></a>",
+      "css": ".ds-resumo{display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px;border:1px solid var(--border,#47453e);border-radius:12px;background:var(--card,#2c2a26);box-shadow:0 1px 2px rgba(0,0,0,.05);text-align:center;color:var(--foreground,#ece7d8);text-decoration:none;font:600 14px Roboto,sans-serif;transition:background .15s,border-color .15s}.ds-resumo:hover{border-color:var(--ring,#54a292);background:color-mix(in oklab,var(--accent,#37352f) 50%,transparent)}.ds-resumo:focus-visible{outline:2px solid var(--ring,#54a292);outline-offset:2px}.ds-resumo-anel{position:relative;width:64px;height:64px}.ds-resumo-trilho{stroke:var(--border,#47453e)}.ds-resumo-traco{stroke:var(--success,#d9bd7c)}.ds-resumo-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 20px Roboto,sans-serif;font-variant-numeric:tabular-nums}"
+    },
+    {
+      "name": "Selo de parcelamento",
+      "kind": "chip",
+      "description": "Estado do mês de um parcelamento: ícone + texto + cor, nunca só cor. Enviado é primary (o dourado success é do anel de atenção); pendente e quitado ficam neutros, sem o vermelho de falha.",
+      "html": "<span class=\"ds-selo ds-selo-enviado\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m9 12 2 2 4-4\"/></svg>Enviado no mês</span> <span class=\"ds-selo ds-selo-pendente\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 6v6l4 2\"/></svg>Pendente no mês</span> <span class=\"ds-selo ds-selo-quitado\">Quitado</span>",
+      "css": ".ds-selo{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border:1px solid var(--border,#47453e);border-radius:9999px;font:500 12px Roboto,sans-serif}.ds-selo-enviado{border-color:var(--primary,#54a292);color:var(--primary,#54a292)}.ds-selo-pendente{background:var(--muted,#292824);color:var(--foreground,#ece7d8)}.ds-selo-quitado{color:var(--muted-foreground,#a6b3ab)}"
+    },
+    {
+      "name": "Parcelamentos na lista do resumo",
+      "kind": "custom",
+      "description": "Abaixo da linha do Cliente (fora do link): código, marca \"Interno\" e selo do mês, em colunas alinhadas entre as linhas (subgrid). Código até 20ch; o excesso quebra.",
+      "html": "<ul class=\"ds-parc\"><li><span class=\"ds-parc-cod\">PARC-1</span><span></span><span class=\"ds-selo ds-selo-enviado\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m9 12 2 2 4-4\"/></svg>Enviado no mês</span></li><li><span class=\"ds-parc-cod\">PARC-2</span><span class=\"ds-parc-interno\">Interno</span><span class=\"ds-selo ds-selo-pendente\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 6v6l4 2\"/></svg>Pendente no mês</span></li></ul>",
+      "css": ".ds-parc{display:grid;grid-template-columns:fit-content(20ch) auto auto;justify-content:start;gap:8px;margin:0;padding:0;list-style:none}.ds-parc li{display:grid;grid-column:1/-1;grid-template-columns:subgrid;align-items:center}.ds-parc-cod{min-width:0;overflow-wrap:anywhere;font:400 14px Roboto,sans-serif;color:var(--muted-foreground,#a6b3ab)}.ds-parc-interno{padding:2px 8px;border:1px solid var(--border,#47453e);border-radius:9999px;font:500 12px Roboto,sans-serif;color:var(--muted-foreground,#a6b3ab)}.ds-selo{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border:1px solid var(--border,#47453e);border-radius:9999px;font:500 12px Roboto,sans-serif}.ds-selo-enviado{border-color:var(--primary,#54a292);color:var(--primary,#54a292)}.ds-selo-pendente{background:var(--muted,#292824);color:var(--foreground,#ece7d8)}.ds-selo-quitado{color:var(--muted-foreground,#a6b3ab)}"
+    },
+    {
+      "name": "Barras de fatias (comparativo)",
+      "kind": "card",
+      "description": "Comparativo não exclusivo (Status do parcelamento, Atividade do mês): rótulo e número por linha, barra decorativa proporcional ao total de clientes e uma nota dizendo que um cliente pode estar em mais de uma fatia.",
+      "html": "<div class=\"ds-barras\"><div class=\"ds-barras-linha\"><span>Enviado</span><b>10</b></div><div class=\"ds-barras-trilho\"><div class=\"ds-barras-fatia\" style=\"width:20%;background:var(--primary,#54a292)\"></div></div><div class=\"ds-barras-linha\"><span>Pendente</span><b>40</b></div><div class=\"ds-barras-trilho\"><div class=\"ds-barras-fatia\" style=\"width:80%;background:var(--success,#d9bd7c)\"></div></div><p class=\"ds-barras-nota\">Um cliente pode estar em mais de uma situação.</p></div>",
+      "css": ".ds-barras{display:flex;flex-direction:column;gap:8px;padding:16px;border:1px solid var(--border,#47453e);border-radius:12px;background:var(--card,#2c2a26);color:var(--foreground,#ece7d8);font:400 14px Roboto,sans-serif}.ds-barras-linha{display:flex;justify-content:space-between;gap:8px}.ds-barras-linha b{font-weight:600;font-variant-numeric:tabular-nums}.ds-barras-trilho{height:8px;border-radius:9999px;background:var(--border,#47453e)}.ds-barras-fatia{height:8px;border-radius:9999px}.ds-barras-nota{margin:0;font-size:12px;color:var(--muted-foreground,#a6b3ab)}"
+    },
+    {
+      "name": "Linha de Cliente (lista)",
+      "kind": "nav",
+      "description": "Cliente em lista: empresa e CNPJ mascarado à esquerda, \"Ver cadastro →\" à direita; a linha-link leva ao cadastro. Detalhes extras (parcelamentos) ficam abaixo, fora do link, para o nome do link ser só empresa e CNPJ.",
+      "html": "<div class=\"ds-cli\"><a class=\"ds-cli-link\" href=\"#\"><div class=\"ds-cli-info\"><div class=\"ds-cli-empresa\">Padaria Pão Quente Ltda</div><div class=\"ds-cli-cnpj\">11.444.777/0001-61</div></div><span class=\"ds-cli-ver\">Ver cadastro →</span></a></div>",
+      "css": ".ds-cli{border:1px solid var(--border,#47453e);border-radius:6px;background:var(--card,#2c2a26)}.ds-cli-link{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;color:var(--foreground,#ece7d8);text-decoration:none;font:400 14px Roboto,sans-serif}.ds-cli-link:hover{background:color-mix(in oklab,var(--accent,#37352f) 50%,transparent)}.ds-cli-link:focus-visible{outline:2px solid var(--ring,#54a292);outline-offset:-2px}.ds-cli-info{min-width:0}.ds-cli-empresa{font-weight:500;overflow-wrap:anywhere}.ds-cli-cnpj,.ds-cli-ver{color:var(--muted-foreground,#a6b3ab)}.ds-cli-ver{flex-shrink:0}"
     }
   ],
   "narrative": {

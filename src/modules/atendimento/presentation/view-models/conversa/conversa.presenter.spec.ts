@@ -8,13 +8,17 @@ import {
   formatarCronometro,
   formatarTamanho,
   idsComLinkVencendo,
+  intervaloDaConversa,
   manterHistorico,
+  POLLING_LENTO_MS,
+  POLLING_RAPIDO_MS,
   reaproveitarLinks,
 } from "./conversa.presenter";
 
 const CONVERSA: ConversaVista = {
   atendimentoId: "at-1",
   encerrado: false,
+  podeAtender: true,
   telefone: "5561988887777",
   contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
   clienteVinculado: true,
@@ -56,18 +60,24 @@ const CONVERSA: ConversaVista = {
   ultimaTransferencia: null,
   ura: null,
   temMaisAnteriores: false,
-  avisoInatividade: false,
   setoresDestino: ["recepcao", "tributario"],
   documentos: [
-    { tipo: "contrato", data: null, descricao: "Contrato social" },
-    { tipo: "alteracao", data: "2026-03-01", descricao: "Alteração de 01/03/2026" },
+    { tipo: "contrato", numero: null, descricao: "Contrato social" },
+    {
+      tipo: "alteracao",
+      numero: 3,
+      descricao: "Alteração nº 3 - 01/03/2026",
+    },
   ],
 };
 
 describe("conversaParaView", () => {
-  it("repassa o aviso de inatividade ao Funcionário", () => {
-    expect(conversaParaView(CONVERSA).avisoInatividade).toBe(false);
-    expect(conversaParaView({ ...CONVERSA, avisoInatividade: true }).avisoInatividade).toBe(true);
+  it("somenteLeitura: só quando o Atendimento está em andamento e o usuário não é o dono", () => {
+    expect(conversaParaView(CONVERSA).somenteLeitura).toBe(false);
+    expect(conversaParaView({ ...CONVERSA, podeAtender: false }).somenteLeitura).toBe(true);
+    expect(
+      conversaParaView({ ...CONVERSA, podeAtender: false, encerrado: true }).somenteLeitura,
+    ).toBe(false);
   });
 
   it("balão do cliente mostra o nome do Contato e o do atendente mostra nome e Setor", () => {
@@ -172,18 +182,18 @@ describe("conversaParaView", () => {
     expect(conversaParaView(semResumo).contexto).toBeNull();
   });
 
-  it("serviços viram opções com o nome que o cliente vê: contrato primeiro, alterações da mais recente para a mais antiga", () => {
+  it("serviços viram opções com o nome que o cliente vê, na ordem recebida", () => {
     const antiga = {
       tipo: "alteracao" as const,
-      data: "2025-01-10",
-      descricao: "Alteração de 10/01/2025",
+      numero: 2,
+      descricao: "Alteração nº 2 - 10/05/2026",
     };
-    const documentos = [antiga, CONVERSA.documentos[1], CONVERSA.documentos[0]];
+    const documentos = [CONVERSA.documentos[0], CONVERSA.documentos[1], antiga];
 
     expect(conversaParaView({ ...CONVERSA, documentos }).servicos).toEqual([
       { valor: "contrato", rotulo: "Contrato social", grupo: "contrato" },
-      { valor: "alteracao:2026-03-01", rotulo: "Alteração de 01/03/2026", grupo: "alteracao" },
-      { valor: "alteracao:2025-01-10", rotulo: "Alteração de 10/01/2025", grupo: "alteracao" },
+      { valor: "alteracao:3", rotulo: "Alteração nº 3 - 01/03/2026", grupo: "alteracao" },
+      { valor: "alteracao:2", rotulo: "Alteração nº 2 - 10/05/2026", grupo: "alteracao" },
     ]);
   });
 
@@ -211,11 +221,13 @@ describe("conversaParaView", () => {
 
 describe("documentoDaOpcao", () => {
   it("desfaz o valor da opção no documento", () => {
-    expect(documentoDaOpcao("contrato")).toEqual({ tipo: "contrato", data: null });
-    expect(documentoDaOpcao("alteracao:2026-03-01")).toEqual({
+    expect(documentoDaOpcao("contrato")).toEqual({ tipo: "contrato", numero: null });
+    expect(documentoDaOpcao("alteracao:3")).toEqual({
       tipo: "alteracao",
-      data: "2026-03-01",
+      numero: 3,
     });
+    expect(documentoDaOpcao("das")).toEqual({ tipo: "das", numero: null });
+    expect(documentoDaOpcao("cnd")).toEqual({ tipo: "cnd", numero: null });
   });
 });
 
@@ -506,5 +518,31 @@ describe("formatarCronometro", () => {
     expect(formatarCronometro(0)).toBe("00:00");
     expect(formatarCronometro(65)).toBe("01:05");
     expect(formatarCronometro(300)).toBe("05:00");
+  });
+});
+
+describe("intervaloDaConversa", () => {
+  const agora = new Date("2026-10-29T12:00:00Z").getTime();
+  const conversaCom = (...mensagens: Array<{ minutosAtras: number }>) =>
+    ({
+      mensagens: mensagens.map((m, i) => ({
+        id: `m-${i}`,
+        autor: "contato",
+        texto: "oi",
+        criadoEm: new Date(agora - m.minutosAtras * 60_000).toISOString(),
+      })),
+    }) as unknown as ConversaVista;
+
+  it("conversa com Mensagem recente segue no ritmo rápido", () => {
+    expect(intervaloDaConversa(conversaCom({ minutosAtras: 1 }), agora)).toBe(POLLING_RAPIDO_MS);
+  });
+
+  it("conversa parada há mais de 2 minutos espaça a leitura", () => {
+    expect(intervaloDaConversa(conversaCom({ minutosAtras: 3 }), agora)).toBe(POLLING_LENTO_MS);
+  });
+
+  it("sem leitura ou sem Mensagens (conversa recém-aberta) começa no ritmo rápido", () => {
+    expect(intervaloDaConversa(undefined, agora)).toBe(POLLING_RAPIDO_MS);
+    expect(intervaloDaConversa(conversaCom(), agora)).toBe(POLLING_RAPIDO_MS);
   });
 });

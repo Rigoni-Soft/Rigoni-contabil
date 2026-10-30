@@ -7,7 +7,7 @@ export function CriarClientePage({ header, formulario }: CriarClientePageProps) 
   return (
     <TelaDeTrabalhoTemplate
       header={header}
-      largura="formulario"
+      largura="cadastro"
       cabecalho={<CabecalhoDeTela voltarHref="/" titulo="Cadastrar Cliente" />}
       conteudo={formulario}
     />

@@ -9,11 +9,25 @@ describe("ShellHeader", () => {
         nome="Cledson"
         papel="admin"
         setor="administrativo"
+        avisos={<button>Avisos</button>}
         sair={<button>Sair</button>}
       />,
     );
 
     expect(screen.getByText(/acesso a todos os setores/)).toBeInTheDocument();
+  });
+
+  it("Admin não vê o sino de avisos; Líder e Funcionário veem", () => {
+    const props = { nome: "N", setor: "simples_nacional", sair: <button>Sair</button> };
+    const { rerender } = render(
+      <ShellHeader {...props} papel="admin" avisos={<button>Avisos</button>} />,
+    );
+    expect(screen.queryByRole("button", { name: "Avisos" })).not.toBeInTheDocument();
+
+    for (const papel of ["lider_setor", "funcionario"]) {
+      rerender(<ShellHeader {...props} papel={papel} avisos={<button>Avisos</button>} />);
+      expect(screen.getByRole("button", { name: "Avisos" })).toBeInTheDocument();
+    }
   });
 
   it("mostra o Setor para Funcionário", () => {
@@ -22,6 +36,7 @@ describe("ShellHeader", () => {
         nome="Jéssica"
         papel="funcionario"
         setor="simples_nacional"
+        avisos={<button>Avisos</button>}
         sair={<button>Sair</button>}
       />,
     );
@@ -36,6 +51,7 @@ describe("ShellHeader", () => {
         nome="Jéssica"
         papel="lider_setor"
         setor="contabil"
+        avisos={<button>Avisos</button>}
         sair={<button>Sair</button>}
       />,
     );
@@ -49,6 +65,7 @@ describe("ShellHeader", () => {
         nome="Jéssica"
         papel="funcionario"
         setor="simples_nacional"
+        avisos={<button>Avisos</button>}
         sair={<button>Sair</button>}
       />,
     );
@@ -63,6 +80,7 @@ describe("ShellHeader", () => {
         nome="Cledson"
         papel="admin"
         setor="administrativo"
+        avisos={<button>Avisos</button>}
         sair={<button>Sair</button>}
       />,
     );
@@ -79,6 +97,7 @@ describe("ShellHeader", () => {
         nome="Jéssica"
         papel="lider_setor"
         setor="contabil"
+        avisos={<button>Avisos</button>}
         sair={<button>Sair</button>}
       />,
     );
@@ -95,6 +114,7 @@ describe("ShellHeader", () => {
         nome="Cledson"
         papel="admin"
         setor="administrativo"
+        avisos={<button>Avisos</button>}
         sair={<button>Sair</button>}
       />,
     );
@@ -111,6 +131,7 @@ describe("ShellHeader", () => {
         nome="Jéssica"
         papel="lider_setor"
         setor="contabil"
+        avisos={<button>Avisos</button>}
         sair={<button>Sair</button>}
       />,
     );
@@ -124,6 +145,7 @@ describe("ShellHeader", () => {
         nome="Jéssica"
         papel="funcionario"
         setor="simples_nacional"
+        avisos={<button>Avisos</button>}
         sair={<button>Sair</button>}
       />,
     );
@@ -133,7 +155,13 @@ describe("ShellHeader", () => {
 
   it("Admin vê o link 'Usuários' (desativação, #58); Líder não", () => {
     const { rerender } = render(
-      <ShellHeader nome="C" papel="admin" setor="administrativo" sair={<button>Sair</button>} />,
+      <ShellHeader
+        nome="C"
+        papel="admin"
+        setor="administrativo"
+        avisos={null}
+        sair={<button>Sair</button>}
+      />,
     );
     expect(screen.getByRole("link", { name: "Usuários" })).toHaveAttribute(
       "href",
@@ -141,22 +169,81 @@ describe("ShellHeader", () => {
     );
 
     rerender(
-      <ShellHeader nome="L" papel="lider_setor" setor="contabil" sair={<button>Sair</button>} />,
+      <ShellHeader
+        nome="L"
+        papel="lider_setor"
+        setor="contabil"
+        avisos={null}
+        sair={<button>Sair</button>}
+      />,
     );
     expect(screen.queryByRole("link", { name: "Usuários" })).not.toBeInTheDocument();
   });
 
-  it("só o Admin vê o link 'Fila' (os demais têm a Fila na conversa, #70)", () => {
+  it("nenhum papel tem o botão 'Fila' no cabeçalho (virou a aba 'Atendimento')", () => {
     const { rerender } = render(
-      <ShellHeader nome="C" papel="admin" setor="administrativo" sair={<button>Sair</button>} />,
+      <ShellHeader
+        nome="C"
+        papel="admin"
+        setor="administrativo"
+        avisos={null}
+        sair={<button>Sair</button>}
+      />,
     );
-    expect(screen.getByRole("link", { name: "Fila" })).toHaveAttribute("href", "/fila");
+    expect(screen.queryByRole("link", { name: "Fila" })).not.toBeInTheDocument();
 
     for (const papel of ["lider_setor", "funcionario"]) {
       rerender(
-        <ShellHeader nome="L" papel={papel} setor="contabil" sair={<button>Sair</button>} />,
+        <ShellHeader
+          nome="L"
+          papel={papel}
+          setor="contabil"
+          avisos={null}
+          sair={<button>Sair</button>}
+        />,
       );
       expect(screen.queryByRole("link", { name: "Fila" })).not.toBeInTheDocument();
     }
+  });
+
+  describe("menu do celular", () => {
+    const base = {
+      nome: "Jéssica",
+      setor: "contabil",
+      avisos: <button>Avisos</button>,
+      sair: <button>Sair</button>,
+    };
+
+    it("o botão Menu aponta para o painel que reúne as ações (popover nativo)", () => {
+      render(<ShellHeader {...base} papel="funcionario" />);
+
+      const botao = screen.getByRole("button", { name: "Menu" });
+      const painel = document.getElementById(botao.getAttribute("popovertarget") ?? "");
+      expect(painel).toHaveAttribute("popover", "auto");
+      expect(painel).toContainElement(screen.getByRole("link", { name: "Meu perfil" }));
+      expect(painel).toContainElement(screen.getByRole("button", { name: "Sair" }));
+    });
+
+    it("o sino fica fora do menu, sempre à vista", () => {
+      render(<ShellHeader {...base} papel="funcionario" />);
+
+      const botao = screen.getByRole("button", { name: "Menu" });
+      const painel = document.getElementById(botao.getAttribute("popovertarget") ?? "");
+      expect(painel).not.toContainElement(screen.getByRole("button", { name: "Avisos" }));
+    });
+
+    it("as ações por Papel moram no menu: Admin tem as do Admin, Líder cadastra Funcionário", () => {
+      const { rerender } = render(<ShellHeader {...base} papel="admin" />);
+      for (const nome of ["Cadastrar Líder", "Cadastrar Cliente", "Usuários", "Feriados"]) {
+        expect(screen.getByRole("link", { name: nome })).toBeInTheDocument();
+      }
+
+      rerender(<ShellHeader {...base} papel="lider_setor" />);
+      expect(screen.getByRole("link", { name: "Cadastrar Funcionário" })).toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "Feriados" })).not.toBeInTheDocument();
+
+      rerender(<ShellHeader {...base} papel="funcionario" />);
+      expect(screen.queryByRole("link", { name: /Cadastrar/ })).not.toBeInTheDocument();
+    });
   });
 });

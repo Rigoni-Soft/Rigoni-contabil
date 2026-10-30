@@ -8,7 +8,10 @@ export type CaixaProps<T extends ElementType> = { como?: T } & Omit<ComponentPro
 // organismo, template e page agrupam conteúdo, sem elemento HTML cru (arquitetura.md 4.4).
 export function Caixa<T extends ElementType = "div">({ como, ...props }: CaixaProps<T>) {
   const Elemento: ElementType = como ?? "div";
-  return <Elemento {...props} />;
+  // O reset do Tailwind tira o marcador (`list-style: none`) e o Safari/VoiceOver deixa de anunciar
+  // a lista: o role explícito mantém a semântica. Um `role` dado pelo chamador prevalece.
+  const papel = Elemento === "ul" || Elemento === "ol" ? "list" : undefined;
+  return <Elemento role={papel} {...props} />;
 }
 
 // Os três átomos de layout abaixo nomeiam o ritmo e a malha do produto (DESIGN.md → Layout): o
@@ -80,13 +83,17 @@ const COLUNAS = {
   duas: "grid-cols-2",
   "1>2": "grid-cols-1 sm:grid-cols-2",
   "1>3": "grid-cols-1 sm:grid-cols-3",
+  "1>2>4": "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4",
+  "2>3": "grid-cols-2 sm:grid-cols-3",
   "2>4": "grid-cols-2 sm:grid-cols-4",
   "2>3>5": "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
+  // parcelamentos de um Cliente: código, marca "interno" e selo, alinhados em colunas entre as linhas (código até 20ch (fit-content); o excesso quebra)
+  parcelamentos: "grid-cols-[fit-content(20ch)_auto_auto] justify-start",
   // lista de definição: rótulo ao lado do valor
   rotuloValor: "grid-cols-[auto_1fr]",
   "1>rotulo-valor": "grid-cols-1 sm:grid-cols-[12rem_1fr]",
   // cabeçalho do cadastro: empresa larga, CNPJ, regime, responsável
-  "1>2>cabecalho": "grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1.5fr]",
+  "1>2>cabecalho": "grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.6fr_1.2fr_1.2fr_2fr]",
 } as const;
 
 type GradeProps<T extends ElementType> = CaixaProps<T> & {

@@ -4,10 +4,11 @@ import type { TipoAnexoMensagem } from "@/shared/kernel/anexo";
 import type { Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
-// `data` (AAAA-MM-DD) só existe nas alterações contratuais; o contrato social não tem.
-export type DocumentoDisponivel = { tipo: "contrato" | "alteracao"; data: string | null };
+// `numero` identifica a alteração contratual (único por Cliente; a data pode se repetir); o
+// contrato social não tem.
+export type DocumentoDisponivel = { tipo: "contrato" | "alteracao"; numero: number | null };
 
-// `descricao` é como o cliente vê o documento (ex.: "Alteração de 01/03/2026").
+// `descricao` é como o cliente vê o documento (ex.: "Alteração nº 3 - 01/03/2026").
 export type DocumentoOferecido = DocumentoDisponivel & { descricao: string };
 
 // O anexo de uma Mensagem do Funcionário, com o link temporário já pedido (`expiraEm` em ISO).
@@ -52,6 +53,9 @@ export type OrigemUra = { resumo: string | null; cnpjInformado: string | null };
 export type ConversaVista = {
   atendimentoId: string;
   encerrado: boolean;
+  // Dono com o Atendimento em andamento: só ele responde e transfere; Líder do Setor e Admin leem
+  // em supervisão (e encerram).
+  podeAtender: boolean;
   telefone: string;
   contato: DadosDoContato;
   // Sem Cliente vinculado (ex.: número não identificado) não há CNPJ para disparar serviços.
@@ -63,9 +67,6 @@ export type ConversaVista = {
   ultimaTransferencia: UltimaTransferencia | null;
   // Null se o Atendimento não nasceu da URA (sem resumo nem CNPJ informado).
   ura: OrigemUra | null;
-  // A URA avisou que o Atendimento será encerrado por falta de resposta do Funcionário e ele
-  // ainda não escreveu depois do aviso.
-  avisoInatividade: boolean;
   // Serviços que o Funcionário pode disparar agora; vazio se encerrado ou sem Cliente.
   documentos: DocumentoOferecido[];
   // Setores para onde o Funcionário pode transferir agora; vazio se encerrado.
