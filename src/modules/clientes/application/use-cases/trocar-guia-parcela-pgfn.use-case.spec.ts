@@ -5,6 +5,7 @@ import type {
   ParcelamentoDaGuia,
 } from "@/modules/clientes/application/ports/out/guia-parcela-pgfn.repository";
 import type { LeitorDeGuiaDeParcelaPort } from "@/modules/clientes/application/ports/out/leitor-de-guia-de-parcela.provider";
+import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
 import type {
   AtorSessaoDto,
   SessaoPort,
@@ -17,6 +18,8 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { TrocarGuiaParcelaPgfn } from "./trocar-guia-parcela-pgfn.use-case";
+
+const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 const CLIENTE_ID = "c1c1c1c1-c1c1-4c1c-8c1c-c1c1c1c1c1c1";
 const PARCELAMENTO_ID = "d2d2d2d2-d2d2-4d2d-8d2d-d2d2d2d2d2d2";
@@ -91,7 +94,7 @@ function montar(leitura: Awaited<ReturnType<LeitorDeGuiaDeParcelaPort["ler"]>> =
     confirmar,
     gravada,
     storage,
-    caso: new TrocarGuiaParcelaPgfn(sessao, guias, storage, { ler: async () => leitura }),
+    caso: new TrocarGuiaParcelaPgfn(sessao, guias, storage, { ler: async () => leitura }, erros),
   };
 }
 

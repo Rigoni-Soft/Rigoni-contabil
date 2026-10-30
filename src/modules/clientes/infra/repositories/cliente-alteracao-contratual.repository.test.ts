@@ -1,5 +1,5 @@
 /**
- * Integração infra ↔ Supabase para anexar alteração contratual a Cliente existente (#141, S2e).
+ * Integração infra ↔ Supabase para anexar alteração contratual a Cliente existente.
  * Requer `npx supabase start` local com migrations + seed aplicados.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";

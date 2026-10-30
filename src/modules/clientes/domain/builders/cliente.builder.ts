@@ -82,15 +82,21 @@ export class ClienteBuilder {
 
   comCnpj(entrada: string): this {
     const resultado = Cnpj.criar(entrada);
-    if (resultado.ok) this.cnpj = resultado.value;
-    else this.camposInvalidos.cnpj = [resultado.error.message];
+    if (!resultado.ok) {
+      this.camposInvalidos.cnpj = [resultado.error.message];
+      return this;
+    }
+    this.cnpj = resultado.value;
     return this;
   }
 
   comRegime(entrada: string): this {
     const resultado = Regime.criar(entrada);
-    if (resultado.ok) this.regime = resultado.value;
-    else this.camposInvalidos.regime = [resultado.error.message];
+    if (!resultado.ok) {
+      this.camposInvalidos.regime = [resultado.error.message];
+      return this;
+    }
+    this.regime = resultado.value;
     return this;
   }
 
@@ -107,8 +113,11 @@ export class ClienteBuilder {
       return this;
     }
     const resultado = Email.criar(texto);
-    if (resultado.ok) this.email = resultado.value;
-    else this.camposInvalidos.email = [resultado.error.message];
+    if (!resultado.ok) {
+      this.camposInvalidos.email = [resultado.error.message];
+      return this;
+    }
+    this.email = resultado.value;
     return this;
   }
 
@@ -142,8 +151,11 @@ export class ClienteBuilder {
 
   comFormaEnvio(entrada: string): this {
     const resultado = FormaEnvio.criar(entrada);
-    if (resultado.ok) this.formaEnvio = resultado.value;
-    else this.camposInvalidos.formaEnvio = [resultado.error.message];
+    if (!resultado.ok) {
+      this.camposInvalidos.formaEnvio = [resultado.error.message];
+      return this;
+    }
+    this.formaEnvio = resultado.value;
     return this;
   }
 
@@ -171,8 +183,11 @@ export class ClienteBuilder {
       return this;
     }
     const resultado = DocumentoObrigatorioStatus.criar(entrada);
-    if (resultado.ok) this.documentoObrigatorio = resultado.value;
-    else this.camposInvalidos.documentoObrigatorio = [resultado.error.message];
+    if (!resultado.ok) {
+      this.camposInvalidos.documentoObrigatorio = [resultado.error.message];
+      return this;
+    }
+    this.documentoObrigatorio = resultado.value;
     return this;
   }
 
@@ -182,8 +197,11 @@ export class ClienteBuilder {
       return this;
     }
     const resultado = DasStatus.criar(entrada);
-    if (resultado.ok) this.dasStatus = resultado.value;
-    else this.camposInvalidos.dasStatus = [resultado.error.message];
+    if (!resultado.ok) {
+      this.camposInvalidos.dasStatus = [resultado.error.message];
+      return this;
+    }
+    this.dasStatus = resultado.value;
     return this;
   }
 

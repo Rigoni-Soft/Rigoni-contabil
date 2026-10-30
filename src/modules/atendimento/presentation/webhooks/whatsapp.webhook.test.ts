@@ -7,6 +7,7 @@ import { createHmac } from "node:crypto";
 
 import type { AnexosAtendimentoPort } from "@/modules/atendimento/application/ports/out/anexos-atendimento.provider";
 import type { AtendimentoRepositoryPort } from "@/modules/atendimento/application/ports/out/atendimento.repository";
+import type { RegistroDeErrosPort } from "@/modules/atendimento/application/ports/out/registro-de-erros.provider";
 import type { SessaoAtendimento } from "@/modules/atendimento/application/ports/out/sessao-atendimento.provider";
 import { AutenticarWebhook } from "@/modules/atendimento/application/use-cases/autenticar-webhook.use-case";
 import { EntregarDasNaUra } from "@/modules/atendimento/application/use-cases/entregar-das-na-ura.use-case";
@@ -19,6 +20,8 @@ import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok } from "@/shared/kernel/result";
 
 import { GET, POST } from "./whatsapp.webhook";
+
+const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 const SEGREDO = "segredo-teste";
 const TOKEN = "token-teste";
@@ -69,6 +72,7 @@ const anexosDeMidia = {
 } as unknown as AnexosAtendimentoPort;
 
 jest.mock("@/main/atendimento.factory", () => ({
+  makeRegistroDeErros: () => ({ registrar: () => undefined }),
   makeReceberMidia: () =>
     new ReceberMidia(repositorioDeMidia, new DownloadMidiaFalsoGateway(), anexosDeMidia, envio),
   makeReceberMensagem: () =>
@@ -106,8 +110,10 @@ jest.mock("@/main/atendimento.factory", () => ({
         { reencontrar: async () => ok("https://storage.test/das.pdf") },
         envio,
         { agora: () => new Date("2026-10-07T10:00:00-03:00") },
+        erros,
       ),
       { execute: async () => ok(undefined) },
+      erros,
     ),
   makeAutenticarWebhook: () =>
     new AutenticarWebhook(new HmacAutenticacaoWebhookGateway(SEGREDO, TOKEN)),
@@ -169,7 +175,6 @@ beforeEach(() => {
     cnpjCadastrado: async () => ok(true),
   };
   jest.spyOn(console, "info").mockImplementation(() => undefined);
-  jest.spyOn(console, "error").mockImplementation(() => undefined);
 });
 
 describe("GET /api/webhooks/whatsapp (handshake de verificação)", () => {

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
 
@@ -15,17 +14,16 @@ import type { DocumentoContratualVisivelDto } from "@/modules/clientes/applicati
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { REGIME_LABEL, regimeTemCadastroOperacionalSn } from "@/shared/kernel/regimes";
 
-import { anexarGuiaParcelaPgfnAction } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.actions";
 import { AnexarGuiaParcelaPgfnContainer } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.container";
 import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
-import { atribuirResponsavelAction } from "./atribuir-responsavel.actions";
-import { editarCadastroOperacionalAction } from "./editar-cadastro-operacional.actions";
 import {
   contatoNovo,
   descartarLinhasEmBranco,
   leituraDaLinha,
-  mudouParcelamentos,
   nomeResponsavelAtual,
+  OPCOES_DOCUMENTO,
+  OPCOES_FORMA_ENVIO,
+  opcoesDeDas,
   opcoesResponsavel,
   parcelamentoNovo,
   reposicionarErros,
@@ -33,8 +31,8 @@ import {
 } from "./editar-cadastro-operacional.presenter";
 import { editarCadastroOperacionalFormSchema } from "./editar-cadastro-operacional.schema";
 import { useResponsaveisElegiveis } from "./responsaveis.queries";
-import { salvarParcelamentosAction } from "./salvar-parcelamentos.actions";
 import { useLeituraDoPdf } from "./use-leitura-do-pdf.hook";
+import { useSalvarCadastroOperacional } from "./use-salvar-cadastro-operacional.hook";
 
 type Props = {
   dados: CadastroOperacionalClienteDto | null;
@@ -44,10 +42,9 @@ type Props = {
   onCancelar?: () => void;
   // Depois de salvar com sucesso, o painel precisa fechar/voltar: painel embutido no dashboard
   // (busca do /simples-nacional) fecha de volta pra busca e atualiza os cards; tela própria
-  // (/clientes/[id]) navega de volta pra onde a lista do bucket (ou o próprio dashboard) ficou. Só
-  // um dos dois é passado por consumidor — `aoSalvarComSucesso` tem prioridade.
-  aoSalvarComSucesso?: () => void;
-  voltarHrefAoSalvar?: string;
+  // (/clientes/[id]) navega de volta pra onde a lista do bucket (ou o próprio dashboard) ficou.
+  // Os dois destinos são exclusivos: união discriminada por `tipo`.
+  aoSalvar?: { tipo: "fechar"; executar: () => void } | { tipo: "voltar"; href: string };
   // Carga inicial do servidor (tela própria); no painel embutido da busca vem vazia e o botão lê por action.
   documentosContratuais?: DocumentoContratualVisivelDto[];
   // Só o Admin na tela própria: o botão de anexar fica no cartão do documento.
@@ -61,27 +58,17 @@ export function EditarCadastroOperacionalContainer({
   readOnly,
   podeAtribuirResponsavel = false,
   onCancelar,
-  aoSalvarComSucesso,
-  voltarHrefAoSalvar,
+  aoSalvar,
   documentosContratuais,
   podeAnexar,
   alteracaoEmFoco,
 }: Props) {
-  const router = useRouter();
-  const [pendente, setPendente] = useState(false);
-  const [erroServidor, setErroServidor] = useState<string | undefined>();
-  const [sucesso, setSucesso] = useState(false);
   // Falso no servidor e na hidratação; verdadeiro assim que o cliente assume (snapshots do React).
   const hidratado = useSyncExternalStore(
     () => () => undefined,
     () => true,
     () => false,
   );
-  // Depois de salvar o cadastro e falhar só a atribuição, guarda o que
-  // foi persistido (campos sem o Responsável); reenviar o mesmo formulário repete só a atribuição.
-  // Se a pessoa mexer em outro campo, o retrato muda e o salvamento completo volta.
-  const [cadastroSalvo, setCadastroSalvo] = useState<string | null>(null);
-
   // Extraído pra reusar no reset() do botão "Limpar" — reverte pro que veio
   // do servidor, não esvazia campos (formaEnvio é enum obrigatório, sem opção
   // em branco no Select; "limpar" um form de edição significa desfazer, não zerar).
@@ -160,132 +147,22 @@ export function EditarCadastroOperacionalContainer({
     camposAtuais.current.findIndex((campo) => campo.id === id),
   );
 
-  const aoSubmeter = handleSubmit(async (valores) => {
-    if (!dados) return;
-    setPendente(true);
-    setErroServidor(undefined);
-    setSucesso(false);
-
-    // Vira true quando o cadastro está persistido (nesta tentativa ou numa anterior): a mensagem
-    // de erro de transporte precisa dizer isso em vez de sugerir que nada foi salvo.
-    let cadastroPersistido = false;
-    // O que falta concluir depois do cadastro salvo: nomeia a etapa na mensagem de erro de transporte.
-    let etapa = "atribuir o Responsável";
-    // try/finally: rejeição de transporte da Server Action não pode deixar o
-    // botão preso em "Salvando…".
-    try {
-      // O Responsável é salvo à parte: fica fora do retrato que decide se o cadastro mudou.
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { responsavelId: _responsavelId, parcelamentos: _parcelamentos, ...cadastro } = valores;
-      const retrato = JSON.stringify(cadastro);
-      if (cadastroSalvo !== retrato) {
-        // `cadastro`, sem os Parcelamentos: os PDFs não podem viajar nesta chamada (teto de corpo da Vercel).
-        const resultado = await editarCadastroOperacionalAction({
-          ...cadastro,
-          clienteId: dados.id,
-        });
-
-        if (!resultado.ok) {
-          setErroServidor(resultado.error.message);
-          for (const [campo, mensagens] of Object.entries(resultado.error.fields ?? {})) {
-            if (mensagens[0] && campo !== "clienteId") {
-              setError(campo as keyof EditarCadastroOperacionalFormValues, {
-                message: mensagens[0],
-              });
-            }
-          }
-          return;
-        }
-      }
-      // O retrato é guardado assim que o cadastro persiste, antes
-      // da atribuição, para valer também quando a atribuição rejeita por erro de transporte.
-      setCadastroSalvo(retrato);
-      cadastroPersistido = true;
-
-      // Parcelamentos têm PDF: vão por Server Action própria, depois do cadastro. Sem mudança, não vão.
-      if (mudouParcelamentos(valores.parcelamentos, dados.parcelamentos)) {
-        etapa = "salvar os Parcelamentos";
-        const salvos = await salvarParcelamentosAction({
-          clienteId: dados.id,
-          // A guia sobe à parte, depois: o corpo desta chamada tem o teto de 4,5 MB.
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          parcelamentos: valores.parcelamentos.map(({ guia: _guia, ...p }) => p),
-        });
-        if (!salvos.ok) {
-          setErroServidor(
-            `Os dados foram salvos, mas não foi possível salvar os Parcelamentos. ${salvos.error.message}`,
-          );
-          return;
-        }
-
-        // Os ids voltam para as linhas antes de anexar: uma nova tentativa (guia recusada, falha de
-        // transporte) atualiza os acordos já salvos, em vez de recriá-los e apagar suas guias em cascata.
-        // `ids` segue a lista enviada, sem as linhas em branco: o índice da tela vem do mesmo descarte do resolver.
-        const indicesNaTela = descartarLinhasEmBranco(getValues()).parcelamentos;
-        salvos.data.ids.forEach((id, indice) =>
-          setValue(`parcelamentos.${indicesNaTela[indice]}.id`, id),
-        );
-
-        // Guia recusada (ex.: CNPJ de outra empresa) não desfaz o Parcelamento: avisa e a guia se anexa na linha.
-        etapa = "anexar a guia";
-        for (const [indice, linha] of valores.parcelamentos.entries()) {
-          // O campo some se o PDF do acordo passa a não ser da PGFN, mas o arquivo escolhido fica no formulário.
-          if (!linha.guia || linha.acordo?.origem !== "pgfn") continue;
-          const guia = await anexarGuiaParcelaPgfnAction({
-            parcelamentoId: salvos.data.ids[indice],
-            arquivo: linha.guia,
-          });
-          // Anexada ou recusada, a guia sai do formulário: a linha já é um acordo salvo (sem o campo da
-          // guia) e a retentativa não reenvia o arquivo; a recusada se anexa em "Guias da parcela".
-          const tela = getValues("parcelamentos").findIndex((p) => p.guia === linha.guia);
-          if (tela >= 0) setValue(`parcelamentos.${tela}.guia`, undefined);
-          if (!guia.ok) {
-            setErroServidor(
-              `O Parcelamento foi salvo, mas a guia não foi anexada. ${guia.error.message} Anexe-a em "Guias da parcela", na linha do Parcelamento.`,
-            );
-            return;
-          }
-        }
-      }
-      etapa = "atribuir o Responsável";
-
-      if (podeAtribuirResponsavel && valores.responsavelId !== (dados.responsavelId ?? "")) {
-        const atribuicao = await atribuirResponsavelAction({
-          clienteId: dados.id,
-          responsavelId: valores.responsavelId || null,
-        });
-        if (!atribuicao.ok) {
-          // O cadastro já foi salvo; reenviar o formulário repete só a atribuição.
-          setErroServidor(
-            `Os dados foram salvos, mas não foi possível atribuir o Responsável. ${atribuicao.error.message}`,
-          );
-          return;
-        }
-      }
-
-      setCadastroSalvo(null);
-      setSucesso(true);
-      if (aoSalvarComSucesso) {
-        aoSalvarComSucesso();
-      } else if (voltarHrefAoSalvar) {
-        router.push(voltarHrefAoSalvar);
-      }
-    } catch {
-      setErroServidor(
-        cadastroPersistido
-          ? `Os dados foram salvos, mas não foi possível ${etapa}. Verifique a conexão e tente novamente.`
-          : "Não foi possível salvar agora. Verifique a conexão e tente novamente.",
-      );
-    } finally {
-      setPendente(false);
-    }
-  });
+  const { salvar, pendente, erroServidor, sucesso, limparMensagens } = useSalvarCadastroOperacional(
+    {
+      dados,
+      podeAtribuirResponsavel,
+      aoSalvar,
+      getValues,
+      setValue,
+      setError,
+    },
+  );
+  const aoSubmeter = handleSubmit(salvar);
 
   const aoLimpar = () => {
     reset(valoresIniciais);
     leitura.esquecerTodas();
-    setErroServidor(undefined);
-    setSucesso(false);
+    limparMensagens();
   };
 
   if (!dados) {
@@ -329,6 +206,11 @@ export function EditarCadastroOperacionalContainer({
       }}
       parcelamentos={parcelamentos}
       dasEnviadoPeloSistema={dados?.dasStatus === "enviado"}
+      opcoes={{
+        formaEnvio: OPCOES_FORMA_ENVIO,
+        documento: OPCOES_DOCUMENTO,
+        das: opcoesDeDas(dados.dasStatus === "enviado"),
+      }}
       erroServidor={erroServidor}
       sucesso={sucesso}
       oculto={!hidratado}

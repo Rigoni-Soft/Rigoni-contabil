@@ -1,5 +1,5 @@
 /**
- * A espera sem destinatário (fora da Recepção) passa ao destinatário assim que ele surge (#165):
+ * A espera sem destinatário (fora da Recepção) passa ao destinatário assim que ele surge:
  * Responsável atribuído depois ou Líder ativado depois. Mesmo ID, mensagens e tempo; a espera já dirigida,
  * o Atendimento assumido e a Recepção não mudam; só o destinatário assume, mesmo na disputa.
  * Requer `npx supabase start` local com migrations + seed aplicados.

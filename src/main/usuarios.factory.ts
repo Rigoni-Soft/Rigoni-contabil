@@ -1,3 +1,5 @@
+import { ConsoleRegistroDeErrosGateway } from "@/modules/usuarios/infra/gateways/console-registro-de-erros.gateway";
+
 import "server-only";
 
 import { makeRegistrarAcao } from "@/main/auditoria.factory";
@@ -30,6 +32,8 @@ import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabas
 import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories/usuario.repository";
 import { err, ok } from "@/shared/kernel/result";
 
+const errosUsuarios = new ConsoleRegistroDeErrosGateway();
+
 // Adapta a porta IN RegistrarAcao (módulo auditoria) à porta própria de usuarios (arquitetura.md,
 // seção 3.11). Devolve o Result de verdade — quem chama (CriarUsuario) decide se trata como fatal.
 function auditoriaViaModuloAuditoria(): AuditoriaPort {
@@ -45,7 +49,11 @@ function auditoriaViaModuloAuditoria(): AuditoriaPort {
 
 export async function makeLogin(): Promise<LoginPort> {
   const supabase = await createSupabaseServer();
-  return new Login(new SupabaseSessaoGateway(supabase), new SupabaseUsuarioRepository(supabase));
+  return new Login(
+    new SupabaseSessaoGateway(supabase),
+    new SupabaseUsuarioRepository(supabase),
+    errosUsuarios,
+  );
 }
 
 export async function makeLogout(): Promise<LogoutPort> {
@@ -58,6 +66,7 @@ export async function makeObterSessao(): Promise<ObterSessaoPort> {
   return new ObterSessao(
     new SupabaseSessaoGateway(supabase),
     new SupabaseUsuarioRepository(supabase),
+    errosUsuarios,
   );
 }
 
@@ -66,6 +75,7 @@ export async function makeListarSetores(): Promise<ListarSetoresPort> {
   return new ListarSetores(
     new SupabaseSessaoGateway(supabase),
     new SupabaseUsuarioRepository(supabase),
+    errosUsuarios,
   );
 }
 
@@ -76,6 +86,7 @@ export async function makeCriarUsuario(): Promise<CriarUsuarioPort> {
     new SupabaseUsuarioRepository(supabase),
     new SupabaseAuthAdminGateway(createSupabaseAdmin()),
     auditoriaViaModuloAuditoria(),
+    errosUsuarios,
   );
 }
 
@@ -86,6 +97,7 @@ export async function makeTrocarSenha(): Promise<TrocarSenhaPort> {
     new SupabaseUsuarioRepository(supabase),
     new SupabaseFinalizarTrocaSenhaGateway(createSupabaseAdmin()),
     auditoriaViaModuloAuditoria(),
+    errosUsuarios,
   );
 }
 
@@ -105,6 +117,7 @@ export async function makeDesativarUsuario(): Promise<DesativarUsuarioPort> {
     new SupabaseUsuarioRepository(supabase),
     new SupabaseDesativacaoGateway(supabaseAdmin),
     new SupabaseAuthAdminGateway(supabaseAdmin),
+    errosUsuarios,
   );
 }
 

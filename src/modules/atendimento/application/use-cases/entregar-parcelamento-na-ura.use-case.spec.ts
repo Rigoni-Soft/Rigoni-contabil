@@ -9,6 +9,7 @@ import type {
   GuiaEntregue,
   ParcelamentoDoCliente,
 } from "@/modules/atendimento/application/ports/out/parcelamentos-do-cliente.provider";
+import type { RegistroDeErrosPort } from "@/modules/atendimento/application/ports/out/registro-de-erros.provider";
 import type { ChaveGuia } from "@/modules/atendimento/domain/services/guia-guardada.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
@@ -16,6 +17,8 @@ import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { EntregarParcelamentoNaUra } from "./entregar-parcelamento-na-ura.use-case";
+
+const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 const TELEFONE = "5511912345678";
 // 20/10/2026 em São Paulo: mês corrente 202610, anterior 202609.
@@ -130,6 +133,7 @@ function montar(
       reagir: async () => ok(undefined),
     },
     { agora: () => AGORA },
+    erros,
   );
   const executar = () => caso.execute({ clienteId: "c1", telefone: TELEFONE });
   return {
@@ -322,7 +326,7 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
   });
 
   it("falha ao ler as guias já entregues: nada é emitido nem enviado e todos os comuns são listados", async () => {
-    const log = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    jest.mocked(erros.registrar).mockClear();
     const { executar, documentos, registrados, buscas, mensagens } = montar(
       [parcelamento("1"), parcelamento("2", { parcelasEnviadas: ["202610"] })],
       { entreguesFalha: true },
@@ -332,11 +336,10 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
     expect(registrados).toHaveLength(0);
     expect(buscas()).toBe(0);
     expect(mensagens[0].texto).toMatch(/COD-1.*COD-2/);
-    log.mockRestore();
   });
 
   it("registro não elegível após o envio: o contato recebeu, então não há aviso de falha", async () => {
-    const log = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    const log = jest.mocked(erros.registrar).mockClear();
     const { executar, documentos, mensagens } = montar([parcelamento("1")], {
       registro: "nao_elegivel",
     });
@@ -344,7 +347,6 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
     expect(documentos).toHaveLength(1);
     expect(mensagens).toHaveLength(0);
     expect(log).toHaveBeenCalledTimes(1);
-    log.mockRestore();
   });
 
   it("guia que pertence ao interno não é entregue ao comum nem o interno é mencionado", async () => {
@@ -368,7 +370,6 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
   ])(
     "%s ao emitir a nova de um: reenvia o já registrado e lista só o afetado",
     async (_nome, guias) => {
-      jest.spyOn(console, "error").mockImplementation(() => undefined);
       const { executar, documentos, mensagens, registrados } = montar(
         [parcelamento("1"), parcelamento("2", { parcelasEnviadas: ["202610"] })],
         { guias },
@@ -383,7 +384,6 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
   );
 
   it("falha ao emitir com todos sem registro: lista todos os afetados", async () => {
-    jest.spyOn(console, "error").mockImplementation(() => undefined);
     const { executar, documentos, mensagens } = montar([parcelamento("1"), parcelamento("2")], {
       guias: err(new ServicoExternoError("serpro")),
     });

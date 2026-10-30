@@ -14,7 +14,7 @@ type Props = {
   clienteId: string;
   documentosIniciais?: DocumentoContratualVisivelDto[];
   podeAnexar?: boolean;
-  // Nº da alteração do aviso por onde se chegou (#144).
+  // Nº da alteração do aviso por onde se chegou.
   alteracaoEmFoco?: number;
 };
 

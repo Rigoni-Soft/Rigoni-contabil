@@ -4,6 +4,7 @@ import type {
 } from "@/modules/usuarios/application/ports/in/desativar-usuario.provider";
 import type { AuthAdminPort } from "@/modules/usuarios/application/ports/out/auth-admin.provider";
 import type { DesativacaoPort } from "@/modules/usuarios/application/ports/out/desativacao.provider";
+import type { RegistroDeErrosPort } from "@/modules/usuarios/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
 import { exigirAdmin } from "@/modules/usuarios/application/use-cases/exigir-admin.use-case";
@@ -20,6 +21,7 @@ export class DesativarUsuario implements DesativarUsuarioPort {
     private readonly usuarios: UsuarioRepository,
     private readonly desativacao: DesativacaoPort,
     private readonly authAdmin: AuthAdminPort,
+    private readonly erros: RegistroDeErrosPort,
   ) {}
 
   async execute({ usuarioId }: DesativarUsuarioInput): Promise<Result<void, AppError>> {
@@ -51,7 +53,7 @@ export class DesativarUsuario implements DesativarUsuarioPort {
 
     // O usuário JÁ está desativado e auditado (a RLS já nega o acesso); só o bloqueio no Auth
     // falhou. Não apresenta isso como falha total (mesmo padrão do EstadoInconsistenteError).
-    console.error(
+    this.erros.registrar(
       `Falha ao bloquear conta desativada (id=${alvo.value.id}):`,
       registrado.error.message,
     );

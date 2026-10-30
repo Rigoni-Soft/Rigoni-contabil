@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
 import type { ResponsavelClienteRepository } from "@/modules/clientes/application/ports/out/responsavel-cliente.repository";
+import { ConsoleRegistroDeErrosGateway } from "@/modules/clientes/infra/gateways/console-registro-de-erros.gateway";
 import { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
@@ -16,7 +18,10 @@ class PersistenciaError extends AppError {
 // gravar por este caminho. O SN guarda em `responsavel_id` do cadastro operacional; os demais
 // Setores, em `cliente_responsaveis` (um por Cliente e Setor).
 export class SupabaseResponsavelClienteRepository implements ResponsavelClienteRepository {
-  constructor(private readonly supabase: SupabaseClient) {}
+  constructor(
+    private readonly supabase: SupabaseClient,
+    private readonly erros: RegistroDeErrosPort = new ConsoleRegistroDeErrosGateway(),
+  ) {}
 
   async atribuir(
     clienteId: string,
@@ -32,7 +37,7 @@ export class SupabaseResponsavelClienteRepository implements ResponsavelClienteR
 
     if (error) {
       if (error.code === "42501") return err(new ForbiddenError(error.message));
-      console.error("Falha ao atribuir Responsável:", error.message);
+      this.erros.registrar("Falha ao atribuir Responsável:", error.message);
       return err(
         new PersistenciaError("Não foi possível atribuir o Responsável. Tente novamente."),
       );
@@ -74,7 +79,7 @@ export class SupabaseResponsavelClienteRepository implements ResponsavelClienteR
         }),
       );
     }
-    console.error("Falha ao atribuir Responsável:", error.message);
+    this.erros.registrar("Falha ao atribuir Responsável:", error.message);
     return err(new PersistenciaError("Não foi possível atribuir o Responsável. Tente novamente."));
   }
 }

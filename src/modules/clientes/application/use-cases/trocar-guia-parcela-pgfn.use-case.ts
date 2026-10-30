@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   TrocarGuiaParcelaPgfnInput,
   TrocarGuiaParcelaPgfnPort,
 } from "@/modules/clientes/application/ports/in/trocar-guia-parcela-pgfn.provider";
@@ -8,6 +8,7 @@ import type {
   GuiaParcelaPgfnRepository,
 } from "@/modules/clientes/application/ports/out/guia-parcela-pgfn.repository";
 import type { LeitorDeGuiaDeParcelaPort } from "@/modules/clientes/application/ports/out/leitor-de-guia-de-parcela.provider";
+import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
 import {
   apagarObjeto,
@@ -34,6 +35,7 @@ export class TrocarGuiaParcelaPgfn implements TrocarGuiaParcelaPgfnPort {
     private readonly guias: GuiaParcelaPgfnRepository,
     private readonly storage: ArquivoInspecionavelPort,
     private readonly leitor: LeitorDeGuiaDeParcelaPort,
+    private readonly erros: RegistroDeErrosPort,
   ) {}
 
   async execute(input: TrocarGuiaParcelaPgfnInput): Promise<Result<GuiaDaParcela, AppError>> {
@@ -74,7 +76,8 @@ export class TrocarGuiaParcelaPgfn implements TrocarGuiaParcelaPgfnPort {
     if (!enviado.ok) return enviado;
 
     const recusa = await revalidarPdfNoStorage(this.storage, caminho);
-    if (recusa) return desfazerUpload(this.storage, input.parcelamentoId, caminho, recusa);
+    if (recusa)
+      return desfazerUpload(this.storage, this.erros, input.parcelamentoId, caminho, recusa);
 
     const trocada = await this.guias.substituir(
       input.parcelamentoId,
@@ -83,23 +86,33 @@ export class TrocarGuiaParcelaPgfn implements TrocarGuiaParcelaPgfnPort {
       motivo,
     );
     if (!trocada.ok) {
-      if (trocada.error instanceof ResultadoIncertoError) {
-        const gravou = await this.guias.gravada(input.parcelamentoId, competencia, caminho);
-        // Resposta perdida não prova rollback: sem a leitura confirmando a troca, nenhum arquivo é apagado.
-        if (!gravou.ok || !gravou.value) {
-          return err(
-            new EstadoInconsistenteError(
-              `Não foi possível confirmar se a guia foi trocada. Os arquivos foram mantidos (${caminho}); recarregue a página e confira antes de tentar de novo.`,
-              input.parcelamentoId,
-            ),
-          );
-        }
-      } else {
-        return desfazerUpload(this.storage, input.parcelamentoId, caminho, trocada.error);
+      if (!(trocada.error instanceof ResultadoIncertoError)) {
+        return desfazerUpload(
+          this.storage,
+          this.erros,
+          input.parcelamentoId,
+          caminho,
+          trocada.error,
+        );
+      }
+      const gravou = await this.guias.gravada(input.parcelamentoId, competencia, caminho);
+      // Resposta perdida não prova rollback: sem a leitura confirmando a troca, nenhum arquivo é apagado.
+      if (!gravou.ok || !gravou.value) {
+        return err(
+          new EstadoInconsistenteError(
+            `Não foi possível confirmar se a guia foi trocada. Os arquivos foram mantidos (${caminho}); recarregue a página e confira antes de tentar de novo.`,
+            input.parcelamentoId,
+          ),
+        );
       }
     }
 
-    await apagarObjeto(this.storage, `troca, parcelamento=${input.parcelamentoId}`, antigo.value);
+    await apagarObjeto(
+      this.storage,
+      this.erros,
+      `troca, parcelamento=${input.parcelamentoId}`,
+      antigo.value,
+    );
     return confirmarOuManter(
       this.guias,
       input.parcelamentoId,

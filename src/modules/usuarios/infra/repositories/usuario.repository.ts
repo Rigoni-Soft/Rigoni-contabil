@@ -1,16 +1,21 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import type { RegistroDeErrosPort } from "@/modules/usuarios/application/ports/out/registro-de-erros.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
 import type { Usuario, UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
 import type { Setor } from "@/modules/usuarios/domain/value-objects/setor.vo";
 import { perfilRowSchema } from "@/modules/usuarios/infra/dtos/perfil-row.dto";
+import { ConsoleRegistroDeErrosGateway } from "@/modules/usuarios/infra/gateways/console-registro-de-erros.gateway";
 import { perfilParaUsuario } from "@/modules/usuarios/infra/mappers/perfil-para-usuario.mapper";
 import type { AppError } from "@/shared/errors/app.error";
 import { PersistenciaError } from "@/shared/errors/persistencia.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 export class SupabaseUsuarioRepository implements UsuarioRepository {
-  constructor(private readonly supabase: SupabaseClient) {}
+  constructor(
+    private readonly supabase: SupabaseClient,
+    private readonly erros: RegistroDeErrosPort = new ConsoleRegistroDeErrosGateway(),
+  ) {}
 
   async buscarPorId(id: UsuarioId): Promise<Result<Usuario | null, AppError>> {
     const { data, error } = await this.supabase
@@ -24,7 +29,7 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
     // Detalhe fica só no log do servidor; quem chama decide como apresentar o erro sem expô-lo.
     if (error) {
       const mensagem = `Falha ao buscar perfil (id=${id}): ${error.message}`;
-      console.error(mensagem);
+      this.erros.registrar(mensagem);
       return err(new PersistenciaError(mensagem));
     }
     if (!data) return ok(null);
@@ -39,7 +44,7 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
       .is("desativado_em", null)
       .order("nome");
     if (error) {
-      console.error(`Falha ao listar perfis: ${error.message}`);
+      this.erros.registrar(`Falha ao listar perfis: ${error.message}`);
       return err(new PersistenciaError("Falha ao listar usuários."));
     }
 
@@ -54,7 +59,7 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
       .is("banido_em", null)
       .order("nome");
     if (error) {
-      console.error(`Falha ao listar bloqueios pendentes: ${error.message}`);
+      this.erros.registrar(`Falha ao listar bloqueios pendentes: ${error.message}`);
       return err(new PersistenciaError("Falha ao listar usuários."));
     }
     return this.paraUsuarios(data);
@@ -79,7 +84,7 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
       .is("desativado_em", null)
       .maybeSingle();
     if (error) {
-      console.error(`Falha ao buscar líder do setor ${setor.slug}: ${error.message}`);
+      this.erros.registrar(`Falha ao buscar líder do setor ${setor.slug}: ${error.message}`);
       return err(new PersistenciaError("Falha ao verificar o líder do setor."));
     }
     return data ? this.paraUsuario(data) : ok(null);
@@ -94,7 +99,7 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
     const resultado = perfilParaUsuario(row);
     if (!resultado.ok) {
       const mensagem = `Perfil salvo com dados inválidos (id=${row.id}): ${resultado.error.message}`;
-      console.error(mensagem);
+      this.erros.registrar(mensagem);
       return err(new PersistenciaError(mensagem));
     }
     return ok(resultado.value);

@@ -4,8 +4,10 @@ import type {
 } from "@/modules/usuarios/application/ports/in/trocar-senha.provider";
 import type { AuditoriaPort } from "@/modules/usuarios/application/ports/out/auditoria.provider";
 import type { FinalizarTrocaSenhaPort } from "@/modules/usuarios/application/ports/out/finalizar-troca-senha.provider";
+import type { RegistroDeErrosPort } from "@/modules/usuarios/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
+import type { UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
@@ -18,6 +20,7 @@ export class TrocarSenha implements TrocarSenhaPort {
     private readonly usuarios: UsuarioRepository,
     private readonly finalizarTrocaSenha: FinalizarTrocaSenhaPort,
     private readonly auditoria: AuditoriaPort,
+    private readonly erros: RegistroDeErrosPort,
   ) {}
 
   async execute({ novaSenha }: TrocarSenhaInput): Promise<Result<void, AppError>> {
@@ -40,32 +43,8 @@ export class TrocarSenha implements TrocarSenhaPort {
     const authJaAlterado = primeiroAcesso && usuario.authJaAlterado();
 
     if (!authJaAlterado) {
-      const trocada = await this.sessao.trocarSenha(novaSenha);
-      if (!trocada.ok) {
-        const senhaJaDefinida = trocada.error.code === "SENHA_JA_DEFINIDA";
-        // Fora do primeiro acesso, same_password é reenvio legítimo (a auditoria
-        // é o último passo e nada ficou gravado). Em primeiro acesso, sem prova
-        // de Auth alterado, só pode ser o usuário reenviando a senha provisória.
-        if (!senhaJaDefinida || primeiroAcesso) {
-          return senhaJaDefinida
-            ? err(
-                new ValidationError("A nova senha não pode ser igual à senha atual.", {
-                  novaSenha: ["não pode repetir a senha provisória atual"],
-                }),
-              )
-            : trocada;
-        }
-      }
-
-      if (primeiroAcesso) {
-        // Best-effort: se falhar, finalizar() abaixo ainda tenta concluir; se
-        // ambos falharem o retry cai em same_password e é recusado (seguro —
-        // nunca finaliza sem prova), pedindo outra senha.
-        const registrada = await this.finalizarTrocaSenha.registrarAuthAlterado(id);
-        if (!registrada.ok) {
-          console.error("Falha ao registrar prova de Auth alterado:", registrada.error.message);
-        }
-      }
+      const trocada = await this.trocarNoAuth(id, novaSenha, primeiroAcesso);
+      if (trocada) return trocada;
     }
 
     // A partir daqui a senha já mudou no Auth — não existe compensação possível:
@@ -77,7 +56,7 @@ export class TrocarSenha implements TrocarSenhaPort {
       // sem auditoria duplicada.
       const finalizada = await this.finalizarTrocaSenha.finalizar(id);
       if (!finalizada.ok) {
-        console.error(
+        this.erros.registrar(
           "Falha ao finalizar troca de senha (senha já alterada no Auth):",
           finalizada.error.message,
         );
@@ -102,7 +81,7 @@ export class TrocarSenha implements TrocarSenhaPort {
       resultado: "sucesso",
     });
     if (!auditoria.ok) {
-      console.error(
+      this.erros.registrar(
         "Falha ao registrar auditoria da troca de senha (senha já alterada):",
         auditoria.error.message,
       );
@@ -115,5 +94,39 @@ export class TrocarSenha implements TrocarSenhaPort {
     }
 
     return ok(undefined);
+  }
+
+  // Devolve o Result a propagar quando a troca no Auth deve parar o fluxo; undefined = seguir.
+  private async trocarNoAuth(
+    id: UsuarioId,
+    novaSenha: string,
+    primeiroAcesso: boolean,
+  ): Promise<Result<void, AppError> | undefined> {
+    const trocada = await this.sessao.trocarSenha(novaSenha);
+    if (!trocada.ok) {
+      const senhaJaDefinida = trocada.error.code === "SENHA_JA_DEFINIDA";
+      // Fora do primeiro acesso, same_password é reenvio legítimo (a auditoria
+      // é o último passo e nada ficou gravado). Em primeiro acesso, sem prova
+      // de Auth alterado, só pode ser o usuário reenviando a senha provisória.
+      if (senhaJaDefinida && primeiroAcesso) return err(this.senhaRepetida());
+      if (!senhaJaDefinida) return trocada;
+    }
+    if (primeiroAcesso) await this.registrarProva(id);
+    return undefined;
+  }
+
+  private senhaRepetida(): ValidationError {
+    return new ValidationError("A nova senha não pode ser igual à senha atual.", {
+      novaSenha: ["não pode repetir a senha provisória atual"],
+    });
+  }
+
+  // Best-effort: se falhar, finalizar() ainda tenta concluir; se ambos falharem o retry cai em
+  // same_password e é recusado (seguro — nunca finaliza sem prova), pedindo outra senha.
+  private async registrarProva(id: UsuarioId): Promise<void> {
+    const registrada = await this.finalizarTrocaSenha.registrarAuthAlterado(id);
+    if (!registrada.ok) {
+      this.erros.registrar("Falha ao registrar prova de Auth alterado:", registrada.error.message);
+    }
   }
 }

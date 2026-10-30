@@ -5,6 +5,7 @@ import type {
   ParcelamentoDaGuia,
 } from "@/modules/clientes/application/ports/out/guia-parcela-pgfn.repository";
 import type { LeitorDeGuiaDeParcelaPort } from "@/modules/clientes/application/ports/out/leitor-de-guia-de-parcela.provider";
+import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
 import type {
   AtorSessaoDto,
   SessaoPort,
@@ -18,6 +19,8 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { AnexarGuiaParcelaPgfn } from "./anexar-guia-parcela-pgfn.use-case";
+
+const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 const CLIENTE_ID = "c1c1c1c1-c1c1-4c1c-8c1c-c1c1c1c1c1c1";
 const PARCELAMENTO_ID = "d2d2d2d2-d2d2-4d2d-8d2d-d2d2d2d2d2d2";
@@ -102,7 +105,7 @@ function montar(
     gravada,
     ler,
     storage,
-    caso: new AnexarGuiaParcelaPgfn(sessao, guias, storage, { ler }),
+    caso: new AnexarGuiaParcelaPgfn(sessao, guias, storage, { ler }, erros),
   };
 }
 
@@ -182,7 +185,7 @@ describe("AnexarGuiaParcelaPgfn", () => {
       expect(ler).toHaveBeenCalledWith(expect.any(Uint8Array));
       expect(anexar).toHaveBeenCalledTimes(1);
       expect(anexar).toHaveBeenCalledWith(PARCELAMENTO_ID, expect.anything(), null);
-      // A confirmação vale só para a versão lida: o caminho do PDF gravado vai junto (F3 da PR #194).
+      // A confirmação vale só para a versão lida: o caminho do PDF gravado vai junto.
       expect(confirmar).toHaveBeenCalledWith(PARCELAMENTO_ID, "202610", storage.enviados[0]);
     });
 
@@ -302,7 +305,6 @@ describe("AnexarGuiaParcelaPgfn", () => {
     const { caso, anexar, storage } = montar();
     anexar.mockResolvedValue(err(new ValidationError("falha")));
     storage.falharAoRemover = true;
-    jest.spyOn(console, "error").mockImplementation(() => undefined);
 
     expect(await caso.execute(INPUT)).toMatchObject({
       ok: false,

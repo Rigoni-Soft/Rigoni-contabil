@@ -5,7 +5,9 @@ import type {
   GuiaParcelaPgfnRepository,
   ParcelamentoDaGuia,
 } from "@/modules/clientes/application/ports/out/guia-parcela-pgfn.repository";
+import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
 import type { GuiaParcelaPgfnProps } from "@/modules/clientes/domain/value-objects/guia-parcela-pgfn.vo";
+import { ConsoleRegistroDeErrosGateway } from "@/modules/clientes/infra/gateways/console-registro-de-erros.gateway";
 import { AppError } from "@/shared/errors/app.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ResultadoIncertoError } from "@/shared/errors/resultado-incerto.error";
@@ -29,7 +31,10 @@ type GuiaRow = {
 };
 
 export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnRepository {
-  constructor(private readonly supabase: SupabaseClient) {}
+  constructor(
+    private readonly supabase: SupabaseClient,
+    private readonly erros: RegistroDeErrosPort = new ConsoleRegistroDeErrosGateway(),
+  ) {}
 
   async parcelamento(parcelamentoId: string): Promise<Result<ParcelamentoDaGuia | null, AppError>> {
     const { data, error } = await this.supabase
@@ -38,7 +43,7 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
       .eq("id", parcelamentoId)
       .maybeSingle();
     if (error) {
-      console.error("Falha ao buscar o Parcelamento da guia:", error.message);
+      this.erros.registrar("Falha ao buscar o Parcelamento da guia:", error.message);
       return err(new PersistenciaError("Não foi possível carregar o Parcelamento."));
     }
     if (!data) return ok(null);
@@ -49,7 +54,7 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
       .eq("id", data.cliente_id)
       .maybeSingle();
     if (cliente.error || !cliente.data) {
-      console.error("Falha ao buscar o Cliente da guia:", cliente.error?.message);
+      this.erros.registrar("Falha ao buscar o Cliente da guia:", cliente.error?.message);
       return err(new PersistenciaError("Não foi possível carregar o Cliente do Parcelamento."));
     }
     return ok({
@@ -67,7 +72,7 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
       .eq("parcelamento_id", parcelamentoId)
       .order("competencia", { ascending: false });
     if (error) {
-      console.error("Falha ao listar guias da parcela:", error.message);
+      this.erros.registrar("Falha ao listar guias da parcela:", error.message);
       return err(new PersistenciaError("Não foi possível carregar as guias anexadas."));
     }
     const envios = await this.supabase
@@ -75,7 +80,7 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
       .select("parcela")
       .eq("parcelamento_id", parcelamentoId);
     if (envios.error) {
-      console.error("Falha ao listar envios da parcela:", envios.error.message);
+      this.erros.registrar("Falha ao listar envios da parcela:", envios.error.message);
       return err(new PersistenciaError("Não foi possível carregar as guias anexadas."));
     }
     const enviadas = new Set(envios.data.map((e) => e.parcela));
@@ -105,7 +110,7 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
     });
     if (!error) return ok(undefined);
 
-    console.error("Falha ao anexar guia da parcela:", error.message);
+    this.erros.registrar("Falha ao anexar guia da parcela:", error.message);
     if (semDesfechoConhecido(status)) {
       return err(new ResultadoIncertoError("Não foi possível confirmar o anexo da guia."));
     }
@@ -134,7 +139,7 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
       .eq("arquivo_caminho", versao)
       .select("competencia");
     if (error) {
-      console.error("Falha ao confirmar guia da parcela:", error.message);
+      this.erros.registrar("Falha ao confirmar guia da parcela:", error.message);
       return err(
         new PersistenciaError(
           error.code === "23514"
@@ -162,7 +167,7 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
       .eq("competencia", competencia)
       .maybeSingle();
     if (error) {
-      console.error("Falha ao buscar o PDF da guia da parcela:", error.message);
+      this.erros.registrar("Falha ao buscar o PDF da guia da parcela:", error.message);
       return err(new PersistenciaError("Não foi possível carregar a guia."));
     }
     return ok(data?.arquivo_caminho ?? null);
@@ -201,7 +206,7 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
       .eq("competencia", competencia)
       .select("competencia");
     if (error) {
-      console.error(`Falha ao ${acao} a guia da parcela:`, error.message);
+      this.erros.registrar(`Falha ao ${acao} a guia da parcela:`, error.message);
       if (semDesfechoConhecido(status)) {
         return err(new ResultadoIncertoError(`Não foi possível confirmar: ${acao} a guia.`));
       }

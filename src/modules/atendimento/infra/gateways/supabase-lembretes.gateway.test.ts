@@ -1,3 +1,4 @@
+import type { RegistroDeErrosPort } from "@/modules/atendimento/application/ports/out/registro-de-erros.provider";
 /**
  * Integração infra ↔ Supabase (testes.md, seção 3) do job de lembrete de documento e DAS:
  * leitura paginada dos Clientes, janela de 24h pela chave nacional do telefone, reserva/conclusão do
@@ -18,6 +19,8 @@ import { EnvioMensagemFalsoGateway } from "./envio-mensagem-falso.gateway";
 import { SupabaseAlertaSetorGateway } from "./supabase-alerta-setor.gateway";
 import { SupabaseClientesParaLembreteGateway } from "./supabase-clientes-para-lembrete.gateway";
 import { SupabaseGuiaPublicadaGateway } from "./supabase-guia-publicada.gateway";
+
+const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 const SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ??
@@ -667,7 +670,7 @@ describe("DAS pedido pela URA (#124)", () => {
   };
   const guiaDas = new ObterGuiaDasParaEnvio(provedor, guias, 0);
   const montarUra = (envio: EnvioMensagemFalsoGateway) =>
-    new EntregarDasNaUra(clientes, guiaDas, guias, envio, { agora: () => AGORA });
+    new EntregarDasNaUra(clientes, guiaDas, guias, envio, { agora: () => AGORA }, erros);
 
   beforeAll(async () => {
     alvo = await criarCliente(`(21) 9${sufixo.slice(0, 4)}-${sufixo.slice(4)}`);

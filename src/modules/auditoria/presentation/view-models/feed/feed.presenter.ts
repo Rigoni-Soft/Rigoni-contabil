@@ -1,4 +1,5 @@
 import type { RegistroAcaoDto } from "@/modules/auditoria/application/dtos/registro-acao.dto";
+import { FUSO_DE_NEGOCIO } from "@/shared/kernel/mes-atual";
 
 export type RegistroAcaoView = {
   id: string;
@@ -17,7 +18,7 @@ export function registroAcaoParaView(registro: RegistroAcaoDto): RegistroAcaoVie
   return {
     ...registro,
     dataHora: new Date(registro.dataHora).toLocaleString("pt-BR", {
-      timeZone: "America/Sao_Paulo",
+      timeZone: FUSO_DE_NEGOCIO,
     }),
   };
 }

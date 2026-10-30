@@ -59,7 +59,7 @@ type EntregaDeGuia = { andamento: Andamento; descontou: boolean; completa: boole
 
 // Entrega as guias de parcelamento do Cliente (job): o banco manda no que está pendente e cada
 // entrega aceita grava o registro de envio da parcela. O Parcelamento da Receita vem do provedor
-// fiscal; o da PGFN, das guias confirmadas à mão (#186), com o PDF do banco, até a competência do
+// fiscal; o da PGFN, das guias confirmadas à mão, com o PDF do banco, até a competência do
 // mês corrente e da mais antiga para a mais nova. Sem guia confirmada o job apenas pula (o lembrete
 // da PGFN avisa o setor). O comum vai ao Cliente pela forma de envio
 // dele; o interno só ao financeiro, por template, e nunca ao Cliente. Falha fechado: parcelamento

@@ -8,6 +8,7 @@ import type {
   RegistrarAcaoAuditoria,
 } from "@/modules/clientes/application/ports/out/auditoria.provider";
 import type { ClienteRepository } from "@/modules/clientes/application/ports/out/cliente.repository";
+import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
 import type {
   AtorSessaoDto,
   SessaoPort,
@@ -21,6 +22,8 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { CriarCliente } from "./criar-cliente.use-case";
+
+const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 const CNPJ_VALIDO = "11444777000161";
 
@@ -108,7 +111,7 @@ describe("CriarCliente", () => {
     const storage = new ArquivoStorageFalso();
     const auditoria = new AuditoriaFalsa();
 
-    const resultado = await new CriarCliente(sessao, clientes, storage, auditoria).execute(
+    const resultado = await new CriarCliente(sessao, clientes, storage, auditoria, erros).execute(
       INPUT_VALIDO,
     );
 
@@ -138,6 +141,7 @@ describe("CriarCliente", () => {
       clientes,
       new ArquivoStorageFalso(),
       new AuditoriaFalsa(),
+      erros,
     ).execute({ ...INPUT_VALIDO, email: "financeiro@padaria.com.br" });
 
     expect(resultado.ok && resultado.value.cliente.email).toBe("financeiro@padaria.com.br");
@@ -152,6 +156,7 @@ describe("CriarCliente", () => {
       clientes,
       new ArquivoStorageFalso(),
       new AuditoriaFalsa(),
+      erros,
     ).execute({ ...INPUT_VALIDO, email: "sem-arroba" });
 
     expect(resultado.ok).toBe(false);
@@ -164,7 +169,7 @@ describe("CriarCliente", () => {
     const storage = new ArquivoStorageFalso();
     const auditoria = new AuditoriaFalsa();
 
-    const resultado = await new CriarCliente(sessao, clientes, storage, auditoria).execute({
+    const resultado = await new CriarCliente(sessao, clientes, storage, auditoria, erros).execute({
       ...INPUT_VALIDO,
       contratoSocial: undefined,
     });
@@ -183,7 +188,7 @@ describe("CriarCliente", () => {
     const storage = new ArquivoStorageFalso();
     const auditoria = new AuditoriaFalsa();
 
-    const resultado = await new CriarCliente(sessao, clientes, storage, auditoria).execute({
+    const resultado = await new CriarCliente(sessao, clientes, storage, auditoria, erros).execute({
       ...INPUT_VALIDO,
       alteracoesContratuais: [],
     });
@@ -199,7 +204,7 @@ describe("CriarCliente", () => {
     const storage = new ArquivoStorageFalso();
     const auditoria = new AuditoriaFalsa();
 
-    const resultado = await new CriarCliente(sessao, clientes, storage, auditoria).execute(
+    const resultado = await new CriarCliente(sessao, clientes, storage, auditoria, erros).execute(
       INPUT_VALIDO,
     );
 
@@ -218,6 +223,7 @@ describe("CriarCliente", () => {
       new ClienteRepositoryFalso(),
       new ArquivoStorageFalso(),
       new AuditoriaFalsa(),
+      erros,
     ).execute(INPUT_VALIDO);
 
     expect(resultado.ok).toBe(false);
@@ -238,6 +244,7 @@ describe("CriarCliente", () => {
       clientes,
       storage,
       auditoria,
+      erros,
     ).execute({ ...INPUT_VALIDO, ...opcoes.input });
     return { resultado, clientes, storage, auditoria };
   }
@@ -321,7 +328,7 @@ describe("CriarCliente", () => {
   });
 
   it("falha da própria compensação vira EstadoInconsistenteError, observável e auditada", async () => {
-    const erroLog = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    const erroLog = jest.mocked(erros.registrar).mockClear();
     const { resultado, auditoria } = await falhando({
       clientes: (c) => (c.erroAoCriar = true),
       storage: (s) => (s.falharAoRemover = true),
@@ -333,12 +340,17 @@ describe("CriarCliente", () => {
       expect.objectContaining({ resultado: "falha_compensacao" }),
     ]);
     expect(erroLog).toHaveBeenCalledWith(expect.stringContaining("caminhos="), expect.any(String));
-    erroLog.mockRestore();
   });
 
   describe("resposta perdida da gravação (resultado incerto)", () => {
     function executar(clientes: ClienteRepositoryFalso, storage = new ArquivoStorageFalso()) {
-      const caso = new CriarCliente(new SessaoFalsa(), clientes, storage, new AuditoriaFalsa());
+      const caso = new CriarCliente(
+        new SessaoFalsa(),
+        clientes,
+        storage,
+        new AuditoriaFalsa(),
+        erros,
+      );
       return { storage, resultado: caso.execute(INPUT_VALIDO) };
     }
 

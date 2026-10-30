@@ -22,7 +22,7 @@ import {
 const VERSAO_API = "v21.0";
 const TIMEOUT_MS = 10_000;
 
-// Adapter real da porta EnvioMensagemPort (#68), pela WhatsApp Cloud API (Meta). 400 (número sem
+// Adapter real da porta EnvioMensagemPort, pela WhatsApp Cloud API (Meta). 400 (número sem
 // WhatsApp, janela de 24h, parâmetro inválido) não melhora ao repetir: ValidationError. O resto
 // (401/403 de credencial, 429 de limite de taxa, 5xx, rede) é falha do serviço: ServicoExternoError.
 export class EnvioMensagemWhatsappGateway implements EnvioMensagemPort {

@@ -1,6 +1,6 @@
 /**
  * Migration incremental que reconcilia as esperas sem destinatário criadas antes da espera dirigida
- * (#165): a espera de antes do corte passa ao Responsável do Cliente, o mesmo ID segue e só ele assume.
+ *: a espera de antes do corte passa ao Responsável do Cliente, o mesmo ID segue e só ele assume.
  * Requer `npx supabase start` local com migrations + seed aplicados.
  */
 import { readFileSync } from "node:fs";

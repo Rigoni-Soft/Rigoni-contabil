@@ -2,6 +2,8 @@
   LeitorDeGuiaDeParcelaPort,
   LeituraDeGuia,
 } from "@/modules/clientes/application/ports/out/leitor-de-guia-de-parcela.provider";
+import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
+import { ConsoleRegistroDeErrosGateway } from "@/modules/clientes/infra/gateways/console-registro-de-erros.gateway";
 
 import { centavos, dataIso, extrairTextoDoPdf, pega } from "./leitura-pdf.gateway";
 
@@ -28,13 +30,14 @@ function interpretar(texto: string): LeituraDeGuia {
 export class LeitorDeGuiaDeParcelaTextoGateway implements LeitorDeGuiaDeParcelaPort {
   constructor(
     private readonly extrairTexto: (pdf: Uint8Array) => Promise<string> = extrairTextoDoPdf,
+    private readonly erros: RegistroDeErrosPort = new ConsoleRegistroDeErrosGateway(),
   ) {}
 
   async ler(pdf: Uint8Array): Promise<LeituraDeGuia> {
     try {
       return interpretar((await this.extrairTexto(pdf)).replace(/\s+/g, " ").trim());
     } catch {
-      console.error("Leitor de guia: falha ao extrair o texto do PDF.");
+      this.erros.registrar("Leitor de guia: falha ao extrair o texto do PDF.");
       return NAO_LIDA;
     }
   }

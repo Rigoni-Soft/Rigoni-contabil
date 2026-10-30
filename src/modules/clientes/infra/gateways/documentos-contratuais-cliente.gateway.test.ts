@@ -1,5 +1,5 @@
 /**
- * Integração infra ↔ Supabase para a leitura do contrato social e das alterações (#140, S3d/S3e/S5a).
+ * Integração infra ↔ Supabase para a leitura do contrato social e das alterações.
  * Requer `npx supabase start` local com migrations + seed aplicados.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";

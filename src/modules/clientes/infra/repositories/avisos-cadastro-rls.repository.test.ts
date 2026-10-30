@@ -1,5 +1,5 @@
 /**
- * Integração infra ↔ Supabase para RLS, RPCs e lista dos Avisos de cadastro (#142, S3a–S3c).
+ * Integração infra ↔ Supabase para RLS, RPCs e lista dos Avisos de cadastro.
  * Requer `npx supabase start` local com migrations + seed aplicados. Cada papel entra com a sessão real.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";

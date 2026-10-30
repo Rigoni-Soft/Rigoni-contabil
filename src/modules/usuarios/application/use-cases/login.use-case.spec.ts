@@ -1,3 +1,4 @@
+import type { RegistroDeErrosPort } from "@/modules/usuarios/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
 import { Usuario, type UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
@@ -6,6 +7,8 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { Login } from "./login.use-case";
+
+const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 function usuarioFalso(id: string): Usuario {
   const resultado = Usuario.builder()
@@ -86,7 +89,7 @@ describe("Login", () => {
     const repositorio = new UsuarioRepositoryFalso();
     repositorio.usuario = usuarioFalso("11111111-1111-1111-1111-111111111111");
 
-    const resultado = await new Login(sessao, repositorio).execute({
+    const resultado = await new Login(sessao, repositorio, erros).execute({
       email: "admin@rigonicontabil.local",
       senha: "admin123",
     });
@@ -100,7 +103,7 @@ describe("Login", () => {
     sessao.credenciaisValidas = false;
     const repositorio = new UsuarioRepositoryFalso();
 
-    const resultado = await new Login(sessao, repositorio).execute({
+    const resultado = await new Login(sessao, repositorio, erros).execute({
       email: "x@x.com",
       senha: "errada",
     });
@@ -113,7 +116,7 @@ describe("Login", () => {
     const repositorio = new UsuarioRepositoryFalso();
     repositorio.usuario = null;
 
-    const resultado = await new Login(sessao, repositorio).execute({
+    const resultado = await new Login(sessao, repositorio, erros).execute({
       email: "sem-perfil@rigonicontabil.local",
       senha: "123456",
     });
@@ -126,7 +129,7 @@ describe("Login", () => {
     const repositorio = new UsuarioRepositoryFalso();
     repositorio.usuario = null;
 
-    await new Login(sessao, repositorio).execute({
+    await new Login(sessao, repositorio, erros).execute({
       email: "sem-perfil@rigonicontabil.local",
       senha: "123456",
     });
@@ -139,7 +142,7 @@ describe("Login", () => {
     const repositorio = new UsuarioRepositoryFalso();
     repositorio.erroTecnico = new ForbiddenError("Falha ao buscar perfil: conexão recusada");
 
-    const resultado = await new Login(sessao, repositorio).execute({
+    const resultado = await new Login(sessao, repositorio, erros).execute({
       email: "admin@rigonicontabil.local",
       senha: "admin123",
     });
@@ -154,7 +157,7 @@ describe("Login", () => {
     sessao.idAposLogin = null;
     const repositorio = new UsuarioRepositoryFalso();
 
-    await new Login(sessao, repositorio).execute({
+    await new Login(sessao, repositorio, erros).execute({
       email: "admin@rigonicontabil.local",
       senha: "admin123",
     });
@@ -168,7 +171,7 @@ describe("Login", () => {
     sessao.falhaAoEncerrar = true;
     const repositorio = new UsuarioRepositoryFalso();
 
-    const resultado = await new Login(sessao, repositorio).execute({
+    const resultado = await new Login(sessao, repositorio, erros).execute({
       email: "admin@rigonicontabil.local",
       senha: "admin123",
     });
@@ -182,7 +185,7 @@ describe("Login", () => {
     const repositorio = new UsuarioRepositoryFalso();
     repositorio.usuario = usuarioFalso("11111111-1111-1111-1111-111111111111");
 
-    await new Login(sessao, repositorio).execute({
+    await new Login(sessao, repositorio, erros).execute({
       email: "admin@rigonicontabil.local",
       senha: "admin123",
     });
@@ -199,7 +202,7 @@ describe("Login", () => {
       vencida,
     );
 
-    const resultado = await new Login(sessao, repositorio).execute({
+    const resultado = await new Login(sessao, repositorio, erros).execute({
       email: "admin@rigonicontabil.local",
       senha: "admin123",
     });
@@ -217,7 +220,7 @@ describe("Login", () => {
       noPrazo,
     );
 
-    const resultado = await new Login(sessao, repositorio).execute({
+    const resultado = await new Login(sessao, repositorio, erros).execute({
       email: "admin@rigonicontabil.local",
       senha: "admin123",
     });
@@ -242,7 +245,7 @@ describe("Login", () => {
     if (!resultadoBuilder.ok) throw new Error("setup inválido");
     repositorio.usuario = resultadoBuilder.value;
 
-    const resultado = await new Login(sessao, repositorio).execute({
+    const resultado = await new Login(sessao, repositorio, erros).execute({
       email: "jessica@rigonicontabil.local",
       senha: "qualquer",
     });

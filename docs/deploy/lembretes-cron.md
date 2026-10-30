@@ -33,7 +33,7 @@ Antes de ligar em produção:
   até 3 vezes (2 s entre elas) antes de virar alerta `falha_envio`. Cada envio repete sozinho: o
   texto que já chegou não sai de novo quando só o documento falhou. Sem autorização vigente ou
   destinatário inválido não repete.
-- **Reserva do envio do DAS (R87-01):** antes de buscar e enviar, o job reserva a entrega
+- **Reserva do envio do DAS:** antes de buscar e enviar, o job reserva a entrega
   (`reservar_envio_automatico`, tabela `envios_automaticos`: um token por Cliente e tipo, validade
   de 15 min). A reserva **não muda o DAS**: ele só vira `enviado` (com a data, auditado com a URA)
   ao concluir, depois de a entrega ser aceita, e só com o token da reserva. Quem não reservou (outro
@@ -54,10 +54,10 @@ Antes de ligar em produção:
   outro canal.
 - **Guia no template:** o PDF vai para o bucket privado `guias-fiscais` e o provedor busca por link
   assinado (7 dias). Os PDFs não são removidos (ver `ponytail:` no gateway).
-- **Leitura completa (R87-03):** os Clientes vêm em páginas de 500 por cursor (`cliente_id`),
+- **Leitura completa:** os Clientes vêm em páginas de 500 por cursor (`cliente_id`),
   abaixo do `max_rows` do PostgREST. A leitura é completa ou erro: página que falha não vira rodada
   parcial.
-- **Janela de 24h (R87-04):** consultada pela chave **nacional** do telefone (DDD + número, a que o
+- **Janela de 24h:** consultada pela chave **nacional** do telefone (DDD + número, a que o
   recebimento grava em `atendimentos.chave_telefone`); o telefone de envio vai com o DDI 55.
 - **Alertas:** `alertas_setor`, um aberto por Cliente e tipo (índice parcial). Repetir o alerta
   renova a mensagem e a data; ao fim da rodada o que não foi renovado é resolvido (o Cliente

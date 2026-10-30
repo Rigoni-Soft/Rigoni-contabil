@@ -13,6 +13,7 @@ import type {
   GuiasFiscaisPort,
   TipoGuia,
 } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
+import type { RegistroDeErrosPort } from "@/modules/atendimento/application/ports/out/registro-de-erros.provider";
 import type {
   AtorSessaoDto,
   SessaoPort,
@@ -49,6 +50,7 @@ export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
     private readonly guias: GuiasFiscaisPort,
     private readonly envio: EnvioMensagemPort,
     private readonly auditoria: AuditoriaPort,
+    private readonly erros: RegistroDeErrosPort,
   ) {}
 
   async execute({
@@ -136,7 +138,7 @@ export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
       guia = await this.guias.buscar(clienteId, tipo);
     } catch (erro) {
       // Só a mensagem: o objeto de erro inteiro poderia levar o CNPJ ao log.
-      console.error(
+      this.erros.registrar(
         `Falha inesperada ao buscar a guia ${tipo}:`,
         erro instanceof Error ? erro.message : "erro desconhecido",
       );

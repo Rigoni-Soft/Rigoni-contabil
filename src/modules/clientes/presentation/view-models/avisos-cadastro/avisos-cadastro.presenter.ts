@@ -3,6 +3,7 @@ import type {
   AvisoCadastroDto,
   TipoAvisoCadastro,
 } from "@/modules/clientes/application/dtos/aviso-cadastro.dto";
+import { FUSO_DE_NEGOCIO } from "@/shared/kernel/mes-atual";
 
 // O hook não importa a View (arquitetura.md): o tipo chega por aqui.
 export type { AvisoDeCadastro };
@@ -13,7 +14,7 @@ const TITULO: Record<TipoAvisoCadastro, string> = {
 };
 
 const QUANDO = new Intl.DateTimeFormat("pt-BR", {
-  timeZone: "America/Sao_Paulo",
+  timeZone: FUSO_DE_NEGOCIO,
   dateStyle: "short",
   timeStyle: "short",
 });

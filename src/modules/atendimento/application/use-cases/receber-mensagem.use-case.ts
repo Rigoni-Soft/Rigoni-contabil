@@ -27,6 +27,7 @@ import type {
   ContatoIdentificado,
   IdentificacaoContatoPort,
 } from "@/modules/atendimento/application/ports/out/identificacao-contato.provider";
+import type { RegistroDeErrosPort } from "@/modules/atendimento/application/ports/out/registro-de-erros.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import type {
   SessaoAtendimento,
@@ -177,6 +178,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
     private readonly guias: GuiasFiscaisPort,
     private readonly dasNaUra: EntregarNaUraPort,
     private readonly parcelamentoNaUra: EntregarNaUraPort,
+    private readonly erros: RegistroDeErrosPort,
   ) {}
 
   async execute(mensagem: MensagemRecebida): Promise<Result<void, AppError>> {
@@ -409,7 +411,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
 
   // Só a mensagem: o objeto de erro inteiro poderia levar o CNPJ ao log.
   private falhaInesperadaDaGuia(telefone: string, tipo: TipoGuia, erro: unknown) {
-    console.error(
+    this.erros.registrar(
       `Falha inesperada ao buscar a guia ${tipo}:`,
       erro instanceof Error ? erro.message : "erro desconhecido",
     );
@@ -420,7 +422,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
   // fora do ar) é problema do sistema e precisa de rastro. Sem CNPJ no log.
   private falhaDaGuia(telefone: string, tipo: TipoGuia, erro: AppError) {
     if (erro instanceof ForbiddenError) return this.enviar(telefone, SEM_AUTORIZACAO_FISCAL);
-    console.error(`Falha ao buscar a guia ${tipo}:`, erro.message);
+    this.erros.registrar(`Falha ao buscar a guia ${tipo}:`, erro.message);
     return this.enviar(telefone, GUIA_INDISPONIVEL);
   }
 

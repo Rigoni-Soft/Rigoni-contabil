@@ -6,12 +6,15 @@ import type { AuditoriaPort } from "@/modules/atendimento/application/ports/out/
 import type { DocumentosContratuaisPort } from "@/modules/atendimento/application/ports/out/documentos-contratuais.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type { GuiasFiscaisPort } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
+import type { RegistroDeErrosPort } from "@/modules/atendimento/application/ports/out/registro-de-erros.provider";
 import type { AtorSessaoDto } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok } from "@/shared/kernel/result";
 
 import { EnviarDocumentoAoCliente } from "./enviar-documento-ao-cliente.use-case";
+
+const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 const ATENDIMENTO: AtendimentoEmAndamento = {
   id: "at-1",
@@ -96,6 +99,7 @@ function montar({
       guias,
       envio,
       auditoria,
+      erros,
     ),
   };
 }
@@ -179,7 +183,7 @@ describe("EnviarDocumentoAoCliente", () => {
   });
 
   it("falha inesperada do provedor fiscal vira erro de serviço externo, é auditada e logada só com a mensagem", async () => {
-    const log = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    const log = jest.mocked(erros.registrar).mockClear();
     const { caso, enviados, registradas, auditadas } = montar({ guia: "lanca" });
     const r = await caso.execute({
       atendimentoId: "at-1",
@@ -191,7 +195,6 @@ describe("EnviarDocumentoAoCliente", () => {
     expect(auditadas).toEqual([expect.objectContaining({ resultado: "falha" })]);
     // Só a mensagem, nunca o objeto de erro (poderia levar o CNPJ ao log).
     expect(log).toHaveBeenCalledWith("Falha inesperada ao buscar a guia cnd:", "boom");
-    log.mockRestore();
   });
 
   it("documento que o Cliente não tem também audita a falha", async () => {

@@ -8,6 +8,8 @@ import type {
   UltimaTransferencia,
 } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import { ANEXO_LINK_MARGEM_MS, type TipoAnexoMensagem } from "@/shared/kernel/anexo";
+import { FUSO_DE_NEGOCIO } from "@/shared/kernel/mes-atual";
+import { opcoesDe } from "@/shared/kernel/opcoes";
 import { SETOR_LABEL } from "@/shared/kernel/setores";
 
 export type AnexoView = {
@@ -177,7 +179,7 @@ export function antesDe(
 // Mesmo fuso de negócio do feed de auditoria (não o do navegador). Um formatter só, reusado por
 // todas as Mensagens.
 const FORMATO_HORA = new Intl.DateTimeFormat("pt-BR", {
-  timeZone: "America/Sao_Paulo",
+  timeZone: FUSO_DE_NEGOCIO,
   day: "2-digit",
   month: "2-digit",
   hour: "2-digit",
@@ -253,10 +255,7 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
           }
         : null,
     })),
-    setoresDestino: conversa.setoresDestino.map((setor) => ({
-      valor: setor,
-      rotulo: SETOR_LABEL[setor],
-    })),
+    setoresDestino: opcoesDe(conversa.setoresDestino, SETOR_LABEL),
     // Já vêm na ordem do menu da URA: o contrato primeiro, as alterações por nº decrescente.
     servicos: conversa.documentos.map((doc) => ({
       valor: valorDaOpcao(doc),

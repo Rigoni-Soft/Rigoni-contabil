@@ -381,8 +381,8 @@ describe("reserva e conclusão do envio do Parcelamento", () => {
   });
 });
 
-// F3 do PR #191 (2ª revalidação): a conclusão nunca pode registrar envio num acordo diferente do
-// entregue. Com a regra única (#126) a conclusão só fecha a reserva do Cliente e o registro de envio é
+// A conclusão nunca pode registrar envio num acordo diferente do
+// entregue. Com a regra única, a conclusão só fecha a reserva do Cliente e o registro de envio é
 // gravado pelo ID do acordo entregue (`registrar_envio_parcelamento`), então trocar o acordo durante o
 // envio não desloca o registro para o substituto.
 describe("a conclusão não registra envio em acordo algum (F3 do PR #191, regra única do #126)", () => {

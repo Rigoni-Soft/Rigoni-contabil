@@ -1,3 +1,6 @@
+import { ConsoleRegistroDeErrosGateway as ConsoleAtendimento } from "@/modules/atendimento/infra/gateways/console-registro-de-erros.gateway";
+import { ConsoleRegistroDeErrosGateway as ConsoleUsuarios } from "@/modules/usuarios/infra/gateways/console-registro-de-erros.gateway";
+
 import "server-only";
 
 import { tmpdir } from "node:os";
@@ -26,7 +29,7 @@ import {
 } from "@/env";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { makeRegistrarAcao } from "@/main/auditoria.factory";
+import { auditoriaBestEffort } from "@/main/auditoria.factory";
 import { makeCertidaoCnd, makeObrigacoesFiscais } from "@/main/obrigacoes-fiscais.factory";
 import {
   CABECALHO_ADAPTER_FALSO_E2E,
@@ -59,10 +62,10 @@ import type { ReagirAMensagemPort } from "@/modules/atendimento/application/port
 import type { ReceberMensagemPort } from "@/modules/atendimento/application/ports/in/receber-mensagem.provider";
 import type { ReceberMidiaPort } from "@/modules/atendimento/application/ports/in/receber-midia.provider";
 import type { TransferirAtendimentoPort } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
-import type { AuditoriaPort } from "@/modules/atendimento/application/ports/out/auditoria.provider";
 import type { AutenticacaoJobPort } from "@/modules/atendimento/application/ports/out/autenticacao-job.provider";
 import type { EnvioEmailPort } from "@/modules/atendimento/application/ports/out/envio-email.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
+import type { RegistroDeErrosPort } from "@/modules/atendimento/application/ports/out/registro-de-erros.provider";
 import type {
   AtorSessaoDto,
   SessaoPort,
@@ -132,6 +135,9 @@ import { ESPERA_MS, TENTATIVAS } from "@/shared/kernel/com-tentativas";
 import type { Papel } from "@/shared/kernel/papeis";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
+const errosAtendimento = new ConsoleAtendimento();
+const errosUsuarios = new ConsoleUsuarios();
+
 // Instância única: o falso guarda em memória o que "enviou".
 const envioFalso = new EnvioMensagemFalsoGateway();
 
@@ -187,6 +193,7 @@ function entregarDasNaUra(
     publicadas,
     envio,
     new RelogioSistemaGateway(),
+    errosAtendimento,
   );
 }
 
@@ -201,6 +208,7 @@ function entregarParcelamentoNaUra(
     new SupabaseGuiasPgfnGateway(supabaseAdmin),
     envio,
     new RelogioSistemaGateway(),
+    errosAtendimento,
   );
 }
 
@@ -221,6 +229,7 @@ export async function makeReceberMensagem(): Promise<ReceberMensagemPort> {
     guiasFiscais(supabaseAdmin),
     entregarDasNaUra(supabaseAdmin, envio),
     entregarParcelamentoNaUra(supabaseAdmin, envio),
+    errosAtendimento,
   );
 }
 
@@ -256,6 +265,7 @@ function sessaoViaUsuarios(supabase: SupabaseClient): SessaoPort {
   const obterSessao = new ObterSessao(
     new SupabaseSessaoGateway(supabase),
     new SupabaseUsuarioRepository(supabase),
+    errosUsuarios,
   );
   return {
     usuarioAtual: async (): Promise<AtorSessaoDto | null> => {
@@ -272,15 +282,8 @@ function sessaoViaUsuarios(supabase: SupabaseClient): SessaoPort {
   };
 }
 
-// Best-effort: falha ao auditar não derruba a Transferência.
-function auditoriaViaModuloAuditoria(): AuditoriaPort {
-  return {
-    registrar: async (input) => {
-      const registrarAcao = await makeRegistrarAcao();
-      const resultado = await registrarAcao.execute(input);
-      if (!resultado.ok) console.error("Falha ao registrar auditoria:", resultado.error.message);
-    },
-  };
+export function makeRegistroDeErros(): RegistroDeErrosPort {
+  return errosAtendimento;
 }
 
 function makeAvisarCliente(
@@ -295,7 +298,7 @@ export async function makeTransferirAtendimento(): Promise<TransferirAtendimento
   return new TransferirAtendimento(
     sessaoViaUsuarios(await createSupabaseServer()),
     repositorio,
-    auditoriaViaModuloAuditoria(),
+    auditoriaBestEffort(errosAtendimento),
     makeAvisarCliente(repositorio, await makeEnvioMensagemDaRequisicao()),
   );
 }
@@ -313,6 +316,7 @@ export async function makeEncerrarAtendimento(): Promise<EncerrarAtendimentoPort
     sessaoViaUsuarios(await createSupabaseServer()),
     repositorio,
     makeAvisarCliente(repositorio, await makeEnvioMensagemDaRequisicao()),
+    errosAtendimento,
   );
 }
 
@@ -469,7 +473,7 @@ export async function makeEnviarAnexoAoCliente(): Promise<EnviarAnexoAoClientePo
     new SupabaseAtendimentoRepository(supabaseAdmin),
     anexos,
     await makeEnvioMensagemDaRequisicao(),
-    auditoriaViaModuloAuditoria(),
+    auditoriaBestEffort(errosAtendimento),
     new PrepararAnexoParaEnvio(anexos, new FfmpegConversorDeAudioGateway(caminhoDoFfmpeg)),
   );
 }
@@ -482,7 +486,8 @@ export async function makeEnviarDocumentoAoCliente(): Promise<EnviarDocumentoAoC
     new SupabaseDocumentosContratuaisGateway(supabaseAdmin),
     guiasFiscais(supabaseAdmin),
     await makeEnvioMensagemDaRequisicao(),
-    auditoriaViaModuloAuditoria(),
+    auditoriaBestEffort(errosAtendimento),
+    errosAtendimento,
   );
 }
 
@@ -491,7 +496,7 @@ export async function makeEnviarMensagemAoCliente(): Promise<EnviarMensagemAoCli
     sessaoViaUsuarios(await createSupabaseServer()),
     new SupabaseAtendimentoRepository(createSupabaseAdmin()),
     await makeEnvioMensagemDaRequisicao(),
-    auditoriaViaModuloAuditoria(),
+    auditoriaBestEffort(errosAtendimento),
   );
 }
 
@@ -500,7 +505,7 @@ export async function makeReagirAMensagem(): Promise<ReagirAMensagemPort> {
     sessaoViaUsuarios(await createSupabaseServer()),
     new SupabaseAtendimentoRepository(createSupabaseAdmin()),
     await makeEnvioMensagemDaRequisicao(),
-    auditoriaViaModuloAuditoria(),
+    auditoriaBestEffort(errosAtendimento),
   );
 }
 

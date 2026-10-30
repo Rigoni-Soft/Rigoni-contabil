@@ -25,6 +25,7 @@ import type {
   ContatoIdentificado,
   IdentificacaoContatoPort,
 } from "@/modules/atendimento/application/ports/out/identificacao-contato.provider";
+import type { RegistroDeErrosPort } from "@/modules/atendimento/application/ports/out/registro-de-erros.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import type {
   SessaoAtendimento,
@@ -38,6 +39,8 @@ import { normalizarCnpj } from "@/shared/kernel/cnpj";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { ReceberMensagem } from "./receber-mensagem.use-case";
+
+const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 const ana: ContatoIdentificado = {
   clienteId: "cliente-1",
@@ -209,6 +212,7 @@ function montar(
       guias,
       das,
       parcelamento,
+      erros,
     ),
     sessoes,
     gravadas,
@@ -260,13 +264,12 @@ describe("ReceberMensagem", () => {
   it.each([new ServicoExternoError("fora do ar"), "lanca" as const])(
     "falha do parcelamento (%p) não derruba: registra no log e avisa o contato",
     async (parcelamentoFalha) => {
-      const log = jest.spyOn(console, "error").mockImplementation(() => undefined);
+      const log = jest.mocked(erros.registrar).mockClear();
       const { caso, enviadas } = montar({ parcelamentoFalha });
       const r = await caso.execute({ telefone: "11912345678", texto: "3" });
       expect(r.ok).toBe(true);
       expect(enviadas[0].texto).toContain("agora");
       expect(log).toHaveBeenCalledTimes(1);
-      log.mockRestore();
     },
   );
 
@@ -303,14 +306,13 @@ describe("ReceberMensagem", () => {
   it.each([new ServicoExternoError("fora do ar"), "lanca" as const])(
     "falha do DAS (%p) não derruba: registra no log, avisa o contato e oferece o atendente",
     async (dasFalha) => {
-      const log = jest.spyOn(console, "error").mockImplementation(() => undefined);
+      const log = jest.mocked(erros.registrar).mockClear();
       const { caso, enviadas } = montar({ dasFalha });
       const r = await caso.execute({ telefone: "11912345678", texto: "2" });
       expect(r.ok).toBe(true);
       expect(enviadas[0].texto).toContain("agora");
       expect(enviadas[0].texto).toContain("*5*");
       expect(log).toHaveBeenCalledTimes(1);
-      log.mockRestore();
     },
   );
 
@@ -332,7 +334,7 @@ describe("ReceberMensagem", () => {
   ])(
     "falha do provedor fiscal (%p) não derruba: registra no log, avisa o contato e oferece o atendente",
     async (guiaFalha) => {
-      const log = jest.spyOn(console, "error").mockImplementation(() => undefined);
+      const log = jest.mocked(erros.registrar).mockClear();
       const { caso, enviadas, documentosEnviados } = montar({ guiaFalha });
       const r = await caso.execute({ telefone: "11912345678", texto: "4" });
       expect(r.ok).toBe(true);
@@ -340,7 +342,6 @@ describe("ReceberMensagem", () => {
       expect(enviadas[0].texto).toContain("agora");
       expect(enviadas[0].texto).toContain("*5*");
       expect(log).toHaveBeenCalledTimes(1);
-      log.mockRestore();
     },
   );
 
@@ -400,6 +401,7 @@ describe("ReceberMensagem", () => {
       { buscar: async () => err(new ServicoExternoError("fiscal")) },
       { execute: async () => ok(undefined) },
       { execute: async () => ok(undefined) },
+      erros,
     );
     const r = await caso.execute({ telefone: "11912345678", texto: "oi" });
     expect(r.ok).toBe(false);

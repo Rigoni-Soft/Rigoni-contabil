@@ -14,7 +14,7 @@ type VisualizarDocumentoContratualContainerProps = {
   documentos: DocumentoContratualVisivelDto[];
   // Só o Admin: botão "Anexar alteração" ao lado de "Abrir em nova aba".
   podeAnexar?: boolean;
-  // Nº da alteração do aviso por onde se chegou: abre aquela e destaca o botão (#144).
+  // Nº da alteração do aviso por onde se chegou: abre aquela e destaca o botão.
   alteracaoEmFoco?: number;
 };
 

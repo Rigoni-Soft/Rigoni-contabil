@@ -114,7 +114,7 @@ describe("EditarCadastroOperacionalContainer", () => {
         dados={dados}
         readOnly={false}
         podeAtribuirResponsavel
-        voltarHrefAoSalvar="/simples-nacional"
+        aoSalvar={{ tipo: "voltar", href: "/simples-nacional" }}
       />,
     );
     // Lista só é buscada quando o Select recebe foco/abre.
@@ -159,7 +159,7 @@ describe("EditarCadastroOperacionalContainer", () => {
         dados={dados}
         readOnly={false}
         podeAtribuirResponsavel
-        voltarHrefAoSalvar="/simples-nacional"
+        aoSalvar={{ tipo: "voltar", href: "/simples-nacional" }}
       />,
     );
     await userEvent.click(screen.getByLabelText("Responsável"));
@@ -186,7 +186,7 @@ describe("EditarCadastroOperacionalContainer", () => {
           dados={dados}
           readOnly={false}
           podeAtribuirResponsavel
-          voltarHrefAoSalvar="/simples-nacional"
+          aoSalvar={{ tipo: "voltar", href: "/simples-nacional" }}
         />,
       );
       await userEvent.click(screen.getByLabelText("Responsável"));
@@ -218,7 +218,7 @@ describe("EditarCadastroOperacionalContainer", () => {
           dados={dados}
           readOnly={false}
           podeAtribuirResponsavel
-          voltarHrefAoSalvar="/simples-nacional"
+          aoSalvar={{ tipo: "voltar", href: "/simples-nacional" }}
         />,
       );
       await userEvent.click(screen.getByLabelText("Responsável"));
@@ -513,14 +513,14 @@ describe("EditarCadastroOperacionalContainer", () => {
 
   // Tela própria (/clientes/[id]) navega de volta pro lugar certo depois de
   // salvar, em vez de ficar parada no form.
-  it("com voltarHrefAoSalvar, navega pra lá depois de salvar com sucesso", async () => {
+  it("com aoSalvar voltar, navega pra lá depois de salvar com sucesso", async () => {
     executeMock.mockResolvedValue({ ok: true, value: { clienteId: dados.id } });
     const usuario = userEvent.setup();
     render(
       <EditarCadastroOperacionalContainer
         dados={dados}
         readOnly={false}
-        voltarHrefAoSalvar="/clientes/resumo/sem_documento"
+        aoSalvar={{ tipo: "voltar", href: "/clientes/resumo/sem_documento" }}
       />,
     );
 
@@ -532,8 +532,8 @@ describe("EditarCadastroOperacionalContainer", () => {
 
   // Painel embutido no dashboard (busca do /simples-nacional): quem decide o
   // "fechar/voltar" é o consumidor (fecha o painel + atualiza a página), não
-  // uma navegação fixa — aoSalvarComSucesso tem prioridade sobre voltarHref.
-  it("com aoSalvarComSucesso, chama o callback em vez de navegar", async () => {
+  // uma navegação fixa — destino "fechar" chama o callback e nunca navega.
+  it("com aoSalvar fechar, chama o callback em vez de navegar", async () => {
     executeMock.mockResolvedValue({ ok: true, value: { clienteId: dados.id } });
     const aoSalvarComSucesso = jest.fn();
     const usuario = userEvent.setup();
@@ -541,8 +541,7 @@ describe("EditarCadastroOperacionalContainer", () => {
       <EditarCadastroOperacionalContainer
         dados={dados}
         readOnly={false}
-        voltarHrefAoSalvar="/nunca-deveria-navegar-pra-ca"
-        aoSalvarComSucesso={aoSalvarComSucesso}
+        aoSalvar={{ tipo: "fechar", executar: aoSalvarComSucesso }}
       />,
     );
 

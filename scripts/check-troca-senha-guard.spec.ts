@@ -48,4 +48,13 @@ describe("classificarPagina", () => {
       "trocar-senha/page.tsx: não carrega a sessão (carregarSessao) — se for pública de propósito, adicione a PAGINAS_PUBLICAS",
     );
   });
+
+  it("exigirSessao() e validarSessao() contam como carregar a sessão e checar a troca de senha", () => {
+    expect(
+      classificarPagina("admin/relatorio/page.tsx", "const sessao = await exigirSessao();"),
+    ).toBeNull();
+    expect(
+      classificarPagina("admin/relatorio/page.tsx", "const sessao = validarSessao(sessaoOuNula);"),
+    ).toBeNull();
+  });
 });

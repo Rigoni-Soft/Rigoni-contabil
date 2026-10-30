@@ -1,3 +1,4 @@
+import type { RegistroDeErrosPort } from "@/modules/usuarios/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
 import { Usuario, type UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
@@ -6,6 +7,8 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { ObterSessao } from "./obter-sessao.use-case";
+
+const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 class SessaoFalsa implements SessaoPort {
   id: UsuarioId | null = null;
@@ -62,6 +65,7 @@ describe("ObterSessao", () => {
     const resultado = await new ObterSessao(
       new SessaoFalsa(),
       new UsuarioRepositoryFalso(),
+      erros,
     ).execute();
 
     expect(resultado).toBeNull();
@@ -73,7 +77,7 @@ describe("ObterSessao", () => {
     const repositorio = new UsuarioRepositoryFalso();
     repositorio.usuario = usuarioFalso();
 
-    const resultado = await new ObterSessao(sessao, repositorio).execute();
+    const resultado = await new ObterSessao(sessao, repositorio, erros).execute();
 
     expect(resultado?.setor).toBe("simples_nacional");
   });
@@ -84,7 +88,7 @@ describe("ObterSessao", () => {
     const repositorio = new UsuarioRepositoryFalso();
     repositorio.erroTecnico = new ForbiddenError("Falha ao buscar perfil: conexão recusada");
 
-    const resultado = await new ObterSessao(sessao, repositorio).execute();
+    const resultado = await new ObterSessao(sessao, repositorio, erros).execute();
 
     expect(resultado).toBeNull();
   });
@@ -97,7 +101,7 @@ describe("ObterSessao", () => {
     const repositorio = new UsuarioRepositoryFalso();
     repositorio.usuario = usuarioFalso(new Date(Date.now() - 1000 * 60 * 60));
 
-    const resultado = await new ObterSessao(sessao, repositorio).execute();
+    const resultado = await new ObterSessao(sessao, repositorio, erros).execute();
 
     expect(resultado).toBeNull();
   });
@@ -119,6 +123,6 @@ describe("ObterSessao", () => {
     if (!resultado.ok) throw new Error("setup inválido");
     repositorio.usuario = resultado.value;
 
-    expect(await new ObterSessao(sessao, repositorio).execute()).toBeNull();
+    expect(await new ObterSessao(sessao, repositorio, erros).execute()).toBeNull();
   });
 });

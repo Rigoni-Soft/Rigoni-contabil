@@ -1,5 +1,5 @@
 /**
- * Integração infra ↔ Supabase para o gateway dos Avisos de cadastro (#142, S5a).
+ * Integração infra ↔ Supabase para o gateway dos Avisos de cadastro.
  * Requer `npx supabase start` local com migrations + seed aplicados.
  */
 import { createClient } from "@supabase/supabase-js";

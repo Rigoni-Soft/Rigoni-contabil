@@ -18,7 +18,7 @@ const resultado = z
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
     // Fonte das obrigações fiscais (docs/contratos): por padrão o mock de mock-api/.
     OBRIGACOES_FISCAIS_URL: z.url().default("http://127.0.0.1:4010"),
-    // Provedor das obrigações fiscais: o mock acima (padrão) ou o Serpro real (#66).
+    // Provedor das obrigações fiscais: o mock acima (padrão) ou o Serpro real.
     OBRIGACOES_FISCAIS_MODO: z.enum(["mock", "serpro"]).default("mock"),
     // Só com OBRIGACOES_FISCAIS_MODO=serpro: credenciais do contrato (Consumer Key/Secret) e
     // certificado e-CNPJ do escritório (.p12 em base64, pois a Vercel não tem arquivos) + senha.
@@ -78,7 +78,7 @@ const resultado = z
     // Liga o job de lembretes PGFN (alerta do setor dos dias 1, 10 e 15). Não envia nada ao Cliente,
     // então não exige mensageria real.
     LEMBRETES_PGFN_AUTOMATICOS: z.enum(["desligada", "ligada"]).default("desligada"),
-    // Adapter de e-mail (#86): falso por padrão. Com "real": SMTP do Gmail com senha de app (a conta
+    // Adapter de e-mail: falso por padrão. Com "real": SMTP do Gmail com senha de app (a conta
     // precisa de verificação em duas etapas) e o `from`, ex.: "Rigoni Contábil <conta@gmail.com>".
     EMAIL_MODO: z.enum(["falso", "real"]).default("falso"),
     EMAIL_SMTP_USUARIO: z.string().min(1).optional(),
@@ -88,7 +88,7 @@ const resultado = z
     // camada de texto do PDF no servidor, sem API externa).
     LEITURA_PDF_MODO: z.enum(["falso", "texto"]).default("falso"),
     // WhatsApp do financeiro do escritório (só dígitos, com DDI), destino das guias de parcelamento
-    // interno (#127). Ausente ou inválido não derruba o app: o job não envia o interno, ele segue
+    // interno. Ausente ou inválido não derruba o app: o job não envia o interno, ele segue
     // pendente e abre o alerta `financeiro_ausente`.
     FINANCEIRO_TELEFONE: z
       .string()

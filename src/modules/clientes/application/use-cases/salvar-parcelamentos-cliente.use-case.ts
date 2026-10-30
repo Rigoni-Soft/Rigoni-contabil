@@ -8,6 +8,7 @@ import type {
   ParcelamentoSalvo,
 } from "@/modules/clientes/application/ports/out/cliente-parcelamento.repository";
 import type { ClienteRepository } from "@/modules/clientes/application/ports/out/cliente.repository";
+import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
 import {
   gerarCodigoDeParcelamento,
@@ -34,6 +35,7 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
     private readonly clientes: ClienteRepository,
     private readonly parcelamentos: ClienteParcelamentoRepository,
     private readonly storage: ArquivoStoragePort,
+    private readonly erros: RegistroDeErrosPort,
   ) {}
 
   async execute(
@@ -189,7 +191,7 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
   private async apagarAnexos(clienteId: string, caminhos: string[]): Promise<void> {
     const removido = await this.storage.remover(caminhos);
     if (!removido.ok) {
-      console.error(
+      this.erros.registrar(
         `Falha ao remover PDF de Parcelamento (cliente=${clienteId}):`,
         removido.error.message,
       );

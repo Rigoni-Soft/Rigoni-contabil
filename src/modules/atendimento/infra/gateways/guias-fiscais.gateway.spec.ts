@@ -48,7 +48,7 @@ describe("GuiasFiscaisGateway", () => {
     expect(consultados.filter((c) => c !== "autorizacao")).toEqual([`${tipo}:11222333000181`]);
   });
 
-  // ponytail: painel e URA entregam uma guia só até a #127/#128 entregarem todas.
+  // ponytail: painel e URA entregam uma guia só até o envio de todas as guias.
   describe("guia de parcelamento", () => {
     it("Cliente fora do Simples/MEI é erro de validação, sem chamar o provedor", async () => {
       const { guias, consultados } = montar("vigente", "lucro_presumido");

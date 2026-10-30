@@ -1,6 +1,7 @@
 import type { AnexarAlteracaoContratualInput } from "@/modules/clientes/application/ports/in/anexar-alteracao-contratual.provider";
 import type { ArquivoStoragePort } from "@/modules/clientes/application/ports/out/arquivo-storage.provider";
 import type { ClienteRepository } from "@/modules/clientes/application/ports/out/cliente.repository";
+import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
 import type {
   AtorSessaoDto,
   SessaoPort,
@@ -14,6 +15,8 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { AnexarAlteracaoContratual } from "./anexar-alteracao-contratual.use-case";
+
+const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 const CLIENTE_ID = "c1c1c1c1-c1c1-4c1c-8c1c-c1c1c1c1c1c1";
 
@@ -64,7 +67,7 @@ function montar() {
     anexar,
     gravada,
     storage,
-    caso: new AnexarAlteracaoContratual(sessao, clientes, storage),
+    caso: new AnexarAlteracaoContratual(sessao, clientes, storage, erros),
   };
 }
 
@@ -113,7 +116,6 @@ describe("AnexarAlteracaoContratual", () => {
     const { caso, anexar, storage } = montar();
     anexar.mockResolvedValue(err(new ValidationError("falha ao gravar")));
     storage.falharAoRemover = true;
-    jest.spyOn(console, "error").mockImplementation(() => undefined);
 
     const resultado = await caso.execute(INPUT);
 

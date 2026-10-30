@@ -5,6 +5,7 @@ import type {
   ParcelamentoSalvo,
 } from "@/modules/clientes/application/ports/out/cliente-parcelamento.repository";
 import type { ClienteRepository } from "@/modules/clientes/application/ports/out/cliente.repository";
+import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
 import type {
   AtorSessaoDto,
   SessaoPort,
@@ -18,6 +19,8 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { SalvarParcelamentosCliente } from "./salvar-parcelamentos-cliente.use-case";
+
+const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 const CLIENTE_ID = "c1c1c1c1-c1c1-4c1c-8c1c-c1c1c1c1c1c1";
 const CNPJ_VALIDO = "11444777000161";
@@ -79,7 +82,7 @@ function montar(
     gravar,
     storage,
     listar: parcelamentos.listar as jest.Mock,
-    caso: new SalvarParcelamentosCliente(sessao, clientes, parcelamentos, storage),
+    caso: new SalvarParcelamentosCliente(sessao, clientes, parcelamentos, storage, erros),
   };
 }
 

@@ -4,6 +4,7 @@ import type {
 } from "@/modules/clientes/application/ports/in/anexar-alteracao-contratual.provider";
 import type { ArquivoStoragePort } from "@/modules/clientes/application/ports/out/arquivo-storage.provider";
 import type { ClienteRepository } from "@/modules/clientes/application/ports/out/cliente.repository";
+import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
 import { AlteracaoContratual } from "@/modules/clientes/domain/value-objects/alteracao-contratual.vo";
 import type { AppError } from "@/shared/errors/app.error";
@@ -22,6 +23,7 @@ export class AnexarAlteracaoContratual implements AnexarAlteracaoContratualPort 
     private readonly sessao: SessaoPort,
     private readonly clientes: ClienteRepository,
     private readonly storage: ArquivoStoragePort,
+    private readonly erros: RegistroDeErrosPort,
   ) {}
 
   async execute(input: AnexarAlteracaoContratualInput): Promise<Result<void, AppError>> {
@@ -74,7 +76,7 @@ export class AnexarAlteracaoContratual implements AnexarAlteracaoContratualPort 
   ): Promise<Result<void, AppError>> {
     const removido = await this.storage.remover([caminho]);
     if (removido.ok) return err(erro);
-    console.error(
+    this.erros.registrar(
       `Falha ao remover arquivo órfão (cliente=${clienteId}, caminho=${caminho}):`,
       removido.error.message,
     );

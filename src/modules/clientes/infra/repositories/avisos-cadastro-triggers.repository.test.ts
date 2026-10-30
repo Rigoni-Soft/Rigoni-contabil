@@ -1,5 +1,5 @@
 /**
- * Integração infra ↔ Supabase para os gatilhos dos Avisos de cadastro (#142, S2a–S2c).
+ * Integração infra ↔ Supabase para os gatilhos dos Avisos de cadastro.
  * Requer `npx supabase start` local com migrations + seed aplicados. `service_role` só monta cenário.
  */
 import { criarAdminLocal } from "../../../../../test-support/admin-supabase-local";

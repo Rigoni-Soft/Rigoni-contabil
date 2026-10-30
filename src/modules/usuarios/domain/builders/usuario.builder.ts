@@ -57,15 +57,21 @@ export class UsuarioBuilder {
 
   comPapel(entrada: string): this {
     const resultado = Papel.criar(entrada);
-    if (resultado.ok) this.papel = resultado.value;
-    else this.camposInvalidos.papel = [resultado.error.message];
+    if (!resultado.ok) {
+      this.camposInvalidos.papel = [resultado.error.message];
+      return this;
+    }
+    this.papel = resultado.value;
     return this;
   }
 
   comSetor(entrada: string): this {
     const resultado = Setor.criar(entrada);
-    if (resultado.ok) this.setor = resultado.value;
-    else this.camposInvalidos.setor = [resultado.error.message];
+    if (!resultado.ok) {
+      this.camposInvalidos.setor = [resultado.error.message];
+      return this;
+    }
+    this.setor = resultado.value;
     return this;
   }
 

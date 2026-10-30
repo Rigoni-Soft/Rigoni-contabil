@@ -1,5 +1,8 @@
+// Fuso de negócio do escritório: todo "hoje", mês e horário exibido usa este.
+export const FUSO_DE_NEGOCIO = "America/Sao_Paulo";
+
 const FORMATO_DATA = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "America/Sao_Paulo",
+  timeZone: FUSO_DE_NEGOCIO,
   year: "numeric",
   month: "2-digit",
   day: "2-digit",

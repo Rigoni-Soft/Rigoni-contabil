@@ -2,7 +2,7 @@ import type { ParcelamentoDoCliente } from "@/modules/atendimento/application/po
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
-// Guia anexada e confirmada à mão pelo escritório (#183); `caminho` é o PDF no bucket dos acordos.
+// Guia anexada e confirmada à mão pelo escritório; `caminho` é o PDF no bucket dos acordos.
 export type GuiaPgfnConfirmada = { competencia: string; caminho: string };
 
 // Guia já entregue: `caminho` é o PDF publicado no envio aceito (null: registro anterior ao caminho guardado).
