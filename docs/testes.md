@@ -1,4 +1,4 @@
-# Estratégia de Testes — MyChurch
+# Estratégia de Testes
 
 Fonte única das regras de teste do projeto. O `arquitetura.md` define camadas, portas e nomes e **remete a este documento** sem repetir regras de teste; este documento remete de volta às seções de arquitetura de que depende, também sem repeti-las.
 
@@ -123,7 +123,7 @@ Fluxo (proposta):
 
 ## 6. Cobertura e qualidade
 
-Reforça o que a `constitution.md` já define (seção 5.3).
+Regras de cobertura do projeto.
 
 - **Mínimo:** 90% de statement, line e function; 85% de branch.
 - **Proibido:** teste que não afirma comportamento real (por exemplo, só instancia um componente sem asserção significativa) e teste redundante que cobre a mesma branch de outro sem motivo.

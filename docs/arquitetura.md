@@ -108,7 +108,7 @@ Fora dessas exceções, prefira sempre `kebab-case`.
 
 | Área | Tecnologia |
 |---|---|
-| Framework | Next.js 16 (fixar `next@^16`; a documentação consultada é da 16.3.5) com App Router e `cacheComponents: true` (Cache Components). Em v15 a seção 6 precisaria ser reescrita. |
+| Framework | Next.js 16 (fixar `next@^16`; a documentação consultada é da 16.3.5) com App Router. `cacheComponents` ainda não está habilitado no `next.config.ts`: a seção 6 descreve o desenho para quando entrar. |
 | Linguagem | TypeScript em modo `strict` |
 | Banco e serviços | Supabase: Postgres, Auth, Realtime, Storage, RBAC + RLS |
 | Estilo | Tailwind CSS, shadcn/ui, `class-variance-authority` (cva), `cn()` (clsx + tailwind-merge) |
@@ -129,9 +129,9 @@ Premissas:
 
 Valem para todo o projeto. Os detalhes de cada um ficam na `constitution.md`; aqui está o que muda na prática da arquitetura.
 
-- **Clean Code:** nomes que revelam intenção, funções pequenas, sem comentário que explique código confuso (reescreva o código).
+- **Clean Code:** nomes que revelam intenção, funções pequenas. **O código não pode precisar de comentário para ser entendido**: renomeie, extraia função, constante ou tipo, até ele se explicar. Comentário só em dois casos: (a) exigido por ferramenta externa (`eslint-disable`, `@ts-expect-error`, `@jest-environment`, `istanbul ignore`, `prettier-ignore`, cabeçalho de licença); (b) o código realmente não consegue se autoexplicar, o que é raro e excepcional e se justifica na revisão.
 - **Referências a ticket, PR e revisão:**
-  - Comentário de código só registra o porquê não óbvio. Nada de `#NN`, PR, devolutiva, revisão, "feedback de teste" ou data de revisão: quem quiser a história usa o git e o issue tracker. Única exceção: `TODO(#NN)`, em que o número é a rastreabilidade da pendência.
+  - O comentário excepcional do item acima não leva `#NN`, PR, devolutiva, revisão, "feedback de teste" ou data de revisão (quem quiser a história usa o git e o issue tracker). Única exceção: `TODO(#NN)`, em que o número é a rastreabilidade da pendência.
   - Docs vivos (`arquitetura.md`, `testes.md`, `DESIGN.md`, `CONTEXT.md`, `PRODUCT.md`, `docs/deploy/`) escrevem a regra e o porquê, não o histórico de revisão. `#NN` curto de issue é aceito como ponteiro para a spec; `PR #NN`, "devolutiva" e códigos de achado (B1, R85-01) não.
   - ADRs (`docs/adr/`) e migrations já aplicadas são registro histórico: podem citar a PR e a devolutiva de onde a decisão saiu, e não se reescrevem só por isso.
   - Títulos de `describe`/`it` podem carregar `#NN`; o grep de limpeza ignora strings.
@@ -522,7 +522,7 @@ src/
 
 | Nível | Onde | Regra |
 |---|---|---|
-| **ui/** | `presentation/components/ui/` | Gerado pelo CLI do shadcn. É a biblioteca de átomos e moléculas básicas. **Não é duplicado nem envolvido por wrappers.** É código de terceiro: pode ter hooks e `'use client'` internos. |
+| **ui/** | `presentation/components/ui/` | Primitivas no estilo shadcn (cva + tokens), escritas à mão: não há CLI do shadcn nem `components.json` no projeto. É a biblioteca de átomos e moléculas básicas. **Não é duplicado nem envolvido por wrappers.** É código de terceiro: pode ter hooks e `'use client'` internos. |
 | **atoms/** | `.../atoms/` | Só o que o shadcn **não** oferece. Antes de criar, confira o registry. |
 | **molecules/** | `.../molecules/` | Composição de atoms e `ui/`. |
 | **organisms/** | `.../organisms/` | Composição de molecules/atoms, com layout real. |
@@ -759,7 +759,7 @@ Modelo do **Next.js 16 com Cache Components**. Neste modelo tudo é dinâmico po
 - `'use cache'` só aparece em `*.server.ts` (loaders) da `presentation`. **[lint]**
 - Nunca em `domain`, `application`, `infra` ou `*.actions.ts`. Cachear ali violaria a Dependency Rule.
 - Argumentos e retornos de escopos cacheados são serializáveis: **DTOs simples, nunca entidades**.
-- `next.config.ts` habilita `cacheComponents: true`.
+- `next.config.ts` habilita `cacheComponents: true` (ainda não habilitado no projeto; ver seção 1).
 
 ### 6.5 Duração: `cacheLife`
 
@@ -986,7 +986,7 @@ Em um projeto real, combine este bloco com o parser do `typescript-eslint`. O te
 
 ## Anexo C — Configuração e scaffolding
 
-**`components.json` (shadcn)** — ajuste antes do primeiro `shadcn add`:
+**`components.json` (shadcn)** — só se o CLI do shadcn for adotado (hoje não existe); ajuste antes do primeiro `shadcn add`:
 
 ```json
 "aliases": {
