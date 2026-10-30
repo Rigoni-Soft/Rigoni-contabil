@@ -1,5 +1,6 @@
-import { expect, test, type Browser, type Page } from "@playwright/test";
+import type { Browser, Page } from "@playwright/test";
 
+import { expect, test } from "./fixtures";
 import { criarClienteComAlteracao1, empresaUnica, login, pdf } from "./support/criar-cliente";
 
 const SINO = /Avisos de cadastro/;

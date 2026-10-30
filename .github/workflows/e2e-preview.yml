@@ -45,7 +45,7 @@ jobs:
     # Supabase nos ambientes Preview e Homolog da Vercel.
     if: needs.ramo.outputs.alvo != ''
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     env:
       SHA: ${{ github.event.deployment.sha }}
       GH_TOKEN: ${{ github.token }}
