@@ -1,6 +1,6 @@
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
-import { Usuario, type UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
+import { Usuario } from "@/modules/usuarios/domain/entities/usuario.entity";
 import { ok } from "@/shared/kernel/result";
 
 import { ListarUsuarios } from "./listar-usuarios.use-case";

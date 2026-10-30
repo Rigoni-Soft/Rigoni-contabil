@@ -47,7 +47,8 @@ export const useConversaStore = create<ConversaStore>((set) => ({
   limparAnexoPendente: (atendimentoId) =>
     set((estado) => {
       revogar(estado.anexosPendentes[atendimentoId]);
-      const { [atendimentoId]: _removido, ...resto } = estado.anexosPendentes;
+      const resto = { ...estado.anexosPendentes };
+      delete resto[atendimentoId];
       return { anexosPendentes: resto };
     }),
 }));

@@ -26,7 +26,7 @@ import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
-import { SETOR_LABEL, type SetorSlug } from "@/shared/kernel/setores";
+import type { SetorSlug } from "@/shared/kernel/setores";
 
 const RESUMO_TAMANHO_MAXIMO = 1000; // repetido na CHECK de `transferencias.resumo`
 

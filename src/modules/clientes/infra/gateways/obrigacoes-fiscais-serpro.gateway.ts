@@ -13,7 +13,7 @@ import type {
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
-import { hojeIso, mesAnterior, mesAtual } from "@/shared/kernel/mes-atual";
+import { hojeIso, mesAnterior } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 // Adapter do Integra Contador (docs/pesquisa/serpro-api.md) para o contrato neutro. Só este
