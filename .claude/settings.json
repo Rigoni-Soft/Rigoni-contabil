@@ -20,7 +20,20 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/pedir-push.mjs",
+            "timeout": 10
+          }
+        ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "mattpocock-skills@claude-plugins-official": false
   }
 }

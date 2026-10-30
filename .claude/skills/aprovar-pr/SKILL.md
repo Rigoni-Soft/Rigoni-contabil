@@ -7,12 +7,12 @@ disable-model-invocation: true
 
 Argumentos: `$ARGUMENTS` → número da PR (opcional). Sem número: `gh pr view --json number` na branch atual; se não houver PR, pergunte e pare.
 
-Invocar esta skill é a ordem explícita do usuário para: mergear a PR, fechar as issues dela, e dar push **apenas** nas branches que já têm PR aberta. Branch sem PR nunca recebe push nem PR (ver memória `feedback-ticket-branch-strategy`). Nunca `reset --hard`, nunca `--force` sem lease, nunca apagar branch.
+A skill só sabe que a PR foi aprovada (por quem for): não verifica nem depende de quem revisou. Invocar esta skill é a ordem explícita do usuário para: mergear a PR, fechar as issues dela, e dar push **apenas** nas branches que já têm PR aberta. Branch sem PR nunca recebe push nem PR (ver memória `feedback-ticket-branch-strategy`). Nunca `reset --hard`, nunca `--force` sem lease, nunca apagar branch.
 
 ## 1. Pré-checagens (qualquer falha = pare e relate)
 
 1. `gh pr view <n> --json state,baseRefName,headRefName,headRefOid,mergeable,statusCheckRollup,body,closingIssuesReferences,title`.
-2. `state` = OPEN, base = `develop`, `mergeable` ≠ CONFLICTING.
+2. `state` = OPEN, base = `develop`, `mergeable` ≠ CONFLICTING. Base diferente de `develop`: pare e avise.
 3. CI: todos os checks `SUCCESS` ou `SKIPPED`. Pendente ou falho → pare (não mergeie sobre CI não conferido).
 4. `headRefOid` remoto = `git rev-parse origin/<head>` após `git fetch origin`; se divergir da branch local, pare e avise (há commit não publicado ou publicado por outro).
 5. `git status --porcelain` sem alteração em arquivo rastreado.
@@ -20,9 +20,9 @@ Invocar esta skill é a ordem explícita do usuário para: mergear a PR, fechar 
 ## 2. Mapear antes de mexer em qualquer coisa
 
 1. **Issues:** as de `closingIssuesReferences` e as citadas no corpo como `Closes|Fecha|Resolves #n`. `Refs #n` **não** fecha. A base não é a branch padrão, então o GitHub não fecha sozinho: o fechamento é manual (passo 5).
-2. **Branches dependentes:** todas as locais que contêm o tip da PR (`git branch --contains <headRefOid>`, menos a própria). Para cada uma, o **pai direto** é, entre `{branch da PR} ∪ {as outras dependentes}`, a de maior número de commits que ainda é ancestral dela (`git merge-base --is-ancestor`). Isso monta a árvore (cadeias e ramificações aninhadas). Inclua também PRs abertas (`gh pr list --state open --json number,headRefName,baseRefName`) cuja head esteja nessa árvore ou cuja base seja a branch da PR.
-3. **Anote tudo de uma vez**, num bloco só: `git rev-parse` de cada branch da árvore (os "tips antigos") e o remoto esperado de cada uma que tem PR. Crie `git branch backup/pre-merge<n>-<branch>` para cada uma.
-4. Mostre o plano em poucas linhas (merge, issues, árvore de branches com pai, quais terão push) e siga — a invocação já é a autorização.
+2. **Branches dependentes:** `node .claude/scripts/mapear-pilha.mjs <headRefName>` devolve, em ordem topológica, cada branch da árvore com **pai direto**, tip local, tip remoto e PR aberta (o pai é a ancestral com mais commits entre a branch da PR e as outras dependentes; backups ficam de fora). Confira o aviso de "sem pai resolvido", se houver. Inclua também PRs abertas (`gh pr list --state open --json number,headRefName,baseRefName`) cuja base seja a branch da PR e que o script não listou.
+3. **Anote tudo de uma vez**, num bloco só: a saída do script já traz os "tips antigos" e o remoto esperado de cada branch com PR. Guarde um backup de cada uma como **ref**, sem poluir `git branch`: `git update-ref refs/backup/pre-merge<n>/<branch> <tip>` (para restaurar: `git branch <nome> refs/backup/pre-merge<n>/<branch>`).
+4. Mostre o plano em poucas linhas (merge, issues, árvore de branches com pai e quais terão push) e siga — a invocação já é a autorização.
 
 ## 3. Merge e develop local
 
@@ -50,7 +50,7 @@ Para cada dependente `F` com pai `P`:
 
 Para cada branch rebaseada com PR aberta:
 
-1. `git push --force-with-lease=<branch>:<sha-remoto-esperado> origin <branch>` (o esperado vem do passo 2.3). Se o lease falhar, pare e relate; não repita sem lease.
+1. **Um único `git push`** para todas as branches com PR aberta, cada uma com o seu lease: `git push --force-with-lease=<a>:<sha-remoto-esperado-a> --force-with-lease=<b>:<sha-remoto-esperado-b> origin <a> <b>` (os esperados vêm do passo 2.3). Um comando só significa uma confirmação do hook `pedir-push.mjs`, não uma por branch. Se o lease falhar, pare e relate; não repita sem lease.
 2. Se a base da PR era a branch mergeada, `gh pr edit <pr> --base develop`.
 3. Se a PR tinha `Closes`/`Fecha` de uma issue que acabou de ser tratada, não mexa; só o corpo que o usuário pediu.
 
@@ -60,4 +60,5 @@ Branches sem PR: ficam rebaseadas **só local**. Não ofereça push nem PR.
 
 1. Tabela final: branch · tip antigo → novo · PR · publicada? (sim/local) · `tsc` ok?
 2. Diga o que **não** foi conferido: CI das branches publicadas (recém-disparado), QA manual, ambientes remotos.
-3. Grave uma memória `project_pr<n>_mergeada.md` no formato do índice (SHA do squash, issues fechadas, branches rebaseadas e quais foram publicadas, pendências) e **acrescente** a linha no topo de `MEMORY.md` — leia o arquivo inteiro e prependa, nunca sobrescreva.
+3. **Limpe os backups vencidos:** `node .claude/scripts/limpar-backups.mjs` apaga os `refs/backup/` cuja branch já tem PR mergeada (inclui a PR de agora). Os backups das dependentes ficam até as PRs delas serem mergeadas. Backup nunca fica à espera de prazo.
+4. Grave uma memória `project_pr<n>_mergeada.md` no formato do índice (SHA do squash, issues fechadas, branches rebaseadas e quais foram publicadas, pendências) e **acrescente** a linha no topo de `MEMORY.md` — leia o arquivo inteiro e prependa, nunca sobrescreva.

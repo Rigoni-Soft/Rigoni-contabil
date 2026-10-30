@@ -1,25 +1,33 @@
 ---
 name: implementar-issue
-description: Cria a branch da issue (empilhada sobre outra issue/branch, ou sobre a develop) e indica o /mattpocock-skills:implement a rodar. Uso — /implementar-issue <issue> [base], onde base é um número de issue ou o nome de uma branch; sem base, parte da develop.
+description: Estação 3 da esteira de desenvolvimento — cria a branch do ticket (empilhada sobre outro ticket/branch, ou sobre a develop), implementa com TDD e deixa commitado, sem push. Uso — /implementar-issue <issue> [base], onde base é um nº de issue ou nome de branch; sem base, parte da develop.
 argument-hint: <issue> [issue-ou-branch-base]
 disable-model-invocation: true
 ---
 
-Argumentos: `$ARGUMENTS` → primeiro token = issue alvo (`#123` ou `123`); segundo token (opcional) = base (número de issue ou nome de branch). Sem issue alvo, pergunte e pare.
+Argumentos: `$ARGUMENTS` → 1º token = issue alvo (`#123` ou `123`); 2º (opcional) = base (nº de issue ou nome de branch). Sem issue, pergunte e pare.
 
 ## 1. Resolver a base
 
 - Sem base → `develop`.
 - Base é nome de branch existente (`git rev-parse --verify <base>`) → essa branch.
-- Base é número de issue → a branch dessa issue: procure `git branch --list "*<n>*"` e `gh pr list --search "<n>" --state all --json headRefName,number`; se houver mais de uma candidata ou nenhuma, pergunte. Nunca chute.
+- Base é nº de issue → a branch dela: `git branch --list "*<n>*"` e `gh pr list --search "<n>" --state all --json headRefName,number`; se houver mais de uma candidata ou nenhuma, pergunte. Nunca chute.
 
 ## 2. Preparar a branch
 
-1. `git status --porcelain`: se houver alteração em arquivo **rastreado**, pare e avise (untracked como `supabase/snippets/` pode ficar).
-2. Sem base explícita, `git fetch origin develop` e parta de `origin/develop` se a `develop` local estiver atrás (`git merge --ff-only`); nunca force nada.
-3. `gh issue view <issue> --json title,labels` e monte o nome `feature/<slug-do-título>` (kebab-case, sem acento, ≤ 6 palavras; `fix/` se a issue for bug). Se a branch já existir, pare e pergunte.
+1. `git status --porcelain`: alteração em arquivo **rastreado** → pare e avise (untracked como `supabase/snippets/` pode ficar).
+2. Sem base explícita, `git fetch origin develop` e parta de `origin/develop` se a local estiver atrás (`git merge --ff-only`); nunca force.
+3. `gh issue view <issue> --json title,labels` e monte `feature/<slug-do-título>` (kebab-case, sem acento, ≤ 6 palavras; `fix/` se for bug). Branch já existe → pare e pergunte.
 4. `git switch -c <nome> <base>`.
 
-## 3. Reportar
+## 3. Implementar
 
-Em poucas linhas: branch criada, base usada e o comando para o usuário rodar em seguida: `/mattpocock-skills:implement <issue>` (a skill é bloqueada para o Claude; não tente invocá-la). Nunca `git push` nem abrir PR sem ordem explícita.
+Chame a Skill `implement` com a issue (ela lê o ticket, usa `tdd` nos pontos acordados, roda typecheck e testes e comita). Se build, teste ou runtime falharem e a causa não for óbvia, chame `diagnosing-bugs` antes de insistir.
+
+Commits em Conventional Commits, atômicos, na branch do ticket.
+
+## 4. Fechar a estação
+
+Rode `yarn tsc --noEmit`, `yarn lint` e `yarn test`. **Critério de saída: código implementado e commitado na branch, com type-safety e testes verdes.**
+
+Reporte: branch, base, commits e o próximo passo: `/gate-qualidade [base]`. **Nunca `git push`, nem abrir PR, sem ordem explícita do usuário** (um hook também pede confirmação).

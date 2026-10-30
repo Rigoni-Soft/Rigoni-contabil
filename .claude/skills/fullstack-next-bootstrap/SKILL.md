@@ -1,40 +1,44 @@
 ---
 name: fullstack-next-bootstrap
-description: Roda a sequência completa de bootstrap de um projeto fullstack Next.js deste time — cria o projeto, monta a estrutura de pastas, configura ESLint/Prettier/regras de camada, testes (Jest/RTL/Supertest/Playwright), env.ts e o Graphify. Use apenas para o bootstrap completo de um projeto novo do zero. Para uma parte isolada (só lint, só testes, só env.ts, só Graphify) invoque a skill específica em vez desta.
+description: Bootstrap completo de um projeto fullstack Next.js deste time, do zero — cria o projeto e a estrutura de pastas, configura lint/camadas, testes, env, Supabase, design system, CI/ambientes e o Graphify, verificando cada etapa. Use só para projeto novo; para uma parte isolada invoque a skill da etapa.
 ---
 
 # Bootstrap completo (orquestradora)
 
-Esta skill não repete conteúdo: ela invoca, nesta ordem, cada skill de responsabilidade única. Cada uma tem sua própria fonte de regras (`docs/arquitetura.md` ou `docs/testes.md`) e seus próprios avisos — leia o `SKILL.md` de cada uma ao invocá-la.
+Não repete conteúdo: chama, em ordem, as skills de etapa (cada uma tem a sua fonte de regras e os modelos em `templates/`, que são os arquivos reais do repositório). **O repositório manda**; se um doc divergir, atualize o doc. O projeto é sempre `.`.
 
-**O projeto é sempre `.`**.
+## Ordem, verificação e ação
 
-## Ordem
+Rode cada skill com a ferramenta `Skill` e depois a verificação. Falhou: leia o erro, corrija o arquivo copiado e repita. **Teto: 3 tentativas por etapa**; na 3ª, registre o comando e o erro e siga para a próxima, sem travar o bootstrap.
 
-1. **`next-project-init`** — cria o projeto Next.js e a estrutura de pastas. Sempre primeiro; as demais pressupõem que o projeto já existe.
-2. **`eslint-prettier-clean-arch`** — ESLint, Prettier, regras de camada, nomenclatura.
-3. **`test-setup-jest-playwright`** — Jest, RTL, Supertest, Playwright.
-4. **`generate-env-ts`** — sempre roda. Se não houver `.env.example` na raiz depois do passo 1, a própria skill cria um mínimo (`PORT=8800`) antes de gerar `env.ts`.
-5. **`graphify-integration`** — só se o usuário quiser o Graphify (pergunte, se não tiver sido pedido explicitamente; é uma ferramenta de terceiros, com passo de instalação fora do projeto).
+| # | Skill | Verificação |
+|---|---|---|
+| 1 | `next-project-init` | `package.json` e `src/{modules,shared,main}` existem |
+| 2 | `eslint-prettier-clean-arch` | `yarn lint`, `check:deps`, `check:naming` com código 0 |
+| 3 | `test-setup-jest-playwright` | `yarn test` e `yarn test:int` carregam a config (sem testes ainda é sucesso) |
+| 4 | `generate-env-ts` | `.env.example` e `src/env.ts` existem; `yarn tsc --noEmit` sem erro neles |
+| 5 | `supabase-setup` | `npx supabase db reset` sem erro |
+| 6 | `design-system-setup` | `yarn lint && yarn tsc --noEmit` |
+| 7 | `ci-ambientes` | `.github/workflows/ci.yml` presente; branches `develop` e `homolog` criadas |
+| 8 | `graphify-integration` | `graphify-out/graph.json` existe, `graphify hook status` ativo e `.git/hooks/pre-push` instalado. **Obrigatório**, sempre roda. |
 
 ## Fechamento
 
-Depois das skills acima, rode:
-
 ```bash
-yarn format
-yarn lint
-yarn check:deps
-yarn check:naming
-yarn test
+yarn format && yarn lint && yarn check:deps && yarn check:naming && yarn tsc --noEmit && yarn test
 ```
+
+Termine com um relatório objetivo: o que passou; o que precisou de correção; o que ficou vermelho depois de 3 tentativas (comando e erro exatos); e o que só o usuário pode fazer (secrets do GitHub/Vercel, projeto Supabase de homologação). Não trate item vermelho como verde.
 
 ## Rastreabilidade
 
-| Parte | Skill | Origem |
+| Parte | Skill | Fonte |
 |---|---|---|
-| Criação do projeto, estrutura de pastas, DTOs base | `next-project-init` | `arquitetura.md`, seções 1, 3.2, 3.8 |
-| ESLint, Prettier, dependency-cruiser, nomenclatura | `eslint-prettier-clean-arch` | Anexos A, B, E de `arquitetura.md` |
-| Jest, RTL, Supertest, Playwright, cobertura | `test-setup-jest-playwright` | `testes.md`, seções 6 e 7 |
-| `env.ts` / `env.client.ts` | `generate-env-ts` | Decisão desta skill (não vem literalmente do documento) |
-| Graphify | `graphify-integration` | README de github.com/Graphify-Labs/graphify, lido direto (`gh api`) e confirmado |
+| Projeto, pastas, DTOs base | `next-project-init` | `arquitetura.md` §1, 3.2, 3.8 |
+| ESLint, Prettier, camadas, nomenclatura | `eslint-prettier-clean-arch` | Anexos A, B, C, E |
+| Jest, RTL, Supertest, Playwright | `test-setup-jest-playwright` | `testes.md` §6, 7 |
+| `env.ts` | `generate-env-ts` | decisão da skill |
+| Supabase, RLS, sessão | `supabase-setup` | `arquitetura.md` §3.9, 3.12; `testes.md` §5 |
+| cn, providers, `ui/`, tokens | `design-system-setup` | `arquitetura.md` §4.4, 5; `DESIGN.md` |
+| CI, ambientes, gitflow | `ci-ambientes` | `testes.md` §5 |
+| Grafo de conhecimento | `graphify-integration` | README do Graphify |

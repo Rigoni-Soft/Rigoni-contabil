@@ -160,3 +160,7 @@ graphify-out
 # ffmpeg comprimido no build (scripts/comprimir-ffmpeg.mjs)
 /.ffmpeg
 .env*
+
+# Estado local do gate de qualidade
+.claude/state/
+.agents/state/
