@@ -1,6 +1,6 @@
 // Gera .agents/ como cópia isolada de .claude/ (para outro LLM executar os mesmos fluxos sem depender do Claude Code).
 // Uso: node .claude/scripts/sincronizar-agents.mjs [--verificar]
-// Espelha skills, agents, scripts, fluxos e hooks. Nos arquivos de texto, os caminhos .claude/<pasta> viram .agents/<pasta>,
+// Espelha skills, agents, scripts, fluxos e hooks, mais comandos.md. Nos arquivos de texto, os caminhos .claude/<pasta> viram .agents/<pasta>,
 // menos nas linhas de "graphify install" (instalação do Graphify no Claude Code). Não copia settings*.json, worktrees nem state.
 // --verificar só lista o que mudaria e termina com código 1 se o .agents estiver defasado.
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
@@ -9,6 +9,7 @@ import { join, relative } from "node:path";
 const ORIGEM = ".claude";
 const DESTINO = ".agents";
 const PASTAS = ["skills", "agents", "scripts", "fluxos", "hooks"];
+const ARQUIVOS = ["comandos.md"]; // arquivos soltos na raiz de .claude
 const TEXTO = new Set([".md", ".mjs", ".js", ".cjs", ".py", ".toml", ".yml", ".yaml", ".json", ".css", ".ts", ".tsx", ".sql", ".txt", ".html", ".sh", ""]);
 const CAMINHO = /\.claude\/(skills|agents|scripts|fluxos|hooks|state)\b/g;
 const verificar = process.argv.includes("--verificar");
@@ -37,6 +38,11 @@ for (const pasta of PASTAS) {
     const destino = join(DESTINO, relative(ORIGEM, f));
     esperados.set(destino, TEXTO.has(extensao(f)) ? Buffer.from(reescrever(bruto.toString("utf8")), "utf8") : bruto);
   }
+}
+
+for (const nome of ARQUIVOS) {
+  const f = join(ORIGEM, nome);
+  if (existsSync(f)) esperados.set(join(DESTINO, nome), Buffer.from(reescrever(readFileSync(f, "utf8")), "utf8"));
 }
 
 const sobras = [];
