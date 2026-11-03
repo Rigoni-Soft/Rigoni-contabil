@@ -24,10 +24,11 @@ export type ShellNavProps = {
   onIrParaSetor?: (rota: string) => void;
 };
 
-// Única aba com tela de verdade por trás — as demais seguem como
+// Abas com tela de verdade por trás — as demais seguem como
 // placeholder desabilitado até ganharem painel próprio.
 const ROTA_POR_SETOR: Record<string, string> = {
   simples_nacional: "/simples-nacional",
+  rh: "/rh",
 };
 
 const CHIP =

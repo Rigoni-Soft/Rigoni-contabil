@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { DadosBasicosDoCliente } from "@/presentation/components/organisms/dados-basicos-do-cliente.component";
 import { EditarCadastroOperacionalPage } from "@/presentation/components/pages/editar-cadastro-operacional.page";
 import { carregarSessao, validarSessao } from "@/presentation/view-models/shell/shell.server";
 import { AnexarAlteracaoContratualContainer } from "@/modules/clientes/presentation/view-models/anexar-alteracao-contratual/anexar-alteracao-contratual.container";
@@ -17,6 +18,7 @@ import {
   podeAtribuirResponsavel,
   podeEditarCadastroOperacional,
 } from "@/shared/kernel/papeis";
+import { REGIME_LABEL } from "@/shared/kernel/regimes";
 import { ehSetor, SETOR_LABEL } from "@/shared/kernel/setores";
 
 type Props = {
@@ -44,11 +46,19 @@ export default async function Page({ params, searchParams }: Props) {
   );
   const responsavelDoSetor = atribuiNoSetor ? await carregarResponsavelDoSetor(id) : null;
   const readOnly = !podeEditarCadastroOperacional(sessao.papel, sessao.setor);
+  // O RH acha qualquer Cliente, mas só lê os dados básicos: o cadastro operacional é do SN.
+  const soDadosBasicos = sessao.papel !== "admin" && sessao.setor === "rh";
 
   return (
     <EditarCadastroOperacionalPage
       header={<CabecalhoDoShellContainer sessao={sessao} />}
-      titulo={readOnly ? "Visualizar cadastro operacional" : "Editar cadastro operacional"}
+      titulo={
+        soDadosBasicos
+          ? "Dados do cliente"
+          : readOnly
+            ? "Visualizar cadastro operacional"
+            : "Editar cadastro operacional"
+      }
       voltarHref={hrefSeguro(voltarPara)}
       alteracoesContratuais={
         podeAnexarAlteracaoContratual(sessao.papel) ? (
@@ -68,19 +78,27 @@ export default async function Page({ params, searchParams }: Props) {
         ) : undefined
       }
       formulario={
-        <EditarCadastroOperacionalContainer
-          dados={resultado.value}
-          readOnly={readOnly}
-          // Se a carga do servidor falhar, o botão se lê por action (com aviso e "Tentar novamente").
-          documentosContratuais={documentos.ok ? documentos.value : undefined}
-          podeAnexar={podeAnexarAlteracaoContratual(sessao.papel)}
-          // Vindo de aviso de alteração: o botão do documento abre aquela alteração, em destaque.
-          alteracaoEmFoco={alteracaoEmFocoDaUrl(alteracao)}
-          podeAtribuirResponsavel={
-            atribuiNoCadastro && podeAtribuirResponsavel(sessao.papel, sessao.setor)
-          }
-          aoSalvar={{ tipo: "voltar", href: hrefSeguro(voltarPara) }}
-        />
+        soDadosBasicos ? (
+          <DadosBasicosDoCliente
+            empresa={resultado.value.empresa}
+            cnpj={resultado.value.cnpj}
+            regime={REGIME_LABEL[resultado.value.regime] ?? resultado.value.regime}
+          />
+        ) : (
+          <EditarCadastroOperacionalContainer
+            dados={resultado.value}
+            readOnly={readOnly}
+            // Se a carga do servidor falhar, o botão se lê por action (com aviso e "Tentar novamente").
+            documentosContratuais={documentos.ok ? documentos.value : undefined}
+            podeAnexar={podeAnexarAlteracaoContratual(sessao.papel)}
+            // Vindo de aviso de alteração: o botão do documento abre aquela alteração, em destaque.
+            alteracaoEmFoco={alteracaoEmFocoDaUrl(alteracao)}
+            podeAtribuirResponsavel={
+              atribuiNoCadastro && podeAtribuirResponsavel(sessao.papel, sessao.setor)
+            }
+            aoSalvar={{ tipo: "voltar", href: hrefSeguro(voltarPara) }}
+          />
+        )
       }
     />
   );

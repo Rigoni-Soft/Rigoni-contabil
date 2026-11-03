@@ -30,9 +30,11 @@ export function BuscarClienteContainer({ papel, setor, apenasSnMei = false }: Pr
   } = useBuscarCliente(papel, setor, apenasSnMei);
 
   // O Admin segue para a tela própria do Cliente (`/clientes/[id]`), a única com "Anexar alteração";
-  // os demais papéis editam/visualizam no painel embutido.
+  // o RH também (dados básicos e Responsável do RH, sem o cadastro do SN); os demais papéis
+  // editam/visualizam no painel embutido.
   const aoSelecionar = (id: string) => {
     if (papel === "admin") router.push(`/clientes/${id}`);
+    else if (setor === "rh") router.push(`/clientes/${id}?voltarPara=/rh`);
     else selecionarCliente(id);
   };
 

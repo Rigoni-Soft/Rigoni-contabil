@@ -6,6 +6,8 @@ type ResumoSetorSnListaPageProps = {
   titulo: string;
   descricao?: string;
   lista: React.ReactNode;
+  // O resumo do Setor de onde a lista saiu.
+  voltarHref?: string;
 };
 
 export function ResumoSetorSnListaPage({
@@ -13,6 +15,7 @@ export function ResumoSetorSnListaPage({
   titulo,
   descricao,
   lista,
+  voltarHref = "/simples-nacional",
 }: ResumoSetorSnListaPageProps) {
   return (
     <TelaDeTrabalhoTemplate
@@ -20,7 +23,7 @@ export function ResumoSetorSnListaPage({
       largura="conteudo"
       cabecalho={
         <CabecalhoDeTela
-          voltarHref="/simples-nacional"
+          voltarHref={voltarHref}
           voltarRotulo="Voltar ao resumo"
           titulo={titulo}
           descricao={descricao}
