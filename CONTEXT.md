@@ -48,7 +48,7 @@ O conjunto de campos que o Funcionário do Simples Nacional mantém atualizado p
 _Avoid_: Cadastro do cliente (ambíguo com o cadastro básico do #33 — Empresa/CNPJ/Regime/documentos jurídicos).
 
 **Responsável**:
-O Funcionário atribuído pelo Líder a um Cliente (#65). Um Cliente tem no máximo um Responsável por Setor; a regra é do sistema, comum a todo Setor. No Simples Nacional ele fica no Cadastro operacional (`responsavel_id`); nos demais Setores, em `cliente_responsaveis` (cliente, Setor, Funcionário do Setor), atribuído pelo Líder do Setor. Um Cliente tem no máximo um; um Funcionário pode ser Responsável por vários. Funcionário só enxerga os Clientes pelos quais é Responsável, em qualquer Setor (RLS no banco: `pode_ver_cliente`), e só edita o cadastro operacional dos do Simples Nacional; o Líder e o Admin enxergam todos, e o Líder do Setor é o único que atribui, troca ou remove o Responsável daquele Setor. A **Recepção** é a exceção: todos os Funcionários e o Líder respondem por todo cliente que chega, então o Funcionário da Recepção enxerga todos os Clientes e a espera dela é sempre comum. Sem atribuição, o Cliente aparece como "Sem responsável". Funcionário removido (conta excluída) também deixa o Cliente sem responsável; a desativação (soft delete) nasce no #58, que deve fazer o mesmo.
+O Funcionário atribuído pelo Líder a um Cliente (#65). Um Cliente tem no máximo um Responsável por Setor; a regra é do sistema, comum a todo Setor. No Simples Nacional ele fica no Cadastro operacional (`responsavel_id`); nos demais Setores, em `cliente_responsaveis` (cliente, Setor, Funcionário do Setor), atribuído pelo Líder do Setor. Um Cliente tem no máximo um; um Funcionário pode ser Responsável por vários. Funcionário só enxerga os Clientes pelos quais é Responsável, em qualquer Setor (RLS no banco: `pode_ver_cliente`), e só edita o cadastro operacional dos do Simples Nacional; o Líder e o Admin enxergam todos, e o Líder do Setor é o único que atribui, troca ou remove o Responsável daquele Setor. A **Recepção** é a exceção: todos os Funcionários e o Líder respondem por todo cliente que chega, então o Funcionário da Recepção enxerga todos os Clientes e a espera dela é sempre comum. O **RH** é a segunda exceção, só para busca: todo o Setor encontra qualquer Cliente, de qualquer Regime, e vê os dados básicos dele; opera apenas os Clientes em que é Responsável. O Responsável é dado exclusivo de cada Setor, nunca do cadastro do Cliente: o Responsável do RH e o do Simples Nacional são independentes. Sem atribuição, o Cliente aparece como "Sem responsável". Funcionário removido (conta excluída) também deixa o Cliente sem responsável; a desativação (soft delete) nasce no #58, que deve fazer o mesmo.
 _Avoid_: Dono, atendente do cliente (Atendente é outro conceito — quem conduz um Atendimento).
 
 **Contato**:
@@ -61,6 +61,8 @@ _Avoid_: Guia de imposto (usar DAS quando for especificamente essa guia).
 
 **Parcelamento**:
 Acordo de parcelamento de débitos tributários do Cliente junto à Receita, cuja guia também é obtida via Serpro. Um Cliente tem zero, um ou vários, cada um com código, parcelas restantes, a marca "é interno" e o PDF do acordo anexado (obrigatório); "Tem parcelamento" é só o resumo derivado ("Sim (2)"). Quem edita o Cadastro operacional (Funcionário SN Responsável, Líder SN, Admin) cadastra à mão, com mínimo 1 parcela restante, e remove um Parcelamento sem registro de envio (o anexo vai junto). Dois eixos: a **situação** (em aberto → quitado) e o **status do mês** (pendente/enviado, derivado do registro de envio). Cliente sem Parcelamento cadastrado não tem guia a enviar. O PDF fica em bucket privado, só o servidor lê (#122). O Parcelamento PGFN cadastrado só ganha guias mensais: código, origem, "é interno" e restantes não se editam, e a guia anexada troca ou se remove até o envio (#184).
+
+Cada Setor tem os seus Parcelamentos, com o mesmo fluxo, e só vê os seus; o Cliente tem zero, um ou vários por Setor. Quem busca a guia para enviar ao Cliente (URA, job) enxerga os de todos os Setores juntos. Os que já existem pertencem ao Simples Nacional.
 
 **Parcelamento em aberto / quitado**:
 Em aberto é o que ainda gera guia; quitado é o marcado como quitado ou com parcelas restantes em zero. Quem decide é o banco: a edição à mão nunca grava zero nem a situação (o zero vem do sistema, ao entregar a última parcela).
@@ -131,6 +133,35 @@ _Avoid_: Disparo.
 **Alerta do setor**:
 Registro que o job grava para o setor Simples Nacional quando algo pede ação humana: DAS pendente com o documento em dia (`das_pendente`), envio que falhou depois das tentativas (`falha_envio`), Cliente sem contato ou e-mail para a forma de envio (`contato_ausente`) e guia entregue por um canal só (`entrega_parcial`), Parcelamento pendente que o provedor não entregou ou que não casou com nenhuma guia (`parcelamento_sem_guia`, a mensagem lista os códigos) e telefone do financeiro ausente ou inválido, com Parcelamento interno pendente (`financeiro_ausente`). Há um alerta aberto por Cliente e tipo; o job o renova enquanto a condição existe e o resolve quando ela some, exceto `entrega_parcial`, que só uma pessoa resolve. Cada alerta tem a origem do job que o gerou (`lembretes` ou `parcelamento`): um job renova e resolve só os seus.
 _Avoid_: Notificação.
+
+### RH: acompanhamento e folha de ponto
+
+**Acompanhamento mensal**:
+A tabela de trabalho do RH: uma linha por Cliente e uma coluna por Serviço do acompanhamento, por competência (mês). Todo mês nasce com tudo pendente; o histórico dos meses anteriores é consultável. Só o Responsável do RH do Cliente marca; o Líder e o Admin leem todos.
+
+**Serviço do acompanhamento**:
+Uma coluna do Acompanhamento mensal (ex.: FGTS, DCTFWeb, NUTRI, SIB, Sindicato), marcada como concluída ou não pelo Responsável. A lista é mantida pelo Líder do RH. Cada Cliente tem um "se aplica" por Serviço; o que não se aplica não conta. O **Holerite** é o Serviço do sistema: nunca marcado à mão, fica concluído quando todo funcionário ativo do Cliente tem o Cartão de ponto do mês (as duas quinzenas).
+
+**Ponto do funcionário**:
+O ponto que um Funcionário do RH ganha por Cliente em que todo Serviço aplicável do mês, inclusive o Holerite, está concluído. O gráfico de acompanhamento dos funcionários (Líder e Admin) mostra pontos x Clientes atribuídos e, por funcionário, quantos Clientes faltam em cada Serviço; o detalhe do funcionário lista os Clientes com algo pendente agrupados pelo Serviço que falta. O Funcionário não vê esse gráfico.
+
+**Quadro de funcionários do Cliente**:
+Os empregados de um Cliente, só com nome, Jornada e a marca "comissionado" (que define o percentual de hora extra em data especial). A marca nasce do padrão do Cliente ("os empregados deste Cliente são comissionados") e o Funcionário do RH a muda por empregado quando for exceção. Entra pela leitura de um Cartão de ponto ou à mão, e o Funcionário do RH corrige ou preenche à mão. Pode ficar "sem movimento no mês" (férias, desligamento) sem travar o Holerite. Nenhum outro dado do empregado é guardado ou exibido (é a única exceção à regra "só nome, Jornada e Abono").
+
+**Jornada**:
+A carga horária do empregado por dia da semana; zero significa que não trabalha nesse dia. Dia com carga e sem batida é falta, salvo Abono ou feriado; dia sem carga (domingo) é ignorado, salvo batida na coluna Extra, que vira hora extra.
+
+**Cartão de ponto**:
+O registro das batidas de um empregado em uma quinzena, lido de uma foto ou digitado, que alimenta a planilha dele e a Totalização. É entregue em PDF individual, com as Totalizações em destaque e linhas de assinatura física do responsável e do empregado do Cliente.
+
+**Abono**:
+Marca de que um dia (ou o horário) não conta como falta: por anotação "atestado" no cartão ou por atestado anexado cobrindo a data. Só a sinalização é guardada, nunca o motivo médico, o CID nem o documento. Declaração de comparecimento abona só o horário.
+
+**Convenção coletiva**:
+O PDF da convenção do sindicato do Cliente, com vigência de um ano, que o Líder do RH ou o Admin envia e renova; as anteriores ficam no histórico. Suas cláusulas viram regras de cálculo (jornada, hora extra, adicional noturno, abonos, sábado, domingo, feriado, banco de horas) aplicadas sem aprovação, exibidas em leitura com a cláusula de origem. Cada Cliente tem uma convenção por padrão e pode ter mais de uma; havendo mais de uma, cada empregado do Quadro aponta a sua.
+
+**Totalização**:
+O resultado legal das horas de um empregado no período (normais, extras por faixa, adicional noturno, atrasos, faltas, abonos), calculado das batidas pela Convenção coletiva.
 
 ### Auditoria
 
