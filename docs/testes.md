@@ -106,10 +106,13 @@ Branches: `main`, `homolog`, `develop` e `feature/*`.
 | **Dev** | Máquina do dev e CI da branch de feature | Supabase local (`supabase start`), com as migrations e o seed do repositório | unitário, integração, E2E do diff |
 | **Homolog** | Cópia do ambiente de `main` | Projeto Supabase de homologação, com dados sintéticos | E2E completo |
 
-Fluxo (proposta):
+Fluxo (implementado em `.github/workflows/ci.yml`):
 
-- **PR de `feature/*` para `develop`:** unitário, integração e E2E do diff, todos verdes para o merge.
-- **Promoção para `homolog`:** deploy no ambiente de homologação e E2E completo. Só o que passa segue para `main`.
+- **PR de `feature/*` para `develop`:** unitário, integração completa e E2E rápido (os `*.e2e.ts` do diff mais todo `@smoke`), todos verdes para o merge.
+- **Merge na `develop`, PR e merge na `homolog`:** E2E completo, dividido em 3 shards em paralelo (`--shard`), cada um com o seu Supabase local. Na `homolog`, o `e2e-preview.yml` roda a suíte completa também contra o preview da Vercel. Só o que passa segue para `main`.
+- **PR e merge na `main`:** sem E2E; o código já passou no completo da `homolog`.
+
+A integração (`test:int`, menos de 1 min) roda em toda execução; o que pesa é o E2E (serial, `next dev`), por isso só ele muda de tamanho.
 
 **Banco de homologação.** Precisa espelhar o funcionamento real do sistema sem expor dado crítico:
 
@@ -193,6 +196,4 @@ papel do teste de integração fazer isso). Rodar `test:e2e` logo em seguida
 sobre o mesmo banco arrisca colisão de estado quando o E2E faz asserção por
 texto exato que também aparece no seed (ex.: `acao: "usuario.criar"`
 inserido por um teste de integração de auditoria colidindo com o mesmo texto
-no seed, fazendo `getByText` bater 2 elementos). Rodar `supabase db reset`
-entre as duas suítes (local e no CI, ver `.github/workflows/ci.yml`) evita
-isso reaplicando migrations + seed do zero antes do E2E.
+no seed, fazendo `getByText` bater 2 elementos). No CI, integração e E2E rodam em jobs separados, cada um com o seu Supabase recém-subido (seed limpo); no E2E rápido há um `supabase db reset` entre os dois passos. Localmente, rodar `supabase db reset` entre as duas suítes evita isso.
