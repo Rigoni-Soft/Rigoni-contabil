@@ -30,12 +30,13 @@ type Props = {
 export default async function Page({ params, searchParams }: Props) {
   const { id } = await params;
   const { voltarPara, alteracao } = await searchParams;
-  const [sessaoOuNula, resultado, documentos] = await Promise.all([
-    carregarSessao(),
+  const sessao = validarSessao(await carregarSessao());
+  // O RH só mostra os dados básicos (regra de apresentação: a RLS não a impõe): não busca os documentos.
+  const soDadosBasicos = soLeDadosBasicosDoCliente(sessao.papel, sessao.setor);
+  const [resultado, documentos] = await Promise.all([
     carregarCadastroOperacionalCliente(id),
-    carregarDocumentosContratuais(id),
+    soDadosBasicos ? null : carregarDocumentosContratuais(id),
   ]);
-  const sessao = validarSessao(sessaoOuNula);
   if (!resultado.ok || !resultado.value) redirect("/");
 
   // Só Admin ou Funcionário do setor Simples Nacional edita — qualquer outro
@@ -47,8 +48,6 @@ export default async function Page({ params, searchParams }: Props) {
   );
   const responsavelDoSetor = atribuiNoSetor ? await carregarResponsavelDoSetor(id) : null;
   const readOnly = !podeEditarCadastroOperacional(sessao.papel, sessao.setor);
-  // O RH não vê o cadastro operacional (é do SN): mesmo dos Clientes que enxerga, só os dados básicos.
-  const soDadosBasicos = soLeDadosBasicosDoCliente(sessao.papel, sessao.setor);
 
   return (
     <EditarCadastroOperacionalPage
@@ -65,7 +64,7 @@ export default async function Page({ params, searchParams }: Props) {
         podeAnexarAlteracaoContratual(sessao.papel) ? (
           <AnexarAlteracaoContratualContainer
             clienteId={id}
-            documentosIniciais={documentos.ok ? documentos.value : undefined}
+            documentosIniciais={documentos?.ok ? documentos.value : undefined}
           />
         ) : undefined
       }
@@ -90,7 +89,7 @@ export default async function Page({ params, searchParams }: Props) {
             dados={resultado.value}
             readOnly={readOnly}
             // Se a carga do servidor falhar, o botão se lê por action (com aviso e "Tentar novamente").
-            documentosContratuais={documentos.ok ? documentos.value : undefined}
+            documentosContratuais={documentos?.ok ? documentos.value : undefined}
             podeAnexar={podeAnexarAlteracaoContratual(sessao.papel)}
             // Vindo de aviso de alteração: o botão do documento abre aquela alteração, em destaque.
             alteracaoEmFoco={alteracaoEmFocoDaUrl(alteracao)}
