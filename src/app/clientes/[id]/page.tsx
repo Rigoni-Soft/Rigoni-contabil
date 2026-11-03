@@ -27,6 +27,11 @@ type Props = {
   searchParams: Promise<{ voltarPara?: string; alteracao?: string | string[] }>;
 };
 
+function tituloDaPagina(soDadosBasicos: boolean, readOnly: boolean) {
+  if (soDadosBasicos) return "Dados do cliente";
+  return readOnly ? "Visualizar cadastro operacional" : "Editar cadastro operacional";
+}
+
 export default async function Page({ params, searchParams }: Props) {
   const { id } = await params;
   const { voltarPara, alteracao } = await searchParams;
@@ -54,13 +59,7 @@ export default async function Page({ params, searchParams }: Props) {
   return (
     <EditarCadastroOperacionalPage
       header={<CabecalhoDoShellContainer sessao={sessao} />}
-      titulo={
-        soDadosBasicos
-          ? "Dados do cliente"
-          : readOnly
-            ? "Visualizar cadastro operacional"
-            : "Editar cadastro operacional"
-      }
+      titulo={tituloDaPagina(soDadosBasicos, readOnly)}
       voltarHref={hrefSeguro(voltarPara)}
       alteracoesContratuais={
         podeAnexarAlteracaoContratual(sessao.papel) ? (
