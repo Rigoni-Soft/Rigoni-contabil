@@ -12,7 +12,7 @@ Aqui cada ticket já é uma fatia vertical (banco, regra de negócio, tela e tes
 ## Etapa 1: Fundação do RH
 
 - [ ] **PR 1.1: Aba RH com busca ampla e Responsável do RH** (depende da PR 0, já mergeada; base de tudo)
-  - [ ] #213 (ambas): aba `/rh`, busca de qualquer cliente, Responsável do RH atribuído pelo Líder
+  - [x] #213 (ambas): aba `/rh`, busca de qualquer cliente, Responsável do RH atribuído pelo Líder
 
 ## Etapa 2: Acompanhamento mensal
 
