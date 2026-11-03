@@ -15,10 +15,11 @@ import {
   podeVerDashboardDoSetor,
   rotuloResponsavel,
   SEM_RESPONSAVEL_ID,
+  veCarteiraInteira,
 } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
+import { SETOR_RH } from "@/shared/kernel/setores";
 
-const SETOR = "rh";
 const GRUPO = "Carteira";
 
 const doBucket = ({ clienteId, empresa, cnpj }: ClienteDaCarteiraRow) => ({
@@ -60,14 +61,14 @@ export class ObterResumoSetorRh {
   async execute(): Promise<Result<ResumoSetorRhDto, AppError>> {
     const ator = await this.sessao.usuarioAtual();
     if (!ator) return err(new ForbiddenError("Faça login para ver o resumo do setor."));
-    if (!podeVerDashboardDoSetor(ator.papel, ator.setor, SETOR)) {
+    if (!podeVerDashboardDoSetor(ator.papel, ator.setor, SETOR_RH)) {
       return err(new ForbiddenError("Só o RH (e o Admin) vê o resumo do setor."));
     }
 
-    const lidas = await this.carteira.listar(SETOR);
+    const lidas = await this.carteira.listar(SETOR_RH);
     if (!lidas.ok) return lidas;
 
-    const veTudo = ator.papel !== "funcionario";
+    const veTudo = veCarteiraInteira(ator.papel);
     const linhas = veTudo ? lidas.value : lidas.value.filter((l) => l.responsavelId === ator.id);
     const atribuidos = linhas.filter((l) => l.responsavelId);
 

@@ -7,6 +7,7 @@ import { exigirSessao } from "@/presentation/view-models/shell/shell.server";
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import { carregarResumoSetorRh } from "@/modules/clientes/presentation/view-models/resumo-setor-rh/resumo-setor-rh.server";
 import { podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
+import { SETOR_RH } from "@/shared/kernel/setores";
 
 type Props = { params: Promise<{ bucket: string }> };
 
@@ -14,7 +15,7 @@ export default async function Page({ params }: Props) {
   const { bucket } = await params;
   const sessao = await exigirSessao();
 
-  if (!podeVerDashboardDoSetor(sessao.papel, sessao.setor, "rh")) redirect("/");
+  if (!podeVerDashboardDoSetor(sessao.papel, sessao.setor, SETOR_RH)) redirect("/");
 
   const resumo = await carregarResumoSetorRh();
   const header = <CabecalhoDoShellContainer sessao={sessao} />;

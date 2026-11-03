@@ -3,6 +3,7 @@ import {
   podeVerComparativoDoSetor,
   podeVerDashboardDoSetor,
   soLeDadosBasicosDoCliente,
+  veCarteiraInteira,
 } from "./papeis";
 
 describe("podeVerDashboardDoSetor", () => {
@@ -48,5 +49,15 @@ describe("podeVerComparativoDoSetor", () => {
     ["admin", "administrativo", false],
   ])("%s do setor %s vê o comparativo: %s", (papel, setor, esperado) => {
     expect(podeVerComparativoDoSetor(papel, setor)).toBe(esperado);
+  });
+});
+
+describe("veCarteiraInteira", () => {
+  it.each([
+    ["admin", true],
+    ["lider_setor", true],
+    ["funcionario", false],
+  ])("%s vê a carteira inteira: %s", (papel, esperado) => {
+    expect(veCarteiraInteira(papel)).toBe(esperado);
   });
 });

@@ -13,12 +13,13 @@ import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-
 import { BuscarClienteContainer } from "@/modules/clientes/presentation/view-models/buscar-cliente/buscar-cliente.container";
 import { carregarResumoSetorRh } from "@/modules/clientes/presentation/view-models/resumo-setor-rh/resumo-setor-rh.server";
 import { podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
+import { SETOR_RH } from "@/shared/kernel/setores";
 
 export default async function Page() {
   const sessao = await exigirSessao();
 
   // Admin vê (suporte a qualquer setor); funcionário de outro setor volta para o início.
-  if (!podeVerDashboardDoSetor(sessao.papel, sessao.setor, "rh")) redirect("/");
+  if (!podeVerDashboardDoSetor(sessao.papel, sessao.setor, SETOR_RH)) redirect("/");
 
   const [setores, resumo] = await Promise.all([
     carregarSetoresDaNavegacao(),

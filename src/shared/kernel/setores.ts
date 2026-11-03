@@ -19,6 +19,9 @@ export const SETORES = [
 ] as const;
 export type SetorSlug = (typeof SETORES)[number];
 
+// Setor RH nomeado: renomear o slug em SETORES quebra a compilação onde as regras o citam.
+export const SETOR_RH = "rh" satisfies SetorSlug;
+
 // Para valores que chegam como string (sessão, `<select>`) e precisam virar SetorSlug sem cast.
 export const ehSetor = (valor: string): valor is SetorSlug =>
   (SETORES as readonly string[]).includes(valor);

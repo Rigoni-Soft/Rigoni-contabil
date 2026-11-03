@@ -8,6 +8,7 @@ import {
 import { ShellNavContainer } from "@/modules/atendimento/presentation/view-models/atendimento-central/shell-nav.container";
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import { BuscarClienteContainer } from "@/modules/clientes/presentation/view-models/buscar-cliente/buscar-cliente.container";
+import { SETOR_RH } from "@/shared/kernel/setores";
 
 // "/" é a home genérica — só pra quem não tem um dashboard de setor próprio ainda. O dashboard de
 // cada setor é a página principal de quem é DAQUELE setor: Funcionário/Líder do Simples Nacional
@@ -16,7 +17,7 @@ import { BuscarClienteContainer } from "@/modules/clientes/presentation/view-mod
 export default async function Home() {
   const sessao = await exigirSessao();
   if (sessao.setor === "simples_nacional") redirect("/simples-nacional");
-  if (sessao.setor === "rh") redirect("/rh");
+  if (sessao.setor === SETOR_RH) redirect("/rh");
 
   const setores = await carregarSetoresDaNavegacao();
 
