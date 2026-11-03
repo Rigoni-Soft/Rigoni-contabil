@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { ResumoSetorSnLista } from "@/presentation/components/organisms/resumo-setor-sn-lista.component";
 import { ResumoSetorSnListaPage } from "@/presentation/components/pages/resumo-setor-sn-lista.page";
+import { ERRO_CARREGAR_RESUMO_SETOR } from "@/presentation/lib/erro-resumo-setor";
 import { exigirSessao } from "@/presentation/view-models/shell/shell.server";
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import { carregarResumoSetorSn } from "@/modules/clientes/presentation/view-models/resumo-setor-sn/resumo-setor-sn.server";
@@ -23,7 +24,7 @@ export default async function Page({ params }: Props) {
       <ResumoSetorSnListaPage
         header={header}
         titulo="Resumo do setor"
-        erro="Falha ao carregar o resumo do setor. Tente novamente."
+        erro={ERRO_CARREGAR_RESUMO_SETOR}
       />
     );
   }

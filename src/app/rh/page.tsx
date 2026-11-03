@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ComparativosRh } from "@/presentation/components/organisms/comparativos-rh.component";
 import { ResumoDoSetor } from "@/presentation/components/organisms/resumo-do-setor.component";
 import { ResumoDoSetorPage } from "@/presentation/components/pages/resumo-do-setor.page";
+import { ERRO_CARREGAR_RESUMO_SETOR } from "@/presentation/lib/erro-resumo-setor";
 import {
   carregarSetoresDaNavegacao,
   exigirSessao,
@@ -28,7 +29,7 @@ export default async function Page() {
     <ResumoDoSetorPage
       header={<CabecalhoDoShellContainer sessao={sessao} />}
       nav={<ShellNavContainer setores={setores} rotaAtual="/rh" />}
-      erro={resumo.ok ? undefined : "Falha ao carregar o resumo do setor. Tente novamente."}
+      erro={resumo.ok ? undefined : ERRO_CARREGAR_RESUMO_SETOR}
       resumo={
         resumo.ok && (
           <ResumoDoSetor

@@ -5,7 +5,8 @@ import { join } from "node:path";
 
 const RAIZES = process.argv.length > 2 ? process.argv.slice(2) : ["src", "e2e", "test-support"];
 const CODIGO = /\.(ts|tsx|mjs)$/;
-const COMENTARIO_COM_TICKET = /^\s*(\/\/|\/\*|\*|\{\/\*).*#\d+|\s\/\/\s.*#\d+|\/\*[^*].*#\d+/; // linha de comentário, comentário no fim da linha, bloco na linha
+// Linha de comentário, comentário no fim da linha, bloco na linha. O `\b` deixa passar cor hex (#1a2b3c).
+const COMENTARIO_COM_TICKET = /^\s*(\/\/|\/\*|\*|\{\/\*).*#\d+\b|\s\/\/\s.*#\d+\b|\/\*[^*].*#\d+\b/;
 
 const erros = [];
 
