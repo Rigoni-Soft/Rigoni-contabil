@@ -47,7 +47,7 @@ export default async function Page({ params, searchParams }: Props) {
   );
   const responsavelDoSetor = atribuiNoSetor ? await carregarResponsavelDoSetor(id) : null;
   const readOnly = !podeEditarCadastroOperacional(sessao.papel, sessao.setor);
-  // O RH acha qualquer Cliente, mas só lê os dados básicos: o cadastro operacional é do SN.
+  // O RH não vê o cadastro operacional (é do SN): mesmo dos Clientes que enxerga, só os dados básicos.
   const soDadosBasicos = soLeDadosBasicosDoCliente(sessao.papel, sessao.setor);
 
   return (

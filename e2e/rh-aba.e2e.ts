@@ -2,8 +2,8 @@ import { expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import { cnpjUnico, login } from "./support/criar-cliente";
 
-// Aba do RH: o Líder atribui o Responsável do RH; o Funcionário acha qualquer Cliente, vê só os
-// dados básicos e tem no resumo só os atribuídos a ele; funcionário de outro Setor volta para o início.
+// Aba do RH: o Líder acha todo Cliente e atribui o Responsável do RH; o Funcionário acha só o atribuído a
+// ele, vê só os dados básicos e tem no resumo só os dele; funcionário de outro Setor volta para o início.
 const admin = adminLocal();
 const SUFIXO = `${Date.now()}`.slice(-6);
 const EMPRESA = `RH Aba E2E ${SUFIXO} Ltda`;

@@ -1,6 +1,6 @@
 /**
- * Integração infra ↔ Supabase: o RH acha qualquer Cliente e lê os dados básicos; o que é de outro Setor
- * segue escondido, e só o Líder do RH atribui o Responsável do RH (com auditoria). Requer
+ * Integração infra ↔ Supabase: o Líder do RH e o Admin acham todo Cliente; o Funcionário do RH só o que é
+ * atribuído a ele; só o Líder do RH atribui o Responsável do RH (com auditoria). Requer
  * `npx supabase start` com migrations + seed aplicados.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -29,6 +29,7 @@ async function entrar(email: string, senha: string): Promise<SupabaseClient> {
 }
 
 const servico = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+const comoAdmin = () => entrar("admin@rigonicontabil.local", "admin123");
 const comoLiderRH = () => entrar("lider.rh@rigonicontabil.local", "lider123");
 const comoFuncionarioRH = () => entrar("funcionario.rh@rigonicontabil.local", "func123");
 const comoFuncionario2RH = () => entrar("funcionario2.rh@rigonicontabil.local", "func123");
@@ -72,26 +73,48 @@ afterAll(async () => {
   await removerClientesDeTeste([CNPJ_SN, CNPJ_PRESUMIDO]);
 });
 
-describe("RH: leitura ampla e Responsável do RH (integração)", () => {
-  it("o Funcionário e o Líder do RH acham Cliente de qualquer Regime, sem ser Responsável", async () => {
-    for (const entrarComo of [comoFuncionarioRH, comoLiderRH]) {
+describe("RH: busca por atribuição e Responsável do RH (integração)", () => {
+  it("o Líder do RH e o Admin acham Cliente de todo Regime, sem ser Responsável", async () => {
+    for (const entrarComo of [comoLiderRH, comoAdmin]) {
       const cnpjs = await buscar(await entrarComo(), "RH Busca");
       expect(cnpjs.sort()).toEqual([CNPJ_SN, CNPJ_PRESUMIDO]);
     }
+  });
+
+  it("o Funcionário do RH só acha o Cliente atribuído a ele", async () => {
+    expect(await buscar(await comoFuncionarioRH(), "RH Busca")).toEqual([]);
+
+    await servico.from("cliente_responsaveis").insert({
+      cliente_id: clientePresumidoId,
+      setor: "rh",
+      responsavel_id: FUNCIONARIO_RH_ID,
+    });
+    const proprio = await buscar(await comoFuncionarioRH(), "RH Busca");
+    const colega = await buscar(await comoFuncionario2RH(), "RH Busca");
+    await servico
+      .from("cliente_responsaveis")
+      .delete()
+      .eq("cliente_id", clientePresumidoId)
+      .eq("setor", "rh");
+
+    expect(proprio).toEqual([CNPJ_PRESUMIDO]);
+    expect(colega).toEqual([]);
   });
 
   it("quem não é do RH segue sem ver o Cliente de que não é Responsável", async () => {
     expect(await buscar(await comoFuncionarioFinanceiro(), "RH Busca")).toEqual([]);
   });
 
-  it("o Funcionário do RH lê só os dados básicos: nada do cadastro do SN nem dos contatos", async () => {
+  it("o Funcionário do RH não lê nada de um Cliente que não é dele: nem dados básicos, cadastro ou contatos", async () => {
     const rh = await comoFuncionarioRH();
+    const basico = await rh.from("clientes_basico").select("id").eq("id", clienteSnId);
     const operacional = await rh
       .from("cliente_cadastro_operacional_sn")
       .select("cliente_id")
       .eq("cliente_id", clienteSnId);
     const contatos = await rh.from("cliente_contatos").select("id").eq("cliente_id", clienteSnId);
     const clientes = await rh.from("clientes").select("id").eq("id", clienteSnId);
+    expect(basico.data).toEqual([]);
     expect(operacional.data).toEqual([]);
     expect(contatos.data).toEqual([]);
     expect(clientes.data).toEqual([]);
