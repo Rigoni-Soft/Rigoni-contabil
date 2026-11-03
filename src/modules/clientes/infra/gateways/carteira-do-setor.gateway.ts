@@ -10,7 +10,7 @@ import { ConsultaError } from "@/shared/errors/consulta.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
-// Igual ao `max_rows` do Supabase: página menor que isso é a última.
+// Pedido por página; o servidor pode devolver menos (`max_rows`), então o laço avança pelo que veio.
 const TAMANHO_DA_PAGINA = 1000;
 
 type ClienteComResponsavelRow = {
@@ -29,9 +29,10 @@ export class SupabaseCarteiraDoSetorGateway implements CarteiraDoSetorQueryPort 
   ) {}
 
   async listar(setor: SetorSlug): Promise<Result<ClienteDaCarteiraRow[], AppError>> {
-    // O PostgREST corta cada resposta em `max_rows` (1000): lê a carteira em páginas até esgotar.
+    // O PostgREST corta cada resposta em `max_rows`: lê a carteira em páginas até vir uma vazia,
+    // sem depender de o servidor honrar o tamanho pedido.
     const linhas: ClienteComResponsavelRow[] = [];
-    for (let de = 0; ; de += this.tamanhoDaPagina) {
+    for (let de = 0; ; de = linhas.length) {
       const { data, error } = await this.supabase
         .from("clientes_basico")
         .select(
@@ -43,8 +44,8 @@ export class SupabaseCarteiraDoSetorGateway implements CarteiraDoSetorQueryPort 
         .range(de, de + this.tamanhoDaPagina - 1);
       if (error) return err(new ConsultaError(`Erro ao listar a carteira: ${error.message}`));
       const pagina = (data ?? []) as unknown as ClienteComResponsavelRow[];
+      if (pagina.length === 0) break;
       linhas.push(...pagina);
-      if (pagina.length < this.tamanhoDaPagina) break;
     }
 
     return ok(

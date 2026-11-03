@@ -256,6 +256,25 @@ describe("RH: busca por atribuição e Responsável do RH (integração)", () =>
     expect(await cnpjs(1)).toEqual(inteira);
   });
 
+  it("a carteira vem inteira mesmo quando o servidor devolve menos do que a página pedida", async () => {
+    const lider = await comoLiderRH();
+    const inteira = await new SupabaseCarteiraDoSetorGateway(lider).listar("rh");
+    // Páginas pedidas de 1000 e `max_rows` simulado em 1: o corte não pode passar por "última página".
+    const comMaxRows1 = {
+      from: (tabela: string) => ({
+        select: (colunas: string) => {
+          const q = lider.from(tabela).select(colunas);
+          const range = q.range.bind(q);
+          q.range = (de: number) => range(de, de);
+          return q;
+        },
+      }),
+    } as unknown as typeof lider;
+    const r = await new SupabaseCarteiraDoSetorGateway(comMaxRows1, 1000).listar("rh");
+
+    expect(r.ok && inteira.ok && r.value).toEqual(inteira.ok && inteira.value);
+  });
+
   it("o Funcionário do RH atribuído lê o seu vínculo e não o do colega", async () => {
     const lider = await comoLiderRH();
     await lider.from("cliente_responsaveis").insert({
