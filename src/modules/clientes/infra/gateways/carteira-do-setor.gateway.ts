@@ -23,15 +23,14 @@ type ClienteComResponsavelRow = {
 // View `clientes_basico`: o Setor lê os dados básicos da carteira; o vínculo do Responsável vem pela
 // RLS de `cliente_responsaveis` (o Funcionário enxerga só o próprio, o Líder e o Admin todos).
 export class SupabaseCarteiraDoSetorGateway implements CarteiraDoSetorQueryPort {
-  constructor(
-    private readonly supabase: SupabaseClient,
-    private readonly tamanhoDaPagina = TAMANHO_DA_PAGINA,
-  ) {}
+  constructor(private readonly supabase: SupabaseClient) {}
 
   async listar(setor: SetorSlug): Promise<Result<ClienteDaCarteiraRow[], AppError>> {
     // O PostgREST corta cada resposta em `max_rows`: lê a carteira em páginas até vir uma vazia,
-    // sem depender de o servidor honrar o tamanho pedido.
+    // sem depender de o servidor honrar o tamanho pedido. Uma página que repete a anterior (o
+    // servidor ignorou o `range`) aborta em vez de girar sem fim.
     const linhas: ClienteComResponsavelRow[] = [];
+    let primeiroDaAnterior: string | undefined;
     for (let de = 0; ; de = linhas.length) {
       const { data, error } = await this.supabase
         .from("clientes_basico")
@@ -41,13 +40,20 @@ export class SupabaseCarteiraDoSetorGateway implements CarteiraDoSetorQueryPort 
         .eq("cliente_responsaveis.setor", setor)
         .order("empresa")
         .order("id")
-        .range(de, de + this.tamanhoDaPagina - 1);
+        .range(de, de + TAMANHO_DA_PAGINA - 1);
       if (error) return err(new ConsultaError(`Erro ao listar a carteira: ${error.message}`));
+      // Cast único: o select com relação embutida não é inferido sem os tipos gerados do banco.
       const pagina = (data ?? []) as unknown as ClienteComResponsavelRow[];
       if (pagina.length === 0) break;
+      if (pagina[0].id === primeiroDaAnterior) {
+        return err(new ConsultaError("Erro ao listar a carteira: a paginação não avançou."));
+      }
+      primeiroDaAnterior = pagina[0].id;
       linhas.push(...pagina);
     }
 
+    // `.eq("cliente_responsaveis.setor", setor)` deixa no máximo um vínculo por Cliente (um
+    // Responsável por Setor), por isso basta o primeiro.
     return ok(
       linhas.map((linha) => ({
         clienteId: linha.id,

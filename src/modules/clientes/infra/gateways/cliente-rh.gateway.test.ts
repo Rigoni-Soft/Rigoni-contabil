@@ -243,19 +243,6 @@ describe("RH: busca por atribuição e Responsável do RH (integração)", () =>
     expect(doColega.filter((l) => l.responsavelId !== null)).toEqual([]);
   });
 
-  it("a carteira vem inteira mesmo quando não cabe numa página", async () => {
-    const lider = await comoLiderRH();
-    const cnpjs = async (tamanhoDaPagina?: number) => {
-      const r = await new SupabaseCarteiraDoSetorGateway(lider, tamanhoDaPagina).listar("rh");
-      if (!r.ok) throw r.error;
-      return r.value.map((l) => l.cnpj).sort();
-    };
-
-    const inteira = await cnpjs();
-    expect(inteira).toEqual(expect.arrayContaining([CNPJ_SN, CNPJ_PRESUMIDO]));
-    expect(await cnpjs(1)).toEqual(inteira);
-  });
-
   it("a carteira vem inteira mesmo quando o servidor devolve menos do que a página pedida", async () => {
     const lider = await comoLiderRH();
     const inteira = await new SupabaseCarteiraDoSetorGateway(lider).listar("rh");
@@ -270,9 +257,27 @@ describe("RH: busca por atribuição e Responsável do RH (integração)", () =>
         },
       }),
     } as unknown as typeof lider;
-    const r = await new SupabaseCarteiraDoSetorGateway(comMaxRows1, 1000).listar("rh");
+    const r = await new SupabaseCarteiraDoSetorGateway(comMaxRows1).listar("rh");
 
     expect(r.ok && inteira.ok && r.value).toEqual(inteira.ok && inteira.value);
+  });
+
+  it("a carteira falha em vez de girar sem fim quando o servidor ignora o range", async () => {
+    const lider = await comoLiderRH();
+    const ignoraRange = {
+      from: (tabela: string) => ({
+        select: (colunas: string) => {
+          const q = lider.from(tabela).select(colunas);
+          const range = q.range.bind(q);
+          q.range = () => range(0, 0);
+          return q;
+        },
+      }),
+    } as unknown as typeof lider;
+
+    const r = await new SupabaseCarteiraDoSetorGateway(ignoraRange).listar("rh");
+
+    expect(r.ok).toBe(false);
   });
 
   it("o Funcionário do RH atribuído lê o seu vínculo e não o do colega", async () => {
