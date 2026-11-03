@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 
 import { ComparativosRh } from "./comparativos-rh.component";
 
@@ -16,6 +16,11 @@ describe("ComparativosRh", () => {
 
     expect(screen.getByRole("heading", { name: "Comparativos" })).toBeInTheDocument();
     expect(screen.getByText("Clientes por Responsável")).toBeInTheDocument();
-    expect(screen.getAllByText(/Ana/).length).toBeGreaterThan(0);
+    const linhas = screen.getAllByRole("listitem");
+    expect(linhas).toHaveLength(2);
+    expect(within(linhas[0]).getByText("Ana")).toBeInTheDocument();
+    expect(within(linhas[0]).getByText("2")).toBeInTheDocument();
+    expect(within(linhas[1]).getByText("Sem responsável")).toBeInTheDocument();
+    expect(within(linhas[1]).getByText("1")).toBeInTheDocument();
   });
 });
