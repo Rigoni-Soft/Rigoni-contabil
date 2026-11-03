@@ -415,18 +415,25 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
       await atribuirComoLider(clienteBase.id, FUNCIONARIO_SN_ID);
       const funcionarioSN = await comoFuncionarioSN();
 
-      const direto = await funcionarioSN
-        .from("cliente_cadastro_operacional_sn")
-        .update({ responsavel_id: null })
-        .eq("cliente_id", clienteBase.id);
-      const viaGateway = await new SupabaseResponsavelClienteRepository(funcionarioSN).atribuir(
+      await funcionarioSN
+        .from("cliente_responsaveis")
+        .delete()
+        .eq("cliente_id", clienteBase.id)
+        .eq("setor", "simples_nacional");
+      await new SupabaseResponsavelClienteRepository(funcionarioSN).atribuir(
         clienteBase.id,
         "simples_nacional",
         null,
       );
 
-      expect(direto.error).not.toBeNull();
-      expect(viaGateway.ok).toBe(false);
+      // A RLS filtra a escrita do Funcionário (nenhuma linha afetada): o Responsável continua o mesmo.
+      const { data } = await admin
+        .from("cliente_responsaveis")
+        .select("responsavel_id")
+        .eq("cliente_id", clienteBase.id)
+        .eq("setor", "simples_nacional")
+        .single();
+      expect(data?.responsavel_id).toBe(FUNCIONARIO_SN_ID);
     });
 
     it("Admin também NÃO atribui o Responsável (só o Líder do SN)", async () => {
@@ -481,11 +488,12 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
       await servico.auth.admin.deleteUser(conta.user.id);
 
       const { data } = await admin
-        .from("cliente_cadastro_operacional_sn")
+        .from("cliente_responsaveis")
         .select("responsavel_id")
         .eq("cliente_id", clienteBase.id)
-        .single();
-      expect(data?.responsavel_id).toBeNull();
+        .eq("setor", "simples_nacional")
+        .maybeSingle();
+      expect(data?.responsavel_id ?? null).toBeNull();
     });
 
     // O evento nasce no banco, na transação da escrita.
@@ -526,10 +534,14 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
         const clienteBase = await criarClienteBase(admin, "62785037000200");
         const lider = await comoLiderSN();
 
-        const direto = await lider
-          .from("cliente_cadastro_operacional_sn")
-          .update({ responsavel_id: FUNCIONARIO_SN_ID })
-          .eq("cliente_id", clienteBase.id);
+        const direto = await lider.from("cliente_responsaveis").upsert(
+          {
+            cliente_id: clienteBase.id,
+            setor: "simples_nacional",
+            responsavel_id: FUNCIONARIO_SN_ID,
+          },
+          { onConflict: "cliente_id,setor" },
+        );
 
         expect(direto.error).toBeNull();
         expect((await eventosDoResponsavel("62785037000200")).map((e) => e.acao)).toEqual([
@@ -543,10 +555,14 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
         await atribuirComoLider(clienteBase.id, FUNCIONARIO_SN_ID);
         const lider = await comoLiderSN();
 
-        await lider
-          .from("cliente_cadastro_operacional_sn")
-          .update({ responsavel_id: FUNCIONARIO_SN_ID })
-          .eq("cliente_id", clienteBase.id);
+        await lider.from("cliente_responsaveis").upsert(
+          {
+            cliente_id: clienteBase.id,
+            setor: "simples_nacional",
+            responsavel_id: FUNCIONARIO_SN_ID,
+          },
+          { onConflict: "cliente_id,setor" },
+        );
 
         expect(await eventosDoResponsavel("62785037000391")).toHaveLength(1);
       });
@@ -565,11 +581,12 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
 
       expect(edicao.ok).toBe(true);
       const { data } = await admin
-        .from("cliente_cadastro_operacional_sn")
+        .from("cliente_responsaveis")
         .select("responsavel_id")
         .eq("cliente_id", clienteBase.id)
-        .single();
-      expect(data?.responsavel_id).toBeNull();
+        .eq("setor", "simples_nacional")
+        .maybeSingle();
+      expect(data?.responsavel_id ?? null).toBeNull();
     });
   });
 

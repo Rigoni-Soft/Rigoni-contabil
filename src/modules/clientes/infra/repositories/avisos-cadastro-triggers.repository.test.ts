@@ -44,10 +44,19 @@ async function anexarAlteracao(clienteId: string, numero: number): Promise<strin
 }
 
 async function atribuirResponsavel(clienteId: string, responsavelId: string | null) {
-  const { error } = await servico
-    .from("cliente_cadastro_operacional_sn")
-    .update({ responsavel_id: responsavelId })
-    .eq("cliente_id", clienteId);
+  const { error } =
+    responsavelId === null
+      ? await servico
+          .from("cliente_responsaveis")
+          .delete()
+          .eq("cliente_id", clienteId)
+          .eq("setor", "simples_nacional")
+      : await servico
+          .from("cliente_responsaveis")
+          .upsert(
+            { cliente_id: clienteId, setor: "simples_nacional", responsavel_id: responsavelId },
+            { onConflict: "cliente_id,setor" },
+          );
   if (error) throw new Error(error.message);
 }
 

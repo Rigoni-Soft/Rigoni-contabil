@@ -3,6 +3,7 @@ import { z } from "zod";
 import { DAS_STATUSES } from "@/shared/kernel/das-status";
 import { DOCUMENTO_OBRIGATORIO_STATUSES } from "@/shared/kernel/documento-obrigatorio-status";
 import { FORMAS_ENVIO } from "@/shared/kernel/forma-envio";
+import { SETORES } from "@/shared/kernel/setores";
 
 export const editarCadastroOperacionalSchema = z.object({
   clienteId: z.string().uuid(),
@@ -62,6 +63,7 @@ const codigoDoParcelamento = z.string().trim().max(60, "máximo 60 caracteres");
 // Parcelamentos vão por Server Action própria (têm arquivo): o cadastro operacional não os carrega.
 export const salvarParcelamentosSchema = z.object({
   clienteId: z.guid(),
+  setor: z.enum(SETORES),
   parcelamentos: z
     .array(
       z.object({

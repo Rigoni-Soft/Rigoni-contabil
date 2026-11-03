@@ -18,6 +18,7 @@ const pdf = (bytes = 8) =>
 
 const INPUT_VALIDO = {
   clienteId: "c1c1c1c1-c1c1-4c1c-8c1c-c1c1c1c1c1c1",
+  setor: "simples_nacional",
   parcelamentos: [
     { codigo: "PARC-1", parcelasRestantes: 12, interno: false, arquivo: pdf() },
     {

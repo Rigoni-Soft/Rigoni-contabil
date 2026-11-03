@@ -90,6 +90,7 @@ test.describe("Resumo do setor (#36)", () => {
     const novo = (id: string, codigo: string, ehInterno: boolean) => ({
       id,
       cliente_id: clienteId,
+      setor: "simples_nacional",
       codigo,
       parcelas_restantes: 5,
       interno: ehInterno,

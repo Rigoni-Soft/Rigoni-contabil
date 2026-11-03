@@ -71,7 +71,7 @@ function montar(
     buscarPorId: jest.fn().mockResolvedValue(ok(cliente.value)),
   } as unknown as ClienteRepository;
   const gravar = jest
-    .fn<Promise<Result<void, AppError>>, [string, ParcelamentoProps[]]>()
+    .fn<Promise<Result<void, AppError>>, [string, string, ParcelamentoProps[]]>()
     .mockResolvedValue(ok(undefined));
   const parcelamentos: ClienteParcelamentoRepository = {
     listar: jest.fn().mockResolvedValue(ok(opcoes.existentes ?? [])),
@@ -88,7 +88,11 @@ function montar(
 
 const entrada = (
   parcelamentos: SalvarParcelamentosClienteInput["parcelamentos"],
-): SalvarParcelamentosClienteInput => ({ clienteId: CLIENTE_ID, parcelamentos });
+): SalvarParcelamentosClienteInput => ({
+  clienteId: CLIENTE_ID,
+  setor: "simples_nacional",
+  parcelamentos,
+});
 
 describe("SalvarParcelamentosCliente", () => {
   it("adiciona um Parcelamento: sobe o PDF e grava com o caminho enviado", async () => {
@@ -99,8 +103,9 @@ describe("SalvarParcelamentosCliente", () => {
     );
 
     expect(r.ok).toBe(true);
-    const [clienteId, itens] = gravar.mock.calls[0];
+    const [clienteId, setor, itens] = gravar.mock.calls[0];
     expect(clienteId).toBe(CLIENTE_ID);
+    expect(setor).toBe("simples_nacional");
     expect(itens).toHaveLength(1);
     expect(itens[0]).toMatchObject({ codigo: "PARC-9", parcelasRestantes: 12, interno: true });
     expect(storage.enviados).toEqual([itens[0].arquivoCaminho]);
@@ -120,7 +125,7 @@ describe("SalvarParcelamentosCliente", () => {
     );
 
     expect(r.ok).toBe(true);
-    const itens = gravar.mock.calls[0][1];
+    const itens = gravar.mock.calls[0][2];
     expect(itens[0].codigo).toBe(existente.codigo);
     expect(itens[1].codigo).toMatch(/^PARC-[0-9A-F]{8}$/);
   });
@@ -145,7 +150,7 @@ describe("SalvarParcelamentosCliente", () => {
       ]),
     );
 
-    expect(gravar.mock.calls[0][1][0].acordo).toEqual({
+    expect(gravar.mock.calls[0][2][0].acordo).toEqual({
       origem: "pgfn",
       totalDeParcelas: 5,
       valorDaParcelaCentavos: null,
@@ -171,6 +176,25 @@ describe("SalvarParcelamentosCliente", () => {
       expect(gravar).not.toHaveBeenCalled();
       expect(storage.enviados).toEqual([]);
     }
+  });
+
+  it.each([
+    ["lider_setor", "rh", true],
+    ["funcionario", "rh", true],
+    ["admin", "administrativo", true],
+    ["lider_setor", "simples_nacional", false],
+    ["funcionario", "financeiro", false],
+  ])("Parcelamento do RH: %s do setor %s: permitido=%s", async (papel, setor, permitido) => {
+    const { caso, gravar } = montar({ ator: { id: "u", papel, setor }, regime: "lucro_presumido" });
+
+    const r = await caso.execute({
+      ...entrada([{ codigo: "A", parcelasRestantes: 2, interno: false, arquivo: pdf() }]),
+      setor: "rh",
+    });
+
+    expect(r.ok).toBe(permitido);
+    if (permitido) expect(gravar.mock.calls[0][1]).toBe("rh");
+    else expect(gravar).not.toHaveBeenCalled();
   });
 
   it("sem sessão é recusado", async () => {
@@ -229,7 +253,7 @@ describe("SalvarParcelamentosCliente", () => {
     );
 
     expect(r.ok).toBe(true);
-    expect(gravar.mock.calls[0][1]).toEqual([
+    expect(gravar.mock.calls[0][2]).toEqual([
       {
         id: existente.id,
         codigo: "A-1",
@@ -251,7 +275,7 @@ describe("SalvarParcelamentosCliente", () => {
     );
 
     expect(r.ok).toBe(true);
-    expect(gravar.mock.calls[0][1][0]).toMatchObject({
+    expect(gravar.mock.calls[0][2][0]).toMatchObject({
       codigo: "A-1",
       parcelasRestantes: 0,
       interno: false,
@@ -274,7 +298,7 @@ describe("SalvarParcelamentosCliente", () => {
     );
 
     expect(r.ok).toBe(true);
-    expect(gravar.mock.calls[0][1][0]).toMatchObject({
+    expect(gravar.mock.calls[0][2][0]).toMatchObject({
       codigo: "A-1",
       parcelasRestantes: 10,
       interno: false,
@@ -289,7 +313,7 @@ describe("SalvarParcelamentosCliente", () => {
     const r = await caso.execute(entrada([]));
 
     expect(r.ok).toBe(true);
-    expect(gravar.mock.calls[0][1]).toEqual([]);
+    expect(gravar.mock.calls[0][2]).toEqual([]);
     expect(storage.removidos).toEqual([existente.arquivoCaminho]);
   });
 
@@ -315,7 +339,7 @@ describe("SalvarParcelamentosCliente", () => {
     it("commit realizado: mantém o PDF, apaga só o do removido e devolve sucesso", async () => {
       const removido = salvo();
       const { caso, gravar, storage, listar } = montar({ existentes: [removido] });
-      gravar.mockImplementation(async (_, itens) => {
+      gravar.mockImplementation(async (_, __, itens) => {
         listar.mockResolvedValue(ok(itens.map((i) => salvo(i))));
         return err(new ResultadoIncertoError("504"));
       });
@@ -343,7 +367,7 @@ describe("SalvarParcelamentosCliente", () => {
       const existente = salvo();
       const { caso, gravar, storage, listar } = montar({ existentes: [existente] });
       // A leitura da reconciliação ainda não vê o commit, que conclui logo depois.
-      gravar.mockImplementation(async (_, itens) => {
+      gravar.mockImplementation(async (_, __, itens) => {
         listar.mockResolvedValueOnce(ok([existente]));
         queueMicrotask(() => listar.mockResolvedValue(ok(itens.map((i) => salvo(i)))));
         return err(new ResultadoIncertoError("504"));
@@ -358,7 +382,7 @@ describe("SalvarParcelamentosCliente", () => {
     it("leitura parcial (um dos uploads oculto): mantém todos os PDFs", async () => {
       const dois = [novo[0], { ...novo[0], codigo: "N-2" }];
       const { caso, gravar, storage, listar } = montar({ existentes: [] });
-      gravar.mockImplementation(async (_, itens) => {
+      gravar.mockImplementation(async (_, __, itens) => {
         listar.mockResolvedValue(ok([salvo(itens[0])]));
         return err(new ResultadoIncertoError("504"));
       });

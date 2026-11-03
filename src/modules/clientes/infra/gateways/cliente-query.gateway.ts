@@ -10,6 +10,7 @@ import type {
 import {
   operacionalUnico,
   type CadastroOperacionalRow,
+  type ResponsavelRow,
 } from "@/modules/clientes/infra/mappers/cadastro-operacional-row.mapper";
 import {
   EMBED_PARCELAMENTOS,
@@ -36,19 +37,19 @@ type ClienteBasicoRow = {
   cnpj: string;
   regime: string;
   cliente_cadastro_operacional_sn: CadastroOperacionalRow | CadastroOperacionalRow[] | null;
+  cliente_responsaveis: ResponsavelRow[] | null;
   cliente_contatos: ContatoRow[] | null;
   cliente_atividades_mensais: AtividadeMensalRow[] | null;
   cliente_parcelamentos: ParcelamentoRow[] | null;
 };
 
-const EMBED_OPERACIONAL =
-  "cliente_cadastro_operacional_sn(*, responsavel:perfis!responsavel_id(nome))";
+const EMBED_OPERACIONAL = "cliente_cadastro_operacional_sn(*)";
+const EMBED_RESPONSAVEL =
+  "cliente_responsaveis(responsavel_id, responsavel:perfis!responsavel_id(nome))";
 
-const responsavelDe = (
-  operacional: Pick<CadastroOperacionalRow, "responsavel_id" | "responsavel"> | null,
-) => ({
-  responsavelId: operacional?.responsavel_id ?? null,
-  responsavelNome: operacional?.responsavel?.nome ?? null,
+const responsavelDe = (responsaveis: ResponsavelRow[] | null) => ({
+  responsavelId: responsaveis?.[0]?.responsavel_id ?? null,
+  responsavelNome: responsaveis?.[0]?.responsavel?.nome ?? null,
 });
 
 // Lê da view `clientes_basico`, que não tem contrato_social_caminho: a confidencialidade é
@@ -56,6 +57,7 @@ const responsavelDe = (
 const SELECT_CADASTRO_BASICO = `
   id, empresa, cnpj, regime,
   ${EMBED_OPERACIONAL},
+  ${EMBED_RESPONSAVEL},
   cliente_contatos(*),
   cliente_atividades_mensais(*),
   ${EMBED_PARCELAMENTOS}
@@ -69,21 +71,20 @@ const nomeDoArquivo = (caminho: string) => caminho.replace(/^[^/]*\/[0-9a-f-]{36
 // (sem `*`, que traria observações gerais e o caminho do PDF).
 const SELECT_RESUMO = `
   id, empresa, cnpj,
-  cliente_cadastro_operacional_sn(documento_obrigatorio, das_status, responsavel_id, responsavel:perfis!responsavel_id(nome)),
+  cliente_cadastro_operacional_sn(documento_obrigatorio, das_status),
+  ${EMBED_RESPONSAVEL},
   cliente_atividades_mensais(industria, comercio, servico),
   cliente_parcelamentos(codigo, interno, situacao, parcelas_restantes, cliente_parcelamento_envios(parcela))
 `;
 
-type OperacionalDoResumo = Pick<
-  CadastroOperacionalRow,
-  "documento_obrigatorio" | "das_status" | "responsavel_id" | "responsavel"
->;
+type OperacionalDoResumo = Pick<CadastroOperacionalRow, "documento_obrigatorio" | "das_status">;
 
 type ResumoOperacionalRowDb = {
   id: string;
   empresa: string;
   cnpj: string;
   cliente_cadastro_operacional_sn: OperacionalDoResumo | OperacionalDoResumo[] | null;
+  cliente_responsaveis: ResponsavelRow[] | null;
   cliente_atividades_mensais: AtividadeMensalRow[] | null;
   cliente_parcelamentos:
     | (Pick<ParcelamentoRow, "codigo" | "interno" | "situacao" | "parcelas_restantes"> & {
@@ -105,6 +106,8 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
       .select(SELECT_CADASTRO_BASICO)
       .eq("id", clienteId)
       .eq("cliente_atividades_mensais.ano_mes", anoMesAtual)
+      .eq("cliente_responsaveis.setor", "simples_nacional")
+      .eq("cliente_parcelamentos.setor", "simples_nacional")
       // Mesma ordem do repositório; sem isso o embed volta em ordem arbitrária entre leituras.
       .order("criado_em", { referencedTable: "cliente_parcelamentos" })
       .order("codigo", { referencedTable: "cliente_parcelamentos" })
@@ -142,7 +145,7 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
         comercio: atividade?.comercio ?? false,
         servico: atividade?.servico ?? false,
       },
-      ...responsavelDe(operacional),
+      ...responsavelDe(row.cliente_responsaveis),
     });
   }
 
@@ -206,6 +209,8 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
       .from("clientes_basico")
       .select(SELECT_RESUMO)
       .eq("cliente_atividades_mensais.ano_mes", anoMesAtual)
+      .eq("cliente_responsaveis.setor", "simples_nacional")
+      .eq("cliente_parcelamentos.setor", "simples_nacional")
       .eq("cliente_parcelamentos.cliente_parcelamento_envios.parcela", parcelaDoMesAtual())
       // Mesmo escopo da busca: só Regime com cadastro operacional de
       // verdade (nasce automático só pra Simples Nacional/MEI).
@@ -236,7 +241,7 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
             comercio: atividade?.comercio ?? false,
             servico: atividade?.servico ?? false,
           },
-          ...responsavelDe(operacional),
+          ...responsavelDe(linha.cliente_responsaveis),
         };
       }),
     );

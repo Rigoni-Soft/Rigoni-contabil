@@ -2,34 +2,46 @@ import { Caixa, Grade, Pilha } from "@/presentation/components/atoms/caixa.compo
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CartaoDeResumo } from "@/presentation/components/molecules/cartao-de-resumo.component";
 
-// Tipo estrutural local (não importa o DTO do módulo clientes — view burra,
-// arquitetura.md §3.4): qualquer objeto com este shape serve.
+// Tipos estruturais locais (não importam o DTO do módulo clientes — view burra,
+// arquitetura.md §3.4): qualquer objeto com estes shapes serve.
 type Card = { id: string; titulo: string; cor: string; quantidade: number };
+type Grupo = { titulo: string; cardIds: string[] };
 
-type Props = { cards: Card[]; totalClientes: number; busca: React.ReactNode };
+type Props = {
+  cards: Card[];
+  // Como os cards se agrupam e em que ordem: quem monta o resumo do Setor declara, a tela não adivinha.
+  grupos: Grupo[];
+  totalClientes: number;
+  // Rota da lista de cada card: `${hrefBase}/${id do card}`.
+  hrefBase: string;
+  busca: React.ReactNode;
+};
 
-function Grupo({
+// 5 cards cabem em 5 colunas; outras quantidades em 5 colunas deixariam um órfão (6 viram 2 linhas de 3).
+const colunasPara = (quantidade: number) => (quantidade % 5 === 0 ? "2>3>5" : "2>3");
+
+function GrupoDeCards({
   titulo,
   cards,
   totalClientes,
-  colunas,
+  hrefBase,
 }: {
   titulo: string;
   cards: Card[];
   totalClientes: number;
-  colunas: "2>3" | "2>3>5";
+  hrefBase: string;
 }) {
   return (
     <Caixa>
       <Texto variante="secao" className="mb-3 border-b border-border pb-2">
         {titulo}
       </Texto>
-      <Grade colunas={colunas} espaco={4} como="ul">
+      <Grade colunas={colunasPara(cards.length)} espaco={4} como="ul">
         {cards.map((card) => (
           // Em 2 colunas (celular) um grupo ímpar deixaria o último card sozinho: ele ocupa a linha toda.
           <Caixa como="li" key={card.id} className="max-sm:last:odd:col-span-2">
             <CartaoDeResumo
-              href={`/clientes/resumo/${card.id}`}
+              href={`${hrefBase}/${card.id}`}
               titulo={card.titulo}
               cor={card.cor}
               quantidade={card.quantidade}
@@ -42,11 +54,11 @@ function Grupo({
   );
 }
 
-// A ordem dos 11 cards é um invariante do mapper (resumo-setor-sn.mapper.spec.ts garante a ordem
-// exata): os 5 primeiros são "Documentos e DAS", os 6 últimos são "Parcelamento".
+// Esqueleto do resumo de qualquer Setor: título, busca, aviso de lista vazia e os grupos de cards.
 // `busca` entra como slot: o Buscar cliente é do módulo clientes (Container com
 // estado), essa view global não pode importá-lo direto (arquitetura.md §3.4).
-export function ResumoSetorSn({ cards, totalClientes, busca }: Props) {
+export function ResumoDoSetor({ cards, grupos, totalClientes, hrefBase, busca }: Props) {
+  const porId = new Map(cards.map((card) => [card.id, card]));
   return (
     <Pilha espaco={6} como="section">
       <Texto como="h1" variante="tela">
@@ -59,19 +71,15 @@ export function ResumoSetorSn({ cards, totalClientes, busca }: Props) {
           cadastrados e atribuídos.
         </Texto>
       )}
-      <Grupo
-        titulo="Documentos e DAS"
-        cards={cards.slice(0, 5)}
-        totalClientes={totalClientes}
-        colunas="2>3>5"
-      />
-      {/* 6 cards: em 5 colunas sobraria um órfão; 3 colunas fecham 2 linhas cheias. */}
-      <Grupo
-        titulo="Parcelamento"
-        cards={cards.slice(5, 11)}
-        totalClientes={totalClientes}
-        colunas="2>3"
-      />
+      {grupos.map((grupo) => (
+        <GrupoDeCards
+          key={grupo.titulo}
+          titulo={grupo.titulo}
+          cards={grupo.cardIds.flatMap((id) => porId.get(id) ?? [])}
+          totalClientes={totalClientes}
+          hrefBase={hrefBase}
+        />
+      ))}
     </Pilha>
   );
 }

@@ -5,16 +5,22 @@ import {
 import type {
   CardResumoSnDto,
   CorStatusResumo,
+  GrupoResumoDto,
   ParcelamentoBucketDto,
 } from "@/modules/clientes/application/ports/in/obter-resumo-setor-sn.provider";
 import type { ResumoOperacionalRow } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { jaEmAtraso, primeiroDiaEmAtraso } from "@/shared/kernel/dias-do-job-parcelamento";
+
+const GRUPO_DAS = "Documentos e DAS";
+const GRUPO_PARCELAMENTO = "Parcelamento";
 
 // Texto fixo ou dependente do dia (o atraso começa no 29, ou no último dia de fevereiro comum).
 type Texto = string | ((agora: Date) => string);
 
 type Bucket = {
   id: string;
+  // Grupo em que a tela mostra o card.
+  grupo: string;
   titulo: string;
   cor: CorStatusResumo;
   descricao?: Texto;
@@ -27,9 +33,10 @@ type Bucket = {
 // marca interno e o status do mês.
 const doParcelamento = (
   campo: keyof SituacaoParcelamentosDoCliente,
-  card: Omit<Bucket, "pertence" | "comParcelamentos">,
+  card: Omit<Bucket, "pertence" | "comParcelamentos" | "grupo">,
 ): Bucket => ({
   ...card,
+  grupo: GRUPO_PARCELAMENTO,
   pertence: (linha, agora) => situacaoDosParcelamentos(linha, agora)[campo],
   comParcelamentos: true,
 });
@@ -40,12 +47,14 @@ const doParcelamento = (
 const BUCKETS: readonly Bucket[] = [
   {
     id: "das_emitidas",
+    grupo: GRUPO_DAS,
     titulo: "DAS emitidas",
     cor: "em_dia",
     pertence: (l) => l.dasStatus === "enviado",
   },
   {
     id: "sem_documento",
+    grupo: GRUPO_DAS,
     titulo: "Sem documento",
     cor: "atencao",
     pertence: (l) => l.documentoObrigatorio === "negativo",
@@ -54,18 +63,21 @@ const BUCKETS: readonly Bucket[] = [
     // Urgente só quando o documento já chegou e a DAS segue pendente — sem
     // documento, o backlog já está contado no card "Sem documento".
     id: "das_pendente",
+    grupo: GRUPO_DAS,
     titulo: "DAS pendente",
     cor: "urgente",
     pertence: (l) => l.dasStatus === "pendente" && l.documentoObrigatorio === "positivo",
   },
   {
     id: "sem_movimento",
+    grupo: GRUPO_DAS,
     titulo: "Sem movimento",
     cor: "informativo",
     pertence: (l) => l.dasStatus === "sem_movimento",
   },
   {
     id: "esperando_envio_das",
+    grupo: GRUPO_DAS,
     titulo: "Esperando envio DAS",
     cor: "atencao",
     pertence: (l) => l.dasStatus === "pronto",
@@ -119,6 +131,17 @@ const BUCKETS: readonly Bucket[] = [
     cor: "em_dia",
   }),
 ] as const;
+
+// Os grupos da tela, na ordem em que os cards aparecem em BUCKETS.
+export function gruposDoResumoSn(): GrupoResumoDto[] {
+  const grupos: GrupoResumoDto[] = [];
+  for (const bucket of BUCKETS) {
+    const grupo = grupos.find((g) => g.titulo === bucket.grupo);
+    if (grupo) grupo.cardIds.push(bucket.id);
+    else grupos.push({ titulo: bucket.grupo, cardIds: [bucket.id] });
+  }
+  return grupos;
+}
 
 const parcelamentosDaLista = (linha: ResumoOperacionalRow): ParcelamentoBucketDto[] =>
   linha.parcelamentos.map((p) => ({

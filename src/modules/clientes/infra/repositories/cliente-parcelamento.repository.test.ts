@@ -102,8 +102,8 @@ describe("Parcelamentos do Cliente", () => {
     const a = parcelamento(clienteId, { codigo: "A-1" });
     const b = parcelamento(clienteId, { codigo: "B-2", interno: true });
 
-    expect((await repo.salvar(clienteId, [a, b])).ok).toBe(true);
-    const lista = await repo.listar(clienteId);
+    expect((await repo.salvar(clienteId, "simples_nacional", [a, b])).ok).toBe(true);
+    const lista = await repo.listar(clienteId, "simples_nacional");
     expect(lista.ok && lista.value.map((p) => [p.codigo, p.parcelasRestantes, p.interno])).toEqual(
       expect.arrayContaining([
         ["A-1", 12, false],
@@ -113,10 +113,13 @@ describe("Parcelamentos do Cliente", () => {
 
     // editar mantém o anexo; remover é "ausente da lista"
     expect(
-      (await repo.salvar(clienteId, [{ ...a, parcelasRestantes: 5, arquivoCaminho: "outro.pdf" }]))
-        .ok,
+      (
+        await repo.salvar(clienteId, "simples_nacional", [
+          { ...a, parcelasRestantes: 5, arquivoCaminho: "outro.pdf" },
+        ])
+      ).ok,
     ).toBe(true);
-    const depois = await repo.listar(clienteId);
+    const depois = await repo.listar(clienteId, "simples_nacional");
     expect(depois.ok && depois.value).toHaveLength(1);
     expect(depois.ok && depois.value[0]).toMatchObject({
       codigo: "A-1",
@@ -139,15 +142,15 @@ describe("Parcelamentos do Cliente", () => {
     } as const;
     const a = parcelamento(clienteId, { codigo: "PGFN-1", acordo });
 
-    expect((await repo.salvar(clienteId, [a])).ok).toBe(true);
-    const salvo = await repo.listar(clienteId);
+    expect((await repo.salvar(clienteId, "simples_nacional", [a])).ok).toBe(true);
+    const salvo = await repo.listar(clienteId, "simples_nacional");
     expect(salvo.ok && salvo.value[0].acordo).toEqual(acordo);
 
     // Editar as parcelas restantes devolve o mesmo acordo; o que vier de novo é ignorado.
-    await repo.salvar(clienteId, [
+    await repo.salvar(clienteId, "simples_nacional", [
       { ...a, parcelasRestantes: 3, acordo: { ...acordo, totalDeParcelas: 99 } },
     ]);
-    const depois = await repo.listar(clienteId);
+    const depois = await repo.listar(clienteId, "simples_nacional");
     expect(depois.ok && depois.value[0].acordo).toEqual(acordo);
   });
 
@@ -155,9 +158,11 @@ describe("Parcelamentos do Cliente", () => {
     const clienteId = await criarClienteResponsavelFuncionarioSN("77310010000158");
     const repo = new SupabaseClienteParcelamentoRepository(await comoFuncionarioSN());
 
-    await repo.salvar(clienteId, [parcelamento(clienteId, { codigo: "MAO-1" })]);
+    await repo.salvar(clienteId, "simples_nacional", [
+      parcelamento(clienteId, { codigo: "MAO-1" }),
+    ]);
 
-    const lista = await repo.listar(clienteId);
+    const lista = await repo.listar(clienteId, "simples_nacional");
     expect(lista.ok && lista.value[0].acordo).toEqual({
       origem: null,
       totalDeParcelas: null,
@@ -171,22 +176,27 @@ describe("Parcelamentos do Cliente", () => {
 
     expect(
       (
-        await new SupabaseClienteParcelamentoRepository(await comoLiderSN()).salvar(clienteId, [
-          parcelamento(clienteId, { codigo: "L-1" }),
-        ])
+        await new SupabaseClienteParcelamentoRepository(await comoLiderSN()).salvar(
+          clienteId,
+          "simples_nacional",
+          [parcelamento(clienteId, { codigo: "L-1" })],
+        )
       ).ok,
     ).toBe(true);
     expect(
       (
-        await new SupabaseClienteParcelamentoRepository(await comoAdmin()).salvar(clienteId, [
-          parcelamento(clienteId, { codigo: "A-1" }),
-        ])
+        await new SupabaseClienteParcelamentoRepository(await comoAdmin()).salvar(
+          clienteId,
+          "simples_nacional",
+          [parcelamento(clienteId, { codigo: "A-1" })],
+        )
       ).ok,
     ).toBe(true);
     expect(
       (
         await new SupabaseClienteParcelamentoRepository(await comoFuncionario2SN()).salvar(
           clienteId,
+          "simples_nacional",
           [parcelamento(clienteId, { codigo: "X-1" })],
         )
       ).ok,
@@ -195,15 +205,16 @@ describe("Parcelamentos do Cliente", () => {
       (
         await new SupabaseClienteParcelamentoRepository(await comoFuncionarioFinanceiro()).salvar(
           clienteId,
+          "simples_nacional",
           [parcelamento(clienteId, { codigo: "F-1" })],
         )
       ).ok,
     ).toBe(false);
 
-    // outro Setor só lê se for Responsável do Cliente (e mesmo assim não grava); o Funcionário
-    // SN não responsável e o de outro Setor sem atribuição nem leem
+    // cada Setor só vê os seus: outro Setor não lê os do SN, nem sendo Responsável do Cliente, e não
+    // grava neles; o Funcionário SN não responsável também não lê
     const financeiro = new SupabaseClienteParcelamentoRepository(await comoFuncionarioFinanceiro());
-    const semAtribuicao = await financeiro.listar(clienteId);
+    const semAtribuicao = await financeiro.listar(clienteId, "simples_nacional");
     expect(semAtribuicao.ok && semAtribuicao.value).toEqual([]);
     const atribuido = await servico().from("cliente_responsaveis").insert({
       cliente_id: clienteId,
@@ -211,14 +222,18 @@ describe("Parcelamentos do Cliente", () => {
       responsavel_id: "33333333-3333-3333-3333-333333333333",
     });
     if (atribuido.error) throw atribuido.error;
-    const doOutroSetor = await financeiro.listar(clienteId);
-    expect(doOutroSetor.ok && doOutroSetor.value).toHaveLength(1);
+    const doOutroSetor = await financeiro.listar(clienteId, "simples_nacional");
+    expect(doOutroSetor.ok && doOutroSetor.value).toEqual([]);
     expect(
-      (await financeiro.salvar(clienteId, [parcelamento(clienteId, { codigo: "F-2" })])).ok,
+      (
+        await financeiro.salvar(clienteId, "simples_nacional", [
+          parcelamento(clienteId, { codigo: "F-2" }),
+        ])
+      ).ok,
     ).toBe(false);
     const doNaoResponsavel = await new SupabaseClienteParcelamentoRepository(
       await comoFuncionario2SN(),
-    ).listar(clienteId);
+    ).listar(clienteId, "simples_nacional");
     expect(doNaoResponsavel.ok && doNaoResponsavel.value).toEqual([]);
   });
 
@@ -235,12 +250,14 @@ describe("Parcelamentos do Cliente", () => {
       const admin = await comoAdmin();
       const repo = new SupabaseClienteParcelamentoRepository(admin);
       const p = parcelamento(clienteId);
-      expect((await repo.salvar(clienteId, [p])).ok).toBe(true);
+      expect((await repo.salvar(clienteId, "simples_nacional", [p])).ok).toBe(true);
 
-      expect((await repo.salvar(clienteId, [{ ...p, parcelasRestantes: 0 }])).ok).toBe(false);
+      expect(
+        (await repo.salvar(clienteId, "simples_nacional", [{ ...p, parcelasRestantes: 0 }])).ok,
+      ).toBe(false);
       expect(
         (
-          await repo.salvar(clienteId, [
+          await repo.salvar(clienteId, "simples_nacional", [
             parcelamento(clienteId, { codigo: "Z", parcelasRestantes: 0 }),
           ])
         ).ok,
@@ -255,6 +272,7 @@ describe("Parcelamentos do Cliente", () => {
       const idNova = crypto.randomUUID();
       const nova = await admin.from("cliente_parcelamentos").insert({
         id: idNova,
+        setor: "simples_nacional",
         cliente_id: clienteId,
         codigo: "Q-1",
         parcelas_restantes: 3,
@@ -268,7 +286,7 @@ describe("Parcelamentos do Cliente", () => {
       const clienteId = await criarClienteResponsavelFuncionarioSN("77310005000145");
       const repo = new SupabaseClienteParcelamentoRepository(await comoFuncionarioSN());
       const p = parcelamento(clienteId, { parcelasRestantes: 1 });
-      expect((await repo.salvar(clienteId, [p])).ok).toBe(true);
+      expect((await repo.salvar(clienteId, "simples_nacional", [p])).ok).toBe(true);
       // o sistema (sem sessão) entrega a última parcela e zera
       const zerou = await servico()
         .from("cliente_parcelamentos")
@@ -276,11 +294,15 @@ describe("Parcelamentos do Cliente", () => {
         .eq("id", p.id);
       expect(zerou.error).toBeNull();
 
-      const lista = await repo.listar(clienteId);
+      const lista = await repo.listar(clienteId, "simples_nacional");
       expect(lista.ok && lista.value[0]).toMatchObject({ parcelasRestantes: 0, quitado: true });
       // reenviar o mesmo valor (o formulário reenvia a lista inteira) passa; mudar, não
-      expect((await repo.salvar(clienteId, [{ ...p, parcelasRestantes: 0 }])).ok).toBe(true);
-      expect((await repo.salvar(clienteId, [{ ...p, parcelasRestantes: 4 }])).ok).toBe(false);
+      expect(
+        (await repo.salvar(clienteId, "simples_nacional", [{ ...p, parcelasRestantes: 0 }])).ok,
+      ).toBe(true);
+      expect(
+        (await repo.salvar(clienteId, "simples_nacional", [{ ...p, parcelasRestantes: 4 }])).ok,
+      ).toBe(false);
     });
   });
 
@@ -289,17 +311,19 @@ describe("Parcelamentos do Cliente", () => {
       const clienteId = await criarClienteResponsavelFuncionarioSN("77310011000100");
       const repo = new SupabaseClienteParcelamentoRepository(await comoFuncionarioSN());
       const a = parcelamento(clienteId, { codigo: "A" });
-      expect((await repo.salvar(clienteId, [a])).ok).toBe(true);
+      expect((await repo.salvar(clienteId, "simples_nacional", [a])).ok).toBe(true);
 
       const roubaDeA = parcelamento(clienteId, { codigo: "B", arquivoCaminho: a.arquivoCaminho });
-      expect((await repo.salvar(clienteId, [a, roubaDeA])).ok).toBe(false);
+      expect((await repo.salvar(clienteId, "simples_nacional", [a, roubaDeA])).ok).toBe(false);
       const deOutroCliente = parcelamento(clienteId, {
         codigo: "C",
         arquivoCaminho: `${crypto.randomUUID()}/${crypto.randomUUID()}-x.pdf`,
       });
-      expect((await repo.salvar(clienteId, [a, deOutroCliente])).ok).toBe(false);
+      expect((await repo.salvar(clienteId, "simples_nacional", [a, deOutroCliente])).ok).toBe(
+        false,
+      );
 
-      const lista = await repo.listar(clienteId);
+      const lista = await repo.listar(clienteId, "simples_nacional");
       expect(lista.ok && lista.value.map((p) => p.codigo)).toEqual(["A"]);
     });
   });
@@ -314,7 +338,10 @@ describe("Parcelamentos do Cliente", () => {
         valorDaParcelaCentavos: 100,
         dataDeAdesao: "2026-01-27",
       } as const;
-      expect((await repo.salvar(clienteId, [parcelamento(clienteId, { acordo })])).ok).toBe(true);
+      expect(
+        (await repo.salvar(clienteId, "simples_nacional", [parcelamento(clienteId, { acordo })]))
+          .ok,
+      ).toBe(true);
       const pendente = () =>
         servico().rpc("cliente_tem_parcelamento_pendente", { p_cliente_id: clienteId });
       expect((await pendente()).data).toBe(false);
@@ -323,9 +350,11 @@ describe("Parcelamentos do Cliente", () => {
         codigo: "R-1",
         acordo: { ...acordo, origem: "receita_federal" },
       });
-      const atuais = await repo.listar(clienteId);
+      const atuais = await repo.listar(clienteId, "simples_nacional");
       if (!atuais.ok) throw new Error("lista");
-      expect((await repo.salvar(clienteId, [...atuais.value, receita])).ok).toBe(true);
+      expect(
+        (await repo.salvar(clienteId, "simples_nacional", [...atuais.value, receita])).ok,
+      ).toBe(true);
       expect((await pendente()).data).toBe(true);
     });
   });
@@ -336,7 +365,7 @@ describe("Parcelamentos do Cliente", () => {
       const sessao = await comoFuncionarioSN();
       const repo = new SupabaseClienteParcelamentoRepository(sessao);
       const p = parcelamento(clienteId);
-      expect((await repo.salvar(clienteId, [p])).ok).toBe(true);
+      expect((await repo.salvar(clienteId, "simples_nacional", [p])).ok).toBe(true);
 
       // nenhuma sessão grava, nem o Admin
       for (const quem of [sessao, await comoAdmin(), await comoLiderSN()]) {
@@ -369,7 +398,7 @@ describe("Parcelamentos do Cliente", () => {
         ).error,
       ).not.toBeNull();
 
-      const lista = await repo.listar(clienteId);
+      const lista = await repo.listar(clienteId, "simples_nacional");
       expect(lista.ok && lista.value[0]).toMatchObject({ temEnvio: true, enviadoNoMes: true });
 
       // a sessão lê o registro (RLS pelo Cliente) mas não o apaga
@@ -386,12 +415,12 @@ describe("Parcelamentos do Cliente", () => {
       expect(restou.data).toHaveLength(1);
 
       // remoção bloqueada, pela RPC e pelo DML direto
-      const removido = await repo.salvar(clienteId, []);
+      const removido = await repo.salvar(clienteId, "simples_nacional", []);
       expect(removido.ok).toBe(false);
       expect(
         (await sessao.from("cliente_parcelamentos").delete().eq("id", p.id).select("id")).error,
       ).not.toBeNull();
-      const aindaLa = await repo.listar(clienteId);
+      const aindaLa = await repo.listar(clienteId, "simples_nacional");
       expect(aindaLa.ok && aindaLa.value).toHaveLength(1);
     });
 
@@ -399,11 +428,11 @@ describe("Parcelamentos do Cliente", () => {
       const clienteId = await criarClienteResponsavelFuncionarioSN("77310007000134");
       const repo = new SupabaseClienteParcelamentoRepository(await comoFuncionarioSN());
       const p = parcelamento(clienteId);
-      expect((await repo.salvar(clienteId, [p])).ok).toBe(true);
+      expect((await repo.salvar(clienteId, "simples_nacional", [p])).ok).toBe(true);
       await servico()
         .from("cliente_parcelamento_envios")
         .insert({ parcelamento_id: p.id, parcela: "200001" });
-      const lista = await repo.listar(clienteId);
+      const lista = await repo.listar(clienteId, "simples_nacional");
       expect(lista.ok && lista.value[0]).toMatchObject({ temEnvio: true, enviadoNoMes: false });
     });
   });
@@ -414,7 +443,7 @@ describe("Parcelamentos do Cliente", () => {
     const repo = new SupabaseClienteParcelamentoRepository(await comoFuncionarioSN());
     expect(
       (
-        await repo.salvar(clienteId, [
+        await repo.salvar(clienteId, "simples_nacional", [
           parcelamento(clienteId, { codigo: "A" }),
           parcelamento(clienteId, { codigo: "B" }),
         ])
@@ -439,7 +468,7 @@ describe("resposta sem desfecho conhecido", () => {
       const supabase = { rpc: async () => ({ error: { message: "gateway" }, status }) };
       const repo = new SupabaseClienteParcelamentoRepository(supabase as never);
 
-      const r = await repo.salvar(crypto.randomUUID(), []);
+      const r = await repo.salvar(crypto.randomUUID(), "simples_nacional", []);
 
       expect(!r.ok && r.error).toBeInstanceOf(ResultadoIncertoError);
     },
@@ -449,7 +478,7 @@ describe("resposta sem desfecho conhecido", () => {
     const supabase = { rpc: async () => ({ error: { message: "x", code: "42501" }, status: 403 }) };
     const repo = new SupabaseClienteParcelamentoRepository(supabase as never);
 
-    const r = await repo.salvar(crypto.randomUUID(), []);
+    const r = await repo.salvar(crypto.randomUUID(), "simples_nacional", []);
 
     expect(!r.ok && r.error).not.toBeInstanceOf(ResultadoIncertoError);
   });

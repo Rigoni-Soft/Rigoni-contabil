@@ -85,6 +85,8 @@ export function useSalvarCadastroOperacional({
     const salvos = await naEtapa("salvar os Parcelamentos", () =>
       salvarParcelamentosAction({
         clienteId: cliente.id,
+        // Esta tela é o cadastro operacional do Simples Nacional.
+        setor: "simples_nacional",
         // A guia sobe à parte, depois: o corpo desta chamada tem o teto de 4,5 MB.
         parcelamentos: valores.parcelamentos.map((p) => semChaves(p, "guia")),
       }),

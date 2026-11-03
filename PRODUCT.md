@@ -8,13 +8,21 @@ web
 
 ## Users
 
-Funcionários, Líderes de setor e Admin da Rigoni Contábil, um escritório de contabilidade de porte pequeno/médio (~1.000 clientes, 1.000+ CNPJs entre matriz e filiais, 10 setores, 3 cidades pequenas/médias). Nesta rodada, o único setor com dashboard e cadastro é o Simples Nacional; a aba Atendimento (conduzir o Atendimento por WhatsApp) vale para todos os setores, e os demais setores ainda não têm tela de gestão própria.
+Funcionários, Líderes de setor e Admin da Rigoni Contábil, um escritório de contabilidade de porte pequeno/médio (~1.000 clientes, 1.000+ CNPJs entre matriz e filiais, 10 setores, 3 cidades pequenas/médias). Nesta rodada, o Simples Nacional tem dashboard e cadastro, e o RH ganha o seu (acompanhamento mensal dos clientes e folha de ponto, issue #212), com o dashboard do SN virando o modelo de qualquer setor; a aba Atendimento (conduzir o Atendimento por WhatsApp) vale para todos os setores, e os demais setores ainda não têm tela de gestão própria.
+
+No RH, o Funcionário opera os clientes de que é Responsável e o Líder acompanha a carteira e a equipe; o trabalho é mensal, por competência, e o resultado de cada cliente é concluído ou não por serviço (holerite, FGTS, DCTFWeb e demais). Os empregados dos clientes aparecem no sistema só pelo cartão de ponto e pelo quadro de funcionários do cliente.
 
 Indiretamente, os clientes do escritório (empresas atendidas) interagem com o sistema pelo WhatsApp, sem acessar nenhuma tela — a experiência deles é 100% conversacional (URA + atendente humano).
 
 ## Product Purpose
 
 Substituir o atendimento manual por WhatsApp (sem fila, sem histórico estruturado, sem transferência rastreável entre setores) e o controle do setor Simples Nacional feito à mão numa planilha (`CONTROLE SIMPLES NACIONAL`) por um sistema único: atendimento com URA, espera do Setor em que a equipe assume o cliente, e um dashboard/cadastro que dá visão consolidada de documentos, DAS e parcelamentos.
+
+## RH (decisões confirmadas, issue #212)
+
+- O RH acompanha por mês, por cliente, serviços definidos pelo Líder do RH; o Holerite é derivado dos cartões de ponto dos empregados do cliente. O Funcionário ganha um ponto por cliente totalmente concluído; o gráfico por funcionário é só do Líder e do Admin.
+- A folha de ponto usa a convenção coletiva do sindicato do cliente (PDF anual, histórico guardado), lê fotos de cartões e atestados e entrega um PDF individual com a totalização em destaque para assinatura física.
+- Dado pessoal de empregado de cliente: só nome, jornada, batidas, marca de comissionado e abono; imagens, CID e documentos nunca são guardados.
 
 ## Positioning
 
@@ -44,6 +52,8 @@ Ferramenta interna proprietária, não um produto de mercado. O que a diferencia
 - Fonte obrigatória por convenção técnica do time (não é decisão de marca, é regra de arquitetura já fixada): Roboto, única família do projeto (`docs/arquitetura.md` §5.3). Paleta e demais tokens visuais seguem tokens semânticos, tons pastel e temas dark/light obrigatórios (mesma seção) — dentro dessas regras técnicas, a direção de cor específica está aberta pro redesign.
 
 ## Evidence on Hand
+
+- Planilha de acompanhamento do RH (`09.2026.xlsx`), planilha de cartão de ponto (`PLANILHA CARTAO PONTO 09.2026.xlsx`), convenção coletiva de exemplo e fotos de cartões e atestados: ficam fora do repositório (têm dados pessoais); a spec do RH (issue #212) e o mapa (#208) registram o que se aprendeu com eles.
 
 - `docs/referencia/ORGANOGRAMA.pdf` — estrutura real de setores e líderes.
 - `docs/referencia/CONTROLE SIMPLES NACIONAL .xlsx...pdf` — planilha real hoje usada pelo setor Simples Nacional (base do novo cadastro).

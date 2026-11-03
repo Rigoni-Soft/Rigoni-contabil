@@ -2,7 +2,7 @@ import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.c
 import { Pilha } from "@/presentation/components/atoms/caixa.component";
 import { TelaDeTrabalhoTemplate } from "@/presentation/components/templates/tela-de-trabalho-template.component";
 
-type ResumoSetorSnPageProps = {
+type ResumoDoSetorPageProps = {
   header: React.ReactNode;
   nav: React.ReactNode;
   // Resumo e comparativos já montados; sem eles (falha de leitura) a tela mostra o `erro`.
@@ -11,13 +11,13 @@ type ResumoSetorSnPageProps = {
   erro?: string;
 };
 
-export function ResumoSetorSnPage({
+export function ResumoDoSetorPage({
   header,
   nav,
   resumo,
   comparativos,
   erro,
-}: ResumoSetorSnPageProps) {
+}: ResumoDoSetorPageProps) {
   return (
     <TelaDeTrabalhoTemplate
       header={header}

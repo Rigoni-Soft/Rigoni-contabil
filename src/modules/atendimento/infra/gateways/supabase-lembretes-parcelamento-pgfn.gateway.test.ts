@@ -62,6 +62,7 @@ async function criarParcelamento(
   await ok(
     admin.from("cliente_parcelamentos").insert({
       id,
+      setor: "simples_nacional",
       cliente_id: clienteId,
       codigo,
       parcelas_restantes: 5,
@@ -140,10 +141,20 @@ describe("leitura dos Clientes com Parcelamento PGFN", () => {
 });
 
 describe("ciclo do alerta", () => {
-  // O relógio injetado só precisa cair num dia do job (10) e no mês corrente.
-  const diaDoJob = new Date();
-  diaDoJob.setUTCDate(10);
-  diaDoJob.setUTCHours(12);
+  // O relógio injetado cai no dia do job (1, 10 ou 15) mais recente que já passou: no futuro, o alerta
+  // gravado agora pelo banco pareceria não renovado e seria resolvido na mesma rodada.
+  const diaDoJob = (() => {
+    const agora = new Date();
+    for (const mesesAtras of [0, 1]) {
+      for (const dia of [15, 10, 1]) {
+        const candidato = new Date(
+          Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth() - mesesAtras, dia, 12),
+        );
+        if (candidato.getTime() < agora.getTime() - 60 * 60 * 1000) return candidato;
+      }
+    }
+    throw new Error("sem dia de job anterior");
+  })();
   const relogio = { agora: () => diaDoJob };
 
   // O banco grava `criado_em` com o relógio real; o do job é injetado. Envelhece o alerta para ele

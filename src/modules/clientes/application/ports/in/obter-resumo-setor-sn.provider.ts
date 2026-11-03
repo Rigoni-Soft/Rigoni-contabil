@@ -47,8 +47,12 @@ export type ComparativosSnDto = {
   responsaveis?: FatiaComparativoDto[];
 };
 
+// Como a tela agrupa os cards: cada grupo lista os ids dos seus cards, na ordem de exibição.
+export type GrupoResumoDto = { titulo: string; cardIds: string[] };
+
 export type ResumoSetorSnDto = {
   totalClientes: number;
   cards: CardResumoSnDto[];
+  grupos: GrupoResumoDto[];
   comparativos: ComparativosSnDto;
 };

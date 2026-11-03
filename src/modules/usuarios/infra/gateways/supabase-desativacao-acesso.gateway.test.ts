@@ -56,8 +56,12 @@ async function criarCliente(responsavelId: string): Promise<string> {
   if (error) throw new Error(`setup inválido: ${error.message}`);
   const { error: erroOperacional } = await admin
     .from("cliente_cadastro_operacional_sn")
-    .insert({ cliente_id: id, das_status: "pendente", responsavel_id: responsavelId });
+    .insert({ cliente_id: id, das_status: "pendente" });
   if (erroOperacional) throw new Error(`setup inválido: ${erroOperacional.message}`);
+  const { error: erroResponsavel } = await admin
+    .from("cliente_responsaveis")
+    .insert({ cliente_id: id, setor: "simples_nacional", responsavel_id: responsavelId });
+  if (erroResponsavel) throw new Error(`setup inválido: ${erroResponsavel.message}`);
   return id;
 }
 
@@ -70,14 +74,23 @@ async function entrar(email: string, senha: string): Promise<SupabaseClient> {
   return supabase;
 }
 
-const responsavelDe = async (clienteId: string) =>
-  (
-    await admin
-      .from("cliente_cadastro_operacional_sn")
-      .select("responsavel_id, das_status")
-      .eq("cliente_id", clienteId)
-      .single()
-  ).data;
+const responsavelDe = async (clienteId: string) => {
+  const { data: operacional } = await admin
+    .from("cliente_cadastro_operacional_sn")
+    .select("das_status")
+    .eq("cliente_id", clienteId)
+    .single();
+  const { data: responsavel } = await admin
+    .from("cliente_responsaveis")
+    .select("responsavel_id")
+    .eq("cliente_id", clienteId)
+    .eq("setor", "simples_nacional")
+    .maybeSingle();
+  return {
+    responsavel_id: responsavel?.responsavel_id ?? null,
+    das_status: operacional?.das_status,
+  };
+};
 
 const auditoriasDe = async (acao: string, alvoIds: string[]) => {
   const { data: clientes } = await admin.from("clientes").select("cnpj").in("id", alvoIds);
@@ -208,16 +221,20 @@ describe("desativação: Responsável por Cliente (ponto B)", () => {
     const comoLider = await entrar("lider.sn@rigonicontabil.local", "lider123");
 
     const pelaDataApi = await comoLider
-      .from("cliente_cadastro_operacional_sn")
-      .update({ responsavel_id: inativo.id })
-      .eq("cliente_id", clienteId);
+      .from("cliente_responsaveis")
+      .upsert(
+        { cliente_id: clienteId, setor: "simples_nacional", responsavel_id: inativo.id },
+        { onConflict: "cliente_id,setor" },
+      );
     const peloServidor = await admin
-      .from("cliente_cadastro_operacional_sn")
-      .update({ responsavel_id: inativo.id })
-      .eq("cliente_id", clienteId);
+      .from("cliente_responsaveis")
+      .upsert(
+        { cliente_id: clienteId, setor: "simples_nacional", responsavel_id: inativo.id },
+        { onConflict: "cliente_id,setor" },
+      );
 
-    expect(pelaDataApi.error?.message).toMatch(/Funcionário ativo do Simples Nacional/);
-    expect(peloServidor.error?.message).toMatch(/Funcionário ativo do Simples Nacional/);
+    expect(pelaDataApi.error?.message).toMatch(/Funcionário ativo do Setor/);
+    expect(peloServidor.error?.message).toMatch(/Funcionário ativo do Setor/);
     expect((await responsavelDe(clienteId))?.responsavel_id).toBe(dono.id);
   });
 
@@ -233,9 +250,11 @@ describe("desativação: Responsável por Cliente (ponto B)", () => {
       await Promise.all([
         desativacao.desativar(alvo.id, ADMIN_ID),
         admin
-          .from("cliente_cadastro_operacional_sn")
-          .update({ responsavel_id: alvo.id })
-          .eq("cliente_id", clienteId),
+          .from("cliente_responsaveis")
+          .upsert(
+            { cliente_id: clienteId, setor: "simples_nacional", responsavel_id: alvo.id },
+            { onConflict: "cliente_id,setor" },
+          ),
       ]);
 
       const perfil = (await admin.from("perfis").select("desativado_em").eq("id", alvo.id).single())
@@ -269,9 +288,10 @@ describe("promoção de Funcionário Responsável (ponto C)", () => {
     ).toEqual([]);
 
     await admin
-      .from("cliente_cadastro_operacional_sn")
-      .update({ responsavel_id: null })
-      .eq("cliente_id", clienteId);
+      .from("cliente_responsaveis")
+      .delete()
+      .eq("cliente_id", clienteId)
+      .eq("setor", "simples_nacional");
 
     expect((await alteracao.alterar(funcionario.id, ADMIN_ID, "lider_setor")).ok).toBe(true);
   });

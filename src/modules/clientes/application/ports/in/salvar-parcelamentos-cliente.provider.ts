@@ -1,11 +1,14 @@
 import type { DadosDoAcordo } from "@/modules/clientes/domain/value-objects/parcelamento.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
+import type { SetorSlug } from "@/shared/kernel/setores";
 
 // O conjunto inteiro do Cliente: o que não vier na lista é removido. `id` ausente = Parcelamento
 // novo (o PDF é obrigatório); com `id` = já cadastrado (o PDF não troca).
 export type SalvarParcelamentosClienteInput = {
   clienteId: string;
+  // Setor dono dos Parcelamentos: cada Setor gere os seus.
+  setor: SetorSlug;
   parcelamentos: {
     id?: string;
     codigo: string;

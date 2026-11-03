@@ -84,10 +84,12 @@ describe("salvarParcelamentosSchema", () => {
   it("dois PDFs de 3 MiB passam cada um sob o teto, mas a soma não cabe no corpo da requisição", () => {
     const um = salvarParcelamentosSchema.safeParse({
       clienteId: CLIENTE_ID,
+      setor: "simples_nacional",
       parcelamentos: [linha("A", 3)],
     });
     const dois = salvarParcelamentosSchema.safeParse({
       clienteId: CLIENTE_ID,
+      setor: "simples_nacional",
       parcelamentos: [linha("A", 3), linha("B", 3)],
     });
 
