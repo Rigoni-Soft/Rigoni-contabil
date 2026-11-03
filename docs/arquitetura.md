@@ -135,6 +135,7 @@ Valem para todo o projeto. Os detalhes de cada um ficam na `constitution.md`; aq
   - Docs vivos (`arquitetura.md`, `testes.md`, `DESIGN.md`, `CONTEXT.md`, `PRODUCT.md`, `docs/deploy/`) escrevem a regra e o porquê, não o histórico de revisão. `#NN` curto de issue é aceito como ponteiro para a spec; `PR #NN`, "devolutiva" e códigos de achado (B1, R85-01) não.
   - ADRs (`docs/adr/`) e migrations já aplicadas são registro histórico: podem citar a PR e a devolutiva de onde a decisão saiu, e não se reescrevem só por isso.
   - Títulos de `describe`/`it` podem carregar `#NN`; o grep de limpeza ignora strings.
+  - `yarn check:refs` (CI) reprova `#NN` em comentário de código fora de `TODO(#NN)`.
 - **SOLID:** uma responsabilidade por classe; dependa de abstrações (portas), nunca de implementações; extensão por novas implementações de porta, não por `if` em código existente.
 - **DRY, KISS, YAGNI:** sem abstração antes da segunda repetição real; sem camada vazia. Uma feature de leitura trivial não ganha entidade nem builder só para "cumprir o padrão" (ver read models na seção 3.6).
 - **Object Calisthenics** (rigor em `domain` e `application`; na `presentation` valem as regras 1, 2, 5, 6 e 7):
@@ -1022,7 +1023,7 @@ console.log(`módulo "${nome}" criado em ${base} + src/main/${nome}.factory.ts`)
 
 ## Anexo D — Checklist de revisão de PR
 
-- [ ] `npx depcruise`, o lint e `npm run check:naming` passam.
+- [ ] `npx depcruise`, o lint, `npm run check:naming` e `npm run check:refs` passam.
 - [ ] Nenhuma entidade sai da `application`; Output DTO é objeto simples.
 - [ ] Toda criação de entidade passa por Builder; nenhum `new` de entidade fora dela.
 - [ ] Caso de uso só depende de portas; adaptadores só são criados em `main`.

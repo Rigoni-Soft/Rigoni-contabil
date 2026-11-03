@@ -2,7 +2,7 @@ import { expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import { cnpjUnico, login } from "./support/criar-cliente";
 
-// Líder fora do Simples Nacional atribui, troca e remove o Responsável do Cliente no próprio Setor (#165).
+// Líder fora do Simples Nacional atribui, troca e remove o Responsável do Cliente no próprio Setor.
 const admin = adminLocal();
 const SUFIXO = `${Date.now()}`.slice(-6);
 const ANA = `Ana Contábil ${SUFIXO}`;

@@ -84,7 +84,7 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
     await expect(page.getByText("Pendente no mês")).toHaveCount(2);
     await expect(page.getByText(/PDF anexado: acordo-100\.pdf/)).toBeVisible();
 
-    // O leitor falso lê todo acordo como PGFN: cadastrado, ele não se edita (só ganha guias, #184).
+    // O leitor falso lê todo acordo como PGFN: cadastrado, ele não se edita (só ganha guias).
     await expect(page.locator("[id='parcelamentos.0.parcelasRestantes']")).toBeDisabled();
     // Remove o segundo (o PDF dele sai do Storage junto).
     await page.getByRole("button", { name: "Remover parcelamento 2" }).click();

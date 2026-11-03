@@ -84,7 +84,7 @@ O unitário é o nível priorizado: toda classe, função e método com lógica 
 - **Supertest** é uma ferramenta, não um nível: o teste de webhook que o usa é um teste de integração como os demais e usa o sufixo `*.test.ts`. Só entra onde há HTTP real (o handler de webhook).
 - **Ambiente:** Supabase local (seção 5); o próprio teste monta o estado inicial de que precisa.
 - **Execução serial:** as suítes de integração dividem o mesmo banco e as mesmas regras globais por Setor (a espera), então `yarn test:int` roda uma de cada vez (`--runInBand`), como o E2E.
-- **Dados de teste:** nunca um `DELETE` amplo (nem em `globalSetup`). Cada suíte que usa CNPJ fixo declara a lista e a limpa antes e depois com `removerClientesDeTeste` (`test-support/`), que apaga só esses CNPJs e os eventos de auditoria deles, e só no Supabase local; os CNPJs listados nas suítes são reservados para teste. Clientes e usuários de outra origem (seed, teste manual) ficam intactos, e a suíte roda repetidas vezes sem `db reset`.
+- **Dados de teste:** nunca um `DELETE` amplo (nem em `globalSetup`). Cada suíte que usa CNPJ fixo declara a lista e a limpa antes e depois com `removerClientesDeTeste` (`test-support/`), que apaga só esses CNPJs e os eventos de auditoria deles, e só no Supabase local; os CNPJs listados nas suítes são reservados para teste. Clientes e usuários de outra origem (seed, teste manual) ficam intactos, e a suíte roda repetidas vezes sem `db reset`. O seed já tem Líder em `contabil`, `simples_nacional` e `rh`, e o banco aceita um Líder ativo por Setor: teste que cria Líder usa outro Setor (ex.: `tributario`).
 
 ### 4.3 E2E (`*.e2e.ts`, Playwright CLI)
 
