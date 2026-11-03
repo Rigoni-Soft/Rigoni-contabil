@@ -30,7 +30,14 @@ with usuario (id, email, senha, nome, papel, setor) as (
      'Funcionário Recepção', 'funcionario', 'recepcao'),
     -- Segundo da Recepção: a espera dela é a única comum, onde dois Funcionários disputam o clique.
     ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'funcionario2.recepcao@rigonicontabil.local', 'func123',
-     'Segundo Funcionário Recepção', 'funcionario', 'recepcao')
+     'Segundo Funcionário Recepção', 'funcionario', 'recepcao'),
+    -- RH: o Líder atribui o Responsável; os dois Funcionários provam que cada um opera só os seus.
+    ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'lider.rh@rigonicontabil.local', 'lider123',
+     'Líder RH', 'lider_setor', 'rh'),
+    ('dddddddd-dddd-dddd-dddd-dddddddddddd', 'funcionario.rh@rigonicontabil.local', 'func123',
+     'Funcionário RH', 'funcionario', 'rh'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'funcionario2.rh@rigonicontabil.local', 'func123',
+     'Segundo Funcionário RH', 'funcionario', 'rh')
 ),
 conta as (
   insert into auth.users (
