@@ -33,7 +33,7 @@ export function ResumoSetorSnListaPage({
           descricao={descricao}
         />
       }
-      conteudo={erro ? <AvisoDeStatus tipo="erro" texto={erro} /> : lista}
+      conteudo={erro ? <AvisoDeStatus tipo="erro" texto={erro} legivel /> : lista}
     />
   );
 }

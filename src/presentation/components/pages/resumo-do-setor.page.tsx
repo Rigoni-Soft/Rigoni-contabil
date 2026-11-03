@@ -25,7 +25,7 @@ export function ResumoDoSetorPage({
       largura="conteudo"
       conteudo={
         erro ? (
-          <AvisoDeStatus tipo="erro" texto={erro} />
+          <AvisoDeStatus tipo="erro" texto={erro} legivel />
         ) : (
           <Pilha espaco={8}>
             {resumo}
