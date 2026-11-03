@@ -1,5 +1,6 @@
 import {
   podeGerirParcelamento,
+  podeVerComparativoDoSetor,
   podeVerDashboardDoSetor,
   soLeDadosBasicosDoCliente,
 } from "./papeis";
@@ -36,5 +37,16 @@ describe("soLeDadosBasicosDoCliente", () => {
     ["funcionario", "simples_nacional", false],
   ])("%s do setor %s lê só os dados básicos: %s", (papel, setor, esperado) => {
     expect(soLeDadosBasicosDoCliente(papel, setor)).toBe(esperado);
+  });
+});
+
+describe("podeVerComparativoDoSetor", () => {
+  it.each([
+    ["lider_setor", "rh", true],
+    ["lider_setor", "recepcao", false],
+    ["funcionario", "rh", false],
+    ["admin", "administrativo", false],
+  ])("%s do setor %s vê o comparativo: %s", (papel, setor, esperado) => {
+    expect(podeVerComparativoDoSetor(papel, setor)).toBe(esperado);
   });
 });

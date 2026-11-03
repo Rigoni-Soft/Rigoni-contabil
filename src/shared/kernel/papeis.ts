@@ -67,6 +67,12 @@ export function podeAtribuirResponsavel(papel: string, setor: string): boolean {
   return papel === "lider_setor" && setor !== "recepcao";
 }
 
+// O comparativo por Responsável do dashboard de um Setor é do Líder: o Funcionário não vê o
+// acompanhamento dos colegas, e o Admin (suporte) fica com a carteira, sem o comparativo.
+export function podeVerComparativoDoSetor(papel: string, setor: string): boolean {
+  return papel === "lider_setor" && setor !== "recepcao";
+}
+
 // Anexar alteração contratual a um Cliente existente é dado jurídico: só o Admin.
 export function podeAnexarAlteracaoContratual(papel: string): boolean {
   return papel === "admin";

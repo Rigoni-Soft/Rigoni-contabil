@@ -11,7 +11,7 @@ import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import {
-  podeAtribuirResponsavel,
+  podeVerComparativoDoSetor,
   podeVerDashboardDoSetor,
   rotuloResponsavel,
   SEM_RESPONSAVEL_ID,
@@ -96,7 +96,7 @@ export class ObterResumoSetorRh {
       totalClientes: linhas.length,
       cards,
       grupos: [{ titulo: GRUPO, cardIds: cards.map((c) => c.id) }],
-      comparativos: podeAtribuirResponsavel(ator.papel, ator.setor)
+      comparativos: podeVerComparativoDoSetor(ator.papel, ator.setor)
         ? { responsaveis: porResponsavel(linhas) }
         : undefined,
     });
