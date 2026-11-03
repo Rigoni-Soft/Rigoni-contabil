@@ -46,9 +46,13 @@ export function podeGerirParcelamento(papel: string, setorDoAtor: string, setor:
   );
 }
 
-// Quem enxerga o dashboard do Simples Nacional: Admin (suporte) ou qualquer perfil do setor.
-export function podeVerDashboardSn(papel: string, setor: string): boolean {
-  return papel === "admin" || setor === "simples_nacional";
+// Quem enxerga o dashboard de um Setor: Admin (suporte) ou qualquer perfil daquele Setor.
+export function podeVerDashboardDoSetor(
+  papel: string,
+  setorDoAtor: string,
+  setor: string,
+): boolean {
+  return papel === "admin" || setorDoAtor === setor;
 }
 
 // O Líder de cada Setor atribui/troca/remove o Responsável do Cliente naquele Setor. A Recepção não

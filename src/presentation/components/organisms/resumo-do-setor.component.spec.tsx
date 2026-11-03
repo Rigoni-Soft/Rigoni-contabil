@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 
-import { ResumoSetorSn } from "./resumo-setor-sn.component";
+import { ResumoDoSetor } from "./resumo-do-setor.component";
 
 const CARDS = [
   { id: "das_emitidas", titulo: "DAS emitidas", cor: "em_dia", quantidade: 3 },
@@ -21,9 +21,16 @@ const CARDS = [
   { id: "parcelamento_enviado", titulo: "Parcelamento enviado", cor: "em_dia", quantidade: 1 },
 ];
 
-describe("ResumoSetorSn", () => {
+const GRUPOS = [
+  { titulo: "Documentos e DAS", cardIds: CARDS.slice(0, 5).map((c) => c.id) },
+  { titulo: "Parcelamento", cardIds: CARDS.slice(5).map((c) => c.id) },
+];
+
+const PROPS = { cards: CARDS, grupos: GRUPOS, hrefBase: "/clientes/resumo" };
+
+describe("ResumoDoSetor", () => {
   it("separa os 11 cards em 'Documentos e DAS' (5) e 'Parcelamento' (6)", () => {
-    render(<ResumoSetorSn cards={CARDS} totalClientes={9} busca={<div>busca</div>} />);
+    render(<ResumoDoSetor {...PROPS} totalClientes={9} busca={<div>busca</div>} />);
 
     expect(screen.getByText("Documentos e DAS")).toBeInTheDocument();
     expect(screen.getByText("Parcelamento")).toBeInTheDocument();
@@ -31,20 +38,20 @@ describe("ResumoSetorSn", () => {
   });
 
   it("cada card é um link pra /clientes/resumo/<id do bucket>", () => {
-    render(<ResumoSetorSn cards={CARDS} totalClientes={9} busca={<div>busca</div>} />);
+    render(<ResumoDoSetor {...PROPS} totalClientes={9} busca={<div>busca</div>} />);
 
     const link = screen.getByRole("link", { name: /DAS pendente/ });
     expect(link).toHaveAttribute("href", "/clientes/resumo/das_pendente");
   });
 
   it("mostra a quantidade de cada card", () => {
-    render(<ResumoSetorSn cards={CARDS} totalClientes={9} busca={<div>busca</div>} />);
+    render(<ResumoDoSetor {...PROPS} totalClientes={9} busca={<div>busca</div>} />);
 
     expect(screen.getAllByText("3")).toHaveLength(2); // das_emitidas e com_parcelamento
   });
 
   it("mostra a busca entre o título e os grupos de cards", () => {
-    render(<ResumoSetorSn cards={CARDS} totalClientes={9} busca={<div>Buscar cliente</div>} />);
+    render(<ResumoDoSetor {...PROPS} totalClientes={9} busca={<div>Buscar cliente</div>} />);
 
     const secao = screen.getByText("Resumo do setor").closest("section")!;
     const filhos = Array.from(secao.children).map((el) => el.textContent?.slice(0, 20));
@@ -54,5 +61,32 @@ describe("ResumoSetorSn", () => {
 
     expect(indiceTitulo).toBeLessThan(indiceBusca);
     expect(indiceBusca).toBeLessThan(indiceGrupo);
+  });
+
+  it("serve a outro Setor: grupos, ordem e rota vêm de quem monta o resumo, nada é fixo do SN", () => {
+    render(
+      <ResumoDoSetor
+        cards={[
+          { id: "folha", titulo: "Folha enviada", cor: "em_dia", quantidade: 4 },
+          { id: "fgts", titulo: "FGTS pendente", cor: "atencao", quantidade: 2 },
+          { id: "dctfweb", titulo: "DCTFWeb pendente", cor: "atencao", quantidade: 1 },
+        ]}
+        grupos={[
+          { titulo: "Obrigações do mês", cardIds: ["fgts", "folha", "dctfweb", "inexistente"] },
+        ]}
+        totalClientes={7}
+        hrefBase="/rh/resumo"
+        busca={<div>busca</div>}
+      />,
+    );
+
+    expect(screen.getByText("Obrigações do mês")).toBeInTheDocument();
+    expect(screen.queryByText("Documentos e DAS")).not.toBeInTheDocument();
+    const links = screen.getAllByRole("link");
+    expect(links.map((l) => l.getAttribute("href"))).toEqual([
+      "/rh/resumo/fgts",
+      "/rh/resumo/folha",
+      "/rh/resumo/dctfweb",
+    ]);
   });
 });

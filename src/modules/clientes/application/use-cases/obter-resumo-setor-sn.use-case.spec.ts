@@ -82,6 +82,10 @@ describe("ObterResumoSetorSn", () => {
     if (!resultado.ok) return;
     expect(resultado.value.totalClientes).toBe(2);
     expect(resultado.value.cards).toHaveLength(11);
+    expect(resultado.value.grupos.map((g) => g.titulo)).toEqual([
+      "Documentos e DAS",
+      "Parcelamento",
+    ]);
     expect(resultado.value.comparativos.das.find((f) => f.id === "enviado")?.quantidade).toBe(1);
     expect(
       resultado.value.comparativos.atividade.find((f) => f.id === "industria")?.quantidade,

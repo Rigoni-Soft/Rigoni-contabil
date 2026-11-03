@@ -5,7 +5,7 @@ import { ResumoSetorSnListaPage } from "@/presentation/components/pages/resumo-s
 import { exigirSessao } from "@/presentation/view-models/shell/shell.server";
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import { carregarResumoSetorSn } from "@/modules/clientes/presentation/view-models/resumo-setor-sn/resumo-setor-sn.server";
-import { podeVerDashboardSn } from "@/shared/kernel/papeis";
+import { podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
 
 type Props = { params: Promise<{ bucket: string }> };
 
@@ -14,7 +14,7 @@ export default async function Page({ params }: Props) {
   const sessao = await exigirSessao();
 
   // Resumo do setor é exclusivo do Simples Nacional — mesmo critério de acesso de app/page.tsx.
-  if (!podeVerDashboardSn(sessao.papel, sessao.setor)) redirect("/");
+  if (!podeVerDashboardDoSetor(sessao.papel, sessao.setor, "simples_nacional")) redirect("/");
 
   const resumo = await carregarResumoSetorSn();
   if (!resumo.ok) redirect("/");

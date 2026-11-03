@@ -1,6 +1,6 @@
 import type { ResumoOperacionalRow } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 
-import { classificarResumoSetorSn } from "./resumo-setor-sn.mapper";
+import { classificarResumoSetorSn, gruposDoResumoSn } from "./resumo-setor-sn.mapper";
 
 function linha(sobrescritas: Partial<ResumoOperacionalRow> = {}): ResumoOperacionalRow {
   return {
@@ -344,5 +344,19 @@ describe("classificarResumoSetorSn", () => {
         "parcelamentos",
       );
     });
+  });
+});
+
+describe("gruposDoResumoSn", () => {
+  it("agrupa os 11 cards em Documentos e DAS (5) e Parcelamento (6), na ordem dos cards", () => {
+    const grupos = gruposDoResumoSn();
+
+    expect(grupos.map((g) => [g.titulo, g.cardIds.length])).toEqual([
+      ["Documentos e DAS", 5],
+      ["Parcelamento", 6],
+    ]);
+    expect(grupos.flatMap((g) => g.cardIds)).toEqual(
+      classificarResumoSetorSn([], DIA_28).map((c) => c.id),
+    );
   });
 });
