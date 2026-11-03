@@ -17,14 +17,23 @@ export default async function Page({ params }: Props) {
   if (!podeVerDashboardDoSetor(sessao.papel, sessao.setor, "simples_nacional")) redirect("/");
 
   const resumo = await carregarResumoSetorSn();
-  if (!resumo.ok) redirect("/");
+  const header = <CabecalhoDoShellContainer sessao={sessao} />;
+  if (!resumo.ok) {
+    return (
+      <ResumoSetorSnListaPage
+        header={header}
+        titulo="Resumo do setor"
+        erro="Falha ao carregar o resumo do setor. Tente novamente."
+      />
+    );
+  }
 
   const card = resumo.value.cards.find((c) => c.id === bucket);
   if (!card) notFound();
 
   return (
     <ResumoSetorSnListaPage
-      header={<CabecalhoDoShellContainer sessao={sessao} />}
+      header={header}
       titulo={card.titulo}
       descricao={card.descricao}
       lista={

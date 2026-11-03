@@ -1,3 +1,4 @@
+import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { CabecalhoDeTela } from "@/presentation/components/molecules/cabecalho-de-tela.component";
 import { TelaDeTrabalhoTemplate } from "@/presentation/components/templates/tela-de-trabalho-template.component";
 
@@ -5,7 +6,9 @@ type ResumoSetorSnListaPageProps = {
   header: React.ReactNode;
   titulo: string;
   descricao?: string;
-  lista: React.ReactNode;
+  // Sem lista (falha de leitura) a tela mostra o `erro`.
+  lista?: React.ReactNode;
+  erro?: string;
   // O resumo do Setor de onde a lista saiu.
   voltarHref?: string;
 };
@@ -15,6 +18,7 @@ export function ResumoSetorSnListaPage({
   titulo,
   descricao,
   lista,
+  erro,
   voltarHref = "/simples-nacional",
 }: ResumoSetorSnListaPageProps) {
   return (
@@ -29,7 +33,7 @@ export function ResumoSetorSnListaPage({
           descricao={descricao}
         />
       }
-      conteudo={lista}
+      conteudo={erro ? <AvisoDeStatus tipo="erro" texto={erro} /> : lista}
     />
   );
 }
