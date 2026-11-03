@@ -30,11 +30,13 @@ type Props = {
 export default async function Page({ params, searchParams }: Props) {
   const { id } = await params;
   const { voltarPara, alteracao } = await searchParams;
+  // O cadastro roda junto com a sessão; os documentos esperam a sessão para saber se o papel os vê.
+  const cadastro = carregarCadastroOperacionalCliente(id);
   const sessao = validarSessao(await carregarSessao());
   // O RH só mostra os dados básicos (regra de apresentação: a RLS não a impõe): não busca os documentos.
   const soDadosBasicos = soLeDadosBasicosDoCliente(sessao.papel, sessao.setor);
   const [resultado, documentos] = await Promise.all([
-    carregarCadastroOperacionalCliente(id),
+    cadastro,
     soDadosBasicos ? null : carregarDocumentosContratuais(id),
   ]);
   if (!resultado.ok || !resultado.value) redirect("/");
