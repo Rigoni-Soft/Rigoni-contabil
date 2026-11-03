@@ -6,6 +6,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { removerClientesDeTeste } from "../../../../../test-support/clientes-de-teste";
+import { SupabaseCarteiraDoSetorGateway } from "./carteira-do-setor.gateway";
 import { SupabaseClienteQueryGateway } from "./cliente-query.gateway";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
@@ -59,13 +60,11 @@ beforeAll(async () => {
   ]);
   if (clientes.error) throw clientes.error;
   // O Responsável do SN é outro Funcionário: o RH não vira Responsável por isso.
-  const sn = await servico
-    .from("cliente_responsaveis")
-    .insert({
-      cliente_id: clienteSnId,
-      setor: "simples_nacional",
-      responsavel_id: FUNCIONARIO_SN_ID,
-    });
+  const sn = await servico.from("cliente_responsaveis").insert({
+    cliente_id: clienteSnId,
+    setor: "simples_nacional",
+    responsavel_id: FUNCIONARIO_SN_ID,
+  });
   if (sn.error) throw sn.error;
 });
 
@@ -161,6 +160,30 @@ describe("RH: leitura ampla e Responsável do RH (integração)", () => {
       .eq("cliente_id", clientePresumidoId)
       .eq("setor", "rh");
     expect(gravadas.data).toEqual([]);
+  });
+
+  it("a carteira do RH: o Líder lê todos os Clientes com o Responsável; o Funcionário, só o vínculo dele", async () => {
+    await servico.from("cliente_responsaveis").upsert({
+      cliente_id: clientePresumidoId,
+      setor: "rh",
+      responsavel_id: FUNCIONARIO_RH_ID,
+    });
+    const listar = async (supabase: SupabaseClient) => {
+      const r = await new SupabaseCarteiraDoSetorGateway(supabase).listar("rh");
+      if (!r.ok) throw r.error;
+      return r.value.filter((l) => [CNPJ_SN, CNPJ_PRESUMIDO].includes(l.cnpj));
+    };
+
+    const doLider = await listar(await comoLiderRH());
+    const doFuncionario = await listar(await comoFuncionarioRH());
+    const doColega = await listar(await comoFuncionario2RH());
+
+    expect(doLider.map((l) => [l.cnpj, l.responsavelId, l.responsavelNome])).toEqual([
+      [CNPJ_PRESUMIDO, FUNCIONARIO_RH_ID, "Funcionário RH"],
+      [CNPJ_SN, null, null],
+    ]);
+    expect(doFuncionario.filter((l) => l.responsavelId === FUNCIONARIO_RH_ID)).toHaveLength(1);
+    expect(doColega.filter((l) => l.responsavelId !== null)).toEqual([]);
   });
 
   it("o Funcionário do RH atribuído lê o seu vínculo e não o do colega", async () => {
