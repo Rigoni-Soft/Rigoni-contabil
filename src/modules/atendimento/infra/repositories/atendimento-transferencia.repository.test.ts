@@ -234,8 +234,8 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       value: { regime: "simples_nacional", responsavelId: null },
     });
     const op = await admin
-      .from("cliente_cadastro_operacional_sn")
-      .insert({ cliente_id: clienteId, responsavel_id: destinoId });
+      .from("cliente_responsaveis")
+      .insert({ cliente_id: clienteId, setor: "simples_nacional", responsavel_id: destinoId });
     if (op.error) throw op.error;
     expect(await repositorio.roteamentoDoCliente(clienteId, "simples_nacional")).toEqual({
       ok: true,
@@ -457,8 +457,8 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
 
   it("Responsável desativado não é destino: o Cliente fica sem Responsável", async () => {
     const op = await admin
-      .from("cliente_cadastro_operacional_sn")
-      .upsert({ cliente_id: clienteId, responsavel_id: destinoId });
+      .from("cliente_responsaveis")
+      .upsert({ cliente_id: clienteId, setor: "simples_nacional", responsavel_id: destinoId });
     if (op.error) throw op.error;
     await comDesativado(destinoId, async () => {
       expect(await repositorio.roteamentoDoCliente(clienteId, "simples_nacional")).toEqual({

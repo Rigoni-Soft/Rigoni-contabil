@@ -401,9 +401,11 @@ describe("SupabaseClienteQueryGateway.listarResumoOperacional (#36, integração
     const cliente = await criarClienteComContratoSocial(admin, "Resp Query Ltda", cnpjUnico());
     const lider = await comoLiderSN();
     await lider
-      .from("cliente_cadastro_operacional_sn")
-      .update({ responsavel_id: FUNCIONARIO_SN_ID })
-      .eq("cliente_id", cliente.id);
+      .from("cliente_responsaveis")
+      .upsert(
+        { cliente_id: cliente.id, setor: "simples_nacional", responsavel_id: FUNCIONARIO_SN_ID },
+        { onConflict: "cliente_id,setor" },
+      );
 
     const comoLider = new SupabaseClienteQueryGateway(lider);
     const cadastro = await comoLider.buscarCadastroOperacional(cliente.id);

@@ -32,11 +32,9 @@ export const atendimentoEmAndamentoRowSchema = z.object({
   chave_telefone: z.string(),
 });
 
-// `clientes` com o cadastro operacional embutido (1:1; só MEI/Simples Nacional têm linha).
+// `clientes` com o Responsável de cada Setor embutido (um por Setor).
 export const roteamentoDoClienteRowSchema = z.object({
   regime: z.enum(REGIMES),
-  cliente_cadastro_operacional_sn: z.object({ responsavel_id: z.string().nullable() }).nullable(),
-  // Responsável dos Setores fora do Simples Nacional (um por Setor).
   cliente_responsaveis: z.array(z.object({ setor: z.enum(SETORES), responsavel_id: z.string() })),
 });
 

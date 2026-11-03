@@ -63,9 +63,11 @@ beforeAll(async () => {
   });
   if (criado.error) throw new Error(criado.error.message);
   const resp = await servico
-    .from("cliente_cadastro_operacional_sn")
-    .update({ responsavel_id: RESPONSAVEL_ID })
-    .eq("cliente_id", clienteId);
+    .from("cliente_responsaveis")
+    .upsert(
+      { cliente_id: clienteId, setor: "simples_nacional", responsavel_id: RESPONSAVEL_ID },
+      { onConflict: "cliente_id,setor" },
+    );
   if (resp.error) throw new Error(resp.error.message);
   await Promise.all(TODOS.map(subir));
 });
@@ -157,9 +159,11 @@ describe("SupabaseDocumentosContratuaisClienteGateway (#140, integração)", () 
       });
       if (perfil.error) throw new Error(perfil.error.message);
       const atribuicao = await servico
-        .from("cliente_cadastro_operacional_sn")
-        .update({ responsavel_id: contaId })
-        .eq("cliente_id", clienteId);
+        .from("cliente_responsaveis")
+        .upsert(
+          { cliente_id: clienteId, setor: "simples_nacional", responsavel_id: contaId },
+          { onConflict: "cliente_id,setor" },
+        );
       if (atribuicao.error) throw new Error(atribuicao.error.message);
       const gateway = new SupabaseDocumentosContratuaisClienteGateway(await como(email, senha));
 
@@ -167,9 +171,11 @@ describe("SupabaseDocumentosContratuaisClienteGateway (#140, integração)", () 
       expect((await gateway.linkTemporario(caminhoAlt3, 120)).ok).toBe(false);
     } finally {
       await servico
-        .from("cliente_cadastro_operacional_sn")
-        .update({ responsavel_id: RESPONSAVEL_ID })
-        .eq("cliente_id", clienteId);
+        .from("cliente_responsaveis")
+        .upsert(
+          { cliente_id: clienteId, setor: "simples_nacional", responsavel_id: RESPONSAVEL_ID },
+          { onConflict: "cliente_id,setor" },
+        );
       await servico.from("perfis").delete().eq("id", contaId);
       await servico.auth.admin.deleteUser(contaId);
     }

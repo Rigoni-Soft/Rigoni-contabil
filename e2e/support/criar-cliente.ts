@@ -93,9 +93,11 @@ export async function atribuirResponsavelComoLider(cnpjDigits: string): Promise<
   }
 
   const { error } = await supabase
-    .from("cliente_cadastro_operacional_sn")
-    .update({ responsavel_id: funcionario.id })
-    .eq("cliente_id", cliente.id);
+    .from("cliente_responsaveis")
+    .upsert(
+      { cliente_id: cliente.id, setor: "simples_nacional", responsavel_id: funcionario.id },
+      { onConflict: "cliente_id,setor" },
+    );
   if (error) throw new Error(`Falha ao atribuir Responsável: ${error.message}`);
   return cliente.id as string;
 }

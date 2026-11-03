@@ -94,9 +94,11 @@ async function tornarResponsavelNoFinanceiro(clienteId: string): Promise<void> {
 
 async function tornarResponsavel(clienteId: string, perfilId: string): Promise<void> {
   const { error } = await serviceRole()
-    .from("cliente_cadastro_operacional_sn")
-    .update({ responsavel_id: perfilId })
-    .eq("cliente_id", clienteId);
+    .from("cliente_responsaveis")
+    .upsert(
+      { cliente_id: clienteId, setor: "simples_nacional", responsavel_id: perfilId },
+      { onConflict: "cliente_id,setor" },
+    );
   if (error) throw new Error(`Falha ao atribuir Responsável: ${error.message}`);
 }
 

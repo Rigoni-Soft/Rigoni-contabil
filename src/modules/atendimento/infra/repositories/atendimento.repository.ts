@@ -185,21 +185,15 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
   ): Promise<Result<RoteamentoDoCliente | null, AppError>> {
     const { data, error } = await this.supabaseAdmin
       .from("clientes")
-      .select(
-        "regime, cliente_cadastro_operacional_sn(responsavel_id), cliente_responsaveis(setor, responsavel_id)",
-      )
+      .select("regime, cliente_responsaveis(setor, responsavel_id)")
       .eq("id", clienteId)
       .maybeSingle();
     if (error) return err(new ServicoExternoError("Falha ao consultar o Cliente."));
     if (!data) return ok(null);
     const linha = roteamentoDoClienteRowSchema.parse(data);
-    // O Simples Nacional guarda o Responsável no cadastro operacional; os demais Setores, em tabela própria.
     const responsavelId = !setorDestino
       ? null
-      : setorDestino === "simples_nacional"
-        ? (linha.cliente_cadastro_operacional_sn?.responsavel_id ?? null)
-        : (linha.cliente_responsaveis.find((r) => r.setor === setorDestino)?.responsavel_id ??
-          null);
+      : (linha.cliente_responsaveis.find((r) => r.setor === setorDestino)?.responsavel_id ?? null);
     if (!responsavelId) return ok({ regime: linha.regime, responsavelId: null });
     // Responsável desativado não recebe: o Atendimento cai no Líder.
     const ativo = await this.supabaseAdmin

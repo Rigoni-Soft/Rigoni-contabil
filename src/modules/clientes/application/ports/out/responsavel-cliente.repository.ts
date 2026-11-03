@@ -3,8 +3,7 @@ import type { Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
 export interface ResponsavelClienteRepository {
-  // `responsavelId` null remove. O Simples Nacional guarda o Responsável no cadastro operacional; os
-  // demais Setores, em `cliente_responsaveis`.
+  // `responsavelId` null remove.
   atribuir(
     clienteId: string,
     setor: SetorSlug,

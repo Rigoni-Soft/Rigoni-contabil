@@ -22,12 +22,12 @@ const CLIENTE_ID = "11111111-1111-1111-1111-111111111111";
 const FUNC_ID = "22222222-2222-2222-2222-222222222222";
 const OUTRO_FUNC_ID = "33333333-3333-3333-3333-333333333333";
 
-function cadastro(responsavelId: string | null): CadastroOperacionalClienteDto {
+function cadastro(regime = "simples_nacional"): CadastroOperacionalClienteDto {
   return {
     id: CLIENTE_ID,
     empresa: "Padaria Pão Quente Ltda",
     cnpj: "11444777000161",
-    regime: "simples_nacional",
+    regime,
     formaEnvio: "whatsapp",
     contatos: [],
     documentoObrigatorio: null,
@@ -36,7 +36,7 @@ function cadastro(responsavelId: string | null): CadastroOperacionalClienteDto {
     parcelamentos: [],
     observacoesGerais: "",
     atividadeMes: { industria: false, comercio: false, servico: false },
-    responsavelId,
+    responsavelId: null,
     responsavelNome: null,
   };
 }
@@ -49,13 +49,13 @@ class SessaoFalsa implements SessaoPort {
 }
 
 class QueryFalsa implements Partial<ClienteQueryPort> {
-  cliente: CadastroOperacionalClienteDto | null = cadastro(null);
+  cliente: CadastroOperacionalClienteDto | null = cadastro();
   async buscarCadastroOperacional(): Promise<
     Result<CadastroOperacionalClienteDto | null, AppError>
   > {
     return ok(this.cliente);
   }
-  // Responsável atual do Cliente num Setor fora do SN.
+  // Responsável atual do Cliente no Setor do Líder.
   doSetor: ResponsavelOpcaoDto | null = null;
   setoresListados: string[] = [];
   async listarResponsaveisElegiveis(
@@ -120,7 +120,7 @@ describe("AtribuirResponsavelCliente", () => {
     responsaveis.falha = true;
 
     await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: FUNC_ID });
-    query.cliente = cadastro(OUTRO_FUNC_ID);
+    query.doSetor = { id: OUTRO_FUNC_ID, nome: "Outro" };
     await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: FUNC_ID });
     await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: null });
 
@@ -134,10 +134,10 @@ describe("AtribuirResponsavelCliente", () => {
 
   it("reatribuir o mesmo Responsável (ou remover sem ter) não grava nem audita", async () => {
     const { useCase, query, responsaveis, auditoria } = montar();
-    query.cliente = cadastro(FUNC_ID);
+    query.doSetor = { id: FUNC_ID, nome: "Funcionário do Setor" };
 
     const igual = await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: FUNC_ID });
-    query.cliente = cadastro(null);
+    query.doSetor = null;
     const semNada = await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: null });
 
     expect(igual.ok && semNada.ok).toBe(true);
@@ -159,7 +159,7 @@ describe("AtribuirResponsavelCliente", () => {
     expect(responsaveis.chamadas).toEqual([]);
   });
 
-  it("Líder de Setor fora do SN atribui, troca e remove no próprio Setor, lendo o atual de cliente_responsaveis", async () => {
+  it("Líder de Setor fora do SN atribui, troca e remove no próprio Setor", async () => {
     const { useCase, sessao, query, responsaveis, auditoria } = montar();
     sessao.ator = { id: "lider-fin", papel: "lider_setor", setor: "financeiro" };
 
@@ -210,6 +210,17 @@ describe("AtribuirResponsavelCliente", () => {
 
     expect(r.ok).toBe(false);
     expect(auditoria.registros[0]?.resultado).toBe("falha");
+  });
+
+  it("o SN só atribui Responsável a Cliente com cadastro operacional (Simples Nacional ou MEI)", async () => {
+    const { useCase, query, responsaveis } = montar();
+    query.cliente = cadastro("lucro_presumido");
+
+    const r = await useCase.execute({ clienteId: CLIENTE_ID, responsavelId: FUNC_ID });
+
+    expect(!r.ok && r.error.code).toBe("NOT_FOUND");
+    expect(!r.ok && r.error.message).toMatch(/cadastro operacional do Simples Nacional/);
+    expect(responsaveis.chamadas).toEqual([]);
   });
 
   it("Cliente inexistente (ou invisível pro ator) devolve NOT_FOUND com mensagem amigável", async () => {
