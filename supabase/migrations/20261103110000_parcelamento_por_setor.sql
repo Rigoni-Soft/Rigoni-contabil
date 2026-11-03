@@ -94,3 +94,38 @@ $$;
 REVOKE ALL ON FUNCTION public.salvar_parcelamentos_cliente(uuid, public.setor_slug, jsonb) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.salvar_parcelamentos_cliente(uuid, public.setor_slug, jsonb) TO authenticated;
 GRANT ALL ON FUNCTION public.salvar_parcelamentos_cliente(uuid, public.setor_slug, jsonb) TO service_role;
+
+-- A restrição de Regime (só Simples Nacional e MEI) é do cadastro operacional do SN, não dos demais
+-- Setores: no Parcelamento ela vale só para as linhas do SN. O Setor de um Parcelamento não muda.
+CREATE FUNCTION public.proteger_cliente_parcelamento_regime() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+declare
+  v_cliente_id uuid := case when tg_op = 'DELETE' then old.cliente_id else new.cliente_id end;
+  v_setor public.setor_slug := case when tg_op = 'DELETE' then old.setor else new.setor end;
+begin
+  if auth.uid() is null then
+    return coalesce(new, old);
+  end if;
+  if tg_op = 'UPDATE' and new.cliente_id is distinct from old.cliente_id then
+    raise exception 'O Cliente do cadastro operacional não pode ser trocado.' using errcode = '23514';
+  end if;
+  if tg_op = 'UPDATE' and new.setor is distinct from old.setor then
+    raise exception 'O Setor do Parcelamento não pode ser trocado.' using errcode = '23514';
+  end if;
+  if v_setor = 'simples_nacional' and not exists (
+    select 1 from public.clientes
+    where id = v_cliente_id and regime in ('simples_nacional', 'mei')
+  ) then
+    raise exception 'Cadastro operacional SN não se aplica a este Regime.' using errcode = '23514';
+  end if;
+  return coalesce(new, old);
+end;
+$$;
+
+REVOKE ALL ON FUNCTION public.proteger_cliente_parcelamento_regime() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.proteger_cliente_parcelamento_regime() TO service_role;
+
+DROP TRIGGER cliente_parcelamentos_proteger ON public.cliente_parcelamentos;
+CREATE TRIGGER cliente_parcelamentos_proteger BEFORE INSERT OR DELETE OR UPDATE ON public.cliente_parcelamentos FOR EACH ROW EXECUTE FUNCTION public.proteger_cliente_parcelamento_regime();
