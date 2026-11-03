@@ -17,6 +17,7 @@ import {
   podeAnexarAlteracaoContratual,
   podeAtribuirResponsavel,
   podeEditarCadastroOperacional,
+  soLeDadosBasicosDoCliente,
 } from "@/shared/kernel/papeis";
 import { REGIME_LABEL } from "@/shared/kernel/regimes";
 import { ehSetor, SETOR_LABEL } from "@/shared/kernel/setores";
@@ -47,7 +48,7 @@ export default async function Page({ params, searchParams }: Props) {
   const responsavelDoSetor = atribuiNoSetor ? await carregarResponsavelDoSetor(id) : null;
   const readOnly = !podeEditarCadastroOperacional(sessao.papel, sessao.setor);
   // O RH acha qualquer Cliente, mas só lê os dados básicos: o cadastro operacional é do SN.
-  const soDadosBasicos = sessao.papel !== "admin" && sessao.setor === "rh";
+  const soDadosBasicos = soLeDadosBasicosDoCliente(sessao.papel, sessao.setor);
 
   return (
     <EditarCadastroOperacionalPage

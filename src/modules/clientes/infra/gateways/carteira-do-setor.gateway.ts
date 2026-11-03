@@ -4,9 +4,9 @@ import type {
   CarteiraDoSetorQueryPort,
   ClienteDaCarteiraRow,
 } from "@/modules/clientes/application/ports/out/carteira-do-setor.provider";
-import { ConsultaError } from "@/modules/clientes/infra/gateways/cliente-query.gateway";
 import type { ResponsavelRow } from "@/modules/clientes/infra/mappers/cadastro-operacional-row.mapper";
 import type { AppError } from "@/shared/errors/app.error";
+import { ConsultaError } from "@/shared/errors/consulta.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 

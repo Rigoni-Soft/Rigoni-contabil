@@ -32,6 +32,12 @@ describe("ShellNav", () => {
     );
   });
 
+  it("RH é um link de verdade pro dashboard do setor", () => {
+    render(<ShellNav setores={[{ slug: "rh" }]} />);
+
+    expect(screen.getByRole("link", { name: "RH" })).toHaveAttribute("href", "/rh");
+  });
+
   it("marca os demais setores como indisponíveis (nenhuma tela existe ainda)", () => {
     render(<ShellNav setores={[{ slug: "financeiro" }]} />);
 

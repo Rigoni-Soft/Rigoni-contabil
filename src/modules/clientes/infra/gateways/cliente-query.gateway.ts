@@ -19,14 +19,11 @@ import {
   parcelamentoDoRow,
   type ParcelamentoRow,
 } from "@/modules/clientes/infra/mappers/parcelamento-row.mapper";
-import { AppError } from "@/shared/errors/app.error";
+import type { AppError } from "@/shared/errors/app.error";
+import { ConsultaError } from "@/shared/errors/consulta.error";
 import { primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
-
-export class ConsultaError extends AppError {
-  readonly code = "CONSULTA_ERROR";
-}
 
 type ContatoRow = { id: string; nome: string; telefone: string; padrao: boolean };
 type AtividadeMensalRow = { industria: boolean; comercio: boolean; servico: boolean };

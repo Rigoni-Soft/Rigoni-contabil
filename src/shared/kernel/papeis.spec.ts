@@ -1,4 +1,8 @@
-import { podeGerirParcelamento, podeVerDashboardDoSetor } from "./papeis";
+import {
+  podeGerirParcelamento,
+  podeVerDashboardDoSetor,
+  soLeDadosBasicosDoCliente,
+} from "./papeis";
 
 describe("podeVerDashboardDoSetor", () => {
   it.each([
@@ -21,5 +25,16 @@ describe("podeGerirParcelamento", () => {
     ["lider_setor", "rh", "simples_nacional", false],
   ])("%s do setor %s gerindo o Parcelamento de %s: %s", (papel, setorDoAtor, setor, esperado) => {
     expect(podeGerirParcelamento(papel, setorDoAtor, setor)).toBe(esperado);
+  });
+});
+
+describe("soLeDadosBasicosDoCliente", () => {
+  it.each([
+    ["lider_setor", "rh", true],
+    ["funcionario", "rh", true],
+    ["admin", "administrativo", false],
+    ["funcionario", "simples_nacional", false],
+  ])("%s do setor %s lê só os dados básicos: %s", (papel, setor, esperado) => {
+    expect(soLeDadosBasicosDoCliente(papel, setor)).toBe(esperado);
   });
 });

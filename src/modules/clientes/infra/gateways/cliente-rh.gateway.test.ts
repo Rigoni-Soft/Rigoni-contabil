@@ -162,7 +162,41 @@ describe("RH: leitura ampla e Responsável do RH (integração)", () => {
     expect(gravadas.data).toEqual([]);
   });
 
-  it("a carteira do RH: o Líder lê todos os Clientes com o Responsável; o Funcionário, só o vínculo dele", async () => {
+  it("o RH não edita o que é do SN, nem como Responsável do RH do Cliente", async () => {
+    await servico.from("cliente_responsaveis").upsert({
+      cliente_id: clienteSnId,
+      setor: "rh",
+      responsavel_id: FUNCIONARIO_RH_ID,
+    });
+    const rh = await comoFuncionarioRH();
+
+    const contato = await rh.from("cliente_contatos").insert({
+      cliente_id: clienteSnId,
+      nome: "Intruso",
+      telefone: "5545999990000",
+      padrao: true,
+    });
+    const cadastro = await rh
+      .from("cliente_cadastro_operacional_sn")
+      .update({ observacoes_gerais: "alterado pelo RH" })
+      .eq("cliente_id", clienteSnId)
+      .select();
+
+    expect(contato.error).not.toBeNull();
+    expect(cadastro.data ?? []).toEqual([]);
+    const gravados = await servico
+      .from("cliente_contatos")
+      .select("id")
+      .eq("cliente_id", clienteSnId);
+    expect(gravados.data).toEqual([]);
+    await servico
+      .from("cliente_responsaveis")
+      .delete()
+      .eq("cliente_id", clienteSnId)
+      .eq("setor", "rh");
+  });
+
+  it("a carteira do RH:o Líder lê todos os Clientes com o Responsável; o Funcionário, só o vínculo dele", async () => {
     await servico.from("cliente_responsaveis").upsert({
       cliente_id: clientePresumidoId,
       setor: "rh",

@@ -55,6 +55,12 @@ export function podeVerDashboardDoSetor(
   return papel === "admin" || setorDoAtor === setor;
 }
 
+// O Setor acha qualquer Cliente, mas só lê os dados básicos dele (o cadastro operacional é do SN):
+// hoje o RH. O Admin vai à tela completa do Cliente.
+export function soLeDadosBasicosDoCliente(papel: string, setor: string): boolean {
+  return papel !== "admin" && setor === "rh";
+}
+
 // O Líder de cada Setor atribui/troca/remove o Responsável do Cliente naquele Setor. A Recepção não
 // tem Responsável: a espera dela é comum.
 export function podeAtribuirResponsavel(papel: string, setor: string): boolean {
