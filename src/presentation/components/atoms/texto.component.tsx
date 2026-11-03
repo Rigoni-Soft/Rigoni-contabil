@@ -25,7 +25,7 @@ const VARIANTES = {
 type TextoProps = Omit<React.HTMLAttributes<HTMLElement>, "className"> & {
   variante: keyof typeof VARIANTES;
   // Elemento semântico; o padrão é parágrafo.
-  como?: "p" | "span" | "h1" | "h2" | "h3" | "strong" | "small";
+  como?: "p" | "span" | "h1" | "h2" | "h3" | "strong" | "small" | "dt" | "dd";
   className?: string;
   ref?: React.Ref<HTMLElement>;
 };

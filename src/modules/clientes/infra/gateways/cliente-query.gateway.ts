@@ -24,7 +24,7 @@ import { primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
-class ConsultaError extends AppError {
+export class ConsultaError extends AppError {
   readonly code = "CONSULTA_ERROR";
 }
 

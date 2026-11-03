@@ -11,8 +11,8 @@ type Props = {
 
 export function ComparativosRh({ responsaveis, totalClientes }: Props) {
   return (
-    <Pilha espaco={4} como="section" aria-labelledby="comparativos-titulo">
-      <Texto variante="subtitulo" como="h2" id="comparativos-titulo">
+    <Pilha espaco={4} como="section" aria-labelledby="comparativos-rh-titulo">
+      <Texto variante="subtitulo" como="h2" id="comparativos-rh-titulo">
         Comparativos
       </Texto>
       <BarrasDeFatias
