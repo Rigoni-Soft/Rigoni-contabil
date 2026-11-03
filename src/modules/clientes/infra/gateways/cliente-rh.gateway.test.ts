@@ -243,6 +243,19 @@ describe("RH: busca por atribuição e Responsável do RH (integração)", () =>
     expect(doColega.filter((l) => l.responsavelId !== null)).toEqual([]);
   });
 
+  it("a carteira vem inteira mesmo quando não cabe numa página", async () => {
+    const lider = await comoLiderRH();
+    const cnpjs = async (tamanhoDaPagina?: number) => {
+      const r = await new SupabaseCarteiraDoSetorGateway(lider, tamanhoDaPagina).listar("rh");
+      if (!r.ok) throw r.error;
+      return r.value.map((l) => l.cnpj).sort();
+    };
+
+    const inteira = await cnpjs();
+    expect(inteira).toEqual(expect.arrayContaining([CNPJ_SN, CNPJ_PRESUMIDO]));
+    expect(await cnpjs(1)).toEqual(inteira);
+  });
+
   it("o Funcionário do RH atribuído lê o seu vínculo e não o do colega", async () => {
     const lider = await comoLiderRH();
     await lider.from("cliente_responsaveis").insert({
