@@ -201,6 +201,7 @@ test.describe("Parcelamentos no Editar cliente (#122)", () => {
       const id = crypto.randomUUID();
       await admin.from("cliente_parcelamentos").insert({
         id,
+        setor: "simples_nacional",
         cliente_id: clienteId,
         codigo,
         parcelas_restantes: parcelas,
@@ -231,6 +232,7 @@ test.describe("Parcelamento da Receita cadastrado segue editável (#184)", () =>
       .from("cliente_parcelamentos")
       .insert({
         id,
+        setor: "simples_nacional",
         cliente_id: clienteId,
         codigo: "RFB-100",
         parcelas_restantes: 10,

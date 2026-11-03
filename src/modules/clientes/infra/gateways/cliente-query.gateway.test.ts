@@ -247,6 +247,7 @@ describe("SupabaseClienteQueryGateway.listarResumoOperacional (#36, integração
     const novo = (id: string, codigo: string, extra: object) => ({
       id,
       cliente_id: cliente.id,
+      setor: "simples_nacional",
       codigo,
       parcelas_restantes: 3,
       interno: false,

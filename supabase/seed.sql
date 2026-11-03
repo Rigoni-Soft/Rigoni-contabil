@@ -131,11 +131,11 @@ values
 
 -- Parcelamentos (sem PDF real no Storage: o caminho é só referência). O envio do mês corrente de
 -- "Lanchonete" faz dela a Cliente com Parcelamento enviado.
-insert into public.cliente_parcelamentos (id, cliente_id, codigo, parcelas_restantes, interno, arquivo_caminho)
+insert into public.cliente_parcelamentos (id, cliente_id, setor, codigo, parcelas_restantes, interno, arquivo_caminho)
 values
-  ('a1000000-0000-4000-8000-000000000001', 'ef2c35e9-00b9-4fbc-8f8d-06b9d1aa20e8', 'PARC-0001', 24, false, 'ef2c35e9-00b9-4fbc-8f8d-06b9d1aa20e8/seed-pendente.pdf'),
-  ('a1000000-0000-4000-8000-000000000002', '168178df-7d67-4925-b293-66e0ec2def9d', 'PARC-0002', 12, true, '168178df-7d67-4925-b293-66e0ec2def9d/seed-interno.pdf'),
-  ('a1000000-0000-4000-8000-000000000003', '3e999809-f99b-4b51-9fb9-07d37a5b3c23', 'PARC-0003', 6, false, '3e999809-f99b-4b51-9fb9-07d37a5b3c23/seed-enviado.pdf');
+  ('a1000000-0000-4000-8000-000000000001', 'ef2c35e9-00b9-4fbc-8f8d-06b9d1aa20e8', 'simples_nacional', 'PARC-0001', 24, false, 'ef2c35e9-00b9-4fbc-8f8d-06b9d1aa20e8/seed-pendente.pdf'),
+  ('a1000000-0000-4000-8000-000000000002', '168178df-7d67-4925-b293-66e0ec2def9d', 'simples_nacional', 'PARC-0002', 12, true, '168178df-7d67-4925-b293-66e0ec2def9d/seed-interno.pdf'),
+  ('a1000000-0000-4000-8000-000000000003', '3e999809-f99b-4b51-9fb9-07d37a5b3c23', 'simples_nacional', 'PARC-0003', 6, false, '3e999809-f99b-4b51-9fb9-07d37a5b3c23/seed-enviado.pdf');
 
 insert into public.cliente_parcelamento_envios (parcelamento_id, parcela)
 values ('a1000000-0000-4000-8000-000000000003', to_char(public.mes_corrente_sp(), 'YYYYMM'));

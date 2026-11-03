@@ -38,6 +38,7 @@ async function criarParcelamento(restantes: number, origem: "pgfn" | "receita_fe
   await ok(
     admin.from("cliente_parcelamentos").insert({
       id,
+      setor: "simples_nacional",
       cliente_id: clienteId,
       codigo: `PGFN-${id.slice(0, 6)}`,
       parcelas_restantes: restantes,

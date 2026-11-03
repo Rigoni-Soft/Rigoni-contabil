@@ -21,9 +21,10 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ResultadoIncertoError } from "@/shared/errors/resultado-incerto.error";
 import { ValidationError } from "@/shared/errors/validation.error";
-import { podeEditarCadastroOperacional } from "@/shared/kernel/papeis";
+import { podeGerirParcelamento } from "@/shared/kernel/papeis";
 import { regimeTemCadastroOperacionalSn } from "@/shared/kernel/regimes";
 import { err, ok, type Result } from "@/shared/kernel/result";
+import type { SetorSlug } from "@/shared/kernel/setores";
 
 // Tamanho e tipo do PDF são barrados pelo schema da Server Action (única entrada da porta); o PDF
 // vai a bucket privado, só pelo servidor, depois da checagem de papel daqui.
@@ -42,11 +43,9 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
     input: SalvarParcelamentosClienteInput,
   ): Promise<Result<{ ids: string[] }, AppError>> {
     const ator = await this.sessao.usuarioAtual();
-    if (!ator || !podeEditarCadastroOperacional(ator.papel, ator.setor)) {
+    if (!ator || !podeGerirParcelamento(ator.papel, ator.setor, input.setor)) {
       return err(
-        new ForbiddenError(
-          "Só Admin, Líder ou Funcionário do Simples Nacional editam os Parcelamentos.",
-        ),
+        new ForbiddenError("Só Admin, Líder ou Funcionário do Setor editam os Parcelamentos dele."),
       );
     }
 
@@ -57,13 +56,17 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
         new NotFoundError("Não encontramos este cliente. Atualize a página e tente novamente."),
       );
     }
-    if (!regimeTemCadastroOperacionalSn(cliente.value.regime.valor)) {
+    // O cadastro operacional é do SN; os demais Setores não restringem o Regime.
+    if (
+      input.setor === "simples_nacional" &&
+      !regimeTemCadastroOperacionalSn(cliente.value.regime.valor)
+    ) {
       return err(
         new ValidationError("O Cadastro operacional SN não se aplica ao Regime deste Cliente."),
       );
     }
 
-    const existentes = await this.parcelamentos.listar(input.clienteId);
+    const existentes = await this.parcelamentos.listar(input.clienteId, input.setor);
     if (!existentes.ok) return existentes;
 
     const montados = this.montar(input, existentes.value);
@@ -73,9 +76,14 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
     const enviados = await this.enviarArquivos(input.clienteId, uploads);
     if (!enviados.ok) return enviados;
 
-    const salvo = await this.parcelamentos.salvar(input.clienteId, itens);
+    const salvo = await this.parcelamentos.salvar(input.clienteId, input.setor, itens);
     if (!salvo.ok) {
-      const confirmado = await this.reconciliar(input.clienteId, salvo.error, enviados.value);
+      const confirmado = await this.reconciliar(
+        input.clienteId,
+        input.setor,
+        salvo.error,
+        enviados.value,
+      );
       if (confirmado.ok && !confirmado.value) return salvo;
       if (!confirmado.ok) return confirmado;
     }
@@ -147,6 +155,7 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
   // ok(true) = o banco confirmou a gravação; ok(false) = falha definitiva e uploads apagados.
   private async reconciliar(
     clienteId: string,
+    setor: SetorSlug,
     erro: AppError,
     enviados: string[],
   ): Promise<Result<boolean, AppError>> {
@@ -154,7 +163,7 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
       await this.apagarAnexos(clienteId, enviados);
       return ok(false);
     }
-    const atuais = await this.parcelamentos.listar(clienteId);
+    const atuais = await this.parcelamentos.listar(clienteId, setor);
     // Sem upload novo não há caminho que prove o desfecho: fica sem reconciliar.
     // Ausência na leitura NÃO prova rollback (commit tardio, linha oculta por RLS): só a presença
     // de todos os caminhos confirma; qualquer outra coisa preserva os PDFs.

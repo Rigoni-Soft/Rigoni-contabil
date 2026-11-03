@@ -55,6 +55,7 @@ async function criarParcelamento(
   await ok(
     admin.from("cliente_parcelamentos").insert({
       id: crypto.randomUUID(),
+      setor: "simples_nacional",
       cliente_id: clienteId,
       codigo: "TESTE-1",
       parcelas_restantes: 5,
@@ -272,6 +273,7 @@ describe("leitura dos pendentes", () => {
         admin.from("cliente_parcelamentos").insert(
           parte.map((c) => ({
             id: crypto.randomUUID(),
+            setor: "simples_nacional",
             cliente_id: c.id,
             codigo: "VOLUME-1",
             parcelas_restantes: 5,
@@ -391,6 +393,7 @@ describe("a conclusão não registra envio em acordo algum (F3 do PR #191, regra
     await ok(
       admin.from("cliente_parcelamentos").insert({
         id,
+        setor: "simples_nacional",
         cliente_id: clienteId,
         codigo: `AC-${id.slice(0, 8)}`,
         parcelas_restantes: 5,

@@ -95,6 +95,7 @@ async function criarParcelamento(clienteId: string, origem: "pgfn" | "receita_fe
   const id = crypto.randomUUID();
   const salvo = await new SupabaseClienteParcelamentoRepository(await comoFuncionarioSN()).salvar(
     clienteId,
+    "simples_nacional",
     [
       {
         id,
@@ -334,7 +335,7 @@ describe("guia anexada da parcela PGFN", () => {
     ).not.toBeNull();
   });
 
-  it("mesma visibilidade do Parcelamento: outro Setor só lê a lista se for Responsável do Cliente", async () => {
+  it("mesma visibilidade do Parcelamento: outro Setor não lê a lista, nem sendo Responsável do Cliente", async () => {
     const clienteId = await criarClienteResponsavelFuncionarioSN("77330009000195");
     const parcelamentoId = await criarParcelamento(clienteId);
     await new SupabaseGuiaParcelaPgfnRepository(await comoFuncionarioSN()).anexar(
@@ -353,8 +354,9 @@ describe("guia anexada da parcela PGFN", () => {
       responsavel_id: "33333333-3333-3333-3333-333333333333",
     });
     if (atribuido.error) throw atribuido.error;
+    // Cada Setor só vê os seus Parcelamentos: ser Responsável no Financeiro não abre os do SN.
     const comAtribuicao = await financeiro.listar(parcelamentoId);
-    expect(comAtribuicao.ok && comAtribuicao.value).toHaveLength(1);
+    expect(comAtribuicao.ok && comAtribuicao.value).toHaveLength(0);
   });
 
   it("remover o Parcelamento leva as guias junto (cascata)", async () => {
@@ -368,6 +370,7 @@ describe("guia anexada da parcela PGFN", () => {
 
     await new SupabaseClienteParcelamentoRepository(await comoFuncionarioSN()).salvar(
       clienteId,
+      "simples_nacional",
       [],
     );
 
@@ -610,6 +613,7 @@ describe("guia anexada da parcela PGFN", () => {
       }
       const porRpc = await new SupabaseClienteParcelamentoRepository(funcionario).salvar(
         clienteId,
+        "simples_nacional",
         [
           {
             id: parcelamentoId,

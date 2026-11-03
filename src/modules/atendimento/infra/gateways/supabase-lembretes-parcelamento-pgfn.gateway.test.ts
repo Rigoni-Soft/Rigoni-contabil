@@ -62,6 +62,7 @@ async function criarParcelamento(
   await ok(
     admin.from("cliente_parcelamentos").insert({
       id,
+      setor: "simples_nacional",
       cliente_id: clienteId,
       codigo,
       parcelas_restantes: 5,

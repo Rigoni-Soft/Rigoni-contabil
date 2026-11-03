@@ -107,6 +107,7 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
       .eq("id", clienteId)
       .eq("cliente_atividades_mensais.ano_mes", anoMesAtual)
       .eq("cliente_responsaveis.setor", "simples_nacional")
+      .eq("cliente_parcelamentos.setor", "simples_nacional")
       // Mesma ordem do repositório; sem isso o embed volta em ordem arbitrária entre leituras.
       .order("criado_em", { referencedTable: "cliente_parcelamentos" })
       .order("codigo", { referencedTable: "cliente_parcelamentos" })
@@ -209,6 +210,7 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
       .select(SELECT_RESUMO)
       .eq("cliente_atividades_mensais.ano_mes", anoMesAtual)
       .eq("cliente_responsaveis.setor", "simples_nacional")
+      .eq("cliente_parcelamentos.setor", "simples_nacional")
       .eq("cliente_parcelamentos.cliente_parcelamento_envios.parcela", parcelaDoMesAtual())
       // Mesmo escopo da busca: só Regime com cadastro operacional de
       // verdade (nasce automático só pra Simples Nacional/MEI).
