@@ -4,14 +4,14 @@ Criada em 2026-11-03. Spec-mãe: #212 (aba do setor RH). Mapa de decisões: #208
 
 Aqui cada ticket já é uma fatia vertical (banco, regra de negócio, tela e testes juntos), então não há par backend e frontend como em outros projetos: o rótulo `frente:` de cada ticket diz o que ele toca. Os dois tickets só de backend (#217 e #220) não têm tela própria. Se uma PR ficar pesada na revisão, separe a migration e a regra de negócio da tela, nessa ordem.
 
-## Etapa 0: Preparação (já feita, aguardando merge)
+## Etapa 0: Preparação (feita)
 
-- [ ] **PR 0: Preparação para o RH** (base de tudo; aberta como #225)
-  - [ ] #225: Responsável numa tabela só, Parcelamento por Setor e esqueleto do dashboard de Setor (sem mudança visível para o SN)
+- [x] **PR 0: Preparação para o RH** (base de tudo; mergeada como #225 em 2026-11-03)
+  - [x] #225: Responsável numa tabela só, Parcelamento por Setor e esqueleto do dashboard de Setor (sem mudança visível para o SN)
 
 ## Etapa 1: Fundação do RH
 
-- [ ] **PR 1.1: Aba RH com busca ampla e Responsável do RH** (depende da PR 0; base de tudo)
+- [ ] **PR 1.1: Aba RH com busca ampla e Responsável do RH** (depende da PR 0, já mergeada; base de tudo)
   - [ ] #213 (ambas): aba `/rh`, busca de qualquer cliente, Responsável do RH atribuído pelo Líder
 
 ## Etapa 2: Acompanhamento mensal
@@ -55,7 +55,7 @@ Aqui cada ticket já é uma fatia vertical (banco, regra de negócio, tela e tes
 
 ## Notas
 
-- A PR 0 entra primeiro, na `develop`. Todas as outras partem dela. A etapa 1 vem em seguida, e depois disso 2, 3 e 4 andam em paralelo, respeitando as dependências por PR acima. As etapas 5 e 6 fecham o RH.
+- A PR 0 já está na `develop` (merge `39e3d466`). Todas as outras partem dela. A etapa 1 vem em seguida, e depois disso 2, 3 e 4 andam em paralelo, respeitando as dependências por PR acima. As etapas 5 e 6 fecham o RH.
 - As dependências entre tickets estão como bloqueios nativos nas issues. Os bloqueios entre PRs foram derivados deles. Confirme antes de abrir cada PR.
 - Só o #213 está desbloqueado hoje. Depois dele liberam o #214, o #216, o #218 e o #219.
 - A PR 6.1 só exige a 4.1, mas vale esperar a 4.3: o PDF mostra a Totalização, e ela só fica completa com as regras da convenção.
