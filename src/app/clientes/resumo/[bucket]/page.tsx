@@ -11,6 +11,8 @@ import { ROTA_SN, SETOR_SN } from "@/shared/kernel/setores";
 
 type Props = { params: Promise<{ bucket: string }> };
 
+// ponytail: esqueleto repetido em app/rh/resumo/[bucket]; extrair um helper por Setor quando houver o 3º
+// Setor com resumo (Contábil).
 export default async function Page({ params }: Props) {
   const { bucket } = await params;
   const sessao = await exigirSessao();

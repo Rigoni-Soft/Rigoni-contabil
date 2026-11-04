@@ -15,6 +15,7 @@ import { carregarResumoSetorRh } from "@/modules/clientes/presentation/view-mode
 import { podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
 import { ROTA_RH, SETOR_RH } from "@/shared/kernel/setores";
 
+// ponytail: montagem repetida de app/simples-nacional/page.tsx; extrair no 3º Setor com resumo.
 export default async function Page() {
   const sessao = await exigirSessao();
 
