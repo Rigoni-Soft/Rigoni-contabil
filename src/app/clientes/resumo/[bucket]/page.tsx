@@ -1,12 +1,14 @@
 import { notFound, redirect } from "next/navigation";
 
-import { ResumoSetorSnLista } from "@/presentation/components/organisms/resumo-setor-sn-lista.component";
-import { ResumoSetorSnListaPage } from "@/presentation/components/pages/resumo-setor-sn-lista.page";
+import { ResumoSetorLista } from "@/presentation/components/organisms/resumo-setor-lista.component";
+import { ResumoSetorListaPage } from "@/presentation/components/pages/resumo-setor-lista.page";
 import { ERRO_CARREGAR_RESUMO_SETOR } from "@/presentation/lib/erro-resumo-setor";
 import { exigirSessao } from "@/presentation/view-models/shell/shell.server";
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import { carregarResumoSetorSn } from "@/modules/clientes/presentation/view-models/resumo-setor-sn/resumo-setor-sn.server";
 import { podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
+
+const ROTA_SN = "/simples-nacional";
 
 type Props = { params: Promise<{ bucket: string }> };
 
@@ -21,9 +23,10 @@ export default async function Page({ params }: Props) {
   const header = <CabecalhoDoShellContainer sessao={sessao} />;
   if (!resumo.ok) {
     return (
-      <ResumoSetorSnListaPage
+      <ResumoSetorListaPage
         header={header}
         titulo="Resumo do setor"
+        voltarHref={ROTA_SN}
         erro={ERRO_CARREGAR_RESUMO_SETOR}
         tentarNovamenteHref={`/clientes/resumo/${encodeURIComponent(bucket)}`}
       />
@@ -34,12 +37,18 @@ export default async function Page({ params }: Props) {
   if (!card) notFound();
 
   return (
-    <ResumoSetorSnListaPage
+    <ResumoSetorListaPage
       header={header}
       titulo={card.titulo}
+      voltarHref={ROTA_SN}
       descricao={card.descricao}
       lista={
-        <ResumoSetorSnLista clientes={card.clientes} bucket={bucket} vazio={card.mensagemVazia} />
+        <ResumoSetorLista
+          clientes={card.clientes}
+          bucket={bucket}
+          vazio={card.mensagemVazia}
+          rotaBase="/clientes/resumo"
+        />
       }
     />
   );

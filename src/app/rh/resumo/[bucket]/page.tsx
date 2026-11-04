@@ -1,13 +1,13 @@
 import { notFound, redirect } from "next/navigation";
 
-import { ResumoSetorSnLista } from "@/presentation/components/organisms/resumo-setor-sn-lista.component";
-import { ResumoSetorSnListaPage } from "@/presentation/components/pages/resumo-setor-sn-lista.page";
+import { ResumoSetorLista } from "@/presentation/components/organisms/resumo-setor-lista.component";
+import { ResumoSetorListaPage } from "@/presentation/components/pages/resumo-setor-lista.page";
 import { ERRO_CARREGAR_RESUMO_SETOR } from "@/presentation/lib/erro-resumo-setor";
 import { exigirSessao } from "@/presentation/view-models/shell/shell.server";
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import { carregarResumoSetorRh } from "@/modules/clientes/presentation/view-models/resumo-setor-rh/resumo-setor-rh.server";
 import { podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
-import { SETOR_RH } from "@/shared/kernel/setores";
+import { ROTA_RH, SETOR_RH } from "@/shared/kernel/setores";
 
 type Props = { params: Promise<{ bucket: string }> };
 
@@ -21,12 +21,12 @@ export default async function Page({ params }: Props) {
   const header = <CabecalhoDoShellContainer sessao={sessao} />;
   if (!resumo.ok) {
     return (
-      <ResumoSetorSnListaPage
+      <ResumoSetorListaPage
         header={header}
         titulo="Resumo do setor"
-        voltarHref="/rh"
+        voltarHref={ROTA_RH}
         erro={ERRO_CARREGAR_RESUMO_SETOR}
-        tentarNovamenteHref={`/rh/resumo/${encodeURIComponent(bucket)}`}
+        tentarNovamenteHref={`${ROTA_RH}/resumo/${encodeURIComponent(bucket)}`}
       />
     );
   }
@@ -35,16 +35,16 @@ export default async function Page({ params }: Props) {
   if (!card) notFound();
 
   return (
-    <ResumoSetorSnListaPage
+    <ResumoSetorListaPage
       header={header}
       titulo={card.titulo}
-      voltarHref="/rh"
+      voltarHref={ROTA_RH}
       lista={
-        <ResumoSetorSnLista
+        <ResumoSetorLista
           clientes={card.clientes}
           bucket={bucket}
           vazio={card.mensagemVazia}
-          rotaBase="/rh/resumo"
+          rotaBase={`${ROTA_RH}/resumo`}
         />
       }
     />

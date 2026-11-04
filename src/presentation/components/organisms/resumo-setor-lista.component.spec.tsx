@@ -1,13 +1,14 @@
 import { render, screen, within } from "@testing-library/react";
 
-import { ResumoSetorSnLista } from "./resumo-setor-sn-lista.component";
+import { ResumoSetorLista } from "./resumo-setor-lista.component";
 
-describe("ResumoSetorSnLista", () => {
+describe("ResumoSetorLista", () => {
   it("lista cada cliente com empresa, cnpj formatado e link pra /clientes/[id] com voltarPara pro próprio bucket", () => {
     render(
-      <ResumoSetorSnLista
+      <ResumoSetorLista
         clientes={[{ clienteId: "c1", empresa: "Padaria Pão Quente Ltda", cnpj: "11444777000161" }]}
         bucket="sem_documento"
+        rotaBase="/clientes/resumo"
       />,
     );
 
@@ -21,7 +22,7 @@ describe("ResumoSetorSnLista", () => {
 
   it("nos cards de parcelamento, mostra por parcelamento o código, a marca interno e o status do mês", () => {
     render(
-      <ResumoSetorSnLista
+      <ResumoSetorLista
         clientes={[
           {
             clienteId: "c1",
@@ -35,6 +36,7 @@ describe("ResumoSetorSnLista", () => {
           },
         ]}
         bucket="parcelamento_pendente"
+        rotaBase="/clientes/resumo"
       />,
     );
 
@@ -50,9 +52,10 @@ describe("ResumoSetorSnLista", () => {
 
   it("sem parcelamentos na lista (cards de DAS), não mostra nada além do cliente", () => {
     render(
-      <ResumoSetorSnLista
+      <ResumoSetorLista
         clientes={[{ clienteId: "c1", empresa: "Padaria Ltda", cnpj: "11444777000161" }]}
         bucket="das_emitidas"
+        rotaBase="/clientes/resumo"
       />,
     );
 
@@ -61,9 +64,10 @@ describe("ResumoSetorSnLista", () => {
 
   it("mostra a mensagem própria do card quando a lista está vazia", () => {
     render(
-      <ResumoSetorSnLista
+      <ResumoSetorLista
         clientes={[]}
         bucket="parcelamento_pendente_atraso"
+        rotaBase="/clientes/resumo"
         vazio="Nenhum cliente em atraso por enquanto."
       />,
     );
@@ -73,7 +77,7 @@ describe("ResumoSetorSnLista", () => {
   });
 
   it("mostra uma mensagem quando o bucket está vazio", () => {
-    render(<ResumoSetorSnLista clientes={[]} bucket="sem_documento" />);
+    render(<ResumoSetorLista clientes={[]} bucket="sem_documento" rotaBase="/clientes/resumo" />);
 
     expect(screen.getByText("Nenhum cliente neste status.")).toBeInTheDocument();
   });

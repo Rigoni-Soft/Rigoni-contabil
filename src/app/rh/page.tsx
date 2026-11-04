@@ -13,7 +13,7 @@ import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-
 import { BuscarClienteContainer } from "@/modules/clientes/presentation/view-models/buscar-cliente/buscar-cliente.container";
 import { carregarResumoSetorRh } from "@/modules/clientes/presentation/view-models/resumo-setor-rh/resumo-setor-rh.server";
 import { podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
-import { SETOR_RH } from "@/shared/kernel/setores";
+import { ROTA_RH, SETOR_RH } from "@/shared/kernel/setores";
 
 export default async function Page() {
   const sessao = await exigirSessao();
@@ -29,14 +29,14 @@ export default async function Page() {
   return (
     <ResumoDoSetorPage
       header={<CabecalhoDoShellContainer sessao={sessao} />}
-      nav={<ShellNavContainer setores={setores} rotaAtual="/rh" />}
+      nav={<ShellNavContainer setores={setores} rotaAtual={ROTA_RH} />}
       erro={resumo.ok ? undefined : ERRO_CARREGAR_RESUMO_SETOR}
       resumo={
         resumo.ok && (
           <ResumoDoSetor
             cards={resumo.value.cards}
             grupos={resumo.value.grupos}
-            hrefBase="/rh/resumo"
+            hrefBase={`${ROTA_RH}/resumo`}
             totalClientes={resumo.value.totalClientes}
             busca={<BuscarClienteContainer papel={sessao.papel} setor={sessao.setor} />}
           />

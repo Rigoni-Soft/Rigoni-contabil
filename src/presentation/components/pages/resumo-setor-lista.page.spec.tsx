@@ -1,11 +1,11 @@
 import { render, screen } from "@testing-library/react";
 
-import { ResumoSetorSnListaPage } from "./resumo-setor-sn-lista.page";
+import { ResumoSetorListaPage } from "./resumo-setor-lista.page";
 
-describe("ResumoSetorSnListaPage", () => {
+describe("ResumoSetorListaPage", () => {
   it("mostra a lista e o link de volta ao resumo do Setor", () => {
     render(
-      <ResumoSetorSnListaPage
+      <ResumoSetorListaPage
         header={<header />}
         titulo="Atribuídos"
         voltarHref="/rh"
@@ -19,7 +19,7 @@ describe("ResumoSetorSnListaPage", () => {
 
   it("sem lista (falha de leitura), mostra o erro e mantém o caminho de volta", () => {
     render(
-      <ResumoSetorSnListaPage
+      <ResumoSetorListaPage
         header={<header />}
         titulo="Resumo do setor"
         voltarHref="/rh"

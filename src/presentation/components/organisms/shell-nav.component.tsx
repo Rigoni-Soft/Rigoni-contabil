@@ -6,7 +6,7 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Select } from "@/presentation/components/ui/select";
 import { cn } from "@/presentation/lib/utils";
 import { ROTA_ATENDIMENTO } from "@/shared/kernel/rotas";
-import { SETOR_LABEL } from "@/shared/kernel/setores";
+import { ROTA_RH, SETOR_LABEL } from "@/shared/kernel/setores";
 
 type SetorNav = { slug: string };
 
@@ -28,7 +28,7 @@ export type ShellNavProps = {
 // placeholder desabilitado até ganharem painel próprio.
 const ROTA_POR_SETOR: Record<string, string> = {
   simples_nacional: "/simples-nacional",
-  rh: "/rh",
+  rh: ROTA_RH,
 };
 
 const CHIP =

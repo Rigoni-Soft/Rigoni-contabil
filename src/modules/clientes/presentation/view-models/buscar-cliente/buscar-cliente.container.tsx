@@ -8,6 +8,7 @@ import { PainelDoCliente } from "@/presentation/components/organisms/painel-do-c
 import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
 import { EditarCadastroOperacionalContainer } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.container";
 import { soLeDadosBasicosDoCliente } from "@/shared/kernel/papeis";
+import { ROTA_RH } from "@/shared/kernel/setores";
 
 import { useBuscarCliente } from "./use-buscar-cliente.hook";
 
@@ -35,7 +36,8 @@ export function BuscarClienteContainer({ papel, setor, apenasSnMei = false }: Pr
   // editam/visualizam no painel embutido.
   const aoSelecionar = (id: string) => {
     if (papel === "admin") router.push(`/clientes/${id}`);
-    else if (soLeDadosBasicosDoCliente(papel, setor)) router.push(`/clientes/${id}?voltarPara=/rh`);
+    else if (soLeDadosBasicosDoCliente(papel, setor))
+      router.push(`/clientes/${id}?voltarPara=${ROTA_RH}`);
     else selecionarCliente(id);
   };
 

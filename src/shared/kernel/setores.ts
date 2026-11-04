@@ -21,6 +21,8 @@ export type SetorSlug = (typeof SETORES)[number];
 
 // Setor RH nomeado: renomear o slug em SETORES quebra a compilação onde as regras o citam.
 export const SETOR_RH = "rh" satisfies SetorSlug;
+// Rota do resumo do Setor RH (a aba "RH" da navegação).
+export const ROTA_RH = "/rh";
 
 // Para valores que chegam como string (sessão, `<select>`) e precisam virar SetorSlug sem cast.
 export const ehSetor = (valor: string): valor is SetorSlug =>

@@ -4,7 +4,7 @@ import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.compone
 import { CabecalhoDeTela } from "@/presentation/components/molecules/cabecalho-de-tela.component";
 import { TelaDeTrabalhoTemplate } from "@/presentation/components/templates/tela-de-trabalho-template.component";
 
-type ResumoSetorSnListaPageProps = {
+type ResumoSetorListaPageProps = {
   header: React.ReactNode;
   titulo: string;
   descricao?: string;
@@ -14,18 +14,18 @@ type ResumoSetorSnListaPageProps = {
   // A própria rota: com o `erro`, a tela oferece recarregá-la.
   tentarNovamenteHref?: string;
   // O resumo do Setor de onde a lista saiu.
-  voltarHref?: string;
+  voltarHref: string;
 };
 
-export function ResumoSetorSnListaPage({
+export function ResumoSetorListaPage({
   header,
   titulo,
   descricao,
   lista,
   erro,
   tentarNovamenteHref,
-  voltarHref = "/simples-nacional",
-}: ResumoSetorSnListaPageProps) {
+  voltarHref,
+}: ResumoSetorListaPageProps) {
   return (
     <TelaDeTrabalhoTemplate
       header={header}

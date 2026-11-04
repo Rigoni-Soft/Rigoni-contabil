@@ -564,7 +564,7 @@ contexto da troca de tela.
 
 ### Resumo do setor (anéis de status, #36)
 
-**`ResumoSetorSn` / `ResumoSetorSnLista` (/simples-nacional):**
+**`ResumoSetorSn` / `ResumoSetorLista` (/simples-nacional):**
 11 cards fixos (invariante do mapper, ordem garantida por teste) divididos em
 dois grupos — "Documentos e DAS" (5) e "Parcelamento" (6) — cada card é um
 `Link` inteiro (não botão + link separados) pra
@@ -621,10 +621,10 @@ conteúdo da página — corrigido na revisão impeccable (era `<h2>` de
 quando ainda vivia embutido em `/` ao lado de outras seções).
 `ShellHeader` não tem heading próprio (mostra nome/papel de
 sessão, não título de página), então cada página de conteúdo é responsável
-pelo próprio `<h1>` — `ResumoSetorSnListaPage` (drill-down de
+pelo próprio `<h1>` — `ResumoSetorListaPage` (drill-down de
 bucket) já seguia essa regra desde a implementação original.
 
-**Lista de drill-down (`ResumoSetorSnLista`):** linhas simples
+**Lista de drill-down (`ResumoSetorLista`):** linhas simples
 (`divide-y` + borda, sem o tratamento de card elevado) — empresa em
 destaque, CNPJ mascarado abaixo em texto secundário, "Ver cadastro →" como
 affordance textual de navegação (não ícone sozinho). Cada linha leva pra
