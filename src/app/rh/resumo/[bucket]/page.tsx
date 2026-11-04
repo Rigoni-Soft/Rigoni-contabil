@@ -26,6 +26,7 @@ export default async function Page({ params }: Props) {
         titulo="Resumo do setor"
         voltarHref="/rh"
         erro={ERRO_CARREGAR_RESUMO_SETOR}
+        tentarNovamenteHref={`/rh/resumo/${encodeURIComponent(bucket)}`}
       />
     );
   }

@@ -24,10 +24,15 @@ describe("ResumoSetorSnListaPage", () => {
         titulo="Resumo do setor"
         voltarHref="/rh"
         erro="Falha ao carregar o resumo do setor. Tente novamente."
+        tentarNovamenteHref="/rh/resumo/atribuidos"
       />,
     );
 
     expect(screen.getByText(/falha ao carregar o resumo do setor/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /voltar ao resumo/i })).toHaveAttribute("href", "/rh");
+    expect(screen.getByRole("link", { name: /tentar novamente/i })).toHaveAttribute(
+      "href",
+      "/rh/resumo/atribuidos",
+    );
   });
 });
