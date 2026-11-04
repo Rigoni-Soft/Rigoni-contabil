@@ -40,6 +40,7 @@ import { AtribuirResponsavelCliente } from "@/modules/clientes/application/use-c
 import { BuscarClientes } from "@/modules/clientes/application/use-cases/buscar-clientes.use-case";
 import { ConfirmarGuiaParcelaPgfn } from "@/modules/clientes/application/use-cases/confirmar-guia-parcela-pgfn.use-case";
 import { ConsultarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/consultar-cadastro-operacional-cliente.use-case";
+import { ConsultarDadosBasicosCliente } from "@/modules/clientes/application/use-cases/consultar-dados-basicos-cliente.use-case";
 import { ConsultarResponsavelDoSetor } from "@/modules/clientes/application/use-cases/consultar-responsavel-do-setor.use-case";
 import { ContarAvisosNaoVistos } from "@/modules/clientes/application/use-cases/contar-avisos-nao-vistos.use-case";
 import { CriarCliente } from "@/modules/clientes/application/use-cases/criar-cliente.use-case";
@@ -52,11 +53,13 @@ import { ListarResponsaveisElegiveis } from "@/modules/clientes/application/use-
 import { MarcarAvisoVisto } from "@/modules/clientes/application/use-cases/marcar-aviso-visto.use-case";
 import { ObterLinkDocumentoContratual } from "@/modules/clientes/application/use-cases/obter-link-documento-contratual.use-case";
 import { ObterLinkGuiaParcelaPgfn } from "@/modules/clientes/application/use-cases/obter-link-guia-parcela-pgfn.use-case";
+import { ObterResumoSetorRh } from "@/modules/clientes/application/use-cases/obter-resumo-setor-rh.use-case";
 import { ObterResumoSetorSn } from "@/modules/clientes/application/use-cases/obter-resumo-setor-sn.use-case";
 import { RemoverGuiaParcelaPgfn } from "@/modules/clientes/application/use-cases/remover-guia-parcela-pgfn.use-case";
 import { SalvarParcelamentosCliente } from "@/modules/clientes/application/use-cases/salvar-parcelamentos-cliente.use-case";
 import { TrocarGuiaParcelaPgfn } from "@/modules/clientes/application/use-cases/trocar-guia-parcela-pgfn.use-case";
 import { SupabaseAvisosCadastroGateway } from "@/modules/clientes/infra/gateways/avisos-cadastro.gateway";
+import { SupabaseCarteiraDoSetorGateway } from "@/modules/clientes/infra/gateways/carteira-do-setor.gateway";
 import { SupabaseClienteQueryGateway } from "@/modules/clientes/infra/gateways/cliente-query.gateway";
 import { SupabaseDocumentosContratuaisClienteGateway } from "@/modules/clientes/infra/gateways/documentos-contratuais-cliente.gateway";
 import { LeitorDeGuiaDeParcelaFalsoGateway } from "@/modules/clientes/infra/gateways/leitor-de-guia-de-parcela-falso.gateway";
@@ -244,6 +247,14 @@ export async function makeConsultarCadastroOperacionalCliente(): Promise<Consult
   );
 }
 
+export async function makeConsultarDadosBasicosCliente(): Promise<ConsultarDadosBasicosCliente> {
+  const supabase = await createSupabaseServer();
+  return new ConsultarDadosBasicosCliente(
+    sessaoViaUsuarios(supabase),
+    new SupabaseClienteQueryGateway(supabase),
+  );
+}
+
 export async function makeBuscarClientes(): Promise<BuscarClientes> {
   const supabase = await createSupabaseServer();
   return new BuscarClientes(sessaoViaUsuarios(supabase), new SupabaseClienteQueryGateway(supabase));
@@ -263,6 +274,14 @@ export async function makeObterResumoSetorSn(): Promise<ObterResumoSetorSn> {
     sessaoViaUsuarios(supabase),
     new SupabaseClienteQueryGateway(supabase),
     new RelogioSistemaGateway(),
+  );
+}
+
+export async function makeObterResumoSetorRh(): Promise<ObterResumoSetorRh> {
+  const supabase = await createSupabaseServer();
+  return new ObterResumoSetorRh(
+    sessaoViaUsuarios(supabase),
+    new SupabaseCarteiraDoSetorGateway(supabase),
   );
 }
 

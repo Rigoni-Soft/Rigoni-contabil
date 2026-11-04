@@ -6,7 +6,7 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Select } from "@/presentation/components/ui/select";
 import { cn } from "@/presentation/lib/utils";
 import { ROTA_ATENDIMENTO } from "@/shared/kernel/rotas";
-import { SETOR_LABEL } from "@/shared/kernel/setores";
+import { ROTA_POR_SETOR, SETOR_LABEL } from "@/shared/kernel/setores";
 
 type SetorNav = { slug: string };
 
@@ -22,12 +22,6 @@ export type ShellNavProps = {
   // Com muitos Setores (o Admin) e este destino, o celular troca os chips por um seletor; sem ele
   // (ou com poucos Setores) os chips seguem em todo tamanho.
   onIrParaSetor?: (rota: string) => void;
-};
-
-// Única aba com tela de verdade por trás — as demais seguem como
-// placeholder desabilitado até ganharem painel próprio.
-const ROTA_POR_SETOR: Record<string, string> = {
-  simples_nacional: "/simples-nacional",
 };
 
 const CHIP =

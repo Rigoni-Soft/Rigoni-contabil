@@ -135,6 +135,7 @@ Valem para todo o projeto. Os detalhes de cada um ficam na `constitution.md`; aq
   - Docs vivos (`arquitetura.md`, `testes.md`, `DESIGN.md`, `CONTEXT.md`, `PRODUCT.md`, `docs/deploy/`) escrevem a regra e o porquê, não o histórico de revisão. `#NN` curto de issue é aceito como ponteiro para a spec; `PR #NN`, "devolutiva" e códigos de achado (B1, R85-01) não.
   - ADRs (`docs/adr/`) e migrations já aplicadas são registro histórico: podem citar a PR e a devolutiva de onde a decisão saiu, e não se reescrevem só por isso.
   - Títulos de `describe`/`it` podem carregar `#NN`; o grep de limpeza ignora strings.
+  - `yarn check:refs` (CI) reprova `#NN` em comentário de código fora de `TODO(#NN)`.
 - **SOLID:** uma responsabilidade por classe; dependa de abstrações (portas), nunca de implementações; extensão por novas implementações de porta, não por `if` em código existente.
 - **DRY, KISS, YAGNI:** sem abstração antes da segunda repetição real; sem camada vazia. Uma feature de leitura trivial não ganha entidade nem builder só para "cumprir o padrão" (ver read models na seção 3.6).
 - **Object Calisthenics** (rigor em `domain` e `application`; na `presentation` valem as regras 1, 2, 5, 6 e 7):
@@ -334,7 +335,7 @@ DTOs são objetos simples (sem classes): a serialização do React Server Compon
 ### 3.8 Erros e `Result`
 
 - `Result<T, E>` (em `shared`) representa falha esperada: validação, não encontrado, conflito, proibido.
-- Hierarquia base em `shared/errors`: `AppError` → `DomainError`, `ValidationError`, `ForbiddenError`, `NotFoundError`, `EstadoInconsistenteError`, `ServicoExternoError` (falha esperada de serviço de terceiros, como o Serpro).
+- Hierarquia base em `shared/errors`: `AppError` → `DomainError`, `ValidationError`, `ForbiddenError`, `NotFoundError`, `EstadoInconsistenteError`, `ServicoExternoError` (falha esperada de serviço de terceiros, como o Serpro), `ConsultaError` (falha ao ler do banco numa consulta, nos gateways de leitura).
 - A Server Action converte `Result`/`AppError` em `ActionResult` serializável; erros nunca atravessam a fronteira como exceção.
 - **Exceção inesperada e falha de transporte ainda rejeitam a Server Action** (bug no caso de uso, corpo acima de `bodySizeLimit`, arquivo que o navegador não lê, rede). A regra acima vale para o que é esperado; o Container que chama a action trata a rejeição com `try/catch/finally` (solta o botão pendente) e **diz a causa em vez de culpar sempre a conexão**: `TypeError` (o `fetch` não saiu) = sem conexão; qualquer outra = erro inesperado, com o erro completo em `console.error`. Exemplo: o `catch` de `criar-cliente.container.tsx`. O que o usuário pode corrigir antes do envio (ex.: soma de arquivos acima de 10 MB) é validado no schema, para nunca chegar ao transporte.
 
@@ -1022,7 +1023,7 @@ console.log(`módulo "${nome}" criado em ${base} + src/main/${nome}.factory.ts`)
 
 ## Anexo D — Checklist de revisão de PR
 
-- [ ] `npx depcruise`, o lint e `npm run check:naming` passam.
+- [ ] `npx depcruise`, o lint, `npm run check:naming` e `npm run check:refs` passam.
 - [ ] Nenhuma entidade sai da `application`; Output DTO é objeto simples.
 - [ ] Toda criação de entidade passa por Builder; nenhum `new` de entidade fora dela.
 - [ ] Caso de uso só depende de portas; adaptadores só são criados em `main`.

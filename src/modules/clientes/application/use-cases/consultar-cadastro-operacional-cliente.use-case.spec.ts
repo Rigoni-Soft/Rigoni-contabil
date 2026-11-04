@@ -25,9 +25,12 @@ const DTO: CadastroOperacionalClienteDto = {
   responsavelNome: null,
 };
 
-const sessaoCom = (autenticado: boolean): SessaoPort => ({
-  usuarioAtual: async () =>
-    autenticado ? { id: "u1", papel: "funcionario", setor: "financeiro" } : null,
+const sessaoCom = (
+  autenticado: boolean,
+  papel = "funcionario",
+  setor = "financeiro",
+): SessaoPort => ({
+  usuarioAtual: async () => (autenticado ? { id: "u1", papel, setor } : null),
 });
 
 class ClienteQueryPortFalso implements ClienteQueryPort {
@@ -46,6 +49,9 @@ class ClienteQueryPortFalso implements ClienteQueryPort {
   }
   async listarResponsaveisElegiveis() {
     return ok([]);
+  }
+  async buscarDadosBasicos() {
+    return ok(null);
   }
   async buscarResponsavelDoSetor() {
     return ok(null);
@@ -90,5 +96,30 @@ describe("ConsultarCadastroOperacionalCliente", () => {
 
     expect(resultado.ok).toBe(false);
     expect(buscar).not.toHaveBeenCalled();
+  });
+
+  it.each(["funcionario", "lider_setor"])(
+    "%s do RH não recebe o cadastro operacional e a consulta nem é feita",
+    async (papel) => {
+      const query = new ClienteQueryPortFalso(DTO);
+      const buscar = jest.spyOn(query, "buscarCadastroOperacional");
+
+      const resultado = await new ConsultarCadastroOperacionalCliente(
+        sessaoCom(true, papel, "rh"),
+        query,
+      ).execute(DTO.id);
+
+      expect(resultado.ok).toBe(false);
+      expect(buscar).not.toHaveBeenCalled();
+    },
+  );
+
+  it("Admin continua recebendo o cadastro operacional", async () => {
+    const resultado = await new ConsultarCadastroOperacionalCliente(
+      sessaoCom(true, "admin", "rh"),
+      new ClienteQueryPortFalso(DTO),
+    ).execute(DTO.id);
+
+    expect(resultado.ok).toBe(true);
   });
 });

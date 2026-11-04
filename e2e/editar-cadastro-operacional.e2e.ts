@@ -38,7 +38,7 @@ async function buscarClienteIdPorCnpj(cnpjDigits: string): Promise<string> {
   return data.id as string;
 }
 
-// Em todo Setor o Funcionário só enxerga os Clientes de que é Responsável (#165): para o Funcionário
+// Em todo Setor o Funcionário só enxerga os Clientes de que é Responsável: para o Funcionário
 // do Financeiro ver o cadastro só para leitura, o e2e o atribui como Responsável no Financeiro.
 async function tornarFinanceiroResponsavel(clienteId: string) {
   const { error } = await adminLocal().from("cliente_responsaveis").insert({
@@ -73,7 +73,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await page.getByLabel("Nome").fill("Maria Contato");
     await page.getByLabel("Telefone").fill("11999998888");
     await page.getByLabel("Documento recebido").selectOption("positivo");
-    // "Enviado" e a data de envio são só do sistema (#108).
+    // "Enviado" e a data de envio são só do sistema.
     await expect(
       page.getByLabel("DAS", { exact: true }).getByRole("option", { name: "Enviado" }),
     ).toHaveCount(0);

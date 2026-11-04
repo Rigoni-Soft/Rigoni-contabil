@@ -3,11 +3,11 @@ import {
   type SituacaoParcelamentosDoCliente,
 } from "@/modules/clientes/application/mappers/parcelamentos-do-cliente.mapper";
 import type {
-  CardResumoSnDto,
+  CardResumoDto,
   CorStatusResumo,
   GrupoResumoDto,
   ParcelamentoBucketDto,
-} from "@/modules/clientes/application/ports/in/obter-resumo-setor-sn.provider";
+} from "@/modules/clientes/application/ports/in/resumo-setor.provider";
 import type { ResumoOperacionalRow } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { jaEmAtraso, primeiroDiaEmAtraso } from "@/shared/kernel/dias-do-job-parcelamento";
 
@@ -156,7 +156,7 @@ const texto = (t: Texto | undefined, agora: Date) => (typeof t === "function" ? 
 export function classificarResumoSetorSn(
   linhas: ResumoOperacionalRow[],
   agora: Date,
-): CardResumoSnDto[] {
+): CardResumoDto[] {
   return BUCKETS.map((bucket) => {
     const clientes = linhas.filter((l) => bucket.pertence(l, agora));
     return {

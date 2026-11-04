@@ -19,6 +19,22 @@ export const SETORES = [
 ] as const;
 export type SetorSlug = (typeof SETORES)[number];
 
+// Setor RH nomeado: renomear o slug em SETORES quebra a compilação onde as regras o citam.
+export const SETOR_RH = "rh" satisfies SetorSlug;
+// Setor Recepção nomeado, como o RH: a espera dela é comum, sem Responsável por Cliente.
+export const SETOR_RECEPCAO = "recepcao" satisfies SetorSlug;
+// Setor Simples Nacional nomeado, como o RH.
+export const SETOR_SN = "simples_nacional" satisfies SetorSlug;
+// Rota do resumo do Setor Simples Nacional.
+export const ROTA_SN = "/simples-nacional";
+// Rota do resumo do Setor RH (a aba "RH" da navegação).
+export const ROTA_RH = "/rh";
+// Setores com tela própria e a rota dela. String solta de propósito: quem consulta recebe o slug cru.
+export const ROTA_POR_SETOR: Record<string, string> = {
+  [SETOR_SN]: ROTA_SN,
+  [SETOR_RH]: ROTA_RH,
+};
+
 // Para valores que chegam como string (sessão, `<select>`) e precisam virar SetorSlug sem cast.
 export const ehSetor = (valor: string): valor is SetorSlug =>
   (SETORES as readonly string[]).includes(valor);

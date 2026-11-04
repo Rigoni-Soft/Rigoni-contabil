@@ -17,7 +17,8 @@ type Cliente = {
 };
 
 // `vazio`: por que a lista está vazia (cada card sabe o seu); sem ele, a mensagem padrão.
-type Props = { clientes: Cliente[]; bucket: string; vazio?: string };
+// `rotaBase`: a lista do Setor, para o "Voltar" da tela do Cliente trazer de volta pra ela.
+type Props = { clientes: Cliente[]; bucket: string; vazio?: string; rotaBase: string };
 
 function Parcelamentos({
   parcelamentos,
@@ -51,7 +52,7 @@ function Parcelamentos({
 
 // Lista filtrada de um bucket do resumo, aberta como tela própria. `voltarPara` manda a própria URL
 // desta lista, pra "Voltar" na tela de edição trazer de volta pra cá, não pro dashboard.
-export function ResumoSetorSnLista({ clientes, bucket, vazio }: Props) {
+export function ResumoSetorLista({ clientes, bucket, vazio, rotaBase }: Props) {
   if (clientes.length === 0) {
     return <Texto variante="apoio">{vazio ?? "Nenhum cliente neste status."}</Texto>;
   }
@@ -67,7 +68,7 @@ export function ResumoSetorSnLista({ clientes, bucket, vazio }: Props) {
           className="[contain-intrinsic-size:auto_72px] [content-visibility:auto]"
         >
           <LinhaDeCliente
-            href={`/clientes/${cliente.clienteId}?voltarPara=/clientes/resumo/${bucket}`}
+            href={`/clientes/${cliente.clienteId}?voltarPara=${encodeURIComponent(`${rotaBase}/${bucket}`)}`}
             empresa={cliente.empresa}
             cnpj={formatarCnpj(cliente.cnpj)}
             detalhes={

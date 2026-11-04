@@ -2,7 +2,7 @@ import { situacaoDosParcelamentos } from "@/modules/clientes/application/mappers
 import type {
   CorStatusResumo,
   FatiaComparativoDto,
-} from "@/modules/clientes/application/ports/in/obter-resumo-setor-sn.provider";
+} from "@/modules/clientes/application/ports/in/resumo-setor.provider";
 import type { ResumoOperacionalRow } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { rotuloResponsavel, SEM_RESPONSAVEL_ID } from "@/shared/kernel/papeis";
 

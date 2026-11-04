@@ -217,6 +217,24 @@ describe("BuscarClienteContainer", () => {
     expect(screen.queryByLabelText(/forma de envio/i)).not.toBeInTheDocument();
   });
 
+  it("o RH, ao escolher um Cliente, vai à tela dele (dados básicos), voltando para o dashboard do RH", async () => {
+    buscarClientesActionMock.mockResolvedValue({
+      ok: true,
+      data: [{ id: CADASTRO.id, empresa: CADASTRO.empresa, cnpj: CADASTRO.cnpj }],
+    });
+    const usuario = userEvent.setup({ delay: null });
+    renderComQueryClient("funcionario", "rh");
+
+    await usuario.type(screen.getByLabelText(/empresa ou cnpj/i), "Pão");
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+    await usuario.click(await screen.findByText(CADASTRO.empresa));
+
+    expect(routerPush).toHaveBeenCalledWith(`/clientes/${CADASTRO.id}?voltarPara=/rh`);
+    expect(carregarCadastroOperacionalActionMock).not.toHaveBeenCalled();
+  });
+
   it("o campo de busca é um combobox acessível ligado à lista de sugestões", async () => {
     buscarClientesActionMock.mockResolvedValue({
       ok: true,

@@ -1,5 +1,5 @@
-import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { Pilha } from "@/presentation/components/atoms/caixa.component";
+import { FalhaDeCarga } from "@/presentation/components/molecules/falha-de-carga.component";
 import { TelaDeTrabalhoTemplate } from "@/presentation/components/templates/tela-de-trabalho-template.component";
 
 type ResumoDoSetorPageProps = {
@@ -9,6 +9,8 @@ type ResumoDoSetorPageProps = {
   resumo?: React.ReactNode;
   comparativos?: React.ReactNode;
   erro?: string;
+  // A própria rota: com o `erro`, a tela oferece recarregá-la.
+  tentarNovamenteHref?: string;
 };
 
 export function ResumoDoSetorPage({
@@ -17,6 +19,7 @@ export function ResumoDoSetorPage({
   resumo,
   comparativos,
   erro,
+  tentarNovamenteHref,
 }: ResumoDoSetorPageProps) {
   return (
     <TelaDeTrabalhoTemplate
@@ -25,7 +28,7 @@ export function ResumoDoSetorPage({
       largura="conteudo"
       conteudo={
         erro ? (
-          <AvisoDeStatus tipo="erro" texto={erro} />
+          <FalhaDeCarga texto={erro} tentarNovamenteHref={tentarNovamenteHref} />
         ) : (
           <Pilha espaco={8}>
             {resumo}

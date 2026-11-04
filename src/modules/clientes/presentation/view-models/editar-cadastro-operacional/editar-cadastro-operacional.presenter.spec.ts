@@ -1,5 +1,6 @@
 import {
   contatoNovo,
+  dadosBasicosParaTela,
   descartarLinhasEmBranco,
   leituraDaLinha,
   parcelamentoNovo,
@@ -109,5 +110,29 @@ describe("linhas abertas de nascença", () => {
     expect(r[2]).toBe(erro);
     expect(r[0]).toBeUndefined();
     expect(reposicionarErros({ message: "lista" }, [2])).toEqual({ message: "lista" });
+  });
+});
+
+describe("dadosBasicosParaTela", () => {
+  it("formata o CNPJ e põe o Regime por extenso", () => {
+    expect(
+      dadosBasicosParaTela({
+        id: "1",
+        empresa: "Padaria Sol Ltda",
+        cnpj: "11444777000161",
+        regime: "lucro_presumido",
+      }),
+    ).toEqual({
+      empresa: "Padaria Sol Ltda",
+      cnpj: "11.444.777/0001-61",
+      regime: "Lucro Presumido",
+    });
+  });
+
+  it("mantém o valor de um Regime sem rótulo", () => {
+    expect(
+      dadosBasicosParaTela({ id: "1", empresa: "X", cnpj: "11444777000161", regime: "outro" })
+        .regime,
+    ).toBe("outro");
   });
 });

@@ -564,7 +564,7 @@ contexto da troca de tela.
 
 ### Resumo do setor (anéis de status, #36)
 
-**`ResumoSetorSn` / `ResumoSetorSnLista` (/simples-nacional):**
+**`ResumoSetorSn` / `ResumoSetorLista` (/simples-nacional):**
 11 cards fixos (invariante do mapper, ordem garantida por teste) divididos em
 dois grupos — "Documentos e DAS" (5) e "Parcelamento" (6) — cada card é um
 `Link` inteiro (não botão + link separados) pra
@@ -621,10 +621,10 @@ conteúdo da página — corrigido na revisão impeccable (era `<h2>` de
 quando ainda vivia embutido em `/` ao lado de outras seções).
 `ShellHeader` não tem heading próprio (mostra nome/papel de
 sessão, não título de página), então cada página de conteúdo é responsável
-pelo próprio `<h1>` — `ResumoSetorSnListaPage` (drill-down de
+pelo próprio `<h1>` — `ResumoSetorListaPage` (drill-down de
 bucket) já seguia essa regra desde a implementação original.
 
-**Lista de drill-down (`ResumoSetorSnLista`):** linhas simples
+**Lista de drill-down (`ResumoSetorLista`):** linhas simples
 (`divide-y` + borda, sem o tratamento de card elevado) — empresa em
 destaque, CNPJ mascarado abaixo em texto secundário, "Ver cadastro →" como
 affordance textual de navegação (não ícone sozinho). Cada linha leva pra
@@ -723,6 +723,29 @@ reenviar repete só a atribuição.
 **Rótulos de Setor/Regime:** slugs do banco nunca aparecem como texto de UI;
 usar `SETOR_LABEL` (`shared/kernel/setores.ts`) e `REGIME_LABEL`.
 `ThemeToggle` mostra o ícone do tema de destino (sol no dark, lua no light).
+
+### Aba RH e dados básicos do Cliente (#213)
+
+**Aba "RH" do `ShellNav`:** um chip como os demais Setores, com a rota vinda de
+`ROTA_POR_SETOR` (`shared/kernel/setores.ts`, o mesmo mapa que decide o destino
+de "/" para quem tem dashboard próprio); Setor sem tela segue desabilitado.
+
+**`ResumoSetorLista` / `ResumoSetorListaPage` atendem SN e RH:** a lista de
+drill-down e a tela são as mesmas; a página do Setor só informa a rota-base
+(`/clientes/resumo` ou `/rh/resumo`) e o destino do "Voltar".
+
+**`ComparativosRh`:** um único gráfico, "Clientes por Responsável", em
+`BarrasDeFatias` (as mesmas barras do 4º comparativo do SN), só para o Líder;
+o Funcionário do RH vê o resumo sem o acompanhamento dos colegas.
+
+**`DadosBasicosDoCliente`:** lista de definição (`dl`: Empresa, CNPJ, Regime)
+com `dt`/`dd`, para o leitor de tela associar rótulo e valor. É o que o RH vê
+em `/clientes/[id]`, com o bloco do Responsável do RH logo abaixo; o título da
+página é "Dados do cliente".
+
+**`FalhaDeCarga`:** aviso de erro lido pelo leitor de tela e o link "Tentar
+novamente" para a própria rota. O `<h1>` da tela de falha diz o que houve
+("Não foi possível carregar o cliente"), não só o nome da tela.
 
 ### Lista de usuários e desativação inline (#58)
 
