@@ -43,7 +43,12 @@ describe("acompanhamento-mensal.presenter", () => {
     });
 
     expect(linha.pendentes).toBe(1);
-    expect(linha.celulas.map((c) => c.editavel)).toEqual([true, true, true, false]);
+    expect(linha.celulas.map((c) => c.bloqueio)).toEqual([
+      undefined,
+      undefined,
+      undefined,
+      "O Holerite é preenchido pelo sistema.",
+    ]);
   });
 
   it("troca o estado da célula na ordem que nunca deixa concluído um serviço que não se aplica", () => {

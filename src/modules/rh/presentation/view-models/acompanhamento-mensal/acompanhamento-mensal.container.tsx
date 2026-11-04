@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { ServicosDoAcompanhamento } from "@/presentation/components/organisms/servicos-do-acompanhamento.component";
@@ -40,6 +40,21 @@ export function AcompanhamentoMensalContainer({
   podeGerirServicos,
 }: Props) {
   const router = useRouter();
+  // A escolha aparece na hora e volta ao valor do servidor se a gravação falhar.
+  const [linhasExibidas, escolher] = useOptimistic(
+    linhas,
+    (atual, t: { clienteId: string; servicoId: string; para: EstadoDaCelula }) =>
+      atual.map((l) =>
+        l.clienteId !== t.clienteId
+          ? l
+          : {
+              ...l,
+              celulas: l.celulas.map((c) =>
+                c.servicoId === t.servicoId ? { ...c, estado: t.para } : c,
+              ),
+            },
+      ),
+  );
   const [pendente, iniciar] = useTransition();
   const [erro, setErro] = useState<{ onde: "tabela" | "servicos"; mensagem: string }>();
   const [desativando, setDesativando] = useState<string>();
@@ -56,7 +71,11 @@ export function AcompanhamentoMensalContainer({
       setErro(undefined);
       try {
         const r = await acao();
-        if (!r.ok) return setErro({ onde, mensagem: r.error.message });
+        if (!r.ok) {
+          setErro({ onde, mensagem: r.error.message });
+          // Uma troca em dois passos pode ter gravado o primeiro: a tela relê o que ficou.
+          return router.refresh();
+        }
         aoDarCerto?.();
         router.refresh();
       } catch {
@@ -87,11 +106,14 @@ export function AcompanhamentoMensalContainer({
         anteriorHref={anteriorHref}
         proximoHref={proximoHref}
         servicos={servicos}
-        linhas={linhas}
+        linhas={linhasExibidas}
         pendente={pendente}
         erro={erro?.onde === "tabela" ? erro.mensagem : undefined}
         onTrocar={(clienteId, servicoId, de, para) =>
-          executar("tabela", () => trocarEstado(clienteId, servicoId, de, para))
+          executar("tabela", () => {
+            escolher({ clienteId, servicoId, para });
+            return trocarEstado(clienteId, servicoId, de, para);
+          })
         }
       />
       {podeGerirServicos && (

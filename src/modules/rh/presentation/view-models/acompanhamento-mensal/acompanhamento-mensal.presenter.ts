@@ -44,7 +44,7 @@ export type LinhaDaTabela = {
   clienteId: string;
   empresa: string;
   cnpj: string;
-  celulas: { servicoId: string; estado: EstadoDaCelula; editavel: boolean }[];
+  celulas: { servicoId: string; estado: EstadoDaCelula; bloqueio?: string }[];
   pendentes: number;
 };
 
@@ -55,7 +55,11 @@ export function linhasDaTabela(dto: AcompanhamentoMensalDto): LinhaDaTabela[] {
     const celulas = l.celulas.map((c) => ({
       servicoId: c.servicoId,
       estado: estadoDaCelula(c),
-      editavel: dto.podeMarcar && !sistema.has(c.servicoId),
+      bloqueio: sistema.has(c.servicoId)
+        ? "O Holerite é preenchido pelo sistema."
+        : dto.podeMarcar
+          ? undefined
+          : "Só o Funcionário Responsável pelo cliente altera.",
     }));
     return {
       clienteId: l.clienteId,

@@ -8,8 +8,8 @@ import {
   LinhaDeTabela,
   Tabela,
 } from "@/presentation/components/atoms/celula-de-tabela.component";
-import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
+import { NavegacaoDeMes } from "@/presentation/components/molecules/navegacao-de-mes.component";
 
 export type FuncionarioDoGrafico = {
   id: string;
@@ -40,27 +40,7 @@ export function AcompanhamentoDosFuncionarios({
   const servicos = funcionarios[0]?.faltam ?? [];
   return (
     <Pilha espaco={6}>
-      <Caixa
-        como="nav"
-        aria-label="Mês do acompanhamento"
-        className="grid grid-cols-[1fr_auto_1fr] items-center gap-2"
-      >
-        <Caixa>
-          <LinkDeAcao href={anteriorHref} variant="ghost">
-            Mês anterior
-          </LinkDeAcao>
-        </Caixa>
-        <Texto como="span" variante="subtitulo" aria-current="date" className="capitalize">
-          {rotuloMes}
-        </Texto>
-        <Caixa className="justify-self-end">
-          {proximoHref && (
-            <LinkDeAcao href={proximoHref} variant="ghost">
-              Próximo mês
-            </LinkDeAcao>
-          )}
-        </Caixa>
-      </Caixa>
+      <NavegacaoDeMes rotuloMes={rotuloMes} anteriorHref={anteriorHref} proximoHref={proximoHref} />
 
       <CartaoDeGrafico titulo="Pontos por funcionário">
         {funcionarios.length === 0 && (
@@ -94,26 +74,30 @@ export function AcompanhamentoDosFuncionarios({
             </Pilha>
           ))}
         </Pilha>
-        <Texto variante="nota">
-          Um ponto por cliente com todos os serviços do mês concluídos, inclusive o Holerite.
-        </Texto>
+        {funcionarios.length > 0 && (
+          <Texto variante="nota">
+            Um ponto por cliente com todos os serviços do mês concluídos, inclusive o Holerite.
+          </Texto>
+        )}
       </CartaoDeGrafico>
 
       {funcionarios.length > 0 && (
         <CartaoDeGrafico titulo="Clientes que faltam por serviço">
           <Tabela
+            legenda={`Clientes que faltam por serviço em ${rotuloMes}`}
+            semMoldura
             colunas={
               <>
-                <CabecalhoDeColuna>Funcionário</CabecalhoDeColuna>
+                <CabecalhoDeColuna fixa>Funcionário</CabecalhoDeColuna>
                 {servicos.map((s) => (
-                  <CabecalhoDeColuna key={s.servicoId}>{s.nome}</CabecalhoDeColuna>
+                  <CabecalhoDeColuna key={s.servicoId} numerica>{s.nome}</CabecalhoDeColuna>
                 ))}
               </>
             }
           >
             {funcionarios.map((f) => (
               <LinhaDeTabela key={f.id}>
-                <CelulaDeTabela>{f.nome}</CelulaDeTabela>
+                <CelulaDeTabela fixa>{f.nome}</CelulaDeTabela>
                 {f.faltam.map((c) => (
                   <CelulaDeTabela key={c.servicoId} numerica>
                     {c.clientes}
