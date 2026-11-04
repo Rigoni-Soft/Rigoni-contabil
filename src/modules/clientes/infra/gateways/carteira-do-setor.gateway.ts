@@ -27,6 +27,8 @@ const linhasSchema = z.array(
       .nullable(),
   }),
 );
+// Teto de páginas por leitura: com TAMANHO_DA_PAGINA = 500 cobre 50 mil Clientes por Setor.
+const MAX_PAGINAS = 100;
 type ClienteComResponsavelRow = z.infer<typeof linhasSchema>[number];
 
 // View `clientes_basico`: o Setor lê os dados básicos da carteira; o vínculo do Responsável vem pela
@@ -43,7 +45,11 @@ export class SupabaseCarteiraDoSetorGateway implements CarteiraDoSetorQueryPort 
     // omitir uma linha. Paginar por keyset (empresa, id) se a carteira passar a mudar em lote.
     const linhas: ClienteComResponsavelRow[] = [];
     let primeiroDaAnterior: string | undefined;
-    for (let de = 0; ; de = linhas.length) {
+    for (let paginas = 0; ; paginas += 1) {
+      if (paginas >= MAX_PAGINAS) {
+        return err(new ConsultaError("Erro ao listar a carteira: carteira grande demais."));
+      }
+      const de = linhas.length;
       const { data, error } = await this.supabase
         .from("clientes_basico")
         .select(
