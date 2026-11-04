@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { DadosBasicosDoCliente } from "@/presentation/components/molecules/dados-basicos-do-cliente.component";
-import { FalhaDeCarga } from "@/presentation/components/organisms/falha-de-carga.component";
+import { FalhaDeCarga } from "@/presentation/components/molecules/falha-de-carga.component";
 import { EditarCadastroOperacionalPage } from "@/presentation/components/pages/editar-cadastro-operacional.page";
 import { carregarSessao, validarSessao } from "@/presentation/view-models/shell/shell.server";
 import { AnexarAlteracaoContratualContainer } from "@/modules/clientes/presentation/view-models/anexar-alteracao-contratual/anexar-alteracao-contratual.container";
@@ -79,7 +79,7 @@ export default async function Page({ params, searchParams }: Props) {
         voltarHref={hrefSeguro(voltarPara)}
         formulario={
           <FalhaDeCarga
-            texto="Não foi possível carregar o cliente. Tente novamente."
+            texto="Houve um erro ao ler os dados. Tente novamente."
             tentarNovamenteHref={`/clientes/${encodeURIComponent(id)}${
               voltarPara ? `?voltarPara=${encodeURIComponent(voltarPara)}` : ""
             }`}
