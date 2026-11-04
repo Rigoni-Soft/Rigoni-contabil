@@ -15,8 +15,13 @@ type ServicosDoAcompanhamentoProps = {
   onNomeEdicao: (nome: string) => void;
   onSalvarEdicao: () => void;
   onCancelarEdicao: () => void;
+  // Desativar pede um segundo clique: tira a coluna do mês atual em diante.
   onDesativar: (servicoId: string) => void;
+  desativando?: string;
+  onConfirmarDesativar: (servicoId: string) => void;
+  onCancelarDesativar: () => void;
   pendente: boolean;
+  erro?: string;
 };
 
 // Lista dos serviços do mês, mantida pelo Líder do RH. O serviço do sistema (Holerite) não se edita.
@@ -30,8 +35,12 @@ export function ServicosDoAcompanhamento({
   onNomeEdicao,
   onSalvarEdicao,
   onCancelarEdicao,
+  desativando,
   onDesativar,
+  onConfirmarDesativar,
+  onCancelarDesativar,
   pendente,
+  erro,
 }: ServicosDoAcompanhamentoProps) {
   return (
     <Pilha espaco={3}>
@@ -70,7 +79,7 @@ export function ServicosDoAcompanhamento({
                   onChange={(e) => onNomeEdicao(e.target.value)}
                 />
                 <Button type="submit" size="sm" disabled={pendente || edicao.nome.trim() === ""}>
-                  Salvar
+                  {pendente ? "Salvando…" : "Salvar"}
                 </Button>
                 <Button type="button" variant="ghost" size="sm" onClick={onCancelarEdicao}>
                   Cancelar
@@ -94,16 +103,34 @@ export function ServicosDoAcompanhamento({
                 >
                   Renomear
                 </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={pendente}
-                  aria-label={`Desativar ${s.nome}`}
-                  onClick={() => onDesativar(s.id)}
-                >
-                  Desativar
-                </Button>
+                {desativando === s.id ? (
+                  <>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      disabled={pendente}
+                      aria-label={`Confirmar desativação de ${s.nome}`}
+                      onClick={() => onConfirmarDesativar(s.id)}
+                    >
+                      Confirmar
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={onCancelarDesativar}>
+                      Cancelar
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={pendente}
+                    aria-label={`Desativar ${s.nome}`}
+                    onClick={() => onDesativar(s.id)}
+                  >
+                    Desativar
+                  </Button>
+                )}
               </Linha>
             )}
           </Linha>
@@ -131,6 +158,11 @@ export function ServicosDoAcompanhamento({
           Cadastrar serviço
         </Button>
       </Linha>
+      {erro && (
+        <Texto variante="alerta" role="alert">
+          {erro}
+        </Texto>
+      )}
     </Pilha>
   );
 }

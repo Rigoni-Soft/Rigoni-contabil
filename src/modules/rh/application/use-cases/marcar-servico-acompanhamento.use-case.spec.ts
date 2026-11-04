@@ -98,10 +98,15 @@ describe("DefinirServicoAplicavel", () => {
     expect(gravacoes).toEqual([["aplica", "c1", "s-fgts", false]]);
   });
 
-  it("recusa quem não é o Responsável", async () => {
-    const { aplicar, gravacoes } = montar(FUNC_RH, "outro");
+  it("recusa quem não é o Responsável e audita a ação tentada", async () => {
+    const { aplicar, gravacoes, falhas } = montar(FUNC_RH, "outro");
     const r = await aplicar.execute({ clienteId: "c1", servicoId: "s-fgts", aplica: false });
+    await aplicar.execute({ clienteId: "c1", servicoId: "s-fgts", aplica: true });
     expect(!r.ok && r.error.code).toBe("FORBIDDEN");
     expect(gravacoes).toEqual([]);
+    expect(falhas.map((f) => f.acao)).toEqual([
+      "rh.acompanhamento.nao-aplicar",
+      "rh.acompanhamento.aplicar",
+    ]);
   });
 });

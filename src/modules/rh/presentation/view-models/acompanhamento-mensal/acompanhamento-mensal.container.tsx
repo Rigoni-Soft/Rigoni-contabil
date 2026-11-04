@@ -40,21 +40,26 @@ export function AcompanhamentoMensalContainer({
 }: Props) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
-  const [erro, setErro] = useState<string>();
+  const [erro, setErro] = useState<{ onde: "tabela" | "servicos"; mensagem: string }>();
+  const [desativando, setDesativando] = useState<string>();
   const [novoNome, setNovoNome] = useState("");
   const [edicao, setEdicao] = useState<{ id: string; nome: string }>();
 
   // Toda escrita compartilha o ciclo: erro do servidor, recarga da tabela e retorno de sucesso.
-  const executar = (acao: () => Promise<ActionResult<void>>, aoDarCerto?: () => void) =>
+  const executar = (
+    onde: "tabela" | "servicos",
+    acao: () => Promise<ActionResult<void>>,
+    aoDarCerto?: () => void,
+  ) =>
     iniciar(async () => {
       setErro(undefined);
       try {
         const r = await acao();
-        if (!r.ok) return setErro(r.error.message);
+        if (!r.ok) return setErro({ onde, mensagem: r.error.message });
         aoDarCerto?.();
         router.refresh();
       } catch {
-        setErro("Falha inesperada. Tente novamente.");
+        setErro({ onde, mensagem: "Falha inesperada. Tente novamente." });
       }
     });
 
@@ -68,12 +73,12 @@ export function AcompanhamentoMensalContainer({
         linhas={linhas}
         podeAlterar={podeMarcar}
         pendente={pendente}
-        erro={erro}
+        erro={erro?.onde === "tabela" ? erro.mensagem : undefined}
         onMarcar={(clienteId, servicoId, concluido) =>
-          executar(() => marcarServicoAction({ clienteId, servicoId, competencia, concluido }))
+          executar("tabela", () => marcarServicoAction({ clienteId, servicoId, competencia, concluido }))
         }
         onAplicar={(clienteId, servicoId, aplica) =>
-          executar(() => definirServicoAplicavelAction({ clienteId, servicoId, aplica }))
+          executar("tabela", () => definirServicoAplicavelAction({ clienteId, servicoId, aplica }))
         }
       />
       {podeGerirServicos && (
@@ -84,6 +89,7 @@ export function AcompanhamentoMensalContainer({
           pendente={pendente}
           onCriar={() =>
             executar(
+              "servicos",
               () => criarServicoAction({ nome: novoNome }),
               () => setNovoNome(""),
             )
@@ -95,11 +101,22 @@ export function AcompanhamentoMensalContainer({
           onSalvarEdicao={() =>
             edicao &&
             executar(
+              "servicos",
               () => renomearServicoAction({ servicoId: edicao.id, nome: edicao.nome }),
               () => setEdicao(undefined),
             )
           }
-          onDesativar={(servicoId) => executar(() => desativarServicoAction({ servicoId }))}
+          erro={erro?.onde === "servicos" ? erro.mensagem : undefined}
+          desativando={desativando}
+          onDesativar={setDesativando}
+          onCancelarDesativar={() => setDesativando(undefined)}
+          onConfirmarDesativar={(servicoId) =>
+            executar(
+              "servicos",
+              () => desativarServicoAction({ servicoId }),
+              () => setDesativando(undefined),
+            )
+          }
         />
       )}
     </>

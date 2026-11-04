@@ -28,7 +28,10 @@ abstract class EscreverAcompanhamento {
   ) {}
 
   // Devolve o ator quando ele pode escrever neste Cliente.
-  protected async autorizar(clienteId: string): Promise<Result<AtorSessaoDto, AppError>> {
+  protected async autorizar(
+    clienteId: string,
+    acao: string = this.acao,
+  ): Promise<Result<AtorSessaoDto, AppError>> {
     const ator = await this.sessao.usuarioAtual();
     if (!ator) return err(new ForbiddenError("Sessão inválida. Entre novamente."));
 
@@ -39,7 +42,7 @@ abstract class EscreverAcompanhamento {
       await this.auditoria.registrar({
         ator: ator.id,
         setor: ator.setor,
-        acao: this.acao,
+        acao,
         alvo: cliente.value?.cnpj ?? clienteId,
         resultado: "falha",
       });
@@ -100,7 +103,10 @@ export class DefinirServicoAplicavel
   }
 
   async execute(input: DefinirServicoAplicavelInput): Promise<Result<void, AppError>> {
-    const ator = await this.autorizar(input.clienteId);
+    const ator = await this.autorizar(
+      input.clienteId,
+      input.aplica ? "rh.acompanhamento.aplicar" : "rh.acompanhamento.nao-aplicar",
+    );
     if (!ator.ok) return ator;
     return this.repositorio.definirAplica(input.clienteId, input.servicoId, input.aplica);
   }

@@ -1,4 +1,4 @@
--- Acompanhamento mensal do RH (#214): serviços do setor (lista mantida pelo Líder), "se aplica" por Cliente e
+-- Acompanhamento mensal do RH: serviços do setor (lista mantida pelo Líder), "se aplica" por Cliente e
 -- Serviço, e marcação de concluído por Cliente, Serviço e competência. Todo mês nasce pendente (a ausência de
 -- linha é pendente). Só o Responsável do RH do Cliente marca; o Líder do RH e o Admin leem. Cada escrita é
 -- auditada na mesma transação (gatilho), como o Responsável.

@@ -11,7 +11,7 @@ const NOVO_SERVICO = `E2E ${`${Date.now()}`.slice(-5)}`;
 let clienteId = "";
 let cnpj = "";
 
-test.describe("Acompanhamento mensal do RH (#214)", () => {
+test.describe("Acompanhamento mensal do RH", () => {
   test.beforeAll(async () => {
     clienteId = crypto.randomUUID();
     cnpj = cnpjUnico();
