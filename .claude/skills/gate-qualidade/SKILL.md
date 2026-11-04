@@ -30,6 +30,8 @@ Argumento: `$ARGUMENTS` = base do diff. Sem base: `gh pr view --json baseRefName
 
 **4. `retro`** — retrospectiva do processo e dos guardrails (lint, checks, docs, skills). Apresente os candidatos; aplique os que o usuário aprovar, registre e rode de novo. Saída: nenhuma pendência estrutural nova.
 
+**5. Checks do CI** — `yarn tsc --noEmit`, `yarn check:naming`, `yarn check:refs`, `yarn check:deps` e `yarn check:guard-senha` (os mesmos do `ci.yml`). Falhou: corrija, registre no ledger e rode de novo; commit só se mudou arquivo.
+
 ## Fim
 
 Reporte: nota final do audit, rodadas por etapa, commits gerados (hash e mensagem), decisões que o usuário tomou, o que parou no teto. **Nunca `git push`** sem ordem explícita (um hook também pede confirmação). Próximo passo: se o grupo tem UI, `/roteiro-teste-local` (teste manual, antes de subir a PR); depois é do usuário: push e PR.
