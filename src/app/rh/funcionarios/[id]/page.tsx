@@ -30,26 +30,28 @@ export default async function Page({ params, searchParams }: Props) {
   ]);
   if (dados.ok && !dados.value.detalhe) notFound();
   const detalhe = dados.ok ? dados.value.detalhe : undefined;
+  const competencia = dados.ok ? dados.value.competencia : undefined;
+  const query = competencia ? `?mes=${competencia}` : "";
+  const rotaDoFuncionario = `${ROTA}/${encodeURIComponent(id)}`;
 
   return (
     <AcompanhamentoMensalPage
       header={<CabecalhoDoShellContainer sessao={sessao} />}
       nav={<ShellNavContainer setores={setores} rotaAtual={ROTA_RH} />}
       titulo="Acompanhamento do funcionário"
-      voltarHref={mes ? `${ROTA}?mes=${mes}` : ROTA}
+      voltarHref={`${ROTA}${query}`}
       erro={dados.ok ? undefined : dados.error.message}
-      tentarNovamenteHref={`${ROTA}/${id}`}
+      tentarNovamenteHref={`${rotaDoFuncionario}${query}`}
       conteudo={
-        detalhe && (
+        detalhe &&
+        competencia && (
           <DetalheDoFuncionarioRh
             nome={detalhe.funcionario.nome}
+            rotuloMes={rotuloDaCompetencia(competencia)}
             pontos={detalhe.funcionario.pontos}
             atribuidos={detalhe.funcionario.atribuidos}
             percentual={percentual(detalhe.funcionario.pontos, detalhe.funcionario.atribuidos)}
-            pendencias={detalhe.pendencias.map((p) => ({
-              ...p,
-              clientes: p.clientes.map((c) => c.empresa),
-            }))}
+            pendencias={detalhe.pendencias}
             evolucao={detalhe.evolucao.map((m) => ({
               competencia: m.competencia,
               rotulo: rotuloDaCompetencia(m.competencia),

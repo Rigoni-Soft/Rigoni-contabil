@@ -51,7 +51,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ m
               ...f,
               href: `${ROTA}/${f.id}?mes=${dados.value.competencia}`,
             }))}
-            semResponsavel={dados.value.semResponsavel.map((c) => c.empresa)}
+            semResponsavel={dados.value.semResponsavel}
           />
         )
       }

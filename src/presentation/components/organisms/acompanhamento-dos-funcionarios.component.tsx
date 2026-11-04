@@ -25,7 +25,7 @@ type Props = {
   anteriorHref: string;
   proximoHref?: string;
   funcionarios: FuncionarioDoGrafico[];
-  semResponsavel: string[];
+  semResponsavel: { clienteId: string; empresa: string }[];
 };
 
 // Pontos x clientes atribuídos por Funcionário e, logo abaixo, quantos clientes faltam em cada serviço.
@@ -39,30 +39,48 @@ export function AcompanhamentoDosFuncionarios({
   const servicos = funcionarios[0]?.faltam ?? [];
   return (
     <Pilha espaco={6}>
-      <Linha espaco={2}>
-        <LinkDeAcao href={anteriorHref} variant="ghost">
-          Mês anterior
-        </LinkDeAcao>
-        <Texto como="span" variante="subtitulo" className="mx-auto capitalize">
+      <Caixa
+        como="nav"
+        aria-label="Mês do acompanhamento"
+        className="grid grid-cols-[1fr_auto_1fr] items-center gap-2"
+      >
+        <Caixa>
+          <LinkDeAcao href={anteriorHref} variant="ghost">
+            Mês anterior
+          </LinkDeAcao>
+        </Caixa>
+        <Texto como="span" variante="subtitulo" aria-current="date" className="capitalize">
           {rotuloMes}
         </Texto>
-        {proximoHref && (
-          <LinkDeAcao href={proximoHref} variant="ghost">
-            Próximo mês
-          </LinkDeAcao>
-        )}
-      </Linha>
+        <Caixa className="justify-self-end">
+          {proximoHref && (
+            <LinkDeAcao href={proximoHref} variant="ghost">
+              Próximo mês
+            </LinkDeAcao>
+          )}
+        </Caixa>
+      </Caixa>
 
       <CartaoDeGrafico titulo="Pontos por funcionário">
-        {funcionarios.length === 0 && <Texto variante="apoio">Nenhum cliente atribuído ainda.</Texto>}
+        {funcionarios.length === 0 && (
+          <Texto variante="apoio">Nenhum cliente atribuído ainda.</Texto>
+        )}
         <Pilha espaco={3} como="ul">
           {funcionarios.map((f) => (
             <Pilha espaco={1} como="li" key={f.id}>
               <Linha espaco={2}>
-                <Link href={f.href} className="truncate underline-offset-2 hover:underline">
+                <Link
+                  href={f.href}
+                  title={f.nome}
+                  className="block min-w-0 truncate rounded-sm py-0.5 underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:py-3"
+                >
                   {f.nome}
                 </Link>
-                <Texto como="span" variante="corpo" className="ml-auto shrink-0 font-semibold tabular-nums">
+                <Texto
+                  como="span"
+                  variante="corpo"
+                  className="ml-auto shrink-0 font-semibold tabular-nums"
+                >
                   {f.pontos} de {f.atribuidos}
                 </Texto>
               </Linha>
@@ -81,40 +99,38 @@ export function AcompanhamentoDosFuncionarios({
       </CartaoDeGrafico>
 
       {funcionarios.length > 0 && (
-        <Tabela
-          colunas={
-            <>
-              <CabecalhoDeColuna>Funcionário</CabecalhoDeColuna>
-              {servicos.map((s) => (
-                <CabecalhoDeColuna key={s.servicoId}>{s.nome}</CabecalhoDeColuna>
-              ))}
-            </>
-          }
-        >
-          {funcionarios.map((f) => (
-            <LinhaDeTabela key={f.id}>
-              <CelulaDeTabela>
-                <Link href={f.href} className="underline-offset-2 hover:underline">
-                  {f.nome}
-                </Link>
-              </CelulaDeTabela>
-              {f.faltam.map((c) => (
-                <CelulaDeTabela key={c.servicoId} numerica>
-                  {c.clientes}
-                </CelulaDeTabela>
-              ))}
-            </LinhaDeTabela>
-          ))}
-        </Tabela>
+        <CartaoDeGrafico titulo="Clientes que faltam por serviço">
+          <Tabela
+            colunas={
+              <>
+                <CabecalhoDeColuna>Funcionário</CabecalhoDeColuna>
+                {servicos.map((s) => (
+                  <CabecalhoDeColuna key={s.servicoId}>{s.nome}</CabecalhoDeColuna>
+                ))}
+              </>
+            }
+          >
+            {funcionarios.map((f) => (
+              <LinhaDeTabela key={f.id}>
+                <CelulaDeTabela>{f.nome}</CelulaDeTabela>
+                {f.faltam.map((c) => (
+                  <CelulaDeTabela key={c.servicoId} numerica>
+                    {c.clientes}
+                  </CelulaDeTabela>
+                ))}
+              </LinhaDeTabela>
+            ))}
+          </Tabela>
+        </CartaoDeGrafico>
       )}
 
       {semResponsavel.length > 0 && (
         <CartaoDeGrafico titulo="Sem responsável">
           <Texto variante="apoio">Estes clientes não contam para nenhum funcionário.</Texto>
           <Pilha espaco={1} como="ul">
-            {semResponsavel.map((empresa) => (
-              <Caixa como="li" key={empresa}>
-                {empresa}
+            {semResponsavel.map((c) => (
+              <Caixa como="li" key={c.clienteId}>
+                {c.empresa}
               </Caixa>
             ))}
           </Pilha>

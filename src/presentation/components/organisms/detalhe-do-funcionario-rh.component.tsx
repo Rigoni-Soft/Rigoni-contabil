@@ -4,10 +4,15 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 
 type Props = {
   nome: string;
+  rotuloMes: string;
   pontos: number;
   atribuidos: number;
   percentual: number;
-  pendencias: { servicoId: string; nome: string; clientes: string[] }[];
+  pendencias: {
+    servicoId: string;
+    nome: string;
+    clientes: { clienteId: string; empresa: string }[];
+  }[];
   evolucao: { competencia: string; rotulo: string; percentual: number }[];
   maisAtrasados: { clienteId: string; empresa: string; meses: number }[];
 };
@@ -15,6 +20,7 @@ type Props = {
 // O que falta fechar de um Funcionário no mês: clientes por serviço pendente, evolução e os mais atrasados.
 export function DetalheDoFuncionarioRh({
   nome,
+  rotuloMes,
   pontos,
   atribuidos,
   percentual,
@@ -25,7 +31,7 @@ export function DetalheDoFuncionarioRh({
   return (
     <Pilha espaco={6}>
       <Texto variante="subtitulo" como="h2">
-        {nome}: {percentual}% do mês ({pontos} de {atribuidos})
+        {nome}: {percentual}% em {rotuloMes} ({pontos} de {atribuidos})
       </Texto>
 
       <CartaoDeGrafico titulo="Pendente por serviço">
@@ -36,9 +42,9 @@ export function DetalheDoFuncionarioRh({
               {p.nome} ({p.clientes.length})
             </Texto>
             <Pilha espaco={1} como="ul">
-              {p.clientes.map((empresa) => (
-                <Caixa como="li" key={empresa}>
-                  {empresa}
+              {p.clientes.map((c) => (
+                <Caixa como="li" key={c.clienteId}>
+                  {c.empresa}
                 </Caixa>
               ))}
             </Pilha>
@@ -47,6 +53,9 @@ export function DetalheDoFuncionarioRh({
       </CartaoDeGrafico>
 
       <CartaoDeGrafico titulo="Evolução">
+        {evolucao.length === 0 && (
+          <Texto variante="apoio">Sem meses anteriores para comparar.</Texto>
+        )}
         <Pilha espaco={1} como="ul">
           {evolucao.map((m) => (
             <Linha como="li" justificar="entre" key={m.competencia} className="tabular-nums">
