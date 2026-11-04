@@ -13,13 +13,14 @@ import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-
 import { BuscarClienteContainer } from "@/modules/clientes/presentation/view-models/buscar-cliente/buscar-cliente.container";
 import { carregarResumoSetorSn } from "@/modules/clientes/presentation/view-models/resumo-setor-sn/resumo-setor-sn.server";
 import { podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
+import { ROTA_SN, SETOR_SN } from "@/shared/kernel/setores";
 
 export default async function Page() {
   const sessao = await exigirSessao();
 
   // Admin vê (acesso de suporte a qualquer setor, mesmo raciocínio de
   // podeEditarCadastroOperacional); qualquer outro setor fora do SN não.
-  if (!podeVerDashboardDoSetor(sessao.papel, sessao.setor, "simples_nacional")) redirect("/");
+  if (!podeVerDashboardDoSetor(sessao.papel, sessao.setor, SETOR_SN)) redirect("/");
 
   const [setores, resumo] = await Promise.all([
     carregarSetoresDaNavegacao(),
@@ -29,7 +30,7 @@ export default async function Page() {
   return (
     <ResumoDoSetorPage
       header={<CabecalhoDoShellContainer sessao={sessao} />}
-      nav={<ShellNavContainer setores={setores} rotaAtual="/simples-nacional" />}
+      nav={<ShellNavContainer setores={setores} rotaAtual={ROTA_SN} />}
       erro={resumo.ok ? undefined : ERRO_CARREGAR_RESUMO_SETOR}
       resumo={
         resumo.ok && (
