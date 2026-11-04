@@ -12,7 +12,6 @@ type ServicosDoAcompanhamentoProps = {
   onRenomear: (servicoId: string, nomeAtual: string) => void;
   onDesativar: (servicoId: string) => void;
   pendente: boolean;
-  erro?: string;
 };
 
 // Lista dos serviços do mês, mantida pelo Líder do RH. O serviço do sistema (Holerite) não se edita.
@@ -24,7 +23,6 @@ export function ServicosDoAcompanhamento({
   onRenomear,
   onDesativar,
   pendente,
-  erro,
 }: ServicosDoAcompanhamentoProps) {
   return (
     <Pilha espaco={3}>
@@ -98,11 +96,6 @@ export function ServicosDoAcompanhamento({
           Cadastrar serviço
         </Button>
       </Linha>
-      {erro && (
-        <Texto variante="alerta" role="alert">
-          {erro}
-        </Texto>
-      )}
     </Pilha>
   );
 }

@@ -78,7 +78,6 @@ export function AcompanhamentoMensalContainer({
           novoNome={novoNome}
           onNovoNome={setNovoNome}
           pendente={pendente}
-          erro={erro}
           onCriar={() =>
             executar(
               () => criarServicoAction({ nome: novoNome }),
