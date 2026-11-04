@@ -80,7 +80,9 @@ export default async function Page({ params, searchParams }: Props) {
         formulario={
           <FalhaDeCarga
             texto="Não foi possível carregar o cliente. Tente novamente."
-            tentarNovamenteHref={`/clientes/${encodeURIComponent(id)}`}
+            tentarNovamenteHref={`/clientes/${encodeURIComponent(id)}${
+              voltarPara ? `?voltarPara=${encodeURIComponent(voltarPara)}` : ""
+            }`}
           />
         }
       />
