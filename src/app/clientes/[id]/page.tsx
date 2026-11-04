@@ -6,7 +6,10 @@ import { carregarSessao, validarSessao } from "@/presentation/view-models/shell/
 import { AnexarAlteracaoContratualContainer } from "@/modules/clientes/presentation/view-models/anexar-alteracao-contratual/anexar-alteracao-contratual.container";
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import { EditarCadastroOperacionalContainer } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.container";
-import { carregarCadastroOperacionalCliente } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.server";
+import {
+  carregarCadastroOperacionalCliente,
+  carregarDadosBasicosCliente,
+} from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.server";
 import { ResponsavelDoSetorContainer } from "@/modules/clientes/presentation/view-models/responsavel-do-setor/responsavel-do-setor.container";
 import { ondeAtribuirResponsavel } from "@/modules/clientes/presentation/view-models/responsavel-do-setor/responsavel-do-setor.presenter";
 import { carregarResponsavelDoSetor } from "@/modules/clientes/presentation/view-models/responsavel-do-setor/responsavel-do-setor.server";
@@ -35,16 +38,16 @@ function tituloDaPagina(soDadosBasicos: boolean, readOnly: boolean) {
 export default async function Page({ params, searchParams }: Props) {
   const { id } = await params;
   const { voltarPara, alteracao } = await searchParams;
-  // O cadastro roda junto com a sessão; os documentos esperam a sessão para saber se o papel os vê.
-  const cadastro = carregarCadastroOperacionalCliente(id);
   const sessao = validarSessao(await carregarSessao());
-  // O RH só mostra os dados básicos (regra de apresentação: a RLS não a impõe): não busca os documentos.
+  // O RH só lê os dados básicos: nem o cadastro operacional nem os documentos chegam ao servidor da página.
   const soDadosBasicos = soLeDadosBasicosDoCliente(sessao.papel, sessao.setor);
-  const [resultado, documentos] = await Promise.all([
-    cadastro,
+  const [basicos, resultado, documentos] = await Promise.all([
+    soDadosBasicos ? carregarDadosBasicosCliente(id) : null,
+    soDadosBasicos ? null : carregarCadastroOperacionalCliente(id),
     soDadosBasicos ? null : carregarDocumentosContratuais(id),
   ]);
-  if (!resultado.ok || !resultado.value) redirect("/");
+  const carregado = basicos ?? resultado;
+  if (!carregado?.ok || !carregado.value) redirect("/");
 
   // Só Admin ou Funcionário do setor Simples Nacional edita — qualquer outro
   // perfil autenticado só visualiza.
@@ -79,13 +82,13 @@ export default async function Page({ params, searchParams }: Props) {
         ) : undefined
       }
       formulario={
-        soDadosBasicos ? (
+        basicos?.ok && basicos.value ? (
           <DadosBasicosDoCliente
-            empresa={resultado.value.empresa}
-            cnpj={resultado.value.cnpj}
-            regime={REGIME_LABEL[resultado.value.regime] ?? resultado.value.regime}
+            empresa={basicos.value.empresa}
+            cnpj={basicos.value.cnpj}
+            regime={REGIME_LABEL[basicos.value.regime] ?? basicos.value.regime}
           />
-        ) : (
+        ) : resultado?.ok && resultado.value ? (
           <EditarCadastroOperacionalContainer
             dados={resultado.value}
             readOnly={readOnly}
@@ -99,7 +102,7 @@ export default async function Page({ params, searchParams }: Props) {
             }
             aoSalvar={{ tipo: "voltar", href: hrefSeguro(voltarPara) }}
           />
-        )
+        ) : undefined
       }
     />
   );

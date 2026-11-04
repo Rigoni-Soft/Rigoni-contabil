@@ -40,6 +40,7 @@ import { AtribuirResponsavelCliente } from "@/modules/clientes/application/use-c
 import { BuscarClientes } from "@/modules/clientes/application/use-cases/buscar-clientes.use-case";
 import { ConfirmarGuiaParcelaPgfn } from "@/modules/clientes/application/use-cases/confirmar-guia-parcela-pgfn.use-case";
 import { ConsultarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/consultar-cadastro-operacional-cliente.use-case";
+import { ConsultarDadosBasicosCliente } from "@/modules/clientes/application/use-cases/consultar-dados-basicos-cliente.use-case";
 import { ConsultarResponsavelDoSetor } from "@/modules/clientes/application/use-cases/consultar-responsavel-do-setor.use-case";
 import { ContarAvisosNaoVistos } from "@/modules/clientes/application/use-cases/contar-avisos-nao-vistos.use-case";
 import { CriarCliente } from "@/modules/clientes/application/use-cases/criar-cliente.use-case";
@@ -241,6 +242,14 @@ export async function makeConsultarResponsavelDoSetor(): Promise<ConsultarRespon
 export async function makeConsultarCadastroOperacionalCliente(): Promise<ConsultarCadastroOperacionalCliente> {
   const supabase = await createSupabaseServer();
   return new ConsultarCadastroOperacionalCliente(
+    sessaoViaUsuarios(supabase),
+    new SupabaseClienteQueryGateway(supabase),
+  );
+}
+
+export async function makeConsultarDadosBasicosCliente(): Promise<ConsultarDadosBasicosCliente> {
+  const supabase = await createSupabaseServer();
+  return new ConsultarDadosBasicosCliente(
     sessaoViaUsuarios(supabase),
     new SupabaseClienteQueryGateway(supabase),
   );

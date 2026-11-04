@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   CadastroOperacionalClienteDto,
   ClienteQueryPort,
+  DadosBasicosClienteDto,
   ResponsavelOpcaoDto,
   ResumoOperacionalRow,
   SugestaoClienteDto,
@@ -144,6 +145,18 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
       },
       ...responsavelDe(row.cliente_responsaveis),
     });
+  }
+
+  async buscarDadosBasicos(
+    clienteId: string,
+  ): Promise<Result<DadosBasicosClienteDto | null, AppError>> {
+    const { data, error } = await this.supabase
+      .from("clientes_basico")
+      .select("id, empresa, cnpj, regime")
+      .eq("id", clienteId)
+      .maybeSingle();
+    if (error) return err(new ConsultaError(`Erro ao buscar dados básicos: ${error.message}`));
+    return ok((data as DadosBasicosClienteDto | null) ?? null);
   }
 
   async listarResponsaveisElegiveis(
