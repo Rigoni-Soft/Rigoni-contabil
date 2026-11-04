@@ -32,6 +32,7 @@ export default async function Page() {
       header={<CabecalhoDoShellContainer sessao={sessao} />}
       nav={<ShellNavContainer setores={setores} rotaAtual={ROTA_RH} />}
       erro={resumo.ok ? undefined : ERRO_CARREGAR_RESUMO_SETOR}
+      tentarNovamenteHref={ROTA_RH}
       resumo={
         resumo.ok && (
           <ResumoDoSetor

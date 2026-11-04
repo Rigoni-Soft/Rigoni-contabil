@@ -1,5 +1,5 @@
 import { CabecalhoDeTela } from "@/presentation/components/molecules/cabecalho-de-tela.component";
-import { FalhaDeCarga } from "@/presentation/components/organisms/falha-de-carga.component";
+import { FalhaDeCarga } from "@/presentation/components/molecules/falha-de-carga.component";
 import { TelaDeTrabalhoTemplate } from "@/presentation/components/templates/tela-de-trabalho-template.component";
 
 type ResumoSetorListaPageProps = {
