@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
 import { ComparativosRh } from "@/presentation/components/organisms/comparativos-rh.component";
 import { ResumoDoSetor } from "@/presentation/components/organisms/resumo-do-setor.component";
 import { ResumoDoSetorPage } from "@/presentation/components/pages/resumo-do-setor.page";
@@ -44,6 +45,7 @@ export default async function Page() {
           />
         )
       }
+      acoes={<LinkDeAcao href={`${ROTA_RH}/acompanhamento`}>Acompanhamento mensal</LinkDeAcao>}
       comparativos={
         resumo.ok &&
         resumo.value.comparativos && (

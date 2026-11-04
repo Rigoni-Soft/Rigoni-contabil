@@ -16,8 +16,8 @@ Aqui cada ticket já é uma fatia vertical (banco, regra de negócio, tela e tes
 
 ## Etapa 2: Acompanhamento mensal
 
-- [ ] **PR 2.1: Acompanhamento mensal dos clientes** (depende da PR 1.1; base da etapa)
-  - [ ] #214 (ambas): serviços editáveis, "se aplica", marcação por competência, auditoria
+- [x] **PR 2.1: Acompanhamento mensal dos clientes** (depende da PR 1.1; base da etapa)
+  - [x] #214 (ambas): serviços editáveis, "se aplica", marcação por competência, auditoria
 - [ ] **PR 2.2: Acompanhamento dos funcionários, Líder e Admin** (depende da PR 2.1)
   - [ ] #215 (ambas): pontos, lista por funcionário e serviço, detalhe do funcionário
 

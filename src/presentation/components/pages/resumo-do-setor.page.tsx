@@ -8,6 +8,8 @@ type ResumoDoSetorPageProps = {
   // Resumo e comparativos já montados; sem eles (falha de leitura) a tela mostra o `erro`.
   resumo?: React.ReactNode;
   comparativos?: React.ReactNode;
+  // Atalhos do Setor (ex.: Acompanhamento mensal do RH), acima do resumo.
+  acoes?: React.ReactNode;
   erro?: string;
   // A própria rota: com o `erro`, a tela oferece recarregá-la.
   tentarNovamenteHref?: string;
@@ -18,6 +20,7 @@ export function ResumoDoSetorPage({
   nav,
   resumo,
   comparativos,
+  acoes,
   erro,
   tentarNovamenteHref,
 }: ResumoDoSetorPageProps) {
@@ -31,6 +34,7 @@ export function ResumoDoSetorPage({
           <FalhaDeCarga texto={erro} tentarNovamenteHref={tentarNovamenteHref} />
         ) : (
           <Pilha espaco={8}>
+            {acoes}
             {resumo}
             {comparativos}
           </Pilha>
