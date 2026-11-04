@@ -14,8 +14,8 @@ const DTO: DadosBasicosClienteDto = {
   regime: "lucro_presumido",
 };
 
-const sessaoCom = (autenticado: boolean): SessaoPort => ({
-  usuarioAtual: async () => (autenticado ? { id: "u1", papel: "lider", setor: "rh" } : null),
+const sessaoCom = (autenticado: boolean, papel = "lider_setor", setor = "rh"): SessaoPort => ({
+  usuarioAtual: async () => (autenticado ? { id: "u1", papel, setor } : null),
 });
 
 const queryCom = (dto: DadosBasicosClienteDto | null) =>
@@ -28,6 +28,18 @@ describe("ConsultarDadosBasicosCliente", () => {
     );
 
     expect(r.ok && r.value).toEqual(DTO);
+  });
+
+  it.each([
+    ["admin", "rh"],
+    ["lider_setor", "simples_nacional"],
+  ])("recusa quem vê o cadastro completo (%s de %s)", async (papel, setor) => {
+    const r = await new ConsultarDadosBasicosCliente(
+      sessaoCom(true, papel, setor),
+      queryCom(DTO),
+    ).execute(DTO.id);
+
+    expect(r.ok).toBe(false);
   });
 
   it("recusa quem não está autenticado", async () => {
