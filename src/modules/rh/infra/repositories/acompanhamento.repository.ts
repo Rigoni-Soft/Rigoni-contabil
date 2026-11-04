@@ -118,19 +118,17 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
         clientes
           .filter((c) => incluirSemResponsavel || responsavelDe.has(c.id))
           .sort((a, b) => a.empresa.localeCompare(b.empresa, "pt-BR"))
-          .map((c) => ({
-            clienteId: c.id,
-            empresa: c.empresa,
-            cnpj: c.cnpj,
-            naoAplica: naoAplicaDe.get(c.id) ?? [],
-            concluidos: concluidosDe.get(c.id) ?? [],
-            responsavel: responsavelDe.has(c.id)
-              ? {
-                  id: responsavelDe.get(c.id)!.responsavel_id,
-                  nome: responsavelDe.get(c.id)!.responsavel?.nome ?? "Sem nome",
-                }
-              : null,
-          })),
+          .map((c) => {
+            const r = responsavelDe.get(c.id);
+            return {
+              clienteId: c.id,
+              empresa: c.empresa,
+              cnpj: c.cnpj,
+              naoAplica: naoAplicaDe.get(c.id) ?? [],
+              concluidos: concluidosDe.get(c.id) ?? [],
+              responsavel: r ? { id: r.responsavel_id, nome: r.responsavel?.nome ?? "Sem nome" } : null,
+            };
+          }),
       );
     } catch (e) {
       this.erros.registrar("Falha ao ler o acompanhamento do RH:", (e as Error).message);
