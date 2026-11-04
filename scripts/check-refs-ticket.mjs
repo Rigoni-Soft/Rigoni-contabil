@@ -3,8 +3,10 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const RAIZES = process.argv.length > 2 ? process.argv.slice(2) : ["src", "e2e", "test-support"];
-const CODIGO = /\.(ts|tsx|mjs)$/;
+const RAIZES = process.argv.length > 2 ? process.argv.slice(2) : ["src", "e2e", "test-support", "supabase/migrations"];
+const CODIGO = /\.(ts|tsx|mjs|sql)$/;
+// SQL comenta com `--`.
+const COMENTARIO_SQL = /^\s*--.*#\d+\b|\s--\s.*#\d+\b/;
 // Linha de comentário, comentário no fim da linha, bloco na linha. O `\b` deixa passar cor hex (#1a2b3c).
 const COMENTARIO_COM_TICKET = /^\s*(\/\/|\/\*|\*|\{\/\*).*#\d+\b|\s\/\/\s.*#\d+\b|\/\*[^*].*#\d+\b/;
 
@@ -25,7 +27,8 @@ function leia(caminho) {
   readFileSync(caminho, "utf8")
     .split("\n")
     .forEach((linha, i) => {
-      if (COMENTARIO_COM_TICKET.test(linha) && !/TODO\(#\d+\)/.test(linha)) {
+      const regra = caminho.endsWith(".sql") ? COMENTARIO_SQL : COMENTARIO_COM_TICKET;
+      if (regra.test(linha) && !/TODO\(#\d+\)/.test(linha)) {
         erros.push(
           `${caminho}:${i + 1}: comentário com referência a ticket (use TODO(#NN) ou tire o #NN)`,
         );

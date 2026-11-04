@@ -351,6 +351,7 @@ export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: ErrorD
 - Toda linha lida é validada por Zod e convertida em entidade pelo mapper (que chama `Builder.restaurar`).
 - **Exceções registradas (#50):** `SupabaseSessaoAtendimentoGateway.obter()` devolve o resultado do parse Zod direto, sem mapper (a sessão é um tipo simples já no formato do domínio, não uma entidade); `SupabaseIdentificacaoContatoGateway.cnpjCadastrado()` lê só a existência de uma linha, sem Row DTO. `application/dtos/sessao-identificacao.dto.ts` exporta `ETAPAS_IDENTIFICACAO` e `invalidosDe()` (valor e função, ao contrário do que um DTO costuma ter) para o use case, o gateway e o Row DTO compartilharem a lista de etapas e a leitura do contador; o módulo não tem outra pasta para isso. Não repetir para entidades.
 - Erros do Postgres/Supabase são traduzidos para `AppError` dentro do adapter.
+- **`UPDATE`/`DELETE` filtrado pela RLS não dá erro: afeta 0 linhas e o supabase-js devolve sucesso.** O repositório de escrita pede as linhas de volta (`.select("id")`) e trata 0 como recusa (`ForbiddenError`); o teste de integração cobre o ator sem permissão.
 - Tipos do banco vêm de `supabase gen types`.
 - **Toda comunicação com o Supabase passa pela `infra`**, com uma única exceção: a autenticação no navegador (abaixo).
 - Storage e sessão são portas OUT (`ArquivoStoragePort`, `SessaoPort`), como qualquer outra dependência.

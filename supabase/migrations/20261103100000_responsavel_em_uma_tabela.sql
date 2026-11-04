@@ -127,7 +127,7 @@ begin
   join public.clientes c on c.id = r.cliente_id;
   perform set_config('rigoni.removendo_responsavel_por_desativacao', 'off', true);
 
-  -- A marca vale só nesta transação: quem protege o dono do Atendimento (aviso de inatividade, #73)
+  -- A marca vale só nesta transação: quem protege o dono do Atendimento (aviso de inatividade)
   -- distingue a devolução da Transferência por ela.
   perform set_config('rigoni.devolucao_por_desativacao', 'on', true);
   with devolvidos as (

@@ -97,6 +97,8 @@ Há **duas execuções**, com objetivos diferentes:
 
 Todo `*.e2e.ts` entra na suíte da regressão completa e ali permanece.
 
+**Login nos e2e.** Depois de `login()`, espere `await expect(page).toHaveURL(...)` antes do próximo `goto`: sem isso a sessão ainda não gravou o cookie e a navegação cai em `/login`. Evite deslogar e logar outro papel no mesmo teste (a segunda hidratação do formulário é frágil); um papel por teste, com o estado de partida semeado pelo banco.
+
 ## 5. Ambientes e gitflow
 
 Branches: `main`, `homolog`, `develop` e `feature/*`.
