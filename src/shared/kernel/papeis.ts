@@ -90,3 +90,17 @@ export function podeVerComparativoDoSetor(papel: string, setor: string): boolean
 export function podeAnexarAlteracaoContratual(papel: string): boolean {
   return papel === "admin";
 }
+
+// Acompanhamento mensal do RH (#214): o Admin e o RH inteiro leem; só o Funcionário do RH marca (e só os
+// Clientes pelos quais é Responsável, por RLS); só o Líder do RH mantém a lista de serviços.
+export function podeVerAcompanhamentoRh(papel: string, setor: string): boolean {
+  return papel === "admin" || setor === SETOR_RH;
+}
+
+export function podeMarcarAcompanhamentoRh(papel: string, setor: string): boolean {
+  return papel === "funcionario" && setor === SETOR_RH;
+}
+
+export function podeGerirServicosRh(papel: string, setor: string): boolean {
+  return papel === "lider_setor" && setor === SETOR_RH;
+}
