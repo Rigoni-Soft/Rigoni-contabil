@@ -8,7 +8,7 @@ import {
 import { ShellNavContainer } from "@/modules/atendimento/presentation/view-models/atendimento-central/shell-nav.container";
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import { BuscarClienteContainer } from "@/modules/clientes/presentation/view-models/buscar-cliente/buscar-cliente.container";
-import { ROTA_RH, ROTA_SN, SETOR_RH, SETOR_SN } from "@/shared/kernel/setores";
+import { ROTA_POR_SETOR } from "@/shared/kernel/setores";
 
 // "/" é a home genérica — só pra quem não tem um dashboard de setor próprio ainda. O dashboard de
 // cada setor é a página principal de quem é DAQUELE setor: Funcionário/Líder do Simples Nacional
@@ -16,8 +16,8 @@ import { ROTA_RH, ROTA_SN, SETOR_RH, SETOR_SN } from "@/shared/kernel/setores";
 // em "/" com a busca geral, sem restrição de Regime, e alcança qualquer setor pela aba do ShellNav.
 export default async function Home() {
   const sessao = await exigirSessao();
-  if (sessao.setor === SETOR_SN) redirect(ROTA_SN);
-  if (sessao.setor === SETOR_RH) redirect(ROTA_RH);
+  const rotaDoSetor = ROTA_POR_SETOR[sessao.setor];
+  if (rotaDoSetor) redirect(rotaDoSetor);
 
   const setores = await carregarSetoresDaNavegacao();
 
