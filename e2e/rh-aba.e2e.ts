@@ -126,6 +126,13 @@ test.describe("Aba RH: busca ampla e Responsável do RH (#213)", () => {
     });
   }
 
+  test("Líder de outro Setor não abre /rh", async ({ page }) => {
+    await login(page, "lider.contabil@rigonicontabil.local", "lider123");
+    await expect(page).toHaveURL("/");
+    await page.goto("/rh");
+    await expect(page).toHaveURL("/");
+  });
+
   test("Funcionário de outro Setor não abre /rh", async ({ page }) => {
     await login(page, "funcionario.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
