@@ -48,10 +48,8 @@ function porResponsavel(linhas: ClienteDaCarteiraRow[]): FatiaComparativoDto[] {
   );
 }
 
-// O resumo é do Setor RH: Admin entra para suporte, Líder e Funcionário só do RH. O Funcionário vê
-// apenas os Clientes de que é Responsável; o Líder e o Admin, a carteira inteira, com os sem
-// atribuição (o comparativo por Responsável é só do Líder). O acesso é validado antes de consultar
-// (arquitetura.md §3.12), com a RLS como segunda camada.
+// Resumo do Setor RH: Admin (suporte), Líder e Funcionário do RH. O Funcionário vê só os Clientes de
+// que é Responsável; Líder e Admin, a carteira inteira (o comparativo é só do Líder).
 export class ObterResumoSetorRh {
   constructor(
     private readonly sessao: SessaoPort,
