@@ -27,14 +27,18 @@ const linhasSchema = z.array(
       .nullable(),
   }),
 );
-// Teto de páginas por leitura: com TAMANHO_DA_PAGINA = 500 cobre 50 mil Clientes por Setor.
+// Teto de páginas com dados por leitura: com TAMANHO_DA_PAGINA = 500 cobre 50 mil Clientes por Setor.
 const MAX_PAGINAS = 100;
 type ClienteComResponsavelRow = z.infer<typeof linhasSchema>[number];
 
 // View `clientes_basico`: o Setor lê os dados básicos da carteira; o vínculo do Responsável vem pela
 // RLS de `cliente_responsaveis` (o Funcionário enxerga só o próprio, o Líder e o Admin todos).
 export class SupabaseCarteiraDoSetorGateway implements CarteiraDoSetorQueryPort {
-  constructor(private readonly supabase: SupabaseClient) {}
+  constructor(
+    private readonly supabase: SupabaseClient,
+    // Só o teste de integração baixa o teto (o real exigiria 50 mil Clientes).
+    private readonly maxPaginas = MAX_PAGINAS,
+  ) {}
 
   async listar(setor: SetorSlug): Promise<Result<ClienteDaCarteiraRow[], AppError>> {
     // O PostgREST corta cada resposta em `max_rows`: lê a carteira em páginas até vir uma vazia,
@@ -46,7 +50,8 @@ export class SupabaseCarteiraDoSetorGateway implements CarteiraDoSetorQueryPort 
     const linhas: ClienteComResponsavelRow[] = [];
     let primeiroDaAnterior: string | undefined;
     for (let paginas = 0; ; paginas += 1) {
-      if (paginas >= MAX_PAGINAS) {
+      // Lê até uma página além do teto: a vazia que prova o fim de uma carteira que cabe nele.
+      if (paginas > this.maxPaginas) {
         return err(new ConsultaError("Erro ao listar a carteira: carteira grande demais."));
       }
       const de = linhas.length;

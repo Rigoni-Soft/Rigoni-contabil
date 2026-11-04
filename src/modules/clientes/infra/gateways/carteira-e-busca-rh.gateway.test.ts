@@ -307,6 +307,22 @@ describe("RH: busca por atribuição e Responsável do RH (integração)", () =>
     expect(r.ok).toBe(false);
   });
 
+  it("a carteira falha em vez de ler sem limite quando passa do teto de páginas", async () => {
+    const lider = await comoLiderRH();
+
+    const r = await new SupabaseCarteiraDoSetorGateway(lider, 0).listar("rh");
+
+    expect(r.ok).toBe(false);
+  });
+
+  it("a carteira que cabe exatamente no teto de páginas é lida inteira", async () => {
+    const lider = await comoLiderRH();
+
+    const r = await new SupabaseCarteiraDoSetorGateway(lider, 1).listar("rh");
+
+    expect(r.ok).toBe(true);
+  });
+
   it("o Funcionário do RH atribuído lê o seu vínculo e não o do colega", async () => {
     const lider = await comoLiderRH();
     const atribuido = await lider.from("cliente_responsaveis").insert({
