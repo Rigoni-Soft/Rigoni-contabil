@@ -17,11 +17,9 @@ export function NavegacaoDeMes({ rotuloMes, anteriorHref, proximoHref }: Navegac
       aria-label="Mês do acompanhamento"
       className="grid grid-cols-[1fr_auto_1fr] items-center gap-2"
     >
-      <Caixa>
-        <LinkDeAcao href={anteriorHref} variant="ghost">
-          Mês anterior
-        </LinkDeAcao>
-      </Caixa>
+      <LinkDeAcao href={anteriorHref} variant="ghost" className="justify-self-start">
+        Mês anterior
+      </LinkDeAcao>
       <Texto como="span" variante="subtitulo" aria-current="date" className="capitalize">
         {rotuloMes}
       </Texto>
