@@ -120,6 +120,21 @@ describe("RH: busca por atribuição e Responsável do RH (integração)", () =>
     expect(clientes.data).toEqual([]);
   });
 
+  it("os dados básicos vêm só com empresa, CNPJ e Regime, de qualquer Regime, para o Líder do RH", async () => {
+    const gateway = new SupabaseClienteQueryGateway(await comoLiderRH());
+
+    const sn = await gateway.buscarDadosBasicos(clienteSnId);
+    const presumido = await gateway.buscarDadosBasicos(clientePresumidoId);
+
+    expect(sn.ok && sn.value).toEqual({
+      id: clienteSnId,
+      empresa: "RH Busca SN Ltda",
+      cnpj: CNPJ_SN,
+      regime: "simples_nacional",
+    });
+    expect(presumido.ok && presumido.value?.regime).toBe("lucro_presumido");
+  });
+
   it("o Líder do RH atribui, troca e remove o Responsável do RH, com auditoria, sem tocar no do SN", async () => {
     const lider = await comoLiderRH();
     const linha = (responsavelId: string) => ({
@@ -185,6 +200,7 @@ describe("RH: busca por atribuição e Responsável do RH (integração)", () =>
     expect(gravadas.data).toEqual([]);
   });
 
+  // O RH nunca edita o cadastro do SN (#213): o teste negativo é o contrato, não há edição positiva.
   it("o RH não edita o que é do SN, nem como Responsável do RH do Cliente", async () => {
     await servico.from("cliente_responsaveis").upsert({
       cliente_id: clienteSnId,
