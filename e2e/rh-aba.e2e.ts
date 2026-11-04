@@ -112,6 +112,20 @@ test.describe("Aba RH: busca ampla e Responsável do RH (#213)", () => {
     await expect(page.getByRole("heading", { name: "Dados do cliente" })).toHaveCount(0);
   });
 
+  for (const [perfil, email, senha] of [
+    ["Admin", "admin@rigonicontabil.local", "admin123"],
+    ["Líder do RH", "lider.rh@rigonicontabil.local", "lider123"],
+    ["Funcionário do RH", "funcionario.rh@rigonicontabil.local", "func123"],
+  ]) {
+    test(`${perfil} abre /rh`, async ({ page }) => {
+      await login(page, email, senha);
+      await expect(page).not.toHaveURL(/\/login$/);
+      await page.goto("/rh");
+      await expect(page).toHaveURL("/rh");
+      await expect(page.getByLabel(/empresa ou cnpj/i)).toBeVisible();
+    });
+  }
+
   test("Funcionário de outro Setor não abre /rh", async ({ page }) => {
     await login(page, "funcionario.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
