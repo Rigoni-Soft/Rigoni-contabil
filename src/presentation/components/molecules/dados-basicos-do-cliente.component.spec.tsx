@@ -3,11 +3,11 @@ import { render, screen } from "@testing-library/react";
 import { DadosBasicosDoCliente } from "./dados-basicos-do-cliente.component";
 
 describe("DadosBasicosDoCliente", () => {
-  it("mostra empresa, CNPJ formatado e regime como lista de definição", () => {
+  it("mostra empresa, CNPJ e regime como lista de definição", () => {
     render(
       <DadosBasicosDoCliente
         empresa="Padaria Sol Ltda"
-        cnpj="11444777000161"
+        cnpj="11.444.777/0001-61"
         regime="Lucro Presumido"
       />,
     );

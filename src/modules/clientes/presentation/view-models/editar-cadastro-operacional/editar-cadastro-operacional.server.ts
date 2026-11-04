@@ -4,6 +4,9 @@ import {
   makeConsultarCadastroOperacionalCliente,
   makeConsultarDadosBasicosCliente,
 } from "@/main/clientes.factory";
+import { ok } from "@/shared/kernel/result";
+
+import { dadosBasicosParaTela } from "./editar-cadastro-operacional.presenter";
 
 // Sem tipo de retorno explícito (mesmo padrão de feed.server.ts): nomear o Result/DTO
 // do módulo aqui violaria "presentation não importa domain/infra". O shape flui por inferência.
@@ -14,5 +17,6 @@ export async function carregarCadastroOperacionalCliente(clienteId: string) {
 
 export async function carregarDadosBasicosCliente(clienteId: string) {
   const consultar = await makeConsultarDadosBasicosCliente();
-  return consultar.execute(clienteId);
+  const lidos = await consultar.execute(clienteId);
+  return lidos.ok ? ok(lidos.value && dadosBasicosParaTela(lidos.value)) : lidos;
 }
