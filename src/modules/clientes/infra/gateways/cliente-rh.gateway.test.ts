@@ -200,7 +200,7 @@ describe("RH: busca por atribuição e Responsável do RH (integração)", () =>
     expect(gravadas.data).toEqual([]);
   });
 
-  // O RH nunca edita o cadastro do SN: o teste negativo é o contrato, não há edição positiva.
+  // Isolamento entre cadastros operacionais de Setores diferentes: o do RH, quando existir, terá o próprio teste de edição.
   it("o RH não edita o que é do SN, nem como Responsável do RH do Cliente", async () => {
     await servico.from("cliente_responsaveis").upsert({
       cliente_id: clienteSnId,
