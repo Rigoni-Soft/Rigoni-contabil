@@ -3,14 +3,10 @@ import type {
   ClienteDaCarteiraRow,
 } from "@/modules/clientes/application/ports/out/carteira-do-setor.provider";
 import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
-import { AppError } from "@/shared/errors/app.error";
+import { ConsultaError } from "@/shared/errors/consulta.error";
 import { err, ok } from "@/shared/kernel/result";
 
 import { ObterResumoSetorRh } from "./obter-resumo-setor-rh.use-case";
-
-class FalhaDeConsulta extends AppError {
-  readonly code = "CONSULTA_ERROR";
-}
 
 const linha = (n: number, responsavelId: string | null, nome: string | null) => ({
   clienteId: `c${n}`,
@@ -91,7 +87,7 @@ describe("ObterResumoSetorRh", () => {
   });
 
   it("devolve o erro da consulta", async () => {
-    const falha = new FalhaDeConsulta("falhou");
+    const falha = new ConsultaError("falhou");
     const r = await new ObterResumoSetorRh(sessaoDe("lider_setor", "rh"), {
       listar: async () => err(falha),
     }).execute();

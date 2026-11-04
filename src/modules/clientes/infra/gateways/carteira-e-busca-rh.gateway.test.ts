@@ -73,6 +73,15 @@ afterAll(async () => {
   await removerClientesDeTeste([CNPJ_SN, CNPJ_PRESUMIDO]);
 });
 
+// Cada teste parte sem Responsável do RH: nenhum depende do vínculo deixado por outro.
+afterEach(async () => {
+  await servico
+    .from("cliente_responsaveis")
+    .delete()
+    .in("cliente_id", [clienteSnId, clientePresumidoId])
+    .eq("setor", "rh");
+});
+
 describe("RH: busca por atribuição e Responsável do RH (integração)", () => {
   it("o Líder do RH e o Admin acham Cliente de todo Regime, sem ser Responsável", async () => {
     for (const entrarComo of [comoLiderRH, comoAdmin]) {
@@ -201,28 +210,30 @@ describe("RH: busca por atribuição e Responsável do RH (integração)", () =>
   });
 
   // Isolamento entre cadastros operacionais de Setores diferentes: o do RH, quando existir, terá o próprio teste de edição.
-  it("o RH não edita o que é do SN, nem como Responsável do RH do Cliente", async () => {
+  it("o RH não edita o que é do SN: nem o Funcionário Responsável do RH do Cliente, nem o Líder", async () => {
     await servico.from("cliente_responsaveis").upsert({
       cliente_id: clienteSnId,
       setor: "rh",
       responsavel_id: FUNCIONARIO_RH_ID,
     });
-    const rh = await comoFuncionarioRH();
 
-    const contato = await rh.from("cliente_contatos").insert({
-      cliente_id: clienteSnId,
-      nome: "Intruso",
-      telefone: "5545999990000",
-      padrao: true,
-    });
-    const cadastro = await rh
-      .from("cliente_cadastro_operacional_sn")
-      .update({ observacoes_gerais: "alterado pelo RH" })
-      .eq("cliente_id", clienteSnId)
-      .select();
+    for (const entrarComo of [comoFuncionarioRH, comoLiderRH]) {
+      const rh = await entrarComo();
+      const contato = await rh.from("cliente_contatos").insert({
+        cliente_id: clienteSnId,
+        nome: "Intruso",
+        telefone: "5545999990000",
+        padrao: true,
+      });
+      const cadastro = await rh
+        .from("cliente_cadastro_operacional_sn")
+        .update({ observacoes_gerais: "alterado pelo RH" })
+        .eq("cliente_id", clienteSnId)
+        .select();
 
-    expect(contato.error).not.toBeNull();
-    expect(cadastro.data ?? []).toEqual([]);
+      expect(contato.error).not.toBeNull();
+      expect(cadastro.data ?? []).toEqual([]);
+    }
     const gravados = await servico
       .from("cliente_contatos")
       .select("id")
@@ -235,7 +246,7 @@ describe("RH: busca por atribuição e Responsável do RH (integração)", () =>
       .eq("setor", "rh");
   });
 
-  it("a carteira do RH:o Líder lê todos os Clientes com o Responsável; o Funcionário, só o vínculo dele", async () => {
+  it("a carteira do RH: o Líder lê todos os Clientes com o Responsável; o Funcionário, só o vínculo dele", async () => {
     await servico.from("cliente_responsaveis").upsert({
       cliente_id: clientePresumidoId,
       setor: "rh",
@@ -298,11 +309,12 @@ describe("RH: busca por atribuição e Responsável do RH (integração)", () =>
 
   it("o Funcionário do RH atribuído lê o seu vínculo e não o do colega", async () => {
     const lider = await comoLiderRH();
-    await lider.from("cliente_responsaveis").insert({
+    const atribuido = await lider.from("cliente_responsaveis").insert({
       cliente_id: clientePresumidoId,
       setor: "rh",
       responsavel_id: FUNCIONARIO_RH_ID,
     });
+    expect(atribuido.error).toBeNull();
 
     const proprio = await (
       await comoFuncionarioRH()
