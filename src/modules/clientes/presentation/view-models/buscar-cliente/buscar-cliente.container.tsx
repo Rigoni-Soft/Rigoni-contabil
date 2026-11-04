@@ -35,10 +35,10 @@ export function BuscarClienteContainer({ papel, setor, apenasSnMei = false }: Pr
   // o RH também (dados básicos e Responsável do RH, sem o cadastro do SN); os demais papéis
   // editam/visualizam no painel embutido.
   const aoSelecionar = (id: string) => {
-    if (papel === "admin") router.push(`/clientes/${id}`);
-    else if (soLeDadosBasicosDoCliente(papel, setor))
-      router.push(`/clientes/${id}?voltarPara=${ROTA_RH}`);
-    else selecionarCliente(id);
+    if (papel === "admin") return router.push(`/clientes/${id}`);
+    if (soLeDadosBasicosDoCliente(papel, setor))
+      return router.push(`/clientes/${id}?voltarPara=${ROTA_RH}`);
+    selecionarCliente(id);
   };
 
   // Destaque de teclado (ArrowUp/ArrowDown/Enter) na lista de sugestões —

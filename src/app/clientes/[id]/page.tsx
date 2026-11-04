@@ -26,6 +26,37 @@ type Props = {
   searchParams: Promise<{ voltarPara?: string; alteracao?: string | string[] }>;
 };
 
+type CargaDoCliente = Awaited<ReturnType<typeof carregarClienteParaPagina>>;
+
+function montarFormulario(
+  { basicos, operacional, documentos }: CargaDoCliente,
+  sessao: { papel: string; setor: string },
+  opcoes: {
+    readOnly: boolean;
+    atribuiNoCadastro: boolean;
+    voltarPara?: string;
+    alteracao?: string | string[];
+  },
+) {
+  if (basicos?.ok && basicos.value) return <DadosBasicosDoCliente {...basicos.value} />;
+  if (!operacional?.ok || !operacional.value) return undefined;
+  return (
+    <EditarCadastroOperacionalContainer
+      dados={operacional.value}
+      readOnly={opcoes.readOnly}
+      // Se a carga do servidor falhar, o botão se lê por action (com aviso e "Tentar novamente").
+      documentosContratuais={documentos?.ok ? documentos.value : undefined}
+      podeAnexar={podeAnexarAlteracaoContratual(sessao.papel)}
+      // Vindo de aviso de alteração: o botão do documento abre aquela alteração, em destaque.
+      alteracaoEmFoco={alteracaoEmFocoDaUrl(opcoes.alteracao)}
+      podeAtribuirResponsavel={
+        opcoes.atribuiNoCadastro && podeAtribuirResponsavel(sessao.papel, sessao.setor)
+      }
+      aoSalvar={{ tipo: "voltar", href: hrefSeguro(opcoes.voltarPara) }}
+    />
+  );
+}
+
 function tituloDaPagina(soDadosBasicos: boolean, readOnly: boolean) {
   if (soDadosBasicos) return "Dados do cliente";
   return readOnly ? "Visualizar cadastro operacional" : "Editar cadastro operacional";
@@ -36,18 +67,15 @@ export default async function Page({ params, searchParams }: Props) {
   const { voltarPara, alteracao } = await searchParams;
   const sessao = validarSessao(await carregarSessao());
   const soDadosBasicos = soLeDadosBasicosDoCliente(sessao.papel, sessao.setor);
-  const { basicos, operacional, documentos } = await carregarClienteParaPagina(
-    id,
-    sessao.papel,
-    sessao.setor,
-  );
+  const carga = await carregarClienteParaPagina(id, sessao.papel, sessao.setor);
+  const { basicos, operacional, documentos } = carga;
   const carregado = basicos ?? operacional;
   // Falha de leitura não é Cliente inexistente: só este segundo volta ao início.
   if (carregado && !carregado.ok) {
     return (
       <EditarCadastroOperacionalPage
         header={<CabecalhoDoShellContainer sessao={sessao} />}
-        titulo="Cliente"
+        titulo="Não foi possível carregar o cliente"
         voltarHref={hrefSeguro(voltarPara)}
         formulario={
           <FalhaDeCarga
@@ -70,26 +98,12 @@ export default async function Page({ params, searchParams }: Props) {
   const responsavelDoSetor = atribuiNoSetor ? await carregarResponsavelDoSetor(id) : null;
   const readOnly = !podeEditarCadastroOperacional(sessao.papel, sessao.setor);
 
-  let formulario: React.ReactNode;
-  if (basicos?.ok && basicos.value) {
-    formulario = <DadosBasicosDoCliente {...basicos.value} />;
-  } else if (operacional?.ok && operacional.value) {
-    formulario = (
-      <EditarCadastroOperacionalContainer
-        dados={operacional.value}
-        readOnly={readOnly}
-        // Se a carga do servidor falhar, o botão se lê por action (com aviso e "Tentar novamente").
-        documentosContratuais={documentos?.ok ? documentos.value : undefined}
-        podeAnexar={podeAnexarAlteracaoContratual(sessao.papel)}
-        // Vindo de aviso de alteração: o botão do documento abre aquela alteração, em destaque.
-        alteracaoEmFoco={alteracaoEmFocoDaUrl(alteracao)}
-        podeAtribuirResponsavel={
-          atribuiNoCadastro && podeAtribuirResponsavel(sessao.papel, sessao.setor)
-        }
-        aoSalvar={{ tipo: "voltar", href: hrefSeguro(voltarPara) }}
-      />
-    );
-  }
+  const formulario = montarFormulario(carga, sessao, {
+    readOnly,
+    atribuiNoCadastro,
+    voltarPara,
+    alteracao,
+  });
 
   return (
     <EditarCadastroOperacionalPage
