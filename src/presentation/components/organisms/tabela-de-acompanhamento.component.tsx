@@ -91,11 +91,12 @@ export function TabelaDeAcompanhamento({
               </CelulaDeTabela>
               {linha.celulas.map((celula) => {
                 const nome = servicos.find((s) => s.id === celula.servicoId)?.nome ?? "";
+                const idBloqueio = `bloqueio-${linha.clienteId}-${celula.servicoId}`;
                 return (
                   <CelulaDeTabela key={celula.servicoId}>
                     <Select
                       aria-label={`${nome} de ${linha.empresa}`}
-                      aria-describedby={celula.bloqueio ? `bloqueio-${linha.clienteId}-${celula.servicoId}` : undefined}
+                      aria-describedby={celula.bloqueio ? idBloqueio : undefined}
                       value={celula.estado}
                       className={cn(CLASSE_DO_ESTADO[celula.estado], pendente && "cursor-wait opacity-70")}
                       disabled={!!celula.bloqueio}
@@ -116,11 +117,7 @@ export function TabelaDeAcompanhamento({
                       <Opcao value="nao_aplica">Não se aplica</Opcao>
                     </Select>
                     {celula.bloqueio && (
-                      <Texto
-                        como="span"
-                        variante="somenteLeitor"
-                        id={`bloqueio-${linha.clienteId}-${celula.servicoId}`}
-                      >
+                      <Texto como="span" variante="somenteLeitor" id={idBloqueio}>
                         {celula.bloqueio}
                       </Texto>
                     )}

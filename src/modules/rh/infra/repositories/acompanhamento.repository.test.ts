@@ -49,8 +49,8 @@ async function apagarServicosDeTeste() {
 
 // O banco local pode ter outros clientes do RH (teste manual): cada asserção olha só os do teste.
 type Lista = Awaited<ReturnType<SupabaseAcompanhamentoRepository["listarClientes"]>>;
-const dosTestes = (r: Lista) =>
-  r.ok ? r.value.filter((c) => [CNPJ_A, CNPJ_B].includes(c.cnpj)) : [];
+const dosTestes = (r: Lista, cnpjs = [CNPJ_A, CNPJ_B]) =>
+  r.ok ? r.value.filter((c) => cnpjs.includes(c.cnpj)) : [];
 const doClienteA = (r: Lista) => dosTestes(r).find((c) => c.cnpj === CNPJ_A);
 
 const auditorias = async (acao: string, alvoLike: string) =>
@@ -198,9 +198,7 @@ describe("Acompanhamento mensal do RH (integração)", () => {
     const todos = await repo.listarClientes(MES, null, true);
 
     expect(padrao.ok && padrao.value.map((c) => c.cnpj)).not.toContain(CNPJ_SEM_RESPONSAVEL);
-    const meus = todos.ok
-      ? todos.value.filter((c) => [CNPJ_A, CNPJ_B, CNPJ_SEM_RESPONSAVEL].includes(c.cnpj))
-      : [];
+    const meus = dosTestes(todos, [CNPJ_A, CNPJ_B, CNPJ_SEM_RESPONSAVEL]);
     expect(meus.map((c) => [c.cnpj, c.responsavel?.id ?? null])).toEqual([
       [CNPJ_A, FUNCIONARIO_RH_ID],
       [CNPJ_B, FUNCIONARIO2_RH_ID],

@@ -53,6 +53,30 @@ test.describe("Acompanhamento mensal do RH", () => {
     expect(data).toHaveLength(1);
   });
 
+  test("Funcionário dispensa um serviço e ele deixa de contar como pendente, com auditoria", async ({
+    page,
+  }) => {
+    await login(page, "funcionario.rh@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL("/rh");
+    await page.goto("/rh/acompanhamento");
+
+    const pendentes = page.getByRole("row", { name: new RegExp(EMPRESA) }).getByRole("cell").last();
+    const antes = Number(await pendentes.textContent());
+    const dctfweb = page.getByLabel(`DCTFWeb de ${EMPRESA}`);
+    await expect(dctfweb).toHaveValue("pendente");
+    await dctfweb.selectOption("nao_aplica");
+    await expect(pendentes).toHaveText(String(antes - 1));
+    await page.reload();
+    await expect(page.getByLabel(`DCTFWeb de ${EMPRESA}`)).toHaveValue("nao_aplica");
+
+    const { data } = await admin
+      .from("registros_auditoria")
+      .select("acao")
+      .eq("acao", "rh.acompanhamento.nao-aplicar")
+      .like("alvo", `${cnpj} DCTFWeb`);
+    expect(data).toHaveLength(1);
+  });
+
   test("Líder do RH lê a marcação do Funcionário sem poder alterá-la", async ({ page }) => {
     const { data: servico } = await admin
       .from("rh_servicos_acompanhamento")
