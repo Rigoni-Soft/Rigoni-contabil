@@ -13,7 +13,7 @@ import { ShellNavContainer } from "@/modules/atendimento/presentation/view-model
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import { BuscarClienteContainer } from "@/modules/clientes/presentation/view-models/buscar-cliente/buscar-cliente.container";
 import { carregarResumoSetorRh } from "@/modules/clientes/presentation/view-models/resumo-setor-rh/resumo-setor-rh.server";
-import { podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
+import { podeVerAcompanhamentoDosFuncionariosRh, podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
 import { ROTA_RH, SETOR_RH } from "@/shared/kernel/setores";
 
 // ponytail: montagem repetida de app/simples-nacional/page.tsx; extrair no 3º Setor com resumo.
@@ -45,7 +45,14 @@ export default async function Page() {
           />
         )
       }
-      acoes={<LinkDeAcao href={`${ROTA_RH}/acompanhamento`}>Acompanhamento mensal</LinkDeAcao>}
+      acoes={
+        <>
+          <LinkDeAcao href={`${ROTA_RH}/acompanhamento`}>Acompanhamento mensal</LinkDeAcao>
+          {podeVerAcompanhamentoDosFuncionariosRh(sessao.papel, sessao.setor) && (
+            <LinkDeAcao href={`${ROTA_RH}/funcionarios`}>Acompanhamento dos funcionários</LinkDeAcao>
+          )}
+        </>
+      }
       comparativos={
         resumo.ok &&
         resumo.value.comparativos && (

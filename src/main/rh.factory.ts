@@ -15,6 +15,7 @@ import type {
   DefinirServicoAplicavelPort,
   MarcarServicoAcompanhamentoPort,
 } from "@/modules/rh/application/ports/in/marcar-servico-acompanhamento.provider";
+import type { ObterAcompanhamentoFuncionariosPort } from "@/modules/rh/application/ports/in/obter-acompanhamento-funcionarios.provider";
 import type { ObterAcompanhamentoMensalPort } from "@/modules/rh/application/ports/in/obter-acompanhamento-mensal.provider";
 import type {
   AtorSessaoDto,
@@ -29,6 +30,7 @@ import {
   DefinirServicoAplicavel,
   MarcarServicoAcompanhamento,
 } from "@/modules/rh/application/use-cases/marcar-servico-acompanhamento.use-case";
+import { ObterAcompanhamentoFuncionarios } from "@/modules/rh/application/use-cases/obter-acompanhamento-funcionarios.use-case";
 import { ObterAcompanhamentoMensal } from "@/modules/rh/application/use-cases/obter-acompanhamento-mensal.use-case";
 import { ConsoleRegistroDeErrosGateway as ConsoleRh } from "@/modules/rh/infra/gateways/console-registro-de-erros.gateway";
 import { RelogioSistemaGateway } from "@/modules/rh/infra/gateways/relogio-sistema.gateway";
@@ -68,6 +70,11 @@ async function montar() {
 export async function makeObterAcompanhamentoMensal(): Promise<ObterAcompanhamentoMensalPort> {
   const { sessao, repositorio } = await montar();
   return new ObterAcompanhamentoMensal(sessao, repositorio, new RelogioSistemaGateway());
+}
+
+export async function makeObterAcompanhamentoFuncionarios(): Promise<ObterAcompanhamentoFuncionariosPort> {
+  const { sessao, repositorio } = await montar();
+  return new ObterAcompanhamentoFuncionarios(sessao, repositorio, new RelogioSistemaGateway());
 }
 
 export async function makeMarcarServicoAcompanhamento(): Promise<MarcarServicoAcompanhamentoPort> {
