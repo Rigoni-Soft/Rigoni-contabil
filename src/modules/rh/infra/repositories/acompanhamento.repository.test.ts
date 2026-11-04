@@ -47,6 +47,12 @@ async function apagarServicosDeTeste() {
   await servico.from("rh_servicos_acompanhamento").delete().like("nome", `${PREFIXO}%`);
 }
 
+// O banco local pode ter outros clientes do RH (teste manual): cada asserção olha só os do teste.
+type Lista = Awaited<ReturnType<SupabaseAcompanhamentoRepository["listarClientes"]>>;
+const dosTestes = (r: Lista) =>
+  r.ok ? r.value.filter((c) => [CNPJ_A, CNPJ_B].includes(c.cnpj)) : [];
+const doClienteA = (r: Lista) => dosTestes(r).find((c) => c.cnpj === CNPJ_A);
+
 const auditorias = async (acao: string, alvoLike: string) =>
   (await servico.from("registros_auditoria").select("ator, setor").eq("acao", acao).like("alvo", alvoLike)).data ?? [];
 
@@ -100,7 +106,7 @@ describe("Acompanhamento mensal do RH (integração)", () => {
       "Holerite",
     ]);
     expect(servicos.ok && servicos.value[5].sistema).toBe(true);
-    expect(clientes.ok && clientes.value.map((c) => [c.cnpj, c.concluidos, c.naoAplica])).toEqual([
+    expect(dosTestes(clientes).map((c) => [c.cnpj, c.concluidos, c.naoAplica])).toEqual([
       [CNPJ_A, [], []],
     ]);
   });
@@ -115,8 +121,8 @@ describe("Acompanhamento mensal do RH (integração)", () => {
     const fim = await repo.listarClientes(MES, FUNCIONARIO_RH_ID);
 
     expect(marcou.ok && repetiu.ok && desmarcou.ok).toBe(true);
-    expect(depois.ok && depois.value[0].concluidos).toEqual([fgts]);
-    expect(fim.ok && fim.value[0].concluidos).toEqual([]);
+    expect(doClienteA(depois)?.concluidos).toEqual([fgts]);
+    expect(doClienteA(fim)?.concluidos).toEqual([]);
     const mes = MES.slice(0, 7);
     expect(await auditorias("rh.acompanhamento.marcar", `${CNPJ_A} FGTS ${mes}`)).toEqual([
       { ator: FUNCIONARIO_RH_ID, setor: "rh" },
@@ -164,8 +170,8 @@ describe("Acompanhamento mensal do RH (integração)", () => {
     await repo.definirAplica(clienteA, fgts, true);
     const sim = await repo.listarClientes(MES, FUNCIONARIO_RH_ID);
 
-    expect(nao.ok && nao.value[0].naoAplica).toEqual([fgts]);
-    expect(sim.ok && sim.value[0].naoAplica).toEqual([]);
+    expect(doClienteA(nao)?.naoAplica).toEqual([fgts]);
+    expect(doClienteA(sim)?.naoAplica).toEqual([]);
     expect(await auditorias("rh.acompanhamento.nao-aplicar", `${CNPJ_A} FGTS`)).toHaveLength(1);
     expect(await auditorias("rh.acompanhamento.aplicar", `${CNPJ_A} FGTS`)).toHaveLength(1);
     await servico.from("registros_auditoria").delete().like("alvo", `${CNPJ_A} FGTS%`);
@@ -192,7 +198,9 @@ describe("Acompanhamento mensal do RH (integração)", () => {
     const todos = await repo.listarClientes(MES, null, true);
 
     expect(padrao.ok && padrao.value.map((c) => c.cnpj)).not.toContain(CNPJ_SEM_RESPONSAVEL);
-    const meus = todos.ok ? todos.value.filter((c) => c.cnpj.startsWith("1144477700981")) : [];
+    const meus = todos.ok
+      ? todos.value.filter((c) => [CNPJ_A, CNPJ_B, CNPJ_SEM_RESPONSAVEL].includes(c.cnpj))
+      : [];
     expect(meus.map((c) => [c.cnpj, c.responsavel?.id ?? null])).toEqual([
       [CNPJ_A, FUNCIONARIO_RH_ID],
       [CNPJ_B, FUNCIONARIO2_RH_ID],
@@ -207,13 +215,13 @@ describe("Acompanhamento mensal do RH (integração)", () => {
     for (const entrarComo of [comoLiderRH, comoAdmin]) {
       const { repo } = await entrarComo();
       const r = await repo.listarClientes(MES, null);
-      const meus = r.ok ? r.value.filter((c) => [CNPJ_A, CNPJ_B].includes(c.cnpj)) : [];
+      const meus = dosTestes(r);
       expect(meus.map((c) => c.cnpj)).toEqual([CNPJ_A, CNPJ_B]);
       expect(meus[0].concluidos).toEqual([fgts]);
     }
 
     const colega = await (await comoFuncionario2RH()).repo.listarClientes(MES, null);
-    expect(colega.ok && colega.value.map((c) => c.cnpj)).toEqual([CNPJ_B]);
+    expect(dosTestes(colega).map((c) => c.cnpj)).toEqual([CNPJ_B]);
   });
 
   it("só o Líder do RH cadastra, renomeia e desativa serviços, com auditoria", async () => {

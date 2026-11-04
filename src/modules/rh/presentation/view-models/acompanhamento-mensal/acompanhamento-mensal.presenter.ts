@@ -1,4 +1,5 @@
 import type { AcompanhamentoMensalDto } from "@/modules/rh/application/dtos/acompanhamento.dto";
+import type { EstadoDaCelula } from "@/presentation/components/organisms/tabela-de-acompanhamento.component";
 
 const MESES = [
   "janeiro", "fevereiro", "março", "abril", "maio", "junho",
@@ -17,11 +18,33 @@ export function mesVizinho(competencia: string, delta: number): string {
   return `${data.getUTCFullYear()}-${String(data.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
+const estadoDaCelula = (c: { aplica: boolean; concluido: boolean }): EstadoDaCelula =>
+  !c.aplica ? "nao_aplica" : c.concluido ? "concluido" : "pendente";
+
+export type PassoDaTroca = { tipo: "marcar" | "aplicar"; valor: boolean };
+
+// "Se aplica" e "concluído" são dois dados; trocar o estado da célula é desmarcar antes de dispensar
+// e voltar a aplicar antes de marcar, para nunca ficar concluído num serviço que não se aplica.
+export function passosDaTroca(de: EstadoDaCelula, para: EstadoDaCelula): PassoDaTroca[] {
+  if (de === para) return [];
+  const passos: PassoDaTroca[] = [];
+  if (para === "nao_aplica") {
+    if (de === "concluido") passos.push({ tipo: "marcar", valor: false });
+    passos.push({ tipo: "aplicar", valor: false });
+    return passos;
+  }
+  if (de === "nao_aplica") passos.push({ tipo: "aplicar", valor: true });
+  if ((de === "concluido") !== (para === "concluido")) {
+    passos.push({ tipo: "marcar", valor: para === "concluido" });
+  }
+  return passos;
+}
+
 export type LinhaDaTabela = {
   clienteId: string;
   empresa: string;
   cnpj: string;
-  celulas: { servicoId: string; aplica: boolean; concluido: boolean; editavel: boolean }[];
+  celulas: { servicoId: string; estado: EstadoDaCelula; editavel: boolean }[];
   pendentes: number;
 };
 
@@ -30,7 +53,8 @@ export function linhasDaTabela(dto: AcompanhamentoMensalDto): LinhaDaTabela[] {
   const sistema = new Set(dto.servicos.filter((s) => s.sistema).map((s) => s.id));
   return dto.linhas.map((l) => {
     const celulas = l.celulas.map((c) => ({
-      ...c,
+      servicoId: c.servicoId,
+      estado: estadoDaCelula(c),
       editavel: dto.podeMarcar && !sistema.has(c.servicoId),
     }));
     return {
@@ -38,7 +62,7 @@ export function linhasDaTabela(dto: AcompanhamentoMensalDto): LinhaDaTabela[] {
       empresa: l.empresa,
       cnpj: l.cnpj,
       celulas,
-      pendentes: celulas.filter((c) => c.aplica && !c.concluido && !sistema.has(c.servicoId)).length,
+      pendentes: l.celulas.filter((c) => c.aplica && !c.concluido && !sistema.has(c.servicoId)).length,
     };
   });
 }

@@ -51,7 +51,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ m
             }
             servicos={acompanhamento.value.servicos}
             linhas={linhasDaTabela(acompanhamento.value)}
-            podeMarcar={acompanhamento.value.podeMarcar}
             podeGerirServicos={
               acompanhamento.value.podeGerirServicos &&
               acompanhamento.value.competencia === mesAtual()

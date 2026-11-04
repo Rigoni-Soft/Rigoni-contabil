@@ -4,7 +4,10 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { ServicosDoAcompanhamento } from "@/presentation/components/organisms/servicos-do-acompanhamento.component";
-import { TabelaDeAcompanhamento } from "@/presentation/components/organisms/tabela-de-acompanhamento.component";
+import {
+  type EstadoDaCelula,
+  TabelaDeAcompanhamento,
+} from "@/presentation/components/organisms/tabela-de-acompanhamento.component";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
 
 import {
@@ -14,7 +17,7 @@ import {
   marcarServicoAction,
   renomearServicoAction,
 } from "./acompanhamento-mensal.actions";
-import type { LinhaDaTabela } from "./acompanhamento-mensal.presenter";
+import { type LinhaDaTabela, passosDaTroca } from "./acompanhamento-mensal.presenter";
 
 type Props = {
   competencia: string;
@@ -23,7 +26,6 @@ type Props = {
   proximoHref?: string;
   servicos: { id: string; nome: string; sistema: boolean }[];
   linhas: LinhaDaTabela[];
-  podeMarcar: boolean;
   // O Líder mantém os serviços só no mês corrente (a lista é a de agora).
   podeGerirServicos: boolean;
 };
@@ -35,7 +37,6 @@ export function AcompanhamentoMensalContainer({
   proximoHref,
   servicos,
   linhas,
-  podeMarcar,
   podeGerirServicos,
 }: Props) {
   const router = useRouter();
@@ -63,6 +64,22 @@ export function AcompanhamentoMensalContainer({
       }
     });
 
+  const trocarEstado = async (
+    clienteId: string,
+    servicoId: string,
+    de: EstadoDaCelula,
+    para: EstadoDaCelula,
+  ): Promise<ActionResult<void>> => {
+    for (const passo of passosDaTroca(de, para)) {
+      const r =
+        passo.tipo === "marcar"
+          ? await marcarServicoAction({ clienteId, servicoId, competencia, concluido: passo.valor })
+          : await definirServicoAplicavelAction({ clienteId, servicoId, aplica: passo.valor });
+      if (!r.ok) return r;
+    }
+    return { ok: true, data: undefined };
+  };
+
   return (
     <>
       <TabelaDeAcompanhamento
@@ -71,14 +88,10 @@ export function AcompanhamentoMensalContainer({
         proximoHref={proximoHref}
         servicos={servicos}
         linhas={linhas}
-        podeAlterar={podeMarcar}
         pendente={pendente}
         erro={erro?.onde === "tabela" ? erro.mensagem : undefined}
-        onMarcar={(clienteId, servicoId, concluido) =>
-          executar("tabela", () => marcarServicoAction({ clienteId, servicoId, competencia, concluido }))
-        }
-        onAplicar={(clienteId, servicoId, aplica) =>
-          executar("tabela", () => definirServicoAplicavelAction({ clienteId, servicoId, aplica }))
+        onTrocar={(clienteId, servicoId, de, para) =>
+          executar("tabela", () => trocarEstado(clienteId, servicoId, de, para))
         }
       />
       {podeGerirServicos && (

@@ -1,4 +1,9 @@
-import { linhasDaTabela, mesVizinho, rotuloDaCompetencia } from "./acompanhamento-mensal.presenter";
+import {
+  linhasDaTabela,
+  mesVizinho,
+  passosDaTroca,
+  rotuloDaCompetencia,
+} from "./acompanhamento-mensal.presenter";
 
 describe("acompanhamento-mensal.presenter", () => {
   it("rotula a competência por extenso", () => {
@@ -39,5 +44,21 @@ describe("acompanhamento-mensal.presenter", () => {
 
     expect(linha.pendentes).toBe(1);
     expect(linha.celulas.map((c) => c.editavel)).toEqual([true, true, true, false]);
+  });
+
+  it("troca o estado da célula na ordem que nunca deixa concluído um serviço que não se aplica", () => {
+    expect(passosDaTroca("pendente", "concluido")).toEqual([{ tipo: "marcar", valor: true }]);
+    expect(passosDaTroca("concluido", "pendente")).toEqual([{ tipo: "marcar", valor: false }]);
+    expect(passosDaTroca("pendente", "nao_aplica")).toEqual([{ tipo: "aplicar", valor: false }]);
+    expect(passosDaTroca("concluido", "nao_aplica")).toEqual([
+      { tipo: "marcar", valor: false },
+      { tipo: "aplicar", valor: false },
+    ]);
+    expect(passosDaTroca("nao_aplica", "pendente")).toEqual([{ tipo: "aplicar", valor: true }]);
+    expect(passosDaTroca("nao_aplica", "concluido")).toEqual([
+      { tipo: "aplicar", valor: true },
+      { tipo: "marcar", valor: true },
+    ]);
+    expect(passosDaTroca("pendente", "pendente")).toEqual([]);
   });
 });

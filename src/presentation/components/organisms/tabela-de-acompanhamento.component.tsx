@@ -1,5 +1,4 @@
 import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
-import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcacao.component";
 import {
   CabecalhoDeColuna,
   CelulaDeTabela,
@@ -7,12 +6,14 @@ import {
   Tabela,
 } from "@/presentation/components/atoms/celula-de-tabela.component";
 import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
+import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
-import { Button } from "@/presentation/components/ui/button";
+import { Select } from "@/presentation/components/ui/select";
 import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
 
 type Servico = { id: string; nome: string };
-type Celula = { servicoId: string; aplica: boolean; concluido: boolean; editavel: boolean };
+export type EstadoDaCelula = "pendente" | "concluido" | "nao_aplica";
+type Celula = { servicoId: string; estado: EstadoDaCelula; editavel: boolean };
 type LinhaDoCliente = {
   clienteId: string;
   empresa: string;
@@ -28,12 +29,9 @@ type TabelaDeAcompanhamentoProps = {
   proximoHref?: string;
   servicos: Servico[];
   linhas: LinhaDoCliente[];
-  // Só o Funcionário que é Responsável altera "se aplica" (a mesma regra das caixas).
-  podeAlterar: boolean;
   pendente: boolean;
   erro?: string;
-  onMarcar: (clienteId: string, servicoId: string, concluido: boolean) => void;
-  onAplicar: (clienteId: string, servicoId: string, aplica: boolean) => void;
+  onTrocar: (clienteId: string, servicoId: string, de: EstadoDaCelula, para: EstadoDaCelula) => void;
 };
 
 export function TabelaDeAcompanhamento({
@@ -42,11 +40,9 @@ export function TabelaDeAcompanhamento({
   proximoHref,
   servicos,
   linhas,
-  podeAlterar,
   pendente,
   erro,
-  onMarcar,
-  onAplicar,
+  onTrocar,
 }: TabelaDeAcompanhamentoProps) {
   return (
     <Pilha espaco={4}>
@@ -90,49 +86,23 @@ export function TabelaDeAcompanhamento({
                 const nome = servicos.find((s) => s.id === celula.servicoId)?.nome ?? "";
                 return (
                   <CelulaDeTabela key={celula.servicoId}>
-                    {celula.aplica ? (
-                      <Linha alinhar="centro" espaco={2}>
-                        <CaixaDeMarcacao
-                          rotulo="Feito"
-                          aria-label={`${nome} de ${linha.empresa}: concluído`}
-                          checked={celula.concluido}
-                          disabled={pendente || !celula.editavel}
-                          onChange={(e) =>
-                            onMarcar(linha.clienteId, celula.servicoId, e.target.checked)
-                          }
-                        />
-                        {celula.editavel && podeAlterar && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            disabled={pendente}
-                            aria-label={`${nome} de ${linha.empresa}: não se aplica`}
-                            onClick={() => onAplicar(linha.clienteId, celula.servicoId, false)}
-                          >
-                            N/A
-                          </Button>
-                        )}
-                      </Linha>
-                    ) : (
-                      <Linha alinhar="centro" espaco={2}>
-                        <Texto variante="nota" como="span">
-                          Não se aplica
-                        </Texto>
-                        {podeAlterar && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            disabled={pendente}
-                            aria-label={`${nome} de ${linha.empresa}: voltar a aplicar`}
-                            onClick={() => onAplicar(linha.clienteId, celula.servicoId, true)}
-                          >
-                            Aplicar
-                          </Button>
-                        )}
-                      </Linha>
-                    )}
+                    <Select
+                      aria-label={`${nome} de ${linha.empresa}`}
+                      value={celula.estado}
+                      disabled={pendente || !celula.editavel}
+                      onChange={(e) =>
+                        onTrocar(
+                          linha.clienteId,
+                          celula.servicoId,
+                          celula.estado,
+                          e.target.value as EstadoDaCelula,
+                        )
+                      }
+                    >
+                      <Opcao value="pendente">Pendente</Opcao>
+                      <Opcao value="concluido">Concluído</Opcao>
+                      <Opcao value="nao_aplica">Não se aplica</Opcao>
+                    </Select>
                   </CelulaDeTabela>
                 );
               })}

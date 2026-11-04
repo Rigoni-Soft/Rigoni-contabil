@@ -38,12 +38,12 @@ test.describe("Acompanhamento mensal do RH", () => {
     await expect(page).toHaveURL("/rh");
     await page.goto("/rh/acompanhamento");
 
-    const fgts = page.getByLabel(`FGTS de ${EMPRESA}: concluído`);
-    await expect(fgts).not.toBeChecked();
-    await fgts.click();
-    await expect(fgts).toBeChecked();
+    const fgts = page.getByLabel(`FGTS de ${EMPRESA}`);
+    await expect(fgts).toHaveValue("pendente");
+    await fgts.selectOption("concluido");
+    await expect(fgts).toHaveValue("concluido");
     await page.reload();
-    await expect(page.getByLabel(`FGTS de ${EMPRESA}: concluído`)).toBeChecked();
+    await expect(page.getByLabel(`FGTS de ${EMPRESA}`)).toHaveValue("concluido");
 
     const { data } = await admin
       .from("registros_auditoria")
@@ -71,8 +71,8 @@ test.describe("Acompanhamento mensal do RH", () => {
     await expect(page).toHaveURL("/rh");
     await page.goto("/rh/acompanhamento");
 
-    const lido = page.getByLabel(`NUTRI de ${EMPRESA}: concluído`);
-    await expect(lido).toBeChecked();
+    const lido = page.getByLabel(`NUTRI de ${EMPRESA}`);
+    await expect(lido).toHaveValue("concluido");
     await expect(lido).toBeDisabled();
   });
 
