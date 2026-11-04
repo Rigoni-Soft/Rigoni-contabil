@@ -1,4 +1,4 @@
-import { SETOR_RH } from "@/shared/kernel/setores";
+import { SETOR_RH, SETOR_SN } from "@/shared/kernel/setores";
 
 // Responsável cujo perfil a RLS esconde de quem lê (leitor de outro Setor).
 export const RESPONSAVEL_OUTRO_SETOR_LABEL = "Responsável de outro setor";
@@ -35,7 +35,7 @@ export function rotuloResponsavel(id: string | null, nome: string | null): strin
 export function podeEditarCadastroOperacional(papel: string, setor: string): boolean {
   return (
     papel === "admin" ||
-    ((papel === "lider_setor" || papel === "funcionario") && setor === "simples_nacional")
+    ((papel === "lider_setor" || papel === "funcionario") && setor === SETOR_SN)
   );
 }
 
