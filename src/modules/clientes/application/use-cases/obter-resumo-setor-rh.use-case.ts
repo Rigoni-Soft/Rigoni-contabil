@@ -1,8 +1,8 @@
 import type { ResumoSetorRhDto } from "@/modules/clientes/application/ports/in/obter-resumo-setor-rh.provider";
 import type {
-  CardResumoSnDto,
+  CardResumoDto,
   FatiaComparativoDto,
-} from "@/modules/clientes/application/ports/in/obter-resumo-setor-sn.provider";
+} from "@/modules/clientes/application/ports/in/resumo-setor.provider";
 import type {
   CarteiraDoSetorQueryPort,
   ClienteDaCarteiraRow,
@@ -70,7 +70,7 @@ export class ObterResumoSetorRh {
     const linhas = veTudo ? lidas.value : lidas.value.filter((l) => l.responsavelId === ator.id);
     const atribuidos = linhas.filter((l) => l.responsavelId);
 
-    const cards: CardResumoSnDto[] = [
+    const cards: CardResumoDto[] = [
       {
         id: "atribuidos",
         titulo: veTudo ? "Atribuídos" : "Meus clientes",
