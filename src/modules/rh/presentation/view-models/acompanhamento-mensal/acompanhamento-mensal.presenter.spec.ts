@@ -1,13 +1,14 @@
-import { linhasDaTabela, mesesParaSeletor, rotuloDaCompetencia } from "./acompanhamento-mensal.presenter";
+import { linhasDaTabela, mesVizinho, rotuloDaCompetencia } from "./acompanhamento-mensal.presenter";
 
 describe("acompanhamento-mensal.presenter", () => {
   it("rotula a competência por extenso", () => {
     expect(rotuloDaCompetencia("2026-03")).toBe("março de 2026");
   });
 
-  it("lista os meses do corrente para trás, virando o ano", () => {
-    const meses = mesesParaSeletor("2026-02", 3).map((m) => m.valor);
-    expect(meses).toEqual(["2026-02", "2026-01", "2025-12"]);
+  it("acha o mês vizinho, virando o ano", () => {
+    expect(mesVizinho("2026-01", -1)).toBe("2025-12");
+    expect(mesVizinho("2025-12", 1)).toBe("2026-01");
+    expect(mesVizinho("2026-05", -1)).toBe("2026-04");
   });
 
   it("conta pendentes só entre os serviços que se aplicam e não são do sistema", () => {

@@ -10,7 +10,8 @@ import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-
 import { AcompanhamentoMensalContainer } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.container";
 import {
   linhasDaTabela,
-  mesesParaSeletor,
+  mesVizinho,
+  rotuloDaCompetencia,
 } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.presenter";
 import { carregarAcompanhamentoMensal } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.server";
 import { mesAtual } from "@/shared/kernel/mes-atual";
@@ -41,7 +42,13 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ m
         acompanhamento.ok && (
           <AcompanhamentoMensalContainer
             competencia={acompanhamento.value.competencia}
-            meses={mesesParaSeletor(mesAtual())}
+            rotuloCompetencia={rotuloDaCompetencia(acompanhamento.value.competencia)}
+            anteriorHref={`${ROTA}?mes=${mesVizinho(acompanhamento.value.competencia, -1)}`}
+            proximoHref={
+              acompanhamento.value.competencia < mesAtual()
+                ? `${ROTA}?mes=${mesVizinho(acompanhamento.value.competencia, 1)}`
+                : undefined
+            }
             servicos={acompanhamento.value.servicos}
             linhas={linhasDaTabela(acompanhamento.value)}
             podeMarcar={acompanhamento.value.podeMarcar}

@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { ServicosDoAcompanhamento } from "@/presentation/components/organisms/servicos-do-acompanhamento.component";
 import { TabelaDeAcompanhamento } from "@/presentation/components/organisms/tabela-de-acompanhamento.component";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
-import { ROTA_RH } from "@/shared/kernel/setores";
 
 import {
   criarServicoAction,
@@ -19,7 +18,9 @@ import type { LinhaDaTabela } from "./acompanhamento-mensal.presenter";
 
 type Props = {
   competencia: string;
-  meses: { valor: string; rotulo: string }[];
+  rotuloCompetencia: string;
+  anteriorHref: string;
+  proximoHref?: string;
   servicos: { id: string; nome: string; sistema: boolean }[];
   linhas: LinhaDaTabela[];
   podeMarcar: boolean;
@@ -29,7 +30,9 @@ type Props = {
 
 export function AcompanhamentoMensalContainer({
   competencia,
-  meses,
+  rotuloCompetencia,
+  anteriorHref,
+  proximoHref,
   servicos,
   linhas,
   podeMarcar,
@@ -39,6 +42,7 @@ export function AcompanhamentoMensalContainer({
   const [pendente, iniciar] = useTransition();
   const [erro, setErro] = useState<string>();
   const [novoNome, setNovoNome] = useState("");
+  const [edicao, setEdicao] = useState<{ id: string; nome: string }>();
 
   // Toda escrita compartilha o ciclo: erro do servidor, recarga da tabela e retorno de sucesso.
   const executar = (acao: () => Promise<ActionResult<void>>, aoDarCerto?: () => void) =>
@@ -57,9 +61,9 @@ export function AcompanhamentoMensalContainer({
   return (
     <>
       <TabelaDeAcompanhamento
-        competencia={competencia}
-        meses={meses}
-        action={`${ROTA_RH}/acompanhamento`}
+        rotuloCompetencia={rotuloCompetencia}
+        anteriorHref={anteriorHref}
+        proximoHref={proximoHref}
         servicos={servicos}
         linhas={linhas}
         podeAlterar={podeMarcar}
@@ -84,10 +88,17 @@ export function AcompanhamentoMensalContainer({
               () => setNovoNome(""),
             )
           }
-          onRenomear={(servicoId, atual) => {
-            const nome = window.prompt("Novo nome do serviço", atual)?.trim();
-            if (nome && nome !== atual) executar(() => renomearServicoAction({ servicoId, nome }));
-          }}
+          edicao={edicao}
+          onEditar={(servicoId, nome) => setEdicao({ id: servicoId, nome })}
+          onNomeEdicao={(nome) => edicao && setEdicao({ id: edicao.id, nome })}
+          onCancelarEdicao={() => setEdicao(undefined)}
+          onSalvarEdicao={() =>
+            edicao &&
+            executar(
+              () => renomearServicoAction({ servicoId: edicao.id, nome: edicao.nome }),
+              () => setEdicao(undefined),
+            )
+          }
           onDesativar={(servicoId) => executar(() => desativarServicoAction({ servicoId }))}
         />
       )}

@@ -9,7 +9,12 @@ type ServicosDoAcompanhamentoProps = {
   novoNome: string;
   onNovoNome: (nome: string) => void;
   onCriar: () => void;
-  onRenomear: (servicoId: string, nomeAtual: string) => void;
+  // Serviço em edição (renomear na própria linha).
+  edicao?: { id: string; nome: string };
+  onEditar: (servicoId: string, nomeAtual: string) => void;
+  onNomeEdicao: (nome: string) => void;
+  onSalvarEdicao: () => void;
+  onCancelarEdicao: () => void;
   onDesativar: (servicoId: string) => void;
   pendente: boolean;
 };
@@ -20,7 +25,11 @@ export function ServicosDoAcompanhamento({
   novoNome,
   onNovoNome,
   onCriar,
-  onRenomear,
+  edicao,
+  onEditar,
+  onNomeEdicao,
+  onSalvarEdicao,
+  onCancelarEdicao,
   onDesativar,
   pendente,
 }: ServicosDoAcompanhamentoProps) {
@@ -43,11 +52,37 @@ export function ServicosDoAcompanhamento({
             espaco={3}
             className="px-4 py-2"
           >
-            <Texto variante="corpo" como="span">
-              {s.nome}
-              {s.sistema && " (do sistema)"}
-            </Texto>
-            {!s.sistema && (
+            {edicao?.id === s.id ? (
+              <Linha
+                como="form"
+                alinhar="centro"
+                espaco={2}
+                onSubmit={(e: React.FormEvent) => {
+                  e.preventDefault();
+                  onSalvarEdicao();
+                }}
+              >
+                <Input
+                  aria-label={`Novo nome de ${s.nome}`}
+                  value={edicao.nome}
+                  maxLength={40}
+                  autoFocus
+                  onChange={(e) => onNomeEdicao(e.target.value)}
+                />
+                <Button type="submit" size="sm" disabled={pendente || edicao.nome.trim() === ""}>
+                  Salvar
+                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={onCancelarEdicao}>
+                  Cancelar
+                </Button>
+              </Linha>
+            ) : (
+              <Texto variante="corpo" como="span">
+                {s.nome}
+                {s.sistema && " (do sistema)"}
+              </Texto>
+            )}
+            {!s.sistema && edicao?.id !== s.id && (
               <Linha espaco={2}>
                 <Button
                   type="button"
@@ -55,7 +90,7 @@ export function ServicosDoAcompanhamento({
                   size="sm"
                   disabled={pendente}
                   aria-label={`Renomear ${s.nome}`}
-                  onClick={() => onRenomear(s.id, s.nome)}
+                  onClick={() => onEditar(s.id, s.nome)}
                 >
                   Renomear
                 </Button>

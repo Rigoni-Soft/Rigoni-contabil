@@ -10,14 +10,11 @@ export function rotuloDaCompetencia(competencia: string): string {
   return `${MESES[mes - 1]} de ${ano}`;
 }
 
-// Os últimos `quantos` meses até o corrente (mais recente primeiro), para o seletor.
-export function mesesParaSeletor(atual: string, quantos = 12): { valor: string; rotulo: string }[] {
-  const [ano, mes] = atual.split("-").map(Number);
-  return Array.from({ length: quantos }, (_, i) => {
-    const data = new Date(Date.UTC(ano, mes - 1 - i, 1));
-    const valor = `${data.getUTCFullYear()}-${String(data.getUTCMonth() + 1).padStart(2, "0")}`;
-    return { valor, rotulo: rotuloDaCompetencia(valor) };
-  });
+// Mês vizinho ("AAAA-MM"): delta -1 = anterior, +1 = próximo.
+export function mesVizinho(competencia: string, delta: number): string {
+  const [ano, mes] = competencia.split("-").map(Number);
+  const data = new Date(Date.UTC(ano, mes - 1 + delta, 1));
+  return `${data.getUTCFullYear()}-${String(data.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
 export type LinhaDaTabela = {
