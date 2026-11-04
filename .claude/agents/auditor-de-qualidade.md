@@ -23,5 +23,5 @@ ID | gravidade | arquivo:linha | problema | correção sugerida | tipo (mecânic
 ```
 
 - `ID` estável: `<etapa>:<arquivo>:<regra ou tema>`, para o ledger deduplicar.
-- No impeccable, inclua as skills que o audit recomenda executar (ex.: `polish`, `harden`).
+- No impeccable, marque cada achado como `regressão` (o diff piorou algo que funcionava) ou `preferência` (gosto, sem barreira de uso), e inclua as skills que o audit recomenda executar (ex.: `polish`, `harden`).
 - Sem apontamentos novos: diga `novos: 0` e mais nada. Sem explicações, sem repetir o diff.

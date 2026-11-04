@@ -22,7 +22,7 @@ Argumento: `$ARGUMENTS` = base do diff. Sem base: `gh pr view --json baseRefName
 
 ## Etapas (nesta ordem, sem pular)
 
-**1. `impeccable audit`** — só se há UI no diff (senão registre "design não aplicável"). Saída: **20/20 e zero ações recomendadas**. Quando o audit recomendar outras skills do impeccable (polish, distill, harden, etc.), **siga a recomendação**: invoque-as, depois audite de novo.
+**1. `impeccable audit`** — só se há UI no diff (senão registre "design não aplicável"). Saída: **20/20 e zero ações recomendadas**. Quando o audit recomendar outras skills do impeccable (polish, distill, harden, etc.), **siga a recomendação**: invoque-as, depois audite de novo. **Regressão, P0, P1 e P2 bloqueiam; P3 de preferência** (gosto, sem regressão nem barreira de uso) entra no ledger como `recusado` com o motivo e não abre rodada nova. O auditor marca cada achado como `regressão` ou `preferência`.
 
 **2. `ponytail-review`** — código morto, abstração desnecessária, dependência redundante. Saída: zero apontamentos. `delete` de algo ainda não usado mas possivelmente de ticket planejado: pergunte.
 
