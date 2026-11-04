@@ -9,6 +9,7 @@ type Props = {
   totalClientes: number;
 };
 
+// ponytail: esqueleto repetido de comparativos-sn.component.tsx; parametrizar um só quando o RH ganhar o 2º comparativo.
 export function ComparativosRh({ responsaveis, totalClientes }: Props) {
   return (
     <Pilha espaco={4} como="section" aria-labelledby="comparativos-rh-titulo">

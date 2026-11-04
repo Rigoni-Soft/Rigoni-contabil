@@ -20,6 +20,7 @@ import {
 import { err, ok, type Result } from "@/shared/kernel/result";
 import { SETOR_RH } from "@/shared/kernel/setores";
 
+// ponytail: `doBucket` e a montagem dos cards repetem o molde de obter-resumo-setor-sn; extrair no 3º Setor com resumo.
 const GRUPO = "Carteira";
 
 const doBucket = ({ clienteId, empresa, cnpj }: ClienteDaCarteiraRow) => ({
