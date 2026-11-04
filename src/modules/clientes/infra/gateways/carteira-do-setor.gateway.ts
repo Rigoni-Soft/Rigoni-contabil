@@ -75,13 +75,16 @@ export class SupabaseCarteiraDoSetorGateway implements CarteiraDoSetorQueryPort 
     // `.eq("cliente_responsaveis.setor", setor)` deixa no máximo um vínculo por Cliente (um
     // Responsável por Setor), por isso basta o primeiro.
     return ok(
-      linhas.map((linha) => ({
-        clienteId: linha.id,
-        empresa: linha.empresa,
-        cnpj: linha.cnpj,
-        responsavelId: linha.cliente_responsaveis?.[0]?.responsavel_id ?? null,
-        responsavelNome: linha.cliente_responsaveis?.[0]?.responsavel?.nome ?? null,
-      })),
+      linhas.map((linha) => {
+        const vinculo = linha.cliente_responsaveis?.[0];
+        return {
+          clienteId: linha.id,
+          empresa: linha.empresa,
+          cnpj: linha.cnpj,
+          responsavelId: vinculo?.responsavel_id ?? null,
+          responsavelNome: vinculo?.responsavel?.nome ?? null,
+        };
+      }),
     );
   }
 }
