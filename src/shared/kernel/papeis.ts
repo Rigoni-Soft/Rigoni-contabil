@@ -1,4 +1,4 @@
-import { SETOR_RH, SETOR_SN } from "@/shared/kernel/setores";
+import { SETOR_RECEPCAO, SETOR_RH, SETOR_SN } from "@/shared/kernel/setores";
 
 // Responsável cujo perfil a RLS esconde de quem lê (leitor de outro Setor).
 export const RESPONSAVEL_OUTRO_SETOR_LABEL = "Responsável de outro setor";
@@ -63,10 +63,15 @@ export function soLeDadosBasicosDoCliente(papel: string, setor: string): boolean
   return papel !== "admin" && setor === SETOR_RH;
 }
 
+// Os dois predicados abaixo nascem da mesma premissa: Líder de um Setor que tem Responsável por Cliente.
+function ehLiderDeSetorComResponsavel(papel: string, setor: string): boolean {
+  return papel === "lider_setor" && setor !== SETOR_RECEPCAO;
+}
+
 // O Líder de cada Setor atribui/troca/remove o Responsável do Cliente naquele Setor. A Recepção não
 // tem Responsável: a espera dela é comum.
 export function podeAtribuirResponsavel(papel: string, setor: string): boolean {
-  return papel === "lider_setor" && setor !== "recepcao";
+  return ehLiderDeSetorComResponsavel(papel, setor);
 }
 
 // Quem enxerga a carteira inteira do Setor (com os Clientes sem Responsável): o Admin e o Líder. O
@@ -78,7 +83,7 @@ export function veCarteiraInteira(papel: string): boolean {
 // O comparativo por Responsável do dashboard de um Setor é do Líder: o Funcionário não vê o
 // acompanhamento dos colegas, e o Admin (suporte) fica com a carteira, sem o comparativo.
 export function podeVerComparativoDoSetor(papel: string, setor: string): boolean {
-  return papel === "lider_setor" && setor !== "recepcao";
+  return ehLiderDeSetorComResponsavel(papel, setor);
 }
 
 // Anexar alteração contratual a um Cliente existente é dado jurídico: só o Admin.

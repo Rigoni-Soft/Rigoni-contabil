@@ -21,6 +21,8 @@ export type SetorSlug = (typeof SETORES)[number];
 
 // Setor RH nomeado: renomear o slug em SETORES quebra a compilação onde as regras o citam.
 export const SETOR_RH = "rh" satisfies SetorSlug;
+// Setor Recepção nomeado, como o RH: a espera dela é comum, sem Responsável por Cliente.
+export const SETOR_RECEPCAO = "recepcao" satisfies SetorSlug;
 // Setor Simples Nacional nomeado, como o RH.
 export const SETOR_SN = "simples_nacional" satisfies SetorSlug;
 // Rota do resumo do Setor Simples Nacional.
