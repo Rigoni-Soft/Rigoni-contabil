@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
 
 import type {
   CadastroOperacionalClienteDto,
@@ -25,6 +26,14 @@ import { ConsultaError } from "@/shared/errors/consulta.error";
 import { primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
+
+// Row da view `clientes_basico`: falha alto se o banco divergir (arquitetura.md §3.9).
+const dadosBasicosSchema = z.object({
+  id: z.string(),
+  empresa: z.string(),
+  cnpj: z.string(),
+  regime: z.string(),
+});
 
 type ContatoRow = { id: string; nome: string; telefone: string; padrao: boolean };
 type AtividadeMensalRow = { industria: boolean; comercio: boolean; servico: boolean };
@@ -156,7 +165,11 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
       .eq("id", clienteId)
       .maybeSingle();
     if (error) return err(new ConsultaError(`Erro ao buscar dados básicos: ${error.message}`));
-    return ok((data as DadosBasicosClienteDto | null) ?? null);
+    if (!data) return ok(null);
+    const lido = dadosBasicosSchema.safeParse(data);
+    if (!lido.success)
+      return err(new ConsultaError("Erro ao buscar dados básicos: formato inesperado."));
+    return ok(lido.data);
   }
 
   async listarResponsaveisElegiveis(
