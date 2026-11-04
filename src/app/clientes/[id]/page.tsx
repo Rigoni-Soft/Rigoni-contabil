@@ -1,23 +1,17 @@
 import { redirect } from "next/navigation";
 
-import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
-import { Pilha } from "@/presentation/components/atoms/caixa.component";
-import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
 import { DadosBasicosDoCliente } from "@/presentation/components/molecules/dados-basicos-do-cliente.component";
+import { FalhaDeCarga } from "@/presentation/components/organisms/falha-de-carga.component";
 import { EditarCadastroOperacionalPage } from "@/presentation/components/pages/editar-cadastro-operacional.page";
 import { carregarSessao, validarSessao } from "@/presentation/view-models/shell/shell.server";
 import { AnexarAlteracaoContratualContainer } from "@/modules/clientes/presentation/view-models/anexar-alteracao-contratual/anexar-alteracao-contratual.container";
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import { EditarCadastroOperacionalContainer } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.container";
-import {
-  carregarCadastroOperacionalCliente,
-  carregarDadosBasicosCliente,
-} from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.server";
+import { carregarClienteParaPagina } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.server";
 import { ResponsavelDoSetorContainer } from "@/modules/clientes/presentation/view-models/responsavel-do-setor/responsavel-do-setor.container";
 import { ondeAtribuirResponsavel } from "@/modules/clientes/presentation/view-models/responsavel-do-setor/responsavel-do-setor.presenter";
 import { carregarResponsavelDoSetor } from "@/modules/clientes/presentation/view-models/responsavel-do-setor/responsavel-do-setor.server";
 import { alteracaoEmFocoDaUrl } from "@/modules/clientes/presentation/view-models/visualizar-documento-contratual/documentos-contratuais.presenter";
-import { carregarDocumentosContratuais } from "@/modules/clientes/presentation/view-models/visualizar-documento-contratual/visualizar-documento-contratual.server";
 import { hrefSeguro } from "@/shared/kernel/href-seguro";
 import {
   podeAnexarAlteracaoContratual,
@@ -41,17 +35,12 @@ export default async function Page({ params, searchParams }: Props) {
   const { id } = await params;
   const { voltarPara, alteracao } = await searchParams;
   const sessao = validarSessao(await carregarSessao());
-  // O RH só lê os dados básicos: nem o cadastro operacional nem os documentos chegam ao servidor da página.
   const soDadosBasicos = soLeDadosBasicosDoCliente(sessao.papel, sessao.setor);
-  const [basicos, operacional, documentos] = soDadosBasicos
-    ? ([await carregarDadosBasicosCliente(id), null, null] as const)
-    : ([
-        null,
-        ...(await Promise.all([
-          carregarCadastroOperacionalCliente(id),
-          carregarDocumentosContratuais(id),
-        ])),
-      ] as const);
+  const { basicos, operacional, documentos } = await carregarClienteParaPagina(
+    id,
+    sessao.papel,
+    sessao.setor,
+  );
   const carregado = basicos ?? operacional;
   // Falha de leitura não é Cliente inexistente: só este segundo volta ao início.
   if (carregado && !carregado.ok) {
@@ -61,14 +50,10 @@ export default async function Page({ params, searchParams }: Props) {
         titulo="Cliente"
         voltarHref={hrefSeguro(voltarPara)}
         formulario={
-          <Pilha espaco={3}>
-            <AvisoDeStatus
-              tipo="erro"
-              texto="Não foi possível carregar o cliente. Tente novamente."
-              legivel
-            />
-            <LinkDeAcao href={`/clientes/${encodeURIComponent(id)}`}>Tentar novamente</LinkDeAcao>
-          </Pilha>
+          <FalhaDeCarga
+            texto="Não foi possível carregar o cliente. Tente novamente."
+            tentarNovamenteHref={`/clientes/${encodeURIComponent(id)}`}
+          />
         }
       />
     );

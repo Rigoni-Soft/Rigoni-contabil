@@ -1,7 +1,5 @@
-import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
-import { Pilha } from "@/presentation/components/atoms/caixa.component";
-import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
 import { CabecalhoDeTela } from "@/presentation/components/molecules/cabecalho-de-tela.component";
+import { FalhaDeCarga } from "@/presentation/components/organisms/falha-de-carga.component";
 import { TelaDeTrabalhoTemplate } from "@/presentation/components/templates/tela-de-trabalho-template.component";
 
 type ResumoSetorListaPageProps = {
@@ -39,16 +37,7 @@ export function ResumoSetorListaPage({
         />
       }
       conteudo={
-        erro ? (
-          <Pilha espaco={3}>
-            <AvisoDeStatus tipo="erro" texto={erro} legivel />
-            {tentarNovamenteHref && (
-              <LinkDeAcao href={tentarNovamenteHref}>Tentar novamente</LinkDeAcao>
-            )}
-          </Pilha>
-        ) : (
-          lista
-        )
+        erro ? <FalhaDeCarga texto={erro} tentarNovamenteHref={tentarNovamenteHref} /> : lista
       }
     />
   );
