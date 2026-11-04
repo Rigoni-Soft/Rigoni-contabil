@@ -16,7 +16,7 @@ describe("ResumoSetorLista", () => {
     expect(screen.getByText("11.444.777/0001-61")).toBeInTheDocument();
     expect(screen.getByRole("link")).toHaveAttribute(
       "href",
-      "/clientes/c1?voltarPara=/clientes/resumo/sem_documento",
+      "/clientes/c1?voltarPara=%2Fclientes%2Fresumo%2Fsem_documento",
     );
   });
 

@@ -68,7 +68,7 @@ export function ResumoSetorLista({ clientes, bucket, vazio, rotaBase }: Props) {
           className="[contain-intrinsic-size:auto_72px] [content-visibility:auto]"
         >
           <LinhaDeCliente
-            href={`/clientes/${cliente.clienteId}?voltarPara=${rotaBase}/${bucket}`}
+            href={`/clientes/${cliente.clienteId}?voltarPara=${encodeURIComponent(`${rotaBase}/${bucket}`)}`}
             empresa={cliente.empresa}
             cnpj={formatarCnpj(cliente.cnpj)}
             detalhes={
