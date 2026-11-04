@@ -104,3 +104,8 @@ export function podeMarcarAcompanhamentoRh(papel: string, setor: string): boolea
 export function podeGerirServicosRh(papel: string, setor: string): boolean {
   return papel === "lider_setor" && setor === SETOR_RH;
 }
+
+// Gráfico de acompanhamento dos funcionários do RH: só o Líder do RH e o Admin; o Funcionário vê só a tabela.
+export function podeVerAcompanhamentoDosFuncionariosRh(papel: string, setor: string): boolean {
+  return papel === "admin" || (papel === "lider_setor" && setor === SETOR_RH);
+}

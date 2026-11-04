@@ -62,18 +62,23 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
   async listarClientes(
     competencia: string,
     responsavelId: string | null,
+    incluirSemResponsavel = false,
   ): Promise<Result<ClienteAcompanhamentoDto[], AppError>> {
     try {
-      const responsaveis = await lerTudo<{ cliente_id: string }>((de, ate) => {
+      const responsaveis = await lerTudo<{
+        cliente_id: string;
+        responsavel_id: string;
+        responsavel: { nome: string } | null;
+      }>((de, ate) => {
         const consulta = this.supabase
           .from("cliente_responsaveis")
-          .select("cliente_id")
+          .select("cliente_id, responsavel_id, responsavel:perfis!responsavel_id(nome)")
           .eq("setor", SETOR_RH)
           .order("cliente_id")
           .range(de, ate);
         return responsavelId ? consulta.eq("responsavel_id", responsavelId) : consulta;
       });
-      if (responsaveis.length === 0) return ok([]);
+      if (responsaveis.length === 0 && !incluirSemResponsavel) return ok([]);
 
       // A view `clientes_basico` só devolve o que o ator enxerga; o RH não lê o cadastro do SN.
       const [clientes, naoAplica, marcacoes] = await Promise.all([
@@ -107,11 +112,11 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
       };
       const naoAplicaDe = porCliente(naoAplica);
       const concluidosDe = porCliente(marcacoes);
-      const atribuidos = new Set(responsaveis.map((r) => r.cliente_id));
+      const responsavelDe = new Map(responsaveis.map((r) => [r.cliente_id, r]));
 
       return ok(
         clientes
-          .filter((c) => atribuidos.has(c.id))
+          .filter((c) => incluirSemResponsavel || responsavelDe.has(c.id))
           .sort((a, b) => a.empresa.localeCompare(b.empresa, "pt-BR"))
           .map((c) => ({
             clienteId: c.id,
@@ -119,6 +124,12 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
             cnpj: c.cnpj,
             naoAplica: naoAplicaDe.get(c.id) ?? [],
             concluidos: concluidosDe.get(c.id) ?? [],
+            responsavel: responsavelDe.has(c.id)
+              ? {
+                  id: responsavelDe.get(c.id)!.responsavel_id,
+                  nome: responsavelDe.get(c.id)!.responsavel?.nome ?? "Sem nome",
+                }
+              : null,
           })),
       );
     } catch (e) {

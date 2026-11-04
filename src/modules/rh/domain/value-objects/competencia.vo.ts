@@ -28,6 +28,15 @@ export class Competencia {
     return `${this.props.valor}-01`;
   }
 
+  // Os `quantidade` meses terminados no mês desta competência, do mais antigo ao mais novo ("AAAA-MM").
+  ultimosMeses(quantidade: number): string[] {
+    const [ano, mes] = this.props.valor.split("-").map(Number);
+    return Array.from({ length: quantidade }, (_, i) => {
+      const d = new Date(Date.UTC(ano, mes - 1 - (quantidade - 1 - i), 1));
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    });
+  }
+
   ehFutura(agora: Date): boolean {
     return this.props.valor > mesAtual(agora);
   }

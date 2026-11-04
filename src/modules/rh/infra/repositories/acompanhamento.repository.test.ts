@@ -17,6 +17,7 @@ const SERVICE_ROLE_KEY =
 
 const CNPJ_A = "11444777009811";
 const CNPJ_B = "11444777009812";
+const CNPJ_SEM_RESPONSAVEL = "11444777009813";
 const FUNCIONARIO_RH_ID = "dddddddd-dddd-dddd-dddd-dddddddddddd";
 const FUNCIONARIO2_RH_ID = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee";
 const PREFIXO = "Teste214 ";
@@ -50,7 +51,7 @@ const auditorias = async (acao: string, alvoLike: string) =>
   (await servico.from("registros_auditoria").select("ator, setor").eq("acao", acao).like("alvo", alvoLike)).data ?? [];
 
 beforeAll(async () => {
-  await removerClientesDeTeste([CNPJ_A, CNPJ_B]);
+  await removerClientesDeTeste([CNPJ_A, CNPJ_B, CNPJ_SEM_RESPONSAVEL]);
   await apagarServicosDeTeste();
   clienteA = crypto.randomUUID();
   clienteB = crypto.randomUUID();
@@ -73,7 +74,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await removerClientesDeTeste([CNPJ_A, CNPJ_B]);
+  await removerClientesDeTeste([CNPJ_A, CNPJ_B, CNPJ_SEM_RESPONSAVEL]);
   await apagarServicosDeTeste();
   await servico.from("registros_auditoria").delete().like("alvo", `${PREFIXO}%`);
 });
@@ -178,6 +179,26 @@ describe("Acompanhamento mensal do RH (integração)", () => {
 
     expect(outro.ok).toBe(false);
     expect(hol.ok).toBe(false);
+  });
+
+  it("traz o Responsável de cada cliente e, a pedido, os clientes sem Responsável", async () => {
+    const semResponsavel = await servico
+      .from("clientes")
+      .insert({ id: crypto.randomUUID(), empresa: "Acomp C Ltda", cnpj: CNPJ_SEM_RESPONSAVEL, regime: "lucro_presumido" });
+    if (semResponsavel.error) throw semResponsavel.error;
+    const { repo } = await comoLiderRH();
+
+    const padrao = await repo.listarClientes(MES, null);
+    const todos = await repo.listarClientes(MES, null, true);
+
+    expect(padrao.ok && padrao.value.map((c) => c.cnpj)).not.toContain(CNPJ_SEM_RESPONSAVEL);
+    const meus = todos.ok ? todos.value.filter((c) => c.cnpj.startsWith("1144477700981")) : [];
+    expect(meus.map((c) => [c.cnpj, c.responsavel?.id ?? null])).toEqual([
+      [CNPJ_A, FUNCIONARIO_RH_ID],
+      [CNPJ_B, FUNCIONARIO2_RH_ID],
+      [CNPJ_SEM_RESPONSAVEL, null],
+    ]);
+    expect(meus[0].responsavel?.nome).toBeTruthy();
   });
 
   it("o Líder e o Admin leem todos os clientes atribuídos; o Funcionário só os seus", async () => {

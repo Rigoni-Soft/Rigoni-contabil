@@ -15,6 +15,8 @@ export interface AcompanhamentoRepository {
   listarClientes(
     competencia: string,
     responsavelId: string | null,
+    // O Líder e o Admin também veem os clientes sem Responsável.
+    incluirSemResponsavel?: boolean,
   ): Promise<Result<ClienteAcompanhamentoDto[], AppError>>;
   // null = cliente inexistente ou fora da vista do ator.
   buscarCliente(clienteId: string): Promise<Result<ClienteDoAcompanhamentoDto | null, AppError>>;
