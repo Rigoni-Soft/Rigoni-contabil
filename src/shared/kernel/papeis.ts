@@ -91,7 +91,7 @@ export function podeAnexarAlteracaoContratual(papel: string): boolean {
   return papel === "admin";
 }
 
-// Acompanhamento mensal do RH (#214): o Admin e o RH inteiro leem; só o Funcionário do RH marca (e só os
+// Acompanhamento mensal do RH: o Admin e o RH inteiro leem; só o Funcionário do RH marca (e só os
 // Clientes pelos quais é Responsável, por RLS); só o Líder do RH mantém a lista de serviços.
 export function podeVerAcompanhamentoRh(papel: string, setor: string): boolean {
   return papel === "admin" || setor === SETOR_RH;

@@ -1,5 +1,5 @@
 /**
- * Integração infra ↔ Supabase: acompanhamento mensal do RH (#214). RLS por setor (o Funcionário marca só
+ * Integração infra ↔ Supabase: acompanhamento mensal do RH. RLS por setor (o Funcionário marca só
  * os seus clientes; Líder e Admin leem todos), serviço desativado que preserva os meses anteriores, Holerite
  * do sistema e auditoria na mesma transação. Requer `npx supabase start` com migrations + seed aplicados.
  */

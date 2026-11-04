@@ -2,7 +2,7 @@ import { expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import { cnpjUnico, login } from "./support/criar-cliente";
 
-// Acompanhamento mensal do RH (#214): o Funcionário marca os serviços dos seus clientes; o Líder lê todos
+// Acompanhamento mensal do RH: o Funcionário marca os serviços dos seus clientes; o Líder lê todos
 // (sem caixas habilitadas) e cadastra serviços; a marcação fica auditada.
 const admin = adminLocal();
 const EMPRESA = `Acomp E2E ${`${Date.now()}`.slice(-6)} Ltda`;
