@@ -47,6 +47,9 @@ test.describe("Acompanhamento dos funcionários do RH", () => {
       .select("nome")
       .eq("id", FUNCIONARIO_RH_ID)
       .single();
+    await expect(page.getByRole("group", { name: "Clientes que faltam por serviço" })).toContainText(
+      perfil!.nome,
+    );
     await page
       .getByRole("group", { name: "Pontos por funcionário" })
       .getByRole("link", { name: perfil!.nome })

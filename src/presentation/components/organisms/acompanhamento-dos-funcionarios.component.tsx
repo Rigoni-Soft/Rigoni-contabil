@@ -16,6 +16,7 @@ export type FuncionarioDoGrafico = {
   nome: string;
   atribuidos: number;
   pontos: number;
+  percentual: number;
   href: string;
   faltam: { servicoId: string; nome: string; clientes: number }[];
 };
@@ -87,7 +88,7 @@ export function AcompanhamentoDosFuncionarios({
               <Caixa aria-hidden className="h-2 rounded-full bg-border">
                 <Caixa
                   className="h-2 rounded-full bg-primary"
-                  style={{ width: `${f.atribuidos === 0 ? 0 : (f.pontos / f.atribuidos) * 100}%` }}
+                  style={{ width: `${f.percentual}%` }}
                 />
               </Caixa>
             </Pilha>

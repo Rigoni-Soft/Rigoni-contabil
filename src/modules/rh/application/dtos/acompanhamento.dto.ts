@@ -60,7 +60,8 @@ export type DetalheDoFuncionarioDto = {
   // Clientes pendentes agrupados pelo serviço que falta, na ordem das colunas; um cliente com
   // dois serviços faltando aparece nos dois.
   pendencias: PendenciaDoFuncionarioDto[];
-  // Do mês mais antigo ao mais novo, com o mês consultado por último.
+  // Do mês mais antigo ao mais novo, com o mês consultado por último. Usa o Responsável de hoje em
+  // todos os meses (não há histórico de atribuição).
   evolucao: { competencia: string; pontos: number; atribuidos: number }[];
   // Clientes incompletos há mais meses seguidos (até o mês consultado), do mais atrasado ao menos.
   maisAtrasados: { clienteId: string; empresa: string; meses: number }[];

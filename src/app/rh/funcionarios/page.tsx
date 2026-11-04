@@ -8,6 +8,7 @@ import {
 } from "@/presentation/view-models/shell/shell.server";
 import { ShellNavContainer } from "@/modules/atendimento/presentation/view-models/atendimento-central/shell-nav.container";
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
+import { funcionariosDoGrafico } from "@/modules/rh/presentation/view-models/acompanhamento-funcionarios/acompanhamento-funcionarios.presenter";
 import { carregarAcompanhamentoFuncionarios } from "@/modules/rh/presentation/view-models/acompanhamento-funcionarios/acompanhamento-funcionarios.server";
 import {
   mesVizinho,
@@ -47,10 +48,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ m
                 ? `${ROTA}?mes=${mesVizinho(dados.value.competencia, 1)}`
                 : undefined
             }
-            funcionarios={dados.value.funcionarios.map((f) => ({
-              ...f,
-              href: `${ROTA}/${f.id}?mes=${dados.value.competencia}`,
-            }))}
+            funcionarios={funcionariosDoGrafico(dados.value, ROTA)}
             semResponsavel={dados.value.semResponsavel}
           />
         )
