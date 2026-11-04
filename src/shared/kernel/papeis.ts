@@ -69,10 +69,10 @@ export function podeAtribuirResponsavel(papel: string, setor: string): boolean {
   return papel === "lider_setor" && setor !== "recepcao";
 }
 
-// Quem enxerga a carteira inteira do Setor (com os Clientes sem Responsável): todos menos o
-// Funcionário, que só vê os Clientes de que é Responsável.
+// Quem enxerga a carteira inteira do Setor (com os Clientes sem Responsável): o Admin e o Líder. O
+// Funcionário só vê os Clientes de que é Responsável; papel desconhecido não vê a carteira.
 export function veCarteiraInteira(papel: string): boolean {
-  return papel !== "funcionario";
+  return papel === "admin" || papel === "lider_setor";
 }
 
 // O comparativo por Responsável do dashboard de um Setor é do Líder: o Funcionário não vê o

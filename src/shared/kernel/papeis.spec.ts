@@ -57,6 +57,7 @@ describe("veCarteiraInteira", () => {
     ["admin", true],
     ["lider_setor", true],
     ["funcionario", false],
+    ["papel_novo", false],
   ])("%s vê a carteira inteira: %s", (papel, esperado) => {
     expect(veCarteiraInteira(papel)).toBe(esperado);
   });
