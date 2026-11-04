@@ -724,6 +724,29 @@ reenviar repete só a atribuição.
 usar `SETOR_LABEL` (`shared/kernel/setores.ts`) e `REGIME_LABEL`.
 `ThemeToggle` mostra o ícone do tema de destino (sol no dark, lua no light).
 
+### Aba RH e dados básicos do Cliente (#213)
+
+**Aba "RH" do `ShellNav`:** um chip como os demais Setores, com a rota vinda de
+`ROTA_POR_SETOR` (`shared/kernel/setores.ts`, o mesmo mapa que decide o destino
+de "/" para quem tem dashboard próprio); Setor sem tela segue desabilitado.
+
+**`ResumoSetorLista` / `ResumoSetorListaPage` atendem SN e RH:** a lista de
+drill-down e a tela são as mesmas; a página do Setor só informa a rota-base
+(`/clientes/resumo` ou `/rh/resumo`) e o destino do "Voltar".
+
+**`ComparativosRh`:** um único gráfico, "Clientes por Responsável", em
+`BarrasDeFatias` (as mesmas barras do 4º comparativo do SN), só para o Líder;
+o Funcionário do RH vê o resumo sem o acompanhamento dos colegas.
+
+**`DadosBasicosDoCliente`:** lista de definição (`dl`: Empresa, CNPJ, Regime)
+com `dt`/`dd`, para o leitor de tela associar rótulo e valor. É o que o RH vê
+em `/clientes/[id]`, com o bloco do Responsável do RH logo abaixo; o título da
+página é "Dados do cliente".
+
+**`FalhaDeCarga`:** aviso de erro lido pelo leitor de tela e o link "Tentar
+novamente" para a própria rota. O `<h1>` da tela de falha diz o que houve
+("Não foi possível carregar o cliente"), não só o nome da tela.
+
 ### Lista de usuários e desativação inline (#58)
 
 `/admin/usuarios` (só Admin) lista usuários ativos num `<ul>` de linhas sobre
