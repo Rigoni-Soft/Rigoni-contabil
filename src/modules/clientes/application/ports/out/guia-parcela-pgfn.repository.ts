@@ -1,0 +1,63 @@
+import type {
+  EstadoDaGuiaPgfn,
+  GuiaParcelaPgfnProps,
+} from "@/modules/clientes/domain/value-objects/guia-parcela-pgfn.vo";
+import type { OrigemDoParcelamento } from "@/modules/clientes/domain/value-objects/parcelamento.vo";
+import type { AppError } from "@/shared/errors/app.error";
+import type { Result } from "@/shared/kernel/result";
+
+export type GuiaDaParcela = {
+  competencia: string;
+  contaNegociacao: string;
+  estado: EstadoDaGuiaPgfn;
+  // Identifica o PDF atual da guia (o caminho no Storage): confirmar vale só para a versão conferida.
+  versao: string;
+  // O que conferir enquanto a guia está "a confirmar"; some quando ela é confirmada.
+  motivo?: string;
+  // A competência já tem registro de envio: a guia não troca nem remove. Só a listagem preenche.
+  enviada?: boolean;
+};
+
+// `cnpj` é o do Cliente e `codigo` a conta de negociação do Parcelamento: com o que o PDF é conferido.
+export type ParcelamentoDaGuia = {
+  clienteId: string;
+  origem: OrigemDoParcelamento | null;
+  cnpj: string;
+  codigo: string;
+};
+
+// Tudo passa pela sessão do usuário: a RLS decide quem vê, anexa e confirma; os gatilhos do banco
+// recusam competência já enviada, segundo anexo na competência e Parcelamento que não é da PGFN.
+export interface GuiaParcelaPgfnRepository {
+  // null = não existe ou a RLS o esconde.
+  parcelamento(parcelamentoId: string): Promise<Result<ParcelamentoDaGuia | null, AppError>>;
+  listar(parcelamentoId: string): Promise<Result<GuiaDaParcela[], AppError>>;
+  anexar(
+    parcelamentoId: string,
+    guia: GuiaParcelaPgfnProps,
+    motivo: string | null,
+  ): Promise<Result<void, AppError>>;
+  // Confirma só se o PDF atual ainda é a `versao` conferida: outro PDF entrou no meio, nada é liberado.
+  confirmar(
+    parcelamentoId: string,
+    competencia: string,
+    versao: string,
+  ): Promise<Result<void, AppError>>;
+  // O caminho do PDF anexado; null = a guia não existe ou a RLS a esconde.
+  arquivo(parcelamentoId: string, competencia: string): Promise<Result<string | null, AppError>>;
+  // Troca o PDF da guia ainda não enviada: o banco a devolve a "a confirmar".
+  substituir(
+    parcelamentoId: string,
+    competencia: string,
+    nova: Pick<GuiaParcelaPgfnProps, "contaNegociacao" | "arquivoCaminho">,
+    motivo: string | null,
+  ): Promise<Result<void, AppError>>;
+  // Remove o registro da guia ainda não enviada (o arquivo é apagado por quem chama).
+  remover(parcelamentoId: string, competencia: string): Promise<Result<void, AppError>>;
+  // O registro dessa competência aponta para esse arquivo (reconciliação de resposta perdida).
+  gravada(
+    parcelamentoId: string,
+    competencia: string,
+    arquivoCaminho: string,
+  ): Promise<Result<boolean, AppError>>;
+}

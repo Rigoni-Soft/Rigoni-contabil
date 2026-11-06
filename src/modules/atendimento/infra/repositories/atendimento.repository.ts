@@ -1,0 +1,545 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
+
+import type {
+  AberturaAtendimento,
+  AtendimentoAberto,
+  NovaMensagem,
+} from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
+import type { AnexarMensagemOutput } from "@/modules/atendimento/application/ports/in/anexar-mensagem-atendimento.provider";
+import type { DadosDoContato } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
+import type {
+  AnexoDaMensagem,
+  AtendimentoDoFuncionario,
+  AtendimentoEmAndamento,
+  AtendimentoRepositoryPort,
+  ConversaLida,
+  ItemDaFila,
+  MensagemLida,
+  MensagemParaReacao,
+  MensagensAnteriores,
+  MensagensPorId,
+  NovaTransferencia,
+  ResultadoAssuncao,
+  ResultadoEncerramento,
+  ResultadoRegistroDoFuncionario,
+  ResultadoRegistroRecebido,
+  ResultadoTransferencia,
+  RoteamentoDoCliente,
+} from "@/modules/atendimento/application/ports/out/atendimento.repository";
+import {
+  CONVERSA_JANELA_MENSAGENS,
+  type CursorDaConversa,
+} from "@/modules/atendimento/domain/services/janela-da-conversa.service";
+import {
+  aberturaRowSchema,
+  anexoRowSchema,
+  assuncaoRowSchema,
+  atendimentoDoFuncionarioRowSchema,
+  atendimentoEmAndamentoRowSchema,
+  atendimentoIdRowSchema,
+  conversaRowSchema,
+  encerramentoRowSchema,
+  filaRowSchema,
+  liderRowSchema,
+  mensagemParaReacaoRowSchema,
+  mensagensAnterioresRowSchema,
+  registroDoFuncionarioRowSchema,
+  registroRecebidoRowSchema,
+  roteamentoDoClienteRowSchema,
+  transferenciaRowSchema,
+  type mensagemDaConversaRowSchema,
+} from "@/modules/atendimento/infra/dtos/atendimento-rpc-row.dto";
+import type { AppError } from "@/shared/errors/app.error";
+import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
+import { err, ok, type Result } from "@/shared/kernel/result";
+import type { SetorSlug } from "@/shared/kernel/setores";
+
+// Os quatro campos do anexo nascem juntos (CHECK da tabela).
+function paraMensagemLida(m: z.infer<typeof mensagemDaConversaRowSchema>): MensagemLida {
+  return {
+    id: m.id,
+    autor: m.autor,
+    texto: m.texto,
+    criadoEm: m.criado_em,
+    atendente: m.perfis ? { nome: m.perfis.nome, setor: m.perfis.setor } : null,
+    idExterno: m.id_externo,
+    reacao: m.reacao,
+    entrega: m.entrega,
+    anexo:
+      m.anexo_tipo && m.anexo_nome && m.anexo_caminho && m.anexo_tamanho !== null
+        ? {
+            tipo: m.anexo_tipo,
+            nome: m.anexo_nome,
+            tamanho: m.anexo_tamanho,
+            caminho: m.anexo_caminho,
+            miniaturaCaminho: m.anexo_miniatura_caminho,
+          }
+        : null,
+  };
+}
+
+// Usa o client service_role (docs/adr/0001); a tabela não tem policy para usuário logado.
+export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort {
+  constructor(private readonly supabaseAdmin: SupabaseClient) {}
+
+  async abrir(atendimento: AberturaAtendimento): Promise<Result<AtendimentoAberto, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("abrir_atendimento", {
+      p_telefone: atendimento.telefone,
+      p_chave: atendimento.chave,
+      p_cliente_id: atendimento.clienteId,
+      p_setor: atendimento.setor,
+      p_mensagens: atendimento.mensagens,
+      p_resumo: atendimento.resumo ?? null,
+      p_cnpj_informado: atendimento.cnpjInformado ?? null,
+    });
+    if (error) return err(new ServicoExternoError("Falha ao abrir o Atendimento."));
+    return ok(aberturaRowSchema.parse(data));
+  }
+
+  async anexarMensagem(
+    chave: string,
+    mensagem: NovaMensagem,
+  ): Promise<Result<AnexarMensagemOutput, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("anexar_mensagem_atendimento", {
+      p_chave: chave,
+      p_autor: mensagem.autor,
+      p_texto: mensagem.texto,
+      p_id_externo: mensagem.idExterno ?? null,
+    });
+    if (error) return err(new ServicoExternoError("Falha ao registrar a Mensagem."));
+    return ok({ anexada: anexoRowSchema.parse(data) });
+  }
+
+  async atendimentoParaMidia(
+    chave: string,
+    idExterno: string | undefined,
+  ): Promise<Result<{ atendimentoId: string; jaRegistrada: boolean } | null, AppError>> {
+    // Mesmo critério da RPC de anexar: o Atendimento em andamento mais novo do número.
+    const atendimento = await this.supabaseAdmin
+      .from("atendimentos")
+      .select("id")
+      .eq("chave_telefone", chave)
+      .eq("status", "em_andamento")
+      .order("criado_em", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (atendimento.error) return err(new ServicoExternoError("Falha ao consultar o Atendimento."));
+    if (!atendimento.data) return ok(null);
+    const { id: atendimentoId } = atendimentoIdRowSchema.parse(atendimento.data);
+    if (!idExterno) return ok({ atendimentoId, jaRegistrada: false });
+
+    const existente = await this.supabaseAdmin
+      .from("mensagens")
+      .select("id")
+      .eq("atendimento_id", atendimentoId)
+      .eq("id_externo", idExterno)
+      .maybeSingle();
+    if (existente.error) return err(new ServicoExternoError("Falha ao consultar a Mensagem."));
+    return ok({ atendimentoId, jaRegistrada: existente.data !== null });
+  }
+
+  async registrarMensagemRecebida(
+    atendimentoId: string,
+    mensagem: {
+      autor: "contato" | "ura";
+      texto: string;
+      idExterno?: string;
+      anexo?: AnexoDaMensagem;
+    },
+  ): Promise<Result<ResultadoRegistroRecebido, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("registrar_mensagem_recebida", {
+      p_atendimento_id: atendimentoId,
+      p_autor: mensagem.autor,
+      p_texto: mensagem.texto,
+      p_id_externo: mensagem.idExterno ?? null,
+      p_anexo: mensagem.anexo ?? null,
+    });
+    if (error) return err(new ServicoExternoError("Falha ao registrar a Mensagem."));
+    return ok(registroRecebidoRowSchema.parse(data));
+  }
+
+  async buscarEmAndamento(id: string): Promise<Result<AtendimentoEmAndamento | null, AppError>> {
+    const { data, error } = await this.supabaseAdmin
+      .from("atendimentos")
+      .select("id, cliente_id, setor, funcionario_id, telefone, chave_telefone")
+      .eq("id", id)
+      .eq("status", "em_andamento")
+      .maybeSingle();
+    if (error) return err(new ServicoExternoError("Falha ao consultar o Atendimento."));
+    if (!data) return ok(null);
+    const linha = atendimentoEmAndamentoRowSchema.parse(data);
+    return ok({
+      id: linha.id,
+      clienteId: linha.cliente_id,
+      setor: linha.setor,
+      funcionarioId: linha.funcionario_id,
+      telefone: linha.telefone,
+      chave: linha.chave_telefone,
+    });
+  }
+
+  async roteamentoDoCliente(
+    clienteId: string,
+    setorDestino?: SetorSlug,
+  ): Promise<Result<RoteamentoDoCliente | null, AppError>> {
+    const { data, error } = await this.supabaseAdmin
+      .from("clientes")
+      .select(
+        "regime, cliente_cadastro_operacional_sn(responsavel_id), cliente_responsaveis(setor, responsavel_id)",
+      )
+      .eq("id", clienteId)
+      .maybeSingle();
+    if (error) return err(new ServicoExternoError("Falha ao consultar o Cliente."));
+    if (!data) return ok(null);
+    const linha = roteamentoDoClienteRowSchema.parse(data);
+    // O Simples Nacional guarda o Responsável no cadastro operacional; os demais Setores, em tabela própria.
+    const responsavelId = !setorDestino
+      ? null
+      : setorDestino === "simples_nacional"
+        ? (linha.cliente_cadastro_operacional_sn?.responsavel_id ?? null)
+        : (linha.cliente_responsaveis.find((r) => r.setor === setorDestino)?.responsavel_id ??
+          null);
+    if (!responsavelId) return ok({ regime: linha.regime, responsavelId: null });
+    // Responsável desativado não recebe: o Atendimento cai no Líder.
+    const ativo = await this.supabaseAdmin
+      .from("perfis")
+      .select("id")
+      .eq("id", responsavelId)
+      .is("desativado_em", null)
+      .maybeSingle();
+    if (ativo.error) return err(new ServicoExternoError("Falha ao consultar o Responsável."));
+    return ok({ regime: linha.regime, responsavelId: ativo.data ? responsavelId : null });
+  }
+
+  // Cada Setor tem um só Líder (regra de domínio); se o banco devolver dois, falha em vez de escolher.
+  async liderDoSetor(setor: SetorSlug): Promise<Result<string | null, AppError>> {
+    const { data, error } = await this.supabaseAdmin
+      .from("perfis")
+      .select("id")
+      .eq("setor", setor)
+      .eq("papel", "lider_setor")
+      .is("desativado_em", null)
+      .maybeSingle();
+    if (error) return err(new ServicoExternoError("Falha ao consultar o Líder do Setor."));
+    return ok(data ? liderRowSchema.parse(data).id : null);
+  }
+
+  async transferir(
+    transferencia: NovaTransferencia,
+  ): Promise<Result<ResultadoTransferencia, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("transferir_atendimento", {
+      p_atendimento_id: transferencia.atendimentoId,
+      p_origem_funcionario_id: transferencia.origemFuncionarioId,
+      p_setor_destino: transferencia.setorDestino,
+      p_dirigido_a: transferencia.dirigidoA,
+      p_resumo: transferencia.resumo,
+      p_ator: transferencia.ator.id,
+      p_ator_setor: transferencia.ator.setor,
+      p_setor_origem: transferencia.setorOrigem,
+    });
+    if (error) return err(new ServicoExternoError("Falha ao transferir o Atendimento."));
+    const linha = transferenciaRowSchema.parse(data);
+    if (linha.status !== "transferido") return ok(linha);
+    return ok({
+      status: "transferido",
+      destinatarioNome: linha.destinatario_nome,
+      origemNome: linha.origem_nome,
+      contato: { contatoNome: linha.contato_nome, empresa: linha.empresa, cnpj: linha.cnpj },
+    });
+  }
+
+  async filaDoSetor(setor: SetorSlug): Promise<Result<ItemDaFila[], AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("fila_do_setor", { p_setor: setor });
+    if (error) return err(new ServicoExternoError("Falha ao consultar a Fila do Setor."));
+    return ok(
+      z
+        .array(filaRowSchema)
+        .parse(data)
+        .map((linha) => ({
+          id: linha.id,
+          filaFuncionarioId: linha.fila_funcionario_id,
+          filaDesde: new Date(linha.fila_desde),
+          telefone: linha.telefone,
+          contato: { contatoNome: linha.contato_nome, empresa: linha.empresa, cnpj: linha.cnpj },
+          resumo: linha.resumo,
+          origem: linha.origem_setor
+            ? { setor: linha.origem_setor, nome: linha.origem_nome }
+            : null,
+        })),
+    );
+  }
+
+  async assumir(
+    atendimentoId: string,
+    atorId: string,
+  ): Promise<Result<ResultadoAssuncao, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("assumir_atendimento", {
+      p_atendimento_id: atendimentoId,
+      p_ator: atorId,
+    });
+    if (error) return err(new ServicoExternoError("Falha ao assumir o Atendimento."));
+    return ok(assuncaoRowSchema.parse(data));
+  }
+
+  encerrar(
+    atendimentoId: string,
+    funcionarioId: string | null,
+    ator: { id: string; setor: SetorSlug },
+  ): Promise<Result<ResultadoEncerramento, AppError>> {
+    return this.chamarEncerramento("encerrar_atendimento", atendimentoId, funcionarioId, ator);
+  }
+
+  private async chamarEncerramento(
+    rpc: "encerrar_atendimento",
+    atendimentoId: string,
+    funcionarioId: string | null,
+    ator: { id: string; setor: SetorSlug },
+  ): Promise<Result<ResultadoEncerramento, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc(rpc, {
+      p_atendimento_id: atendimentoId,
+      p_funcionario_id: funcionarioId,
+      p_ator: ator.id,
+      p_ator_setor: ator.setor,
+    });
+    if (error) return err(new ServicoExternoError("Falha ao encerrar o Atendimento."));
+    return ok(encerramentoRowSchema.parse(data));
+  }
+
+  async encerrarSemRespostaDoCliente(corte: Date, ator: string): Promise<Result<number, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("encerrar_atendimentos_por_silencio", {
+      p_corte: corte.toISOString(),
+      p_ator: ator,
+    });
+    const encerrados = z.number().int().safeParse(data);
+    if (error || !encerrados.success) {
+      return err(new ServicoExternoError("Falha ao encerrar os Atendimentos sem resposta."));
+    }
+    return ok(encerrados.data);
+  }
+
+  emAndamentoDoFuncionario(
+    funcionarioId: string,
+  ): Promise<Result<AtendimentoDoFuncionario[], AppError>> {
+    return this.emAndamento("funcionario_id", funcionarioId);
+  }
+
+  emAndamentoDoSetor(setor: SetorSlug): Promise<Result<AtendimentoDoFuncionario[], AppError>> {
+    return this.emAndamento("setor", setor);
+  }
+
+  // Em atendimento (com dono), pelo dono ou pelo Setor, do assumido há mais tempo ao mais recente.
+  private async emAndamento(
+    coluna: "funcionario_id" | "setor",
+    valor: string,
+  ): Promise<Result<AtendimentoDoFuncionario[], AppError>> {
+    const { data, error } = await this.supabaseAdmin
+      .from("atendimentos")
+      .select(
+        "id, funcionario_id, dono:perfis!funcionario_id(nome), telefone, chave_telefone, criado_em, clientes(empresa, cnpj, cliente_contatos(nome, telefone, padrao, criado_em)), mensagens(autor, texto, criado_em, anexo_tipo)",
+      )
+      .order("criado_em", { referencedTable: "mensagens", ascending: false })
+      .limit(1, { referencedTable: "mensagens" })
+      .eq(coluna, valor)
+      .not("funcionario_id", "is", null)
+      .eq("status", "em_andamento")
+      .order("assumido_em")
+      .order("id");
+    if (error) return err(new ServicoExternoError("Falha ao consultar os Atendimentos."));
+    return ok(
+      z
+        .array(atendimentoDoFuncionarioRowSchema)
+        .parse(data)
+        .map((linha) => ({
+          id: linha.id,
+          funcionarioId: linha.funcionario_id,
+          funcionarioNome: linha.dono?.nome ?? null,
+          telefone: linha.telefone,
+          criadoEm: linha.criado_em,
+          contato: dadosDoContato(linha.clientes, linha.chave_telefone),
+          ultimaMensagem: linha.mensagens[0]
+            ? {
+                autor: linha.mensagens[0].autor,
+                texto: linha.mensagens[0].texto,
+                criadoEm: linha.mensagens[0].criado_em,
+                anexoTipo: linha.mensagens[0].anexo_tipo,
+              }
+            : null,
+        })),
+    );
+  }
+
+  async conversa(atendimentoId: string): Promise<Result<ConversaLida | null, AppError>> {
+    const { data, error } = await this.supabaseAdmin
+      .from("atendimentos")
+      .select(
+        "id, status, setor, funcionario_id, cliente_id, telefone, chave_telefone, resumo_ura, cnpj_informado, clientes(empresa, cnpj, cliente_contatos(nome, telefone, padrao, criado_em)), mensagens(id, autor, texto, criado_em, id_externo, reacao, entrega, anexo_tipo, anexo_nome, anexo_caminho, anexo_tamanho, anexo_miniatura_caminho, perfis(nome, setor)), transferencias(setor_origem, resumo, origem:perfis!funcionario_origem_id(nome))",
+      )
+      .eq("id", atendimentoId)
+      // As mais recentes primeiro e uma a mais que a janela (diz se há histórico); a ordem
+      // cronológica volta em memória.
+      .order("criado_em", { referencedTable: "mensagens", ascending: false })
+      .order("id", { referencedTable: "mensagens", ascending: false })
+      .limit(CONVERSA_JANELA_MENSAGENS + 1, { referencedTable: "mensagens" })
+      .order("criado_em", { referencedTable: "transferencias", ascending: false })
+      .order("id", { referencedTable: "transferencias", ascending: false })
+      .limit(1, { referencedTable: "transferencias" })
+      .maybeSingle();
+    if (error) return err(new ServicoExternoError("Falha ao consultar o Atendimento."));
+    if (!data) return ok(null);
+    const linha = conversaRowSchema.parse(data);
+    const [ultima] = linha.transferencias;
+    const temMaisAntigas = linha.mensagens.length > CONVERSA_JANELA_MENSAGENS;
+    const janela = linha.mensagens.slice(0, CONVERSA_JANELA_MENSAGENS).reverse();
+    return ok({
+      id: linha.id,
+      status: linha.status,
+      setor: linha.setor,
+      funcionarioId: linha.funcionario_id,
+      clienteId: linha.cliente_id,
+      telefone: linha.telefone,
+      contato: dadosDoContato(linha.clientes, linha.chave_telefone),
+      mensagens: janela.map(paraMensagemLida),
+      temMaisAntigas,
+      ultimaTransferencia: ultima
+        ? {
+            setorOrigem: ultima.setor_origem,
+            origemNome: ultima.origem?.nome ?? null,
+            resumo: ultima.resumo,
+          }
+        : null,
+      ura:
+        linha.resumo_ura || linha.cnpj_informado
+          ? { resumo: linha.resumo_ura, cnpjInformado: linha.cnpj_informado }
+          : null,
+    });
+  }
+
+  async mensagensAnteriores(
+    atendimentoId: string,
+    antes: CursorDaConversa,
+    limite: number,
+  ): Promise<Result<MensagensAnteriores | null, AppError>> {
+    // Estritamente antes do cursor: data menor, ou a mesma data com id menor.
+    const { data, error } = await this.supabaseAdmin
+      .from("atendimentos")
+      .select(
+        "setor, funcionario_id, mensagens(id, autor, texto, criado_em, id_externo, reacao, entrega, anexo_tipo, anexo_nome, anexo_caminho, anexo_tamanho, anexo_miniatura_caminho, perfis(nome, setor))",
+      )
+      .eq("id", atendimentoId)
+      .or(
+        `criado_em.lt."${antes.criadoEm}",and(criado_em.eq."${antes.criadoEm}",id.lt.${antes.id})`,
+        {
+          referencedTable: "mensagens",
+        },
+      )
+      .order("criado_em", { referencedTable: "mensagens", ascending: false })
+      .order("id", { referencedTable: "mensagens", ascending: false })
+      .limit(limite + 1, { referencedTable: "mensagens" })
+      .maybeSingle();
+    if (error) return err(new ServicoExternoError("Falha ao consultar o Atendimento."));
+    if (!data) return ok(null);
+    const linha = mensagensAnterioresRowSchema.parse(data);
+    return ok({
+      setor: linha.setor,
+      funcionarioId: linha.funcionario_id,
+      mensagens: linha.mensagens.slice(0, limite).reverse().map(paraMensagemLida),
+      temMaisAntigas: linha.mensagens.length > limite,
+    });
+  }
+
+  async mensagensPorId(
+    atendimentoId: string,
+    ids: string[],
+  ): Promise<Result<MensagensPorId | null, AppError>> {
+    const { data, error } = await this.supabaseAdmin
+      .from("atendimentos")
+      .select(
+        "setor, funcionario_id, mensagens(id, autor, texto, criado_em, id_externo, reacao, entrega, anexo_tipo, anexo_nome, anexo_caminho, anexo_tamanho, anexo_miniatura_caminho, perfis(nome, setor))",
+      )
+      .eq("id", atendimentoId)
+      .in("mensagens.id", ids)
+      .maybeSingle();
+    if (error) return err(new ServicoExternoError("Falha ao consultar o Atendimento."));
+    if (!data) return ok(null);
+    const linha = mensagensAnterioresRowSchema.parse(data);
+    return ok({
+      setor: linha.setor,
+      funcionarioId: linha.funcionario_id,
+      mensagens: linha.mensagens.map(paraMensagemLida),
+    });
+  }
+
+  async registrarMensagemDoFuncionario(
+    atendimentoId: string,
+    ator: { id: string },
+    texto: string,
+    anexo?: AnexoDaMensagem,
+  ): Promise<Result<ResultadoRegistroDoFuncionario, AppError>> {
+    const { data, error } = await this.supabaseAdmin.rpc("registrar_mensagem_do_funcionario", {
+      p_atendimento_id: atendimentoId,
+      p_ator: ator.id,
+      p_texto: texto,
+      p_anexo: anexo ?? null,
+    });
+    if (error) return err(new ServicoExternoError("Falha ao registrar a Mensagem."));
+    return ok(registroDoFuncionarioRowSchema.parse(data));
+  }
+
+  async finalizarEntregaDoFuncionario(
+    mensagemId: string,
+    entregue: boolean,
+  ): Promise<Result<void, AppError>> {
+    const { error } = await this.supabaseAdmin.rpc("finalizar_entrega_mensagem_do_funcionario", {
+      p_id: mensagemId,
+      p_entregue: entregue,
+    });
+    if (error) return err(new ServicoExternoError("Falha ao registrar o resultado do envio."));
+    return ok(undefined);
+  }
+
+  async mensagemParaReacao(
+    atendimentoId: string,
+    mensagemId: string,
+  ): Promise<Result<MensagemParaReacao | null, AppError>> {
+    const { data, error } = await this.supabaseAdmin
+      .from("mensagens")
+      .select("autor, id_externo, reacao")
+      .eq("id", mensagemId)
+      .eq("atendimento_id", atendimentoId)
+      .maybeSingle();
+    if (error) return err(new ServicoExternoError("Falha ao consultar a Mensagem."));
+    if (!data) return ok(null);
+    const linha = mensagemParaReacaoRowSchema.parse(data);
+    return ok({ autor: linha.autor, idExterno: linha.id_externo, reacao: linha.reacao });
+  }
+
+  async registrarReacao(
+    atendimentoId: string,
+    mensagemId: string,
+    reacao: string | null,
+  ): Promise<Result<void, AppError>> {
+    const { error } = await this.supabaseAdmin
+      .from("mensagens")
+      .update({ reacao })
+      .eq("id", mensagemId)
+      .eq("atendimento_id", atendimentoId);
+    if (error) return err(new ServicoExternoError("Falha ao registrar a reação."));
+    return ok(undefined);
+  }
+}
+
+type ClienteEmbutido = z.infer<typeof atendimentoDoFuncionarioRowSchema>["clientes"];
+
+const soDigitos = (telefone: string) => telefone.replace(/\D/g, "");
+
+// Quem escreve é o Contato cujo número bate com o do Atendimento; o padrão desempata.
+function dadosDoContato(cliente: ClienteEmbutido, chave: string): DadosDoContato {
+  if (!cliente) return { contatoNome: null, empresa: null, cnpj: null };
+  const contato = cliente.cliente_contatos
+    .filter((c) => soDigitos(c.telefone) === chave)
+    .sort(
+      (a, b) => Number(b.padrao) - Number(a.padrao) || a.criado_em.localeCompare(b.criado_em),
+    )[0];
+  return { contatoNome: contato?.nome ?? null, empresa: cliente.empresa, cnpj: cliente.cnpj };
+}

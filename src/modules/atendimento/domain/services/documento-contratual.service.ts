@@ -1,0 +1,19 @@
+import { formatarDataIso } from "@/shared/kernel/data-iso";
+
+// Como cada guia do provedor fiscal é chamada ao cliente (menu da URA e Mensagem do painel).
+export const ROTULO_GUIA = {
+  das: "Guia de imposto",
+  parcelamento: "Guia de parcelamento",
+  cnd: "CND",
+} as const;
+
+// Como o documento é chamado ao cliente (menu da URA, nome do arquivo e Mensagem do painel).
+export function descreverDocumento(documento: {
+  numero: number | null;
+  data: string | null;
+}): string {
+  if (documento.numero === null) return "Contrato social";
+  return documento.data
+    ? `Alteração nº ${documento.numero} - ${formatarDataIso(documento.data)}`
+    : `Alteração nº ${documento.numero}`;
+}
