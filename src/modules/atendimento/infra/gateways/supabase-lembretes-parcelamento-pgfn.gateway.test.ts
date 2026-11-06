@@ -140,10 +140,12 @@ describe("leitura dos Clientes com Parcelamento PGFN", () => {
 });
 
 describe("ciclo do alerta", () => {
-  // O relógio injetado só precisa cair num dia do job (10) e no mês corrente.
+  // O relógio injetado precisa cair num dia do job (1, 10 ou 15), no mês corrente e NÃO no futuro do
+  // banco: o alerta nasce com a hora real e a rodada resolve o que foi criado antes de `agora`.
+  // Por isso o dia de job mais recente que já passou (03:30 UTC = 00:30 em São Paulo).
   const diaDoJob = new Date();
-  diaDoJob.setUTCDate(10);
-  diaDoJob.setUTCHours(12);
+  diaDoJob.setUTCDate([15, 10, 1].find((dia) => dia <= diaDoJob.getUTCDate()) ?? 1);
+  diaDoJob.setUTCHours(3, 30);
   const relogio = { agora: () => diaDoJob };
 
   // O banco grava `criado_em` com o relógio real; o do job é injetado. Envelhece o alerta para ele
