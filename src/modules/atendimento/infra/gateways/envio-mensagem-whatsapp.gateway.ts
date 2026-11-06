@@ -1,4 +1,3 @@
-import { semNonoDigito } from "@/modules/atendimento/domain/services/telefone.service";
 import type {
   AnexoEnviado,
   DocumentoEnviado,
@@ -7,6 +6,7 @@ import type {
   ReacaoEnviada,
   TemplateEnviado,
 } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
+import { semNonoDigito } from "@/modules/atendimento/domain/services/telefone.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
