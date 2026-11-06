@@ -133,6 +133,8 @@ export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
     clienteId: string,
     tipo: TipoGuia,
   ): Promise<Result<Preparado, AppError>> {
+    // ponytail: CND bloqueada no servidor até o escritório liberar o produto (tirar este guard).
+    if (tipo === "cnd") return err(new ValidationError("A CND ainda não está liberada."));
     let guia;
     try {
       guia = await this.guias.buscar(clienteId, tipo);

@@ -24,7 +24,7 @@ describe("DownloadMidiaWhatsappGateway", () => {
     const r = await gateway(http).baixar("m1");
 
     expect(r).toEqual({ ok: true, value: { bytes: new Uint8Array([1, 2, 3]), mime: "image/png" } });
-    expect(http.mock.calls[0][0]).toBe("https://graph.facebook.com/v21.0/m1");
+    expect(http.mock.calls[0][0]).toBe("https://graph.facebook.com/v23.0/m1");
     expect(http.mock.calls[1][0]).toBe("https://cdn/x");
     expect(http.mock.calls[1][1].headers).toEqual({ Authorization: "Bearer tok" });
   });

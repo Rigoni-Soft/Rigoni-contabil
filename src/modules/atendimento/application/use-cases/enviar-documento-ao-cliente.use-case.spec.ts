@@ -10,6 +10,7 @@ import type { RegistroDeErrosPort } from "@/modules/atendimento/application/port
 import type { AtorSessaoDto } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
+import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok } from "@/shared/kernel/result";
 
 import { EnviarDocumentoAoCliente } from "./enviar-documento-ao-cliente.use-case";
@@ -149,7 +150,6 @@ describe("EnviarDocumentoAoCliente", () => {
   it.each([
     ["das", "Guia de imposto"],
     ["parcelamento", "Guia de parcelamento"],
-    ["cnd", "CND"],
   ] as const)(
     "guia %s: busca no provedor fiscal, envia o PDF, registra a Mensagem e audita",
     async (tipo, rotulo) => {
@@ -187,14 +187,14 @@ describe("EnviarDocumentoAoCliente", () => {
     const { caso, enviados, registradas, auditadas } = montar({ guia: "lanca" });
     const r = await caso.execute({
       atendimentoId: "at-1",
-      documento: { tipo: "cnd", numero: null },
+      documento: { tipo: "das", numero: null },
     });
     expect(!r.ok && r.error).toBeInstanceOf(ServicoExternoError);
     expect(registradas).toEqual([]);
     expect(enviados).toEqual([]);
     expect(auditadas).toEqual([expect.objectContaining({ resultado: "falha" })]);
     // Só a mensagem, nunca o objeto de erro (poderia levar o CNPJ ao log).
-    expect(log).toHaveBeenCalledWith("Falha inesperada ao buscar a guia cnd:", "boom");
+    expect(log).toHaveBeenCalledWith("Falha inesperada ao buscar a guia das:", "boom");
   });
 
   it("documento que o Cliente não tem também audita a falha", async () => {
@@ -279,5 +279,18 @@ describe("EnviarDocumentoAoCliente", () => {
     const b = await semAutoridade.caso.execute({ atendimentoId: "at-1", documento: CONTRATO });
     expect(!b.ok && b.error.code).toBe("FORBIDDEN");
     expect(semAutoridade.enviados).toEqual([]);
+  });
+});
+
+describe("EnviarDocumentoAoCliente — CND ainda não liberada", () => {
+  it("recusa a CND no servidor, sem buscar no provedor nem enviar", async () => {
+    const { caso, enviados, registradas } = montar();
+    const r = await caso.execute({
+      atendimentoId: "at-1",
+      documento: { tipo: "cnd", numero: null },
+    });
+    expect(!r.ok && r.error).toBeInstanceOf(ValidationError);
+    expect(enviados).toEqual([]);
+    expect(registradas).toEqual([]);
   });
 });

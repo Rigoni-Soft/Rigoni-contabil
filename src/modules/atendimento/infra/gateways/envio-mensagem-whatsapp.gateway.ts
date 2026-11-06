@@ -1,3 +1,4 @@
+import { semNonoDigito } from "@/modules/atendimento/domain/services/telefone.service";
 import type {
   AnexoEnviado,
   DocumentoEnviado,
@@ -19,7 +20,7 @@ import {
   type ParteCorpo,
 } from "./corpo-cloud-api.gateway";
 
-const VERSAO_API = "v21.0";
+const VERSAO_API = "v23.0";
 const TIMEOUT_MS = 10_000;
 
 // Adapter real da porta EnvioMensagemPort, pela WhatsApp Cloud API (Meta). 400 (número sem
@@ -65,7 +66,8 @@ export class EnvioMensagemWhatsappGateway implements EnvioMensagemPort {
   }
 
   private async mensagem(parte: ParteCorpo): Promise<Result<void, AppError>> {
-    const corpo = JSON.stringify(envelope(parte));
+    // O WhatsApp recebe o número sem o 9º dígito; o resto do sistema trabalha com ele.
+    const corpo = JSON.stringify(envelope({ ...parte, to: semNonoDigito(parte.to) }));
     const r = await this.chamar("/messages", { "Content-Type": "application/json" }, corpo);
     return r.ok ? ok(undefined) : r;
   }

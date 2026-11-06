@@ -308,7 +308,18 @@ function recusaDaResposta(corpo: string): Recusa | undefined {
   return er ? RECUSA_POR_MENSAGEM[er] : undefined;
 }
 
+// A causa vai ao log do servidor, nunca ao usuário. Sem valores: um ZodError carregaria o dado
+// recebido (CNPJ, PDF) na mensagem, então só caminho e código de cada problema.
+function causaParaLog(e: unknown): string {
+  if (e instanceof z.ZodError)
+    return e.issues.map((i) => `${i.path.join(".")}:${i.code}`).join(", ");
+  if (e instanceof ErroSerpro) return e.message;
+  const codigo = (e as NodeJS.ErrnoException | undefined)?.code;
+  return e instanceof Error ? `${e.name}${codigo ? ` ${codigo}` : ""}` : "erro desconhecido";
+}
+
 function falhaDeServico(e: unknown): ServicoExternoError {
+  console.error("[serpro] falha:", causaParaLog(e));
   return new ServicoExternoError(
     e instanceof ErroSerpro ? e.message : "Serviço fiscal indisponível ou fora do contrato.",
   );

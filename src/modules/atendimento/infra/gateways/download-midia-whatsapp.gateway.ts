@@ -7,7 +7,7 @@ import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-const VERSAO_API = "v21.0";
+const VERSAO_API = "v23.0";
 const TIMEOUT_MS = 15_000;
 
 // Adapter real da porta DownloadMidiaPort, pela WhatsApp Cloud API: GET /{id} devolve o

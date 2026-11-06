@@ -9,6 +9,7 @@ import { CampoSelect } from "@/presentation/components/molecules/campo-select.co
 import { Button } from "@/presentation/components/ui/button";
 
 // Guias e CND vêm do provedor fiscal, não da lista do Cliente: o `valor` é o tipo da guia.
+// ponytail: botão da CND desabilitado até o escritório liberar o produto (tirar `|| valor === "cnd"`).
 const GUIAS = [
   { valor: "das", rotulo: "Guia de imposto", Icone: Receipt },
   { valor: "parcelamento", rotulo: "Guia de parcelamento", Icone: CalendarClock },
@@ -79,7 +80,7 @@ export function PainelDeServicos({
                 variant="outline"
                 size="sm"
                 className={CLASSE_SERVICO}
-                disabled={enviando}
+                disabled={enviando || valor === "cnd"}
                 onClick={() => onEnviarServico(valor)}
               >
                 <Icone aria-hidden="true" />

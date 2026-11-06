@@ -56,7 +56,8 @@ const OPCOES_MENU: { rotulo: string; guia?: TipoGuia }[] = [
   { rotulo: "Contrato social e alterações" },
   { rotulo: ROTULO_GUIA.das, guia: "das" },
   { rotulo: ROTULO_GUIA.parcelamento, guia: "parcelamento" },
-  { rotulo: ROTULO_GUIA.cnd, guia: "cnd" },
+  // ponytail: CND fora do menu até o escritório liberar o produto; religar = voltar esta linha
+  // { rotulo: ROTULO_GUIA.cnd, guia: "cnd" },
   { rotulo: "Falar com atendente" },
 ];
 // "Falar com atendente" é sempre a última opção do menu; a constante acompanha o array.

@@ -19,6 +19,10 @@ const CRED = {
     certificadoSenha: "senha",
   },
 };
+beforeEach(() => {
+  jest.spyOn(console, "error").mockImplementation(() => undefined);
+});
+
 const CLIENTE = "11444777000161";
 const AGORA = () => new Date("2026-01-15T15:00:00Z"); // janeiro: mês anterior = dezembro
 
@@ -290,5 +294,21 @@ describe("ObrigacoesFiscaisSerproGateway", () => {
       "Content-Type": "application/json",
     });
     expect(http.mock.calls[0][0].pfx).toBeUndefined();
+  });
+});
+
+describe("ObrigacoesFiscaisSerproGateway — causa da falha no log", () => {
+  it("resposta fora do contrato loga só caminho e código, sem o dado recebido", async () => {
+    const log = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    const { gw } = gateway(token, envelope([{ pdf: "SEGREDO-PDF", detalhamento: {} }]));
+
+    const r = await gw.buscarDas(CLIENTE);
+
+    expect(!r.ok && r.error).toBeInstanceOf(ServicoExternoError);
+    const registrado = log.mock.calls.flat().join(" ");
+    expect(registrado).toContain("[serpro] falha:");
+    expect(registrado).toContain("invalid_union");
+    expect(registrado).not.toContain("SEGREDO-PDF");
+    log.mockRestore();
   });
 });

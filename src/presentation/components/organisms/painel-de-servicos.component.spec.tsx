@@ -57,7 +57,6 @@ describe("PainelDeServicos", () => {
   it.each([
     ["Guia de imposto", "das"],
     ["Guia de parcelamento", "parcelamento"],
-    ["CND", "cnd"],
   ])("um clique em %s dispara o envio da guia", async (nome, valor) => {
     const aoEnviar = jest.fn();
     const usuario = userEvent.setup();
@@ -68,6 +67,15 @@ describe("PainelDeServicos", () => {
     expect(aoEnviar).toHaveBeenCalledWith(valor);
   });
 
+  it("CND fica desabilitada até a liberação (ponytail: religar junto com o menu da URA)", async () => {
+    const aoEnviar = jest.fn();
+    render(<PainelDeServicos {...BASE} onEnviarServico={aoEnviar} />);
+
+    const botao = screen.getByRole("button", { name: "CND" });
+    expect(botao).toBeDisabled();
+    await userEvent.setup().click(botao);
+    expect(aoEnviar).not.toHaveBeenCalled();
+  });
   it("enquanto envia, as guias ficam desabilitadas; sem Cliente, não aparecem", () => {
     const { rerender } = render(<PainelDeServicos {...BASE} enviando />);
     for (const nome of ["Guia de imposto", "Guia de parcelamento", "CND"]) {
