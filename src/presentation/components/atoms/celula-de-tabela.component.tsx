@@ -3,22 +3,24 @@ import { cn } from "@/presentation/lib/utils";
 type CelulaDeTabelaProps = {
   // Data/hora e números ficam em uma linha só e alinhados à direita (tabular-nums).
   numerica?: boolean;
-  // Primeira coluna: fica à vista na rolagem horizontal.
+  // Primeira coluna: fica à vista na rolagem horizontal e nomeia a linha (<th scope="row">).
   fixa?: boolean;
   children: React.ReactNode;
 };
 
 export function CelulaDeTabela({ numerica = false, fixa = false, children }: CelulaDeTabelaProps) {
+  const Elemento = fixa ? "th" : "td";
   return (
-    <td
+    <Elemento
+      scope={fixa ? "row" : undefined}
       className={cn(
         "px-3 py-2",
-        fixa && "sticky left-0 border-r border-border bg-card",
+        fixa && "sticky left-0 border-r border-border bg-card text-left font-normal",
         numerica && "text-right whitespace-nowrap text-muted-foreground tabular-nums",
       )}
     >
       {children}
-    </td>
+    </Elemento>
   );
 }
 

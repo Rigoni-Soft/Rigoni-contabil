@@ -122,7 +122,12 @@ export function AcompanhamentoDosFuncionarios({
 
       {semResponsavel.length > 0 && (
         <Pilha espaco={4} como="section" aria-labelledby="sem-responsavel">
-          <Texto variante="secao" id="sem-responsavel" className="border-b border-border pb-2">
+          <Texto
+            variante="secao"
+            como="h2"
+            id="sem-responsavel"
+            className="border-b border-border pb-2"
+          >
             Sem responsável
           </Texto>
           <Texto variante="apoio">Estes clientes não contam para nenhum funcionário.</Texto>

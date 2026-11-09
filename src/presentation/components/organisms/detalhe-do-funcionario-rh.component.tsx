@@ -42,7 +42,12 @@ export function DetalheDoFuncionarioRh({
       </Texto>
 
       <Pilha espaco={4} como="section" aria-labelledby="pendente-por-servico">
-        <Texto variante="secao" id="pendente-por-servico" className="border-b border-border pb-2">
+        <Texto
+          variante="secao"
+          como="h2"
+          id="pendente-por-servico"
+          className="border-b border-border pb-2"
+        >
           Pendente por serviço
         </Texto>
         {pendencias.length === 0 && <Texto variante="apoio">Tudo concluído neste mês.</Texto>}
@@ -75,7 +80,12 @@ export function DetalheDoFuncionarioRh({
       </CartaoDeGrafico>
 
       <Pilha espaco={4} como="section" aria-labelledby="mais-atrasados">
-        <Texto variante="secao" id="mais-atrasados" className="border-b border-border pb-2">
+        <Texto
+          variante="secao"
+          como="h2"
+          id="mais-atrasados"
+          className="border-b border-border pb-2"
+        >
           Mais atrasados
         </Texto>
         {maisAtrasados.length === 0 && <Texto variante="apoio">Nenhum cliente atrasado.</Texto>}
