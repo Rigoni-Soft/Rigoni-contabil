@@ -724,7 +724,7 @@ reenviar repete só a atribuição.
 usar `SETOR_LABEL` (`shared/kernel/setores.ts`) e `REGIME_LABEL`.
 `ThemeToggle` mostra o ícone do tema de destino (sol no dark, lua no light).
 
-### Aba RH e dados básicos do Cliente (#213)
+### Aba RH e cadastro do Cliente no RH (#213)
 
 **Aba "RH" do `ShellNav`:** um chip como os demais Setores, com a rota vinda de
 `ROTA_POR_SETOR` (`shared/kernel/setores.ts`, o mesmo mapa que decide o destino
@@ -738,10 +738,13 @@ drill-down e a tela são as mesmas; a página do Setor só informa a rota-base
 `BarrasDeFatias` (as mesmas barras do 4º comparativo do SN), só para o Líder;
 o Funcionário do RH vê o resumo sem o acompanhamento dos colegas.
 
-**`DadosBasicosDoCliente`:** lista de definição (`dl`: Empresa, CNPJ, Regime)
-com `dt`/`dd`, para o leitor de tela associar rótulo e valor. É o que o RH vê
-em `/clientes/[id]`, com o bloco do Responsável do RH logo abaixo; o título da
-página é "Dados do cliente".
+**`EditarCadastroRhForm`:** o RH abre em `/clientes/[id]` a mesma tela "Editar
+cadastro operacional" do SN, com os dados do RH: o cabeçalho (empresa e CNPJ, sem o
+Regime), o Responsável do RH e o acompanhamento do mês acima do formulário, e no
+formulário os contatos, as observações gerais do RH e o cartão do documento
+contratual (só leitura). O que é do SN (DAS, atividade do mês, forma de envio) não
+aparece; os parcelamentos entram com a #216. Edita o Responsável do RH do Cliente, o
+Líder do RH e o Admin; quem não edita vê a tela em leitura.
 
 **`FalhaDeCarga`:** aviso de erro lido pelo leitor de tela e o link "Tentar
 novamente" para a própria rota. O `<h1>` da tela de falha diz o que houve

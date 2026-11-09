@@ -217,7 +217,7 @@ describe("BuscarClienteContainer", () => {
     expect(screen.queryByLabelText(/forma de envio/i)).not.toBeInTheDocument();
   });
 
-  it("o RH, ao escolher um Cliente, vai à tela dele (dados básicos), voltando para o dashboard do RH", async () => {
+  it("o RH, ao escolher um Cliente, vai à tela dele (o cadastro do RH), voltando para o dashboard do RH", async () => {
     buscarClientesActionMock.mockResolvedValue({
       ok: true,
       data: [{ id: CADASTRO.id, empresa: CADASTRO.empresa, cnpj: CADASTRO.cnpj }],

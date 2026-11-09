@@ -3,8 +3,8 @@ import { z } from "zod";
 
 import type {
   CadastroOperacionalClienteDto,
+  CadastroRhClienteDto,
   ClienteQueryPort,
-  DadosBasicosClienteDto,
   ResponsavelOpcaoDto,
   ResumoOperacionalRow,
   SugestaoClienteDto,
@@ -28,11 +28,14 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
 // Row da view `clientes_basico`: falha alto se o banco divergir (arquitetura.md §3.9).
-const dadosBasicosSchema = z.object({
+const cadastroRhSchema = z.object({
   id: z.string(),
   empresa: z.string(),
   cnpj: z.string(),
-  regime: z.string(),
+  cliente_contatos: z.array(
+    z.object({ id: z.string(), nome: z.string(), telefone: z.string(), padrao: z.boolean() }),
+  ),
+  cliente_observacoes_setor: z.array(z.object({ observacoes: z.string() })),
 });
 
 type ContatoRow = { id: string; nome: string; telefone: string; padrao: boolean };
@@ -156,20 +159,27 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
     });
   }
 
-  async buscarDadosBasicos(
+  async buscarCadastroRh(
     clienteId: string,
-  ): Promise<Result<DadosBasicosClienteDto | null, AppError>> {
+  ): Promise<Result<CadastroRhClienteDto | null, AppError>> {
     const { data, error } = await this.supabase
       .from("clientes_basico")
-      .select("id, empresa, cnpj, regime")
+      .select("id, empresa, cnpj, cliente_contatos(*), cliente_observacoes_setor(observacoes)")
       .eq("id", clienteId)
+      .eq("cliente_observacoes_setor.setor", "rh")
+      .order("criado_em", { referencedTable: "cliente_contatos" })
       .maybeSingle();
-    if (error) return err(new ConsultaError(`Erro ao buscar dados básicos: ${error.message}`));
+    if (error) return err(new ConsultaError(`Erro ao buscar o cadastro do RH: ${error.message}`));
     if (!data) return ok(null);
-    const lido = dadosBasicosSchema.safeParse(data);
+    const lido = cadastroRhSchema.safeParse(data);
     if (!lido.success)
-      return err(new ConsultaError("Erro ao buscar dados básicos: formato inesperado."));
-    return ok(lido.data);
+      return err(new ConsultaError("Erro ao buscar o cadastro do RH: formato inesperado."));
+    const {
+      cliente_contatos: contatos,
+      cliente_observacoes_setor: observacoes,
+      ...basicos
+    } = lido.data;
+    return ok({ ...basicos, contatos, observacoes: observacoes[0]?.observacoes ?? "" });
   }
 
   async listarResponsaveisElegiveis(

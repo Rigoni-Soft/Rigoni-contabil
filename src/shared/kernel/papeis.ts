@@ -57,10 +57,19 @@ export function podeVerDashboardDoSetor(
   return papel === "admin" || setorDoAtor === setor;
 }
 
-// O RH só lê os dados básicos do Cliente que enxerga (o cadastro operacional é do SN): hoje o RH.
-// O Admin vai à tela completa do Cliente.
-export function soLeDadosBasicosDoCliente(papel: string, setor: string): boolean {
+// O RH tem o cadastro dele (a tela "Editar cadastro operacional" com os dados do RH, sem o que é do SN);
+// o Admin vai à tela completa do Cliente.
+export function usaCadastroDoRh(papel: string, setor: string): boolean {
   return papel !== "admin" && setor === SETOR_RH;
+}
+
+// Quem edita o cadastro do RH (observações do RH e contatos): o RH e o Admin; por Cliente, o banco restringe
+// o Funcionário ao Responsável do RH dele.
+export function podeEditarCadastroRh(papel: string, setor: string): boolean {
+  return (
+    papel === "admin" ||
+    ((papel === "lider_setor" || papel === "funcionario") && setor === SETOR_RH)
+  );
 }
 
 // Os dois predicados abaixo nascem da mesma premissa: Líder de um Setor que tem Responsável por Cliente.

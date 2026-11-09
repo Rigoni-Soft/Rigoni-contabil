@@ -1,9 +1,5 @@
 import type { LeituraDaLinha } from "@/presentation/components/organisms/editar-cadastro-operacional-form.component";
-import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
-import type {
-  CadastroOperacionalClienteDto,
-  DadosBasicosClienteDto,
-} from "@/modules/clientes/application/ports/out/cliente-query.provider";
+import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import type { ParcelamentoFormValues } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.schema";
 import { DAS_STATUS_LABEL, DAS_STATUSES } from "@/shared/kernel/das-status";
 import {
@@ -13,12 +9,6 @@ import {
 import { FORMA_ENVIO_LABEL, FORMAS_ENVIO } from "@/shared/kernel/forma-envio";
 import { opcoesDe } from "@/shared/kernel/opcoes";
 import { rotuloResponsavel } from "@/shared/kernel/papeis";
-import { REGIME_LABEL } from "@/shared/kernel/regimes";
-
-// Empresa, CNPJ formatado e Regime por extenso, como a tela dos dados básicos os mostra.
-export function dadosBasicosParaTela({ empresa, cnpj, regime }: DadosBasicosClienteDto) {
-  return { empresa, cnpj: formatarCnpj(cnpj), regime: REGIME_LABEL[regime] ?? regime };
-}
 
 type Opcao = { id: string; nome: string };
 

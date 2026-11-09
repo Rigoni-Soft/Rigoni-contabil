@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 
-import { DadosBasicosDoCliente } from "@/presentation/components/molecules/dados-basicos-do-cliente.component";
 import { FalhaDeCarga } from "@/presentation/components/molecules/falha-de-carga.component";
 import { EditarCadastroOperacionalPage } from "@/presentation/components/pages/editar-cadastro-operacional.page";
 import { carregarSessao, validarSessao } from "@/presentation/view-models/shell/shell.server";
@@ -8,6 +7,7 @@ import { AnexarAlteracaoContratualContainer } from "@/modules/clientes/presentat
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import { EditarCadastroOperacionalContainer } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.container";
 import { carregarClienteParaPagina } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.server";
+import { EditarCadastroRhContainer } from "@/modules/clientes/presentation/view-models/editar-cadastro-rh/editar-cadastro-rh.container";
 import { ResponsavelDoSetorContainer } from "@/modules/clientes/presentation/view-models/responsavel-do-setor/responsavel-do-setor.container";
 import { ondeAtribuirResponsavel } from "@/modules/clientes/presentation/view-models/responsavel-do-setor/responsavel-do-setor.presenter";
 import { carregarResponsavelDoSetor } from "@/modules/clientes/presentation/view-models/responsavel-do-setor/responsavel-do-setor.server";
@@ -25,8 +25,9 @@ import {
   podeAnexarAlteracaoContratual,
   podeAtribuirResponsavel,
   podeEditarCadastroOperacional,
+  podeEditarCadastroRh,
   podeVerAcompanhamentoRh,
-  soLeDadosBasicosDoCliente,
+  usaCadastroDoRh,
 } from "@/shared/kernel/papeis";
 import { ehSetor, SETOR_LABEL } from "@/shared/kernel/setores";
 
@@ -38,7 +39,7 @@ type Props = {
 type CargaDoCliente = Awaited<ReturnType<typeof carregarClienteParaPagina>>;
 
 function montarFormulario(
-  { basicos, operacional, documentos }: CargaDoCliente,
+  { rh, operacional, documentos }: CargaDoCliente,
   sessao: { papel: string; setor: string },
   opcoes: {
     readOnly: boolean;
@@ -47,7 +48,16 @@ function montarFormulario(
     alteracao?: string | string[];
   },
 ) {
-  if (basicos?.ok && basicos.value) return <DadosBasicosDoCliente {...basicos.value} />;
+  if (rh?.ok && rh.value) {
+    return (
+      <EditarCadastroRhContainer
+        dados={rh.value}
+        readOnly={opcoes.readOnly}
+        voltarHref={hrefSeguro(opcoes.voltarPara)}
+        documentosContratuais={documentos?.ok ? documentos.value : undefined}
+      />
+    );
+  }
   if (!operacional?.ok || !operacional.value) return undefined;
   return (
     <EditarCadastroOperacionalContainer
@@ -93,8 +103,7 @@ async function acompanhamentoRhDoCliente(
   );
 }
 
-function tituloDaPagina(soDadosBasicos: boolean, readOnly: boolean) {
-  if (soDadosBasicos) return "Dados do cliente";
+function tituloDaPagina(readOnly: boolean) {
   return readOnly ? "Visualizar cadastro operacional" : "Editar cadastro operacional";
 }
 
@@ -102,10 +111,10 @@ export default async function Page({ params, searchParams }: Props) {
   const { id } = await params;
   const { voltarPara, alteracao, mes } = await searchParams;
   const sessao = validarSessao(await carregarSessao());
-  const soDadosBasicos = soLeDadosBasicosDoCliente(sessao.papel, sessao.setor);
+  const cadastroDoRh = usaCadastroDoRh(sessao.papel, sessao.setor);
   const carga = await carregarClienteParaPagina(id, sessao.papel, sessao.setor);
-  const { basicos, operacional, documentos } = carga;
-  const carregado = basicos ?? operacional;
+  const { rh, operacional, documentos } = carga;
+  const carregado = rh ?? operacional;
   // Falha de leitura não é Cliente inexistente: só este segundo volta ao início.
   if (carregado && !carregado.ok) {
     return (
@@ -134,7 +143,9 @@ export default async function Page({ params, searchParams }: Props) {
     sessao.setor,
   );
   const responsavelDoSetor = atribuiNoSetor ? await carregarResponsavelDoSetor(id) : null;
-  const readOnly = !podeEditarCadastroOperacional(sessao.papel, sessao.setor);
+  const readOnly = cadastroDoRh
+    ? !podeEditarCadastroRh(sessao.papel, sessao.setor)
+    : !podeEditarCadastroOperacional(sessao.papel, sessao.setor);
   const acompanhamentoRh = await acompanhamentoRhDoCliente(id, sessao, mes, voltarPara);
 
   const formulario = montarFormulario(carga, sessao, {
@@ -147,7 +158,7 @@ export default async function Page({ params, searchParams }: Props) {
   return (
     <EditarCadastroOperacionalPage
       header={<CabecalhoDoShellContainer sessao={sessao} />}
-      titulo={tituloDaPagina(soDadosBasicos, readOnly)}
+      titulo={tituloDaPagina(readOnly)}
       voltarHref={hrefSeguro(voltarPara)}
       alteracoesContratuais={
         podeAnexarAlteracaoContratual(sessao.papel) ? (

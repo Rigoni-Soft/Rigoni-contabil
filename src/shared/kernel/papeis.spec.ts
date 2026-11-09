@@ -1,8 +1,9 @@
 import {
+  podeEditarCadastroRh,
   podeGerirParcelamento,
   podeVerComparativoDoSetor,
   podeVerDashboardDoSetor,
-  soLeDadosBasicosDoCliente,
+  usaCadastroDoRh,
   veCarteiraInteira,
 } from "./papeis";
 
@@ -30,14 +31,26 @@ describe("podeGerirParcelamento", () => {
   });
 });
 
-describe("soLeDadosBasicosDoCliente", () => {
+describe("usaCadastroDoRh", () => {
   it.each([
     ["lider_setor", "rh", true],
     ["funcionario", "rh", true],
     ["admin", "administrativo", false],
     ["funcionario", "simples_nacional", false],
-  ])("%s do setor %s lê só os dados básicos: %s", (papel, setor, esperado) => {
-    expect(soLeDadosBasicosDoCliente(papel, setor)).toBe(esperado);
+  ])("%s do setor %s usa o cadastro do RH: %s", (papel, setor, esperado) => {
+    expect(usaCadastroDoRh(papel, setor)).toBe(esperado);
+  });
+});
+
+describe("podeEditarCadastroRh", () => {
+  it.each([
+    ["admin", "administrativo", true],
+    ["lider_setor", "rh", true],
+    ["funcionario", "rh", true],
+    ["funcionario", "simples_nacional", false],
+    ["lider_setor", "financeiro", false],
+  ])("%s do setor %s edita o cadastro do RH: %s", (papel, setor, esperado) => {
+    expect(podeEditarCadastroRh(papel, setor)).toBe(esperado);
   });
 });
 

@@ -29,8 +29,12 @@ export type CadastroOperacionalClienteDto = {
   responsavelNome: string | null;
 };
 
-// O que o Setor sem acesso ao cadastro operacional lê do Cliente: só empresa, CNPJ e Regime.
-export type DadosBasicosClienteDto = SugestaoClienteDto & { regime: string };
+// O cadastro do Cliente no RH: empresa e CNPJ, os contatos (de todos os Setores) e as observações gerais do RH.
+// Não traz o Regime nem nada do cadastro operacional do SN.
+export type CadastroRhClienteDto = SugestaoClienteDto & {
+  contatos: { id: string; nome: string; telefone: string; padrao: boolean }[];
+  observacoes: string;
+};
 
 export type ResponsavelOpcaoDto = { id: string; nome: string };
 
@@ -60,8 +64,8 @@ export interface ClienteQueryPort {
     clienteId: string,
   ): Promise<Result<CadastroOperacionalClienteDto | null, AppError>>;
 
-  // Só os dados básicos (view `clientes_basico`, sem embeds): para quem não vê o cadastro operacional.
-  buscarDadosBasicos(clienteId: string): Promise<Result<DadosBasicosClienteDto | null, AppError>>;
+  // O cadastro do RH (view `clientes_basico`, contatos e observações do RH): para quem não vê o cadastro do SN.
+  buscarCadastroRh(clienteId: string): Promise<Result<CadastroRhClienteDto | null, AppError>>;
 
   // apenasSnMei: a busca embutida no dashboard do Simples Nacional só mostra Cliente com cadastro
   // operacional (regime simples_nacional/mei); a busca geral do Admin/qualquer setor não tem essa
