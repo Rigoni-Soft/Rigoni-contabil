@@ -1,7 +1,7 @@
 import type { AcompanhamentoRepository } from "@/modules/rh/application/ports/out/acompanhamento.repository";
 import type { RegistrarAcaoAuditoria } from "@/modules/rh/application/ports/out/auditoria.provider";
-import { err, ok } from "@/shared/kernel/result";
 import { ConflictError } from "@/shared/errors/conflict.error";
+import { err, ok } from "@/shared/kernel/result";
 
 import {
   CriarServicoAcompanhamento,
@@ -39,7 +39,11 @@ describe("serviços do acompanhamento", () => {
     await renomear.execute({ servicoId: "s1", nome: "Folha" });
     await desativar.execute({ servicoId: "s1" });
 
-    expect(chamadas).toEqual([["criar", "eSocial"], ["renomear", "s1", "Folha"], ["desativar", "s1"]]);
+    expect(chamadas).toEqual([
+      ["criar", "eSocial"],
+      ["renomear", "s1", "Folha"],
+      ["desativar", "s1"],
+    ]);
   });
 
   it.each([
@@ -53,7 +57,9 @@ describe("serviços do acompanhamento", () => {
 
     expect(!r.ok && r.error.code).toBe("FORBIDDEN");
     expect(chamadas).toEqual([]);
-    expect(falhas).toEqual([expect.objectContaining({ acao: "rh.servico.criar", resultado: "falha" })]);
+    expect(falhas).toEqual([
+      expect.objectContaining({ acao: "rh.servico.criar", resultado: "falha" }),
+    ]);
   });
 
   it("recusa nome vazio ou longo demais", async () => {

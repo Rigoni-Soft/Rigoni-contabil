@@ -2,11 +2,17 @@ import type { AcompanhamentoRepository } from "@/modules/rh/application/ports/ou
 import type { RegistrarAcaoAuditoria } from "@/modules/rh/application/ports/out/auditoria.provider";
 import { ok } from "@/shared/kernel/result";
 
-import { DefinirServicoAplicavel, MarcarServicoAcompanhamento } from "./marcar-servico-acompanhamento.use-case";
+import {
+  DefinirServicoAplicavel,
+  MarcarServicoAcompanhamento,
+} from "./marcar-servico-acompanhamento.use-case";
 
 const relogio = { agora: () => new Date("2026-11-15T15:00:00Z") };
 
-function montar(ator: { papel: string; setor: string } | null, responsavelId: string | null = "u1") {
+function montar(
+  ator: { papel: string; setor: string } | null,
+  responsavelId: string | null = "u1",
+) {
   const gravacoes: unknown[][] = [];
   const falhas: RegistrarAcaoAuditoria[] = [];
   const repositorio = {

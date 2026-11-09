@@ -3,7 +3,10 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const RAIZES = process.argv.length > 2 ? process.argv.slice(2) : ["src", "e2e", "test-support", "supabase/migrations"];
+const RAIZES =
+  process.argv.length > 2
+    ? process.argv.slice(2)
+    : ["src", "e2e", "test-support", "supabase/migrations"];
 const CODIGO = /\.(ts|tsx|mjs|sql)$/;
 // SQL comenta com `--`.
 const COMENTARIO_SQL = /^\s*--.*#\d+\b|\s--\s.*#\d+\b/;
