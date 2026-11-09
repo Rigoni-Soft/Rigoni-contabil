@@ -30,7 +30,7 @@ describe("ConsultarCadastroRhCliente", () => {
   });
 
   it.each([
-    ["admin", "rh"],
+    ["lider_setor", "financeiro"],
     ["lider_setor", "simples_nacional"],
   ])("recusa quem vê o cadastro completo (%s de %s)", async (papel, setor) => {
     const r = await new ConsultarCadastroRhCliente(
@@ -39,6 +39,15 @@ describe("ConsultarCadastroRhCliente", () => {
     ).execute(DTO.id);
 
     expect(r.ok).toBe(false);
+  });
+
+  it("o Admin lê o cadastro do RH, para ver as observações do RH na tela dele", async () => {
+    const r = await new ConsultarCadastroRhCliente(
+      sessaoCom(true, "admin", "administrativo"),
+      queryCom(DTO),
+    ).execute(DTO.id);
+
+    expect(r.ok && r.value).toEqual(DTO);
   });
 
   it("recusa quem não está autenticado", async () => {

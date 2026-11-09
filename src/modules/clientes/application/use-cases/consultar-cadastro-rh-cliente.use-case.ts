@@ -18,7 +18,8 @@ export class ConsultarCadastroRhCliente {
   async execute(clienteId: string): Promise<Result<CadastroRhClienteDto | null, AppError>> {
     const ator = await this.sessao.usuarioAtual();
     if (!ator) return err(new ForbiddenError("Faça login para visualizar o cliente."));
-    if (!usaCadastroDoRh(ator.papel, ator.setor)) {
+    // O Admin lê também (as observações do RH aparecem na tela completa dele).
+    if (ator.papel !== "admin" && !usaCadastroDoRh(ator.papel, ator.setor)) {
       return err(new ForbiddenError("Este perfil vê o cadastro completo do cliente."));
     }
     return this.query.buscarCadastroRh(clienteId);

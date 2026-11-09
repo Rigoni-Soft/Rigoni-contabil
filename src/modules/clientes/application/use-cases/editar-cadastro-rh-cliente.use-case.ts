@@ -27,7 +27,7 @@ export class EditarCadastroRhCliente implements EditarCadastroRhClientePort {
       return err(new ForbiddenError("Só o RH (e o Admin) edita o cadastro do RH."));
     }
 
-    for (const contato of input.contatos) {
+    for (const contato of input.contatos ?? []) {
       const valido = Contato.criar(contato);
       if (!valido.ok) return valido;
     }

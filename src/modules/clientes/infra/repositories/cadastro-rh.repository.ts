@@ -20,12 +20,12 @@ export class SupabaseCadastroRhRepository implements CadastroRhRepository {
   async atualizar(
     clienteId: string,
     observacoes: string,
-    contatos: EditarCadastroRhClienteInput["contatos"],
+    contatos: EditarCadastroRhClienteInput["contatos"] | undefined,
   ): Promise<Result<void, AppError>> {
     const { error } = await this.supabase.rpc("editar_cadastro_rh_cliente", {
       p_cliente_id: clienteId,
       p_observacoes: observacoes,
-      p_contatos: contatos,
+      p_contatos: contatos ?? null,
     });
     if (error) {
       if (error.code === "42501") {

@@ -65,9 +65,9 @@ begin
 end;
 $$;
 
--- Edição do RH: contatos e observações do RH, numa transação. Quem pode é quem gere o cadastro do Setor
+-- Edição do RH: observações do RH e, se vierem (p_contatos não nulo), os contatos, numa transação. Quem pode é quem gere o cadastro do Setor
 -- (o Líder do RH, o Responsável do RH do Cliente e o Admin), a mesma regra dos Parcelamentos.
-CREATE FUNCTION public.editar_cadastro_rh_cliente(p_cliente_id uuid, p_observacoes text, p_contatos jsonb) RETURNS void
+CREATE FUNCTION public.editar_cadastro_rh_cliente(p_cliente_id uuid, p_observacoes text, p_contatos jsonb DEFAULT NULL) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
@@ -84,15 +84,17 @@ begin
     observacoes = excluded.observacoes,
     atualizado_em = now();
 
-  delete from public.cliente_contatos where cliente_id = p_cliente_id;
-  insert into public.cliente_contatos (id, cliente_id, nome, telefone, padrao)
-  select
-    coalesce((item ->> 'id')::uuid, gen_random_uuid()),
-    p_cliente_id,
-    item ->> 'nome',
-    item ->> 'telefone',
-    (item ->> 'padrao')::boolean
-  from jsonb_array_elements(p_contatos) as item;
+  if p_contatos is not null then
+    delete from public.cliente_contatos where cliente_id = p_cliente_id;
+    insert into public.cliente_contatos (id, cliente_id, nome, telefone, padrao)
+    select
+      coalesce((item ->> 'id')::uuid, gen_random_uuid()),
+      p_cliente_id,
+      item ->> 'nome',
+      item ->> 'telefone',
+      (item ->> 'padrao')::boolean
+    from jsonb_array_elements(p_contatos) as item;
+  end if;
 
   perform set_config('app.cadastro_rh', 'off', true);
 

@@ -7,6 +7,6 @@ export interface CadastroRhRepository {
   atualizar(
     clienteId: string,
     observacoes: string,
-    contatos: EditarCadastroRhClienteInput["contatos"],
+    contatos: EditarCadastroRhClienteInput["contatos"] | undefined,
   ): Promise<Result<void, AppError>>;
 }

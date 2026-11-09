@@ -6,8 +6,12 @@ import { carregarSessao, validarSessao } from "@/presentation/view-models/shell/
 import { AnexarAlteracaoContratualContainer } from "@/modules/clientes/presentation/view-models/anexar-alteracao-contratual/anexar-alteracao-contratual.container";
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import { EditarCadastroOperacionalContainer } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.container";
-import { carregarClienteParaPagina } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.server";
+import {
+  carregarCadastroRhCliente,
+  carregarClienteParaPagina,
+} from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.server";
 import { EditarCadastroRhContainer } from "@/modules/clientes/presentation/view-models/editar-cadastro-rh/editar-cadastro-rh.container";
+import { ObservacoesDoRhContainer } from "@/modules/clientes/presentation/view-models/editar-cadastro-rh/observacoes-do-rh.container";
 import { ResponsavelDoSetorContainer } from "@/modules/clientes/presentation/view-models/responsavel-do-setor/responsavel-do-setor.container";
 import { ondeAtribuirResponsavel } from "@/modules/clientes/presentation/view-models/responsavel-do-setor/responsavel-do-setor.presenter";
 import { carregarResponsavelDoSetor } from "@/modules/clientes/presentation/view-models/responsavel-do-setor/responsavel-do-setor.server";
@@ -147,6 +151,8 @@ export default async function Page({ params, searchParams }: Props) {
     ? !podeEditarCadastroRh(sessao.papel, sessao.setor)
     : !podeEditarCadastroOperacional(sessao.papel, sessao.setor);
   const acompanhamentoRh = await acompanhamentoRhDoCliente(id, sessao, mes, voltarPara);
+  // O Admin vê o SN e o RH: na tela completa, as observações do RH entram à parte.
+  const cadastroRhDoAdmin = sessao.papel === "admin" ? await carregarCadastroRhCliente(id) : null;
 
   const formulario = montarFormulario(carga, sessao, {
     readOnly,
@@ -178,6 +184,14 @@ export default async function Page({ params, searchParams }: Props) {
         ) : undefined
       }
       acompanhamentoRh={acompanhamentoRh}
+      observacoesRh={
+        cadastroRhDoAdmin?.ok && cadastroRhDoAdmin.value ? (
+          <ObservacoesDoRhContainer
+            clienteId={id}
+            observacoesIniciais={cadastroRhDoAdmin.value.observacoes}
+          />
+        ) : undefined
+      }
       formulario={formulario}
     />
   );

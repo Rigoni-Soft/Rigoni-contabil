@@ -12,6 +12,8 @@ type EditarCadastroOperacionalPageProps = {
   responsavelDoSetor?: React.ReactNode;
   // Funcionário, Líder e Admin do RH: o acompanhamento do mês do Cliente (marcar serviços).
   acompanhamentoRh?: React.ReactNode;
+  // Só o Admin, que vê o SN e o RH: as observações do RH, à parte do formulário do SN.
+  observacoesRh?: React.ReactNode;
   // De onde a tela foi aberta (ex.: a lista de um bucket do resumo do setor): "Voltar" leva
   // para lá, não sempre para o dashboard.
   voltarHref?: string;
@@ -24,6 +26,7 @@ export function EditarCadastroOperacionalPage({
   alteracoesContratuais,
   responsavelDoSetor,
   acompanhamentoRh,
+  observacoesRh,
   voltarHref = "/",
 }: EditarCadastroOperacionalPageProps) {
   return (
@@ -38,6 +41,7 @@ export function EditarCadastroOperacionalPage({
           {alteracoesContratuais}
           {responsavelDoSetor}
           {acompanhamentoRh}
+          {observacoesRh}
           {formulario}
         </Pilha>
       }

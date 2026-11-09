@@ -106,6 +106,22 @@ describe("Cadastro do Cliente no RH (integração)", () => {
     expect(leitura.data).toEqual([]);
   });
 
+  it("o Admin grava só as observações do RH, sem tocar nos contatos", async () => {
+    await salvar(await comoFuncionarioRH());
+    const admin = await entrar("admin@rigonicontabil.local", "admin123");
+
+    const gravado = await new SupabaseCadastroRhRepository(admin).atualizar(
+      clienteId,
+      "Só as observações.",
+      undefined,
+    );
+    const lido = await new SupabaseClienteQueryGateway(admin).buscarCadastroRh(clienteId);
+
+    expect(gravado.ok).toBe(true);
+    expect(lido.ok && lido.value?.observacoes).toBe("Só as observações.");
+    expect(lido.ok && lido.value?.contatos.map((c) => c.nome)).toEqual(["Maria"]);
+  });
+
   it("a liberação do Regime vale só dentro da função: a escrita direta de contatos num Cliente fora do SN segue barrada", async () => {
     await salvar(await comoFuncionarioRH());
     const admin = await entrar("admin@rigonicontabil.local", "admin123");

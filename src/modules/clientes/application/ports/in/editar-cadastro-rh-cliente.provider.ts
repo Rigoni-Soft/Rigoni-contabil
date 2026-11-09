@@ -5,7 +5,8 @@ export type EditarCadastroRhClienteInput = {
   clienteId: string;
   // Observações gerais do RH: cada Setor tem as suas.
   observacoes: string;
-  contatos: { id?: string; nome: string; telefone: string; padrao: boolean }[];
+  // Ausente: só as observações mudam e os contatos ficam como estão (o Admin edita só as do RH).
+  contatos?: { id?: string; nome: string; telefone: string; padrao: boolean }[];
 };
 
 export interface EditarCadastroRhClientePort {
