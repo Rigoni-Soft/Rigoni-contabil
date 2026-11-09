@@ -14,7 +14,7 @@ import {
 } from "@/modules/rh/presentation/view-models/resumo-rh/resumo-rh.presenter";
 import { carregarResumoSetorRh } from "@/modules/clientes/presentation/view-models/resumo-setor-rh/resumo-setor-rh.server";
 import { podeVerAcompanhamentoDosFuncionariosRh, podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
-import { ROTA_RH, SETOR_RH } from "@/shared/kernel/setores";
+import { ROTA_RH, ROTA_RH_FUNCIONARIOS, SETOR_RH } from "@/shared/kernel/setores";
 
 type Props = { params: Promise<{ bucket: string }> };
 
@@ -39,7 +39,7 @@ export default async function Page({ params }: Props) {
         value: juntarResumoRh(
           base.value,
           mensal.ok ? cardsDoAcompanhamento(mensal.value) : undefined,
-          funcionarios?.ok ? cardsDosFuncionarios(funcionarios.value, `${ROTA_RH}/funcionarios`) : undefined,
+          funcionarios?.ok ? cardsDosFuncionarios(funcionarios.value, ROTA_RH_FUNCIONARIOS) : undefined,
         ),
       }
     : { ok: false as const };

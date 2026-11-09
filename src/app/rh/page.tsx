@@ -26,7 +26,7 @@ import {
   podeVerAcompanhamentoDosFuncionariosRh,
   podeVerDashboardDoSetor,
 } from "@/shared/kernel/papeis";
-import { ROTA_RH, SETOR_RH } from "@/shared/kernel/setores";
+import { ROTA_RH, ROTA_RH_FUNCIONARIOS, SETOR_RH } from "@/shared/kernel/setores";
 
 // ponytail: montagem repetida de app/simples-nacional/page.tsx; extrair no 3º Setor com resumo.
 export default async function Page() {
@@ -52,7 +52,7 @@ export default async function Page() {
         value: juntarResumoRh(
           base.value,
           mensal.ok ? cardsDoAcompanhamento(mensal.value) : undefined,
-          funcionarios?.ok ? cardsDosFuncionarios(funcionarios.value, `${ROTA_RH}/funcionarios`) : undefined,
+          funcionarios?.ok ? cardsDosFuncionarios(funcionarios.value, ROTA_RH_FUNCIONARIOS) : undefined,
         ),
       }
     : { ok: false as const };

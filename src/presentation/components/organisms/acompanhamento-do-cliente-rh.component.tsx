@@ -8,7 +8,7 @@ import { cn } from "@/presentation/lib/utils";
 
 export type EstadoDoServico = "pendente" | "concluido" | "nao_aplica";
 // `bloqueio` é o motivo de o serviço não aceitar troca (ausente = editável).
-type Servico = { servicoId: string; nome: string; estado: EstadoDoServico; bloqueio?: string };
+export type Servico = { servicoId: string; nome: string; estado: EstadoDoServico; bloqueio?: string };
 
 const CLASSE_DO_ESTADO: Record<EstadoDoServico, string> = {
   pendente: "",

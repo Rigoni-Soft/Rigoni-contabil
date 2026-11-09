@@ -13,7 +13,7 @@ import { ondeAtribuirResponsavel } from "@/modules/clientes/presentation/view-mo
 import { carregarResponsavelDoSetor } from "@/modules/clientes/presentation/view-models/responsavel-do-setor/responsavel-do-setor.server";
 import { AcompanhamentoDoClienteContainer } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-do-cliente.container";
 import {
-  mesVizinho,
+  linksDoMes,
   rotuloDaCompetencia,
   servicosDoCliente,
 } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.presenter";
@@ -82,17 +82,12 @@ async function acompanhamentoRhDoCliente(
   if (!servicos) return undefined;
 
   const { competencia } = acompanhamento.value;
-  const hrefDoMes = (delta: number) =>
-    `/clientes/${encodeURIComponent(clienteId)}?mes=${mesVizinho(competencia, delta)}${
-      voltarPara ? `&voltarPara=${encodeURIComponent(voltarPara)}` : ""
-    }`;
   return (
     <AcompanhamentoDoClienteContainer
       clienteId={clienteId}
       competencia={competencia}
       rotuloCompetencia={rotuloDaCompetencia(competencia)}
-      anteriorHref={hrefDoMes(-1)}
-      proximoHref={competencia < mesAtual() ? hrefDoMes(1) : undefined}
+      {...linksDoMes(clienteId, competencia, mesAtual(), voltarPara)}
       servicos={servicos}
     />
   );

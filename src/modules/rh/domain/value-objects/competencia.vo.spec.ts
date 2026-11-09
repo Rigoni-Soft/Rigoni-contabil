@@ -24,6 +24,11 @@ describe("Competencia", () => {
     expect(dez.ok && dez.value.ehFutura(agora)).toBe(true);
   });
 
+  it("ultimosMeses devolve os meses terminados no da competência, do mais antigo ao mais novo, atravessando o ano", () => {
+    const jan = Competencia.criar("2026-01");
+    expect(jan.ok && jan.value.ultimosMeses(3)).toEqual(["2025-11", "2025-12", "2026-01"]);
+  });
+
   it("atual usa o mês do fuso do escritório", () => {
     expect(Competencia.atual(new Date("2026-12-01T01:00:00Z")).valor).toBe("2026-11");
   });

@@ -29,6 +29,8 @@ export const SETOR_SN = "simples_nacional" satisfies SetorSlug;
 export const ROTA_SN = "/simples-nacional";
 // Rota do resumo do Setor RH (a aba "RH" da navegação).
 export const ROTA_RH = "/rh";
+// Rota do acompanhamento de um Funcionário do RH (`/<id>` no fim).
+export const ROTA_RH_FUNCIONARIOS = `${ROTA_RH}/funcionarios`;
 // Setores com tela própria e a rota dela. String solta de propósito: quem consulta recebe o slug cru.
 export const ROTA_POR_SETOR: Record<string, string> = {
   [SETOR_SN]: ROTA_SN,

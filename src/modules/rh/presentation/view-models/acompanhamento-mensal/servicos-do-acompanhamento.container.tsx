@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ServicosDoAcompanhamento } from "@/presentation/components/organisms/servicos-do-acompanhamento.component";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
 
+import { mensagemDaFalha } from "./acompanhamento-mensal.presenter";
 import {
   criarServicoAction,
   desativarServicoAction,
@@ -32,8 +33,9 @@ export function ServicosDoAcompanhamentoContainer({ servicos }: Props) {
         if (!r.ok) return setErro(r.error.message);
         aoDarCerto();
         router.refresh();
-      } catch {
-        setErro("Falha inesperada. Tente novamente.");
+      } catch (erro) {
+        console.error("Falha ao gravar os serviços do acompanhamento", erro);
+        setErro(mensagemDaFalha(erro));
       }
     });
 

@@ -11,9 +11,9 @@ import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-
 import { propsDoDetalhe } from "@/modules/rh/presentation/view-models/acompanhamento-funcionarios/acompanhamento-funcionarios.presenter";
 import { carregarAcompanhamentoFuncionarios } from "@/modules/rh/presentation/view-models/acompanhamento-funcionarios/acompanhamento-funcionarios.server";
 import { podeVerAcompanhamentoDosFuncionariosRh } from "@/shared/kernel/papeis";
-import { ROTA_RH } from "@/shared/kernel/setores";
+import { ROTA_RH, ROTA_RH_FUNCIONARIOS } from "@/shared/kernel/setores";
 
-const ROTA = `${ROTA_RH}/funcionarios`;
+const ROTA = ROTA_RH_FUNCIONARIOS;
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ mes?: string }> };
 

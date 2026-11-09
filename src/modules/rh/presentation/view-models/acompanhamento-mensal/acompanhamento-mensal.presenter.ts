@@ -21,6 +21,21 @@ export function mesVizinho(competencia: string, delta: number): string {
 const estadoDoServico = (c: { aplica: boolean; concluido: boolean }): EstadoDoServico =>
   !c.aplica ? "nao_aplica" : c.concluido ? "concluido" : "pendente";
 
+// Só `TypeError` (o fetch que não saiu) é de rede; o resto é erro do servidor (arquitetura.md §3.8).
+export const mensagemDaFalha = (erro: unknown) =>
+  erro instanceof TypeError
+    ? "Sem conexão com o servidor. Verifique a internet e tente novamente."
+    : "Erro inesperado no servidor. Tente novamente; se continuar, avise o suporte.";
+
+// Os links de mês do painel do Cliente: o próximo some no mês corrente. Preserva `voltarPara`.
+export function linksDoMes(clienteId: string, competencia: string, atual: string, voltarPara?: string) {
+  const href = (delta: number) =>
+    `/clientes/${encodeURIComponent(clienteId)}?mes=${mesVizinho(competencia, delta)}${
+      voltarPara ? `&voltarPara=${encodeURIComponent(voltarPara)}` : ""
+    }`;
+  return { anteriorHref: href(-1), proximoHref: competencia < atual ? href(1) : undefined };
+}
+
 export type PassoDaTroca = { tipo: "marcar" | "aplicar"; valor: boolean };
 
 // "Se aplica" e "concluído" são dois dados; trocar o estado da célula é desmarcar antes de dispensar

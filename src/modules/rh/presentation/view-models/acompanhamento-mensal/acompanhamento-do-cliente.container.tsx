@@ -6,11 +6,12 @@ import { useRouter } from "next/navigation";
 import {
   AcompanhamentoDoClienteRh,
   type EstadoDoServico,
+  type Servico,
 } from "@/presentation/components/organisms/acompanhamento-do-cliente-rh.component";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
 
 import { definirServicoAplicavelAction, marcarServicoAction } from "./acompanhamento-mensal.actions";
-import { passosDaTroca } from "./acompanhamento-mensal.presenter";
+import { mensagemDaFalha, passosDaTroca } from "./acompanhamento-mensal.presenter";
 
 type Props = {
   clienteId: string;
@@ -18,7 +19,7 @@ type Props = {
   rotuloCompetencia: string;
   anteriorHref: string;
   proximoHref?: string;
-  servicos: { servicoId: string; nome: string; estado: EstadoDoServico; bloqueio?: string }[];
+  servicos: Servico[];
 };
 
 export function AcompanhamentoDoClienteContainer({ clienteId, competencia, servicos, ...mes }: Props) {
@@ -60,8 +61,9 @@ export function AcompanhamentoDoClienteContainer({ clienteId, competencia, servi
           try {
             const r = await trocar(servicoId, de, para);
             if (!r.ok) setErro(r.error.message);
-          } catch {
-            setErro("Falha inesperada. Tente novamente.");
+          } catch (erro) {
+            console.error("Falha ao marcar o serviço do acompanhamento", erro);
+            setErro(mensagemDaFalha(erro));
           }
           // Uma troca em dois passos pode ter gravado o primeiro: a tela relê o que ficou.
           router.refresh();
