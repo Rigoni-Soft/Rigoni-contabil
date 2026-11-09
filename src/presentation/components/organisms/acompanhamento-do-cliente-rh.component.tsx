@@ -47,18 +47,17 @@ export function AcompanhamentoDoClienteRh({
   onTrocar,
 }: Props) {
   return (
-    <Pilha espaco={3} como="section" aria-labelledby="acompanhamento-do-mes">
-      <Texto variante="rotulo" como="h2" id="acompanhamento-do-mes">
-        Acompanhamento do mês
-      </Texto>
+    <>
+      {/* O mês é o cabeçalho do cartão: `order-first` o põe acima dos campos do cadastro. */}
       <NavegacaoDeMes
         rotuloMes={rotuloCompetencia}
         anteriorHref={anteriorHref}
         proximoHref={proximoHref}
+        className="order-first"
       />
       {aviso && <Texto variante="apoio">{aviso}</Texto>}
       {erro && <AvisoDeStatus tipo="erro" legivel texto={erro} />}
-      <Grade colunas="1>2>4" espaco={4} como="ul">
+      <Grade colunas="1>2>4" espaco={4} como="ul" aria-label="Acompanhamento do mês">
         {servicos.map((s) => (
           <Pilha como="li" key={s.servicoId} espaco={1}>
             <Label htmlFor={`servico-${s.servicoId}`}>{s.nome}</Label>
@@ -85,6 +84,6 @@ export function AcompanhamentoDoClienteRh({
           </Pilha>
         ))}
       </Grade>
-    </Pilha>
+    </>
   );
 }

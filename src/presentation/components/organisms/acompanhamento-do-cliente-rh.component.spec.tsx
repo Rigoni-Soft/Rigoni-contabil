@@ -23,7 +23,7 @@ describe("AcompanhamentoDoClienteRh", () => {
   it("lista cada serviço com o estado e deixa o do sistema bloqueado", () => {
     render(<AcompanhamentoDoClienteRh {...PROPS} />);
 
-    expect(screen.getByRole("heading", { name: "Acompanhamento do mês" })).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Acompanhamento do mês" })).toBeInTheDocument();
     expect(screen.getByLabelText("FGTS")).toHaveValue("pendente");
     expect(screen.getByLabelText("FGTS")).toBeEnabled();
     expect(screen.getByLabelText("Holerite")).toBeDisabled();

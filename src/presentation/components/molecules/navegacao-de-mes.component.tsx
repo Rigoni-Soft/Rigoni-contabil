@@ -1,23 +1,33 @@
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
 import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
+import { cn } from "@/presentation/lib/utils";
 
 type NavegacaoDeMesProps = {
   rotuloMes: string;
   anteriorHref: string;
   // Sem próximo no mês corrente.
   proximoHref?: string;
+  className?: string;
 };
 
 // Mês anterior, mês em tela e próximo: o mês fica no centro mesmo quando falta o próximo.
-export function NavegacaoDeMes({ rotuloMes, anteriorHref, proximoHref }: NavegacaoDeMesProps) {
+export function NavegacaoDeMes({
+  rotuloMes,
+  anteriorHref,
+  proximoHref,
+  className,
+}: NavegacaoDeMesProps) {
   return (
     <Caixa
       como="nav"
       aria-label="Mês do acompanhamento"
-      className="grid grid-cols-[1fr_auto_1fr] items-center gap-2"
+      className={cn("grid grid-cols-[1fr_auto_1fr] items-center gap-2", className)}
     >
-      <LinkDeAcao href={anteriorHref} variant="ghost" className="justify-self-start">
+      <LinkDeAcao href={anteriorHref} variant="outline" className="justify-self-start">
+        <ChevronLeft className="size-4" aria-hidden="true" />
         Mês anterior
       </LinkDeAcao>
       <Texto
@@ -30,8 +40,9 @@ export function NavegacaoDeMes({ rotuloMes, anteriorHref, proximoHref }: Navegac
       </Texto>
       <Caixa className="justify-self-end">
         {proximoHref && (
-          <LinkDeAcao href={proximoHref} variant="ghost">
+          <LinkDeAcao href={proximoHref} variant="outline">
             Próximo mês
+            <ChevronRight className="size-4" aria-hidden="true" />
           </LinkDeAcao>
         )}
       </Caixa>
