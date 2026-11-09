@@ -98,6 +98,16 @@ describe("ObterAcompanhamentoFuncionarios", () => {
     expect(chamadas).toContainEqual(["2026-11-01", null, true]);
   });
 
+  it("a lista lê só o mês consultado; a janela de meses é do detalhe", async () => {
+    const lista = montar("lider_setor");
+    await lista.caso.execute({});
+    const detalhe = montar("lider_setor");
+    await detalhe.caso.execute({ funcionarioId: "u-ana" });
+
+    expect(lista.chamadas).toHaveLength(1);
+    expect(detalhe.chamadas).toHaveLength(6);
+  });
+
   it("o detalhe agrupa os pendentes pelo serviço que falta, mostra evolução e os mais atrasados", async () => {
     const r = await montar("lider_setor").caso.execute({ funcionarioId: "u-ana" });
 
