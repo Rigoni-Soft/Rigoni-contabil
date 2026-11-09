@@ -23,9 +23,12 @@ describe("ObservacoesDoRh", () => {
   it("avisa o erro e o sucesso, e bloqueia o botão enquanto salva", () => {
     const { rerender } = render(<ObservacoesDoRh {...BASE} erro="Sem permissão." />);
     expect(screen.getByText("Sem permissão.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Observações gerais do RH")).toHaveAccessibleDescription(
+      "Sem permissão.",
+    );
 
     rerender(<ObservacoesDoRh {...BASE} sucesso pendente />);
     expect(screen.getByText("Observações do RH atualizadas.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Salvar observações do RH" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Salvando…" })).toBeDisabled();
   });
 });

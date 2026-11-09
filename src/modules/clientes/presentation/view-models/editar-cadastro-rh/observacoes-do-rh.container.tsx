@@ -42,7 +42,10 @@ export function ObservacoesDoRhContainer({ clienteId, observacoesIniciais }: Pro
   return (
     <ObservacoesDoRh
       valor={valor}
-      onMudar={setValor}
+      onMudar={(novo) => {
+        setValor(novo);
+        setSucesso(false);
+      }}
       onSalvar={() => void salvar()}
       pendente={pendente}
       erro={erro}

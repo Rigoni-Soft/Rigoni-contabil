@@ -37,12 +37,14 @@ export function ObservacoesDoRh({
           rows={3}
           value={valor}
           onChange={(e) => onMudar(e.target.value)}
+          aria-invalid={erro ? true : undefined}
+          aria-describedby={erro ? "observacoes-do-rh-erro" : undefined}
         />
+        {erro && <FieldError id="observacoes-do-rh-erro">{erro}</FieldError>}
       </Pilha>
       <Button type="button" onClick={onSalvar} disabled={pendente} className="self-start">
-        Salvar observações do RH
+        {pendente ? "Salvando…" : "Salvar observações do RH"}
       </Button>
-      {erro && <FieldError>{erro}</FieldError>}
       {sucesso && <AvisoDeStatus tipo="sucesso" texto="Observações do RH atualizadas." />}
     </Pilha>
   );
