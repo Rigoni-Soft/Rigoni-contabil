@@ -51,25 +51,12 @@ describe("acompanhamento-mensal.presenter", () => {
       ["Holerite", "pendente", "O Holerite é preenchido pelo sistema."],
     ]);
     expect(servicosDoCliente(dto, "c1").aviso).toBeUndefined();
-    expect(servicosDoCliente(dto, "outro").aviso).toMatch(/não está na sua vista/);
-    expect(
-      servicosDoCliente(dto, "outro").servicos.map((s) => [s.nome, s.estado, s.bloqueio]),
-    ).toEqual([
-      [
-        "FGTS",
-        "pendente",
-        "Este cliente não está na sua vista do RH. Só o Responsável marca; o Líder atribui o Responsável no cadastro.",
-      ],
-      [
-        "SIB",
-        "pendente",
-        "Este cliente não está na sua vista do RH. Só o Responsável marca; o Líder atribui o Responsável no cadastro.",
-      ],
-      [
-        "NUTRI",
-        "pendente",
-        "Este cliente não está na sua vista do RH. Só o Responsável marca; o Líder atribui o Responsável no cadastro.",
-      ],
+    const { servicos, aviso } = servicosDoCliente(dto, "outro");
+    expect(aviso).toMatch(/não está na sua vista/);
+    expect(servicos.map((s) => [s.nome, s.estado, s.bloqueio])).toEqual([
+      ["FGTS", "pendente", aviso],
+      ["SIB", "pendente", aviso],
+      ["NUTRI", "pendente", aviso],
       ["Holerite", "pendente", "O Holerite é preenchido pelo sistema."],
     ]);
   });
