@@ -2,9 +2,9 @@ import Link from "next/link";
 import { Settings } from "lucide-react";
 
 import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
-import { MenuSuspenso } from "@/presentation/components/ui/menu-suspenso";
 import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
+import { MenuSuspenso } from "@/presentation/components/ui/menu-suspenso";
 import { Select } from "@/presentation/components/ui/select";
 import { cn } from "@/presentation/lib/utils";
 import { ROTA_ATENDIMENTO } from "@/shared/kernel/rotas";

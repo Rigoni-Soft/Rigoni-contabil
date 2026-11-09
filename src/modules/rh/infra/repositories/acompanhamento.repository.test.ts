@@ -200,14 +200,12 @@ describe("Acompanhamento mensal do RH (integração)", () => {
   });
 
   it("traz o Responsável de cada cliente e, a pedido, os clientes sem Responsável", async () => {
-    const semResponsavel = await servico
-      .from("clientes")
-      .insert({
-        id: crypto.randomUUID(),
-        empresa: "Acomp C Ltda",
-        cnpj: CNPJ_SEM_RESPONSAVEL,
-        regime: "lucro_presumido",
-      });
+    const semResponsavel = await servico.from("clientes").insert({
+      id: crypto.randomUUID(),
+      empresa: "Acomp C Ltda",
+      cnpj: CNPJ_SEM_RESPONSAVEL,
+      regime: "lucro_presumido",
+    });
     if (semResponsavel.error) throw semResponsavel.error;
     const { repo } = await comoLiderRH();
 
