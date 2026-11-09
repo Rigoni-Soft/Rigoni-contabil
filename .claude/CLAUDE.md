@@ -1,5 +1,5 @@
 # Formatação
-- Edite à mão e confira com `yarn lint`: o repo não passa `prettier --check` (o CI não o roda), e `prettier --write` num arquivo existente reflowa linhas alheias ao diff.
+- O CI roda `yarn format:check`. Antes da PR, formate os arquivos do diff (`git diff <base>...HEAD --name-only | xargs npx prettier --write`) num commit `style:` à parte; `prettier --write` num arquivo que o diff não tocou reflowa linhas alheias.
 
 # E2E
 - O Playwright reaproveita o dev server em `localhost:8800`. Com `PORT=8800` no `.env.local` o `yarn dev` aberto serve o e2e; em outra porta o Playwright tenta subir um segundo `next dev` no mesmo diretório e falha.

@@ -10,7 +10,8 @@ Argumento: `$ARGUMENTS` = base do diff. Sem base: `gh pr view --json baseRefName
 
 1. `git status --porcelain` sem alteração de arquivo rastreado (senão pare: o gate revisa o que está commitado).
 2. Ledger: `.claude/state/<branch com / trocado por ->/ledger.md` (ignorado pelo git). Crie com o cabeçalho `ID | etapa | resumo | status | commit` se não existir. **Todo apontamento tratado entra aqui** (`resolvido` ou `recusado`); nada que conste no ledger volta a ser apontado.
-3. Liste os arquivos do diff. Há UI (`*.tsx`, `*.css`, `DESIGN.md`)? Isso decide a etapa 1.
+3. Argumento igual à branch atual: o diff `base...HEAD` fica vazio; pare e pergunte a base.
+4. Liste os arquivos do diff. Há UI (`*.tsx`, `*.css`, `DESIGN.md`)? Isso decide a etapa 1.
 
 ## Como cada etapa roda (laço)
 
@@ -22,7 +23,7 @@ Argumento: `$ARGUMENTS` = base do diff. Sem base: `gh pr view --json baseRefName
 
 ## Etapas (nesta ordem, sem pular)
 
-**1. `impeccable audit`** — só se há UI no diff (senão registre "design não aplicável"). Saída: **20/20 e zero ações recomendadas**. Quando o audit recomendar outras skills do impeccable (polish, distill, harden, etc.), **siga a recomendação**: invoque-as, depois audite de novo. **Regressão, P0, P1 e P2 bloqueiam; P3 de preferência** (gosto, sem regressão nem barreira de uso) entra no ledger como `recusado` com o motivo e não abre rodada nova. O auditor marca cada achado como `regressão` ou `preferência`.
+**1. `impeccable audit`** — só se há UI no diff (senão registre "design não aplicável"). Saída: **20/20 e zero ações recomendadas**. Nota `n/a` não fecha a etapa: chame o auditor de novo mandando executar a skill `impeccable audit`; se ela não rodar, reporte "nota não obtida" ao usuário em vez de dar a etapa por fechada. Quando o audit recomendar outras skills do impeccable (polish, distill, harden, etc.), **siga a recomendação**: invoque-as, depois audite de novo. **Regressão, P0, P1 e P2 bloqueiam; P3 de preferência** (gosto, sem regressão nem barreira de uso) entra no ledger como `recusado` com o motivo e não abre rodada nova. O auditor marca cada achado como `regressão` ou `preferência`.
 
 **2. `ponytail-review`** — código morto, abstração desnecessária, dependência redundante. Saída: zero apontamentos. `delete` de algo ainda não usado mas possivelmente de ticket planejado: pergunte.
 
@@ -30,7 +31,7 @@ Argumento: `$ARGUMENTS` = base do diff. Sem base: `gh pr view --json baseRefName
 
 **4. `retro`** — retrospectiva do processo e dos guardrails (lint, checks, docs, skills). Apresente os candidatos; aplique os que o usuário aprovar, registre e rode de novo. Saída: nenhuma pendência estrutural nova.
 
-**5. Checks do CI** — `yarn tsc --noEmit`, `yarn check:naming`, `yarn check:refs`, `yarn check:specs`, `yarn check:deps` e `yarn check:guard-senha` (os mesmos do `ci.yml`). Falhou: corrija, registre no ledger e rode de novo; commit só se mudou arquivo.
+**5. Checks do CI** — `yarn tsc --noEmit`, `yarn check:naming`, `yarn check:refs`, `yarn check:specs`, `yarn check:deps` e `yarn check:guard-senha` e `npx prettier --check` nos arquivos do diff (o `ci.yml` roda `yarn format:check`). Falhou: corrija, registre no ledger e rode de novo; commit só se mudou arquivo.
 
 ## Fim
 
