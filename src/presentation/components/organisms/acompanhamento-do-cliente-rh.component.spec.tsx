@@ -4,8 +4,6 @@ import userEvent from "@testing-library/user-event";
 import { AcompanhamentoDoClienteRh } from "./acompanhamento-do-cliente-rh.component";
 
 const PROPS = {
-  rotuloCompetencia: "novembro de 2026",
-  anteriorHref: "/clientes/c1?mes=2026-10",
   servicos: [
     { servicoId: "fgts", nome: "FGTS", estado: "pendente" as const },
     {
@@ -40,13 +38,16 @@ describe("AcompanhamentoDoClienteRh", () => {
     expect(PROPS.onTrocar).toHaveBeenCalledWith("fgts", "pendente", "concluido");
   });
 
-  it("mostra a navegação de mês e o erro", () => {
-    render(<AcompanhamentoDoClienteRh {...PROPS} erro="Não foi possível salvar." />);
-
-    expect(screen.getByRole("link", { name: "Mês anterior" })).toHaveAttribute(
-      "href",
-      "/clientes/c1?mes=2026-10",
+  it("mostra o aviso do cartão e o erro", () => {
+    render(
+      <AcompanhamentoDoClienteRh
+        {...PROPS}
+        aviso="Este cliente não está na sua vista do RH."
+        erro="Não foi possível salvar."
+      />,
     );
+
+    expect(screen.getByText("Este cliente não está na sua vista do RH.")).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("Não foi possível salvar.");
   });
 });

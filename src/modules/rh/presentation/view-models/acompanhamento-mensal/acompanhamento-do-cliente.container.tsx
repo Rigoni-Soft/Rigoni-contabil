@@ -20,9 +20,6 @@ import { passosDaTroca } from "./acompanhamento-mensal.presenter";
 type Props = {
   clienteId: string;
   competencia: string;
-  rotuloCompetencia: string;
-  anteriorHref: string;
-  proximoHref?: string;
   servicos: Servico[];
   aviso?: string;
 };
@@ -31,7 +28,7 @@ export function AcompanhamentoDoClienteContainer({
   clienteId,
   competencia,
   servicos,
-  ...mes
+  aviso,
 }: Props) {
   const router = useRouter();
   // A escolha aparece na hora e volta ao valor do servidor se a gravação falhar.
@@ -60,7 +57,7 @@ export function AcompanhamentoDoClienteContainer({
 
   return (
     <AcompanhamentoDoClienteRh
-      {...mes}
+      aviso={aviso}
       servicos={exibidos}
       pendente={pendente}
       erro={erro}

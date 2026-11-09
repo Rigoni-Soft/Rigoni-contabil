@@ -15,8 +15,6 @@ jest.mock("./acompanhamento-mensal.actions", () => ({
 const PROPS = {
   clienteId: "c1",
   competencia: "2026-11",
-  rotuloCompetencia: "novembro de 2026",
-  anteriorHref: "?mes=2026-10",
   servicos: [{ servicoId: "fgts", nome: "FGTS", estado: "pendente" as const }],
 };
 

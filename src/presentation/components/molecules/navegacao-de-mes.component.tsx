@@ -17,7 +17,7 @@ type NavegacaoDeMesProps = {
 
 // Só texto e seta; ativo em cor de ação, inativo apagado (a cor carrega o estado).
 const ATIVO = "px-2 font-semibold text-primary hover:text-primary";
-const INATIVO = "inline-flex items-center gap-2 px-2 text-sm font-medium text-muted-foreground/60";
+const INATIVO = "inline-flex items-center gap-2 px-2 text-sm font-medium text-muted-foreground";
 
 // Mês anterior, mês em tela e próximo: o mês fica no centro mesmo quando falta o próximo.
 export function NavegacaoDeMes({
@@ -32,7 +32,7 @@ export function NavegacaoDeMes({
       como="nav"
       aria-label="Mês do acompanhamento"
       className={cn(
-        "grid grid-cols-[1fr_auto_1fr] items-center gap-2",
+        "grid grid-cols-2 items-center gap-2 sm:grid-cols-[1fr_auto_1fr]",
         destaque && "rounded-md border border-border bg-muted/50 px-3 py-2",
         className,
       )}
@@ -45,7 +45,11 @@ export function NavegacaoDeMes({
         como="span"
         variante="subtitulo"
         aria-current="date"
-        className={cn("first-letter:uppercase", destaque && "text-lg font-semibold")}
+        className={cn(
+          "col-span-2 text-center first-letter:uppercase sm:order-none sm:col-span-1",
+          "order-first",
+          destaque && "text-lg font-semibold",
+        )}
       >
         {rotuloMes}
       </Texto>
@@ -57,8 +61,11 @@ export function NavegacaoDeMes({
           </LinkDeAcao>
         ) : (
           // Mês corrente: o avanço aparece apagado e sem link, o estado se lê pela cor.
-          <Texto como="span" variante="apoio" aria-disabled="true" className={INATIVO}>
+          <Texto como="span" variante="apoio" className={INATIVO}>
             Próximo mês
+            <Texto como="span" variante="somenteLeitor">
+              indisponível: este é o mês corrente
+            </Texto>
             <ChevronRight className="size-4" aria-hidden="true" />
           </Texto>
         )}

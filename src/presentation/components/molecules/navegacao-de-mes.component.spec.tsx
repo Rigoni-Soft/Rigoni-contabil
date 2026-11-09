@@ -29,6 +29,6 @@ describe("NavegacaoDeMes", () => {
 
     expect(screen.getByRole("link", { name: "Mês anterior" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Próximo mês" })).not.toBeInTheDocument();
-    expect(screen.getByText("Próximo mês")).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByText(/indisponível: este é o mês corrente/)).toBeInTheDocument();
   });
 });

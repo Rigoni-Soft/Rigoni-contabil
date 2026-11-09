@@ -33,7 +33,9 @@ type EditarCadastroRhFormProps = {
   documentoContratual?: React.ReactNode;
   // O Responsável do RH: um campo do cabeçalho, na mesma coluna do SN.
   responsavel?: React.ReactNode;
-  // O acompanhamento do mês: uma seção do próprio cartão, depois do cabeçalho.
+  // O mês do acompanhamento: o cabeçalho do cartão, logo depois da nota de obrigatórios.
+  mesDoAcompanhamento?: React.ReactNode;
+  // Os serviços do mês: uma seção do próprio cartão, depois do cabeçalho do cadastro.
   acompanhamento?: React.ReactNode;
 };
 
@@ -56,6 +58,7 @@ export function EditarCadastroRhForm({
   onLimpar,
   documentoContratual,
   responsavel,
+  mesDoAcompanhamento,
   acompanhamento,
 }: EditarCadastroRhFormProps) {
   return (
@@ -69,6 +72,8 @@ export function EditarCadastroRhForm({
       )}
     >
       {!readOnly && <NotaDeObrigatorio />}
+
+      {mesDoAcompanhamento}
 
       <CabecalhoDoCadastro cabecalho={cabecalho} documentoContratual={documentoContratual}>
         {responsavel && <Caixa className="lg:col-start-4">{responsavel}</Caixa>}

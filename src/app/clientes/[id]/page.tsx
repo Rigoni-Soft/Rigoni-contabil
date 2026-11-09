@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { FalhaDeCarga } from "@/presentation/components/molecules/falha-de-carga.component";
+import { NavegacaoDeMes } from "@/presentation/components/molecules/navegacao-de-mes.component";
 import { ResponsavelSomenteLeitura } from "@/presentation/components/molecules/responsavel-somente-leitura.component";
 import { EditarCadastroOperacionalPage } from "@/presentation/components/pages/editar-cadastro-operacional.page";
 import { carregarSessao, validarSessao } from "@/presentation/view-models/shell/shell.server";
@@ -53,7 +54,7 @@ function montarFormulario(
     alteracao?: string | string[];
     // Só o cadastro do RH: o Responsável e o acompanhamento entram no mesmo cartão do formulário.
     responsavelRh?: React.ReactNode;
-    acompanhamentoRh?: React.ReactNode;
+    acompanhamentoRh?: { mes: React.ReactNode; corpo: React.ReactNode };
   },
 ) {
   if (rh?.ok && rh.value) {
@@ -64,7 +65,8 @@ function montarFormulario(
         voltarHref={hrefSeguro(opcoes.voltarPara)}
         documentosContratuais={documentos?.ok ? documentos.value : undefined}
         responsavel={opcoes.responsavelRh}
-        acompanhamento={opcoes.acompanhamentoRh}
+        mesDoAcompanhamento={opcoes.acompanhamentoRh?.mes}
+        acompanhamento={opcoes.acompanhamentoRh?.corpo}
       />
     );
   }
@@ -101,16 +103,24 @@ async function acompanhamentoRhDoCliente(
   const { servicos, aviso } = servicosDoCliente(acompanhamento.value, clienteId);
 
   const { competencia } = acompanhamento.value;
-  return (
-    <AcompanhamentoDoClienteContainer
-      clienteId={clienteId}
-      competencia={competencia}
-      rotuloCompetencia={rotuloDaCompetencia(competencia)}
-      {...linksDoMes(clienteId, competencia, mesAtual(), voltarPara)}
-      servicos={servicos}
-      aviso={aviso}
-    />
-  );
+  // O mês (só links) e a lista (com estado) são dois nós: o mês entra no topo do cartão, na ordem do foco.
+  return {
+    mes: (
+      <NavegacaoDeMes
+        rotuloMes={rotuloDaCompetencia(competencia)}
+        {...linksDoMes(clienteId, competencia, mesAtual(), voltarPara)}
+        destaque
+      />
+    ),
+    corpo: (
+      <AcompanhamentoDoClienteContainer
+        clienteId={clienteId}
+        competencia={competencia}
+        servicos={servicos}
+        aviso={aviso}
+      />
+    ),
+  };
 }
 
 function tituloDaPagina(readOnly: boolean) {
@@ -200,7 +210,8 @@ export default async function Page({ params, searchParams }: Props) {
         ) : undefined
       }
       responsavelDoSetor={cadastroDoRh ? undefined : campoResponsavel}
-      acompanhamentoRh={cadastroDoRh ? undefined : acompanhamentoRh}
+      mesRh={cadastroDoRh ? undefined : acompanhamentoRh?.mes}
+      acompanhamentoRh={cadastroDoRh ? undefined : acompanhamentoRh?.corpo}
       observacoesRh={
         observacoesRhDoAdmin?.ok && observacoesRhDoAdmin.value ? (
           <ObservacoesDoRhContainer

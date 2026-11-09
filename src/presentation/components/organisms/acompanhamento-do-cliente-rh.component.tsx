@@ -2,7 +2,6 @@ import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.c
 import { Grade, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
-import { NavegacaoDeMes } from "@/presentation/components/molecules/navegacao-de-mes.component";
 import { Label } from "@/presentation/components/ui/label";
 import { Select } from "@/presentation/components/ui/select";
 import { cn } from "@/presentation/lib/utils";
@@ -23,10 +22,6 @@ const CLASSE_DO_ESTADO: Record<EstadoDoServico, string> = {
 };
 
 type Props = {
-  rotuloCompetencia: string;
-  anteriorHref: string;
-  // Sem próximo no mês corrente.
-  proximoHref?: string;
   servicos: Servico[];
   // Motivo que vale para o cartão todo (ex.: sem Responsável): aparece visível, além do leitor de tela.
   aviso?: string;
@@ -36,26 +31,9 @@ type Props = {
 };
 
 // O acompanhamento do mês de um Cliente no painel dele: um serviço por linha, como o DAS no painel do SN.
-export function AcompanhamentoDoClienteRh({
-  rotuloCompetencia,
-  anteriorHref,
-  proximoHref,
-  servicos,
-  aviso,
-  pendente,
-  erro,
-  onTrocar,
-}: Props) {
+export function AcompanhamentoDoClienteRh({ servicos, aviso, pendente, erro, onTrocar }: Props) {
   return (
     <>
-      {/* O mês é o cabeçalho do cartão: `order-first` o põe acima dos campos do cadastro. */}
-      <NavegacaoDeMes
-        rotuloMes={rotuloCompetencia}
-        anteriorHref={anteriorHref}
-        proximoHref={proximoHref}
-        destaque
-        className="order-first mb-3"
-      />
       {aviso && <Texto variante="apoio">{aviso}</Texto>}
       {erro && <AvisoDeStatus tipo="erro" legivel texto={erro} />}
       <Grade colunas="1>2>4" espaco={4} como="ul" aria-label="Acompanhamento do mês">
