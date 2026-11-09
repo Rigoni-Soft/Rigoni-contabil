@@ -110,6 +110,7 @@ async function acompanhamentoRhDoCliente(
         rotuloMes={rotuloDaCompetencia(competencia)}
         {...linksDoMes(clienteId, competencia, mesAtual(), voltarPara)}
         destaque
+        className="mb-3"
       />
     ),
     corpo: (

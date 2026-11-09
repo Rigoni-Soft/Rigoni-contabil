@@ -31,4 +31,13 @@ describe("NavegacaoDeMes", () => {
     expect(screen.queryByRole("link", { name: "Próximo mês" })).not.toBeInTheDocument();
     expect(screen.getByText(/indisponível: este é o mês corrente/)).toBeInTheDocument();
   });
+
+  it("com destaque, o mês vem em negrito dentro da faixa", () => {
+    render(<NavegacaoDeMes rotuloMes="novembro de 2026" anteriorHref="?mes=2026-10" destaque />);
+
+    expect(screen.getByText("novembro de 2026")).toHaveClass("font-semibold");
+    expect(screen.getByRole("navigation", { name: "Mês do acompanhamento" })).toHaveClass(
+      "bg-muted/50",
+    );
+  });
 });

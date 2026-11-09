@@ -92,14 +92,14 @@ describe("EditarCadastroRhForm", () => {
               <input readOnly value="Ana" />
             </label>
           ),
-          acompanhamento: <h2>Acompanhamento do mês</h2>,
+          acompanhamento: <ul aria-label="Acompanhamento do mês" />,
         }}
       />,
     );
 
     const cartao = screen.getByLabelText("Empresa").closest("form")!;
     expect(cartao).toContainElement(screen.getByLabelText("Responsável"));
-    const acompanhamento = screen.getByRole("heading", { name: "Acompanhamento do mês" });
+    const acompanhamento = screen.getByRole("list", { name: "Acompanhamento do mês" });
     expect(cartao).toContainElement(acompanhamento);
     expect(
       acompanhamento.compareDocumentPosition(screen.getByText("Contatos")) &
