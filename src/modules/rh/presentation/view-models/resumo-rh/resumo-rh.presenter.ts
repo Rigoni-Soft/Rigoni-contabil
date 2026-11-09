@@ -5,7 +5,7 @@ import type {
 import { rotuloDaCompetencia } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.presenter";
 
 // Mesmo desenho dos cards do resumo do SN (a View de resumo lê só este shape).
-export type CardDoRh = {
+type CardDoRh = {
   id: string;
   titulo: string;
   cor: "em_dia" | "atencao";
@@ -17,8 +17,6 @@ export type CardDoRh = {
   href?: string;
   total?: number;
 };
-
-export type GrupoDoRh = { titulo: string; cardIds: string[] };
 
 const doCliente = ({ clienteId, empresa, cnpj }: AcompanhamentoMensalDto["linhas"][number]) => ({
   clienteId,

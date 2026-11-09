@@ -45,11 +45,9 @@ export type FuncionarioAcompanhamentoDto = {
   atribuidos: number;
   // Clientes com todo serviço aplicável (inclusive o Holerite) concluído no mês.
   pontos: number;
-  // Quantos clientes faltam em cada serviço, na ordem das colunas (zero para quem fechou).
-  faltam: { servicoId: string; nome: string; clientes: number }[];
 };
 
-export type PendenciaDoFuncionarioDto = {
+type PendenciaDoFuncionarioDto = {
   servicoId: string;
   nome: string;
   clientes: { clienteId: string; empresa: string }[];
@@ -70,8 +68,6 @@ export type DetalheDoFuncionarioDto = {
 export type AcompanhamentoFuncionariosDto = {
   competencia: string;
   funcionarios: FuncionarioAcompanhamentoDto[];
-  // Clientes sem Responsável: aparecem ao Líder e não contam para ninguém.
-  semResponsavel: { clienteId: string; empresa: string }[];
   // Só quando pedido um funcionário que tem clientes atribuídos no mês.
   detalhe?: DetalheDoFuncionarioDto;
 };

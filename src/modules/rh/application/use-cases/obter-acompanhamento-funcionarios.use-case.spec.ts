@@ -63,19 +63,11 @@ describe("ObterAcompanhamentoFuncionarios", () => {
         ...ANA,
         atribuidos: 2,
         pontos: 1,
-        faltam: [
-          { servicoId: "s-fgts", nome: "FGTS", clientes: 1 },
-          { servicoId: "s-hol", nome: "Holerite", clientes: 1 },
-        ],
       },
       {
         ...BIA,
         atribuidos: 1,
         pontos: 0,
-        faltam: [
-          { servicoId: "s-fgts", nome: "FGTS", clientes: 0 },
-          { servicoId: "s-hol", nome: "Holerite", clientes: 1 },
-        ],
       },
     ]);
   });
@@ -89,12 +81,12 @@ describe("ObterAcompanhamentoFuncionarios", () => {
     POR_MES["2026-11-01"].pop();
   });
 
-  it("cliente sem Responsável aparece à parte e não conta para ninguém", async () => {
+  it("o Admin lê também os clientes sem Responsável, que não contam para ninguém", async () => {
     const { caso, chamadas } = montar("admin", "administrativo");
 
     const r = await caso.execute({});
 
-    expect(r.ok && r.value.semResponsavel).toEqual([{ clienteId: "c4", empresa: "Empresa c4" }]);
+    expect(r.ok && r.value.funcionarios).toHaveLength(2);
     expect(chamadas).toContainEqual(["2026-11-01", null, true]);
   });
 

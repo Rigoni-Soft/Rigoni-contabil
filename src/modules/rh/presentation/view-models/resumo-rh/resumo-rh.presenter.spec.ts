@@ -43,10 +43,9 @@ describe("cardsDosFuncionarios", () => {
     const dto: AcompanhamentoFuncionariosDto = {
       competencia: "2026-11",
       funcionarios: [
-        { id: "u1", nome: "Ana", atribuidos: 4, pontos: 4, faltam: [] },
-        { id: "u2", nome: "Beto", atribuidos: 3, pontos: 1, faltam: [] },
+        { id: "u1", nome: "Ana", atribuidos: 4, pontos: 4 },
+        { id: "u2", nome: "Beto", atribuidos: 3, pontos: 1 },
       ],
-      semResponsavel: [],
     };
 
     const { cards } = cardsDosFuncionarios(dto, "/rh/funcionarios");

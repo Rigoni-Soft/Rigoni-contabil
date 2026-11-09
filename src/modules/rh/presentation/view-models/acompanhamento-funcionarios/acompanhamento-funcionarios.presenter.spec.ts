@@ -11,7 +11,7 @@ describe("acompanhamento-funcionarios.presenter", () => {
 
   it("rotula o mês e a evolução por extenso", () => {
     const detalhe: DetalheDoFuncionarioDto = {
-      funcionario: { id: "f1", nome: "Ana", atribuidos: 2, pontos: 1, faltam: [] },
+      funcionario: { id: "f1", nome: "Ana", atribuidos: 2, pontos: 1 },
       pendencias: [],
       evolucao: [
         { competencia: "2026-10", pontos: 0, atribuidos: 2 },
