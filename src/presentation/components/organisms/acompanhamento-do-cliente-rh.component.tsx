@@ -53,7 +53,8 @@ export function AcompanhamentoDoClienteRh({
         rotuloMes={rotuloCompetencia}
         anteriorHref={anteriorHref}
         proximoHref={proximoHref}
-        className="order-first"
+        destaque
+        className="order-first mb-3"
       />
       {aviso && <Texto variante="apoio">{aviso}</Texto>}
       {erro && <AvisoDeStatus tipo="erro" legivel texto={erro} />}

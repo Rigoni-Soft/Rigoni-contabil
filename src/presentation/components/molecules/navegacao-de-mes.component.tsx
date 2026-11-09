@@ -10,6 +10,8 @@ type NavegacaoDeMesProps = {
   anteriorHref: string;
   // Sem próximo no mês corrente.
   proximoHref?: string;
+  // Cabeçalho do cartão: faixa com borda e mês maior, para o mês de referência ser o que se vê primeiro.
+  destaque?: boolean;
   className?: string;
 };
 
@@ -18,13 +20,18 @@ export function NavegacaoDeMes({
   rotuloMes,
   anteriorHref,
   proximoHref,
+  destaque,
   className,
 }: NavegacaoDeMesProps) {
   return (
     <Caixa
       como="nav"
       aria-label="Mês do acompanhamento"
-      className={cn("grid grid-cols-[1fr_auto_1fr] items-center gap-2", className)}
+      className={cn(
+        "grid grid-cols-[1fr_auto_1fr] items-center gap-2",
+        destaque && "rounded-md border border-border bg-muted/50 px-3 py-2",
+        className,
+      )}
     >
       <LinkDeAcao href={anteriorHref} variant="outline" className="justify-self-start">
         <ChevronLeft className="size-4" aria-hidden="true" />
@@ -34,7 +41,7 @@ export function NavegacaoDeMes({
         como="span"
         variante="subtitulo"
         aria-current="date"
-        className="first-letter:uppercase"
+        className={cn("first-letter:uppercase", destaque && "text-lg font-semibold")}
       >
         {rotuloMes}
       </Texto>
