@@ -1,3 +1,5 @@
+"use client";
+
 import { cn } from "@/presentation/lib/utils";
 
 type MenuSuspensoProps = {
@@ -8,11 +10,18 @@ type MenuSuspensoProps = {
   children: React.ReactNode;
 };
 
-// ponytail: <details> nativo, sem JS: só fecha ao clicar no botão ou ao navegar; fechar ao clicar fora
-// pede um popover com posição própria.
+// ponytail: <details> nativo: fecha pelo botão, com Esc (o foco volta ao botão) ou ao navegar; fechar ao
+// clicar fora pede um popover com posição própria.
 export function MenuSuspenso({ rotulo, icone, className, children }: MenuSuspensoProps) {
   return (
-    <details className={cn("relative", className)}>
+    <details
+      className={cn("relative", className)}
+      onKeyDown={(e) => {
+        if (e.key !== "Escape" || !e.currentTarget.open) return;
+        e.currentTarget.open = false;
+        e.currentTarget.querySelector("summary")?.focus();
+      }}
+    >
       <summary
         aria-label={rotulo}
         className="inline-flex size-9 cursor-pointer list-none items-center justify-center rounded-md border border-border text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:size-11 [&::-webkit-details-marker]:hidden"

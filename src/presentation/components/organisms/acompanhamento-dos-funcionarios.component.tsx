@@ -108,7 +108,7 @@ export function AcompanhamentoDosFuncionarios({
                     <Link
                       href={c.href}
                       aria-label={`${c.nome} de ${f.nome}: ${c.clientes}`}
-                      className="inline-block min-w-8 rounded-sm py-0.5 underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:py-3"
+                      className="inline-block min-w-8 rounded-sm py-0.5 text-center underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-w-11 pointer-coarse:py-3"
                     >
                       {c.clientes}
                     </Link>

@@ -48,7 +48,7 @@ export function DetalheDoFuncionarioRh({
         {pendencias.length === 0 && <Texto variante="apoio">Tudo concluído neste mês.</Texto>}
         {pendencias.map((p) => (
           <Pilha espaco={2} key={p.servicoId}>
-            <Texto variante="corpo" className="font-semibold">
+            <Texto variante="corpo" como="h3" className="font-semibold">
               {p.nome} ({p.clientes.length})
             </Texto>
             <ListaDeClientes clientes={p.clientes} />
@@ -79,12 +79,14 @@ export function DetalheDoFuncionarioRh({
           Mais atrasados
         </Texto>
         {maisAtrasados.length === 0 && <Texto variante="apoio">Nenhum cliente atrasado.</Texto>}
-        <ListaDeClientes
-          clientes={maisAtrasados.map((c) => ({
-            ...c,
-            detalhe: `${c.meses} ${c.meses === 1 ? "mês" : "meses"}`,
-          }))}
-        />
+        {maisAtrasados.length > 0 && (
+          <ListaDeClientes
+            clientes={maisAtrasados.map((c) => ({
+              ...c,
+              detalhe: `${c.meses} ${c.meses === 1 ? "mês" : "meses"}`,
+            }))}
+          />
+        )}
       </Pilha>
     </Pilha>
   );

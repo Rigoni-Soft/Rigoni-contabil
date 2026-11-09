@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Settings } from "lucide-react";
 
 import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
-import { MenuSuspenso } from "@/presentation/components/atoms/menu-suspenso.component";
+import { MenuSuspenso } from "@/presentation/components/ui/menu-suspenso";
 import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Select } from "@/presentation/components/ui/select";
