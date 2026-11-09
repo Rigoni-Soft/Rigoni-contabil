@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { ServicosDoAcompanhamento } from "@/presentation/components/organisms/servicos-do-acompanhamento.component";
+import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
 
 import {
@@ -11,7 +12,6 @@ import {
   desativarServicoAction,
   renomearServicoAction,
 } from "./acompanhamento-mensal.actions";
-import { mensagemDaFalha } from "./acompanhamento-mensal.presenter";
 
 type Props = { servicos: { id: string; nome: string; sistema: boolean }[] };
 

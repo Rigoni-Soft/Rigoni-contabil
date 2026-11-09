@@ -8,6 +8,7 @@ import { useFieldArray, useForm } from "react-hook-form";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import type { EditarCadastroOperacionalFormValues } from "@/presentation/components/organisms/editar-cadastro-operacional-form.component";
 import { EditarCadastroRhForm } from "@/presentation/components/organisms/editar-cadastro-rh-form.component";
+import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 import type { CadastroRhClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 
@@ -119,11 +120,7 @@ export function EditarCadastroRhContainer({
       router.push(voltarHref);
     } catch (erro) {
       console.error("Falha ao salvar o cadastro do RH", erro);
-      setErroServidor(
-        erro instanceof TypeError
-          ? "Sem conexão com o servidor. Verifique a internet e tente novamente."
-          : "Erro inesperado no servidor. Tente novamente; se continuar, avise o suporte.",
-      );
+      setErroServidor(mensagemDaFalha(erro));
     } finally {
       setPendente(false);
     }

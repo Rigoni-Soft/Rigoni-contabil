@@ -8,13 +8,14 @@ import {
   type EstadoDoServico,
   type Servico,
 } from "@/presentation/components/organisms/acompanhamento-do-cliente-rh.component";
+import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
 
 import {
   definirServicoAplicavelAction,
   marcarServicoAction,
 } from "./acompanhamento-mensal.actions";
-import { mensagemDaFalha, passosDaTroca } from "./acompanhamento-mensal.presenter";
+import { passosDaTroca } from "./acompanhamento-mensal.presenter";
 
 type Props = {
   clienteId: string;

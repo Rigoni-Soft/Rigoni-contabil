@@ -1,6 +1,5 @@
 import {
   linksDoMes,
-  mensagemDaFalha,
   mesVizinho,
   passosDaTroca,
   rotuloDaCompetencia,
@@ -79,12 +78,5 @@ describe("linksDoMes", () => {
 
   it("no mês corrente não há próximo", () => {
     expect(linksDoMes("c1", "2026-11", "2026-11").proximoHref).toBeUndefined();
-  });
-});
-
-describe("mensagemDaFalha", () => {
-  it("TypeError é falta de conexão; o resto é erro do servidor", () => {
-    expect(mensagemDaFalha(new TypeError("fetch"))).toMatch(/Sem conexão/);
-    expect(mensagemDaFalha(new Error("x"))).toMatch(/Erro inesperado/);
   });
 });

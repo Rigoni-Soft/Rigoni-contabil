@@ -115,6 +115,9 @@ export default async function Page({ params, searchParams }: Props) {
   const { id } = await params;
   const { voltarPara, alteracao, mes } = await searchParams;
   const sessao = validarSessao(await carregarSessao());
+  // O Admin vê o SN e o RH: na tela completa, as observações do RH entram à parte (lidas em paralelo).
+  const cadastroRhDoAdmin =
+    sessao.papel === "admin" ? carregarCadastroRhCliente(id) : Promise.resolve(null);
   const cadastroDoRh = usaCadastroDoRh(sessao.papel, sessao.setor);
   const carga = await carregarClienteParaPagina(id, sessao.papel, sessao.setor);
   const { rh, operacional, documentos } = carga;
@@ -151,8 +154,7 @@ export default async function Page({ params, searchParams }: Props) {
     ? !podeEditarCadastroRh(sessao.papel, sessao.setor)
     : !podeEditarCadastroOperacional(sessao.papel, sessao.setor);
   const acompanhamentoRh = await acompanhamentoRhDoCliente(id, sessao, mes, voltarPara);
-  // O Admin vê o SN e o RH: na tela completa, as observações do RH entram à parte.
-  const cadastroRhDoAdmin = sessao.papel === "admin" ? await carregarCadastroRhCliente(id) : null;
+  const observacoesRhDoAdmin = await cadastroRhDoAdmin;
 
   const formulario = montarFormulario(carga, sessao, {
     readOnly,
@@ -185,10 +187,10 @@ export default async function Page({ params, searchParams }: Props) {
       }
       acompanhamentoRh={acompanhamentoRh}
       observacoesRh={
-        cadastroRhDoAdmin?.ok && cadastroRhDoAdmin.value ? (
+        observacoesRhDoAdmin?.ok && observacoesRhDoAdmin.value ? (
           <ObservacoesDoRhContainer
             clienteId={id}
-            observacoesIniciais={cadastroRhDoAdmin.value.observacoes}
+            observacoesIniciais={observacoesRhDoAdmin.value.observacoes}
           />
         ) : undefined
       }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { ObservacoesDoRh } from "@/presentation/components/organisms/observacoes-do-rh.component";
+import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
 
 import { editarCadastroRhAction } from "./editar-cadastro-rh.actions";
 
@@ -29,11 +30,7 @@ export function ObservacoesDoRhContainer({ clienteId, observacoesIniciais }: Pro
       router.refresh();
     } catch (falha) {
       console.error("Falha ao salvar as observações do RH", falha);
-      setErro(
-        falha instanceof TypeError
-          ? "Sem conexão com o servidor. Verifique a internet e tente novamente."
-          : "Erro inesperado no servidor. Tente novamente; se continuar, avise o suporte.",
-      );
+      setErro(mensagemDaFalha(falha));
     } finally {
       setPendente(false);
     }
