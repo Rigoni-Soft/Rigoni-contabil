@@ -18,7 +18,6 @@ const MENSAL: AcompanhamentoMensalDto = {
     { clienteId: "c", empresa: "C", cnpj: "3", celulas: [celula("fgts", true, true), celula("holerite", true, true)] },
   ],
   podeMarcar: true,
-  podeGerirServicos: true,
 };
 
 describe("cardsDoAcompanhamento", () => {

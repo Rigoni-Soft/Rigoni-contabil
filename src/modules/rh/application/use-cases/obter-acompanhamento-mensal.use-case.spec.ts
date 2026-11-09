@@ -77,9 +77,9 @@ describe("ObterAcompanhamentoMensal", () => {
     const lider = await montar("lider_setor").caso.execute({});
     const admin = await montar("admin", "administrativo").caso.execute({});
 
-    expect(func.ok && [func.value.podeMarcar, func.value.podeGerirServicos]).toEqual([true, false]);
-    expect(lider.ok && [lider.value.podeMarcar, lider.value.podeGerirServicos]).toEqual([false, true]);
-    expect(admin.ok && [admin.value.podeMarcar, admin.value.podeGerirServicos]).toEqual([false, false]);
+    expect(func.ok && func.value.podeMarcar).toBe(true);
+    expect(lider.ok && lider.value.podeMarcar).toBe(false);
+    expect(admin.ok && admin.value.podeMarcar).toBe(false);
   });
 
   it("recusa quem é de outro setor", async () => {

@@ -36,7 +36,6 @@ export type AcompanhamentoMensalDto = {
   linhas: LinhaAcompanhamentoDto[];
   // O Funcionário do RH marca os seus; o Líder e o Admin só leem.
   podeMarcar: boolean;
-  podeGerirServicos: boolean;
 };
 
 export type FuncionarioAcompanhamentoDto = {

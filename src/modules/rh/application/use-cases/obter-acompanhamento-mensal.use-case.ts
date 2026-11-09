@@ -11,7 +11,6 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import {
-  podeGerirServicosRh,
   podeMarcarAcompanhamentoRh,
   podeVerAcompanhamentoRh,
 } from "@/shared/kernel/papeis";
@@ -69,7 +68,6 @@ export class ObterAcompanhamentoMensal implements ObterAcompanhamentoMensalPort 
         };
       }),
       podeMarcar: podeMarcarAcompanhamentoRh(ator.papel, ator.setor),
-      podeGerirServicos: podeGerirServicosRh(ator.papel, ator.setor),
     });
   }
 }

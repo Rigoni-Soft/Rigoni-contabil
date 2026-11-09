@@ -20,7 +20,6 @@ describe("acompanhamento-mensal.presenter", () => {
     const dto = {
       competencia: "2026-11",
       podeMarcar: true,
-      podeGerirServicos: false,
       servicos: [
         { id: "a", nome: "FGTS", sistema: false },
         { id: "b", nome: "SIB", sistema: false },

@@ -50,8 +50,8 @@ function resumir(
   };
 }
 
-// O gráfico do RH: pontos x clientes atribuídos por Funcionário, quem falta em cada serviço e, para um
-// Funcionário, o detalhe do mês. Só Líder e Admin; a RLS já deixa o Funcionário ver só os seus.
+// O gráfico do RH: pontos x clientes atribuídos por Funcionário e, para um Funcionário, o
+// detalhe do mês. Só Líder e Admin; a RLS já deixa o Funcionário ver só os seus.
 export class ObterAcompanhamentoFuncionarios implements ObterAcompanhamentoFuncionariosPort {
   constructor(
     private readonly sessao: SessaoPort,
