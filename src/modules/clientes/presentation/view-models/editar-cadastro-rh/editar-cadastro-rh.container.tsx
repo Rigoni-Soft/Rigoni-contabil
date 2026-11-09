@@ -109,7 +109,9 @@ export function EditarCadastroRhContainer({
       if (!resultado.ok) {
         setErroServidor(resultado.error.message);
         for (const [campo, mensagens] of Object.entries(resultado.error.fields ?? {})) {
-          if (mensagens[0]) setError(campo as keyof Valores, { message: mensagens[0] });
+          // O formulário chama de `observacoesGerais` o que a action chama de `observacoes`.
+          const nome = campo === "observacoes" ? "observacoesGerais" : campo;
+          if (mensagens[0]) setError(nome as keyof Valores, { message: mensagens[0] });
         }
         return;
       }

@@ -80,6 +80,9 @@ export function EditarCadastroRhForm({
         <Pilha espaco={1} className="sm:col-span-2 lg:col-span-4">
           <Label htmlFor="observacoesGerais">Observações gerais do RH</Label>
           <Textarea id="observacoesGerais" {...register("observacoesGerais")} rows={3} />
+          {errors.observacoesGerais?.message && (
+            <FieldError>{errors.observacoesGerais.message}</FieldError>
+          )}
         </Pilha>
 
         {!readOnly && <AcoesDoFormulario pendente={pendente} onLimpar={onLimpar} />}

@@ -43,4 +43,30 @@ describe("EditarCadastroRhForm", () => {
     expect(screen.queryByRole("button", { name: "Salvar" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Adicionar contato/ })).not.toBeInTheDocument();
   });
+
+  it("mostra o erro de campo das observações", () => {
+    function ComErro() {
+      const { register, control } = useForm<EditarCadastroOperacionalFormValues>({
+        defaultValues: { contatos: [], observacoesGerais: "" },
+      });
+      return (
+        <EditarCadastroRhForm
+          cabecalho={{ empresa: "Padaria Sol", cnpj: "11.444.777/0001-61" }}
+          register={register}
+          control={control}
+          errors={{ observacoesGerais: { type: "max", message: "Passou de 2000 caracteres" } }}
+          onSubmit={(e) => e.preventDefault()}
+          pendente={false}
+          readOnly={false}
+          contatos={[]}
+          onAdicionarContato={jest.fn()}
+          onRemoverContato={jest.fn()}
+          onLimpar={jest.fn()}
+        />
+      );
+    }
+    render(<ComErro />);
+
+    expect(screen.getByText("Passou de 2000 caracteres")).toBeInTheDocument();
+  });
 });
