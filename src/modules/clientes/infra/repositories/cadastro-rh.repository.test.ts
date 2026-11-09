@@ -106,6 +106,21 @@ describe("Cadastro do Cliente no RH (integração)", () => {
     expect(leitura.data).toEqual([]);
   });
 
+  it("a liberação do Regime vale só dentro da função: a escrita direta de contatos num Cliente fora do SN segue barrada", async () => {
+    await salvar(await comoFuncionarioRH());
+    const admin = await entrar("admin@rigonicontabil.local", "admin123");
+
+    const direto = await admin.from("cliente_contatos").insert({
+      id: crypto.randomUUID(),
+      cliente_id: clienteId,
+      nome: "Direto",
+      telefone: "11777770000",
+      padrao: false,
+    });
+
+    expect(direto.error?.message).toMatch(/não se aplica/);
+  });
+
   it("a edição do RH deixa auditoria e não escreve nas tabelas do SN pela API", async () => {
     const rh = await comoFuncionarioRH();
 

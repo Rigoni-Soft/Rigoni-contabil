@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 
 import type { CadastroRhClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok } from "@/shared/kernel/result";
 
 import { editarCadastroRhAction } from "./editar-cadastro-rh.actions";
@@ -83,6 +84,31 @@ describe("EditarCadastroRhContainer", () => {
     await userEvent.setup().click(await screen.findByRole("button", { name: "Salvar" }));
 
     expect(await screen.findByText("Você não é o Responsável do RH.")).toBeInTheDocument();
+    expect(routerPush).not.toHaveBeenCalled();
+  });
+
+  it("o erro de campo das observações aparece sob o textarea", async () => {
+    executeMock.mockResolvedValue(
+      err(new ValidationError("Dados inválidos.", { observacoes: ["Texto longo demais"] })),
+    );
+    montar();
+
+    await userEvent.setup().click(await screen.findByRole("button", { name: "Salvar" }));
+
+    expect(await screen.findByText("Texto longo demais")).toBeInTheDocument();
+  });
+
+  it.each([
+    [new TypeError("fetch failed"), "Sem conexão com o servidor"],
+    [new Error("boom"), "Erro inesperado no servidor"],
+  ])("falha de transporte (%s) mostra a causa e não navega", async (falha, texto) => {
+    jest.spyOn(console, "error").mockImplementation(() => undefined);
+    jest.mocked(editarCadastroRhAction).mockRejectedValueOnce(falha);
+    montar();
+
+    await userEvent.setup().click(await screen.findByRole("button", { name: "Salvar" }));
+
+    expect(await screen.findByText(new RegExp(texto))).toBeInTheDocument();
     expect(routerPush).not.toHaveBeenCalled();
   });
 
