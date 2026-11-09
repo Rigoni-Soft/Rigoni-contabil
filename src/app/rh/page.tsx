@@ -19,7 +19,6 @@ import { carregarAcompanhamentoMensal } from "@/modules/rh/presentation/view-mod
 import {
   cardsDoAcompanhamento,
   fatiasDoAcompanhamento,
-  responsaveisComLink,
 } from "@/modules/rh/presentation/view-models/resumo-rh/resumo-rh.presenter";
 import { podeGerirServicosRh, podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
 import { ROTA_RH, ROTA_RH_FUNCIONARIOS, SETOR_RH } from "@/shared/kernel/setores";
@@ -84,17 +83,8 @@ export default async function Page() {
           <ComparativosRh
             acompanhamento={fatiasDoAcompanhamento(mensal.value)}
             parcelamento={resumo.value.comparativos.parcelamento}
-            responsaveis={
-              resumo.value.comparativos.responsaveis &&
-              responsaveisComLink(
-                resumo.value.comparativos.responsaveis,
-                mensal.value.competencia,
-                {
-                  funcionarios: ROTA_RH_FUNCIONARIOS,
-                  semResponsavel: `${ROTA_RH}/resumo/sem_responsavel`,
-                },
-              )
-            }
+            responsaveis={resumo.value.comparativos.responsaveis}
+            responsaveisHref={ROTA_RH_FUNCIONARIOS}
             totalClientes={resumo.value.totalClientes}
           />
         )

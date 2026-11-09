@@ -1,6 +1,5 @@
 import type { AcompanhamentoMensalDto } from "@/modules/rh/application/dtos/acompanhamento.dto";
 import { rotuloDaCompetencia } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.presenter";
-import { SEM_RESPONSAVEL_ID } from "@/shared/kernel/papeis";
 
 // Mesmo desenho dos cards do resumo do SN (a View de resumo lê só este shape).
 type CardDoRh = {
@@ -68,19 +67,4 @@ export function fatiasDoAcompanhamento(dto: AcompanhamentoMensalDto) {
       quantidade: dto.linhas.length - completos,
     },
   ];
-}
-
-// Clientes por Responsável: cada Responsável leva ao acompanhamento dele no mês; "Sem responsável", à lista.
-export function responsaveisComLink<F extends { id: string }>(
-  fatias: F[],
-  competencia: string,
-  rotas: { funcionarios: string; semResponsavel: string },
-) {
-  return fatias.map((f) => ({
-    ...f,
-    href:
-      f.id === SEM_RESPONSAVEL_ID
-        ? rotas.semResponsavel
-        : `${rotas.funcionarios}/${encodeURIComponent(f.id)}?mes=${competencia}`,
-  }));
 }

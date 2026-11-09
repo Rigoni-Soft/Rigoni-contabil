@@ -1,11 +1,6 @@
 import type { AcompanhamentoMensalDto } from "@/modules/rh/application/dtos/acompanhamento.dto";
-import { SEM_RESPONSAVEL_ID } from "@/shared/kernel/papeis";
 
-import {
-  cardsDoAcompanhamento,
-  fatiasDoAcompanhamento,
-  responsaveisComLink,
-} from "./resumo-rh.presenter";
+import { cardsDoAcompanhamento, fatiasDoAcompanhamento } from "./resumo-rh.presenter";
 
 const celula = (servicoId: string, aplica: boolean, concluido: boolean) => ({
   servicoId,
@@ -65,22 +60,6 @@ describe("fatiasDoAcompanhamento", () => {
     expect(fatiasDoAcompanhamento(MENSAL).map((f) => [f.id, f.quantidade])).toEqual([
       ["concluido", 1],
       ["pendente", 2],
-    ]);
-  });
-});
-
-describe("responsaveisComLink", () => {
-  it("cada Responsável leva ao acompanhamento dele no mês e Sem responsável, à lista", () => {
-    const fatias = [{ id: "u1" }, { id: SEM_RESPONSAVEL_ID }];
-
-    const r = responsaveisComLink(fatias, "2026-11", {
-      funcionarios: "/rh/funcionarios",
-      semResponsavel: "/rh/resumo/sem_responsavel",
-    });
-
-    expect(r.map((f) => f.href)).toEqual([
-      "/rh/funcionarios/u1?mes=2026-11",
-      "/rh/resumo/sem_responsavel",
     ]);
   });
 });

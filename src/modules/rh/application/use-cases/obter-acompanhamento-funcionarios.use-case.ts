@@ -47,10 +47,16 @@ function resumir(
   clientes: ClienteAcompanhamentoDto[],
   servicos: ServicoAcompanhamentoDto[],
 ): FuncionarioAcompanhamentoDto {
+  const pendentes = clientes.map((c) => pendentesDe(c, servicos));
   return {
     ...funcionario,
     atribuidos: clientes.length,
     pontos: pontosDe(clientes, servicos),
+    faltam: servicos.map((s) => ({
+      servicoId: s.id,
+      nome: s.nome,
+      clientes: pendentes.filter((p) => p.has(s.id)).length,
+    })),
   };
 }
 
@@ -124,6 +130,9 @@ export class ObterAcompanhamentoFuncionarios implements ObterAcompanhamentoFunci
     return ok({
       competencia: competencia.value.valor,
       funcionarios,
+      semResponsavel: atual.clientes
+        .filter((c) => !c.responsavel)
+        .map((c) => ({ clienteId: c.clienteId, empresa: c.empresa })),
       detalhe: input.funcionarioId
         ? detalharFuncionario(input.funcionarioId, funcionarios, janela)
         : undefined,

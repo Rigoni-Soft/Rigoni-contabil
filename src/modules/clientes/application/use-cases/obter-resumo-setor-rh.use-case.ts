@@ -4,10 +4,7 @@ import {
   gruposDeParcelamento,
 } from "@/modules/clientes/application/mappers/resumo-setor-sn.mapper";
 import type { ResumoSetorRhDto } from "@/modules/clientes/application/ports/in/obter-resumo-setor-rh.provider";
-import type {
-  CardResumoDto,
-  FatiaComparativoDto,
-} from "@/modules/clientes/application/ports/in/resumo-setor.provider";
+import type { FatiaComparativoDto } from "@/modules/clientes/application/ports/in/resumo-setor.provider";
 import type {
   CarteiraDoSetorQueryPort,
   ClienteDaCarteiraRow,
@@ -75,21 +72,6 @@ export class ObterResumoSetorRh {
     const veTudo = veCarteiraInteira(ator.papel);
     const linhas = veTudo ? lidas.value : lidas.value.filter((l) => l.responsavelId === ator.id);
 
-    // Fora de qualquer grupo: a tela não os mostra como card, mas a lista de "Sem responsável" abre por
-    // aqui, a partir do comparativo por Responsável.
-    const cards: CardResumoDto[] = [];
-    if (veTudo) {
-      const sem = linhas.filter((l) => !l.responsavelId);
-      cards.push({
-        id: "sem_responsavel",
-        titulo: "Sem responsável",
-        cor: "atencao",
-        quantidade: sem.length,
-        clientes: sem.map(doBucket),
-        mensagemVazia: "Todos os clientes têm Responsável do RH.",
-      });
-    }
-
     // O grupo Parcelamento é o do SN; o RH o alimenta com os parcelamentos que cadastrar.
     // ponytail: TODO(#216) até lá nenhum parcelamento é do RH, então os 6 cards saem zerados.
     const semParcelamento = linhas.map((l) => ({ ...doBucket(l), parcelamentos: [] }));
@@ -98,7 +80,7 @@ export class ObterResumoSetorRh {
 
     return ok({
       totalClientes: linhas.length,
-      cards: [...cards, ...parcelamentos],
+      cards: parcelamentos,
       grupos: gruposDeParcelamento(),
       comparativos: {
         parcelamento: comparativoDeParcelamento(semParcelamento, agora),

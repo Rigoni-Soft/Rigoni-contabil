@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { CartaoDeGrafico } from "@/presentation/components/atoms/cartao-de-grafico.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
@@ -34,16 +32,7 @@ export function BarrasDeFatias({
             <Pilha espaco={1} como="li" key={f.id}>
               <Linha espaco={2}>
                 <Texto como="span" variante="corpo" className="truncate" title={f.rotulo}>
-                  {f.href ? (
-                    <Link
-                      href={f.href}
-                      className="py-1 underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
-                    >
-                      {f.rotulo}
-                    </Link>
-                  ) : (
-                    f.rotulo
-                  )}
+                  {f.rotulo}
                 </Texto>
                 <Texto
                   como="span"

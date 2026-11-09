@@ -30,7 +30,7 @@ const carteiraFalsa: CarteiraDoSetorQueryPort = { listar: async () => ok(CARTEIR
 const relogio = { agora: () => new Date("2026-11-10T12:00:00Z") };
 
 describe("ObterResumoSetorRh", () => {
-  it("o Líder vê a carteira toda: o card Sem responsável fora de grupo e o comparativo por Responsável", async () => {
+  it("o Líder vê a carteira toda e o comparativo por Responsável", async () => {
     const r = await new ObterResumoSetorRh(
       sessaoDe("lider_setor", "rh"),
       carteiraFalsa,
@@ -38,7 +38,6 @@ describe("ObterResumoSetorRh", () => {
     ).execute();
 
     expect(r.ok && r.value.totalClientes).toBe(4);
-    expect(r.ok && r.value.cards[0]).toMatchObject({ id: "sem_responsavel", quantidade: 1 });
     expect(r.ok && r.value.grupos.map((g) => g.titulo)).toEqual(["Parcelamento"]);
     expect(r.ok && r.value.comparativos.responsaveis?.map((f) => [f.rotulo, f.quantidade])).toEqual(
       [
@@ -64,7 +63,7 @@ describe("ObterResumoSetorRh", () => {
       "parcelamento_interno",
       "parcelamento_enviado",
     ]);
-    expect(r.ok && r.value.cards.slice(1).every((c) => c.quantidade === 0)).toBe(true);
+    expect(r.ok && r.value.cards.every((c) => c.quantidade === 0)).toBe(true);
     expect(r.ok && r.value.comparativos.parcelamento.map((f) => [f.id, f.quantidade])).toEqual([
       ["enviado", 0],
       ["pendente", 0],
@@ -81,7 +80,6 @@ describe("ObterResumoSetorRh", () => {
     ).execute();
 
     expect(r.ok && r.value.totalClientes).toBe(1);
-    expect(r.ok && r.value.cards.map((c) => c.id)).not.toContain("sem_responsavel");
     expect(r.ok && r.value.comparativos.responsaveis).toBeUndefined();
   });
 

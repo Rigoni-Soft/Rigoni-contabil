@@ -19,7 +19,7 @@ Aqui cada ticket já é uma fatia vertical (banco, regra de negócio, tela e tes
 - [x] **PR 2.1: Acompanhamento mensal dos clientes** (depende da PR 1.1; base da etapa)
   - [x] #214 (ambas): serviços editáveis (cards no dashboard), "se aplica", marcação por competência no painel do cliente, auditoria
 - [ ] **PR 2.2: Acompanhamento dos funcionários, Líder e Admin** (depende da PR 2.1)
-  - [x] #215 (ambas): comparativo "Clientes por Responsável" no dashboard (cada Responsável abre o detalhe), detalhe do funcionário; o grupo Parcelamento do dashboard já existe, alimentado pelo #216
+  - [x] #215 (ambas): card "Clientes por Responsável" no dashboard que abre o acompanhamento dos funcionários, e dali o detalhe de cada funcionário; o grupo Parcelamento do dashboard já existe, alimentado pelo #216
 
 ## Etapa 3: Parcelamento do RH
 

@@ -38,21 +38,20 @@ describe("ComparativosRh", () => {
     expect(screen.queryByText("Clientes por Responsável")).not.toBeInTheDocument();
   });
 
-  it("o Líder vê Clientes por Responsável, e o Responsável leva ao acompanhamento dele", () => {
+  it("o Líder vê Clientes por Responsável e o card inteiro abre o acompanhamento dos funcionários", () => {
     render(
       <ComparativosRh
         acompanhamento={ACOMPANHAMENTO}
         parcelamento={PARCELAMENTO}
         responsaveis={RESPONSAVEIS}
+        responsaveisHref="/rh/funcionarios"
         totalClientes={3}
       />,
     );
 
-    expect(screen.getByRole("link", { name: "Ana" })).toHaveAttribute(
-      "href",
-      "/rh/funcionarios/u1?mes=2026-11",
-    );
-    expect(screen.queryByRole("link", { name: "Sem responsável" })).not.toBeInTheDocument();
-    expect(screen.getByText("Sem responsável")).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: /Clientes por Responsável/ });
+    expect(link).toHaveAttribute("href", "/rh/funcionarios");
+    expect(within(link).getByText("Ana")).toBeInTheDocument();
+    expect(within(link).getByText("Sem responsável")).toBeInTheDocument();
   });
 });
