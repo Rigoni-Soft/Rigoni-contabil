@@ -603,7 +603,7 @@ export default async function Page() {
 
 **Regras:**
 
-1. `'use client'` só é permitido em `*.container.tsx`, `presentation/providers/**`, `presentation/components/ui/**` (shadcn), `error.tsx` e `global-error.tsx`. **[lint]**
+1. `'use client'` só é permitido em `*.container.tsx`, `presentation/providers/**`, `presentation/components/ui/**` (shadcn), `error.tsx` e `global-error.tsx`. **[lint]** Um átomo que precisa de estado ou de evento (ex.: fechar um menu com Esc) vai para `ui/`, não para `atoms/`.
 2. **Templates e pages são sempre Server.** Um container não importa template nem page. **[lint]**
 3. O Container renderiza **só a região interativa**. O conteúdo estático ao redor é montado no servidor e entra como slot (`children` ou prop `ReactNode`).
 4. Tudo que um Container importa entra no bundle do cliente. Por isso o Container importa a menor View que resolve o caso, e as partes estáticas são extraídas para o servidor por slots.

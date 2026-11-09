@@ -27,6 +27,8 @@ Chame a Skill `implement` com a issue (ela lê o ticket, usa `tdd` nos pontos ac
 
 Commits em Conventional Commits, atômicos, na branch do ticket.
 
+Quando o usuário corrigir o **desenho** depois da implementação, atualize na mesma rodada `CONTEXT.md`, `docs/trilha-implementacao.md` e os e2e que citam a tela antiga, antes de reportar; o gate e o roteiro de teste leem esses arquivos.
+
 ## 4. Fechar a estação
 
 Rode `yarn tsc --noEmit`, `yarn lint` e `yarn test`. **Critério de saída: código implementado e commitado na branch, com type-safety e testes verdes.**
