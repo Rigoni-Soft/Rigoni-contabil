@@ -70,9 +70,10 @@ describe("fatiasDoAcompanhamento", () => {
 
 describe("configuracoesDoRh", () => {
   it("só quem gere os serviços recebe o item de configuração", () => {
-    expect(configuracoesDoRh(true, "/rh")).toEqual([
+    expect(configuracoesDoRh("lider_setor", "rh")).toEqual([
       { rotulo: "Serviços do acompanhamento", href: "/rh/servicos" },
     ]);
-    expect(configuracoesDoRh(false, "/rh")).toBeUndefined();
+    expect(configuracoesDoRh("funcionario", "rh")).toBeUndefined();
+    expect(configuracoesDoRh("admin", "administrativo")).toBeUndefined();
   });
 });

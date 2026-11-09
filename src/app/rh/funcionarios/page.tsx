@@ -10,19 +10,14 @@ import { ShellNavContainer } from "@/modules/atendimento/presentation/view-model
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import {
   funcionariosDoGrafico,
+  linksDoMesDosFuncionarios,
   semResponsavelDoGrafico,
 } from "@/modules/rh/presentation/view-models/acompanhamento-funcionarios/acompanhamento-funcionarios.presenter";
 import { carregarAcompanhamentoFuncionarios } from "@/modules/rh/presentation/view-models/acompanhamento-funcionarios/acompanhamento-funcionarios.server";
-import {
-  mesVizinho,
-  rotuloDaCompetencia,
-} from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.presenter";
+import { rotuloDaCompetencia } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.presenter";
 import { configuracoesDoRh } from "@/modules/rh/presentation/view-models/resumo-rh/resumo-rh.presenter";
 import { mesAtual } from "@/shared/kernel/mes-atual";
-import {
-  podeGerirServicosRh,
-  podeVerAcompanhamentoDosFuncionariosRh,
-} from "@/shared/kernel/papeis";
+import { podeVerAcompanhamentoDosFuncionariosRh } from "@/shared/kernel/papeis";
 import { ROTA_RH, ROTA_RH_FUNCIONARIOS } from "@/shared/kernel/setores";
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {
@@ -42,10 +37,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ m
         <ShellNavContainer
           setores={setores}
           rotaAtual={ROTA_RH}
-          configuracoes={configuracoesDoRh(
-            podeGerirServicosRh(sessao.papel, sessao.setor),
-            ROTA_RH,
-          )}
+          configuracoes={configuracoesDoRh(sessao.papel, sessao.setor)}
         />
       }
       titulo="Acompanhamento dos funcionários"
@@ -56,12 +48,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ m
         dados.ok && (
           <AcompanhamentoDosFuncionarios
             rotuloMes={rotuloDaCompetencia(dados.value.competencia)}
-            anteriorHref={`${ROTA_RH_FUNCIONARIOS}?mes=${mesVizinho(dados.value.competencia, -1)}`}
-            proximoHref={
-              dados.value.competencia < mesAtual()
-                ? `${ROTA_RH_FUNCIONARIOS}?mes=${mesVizinho(dados.value.competencia, 1)}`
-                : undefined
-            }
+            {...linksDoMesDosFuncionarios(
+              ROTA_RH_FUNCIONARIOS,
+              dados.value.competencia,
+              mesAtual(),
+            )}
             funcionarios={funcionariosDoGrafico(dados.value, ROTA_RH_FUNCIONARIOS)}
             semResponsavel={semResponsavelDoGrafico(dados.value, ROTA_RH_FUNCIONARIOS)}
           />

@@ -11,10 +11,7 @@ import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-
 import { propsDoDetalhe } from "@/modules/rh/presentation/view-models/acompanhamento-funcionarios/acompanhamento-funcionarios.presenter";
 import { carregarAcompanhamentoFuncionarios } from "@/modules/rh/presentation/view-models/acompanhamento-funcionarios/acompanhamento-funcionarios.server";
 import { configuracoesDoRh } from "@/modules/rh/presentation/view-models/resumo-rh/resumo-rh.presenter";
-import {
-  podeGerirServicosRh,
-  podeVerAcompanhamentoDosFuncionariosRh,
-} from "@/shared/kernel/papeis";
+import { podeVerAcompanhamentoDosFuncionariosRh } from "@/shared/kernel/papeis";
 import { ROTA_RH, ROTA_RH_FUNCIONARIOS } from "@/shared/kernel/setores";
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ mes?: string }> };
@@ -39,10 +36,7 @@ export default async function Page({ params, searchParams }: Props) {
         <ShellNavContainer
           setores={setores}
           rotaAtual={ROTA_RH}
-          configuracoes={configuracoesDoRh(
-            podeGerirServicosRh(sessao.papel, sessao.setor),
-            ROTA_RH,
-          )}
+          configuracoes={configuracoesDoRh(sessao.papel, sessao.setor)}
         />
       }
       titulo="Acompanhamento do funcionário"

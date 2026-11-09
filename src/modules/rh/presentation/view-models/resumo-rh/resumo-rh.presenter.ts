@@ -1,5 +1,7 @@
 import type { AcompanhamentoMensalDto } from "@/modules/rh/application/dtos/acompanhamento.dto";
 import { rotuloDaCompetencia } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.presenter";
+import { podeGerirServicosRh } from "@/shared/kernel/papeis";
+import { ROTA_RH_SERVICOS } from "@/shared/kernel/setores";
 
 // Mesmo desenho dos cards do resumo do SN (a View de resumo lê só este shape).
 type CardDoRh = {
@@ -70,7 +72,7 @@ export function fatiasDoAcompanhamento(dto: AcompanhamentoMensalDto) {
 }
 
 // O menu de configuração do Setor RH: só o Líder mantém os serviços do acompanhamento.
-export const configuracoesDoRh = (podeGerirServicos: boolean, rotaDoRh: string) =>
-  podeGerirServicos
-    ? [{ rotulo: "Serviços do acompanhamento", href: `${rotaDoRh}/servicos` }]
+export const configuracoesDoRh = (papel: string, setor: string) =>
+  podeGerirServicosRh(papel, setor)
+    ? [{ rotulo: "Serviços do acompanhamento", href: ROTA_RH_SERVICOS }]
     : undefined;

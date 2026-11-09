@@ -4,6 +4,7 @@ import { ResumoSetorLista } from "@/presentation/components/organisms/resumo-set
 import { ResumoSetorListaPage } from "@/presentation/components/pages/resumo-setor-lista.page";
 import { exigirSessao } from "@/presentation/view-models/shell/shell.server";
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
+import { tituloDaListaDeFalta } from "@/modules/rh/presentation/view-models/acompanhamento-funcionarios/acompanhamento-funcionarios.presenter";
 import { carregarAcompanhamentoFuncionarios } from "@/modules/rh/presentation/view-models/acompanhamento-funcionarios/acompanhamento-funcionarios.server";
 import { podeVerAcompanhamentoDosFuncionariosRh } from "@/shared/kernel/papeis";
 import { ROTA_RH_FUNCIONARIOS } from "@/shared/kernel/setores";
@@ -24,21 +25,15 @@ export default async function Page({ params, searchParams }: Props) {
   if (dados.ok && !dados.value.detalhe) notFound();
   const detalhe = dados.ok ? dados.value.detalhe : undefined;
   const pendencia = detalhe?.pendencias.find((p) => p.servicoId === servicoId);
-  const nomeDoServico =
-    dados.ok &&
-    dados.value.funcionarios.find((f) => f.id === id)?.faltam.find((c) => c.servicoId === servicoId)
-      ?.nome;
+  const titulo = dados.ok ? tituloDaListaDeFalta(dados.value, id, servicoId) : undefined;
+  if (dados.ok && !titulo) notFound();
   const rotaDoFuncionario = `${ROTA_RH_FUNCIONARIOS}/${encodeURIComponent(id)}`;
   const query = dados.ok ? `?mes=${dados.value.competencia}` : "";
 
   return (
     <ResumoSetorListaPage
       header={<CabecalhoDoShellContainer sessao={sessao} />}
-      titulo={
-        detalhe
-          ? `${nomeDoServico || "Serviço"} pendente: ${detalhe.funcionario.nome}`
-          : "Acompanhamento do funcionário"
-      }
+      titulo={titulo ?? "Acompanhamento do funcionário"}
       voltarHref={ROTA_RH_FUNCIONARIOS}
       erro={dados.ok ? undefined : dados.error.message}
       tentarNovamenteHref={`${rotaDoFuncionario}/${encodeURIComponent(servicoId)}${query}`}

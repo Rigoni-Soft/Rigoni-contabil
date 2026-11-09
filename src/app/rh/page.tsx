@@ -20,7 +20,7 @@ import {
   configuracoesDoRh,
   fatiasDoAcompanhamento,
 } from "@/modules/rh/presentation/view-models/resumo-rh/resumo-rh.presenter";
-import { podeGerirServicosRh, podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
+import { podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
 import { ROTA_RH, SETOR_RH } from "@/shared/kernel/setores";
 
 // ponytail: montagem repetida de app/simples-nacional/page.tsx; extrair no 3º Setor com resumo.
@@ -55,10 +55,7 @@ export default async function Page() {
         <ShellNavContainer
           setores={setores}
           rotaAtual={ROTA_RH}
-          configuracoes={configuracoesDoRh(
-            podeGerirServicosRh(sessao.papel, sessao.setor),
-            ROTA_RH,
-          )}
+          configuracoes={configuracoesDoRh(sessao.papel, sessao.setor)}
         />
       }
       erro={resumo.ok ? undefined : ERRO_CARREGAR_RESUMO_SETOR}

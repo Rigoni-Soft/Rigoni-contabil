@@ -2,9 +2,11 @@ import type { DetalheDoFuncionarioDto } from "@/modules/rh/application/dtos/acom
 
 import {
   funcionariosDoGrafico,
+  linksDoMesDosFuncionarios,
   percentual,
   propsDoDetalhe,
   semResponsavelDoGrafico,
+  tituloDaListaDeFalta,
 } from "./acompanhamento-funcionarios.presenter";
 
 describe("acompanhamento-funcionarios.presenter", () => {
@@ -47,6 +49,36 @@ describe("acompanhamento-funcionarios.presenter", () => {
 
     expect(f.faltam[0].href).toBe("/rh/funcionarios/f1/s1?mes=2026-11");
     expect(c.href).toBe("/clientes/c9?voltarPara=%2Frh%2Ffuncionarios");
+  });
+
+  it("os links de mês trazem o anterior e o próximo, que some no mês corrente", () => {
+    expect(linksDoMesDosFuncionarios("/rh/funcionarios", "2026-10", "2026-11")).toEqual({
+      anteriorHref: "/rh/funcionarios?mes=2026-09",
+      proximoHref: "/rh/funcionarios?mes=2026-11",
+    });
+    expect(
+      linksDoMesDosFuncionarios("/rh/funcionarios", "2026-11", "2026-11").proximoHref,
+    ).toBeUndefined();
+  });
+
+  it("o título da lista de falta existe só para um funcionário e serviço conhecidos", () => {
+    const dto = {
+      competencia: "2026-11",
+      semResponsavel: [],
+      funcionarios: [
+        {
+          id: "f1",
+          nome: "Ana",
+          atribuidos: 1,
+          pontos: 0,
+          faltam: [{ servicoId: "s1", nome: "FGTS", clientes: 1 }],
+        },
+      ],
+    };
+
+    expect(tituloDaListaDeFalta(dto, "f1", "s1")).toBe("FGTS pendente: Ana");
+    expect(tituloDaListaDeFalta(dto, "f1", "inexistente")).toBeUndefined();
+    expect(tituloDaListaDeFalta(dto, "outro", "s1")).toBeUndefined();
   });
 
   it("rotula o mês e a evolução por extenso", () => {

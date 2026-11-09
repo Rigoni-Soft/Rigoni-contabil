@@ -11,7 +11,7 @@ import { carregarAcompanhamentoMensal } from "@/modules/rh/presentation/view-mod
 import { ServicosDoAcompanhamentoContainer } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/servicos-do-acompanhamento.container";
 import { configuracoesDoRh } from "@/modules/rh/presentation/view-models/resumo-rh/resumo-rh.presenter";
 import { podeGerirServicosRh } from "@/shared/kernel/papeis";
-import { ROTA_RH } from "@/shared/kernel/setores";
+import { ROTA_RH, ROTA_RH_SERVICOS } from "@/shared/kernel/setores";
 
 // Os serviços do acompanhamento definem os cards do dashboard do RH; só o Líder os mantém.
 export default async function Page() {
@@ -30,16 +30,13 @@ export default async function Page() {
         <ShellNavContainer
           setores={setores}
           rotaAtual={ROTA_RH}
-          configuracoes={configuracoesDoRh(
-            podeGerirServicosRh(sessao.papel, sessao.setor),
-            ROTA_RH,
-          )}
+          configuracoes={configuracoesDoRh(sessao.papel, sessao.setor)}
         />
       }
       titulo="Serviços do acompanhamento"
       voltarHref={ROTA_RH}
       erro={acompanhamento.ok ? undefined : acompanhamento.error.message}
-      tentarNovamenteHref={`${ROTA_RH}/servicos`}
+      tentarNovamenteHref={ROTA_RH_SERVICOS}
       conteudo={
         acompanhamento.ok && (
           <ServicosDoAcompanhamentoContainer servicos={acompanhamento.value.servicos} />
