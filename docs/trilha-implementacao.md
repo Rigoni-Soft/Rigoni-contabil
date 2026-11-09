@@ -55,7 +55,7 @@ Aqui cada ticket já é uma fatia vertical (banco, regra de negócio, tela e tes
 
 ## Notas
 
-- A PR 0 já está na `develop` (merge `39e3d466`). Todas as outras partem dela. A etapa 1 vem em seguida, e depois disso 2, 3 e 4 andam em paralelo, respeitando as dependências por PR acima. As etapas 5 e 6 fecham o RH.
+- Acrescentar nos serviço de menu guias de pagamentos de impostos o processo de verificar se o DCTFWeb esta pronto, emitir e enviar o guia do DARF para os clientes, isso tambem entra nos jobs e nos temas locais que ja fazem o envio do DAS.
 - As dependências entre tickets estão como bloqueios nativos nas issues. Os bloqueios entre PRs foram derivados deles. Confirme antes de abrir cada PR.
 - Só o #213 está desbloqueado hoje. Depois dele liberam o #214, o #216, o #218 e o #219.
 - A PR 6.1 só exige a 4.1, mas vale esperar a 4.3: o PDF mostra a Totalização, e ela só fica completa com as regras da convenção.
