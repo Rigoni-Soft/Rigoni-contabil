@@ -54,7 +54,7 @@ test.describe("Acompanhamento dos funcionários do RH", () => {
       .single();
     await page.getByRole("link", { name: perfil!.nome }).click();
 
-    await expect(page.getByRole("group", { name: "Pendente por serviço" })).toContainText(
+    await expect(page.getByRole("region", { name: "Pendente por serviço" })).toContainText(
       COM_RESPONSAVEL,
     );
     await expect(page.getByRole("group", { name: "Evolução" })).toBeVisible();

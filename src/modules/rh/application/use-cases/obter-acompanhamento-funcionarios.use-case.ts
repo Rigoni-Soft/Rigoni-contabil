@@ -132,7 +132,7 @@ export class ObterAcompanhamentoFuncionarios implements ObterAcompanhamentoFunci
       funcionarios,
       semResponsavel: atual.clientes
         .filter((c) => !c.responsavel)
-        .map((c) => ({ clienteId: c.clienteId, empresa: c.empresa })),
+        .map((c) => ({ clienteId: c.clienteId, empresa: c.empresa, cnpj: c.cnpj })),
       detalhe: input.funcionarioId
         ? detalharFuncionario(input.funcionarioId, funcionarios, janela)
         : undefined,
@@ -184,7 +184,7 @@ function detalharFuncionario(
     .map((c) => {
       let meses = 0;
       while (meses < pendentesPorMes.length && pendentesPorMes[meses].has(c.clienteId)) meses++;
-      return { clienteId: c.clienteId, empresa: c.empresa, meses };
+      return { clienteId: c.clienteId, empresa: c.empresa, cnpj: c.cnpj, meses };
     })
     .filter((c) => c.meses > 0)
     .sort((a, b) => b.meses - a.meses || a.empresa.localeCompare(b.empresa, "pt-BR"));

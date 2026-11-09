@@ -9,6 +9,7 @@ import {
   Tabela,
 } from "@/presentation/components/atoms/celula-de-tabela.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
+import { ListaDeClientes } from "@/presentation/components/molecules/lista-de-clientes.component";
 import { NavegacaoDeMes } from "@/presentation/components/molecules/navegacao-de-mes.component";
 
 export type FuncionarioDoGrafico = {
@@ -28,7 +29,7 @@ type Props = {
   proximoHref?: string;
   funcionarios: FuncionarioDoGrafico[];
   // `href`: o cadastro operacional do cliente, para atribuir o Responsável.
-  semResponsavel: { clienteId: string; empresa: string; href: string }[];
+  semResponsavel: { clienteId: string; empresa: string; cnpj: string; href: string }[];
 };
 
 // Pontos x clientes atribuídos por Funcionário e, logo abaixo, quantos clientes faltam em cada serviço.
@@ -120,21 +121,13 @@ export function AcompanhamentoDosFuncionarios({
       )}
 
       {semResponsavel.length > 0 && (
-        <CartaoDeGrafico titulo="Sem responsável">
+        <Pilha espaco={4} como="section" aria-labelledby="sem-responsavel">
+          <Texto variante="secao" id="sem-responsavel" className="border-b border-border pb-2">
+            Sem responsável
+          </Texto>
           <Texto variante="apoio">Estes clientes não contam para nenhum funcionário.</Texto>
-          <Pilha espaco={1} como="ul">
-            {semResponsavel.map((c) => (
-              <Caixa como="li" key={c.clienteId}>
-                <Link
-                  href={c.href}
-                  className="block rounded-sm py-0.5 underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:py-3"
-                >
-                  {c.empresa}
-                </Link>
-              </Caixa>
-            ))}
-          </Pilha>
-        </CartaoDeGrafico>
+          <ListaDeClientes clientes={semResponsavel} />
+        </Pilha>
       )}
     </Pilha>
   );

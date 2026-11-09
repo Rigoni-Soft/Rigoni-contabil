@@ -63,14 +63,14 @@ export type DetalheDoFuncionarioDto = {
   // todos os meses (não há histórico de atribuição).
   evolucao: { competencia: string; pontos: number; atribuidos: number }[];
   // Clientes incompletos há mais meses seguidos (até o mês consultado), do mais atrasado ao menos.
-  maisAtrasados: { clienteId: string; empresa: string; meses: number }[];
+  maisAtrasados: { clienteId: string; empresa: string; cnpj: string; meses: number }[];
 };
 
 export type AcompanhamentoFuncionariosDto = {
   competencia: string;
   funcionarios: FuncionarioAcompanhamentoDto[];
   // Clientes sem Responsável: aparecem ao Líder e não contam para ninguém.
-  semResponsavel: { clienteId: string; empresa: string }[];
+  semResponsavel: { clienteId: string; empresa: string; cnpj: string }[];
   // Só quando pedido um funcionário que tem clientes atribuídos no mês.
   detalhe?: DetalheDoFuncionarioDto;
 };

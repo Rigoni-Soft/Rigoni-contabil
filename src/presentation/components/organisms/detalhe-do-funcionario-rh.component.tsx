@@ -1,6 +1,7 @@
 import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { CartaoDeGrafico } from "@/presentation/components/atoms/cartao-de-grafico.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
+import { ListaDeClientes } from "@/presentation/components/molecules/lista-de-clientes.component";
 
 type Props = {
   nome: string;
@@ -11,10 +12,16 @@ type Props = {
   pendencias: {
     servicoId: string;
     nome: string;
-    clientes: { clienteId: string; empresa: string }[];
+    clientes: { clienteId: string; empresa: string; cnpj: string; href: string }[];
   }[];
   evolucao: { competencia: string; rotulo: string; percentual: number }[];
-  maisAtrasados: { clienteId: string; empresa: string; meses: number }[];
+  maisAtrasados: {
+    clienteId: string;
+    empresa: string;
+    cnpj: string;
+    href: string;
+    meses: number;
+  }[];
 };
 
 // O que falta fechar de um Funcionário no mês: clientes por serviço pendente, evolução e os mais atrasados.
@@ -34,23 +41,20 @@ export function DetalheDoFuncionarioRh({
         {nome}: {percentual}% em {rotuloMes} ({pontos} de {atribuidos})
       </Texto>
 
-      <CartaoDeGrafico titulo="Pendente por serviço">
+      <Pilha espaco={4} como="section" aria-labelledby="pendente-por-servico">
+        <Texto variante="secao" id="pendente-por-servico" className="border-b border-border pb-2">
+          Pendente por serviço
+        </Texto>
         {pendencias.length === 0 && <Texto variante="apoio">Tudo concluído neste mês.</Texto>}
         {pendencias.map((p) => (
-          <Pilha espaco={1} key={p.servicoId}>
+          <Pilha espaco={2} key={p.servicoId}>
             <Texto variante="corpo" className="font-semibold">
               {p.nome} ({p.clientes.length})
             </Texto>
-            <Pilha espaco={1} como="ul">
-              {p.clientes.map((c) => (
-                <Caixa como="li" key={c.clienteId}>
-                  {c.empresa}
-                </Caixa>
-              ))}
-            </Pilha>
+            <ListaDeClientes clientes={p.clientes} />
           </Pilha>
         ))}
-      </CartaoDeGrafico>
+      </Pilha>
 
       <CartaoDeGrafico titulo="Evolução">
         {evolucao.length === 0 && (
@@ -70,21 +74,18 @@ export function DetalheDoFuncionarioRh({
         </Pilha>
       </CartaoDeGrafico>
 
-      <CartaoDeGrafico titulo="Mais atrasados">
+      <Pilha espaco={4} como="section" aria-labelledby="mais-atrasados">
+        <Texto variante="secao" id="mais-atrasados" className="border-b border-border pb-2">
+          Mais atrasados
+        </Texto>
         {maisAtrasados.length === 0 && <Texto variante="apoio">Nenhum cliente atrasado.</Texto>}
-        <Pilha espaco={1} como="ul">
-          {maisAtrasados.map((c) => (
-            <Linha como="li" justificar="entre" key={c.clienteId}>
-              <Texto como="span" variante="corpo">
-                {c.empresa}
-              </Texto>
-              <Texto como="span" variante="corpo" className="tabular-nums">
-                {c.meses} {c.meses === 1 ? "mês" : "meses"}
-              </Texto>
-            </Linha>
-          ))}
-        </Pilha>
-      </CartaoDeGrafico>
+        <ListaDeClientes
+          clientes={maisAtrasados.map((c) => ({
+            ...c,
+            detalhe: `${c.meses} ${c.meses === 1 ? "mês" : "meses"}`,
+          }))}
+        />
+      </Pilha>
     </Pilha>
   );
 }

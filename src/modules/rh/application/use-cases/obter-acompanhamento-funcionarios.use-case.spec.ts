@@ -94,7 +94,9 @@ describe("ObterAcompanhamentoFuncionarios", () => {
 
     const r = await caso.execute({});
 
-    expect(r.ok && r.value.semResponsavel).toEqual([{ clienteId: "c4", empresa: "Empresa c4" }]);
+    expect(r.ok && r.value.semResponsavel).toEqual([
+      { clienteId: "c4", empresa: "Empresa c4", cnpj: "c4" },
+    ]);
     expect(chamadas).toContainEqual(["2026-11-01", null, true]);
   });
 
@@ -129,7 +131,9 @@ describe("ObterAcompanhamentoFuncionarios", () => {
       { competencia: "2026-11", pontos: 1, atribuidos: 2 },
     ]);
     expect(detalhe?.evolucao).toHaveLength(6);
-    expect(detalhe?.maisAtrasados).toEqual([{ clienteId: "c2", empresa: "Empresa c2", meses: 1 }]);
+    expect(detalhe?.maisAtrasados).toEqual([
+      { clienteId: "c2", empresa: "Empresa c2", cnpj: "c2", meses: 1 },
+    ]);
   });
 
   it("funcionário sem clientes no mês não tem detalhe", async () => {

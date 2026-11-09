@@ -21,15 +21,23 @@ export function funcionariosDoGrafico(dto: AcompanhamentoFuncionariosDto, rota: 
   }));
 }
 
-// Os clientes sem Responsável abrem o cadastro operacional; o "Voltar" de lá traz de volta para a lista.
+// Cada Cliente das listas abre o cadastro operacional; o "Voltar" de lá traz de volta para `voltarPara`.
+const hrefDoCliente = (clienteId: string, voltarPara: string) =>
+  `/clientes/${encodeURIComponent(clienteId)}?voltarPara=${encodeURIComponent(voltarPara)}`;
+
 export function semResponsavelDoGrafico(dto: AcompanhamentoFuncionariosDto, rota: string) {
-  return dto.semResponsavel.map((c) => ({
-    ...c,
-    href: `/clientes/${encodeURIComponent(c.clienteId)}?voltarPara=${encodeURIComponent(rota)}`,
-  }));
+  return dto.semResponsavel.map((c) => ({ ...c, href: hrefDoCliente(c.clienteId, rota) }));
 }
 
-export function propsDoDetalhe(detalhe: DetalheDoFuncionarioDto, competencia: string) {
+export function propsDoDetalhe(
+  detalhe: DetalheDoFuncionarioDto,
+  competencia: string,
+  voltarPara: string,
+) {
+  const comLink = <C extends { clienteId: string }>(c: C) => ({
+    ...c,
+    href: hrefDoCliente(c.clienteId, voltarPara),
+  });
   const { funcionario } = detalhe;
   return {
     nome: funcionario.nome,
@@ -37,12 +45,12 @@ export function propsDoDetalhe(detalhe: DetalheDoFuncionarioDto, competencia: st
     pontos: funcionario.pontos,
     atribuidos: funcionario.atribuidos,
     percentual: percentual(funcionario.pontos, funcionario.atribuidos),
-    pendencias: detalhe.pendencias,
+    pendencias: detalhe.pendencias.map((p) => ({ ...p, clientes: p.clientes.map(comLink) })),
     evolucao: detalhe.evolucao.map((m) => ({
       competencia: m.competencia,
       rotulo: rotuloDaCompetencia(m.competencia),
       percentual: percentual(m.pontos, m.atribuidos),
     })),
-    maisAtrasados: detalhe.maisAtrasados,
+    maisAtrasados: detalhe.maisAtrasados.map(comLink),
   };
 }

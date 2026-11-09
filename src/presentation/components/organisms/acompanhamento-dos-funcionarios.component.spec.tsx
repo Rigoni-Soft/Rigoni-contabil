@@ -52,12 +52,14 @@ describe("AcompanhamentoDosFuncionarios", () => {
       <AcompanhamentoDosFuncionarios
         {...BASE}
         funcionarios={[ANA]}
-        semResponsavel={[{ clienteId: "c1", empresa: "Padaria Sol", href: "/clientes/c1" }]}
+        semResponsavel={[
+          { clienteId: "c1", empresa: "Padaria Sol", cnpj: "90000001000129", href: "/clientes/c1" },
+        ]}
       />,
     );
 
     expect(screen.getByText("Sem responsável")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Padaria Sol" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Padaria Sol/ })).toHaveAttribute(
       "href",
       "/clientes/c1",
     );

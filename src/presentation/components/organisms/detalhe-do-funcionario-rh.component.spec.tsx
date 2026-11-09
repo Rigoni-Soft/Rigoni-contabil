@@ -22,13 +22,32 @@ describe("DetalheDoFuncionarioRh", () => {
           {
             servicoId: "fgts",
             nome: "FGTS",
-            clientes: [{ clienteId: "c1", empresa: "Padaria Sol" }],
+            clientes: [
+              {
+                clienteId: "c1",
+                empresa: "Padaria Sol",
+                cnpj: "90000001000129",
+                href: "/clientes/c1",
+              },
+            ],
           },
         ]}
         evolucao={[{ competencia: "2026-10", rotulo: "outubro", percentual: 50 }]}
         maisAtrasados={[
-          { clienteId: "c1", empresa: "Padaria Sol", meses: 1 },
-          { clienteId: "c2", empresa: "Mercado Lua", meses: 3 },
+          {
+            clienteId: "c1",
+            empresa: "Padaria Sol",
+            cnpj: "90000001000129",
+            href: "/clientes/c1",
+            meses: 1,
+          },
+          {
+            clienteId: "c2",
+            empresa: "Mercado Lua",
+            cnpj: "90000002000173",
+            href: "/clientes/c2",
+            meses: 3,
+          },
         ]}
       />,
     );
@@ -41,6 +60,10 @@ describe("DetalheDoFuncionarioRh", () => {
     expect(screen.getByText("50%")).toBeInTheDocument();
     expect(screen.getByText("1 mês")).toBeInTheDocument();
     expect(screen.getByText("3 meses")).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /Padaria Sol/ })[0]).toHaveAttribute(
+      "href",
+      "/clientes/c1",
+    );
   });
 
   it("sem pendência, evolução nem atraso mostra os três estados vazios", () => {

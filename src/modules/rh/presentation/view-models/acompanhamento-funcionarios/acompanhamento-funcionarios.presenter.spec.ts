@@ -30,7 +30,7 @@ describe("acompanhamento-funcionarios.presenter", () => {
   it("cada falta por serviço leva à lista das empresas e o sem responsável, ao cadastro", () => {
     const dto = {
       competencia: "2026-11",
-      semResponsavel: [{ clienteId: "c9", empresa: "Padaria Sol" }],
+      semResponsavel: [{ clienteId: "c9", empresa: "Padaria Sol", cnpj: "9" }],
       funcionarios: [
         {
           id: "f1",
@@ -59,7 +59,7 @@ describe("acompanhamento-funcionarios.presenter", () => {
       ],
       maisAtrasados: [],
     };
-    const props = propsDoDetalhe(detalhe, "2026-11");
+    const props = propsDoDetalhe(detalhe, "2026-11", "/rh/funcionarios/f1?mes=2026-11");
     expect(props.rotuloMes).toBe("novembro de 2026");
     expect(props.percentual).toBe(50);
     expect(props.evolucao).toEqual([
