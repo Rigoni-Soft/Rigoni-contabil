@@ -15,6 +15,10 @@ type NavegacaoDeMesProps = {
   className?: string;
 };
 
+// Só texto e seta; ativo em cor de ação, inativo apagado (a cor carrega o estado).
+const ATIVO = "px-2 font-semibold text-primary hover:text-primary";
+const INATIVO = "inline-flex items-center gap-2 px-2 text-sm font-medium text-muted-foreground/60";
+
 // Mês anterior, mês em tela e próximo: o mês fica no centro mesmo quando falta o próximo.
 export function NavegacaoDeMes({
   rotuloMes,
@@ -33,7 +37,7 @@ export function NavegacaoDeMes({
         className,
       )}
     >
-      <LinkDeAcao href={anteriorHref} variant="outline" className="justify-self-start">
+      <LinkDeAcao href={anteriorHref} variant="ghost" className={ATIVO}>
         <ChevronLeft className="size-4" aria-hidden="true" />
         Mês anterior
       </LinkDeAcao>
@@ -46,11 +50,17 @@ export function NavegacaoDeMes({
         {rotuloMes}
       </Texto>
       <Caixa className="justify-self-end">
-        {proximoHref && (
-          <LinkDeAcao href={proximoHref} variant="outline">
+        {proximoHref ? (
+          <LinkDeAcao href={proximoHref} variant="ghost" className={ATIVO}>
             Próximo mês
             <ChevronRight className="size-4" aria-hidden="true" />
           </LinkDeAcao>
+        ) : (
+          // Mês corrente: o avanço aparece apagado e sem link, o estado se lê pela cor.
+          <Texto como="span" variante="apoio" aria-disabled="true" className={INATIVO}>
+            Próximo mês
+            <ChevronRight className="size-4" aria-hidden="true" />
+          </Texto>
         )}
       </Caixa>
     </Caixa>
