@@ -1,4 +1,5 @@
 import {
+  AVISO_SEM_VISTA,
   linksDoMes,
   mesVizinho,
   passosDaTroca,
@@ -49,9 +50,9 @@ describe("acompanhamento-mensal.presenter", () => {
       ["Holerite", "pendente", "O Holerite é preenchido pelo sistema."],
     ]);
     expect(servicosDoCliente(dto, "outro").map((s) => [s.nome, s.estado, s.bloqueio])).toEqual([
-      ["FGTS", "pendente", "O cliente não tem Responsável do RH; atribua um para marcar."],
-      ["SIB", "pendente", "O cliente não tem Responsável do RH; atribua um para marcar."],
-      ["NUTRI", "pendente", "O cliente não tem Responsável do RH; atribua um para marcar."],
+      ["FGTS", "pendente", AVISO_SEM_VISTA],
+      ["SIB", "pendente", AVISO_SEM_VISTA],
+      ["NUTRI", "pendente", AVISO_SEM_VISTA],
       ["Holerite", "pendente", "O Holerite é preenchido pelo sistema."],
     ]);
   });

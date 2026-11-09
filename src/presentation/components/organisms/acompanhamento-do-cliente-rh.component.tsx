@@ -27,6 +27,8 @@ type Props = {
   // Sem próximo no mês corrente.
   proximoHref?: string;
   servicos: Servico[];
+  // Motivo que vale para o cartão todo (ex.: sem Responsável): aparece visível, além do leitor de tela.
+  aviso?: string;
   pendente: boolean;
   erro?: string;
   onTrocar: (servicoId: string, de: EstadoDoServico, para: EstadoDoServico) => void;
@@ -38,6 +40,7 @@ export function AcompanhamentoDoClienteRh({
   anteriorHref,
   proximoHref,
   servicos,
+  aviso,
   pendente,
   erro,
   onTrocar,
@@ -52,6 +55,7 @@ export function AcompanhamentoDoClienteRh({
         anteriorHref={anteriorHref}
         proximoHref={proximoHref}
       />
+      {aviso && <Texto variante="apoio">{aviso}</Texto>}
       {erro && (
         <Texto variante="alerta" role="alert">
           {erro}

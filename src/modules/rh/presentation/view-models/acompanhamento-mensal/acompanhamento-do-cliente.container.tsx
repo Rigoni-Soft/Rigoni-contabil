@@ -24,6 +24,7 @@ type Props = {
   anteriorHref: string;
   proximoHref?: string;
   servicos: Servico[];
+  aviso?: string;
 };
 
 export function AcompanhamentoDoClienteContainer({

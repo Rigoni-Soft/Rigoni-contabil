@@ -19,6 +19,7 @@ import { carregarResponsavelDoSetor } from "@/modules/clientes/presentation/view
 import { alteracaoEmFocoDaUrl } from "@/modules/clientes/presentation/view-models/visualizar-documento-contratual/documentos-contratuais.presenter";
 import { AcompanhamentoDoClienteContainer } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-do-cliente.container";
 import {
+  AVISO_SEM_VISTA,
   linksDoMes,
   rotuloDaCompetencia,
   servicosDoCliente,
@@ -108,6 +109,7 @@ async function acompanhamentoRhDoCliente(
       rotuloCompetencia={rotuloDaCompetencia(competencia)}
       {...linksDoMes(clienteId, competencia, mesAtual(), voltarPara)}
       servicos={servicos}
+      aviso={servicos.some((s) => s.bloqueio === AVISO_SEM_VISTA) ? AVISO_SEM_VISTA : undefined}
     />
   );
 }

@@ -66,16 +66,17 @@ export function passosDaTroca(de: EstadoDoServico, para: EstadoDoServico): Passo
 
 // Os serviços do mês de um Cliente, na ordem das colunas. Sem linha na vista (sem Responsável do RH), todos
 // aparecem pendentes e bloqueados, com o aviso: o Líder vê o que acompanhará e atribui o Responsável.
-// ponytail: "sem linha" também cobre cliente de outro Funcionário; o aviso fala de Responsável nos dois casos.
+// O texto é neutro porque "sem linha" também cobre cliente de outro Funcionário.
+export const AVISO_SEM_VISTA =
+  "Este cliente não está na sua vista do RH. Só o Responsável marca; o Líder atribui o Responsável no cadastro.";
 export function servicosDoCliente(dto: AcompanhamentoMensalDto, clienteId: string) {
   const linha = dto.linhas.find((l) => l.clienteId === clienteId);
   const sistema = new Set(dto.servicos.filter((s) => s.sistema).map((s) => s.id));
-  const semResponsavel = "O cliente não tem Responsável do RH; atribua um para marcar.";
   const bloqueioDe = (id: string) =>
     sistema.has(id)
       ? "O Holerite é preenchido pelo sistema."
       : !linha
-        ? semResponsavel
+        ? AVISO_SEM_VISTA
         : dto.podeMarcar
           ? undefined
           : "Só o Funcionário Responsável pelo cliente altera.";
