@@ -46,4 +46,16 @@ describe("ServicosDoAcompanhamentoContainer", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Sem permissão.");
     expect(desativarServicoAction).toHaveBeenCalledWith({ servicoId: "fgts" });
   });
+
+  it("erro inesperado do servidor aparece com a mensagem genérica", async () => {
+    jest.spyOn(console, "error").mockImplementation(() => undefined);
+    jest.mocked(criarServicoAction).mockRejectedValue(new Error("boom"));
+    render(<ServicosDoAcompanhamentoContainer servicos={SERVICOS} />);
+    const usuario = userEvent.setup();
+
+    await usuario.type(screen.getByLabelText("Novo serviço"), "Contribuição");
+    await usuario.click(screen.getByRole("button", { name: "Cadastrar serviço" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Erro inesperado no servidor");
+  });
 });

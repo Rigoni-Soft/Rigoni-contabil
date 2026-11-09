@@ -47,4 +47,14 @@ describe("AcompanhamentoDoClienteContainer", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Sem permissão.");
   });
+
+  it("rede fora (TypeError) mostra a falta de conexão", async () => {
+    jest.spyOn(console, "error").mockImplementation(() => undefined);
+    jest.mocked(marcarServicoAction).mockRejectedValue(new TypeError("fetch"));
+    render(<AcompanhamentoDoClienteContainer {...PROPS} />);
+
+    await userEvent.setup().selectOptions(screen.getByLabelText("FGTS"), "concluido");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Sem conexão com o servidor");
+  });
 });
