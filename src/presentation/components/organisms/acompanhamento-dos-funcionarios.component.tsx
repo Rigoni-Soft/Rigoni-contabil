@@ -18,7 +18,8 @@ export type FuncionarioDoGrafico = {
   pontos: number;
   percentual: number;
   href: string;
-  faltam: { servicoId: string; nome: string; clientes: number }[];
+  // `href`: a lista das empresas que faltam naquele serviço para este funcionário.
+  faltam: { servicoId: string; nome: string; clientes: number; href: string }[];
 };
 
 type Props = {
@@ -26,7 +27,8 @@ type Props = {
   anteriorHref: string;
   proximoHref?: string;
   funcionarios: FuncionarioDoGrafico[];
-  semResponsavel: { clienteId: string; empresa: string }[];
+  // `href`: o cadastro operacional do cliente, para atribuir o Responsável.
+  semResponsavel: { clienteId: string; empresa: string; href: string }[];
 };
 
 // Pontos x clientes atribuídos por Funcionário e, logo abaixo, quantos clientes faltam em cada serviço.
@@ -102,7 +104,13 @@ export function AcompanhamentoDosFuncionarios({
                 <CelulaDeTabela fixa>{f.nome}</CelulaDeTabela>
                 {f.faltam.map((c) => (
                   <CelulaDeTabela key={c.servicoId} numerica>
-                    {c.clientes}
+                    <Link
+                      href={c.href}
+                      aria-label={`${c.nome} de ${f.nome}: ${c.clientes}`}
+                      className="inline-block min-w-8 rounded-sm py-0.5 underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:py-3"
+                    >
+                      {c.clientes}
+                    </Link>
                   </CelulaDeTabela>
                 ))}
               </LinhaDeTabela>
@@ -117,7 +125,12 @@ export function AcompanhamentoDosFuncionarios({
           <Pilha espaco={1} como="ul">
             {semResponsavel.map((c) => (
               <Caixa como="li" key={c.clienteId}>
-                {c.empresa}
+                <Link
+                  href={c.href}
+                  className="block rounded-sm py-0.5 underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:py-3"
+                >
+                  {c.empresa}
+                </Link>
               </Caixa>
             ))}
           </Pilha>

@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { Settings } from "lucide-react";
 
 import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
+import { MenuSuspenso } from "@/presentation/components/atoms/menu-suspenso.component";
 import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Select } from "@/presentation/components/ui/select";
@@ -9,6 +11,7 @@ import { ROTA_ATENDIMENTO } from "@/shared/kernel/rotas";
 import { ROTA_POR_SETOR, SETOR_LABEL } from "@/shared/kernel/setores";
 
 type SetorNav = { slug: string };
+type ItemDeConfiguracao = { rotulo: string; href: string };
 
 // `rotaAtual`: a aba da tela aberta ganha o destaque cheio (e `aria-current`); em "/" nenhuma está
 // selecionada, e as que têm tela são só links comuns.
@@ -22,6 +25,8 @@ export type ShellNavProps = {
   // Com muitos Setores (o Admin) e este destino, o celular troca os chips por um seletor; sem ele
   // (ou com poucos Setores) os chips seguem em todo tamanho.
   onIrParaSetor?: (rota: string) => void;
+  // Itens do menu de configuração do Setor (engrenagem no extremo direito); sem itens, sem engrenagem.
+  configuracoes?: ItemDeConfiguracao[];
 };
 
 const CHIP =
@@ -33,6 +38,7 @@ export function ShellNav({
   pendentesDeAtendimento = 0,
   anuncio = "",
   onIrParaSetor,
+  configuracoes,
 }: ShellNavProps) {
   const ativa = rotaAtual === ROTA_ATENDIMENTO;
   const comSeletor = onIrParaSetor !== undefined && setores.length > 2;
@@ -134,6 +140,26 @@ export function ShellNav({
           </Caixa>
         )}
       </Link>
+      {configuracoes && configuracoes.length > 0 && (
+        <MenuSuspenso
+          rotulo="Configurações do Setor"
+          icone={<Settings aria-hidden="true" className="size-4" />}
+          className="ml-auto"
+        >
+          <Caixa como="ul">
+            {configuracoes.map((item) => (
+              <Caixa como="li" key={item.href}>
+                <Link
+                  href={item.href}
+                  className="block rounded-md px-3 py-2 text-sm text-foreground hover:bg-accent pointer-coarse:py-3"
+                >
+                  {item.rotulo}
+                </Link>
+              </Caixa>
+            ))}
+          </Caixa>
+        </MenuSuspenso>
+      )}
       {/* Montada desde o início (mesmo vazia): leitor de tela só anuncia região que já existia. */}
       <Texto como="span" variante="somenteLeitor" role="status">
         {anuncio}

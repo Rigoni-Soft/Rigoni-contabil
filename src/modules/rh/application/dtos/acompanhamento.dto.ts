@@ -51,7 +51,7 @@ export type FuncionarioAcompanhamentoDto = {
 export type PendenciaDoFuncionarioDto = {
   servicoId: string;
   nome: string;
-  clientes: { clienteId: string; empresa: string }[];
+  clientes: { clienteId: string; empresa: string; cnpj: string }[];
 };
 
 export type DetalheDoFuncionarioDto = {

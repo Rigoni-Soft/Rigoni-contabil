@@ -16,8 +16,8 @@ const ANA = {
   percentual: 75,
   href: "/rh/funcionarios/ana",
   faltam: [
-    { servicoId: "fgts", nome: "FGTS", clientes: 1 },
-    { servicoId: "sib", nome: "SIB", clientes: 0 },
+    { servicoId: "fgts", nome: "FGTS", clientes: 1, href: "/rh/funcionarios/ana/fgts" },
+    { servicoId: "sib", nome: "SIB", clientes: 0, href: "/rh/funcionarios/ana/sib" },
   ],
 };
 
@@ -34,7 +34,9 @@ describe("AcompanhamentoDosFuncionarios", () => {
     const tabela = screen.getByRole("table", { name: /faltam por serviço em novembro de 2026/ });
     expect(within(tabela).getByRole("columnheader", { name: "FGTS" })).toBeInTheDocument();
     expect(within(tabela).getByRole("columnheader", { name: "SIB" })).toBeInTheDocument();
-    expect(within(tabela).getByRole("row", { name: /Ana 1 0/ })).toBeInTheDocument();
+    expect(
+      within(tabela).getByRole("row", { name: /FGTS de Ana: 1 SIB de Ana: 0/ }),
+    ).toBeInTheDocument();
   });
 
   it("sem funcionários mostra o vazio e nem a tabela nem a nota de ponto", () => {
@@ -50,11 +52,27 @@ describe("AcompanhamentoDosFuncionarios", () => {
       <AcompanhamentoDosFuncionarios
         {...BASE}
         funcionarios={[ANA]}
-        semResponsavel={[{ clienteId: "c1", empresa: "Padaria Sol" }]}
+        semResponsavel={[{ clienteId: "c1", empresa: "Padaria Sol", href: "/clientes/c1" }]}
       />,
     );
 
     expect(screen.getByText("Sem responsável")).toBeInTheDocument();
-    expect(screen.getByText("Padaria Sol")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Padaria Sol" })).toHaveAttribute(
+      "href",
+      "/clientes/c1",
+    );
+  });
+
+  it("cada célula da tabela de faltas abre a lista das empresas daquele serviço", () => {
+    render(<AcompanhamentoDosFuncionarios {...BASE} funcionarios={[ANA]} />);
+
+    expect(screen.getByRole("link", { name: "FGTS de Ana: 1" })).toHaveAttribute(
+      "href",
+      "/rh/funcionarios/ana/fgts",
+    );
+    expect(screen.getByRole("link", { name: "SIB de Ana: 0" })).toHaveAttribute(
+      "href",
+      "/rh/funcionarios/ana/sib",
+    );
   });
 });

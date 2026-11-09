@@ -1,6 +1,10 @@
 import type { AcompanhamentoMensalDto } from "@/modules/rh/application/dtos/acompanhamento.dto";
 
-import { cardsDoAcompanhamento, fatiasDoAcompanhamento } from "./resumo-rh.presenter";
+import {
+  cardsDoAcompanhamento,
+  configuracoesDoRh,
+  fatiasDoAcompanhamento,
+} from "./resumo-rh.presenter";
 
 const celula = (servicoId: string, aplica: boolean, concluido: boolean) => ({
   servicoId,
@@ -61,5 +65,14 @@ describe("fatiasDoAcompanhamento", () => {
       ["concluido", 1],
       ["pendente", 2],
     ]);
+  });
+});
+
+describe("configuracoesDoRh", () => {
+  it("só quem gere os serviços recebe o item de configuração", () => {
+    expect(configuracoesDoRh(true, "/rh")).toEqual([
+      { rotulo: "Serviços do acompanhamento", href: "/rh/servicos" },
+    ]);
+    expect(configuracoesDoRh(false, "/rh")).toBeUndefined();
   });
 });

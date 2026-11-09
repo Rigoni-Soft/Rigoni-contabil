@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 
-import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { ComparativosRh } from "@/presentation/components/organisms/comparativos-rh.component";
 import { ResumoDoSetor } from "@/presentation/components/organisms/resumo-do-setor.component";
@@ -18,6 +17,7 @@ import { carregarResumoSetorRh } from "@/modules/clientes/presentation/view-mode
 import { carregarAcompanhamentoMensal } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.server";
 import {
   cardsDoAcompanhamento,
+  configuracoesDoRh,
   fatiasDoAcompanhamento,
 } from "@/modules/rh/presentation/view-models/resumo-rh/resumo-rh.presenter";
 import { podeGerirServicosRh, podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
@@ -51,7 +51,16 @@ export default async function Page() {
   return (
     <ResumoDoSetorPage
       header={<CabecalhoDoShellContainer sessao={sessao} />}
-      nav={<ShellNavContainer setores={setores} rotaAtual={ROTA_RH} />}
+      nav={
+        <ShellNavContainer
+          setores={setores}
+          rotaAtual={ROTA_RH}
+          configuracoes={configuracoesDoRh(
+            podeGerirServicosRh(sessao.papel, sessao.setor),
+            ROTA_RH,
+          )}
+        />
+      }
       erro={resumo.ok ? undefined : ERRO_CARREGAR_RESUMO_SETOR}
       tentarNovamenteHref={ROTA_RH}
       resumo={
@@ -66,16 +75,11 @@ export default async function Page() {
         )
       }
       acoes={
-        <>
-          {!mensal.ok && (
-            <Texto variante="alerta" role="alert">
-              Não foi possível carregar o acompanhamento. Recarregue a página.
-            </Texto>
-          )}
-          {podeGerirServicosRh(sessao.papel, sessao.setor) && (
-            <LinkDeAcao href={`${ROTA_RH}/servicos`}>Serviços do acompanhamento</LinkDeAcao>
-          )}
-        </>
+        !mensal.ok && (
+          <Texto variante="alerta" role="alert">
+            Não foi possível carregar o acompanhamento. Recarregue a página.
+          </Texto>
+        )
       }
       comparativos={
         resumo.ok &&

@@ -158,4 +158,25 @@ describe("ShellNav — pendentes de Atendimento (#163)", () => {
       );
     });
   });
+
+  it("mostra a engrenagem no extremo direito com os itens de configuração do Setor", () => {
+    render(
+      <ShellNav
+        setores={[{ slug: "rh" }]}
+        configuracoes={[{ rotulo: "Serviços do acompanhamento", href: "/rh/servicos" }]}
+      />,
+    );
+
+    expect(screen.getByLabelText("Configurações do Setor")).toBeInTheDocument();
+    expect(screen.getByText("Serviços do acompanhamento").closest("a")).toHaveAttribute(
+      "href",
+      "/rh/servicos",
+    );
+  });
+
+  it("sem itens de configuração não há engrenagem", () => {
+    render(<ShellNav setores={[{ slug: "rh" }]} />);
+
+    expect(screen.queryByLabelText("Configurações do Setor")).not.toBeInTheDocument();
+  });
 });

@@ -4,6 +4,7 @@ import {
   funcionariosDoGrafico,
   percentual,
   propsDoDetalhe,
+  semResponsavelDoGrafico,
 } from "./acompanhamento-funcionarios.presenter";
 
 describe("acompanhamento-funcionarios.presenter", () => {
@@ -24,6 +25,28 @@ describe("acompanhamento-funcionarios.presenter", () => {
     );
     expect(f.href).toBe("/rh/funcionarios/f1?mes=2026-11");
     expect(f.percentual).toBe(25);
+  });
+
+  it("cada falta por serviço leva à lista das empresas e o sem responsável, ao cadastro", () => {
+    const dto = {
+      competencia: "2026-11",
+      semResponsavel: [{ clienteId: "c9", empresa: "Padaria Sol" }],
+      funcionarios: [
+        {
+          id: "f1",
+          nome: "Ana",
+          atribuidos: 4,
+          pontos: 1,
+          faltam: [{ servicoId: "s1", nome: "FGTS", clientes: 2 }],
+        },
+      ],
+    };
+
+    const [f] = funcionariosDoGrafico(dto, "/rh/funcionarios");
+    const [c] = semResponsavelDoGrafico(dto, "/rh/funcionarios");
+
+    expect(f.faltam[0].href).toBe("/rh/funcionarios/f1/s1?mes=2026-11");
+    expect(c.href).toBe("/clientes/c9?voltarPara=%2Frh%2Ffuncionarios");
   });
 
   it("rotula o mês e a evolução por extenso", () => {

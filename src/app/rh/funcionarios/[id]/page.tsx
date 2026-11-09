@@ -10,7 +10,11 @@ import { ShellNavContainer } from "@/modules/atendimento/presentation/view-model
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import { propsDoDetalhe } from "@/modules/rh/presentation/view-models/acompanhamento-funcionarios/acompanhamento-funcionarios.presenter";
 import { carregarAcompanhamentoFuncionarios } from "@/modules/rh/presentation/view-models/acompanhamento-funcionarios/acompanhamento-funcionarios.server";
-import { podeVerAcompanhamentoDosFuncionariosRh } from "@/shared/kernel/papeis";
+import { configuracoesDoRh } from "@/modules/rh/presentation/view-models/resumo-rh/resumo-rh.presenter";
+import {
+  podeGerirServicosRh,
+  podeVerAcompanhamentoDosFuncionariosRh,
+} from "@/shared/kernel/papeis";
 import { ROTA_RH, ROTA_RH_FUNCIONARIOS } from "@/shared/kernel/setores";
 
 const ROTA = ROTA_RH_FUNCIONARIOS;
@@ -33,7 +37,16 @@ export default async function Page({ params, searchParams }: Props) {
   return (
     <AcompanhamentoMensalPage
       header={<CabecalhoDoShellContainer sessao={sessao} />}
-      nav={<ShellNavContainer setores={setores} rotaAtual={ROTA_RH} />}
+      nav={
+        <ShellNavContainer
+          setores={setores}
+          rotaAtual={ROTA_RH}
+          configuracoes={configuracoesDoRh(
+            podeGerirServicosRh(sessao.papel, sessao.setor),
+            ROTA_RH,
+          )}
+        />
+      }
       titulo="Acompanhamento do funcionário"
       voltarHref={ROTA}
       erro={dados.ok ? undefined : dados.error.message}

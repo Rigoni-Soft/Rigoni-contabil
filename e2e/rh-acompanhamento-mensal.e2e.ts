@@ -99,6 +99,7 @@ test.describe("Acompanhamento mensal do RH", () => {
   test("Líder do RH cadastra um serviço e ele vira card no dashboard", async ({ page }) => {
     await login(page, "lider.rh@rigonicontabil.local", "lider123");
     await expect(page).toHaveURL("/rh");
+    await page.getByLabel("Configurações do Setor").click();
     await page.getByRole("link", { name: "Serviços do acompanhamento" }).click();
 
     await page.getByLabel("Novo serviço").fill(NOVO_SERVICO);

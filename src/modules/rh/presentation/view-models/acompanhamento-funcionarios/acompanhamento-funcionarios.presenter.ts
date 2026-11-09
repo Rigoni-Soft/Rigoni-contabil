@@ -13,6 +13,19 @@ export function funcionariosDoGrafico(dto: AcompanhamentoFuncionariosDto, rota: 
     ...f,
     percentual: percentual(f.pontos, f.atribuidos),
     href: `${rota}/${f.id}?mes=${dto.competencia}`,
+    // A célula abre a lista das empresas que faltam naquele serviço para este funcionário.
+    faltam: f.faltam.map((c) => ({
+      ...c,
+      href: `${rota}/${encodeURIComponent(f.id)}/${encodeURIComponent(c.servicoId)}?mes=${dto.competencia}`,
+    })),
+  }));
+}
+
+// Os clientes sem Responsável abrem o cadastro operacional; o "Voltar" de lá traz de volta para a lista.
+export function semResponsavelDoGrafico(dto: AcompanhamentoFuncionariosDto, rota: string) {
+  return dto.semResponsavel.map((c) => ({
+    ...c,
+    href: `/clientes/${encodeURIComponent(c.clienteId)}?voltarPara=${encodeURIComponent(rota)}`,
   }));
 }
 

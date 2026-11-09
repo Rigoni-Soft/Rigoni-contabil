@@ -68,3 +68,9 @@ export function fatiasDoAcompanhamento(dto: AcompanhamentoMensalDto) {
     },
   ];
 }
+
+// O menu de configuração do Setor RH: só o Líder mantém os serviços do acompanhamento.
+export const configuracoesDoRh = (podeGerirServicos: boolean, rotaDoRh: string) =>
+  podeGerirServicos
+    ? [{ rotulo: "Serviços do acompanhamento", href: `${rotaDoRh}/servicos` }]
+    : undefined;

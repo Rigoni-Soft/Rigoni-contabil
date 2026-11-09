@@ -158,7 +158,7 @@ function detalharFuncionario(
       nome: s.nome,
       clientes: clientesAtuais
         .filter((c) => pendentesDe(c, atual.servicos).has(s.id))
-        .map((c) => ({ clienteId: c.clienteId, empresa: c.empresa })),
+        .map((c) => ({ clienteId: c.clienteId, empresa: c.empresa, cnpj: c.cnpj })),
     }))
     .filter((p) => p.clientes.length > 0);
 
