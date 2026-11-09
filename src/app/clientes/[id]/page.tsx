@@ -210,8 +210,14 @@ export default async function Page({ params, searchParams }: Props) {
         ) : undefined
       }
       responsavelDoSetor={cadastroDoRh ? undefined : campoResponsavel}
-      mesRh={cadastroDoRh ? undefined : acompanhamentoRh?.mes}
-      acompanhamentoRh={cadastroDoRh ? undefined : acompanhamentoRh?.corpo}
+      acompanhamentoRh={
+        cadastroDoRh || !acompanhamentoRh ? undefined : (
+          <>
+            {acompanhamentoRh.mes}
+            {acompanhamentoRh.corpo}
+          </>
+        )
+      }
       observacoesRh={
         observacoesRhDoAdmin?.ok && observacoesRhDoAdmin.value ? (
           <ObservacoesDoRhContainer

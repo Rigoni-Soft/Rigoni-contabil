@@ -12,8 +12,6 @@ type EditarCadastroOperacionalPageProps = {
   responsavelDoSetor?: React.ReactNode;
   // Funcionário, Líder e Admin do RH: o acompanhamento do mês do Cliente (marcar serviços).
   acompanhamentoRh?: React.ReactNode;
-  // O mês de referência do acompanhamento: o cabeçalho do cartão do RH (antes dos campos, na ordem do foco).
-  mesRh?: React.ReactNode;
   // Só o Admin, que vê o SN e o RH: as observações do RH, à parte do formulário do SN.
   observacoesRh?: React.ReactNode;
   // De onde a tela foi aberta (ex.: a lista de um bucket do resumo do setor): "Voltar" leva
@@ -28,7 +26,6 @@ export function EditarCadastroOperacionalPage({
   alteracoesContratuais,
   responsavelDoSetor,
   acompanhamentoRh,
-  mesRh,
   observacoesRh,
   voltarHref = "/",
 }: EditarCadastroOperacionalPageProps) {
@@ -46,12 +43,11 @@ export function EditarCadastroOperacionalPage({
           {formulario}
           {/* Admin: SN e RH em dois cartões iguais (o RH não entra no <form> do SN: seria form aninhado).
               O cartão do RH existe mesmo se as observações não carregarem. */}
-          {(mesRh || acompanhamentoRh || observacoesRh) && (
+          {(acompanhamentoRh || observacoesRh) && (
             <Pilha
               espaco={6}
               className="rc-guilloche-frame rounded-lg border border-border bg-card p-5 shadow-sm"
             >
-              {mesRh}
               {acompanhamentoRh}
               {observacoesRh}
             </Pilha>
