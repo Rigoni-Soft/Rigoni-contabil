@@ -38,11 +38,32 @@ function porResponsavel(linhas: ResumoOperacionalRow[]): FatiaComparativoDto[] {
   );
 }
 
+// Parcelamento: as mesmas definições dos cards, por Cliente; o RH usa com os parcelamentos que cadastrar.
+export function comparativoDeParcelamento(
+  linhas: Pick<ResumoOperacionalRow, "parcelamentos">[],
+  agora: Date,
+): FatiaComparativoDto[] {
+  const situacoes = linhas.map((l) => situacaoDosParcelamentos(l, agora));
+  // Mesmas cores dos cards: pendente é atenção; só o atraso é urgente.
+  return (
+    [
+      ["enviado", "Enviado", "em_dia", "enviado"],
+      ["pendente", "Pendente", "atencao", "pendente"],
+      ["em_atraso", "Em atraso", "urgente", "pendenteEmAtraso"],
+      ["interno", "Interno", "informativo", "interno"],
+    ] as const
+  ).map(([id, rotulo, cor, campo]) => ({
+    id,
+    rotulo,
+    cor,
+    quantidade: situacoes.filter((s) => s[campo]).length,
+  }));
+}
+
 // Gráficos: DAS usa o status bruto (não os buckets compostos dos cards, que se
 // sobrepõem); atividade do mês são 3 flags independentes; parcelamento usa as mesmas definições
 // dos cards (por Cliente, não exclusivas), então as fatias podem somar mais que o total.
 export function calcularComparativosSn(linhas: ResumoOperacionalRow[], agora: Date) {
-  const situacoes = linhas.map((l) => situacaoDosParcelamentos(l, agora));
   const atividades = linhas.flatMap((l) =>
     (["industria", "comercio", "servico"] as const).filter((a) => l.atividadeMes[a]),
   );
@@ -58,20 +79,7 @@ export function calcularComparativosSn(linhas: ResumoOperacionalRow[], agora: Da
       ],
       linhas.map((l) => l.dasStatus),
     ),
-    // Mesmas cores dos cards: pendente é atenção; só o atraso é urgente.
-    parcelamento: (
-      [
-        ["enviado", "Enviado", "em_dia", "enviado"],
-        ["pendente", "Pendente", "atencao", "pendente"],
-        ["em_atraso", "Em atraso", "urgente", "pendenteEmAtraso"],
-        ["interno", "Interno", "informativo", "interno"],
-      ] as const
-    ).map(([id, rotulo, cor, campo]) => ({
-      id,
-      rotulo,
-      cor,
-      quantidade: situacoes.filter((s) => s[campo]).length,
-    })),
+    parcelamento: comparativoDeParcelamento(linhas, agora),
     atividade: contar(
       [
         ["industria", "Indústria", "em_dia"],

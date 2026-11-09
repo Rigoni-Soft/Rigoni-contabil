@@ -30,7 +30,7 @@ const carteiraFalsa: CarteiraDoSetorQueryPort = { listar: async () => ok(CARTEIR
 const relogio = { agora: () => new Date("2026-11-10T12:00:00Z") };
 
 describe("ObterResumoSetorRh", () => {
-  it("o Líder vê a carteira toda: atribuídos, sem responsável e o comparativo por Responsável", async () => {
+  it("o Líder vê a carteira toda: o card Sem responsável fora de grupo e o comparativo por Responsável", async () => {
     const r = await new ObterResumoSetorRh(
       sessaoDe("lider_setor", "rh"),
       carteiraFalsa,
@@ -38,13 +38,9 @@ describe("ObterResumoSetorRh", () => {
     ).execute();
 
     expect(r.ok && r.value.totalClientes).toBe(4);
-    expect(r.ok && r.value.cards.slice(0, 2).map((c) => [c.id, c.quantidade])).toEqual([
-      ["atribuidos", 3],
-      ["sem_responsavel", 1],
-    ]);
-    expect(r.ok && r.value.grupos.map((g) => g.titulo)).toEqual(["Carteira", "Parcelamento"]);
-    expect(r.ok && r.value.grupos[0].cardIds).toEqual(["atribuidos", "sem_responsavel"]);
-    expect(r.ok && r.value.comparativos?.responsaveis.map((f) => [f.rotulo, f.quantidade])).toEqual(
+    expect(r.ok && r.value.cards[0]).toMatchObject({ id: "sem_responsavel", quantidade: 1 });
+    expect(r.ok && r.value.grupos.map((g) => g.titulo)).toEqual(["Parcelamento"]);
+    expect(r.ok && r.value.comparativos.responsaveis?.map((f) => [f.rotulo, f.quantidade])).toEqual(
       [
         ["Ana", 2],
         ["Beto", 1],
@@ -60,7 +56,7 @@ describe("ObterResumoSetorRh", () => {
       relogio,
     ).execute();
 
-    expect(r.ok && r.value.grupos[1].cardIds).toEqual([
+    expect(r.ok && r.value.grupos[0].cardIds).toEqual([
       "com_parcelamento",
       "parcelamento_em_aberto",
       "parcelamento_pendente",
@@ -68,10 +64,16 @@ describe("ObterResumoSetorRh", () => {
       "parcelamento_interno",
       "parcelamento_enviado",
     ]);
-    expect(r.ok && r.value.cards.slice(2).every((c) => c.quantidade === 0)).toBe(true);
+    expect(r.ok && r.value.cards.slice(1).every((c) => c.quantidade === 0)).toBe(true);
+    expect(r.ok && r.value.comparativos.parcelamento.map((f) => [f.id, f.quantidade])).toEqual([
+      ["enviado", 0],
+      ["pendente", 0],
+      ["em_atraso", 0],
+      ["interno", 0],
+    ]);
   });
 
-  it("o Funcionário vê só os Clientes de que é Responsável, sem os sem atribuição nem o comparativo", async () => {
+  it("o Funcionário vê só os Clientes de que é Responsável, sem os sem atribuição nem o comparativo por Responsável", async () => {
     const r = await new ObterResumoSetorRh(
       sessaoDe("funcionario", "rh", "u2"),
       carteiraFalsa,
@@ -79,13 +81,11 @@ describe("ObterResumoSetorRh", () => {
     ).execute();
 
     expect(r.ok && r.value.totalClientes).toBe(1);
-    expect(r.ok && r.value.cards.slice(0, 1).map((c) => [c.id, c.titulo, c.quantidade])).toEqual([
-      ["atribuidos", "Meus clientes", 1],
-    ]);
-    expect(r.ok && r.value.comparativos).toBeUndefined();
+    expect(r.ok && r.value.cards.map((c) => c.id)).not.toContain("sem_responsavel");
+    expect(r.ok && r.value.comparativos.responsaveis).toBeUndefined();
   });
 
-  it("o Admin entra para suporte e vê a carteira, sem o comparativo do Líder", async () => {
+  it("o Admin entra para suporte e vê a carteira e o comparativo por Responsável", async () => {
     const r = await new ObterResumoSetorRh(
       sessaoDe("admin", "administrativo"),
       carteiraFalsa,
@@ -93,7 +93,7 @@ describe("ObterResumoSetorRh", () => {
     ).execute();
 
     expect(r.ok && r.value.totalClientes).toBe(4);
-    expect(r.ok && r.value.comparativos).toBeUndefined();
+    expect(r.ok && r.value.comparativos.responsaveis).toHaveLength(3);
   });
 
   it("recusa quem é de outro Setor e quem não tem sessão", async () => {

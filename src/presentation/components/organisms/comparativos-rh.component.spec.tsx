@@ -2,25 +2,57 @@ import { render, screen, within } from "@testing-library/react";
 
 import { ComparativosRh } from "./comparativos-rh.component";
 
+const ACOMPANHAMENTO = [
+  { id: "concluido", rotulo: "Tudo concluído", cor: "em_dia", quantidade: 1 },
+  { id: "pendente", rotulo: "Com pendência", cor: "atencao", quantidade: 2 },
+];
+const PARCELAMENTO = [
+  { id: "enviado", rotulo: "Enviado", cor: "em_dia", quantidade: 0 },
+  { id: "pendente", rotulo: "Pendente", cor: "atencao", quantidade: 0 },
+];
+const RESPONSAVEIS = [
+  {
+    id: "u1",
+    rotulo: "Ana",
+    cor: "em_dia",
+    quantidade: 2,
+    href: "/rh/funcionarios/u1?mes=2026-11",
+  },
+  { id: "sem", rotulo: "Sem responsável", cor: "informativo", quantidade: 1 },
+];
+
 describe("ComparativosRh", () => {
-  it("mostra o título e o comparativo de Clientes por Responsável", () => {
+  it("mostra o donut do acompanhamento e as barras do parcelamento, como o SN", () => {
     render(
       <ComparativosRh
-        responsaveis={[
-          { id: "u1", rotulo: "Ana", cor: "em_dia", quantidade: 2 },
-          { id: "sem", rotulo: "Sem responsável", cor: "informativo", quantidade: 1 },
-        ]}
+        acompanhamento={ACOMPANHAMENTO}
+        parcelamento={PARCELAMENTO}
         totalClientes={3}
       />,
     );
 
     expect(screen.getByRole("heading", { name: "Comparativos" })).toBeInTheDocument();
-    expect(screen.getByText("Clientes por Responsável")).toBeInTheDocument();
-    const linhas = screen.getAllByRole("listitem");
-    expect(linhas).toHaveLength(2);
-    expect(within(linhas[0]).getByText("Ana")).toBeInTheDocument();
-    expect(within(linhas[0]).getByText("2")).toBeInTheDocument();
-    expect(within(linhas[1]).getByText("Sem responsável")).toBeInTheDocument();
-    expect(within(linhas[1]).getByText("1")).toBeInTheDocument();
+    const acompanhamento = screen.getByRole("group", { name: "Status do acompanhamento" });
+    expect(within(acompanhamento).getByText("Com pendência")).toBeInTheDocument();
+    expect(screen.getByText("Status do parcelamento")).toBeInTheDocument();
+    expect(screen.queryByText("Clientes por Responsável")).not.toBeInTheDocument();
+  });
+
+  it("o Líder vê Clientes por Responsável, e o Responsável leva ao acompanhamento dele", () => {
+    render(
+      <ComparativosRh
+        acompanhamento={ACOMPANHAMENTO}
+        parcelamento={PARCELAMENTO}
+        responsaveis={RESPONSAVEIS}
+        totalClientes={3}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "Ana" })).toHaveAttribute(
+      "href",
+      "/rh/funcionarios/u1?mes=2026-11",
+    );
+    expect(screen.queryByRole("link", { name: "Sem responsável" })).not.toBeInTheDocument();
+    expect(screen.getByText("Sem responsável")).toBeInTheDocument();
   });
 });

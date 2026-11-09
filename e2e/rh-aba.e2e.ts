@@ -64,8 +64,8 @@ test.describe("Aba RH: busca ampla e Responsável do RH (#213)", () => {
 
     await login(page, "funcionario.rh@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/rh");
-    // O Funcionário não vê o comparativo dos colegas nem os clientes sem Responsável.
-    await expect(page.getByRole("heading", { name: "Comparativos" })).toHaveCount(0);
+    // O Funcionário não vê o comparativo por Responsável nem os clientes sem Responsável.
+    await expect(page.getByText("Clientes por Responsável")).toHaveCount(0);
     await expect(page.getByText("Sem responsável")).toHaveCount(0);
 
     await page.getByLabel(/empresa ou cnpj/i).fill(EMPRESA);

@@ -15,17 +15,13 @@ import { ShellNavContainer } from "@/modules/atendimento/presentation/view-model
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import { BuscarClienteContainer } from "@/modules/clientes/presentation/view-models/buscar-cliente/buscar-cliente.container";
 import { carregarResumoSetorRh } from "@/modules/clientes/presentation/view-models/resumo-setor-rh/resumo-setor-rh.server";
-import { carregarAcompanhamentoFuncionarios } from "@/modules/rh/presentation/view-models/acompanhamento-funcionarios/acompanhamento-funcionarios.server";
 import { carregarAcompanhamentoMensal } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.server";
 import {
   cardsDoAcompanhamento,
-  cardsDosFuncionarios,
+  fatiasDoAcompanhamento,
+  responsaveisComLink,
 } from "@/modules/rh/presentation/view-models/resumo-rh/resumo-rh.presenter";
-import {
-  podeGerirServicosRh,
-  podeVerAcompanhamentoDosFuncionariosRh,
-  podeVerDashboardDoSetor,
-} from "@/shared/kernel/papeis";
+import { podeGerirServicosRh, podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
 import { ROTA_RH, ROTA_RH_FUNCIONARIOS, SETOR_RH } from "@/shared/kernel/setores";
 
 // ponytail: montagem repetida de app/simples-nacional/page.tsx; extrair no 3º Setor com resumo.
@@ -37,24 +33,18 @@ export default async function Page() {
 
   // ponytail: este carregamento repete o de app/rh/resumo/[bucket]; sem lugar para dividir (app só tem
   // arquivos do Next e as camadas não se importam), junta-se na página.
-  const verFuncionarios = podeVerAcompanhamentoDosFuncionariosRh(sessao.papel, sessao.setor);
-  const [setores, base, mensal, funcionarios] = await Promise.all([
+  const [setores, base, mensal] = await Promise.all([
     carregarSetoresDaNavegacao(),
     carregarResumoSetorRh(),
     carregarAcompanhamentoMensal(),
-    verFuncionarios ? carregarAcompanhamentoFuncionarios() : undefined,
   ]);
-  // Se o acompanhamento falhar, o dashboard segue com a carteira e o Parcelamento e avisa.
-  const acompanhamentoFalhou = !mensal.ok || (funcionarios && !funcionarios.ok);
+  // Se o acompanhamento falhar, o dashboard segue só com o Parcelamento e avisa.
   const resumo = base.ok
     ? {
         ok: true as const,
         value: juntarResumoRh(
           base.value,
           mensal.ok ? cardsDoAcompanhamento(mensal.value) : undefined,
-          funcionarios?.ok
-            ? cardsDosFuncionarios(funcionarios.value, ROTA_RH_FUNCIONARIOS)
-            : undefined,
         ),
       }
     : { ok: false as const };
@@ -78,7 +68,7 @@ export default async function Page() {
       }
       acoes={
         <>
-          {acompanhamentoFalhou && (
+          {!mensal.ok && (
             <Texto variante="alerta" role="alert">
               Não foi possível carregar o acompanhamento. Recarregue a página.
             </Texto>
@@ -90,9 +80,21 @@ export default async function Page() {
       }
       comparativos={
         resumo.ok &&
-        resumo.value.comparativos && (
+        mensal.ok && (
           <ComparativosRh
-            responsaveis={resumo.value.comparativos.responsaveis}
+            acompanhamento={fatiasDoAcompanhamento(mensal.value)}
+            parcelamento={resumo.value.comparativos.parcelamento}
+            responsaveis={
+              resumo.value.comparativos.responsaveis &&
+              responsaveisComLink(
+                resumo.value.comparativos.responsaveis,
+                mensal.value.competencia,
+                {
+                  funcionarios: ROTA_RH_FUNCIONARIOS,
+                  semResponsavel: `${ROTA_RH}/resumo/sem_responsavel`,
+                },
+              )
+            }
             totalClientes={resumo.value.totalClientes}
           />
         )

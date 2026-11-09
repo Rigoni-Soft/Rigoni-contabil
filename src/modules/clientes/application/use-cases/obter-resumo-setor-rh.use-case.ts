@@ -1,3 +1,4 @@
+import { comparativoDeParcelamento } from "@/modules/clientes/application/mappers/comparativos-sn.mapper";
 import {
   classificarParcelamento,
   gruposDeParcelamento,
@@ -16,7 +17,7 @@ import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import {
-  podeVerComparativoDoSetor,
+  podeVerAcompanhamentoDosFuncionariosRh,
   podeVerDashboardDoSetor,
   rotuloResponsavel,
   SEM_RESPONSAVEL_ID,
@@ -26,8 +27,6 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 import { SETOR_RH } from "@/shared/kernel/setores";
 
 // ponytail: `doBucket` e a montagem dos cards repetem o molde de obter-resumo-setor-sn; extrair no 3º Setor com resumo.
-const GRUPO = "Carteira";
-
 const doBucket = ({ clienteId, empresa, cnpj }: ClienteDaCarteiraRow) => ({
   clienteId,
   empresa,
@@ -55,7 +54,7 @@ function porResponsavel(linhas: ClienteDaCarteiraRow[]): FatiaComparativoDto[] {
 }
 
 // Resumo do Setor RH: Admin (suporte), Líder e Funcionário do RH. O Funcionário vê só os Clientes de
-// que é Responsável; Líder e Admin, a carteira inteira (o comparativo é só do Líder).
+// que é Responsável; Líder e Admin, a carteira inteira e o comparativo por Responsável.
 export class ObterResumoSetorRh {
   constructor(
     private readonly sessao: SessaoPort,
@@ -75,17 +74,10 @@ export class ObterResumoSetorRh {
 
     const veTudo = veCarteiraInteira(ator.papel);
     const linhas = veTudo ? lidas.value : lidas.value.filter((l) => l.responsavelId === ator.id);
-    const atribuidos = linhas.filter((l) => l.responsavelId);
 
-    const cards: CardResumoDto[] = [
-      {
-        id: "atribuidos",
-        titulo: veTudo ? "Atribuídos" : "Meus clientes",
-        cor: "em_dia",
-        quantidade: atribuidos.length,
-        clientes: atribuidos.map(doBucket),
-      },
-    ];
+    // Fora de qualquer grupo: a tela não os mostra como card, mas a lista de "Sem responsável" abre por
+    // aqui, a partir do comparativo por Responsável.
+    const cards: CardResumoDto[] = [];
     if (veTudo) {
       const sem = linhas.filter((l) => !l.responsavelId);
       cards.push({
@@ -100,18 +92,20 @@ export class ObterResumoSetorRh {
 
     // O grupo Parcelamento é o do SN; o RH o alimenta com os parcelamentos que cadastrar.
     // ponytail: TODO(#216) até lá nenhum parcelamento é do RH, então os 6 cards saem zerados.
-    const parcelamentos = classificarParcelamento(
-      linhas.map((l) => ({ ...doBucket(l), parcelamentos: [] })),
-      this.relogio.agora(),
-    );
+    const semParcelamento = linhas.map((l) => ({ ...doBucket(l), parcelamentos: [] }));
+    const agora = this.relogio.agora();
+    const parcelamentos = classificarParcelamento(semParcelamento, agora);
 
     return ok({
       totalClientes: linhas.length,
       cards: [...cards, ...parcelamentos],
-      grupos: [{ titulo: GRUPO, cardIds: cards.map((c) => c.id) }, ...gruposDeParcelamento()],
-      comparativos: podeVerComparativoDoSetor(ator.papel, ator.setor)
-        ? { responsaveis: porResponsavel(linhas) }
-        : undefined,
+      grupos: gruposDeParcelamento(),
+      comparativos: {
+        parcelamento: comparativoDeParcelamento(semParcelamento, agora),
+        responsaveis: podeVerAcompanhamentoDosFuncionariosRh(ator.papel, ator.setor)
+          ? porResponsavel(linhas)
+          : undefined,
+      },
     });
   }
 }

@@ -1,8 +1,6 @@
-import type {
-  AcompanhamentoFuncionariosDto,
-  AcompanhamentoMensalDto,
-} from "@/modules/rh/application/dtos/acompanhamento.dto";
+import type { AcompanhamentoMensalDto } from "@/modules/rh/application/dtos/acompanhamento.dto";
 import { rotuloDaCompetencia } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.presenter";
+import { SEM_RESPONSAVEL_ID } from "@/shared/kernel/papeis";
 
 // Mesmo desenho dos cards do resumo do SN (a View de resumo lê só este shape).
 type CardDoRh = {
@@ -13,8 +11,7 @@ type CardDoRh = {
   descricao?: string;
   mensagemVazia?: string;
   clientes: { clienteId: string; empresa: string; cnpj: string }[];
-  // Cards de funcionário: abrem o acompanhamento dele e contam sobre os clientes dele.
-  href?: string;
+  // O acompanhamento conta sobre os clientes que têm Responsável, não sobre a carteira inteira.
   total?: number;
 };
 
@@ -24,14 +21,14 @@ const doCliente = ({ clienteId, empresa, cnpj }: AcompanhamentoMensalDto["linhas
   cnpj,
 });
 
+const faltando = (l: AcompanhamentoMensalDto["linhas"][number]) =>
+  l.celulas.filter((c) => c.aplica && !c.concluido).map((c) => c.servicoId);
+
 // Um card por serviço com os clientes que ainda faltam nele (aplica e não concluído), mais "Tudo
 // concluído": quem não tem serviço faltando. É o que antes era a tabela; marcar fica no painel do cliente.
 export function cardsDoAcompanhamento(dto: AcompanhamentoMensalDto) {
   const mes = rotuloDaCompetencia(dto.competencia);
   const total = dto.linhas.length;
-  const faltando = (l: AcompanhamentoMensalDto["linhas"][number]) =>
-    l.celulas.filter((c) => c.aplica && !c.concluido).map((c) => c.servicoId);
-
   const cards: CardDoRh[] = dto.servicos.map((s) => {
     const clientes = dto.linhas.filter((l) => faltando(l).includes(s.id)).map(doCliente);
     return {
@@ -59,22 +56,31 @@ export function cardsDoAcompanhamento(dto: AcompanhamentoMensalDto) {
   return { cards, grupo: { titulo: `Acompanhamento de ${mes}`, cardIds: cards.map((c) => c.id) } };
 }
 
-// Um card por Funcionário do RH: pontos sobre clientes atribuídos; clicar abre o acompanhamento dele.
-export function cardsDosFuncionarios(
-  dto: AcompanhamentoFuncionariosDto,
-  rotaDosFuncionarios: string,
+// O donut do acompanhamento: quantos clientes fecharam o mês e quantos ainda têm serviço faltando.
+export function fatiasDoAcompanhamento(dto: AcompanhamentoMensalDto) {
+  const completos = dto.linhas.filter((l) => faltando(l).length === 0).length;
+  return [
+    { id: "concluido", rotulo: "Tudo concluído", cor: "em_dia", quantidade: completos },
+    {
+      id: "pendente",
+      rotulo: "Com pendência",
+      cor: "atencao",
+      quantidade: dto.linhas.length - completos,
+    },
+  ];
+}
+
+// Clientes por Responsável: cada Responsável leva ao acompanhamento dele no mês; "Sem responsável", à lista.
+export function responsaveisComLink<F extends { id: string }>(
+  fatias: F[],
+  competencia: string,
+  rotas: { funcionarios: string; semResponsavel: string },
 ) {
-  const cards: CardDoRh[] = dto.funcionarios.map((f) => ({
-    id: `funcionario_${f.id}`,
-    titulo: f.nome,
-    cor: f.atribuidos > 0 && f.pontos === f.atribuidos ? "em_dia" : "atencao",
-    quantidade: f.pontos,
-    clientes: [],
-    href: `${rotaDosFuncionarios}/${encodeURIComponent(f.id)}?mes=${dto.competencia}`,
-    total: f.atribuidos,
+  return fatias.map((f) => ({
+    ...f,
+    href:
+      f.id === SEM_RESPONSAVEL_ID
+        ? rotas.semResponsavel
+        : `${rotas.funcionarios}/${encodeURIComponent(f.id)}?mes=${competencia}`,
   }));
-  return {
-    cards,
-    grupo: { titulo: "Acompanhamento dos funcionários", cardIds: cards.map((c) => c.id) },
-  };
 }

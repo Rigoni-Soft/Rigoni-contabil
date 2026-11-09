@@ -137,13 +137,13 @@ _Avoid_: Notificação.
 ### RH: acompanhamento e folha de ponto
 
 **Acompanhamento mensal**:
-O acompanhamento do RH por Cliente e por competência (mês), no desenho do dashboard do SN: no dashboard do RH cada Serviço do acompanhamento é um card com os Clientes que ainda faltam nele, mais o card "Tudo concluído"; marcar se faz no painel do Cliente. Todo mês nasce com tudo pendente; o histórico dos meses anteriores é consultável no painel do Cliente. Só o Responsável do RH do Cliente marca; o Líder e o Admin leem todos. Líder e Admin veem ainda um card por Funcionário do RH (pontos sobre clientes atribuídos) que abre o acompanhamento dele.
+O acompanhamento do RH por Cliente e por competência (mês), no desenho do dashboard do SN: no dashboard do RH cada Serviço do acompanhamento é um card com os Clientes que ainda faltam nele, mais o card "Tudo concluído"; marcar se faz no painel do Cliente. Todo mês nasce com tudo pendente; o histórico dos meses anteriores é consultável no painel do Cliente. Só o Responsável do RH do Cliente marca; o Líder e o Admin leem todos. Os Comparativos do dashboard seguem os do SN: donut "Status do acompanhamento", barras "Status do parcelamento" (zeradas até o parcelamento do RH) e, para Líder e Admin, "Clientes por Responsável", onde cada Responsável abre o acompanhamento dele.
 
 **Serviço do acompanhamento**:
 Um card do Acompanhamento mensal (ex.: FGTS, DCTFWeb, NUTRI, SIB, Sindicato), marcado como concluído ou não pelo Responsável. A lista é mantida pelo Líder do RH. Cada Cliente tem um "se aplica" por Serviço; o que não se aplica não conta. O **Holerite** é o Serviço do sistema: nunca marcado à mão, fica concluído quando todo funcionário ativo do Cliente tem o Cartão de ponto do mês (as duas quinzenas).
 
 **Ponto do funcionário**:
-O ponto que um Funcionário do RH ganha por Cliente em que todo Serviço aplicável do mês, inclusive o Holerite, está concluído. O dashboard (Líder e Admin) mostra um card por Funcionário com pontos x Clientes atribuídos; o detalhe do funcionário lista os Clientes com algo pendente agrupados pelo Serviço que falta. O Funcionário não vê esse gráfico.
+O ponto que um Funcionário do RH ganha por Cliente em que todo Serviço aplicável do mês, inclusive o Holerite, está concluído. O detalhe do Funcionário (Líder e Admin), aberto pelo comparativo "Clientes por Responsável", mostra pontos x Clientes atribuídos e lista os Clientes com algo pendente agrupados pelo Serviço que falta. O Funcionário não o vê.
 
 **Quadro de funcionários do Cliente**:
 Os empregados de um Cliente, só com nome, Jornada e a marca "comissionado" (que define o percentual de hora extra em data especial). A marca nasce do padrão do Cliente ("os empregados deste Cliente são comissionados") e o Funcionário do RH a muda por empregado quando for exceção. Entra pela leitura de um Cartão de ponto ou à mão, e o Funcionário do RH corrige ou preenche à mão. Pode ficar "sem movimento no mês" (férias, desligamento) sem travar o Holerite. Nenhum outro dado do empregado é guardado ou exibido (é a única exceção à regra "só nome, Jornada e Abono").
