@@ -1,11 +1,6 @@
 import { z } from "zod";
 
-const contatoSchema = z.object({
-  id: z.string().optional(),
-  nome: z.string().min(1, "obrigatório"),
-  telefone: z.string().min(1, "obrigatório"),
-  padrao: z.boolean(),
-});
+import { contatoSchema } from "../editar-cadastro-operacional/editar-cadastro-operacional.schema";
 
 // O que a action recebe: as observações do RH e os contatos do Cliente.
 export const editarCadastroRhSchema = z.object({

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import type { EditarCadastroRhClienteInput } from "@/modules/clientes/application/ports/in/editar-cadastro-rh-cliente.provider";
 import type { CadastroRhRepository } from "@/modules/clientes/application/ports/out/cadastro-rh.repository";
 import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
 import { ConsoleRegistroDeErrosGateway } from "@/modules/clientes/infra/gateways/console-registro-de-erros.gateway";
@@ -19,12 +20,12 @@ export class SupabaseCadastroRhRepository implements CadastroRhRepository {
   async atualizar(
     clienteId: string,
     observacoes: string,
-    contatos: { id?: string; nome: string; telefone: string; padrao: boolean }[],
+    contatos: EditarCadastroRhClienteInput["contatos"],
   ): Promise<Result<void, AppError>> {
     const { error } = await this.supabase.rpc("editar_cadastro_rh_cliente", {
       p_cliente_id: clienteId,
       p_observacoes: observacoes,
-      p_contatos: contatos.map((c) => ({ ...c, id: c.id ?? crypto.randomUUID() })),
+      p_contatos: contatos,
     });
     if (error) {
       if (error.code === "42501") {
