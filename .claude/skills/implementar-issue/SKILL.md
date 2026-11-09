@@ -18,6 +18,7 @@ Argumentos: `$ARGUMENTS` → 1º token = issue alvo (`#123` ou `123`); 2º (opci
 1. `git status --porcelain`: alteração em arquivo **rastreado** → pare e avise (untracked como `supabase/snippets/` pode ficar).
 2. Sem base explícita, `git fetch origin develop` e parta de `origin/develop` se a local estiver atrás (`git merge --ff-only`); nunca force.
 3. `gh issue view <issue> --json title,labels` e monte `feature/<slug-do-título>` (kebab-case, sem acento, ≤ 6 palavras; `fix/` se for bug). Branch já existe → pare e pergunte.
+   Antes disso, procure trabalho já feito na issue: `git log --all --oneline --grep "#<n>"` e a linha dela em `docs/trilha-implementacao.md`. Achou commits ou a trilha marcada como feita → pare, mostre a branch e sugira `/gate-qualidade` em vez de reimplementar.
 4. `git switch -c <nome> <base>`.
 
 ## 3. Implementar

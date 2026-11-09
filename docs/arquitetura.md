@@ -144,7 +144,7 @@ Valem para todo o projeto. Os detalhes de cada um ficam na `constitution.md`; aq
   3. encapsular primitivos e strings (value objects);
   4. coleções de primeira classe;
   5. um ponto por linha (lei de Demeter);
-  6. sem abreviações;
+  6. sem abreviações (nome de função, variável e tipo é por extenso; o parâmetro de um callback de uma linha, como `.map((c) => …)`, pode ser a inicial do que ele itera);
   7. entidades pequenas;
   8. poucas variáveis de instância por classe (o objeto de props conta como uma);
   9. sem setters e sem expor estado mutável (*Tell, Don't Ask*). **Decisão:** entidades podem expor **getters somente leitura** (os mappers precisam ler o estado); todo comportamento continua em métodos da própria entidade, nunca em código externo que decide por ela.

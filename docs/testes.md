@@ -74,7 +74,7 @@ O unitário é o nível priorizado: toda classe, função e método com lógica 
 
 - **Isolamento:** nunca se testa contra o Supabase real, nem client nem server. O ponto de substituição são as portas OUT (`arquitetura.md`, seção 3.6).
 - **RTL:** testa comportamento observável pelo usuário (o que é renderizado, o que reage a evento), não detalhe interno do componente.
-- **Container:** é um arquivo de poucas linhas que chama o hook do ViewModel e entrega o resultado à View. Todo Container tem **um teste RTL curto**, com o hook substituído por `jest.mock`, que verifica duas coisas: a View recebe os dados que o hook devolve, e uma ação do usuário chama a função do hook. A lógica em si já é testada no hook e na View; este teste só prova que os dois estão ligados. Vale para todo Container, sem exceção.
+- **Container:** é um arquivo de poucas linhas que chama o hook do ViewModel e entrega o resultado à View. Todo Container tem **um teste RTL curto**, com o hook substituído por `jest.mock`, que verifica duas coisas: a View recebe os dados que o hook devolve, e uma ação do usuário chama a função do hook. A lógica em si já é testada no hook e na View; este teste só prova que os dois estão ligados. Vale para todo Container, sem exceção. `yarn check:specs` (CI) reprova Container, molecule ou organism novo sem `*.spec.tsx` ao lado; os que já existiam sem spec ficam em `scripts/specs-sem-teste.baseline.txt`, que só encolhe.
 
 ### 4.2 Integração (`*.test.ts`)
 

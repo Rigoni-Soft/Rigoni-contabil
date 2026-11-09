@@ -30,7 +30,7 @@ Argumento: `$ARGUMENTS` = base do diff. Sem base: `gh pr view --json baseRefName
 
 **4. `retro`** — retrospectiva do processo e dos guardrails (lint, checks, docs, skills). Apresente os candidatos; aplique os que o usuário aprovar, registre e rode de novo. Saída: nenhuma pendência estrutural nova.
 
-**5. Checks do CI** — `yarn tsc --noEmit`, `yarn check:naming`, `yarn check:refs`, `yarn check:deps` e `yarn check:guard-senha` (os mesmos do `ci.yml`). Falhou: corrija, registre no ledger e rode de novo; commit só se mudou arquivo.
+**5. Checks do CI** — `yarn tsc --noEmit`, `yarn check:naming`, `yarn check:refs`, `yarn check:specs`, `yarn check:deps` e `yarn check:guard-senha` (os mesmos do `ci.yml`). Falhou: corrija, registre no ledger e rode de novo; commit só se mudou arquivo.
 
 ## Fim
 
