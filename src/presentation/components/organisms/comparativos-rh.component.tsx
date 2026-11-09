@@ -44,7 +44,6 @@ export function ComparativosRh({
         {comResponsaveis && (
           <Link
             href={responsaveisHref}
-            aria-label="Clientes por Responsável: ver o acompanhamento dos funcionários"
             className="rounded-lg hover:bg-accent/40 focus-visible:outline-2 focus-visible:outline-ring"
           >
             <BarrasDeFatias
