@@ -44,7 +44,10 @@ export default async function Page({ params }: Props) {
       }
     : { ok: false as const };
   const header = <CabecalhoDoShellContainer sessao={sessao} />;
-  if (!resumo.ok) {
+  const card = resumo.ok ? resumo.value.cards.find((c) => c.id === bucket) : undefined;
+  // Com o acompanhamento fora do ar, o card dele não existe: é falha a tentar de novo, não 404.
+  const acompanhamentoFalhou = !mensal.ok || (funcionarios && !funcionarios.ok);
+  if (!resumo.ok || (!card && acompanhamentoFalhou)) {
     return (
       <ResumoSetorListaPage
         header={header}
@@ -56,7 +59,6 @@ export default async function Page({ params }: Props) {
     );
   }
 
-  const card = resumo.value.cards.find((c) => c.id === bucket);
   if (!card) notFound();
 
   return (
