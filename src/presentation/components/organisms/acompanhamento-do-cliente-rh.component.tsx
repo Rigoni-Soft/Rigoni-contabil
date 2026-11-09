@@ -1,3 +1,4 @@
+import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { Grade, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
@@ -56,11 +57,7 @@ export function AcompanhamentoDoClienteRh({
         proximoHref={proximoHref}
       />
       {aviso && <Texto variante="apoio">{aviso}</Texto>}
-      {erro && (
-        <Texto variante="alerta" role="alert">
-          {erro}
-        </Texto>
-      )}
+      {erro && <AvisoDeStatus tipo="erro" legivel texto={erro} />}
       <Grade colunas="1>2>4" espaco={4} como="ul">
         {servicos.map((s) => (
           <Pilha como="li" key={s.servicoId} espaco={1}>

@@ -45,7 +45,7 @@ export function ObservacoesDoRh({
       <Button type="button" onClick={onSalvar} disabled={pendente} className="self-start">
         {pendente ? "Salvando…" : "Salvar observações do RH"}
       </Button>
-      {sucesso && <AvisoDeStatus tipo="sucesso" texto="Observações do RH atualizadas." />}
+      {sucesso && <AvisoDeStatus tipo="sucesso" legivel texto="Observações do RH atualizadas." />}
     </Pilha>
   );
 }

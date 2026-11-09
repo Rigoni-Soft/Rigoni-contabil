@@ -99,7 +99,7 @@ export function EditarCadastroRhForm({
       </Grade>
 
       {erroServidor && <FieldError>{erroServidor}</FieldError>}
-      {sucesso && <AvisoDeStatus tipo="sucesso" texto="Cadastro do RH atualizado." />}
+      {sucesso && <AvisoDeStatus tipo="sucesso" legivel texto="Cadastro do RH atualizado." />}
     </Pilha>
   );
 }
