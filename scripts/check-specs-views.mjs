@@ -31,7 +31,7 @@ if (process.argv.includes("--gerar-baseline")) {
   process.exit(0);
 }
 
-const aceitos = new Set(readFileSync(BASELINE, "utf8").split("\n").filter(Boolean));
+const aceitos = new Set(readFileSync(BASELINE, "utf8").split(/\r?\n/).filter(Boolean));
 const novos = semSpec.filter((caminho) => !aceitos.has(caminho));
 const resolvidos = [...aceitos].filter((caminho) => !semSpec.includes(caminho));
 
