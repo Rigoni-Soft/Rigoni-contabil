@@ -9,14 +9,30 @@ describe("juntarResumoRh", () => {
       { titulo: "Parcelamento", cardIds: ["com_parcelamento"] },
     ],
   };
-  const doMes = { cards: [{ id: "servico_fgts" }], grupo: { titulo: "Acompanhamento", cardIds: ["servico_fgts"] } };
-  const funcionarios = { cards: [{ id: "funcionario_u1" }], grupo: { titulo: "Funcionários", cardIds: ["funcionario_u1"] } };
+  const doMes = {
+    cards: [{ id: "servico_fgts" }],
+    grupo: { titulo: "Acompanhamento", cardIds: ["servico_fgts"] },
+  };
+  const funcionarios = {
+    cards: [{ id: "funcionario_u1" }],
+    grupo: { titulo: "Funcionários", cardIds: ["funcionario_u1"] },
+  };
 
   it("põe o acompanhamento e os funcionários entre a carteira e o Parcelamento", () => {
     const r = juntarResumoRh(resumo, doMes, funcionarios);
 
-    expect(r.grupos.map((g) => g.titulo)).toEqual(["Carteira", "Acompanhamento", "Funcionários", "Parcelamento"]);
-    expect(r.cards.map((c) => c.id)).toEqual(["atribuidos", "com_parcelamento", "servico_fgts", "funcionario_u1"]);
+    expect(r.grupos.map((g) => g.titulo)).toEqual([
+      "Carteira",
+      "Acompanhamento",
+      "Funcionários",
+      "Parcelamento",
+    ]);
+    expect(r.cards.map((c) => c.id)).toEqual([
+      "atribuidos",
+      "com_parcelamento",
+      "servico_fgts",
+      "funcionario_u1",
+    ]);
     expect(r.totalClientes).toBe(4);
   });
 

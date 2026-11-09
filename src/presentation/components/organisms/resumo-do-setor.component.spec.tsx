@@ -45,7 +45,14 @@ describe("ResumoDoSetor", () => {
   });
 
   it("o card com href e total próprios leva ao destino dele e conta sobre o total dele", () => {
-    const funcionario = { id: "f1", titulo: "Ana", cor: "em_dia", quantidade: 2, href: "/rh/funcionarios/f1", total: 4 };
+    const funcionario = {
+      id: "f1",
+      titulo: "Ana",
+      cor: "em_dia",
+      quantidade: 2,
+      href: "/rh/funcionarios/f1",
+      total: 4,
+    };
     render(
       <ResumoDoSetor
         cards={[funcionario]}
@@ -56,7 +63,10 @@ describe("ResumoDoSetor", () => {
       />,
     );
 
-    expect(screen.getByRole("link", { name: /Ana/ })).toHaveAttribute("href", "/rh/funcionarios/f1");
+    expect(screen.getByRole("link", { name: /Ana/ })).toHaveAttribute(
+      "href",
+      "/rh/funcionarios/f1",
+    );
     expect(screen.getByText(/2 de 4 clientes/)).toBeInTheDocument();
   });
 

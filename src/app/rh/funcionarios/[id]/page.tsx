@@ -41,7 +41,9 @@ export default async function Page({ params, searchParams }: Props) {
       conteudo={
         dados.ok &&
         dados.value.detalhe && (
-          <DetalheDoFuncionarioRh {...propsDoDetalhe(dados.value.detalhe, dados.value.competencia)} />
+          <DetalheDoFuncionarioRh
+            {...propsDoDetalhe(dados.value.detalhe, dados.value.competencia)}
+          />
         )
       }
     />

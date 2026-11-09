@@ -31,7 +31,11 @@ const relogio = { agora: () => new Date("2026-11-10T12:00:00Z") };
 
 describe("ObterResumoSetorRh", () => {
   it("o Líder vê a carteira toda: atribuídos, sem responsável e o comparativo por Responsável", async () => {
-    const r = await new ObterResumoSetorRh(sessaoDe("lider_setor", "rh"), carteiraFalsa, relogio).execute();
+    const r = await new ObterResumoSetorRh(
+      sessaoDe("lider_setor", "rh"),
+      carteiraFalsa,
+      relogio,
+    ).execute();
 
     expect(r.ok && r.value.totalClientes).toBe(4);
     expect(r.ok && r.value.cards.slice(0, 2).map((c) => [c.id, c.quantidade])).toEqual([
@@ -50,7 +54,11 @@ describe("ObterResumoSetorRh", () => {
   });
 
   it("o grupo Parcelamento tem os 6 cards do SN, zerados enquanto o RH não cadastra parcelamento", async () => {
-    const r = await new ObterResumoSetorRh(sessaoDe("lider_setor", "rh"), carteiraFalsa, relogio).execute();
+    const r = await new ObterResumoSetorRh(
+      sessaoDe("lider_setor", "rh"),
+      carteiraFalsa,
+      relogio,
+    ).execute();
 
     expect(r.ok && r.value.grupos[1].cardIds).toEqual([
       "com_parcelamento",
@@ -106,9 +114,13 @@ describe("ObterResumoSetorRh", () => {
 
   it("devolve o erro da consulta", async () => {
     const falha = new ConsultaError("falhou");
-    const r = await new ObterResumoSetorRh(sessaoDe("lider_setor", "rh"), {
-      listar: async () => err(falha),
-    }, relogio).execute();
+    const r = await new ObterResumoSetorRh(
+      sessaoDe("lider_setor", "rh"),
+      {
+        listar: async () => err(falha),
+      },
+      relogio,
+    ).execute();
 
     expect(!r.ok && r.error).toBe(falha);
   });

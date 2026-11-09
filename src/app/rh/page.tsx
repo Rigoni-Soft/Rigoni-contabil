@@ -5,8 +5,8 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 import { ComparativosRh } from "@/presentation/components/organisms/comparativos-rh.component";
 import { ResumoDoSetor } from "@/presentation/components/organisms/resumo-do-setor.component";
 import { ResumoDoSetorPage } from "@/presentation/components/pages/resumo-do-setor.page";
-import { juntarResumoRh } from "@/presentation/lib/juntar-resumo-rh";
 import { ERRO_CARREGAR_RESUMO_SETOR } from "@/presentation/lib/erro-resumo-setor";
+import { juntarResumoRh } from "@/presentation/lib/juntar-resumo-rh";
 import {
   carregarSetoresDaNavegacao,
   exigirSessao,
@@ -14,13 +14,13 @@ import {
 import { ShellNavContainer } from "@/modules/atendimento/presentation/view-models/atendimento-central/shell-nav.container";
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import { BuscarClienteContainer } from "@/modules/clientes/presentation/view-models/buscar-cliente/buscar-cliente.container";
+import { carregarResumoSetorRh } from "@/modules/clientes/presentation/view-models/resumo-setor-rh/resumo-setor-rh.server";
 import { carregarAcompanhamentoFuncionarios } from "@/modules/rh/presentation/view-models/acompanhamento-funcionarios/acompanhamento-funcionarios.server";
 import { carregarAcompanhamentoMensal } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.server";
 import {
   cardsDoAcompanhamento,
   cardsDosFuncionarios,
 } from "@/modules/rh/presentation/view-models/resumo-rh/resumo-rh.presenter";
-import { carregarResumoSetorRh } from "@/modules/clientes/presentation/view-models/resumo-setor-rh/resumo-setor-rh.server";
 import {
   podeGerirServicosRh,
   podeVerAcompanhamentoDosFuncionariosRh,
@@ -52,7 +52,9 @@ export default async function Page() {
         value: juntarResumoRh(
           base.value,
           mensal.ok ? cardsDoAcompanhamento(mensal.value) : undefined,
-          funcionarios?.ok ? cardsDosFuncionarios(funcionarios.value, ROTA_RH_FUNCIONARIOS) : undefined,
+          funcionarios?.ok
+            ? cardsDosFuncionarios(funcionarios.value, ROTA_RH_FUNCIONARIOS)
+            : undefined,
         ),
       }
     : { ok: false as const };

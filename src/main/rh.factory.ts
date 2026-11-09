@@ -17,10 +17,7 @@ import type {
 } from "@/modules/rh/application/ports/in/marcar-servico-acompanhamento.provider";
 import type { ObterAcompanhamentoFuncionariosPort } from "@/modules/rh/application/ports/in/obter-acompanhamento-funcionarios.provider";
 import type { ObterAcompanhamentoMensalPort } from "@/modules/rh/application/ports/in/obter-acompanhamento-mensal.provider";
-import type {
-  AtorSessaoDto,
-  SessaoPort,
-} from "@/modules/rh/application/ports/out/sessao.provider";
+import type { AtorSessaoDto, SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
 import {
   CriarServicoAcompanhamento,
   DesativarServicoAcompanhamento,
@@ -79,7 +76,12 @@ export async function makeObterAcompanhamentoFuncionarios(): Promise<ObterAcompa
 
 export async function makeMarcarServicoAcompanhamento(): Promise<MarcarServicoAcompanhamentoPort> {
   const { sessao, repositorio, auditoria } = await montar();
-  return new MarcarServicoAcompanhamento(sessao, repositorio, auditoria, new RelogioSistemaGateway());
+  return new MarcarServicoAcompanhamento(
+    sessao,
+    repositorio,
+    auditoria,
+    new RelogioSistemaGateway(),
+  );
 }
 
 export async function makeDefinirServicoAplicavel(): Promise<DefinirServicoAplicavelPort> {

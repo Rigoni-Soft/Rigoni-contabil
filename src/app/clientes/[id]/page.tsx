@@ -11,6 +11,7 @@ import { carregarClienteParaPagina } from "@/modules/clientes/presentation/view-
 import { ResponsavelDoSetorContainer } from "@/modules/clientes/presentation/view-models/responsavel-do-setor/responsavel-do-setor.container";
 import { ondeAtribuirResponsavel } from "@/modules/clientes/presentation/view-models/responsavel-do-setor/responsavel-do-setor.presenter";
 import { carregarResponsavelDoSetor } from "@/modules/clientes/presentation/view-models/responsavel-do-setor/responsavel-do-setor.server";
+import { alteracaoEmFocoDaUrl } from "@/modules/clientes/presentation/view-models/visualizar-documento-contratual/documentos-contratuais.presenter";
 import { AcompanhamentoDoClienteContainer } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-do-cliente.container";
 import {
   linksDoMes,
@@ -18,7 +19,6 @@ import {
   servicosDoCliente,
 } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.presenter";
 import { carregarAcompanhamentoMensal } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.server";
-import { alteracaoEmFocoDaUrl } from "@/modules/clientes/presentation/view-models/visualizar-documento-contratual/documentos-contratuais.presenter";
 import { hrefSeguro } from "@/shared/kernel/href-seguro";
 import { mesAtual } from "@/shared/kernel/mes-atual";
 import {

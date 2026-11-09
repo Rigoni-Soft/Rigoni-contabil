@@ -7,8 +7,8 @@ import {
 } from "@/presentation/view-models/shell/shell.server";
 import { ShellNavContainer } from "@/modules/atendimento/presentation/view-models/atendimento-central/shell-nav.container";
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
-import { ServicosDoAcompanhamentoContainer } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/servicos-do-acompanhamento.container";
 import { carregarAcompanhamentoMensal } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.server";
+import { ServicosDoAcompanhamentoContainer } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/servicos-do-acompanhamento.container";
 import { podeGerirServicosRh } from "@/shared/kernel/papeis";
 import { ROTA_RH } from "@/shared/kernel/setores";
 
@@ -31,7 +31,9 @@ export default async function Page() {
       erro={acompanhamento.ok ? undefined : acompanhamento.error.message}
       tentarNovamenteHref={`${ROTA_RH}/servicos`}
       conteudo={
-        acompanhamento.ok && <ServicosDoAcompanhamentoContainer servicos={acompanhamento.value.servicos} />
+        acompanhamento.ok && (
+          <ServicosDoAcompanhamentoContainer servicos={acompanhamento.value.servicos} />
+        )
       }
     />
   );

@@ -1,9 +1,19 @@
-import type { AcompanhamentoMensalDto } from "@/modules/rh/application/dtos/acompanhamento.dto";
 import type { EstadoDoServico } from "@/presentation/components/organisms/acompanhamento-do-cliente-rh.component";
+import type { AcompanhamentoMensalDto } from "@/modules/rh/application/dtos/acompanhamento.dto";
 
 const MESES = [
-  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
-  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+  "janeiro",
+  "fevereiro",
+  "março",
+  "abril",
+  "maio",
+  "junho",
+  "julho",
+  "agosto",
+  "setembro",
+  "outubro",
+  "novembro",
+  "dezembro",
 ];
 
 export function rotuloDaCompetencia(competencia: string): string {
@@ -28,7 +38,12 @@ export const mensagemDaFalha = (erro: unknown) =>
     : "Erro inesperado no servidor. Tente novamente; se continuar, avise o suporte.";
 
 // Os links de mês do painel do Cliente: o próximo some no mês corrente. Preserva `voltarPara`.
-export function linksDoMes(clienteId: string, competencia: string, atual: string, voltarPara?: string) {
+export function linksDoMes(
+  clienteId: string,
+  competencia: string,
+  atual: string,
+  voltarPara?: string,
+) {
   const href = (delta: number) =>
     `/clientes/${encodeURIComponent(clienteId)}?mes=${mesVizinho(competencia, delta)}${
       voltarPara ? `&voltarPara=${encodeURIComponent(voltarPara)}` : ""

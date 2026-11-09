@@ -106,7 +106,11 @@ describe("ObterAcompanhamentoFuncionarios", () => {
     const detalhe = r.ok ? r.value.detalhe : undefined;
     expect(detalhe?.pendencias).toEqual([
       { servicoId: "s-fgts", nome: "FGTS", clientes: [{ clienteId: "c2", empresa: "Empresa c2" }] },
-      { servicoId: "s-hol", nome: "Holerite", clientes: [{ clienteId: "c2", empresa: "Empresa c2" }] },
+      {
+        servicoId: "s-hol",
+        nome: "Holerite",
+        clientes: [{ clienteId: "c2", empresa: "Empresa c2" }],
+      },
     ]);
     expect(detalhe?.evolucao.slice(-2)).toEqual([
       { competencia: "2026-10", pontos: 2, atribuidos: 2 },

@@ -10,10 +10,7 @@ import { Competencia } from "@/modules/rh/domain/value-objects/competencia.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ValidationError } from "@/shared/errors/validation.error";
-import {
-  podeMarcarAcompanhamentoRh,
-  podeVerAcompanhamentoRh,
-} from "@/shared/kernel/papeis";
+import { podeMarcarAcompanhamentoRh, podeVerAcompanhamentoRh } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 // A tabela do RH: uma linha por Cliente com Responsável do RH, uma coluna por Serviço do mês. O Funcionário

@@ -23,7 +23,11 @@ export interface AcompanhamentoRepository {
   criarServico(nome: string): Promise<Result<void, AppError>>;
   renomearServico(id: string, nome: string): Promise<Result<void, AppError>>;
   desativarServico(id: string): Promise<Result<void, AppError>>;
-  definirAplica(clienteId: string, servicoId: string, aplica: boolean): Promise<Result<void, AppError>>;
+  definirAplica(
+    clienteId: string,
+    servicoId: string,
+    aplica: boolean,
+  ): Promise<Result<void, AppError>>;
   marcar(
     clienteId: string,
     servicoId: string,

@@ -31,9 +31,7 @@ test.describe("Acompanhamento mensal do RH", () => {
     await admin.from("registros_auditoria").delete().like("alvo", `${cnpj} %`);
   });
 
-  test("Funcionário marca FGTS e a marcação fica auditada @smoke", async ({
-    page,
-  }) => {
+  test("Funcionário marca FGTS e a marcação fica auditada @smoke", async ({ page }) => {
     await login(page, "funcionario.rh@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/rh");
     await page.goto(`/clientes/${clienteId}`);
@@ -108,6 +106,8 @@ test.describe("Acompanhamento mensal do RH", () => {
     await expect(page.getByText(NOVO_SERVICO)).toBeVisible();
 
     await page.goto("/rh");
-    await expect(page.getByRole("link", { name: new RegExp(`^${NOVO_SERVICO} pendente`) })).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: new RegExp(`^${NOVO_SERVICO} pendente`) }),
+    ).toBeVisible();
   });
 });

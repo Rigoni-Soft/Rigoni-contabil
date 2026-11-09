@@ -25,7 +25,13 @@ function montar(papel: string, setor = "rh") {
           naoAplica: ["s-fgts"],
           concluidos: [],
         },
-        { clienteId: "c2", empresa: "Beta Ltda", cnpj: "11222333000181", naoAplica: [], concluidos: ["s-fgts"] },
+        {
+          clienteId: "c2",
+          empresa: "Beta Ltda",
+          cnpj: "11222333000181",
+          naoAplica: [],
+          concluidos: ["s-fgts"],
+        },
       ]);
     },
   } as unknown as AcompanhamentoRepository;

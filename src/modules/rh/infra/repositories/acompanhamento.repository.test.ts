@@ -5,8 +5,9 @@
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-import { removerClientesDeTeste } from "../../../../../test-support/clientes-de-teste";
 import { primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
+
+import { removerClientesDeTeste } from "../../../../../test-support/clientes-de-teste";
 import { SupabaseAcompanhamentoRepository } from "./acompanhamento.repository";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
@@ -54,7 +55,13 @@ const dosTestes = (r: Lista, cnpjs = [CNPJ_A, CNPJ_B]) =>
 const doClienteA = (r: Lista) => dosTestes(r).find((c) => c.cnpj === CNPJ_A);
 
 const auditorias = async (acao: string, alvoLike: string) =>
-  (await servico.from("registros_auditoria").select("ator, setor").eq("acao", acao).like("alvo", alvoLike)).data ?? [];
+  (
+    await servico
+      .from("registros_auditoria")
+      .select("ator, setor")
+      .eq("acao", acao)
+      .like("alvo", alvoLike)
+  ).data ?? [];
 
 beforeAll(async () => {
   await removerClientesDeTeste([CNPJ_A, CNPJ_B, CNPJ_SEM_RESPONSAVEL]);
@@ -127,7 +134,9 @@ describe("Acompanhamento mensal do RH (integração)", () => {
     expect(await auditorias("rh.acompanhamento.marcar", `${CNPJ_A} FGTS ${mes}`)).toEqual([
       { ator: FUNCIONARIO_RH_ID, setor: "rh" },
     ]);
-    expect(await auditorias("rh.acompanhamento.desmarcar", `${CNPJ_A} FGTS ${mes}`)).toHaveLength(1);
+    expect(await auditorias("rh.acompanhamento.desmarcar", `${CNPJ_A} FGTS ${mes}`)).toHaveLength(
+      1,
+    );
     await servico.from("registros_auditoria").delete().like("alvo", `${CNPJ_A} FGTS%`);
   });
 
@@ -140,7 +149,10 @@ describe("Acompanhamento mensal do RH (integração)", () => {
 
       expect(r.ok).toBe(false);
     }
-    const linhas = await servico.from("rh_acompanhamento_marcacoes").select("*").eq("cliente_id", clienteB);
+    const linhas = await servico
+      .from("rh_acompanhamento_marcacoes")
+      .select("*")
+      .eq("cliente_id", clienteB);
     expect(linhas.data).toEqual([]);
   });
 
@@ -190,7 +202,12 @@ describe("Acompanhamento mensal do RH (integração)", () => {
   it("traz o Responsável de cada cliente e, a pedido, os clientes sem Responsável", async () => {
     const semResponsavel = await servico
       .from("clientes")
-      .insert({ id: crypto.randomUUID(), empresa: "Acomp C Ltda", cnpj: CNPJ_SEM_RESPONSAVEL, regime: "lucro_presumido" });
+      .insert({
+        id: crypto.randomUUID(),
+        empresa: "Acomp C Ltda",
+        cnpj: CNPJ_SEM_RESPONSAVEL,
+        regime: "lucro_presumido",
+      });
     if (semResponsavel.error) throw semResponsavel.error;
     const { repo } = await comoLiderRH();
 
@@ -228,7 +245,11 @@ describe("Acompanhamento mensal do RH (integração)", () => {
 
     const criou = await repo.criarServico(nome);
     const duplicou = await repo.criarServico(nome.toUpperCase());
-    const { data } = await servico.from("rh_servicos_acompanhamento").select("id").eq("nome", nome).single();
+    const { data } = await servico
+      .from("rh_servicos_acompanhamento")
+      .select("id")
+      .eq("nome", nome)
+      .single();
     const renomeou = await repo.renomearServico(data!.id, `${PREFIXO}Folha`);
     const desativou = await repo.desativarServico(data!.id);
 
@@ -250,7 +271,11 @@ describe("Acompanhamento mensal do RH (integração)", () => {
     const desativarSistema = await lider.repo.desativarServico(holerite);
 
     expect(criarFunc.ok || criarAdmin.ok || renomearSistema.ok || desativarSistema.ok).toBe(false);
-    const hol = await servico.from("rh_servicos_acompanhamento").select("nome, desativado_em").eq("id", holerite).single();
+    const hol = await servico
+      .from("rh_servicos_acompanhamento")
+      .select("nome, desativado_em")
+      .eq("id", holerite)
+      .single();
     expect(hol.data).toEqual({ nome: "Holerite", desativado_em: null });
   });
 

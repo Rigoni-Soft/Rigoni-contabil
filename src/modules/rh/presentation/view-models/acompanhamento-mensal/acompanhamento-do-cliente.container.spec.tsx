@@ -1,8 +1,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import { marcarServicoAction } from "./acompanhamento-mensal.actions";
 import { AcompanhamentoDoClienteContainer } from "./acompanhamento-do-cliente.container";
+import { marcarServicoAction } from "./acompanhamento-mensal.actions";
 
 const refresh = jest.fn();
 

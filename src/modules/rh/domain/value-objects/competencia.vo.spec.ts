@@ -6,9 +6,12 @@ describe("Competencia", () => {
     expect(r.ok && r.value.valor).toBe(entrada);
   });
 
-  it.each(["2026-13", "2026-00", "2026-1", "202611", "2026-11-01", ""])("recusa '%s'", (entrada) => {
-    expect(Competencia.criar(entrada).ok).toBe(false);
-  });
+  it.each(["2026-13", "2026-00", "2026-1", "202611", "2026-11-01", ""])(
+    "recusa '%s'",
+    (entrada) => {
+      expect(Competencia.criar(entrada).ok).toBe(false);
+    },
+  );
 
   it("guarda o primeiro dia do mês", () => {
     const r = Competencia.criar("2026-11");

@@ -83,7 +83,11 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
       // A view `clientes_basico` só devolve o que o ator enxerga; o RH não lê o cadastro do SN.
       const [clientes, naoAplica, marcacoes] = await Promise.all([
         lerTudo<{ id: string; empresa: string; cnpj: string }>((de, ate) =>
-          this.supabase.from("clientes_basico").select("id, empresa, cnpj").order("id").range(de, ate),
+          this.supabase
+            .from("clientes_basico")
+            .select("id, empresa, cnpj")
+            .order("id")
+            .range(de, ate),
         ),
         lerTudo<{ cliente_id: string; servico_id: string }>((de, ate) =>
           this.supabase
@@ -107,7 +111,8 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
 
       const porCliente = (linhas: { cliente_id: string; servico_id: string }[]) => {
         const mapa = new Map<string, string[]>();
-        for (const l of linhas) mapa.set(l.cliente_id, [...(mapa.get(l.cliente_id) ?? []), l.servico_id]);
+        for (const l of linhas)
+          mapa.set(l.cliente_id, [...(mapa.get(l.cliente_id) ?? []), l.servico_id]);
         return mapa;
       };
       const naoAplicaDe = porCliente(naoAplica);
@@ -126,7 +131,9 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
               cnpj: c.cnpj,
               naoAplica: naoAplicaDe.get(c.id) ?? [],
               concluidos: concluidosDe.get(c.id) ?? [],
-              responsavel: r ? { id: r.responsavel_id, nome: r.responsavel?.nome ?? "Sem nome" } : null,
+              responsavel: r
+                ? { id: r.responsavel_id, nome: r.responsavel?.nome ?? "Sem nome" }
+                : null,
             };
           }),
       );
@@ -208,10 +215,12 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
     atorId: string,
   ): Promise<Result<void, AppError>> {
     const { error } = concluido
-      ? await this.supabase.from("rh_acompanhamento_marcacoes").upsert(
-          { cliente_id: clienteId, servico_id: servicoId, competencia, marcado_por: atorId },
-          { onConflict: "cliente_id,servico_id,competencia", ignoreDuplicates: true },
-        )
+      ? await this.supabase
+          .from("rh_acompanhamento_marcacoes")
+          .upsert(
+            { cliente_id: clienteId, servico_id: servicoId, competencia, marcado_por: atorId },
+            { onConflict: "cliente_id,servico_id,competencia", ignoreDuplicates: true },
+          )
       : await this.supabase
           .from("rh_acompanhamento_marcacoes")
           .delete()
@@ -222,7 +231,10 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
   }
 
   // A RLS esconde a linha de quem não pode: o UPDATE não dá erro, só não afeta nada.
-  private resultadoComLinhas(error: PostgrestError | null, linhas: unknown[] | null): Result<void, AppError> {
+  private resultadoComLinhas(
+    error: PostgrestError | null,
+    linhas: unknown[] | null,
+  ): Result<void, AppError> {
     if (!error && (linhas?.length ?? 0) === 0) {
       return err(new ForbiddenError("Este serviço não pode ser alterado."));
     }

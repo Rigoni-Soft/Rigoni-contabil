@@ -8,7 +8,12 @@ import { cn } from "@/presentation/lib/utils";
 
 export type EstadoDoServico = "pendente" | "concluido" | "nao_aplica";
 // `bloqueio` é o motivo de o serviço não aceitar troca (ausente = editável).
-export type Servico = { servicoId: string; nome: string; estado: EstadoDoServico; bloqueio?: string };
+export type Servico = {
+  servicoId: string;
+  nome: string;
+  estado: EstadoDoServico;
+  bloqueio?: string;
+};
 
 const CLASSE_DO_ESTADO: Record<EstadoDoServico, string> = {
   pendente: "",
@@ -42,7 +47,11 @@ export function AcompanhamentoDoClienteRh({
       <Texto variante="subtitulo" como="h2" id="acompanhamento-do-mes">
         Acompanhamento do mês
       </Texto>
-      <NavegacaoDeMes rotuloMes={rotuloCompetencia} anteriorHref={anteriorHref} proximoHref={proximoHref} />
+      <NavegacaoDeMes
+        rotuloMes={rotuloCompetencia}
+        anteriorHref={anteriorHref}
+        proximoHref={proximoHref}
+      />
       {erro && (
         <Texto variante="alerta" role="alert">
           {erro}
@@ -55,11 +64,17 @@ export function AcompanhamentoDoClienteRh({
             <Select
               id={`servico-${s.servicoId}`}
               value={s.estado}
-              className={cn("w-44", CLASSE_DO_ESTADO[s.estado], pendente && "cursor-wait opacity-70")}
+              className={cn(
+                "w-44",
+                CLASSE_DO_ESTADO[s.estado],
+                pendente && "cursor-wait opacity-70",
+              )}
               disabled={!!s.bloqueio}
               aria-describedby={s.bloqueio ? `bloqueio-${s.servicoId}` : undefined}
               aria-busy={pendente}
-              onChange={(e) => !pendente && onTrocar(s.servicoId, s.estado, e.target.value as EstadoDoServico)}
+              onChange={(e) =>
+                !pendente && onTrocar(s.servicoId, s.estado, e.target.value as EstadoDoServico)
+              }
             >
               <Opcao value="pendente">Pendente</Opcao>
               <Opcao value="concluido">Concluído</Opcao>

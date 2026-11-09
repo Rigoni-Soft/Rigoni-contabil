@@ -2,7 +2,7 @@
 // A regra está em docs/testes.md §4.1. Os que já existiam sem spec ficam em
 // scripts/specs-sem-teste.baseline.txt: a lista só encolhe (apague a linha ao criar o spec).
 // `yarn check:specs --gerar-baseline` reescreve a lista com o estado atual.
-import { readdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const BASELINE = "scripts/specs-sem-teste.baseline.txt";
@@ -36,7 +36,8 @@ const novos = semSpec.filter((caminho) => !aceitos.has(caminho));
 const resolvidos = [...aceitos].filter((caminho) => !semSpec.includes(caminho));
 
 if (novos.length > 0 || resolvidos.length > 0) {
-  for (const caminho of novos) console.error(`${caminho}: sem *.spec.tsx ao lado (docs/testes.md §4.1)`);
+  for (const caminho of novos)
+    console.error(`${caminho}: sem *.spec.tsx ao lado (docs/testes.md §4.1)`);
   for (const caminho of resolvidos) console.error(`${caminho}: já tem spec; tire do ${BASELINE}`);
   process.exit(1);
 }

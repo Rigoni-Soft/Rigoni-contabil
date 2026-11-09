@@ -22,7 +22,11 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 // Meses da evolução, contando o consultado.
 const MESES_DA_EVOLUCAO = 6;
 
-type Mes = { competencia: string; servicos: ServicoAcompanhamentoDto[]; clientes: ClienteAcompanhamentoDto[] };
+type Mes = {
+  competencia: string;
+  servicos: ServicoAcompanhamentoDto[];
+  clientes: ClienteAcompanhamentoDto[];
+};
 
 // Serviços que ainda faltam no cliente: os que se aplicam e não estão concluídos (o Holerite entra).
 function faltantes(cliente: ClienteAcompanhamentoDto, servicos: ServicoAcompanhamentoDto[]) {
@@ -100,10 +104,16 @@ export class ObterAcompanhamentoFuncionarios implements ObterAcompanhamentoFunci
     }
     const atual = janela[janela.length - 1];
 
-    const porFuncionario = new Map<string, { nome: string; clientes: ClienteAcompanhamentoDto[] }>();
+    const porFuncionario = new Map<
+      string,
+      { nome: string; clientes: ClienteAcompanhamentoDto[] }
+    >();
     for (const c of atual.clientes) {
       if (!c.responsavel) continue;
-      const entrada = porFuncionario.get(c.responsavel.id) ?? { nome: c.responsavel.nome, clientes: [] };
+      const entrada = porFuncionario.get(c.responsavel.id) ?? {
+        nome: c.responsavel.nome,
+        clientes: [],
+      };
       entrada.clientes.push(c);
       porFuncionario.set(c.responsavel.id, entrada);
     }
@@ -145,13 +155,22 @@ function detalharFuncionario(
 
   const evolucao = janela.map((mes) => {
     const clientes = doFuncionario(mes);
-    return { competencia: mes.competencia, pontos: pontosDe(clientes, mes.servicos), atribuidos: clientes.length };
+    return {
+      competencia: mes.competencia,
+      pontos: pontosDe(clientes, mes.servicos),
+      atribuidos: clientes.length,
+    };
   });
 
   // Meses seguidos de pendência, contados para trás a partir do mês consultado.
-  const pendentesPorMes = [...janela]
-    .reverse()
-    .map((mes) => new Set(doFuncionario(mes).filter((x) => pendentesDe(x, mes.servicos).size > 0).map((x) => x.clienteId)));
+  const pendentesPorMes = [...janela].reverse().map(
+    (mes) =>
+      new Set(
+        doFuncionario(mes)
+          .filter((x) => pendentesDe(x, mes.servicos).size > 0)
+          .map((x) => x.clienteId),
+      ),
+  );
   const maisAtrasados = clientesAtuais
     .map((c) => {
       let meses = 0;

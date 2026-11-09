@@ -60,7 +60,10 @@ export function cardsDoAcompanhamento(dto: AcompanhamentoMensalDto) {
 }
 
 // Um card por Funcionário do RH: pontos sobre clientes atribuídos; clicar abre o acompanhamento dele.
-export function cardsDosFuncionarios(dto: AcompanhamentoFuncionariosDto, rotaDosFuncionarios: string) {
+export function cardsDosFuncionarios(
+  dto: AcompanhamentoFuncionariosDto,
+  rotaDosFuncionarios: string,
+) {
   const cards: CardDoRh[] = dto.funcionarios.map((f) => ({
     id: `funcionario_${f.id}`,
     titulo: f.nome,
@@ -70,5 +73,8 @@ export function cardsDosFuncionarios(dto: AcompanhamentoFuncionariosDto, rotaDos
     href: `${rotaDosFuncionarios}/${encodeURIComponent(f.id)}?mes=${dto.competencia}`,
     total: f.atribuidos,
   }));
-  return { cards, grupo: { titulo: "Acompanhamento dos funcionários", cardIds: cards.map((c) => c.id) } };
+  return {
+    cards,
+    grupo: { titulo: "Acompanhamento dos funcionários", cardIds: cards.map((c) => c.id) },
+  };
 }

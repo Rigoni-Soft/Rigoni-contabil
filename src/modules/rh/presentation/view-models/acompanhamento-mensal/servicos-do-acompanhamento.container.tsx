@@ -6,12 +6,12 @@ import { useRouter } from "next/navigation";
 import { ServicosDoAcompanhamento } from "@/presentation/components/organisms/servicos-do-acompanhamento.component";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
 
-import { mensagemDaFalha } from "./acompanhamento-mensal.presenter";
 import {
   criarServicoAction,
   desativarServicoAction,
   renomearServicoAction,
 } from "./acompanhamento-mensal.actions";
+import { mensagemDaFalha } from "./acompanhamento-mensal.presenter";
 
 type Props = { servicos: { id: string; nome: string; sistema: boolean }[] };
 
@@ -45,7 +45,12 @@ export function ServicosDoAcompanhamentoContainer({ servicos }: Props) {
       novoNome={novoNome}
       onNovoNome={setNovoNome}
       pendente={pendente}
-      onCriar={() => executar(() => criarServicoAction({ nome: novoNome }), () => setNovoNome(""))}
+      onCriar={() =>
+        executar(
+          () => criarServicoAction({ nome: novoNome }),
+          () => setNovoNome(""),
+        )
+      }
       edicao={edicao}
       onEditar={(servicoId, nome) => setEdicao({ id: servicoId, nome })}
       onNomeEdicao={(nome) => edicao && setEdicao({ id: edicao.id, nome })}
@@ -62,7 +67,10 @@ export function ServicosDoAcompanhamentoContainer({ servicos }: Props) {
       onDesativar={setDesativando}
       onCancelarDesativar={() => setDesativando(undefined)}
       onConfirmarDesativar={(servicoId) =>
-        executar(() => desativarServicoAction({ servicoId }), () => setDesativando(undefined))
+        executar(
+          () => desativarServicoAction({ servicoId }),
+          () => setDesativando(undefined),
+        )
       }
     />
   );

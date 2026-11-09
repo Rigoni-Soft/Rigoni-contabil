@@ -10,7 +10,10 @@ import {
 } from "@/presentation/components/organisms/acompanhamento-do-cliente-rh.component";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
 
-import { definirServicoAplicavelAction, marcarServicoAction } from "./acompanhamento-mensal.actions";
+import {
+  definirServicoAplicavelAction,
+  marcarServicoAction,
+} from "./acompanhamento-mensal.actions";
 import { mensagemDaFalha, passosDaTroca } from "./acompanhamento-mensal.presenter";
 
 type Props = {
@@ -22,7 +25,12 @@ type Props = {
   servicos: Servico[];
 };
 
-export function AcompanhamentoDoClienteContainer({ clienteId, competencia, servicos, ...mes }: Props) {
+export function AcompanhamentoDoClienteContainer({
+  clienteId,
+  competencia,
+  servicos,
+  ...mes
+}: Props) {
   const router = useRouter();
   // A escolha aparece na hora e volta ao valor do servidor se a gravação falhar.
   const [exibidos, escolher] = useOptimistic(
