@@ -1,5 +1,4 @@
 import {
-  AVISO_SEM_VISTA,
   linksDoMes,
   mesVizinho,
   passosDaTroca,
@@ -43,16 +42,34 @@ describe("acompanhamento-mensal.presenter", () => {
       ],
     };
 
-    expect(servicosDoCliente(dto, "c1").map((s) => [s.nome, s.estado, s.bloqueio])).toEqual([
+    expect(
+      servicosDoCliente(dto, "c1").servicos.map((s) => [s.nome, s.estado, s.bloqueio]),
+    ).toEqual([
       ["FGTS", "concluido", undefined],
       ["SIB", "nao_aplica", undefined],
       ["NUTRI", "pendente", undefined],
       ["Holerite", "pendente", "O Holerite é preenchido pelo sistema."],
     ]);
-    expect(servicosDoCliente(dto, "outro").map((s) => [s.nome, s.estado, s.bloqueio])).toEqual([
-      ["FGTS", "pendente", AVISO_SEM_VISTA],
-      ["SIB", "pendente", AVISO_SEM_VISTA],
-      ["NUTRI", "pendente", AVISO_SEM_VISTA],
+    expect(servicosDoCliente(dto, "c1").aviso).toBeUndefined();
+    expect(servicosDoCliente(dto, "outro").aviso).toMatch(/não está na sua vista/);
+    expect(
+      servicosDoCliente(dto, "outro").servicos.map((s) => [s.nome, s.estado, s.bloqueio]),
+    ).toEqual([
+      [
+        "FGTS",
+        "pendente",
+        "Este cliente não está na sua vista do RH. Só o Responsável marca; o Líder atribui o Responsável no cadastro.",
+      ],
+      [
+        "SIB",
+        "pendente",
+        "Este cliente não está na sua vista do RH. Só o Responsável marca; o Líder atribui o Responsável no cadastro.",
+      ],
+      [
+        "NUTRI",
+        "pendente",
+        "Este cliente não está na sua vista do RH. Só o Responsável marca; o Líder atribui o Responsável no cadastro.",
+      ],
       ["Holerite", "pendente", "O Holerite é preenchido pelo sistema."],
     ]);
   });

@@ -19,7 +19,6 @@ import { carregarResponsavelDoSetor } from "@/modules/clientes/presentation/view
 import { alteracaoEmFocoDaUrl } from "@/modules/clientes/presentation/view-models/visualizar-documento-contratual/documentos-contratuais.presenter";
 import { AcompanhamentoDoClienteContainer } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-do-cliente.container";
 import {
-  AVISO_SEM_VISTA,
   linksDoMes,
   rotuloDaCompetencia,
   servicosDoCliente,
@@ -99,7 +98,7 @@ async function acompanhamentoRhDoCliente(
   if (!podeVerAcompanhamentoRh(sessao.papel, sessao.setor)) return undefined;
   const acompanhamento = await carregarAcompanhamentoMensal(mes);
   if (!acompanhamento.ok) return undefined;
-  const servicos = servicosDoCliente(acompanhamento.value, clienteId);
+  const { servicos, aviso } = servicosDoCliente(acompanhamento.value, clienteId);
 
   const { competencia } = acompanhamento.value;
   return (
@@ -109,7 +108,7 @@ async function acompanhamentoRhDoCliente(
       rotuloCompetencia={rotuloDaCompetencia(competencia)}
       {...linksDoMes(clienteId, competencia, mesAtual(), voltarPara)}
       servicos={servicos}
-      aviso={servicos.some((s) => s.bloqueio === AVISO_SEM_VISTA) ? AVISO_SEM_VISTA : undefined}
+      aviso={aviso}
     />
   );
 }
@@ -165,18 +164,18 @@ export default async function Page({ params, searchParams }: Props) {
 
   // No RH o Responsável e o acompanhamento ficam dentro do cartão do formulário, como o Responsável do SN;
   // o Líder o atribui ali, e quem é o Responsável o vê (só leitura).
-  const responsavelRh = !cadastroDoRh ? undefined : atribuiNoSetor &&
-    ehSetor(sessao.setor) &&
-    responsavelDoSetor?.ok ? (
-    <ResponsavelDoSetorContainer
-      clienteId={id}
-      setorRotulo={SETOR_LABEL[sessao.setor]}
-      atual={responsavelDoSetor.value}
-      embutido
-    />
-  ) : (
-    <ResponsavelSomenteLeitura nome={sessao.nome} />
-  );
+  const campoResponsavel =
+    atribuiNoSetor && ehSetor(sessao.setor) && responsavelDoSetor?.ok ? (
+      <ResponsavelDoSetorContainer
+        clienteId={id}
+        setorRotulo={SETOR_LABEL[sessao.setor]}
+        atual={responsavelDoSetor.value}
+        embutido={cadastroDoRh}
+      />
+    ) : undefined;
+  const responsavelRh = !cadastroDoRh
+    ? undefined
+    : (campoResponsavel ?? <ResponsavelSomenteLeitura nome={sessao.nome} />);
 
   const formulario = montarFormulario(carga, sessao, {
     readOnly,
@@ -200,15 +199,7 @@ export default async function Page({ params, searchParams }: Props) {
           />
         ) : undefined
       }
-      responsavelDoSetor={
-        !cadastroDoRh && atribuiNoSetor && ehSetor(sessao.setor) && responsavelDoSetor?.ok ? (
-          <ResponsavelDoSetorContainer
-            clienteId={id}
-            setorRotulo={SETOR_LABEL[sessao.setor]}
-            atual={responsavelDoSetor.value}
-          />
-        ) : undefined
-      }
+      responsavelDoSetor={cadastroDoRh ? undefined : campoResponsavel}
       acompanhamentoRh={cadastroDoRh ? undefined : acompanhamentoRh}
       observacoesRh={
         observacoesRhDoAdmin?.ok && observacoesRhDoAdmin.value ? (

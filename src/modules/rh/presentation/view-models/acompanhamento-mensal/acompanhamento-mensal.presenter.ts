@@ -65,9 +65,9 @@ export function passosDaTroca(de: EstadoDoServico, para: EstadoDoServico): Passo
 }
 
 // Os serviços do mês de um Cliente, na ordem das colunas. Sem linha na vista (sem Responsável do RH), todos
-// aparecem pendentes e bloqueados, com o aviso: o Líder vê o que acompanhará e atribui o Responsável.
+// aparecem pendentes e bloqueados, com `aviso`: o Líder vê o que acompanhará e atribui o Responsável.
 // O texto é neutro porque "sem linha" também cobre cliente de outro Funcionário.
-export const AVISO_SEM_VISTA =
+const AVISO_SEM_VISTA =
   "Este cliente não está na sua vista do RH. Só o Responsável marca; o Líder atribui o Responsável no cadastro.";
 export function servicosDoCliente(dto: AcompanhamentoMensalDto, clienteId: string) {
   const linha = dto.linhas.find((l) => l.clienteId === clienteId);
@@ -83,10 +83,11 @@ export function servicosDoCliente(dto: AcompanhamentoMensalDto, clienteId: strin
   const celulas =
     linha?.celulas ??
     dto.servicos.map((s) => ({ servicoId: s.id, aplica: true, concluido: false }));
-  return celulas.map((c) => ({
+  const servicos = celulas.map((c) => ({
     servicoId: c.servicoId,
     nome: dto.servicos.find((s) => s.id === c.servicoId)?.nome ?? "",
     estado: estadoDoServico(c),
     bloqueio: bloqueioDe(c.servicoId),
   }));
+  return { servicos, aviso: linha ? undefined : AVISO_SEM_VISTA };
 }
