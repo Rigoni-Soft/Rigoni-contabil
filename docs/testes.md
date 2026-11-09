@@ -199,3 +199,5 @@ sobre o mesmo banco arrisca colisão de estado quando o E2E faz asserção por
 texto exato que também aparece no seed (ex.: `acao: "usuario.criar"`
 inserido por um teste de integração de auditoria colidindo com o mesmo texto
 no seed, fazendo `getByText` bater 2 elementos). No CI, integração e E2E rodam em jobs separados, cada um com o seu Supabase recém-subido (seed limpo); no E2E rápido há um `supabase db reset` entre os dois passos. Localmente, rodar `supabase db reset` entre as duas suítes evita isso.
+
+- Migration que relaxa ou troca um gatilho ou uma política leva, na mesma PR, o teste de integração **negativo**: o que continua barrado fora do caminho liberado (ex.: a escrita direta de contatos fora do SN segue negada depois da função do RH).

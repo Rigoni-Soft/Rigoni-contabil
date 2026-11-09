@@ -35,4 +35,4 @@ Argumento: `$ARGUMENTS` = base do diff. Sem base: `gh pr view --json baseRefName
 
 ## Fim
 
-Reporte: nota final do audit, rodadas por etapa, commits gerados (hash e mensagem), decisões que o usuário tomou, o que parou no teto. **Nunca `git push`** sem ordem explícita (um hook também pede confirmação). Próximo passo: se o grupo tem UI, `/roteiro-teste-local` (teste manual, antes de subir a PR); depois é do usuário: push e PR.
+Reporte: nota final do audit, rodadas por etapa, commits gerados (hash e mensagem), decisões que o usuário tomou, o que parou no teto. **Nunca `git stash`** (nem `-u`: há arquivos soltos do usuário no repositório, como `supabase/snippets/`; para comparar com a base, use `git show` ou `git worktree`). **Nunca `git push`** sem ordem explícita (um hook também pede confirmação). Próximo passo: se o grupo tem UI, `/roteiro-teste-local` (teste manual, antes de subir a PR); depois é do usuário: push e PR.

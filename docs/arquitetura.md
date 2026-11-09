@@ -1121,3 +1121,5 @@ console.log("nomenclatura ok");
 ```
 
 Verificação feita: em uma árvore com 54 nomes válidos e 11 inválidos, o script acusou os 11 (arquivo em PascalCase, arquivo em snake_case, diretório em camelCase, sufixo fora do papel da pasta, sufixo ausente, os sufixos antigos `.port.ts`, `.view-model.ts` e `.int.spec.ts`, arquivo estranho em `app/` e componente sem `.component`) e nenhum dos válidos, inclusive `[id]`, `(auth)`, arquivos do shadcn e testes `.spec` e `.test`.
+
+- No Postgres, o gatilho `BEFORE` roda antes da checagem de RLS (`WITH CHECK`): a mensagem de erro que o usuário recebe vem do gatilho, quando ele barra, e só depois da política. Teste de integração que espera uma mensagem específica depende dessa ordem.
