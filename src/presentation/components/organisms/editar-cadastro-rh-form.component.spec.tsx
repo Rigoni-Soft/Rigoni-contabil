@@ -4,7 +4,13 @@ import { useForm } from "react-hook-form";
 import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional-form.component";
 import { EditarCadastroRhForm } from "./editar-cadastro-rh-form.component";
 
-function Montado({ readOnly }: { readOnly: boolean }) {
+function Montado({
+  readOnly,
+  extras,
+}: {
+  readOnly: boolean;
+  extras?: { responsavel?: React.ReactNode; acompanhamento?: React.ReactNode };
+}) {
   const { register, control, formState } = useForm<EditarCadastroOperacionalFormValues>({
     defaultValues: { contatos: [], observacoesGerais: "" },
   });
@@ -21,6 +27,7 @@ function Montado({ readOnly }: { readOnly: boolean }) {
       onAdicionarContato={jest.fn()}
       onRemoverContato={jest.fn()}
       onLimpar={jest.fn()}
+      {...extras}
     />
   );
 }
@@ -68,5 +75,31 @@ describe("EditarCadastroRhForm", () => {
     render(<ComErro />);
 
     expect(screen.getByText("Passou de 2000 caracteres")).toBeInTheDocument();
+  });
+
+  it("o Responsável entra no cabeçalho e o acompanhamento no mesmo cartão, antes dos contatos", () => {
+    render(
+      <Montado
+        readOnly={false}
+        extras={{
+          responsavel: (
+            <label>
+              Responsável
+              <input readOnly value="Ana" />
+            </label>
+          ),
+          acompanhamento: <h2>Acompanhamento do mês</h2>,
+        }}
+      />,
+    );
+
+    const cartao = screen.getByLabelText("Empresa").closest("form")!;
+    expect(cartao).toContainElement(screen.getByLabelText("Responsável"));
+    const acompanhamento = screen.getByRole("heading", { name: "Acompanhamento do mês" });
+    expect(cartao).toContainElement(acompanhamento);
+    expect(
+      acompanhamento.compareDocumentPosition(screen.getByText("Contatos")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });

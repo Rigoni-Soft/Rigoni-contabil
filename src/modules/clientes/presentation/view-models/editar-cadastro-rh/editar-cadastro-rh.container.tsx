@@ -27,6 +27,9 @@ type Props = {
   // De onde a tela foi aberta: depois de salvar, volta para lá.
   voltarHref: string;
   documentosContratuais?: DocumentoContratualVisivelDto[];
+  // Montados no servidor e encaixados no cartão: o Responsável do RH e o acompanhamento do mês.
+  responsavel?: React.ReactNode;
+  acompanhamento?: React.ReactNode;
 };
 
 type Valores = EditarCadastroOperacionalFormValues;
@@ -50,6 +53,8 @@ export function EditarCadastroRhContainer({
   readOnly,
   voltarHref,
   documentosContratuais,
+  responsavel,
+  acompanhamento,
 }: Props) {
   const router = useRouter();
   const hidratado = useSyncExternalStore(
@@ -141,6 +146,8 @@ export function EditarCadastroRhContainer({
       contatos={fields}
       onAdicionarContato={() => append(contatoNovo(fields.length === 0))}
       onRemoverContato={remove}
+      responsavel={responsavel}
+      acompanhamento={acompanhamento}
       onLimpar={() => {
         reset(valoresIniciais);
         setErroServidor(undefined);

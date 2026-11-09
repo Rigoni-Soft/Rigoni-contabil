@@ -1,7 +1,7 @@
 import { type Control, type FieldErrors, type UseFormRegister } from "react-hook-form";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
-import { Grade, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Grade, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { NotaDeObrigatorio } from "@/presentation/components/atoms/nota-de-obrigatorio.component";
 import { AcoesDoFormulario } from "@/presentation/components/molecules/acoes-do-formulario.component";
@@ -31,6 +31,10 @@ type EditarCadastroRhFormProps = {
   onLimpar: () => void;
   // Cartão do documento contratual com "Abrir em nova aba" (só leitura).
   documentoContratual?: React.ReactNode;
+  // O Responsável do RH: um campo do cabeçalho, na mesma coluna do SN.
+  responsavel?: React.ReactNode;
+  // O acompanhamento do mês: uma seção do próprio cartão, depois do cabeçalho.
+  acompanhamento?: React.ReactNode;
 };
 
 // O cadastro do Cliente no RH: o mesmo desenho do cadastro operacional do SN, com o que é do RH (as
@@ -51,6 +55,8 @@ export function EditarCadastroRhForm({
   onRemoverContato,
   onLimpar,
   documentoContratual,
+  responsavel,
+  acompanhamento,
 }: EditarCadastroRhFormProps) {
   return (
     <Pilha
@@ -64,7 +70,11 @@ export function EditarCadastroRhForm({
     >
       {!readOnly && <NotaDeObrigatorio />}
 
-      <CabecalhoDoCadastro cabecalho={cabecalho} documentoContratual={documentoContratual} />
+      <CabecalhoDoCadastro cabecalho={cabecalho} documentoContratual={documentoContratual}>
+        {responsavel && <Caixa className="lg:col-start-4">{responsavel}</Caixa>}
+      </CabecalhoDoCadastro>
+
+      {acompanhamento}
 
       <Grade colunas="1>2>4" como="fieldset" disabled={readOnly || pendente} className="gap-4">
         <ContatosDoCadastro

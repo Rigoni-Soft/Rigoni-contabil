@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { FalhaDeCarga } from "@/presentation/components/molecules/falha-de-carga.component";
+import { ResponsavelSomenteLeitura } from "@/presentation/components/molecules/responsavel-somente-leitura.component";
 import { EditarCadastroOperacionalPage } from "@/presentation/components/pages/editar-cadastro-operacional.page";
 import { carregarSessao, validarSessao } from "@/presentation/view-models/shell/shell.server";
 import { AnexarAlteracaoContratualContainer } from "@/modules/clientes/presentation/view-models/anexar-alteracao-contratual/anexar-alteracao-contratual.container";
@@ -50,6 +51,9 @@ function montarFormulario(
     atribuiNoCadastro: boolean;
     voltarPara?: string;
     alteracao?: string | string[];
+    // Só o cadastro do RH: o Responsável e o acompanhamento entram no mesmo cartão do formulário.
+    responsavelRh?: React.ReactNode;
+    acompanhamentoRh?: React.ReactNode;
   },
 ) {
   if (rh?.ok && rh.value) {
@@ -59,6 +63,8 @@ function montarFormulario(
         readOnly={opcoes.readOnly}
         voltarHref={hrefSeguro(opcoes.voltarPara)}
         documentosContratuais={documentos?.ok ? documentos.value : undefined}
+        responsavel={opcoes.responsavelRh}
+        acompanhamento={opcoes.acompanhamentoRh}
       />
     );
   }
@@ -156,11 +162,28 @@ export default async function Page({ params, searchParams }: Props) {
   const acompanhamentoRh = await acompanhamentoRhDoCliente(id, sessao, mes, voltarPara);
   const observacoesRhDoAdmin = await cadastroRhDoAdmin;
 
+  // No RH o Responsável e o acompanhamento ficam dentro do cartão do formulário, como o Responsável do SN;
+  // o Líder o atribui ali, e quem é o Responsável o vê (só leitura).
+  const responsavelRh = !cadastroDoRh ? undefined : atribuiNoSetor &&
+    ehSetor(sessao.setor) &&
+    responsavelDoSetor?.ok ? (
+    <ResponsavelDoSetorContainer
+      clienteId={id}
+      setorRotulo={SETOR_LABEL[sessao.setor]}
+      atual={responsavelDoSetor.value}
+      embutido
+    />
+  ) : (
+    <ResponsavelSomenteLeitura nome={sessao.nome} />
+  );
+
   const formulario = montarFormulario(carga, sessao, {
     readOnly,
     atribuiNoCadastro,
     voltarPara,
     alteracao,
+    responsavelRh,
+    acompanhamentoRh,
   });
 
   return (
@@ -177,7 +200,7 @@ export default async function Page({ params, searchParams }: Props) {
         ) : undefined
       }
       responsavelDoSetor={
-        atribuiNoSetor && ehSetor(sessao.setor) && responsavelDoSetor?.ok ? (
+        !cadastroDoRh && atribuiNoSetor && ehSetor(sessao.setor) && responsavelDoSetor?.ok ? (
           <ResponsavelDoSetorContainer
             clienteId={id}
             setorRotulo={SETOR_LABEL[sessao.setor]}
@@ -185,7 +208,7 @@ export default async function Page({ params, searchParams }: Props) {
           />
         ) : undefined
       }
-      acompanhamentoRh={acompanhamentoRh}
+      acompanhamentoRh={cadastroDoRh ? undefined : acompanhamentoRh}
       observacoesRh={
         observacoesRhDoAdmin?.ok && observacoesRhDoAdmin.value ? (
           <ObservacoesDoRhContainer

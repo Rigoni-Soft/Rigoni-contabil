@@ -1,4 +1,4 @@
-import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Grade, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { NavegacaoDeMes } from "@/presentation/components/molecules/navegacao-de-mes.component";
@@ -44,7 +44,7 @@ export function AcompanhamentoDoClienteRh({
 }: Props) {
   return (
     <Pilha espaco={3} como="section" aria-labelledby="acompanhamento-do-mes">
-      <Texto variante="subtitulo" como="h2" id="acompanhamento-do-mes">
+      <Texto variante="rotulo" como="h2" id="acompanhamento-do-mes">
         Acompanhamento do mês
       </Texto>
       <NavegacaoDeMes
@@ -57,18 +57,14 @@ export function AcompanhamentoDoClienteRh({
           {erro}
         </Texto>
       )}
-      <Pilha espaco={2} como="ul">
+      <Grade colunas="1>2>4" espaco={4} como="ul">
         {servicos.map((s) => (
-          <Linha como="li" key={s.servicoId} alinhar="centro" justificar="entre" espaco={3}>
+          <Pilha como="li" key={s.servicoId} espaco={1}>
             <Label htmlFor={`servico-${s.servicoId}`}>{s.nome}</Label>
             <Select
               id={`servico-${s.servicoId}`}
               value={s.estado}
-              className={cn(
-                "w-44",
-                CLASSE_DO_ESTADO[s.estado],
-                pendente && "cursor-wait opacity-70",
-              )}
+              className={cn(CLASSE_DO_ESTADO[s.estado], pendente && "cursor-wait opacity-70")}
               disabled={!!s.bloqueio}
               aria-describedby={s.bloqueio ? `bloqueio-${s.servicoId}` : undefined}
               aria-busy={pendente}
@@ -85,9 +81,9 @@ export function AcompanhamentoDoClienteRh({
                 {s.bloqueio}
               </Texto>
             )}
-          </Linha>
+          </Pilha>
         ))}
-      </Pilha>
+      </Grade>
     </Pilha>
   );
 }

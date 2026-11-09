@@ -11,9 +11,11 @@ type Props = {
   clienteId: string;
   setorRotulo: string;
   atual: { id: string; nome: string } | null;
+  // Dentro do cartão do cadastro do RH (campo no cabeçalho, como o do SN).
+  embutido?: boolean;
 };
 
-export function ResponsavelDoSetorContainer({ clienteId, setorRotulo, atual }: Props) {
+export function ResponsavelDoSetorContainer({ clienteId, setorRotulo, atual, embutido }: Props) {
   const [salvoId, setSalvoId] = useState(atual?.id ?? "");
   const [valor, setValor] = useState(atual?.id ?? "");
   const [listaAberta, setListaAberta] = useState(false);
@@ -61,6 +63,7 @@ export function ResponsavelDoSetorContainer({ clienteId, setorRotulo, atual }: P
       pendente={pendente}
       erro={erro}
       salvo={salvo}
+      embutido={embutido}
     />
   );
 }

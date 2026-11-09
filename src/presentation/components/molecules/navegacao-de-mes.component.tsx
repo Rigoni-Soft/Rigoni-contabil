@@ -20,7 +20,12 @@ export function NavegacaoDeMes({ rotuloMes, anteriorHref, proximoHref }: Navegac
       <LinkDeAcao href={anteriorHref} variant="ghost" className="justify-self-start">
         Mês anterior
       </LinkDeAcao>
-      <Texto como="span" variante="subtitulo" aria-current="date" className="capitalize">
+      <Texto
+        como="span"
+        variante="subtitulo"
+        aria-current="date"
+        className="first-letter:uppercase"
+      >
         {rotuloMes}
       </Texto>
       <Caixa className="justify-self-end">
