@@ -17,7 +17,13 @@ const GRUPO_PARCELAMENTO = "Parcelamento";
 // Texto fixo ou dependente do dia (o atraso começa no 29, ou no último dia de fevereiro comum).
 type Texto = string | ((agora: Date) => string);
 
-type Bucket = {
+// O que o grupo Parcelamento lê de um Cliente; o resumo de outro Setor entrega só isso.
+export type LinhaDeParcelamento = Pick<
+  ResumoOperacionalRow,
+  "clienteId" | "empresa" | "cnpj" | "parcelamentos"
+>;
+
+type Bucket<L extends LinhaDeParcelamento = ResumoOperacionalRow> = {
   id: string;
   // Grupo em que a tela mostra o card.
   grupo: string;
@@ -25,7 +31,7 @@ type Bucket = {
   cor: CorStatusResumo;
   descricao?: Texto;
   mensagemVazia?: Texto;
-  pertence: (linha: ResumoOperacionalRow, agora: Date) => boolean;
+  pertence: (linha: L, agora: Date) => boolean;
   comParcelamentos?: true;
 };
 
@@ -33,18 +39,17 @@ type Bucket = {
 // marca interno e o status do mês.
 const doParcelamento = (
   campo: keyof SituacaoParcelamentosDoCliente,
-  card: Omit<Bucket, "pertence" | "comParcelamentos" | "grupo">,
-): Bucket => ({
+  card: Omit<Bucket<LinhaDeParcelamento>, "pertence" | "comParcelamentos" | "grupo">,
+): Bucket<LinhaDeParcelamento> => ({
   ...card,
   grupo: GRUPO_PARCELAMENTO,
   pertence: (linha, agora) => situacaoDosParcelamentos(linha, agora)[campo],
   comParcelamentos: true,
 });
 
-// Os 11 cards e cores do dashboard Simples Nacional. DAS: documentoObrigatorio
+// Os 5 cards de DAS do dashboard Simples Nacional. DAS: documentoObrigatorio
 // aqui é o campo que a UI rotula "Documento recebido" — positivo = já recebido.
-// Os 6 de Parcelamento contam Clientes e não são mutuamente exclusivos.
-const BUCKETS: readonly Bucket[] = [
+const BUCKETS_DAS: readonly Bucket[] = [
   {
     id: "das_emitidas",
     grupo: GRUPO_DAS,
@@ -82,6 +87,11 @@ const BUCKETS: readonly Bucket[] = [
     cor: "atencao",
     pertence: (l) => l.dasStatus === "pronto",
   },
+] as const;
+
+// Os 6 cards de Parcelamento contam Clientes e não são mutuamente exclusivos. Valem para qualquer Setor:
+// cada um alimenta com os parcelamentos que cadastrou.
+const BUCKETS_PARCELAMENTO: readonly Bucket<LinhaDeParcelamento>[] = [
   doParcelamento("comParcelamento", {
     id: "com_parcelamento",
     descricao: "Clientes com algum parcelamento cadastrado, em aberto ou quitado.",
@@ -132,10 +142,19 @@ const BUCKETS: readonly Bucket[] = [
   }),
 ] as const;
 
+const BUCKETS: readonly Bucket[] = [...BUCKETS_DAS, ...BUCKETS_PARCELAMENTO];
+
 // Os grupos da tela, na ordem em que os cards aparecem em BUCKETS.
 export function gruposDoResumoSn(): GrupoResumoDto[] {
+  return agrupar(BUCKETS);
+}
+
+// O grupo Parcelamento sozinho, para o resumo de outro Setor.
+export const gruposDeParcelamento = (): GrupoResumoDto[] => agrupar(BUCKETS_PARCELAMENTO);
+
+function agrupar(buckets: readonly { id: string; grupo: string }[]): GrupoResumoDto[] {
   const grupos: GrupoResumoDto[] = [];
-  for (const bucket of BUCKETS) {
+  for (const bucket of buckets) {
     const grupo = grupos.find((g) => g.titulo === bucket.grupo);
     if (grupo) grupo.cardIds.push(bucket.id);
     else grupos.push({ titulo: bucket.grupo, cardIds: [bucket.id] });
@@ -143,7 +162,7 @@ export function gruposDoResumoSn(): GrupoResumoDto[] {
   return grupos;
 }
 
-const parcelamentosDaLista = (linha: ResumoOperacionalRow): ParcelamentoBucketDto[] =>
+const parcelamentosDaLista = (linha: LinhaDeParcelamento): ParcelamentoBucketDto[] =>
   linha.parcelamentos.map((p) => ({
     codigo: p.codigo,
     interno: p.interno,
@@ -157,7 +176,19 @@ export function classificarResumoSetorSn(
   linhas: ResumoOperacionalRow[],
   agora: Date,
 ): CardResumoDto[] {
-  return BUCKETS.map((bucket) => {
+  return classificar(BUCKETS, linhas, agora);
+}
+
+// Os cards de Parcelamento de um Setor que não é o SN.
+export const classificarParcelamento = (linhas: LinhaDeParcelamento[], agora: Date) =>
+  classificar(BUCKETS_PARCELAMENTO, linhas, agora);
+
+function classificar<L extends LinhaDeParcelamento>(
+  buckets: readonly Bucket<L>[],
+  linhas: L[],
+  agora: Date,
+): CardResumoDto[] {
+  return buckets.map((bucket) => {
     const clientes = linhas.filter((l) => bucket.pertence(l, agora));
     return {
       id: bucket.id,

@@ -10,6 +10,8 @@ type EditarCadastroOperacionalPageProps = {
   alteracoesContratuais?: React.ReactNode;
   // Líder de Setor fora do Simples Nacional: o Responsável do Cliente no Setor dele.
   responsavelDoSetor?: React.ReactNode;
+  // Funcionário, Líder e Admin do RH: o acompanhamento do mês do Cliente (marcar serviços).
+  acompanhamentoRh?: React.ReactNode;
   // De onde a tela foi aberta (ex.: a lista de um bucket do resumo do setor): "Voltar" leva
   // para lá, não sempre para o dashboard.
   voltarHref?: string;
@@ -21,6 +23,7 @@ export function EditarCadastroOperacionalPage({
   formulario,
   alteracoesContratuais,
   responsavelDoSetor,
+  acompanhamentoRh,
   voltarHref = "/",
 }: EditarCadastroOperacionalPageProps) {
   return (
@@ -34,6 +37,7 @@ export function EditarCadastroOperacionalPage({
               fica no topo dele, em vez de lá embaixo, fora da vista. */}
           {alteracoesContratuais}
           {responsavelDoSetor}
+          {acompanhamentoRh}
           {formulario}
         </Pilha>
       }

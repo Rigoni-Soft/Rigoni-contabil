@@ -2,8 +2,8 @@ import { expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import { cnpjUnico, login } from "./support/criar-cliente";
 
-// Acompanhamento mensal do RH: o Funcionário marca os serviços dos seus clientes; o Líder lê todos
-// (sem caixas habilitadas) e cadastra serviços; a marcação fica auditada.
+// Acompanhamento mensal do RH: os serviços são cards no dashboard; o Funcionário marca os serviços dos seus
+// clientes no painel do cliente; o Líder lê (sem caixas habilitadas) e cadastra serviços; a marcação fica auditada.
 const admin = adminLocal();
 const EMPRESA = `Acomp E2E ${`${Date.now()}`.slice(-6)} Ltda`;
 const FUNCIONARIO_RH_ID = "dddddddd-dddd-dddd-dddd-dddddddddddd";
@@ -36,14 +36,14 @@ test.describe("Acompanhamento mensal do RH", () => {
   }) => {
     await login(page, "funcionario.rh@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/rh");
-    await page.goto("/rh/acompanhamento");
+    await page.goto(`/clientes/${clienteId}`);
 
-    const fgts = page.getByLabel(`FGTS de ${EMPRESA}`);
+    const fgts = page.getByLabel("FGTS", { exact: true });
     await expect(fgts).toHaveValue("pendente");
     await fgts.selectOption("concluido");
     await expect(fgts).toHaveValue("concluido");
     await page.reload();
-    await expect(page.getByLabel(`FGTS de ${EMPRESA}`)).toHaveValue("concluido");
+    await expect(page.getByLabel("FGTS", { exact: true })).toHaveValue("concluido");
 
     const { data } = await admin
       .from("registros_auditoria")
@@ -53,21 +53,19 @@ test.describe("Acompanhamento mensal do RH", () => {
     expect(data).toHaveLength(1);
   });
 
-  test("Funcionário dispensa um serviço e ele deixa de contar como pendente, com auditoria", async ({
+  test("Funcionário dispensa um serviço e ele deixa de contar como pendente (sai do card), com auditoria", async ({
     page,
   }) => {
     await login(page, "funcionario.rh@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/rh");
-    await page.goto("/rh/acompanhamento");
+    await page.goto(`/clientes/${clienteId}`);
 
-    const pendentes = page.getByRole("row", { name: new RegExp(EMPRESA) }).getByRole("cell").last();
-    const antes = Number(await pendentes.textContent());
-    const dctfweb = page.getByLabel(`DCTFWeb de ${EMPRESA}`);
+    const dctfweb = page.getByLabel("DCTFWeb", { exact: true });
     await expect(dctfweb).toHaveValue("pendente");
     await dctfweb.selectOption("nao_aplica");
-    await expect(pendentes).toHaveText(String(antes - 1));
+    await expect(dctfweb).toHaveValue("nao_aplica");
     await page.reload();
-    await expect(page.getByLabel(`DCTFWeb de ${EMPRESA}`)).toHaveValue("nao_aplica");
+    await expect(page.getByLabel("DCTFWeb", { exact: true })).toHaveValue("nao_aplica");
 
     const { data } = await admin
       .from("registros_auditoria")
@@ -93,21 +91,23 @@ test.describe("Acompanhamento mensal do RH", () => {
 
     await login(page, "lider.rh@rigonicontabil.local", "lider123");
     await expect(page).toHaveURL("/rh");
-    await page.goto("/rh/acompanhamento");
+    await page.goto(`/clientes/${clienteId}`);
 
-    const lido = page.getByLabel(`NUTRI de ${EMPRESA}`);
+    const lido = page.getByLabel("NUTRI", { exact: true });
     await expect(lido).toHaveValue("concluido");
     await expect(lido).toBeDisabled();
   });
 
-  test("Líder do RH cadastra um serviço e ele vira coluna", async ({ page }) => {
+  test("Líder do RH cadastra um serviço e ele vira card no dashboard", async ({ page }) => {
     await login(page, "lider.rh@rigonicontabil.local", "lider123");
     await expect(page).toHaveURL("/rh");
-    await page.goto("/rh/acompanhamento");
+    await page.getByRole("link", { name: "Serviços do acompanhamento" }).click();
 
     await page.getByLabel("Novo serviço").fill(NOVO_SERVICO);
     await page.getByRole("button", { name: "Cadastrar serviço" }).click();
+    await expect(page.getByText(NOVO_SERVICO)).toBeVisible();
 
-    await expect(page.getByRole("columnheader", { name: NOVO_SERVICO })).toBeVisible();
+    await page.goto("/rh");
+    await expect(page.getByRole("link", { name: new RegExp(`^${NOVO_SERVICO} pendente`) })).toBeVisible();
   });
 });

@@ -4,6 +4,7 @@ import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.compone
 import { ComparativosRh } from "@/presentation/components/organisms/comparativos-rh.component";
 import { ResumoDoSetor } from "@/presentation/components/organisms/resumo-do-setor.component";
 import { ResumoDoSetorPage } from "@/presentation/components/pages/resumo-do-setor.page";
+import { juntarResumoRh } from "@/presentation/lib/juntar-resumo-rh";
 import { ERRO_CARREGAR_RESUMO_SETOR } from "@/presentation/lib/erro-resumo-setor";
 import {
   carregarSetoresDaNavegacao,
@@ -12,8 +13,18 @@ import {
 import { ShellNavContainer } from "@/modules/atendimento/presentation/view-models/atendimento-central/shell-nav.container";
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import { BuscarClienteContainer } from "@/modules/clientes/presentation/view-models/buscar-cliente/buscar-cliente.container";
+import { carregarAcompanhamentoFuncionarios } from "@/modules/rh/presentation/view-models/acompanhamento-funcionarios/acompanhamento-funcionarios.server";
+import { carregarAcompanhamentoMensal } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.server";
+import {
+  cardsDoAcompanhamento,
+  cardsDosFuncionarios,
+} from "@/modules/rh/presentation/view-models/resumo-rh/resumo-rh.presenter";
 import { carregarResumoSetorRh } from "@/modules/clientes/presentation/view-models/resumo-setor-rh/resumo-setor-rh.server";
-import { podeVerAcompanhamentoDosFuncionariosRh, podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
+import {
+  podeGerirServicosRh,
+  podeVerAcompanhamentoDosFuncionariosRh,
+  podeVerDashboardDoSetor,
+} from "@/shared/kernel/papeis";
 import { ROTA_RH, SETOR_RH } from "@/shared/kernel/setores";
 
 // ponytail: montagem repetida de app/simples-nacional/page.tsx; extrair no 3º Setor com resumo.
@@ -23,10 +34,26 @@ export default async function Page() {
   // Admin vê (suporte a qualquer setor); funcionário de outro setor volta para o início.
   if (!podeVerDashboardDoSetor(sessao.papel, sessao.setor, SETOR_RH)) redirect("/");
 
-  const [setores, resumo] = await Promise.all([
+  // ponytail: este carregamento repete o de app/rh/resumo/[bucket]; sem lugar para dividir (app só tem
+  // arquivos do Next e as camadas não se importam), junta-se na página.
+  const verFuncionarios = podeVerAcompanhamentoDosFuncionariosRh(sessao.papel, sessao.setor);
+  const [setores, base, mensal, funcionarios] = await Promise.all([
     carregarSetoresDaNavegacao(),
     carregarResumoSetorRh(),
+    carregarAcompanhamentoMensal(),
+    verFuncionarios ? carregarAcompanhamentoFuncionarios() : undefined,
   ]);
+  const resumo =
+    base.ok && mensal.ok && (!funcionarios || funcionarios.ok)
+      ? {
+          ok: true as const,
+          value: juntarResumoRh(
+            base.value,
+            cardsDoAcompanhamento(mensal.value),
+            funcionarios && cardsDosFuncionarios(funcionarios.value, `${ROTA_RH}/funcionarios`),
+          ),
+        }
+      : { ok: false as const };
 
   return (
     <ResumoDoSetorPage
@@ -46,12 +73,9 @@ export default async function Page() {
         )
       }
       acoes={
-        <>
-          <LinkDeAcao href={`${ROTA_RH}/acompanhamento`}>Acompanhamento mensal</LinkDeAcao>
-          {podeVerAcompanhamentoDosFuncionariosRh(sessao.papel, sessao.setor) && (
-            <LinkDeAcao href={`${ROTA_RH}/funcionarios`}>Acompanhamento dos funcionários</LinkDeAcao>
-          )}
-        </>
+        podeGerirServicosRh(sessao.papel, sessao.setor) && (
+          <LinkDeAcao href={`${ROTA_RH}/servicos`}>Serviços do acompanhamento</LinkDeAcao>
+        )
       }
       comparativos={
         resumo.ok &&

@@ -1,5 +1,5 @@
 import type { AcompanhamentoMensalDto } from "@/modules/rh/application/dtos/acompanhamento.dto";
-import type { EstadoDaCelula } from "@/presentation/components/organisms/tabela-de-acompanhamento.component";
+import type { EstadoDoServico } from "@/presentation/components/organisms/acompanhamento-do-cliente-rh.component";
 
 const MESES = [
   "janeiro", "fevereiro", "março", "abril", "maio", "junho",
@@ -18,14 +18,14 @@ export function mesVizinho(competencia: string, delta: number): string {
   return `${data.getUTCFullYear()}-${String(data.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-const estadoDaCelula = (c: { aplica: boolean; concluido: boolean }): EstadoDaCelula =>
+const estadoDoServico = (c: { aplica: boolean; concluido: boolean }): EstadoDoServico =>
   !c.aplica ? "nao_aplica" : c.concluido ? "concluido" : "pendente";
 
 export type PassoDaTroca = { tipo: "marcar" | "aplicar"; valor: boolean };
 
 // "Se aplica" e "concluído" são dois dados; trocar o estado da célula é desmarcar antes de dispensar
 // e voltar a aplicar antes de marcar, para nunca ficar concluído num serviço que não se aplica.
-export function passosDaTroca(de: EstadoDaCelula, para: EstadoDaCelula): PassoDaTroca[] {
+export function passosDaTroca(de: EstadoDoServico, para: EstadoDoServico): PassoDaTroca[] {
   if (de === para) return [];
   const passos: PassoDaTroca[] = [];
   if (para === "nao_aplica") {
@@ -40,33 +40,20 @@ export function passosDaTroca(de: EstadoDaCelula, para: EstadoDaCelula): PassoDa
   return passos;
 }
 
-export type LinhaDaTabela = {
-  clienteId: string;
-  empresa: string;
-  cnpj: string;
-  celulas: { servicoId: string; estado: EstadoDaCelula; bloqueio?: string }[];
-  pendentes: number;
-};
-
-// Pendente = serviço que se aplica, não é do sistema e não está concluído.
-export function linhasDaTabela(dto: AcompanhamentoMensalDto): LinhaDaTabela[] {
+// Os serviços do mês de um Cliente, na ordem das colunas. undefined = o Cliente não está na vista do ator
+// (sem Responsável do RH, ou de outro Funcionário), e o painel dele não mostra o acompanhamento.
+export function servicosDoCliente(dto: AcompanhamentoMensalDto, clienteId: string) {
+  const linha = dto.linhas.find((l) => l.clienteId === clienteId);
+  if (!linha) return undefined;
   const sistema = new Set(dto.servicos.filter((s) => s.sistema).map((s) => s.id));
-  return dto.linhas.map((l) => {
-    const celulas = l.celulas.map((c) => ({
-      servicoId: c.servicoId,
-      estado: estadoDaCelula(c),
-      bloqueio: sistema.has(c.servicoId)
-        ? "O Holerite é preenchido pelo sistema."
-        : dto.podeMarcar
-          ? undefined
-          : "Só o Funcionário Responsável pelo cliente altera.",
-    }));
-    return {
-      clienteId: l.clienteId,
-      empresa: l.empresa,
-      cnpj: l.cnpj,
-      celulas,
-      pendentes: l.celulas.filter((c) => c.aplica && !c.concluido && !sistema.has(c.servicoId)).length,
-    };
-  });
+  return linha.celulas.map((c) => ({
+    servicoId: c.servicoId,
+    nome: dto.servicos.find((s) => s.id === c.servicoId)?.nome ?? "",
+    estado: estadoDoServico(c),
+    bloqueio: sistema.has(c.servicoId)
+      ? "O Holerite é preenchido pelo sistema."
+      : dto.podeMarcar
+        ? undefined
+        : "Só o Funcionário Responsável pelo cliente altera.",
+  }));
 }

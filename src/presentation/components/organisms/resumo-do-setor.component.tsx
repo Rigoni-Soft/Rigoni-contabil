@@ -4,7 +4,16 @@ import { CartaoDeResumo } from "@/presentation/components/molecules/cartao-de-re
 
 // Tipos estruturais locais (não importam o DTO do módulo clientes — view burra,
 // arquitetura.md §3.4): qualquer objeto com estes shapes serve.
-type Card = { id: string; titulo: string; cor: string; quantidade: number };
+// `href` e `total` só os cards que não são lista de clientes do Setor trazem (ex.: um Funcionário do RH:
+// abre o acompanhamento dele e conta pontos sobre os clientes atribuídos a ele).
+type Card = {
+  id: string;
+  titulo: string;
+  cor: string;
+  quantidade: number;
+  href?: string;
+  total?: number;
+};
 type Grupo = { titulo: string; cardIds: string[] };
 
 type Props = {
@@ -41,11 +50,11 @@ function GrupoDeCards({
           // Em 2 colunas (celular) um grupo ímpar deixaria o último card sozinho: ele ocupa a linha toda.
           <Caixa como="li" key={card.id} className="max-sm:last:odd:col-span-2">
             <CartaoDeResumo
-              href={`${hrefBase}/${card.id}`}
+              href={card.href ?? `${hrefBase}/${card.id}`}
               titulo={card.titulo}
               cor={card.cor}
               quantidade={card.quantidade}
-              totalClientes={totalClientes}
+              totalClientes={card.total ?? totalClientes}
             />
           </Caixa>
         ))}

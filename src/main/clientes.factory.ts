@@ -282,6 +282,7 @@ export async function makeObterResumoSetorRh(): Promise<ObterResumoSetorRh> {
   return new ObterResumoSetorRh(
     sessaoViaUsuarios(supabase),
     new SupabaseCarteiraDoSetorGateway(supabase),
+    new RelogioSistemaGateway(),
   );
 }
 

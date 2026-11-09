@@ -1,3 +1,7 @@
+import {
+  classificarParcelamento,
+  gruposDeParcelamento,
+} from "@/modules/clientes/application/mappers/resumo-setor-sn.mapper";
 import type { ResumoSetorRhDto } from "@/modules/clientes/application/ports/in/obter-resumo-setor-rh.provider";
 import type {
   CardResumoDto,
@@ -7,6 +11,7 @@ import type {
   CarteiraDoSetorQueryPort,
   ClienteDaCarteiraRow,
 } from "@/modules/clientes/application/ports/out/carteira-do-setor.provider";
+import type { RelogioPort } from "@/modules/clientes/application/ports/out/relogio.provider";
 import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
@@ -55,6 +60,7 @@ export class ObterResumoSetorRh {
   constructor(
     private readonly sessao: SessaoPort,
     private readonly carteira: CarteiraDoSetorQueryPort,
+    private readonly relogio: RelogioPort,
   ) {}
 
   async execute(): Promise<Result<ResumoSetorRhDto, AppError>> {
@@ -92,10 +98,17 @@ export class ObterResumoSetorRh {
       });
     }
 
+    // O grupo Parcelamento é o do SN; o RH o alimenta com os parcelamentos que cadastrar.
+    // ponytail: TODO(#216) até lá nenhum parcelamento é do RH, então os 6 cards saem zerados.
+    const parcelamentos = classificarParcelamento(
+      linhas.map((l) => ({ ...doBucket(l), parcelamentos: [] })),
+      this.relogio.agora(),
+    );
+
     return ok({
       totalClientes: linhas.length,
-      cards,
-      grupos: [{ titulo: GRUPO, cardIds: cards.map((c) => c.id) }],
+      cards: [...cards, ...parcelamentos],
+      grupos: [{ titulo: GRUPO, cardIds: cards.map((c) => c.id) }, ...gruposDeParcelamento()],
       comparativos: podeVerComparativoDoSetor(ator.papel, ator.setor)
         ? { responsaveis: porResponsavel(linhas) }
         : undefined,

@@ -11,19 +11,28 @@ import { carregarClienteParaPagina } from "@/modules/clientes/presentation/view-
 import { ResponsavelDoSetorContainer } from "@/modules/clientes/presentation/view-models/responsavel-do-setor/responsavel-do-setor.container";
 import { ondeAtribuirResponsavel } from "@/modules/clientes/presentation/view-models/responsavel-do-setor/responsavel-do-setor.presenter";
 import { carregarResponsavelDoSetor } from "@/modules/clientes/presentation/view-models/responsavel-do-setor/responsavel-do-setor.server";
+import { AcompanhamentoDoClienteContainer } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-do-cliente.container";
+import {
+  mesVizinho,
+  rotuloDaCompetencia,
+  servicosDoCliente,
+} from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.presenter";
+import { carregarAcompanhamentoMensal } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.server";
 import { alteracaoEmFocoDaUrl } from "@/modules/clientes/presentation/view-models/visualizar-documento-contratual/documentos-contratuais.presenter";
 import { hrefSeguro } from "@/shared/kernel/href-seguro";
+import { mesAtual } from "@/shared/kernel/mes-atual";
 import {
   podeAnexarAlteracaoContratual,
   podeAtribuirResponsavel,
   podeEditarCadastroOperacional,
+  podeVerAcompanhamentoRh,
   soLeDadosBasicosDoCliente,
 } from "@/shared/kernel/papeis";
 import { ehSetor, SETOR_LABEL } from "@/shared/kernel/setores";
 
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ voltarPara?: string; alteracao?: string | string[] }>;
+  searchParams: Promise<{ voltarPara?: string; alteracao?: string | string[]; mes?: string }>;
 };
 
 type CargaDoCliente = Awaited<ReturnType<typeof carregarClienteParaPagina>>;
@@ -57,6 +66,38 @@ function montarFormulario(
   );
 }
 
+// O acompanhamento do mês do RH, no painel do Cliente (como o DAS no do SN). Some quando o Cliente não
+// está na vista do ator ou o mês é inválido; o resto da tela não depende dele.
+// ponytail: lê a carteira do RH inteira para achar este Cliente; filtrar por cliente no repositório se pesar.
+async function acompanhamentoRhDoCliente(
+  clienteId: string,
+  sessao: { papel: string; setor: string },
+  mes: string | undefined,
+  voltarPara: string | undefined,
+) {
+  if (!podeVerAcompanhamentoRh(sessao.papel, sessao.setor)) return undefined;
+  const acompanhamento = await carregarAcompanhamentoMensal(mes);
+  if (!acompanhamento.ok) return undefined;
+  const servicos = servicosDoCliente(acompanhamento.value, clienteId);
+  if (!servicos) return undefined;
+
+  const { competencia } = acompanhamento.value;
+  const hrefDoMes = (delta: number) =>
+    `/clientes/${encodeURIComponent(clienteId)}?mes=${mesVizinho(competencia, delta)}${
+      voltarPara ? `&voltarPara=${encodeURIComponent(voltarPara)}` : ""
+    }`;
+  return (
+    <AcompanhamentoDoClienteContainer
+      clienteId={clienteId}
+      competencia={competencia}
+      rotuloCompetencia={rotuloDaCompetencia(competencia)}
+      anteriorHref={hrefDoMes(-1)}
+      proximoHref={competencia < mesAtual() ? hrefDoMes(1) : undefined}
+      servicos={servicos}
+    />
+  );
+}
+
 function tituloDaPagina(soDadosBasicos: boolean, readOnly: boolean) {
   if (soDadosBasicos) return "Dados do cliente";
   return readOnly ? "Visualizar cadastro operacional" : "Editar cadastro operacional";
@@ -64,7 +105,7 @@ function tituloDaPagina(soDadosBasicos: boolean, readOnly: boolean) {
 
 export default async function Page({ params, searchParams }: Props) {
   const { id } = await params;
-  const { voltarPara, alteracao } = await searchParams;
+  const { voltarPara, alteracao, mes } = await searchParams;
   const sessao = validarSessao(await carregarSessao());
   const soDadosBasicos = soLeDadosBasicosDoCliente(sessao.papel, sessao.setor);
   const carga = await carregarClienteParaPagina(id, sessao.papel, sessao.setor);
@@ -99,6 +140,7 @@ export default async function Page({ params, searchParams }: Props) {
   );
   const responsavelDoSetor = atribuiNoSetor ? await carregarResponsavelDoSetor(id) : null;
   const readOnly = !podeEditarCadastroOperacional(sessao.papel, sessao.setor);
+  const acompanhamentoRh = await acompanhamentoRhDoCliente(id, sessao, mes, voltarPara);
 
   const formulario = montarFormulario(carga, sessao, {
     readOnly,
@@ -129,6 +171,7 @@ export default async function Page({ params, searchParams }: Props) {
           />
         ) : undefined
       }
+      acompanhamentoRh={acompanhamentoRh}
       formulario={formulario}
     />
   );

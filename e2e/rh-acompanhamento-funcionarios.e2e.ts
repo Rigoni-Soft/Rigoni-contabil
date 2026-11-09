@@ -2,8 +2,9 @@ import { expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import { cnpjUnico, login } from "./support/criar-cliente";
 
-// Gráfico de acompanhamento dos funcionários do RH: o Líder vê pontos x atribuídos, o detalhe com o cliente
-// pendente no serviço que falta e os clientes sem Responsável; o Funcionário não entra. O Holerite ainda não
+// Acompanhamento dos funcionários no dashboard do RH: o Líder vê um card por Funcionário (pontos x atribuídos),
+// abre o detalhe com o cliente pendente no serviço que falta e acha os clientes sem Responsável no card
+// "Sem responsável"; o Funcionário não vê esses cards. O Holerite ainda não
 // é derivado (ticket próprio), então nenhum cliente pontua aqui.
 const admin = adminLocal();
 const SUFIXO = `${Date.now()}`.slice(-6);
@@ -32,28 +33,22 @@ test.describe("Acompanhamento dos funcionários do RH", () => {
     await admin.from("clientes").delete().in("id", ids);
   });
 
-  test("Líder vê o gráfico, abre o detalhe e vê o cliente sem Responsável @smoke", async ({
+  test("Líder abre o card do Funcionário, vê o detalhe e acha o cliente sem Responsável @smoke", async ({
     page,
   }) => {
     await login(page, "lider.rh@rigonicontabil.local", "lider123");
     await expect(page).toHaveURL("/rh");
-    await page.getByRole("link", { name: "Acompanhamento dos funcionários" }).click();
 
-    await expect(page.getByRole("group", { name: "Sem responsável" })).toContainText(
-      SEM_RESPONSAVEL,
-    );
+    await page.getByRole("link", { name: /^Sem responsável/ }).click();
+    await expect(page.getByText(SEM_RESPONSAVEL)).toBeVisible();
+    await page.goBack();
+
     const { data: perfil } = await admin
       .from("perfis")
       .select("nome")
       .eq("id", FUNCIONARIO_RH_ID)
       .single();
-    await expect(page.getByRole("group", { name: "Clientes que faltam por serviço" })).toContainText(
-      perfil!.nome,
-    );
-    await page
-      .getByRole("group", { name: "Pontos por funcionário" })
-      .getByRole("link", { name: perfil!.nome })
-      .click();
+    await page.getByRole("link", { name: new RegExp(`^${perfil!.nome}`) }).click();
 
     await expect(page.getByRole("group", { name: "Pendente por serviço" })).toContainText(
       COM_RESPONSAVEL,
@@ -64,11 +59,9 @@ test.describe("Acompanhamento dos funcionários do RH", () => {
   test("Funcionário não vê o gráfico", async ({ page }) => {
     await login(page, "funcionario.rh@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/rh");
-    await expect(page.getByRole("link", { name: "Acompanhamento dos funcionários" })).toHaveCount(
-      0,
-    );
+    await expect(page.getByText("Acompanhamento dos funcionários")).toHaveCount(0);
 
-    await page.goto("/rh/funcionarios");
-    await expect(page).toHaveURL("/rh");
+    await page.goto("/rh/funcionarios/" + FUNCIONARIO_RH_ID);
+    await expect(page).toHaveURL("/");
   });
 });

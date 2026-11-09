@@ -1,8 +1,8 @@
 import {
-  linhasDaTabela,
   mesVizinho,
   passosDaTroca,
   rotuloDaCompetencia,
+  servicosDoCliente,
 } from "./acompanhamento-mensal.presenter";
 
 describe("acompanhamento-mensal.presenter", () => {
@@ -16,8 +16,8 @@ describe("acompanhamento-mensal.presenter", () => {
     expect(mesVizinho("2026-05", -1)).toBe("2026-04");
   });
 
-  it("conta pendentes só entre os serviços que se aplicam e não são do sistema", () => {
-    const [linha] = linhasDaTabela({
+  it("monta os serviços do cliente e bloqueia o do sistema; cliente fora da vista não tem", () => {
+    const dto = {
       competencia: "2026-11",
       podeMarcar: true,
       podeGerirServicos: false,
@@ -40,15 +40,15 @@ describe("acompanhamento-mensal.presenter", () => {
           ],
         },
       ],
-    });
+    };
 
-    expect(linha.pendentes).toBe(1);
-    expect(linha.celulas.map((c) => c.bloqueio)).toEqual([
-      undefined,
-      undefined,
-      undefined,
-      "O Holerite é preenchido pelo sistema.",
+    expect(servicosDoCliente(dto, "c1")?.map((s) => [s.nome, s.estado, s.bloqueio])).toEqual([
+      ["FGTS", "concluido", undefined],
+      ["SIB", "nao_aplica", undefined],
+      ["NUTRI", "pendente", undefined],
+      ["Holerite", "pendente", "O Holerite é preenchido pelo sistema."],
     ]);
+    expect(servicosDoCliente(dto, "outro")).toBeUndefined();
   });
 
   it("troca o estado da célula na ordem que nunca deixa concluído um serviço que não se aplica", () => {

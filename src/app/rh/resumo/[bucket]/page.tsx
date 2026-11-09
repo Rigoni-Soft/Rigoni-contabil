@@ -2,11 +2,18 @@ import { notFound, redirect } from "next/navigation";
 
 import { ResumoSetorLista } from "@/presentation/components/organisms/resumo-setor-lista.component";
 import { ResumoSetorListaPage } from "@/presentation/components/pages/resumo-setor-lista.page";
+import { juntarResumoRh } from "@/presentation/lib/juntar-resumo-rh";
 import { ERRO_CARREGAR_RESUMO_SETOR } from "@/presentation/lib/erro-resumo-setor";
 import { exigirSessao } from "@/presentation/view-models/shell/shell.server";
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
+import { carregarAcompanhamentoFuncionarios } from "@/modules/rh/presentation/view-models/acompanhamento-funcionarios/acompanhamento-funcionarios.server";
+import { carregarAcompanhamentoMensal } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.server";
+import {
+  cardsDoAcompanhamento,
+  cardsDosFuncionarios,
+} from "@/modules/rh/presentation/view-models/resumo-rh/resumo-rh.presenter";
 import { carregarResumoSetorRh } from "@/modules/clientes/presentation/view-models/resumo-setor-rh/resumo-setor-rh.server";
-import { podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
+import { podeVerAcompanhamentoDosFuncionariosRh, podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
 import { ROTA_RH, SETOR_RH } from "@/shared/kernel/setores";
 
 type Props = { params: Promise<{ bucket: string }> };
@@ -19,7 +26,24 @@ export default async function Page({ params }: Props) {
 
   if (!podeVerDashboardDoSetor(sessao.papel, sessao.setor, SETOR_RH)) redirect("/");
 
-  const resumo = await carregarResumoSetorRh();
+  const [base, mensal, funcionarios] = await Promise.all([
+    carregarResumoSetorRh(),
+    carregarAcompanhamentoMensal(),
+    podeVerAcompanhamentoDosFuncionariosRh(sessao.papel, sessao.setor)
+      ? carregarAcompanhamentoFuncionarios()
+      : undefined,
+  ]);
+  const resumo =
+    base.ok && mensal.ok && (!funcionarios || funcionarios.ok)
+      ? {
+          ok: true as const,
+          value: juntarResumoRh(
+            base.value,
+            cardsDoAcompanhamento(mensal.value),
+            funcionarios && cardsDosFuncionarios(funcionarios.value, `${ROTA_RH}/funcionarios`),
+          ),
+        }
+      : { ok: false as const };
   const header = <CabecalhoDoShellContainer sessao={sessao} />;
   if (!resumo.ok) {
     return (

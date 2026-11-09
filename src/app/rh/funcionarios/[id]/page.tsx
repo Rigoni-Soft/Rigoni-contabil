@@ -35,7 +35,7 @@ export default async function Page({ params, searchParams }: Props) {
       header={<CabecalhoDoShellContainer sessao={sessao} />}
       nav={<ShellNavContainer setores={setores} rotaAtual={ROTA_RH} />}
       titulo="Acompanhamento do funcionário"
-      voltarHref={`${ROTA}${query}`}
+      voltarHref={ROTA_RH}
       erro={dados.ok ? undefined : dados.error.message}
       tentarNovamenteHref={`${rotaDoFuncionario}${query}`}
       conteudo={
