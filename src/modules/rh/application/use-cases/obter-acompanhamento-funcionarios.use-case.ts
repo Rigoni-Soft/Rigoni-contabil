@@ -82,9 +82,13 @@ export class ObterAcompanhamentoFuncionarios implements ObterAcompanhamentoFunci
       return err(new ValidationError("Não há acompanhamento de um mês que ainda não começou."));
     }
 
-    // ponytail: 2 leituras por mês da janela, só para a evolução; materializar por mês se pesar.
+    // ponytail: 2 leituras por mês da janela, só para a evolução do detalhe; a lista lê só o mês atual.
+    // Materializar por mês se pesar.
+    const janelaDeMeses = input.funcionarioId
+      ? competencia.value.ultimosMeses(MESES_DA_EVOLUCAO)
+      : [competencia.value.valor];
     const meses = await Promise.all(
-      competencia.value.ultimosMeses(MESES_DA_EVOLUCAO).map(async (mes, i, todos): Promise<Result<Mes, AppError>> => {
+      janelaDeMeses.map(async (mes, i, todos): Promise<Result<Mes, AppError>> => {
         const dia = `${mes}-01`;
         const [servicos, clientes] = await Promise.all([
           this.repositorio.listarServicos(dia),
