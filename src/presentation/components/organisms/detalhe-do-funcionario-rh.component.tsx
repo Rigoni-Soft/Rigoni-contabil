@@ -1,4 +1,4 @@
-import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { CartaoDeGrafico } from "@/presentation/components/atoms/cartao-de-grafico.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { ListaDeClientes } from "@/presentation/components/molecules/lista-de-clientes.component";
