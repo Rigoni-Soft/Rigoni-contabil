@@ -64,20 +64,28 @@ export function passosDaTroca(de: EstadoDoServico, para: EstadoDoServico): Passo
   return passos;
 }
 
-// Os serviços do mês de um Cliente, na ordem das colunas. undefined = o Cliente não está na vista do ator
-// (sem Responsável do RH, ou de outro Funcionário), e o painel dele não mostra o acompanhamento.
+// Os serviços do mês de um Cliente, na ordem das colunas. Sem linha na vista (sem Responsável do RH), todos
+// aparecem pendentes e bloqueados, com o aviso: o Líder vê o que acompanhará e atribui o Responsável.
+// ponytail: "sem linha" também cobre cliente de outro Funcionário; o aviso fala de Responsável nos dois casos.
 export function servicosDoCliente(dto: AcompanhamentoMensalDto, clienteId: string) {
   const linha = dto.linhas.find((l) => l.clienteId === clienteId);
-  if (!linha) return undefined;
   const sistema = new Set(dto.servicos.filter((s) => s.sistema).map((s) => s.id));
-  return linha.celulas.map((c) => ({
+  const semResponsavel = "O cliente não tem Responsável do RH; atribua um para marcar.";
+  const bloqueioDe = (id: string) =>
+    sistema.has(id)
+      ? "O Holerite é preenchido pelo sistema."
+      : !linha
+        ? semResponsavel
+        : dto.podeMarcar
+          ? undefined
+          : "Só o Funcionário Responsável pelo cliente altera.";
+  const celulas =
+    linha?.celulas ??
+    dto.servicos.map((s) => ({ servicoId: s.id, aplica: true, concluido: false }));
+  return celulas.map((c) => ({
     servicoId: c.servicoId,
     nome: dto.servicos.find((s) => s.id === c.servicoId)?.nome ?? "",
     estado: estadoDoServico(c),
-    bloqueio: sistema.has(c.servicoId)
-      ? "O Holerite é preenchido pelo sistema."
-      : dto.podeMarcar
-        ? undefined
-        : "Só o Funcionário Responsável pelo cliente altera.",
+    bloqueio: bloqueioDe(c.servicoId),
   }));
 }

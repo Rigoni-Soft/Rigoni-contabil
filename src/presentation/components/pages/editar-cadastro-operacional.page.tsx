@@ -40,9 +40,18 @@ export function EditarCadastroOperacionalPage({
               fica no topo dele, em vez de lá embaixo, fora da vista. */}
           {alteracoesContratuais}
           {responsavelDoSetor}
-          {acompanhamentoRh}
-          {observacoesRh}
+          {/* Admin: SN e RH em dois cartões iguais (o RH não entra no <form> do SN: seria form aninhado). */}
+          {observacoesRh ? null : acompanhamentoRh}
           {formulario}
+          {observacoesRh && (
+            <Pilha
+              espaco={6}
+              className="rc-guilloche-frame rounded-lg border border-border bg-card p-5 shadow-sm"
+            >
+              {acompanhamentoRh}
+              {observacoesRh}
+            </Pilha>
+          )}
         </Pilha>
       }
     />

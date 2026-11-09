@@ -86,8 +86,8 @@ function montarFormulario(
   );
 }
 
-// O acompanhamento do mês do RH, no painel do Cliente (como o DAS no do SN). Some quando o Cliente não
-// está na vista do ator ou o mês é inválido; o resto da tela não depende dele.
+// O acompanhamento do mês do RH, no painel do Cliente (como o DAS no do SN). Some quando o mês é inválido
+// ou o ator não vê o RH; sem Responsável, os serviços vêm bloqueados; o resto da tela não depende dele.
 // ponytail: lê a carteira do RH inteira para achar este Cliente; filtrar por cliente no repositório se pesar.
 async function acompanhamentoRhDoCliente(
   clienteId: string,
@@ -99,7 +99,6 @@ async function acompanhamentoRhDoCliente(
   const acompanhamento = await carregarAcompanhamentoMensal(mes);
   if (!acompanhamento.ok) return undefined;
   const servicos = servicosDoCliente(acompanhamento.value, clienteId);
-  if (!servicos) return undefined;
 
   const { competencia } = acompanhamento.value;
   return (

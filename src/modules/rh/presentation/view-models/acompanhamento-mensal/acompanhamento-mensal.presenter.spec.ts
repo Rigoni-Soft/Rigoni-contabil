@@ -42,13 +42,18 @@ describe("acompanhamento-mensal.presenter", () => {
       ],
     };
 
-    expect(servicosDoCliente(dto, "c1")?.map((s) => [s.nome, s.estado, s.bloqueio])).toEqual([
+    expect(servicosDoCliente(dto, "c1").map((s) => [s.nome, s.estado, s.bloqueio])).toEqual([
       ["FGTS", "concluido", undefined],
       ["SIB", "nao_aplica", undefined],
       ["NUTRI", "pendente", undefined],
       ["Holerite", "pendente", "O Holerite é preenchido pelo sistema."],
     ]);
-    expect(servicosDoCliente(dto, "outro")).toBeUndefined();
+    expect(servicosDoCliente(dto, "outro").map((s) => [s.nome, s.estado, s.bloqueio])).toEqual([
+      ["FGTS", "pendente", "O cliente não tem Responsável do RH; atribua um para marcar."],
+      ["SIB", "pendente", "O cliente não tem Responsável do RH; atribua um para marcar."],
+      ["NUTRI", "pendente", "O cliente não tem Responsável do RH; atribua um para marcar."],
+      ["Holerite", "pendente", "O Holerite é preenchido pelo sistema."],
+    ]);
   });
 
   it("troca o estado da célula na ordem que nunca deixa concluído um serviço que não se aplica", () => {
