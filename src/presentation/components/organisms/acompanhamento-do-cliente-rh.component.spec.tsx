@@ -22,6 +22,7 @@ describe("AcompanhamentoDoClienteRh", () => {
     expect(screen.getByLabelText("FGTS")).toHaveValue("pendente");
     expect(screen.getByLabelText("FGTS")).toBeEnabled();
     expect(screen.getByLabelText("Holerite")).toBeDisabled();
+    expect(screen.getByLabelText("Holerite")).toHaveAccessibleDescription("O Holerite é preenchido pelo sistema.");
   });
 
   it("trocar o estado chama onTrocar com o serviço, o estado de origem e o de destino", async () => {

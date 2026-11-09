@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { ComparativosRh } from "@/presentation/components/organisms/comparativos-rh.component";
 import { ResumoDoSetor } from "@/presentation/components/organisms/resumo-do-setor.component";
 import { ResumoDoSetorPage } from "@/presentation/components/pages/resumo-do-setor.page";
@@ -43,17 +44,18 @@ export default async function Page() {
     carregarAcompanhamentoMensal(),
     verFuncionarios ? carregarAcompanhamentoFuncionarios() : undefined,
   ]);
-  const resumo =
-    base.ok && mensal.ok && (!funcionarios || funcionarios.ok)
-      ? {
-          ok: true as const,
-          value: juntarResumoRh(
-            base.value,
-            cardsDoAcompanhamento(mensal.value),
-            funcionarios && cardsDosFuncionarios(funcionarios.value, `${ROTA_RH}/funcionarios`),
-          ),
-        }
-      : { ok: false as const };
+  // Se o acompanhamento falhar, o dashboard segue com a carteira e o Parcelamento e avisa.
+  const acompanhamentoFalhou = !mensal.ok || (funcionarios && !funcionarios.ok);
+  const resumo = base.ok
+    ? {
+        ok: true as const,
+        value: juntarResumoRh(
+          base.value,
+          mensal.ok ? cardsDoAcompanhamento(mensal.value) : undefined,
+          funcionarios?.ok ? cardsDosFuncionarios(funcionarios.value, `${ROTA_RH}/funcionarios`) : undefined,
+        ),
+      }
+    : { ok: false as const };
 
   return (
     <ResumoDoSetorPage
@@ -73,9 +75,16 @@ export default async function Page() {
         )
       }
       acoes={
-        podeGerirServicosRh(sessao.papel, sessao.setor) && (
-          <LinkDeAcao href={`${ROTA_RH}/servicos`}>Serviços do acompanhamento</LinkDeAcao>
-        )
+        <>
+          {acompanhamentoFalhou && (
+            <Texto variante="alerta" role="alert">
+              Não foi possível carregar o acompanhamento. Recarregue a página.
+            </Texto>
+          )}
+          {podeGerirServicosRh(sessao.papel, sessao.setor) && (
+            <LinkDeAcao href={`${ROTA_RH}/servicos`}>Serviços do acompanhamento</LinkDeAcao>
+          )}
+        </>
       }
       comparativos={
         resumo.ok &&

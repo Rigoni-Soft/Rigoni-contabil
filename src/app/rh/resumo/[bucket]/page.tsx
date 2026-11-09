@@ -33,17 +33,16 @@ export default async function Page({ params }: Props) {
       ? carregarAcompanhamentoFuncionarios()
       : undefined,
   ]);
-  const resumo =
-    base.ok && mensal.ok && (!funcionarios || funcionarios.ok)
-      ? {
-          ok: true as const,
-          value: juntarResumoRh(
-            base.value,
-            cardsDoAcompanhamento(mensal.value),
-            funcionarios && cardsDosFuncionarios(funcionarios.value, `${ROTA_RH}/funcionarios`),
-          ),
-        }
-      : { ok: false as const };
+  const resumo = base.ok
+    ? {
+        ok: true as const,
+        value: juntarResumoRh(
+          base.value,
+          mensal.ok ? cardsDoAcompanhamento(mensal.value) : undefined,
+          funcionarios?.ok ? cardsDosFuncionarios(funcionarios.value, `${ROTA_RH}/funcionarios`) : undefined,
+        ),
+      }
+    : { ok: false as const };
   const header = <CabecalhoDoShellContainer sessao={sessao} />;
   if (!resumo.ok) {
     return (

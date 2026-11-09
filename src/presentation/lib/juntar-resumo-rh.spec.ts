@@ -25,4 +25,10 @@ describe("juntarResumoRh", () => {
 
     expect(r.grupos.map((g) => g.titulo)).toEqual(["Carteira", "Acompanhamento", "Parcelamento"]);
   });
+
+  it("um grupo que falhou na leitura (undefined) é pulado", () => {
+    const r = juntarResumoRh(resumo, undefined, funcionarios);
+
+    expect(r.grupos.map((g) => g.titulo)).toEqual(["Carteira", "Funcionários", "Parcelamento"]);
+  });
 });

@@ -57,7 +57,7 @@ export function AcompanhamentoDoClienteRh({
               value={s.estado}
               className={cn("w-44", CLASSE_DO_ESTADO[s.estado], pendente && "cursor-wait opacity-70")}
               disabled={!!s.bloqueio}
-              title={s.bloqueio}
+              aria-describedby={s.bloqueio ? `bloqueio-${s.servicoId}` : undefined}
               aria-busy={pendente}
               onChange={(e) => !pendente && onTrocar(s.servicoId, s.estado, e.target.value as EstadoDoServico)}
             >
@@ -65,6 +65,11 @@ export function AcompanhamentoDoClienteRh({
               <Opcao value="concluido">Concluído</Opcao>
               <Opcao value="nao_aplica">Não se aplica</Opcao>
             </Select>
+            {s.bloqueio && (
+              <Texto como="span" variante="somenteLeitor" id={`bloqueio-${s.servicoId}`}>
+                {s.bloqueio}
+              </Texto>
+            )}
           </Linha>
         ))}
       </Pilha>
