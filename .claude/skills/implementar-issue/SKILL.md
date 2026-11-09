@@ -36,3 +36,5 @@ Rode `yarn tsc --noEmit`, `yarn lint` e `yarn test`. **Critério de saída: cód
 Reporte: branch, base, commits e o próximo passo: `/gate-qualidade [base]`. **Nunca `git push`, nem abrir PR, sem ordem explícita do usuário** (um hook também pede confirmação).
 
 Pedido do usuário que mexa em **permissão** (quem lê, marca, edita ou atribui) é conferido antes de codar com os AC da issue e o `CONTEXT.md`; se contradisser algum, pergunte qual vale em vez de implementar (o gate só pega o conflito depois do código).
+
+Ao **refatorar uma peça de UI** que o usuário já ajustou (espaço, ordem, destaque, cor), releia os pedidos de UI dele antes de reportar: o jest não pega CSS, e uma refatoração já perdeu o espaço abaixo do mês de referência.

@@ -84,6 +84,8 @@ function montarFormulario(
         opcoes.atribuiNoCadastro && podeAtribuirResponsavel(sessao.papel, sessao.setor)
       }
       aoSalvar={{ tipo: "voltar", href: hrefSeguro(opcoes.voltarPara) }}
+      // Admin: o mês abre o cartão do SN, como no cadastro do RH; a lista de serviços fica no cartão do RH.
+      mesDoAcompanhamento={opcoes.acompanhamentoRh?.mes}
     />
   );
 }
@@ -211,14 +213,7 @@ export default async function Page({ params, searchParams }: Props) {
         ) : undefined
       }
       responsavelDoSetor={cadastroDoRh ? undefined : campoResponsavel}
-      acompanhamentoRh={
-        cadastroDoRh || !acompanhamentoRh ? undefined : (
-          <>
-            {acompanhamentoRh.mes}
-            {acompanhamentoRh.corpo}
-          </>
-        )
-      }
+      acompanhamentoRh={cadastroDoRh ? undefined : acompanhamentoRh?.corpo}
       observacoesRh={
         observacoesRhDoAdmin?.ok && observacoesRhDoAdmin.value ? (
           <ObservacoesDoRhContainer

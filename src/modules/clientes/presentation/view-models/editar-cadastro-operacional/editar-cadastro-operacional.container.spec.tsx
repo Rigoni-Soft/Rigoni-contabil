@@ -82,6 +82,22 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(screen.queryByRole("button", { name: /salvar/i })).not.toBeInTheDocument();
   });
 
+  it("Admin: o mês do acompanhamento do RH abre o cartão, depois da nota e antes da Empresa", () => {
+    render(
+      <EditarCadastroOperacionalContainer
+        dados={dados}
+        readOnly={false}
+        mesDoAcompanhamento={<a href="?mes=2026-10">Mês anterior</a>}
+      />,
+    );
+
+    const antes = (a: Node, b: Node) =>
+      a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING;
+    const mes = screen.getByRole("link", { name: "Mês anterior" });
+    expect(antes(screen.getByText(/são obrigatórios/), mes)).toBeTruthy();
+    expect(antes(mes, screen.getByLabelText(/Empresa/))).toBeTruthy();
+  });
+
   it.each(["lucro_presumido", "lucro_real"])(
     "Regime %s: Admin ainda tem como anexar a alteração contratual",
     (regime) => {

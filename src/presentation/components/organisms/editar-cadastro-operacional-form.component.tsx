@@ -81,6 +81,8 @@ type EditarCadastroOperacionalFormProps = {
   onCancelar?: () => void;
   // Cartão do documento contratual com "Abrir em nova aba" (só leitura); ausente = ator sem acesso.
   documentoContratual?: React.ReactNode;
+  // O mês do acompanhamento do RH (só o Admin): o cabeçalho do cartão, logo depois da nota de obrigatórios.
+  mesDoAcompanhamento?: React.ReactNode;
   // Guias mensais de um Parcelamento PGFN já salvo: o Container monta a região (ela tem estado próprio).
   // `codigo` nomeia a região de cada Parcelamento para o leitor de tela.
   guiasDaParcela?: (parcelamentoId: string, codigo: string, interno: boolean) => React.ReactNode;
@@ -112,6 +114,7 @@ export function EditarCadastroOperacionalForm({
   onLimpar,
   onCancelar,
   documentoContratual,
+  mesDoAcompanhamento,
   guiasDaParcela,
 }: EditarCadastroOperacionalFormProps) {
   return (
@@ -125,6 +128,8 @@ export function EditarCadastroOperacionalForm({
       )}
     >
       {!readOnly && <NotaDeObrigatorio />}
+
+      {mesDoAcompanhamento}
 
       <CabecalhoDoCadastro cabecalho={cabecalho} documentoContratual={documentoContratual}>
         <ResponsavelDoCadastro
