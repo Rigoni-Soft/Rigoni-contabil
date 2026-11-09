@@ -44,7 +44,6 @@ describe("ComparativosRh", () => {
         acompanhamento={ACOMPANHAMENTO}
         parcelamento={PARCELAMENTO}
         responsaveis={RESPONSAVEIS}
-        responsaveisHref="/rh/funcionarios"
         totalClientes={3}
       />,
     );

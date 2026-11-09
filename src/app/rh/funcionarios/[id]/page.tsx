@@ -17,8 +17,6 @@ import {
 } from "@/shared/kernel/papeis";
 import { ROTA_RH, ROTA_RH_FUNCIONARIOS } from "@/shared/kernel/setores";
 
-const ROTA = ROTA_RH_FUNCIONARIOS;
-
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ mes?: string }> };
 
 export default async function Page({ params, searchParams }: Props) {
@@ -32,7 +30,7 @@ export default async function Page({ params, searchParams }: Props) {
   ]);
   if (dados.ok && !dados.value.detalhe) notFound();
   const query = dados.ok ? `?mes=${dados.value.competencia}` : "";
-  const rotaDoFuncionario = `${ROTA}/${encodeURIComponent(id)}`;
+  const rotaDoFuncionario = `${ROTA_RH_FUNCIONARIOS}/${encodeURIComponent(id)}`;
 
   return (
     <AcompanhamentoMensalPage
@@ -48,7 +46,7 @@ export default async function Page({ params, searchParams }: Props) {
         />
       }
       titulo="Acompanhamento do funcionário"
-      voltarHref={ROTA}
+      voltarHref={ROTA_RH_FUNCIONARIOS}
       erro={dados.ok ? undefined : dados.error.message}
       tentarNovamenteHref={`${rotaDoFuncionario}${query}`}
       conteudo={

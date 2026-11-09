@@ -25,8 +25,6 @@ import {
 } from "@/shared/kernel/papeis";
 import { ROTA_RH, ROTA_RH_FUNCIONARIOS } from "@/shared/kernel/setores";
 
-const ROTA = ROTA_RH_FUNCIONARIOS;
-
 export default async function Page({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {
   const sessao = await exigirSessao();
   if (!podeVerAcompanhamentoDosFuncionariosRh(sessao.papel, sessao.setor)) redirect("/");
@@ -53,19 +51,19 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ m
       titulo="Acompanhamento dos funcionários"
       voltarHref={ROTA_RH}
       erro={dados.ok ? undefined : dados.error.message}
-      tentarNovamenteHref={ROTA}
+      tentarNovamenteHref={ROTA_RH_FUNCIONARIOS}
       conteudo={
         dados.ok && (
           <AcompanhamentoDosFuncionarios
             rotuloMes={rotuloDaCompetencia(dados.value.competencia)}
-            anteriorHref={`${ROTA}?mes=${mesVizinho(dados.value.competencia, -1)}`}
+            anteriorHref={`${ROTA_RH_FUNCIONARIOS}?mes=${mesVizinho(dados.value.competencia, -1)}`}
             proximoHref={
               dados.value.competencia < mesAtual()
-                ? `${ROTA}?mes=${mesVizinho(dados.value.competencia, 1)}`
+                ? `${ROTA_RH_FUNCIONARIOS}?mes=${mesVizinho(dados.value.competencia, 1)}`
                 : undefined
             }
-            funcionarios={funcionariosDoGrafico(dados.value, ROTA)}
-            semResponsavel={semResponsavelDoGrafico(dados.value, ROTA)}
+            funcionarios={funcionariosDoGrafico(dados.value, ROTA_RH_FUNCIONARIOS)}
+            semResponsavel={semResponsavelDoGrafico(dados.value, ROTA_RH_FUNCIONARIOS)}
           />
         )
       }

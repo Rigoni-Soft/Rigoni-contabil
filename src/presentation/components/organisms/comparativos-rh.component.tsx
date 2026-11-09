@@ -5,13 +5,13 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 import { BarrasDeFatias } from "@/presentation/components/molecules/barras-de-fatias.component";
 import { DonutDeFatias } from "@/presentation/components/molecules/donut-de-fatias.component";
 import type { Fatia } from "@/presentation/lib/fatia-de-grafico";
+import { ROTA_RH_FUNCIONARIOS } from "@/shared/kernel/setores";
 
 type Props = {
   acompanhamento: Fatia[];
   parcelamento: Fatia[];
-  // Só quem vê o acompanhamento dos funcionários (Líder e Admin) recebe; o card inteiro abre `responsaveisHref`.
+  // Só quem vê o acompanhamento dos funcionários (Líder e Admin) recebe; o card inteiro abre a lista deles.
   responsaveis?: Fatia[];
-  responsaveisHref?: string;
   totalClientes: number;
 };
 
@@ -20,10 +20,8 @@ export function ComparativosRh({
   acompanhamento,
   parcelamento,
   responsaveis,
-  responsaveisHref,
   totalClientes,
 }: Props) {
-  const comResponsaveis = responsaveis && responsaveisHref;
   return (
     <Pilha espaco={4} como="section" aria-labelledby="comparativos-rh-titulo">
       <Texto variante="subtitulo" como="h2" id="comparativos-rh-titulo">
@@ -31,7 +29,7 @@ export function ComparativosRh({
       </Texto>
       <Caixa
         className={
-          comResponsaveis ? "grid gap-4 md:grid-cols-2 lg:grid-cols-3" : "grid gap-4 md:grid-cols-2"
+          responsaveis ? "grid gap-4 md:grid-cols-2 lg:grid-cols-3" : "grid gap-4 md:grid-cols-2"
         }
       >
         <DonutDeFatias titulo="Status do acompanhamento" fatias={acompanhamento} />
@@ -41,9 +39,9 @@ export function ComparativosRh({
           totalClientes={totalClientes}
           nota="Um cliente pode estar em mais de uma situação."
         />
-        {comResponsaveis && (
+        {responsaveis && (
           <Link
-            href={responsaveisHref}
+            href={ROTA_RH_FUNCIONARIOS}
             className="rounded-lg hover:bg-accent/40 focus-visible:outline-2 focus-visible:outline-ring"
           >
             <BarrasDeFatias

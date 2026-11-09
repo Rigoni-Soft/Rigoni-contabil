@@ -21,7 +21,7 @@ import {
   fatiasDoAcompanhamento,
 } from "@/modules/rh/presentation/view-models/resumo-rh/resumo-rh.presenter";
 import { podeGerirServicosRh, podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
-import { ROTA_RH, ROTA_RH_FUNCIONARIOS, SETOR_RH } from "@/shared/kernel/setores";
+import { ROTA_RH, SETOR_RH } from "@/shared/kernel/setores";
 
 // ponytail: montagem repetida de app/simples-nacional/page.tsx; extrair no 3º Setor com resumo.
 export default async function Page() {
@@ -88,7 +88,6 @@ export default async function Page() {
             acompanhamento={fatiasDoAcompanhamento(mensal.value)}
             parcelamento={resumo.value.comparativos.parcelamento}
             responsaveis={resumo.value.comparativos.responsaveis}
-            responsaveisHref={ROTA_RH_FUNCIONARIOS}
             totalClientes={resumo.value.totalClientes}
           />
         )
