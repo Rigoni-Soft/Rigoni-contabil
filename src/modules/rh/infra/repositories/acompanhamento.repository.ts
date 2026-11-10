@@ -2,12 +2,12 @@ import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 
 import type {
   ClienteAcompanhamentoDto,
+  EscopoDoAplica,
   ServicoAcompanhamentoDto,
 } from "@/modules/rh/application/dtos/acompanhamento.dto";
 import type {
   AcompanhamentoRepository,
   ClienteDoAcompanhamentoDto,
-  EscopoDoAplica,
 } from "@/modules/rh/application/ports/out/acompanhamento.repository";
 import type { RegistroDeErrosPort } from "@/modules/rh/application/ports/out/registro-de-erros.provider";
 import type { AppError } from "@/shared/errors/app.error";
@@ -198,27 +198,12 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
     competencia: string,
     escopo: EscopoDoAplica,
   ): Promise<Result<void, AppError>> {
-    const tabela = () => this.supabase.from("rh_cliente_servico_aplica");
-    const doPar = () => tabela().delete().eq("cliente_id", clienteId).eq("servico_id", servicoId);
-    // Sem linha o serviço se aplica: voltar ao padrão apaga a exceção (a do mês e a de "nunca").
-    if (escopo === "aplica") {
-      const { error } = await doPar().or(`competencia.is.null,competencia.eq.${competencia}`);
-      return this.resultado(error);
-    }
-    const base = { cliente_id: clienteId, servico_id: servicoId, aplica: false };
-    if (escopo === "mes") {
-      // Sair de "nunca" para "só este mês" devolve o serviço aos demais meses.
-      const saida = await doPar().is("competencia", null);
-      if (saida.error) return this.resultado(saida.error);
-      const { error } = await tabela().upsert(
-        { ...base, competencia },
-        { onConflict: "cliente_id,servico_id,competencia" },
-      );
-      return this.resultado(error);
-    }
-    const limpeza = await doPar();
-    if (limpeza.error) return this.resultado(limpeza.error);
-    const { error } = await tabela().insert({ ...base, competencia: null });
+    const { error } = await this.supabase.rpc("definir_aplica_rh", {
+      p_cliente_id: clienteId,
+      p_servico_id: servicoId,
+      p_competencia: competencia,
+      p_escopo: escopo,
+    });
     return this.resultado(error);
   }
 

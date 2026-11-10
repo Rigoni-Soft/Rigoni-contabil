@@ -233,6 +233,23 @@ CREATE TRIGGER rh_servicos_acompanhamento_auditar AFTER INSERT OR UPDATE ON publ
     FOR EACH ROW EXECUTE FUNCTION public.auditar_rh_acompanhamento();
 CREATE TRIGGER rh_cliente_servico_aplica_auditar AFTER INSERT OR UPDATE OR DELETE ON public.rh_cliente_servico_aplica
     FOR EACH ROW EXECUTE FUNCTION public.auditar_rh_acompanhamento();
+-- "Não se aplica" (no mês ou sempre) leva a marcação do par junto: sem isso ela reapareceria concluída ao reativar.
+CREATE FUNCTION public.limpar_marcacao_rh_nao_aplica() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+begin
+  if not new.aplica then
+    delete from public.rh_acompanhamento_marcacoes
+    where cliente_id = new.cliente_id and servico_id = new.servico_id
+      and (new.competencia is null or competencia = new.competencia);
+  end if;
+  return null;
+end;
+$$;
+CREATE TRIGGER rh_cliente_servico_aplica_limpar_marcacao AFTER INSERT OR UPDATE ON public.rh_cliente_servico_aplica
+    FOR EACH ROW EXECUTE FUNCTION public.limpar_marcacao_rh_nao_aplica();
+
 CREATE TRIGGER rh_acompanhamento_marcacoes_auditar AFTER INSERT OR DELETE ON public.rh_acompanhamento_marcacoes
     FOR EACH ROW EXECUTE FUNCTION public.auditar_rh_acompanhamento();
 
@@ -279,3 +296,45 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.rh_cliente_servico_aplica T
 GRANT SELECT, INSERT, DELETE ON TABLE public.rh_acompanhamento_marcacoes TO authenticated;
 GRANT ALL ON TABLE public.rh_servicos_acompanhamento, public.rh_cliente_servico_aplica,
     public.rh_acompanhamento_marcacoes TO service_role;
+
+-- Troca o "se aplica" do par numa transação só (apaga a exceção antiga e grava a nova): ou vale tudo ou nada.
+-- p_escopo: 'aplica' volta ao padrão; 'mes' dispensa só p_competencia; 'sempre' dispensa em todos os meses.
+CREATE FUNCTION public.definir_aplica_rh(p_cliente_id uuid, p_servico_id uuid, p_competencia date, p_escopo text) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+begin
+  if not public.sou_responsavel_rh_do_cliente(p_cliente_id) then
+    raise exception 'Sem permissão para alterar o acompanhamento do RH.' using errcode = '42501';
+  end if;
+  if not public.servico_rh_editavel(p_servico_id) then
+    raise exception 'servico_rh_do_sistema';
+  end if;
+  if p_escopo not in ('aplica', 'mes', 'sempre') or p_competencia <> date_trunc('month', p_competencia)::date then
+    raise exception 'Escopo ou competência inválidos.' using errcode = '22023';
+  end if;
+  if p_escopo = 'mes' and p_competencia > date_trunc('month', now() at time zone 'America/Sao_Paulo')::date then
+    raise exception 'competencia_futura';
+  end if;
+
+  if p_escopo = 'aplica' then
+    delete from public.rh_cliente_servico_aplica
+    where cliente_id = p_cliente_id and servico_id = p_servico_id
+      and (competencia is null or competencia = p_competencia);
+  elsif p_escopo = 'mes' then
+    -- Sair de "sempre" para "só este mês" devolve o serviço aos demais meses.
+    delete from public.rh_cliente_servico_aplica
+    where cliente_id = p_cliente_id and servico_id = p_servico_id and competencia is null;
+    insert into public.rh_cliente_servico_aplica (cliente_id, servico_id, aplica, competencia)
+    values (p_cliente_id, p_servico_id, false, p_competencia)
+    on conflict (cliente_id, servico_id, competencia) do nothing;
+  else
+    delete from public.rh_cliente_servico_aplica where cliente_id = p_cliente_id and servico_id = p_servico_id;
+    insert into public.rh_cliente_servico_aplica (cliente_id, servico_id, aplica, competencia)
+    values (p_cliente_id, p_servico_id, false, null)
+    on conflict (cliente_id, servico_id) where competencia is null do nothing;
+  end if;
+end;
+$$;
+REVOKE ALL ON FUNCTION public.definir_aplica_rh(uuid, uuid, date, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.definir_aplica_rh(uuid, uuid, date, text) TO authenticated, service_role;

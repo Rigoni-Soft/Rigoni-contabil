@@ -226,6 +226,27 @@ describe("Acompanhamento mensal do RH (integração)", () => {
     await servico.from("registros_auditoria").delete().like("alvo", `${CNPJ_A} FGTS%`);
   });
 
+  it("'não se aplica' apaga a marcação do par (do mês ou de todos), e repetir 'sempre' não falha", async () => {
+    const { repo } = await comoFuncionarioRH();
+    const anterior = mesVizinho(MES.slice(0, 7), -1) + "-01";
+    const concluidos = async (mes: string) =>
+      doClienteA(await repo.listarClientes(mes, FUNCIONARIO_RH_ID))?.concluidos;
+
+    await repo.marcar(clienteA, fgts, MES, true, FUNCIONARIO_RH_ID);
+    await repo.marcar(clienteA, fgts, anterior, true, FUNCIONARIO_RH_ID);
+    await repo.definirAplica(clienteA, fgts, MES, "mes");
+    await repo.definirAplica(clienteA, fgts, MES, "aplica");
+    expect(await concluidos(MES)).not.toContain(fgts);
+    expect(await concluidos(anterior)).toContain(fgts);
+
+    await repo.definirAplica(clienteA, fgts, MES, "sempre");
+    const repetido = await repo.definirAplica(clienteA, fgts, MES, "sempre");
+    await repo.definirAplica(clienteA, fgts, MES, "aplica");
+    expect(repetido.ok).toBe(true);
+    expect(await concluidos(anterior)).not.toContain(fgts);
+    await servico.from("registros_auditoria").delete().like("alvo", `${CNPJ_A} FGTS%`);
+  });
+
   it("não define 'se aplica' do cliente de outro Responsável nem do Holerite", async () => {
     const { repo } = await comoFuncionarioRH();
 
