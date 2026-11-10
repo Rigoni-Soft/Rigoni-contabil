@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
 
@@ -141,14 +141,7 @@ export function EditarCadastroOperacionalContainer({
   const elegiveis = useResponsaveisElegiveis(podeAtribuirResponsavel && listaAberta);
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
   const parcelamentoCampos = useFieldArray({ control, name: "parcelamentos" });
-  // A leitura do PDF termina depois de a lista poder ter mudado: acha a linha pelo id, no momento.
-  const camposAtuais = useRef(parcelamentoCampos.fields);
-  useEffect(() => {
-    camposAtuais.current = parcelamentoCampos.fields;
-  });
-  const leitura = useLeituraDoPdf(dados?.id ?? "", setValue, (id) =>
-    camposAtuais.current.findIndex((campo) => campo.id === id),
-  );
+  const leitura = useLeituraDoPdf(dados?.id ?? "", setValue, parcelamentoCampos.fields);
 
   const { salvar, pendente, erroServidor, sucesso, limparMensagens } = useSalvarCadastroOperacional(
     {
