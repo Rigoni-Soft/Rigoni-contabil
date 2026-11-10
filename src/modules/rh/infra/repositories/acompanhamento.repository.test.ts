@@ -6,7 +6,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { Client } from "pg";
 
-import { primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
+import { mesVizinho, primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
 
 import { removerClientesDeTeste } from "../../../../../test-support/clientes-de-teste";
 import { SupabaseAcompanhamentoRepository } from "./acompanhamento.repository";
@@ -180,26 +180,57 @@ describe("Acompanhamento mensal do RH (integração)", () => {
     expect(!futuro.ok && futuro.error.code).toBe("VALIDATION_ERROR");
   });
 
-  it("serviço que não se aplica fica registrado, e voltar ao padrão apaga a exceção", async () => {
+  it("'não se aplica' vale só no mês e se renova; 'nunca' vale em todos; voltar ao padrão apaga a exceção", async () => {
     const { repo } = await comoFuncionarioRH();
+    const anterior = mesVizinho(MES.slice(0, 7), -1) + "-01";
+    const naoAplica = async (mes: string) =>
+      doClienteA(await repo.listarClientes(mes, FUNCIONARIO_RH_ID))?.naoAplica;
 
-    await repo.definirAplica(clienteA, fgts, false);
-    const nao = await repo.listarClientes(MES, FUNCIONARIO_RH_ID);
-    await repo.definirAplica(clienteA, fgts, true);
-    const sim = await repo.listarClientes(MES, FUNCIONARIO_RH_ID);
+    await repo.definirAplica(clienteA, fgts, MES, "mes");
+    expect(await naoAplica(MES)).toEqual([fgts]);
+    expect(await naoAplica(anterior)).toEqual([]);
 
-    expect(doClienteA(nao)?.naoAplica).toEqual([fgts]);
-    expect(doClienteA(sim)?.naoAplica).toEqual([]);
-    expect(await auditorias("rh.acompanhamento.nao-aplicar", `${CNPJ_A} FGTS`)).toHaveLength(1);
-    expect(await auditorias("rh.acompanhamento.aplicar", `${CNPJ_A} FGTS`)).toHaveLength(1);
+    await repo.definirAplica(clienteA, fgts, MES, "sempre");
+    expect(await naoAplica(MES)).toEqual([fgts]);
+    expect(await naoAplica(anterior)).toEqual([fgts]);
+    const sempre = doClienteA(await repo.listarClientes(MES, FUNCIONARIO_RH_ID));
+    expect(sempre?.naoAplicaSempre).toEqual([fgts]);
+
+    await repo.definirAplica(clienteA, fgts, MES, "aplica");
+    expect(await naoAplica(MES)).toEqual([]);
+    expect(await naoAplica(anterior)).toEqual([]);
+    expect(
+      await auditorias("rh.acompanhamento.nao-aplicar", `${CNPJ_A} FGTS ${MES.slice(0, 7)}`),
+    ).toHaveLength(1);
+    expect(await auditorias("rh.acompanhamento.nao-aplicar", `${CNPJ_A} FGTS sempre`)).toHaveLength(
+      1,
+    );
+    await servico.from("registros_auditoria").delete().like("alvo", `${CNPJ_A} FGTS%`);
+  });
+
+  it("não marca concluído um serviço que não se aplica ao cliente (no mês ou sempre)", async () => {
+    const { repo } = await comoFuncionarioRH();
+    const anterior = mesVizinho(MES.slice(0, 7), -1) + "-01";
+
+    await repo.definirAplica(clienteA, fgts, MES, "mes");
+    const noMes = await repo.marcar(clienteA, fgts, MES, true, FUNCIONARIO_RH_ID);
+    const outroMes = await repo.marcar(clienteA, fgts, anterior, true, FUNCIONARIO_RH_ID);
+    await repo.marcar(clienteA, fgts, anterior, false, FUNCIONARIO_RH_ID);
+    await repo.definirAplica(clienteA, fgts, MES, "sempre");
+    const sempre = await repo.marcar(clienteA, fgts, anterior, true, FUNCIONARIO_RH_ID);
+    await repo.definirAplica(clienteA, fgts, MES, "aplica");
+
+    expect(!noMes.ok && noMes.error.code).toBe("VALIDATION_ERROR");
+    expect(outroMes.ok).toBe(true);
+    expect(!sempre.ok && sempre.error.code).toBe("VALIDATION_ERROR");
     await servico.from("registros_auditoria").delete().like("alvo", `${CNPJ_A} FGTS%`);
   });
 
   it("não define 'se aplica' do cliente de outro Responsável nem do Holerite", async () => {
     const { repo } = await comoFuncionarioRH();
 
-    const outro = await repo.definirAplica(clienteB, fgts, false);
-    const hol = await repo.definirAplica(clienteA, holerite, false);
+    const outro = await repo.definirAplica(clienteB, fgts, MES, "mes");
+    const hol = await repo.definirAplica(clienteA, holerite, MES, "mes");
 
     expect(outro.ok).toBe(false);
     expect(hol.ok).toBe(false);

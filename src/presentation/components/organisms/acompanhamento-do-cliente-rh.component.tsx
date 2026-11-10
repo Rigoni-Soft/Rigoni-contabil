@@ -6,7 +6,7 @@ import { Label } from "@/presentation/components/ui/label";
 import { Select } from "@/presentation/components/ui/select";
 import { cn } from "@/presentation/lib/utils";
 
-export type EstadoDoServico = "pendente" | "concluido" | "nao_aplica";
+export type EstadoDoServico = "pendente" | "concluido" | "nao_aplica" | "nunca_aplica";
 // `bloqueio` é o motivo de o serviço não aceitar troca (ausente = editável).
 export type Servico = {
   servicoId: string;
@@ -19,6 +19,7 @@ const CLASSE_DO_ESTADO: Record<EstadoDoServico, string> = {
   pendente: "",
   concluido: "border-success/50 bg-success/15",
   nao_aplica: "border-dashed bg-muted text-muted-foreground",
+  nunca_aplica: "border-dashed bg-muted text-muted-foreground",
 };
 
 type Props = {
@@ -53,7 +54,8 @@ export function AcompanhamentoDoClienteRh({ servicos, aviso, pendente, erro, onT
             >
               <Opcao value="pendente">Pendente</Opcao>
               <Opcao value="concluido">Concluído</Opcao>
-              <Opcao value="nao_aplica">Não se aplica</Opcao>
+              <Opcao value="nao_aplica">Não se aplica neste mês</Opcao>
+              <Opcao value="nunca_aplica">Nunca se aplica</Opcao>
             </Select>
             {s.bloqueio && (
               <Texto como="span" variante="somenteLeitor" id={`bloqueio-${s.servicoId}`}>

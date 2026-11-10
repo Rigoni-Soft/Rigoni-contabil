@@ -50,6 +50,21 @@ abstract class EscreverAcompanhamento {
     }
     return ok(ator);
   }
+
+  // Só serviço de marcar à mão e presente na tabela daquele mês.
+  protected async servicoEditavel(
+    servicoId: string,
+    competenciaDia: string,
+  ): Promise<Result<void, AppError>> {
+    const servicos = await this.repositorio.listarServicos(competenciaDia);
+    if (!servicos.ok) return servicos;
+    const servico = servicos.value.find((s) => s.id === servicoId);
+    if (!servico) return err(new NotFoundError("Este serviço não está no acompanhamento do mês."));
+    if (servico.sistema) {
+      return err(new ValidationError("O Holerite é preenchido pelo sistema, não à mão."));
+    }
+    return ok(undefined);
+  }
 }
 
 export class MarcarServicoAcompanhamento
@@ -75,14 +90,8 @@ export class MarcarServicoAcompanhamento
     const ator = await this.autorizar(input.clienteId);
     if (!ator.ok) return ator;
 
-    // Só serviço de marcar à mão e presente na tabela daquele mês.
-    const servicos = await this.repositorio.listarServicos(competencia.value.primeiroDia);
-    if (!servicos.ok) return servicos;
-    const servico = servicos.value.find((s) => s.id === input.servicoId);
-    if (!servico) return err(new NotFoundError("Este serviço não está no acompanhamento do mês."));
-    if (servico.sistema) {
-      return err(new ValidationError("O Holerite é preenchido pelo sistema, não à mão."));
-    }
+    const servico = await this.servicoEditavel(input.servicoId, competencia.value.primeiroDia);
+    if (!servico.ok) return servico;
 
     return this.repositorio.marcar(
       input.clienteId,
@@ -103,11 +112,24 @@ export class DefinirServicoAplicavel
   }
 
   async execute(input: DefinirServicoAplicavelInput): Promise<Result<void, AppError>> {
+    const competencia = Competencia.criar(input.competencia);
+    if (!competencia.ok) return competencia;
+
     const ator = await this.autorizar(
       input.clienteId,
-      input.aplica ? "rh.acompanhamento.aplicar" : "rh.acompanhamento.nao-aplicar",
+      input.escopo === "aplica" ? "rh.acompanhamento.aplicar" : "rh.acompanhamento.nao-aplicar",
     );
     if (!ator.ok) return ator;
-    return this.repositorio.definirAplica(input.clienteId, input.servicoId, input.aplica);
+
+    // Só serviço de marcar à mão e presente na tabela daquele mês (o do sistema e o inexistente têm resposta própria).
+    const servico = await this.servicoEditavel(input.servicoId, competencia.value.primeiroDia);
+    if (!servico.ok) return servico;
+
+    return this.repositorio.definirAplica(
+      input.clienteId,
+      input.servicoId,
+      competencia.value.primeiroDia,
+      input.escopo,
+    );
   }
 }

@@ -22,12 +22,22 @@ CREATE UNIQUE INDEX rh_servicos_acompanhamento_nome_ativo_idx
     ON public.rh_servicos_acompanhamento (lower(btrim(nome))) WHERE desativado_em IS NULL;
 
 CREATE TABLE public.rh_cliente_servico_aplica (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
     cliente_id uuid NOT NULL REFERENCES public.clientes(id) ON DELETE CASCADE,
     servico_id uuid NOT NULL REFERENCES public.rh_servicos_acompanhamento(id) ON DELETE CASCADE,
     -- Sem linha, o serviço se aplica; a linha existe para registrar o "não se aplica" (e a volta).
     aplica boolean NOT NULL,
-    CONSTRAINT rh_cliente_servico_aplica_pkey PRIMARY KEY (cliente_id, servico_id)
+    -- Primeiro dia do mês em que o "não se aplica" vale (renova-se todo mês); NULL = nunca se aplica a este
+    -- Cliente (o ramo dele não tem o serviço), em todos os meses.
+    competencia date,
+    CONSTRAINT rh_cliente_servico_aplica_pkey PRIMARY KEY (id),
+    CONSTRAINT rh_cliente_servico_aplica_mes_check
+        CHECK (competencia IS NULL OR competencia = date_trunc('month', competencia)::date),
+    CONSTRAINT rh_cliente_servico_aplica_unico UNIQUE (cliente_id, servico_id, competencia)
 );
+-- UNIQUE trata NULL como distinto: este índice garante uma só linha "nunca se aplica" por Cliente e Serviço.
+CREATE UNIQUE INDEX rh_cliente_servico_aplica_sempre_idx
+    ON public.rh_cliente_servico_aplica (cliente_id, servico_id) WHERE competencia IS NULL;
 
 CREATE TABLE public.rh_acompanhamento_marcacoes (
     cliente_id uuid NOT NULL REFERENCES public.clientes(id) ON DELETE CASCADE,
@@ -148,6 +158,14 @@ begin
   if not public.servico_rh_ativo_na_competencia(new.servico_id, new.competencia) then
     raise exception 'servico_rh_fora_da_competencia';
   end if;
+  -- Marcação em serviço "não se aplica" (no mês ou sempre) ficaria órfã e reapareceria concluída depois.
+  if exists (
+    select 1 from public.rh_cliente_servico_aplica a
+    where a.cliente_id = new.cliente_id and a.servico_id = new.servico_id and not a.aplica
+      and (a.competencia is null or a.competencia = new.competencia)
+  ) then
+    raise exception 'servico_rh_nao_se_aplica';
+  end if;
   if new.competencia > date_trunc('month', now() at time zone 'America/Sao_Paulo')::date then
     raise exception 'competencia_futura';
   end if;
@@ -196,7 +214,8 @@ begin
       end if;
       -- coalesce: no DELETE em cascata (Cliente ou serviço apagado) a linha pai já não existe e o alvo é NOT NULL.
       v_alvo := coalesce((select c.cnpj from public.clientes c where c.id = v_cliente), '?')
-        || ' ' || coalesce((select s.nome from public.rh_servicos_acompanhamento s where s.id = v_servico), '?');
+        || ' ' || coalesce((select s.nome from public.rh_servicos_acompanhamento s where s.id = v_servico), '?')
+        || ' ' || coalesce(to_char(case when tg_op = 'DELETE' then old.competencia else new.competencia end, 'YYYY-MM'), 'sempre');
     else
       v_acao := case when tg_op = 'DELETE' then 'rh.acompanhamento.desmarcar' else 'rh.acompanhamento.marcar' end;
       v_alvo := coalesce((select c.cnpj from public.clientes c where c.id = v_cliente), '?')
@@ -234,7 +253,7 @@ CREATE POLICY rh_servicos_update ON public.rh_servicos_acompanhamento FOR UPDATE
     public.acesso_liberado() AND public.meu_papel() = 'lider_setor' AND public.meu_setor() = 'rh'
     AND NOT sistema);
 
--- "Se aplica" e marcação: leem o Admin, o Líder do RH e o Responsável; escreve só o Responsável do RH.
+-- "Se aplica" (por mês ou sempre) e marcação: leem o Admin, o Líder do RH e o Responsável; escreve só o Responsável do RH.
 CREATE POLICY rh_aplica_select ON public.rh_cliente_servico_aplica FOR SELECT USING (
     public.pode_ver_acompanhamento_rh(cliente_id));
 CREATE POLICY rh_aplica_insert ON public.rh_cliente_servico_aplica FOR INSERT WITH CHECK (

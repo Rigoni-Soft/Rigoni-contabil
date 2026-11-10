@@ -48,15 +48,16 @@ function resumir(
   servicos: ServicoAcompanhamentoDto[],
 ): FuncionarioAcompanhamentoDto {
   const pendentes = clientes.map((c) => pendentesDe(c, servicos));
+  const empresasQueFaltam = (servicoId: string) =>
+    clientes.filter((_, i) => pendentes[i].has(servicoId)).map((c) => c.empresa);
   return {
     ...funcionario,
     atribuidos: clientes.length,
     pontos: pontosDe(clientes, servicos),
-    faltam: servicos.map((s) => ({
-      servicoId: s.id,
-      nome: s.nome,
-      clientes: pendentes.filter((p) => p.has(s.id)).length,
-    })),
+    faltam: servicos.map((s) => {
+      const empresas = empresasQueFaltam(s.id);
+      return { servicoId: s.id, nome: s.nome, clientes: empresas.length, empresas };
+    }),
   };
 }
 

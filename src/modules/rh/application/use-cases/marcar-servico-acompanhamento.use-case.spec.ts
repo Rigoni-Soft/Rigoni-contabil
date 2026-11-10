@@ -44,6 +44,13 @@ function montar(
 const FUNC_RH = { papel: "funcionario", setor: "rh" };
 const entrada = { clienteId: "c1", servicoId: "s-fgts", competencia: "2026-11", concluido: true };
 
+const aplicarEntrada = {
+  clienteId: "c1",
+  servicoId: "s-fgts",
+  competencia: "2026-11",
+  escopo: "mes" as const,
+};
+
 describe("MarcarServicoAcompanhamento", () => {
   it("o Responsável marca o serviço na competência", async () => {
     const { marcar, gravacoes } = montar(FUNC_RH);
@@ -99,15 +106,24 @@ describe("MarcarServicoAcompanhamento", () => {
 describe("DefinirServicoAplicavel", () => {
   it("o Responsável marca o serviço como não aplicável", async () => {
     const { aplicar, gravacoes } = montar(FUNC_RH);
-    const r = await aplicar.execute({ clienteId: "c1", servicoId: "s-fgts", aplica: false });
+    const r = await aplicar.execute(aplicarEntrada);
     expect(r.ok).toBe(true);
-    expect(gravacoes).toEqual([["aplica", "c1", "s-fgts", false]]);
+    expect(gravacoes).toEqual([["aplica", "c1", "s-fgts", "2026-11-01", "mes"]]);
+  });
+
+  it("recusa o Holerite e o serviço fora da tabela do mês, sem gravar", async () => {
+    const { aplicar, gravacoes } = montar(FUNC_RH);
+    const hol = await aplicar.execute({ ...aplicarEntrada, servicoId: "s-hol" });
+    const fora = await aplicar.execute({ ...aplicarEntrada, servicoId: "s-antigo" });
+    expect(!hol.ok && hol.error.code).toBe("VALIDATION_ERROR");
+    expect(!fora.ok && fora.error.code).toBe("NOT_FOUND");
+    expect(gravacoes).toEqual([]);
   });
 
   it("recusa quem não é o Responsável e audita a ação tentada", async () => {
     const { aplicar, gravacoes, falhas } = montar(FUNC_RH, "outro");
-    const r = await aplicar.execute({ clienteId: "c1", servicoId: "s-fgts", aplica: false });
-    await aplicar.execute({ clienteId: "c1", servicoId: "s-fgts", aplica: true });
+    const r = await aplicar.execute(aplicarEntrada);
+    await aplicar.execute({ ...aplicarEntrada, escopo: "aplica" });
     expect(!r.ok && r.error.code).toBe("FORBIDDEN");
     expect(gravacoes).toEqual([]);
     expect(falhas.map((f) => f.acao)).toEqual([

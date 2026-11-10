@@ -1,3 +1,4 @@
+import type { EscopoDoAplica } from "@/modules/rh/application/ports/out/acompanhamento.repository";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
@@ -11,7 +12,8 @@ export type MarcarServicoAcompanhamentoInput = {
 export type DefinirServicoAplicavelInput = {
   clienteId: string;
   servicoId: string;
-  aplica: boolean;
+  competencia: string;
+  escopo: EscopoDoAplica;
 };
 
 export interface MarcarServicoAcompanhamentoPort {

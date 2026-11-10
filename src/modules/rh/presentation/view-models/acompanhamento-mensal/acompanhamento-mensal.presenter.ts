@@ -1,35 +1,21 @@
 import type { EstadoDoServico } from "@/presentation/components/organisms/acompanhamento-do-cliente-rh.component";
 import type { AcompanhamentoMensalDto } from "@/modules/rh/application/dtos/acompanhamento.dto";
+import type { EscopoDoAplica } from "@/modules/rh/application/ports/out/acompanhamento.repository";
+import { mesVizinho } from "@/shared/kernel/mes-atual";
 
-const MESES = [
-  "janeiro",
-  "fevereiro",
-  "março",
-  "abril",
-  "maio",
-  "junho",
-  "julho",
-  "agosto",
-  "setembro",
-  "outubro",
-  "novembro",
-  "dezembro",
-];
+const MES_POR_EXTENSO = new Intl.DateTimeFormat("pt-BR", { month: "long", timeZone: "UTC" });
 
 export function rotuloDaCompetencia(competencia: string): string {
   const [ano, mes] = competencia.split("-").map(Number);
-  return `${MESES[mes - 1]} de ${ano}`;
+  return `${MES_POR_EXTENSO.format(Date.UTC(ano, mes - 1, 1))} de ${ano}`;
 }
 
-// Mês vizinho ("AAAA-MM"): delta -1 = anterior, +1 = próximo.
-export function mesVizinho(competencia: string, delta: number): string {
-  const [ano, mes] = competencia.split("-").map(Number);
-  const data = new Date(Date.UTC(ano, mes - 1 + delta, 1));
-  return `${data.getUTCFullYear()}-${String(data.getUTCMonth() + 1).padStart(2, "0")}`;
-}
-
-const estadoDoServico = (c: { aplica: boolean; concluido: boolean }): EstadoDoServico =>
-  !c.aplica ? "nao_aplica" : c.concluido ? "concluido" : "pendente";
+const estadoDoServico = (c: {
+  aplica: boolean;
+  sempre: boolean;
+  concluido: boolean;
+}): EstadoDoServico =>
+  !c.aplica ? (c.sempre ? "nunca_aplica" : "nao_aplica") : c.concluido ? "concluido" : "pendente";
 
 // Os links de mês do painel do Cliente: o próximo some no mês corrente. Preserva `voltarPara`.
 export function linksDoMes(
@@ -45,19 +31,21 @@ export function linksDoMes(
   return { anteriorHref: href(-1), proximoHref: competencia < atual ? href(1) : undefined };
 }
 
-export type PassoDaTroca = { tipo: "marcar" | "aplicar"; valor: boolean };
+export type PassoDaTroca =
+  { tipo: "marcar"; valor: boolean } | { tipo: "aplicar"; escopo: EscopoDoAplica };
 
 // "Se aplica" e "concluído" são dois dados; trocar o estado da célula é desmarcar antes de dispensar
 // e voltar a aplicar antes de marcar, para nunca ficar concluído num serviço que não se aplica.
 export function passosDaTroca(de: EstadoDoServico, para: EstadoDoServico): PassoDaTroca[] {
   if (de === para) return [];
   const passos: PassoDaTroca[] = [];
-  if (para === "nao_aplica") {
+  if (para === "nao_aplica" || para === "nunca_aplica") {
     if (de === "concluido") passos.push({ tipo: "marcar", valor: false });
-    passos.push({ tipo: "aplicar", valor: false });
+    passos.push({ tipo: "aplicar", escopo: para === "nunca_aplica" ? "sempre" : "mes" });
     return passos;
   }
-  if (de === "nao_aplica") passos.push({ tipo: "aplicar", valor: true });
+  if (de === "nao_aplica" || de === "nunca_aplica")
+    passos.push({ tipo: "aplicar", escopo: "aplica" });
   if ((de === "concluido") !== (para === "concluido")) {
     passos.push({ tipo: "marcar", valor: para === "concluido" });
   }
@@ -82,7 +70,7 @@ export function servicosDoCliente(dto: AcompanhamentoMensalDto, clienteId: strin
           : "Só o Funcionário Responsável pelo cliente altera.";
   const celulas =
     linha?.celulas ??
-    dto.servicos.map((s) => ({ servicoId: s.id, aplica: true, concluido: false }));
+    dto.servicos.map((s) => ({ servicoId: s.id, aplica: true, sempre: false, concluido: false }));
   const servicos = celulas.map((c) => ({
     servicoId: c.servicoId,
     nome: dto.servicos.find((s) => s.id === c.servicoId)?.nome ?? "",

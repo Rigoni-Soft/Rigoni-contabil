@@ -7,6 +7,10 @@ import type { Result } from "@/shared/kernel/result";
 
 export type ClienteDoAcompanhamentoDto = { cnpj: string; responsavelId: string | null };
 
+// Onde vale o "se aplica": "aplica" (volta ao padrão), "mes" (não se aplica só na competência) ou "sempre"
+// (nunca se aplica a este Cliente, em todos os meses).
+export type EscopoDoAplica = "aplica" | "mes" | "sempre";
+
 // `competencia` é sempre o primeiro dia do mês ("AAAA-MM-01").
 export interface AcompanhamentoRepository {
   // Serviços que aparecem na tabela do mês, na ordem das colunas.
@@ -26,7 +30,8 @@ export interface AcompanhamentoRepository {
   definirAplica(
     clienteId: string,
     servicoId: string,
-    aplica: boolean,
+    competencia: string,
+    escopo: EscopoDoAplica,
   ): Promise<Result<void, AppError>>;
   marcar(
     clienteId: string,

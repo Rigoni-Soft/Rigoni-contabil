@@ -52,6 +52,7 @@ export class ObterAcompanhamentoMensal implements ObterAcompanhamentoMensalPort 
       servicos: servicos.value,
       linhas: clientes.value.map((cliente) => {
         const naoAplica = new Set(cliente.naoAplica);
+        const sempre = new Set(cliente.naoAplicaSempre);
         const concluidos = new Set(cliente.concluidos);
         return {
           clienteId: cliente.clienteId,
@@ -60,6 +61,7 @@ export class ObterAcompanhamentoMensal implements ObterAcompanhamentoMensalPort 
           celulas: servicos.value.map((servico) => ({
             servicoId: servico.id,
             aplica: !naoAplica.has(servico.id),
+            sempre: sempre.has(servico.id),
             concluido: concluidos.has(servico.id),
           })),
         };

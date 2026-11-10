@@ -9,6 +9,7 @@ import {
 const celula = (servicoId: string, aplica: boolean, concluido: boolean) => ({
   servicoId,
   aplica,
+  sempre: false,
   concluido,
 });
 const MENSAL: AcompanhamentoMensalDto = {

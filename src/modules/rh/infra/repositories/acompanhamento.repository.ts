@@ -7,6 +7,7 @@ import type {
 import type {
   AcompanhamentoRepository,
   ClienteDoAcompanhamentoDto,
+  EscopoDoAplica,
 } from "@/modules/rh/application/ports/out/acompanhamento.repository";
 import type { RegistroDeErrosPort } from "@/modules/rh/application/ports/out/registro-de-erros.provider";
 import type { AppError } from "@/shared/errors/app.error";
@@ -89,13 +90,16 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
             .order("id")
             .range(de, ate),
         ),
-        lerTudo<{ cliente_id: string; servico_id: string }>((de, ate) =>
+        // "Não se aplica" vale no mês pedido (renova-se todo mês) ou sempre (competência nula).
+        lerTudo<{ cliente_id: string; servico_id: string; competencia: string | null }>((de, ate) =>
           this.supabase
             .from("rh_cliente_servico_aplica")
-            .select("cliente_id, servico_id")
+            .select("cliente_id, servico_id, competencia")
             .eq("aplica", false)
+            .or(`competencia.is.null,competencia.eq.${competencia}`)
             .order("cliente_id")
             .order("servico_id")
+            .order("competencia", { nullsFirst: true })
             .range(de, ate),
         ),
         lerTudo<{ cliente_id: string; servico_id: string }>((de, ate) =>
@@ -116,6 +120,7 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
         return mapa;
       };
       const naoAplicaDe = porCliente(naoAplica);
+      const naoAplicaSempreDe = porCliente(naoAplica.filter((l) => l.competencia === null));
       const concluidosDe = porCliente(marcacoes);
       const responsavelDe = new Map(responsaveis.map((r) => [r.cliente_id, r]));
 
@@ -129,7 +134,8 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
               clienteId: c.id,
               empresa: c.empresa,
               cnpj: c.cnpj,
-              naoAplica: naoAplicaDe.get(c.id) ?? [],
+              naoAplica: [...new Set(naoAplicaDe.get(c.id) ?? [])],
+              naoAplicaSempre: naoAplicaSempreDe.get(c.id) ?? [],
               concluidos: concluidosDe.get(c.id) ?? [],
               responsavel: r
                 ? { id: r.responsavel_id, nome: r.responsavel?.nome ?? "Sem nome" }
@@ -189,21 +195,30 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
   async definirAplica(
     clienteId: string,
     servicoId: string,
-    aplica: boolean,
+    competencia: string,
+    escopo: EscopoDoAplica,
   ): Promise<Result<void, AppError>> {
-    // Sem linha o serviço se aplica: voltar ao padrão apaga a exceção.
-    const { error } = aplica
-      ? await this.supabase
-          .from("rh_cliente_servico_aplica")
-          .delete()
-          .eq("cliente_id", clienteId)
-          .eq("servico_id", servicoId)
-      : await this.supabase
-          .from("rh_cliente_servico_aplica")
-          .upsert(
-            { cliente_id: clienteId, servico_id: servicoId, aplica: false },
-            { onConflict: "cliente_id,servico_id" },
-          );
+    const tabela = () => this.supabase.from("rh_cliente_servico_aplica");
+    const doPar = () => tabela().delete().eq("cliente_id", clienteId).eq("servico_id", servicoId);
+    // Sem linha o serviço se aplica: voltar ao padrão apaga a exceção (a do mês e a de "nunca").
+    if (escopo === "aplica") {
+      const { error } = await doPar().or(`competencia.is.null,competencia.eq.${competencia}`);
+      return this.resultado(error);
+    }
+    const base = { cliente_id: clienteId, servico_id: servicoId, aplica: false };
+    if (escopo === "mes") {
+      // Sair de "nunca" para "só este mês" devolve o serviço aos demais meses.
+      const saida = await doPar().is("competencia", null);
+      if (saida.error) return this.resultado(saida.error);
+      const { error } = await tabela().upsert(
+        { ...base, competencia },
+        { onConflict: "cliente_id,servico_id,competencia" },
+      );
+      return this.resultado(error);
+    }
+    const limpeza = await doPar();
+    if (limpeza.error) return this.resultado(limpeza.error);
+    const { error } = await tabela().insert({ ...base, competencia: null });
     return this.resultado(error);
   }
 
@@ -260,6 +275,9 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
     }
     if (error.message.includes("servico_rh_fora_da_competencia")) {
       return err(new ValidationError("Este serviço não está no acompanhamento do mês."));
+    }
+    if (error.message.includes("servico_rh_nao_se_aplica")) {
+      return err(new ValidationError("Este serviço não se aplica ao cliente neste mês."));
     }
     if (error.message.includes("competencia_futura")) {
       return err(new ValidationError("Não dá para marcar um mês que ainda não começou."));

@@ -49,7 +49,12 @@ export function AcompanhamentoDoClienteContainer({
       const r =
         passo.tipo === "marcar"
           ? await marcarServicoAction({ clienteId, servicoId, competencia, concluido: passo.valor })
-          : await definirServicoAplicavelAction({ clienteId, servicoId, aplica: passo.valor });
+          : await definirServicoAplicavelAction({
+              clienteId,
+              servicoId,
+              competencia,
+              escopo: passo.escopo,
+            });
       if (!r.ok) return r;
     }
     return { ok: true, data: undefined };

@@ -19,7 +19,15 @@ function cliente(
   concluidos: string[],
   naoAplica: string[] = [],
 ): ClienteAcompanhamentoDto {
-  return { clienteId: id, empresa: `Empresa ${id}`, cnpj: id, naoAplica, concluidos, responsavel };
+  return {
+    clienteId: id,
+    empresa: `Empresa ${id}`,
+    cnpj: id,
+    naoAplica,
+    naoAplicaSempre: [],
+    concluidos,
+    responsavel,
+  };
 }
 
 // Novembro: Ana fecha c1 e deixa c2 sem nada; Bia tem c3 só sem o Holerite; c4 não tem Responsável.
@@ -64,8 +72,8 @@ describe("ObterAcompanhamentoFuncionarios", () => {
         atribuidos: 2,
         pontos: 1,
         faltam: [
-          { servicoId: "s-fgts", nome: "FGTS", clientes: 1 },
-          { servicoId: "s-hol", nome: "Holerite", clientes: 1 },
+          { servicoId: "s-fgts", nome: "FGTS", clientes: 1, empresas: ["Empresa c2"] },
+          { servicoId: "s-hol", nome: "Holerite", clientes: 1, empresas: ["Empresa c2"] },
         ],
       },
       {
@@ -73,8 +81,8 @@ describe("ObterAcompanhamentoFuncionarios", () => {
         atribuidos: 1,
         pontos: 0,
         faltam: [
-          { servicoId: "s-fgts", nome: "FGTS", clientes: 0 },
-          { servicoId: "s-hol", nome: "Holerite", clientes: 1 },
+          { servicoId: "s-fgts", nome: "FGTS", clientes: 0, empresas: [] },
+          { servicoId: "s-hol", nome: "Holerite", clientes: 1, empresas: ["Empresa c3"] },
         ],
       },
     ]);

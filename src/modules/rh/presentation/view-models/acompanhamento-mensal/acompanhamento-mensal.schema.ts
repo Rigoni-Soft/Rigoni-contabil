@@ -11,4 +11,9 @@ export const marcarSchema = z.object({
   competencia: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
   concluido: z.boolean(),
 });
-export const aplicaSchema = z.object({ clienteId: id, servicoId: id, aplica: z.boolean() });
+export const aplicaSchema = z.object({
+  clienteId: id,
+  servicoId: id,
+  competencia: marcarSchema.shape.competencia,
+  escopo: z.enum(["aplica", "mes", "sempre"]),
+});

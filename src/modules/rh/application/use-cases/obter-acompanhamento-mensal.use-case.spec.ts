@@ -23,6 +23,7 @@ function montar(papel: string, setor = "rh") {
           empresa: "Alfa Ltda",
           cnpj: "11444777000161",
           naoAplica: ["s-fgts"],
+          naoAplicaSempre: ["s-fgts"],
           concluidos: [],
         },
         {
@@ -30,6 +31,7 @@ function montar(papel: string, setor = "rh") {
           empresa: "Beta Ltda",
           cnpj: "11222333000181",
           naoAplica: [],
+          naoAplicaSempre: [],
           concluidos: ["s-fgts"],
         },
       ]);
@@ -47,8 +49,8 @@ describe("ObterAcompanhamentoMensal", () => {
     expect(r.ok && r.value.competencia).toBe("2026-11");
     expect(chamadas[0].competencia).toBe("2026-11-01");
     expect(r.ok && r.value.linhas[1].celulas).toEqual([
-      { servicoId: "s-fgts", aplica: true, concluido: true },
-      { servicoId: "s-hol", aplica: true, concluido: false },
+      { servicoId: "s-fgts", aplica: true, sempre: false, concluido: true },
+      { servicoId: "s-hol", aplica: true, sempre: false, concluido: false },
     ]);
   });
 
@@ -60,6 +62,7 @@ describe("ObterAcompanhamentoMensal", () => {
     expect(r.ok && r.value.linhas[0].celulas[0]).toEqual({
       servicoId: "s-fgts",
       aplica: false,
+      sempre: true,
       concluido: false,
     });
   });

@@ -1,6 +1,5 @@
 import {
   linksDoMes,
-  mesVizinho,
   passosDaTroca,
   rotuloDaCompetencia,
   servicosDoCliente,
@@ -9,12 +8,6 @@ import {
 describe("acompanhamento-mensal.presenter", () => {
   it("rotula a competência por extenso", () => {
     expect(rotuloDaCompetencia("2026-03")).toBe("março de 2026");
-  });
-
-  it("acha o mês vizinho, virando o ano", () => {
-    expect(mesVizinho("2026-01", -1)).toBe("2025-12");
-    expect(mesVizinho("2025-12", 1)).toBe("2026-01");
-    expect(mesVizinho("2026-05", -1)).toBe("2026-04");
   });
 
   it("monta os serviços do cliente e bloqueia o do sistema; cliente fora da vista não tem", () => {
@@ -33,10 +26,10 @@ describe("acompanhamento-mensal.presenter", () => {
           empresa: "Alfa",
           cnpj: "1",
           celulas: [
-            { servicoId: "a", aplica: true, concluido: true },
-            { servicoId: "b", aplica: false, concluido: false },
-            { servicoId: "c", aplica: true, concluido: false },
-            { servicoId: "h", aplica: true, concluido: false },
+            { servicoId: "a", aplica: true, sempre: false, concluido: true },
+            { servicoId: "b", aplica: false, sempre: false, concluido: false },
+            { servicoId: "c", aplica: true, sempre: false, concluido: false },
+            { servicoId: "h", aplica: true, sempre: false, concluido: false },
           ],
         },
       ],
@@ -64,14 +57,22 @@ describe("acompanhamento-mensal.presenter", () => {
   it("troca o estado da célula na ordem que nunca deixa concluído um serviço que não se aplica", () => {
     expect(passosDaTroca("pendente", "concluido")).toEqual([{ tipo: "marcar", valor: true }]);
     expect(passosDaTroca("concluido", "pendente")).toEqual([{ tipo: "marcar", valor: false }]);
-    expect(passosDaTroca("pendente", "nao_aplica")).toEqual([{ tipo: "aplicar", valor: false }]);
+    expect(passosDaTroca("pendente", "nao_aplica")).toEqual([{ tipo: "aplicar", escopo: "mes" }]);
+    expect(passosDaTroca("pendente", "nunca_aplica")).toEqual([
+      { tipo: "aplicar", escopo: "sempre" },
+    ]);
     expect(passosDaTroca("concluido", "nao_aplica")).toEqual([
       { tipo: "marcar", valor: false },
-      { tipo: "aplicar", valor: false },
+      { tipo: "aplicar", escopo: "mes" },
     ]);
-    expect(passosDaTroca("nao_aplica", "pendente")).toEqual([{ tipo: "aplicar", valor: true }]);
-    expect(passosDaTroca("nao_aplica", "concluido")).toEqual([
-      { tipo: "aplicar", valor: true },
+    expect(passosDaTroca("nao_aplica", "nunca_aplica")).toEqual([
+      { tipo: "aplicar", escopo: "sempre" },
+    ]);
+    expect(passosDaTroca("nao_aplica", "pendente")).toEqual([
+      { tipo: "aplicar", escopo: "aplica" },
+    ]);
+    expect(passosDaTroca("nunca_aplica", "concluido")).toEqual([
+      { tipo: "aplicar", escopo: "aplica" },
       { tipo: "marcar", valor: true },
     ]);
     expect(passosDaTroca("pendente", "pendente")).toEqual([]);

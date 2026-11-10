@@ -8,6 +8,8 @@ export type ServicoAcompanhamentoDto = {
 export type CelulaAcompanhamentoDto = {
   servicoId: string;
   aplica: boolean;
+  // Só com `aplica` falso: não se aplica a este Cliente em mês nenhum (e não só neste mês).
+  sempre: boolean;
   concluido: boolean;
 };
 
@@ -15,8 +17,10 @@ export type ClienteAcompanhamentoDto = {
   clienteId: string;
   empresa: string;
   cnpj: string;
-  // Serviços marcados "não se aplica" e concluídos no mês, por id.
+  // Serviços "não se aplica" (no mês ou sempre) e concluídos no mês, por id.
   naoAplica: string[];
+  // Dentre os `naoAplica`, os que nunca se aplicam a este Cliente (valem em todos os meses).
+  naoAplicaSempre: string[];
   concluidos: string[];
   // Responsável do RH; null = cliente sem Responsável.
   responsavel: { id: string; nome: string } | null;
@@ -44,8 +48,8 @@ export type FuncionarioAcompanhamentoDto = {
   atribuidos: number;
   // Clientes com todo serviço aplicável (inclusive o Holerite) concluído no mês.
   pontos: number;
-  // Quantos clientes faltam em cada serviço, na ordem das colunas (zero para quem fechou).
-  faltam: { servicoId: string; nome: string; clientes: number }[];
+  // Quantos clientes faltam em cada serviço, e quais (por empresa), na ordem das colunas (zero para quem fechou).
+  faltam: { servicoId: string; nome: string; clientes: number; empresas: string[] }[];
 };
 
 export type PendenciaDoFuncionarioDto = {
