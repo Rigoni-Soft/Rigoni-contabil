@@ -38,6 +38,21 @@ describe("AcompanhamentoDoClienteRh", () => {
     expect(PROPS.onTrocar).toHaveBeenCalledWith("fgts", "pendente", "concluido");
   });
 
+  it("o serviço que nunca se aplica fica desabilitado e só volta pelo botão Reativar", async () => {
+    const onTrocar = jest.fn();
+    render(
+      <AcompanhamentoDoClienteRh
+        {...PROPS}
+        onTrocar={onTrocar}
+        servicos={[{ servicoId: "nutri", nome: "NUTRI", estado: "nunca_aplica" }]}
+      />,
+    );
+
+    expect(screen.getByLabelText("NUTRI")).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Reativar NUTRI" }));
+    expect(onTrocar).toHaveBeenCalledWith("nutri", "nunca_aplica", "pendente");
+  });
+
   it("mostra o aviso do cartão e o erro", () => {
     render(
       <AcompanhamentoDoClienteRh
