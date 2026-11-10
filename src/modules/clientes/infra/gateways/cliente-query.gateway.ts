@@ -164,10 +164,15 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
   ): Promise<Result<CadastroRhClienteDto | null, AppError>> {
     const { data, error } = await this.supabase
       .from("clientes_basico")
-      .select("id, empresa, cnpj, cliente_contatos(*), cliente_observacoes_setor(observacoes)")
+      .select(
+        `id, empresa, cnpj, cliente_contatos(*), cliente_observacoes_setor(observacoes), ${EMBED_PARCELAMENTOS}`,
+      )
       .eq("id", clienteId)
       .eq("cliente_observacoes_setor.setor", "rh")
+      .eq("cliente_parcelamentos.setor", "rh")
       .order("criado_em", { referencedTable: "cliente_contatos" })
+      .order("criado_em", { referencedTable: "cliente_parcelamentos" })
+      .order("codigo", { referencedTable: "cliente_parcelamentos" })
       .maybeSingle();
     if (error) return err(new ConsultaError(`Erro ao buscar o cadastro do RH: ${error.message}`));
     if (!data) return ok(null);
@@ -179,7 +184,18 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
       cliente_observacoes_setor: observacoes,
       ...basicos
     } = lido.data;
-    return ok({ ...basicos, contatos, observacoes: observacoes[0]?.observacoes ?? "" });
+    // O embed de Parcelamentos é lido com o tipo da linha (como no cadastro do SN), fora do zod.
+    const { cliente_parcelamentos: linhas } = data as unknown as {
+      cliente_parcelamentos: ParcelamentoRow[] | null;
+    };
+    return ok({
+      ...basicos,
+      contatos,
+      observacoes: observacoes[0]?.observacoes ?? "",
+      parcelamentos: (linhas ?? [])
+        .map(parcelamentoDoRow)
+        .map(({ arquivoCaminho, ...p }) => ({ ...p, arquivoNome: nomeDoArquivo(arquivoCaminho) })),
+    });
   }
 
   async listarResponsaveisElegiveis(

@@ -1,3 +1,4 @@
+import type { ParcelamentoDoResumo } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
@@ -10,6 +11,8 @@ export type ClienteDaCarteiraRow = {
   cnpj: string;
   responsavelId: string | null;
   responsavelNome: string | null;
+  // Os Parcelamentos que o Setor cadastrou para o Cliente (os dos outros Setores não entram).
+  parcelamentos: ParcelamentoDoResumo[];
 };
 
 export interface CarteiraDoSetorQueryPort {

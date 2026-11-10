@@ -24,10 +24,11 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 import { SETOR_RH } from "@/shared/kernel/setores";
 
 // ponytail: `doBucket` repete o molde de obter-resumo-setor-sn; extrair no 3º Setor com resumo.
-const doBucket = ({ clienteId, empresa, cnpj }: ClienteDaCarteiraRow) => ({
+const doBucket = ({ clienteId, empresa, cnpj, parcelamentos }: ClienteDaCarteiraRow) => ({
   clienteId,
   empresa,
   cnpj,
+  parcelamentos,
 });
 
 // Um grupo por Responsável presente na carteira (mais "Sem responsável" quando há Cliente sem
@@ -72,18 +73,17 @@ export class ObterResumoSetorRh {
     const veTudo = veCarteiraInteira(ator.papel);
     const linhas = veTudo ? lidas.value : lidas.value.filter((l) => l.responsavelId === ator.id);
 
-    // O grupo Parcelamento é o do SN; o RH o alimenta com os parcelamentos que cadastrar.
-    // ponytail: TODO(#216) até lá nenhum parcelamento é do RH, então os 6 cards saem zerados.
-    const semParcelamento = linhas.map((l) => ({ ...doBucket(l), parcelamentos: [] }));
+    // O grupo Parcelamento é o do SN, alimentado com os Parcelamentos do RH.
+    const doRh = linhas.map(doBucket);
     const agora = this.relogio.agora();
-    const parcelamentos = classificarParcelamento(semParcelamento, agora);
+    const parcelamentos = classificarParcelamento(doRh, agora);
 
     return ok({
       totalClientes: linhas.length,
       cards: parcelamentos,
       grupos: gruposDeParcelamento(),
       comparativos: {
-        parcelamento: comparativoDeParcelamento(semParcelamento, agora),
+        parcelamento: comparativoDeParcelamento(doRh, agora),
         responsaveis: podeVerAcompanhamentoDosFuncionariosRh(ator.papel, ator.setor)
           ? porResponsavel(linhas)
           : undefined,

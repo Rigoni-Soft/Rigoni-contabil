@@ -8,12 +8,18 @@ import { err, ok } from "@/shared/kernel/result";
 
 import { ObterResumoSetorRh } from "./obter-resumo-setor-rh.use-case";
 
-const linha = (n: number, responsavelId: string | null, nome: string | null) => ({
+const linha = (
+  n: number,
+  responsavelId: string | null,
+  nome: string | null,
+  parcelamentos: ClienteDaCarteiraRow["parcelamentos"] = [],
+): ClienteDaCarteiraRow => ({
   clienteId: `c${n}`,
   empresa: `Empresa ${n}`,
   cnpj: `${n}`,
   responsavelId,
   responsavelNome: nome,
+  parcelamentos,
 });
 
 const CARTEIRA: ClienteDaCarteiraRow[] = [
@@ -48,7 +54,7 @@ describe("ObterResumoSetorRh", () => {
     );
   });
 
-  it("o grupo Parcelamento tem os 6 cards do SN, zerados enquanto o RH não cadastra parcelamento", async () => {
+  it("o grupo Parcelamento tem os 6 cards do SN, zerados sem parcelamento do RH", async () => {
     const r = await new ObterResumoSetorRh(
       sessaoDe("lider_setor", "rh"),
       carteiraFalsa,
@@ -69,6 +75,36 @@ describe("ObterResumoSetorRh", () => {
       ["pendente", 0],
       ["em_atraso", 0],
       ["interno", 0],
+    ]);
+  });
+
+  it("os cards e o comparativo contam os Parcelamentos do RH da carteira", async () => {
+    const carteira: CarteiraDoSetorQueryPort = {
+      listar: async () =>
+        ok([
+          linha(1, "u1", "Ana", [{ codigo: "A", interno: false, quitado: false, enviadoNoMes: true }]),
+          linha(2, "u1", "Ana", [{ codigo: "B", interno: true, quitado: false, enviadoNoMes: false }]),
+          linha(3, "u2", "Beto", [{ codigo: "C", interno: false, quitado: true, enviadoNoMes: false }]),
+          linha(4, null, null),
+        ]),
+    };
+    const r = await new ObterResumoSetorRh(
+      sessaoDe("lider_setor", "rh"),
+      carteira,
+      relogio,
+    ).execute();
+
+    const quantidade = (id: string) => r.ok && r.value.cards.find((c) => c.id === id)?.quantidade;
+    expect(quantidade("com_parcelamento")).toBe(3);
+    expect(quantidade("parcelamento_em_aberto")).toBe(2);
+    expect(quantidade("parcelamento_pendente")).toBe(1);
+    expect(quantidade("parcelamento_interno")).toBe(1);
+    expect(quantidade("parcelamento_enviado")).toBe(1);
+    expect(r.ok && r.value.comparativos.parcelamento.map((f) => [f.id, f.quantidade])).toEqual([
+      ["enviado", 1],
+      ["pendente", 1],
+      ["em_atraso", 0],
+      ["interno", 1],
     ]);
   });
 

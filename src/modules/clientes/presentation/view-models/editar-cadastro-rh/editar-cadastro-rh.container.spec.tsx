@@ -33,6 +33,7 @@ const dados: CadastroRhClienteDto = {
   cnpj: "11.444.777/0001-61",
   contatos: [{ id: "c1", nome: "Maria", telefone: "11999990000", padrao: true }],
   observacoes: "Folha no 5º dia útil.",
+  parcelamentos: [],
 };
 
 function render(ui: React.ReactElement) {
