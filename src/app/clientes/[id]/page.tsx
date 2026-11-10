@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 
+import { CampoResponsavel } from "@/presentation/components/molecules/campo-responsavel.component";
 import { FalhaDeCarga } from "@/presentation/components/molecules/falha-de-carga.component";
 import { NavegacaoDeMes } from "@/presentation/components/molecules/navegacao-de-mes.component";
-import { ResponsavelSomenteLeitura } from "@/presentation/components/molecules/responsavel-somente-leitura.component";
 import { EditarCadastroOperacionalPage } from "@/presentation/components/pages/editar-cadastro-operacional.page";
 import { carregarSessao, validarSessao } from "@/presentation/view-models/shell/shell.server";
 import { AnexarAlteracaoContratualContainer } from "@/modules/clientes/presentation/view-models/anexar-alteracao-contratual/anexar-alteracao-contratual.container";
@@ -188,7 +188,7 @@ export default async function Page({ params, searchParams }: Props) {
     ) : undefined;
   const responsavelRh = !cadastroDoRh
     ? undefined
-    : (campoResponsavel ?? <ResponsavelSomenteLeitura nome={sessao.nome} />);
+    : (campoResponsavel ?? <CampoResponsavel editavel={false} nomeAtual={sessao.nome} />);
 
   const formulario = montarFormulario(carga, sessao, {
     readOnly,

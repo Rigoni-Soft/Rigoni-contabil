@@ -194,6 +194,12 @@ describe("CampoResponsavel e AcoesDoFormulario", () => {
     expect(aoAbrir).toHaveBeenCalled();
   });
 
+  it("somente leitura dispensa as props da lista", () => {
+    render(<CampoResponsavel editavel={false} nomeAtual="Funcionário RH" />);
+
+    expect(screen.getByLabelText("Responsável")).toBeDisabled();
+  });
+
   it("erro na lista oferece 'Tentar de novo'", async () => {
     const aoTentar = jest.fn();
     render(<CampoResponsavel {...base} editavel estadoLista="erro" onTentarNovamente={aoTentar} />);

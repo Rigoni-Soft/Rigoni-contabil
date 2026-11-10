@@ -9,14 +9,15 @@ import { Select } from "@/presentation/components/ui/select";
 type CampoResponsavelProps = {
   editavel: boolean;
   nomeAtual: string;
-  opcoes: { id: string; nome: string }[];
-  semResponsavel: string;
+  // Só o modo editável usa o que vem abaixo; o somente leitura passa `editavel={false}` e `nomeAtual`.
+  opcoes?: { id: string; nome: string }[];
+  semResponsavel?: string;
   // A lista carrega só quando o Select é aberto; "erro" tem saída própria (tentar de novo).
-  estadoLista: "ok" | "carregando" | "erro";
-  onAbrir: () => void;
-  onTentarNovamente: () => void;
+  estadoLista?: "ok" | "carregando" | "erro";
+  onAbrir?: () => void;
+  onTentarNovamente?: () => void;
   // Props do <select> (o `register` do formulário, já resolvido por quem monta).
-  select: React.ComponentProps<"select">;
+  select?: React.ComponentProps<"select">;
   desabilitado?: boolean;
 };
 
@@ -24,9 +25,9 @@ type CampoResponsavelProps = {
 export function CampoResponsavel({
   editavel,
   nomeAtual,
-  opcoes,
-  semResponsavel,
-  estadoLista,
+  opcoes = [],
+  semResponsavel = "",
+  estadoLista = "ok",
   onAbrir,
   onTentarNovamente,
   select,
