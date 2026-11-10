@@ -86,7 +86,7 @@ export async function makeMarcarServicoAcompanhamento(): Promise<MarcarServicoAc
 
 export async function makeDefinirServicoAplicavel(): Promise<DefinirServicoAplicavelPort> {
   const { sessao, repositorio, auditoria } = await montar();
-  return new DefinirServicoAplicavel(sessao, repositorio, auditoria);
+  return new DefinirServicoAplicavel(sessao, repositorio, auditoria, new RelogioSistemaGateway());
 }
 
 export async function makeCriarServicoAcompanhamento(): Promise<CriarServicoAcompanhamentoPort> {

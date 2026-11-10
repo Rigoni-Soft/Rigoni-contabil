@@ -35,7 +35,7 @@ function montar(
   const auditoria = { registrar: async (i: RegistrarAcaoAuditoria) => void falhas.push(i) };
   return {
     marcar: new MarcarServicoAcompanhamento(sessao, repositorio, auditoria, relogio),
-    aplicar: new DefinirServicoAplicavel(sessao, repositorio, auditoria),
+    aplicar: new DefinirServicoAplicavel(sessao, repositorio, auditoria, relogio),
     gravacoes,
     falhas,
   };
@@ -109,6 +109,17 @@ describe("DefinirServicoAplicavel", () => {
     const r = await aplicar.execute(aplicarEntrada);
     expect(r.ok).toBe(true);
     expect(gravacoes).toEqual([["aplica", "c1", "s-fgts", "2026-11-01", "mes"]]);
+  });
+
+  it("recusa 'não se aplica' por mês futuro, sem gravar; 'sempre' não depende do mês", async () => {
+    const { aplicar, gravacoes } = montar(FUNC_RH);
+
+    const futuro = await aplicar.execute({ ...aplicarEntrada, competencia: "2026-12" });
+    const sempre = await aplicar.execute({ ...aplicarEntrada, escopo: "sempre" });
+
+    expect(!futuro.ok && futuro.error.code).toBe("VALIDATION_ERROR");
+    expect(sempre.ok).toBe(true);
+    expect(gravacoes).toHaveLength(1);
   });
 
   it("recusa o Holerite e o serviço fora da tabela do mês, sem gravar", async () => {

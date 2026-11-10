@@ -107,13 +107,21 @@ export class DefinirServicoAplicavel
   extends EscreverAcompanhamento
   implements DefinirServicoAplicavelPort
 {
-  constructor(sessao: SessaoPort, repositorio: AcompanhamentoRepository, auditoria: AuditoriaPort) {
+  constructor(
+    sessao: SessaoPort,
+    repositorio: AcompanhamentoRepository,
+    auditoria: AuditoriaPort,
+    private readonly relogio: RelogioPort,
+  ) {
     super(sessao, repositorio, auditoria, "rh.acompanhamento.nao-aplicar");
   }
 
   async execute(input: DefinirServicoAplicavelInput): Promise<Result<void, AppError>> {
     const competencia = Competencia.criar(input.competencia);
     if (!competencia.ok) return competencia;
+    if (input.escopo === "mes" && competencia.value.ehFutura(this.relogio.agora())) {
+      return err(new ValidationError("Não dá para dispensar um mês que ainda não começou."));
+    }
 
     const ator = await this.autorizar(
       input.clienteId,
