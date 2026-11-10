@@ -1,15 +1,12 @@
 import type {
   ClienteAcompanhamentoDto,
+  EscopoDoAplica,
   ServicoAcompanhamentoDto,
 } from "@/modules/rh/application/dtos/acompanhamento.dto";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
 export type ClienteDoAcompanhamentoDto = { cnpj: string; responsavelId: string | null };
-
-// Onde vale o "se aplica": "aplica" (volta ao padrão), "mes" (não se aplica só na competência) ou "sempre"
-// (nunca se aplica a este Cliente, em todos os meses).
-export type EscopoDoAplica = "aplica" | "mes" | "sempre";
 
 // `competencia` é sempre o primeiro dia do mês ("AAAA-MM-01").
 export interface AcompanhamentoRepository {

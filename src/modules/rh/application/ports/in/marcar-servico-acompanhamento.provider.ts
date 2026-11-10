@@ -1,4 +1,4 @@
-import type { EscopoDoAplica } from "@/modules/rh/application/ports/out/acompanhamento.repository";
+import type { EscopoDoAplica } from "@/modules/rh/application/dtos/acompanhamento.dto";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 

@@ -1,6 +1,8 @@
 import type { EstadoDoServico } from "@/presentation/components/organisms/acompanhamento-do-cliente-rh.component";
-import type { AcompanhamentoMensalDto } from "@/modules/rh/application/dtos/acompanhamento.dto";
-import type { EscopoDoAplica } from "@/modules/rh/application/ports/out/acompanhamento.repository";
+import type {
+  AcompanhamentoMensalDto,
+  EscopoDoAplica,
+} from "@/modules/rh/application/dtos/acompanhamento.dto";
 import { mesVizinho } from "@/shared/kernel/mes-atual";
 
 const MES_POR_EXTENSO = new Intl.DateTimeFormat("pt-BR", { month: "long", timeZone: "UTC" });
@@ -14,8 +16,10 @@ const estadoDoServico = (c: {
   aplica: boolean;
   sempre: boolean;
   concluido: boolean;
-}): EstadoDoServico =>
-  !c.aplica ? (c.sempre ? "nunca_aplica" : "nao_aplica") : c.concluido ? "concluido" : "pendente";
+}): EstadoDoServico => {
+  if (!c.aplica) return c.sempre ? "nunca_aplica" : "nao_aplica";
+  return c.concluido ? "concluido" : "pendente";
+};
 
 // Os links de mês do painel do Cliente: o próximo some no mês corrente. Preserva `voltarPara`.
 export function linksDoMes(

@@ -1,3 +1,7 @@
+// Onde vale o "se aplica": "aplica" (volta ao padrão), "mes" (não se aplica só na competência) ou "sempre"
+// (nunca se aplica a este Cliente, em todos os meses).
+export type EscopoDoAplica = "aplica" | "mes" | "sempre";
+
 export type ServicoAcompanhamentoDto = {
   id: string;
   nome: string;
