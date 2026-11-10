@@ -79,6 +79,16 @@ export function resumoDoAcordo(acordo: ParcelamentoFormValues["acordo"]): string
     .join(" · ");
 }
 
+// Cópia do objeto sem as chaves dadas (descartar campos sem variável não usada).
+export function semChaves<T extends object, K extends keyof T>(
+  objeto: T,
+  ...chaves: K[]
+): Omit<T, K> {
+  return Object.fromEntries(
+    Object.entries(objeto).filter(([chave]) => !(chaves as string[]).includes(chave)),
+  ) as Omit<T, K>;
+}
+
 // Só o que o Funcionário digita conta como mudança (selo e nome do PDF são da tela). Parcelamento
 // novo ou removido é mudança; quitado não se edita, então nunca é.
 export function mudouParcelamentos(

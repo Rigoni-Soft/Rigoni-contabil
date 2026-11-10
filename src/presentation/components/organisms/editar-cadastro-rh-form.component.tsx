@@ -12,12 +12,12 @@ import { CartaoDoCadastro } from "./cartao-do-cadastro.component";
 import { ContatosDoCadastro } from "./contatos-do-cadastro.component";
 import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional-form.component";
 import {
+  motivoDeLeituraEmAndamento,
   ParcelamentosDoCadastro,
-  type LeituraDaLinha,
-  type ParcelamentoLinha,
+  type ParcelamentosProps,
 } from "./parcelamentos-do-cadastro.component";
 
-type EditarCadastroRhFormProps = {
+type EditarCadastroRhFormProps = ParcelamentosProps & {
   cabecalho: CabecalhoCliente;
   register: UseFormRegister<EditarCadastroOperacionalFormValues>;
   control: Control<EditarCadastroOperacionalFormValues>;
@@ -32,14 +32,6 @@ type EditarCadastroRhFormProps = {
   contatos: { id: string }[];
   onAdicionarContato: () => void;
   onRemoverContato: (indice: number) => void;
-  // Os Parcelamentos do RH, com o mesmo fluxo do SN (ver ParcelamentosDoCadastro).
-  parcelamentos: ParcelamentoLinha[];
-  parcelamentoCampos: { id: string }[];
-  onAdicionarParcelamento: () => void;
-  onRemoverParcelamento: (indice: number) => void;
-  leituras: Record<string, LeituraDaLinha>;
-  onArquivoEscolhido: (indice: number, arquivo: File | undefined) => void;
-  guiasDaParcela?: (parcelamentoId: string, codigo: string, interno: boolean) => React.ReactNode;
   onLimpar: () => void;
   // Cartão do documento contratual com "Abrir em nova aba" (só leitura).
   documentoContratual?: React.ReactNode;
@@ -94,11 +86,7 @@ export function EditarCadastroRhForm({
       acoes={
         <AcoesDoFormulario
           pendente={pendente}
-          motivoDoBloqueio={
-            Object.values(leituras).some((l) => l.estado === "lendo")
-              ? "Aguarde a leitura do PDF para salvar."
-              : undefined
-          }
+          motivoDoBloqueio={motivoDeLeituraEmAndamento(leituras)}
           onLimpar={onLimpar}
         />
       }

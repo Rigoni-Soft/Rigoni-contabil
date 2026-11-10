@@ -1,18 +1,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { UseFormGetValues, UseFormSetError, UseFormSetValue } from "react-hook-form";
+import type { UseFormSetError } from "react-hook-form";
 
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 
 import { atribuirResponsavelAction } from "./atribuir-responsavel.actions";
 import { editarCadastroOperacionalAction } from "./editar-cadastro-operacional.actions";
+import { semChaves } from "./editar-cadastro-operacional.presenter";
 import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional.schema";
-import {
-  FalhaDeEtapa,
-  naEtapa,
-  salvarParcelamentosDoSetor,
-  semChaves,
-} from "./salvar-parcelamentos-do-setor.presenter";
+import { FalhaDeEtapa, naEtapa } from "./use-parcelamentos-do-cadastro.hook";
 
 type Valores = EditarCadastroOperacionalFormValues;
 
@@ -20,8 +16,8 @@ type Params = {
   dados: CadastroOperacionalClienteDto | null;
   podeAtribuirResponsavel: boolean;
   aoSalvar?: { tipo: "fechar"; executar: () => void } | { tipo: "voltar"; href: string };
-  getValues: UseFormGetValues<Valores>;
-  setValue: UseFormSetValue<Valores>;
+  // Salva os Parcelamentos do Setor (useParcelamentosDoCadastro); devolve o erro que interrompe, se houver.
+  salvarParcelamentos: (valores: Valores) => Promise<string | undefined>;
   setError: UseFormSetError<Valores>;
 };
 
@@ -33,8 +29,7 @@ export function useSalvarCadastroOperacional({
   dados,
   podeAtribuirResponsavel,
   aoSalvar,
-  getValues,
-  setValue,
+  salvarParcelamentos,
   setError,
 }: Params) {
   const router = useRouter();
@@ -106,15 +101,7 @@ export function useSalvarCadastroOperacional({
       // quando a atribuição rejeita por erro de transporte.
       setCadastroSalvo(retrato);
 
-      // Esta tela é o cadastro operacional do Simples Nacional.
-      const erroParcelamentos = await salvarParcelamentosDoSetor({
-        clienteId: dados.id,
-        setor: "simples_nacional",
-        salvos: dados.parcelamentos,
-        valores,
-        getValues,
-        setValue,
-      });
+      const erroParcelamentos = await salvarParcelamentos(valores);
       if (erroParcelamentos) return setErroServidor(erroParcelamentos);
 
       const erroResponsavel = await naEtapa(ETAPA_RESPONSAVEL, async () => {

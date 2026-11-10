@@ -5,6 +5,7 @@ import {
   parcelamentoNovo,
   reposicionarErros,
   resumoDoAcordo,
+  semChaves,
 } from "./editar-cadastro-operacional.presenter";
 
 describe("resumoDoAcordo", () => {
@@ -109,5 +110,11 @@ describe("linhas abertas de nascença", () => {
     expect(r[2]).toBe(erro);
     expect(r[0]).toBeUndefined();
     expect(reposicionarErros({ message: "lista" }, [2])).toEqual({ message: "lista" });
+  });
+});
+
+describe("semChaves", () => {
+  it("remove só as chaves dadas", () => {
+    expect(semChaves({ a: 1, b: 2, c: 3 }, "a", "c")).toEqual({ b: 2 });
   });
 });

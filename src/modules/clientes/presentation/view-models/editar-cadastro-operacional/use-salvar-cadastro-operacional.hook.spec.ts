@@ -5,8 +5,6 @@ import { useSalvarCadastroOperacional } from "./use-salvar-cadastro-operacional.
 const push = jest.fn();
 const editar = jest.fn();
 const atribuir = jest.fn();
-const salvarParcelamentos = jest.fn();
-const anexarGuia = jest.fn();
 
 jest.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 jest.mock("./editar-cadastro-operacional.actions", () => ({
@@ -15,12 +13,10 @@ jest.mock("./editar-cadastro-operacional.actions", () => ({
 jest.mock("./atribuir-responsavel.actions", () => ({
   atribuirResponsavelAction: (...a: unknown[]) => atribuir(...a),
 }));
-jest.mock("./salvar-parcelamentos.actions", () => ({
-  salvarParcelamentosAction: (...a: unknown[]) => salvarParcelamentos(...a),
-}));
-jest.mock("../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.actions", () => ({
-  anexarGuiaParcelaPgfnAction: (...a: unknown[]) => anexarGuia(...a),
-}));
+// FalhaDeEtapa vem do hook dos Parcelamentos, que importa as Server Actions deles (env do servidor).
+jest.mock("./salvar-parcelamentos.actions", () => ({}));
+jest.mock("./ler-pdf-de-parcelamento.actions", () => ({}));
+jest.mock("../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.actions", () => ({}));
 
 const dados = { id: "c1", responsavelId: null, parcelamentos: [] } as never;
 const valores = {
@@ -37,8 +33,7 @@ function montar(aoSalvar?: Parameters<typeof useSalvarCadastroOperacional>[0]["a
       dados,
       podeAtribuirResponsavel: true,
       aoSalvar,
-      getValues: jest.fn(() => ({ parcelamentos: [] })) as never,
-      setValue: jest.fn(),
+      salvarParcelamentos: jest.fn().mockResolvedValue(undefined),
       setError,
     }),
   );

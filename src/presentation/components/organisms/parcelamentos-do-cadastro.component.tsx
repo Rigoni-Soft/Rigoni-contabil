@@ -48,6 +48,31 @@ export type LeituraDaLinha = {
   cnpjDivergente?: boolean;
 };
 
+// O que um formulário de Setor repassa à lista de Parcelamentos (os nomes que o Container recebe do hook).
+export type ParcelamentosProps = {
+  // Linhas atuais do formulário (acompanham a edição): resumo "Sim (n)", selo e nome do PDF.
+  parcelamentos: ParcelamentoLinha[];
+  parcelamentoCampos: { id: string }[];
+  onAdicionarParcelamento: () => void;
+  onRemoverParcelamento: (indice: number) => void;
+  // Leitura do PDF por linha (chave = id do campo do useFieldArray). Com leitura em andamento o
+  // Salvar fica desabilitado; o PDF escolhido (ou removido) volta ao Container para ser lido.
+  leituras: Record<string, LeituraDaLinha>;
+  onArquivoEscolhido: (indice: number, arquivo: File | undefined) => void;
+  // Guias mensais de um Parcelamento PGFN já salvo: o Container monta a região (ela tem estado próprio).
+  // `codigo` nomeia a região de cada Parcelamento para o leitor de tela.
+  guiasDaParcela?: (parcelamentoId: string, codigo: string, interno: boolean) => React.ReactNode;
+};
+
+// Por que o Salvar fica bloqueado enquanto algum PDF ainda é lido.
+export function motivoDeLeituraEmAndamento(
+  leituras: Record<string, LeituraDaLinha>,
+): string | undefined {
+  return Object.values(leituras).some((l) => l.estado === "lendo")
+    ? "Aguarde a leitura do PDF para salvar."
+    : undefined;
+}
+
 // Linha ainda não salva não tem status do mês: sem selo.
 function seloDoParcelamento(p: ParcelamentoLinha): SeloDoParcelamento | undefined {
   if (!p.id) return undefined;

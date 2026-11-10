@@ -14,12 +14,11 @@ import type { DocumentoContratualVisivelDto } from "@/modules/clientes/applicati
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { REGIME_LABEL, regimeTemCadastroOperacionalSn } from "@/shared/kernel/regimes";
 
-import { AnexarGuiaParcelaPgfnContainer } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.container";
+import { guiasDaParcela } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.container";
 import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
 import {
   contatoNovo,
   descartarLinhasEmBranco,
-  leituraDaLinha,
   nomeResponsavelAtual,
   OPCOES_DOCUMENTO,
   OPCOES_FORMA_ENVIO,
@@ -27,11 +26,10 @@ import {
   opcoesResponsavel,
   parcelamentoNovo,
   reposicionarErros,
-  resumoDoAcordo,
 } from "./editar-cadastro-operacional.presenter";
 import { editarCadastroOperacionalFormSchema } from "./editar-cadastro-operacional.schema";
 import { useResponsaveisElegiveis } from "./responsaveis.queries";
-import { useLeituraDoPdf } from "./use-leitura-do-pdf.hook";
+import { useParcelamentosDoCadastro } from "./use-parcelamentos-do-cadastro.hook";
 import { useSalvarCadastroOperacional } from "./use-salvar-cadastro-operacional.hook";
 
 type Props = {
@@ -130,26 +128,26 @@ export function EditarCadastroOperacionalContainer({
     defaultValues: valoresIniciais,
   });
 
-  // Lido no render, sem assinar o campo: o que a tela exibe (resumo, selo, quitado, nome do PDF) só
-  // muda quando uma linha entra ou sai (`parcelamentoCampos` re-renderiza), não a cada tecla.
-  const parcelamentos = (getValues("parcelamentos") ?? dados?.parcelamentos ?? []).map((p) => ({
-    ...p,
-    acordoResumo: resumoDoAcordo(p.acordo),
-  }));
   // Lista de Funcionários só é buscada quando o Líder abre o Select.
   const [listaAberta, setListaAberta] = useState(false);
   const elegiveis = useResponsaveisElegiveis(podeAtribuirResponsavel && listaAberta);
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
-  const parcelamentoCampos = useFieldArray({ control, name: "parcelamentos" });
-  const leitura = useLeituraDoPdf(dados?.id ?? "", setValue, parcelamentoCampos.fields);
+  // Esta tela é o cadastro operacional do Simples Nacional.
+  const parcelamentos = useParcelamentosDoCadastro({
+    clienteId: dados?.id ?? "",
+    setor: "simples_nacional",
+    salvos: dados?.parcelamentos ?? [],
+    control,
+    getValues,
+    setValue,
+  });
 
   const { salvar, pendente, erroServidor, sucesso, limparMensagens } = useSalvarCadastroOperacional(
     {
       dados,
       podeAtribuirResponsavel,
       aoSalvar,
-      getValues,
-      setValue,
+      salvarParcelamentos: parcelamentos.salvar,
       setError,
     },
   );
@@ -157,7 +155,7 @@ export function EditarCadastroOperacionalContainer({
 
   const aoLimpar = () => {
     reset(valoresIniciais);
-    leitura.esquecerTodas();
+    parcelamentos.esquecerLeituras();
     limparMensagens();
   };
 
@@ -201,7 +199,6 @@ export function EditarCadastroOperacionalContainer({
         estadoLista: elegiveis.isError ? "erro" : elegiveis.isLoading ? "carregando" : "ok",
         onTentarNovamente: () => void elegiveis.refetch(),
       }}
-      parcelamentos={parcelamentos}
       dasEnviadoPeloSistema={dados?.dasStatus === "enviado"}
       opcoes={{
         formaEnvio: OPCOES_FORMA_ENVIO,
@@ -214,27 +211,15 @@ export function EditarCadastroOperacionalContainer({
       contatos={fields}
       onAdicionarContato={() => append(contatoNovo(fields.length === 0))}
       onRemoverContato={remove}
-      parcelamentoCampos={parcelamentoCampos.fields}
-      onAdicionarParcelamento={() => parcelamentoCampos.append(parcelamentoNovo())}
-      onRemoverParcelamento={(indice) => {
-        void leitura.ler(parcelamentoCampos.fields[indice].id, undefined); // esquece a leitura da linha
-        parcelamentoCampos.remove(indice);
-      }}
-      leituras={Object.fromEntries(
-        Object.entries(leitura.leituras).map(([id, estado]) => [id, leituraDaLinha(estado)]),
-      )}
-      onArquivoEscolhido={(indice, arquivo) =>
-        void leitura.ler(parcelamentoCampos.fields[indice].id, arquivo)
-      }
+      parcelamentoCampos={parcelamentos.parcelamentoCampos}
+      parcelamentos={parcelamentos.parcelamentos}
+      onAdicionarParcelamento={parcelamentos.onAdicionarParcelamento}
+      onRemoverParcelamento={parcelamentos.onRemoverParcelamento}
+      leituras={parcelamentos.leituras}
+      onArquivoEscolhido={parcelamentos.onArquivoEscolhido}
       onLimpar={aoLimpar}
       onCancelar={onCancelar}
-      guiasDaParcela={(parcelamentoId, codigo, interno) => (
-        <AnexarGuiaParcelaPgfnContainer
-          parcelamentoId={parcelamentoId}
-          codigo={codigo}
-          interno={interno}
-        />
-      )}
+      guiasDaParcela={guiasDaParcela}
       documentoContratual={
         <DocumentoContratualDoClienteContainer
           clienteId={dados.id}

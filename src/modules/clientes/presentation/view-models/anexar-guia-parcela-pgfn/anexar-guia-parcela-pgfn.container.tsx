@@ -36,3 +36,12 @@ export function AnexarGuiaParcelaPgfnContainer({ parcelamentoId, codigo, interno
     />
   );
 }
+
+// O slot `guiasDaParcela` das Views de cadastro: a região de guias de cada Parcelamento PGFN salvo.
+export const guiasDaParcela = (parcelamentoId: string, codigo: string, interno: boolean) => (
+  <AnexarGuiaParcelaPgfnContainer
+    parcelamentoId={parcelamentoId}
+    codigo={codigo}
+    interno={interno}
+  />
+);

@@ -12,20 +12,17 @@ import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 import type { CadastroRhClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 
-import { AnexarGuiaParcelaPgfnContainer } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.container";
+import { guiasDaParcela } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.container";
 import {
   contatoNovo,
   descartarLinhasEmBranco,
-  leituraDaLinha,
   parcelamentoNovo,
   reposicionarErros,
-  resumoDoAcordo,
 } from "../editar-cadastro-operacional/editar-cadastro-operacional.presenter";
 import {
   FalhaDeEtapa,
-  salvarParcelamentosDoSetor,
-} from "../editar-cadastro-operacional/salvar-parcelamentos-do-setor.presenter";
-import { useLeituraDoPdf } from "../editar-cadastro-operacional/use-leitura-do-pdf.hook";
+  useParcelamentosDoCadastro,
+} from "../editar-cadastro-operacional/use-parcelamentos-do-cadastro.hook";
 import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
 import { editarCadastroRhAction } from "./editar-cadastro-rh.actions";
 import { editarCadastroRhFormSchema } from "./editar-cadastro-rh.schema";
@@ -117,8 +114,14 @@ export function EditarCadastroRhContainer({
     defaultValues: valoresIniciais,
   });
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
-  const parcelamentoCampos = useFieldArray({ control, name: "parcelamentos" });
-  const leitura = useLeituraDoPdf(dados?.id ?? "", setValue, parcelamentoCampos.fields);
+  const parcelamentos = useParcelamentosDoCadastro({
+    clienteId: dados?.id ?? "",
+    setor: "rh",
+    salvos: dados?.parcelamentos ?? [],
+    control,
+    getValues,
+    setValue,
+  });
 
   if (!dados) return <Texto variante="apoio">Cliente não encontrado.</Texto>;
 
@@ -143,14 +146,7 @@ export function EditarCadastroRhContainer({
         return;
       }
       // Os Parcelamentos têm PDF: vão por Server Action própria, depois do cadastro.
-      const erroParcelamentos = await salvarParcelamentosDoSetor({
-        clienteId: dados.id,
-        setor: "rh",
-        salvos: dados.parcelamentos,
-        valores,
-        getValues,
-        setValue,
-      });
+      const erroParcelamentos = await parcelamentos.salvar(valores);
       if (erroParcelamentos) {
         setErroServidor(erroParcelamentos);
         return;
@@ -184,36 +180,19 @@ export function EditarCadastroRhContainer({
       contatos={fields}
       onAdicionarContato={() => append(contatoNovo(fields.length === 0))}
       onRemoverContato={remove}
-      // Lido no render: o que a tela exibe (resumo, selo, nome do PDF) só muda quando uma linha entra ou sai.
-      parcelamentos={(getValues("parcelamentos") ?? dados.parcelamentos).map((p) => ({
-        ...p,
-        acordoResumo: resumoDoAcordo(p.acordo),
-      }))}
-      parcelamentoCampos={parcelamentoCampos.fields}
-      onAdicionarParcelamento={() => parcelamentoCampos.append(parcelamentoNovo())}
-      onRemoverParcelamento={(indice) => {
-        void leitura.ler(parcelamentoCampos.fields[indice].id, undefined); // esquece a leitura da linha
-        parcelamentoCampos.remove(indice);
-      }}
-      leituras={Object.fromEntries(
-        Object.entries(leitura.leituras).map(([id, estado]) => [id, leituraDaLinha(estado)]),
-      )}
-      onArquivoEscolhido={(indice, arquivo) =>
-        void leitura.ler(parcelamentoCampos.fields[indice].id, arquivo)
-      }
-      guiasDaParcela={(parcelamentoId, codigo, interno) => (
-        <AnexarGuiaParcelaPgfnContainer
-          parcelamentoId={parcelamentoId}
-          codigo={codigo}
-          interno={interno}
-        />
-      )}
+      parcelamentos={parcelamentos.parcelamentos}
+      parcelamentoCampos={parcelamentos.parcelamentoCampos}
+      onAdicionarParcelamento={parcelamentos.onAdicionarParcelamento}
+      onRemoverParcelamento={parcelamentos.onRemoverParcelamento}
+      leituras={parcelamentos.leituras}
+      onArquivoEscolhido={parcelamentos.onArquivoEscolhido}
+      guiasDaParcela={guiasDaParcela}
       responsavel={responsavel}
       mesDoAcompanhamento={mesDoAcompanhamento}
       acompanhamento={acompanhamento}
       onLimpar={() => {
         reset(valoresIniciais);
-        leitura.esquecerTodas();
+        parcelamentos.esquecerLeituras();
         setErroServidor(undefined);
         setSucesso(false);
       }}

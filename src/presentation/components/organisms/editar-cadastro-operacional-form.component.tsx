@@ -14,9 +14,11 @@ import { CartaoDoCadastro } from "./cartao-do-cadastro.component";
 import { ContatosDoCadastro } from "./contatos-do-cadastro.component";
 import { DasDoCadastro } from "./das-do-cadastro.component";
 import {
+  motivoDeLeituraEmAndamento,
   ParcelamentosDoCadastro,
   type LeituraDaLinha,
   type ParcelamentoLinha,
+  type ParcelamentosProps,
 } from "./parcelamentos-do-cadastro.component";
 import { ResponsavelDoCadastro, type ResponsavelCampo } from "./responsavel-do-cadastro.component";
 
@@ -40,7 +42,7 @@ export type EditarCadastroOperacionalFormValues = {
 
 type Opcao = { valor: string; rotulo: string };
 
-type EditarCadastroOperacionalFormProps = {
+type EditarCadastroOperacionalFormProps = ParcelamentosProps & {
   cabecalho: CabecalhoCliente;
   register: UseFormRegister<EditarCadastroOperacionalFormValues>;
   control: Control<EditarCadastroOperacionalFormValues>;
@@ -49,8 +51,6 @@ type EditarCadastroOperacionalFormProps = {
   pendente: boolean;
   readOnly: boolean;
   responsavel: ResponsavelCampo;
-  // Linhas atuais do formulário (acompanham a edição): resumo "Sim (n)", selo e nome do PDF.
-  parcelamentos: ParcelamentoLinha[];
   // DAS já `enviado` pelo sistema: a opção aparece só pra exibir o valor atual.
   dasEnviadoPeloSistema: boolean;
   // Opções dos selects de status (valor/rótulo), vindas do Container (dado de domínio fora da View).
@@ -64,13 +64,6 @@ type EditarCadastroOperacionalFormProps = {
   contatos: { id: string }[];
   onAdicionarContato: () => void;
   onRemoverContato: (indice: number) => void;
-  parcelamentoCampos: { id: string }[];
-  onAdicionarParcelamento: () => void;
-  onRemoverParcelamento: (indice: number) => void;
-  // Leitura do PDF por linha (chave = id do campo do useFieldArray). Com leitura em andamento o
-  // Salvar fica desabilitado; o PDF escolhido (ou removido) volta ao Container para ser lido.
-  leituras: Record<string, LeituraDaLinha>;
-  onArquivoEscolhido: (indice: number, arquivo: File | undefined) => void;
   onLimpar: () => void;
   // Sem callback (uso em /clientes/[id]): "Cancelar" navega pro mesmo destino
   // do "Voltar" do topo. Com callback (uso inline na busca do dashboard):
@@ -81,9 +74,6 @@ type EditarCadastroOperacionalFormProps = {
   documentoContratual?: React.ReactNode;
   // O mês do acompanhamento do RH (só o Admin): o cabeçalho do cartão, logo depois da nota de obrigatórios.
   mesDoAcompanhamento?: React.ReactNode;
-  // Guias mensais de um Parcelamento PGFN já salvo: o Container monta a região (ela tem estado próprio).
-  // `codigo` nomeia a região de cada Parcelamento para o leitor de tela.
-  guiasDaParcela?: (parcelamentoId: string, codigo: string, interno: boolean) => React.ReactNode;
 };
 
 export function EditarCadastroOperacionalForm({
@@ -134,11 +124,7 @@ export function EditarCadastroOperacionalForm({
       acoes={
         <AcoesDoFormulario
           pendente={pendente}
-          motivoDoBloqueio={
-            Object.values(leituras).some((l) => l.estado === "lendo")
-              ? "Aguarde a leitura do PDF para salvar."
-              : undefined
-          }
+          motivoDoBloqueio={motivoDeLeituraEmAndamento(leituras)}
           onLimpar={onLimpar}
           onCancelar={onCancelar}
         />
