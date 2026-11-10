@@ -774,6 +774,20 @@ tracejada e `muted`, pendente sem tratamento. Serviço que não aceita troca (o 
 fica desabilitado e o motivo vai para o leitor de tela; um motivo que vale o cartão todo (cliente
 sem Responsável) aparece como texto de apoio visível. Erro vira `AvisoDeStatus` com ícone.
 
+**`AcompanhamentoDosFuncionarios` (organismo, `/rh/funcionarios`):** a visão do Líder e do Admin, de cima
+para baixo: `NavegacaoDeMes` solta; o cartão "Pontos por funcionário" (uma barra por Funcionário, o
+nome é link para o detalhe, "x de y" à direita, e a nota de que um ponto é um Cliente com todos os
+serviços concluídos); o cartão "Clientes que faltam por serviço" (`Tabela` com o Funcionário na
+coluna fixa e um número por serviço, cada um um link para a lista das empresas); e a seção "Sem
+responsável" com `ListaDeClientes`. Cada seção só aparece se tem o que mostrar.
+
+**`DetalheDoFuncionarioRh` (organismo, `/rh/funcionarios/[id]`):** o detalhe de um Funcionário. Título
+"nome: x% em mês (pontos de atribuídos)"; "Pendente por serviço" (um `h3` por serviço, com a
+contagem, e `ListaDeClientes` abaixo); o cartão "Evolução" (o percentual de cada mês anterior, um
+por linha); e "Mais atrasados" (os Clientes e há quantos meses pendem, no `detalhes` do
+`ListaDeClientes`). Estado vazio dito em texto ("Tudo concluído neste mês.", "Sem meses anteriores
+para comparar.", "Nenhum cliente atrasado.").
+
 **`ResponsavelSomenteLeitura`:** o mesmo campo "Responsável" do SN em `Input` desabilitado, para
 quem não atribui (Funcionário, Admin).
 

@@ -17,6 +17,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          # check:design-doc compara com a base da PR (git diff base...HEAD).
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -29,6 +32,8 @@ jobs:
       - run: yarn check:naming
       - run: yarn check:refs
       - run: yarn check:specs
+      - run: yarn check:design-doc ${{ github.base_ref }}
+        if: github.event_name == 'pull_request'
       - run: yarn check:deps
       - run: yarn check:guard-senha
 

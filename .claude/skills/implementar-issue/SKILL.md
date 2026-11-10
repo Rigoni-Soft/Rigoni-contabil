@@ -27,6 +27,8 @@ Chame a Skill `implement` com a issue (ela lê o ticket, usa `tdd` nos pontos ac
 
 Commits em Conventional Commits, atômicos, na branch do ticket.
 
+Antes de criar um componente de UI, liste `src/presentation/components/{ui,atoms,molecules,organisms}` e leia no `DESIGN.md` a seção da tela; o componente novo só nasce quando nenhum existente serve, e entra no `DESIGN.md` no mesmo commit (`yarn check:design-doc <base>` reprova o que faltar).
+
 Quando o usuário corrigir o **desenho** depois da implementação, atualize na mesma rodada `CONTEXT.md`, `docs/trilha-implementacao.md` e os e2e que citam a tela antiga, antes de reportar; o gate e o roteiro de teste leem esses arquivos.
 
 ## 4. Fechar a estação

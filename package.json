@@ -15,6 +15,7 @@
     "check:naming": "node scripts/check-naming.mjs",
     "check:refs": "node scripts/check-refs-ticket.mjs",
     "check:specs": "node scripts/check-specs-views.mjs",
+    "check:design-doc": "node scripts/check-design-doc.mjs",
     "check:guard-senha": "node scripts/check-troca-senha-guard.mjs",
     "seed:teste-zap": "node --env-file=.env.local scripts/seed-teste-zap.mjs",
     "new:module": "node scripts/new-module.mjs",
