@@ -43,7 +43,6 @@ import { formatarParcela } from "@/shared/kernel/data-iso";
 import { temDestinatario } from "@/shared/kernel/forma-envio";
 import { mesAtual } from "@/shared/kernel/mes-atual";
 import type { Result } from "@/shared/kernel/result";
-import type { SetorSlug } from "@/shared/kernel/setores";
 
 // WhatsApp do financeiro do escritório, destino das guias de parcelamento interno. `telefone` null:
 // não configurado (FINANCEIRO_TELEFONE ausente ou inválido).
@@ -58,13 +57,6 @@ type GuiaAEntregar = GuiaAtribuida & { restantesDepois: number };
 // `descontou`: o banco descontou uma parcela restante nesta entrega.
 // `completa`: entregue e registrada; qualquer outro desfecho trava o resto do acordo PGFN.
 type EntregaDeGuia = { andamento: Andamento; descontou: boolean; completa: boolean };
-
-// Os Parcelamentos agrupados pelo Setor dono: o alerta é de cada Setor.
-function porSetor(parcelamentos: ParcelamentoDoCliente[]): Map<SetorSlug, ParcelamentoDoCliente[]> {
-  const grupos = new Map<SetorSlug, ParcelamentoDoCliente[]>();
-  for (const p of parcelamentos) grupos.set(p.setor, [...(grupos.get(p.setor) ?? []), p]);
-  return grupos;
-}
 
 // Entrega as guias de parcelamento do Cliente (job): o banco manda no que está pendente e cada
 // entrega aceita grava o registro de envio da parcela. O Parcelamento da Receita vem do provedor
@@ -107,7 +99,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     semDestino: ParcelamentoDoCliente[],
   ): OcorrenciaDeEntrega[] {
     const ocorrencias: OcorrenciaDeEntrega[] = [];
-    for (const [setor, doSetor] of porSetor(semDestino)) {
+    for (const [setor, doSetor] of Map.groupBy(semDestino, (p) => p.setor)) {
       const internos = doSetor.filter((p) => p.interno);
       if (internos.length > 0) {
         ocorrencias.push({
@@ -225,7 +217,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     );
     const semGuia = aEntregar.filter((p) => !comGuia.has(p.id));
     ocorrencias.push(...andamentos.flatMap((a) => a.ocorrencias));
-    for (const [setor, doSetor] of porSetor(semGuia)) {
+    for (const [setor, doSetor] of Map.groupBy(semGuia, (p) => p.setor)) {
       ocorrencias.push({
         tipo: "parcelamento_sem_guia",
         setor,
