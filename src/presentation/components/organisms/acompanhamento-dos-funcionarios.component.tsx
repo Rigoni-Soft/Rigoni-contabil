@@ -120,7 +120,8 @@ export function AcompanhamentoDosFuncionarios({
                     </Link>
                     {c.empresas.length > 0 && (
                       <Texto como="span" variante="nota" className="block text-left">
-                        {c.empresas.join(", ")}
+                        {c.empresas.slice(0, 3).join(", ")}
+                        {c.empresas.length > 3 && ` +${c.empresas.length - 3}`}
                       </Texto>
                     )}
                   </CelulaDeTabela>

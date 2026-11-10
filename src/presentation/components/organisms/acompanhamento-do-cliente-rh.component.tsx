@@ -16,11 +16,12 @@ export type Servico = {
   bloqueio?: string;
 };
 
+const APAGADO = "border-dashed bg-muted text-muted-foreground";
 const CLASSE_DO_ESTADO: Record<EstadoDoServico, string> = {
   pendente: "",
   concluido: "border-success/50 bg-success/15",
-  nao_aplica: "border-dashed bg-muted text-muted-foreground",
-  nunca_aplica: "border-dashed bg-muted text-muted-foreground",
+  nao_aplica: APAGADO,
+  nunca_aplica: APAGADO,
 };
 
 type Props = {
@@ -61,7 +62,7 @@ export function AcompanhamentoDoClienteRh({ servicos, aviso, pendente, erro, onT
             {s.estado === "nunca_aplica" && !s.bloqueio && (
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 className="self-start"
                 disabled={pendente}
