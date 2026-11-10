@@ -743,7 +743,7 @@ cadastro operacional" do SN, com os dados do RH: o cabeçalho (empresa e CNPJ, s
 Regime), o Responsável do RH e o acompanhamento do mês acima do formulário, e no
 formulário os contatos, as observações gerais do RH e o cartão do documento
 contratual (só leitura). O que é do SN (DAS, atividade do mês, forma de envio) não
-aparece; os parcelamentos entram com a #216. Edita o Responsável do RH do Cliente, o
+aparece; a lista de Parcelamentos é a do SN (`ParcelamentosDoCadastro`, com a leitura do PDF e as guias da parcela), só com os do RH (#216). Edita o Responsável do RH do Cliente, o
 Líder do RH e o Admin; quem não edita vê a tela em leitura.
 
 ### RH: acompanhamento mensal (#214, #215)

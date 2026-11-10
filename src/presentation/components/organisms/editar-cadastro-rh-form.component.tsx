@@ -11,6 +11,11 @@ import type { CabecalhoCliente } from "./cabecalho-do-cadastro.component";
 import { CartaoDoCadastro } from "./cartao-do-cadastro.component";
 import { ContatosDoCadastro } from "./contatos-do-cadastro.component";
 import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional-form.component";
+import {
+  ParcelamentosDoCadastro,
+  type LeituraDaLinha,
+  type ParcelamentoLinha,
+} from "./parcelamentos-do-cadastro.component";
 
 type EditarCadastroRhFormProps = {
   cabecalho: CabecalhoCliente;
@@ -27,6 +32,14 @@ type EditarCadastroRhFormProps = {
   contatos: { id: string }[];
   onAdicionarContato: () => void;
   onRemoverContato: (indice: number) => void;
+  // Os Parcelamentos do RH, com o mesmo fluxo do SN (ver ParcelamentosDoCadastro).
+  parcelamentos: ParcelamentoLinha[];
+  parcelamentoCampos: { id: string }[];
+  onAdicionarParcelamento: () => void;
+  onRemoverParcelamento: (indice: number) => void;
+  leituras: Record<string, LeituraDaLinha>;
+  onArquivoEscolhido: (indice: number, arquivo: File | undefined) => void;
+  guiasDaParcela?: (parcelamentoId: string, codigo: string, interno: boolean) => React.ReactNode;
   onLimpar: () => void;
   // Cartão do documento contratual com "Abrir em nova aba" (só leitura).
   documentoContratual?: React.ReactNode;
@@ -54,6 +67,13 @@ export function EditarCadastroRhForm({
   contatos,
   onAdicionarContato,
   onRemoverContato,
+  parcelamentos,
+  parcelamentoCampos,
+  onAdicionarParcelamento,
+  onRemoverParcelamento,
+  leituras,
+  onArquivoEscolhido,
+  guiasDaParcela,
   onLimpar,
   documentoContratual,
   responsavel,
@@ -71,7 +91,17 @@ export function EditarCadastroRhForm({
       documentoContratual={documentoContratual}
       responsavel={responsavel}
       acompanhamento={acompanhamento}
-      acoes={<AcoesDoFormulario pendente={pendente} onLimpar={onLimpar} />}
+      acoes={
+        <AcoesDoFormulario
+          pendente={pendente}
+          motivoDoBloqueio={
+            Object.values(leituras).some((l) => l.estado === "lendo")
+              ? "Aguarde a leitura do PDF para salvar."
+              : undefined
+          }
+          onLimpar={onLimpar}
+        />
+      }
       erroServidor={erroServidor}
       sucesso={
         sucesso && <AvisoDeStatus tipo="sucesso" legivel texto="Cadastro do RH atualizado." />
@@ -85,6 +115,20 @@ export function EditarCadastroRhForm({
         contatos={contatos}
         onAdicionar={onAdicionarContato}
         onRemover={onRemoverContato}
+      />
+
+      <ParcelamentosDoCadastro
+        register={register}
+        control={control}
+        errors={errors}
+        readOnly={readOnly}
+        parcelamentos={parcelamentos}
+        parcelamentoCampos={parcelamentoCampos}
+        onAdicionar={onAdicionarParcelamento}
+        onRemover={onRemoverParcelamento}
+        leituras={leituras}
+        onArquivoEscolhido={onArquivoEscolhido}
+        guiasDaParcela={guiasDaParcela}
       />
 
       <Pilha espaco={1} className="sm:col-span-2 lg:col-span-4">

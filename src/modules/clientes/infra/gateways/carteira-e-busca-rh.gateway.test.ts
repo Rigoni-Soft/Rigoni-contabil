@@ -141,8 +141,43 @@ describe("RH: busca por atribuição e Responsável do RH (integração)", () =>
       cnpj: CNPJ_SN,
       contatos: [],
       observacoes: "",
+      parcelamentos: [],
     });
     expect(presumido.ok && presumido.value?.empresa).toBeDefined();
+  });
+
+  it("o cadastro e a carteira do RH trazem só os Parcelamentos do RH, com o status do mês", async () => {
+    const parcelamento = (setor: "rh" | "simples_nacional", codigo: string) => {
+      const id = crypto.randomUUID();
+      return {
+        id,
+        cliente_id: clientePresumidoId,
+        setor,
+        codigo,
+        parcelas_restantes: 3,
+        arquivo_caminho: `${clientePresumidoId}/${id}-acordo.pdf`,
+      };
+    };
+    const rh = parcelamento("rh", "RH-1");
+    const sn = parcelamento("simples_nacional", "SN-1");
+    const criados = await servico.from("cliente_parcelamentos").insert([rh, sn]);
+    if (criados.error) throw criados.error;
+    try {
+      const lider = await comoLiderRH();
+      const cadastro = await new SupabaseClienteQueryGateway(lider).buscarCadastroRh(
+        clientePresumidoId,
+      );
+      const carteira = await new SupabaseCarteiraDoSetorGateway(lider).listar("rh");
+
+      expect(cadastro.ok && cadastro.value?.parcelamentos.map((p) => p.codigo)).toEqual(["RH-1"]);
+      expect(cadastro.ok && cadastro.value?.parcelamentos[0].arquivoNome).toBe("acordo.pdf");
+      expect(
+        carteira.ok &&
+          carteira.value.find((c) => c.clienteId === clientePresumidoId)?.parcelamentos,
+      ).toEqual([{ codigo: "RH-1", interno: false, quitado: false, enviadoNoMes: false }]);
+    } finally {
+      await servico.from("cliente_parcelamentos").delete().in("id", [rh.id, sn.id]);
+    }
   });
 
   it("o Líder do RH atribui, troca e remove o Responsável do RH, com auditoria, sem tocar no do SN", async () => {

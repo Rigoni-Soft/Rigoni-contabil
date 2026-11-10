@@ -6,7 +6,7 @@ import type { GuiaParcelaPgfnRepository } from "@/modules/clientes/application/p
 import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
-import { podeEditarCadastroOperacional } from "@/shared/kernel/papeis";
+import { podeOperarParcelamento } from "@/shared/kernel/papeis";
 import { err, type Result } from "@/shared/kernel/result";
 
 // Confirmar à mão libera a guia ao envio. Quem confirmou e quando são gravados e auditados pelo banco.
@@ -18,10 +18,10 @@ export class ConfirmarGuiaParcelaPgfn implements ConfirmarGuiaParcelaPgfnPort {
 
   async execute(input: ConfirmarGuiaParcelaPgfnInput): Promise<Result<void, AppError>> {
     const ator = await this.sessao.usuarioAtual();
-    if (!ator || !podeEditarCadastroOperacional(ator.papel, ator.setor)) {
+    if (!ator || !podeOperarParcelamento(ator.papel, ator.setor)) {
       return err(
         new ForbiddenError(
-          "Só Admin, Líder ou Funcionário do Simples Nacional confirmam a guia da parcela.",
+          "Só Admin, Líder ou Funcionário do Simples Nacional ou do RH confirmam a guia da parcela.",
         ),
       );
     }

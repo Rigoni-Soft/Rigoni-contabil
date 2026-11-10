@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
@@ -12,11 +12,20 @@ import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 import type { CadastroRhClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 
+import { AnexarGuiaParcelaPgfnContainer } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.container";
 import {
   contatoNovo,
   descartarLinhasEmBranco,
+  leituraDaLinha,
+  parcelamentoNovo,
   reposicionarErros,
+  resumoDoAcordo,
 } from "../editar-cadastro-operacional/editar-cadastro-operacional.presenter";
+import {
+  FalhaDeEtapa,
+  salvarParcelamentosDoSetor,
+} from "../editar-cadastro-operacional/salvar-parcelamentos-do-setor";
+import { useLeituraDoPdf } from "../editar-cadastro-operacional/use-leitura-do-pdf.hook";
 import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
 import { editarCadastroRhAction } from "./editar-cadastro-rh.actions";
 import { editarCadastroRhFormSchema } from "./editar-cadastro-rh.schema";
@@ -43,7 +52,8 @@ const valoresIniciaisDe = (dados: CadastroRhClienteDto, readOnly: boolean): Valo
   documentoObrigatorio: null,
   dasStatus: null,
   dataEnvioDas: null,
-  parcelamentos: [],
+  parcelamentos:
+    dados.parcelamentos.length || readOnly ? dados.parcelamentos : [parcelamentoNovo()],
   observacoesGerais: dados.observacoes,
   atividadeMes: { industria: false, comercio: false, servico: false },
   responsavelId: "",
@@ -75,6 +85,7 @@ export function EditarCadastroRhContainer({
     handleSubmit,
     reset,
     getValues,
+    setValue,
     setError,
     formState: { errors },
   } = useForm<Valores>({
@@ -94,12 +105,27 @@ export function EditarCadastroRhContainer({
           ...(resultado.errors.contatos && {
             contatos: reposicionarErros(resultado.errors.contatos, semBranco.contatos),
           }),
+          ...(resultado.errors.parcelamentos && {
+            parcelamentos: reposicionarErros(
+              resultado.errors.parcelamentos,
+              semBranco.parcelamentos,
+            ),
+          }),
         },
       } as never;
     },
     defaultValues: valoresIniciais,
   });
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
+  const parcelamentoCampos = useFieldArray({ control, name: "parcelamentos" });
+  // A leitura do PDF termina depois de a lista poder ter mudado: acha a linha pelo id, no momento.
+  const camposAtuais = useRef(parcelamentoCampos.fields);
+  useEffect(() => {
+    camposAtuais.current = parcelamentoCampos.fields;
+  });
+  const leitura = useLeituraDoPdf(dados?.id ?? "", setValue, (id) =>
+    camposAtuais.current.findIndex((campo) => campo.id === id),
+  );
 
   if (!dados) return <Texto variante="apoio">Cliente não encontrado.</Texto>;
 
@@ -123,11 +149,28 @@ export function EditarCadastroRhContainer({
         }
         return;
       }
+      // Os Parcelamentos têm PDF: vão por Server Action própria, depois do cadastro.
+      const erroParcelamentos = await salvarParcelamentosDoSetor({
+        clienteId: dados.id,
+        setor: "rh",
+        salvos: dados.parcelamentos,
+        valores,
+        getValues,
+        setValue,
+      });
+      if (erroParcelamentos) {
+        setErroServidor(erroParcelamentos);
+        return;
+      }
       setSucesso(true);
       router.push(voltarHref);
     } catch (erro) {
       console.error("Falha ao salvar o cadastro do RH", erro);
-      setErroServidor(mensagemDaFalha(erro));
+      setErroServidor(
+        erro instanceof FalhaDeEtapa && erro.etapa
+          ? `Os dados foram salvos, mas não foi possível ${erro.etapa}. Verifique a conexão e tente novamente.`
+          : mensagemDaFalha(erro),
+      );
     } finally {
       setPendente(false);
     }
@@ -148,11 +191,36 @@ export function EditarCadastroRhContainer({
       contatos={fields}
       onAdicionarContato={() => append(contatoNovo(fields.length === 0))}
       onRemoverContato={remove}
+      // Lido no render: o que a tela exibe (resumo, selo, nome do PDF) só muda quando uma linha entra ou sai.
+      parcelamentos={(getValues("parcelamentos") ?? dados.parcelamentos).map((p) => ({
+        ...p,
+        acordoResumo: resumoDoAcordo(p.acordo),
+      }))}
+      parcelamentoCampos={parcelamentoCampos.fields}
+      onAdicionarParcelamento={() => parcelamentoCampos.append(parcelamentoNovo())}
+      onRemoverParcelamento={(indice) => {
+        void leitura.ler(parcelamentoCampos.fields[indice].id, undefined); // esquece a leitura da linha
+        parcelamentoCampos.remove(indice);
+      }}
+      leituras={Object.fromEntries(
+        Object.entries(leitura.leituras).map(([id, estado]) => [id, leituraDaLinha(estado)]),
+      )}
+      onArquivoEscolhido={(indice, arquivo) =>
+        void leitura.ler(parcelamentoCampos.fields[indice].id, arquivo)
+      }
+      guiasDaParcela={(parcelamentoId, codigo, interno) => (
+        <AnexarGuiaParcelaPgfnContainer
+          parcelamentoId={parcelamentoId}
+          codigo={codigo}
+          interno={interno}
+        />
+      )}
       responsavel={responsavel}
       mesDoAcompanhamento={mesDoAcompanhamento}
       acompanhamento={acompanhamento}
       onLimpar={() => {
         reset(valoresIniciais);
+        leitura.esquecerTodas();
         setErroServidor(undefined);
         setSucesso(false);
       }}

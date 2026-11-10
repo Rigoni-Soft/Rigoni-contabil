@@ -112,6 +112,11 @@ export const parcelamentoFormSchema = z
   });
 export type ParcelamentoFormValues = z.infer<typeof parcelamentoFormSchema>;
 
+// A lista de linhas do formulário (SN e RH): cada linha válida e os PDFs novos cabendo juntos no corpo da chamada.
+export const parcelamentosFormSchema = z
+  .array(parcelamentoFormSchema)
+  .refine(somaDosPdfsCabe, MENSAGEM_SOMA_DOS_PDFS);
+
 export type EditarCadastroOperacionalInput = z.infer<typeof editarCadastroOperacionalSchema>;
 
 // clienteId nunca é digitado pelo Funcionário — vem do parâmetro da rota (Container injeta antes de
@@ -123,7 +128,7 @@ export const editarCadastroOperacionalFormSchema = editarCadastroOperacionalSche
   .omit({ clienteId: true })
   .extend({
     responsavelId: z.string(),
-    parcelamentos: z.array(parcelamentoFormSchema).refine(somaDosPdfsCabe, MENSAGEM_SOMA_DOS_PDFS),
+    parcelamentos: parcelamentosFormSchema,
   });
 export type EditarCadastroOperacionalFormValues = z.infer<
   typeof editarCadastroOperacionalFormSchema
