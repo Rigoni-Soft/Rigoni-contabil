@@ -144,7 +144,9 @@ export function EditarCadastroOperacionalForm({
         />
       }
       erroServidor={erroServidor}
-      sucesso={sucesso && <AvisoDeStatus tipo="sucesso" texto="Cadastro operacional atualizado." />}
+      sucesso={
+        sucesso && <AvisoDeStatus tipo="sucesso" legivel texto="Cadastro operacional atualizado." />
+      }
     >
       <DasDoCadastro
         register={register}

@@ -61,7 +61,7 @@ export function ResponsavelDoSetor({
         desabilitado={pendente}
       />
       {erro && <FieldError>{erro}</FieldError>}
-      {salvo && <AvisoDeStatus tipo="sucesso" texto="Responsável atualizado." />}
+      {salvo && <AvisoDeStatus tipo="sucesso" legivel texto="Responsável atualizado." />}
       <Caixa>
         <Button type="button" onClick={onSalvar} disabled={!alterado || pendente}>
           {pendente ? "Salvando…" : "Salvar Responsável"}
