@@ -52,7 +52,9 @@ export function podeGerirParcelamento(papel: string, setorDoAtor: string, setor:
 // que tem Parcelamento (SN e RH). De qual Setor é o Parcelamento, quem decide é a RLS (o repositório
 // usa a sessão do usuário).
 export function podeOperarParcelamento(papel: string, setor: string): boolean {
-  return podeGerirParcelamento(papel, setor, SETOR_SN) || podeGerirParcelamento(papel, setor, SETOR_RH);
+  return (
+    podeGerirParcelamento(papel, setor, SETOR_SN) || podeGerirParcelamento(papel, setor, SETOR_RH)
+  );
 }
 
 // Quem enxerga o dashboard de um Setor: Admin (suporte) ou qualquer perfil daquele Setor.

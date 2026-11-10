@@ -90,12 +90,19 @@ describe("EditarCadastroRhContainer", () => {
       parcelasRestantes: 5,
       interno: false,
       arquivoNome: "acordo.pdf",
-      acordo: { origem: null, totalDeParcelas: null, valorDaParcelaCentavos: null, dataDeAdesao: null },
+      acordo: {
+        origem: null,
+        totalDeParcelas: null,
+        valorDaParcelaCentavos: null,
+        dataDeAdesao: null,
+      },
       quitado: false,
       temEnvio: false,
       enviadoNoMes: false,
     };
-    jest.mocked(salvarParcelamentosAction).mockResolvedValue({ ok: true, data: { ids: [parcelamento.id] } });
+    jest
+      .mocked(salvarParcelamentosAction)
+      .mockResolvedValue({ ok: true, data: { ids: [parcelamento.id] } });
     montar({ dados: { ...dados, parcelamentos: [parcelamento] } });
     const usuario = userEvent.setup();
 
@@ -109,7 +116,9 @@ describe("EditarCadastroRhContainer", () => {
     expect(salvarParcelamentosAction).toHaveBeenCalledWith({
       clienteId: dados.id,
       setor: "rh",
-      parcelamentos: [expect.objectContaining({ id: parcelamento.id, codigo: "RH-100", parcelasRestantes: 4 })],
+      parcelamentos: [
+        expect.objectContaining({ id: parcelamento.id, codigo: "RH-100", parcelasRestantes: 4 }),
+      ],
     });
   });
 

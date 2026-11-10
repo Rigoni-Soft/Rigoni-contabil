@@ -5,7 +5,10 @@ import type {
   CarteiraDoSetorQueryPort,
   ClienteDaCarteiraRow,
 } from "@/modules/clientes/application/ports/out/carteira-do-setor.provider";
-import { estaQuitado, parcelaDoMesAtual } from "@/modules/clientes/infra/mappers/parcelamento-row.mapper";
+import {
+  estaQuitado,
+  parcelaDoMesAtual,
+} from "@/modules/clientes/infra/mappers/parcelamento-row.mapper";
 import type { AppError } from "@/shared/errors/app.error";
 import { ConsultaError } from "@/shared/errors/consulta.error";
 import { TAMANHO_DA_PAGINA } from "@/shared/kernel/paginacao-por-cursor";

@@ -67,7 +67,9 @@ describe("EditarCadastroRhForm", () => {
     unmount();
 
     render(<Montado readOnly />);
-    expect(screen.queryByRole("button", { name: /Adicionar parcelamento/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Adicionar parcelamento/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("somente leitura não tem Salvar nem Adicionar contato", () => {

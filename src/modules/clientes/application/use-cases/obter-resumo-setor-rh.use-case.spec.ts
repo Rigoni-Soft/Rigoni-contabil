@@ -82,9 +82,15 @@ describe("ObterResumoSetorRh", () => {
     const carteira: CarteiraDoSetorQueryPort = {
       listar: async () =>
         ok([
-          linha(1, "u1", "Ana", [{ codigo: "A", interno: false, quitado: false, enviadoNoMes: true }]),
-          linha(2, "u1", "Ana", [{ codigo: "B", interno: true, quitado: false, enviadoNoMes: false }]),
-          linha(3, "u2", "Beto", [{ codigo: "C", interno: false, quitado: true, enviadoNoMes: false }]),
+          linha(1, "u1", "Ana", [
+            { codigo: "A", interno: false, quitado: false, enviadoNoMes: true },
+          ]),
+          linha(2, "u1", "Ana", [
+            { codigo: "B", interno: true, quitado: false, enviadoNoMes: false },
+          ]),
+          linha(3, "u2", "Beto", [
+            { codigo: "C", interno: false, quitado: true, enviadoNoMes: false },
+          ]),
           linha(4, null, null),
         ]),
     };
