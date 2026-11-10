@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 
-import { semChaves, useSalvarCadastroOperacional } from "./use-salvar-cadastro-operacional.hook";
+import { useSalvarCadastroOperacional } from "./use-salvar-cadastro-operacional.hook";
 
 const push = jest.fn();
 const editar = jest.fn();
@@ -44,12 +44,6 @@ function montar(aoSalvar?: Parameters<typeof useSalvarCadastroOperacional>[0]["a
   );
   return { ...hook, setError };
 }
-
-describe("semChaves", () => {
-  it("remove só as chaves dadas", () => {
-    expect(semChaves({ a: 1, b: 2, c: 3 }, "a", "c")).toEqual({ b: 2 });
-  });
-});
 
 describe("useSalvarCadastroOperacional", () => {
   beforeEach(() => jest.resetAllMocks());

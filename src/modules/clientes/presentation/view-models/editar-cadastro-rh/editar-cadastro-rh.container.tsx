@@ -24,7 +24,7 @@ import {
 import {
   FalhaDeEtapa,
   salvarParcelamentosDoSetor,
-} from "../editar-cadastro-operacional/salvar-parcelamentos-do-setor";
+} from "../editar-cadastro-operacional/salvar-parcelamentos-do-setor.presenter";
 import { useLeituraDoPdf } from "../editar-cadastro-operacional/use-leitura-do-pdf.hook";
 import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
 import { editarCadastroRhAction } from "./editar-cadastro-rh.actions";

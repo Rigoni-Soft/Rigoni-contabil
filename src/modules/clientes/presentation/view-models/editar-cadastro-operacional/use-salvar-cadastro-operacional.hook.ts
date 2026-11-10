@@ -12,9 +12,7 @@ import {
   naEtapa,
   salvarParcelamentosDoSetor,
   semChaves,
-} from "./salvar-parcelamentos-do-setor";
-
-export { semChaves };
+} from "./salvar-parcelamentos-do-setor.presenter";
 
 type Valores = EditarCadastroOperacionalFormValues;
 

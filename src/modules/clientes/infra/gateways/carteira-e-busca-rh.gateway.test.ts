@@ -180,6 +180,53 @@ describe("RH: busca por atribuição e Responsável do RH (integração)", () =>
     }
   });
 
+  it("o Funcionário do RH grava e remove Parcelamento do RH só do Cliente de que é Responsável, de qualquer Regime", async () => {
+    await servico.from("cliente_responsaveis").insert({
+      cliente_id: clientePresumidoId,
+      setor: "rh",
+      responsavel_id: FUNCIONARIO_RH_ID,
+    });
+    const id = crypto.randomUUID();
+    const item = {
+      id,
+      codigo: "RH-FUNC",
+      parcelasRestantes: 4,
+      interno: false,
+      arquivoCaminho: `${clientePresumidoId}/${id}-acordo.pdf`,
+    };
+    const salvar = async (supabase: SupabaseClient, itens: unknown[]) =>
+      supabase.rpc("salvar_parcelamentos_cliente", {
+        p_cliente_id: clientePresumidoId,
+        p_setor: "rh",
+        p_itens: itens,
+      });
+    const codigosDoRh = async () =>
+      (
+        await servico
+          .from("cliente_parcelamentos")
+          .select("codigo")
+          .eq("cliente_id", clientePresumidoId)
+          .eq("setor", "rh")
+      ).data;
+    try {
+      // O colega do RH, que não é o Responsável, não grava.
+      const doColega = await salvar(await comoFuncionario2RH(), [item]);
+      expect(doColega.error).not.toBeNull();
+      expect(await codigosDoRh()).toEqual([]);
+
+      const proprio = await salvar(await comoFuncionarioRH(), [item]);
+      expect(proprio.error).toBeNull();
+      expect(await codigosDoRh()).toEqual([{ codigo: "RH-FUNC" }]);
+
+      // Lista vazia remove o Parcelamento (sem registro de envio).
+      const removido = await salvar(await comoFuncionarioRH(), []);
+      expect(removido.error).toBeNull();
+      expect(await codigosDoRh()).toEqual([]);
+    } finally {
+      await servico.from("cliente_parcelamentos").delete().eq("id", id);
+    }
+  });
+
   it("o Líder do RH atribui, troca e remove o Responsável do RH, com auditoria, sem tocar no do SN", async () => {
     const lider = await comoLiderRH();
     const linha = (responsavelId: string) => ({
