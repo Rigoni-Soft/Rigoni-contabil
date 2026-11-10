@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
 
 import { CriarClienteForm } from "@/presentation/components/organisms/criar-cliente-form.component";
+import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
 import { normalizarCnpj } from "@/shared/kernel/cnpj";
 import { outrosNumeros, sugerirNumero } from "@/shared/kernel/numero-alteracao";
 
@@ -157,12 +158,7 @@ export function CriarClienteContainer() {
       setCriado({ empresa: resultado.data.cliente.empresa, cnpj: resultado.data.cliente.cnpj });
     } catch (erro) {
       console.error("Falha ao cadastrar o Cliente", erro);
-      // Só `TypeError` (o fetch que não saiu) é de rede; o resto é erro do servidor.
-      setErroServidor(
-        erro instanceof TypeError
-          ? "Sem conexão com o servidor. Verifique a internet e tente novamente."
-          : "Erro inesperado no servidor ao cadastrar. Tente novamente; se continuar, avise o suporte.",
-      );
+      setErroServidor(mensagemDaFalha(erro));
     } finally {
       setPendente(false);
     }
