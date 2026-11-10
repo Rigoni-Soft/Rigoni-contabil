@@ -45,14 +45,13 @@ test.describe("Acompanhamento dos funcionários do RH", () => {
       page.getByRole("heading", { name: "Acompanhamento dos funcionários" }),
     ).toBeVisible();
     await expect(page.getByText(SEM_RESPONSAVEL)).toBeVisible();
-    await page.goBack();
 
     const { data: perfil } = await admin
       .from("perfis")
       .select("nome")
       .eq("id", FUNCIONARIO_RH_ID)
       .single();
-    await page.getByRole("link", { name: perfil!.nome }).click();
+    await page.getByRole("link", { name: perfil!.nome, exact: true }).click();
 
     await expect(page.getByRole("region", { name: "Pendente por serviço" })).toContainText(
       COM_RESPONSAVEL,

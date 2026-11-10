@@ -48,7 +48,8 @@ begin
   if tg_op = 'UPDATE' and new.cliente_id is distinct from old.cliente_id then
     raise exception 'O Cliente do cadastro operacional não pode ser trocado.' using errcode = '23514';
   end if;
-  if not (tg_table_name = 'cliente_contatos' and current_setting('app.cadastro_rh', true) = 'on')
+  -- coalesce: com a variável nunca definida current_setting devolve NULL, o IF vira NULL e a trava não dispara.
+  if not (tg_table_name = 'cliente_contatos' and coalesce(current_setting('app.cadastro_rh', true), '') = 'on')
      and not exists (
     select 1 from public.clientes
     where id = v_cliente_id and regime in ('simples_nacional', 'mei')
