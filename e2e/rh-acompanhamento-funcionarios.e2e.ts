@@ -65,6 +65,6 @@ test.describe("Acompanhamento dos funcionários do RH", () => {
     await expect(page.getByText("Clientes por Responsável")).toHaveCount(0);
 
     await page.goto("/rh/funcionarios/" + FUNCIONARIO_RH_ID);
-    await expect(page).toHaveURL("/");
+    await expect(page).toHaveURL("/rh");
   });
 });

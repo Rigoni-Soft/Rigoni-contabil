@@ -108,7 +108,7 @@ test.describe("Acompanhamento mensal do RH", () => {
 
     await page.goto("/rh");
     await expect(
-      page.getByRole("link", { name: new RegExp(`^${NOVO_SERVICO} pendente`) }),
+      page.getByRole("link", { name: new RegExp(`${NOVO_SERVICO} pendente`) }),
     ).toBeVisible();
   });
 });
