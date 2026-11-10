@@ -180,6 +180,38 @@ describe("RH: busca por atribuição e Responsável do RH (integração)", () =>
     }
   });
 
+  it("RLS: o SN lê só os Parcelamentos do SN e o RH só os do RH, no mesmo Cliente", async () => {
+    const linha = (setor: "rh" | "simples_nacional", codigo: string) => {
+      const id = crypto.randomUUID();
+      return {
+        id,
+        cliente_id: clienteSnId,
+        setor,
+        codigo,
+        parcelas_restantes: 3,
+        arquivo_caminho: `${clienteSnId}/${id}-acordo.pdf`,
+      };
+    };
+    const rh = linha("rh", "RH-RLS");
+    const sn = linha("simples_nacional", "SN-RLS");
+    const criados = await servico.from("cliente_parcelamentos").insert([rh, sn]);
+    if (criados.error) throw criados.error;
+    const codigosVistosPor = async (supabase: SupabaseClient) => {
+      const { data, error } = await supabase
+        .from("cliente_parcelamentos")
+        .select("codigo")
+        .eq("cliente_id", clienteSnId);
+      if (error) throw error;
+      return data.map((p) => p.codigo).sort();
+    };
+    try {
+      expect(await codigosVistosPor(await comoLiderSN())).toEqual(["SN-RLS"]);
+      expect(await codigosVistosPor(await comoLiderRH())).toEqual(["RH-RLS"]);
+    } finally {
+      await servico.from("cliente_parcelamentos").delete().in("id", [rh.id, sn.id]);
+    }
+  });
+
   it("o Funcionário do RH grava e remove Parcelamento do RH só do Cliente de que é Responsável, de qualquer Regime", async () => {
     await servico.from("cliente_responsaveis").insert({
       cliente_id: clientePresumidoId,
