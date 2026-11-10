@@ -2,13 +2,13 @@ import { expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import { cnpjUnico, login } from "./support/criar-cliente";
 
-// Parcelamento do RH (#216): o Líder do RH cadastra um Parcelamento (com PDF) de Cliente de qualquer Regime,
+// Parcelamento do RH: o Líder do RH cadastra um Parcelamento (com PDF) de Cliente de qualquer Regime,
 // o mesmo fluxo do SN; ele é do Setor RH e conta nos cards do dashboard do RH.
 const admin = adminLocal();
 const EMPRESA = `RH Parcelamento E2E ${Date.now().toString().slice(-6)} Ltda`;
 let clienteId = "";
 
-test.describe("Parcelamento na aba do RH (#216)", () => {
+test.describe("Parcelamento na aba do RH", () => {
   test.beforeAll(async () => {
     clienteId = crypto.randomUUID();
     const criado = await admin.from("clientes").insert({
