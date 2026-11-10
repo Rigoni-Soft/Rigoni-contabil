@@ -39,3 +39,10 @@ export function mesAnterior(agora: Date = new Date()): string {
   const [ano, mes] = mesAtual(agora).split("-").map(Number);
   return mes === 1 ? `${ano - 1}12` : `${ano}${String(mes - 1).padStart(2, "0")}`;
 }
+
+// Mês vizinho de uma competência "AAAA-MM": delta -1 = anterior, +1 = próximo.
+export function mesVizinho(competencia: string, delta: number): string {
+  const [ano, mes] = competencia.split("-").map(Number);
+  const data = new Date(Date.UTC(ano, mes - 1 + delta, 1));
+  return `${data.getUTCFullYear()}-${String(data.getUTCMonth() + 1).padStart(2, "0")}`;
+}

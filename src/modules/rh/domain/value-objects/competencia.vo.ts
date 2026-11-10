@@ -1,5 +1,5 @@
 import { ValidationError } from "@/shared/errors/validation.error";
-import { mesAtual } from "@/shared/kernel/mes-atual";
+import { mesAtual, mesVizinho } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 const FORMATO = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -30,11 +30,9 @@ export class Competencia {
 
   // Os `quantidade` meses terminados no mês desta competência, do mais antigo ao mais novo ("AAAA-MM").
   ultimosMeses(quantidade: number): string[] {
-    const [ano, mes] = this.props.valor.split("-").map(Number);
-    return Array.from({ length: quantidade }, (_, i) => {
-      const d = new Date(Date.UTC(ano, mes - 1 - (quantidade - 1 - i), 1));
-      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-    });
+    return Array.from({ length: quantidade }, (_, i) =>
+      mesVizinho(this.props.valor, -(quantidade - 1 - i)),
+    );
   }
 
   ehFutura(agora: Date): boolean {

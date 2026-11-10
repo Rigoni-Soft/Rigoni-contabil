@@ -3,6 +3,7 @@ import {
   hojeIso,
   mesAnterior,
   mesAtual,
+  mesVizinho,
   primeiroDiaDoMesAtual,
   ultimoDiaDoMes,
 } from "./mes-atual";
@@ -50,5 +51,13 @@ describe("mesAnterior", () => {
     ["2026-02-01T01:00:00Z", "202512"], // 31/01 22:00 em Brasília: o corrente ainda é janeiro
   ])("%s → %s", (instante, esperado) => {
     expect(mesAnterior(new Date(instante))).toBe(esperado);
+  });
+});
+
+describe("mesVizinho", () => {
+  it("acha o mês vizinho, virando o ano", () => {
+    expect(mesVizinho("2026-01", -1)).toBe("2025-12");
+    expect(mesVizinho("2025-12", 1)).toBe("2026-01");
+    expect(mesVizinho("2026-05", -1)).toBe("2026-04");
   });
 });

@@ -2,10 +2,8 @@ import type {
   AcompanhamentoFuncionariosDto,
   DetalheDoFuncionarioDto,
 } from "@/modules/rh/application/dtos/acompanhamento.dto";
-import {
-  mesVizinho,
-  rotuloDaCompetencia,
-} from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.presenter";
+import { rotuloDaCompetencia } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.presenter";
+import { mesVizinho } from "@/shared/kernel/mes-atual";
 
 // Sem cliente atribuído não há o que fechar: 0%.
 export const percentual = (pontos: number, atribuidos: number) =>
