@@ -3,6 +3,8 @@
  * leitura paginada dos pendentes, reserva/conclusão com posse por token e auditoria da URA, e
  * alertas separados por origem e por Cliente avaliado. Destrutiva: só roda no Supabase local e limpa pelos IDs da própria execução. Requer `npx supabase start`.
  */
+import { createClient } from "@supabase/supabase-js";
+
 import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/use-cases/entregar-comunicacao-por-canais.use-case";
 import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
 import { EnviarGuiasParcelamento } from "@/modules/atendimento/application/use-cases/enviar-guias-parcelamento.use-case";
@@ -576,6 +578,32 @@ describe("alertas por origem e por Cliente avaliado", () => {
         { setor: "rh", mensagem: "rh" },
         { setor: "simples_nacional", mensagem: "sn" },
       ]);
+    });
+
+    it("cada Setor lê só o alerta dele (RLS por sessão)", async () => {
+      const alvo = await criarCliente({ empresa: "Visibilidade Ltda" });
+      await alertasParcelamento.alertar(doSetor(alvo.id, "simples_nacional", "sn"));
+      await alertasParcelamento.alertar(doSetor(alvo.id, "rh", "rh"));
+      const mensagensVistasPor = async (email: string, senha: string) => {
+        const sessao = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321",
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+        );
+        const { error: falha } = await sessao.auth.signInWithPassword({ email, password: senha });
+        if (falha) throw new Error(falha.message);
+        return (
+          await ok(
+            sessao
+              .from("alertas_setor")
+              .select("mensagem")
+              .eq("cliente_id", alvo.id)
+              .eq("origem", "parcelamento"),
+          )
+        ).map((a) => a.mensagem);
+      };
+
+      expect(await mensagensVistasPor("lider.sn@rigonicontabil.local", "lider123")).toEqual(["sn"]);
+      expect(await mensagensVistasPor("lider.rh@rigonicontabil.local", "lider123")).toEqual(["rh"]);
     });
 
     it("renovar o alerta de um Setor atualiza só o dele", async () => {

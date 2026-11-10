@@ -88,6 +88,15 @@ describe("atribuirGuiasParcelamento", () => {
     ).toEqual([]);
   });
 
+  it("acordos de mesmo valor em Setores diferentes não recebem guia: o Setor não desempata", () => {
+    expect(
+      atribuirGuiasParcelamento(
+        [guia("202610", 10_000)],
+        [parcelamento("sn", 10_000), { ...parcelamento("rh", 10_000), setor: "rh" as const }],
+      ),
+    ).toEqual([]);
+  });
+
   it("reemissão com valor corrigido de acordo quitado não vai ao único acordo em aberto", () => {
     const entregues = [
       { parcelamentoId: "quitado", parcela: "202610", identidade: "202610:30000", caminho: null },
