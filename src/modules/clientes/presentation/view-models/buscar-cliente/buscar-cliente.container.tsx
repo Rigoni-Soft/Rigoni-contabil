@@ -7,7 +7,7 @@ import { BuscaDeCliente } from "@/presentation/components/organisms/busca-de-cli
 import { PainelDoCliente } from "@/presentation/components/organisms/painel-do-cliente.component";
 import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
 import { EditarCadastroOperacionalContainer } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.container";
-import { soLeDadosBasicosDoCliente } from "@/shared/kernel/papeis";
+import { usaCadastroDoRh } from "@/shared/kernel/papeis";
 import { ROTA_RH } from "@/shared/kernel/setores";
 
 import { useBuscarCliente } from "./use-buscar-cliente.hook";
@@ -32,12 +32,11 @@ export function BuscarClienteContainer({ papel, setor, apenasSnMei = false }: Pr
   } = useBuscarCliente(papel, setor, apenasSnMei);
 
   // O Admin segue para a tela própria do Cliente (`/clientes/[id]`), a única com "Anexar alteração";
-  // o RH também (dados básicos e Responsável do RH, sem o cadastro do SN); os demais papéis
+  // o RH também (o cadastro do RH e o Responsável do RH, sem o cadastro do SN); os demais papéis
   // editam/visualizam no painel embutido.
   const aoSelecionar = (id: string) => {
     if (papel === "admin") return router.push(`/clientes/${id}`);
-    if (soLeDadosBasicosDoCliente(papel, setor))
-      return router.push(`/clientes/${id}?voltarPara=${ROTA_RH}`);
+    if (usaCadastroDoRh(papel, setor)) return router.push(`/clientes/${id}?voltarPara=${ROTA_RH}`);
     selecionarCliente(id);
   };
 

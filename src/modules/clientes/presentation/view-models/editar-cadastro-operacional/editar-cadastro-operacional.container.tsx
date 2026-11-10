@@ -51,6 +51,8 @@ type Props = {
   podeAnexar?: boolean;
   // Nº da alteração do aviso por onde se chegou: o cartão do documento a abre e destaca o botão.
   alteracaoEmFoco?: number;
+  // Só o Admin: o mês do acompanhamento do RH, o cabeçalho do cartão (como no cadastro do RH).
+  mesDoAcompanhamento?: React.ReactNode;
 };
 
 export function EditarCadastroOperacionalContainer({
@@ -62,6 +64,7 @@ export function EditarCadastroOperacionalContainer({
   documentosContratuais,
   podeAnexar,
   alteracaoEmFoco,
+  mesDoAcompanhamento,
 }: Props) {
   // Falso no servidor e na hidratação; verdadeiro assim que o cliente assume (snapshots do React).
   const hidratado = useSyncExternalStore(
@@ -173,6 +176,7 @@ export function EditarCadastroOperacionalContainer({
     // Documento jurídico não depende do cadastro SN: Admin ainda abre e anexa em Lucro Presumido/Real.
     return (
       <Pilha espaco={6}>
+        {mesDoAcompanhamento}
         <Texto variante="apoio" role="status">
           O Cadastro operacional do Simples Nacional não se aplica ao Regime{" "}
           {REGIME_LABEL[dados.regime] ?? dados.regime}.
@@ -246,6 +250,7 @@ export function EditarCadastroOperacionalContainer({
           alteracaoEmFoco={alteracaoEmFoco}
         />
       }
+      mesDoAcompanhamento={mesDoAcompanhamento}
     />
   );
 }

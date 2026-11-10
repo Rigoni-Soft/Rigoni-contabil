@@ -20,6 +20,7 @@ import type {
   ObterLinkDocumentoContratualPort,
 } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 import type { EditarCadastroOperacionalClientePort } from "@/modules/clientes/application/ports/in/editar-cadastro-operacional-cliente.provider";
+import type { EditarCadastroRhClientePort } from "@/modules/clientes/application/ports/in/editar-cadastro-rh-cliente.provider";
 import type { LerPdfDeParcelamentoPort } from "@/modules/clientes/application/ports/in/ler-pdf-de-parcelamento.provider";
 import type { ListarAvisosCadastroPort } from "@/modules/clientes/application/ports/in/listar-avisos-cadastro.provider";
 import type { ListarGuiasParcelaPgfnPort } from "@/modules/clientes/application/ports/in/listar-guias-parcela-pgfn.provider";
@@ -40,11 +41,12 @@ import { AtribuirResponsavelCliente } from "@/modules/clientes/application/use-c
 import { BuscarClientes } from "@/modules/clientes/application/use-cases/buscar-clientes.use-case";
 import { ConfirmarGuiaParcelaPgfn } from "@/modules/clientes/application/use-cases/confirmar-guia-parcela-pgfn.use-case";
 import { ConsultarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/consultar-cadastro-operacional-cliente.use-case";
-import { ConsultarDadosBasicosCliente } from "@/modules/clientes/application/use-cases/consultar-dados-basicos-cliente.use-case";
+import { ConsultarCadastroRhCliente } from "@/modules/clientes/application/use-cases/consultar-cadastro-rh-cliente.use-case";
 import { ConsultarResponsavelDoSetor } from "@/modules/clientes/application/use-cases/consultar-responsavel-do-setor.use-case";
 import { ContarAvisosNaoVistos } from "@/modules/clientes/application/use-cases/contar-avisos-nao-vistos.use-case";
 import { CriarCliente } from "@/modules/clientes/application/use-cases/criar-cliente.use-case";
 import { EditarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/editar-cadastro-operacional-cliente.use-case";
+import { EditarCadastroRhCliente } from "@/modules/clientes/application/use-cases/editar-cadastro-rh-cliente.use-case";
 import { LerPdfDeParcelamento } from "@/modules/clientes/application/use-cases/ler-pdf-de-parcelamento.use-case";
 import { ListarAvisosCadastro } from "@/modules/clientes/application/use-cases/listar-avisos-cadastro.use-case";
 import { ListarDocumentosContratuaisCliente } from "@/modules/clientes/application/use-cases/listar-documentos-contratuais-cliente.use-case";
@@ -68,6 +70,7 @@ import { LeitorDeParcelamentoFalsoGateway } from "@/modules/clientes/infra/gatew
 import { LeitorDeParcelamentoTextoGateway } from "@/modules/clientes/infra/gateways/leitor-de-parcelamento-texto.gateway";
 import { RelogioSistemaGateway } from "@/modules/clientes/infra/gateways/relogio-sistema.gateway";
 import { SupabaseArquivoStorageGateway } from "@/modules/clientes/infra/gateways/supabase-arquivo-storage.gateway";
+import { SupabaseCadastroRhRepository } from "@/modules/clientes/infra/repositories/cadastro-rh.repository";
 import { SupabaseClienteParcelamentoRepository } from "@/modules/clientes/infra/repositories/cliente-parcelamento.repository";
 import { SupabaseClienteRepository } from "@/modules/clientes/infra/repositories/cliente.repository";
 import { SupabaseGuiaParcelaPgfnRepository } from "@/modules/clientes/infra/repositories/guia-parcela-pgfn.repository";
@@ -247,11 +250,19 @@ export async function makeConsultarCadastroOperacionalCliente(): Promise<Consult
   );
 }
 
-export async function makeConsultarDadosBasicosCliente(): Promise<ConsultarDadosBasicosCliente> {
+export async function makeConsultarCadastroRhCliente(): Promise<ConsultarCadastroRhCliente> {
   const supabase = await createSupabaseServer();
-  return new ConsultarDadosBasicosCliente(
+  return new ConsultarCadastroRhCliente(
     sessaoViaUsuarios(supabase),
     new SupabaseClienteQueryGateway(supabase),
+  );
+}
+
+export async function makeEditarCadastroRhCliente(): Promise<EditarCadastroRhClientePort> {
+  const supabase = await createSupabaseServer();
+  return new EditarCadastroRhCliente(
+    sessaoViaUsuarios(supabase),
+    new SupabaseCadastroRhRepository(supabase),
   );
 }
 
@@ -282,6 +293,7 @@ export async function makeObterResumoSetorRh(): Promise<ObterResumoSetorRh> {
   return new ObterResumoSetorRh(
     sessaoViaUsuarios(supabase),
     new SupabaseCarteiraDoSetorGateway(supabase),
+    new RelogioSistemaGateway(),
   );
 }
 

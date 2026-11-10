@@ -1,0 +1,432 @@
+/**
+ * Integração infra ↔ Supabase: acompanhamento mensal do RH. RLS por setor (o Funcionário marca só
+ * os seus clientes; Líder e Admin leem todos), serviço desativado que preserva os meses anteriores, Holerite
+ * do sistema e auditoria na mesma transação. Requer `npx supabase start` com migrations + seed aplicados.
+ */
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { Client } from "pg";
+
+import { mesVizinho, primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
+
+import { removerClientesDeTeste } from "../../../../../test-support/clientes-de-teste";
+import { SupabaseAcompanhamentoRepository } from "./acompanhamento.repository";
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+const SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ??
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
+
+const CNPJ_A = "11444777009811";
+const CNPJ_B = "11444777009812";
+const CNPJ_SEM_RESPONSAVEL = "11444777009813";
+const CNPJ_CASCATA = "11444777009814";
+const FUNCIONARIO_RH_ID = "dddddddd-dddd-dddd-dddd-dddddddddddd";
+const FUNCIONARIO2_RH_ID = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee";
+const PREFIXO = "Teste214 ";
+
+const DATABASE_URL =
+  process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
+const ADMIN_ID = "11111111-1111-1111-1111-111111111111";
+
+const erros = { registrar: () => undefined };
+const servico = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+
+async function entrar(email: string, senha: string) {
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+  if (error) throw new Error(`Falha ao autenticar ${email}: ${error.message}`);
+  return { supabase, repo: new SupabaseAcompanhamentoRepository(supabase, erros) };
+}
+const comoLiderRH = () => entrar("lider.rh@rigonicontabil.local", "lider123");
+const comoFuncionarioRH = () => entrar("funcionario.rh@rigonicontabil.local", "func123");
+const comoFuncionario2RH = () => entrar("funcionario2.rh@rigonicontabil.local", "func123");
+const comoAdmin = () => entrar("admin@rigonicontabil.local", "admin123");
+const comoFuncionarioSN = () => entrar("funcionario.sn@rigonicontabil.local", "func123");
+
+let clienteA: string;
+let clienteB: string;
+let fgts: string;
+let holerite: string;
+const MES = primeiroDiaDoMesAtual();
+
+async function apagarServicosDeTeste() {
+  await servico.from("rh_servicos_acompanhamento").delete().like("nome", `${PREFIXO}%`);
+}
+
+// O banco local pode ter outros clientes do RH (teste manual): cada asserção olha só os do teste.
+type Lista = Awaited<ReturnType<SupabaseAcompanhamentoRepository["listarClientes"]>>;
+const dosTestes = (r: Lista, cnpjs = [CNPJ_A, CNPJ_B]) =>
+  r.ok ? r.value.filter((c) => cnpjs.includes(c.cnpj)) : [];
+const doClienteA = (r: Lista) => dosTestes(r).find((c) => c.cnpj === CNPJ_A);
+
+const auditorias = async (acao: string, alvoLike: string) =>
+  (
+    await servico
+      .from("registros_auditoria")
+      .select("ator, setor")
+      .eq("acao", acao)
+      .like("alvo", alvoLike)
+  ).data ?? [];
+
+beforeAll(async () => {
+  await removerClientesDeTeste([CNPJ_A, CNPJ_B, CNPJ_SEM_RESPONSAVEL, CNPJ_CASCATA]);
+  await apagarServicosDeTeste();
+  clienteA = crypto.randomUUID();
+  clienteB = crypto.randomUUID();
+  const clientes = await servico.from("clientes").insert([
+    { id: clienteA, empresa: "Acomp A Ltda", cnpj: CNPJ_A, regime: "lucro_presumido" },
+    { id: clienteB, empresa: "Acomp B Ltda", cnpj: CNPJ_B, regime: "lucro_presumido" },
+  ]);
+  if (clientes.error) throw clientes.error;
+  const resp = await servico.from("cliente_responsaveis").insert([
+    { cliente_id: clienteA, setor: "rh", responsavel_id: FUNCIONARIO_RH_ID },
+    { cliente_id: clienteB, setor: "rh", responsavel_id: FUNCIONARIO2_RH_ID },
+  ]);
+  if (resp.error) throw resp.error;
+  const servicos = await servico
+    .from("rh_servicos_acompanhamento")
+    .select("id, nome")
+    .in("nome", ["FGTS", "Holerite"]);
+  fgts = servicos.data!.find((s) => s.nome === "FGTS")!.id;
+  holerite = servicos.data!.find((s) => s.nome === "Holerite")!.id;
+});
+
+afterAll(async () => {
+  await removerClientesDeTeste([CNPJ_A, CNPJ_B, CNPJ_SEM_RESPONSAVEL, CNPJ_CASCATA]);
+  await apagarServicosDeTeste();
+  await servico.from("registros_auditoria").delete().like("alvo", `${PREFIXO}%`);
+});
+
+afterEach(async () => {
+  await servico.from("rh_acompanhamento_marcacoes").delete().in("cliente_id", [clienteA, clienteB]);
+  await servico.from("rh_cliente_servico_aplica").delete().in("cliente_id", [clienteA, clienteB]);
+});
+
+describe("Acompanhamento mensal do RH (integração)", () => {
+  it("o mês começa pendente e traz os serviços de partida, o Holerite por último", async () => {
+    const { repo } = await comoFuncionarioRH();
+
+    const servicos = await repo.listarServicos(MES);
+    const clientes = await repo.listarClientes(MES, FUNCIONARIO_RH_ID);
+
+    expect(servicos.ok && servicos.value.slice(0, 6).map((s) => s.nome)).toEqual([
+      "FGTS",
+      "DCTFWeb",
+      "NUTRI",
+      "SIB",
+      "Sindicato",
+      "Holerite",
+    ]);
+    expect(servicos.ok && servicos.value[5].sistema).toBe(true);
+    expect(dosTestes(clientes).map((c) => [c.cnpj, c.concluidos, c.naoAplica])).toEqual([
+      [CNPJ_A, [], []],
+    ]);
+  });
+
+  it("o Funcionário marca e desmarca no seu cliente, com auditoria", async () => {
+    const { repo } = await comoFuncionarioRH();
+
+    const marcou = await repo.marcar(clienteA, fgts, MES, true, FUNCIONARIO_RH_ID);
+    const repetiu = await repo.marcar(clienteA, fgts, MES, true, FUNCIONARIO_RH_ID);
+    const depois = await repo.listarClientes(MES, FUNCIONARIO_RH_ID);
+    const desmarcou = await repo.marcar(clienteA, fgts, MES, false, FUNCIONARIO_RH_ID);
+    const fim = await repo.listarClientes(MES, FUNCIONARIO_RH_ID);
+
+    expect(marcou.ok && repetiu.ok && desmarcou.ok).toBe(true);
+    expect(doClienteA(depois)?.concluidos).toEqual([fgts]);
+    expect(doClienteA(fim)?.concluidos).toEqual([]);
+    const mes = MES.slice(0, 7);
+    expect(await auditorias("rh.acompanhamento.marcar", `${CNPJ_A} FGTS ${mes}`)).toEqual([
+      { ator: FUNCIONARIO_RH_ID, setor: "rh" },
+    ]);
+    expect(await auditorias("rh.acompanhamento.desmarcar", `${CNPJ_A} FGTS ${mes}`)).toHaveLength(
+      1,
+    );
+    await servico.from("registros_auditoria").delete().like("alvo", `${CNPJ_A} FGTS%`);
+  });
+
+  it("não marca no cliente de outro Responsável, nem como Líder, Admin ou outro setor", async () => {
+    for (const entrarComo of [comoFuncionarioRH, comoLiderRH, comoAdmin, comoFuncionarioSN]) {
+      const { repo, supabase } = await entrarComo();
+      const { data } = await supabase.auth.getUser();
+
+      const r = await repo.marcar(clienteB, fgts, MES, true, data.user!.id);
+
+      expect(r.ok).toBe(false);
+    }
+    const linhas = await servico
+      .from("rh_acompanhamento_marcacoes")
+      .select("*")
+      .eq("cliente_id", clienteB);
+    expect(linhas.data).toEqual([]);
+  });
+
+  it("o Holerite (do sistema) não é marcado à mão, nem mês futuro", async () => {
+    const { repo } = await comoFuncionarioRH();
+    const proximoMes = new Date(`${MES}T12:00:00Z`);
+    proximoMes.setUTCMonth(proximoMes.getUTCMonth() + 1);
+
+    const hol = await repo.marcar(clienteA, holerite, MES, true, FUNCIONARIO_RH_ID);
+    const futuro = await repo.marcar(
+      clienteA,
+      fgts,
+      proximoMes.toISOString().slice(0, 10),
+      true,
+      FUNCIONARIO_RH_ID,
+    );
+
+    expect(!hol.ok && hol.error.code).toBe("VALIDATION_ERROR");
+    expect(!futuro.ok && futuro.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("'não se aplica' vale só no mês e se renova; 'nunca' vale em todos; voltar ao padrão apaga a exceção", async () => {
+    const { repo } = await comoFuncionarioRH();
+    const anterior = mesVizinho(MES.slice(0, 7), -1) + "-01";
+    const naoAplica = async (mes: string) =>
+      doClienteA(await repo.listarClientes(mes, FUNCIONARIO_RH_ID))?.naoAplica;
+
+    await repo.definirAplica(clienteA, fgts, MES, "mes");
+    expect(await naoAplica(MES)).toEqual([fgts]);
+    expect(await naoAplica(anterior)).toEqual([]);
+
+    await repo.definirAplica(clienteA, fgts, MES, "sempre");
+    expect(await naoAplica(MES)).toEqual([fgts]);
+    expect(await naoAplica(anterior)).toEqual([fgts]);
+    const sempre = doClienteA(await repo.listarClientes(MES, FUNCIONARIO_RH_ID));
+    expect(sempre?.naoAplicaSempre).toEqual([fgts]);
+
+    await repo.definirAplica(clienteA, fgts, MES, "aplica");
+    expect(await naoAplica(MES)).toEqual([]);
+    expect(await naoAplica(anterior)).toEqual([]);
+    expect(
+      await auditorias("rh.acompanhamento.nao-aplicar", `${CNPJ_A} FGTS ${MES.slice(0, 7)}`),
+    ).toHaveLength(1);
+    expect(await auditorias("rh.acompanhamento.nao-aplicar", `${CNPJ_A} FGTS sempre`)).toHaveLength(
+      1,
+    );
+    await servico.from("registros_auditoria").delete().like("alvo", `${CNPJ_A} FGTS%`);
+  });
+
+  it("não marca concluído um serviço que não se aplica ao cliente (no mês ou sempre)", async () => {
+    const { repo } = await comoFuncionarioRH();
+    const anterior = mesVizinho(MES.slice(0, 7), -1) + "-01";
+
+    await repo.definirAplica(clienteA, fgts, MES, "mes");
+    const noMes = await repo.marcar(clienteA, fgts, MES, true, FUNCIONARIO_RH_ID);
+    const outroMes = await repo.marcar(clienteA, fgts, anterior, true, FUNCIONARIO_RH_ID);
+    await repo.marcar(clienteA, fgts, anterior, false, FUNCIONARIO_RH_ID);
+    await repo.definirAplica(clienteA, fgts, MES, "sempre");
+    const sempre = await repo.marcar(clienteA, fgts, anterior, true, FUNCIONARIO_RH_ID);
+    await repo.definirAplica(clienteA, fgts, MES, "aplica");
+
+    expect(!noMes.ok && noMes.error.code).toBe("VALIDATION_ERROR");
+    expect(outroMes.ok).toBe(true);
+    expect(!sempre.ok && sempre.error.code).toBe("VALIDATION_ERROR");
+    await servico.from("registros_auditoria").delete().like("alvo", `${CNPJ_A} FGTS%`);
+  });
+
+  it("'não se aplica' apaga a marcação do par (do mês ou de todos), e repetir 'sempre' não falha", async () => {
+    const { repo } = await comoFuncionarioRH();
+    const anterior = mesVizinho(MES.slice(0, 7), -1) + "-01";
+    const concluidos = async (mes: string) =>
+      doClienteA(await repo.listarClientes(mes, FUNCIONARIO_RH_ID))?.concluidos;
+
+    await repo.marcar(clienteA, fgts, MES, true, FUNCIONARIO_RH_ID);
+    await repo.marcar(clienteA, fgts, anterior, true, FUNCIONARIO_RH_ID);
+    await repo.definirAplica(clienteA, fgts, MES, "mes");
+    await repo.definirAplica(clienteA, fgts, MES, "aplica");
+    expect(await concluidos(MES)).not.toContain(fgts);
+    expect(await concluidos(anterior)).toContain(fgts);
+
+    await repo.definirAplica(clienteA, fgts, MES, "sempre");
+    const repetido = await repo.definirAplica(clienteA, fgts, MES, "sempre");
+    await repo.definirAplica(clienteA, fgts, MES, "aplica");
+    expect(repetido.ok).toBe(true);
+    expect(await concluidos(anterior)).not.toContain(fgts);
+    await servico.from("registros_auditoria").delete().like("alvo", `${CNPJ_A} FGTS%`);
+  });
+
+  it("não define 'se aplica' do cliente de outro Responsável nem do Holerite", async () => {
+    const { repo } = await comoFuncionarioRH();
+
+    const outro = await repo.definirAplica(clienteB, fgts, MES, "mes");
+    const hol = await repo.definirAplica(clienteA, holerite, MES, "mes");
+
+    expect(outro.ok).toBe(false);
+    expect(hol.ok).toBe(false);
+  });
+
+  it("traz o Responsável de cada cliente e, a pedido, os clientes sem Responsável", async () => {
+    const semResponsavel = await servico.from("clientes").insert({
+      id: crypto.randomUUID(),
+      empresa: "Acomp C Ltda",
+      cnpj: CNPJ_SEM_RESPONSAVEL,
+      regime: "lucro_presumido",
+    });
+    if (semResponsavel.error) throw semResponsavel.error;
+    const { repo } = await comoLiderRH();
+
+    const padrao = await repo.listarClientes(MES, null);
+    const todos = await repo.listarClientes(MES, null, true);
+
+    expect(padrao.ok && padrao.value.map((c) => c.cnpj)).not.toContain(CNPJ_SEM_RESPONSAVEL);
+    const meus = dosTestes(todos, [CNPJ_A, CNPJ_B, CNPJ_SEM_RESPONSAVEL]);
+    expect(meus.map((c) => [c.cnpj, c.responsavel?.id ?? null])).toEqual([
+      [CNPJ_A, FUNCIONARIO_RH_ID],
+      [CNPJ_B, FUNCIONARIO2_RH_ID],
+      [CNPJ_SEM_RESPONSAVEL, null],
+    ]);
+    expect(meus[0].responsavel?.nome).toBeTruthy();
+  });
+
+  it("o Líder e o Admin leem todos os clientes atribuídos; o Funcionário só os seus", async () => {
+    await (await comoFuncionarioRH()).repo.marcar(clienteA, fgts, MES, true, FUNCIONARIO_RH_ID);
+
+    for (const entrarComo of [comoLiderRH, comoAdmin]) {
+      const { repo } = await entrarComo();
+      const r = await repo.listarClientes(MES, null);
+      const meus = dosTestes(r);
+      expect(meus.map((c) => c.cnpj)).toEqual([CNPJ_A, CNPJ_B]);
+      expect(meus[0].concluidos).toEqual([fgts]);
+    }
+
+    const colega = await (await comoFuncionario2RH()).repo.listarClientes(MES, null);
+    expect(dosTestes(colega).map((c) => c.cnpj)).toEqual([CNPJ_B]);
+  });
+
+  it("só o Líder do RH cadastra, renomeia e desativa serviços, com auditoria", async () => {
+    const { repo } = await comoLiderRH();
+    const nome = `${PREFIXO}eSocial`;
+
+    const criou = await repo.criarServico(nome);
+    const duplicou = await repo.criarServico(nome.toUpperCase());
+    const { data } = await servico
+      .from("rh_servicos_acompanhamento")
+      .select("id")
+      .eq("nome", nome)
+      .single();
+    const renomeou = await repo.renomearServico(data!.id, `${PREFIXO}Folha`);
+    const desativou = await repo.desativarServico(data!.id);
+
+    expect(criou.ok && renomeou.ok && desativou.ok).toBe(true);
+    expect(!duplicou.ok && duplicou.error.code).toBe("CONFLICT");
+    expect(await auditorias("rh.servico.criar", nome)).toHaveLength(1);
+    expect(await auditorias("rh.servico.renomear", `${PREFIXO}Folha`)).toHaveLength(1);
+    expect(await auditorias("rh.servico.desativar", `${PREFIXO}Folha`)).toHaveLength(1);
+  });
+
+  it("Funcionário e Admin não mexem nos serviços; o do sistema nunca muda", async () => {
+    const func = await comoFuncionarioRH();
+    const admin = await comoAdmin();
+    const lider = await comoLiderRH();
+
+    const criarFunc = await func.repo.criarServico(`${PREFIXO}x`);
+    const criarAdmin = await admin.repo.criarServico(`${PREFIXO}y`);
+    const renomearSistema = await lider.repo.renomearServico(holerite, "Outro");
+    const desativarSistema = await lider.repo.desativarServico(holerite);
+
+    expect(criarFunc.ok || criarAdmin.ok || renomearSistema.ok || desativarSistema.ok).toBe(false);
+    const hol = await servico
+      .from("rh_servicos_acompanhamento")
+      .select("nome, desativado_em")
+      .eq("id", holerite)
+      .single();
+    expect(hol.data).toEqual({ nome: "Holerite", desativado_em: null });
+  });
+
+  it("desativar um serviço mantém os meses anteriores e o tira dos seguintes", async () => {
+    const { repo } = await comoLiderRH();
+    const antigo = await servico
+      .from("rh_servicos_acompanhamento")
+      .insert({ nome: `${PREFIXO}Antigo`, ativo_desde: "2026-01-01" })
+      .select("id")
+      .single();
+    const id = antigo.data!.id;
+
+    const antes = await repo.listarServicos("2026-03-01");
+    await repo.desativarServico(id);
+    const mesPassado = await repo.listarServicos("2026-03-01");
+    const mesAtualLista = await repo.listarServicos(MES);
+
+    expect(antes.ok && antes.value.some((s) => s.id === id)).toBe(true);
+    expect(mesPassado.ok && mesPassado.value.some((s) => s.id === id)).toBe(true);
+    expect(mesAtualLista.ok && mesAtualLista.value.some((s) => s.id === id)).toBe(false);
+  });
+
+  it("serviço desativado é histórico: o Líder não o renomeia", async () => {
+    const { repo } = await comoLiderRH();
+    const antigo = await servico
+      .from("rh_servicos_acompanhamento")
+      .insert({ nome: `${PREFIXO}Encerrado`, ativo_desde: "2026-01-01" })
+      .select("id")
+      .single();
+    await repo.desativarServico(antigo.data!.id);
+
+    const renomeou = await repo.renomearServico(antigo.data!.id, `${PREFIXO}Outro`);
+
+    expect(renomeou.ok).toBe(false);
+  });
+
+  it("o Admin apaga um Cliente com marcação: a auditoria em cascata não aborta a exclusão", async () => {
+    const id = crypto.randomUUID();
+    const cliente = await servico.from("clientes").insert({
+      id,
+      empresa: "Cascata Ltda",
+      cnpj: CNPJ_CASCATA,
+      regime: "lucro_presumido",
+    });
+    const marcacao = await servico.from("rh_acompanhamento_marcacoes").insert({
+      cliente_id: id,
+      servico_id: fgts,
+      competencia: MES,
+      marcado_por: FUNCIONARIO_RH_ID,
+    });
+    expect(cliente.error ?? marcacao.error).toBeNull();
+    // Nenhum caminho da API apaga Cliente; o gatilho roda como o Admin (auth.uid() não nulo) numa conexão direta.
+    const db = new Client({ connectionString: DATABASE_URL });
+    await db.connect();
+    try {
+      await db.query("begin");
+      await db.query("select set_config('request.jwt.claim.sub', $1, true)", [ADMIN_ID]);
+      await db.query("delete from public.clientes where id = $1", [id]);
+      await db.query("commit");
+    } finally {
+      await db.end();
+    }
+
+    const resta = await servico.from("clientes").select("id").eq("id", id);
+    expect(resta.data).toEqual([]);
+  });
+
+  it("a marcação de um mês passado sobrevive à desativação do serviço", async () => {
+    const antigo = await servico
+      .from("rh_servicos_acompanhamento")
+      .insert({ nome: `${PREFIXO}Historico`, ativo_desde: "2026-01-01" })
+      .select("id")
+      .single();
+    const id = antigo.data!.id;
+    const func = await comoFuncionarioRH();
+    const lider = await comoLiderRH();
+
+    await func.repo.marcar(clienteA, id, "2026-03-01", true, FUNCIONARIO_RH_ID);
+    await lider.repo.desativarServico(id);
+    const marcado = await lider.repo.listarClientes("2026-03-01", null);
+    const depois = await func.repo.marcar(clienteA, id, MES, true, FUNCIONARIO_RH_ID);
+
+    expect(marcado.ok && marcado.value.find((c) => c.cnpj === CNPJ_A)?.concluidos).toEqual([id]);
+    expect(depois.ok).toBe(false);
+  });
+
+  it("anon não lê nada das tabelas do acompanhamento", async () => {
+    const anon: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    for (const tabela of [
+      "rh_servicos_acompanhamento",
+      "rh_cliente_servico_aplica",
+      "rh_acompanhamento_marcacoes",
+    ]) {
+      const { error } = await anon.from(tabela).select("*").limit(1);
+      expect(error?.code).toBe("42501");
+    }
+  });
+});

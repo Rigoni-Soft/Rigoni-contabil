@@ -21,6 +21,8 @@ type ResponsavelDoSetorProps = {
   pendente: boolean;
   erro?: string;
   salvo?: boolean;
+  // Dentro do cartão do cadastro (RH), onde o texto de apoio do bloco avulso não cabe.
+  embutido?: boolean;
 };
 
 // Responsável do Cliente no Setor do Líder, fora do Simples Nacional (que o tem no cadastro).
@@ -37,13 +39,16 @@ export function ResponsavelDoSetor({
   pendente,
   erro,
   salvo,
+  embutido = false,
 }: ResponsavelDoSetorProps) {
   return (
     <Pilha espaco={3}>
-      <Texto variante="apoio">
-        Quem responde por este Cliente no Setor {setor}. Os Atendimentos dele vão a essa pessoa; sem
-        Responsável, vão ao Líder.
-      </Texto>
+      {!embutido && (
+        <Texto variante="apoio">
+          Quem responde por este Cliente no Setor {setor}. Os Atendimentos dele vão a essa pessoa;
+          sem Responsável, vão ao Líder.
+        </Texto>
+      )}
       <CampoResponsavel
         editavel
         nomeAtual=""
@@ -56,7 +61,7 @@ export function ResponsavelDoSetor({
         desabilitado={pendente}
       />
       {erro && <FieldError>{erro}</FieldError>}
-      {salvo && <AvisoDeStatus tipo="sucesso" texto="Responsável atualizado." />}
+      {salvo && <AvisoDeStatus tipo="sucesso" legivel texto="Responsável atualizado." />}
       <Caixa>
         <Button type="button" onClick={onSalvar} disabled={!alterado || pendente}>
           {pendente ? "Salvando…" : "Salvar Responsável"}

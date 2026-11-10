@@ -724,7 +724,7 @@ reenviar repete só a atribuição.
 usar `SETOR_LABEL` (`shared/kernel/setores.ts`) e `REGIME_LABEL`.
 `ThemeToggle` mostra o ícone do tema de destino (sol no dark, lua no light).
 
-### Aba RH e dados básicos do Cliente (#213)
+### Aba RH e cadastro do Cliente no RH (#213)
 
 **Aba "RH" do `ShellNav`:** um chip como os demais Setores, com a rota vinda de
 `ROTA_POR_SETOR` (`shared/kernel/setores.ts`, o mesmo mapa que decide o destino
@@ -738,10 +738,94 @@ drill-down e a tela são as mesmas; a página do Setor só informa a rota-base
 `BarrasDeFatias` (as mesmas barras do 4º comparativo do SN), só para o Líder;
 o Funcionário do RH vê o resumo sem o acompanhamento dos colegas.
 
-**`DadosBasicosDoCliente`:** lista de definição (`dl`: Empresa, CNPJ, Regime)
-com `dt`/`dd`, para o leitor de tela associar rótulo e valor. É o que o RH vê
-em `/clientes/[id]`, com o bloco do Responsável do RH logo abaixo; o título da
-página é "Dados do cliente".
+**`EditarCadastroRhForm`:** o RH abre em `/clientes/[id]` a mesma tela "Editar
+cadastro operacional" do SN, com os dados do RH: o cabeçalho (empresa e CNPJ, sem o
+Regime), o Responsável do RH e o acompanhamento do mês acima do formulário, e no
+formulário os contatos, as observações gerais do RH e o cartão do documento
+contratual (só leitura). O que é do SN (DAS, atividade do mês, forma de envio) não
+aparece; os parcelamentos entram com a #216. Edita o Responsável do RH do Cliente, o
+Líder do RH e o Admin; quem não edita vê a tela em leitura.
+
+### RH: acompanhamento mensal (#214, #215)
+
+O desenho segue o do SN: o dashboard do RH é uma grade de cards (`ResumoDoSetor`, um card por
+Serviço com os Clientes que faltam, mais "Tudo concluído"); o acompanhamento do Cliente fica no
+cadastro dele, em campos como o DAS do SN; o drill-down reusa `ListaDeClientes`. Nenhum desenho
+próprio do RH além do que está abaixo.
+
+**Rotas:** `/rh` (dashboard e comparativos), `/rh/resumo/[bucket]` (lista de um card),
+`/rh/funcionarios` (acompanhamento dos funcionários, Líder e Admin), `/rh/funcionarios/[id]` e
+`/rh/funcionarios/[id]/[servico]` (detalhe e lista de um Serviço), `/rh/servicos` (lista de Serviços,
+só o Líder) e `/clientes/[id]` (cadastro do Cliente no RH, com o acompanhamento do mês).
+
+**`NavegacaoDeMes` (molécula):** "Mês anterior", o mês e "Próximo mês", em `nav` com
+`aria-label="Mês do acompanhamento"`. Só texto e seta, sem botão: o link ativo é `primary`
+semibold; o avanço do mês corrente fica apagado (`muted-foreground`), sem link, e o leitor de tela
+ouve "indisponível: este é o mês corrente" (a cor carrega o estado, o texto dá o motivo). O mês
+fica no centro mesmo sem próximo; no celular vai para a linha de cima. Com `destaque`, é o
+cabeçalho de um cartão: faixa `bg-muted/50` com borda e o mês em `text-lg`. Dois usos: no
+acompanhamento dos funcionários (sem destaque, solto sobre a página) e no cadastro do Cliente,
+como primeiro bloco do cartão, depois da nota de obrigatórios e sem título próprio.
+
+**Acompanhamento do mês no cadastro do Cliente (`AcompanhamentoDoClienteRh`):** um `Select` por
+Serviço, numa grade `1>2>4` com o `Label` em cima, como os campos do SN. O estado muda a cor do
+campo, nunca só ela: concluído em `success` (borda e fundo suaves), "Não se aplica" em borda
+tracejada e `muted`, pendente sem tratamento. Serviço que não aceita troca (o Holerite, do sistema)
+fica desabilitado e o motivo vai para o leitor de tela; um motivo que vale o cartão todo (cliente
+sem Responsável) aparece como texto de apoio visível. Erro vira `AvisoDeStatus` com ícone.
+
+**`AcompanhamentoDosFuncionarios` (organismo, `/rh/funcionarios`):** a visão do Líder e do Admin, de cima
+para baixo: `NavegacaoDeMes` solta; o cartão "Pontos por funcionário" (uma barra por Funcionário, o
+nome é link para o detalhe, "x de y" à direita, e a nota de que um ponto é um Cliente com todos os
+serviços concluídos); o cartão "Clientes que faltam por serviço" (`Tabela` com o Funcionário na
+coluna fixa e um número por serviço, cada um um link para a lista das empresas); e a seção "Sem
+responsável" com `ListaDeClientes`. Cada seção só aparece se tem o que mostrar.
+
+**`DetalheDoFuncionarioRh` (organismo, `/rh/funcionarios/[id]`):** o detalhe de um Funcionário. Título
+"nome: x% em mês (pontos de atribuídos)"; "Pendente por serviço" (um `h3` por serviço, com a
+contagem, e `ListaDeClientes` abaixo); o cartão "Evolução" (o percentual de cada mês anterior, um
+por linha); e "Mais atrasados" (os Clientes e há quantos meses pendem, no `detalhes` do
+`ListaDeClientes`). Estado vazio dito em texto ("Tudo concluído neste mês.", "Sem meses anteriores
+para comparar.", "Nenhum cliente atrasado.").
+
+**`ResponsavelSomenteLeitura`:** o mesmo campo "Responsável" do SN em `Input` desabilitado, para
+quem não atribui (Funcionário, Admin).
+
+**`ObservacoesDoRh`:** só na tela completa do Admin, que vê o SN e o RH. É a seção "RH" abaixo do
+formulário do SN, com o `Textarea` e o botão "Salvar observações do RH" próprios: salva à parte,
+sem tocar nos dados do SN. O RH no cadastro dele usa o campo dentro do `EditarCadastroRhForm`.
+
+**Menu de configuração do Setor:** a engrenagem no extremo direito do `ShellNav`, só para quem
+configura o Setor (o Líder do RH, com "Serviços do acompanhamento"); sem itens, sem engrenagem.
+`MenuSuspenso` (`ui/`, porque precisa de evento) é um `<details>` nativo: abre pelo botão, fecha
+pelo botão, com Esc (o foco volta ao botão) ou ao navegar; não fecha ao clicar fora. O botão tem
+36 px (44 px em toque) e o nome vem do `rotulo`, já que o ícone é o único conteúdo visível.
+
+**`ServicosDoAcompanhamento`:** em `/rh/servicos`, os Serviços numa lista em moldura (um por
+linha, em `ListaComDivisores`, com "Renomear" e "Desativar"), o formulário "Novo serviço" abaixo.
+Desativar pede confirmação na própria linha (`ConfirmacaoEmLinha`: a pergunta, "Confirmar" destrutivo
+e "Cancelar" com o foco, o gesto seguro); o erro da ação vem em `AvisoDeStatus`. O Holerite, do
+sistema, não tem ação.
+
+**`ListaDeClientes` (molécula):** a lista de drill-down: `ListaComDivisores` com `LinhaDeCliente`
+(empresa em destaque, CNPJ mascarado, "Ver cadastro →") e `detalhes` opcional por Cliente (ex.:
+"3 meses", os selos de Parcelamento do SN). Cada linha usa `content-visibility: auto`, para as listas
+de centenas de Clientes. É a única lista de empresas do sistema: as do SN e do RH
+(`ResumoSetorLista`), as de um Serviço que falta e as do detalhe do Funcionário a usam; não montar a
+linha à mão.
+
+**`CelulaDeTabela`, `CabecalhoDeColuna` e `Tabela`:** ganharam `fixa` (primeira coluna `sticky`,
+nomeia a linha com `<th scope="row">`), `numerica` (à direita, também no cabeçalho), `legenda`
+(`<caption class="sr-only">`, e a região rolável ganha nome e foco para rolar com o teclado) e
+`semMoldura` (dentro de um cartão, que já tem a borda). O cabeçalho da tabela passou a `bg-muted`.
+
+**Nota de campos obrigatórios:** `NotaDeObrigatorio` é sempre o primeiro bloco do formulário,
+antes do mês e do cabeçalho; só aparece para quem edita.
+
+**Cadastro do RH e cadastro do SN:** os dois montam o cartão pelo mesmo organismo
+(`CartaoDoCadastro`: moldura guilhochê, nota de obrigatórios, mês, cabeçalho com Responsável,
+acompanhamento, campos, ações, erro e sucesso); só os campos do meio mudam. Um terceiro cadastro
+(outro Setor) reusa o cartão em vez de copiar o formulário.
 
 **`FalhaDeCarga`:** aviso de erro lido pelo leitor de tela e o link "Tentar
 novamente" para a própria rota. O `<h1>` da tela de falha diz o que houve

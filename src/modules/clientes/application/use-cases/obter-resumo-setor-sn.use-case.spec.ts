@@ -30,7 +30,7 @@ class ClienteQueryPortFalso implements ClienteQueryPort {
   async listarResponsaveisElegiveis() {
     return ok([]);
   }
-  async buscarDadosBasicos() {
+  async buscarCadastroRh() {
     return ok(null);
   }
   async buscarResponsavelDoSetor() {

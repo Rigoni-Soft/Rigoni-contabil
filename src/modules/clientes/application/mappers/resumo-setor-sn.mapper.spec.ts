@@ -1,6 +1,11 @@
 import type { ResumoOperacionalRow } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 
-import { classificarResumoSetorSn, gruposDoResumoSn } from "./resumo-setor-sn.mapper";
+import {
+  classificarParcelamento,
+  classificarResumoSetorSn,
+  gruposDeParcelamento,
+  gruposDoResumoSn,
+} from "./resumo-setor-sn.mapper";
 
 function linha(sobrescritas: Partial<ResumoOperacionalRow> = {}): ResumoOperacionalRow {
   return {
@@ -33,6 +38,32 @@ const DIA_29 = new Date("2026-10-29T15:00:00Z");
 // Fevereiro de 2026 tem 28 dias: o dia 29 não existe.
 const FEV_27 = new Date("2026-02-27T15:00:00Z");
 const FEV_28 = new Date("2026-02-28T15:00:00Z");
+
+describe("parcelamento para outro Setor", () => {
+  it("gruposDeParcelamento devolve só o grupo Parcelamento, com os 6 cards", () => {
+    expect(gruposDeParcelamento()).toEqual([
+      {
+        titulo: "Parcelamento",
+        cardIds: [
+          "com_parcelamento",
+          "parcelamento_em_aberto",
+          "parcelamento_pendente",
+          "parcelamento_pendente_atraso",
+          "parcelamento_interno",
+          "parcelamento_enviado",
+        ],
+      },
+    ]);
+  });
+
+  it("classificarParcelamento conta só os cards de parcelamento, pelos parcelamentos da linha", () => {
+    const cards = classificarParcelamento([linha({ parcelamentos: [parcelamento()] })], DIA_28);
+
+    expect(cards.map((c) => c.id)).not.toContain("das_emitidas");
+    expect(quantidade(cards, "com_parcelamento")).toBe(1);
+    expect(quantidade(cards, "parcelamento_pendente")).toBe(1);
+  });
+});
 
 describe("classificarResumoSetorSn", () => {
   it("devolve os 11 cards (5 de DAS + 6 de parcelamento), mesmo com lista vazia", () => {

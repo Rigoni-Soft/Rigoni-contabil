@@ -758,7 +758,7 @@ begin
   from removidos r
   join public.clientes c on c.id = r.cliente_id;
 
-  -- Responsável dos outros Setores (#165): a desativação o remove, com a auditoria de sempre. A marca
+  -- Responsável dos outros Setores: a desativação o remove, com a auditoria de sempre. A marca
   -- impede o gatilho de auditar de novo as mesmas linhas.
   perform set_config('rigoni.removendo_responsavel_por_desativacao', 'on', true);
   with removidos_por_setor as (
@@ -772,7 +772,7 @@ begin
   join public.clientes c on c.id = r.cliente_id;
   perform set_config('rigoni.removendo_responsavel_por_desativacao', 'off', true);
 
-  -- A marca vale só nesta transação: quem protege o dono do Atendimento (aviso de inatividade, #73)
+  -- A marca vale só nesta transação: quem protege o dono do Atendimento (aviso de inatividade)
   -- distingue a devolução da Transferência por ela.
   perform set_config('rigoni.devolucao_por_desativacao', 'on', true);
   with devolvidos as (
@@ -1210,7 +1210,7 @@ CREATE FUNCTION public.pode_ver_cliente(p_cliente_id uuid) RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
-  -- acesso_liberado(): primeiro acesso finalizado (PR #69, ADR 0002).
+  -- acesso_liberado(): primeiro acesso finalizado (ADR 0002).
   select public.acesso_liberado() and case
     when public.meu_papel() is null then false
     when public.meu_papel() = 'funcionario' and public.meu_setor() is distinct from 'recepcao'

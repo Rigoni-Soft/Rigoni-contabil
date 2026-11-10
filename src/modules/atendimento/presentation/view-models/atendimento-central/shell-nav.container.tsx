@@ -10,7 +10,9 @@ import { useAnuncioDoMenu } from "@/modules/atendimento/presentation/view-models
 import { usePendentesDoMenu } from "@/modules/atendimento/presentation/view-models/atendimento-central/use-pendentes-do-menu.hook";
 import { ROTA_ATENDIMENTO } from "@/shared/kernel/rotas";
 
-export function ShellNavContainer(props: Pick<ShellNavProps, "setores" | "rotaAtual">) {
+export function ShellNavContainer(
+  props: Pick<ShellNavProps, "setores" | "rotaAtual" | "configuracoes">,
+) {
   const router = useRouter();
   const { total, pronto } = usePendentesDoMenu();
   const anuncio = useAnuncioDoMenu(total, pronto, props.rotaAtual !== ROTA_ATENDIMENTO);

@@ -144,7 +144,7 @@ Valem para todo o projeto. Os detalhes de cada um ficam na `constitution.md`; aq
   3. encapsular primitivos e strings (value objects);
   4. coleções de primeira classe;
   5. um ponto por linha (lei de Demeter);
-  6. sem abreviações;
+  6. sem abreviações (nome de função, variável e tipo é por extenso; o parâmetro de um callback de uma linha, como `.map((c) => …)`, pode ser a inicial do que ele itera);
   7. entidades pequenas;
   8. poucas variáveis de instância por classe (o objeto de props conta como uma);
   9. sem setters e sem expor estado mutável (*Tell, Don't Ask*). **Decisão:** entidades podem expor **getters somente leitura** (os mappers precisam ler o estado); todo comportamento continua em métodos da própria entidade, nunca em código externo que decide por ela.
@@ -351,6 +351,7 @@ export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: ErrorD
 - Toda linha lida é validada por Zod e convertida em entidade pelo mapper (que chama `Builder.restaurar`).
 - **Exceções registradas (#50):** `SupabaseSessaoAtendimentoGateway.obter()` devolve o resultado do parse Zod direto, sem mapper (a sessão é um tipo simples já no formato do domínio, não uma entidade); `SupabaseIdentificacaoContatoGateway.cnpjCadastrado()` lê só a existência de uma linha, sem Row DTO. `application/dtos/sessao-identificacao.dto.ts` exporta `ETAPAS_IDENTIFICACAO` e `invalidosDe()` (valor e função, ao contrário do que um DTO costuma ter) para o use case, o gateway e o Row DTO compartilharem a lista de etapas e a leitura do contador; o módulo não tem outra pasta para isso. Não repetir para entidades.
 - Erros do Postgres/Supabase são traduzidos para `AppError` dentro do adapter.
+- **`UPDATE`/`DELETE` filtrado pela RLS não dá erro: afeta 0 linhas e o supabase-js devolve sucesso.** O repositório de escrita pede as linhas de volta (`.select("id")`) e trata 0 como recusa (`ForbiddenError`); o teste de integração cobre o ator sem permissão.
 - Tipos do banco vêm de `supabase gen types`.
 - **Toda comunicação com o Supabase passa pela `infra`**, com uma única exceção: a autenticação no navegador (abaixo).
 - Storage e sessão são portas OUT (`ArquivoStoragePort`, `SessaoPort`), como qualquer outra dependência.
@@ -602,7 +603,7 @@ export default async function Page() {
 
 **Regras:**
 
-1. `'use client'` só é permitido em `*.container.tsx`, `presentation/providers/**`, `presentation/components/ui/**` (shadcn), `error.tsx` e `global-error.tsx`. **[lint]**
+1. `'use client'` só é permitido em `*.container.tsx`, `presentation/providers/**`, `presentation/components/ui/**` (shadcn), `error.tsx` e `global-error.tsx`. **[lint]** Um átomo que precisa de estado ou de evento (ex.: fechar um menu com Esc) vai para `ui/`, não para `atoms/`.
 2. **Templates e pages são sempre Server.** Um container não importa template nem page. **[lint]**
 3. O Container renderiza **só a região interativa**. O conteúdo estático ao redor é montado no servidor e entra como slot (`children` ou prop `ReactNode`).
 4. Tudo que um Container importa entra no bundle do cliente. Por isso o Container importa a menor View que resolve o caso, e as partes estáticas são extraídas para o servidor por slots.
@@ -1120,3 +1121,5 @@ console.log("nomenclatura ok");
 ```
 
 Verificação feita: em uma árvore com 54 nomes válidos e 11 inválidos, o script acusou os 11 (arquivo em PascalCase, arquivo em snake_case, diretório em camelCase, sufixo fora do papel da pasta, sufixo ausente, os sufixos antigos `.port.ts`, `.view-model.ts` e `.int.spec.ts`, arquivo estranho em `app/` e componente sem `.component`) e nenhum dos válidos, inclusive `[id]`, `(auth)`, arquivos do shadcn e testes `.spec` e `.test`.
+
+- No Postgres, o gatilho `BEFORE` roda antes da checagem de RLS (`WITH CHECK`): a mensagem de erro que o usuário recebe vem do gatilho, quando ele barra, e só depois da política. Teste de integração que espera uma mensagem específica depende dessa ordem.

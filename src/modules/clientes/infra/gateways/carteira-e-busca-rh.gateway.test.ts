@@ -129,19 +129,20 @@ describe("RH: busca por atribuição e Responsável do RH (integração)", () =>
     expect(clientes.data).toEqual([]);
   });
 
-  it("os dados básicos vêm só com empresa, CNPJ e Regime, de qualquer Regime, para o Líder do RH", async () => {
+  it("o cadastro do RH vem com empresa, CNPJ, contatos e observações do RH (sem o Regime), de qualquer Regime, para o Líder do RH", async () => {
     const gateway = new SupabaseClienteQueryGateway(await comoLiderRH());
 
-    const sn = await gateway.buscarDadosBasicos(clienteSnId);
-    const presumido = await gateway.buscarDadosBasicos(clientePresumidoId);
+    const sn = await gateway.buscarCadastroRh(clienteSnId);
+    const presumido = await gateway.buscarCadastroRh(clientePresumidoId);
 
     expect(sn.ok && sn.value).toEqual({
       id: clienteSnId,
       empresa: "RH Busca SN Ltda",
       cnpj: CNPJ_SN,
-      regime: "simples_nacional",
+      contatos: [],
+      observacoes: "",
     });
-    expect(presumido.ok && presumido.value?.regime).toBe("lucro_presumido");
+    expect(presumido.ok && presumido.value?.empresa).toBeDefined();
   });
 
   it("o Líder do RH atribui, troca e remove o Responsável do RH, com auditoria, sem tocar no do SN", async () => {

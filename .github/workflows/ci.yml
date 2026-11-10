@@ -17,6 +17,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          # check:design-doc compara com a base da PR (git diff base...HEAD).
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -28,6 +31,9 @@ jobs:
       - run: yarn lint
       - run: yarn check:naming
       - run: yarn check:refs
+      - run: yarn check:specs
+      - run: yarn check:design-doc ${{ github.base_ref }}
+        if: github.event_name == 'pull_request'
       - run: yarn check:deps
       - run: yarn check:guard-senha
 
@@ -177,7 +183,16 @@ jobs:
 
       - name: Reseta o Supabase local (migrations + seed) entre os passos
         if: needs.plano-e2e.outputs.modo == 'rapido'
-        run: supabase db reset
+        run: |
+          supabase db reset
+          # O reset devolve o controle antes do PostgREST reconectar ("Database client error"): espera ele responder.
+          for i in $(seq 1 30); do
+            curl -sf --max-time 5 -o /dev/null -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+              "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/avisos_cadastro?select=id&limit=1" && exit 0
+            sleep 2
+          done
+          echo "PostgREST não voltou após o reset" && exit 1
 
       - name: E2E rápido, arquivos e2e do diff
         if: needs.plano-e2e.outputs.modo == 'rapido'

@@ -74,7 +74,7 @@ O unitário é o nível priorizado: toda classe, função e método com lógica 
 
 - **Isolamento:** nunca se testa contra o Supabase real, nem client nem server. O ponto de substituição são as portas OUT (`arquitetura.md`, seção 3.6).
 - **RTL:** testa comportamento observável pelo usuário (o que é renderizado, o que reage a evento), não detalhe interno do componente.
-- **Container:** é um arquivo de poucas linhas que chama o hook do ViewModel e entrega o resultado à View. Todo Container tem **um teste RTL curto**, com o hook substituído por `jest.mock`, que verifica duas coisas: a View recebe os dados que o hook devolve, e uma ação do usuário chama a função do hook. A lógica em si já é testada no hook e na View; este teste só prova que os dois estão ligados. Vale para todo Container, sem exceção.
+- **Container:** é um arquivo de poucas linhas que chama o hook do ViewModel e entrega o resultado à View. Todo Container tem **um teste RTL curto**, com o hook substituído por `jest.mock`, que verifica duas coisas: a View recebe os dados que o hook devolve, e uma ação do usuário chama a função do hook. A lógica em si já é testada no hook e na View; este teste só prova que os dois estão ligados. Vale para todo Container, sem exceção. `yarn check:specs` (CI) reprova Container, molecule ou organism novo sem `*.spec.tsx` ao lado; os que já existiam sem spec ficam em `scripts/specs-sem-teste.baseline.txt`, que só encolhe.
 
 ### 4.2 Integração (`*.test.ts`)
 
@@ -96,6 +96,8 @@ Há **duas execuções**, com objetivos diferentes:
 **O que faz o E2E do diff funcionar.** O `--only-changed` seleciona **arquivos de teste alterados**, não código-fonte alterado. Por isso toda mudança de comportamento visível ao usuário cria ou atualiza o `*.e2e.ts` correspondente **no mesmo diff** (definição de pronto, seção 1.2). Uma mudança sem E2E no diff não executa nada no passo 1 e só é pega pela regressão completa.
 
 Todo `*.e2e.ts` entra na suíte da regressão completa e ali permanece.
+
+**Login nos e2e.** Depois de `login()`, espere `await expect(page).toHaveURL(...)` antes do próximo `goto`: sem isso a sessão ainda não gravou o cookie e a navegação cai em `/login`. Evite deslogar e logar outro papel no mesmo teste (a segunda hidratação do formulário é frágil); um papel por teste, com o estado de partida semeado pelo banco.
 
 ## 5. Ambientes e gitflow
 
@@ -197,3 +199,5 @@ sobre o mesmo banco arrisca colisão de estado quando o E2E faz asserção por
 texto exato que também aparece no seed (ex.: `acao: "usuario.criar"`
 inserido por um teste de integração de auditoria colidindo com o mesmo texto
 no seed, fazendo `getByText` bater 2 elementos). No CI, integração e E2E rodam em jobs separados, cada um com o seu Supabase recém-subido (seed limpo); no E2E rápido há um `supabase db reset` entre os dois passos. Localmente, rodar `supabase db reset` entre as duas suítes evita isso.
+
+- Migration que relaxa ou troca um gatilho ou uma política leva, na mesma PR, o teste de integração **negativo**: o que continua barrado fora do caminho liberado (ex.: a escrita direta de contatos fora do SN segue negada depois da função do RH).

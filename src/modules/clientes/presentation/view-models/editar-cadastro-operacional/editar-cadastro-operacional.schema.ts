@@ -5,17 +5,18 @@ import { DOCUMENTO_OBRIGATORIO_STATUSES } from "@/shared/kernel/documento-obriga
 import { FORMAS_ENVIO } from "@/shared/kernel/forma-envio";
 import { SETORES } from "@/shared/kernel/setores";
 
+// O contato do Cliente: o mesmo no cadastro do SN e no do RH.
+export const contatoSchema = z.object({
+  id: z.string().optional(),
+  nome: z.string().min(1, "obrigatório"),
+  telefone: z.string().min(1, "obrigatório"),
+  padrao: z.boolean(),
+});
+
 export const editarCadastroOperacionalSchema = z.object({
   clienteId: z.string().uuid(),
   formaEnvio: z.enum(FORMAS_ENVIO),
-  contatos: z.array(
-    z.object({
-      id: z.string().optional(),
-      nome: z.string().min(1, "obrigatório"),
-      telefone: z.string().min(1, "obrigatório"),
-      padrao: z.boolean(),
-    }),
-  ),
+  contatos: z.array(contatoSchema),
   documentoObrigatorio: z.enum(DOCUMENTO_OBRIGATORIO_STATUSES).nullable(),
   dasStatus: z.enum(DAS_STATUSES).nullable(),
   dataEnvioDas: z.iso.date().nullable(),

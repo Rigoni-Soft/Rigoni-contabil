@@ -11,15 +11,15 @@ Aqui cada ticket já é uma fatia vertical (banco, regra de negócio, tela e tes
 
 ## Etapa 1: Fundação do RH
 
-- [ ] **PR 1.1: Aba RH com busca ampla e Responsável do RH** (depende da PR 0, já mergeada; base de tudo)
+- [x] **PR 1.1: Aba RH com busca ampla e Responsável do RH** (depende da PR 0, já mergeada; base de tudo)
   - [x] #213 (ambas): aba `/rh`, busca de qualquer cliente, Responsável do RH atribuído pelo Líder
 
 ## Etapa 2: Acompanhamento mensal
 
-- [ ] **PR 2.1: Acompanhamento mensal dos clientes** (depende da PR 1.1; base da etapa)
-  - [ ] #214 (ambas): serviços editáveis, "se aplica", marcação por competência, auditoria
+- [x] **PR 2.1: Acompanhamento mensal dos clientes** (depende da PR 1.1; base da etapa)
+  - [x] #214 (ambas): serviços editáveis (cards no dashboard), "se aplica", marcação por competência no painel do cliente, auditoria
 - [ ] **PR 2.2: Acompanhamento dos funcionários, Líder e Admin** (depende da PR 2.1)
-  - [ ] #215 (ambas): pontos, lista por funcionário e serviço, detalhe do funcionário
+  - [x] #215 (ambas): card "Clientes por Responsável" no dashboard que abre o acompanhamento dos funcionários, e dali o detalhe de cada funcionário; o grupo Parcelamento do dashboard já existe, alimentado pelo #216
 
 ## Etapa 3: Parcelamento do RH
 
@@ -55,7 +55,8 @@ Aqui cada ticket já é uma fatia vertical (banco, regra de negócio, tela e tes
 
 ## Notas
 
-- A PR 0 já está na `develop` (merge `39e3d466`). Todas as outras partem dela. A etapa 1 vem em seguida, e depois disso 2, 3 e 4 andam em paralelo, respeitando as dependências por PR acima. As etapas 5 e 6 fecham o RH.
+- Acrescentar nos serviço de menu guias de pagamentos de impostos o processo de verificar se o DCTFWeb esta pronto, emitir e enviar o guia do DARF para os clientes, isso tambem entra nos jobs e nos temas locais que ja fazem o envio do DAS.
+- Criar um click no avatar do usuario para voltar a tela home "/" de cada setor além de personalizar o avatar com um imagem escolhido em "meu perfil"
 - As dependências entre tickets estão como bloqueios nativos nas issues. Os bloqueios entre PRs foram derivados deles. Confirme antes de abrir cada PR.
 - Só o #213 está desbloqueado hoje. Depois dele liberam o #214, o #216, o #218 e o #219.
 - A PR 6.1 só exige a 4.1, mas vale esperar a 4.3: o PDF mostra a Totalização, e ela só fica completa com as regras da convenção.

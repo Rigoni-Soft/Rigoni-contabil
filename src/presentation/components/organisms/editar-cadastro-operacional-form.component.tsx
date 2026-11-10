@@ -1,18 +1,16 @@
 import { type Control, type FieldErrors, type UseFormRegister } from "react-hook-form";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
-import { Grade, Pilha } from "@/presentation/components/atoms/caixa.component";
-import { FieldError } from "@/presentation/components/atoms/field-error.component";
-import { NotaDeObrigatorio } from "@/presentation/components/atoms/nota-de-obrigatorio.component";
+import { Pilha } from "@/presentation/components/atoms/caixa.component";
 import { AcoesDoFormulario } from "@/presentation/components/molecules/acoes-do-formulario.component";
 import { Label } from "@/presentation/components/ui/label";
 import { Textarea } from "@/presentation/components/ui/textarea";
-import { cn } from "@/presentation/lib/utils";
 import type { DasStatusValor } from "@/shared/kernel/das-status";
 import type { DocumentoObrigatorioStatusValor } from "@/shared/kernel/documento-obrigatorio-status";
 import type { FormaEnvioValor } from "@/shared/kernel/forma-envio";
 
-import { CabecalhoDoCadastro, type CabecalhoCliente } from "./cabecalho-do-cadastro.component";
+import type { CabecalhoCliente } from "./cabecalho-do-cadastro.component";
+import { CartaoDoCadastro } from "./cartao-do-cadastro.component";
 import { ContatosDoCadastro } from "./contatos-do-cadastro.component";
 import { DasDoCadastro } from "./das-do-cadastro.component";
 import {
@@ -81,6 +79,8 @@ type EditarCadastroOperacionalFormProps = {
   onCancelar?: () => void;
   // Cartão do documento contratual com "Abrir em nova aba" (só leitura); ausente = ator sem acesso.
   documentoContratual?: React.ReactNode;
+  // O mês do acompanhamento do RH (só o Admin): o cabeçalho do cartão, logo depois da nota de obrigatórios.
+  mesDoAcompanhamento?: React.ReactNode;
   // Guias mensais de um Parcelamento PGFN já salvo: o Container monta a região (ela tem estado próprio).
   // `codigo` nomeia a região de cada Parcelamento para o leitor de tela.
   guiasDaParcela?: (parcelamentoId: string, codigo: string, interno: boolean) => React.ReactNode;
@@ -112,80 +112,76 @@ export function EditarCadastroOperacionalForm({
   onLimpar,
   onCancelar,
   documentoContratual,
+  mesDoAcompanhamento,
   guiasDaParcela,
 }: EditarCadastroOperacionalFormProps) {
   return (
-    <Pilha
-      espaco="formulario"
-      como="form"
+    <CartaoDoCadastro
+      cabecalho={cabecalho}
       onSubmit={onSubmit}
-      className={cn(
-        "rc-guilloche-frame rounded-lg border border-border bg-card p-5 shadow-sm",
-        oculto && "rc-oculto-ate-hidratar",
-      )}
-    >
-      {!readOnly && <NotaDeObrigatorio />}
-
-      <CabecalhoDoCadastro cabecalho={cabecalho} documentoContratual={documentoContratual}>
+      pendente={pendente}
+      readOnly={readOnly}
+      oculto={oculto}
+      mesDoAcompanhamento={mesDoAcompanhamento}
+      documentoContratual={documentoContratual}
+      responsavel={
         <ResponsavelDoCadastro
           responsavel={responsavel}
           select={register("responsavelId")}
           desabilitado={pendente}
         />
-      </CabecalhoDoCadastro>
-
-      <Grade colunas="1>2>4" como="fieldset" disabled={readOnly || pendente} className="gap-4">
-        <DasDoCadastro
-          register={register}
-          opcoes={opcoes}
-          dasEnviadoPeloSistema={dasEnviadoPeloSistema}
+      }
+      acoes={
+        <AcoesDoFormulario
+          pendente={pendente}
+          motivoDoBloqueio={
+            Object.values(leituras).some((l) => l.estado === "lendo")
+              ? "Aguarde a leitura do PDF para salvar."
+              : undefined
+          }
+          onLimpar={onLimpar}
+          onCancelar={onCancelar}
         />
+      }
+      erroServidor={erroServidor}
+      sucesso={
+        sucesso && <AvisoDeStatus tipo="sucesso" legivel texto="Cadastro operacional atualizado." />
+      }
+    >
+      <DasDoCadastro
+        register={register}
+        opcoes={opcoes}
+        dasEnviadoPeloSistema={dasEnviadoPeloSistema}
+      />
 
-        <ContatosDoCadastro
-          register={register}
-          control={control}
-          errors={errors}
-          readOnly={readOnly}
-          contatos={contatos}
-          onAdicionar={onAdicionarContato}
-          onRemover={onRemoverContato}
-        />
+      <ContatosDoCadastro
+        register={register}
+        control={control}
+        errors={errors}
+        readOnly={readOnly}
+        contatos={contatos}
+        onAdicionar={onAdicionarContato}
+        onRemover={onRemoverContato}
+      />
 
-        <ParcelamentosDoCadastro
-          register={register}
-          control={control}
-          errors={errors}
-          readOnly={readOnly}
-          parcelamentos={parcelamentos}
-          parcelamentoCampos={parcelamentoCampos}
-          onAdicionar={onAdicionarParcelamento}
-          onRemover={onRemoverParcelamento}
-          leituras={leituras}
-          onArquivoEscolhido={onArquivoEscolhido}
-          guiasDaParcela={guiasDaParcela}
-        />
+      <ParcelamentosDoCadastro
+        register={register}
+        control={control}
+        errors={errors}
+        readOnly={readOnly}
+        parcelamentos={parcelamentos}
+        parcelamentoCampos={parcelamentoCampos}
+        onAdicionar={onAdicionarParcelamento}
+        onRemover={onRemoverParcelamento}
+        leituras={leituras}
+        onArquivoEscolhido={onArquivoEscolhido}
+        guiasDaParcela={guiasDaParcela}
+      />
 
-        <Pilha espaco={1} className="sm:col-span-2 lg:col-span-4">
-          <Label htmlFor="observacoesGerais">Observações gerais</Label>
-          <Textarea id="observacoesGerais" {...register("observacoesGerais")} rows={3} />
-        </Pilha>
-
-        {!readOnly && (
-          <AcoesDoFormulario
-            pendente={pendente}
-            motivoDoBloqueio={
-              Object.values(leituras).some((l) => l.estado === "lendo")
-                ? "Aguarde a leitura do PDF para salvar."
-                : undefined
-            }
-            onLimpar={onLimpar}
-            onCancelar={onCancelar}
-          />
-        )}
-      </Grade>
-
-      {erroServidor && <FieldError>{erroServidor}</FieldError>}
-      {sucesso && <AvisoDeStatus tipo="sucesso" texto="Cadastro operacional atualizado." />}
-    </Pilha>
+      <Pilha espaco={1} className="sm:col-span-2 lg:col-span-4">
+        <Label htmlFor="observacoesGerais">Observações gerais</Label>
+        <Textarea id="observacoesGerais" {...register("observacoesGerais")} rows={3} />
+      </Pilha>
+    </CartaoDoCadastro>
   );
 }

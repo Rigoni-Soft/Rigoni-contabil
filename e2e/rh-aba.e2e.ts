@@ -3,7 +3,7 @@ import { adminLocal } from "./support/admin-local";
 import { cnpjUnico, login } from "./support/criar-cliente";
 
 // Aba do RH: o Líder acha todo Cliente e atribui, troca e remove o Responsável do RH; o Admin acha todo Cliente; o Funcionário acha só o atribuído a
-// ele, vê só os dados básicos e tem no resumo só os dele; funcionário de outro Setor volta para o início.
+// ele, vê o cadastro do RH e tem no resumo só os dele; funcionário de outro Setor volta para o início.
 const admin = adminLocal();
 const SUFIXO = `${Date.now()}`.slice(-6);
 const EMPRESA = `RH Aba E2E ${SUFIXO} Ltda`;
@@ -50,7 +50,7 @@ test.describe("Aba RH: busca ampla e Responsável do RH (#213)", () => {
 
     await page.getByLabel(/empresa ou cnpj/i).fill(EMPRESA);
     await page.getByText(EMPRESA).click();
-    await expect(page.getByRole("heading", { name: "Dados do cliente" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Editar cadastro operacional" })).toBeVisible();
 
     const campo = page.getByLabel("Responsável", { exact: true });
     await campo.focus();
@@ -64,14 +64,14 @@ test.describe("Aba RH: busca ampla e Responsável do RH (#213)", () => {
 
     await login(page, "funcionario.rh@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/rh");
-    // O Funcionário não vê o comparativo dos colegas nem os clientes sem Responsável.
-    await expect(page.getByRole("heading", { name: "Comparativos" })).toHaveCount(0);
+    // O Funcionário não vê o comparativo por Responsável nem os clientes sem Responsável.
+    await expect(page.getByText("Clientes por Responsável")).toHaveCount(0);
     await expect(page.getByText("Sem responsável")).toHaveCount(0);
 
     await page.getByLabel(/empresa ou cnpj/i).fill(EMPRESA);
     await page.getByText(EMPRESA).click();
-    await expect(page.getByRole("heading", { name: "Dados do cliente" })).toBeVisible();
-    await expect(page.getByText(EMPRESA)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Editar cadastro operacional" })).toBeVisible();
+    await expect(page.getByLabel("Empresa")).toHaveValue(EMPRESA);
     await expect(page.getByLabel("Forma de envio")).toHaveCount(0);
   });
 
@@ -85,7 +85,7 @@ test.describe("Aba RH: busca ampla e Responsável do RH (#213)", () => {
     await expect(page).toHaveURL("/rh");
     await page.getByLabel(/empresa ou cnpj/i).fill(EMPRESA);
     await page.getByText(EMPRESA).click();
-    await expect(page.getByRole("heading", { name: "Dados do cliente" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Editar cadastro operacional" })).toBeVisible();
 
     const campo = page.getByLabel("Responsável", { exact: true });
     await campo.focus();
@@ -109,7 +109,7 @@ test.describe("Aba RH: busca ampla e Responsável do RH (#213)", () => {
     await page.getByLabel(/empresa ou cnpj/i).fill(EMPRESA);
     await page.getByText(EMPRESA).click();
     await expect(page).toHaveURL(new RegExp(`/clientes/${clienteId}`));
-    await expect(page.getByRole("heading", { name: "Dados do cliente" })).toHaveCount(0);
+    await expect(page.getByLabel("Observações gerais do RH")).toHaveCount(0);
   });
 
   for (const [perfil, email, senha] of [

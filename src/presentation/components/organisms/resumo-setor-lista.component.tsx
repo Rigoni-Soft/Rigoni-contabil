@@ -1,12 +1,10 @@
 import { Caixa, Grade } from "@/presentation/components/atoms/caixa.component";
-import { ListaComDivisores } from "@/presentation/components/atoms/lista-com-divisores.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
-import { LinhaDeCliente } from "@/presentation/components/molecules/linha-de-cliente.component";
+import { ListaDeClientes } from "@/presentation/components/molecules/lista-de-clientes.component";
 import {
   SeloDeParcelamento,
   type SeloDoParcelamento,
 } from "@/presentation/components/molecules/selo-do-parcelamento.component";
-import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
 
 // Só os cards do grupo Parcelamento trazem `parcelamentos`.
 type Cliente = {
@@ -58,25 +56,14 @@ export function ResumoSetorLista({ clientes, bucket, vazio, rotaBase }: Props) {
   }
 
   return (
-    <ListaComDivisores>
-      {clientes.map((cliente) => (
-        // content-visibility: o navegador pula layout e pintura das linhas fora da tela (listas de
-        // centenas de Clientes); o tamanho estimado vale até a linha ser desenhada uma vez.
-        <Caixa
-          como="li"
-          key={cliente.clienteId}
-          className="[contain-intrinsic-size:auto_72px] [content-visibility:auto]"
-        >
-          <LinhaDeCliente
-            href={`/clientes/${cliente.clienteId}?voltarPara=${encodeURIComponent(`${rotaBase}/${bucket}`)}`}
-            empresa={cliente.empresa}
-            cnpj={formatarCnpj(cliente.cnpj)}
-            detalhes={
-              cliente.parcelamentos && <Parcelamentos parcelamentos={cliente.parcelamentos} />
-            }
-          />
-        </Caixa>
-      ))}
-    </ListaComDivisores>
+    <ListaDeClientes
+      clientes={clientes.map((cliente) => ({
+        clienteId: cliente.clienteId,
+        empresa: cliente.empresa,
+        cnpj: cliente.cnpj,
+        href: `/clientes/${cliente.clienteId}?voltarPara=${encodeURIComponent(`${rotaBase}/${bucket}`)}`,
+        detalhes: cliente.parcelamentos && <Parcelamentos parcelamentos={cliente.parcelamentos} />,
+      }))}
+    />
   );
 }

@@ -57,10 +57,19 @@ export function podeVerDashboardDoSetor(
   return papel === "admin" || setorDoAtor === setor;
 }
 
-// O RH só lê os dados básicos do Cliente que enxerga (o cadastro operacional é do SN): hoje o RH.
-// O Admin vai à tela completa do Cliente.
-export function soLeDadosBasicosDoCliente(papel: string, setor: string): boolean {
+// O RH tem o cadastro dele (a tela "Editar cadastro operacional" com os dados do RH, sem o que é do SN);
+// o Admin vai à tela completa do Cliente.
+export function usaCadastroDoRh(papel: string, setor: string): boolean {
   return papel !== "admin" && setor === SETOR_RH;
+}
+
+// Quem edita o cadastro do RH (observações do RH e contatos): o RH e o Admin; por Cliente, o banco restringe
+// o Funcionário ao Responsável do RH dele.
+export function podeEditarCadastroRh(papel: string, setor: string): boolean {
+  return (
+    papel === "admin" ||
+    ((papel === "lider_setor" || papel === "funcionario") && setor === SETOR_RH)
+  );
 }
 
 // Os dois predicados abaixo nascem da mesma premissa: Líder de um Setor que tem Responsável por Cliente.
@@ -89,4 +98,23 @@ export function podeVerComparativoDoSetor(papel: string, setor: string): boolean
 // Anexar alteração contratual a um Cliente existente é dado jurídico: só o Admin.
 export function podeAnexarAlteracaoContratual(papel: string): boolean {
   return papel === "admin";
+}
+
+// Acompanhamento mensal do RH: o Admin e o RH inteiro leem; só o Funcionário do RH marca (e só os
+// Clientes pelos quais é Responsável, por RLS); só o Líder do RH mantém a lista de serviços.
+export function podeVerAcompanhamentoRh(papel: string, setor: string): boolean {
+  return papel === "admin" || setor === SETOR_RH;
+}
+
+export function podeMarcarAcompanhamentoRh(papel: string, setor: string): boolean {
+  return papel === "funcionario" && setor === SETOR_RH;
+}
+
+export function podeGerirServicosRh(papel: string, setor: string): boolean {
+  return papel === "lider_setor" && setor === SETOR_RH;
+}
+
+// Gráfico de acompanhamento dos funcionários do RH: só o Líder do RH e o Admin; o Funcionário vê só a tabela.
+export function podeVerAcompanhamentoDosFuncionariosRh(papel: string, setor: string): boolean {
+  return papel === "admin" || (papel === "lider_setor" && setor === SETOR_RH);
 }

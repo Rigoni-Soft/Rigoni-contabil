@@ -4,7 +4,15 @@ import { CartaoDeResumo } from "@/presentation/components/molecules/cartao-de-re
 
 // Tipos estruturais locais (não importam o DTO do módulo clientes — view burra,
 // arquitetura.md §3.4): qualquer objeto com estes shapes serve.
-type Card = { id: string; titulo: string; cor: string; quantidade: number };
+// `total` só os cards que não contam sobre a carteira inteira trazem (ex.: o acompanhamento do RH, que
+// conta sobre os clientes que têm Responsável).
+type Card = {
+  id: string;
+  titulo: string;
+  cor: string;
+  quantidade: number;
+  total?: number;
+};
 type Grupo = { titulo: string; cardIds: string[] };
 
 type Props = {
@@ -45,7 +53,7 @@ function GrupoDeCards({
               titulo={card.titulo}
               cor={card.cor}
               quantidade={card.quantidade}
-              totalClientes={totalClientes}
+              totalClientes={card.total ?? totalClientes}
             />
           </Caixa>
         ))}
