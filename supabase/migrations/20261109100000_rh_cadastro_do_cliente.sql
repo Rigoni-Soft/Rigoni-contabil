@@ -9,11 +9,13 @@ CREATE TABLE public.cliente_observacoes_setor (
     setor public.setor_slug NOT NULL,
     observacoes text DEFAULT ''::text NOT NULL,
     atualizado_em timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT cliente_observacoes_setor_pkey PRIMARY KEY (cliente_id, setor)
+    CONSTRAINT cliente_observacoes_setor_pkey PRIMARY KEY (cliente_id, setor),
+    CONSTRAINT cliente_observacoes_setor_tamanho_check CHECK (char_length(observacoes) <= 2000)
 );
 ALTER TABLE public.cliente_observacoes_setor ENABLE ROW LEVEL SECURITY;
 
 -- Escreve só a função abaixo (service_role e SECURITY DEFINER); a API lê pela RLS.
+REVOKE ALL ON TABLE public.cliente_observacoes_setor FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.cliente_observacoes_setor TO authenticated;
 GRANT ALL ON TABLE public.cliente_observacoes_setor TO service_role;
 
@@ -78,6 +80,12 @@ begin
   end if;
   if p_contatos is not null and jsonb_typeof(p_contatos) <> 'array' then
     raise exception 'Os contatos devem ser uma lista.' using errcode = '22023';
+  end if;
+  if jsonb_array_length(coalesce(p_contatos, '[]'::jsonb)) > 50 then
+    raise exception 'O cadastro aceita no máximo 50 contatos.' using errcode = '22023';
+  end if;
+  if char_length(coalesce(p_observacoes, '')) > 2000 then
+    raise exception 'As observações aceitam no máximo 2000 caracteres.' using errcode = '22023';
   end if;
   -- Vale só nesta transação: libera o gatilho de contatos para o Regime do Cliente.
   perform set_config('app.cadastro_rh', 'on', true);

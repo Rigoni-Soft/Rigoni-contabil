@@ -32,7 +32,7 @@ export class SupabaseCadastroRhRepository implements CadastroRhRepository {
       if (error.code === "42501") {
         return err(new ForbiddenError("Você não é o Responsável do RH deste cliente."));
       }
-      if (error.code === "22023") return err(new ValidationError("Os contatos são inválidos."));
+      if (error.code === "22023") return err(new ValidationError(error.message));
       this.erros.registrar("Falha ao atualizar o cadastro do RH:", error.message);
       return err(
         new PersistenciaError("Não foi possível salvar o cadastro do RH. Tente novamente."),

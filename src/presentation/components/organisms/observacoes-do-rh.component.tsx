@@ -35,6 +35,7 @@ export function ObservacoesDoRh({
         <Textarea
           id="observacoes-do-rh-campo"
           rows={3}
+          maxLength={2000}
           value={valor}
           onChange={(e) => onMudar(e.target.value)}
           aria-invalid={erro ? true : undefined}

@@ -137,6 +137,37 @@ describe("Cadastro do Cliente no RH (integração)", () => {
     expect(direto.error?.message).toMatch(/não se aplica/);
   });
 
+  it("observações do Setor só são escritas pela função: a escrita direta pela API é negada", async () => {
+    const rh = await comoFuncionarioRH();
+    const admin = await entrar("admin@rigonicontabil.local", "admin123");
+
+    const insere = await rh
+      .from("cliente_observacoes_setor")
+      .insert({ cliente_id: clienteId, setor: "rh", observacoes: "direto" });
+    const adminInsere = await admin
+      .from("cliente_observacoes_setor")
+      .insert({ cliente_id: clienteId, setor: "rh", observacoes: "direto" });
+
+    expect(insere.error?.code).toBe("42501");
+    expect(adminInsere.error?.code).toBe("42501");
+  });
+
+  it("recusa na função observações acima de 2000 caracteres e mais de 50 contatos", async () => {
+    const rh = await comoFuncionarioRH();
+    const repo = new SupabaseCadastroRhRepository(rh);
+    const contato = (i: number) => ({ nome: `C${i}`, telefone: "11999990000", padrao: i === 0 });
+
+    const longa = await repo.atualizar(clienteId, "x".repeat(2001), undefined);
+    const muitos = await repo.atualizar(
+      clienteId,
+      "ok",
+      Array.from({ length: 51 }, (_, i) => contato(i)),
+    );
+
+    expect(!longa.ok && longa.error.code).toBe("VALIDATION_ERROR");
+    expect(!muitos.ok && muitos.error.code).toBe("VALIDATION_ERROR");
+  });
+
   it("a edição do RH deixa auditoria e não escreve nas tabelas do SN pela API", async () => {
     const rh = await comoFuncionarioRH();
 
