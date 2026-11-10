@@ -23,7 +23,7 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ResultadoIncertoError } from "@/shared/errors/resultado-incerto.error";
 import { ValidationError } from "@/shared/errors/validation.error";
-import { podeEditarCadastroOperacional } from "@/shared/kernel/papeis";
+import { podeOperarParcelamento } from "@/shared/kernel/papeis";
 import { err, type Result } from "@/shared/kernel/result";
 
 // Troca o PDF de uma guia ainda não enviada: refaz a leitura e a conferência e a guia volta a
@@ -40,10 +40,10 @@ export class TrocarGuiaParcelaPgfn implements TrocarGuiaParcelaPgfnPort {
 
   async execute(input: TrocarGuiaParcelaPgfnInput): Promise<Result<GuiaDaParcela, AppError>> {
     const ator = await this.sessao.usuarioAtual();
-    if (!ator || !podeEditarCadastroOperacional(ator.papel, ator.setor)) {
+    if (!ator || !podeOperarParcelamento(ator.papel, ator.setor)) {
       return err(
         new ForbiddenError(
-          "Só Admin, Líder ou Funcionário do Simples Nacional trocam a guia da parcela.",
+          "Só Admin, Líder ou Funcionário do Simples Nacional ou do RH trocam a guia da parcela.",
         ),
       );
     }

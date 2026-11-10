@@ -1,12 +1,10 @@
 import { act, renderHook } from "@testing-library/react";
 
-import { semChaves, useSalvarCadastroOperacional } from "./use-salvar-cadastro-operacional.hook";
+import { useSalvarCadastroOperacional } from "./use-salvar-cadastro-operacional.hook";
 
 const push = jest.fn();
 const editar = jest.fn();
 const atribuir = jest.fn();
-const salvarParcelamentos = jest.fn();
-const anexarGuia = jest.fn();
 
 jest.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 jest.mock("./editar-cadastro-operacional.actions", () => ({
@@ -14,12 +12,6 @@ jest.mock("./editar-cadastro-operacional.actions", () => ({
 }));
 jest.mock("./atribuir-responsavel.actions", () => ({
   atribuirResponsavelAction: (...a: unknown[]) => atribuir(...a),
-}));
-jest.mock("./salvar-parcelamentos.actions", () => ({
-  salvarParcelamentosAction: (...a: unknown[]) => salvarParcelamentos(...a),
-}));
-jest.mock("../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.actions", () => ({
-  anexarGuiaParcelaPgfnAction: (...a: unknown[]) => anexarGuia(...a),
 }));
 
 const dados = { id: "c1", responsavelId: null, parcelamentos: [] } as never;
@@ -37,19 +29,12 @@ function montar(aoSalvar?: Parameters<typeof useSalvarCadastroOperacional>[0]["a
       dados,
       podeAtribuirResponsavel: true,
       aoSalvar,
-      getValues: jest.fn(() => ({ parcelamentos: [] })) as never,
-      setValue: jest.fn(),
+      salvarParcelamentos: jest.fn().mockResolvedValue(undefined),
       setError,
     }),
   );
   return { ...hook, setError };
 }
-
-describe("semChaves", () => {
-  it("remove só as chaves dadas", () => {
-    expect(semChaves({ a: 1, b: 2, c: 3 }, "a", "c")).toEqual({ b: 2 });
-  });
-});
 
 describe("useSalvarCadastroOperacional", () => {
   beforeEach(() => jest.resetAllMocks());

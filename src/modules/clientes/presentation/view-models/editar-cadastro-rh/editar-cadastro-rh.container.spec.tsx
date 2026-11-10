@@ -7,6 +7,7 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok } from "@/shared/kernel/result";
 
+import { salvarParcelamentosAction } from "../editar-cadastro-operacional/salvar-parcelamentos.actions";
 import { editarCadastroRhAction } from "./editar-cadastro-rh.actions";
 import { EditarCadastroRhContainer } from "./editar-cadastro-rh.container";
 
@@ -14,6 +15,10 @@ jest.mock("./editar-cadastro-rh.actions", () => {
   const real = jest.requireActual("./editar-cadastro-rh.actions");
   return { ...real, editarCadastroRhAction: jest.fn(real.editarCadastroRhAction) };
 });
+
+jest.mock("../editar-cadastro-operacional/salvar-parcelamentos.actions", () => ({
+  salvarParcelamentosAction: jest.fn(),
+}));
 
 const routerPush = jest.fn();
 jest.mock("next/navigation", () => ({
@@ -33,6 +38,7 @@ const dados: CadastroRhClienteDto = {
   cnpj: "11.444.777/0001-61",
   contatos: [{ id: "c1", nome: "Maria", telefone: "11999990000", padrao: true }],
   observacoes: "Folha no 5º dia útil.",
+  parcelamentos: [],
 };
 
 function render(ui: React.ReactElement) {
@@ -74,6 +80,45 @@ describe("EditarCadastroRhContainer", () => {
       clienteId: dados.id,
       observacoes: "Pagar no dia 10.",
       contatos: [{ id: "c1", nome: "Maria", telefone: "11999990000", padrao: true }],
+    });
+  });
+
+  it("edita as parcelas de um Parcelamento do RH e o salva com o Setor RH, só depois do cadastro", async () => {
+    const parcelamento = {
+      id: "7b1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7d",
+      codigo: "RH-100",
+      parcelasRestantes: 5,
+      interno: false,
+      arquivoNome: "acordo.pdf",
+      acordo: {
+        origem: null,
+        totalDeParcelas: null,
+        valorDaParcelaCentavos: null,
+        dataDeAdesao: null,
+      },
+      quitado: false,
+      temEnvio: false,
+      enviadoNoMes: false,
+    };
+    jest
+      .mocked(salvarParcelamentosAction)
+      .mockResolvedValue({ ok: true, data: { ids: [parcelamento.id] } });
+    montar({ dados: { ...dados, parcelamentos: [parcelamento] } });
+    const usuario = userEvent.setup();
+
+    expect(await screen.findByText(/Tem parcelamento:/)).toHaveTextContent("Sim (1)");
+    const parcelas = await screen.findByDisplayValue("5");
+    await usuario.clear(parcelas);
+    await usuario.type(parcelas, "4");
+    await usuario.click(screen.getByRole("button", { name: "Salvar" }));
+
+    await waitFor(() => expect(routerPush).toHaveBeenCalledWith("/rh"));
+    expect(salvarParcelamentosAction).toHaveBeenCalledWith({
+      clienteId: dados.id,
+      setor: "rh",
+      parcelamentos: [
+        expect.objectContaining({ id: parcelamento.id, codigo: "RH-100", parcelasRestantes: 4 }),
+      ],
     });
   });
 

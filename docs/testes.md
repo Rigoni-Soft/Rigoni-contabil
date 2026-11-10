@@ -191,6 +191,8 @@ export default defineConfig({
 "test:e2e:diff": "playwright test --only-changed=develop"
 ```
 
+Para rodar um arquivo só, passe o caminho com `--runTestsByPath` e ponha `--selectProjects` depois: `jest --runTestsByPath <caminho> --selectProjects unit` (no de integração, junto de `--runInBand`). Com `--selectProjects unit <caminho>` o Jest toma o caminho por nome de projeto e roda outras suítes.
+
 `test:e2e:diff` precisa do histórico do branch base disponível no CI (clone completo, não raso).
 
 `test:int` persiste registros reais no Supabase local (sem limpeza — não é o

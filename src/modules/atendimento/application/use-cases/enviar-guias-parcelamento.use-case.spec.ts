@@ -44,6 +44,7 @@ const parcelamento = (
   id,
   codigo: `COD-${id}`,
   interno: false,
+  setor: "simples_nacional" as const,
   valorParcelaCentavos: 10_000,
   parcelasRestantes: 5,
   parcelasEnviadas: [],
@@ -266,9 +267,74 @@ describe("EnviarGuiasParcelamento", () => {
     expect(andamento).toEqual({
       enviado: false,
       ocorrencias: [
-        { tipo: "parcelamento_sem_guia", mensagem: expect.stringMatching(/COD-p1.*COD-p2/) },
+        {
+          tipo: "parcelamento_sem_guia",
+          setor: "simples_nacional",
+          mensagem: expect.stringMatching(/COD-p1.*COD-p2/),
+        },
       ],
     });
+  });
+
+  it("sem guia para parcelamentos do SN e do RH: um parcelamento_sem_guia por setor, só com os códigos dele", async () => {
+    const { nucleo } = montar(ok([parcelamento("sn"), parcelamento("rh", { setor: "rh" })]), {
+      guias: async () => ok([]),
+    });
+
+    const andamento = await nucleo.execute({ cliente, agora });
+
+    expect(andamento.ocorrencias).toEqual([
+      {
+        tipo: "parcelamento_sem_guia",
+        setor: "simples_nacional",
+        mensagem: expect.stringContaining("COD-sn"),
+      },
+      { tipo: "parcelamento_sem_guia", setor: "rh", mensagem: expect.stringContaining("COD-rh") },
+    ]);
+    expect(andamento.ocorrencias[0].mensagem).not.toContain("COD-rh");
+    expect(andamento.ocorrencias[1].mensagem).not.toContain("COD-sn");
+  });
+
+  it("a atribuição vê os acordos de todos os setores: a guia que só cabe no SN vai ao SN e o RH fica sem guia", async () => {
+    const { nucleo, envio, registrados } = montar(
+      ok([parcelamento("sn"), parcelamento("rh", { setor: "rh", valorParcelaCentavos: 20_000 })]),
+      { guias: async () => ok([guia("202610", 10_000)]) },
+    );
+
+    const andamento = await nucleo.execute({ cliente, agora });
+
+    expect(registrados).toEqual([["sn", "202610"]]);
+    expect(envio.requisicoes).toHaveLength(1);
+    expect(andamento.ocorrencias).toEqual([
+      { tipo: "parcelamento_sem_guia", setor: "rh", mensagem: expect.stringContaining("COD-rh") },
+    ]);
+  });
+
+  it("falha fechado entre setores: guia que cabe nos acordos do SN e do RH não vai a nenhum e cada setor é alertado", async () => {
+    const { nucleo, envio, registrados } = montar(
+      ok([parcelamento("sn"), parcelamento("rh", { setor: "rh", valorParcelaCentavos: 20_000 })]),
+      { guias: async () => ok([guia("202610", 30_000)]) },
+    );
+
+    const andamento = await nucleo.execute({ cliente, agora });
+
+    expect(registrados).toEqual([]);
+    expect(envio.requisicoes).toHaveLength(0);
+    expect(andamento.ocorrencias.map((o) => o.setor)).toEqual(["simples_nacional", "rh"]);
+  });
+
+  it("falha na entrega de um parcelamento do RH vira falha_envio do RH, sem tocar o do SN", async () => {
+    const { nucleo } = montar(
+      ok([parcelamento("sn"), parcelamento("rh", { setor: "rh", valorParcelaCentavos: 20_000 })]),
+      {
+        guias: async () => ok([guia("202610", 10_000), guia("202610", 20_000)]),
+        publicarFalha: "202610",
+      },
+    );
+
+    const andamento = await nucleo.execute({ cliente, agora });
+
+    expect(andamento.ocorrencias.map((o) => o.setor).sort()).toEqual(["rh", "simples_nacional"]);
   });
 
   it("guia do parcelamento interno vai ao WhatsApp do financeiro, nunca ao Cliente", async () => {
@@ -365,7 +431,13 @@ describe("EnviarGuiasParcelamento", () => {
 
     expect(andamento).toEqual({
       enviado: false,
-      ocorrencias: [{ tipo: "financeiro_ausente", mensagem: expect.stringContaining("COD-p1") }],
+      ocorrencias: [
+        {
+          tipo: "financeiro_ausente",
+          setor: "simples_nacional",
+          mensagem: expect.stringContaining("COD-p1"),
+        },
+      ],
     });
     expect(buscarGuiasParcelamento).not.toHaveBeenCalled();
     expect(envio.requisicoes).toHaveLength(0);

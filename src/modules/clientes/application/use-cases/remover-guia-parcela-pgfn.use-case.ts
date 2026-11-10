@@ -12,7 +12,7 @@ import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.e
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ResultadoIncertoError } from "@/shared/errors/resultado-incerto.error";
-import { podeEditarCadastroOperacional } from "@/shared/kernel/papeis";
+import { podeOperarParcelamento } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 // Remove a guia ainda não enviada (o banco recusa a de competência já enviada). O objeto só é apagado
@@ -28,10 +28,10 @@ export class RemoverGuiaParcelaPgfn implements RemoverGuiaParcelaPgfnPort {
 
   async execute(input: RemoverGuiaParcelaPgfnInput): Promise<Result<void, AppError>> {
     const ator = await this.sessao.usuarioAtual();
-    if (!ator || !podeEditarCadastroOperacional(ator.papel, ator.setor)) {
+    if (!ator || !podeOperarParcelamento(ator.papel, ator.setor)) {
       return err(
         new ForbiddenError(
-          "Só Admin, Líder ou Funcionário do Simples Nacional removem a guia da parcela.",
+          "Só Admin, Líder ou Funcionário do Simples Nacional ou do RH removem a guia da parcela.",
         ),
       );
     }

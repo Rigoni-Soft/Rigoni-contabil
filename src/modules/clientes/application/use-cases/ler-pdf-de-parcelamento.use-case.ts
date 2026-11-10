@@ -11,7 +11,7 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { normalizarCnpj } from "@/shared/kernel/cnpj";
-import { podeEditarCadastroOperacional } from "@/shared/kernel/papeis";
+import { podeOperarParcelamento } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 export class LerPdfDeParcelamento implements LerPdfDeParcelamentoPort {
@@ -25,10 +25,10 @@ export class LerPdfDeParcelamento implements LerPdfDeParcelamentoPort {
     input: LerPdfDeParcelamentoInput,
   ): Promise<Result<SugestaoDeParcelamento, AppError>> {
     const ator = await this.sessao.usuarioAtual();
-    if (!ator || !podeEditarCadastroOperacional(ator.papel, ator.setor)) {
+    if (!ator || !podeOperarParcelamento(ator.papel, ator.setor)) {
       return err(
         new ForbiddenError(
-          "Só Admin, Líder ou Funcionário do Simples Nacional leem o PDF do Parcelamento.",
+          "Só Admin, Líder ou Funcionário do Simples Nacional ou do RH leem o PDF do Parcelamento.",
         ),
       );
     }

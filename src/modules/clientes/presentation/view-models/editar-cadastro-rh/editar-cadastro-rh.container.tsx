@@ -12,11 +12,15 @@ import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 import type { CadastroRhClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 
+import { guiasDaParcela } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.container";
 import {
   contatoNovo,
   descartarLinhasEmBranco,
+  mensagemDeFalhaDeEtapa,
+  parcelamentoNovo,
   reposicionarErros,
 } from "../editar-cadastro-operacional/editar-cadastro-operacional.presenter";
+import { useParcelamentosDoCadastro } from "../editar-cadastro-operacional/use-parcelamentos-do-cadastro.hook";
 import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
 import { editarCadastroRhAction } from "./editar-cadastro-rh.actions";
 import { editarCadastroRhFormSchema } from "./editar-cadastro-rh.schema";
@@ -43,7 +47,8 @@ const valoresIniciaisDe = (dados: CadastroRhClienteDto, readOnly: boolean): Valo
   documentoObrigatorio: null,
   dasStatus: null,
   dataEnvioDas: null,
-  parcelamentos: [],
+  parcelamentos:
+    dados.parcelamentos.length || readOnly ? dados.parcelamentos : [parcelamentoNovo()],
   observacoesGerais: dados.observacoes,
   atividadeMes: { industria: false, comercio: false, servico: false },
   responsavelId: "",
@@ -75,6 +80,7 @@ export function EditarCadastroRhContainer({
     handleSubmit,
     reset,
     getValues,
+    setValue,
     setError,
     formState: { errors },
   } = useForm<Valores>({
@@ -94,12 +100,26 @@ export function EditarCadastroRhContainer({
           ...(resultado.errors.contatos && {
             contatos: reposicionarErros(resultado.errors.contatos, semBranco.contatos),
           }),
+          ...(resultado.errors.parcelamentos && {
+            parcelamentos: reposicionarErros(
+              resultado.errors.parcelamentos,
+              semBranco.parcelamentos,
+            ),
+          }),
         },
       } as never;
     },
     defaultValues: valoresIniciais,
   });
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
+  const parcelamentos = useParcelamentosDoCadastro({
+    clienteId: dados?.id ?? "",
+    setor: "rh",
+    salvos: dados?.parcelamentos ?? [],
+    control,
+    getValues,
+    setValue,
+  });
 
   if (!dados) return <Texto variante="apoio">Cliente não encontrado.</Texto>;
 
@@ -123,11 +143,17 @@ export function EditarCadastroRhContainer({
         }
         return;
       }
+      // Os Parcelamentos têm PDF: vão por Server Action própria, depois do cadastro.
+      const erroParcelamentos = await parcelamentos.salvar(valores);
+      if (erroParcelamentos) {
+        setErroServidor(erroParcelamentos);
+        return;
+      }
       setSucesso(true);
       router.push(voltarHref);
     } catch (erro) {
       console.error("Falha ao salvar o cadastro do RH", erro);
-      setErroServidor(mensagemDaFalha(erro));
+      setErroServidor(mensagemDeFalhaDeEtapa(erro, mensagemDaFalha(erro)));
     } finally {
       setPendente(false);
     }
@@ -148,11 +174,19 @@ export function EditarCadastroRhContainer({
       contatos={fields}
       onAdicionarContato={() => append(contatoNovo(fields.length === 0))}
       onRemoverContato={remove}
+      parcelamentos={parcelamentos.parcelamentos}
+      parcelamentoCampos={parcelamentos.parcelamentoCampos}
+      onAdicionarParcelamento={parcelamentos.onAdicionarParcelamento}
+      onRemoverParcelamento={parcelamentos.onRemoverParcelamento}
+      leituras={parcelamentos.leituras}
+      onArquivoEscolhido={parcelamentos.onArquivoEscolhido}
+      guiasDaParcela={guiasDaParcela}
       responsavel={responsavel}
       mesDoAcompanhamento={mesDoAcompanhamento}
       acompanhamento={acompanhamento}
       onLimpar={() => {
         reset(valoresIniciais);
+        parcelamentos.esquecerLeituras();
         setErroServidor(undefined);
         setSucesso(false);
       }}

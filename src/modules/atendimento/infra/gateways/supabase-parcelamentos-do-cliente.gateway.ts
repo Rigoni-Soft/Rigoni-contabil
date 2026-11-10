@@ -10,15 +10,17 @@ import type {
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
+import { SETORES } from "@/shared/kernel/setores";
 
 // O que se lê de um Parcelamento em aberto; a leitura das guias PGFN acrescenta só as guias.
 export const COLUNAS_DO_PARCELAMENTO =
-  "id, codigo, interno, valor_parcela_centavos, parcelas_restantes, cliente_parcelamento_envios(parcela)";
+  "id, codigo, interno, setor, valor_parcela_centavos, parcelas_restantes, cliente_parcelamento_envios(parcela)";
 
 export const parcelamentoSchema = z.object({
   id: z.string(),
   codigo: z.string(),
   interno: z.boolean(),
+  setor: z.enum(SETORES),
   valor_parcela_centavos: z.number().nullable(),
   parcelas_restantes: z.number(),
   cliente_parcelamento_envios: z.array(z.object({ parcela: z.string() })),
@@ -30,6 +32,7 @@ export const paraParcelamento = (
   id: linha.id,
   codigo: linha.codigo,
   interno: linha.interno,
+  setor: linha.setor,
   valorParcelaCentavos: linha.valor_parcela_centavos,
   parcelasRestantes: linha.parcelas_restantes,
   parcelasEnviadas: linha.cliente_parcelamento_envios.map((envio) => envio.parcela),

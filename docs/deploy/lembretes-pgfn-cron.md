@@ -14,14 +14,14 @@ mensageria nem e-mail real.
 ## O que o job faz
 
 Para cada Cliente com Parcelamento PGFN em aberto (inclusive interno) sem guia **confirmada** da
-competência do mês, abre um alerta `guia_pgfn_pendente` ao setor Simples Nacional (`alertas_setor`,
-`origem = 'lembrete_pgfn'`, um aberto por Cliente).
+competência do mês, abre um alerta `guia_pgfn_pendente` ao Setor dono do Parcelamento (`alertas_setor`,
+`origem = 'lembrete_pgfn'`, um aberto por Cliente e Setor).
 
 - O texto separa **Falta anexar** (nenhuma guia do mês) de **A confirmar** (anexada, não confirmada) e
   lista o código de cada Parcelamento pendente.
 - Competência atrasada sem guia não alerta: só a do mês corrente conta.
 - Rodar de novo renova a mensagem e a data. O alerta se resolve sozinho: ao confirmar a última guia
-  pendente do mês, um gatilho em `cliente_parcelamento_guias` o fecha na hora; e, se o Parcelamento
+  pendente do mês do Setor, um gatilho em `cliente_parcelamento_guias` o fecha na hora; e, se o Parcelamento
   sair de aberto, o job o fecha na rodada seguinte (o Cliente volta na leitura sem pendência e o que
   não foi renovado é resolvido, só dos Clientes reavaliados).
 - Sem canal externo e sem roteamento por pessoa: a RLS de `alertas_setor` mostra ao Responsável os

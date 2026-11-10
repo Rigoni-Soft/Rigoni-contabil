@@ -39,6 +39,7 @@ const emAberto = {
   id: "p1",
   codigo: "PARC-1",
   interno: false,
+  setor: "simples_nacional" as const,
   valorParcelaCentavos: 10_000,
   parcelasRestantes: 5,
 };

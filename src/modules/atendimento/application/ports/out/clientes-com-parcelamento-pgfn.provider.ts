@@ -1,10 +1,11 @@
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
+import type { SetorSlug } from "@/shared/kernel/setores";
 
 // `sem_guia`: falta anexar a guia do mês; `a_confirmar`: anexada, aguardando a confirmação.
 export type EstadoDaGuiaPgfn = "sem_guia" | "a_confirmar";
 
-export type PendenciaPgfn = { codigo: string; estado: EstadoDaGuiaPgfn };
+export type PendenciaPgfn = { codigo: string; setor: SetorSlug; estado: EstadoDaGuiaPgfn };
 
 export type ClienteComParcelamentoPgfn = {
   clienteId: string;

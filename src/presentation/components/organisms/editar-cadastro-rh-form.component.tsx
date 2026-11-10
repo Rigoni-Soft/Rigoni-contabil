@@ -11,8 +11,13 @@ import type { CabecalhoCliente } from "./cabecalho-do-cadastro.component";
 import { CartaoDoCadastro } from "./cartao-do-cadastro.component";
 import { ContatosDoCadastro } from "./contatos-do-cadastro.component";
 import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional-form.component";
+import {
+  motivoDeLeituraEmAndamento,
+  ParcelamentosDoCadastro,
+  type ParcelamentosProps,
+} from "./parcelamentos-do-cadastro.component";
 
-type EditarCadastroRhFormProps = {
+type EditarCadastroRhFormProps = ParcelamentosProps & {
   cabecalho: CabecalhoCliente;
   register: UseFormRegister<EditarCadastroOperacionalFormValues>;
   control: Control<EditarCadastroOperacionalFormValues>;
@@ -54,6 +59,13 @@ export function EditarCadastroRhForm({
   contatos,
   onAdicionarContato,
   onRemoverContato,
+  parcelamentos,
+  parcelamentoCampos,
+  onAdicionarParcelamento,
+  onRemoverParcelamento,
+  leituras,
+  onArquivoEscolhido,
+  guiasDaParcela,
   onLimpar,
   documentoContratual,
   responsavel,
@@ -71,7 +83,13 @@ export function EditarCadastroRhForm({
       documentoContratual={documentoContratual}
       responsavel={responsavel}
       acompanhamento={acompanhamento}
-      acoes={<AcoesDoFormulario pendente={pendente} onLimpar={onLimpar} />}
+      acoes={
+        <AcoesDoFormulario
+          pendente={pendente}
+          motivoDoBloqueio={motivoDeLeituraEmAndamento(leituras)}
+          onLimpar={onLimpar}
+        />
+      }
       erroServidor={erroServidor}
       sucesso={
         sucesso && <AvisoDeStatus tipo="sucesso" legivel texto="Cadastro do RH atualizado." />
@@ -85,6 +103,20 @@ export function EditarCadastroRhForm({
         contatos={contatos}
         onAdicionar={onAdicionarContato}
         onRemover={onRemoverContato}
+      />
+
+      <ParcelamentosDoCadastro
+        register={register}
+        control={control}
+        errors={errors}
+        readOnly={readOnly}
+        parcelamentos={parcelamentos}
+        parcelamentoCampos={parcelamentoCampos}
+        onAdicionar={onAdicionarParcelamento}
+        onRemover={onRemoverParcelamento}
+        leituras={leituras}
+        onArquivoEscolhido={onArquivoEscolhido}
+        guiasDaParcela={guiasDaParcela}
       />
 
       <Pilha espaco={1} className="sm:col-span-2 lg:col-span-4">

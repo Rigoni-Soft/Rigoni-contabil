@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-import { contatoSchema } from "../editar-cadastro-operacional/editar-cadastro-operacional.schema";
+import {
+  contatoSchema,
+  parcelamentosFormSchema,
+} from "../editar-cadastro-operacional/editar-cadastro-operacional.schema";
 
 // O que a action recebe: as observações do RH e os contatos do Cliente.
 export const editarCadastroRhSchema = z.object({
@@ -14,4 +17,6 @@ export const editarCadastroRhSchema = z.object({
 export const editarCadastroRhFormSchema = z.object({
   observacoesGerais: z.string().max(2000),
   contatos: z.array(contatoSchema).max(50),
+  // Os Parcelamentos vão por outra Server Action (têm PDF); aqui só se validam as linhas.
+  parcelamentos: parcelamentosFormSchema,
 });

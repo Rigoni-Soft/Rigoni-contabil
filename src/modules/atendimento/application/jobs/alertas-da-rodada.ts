@@ -8,6 +8,7 @@ import type {
 } from "@/modules/atendimento/application/ports/out/alerta-setor.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
+import { SETOR_SN, type SetorSlug } from "@/shared/kernel/setores";
 
 // Diferença tolerada entre o relógio do servidor e o do banco ao resolver alertas.
 const FOLGA_RELOGIO_MS = 60_000;
@@ -35,6 +36,12 @@ export const RESERVA_OCUPADA: Andamento = {
 export const comOcorrencia = (tipo: TipoAlertaSetor, mensagem: string): Andamento => ({
   enviado: false,
   ocorrencias: [{ tipo, mensagem }],
+});
+
+// A ocorrência sem setor passa a ser do `setor` dado (a que já tem setor o mantém).
+export const noSetor = (andamento: Andamento, setor: SetorSlug): Andamento => ({
+  ...andamento,
+  ocorrencias: andamento.ocorrencias.map((o) => ({ ...o, setor: o.setor ?? setor })),
 });
 
 export const falha = (mensagem: string) => comOcorrencia("falha_envio", mensagem);
@@ -101,34 +108,40 @@ export async function entregarComReserva({
   return { enviado: true, ocorrencias: [...entrega.ocorrencias, ...falha(aviso).ocorrencias] };
 }
 
-// Um alerta por tipo e Cliente: as mensagens do mesmo tipo (ex.: falha do lembrete e da guia) se
-// juntam, em vez de a segunda ser descartada.
-function agruparPorTipo(ocorrencias: OcorrenciaDeEntrega[]): Map<TipoAlertaSetor, string[]> {
-  const porTipo = new Map<TipoAlertaSetor, string[]>();
-  for (const { tipo, mensagem } of ocorrencias) {
-    porTipo.set(tipo, [...(porTipo.get(tipo) ?? []), mensagem]);
+type ChaveDoAlerta = { setor: SetorSlug; tipo: TipoAlertaSetor };
+
+// Um alerta por Setor e tipo do Cliente: as mensagens do mesmo setor e tipo (ex.: falha do lembrete
+// e da guia) se juntam, em vez de a segunda ser descartada. Sem setor, o alerta é do Simples Nacional.
+function agruparPorSetorETipo(
+  ocorrencias: OcorrenciaDeEntrega[],
+): { chave: ChaveDoAlerta; mensagens: string[] }[] {
+  const grupos = new Map<string, { chave: ChaveDoAlerta; mensagens: string[] }>();
+  for (const { tipo, mensagem, setor = SETOR_SN } of ocorrencias) {
+    const id = `${setor}:${tipo}`;
+    const grupo = grupos.get(id) ?? { chave: { setor, tipo }, mensagens: [] };
+    grupo.mensagens.push(mensagem);
+    grupos.set(id, grupo);
   }
-  return porTipo;
+  return [...grupos.values()];
 }
 
-// Grava as ocorrências do Cliente como alertas do setor Simples Nacional.
+// Grava as ocorrências do Cliente como alertas do Setor dono de cada uma.
 async function levantarAlertas(
   alertas: AlertaSetorPort,
   clienteId: string,
   ocorrencias: OcorrenciaDeEntrega[],
 ): Promise<{ gravados: number; naoGravados: number }> {
-  const porTipo = agruparPorTipo(ocorrencias);
+  const grupos = agruparPorSetorETipo(ocorrencias);
   let gravados = 0;
-  for (const [tipo, mensagens] of porTipo) {
+  for (const { chave, mensagens } of grupos) {
     const gravado = await alertas.alertar({
-      setor: "simples_nacional",
-      tipo,
+      ...chave,
       clienteId,
       mensagem: mensagens.join(" | "),
     });
     gravados += Number(gravado.ok);
   }
-  return { gravados, naoGravados: porTipo.size - gravados };
+  return { gravados, naoGravados: grupos.length - gravados };
 }
 
 // Alerta que o job não renovou nesta rodada deixou de valer, mas só para os Clientes que ela

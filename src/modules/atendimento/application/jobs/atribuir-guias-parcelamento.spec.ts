@@ -16,6 +16,7 @@ const parcelamento = (
   id,
   codigo: `COD-${id}`,
   interno: false,
+  setor: "simples_nacional" as const,
   valorParcelaCentavos,
   parcelasRestantes: 5,
   parcelasEnviadas: enviadas,
@@ -83,6 +84,15 @@ describe("atribuirGuiasParcelamento", () => {
       atribuirGuiasParcelamento(
         [guia("202610", 10_000)],
         [parcelamento("a", 10_000, ["202610"]), parcelamento("b", 10_000)],
+      ),
+    ).toEqual([]);
+  });
+
+  it("acordos de mesmo valor em Setores diferentes não recebem guia: o Setor não desempata", () => {
+    expect(
+      atribuirGuiasParcelamento(
+        [guia("202610", 10_000)],
+        [parcelamento("sn", 10_000), { ...parcelamento("rh", 10_000), setor: "rh" as const }],
       ),
     ).toEqual([]);
   });

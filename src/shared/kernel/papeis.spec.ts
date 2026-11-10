@@ -1,6 +1,7 @@
 import {
   podeEditarCadastroRh,
   podeGerirParcelamento,
+  podeOperarParcelamento,
   podeVerComparativoDoSetor,
   podeVerDashboardDoSetor,
   usaCadastroDoRh,
@@ -28,6 +29,18 @@ describe("podeGerirParcelamento", () => {
     ["lider_setor", "rh", "simples_nacional", false],
   ])("%s do setor %s gerindo o Parcelamento de %s: %s", (papel, setorDoAtor, setor, esperado) => {
     expect(podeGerirParcelamento(papel, setorDoAtor, setor)).toBe(esperado);
+  });
+});
+
+describe("podeOperarParcelamento", () => {
+  it.each([
+    ["admin", "administrativo", true],
+    ["lider_setor", "simples_nacional", true],
+    ["funcionario", "rh", true],
+    ["funcionario", "financeiro", false],
+    ["lider_setor", "pessoal", false],
+  ])("%s do setor %s lê o PDF e mexe nas guias: %s", (papel, setor, esperado) => {
+    expect(podeOperarParcelamento(papel, setor)).toBe(esperado);
   });
 });
 

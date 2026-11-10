@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { UseFormSetValue } from "react-hook-form";
 
 import type { EditarCadastroOperacionalFormValues } from "@/modules/clientes/presentation/view-models/editar-cadastro-operacional/editar-cadastro-operacional.schema";
@@ -24,12 +24,18 @@ async function comLimite<T>(promessa: Promise<T>): Promise<T> {
 
 // Lê o PDF escolhido numa linha nova e a preenche como sugestão editável. Falha de leitura (ou da
 // própria Server Action) nunca bloqueia: a linha volta a ficar livre para digitar à mão.
-// `indiceDe` resolve o índice atual da linha pelo id do campo (a lista pode mudar durante a leitura).
+// `campos` é a lista do useFieldArray: o índice atual da linha sai do id do campo, lido no momento da
+// resposta (a lista pode mudar durante a leitura).
 export function useLeituraDoPdf(
   clienteId: string,
   setValue: UseFormSetValue<EditarCadastroOperacionalFormValues>,
-  indiceDe: (id: string) => number,
+  campos: { id: string }[],
 ) {
+  const camposAtuais = useRef(campos);
+  useEffect(() => {
+    camposAtuais.current = campos;
+  });
+  const indiceDe = (id: string) => camposAtuais.current.findIndex((campo) => campo.id === id);
   const [leituras, setLeituras] = useState<Record<string, EstadoDaLeitura>>({});
   // O PDF mais recente de cada linha: resposta de um PDF já trocado ou de uma linha removida (`ler(id, undefined)`) é
   // descartada.

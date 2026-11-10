@@ -33,9 +33,9 @@ Quando o usuário corrigir o **desenho** depois da implementação, atualize na 
 
 ## 4. Fechar a estação
 
-Rode `yarn tsc --noEmit`, `yarn lint` e `yarn test`. **Critério de saída: código implementado e commitado na branch, com type-safety e testes verdes.**
+Rode `yarn tsc --noEmit`, `yarn lint`, `yarn test`, `yarn check:naming` e `yarn check:refs` (arquivo novo sem sufixo de papel e `#NN` em comentário reprovam no CI). **Critério de saída: código implementado e commitado na branch, com type-safety, testes e checks verdes.**
 
-Reporte: branch, base, commits e o próximo passo: `/gate-qualidade [base]`. **Nunca `git push`, nem abrir PR, sem ordem explícita do usuário** (um hook também pede confirmação).
+Reporte: branch, base, commits e o próximo passo: `/gate-qualidade [base]`. **Nunca `git push`, nem abrir PR, sem ordem explícita do usuário** (um hook também pede confirmação). **Nunca `git stash`** (nem `-u`: há arquivos soltos do usuário no repositório, como `supabase/snippets/`); para comparar um teste com a base, use `git show` ou `git worktree`.
 
 Pedido do usuário que mexa em **permissão** (quem lê, marca, edita ou atribui) é conferido antes de codar com os AC da issue e o `CONTEXT.md`; se contradisser algum, pergunte qual vale em vez de implementar (o gate só pega o conflito depois do código).
 

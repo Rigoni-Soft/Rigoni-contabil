@@ -4,6 +4,16 @@ import { useForm } from "react-hook-form";
 import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional-form.component";
 import { EditarCadastroRhForm } from "./editar-cadastro-rh-form.component";
 
+// Props dos Parcelamentos do RH, sem nenhum cadastrado.
+const SEM_PARCELAMENTOS = {
+  parcelamentos: [],
+  parcelamentoCampos: [],
+  onAdicionarParcelamento: jest.fn(),
+  onRemoverParcelamento: jest.fn(),
+  leituras: {},
+  onArquivoEscolhido: jest.fn(),
+};
+
 function Montado({
   readOnly,
   extras,
@@ -31,6 +41,7 @@ function Montado({
       onAdicionarContato={jest.fn()}
       onRemoverContato={jest.fn()}
       onLimpar={jest.fn()}
+      {...SEM_PARCELAMENTOS}
       {...extras}
     />
   );
@@ -46,6 +57,19 @@ describe("EditarCadastroRhForm", () => {
     expect(screen.getByLabelText("Observações gerais do RH")).toBeInTheDocument();
     expect(screen.queryByLabelText("Regime")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Salvar" })).toBeInTheDocument();
+  });
+
+  it("tem a seção de Parcelamentos com o botão de adicionar, que some em somente leitura", () => {
+    const { unmount } = render(<Montado readOnly={false} />);
+    expect(screen.getByText("Parcelamentos")).toBeInTheDocument();
+    expect(screen.getByText(/Tem parcelamento:/)).toHaveTextContent("Não");
+    expect(screen.getByRole("button", { name: /Adicionar parcelamento/ })).toBeInTheDocument();
+    unmount();
+
+    render(<Montado readOnly />);
+    expect(
+      screen.queryByRole("button", { name: /Adicionar parcelamento/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("somente leitura não tem Salvar nem Adicionar contato", () => {
@@ -73,6 +97,7 @@ describe("EditarCadastroRhForm", () => {
           onAdicionarContato={jest.fn()}
           onRemoverContato={jest.fn()}
           onLimpar={jest.fn()}
+          {...SEM_PARCELAMENTOS}
         />
       );
     }

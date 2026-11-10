@@ -26,7 +26,7 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ResultadoIncertoError } from "@/shared/errors/resultado-incerto.error";
 import { ValidationError } from "@/shared/errors/validation.error";
-import { podeEditarCadastroOperacional } from "@/shared/kernel/papeis";
+import { podeOperarParcelamento } from "@/shared/kernel/papeis";
 import { err, type Result } from "@/shared/kernel/result";
 
 // O PDF é lido e conferido antes de subir (CNPJ de outra empresa recusa sem tocar no Storage); tudo
@@ -43,10 +43,10 @@ export class AnexarGuiaParcelaPgfn implements AnexarGuiaParcelaPgfnPort {
 
   async execute(input: AnexarGuiaParcelaPgfnInput): Promise<Result<GuiaDaParcela, AppError>> {
     const ator = await this.sessao.usuarioAtual();
-    if (!ator || !podeEditarCadastroOperacional(ator.papel, ator.setor)) {
+    if (!ator || !podeOperarParcelamento(ator.papel, ator.setor)) {
       return err(
         new ForbiddenError(
-          "Só Admin, Líder ou Funcionário do Simples Nacional anexam a guia da parcela.",
+          "Só Admin, Líder ou Funcionário do Simples Nacional ou do RH anexam a guia da parcela.",
         ),
       );
     }

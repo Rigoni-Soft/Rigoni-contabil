@@ -13,7 +13,11 @@ Mesmo gate, retentativa, reserva da entrega e alertas do job de lembrete/DAS
 
 - Mesma flag `LEMBRETES_AUTOMATICOS=ligada` e mesmos pré-requisitos (mensageria real, e-mail real,
   templates `envio_guia_parcelamento` e `envio_guia_parcelamento_interno` aprovados).
-- `alertas_setor.origem = 'parcelamento'`: cada job renova e resolve só os seus alertas.
+- `alertas_setor.origem = 'parcelamento'`: cada job renova e resolve só os seus alertas. O alerta é do
+  Setor dono do Parcelamento (chave: Cliente, tipo, origem e Setor); o job e a URA leem a união dos
+  Parcelamentos de todos os Setores e entregam as guias numa só entrega, com a atribuição por CNPJ
+  falhando fechado entre todos os acordos do Cliente. A migration `20261110100000` preserva os
+  alertas existentes no Setor em que foram gravados (Simples Nacional); aplicar junto com o código.
 - A parcela do provedor (`AAAAMM`) vai como `MM/AAAA`; guia sem parcela não é atribuída a ninguém.
 - Não há data de envio do Parcelamento (o DAS tem): o registro de envio e a auditoria dizem quando.
 

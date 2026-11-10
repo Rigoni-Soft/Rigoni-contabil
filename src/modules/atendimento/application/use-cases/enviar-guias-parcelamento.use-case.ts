@@ -1,5 +1,6 @@
 import {
   falha,
+  noSetor,
   paraAndamento,
   semDestinatario,
   type Andamento,
@@ -63,8 +64,9 @@ type EntregaDeGuia = { andamento: Andamento; descontou: boolean; completa: boole
 // mês corrente e da mais antiga para a mais nova. Sem guia confirmada o job apenas pula (o lembrete
 // da PGFN avisa o setor). O comum vai ao Cliente pela forma de envio
 // dele; o interno só ao financeiro, por template, e nunca ao Cliente. Falha fechado: parcelamento
-// pendente sem guia vira `parcelamento_sem_guia`, nunca se adivinha. Regra completa em
-// docs/deploy/parcelamento-cron.md.
+// pendente sem guia vira `parcelamento_sem_guia`, nunca se adivinha. Lê a união dos Parcelamentos
+// de todos os Setores numa entrega só; cada ocorrência leva o Setor do Parcelamento, que é o dono do
+// alerta. Regra completa em docs/deploy/parcelamento-cron.md.
 export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
   constructor(
     private readonly parcelamentos: ParcelamentosDoClientePort,
@@ -96,15 +98,18 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     semDestino: ParcelamentoDoCliente[],
   ): OcorrenciaDeEntrega[] {
     const ocorrencias: OcorrenciaDeEntrega[] = [];
-    const internos = semDestino.filter((p) => p.interno);
-    if (internos.length > 0) {
-      ocorrencias.push({
-        tipo: "financeiro_ausente",
-        mensagem: `Parcelamento ${internos.map((p) => p.codigo).join(", ")} de ${cliente.empresa}: sem telefone do financeiro (FINANCEIRO_TELEFONE).`,
-      });
-    }
-    if (semDestino.some((p) => !p.interno)) {
-      ocorrencias.push(...semDestinatario(cliente.empresa).ocorrencias);
+    for (const [setor, doSetor] of Map.groupBy(semDestino, (p) => p.setor)) {
+      const internos = doSetor.filter((p) => p.interno);
+      if (internos.length > 0) {
+        ocorrencias.push({
+          tipo: "financeiro_ausente",
+          setor,
+          mensagem: `Parcelamento ${internos.map((p) => p.codigo).join(", ")} de ${cliente.empresa}: sem telefone do financeiro (FINANCEIRO_TELEFONE).`,
+        });
+      }
+      if (doSetor.some((p) => !p.interno)) {
+        ocorrencias.push(...noSetor(semDestinatario(cliente.empresa), setor).ocorrencias);
+      }
     }
     return ocorrencias;
   }
@@ -135,7 +140,12 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
       if (!pdf.ok) {
         travados.add(parcelamento.id);
         andamentos.push(
-          falha(`Parcelamento ${parcelamento.codigo} de ${cliente.empresa}: ${pdf.error.message}`),
+          noSetor(
+            falha(
+              `Parcelamento ${parcelamento.codigo} de ${cliente.empresa}: ${pdf.error.message}`,
+            ),
+            parcelamento.setor,
+          ),
         );
         continue;
       }
@@ -206,10 +216,11 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     );
     const semGuia = aEntregar.filter((p) => !comGuia.has(p.id));
     ocorrencias.push(...andamentos.flatMap((a) => a.ocorrencias));
-    if (semGuia.length > 0) {
+    for (const [setor, doSetor] of Map.groupBy(semGuia, (p) => p.setor)) {
       ocorrencias.push({
         tipo: "parcelamento_sem_guia",
-        mensagem: `${descricao}: sem guia para o parcelamento ${semGuia.map((p) => p.codigo).join(", ")}.`,
+        setor,
+        mensagem: `${descricao}: sem guia para o parcelamento ${doSetor.map((p) => p.codigo).join(", ")}.`,
       });
     }
     return { enviado: andamentos.some((a) => a.enviado), ocorrencias };
@@ -245,8 +256,11 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
       if (restantesDepois < 0) {
         const { codigo } = atribuida.parcelamento;
         andamentos.push(
-          falha(
-            `Parcelamento ${codigo} de ${cliente.empresa}: guia ${formatarParcela(atribuida.parcela)} de sobra, o parcelamento já quitou; nada foi enviado. Conferir com o provedor.`,
+          noSetor(
+            falha(
+              `Parcelamento ${codigo} de ${cliente.empresa}: guia ${formatarParcela(atribuida.parcela)} de sobra, o parcelamento já quitou; nada foi enviado. Conferir com o provedor.`,
+            ),
+            atribuida.parcelamento.setor,
           ),
         );
         continue;
@@ -259,7 +273,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
       );
       if (pararNoAcordo && !entrega.completa) travados.add(id);
       if (entrega.descontou) descontadas.set(id, (descontadas.get(id) ?? 0) + 1);
-      andamentos.push(entrega.andamento);
+      andamentos.push(noSetor(entrega.andamento, atribuida.parcelamento.setor));
     }
     return andamentos;
   }

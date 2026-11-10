@@ -5,6 +5,10 @@ import type {
   CarteiraDoSetorQueryPort,
   ClienteDaCarteiraRow,
 } from "@/modules/clientes/application/ports/out/carteira-do-setor.provider";
+import {
+  estaQuitado,
+  parcelaDoMesAtual,
+} from "@/modules/clientes/infra/mappers/parcelamento-row.mapper";
 import type { AppError } from "@/shared/errors/app.error";
 import { ConsultaError } from "@/shared/errors/consulta.error";
 import { TAMANHO_DA_PAGINA } from "@/shared/kernel/paginacao-por-cursor";
@@ -22,6 +26,17 @@ const linhasSchema = z.array(
         z.object({
           responsavel_id: z.string(),
           responsavel: z.object({ nome: z.string() }).nullable(),
+        }),
+      )
+      .nullable(),
+    cliente_parcelamentos: z
+      .array(
+        z.object({
+          codigo: z.string(),
+          interno: z.boolean(),
+          situacao: z.enum(["em_aberto", "quitado"]),
+          parcelas_restantes: z.number(),
+          cliente_parcelamento_envios: z.array(z.object({ parcela: z.string() })),
         }),
       )
       .nullable(),
@@ -58,9 +73,12 @@ export class SupabaseCarteiraDoSetorGateway implements CarteiraDoSetorQueryPort 
       const { data, error } = await this.supabase
         .from("clientes_basico")
         .select(
-          "id, empresa, cnpj, cliente_responsaveis(responsavel_id, responsavel:perfis!responsavel_id(nome))",
+          "id, empresa, cnpj, cliente_responsaveis(responsavel_id, responsavel:perfis!responsavel_id(nome)), cliente_parcelamentos(codigo, interno, situacao, parcelas_restantes, cliente_parcelamento_envios(parcela))",
         )
         .eq("cliente_responsaveis.setor", setor)
+        .eq("cliente_parcelamentos.setor", setor)
+        // Nos envios fica só a parcela do mês corrente: "enviado no mês" = há registro.
+        .eq("cliente_parcelamentos.cliente_parcelamento_envios.parcela", parcelaDoMesAtual())
         .order("empresa")
         .order("id")
         .range(de, de + TAMANHO_DA_PAGINA - 1);
@@ -88,6 +106,12 @@ export class SupabaseCarteiraDoSetorGateway implements CarteiraDoSetorQueryPort 
           cnpj: linha.cnpj,
           responsavelId: vinculo?.responsavel_id ?? null,
           responsavelNome: vinculo?.responsavel?.nome ?? null,
+          parcelamentos: (linha.cliente_parcelamentos ?? []).map((p) => ({
+            codigo: p.codigo,
+            interno: p.interno,
+            quitado: estaQuitado(p.situacao, p.parcelas_restantes),
+            enviadoNoMes: p.cliente_parcelamento_envios.length > 0,
+          })),
         };
       }),
     );

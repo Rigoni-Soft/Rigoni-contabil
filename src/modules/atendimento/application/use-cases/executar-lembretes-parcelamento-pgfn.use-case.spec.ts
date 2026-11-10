@@ -12,7 +12,7 @@ const diaDoJob = new Date("2026-10-10T11:00:00Z");
 const cliente = (extra: Partial<ClienteComParcelamentoPgfn> = {}): ClienteComParcelamentoPgfn => ({
   clienteId: "c1",
   empresa: "3A Construções",
-  pendencias: [{ codigo: "PARC-1", estado: "sem_guia" }],
+  pendencias: [{ codigo: "PARC-1", setor: "simples_nacional", estado: "sem_guia" }],
   ...extra,
 });
 
@@ -77,8 +77,8 @@ describe("ExecutarLembretesParcelamentoPgfn", () => {
       ok([
         cliente({
           pendencias: [
-            { codigo: "PARC-1", estado: "sem_guia" },
-            { codigo: "PARC-2", estado: "sem_guia" },
+            { codigo: "PARC-1", setor: "simples_nacional", estado: "sem_guia" },
+            { codigo: "PARC-2", setor: "simples_nacional", estado: "sem_guia" },
           ],
         }),
         cliente({ clienteId: "c2", empresa: "Outra Ltda" }),
@@ -98,13 +98,35 @@ describe("ExecutarLembretesParcelamentoPgfn", () => {
     expect(resultado).toEqual(ok({ executado: true, alertas: 2, falhas: 0 }));
   });
 
+  it("Cliente com PGFN no SN e no RH gera um alerta para cada setor, só com os códigos do próprio", async () => {
+    const { job, alertas } = montar(
+      ok([
+        cliente({
+          pendencias: [
+            { codigo: "PARC-1", setor: "simples_nacional", estado: "sem_guia" },
+            { codigo: "PARC-9", setor: "rh", estado: "a_confirmar" },
+          ],
+        }),
+      ]),
+    );
+
+    const resultado = await job.execute();
+
+    expect(alertas.map((a) => a.setor)).toEqual(["simples_nacional", "rh"]);
+    expect(alertas[0].mensagem).toContain("Falta anexar: PARC-1");
+    expect(alertas[0].mensagem).not.toContain("PARC-9");
+    expect(alertas[1].mensagem).toContain("A confirmar: PARC-9");
+    expect(alertas[1].mensagem).not.toContain("PARC-1");
+    expect(resultado).toEqual(ok({ executado: true, alertas: 2, falhas: 0 }));
+  });
+
   it("distingue guia a confirmar de guia a anexar", async () => {
     const { job, alertas } = montar(
       ok([
         cliente({
           pendencias: [
-            { codigo: "PARC-1", estado: "sem_guia" },
-            { codigo: "PARC-2", estado: "a_confirmar" },
+            { codigo: "PARC-1", setor: "simples_nacional", estado: "sem_guia" },
+            { codigo: "PARC-2", setor: "simples_nacional", estado: "a_confirmar" },
           ],
         }),
       ]),
@@ -118,7 +140,11 @@ describe("ExecutarLembretesParcelamentoPgfn", () => {
 
   it("só guia a confirmar mantém o alerta com texto próprio, sem falar em anexar", async () => {
     const { job, alertas } = montar(
-      ok([cliente({ pendencias: [{ codigo: "PARC-2", estado: "a_confirmar" }] })]),
+      ok([
+        cliente({
+          pendencias: [{ codigo: "PARC-2", setor: "simples_nacional", estado: "a_confirmar" }],
+        }),
+      ]),
     );
 
     await job.execute();
