@@ -68,7 +68,7 @@ export function DetalheDoFuncionarioRh({
         <Pilha espaco={1} como="ul">
           {evolucao.map((m) => (
             <Linha como="li" justificar="entre" key={m.competencia} className="tabular-nums">
-              <Texto como="span" variante="corpo" className="capitalize">
+              <Texto como="span" variante="corpo" className="first-letter:uppercase">
                 {m.rotulo}
               </Texto>
               <Texto como="span" variante="corpo">

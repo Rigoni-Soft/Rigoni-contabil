@@ -28,7 +28,7 @@ export function MenuSuspenso({ rotulo, icone, className, children }: MenuSuspens
       >
         {icone}
       </summary>
-      <div className="absolute top-full right-0 z-10 mt-1 min-w-56 rounded-lg border border-border bg-card p-1 shadow-md">
+      <div className="absolute top-full right-0 z-10 mt-1 max-w-[calc(100vw-2rem)] min-w-56 rounded-lg border border-border bg-card p-1 shadow-md">
         {children}
       </div>
     </details>

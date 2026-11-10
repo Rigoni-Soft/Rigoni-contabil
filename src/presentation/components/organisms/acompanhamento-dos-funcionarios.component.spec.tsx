@@ -29,7 +29,7 @@ describe("AcompanhamentoDosFuncionarios", () => {
       "href",
       "/rh/funcionarios/ana",
     );
-    expect(screen.getByText("3 de 4")).toBeInTheDocument();
+    expect(screen.getByText("3 de 4 (75%)")).toBeInTheDocument();
 
     const tabela = screen.getByRole("table", { name: /faltam por serviço em novembro de 2026/ });
     expect(within(tabela).getByRole("columnheader", { name: "FGTS" })).toBeInTheDocument();

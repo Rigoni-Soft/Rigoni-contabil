@@ -65,7 +65,7 @@ export function AcompanhamentoDosFuncionarios({
                   variante="corpo"
                   className="ml-auto shrink-0 font-semibold tabular-nums"
                 >
-                  {f.pontos} de {f.atribuidos}
+                  {f.pontos} de {f.atribuidos} ({f.percentual}%)
                 </Texto>
               </Linha>
               <Caixa aria-hidden className="h-2 rounded-full bg-border">

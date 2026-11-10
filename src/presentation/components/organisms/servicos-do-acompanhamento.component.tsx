@@ -69,12 +69,14 @@ export function ServicosDoAcompanhamento({
                 como="form"
                 alinhar="centro"
                 espaco={2}
+                className="min-w-0 flex-wrap"
                 onSubmit={(e: React.FormEvent) => {
                   e.preventDefault();
                   onSalvarEdicao();
                 }}
               >
                 <Input
+                  className="min-w-0 flex-1"
                   aria-label={`Novo nome de ${s.nome}`}
                   value={edicao.nome}
                   maxLength={40}
