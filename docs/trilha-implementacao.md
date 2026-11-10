@@ -56,6 +56,7 @@ Aqui cada ticket já é uma fatia vertical (banco, regra de negócio, tela e tes
 ## Notas
 
 - Acrescentar nos serviço de menu guias de pagamentos de impostos o processo de verificar se o DCTFWeb esta pronto, emitir e enviar o guia do DARF para os clientes, isso tambem entra nos jobs e nos temas locais que ja fazem o envio do DAS.
+- Criar um click no avatar do usuario para voltar a tela home "/" de cada setor além de personalizar o avatar com um imagem escolhido em "meu perfil"
 - As dependências entre tickets estão como bloqueios nativos nas issues. Os bloqueios entre PRs foram derivados deles. Confirme antes de abrir cada PR.
 - Só o #213 está desbloqueado hoje. Depois dele liberam o #214, o #216, o #218 e o #219.
 - A PR 6.1 só exige a 4.1, mas vale esperar a 4.3: o PDF mostra a Totalização, e ela só fica completa com as regras da convenção.
