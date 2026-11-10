@@ -69,7 +69,7 @@ test.describe("Acompanhamento mensal do RH", () => {
       .from("registros_auditoria")
       .select("acao")
       .eq("acao", "rh.acompanhamento.nao-aplicar")
-      .like("alvo", `${cnpj} DCTFWeb`);
+      .like("alvo", `${cnpj} DCTFWeb %`);
     expect(data).toHaveLength(1);
   });
 
