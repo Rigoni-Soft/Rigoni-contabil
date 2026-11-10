@@ -159,6 +159,11 @@ export function ParcelamentosDoCadastro({
                         name={name}
                         accept="application/pdf"
                         dica="PDF até 4 MB"
+                        aria-describedby={
+                          leitura?.cnpjDivergente
+                            ? `parcelamentos.${indice}.cnpj-divergente`
+                            : undefined
+                        }
                         file={value}
                         onChange={(arquivo) => {
                           onChange(arquivo);
@@ -175,7 +180,7 @@ export function ParcelamentosDoCadastro({
                     texto={leitura?.texto}
                   />
                   {leitura?.cnpjDivergente && (
-                    <FieldError>
+                    <FieldError id={`parcelamentos.${indice}.cnpj-divergente`}>
                       O CNPJ do PDF é diferente do CNPJ do Cliente. Confira se anexou o PDF certo.
                     </FieldError>
                   )}
