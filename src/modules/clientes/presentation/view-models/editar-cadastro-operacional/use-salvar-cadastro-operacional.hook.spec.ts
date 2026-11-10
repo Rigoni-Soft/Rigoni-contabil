@@ -13,10 +13,6 @@ jest.mock("./editar-cadastro-operacional.actions", () => ({
 jest.mock("./atribuir-responsavel.actions", () => ({
   atribuirResponsavelAction: (...a: unknown[]) => atribuir(...a),
 }));
-// FalhaDeEtapa vem do hook dos Parcelamentos, que importa as Server Actions deles (env do servidor).
-jest.mock("./salvar-parcelamentos.actions", () => ({}));
-jest.mock("./ler-pdf-de-parcelamento.actions", () => ({}));
-jest.mock("../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.actions", () => ({}));
 
 const dados = { id: "c1", responsavelId: null, parcelamentos: [] } as never;
 const valores = {

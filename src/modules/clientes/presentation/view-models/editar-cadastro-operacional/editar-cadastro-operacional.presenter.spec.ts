@@ -1,7 +1,9 @@
 import {
   contatoNovo,
   descartarLinhasEmBranco,
+  FalhaDeEtapa,
   leituraDaLinha,
+  mensagemDeFalhaDeEtapa,
   parcelamentoNovo,
   reposicionarErros,
   resumoDoAcordo,
@@ -116,5 +118,18 @@ describe("linhas abertas de nascença", () => {
 describe("semChaves", () => {
   it("remove só as chaves dadas", () => {
     expect(semChaves({ a: 1, b: 2, c: 3 }, "a", "c")).toEqual({ b: 2 });
+  });
+});
+
+describe("mensagemDeFalhaDeEtapa", () => {
+  it("com etapa a concluir, diz que os dados foram salvos", () => {
+    expect(mensagemDeFalhaDeEtapa(new FalhaDeEtapa("anexar a guia"), "padrão")).toContain(
+      "Os dados foram salvos, mas não foi possível anexar a guia",
+    );
+  });
+
+  it("sem etapa ou de outra causa, devolve a mensagem padrão", () => {
+    expect(mensagemDeFalhaDeEtapa(new FalhaDeEtapa(null), "padrão")).toBe("padrão");
+    expect(mensagemDeFalhaDeEtapa(new Error("x"), "padrão")).toBe("padrão");
   });
 });

@@ -6,9 +6,12 @@ import type { CadastroOperacionalClienteDto } from "@/modules/clientes/applicati
 
 import { atribuirResponsavelAction } from "./atribuir-responsavel.actions";
 import { editarCadastroOperacionalAction } from "./editar-cadastro-operacional.actions";
-import { semChaves } from "./editar-cadastro-operacional.presenter";
+import {
+  mensagemDeFalhaDeEtapa,
+  naEtapa,
+  semChaves,
+} from "./editar-cadastro-operacional.presenter";
 import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional.schema";
-import { FalhaDeEtapa, naEtapa } from "./use-parcelamentos-do-cadastro.hook";
 
 type Valores = EditarCadastroOperacionalFormValues;
 
@@ -111,11 +114,11 @@ export function useSalvarCadastroOperacional({
       });
       if (erroResponsavel) setErroServidor(erroResponsavel);
     } catch (falha) {
-      const etapa = falha instanceof FalhaDeEtapa ? falha.etapa : null;
       setErroServidor(
-        etapa
-          ? `Os dados foram salvos, mas não foi possível ${etapa}. Verifique a conexão e tente novamente.`
-          : "Não foi possível salvar agora. Verifique a conexão e tente novamente.",
+        mensagemDeFalhaDeEtapa(
+          falha,
+          "Não foi possível salvar agora. Verifique a conexão e tente novamente.",
+        ),
       );
     } finally {
       setPendente(false);

@@ -89,6 +89,28 @@ export function semChaves<T extends object, K extends keyof T>(
   ) as Omit<T, K>;
 }
 
+// Rejeição de transporte numa etapa: `etapa` é o que faltava concluir; null = o cadastro nem foi salvo.
+export class FalhaDeEtapa extends Error {
+  constructor(readonly etapa: string | null) {
+    super("falha de transporte");
+  }
+}
+
+export async function naEtapa<T>(etapa: string | null, passo: () => Promise<T>): Promise<T> {
+  try {
+    return await passo();
+  } catch {
+    throw new FalhaDeEtapa(etapa);
+  }
+}
+
+// Falha com etapa a concluir diz o que já foi salvo; sem etapa, cai na mensagem `padrao`.
+export function mensagemDeFalhaDeEtapa(erro: unknown, padrao: string) {
+  return erro instanceof FalhaDeEtapa && erro.etapa
+    ? `Os dados foram salvos, mas não foi possível ${erro.etapa}. Verifique a conexão e tente novamente.`
+    : padrao;
+}
+
 // Só o que o Funcionário digita conta como mudança (selo e nome do PDF são da tela). Parcelamento
 // novo ou removido é mudança; quitado não se edita, então nunca é.
 export function mudouParcelamentos(

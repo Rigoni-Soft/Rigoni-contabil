@@ -16,13 +16,11 @@ import { guiasDaParcela } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-
 import {
   contatoNovo,
   descartarLinhasEmBranco,
+  mensagemDeFalhaDeEtapa,
   parcelamentoNovo,
   reposicionarErros,
 } from "../editar-cadastro-operacional/editar-cadastro-operacional.presenter";
-import {
-  FalhaDeEtapa,
-  useParcelamentosDoCadastro,
-} from "../editar-cadastro-operacional/use-parcelamentos-do-cadastro.hook";
+import { useParcelamentosDoCadastro } from "../editar-cadastro-operacional/use-parcelamentos-do-cadastro.hook";
 import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
 import { editarCadastroRhAction } from "./editar-cadastro-rh.actions";
 import { editarCadastroRhFormSchema } from "./editar-cadastro-rh.schema";
@@ -155,11 +153,7 @@ export function EditarCadastroRhContainer({
       router.push(voltarHref);
     } catch (erro) {
       console.error("Falha ao salvar o cadastro do RH", erro);
-      setErroServidor(
-        erro instanceof FalhaDeEtapa && erro.etapa
-          ? `Os dados foram salvos, mas não foi possível ${erro.etapa}. Verifique a conexão e tente novamente.`
-          : mensagemDaFalha(erro),
-      );
+      setErroServidor(mensagemDeFalhaDeEtapa(erro, mensagemDaFalha(erro)));
     } finally {
       setPendente(false);
     }

@@ -13,6 +13,7 @@ import {
   descartarLinhasEmBranco,
   leituraDaLinha,
   mudouParcelamentos,
+  naEtapa,
   parcelamentoNovo,
   resumoDoAcordo,
   semChaves,
@@ -20,21 +21,6 @@ import {
 import type { EditarCadastroOperacionalFormValues as Valores } from "./editar-cadastro-operacional.schema";
 import { salvarParcelamentosAction } from "./salvar-parcelamentos.actions";
 import { useLeituraDoPdf } from "./use-leitura-do-pdf.hook";
-
-// Rejeição de transporte numa etapa: `etapa` é o que faltava concluir; null = o cadastro nem foi salvo.
-export class FalhaDeEtapa extends Error {
-  constructor(readonly etapa: string | null) {
-    super("falha de transporte");
-  }
-}
-
-export async function naEtapa<T>(etapa: string | null, passo: () => Promise<T>): Promise<T> {
-  try {
-    return await passo();
-  } catch {
-    throw new FalhaDeEtapa(etapa);
-  }
-}
 
 type Params = {
   clienteId: string;
