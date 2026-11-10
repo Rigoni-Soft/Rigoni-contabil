@@ -187,7 +187,7 @@ jobs:
           supabase db reset
           # O reset devolve o controle antes do PostgREST reconectar ("Database client error"): espera ele responder.
           for i in $(seq 1 30); do
-            curl -sf -o /dev/null -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            curl -sf --max-time 5 -o /dev/null -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
               -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
               "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/avisos_cadastro?select=id&limit=1" && exit 0
             sleep 2
