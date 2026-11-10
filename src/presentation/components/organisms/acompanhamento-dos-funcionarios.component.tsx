@@ -20,7 +20,13 @@ export type FuncionarioDoGrafico = {
   percentual: number;
   href: string;
   // `href`: a lista das empresas que faltam naquele serviço para este funcionário.
-  faltam: { servicoId: string; nome: string; clientes: number; href: string }[];
+  faltam: {
+    servicoId: string;
+    nome: string;
+    clientes: number;
+    empresas: string[];
+    href: string;
+  }[];
 };
 
 type Props = {
@@ -112,6 +118,11 @@ export function AcompanhamentoDosFuncionarios({
                     >
                       {c.clientes}
                     </Link>
+                    {c.empresas.length > 0 && (
+                      <Texto como="span" variante="nota" className="block text-left">
+                        {c.empresas.join(", ")}
+                      </Texto>
+                    )}
                   </CelulaDeTabela>
                 ))}
               </LinhaDeTabela>

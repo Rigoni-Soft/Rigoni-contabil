@@ -16,8 +16,14 @@ const ANA = {
   percentual: 75,
   href: "/rh/funcionarios/ana",
   faltam: [
-    { servicoId: "fgts", nome: "FGTS", clientes: 1, href: "/rh/funcionarios/ana/fgts" },
-    { servicoId: "sib", nome: "SIB", clientes: 0, href: "/rh/funcionarios/ana/sib" },
+    {
+      servicoId: "fgts",
+      nome: "FGTS",
+      clientes: 1,
+      empresas: ["Padaria Sol"],
+      href: "/rh/funcionarios/ana/fgts",
+    },
+    { servicoId: "sib", nome: "SIB", clientes: 0, empresas: [], href: "/rh/funcionarios/ana/sib" },
   ],
 };
 
@@ -35,7 +41,7 @@ describe("AcompanhamentoDosFuncionarios", () => {
     expect(within(tabela).getByRole("columnheader", { name: "FGTS" })).toBeInTheDocument();
     expect(within(tabela).getByRole("columnheader", { name: "SIB" })).toBeInTheDocument();
     expect(
-      within(tabela).getByRole("row", { name: /FGTS de Ana: 1 SIB de Ana: 0/ }),
+      within(tabela).getByRole("row", { name: /FGTS de Ana: 1 Padaria Sol SIB de Ana: 0/ }),
     ).toBeInTheDocument();
   });
 

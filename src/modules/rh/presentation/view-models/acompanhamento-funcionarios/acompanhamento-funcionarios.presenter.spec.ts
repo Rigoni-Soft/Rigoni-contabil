@@ -39,7 +39,7 @@ describe("acompanhamento-funcionarios.presenter", () => {
           nome: "Ana",
           atribuidos: 4,
           pontos: 1,
-          faltam: [{ servicoId: "s1", nome: "FGTS", clientes: 2 }],
+          faltam: [{ servicoId: "s1", nome: "FGTS", clientes: 2, empresas: ["A", "B"] }],
         },
       ],
     };
@@ -71,7 +71,7 @@ describe("acompanhamento-funcionarios.presenter", () => {
           nome: "Ana",
           atribuidos: 1,
           pontos: 0,
-          faltam: [{ servicoId: "s1", nome: "FGTS", clientes: 1 }],
+          faltam: [{ servicoId: "s1", nome: "FGTS", clientes: 1, empresas: ["A"] }],
         },
       ],
     };
