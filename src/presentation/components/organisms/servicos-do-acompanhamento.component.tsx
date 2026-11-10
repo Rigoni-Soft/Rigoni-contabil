@@ -54,6 +54,8 @@ export function ServicosDoAcompanhamento({
         Desativar um serviço o tira dos meses a partir do atual; os meses anteriores continuam como
         estavam.
       </Texto>
+      {/* Acima da lista: o erro de renomear/desativar aparece junto das linhas, não depois do formulário. */}
+      {erro && <AvisoDeStatus tipo="erro" legivel texto={erro} />}
       <ListaComDivisores cartao>
         {servicos.map((s) => (
           <Linha
@@ -160,7 +162,6 @@ export function ServicosDoAcompanhamento({
           Cadastrar serviço
         </Button>
       </Linha>
-      {erro && <AvisoDeStatus tipo="erro" legivel texto={erro} />}
     </Pilha>
   );
 }
