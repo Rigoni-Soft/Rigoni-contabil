@@ -595,8 +595,17 @@ describe("alertas por origem e por Cliente avaliado", () => {
       const alvo = await criarCliente({ empresa: "Resolve Ltda" });
       await alertasParcelamento.alertar(doSetor(alvo.id, "simples_nacional", "sn"));
       await alertasParcelamento.alertar(doSetor(alvo.id, "rh", "rh"));
-      const limite = new Date(Date.now() + 1000);
-      await new Promise((r) => setTimeout(r, 1100));
+      // O limite vem do relógio do banco: o alerta do RH, renovado depois dele, não é resolvido.
+      const [{ criado_em }] = await ok(
+        admin
+          .from("alertas_setor")
+          .select("criado_em")
+          .eq("cliente_id", alvo.id)
+          .eq("setor", "rh")
+          .eq("origem", "parcelamento"),
+      );
+      const limite = new Date(new Date(criado_em).getTime() + 1);
+      await new Promise((r) => setTimeout(r, 25));
       await alertasParcelamento.alertar(doSetor(alvo.id, "rh", "rh renovado"));
 
       await alertasParcelamento.resolverNaoRenovados(limite, [alvo.id]);

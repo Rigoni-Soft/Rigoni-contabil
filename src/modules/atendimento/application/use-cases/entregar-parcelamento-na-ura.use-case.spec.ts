@@ -220,6 +220,18 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
     expect(registrados).toEqual([["1", "202609", "202609:10000", "c1/1/202609-novo.pdf"]]);
   });
 
+  it("entrega num só pedido as guias dos parcelamentos do SN e do RH", async () => {
+    const { executar, documentos } = montar([
+      parcelamento("sn", { parcelasEnviadas: ["202610"] }),
+      parcelamento("rh", { setor: "rh", parcelasEnviadas: ["202610"] }),
+    ]);
+    expect((await executar()).ok).toBe(true);
+    expect(documentos.map((d) => d.nomeArquivo)).toEqual([
+      "parcelamento-COD-sn-202610.pdf",
+      "parcelamento-COD-rh-202610.pdf",
+    ]);
+  });
+
   it("envia a guia do comum e ignora o interno, cuja guia também o comum comporta", async () => {
     const { executar, documentos, registrados, mensagens } = montar(
       [

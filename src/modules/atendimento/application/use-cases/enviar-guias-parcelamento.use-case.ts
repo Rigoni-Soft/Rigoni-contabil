@@ -66,8 +66,7 @@ type EntregaDeGuia = { andamento: Andamento; descontou: boolean; completa: boole
 // dele; o interno só ao financeiro, por template, e nunca ao Cliente. Falha fechado: parcelamento
 // pendente sem guia vira `parcelamento_sem_guia`, nunca se adivinha. Lê a união dos Parcelamentos
 // de todos os Setores numa entrega só; cada ocorrência leva o Setor do Parcelamento, que é o dono do
-// alerta. Regra completa em
-// docs/deploy/parcelamento-cron.md.
+// alerta. Regra completa em docs/deploy/parcelamento-cron.md.
 export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
   constructor(
     private readonly parcelamentos: ParcelamentosDoClientePort,

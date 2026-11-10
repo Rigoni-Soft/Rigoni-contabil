@@ -46,9 +46,9 @@ function mensagem(
 }
 
 // Job dos dias 1/10/15 (fuso de São Paulo): alerta o Setor dono do Parcelamento, um por Cliente e
-// Setor, dos Parcelamentos PGFN sem guia confirmada da competência do mês. Competência atrasada não alerta. Não
-// envia nada ao Cliente. O alerta é renovado a cada rodada e resolvido quando o Cliente volta
-// sem pendência.
+// Setor, dos Parcelamentos PGFN sem guia confirmada da competência do mês. Competência atrasada
+// não alerta. Não envia nada ao Cliente. O alerta é renovado a cada rodada e resolvido quando o
+// Cliente volta sem pendência.
 export class ExecutarLembretesParcelamentoPgfn implements ExecutarLembretesParcelamentoPgfnPort {
   constructor(
     private readonly clientes: ClientesComParcelamentoPgfnPort,
