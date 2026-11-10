@@ -550,6 +550,118 @@ describe("alertas por origem e por Cliente avaliado", () => {
     },
   );
 
+  describe("ciclo do alerta por Setor", () => {
+    const doSetor = (clienteId: string, setor: "simples_nacional" | "rh", mensagem = "x") =>
+      ({ setor, clienteId, mensagem, tipo: "parcelamento_sem_guia" }) as const;
+
+    const abertosDe = async (clienteId: string) =>
+      (
+        await ok(
+          admin
+            .from("alertas_setor")
+            .select("setor, mensagem")
+            .eq("cliente_id", clienteId)
+            .eq("origem", "parcelamento")
+            .is("resolvido_em", null),
+        )
+      ).sort((a, b) => a.setor.localeCompare(b.setor));
+
+    it("o mesmo tipo no SN e no RH abre um alerta para cada Setor", async () => {
+      const alvo = await criarCliente({ empresa: "Dois Setores Ltda" });
+
+      await alertasParcelamento.alertar(doSetor(alvo.id, "simples_nacional", "sn"));
+      await alertasParcelamento.alertar(doSetor(alvo.id, "rh", "rh"));
+
+      expect(await abertosDe(alvo.id)).toEqual([
+        { setor: "rh", mensagem: "rh" },
+        { setor: "simples_nacional", mensagem: "sn" },
+      ]);
+    });
+
+    it("renovar o alerta de um Setor atualiza só o dele", async () => {
+      const alvo = await criarCliente({ empresa: "Renova Ltda" });
+      await alertasParcelamento.alertar(doSetor(alvo.id, "simples_nacional", "sn"));
+      await alertasParcelamento.alertar(doSetor(alvo.id, "rh", "rh"));
+
+      await alertasParcelamento.alertar(doSetor(alvo.id, "rh", "rh renovado"));
+
+      expect(await abertosDe(alvo.id)).toEqual([
+        { setor: "rh", mensagem: "rh renovado" },
+        { setor: "simples_nacional", mensagem: "sn" },
+      ]);
+    });
+
+    it("a rodada resolve o alerta do Setor que não renovou e mantém o do que renovou", async () => {
+      const alvo = await criarCliente({ empresa: "Resolve Ltda" });
+      await alertasParcelamento.alertar(doSetor(alvo.id, "simples_nacional", "sn"));
+      await alertasParcelamento.alertar(doSetor(alvo.id, "rh", "rh"));
+      const limite = new Date(Date.now() + 1000);
+      await new Promise((r) => setTimeout(r, 1100));
+      await alertasParcelamento.alertar(doSetor(alvo.id, "rh", "rh renovado"));
+
+      await alertasParcelamento.resolverNaoRenovados(limite, [alvo.id]);
+
+      expect(await abertosDe(alvo.id)).toEqual([{ setor: "rh", mensagem: "rh renovado" }]);
+    });
+
+    it("confirmar a guia PGFN do SN resolve o alerta do SN e deixa o do RH aberto", async () => {
+      const alvo = await criarCliente({
+        empresa: "Pgfn Dois Setores Ltda",
+        temParcelamento: false,
+      });
+      const mes = new Date().toISOString().slice(0, 7).replace("-", "");
+      const idSn = crypto.randomUUID();
+      const idRh = crypto.randomUUID();
+      for (const [id, setor] of [
+        [idSn, "simples_nacional"],
+        [idRh, "rh"],
+      ] as const) {
+        await ok(
+          admin.from("cliente_parcelamentos").insert({
+            id,
+            setor,
+            cliente_id: alvo.id,
+            codigo: `PGFN-${setor}`,
+            arquivo_caminho: `${alvo.id}/pgfn-${setor}.pdf`,
+            parcelas_restantes: 3,
+            interno: false,
+            origem: "pgfn",
+            situacao: "em_aberto",
+          }),
+        );
+      }
+      const alertasPgfn = new SupabaseAlertaSetorGateway(admin, "lembrete_pgfn");
+      for (const setor of ["simples_nacional", "rh"] as const) {
+        await alertasPgfn.alertar({
+          setor,
+          clienteId: alvo.id,
+          mensagem: "x",
+          tipo: "guia_pgfn_pendente",
+        });
+      }
+
+      await ok(
+        admin.from("cliente_parcelamento_guias").insert({
+          parcelamento_id: idSn,
+          competencia: mes,
+          conta_negociacao: "123",
+          arquivo_caminho: `${alvo.id}/guias-pgfn/sn.pdf`,
+          estado: "confirmada",
+        }),
+      );
+
+      const abertos = await ok(
+        admin
+          .from("alertas_setor")
+          .select("setor")
+          .eq("cliente_id", alvo.id)
+          .eq("origem", "lembrete_pgfn")
+          .is("resolvido_em", null),
+      );
+      expect(abertos).toEqual([{ setor: "rh" }]);
+    });
+  });
+
   it("o mesmo tipo de alerta do mesmo Cliente abre um alerta por origem", async () => {
     await alertasLembretes.alertar({ ...base(pendente.id), tipo: "falha_envio" });
     await alertasParcelamento.alertar({ ...base(pendente.id), tipo: "falha_envio" });

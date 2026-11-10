@@ -1,6 +1,7 @@
 import {
   comOcorrencia,
   executarRodada,
+  noSetor,
   SEM_ANDAMENTO,
 } from "@/modules/atendimento/application/jobs/alertas-da-rodada";
 import type {
@@ -12,11 +13,13 @@ import type {
   ClienteComParcelamentoPgfn,
   ClientesComParcelamentoPgfnPort,
   EstadoDaGuiaPgfn,
+  PendenciaPgfn,
 } from "@/modules/atendimento/application/ports/out/clientes-com-parcelamento-pgfn.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { diaDoMes, mesAtual } from "@/shared/kernel/mes-atual";
 import { ok, type Result } from "@/shared/kernel/result";
+import type { SetorSlug } from "@/shared/kernel/setores";
 
 // Fixos, também em fim de semana: o lembrete é para a equipe, não depende de dia útil.
 const DIAS_DO_JOB = [1, 10, 15];
@@ -24,9 +27,13 @@ const DIAS_DO_JOB = [1, 10, 15];
 // "2026-10" -> "10/2026".
 const competencia = (agora: Date) => mesAtual(agora).split("-").reverse().join("/");
 
-function mensagem(cliente: ClienteComParcelamentoPgfn, agora: Date): string {
+function mensagem(
+  cliente: ClienteComParcelamentoPgfn,
+  pendencias: PendenciaPgfn[],
+  agora: Date,
+): string {
   const codigos = (estado: EstadoDaGuiaPgfn) =>
-    cliente.pendencias
+    pendencias
       .filter((p) => p.estado === estado)
       .map((p) => p.codigo)
       .join(", ");
@@ -39,8 +46,15 @@ function mensagem(cliente: ClienteComParcelamentoPgfn, agora: Date): string {
   return `${cliente.empresa}: Parcelamento PGFN sem guia confirmada de ${competencia(agora)}. ${grupos.filter(Boolean).join(" ")}`;
 }
 
-// Job dos dias 1/10/15 (fuso de São Paulo): alerta o setor Simples Nacional, um por Cliente, dos
-// Parcelamentos PGFN sem guia confirmada da competência do mês. Competência atrasada não alerta. Não
+// As pendências agrupadas pelo Setor dono do Parcelamento.
+function porSetor(pendencias: PendenciaPgfn[]): Map<SetorSlug, PendenciaPgfn[]> {
+  const grupos = new Map<SetorSlug, PendenciaPgfn[]>();
+  for (const p of pendencias) grupos.set(p.setor, [...(grupos.get(p.setor) ?? []), p]);
+  return grupos;
+}
+
+// Job dos dias 1/10/15 (fuso de São Paulo): alerta o Setor dono do Parcelamento, um por Cliente e
+// Setor, dos Parcelamentos PGFN sem guia confirmada da competência do mês. Competência atrasada não alerta. Não
 // envia nada ao Cliente. O alerta é renovado a cada rodada e resolvido quando o Cliente volta
 // sem pendência.
 export class ExecutarLembretesParcelamentoPgfn implements ExecutarLembretesParcelamentoPgfnPort {
@@ -59,11 +73,13 @@ export class ExecutarLembretesParcelamentoPgfn implements ExecutarLembretesParce
     const clientes = await this.clientes.listar();
     if (!clientes.ok) return clientes;
 
-    const rodada = await executarRodada(this.alertas, agora, clientes.value, async (cliente) => [
-      cliente.pendencias.length > 0
-        ? comOcorrencia("guia_pgfn_pendente", mensagem(cliente, agora))
-        : SEM_ANDAMENTO,
-    ]);
+    const rodada = await executarRodada(this.alertas, agora, clientes.value, async (cliente) => {
+      const doSetor = [...porSetor(cliente.pendencias)];
+      if (doSetor.length === 0) return [SEM_ANDAMENTO];
+      return doSetor.map(([setor, pendencias]) =>
+        noSetor(comOcorrencia("guia_pgfn_pendente", mensagem(cliente, pendencias, agora)), setor),
+      );
+    });
     return ok({ executado: true, alertas: rodada.alertas, falhas: rodada.falhas });
   }
 }

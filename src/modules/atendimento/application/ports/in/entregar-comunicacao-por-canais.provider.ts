@@ -3,6 +3,7 @@ import type { TipoAlertaSetor } from "@/modules/atendimento/application/ports/ou
 import type { ClienteParaLembrete } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
+import type { SetorSlug } from "@/shared/kernel/setores";
 
 // O que a entrega precisa saber do Cliente: para quem e por qual canal enviar.
 export type DestinatarioDeComunicacao = Pick<
@@ -18,7 +19,8 @@ export type EntregarComunicacaoInput = {
 
 // Algo que o setor precisa saber depois da entrega (canal sem destinatário, falha, entrega por um
 // canal só). Quem chama decide o que fazer com isso; o caso de uso não grava alerta.
-export type OcorrenciaDeEntrega = { tipo: TipoAlertaSetor; mensagem: string };
+// `setor`: o setor dono do alerta; ausente, é o Simples Nacional.
+export type OcorrenciaDeEntrega = { tipo: TipoAlertaSetor; mensagem: string; setor?: SetorSlug };
 
 export type ComunicacaoEntregue = {
   // Canais da forma de envio do Cliente que entregaram (0 = nenhum).

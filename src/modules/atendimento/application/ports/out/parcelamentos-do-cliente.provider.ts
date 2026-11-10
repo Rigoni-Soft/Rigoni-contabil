@@ -1,10 +1,13 @@
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
+import type { SetorSlug } from "@/shared/kernel/setores";
 
 export type ParcelamentoDoCliente = {
   id: string;
   codigo: string;
   interno: boolean;
+  // Setor dono do Parcelamento: é dele o alerta.
+  setor: SetorSlug;
   valorParcelaCentavos: number | null;
   parcelasRestantes: number;
   // Parcelas (AAAAMM) com registro de envio.

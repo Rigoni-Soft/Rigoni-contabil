@@ -115,8 +115,8 @@ describe("leitura dos Clientes com Parcelamento PGFN", () => {
     await anexarGuia(confirmada, competenciaAtual, "confirmada");
 
     expect(await pendenciasDe(cliente)).toEqual([
-      { codigo: "A-SEM", estado: "sem_guia" },
-      { codigo: "B-CONF", estado: "a_confirmar" },
+      { codigo: "A-SEM", setor: "simples_nacional", estado: "sem_guia" },
+      { codigo: "B-CONF", setor: "simples_nacional", estado: "a_confirmar" },
     ]);
   });
 
@@ -125,7 +125,9 @@ describe("leitura dos Clientes com Parcelamento PGFN", () => {
     const id = await criarParcelamento(cliente.id, "ATRASO");
     await anexarGuia(id, competenciaAnterior, "confirmada");
 
-    expect(await pendenciasDe(cliente)).toEqual([{ codigo: "ATRASO", estado: "sem_guia" }]);
+    expect(await pendenciasDe(cliente)).toEqual([
+      { codigo: "ATRASO", setor: "simples_nacional", estado: "sem_guia" },
+    ]);
   });
 
   it("inclui o Parcelamento interno e ignora os que não são PGFN ou não estão em aberto", async () => {
@@ -135,7 +137,9 @@ describe("leitura dos Clientes com Parcelamento PGFN", () => {
     const encerrado = await criarCliente("PGFN Encerrado Ltda");
     await criarParcelamento(encerrado.id, "FIM", { situacao: "quitado" });
 
-    expect(await pendenciasDe(cliente)).toEqual([{ codigo: "INTERNO", estado: "sem_guia" }]);
+    expect(await pendenciasDe(cliente)).toEqual([
+      { codigo: "INTERNO", setor: "simples_nacional", estado: "sem_guia" },
+    ]);
     expect(await pendenciasDe(encerrado)).toBeUndefined();
   });
 });

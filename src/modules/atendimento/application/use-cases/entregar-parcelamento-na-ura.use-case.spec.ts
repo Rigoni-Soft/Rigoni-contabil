@@ -38,6 +38,7 @@ const parcelamento = (
   id,
   codigo: `COD-${id}`,
   interno: false,
+  setor: "simples_nacional",
   valorParcelaCentavos: 10_000,
   parcelasRestantes: 5,
   parcelasEnviadas: [],

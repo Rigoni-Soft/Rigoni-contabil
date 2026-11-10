@@ -99,6 +99,7 @@ describe("SupabaseParcelamentosDoClienteGateway", () => {
       id: aberto,
       codigo: "ABERTO",
       interno: false,
+      setor: "simples_nacional",
       valorParcelaCentavos: 12_345,
       parcelasRestantes: 3,
       parcelasEnviadas: ["202609"],
