@@ -7,6 +7,7 @@ import { ConsoleRegistroDeErrosGateway } from "@/modules/clientes/infra/gateways
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { PersistenciaError } from "@/shared/errors/persistencia.error";
+import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 // Uma função do banco (`editar_cadastro_rh_cliente`) grava observações e contatos na mesma transação e
@@ -31,6 +32,7 @@ export class SupabaseCadastroRhRepository implements CadastroRhRepository {
       if (error.code === "42501") {
         return err(new ForbiddenError("Você não é o Responsável do RH deste cliente."));
       }
+      if (error.code === "22023") return err(new ValidationError("Os contatos são inválidos."));
       this.erros.registrar("Falha ao atualizar o cadastro do RH:", error.message);
       return err(
         new PersistenciaError("Não foi possível salvar o cadastro do RH. Tente novamente."),

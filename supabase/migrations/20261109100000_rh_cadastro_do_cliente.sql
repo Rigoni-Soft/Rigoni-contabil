@@ -76,11 +76,14 @@ begin
   if not public.pode_gerir_parcelamento(p_cliente_id, 'rh') then
     raise exception 'Sem permissão para editar o cadastro do RH.' using errcode = '42501';
   end if;
+  if p_contatos is not null and jsonb_typeof(p_contatos) <> 'array' then
+    raise exception 'Os contatos devem ser uma lista.' using errcode = '22023';
+  end if;
   -- Vale só nesta transação: libera o gatilho de contatos para o Regime do Cliente.
   perform set_config('app.cadastro_rh', 'on', true);
 
   insert into public.cliente_observacoes_setor (cliente_id, setor, observacoes, atualizado_em)
-  values (p_cliente_id, 'rh', p_observacoes, now())
+  values (p_cliente_id, 'rh', coalesce(p_observacoes, ''), now())
   on conflict (cliente_id, setor) do update set
     observacoes = excluded.observacoes,
     atualizado_em = now();
