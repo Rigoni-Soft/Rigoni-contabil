@@ -135,7 +135,7 @@ export function ParcelamentosDoCadastro({
         const leitura = leituras[parcelamentoCampos[indice].id];
         // O estado da leitura descreve os campos que ela preencheu (sugestão a conferir).
         const descricaoDaLeitura = leitura
-          ? { "aria-describedby": `parcelamentos.${indice}.leitura` }
+          ? { "aria-describedby": `parcelamentos-${indice}-leitura` }
           : undefined;
         return (
           <LinhaDeParcelamento
@@ -186,7 +186,7 @@ export function ParcelamentosDoCadastro({
                         dica="PDF até 4 MB"
                         aria-describedby={
                           leitura?.cnpjDivergente
-                            ? `parcelamentos.${indice}.cnpj-divergente`
+                            ? `parcelamentos-${indice}-cnpj-divergente`
                             : undefined
                         }
                         file={value}
@@ -200,12 +200,12 @@ export function ParcelamentosDoCadastro({
                     )}
                   />
                   <IndicadorDeLeitura
-                    id={`parcelamentos.${indice}.leitura`}
+                    id={`parcelamentos-${indice}-leitura`}
                     estado={leitura?.estado}
                     texto={leitura?.texto}
                   />
                   {leitura?.cnpjDivergente && (
-                    <FieldError id={`parcelamentos.${indice}.cnpj-divergente`}>
+                    <FieldError id={`parcelamentos-${indice}-cnpj-divergente`}>
                       O CNPJ do PDF é diferente do CNPJ do Cliente. Confira se anexou o PDF certo.
                     </FieldError>
                   )}
