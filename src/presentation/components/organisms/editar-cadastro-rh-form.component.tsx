@@ -1,20 +1,19 @@
 import { type Control, type FieldErrors, type UseFormRegister } from "react-hook-form";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
-import { Caixa, Grade, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
-import { NotaDeObrigatorio } from "@/presentation/components/atoms/nota-de-obrigatorio.component";
 import { AcoesDoFormulario } from "@/presentation/components/molecules/acoes-do-formulario.component";
 import { Label } from "@/presentation/components/ui/label";
 import { Textarea } from "@/presentation/components/ui/textarea";
-import { cn } from "@/presentation/lib/utils";
 
-import { CabecalhoDoCadastro } from "./cabecalho-do-cadastro.component";
+import type { CabecalhoCliente } from "./cabecalho-do-cadastro.component";
+import { CartaoDoCadastro } from "./cartao-do-cadastro.component";
 import { ContatosDoCadastro } from "./contatos-do-cadastro.component";
 import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional-form.component";
 
 type EditarCadastroRhFormProps = {
-  cabecalho: { empresa: string; cnpj: string };
+  cabecalho: CabecalhoCliente;
   register: UseFormRegister<EditarCadastroOperacionalFormValues>;
   control: Control<EditarCadastroOperacionalFormValues>;
   errors: FieldErrors<EditarCadastroOperacionalFormValues>;
@@ -62,49 +61,39 @@ export function EditarCadastroRhForm({
   acompanhamento,
 }: EditarCadastroRhFormProps) {
   return (
-    <Pilha
-      espaco="formulario"
-      como="form"
+    <CartaoDoCadastro
+      cabecalho={cabecalho}
       onSubmit={onSubmit}
-      className={cn(
-        "rc-guilloche-frame rounded-lg border border-border bg-card p-5 shadow-sm",
-        oculto && "rc-oculto-ate-hidratar",
-      )}
+      pendente={pendente}
+      readOnly={readOnly}
+      oculto={oculto}
+      mesDoAcompanhamento={mesDoAcompanhamento}
+      documentoContratual={documentoContratual}
+      responsavel={responsavel}
+      acompanhamento={acompanhamento}
+      acoes={<AcoesDoFormulario pendente={pendente} onLimpar={onLimpar} />}
+      erroServidor={erroServidor}
+      sucesso={
+        sucesso && <AvisoDeStatus tipo="sucesso" legivel texto="Cadastro do RH atualizado." />
+      }
     >
-      {!readOnly && <NotaDeObrigatorio />}
+      <ContatosDoCadastro
+        register={register}
+        control={control}
+        errors={errors}
+        readOnly={readOnly}
+        contatos={contatos}
+        onAdicionar={onAdicionarContato}
+        onRemover={onRemoverContato}
+      />
 
-      {mesDoAcompanhamento}
-
-      <CabecalhoDoCadastro cabecalho={cabecalho} documentoContratual={documentoContratual}>
-        {responsavel && <Caixa className="lg:col-start-4">{responsavel}</Caixa>}
-      </CabecalhoDoCadastro>
-
-      {acompanhamento}
-
-      <Grade colunas="1>2>4" como="fieldset" disabled={readOnly || pendente} className="gap-4">
-        <ContatosDoCadastro
-          register={register}
-          control={control}
-          errors={errors}
-          readOnly={readOnly}
-          contatos={contatos}
-          onAdicionar={onAdicionarContato}
-          onRemover={onRemoverContato}
-        />
-
-        <Pilha espaco={1} className="sm:col-span-2 lg:col-span-4">
-          <Label htmlFor="observacoesGerais">Observações gerais do RH</Label>
-          <Textarea id="observacoesGerais" {...register("observacoesGerais")} rows={3} />
-          {errors.observacoesGerais?.message && (
-            <FieldError>{errors.observacoesGerais.message}</FieldError>
-          )}
-        </Pilha>
-
-        {!readOnly && <AcoesDoFormulario pendente={pendente} onLimpar={onLimpar} />}
-      </Grade>
-
-      {erroServidor && <FieldError>{erroServidor}</FieldError>}
-      {sucesso && <AvisoDeStatus tipo="sucesso" legivel texto="Cadastro do RH atualizado." />}
-    </Pilha>
+      <Pilha espaco={1} className="sm:col-span-2 lg:col-span-4">
+        <Label htmlFor="observacoesGerais">Observações gerais do RH</Label>
+        <Textarea id="observacoesGerais" {...register("observacoesGerais")} rows={3} />
+        {errors.observacoesGerais?.message && (
+          <FieldError>{errors.observacoesGerais.message}</FieldError>
+        )}
+      </Pilha>
+    </CartaoDoCadastro>
   );
 }

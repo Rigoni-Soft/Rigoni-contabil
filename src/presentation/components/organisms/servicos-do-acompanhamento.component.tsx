@@ -1,5 +1,8 @@
-import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
+import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { ListaComDivisores } from "@/presentation/components/atoms/lista-com-divisores.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
+import { ConfirmacaoEmLinha } from "@/presentation/components/molecules/confirmacao-em-linha.component";
 import { Button } from "@/presentation/components/ui/button";
 import { Input } from "@/presentation/components/ui/input";
 import { Label } from "@/presentation/components/ui/label";
@@ -51,7 +54,7 @@ export function ServicosDoAcompanhamento({
         Desativar um serviço o tira dos meses a partir do atual; os meses anteriores continuam como
         estavam.
       </Texto>
-      <Caixa como="ul" className="divide-y divide-border rounded-lg border border-border bg-card">
+      <ListaComDivisores cartao>
         {servicos.map((s) => (
           <Linha
             como="li"
@@ -59,7 +62,7 @@ export function ServicosDoAcompanhamento({
             alinhar="centro"
             justificar="entre"
             espaco={3}
-            className="px-4 py-2"
+            className="flex-wrap px-4 py-2"
           >
             {edicao?.id === s.id ? (
               <Linha
@@ -92,7 +95,7 @@ export function ServicosDoAcompanhamento({
               </Texto>
             )}
             {!s.sistema && edicao?.id !== s.id && (
-              <Linha espaco={2}>
+              <Linha espaco={2} className="flex-wrap">
                 <Button
                   type="button"
                   variant="outline"
@@ -104,21 +107,18 @@ export function ServicosDoAcompanhamento({
                   Renomear
                 </Button>
                 {desativando === s.id ? (
-                  <>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      disabled={pendente}
-                      aria-label={`Confirmar desativação de ${s.nome}`}
-                      onClick={() => onConfirmarDesativar(s.id)}
-                    >
-                      Confirmar
-                    </Button>
-                    <Button type="button" variant="ghost" size="sm" onClick={onCancelarDesativar}>
-                      Cancelar
-                    </Button>
-                  </>
+                  <ConfirmacaoEmLinha
+                    texto={`Desativar ${s.nome}? Ele sai dos meses a partir do atual.`}
+                    rotuloDoConfirmar="Confirmar"
+                    rotuloEmCurso="Desativando…"
+                    nomeDoConfirmar={`Confirmar desativação de ${s.nome}`}
+                    nomeDoCancelar={`Cancelar desativação de ${s.nome}`}
+                    destrutiva
+                    emCurso={pendente}
+                    ocupado={pendente}
+                    onConfirmar={() => onConfirmarDesativar(s.id)}
+                    onCancelar={onCancelarDesativar}
+                  />
                 ) : (
                   <Button
                     type="button"
@@ -135,7 +135,7 @@ export function ServicosDoAcompanhamento({
             )}
           </Linha>
         ))}
-      </Caixa>
+      </ListaComDivisores>
       <Linha
         como="form"
         alinhar="fim"
@@ -158,11 +158,7 @@ export function ServicosDoAcompanhamento({
           Cadastrar serviço
         </Button>
       </Linha>
-      {erro && (
-        <Texto variante="alerta" role="alert">
-          {erro}
-        </Texto>
-      )}
+      {erro && <AvisoDeStatus tipo="erro" legivel texto={erro} />}
     </Pilha>
   );
 }

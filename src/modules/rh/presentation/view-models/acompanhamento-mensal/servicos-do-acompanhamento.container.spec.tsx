@@ -43,7 +43,7 @@ describe("ServicosDoAcompanhamentoContainer", () => {
     expect(desativarServicoAction).not.toHaveBeenCalled();
     await usuario.click(screen.getByRole("button", { name: "Confirmar desativação de FGTS" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Sem permissão.");
+    expect(await screen.findByText("Sem permissão.")).toBeInTheDocument();
     expect(desativarServicoAction).toHaveBeenCalledWith({ servicoId: "fgts" });
   });
 

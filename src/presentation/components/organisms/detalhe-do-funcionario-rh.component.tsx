@@ -93,7 +93,9 @@ export function DetalheDoFuncionarioRh({
           <ListaDeClientes
             clientes={maisAtrasados.map((c) => ({
               ...c,
-              detalhe: `${c.meses} ${c.meses === 1 ? "mês" : "meses"}`,
+              detalhes: (
+                <Texto variante="apoio">{`${c.meses} ${c.meses === 1 ? "mês" : "meses"}`}</Texto>
+              ),
             }))}
           />
         )}

@@ -12,7 +12,7 @@ describe("ListaDeClientes", () => {
             empresa: "Padaria Sol",
             cnpj: "90000001000129",
             href: "/clientes/c1?voltarPara=%2Frh",
-            detalhe: "3 meses",
+            detalhes: <p>3 meses</p>,
           },
         ]}
       />,
