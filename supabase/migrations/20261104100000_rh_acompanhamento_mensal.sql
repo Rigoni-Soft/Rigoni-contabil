@@ -124,7 +124,8 @@ begin
      or new.ordem <> old.ordem then
     raise exception 'servico_rh_imutavel';
   end if;
-  if old.desativado_em is not null and new.desativado_em is distinct from old.desativado_em then
+  -- Serviço desativado é histórico: nenhum UPDATE (nem renomear) o altera.
+  if old.desativado_em is not null then
     raise exception 'servico_rh_desativado';
   end if;
   if old.desativado_em is null and new.desativado_em is not null then
@@ -193,12 +194,13 @@ begin
       else
         v_acao := case when new.aplica then 'rh.acompanhamento.aplicar' else 'rh.acompanhamento.nao-aplicar' end;
       end if;
-      v_alvo := (select c.cnpj from public.clientes c where c.id = v_cliente)
-        || ' ' || (select s.nome from public.rh_servicos_acompanhamento s where s.id = v_servico);
+      -- coalesce: no DELETE em cascata (Cliente ou serviço apagado) a linha pai já não existe e o alvo é NOT NULL.
+      v_alvo := coalesce((select c.cnpj from public.clientes c where c.id = v_cliente), '?')
+        || ' ' || coalesce((select s.nome from public.rh_servicos_acompanhamento s where s.id = v_servico), '?');
     else
       v_acao := case when tg_op = 'DELETE' then 'rh.acompanhamento.desmarcar' else 'rh.acompanhamento.marcar' end;
-      v_alvo := (select c.cnpj from public.clientes c where c.id = v_cliente)
-        || ' ' || (select s.nome from public.rh_servicos_acompanhamento s where s.id = v_servico)
+      v_alvo := coalesce((select c.cnpj from public.clientes c where c.id = v_cliente), '?')
+        || ' ' || coalesce((select s.nome from public.rh_servicos_acompanhamento s where s.id = v_servico), '?')
         || ' ' || to_char(case when tg_op = 'DELETE' then old.competencia else new.competencia end, 'YYYY-MM');
     end if;
   end if;

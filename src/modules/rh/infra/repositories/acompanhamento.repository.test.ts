@@ -4,6 +4,7 @@
  * do sistema e auditoria na mesma transação. Requer `npx supabase start` com migrations + seed aplicados.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { Client } from "pg";
 
 import { primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
 
@@ -19,9 +20,14 @@ const SERVICE_ROLE_KEY =
 const CNPJ_A = "11444777009811";
 const CNPJ_B = "11444777009812";
 const CNPJ_SEM_RESPONSAVEL = "11444777009813";
+const CNPJ_CASCATA = "11444777009814";
 const FUNCIONARIO_RH_ID = "dddddddd-dddd-dddd-dddd-dddddddddddd";
 const FUNCIONARIO2_RH_ID = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee";
 const PREFIXO = "Teste214 ";
+
+const DATABASE_URL =
+  process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
+const ADMIN_ID = "11111111-1111-1111-1111-111111111111";
 
 const erros = { registrar: () => undefined };
 const servico = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
@@ -64,7 +70,7 @@ const auditorias = async (acao: string, alvoLike: string) =>
   ).data ?? [];
 
 beforeAll(async () => {
-  await removerClientesDeTeste([CNPJ_A, CNPJ_B, CNPJ_SEM_RESPONSAVEL]);
+  await removerClientesDeTeste([CNPJ_A, CNPJ_B, CNPJ_SEM_RESPONSAVEL, CNPJ_CASCATA]);
   await apagarServicosDeTeste();
   clienteA = crypto.randomUUID();
   clienteB = crypto.randomUUID();
@@ -87,7 +93,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await removerClientesDeTeste([CNPJ_A, CNPJ_B, CNPJ_SEM_RESPONSAVEL]);
+  await removerClientesDeTeste([CNPJ_A, CNPJ_B, CNPJ_SEM_RESPONSAVEL, CNPJ_CASCATA]);
   await apagarServicosDeTeste();
   await servico.from("registros_auditoria").delete().like("alvo", `${PREFIXO}%`);
 });
@@ -294,6 +300,51 @@ describe("Acompanhamento mensal do RH (integração)", () => {
     expect(antes.ok && antes.value.some((s) => s.id === id)).toBe(true);
     expect(mesPassado.ok && mesPassado.value.some((s) => s.id === id)).toBe(true);
     expect(mesAtualLista.ok && mesAtualLista.value.some((s) => s.id === id)).toBe(false);
+  });
+
+  it("serviço desativado é histórico: o Líder não o renomeia", async () => {
+    const { repo } = await comoLiderRH();
+    const antigo = await servico
+      .from("rh_servicos_acompanhamento")
+      .insert({ nome: `${PREFIXO}Encerrado`, ativo_desde: "2026-01-01" })
+      .select("id")
+      .single();
+    await repo.desativarServico(antigo.data!.id);
+
+    const renomeou = await repo.renomearServico(antigo.data!.id, `${PREFIXO}Outro`);
+
+    expect(renomeou.ok).toBe(false);
+  });
+
+  it("o Admin apaga um Cliente com marcação: a auditoria em cascata não aborta a exclusão", async () => {
+    const id = crypto.randomUUID();
+    const cliente = await servico.from("clientes").insert({
+      id,
+      empresa: "Cascata Ltda",
+      cnpj: CNPJ_CASCATA,
+      regime: "lucro_presumido",
+    });
+    const marcacao = await servico.from("rh_acompanhamento_marcacoes").insert({
+      cliente_id: id,
+      servico_id: fgts,
+      competencia: MES,
+      marcado_por: FUNCIONARIO_RH_ID,
+    });
+    expect(cliente.error ?? marcacao.error).toBeNull();
+    // Nenhum caminho da API apaga Cliente; o gatilho roda como o Admin (auth.uid() não nulo) numa conexão direta.
+    const db = new Client({ connectionString: DATABASE_URL });
+    await db.connect();
+    try {
+      await db.query("begin");
+      await db.query("select set_config('request.jwt.claim.sub', $1, true)", [ADMIN_ID]);
+      await db.query("delete from public.clientes where id = $1", [id]);
+      await db.query("commit");
+    } finally {
+      await db.end();
+    }
+
+    const resta = await servico.from("clientes").select("id").eq("id", id);
+    expect(resta.data).toEqual([]);
   });
 
   it("a marcação de um mês passado sobrevive à desativação do serviço", async () => {
