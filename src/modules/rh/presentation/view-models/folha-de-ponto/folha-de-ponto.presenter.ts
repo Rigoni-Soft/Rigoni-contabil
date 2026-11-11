@@ -110,8 +110,7 @@ const faixaDe = (e?: { percentual: number; minutos: number }) =>
 const extrasDoDia = (a: TotalizacaoDto) =>
   a.extras.reduce((soma, e) => soma + e.minutos, 0) + a.bancoDeHorasMin;
 
-// Cartão sem nenhum dado salvo (mês novo ou empregado novo): a tela abre com as linhas já editáveis.
-// Cartão novo: nunca salvo (sem a marca de iniciado) e sem nenhum dado.
+// Cartão novo (mês ou empregado novo; a tela abre com as linhas já editáveis): nunca salvo (sem a marca de iniciado) e sem nenhum dado.
 export const cartaoSemDados = (dias: DiaDoPontoDto[], iniciado: boolean) =>
   !iniciado && !dias.some(temDados);
 

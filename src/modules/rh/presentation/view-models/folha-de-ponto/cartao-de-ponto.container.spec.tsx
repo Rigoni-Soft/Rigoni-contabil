@@ -427,7 +427,9 @@ describe("CartaoDePontoContainer", () => {
       competencia: "2026-11",
     });
     expect(salvarDiaDoPontoAction).not.toHaveBeenCalled();
-    expect(await screen.findByText(/A Totalização do mês foi atualizada/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Cartão iniciado: os dias úteis sem horário viraram falta/),
+    ).toBeInTheDocument();
   });
 
   it("cartão já iniciado, mesmo sem horário, mostra as faltas e não inicia de novo", async () => {
@@ -452,6 +454,9 @@ describe("CartaoDePontoContainer", () => {
 
     await userEvent.setup().click(screen.getByRole("button", { name: "Salvar" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Sem permissão.");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Os horários foram salvos, mas o cartão não foi iniciado: Sem permissão.",
+    );
+    expect(refresh).toHaveBeenCalled();
   });
 });

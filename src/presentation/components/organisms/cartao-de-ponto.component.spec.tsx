@@ -39,6 +39,7 @@ const PROPS = {
   versoes: {},
   listaHref: "/rh/folha-de-ponto/c1?mes=2026-11",
   totalizacaoDestacada: false,
+  cartaoNovo: false,
   onEditarDia: jest.fn(),
   onAbonarDia: jest.fn(),
   onDesfazerAbonoDia: jest.fn(),
@@ -138,6 +139,14 @@ describe("CartaoDePonto", () => {
 
     rerender(<CartaoDePonto {...PROPS} totalizacaoDestacada />);
     expect(bloco()).toHaveClass("border-primary");
+  });
+
+  it("em leitura, o cartão novo avisa que as faltas só contam depois de iniciado", () => {
+    const { rerender } = render(<CartaoDePonto {...PROPS} editavel={false} cartaoNovo />);
+    expect(screen.getByText(/Cartão ainda não iniciado/)).toBeInTheDocument();
+
+    rerender(<CartaoDePonto {...PROPS} editavel={false} />);
+    expect(screen.queryByText(/Cartão ainda não iniciado/)).not.toBeInTheDocument();
   });
 
   it("em leitura não há ações da tabela", () => {

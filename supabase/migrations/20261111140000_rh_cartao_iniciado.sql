@@ -13,61 +13,27 @@ CREATE TABLE public.rh_cartoes_iniciados (
 CREATE TRIGGER rh_cartoes_iniciados_proteger BEFORE INSERT ON public.rh_cartoes_iniciados
     FOR EACH ROW EXECUTE FUNCTION public.proteger_ponto_rh();
 
--- A auditoria ganha a ação do novo registro ("rh.ponto.iniciar-cartao"); o resto da função é o da migration do
--- Cartão de ponto, sem mudança.
-CREATE OR REPLACE FUNCTION public.auditar_rh_ponto() RETURNS trigger
+-- Auditoria do sucesso, na mesma transação (o ator é quem chama pela Data API). O alvo é o mesmo do resto do
+-- cartão: CNPJ, nome do empregado e o mês. Função própria: a `auditar_rh_ponto` do cartão fica intocada.
+CREATE FUNCTION public.auditar_rh_cartao_iniciado() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
-declare
-  v_acao text;
-  v_alvo text;
-  v_cliente uuid;
-  v_nome text;
 begin
   if auth.uid() is null then
     return null;
   end if;
-
-  if tg_table_name = 'rh_ponto_padroes' then
-    v_acao := 'rh.ponto.padrao-comissionados';
-    v_alvo := coalesce((select c.cnpj from public.clientes c where c.id = new.cliente_id), '?')
-      || case when new.comissionados then ' sim' else ' nao' end;
-  elsif tg_table_name = 'rh_empregados' then
-    if tg_op = 'INSERT' then
-      v_acao := 'rh.empregado.cadastrar';
-    elsif new.ativo and not old.ativo then
-      v_acao := 'rh.empregado.reativar';
-    elsif not new.ativo and old.ativo then
-      v_acao := 'rh.empregado.inativar';
-    else
-      v_acao := 'rh.empregado.corrigir';
-    end if;
-    v_alvo := coalesce((select c.cnpj from public.clientes c where c.id = new.cliente_id), '?') || ' ' || new.nome;
-  else
-    select e.cliente_id, e.nome into v_cliente, v_nome
-    from public.rh_empregados e
-    where e.id = case when tg_op = 'DELETE' then old.empregado_id else new.empregado_id end;
-    v_alvo := coalesce((select c.cnpj from public.clientes c where c.id = v_cliente), '?') || ' ' || coalesce(v_nome, '?');
-    if tg_table_name = 'rh_ponto_dias' then
-      v_acao := case when tg_op = 'DELETE' then 'rh.ponto.limpar' else 'rh.ponto.salvar' end;
-      v_alvo := v_alvo || ' ' || to_char(case when tg_op = 'DELETE' then old.data else new.data end, 'YYYY-MM-DD');
-    elsif tg_table_name = 'rh_cartoes_iniciados' then
-      v_acao := 'rh.ponto.iniciar-cartao';
-      v_alvo := v_alvo || ' ' || to_char(new.competencia, 'YYYY-MM');
-    else
-      v_acao := case when tg_op = 'DELETE' then 'rh.ponto.com-movimento' else 'rh.ponto.sem-movimento' end;
-      v_alvo := v_alvo || ' ' || to_char(case when tg_op = 'DELETE' then old.competencia else new.competencia end, 'YYYY-MM');
-    end if;
-  end if;
-
   insert into public.registros_auditoria (id, ator, setor, acao, alvo, resultado, criado_em)
-  values (gen_random_uuid(), auth.uid(), public.meu_setor(), v_acao, v_alvo, 'sucesso', now());
+  select gen_random_uuid(), auth.uid(), public.meu_setor(), 'rh.ponto.iniciar-cartao',
+         coalesce(c.cnpj, '?') || ' ' || e.nome || ' ' || to_char(new.competencia, 'YYYY-MM'), 'sucesso', now()
+  from public.rh_empregados e
+  left join public.clientes c on c.id = e.cliente_id
+  where e.id = new.empregado_id;
   return null;
 end;
 $$;
 CREATE TRIGGER rh_cartoes_iniciados_auditar AFTER INSERT ON public.rh_cartoes_iniciados
-    FOR EACH ROW EXECUTE FUNCTION public.auditar_rh_ponto();
+    FOR EACH ROW EXECUTE FUNCTION public.auditar_rh_cartao_iniciado();
 
 ALTER TABLE public.rh_cartoes_iniciados ENABLE ROW LEVEL SECURITY;
 
@@ -80,3 +46,4 @@ CREATE POLICY rh_cartoes_iniciados_insert ON public.rh_cartoes_iniciados FOR INS
 REVOKE ALL ON TABLE public.rh_cartoes_iniciados FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT ON TABLE public.rh_cartoes_iniciados TO authenticated;
 GRANT ALL ON TABLE public.rh_cartoes_iniciados TO service_role;
+REVOKE ALL ON FUNCTION public.auditar_rh_cartao_iniciado() FROM PUBLIC, anon, authenticated;

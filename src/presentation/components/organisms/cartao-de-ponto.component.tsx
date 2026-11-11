@@ -38,6 +38,8 @@ type Props = {
   listaHref: string;
   // Logo depois do "Salvar" da tabela: a Totalização ganha destaque.
   totalizacaoDestacada: boolean;
+  // Cartão ainda não iniciado: quem só lê vê que as faltas só contam depois que o Responsável o salva.
+  cartaoNovo: boolean;
   // Resultado do "Salvar" da tabela (várias linhas de uma vez).
   avisoGeral?: AvisoDoDia;
   onEditarDia: (data: string) => void;
@@ -72,6 +74,7 @@ export function CartaoDePonto({
   versoes,
   listaHref,
   totalizacaoDestacada,
+  cartaoNovo,
   avisoGeral,
   onEditarDia,
   onAbonarDia,
@@ -205,6 +208,11 @@ export function CartaoDePonto({
           </Linha>
           {avisoGeral && <AvisoDeStatus tipo={avisoGeral.tipo} legivel texto={avisoGeral.texto} />}
         </Pilha>
+      )}
+      {!editavel && cartaoNovo && (
+        <Texto variante="apoio">
+          Cartão ainda não iniciado: as faltas só contam depois que o Responsável do RH o salvar.
+        </Texto>
       )}
       {avisoDaTotalizacao && <Texto variante="apoio">{avisoDaTotalizacao}</Texto>}
       <TotalizacaoDoPonto

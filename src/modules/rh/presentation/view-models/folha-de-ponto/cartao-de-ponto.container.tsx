@@ -46,6 +46,8 @@ export function CartaoDePontoContainer({ folha }: Props) {
   const { selecionado } = folha;
   if (!selecionado) return null;
 
+  const cartaoNovo = cartaoSemDados(selecionado.dias, selecionado.iniciado);
+
   const recomecar = (datas: string[]) =>
     setVersoes((v) => ({ ...v, ...Object.fromEntries(datas.map((d) => [d, (v[d] ?? 0) + 1])) }));
   const fechar = (datas: string[]) => {
@@ -139,15 +141,27 @@ export function CartaoDePontoContainer({ folha }: Props) {
         if (erro) return setAviso({ data, tipo: "erro", texto: erro });
       }
       // Salvar o cartão novo, mesmo sem nenhum horário, o inicia: daí em diante os dias úteis vazios são falta.
-      if (cartaoSemDados(selecionado.dias, selecionado.iniciado)) {
+      if (cartaoNovo) {
         const falha = await marcarIniciado();
-        if (falha) return setAvisoGeral({ tipo: "erro", texto: falha });
+        if (falha) {
+          // Os horários digitados já foram gravados: a tela recarrega e a mensagem diz o que faltou.
+          router.refresh();
+          return setAvisoGeral({
+            tipo: "erro",
+            texto: `Os horários foram salvos, mas o cartão não foi iniciado: ${falha}`,
+          });
+        }
       }
       recomecar(emEdicao);
       fechar(emEdicao);
       setFocoNoDia(undefined);
       setDestacada(true);
-      setAvisoGeral({ tipo: "sucesso", texto: "Salvo. A Totalização do mês foi atualizada." });
+      setAvisoGeral({
+        tipo: "sucesso",
+        texto: cartaoNovo
+          ? "Cartão iniciado: os dias úteis sem horário viraram falta. A Totalização do mês foi atualizada."
+          : "Salvo. A Totalização do mês foi atualizada.",
+      });
       router.refresh();
     });
 
@@ -161,8 +175,9 @@ export function CartaoDePontoContainer({ folha }: Props) {
       totalizacao={itensDaTotalizacao(
         selecionado.totalizacao,
         selecionado.dias.reduce((soma, d) => soma + d.trabalhadoMin, 0),
-        cartaoSemDados(selecionado.dias, selecionado.iniciado),
+        cartaoNovo,
       )}
+      cartaoNovo={cartaoNovo}
       avisoDaTotalizacao={selecionado.semConvencao ? AVISO_SEM_CONVENCAO : undefined}
       editavel={folha.podeEditar && selecionado.empregado.ativo}
       pendente={pendente}
