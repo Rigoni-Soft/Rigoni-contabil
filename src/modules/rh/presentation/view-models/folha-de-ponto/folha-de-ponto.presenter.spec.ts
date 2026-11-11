@@ -1,5 +1,6 @@
 import type { FolhaDePontoDto } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
 import {
+  cartaoSemDados,
   hmParaMinutos,
   hrefDaFolha,
   hrefDoCartao,
@@ -166,8 +167,8 @@ describe("linhasDoCartao", () => {
       noturno: "0h08",
     });
     expect(falta.nota).toBe("Falta");
-    expect(falta).toMatchObject({ falta: true, tom: "alerta" });
-    expect(dia).toMatchObject({ falta: false, tom: "info", nota: "Hora extra" });
+    expect(falta).toMatchObject({ situacao: "falta", tom: "alerta" });
+    expect(dia).toMatchObject({ situacao: "normal", tom: "info", nota: "Hora extra" });
   });
 
   it("o tom e a nota do dia: falta, hora extra, folga e feriado; dia normal sem tom", () => {
@@ -196,6 +197,41 @@ describe("linhasDoCartao", () => {
     expect(folga).toMatchObject({ tom: "atencao", nota: "Folga" });
     expect(feriado).toMatchObject({ tom: "atencao", nota: "Feriado" });
     expect(feriadoTrabalhado).toMatchObject({ tom: "info", nota: "Feriado · hora extra" });
+  });
+
+  it("situação do dia: abonado, folga, falta e em branco (cartão sem dados)", () => {
+    const base = {
+      batidas: [],
+      extra: null,
+      abono: false,
+      cargaMin: 525,
+      feriado: false,
+      trabalhadoMin: 0,
+      apuracao: { ...ZERO, faltas: 1 },
+    };
+    const trabalhado = { ...base, batidas: [{ entrada: 480, saida: 1005 }], apuracao: ZERO };
+    const [comecado, falta, abonado, folga] = linhasDoCartao([
+      { ...trabalhado, data: "2026-11-16", diaDaSemana: 1 },
+      { ...base, data: "2026-11-17", diaDaSemana: 2 },
+      {
+        ...base,
+        data: "2026-11-18",
+        diaDaSemana: 3,
+        abono: true,
+        apuracao: { ...ZERO, abonoDias: 1 },
+      },
+      { ...base, data: "2026-11-22", diaDaSemana: 0, cargaMin: 0, apuracao: ZERO },
+    ]);
+    expect(comecado.situacao).toBe("normal");
+    expect(falta).toMatchObject({ situacao: "falta", nota: "Falta", tom: "alerta" });
+    expect(abonado).toMatchObject({ situacao: "abonado", nota: "Abonado", tom: undefined });
+    expect(folga.situacao).toBe("folga");
+
+    // Mês novo: nenhum dado salvo, o dia útil vazio não é falta, é "em branco" e neutro.
+    const [branco] = linhasDoCartao([{ ...base, data: "2026-11-17", diaDaSemana: 2 }]);
+    expect(branco).toMatchObject({ situacao: "branco", nota: undefined, tom: undefined });
+    expect(cartaoSemDados([{ ...base, data: "2026-11-17" }])).toBe(true);
+    expect(cartaoSemDados([{ ...base, data: "2026-11-17", abono: true }])).toBe(false);
   });
 });
 

@@ -12,11 +12,13 @@ import { rotuloDaCompetencia } from "@/modules/rh/presentation/view-models/acomp
 import { salvarDiaDoPontoAction } from "./folha-de-ponto.actions";
 import {
   AVISO_SEM_CONVENCAO,
+  cartaoSemDados,
   hrefDaFolha,
   itensDaTotalizacao,
   lerDiaDoFormulario,
   linhasDoCartao,
   navegacaoDoCartao,
+  temDados,
 } from "./folha-de-ponto.presenter";
 
 type Props = { folha: FolhaDePontoDto };
@@ -30,7 +32,12 @@ export function CartaoDePontoContainer({ folha }: Props) {
   const [pendente, iniciar] = useTransition();
   const [aviso, setAviso] = useState<Aviso & { data: string }>();
   const [avisoGeral, setAvisoGeral] = useState<Aviso>();
-  const [emEdicao, setEmEdicao] = useState<string[]>([]);
+  // Cartão sem nenhum dado (mês ou empregado novo): abre com todas as linhas já editáveis, sem um lápis por dia.
+  const [emEdicao, setEmEdicao] = useState<string[]>(() =>
+    folha.selecionado && cartaoSemDados(folha.selecionado.dias)
+      ? folha.selecionado.dias.map((d) => d.data)
+      : [],
+  );
   const [limpos, setLimpos] = useState<string[]>([]);
   const [versoes, setVersoes] = useState<Record<string, number>>({});
   const [destacada, setDestacada] = useState(false);
@@ -75,8 +82,8 @@ export function CartaoDePontoContainer({ folha }: Props) {
       router.refresh();
     });
 
-  // Falta vira abonada: o dia é gravado só com o Abono, sem batidas.
-  const abonarDia = (data: string) =>
+  // Falta vira abonada (o dia é gravado só com o Abono) e o abono se desfaz (dia vazio, sem Abono).
+  const marcarAbono = (data: string, abono: boolean) =>
     iniciar(async () => {
       setAviso(undefined);
       setAvisoGeral(undefined);
@@ -86,10 +93,10 @@ export function CartaoDePontoContainer({ folha }: Props) {
           data,
           batidas: [],
           extra: null,
-          abono: true,
+          abono,
         });
         if (!r.ok) return setAviso({ data, tipo: "erro", texto: r.error.message });
-        setAviso({ data, tipo: "sucesso", texto: "Abonado." });
+        setAviso({ data, tipo: "sucesso", texto: abono ? "Abonado." : "Abono desfeito." });
         recomecar([data]);
         router.refresh();
       } catch (e) {
@@ -105,7 +112,20 @@ export function CartaoDePontoContainer({ folha }: Props) {
       for (const data of emEdicao) {
         const form = document.getElementById(idDoFormDoDia(data));
         if (!(form instanceof HTMLFormElement)) continue;
-        const erro = await gravar(data, new FormData(form));
+        const campos = new FormData(form);
+        // Linha que já era vazia e segue vazia não tem o que gravar (cartão novo: só os dias digitados vão).
+        const antes = selecionado.dias.find((d) => d.data === data);
+        const depois = lerDiaDoFormulario(campos);
+        if (
+          antes &&
+          !temDados(antes) &&
+          depois.ok &&
+          depois.batidas.length === 0 &&
+          !depois.extra &&
+          !depois.abono
+        )
+          continue;
+        const erro = await gravar(data, campos);
         if (erro) return setAviso({ data, tipo: "erro", texto: erro });
       }
       recomecar(emEdicao);
@@ -148,7 +168,8 @@ export function CartaoDePontoContainer({ folha }: Props) {
         fechar([data]);
         recomecar([data]);
       }}
-      onAbonarDia={abonarDia}
+      onAbonarDia={(data) => marcarAbono(data, true)}
+      onDesfazerAbonoDia={(data) => marcarAbono(data, false)}
       onSalvarDia={salvarDia}
       onSalvarTabela={salvarTabela}
       onLimparTabela={() => {

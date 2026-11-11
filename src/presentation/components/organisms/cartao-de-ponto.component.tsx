@@ -42,6 +42,7 @@ type Props = {
   avisoGeral?: AvisoDoDia;
   onEditarDia: (data: string) => void;
   onAbonarDia: (data: string) => void;
+  onDesfazerAbonoDia: (data: string) => void;
   onCancelarDia: (data: string) => void;
   onSalvarTabela: () => void;
   onLimparTabela: () => void;
@@ -74,6 +75,7 @@ export function CartaoDePonto({
   avisoGeral,
   onEditarDia,
   onAbonarDia,
+  onDesfazerAbonoDia,
   onCancelarDia,
   onSalvarTabela,
   onLimparTabela,
@@ -118,7 +120,7 @@ export function CartaoDePonto({
             <CabecalhoDeColuna colSpan={8} centro>
               Batidas
             </CabecalhoDeColuna>
-            <CabecalhoDeColuna colSpan={5} centro>
+            <CabecalhoDeColuna colSpan={4} centro>
               Horas extras / Atrasos / Adicional noturno
             </CabecalhoDeColuna>
             <CabecalhoDeColuna colSpan={2} centro>
@@ -138,7 +140,6 @@ export function CartaoDePonto({
             <CabecalhoDeColuna>Extra saída</CabecalhoDeColuna>
             <CabecalhoDeColuna numerica>H. Diária</CabecalhoDeColuna>
             <CabecalhoDeColuna numerica>Atrasos</CabecalhoDeColuna>
-            <CabecalhoDeColuna centro>Abono</CabecalhoDeColuna>
             <CabecalhoDeColuna numerica>Horas Extras</CabecalhoDeColuna>
             <CabecalhoDeColuna numerica>Adicional noturno</CabecalhoDeColuna>
             <CabecalhoDeColuna numerica>1ª Faixa</CabecalhoDeColuna>
@@ -163,6 +164,7 @@ export function CartaoDePonto({
             pendente={pendente}
             onEditar={onEditarDia}
             onAbonar={onAbonarDia}
+            onDesfazerAbono={onDesfazerAbonoDia}
             onCancelar={onCancelarDia}
             onSalvar={onSalvarDia}
           />

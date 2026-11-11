@@ -53,8 +53,7 @@ test.describe("Folha de ponto do RH", () => {
     await page.getByRole("link", { name: "Cartão de ponto de Ana E2E" }).click();
     await expect(page.getByRole("heading", { name: "Ana E2E", exact: true })).toBeVisible();
 
-    // Cada dia abre para editar pelo lápis; o ✓ da linha salva.
-    await page.getByRole("button", { name: `Editar ${rotulo}` }).click();
+    // Cartão novo: as linhas já abrem editáveis; o ✓ da linha salva.
     await page.getByLabel(`Entrada 1 de ${rotulo}`).fill("08:00");
     await page.getByLabel(`Saída 1 de ${rotulo}`).fill("12:00");
     await page.getByLabel(`Entrada 2 de ${rotulo}`).fill("13:00");

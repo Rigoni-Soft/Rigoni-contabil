@@ -24,7 +24,7 @@ const LINHA: LinhaDoCartao = {
   extraSaida: "",
   abono: false,
   nota: "Feriado",
-  falta: false,
+  situacao: "normal" as const,
   diaSemana: "seg",
   diaMes: "16/11",
   trabalhado: "4h00",
@@ -40,6 +40,7 @@ const ACOES = {
   limpa: false,
   onEditar: jest.fn(),
   onAbonar: jest.fn(),
+  onDesfazerAbono: jest.fn(),
   onCancelar: jest.fn(),
 };
 
@@ -86,7 +87,6 @@ describe("LinhaDoCartaoDePonto", () => {
     );
     const u = userEvent.setup();
 
-    await u.click(screen.getByRole("checkbox", { name: "Abono de seg 16/11" }));
     await u.click(screen.getByRole("button", { name: "Salvar seg 16/11" }));
     await u.click(screen.getByRole("button", { name: "Cancelar edição de seg 16/11" }));
 
@@ -94,7 +94,7 @@ describe("LinhaDoCartaoDePonto", () => {
     const [data, campos] = onSalvar.mock.calls[0] as [string, FormData];
     expect(data).toBe("2026-11-16");
     expect(campos.get("entrada1")).toBe("08:00");
-    expect(campos.get("abono")).not.toBeNull();
+    expect(campos.get("abono")).toBeNull();
     expect(ACOES.onCancelar).toHaveBeenCalledWith("2026-11-16");
   });
 
@@ -142,7 +142,7 @@ describe("LinhaDoCartaoDePonto", () => {
   it("dia de falta oferece o Abonar além do lápis, e abonar avisa a tela", async () => {
     render(
       <Linha
-        linha={{ ...LINHA, falta: true, tom: "alerta", nota: "Falta" }}
+        linha={{ ...LINHA, situacao: "falta" as const, tom: "alerta", nota: "Falta" }}
         editavel
         {...ACOES}
         pendente={false}
@@ -178,5 +178,81 @@ describe("LinhaDoCartaoDePonto", () => {
     render(<Linha linha={LINHA} editavel {...ACOES} pendente={false} onSalvar={jest.fn()} />);
 
     expect(screen.getByRole("row").className).not.toMatch(/destructive|warning|info/);
+  });
+
+  it("não há coluna nem caixa de Abono: o Abono é o botão da falta", () => {
+    render(
+      <Linha linha={LINHA} editavel {...ACOES} emEdicao pendente={false} onSalvar={jest.fn()} />,
+    );
+
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
+
+  it("dia abonado: horários desabilitados e o botão é Desfazer abono", async () => {
+    render(
+      <Linha
+        linha={{ ...LINHA, entrada1: "", saida1: "", situacao: "abonado", nota: "Abonado" }}
+        editavel
+        {...ACOES}
+        pendente={false}
+        onSalvar={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("Entrada 1 de seg 16/11")).toBeDisabled();
+    expect(screen.getByLabelText("Extra entrada de seg 16/11")).toBeDisabled();
+    expect(screen.queryByRole("button", { name: /Editar/ })).not.toBeInTheDocument();
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Desfazer abono de seg 16/11" }));
+    expect(ACOES.onDesfazerAbono).toHaveBeenCalledWith("2026-11-16");
+  });
+
+  it("dia de folga ou feriado sem batida salva: só a coluna Extra fica habilitada", () => {
+    render(
+      <Linha
+        linha={{ ...LINHA, entrada1: "", saida1: "", situacao: "folga" }}
+        editavel
+        {...ACOES}
+        emEdicao
+        pendente={false}
+        onSalvar={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("Entrada 1 de seg 16/11")).toBeDisabled();
+    expect(screen.getByLabelText("Saída 2 de seg 16/11")).toBeDisabled();
+    expect(screen.getByLabelText("Extra entrada de seg 16/11")).toBeEnabled();
+    expect(screen.getByLabelText("Extra saída de seg 16/11")).toBeEnabled();
+  });
+
+  it("folga com batida já salva não trava as batidas (nada some sem querer)", () => {
+    render(
+      <Linha
+        linha={{ ...LINHA, situacao: "folga" }}
+        editavel
+        {...ACOES}
+        emEdicao
+        pendente={false}
+        onSalvar={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("Entrada 1 de seg 16/11")).toBeEnabled();
+  });
+
+  it("dia de falta aberto pelo lápis destrava os horários (é a forma deliberada de lançar)", () => {
+    render(
+      <Linha
+        linha={{ ...LINHA, entrada1: "", saida1: "", situacao: "falta", tom: "alerta" }}
+        editavel
+        {...ACOES}
+        emEdicao
+        pendente={false}
+        onSalvar={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("Entrada 1 de seg 16/11")).toBeEnabled();
   });
 });

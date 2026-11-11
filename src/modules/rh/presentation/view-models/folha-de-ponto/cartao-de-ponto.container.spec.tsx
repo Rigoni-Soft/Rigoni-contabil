@@ -11,6 +11,20 @@ const refresh = jest.fn();
 jest.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 jest.mock("./folha-de-ponto.actions", () => ({ salvarDiaDoPontoAction: jest.fn() }));
 
+const ZERO = {
+  normaisMin: 0,
+  extras: [],
+  bancoDeHorasMin: 0,
+  acimaDoLimiteMin: 0,
+  noturnoMin: 0,
+  atrasoMin: 0,
+  faltas: 0,
+  abonoDias: 0,
+  abonoMin: 0,
+  feriadosTrabalhados: 0,
+  sabadosTrabalhados: 0,
+  diasComLanche: 0,
+};
 const ANA = {
   id: "e1",
   nome: "Ana",
@@ -19,6 +33,60 @@ const ANA = {
   ativo: true,
   semMovimento: false,
 };
+// Cartão sem nenhum dado salvo (mês novo): abre com todas as linhas já editáveis.
+const FOLHA_VAZIA: FolhaDePontoDto = {
+  clienteId: "c1",
+  empresa: "Teste Ltda",
+  competencia: "2026-11",
+  padraoComissionados: false,
+  empregados: [ANA],
+  podeEditar: true,
+  selecionado: {
+    empregado: ANA,
+    dias: [
+      {
+        data: "2026-11-16",
+        diaDaSemana: 1,
+        feriado: false,
+        cargaMin: 525,
+        trabalhadoMin: 0,
+        apuracao: {
+          normaisMin: 0,
+          extras: [],
+          bancoDeHorasMin: 0,
+          acimaDoLimiteMin: 0,
+          noturnoMin: 0,
+          atrasoMin: 0,
+          faltas: 1,
+          abonoDias: 0,
+          abonoMin: 0,
+          feriadosTrabalhados: 0,
+          sabadosTrabalhados: 0,
+          diasComLanche: 0,
+        },
+        batidas: [],
+        extra: null,
+        abono: false,
+      },
+    ],
+    totalizacao: {
+      normaisMin: 0,
+      extras: [],
+      bancoDeHorasMin: 0,
+      acimaDoLimiteMin: 0,
+      noturnoMin: 0,
+      atrasoMin: 0,
+      faltas: 1,
+      abonoDias: 0,
+      abonoMin: 0,
+      feriadosTrabalhados: 0,
+      sabadosTrabalhados: 0,
+      diasComLanche: 0,
+    },
+    semConvencao: false,
+  },
+};
+
 const FOLHA: FolhaDePontoDto = {
   clienteId: "c1",
   empresa: "Teste Ltda",
@@ -50,6 +118,18 @@ const FOLHA: FolhaDePontoDto = {
           diasComLanche: 0,
         },
         batidas: [],
+        extra: null,
+        abono: false,
+      },
+      // Outro dia já lançado: o cartão foi começado e o dia 16, vazio, é falta.
+      {
+        data: "2026-11-17",
+        diaDaSemana: 2,
+        feriado: false,
+        cargaMin: 525,
+        trabalhadoMin: 525,
+        apuracao: { ...ZERO, normaisMin: 525 },
+        batidas: [{ entrada: 480, saida: 1005 }],
         extra: null,
         abono: false,
       },
@@ -248,5 +328,73 @@ describe("CartaoDePontoContainer", () => {
       "href",
       "/rh/folha-de-ponto/c1?mes=2026-11",
     );
+  });
+
+  it("cartão novo abre com todas as linhas editáveis, sem um lápis por dia", () => {
+    render(<CartaoDePontoContainer folha={FOLHA_VAZIA} />);
+
+    expect(screen.getByLabelText("Entrada 1 de seg 16/11")).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Salvar seg 16/11" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Editar seg 16/11" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Abonar/ })).not.toBeInTheDocument();
+  });
+
+  it("cartão novo: Salvar da tabela grava só os dias digitados", async () => {
+    jest.mocked(salvarDiaDoPontoAction).mockResolvedValue({ ok: true, data: undefined });
+    const dois = {
+      ...FOLHA_VAZIA,
+      selecionado: {
+        ...FOLHA_VAZIA.selecionado!,
+        dias: [
+          FOLHA_VAZIA.selecionado!.dias[0],
+          { ...FOLHA_VAZIA.selecionado!.dias[0], data: "2026-11-17", diaDaSemana: 2 },
+        ],
+      },
+    };
+    render(<CartaoDePontoContainer folha={dois} />);
+    const u = userEvent.setup();
+
+    await u.type(screen.getByLabelText("Entrada 1 de seg 16/11"), "08:00");
+    await u.type(screen.getByLabelText("Saída 1 de seg 16/11"), "12:00");
+    await u.click(screen.getByRole("button", { name: "Salvar" }));
+
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    expect(salvarDiaDoPontoAction).toHaveBeenCalledTimes(1);
+    expect(salvarDiaDoPontoAction).toHaveBeenCalledWith(
+      expect.objectContaining({ data: "2026-11-16" }),
+    );
+  });
+
+  it("cartão já começado: o dia útil vazio é falta, com horários travados até o lápis", () => {
+    render(<CartaoDePontoContainer folha={FOLHA} />);
+
+    expect(screen.getByLabelText("Entrada 1 de seg 16/11")).toHaveAttribute("readonly");
+    expect(screen.getByRole("button", { name: "Editar seg 16/11" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Abonar seg 16/11" })).toBeInTheDocument();
+  });
+
+  it("Desfazer abono grava o dia vazio, sem Abono", async () => {
+    jest.mocked(salvarDiaDoPontoAction).mockResolvedValue({ ok: true, data: undefined });
+    const abonado = {
+      ...FOLHA,
+      selecionado: {
+        ...FOLHA.selecionado!,
+        dias: [{ ...FOLHA.selecionado!.dias[0], abono: true }, FOLHA.selecionado!.dias[1]],
+      },
+    };
+    render(<CartaoDePontoContainer folha={abonado} />);
+
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Desfazer abono de seg 16/11" }));
+
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    expect(salvarDiaDoPontoAction).toHaveBeenCalledWith({
+      empregadoId: "e1",
+      data: "2026-11-16",
+      batidas: [],
+      extra: null,
+      abono: false,
+    });
   });
 });

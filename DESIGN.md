@@ -547,8 +547,7 @@ O Cartão de ponto de um empregado (`/rh/folha-de-ponto/[cliente]/cartao/[empreg
 escritório (`PLANILHA CARTAO PONTO`, aba do funcionário): tabela com divisória em toda célula (`Tabela` com
 `grade`), cabeçalho de dois níveis (`agrupamento`: "Batidas", "Horas extras / Atrasos / Adicional noturno", "Horas extras por faixa"). **Sem linha Totais** no rodapé: a "Totalização do mês" abaixo da tabela já traz os mesmos números.
 Colunas, na ordem da planilha: Data (fixa), Dia semana, Entrada, Saída, Entrada, Saída, Extra entrada, Extra saída, H. Diária,
-Atrasos, Abono, Horas Extras, Adicional noturno (por extenso: a sigla A.N. não era clara), 1ª Faixa, 2ª Faixa e a coluna do botão Salvar, sem título visível (o botão já diz a função; o cabeçalho tem só texto para leitor de tela). Entrada, Saída, Extra e Abono são campos do
-dia; o resto é calculado (nunca digitado). Acima da tabela: Empresa e Período (o mês). A carga horária por dia da semana
+Atrasos, Horas Extras, Adicional noturno (por extenso: a sigla A.N. não era clara), 1ª Faixa, 2ª Faixa e a coluna do botão Salvar, sem título visível (o botão já diz a função; o cabeçalho tem só texto para leitor de tela). Entrada, Saída e Extra são campos do dia (o Abono não é coluna: é o botão do dia de falta); o resto é calculado (nunca digitado). Acima da tabela: Empresa e Período (o mês). A carga horária por dia da semana
 não se exibe (não tem uso na tela). A tela mostra o **mês de trabalho inteiro**, de 28 a 31 dias, numa só tabela; a quinzena só
 importa na leitura da foto do cartão, não na exibição. Dia sem jornada marca "Folga" sob a data; dia com carga e sem batida, "Falta".
 
@@ -563,9 +562,16 @@ importa na leitura da foto do cartão, não na exibição. Dia sem jornada marca
   "Falta"); **hora extra** = `info` (azul, nota "Hora extra"); **folga ou feriado** = `warning` (amarelo, nota
   "Folga" ou "Feriado"; feriado com hora extra fica azul, "Feriado · hora extra"); dia normal sem tom. Precedência:
   falta, hora extra, folga/feriado.
-- **Falta tem o botão Abonar.** No dia de falta a linha mostra, além do lápis, o botão de ícone "Abonar" (`warning`):
-  um clique grava o dia só com o Abono e a falta vira abonada. O lápis continua, para digitar as batidas de um
-  dia em que o empregado trabalhou (todo dia útil vazio é falta).
+- **Situação do dia** (decide o que a linha deixa digitar e o botão que mostra; calculada no presenter):
+  - **Cartão novo** (nenhum dia com dado: mês ou empregado novo): todas as linhas abrem já **editáveis**, sem um
+    lápis por dia, e o dia útil vazio fica **em branco** (neutro, sem "Falta", sem Abonar). O "Salvar" da tabela
+    grava só os dias digitados.
+  - **Falta** (dia útil vazio de um cartão já começado): horários **desabilitados** (evita lançar por engano),
+    botões lápis (única forma deliberada de lançar um horário) e "Abonar" (`warning`, um clique grava só o Abono).
+  - **Abonado** (abono sem batida): horários desabilitados; o botão é "Desfazer abono", que volta a falta. Não há
+    coluna nem caixa "Abono": o abono é o botão. Abono de dia com batida (atraso abonado) segue gravado ao salvar.
+  - **Folga ou feriado** (sem jornada): como toda hora trabalhada nesses dias é hora extra, só as colunas
+    **Extra entrada/saída** ficam habilitadas (Entrada e Saída, desabilitadas), salvo se já houver batida salva.
 - **Ação por linha e ações da tabela.** Cada linha tem só um botão de ícone (lápis); abrir várias linhas ao
   mesmo tempo é permitido. Entre a tabela e a Totalização fica a barra de ações, alinhada ao **fim da linha** (à direita), na hierarquia de
   cor **verde / amarelo / vermelho**: **Salvar** (`default`, o verde da marca; grava todas as
@@ -576,7 +582,6 @@ importa na leitura da foto do cartão, não na exibição. Dia sem jornada marca
   permissão de edição não há lápis nem barra.
 - **Um formulário por dia, fora da célula:** o `<form>` do dia fica na última célula e os campos das outras o
   alcançam pelo atributo `form`; `new FormData(form)` já os traz.
-- **Caixa sozinha em célula** (Abono): `CaixaDeMarcacao` com `rotuloOculto`, nomeada por "Abono de seg 16/11".
 
 ### Autopreenchimento a partir de API pública
 

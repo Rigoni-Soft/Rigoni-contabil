@@ -6,6 +6,7 @@ import type {
 } from "@/presentation/components/organisms/quadro-de-funcionarios.component";
 import type {
   DiaDaFolhaDto,
+  DiaDoPontoDto,
   EmpregadoDaFolhaDto,
   FolhaDePontoDto,
   ParDto,
@@ -65,20 +66,35 @@ export function itensDaTotalizacao(t: TotalizacaoDto, trabalhadoMin: number): It
 const hm = (par: ParDto | undefined, campo: keyof ParDto) => (par ? minutosParaHm(par[campo]) : "");
 
 const teveExtra = (dia: DiaDaFolhaDto) => extrasDoDia(dia.apuracao) > 0;
+export const temDados = (dia: DiaDoPontoDto) =>
+  dia.batidas.length > 0 || dia.extra !== null || dia.abono;
+const semBatida = (dia: DiaDoPontoDto) => dia.batidas.length === 0 && dia.extra === null;
+
+// A situação do dia, que decide o que a linha deixa digitar e qual botão ela mostra:
+// abonado (travado; "Desfazer abono"), falta (dia útil vazio de um cartão já começado; travado até o lápis),
+// folga (sem jornada ou feriado: só a coluna Extra), em branco (dia útil vazio de um cartão ainda sem nenhum
+// dado: neutro e já editável) e normal.
+function situacaoDoDia(dia: DiaDaFolhaDto, cartaoVazio: boolean): LinhaDoCartao["situacao"] {
+  if (dia.abono && semBatida(dia)) return "abonado";
+  if (dia.feriado || dia.cargaMin === 0) return "folga";
+  if (dia.apuracao.faltas > 0) return cartaoVazio ? "branco" : "falta";
+  return "normal";
+}
 
 // Texto do estado do dia sob a data (a cor da linha nunca vai sozinha).
-function notaDoDia(dia: DiaDaFolhaDto): string | undefined {
+function notaDoDia(dia: DiaDaFolhaDto, situacao: LinhaDoCartao["situacao"]): string | undefined {
   const base = dia.feriado ? "Feriado" : dia.cargaMin === 0 ? "Folga" : undefined;
-  if (dia.apuracao.faltas > 0) return "Falta";
+  if (situacao === "falta") return "Falta";
+  if (situacao === "abonado") return "Abonado";
   if (teveExtra(dia)) return base ? `${base} · hora extra` : "Hora extra";
   return base;
 }
 
 // O tom da linha: falta em vermelho suave, hora extra em azul, folga ou feriado em amarelo, dia normal sem tom.
-function tomDoDia(dia: DiaDaFolhaDto): LinhaDoCartao["tom"] {
-  if (dia.apuracao.faltas > 0) return "alerta";
+function tomDoDia(dia: DiaDaFolhaDto, situacao: LinhaDoCartao["situacao"]): LinhaDoCartao["tom"] {
+  if (situacao === "falta") return "alerta";
   if (teveExtra(dia)) return "info";
-  return dia.feriado || dia.cargaMin === 0 ? "atencao" : undefined;
+  return situacao === "folga" ? "atencao" : undefined;
 }
 
 // Faixas de hora extra do dia, da menor para a maior: "1h11 (50%)". A planilha tem 1ª e 2ª faixa.
@@ -88,8 +104,13 @@ const faixaDe = (e?: { percentual: number; minutos: number }) =>
 const extrasDoDia = (a: TotalizacaoDto) =>
   a.extras.reduce((soma, e) => soma + e.minutos, 0) + a.bancoDeHorasMin;
 
+// Cartão sem nenhum dado salvo (mês novo ou empregado novo): a tela abre com as linhas já editáveis.
+export const cartaoSemDados = (dias: DiaDoPontoDto[]) => !dias.some(temDados);
+
 export function linhasDoCartao(dias: DiaDaFolhaDto[]): LinhaDoCartao[] {
+  const vazio = cartaoSemDados(dias);
   return dias.map((dia) => {
+    const situacao = situacaoDoDia(dia, vazio);
     const [, mes, d] = dia.data.split("-");
     return {
       data: dia.data,
@@ -101,9 +122,9 @@ export function linhasDoCartao(dias: DiaDaFolhaDto[]): LinhaDoCartao[] {
       extraEntrada: hm(dia.extra ?? undefined, "entrada"),
       extraSaida: hm(dia.extra ?? undefined, "saida"),
       abono: dia.abono,
-      nota: notaDoDia(dia),
-      tom: tomDoDia(dia),
-      falta: dia.apuracao.faltas > 0,
+      nota: notaDoDia(dia, situacao),
+      tom: tomDoDia(dia, situacao),
+      situacao,
       diaSemana: SEMANA[dia.diaDaSemana],
       diaMes: `${d}/${mes}`,
       trabalhado: duracao(dia.trabalhadoMin),

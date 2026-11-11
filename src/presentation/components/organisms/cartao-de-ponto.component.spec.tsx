@@ -13,7 +13,7 @@ const LINHA = {
   extraEntrada: "",
   extraSaida: "",
   abono: false,
-  falta: false,
+  situacao: "normal" as const,
   diaSemana: "seg",
   diaMes: "16/11",
   trabalhado: "0h00",
@@ -41,6 +41,7 @@ const PROPS = {
   totalizacaoDestacada: false,
   onEditarDia: jest.fn(),
   onAbonarDia: jest.fn(),
+  onDesfazerAbonoDia: jest.fn(),
   onCancelarDia: jest.fn(),
   onSalvarDia: jest.fn(),
   onSalvarTabela: jest.fn(),
@@ -64,6 +65,8 @@ describe("CartaoDePonto", () => {
     expect(screen.getByRole("columnheader", { name: "Adicional noturno" })).toBeInTheDocument();
     expect(screen.queryByText("A.N.")).not.toBeInTheDocument();
     expect(screen.queryByText("Dia", { exact: true })).not.toBeInTheDocument();
+    // A coluna Abono saiu: o abono é o botão da falta.
+    expect(screen.queryByRole("columnheader", { name: "Abono" })).not.toBeInTheDocument();
   });
 
   it("em leitura avisa que só o Responsável digita", () => {

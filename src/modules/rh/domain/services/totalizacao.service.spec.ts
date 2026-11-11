@@ -115,6 +115,15 @@ describe("totalizarDia: sábado, domingo e feriado", () => {
     expect(totalizarDia(dia("2026-11-02", { feriado: true }), J)).toMatchObject({ faltas: 0 });
   });
 
+  it("feriado trabalhado só na coluna Extra também conta um feriado trabalhado", () => {
+    const t = totalizarDia(
+      dia("2026-11-02", { feriado: true, extra: { entrada: hm("08:00"), saida: hm("12:00") } }),
+      J,
+    );
+    expect(t).toMatchObject({ feriadosTrabalhados: 1, faltas: 0 });
+    expect(t.extras).toEqual([{ percentual: 100, minutos: 240 }]);
+  });
+
   it("feriado trabalhado: tudo é hora extra de 100% e conta um feriado trabalhado", () => {
     const t = totalizarDia(dia("2026-11-02", { feriado: true, batidas: completo }), J);
     expect(t).toMatchObject({

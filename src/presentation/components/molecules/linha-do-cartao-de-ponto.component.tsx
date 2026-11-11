@@ -1,7 +1,6 @@
-import { CalendarCheck, Check, Pencil, X } from "lucide-react";
+import { CalendarCheck, CalendarX, Check, Pencil, X } from "lucide-react";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
-import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcacao.component";
 import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
 import {
   CelulaDeTabela,
@@ -30,8 +29,10 @@ export type LinhaDoCartao = {
   nota?: string;
   // Estado do dia na cor da linha: falta (alerta), folga/feriado (atencao), hora extra (info), dia normal (sem tom).
   tom?: "alerta" | "atencao" | "info";
-  // Dia de falta: a ação da linha ganha o "Abonar", que troca a falta por abonada.
-  falta: boolean;
+  // O que a linha deixa digitar e a ação que mostra:
+  // abonado (travado; "Desfazer abono"), falta (travado até o lápis; "Abonar"), folga (sem jornada ou feriado: só a
+  // coluna Extra), em branco (cartão sem dados: neutro) e normal.
+  situacao: "normal" | "falta" | "abonado" | "folga" | "branco";
   // H. Diária, Atrasos, Horas Extras, 1ª e 2ª faixa e Adicional noturno do dia, como na planilha.
   trabalhado: string;
   atraso: string;
@@ -56,6 +57,7 @@ type Props = {
   aviso?: AvisoDoDia;
   onEditar: (data: string) => void;
   onAbonar: (data: string) => void;
+  onDesfazerAbono: (data: string) => void;
   onCancelar: (data: string) => void;
   onSalvar: (data: string, campos: FormData) => void;
 };
@@ -85,12 +87,18 @@ export function LinhaDoCartaoDePonto({
   aviso,
   onEditar,
   onAbonar,
+  onDesfazerAbono,
   onCancelar,
   onSalvar,
 }: Props) {
   const idDoForm = idDoFormDoDia(linha.data);
   const idDoAviso = `aviso-${linha.data}`;
   const destravada = editavel && emEdicao;
+  const abonado = linha.situacao === "abonado";
+  // Dia abonado não tem horário; folga e feriado só têm a coluna Extra (toda hora trabalhada neles é extra),
+  // salvo se já houver batida salva (nada some sem querer).
+  const semBatidaSalva = !linha.entrada1 && !linha.saida1 && !linha.entrada2 && !linha.saida2;
+  const batidasTravadas = abonado || (linha.situacao === "folga" && semBatidaSalva);
   return (
     <LinhaDeTabela tom={linha.tom}>
       <CelulaDeTabela fixa>
@@ -104,39 +112,37 @@ export function LinhaDoCartaoDePonto({
         )}
       </CelulaDeTabela>
       <CelulaDeTabela>{linha.diaSemana}</CelulaDeTabela>
-      {CAMPOS.map(([nome, rotulo]) => (
-        <CelulaDeTabela key={nome} compacta>
-          <Input
-            type="time"
-            form={idDoForm}
-            name={nome}
-            defaultValue={limpa ? "" : linha[nome]}
-            // readOnly: fora da edição o horário segue legível e focável (disabled o esmaece e tira da tabulação).
-            readOnly={!destravada}
-            aria-label={`${rotulo} de ${linha.rotulo}`}
-            aria-describedby={aviso ? idDoAviso : undefined}
-            className="w-[4.5rem] px-1.5 [&::-webkit-calendar-picker-indicator]:hidden"
-          />
-        </CelulaDeTabela>
-      ))}
+      {CAMPOS.map(([nome, rotulo]) => {
+        const ehExtra = nome.startsWith("extra");
+        const desabilitado = ehExtra ? abonado : batidasTravadas;
+        return (
+          <CelulaDeTabela key={nome} compacta>
+            <Input
+              type="time"
+              form={idDoForm}
+              name={nome}
+              defaultValue={limpa ? "" : linha[nome]}
+              // readOnly: fora da edição o horário segue legível e focável (disabled o esmaece e tira da tabulação).
+              readOnly={!destravada}
+              disabled={desabilitado}
+              aria-label={`${rotulo} de ${linha.rotulo}`}
+              aria-describedby={aviso ? idDoAviso : undefined}
+              className="w-[4.5rem] px-1.5 [&::-webkit-calendar-picker-indicator]:hidden"
+            />
+          </CelulaDeTabela>
+        );
+      })}
       <CelulaDeTabela numerica>{linha.trabalhado}</CelulaDeTabela>
       <CelulaDeTabela numerica>{linha.atraso}</CelulaDeTabela>
-      <CelulaDeTabela centro>
-        <CaixaDeMarcacao
-          rotulo={`Abono de ${linha.rotulo}`}
-          rotuloOculto
-          form={idDoForm}
-          name="abono"
-          defaultChecked={limpa ? false : linha.abono}
-          disabled={!destravada}
-          className="justify-center"
-        />
-      </CelulaDeTabela>
       <CelulaDeTabela numerica>{linha.extras}</CelulaDeTabela>
       <CelulaDeTabela numerica>{linha.noturno}</CelulaDeTabela>
       <CelulaDeTabela numerica>{linha.faixa1}</CelulaDeTabela>
       <CelulaDeTabela numerica>{linha.faixa2}</CelulaDeTabela>
       <CelulaDeTabela compacta>
+        {/* Sem coluna Abono: o abono de dia com batida (atraso abonado) segue gravado ao salvar. */}
+        {linha.abono && !limpa && !abonado && (
+          <Input type="hidden" form={idDoForm} name="abono" value="on" readOnly />
+        )}
         <Caixa
           como="form"
           id={idDoForm}
@@ -146,7 +152,19 @@ export function LinhaDoCartaoDePonto({
             onSalvar(linha.data, new FormData(e.currentTarget));
           }}
         >
-          {editavel && !emEdicao && (
+          {editavel && !emEdicao && abonado && (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              disabled={pendente}
+              onClick={() => onDesfazerAbono(linha.data)}
+              aria-label={`Desfazer abono de ${linha.rotulo}`}
+            >
+              <CalendarX className="size-4" aria-hidden="true" />
+            </Button>
+          )}
+          {editavel && !emEdicao && !abonado && (
             <Linha espaco={1} alinhar="centro">
               <Button
                 type="button"
@@ -159,7 +177,7 @@ export function LinhaDoCartaoDePonto({
                 <Pencil className="size-4" aria-hidden="true" />
               </Button>
               {/* Falta: um clique troca a falta por abonada (sem digitar horário). */}
-              {linha.falta && (
+              {linha.situacao === "falta" && (
                 <Button
                   type="button"
                   variant="warning"

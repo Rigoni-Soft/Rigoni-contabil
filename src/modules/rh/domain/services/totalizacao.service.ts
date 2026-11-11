@@ -166,6 +166,8 @@ function apurarDia(
   const carga = jornada[semana];
 
   if (dia.extra) t.noturnoMin += minutosNoturnos([dia.extra]);
+  // Feriado trabalhado só na coluna Extra (feriado e folga só têm a Extra liberada na tela) também conta.
+  if (dia.extra && dia.feriado) t.feriadosTrabalhados = 1;
   somarExtra(dia.extra ? duracao(dia.extra) : 0);
 
   const trabalhado = dia.batidas.reduce((soma, p) => soma + duracao(p), 0);

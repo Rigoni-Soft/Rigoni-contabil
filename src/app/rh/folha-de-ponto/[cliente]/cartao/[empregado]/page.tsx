@@ -36,7 +36,15 @@ export default async function Page({ params, searchParams }: Props) {
       voltarHref={voltarHref}
       erro={folha.ok ? undefined : folha.error.message}
       tentarNovamenteHref={voltarHref}
-      conteudo={folha.ok && <CartaoDePontoContainer folha={folha.value} />}
+      // A chave recomeça o estado (linhas abertas) a cada mês e empregado.
+      conteudo={
+        folha.ok && (
+          <CartaoDePontoContainer
+            key={`${empregado}|${folha.value.competencia}`}
+            folha={folha.value}
+          />
+        )
+      }
     />
   );
 }
