@@ -39,12 +39,7 @@ export default defineConfig([
   ]),
   {
     files: ["src/**/*.{ts,tsx}"],
-    // O Prettier não reflowa comentário: linha longa de comentário só este limite pega.
     rules: {
-      "max-len": [
-        "error",
-        { code: 1000, comments: 110, ignoreUrls: true, ignorePattern: "eslint-disable" },
-      ],
       "@typescript-eslint/consistent-type-imports": [
         "error",
         { prefer: "type-imports", fixStyle: "separate-type-imports" },
@@ -101,4 +96,15 @@ export default defineConfig([
     },
   },
   prettier,
+  {
+    // Depois do `prettier`, que desliga o max-len: ele não reflowa comentário, só este limite pega
+    // (aviso: 19 comentários antigos passam de 120; vira erro depois de reformatá-los).
+    files: ["src/**/*.{ts,tsx}"],
+    rules: {
+      "max-len": [
+        "warn",
+        { code: 100000, comments: 120, ignoreUrls: true, ignorePattern: "eslint-disable" },
+      ],
+    },
+  },
 ]);
