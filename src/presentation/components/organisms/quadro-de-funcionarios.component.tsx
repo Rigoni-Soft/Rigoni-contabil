@@ -77,7 +77,7 @@ function CamposDoEmpregado({
         aria-describedby={erro ? "erro-do-novo-empregado" : undefined}
         aria-invalid={!!erro}
       />
-      <Caixa className="flex items-center sm:col-span-2 sm:min-h-9 sm:self-end pointer-coarse:min-h-11">
+      <Caixa className="flex min-h-9 items-center sm:col-span-2 sm:self-end pointer-coarse:min-h-11">
         <CaixaDeMarcacao rotulo="Comissionado" name="comissionado" defaultChecked={comissionado} />
       </Caixa>
       {DIAS.map((dia, i) => (
