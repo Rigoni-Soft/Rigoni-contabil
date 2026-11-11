@@ -2,10 +2,17 @@ import { ConsoleRegistroDeErrosGateway as ConsoleUsuarios } from "@/modules/usua
 
 import "server-only";
 
+import { EXTRACAO_CONVENCAO_MODO } from "@/env";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { auditoriaBestEffort } from "@/main/auditoria.factory";
+import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
+import type {
+  DefinirConvencaoDoEmpregadoPort,
+  DefinirInterruptoresDoClientePort,
+  EnviarConvencaoPort,
+} from "@/modules/rh/application/ports/in/gerir-convencao.provider";
 import type {
   CadastrarEmpregadoPort,
   CorrigirEmpregadoPort,
@@ -24,9 +31,15 @@ import type {
 } from "@/modules/rh/application/ports/in/marcar-servico-acompanhamento.provider";
 import type { ObterAcompanhamentoFuncionariosPort } from "@/modules/rh/application/ports/in/obter-acompanhamento-funcionarios.provider";
 import type { ObterAcompanhamentoMensalPort } from "@/modules/rh/application/ports/in/obter-acompanhamento-mensal.provider";
+import type { ObterConvencoesDoClientePort } from "@/modules/rh/application/ports/in/obter-convencoes-do-cliente.provider";
 import type { ObterFolhaDePontoPort } from "@/modules/rh/application/ports/in/obter-folha-de-ponto.provider";
 import type { SalvarDiaDoPontoPort } from "@/modules/rh/application/ports/in/salvar-dia-do-ponto.provider";
 import type { AtorSessaoDto, SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
+import {
+  DefinirConvencaoDoEmpregado,
+  DefinirInterruptoresDoCliente,
+} from "@/modules/rh/application/use-cases/definir-convencao-do-ponto.use-case";
+import { EnviarConvencao } from "@/modules/rh/application/use-cases/enviar-convencao.use-case";
 import {
   CadastrarEmpregado,
   CorrigirEmpregado,
@@ -45,11 +58,16 @@ import {
 } from "@/modules/rh/application/use-cases/marcar-servico-acompanhamento.use-case";
 import { ObterAcompanhamentoFuncionarios } from "@/modules/rh/application/use-cases/obter-acompanhamento-funcionarios.use-case";
 import { ObterAcompanhamentoMensal } from "@/modules/rh/application/use-cases/obter-acompanhamento-mensal.use-case";
+import { ObterConvencoesDoCliente } from "@/modules/rh/application/use-cases/obter-convencoes-do-cliente.use-case";
 import { ObterFolhaDePonto } from "@/modules/rh/application/use-cases/obter-folha-de-ponto.use-case";
 import { SalvarDiaDoPonto } from "@/modules/rh/application/use-cases/salvar-dia-do-ponto.use-case";
 import { ConsoleRegistroDeErrosGateway as ConsoleRh } from "@/modules/rh/infra/gateways/console-registro-de-erros.gateway";
+import { ExtratorDeRegrasFalsoGateway } from "@/modules/rh/infra/gateways/extrator-de-regras-falso.gateway";
+import { ExtratorDeRegrasIndisponivelGateway } from "@/modules/rh/infra/gateways/extrator-de-regras-indisponivel.gateway";
 import { RelogioSistemaGateway } from "@/modules/rh/infra/gateways/relogio-sistema.gateway";
+import { SupabaseArmazenamentoDeConvencaoGateway } from "@/modules/rh/infra/gateways/supabase-armazenamento-de-convencao.gateway";
 import { SupabaseAcompanhamentoRepository } from "@/modules/rh/infra/repositories/acompanhamento.repository";
+import { SupabaseConvencaoRepository } from "@/modules/rh/infra/repositories/convencao.repository";
 import { SupabaseFolhaDePontoRepository } from "@/modules/rh/infra/repositories/folha-de-ponto.repository";
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
 import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabase-sessao.gateway";
@@ -165,4 +183,39 @@ export async function makeDefinirPadraoComissionados(): Promise<DefinirPadraoCom
 export async function makeSalvarDiaDoPonto(): Promise<SalvarDiaDoPontoPort> {
   const { sessao, repositorio, auditoria } = await montarFolha();
   return new SalvarDiaDoPonto(sessao, repositorio, auditoria);
+}
+
+export async function makeObterConvencoesDoCliente(): Promise<ObterConvencoesDoClientePort> {
+  const supabase = await createSupabaseServer();
+  return new ObterConvencoesDoCliente(
+    sessaoViaUsuarios(supabase),
+    new SupabaseFolhaDePontoRepository(supabase, errosRh),
+    new SupabaseConvencaoRepository(supabase, errosRh),
+  );
+}
+
+// O PDF vai para o bucket privado pelo client de serviço (o bucket não tem policy para o usuário); o caso de
+// uso autoriza antes e a gravação da convenção passa pela RLS com a sessão do usuário.
+export async function makeEnviarConvencao(): Promise<EnviarConvencaoPort> {
+  const supabase = await createSupabaseServer();
+  return new EnviarConvencao(
+    sessaoViaUsuarios(supabase),
+    new SupabaseFolhaDePontoRepository(supabase, errosRh),
+    new SupabaseConvencaoRepository(supabase, errosRh),
+    new SupabaseArmazenamentoDeConvencaoGateway(createSupabaseAdmin()),
+    EXTRACAO_CONVENCAO_MODO === "falso"
+      ? new ExtratorDeRegrasFalsoGateway()
+      : new ExtratorDeRegrasIndisponivelGateway(),
+    auditoriaBestEffort(errosRh),
+  );
+}
+
+export async function makeDefinirInterruptoresDoCliente(): Promise<DefinirInterruptoresDoClientePort> {
+  const { sessao, repositorio, auditoria } = await montarFolha();
+  return new DefinirInterruptoresDoCliente(sessao, repositorio, auditoria);
+}
+
+export async function makeDefinirConvencaoDoEmpregado(): Promise<DefinirConvencaoDoEmpregadoPort> {
+  const { sessao, repositorio, auditoria } = await montarFolha();
+  return new DefinirConvencaoDoEmpregado(sessao, repositorio, auditoria);
 }

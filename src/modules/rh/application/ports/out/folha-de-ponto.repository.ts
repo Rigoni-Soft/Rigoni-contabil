@@ -1,3 +1,4 @@
+import type { InterruptoresDoClienteDto } from "@/modules/rh/application/dtos/convencao.dto";
 import type {
   DiaDoPontoDto,
   EmpregadoDto,
@@ -39,4 +40,17 @@ export interface FolhaDePontoRepository {
     dia: { data: string; batidas: ParDto[]; extra: ParDto | null; abono: boolean },
   ): Promise<Result<void, AppError>>;
   listarFeriados(de: string, ate: string): Promise<Result<string[], AppError>>;
+  buscarInterruptores(clienteId: string): Promise<Result<InterruptoresDoClienteDto, AppError>>;
+  definirInterruptores(
+    clienteId: string,
+    interruptores: InterruptoresDoClienteDto,
+  ): Promise<Result<void, AppError>>;
+  // Sindicato da convenção que cada empregado do Cliente segue (nulo = a única do Cliente).
+  listarConvencaoDosEmpregados(
+    clienteId: string,
+  ): Promise<Result<{ empregadoId: string; sindicato: string | null }[], AppError>>;
+  definirConvencaoDoEmpregado(
+    empregadoId: string,
+    sindicato: string | null,
+  ): Promise<Result<void, AppError>>;
 }

@@ -127,3 +127,9 @@ export function podeGerirServicosRh(papel: string, setor: string): boolean {
 export function podeVerAcompanhamentoDosFuncionariosRh(papel: string, setor: string): boolean {
   return papel === "admin" || (papel === "lider_setor" && setor === SETOR_RH);
 }
+
+// Convenção coletiva do Cliente (RH): sobe, renova e vê o histórico só o Líder do RH e o Admin; o Responsável do RH
+// do Cliente lê as regras aplicadas (a RLS recorta por Cliente).
+export function podeGerirConvencaoRh(papel: string, setor: string): boolean {
+  return papel === "admin" || (papel === "lider_setor" && setor === SETOR_RH);
+}

@@ -1,5 +1,6 @@
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 
+import type { InterruptoresDoClienteDto } from "@/modules/rh/application/dtos/convencao.dto";
 import type {
   DiaDoPontoDto,
   EmpregadoDto,
@@ -213,6 +214,64 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
     return ok(data.map((f) => f.data as string));
   }
 
+  async buscarInterruptores(
+    clienteId: string,
+  ): Promise<Result<InterruptoresDoClienteDto, AppError>> {
+    const { data, error } = await this.supabase
+      .from("rh_cliente_interruptores")
+      .select("banco_de_horas, trabalho_aos_domingos")
+      .eq("cliente_id", clienteId)
+      .maybeSingle();
+    if (error) return this.falhaDeLeitura(error);
+    return ok({
+      bancoDeHoras: data?.banco_de_horas ?? false,
+      trabalhoAosDomingos: data?.trabalho_aos_domingos ?? false,
+    });
+  }
+
+  async definirInterruptores(
+    clienteId: string,
+    interruptores: InterruptoresDoClienteDto,
+  ): Promise<Result<void, AppError>> {
+    const { error } = await this.supabase.from("rh_cliente_interruptores").upsert(
+      {
+        cliente_id: clienteId,
+        banco_de_horas: interruptores.bancoDeHoras,
+        trabalho_aos_domingos: interruptores.trabalhoAosDomingos,
+      },
+      { onConflict: "cliente_id" },
+    );
+    return this.resultado(error);
+  }
+
+  async listarConvencaoDosEmpregados(
+    clienteId: string,
+  ): Promise<Result<{ empregadoId: string; sindicato: string | null }[], AppError>> {
+    const { data, error } = await this.supabase
+      .from("rh_empregados")
+      .select("id, convencao_sindicato")
+      .eq("cliente_id", clienteId);
+    if (error) return this.falhaDeLeitura(error);
+    return ok(
+      data.map((e) => ({
+        empregadoId: e.id as string,
+        sindicato: (e.convencao_sindicato as string | null) ?? null,
+      })),
+    );
+  }
+
+  async definirConvencaoDoEmpregado(
+    empregadoId: string,
+    sindicato: string | null,
+  ): Promise<Result<void, AppError>> {
+    const { data, error } = await this.supabase
+      .from("rh_empregados")
+      .update({ convencao_sindicato: sindicato })
+      .eq("id", empregadoId)
+      .select("id");
+    return this.resultadoComLinhas(error, data);
+  }
+
   // A RLS esconde a linha de quem não pode: o UPDATE não dá erro, só não afeta nada.
   private resultadoComLinhas(
     error: PostgrestError | null,
@@ -228,6 +287,9 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
     if (!error) return ok(undefined);
     if (error.code === "42501") {
       return err(new ForbiddenError("Você não pode alterar a Folha de ponto deste cliente."));
+    }
+    if (error.message.includes("rh_convencao_inexistente")) {
+      return err(new ValidationError("O Cliente não tem convenção deste sindicato."));
     }
     if (error.message.includes("rh_empregado_inativo")) {
       return err(new ValidationError("Este empregado está inativo."));

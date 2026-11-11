@@ -1,5 +1,6 @@
 import {
   podeEditarCadastroRh,
+  podeGerirConvencaoRh,
   podeGerirParcelamento,
   podeOperarParcelamento,
   podeVerComparativoDoSetor,
@@ -86,5 +87,16 @@ describe("veCarteiraInteira", () => {
     ["papel_novo", false],
   ])("%s vê a carteira inteira: %s", (papel, esperado) => {
     expect(veCarteiraInteira(papel)).toBe(esperado);
+  });
+});
+
+describe("podeGerirConvencaoRh", () => {
+  it.each([
+    ["admin", "sn", true],
+    ["lider_setor", "rh", true],
+    ["lider_setor", "sn", false],
+    ["funcionario", "rh", false],
+  ])("%s do setor %s: %s", (papel, setor, esperado) => {
+    expect(podeGerirConvencaoRh(papel, setor)).toBe(esperado);
   });
 });
