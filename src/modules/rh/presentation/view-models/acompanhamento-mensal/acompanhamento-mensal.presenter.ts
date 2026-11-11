@@ -95,10 +95,8 @@ export function servicosDoCliente(dto: AcompanhamentoMensalDto, clienteId: strin
     nome: dto.servicos.find((s) => s.id === c.servicoId)?.nome ?? "",
     estado: estadoDoServico(c),
     bloqueio: bloqueioDe(c.servicoId),
+    // O Holerite mostra empregados cadastrados x cartões feitos, na própria linha dele.
+    detalhe: linha && sistema.has(c.servicoId) ? resumoDoHolerite(linha.holerite) : undefined,
   }));
-  return {
-    servicos,
-    aviso: linha ? undefined : AVISO_SEM_VISTA,
-    resumoDoHolerite: linha && resumoDoHolerite(linha.holerite),
-  };
+  return { servicos, aviso: linha ? undefined : AVISO_SEM_VISTA };
 }

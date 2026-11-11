@@ -14,6 +14,8 @@ export type Servico = {
   nome: string;
   estado: EstadoDoServico;
   bloqueio?: string;
+  // Texto de apoio do serviço (ex.: cartões feitos do Holerite), ligado ao seletor.
+  detalhe?: string;
 };
 
 const APAGADO = "border-dashed bg-muted text-muted-foreground";
@@ -28,22 +30,13 @@ type Props = {
   servicos: Servico[];
   // Motivo que vale para o cartão todo (ex.: sem Responsável): aparece visível, além do leitor de tela.
   aviso?: string;
-  // Empregados cadastrados x cartões feitos no mês: o que falta para o Holerite concluir.
-  resumoDoHolerite?: string;
   pendente: boolean;
   erro?: string;
   onTrocar: (servicoId: string, de: EstadoDoServico, para: EstadoDoServico) => void;
 };
 
 // O acompanhamento do mês de um Cliente no painel dele: um serviço por linha, como o DAS no painel do SN.
-export function AcompanhamentoDoClienteRh({
-  servicos,
-  aviso,
-  resumoDoHolerite,
-  pendente,
-  erro,
-  onTrocar,
-}: Props) {
+export function AcompanhamentoDoClienteRh({ servicos, aviso, pendente, erro, onTrocar }: Props) {
   return (
     <>
       {aviso && <Texto variante="apoio">{aviso}</Texto>}
@@ -57,7 +50,11 @@ export function AcompanhamentoDoClienteRh({
               value={s.estado}
               className={cn(CLASSE_DO_ESTADO[s.estado], pendente && "cursor-wait opacity-70")}
               disabled={!!s.bloqueio || s.estado === "nunca_aplica"}
-              aria-describedby={s.bloqueio ? `bloqueio-${s.servicoId}` : undefined}
+              aria-describedby={
+                [s.bloqueio && `bloqueio-${s.servicoId}`, s.detalhe && `detalhe-${s.servicoId}`]
+                  .filter(Boolean)
+                  .join(" ") || undefined
+              }
               aria-busy={pendente}
               onChange={(e) =>
                 !pendente && onTrocar(s.servicoId, s.estado, e.target.value as EstadoDoServico)
@@ -81,6 +78,11 @@ export function AcompanhamentoDoClienteRh({
                 Reativar
               </Button>
             )}
+            {s.detalhe && (
+              <Texto variante="apoio" id={`detalhe-${s.servicoId}`}>
+                {s.detalhe}
+              </Texto>
+            )}
             {s.bloqueio && (
               <Texto como="span" variante="somenteLeitor" id={`bloqueio-${s.servicoId}`}>
                 {s.bloqueio}
@@ -89,7 +91,6 @@ export function AcompanhamentoDoClienteRh({
           </Pilha>
         ))}
       </Grade>
-      {resumoDoHolerite && <Texto variante="apoio">{resumoDoHolerite}</Texto>}
     </>
   );
 }

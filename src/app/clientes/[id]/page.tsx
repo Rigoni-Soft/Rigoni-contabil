@@ -102,7 +102,7 @@ async function acompanhamentoRhDoCliente(
   if (!podeVerAcompanhamentoRh(sessao.papel, sessao.setor)) return undefined;
   const acompanhamento = await carregarAcompanhamentoMensal(mes);
   if (!acompanhamento.ok) return undefined;
-  const { servicos, aviso, resumoDoHolerite } = servicosDoCliente(acompanhamento.value, clienteId);
+  const { servicos, aviso } = servicosDoCliente(acompanhamento.value, clienteId);
 
   const { competencia } = acompanhamento.value;
   // O mês (só links) e a lista (com estado) são dois nós: o mês entra no topo do cartão, na ordem do foco.
@@ -121,7 +121,6 @@ async function acompanhamentoRhDoCliente(
         competencia={competencia}
         servicos={servicos}
         aviso={aviso}
-        resumoDoHolerite={resumoDoHolerite}
       />
     ),
   };

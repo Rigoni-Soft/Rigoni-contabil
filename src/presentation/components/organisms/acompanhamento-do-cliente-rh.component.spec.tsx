@@ -70,12 +70,18 @@ describe("AcompanhamentoDoClienteRh", () => {
     render(
       <AcompanhamentoDoClienteRh
         {...PROPS}
-        resumoDoHolerite="2 empregados cadastrados · 1 de 2 cartões feitos no mês"
+        servicos={PROPS.servicos.map((s) =>
+          s.servicoId === "holerite"
+            ? { ...s, detalhe: "2 empregados cadastrados · 1 de 2 cartões feitos no mês" }
+            : s,
+        )}
       />,
     );
 
-    expect(
-      screen.getByText("2 empregados cadastrados · 1 de 2 cartões feitos no mês"),
-    ).toBeInTheDocument();
+    const detalhe = screen.getByText("2 empregados cadastrados · 1 de 2 cartões feitos no mês");
+    expect(detalhe).toBeInTheDocument();
+    expect(screen.getByLabelText("Holerite")).toHaveAccessibleDescription(
+      expect.stringContaining("1 de 2 cartões feitos"),
+    );
   });
 });

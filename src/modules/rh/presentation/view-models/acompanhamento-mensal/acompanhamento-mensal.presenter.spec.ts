@@ -46,10 +46,15 @@ describe("acompanhamento-mensal.presenter", () => {
       ["Holerite", "pendente", "O Holerite é preenchido pelo sistema."],
     ]);
     expect(servicosDoCliente(dto, "c1").aviso).toBeUndefined();
-    expect(servicosDoCliente(dto, "c1").resumoDoHolerite).toBe(
+    expect(servicosDoCliente(dto, "c1").servicos.map((s) => s.detalhe)).toEqual([
+      undefined,
+      undefined,
+      undefined,
       "3 empregados cadastrados, 1 sem movimento · 1 de 2 cartões feitos no mês",
+    ]);
+    expect(servicosDoCliente(dto, "outro").servicos.every((s) => s.detalhe === undefined)).toBe(
+      true,
     );
-    expect(servicosDoCliente(dto, "outro").resumoDoHolerite).toBeUndefined();
     const { servicos, aviso } = servicosDoCliente(dto, "outro");
     expect(aviso).toMatch(/não está na sua vista/);
     expect(servicos.map((s) => [s.nome, s.estado, s.bloqueio])).toEqual([
