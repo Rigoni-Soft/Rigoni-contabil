@@ -39,7 +39,11 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
 
   async buscarCliente(clienteId: string): Promise<Result<ClienteDoPontoDto | null, AppError>> {
     const [cliente, responsavel] = await Promise.all([
-      this.supabase.from("clientes_basico").select("cnpj").eq("id", clienteId).maybeSingle(),
+      this.supabase
+        .from("clientes_basico")
+        .select("cnpj, empresa")
+        .eq("id", clienteId)
+        .maybeSingle(),
       this.supabase
         .from("cliente_responsaveis")
         .select("responsavel_id")
@@ -50,7 +54,11 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
     if (cliente.error) return this.falhaDeLeitura(cliente.error);
     if (responsavel.error) return this.falhaDeLeitura(responsavel.error);
     if (!cliente.data) return ok(null);
-    return ok({ cnpj: cliente.data.cnpj, responsavelId: responsavel.data?.responsavel_id ?? null });
+    return ok({
+      cnpj: cliente.data.cnpj,
+      empresa: cliente.data.empresa,
+      responsavelId: responsavel.data?.responsavel_id ?? null,
+    });
   }
 
   async buscarClienteDoEmpregado(empregadoId: string): Promise<Result<string | null, AppError>> {

@@ -19,6 +19,8 @@ export type LinhaDoCartao = {
   abono: boolean;
   // Feriado ou dia sem jornada: o motivo aparece ao lado do dia.
   nota?: string;
+  // As colunas calculadas do dia (H. diária, atrasos, extras por faixa, A.N.), numa linha de texto.
+  resumo: string;
 };
 
 // Resultado do último "Salvar" deste dia, ao lado dele (não no topo do cartão).
@@ -79,6 +81,9 @@ export function LinhaDoCartaoDePonto({ linha, editavel, pendente, aviso, onSalva
             className="gap-1"
           />
         ))}
+        <Texto variante="apoio" className="col-span-2 sm:col-span-3">
+          {linha.resumo}
+        </Texto>
         <Linha alinhar="centro" espaco={4} quebra className="col-span-2 sm:col-span-3">
           <CaixaDeMarcacao
             rotulo="Abono"

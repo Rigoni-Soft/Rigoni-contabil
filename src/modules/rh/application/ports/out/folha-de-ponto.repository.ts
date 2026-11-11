@@ -8,7 +8,7 @@ import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
 export type DadosDoEmpregado = { nome: string; jornada: number[]; comissionado: boolean };
-export type ClienteDoPontoDto = { cnpj: string; responsavelId: string | null };
+export type ClienteDoPontoDto = { cnpj: string; empresa: string; responsavelId: string | null };
 
 // `competencia` é o primeiro dia do mês ("AAAA-MM-01"). O banco (RLS + gatilhos) é a última barreira.
 export interface FolhaDePontoRepository {

@@ -12,9 +12,13 @@ const LINHA = {
   extraEntrada: "",
   extraSaida: "",
   abono: false,
+  resumo: "H. diária 0h00 · Atrasos 0h00 · Extras 0h00 · A.N. 0h00",
 };
 const PROPS = {
   empregado: "Ana",
+  empresa: "Teste Ltda",
+  periodo: "novembro de 2026, 2ª quinzena (16 ao fim)",
+  cargaHoraria: [{ rotulo: "seg", valor: "8h45" }],
   rotuloMes: "novembro de 2026",
   mesAnteriorHref: "/rh/folha-de-ponto/c1?mes=2026-10",
   quinzenas: [
@@ -41,6 +45,13 @@ describe("CartaoDePonto", () => {
     );
     expect(screen.getByRole("form", { name: "Dia seg 16/11" })).toBeInTheDocument();
     expect(screen.getByText("1 dia")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Empresa: Teste Ltda · Período: novembro de 2026, 2ª quinzena/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: "Carga horária por dia da semana" }),
+    ).toHaveTextContent("8h45");
+    expect(screen.getByText(/H\. diária 0h00 · Atrasos/)).toBeInTheDocument();
   });
 
   it("em leitura avisa que só o Responsável digita", () => {

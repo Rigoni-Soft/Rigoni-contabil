@@ -85,6 +85,13 @@ function minutosNoturnos(pares: Par[]): number {
   return Math.round((real * 8) / 7);
 }
 
+// A "H. Diária" do cartão: tudo o que foi batido no dia, nas duas batidas e na coluna Extra.
+export function minutosTrabalhados(dia: Pick<DiaDoCartao, "batidas" | "extra">): number {
+  return (
+    dia.batidas.reduce((soma, p) => soma + duracao(p), 0) + (dia.extra ? duracao(dia.extra) : 0)
+  );
+}
+
 const ZERO: Totalizacao = {
   normaisMin: 0,
   extras: [],

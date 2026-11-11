@@ -33,6 +33,7 @@ const ANA = {
 };
 const FOLHA: FolhaDePontoDto = {
   clienteId: "c1",
+  empresa: "Teste Ltda",
   competencia: "2026-11",
   quinzena: 1,
   padraoComissionados: false,

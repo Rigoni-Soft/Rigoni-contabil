@@ -1,5 +1,6 @@
 import type { FolhaDePontoDto } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
 import {
+  cargaHorariaDoCartao,
   hmParaMinutos,
   hrefDaFolha,
   hrefDoCartao,
@@ -25,12 +26,28 @@ const ANA = {
 };
 const FOLHA: FolhaDePontoDto = {
   clienteId: "c1",
+  empresa: "Teste Ltda",
   competencia: "2020-11",
   quinzena: 2,
   padraoComissionados: false,
   empregados: [ANA, { ...ANA, id: "e2", nome: "Bia", ativo: false, comissionado: false }],
   podeEditar: true,
   selecionado: { empregado: ANA, dias: [], totalizacao: {} as never, semConvencao: false },
+};
+
+const ZERO = {
+  normaisMin: 0,
+  extras: [],
+  bancoDeHorasMin: 0,
+  acimaDoLimiteMin: 0,
+  noturnoMin: 0,
+  atrasoMin: 0,
+  faltas: 0,
+  abonoDias: 0,
+  abonoMin: 0,
+  feriadosTrabalhados: 0,
+  sabadosTrabalhados: 0,
+  diasComLanche: 0,
 };
 
 describe("horários", () => {
@@ -44,22 +61,26 @@ describe("horários", () => {
 
 describe("itensDaTotalizacao", () => {
   it("formata horas e dias", () => {
-    const itens = itensDaTotalizacao({
-      normaisMin: 525,
-      extras: [{ percentual: 60, minutos: 60 }],
-      bancoDeHorasMin: 0,
-      acimaDoLimiteMin: 0,
-      noturnoMin: 69,
-      atrasoMin: 5,
-      faltas: 1,
-      abonoDias: 2,
-      abonoMin: 1050,
-      feriadosTrabalhados: 1,
-      sabadosTrabalhados: 2,
-      diasComLanche: 3,
-    });
+    const itens = itensDaTotalizacao(
+      {
+        normaisMin: 525,
+        extras: [{ percentual: 60, minutos: 60 }],
+        bancoDeHorasMin: 0,
+        acimaDoLimiteMin: 0,
+        noturnoMin: 69,
+        atrasoMin: 5,
+        faltas: 1,
+        abonoDias: 2,
+        abonoMin: 1050,
+        feriadosTrabalhados: 1,
+        sabadosTrabalhados: 2,
+        diasComLanche: 3,
+      },
+      525,
+    );
     expect(itens.map((i) => i.rotulo)).toContain("Extras 60%");
     expect(itens.map((i) => i.valor)).toEqual([
+      "8h45",
       "8h45",
       "1h00",
       "1h09",
@@ -75,7 +96,15 @@ describe("itensDaTotalizacao", () => {
 
 describe("linhasDoCartao", () => {
   it("rotula o dia e marca feriado e dia sem jornada", () => {
-    const base = { batidas: [], extra: null, abono: false, cargaMin: 525, feriado: false };
+    const base = {
+      batidas: [],
+      extra: null,
+      abono: false,
+      cargaMin: 525,
+      feriado: false,
+      trabalhadoMin: 0,
+      apuracao: ZERO,
+    };
     const [seg, dom, fer] = linhasDoCartao([
       { ...base, data: "2026-11-16", diaDaSemana: 1, batidas: [{ entrada: 480, saida: 720 }] },
       {
@@ -96,6 +125,48 @@ describe("linhasDoCartao", () => {
     expect(seg.nota).toBeUndefined();
     expect(dom).toMatchObject({ nota: "Sem jornada", extraEntrada: "08:00", extraSaida: "10:00" });
     expect(fer.nota).toBe("Feriado");
+  });
+
+  it("traz as colunas calculadas da planilha: H. diária, atrasos, extras por faixa, A.N. e a falta", () => {
+    const [dia, falta] = linhasDoCartao([
+      {
+        data: "2026-11-16",
+        diaDaSemana: 1,
+        batidas: [{ entrada: 480, saida: 1080 }],
+        extra: null,
+        abono: false,
+        cargaMin: 525,
+        feriado: false,
+        trabalhadoMin: 600,
+        apuracao: {
+          ...ZERO,
+          normaisMin: 525,
+          extras: [{ percentual: 50, minutos: 75 }],
+          noturnoMin: 8,
+        },
+      },
+      {
+        data: "2026-11-17",
+        diaDaSemana: 2,
+        batidas: [],
+        extra: null,
+        abono: false,
+        cargaMin: 525,
+        feriado: false,
+        trabalhadoMin: 0,
+        apuracao: { ...ZERO, faltas: 1 },
+      },
+    ]);
+    expect(dia.resumo).toBe("H. diária 10h00 · Atrasos 0h00 · Extras 50%: 1h15 · A.N. 0h08");
+    expect(falta.nota).toBe("Falta");
+  });
+
+  it("cargaHorariaDoCartao lista a Jornada de domingo a sábado", () => {
+    expect(cargaHorariaDoCartao([0, 525, 525, 525, 525, 525, 240])[6]).toEqual({
+      rotulo: "sáb",
+      valor: "4h00",
+    });
+    expect(cargaHorariaDoCartao([0, 525, 525, 525, 525, 525, 240])[0].valor).toBe("0h00");
   });
 });
 

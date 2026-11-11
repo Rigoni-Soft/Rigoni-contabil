@@ -22,7 +22,7 @@ const BIA: EmpregadoDto = { ...ANA, id: "e2", nome: "Bia", ativo: false };
 
 function repo(over: Partial<FolhaDePontoRepository> = {}): FolhaDePontoRepository {
   return {
-    buscarCliente: async () => ok({ cnpj: "1", responsavelId: "func" }),
+    buscarCliente: async () => ok({ cnpj: "1", empresa: "Teste Ltda", responsavelId: "func" }),
     buscarClienteDoEmpregado: async () => ok("c1"),
     listarEmpregados: async () => ok([BIA, ANA]),
     listarSemMovimento: async () => ok(["e1"]),

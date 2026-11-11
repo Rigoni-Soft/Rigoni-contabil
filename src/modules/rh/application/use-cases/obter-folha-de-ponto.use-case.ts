@@ -16,7 +16,9 @@ import {
 } from "@/modules/rh/domain/services/regras-de-calculo.service";
 import {
   diaDaSemana,
+  minutosTrabalhados,
   totalizar,
+  totalizarDia,
   type Jornada,
 } from "@/modules/rh/domain/services/totalizacao.service";
 import { Competencia } from "@/modules/rh/domain/value-objects/competencia.vo";
@@ -76,6 +78,7 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
     const quadro = empregados.value.map((e) => ({ ...e, semMovimento: sem.has(e.id) }));
     const base = {
       clienteId: input.clienteId,
+      empresa: cliente.value.empresa,
       competencia: competencia.value.valor,
       quinzena,
       padraoComissionados: padrao.value,
@@ -126,14 +129,20 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
     const dias: DiaDaFolhaDto[] = datas.map((data) => {
       const dia = lancadoEm.get(data);
       const semana = diaDaSemana(data);
-      return {
+      const doCartao = {
         data,
         batidas: dia?.batidas ?? [],
         extra: dia?.extra ?? null,
         abono: dia?.abono ?? false,
-        diaDaSemana: semana,
         feriado: feriadoEm.has(data),
+      };
+      const jornada = escolhido.jornada as unknown as Jornada;
+      return {
+        ...doCartao,
+        diaDaSemana: semana,
         cargaMin: escolhido.jornada[semana],
+        trabalhadoMin: minutosTrabalhados(doCartao),
+        apuracao: totalizarDia(doCartao, jornada, regrasDoDia(data)),
       };
     });
 

@@ -27,12 +27,17 @@ export type DiaDaFolhaDto = DiaDoPontoDto & {
   feriado: boolean;
   // Carga do dia pela Jornada do empregado.
   cargaMin: number;
+  // H. Diária: o que foi batido no dia.
+  trabalhadoMin: number;
+  // O cálculo do dia (atrasos, extras por faixa, adicional noturno, falta, abono), pela convenção da data.
+  apuracao: TotalizacaoDto;
 };
 
 export type EmpregadoDaFolhaDto = EmpregadoDto & { semMovimento: boolean };
 
 export type FolhaDePontoDto = {
   clienteId: string;
+  empresa: string;
   competencia: string;
   quinzena: 1 | 2;
   // Padrão do Cliente: os empregados novos já nascem comissionados.
@@ -40,7 +45,7 @@ export type FolhaDePontoDto = {
   empregados: EmpregadoDaFolhaDto[];
   // Só o Responsável do RH do Cliente edita; o Líder e o Admin leem.
   podeEditar: boolean;
-  // Cartão e Totalização do empregado escolhido (o primeiro ativo, se nenhum for pedido).
+  // Cartão e Totalização do empregado escolhido (só quando o empregado é pedido).
   selecionado: {
     empregado: EmpregadoDaFolhaDto;
     dias: DiaDaFolhaDto[];

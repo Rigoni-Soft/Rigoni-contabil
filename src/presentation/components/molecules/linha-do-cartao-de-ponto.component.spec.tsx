@@ -14,6 +14,7 @@ const LINHA: LinhaDoCartao = {
   extraSaida: "",
   abono: false,
   nota: "Feriado",
+  resumo: "H. diária 4h00 · Atrasos 0h00 · Extras 0h00 · A.N. 0h00",
 };
 
 describe("LinhaDoCartaoDePonto", () => {

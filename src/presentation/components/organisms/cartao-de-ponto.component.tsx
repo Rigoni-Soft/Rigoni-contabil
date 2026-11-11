@@ -15,6 +15,11 @@ import { MOLDURA_DO_CARTAO } from "@/presentation/lib/moldura-do-cartao";
 
 type Props = {
   empregado: string;
+  empresa: string;
+  // Mês e quinzena do cartão, por extenso.
+  periodo: string;
+  // A carga horária do empregado por dia da semana (a Jornada gravada).
+  cargaHoraria: ItemDaTotalizacao[];
   rotuloMes: string;
   mesAnteriorHref: string;
   proximoMesHref?: string;
@@ -35,6 +40,9 @@ type Props = {
 // O Cartão de ponto de um empregado numa quinzena, com a Totalização logo abaixo (a que vai para o PDF).
 export function CartaoDePonto({
   empregado,
+  empresa,
+  periodo,
+  cargaHoraria,
   rotuloMes,
   mesAnteriorHref,
   proximoMesHref,
@@ -58,6 +66,9 @@ export function CartaoDePonto({
       <Texto como="h2" variante="subtitulo">
         Cartão de ponto de {empregado}
       </Texto>
+      <Texto variante="apoio">
+        Empresa: {empresa} · Período: {periodo}
+      </Texto>
       <NavegacaoDeMes
         rotuloMes={rotuloMes}
         anteriorHref={mesAnteriorHref}
@@ -76,6 +87,7 @@ export function CartaoDePonto({
           </LinkDeAcao>
         ))}
       </Linha>
+      <TotalizacaoDoPonto titulo="Carga horária por dia da semana" itens={cargaHoraria} />
       {!editavel && (
         <Texto variante="apoio">
           Só o Responsável do RH do cliente digita o cartão; aqui ele fica em leitura.

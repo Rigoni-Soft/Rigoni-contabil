@@ -38,11 +38,12 @@ const dias = (n: number) => `${n} ${n === 1 ? "dia" : "dias"}`;
 export const AVISO_SEM_CONVENCAO =
   "Sem convenção coletiva vigente em parte da quinzena: esses dias foram totalizados pela legislação.";
 
-export function itensDaTotalizacao(t: TotalizacaoDto): ItemDaTotalizacao[] {
+export function itensDaTotalizacao(t: TotalizacaoDto, trabalhadoMin: number): ItemDaTotalizacao[] {
   const extras = t.extras.length
     ? t.extras.map((e) => ({ rotulo: `Extras ${e.percentual}%`, valor: duracao(e.minutos) }))
     : [{ rotulo: "Horas extras", valor: duracao(0) }];
   return [
+    { rotulo: "Horas trabalhadas", valor: duracao(trabalhadoMin) },
     { rotulo: "Horas normais", valor: duracao(t.normaisMin) },
     ...extras,
     ...(t.bancoDeHorasMin > 0
@@ -65,7 +66,28 @@ const hm = (par: ParDto | undefined, campo: keyof ParDto) => (par ? minutosParaH
 
 function notaDoDia(dia: DiaDaFolhaDto): string | undefined {
   if (dia.feriado) return "Feriado";
+  if (dia.apuracao.faltas > 0) return "Falta";
   return dia.cargaMin === 0 ? "Sem jornada" : undefined;
+}
+
+// As colunas calculadas da planilha do cartão (H. Diária, Atrasos, Horas Extras, A.N.), numa linha por dia.
+function resumoDoDia(dia: DiaDaFolhaDto): string {
+  const a = dia.apuracao;
+  const extras = [
+    ...a.extras.map((e) => `${e.percentual}%: ${duracao(e.minutos)}`),
+    ...(a.bancoDeHorasMin > 0 ? [`banco: ${duracao(a.bancoDeHorasMin)}`] : []),
+  ];
+  return [
+    `H. diária ${duracao(dia.trabalhadoMin)}`,
+    `Atrasos ${duracao(a.atrasoMin)}`,
+    `Extras ${extras.length ? extras.join(" · ") : duracao(0)}`,
+    `A.N. ${duracao(a.noturnoMin)}`,
+  ].join(" · ");
+}
+
+// A carga horária do empregado por dia da semana, como no alto da planilha.
+export function cargaHorariaDoCartao(jornada: number[]): ItemDaTotalizacao[] {
+  return jornada.map((min, i) => ({ rotulo: SEMANA[i], valor: duracao(min) }));
 }
 
 export function linhasDoCartao(dias: DiaDaFolhaDto[]): LinhaDoCartao[] {
@@ -82,6 +104,7 @@ export function linhasDoCartao(dias: DiaDaFolhaDto[]): LinhaDoCartao[] {
       extraSaida: hm(dia.extra ?? undefined, "saida"),
       abono: dia.abono,
       nota: notaDoDia(dia),
+      resumo: resumoDoDia(dia),
     };
   });
 }
