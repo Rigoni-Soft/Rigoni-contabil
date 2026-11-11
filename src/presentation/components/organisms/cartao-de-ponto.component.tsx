@@ -87,6 +87,9 @@ export function CartaoDePonto({
   empregadoId,
   onSalvarDia,
 }: Props) {
+  // Sem linha aberta, Salvar e Limpar ficam inativos mas focáveis (aria-disabled): depois do Salvar da tabela o
+  // foco não cai no <body>.
+  const semLinhaAberta = diasEmEdicao.length === 0;
   return (
     <Pilha
       como="section"
@@ -177,8 +180,10 @@ export function CartaoDePonto({
             {/* Salva as linhas abertas e fica na tela, com a Totalização em destaque. */}
             <Button
               type="button"
-              disabled={pendente || diasEmEdicao.length === 0}
-              onClick={onSalvarTabela}
+              disabled={pendente}
+              aria-disabled={semLinhaAberta}
+              onClick={semLinhaAberta ? undefined : onSalvarTabela}
+              className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
             >
               Salvar
             </Button>
@@ -186,8 +191,10 @@ export function CartaoDePonto({
             <Button
               type="button"
               variant="warning"
-              disabled={pendente || diasEmEdicao.length === 0}
-              onClick={onLimparTabela}
+              disabled={pendente}
+              aria-disabled={semLinhaAberta}
+              onClick={semLinhaAberta ? undefined : onLimparTabela}
+              className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
             >
               Limpar
             </Button>

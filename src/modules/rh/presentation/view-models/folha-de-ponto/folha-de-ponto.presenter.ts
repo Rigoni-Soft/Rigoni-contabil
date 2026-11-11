@@ -39,7 +39,13 @@ const dias = (n: number) => `${n} ${n === 1 ? "dia" : "dias"}`;
 export const AVISO_SEM_CONVENCAO =
   "Sem convenção coletiva vigente em parte do mês: esses dias foram totalizados pela legislação.";
 
-export function itensDaTotalizacao(t: TotalizacaoDto, trabalhadoMin: number): ItemDaTotalizacao[] {
+// `semDados`: cartão ainda não começado (mês ou empregado novo): as linhas aparecem neutras e a Totalização não conta
+// os dias úteis vazios como falta (eles só viram falta depois que o cartão é começado).
+export function itensDaTotalizacao(
+  t: TotalizacaoDto,
+  trabalhadoMin: number,
+  semDados = false,
+): ItemDaTotalizacao[] {
   const extras = t.extras.length
     ? t.extras.map((e) => ({ rotulo: `Extras ${e.percentual}%`, valor: duracao(e.minutos) }))
     : [{ rotulo: "Horas extras", valor: duracao(0) }];
@@ -55,7 +61,7 @@ export function itensDaTotalizacao(t: TotalizacaoDto, trabalhadoMin: number): It
       : []),
     { rotulo: "Adicional noturno", valor: duracao(t.noturnoMin) },
     { rotulo: "Atrasos", valor: duracao(t.atrasoMin) },
-    { rotulo: "Faltas", valor: dias(t.faltas) },
+    { rotulo: "Faltas", valor: dias(semDados ? 0 : t.faltas) },
     { rotulo: "Abonos", valor: `${dias(t.abonoDias)} · ${duracao(t.abonoMin)}` },
     { rotulo: "Feriados trabalhados", valor: String(t.feriadosTrabalhados) },
     { rotulo: "Sábados trabalhados", valor: String(t.sabadosTrabalhados) },

@@ -125,8 +125,9 @@ describe("CartaoDePonto", () => {
   it("Salvar e Limpar da tabela só valem com uma linha aberta", () => {
     render(<CartaoDePonto {...PROPS} />);
 
-    expect(screen.getByRole("button", { name: "Salvar" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Limpar" })).toBeDisabled();
+    // aria-disabled (não `disabled`): o botão segue focável, o foco não cai no corpo depois de salvar.
+    expect(screen.getByRole("button", { name: "Salvar" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("button", { name: "Limpar" })).toHaveAttribute("aria-disabled", "true");
     expect(screen.getByRole("link", { name: "Cancelar" })).toBeInTheDocument();
   });
 

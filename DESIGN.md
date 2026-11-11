@@ -566,6 +566,8 @@ importa na leitura da foto do cartão, não na exibição. Dia sem jornada marca
   - **Cartão novo** (nenhum dia com dado: mês ou empregado novo): todas as linhas abrem já **editáveis**, sem um
     lápis por dia, e o dia útil vazio fica **em branco** (neutro, sem "Falta", sem Abonar). O "Salvar" da tabela
     grava só os dias digitados.
+  - **Faltas na Totalização:** num cartão novo (sem dados) a Totalização mostra 0 faltas, coerente com as linhas
+    neutras; os dias úteis vazios só contam como falta depois que o cartão é começado.
   - **Falta** (dia útil vazio de um cartão já começado): horários **desabilitados** (evita lançar por engano),
     botões lápis (única forma deliberada de lançar um horário) e "Abonar" (`warning`, um clique grava só o Abono).
   - **Abonado** (abono sem batida): horários desabilitados; o botão é "Desfazer abono", que volta a falta. Não há
@@ -580,6 +582,11 @@ importa na leitura da foto do cartão, não na exibição. Dia sem jornada marca
   (`destructive`, vermelho; descarta e volta à
   lista de empregados da empresa). Salvar e Limpar só ficam ativos com ao menos uma linha aberta. Sem
   permissão de edição não há lápis nem barra.
+- **Foco do teclado depois da ação.** Toda ação que faz o botão clicado sumir devolve o foco a um alvo estável da
+  mesma linha (`autoFocus` no botão que passa a existir): o lápis abre a edição no primeiro campo habilitado;
+  salvar, cancelar, abonar e desfazer abono levam o foco ao lápis (ou ao "Desfazer abono"). "Salvar" e "Limpar" da
+  tabela sem linha aberta usam `aria-disabled`, não `disabled`, para continuarem focáveis; "Limpar" não mexe no
+  foco. Vale para qualquer tela em que a ação troque os botões da linha.
 - **Um formulário por dia, fora da célula:** o `<form>` do dia fica na última célula e os campos das outras o
   alcançam pelo atributo `form`; `new FormData(form)` já os traz.
 

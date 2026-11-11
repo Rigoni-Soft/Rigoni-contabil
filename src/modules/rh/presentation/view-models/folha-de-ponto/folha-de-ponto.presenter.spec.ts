@@ -199,6 +199,15 @@ describe("linhasDoCartao", () => {
     expect(feriadoTrabalhado).toMatchObject({ tom: "info", nota: "Feriado · hora extra" });
   });
 
+  it("cartão sem dados não conta faltas na Totalização (os dias úteis vazios ainda não são falta)", () => {
+    const t = { ...ZERO, faltas: 20 };
+    const faltas = (semDados: boolean) =>
+      itensDaTotalizacao(t, 0, semDados).find((i) => i.rotulo === "Faltas")?.valor;
+
+    expect(faltas(true)).toBe("0 dias");
+    expect(faltas(false)).toBe("20 dias");
+  });
+
   it("situação do dia: abonado, folga, falta e em branco (cartão sem dados)", () => {
     const base = {
       batidas: [],

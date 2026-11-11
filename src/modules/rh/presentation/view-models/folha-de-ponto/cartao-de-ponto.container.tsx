@@ -142,6 +142,7 @@ export function CartaoDePontoContainer({ folha }: Props) {
       totalizacao={itensDaTotalizacao(
         selecionado.totalizacao,
         selecionado.dias.reduce((soma, d) => soma + d.trabalhadoMin, 0),
+        cartaoSemDados(selecionado.dias),
       )}
       avisoDaTotalizacao={selecionado.semConvencao ? AVISO_SEM_CONVENCAO : undefined}
       editavel={folha.podeEditar && selecionado.empregado.ativo}
@@ -176,6 +177,8 @@ export function CartaoDePontoContainer({ folha }: Props) {
         setAvisoGeral(undefined);
         setLimpos(emEdicao);
         recomecar(emEdicao);
+        // O foco fica no botão Limpar (que não some), não pula para uma linha que remonta.
+        setFocoNoDia(undefined);
       }}
     />
   );
