@@ -1,4 +1,5 @@
 import type { EmpregadoDosAjustes } from "@/presentation/components/organisms/ajustes-do-cliente-na-convencao.component";
+import type { CampoDoEnvio } from "@/presentation/components/organisms/envio-de-convencao.component";
 import type { ConvencaoDoHistorico } from "@/presentation/components/organisms/historico-de-convencoes.component";
 import type { LinhaDeRegra } from "@/presentation/components/organisms/regras-aplicadas.component";
 import type {
@@ -160,7 +161,20 @@ export function empregadosDosAjustes(dto: ConvencoesDoClienteDto): EmpregadoDosA
   }));
 }
 
-export type EnvioLido = { ok: true; formData: FormData } | { ok: false; erro: string };
+const CAMPOS_DO_ENVIO: readonly string[] = [
+  "sindicato",
+  "vigenciaInicio",
+  "vigenciaFim",
+  "arquivo",
+];
+
+// O primeiro campo que o servidor recusou, se for um do formulário.
+export function campoDoServidor(fields?: Record<string, string[]>): CampoDoEnvio | undefined {
+  return Object.keys(fields ?? {}).find((c): c is CampoDoEnvio => CAMPOS_DO_ENVIO.includes(c));
+}
+
+export type EnvioLido =
+  { ok: true; formData: FormData } | { ok: false; erro: string; campo: CampoDoEnvio };
 
 // Confere no navegador o que dá para conferir (PDF escolhido, tamanho, vigência) e monta o FormData da
 // Server Action; o servidor repete a conferência.
@@ -169,14 +183,16 @@ export function lerEnvioDoFormulario(
   campos: FormData,
   arquivo: File | undefined,
 ): EnvioLido {
-  if (!arquivo) return { ok: false, erro: "Escolha o PDF da convenção." };
+  if (!arquivo) return { ok: false, erro: "Escolha o PDF da convenção.", campo: "arquivo" };
   const ehPdf = arquivo.type === "application/pdf" || arquivo.name.toLowerCase().endsWith(".pdf");
-  if (!ehPdf) return { ok: false, erro: "Envie a convenção em PDF." };
-  if (arquivo.size > LIMITE_DO_PDF) return { ok: false, erro: "O PDF passa de 4 MB." };
+  if (!ehPdf) return { ok: false, erro: "Envie a convenção em PDF.", campo: "arquivo" };
+  if (arquivo.size > LIMITE_DO_PDF)
+    return { ok: false, erro: "O PDF passa de 4 MB.", campo: "arquivo" };
 
   const inicio = String(campos.get("vigenciaInicio") ?? "");
   const fim = String(campos.get("vigenciaFim") ?? "");
-  if (fim < inicio) return { ok: false, erro: "A vigência termina antes de começar." };
+  if (fim < inicio)
+    return { ok: false, erro: "A vigência termina antes de começar.", campo: "vigenciaFim" };
 
   const formData = new FormData();
   formData.set("clienteId", clienteId);

@@ -42,6 +42,30 @@ describe("EnvioDeConvencao", () => {
     expect(screen.getAllByText("PDF de até 4 MB").length).toBeGreaterThan(0);
   });
 
+  it("liga o erro ao campo apontado (aria-invalid e aria-describedby)", () => {
+    render(
+      <EnvioDeConvencao
+        {...base}
+        erro="A vigência termina antes de começar."
+        campoComErro="vigenciaFim"
+      />,
+    );
+
+    const fim = screen.getByLabelText("Fim da vigência");
+    expect(fim).toBeInvalid();
+    expect(fim).toHaveAccessibleDescription("A vigência termina antes de começar.");
+    expect(screen.getByLabelText("Início da vigência")).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("erro do arquivo aparece no próprio campo do PDF", () => {
+    render(
+      <EnvioDeConvencao {...base} erro="Escolha o PDF da convenção." campoComErro="arquivo" />,
+    );
+
+    expect(screen.getByText("Escolha o PDF da convenção.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Convenção (PDF)")).toBeInvalid();
+  });
+
   it("enquanto lê, desabilita o botão e diz o que acontece; o erro aparece em alerta", () => {
     render(<EnvioDeConvencao {...base} pendente erro="Não foi possível ler a convenção." />);
 

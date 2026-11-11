@@ -42,15 +42,20 @@ export function AjustesDoClienteNaConvencao({
         Ajustes do cliente
       </Texto>
       {erro && <AvisoDeStatus tipo="erro" legivel texto={erro} />}
+      <Texto variante="nota" role="status" aria-live="polite">
+        {pendente ? "Salvando…" : ""}
+      </Texto>
       <Pilha espaco={2}>
         <CaixaDeMarcacao
           rotulo="Banco de horas"
+          className="min-h-11"
           checked={bancoDeHoras}
           disabled={!editavel || pendente}
           onChange={(e) => onBancoDeHoras(e.target.checked)}
         />
         <CaixaDeMarcacao
           rotulo="Trabalho aos domingos"
+          className="min-h-11"
           checked={trabalhoAosDomingos}
           disabled={!editavel || pendente}
           onChange={(e) => onTrabalhoAosDomingos(e.target.checked)}

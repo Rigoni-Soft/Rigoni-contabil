@@ -848,7 +848,7 @@ pode) ou diz quem envia (quem só lê).
 **`EnvioDeConvencao` (organismo):** formulário "Enviar ou renovar a convenção": Sindicato, início e fim da
 vigência (`type="date"`) em linha que quebra no celular, e o `CampoDeArquivo` (PDF de até 4 MB, dito antes
 de escolher). Enquanto lê, o botão fica desabilitado e diz "Lendo a convenção…" (a extração roda uma vez,
-no envio); o erro aparece abaixo, em `AvisoDeStatus`, e o formulário só é limpo no sucesso. Quem só lê não
+no envio); o erro aponta o campo (`aria-invalid` e `aria-describedby` ligados ao `AvisoDeStatus`; o do PDF vai no próprio `CampoDeArquivo`) e o formulário só é limpo no sucesso. Quem só lê não
 o recebe.
 
 **`RegrasAplicadas` (organismo):** a tela de leitura das regras: uma `Tabela` com um parâmetro por linha
@@ -860,7 +860,7 @@ motivo da recusa ("Recusada: …"). Nunca recebe digitação: não há aprovaç�
 **`AjustesDoClienteNaConvencao` (organismo):** os interruptores do Cliente (`CaixaDeMarcacao` "Banco de
 horas", desligado por padrão, e "Trabalho aos domingos") e, só havendo mais de uma convenção, um
 `CampoSelect` por empregado ativo com o sindicato que ele segue ("Sem escolha (a única do cliente)" é o
-vazio). Cada mudança grava na hora. Quem não é o Responsável do RH do Cliente vê tudo desabilitado e a
+vazio). Cada mudança grava na hora, com "Salvando…" em `nota` (`role="status"`) enquanto grava e alvos de marcação de 44 px. Quem não é o Responsável do RH do Cliente vê tudo desabilitado e a
 nota "Só o Responsável do RH deste cliente altera estes ajustes".
 
 **`ListaDeClientes` (molécula):** a lista de drill-down: `ListaComDivisores` com `LinhaDeCliente`

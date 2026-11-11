@@ -3,11 +3,14 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import { EnvioDeConvencao } from "@/presentation/components/organisms/envio-de-convencao.component";
+import {
+  EnvioDeConvencao,
+  type CampoDoEnvio,
+} from "@/presentation/components/organisms/envio-de-convencao.component";
 import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
 
 import { enviarConvencaoAction } from "./convencao.actions";
-import { lerEnvioDoFormulario } from "./convencao.presenter";
+import { campoDoServidor, lerEnvioDoFormulario } from "./convencao.presenter";
 
 type Props = { clienteId: string };
 
@@ -18,6 +21,7 @@ export function EnvioDeConvencaoContainer({ clienteId }: Props) {
   const [pendente, iniciar] = useTransition();
   const [arquivo, setArquivo] = useState<File>();
   const [erro, setErro] = useState<string>();
+  const [campoComErro, setCampoComErro] = useState<CampoDoEnvio>();
   const [chave, setChave] = useState(0);
 
   return (
@@ -26,18 +30,27 @@ export function EnvioDeConvencaoContainer({ clienteId }: Props) {
       chave={chave}
       pendente={pendente}
       erro={erro}
+      campoComErro={campoComErro}
       onArquivo={(a) => {
         setArquivo(a);
         setErro(undefined);
+        setCampoComErro(undefined);
       }}
       onEnviar={(campos) => {
         const lido = lerEnvioDoFormulario(clienteId, campos, arquivo);
-        if (!lido.ok) return setErro(lido.erro);
+        if (!lido.ok) {
+          setCampoComErro(lido.campo);
+          return setErro(lido.erro);
+        }
         setErro(undefined);
+        setCampoComErro(undefined);
         iniciar(async () => {
           try {
             const r = await enviarConvencaoAction(lido.formData);
-            if (!r.ok) return setErro(r.error.message);
+            if (!r.ok) {
+              setCampoComErro(campoDoServidor(r.error.fields));
+              return setErro(r.error.message);
+            }
             setArquivo(undefined);
             setChave((c) => c + 1);
             router.refresh();

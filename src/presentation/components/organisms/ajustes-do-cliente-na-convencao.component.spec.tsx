@@ -46,6 +46,13 @@ describe("AjustesDoClienteNaConvencao", () => {
     expect(screen.queryByLabelText("Ana")).not.toBeInTheDocument();
   });
 
+  it('enquanto grava, diz "Salvando…" e desabilita os controles', () => {
+    render(<AjustesDoClienteNaConvencao {...base} pendente />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("Salvando…");
+    expect(screen.getByRole("checkbox", { name: "Banco de horas" })).toBeDisabled();
+  });
+
   it("em leitura, tudo desabilitado e com a nota de quem altera", () => {
     render(<AjustesDoClienteNaConvencao {...base} editavel={false} erro="Falhou." />);
 
