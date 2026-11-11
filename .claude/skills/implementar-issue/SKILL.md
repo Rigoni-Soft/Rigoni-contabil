@@ -31,6 +31,8 @@ Commits em Conventional Commits, atômicos, na branch do ticket. Adicione só os
 
 Tela de formulário nova parte de `editar-cadastro-operacional.page.tsx` e `cartao-do-cadastro.component.tsx`: largura `cadastro`, cartão com `MOLDURA_DO_CARTAO`, `CampoDeTexto` na malha `1>2>4` e `NotaDeObrigatorio`.
 
+Ação em linha que faz o botão clicado sumir (lápis que vira salvar/cancelar, abonar, remover) devolve o foco do teclado a um alvo estável da mesma linha (`autoFocus` no botão que passa a existir, ou no primeiro campo ao abrir a edição) e nunca deixa o foco cair no `<body>`; botão que fica inativo no fim da ação usa `aria-disabled`, não `disabled` (DESIGN.md, "Foco do teclado depois da ação").
+
 Tela que lista itens e os cadastra/edita na própria tela segue a seção "Tela de lista + formulário" do `DESIGN.md` (nota de obrigatório no topo, lista com divisores, ação principal cheia e editar em ícone de contorno, editar substitui o formulário novo, rodapé Salvar / ação de atenção em vermelho / Cancelar, conteúdo de outra natureza em tela própria), sem esperar o pedido.
 
 Antes de criar um componente de UI, liste `src/presentation/components/{ui,atoms,molecules,organisms}` e leia no `DESIGN.md` a seção da tela; o componente novo só nasce quando nenhum existente serve, e entra no `DESIGN.md` no mesmo commit (`yarn check:design-doc <base>` reprova o que faltar).
