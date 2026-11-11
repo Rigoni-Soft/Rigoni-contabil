@@ -72,6 +72,19 @@ const FOLHA: FolhaDePontoDto = {
   },
 };
 
+const FOLHA_COM_HORARIO: FolhaDePontoDto = {
+  ...FOLHA,
+  selecionado: {
+    ...FOLHA.selecionado!,
+    dias: [
+      {
+        ...FOLHA.selecionado!.dias[0],
+        batidas: [{ entrada: 480, saida: 720 }],
+      },
+    ],
+  },
+};
+
 describe("CartaoDePontoContainer", () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -89,6 +102,7 @@ describe("CartaoDePontoContainer", () => {
     render(<CartaoDePontoContainer folha={FOLHA} />);
     const u = userEvent.setup();
 
+    await u.click(screen.getByRole("button", { name: "Editar seg 16/11" }));
     await u.type(screen.getByLabelText("Entrada 1 de seg 16/11"), "08:00");
     await u.type(screen.getByLabelText("Saída 1 de seg 16/11"), "12:00");
     await u.click(screen.getByRole("button", { name: "Salvar seg 16/11" }));
@@ -107,8 +121,10 @@ describe("CartaoDePontoContainer", () => {
   it("par pela metade mostra o erro sem chamar o servidor", async () => {
     render(<CartaoDePontoContainer folha={FOLHA} />);
 
-    await userEvent.setup().type(screen.getByLabelText("Entrada 1 de seg 16/11"), "08:00");
-    await userEvent.setup().click(screen.getByRole("button", { name: "Salvar seg 16/11" }));
+    const u = userEvent.setup();
+    await u.click(screen.getByRole("button", { name: "Editar seg 16/11" }));
+    await u.type(screen.getByLabelText("Entrada 1 de seg 16/11"), "08:00");
+    await u.click(screen.getByRole("button", { name: "Salvar seg 16/11" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Preencha entrada e saída");
     expect(salvarDiaDoPontoAction).not.toHaveBeenCalled();
@@ -121,7 +137,9 @@ describe("CartaoDePontoContainer", () => {
     } as never);
     render(<CartaoDePontoContainer folha={FOLHA} />);
 
-    await userEvent.setup().click(screen.getByRole("button", { name: "Salvar seg 16/11" }));
+    const u = userEvent.setup();
+    await u.click(screen.getByRole("button", { name: "Editar seg 16/11" }));
+    await u.click(screen.getByRole("button", { name: "Salvar seg 16/11" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Sem permissão.");
   });
@@ -131,7 +149,9 @@ describe("CartaoDePontoContainer", () => {
     jest.mocked(salvarDiaDoPontoAction).mockRejectedValue(new TypeError("fetch"));
     render(<CartaoDePontoContainer folha={FOLHA} />);
 
-    await userEvent.setup().click(screen.getByRole("button", { name: "Salvar seg 16/11" }));
+    const u = userEvent.setup();
+    await u.click(screen.getByRole("button", { name: "Editar seg 16/11" }));
+    await u.click(screen.getByRole("button", { name: "Salvar seg 16/11" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Sem conexão com o servidor");
   });
@@ -142,5 +162,74 @@ describe("CartaoDePontoContainer", () => {
     );
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("depois de salvar a linha volta ao lápis, com os campos travados", async () => {
+    jest.mocked(salvarDiaDoPontoAction).mockResolvedValue({ ok: true, data: undefined });
+    render(<CartaoDePontoContainer folha={FOLHA} />);
+    const u = userEvent.setup();
+
+    await u.click(screen.getByRole("button", { name: "Editar seg 16/11" }));
+    await u.click(screen.getByRole("button", { name: "Salvar seg 16/11" }));
+
+    expect(await screen.findByRole("button", { name: "Editar seg 16/11" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Salvar seg 16/11" })).not.toBeInTheDocument();
+  });
+
+  it("cancelar a linha volta ao estado de antes, com o lápis e o valor salvo", async () => {
+    render(<CartaoDePontoContainer folha={FOLHA} />);
+    const u = userEvent.setup();
+
+    await u.click(screen.getByRole("button", { name: "Editar seg 16/11" }));
+    await u.type(screen.getByLabelText("Entrada 1 de seg 16/11"), "08:00");
+    await u.click(screen.getByRole("button", { name: "Cancelar edição de seg 16/11" }));
+
+    expect(screen.getByRole("button", { name: "Editar seg 16/11" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Salvar seg 16/11" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Entrada 1 de seg 16/11")).toHaveValue("");
+    expect(salvarDiaDoPontoAction).not.toHaveBeenCalled();
+  });
+
+  it("Salvar da tabela grava as linhas abertas, fica na tela e destaca a Totalização", async () => {
+    jest.mocked(salvarDiaDoPontoAction).mockResolvedValue({ ok: true, data: undefined });
+    render(<CartaoDePontoContainer folha={FOLHA} />);
+    const u = userEvent.setup();
+
+    await u.click(screen.getByRole("button", { name: "Editar seg 16/11" }));
+    await u.type(screen.getByLabelText("Entrada 1 de seg 16/11"), "08:00");
+    await u.type(screen.getByLabelText("Saída 1 de seg 16/11"), "12:00");
+    await u.click(screen.getByRole("button", { name: "Salvar" }));
+
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    expect(salvarDiaDoPontoAction).toHaveBeenCalledWith(
+      expect.objectContaining({ data: "2026-11-16", batidas: [{ entrada: 480, saida: 720 }] }),
+    );
+    expect(await screen.findByText(/A Totalização do mês foi atualizada/)).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Totalização do mês" })).toHaveClass(
+      "border-primary",
+    );
+    expect(screen.getByRole("button", { name: "Editar seg 16/11" })).toBeInTheDocument();
+  });
+
+  it("Limpar da tabela esvazia os campos da linha aberta sem sair da tela", async () => {
+    render(<CartaoDePontoContainer folha={FOLHA_COM_HORARIO} />);
+    const u = userEvent.setup();
+
+    await u.click(screen.getByRole("button", { name: "Editar seg 16/11" }));
+    expect(screen.getByLabelText("Entrada 1 de seg 16/11")).toHaveValue("08:00");
+    await u.click(screen.getByRole("button", { name: "Limpar" }));
+
+    expect(screen.getByLabelText("Entrada 1 de seg 16/11")).toHaveValue("");
+    expect(screen.getByRole("button", { name: "Salvar seg 16/11" })).toBeInTheDocument();
+    expect(salvarDiaDoPontoAction).not.toHaveBeenCalled();
+  });
+
+  it("Cancelar da tabela leva de volta à lista de empregados", () => {
+    render(<CartaoDePontoContainer folha={FOLHA} />);
+
+    expect(screen.getByRole("link", { name: "Cancelar" })).toHaveAttribute(
+      "href",
+      "/rh/folha-de-ponto/c1?mes=2026-11",
+    );
   });
 });

@@ -1,6 +1,8 @@
+import { Check, Pencil, X } from "lucide-react";
+
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcacao.component";
-import { Caixa } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
 import {
   CelulaDeTabela,
   LinhaDeTabela,
@@ -26,7 +28,7 @@ export type LinhaDoCartao = {
   abono: boolean;
   // Feriado, falta ou folga: aparece sob a data.
   nota?: string;
-  // H. Diária, Atrasos, Horas Extras, 1ª e 2ª faixa e A.N. do dia, como na planilha.
+  // H. Diária, Atrasos, Horas Extras, 1ª e 2ª faixa e Adicional noturno do dia, como na planilha.
   trabalhado: string;
   atraso: string;
   extras: string;
@@ -40,10 +42,16 @@ export type AvisoDoDia = { tipo: "erro" | "sucesso"; texto: string };
 
 type Props = {
   linha: LinhaDoCartao;
-  // Sem edição (Líder, Admin ou outro Responsável), os campos ficam travados e sem "Salvar".
+  // Sem edição (Líder, Admin ou outro Responsável), não há ações e os campos ficam travados.
   editavel: boolean;
+  // A linha aberta para digitar: os campos destravam e as ações viram Salvar e Cancelar.
+  emEdicao: boolean;
+  // "Limpar" da tabela: a linha em edição aparece com os campos vazios (até salvar ou cancelar).
+  limpa: boolean;
   pendente: boolean;
   aviso?: AvisoDoDia;
+  onEditar: (data: string) => void;
+  onCancelar: (data: string) => void;
   onSalvar: (data: string, campos: FormData) => void;
 };
 
@@ -56,13 +64,27 @@ const CAMPOS = [
   ["extraSaida", "Extra saída"],
 ] as const;
 
-// Um dia do Cartão de ponto como linha da tabela (a planilha): data, batidas digitadas, Abono, colunas
-// calculadas e o "Salvar" do dia. O formulário do dia fica na última célula; os campos das outras o
-// alcançam pelo atributo `form` (um <form> não pode envolver as células de uma linha).
+// O id do formulário do dia: a tela o acha para salvar várias linhas de uma vez ("Salvar" da tabela).
+export const idDoFormDoDia = (data: string) => `dia-${data}`;
+
+// Um dia do Cartão de ponto como linha da tabela (a planilha): data, batidas, Abono, colunas calculadas e a
+// ação do dia, um botão de ícone: lápis para editar; em edição, salvar e cancelar. O formulário do dia fica na
+// última célula e os campos das outras o alcançam pelo atributo `form` (um <form> não envolve células de uma linha).
 // ponytail: dois pares de batida + Extra na tela (o banco guarda até quatro); mais pares quando um cartão pedir.
-export function LinhaDoCartaoDePonto({ linha, editavel, pendente, aviso, onSalvar }: Props) {
-  const idDoForm = `dia-${linha.data}`;
+export function LinhaDoCartaoDePonto({
+  linha,
+  editavel,
+  emEdicao,
+  limpa,
+  pendente,
+  aviso,
+  onEditar,
+  onCancelar,
+  onSalvar,
+}: Props) {
+  const idDoForm = idDoFormDoDia(linha.data);
   const idDoAviso = `aviso-${linha.data}`;
+  const destravada = editavel && emEdicao;
   return (
     <LinhaDeTabela>
       <CelulaDeTabela fixa>
@@ -82,9 +104,9 @@ export function LinhaDoCartaoDePonto({ linha, editavel, pendente, aviso, onSalva
             type="time"
             form={idDoForm}
             name={nome}
-            defaultValue={linha[nome]}
-            // readOnly: em leitura o horário segue legível e focável (disabled o esmaece e tira da tabulação).
-            readOnly={!editavel}
+            defaultValue={limpa ? "" : linha[nome]}
+            // readOnly: fora da edição o horário segue legível e focável (disabled o esmaece e tira da tabulação).
+            readOnly={!destravada}
             aria-label={`${rotulo} de ${linha.rotulo}`}
             aria-describedby={aviso ? idDoAviso : undefined}
             className="w-[4.5rem] px-1.5 [&::-webkit-calendar-picker-indicator]:hidden"
@@ -99,8 +121,8 @@ export function LinhaDoCartaoDePonto({ linha, editavel, pendente, aviso, onSalva
           rotuloOculto
           form={idDoForm}
           name="abono"
-          defaultChecked={linha.abono}
-          disabled={!editavel}
+          defaultChecked={limpa ? false : linha.abono}
+          disabled={!destravada}
           className="justify-center"
         />
       </CelulaDeTabela>
@@ -118,10 +140,39 @@ export function LinhaDoCartaoDePonto({ linha, editavel, pendente, aviso, onSalva
             onSalvar(linha.data, new FormData(e.currentTarget));
           }}
         >
-          {editavel && (
-            <Button type="submit" disabled={pendente} aria-label={`Salvar ${linha.rotulo}`}>
-              Salvar
+          {editavel && !emEdicao && (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              disabled={pendente}
+              onClick={() => onEditar(linha.data)}
+              aria-label={`Editar ${linha.rotulo}`}
+            >
+              <Pencil className="size-4" aria-hidden="true" />
             </Button>
+          )}
+          {editavel && emEdicao && (
+            <Linha espaco={1} alinhar="centro">
+              <Button
+                type="submit"
+                size="icon"
+                disabled={pendente}
+                aria-label={`Salvar ${linha.rotulo}`}
+              >
+                <Check className="size-4" aria-hidden="true" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                disabled={pendente}
+                onClick={() => onCancelar(linha.data)}
+                aria-label={`Cancelar edição de ${linha.rotulo}`}
+              >
+                <X className="size-4" aria-hidden="true" />
+              </Button>
+            </Linha>
           )}
         </Caixa>
         {aviso && (

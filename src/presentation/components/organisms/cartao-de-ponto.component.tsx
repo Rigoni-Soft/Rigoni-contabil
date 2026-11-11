@@ -1,8 +1,7 @@
+import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import {
   CabecalhoDeColuna,
-  CelulaDeTabela,
-  LinhaDeTabela,
   Tabela,
 } from "@/presentation/components/atoms/celula-de-tabela.component";
 import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
@@ -17,18 +16,8 @@ import {
   TotalizacaoDoPonto,
   type ItemDaTotalizacao,
 } from "@/presentation/components/molecules/totalizacao-do-ponto.component";
+import { Button } from "@/presentation/components/ui/button";
 import { MOLDURA_DO_CARTAO } from "@/presentation/lib/moldura-do-cartao";
-
-// A linha TOTAIS da planilha: faltas e a soma de cada coluna calculada do período.
-export type TotaisDoCartao = {
-  faltas: string;
-  trabalhado: string;
-  atraso: string;
-  extras: string;
-  noturno: string;
-  // "1h11 (50%) · 9h45 (100%)".
-  faixas: string;
-};
 
 type Props = {
   empregado: string;
@@ -39,7 +28,22 @@ type Props = {
   mesAnteriorHref: string;
   proximoMesHref?: string;
   linhas: LinhaDoCartao[];
-  totais: TotaisDoCartao;
+  // Os dias abertos para digitar (um lápis clicado): data "AAAA-MM-DD".
+  diasEmEdicao: string[];
+  // Dias cujos campos o "Limpar" da tabela esvaziou.
+  diasLimpos: string[];
+  // Sobe quando o dia é cancelado ou limpo: a linha recomeça (remonta) dos valores salvos ou vazios.
+  versoes: Record<string, number>;
+  // Para onde "Cancelar" leva: a lista de empregados da empresa.
+  listaHref: string;
+  // Logo depois do "Salvar" da tabela: a Totalização ganha destaque.
+  totalizacaoDestacada: boolean;
+  // Resultado do "Salvar" da tabela (várias linhas de uma vez).
+  avisoGeral?: AvisoDoDia;
+  onEditarDia: (data: string) => void;
+  onCancelarDia: (data: string) => void;
+  onSalvarTabela: () => void;
+  onLimparTabela: () => void;
   totalizacao: ItemDaTotalizacao[];
   // Quando a Totalização usou a legislação por falta de convenção vigente.
   avisoDaTotalizacao?: string;
@@ -61,7 +65,16 @@ export function CartaoDePonto({
   mesAnteriorHref,
   proximoMesHref,
   linhas,
-  totais,
+  diasEmEdicao,
+  diasLimpos,
+  versoes,
+  listaHref,
+  totalizacaoDestacada,
+  avisoGeral,
+  onEditarDia,
+  onCancelarDia,
+  onSalvarTabela,
+  onLimparTabela,
   totalizacao,
   avisoDaTotalizacao,
   editavel,
@@ -136,32 +149,56 @@ export function CartaoDePonto({
             </CabecalhoDeColuna>
           </>
         }
-        rodape={
-          <LinhaDeTabela>
-            <CelulaDeTabela colSpan={2}>Totais</CelulaDeTabela>
-            <CelulaDeTabela colSpan={6}>Faltas / Suspensão: {totais.faltas}</CelulaDeTabela>
-            <CelulaDeTabela numerica>{totais.trabalhado}</CelulaDeTabela>
-            <CelulaDeTabela numerica>{totais.atraso}</CelulaDeTabela>
-            <CelulaDeTabela>{null}</CelulaDeTabela>
-            <CelulaDeTabela numerica>{totais.extras}</CelulaDeTabela>
-            <CelulaDeTabela numerica>{totais.noturno}</CelulaDeTabela>
-            <CelulaDeTabela colSpan={3}>{totais.faixas}</CelulaDeTabela>
-          </LinhaDeTabela>
-        }
       >
         {linhas.map((linha) => (
           <LinhaDoCartaoDePonto
-            key={`${empregadoId}|${linha.data}`}
+            key={`${empregadoId}|${linha.data}|${versoes[linha.data] ?? 0}`}
             aviso={aviso?.data === linha.data ? aviso : undefined}
             linha={linha}
             editavel={editavel}
+            emEdicao={diasEmEdicao.includes(linha.data)}
+            limpa={diasLimpos.includes(linha.data)}
             pendente={pendente}
+            onEditar={onEditarDia}
+            onCancelar={onCancelarDia}
             onSalvar={onSalvarDia}
           />
         ))}
       </Tabela>
+      {editavel && (
+        <Pilha espaco={2}>
+          <Linha espaco={3} quebra alinhar="centro">
+            {/* Salva as linhas abertas e fica na tela, com a Totalização em destaque. */}
+            <Button
+              type="button"
+              disabled={pendente || diasEmEdicao.length === 0}
+              onClick={onSalvarTabela}
+            >
+              Salvar
+            </Button>
+            {/* Esvazia os campos das linhas abertas e fica na tela (só vale ao salvar). */}
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pendente || diasEmEdicao.length === 0}
+              onClick={onLimparTabela}
+            >
+              Limpar
+            </Button>
+            {/* Descarta o que foi digitado e volta à lista de empregados da empresa. */}
+            <LinkDeAcao href={listaHref} variant="outline">
+              Cancelar
+            </LinkDeAcao>
+          </Linha>
+          {avisoGeral && <AvisoDeStatus tipo={avisoGeral.tipo} legivel texto={avisoGeral.texto} />}
+        </Pilha>
+      )}
       {avisoDaTotalizacao && <Texto variante="apoio">{avisoDaTotalizacao}</Texto>}
-      <TotalizacaoDoPonto titulo="Totalização do mês" itens={totalizacao} />
+      <TotalizacaoDoPonto
+        titulo="Totalização do mês"
+        itens={totalizacao}
+        destaque={totalizacaoDestacada}
+      />
     </Pilha>
   );
 }

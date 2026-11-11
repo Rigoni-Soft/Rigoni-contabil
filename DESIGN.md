@@ -543,8 +543,8 @@ na mesma tela (Quadro de funcionários da Folha de ponto é o primeiro consumido
 
 O Cartão de ponto de um empregado (`/rh/folha-de-ponto/[cliente]/cartao/[empregado]`) copia a planilha do
 escritório (`PLANILHA CARTAO PONTO`, aba do funcionário): tabela com divisória em toda célula (`Tabela` com
-`grade`), cabeçalho de dois níveis (`agrupamento`: "Batidas", "Horas extras / Atrasos / Adicional noturno", "Horas extras por faixa") e linha **Totais** no rodapé (`rodape`: faltas e soma de cada coluna calculada). Colunas, na ordem da
-planilha: Data (fixa), Dia semana, Entrada, Saída, Entrada, Saída, Extra entrada, Extra saída, H. Diária,
+`grade`), cabeçalho de dois níveis (`agrupamento`: "Batidas", "Horas extras / Atrasos / Adicional noturno", "Horas extras por faixa"). **Sem linha Totais** no rodapé: a "Totalização do mês" abaixo da tabela já traz os mesmos números.
+Colunas, na ordem da planilha: Data (fixa), Dia semana, Entrada, Saída, Entrada, Saída, Extra entrada, Extra saída, H. Diária,
 Atrasos, Abono, Horas Extras, Adicional noturno (por extenso: a sigla A.N. não era clara), 1ª Faixa, 2ª Faixa e a coluna do botão Salvar, sem título visível (o botão já diz a função; o cabeçalho tem só texto para leitor de tela). Entrada, Saída, Extra e Abono são campos do
 dia; o resto é calculado (nunca digitado). Acima da tabela: Empresa e Período (o mês). A carga horária por dia da semana
 não se exibe (não tem uso na tela). A tela mostra o **mês de trabalho inteiro**, de 28 a 31 dias, numa só tabela; a quinzena só
@@ -554,6 +554,12 @@ importa na leitura da foto do cartão, não na exibição. Dia sem jornada marca
   `largura="ampla"` (`w-full max-w-screen-2xl`, a janela toda com teto em monitor muito largo), a `Tabela`
   com `grade` tem respiro de 6 px por lado nas células e os campos de hora são estreitos (`w-[4.5rem]`, sem o
   ícone do relógio do navegador). Em janela menor que ~1200 px a própria `Tabela` ainda rola, com a Data à vista.
+- **Ação por linha e ações da tabela.** Cada linha tem só um botão de ícone (lápis); abrir várias linhas ao
+  mesmo tempo é permitido. Entre a tabela e a Totalização fica a barra de ações: **Salvar** (grava todas as
+  linhas abertas, fica na tela e põe a Totalização em destaque, `border-primary` + fundo), **Limpar**
+  (esvazia os campos das linhas abertas, fica na tela; só vale ao salvar) e **Cancelar** (descarta e volta à
+  lista de empregados da empresa). Salvar e Limpar só ficam ativos com ao menos uma linha aberta. Sem
+  permissão de edição não há lápis nem barra.
 - **Um formulário por dia, fora da célula:** o `<form>` do dia fica na última célula e os campos das outras o
   alcançam pelo atributo `form`; `new FormData(form)` já os traz.
 - **Caixa sozinha em célula** (Abono): `CaixaDeMarcacao` com `rotuloOculto`, nomeada por "Abono de seg 16/11".
@@ -871,17 +877,15 @@ padrão; "Sem movimento no mês" e "Inativar empregado" ao fim. O escolhido leva
 ligado ao campo Nome, e o formulário só é limpo no sucesso. Em leitura (Líder, Admin ou outro
 Responsável) só a lista e os dados aparecem, sem formulário nem botão de escrita.
 
-**`CartaoDePonto` (organismo):** o cartão de um empregado numa quinzena, de cima para baixo: título,
-`NavegacaoDeMes` com `destaque`, as duas quinzenas como links (a atual em `default`), um aviso de apoio
-quando só se lê e um dia por linha (`LinhaDoCartaoDePonto`), fechando com a
-`TotalizacaoDoPonto`. Cada dia é salvo à parte; a Totalização se recalcula na recarga. O resultado do "Salvar" ("Salvo." ou o
-erro, em `AvisoDeStatus`) aparece na linha do dia, ligado aos campos por `aria-describedby`. A
-quinzena aberta leva `aria-current`, além da variante `default`.
+**`CartaoDePonto` (organismo):** o cartão de um empregado no mês inteiro, de cima para baixo: título, Empresa e
+Período, `NavegacaoDeMes` com `destaque`, um aviso de apoio quando só se lê, a tabela (um dia por linha,
+`LinhaDoCartaoDePonto`), a barra de ações da tabela (Salvar, Limpar, Cancelar) e a `TotalizacaoDoPonto`. Ver
+"Cartão de ponto: tabela no desenho da planilha" abaixo.
 
-**`LinhaDoCartaoDePonto` (molécula):** um dia do cartão, um formulário em malha `2>3` separado do dia
-anterior por um filete: rótulo do dia (com a nota "Feriado" ou "Sem jornada" abaixo), duas entradas, duas
-saídas e a coluna Extra (entrada e saída), cada um um `CampoDeTexto type="time"` com rótulo visível e
-`aria-label` próprio ("Entrada 1 de seg 16/11"), e "Abono" com o botão "Salvar" do dia na última linha. Sem edição, os horários ficam `readOnly` (legíveis e focáveis) e o botão some.
+**`LinhaDoCartaoDePonto` (molécula):** um dia do cartão como linha da `Tabela`. Fora da edição os horários ficam
+`readOnly` e a ação da linha é um só botão de ícone, o lápis ("Editar seg 16/11"). Em edição os campos destravam
+e as ações viram dois botões de ícone: ✓ Salvar ("Salvar seg 16/11") e ✕ Cancelar ("Cancelar edição de seg
+16/11"), que descarta o digitado e devolve a linha ao estado de antes, com o lápis de volta.
 
 **`TotalizacaoDoPonto` (molécula):** a Totalização como lista de definição numa grade `2>4`: rótulo em
 `apoio` e valor em `subtitulo` (horas como "8h45", dias como "1 dia"). Só mostra, nunca recebe digitação.

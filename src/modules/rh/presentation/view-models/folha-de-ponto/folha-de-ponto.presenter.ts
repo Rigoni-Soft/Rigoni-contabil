@@ -1,6 +1,5 @@
 import type { LinhaDoCartao } from "@/presentation/components/molecules/linha-do-cartao-de-ponto.component";
 import type { ItemDaTotalizacao } from "@/presentation/components/molecules/totalizacao-do-ponto.component";
-import type { TotaisDoCartao } from "@/presentation/components/organisms/cartao-de-ponto.component";
 import type {
   EmpregadoDoQuadro,
   EmpregadoEmEdicao,
@@ -77,18 +76,6 @@ const faixaDe = (e?: { percentual: number; minutos: number }) =>
 
 const extrasDoDia = (a: TotalizacaoDto) =>
   a.extras.reduce((soma, e) => soma + e.minutos, 0) + a.bancoDeHorasMin;
-
-// A linha TOTAIS da planilha: faltas e a soma de cada coluna calculada do período.
-export function totaisDoCartao(dias: DiaDaFolhaDto[], t: TotalizacaoDto): TotaisDoCartao {
-  return {
-    faltas: String(t.faltas),
-    trabalhado: duracao(dias.reduce((soma, d) => soma + d.trabalhadoMin, 0)),
-    atraso: duracao(t.atrasoMin),
-    extras: duracao(extrasDoDia(t)),
-    faixas: t.extras.map(faixaDe).join(" · "),
-    noturno: duracao(t.noturnoMin),
-  };
-}
 
 export function linhasDoCartao(dias: DiaDaFolhaDto[]): LinhaDoCartao[] {
   return dias.map((dia) => {

@@ -10,7 +10,6 @@ import {
   minutosParaHm,
   navegacaoDoCartao,
   quadroDoEmpregado,
-  totaisDoCartao,
 } from "@/modules/rh/presentation/view-models/folha-de-ponto/folha-de-ponto.presenter";
 
 const campos = (valores: Record<string, string>) => ({
@@ -167,39 +166,6 @@ describe("linhasDoCartao", () => {
       noturno: "0h08",
     });
     expect(falta.nota).toBe("Falta");
-  });
-
-  it("totaisDoCartao é a linha TOTAIS da planilha", () => {
-    const t = {
-      ...ZERO,
-      faltas: 2,
-      atrasoMin: 10,
-      noturnoMin: 8,
-      extras: [
-        { percentual: 50, minutos: 75 },
-        { percentual: 100, minutos: 60 },
-      ],
-      bancoDeHorasMin: 15,
-    };
-    const dia = {
-      data: "2026-11-16",
-      diaDaSemana: 1,
-      batidas: [],
-      extra: null,
-      abono: false,
-      cargaMin: 525,
-      feriado: false,
-      trabalhadoMin: 600,
-      apuracao: ZERO,
-    };
-    expect(totaisDoCartao([dia, dia], t)).toEqual({
-      faltas: "2",
-      trabalhado: "20h00",
-      atraso: "0h10",
-      extras: "2h30",
-      noturno: "0h08",
-      faixas: "1h15 (50%) · 1h00 (100%)",
-    });
   });
 });
 

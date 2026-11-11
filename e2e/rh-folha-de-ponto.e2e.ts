@@ -53,6 +53,8 @@ test.describe("Folha de ponto do RH", () => {
     await page.getByRole("link", { name: "Cartão de ponto de Ana E2E" }).click();
     await expect(page.getByRole("heading", { name: "Cartão de ponto de Ana E2E" })).toBeVisible();
 
+    // Cada dia abre para editar pelo lápis; o ✓ da linha salva.
+    await page.getByRole("button", { name: `Editar ${rotulo}` }).click();
     await page.getByLabel(`Entrada 1 de ${rotulo}`).fill("08:00");
     await page.getByLabel(`Saída 1 de ${rotulo}`).fill("12:00");
     await page.getByLabel(`Entrada 2 de ${rotulo}`).fill("13:00");
@@ -99,6 +101,7 @@ test.describe("Folha de ponto do RH", () => {
 
     await expect(page.getByRole("heading", { name: "Cartão de ponto de Bia E2E" })).toBeVisible();
     await expect(page.getByLabel(`Entrada 1 de ${rotulo}`)).toHaveAttribute("readonly", "");
+    await expect(page.getByRole("button", { name: `Editar ${rotulo}` })).toHaveCount(0);
     await expect(page.getByRole("button", { name: `Salvar ${rotulo}` })).toHaveCount(0);
   });
 });
