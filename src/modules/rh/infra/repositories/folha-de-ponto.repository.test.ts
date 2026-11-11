@@ -204,7 +204,10 @@ describe("Folha de ponto do RH (integração)", () => {
     await repo.definirSemMovimento(id, "2026-11-01", false);
     const fim = await repo.listarSemMovimento(clienteA, "2026-11-01");
 
-    expect([marcou, repetiu]).toEqual([expect.objectContaining({ ok: true }), expect.objectContaining({ ok: true })]);
+    expect([marcou, repetiu]).toEqual([
+      expect.objectContaining({ ok: true }),
+      expect.objectContaining({ ok: true }),
+    ]);
     expect(lido.ok && lido.value).toEqual([id]);
     expect(outroMes.ok && outroMes.value).toEqual([]);
     expect(fim.ok && fim.value).toEqual([]);
