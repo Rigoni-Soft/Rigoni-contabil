@@ -11,7 +11,7 @@ import {
   type RegraAplicada,
   type RegraRejeitada,
   type RegrasDaConvencao,
-} from "@/modules/rh/domain/value-objects/regras-da-convencao.vo";
+} from "@/shared/kernel/regras-da-convencao";
 
 // O que o modelo de linguagem devolve: tudo não confiável até passar por aqui.
 export type RegraCandidata = {

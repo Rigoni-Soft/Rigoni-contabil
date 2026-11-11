@@ -1,4 +1,4 @@
-import type { RegrasDaConvencao } from "@/modules/rh/domain/value-objects/regras-da-convencao.vo";
+import type { RegrasDaConvencao } from "@/shared/kernel/regras-da-convencao";
 
 export type ConvencaoDto = {
   id: string;

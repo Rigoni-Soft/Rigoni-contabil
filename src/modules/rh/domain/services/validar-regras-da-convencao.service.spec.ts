@@ -2,7 +2,7 @@ import {
   validarRegrasDaConvencao,
   type RegraCandidata,
 } from "@/modules/rh/domain/services/validar-regras-da-convencao.service";
-import { VERSAO_DO_ESQUEMA } from "@/modules/rh/domain/value-objects/regras-da-convencao.vo";
+import { VERSAO_DO_ESQUEMA } from "@/shared/kernel/regras-da-convencao";
 
 const cand = (
   chave: string,

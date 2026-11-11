@@ -1,6 +1,6 @@
 import type { ConvencaoDto } from "@/modules/rh/application/dtos/convencao.dto";
-import type { RegrasDaConvencao } from "@/modules/rh/domain/value-objects/regras-da-convencao.vo";
 import type { AppError } from "@/shared/errors/app.error";
+import type { RegrasDaConvencao } from "@/shared/kernel/regras-da-convencao";
 import type { Result } from "@/shared/kernel/result";
 
 export type NovaConvencao = {

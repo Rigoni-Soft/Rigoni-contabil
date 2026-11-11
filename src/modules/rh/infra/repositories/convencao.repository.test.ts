@@ -6,6 +6,8 @@
  */
 import { createClient } from "@supabase/supabase-js";
 
+import type { RegrasDaConvencao } from "@/shared/kernel/regras-da-convencao";
+
 import { removerClientesDeTeste } from "../../../../../test-support/clientes-de-teste";
 import { SupabaseArmazenamentoDeConvencaoGateway } from "../gateways/supabase-armazenamento-de-convencao.gateway";
 import { SupabaseConvencaoRepository } from "./convencao.repository";
@@ -22,7 +24,7 @@ const CNPJ_B = "11444777009832";
 const FUNCIONARIO_RH_ID = "dddddddd-dddd-dddd-dddd-dddddddddddd";
 const FUNCIONARIO2_RH_ID = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee";
 const JORNADA = [0, 525, 525, 525, 525, 525, 240];
-const REGRAS = {
+const REGRAS: RegrasDaConvencao = {
   versao: 1,
   aplicadas: [
     {

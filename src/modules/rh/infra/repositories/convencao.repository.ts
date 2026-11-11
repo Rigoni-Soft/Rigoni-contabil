@@ -6,11 +6,11 @@ import type {
   NovaConvencao,
 } from "@/modules/rh/application/ports/out/convencao.repository";
 import type { RegistroDeErrosPort } from "@/modules/rh/application/ports/out/registro-de-erros.provider";
-import type { RegrasDaConvencao } from "@/modules/rh/domain/value-objects/regras-da-convencao.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { PersistenciaError } from "@/shared/errors/persistencia.error";
 import { ValidationError } from "@/shared/errors/validation.error";
+import type { RegrasDaConvencao } from "@/shared/kernel/regras-da-convencao";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 type Linha = {
