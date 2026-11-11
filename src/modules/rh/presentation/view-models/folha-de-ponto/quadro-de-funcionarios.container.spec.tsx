@@ -38,7 +38,7 @@ const FOLHA: FolhaDePontoDto = {
   padraoComissionados: false,
   empregados: [ANA],
   podeEditar: true,
-  selecionado: { empregado: ANA, dias: [], totalizacao: {} as never },
+  selecionado: { empregado: ANA, dias: [], totalizacao: {} as never, semConvencao: false },
 };
 const OK = { ok: true as const, data: undefined };
 

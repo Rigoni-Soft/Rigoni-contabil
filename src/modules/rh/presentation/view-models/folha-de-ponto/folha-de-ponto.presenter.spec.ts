@@ -29,7 +29,7 @@ const FOLHA: FolhaDePontoDto = {
   padraoComissionados: false,
   empregados: [ANA, { ...ANA, id: "e2", nome: "Bia", ativo: false, comissionado: false }],
   podeEditar: true,
-  selecionado: { empregado: ANA, dias: [], totalizacao: {} as never },
+  selecionado: { empregado: ANA, dias: [], totalizacao: {} as never, semConvencao: false },
 };
 
 describe("horários", () => {
@@ -45,24 +45,29 @@ describe("itensDaTotalizacao", () => {
   it("formata horas e dias", () => {
     const itens = itensDaTotalizacao({
       normaisMin: 525,
-      extras50Min: 60,
-      extras100Min: 0,
+      extras: [{ percentual: 60, minutos: 60 }],
+      bancoDeHorasMin: 0,
+      acimaDoLimiteMin: 0,
       noturnoMin: 69,
       atrasoMin: 5,
       faltas: 1,
       abonoDias: 2,
       abonoMin: 1050,
       feriadosTrabalhados: 1,
+      sabadosTrabalhados: 2,
+      diasComLanche: 3,
     });
+    expect(itens.map((i) => i.rotulo)).toContain("Extras 60%");
     expect(itens.map((i) => i.valor)).toEqual([
       "8h45",
       "1h00",
-      "0h00",
       "1h09",
       "0h05",
       "1 dia",
       "2 dias · 17h30",
       "1",
+      "2",
+      "3",
     ]);
   });
 });

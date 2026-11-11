@@ -123,6 +123,20 @@ describe("validarRegrasDaConvencao", () => {
       expect(r.aplicadas[0]?.chave).toBe("datas_especiais");
     });
 
+    it("aceita o percentual do comissionado se aparece no trecho, sem o piso da legislação", () => {
+      const datas = [
+        { descricao: "Natal", data: "25/12", percentual: 100, percentualComissionado: 50 },
+      ];
+      const ok = validarRegrasDaConvencao([
+        cand("datas_especiais", datas, "Em 25/12: 100% e, para o comissionado, 50%."),
+      ]);
+      const fora = validarRegrasDaConvencao([cand("datas_especiais", datas, "Em 25/12: 100%.")]);
+
+      expect(ok.rejeitadas).toEqual([]);
+      expect(ok.aplicadas[0]?.valor).toEqual(datas);
+      expect(fora.rejeitadas).toEqual([{ chave: "datas_especiais", motivo: "fora_do_trecho" }]);
+    });
+
     it("rejeita o calendário inteiro se uma data não aparece no trecho", () => {
       const r = validarRegrasDaConvencao([
         cand(

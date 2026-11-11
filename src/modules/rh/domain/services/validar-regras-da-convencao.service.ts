@@ -81,7 +81,9 @@ function avaliar(candidata: RegraCandidata): MotivoDeRejeicao | RegraAplicada {
     const numeros = numerosDe(trechoLimpo);
     const noTrecho = datas.every(
       (d) =>
-        numeros.includes(d.percentual) && (d.data === null || dataNoTrecho(d.data, trechoLimpo)),
+        numeros.includes(d.percentual) &&
+        (d.percentualComissionado === undefined || numeros.includes(d.percentualComissionado)) &&
+        (d.data === null || dataNoTrecho(d.data, trechoLimpo)),
     );
     if (!noTrecho) return "fora_do_trecho";
     const piso = REFERENCIA_DA_LEGISLACAO.datas_especiais.piso ?? 0;
@@ -166,7 +168,22 @@ function datasEspeciais(valor: unknown): DataEspecial[] | null {
     if (percentual > MAXIMO_PERCENTUAL) return null;
     const data = o.data ?? null;
     if (data !== null && (typeof data !== "string" || !dataValida(data))) return null;
-    datas.push({ descricao: o.descricao.trim(), data, percentual });
+    const comissionado = o.percentualComissionado;
+    if (
+      comissionado !== undefined &&
+      (typeof comissionado !== "number" ||
+        !Number.isFinite(comissionado) ||
+        comissionado <= 0 ||
+        comissionado > MAXIMO_PERCENTUAL)
+    )
+      return null;
+    // O percentual do comissionado fica fora do piso: é o que a convenção paga em troca da comissão.
+    datas.push({
+      descricao: o.descricao.trim(),
+      data,
+      percentual,
+      ...(comissionado === undefined ? {} : { percentualComissionado: comissionado }),
+    });
   }
   return datas;
 }

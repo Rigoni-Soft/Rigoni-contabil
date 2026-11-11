@@ -6,9 +6,14 @@ import type {
   ObterFolhaDePontoInput,
   ObterFolhaDePontoPort,
 } from "@/modules/rh/application/ports/in/obter-folha-de-ponto.provider";
+import type { ConvencaoRepository } from "@/modules/rh/application/ports/out/convencao.repository";
 import type { FolhaDePontoRepository } from "@/modules/rh/application/ports/out/folha-de-ponto.repository";
 import type { RelogioPort } from "@/modules/rh/application/ports/out/relogio.provider";
 import type { SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
+import {
+  convencaoDaEpoca,
+  regrasDeCalculo,
+} from "@/modules/rh/domain/services/regras-de-calculo.service";
 import {
   diaDaSemana,
   totalizar,
@@ -25,12 +30,13 @@ import { podeMarcarAcompanhamentoRh, podeVerAcompanhamentoRh } from "@/shared/ke
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 // A Folha de ponto de um Cliente: o quadro, o cartão da quinzena do empregado escolhido e a Totalização
-// dele pela legislação. O Admin e o Líder do RH leem; o Funcionário, só os Clientes de que é Responsável (a
+// dele pela convenção vigente em cada dia do cartão (a legislação onde nenhuma vale). O Admin e o Líder do RH leem; o Funcionário, só os Clientes de que é Responsável (a
 // RLS repete o recorte: cliente fora da vista do ator some).
 export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
   constructor(
     private readonly sessao: SessaoPort,
     private readonly repositorio: FolhaDePontoRepository,
+    private readonly convencoes: ConvencaoRepository,
     private readonly relogio: RelogioPort,
   ) {}
 
@@ -85,12 +91,28 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
     if (!escolhido) return ok({ ...base, selecionado: null });
 
     const datas = diasDaQuinzena(competencia.value.valor, quinzena);
-    const [lancados, feriados] = await Promise.all([
+    const [lancados, feriados, historico, interruptores, ponteiros] = await Promise.all([
       this.repositorio.listarDias(escolhido.id, datas[0], datas[datas.length - 1]),
       this.repositorio.listarFeriados(datas[0], datas[datas.length - 1]),
+      this.convencoes.listar(input.clienteId),
+      this.repositorio.buscarInterruptores(input.clienteId),
+      this.repositorio.listarConvencaoDosEmpregados(input.clienteId),
     ]);
     if (!lancados.ok) return lancados;
     if (!feriados.ok) return feriados;
+    if (!historico.ok) return historico;
+    if (!interruptores.ok) return interruptores;
+    if (!ponteiros.ok) return ponteiros;
+
+    const sindicato =
+      ponteiros.value.find((p) => p.empregadoId === escolhido.id)?.sindicato ?? null;
+    const regrasDoDia = (data: string) =>
+      regrasDeCalculo(
+        convencaoDaEpoca(historico.value, sindicato, data)?.regras ?? null,
+        interruptores.value,
+        escolhido.comissionado,
+      );
+    const semConvencao = datas.some((data) => !convencaoDaEpoca(historico.value, sindicato, data));
 
     const lancadoEm = new Map(lancados.value.map((d) => [d.data, d]));
     const feriadoEm = new Set(feriados.value);
@@ -113,7 +135,8 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
       selecionado: {
         empregado: escolhido,
         dias,
-        totalizacao: totalizar(dias, escolhido.jornada as unknown as Jornada),
+        totalizacao: totalizar(dias, escolhido.jornada as unknown as Jornada, regrasDoDia),
+        semConvencao,
       },
     });
   }

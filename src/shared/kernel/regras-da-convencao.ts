@@ -26,6 +26,8 @@ export type DataEspecial = {
   // "DD/MM"; nulo para data móvel (Carnaval), que o RH marca no cartão.
   data: string | null;
   percentual: number;
+  // Percentual do comissionado quando a convenção traz um diferente (75% x 50%); ausente = o mesmo.
+  percentualComissionado?: number;
 };
 export type ExcecaoDeFeriado = { descricao: string };
 

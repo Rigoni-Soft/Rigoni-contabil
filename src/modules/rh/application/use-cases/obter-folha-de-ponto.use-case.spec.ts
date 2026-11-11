@@ -1,4 +1,6 @@
+import type { ConvencaoDto } from "@/modules/rh/application/dtos/convencao.dto";
 import type { EmpregadoDto } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
+import type { ConvencaoRepository } from "@/modules/rh/application/ports/out/convencao.repository";
 import type { FolhaDePontoRepository } from "@/modules/rh/application/ports/out/folha-de-ponto.repository";
 import type { AtorSessaoDto } from "@/modules/rh/application/ports/out/sessao.provider";
 import { ObterFolhaDePonto } from "@/modules/rh/application/use-cases/obter-folha-de-ponto.use-case";
@@ -41,10 +43,28 @@ function repo(over: Partial<FolhaDePontoRepository> = {}): FolhaDePontoRepositor
   };
 }
 
+const CONVENCAO: ConvencaoDto = {
+  id: "v1",
+  sindicato: "Comerciários",
+  vigenciaInicio: "2026-01-01",
+  vigenciaFim: "2026-12-31",
+  arquivoNome: "c.pdf",
+  enviadaEm: "2026-01-02",
+  regras: {
+    versao: 1,
+    rejeitadas: [],
+    aplicadas: [{ chave: "extra_sabado", valor: 60, clausula: "12ª", trecho: "60%" }],
+  },
+};
+const convencoes = (lista: ConvencaoDto[] = []): ConvencaoRepository => ({
+  listar: async () => ok(lista),
+  inserir: async () => ok(undefined),
+});
+
 // 20/11/2026: mês corrente, na segunda quinzena.
 const relogio = { agora: () => new Date("2026-11-20T15:00:00Z") };
-const obter = (ator: AtorSessaoDto | null, r = repo()) =>
-  new ObterFolhaDePonto({ usuarioAtual: async () => ator }, r, relogio);
+const obter = (ator: AtorSessaoDto | null, r = repo(), c = convencoes()) =>
+  new ObterFolhaDePonto({ usuarioAtual: async () => ator }, r, c, relogio);
 
 describe("ObterFolhaDePonto", () => {
   it("barra quem não é do RH nem Admin", async () => {
@@ -115,5 +135,69 @@ describe("ObterFolhaDePonto", () => {
       clienteId: "c1",
     });
     expect(r.ok && r.value.selecionado).toBeNull();
+  });
+
+  describe("convenção na Totalização", () => {
+    // Sábado 21/11: 4h de carga, 5h batidas = 1h extra.
+    const sabado = {
+      listarDias: async () =>
+        ok([
+          {
+            data: "2026-11-21",
+            batidas: [{ entrada: hm("08:00"), saida: hm("13:00") }],
+            extra: null,
+            abono: false,
+          },
+        ]),
+    };
+    const extrasDe = async (c: ConvencaoDto[], r = repo(sabado)) => {
+      const folha = await obter(FUNC, r, convencoes(c)).execute({ clienteId: "c1" });
+      if (!folha.ok) throw folha.error;
+      return folha.value.selecionado!;
+    };
+
+    it("com convenção vigente a hora extra de sábado usa o percentual dela", async () => {
+      const s = await extrasDe([CONVENCAO]);
+      expect(s.totalizacao.extras).toEqual([{ percentual: 60, minutos: 60 }]);
+      expect(s.semConvencao).toBe(false);
+    });
+
+    it("sem convenção vale a legislação e a folha avisa", async () => {
+      const s = await extrasDe([]);
+      expect(s.totalizacao.extras).toEqual([{ percentual: 50, minutos: 60 }]);
+      expect(s.semConvencao).toBe(true);
+    });
+
+    it("convenção que já venceu não vale: usa a da época do cartão", async () => {
+      const velha = { ...CONVENCAO, vigenciaInicio: "2025-01-01", vigenciaFim: "2025-12-31" };
+      expect((await extrasDe([velha])).totalizacao.extras).toEqual([
+        { percentual: 50, minutos: 60 },
+      ]);
+    });
+
+    it("o empregado que aponta outro sindicato usa a convenção dele", async () => {
+      const outra = {
+        ...CONVENCAO,
+        id: "v2",
+        sindicato: "Outro",
+        regras: { versao: 1, aplicadas: [], rejeitadas: [] },
+      };
+      const r = repo({
+        ...sabado,
+        listarConvencaoDosEmpregados: async () => ok([{ empregadoId: "e1", sindicato: "Outro" }]),
+      });
+      const s = await extrasDe([CONVENCAO, outra], r);
+      expect(s.totalizacao.extras).toEqual([{ percentual: 50, minutos: 60 }]);
+      expect(s.semConvencao).toBe(false);
+    });
+
+    it("o banco de horas ligado no Cliente leva a extra ao banco", async () => {
+      const r = repo({
+        ...sabado,
+        buscarInterruptores: async () => ok({ bancoDeHoras: true, trabalhoAosDomingos: false }),
+      });
+      const s = await extrasDe([CONVENCAO], r);
+      expect(s.totalizacao).toMatchObject({ extras: [], bancoDeHorasMin: 60 });
+    });
   });
 });

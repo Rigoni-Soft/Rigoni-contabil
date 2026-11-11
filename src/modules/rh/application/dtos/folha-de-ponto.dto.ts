@@ -45,5 +45,7 @@ export type FolhaDePontoDto = {
     empregado: EmpregadoDaFolhaDto;
     dias: DiaDaFolhaDto[];
     totalizacao: TotalizacaoDto;
+    // Algum dia da quinzena sem convenção vigente: a Totalização desses dias é pela legislação.
+    semConvencao: boolean;
   } | null;
 };

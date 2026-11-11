@@ -10,6 +10,7 @@ import { rotuloDaCompetencia } from "@/modules/rh/presentation/view-models/acomp
 
 import { salvarDiaDoPontoAction } from "./folha-de-ponto.actions";
 import {
+  AVISO_SEM_CONVENCAO,
   itensDaTotalizacao,
   lerDiaDoFormulario,
   linhasDoCartao,
@@ -56,6 +57,7 @@ export function CartaoDePontoContainer({ folha }: Props) {
       {...navegacaoDoCartao(folha)}
       linhas={linhasDoCartao(selecionado.dias)}
       totalizacao={itensDaTotalizacao(selecionado.totalizacao)}
+      avisoDaTotalizacao={selecionado.semConvencao ? AVISO_SEM_CONVENCAO : undefined}
       editavel={folha.podeEditar && selecionado.empregado.ativo}
       pendente={pendente}
       aviso={aviso}

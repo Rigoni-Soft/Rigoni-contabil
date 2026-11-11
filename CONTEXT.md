@@ -170,7 +170,7 @@ O conjunto de parâmetros que o sistema extraiu da Convenção coletiva, uma só
 O que a convenção não decide e o Responsável do RH liga por Cliente: banco de horas (desligado por padrão) e trabalho aos domingos.
 
 **Totalização**:
-O resultado legal das horas de um empregado no período (normais, extras por faixa, adicional noturno, atrasos, faltas, abonos), calculado das batidas pela Convenção coletiva.
+O resultado legal das horas de um empregado no período (normais, extras por faixa, adicional noturno, atrasos, faltas, abonos), calculado das batidas pela Convenção coletiva vigente na data de cada dia (a de vigência que cobre o dia e, havendo mais de uma, a do sindicato que o empregado aponta), com a legislação onde a convenção não decide; sem convenção vigente a legislação vale e a tela avisa. Entrega minutos por faixa de percentual (sábado, datas especiais e o percentual do comissionado vêm da convenção), o que foi para o **banco de horas** (quando ligado, só dia útil e sábado) e contagens para o Holerite aplicar os valores em dinheiro: feriados trabalhados, sábados trabalhados e dias com hora extra (direito a lanche). Hora extra acima do limite diário continua paga e só aparece como alerta.
 
 ### Auditoria
 

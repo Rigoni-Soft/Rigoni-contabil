@@ -34,16 +34,29 @@ function duracao(minutos: number): string {
 
 const dias = (n: number) => `${n} ${n === 1 ? "dia" : "dias"}`;
 
+export const AVISO_SEM_CONVENCAO =
+  "Sem convenção coletiva vigente em parte da quinzena: esses dias foram totalizados pela legislação.";
+
 export function itensDaTotalizacao(t: TotalizacaoDto): ItemDaTotalizacao[] {
+  const extras = t.extras.length
+    ? t.extras.map((e) => ({ rotulo: `Extras ${e.percentual}%`, valor: duracao(e.minutos) }))
+    : [{ rotulo: "Horas extras", valor: duracao(0) }];
   return [
     { rotulo: "Horas normais", valor: duracao(t.normaisMin) },
-    { rotulo: "Extras 50%", valor: duracao(t.extras50Min) },
-    { rotulo: "Extras 100%", valor: duracao(t.extras100Min) },
+    ...extras,
+    ...(t.bancoDeHorasMin > 0
+      ? [{ rotulo: "Banco de horas", valor: duracao(t.bancoDeHorasMin) }]
+      : []),
+    ...(t.acimaDoLimiteMin > 0
+      ? [{ rotulo: "Extras acima do limite diário", valor: duracao(t.acimaDoLimiteMin) }]
+      : []),
     { rotulo: "Adicional noturno", valor: duracao(t.noturnoMin) },
     { rotulo: "Atrasos", valor: duracao(t.atrasoMin) },
     { rotulo: "Faltas", valor: dias(t.faltas) },
     { rotulo: "Abonos", valor: `${dias(t.abonoDias)} · ${duracao(t.abonoMin)}` },
     { rotulo: "Feriados trabalhados", valor: String(t.feriadosTrabalhados) },
+    { rotulo: "Sábados trabalhados", valor: String(t.sabadosTrabalhados) },
+    { rotulo: "Dias com lanche", valor: String(t.diasComLanche) },
   ];
 }
 

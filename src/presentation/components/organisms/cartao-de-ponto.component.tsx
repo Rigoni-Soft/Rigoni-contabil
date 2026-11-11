@@ -20,6 +20,8 @@ type Props = {
   quinzenas: { rotulo: string; href: string; atual: boolean }[];
   linhas: LinhaDoCartao[];
   totalizacao: ItemDaTotalizacao[];
+  // Quando a Totalização usou a legislação por falta de convenção vigente.
+  avisoDaTotalizacao?: string;
   editavel: boolean;
   pendente: boolean;
   // Resultado do último "Salvar", mostrado na linha do dia a que se refere.
@@ -38,6 +40,7 @@ export function CartaoDePonto({
   quinzenas,
   linhas,
   totalizacao,
+  avisoDaTotalizacao,
   editavel,
   pendente,
   aviso,
@@ -84,6 +87,7 @@ export function CartaoDePonto({
           />
         ))}
       </Pilha>
+      {avisoDaTotalizacao && <Texto variante="apoio">{avisoDaTotalizacao}</Texto>}
       <TotalizacaoDoPonto titulo="Totalização da quinzena" itens={totalizacao} />
     </Pilha>
   );

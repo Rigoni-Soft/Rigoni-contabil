@@ -41,20 +41,33 @@ const FOLHA: FolhaDePontoDto = {
     ],
     totalizacao: {
       normaisMin: 0,
-      extras50Min: 0,
-      extras100Min: 0,
+      extras: [],
+      bancoDeHorasMin: 0,
+      acimaDoLimiteMin: 0,
       noturnoMin: 0,
       atrasoMin: 0,
       faltas: 1,
       abonoDias: 0,
       abonoMin: 0,
       feriadosTrabalhados: 0,
+      sabadosTrabalhados: 0,
+      diasComLanche: 0,
     },
+    semConvencao: false,
   },
 };
 
 describe("CartaoDePontoContainer", () => {
   beforeEach(() => jest.clearAllMocks());
+
+  it("avisa que vale a legislação quando não há convenção vigente", () => {
+    const { rerender } = render(<CartaoDePontoContainer folha={FOLHA} />);
+    expect(screen.queryByText(/Sem convenção coletiva vigente/)).toBeNull();
+
+    const sem = { ...FOLHA, selecionado: { ...FOLHA.selecionado!, semConvencao: true } };
+    rerender(<CartaoDePontoContainer folha={sem} />);
+    expect(screen.getByText(/Sem convenção coletiva vigente/)).toBeInTheDocument();
+  });
 
   it("salvar o dia chama a ação com as batidas em minutos e recarrega a tela", async () => {
     jest.mocked(salvarDiaDoPontoAction).mockResolvedValue({ ok: true, data: undefined });

@@ -150,8 +150,13 @@ async function montarFolha() {
 }
 
 export async function makeObterFolhaDePonto(): Promise<ObterFolhaDePontoPort> {
-  const { sessao, repositorio } = await montarFolha();
-  return new ObterFolhaDePonto(sessao, repositorio, new RelogioSistemaGateway());
+  const supabase = await createSupabaseServer();
+  return new ObterFolhaDePonto(
+    sessaoViaUsuarios(supabase),
+    new SupabaseFolhaDePontoRepository(supabase, errosRh),
+    new SupabaseConvencaoRepository(supabase, errosRh),
+    new RelogioSistemaGateway(),
+  );
 }
 
 export async function makeCadastrarEmpregado(): Promise<CadastrarEmpregadoPort> {
