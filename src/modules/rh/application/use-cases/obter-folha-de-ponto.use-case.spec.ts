@@ -168,6 +168,11 @@ describe("ObterFolhaDePonto", () => {
       expect(s.semConvencao).toBe(true);
     });
 
+    it("quinzena sem nenhum lançamento não avisa: a convenção não mudaria nada", async () => {
+      const s = await extrasDe([], repo());
+      expect(s.semConvencao).toBe(false);
+    });
+
     it("convenção que já venceu não vale: usa a da época do cartão", async () => {
       const velha = { ...CONVENCAO, vigenciaInicio: "2025-01-01", vigenciaFim: "2025-12-31" };
       expect((await extrasDe([velha])).totalizacao.extras).toEqual([

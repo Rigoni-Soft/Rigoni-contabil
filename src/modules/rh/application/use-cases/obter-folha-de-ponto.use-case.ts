@@ -30,8 +30,9 @@ import { podeMarcarAcompanhamentoRh, podeVerAcompanhamentoRh } from "@/shared/ke
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 // A Folha de ponto de um Cliente: o quadro, o cartão da quinzena do empregado escolhido e a Totalização
-// dele pela convenção vigente em cada dia do cartão (a legislação onde nenhuma vale). O Admin e o Líder do RH leem; o Funcionário, só os Clientes de que é Responsável (a
-// RLS repete o recorte: cliente fora da vista do ator some).
+// dele pela convenção vigente em cada dia do cartão (a legislação onde nenhuma vale). O Admin e o Líder do
+// RH leem; o Funcionário, só os Clientes de que é Responsável (a RLS repete o recorte: cliente fora da vista
+// do ator some).
 export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -115,10 +116,14 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
         interruptores.value,
         escolhido.comissionado,
       );
-    const semConvencao = [...convencaoDe.values()].some((c) => !c);
 
     const lancadoEm = new Map(lancados.value.map((d) => [d.data, d]));
     const feriadoEm = new Set(feriados.value);
+
+    // Só avisa quando um dia com lançamento ficou sem convenção: dia vazio não muda com ela.
+    const semConvencao = datas.some(
+      (data) => !convencaoDe.get(data) && (lancadoEm.get(data) || feriadoEm.has(data)),
+    );
     const dias: DiaDaFolhaDto[] = datas.map((data) => {
       const dia = lancadoEm.get(data);
       const semana = diaDaSemana(data);
