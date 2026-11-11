@@ -1,4 +1,5 @@
 import type { AcompanhamentoMensalDto } from "@/modules/rh/application/dtos/acompanhamento.dto";
+import { cartoesExigidos } from "@/modules/rh/domain/services/holerite.service";
 import { rotuloDaCompetencia } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.presenter";
 import { podeGerirServicosRh } from "@/shared/kernel/papeis";
 import { ROTA_RH_SERVICOS } from "@/shared/kernel/setores";
@@ -30,6 +31,8 @@ const faltando = (l: AcompanhamentoMensalDto["linhas"][number]) =>
 export function cardsDoAcompanhamento(dto: AcompanhamentoMensalDto) {
   const mes = rotuloDaCompetencia(dto.competencia);
   const total = dto.linhas.length;
+  const feitos = dto.linhas.reduce((n, l) => n + l.holerite.cartoes, 0);
+  const exigidos = dto.linhas.reduce((n, l) => n + cartoesExigidos(l.holerite), 0);
   const cards: CardDoRh[] = dto.servicos.map((s) => {
     const clientes = dto.linhas.filter((l) => faltando(l).includes(s.id)).map(doCliente);
     return {
@@ -37,7 +40,10 @@ export function cardsDoAcompanhamento(dto: AcompanhamentoMensalDto) {
       titulo: `${s.nome} pendente`,
       cor: "atencao",
       quantidade: clientes.length,
-      descricao: `Clientes que ainda não concluíram ${s.nome} em ${mes}.`,
+      descricao:
+        `Clientes que ainda não concluíram ${s.nome} em ${mes}.` +
+        // O Holerite sai dos cartões: o total do setor mostra quanto falta.
+        (s.sistema ? ` Cartões feitos no setor: ${feitos} de ${exigidos}.` : ""),
       mensagemVazia: `Nenhum cliente com ${s.nome} pendente em ${mes}.`,
       clientes,
       total,

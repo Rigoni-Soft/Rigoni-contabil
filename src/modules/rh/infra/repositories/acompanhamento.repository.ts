@@ -82,7 +82,7 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
       if (responsaveis.length === 0 && !incluirSemResponsavel) return ok([]);
 
       // A view `clientes_basico` só devolve o que o ator enxerga; o RH não lê o cadastro do SN.
-      const [clientes, naoAplica, marcacoes] = await Promise.all([
+      const [clientes, naoAplica, marcacoes, cartoes] = await Promise.all([
         lerTudo<{ id: string; empresa: string; cnpj: string }>((de, ate) =>
           this.supabase
             .from("clientes_basico")
@@ -111,6 +111,16 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
             .order("servico_id")
             .range(de, ate),
         ),
+        // Contagem do Holerite (cadastrados, sem movimento e cartões feitos); a RLS recorta por Cliente.
+        this.supabase.rpc("rh_cartoes_do_mes", { p_competencia: competencia }).then((r) => {
+          if (r.error) throw new Error(r.error.message);
+          return (r.data ?? []) as {
+            cliente_id: string;
+            cadastrados: number;
+            sem_movimento: number;
+            cartoes: number;
+          }[];
+        }),
       ]);
 
       const porCliente = (linhas: { cliente_id: string; servico_id: string }[]) => {
@@ -123,6 +133,7 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
       const naoAplicaSempreDe = porCliente(naoAplica.filter((l) => l.competencia === null));
       const concluidosDe = porCliente(marcacoes);
       const responsavelDe = new Map(responsaveis.map((r) => [r.cliente_id, r]));
+      const cartoesDe = new Map(cartoes.map((c) => [c.cliente_id, c]));
 
       return ok(
         clientes
@@ -130,6 +141,7 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
           .sort((a, b) => a.empresa.localeCompare(b.empresa, "pt-BR"))
           .map((c) => {
             const r = responsavelDe.get(c.id);
+            const h = cartoesDe.get(c.id);
             return {
               clienteId: c.id,
               empresa: c.empresa,
@@ -140,6 +152,11 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
               responsavel: r
                 ? { id: r.responsavel_id, nome: r.responsavel?.nome ?? "Sem nome" }
                 : null,
+              holerite: {
+                cadastrados: h?.cadastrados ?? 0,
+                semMovimento: h?.sem_movimento ?? 0,
+                cartoes: h?.cartoes ?? 0,
+              },
             };
           }),
       );

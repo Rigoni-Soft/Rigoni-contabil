@@ -28,13 +28,22 @@ type Props = {
   servicos: Servico[];
   // Motivo que vale para o cartão todo (ex.: sem Responsável): aparece visível, além do leitor de tela.
   aviso?: string;
+  // Empregados cadastrados x cartões feitos no mês: o que falta para o Holerite concluir.
+  resumoDoHolerite?: string;
   pendente: boolean;
   erro?: string;
   onTrocar: (servicoId: string, de: EstadoDoServico, para: EstadoDoServico) => void;
 };
 
 // O acompanhamento do mês de um Cliente no painel dele: um serviço por linha, como o DAS no painel do SN.
-export function AcompanhamentoDoClienteRh({ servicos, aviso, pendente, erro, onTrocar }: Props) {
+export function AcompanhamentoDoClienteRh({
+  servicos,
+  aviso,
+  resumoDoHolerite,
+  pendente,
+  erro,
+  onTrocar,
+}: Props) {
   return (
     <>
       {aviso && <Texto variante="apoio">{aviso}</Texto>}
@@ -80,6 +89,7 @@ export function AcompanhamentoDoClienteRh({ servicos, aviso, pendente, erro, onT
           </Pilha>
         ))}
       </Grade>
+      {resumoDoHolerite && <Texto variante="apoio">{resumoDoHolerite}</Texto>}
     </>
   );
 }

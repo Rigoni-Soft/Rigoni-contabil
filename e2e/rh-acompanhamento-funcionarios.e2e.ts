@@ -4,8 +4,8 @@ import { cnpjUnico, login } from "./support/criar-cliente";
 
 // Acompanhamento dos funcionários no dashboard do RH: o Líder clica no card "Clientes por Responsável", vê
 // como está cada Funcionário (e os clientes sem Responsável) e abre o detalhe de um deles (cliente pendente
-// no serviço que falta); o Funcionário não vê o card. O Holerite ainda não é derivado
-// (ticket próprio), então nenhum cliente pontua aqui.
+// no serviço que falta); o Funcionário não vê o card. Os clientes daqui não têm empregados (Holerite
+// dispensado) e nenhum serviço marcado, então nenhum pontua.
 const admin = adminLocal();
 const SUFIXO = `${Date.now()}`.slice(-6);
 const COM_RESPONSAVEL = `Func E2E ${SUFIXO} Ltda`;

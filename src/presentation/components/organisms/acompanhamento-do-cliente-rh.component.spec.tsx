@@ -65,4 +65,17 @@ describe("AcompanhamentoDoClienteRh", () => {
     expect(screen.getByText("Este cliente não está na sua vista do RH.")).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("Não foi possível salvar.");
   });
+
+  it("mostra os empregados cadastrados x cartões feitos do Holerite", () => {
+    render(
+      <AcompanhamentoDoClienteRh
+        {...PROPS}
+        resumoDoHolerite="2 empregados cadastrados · 1 de 2 cartões feitos no mês"
+      />,
+    );
+
+    expect(
+      screen.getByText("2 empregados cadastrados · 1 de 2 cartões feitos no mês"),
+    ).toBeInTheDocument();
+  });
 });

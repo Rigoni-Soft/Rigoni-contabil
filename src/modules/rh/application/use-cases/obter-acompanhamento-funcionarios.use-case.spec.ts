@@ -25,6 +25,8 @@ function cliente(
     cnpj: id,
     naoAplica,
     naoAplicaSempre: [],
+    // O Holerite sai dos cartões: um empregado, com cartão se o Holerite está nos concluídos.
+    holerite: { cadastrados: 1, semMovimento: 0, cartoes: concluidos.includes("s-hol") ? 1 : 0 },
     concluidos,
     responsavel,
   };

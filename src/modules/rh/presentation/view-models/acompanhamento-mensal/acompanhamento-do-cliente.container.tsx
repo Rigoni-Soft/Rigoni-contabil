@@ -22,6 +22,7 @@ type Props = {
   competencia: string;
   servicos: Servico[];
   aviso?: string;
+  resumoDoHolerite?: string;
 };
 
 export function AcompanhamentoDoClienteContainer({
@@ -29,6 +30,7 @@ export function AcompanhamentoDoClienteContainer({
   competencia,
   servicos,
   aviso,
+  resumoDoHolerite,
 }: Props) {
   const router = useRouter();
   // A escolha aparece na hora e volta ao valor do servidor se a gravação falhar.
@@ -63,6 +65,7 @@ export function AcompanhamentoDoClienteContainer({
   return (
     <AcompanhamentoDoClienteRh
       aviso={aviso}
+      resumoDoHolerite={resumoDoHolerite}
       servicos={exibidos}
       pendente={pendente}
       erro={erro}

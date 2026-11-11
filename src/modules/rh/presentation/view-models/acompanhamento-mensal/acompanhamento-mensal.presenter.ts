@@ -3,6 +3,10 @@ import type {
   AcompanhamentoMensalDto,
   EscopoDoAplica,
 } from "@/modules/rh/application/dtos/acompanhamento.dto";
+import {
+  cartoesExigidos,
+  type ContagemDoHolerite,
+} from "@/modules/rh/domain/services/holerite.service";
 import { mesVizinho } from "@/shared/kernel/mes-atual";
 
 const MES_POR_EXTENSO = new Intl.DateTimeFormat("pt-BR", { month: "long", timeZone: "UTC" });
@@ -20,6 +24,17 @@ const estadoDoServico = (c: {
   if (!c.aplica) return c.sempre ? "nunca_aplica" : "nao_aplica";
   return c.concluido ? "concluido" : "pendente";
 };
+
+const plural = (n: number, singular: string, plural: string) =>
+  `${n} ${n === 1 ? singular : plural}`;
+
+// "Cadastrados x cartões feitos" do cliente, o que falta para o Holerite. Sem empregados, não há Holerite.
+export function resumoDoHolerite(h: ContagemDoHolerite): string {
+  if (h.cadastrados === 0) return "Sem empregados cadastrados: não há Holerite a cumprir.";
+  const exigidos = cartoesExigidos(h);
+  const semMovimento = h.semMovimento > 0 ? `, ${h.semMovimento} sem movimento` : "";
+  return `${plural(h.cadastrados, "empregado cadastrado", "empregados cadastrados")}${semMovimento} · ${h.cartoes} de ${plural(exigidos, "cartão", "cartões")} ${exigidos === 1 ? "feito" : "feitos"} no mês`;
+}
 
 // Os links de mês do painel do Cliente: o próximo some no mês corrente. Preserva `voltarPara`.
 export function linksDoMes(
@@ -81,5 +96,9 @@ export function servicosDoCliente(dto: AcompanhamentoMensalDto, clienteId: strin
     estado: estadoDoServico(c),
     bloqueio: bloqueioDe(c.servicoId),
   }));
-  return { servicos, aviso: linha ? undefined : AVISO_SEM_VISTA };
+  return {
+    servicos,
+    aviso: linha ? undefined : AVISO_SEM_VISTA,
+    resumoDoHolerite: linha && resumoDoHolerite(linha.holerite),
+  };
 }
