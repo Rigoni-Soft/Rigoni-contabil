@@ -134,18 +134,10 @@ export function totalizarDia(dia: DiaDoCartao, jornada: Jornada): Totalizacao {
 }
 
 export function totalizar(dias: DiaDoCartao[], jornada: Jornada): Totalizacao {
-  return dias.reduce<Totalizacao>((soma, dia) => {
+  const soma = { ...ZERO };
+  for (const dia of dias) {
     const t = totalizarDia(dia, jornada);
-    return {
-      normaisMin: soma.normaisMin + t.normaisMin,
-      extras50Min: soma.extras50Min + t.extras50Min,
-      extras100Min: soma.extras100Min + t.extras100Min,
-      noturnoMin: soma.noturnoMin + t.noturnoMin,
-      atrasoMin: soma.atrasoMin + t.atrasoMin,
-      faltas: soma.faltas + t.faltas,
-      abonoDias: soma.abonoDias + t.abonoDias,
-      abonoMin: soma.abonoMin + t.abonoMin,
-      feriadosTrabalhados: soma.feriadosTrabalhados + t.feriadosTrabalhados,
-    };
-  }, ZERO);
+    for (const campo of Object.keys(soma) as (keyof Totalizacao)[]) soma[campo] += t[campo];
+  }
+  return soma;
 }
