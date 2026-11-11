@@ -78,9 +78,7 @@ function CamposDoEmpregado({
         required
         maxLength={120}
         className="gap-1 sm:col-span-2"
-        aria-describedby={
-          erro ? `erro-do-${prefixo === "novo" ? "novo" : "corrigir"}-empregado` : undefined
-        }
+        aria-describedby={erro ? `erro-do-${prefixo}-empregado` : undefined}
         aria-invalid={!!erro}
       />
       <Caixa className="flex min-h-9 items-center sm:col-span-2 sm:self-end pointer-coarse:min-h-11">
@@ -151,14 +149,13 @@ export function QuadroDeFuncionarios({
                 <Texto variante="destaque" className="min-w-0 [overflow-wrap:anywhere] break-words">
                   {e.nome}
                 </Texto>
-                <Linha alinhar="centro" espaco={2} className="shrink-0">
+                <Linha alinhar="centro" espaco={2} className="ml-auto shrink-0">
                   <LinkDeAcao
                     href={e.href}
                     variant="outline"
                     size="icon"
                     atual={e.selecionado}
                     aria-label={`${editavel ? "Editar" : "Ver"} ${e.nome}`}
-                    className="pointer-coarse:size-11"
                   >
                     {editavel ? (
                       <Pencil className="size-4" aria-hidden="true" />
