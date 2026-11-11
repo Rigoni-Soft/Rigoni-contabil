@@ -47,10 +47,7 @@ test.describe("Folha de ponto do RH", () => {
     await expect(page).toHaveURL("/rh");
     await page.goto(`/rh/folha-de-ponto/${clienteId}?mes=${mes}&quinzena=1`);
 
-    await page
-      .getByRole("form", { name: "Novo empregado" })
-      .getByLabel("Nome", { exact: true })
-      .fill("Ana E2E");
+    await page.getByRole("form", { name: "Novo empregado" }).getByLabel("Nome").fill("Ana E2E");
     await page.getByRole("button", { name: "Cadastrar empregado" }).click();
     await expect(page.getByRole("heading", { name: "Cartão de ponto de Ana E2E" })).toBeVisible();
 

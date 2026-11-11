@@ -48,7 +48,12 @@ export function CartaoDePonto({
   onSalvarDia,
 }: Props) {
   return (
-    <Pilha como="section" espaco={6} aria-label={`Cartão de ponto de ${empregado}`}>
+    <Pilha
+      como="section"
+      espaco={6}
+      aria-label={`Cartão de ponto de ${empregado}`}
+      className="rc-guilloche-frame rounded-lg border border-border bg-card p-5 shadow-sm"
+    >
       <Texto como="h2" variante="subtitulo">
         Cartão de ponto de {empregado}
       </Texto>
@@ -75,7 +80,7 @@ export function CartaoDePonto({
           Só o Responsável do RH do cliente digita o cartão; aqui ele fica em leitura.
         </Texto>
       )}
-      <Pilha espaco={3}>
+      <Pilha espaco={4}>
         {linhas.map((linha) => (
           <LinhaDoCartaoDePonto
             key={`${empregadoId}|${linha.data}`}

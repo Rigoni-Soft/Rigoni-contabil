@@ -1,10 +1,11 @@
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcacao.component";
-import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Grade, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
+import { NotaDeObrigatorio } from "@/presentation/components/atoms/nota-de-obrigatorio.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
+import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { Button } from "@/presentation/components/ui/button";
-import { Input } from "@/presentation/components/ui/input";
 
 export type EmpregadoDoQuadro = {
   id: string;
@@ -47,12 +48,15 @@ type Props = {
   onPadrao: (comissionados: boolean) => void;
 };
 
+// Células da grade de 4 colunas do formulário: nome (2), a marca e a Jornada, um dia por campo.
 function CamposDoEmpregado({
+  prefixo,
   nome,
   comissionado,
   cargas,
   erro,
 }: {
+  prefixo: string;
   nome: string;
   comissionado: boolean;
   cargas: string[];
@@ -60,33 +64,33 @@ function CamposDoEmpregado({
 }) {
   return (
     <>
-      <Caixa como="label" className="flex flex-col gap-1 text-sm font-semibold">
-        Nome
-        <Input
-          name="nome"
-          defaultValue={nome}
-          required
-          maxLength={120}
-          className="w-64"
-          aria-invalid={!!erro}
-          aria-describedby={erro ? "erro-do-novo-empregado" : undefined}
-        />
+      <CampoDeTexto
+        id={`${prefixo}-nome`}
+        rotulo="Nome"
+        name="nome"
+        defaultValue={nome}
+        obrigatorio
+        required
+        maxLength={120}
+        className="gap-1 sm:col-span-2"
+        aria-describedby={erro ? "erro-do-novo-empregado" : undefined}
+        aria-invalid={!!erro}
+      />
+      <Caixa className="flex items-end pb-2 sm:col-span-2">
+        <CaixaDeMarcacao rotulo="Comissionado" name="comissionado" defaultChecked={comissionado} />
       </Caixa>
-      <Linha alinhar="fim" espaco={2} quebra>
-        {DIAS.map((dia, i) => (
-          <Caixa como="label" key={dia} className="flex flex-col gap-1 text-sm font-semibold">
-            {dia}
-            <Input
-              type="time"
-              name={`carga${i}`}
-              defaultValue={cargas[i]}
-              aria-label={`Jornada de ${dia}`}
-              className="w-28"
-            />
-          </Caixa>
-        ))}
-      </Linha>
-      <CaixaDeMarcacao rotulo="Comissionado" name="comissionado" defaultChecked={comissionado} />
+      {DIAS.map((dia, i) => (
+        <CampoDeTexto
+          key={dia}
+          id={`${prefixo}-carga${i}`}
+          rotulo={dia}
+          type="time"
+          name={`carga${i}`}
+          defaultValue={cargas[i]}
+          aria-label={`Jornada de ${dia}`}
+          className="gap-1"
+        />
+      ))}
     </>
   );
 }
@@ -110,7 +114,12 @@ export function QuadroDeFuncionarios({
   onPadrao,
 }: Props) {
   return (
-    <Pilha como="section" espaco={6} aria-label="Quadro de funcionários">
+    <Pilha
+      como="section"
+      espaco={6}
+      aria-label="Quadro de funcionários"
+      className="rc-guilloche-frame rounded-lg border border-border bg-card p-5 shadow-sm"
+    >
       <Texto como="h2" variante="subtitulo">
         Quadro de funcionários
       </Texto>
@@ -147,6 +156,8 @@ export function QuadroDeFuncionarios({
         />
       )}
 
+      {editavel && <NotaDeObrigatorio />}
+
       {editavel && (
         <Caixa
           como="form"
@@ -157,22 +168,25 @@ export function QuadroDeFuncionarios({
             onCadastrar(new FormData(e.currentTarget));
           }}
         >
-          <Pilha espaco={3}>
+          <Pilha espaco="formulario">
             <Texto como="h3" variante="rotuloDeSecao">
               Novo empregado
             </Texto>
-            <CamposDoEmpregado
-              nome=""
-              comissionado={padraoComissionados}
-              cargas={cargasPadrao}
-              erro={erroDoNovo}
-            />
+            <Grade colunas="1>2>4" espaco={4}>
+              <CamposDoEmpregado
+                prefixo="novo"
+                nome=""
+                comissionado={padraoComissionados}
+                cargas={cargasPadrao}
+                erro={erroDoNovo}
+              />
+            </Grade>
             {erroDoNovo && (
               <Caixa id="erro-do-novo-empregado">
                 <AvisoDeStatus tipo="erro" legivel texto={erroDoNovo} />
               </Caixa>
             )}
-            <Button type="submit" size="sm" disabled={pendente} className="self-start">
+            <Button type="submit" disabled={pendente} className="self-start">
               Cadastrar empregado
             </Button>
           </Pilha>
@@ -193,16 +207,17 @@ export function QuadroDeFuncionarios({
               onCorrigir(new FormData(e.currentTarget));
             }}
           >
-            <Pilha espaco={3}>
-              <Caixa como="fieldset" disabled={!editavel} className="contents">
+            <Pilha espaco="formulario">
+              <Grade colunas="1>2>4" como="fieldset" disabled={!editavel} espaco={4}>
                 <CamposDoEmpregado
+                  prefixo="corrigir"
                   nome={emEdicao.nome}
                   comissionado={emEdicao.comissionado}
                   cargas={emEdicao.cargas}
                 />
-              </Caixa>
+              </Grade>
               {editavel && (
-                <Button type="submit" size="sm" disabled={pendente} className="self-start">
+                <Button type="submit" disabled={pendente} className="self-start">
                   Salvar empregado
                 </Button>
               )}
@@ -219,7 +234,6 @@ export function QuadroDeFuncionarios({
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
                 disabled={pendente}
                 onClick={() => onAtivo(!emEdicao.ativo)}
               >

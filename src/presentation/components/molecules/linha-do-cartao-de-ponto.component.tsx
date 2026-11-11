@@ -1,9 +1,9 @@
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcacao.component";
-import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Grade, Linha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
+import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { Button } from "@/presentation/components/ui/button";
-import { Input } from "@/presentation/components/ui/input";
 
 // Horários como "HH:MM" (vazio = não batido).
 export type LinhaDoCartao = {
@@ -55,8 +55,8 @@ export function LinhaDoCartaoDePonto({ linha, editavel, pendente, aviso, onSalva
         onSalvar(linha.data, new FormData(e.currentTarget));
       }}
     >
-      <Linha alinhar="fim" espaco={3} quebra>
-        <Texto como="span" variante="destaque" className="w-24 pb-2">
+      <Grade colunas="2>3" espaco={4} className="border-t border-border pt-4">
+        <Texto como="span" variante="destaque" className="col-span-2 sm:col-span-3">
           {linha.rotulo}
           {linha.nota && (
             <Texto como="span" variante="nota" className="block">
@@ -65,33 +65,34 @@ export function LinhaDoCartaoDePonto({ linha, editavel, pendente, aviso, onSalva
           )}
         </Texto>
         {CAMPOS.map(([nome, rotulo]) => (
-          <Caixa como="label" key={nome} className="flex flex-col gap-1 text-sm font-semibold">
-            {rotulo}
-            <Input
-              type="time"
-              name={nome}
-              defaultValue={linha[nome]}
-              // readOnly: em leitura o horário segue legível e focável (disabled o esmaece e tira da tabulação).
-              readOnly={!editavel}
-              aria-label={`${rotulo} de ${linha.rotulo}`}
-              aria-describedby={aviso ? idDoAviso : undefined}
-              className="w-28"
-            />
-          </Caixa>
+          <CampoDeTexto
+            key={nome}
+            id={`${linha.data}-${nome}`}
+            rotulo={rotulo}
+            type="time"
+            name={nome}
+            defaultValue={linha[nome]}
+            // readOnly: em leitura o horário segue legível e focável (disabled o esmaece e tira da tabulação).
+            readOnly={!editavel}
+            aria-label={`${rotulo} de ${linha.rotulo}`}
+            aria-describedby={aviso ? idDoAviso : undefined}
+            className="gap-1"
+          />
         ))}
-        <CaixaDeMarcacao
-          rotulo="Abono"
-          name="abono"
-          defaultChecked={linha.abono}
-          disabled={!editavel}
-          className="pb-2"
-        />
-        {editavel && (
-          <Button type="submit" size="sm" disabled={pendente} aria-label={`Salvar ${linha.rotulo}`}>
-            Salvar
-          </Button>
-        )}
-      </Linha>
+        <Linha alinhar="centro" espaco={4} quebra className="col-span-2 sm:col-span-3">
+          <CaixaDeMarcacao
+            rotulo="Abono"
+            name="abono"
+            defaultChecked={linha.abono}
+            disabled={!editavel}
+          />
+          {editavel && (
+            <Button type="submit" disabled={pendente} aria-label={`Salvar ${linha.rotulo}`}>
+              Salvar
+            </Button>
+          )}
+        </Linha>
+      </Grade>
       {aviso && (
         <Caixa id={idDoAviso} className="pt-1">
           <AvisoDeStatus tipo={aviso.tipo} legivel texto={aviso.texto} />
