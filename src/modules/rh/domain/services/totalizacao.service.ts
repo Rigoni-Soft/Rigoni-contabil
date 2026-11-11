@@ -112,6 +112,12 @@ function faixaDoDia(dia: DiaDoCartao, semana: number, regras: RegrasDeCalculo) {
   return { percentual: regras.extraUtilPct, especial: false };
 }
 
+function faixasOrdenadas(pagas: Map<number, number>): Totalizacao["extras"] {
+  return [...pagas]
+    .sort(([a], [b]) => a - b)
+    .map(([percentual, minutos]) => ({ percentual, minutos }));
+}
+
 export function totalizarDia(
   dia: DiaDoCartao,
   jornada: Jornada,
@@ -134,9 +140,7 @@ export function totalizarDia(
 
   apurarDia(dia, jornada, regras, t, somarExtra, semana);
 
-  t.extras = [...pagas]
-    .sort(([a], [b]) => a - b)
-    .map(([p, minutos]) => ({ percentual: p, minutos }));
+  t.extras = faixasOrdenadas(pagas);
   t.acimaDoLimiteMin = Math.max(0, extrasLimitadas - regras.limiteExtrasDiaMin);
   t.diasComLanche = extrasDoDia > 0 ? 1 : 0;
   const trabalhou = dia.extra !== null || dia.batidas.length > 0;
@@ -221,8 +225,6 @@ export function totalizar(
       if (campo !== "extras") soma[campo] += t[campo];
     }
   }
-  soma.extras = [...pagas]
-    .sort(([a], [b]) => a - b)
-    .map(([percentual, minutos]) => ({ percentual, minutos }));
+  soma.extras = faixasOrdenadas(pagas);
   return soma;
 }

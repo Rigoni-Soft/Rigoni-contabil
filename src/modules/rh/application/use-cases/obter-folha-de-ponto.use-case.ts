@@ -106,13 +106,16 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
 
     const sindicato =
       ponteiros.value.find((p) => p.empregadoId === escolhido.id)?.sindicato ?? null;
+    const convencaoDe = new Map(
+      datas.map((data) => [data, convencaoDaEpoca(historico.value, sindicato, data)]),
+    );
     const regrasDoDia = (data: string) =>
       regrasDeCalculo(
-        convencaoDaEpoca(historico.value, sindicato, data)?.regras ?? null,
+        convencaoDe.get(data)?.regras ?? null,
         interruptores.value,
         escolhido.comissionado,
       );
-    const semConvencao = datas.some((data) => !convencaoDaEpoca(historico.value, sindicato, data));
+    const semConvencao = [...convencaoDe.values()].some((c) => !c);
 
     const lancadoEm = new Map(lancados.value.map((d) => [d.data, d]));
     const feriadoEm = new Set(feriados.value);

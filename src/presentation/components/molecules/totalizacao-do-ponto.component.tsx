@@ -5,7 +5,7 @@ export type ItemDaTotalizacao = { rotulo: string; valor: string };
 
 type Props = { titulo: string; itens: ItemDaTotalizacao[] };
 
-// A Totalização do período: um valor por linha, calculado pela legislação (nunca digitado).
+// A Totalização do período: um valor por linha, calculado pela convenção vigente, com a legislação onde ela não decide (nunca digitado).
 export function TotalizacaoDoPonto({ titulo, itens }: Props) {
   return (
     <Pilha como="section" espaco={3} aria-label={titulo}>
