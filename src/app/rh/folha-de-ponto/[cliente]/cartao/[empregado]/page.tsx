@@ -34,7 +34,8 @@ export default async function Page({ params, searchParams }: Props) {
   return (
     <AcompanhamentoMensalPage
       header={<CabecalhoDoShellContainer sessao={sessao} />}
-      largura="cadastro"
+      // Tabela de muitas colunas, como a planilha: largura de conteúdo, não a do formulário.
+      largura="conteudo"
       titulo="Cartão de ponto"
       voltarHref={voltarHref}
       erro={folha.ok ? undefined : folha.error.message}

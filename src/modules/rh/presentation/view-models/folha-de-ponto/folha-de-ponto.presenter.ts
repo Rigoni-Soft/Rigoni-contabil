@@ -1,5 +1,6 @@
 import type { LinhaDoCartao } from "@/presentation/components/molecules/linha-do-cartao-de-ponto.component";
 import type { ItemDaTotalizacao } from "@/presentation/components/molecules/totalizacao-do-ponto.component";
+import type { TotaisDoCartao } from "@/presentation/components/organisms/cartao-de-ponto.component";
 import type {
   EmpregadoDoQuadro,
   EmpregadoEmEdicao,
@@ -67,22 +68,26 @@ const hm = (par: ParDto | undefined, campo: keyof ParDto) => (par ? minutosParaH
 function notaDoDia(dia: DiaDaFolhaDto): string | undefined {
   if (dia.feriado) return "Feriado";
   if (dia.apuracao.faltas > 0) return "Falta";
-  return dia.cargaMin === 0 ? "Sem jornada" : undefined;
+  return dia.cargaMin === 0 ? "Folga" : undefined;
 }
 
-// As colunas calculadas da planilha do cartão (H. Diária, Atrasos, Horas Extras, A.N.), numa linha por dia.
-function resumoDoDia(dia: DiaDaFolhaDto): string {
-  const a = dia.apuracao;
-  const extras = [
-    ...a.extras.map((e) => `${e.percentual}%: ${duracao(e.minutos)}`),
-    ...(a.bancoDeHorasMin > 0 ? [`banco: ${duracao(a.bancoDeHorasMin)}`] : []),
-  ];
-  return [
-    `H. diária ${duracao(dia.trabalhadoMin)}`,
-    `Atrasos ${duracao(a.atrasoMin)}`,
-    `Extras ${extras.length ? extras.join(" · ") : duracao(0)}`,
-    `A.N. ${duracao(a.noturnoMin)}`,
-  ].join(" · ");
+// Faixas de hora extra do dia, da menor para a maior: "1h11 (50%)". A planilha tem 1ª e 2ª faixa.
+const faixaDe = (e?: { percentual: number; minutos: number }) =>
+  e ? `${duracao(e.minutos)} (${e.percentual}%)` : "";
+
+const extrasDoDia = (a: TotalizacaoDto) =>
+  a.extras.reduce((soma, e) => soma + e.minutos, 0) + a.bancoDeHorasMin;
+
+// A linha TOTAIS da planilha: faltas e a soma de cada coluna calculada do período.
+export function totaisDoCartao(dias: DiaDaFolhaDto[], t: TotalizacaoDto): TotaisDoCartao {
+  return {
+    faltas: String(t.faltas),
+    trabalhado: duracao(dias.reduce((soma, d) => soma + d.trabalhadoMin, 0)),
+    atraso: duracao(t.atrasoMin),
+    extras: duracao(extrasDoDia(t)),
+    faixas: t.extras.map(faixaDe).join(" · "),
+    noturno: duracao(t.noturnoMin),
+  };
 }
 
 // A carga horária do empregado por dia da semana, como no alto da planilha.
@@ -104,7 +109,14 @@ export function linhasDoCartao(dias: DiaDaFolhaDto[]): LinhaDoCartao[] {
       extraSaida: hm(dia.extra ?? undefined, "saida"),
       abono: dia.abono,
       nota: notaDoDia(dia),
-      resumo: resumoDoDia(dia),
+      diaSemana: SEMANA[dia.diaDaSemana],
+      diaMes: `${d}/${mes}`,
+      trabalhado: duracao(dia.trabalhadoMin),
+      atraso: duracao(dia.apuracao.atrasoMin),
+      extras: duracao(extrasDoDia(dia.apuracao)),
+      faixa1: faixaDe(dia.apuracao.extras[0]),
+      faixa2: faixaDe(dia.apuracao.extras[1]),
+      noturno: duracao(dia.apuracao.noturnoMin),
     };
   });
 }

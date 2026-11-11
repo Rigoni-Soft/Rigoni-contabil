@@ -16,6 +16,7 @@ import {
   lerDiaDoFormulario,
   linhasDoCartao,
   navegacaoDoCartao,
+  totaisDoCartao,
 } from "./folha-de-ponto.presenter";
 
 type Props = { folha: FolhaDePontoDto };
@@ -60,6 +61,7 @@ export function CartaoDePontoContainer({ folha }: Props) {
       rotuloMes={rotuloDaCompetencia(folha.competencia)}
       {...navegacaoDoCartao(folha)}
       linhas={linhasDoCartao(selecionado.dias)}
+      totais={totaisDoCartao(selecionado.dias, selecionado.totalizacao)}
       totalizacao={itensDaTotalizacao(
         selecionado.totalizacao,
         selecionado.dias.reduce((soma, d) => soma + d.trabalhadoMin, 0),

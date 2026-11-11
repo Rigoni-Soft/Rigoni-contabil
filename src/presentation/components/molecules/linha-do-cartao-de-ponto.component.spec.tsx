@@ -3,6 +3,16 @@ import userEvent from "@testing-library/user-event";
 
 import { LinhaDoCartaoDePonto, type LinhaDoCartao } from "./linha-do-cartao-de-ponto.component";
 
+function Linha(props: React.ComponentProps<typeof LinhaDoCartaoDePonto>) {
+  return (
+    <table>
+      <tbody>
+        <LinhaDoCartaoDePonto {...props} />
+      </tbody>
+    </table>
+  );
+}
+
 const LINHA: LinhaDoCartao = {
   data: "2026-11-16",
   rotulo: "seg 16/11",
@@ -14,23 +24,31 @@ const LINHA: LinhaDoCartao = {
   extraSaida: "",
   abono: false,
   nota: "Feriado",
-  resumo: "H. diária 4h00 · Atrasos 0h00 · Extras 0h00 · A.N. 0h00",
+  diaSemana: "seg",
+  diaMes: "16/11",
+  trabalhado: "4h00",
+  atraso: "0h00",
+  extras: "0h00",
+  faixa1: "",
+  faixa2: "",
+  noturno: "0h00",
 };
 
 describe("LinhaDoCartaoDePonto", () => {
   it("mostra o dia, a nota e os horários digitados", () => {
-    render(<LinhaDoCartaoDePonto linha={LINHA} editavel pendente={false} onSalvar={jest.fn()} />);
+    render(<Linha linha={LINHA} editavel pendente={false} onSalvar={jest.fn()} />);
 
     expect(screen.getByText("Feriado")).toBeInTheDocument();
+    expect(screen.getByText("4h00")).toBeInTheDocument();
     expect(screen.getByLabelText("Entrada 1 de seg 16/11")).toHaveValue("08:00");
     expect(screen.getByLabelText("Saída 2 de seg 16/11")).toHaveValue("");
   });
 
   it("salvar entrega a data e os campos do dia", async () => {
     const onSalvar = jest.fn();
-    render(<LinhaDoCartaoDePonto linha={LINHA} editavel pendente={false} onSalvar={onSalvar} />);
+    render(<Linha linha={LINHA} editavel pendente={false} onSalvar={onSalvar} />);
 
-    await userEvent.setup().click(screen.getByRole("checkbox", { name: "Abono" }));
+    await userEvent.setup().click(screen.getByRole("checkbox", { name: "Abono de seg 16/11" }));
     await userEvent.setup().click(screen.getByRole("button", { name: "Salvar seg 16/11" }));
 
     expect(onSalvar).toHaveBeenCalledTimes(1);
@@ -42,7 +60,7 @@ describe("LinhaDoCartaoDePonto", () => {
 
   it("mostra o aviso do dia e o liga aos campos", () => {
     render(
-      <LinhaDoCartaoDePonto
+      <Linha
         linha={LINHA}
         editavel
         pendente={false}
@@ -56,9 +74,7 @@ describe("LinhaDoCartaoDePonto", () => {
   });
 
   it("em leitura, os horários seguem legíveis (readOnly) e some o Salvar", () => {
-    render(
-      <LinhaDoCartaoDePonto linha={LINHA} editavel={false} pendente={false} onSalvar={jest.fn()} />,
-    );
+    render(<Linha linha={LINHA} editavel={false} pendente={false} onSalvar={jest.fn()} />);
 
     expect(screen.getByLabelText("Entrada 1 de seg 16/11")).toHaveAttribute("readonly");
     expect(screen.queryByRole("button", { name: /Salvar/ })).not.toBeInTheDocument();

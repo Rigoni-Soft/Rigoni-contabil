@@ -12,7 +12,14 @@ const LINHA = {
   extraEntrada: "",
   extraSaida: "",
   abono: false,
-  resumo: "H. diária 0h00 · Atrasos 0h00 · Extras 0h00 · A.N. 0h00",
+  diaSemana: "seg",
+  diaMes: "16/11",
+  trabalhado: "0h00",
+  atraso: "0h00",
+  extras: "0h00",
+  faixa1: "",
+  faixa2: "",
+  noturno: "0h00",
 };
 const PROPS = {
   empregado: "Ana",
@@ -26,6 +33,14 @@ const PROPS = {
     { rotulo: "2ª quinzena (16 ao fim)", href: "/q2", atual: true },
   ],
   linhas: [LINHA],
+  totais: {
+    faltas: "1",
+    trabalhado: "0h00",
+    atraso: "0h00",
+    extras: "0h00",
+    noturno: "0h00",
+    faixas: "",
+  },
   totalizacao: [{ rotulo: "Faltas", valor: "1 dia" }],
   empregadoId: "e1",
   editavel: true,
@@ -51,7 +66,8 @@ describe("CartaoDePonto", () => {
     expect(
       screen.getByRole("region", { name: "Carga horária por dia da semana" }),
     ).toHaveTextContent("8h45");
-    expect(screen.getByText(/H\. diária 0h00 · Atrasos/)).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "H. Diária" })).toBeInTheDocument();
+    expect(screen.getByText("Faltas / Suspensão: 1")).toBeInTheDocument();
   });
 
   it("em leitura avisa que só o Responsável digita", () => {

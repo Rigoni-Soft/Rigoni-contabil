@@ -539,6 +539,23 @@ na mesma tela (Quadro de funcionários da Folha de ponto é o primeiro consumido
 - **Conteúdo de outra natureza vai para tela própria.** O Cartão de ponto de um empregado não se empilha
   sob o quadro: abre por um botão da linha, numa tela com "Voltar" ao quadro.
 
+### Cartão de ponto: tabela no desenho da planilha (11/11/2026)
+
+O Cartão de ponto de um empregado (`/rh/folha-de-ponto/[cliente]/cartao/[empregado]`) copia a planilha do
+escritório (`PLANILHA CARTAO PONTO`, aba do funcionário): tabela com divisória em toda célula (`Tabela` com
+`grade`), cabeçalho de dois níveis (`agrupamento`: "Batidas", "H.E. / Atrasos / A.N.", "Distrib. H.E. p/
+Faixa") e linha **Totais** no rodapé (`rodape`: faltas e soma de cada coluna calculada). Colunas, na ordem da
+planilha: Data (fixa), Dia semana, Entrada, Saída, Entrada, Saída, Extra entrada, Extra saída, H. Diária,
+Atrasos, Abono, Horas Extras, A.N., 1ª Faixa, 2ª Faixa, Salvar. Entrada, Saída, Extra e Abono são campos do
+dia; o resto é calculado (nunca digitado). Acima da tabela: Empresa e Período, e a carga horária por dia da
+semana. Dia sem jornada marca "Folga" sob a data; dia com carga e sem batida, "Falta".
+
+- **Exceção de largura:** tabela de 16 colunas não cabe na largura de formulário; esta tela usa
+  `largura="conteudo"` e a própria `Tabela` rola na horizontal (a primeira coluna fica à vista).
+- **Um formulário por dia, fora da célula:** o `<form>` do dia fica na última célula e os campos das outras o
+  alcançam pelo atributo `form`; `new FormData(form)` já os traz.
+- **Caixa sozinha em célula** (Abono): `CaixaDeMarcacao` com `rotuloOculto`, nomeada por "Abono de seg 16/11".
+
 ### Autopreenchimento a partir de API pública
 
 **CNPJ → Empresa/Regime via BrasilAPI (#33):** ao perder o foco de um campo que serve de chave pra uma consulta
