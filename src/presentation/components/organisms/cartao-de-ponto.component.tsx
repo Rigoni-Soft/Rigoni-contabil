@@ -183,7 +183,7 @@ export function CartaoDePonto({
               disabled={pendente}
               aria-disabled={semLinhaAberta}
               onClick={semLinhaAberta ? undefined : onSalvarTabela}
-              className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+              className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-primary"
             >
               Salvar
             </Button>
@@ -194,7 +194,7 @@ export function CartaoDePonto({
               disabled={pendente}
               aria-disabled={semLinhaAberta}
               onClick={semLinhaAberta ? undefined : onLimparTabela}
-              className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+              className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-warning"
             >
               Limpar
             </Button>
