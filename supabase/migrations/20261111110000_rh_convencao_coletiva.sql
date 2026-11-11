@@ -3,8 +3,7 @@
 -- motivo). A convenção nunca é editada nem apagada: renovar é subir outra; as anteriores ficam no histórico
 -- e valem para os períodos da época. Um Cliente pode ter mais de uma (sindicatos diferentes); o empregado
 -- aponta a sua pelo sindicato, e sem ponteiro vale a única do Cliente. Sobe o Líder do RH ou o Admin;
--- leem o Admin, o Líder do RH e o Responsável do RH do Cliente. O arquivo só entra e sai pelo servidor
--- (service_role): o bucket não tem policy para o usuário.
+-- leem o Admin, o Líder do RH e o Responsável do RH do Cliente. As policies do bucket estão na migration seguinte.
 
 CREATE TABLE public.rh_convencoes (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
@@ -135,7 +134,7 @@ $$;
 CREATE TRIGGER rh_empregados_convencao_proteger BEFORE UPDATE ON public.rh_empregados
     FOR EACH ROW EXECUTE FUNCTION public.proteger_convencao_do_empregado_rh();
 
--- Bucket privado, sem policy para o usuário: o servidor (service_role) envia e assina o link.
+-- Bucket privado; as policies de storage.objects vêm na migration seguinte.
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('convencoes-coletivas', 'convencoes-coletivas', false, 10485760, '{application/pdf}')
 ON CONFLICT (id) DO NOTHING;

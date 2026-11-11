@@ -7,7 +7,8 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const BUCKET = "convencoes-coletivas";
 
-// O client é o de serviço (o bucket não tem policy para o usuário); o caso de uso autoriza antes.
+// O client é o do usuário: a policy do bucket deixa subir só o Líder do RH e o Admin e remover só o arquivo
+// que nenhuma convenção usa (a compensação de um envio que falhou).
 export class SupabaseArmazenamentoDeConvencaoGateway implements ArmazenamentoDeConvencaoPort {
   constructor(private readonly supabase: SupabaseClient) {}
 

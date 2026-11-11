@@ -23,7 +23,7 @@ convenção é pública e pode ir a serviço externo (diferente da imagem do car
 
 ## Comportamento
 
-- O PDF vai para o bucket privado `convencoes-coletivas` pelo servidor (service role); o bucket não tem policy para o usuário.
+- O PDF vai para o bucket privado `convencoes-coletivas` com a sessão do usuário: policy de INSERT só para o Líder do RH e o Admin, e leitura e DELETE só do arquivo solto (que nenhuma convenção referencia); o PDF de uma convenção gravada não sai nem se remove pelo usuário.
 - Limite do anexo na tela: 4 MB (teto do corpo de uma Server Action na Vercel, ADR 0007); o servidor e o bucket aceitam até 10 MB.
 - Extração que falha (ou `indisponivel`) recusa o envio e remove o PDF já guardado: nada é gravado.
 - Só o Líder do RH e o Admin enviam; o Responsável do RH do Cliente lê as regras e liga os interruptores do Cliente.

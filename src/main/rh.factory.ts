@@ -6,7 +6,6 @@ import { EXTRACAO_CONVENCAO_MODO } from "@/env";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { auditoriaBestEffort } from "@/main/auditoria.factory";
-import { createSupabaseAdmin } from "@/main/supabase-admin.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
 import type {
   DefinirConvencaoDoEmpregadoPort,
@@ -194,15 +193,14 @@ export async function makeObterConvencoesDoCliente(): Promise<ObterConvencoesDoC
   );
 }
 
-// O PDF vai para o bucket privado pelo client de serviço (o bucket não tem policy para o usuário); o caso de
-// uso autoriza antes e a gravação da convenção passa pela RLS com a sessão do usuário.
+// O PDF e a convenção vão com a sessão do usuário: a policy do bucket e a RLS repetem a regra do caso de uso.
 export async function makeEnviarConvencao(): Promise<EnviarConvencaoPort> {
   const supabase = await createSupabaseServer();
   return new EnviarConvencao(
     sessaoViaUsuarios(supabase),
     new SupabaseFolhaDePontoRepository(supabase, errosRh),
     new SupabaseConvencaoRepository(supabase, errosRh),
-    new SupabaseArmazenamentoDeConvencaoGateway(createSupabaseAdmin()),
+    new SupabaseArmazenamentoDeConvencaoGateway(supabase),
     EXTRACAO_CONVENCAO_MODO === "falso"
       ? new ExtratorDeRegrasFalsoGateway()
       : new ExtratorDeRegrasIndisponivelGateway(),

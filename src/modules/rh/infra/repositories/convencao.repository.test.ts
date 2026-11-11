@@ -282,21 +282,45 @@ describe("Interruptores e ponteiro do empregado (integração)", () => {
 });
 
 describe("Armazenamento da convenção (integração)", () => {
-  it("o servidor guarda e remove o PDF; o usuário não alcança o bucket", async () => {
-    const gateway = new SupabaseArmazenamentoDeConvencaoGateway(servico);
+  it("o Líder guarda e remove o PDF solto", async () => {
+    const { supabase } = await comoLiderRH();
+    const gateway = new SupabaseArmazenamentoDeConvencaoGateway(supabase);
     const caminho = `${clienteA}/${crypto.randomUUID()}.pdf`;
     const pdf = Uint8Array.from(Buffer.from("%PDF-1.7 teste"));
 
     const enviou = await gateway.enviar(caminho, pdf);
-    const { supabase } = await comoLiderRH();
-    const lista = await supabase.storage.from("convencoes-coletivas").list(clienteA);
-    const baixa = await supabase.storage.from("convencoes-coletivas").download(caminho);
     const removeu = await gateway.remover(caminho);
 
     expect(enviou.ok).toBe(true);
+    expect(removeu.ok).toBe(true);
+  });
+
+  it("o Funcionário do RH não sobe PDF, e o PDF de uma convenção gravada não se remove", async () => {
+    const pdf = Uint8Array.from(Buffer.from("%PDF-1.7 teste"));
+    const { supabase: func } = await comoFuncionarioRH();
+    const subiu = await new SupabaseArmazenamentoDeConvencaoGateway(func).enviar(
+      `${clienteA}/${crypto.randomUUID()}.pdf`,
+      pdf,
+    );
+
+    const { supabase, convencoes } = await comoLiderRH();
+    const gateway = new SupabaseArmazenamentoDeConvencaoGateway(supabase);
+    const dados = nova("Comércio", "2026-05-01", "2027-04-30");
+    await gateway.enviar(dados.arquivoCaminho, pdf);
+    await convencoes.inserir(dados);
+    const removeu = await gateway.remover(dados.arquivoCaminho);
+    const lista = await supabase.storage.from("convencoes-coletivas").list(clienteA);
+    const baixa = await supabase.storage
+      .from("convencoes-coletivas")
+      .download(dados.arquivoCaminho);
+    const aindaLa = await servico.storage.from("convencoes-coletivas").list(clienteA);
+
+    expect(subiu.ok).toBe(false);
+    expect(removeu.ok).toBe(false);
     expect(lista.data ?? []).toEqual([]);
     expect(baixa.error).not.toBeNull();
-    expect(removeu.ok).toBe(true);
+    expect(aindaLa.data?.map((o) => `${clienteA}/${o.name}`)).toContain(dados.arquivoCaminho);
+    await servico.storage.from("convencoes-coletivas").remove([dados.arquivoCaminho]);
   });
 
   it("recusa o que não é PDF no bucket", async () => {
