@@ -85,11 +85,10 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
         cliente.value.responsavelId === ator.id,
     };
 
-    const escolhido = input.empregadoId
-      ? quadro.find((e) => e.id === input.empregadoId)
-      : quadro.find((e) => e.ativo);
-    if (input.empregadoId && !escolhido) return err(new NotFoundError("Empregado não encontrado."));
-    if (!escolhido) return ok({ ...base, selecionado: null });
+    // Sem empregado pedido o quadro abre no formulário "Novo empregado": nada é escolhido por padrão.
+    if (!input.empregadoId) return ok({ ...base, selecionado: null });
+    const escolhido = quadro.find((e) => e.id === input.empregadoId);
+    if (!escolhido) return err(new NotFoundError("Empregado não encontrado."));
 
     const datas = diasDaQuinzena(competencia.value.valor, quinzena);
     const [lancados, feriados, historico, interruptores, ponteiros] = await Promise.all([

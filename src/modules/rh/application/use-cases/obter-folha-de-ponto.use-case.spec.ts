@@ -72,14 +72,21 @@ describe("ObterFolhaDePonto", () => {
     expect(r.ok).toBe(false);
   });
 
-  it("abre na quinzena em andamento e no primeiro empregado ativo, com o padrão do Cliente", async () => {
+  it("abre na quinzena em andamento, sem empregado escolhido, com o padrão do Cliente", async () => {
     const r = await obter(FUNC).execute({ clienteId: "c1" });
     if (!r.ok) throw r.error;
     expect(r.value).toMatchObject({
       competencia: "2026-11",
       quinzena: 2,
       padraoComissionados: true,
+      selecionado: null,
     });
+    expect(r.value.empregados.find((e) => e.id === "e1")?.semMovimento).toBe(true);
+  });
+
+  it("com o empregado pedido traz o cartão dele", async () => {
+    const r = await obter(FUNC).execute({ clienteId: "c1", empregadoId: "e1" });
+    if (!r.ok) throw r.error;
     expect(r.value.selecionado?.empregado.nome).toBe("Ana");
     expect(r.value.empregados.find((e) => e.id === "e1")?.semMovimento).toBe(true);
     expect(r.value.selecionado?.dias[0].data).toBe("2026-11-16");
@@ -110,7 +117,7 @@ describe("ObterFolhaDePonto", () => {
             },
           ]),
       }),
-    ).execute({ clienteId: "c1", competencia: "2026-11", quinzena: 2 });
+    ).execute({ clienteId: "c1", empregadoId: "e1", competencia: "2026-11", quinzena: 2 });
     if (!r.ok) throw r.error;
     // 16 (seg) cumprido; faltam 17-19, 21, 23-28 e 30; 20 é feriado; domingos são ignorados.
     expect(r.value.selecionado?.totalizacao).toMatchObject({ normaisMin: 525, faltas: 11 });
@@ -130,13 +137,6 @@ describe("ObterFolhaDePonto", () => {
     expect(futuro.ok).toBe(false);
   });
 
-  it("sem empregado ativo, não há cartão", async () => {
-    const r = await obter(FUNC, repo({ listarEmpregados: async () => ok([BIA]) })).execute({
-      clienteId: "c1",
-    });
-    expect(r.ok && r.value.selecionado).toBeNull();
-  });
-
   describe("convenção na Totalização", () => {
     // Sábado 21/11: 4h de carga, 5h batidas = 1h extra.
     const sabado = {
@@ -151,7 +151,10 @@ describe("ObterFolhaDePonto", () => {
         ]),
     };
     const extrasDe = async (c: ConvencaoDto[], r = repo(sabado)) => {
-      const folha = await obter(FUNC, r, convencoes(c)).execute({ clienteId: "c1" });
+      const folha = await obter(FUNC, r, convencoes(c)).execute({
+        clienteId: "c1",
+        empregadoId: "e1",
+      });
       if (!folha.ok) throw folha.error;
       return folha.value.selecionado!;
     };
