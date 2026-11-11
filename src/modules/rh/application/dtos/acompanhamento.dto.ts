@@ -34,13 +34,16 @@ export type ClienteAcompanhamentoDto = {
   holerite: ContagemDoHolerite;
 };
 
+// A contagem do Holerite do Cliente no mês, com os cartões que o mês exige (ativos menos "sem movimento").
+export type HoleriteDaLinhaDto = ContagemDoHolerite & { exigidos: number };
+
 export type LinhaAcompanhamentoDto = {
   clienteId: string;
   empresa: string;
   cnpj: string;
   // Uma célula por serviço, na ordem das colunas.
   celulas: CelulaAcompanhamentoDto[];
-  holerite: ContagemDoHolerite;
+  holerite: HoleriteDaLinhaDto;
 };
 
 export type AcompanhamentoMensalDto = {

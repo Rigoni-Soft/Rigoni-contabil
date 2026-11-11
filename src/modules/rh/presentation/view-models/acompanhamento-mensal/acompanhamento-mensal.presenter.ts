@@ -2,11 +2,8 @@ import type { EstadoDoServico } from "@/presentation/components/organisms/acompa
 import type {
   AcompanhamentoMensalDto,
   EscopoDoAplica,
+  HoleriteDaLinhaDto,
 } from "@/modules/rh/application/dtos/acompanhamento.dto";
-import {
-  cartoesExigidos,
-  type ContagemDoHolerite,
-} from "@/modules/rh/domain/services/holerite.service";
 import { mesVizinho } from "@/shared/kernel/mes-atual";
 
 const MES_POR_EXTENSO = new Intl.DateTimeFormat("pt-BR", { month: "long", timeZone: "UTC" });
@@ -29,9 +26,9 @@ const plural = (n: number, singular: string, plural: string) =>
   `${n} ${n === 1 ? singular : plural}`;
 
 // "Cadastrados x cartões feitos" do cliente, o que falta para o Holerite. Sem empregados, não há Holerite.
-export function resumoDoHolerite(h: ContagemDoHolerite): string {
+export function resumoDoHolerite(h: HoleriteDaLinhaDto): string {
   if (h.cadastrados === 0) return "Sem empregados cadastrados: não há Holerite a cumprir.";
-  const exigidos = cartoesExigidos(h);
+  const { exigidos } = h;
   const semMovimento = h.semMovimento > 0 ? `, ${h.semMovimento} sem movimento` : "";
   return `${plural(h.cadastrados, "empregado cadastrado", "empregados cadastrados")}${semMovimento} · ${h.cartoes} de ${plural(exigidos, "cartão", "cartões")} ${exigidos === 1 ? "feito" : "feitos"} no mês`;
 }

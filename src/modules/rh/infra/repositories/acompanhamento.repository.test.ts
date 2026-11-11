@@ -458,6 +458,10 @@ describe("Acompanhamento mensal do RH (integração)", () => {
       .insert({ empregado_id: id("Bia"), data: dia(25), batidas: batida });
     expect(await contagem()).toEqual({ cadastrados: 3, semMovimento: 1, cartoes: 2 });
 
+    // Apagar um dia da 2ª quinzena reabre o cartão da Bia.
+    await servico.from("rh_ponto_dias").delete().eq("empregado_id", id("Bia")).eq("data", dia(25));
+    expect(await contagem()).toEqual({ cadastrados: 3, semMovimento: 1, cartoes: 1 });
+
     // Outro mês não herda os cartões, e quem não é o Responsável não enxerga os empregados do cliente.
     const outroMes = mesVizinho(MES.slice(0, 7), -1) + "-01";
     const anterior = doClienteA(await repo.listarClientes(outroMes, FUNCIONARIO_RH_ID));

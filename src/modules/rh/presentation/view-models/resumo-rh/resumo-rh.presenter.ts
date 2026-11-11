@@ -1,5 +1,4 @@
 import type { AcompanhamentoMensalDto } from "@/modules/rh/application/dtos/acompanhamento.dto";
-import { cartoesExigidos } from "@/modules/rh/domain/services/holerite.service";
 import { rotuloDaCompetencia } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.presenter";
 import { podeGerirServicosRh } from "@/shared/kernel/papeis";
 import { ROTA_RH_SERVICOS } from "@/shared/kernel/setores";
@@ -34,7 +33,7 @@ export function cardsDoAcompanhamento(dto: AcompanhamentoMensalDto) {
   // Total do setor, só para o card do Holerite.
   const totalDeCartoes = () => {
     const feitos = dto.linhas.reduce((n, l) => n + l.holerite.cartoes, 0);
-    const exigidos = dto.linhas.reduce((n, l) => n + cartoesExigidos(l.holerite), 0);
+    const exigidos = dto.linhas.reduce((n, l) => n + l.holerite.exigidos, 0);
     return ` Cartões feitos no setor: ${feitos} de ${exigidos}.`;
   };
   const cards: CardDoRh[] = dto.servicos.map((s) => {

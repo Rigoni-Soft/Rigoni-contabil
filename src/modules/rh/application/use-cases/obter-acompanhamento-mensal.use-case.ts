@@ -6,7 +6,7 @@ import type {
 import type { AcompanhamentoRepository } from "@/modules/rh/application/ports/out/acompanhamento.repository";
 import type { RelogioPort } from "@/modules/rh/application/ports/out/relogio.provider";
 import type { SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
-import { comHolerite } from "@/modules/rh/domain/services/holerite.service";
+import { cartoesExigidos, comHolerite } from "@/modules/rh/domain/services/holerite.service";
 import { Competencia } from "@/modules/rh/domain/value-objects/competencia.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
@@ -59,7 +59,7 @@ export class ObterAcompanhamentoMensal implements ObterAcompanhamentoMensalPort 
           clienteId: cliente.clienteId,
           empresa: cliente.empresa,
           cnpj: cliente.cnpj,
-          holerite: cliente.holerite,
+          holerite: { ...cliente.holerite, exigidos: cartoesExigidos(cliente.holerite) },
           celulas: servicos.value.map((servico) => ({
             servicoId: servico.id,
             aplica: !naoAplica.has(servico.id),

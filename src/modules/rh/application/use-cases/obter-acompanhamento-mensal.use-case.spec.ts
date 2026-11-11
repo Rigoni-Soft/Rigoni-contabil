@@ -99,6 +99,7 @@ describe("ObterAcompanhamentoMensal", () => {
       cadastrados: 3,
       semMovimento: 1,
       cartoes: 2,
+      exigidos: 2,
     });
   });
 
