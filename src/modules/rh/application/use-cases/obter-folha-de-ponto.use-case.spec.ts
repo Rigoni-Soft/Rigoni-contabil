@@ -1,0 +1,115 @@
+import type { EmpregadoDto } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
+import type { FolhaDePontoRepository } from "@/modules/rh/application/ports/out/folha-de-ponto.repository";
+import type { AtorSessaoDto } from "@/modules/rh/application/ports/out/sessao.provider";
+import { ObterFolhaDePonto } from "@/modules/rh/application/use-cases/obter-folha-de-ponto.use-case";
+import { hm } from "@/modules/rh/domain/services/totalizacao.service";
+import { ok } from "@/shared/kernel/result";
+
+const FUNC: AtorSessaoDto = { id: "func", papel: "funcionario", setor: "rh" };
+const LIDER: AtorSessaoDto = { id: "lider", papel: "lider_setor", setor: "rh" };
+const SN: AtorSessaoDto = { id: "sn", papel: "funcionario", setor: "simples_nacional" };
+
+const ANA: EmpregadoDto = {
+  id: "e1",
+  nome: "Ana",
+  jornada: [0, 525, 525, 525, 525, 525, 240],
+  comissionado: false,
+  ativo: true,
+};
+const BIA: EmpregadoDto = { ...ANA, id: "e2", nome: "Bia", ativo: false };
+
+function repo(over: Partial<FolhaDePontoRepository> = {}): FolhaDePontoRepository {
+  return {
+    buscarCliente: async () => ok({ cnpj: "1", responsavelId: "func" }),
+    buscarClienteDoEmpregado: async () => ok("c1"),
+    listarEmpregados: async () => ok([BIA, ANA]),
+    listarSemMovimento: async () => ok(["e1"]),
+    buscarPadraoComissionados: async () => ok(true),
+    definirPadraoComissionados: async () => ok(undefined),
+    cadastrarEmpregado: async () => ok(undefined),
+    corrigirEmpregado: async () => ok(undefined),
+    definirAtivo: async () => ok(undefined),
+    definirSemMovimento: async () => ok(undefined),
+    listarDias: async () => ok([]),
+    salvarDia: async () => ok(undefined),
+    listarFeriados: async () => ok([]),
+    ...over,
+  };
+}
+
+// 20/11/2026: mês corrente, na segunda quinzena.
+const relogio = { agora: () => new Date("2026-11-20T15:00:00Z") };
+const obter = (ator: AtorSessaoDto | null, r = repo()) =>
+  new ObterFolhaDePonto({ usuarioAtual: async () => ator }, r, relogio);
+
+describe("ObterFolhaDePonto", () => {
+  it("barra quem não é do RH nem Admin", async () => {
+    const r = await obter(SN).execute({ clienteId: "c1" });
+    expect(r.ok).toBe(false);
+  });
+
+  it("abre na quinzena em andamento e no primeiro empregado ativo, com o padrão do Cliente", async () => {
+    const r = await obter(FUNC).execute({ clienteId: "c1" });
+    if (!r.ok) throw r.error;
+    expect(r.value).toMatchObject({
+      competencia: "2026-11",
+      quinzena: 2,
+      padraoComissionados: true,
+    });
+    expect(r.value.selecionado?.empregado.nome).toBe("Ana");
+    expect(r.value.empregados.find((e) => e.id === "e1")?.semMovimento).toBe(true);
+    expect(r.value.selecionado?.dias[0].data).toBe("2026-11-16");
+  });
+
+  it("só o Responsável edita; o Líder lê", async () => {
+    const f = await obter(FUNC).execute({ clienteId: "c1" });
+    const l = await obter(LIDER).execute({ clienteId: "c1" });
+    expect(f.ok && f.value.podeEditar).toBe(true);
+    expect(l.ok && l.value.podeEditar).toBe(false);
+  });
+
+  it("totaliza o cartão lançado: falta, feriado e dia cumprido", async () => {
+    const r = await obter(
+      FUNC,
+      repo({
+        listarFeriados: async () => ok(["2026-11-20"]),
+        listarDias: async () =>
+          ok([
+            {
+              data: "2026-11-16",
+              batidas: [
+                { entrada: hm("08:00"), saida: hm("12:00") },
+                { entrada: hm("13:00"), saida: hm("17:45") },
+              ],
+              extra: null,
+              abono: false,
+            },
+          ]),
+      }),
+    ).execute({ clienteId: "c1", competencia: "2026-11", quinzena: 2 });
+    if (!r.ok) throw r.error;
+    // 16 (seg) cumprido; faltam 17-19, 21, 23-28 e 30; 20 é feriado; domingos são ignorados.
+    expect(r.value.selecionado?.totalizacao).toMatchObject({ normaisMin: 525, faltas: 11 });
+  });
+
+  it("empregado pedido que não é do Cliente não existe", async () => {
+    const r = await obter(FUNC).execute({ clienteId: "c1", empregadoId: "outro" });
+    expect(r.ok).toBe(false);
+  });
+
+  it("cliente fora da vista não existe; mês futuro é recusado", async () => {
+    const sem = await obter(FUNC, repo({ buscarCliente: async () => ok(null) })).execute({
+      clienteId: "c1",
+    });
+    expect(sem.ok).toBe(false);
+    const futuro = await obter(FUNC).execute({ clienteId: "c1", competencia: "2027-01" });
+    expect(futuro.ok).toBe(false);
+  });
+
+  it("sem empregado ativo, não há cartão", async () => {
+    const r = await obter(FUNC, repo({ listarEmpregados: async () => ok([BIA]) })).execute({
+      clienteId: "c1",
+    });
+    expect(r.ok && r.value.selecionado).toBeNull();
+  });
+});
