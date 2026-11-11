@@ -35,6 +35,9 @@ export type EmpregadoEmEdicao = {
   semMovimento: boolean;
 };
 
+// O foco vai para este elemento depois de desligar ou readmitir (a tela, a View, só o expõe).
+export const ID_DO_RESULTADO = "resultado-do-quadro";
+
 type Props = {
   empregados: EmpregadoDoQuadro[];
   emEdicao?: EmpregadoEmEdicao;
@@ -49,6 +52,9 @@ type Props = {
   chaveDoNovo: number;
   // Com um empregado em edição o formulário "Novo empregado" some: este link o traz de volta.
   novoHref: string;
+  // O resultado de desligar ou readmitir (o Editar fecha): fica numa região viva que recebe o foco, para o
+  // teclado e o leitor de tela não se perderem quando o botão clicado some.
+  resultado?: string;
   onCadastrar: (campos: FormData) => void;
   onCorrigir: (campos: FormData) => void;
   onAtivo: (ativo: boolean) => void;
@@ -102,6 +108,7 @@ export function QuadroDeFuncionarios({
   erroDoNovo,
   chaveDoNovo,
   novoHref,
+  resultado,
   onCadastrar,
   onCorrigir,
   onAtivo,
@@ -127,6 +134,11 @@ export function QuadroDeFuncionarios({
           </LinkDeAcao>
         )}
       </Linha>
+      {resultado && (
+        <Caixa id={ID_DO_RESULTADO} tabIndex={-1} className="outline-none">
+          <AvisoDeStatus tipo="sucesso" legivel texto={resultado} />
+        </Caixa>
+      )}
       {erro && !emEdicao && <AvisoDeStatus tipo="erro" legivel texto={erro} />}
 
       {editavel && (
@@ -252,7 +264,7 @@ export function QuadroDeFuncionarios({
                   prefixo="corrigir"
                   nome={emEdicao.nome}
                   comissionado={emEdicao.comissionado}
-                  erro={erro}
+                  erro={emEdicao.ativo ? erro : undefined}
                 />
               </Grade>
               {erro && (

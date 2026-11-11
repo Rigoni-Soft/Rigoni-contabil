@@ -124,6 +124,9 @@ describe("QuadroDeFuncionariosContainer", () => {
 
     await waitFor(() => expect(push).toHaveBeenCalledWith("/rh/folha-de-ponto/c1?mes=2026-11"));
     expect(definirEmpregadoAtivoAction).toHaveBeenCalledWith({ empregadoId: "e1", ativo: false });
+    // O botão clicado some: o foco vai ao aviso do resultado, que o leitor de tela anuncia.
+    expect(await screen.findByRole("status")).toHaveTextContent("Ana: desligamento registrado.");
+    expect(screen.getByRole("status").parentElement).toHaveFocus();
   });
 
   it("readmitir grava na hora e fecha o Editar", async () => {
@@ -138,6 +141,7 @@ describe("QuadroDeFuncionariosContainer", () => {
 
     await waitFor(() => expect(push).toHaveBeenCalledWith("/rh/folha-de-ponto/c1?mes=2026-11"));
     expect(definirEmpregadoAtivoAction).toHaveBeenCalledWith({ empregadoId: "e1", ativo: true });
+    expect(await screen.findByRole("status")).toHaveTextContent("Ana: readmissão registrada.");
   });
 
   it("corrige o empregado escolhido", async () => {
