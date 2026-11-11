@@ -834,6 +834,35 @@ rótulo do dia (com a nota "Feriado" ou "Sem jornada" abaixo), duas entradas, du
 **`TotalizacaoDoPonto` (molécula):** a Totalização como lista de definição numa grade `2>4`: rótulo em
 `apoio` e valor em `subtitulo` (horas como "8h45", dias como "1 dia"). Só mostra, nunca recebe digitação.
 
+**Convenção coletiva do RH (`/rh/folha-de-ponto/[clienteId]/convencao`):** abre pelo link "Convenção
+coletiva →" no topo da Folha de ponto e empilha, na largura de conteúdo, o `HistoricoDeConvencoes`, o
+`EnvioDeConvencao` (só Líder do RH e Admin), as `RegrasAplicadas` da convenção escolhida e os
+`AjustesDoClienteNaConvencao`.
+
+**`HistoricoDeConvencoes` (organismo):** as convenções do Cliente como botões de link ("Sindicato ·
+vigência"; a que está em tela em `default` e com `aria-current`, as demais em `outline`), com o nome do
+arquivo e a data do envio em `nota`. A de vigência mais recente vem primeiro; as anteriores seguem
+guardadas e cada uma abre as suas regras (`?convencao=`). Sem convenção, o texto convida a enviar (quem
+pode) ou diz quem envia (quem só lê).
+
+**`EnvioDeConvencao` (organismo):** formulário "Enviar ou renovar a convenção": Sindicato, início e fim da
+vigência (`type="date"`) em linha que quebra no celular, e o `CampoDeArquivo` (PDF de até 4 MB, dito antes
+de escolher). Enquanto lê, o botão fica desabilitado e diz "Lendo a convenção…" (a extração roda uma vez,
+no envio); o erro aparece abaixo, em `AvisoDeStatus`, e o formulário só é limpo no sucesso. Quem só lê não
+o recebe.
+
+**`RegrasAplicadas` (organismo):** a tela de leitura das regras: uma `Tabela` com um parâmetro por linha
+(o rótulo fixo à esquerda) e as colunas "Na convenção", "Na legislação", "Diferença" e "Cláusula" (a
+cláusula e o trecho citado entre aspas, em `nota`). O que a convenção não trouxe, ou o domínio recusou,
+fica "Não aplicada" em `apoio`, com "vale a legislação" na diferença e, se o modelo chegou a propô-lo, o
+motivo da recusa ("Recusada: …"). Nunca recebe digitação: não há aprovação manual.
+
+**`AjustesDoClienteNaConvencao` (organismo):** os interruptores do Cliente (`CaixaDeMarcacao` "Banco de
+horas", desligado por padrão, e "Trabalho aos domingos") e, só havendo mais de uma convenção, um
+`CampoSelect` por empregado ativo com o sindicato que ele segue ("Sem escolha (a única do cliente)" é o
+vazio). Cada mudança grava na hora. Quem não é o Responsável do RH do Cliente vê tudo desabilitado e a
+nota "Só o Responsável do RH deste cliente altera estes ajustes".
+
 **`ListaDeClientes` (molécula):** a lista de drill-down: `ListaComDivisores` com `LinhaDeCliente`
 (empresa em destaque, CNPJ mascarado, "Ver cadastro →" ou a `acao` da tela, como "Abrir folha →") e `detalhes` opcional por Cliente (ex.:
 "3 meses", os selos de Parcelamento do SN). Cada linha usa `content-visibility: auto`, para as listas

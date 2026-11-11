@@ -161,7 +161,13 @@ O registro das batidas de um empregado em uma quinzena, lido de uma foto ou digi
 Marca de que um dia (ou o horário) não conta como falta: por anotação "atestado" no cartão ou por atestado anexado cobrindo a data. Só a sinalização é guardada, nunca o motivo médico, o CID nem o documento. Declaração de comparecimento abona só o horário.
 
 **Convenção coletiva**:
-O PDF da convenção do sindicato do Cliente, com vigência de um ano, que o Líder do RH ou o Admin envia e renova; as anteriores ficam no histórico. Suas cláusulas viram regras de cálculo (jornada, hora extra, adicional noturno, abonos, sábado, domingo, feriado, banco de horas) aplicadas sem aprovação, exibidas em leitura com a cláusula de origem. Cada Cliente tem uma convenção por padrão e pode ter mais de uma; havendo mais de uma, cada empregado do Quadro aponta a sua.
+O PDF da convenção do sindicato do Cliente, com vigência de um ano, que o Líder do RH ou o Admin envia e renova; as anteriores ficam no histórico. Suas cláusulas viram regras de cálculo (jornada, hora extra, adicional noturno, abonos, sábado, domingo, feriado, banco de horas) aplicadas sem aprovação, exibidas em leitura com a cláusula de origem. Cada Cliente tem uma convenção por padrão e pode ter mais de uma; havendo mais de uma, cada empregado do Quadro aponta a sua. O **sindicato** identifica a convenção: renovar é enviar outra do mesmo sindicato com vigência nova, e a anterior continua valendo para os períodos da época. A convenção nunca é editada nem apagada.
+
+**Regras aplicadas**:
+O conjunto de parâmetros que o sistema extraiu da Convenção coletiva, uma só vez, no envio do PDF: jornada semanal e diária, limite de horas extras por dia, intervalo mínimo e máximo, hora extra de sábado, datas especiais com seus percentuais e exceções de feriado. Cada parâmetro cita a cláusula e o trecho de origem; é descartado se o número não aparece no trecho, e o percentual abaixo do piso da legislação é rejeitado. O que não virou parâmetro fica **não aplicada** (vale a legislação). Valem sem aprovação manual e aparecem em leitura, com a diferença para a legislação.
+
+**Interruptores do Cliente**:
+O que a convenção não decide e o Responsável do RH liga por Cliente: banco de horas (desligado por padrão) e trabalho aos domingos.
 
 **Totalização**:
 O resultado legal das horas de um empregado no período (normais, extras por faixa, adicional noturno, atrasos, faltas, abonos), calculado das batidas pela Convenção coletiva.

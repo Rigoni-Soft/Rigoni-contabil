@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
 import { AcompanhamentoMensalPage } from "@/presentation/components/pages/acompanhamento-mensal.page";
 import {
   carregarSetoresDaNavegacao,
@@ -53,6 +54,12 @@ export default async function Page({ params, searchParams }: Props) {
       conteudo={
         folha.ok && (
           <>
+            <LinkDeAcao
+              href={`${ROTA_RH_FOLHA_DE_PONTO}/${encodeURIComponent(clienteId)}/convencao`}
+              className="self-start"
+            >
+              Convenção coletiva →
+            </LinkDeAcao>
             <QuadroDeFuncionariosContainer folha={folha.value} />
             <CartaoDePontoContainer folha={folha.value} />
           </>
