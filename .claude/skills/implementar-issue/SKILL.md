@@ -35,7 +35,7 @@ Quando o usuário corrigir o **desenho** depois da implementação, atualize na 
 
 ## 4. Fechar a estação
 
-Rode `yarn tsc --noEmit`, `yarn lint`, `yarn test`, `yarn check:naming`, `yarn check:refs` e `npx prettier --check` nos arquivos do diff (arquivo novo sem sufixo de papel e `#NN` em comentário reprovam no CI). **Critério de saída: código implementado e commitado na branch, com type-safety, testes e checks verdes.**
+Rode `yarn tsc --noEmit`, `yarn lint`, `yarn test`, `yarn check:naming`, `yarn check:refs`, `yarn check:deps` e `npx prettier --check` nos arquivos do diff (arquivo novo sem sufixo de papel, `#NN` em comentário e import entre camadas proibido, como presenter importando `domain`, reprovam no CI). **Critério de saída: código implementado e commitado na branch, com type-safety, testes e checks verdes.**
 
 Reporte: branch, base, commits e o próximo passo: `/gate-qualidade [base]`. **Nunca `git push`, nem abrir PR, sem ordem explícita do usuário** (um hook também pede confirmação). **Nunca `git stash`** (nem `-u`: há arquivos soltos do usuário no repositório, como `supabase/snippets/`); para comparar um teste com a base, use `git show` ou `git worktree`.
 
