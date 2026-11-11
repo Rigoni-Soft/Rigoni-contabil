@@ -16,6 +16,8 @@ type NavegacaoDeMesProps = {
 };
 
 // Só texto e seta; ativo em cor de ação, inativo apagado (a cor carrega o estado).
+// justify-self-start: o link do mês anterior fica rente à esquerda, simétrico ao Próximo mês rente à direita (sem ele o link
+// se estica na coluna e o texto fica perto do mês).
 const ATIVO = "px-2 font-semibold text-primary hover:text-primary";
 const INATIVO = "inline-flex items-center gap-2 px-2 text-sm font-medium text-muted-foreground";
 
@@ -37,7 +39,7 @@ export function NavegacaoDeMes({
         className,
       )}
     >
-      <LinkDeAcao href={anteriorHref} variant="ghost" className={ATIVO}>
+      <LinkDeAcao href={anteriorHref} variant="ghost" className={cn(ATIVO, "justify-self-start")}>
         <ChevronLeft className="size-4" aria-hidden="true" />
         Mês anterior
       </LinkDeAcao>

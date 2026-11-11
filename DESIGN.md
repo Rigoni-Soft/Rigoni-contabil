@@ -543,10 +543,9 @@ na mesma tela (Quadro de funcionários da Folha de ponto é o primeiro consumido
 
 O Cartão de ponto de um empregado (`/rh/folha-de-ponto/[cliente]/cartao/[empregado]`) copia a planilha do
 escritório (`PLANILHA CARTAO PONTO`, aba do funcionário): tabela com divisória em toda célula (`Tabela` com
-`grade`), cabeçalho de dois níveis (`agrupamento`: "Batidas", "H.E. / Atrasos / A.N.", "Distrib. H.E. p/
-Faixa") e linha **Totais** no rodapé (`rodape`: faltas e soma de cada coluna calculada). Colunas, na ordem da
+`grade`), cabeçalho de dois níveis (`agrupamento`: "Batidas", "Horas extras / Atrasos / Adicional noturno", "Horas extras por faixa") e linha **Totais** no rodapé (`rodape`: faltas e soma de cada coluna calculada). Colunas, na ordem da
 planilha: Data (fixa), Dia semana, Entrada, Saída, Entrada, Saída, Extra entrada, Extra saída, H. Diária,
-Atrasos, Abono, Horas Extras, A.N., 1ª Faixa, 2ª Faixa, Salvar. Entrada, Saída, Extra e Abono são campos do
+Atrasos, Abono, Horas Extras, Adicional noturno (por extenso: a sigla A.N. não era clara), 1ª Faixa, 2ª Faixa e a coluna do botão Salvar, sem título visível (o botão já diz a função; o cabeçalho tem só texto para leitor de tela). Entrada, Saída, Extra e Abono são campos do
 dia; o resto é calculado (nunca digitado). Acima da tabela: Empresa e Período (o mês). A carga horária por dia da semana
 não se exibe (não tem uso na tela). A tela mostra o **mês de trabalho inteiro**, de 28 a 31 dias, numa só tabela; a quinzena só
 importa na leitura da foto do cartão, não na exibição. Dia sem jornada marca "Folga" sob a data; dia com carga e sem batida, "Falta".

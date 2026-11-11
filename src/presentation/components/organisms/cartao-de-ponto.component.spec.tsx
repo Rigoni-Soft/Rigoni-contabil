@@ -54,6 +54,10 @@ describe("CartaoDePonto", () => {
     expect(screen.getByText(/Empresa: Teste Ltda · Período: novembro de 2026/)).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "H. Diária" })).toBeInTheDocument();
     expect(screen.getByText("Faltas / Suspensão: 1")).toBeInTheDocument();
+    // A.N. por extenso e a coluna do botão sem título visível.
+    expect(screen.getByRole("columnheader", { name: "Adicional noturno" })).toBeInTheDocument();
+    expect(screen.queryByText("A.N.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Dia", { exact: true })).not.toBeInTheDocument();
   });
 
   it("em leitura avisa que só o Responsável digita", () => {

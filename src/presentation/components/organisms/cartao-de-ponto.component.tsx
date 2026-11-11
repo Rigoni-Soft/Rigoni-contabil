@@ -104,13 +104,10 @@ export function CartaoDePonto({
               Batidas
             </CabecalhoDeColuna>
             <CabecalhoDeColuna colSpan={5} centro>
-              H.E. / Atrasos / A.N.
+              Horas extras / Atrasos / Adicional noturno
             </CabecalhoDeColuna>
             <CabecalhoDeColuna colSpan={2} centro>
-              Distrib. H.E. p/ Faixa
-            </CabecalhoDeColuna>
-            <CabecalhoDeColuna colSpan={1} centro>
-              Dia
+              Horas extras por faixa
             </CabecalhoDeColuna>
           </>
         }
@@ -128,10 +125,15 @@ export function CartaoDePonto({
             <CabecalhoDeColuna numerica>Atrasos</CabecalhoDeColuna>
             <CabecalhoDeColuna centro>Abono</CabecalhoDeColuna>
             <CabecalhoDeColuna numerica>Horas Extras</CabecalhoDeColuna>
-            <CabecalhoDeColuna numerica>A.N.</CabecalhoDeColuna>
+            <CabecalhoDeColuna numerica>Adicional noturno</CabecalhoDeColuna>
             <CabecalhoDeColuna numerica>1ª Faixa</CabecalhoDeColuna>
             <CabecalhoDeColuna numerica>2ª Faixa</CabecalhoDeColuna>
-            <CabecalhoDeColuna>Salvar</CabecalhoDeColuna>
+            <CabecalhoDeColuna>
+              {/* O botão já diz o que faz: a coluna fica sem título visível. */}
+              <Texto como="span" variante="somenteLeitor">
+                Salvar o dia
+              </Texto>
+            </CabecalhoDeColuna>
           </>
         }
         rodape={
