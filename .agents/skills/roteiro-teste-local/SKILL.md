@@ -16,7 +16,9 @@ Argumento: `$ARGUMENTS` = base do diff. Sem base: `gh pr view --json baseRefName
 
 Chame o subagent `levantador-de-roteiro` (modo `local`) com a base e as issues. Ele só lê e devolve telas, papéis, campos com valor válido e inválido, gatilhos e SQLs, e critérios de aceitação. Use o retorno; não releia o que ele já trouxe.
 
-## 3. Escrever o roteiro (markdown temporário)
+## 3. Escrever o roteiro (markdown em `.agents/state/<branch com / trocado por ->/roteiro.md`)
+
+O markdown fica ao lado do ledger (ignorado pelo git), não numa pasta temporária: quem pedir "atualize o roteiro" em outra sessão parte dele e só edita os passos que mudaram. Se o arquivo já existe, **atualize-o** em vez de reescrever.
 
 **Tudo concreto, sem placeholder** (o usuário já reclamou disto): nada de `<CNPJ>`, "um arquivo qualquer" ou "uma data". Seções:
 
@@ -24,7 +26,7 @@ Chame o subagent `levantador-de-roteiro` (modo `local`) com a base e as issues. 
 2. **Quem vai usar:** tabela só dos logins do `supabase/seed.sql` que o teste usa: e-mail, senha, papel, setor, para que serve.
 3. **Dados a cadastrar:** tabela com o valor exato de cada campo de cada cadastro (empresa, CNPJ gerado com `node .agents/scripts/gerar-cnpj.mjs <n>` e conferido, e-mail, telefone, datas). Arquivos: o conteúdo e o comando que o cria, ou o caminho de um existente (`supabase/arquivos-seed/`, `mock-api/`).
 4. **SQLs que simulam ações externas:** cada um com o comando completo (`psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -c "..."` ou no Studio em `http://127.0.0.1:54323`), os ids reais e o que o SQL representa. Webhook e job: o `curl` completo com o cabeçalho. Cada SQL em bloco próprio, rotulado "rode uma vez, no preparo" ou "só no passo N"; nunca um SQL e o seu desfazer no mesmo bloco, pois o usuário cola o bloco inteiro.
-5. **Roteiro:** uma tabela por issue, colunas `# | Passo | Resultado esperado | OK | Obs.`, com `[ ]` na coluna OK. Cubra, por critério de aceitação: caminho feliz, borda e **o que não pode acontecer** (papel sem acesso, valor inválido com a mensagem exata). Passo e resultado dizem o texto que aparece na tela. Inclua um passo **Responsivo** por tela de UI do grupo: a 320 px de largura, sem rolagem horizontal e com alvos de toque de 44 px (é o que o audit do gate não consegue ver lendo o código).
+5. **Roteiro:** uma tabela por issue, colunas `# | Passo | Resultado esperado | OK | Obs.`, com `[ ]` na coluna OK. Cubra, por critério de aceitação: caminho feliz, borda e **o que não pode acontecer** (papel sem acesso, valor inválido com a mensagem exata). Passo e resultado dizem o texto que aparece na tela. **Valor inválido só entra se o campo o deixar chegar**: confira `maxLength`, `min`, `max` e `required` do campo no código antes de escrever o passo (um `maxLength={120}` corta a 121ª letra ao colar, então o erro de 121 caracteres nunca aparece; o passo vira "o campo aceita só 120"). Inclua um passo **Responsivo** por tela de UI do grupo: a 320 px de largura, sem rolagem horizontal e com alvos de toque de 44 px (é o que o audit do gate não consegue ver lendo o código).
 6. **Voltar ao zero:** `npx supabase db reset`, e o que mais precisa limpar.
 7. **Se algo falhar:** onde olhar (terminal do `yarn dev`, console do navegador, `npx supabase status`).
 
