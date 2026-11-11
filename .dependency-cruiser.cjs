@@ -85,6 +85,19 @@ module.exports = {
       to: { path: ["^src/main/(?!client/)", "node_modules/server-only/"] },
     },
     {
+      // arquitetura.md §3.10: service_role fica em fábricas de uso explícito (ADR 0001 e 0005, jobs), nunca
+      // no caminho de uma requisição de usuário. Fábrica nova que precise dele entra aqui com a ADR.
+      name: "service-role-so-em-fabricas-permitidas",
+      severity: "error",
+      from: {
+        pathNot: [
+          "^src/main/(atendimento|auditoria|clientes|usuarios)\.factory",
+          "^src/main/supabase-admin\.factory\.ts$",
+        ],
+      },
+      to: { path: "^src/main/supabase-admin\.factory\.ts$" },
+    },
+    {
       name: "supabase-so-em-infra-main-e-auth",
       severity: "error",
       from: { pathNot: ["^src/modules/[^/]+/infra/", "^src/main/", "^src/presentation/auth/"] },

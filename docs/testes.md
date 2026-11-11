@@ -191,7 +191,7 @@ export default defineConfig({
 "test:e2e:diff": "playwright test --only-changed=develop"
 ```
 
-Para rodar um arquivo só, passe o caminho com `--runTestsByPath` e ponha `--selectProjects` depois: `jest --runTestsByPath <caminho> --selectProjects unit` (no de integração, junto de `--runInBand`). Com `--selectProjects unit <caminho>` o Jest toma o caminho por nome de projeto e roda outras suítes.
+Para rodar um arquivo só, passe o caminho com `--runTestsByPath` e ponha `--selectProjects` depois: `jest --runTestsByPath <caminho> --selectProjects unit` (no de integração, junto de `--runInBand`). Com `--selectProjects unit <caminho>` o Jest toma o caminho por nome de projeto e roda outras suítes. `--testPathPatterns <trecho>` também filtra. O ambiente jsdom do projeto `unit` não tem `TextEncoder`: monte bytes com `Buffer.from(...)`.
 
 `test:e2e:diff` precisa do histórico do branch base disponível no CI (clone completo, não raso).
 
