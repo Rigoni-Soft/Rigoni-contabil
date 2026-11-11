@@ -807,8 +807,32 @@ Desativar pede confirmação na própria linha (`ConfirmacaoEmLinha`: a pergunta
 e "Cancelar" com o foco, o gesto seguro); o erro da ação vem em `AvisoDeStatus`. O Holerite, do
 sistema, não tem ação.
 
+**Folha de ponto do RH (`/rh/folha-de-ponto/[clienteId]`):** abre pela lista dos clientes do RH
+(`ListaDeClientes` com a ação "Abrir folha →") e empilha o `QuadroDeFuncionarios` e o `CartaoDePonto`,
+na largura de conteúdo, como as demais telas do RH.
+
+**`QuadroDeFuncionarios` (organismo):** os empregados do Cliente como botões de link (o escolhido em
+`default`, os demais em `outline`), com selos de texto ao lado ("comissionado", "inativo", "sem movimento
+no mês"); o padrão de comissionados do Cliente; o formulário "Novo empregado" e o "Corrigir" do
+escolhido (nome, uma Jornada em `type="time"` por dia, de domingo a sábado, e a marca "comissionado"),
+com "Sem movimento no mês" e "Inativar empregado" ao fim. Em leitura (Líder, Admin ou outro
+Responsável) só a lista e os dados aparecem, sem formulário nem botão de escrita.
+
+**`CartaoDePonto` (organismo):** o cartão de um empregado numa quinzena, de cima para baixo: título,
+`NavegacaoDeMes` com `destaque`, as duas quinzenas como links (a atual em `default`), um aviso de apoio
+quando só se lê, o erro em `AvisoDeStatus` e um dia por linha (`LinhaDoCartaoDePonto`), fechando com a
+`TotalizacaoDoPonto`. Cada dia é salvo à parte; a Totalização se recalcula na recarga.
+
+**`LinhaDoCartaoDePonto` (molécula):** um dia do cartão, um formulário em linha que quebra no celular:
+rótulo do dia (com a nota "Feriado" ou "Sem jornada" abaixo), duas entradas, duas saídas, a coluna Extra
+(entrada e saída) e "Abono", todos `Input type="time"` com `aria-label` próprio ("Entrada 1 de seg
+16/11"), e o botão "Salvar" do dia. Sem edição, os campos ficam desabilitados e o botão some.
+
+**`TotalizacaoDoPonto` (molécula):** a Totalização como lista de definição numa grade `2>4`: rótulo em
+`apoio` e valor em `subtitulo` (horas como "8h45", dias como "1 dia"). Só mostra, nunca recebe digitação.
+
 **`ListaDeClientes` (molécula):** a lista de drill-down: `ListaComDivisores` com `LinhaDeCliente`
-(empresa em destaque, CNPJ mascarado, "Ver cadastro →") e `detalhes` opcional por Cliente (ex.:
+(empresa em destaque, CNPJ mascarado, "Ver cadastro →" ou a `acao` da tela, como "Abrir folha →") e `detalhes` opcional por Cliente (ex.:
 "3 meses", os selos de Parcelamento do SN). Cada linha usa `content-visibility: auto`, para as listas
 de centenas de Clientes. É a única lista de empresas do sistema: as do SN e do RH
 (`ResumoSetorLista`), as de um Serviço que falta e as do detalhe do Funcionário a usam; não montar a

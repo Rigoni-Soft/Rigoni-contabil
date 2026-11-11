@@ -1,5 +1,7 @@
 import type { Totalizacao } from "@/modules/rh/domain/services/totalizacao.service";
 
+export type TotalizacaoDto = Totalizacao;
+
 // Minutos de 0 a 1439 desde 00:00; saída menor que a entrada = a jornada virou o dia.
 export type ParDto = { entrada: number; saida: number };
 
@@ -42,6 +44,6 @@ export type FolhaDePontoDto = {
   selecionado: {
     empregado: EmpregadoDaFolhaDto;
     dias: DiaDaFolhaDto[];
-    totalizacao: Totalizacao;
+    totalizacao: TotalizacaoDto;
   } | null;
 };

@@ -25,7 +25,7 @@ Aqui cada ticket já é uma fatia vertical (banco, regra de negócio, tela e tes
 
 - [x] **PR 3.1: Parcelamento na aba do RH** (depende da PR 1.1; em paralelo às demais)
   - [x] #216 (ambas): fluxo do SN no RH, cards e comparativos, cada setor vê só o seu
-- [ ] **PR 3.2: Alertas e jobs de Parcelamento por Setor** (só backend; depende da PR 3.1)
+- [x] **PR 3.2: Alertas e jobs de Parcelamento por Setor** (só backend; depende da PR 3.1)
   - [x] #217 (backend): alerta ao setor dono, chave por Cliente, tipo e Setor, URA e job com a união
 
 ## Etapa 4: Folha de ponto

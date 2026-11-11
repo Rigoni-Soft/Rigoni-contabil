@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 
+import { Linha } from "@/presentation/components/atoms/caixa.component";
+import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { ComparativosRh } from "@/presentation/components/organisms/comparativos-rh.component";
 import { ResumoDoSetor } from "@/presentation/components/organisms/resumo-do-setor.component";
@@ -21,7 +23,7 @@ import {
   fatiasDoAcompanhamento,
 } from "@/modules/rh/presentation/view-models/resumo-rh/resumo-rh.presenter";
 import { podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
-import { ROTA_RH, SETOR_RH } from "@/shared/kernel/setores";
+import { ROTA_RH, ROTA_RH_FOLHA_DE_PONTO, SETOR_RH } from "@/shared/kernel/setores";
 
 // ponytail: montagem repetida de app/simples-nacional/page.tsx; extrair no 3º Setor com resumo.
 export default async function Page() {
@@ -72,11 +74,16 @@ export default async function Page() {
         )
       }
       acoes={
-        !mensal.ok && (
-          <Texto variante="alerta" role="alert">
-            Não foi possível carregar o acompanhamento. Recarregue a página.
-          </Texto>
-        )
+        <>
+          <Linha espaco={2}>
+            <LinkDeAcao href={ROTA_RH_FOLHA_DE_PONTO}>Folha de ponto</LinkDeAcao>
+          </Linha>
+          {!mensal.ok && (
+            <Texto variante="alerta" role="alert">
+              Não foi possível carregar o acompanhamento. Recarregue a página.
+            </Texto>
+          )}
+        </>
       }
       comparativos={
         resumo.ok &&
