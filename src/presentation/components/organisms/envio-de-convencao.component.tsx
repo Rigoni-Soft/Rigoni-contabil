@@ -47,7 +47,7 @@ export function EnvioDeConvencao({
     >
       <Pilha espaco="formulario">
         <NotaDeObrigatorio />
-        <Texto como="h3" variante="rotuloDeSecao">
+        <Texto como="h2" variante="subtitulo">
           Enviar ou renovar a convenção
         </Texto>
         <Texto variante="apoio">

@@ -11,6 +11,7 @@ import {
   TotalizacaoDoPonto,
   type ItemDaTotalizacao,
 } from "@/presentation/components/molecules/totalizacao-do-ponto.component";
+import { MOLDURA_DO_CARTAO } from "@/presentation/lib/moldura-do-cartao";
 
 type Props = {
   empregado: string;
@@ -52,7 +53,7 @@ export function CartaoDePonto({
       como="section"
       espaco={6}
       aria-label={`Cartão de ponto de ${empregado}`}
-      className="rc-guilloche-frame rounded-lg border border-border bg-card p-5 shadow-sm"
+      className={MOLDURA_DO_CARTAO}
     >
       <Texto como="h2" variante="subtitulo">
         Cartão de ponto de {empregado}

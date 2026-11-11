@@ -1,6 +1,7 @@
 import { Caixa, Grade, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { NotaDeObrigatorio } from "@/presentation/components/atoms/nota-de-obrigatorio.component";
+import { MOLDURA_DO_CARTAO } from "@/presentation/lib/moldura-do-cartao";
 import { cn } from "@/presentation/lib/utils";
 
 import { CabecalhoDoCadastro, type CabecalhoCliente } from "./cabecalho-do-cadastro.component";
@@ -52,10 +53,7 @@ export function CartaoDoCadastro({
       espaco="formulario"
       como="form"
       onSubmit={onSubmit}
-      className={cn(
-        "rc-guilloche-frame rounded-lg border border-border bg-card p-5 shadow-sm",
-        oculto && "rc-oculto-ate-hidratar",
-      )}
+      className={cn(MOLDURA_DO_CARTAO, oculto && "rc-oculto-ate-hidratar")}
     >
       {!readOnly && <NotaDeObrigatorio />}
 

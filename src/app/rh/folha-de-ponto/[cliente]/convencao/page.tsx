@@ -4,6 +4,7 @@ import { Pilha } from "@/presentation/components/atoms/caixa.component";
 import { HistoricoDeConvencoes } from "@/presentation/components/organisms/historico-de-convencoes.component";
 import { RegrasAplicadas } from "@/presentation/components/organisms/regras-aplicadas.component";
 import { AcompanhamentoMensalPage } from "@/presentation/components/pages/acompanhamento-mensal.page";
+import { MOLDURA_DO_CARTAO } from "@/presentation/lib/moldura-do-cartao";
 import { exigirSessao } from "@/presentation/view-models/shell/shell.server";
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import { AjustesDoClienteNaConvencaoContainer } from "@/modules/rh/presentation/view-models/convencao/ajustes-do-cliente-na-convencao.container";
@@ -17,9 +18,6 @@ import { carregarConvencoes } from "@/modules/rh/presentation/view-models/conven
 import { EnvioDeConvencaoContainer } from "@/modules/rh/presentation/view-models/convencao/envio-de-convencao.container";
 import { podeVerAcompanhamentoRh } from "@/shared/kernel/papeis";
 import { ROTA_RH_FOLHA_DE_PONTO } from "@/shared/kernel/setores";
-
-// Cada bloco da tela é um cartão, como no formulário do cadastro operacional.
-const CARTAO = "rc-guilloche-frame rounded-lg border border-border bg-card p-5 shadow-sm";
 
 type Props = {
   params: Promise<{ cliente: string }>;
@@ -49,26 +47,26 @@ export default async function Page({ params, searchParams }: Props) {
       conteudo={
         dados.ok && (
           <>
-            <Pilha espaco={6} className={CARTAO}>
+            <Pilha espaco={6} className={MOLDURA_DO_CARTAO}>
               <HistoricoDeConvencoes
                 itens={historicoDeConvencoes(dados.value.convencoes, escolhida?.id, rota)}
                 podeEnviar={dados.value.podeEnviar}
               />
             </Pilha>
             {dados.value.podeEnviar && (
-              <Pilha espaco={6} className={CARTAO}>
+              <Pilha espaco={6} className={MOLDURA_DO_CARTAO}>
                 <EnvioDeConvencaoContainer clienteId={clienteId} />
               </Pilha>
             )}
             {escolhida && (
-              <Pilha espaco={6} className={CARTAO}>
+              <Pilha espaco={6} className={MOLDURA_DO_CARTAO}>
                 <RegrasAplicadas
                   titulo={tituloDaConvencao(escolhida)}
                   linhas={linhasDeRegras(escolhida)}
                 />
               </Pilha>
             )}
-            <Pilha espaco={6} className={CARTAO}>
+            <Pilha espaco={6} className={MOLDURA_DO_CARTAO}>
               <AjustesDoClienteNaConvencaoContainer dados={dados.value} />
             </Pilha>
           </>

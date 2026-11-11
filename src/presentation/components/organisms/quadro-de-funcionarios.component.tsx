@@ -6,6 +6,7 @@ import { NotaDeObrigatorio } from "@/presentation/components/atoms/nota-de-obrig
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { Button } from "@/presentation/components/ui/button";
+import { MOLDURA_DO_CARTAO } from "@/presentation/lib/moldura-do-cartao";
 
 export type EmpregadoDoQuadro = {
   id: string;
@@ -76,7 +77,7 @@ function CamposDoEmpregado({
         aria-describedby={erro ? "erro-do-novo-empregado" : undefined}
         aria-invalid={!!erro}
       />
-      <Caixa className="flex items-end pb-2 sm:col-span-2">
+      <Caixa className="flex items-center sm:col-span-2 sm:min-h-9 sm:self-end pointer-coarse:min-h-11">
         <CaixaDeMarcacao rotulo="Comissionado" name="comissionado" defaultChecked={comissionado} />
       </Caixa>
       {DIAS.map((dia, i) => (
@@ -118,7 +119,7 @@ export function QuadroDeFuncionarios({
       como="section"
       espaco={6}
       aria-label="Quadro de funcionários"
-      className="rc-guilloche-frame rounded-lg border border-border bg-card p-5 shadow-sm"
+      className={MOLDURA_DO_CARTAO}
     >
       <Texto como="h2" variante="subtitulo">
         Quadro de funcionários
