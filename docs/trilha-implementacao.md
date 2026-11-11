@@ -36,8 +36,8 @@ Aqui cada ticket já é uma fatia vertical (banco, regra de negócio, tela e tes
   - [x] #219 (ambas): upload, histórico, vínculo por cliente, extração de regras, "Regras aplicadas"
 - [x] **PR 4.3: Totalização com as regras da convenção** (só backend; depende das PRs 4.1 e 4.2)
   - [x] #220 (backend): o motor usa os parâmetros da convenção e reproduz a planilha modelo
-- [ ] **PR 4.4: Holerite derivado dos cartões** (depende das PRs 2.1 e 4.1)
-  - [ ] #221 (ambas): Holerite conclui sozinho, "sem movimento no mês", cadastrados x cartões feitos
+- [x] **PR 4.4: Holerite derivado dos cartões** (depende das PRs 2.1 e 4.1)
+  - [x] #221 (ambas): Holerite conclui sozinho, "sem movimento no mês", cadastrados x cartões feitos
 
 ## Etapa 5: Leitura de imagem
 
