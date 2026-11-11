@@ -4,7 +4,6 @@ import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.compone
 import { AcompanhamentoMensalPage } from "@/presentation/components/pages/acompanhamento-mensal.page";
 import { exigirSessao } from "@/presentation/view-models/shell/shell.server";
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
-import { CartaoDePontoContainer } from "@/modules/rh/presentation/view-models/folha-de-ponto/cartao-de-ponto.container";
 import { carregarFolhaDePonto } from "@/modules/rh/presentation/view-models/folha-de-ponto/folha-de-ponto.server";
 import { QuadroDeFuncionariosContainer } from "@/modules/rh/presentation/view-models/folha-de-ponto/quadro-de-funcionarios.container";
 import { podeVerAcompanhamentoRh } from "@/shared/kernel/papeis";
@@ -15,7 +14,7 @@ type Props = {
   searchParams: Promise<{ mes?: string; quinzena?: string; empregado?: string }>;
 };
 
-// A Folha de ponto de um Cliente: o quadro de funcionários, o cartão da quinzena e a Totalização.
+// A Folha de ponto de um Cliente: o quadro de funcionários (o cartão de cada empregado tem tela própria).
 export default async function Page({ params, searchParams }: Props) {
   const sessao = await exigirSessao();
   if (!podeVerAcompanhamentoRh(sessao.papel, sessao.setor)) redirect("/");
@@ -47,7 +46,6 @@ export default async function Page({ params, searchParams }: Props) {
               Convenção coletiva →
             </LinkDeAcao>
             <QuadroDeFuncionariosContainer folha={folha.value} />
-            <CartaoDePontoContainer folha={folha.value} />
           </>
         )
       }

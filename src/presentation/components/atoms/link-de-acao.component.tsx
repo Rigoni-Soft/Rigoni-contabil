@@ -11,6 +11,8 @@ type LinkDeAcaoProps = {
   externo?: boolean;
   // O link da seleção em tela (empregado escolhido, quinzena aberta): além da variante, o leitor de tela ouve "atual".
   atual?: boolean;
+  // Nome acessível quando o texto visível sozinho é ambíguo (ex.: vários "Cartão de ponto →" numa lista).
+  "aria-label"?: string;
   children: React.ReactNode;
 };
 
@@ -21,11 +23,13 @@ export function LinkDeAcao({
   className,
   externo,
   atual,
+  "aria-label": rotulo,
   children,
 }: LinkDeAcaoProps) {
   return (
     <Link
       href={href}
+      aria-label={rotulo}
       aria-current={atual ? "true" : undefined}
       className={cn(buttonVariants({ variant }), className)}
       {...(externo && { target: "_blank", rel: "noopener noreferrer" })}

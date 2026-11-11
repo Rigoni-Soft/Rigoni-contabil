@@ -49,6 +49,8 @@ test.describe("Folha de ponto do RH", () => {
 
     await page.getByRole("form", { name: "Novo empregado" }).getByLabel("Nome").fill("Ana E2E");
     await page.getByRole("button", { name: "Cadastrar empregado" }).click();
+    // O cartão tem tela própria: a lista do quadro leva a ele.
+    await page.getByRole("link", { name: "Cartão de ponto de Ana E2E" }).click();
     await expect(page.getByRole("heading", { name: "Cartão de ponto de Ana E2E" })).toBeVisible();
 
     await page.getByLabel(`Entrada 1 de ${rotulo}`).fill("08:00");
@@ -94,12 +96,11 @@ test.describe("Folha de ponto do RH", () => {
     await login(page, "lider.rh@rigonicontabil.local", "lider123");
     await expect(page).toHaveURL("/rh");
     await page.goto(
-      `/rh/folha-de-ponto/${clienteId}?mes=${mes}&quinzena=1&empregado=${empregado.data.id}`,
+      `/rh/folha-de-ponto/${clienteId}/cartao/${empregado.data.id}?mes=${mes}&quinzena=1`,
     );
 
     await expect(page.getByRole("heading", { name: "Cartão de ponto de Bia E2E" })).toBeVisible();
     await expect(page.getByLabel(`Entrada 1 de ${rotulo}`)).toHaveAttribute("readonly", "");
-    await expect(page.getByRole("button", { name: "Cadastrar empregado" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: `Salvar ${rotulo}` })).toHaveCount(0);
   });
 });

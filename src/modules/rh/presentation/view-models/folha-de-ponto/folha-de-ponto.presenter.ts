@@ -14,8 +14,9 @@ import type {
 import { mesAtual, mesVizinho } from "@/shared/kernel/mes-atual";
 
 const SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
-// Jornada de partida dos empregados novos: o padrão do comércio (8h45 de segunda a sexta, 4h no sábado).
-export const CARGAS_PADRAO = ["00:00", "08:45", "08:45", "08:45", "08:45", "08:45", "04:00"];
+// Jornada gravada nos empregados novos (a tela não a pede): o padrão do comércio, 8h45 de segunda a sexta e 4h no sábado, em minutos.
+// ponytail: valor fixo até a Totalização deduzir a jornada da convenção/legislação (ticket a abrir).
+export const JORNADA_PADRAO = [0, 525, 525, 525, 525, 525, 240];
 
 export function minutosParaHm(minutos: number): string {
   return `${String(Math.floor(minutos / 60)).padStart(2, "0")}:${String(minutos % 60).padStart(2, "0")}`;
@@ -96,9 +97,22 @@ export function hrefDaFolha(clienteId: string, { mes, quinzena, empregado }: Ped
   return `/rh/folha-de-ponto/${encodeURIComponent(clienteId)}${texto ? `?${texto}` : ""}`;
 }
 
+// O Cartão de ponto de um empregado tem tela própria: o quadro cadastra, o cartão digita.
+export function hrefDoCartao(
+  clienteId: string,
+  empregadoId: string,
+  { mes, quinzena }: Pick<Pedido, "mes" | "quinzena">,
+): string {
+  const busca = new URLSearchParams();
+  if (mes) busca.set("mes", mes);
+  if (quinzena) busca.set("quinzena", String(quinzena));
+  const texto = busca.toString();
+  return `/rh/folha-de-ponto/${encodeURIComponent(clienteId)}/cartao/${encodeURIComponent(empregadoId)}${texto ? `?${texto}` : ""}`;
+}
+
 function selos(e: EmpregadoDaFolhaDto): string[] {
   return [
-    !e.ativo && "inativo",
+    !e.ativo && "desligado",
     e.ativo && e.semMovimento && "sem movimento no mês",
     e.comissionado && "comissionado",
   ].filter((s): s is string => !!s);
@@ -112,6 +126,10 @@ export function quadroDoEmpregado(folha: FolhaDePontoDto): EmpregadoDoQuadro[] {
       mes: folha.competencia,
       quinzena: folha.quinzena,
       empregado: e.id,
+    }),
+    cartaoHref: hrefDoCartao(folha.clienteId, e.id, {
+      mes: folha.competencia,
+      quinzena: folha.quinzena,
     }),
     selecionado: e.id === folha.selecionado?.empregado.id,
     selos: selos(e),
@@ -128,14 +146,13 @@ export function empregadoEmEdicao(folha: FolhaDePontoDto): EmpregadoEmEdicao | u
       comissionado: e.comissionado,
       ativo: e.ativo,
       semMovimento: e.semMovimento,
-      cargas: e.jornada.map(minutosParaHm),
     }
   );
 }
 
 export function navegacaoDoCartao(folha: FolhaDePontoDto) {
-  const empregado = folha.selecionado?.empregado.id;
-  const href = (p: Pedido) => hrefDaFolha(folha.clienteId, { empregado, ...p });
+  const empregado = folha.selecionado?.empregado.id ?? "";
+  const href = (p: Pick<Pedido, "mes" | "quinzena">) => hrefDoCartao(folha.clienteId, empregado, p);
   return {
     mesAnteriorHref: href({ mes: mesVizinho(folha.competencia, -1), quinzena: 1 }),
     proximoMesHref:
@@ -181,17 +198,6 @@ export function lerDiaDoFormulario(c: Campos): DiaLido {
   };
 }
 
-export type EmpregadoLido =
-  | { ok: true; nome: string; jornada: number[]; comissionado: boolean }
-  | { ok: false; erro: string };
-
-export function lerEmpregadoDoFormulario(c: Campos): EmpregadoLido {
-  const jornada = SEMANA.map((_, i) => hmParaMinutos(texto(c, `carga${i}`)));
-  if (jornada.includes(null)) return { ok: false, erro: "Informe a Jornada de todos os dias." };
-  return {
-    ok: true,
-    nome: texto(c, "nome"),
-    jornada: jornada as number[],
-    comissionado: c.get("comissionado") !== null,
-  };
+export function lerEmpregadoDoFormulario(c: Campos) {
+  return { nome: texto(c, "nome"), comissionado: c.get("comissionado") !== null };
 }

@@ -40,6 +40,8 @@ const FOLHA: FolhaDePontoDto = {
   podeEditar: true,
   selecionado: { empregado: ANA, dias: [], totalizacao: {} as never, semConvencao: false },
 };
+// Sem empregado escolhido a tela mostra o formulário "Novo empregado".
+const SEM_ESCOLHA: FolhaDePontoDto = { ...FOLHA, selecionado: null };
 const OK = { ok: true as const, data: undefined };
 
 describe("QuadroDeFuncionariosContainer", () => {
@@ -56,8 +58,8 @@ describe("QuadroDeFuncionariosContainer", () => {
     }
   });
 
-  it("cadastra o empregado com a Jornada em minutos e recarrega a tela", async () => {
-    render(<QuadroDeFuncionariosContainer folha={FOLHA} />);
+  it("cadastra o empregado com a Jornada padrão em minutos e recarrega a tela", async () => {
+    render(<QuadroDeFuncionariosContainer folha={SEM_ESCOLHA} />);
     const novo = screen.getByRole("form", { name: "Novo empregado" });
 
     await userEvent.setup().type(novo.querySelector("input[name=nome]")!, "Caio");
@@ -76,7 +78,7 @@ describe("QuadroDeFuncionariosContainer", () => {
     render(<QuadroDeFuncionariosContainer folha={FOLHA} />);
     const u = userEvent.setup();
 
-    await u.click(screen.getByRole("button", { name: "Inativar empregado" }));
+    await u.click(screen.getByRole("button", { name: "Desligar da empresa" }));
     await u.click(screen.getByRole("checkbox", { name: "Sem movimento em novembro de 2026" }));
     await u.click(screen.getByRole("checkbox", { name: /são comissionados/ }));
 
@@ -91,6 +93,20 @@ describe("QuadroDeFuncionariosContainer", () => {
       clienteId: "c1",
       comissionados: true,
     });
+  });
+
+  it("com empregado escolhido o Editar substitui o Novo e a lista leva ao cartão", () => {
+    render(<QuadroDeFuncionariosContainer folha={FOLHA} />);
+
+    expect(screen.queryByRole("form", { name: "Novo empregado" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Cartão de ponto de Ana" })).toHaveAttribute(
+      "href",
+      "/rh/folha-de-ponto/c1/cartao/e1?mes=2026-11&quinzena=1",
+    );
+    expect(screen.getByRole("link", { name: "Novo empregado" })).toHaveAttribute(
+      "href",
+      "/rh/folha-de-ponto/c1?mes=2026-11&quinzena=1",
+    );
   });
 
   it("corrige o empregado escolhido", async () => {
@@ -113,11 +129,11 @@ describe("QuadroDeFuncionariosContainer", () => {
     render(<QuadroDeFuncionariosContainer folha={FOLHA} />);
     const u = userEvent.setup();
 
-    await u.click(screen.getByRole("button", { name: "Inativar empregado" }));
+    await u.click(screen.getByRole("button", { name: "Desligar da empresa" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Sem permissão.");
 
     jest.mocked(definirEmpregadoAtivoAction).mockRejectedValueOnce(new TypeError("fetch"));
-    await u.click(screen.getByRole("button", { name: "Inativar empregado" }));
+    await u.click(screen.getByRole("button", { name: "Desligar da empresa" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Sem conexão com o servidor");
   });
 
@@ -126,7 +142,7 @@ describe("QuadroDeFuncionariosContainer", () => {
       ok: false,
       error: { code: "forbidden", message: "Sem permissão." },
     } as never);
-    render(<QuadroDeFuncionariosContainer folha={FOLHA} />);
+    render(<QuadroDeFuncionariosContainer folha={SEM_ESCOLHA} />);
     const campoNome = screen
       .getByRole("form", { name: "Novo empregado" })
       .querySelector<HTMLInputElement>("input[name=nome]")!;
@@ -136,17 +152,5 @@ describe("QuadroDeFuncionariosContainer", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Sem permissão.");
     expect(campoNome).toHaveValue("Caio");
-  });
-
-  it("Jornada incompleta no cadastro é recusada sem chamar o servidor", async () => {
-    render(<QuadroDeFuncionariosContainer folha={FOLHA} />);
-    const novo = screen.getByRole("form", { name: "Novo empregado" });
-
-    await userEvent.setup().type(novo.querySelector("input[name=nome]")!, "Caio");
-    await userEvent.setup().clear(novo.querySelector("input[name=carga3]")!);
-    await userEvent.setup().click(screen.getByRole("button", { name: "Cadastrar empregado" }));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent("Informe a Jornada");
-    expect(cadastrarEmpregadoAction).not.toHaveBeenCalled();
   });
 });

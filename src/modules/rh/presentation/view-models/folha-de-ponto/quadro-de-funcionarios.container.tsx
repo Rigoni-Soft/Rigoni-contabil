@@ -17,8 +17,9 @@ import {
   definirSemMovimentoAction,
 } from "./folha-de-ponto.actions";
 import {
-  CARGAS_PADRAO,
   empregadoEmEdicao,
+  hrefDaFolha,
+  JORNADA_PADRAO,
   lerEmpregadoDoFormulario,
   quadroDoEmpregado,
 } from "./folha-de-ponto.presenter";
@@ -59,7 +60,6 @@ export function QuadroDeFuncionariosContainer({ folha }: Props) {
     <QuadroDeFuncionarios
       empregados={quadroDoEmpregado(folha)}
       emEdicao={empregadoEmEdicao(folha)}
-      cargasPadrao={CARGAS_PADRAO}
       padraoComissionados={folha.padraoComissionados}
       rotuloMes={rotuloDaCompetencia(folha.competencia)}
       editavel={folha.podeEditar}
@@ -67,15 +67,15 @@ export function QuadroDeFuncionariosContainer({ folha }: Props) {
       erro={erro}
       erroDoNovo={erroDoNovo}
       chaveDoNovo={chaveDoNovo}
+      novoHref={hrefDaFolha(folha.clienteId, { mes: folha.competencia, quinzena: folha.quinzena })}
       onCadastrar={(campos) => {
         const lido = lerEmpregadoDoFormulario(campos);
-        if (!lido.ok) return setErroDoNovo(lido.erro);
         executar(
           () =>
             cadastrarEmpregadoAction({
               clienteId: folha.clienteId,
               nome: lido.nome,
-              jornada: lido.jornada,
+              jornada: JORNADA_PADRAO,
               comissionado: lido.comissionado,
             }),
           { cadastro: true },
@@ -83,13 +83,12 @@ export function QuadroDeFuncionariosContainer({ folha }: Props) {
       }}
       onCorrigir={(campos) => {
         const lido = lerEmpregadoDoFormulario(campos);
-        if (!lido.ok) return setErro(lido.erro);
         if (!escolhido) return;
         executar(() =>
           corrigirEmpregadoAction({
             empregadoId: escolhido.id,
             nome: lido.nome,
-            jornada: lido.jornada,
+            jornada: escolhido.jornada,
             comissionado: lido.comissionado,
           }),
         );

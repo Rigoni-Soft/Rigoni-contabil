@@ -2,6 +2,7 @@ import type { FolhaDePontoDto } from "@/modules/rh/application/dtos/folha-de-pon
 import {
   hmParaMinutos,
   hrefDaFolha,
+  hrefDoCartao,
   itensDaTotalizacao,
   lerDiaDoFormulario,
   lerEmpregadoDoFormulario,
@@ -134,21 +135,12 @@ describe("lerDiaDoFormulario", () => {
 });
 
 describe("lerEmpregadoDoFormulario", () => {
-  const cargas = Object.fromEntries([0, 1, 2, 3, 4, 5, 6].map((i) => [`carga${i}`, "08:00"]));
-
-  it("lê nome, Jornada e a marca", () => {
-    expect(
-      lerEmpregadoDoFormulario(campos({ nome: " Ana ", ...cargas, comissionado: "on" })),
-    ).toEqual({
-      ok: true,
+  it("lê o nome e a marca", () => {
+    expect(lerEmpregadoDoFormulario(campos({ nome: " Ana ", comissionado: "on" }))).toEqual({
       nome: "Ana",
-      jornada: [480, 480, 480, 480, 480, 480, 480],
       comissionado: true,
     });
-  });
-
-  it("recusa Jornada incompleta", () => {
-    expect(lerEmpregadoDoFormulario(campos({ nome: "Ana", ...cargas, carga3: "" })).ok).toBe(false);
+    expect(lerEmpregadoDoFormulario(campos({ nome: "Bia" })).comissionado).toBe(false);
   });
 });
 
@@ -157,7 +149,8 @@ describe("quadro e navegação", () => {
     const [ana, bia] = quadroDoEmpregado(FOLHA);
     expect(ana).toMatchObject({ selecionado: true, selos: ["comissionado"] });
     expect(ana.href).toBe("/rh/folha-de-ponto/c1?mes=2020-11&quinzena=2&empregado=e1");
-    expect(bia).toMatchObject({ selecionado: false, selos: ["inativo"] });
+    expect(ana.cartaoHref).toBe("/rh/folha-de-ponto/c1/cartao/e1?mes=2020-11&quinzena=2");
+    expect(bia).toMatchObject({ selecionado: false, selos: ["desligado"] });
   });
 
   it("navega entre meses (sem próximo no mês corrente) e quinzenas", () => {
@@ -166,6 +159,13 @@ describe("quadro e navegação", () => {
     expect(nav.proximoMesHref).toContain("mes=2020-12");
     expect(nav.quinzenas.map((q) => q.atual)).toEqual([false, true]);
     expect(navegacaoDoCartao({ ...FOLHA, competencia: "2099-01" }).proximoMesHref).toBeUndefined();
+  });
+
+  it("hrefDoCartao leva ao cartão do empregado com o mês e a quinzena", () => {
+    expect(hrefDoCartao("c 1", "e1", { mes: "2026-11", quinzena: 2 })).toBe(
+      "/rh/folha-de-ponto/c%201/cartao/e1?mes=2026-11&quinzena=2",
+    );
+    expect(hrefDoCartao("c1", "e1", {})).toBe("/rh/folha-de-ponto/c1/cartao/e1");
   });
 
   it("hrefDaFolha omite o que não foi pedido", () => {
