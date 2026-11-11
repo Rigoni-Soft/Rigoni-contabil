@@ -838,9 +838,10 @@ saídas e a coluna Extra (entrada e saída), cada um um `CampoDeTexto type="time
 `apoio` e valor em `subtitulo` (horas como "8h45", dias como "1 dia"). Só mostra, nunca recebe digitação.
 
 **Convenção coletiva do RH (`/rh/folha-de-ponto/[clienteId]/convencao`):** abre pelo link "Convenção
-coletiva →" no topo da Folha de ponto e empilha, na largura de conteúdo, o `HistoricoDeConvencoes`, o
-`EnvioDeConvencao` (só Líder do RH e Admin), as `RegrasAplicadas` da convenção escolhida e os
-`AjustesDoClienteNaConvencao`.
+coletiva →" no topo da Folha de ponto e empilha, na largura `cadastro` e sem a barra de Setores (como a
+Folha de ponto), o `HistoricoDeConvencoes`, o `EnvioDeConvencao` (só Líder do RH e Admin), as
+`RegrasAplicadas` da convenção escolhida e os `AjustesDoClienteNaConvencao`, cada um num cartão com a
+moldura guilhochê, como os blocos da edição do cadastro operacional.
 
 **`HistoricoDeConvencoes` (organismo):** as convenções do Cliente como botões de link ("Sindicato ·
 vigência"; a que está em tela em `default` e com `aria-current`, as demais em `outline`), com o nome do
@@ -849,7 +850,7 @@ guardadas e cada uma abre as suas regras (`?convencao=`). Sem convenção, o tex
 pode) ou diz quem envia (quem só lê).
 
 **`EnvioDeConvencao` (organismo):** formulário "Enviar ou renovar a convenção": Sindicato, início e fim da
-vigência (`type="date"`) em linha que quebra no celular, e o `CampoDeArquivo` (PDF de até 4 MB, dito antes
+vigência (`type="date"`) em `CampoDeTexto` na malha `1>2>4` (Sindicato em 2 colunas) com a `NotaDeObrigatorio`, e o `CampoDeArquivo` (PDF de até 4 MB, dito antes
 de escolher). Enquanto lê, o botão fica desabilitado e diz "Lendo a convenção…" (a extração roda uma vez,
 no envio); o erro aponta o campo (`aria-invalid` e `aria-describedby` ligados ao `AvisoDeStatus`; o do PDF vai no próprio `CampoDeArquivo`) e o formulário só é limpo no sucesso. Quem só lê não
 o recebe.

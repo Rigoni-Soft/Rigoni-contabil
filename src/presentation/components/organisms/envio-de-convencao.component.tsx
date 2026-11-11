@@ -1,9 +1,10 @@
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
-import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Grade, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { NotaDeObrigatorio } from "@/presentation/components/atoms/nota-de-obrigatorio.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoDeArquivo } from "@/presentation/components/molecules/campo-de-arquivo.component";
+import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { Button } from "@/presentation/components/ui/button";
-import { Input } from "@/presentation/components/ui/input";
 
 export type CampoDoEnvio = "sindicato" | "vigenciaInicio" | "vigenciaFim" | "arquivo";
 
@@ -44,7 +45,8 @@ export function EnvioDeConvencao({
         onEnviar(new FormData(e.currentTarget));
       }}
     >
-      <Pilha espaco={3}>
+      <Pilha espaco="formulario">
+        <NotaDeObrigatorio />
         <Texto como="h3" variante="rotuloDeSecao">
           Enviar ou renovar a convenção
         </Texto>
@@ -52,38 +54,38 @@ export function EnvioDeConvencao({
           As regras são lidas do PDF uma única vez, ao enviar, e passam a valer sem aprovação. A
           convenção anterior fica no histórico.
         </Texto>
-        <Linha alinhar="fim" espaco={3} quebra>
-          <Caixa como="label" className="flex flex-col gap-1 text-sm font-semibold">
-            Sindicato
-            <Input
-              name="sindicato"
-              required
-              maxLength={120}
-              className="w-full sm:w-72"
-              {...ligacao("sindicato")}
-            />
-          </Caixa>
-          <Caixa como="label" className="flex flex-col gap-1 text-sm font-semibold">
-            Início da vigência
-            <Input
-              type="date"
-              name="vigenciaInicio"
-              required
-              className="w-44"
-              {...ligacao("vigenciaInicio")}
-            />
-          </Caixa>
-          <Caixa como="label" className="flex flex-col gap-1 text-sm font-semibold">
-            Fim da vigência
-            <Input
-              type="date"
-              name="vigenciaFim"
-              required
-              className="w-44"
-              {...ligacao("vigenciaFim")}
-            />
-          </Caixa>
-        </Linha>
+        <Grade colunas="1>2>4" espaco={4}>
+          <CampoDeTexto
+            id="convencao-sindicato"
+            rotulo="Sindicato"
+            name="sindicato"
+            obrigatorio
+            required
+            maxLength={120}
+            className="gap-1 sm:col-span-2"
+            {...ligacao("sindicato")}
+          />
+          <CampoDeTexto
+            id="convencao-inicio"
+            rotulo="Início da vigência"
+            type="date"
+            name="vigenciaInicio"
+            obrigatorio
+            required
+            className="gap-1"
+            {...ligacao("vigenciaInicio")}
+          />
+          <CampoDeTexto
+            id="convencao-fim"
+            rotulo="Fim da vigência"
+            type="date"
+            name="vigenciaFim"
+            obrigatorio
+            required
+            className="gap-1"
+            {...ligacao("vigenciaFim")}
+          />
+        </Grade>
         <CampoDeArquivo
           id="convencao-arquivo"
           name="arquivo"
@@ -99,7 +101,7 @@ export function EnvioDeConvencao({
             <AvisoDeStatus tipo="erro" legivel texto={erro} />
           </Caixa>
         )}
-        <Button type="submit" size="sm" disabled={pendente} className="self-start">
+        <Button type="submit" disabled={pendente} className="self-start">
           {pendente ? "Lendo a convenção…" : "Enviar convenção"}
         </Button>
       </Pilha>

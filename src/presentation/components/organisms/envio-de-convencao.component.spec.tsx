@@ -18,8 +18,8 @@ describe("EnvioDeConvencao", () => {
     const user = userEvent.setup();
 
     await user.type(screen.getByRole("textbox", { name: "Sindicato" }), "Comércio");
-    await user.type(screen.getByLabelText("Início da vigência"), "2026-05-01");
-    await user.type(screen.getByLabelText("Fim da vigência"), "2027-04-30");
+    await user.type(screen.getByLabelText(/Início da vigência/), "2026-05-01");
+    await user.type(screen.getByLabelText(/Fim da vigência/), "2027-04-30");
     await user.click(screen.getByRole("button", { name: "Enviar convenção" }));
 
     const campos = base.onEnviar.mock.calls[0][0] as FormData;
@@ -51,10 +51,10 @@ describe("EnvioDeConvencao", () => {
       />,
     );
 
-    const fim = screen.getByLabelText("Fim da vigência");
+    const fim = screen.getByLabelText(/Fim da vigência/);
     expect(fim).toBeInvalid();
     expect(fim).toHaveAccessibleDescription("A vigência termina antes de começar.");
-    expect(screen.getByLabelText("Início da vigência")).not.toHaveAttribute("aria-invalid");
+    expect(screen.getByLabelText(/Início da vigência/)).toHaveAttribute("aria-invalid", "false");
   });
 
   it("erro do arquivo aparece no próprio campo do PDF", () => {

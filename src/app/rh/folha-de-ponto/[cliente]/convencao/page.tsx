@@ -1,13 +1,10 @@
 import { redirect } from "next/navigation";
 
+import { Pilha } from "@/presentation/components/atoms/caixa.component";
 import { HistoricoDeConvencoes } from "@/presentation/components/organisms/historico-de-convencoes.component";
 import { RegrasAplicadas } from "@/presentation/components/organisms/regras-aplicadas.component";
 import { AcompanhamentoMensalPage } from "@/presentation/components/pages/acompanhamento-mensal.page";
-import {
-  carregarSetoresDaNavegacao,
-  exigirSessao,
-} from "@/presentation/view-models/shell/shell.server";
-import { ShellNavContainer } from "@/modules/atendimento/presentation/view-models/atendimento-central/shell-nav.container";
+import { exigirSessao } from "@/presentation/view-models/shell/shell.server";
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import { AjustesDoClienteNaConvencaoContainer } from "@/modules/rh/presentation/view-models/convencao/ajustes-do-cliente-na-convencao.container";
 import {
@@ -18,9 +15,11 @@ import {
 } from "@/modules/rh/presentation/view-models/convencao/convencao.presenter";
 import { carregarConvencoes } from "@/modules/rh/presentation/view-models/convencao/convencao.server";
 import { EnvioDeConvencaoContainer } from "@/modules/rh/presentation/view-models/convencao/envio-de-convencao.container";
-import { configuracoesDoRh } from "@/modules/rh/presentation/view-models/resumo-rh/resumo-rh.presenter";
 import { podeVerAcompanhamentoRh } from "@/shared/kernel/papeis";
-import { ROTA_RH, ROTA_RH_FOLHA_DE_PONTO } from "@/shared/kernel/setores";
+import { ROTA_RH_FOLHA_DE_PONTO } from "@/shared/kernel/setores";
+
+// Cada bloco da tela é um cartão, como no formulário do cadastro operacional.
+const CARTAO = "rc-guilloche-frame rounded-lg border border-border bg-card p-5 shadow-sm";
 
 type Props = {
   params: Promise<{ cliente: string }>;
@@ -36,22 +35,13 @@ export default async function Page({ params, searchParams }: Props) {
   const { cliente: clienteId } = await params;
   const { convencao } = await searchParams;
   const rota = `${ROTA_RH_FOLHA_DE_PONTO}/${encodeURIComponent(clienteId)}/convencao`;
-  const [setores, dados] = await Promise.all([
-    carregarSetoresDaNavegacao(),
-    carregarConvencoes(clienteId),
-  ]);
+  const dados = await carregarConvencoes(clienteId);
   const escolhida = dados.ok ? convencaoEscolhida(dados.value.convencoes, convencao) : undefined;
 
   return (
     <AcompanhamentoMensalPage
       header={<CabecalhoDoShellContainer sessao={sessao} />}
-      nav={
-        <ShellNavContainer
-          setores={setores}
-          rotaAtual={ROTA_RH}
-          configuracoes={configuracoesDoRh(sessao.papel, sessao.setor)}
-        />
-      }
+      largura="cadastro"
       titulo="Convenção coletiva"
       voltarHref={`${ROTA_RH_FOLHA_DE_PONTO}/${encodeURIComponent(clienteId)}`}
       erro={dados.ok ? undefined : dados.error.message}
@@ -59,18 +49,28 @@ export default async function Page({ params, searchParams }: Props) {
       conteudo={
         dados.ok && (
           <>
-            <HistoricoDeConvencoes
-              itens={historicoDeConvencoes(dados.value.convencoes, escolhida?.id, rota)}
-              podeEnviar={dados.value.podeEnviar}
-            />
-            {dados.value.podeEnviar && <EnvioDeConvencaoContainer clienteId={clienteId} />}
-            {escolhida && (
-              <RegrasAplicadas
-                titulo={tituloDaConvencao(escolhida)}
-                linhas={linhasDeRegras(escolhida)}
+            <Pilha espaco={6} className={CARTAO}>
+              <HistoricoDeConvencoes
+                itens={historicoDeConvencoes(dados.value.convencoes, escolhida?.id, rota)}
+                podeEnviar={dados.value.podeEnviar}
               />
+            </Pilha>
+            {dados.value.podeEnviar && (
+              <Pilha espaco={6} className={CARTAO}>
+                <EnvioDeConvencaoContainer clienteId={clienteId} />
+              </Pilha>
             )}
-            <AjustesDoClienteNaConvencaoContainer dados={dados.value} />
+            {escolhida && (
+              <Pilha espaco={6} className={CARTAO}>
+                <RegrasAplicadas
+                  titulo={tituloDaConvencao(escolhida)}
+                  linhas={linhasDeRegras(escolhida)}
+                />
+              </Pilha>
+            )}
+            <Pilha espaco={6} className={CARTAO}>
+              <AjustesDoClienteNaConvencaoContainer dados={dados.value} />
+            </Pilha>
           </>
         )
       }
