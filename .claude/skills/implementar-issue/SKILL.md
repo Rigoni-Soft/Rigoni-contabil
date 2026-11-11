@@ -29,6 +29,8 @@ Chame a Skill `implement` com a issue (ela lê o ticket, usa `tdd` nos pontos ac
 
 Commits em Conventional Commits, atômicos, na branch do ticket. Adicione só os arquivos que a estação tocou (`git add <caminhos>`): `git add -A` leva junto a alteração solta do usuário em arquivo rastreado.
 
+Tela de formulário nova parte de `editar-cadastro-operacional.page.tsx` e `cartao-do-cadastro.component.tsx`: largura `cadastro`, cartão com `MOLDURA_DO_CARTAO`, `CampoDeTexto` na malha `1>2>4` e `NotaDeObrigatorio`.
+
 Antes de criar um componente de UI, liste `src/presentation/components/{ui,atoms,molecules,organisms}` e leia no `DESIGN.md` a seção da tela; o componente novo só nasce quando nenhum existente serve, e entra no `DESIGN.md` no mesmo commit (`yarn check:design-doc <base>` reprova o que faltar).
 
 Quando o usuário corrigir o **desenho** depois da implementação, atualize na mesma rodada `CONTEXT.md`, `docs/trilha-implementacao.md` e os e2e que citam a tela antiga, antes de reportar; o gate e o roteiro de teste leem esses arquivos.
