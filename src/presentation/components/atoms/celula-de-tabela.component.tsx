@@ -3,8 +3,6 @@ import { cn } from "@/presentation/lib/utils";
 type CelulaDeTabelaProps = {
   // Célula de campo ou valor curto: menos respiro, para caber numa tabela de muitas colunas.
   compacta?: boolean;
-  centro?: boolean;
-  colSpan?: number;
   // Data/hora e números ficam em uma linha só e alinhados à direita (tabular-nums).
   numerica?: boolean;
   // Primeira coluna: fica à vista na rolagem horizontal e nomeia a linha (<th scope="row">).
@@ -16,18 +14,14 @@ export function CelulaDeTabela({
   numerica = false,
   fixa = false,
   compacta = false,
-  centro = false,
-  colSpan,
   children,
 }: CelulaDeTabelaProps) {
   const Elemento = fixa ? "th" : "td";
   return (
     <Elemento
       scope={fixa ? "row" : undefined}
-      colSpan={colSpan}
       className={cn(
         compacta ? "px-1.5 py-1" : "px-3 py-2",
-        centro && "text-center",
         fixa && "sticky left-0 border-r border-border bg-inherit text-left font-normal",
         numerica && "text-right whitespace-nowrap text-muted-foreground tabular-nums",
       )}

@@ -66,7 +66,7 @@ export function itensDaTotalizacao(t: TotalizacaoDto, trabalhadoMin: number): It
 const hm = (par: ParDto | undefined, campo: keyof ParDto) => (par ? minutosParaHm(par[campo]) : "");
 
 const teveExtra = (dia: DiaDaFolhaDto) => extrasDoDia(dia.apuracao) > 0;
-export const temDados = (dia: DiaDoPontoDto) =>
+export const temDados = (dia: Pick<DiaDoPontoDto, "batidas" | "extra" | "abono">) =>
   dia.batidas.length > 0 || dia.extra !== null || dia.abono;
 const semBatida = (dia: DiaDoPontoDto) => dia.batidas.length === 0 && dia.extra === null;
 

@@ -41,6 +41,8 @@ export function CartaoDePontoContainer({ folha }: Props) {
   const [limpos, setLimpos] = useState<string[]>([]);
   const [versoes, setVersoes] = useState<Record<string, number>>({});
   const [destacada, setDestacada] = useState(false);
+  // A linha da última ação: ela recebe o foco quando o botão clicado some (teclado e leitor de tela não se perdem).
+  const [focoNoDia, setFocoNoDia] = useState<string>();
   const { selecionado } = folha;
   if (!selecionado) return null;
 
@@ -79,6 +81,7 @@ export function CartaoDePontoContainer({ folha }: Props) {
       setAviso({ data, tipo: "sucesso", texto: "Salvo." });
       fechar([data]);
       recomecar([data]);
+      setFocoNoDia(data);
       router.refresh();
     });
 
@@ -98,6 +101,7 @@ export function CartaoDePontoContainer({ folha }: Props) {
         if (!r.ok) return setAviso({ data, tipo: "erro", texto: r.error.message });
         setAviso({ data, tipo: "sucesso", texto: abono ? "Abonado." : "Abono desfeito." });
         recomecar([data]);
+        setFocoNoDia(data);
         router.refresh();
       } catch (e) {
         console.error("Falha ao abonar o dia do cartão de ponto", e);
@@ -116,20 +120,13 @@ export function CartaoDePontoContainer({ folha }: Props) {
         // Linha que já era vazia e segue vazia não tem o que gravar (cartão novo: só os dias digitados vão).
         const antes = selecionado.dias.find((d) => d.data === data);
         const depois = lerDiaDoFormulario(campos);
-        if (
-          antes &&
-          !temDados(antes) &&
-          depois.ok &&
-          depois.batidas.length === 0 &&
-          !depois.extra &&
-          !depois.abono
-        )
-          continue;
+        if (antes && !temDados(antes) && depois.ok && !temDados(depois)) continue;
         const erro = await gravar(data, campos);
         if (erro) return setAviso({ data, tipo: "erro", texto: erro });
       }
       recomecar(emEdicao);
       fechar(emEdicao);
+      setFocoNoDia(undefined);
       setDestacada(true);
       setAvisoGeral({ tipo: "sucesso", texto: "Salvo. A Totalização do mês foi atualizada." });
       router.refresh();
@@ -139,7 +136,6 @@ export function CartaoDePontoContainer({ folha }: Props) {
     <CartaoDePonto
       empregado={selecionado.empregado.nome}
       empresa={folha.empresa}
-      periodo={rotuloDaCompetencia(folha.competencia)}
       rotuloMes={rotuloDaCompetencia(folha.competencia)}
       {...navegacaoDoCartao(folha)}
       linhas={linhasDoCartao(selecionado.dias)}
@@ -155,18 +151,21 @@ export function CartaoDePontoContainer({ folha }: Props) {
       empregadoId={selecionado.empregado.id}
       diasEmEdicao={emEdicao}
       diasLimpos={limpos}
+      focoNoDia={focoNoDia}
       versoes={versoes}
       listaHref={hrefDaFolha(folha.clienteId, { mes: folha.competencia })}
       totalizacaoDestacada={destacada}
       onEditarDia={(data) => {
         setDestacada(false);
         setAvisoGeral(undefined);
+        setFocoNoDia(data);
         setEmEdicao((e) => (e.includes(data) ? e : [...e, data]));
       }}
       onCancelarDia={(data) => {
         setAviso(undefined);
         fechar([data]);
         recomecar([data]);
+        setFocoNoDia(data);
       }}
       onAbonarDia={(data) => marcarAbono(data, true)}
       onDesfazerAbonoDia={(data) => marcarAbono(data, false)}

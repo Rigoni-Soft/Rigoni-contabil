@@ -397,4 +397,15 @@ describe("CartaoDePontoContainer", () => {
       abono: false,
     });
   });
+
+  it("o foco acompanha a ação: lápis abre no primeiro campo; cancelar devolve o foco ao lápis", async () => {
+    render(<CartaoDePontoContainer folha={FOLHA} />);
+    const u = userEvent.setup();
+
+    await u.click(screen.getByRole("button", { name: "Editar seg 16/11" }));
+    expect(screen.getByLabelText("Entrada 1 de seg 16/11")).toHaveFocus();
+
+    await u.click(screen.getByRole("button", { name: "Cancelar edição de seg 16/11" }));
+    expect(screen.getByRole("button", { name: "Editar seg 16/11" })).toHaveFocus();
+  });
 });

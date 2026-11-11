@@ -38,6 +38,7 @@ const LINHA: LinhaDoCartao = {
 const ACOES = {
   emEdicao: false,
   limpa: false,
+  focar: false,
   onEditar: jest.fn(),
   onAbonar: jest.fn(),
   onDesfazerAbono: jest.fn(),
@@ -254,5 +255,43 @@ describe("LinhaDoCartaoDePonto", () => {
     );
 
     expect(screen.getByLabelText("Entrada 1 de seg 16/11")).toBeEnabled();
+  });
+
+  it("o foco vai ao lápis da linha que acabou de ter uma ação (não cai no corpo da página)", () => {
+    render(<Linha linha={LINHA} editavel {...ACOES} focar pendente={false} onSalvar={jest.fn()} />);
+
+    expect(screen.getByRole("button", { name: "Editar seg 16/11" })).toHaveFocus();
+  });
+
+  it("ao abrir a edição o foco vai ao primeiro campo habilitado", () => {
+    render(
+      <Linha
+        linha={LINHA}
+        editavel
+        {...ACOES}
+        emEdicao
+        focar
+        pendente={false}
+        onSalvar={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("Entrada 1 de seg 16/11")).toHaveFocus();
+  });
+
+  it("em folga sem batida o foco vai à Extra entrada (a primeira habilitada)", () => {
+    render(
+      <Linha
+        linha={{ ...LINHA, entrada1: "", saida1: "", situacao: "folga" }}
+        editavel
+        {...ACOES}
+        emEdicao
+        focar
+        pendente={false}
+        onSalvar={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("Extra entrada de seg 16/11")).toHaveFocus();
   });
 });

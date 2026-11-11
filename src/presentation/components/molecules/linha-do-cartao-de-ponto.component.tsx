@@ -54,6 +54,8 @@ type Props = {
   // "Limpar" da tabela: a linha em edição aparece com os campos vazios (até salvar ou cancelar).
   limpa: boolean;
   pendente: boolean;
+  // O foco do teclado vai para esta linha: o botão que a ação clicada fez sumir não o deixa cair no <body>.
+  focar: boolean;
   aviso?: AvisoDoDia;
   onEditar: (data: string) => void;
   onAbonar: (data: string) => void;
@@ -84,6 +86,7 @@ export function LinhaDoCartaoDePonto({
   emEdicao,
   limpa,
   pendente,
+  focar,
   aviso,
   onEditar,
   onAbonar,
@@ -99,6 +102,7 @@ export function LinhaDoCartaoDePonto({
   // salvo se já houver batida salva (nada some sem querer).
   const semBatidaSalva = !linha.entrada1 && !linha.saida1 && !linha.entrada2 && !linha.saida2;
   const batidasTravadas = abonado || (linha.situacao === "folga" && semBatidaSalva);
+  const primeiroCampo = batidasTravadas ? "extraEntrada" : "entrada1";
   return (
     <LinhaDeTabela tom={linha.tom}>
       <CelulaDeTabela fixa>
@@ -106,7 +110,8 @@ export function LinhaDoCartaoDePonto({
           {linha.diaMes}
         </Texto>
         {linha.nota && (
-          <Texto como="span" variante="nota" className="block">
+          // Único indicador não cromático do estado: em `apoio` (14 px) e na cor do texto, não apagado.
+          <Texto como="span" variante="apoio" className="block text-foreground">
             {linha.nota}
           </Texto>
         )}
@@ -118,6 +123,9 @@ export function LinhaDoCartaoDePonto({
         return (
           <CelulaDeTabela key={nome} compacta>
             <Input
+              // A chave refaz o campo ao abrir e fechar a edição: o foco vai ao primeiro campo habilitado.
+              key={`${nome}|${emEdicao}`}
+              autoFocus={focar && emEdicao && nome === primeiroCampo}
               type="time"
               form={idDoForm}
               name={nome}
@@ -127,7 +135,8 @@ export function LinhaDoCartaoDePonto({
               disabled={desabilitado}
               aria-label={`${rotulo} de ${linha.rotulo}`}
               aria-describedby={aviso ? idDoAviso : undefined}
-              className="w-[4.5rem] px-1.5 [&::-webkit-calendar-picker-indicator]:hidden"
+              // Borda mais forte que a padrão: sobre a linha com tom ela precisa de 3:1 (WCAG 1.4.11).
+              className="w-[4.5rem] border-foreground/55 px-1.5 [&::-webkit-calendar-picker-indicator]:hidden"
             />
           </CelulaDeTabela>
         );
@@ -159,6 +168,7 @@ export function LinhaDoCartaoDePonto({
               size="icon"
               disabled={pendente}
               onClick={() => onDesfazerAbono(linha.data)}
+              autoFocus={focar}
               aria-label={`Desfazer abono de ${linha.rotulo}`}
             >
               <CalendarX className="size-4" aria-hidden="true" />
@@ -172,6 +182,7 @@ export function LinhaDoCartaoDePonto({
                 size="icon"
                 disabled={pendente}
                 onClick={() => onEditar(linha.data)}
+                autoFocus={focar}
                 aria-label={`Editar ${linha.rotulo}`}
               >
                 <Pencil className="size-4" aria-hidden="true" />

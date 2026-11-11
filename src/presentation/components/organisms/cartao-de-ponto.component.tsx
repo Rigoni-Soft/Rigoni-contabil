@@ -22,8 +22,6 @@ import { MOLDURA_DO_CARTAO } from "@/presentation/lib/moldura-do-cartao";
 type Props = {
   empregado: string;
   empresa: string;
-  // Mês do cartão, por extenso.
-  periodo: string;
   rotuloMes: string;
   mesAnteriorHref: string;
   proximoMesHref?: string;
@@ -32,6 +30,8 @@ type Props = {
   diasEmEdicao: string[];
   // Dias cujos campos o "Limpar" da tabela esvaziou.
   diasLimpos: string[];
+  // A linha que acabou de ter uma ação (editar, salvar, cancelar, abonar): leva o foco do teclado.
+  focoNoDia?: string;
   // Sobe quando o dia é cancelado ou limpo: a linha recomeça (remonta) dos valores salvos ou vazios.
   versoes: Record<string, number>;
   // Para onde "Cancelar" leva: a lista de empregados da empresa.
@@ -62,13 +62,13 @@ type Props = {
 export function CartaoDePonto({
   empregado,
   empresa,
-  periodo,
   rotuloMes,
   mesAnteriorHref,
   proximoMesHref,
   linhas,
   diasEmEdicao,
   diasLimpos,
+  focoNoDia,
   versoes,
   listaHref,
   totalizacaoDestacada,
@@ -98,7 +98,7 @@ export function CartaoDePonto({
         {empregado}
       </Texto>
       <Texto variante="apoio">
-        Empresa: {empresa} · Período: {periodo}
+        Empresa: {empresa} · Período: {rotuloMes}
       </Texto>
       <NavegacaoDeMes
         rotuloMes={rotuloMes}
@@ -112,7 +112,7 @@ export function CartaoDePonto({
         </Texto>
       )}
       <Tabela
-        legenda={`Cartão de ponto de ${empregado}, ${periodo}`}
+        legenda={`Cartão de ponto de ${empregado}, ${rotuloMes}`}
         semMoldura
         grade
         agrupamento={
@@ -162,6 +162,7 @@ export function CartaoDePonto({
             emEdicao={diasEmEdicao.includes(linha.data)}
             limpa={diasLimpos.includes(linha.data)}
             pendente={pendente}
+            focar={focoNoDia === linha.data}
             onEditar={onEditarDia}
             onAbonar={onAbonarDia}
             onDesfazerAbono={onDesfazerAbonoDia}
