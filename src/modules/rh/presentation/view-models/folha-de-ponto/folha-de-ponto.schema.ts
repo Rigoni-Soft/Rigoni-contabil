@@ -27,6 +27,7 @@ export const semMovimentoSchema = z.object({
   sem: z.boolean(),
 });
 export const padraoComissionadosSchema = z.object({ clienteId: id, comissionados: z.boolean() });
+export const iniciarCartaoSchema = z.object({ empregadoId: id, competencia });
 export const salvarDiaSchema = z.object({
   empregadoId: id,
   data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),

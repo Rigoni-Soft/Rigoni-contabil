@@ -49,6 +49,8 @@ export type FolhaDePontoDto = {
     empregado: EmpregadoDaFolhaDto;
     dias: DiaDaFolhaDto[];
     totalizacao: TotalizacaoDto;
+    // O cartão do mês já foi salvo ao menos uma vez (mesmo sem horário): os dias úteis vazios são falta.
+    iniciado: boolean;
     // Algum dia do mês sem convenção vigente: a Totalização desses dias é pela legislação.
     semConvencao: boolean;
   } | null;

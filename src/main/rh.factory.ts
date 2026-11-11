@@ -24,6 +24,7 @@ import type {
   DesativarServicoAcompanhamentoPort,
   RenomearServicoAcompanhamentoPort,
 } from "@/modules/rh/application/ports/in/gerir-servico-acompanhamento.provider";
+import type { IniciarCartaoDoPontoPort } from "@/modules/rh/application/ports/in/iniciar-cartao-do-ponto.provider";
 import type {
   DefinirServicoAplicavelPort,
   MarcarServicoAcompanhamentoPort,
@@ -51,6 +52,7 @@ import {
   DesativarServicoAcompanhamento,
   RenomearServicoAcompanhamento,
 } from "@/modules/rh/application/use-cases/gerir-servico-acompanhamento.use-case";
+import { IniciarCartaoDoPonto } from "@/modules/rh/application/use-cases/iniciar-cartao-do-ponto.use-case";
 import {
   DefinirServicoAplicavel,
   MarcarServicoAcompanhamento,
@@ -182,6 +184,11 @@ export async function makeDefinirSemMovimento(): Promise<DefinirSemMovimentoPort
 export async function makeDefinirPadraoComissionados(): Promise<DefinirPadraoComissionadosPort> {
   const { sessao, repositorio, auditoria } = await montarFolha();
   return new DefinirPadraoComissionados(sessao, repositorio, auditoria);
+}
+
+export async function makeIniciarCartaoDoPonto(): Promise<IniciarCartaoDoPontoPort> {
+  const { sessao, repositorio, auditoria } = await montarFolha();
+  return new IniciarCartaoDoPonto(sessao, repositorio, auditoria, new RelogioSistemaGateway());
 }
 
 export async function makeSalvarDiaDoPonto(): Promise<SalvarDiaDoPontoPort> {

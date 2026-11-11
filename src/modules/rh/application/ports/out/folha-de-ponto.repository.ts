@@ -19,6 +19,10 @@ export interface FolhaDePontoRepository {
   listarEmpregados(clienteId: string): Promise<Result<EmpregadoDto[], AppError>>;
   // Ids dos empregados do Cliente sem movimento no mês.
   listarSemMovimento(clienteId: string, competencia: string): Promise<Result<string[], AppError>>;
+  // O cartão do mês (primeiro dia, "AAAA-MM-01") já foi salvo ao menos uma vez, com ou sem horário.
+  cartaoIniciado(empregadoId: string, competencia: string): Promise<Result<boolean, AppError>>;
+  // Idempotente: marcar de novo não muda nada.
+  iniciarCartao(empregadoId: string, competencia: string): Promise<Result<void, AppError>>;
   buscarPadraoComissionados(clienteId: string): Promise<Result<boolean, AppError>>;
   definirPadraoComissionados(clienteId: string, valor: boolean): Promise<Result<void, AppError>>;
   cadastrarEmpregado(clienteId: string, dados: DadosDoEmpregado): Promise<Result<void, AppError>>;

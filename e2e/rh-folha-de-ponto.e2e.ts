@@ -81,6 +81,34 @@ test.describe("Folha de ponto do RH", () => {
     expect(cadastrou.data).toHaveLength(1);
   });
 
+  test("Salvar o cartão novo sem digitar nada o inicia e os dias úteis vazios viram falta", async ({
+    page,
+  }) => {
+    const { mes } = primeiraSegunda();
+    const empregado = await admin
+      .from("rh_empregados")
+      .insert({
+        cliente_id: clienteId,
+        nome: "Cris E2E",
+        jornada: [0, 525, 525, 525, 525, 525, 240],
+      })
+      .select("id")
+      .single();
+    if (empregado.error) throw empregado.error;
+
+    await login(page, "funcionario.rh@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL("/rh");
+    await page.goto(`/rh/folha-de-ponto/${clienteId}/cartao/${empregado.data.id}?mes=${mes}`);
+
+    // Cartão novo: nenhum dia é falta ainda.
+    await expect(page.getByText("Falta", { exact: true })).toHaveCount(0);
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
+
+    await expect(page.getByText(/A Totalização do mês foi atualizada/)).toBeVisible();
+    await expect(page.getByText("Falta", { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Abonar / }).first()).toBeVisible();
+  });
+
   test("Líder do RH lê o cartão sem poder alterá-lo", async ({ page }) => {
     const { mes, rotulo } = primeiraSegunda();
     const empregado = await admin

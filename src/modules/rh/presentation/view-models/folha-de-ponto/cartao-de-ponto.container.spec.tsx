@@ -4,12 +4,15 @@ import userEvent from "@testing-library/user-event";
 import type { FolhaDePontoDto } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
 
 import { CartaoDePontoContainer } from "./cartao-de-ponto.container";
-import { salvarDiaDoPontoAction } from "./folha-de-ponto.actions";
+import { iniciarCartaoDoPontoAction, salvarDiaDoPontoAction } from "./folha-de-ponto.actions";
 
 const refresh = jest.fn();
 
 jest.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
-jest.mock("./folha-de-ponto.actions", () => ({ salvarDiaDoPontoAction: jest.fn() }));
+jest.mock("./folha-de-ponto.actions", () => ({
+  salvarDiaDoPontoAction: jest.fn(),
+  iniciarCartaoDoPontoAction: jest.fn(),
+}));
 
 const ZERO = {
   normaisMin: 0,
@@ -83,6 +86,7 @@ const FOLHA_VAZIA: FolhaDePontoDto = {
       sabadosTrabalhados: 0,
       diasComLanche: 0,
     },
+    iniciado: false,
     semConvencao: false,
   },
 };
@@ -148,6 +152,7 @@ const FOLHA: FolhaDePontoDto = {
       sabadosTrabalhados: 0,
       diasComLanche: 0,
     },
+    iniciado: false,
     semConvencao: false,
   },
 };
@@ -340,6 +345,7 @@ describe("CartaoDePontoContainer", () => {
   });
 
   it("cartão novo: Salvar da tabela grava só os dias digitados", async () => {
+    jest.mocked(iniciarCartaoDoPontoAction).mockResolvedValue({ ok: true, data: undefined });
     jest.mocked(salvarDiaDoPontoAction).mockResolvedValue({ ok: true, data: undefined });
     const dois = {
       ...FOLHA_VAZIA,
@@ -407,5 +413,45 @@ describe("CartaoDePontoContainer", () => {
 
     await u.click(screen.getByRole("button", { name: "Cancelar edição de seg 16/11" }));
     expect(screen.getByRole("button", { name: "Editar seg 16/11" })).toHaveFocus();
+  });
+
+  it("Salvar da tabela no cartão novo, sem digitar nada, inicia o cartão (os dias vazios viram falta)", async () => {
+    jest.mocked(iniciarCartaoDoPontoAction).mockResolvedValue({ ok: true, data: undefined });
+    render(<CartaoDePontoContainer folha={FOLHA_VAZIA} />);
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Salvar" }));
+
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    expect(iniciarCartaoDoPontoAction).toHaveBeenCalledWith({
+      empregadoId: "e1",
+      competencia: "2026-11",
+    });
+    expect(salvarDiaDoPontoAction).not.toHaveBeenCalled();
+    expect(await screen.findByText(/A Totalização do mês foi atualizada/)).toBeInTheDocument();
+  });
+
+  it("cartão já iniciado, mesmo sem horário, mostra as faltas e não inicia de novo", async () => {
+    jest.mocked(salvarDiaDoPontoAction).mockResolvedValue({ ok: true, data: undefined });
+    const iniciado = {
+      ...FOLHA_VAZIA,
+      selecionado: { ...FOLHA_VAZIA.selecionado!, iniciado: true },
+    };
+    render(<CartaoDePontoContainer folha={iniciado} />);
+
+    expect(screen.getByRole("button", { name: "Abonar seg 16/11" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Entrada 1 de seg 16/11")).toHaveAttribute("readonly");
+    expect(iniciarCartaoDoPontoAction).not.toHaveBeenCalled();
+  });
+
+  it("erro ao iniciar o cartão aparece na barra da tabela", async () => {
+    jest.mocked(iniciarCartaoDoPontoAction).mockResolvedValue({
+      ok: false,
+      error: { code: "forbidden", message: "Sem permissão." },
+    } as never);
+    render(<CartaoDePontoContainer folha={FOLHA_VAZIA} />);
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Salvar" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Sem permissão.");
   });
 });

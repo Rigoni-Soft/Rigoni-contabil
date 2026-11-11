@@ -38,6 +38,8 @@ function repo(over: Partial<FolhaDePontoRepository> = {}): FolhaDePontoRepositor
     buscarInterruptores: async () => ok({ bancoDeHoras: false, trabalhoAosDomingos: false }),
     definirInterruptores: async () => ok(undefined),
     listarConvencaoDosEmpregados: async () => ok([]),
+    cartaoIniciado: async () => ok(false),
+    iniciarCartao: async () => ok(undefined),
     definirConvencaoDoEmpregado: async () => ok(undefined),
     ...over,
   };
@@ -123,6 +125,17 @@ describe("ObterFolhaDePonto", () => {
     if (!r.ok) throw r.error;
     // Mês inteiro: 25 dias de seg a sáb; o 16 foi cumprido e o 20 é feriado, sobram 23 faltas; domingos são ignorados.
     expect(r.value.selecionado?.totalizacao).toMatchObject({ normaisMin: 525, faltas: 23 });
+  });
+
+  it("diz se o cartão do mês já foi iniciado (salvo, mesmo sem horário)", async () => {
+    const novo = await obter(FUNC).execute({ clienteId: "c1", empregadoId: "e1" });
+    const iniciado = await obter(FUNC, repo({ cartaoIniciado: async () => ok(true) })).execute({
+      clienteId: "c1",
+      empregadoId: "e1",
+    });
+
+    expect(novo.ok && novo.value.selecionado?.iniciado).toBe(false);
+    expect(iniciado.ok && iniciado.value.selecionado?.iniciado).toBe(true);
   });
 
   it("empregado pedido que não é do Cliente não existe", async () => {

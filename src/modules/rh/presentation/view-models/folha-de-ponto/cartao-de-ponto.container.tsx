@@ -9,7 +9,7 @@ import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
 import type { FolhaDePontoDto } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
 import { rotuloDaCompetencia } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.presenter";
 
-import { salvarDiaDoPontoAction } from "./folha-de-ponto.actions";
+import { iniciarCartaoDoPontoAction, salvarDiaDoPontoAction } from "./folha-de-ponto.actions";
 import {
   AVISO_SEM_CONVENCAO,
   cartaoSemDados,
@@ -34,7 +34,7 @@ export function CartaoDePontoContainer({ folha }: Props) {
   const [avisoGeral, setAvisoGeral] = useState<Aviso>();
   // Cartão sem nenhum dado (mês ou empregado novo): abre com todas as linhas já editáveis, sem um lápis por dia.
   const [emEdicao, setEmEdicao] = useState<string[]>(() =>
-    folha.selecionado && cartaoSemDados(folha.selecionado.dias)
+    folha.selecionado && cartaoSemDados(folha.selecionado.dias, folha.selecionado.iniciado)
       ? folha.selecionado.dias.map((d) => d.data)
       : [],
   );
@@ -109,6 +109,20 @@ export function CartaoDePontoContainer({ folha }: Props) {
       }
     });
 
+  // Marca o cartão do mês como iniciado; devolve o texto do erro, ou undefined se deu certo.
+  const marcarIniciado = async (): Promise<string | undefined> => {
+    try {
+      const r = await iniciarCartaoDoPontoAction({
+        empregadoId: selecionado.empregado.id,
+        competencia: folha.competencia,
+      });
+      return r.ok ? undefined : r.error.message;
+    } catch (e) {
+      console.error("Falha ao iniciar o cartão de ponto", e);
+      return mensagemDaFalha(e);
+    }
+  };
+
   const salvarTabela = () =>
     iniciar(async () => {
       setAviso(undefined);
@@ -124,6 +138,11 @@ export function CartaoDePontoContainer({ folha }: Props) {
         const erro = await gravar(data, campos);
         if (erro) return setAviso({ data, tipo: "erro", texto: erro });
       }
+      // Salvar o cartão novo, mesmo sem nenhum horário, o inicia: daí em diante os dias úteis vazios são falta.
+      if (cartaoSemDados(selecionado.dias, selecionado.iniciado)) {
+        const falha = await marcarIniciado();
+        if (falha) return setAvisoGeral({ tipo: "erro", texto: falha });
+      }
       recomecar(emEdicao);
       fechar(emEdicao);
       setFocoNoDia(undefined);
@@ -138,11 +157,11 @@ export function CartaoDePontoContainer({ folha }: Props) {
       empresa={folha.empresa}
       rotuloMes={rotuloDaCompetencia(folha.competencia)}
       {...navegacaoDoCartao(folha)}
-      linhas={linhasDoCartao(selecionado.dias)}
+      linhas={linhasDoCartao(selecionado.dias, selecionado.iniciado)}
       totalizacao={itensDaTotalizacao(
         selecionado.totalizacao,
         selecionado.dias.reduce((soma, d) => soma + d.trabalhadoMin, 0),
-        cartaoSemDados(selecionado.dias),
+        cartaoSemDados(selecionado.dias, selecionado.iniciado),
       )}
       avisoDaTotalizacao={selecionado.semConvencao ? AVISO_SEM_CONVENCAO : undefined}
       editavel={folha.podeEditar && selecionado.empregado.ativo}

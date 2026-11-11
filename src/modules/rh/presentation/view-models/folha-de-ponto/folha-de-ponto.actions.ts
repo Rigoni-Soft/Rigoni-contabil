@@ -8,6 +8,7 @@ import {
   makeDefinirEmpregadoAtivo,
   makeDefinirPadraoComissionados,
   makeDefinirSemMovimento,
+  makeIniciarCartaoDoPonto,
   makeSalvarDiaDoPonto,
 } from "@/main/rh.factory";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
@@ -17,6 +18,7 @@ import {
   cadastrarEmpregadoSchema,
   corrigirEmpregadoSchema,
   empregadoAtivoSchema,
+  iniciarCartaoSchema,
   padraoComissionadosSchema,
   salvarDiaSchema,
   semMovimentoSchema,
@@ -69,4 +71,10 @@ export async function salvarDiaDoPontoAction(input: unknown): Promise<ActionResu
   const parsed = salvarDiaSchema.safeParse(input);
   if (!parsed.success) return invalido(parsed.error);
   return toActionResult(await (await makeSalvarDiaDoPonto()).execute(parsed.data));
+}
+
+export async function iniciarCartaoDoPontoAction(input: unknown): Promise<ActionResult<void>> {
+  const parsed = iniciarCartaoSchema.safeParse(input);
+  if (!parsed.success) return invalido(parsed.error);
+  return toActionResult(await (await makeIniciarCartaoDoPonto()).execute(parsed.data));
 }

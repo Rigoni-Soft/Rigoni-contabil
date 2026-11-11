@@ -111,10 +111,12 @@ const extrasDoDia = (a: TotalizacaoDto) =>
   a.extras.reduce((soma, e) => soma + e.minutos, 0) + a.bancoDeHorasMin;
 
 // Cartão sem nenhum dado salvo (mês novo ou empregado novo): a tela abre com as linhas já editáveis.
-export const cartaoSemDados = (dias: DiaDoPontoDto[]) => !dias.some(temDados);
+// Cartão novo: nunca salvo (sem a marca de iniciado) e sem nenhum dado.
+export const cartaoSemDados = (dias: DiaDoPontoDto[], iniciado: boolean) =>
+  !iniciado && !dias.some(temDados);
 
-export function linhasDoCartao(dias: DiaDaFolhaDto[]): LinhaDoCartao[] {
-  const vazio = cartaoSemDados(dias);
+export function linhasDoCartao(dias: DiaDaFolhaDto[], iniciado: boolean): LinhaDoCartao[] {
+  const vazio = cartaoSemDados(dias, iniciado);
   return dias.map((dia) => {
     const situacao = situacaoDoDia(dia, vazio);
     const [, mes, d] = dia.data.split("-");

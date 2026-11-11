@@ -194,6 +194,40 @@ describe("Folha de ponto do RH (integração)", () => {
     expect(r.ok).toBe(false);
   });
 
+  it("cartão iniciado: nasce novo, marca ao salvar (idempotente) e a marca é do mês", async () => {
+    const { repo } = await comoFuncionarioRH();
+    const id = await novoEmpregado("Hugo");
+    const antes = await repo.cartaoIniciado(id, "2026-11-01");
+    const marcou = await repo.iniciarCartao(id, "2026-11-01");
+    const repetiu = await repo.iniciarCartao(id, "2026-11-01");
+    const depois = await repo.cartaoIniciado(id, "2026-11-01");
+    const outroMes = await repo.cartaoIniciado(id, "2026-10-01");
+
+    expect(antes.ok && antes.value).toBe(false);
+    expect([marcou.ok, repetiu.ok]).toEqual([true, true]);
+    expect(depois.ok && depois.value).toBe(true);
+    expect(outroMes.ok && outroMes.value).toBe(false);
+    // Só uma marca e uma auditoria (a repetição não escreve de novo).
+    expect(await auditorias("rh.ponto.iniciar-cartao", `${CNPJ_A} Hugo 2026-11`)).toHaveLength(1);
+  });
+
+  it("cartão iniciado: o Líder lê mas não marca; empregado inativo não ganha marca", async () => {
+    const { repo: dono } = await comoFuncionarioRH();
+    const id = await novoEmpregado("Iara");
+    await dono.iniciarCartao(id, "2026-11-01");
+    const { repo: lider } = await comoLiderRH();
+
+    const lido = await lider.cartaoIniciado(id, "2026-11-01");
+    const marcou = await lider.iniciarCartao(id, "2026-10-01");
+
+    expect(lido.ok && lido.value).toBe(true);
+    expect(marcou.ok).toBe(false);
+
+    const inativo = await novoEmpregado("Jonas");
+    await servico.from("rh_empregados").update({ ativo: false }).eq("id", inativo);
+    expect((await dono.iniciarCartao(inativo, "2026-11-01")).ok).toBe(false);
+  });
+
   it("sem movimento no mês: marca, lê e desmarca", async () => {
     const { repo } = await comoFuncionarioRH();
     const id = await novoEmpregado("Edu");

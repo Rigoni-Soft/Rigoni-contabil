@@ -38,7 +38,13 @@ const FOLHA: FolhaDePontoDto = {
   padraoComissionados: false,
   empregados: [ANA],
   podeEditar: true,
-  selecionado: { empregado: ANA, dias: [], totalizacao: {} as never, semConvencao: false },
+  selecionado: {
+    empregado: ANA,
+    dias: [],
+    totalizacao: {} as never,
+    iniciado: false,
+    semConvencao: false,
+  },
 };
 // Sem empregado escolhido a tela mostra o formulário "Novo empregado".
 const SEM_ESCOLHA: FolhaDePontoDto = { ...FOLHA, selecionado: null };

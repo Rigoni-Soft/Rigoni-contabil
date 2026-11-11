@@ -88,18 +88,20 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
     if (!escolhido) return err(new NotFoundError("Empregado não encontrado."));
 
     const datas = competencia.value.dias;
-    const [lancados, feriados, historico, interruptores, ponteiros] = await Promise.all([
+    const [lancados, feriados, historico, interruptores, ponteiros, iniciado] = await Promise.all([
       this.repositorio.listarDias(escolhido.id, datas[0], datas[datas.length - 1]),
       this.repositorio.listarFeriados(datas[0], datas[datas.length - 1]),
       this.convencoes.listar(input.clienteId),
       this.repositorio.buscarInterruptores(input.clienteId),
       this.repositorio.listarConvencaoDosEmpregados(input.clienteId),
+      this.repositorio.cartaoIniciado(escolhido.id, competencia.value.primeiroDia),
     ]);
     if (!lancados.ok) return lancados;
     if (!feriados.ok) return feriados;
     if (!historico.ok) return historico;
     if (!interruptores.ok) return interruptores;
     if (!ponteiros.ok) return ponteiros;
+    if (!iniciado.ok) return iniciado;
 
     const sindicato =
       ponteiros.value.find((p) => p.empregadoId === escolhido.id)?.sindicato ?? null;
@@ -146,6 +148,7 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
         empregado: escolhido,
         dias,
         totalizacao: totalizar(dias, escolhido.jornada as unknown as Jornada, regrasDoDia),
+        iniciado: iniciado.value,
         semConvencao,
       },
     });

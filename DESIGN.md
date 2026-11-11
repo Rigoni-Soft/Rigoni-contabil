@@ -563,9 +563,10 @@ importa na leitura da foto do cartão, não na exibição. Dia sem jornada marca
   "Folga" ou "Feriado"; feriado com hora extra fica azul, "Feriado · hora extra"); dia normal sem tom. Precedência:
   falta, hora extra, folga/feriado.
 - **Situação do dia** (decide o que a linha deixa digitar e o botão que mostra; calculada no presenter):
-  - **Cartão novo** (nenhum dia com dado: mês ou empregado novo): todas as linhas abrem já **editáveis**, sem um
+  - **Cartão novo** (nunca salvo: sem a marca de "cartão iniciado" e sem nenhum dia com dado; mês ou empregado novo): todas as linhas abrem já **editáveis**, sem um
     lápis por dia, e o dia útil vazio fica **em branco** (neutro, sem "Falta", sem Abonar). O "Salvar" da tabela
-    grava só os dias digitados.
+    grava só os dias digitados e **inicia o cartão** (marca `rh_cartoes_iniciados`, mesmo sem nenhum horário): a
+    partir daí os dias úteis vazios viram falta, com o cartão já começado.
   - **Faltas na Totalização:** num cartão novo (sem dados) a Totalização mostra 0 faltas, coerente com as linhas
     neutras; os dias úteis vazios só contam como falta depois que o cartão é começado.
   - **Falta** (dia útil vazio de um cartão já começado): horários **desabilitados** (evita lançar por engano),

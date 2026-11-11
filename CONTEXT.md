@@ -154,6 +154,9 @@ Os empregados de um Cliente, só com nome e a marca "comissionado" (que define o
 **Jornada**:
 A carga horária do empregado por dia da semana; zero significa que não trabalha nesse dia. O Funcionário do RH não a cadastra: a Totalização deve deduzi-la da Convenção coletiva e da legislação (enquanto isso, o sistema grava o padrão do comércio, 8h45 de segunda a sexta e 4h no sábado). Dia com carga e sem batida é falta, salvo Abono ou feriado; dia sem carga (domingo) é ignorado, salvo batida na coluna Extra, que vira hora extra.
 
+**Cartão iniciado**:
+O Cartão de ponto de um empregado num mês depois de salvo ao menos uma vez pelo Funcionário do RH, com ou sem horário digitado (fica marcado, e a marca não se desfaz). Antes disso o cartão é novo: os dias úteis vazios ainda não são falta e as linhas abrem para digitar. Depois de iniciado, o dia útil sem batida e sem Abono é falta.
+
 **Cartão de ponto**:
 O registro das batidas de um empregado no mês de trabalho inteiro (28 a 31 dias), lido de uma foto ou digitado, que alimenta a planilha dele e a Totalização. É entregue em PDF individual, com as Totalizações em destaque e linhas de assinatura física do responsável e do empregado do Cliente.
 

@@ -104,6 +104,30 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
     return ok(data.map((l) => l.empregado_id as string));
   }
 
+  async cartaoIniciado(
+    empregadoId: string,
+    competencia: string,
+  ): Promise<Result<boolean, AppError>> {
+    const { data, error } = await this.supabase
+      .from("rh_cartoes_iniciados")
+      .select("empregado_id")
+      .eq("empregado_id", empregadoId)
+      .eq("competencia", competencia)
+      .maybeSingle();
+    if (error) return this.falhaDeLeitura(error);
+    return ok(!!data);
+  }
+
+  async iniciarCartao(empregadoId: string, competencia: string): Promise<Result<void, AppError>> {
+    const { error } = await this.supabase
+      .from("rh_cartoes_iniciados")
+      .upsert(
+        { empregado_id: empregadoId, competencia },
+        { onConflict: "empregado_id,competencia", ignoreDuplicates: true },
+      );
+    return this.resultado(error);
+  }
+
   async buscarPadraoComissionados(clienteId: string): Promise<Result<boolean, AppError>> {
     const { data, error } = await this.supabase
       .from("rh_ponto_padroes")
