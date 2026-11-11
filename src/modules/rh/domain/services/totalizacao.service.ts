@@ -2,6 +2,8 @@
 // tolerância de 5 min por marcação e 10 por dia, adicional noturno das 22h às 5h com hora reduzida.
 // Tudo em minutos; sem relógio, sem banco. Os parâmetros da Convenção coletiva entram no ticket do motor
 // com a convenção; a marca "comissionado" também só vale lá (na legislação padrão a data especial é 100%).
+// Domingo com Jornada: as horas dentro da carga contam como normais e só o excedente é 100%; se o domingo
+// inteiro vira 100% é regra da convenção (decisão do dono), não da legislação padrão.
 
 // Minutos desde 00:00. Saída menor ou igual à entrada = a jornada virou o dia.
 export type Par = { entrada: number; saida: number };
