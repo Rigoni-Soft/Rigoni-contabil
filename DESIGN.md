@@ -532,7 +532,7 @@ na mesma tela (Quadro de funcionários da Folha de ponto é o primeiro consumido
   **substitui** (os dois nunca aparecem juntos): bloco com "Editar" centralizado numa linha e o nome do item
   abaixo. O botão "Novo …" do título só aparece durante a edição.
 - **Rodapé do formulário de edição**, lado a lado: "Salvar" (primário), a ação de atenção do item
-  (`destructive`, vermelho: ex. "Desligar da empresa"; o inverso, "Reativar", volta a `outline`) e
+  (`destructive`, vermelho: ex. "Desligar da empresa"; o inverso, "Readmitir", em `default`) e
   "Cancelar" (`outline`, neutro), que descarta a edição e volta ao formulário de novo item limpo. Aqui o
   vermelho marca a ação de atenção sobre o item, não o Cancelar (exceção ao trio Salvar/Limpar/Cancelar
   acima, que vale para edição de um registro inteiro).

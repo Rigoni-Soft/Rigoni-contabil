@@ -10,6 +10,7 @@ const PROPS = {
       nome: "Ana",
       href: "/ana",
       cartaoHref: "/cartao-ana",
+      ativo: true,
       selecionado: true,
       selos: ["comissionado"],
     },
@@ -18,6 +19,7 @@ const PROPS = {
       nome: "Bia",
       href: "/bia",
       cartaoHref: "/cartao-bia",
+      ativo: false,
       selecionado: false,
       selos: ["desligado"],
     },
@@ -55,6 +57,26 @@ describe("QuadroDeFuncionarios", () => {
     );
     expect(screen.getByText("comissionado")).toBeInTheDocument();
     expect(screen.getByText("desligado")).toBeInTheDocument();
+  });
+
+  it("empregado desligado não tem o botão Cartão de ponto na lista", () => {
+    render(<QuadroDeFuncionarios {...PROPS} />);
+
+    expect(screen.getByRole("link", { name: "Cartão de ponto de Ana" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Cartão de ponto de Bia" })).not.toBeInTheDocument();
+  });
+
+  it("editar um desligado: sem Salvar nem Sem movimento, só Readmitir e Cancelar", async () => {
+    const u = userEvent.setup();
+    render(<QuadroDeFuncionarios {...PROPS} emEdicao={{ ...PROPS.emEdicao, ativo: false }} />);
+
+    expect(screen.queryByRole("button", { name: "Salvar empregado" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: /Sem movimento/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Desligar da empresa" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reativar empregado" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Cancelar" })).toBeInTheDocument();
+    await u.click(screen.getByRole("button", { name: "Readmitir empregado" }));
+    expect(PROPS.onAtivo).toHaveBeenCalledWith(true);
   });
 
   it("quadro vazio avisa", () => {

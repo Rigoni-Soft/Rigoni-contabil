@@ -14,7 +14,9 @@ import { QuadroDeFuncionariosContainer } from "./quadro-de-funcionarios.containe
 
 const refresh = jest.fn();
 
-jest.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+const push = jest.fn();
+
+jest.mock("next/navigation", () => ({ useRouter: () => ({ refresh, push }) }));
 jest.mock("./folha-de-ponto.actions", () => ({
   cadastrarEmpregadoAction: jest.fn(),
   corrigirEmpregadoAction: jest.fn(),
@@ -113,6 +115,29 @@ describe("QuadroDeFuncionariosContainer", () => {
       "href",
       "/rh/folha-de-ponto/c1?mes=2026-11",
     );
+  });
+
+  it("desligar grava na hora e fecha o Editar (volta ao formulário Novo empregado)", async () => {
+    render(<QuadroDeFuncionariosContainer folha={FOLHA} />);
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Desligar da empresa" }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/rh/folha-de-ponto/c1?mes=2026-11"));
+    expect(definirEmpregadoAtivoAction).toHaveBeenCalledWith({ empregadoId: "e1", ativo: false });
+  });
+
+  it("readmitir grava na hora e fecha o Editar", async () => {
+    const desligado = {
+      ...FOLHA,
+      empregados: [{ ...ANA, ativo: false }],
+      selecionado: { ...FOLHA.selecionado!, empregado: { ...ANA, ativo: false } },
+    };
+    render(<QuadroDeFuncionariosContainer folha={desligado} />);
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Readmitir empregado" }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/rh/folha-de-ponto/c1?mes=2026-11"));
+    expect(definirEmpregadoAtivoAction).toHaveBeenCalledWith({ empregadoId: "e1", ativo: true });
   });
 
   it("corrige o empregado escolhido", async () => {

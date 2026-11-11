@@ -186,6 +186,7 @@ export function quadroDoEmpregado(folha: FolhaDePontoDto): EmpregadoDoQuadro[] {
     cartaoHref: hrefDoCartao(folha.clienteId, e.id, {
       mes: folha.competencia,
     }),
+    ativo: e.ativo,
     selecionado: e.id === folha.selecionado?.empregado.id,
     selos: selos(e),
   }));

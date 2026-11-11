@@ -19,6 +19,8 @@ export type EmpregadoDoQuadro = {
   href: string;
   // Tela própria do Cartão de ponto dele.
   cartaoHref: string;
+  // Desligado da empresa: sem Cartão de ponto na lista (não há cartão a lançar).
+  ativo: boolean;
   selecionado: boolean;
   // Selos curtos: "desligado", "sem movimento", "comissionado".
   selos: string[];
@@ -163,14 +165,17 @@ export function QuadroDeFuncionarios({
                       <Eye className="size-4" aria-hidden="true" />
                     )}
                   </LinkDeAcao>
-                  {/* Ação principal da linha: cheio na cor primária; o lápis fica neutro, só contorno. */}
-                  <LinkDeAcao
-                    href={e.cartaoHref}
-                    variant="default"
-                    aria-label={`Cartão de ponto de ${e.nome}`}
-                  >
-                    Cartão de ponto
-                  </LinkDeAcao>
+                  {/* Ação principal da linha: cheio na cor primária; o lápis fica neutro, só contorno.
+                      Empregado desligado não tem cartão a lançar. */}
+                  {e.ativo && (
+                    <LinkDeAcao
+                      href={e.cartaoHref}
+                      variant="default"
+                      aria-label={`Cartão de ponto de ${e.nome}`}
+                    >
+                      Cartão de ponto
+                    </LinkDeAcao>
+                  )}
                 </Linha>
               </Linha>
               {e.selos.length > 0 && (
@@ -237,7 +242,12 @@ export function QuadroDeFuncionarios({
             }}
           >
             <Pilha espaco="formulario">
-              <Grade colunas="1>2>4" como="fieldset" disabled={!editavel} espaco={4}>
+              <Grade
+                colunas="1>2>4"
+                como="fieldset"
+                disabled={!editavel || !emEdicao.ativo}
+                espaco={4}
+              >
                 <CamposDoEmpregado
                   prefixo="corrigir"
                   nome={emEdicao.nome}
@@ -250,27 +260,36 @@ export function QuadroDeFuncionarios({
                   <AvisoDeStatus tipo="erro" legivel texto={erro} />
                 </Caixa>
               )}
-              {editavel && (
+              {editavel && emEdicao.ativo && (
                 <CaixaDeMarcacao
                   rotulo={`Sem movimento em ${rotuloMes}`}
                   checked={emEdicao.semMovimento}
-                  disabled={pendente || !emEdicao.ativo}
+                  disabled={pendente}
                   onChange={(e) => onSemMovimento(e.target.checked)}
                 />
               )}
+              {editavel && !emEdicao.ativo && (
+                <Texto variante="apoio">
+                  Empregado desligado da empresa: não há o que editar nem cartão a lançar. Só é
+                  possível readmiti-lo.
+                </Texto>
+              )}
               {editavel && (
                 <Linha espaco={3} quebra alinhar="centro">
-                  <Button type="submit" disabled={pendente}>
-                    Salvar empregado
-                  </Button>
-                  {/* Vermelho: desligar é a ação de atenção; reativar volta ao contorno neutro. */}
+                  {/* Desligado não tem nada a salvar: o Salvar só existe para quem está na empresa. */}
+                  {emEdicao.ativo && (
+                    <Button type="submit" disabled={pendente}>
+                      Salvar empregado
+                    </Button>
+                  )}
+                  {/* Desligar e readmitir gravam na hora e fecham o Editar. Vermelho: desligar é a ação de atenção. */}
                   <Button
                     type="button"
-                    variant={emEdicao.ativo ? "destructive" : "outline"}
+                    variant={emEdicao.ativo ? "destructive" : "default"}
                     disabled={pendente}
                     onClick={() => onAtivo(!emEdicao.ativo)}
                   >
-                    {emEdicao.ativo ? "Desligar da empresa" : "Reativar empregado"}
+                    {emEdicao.ativo ? "Desligar da empresa" : "Readmitir empregado"}
                   </Button>
                   {/* Cancelar descarta a edição: volta ao formulário "Novo empregado" limpo. */}
                   <LinkDeAcao href={novoHref} variant="outline">

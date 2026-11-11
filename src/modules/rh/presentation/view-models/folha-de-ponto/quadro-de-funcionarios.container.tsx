@@ -38,7 +38,7 @@ export function QuadroDeFuncionariosContainer({ folha }: Props) {
   // Toda escrita compartilha o ciclo: erro do servidor, recarga da tela e falha de transporte.
   const executar = (
     acao: () => Promise<ActionResult<void>>,
-    { cadastro = false }: { cadastro?: boolean } = {},
+    { cadastro = false, fecharEdicao = false }: { cadastro?: boolean; fecharEdicao?: boolean } = {},
   ) =>
     iniciar(async () => {
       const falhar = cadastro ? setErroDoNovo : setErro;
@@ -49,7 +49,9 @@ export function QuadroDeFuncionariosContainer({ folha }: Props) {
         if (!r.ok) return falhar(r.error.message);
         // Só o sucesso limpa o formulário do novo empregado: a recusa preserva o que foi digitado.
         if (cadastro) setChaveDoNovo((c) => c + 1);
-        router.refresh();
+        // Desligar e readmitir já gravam: o Editar fecha e a tela volta ao formulário "Novo empregado".
+        if (fecharEdicao) router.push(hrefDaFolha(folha.clienteId, { mes: folha.competencia }));
+        else router.refresh();
       } catch (e) {
         console.error("Falha ao gravar o quadro de funcionários", e);
         falhar(mensagemDaFalha(e));
@@ -95,7 +97,9 @@ export function QuadroDeFuncionariosContainer({ folha }: Props) {
       }}
       onAtivo={(ativo) =>
         escolhido &&
-        executar(() => definirEmpregadoAtivoAction({ empregadoId: escolhido.id, ativo }))
+        executar(() => definirEmpregadoAtivoAction({ empregadoId: escolhido.id, ativo }), {
+          fecharEdicao: true,
+        })
       }
       onSemMovimento={(sem) =>
         escolhido &&
