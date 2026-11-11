@@ -31,6 +31,8 @@ Commits em Conventional Commits, atômicos, na branch do ticket. Adicione só os
 
 Tela de formulário nova parte de `editar-cadastro-operacional.page.tsx` e `cartao-do-cadastro.component.tsx`: largura `cadastro`, cartão com `MOLDURA_DO_CARTAO`, `CampoDeTexto` na malha `1>2>4` e `NotaDeObrigatorio`.
 
+Tela que lista itens e os cadastra/edita na própria tela segue a seção "Tela de lista + formulário" do `DESIGN.md` (nota de obrigatório no topo, lista com divisores, ação principal cheia e editar em ícone de contorno, editar substitui o formulário novo, rodapé Salvar / ação de atenção em vermelho / Cancelar, conteúdo de outra natureza em tela própria), sem esperar o pedido.
+
 Antes de criar um componente de UI, liste `src/presentation/components/{ui,atoms,molecules,organisms}` e leia no `DESIGN.md` a seção da tela; o componente novo só nasce quando nenhum existente serve, e entra no `DESIGN.md` no mesmo commit (`yarn check:design-doc <base>` reprova o que faltar).
 
 Quando o usuário corrigir o **desenho** depois da implementação, atualize na mesma rodada `CONTEXT.md`, `docs/trilha-implementacao.md` e os e2e que citam a tela antiga, antes de reportar; o gate e o roteiro de teste leem esses arquivos.

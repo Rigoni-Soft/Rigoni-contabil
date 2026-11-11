@@ -509,6 +509,36 @@ uma prop opcional `onCancelar`: quando informada (uso inline), "Cancelar"
 vira `Button` que fecha o painel e volta pro campo de busca; sem ela (uso
 em `/clientes/[id]`), continua `<Link href="/">`.
 
+### Tela de lista + formulário (quadro de funcionários do RH, 11/11/2026)
+
+Regra do dono do produto, a aplicar sem que seja pedida em toda tela que lista itens e os cadastra/edita
+na mesma tela (Quadro de funcionários da Folha de ponto é o primeiro consumidor):
+
+- **Cartão e topo.** Um cartão (`MOLDURA_DO_CARTAO`). Dentro, de cima para baixo: a `NotaDeObrigatorio`
+  (sempre a primeira coisa, acima até do título), o título da seção (com o botão "Novo …" à direita, no
+  molde do "Adicionar contato" do Cadastro: `ghost`, ícone `Plus`), o aviso de erro, os ajustes que valem
+  para o conjunto todo (ex.: "os empregados deste cliente são comissionados"), a lista, e por último o
+  formulário.
+- **Lista.** `ListaComDivisores`, o mesmo desenho da lista de clientes dos cards do dashboard
+  (`ListaDeClientes`): nome em destaque à esquerda (quebra dentro da moldura, nunca vaza), selos de estado
+  em texto de apoio abaixo do nome, ações à direita. O item escolhido fica com fundo `bg-accent/50`.
+- **Hierarquia de cor nas ações da linha.** Ação principal da linha (levar a outra tela, ex.: "Cartão de
+  ponto") = botão cheio na cor primária, texto sem seta (já é botão). Ação secundária (editar) = botão de
+  ícone só com contorno (`outline`, `icon`, lápis `Pencil`) com `aria-label` "Editar <nome>" ("Ver <nome>"
+  em leitura). Os dois nunca com a mesma aparência: ícone e texto lado a lado pareciam um só rótulo.
+- **Um formulário por vez.** O formulário de **novo** item é o padrão da tela. Editar um item o
+  **substitui** (os dois nunca aparecem juntos): bloco com "Editar" centralizado numa linha e o nome do item
+  abaixo. O botão "Novo …" do título só aparece durante a edição.
+- **Rodapé do formulário de edição**, lado a lado: "Salvar" (primário), a ação de atenção do item
+  (`destructive`, vermelho: ex. "Desligar da empresa"; o inverso, "Reativar", volta a `outline`) e
+  "Cancelar" (`outline`, neutro), que descarta a edição e volta ao formulário de novo item limpo. Aqui o
+  vermelho marca a ação de atenção sobre o item, não o Cancelar (exceção ao trio Salvar/Limpar/Cancelar
+  acima, que vale para edição de um registro inteiro).
+- **O formulário só pede o que o usuário decide.** Dado derivado por regra (ex.: a Jornada, que sai da
+  convenção e da legislação) não vira campo.
+- **Conteúdo de outra natureza vai para tela própria.** O Cartão de ponto de um empregado não se empilha
+  sob o quadro: abre por um botão da linha, numa tela com "Voltar" ao quadro.
+
 ### Autopreenchimento a partir de API pública
 
 **CNPJ → Empresa/Regime via BrasilAPI (#33):** ao perder o foco de um campo que serve de chave pra uma consulta
