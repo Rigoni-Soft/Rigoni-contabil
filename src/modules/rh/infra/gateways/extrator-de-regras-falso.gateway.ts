@@ -40,11 +40,12 @@ export class ExtratorDeRegrasFalsoGateway implements ExtratorDeRegrasPort {
         {
           chave: "datas_especiais",
           valor: [
-            { descricao: "Natal", data: "25/12", percentual: 150 },
+            { descricao: "Natal", data: "25/12", percentual: 150, percentualComissionado: 100 },
             { descricao: "Confraternização universal", data: "01/01", percentual: 150 },
           ],
           clausula: "Cláusula 14ª",
-          trecho: "O trabalho em 25/12 e 01/01 será remunerado com adicional de 150%.",
+          trecho:
+            "O trabalho em 25/12 e 01/01 será remunerado com adicional de 150%, e de 100% para o comissionado em 25/12.",
         },
         {
           chave: "intervalo_maximo",

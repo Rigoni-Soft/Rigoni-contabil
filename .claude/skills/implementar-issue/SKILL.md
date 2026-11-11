@@ -23,6 +23,8 @@ Argumentos: `$ARGUMENTS` → 1º token = issue alvo (`#123` ou `123`); 2º (opci
 
 ## 3. Implementar
 
+Antes de codar, confira cada critério de aceite da issue: a fonte que ele cita (planilha, PDF, tabela) existe em `docs/` ou no repositório, e todo percentual ou valor dele passa nos validadores do kernel (`src/shared/kernel`). Fonte ausente ou valor recusado por regra escrita → pergunte ao usuário antes de implementar; quem decide é a convenção ou a legislação, não o agente.
+
 Chame a Skill `implement` com a issue (ela lê o ticket, usa `tdd` nos pontos acordados, roda typecheck e testes e comita). Se build, teste ou runtime falharem e a causa não for óbvia, chame `diagnosing-bugs` antes de insistir.
 
 Commits em Conventional Commits, atômicos, na branch do ticket. Adicione só os arquivos que a estação tocou (`git add <caminhos>`): `git add -A` leva junto a alteração solta do usuário em arquivo rastreado.
@@ -33,7 +35,7 @@ Quando o usuário corrigir o **desenho** depois da implementação, atualize na 
 
 ## 4. Fechar a estação
 
-Rode `yarn tsc --noEmit`, `yarn lint`, `yarn test`, `yarn check:naming` e `yarn check:refs` (arquivo novo sem sufixo de papel e `#NN` em comentário reprovam no CI). **Critério de saída: código implementado e commitado na branch, com type-safety, testes e checks verdes.**
+Rode `yarn tsc --noEmit`, `yarn lint`, `yarn test`, `yarn check:naming`, `yarn check:refs` e `npx prettier --check` nos arquivos do diff (arquivo novo sem sufixo de papel e `#NN` em comentário reprovam no CI). **Critério de saída: código implementado e commitado na branch, com type-safety, testes e checks verdes.**
 
 Reporte: branch, base, commits e o próximo passo: `/gate-qualidade [base]`. **Nunca `git push`, nem abrir PR, sem ordem explícita do usuário** (um hook também pede confirmação). **Nunca `git stash`** (nem `-u`: há arquivos soltos do usuário no repositório, como `supabase/snippets/`); para comparar um teste com a base, use `git show` ou `git worktree`.
 

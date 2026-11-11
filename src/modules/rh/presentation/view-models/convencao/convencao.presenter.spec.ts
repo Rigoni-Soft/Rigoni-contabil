@@ -36,11 +36,11 @@ const REGRAS: RegrasDaConvencao = {
     {
       chave: "datas_especiais",
       valor: [
-        { descricao: "Natal", data: "25/12", percentual: 150 },
+        { descricao: "Natal", data: "25/12", percentual: 150, percentualComissionado: 100 },
         { descricao: "Feriados em geral", data: null, percentual: 100 },
       ],
       clausula: "Cláusula 14ª",
-      trecho: "25/12 com 150%; demais feriados, 100%",
+      trecho: "25/12 com 150% (comissionado 100%); demais feriados, 100%",
     },
   ],
   rejeitadas: [
@@ -111,7 +111,7 @@ describe("linhasDeRegras", () => {
 
   it("descreve o calendário de datas especiais e a maior diferença", () => {
     expect(de("datas_especiais")).toMatchObject({
-      valor: "25/12 Natal: 150%; Feriados em geral: 100%",
+      valor: "25/12 Natal: 150% (comissionado 100%); Feriados em geral: 100%",
       legislacao: "100%",
       diferenca: "+50 pontos na maior",
     });

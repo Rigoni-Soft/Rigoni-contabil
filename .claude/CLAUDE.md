@@ -5,7 +5,7 @@
 - O Playwright reaproveita o dev server em `localhost:8800`. Com `PORT=8800` no `.env.local` o `yarn dev` aberto serve o e2e; em outra porta o Playwright tenta subir um segundo `next dev` no mesmo diretório e falha.
 
 # Edição de arquivos
-- Os arquivos já versionados estão em CRLF: edite com `Edit` ou preserve o fim de linha no script (um padrão com LF não casa em arquivo CRLF e falha em silêncio).
+- O working tree está em LF (`autocrlf` converte no commit): edite com `Edit` ou `Write`; o aviso "LF will be replaced by CRLF" do Git é esperado.
 - Crie arquivo com `Write`: heredoc (`<<'EOF'`) com texto em português quebra o `Bash`.
 
 # graphify

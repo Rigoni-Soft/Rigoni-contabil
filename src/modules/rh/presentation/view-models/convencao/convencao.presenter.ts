@@ -48,7 +48,13 @@ function textoDaLegislacao(chave: ChaveDeRegra): string {
 
 function descreverDatas(datas: DataEspecial[]): string {
   return datas
-    .map((d) => `${d.data ? `${d.data} ` : ""}${d.descricao}: ${numero(d.percentual)}%`)
+    .map((d) => {
+      const comissionado =
+        d.percentualComissionado === undefined
+          ? ""
+          : ` (comissionado ${numero(d.percentualComissionado)}%)`;
+      return `${d.data ? `${d.data} ` : ""}${d.descricao}: ${numero(d.percentual)}%${comissionado}`;
+    })
     .join("; ");
 }
 
