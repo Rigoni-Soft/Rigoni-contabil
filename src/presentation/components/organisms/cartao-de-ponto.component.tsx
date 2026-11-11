@@ -35,8 +35,6 @@ type Props = {
   empresa: string;
   // Mês do cartão, por extenso.
   periodo: string;
-  // A carga horária do empregado por dia da semana (a Jornada gravada).
-  cargaHoraria: ItemDaTotalizacao[];
   rotuloMes: string;
   mesAnteriorHref: string;
   proximoMesHref?: string;
@@ -59,7 +57,6 @@ export function CartaoDePonto({
   empregado,
   empresa,
   periodo,
-  cargaHoraria,
   rotuloMes,
   mesAnteriorHref,
   proximoMesHref,
@@ -92,7 +89,6 @@ export function CartaoDePonto({
         proximoHref={proximoMesHref}
         destaque
       />
-      <TotalizacaoDoPonto titulo="Carga horária por dia da semana" itens={cargaHoraria} />
       {!editavel && (
         <Texto variante="apoio">
           Só o Responsável do RH do cliente digita o cartão; aqui ele fica em leitura.

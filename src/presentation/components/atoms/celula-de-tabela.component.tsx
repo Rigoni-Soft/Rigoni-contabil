@@ -79,7 +79,7 @@ export function Tabela({
   children,
 }: {
   colunas: React.ReactNode;
-  // Estilo planilha: divisória em toda célula, não só entre linhas.
+  // Estilo planilha: divisória em toda célula e respiro menor (cabe mais coluna sem rolar).
   grade?: boolean;
   // Linha de cabeçalhos de grupo acima das colunas (CabecalhoDeColuna com `colSpan`).
   agrupamento?: React.ReactNode;
@@ -104,7 +104,7 @@ export function Tabela({
         className={cn(
           "w-full text-left text-sm",
           grade &&
-            "border-collapse [&_td]:border [&_td]:border-border [&_th]:border [&_th]:border-border",
+            "border-collapse [&_td]:border [&_td]:border-border [&_td]:px-1.5 [&_th]:border [&_th]:border-border [&_th]:px-1.5",
         )}
       >
         {legenda && <caption className="sr-only">{legenda}</caption>}

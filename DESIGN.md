@@ -547,12 +547,14 @@ escritório (`PLANILHA CARTAO PONTO`, aba do funcionário): tabela com divisóri
 Faixa") e linha **Totais** no rodapé (`rodape`: faltas e soma de cada coluna calculada). Colunas, na ordem da
 planilha: Data (fixa), Dia semana, Entrada, Saída, Entrada, Saída, Extra entrada, Extra saída, H. Diária,
 Atrasos, Abono, Horas Extras, A.N., 1ª Faixa, 2ª Faixa, Salvar. Entrada, Saída, Extra e Abono são campos do
-dia; o resto é calculado (nunca digitado). Acima da tabela: Empresa e Período (o mês), e a carga horária por dia da
-semana. A tela mostra o **mês de trabalho inteiro**, de 28 a 31 dias, numa só tabela; a quinzena só
+dia; o resto é calculado (nunca digitado). Acima da tabela: Empresa e Período (o mês). A carga horária por dia da semana
+não se exibe (não tem uso na tela). A tela mostra o **mês de trabalho inteiro**, de 28 a 31 dias, numa só tabela; a quinzena só
 importa na leitura da foto do cartão, não na exibição. Dia sem jornada marca "Folga" sob a data; dia com carga e sem batida, "Falta".
 
-- **Exceção de largura:** tabela de 16 colunas não cabe na largura de formulário; esta tela usa
-  `largura="conteudo"` e a própria `Tabela` rola na horizontal (a primeira coluna fica à vista).
+- **Largura `ampla`:** a tabela de 16 colunas precisa caber inteira, sem rolagem horizontal; esta tela usa
+  `largura="ampla"` (`w-full max-w-screen-2xl`, a janela toda com teto em monitor muito largo), a `Tabela`
+  com `grade` tem respiro de 6 px por lado nas células e os campos de hora são estreitos (`w-[4.5rem]`, sem o
+  ícone do relógio do navegador). Em janela menor que ~1200 px a própria `Tabela` ainda rola, com a Data à vista.
 - **Um formulário por dia, fora da célula:** o `<form>` do dia fica na última célula e os campos das outras o
   alcançam pelo atributo `form`; `new FormData(form)` já os traz.
 - **Caixa sozinha em célula** (Abono): `CaixaDeMarcacao` com `rotuloOculto`, nomeada por "Abono de seg 16/11".

@@ -25,7 +25,6 @@ const PROPS = {
   empregado: "Ana",
   empresa: "Teste Ltda",
   periodo: "novembro de 2026",
-  cargaHoraria: [{ rotulo: "seg", valor: "8h45" }],
   rotuloMes: "novembro de 2026",
   mesAnteriorHref: "/rh/folha-de-ponto/c1?mes=2026-10",
   linhas: [LINHA],
@@ -53,9 +52,6 @@ describe("CartaoDePonto", () => {
     expect(screen.getByRole("form", { name: "Dia seg 16/11" })).toBeInTheDocument();
     expect(screen.getByText("1 dia")).toBeInTheDocument();
     expect(screen.getByText(/Empresa: Teste Ltda · Período: novembro de 2026/)).toBeInTheDocument();
-    expect(
-      screen.getByRole("region", { name: "Carga horária por dia da semana" }),
-    ).toHaveTextContent("8h45");
     expect(screen.getByRole("columnheader", { name: "H. Diária" })).toBeInTheDocument();
     expect(screen.getByText("Faltas / Suspensão: 1")).toBeInTheDocument();
   });

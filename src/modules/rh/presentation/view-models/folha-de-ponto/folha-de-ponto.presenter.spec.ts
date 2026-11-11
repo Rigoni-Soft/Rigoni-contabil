@@ -1,6 +1,5 @@
 import type { FolhaDePontoDto } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
 import {
-  cargaHorariaDoCartao,
   hmParaMinutos,
   hrefDaFolha,
   hrefDoCartao,
@@ -201,14 +200,6 @@ describe("linhasDoCartao", () => {
       noturno: "0h08",
       faixas: "1h15 (50%) · 1h00 (100%)",
     });
-  });
-
-  it("cargaHorariaDoCartao lista a Jornada de domingo a sábado", () => {
-    expect(cargaHorariaDoCartao([0, 525, 525, 525, 525, 525, 240])[6]).toEqual({
-      rotulo: "sáb",
-      valor: "4h00",
-    });
-    expect(cargaHorariaDoCartao([0, 525, 525, 525, 525, 525, 240])[0].valor).toBe("0h00");
   });
 });
 

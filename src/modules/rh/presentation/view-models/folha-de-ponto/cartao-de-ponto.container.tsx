@@ -11,7 +11,6 @@ import { rotuloDaCompetencia } from "@/modules/rh/presentation/view-models/acomp
 import { salvarDiaDoPontoAction } from "./folha-de-ponto.actions";
 import {
   AVISO_SEM_CONVENCAO,
-  cargaHorariaDoCartao,
   itensDaTotalizacao,
   lerDiaDoFormulario,
   linhasDoCartao,
@@ -57,7 +56,6 @@ export function CartaoDePontoContainer({ folha }: Props) {
       empregado={selecionado.empregado.nome}
       empresa={folha.empresa}
       periodo={rotuloDaCompetencia(folha.competencia)}
-      cargaHoraria={cargaHorariaDoCartao(selecionado.empregado.jornada)}
       rotuloMes={rotuloDaCompetencia(folha.competencia)}
       {...navegacaoDoCartao(folha)}
       linhas={linhasDoCartao(selecionado.dias)}

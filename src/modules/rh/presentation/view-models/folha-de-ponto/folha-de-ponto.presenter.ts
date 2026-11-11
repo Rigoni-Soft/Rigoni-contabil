@@ -90,11 +90,6 @@ export function totaisDoCartao(dias: DiaDaFolhaDto[], t: TotalizacaoDto): Totais
   };
 }
 
-// A carga horária do empregado por dia da semana, como no alto da planilha.
-export function cargaHorariaDoCartao(jornada: number[]): ItemDaTotalizacao[] {
-  return jornada.map((min, i) => ({ rotulo: SEMANA[i], valor: duracao(min) }));
-}
-
 export function linhasDoCartao(dias: DiaDaFolhaDto[]): LinhaDoCartao[] {
   return dias.map((dia) => {
     const [, mes, d] = dia.data.split("-");

@@ -8,6 +8,8 @@ const LARGURA = {
   // cadastro com muitos campos: colunas lado a lado, sem esticar os campos em tela larga
   cadastro: "w-full max-w-4xl",
   conteudo: "w-[90%]",
+  // tabela de muitas colunas (Cartão de ponto): a largura toda da janela, com teto em monitor muito largo
+  ampla: "w-full max-w-screen-2xl",
 } as const;
 
 type TelaDeTrabalhoTemplateProps = {

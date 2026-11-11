@@ -87,7 +87,7 @@ export function LinhaDoCartaoDePonto({ linha, editavel, pendente, aviso, onSalva
             readOnly={!editavel}
             aria-label={`${rotulo} de ${linha.rotulo}`}
             aria-describedby={aviso ? idDoAviso : undefined}
-            className="w-28 px-2"
+            className="w-[4.5rem] px-1.5 [&::-webkit-calendar-picker-indicator]:hidden"
           />
         </CelulaDeTabela>
       ))}

@@ -9,8 +9,8 @@ type AcompanhamentoMensalPageProps = {
   nav?: React.ReactNode;
   titulo: string;
   voltarHref: string;
-  // "cadastro" para tela de formulário (mesma largura da edição do cadastro operacional).
-  largura?: "conteudo" | "cadastro";
+  // "cadastro" para tela de formulário (mesma largura da edição do cadastro operacional); "ampla" para tabela larga.
+  largura?: "conteudo" | "cadastro" | "ampla";
   conteudo?: React.ReactNode;
   erro?: string;
   tentarNovamenteHref?: string;
