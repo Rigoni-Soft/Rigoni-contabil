@@ -34,6 +34,8 @@ com a preferência de SO do visitante.
 | `secondary`, `muted`, `accent` | tons de papel/verde desaturados | idem | hierarquia secundária, hover |
 | `destructive` / `destructive-foreground` | `#e0968c` / `#2a0f0c` | `#7a2b2b` / `#f4f1e8` | erro/atenção — sempre com ícone, nunca só cor; também estado "falha" em listas/feeds |
 | `success` / `success-foreground` | `#d9bd7c` / `#2a1f0c` | `#96742f` / `#2a1f0c` | selo dourado "em dia" — reservado especificamente para as telas de status do Simples Nacional (#35–#37); não usar para resultado sucesso/falha genérico (isso é `primary`/`destructive`, ver Componentes → Indicadores de estado). Só em traço/ícone: no claro tem 3,8:1 sobre `background`, abaixo dos 4,5:1 de texto |
+| `warning` / `warning-foreground` | `#e6c35c` / `#2a1f0c` | `#d4a62a` / `#2a1f0c` | amarelo de atenção (11/11/2026, tela do Cartão de ponto): botão "Limpar" e o tom de fundo de folga e feriado. Não é o dourado `success` do selo "em dia" do Simples Nacional. Texto escuro sobre o amarelo (≥7:1) nos dois temas |
+| `info` | `#8fb4d9` | `#2b5b8a` | azul informativo (11/11/2026): só como tom de fundo suave (mistura de 11% com `card`), p.ex. a linha com hora extra no Cartão de ponto; sem texto sobre ele |
 | `border` / `ring` | `#47453e` | tons de contorno derivados do verde | bordas decorativas, foco |
 | `input` | `#7a7765` | `#857d66` | contorno de campo, select, textarea, botão outline e painel de emoji: ≥3:1 sobre `background` e `card` nos dois temas (WCAG 1.4.11) |
 | `overlay` | `#0f0e0c` a 70% | `#16231f` a 55% | véu atrás de diálogos nativos (`popover`: imagem ampliada, prévia de documento; `<dialog>` modal: sino de avisos) — tinta de cada tema, não preto puro; só escurece o fundo, não carrega texto |
@@ -554,10 +556,22 @@ importa na leitura da foto do cartão, não na exibição. Dia sem jornada marca
   `largura="ampla"` (`w-full max-w-screen-2xl`, a janela toda com teto em monitor muito largo), a `Tabela`
   com `grade` tem respiro de 6 px por lado nas células e os campos de hora são estreitos (`w-[4.5rem]`, sem o
   ícone do relógio do navegador). Em janela menor que ~1200 px a própria `Tabela` ainda rola, com a Data à vista.
+- **Título do cartão = só o nome do empregado.** A tela já se chama "Cartão de ponto" (cabeçalho); repetir
+  "Cartão de ponto de <nome>" no cartão era redundante.
+- **Tom da linha pelo estado do dia** (mistura suave com `card`, opaca para a primeira coluna fixa; o estado
+  também vem em texto sob a data, a cor nunca vai sozinha): **falta** = `destructive` (vermelho sutil, nota
+  "Falta"); **hora extra** = `info` (azul, nota "Hora extra"); **folga ou feriado** = `warning` (amarelo, nota
+  "Folga" ou "Feriado"; feriado com hora extra fica azul, "Feriado · hora extra"); dia normal sem tom. Precedência:
+  falta, hora extra, folga/feriado.
+- **Falta tem o botão Abonar.** No dia de falta a linha mostra, além do lápis, o botão de ícone "Abonar" (`warning`):
+  um clique grava o dia só com o Abono e a falta vira abonada. O lápis continua, para digitar as batidas de um
+  dia em que o empregado trabalhou (todo dia útil vazio é falta).
 - **Ação por linha e ações da tabela.** Cada linha tem só um botão de ícone (lápis); abrir várias linhas ao
-  mesmo tempo é permitido. Entre a tabela e a Totalização fica a barra de ações: **Salvar** (grava todas as
+  mesmo tempo é permitido. Entre a tabela e a Totalização fica a barra de ações, alinhada ao **fim da linha** (à direita), na hierarquia de
+  cor **verde / amarelo / vermelho**: **Salvar** (`default`, o verde da marca; grava todas as
   linhas abertas, fica na tela e põe a Totalização em destaque, `border-primary` + fundo), **Limpar**
-  (esvazia os campos das linhas abertas, fica na tela; só vale ao salvar) e **Cancelar** (descarta e volta à
+  (`warning`, amarelo; esvazia os campos das linhas abertas, fica na tela; só vale ao salvar) e **Cancelar**
+  (`destructive`, vermelho; descarta e volta à
   lista de empregados da empresa). Salvar e Limpar só ficam ativos com ao menos uma linha aberta. Sem
   permissão de edição não há lápis nem barra.
 - **Um formulário por dia, fora da célula:** o `<form>` do dia fica na última célula e os campos das outras o

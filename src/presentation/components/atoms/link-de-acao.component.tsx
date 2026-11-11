@@ -5,7 +5,7 @@ import { cn } from "@/presentation/lib/utils";
 
 type LinkDeAcaoProps = {
   href: string;
-  variant?: "default" | "destructive" | "outline" | "ghost";
+  variant?: "default" | "destructive" | "warning" | "outline" | "ghost";
   size?: "default" | "sm" | "icon";
   className?: string;
   // Destino fora do app (ex.: link assinado): abre em nova aba, sem `opener`.

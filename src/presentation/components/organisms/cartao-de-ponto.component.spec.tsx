@@ -13,6 +13,7 @@ const LINHA = {
   extraEntrada: "",
   extraSaida: "",
   abono: false,
+  falta: false,
   diaSemana: "seg",
   diaMes: "16/11",
   trabalhado: "0h00",
@@ -39,6 +40,7 @@ const PROPS = {
   listaHref: "/rh/folha-de-ponto/c1?mes=2026-11",
   totalizacaoDestacada: false,
   onEditarDia: jest.fn(),
+  onAbonarDia: jest.fn(),
   onCancelarDia: jest.fn(),
   onSalvarDia: jest.fn(),
   onSalvarTabela: jest.fn(),
@@ -49,7 +51,9 @@ describe("CartaoDePonto", () => {
   it("mostra o empregado, o mês, os dias e a Totalização", () => {
     render(<CartaoDePonto {...PROPS} />);
 
-    expect(screen.getByRole("heading", { name: "Cartão de ponto de Ana" })).toBeInTheDocument();
+    // O título da tela já é "Cartão de ponto": o do cartão traz só o nome.
+    expect(screen.getByRole("heading", { name: "Ana" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /Cartão de ponto de/ })).not.toBeInTheDocument();
     expect(screen.getByText("novembro de 2026")).toBeInTheDocument();
     expect(screen.getByRole("form", { name: "Dia seg 16/11" })).toBeInTheDocument();
     expect(screen.getByText("1 dia")).toBeInTheDocument();
@@ -104,6 +108,15 @@ describe("CartaoDePonto", () => {
       "href",
       "/rh/folha-de-ponto/c1?mes=2026-11",
     );
+  });
+
+  it("a barra de ações fica no fim da linha: Salvar verde, Limpar amarelo, Cancelar vermelho", () => {
+    render(<CartaoDePonto {...PROPS} diasEmEdicao={["2026-11-16"]} />);
+
+    expect(screen.getByRole("button", { name: "Salvar" })).toHaveClass("bg-primary");
+    expect(screen.getByRole("button", { name: "Limpar" })).toHaveClass("bg-warning");
+    expect(screen.getByRole("link", { name: "Cancelar" })).toHaveClass("bg-destructive");
+    expect(screen.getByRole("button", { name: "Salvar" }).parentElement).toHaveClass("justify-end");
   });
 
   it("Salvar e Limpar da tabela só valem com uma linha aberta", () => {

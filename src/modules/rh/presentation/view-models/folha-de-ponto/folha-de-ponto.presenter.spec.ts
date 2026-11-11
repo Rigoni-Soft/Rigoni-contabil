@@ -166,6 +166,36 @@ describe("linhasDoCartao", () => {
       noturno: "0h08",
     });
     expect(falta.nota).toBe("Falta");
+    expect(falta).toMatchObject({ falta: true, tom: "alerta" });
+    expect(dia).toMatchObject({ falta: false, tom: "info", nota: "Hora extra" });
+  });
+
+  it("o tom e a nota do dia: falta, hora extra, folga e feriado; dia normal sem tom", () => {
+    const base = {
+      batidas: [],
+      extra: null,
+      abono: false,
+      cargaMin: 525,
+      feriado: false,
+      trabalhadoMin: 0,
+      apuracao: ZERO,
+    };
+    const [normal, folga, feriado, feriadoTrabalhado] = linhasDoCartao([
+      { ...base, data: "2026-11-17", diaDaSemana: 2, apuracao: { ...ZERO, normaisMin: 525 } },
+      { ...base, data: "2026-11-22", diaDaSemana: 0, cargaMin: 0 },
+      { ...base, data: "2026-11-20", diaDaSemana: 5, feriado: true },
+      {
+        ...base,
+        data: "2026-11-20",
+        diaDaSemana: 5,
+        feriado: true,
+        apuracao: { ...ZERO, extras: [{ percentual: 100, minutos: 240 }] },
+      },
+    ]);
+    expect(normal).toMatchObject({ tom: undefined, nota: undefined });
+    expect(folga).toMatchObject({ tom: "atencao", nota: "Folga" });
+    expect(feriado).toMatchObject({ tom: "atencao", nota: "Feriado" });
+    expect(feriadoTrabalhado).toMatchObject({ tom: "info", nota: "Feriado · hora extra" });
   });
 });
 

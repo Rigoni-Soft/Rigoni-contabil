@@ -41,6 +41,7 @@ type Props = {
   // Resultado do "Salvar" da tabela (várias linhas de uma vez).
   avisoGeral?: AvisoDoDia;
   onEditarDia: (data: string) => void;
+  onAbonarDia: (data: string) => void;
   onCancelarDia: (data: string) => void;
   onSalvarTabela: () => void;
   onLimparTabela: () => void;
@@ -72,6 +73,7 @@ export function CartaoDePonto({
   totalizacaoDestacada,
   avisoGeral,
   onEditarDia,
+  onAbonarDia,
   onCancelarDia,
   onSalvarTabela,
   onLimparTabela,
@@ -91,7 +93,7 @@ export function CartaoDePonto({
       className={MOLDURA_DO_CARTAO}
     >
       <Texto como="h2" variante="subtitulo">
-        Cartão de ponto de {empregado}
+        {empregado}
       </Texto>
       <Texto variante="apoio">
         Empresa: {empresa} · Período: {periodo}
@@ -160,6 +162,7 @@ export function CartaoDePonto({
             limpa={diasLimpos.includes(linha.data)}
             pendente={pendente}
             onEditar={onEditarDia}
+            onAbonar={onAbonarDia}
             onCancelar={onCancelarDia}
             onSalvar={onSalvarDia}
           />
@@ -167,7 +170,7 @@ export function CartaoDePonto({
       </Tabela>
       {editavel && (
         <Pilha espaco={2}>
-          <Linha espaco={3} quebra alinhar="centro">
+          <Linha espaco={3} quebra alinhar="centro" justificar="fim">
             {/* Salva as linhas abertas e fica na tela, com a Totalização em destaque. */}
             <Button
               type="button"
@@ -179,14 +182,14 @@ export function CartaoDePonto({
             {/* Esvazia os campos das linhas abertas e fica na tela (só vale ao salvar). */}
             <Button
               type="button"
-              variant="outline"
+              variant="warning"
               disabled={pendente || diasEmEdicao.length === 0}
               onClick={onLimparTabela}
             >
               Limpar
             </Button>
             {/* Descarta o que foi digitado e volta à lista de empregados da empresa. */}
-            <LinkDeAcao href={listaHref} variant="outline">
+            <LinkDeAcao href={listaHref} variant="destructive">
               Cancelar
             </LinkDeAcao>
           </Linha>

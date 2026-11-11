@@ -1,4 +1,4 @@
-import { Check, Pencil, X } from "lucide-react";
+import { CalendarCheck, Check, Pencil, X } from "lucide-react";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcacao.component";
@@ -26,8 +26,12 @@ export type LinhaDoCartao = {
   extraEntrada: string;
   extraSaida: string;
   abono: boolean;
-  // Feriado, falta ou folga: aparece sob a data.
+  // Falta, folga, feriado ou hora extra: aparece sob a data (a cor da linha nunca vai sozinha).
   nota?: string;
+  // Estado do dia na cor da linha: falta (alerta), folga/feriado (atencao), hora extra (info), dia normal (sem tom).
+  tom?: "alerta" | "atencao" | "info";
+  // Dia de falta: a ação da linha ganha o "Abonar", que troca a falta por abonada.
+  falta: boolean;
   // H. Diária, Atrasos, Horas Extras, 1ª e 2ª faixa e Adicional noturno do dia, como na planilha.
   trabalhado: string;
   atraso: string;
@@ -51,6 +55,7 @@ type Props = {
   pendente: boolean;
   aviso?: AvisoDoDia;
   onEditar: (data: string) => void;
+  onAbonar: (data: string) => void;
   onCancelar: (data: string) => void;
   onSalvar: (data: string, campos: FormData) => void;
 };
@@ -79,6 +84,7 @@ export function LinhaDoCartaoDePonto({
   pendente,
   aviso,
   onEditar,
+  onAbonar,
   onCancelar,
   onSalvar,
 }: Props) {
@@ -86,7 +92,7 @@ export function LinhaDoCartaoDePonto({
   const idDoAviso = `aviso-${linha.data}`;
   const destravada = editavel && emEdicao;
   return (
-    <LinhaDeTabela>
+    <LinhaDeTabela tom={linha.tom}>
       <CelulaDeTabela fixa>
         <Texto como="span" variante="destaque">
           {linha.diaMes}
@@ -141,16 +147,31 @@ export function LinhaDoCartaoDePonto({
           }}
         >
           {editavel && !emEdicao && (
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              disabled={pendente}
-              onClick={() => onEditar(linha.data)}
-              aria-label={`Editar ${linha.rotulo}`}
-            >
-              <Pencil className="size-4" aria-hidden="true" />
-            </Button>
+            <Linha espaco={1} alinhar="centro">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                disabled={pendente}
+                onClick={() => onEditar(linha.data)}
+                aria-label={`Editar ${linha.rotulo}`}
+              >
+                <Pencil className="size-4" aria-hidden="true" />
+              </Button>
+              {/* Falta: um clique troca a falta por abonada (sem digitar horário). */}
+              {linha.falta && (
+                <Button
+                  type="button"
+                  variant="warning"
+                  size="icon"
+                  disabled={pendente}
+                  onClick={() => onAbonar(linha.data)}
+                  aria-label={`Abonar ${linha.rotulo}`}
+                >
+                  <CalendarCheck className="size-4" aria-hidden="true" />
+                </Button>
+              )}
+            </Linha>
           )}
           {editavel && emEdicao && (
             <Linha espaco={1} alinhar="centro">

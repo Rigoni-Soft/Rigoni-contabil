@@ -224,6 +224,23 @@ describe("CartaoDePontoContainer", () => {
     expect(salvarDiaDoPontoAction).not.toHaveBeenCalled();
   });
 
+  it("Abonar troca a falta por abonada: grava o dia só com o Abono e recarrega", async () => {
+    jest.mocked(salvarDiaDoPontoAction).mockResolvedValue({ ok: true, data: undefined });
+    render(<CartaoDePontoContainer folha={FOLHA} />);
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Abonar seg 16/11" }));
+
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    expect(salvarDiaDoPontoAction).toHaveBeenCalledWith({
+      empregadoId: "e1",
+      data: "2026-11-16",
+      batidas: [],
+      extra: null,
+      abono: true,
+    });
+    expect(await screen.findByRole("status")).toHaveTextContent("Abonado.");
+  });
+
   it("Cancelar da tabela leva de volta à lista de empregados", () => {
     render(<CartaoDePontoContainer folha={FOLHA} />);
 

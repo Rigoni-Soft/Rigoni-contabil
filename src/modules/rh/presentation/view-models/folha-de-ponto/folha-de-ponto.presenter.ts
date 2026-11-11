@@ -64,10 +64,21 @@ export function itensDaTotalizacao(t: TotalizacaoDto, trabalhadoMin: number): It
 
 const hm = (par: ParDto | undefined, campo: keyof ParDto) => (par ? minutosParaHm(par[campo]) : "");
 
+const teveExtra = (dia: DiaDaFolhaDto) => extrasDoDia(dia.apuracao) > 0;
+
+// Texto do estado do dia sob a data (a cor da linha nunca vai sozinha).
 function notaDoDia(dia: DiaDaFolhaDto): string | undefined {
-  if (dia.feriado) return "Feriado";
+  const base = dia.feriado ? "Feriado" : dia.cargaMin === 0 ? "Folga" : undefined;
   if (dia.apuracao.faltas > 0) return "Falta";
-  return dia.cargaMin === 0 ? "Folga" : undefined;
+  if (teveExtra(dia)) return base ? `${base} · hora extra` : "Hora extra";
+  return base;
+}
+
+// O tom da linha: falta em vermelho suave, hora extra em azul, folga ou feriado em amarelo, dia normal sem tom.
+function tomDoDia(dia: DiaDaFolhaDto): LinhaDoCartao["tom"] {
+  if (dia.apuracao.faltas > 0) return "alerta";
+  if (teveExtra(dia)) return "info";
+  return dia.feriado || dia.cargaMin === 0 ? "atencao" : undefined;
 }
 
 // Faixas de hora extra do dia, da menor para a maior: "1h11 (50%)". A planilha tem 1ª e 2ª faixa.
@@ -91,6 +102,8 @@ export function linhasDoCartao(dias: DiaDaFolhaDto[]): LinhaDoCartao[] {
       extraSaida: hm(dia.extra ?? undefined, "saida"),
       abono: dia.abono,
       nota: notaDoDia(dia),
+      tom: tomDoDia(dia),
+      falta: dia.apuracao.faltas > 0,
       diaSemana: SEMANA[dia.diaDaSemana],
       diaMes: `${d}/${mes}`,
       trabalhado: duracao(dia.trabalhadoMin),

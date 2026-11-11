@@ -75,6 +75,29 @@ export function CartaoDePontoContainer({ folha }: Props) {
       router.refresh();
     });
 
+  // Falta vira abonada: o dia é gravado só com o Abono, sem batidas.
+  const abonarDia = (data: string) =>
+    iniciar(async () => {
+      setAviso(undefined);
+      setAvisoGeral(undefined);
+      try {
+        const r = await salvarDiaDoPontoAction({
+          empregadoId: selecionado.empregado.id,
+          data,
+          batidas: [],
+          extra: null,
+          abono: true,
+        });
+        if (!r.ok) return setAviso({ data, tipo: "erro", texto: r.error.message });
+        setAviso({ data, tipo: "sucesso", texto: "Abonado." });
+        recomecar([data]);
+        router.refresh();
+      } catch (e) {
+        console.error("Falha ao abonar o dia do cartão de ponto", e);
+        setAviso({ data, tipo: "erro", texto: mensagemDaFalha(e) });
+      }
+    });
+
   const salvarTabela = () =>
     iniciar(async () => {
       setAviso(undefined);
@@ -125,6 +148,7 @@ export function CartaoDePontoContainer({ folha }: Props) {
         fechar([data]);
         recomecar([data]);
       }}
+      onAbonarDia={abonarDia}
       onSalvarDia={salvarDia}
       onSalvarTabela={salvarTabela}
       onLimparTabela={() => {

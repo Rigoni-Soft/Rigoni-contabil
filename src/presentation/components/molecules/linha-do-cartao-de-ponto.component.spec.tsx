@@ -24,6 +24,7 @@ const LINHA: LinhaDoCartao = {
   extraSaida: "",
   abono: false,
   nota: "Feriado",
+  falta: false,
   diaSemana: "seg",
   diaMes: "16/11",
   trabalhado: "4h00",
@@ -38,6 +39,7 @@ const ACOES = {
   emEdicao: false,
   limpa: false,
   onEditar: jest.fn(),
+  onAbonar: jest.fn(),
   onCancelar: jest.fn(),
 };
 
@@ -135,5 +137,46 @@ describe("LinhaDoCartaoDePonto", () => {
 
     expect(screen.getByLabelText("Entrada 1 de seg 16/11")).toHaveAttribute("readonly");
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("dia de falta oferece o Abonar além do lápis, e abonar avisa a tela", async () => {
+    render(
+      <Linha
+        linha={{ ...LINHA, falta: true, tom: "alerta", nota: "Falta" }}
+        editavel
+        {...ACOES}
+        pendente={false}
+        onSalvar={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Editar seg 16/11" })).toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Abonar seg 16/11" }));
+
+    expect(ACOES.onAbonar).toHaveBeenCalledWith("2026-11-16");
+  });
+
+  it("dia que não é falta não oferece Abonar", () => {
+    render(<Linha linha={LINHA} editavel {...ACOES} pendente={false} onSalvar={jest.fn()} />);
+
+    expect(screen.queryByRole("button", { name: /Abonar/ })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["alerta", /destructive/],
+    ["atencao", /warning/],
+    ["info", /info/],
+  ] as const)("o tom %s pinta a linha", (tom, cor) => {
+    render(
+      <Linha linha={{ ...LINHA, tom }} editavel {...ACOES} pendente={false} onSalvar={jest.fn()} />,
+    );
+
+    expect(screen.getByRole("row").className).toMatch(cor);
+  });
+
+  it("dia normal fica sem tom", () => {
+    render(<Linha linha={LINHA} editavel {...ACOES} pendente={false} onSalvar={jest.fn()} />);
+
+    expect(screen.getByRole("row").className).not.toMatch(/destructive|warning|info/);
   });
 });

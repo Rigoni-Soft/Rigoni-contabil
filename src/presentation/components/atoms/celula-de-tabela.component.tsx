@@ -28,7 +28,7 @@ export function CelulaDeTabela({
       className={cn(
         compacta ? "px-1.5 py-1" : "px-3 py-2",
         centro && "text-center",
-        fixa && "sticky left-0 border-r border-border bg-card text-left font-normal",
+        fixa && "sticky left-0 border-r border-border bg-inherit text-left font-normal",
         numerica && "text-right whitespace-nowrap text-muted-foreground tabular-nums",
       )}
     >
@@ -119,6 +119,24 @@ export function Tabela({
   );
 }
 
-export function LinhaDeTabela({ children }: { children: React.ReactNode }) {
-  return <tr className="border-b border-border last:border-0">{children}</tr>;
+// Tom de fundo da linha (estado do dia, na planilha do cartão): tinta suave misturada ao cartão, opaca para a
+// primeira coluna fixa não deixar o texto passar por baixo na rolagem.
+const TOM = {
+  alerta: "bg-[color-mix(in_oklab,var(--destructive)_9%,var(--card))]",
+  atencao: "bg-[color-mix(in_oklab,var(--warning)_16%,var(--card))]",
+  info: "bg-[color-mix(in_oklab,var(--info)_11%,var(--card))]",
+} as const;
+
+export function LinhaDeTabela({
+  tom,
+  children,
+}: {
+  tom?: keyof typeof TOM;
+  children: React.ReactNode;
+}) {
+  return (
+    <tr className={cn("border-b border-border bg-card last:border-0", tom && TOM[tom])}>
+      {children}
+    </tr>
+  );
 }

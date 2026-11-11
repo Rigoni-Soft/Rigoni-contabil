@@ -51,7 +51,7 @@ test.describe("Folha de ponto do RH", () => {
     await page.getByRole("button", { name: "Cadastrar empregado" }).click();
     // O cartão tem tela própria: a lista do quadro leva a ele.
     await page.getByRole("link", { name: "Cartão de ponto de Ana E2E" }).click();
-    await expect(page.getByRole("heading", { name: "Cartão de ponto de Ana E2E" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Ana E2E", exact: true })).toBeVisible();
 
     // Cada dia abre para editar pelo lápis; o ✓ da linha salva.
     await page.getByRole("button", { name: `Editar ${rotulo}` }).click();
@@ -99,7 +99,7 @@ test.describe("Folha de ponto do RH", () => {
     await expect(page).toHaveURL("/rh");
     await page.goto(`/rh/folha-de-ponto/${clienteId}/cartao/${empregado.data.id}?mes=${mes}`);
 
-    await expect(page.getByRole("heading", { name: "Cartão de ponto de Bia E2E" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Bia E2E", exact: true })).toBeVisible();
     await expect(page.getByLabel(`Entrada 1 de ${rotulo}`)).toHaveAttribute("readonly", "");
     await expect(page.getByRole("button", { name: `Editar ${rotulo}` })).toHaveCount(0);
     await expect(page.getByRole("button", { name: `Salvar ${rotulo}` })).toHaveCount(0);
