@@ -53,7 +53,7 @@ export type RegrasDaConvencao = {
   rejeitadas: RegraRejeitada[];
 };
 
-export type Unidade = "minutos" | "percentual" | "lista";
+type Unidade = "minutos" | "percentual" | "lista";
 
 // A legislação padrão que cada parâmetro substitui, para a tela mostrar a diferença. Em minutos ou %.
 // `piso`: percentual abaixo disso é rejeitado (a convenção não pode pagar menos que a lei).

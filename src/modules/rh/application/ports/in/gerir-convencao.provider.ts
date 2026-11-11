@@ -1,3 +1,4 @@
+import type { InterruptoresDoClienteDto } from "@/modules/rh/application/dtos/convencao.dto";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
@@ -9,11 +10,7 @@ export type EnviarConvencaoInput = {
   vigenciaFim: string;
   arquivo: { nome: string; bytes: Uint8Array };
 };
-export type DefinirInterruptoresDoClienteInput = {
-  clienteId: string;
-  bancoDeHoras: boolean;
-  trabalhoAosDomingos: boolean;
-};
+export type DefinirInterruptoresDoClienteInput = InterruptoresDoClienteDto & { clienteId: string };
 // Sindicato nulo = o empregado volta a seguir a única convenção do Cliente.
 export type DefinirConvencaoDoEmpregadoInput = { empregadoId: string; sindicato: string | null };
 
