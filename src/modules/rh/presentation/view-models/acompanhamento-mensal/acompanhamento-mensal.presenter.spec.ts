@@ -52,10 +52,8 @@ describe("acompanhamento-mensal.presenter", () => {
       undefined,
       "3 empregados cadastrados, 1 sem movimento · 1 de 2 cartões feitos no mês",
     ]);
-    expect(servicosDoCliente(dto, "outro").servicos.every((s) => s.detalhe === undefined)).toBe(
-      true,
-    );
     const { servicos, aviso } = servicosDoCliente(dto, "outro");
+    expect(servicos.every((s) => s.detalhe === undefined)).toBe(true);
     expect(aviso).toMatch(/não está na sua vista/);
     expect(servicos.map((s) => [s.nome, s.estado, s.bloqueio])).toEqual([
       ["FGTS", "pendente", aviso],
