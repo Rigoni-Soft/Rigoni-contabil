@@ -455,7 +455,7 @@ describe("CartaoDePontoContainer", () => {
     await userEvent.setup().click(screen.getByRole("button", { name: "Salvar" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Os horários foram salvos, mas o cartão não foi iniciado: Sem permissão.",
+      "Não foi possível iniciar o cartão: Sem permissão. Tente salvar de novo.",
     );
     expect(refresh).toHaveBeenCalled();
   });

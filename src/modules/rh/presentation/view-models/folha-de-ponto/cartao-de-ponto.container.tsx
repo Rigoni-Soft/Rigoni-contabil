@@ -148,7 +148,7 @@ export function CartaoDePontoContainer({ folha }: Props) {
           router.refresh();
           return setAvisoGeral({
             tipo: "erro",
-            texto: `Os horários foram salvos, mas o cartão não foi iniciado: ${falha}`,
+            texto: `Não foi possível iniciar o cartão: ${falha} Tente salvar de novo.`,
           });
         }
       }
@@ -177,7 +177,8 @@ export function CartaoDePontoContainer({ folha }: Props) {
         selecionado.dias.reduce((soma, d) => soma + d.trabalhadoMin, 0),
         cartaoNovo,
       )}
-      cartaoNovo={cartaoNovo}
+      // Empregado desligado não recebe cartão: o aviso "o Responsável o salva" não faz sentido para ele.
+      cartaoNovo={cartaoNovo && selecionado.empregado.ativo}
       avisoDaTotalizacao={selecionado.semConvencao ? AVISO_SEM_CONVENCAO : undefined}
       editavel={folha.podeEditar && selecionado.empregado.ativo}
       pendente={pendente}
