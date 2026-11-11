@@ -24,14 +24,10 @@ const LINHA = {
 const PROPS = {
   empregado: "Ana",
   empresa: "Teste Ltda",
-  periodo: "novembro de 2026, 2ª quinzena (16 ao fim)",
+  periodo: "novembro de 2026",
   cargaHoraria: [{ rotulo: "seg", valor: "8h45" }],
   rotuloMes: "novembro de 2026",
   mesAnteriorHref: "/rh/folha-de-ponto/c1?mes=2026-10",
-  quinzenas: [
-    { rotulo: "1ª quinzena (1 a 15)", href: "/q1", atual: false },
-    { rotulo: "2ª quinzena (16 ao fim)", href: "/q2", atual: true },
-  ],
   linhas: [LINHA],
   totais: {
     faltas: "1",
@@ -49,20 +45,14 @@ const PROPS = {
 };
 
 describe("CartaoDePonto", () => {
-  it("mostra o empregado, o mês, as quinzenas, os dias e a Totalização", () => {
+  it("mostra o empregado, o mês, os dias e a Totalização", () => {
     render(<CartaoDePonto {...PROPS} />);
 
     expect(screen.getByRole("heading", { name: "Cartão de ponto de Ana" })).toBeInTheDocument();
     expect(screen.getByText("novembro de 2026")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "2ª quinzena (16 ao fim)" })).toHaveAttribute(
-      "href",
-      "/q2",
-    );
     expect(screen.getByRole("form", { name: "Dia seg 16/11" })).toBeInTheDocument();
     expect(screen.getByText("1 dia")).toBeInTheDocument();
-    expect(
-      screen.getByText(/Empresa: Teste Ltda · Período: novembro de 2026, 2ª quinzena/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Empresa: Teste Ltda · Período: novembro de 2026/)).toBeInTheDocument();
     expect(
       screen.getByRole("region", { name: "Carga horária por dia da semana" }),
     ).toHaveTextContent("8h45");
@@ -91,18 +81,11 @@ describe("CartaoDePonto", () => {
     );
   });
 
-  it("aviso de outro dia não aparece nesta linha; a quinzena aberta é a atual", () => {
+  it("aviso de outro dia não aparece nesta linha", () => {
     render(
       <CartaoDePonto {...PROPS} aviso={{ data: "2026-11-17", tipo: "sucesso", texto: "Salvo." }} />,
     );
 
     expect(screen.queryByText("Salvo.")).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "2ª quinzena (16 ao fim)" })).toHaveAttribute(
-      "aria-current",
-      "true",
-    );
-    expect(screen.getByRole("link", { name: "1ª quinzena (1 a 15)" })).not.toHaveAttribute(
-      "aria-current",
-    );
   });
 });

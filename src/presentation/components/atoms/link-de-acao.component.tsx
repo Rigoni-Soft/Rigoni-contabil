@@ -10,7 +10,7 @@ type LinkDeAcaoProps = {
   className?: string;
   // Destino fora do app (ex.: link assinado): abre em nova aba, sem `opener`.
   externo?: boolean;
-  // O link da seleção em tela (empregado escolhido, quinzena aberta): além da variante, o leitor de tela ouve "atual".
+  // O link da seleção em tela (empregado escolhido): além da variante, o leitor de tela ouve "atual".
   atual?: boolean;
   // Nome acessível quando o texto visível sozinho é ambíguo (ex.: vários "Cartão de ponto →" numa lista).
   "aria-label"?: string;

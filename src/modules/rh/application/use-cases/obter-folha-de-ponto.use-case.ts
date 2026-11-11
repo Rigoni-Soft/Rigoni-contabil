@@ -22,16 +22,14 @@ import {
   type Jornada,
 } from "@/modules/rh/domain/services/totalizacao.service";
 import { Competencia } from "@/modules/rh/domain/value-objects/competencia.vo";
-import { diasDaQuinzena } from "@/modules/rh/domain/value-objects/quinzena.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ValidationError } from "@/shared/errors/validation.error";
-import { diaDoMes } from "@/shared/kernel/mes-atual";
 import { podeMarcarAcompanhamentoRh, podeVerAcompanhamentoRh } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// A Folha de ponto de um Cliente: o quadro, o cartão da quinzena do empregado escolhido e a Totalização
+// A Folha de ponto de um Cliente: o quadro, o cartão do mês do empregado escolhido e a Totalização
 // dele pela convenção vigente em cada dia do cartão (a legislação onde nenhuma vale). O Admin e o Líder do
 // RH leem; o Funcionário, só os Clientes de que é Responsável (a RLS repete o recorte: cliente fora da vista
 // do ator some).
@@ -57,9 +55,6 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
     if (competencia.value.ehFutura(agora)) {
       return err(new ValidationError("Não há cartão de um mês que ainda não começou."));
     }
-    // Sem quinzena pedida, a que está em andamento no mês corrente; nos meses passados, a primeira.
-    const noMesAtual = Competencia.atual(agora).valor === competencia.value.valor;
-    const quinzena = input.quinzena ?? (noMesAtual && diaDoMes(agora) > 15 ? 2 : 1);
 
     const cliente = await this.repositorio.buscarCliente(input.clienteId);
     if (!cliente.ok) return cliente;
@@ -80,7 +75,6 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
       clienteId: input.clienteId,
       empresa: cliente.value.empresa,
       competencia: competencia.value.valor,
-      quinzena,
       padraoComissionados: padrao.value,
       empregados: quadro,
       podeEditar:
@@ -93,7 +87,7 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
     const escolhido = quadro.find((e) => e.id === input.empregadoId);
     if (!escolhido) return err(new NotFoundError("Empregado não encontrado."));
 
-    const datas = diasDaQuinzena(competencia.value.valor, quinzena);
+    const datas = competencia.value.dias;
     const [lancados, feriados, historico, interruptores, ponteiros] = await Promise.all([
       this.repositorio.listarDias(escolhido.id, datas[0], datas[datas.length - 1]),
       this.repositorio.listarFeriados(datas[0], datas[datas.length - 1]),

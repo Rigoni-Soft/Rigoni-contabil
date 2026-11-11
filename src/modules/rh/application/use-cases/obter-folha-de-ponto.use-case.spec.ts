@@ -61,7 +61,7 @@ const convencoes = (lista: ConvencaoDto[] = []): ConvencaoRepository => ({
   inserir: async () => ok(undefined),
 });
 
-// 20/11/2026: mês corrente, na segunda quinzena.
+// 20/11/2026: mês corrente.
 const relogio = { agora: () => new Date("2026-11-20T15:00:00Z") };
 const obter = (ator: AtorSessaoDto | null, r = repo(), c = convencoes()) =>
   new ObterFolhaDePonto({ usuarioAtual: async () => ator }, r, c, relogio);
@@ -72,12 +72,11 @@ describe("ObterFolhaDePonto", () => {
     expect(r.ok).toBe(false);
   });
 
-  it("abre na quinzena em andamento, sem empregado escolhido, com o padrão do Cliente", async () => {
+  it("abre no mês corrente, sem empregado escolhido, com o padrão do Cliente", async () => {
     const r = await obter(FUNC).execute({ clienteId: "c1" });
     if (!r.ok) throw r.error;
     expect(r.value).toMatchObject({
       competencia: "2026-11",
-      quinzena: 2,
       padraoComissionados: true,
       selecionado: null,
     });
@@ -89,7 +88,10 @@ describe("ObterFolhaDePonto", () => {
     if (!r.ok) throw r.error;
     expect(r.value.selecionado?.empregado.nome).toBe("Ana");
     expect(r.value.empregados.find((e) => e.id === "e1")?.semMovimento).toBe(true);
-    expect(r.value.selecionado?.dias[0].data).toBe("2026-11-16");
+    // O cartão mostra o mês inteiro: novembro tem 30 dias, do 01 ao 30.
+    expect(r.value.selecionado?.dias).toHaveLength(30);
+    expect(r.value.selecionado?.dias[0].data).toBe("2026-11-01");
+    expect(r.value.selecionado?.dias[29].data).toBe("2026-11-30");
   });
 
   it("só o Responsável edita; o Líder lê", async () => {
@@ -117,10 +119,10 @@ describe("ObterFolhaDePonto", () => {
             },
           ]),
       }),
-    ).execute({ clienteId: "c1", empregadoId: "e1", competencia: "2026-11", quinzena: 2 });
+    ).execute({ clienteId: "c1", empregadoId: "e1", competencia: "2026-11" });
     if (!r.ok) throw r.error;
-    // 16 (seg) cumprido; faltam 17-19, 21, 23-28 e 30; 20 é feriado; domingos são ignorados.
-    expect(r.value.selecionado?.totalizacao).toMatchObject({ normaisMin: 525, faltas: 11 });
+    // Mês inteiro: 25 dias de seg a sáb; o 16 foi cumprido e o 20 é feriado, sobram 23 faltas; domingos são ignorados.
+    expect(r.value.selecionado?.totalizacao).toMatchObject({ normaisMin: 525, faltas: 23 });
   });
 
   it("empregado pedido que não é do Cliente não existe", async () => {
@@ -171,7 +173,7 @@ describe("ObterFolhaDePonto", () => {
       expect(s.semConvencao).toBe(true);
     });
 
-    it("quinzena sem nenhum lançamento não avisa: a convenção não mudaria nada", async () => {
+    it("mês sem nenhum lançamento não avisa: a convenção não mudaria nada", async () => {
       const s = await extrasDe([], repo());
       expect(s.semConvencao).toBe(false);
     });

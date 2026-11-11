@@ -33,14 +33,13 @@ export type TotaisDoCartao = {
 type Props = {
   empregado: string;
   empresa: string;
-  // Mês e quinzena do cartão, por extenso.
+  // Mês do cartão, por extenso.
   periodo: string;
   // A carga horária do empregado por dia da semana (a Jornada gravada).
   cargaHoraria: ItemDaTotalizacao[];
   rotuloMes: string;
   mesAnteriorHref: string;
   proximoMesHref?: string;
-  quinzenas: { rotulo: string; href: string; atual: boolean }[];
   linhas: LinhaDoCartao[];
   totais: TotaisDoCartao;
   totalizacao: ItemDaTotalizacao[];
@@ -55,7 +54,7 @@ type Props = {
   onSalvarDia: (data: string, campos: FormData) => void;
 };
 
-// O Cartão de ponto de um empregado numa quinzena, com a Totalização logo abaixo (a que vai para o PDF).
+// O Cartão de ponto de um empregado no mês inteiro (28 a 31 dias), com a Totalização logo abaixo (a que vai para o PDF).
 export function CartaoDePonto({
   empregado,
   empresa,
@@ -64,7 +63,6 @@ export function CartaoDePonto({
   rotuloMes,
   mesAnteriorHref,
   proximoMesHref,
-  quinzenas,
   linhas,
   totais,
   totalizacao,
@@ -94,18 +92,6 @@ export function CartaoDePonto({
         proximoHref={proximoMesHref}
         destaque
       />
-      <Linha como="nav" aria-label="Quinzena" espaco={2}>
-        {quinzenas.map((q) => (
-          <LinkDeAcao
-            key={q.rotulo}
-            href={q.href}
-            variant={q.atual ? "default" : "outline"}
-            atual={q.atual}
-          >
-            {q.rotulo}
-          </LinkDeAcao>
-        ))}
-      </Linha>
       <TotalizacaoDoPonto titulo="Carga horária por dia da semana" itens={cargaHoraria} />
       {!editavel && (
         <Texto variante="apoio">
@@ -177,7 +163,7 @@ export function CartaoDePonto({
         ))}
       </Tabela>
       {avisoDaTotalizacao && <Texto variante="apoio">{avisoDaTotalizacao}</Texto>}
-      <TotalizacaoDoPonto titulo="Totalização da quinzena" itens={totalizacao} />
+      <TotalizacaoDoPonto titulo="Totalização do mês" itens={totalizacao} />
     </Pilha>
   );
 }

@@ -21,7 +21,7 @@ import {
 
 type Props = { folha: FolhaDePontoDto };
 
-// O cartão da quinzena do empregado escolhido: cada dia é salvo à parte e a Totalização se recalcula na recarga.
+// O cartão do mês do empregado escolhido: cada dia é salvo à parte e a Totalização se recalcula na recarga.
 export function CartaoDePontoContainer({ folha }: Props) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
@@ -56,7 +56,7 @@ export function CartaoDePontoContainer({ folha }: Props) {
     <CartaoDePonto
       empregado={selecionado.empregado.nome}
       empresa={folha.empresa}
-      periodo={`${rotuloDaCompetencia(folha.competencia)}, ${folha.quinzena === 1 ? "1ª quinzena (1 a 15)" : "2ª quinzena (16 ao fim)"}`}
+      periodo={rotuloDaCompetencia(folha.competencia)}
       cargaHoraria={cargaHorariaDoCartao(selecionado.empregado.jornada)}
       rotuloMes={rotuloDaCompetencia(folha.competencia)}
       {...navegacaoDoCartao(folha)}

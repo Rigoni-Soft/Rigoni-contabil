@@ -547,8 +547,9 @@ escritório (`PLANILHA CARTAO PONTO`, aba do funcionário): tabela com divisóri
 Faixa") e linha **Totais** no rodapé (`rodape`: faltas e soma de cada coluna calculada). Colunas, na ordem da
 planilha: Data (fixa), Dia semana, Entrada, Saída, Entrada, Saída, Extra entrada, Extra saída, H. Diária,
 Atrasos, Abono, Horas Extras, A.N., 1ª Faixa, 2ª Faixa, Salvar. Entrada, Saída, Extra e Abono são campos do
-dia; o resto é calculado (nunca digitado). Acima da tabela: Empresa e Período, e a carga horária por dia da
-semana. Dia sem jornada marca "Folga" sob a data; dia com carga e sem batida, "Falta".
+dia; o resto é calculado (nunca digitado). Acima da tabela: Empresa e Período (o mês), e a carga horária por dia da
+semana. A tela mostra o **mês de trabalho inteiro**, de 28 a 31 dias, numa só tabela; a quinzena só
+importa na leitura da foto do cartão, não na exibição. Dia sem jornada marca "Folga" sob a data; dia com carga e sem batida, "Falta".
 
 - **Exceção de largura:** tabela de 16 colunas não cabe na largura de formulário; esta tela usa
   `largura="conteudo"` e a própria `Tabela` rola na horizontal (a primeira coluna fica à vista).

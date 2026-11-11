@@ -10,7 +10,7 @@ const FUNCIONARIO_RH_ID = "dddddddd-dddd-dddd-dddd-dddddddddddd";
 let clienteId = "";
 let cnpj = "";
 
-// Primeira segunda-feira do mês corrente: sempre cai na 1ª quinzena.
+// Primeira segunda-feira do mês corrente.
 function primeiraSegunda() {
   const mes = new Date().toISOString().slice(0, 7);
   const [ano, m] = mes.split("-").map(Number);
@@ -45,7 +45,7 @@ test.describe("Folha de ponto do RH", () => {
     const { mes, rotulo } = primeiraSegunda();
     await login(page, "funcionario.rh@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/rh");
-    await page.goto(`/rh/folha-de-ponto/${clienteId}?mes=${mes}&quinzena=1`);
+    await page.goto(`/rh/folha-de-ponto/${clienteId}?mes=${mes}`);
 
     await page.getByRole("form", { name: "Novo empregado" }).getByLabel("Nome").fill("Ana E2E");
     await page.getByRole("button", { name: "Cadastrar empregado" }).click();
@@ -95,9 +95,7 @@ test.describe("Folha de ponto do RH", () => {
 
     await login(page, "lider.rh@rigonicontabil.local", "lider123");
     await expect(page).toHaveURL("/rh");
-    await page.goto(
-      `/rh/folha-de-ponto/${clienteId}/cartao/${empregado.data.id}?mes=${mes}&quinzena=1`,
-    );
+    await page.goto(`/rh/folha-de-ponto/${clienteId}/cartao/${empregado.data.id}?mes=${mes}`);
 
     await expect(page.getByRole("heading", { name: "Cartão de ponto de Bia E2E" })).toBeVisible();
     await expect(page.getByLabel(`Entrada 1 de ${rotulo}`)).toHaveAttribute("readonly", "");

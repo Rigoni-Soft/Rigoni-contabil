@@ -155,7 +155,7 @@ Os empregados de um Cliente, só com nome e a marca "comissionado" (que define o
 A carga horária do empregado por dia da semana; zero significa que não trabalha nesse dia. O Funcionário do RH não a cadastra: a Totalização deve deduzi-la da Convenção coletiva e da legislação (enquanto isso, o sistema grava o padrão do comércio, 8h45 de segunda a sexta e 4h no sábado). Dia com carga e sem batida é falta, salvo Abono ou feriado; dia sem carga (domingo) é ignorado, salvo batida na coluna Extra, que vira hora extra.
 
 **Cartão de ponto**:
-O registro das batidas de um empregado em uma quinzena, lido de uma foto ou digitado, que alimenta a planilha dele e a Totalização. É entregue em PDF individual, com as Totalizações em destaque e linhas de assinatura física do responsável e do empregado do Cliente.
+O registro das batidas de um empregado no mês de trabalho inteiro (28 a 31 dias), lido de uma foto ou digitado, que alimenta a planilha dele e a Totalização. É entregue em PDF individual, com as Totalizações em destaque e linhas de assinatura física do responsável e do empregado do Cliente.
 
 **Abono**:
 Marca de que um dia (ou o horário) não conta como falta: por anotação "atestado" no cartão ou por atestado anexado cobrindo a data. Só a sinalização é guardada, nunca o motivo médico, o CID nem o documento. Declaração de comparecimento abona só o horário.

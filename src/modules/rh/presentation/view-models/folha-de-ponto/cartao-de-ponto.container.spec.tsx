@@ -23,7 +23,6 @@ const FOLHA: FolhaDePontoDto = {
   clienteId: "c1",
   empresa: "Teste Ltda",
   competencia: "2026-11",
-  quinzena: 2,
   padraoComissionados: false,
   empregados: [ANA],
   podeEditar: true,

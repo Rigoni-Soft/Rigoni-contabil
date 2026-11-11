@@ -37,7 +37,7 @@ function duracao(minutos: number): string {
 const dias = (n: number) => `${n} ${n === 1 ? "dia" : "dias"}`;
 
 export const AVISO_SEM_CONVENCAO =
-  "Sem convenção coletiva vigente em parte da quinzena: esses dias foram totalizados pela legislação.";
+  "Sem convenção coletiva vigente em parte do mês: esses dias foram totalizados pela legislação.";
 
 export function itensDaTotalizacao(t: TotalizacaoDto, trabalhadoMin: number): ItemDaTotalizacao[] {
   const extras = t.extras.length
@@ -121,9 +121,9 @@ export function linhasDoCartao(dias: DiaDaFolhaDto[]): LinhaDoCartao[] {
   });
 }
 
-type Pedido = { mes?: string; quinzena?: 1 | 2; empregado?: string };
+type Pedido = { mes?: string; empregado?: string };
 
-// "?mes=…&quinzena=…&empregado=…" só com o que foi pedido.
+// "?mes=…&empregado=…" só com o que foi pedido.
 function busca(parametros: Record<string, string | number | undefined>): string {
   const q = new URLSearchParams();
   for (const [chave, valor] of Object.entries(parametros)) if (valor) q.set(chave, String(valor));
@@ -131,21 +131,17 @@ function busca(parametros: Record<string, string | number | undefined>): string 
   return texto ? `?${texto}` : "";
 }
 
-// A quinzena do endereço: qualquer coisa fora de 1 e 2 é "não pedida".
-export const lerQuinzena = (q?: string): 1 | 2 | undefined =>
-  q === "1" ? 1 : q === "2" ? 2 : undefined;
-
-export function hrefDaFolha(clienteId: string, { mes, quinzena, empregado }: Pedido): string {
-  return `/rh/folha-de-ponto/${encodeURIComponent(clienteId)}${busca({ mes, quinzena, empregado })}`;
+export function hrefDaFolha(clienteId: string, { mes, empregado }: Pedido): string {
+  return `/rh/folha-de-ponto/${encodeURIComponent(clienteId)}${busca({ mes, empregado })}`;
 }
 
 // O Cartão de ponto de um empregado tem tela própria: o quadro cadastra, o cartão digita.
 export function hrefDoCartao(
   clienteId: string,
   empregadoId: string,
-  { mes, quinzena }: Pick<Pedido, "mes" | "quinzena">,
+  { mes }: Pick<Pedido, "mes">,
 ): string {
-  return `/rh/folha-de-ponto/${encodeURIComponent(clienteId)}/cartao/${encodeURIComponent(empregadoId)}${busca({ mes, quinzena })}`;
+  return `/rh/folha-de-ponto/${encodeURIComponent(clienteId)}/cartao/${encodeURIComponent(empregadoId)}${busca({ mes })}`;
 }
 
 function selos(e: EmpregadoDaFolhaDto): string[] {
@@ -162,12 +158,10 @@ export function quadroDoEmpregado(folha: FolhaDePontoDto): EmpregadoDoQuadro[] {
     nome: e.nome,
     href: hrefDaFolha(folha.clienteId, {
       mes: folha.competencia,
-      quinzena: folha.quinzena,
       empregado: e.id,
     }),
     cartaoHref: hrefDoCartao(folha.clienteId, e.id, {
       mes: folha.competencia,
-      quinzena: folha.quinzena,
     }),
     selecionado: e.id === folha.selecionado?.empregado.id,
     selos: selos(e),
@@ -190,18 +184,11 @@ export function empregadoEmEdicao(folha: FolhaDePontoDto): EmpregadoEmEdicao | u
 
 export function navegacaoDoCartao(folha: FolhaDePontoDto) {
   const empregado = folha.selecionado?.empregado.id ?? "";
-  const href = (p: Pick<Pedido, "mes" | "quinzena">) => hrefDoCartao(folha.clienteId, empregado, p);
+  const href = (mes: string) => hrefDoCartao(folha.clienteId, empregado, { mes });
   return {
-    mesAnteriorHref: href({ mes: mesVizinho(folha.competencia, -1), quinzena: 1 }),
+    mesAnteriorHref: href(mesVizinho(folha.competencia, -1)),
     proximoMesHref:
-      folha.competencia < mesAtual()
-        ? href({ mes: mesVizinho(folha.competencia, 1), quinzena: 1 })
-        : undefined,
-    quinzenas: ([1, 2] as const).map((q) => ({
-      rotulo: q === 1 ? "1ª quinzena (1 a 15)" : "2ª quinzena (16 ao fim)",
-      href: href({ mes: folha.competencia, quinzena: q }),
-      atual: q === folha.quinzena,
-    })),
+      folha.competencia < mesAtual() ? href(mesVizinho(folha.competencia, 1)) : undefined,
   };
 }
 

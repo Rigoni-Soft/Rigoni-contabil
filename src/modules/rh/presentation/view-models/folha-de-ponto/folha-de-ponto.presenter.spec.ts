@@ -29,7 +29,6 @@ const FOLHA: FolhaDePontoDto = {
   clienteId: "c1",
   empresa: "Teste Ltda",
   competencia: "2020-11",
-  quinzena: 2,
   padraoComissionados: false,
   empregados: [ANA, { ...ANA, id: "e2", nome: "Bia", ativo: false, comissionado: false }],
   podeEditar: true,
@@ -262,22 +261,21 @@ describe("quadro e navegação", () => {
   it("lista o quadro com selos e destaca o escolhido", () => {
     const [ana, bia] = quadroDoEmpregado(FOLHA);
     expect(ana).toMatchObject({ selecionado: true, selos: ["comissionado"] });
-    expect(ana.href).toBe("/rh/folha-de-ponto/c1?mes=2020-11&quinzena=2&empregado=e1");
-    expect(ana.cartaoHref).toBe("/rh/folha-de-ponto/c1/cartao/e1?mes=2020-11&quinzena=2");
+    expect(ana.href).toBe("/rh/folha-de-ponto/c1?mes=2020-11&empregado=e1");
+    expect(ana.cartaoHref).toBe("/rh/folha-de-ponto/c1/cartao/e1?mes=2020-11");
     expect(bia).toMatchObject({ selecionado: false, selos: ["desligado"] });
   });
 
-  it("navega entre meses (sem próximo no mês corrente) e quinzenas", () => {
+  it("navega entre meses (sem próximo no mês corrente)", () => {
     const nav = navegacaoDoCartao(FOLHA);
-    expect(nav.mesAnteriorHref).toContain("mes=2020-10&quinzena=1");
+    expect(nav.mesAnteriorHref).toContain("mes=2020-10");
     expect(nav.proximoMesHref).toContain("mes=2020-12");
-    expect(nav.quinzenas.map((q) => q.atual)).toEqual([false, true]);
     expect(navegacaoDoCartao({ ...FOLHA, competencia: "2099-01" }).proximoMesHref).toBeUndefined();
   });
 
-  it("hrefDoCartao leva ao cartão do empregado com o mês e a quinzena", () => {
-    expect(hrefDoCartao("c 1", "e1", { mes: "2026-11", quinzena: 2 })).toBe(
-      "/rh/folha-de-ponto/c%201/cartao/e1?mes=2026-11&quinzena=2",
+  it("hrefDoCartao leva ao cartão do empregado com o mês", () => {
+    expect(hrefDoCartao("c 1", "e1", { mes: "2026-11" })).toBe(
+      "/rh/folha-de-ponto/c%201/cartao/e1?mes=2026-11",
     );
     expect(hrefDoCartao("c1", "e1", {})).toBe("/rh/folha-de-ponto/c1/cartao/e1");
   });

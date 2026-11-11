@@ -28,6 +28,16 @@ export class Competencia {
     return `${this.props.valor}-01`;
   }
 
+  // Todos os dias do mês ("AAAA-MM-DD"): 28, 29, 30 ou 31.
+  get dias(): string[] {
+    const [ano, mes] = this.props.valor.split("-").map(Number);
+    const ultimo = new Date(Date.UTC(ano, mes, 0)).getUTCDate();
+    return Array.from(
+      { length: ultimo },
+      (_, i) => `${this.props.valor}-${String(i + 1).padStart(2, "0")}`,
+    );
+  }
+
   // Os `quantidade` meses terminados no mês desta competência, do mais antigo ao mais novo ("AAAA-MM").
   ultimosMeses(quantidade: number): string[] {
     return Array.from({ length: quantidade }, (_, i) =>

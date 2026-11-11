@@ -39,7 +39,6 @@ export type FolhaDePontoDto = {
   clienteId: string;
   empresa: string;
   competencia: string;
-  quinzena: 1 | 2;
   // Padrão do Cliente: os empregados novos já nascem comissionados.
   padraoComissionados: boolean;
   empregados: EmpregadoDaFolhaDto[];
@@ -50,7 +49,7 @@ export type FolhaDePontoDto = {
     empregado: EmpregadoDaFolhaDto;
     dias: DiaDaFolhaDto[];
     totalizacao: TotalizacaoDto;
-    // Algum dia da quinzena sem convenção vigente: a Totalização desses dias é pela legislação.
+    // Algum dia do mês sem convenção vigente: a Totalização desses dias é pela legislação.
     semConvencao: boolean;
   } | null;
 };

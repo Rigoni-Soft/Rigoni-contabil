@@ -35,7 +35,6 @@ const FOLHA: FolhaDePontoDto = {
   clienteId: "c1",
   empresa: "Teste Ltda",
   competencia: "2026-11",
-  quinzena: 1,
   padraoComissionados: false,
   empregados: [ANA],
   podeEditar: true,
@@ -102,11 +101,11 @@ describe("QuadroDeFuncionariosContainer", () => {
     expect(screen.queryByRole("form", { name: "Novo empregado" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Cartão de ponto de Ana" })).toHaveAttribute(
       "href",
-      "/rh/folha-de-ponto/c1/cartao/e1?mes=2026-11&quinzena=1",
+      "/rh/folha-de-ponto/c1/cartao/e1?mes=2026-11",
     );
     expect(screen.getByRole("link", { name: "Novo empregado" })).toHaveAttribute(
       "href",
-      "/rh/folha-de-ponto/c1?mes=2026-11&quinzena=1",
+      "/rh/folha-de-ponto/c1?mes=2026-11",
     );
   });
 

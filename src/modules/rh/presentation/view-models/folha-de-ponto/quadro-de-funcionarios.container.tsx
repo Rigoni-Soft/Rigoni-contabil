@@ -67,7 +67,7 @@ export function QuadroDeFuncionariosContainer({ folha }: Props) {
       erro={erro}
       erroDoNovo={erroDoNovo}
       chaveDoNovo={chaveDoNovo}
-      novoHref={hrefDaFolha(folha.clienteId, { mes: folha.competencia, quinzena: folha.quinzena })}
+      novoHref={hrefDaFolha(folha.clienteId, { mes: folha.competencia })}
       onCadastrar={(campos) => {
         const lido = lerEmpregadoDoFormulario(campos);
         executar(
