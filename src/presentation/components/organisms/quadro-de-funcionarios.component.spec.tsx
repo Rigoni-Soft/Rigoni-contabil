@@ -121,6 +121,16 @@ describe("QuadroDeFuncionarios", () => {
     expect(screen.getByRole("link", { name: "Cancelar" })).toHaveAttribute("href", "/novo");
   });
 
+  it("o erro da edição fica no formulário Editar e ligado ao campo Nome", () => {
+    render(<QuadroDeFuncionarios {...PROPS} erro="Sem permissão." />);
+
+    const nome = screen
+      .getByRole("form", { name: "Corrigir empregado" })
+      .querySelector("input[name=nome]")!;
+    expect(nome).toHaveAccessibleDescription("Sem permissão.");
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+  });
+
   it("em leitura não oferece nenhuma escrita", () => {
     render(<QuadroDeFuncionarios {...PROPS} editavel={false} />);
 

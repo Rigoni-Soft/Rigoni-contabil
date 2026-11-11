@@ -4,6 +4,7 @@ import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.compone
 import { AcompanhamentoMensalPage } from "@/presentation/components/pages/acompanhamento-mensal.page";
 import { exigirSessao } from "@/presentation/view-models/shell/shell.server";
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
+import { lerQuinzena } from "@/modules/rh/presentation/view-models/folha-de-ponto/folha-de-ponto.presenter";
 import { carregarFolhaDePonto } from "@/modules/rh/presentation/view-models/folha-de-ponto/folha-de-ponto.server";
 import { QuadroDeFuncionariosContainer } from "@/modules/rh/presentation/view-models/folha-de-ponto/quadro-de-funcionarios.container";
 import { podeVerAcompanhamentoRh } from "@/shared/kernel/papeis";
@@ -24,7 +25,7 @@ export default async function Page({ params, searchParams }: Props) {
   const folha = await carregarFolhaDePonto({
     clienteId,
     competencia: mes,
-    quinzena: quinzena === "1" ? 1 : quinzena === "2" ? 2 : undefined,
+    quinzena: lerQuinzena(quinzena),
     empregadoId: empregado,
   });
 

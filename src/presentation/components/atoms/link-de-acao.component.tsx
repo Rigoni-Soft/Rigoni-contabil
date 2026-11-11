@@ -6,6 +6,7 @@ import { cn } from "@/presentation/lib/utils";
 type LinkDeAcaoProps = {
   href: string;
   variant?: "default" | "destructive" | "outline" | "ghost";
+  size?: "default" | "sm" | "icon";
   className?: string;
   // Destino fora do app (ex.: link assinado): abre em nova aba, sem `opener`.
   externo?: boolean;
@@ -20,6 +21,7 @@ type LinkDeAcaoProps = {
 export function LinkDeAcao({
   href,
   variant = "outline",
+  size,
   className,
   externo,
   atual,
@@ -31,7 +33,7 @@ export function LinkDeAcao({
       href={href}
       aria-label={rotulo}
       aria-current={atual ? "true" : undefined}
-      className={cn(buttonVariants({ variant }), className)}
+      className={cn(buttonVariants({ variant, size }), className)}
       {...(externo && { target: "_blank", rel: "noopener noreferrer" })}
     >
       {children}

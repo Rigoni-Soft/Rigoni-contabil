@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { Pencil, Plus } from "lucide-react";
+import { Eye, Pencil, Plus } from "lucide-react";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcacao.component";
@@ -9,7 +8,7 @@ import { ListaComDivisores } from "@/presentation/components/atoms/lista-com-div
 import { NotaDeObrigatorio } from "@/presentation/components/atoms/nota-de-obrigatorio.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
-import { Button, buttonVariants } from "@/presentation/components/ui/button";
+import { Button } from "@/presentation/components/ui/button";
 import { MOLDURA_DO_CARTAO } from "@/presentation/lib/moldura-do-cartao";
 import { cn } from "@/presentation/lib/utils";
 
@@ -79,7 +78,9 @@ function CamposDoEmpregado({
         required
         maxLength={120}
         className="gap-1 sm:col-span-2"
-        aria-describedby={erro ? "erro-do-novo-empregado" : undefined}
+        aria-describedby={
+          erro ? `erro-do-${prefixo === "novo" ? "novo" : "corrigir"}-empregado` : undefined
+        }
         aria-invalid={!!erro}
       />
       <Caixa className="flex min-h-9 items-center sm:col-span-2 sm:self-end pointer-coarse:min-h-11">
@@ -126,7 +127,7 @@ export function QuadroDeFuncionarios({
           </LinkDeAcao>
         )}
       </Linha>
-      {erro && <AvisoDeStatus tipo="erro" legivel texto={erro} />}
+      {erro && !emEdicao && <AvisoDeStatus tipo="erro" legivel texto={erro} />}
 
       {editavel && (
         <CaixaDeMarcacao
@@ -146,22 +147,25 @@ export function QuadroDeFuncionarios({
         <ListaComDivisores>
           {empregados.map((e) => (
             <Caixa como="li" key={e.id} className={cn(e.selecionado && "bg-accent/50")}>
-              <Linha alinhar="centro" justificar="entre" espaco={3} className="px-4 py-3">
+              <Linha alinhar="centro" justificar="entre" espaco={3} quebra className="px-4 py-3">
                 <Texto variante="destaque" className="min-w-0 [overflow-wrap:anywhere] break-words">
                   {e.nome}
                 </Texto>
                 <Linha alinhar="centro" espaco={2} className="shrink-0">
-                  <Link
+                  <LinkDeAcao
                     href={e.href}
+                    variant="outline"
+                    size="icon"
+                    atual={e.selecionado}
                     aria-label={`${editavel ? "Editar" : "Ver"} ${e.nome}`}
-                    aria-current={e.selecionado ? "true" : undefined}
-                    className={cn(
-                      buttonVariants({ variant: "outline", size: "icon" }),
-                      "pointer-coarse:size-11",
-                    )}
+                    className="pointer-coarse:size-11"
                   >
-                    <Pencil className="size-4" aria-hidden="true" />
-                  </Link>
+                    {editavel ? (
+                      <Pencil className="size-4" aria-hidden="true" />
+                    ) : (
+                      <Eye className="size-4" aria-hidden="true" />
+                    )}
+                  </LinkDeAcao>
                   {/* Ação principal da linha: cheio na cor primária; o lápis fica neutro, só contorno. */}
                   <LinkDeAcao
                     href={e.cartaoHref}
@@ -241,8 +245,14 @@ export function QuadroDeFuncionarios({
                   prefixo="corrigir"
                   nome={emEdicao.nome}
                   comissionado={emEdicao.comissionado}
+                  erro={erro}
                 />
               </Grade>
+              {erro && (
+                <Caixa id="erro-do-corrigir-empregado">
+                  <AvisoDeStatus tipo="erro" legivel texto={erro} />
+                </Caixa>
+              )}
               {editavel && (
                 <CaixaDeMarcacao
                   rotulo={`Sem movimento em ${rotuloMes}`}

@@ -88,13 +88,20 @@ export function linhasDoCartao(dias: DiaDaFolhaDto[]): LinhaDoCartao[] {
 
 type Pedido = { mes?: string; quinzena?: 1 | 2; empregado?: string };
 
+// "?mes=…&quinzena=…&empregado=…" só com o que foi pedido.
+function busca(parametros: Record<string, string | number | undefined>): string {
+  const q = new URLSearchParams();
+  for (const [chave, valor] of Object.entries(parametros)) if (valor) q.set(chave, String(valor));
+  const texto = q.toString();
+  return texto ? `?${texto}` : "";
+}
+
+// A quinzena do endereço: qualquer coisa fora de 1 e 2 é "não pedida".
+export const lerQuinzena = (q?: string): 1 | 2 | undefined =>
+  q === "1" ? 1 : q === "2" ? 2 : undefined;
+
 export function hrefDaFolha(clienteId: string, { mes, quinzena, empregado }: Pedido): string {
-  const busca = new URLSearchParams();
-  if (mes) busca.set("mes", mes);
-  if (quinzena) busca.set("quinzena", String(quinzena));
-  if (empregado) busca.set("empregado", empregado);
-  const texto = busca.toString();
-  return `/rh/folha-de-ponto/${encodeURIComponent(clienteId)}${texto ? `?${texto}` : ""}`;
+  return `/rh/folha-de-ponto/${encodeURIComponent(clienteId)}${busca({ mes, quinzena, empregado })}`;
 }
 
 // O Cartão de ponto de um empregado tem tela própria: o quadro cadastra, o cartão digita.
@@ -103,11 +110,7 @@ export function hrefDoCartao(
   empregadoId: string,
   { mes, quinzena }: Pick<Pedido, "mes" | "quinzena">,
 ): string {
-  const busca = new URLSearchParams();
-  if (mes) busca.set("mes", mes);
-  if (quinzena) busca.set("quinzena", String(quinzena));
-  const texto = busca.toString();
-  return `/rh/folha-de-ponto/${encodeURIComponent(clienteId)}/cartao/${encodeURIComponent(empregadoId)}${texto ? `?${texto}` : ""}`;
+  return `/rh/folha-de-ponto/${encodeURIComponent(clienteId)}/cartao/${encodeURIComponent(empregadoId)}${busca({ mes, quinzena })}`;
 }
 
 function selos(e: EmpregadoDaFolhaDto): string[] {
