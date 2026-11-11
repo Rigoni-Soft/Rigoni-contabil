@@ -92,8 +92,10 @@ begin
     end if;
     return new;
   end if;
-  if tg_table_name = 'rh_ponto_dias' and tg_op = 'UPDATE' and new.data <> old.data then
-    raise exception 'rh_ponto_dia_imutavel';
+  if tg_table_name = 'rh_ponto_dias' and tg_op = 'UPDATE' then
+    if new.data <> old.data then
+      raise exception 'rh_ponto_dia_imutavel';
+    end if;
   end if;
   if not exists (select 1 from public.rh_empregados where id = new.empregado_id and ativo) then
     raise exception 'rh_empregado_inativo';
