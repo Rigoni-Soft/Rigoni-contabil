@@ -36,6 +36,10 @@ type Props = {
   editavel: boolean;
   pendente: boolean;
   erro?: string;
+  // Erro do cadastro: aparece colado ao formulário "Novo empregado" e ligado ao campo Nome.
+  erroDoNovo?: string;
+  // Muda quando o cadastro dá certo: o formulário é remontado e o que foi digitado some.
+  chaveDoNovo: number;
   onCadastrar: (campos: FormData) => void;
   onCorrigir: (campos: FormData) => void;
   onAtivo: (ativo: boolean) => void;
@@ -47,20 +51,30 @@ function CamposDoEmpregado({
   nome,
   comissionado,
   cargas,
+  erro,
 }: {
   nome: string;
   comissionado: boolean;
   cargas: string[];
+  erro?: string;
 }) {
   return (
     <>
-      <Caixa como="label" className="flex flex-col gap-1 text-xs font-semibold">
+      <Caixa como="label" className="flex flex-col gap-1 text-sm font-semibold">
         Nome
-        <Input name="nome" defaultValue={nome} required maxLength={120} className="w-64" />
+        <Input
+          name="nome"
+          defaultValue={nome}
+          required
+          maxLength={120}
+          className="w-64"
+          aria-invalid={!!erro}
+          aria-describedby={erro ? "erro-do-novo-empregado" : undefined}
+        />
       </Caixa>
       <Linha alinhar="fim" espaco={2} quebra>
         {DIAS.map((dia, i) => (
-          <Caixa como="label" key={dia} className="flex flex-col gap-1 text-xs font-semibold">
+          <Caixa como="label" key={dia} className="flex flex-col gap-1 text-sm font-semibold">
             {dia}
             <Input
               type="time"
@@ -87,6 +101,8 @@ export function QuadroDeFuncionarios({
   editavel,
   pendente,
   erro,
+  erroDoNovo,
+  chaveDoNovo,
   onCadastrar,
   onCorrigir,
   onAtivo,
@@ -100,13 +116,19 @@ export function QuadroDeFuncionarios({
       </Texto>
       {erro && <AvisoDeStatus tipo="erro" legivel texto={erro} />}
       {empregados.length === 0 ? (
-        <Texto variante="apoio">Nenhum empregado cadastrado neste cliente.</Texto>
+        <Texto variante="apoio">
+          Nenhum empregado cadastrado neste cliente.{editavel && " Cadastre o primeiro abaixo."}
+        </Texto>
       ) : (
         <Pilha como="ul" espaco={2} aria-label="Empregados">
           {empregados.map((e) => (
             <Caixa como="li" key={e.id}>
               <Linha alinhar="centro" espaco={3} quebra>
-                <LinkDeAcao href={e.href} variant={e.selecionado ? "default" : "outline"}>
+                <LinkDeAcao
+                  href={e.href}
+                  variant={e.selecionado ? "default" : "outline"}
+                  atual={e.selecionado}
+                >
                   {e.nome}
                 </LinkDeAcao>
                 {e.selos.length > 0 && <Texto variante="nota">{e.selos.join(" · ")}</Texto>}
@@ -128,18 +150,28 @@ export function QuadroDeFuncionarios({
       {editavel && (
         <Caixa
           como="form"
+          key={chaveDoNovo}
           aria-label="Novo empregado"
           onSubmit={(e) => {
             e.preventDefault();
             onCadastrar(new FormData(e.currentTarget));
-            e.currentTarget.reset();
           }}
         >
           <Pilha espaco={3}>
             <Texto como="h3" variante="rotuloDeSecao">
               Novo empregado
             </Texto>
-            <CamposDoEmpregado nome="" comissionado={padraoComissionados} cargas={cargasPadrao} />
+            <CamposDoEmpregado
+              nome=""
+              comissionado={padraoComissionados}
+              cargas={cargasPadrao}
+              erro={erroDoNovo}
+            />
+            {erroDoNovo && (
+              <Caixa id="erro-do-novo-empregado">
+                <AvisoDeStatus tipo="erro" legivel texto={erroDoNovo} />
+              </Caixa>
+            )}
             <Button type="submit" size="sm" disabled={pendente} className="self-start">
               Cadastrar empregado
             </Button>

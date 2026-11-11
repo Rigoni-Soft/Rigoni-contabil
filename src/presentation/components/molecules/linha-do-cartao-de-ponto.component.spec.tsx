@@ -39,12 +39,27 @@ describe("LinhaDoCartaoDePonto", () => {
     expect(campos.get("abono")).not.toBeNull();
   });
 
-  it("em leitura, trava os campos e some com o Salvar", () => {
+  it("mostra o aviso do dia e o liga aos campos", () => {
+    render(
+      <LinhaDoCartaoDePonto
+        linha={LINHA}
+        editavel
+        pendente={false}
+        aviso={{ tipo: "sucesso", texto: "Salvo." }}
+        onSalvar={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent("Salvo.");
+    expect(screen.getByLabelText("Entrada 1 de seg 16/11")).toHaveAccessibleDescription("Salvo.");
+  });
+
+  it("em leitura, os horários seguem legíveis (readOnly) e some o Salvar", () => {
     render(
       <LinhaDoCartaoDePonto linha={LINHA} editavel={false} pendente={false} onSalvar={jest.fn()} />,
     );
 
-    expect(screen.getByLabelText("Entrada 1 de seg 16/11")).toBeDisabled();
+    expect(screen.getByLabelText("Entrada 1 de seg 16/11")).toHaveAttribute("readonly");
     expect(screen.queryByRole("button", { name: /Salvar/ })).not.toBeInTheDocument();
   });
 });

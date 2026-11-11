@@ -1,3 +1,4 @@
+import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcacao.component";
 import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
@@ -20,11 +21,15 @@ export type LinhaDoCartao = {
   nota?: string;
 };
 
+// Resultado do último "Salvar" deste dia, ao lado dele (não no topo do cartão).
+export type AvisoDoDia = { tipo: "erro" | "sucesso"; texto: string };
+
 type Props = {
   linha: LinhaDoCartao;
   // Sem edição (Líder, Admin ou outro Responsável), os campos ficam travados e sem "Salvar".
   editavel: boolean;
   pendente: boolean;
+  aviso?: AvisoDoDia;
   onSalvar: (data: string, campos: FormData) => void;
 };
 
@@ -39,7 +44,8 @@ const CAMPOS = [
 
 // Um dia do Cartão de ponto: batidas digitadas, coluna Extra e Abono, salvos por dia.
 // ponytail: dois pares de batida + Extra na tela (o banco guarda até quatro); mais pares quando um cartão pedir.
-export function LinhaDoCartaoDePonto({ linha, editavel, pendente, onSalvar }: Props) {
+export function LinhaDoCartaoDePonto({ linha, editavel, pendente, aviso, onSalvar }: Props) {
+  const idDoAviso = `aviso-${linha.data}`;
   return (
     <Caixa
       como="form"
@@ -59,14 +65,16 @@ export function LinhaDoCartaoDePonto({ linha, editavel, pendente, onSalvar }: Pr
           )}
         </Texto>
         {CAMPOS.map(([nome, rotulo]) => (
-          <Caixa como="label" key={nome} className="flex flex-col gap-1 text-xs font-semibold">
+          <Caixa como="label" key={nome} className="flex flex-col gap-1 text-sm font-semibold">
             {rotulo}
             <Input
               type="time"
               name={nome}
               defaultValue={linha[nome]}
-              disabled={!editavel}
+              // readOnly: em leitura o horário segue legível e focável (disabled o esmaece e tira da tabulação).
+              readOnly={!editavel}
               aria-label={`${rotulo} de ${linha.rotulo}`}
+              aria-describedby={aviso ? idDoAviso : undefined}
               className="w-28"
             />
           </Caixa>
@@ -84,6 +92,11 @@ export function LinhaDoCartaoDePonto({ linha, editavel, pendente, onSalvar }: Pr
           </Button>
         )}
       </Linha>
+      {aviso && (
+        <Caixa id={idDoAviso} className="pt-1">
+          <AvisoDeStatus tipo={aviso.tipo} legivel texto={aviso.texto} />
+        </Caixa>
+      )}
     </Caixa>
   );
 }

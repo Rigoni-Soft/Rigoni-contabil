@@ -121,6 +121,23 @@ describe("QuadroDeFuncionariosContainer", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Sem conexão com o servidor");
   });
 
+  it("recusa do servidor no cadastro preserva o nome digitado", async () => {
+    jest.mocked(cadastrarEmpregadoAction).mockResolvedValueOnce({
+      ok: false,
+      error: { code: "forbidden", message: "Sem permissão." },
+    } as never);
+    render(<QuadroDeFuncionariosContainer folha={FOLHA} />);
+    const campoNome = screen
+      .getByRole("form", { name: "Novo empregado" })
+      .querySelector<HTMLInputElement>("input[name=nome]")!;
+
+    await userEvent.setup().type(campoNome, "Caio");
+    await userEvent.setup().click(screen.getByRole("button", { name: "Cadastrar empregado" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Sem permissão.");
+    expect(campoNome).toHaveValue("Caio");
+  });
+
   it("Jornada incompleta no cadastro é recusada sem chamar o servidor", async () => {
     render(<QuadroDeFuncionariosContainer folha={FOLHA} />);
     const novo = screen.getByRole("form", { name: "Novo empregado" });

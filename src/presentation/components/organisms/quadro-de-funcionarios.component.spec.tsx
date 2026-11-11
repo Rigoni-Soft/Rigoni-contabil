@@ -20,6 +20,7 @@ const PROPS = {
   cargasPadrao: CARGAS,
   padraoComissionados: false,
   rotuloMes: "novembro de 2026",
+  chaveDoNovo: 0,
   editavel: true,
   pendente: false,
   onCadastrar: jest.fn(),
@@ -43,7 +44,7 @@ describe("QuadroDeFuncionarios", () => {
   it("quadro vazio avisa", () => {
     render(<QuadroDeFuncionarios {...PROPS} empregados={[]} emEdicao={undefined} />);
 
-    expect(screen.getByText("Nenhum empregado cadastrado neste cliente.")).toBeInTheDocument();
+    expect(screen.getByText(/Nenhum empregado cadastrado neste cliente./)).toBeInTheDocument();
   });
 
   it("cadastra um empregado com nome e Jornada de partida", async () => {
@@ -71,6 +72,25 @@ describe("QuadroDeFuncionarios", () => {
     expect(PROPS.onAtivo).toHaveBeenCalledWith(false);
     expect(PROPS.onSemMovimento).toHaveBeenCalledWith(true);
     expect(PROPS.onPadrao).toHaveBeenCalledWith(true);
+  });
+
+  it("marca o empregado escolhido para o leitor de tela e avisa como começar", () => {
+    const { rerender } = render(<QuadroDeFuncionarios {...PROPS} />);
+
+    expect(screen.getByRole("link", { name: "Ana" })).toHaveAttribute("aria-current", "true");
+    expect(screen.getByRole("link", { name: "Bia" })).not.toHaveAttribute("aria-current");
+
+    rerender(<QuadroDeFuncionarios {...PROPS} empregados={[]} emEdicao={undefined} />);
+    expect(screen.getByText(/Cadastre o primeiro abaixo/)).toBeInTheDocument();
+  });
+
+  it("o erro do cadastro fica no formulário e ligado ao campo Nome", () => {
+    render(<QuadroDeFuncionarios {...PROPS} erroDoNovo="Nome inválido." />);
+
+    const novo = screen.getByRole("form", { name: "Novo empregado" });
+    const nome = novo.querySelector("input[name=nome]")!;
+    expect(nome).toHaveAttribute("aria-invalid", "true");
+    expect(nome).toHaveAccessibleDescription("Nome inválido.");
   });
 
   it("em leitura não oferece nenhuma escrita", () => {

@@ -66,6 +66,7 @@ describe("CartaoDePontoContainer", () => {
     await u.click(screen.getByRole("button", { name: "Salvar seg 16/11" }));
 
     await waitFor(() => expect(refresh).toHaveBeenCalled());
+    expect(await screen.findByRole("status")).toHaveTextContent("Salvo.");
     expect(salvarDiaDoPontoAction).toHaveBeenCalledWith({
       empregadoId: "e1",
       data: "2026-11-16",

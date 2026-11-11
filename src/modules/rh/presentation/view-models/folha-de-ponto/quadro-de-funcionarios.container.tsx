@@ -30,19 +30,28 @@ export function QuadroDeFuncionariosContainer({ folha }: Props) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
   const [erro, setErro] = useState<string>();
+  const [erroDoNovo, setErroDoNovo] = useState<string>();
+  const [chaveDoNovo, setChaveDoNovo] = useState(0);
   const escolhido = folha.selecionado?.empregado;
 
   // Toda escrita compartilha o ciclo: erro do servidor, recarga da tela e falha de transporte.
-  const executar = (acao: () => Promise<ActionResult<void>>) =>
+  const executar = (
+    acao: () => Promise<ActionResult<void>>,
+    { cadastro = false }: { cadastro?: boolean } = {},
+  ) =>
     iniciar(async () => {
+      const falhar = cadastro ? setErroDoNovo : setErro;
       setErro(undefined);
+      setErroDoNovo(undefined);
       try {
         const r = await acao();
-        if (!r.ok) return setErro(r.error.message);
+        if (!r.ok) return falhar(r.error.message);
+        // Só o sucesso limpa o formulário do novo empregado: a recusa preserva o que foi digitado.
+        if (cadastro) setChaveDoNovo((c) => c + 1);
         router.refresh();
       } catch (e) {
         console.error("Falha ao gravar o quadro de funcionários", e);
-        setErro(mensagemDaFalha(e));
+        falhar(mensagemDaFalha(e));
       }
     });
 
@@ -56,16 +65,20 @@ export function QuadroDeFuncionariosContainer({ folha }: Props) {
       editavel={folha.podeEditar}
       pendente={pendente}
       erro={erro}
+      erroDoNovo={erroDoNovo}
+      chaveDoNovo={chaveDoNovo}
       onCadastrar={(campos) => {
         const lido = lerEmpregadoDoFormulario(campos);
-        if (!lido.ok) return setErro(lido.erro);
-        executar(() =>
-          cadastrarEmpregadoAction({
-            clienteId: folha.clienteId,
-            nome: lido.nome,
-            jornada: lido.jornada,
-            comissionado: lido.comissionado,
-          }),
+        if (!lido.ok) return setErroDoNovo(lido.erro);
+        executar(
+          () =>
+            cadastrarEmpregadoAction({
+              clienteId: folha.clienteId,
+              nome: lido.nome,
+              jornada: lido.jornada,
+              comissionado: lido.comissionado,
+            }),
+          { cadastro: true },
         );
       }}
       onCorrigir={(campos) => {

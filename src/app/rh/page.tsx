@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 
-import { Linha } from "@/presentation/components/atoms/caixa.component";
 import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { ComparativosRh } from "@/presentation/components/organisms/comparativos-rh.component";
@@ -75,9 +74,9 @@ export default async function Page() {
       }
       acoes={
         <>
-          <Linha espaco={2}>
-            <LinkDeAcao href={ROTA_RH_FOLHA_DE_PONTO}>Folha de ponto</LinkDeAcao>
-          </Linha>
+          <LinkDeAcao href={ROTA_RH_FOLHA_DE_PONTO} className="self-start">
+            Folha de ponto
+          </LinkDeAcao>
           {!mensal.ok && (
             <Texto variante="alerta" role="alert">
               Não foi possível carregar o acompanhamento. Recarregue a página.

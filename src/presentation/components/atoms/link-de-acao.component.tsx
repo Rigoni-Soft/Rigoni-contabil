@@ -9,6 +9,8 @@ type LinkDeAcaoProps = {
   className?: string;
   // Destino fora do app (ex.: link assinado): abre em nova aba, sem `opener`.
   externo?: boolean;
+  // O link da seleção em tela (empregado escolhido, quinzena aberta): além da variante, o leitor de tela ouve "atual".
+  atual?: boolean;
   children: React.ReactNode;
 };
 
@@ -18,11 +20,13 @@ export function LinkDeAcao({
   variant = "outline",
   className,
   externo,
+  atual,
   children,
 }: LinkDeAcaoProps) {
   return (
     <Link
       href={href}
+      aria-current={atual ? "true" : undefined}
       className={cn(buttonVariants({ variant }), className)}
       {...(externo && { target: "_blank", rel: "noopener noreferrer" })}
     >

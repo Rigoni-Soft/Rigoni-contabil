@@ -101,7 +101,7 @@ test.describe("Folha de ponto do RH", () => {
     );
 
     await expect(page.getByRole("heading", { name: "Cartão de ponto de Bia E2E" })).toBeVisible();
-    await expect(page.getByLabel(`Entrada 1 de ${rotulo}`)).toBeDisabled();
+    await expect(page.getByLabel(`Entrada 1 de ${rotulo}`)).toHaveAttribute("readonly", "");
     await expect(page.getByRole("button", { name: "Cadastrar empregado" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: `Salvar ${rotulo}` })).toHaveCount(0);
   });

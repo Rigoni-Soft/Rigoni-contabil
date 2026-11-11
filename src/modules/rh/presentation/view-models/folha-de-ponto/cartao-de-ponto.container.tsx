@@ -22,15 +22,15 @@ type Props = { folha: FolhaDePontoDto };
 export function CartaoDePontoContainer({ folha }: Props) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
-  const [erro, setErro] = useState<string>();
+  const [aviso, setAviso] = useState<{ data: string; tipo: "erro" | "sucesso"; texto: string }>();
   const { selecionado } = folha;
   if (!selecionado) return null;
 
   const salvarDia = (data: string, campos: FormData) => {
     const lido = lerDiaDoFormulario(campos);
-    if (!lido.ok) return setErro(lido.erro);
+    if (!lido.ok) return setAviso({ data, tipo: "erro", texto: lido.erro });
     iniciar(async () => {
-      setErro(undefined);
+      setAviso(undefined);
       try {
         const r = await salvarDiaDoPontoAction({
           empregadoId: selecionado.empregado.id,
@@ -39,11 +39,12 @@ export function CartaoDePontoContainer({ folha }: Props) {
           extra: lido.extra,
           abono: lido.abono,
         });
-        if (!r.ok) return setErro(r.error.message);
+        if (!r.ok) return setAviso({ data, tipo: "erro", texto: r.error.message });
+        setAviso({ data, tipo: "sucesso", texto: "Salvo." });
         router.refresh();
       } catch (e) {
         console.error("Falha ao salvar o dia do cartão de ponto", e);
-        setErro(mensagemDaFalha(e));
+        setAviso({ data, tipo: "erro", texto: mensagemDaFalha(e) });
       }
     });
   };
@@ -57,7 +58,8 @@ export function CartaoDePontoContainer({ folha }: Props) {
       totalizacao={itensDaTotalizacao(selecionado.totalizacao)}
       editavel={folha.podeEditar && selecionado.empregado.ativo}
       pendente={pendente}
-      erro={erro}
+      aviso={aviso}
+      empregadoId={selecionado.empregado.id}
       onSalvarDia={salvarDia}
     />
   );

@@ -23,6 +23,7 @@ const PROPS = {
   ],
   linhas: [LINHA],
   totalizacao: [{ rotulo: "Faltas", valor: "1 dia" }],
+  empregadoId: "e1",
   editavel: true,
   pendente: false,
   onSalvarDia: jest.fn(),
@@ -49,9 +50,32 @@ describe("CartaoDePonto", () => {
     expect(screen.queryByRole("button", { name: /Salvar/ })).not.toBeInTheDocument();
   });
 
-  it("mostra o erro da gravação", () => {
-    render(<CartaoDePonto {...PROPS} erro="Horário inválido." />);
+  it("mostra o resultado do Salvar na linha do dia, e só nela", () => {
+    render(
+      <CartaoDePonto
+        {...PROPS}
+        aviso={{ data: "2026-11-16", tipo: "erro", texto: "Horário inválido." }}
+      />,
+    );
 
     expect(screen.getByRole("alert")).toHaveTextContent("Horário inválido.");
+    expect(screen.getByLabelText("Entrada 1 de seg 16/11")).toHaveAccessibleDescription(
+      "Horário inválido.",
+    );
+  });
+
+  it("aviso de outro dia não aparece nesta linha; a quinzena aberta é a atual", () => {
+    render(
+      <CartaoDePonto {...PROPS} aviso={{ data: "2026-11-17", tipo: "sucesso", texto: "Salvo." }} />,
+    );
+
+    expect(screen.queryByText("Salvo.")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "2ª quinzena (16 ao fim)" })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+    expect(screen.getByRole("link", { name: "1ª quinzena (1 a 15)" })).not.toHaveAttribute(
+      "aria-current",
+    );
   });
 });
