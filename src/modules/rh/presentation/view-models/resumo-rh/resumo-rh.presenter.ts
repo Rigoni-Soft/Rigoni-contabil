@@ -31,8 +31,12 @@ const faltando = (l: AcompanhamentoMensalDto["linhas"][number]) =>
 export function cardsDoAcompanhamento(dto: AcompanhamentoMensalDto) {
   const mes = rotuloDaCompetencia(dto.competencia);
   const total = dto.linhas.length;
-  const feitos = dto.linhas.reduce((n, l) => n + l.holerite.cartoes, 0);
-  const exigidos = dto.linhas.reduce((n, l) => n + cartoesExigidos(l.holerite), 0);
+  // Total do setor, só para o card do Holerite.
+  const totalDeCartoes = () => {
+    const feitos = dto.linhas.reduce((n, l) => n + l.holerite.cartoes, 0);
+    const exigidos = dto.linhas.reduce((n, l) => n + cartoesExigidos(l.holerite), 0);
+    return ` Cartões feitos no setor: ${feitos} de ${exigidos}.`;
+  };
   const cards: CardDoRh[] = dto.servicos.map((s) => {
     const clientes = dto.linhas.filter((l) => faltando(l).includes(s.id)).map(doCliente);
     return {
@@ -43,7 +47,7 @@ export function cardsDoAcompanhamento(dto: AcompanhamentoMensalDto) {
       descricao:
         `Clientes que ainda não concluíram ${s.nome} em ${mes}.` +
         // O Holerite sai dos cartões: o total do setor mostra quanto falta.
-        (s.sistema ? ` Cartões feitos no setor: ${feitos} de ${exigidos}.` : ""),
+        (s.sistema ? totalDeCartoes() : ""),
       mensagemVazia: `Nenhum cliente com ${s.nome} pendente em ${mes}.`,
       clientes,
       total,
