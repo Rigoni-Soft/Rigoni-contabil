@@ -25,7 +25,7 @@ Argumentos: `$ARGUMENTS` → 1º token = issue alvo (`#123` ou `123`); 2º (opci
 
 Chame a Skill `implement` com a issue (ela lê o ticket, usa `tdd` nos pontos acordados, roda typecheck e testes e comita). Se build, teste ou runtime falharem e a causa não for óbvia, chame `diagnosing-bugs` antes de insistir.
 
-Commits em Conventional Commits, atômicos, na branch do ticket.
+Commits em Conventional Commits, atômicos, na branch do ticket. Adicione só os arquivos que a estação tocou (`git add <caminhos>`): `git add -A` leva junto a alteração solta do usuário em arquivo rastreado.
 
 Antes de criar um componente de UI, liste `src/presentation/components/{ui,atoms,molecules,organisms}` e leia no `DESIGN.md` a seção da tela; o componente novo só nasce quando nenhum existente serve, e entra no `DESIGN.md` no mesmo commit (`yarn check:design-doc <base>` reprova o que faltar).
 
