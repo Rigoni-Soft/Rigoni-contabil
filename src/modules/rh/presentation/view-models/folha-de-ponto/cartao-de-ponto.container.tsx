@@ -3,7 +3,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import { idDoFormDoDia } from "@/presentation/components/molecules/linha-do-cartao-de-ponto.component";
+import {
+  idDoFormDoDia,
+  type AvisoDoDia,
+} from "@/presentation/components/molecules/linha-do-cartao-de-ponto.component";
 import { CartaoDePonto } from "@/presentation/components/organisms/cartao-de-ponto.component";
 import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
 import type { FolhaDePontoDto } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
@@ -22,7 +25,6 @@ import {
 } from "./folha-de-ponto.presenter";
 
 type Props = { folha: FolhaDePontoDto };
-type Aviso = { tipo: "erro" | "sucesso"; texto: string };
 
 // O cartão do mês do empregado escolhido. Cada linha abre para editar (lápis), salva ou cancela; o "Salvar" da
 // tabela salva todas as linhas abertas e fica na tela (a Totalização se recalcula e ganha destaque); "Limpar"
@@ -30,8 +32,8 @@ type Aviso = { tipo: "erro" | "sucesso"; texto: string };
 export function CartaoDePontoContainer({ folha }: Props) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
-  const [aviso, setAviso] = useState<Aviso & { data: string }>();
-  const [avisoGeral, setAvisoGeral] = useState<Aviso>();
+  const [aviso, setAviso] = useState<AvisoDoDia & { data: string }>();
+  const [avisoGeral, setAvisoGeral] = useState<AvisoDoDia>();
   // Cartão sem nenhum dado (mês ou empregado novo): abre com todas as linhas já editáveis, sem um lápis por dia.
   const [emEdicao, setEmEdicao] = useState<string[]>(() =>
     folha.selecionado && cartaoSemDados(folha.selecionado.dias, folha.selecionado.iniciado)

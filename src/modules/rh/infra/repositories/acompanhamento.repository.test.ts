@@ -437,7 +437,7 @@ describe("Acompanhamento mensal do RH (integração)", () => {
     const dia = (n: number) => `${MES.slice(0, 7)}-${String(n).padStart(2, "0")}`;
     const batida = [{ entrada: 480, saida: 1020 }];
     const dias = [
-      // Ana: dois dias, em quinzenas diferentes. Bia: nenhum. Dani (inativa): dois dias, mas não conta.
+      // Ana: dois dias, em dias diferentes do mês. Bia: nenhum. Dani (inativa): dois dias, mas não conta.
       ...[3, 20].map((n) => ({ empregado_id: id("Ana"), data: dia(n), batidas: batida })),
     ];
     expect((await servico.from("rh_ponto_dias").insert(dias)).error).toBeNull();
