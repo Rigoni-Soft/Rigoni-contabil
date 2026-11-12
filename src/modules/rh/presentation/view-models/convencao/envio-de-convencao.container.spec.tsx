@@ -62,4 +62,14 @@ describe("EnvioDeConvencaoContainer", () => {
     expect(refresh).not.toHaveBeenCalled();
     expect(screen.getByText("cct-2026.pdf")).toBeInTheDocument();
   });
+
+  it("leva o foco ao campo do PDF quando há erro", async () => {
+    render(<EnvioDeConvencaoContainer clienteId="c1" />);
+    const user = await preencher(null);
+
+    await user.click(screen.getByRole("button", { name: "Enviar convenção" }));
+
+    await screen.findByText("Escolha o PDF da convenção.");
+    expect(screen.getByLabelText("Convenção (PDF)")).toHaveFocus();
+  });
 });

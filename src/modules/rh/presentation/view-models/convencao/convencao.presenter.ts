@@ -1,5 +1,4 @@
 import type { EmpregadoDosAjustes } from "@/presentation/components/organisms/ajustes-do-cliente-na-convencao.component";
-import type { CampoDoEnvio } from "@/presentation/components/organisms/envio-de-convencao.component";
 import type { ConvencaoDoHistorico } from "@/presentation/components/organisms/historico-de-convencoes.component";
 import type { LinhaDeRegra } from "@/presentation/components/organisms/regras-aplicadas.component";
 import type {
@@ -174,24 +173,17 @@ export function empregadosDosAjustes(dto: ConvencoesDoClienteDto): EmpregadoDosA
   }));
 }
 
-// O primeiro campo que o servidor recusou, se for um do formulário.
-export function campoDoServidor(fields?: Record<string, string[]>): CampoDoEnvio | undefined {
-  return fields?.arquivo ? "arquivo" : undefined;
-}
-
-export type EnvioLido =
-  { ok: true; formData: FormData } | { ok: false; erro: string; campo: CampoDoEnvio };
+export type EnvioLido = { ok: true; formData: FormData } | { ok: false; erro: string };
 
 // Confere no navegador o que dá para conferir (PDF escolhido, tamanho) e monta o FormData da
 // Server Action; o servidor repete a conferência.
 export function lerEnvioDoFormulario(clienteId: string, arquivo: File | undefined): EnvioLido {
-  if (!arquivo) return { ok: false, erro: "Escolha o PDF da convenção.", campo: "arquivo" };
+  if (!arquivo) return { ok: false, erro: "Escolha o PDF da convenção." };
   const ehPdf = arquivo.type === "application/pdf" || arquivo.name.toLowerCase().endsWith(".pdf");
-  if (!ehPdf) return { ok: false, erro: "Envie a convenção em PDF.", campo: "arquivo" };
-  if (arquivo.size > LIMITE_DO_PDF)
-    return { ok: false, erro: MENSAGEM_PDF_GRANDE, campo: "arquivo" };
+  if (!ehPdf) return { ok: false, erro: "Envie a convenção em PDF." };
+  if (arquivo.size > LIMITE_DO_PDF) return { ok: false, erro: MENSAGEM_PDF_GRANDE };
   if (arquivo.name.trim().length > NOME_DO_ARQUIVO_MAXIMO)
-    return { ok: false, erro: MENSAGEM_NOME_LONGO, campo: "arquivo" };
+    return { ok: false, erro: MENSAGEM_NOME_LONGO };
 
   const formData = new FormData();
   formData.set("clienteId", clienteId);

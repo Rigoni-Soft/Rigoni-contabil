@@ -1,16 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import {
-  EnvioDeConvencao,
-  type CampoDoEnvio,
-} from "@/presentation/components/organisms/envio-de-convencao.component";
+import { EnvioDeConvencao } from "@/presentation/components/organisms/envio-de-convencao.component";
 import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
 
 import { enviarConvencaoAction } from "./convencao.actions";
-import { campoDoServidor, lerEnvioDoFormulario } from "./convencao.presenter";
+import { lerEnvioDoFormulario } from "./convencao.presenter";
+
+const ID_DO_ARQUIVO = "convencao-arquivo";
 
 type Props = { clienteId: string };
 
@@ -21,8 +20,12 @@ export function EnvioDeConvencaoContainer({ clienteId }: Props) {
   const [pendente, iniciar] = useTransition();
   const [arquivo, setArquivo] = useState<File>();
   const [erro, setErro] = useState<string>();
-  const [campoComErro, setCampoComErro] = useState<CampoDoEnvio>();
   const [chave, setChave] = useState(0);
+
+  // O erro é do campo do PDF: o foco vai a ele, para o teclado e o leitor de tela ouvirem a mensagem.
+  useEffect(() => {
+    if (erro) document.getElementById(ID_DO_ARQUIVO)?.focus();
+  }, [erro]);
 
   return (
     <EnvioDeConvencao
@@ -30,27 +33,18 @@ export function EnvioDeConvencaoContainer({ clienteId }: Props) {
       chave={chave}
       pendente={pendente}
       erro={erro}
-      campoComErro={campoComErro}
       onArquivo={(a) => {
         setArquivo(a);
         setErro(undefined);
-        setCampoComErro(undefined);
       }}
       onEnviar={() => {
         const lido = lerEnvioDoFormulario(clienteId, arquivo);
-        if (!lido.ok) {
-          setCampoComErro(lido.campo);
-          return setErro(lido.erro);
-        }
+        if (!lido.ok) return setErro(lido.erro);
         setErro(undefined);
-        setCampoComErro(undefined);
         iniciar(async () => {
           try {
             const resultado = await enviarConvencaoAction(lido.formData);
-            if (!resultado.ok) {
-              setCampoComErro(campoDoServidor(resultado.error.fields));
-              return setErro(resultado.error.message);
-            }
+            if (!resultado.ok) return setErro(resultado.error.message);
             setArquivo(undefined);
             setChave((c) => c + 1);
             router.refresh();
