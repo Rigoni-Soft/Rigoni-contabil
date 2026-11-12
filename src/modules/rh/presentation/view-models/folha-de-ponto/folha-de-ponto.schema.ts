@@ -54,4 +54,4 @@ export const lerCartaoSchema = z.object({
   quinzena: z.enum(["1", "2"]).transform(Number),
   imagem: foto,
 });
-export const lerAtestadoSchema = z.object({ clienteId: id, imagem: foto });
+export const lerAtestadoSchema = z.object({ empregadoId: id, imagem: foto });

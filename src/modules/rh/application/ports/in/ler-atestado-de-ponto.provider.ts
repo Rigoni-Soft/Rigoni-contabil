@@ -3,12 +3,12 @@ import type { TipoDeAtestado } from "@/modules/rh/domain/services/atestado.servi
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
-export type LerAtestadoDePontoInput = { clienteId: string; imagem: ImagemDoCartao };
+// O atestado é lido a partir do cartão de um empregado: o nome nele precisa conferir com o dele.
+export type LerAtestadoDePontoInput = { empregadoId: string; imagem: ImagemDoCartao };
 
 export type AtestadoLidoDto = {
-  nome: string;
   tipo: TipoDeAtestado;
-  // Dias que ganharam Abono; 0 = o RH confere (ex.: declaração em dia sem batida).
+  // Dias que ganharam Abono (sempre 1 ou mais: sem nada a abonar, o resultado é erro com o motivo).
   abonados: number;
 };
 

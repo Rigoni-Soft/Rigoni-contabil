@@ -33,14 +33,16 @@ const lido = (a: Partial<AtestadoLido> = {}): AtestadoBruto => ({
 
 function montar(opcoes: {
   leitor: LeitorDeAtestadoPort;
-  quadro?: { id: string; nome: string; ativo: boolean; jornada: number[] }[];
+  ativo?: boolean;
+  nome?: string;
   dias?: unknown[];
   ator?: AtorSessaoDto | null;
 }) {
-  const quadro = opcoes.quadro ?? [
-    { id: "e1", nome: "Roberto Carlos", ativo: true, jornada: JORNADA },
+  const quadro = [
+    { id: "e1", nome: opcoes.nome ?? "Roberto", ativo: opcoes.ativo ?? true, jornada: JORNADA },
   ];
   const repositorio = {
+    buscarClienteDoEmpregado: jest.fn(async () => ok("c1")),
     buscarCliente: jest.fn(async () =>
       ok({ cnpj: "11444777000161", empresa: "Teste Ltda", responsavelId: "func" }),
     ),
@@ -61,7 +63,7 @@ function montar(opcoes: {
   return { caso, repositorio, erros };
 }
 
-const entrada = { clienteId: "c1", imagem: JPEG };
+const entrada = { empregadoId: "e1", imagem: JPEG };
 
 describe("LerAtestadoDePonto", () => {
   it("atestado abona o dia de trabalho vazio coberto; o domingo sem carga fica de fora", async () => {
@@ -69,11 +71,7 @@ describe("LerAtestadoDePonto", () => {
 
     const r = await caso.execute(entrada);
 
-    expect(r.ok && r.value).toEqual({
-      nome: "Roberto Carlos Von Scharten",
-      tipo: "atestado",
-      abonados: 1,
-    });
+    expect(r.ok && r.value).toEqual({ tipo: "atestado", abonados: 1 });
     expect(repositorio.salvarDia).toHaveBeenCalledTimes(1);
     expect(repositorio.salvarDia).toHaveBeenCalledWith("e1", {
       data: "2026-08-24",
@@ -86,8 +84,7 @@ describe("LerAtestadoDePonto", () => {
   it("declaração abona só o horário: o dia com batida mantém as batidas e ganha o Abono", async () => {
     const { caso, repositorio } = montar({
       leitor: {
-        lerAtestado: async () =>
-          lido({ tipo: "declaracao", de: "2026-08-27", ate: null, nome: "Roberto" }),
+        lerAtestado: async () => lido({ tipo: "declaracao", de: "2026-08-27", ate: null }),
       },
       dias: [DIA_COM_BATIDA],
     });
@@ -98,30 +95,35 @@ describe("LerAtestadoDePonto", () => {
     expect(repositorio.salvarDia).toHaveBeenCalledWith("e1", { ...DIA_COM_BATIDA, abono: true });
   });
 
-  it("declaração em dia sem batida não abona nada (o RH confere)", async () => {
+  it("nada a abonar (declaração em dia sem batida) é erro com o motivo, sem gravar", async () => {
     const { caso, repositorio } = montar({
       leitor: { lerAtestado: async () => lido({ tipo: "declaracao", de: "2026-08-27" }) },
     });
 
     const r = await caso.execute(entrada);
 
-    expect(r.ok && r.value.abonados).toBe(0);
+    expect(!r.ok && r.error.message).toMatch(/nenhum dia/i);
     expect(repositorio.salvarDia).not.toHaveBeenCalled();
   });
 
-  it("nome que não casa com um único empregado do quadro: não abona e não cadastra", async () => {
-    const quadro = [
-      { id: "e1", nome: "Roberto Silva", ativo: true, jornada: JORNADA },
-      { id: "e2", nome: "Roberto Souza", ativo: true, jornada: JORNADA },
-    ];
+  it("nome do atestado que não confere com o empregado do cartão: não abona", async () => {
     const { caso, repositorio } = montar({
-      leitor: { lerAtestado: async () => lido({ nome: "Roberto" }) },
-      quadro,
+      leitor: { lerAtestado: async () => lido({ nome: "Lauro Beatriz Tavares" }) },
     });
 
     const r = await caso.execute(entrada);
 
-    expect(!r.ok && r.error.message).toMatch(/empregado/);
+    expect(!r.ok && r.error.message).toMatch(/não confere/);
+    expect(repositorio.salvarDia).not.toHaveBeenCalled();
+  });
+
+  it("empregado desligado não recebe abono", async () => {
+    const { caso, repositorio } = montar({
+      leitor: { lerAtestado: async () => lido() },
+      ativo: false,
+    });
+
+    expect((await caso.execute(entrada)).ok).toBe(false);
     expect(repositorio.salvarDia).not.toHaveBeenCalled();
   });
 

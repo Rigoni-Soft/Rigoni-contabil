@@ -1,16 +1,13 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import { lerAtestadoDePontoAction, lerCartaoDePontoAction } from "./folha-de-ponto.actions";
+import { lerCartaoDePontoAction } from "./folha-de-ponto.actions";
 import { LeituraDeCartaoContainer } from "./leitura-de-cartao.container";
 
 const refresh = jest.fn();
 
 jest.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
-jest.mock("./folha-de-ponto.actions", () => ({
-  lerCartaoDePontoAction: jest.fn(),
-  lerAtestadoDePontoAction: jest.fn(),
-}));
+jest.mock("./folha-de-ponto.actions", () => ({ lerCartaoDePontoAction: jest.fn() }));
 
 const FOTO = new File([new Uint8Array([0xff, 0xd8])], "ponto-erick-quin-1.jpeg", {
   type: "image/jpeg",
@@ -76,67 +73,5 @@ describe("LeituraDeCartaoContainer", () => {
     expect(await screen.findByText(/Digite à mão/)).toBeInTheDocument();
     expect(refresh).not.toHaveBeenCalled();
     expect(screen.getByText("ponto-erick-quin-1.jpeg")).toBeInTheDocument();
-  });
-
-  describe("atestado", () => {
-    const ATESTADO = new File([new Uint8Array([0xff, 0xd8])], "atestado-medico-2.jpeg", {
-      type: "image/jpeg",
-    });
-
-    it("envia só o Cliente e a foto, resume os dias abonados e recarrega a tela", async () => {
-      jest
-        .mocked(lerAtestadoDePontoAction)
-        .mockResolvedValue({ ok: true, data: { nome: "Roberto", tipo: "atestado", abonados: 2 } });
-      render(<LeituraDeCartaoContainer clienteId="c1" competencia="2026-09" />);
-      const user = userEvent.setup({ applyAccept: false });
-      await user.upload(screen.getByLabelText(/^Atestado/), ATESTADO);
-
-      await user.click(screen.getByRole("button", { name: "Ler atestado" }));
-
-      await waitFor(() => expect(refresh).toHaveBeenCalled());
-      expect(Object.fromEntries(jest.mocked(lerAtestadoDePontoAction).mock.calls[0][0])).toEqual({
-        clienteId: "c1",
-        imagem: expect.any(File),
-      });
-      expect(
-        await screen.findByText("Roberto: 2 dias abonados. Confira o cartão."),
-      ).toBeInTheDocument();
-    });
-
-    it("sem foto do atestado, avisa no campo e não envia", async () => {
-      render(<LeituraDeCartaoContainer clienteId="c1" competencia="2026-09" />);
-
-      await userEvent.click(screen.getByRole("button", { name: "Ler atestado" }));
-
-      expect(await screen.findByText(/Escolha a foto do atestado/)).toBeInTheDocument();
-      expect(lerAtestadoDePontoAction).not.toHaveBeenCalled();
-    });
-
-    it("leitura que falha mostra o erro e preserva a foto", async () => {
-      jest.mocked(lerAtestadoDePontoAction).mockResolvedValue({
-        ok: false,
-        error: { code: "VALIDATION_ERROR", message: "Abone os dias à mão." },
-      });
-      render(<LeituraDeCartaoContainer clienteId="c1" competencia="2026-09" />);
-      const user = userEvent.setup({ applyAccept: false });
-      await user.upload(screen.getByLabelText(/^Atestado/), ATESTADO);
-
-      await user.click(screen.getByRole("button", { name: "Ler atestado" }));
-
-      expect(await screen.findByText("Abone os dias à mão.")).toBeInTheDocument();
-      expect(screen.getByText("atestado-medico-2.jpeg")).toBeInTheDocument();
-      expect(refresh).not.toHaveBeenCalled();
-    });
-
-    it("o erro do atestado e o do cartão nunca aparecem juntos", async () => {
-      render(<LeituraDeCartaoContainer clienteId="c1" competencia="2026-09" />);
-      await userEvent.click(screen.getByRole("button", { name: "Ler atestado" }));
-      expect(await screen.findByText(/Escolha a foto do atestado/)).toBeInTheDocument();
-
-      await userEvent.click(screen.getByRole("button", { name: "Ler cartão" }));
-
-      expect(await screen.findByText(/Escolha a foto do cartão/)).toBeInTheDocument();
-      expect(screen.queryByText(/Escolha a foto do atestado/)).not.toBeInTheDocument();
-    });
   });
 });

@@ -4,7 +4,11 @@ import userEvent from "@testing-library/user-event";
 import type { FolhaDePontoDto } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
 
 import { CartaoDePontoContainer } from "./cartao-de-ponto.container";
-import { iniciarCartaoDoPontoAction, salvarDiaDoPontoAction } from "./folha-de-ponto.actions";
+import {
+  iniciarCartaoDoPontoAction,
+  lerAtestadoDePontoAction,
+  salvarDiaDoPontoAction,
+} from "./folha-de-ponto.actions";
 
 const refresh = jest.fn();
 
@@ -12,6 +16,7 @@ jest.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 jest.mock("./folha-de-ponto.actions", () => ({
   salvarDiaDoPontoAction: jest.fn(),
   iniciarCartaoDoPontoAction: jest.fn(),
+  lerAtestadoDePontoAction: jest.fn(),
 }));
 
 const ZERO = {
@@ -458,5 +463,60 @@ describe("CartaoDePontoContainer", () => {
       "Não foi possível iniciar o cartão: Sem permissão. Tente salvar de novo.",
     );
     expect(refresh).toHaveBeenCalled();
+  });
+
+  describe("Ler atestado", () => {
+    const FOTO = new File([new Uint8Array([0xff, 0xd8])], "atestado.jpeg", { type: "image/jpeg" });
+    const abrirModal = async (user: ReturnType<typeof userEvent.setup>) => {
+      HTMLDialogElement.prototype.showModal = function () {
+        this.setAttribute("open", "");
+      };
+      HTMLDialogElement.prototype.close = function () {
+        this.removeAttribute("open");
+      };
+      await user.click(screen.getByRole("button", { name: "Ler atestado" }));
+      await user.upload(screen.getByLabelText("Foto do atestado (JPEG ou PNG)"), FOTO);
+    };
+
+    it("só o Responsável (cartão editável) vê o botão", () => {
+      const { unmount } = render(<CartaoDePontoContainer folha={FOLHA_VAZIA} />);
+      expect(screen.getByRole("button", { name: "Ler atestado" })).toBeInTheDocument();
+      unmount();
+
+      render(<CartaoDePontoContainer folha={{ ...FOLHA_VAZIA, podeEditar: false }} />);
+      expect(screen.queryByRole("button", { name: "Ler atestado" })).not.toBeInTheDocument();
+    });
+
+    it("sucesso atualiza a planilha (recarrega) e mostra o resumo no rodapé do cartão", async () => {
+      jest
+        .mocked(lerAtestadoDePontoAction)
+        .mockResolvedValue({ ok: true, data: { tipo: "atestado", abonados: 1 } });
+      render(<CartaoDePontoContainer folha={FOLHA_VAZIA} />);
+      const user = userEvent.setup({ applyAccept: false });
+      await abrirModal(user);
+
+      await user.click(screen.getByRole("button", { name: "Abonar pelo atestado" }));
+
+      await waitFor(() => expect(refresh).toHaveBeenCalled());
+      expect(
+        await screen.findByText("1 dia abonado pelo atestado. Confira o cartão."),
+      ).toBeInTheDocument();
+    });
+
+    it("erro mantém a planilha como estava e mostra o motivo na modal", async () => {
+      refresh.mockClear();
+      jest.mocked(lerAtestadoDePontoAction).mockResolvedValue({
+        ok: false,
+        error: { code: "VALIDATION_ERROR", message: "O nome no atestado não confere com Ana." },
+      });
+      render(<CartaoDePontoContainer folha={FOLHA_VAZIA} />);
+      const user = userEvent.setup({ applyAccept: false });
+      await abrirModal(user);
+
+      await user.click(screen.getByRole("button", { name: "Abonar pelo atestado" }));
+
+      expect(await screen.findByText(/não confere com Ana/)).toBeInTheDocument();
+      expect(refresh).not.toHaveBeenCalled();
+    });
   });
 });
