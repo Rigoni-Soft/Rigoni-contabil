@@ -166,6 +166,17 @@ describe("EnviarConvencao", () => {
     expect(convencoes.inserir).not.toHaveBeenCalled();
   });
 
+  it("tira o PDF do armazenamento e não grava quando o extrator lança (#219)", async () => {
+    const { caso, extrator, armazenamento, convencoes } = montar();
+    extrator.extrair.mockRejectedValue(new Error("timeout"));
+
+    const r = await caso.execute(ENTRADA);
+
+    expect(!r.ok && r.error.code).toBe("PERSISTENCIA_ERROR");
+    expect(armazenamento.remover).toHaveBeenCalledWith(armazenamento.enviar.mock.calls[0][0]);
+    expect(convencoes.inserir).not.toHaveBeenCalled();
+  });
+
   it("tira o PDF do armazenamento quando gravar a convenção falha", async () => {
     const { caso, convencoes, armazenamento } = montar();
     convencoes.inserir.mockResolvedValue(err(new PersistenciaError("falhou")));

@@ -14,6 +14,7 @@ import { validarRegrasDaConvencao } from "@/modules/rh/domain/services/validar-r
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
+import { PersistenciaError } from "@/shared/errors/persistencia.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { dataIsoValida } from "@/shared/kernel/data-iso";
 import { podeGerirConvencaoRh } from "@/shared/kernel/papeis";
@@ -65,7 +66,15 @@ export class EnviarConvencao implements EnviarConvencaoPort {
     const guardado = await this.armazenamento.enviar(caminho, input.arquivo.bytes);
     if (!guardado.ok) return guardado;
 
-    const extracao = await this.extrator.extrair(input.arquivo.bytes);
+    // O extrator real chama um modelo de linguagem (rede, tempo esgotado): se lançar, o PDF não fica órfão.
+    let extracao: Awaited<ReturnType<ExtratorDeRegrasPort["extrair"]>>;
+    try {
+      extracao = await this.extrator.extrair(input.arquivo.bytes);
+    } catch (e) {
+      await this.removerOrfao(caminho);
+      this.erros.registrar("rh.convencao.extracao_falhou", caminho, String(e));
+      return err(new PersistenciaError("Não foi possível ler a convenção. Tente novamente."));
+    }
     if (!extracao.lido) {
       await this.removerOrfao(caminho);
       return err(
