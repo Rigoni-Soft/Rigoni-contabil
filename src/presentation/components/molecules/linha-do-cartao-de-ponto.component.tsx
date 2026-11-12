@@ -156,9 +156,9 @@ export function LinhaDoCartaoDePonto({
           como="form"
           id={idDoForm}
           aria-label={`Dia ${linha.rotulo}`}
-          onSubmit={(e) => {
-            e.preventDefault();
-            onSalvar(linha.data, new FormData(e.currentTarget));
+          onSubmit={(evento) => {
+            evento.preventDefault();
+            onSalvar(linha.data, new FormData(evento.currentTarget));
           }}
         >
           {editavel && !emEdicao && abonado && (

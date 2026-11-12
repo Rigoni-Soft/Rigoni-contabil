@@ -11,6 +11,7 @@ import { CartaoDePonto } from "@/presentation/components/organisms/cartao-de-pon
 import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
 import type { FolhaDePontoDto } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
 import { rotuloDaCompetencia } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.presenter";
+import type { ActionResult } from "@/shared/dtos/action-result.dto";
 
 import { iniciarCartaoDoPontoAction, salvarDiaDoPontoAction } from "./folha-de-ponto.actions";
 import {
@@ -57,29 +58,43 @@ export function CartaoDePontoContainer({ folha }: Props) {
     setLimpos((l) => l.filter((d) => !datas.includes(d)));
   };
 
+  // Roda uma action; devolve o texto do erro, ou undefined se deu certo.
+  const tentar = async (
+    falha: string,
+    acao: () => Promise<ActionResult<unknown>>,
+  ): Promise<string | undefined> => {
+    try {
+      const r = await acao();
+      return r.ok ? undefined : r.error.message;
+    } catch (e) {
+      console.error(falha, e);
+      return mensagemDaFalha(e);
+    }
+  };
+
+  const limparAvisos = () => {
+    setAviso(undefined);
+    setAvisoGeral(undefined);
+  };
+
   // Grava um dia; devolve o texto do erro, ou undefined se deu certo.
   const gravar = async (data: string, campos: FormData): Promise<string | undefined> => {
     const lido = lerDiaDoFormulario(campos);
     if (!lido.ok) return lido.erro;
-    try {
-      const r = await salvarDiaDoPontoAction({
+    return tentar("Falha ao salvar o dia do cartão de ponto", () =>
+      salvarDiaDoPontoAction({
         empregadoId: selecionado.empregado.id,
         data,
         batidas: lido.batidas,
         extra: lido.extra,
         abono: lido.abono,
-      });
-      return r.ok ? undefined : r.error.message;
-    } catch (e) {
-      console.error("Falha ao salvar o dia do cartão de ponto", e);
-      return mensagemDaFalha(e);
-    }
+      }),
+    );
   };
 
   const salvarDia = (data: string, campos: FormData) =>
     iniciar(async () => {
-      setAviso(undefined);
-      setAvisoGeral(undefined);
+      limparAvisos();
       const erro = await gravar(data, campos);
       if (erro) return setAviso({ data, tipo: "erro", texto: erro });
       setAviso({ data, tipo: "sucesso", texto: "Salvo." });
@@ -92,45 +107,35 @@ export function CartaoDePontoContainer({ folha }: Props) {
   // Falta vira abonada (o dia é gravado só com o Abono) e o abono se desfaz (dia vazio, sem Abono).
   const marcarAbono = (data: string, abono: boolean) =>
     iniciar(async () => {
-      setAviso(undefined);
-      setAvisoGeral(undefined);
-      try {
-        const r = await salvarDiaDoPontoAction({
+      limparAvisos();
+      const erro = await tentar("Falha ao abonar o dia do cartão de ponto", () =>
+        salvarDiaDoPontoAction({
           empregadoId: selecionado.empregado.id,
           data,
           batidas: [],
           extra: null,
           abono,
-        });
-        if (!r.ok) return setAviso({ data, tipo: "erro", texto: r.error.message });
-        setAviso({ data, tipo: "sucesso", texto: abono ? "Abonado." : "Abono desfeito." });
-        recomecar([data]);
-        setFocoNoDia(data);
-        router.refresh();
-      } catch (e) {
-        console.error("Falha ao abonar o dia do cartão de ponto", e);
-        setAviso({ data, tipo: "erro", texto: mensagemDaFalha(e) });
-      }
+        }),
+      );
+      if (erro) return setAviso({ data, tipo: "erro", texto: erro });
+      setAviso({ data, tipo: "sucesso", texto: abono ? "Abonado." : "Abono desfeito." });
+      recomecar([data]);
+      setFocoNoDia(data);
+      router.refresh();
     });
 
   // Marca o cartão do mês como iniciado; devolve o texto do erro, ou undefined se deu certo.
-  const marcarIniciado = async (): Promise<string | undefined> => {
-    try {
-      const r = await iniciarCartaoDoPontoAction({
+  const marcarIniciado = () =>
+    tentar("Falha ao iniciar o cartão de ponto", () =>
+      iniciarCartaoDoPontoAction({
         empregadoId: selecionado.empregado.id,
         competencia: folha.competencia,
-      });
-      return r.ok ? undefined : r.error.message;
-    } catch (e) {
-      console.error("Falha ao iniciar o cartão de ponto", e);
-      return mensagemDaFalha(e);
-    }
-  };
+      }),
+    );
 
   const salvarTabela = () =>
     iniciar(async () => {
-      setAviso(undefined);
-      setAvisoGeral(undefined);
+      limparAvisos();
       for (const data of emEdicao) {
         const form = document.getElementById(idDoFormDoDia(data));
         if (!(form instanceof HTMLFormElement)) continue;
