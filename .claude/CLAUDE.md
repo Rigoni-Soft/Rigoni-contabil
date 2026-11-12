@@ -7,6 +7,7 @@
 # Edição de arquivos
 - O working tree está em LF na maior parte, mas alguns arquivos ficam em CRLF (`git ls-files --eol`, coluna `w/crlf`): edite com `Edit` ou `Write`; script de `replace` (node, sed) em arquivo CRLF não casa e falha em silêncio, então normalize `\r\n` para `\n` antes. O aviso "LF will be replaced by CRLF" do Git é esperado.
 - Crie arquivo com `Write`: heredoc (`<<'EOF'`) com texto em português quebra o `Bash`.
+- Trecho com `\` (regex, `\n`) entra por `Edit` ou `Write`: `node -e` inline engole a barra invertida e grava o código quebrado. Não há `python` na máquina.
 
 # Testes
 - Uma suíte só: `yarn test --testPathPatterns <padrão>`. O padrão posicional (`yarn test <padrão>`) é ignorado e roda as 327 suítes (~40 s).
