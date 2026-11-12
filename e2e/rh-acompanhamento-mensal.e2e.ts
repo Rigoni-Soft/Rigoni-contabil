@@ -51,7 +51,7 @@ test.describe("Acompanhamento mensal do RH", () => {
     expect(data).toHaveLength(1);
   });
 
-  test("Holerite se conclui sozinho com os cartões das duas quinzenas e reabre ao faltar um @smoke", async ({
+  test("Holerite se conclui sozinho com o cartão salvo e reabre ao faltar um @smoke", async ({
     page,
   }) => {
     await login(page, "funcionario.rh@rigonicontabil.local", "func123");
@@ -65,7 +65,7 @@ test.describe("Acompanhamento mensal do RH", () => {
       page.getByText("Sem empregados cadastrados: não há Holerite a cumprir."),
     ).toBeVisible();
 
-    // Um empregado com cartão só na 1ª quinzena: pendente; a 2ª quinzena o conclui.
+    // Um empregado sem nenhum dia salvo: pendente; um dia salvo (mesmo com o mês incompleto) o conclui.
     const mes = new Date().toISOString().slice(0, 7);
     const empregado = await admin
       .from("rh_empregados")
@@ -79,9 +79,6 @@ test.describe("Acompanhamento mensal do RH", () => {
     if (empregado.error) throw empregado.error;
     const batidas = [{ entrada: 480, saida: 1020 }];
     const dia = (n: number) => `${mes}-${String(n).padStart(2, "0")}`;
-    await admin
-      .from("rh_ponto_dias")
-      .insert({ empregado_id: empregado.data.id, data: dia(3), batidas });
 
     await page.goto(`/clientes/${clienteId}`);
     await expect(holerite).toHaveValue("pendente");
@@ -92,7 +89,7 @@ test.describe("Acompanhamento mensal do RH", () => {
 
     await admin
       .from("rh_ponto_dias")
-      .insert({ empregado_id: empregado.data.id, data: dia(20), batidas });
+      .insert({ empregado_id: empregado.data.id, data: dia(3), batidas });
     await page.reload();
     await expect(holerite).toHaveValue("concluido");
     await expect(

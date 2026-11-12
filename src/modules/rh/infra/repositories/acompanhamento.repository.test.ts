@@ -419,7 +419,7 @@ describe("Acompanhamento mensal do RH (integração)", () => {
     expect(depois.ok).toBe(false);
   });
 
-  it("conta empregados e cartões do mês: cartão salvo é um dia em cada quinzena; sem movimento sai da conta", async () => {
+  it("conta empregados e cartões do mês: cartão salvo é qualquer dia no mês (incompleto conta); sem movimento sai da conta", async () => {
     const jornada = [0, 480, 480, 480, 480, 480, 0];
     const { data: empregados, error } = await servico
       .from("rh_empregados")
@@ -437,9 +437,8 @@ describe("Acompanhamento mensal do RH (integração)", () => {
     const dia = (n: number) => `${MES.slice(0, 7)}-${String(n).padStart(2, "0")}`;
     const batida = [{ entrada: 480, saida: 1020 }];
     const dias = [
-      // Ana: as duas quinzenas. Bia: só a primeira. Dani (inativa): as duas, mas não conta.
+      // Ana: dois dias, em quinzenas diferentes. Bia: nenhum. Dani (inativa): dois dias, mas não conta.
       ...[3, 20].map((n) => ({ empregado_id: id("Ana"), data: dia(n), batidas: batida })),
-      { empregado_id: id("Bia"), data: dia(3), batidas: batida },
     ];
     expect((await servico.from("rh_ponto_dias").insert(dias)).error).toBeNull();
     const { repo } = await comoFuncionarioRH();
@@ -448,18 +447,18 @@ describe("Acompanhamento mensal do RH (integração)", () => {
       doClienteA(await repo.listarClientes(MES, FUNCIONARIO_RH_ID))?.holerite;
     expect(await contagem()).toEqual({ cadastrados: 3, semMovimento: 0, cartoes: 1 });
 
-    // Caio sem movimento sai da conta; completar a Bia fecha o mês.
+    // Caio sem movimento sai da conta; um dia salvo na Bia (cartão incompleto) já fecha o mês.
     await servico
       .from("rh_empregado_sem_movimento")
       .insert({ empregado_id: id("Caio"), competencia: MES });
     expect(await contagem()).toEqual({ cadastrados: 3, semMovimento: 1, cartoes: 1 });
     await servico
       .from("rh_ponto_dias")
-      .insert({ empregado_id: id("Bia"), data: dia(25), batidas: batida });
+      .insert({ empregado_id: id("Bia"), data: dia(3), batidas: batida });
     expect(await contagem()).toEqual({ cadastrados: 3, semMovimento: 1, cartoes: 2 });
 
-    // Apagar um dia da 2ª quinzena reabre o cartão da Bia.
-    await servico.from("rh_ponto_dias").delete().eq("empregado_id", id("Bia")).eq("data", dia(25));
+    // Apagar o único dia da Bia reabre o cartão dela.
+    await servico.from("rh_ponto_dias").delete().eq("empregado_id", id("Bia")).eq("data", dia(3));
     expect(await contagem()).toEqual({ cadastrados: 3, semMovimento: 1, cartoes: 1 });
 
     // Outro mês não herda os cartões, e quem não é o Responsável não enxerga os empregados do cliente.
