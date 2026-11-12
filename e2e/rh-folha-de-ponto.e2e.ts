@@ -126,7 +126,7 @@ test.describe("Folha de ponto do RH", () => {
     await page.getByRole("button", { name: "Ler cartão" }).click();
 
     await expect(
-      page.getByText(/Erick Falso \(cadastrado no quadro\): 4 dias lidos/),
+      page.getByText(/Erick Falso \(cadastrado no quadro\): 3 dias lidos, 1 falta anotada/),
     ).toBeVisible();
     await page.getByRole("link", { name: "Cartão de ponto de Erick Falso" }).click();
     await expect(page.getByRole("heading", { name: "Erick Falso", exact: true })).toBeVisible();
@@ -190,6 +190,9 @@ test.describe("Folha de ponto do RH", () => {
     await expect(
       page.getByText("1 dia abonado pela declaração de comparecimento. Confira o cartão."),
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: "Desfazer abono de ter 01/09" })).toBeVisible();
+    // O dia já tinha batida (4h de 8h45): a declaração abona só a diferença da carga, na Totalização.
+    await expect(page.getByText("Abonos").locator("xpath=following-sibling::*[1]")).toHaveText(
+      "0 dias · 4h45",
+    );
   });
 });
