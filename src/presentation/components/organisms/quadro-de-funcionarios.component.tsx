@@ -59,7 +59,7 @@ type Props = {
   onCadastrar: (campos: FormData) => void;
   onCorrigir: (campos: FormData) => void;
   onAtivo: (ativo: boolean) => void;
-  onSemMovimento: (sem: boolean) => void;
+  onSemMovimento: (semMovimento: boolean) => void;
   onPadrao: (comissionados: boolean) => void;
 };
 
@@ -129,7 +129,7 @@ export function QuadroDeFuncionarios({
           Quadro de funcionários
         </Texto>
         {editavel && emEdicao && (
-          <LinkDeAcao href={novoHref} variant="ghost" className="h-8 px-3">
+          <LinkDeAcao href={novoHref} variant="ghost" className="h-8 px-3 pointer-coarse:h-11">
             <Plus className="size-4" aria-hidden="true" />
             Novo empregado
           </LinkDeAcao>

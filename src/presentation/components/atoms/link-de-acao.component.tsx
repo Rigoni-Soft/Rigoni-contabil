@@ -1,12 +1,13 @@
 import Link from "next/link";
+import type { VariantProps } from "class-variance-authority";
 
 import { buttonVariants } from "@/presentation/components/ui/button";
 import { cn } from "@/presentation/lib/utils";
 
 type LinkDeAcaoProps = {
   href: string;
-  variant?: "default" | "destructive" | "warning" | "outline" | "ghost";
-  size?: "default" | "sm" | "icon";
+  variant?: VariantProps<typeof buttonVariants>["variant"];
+  size?: VariantProps<typeof buttonVariants>["size"];
   className?: string;
   // Destino fora do app (ex.: link assinado): abre em nova aba, sem `opener`.
   externo?: boolean;
