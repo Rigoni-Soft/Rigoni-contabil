@@ -14,8 +14,8 @@ import type { RegrasDaConvencao } from "@/shared/kernel/regras-da-convencao";
 
 // Origem dos valores esperados: contas à mão a partir das regras do cabeçalho de totalizacao.service.ts (CLT:
 // 50% em dia útil, 100% em domingo e feriado, tolerância de 5 min por marcação e 10 por dia, noturno 22h-5h com
-// hora reduzida) e dos ajustes da #220 (sábado a 60%, limite de 2 h extras por dia). A planilha modelo da
-// #220 não está no repositório: estes casos não foram copiados dela, e a conferência dos totais contra a
+// hora reduzida) e dos ajustes da convenção (sábado a 60%, limite de 2 h extras por dia). A planilha modelo
+// não está no repositório: estes casos não foram copiados dela, e a conferência dos totais contra a
 // planilha é do dono.
 // Domingo a sábado: 8h45 de segunda a sexta, 4h no sábado (meio expediente), domingo sem carga.
 const J: Jornada = [0, 525, 525, 525, 525, 525, 240];
