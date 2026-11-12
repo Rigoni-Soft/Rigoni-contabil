@@ -23,8 +23,10 @@ CREATE TABLE public.rh_empregados (
     ativo boolean DEFAULT true NOT NULL,
     CONSTRAINT rh_empregados_pkey PRIMARY KEY (id),
     CONSTRAINT rh_empregados_nome_check CHECK (char_length(btrim(nome)) BETWEEN 1 AND 120),
+    -- array_position: elemento NULL daria NULL no BETWEEN, e NULL passaria no CHECK.
     CONSTRAINT rh_empregados_jornada_check CHECK (
         array_length(jornada, 1) = 7
+        AND array_position(jornada, NULL) IS NULL
         AND jornada[1] BETWEEN 0 AND 1440 AND jornada[2] BETWEEN 0 AND 1440 AND jornada[3] BETWEEN 0 AND 1440
         AND jornada[4] BETWEEN 0 AND 1440 AND jornada[5] BETWEEN 0 AND 1440 AND jornada[6] BETWEEN 0 AND 1440
         AND jornada[7] BETWEEN 0 AND 1440

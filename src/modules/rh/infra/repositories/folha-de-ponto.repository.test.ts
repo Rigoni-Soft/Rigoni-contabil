@@ -119,6 +119,14 @@ describe("Folha de ponto do RH (integração)", () => {
     }
   });
 
+  it("o banco recusa jornada com elemento nulo", async () => {
+    const { error } = await servico
+      .from("rh_empregados")
+      .insert({ cliente_id: clienteA, nome: "Nula", jornada: [null, 480, 480, 480, 480, 480, 0] });
+
+    expect(error?.code).toBe("23514");
+  });
+
   it("salva o dia do cartão e apaga a linha quando fica vazio", async () => {
     const { repo } = await comoFuncionarioRH();
     const id = await novoEmpregado("Bia");
