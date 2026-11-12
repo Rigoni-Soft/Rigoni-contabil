@@ -1,7 +1,7 @@
 import { Pilha } from "@/presentation/components/atoms/caixa.component";
 import { CabecalhoDeTela } from "@/presentation/components/molecules/cabecalho-de-tela.component";
+import { CartaoDaTela } from "@/presentation/components/molecules/cartao-da-tela.component";
 import { TelaDeTrabalhoTemplate } from "@/presentation/components/templates/tela-de-trabalho-template.component";
-import { MOLDURA_DO_CARTAO } from "@/presentation/lib/moldura-do-cartao";
 
 type EditarCadastroOperacionalPageProps = {
   header: React.ReactNode;
@@ -45,10 +45,10 @@ export function EditarCadastroOperacionalPage({
           {/* Admin: SN e RH em dois cartões iguais (o RH não entra no <form> do SN: seria form aninhado).
               O cartão do RH existe mesmo se as observações não carregarem. */}
           {(acompanhamentoRh || observacoesRh) && (
-            <Pilha espaco={6} className={MOLDURA_DO_CARTAO}>
+            <CartaoDaTela>
               {acompanhamentoRh}
               {observacoesRh}
-            </Pilha>
+            </CartaoDaTela>
           )}
         </Pilha>
       }
