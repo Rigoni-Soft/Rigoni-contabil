@@ -904,7 +904,7 @@ padrão; "Sem movimento no mês" e "Inativar empregado" ao fim. O escolhido leva
 ligado ao campo Nome, e o formulário só é limpo no sucesso. Em leitura (Líder, Admin ou outro
 Responsável) só a lista e os dados aparecem, sem formulário nem botão de escrita.
 
-**`LeituraDeCartao` (organismo):** formulário "Ler foto do cartão de ponto", num `CartaoDaTela` abaixo do
+**`LeituraDeCartao` (organismo):** formulário "Ler foto do cartão de ponto", num `CartaoDaTela` acima do
 `QuadroDeFuncionarios` (só o Responsável do RH o recebe): `NotaDeObrigatorio`, o texto de apoio (a foto vira o
 cartão da quinzena, não é guardada, confira depois), o `CampoDeOpcoes` "Quinzena" na malha `1>2>4` e o
 `CampoDeArquivo` (JPEG ou PNG de até 4 MB, dito antes de escolher), seguido, sob o subtítulo "Atestado ou declaração de comparecimento", de um segundo `CampoDeArquivo` opcional (também de até 4 MB) e do botão de contorno "Ler atestado" ("Lendo o atestado…" enquanto lê, sem trocar o rótulo do outro botão; o erro da foto escolhida leva o foco ao próprio campo e só um campo mostra erro por vez) (abona os dias do empregado achado pelo nome; sem acerto, manda abonar à mão). O botão "Ler cartão" usa `aria-disabled` enquanto

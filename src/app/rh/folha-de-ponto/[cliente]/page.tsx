@@ -46,7 +46,6 @@ export default async function Page({ params, searchParams }: Props) {
             >
               Convenção coletiva →
             </LinkDeAcao>
-            <QuadroDeFuncionariosContainer folha={folha.value} />
             {folha.value.podeEditar && (
               <CartaoDaTela>
                 <LeituraDeCartaoContainer
@@ -55,6 +54,7 @@ export default async function Page({ params, searchParams }: Props) {
                 />
               </CartaoDaTela>
             )}
+            <QuadroDeFuncionariosContainer folha={folha.value} />
           </>
         )
       }
