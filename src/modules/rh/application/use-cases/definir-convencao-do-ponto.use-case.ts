@@ -20,8 +20,8 @@ export class DefinirInterruptoresDoCliente
   extends EscreverPonto
   implements DefinirInterruptoresDoClientePort
 {
-  constructor(sessao: SessaoPort, repo: FolhaDePontoRepository, auditoria: AuditoriaPort) {
-    super(sessao, repo, auditoria, "rh.cliente.interruptores");
+  constructor(sessao: SessaoPort, repositorio: FolhaDePontoRepository, auditoria: AuditoriaPort) {
+    super(sessao, repositorio, auditoria, "rh.cliente.interruptores");
   }
 
   async execute(input: DefinirInterruptoresDoClienteInput): Promise<Result<void, AppError>> {
@@ -38,8 +38,8 @@ export class DefinirConvencaoDoEmpregado
   extends EscreverPonto
   implements DefinirConvencaoDoEmpregadoPort
 {
-  constructor(sessao: SessaoPort, repo: FolhaDePontoRepository, auditoria: AuditoriaPort) {
-    super(sessao, repo, auditoria, "rh.empregado.corrigir");
+  constructor(sessao: SessaoPort, repositorio: FolhaDePontoRepository, auditoria: AuditoriaPort) {
+    super(sessao, repositorio, auditoria, "rh.empregado.corrigir");
   }
 
   async execute(input: DefinirConvencaoDoEmpregadoInput): Promise<Result<void, AppError>> {

@@ -67,8 +67,8 @@ export abstract class EscreverPonto {
 }
 
 export class CadastrarEmpregado extends EscreverPonto implements CadastrarEmpregadoPort {
-  constructor(sessao: SessaoPort, repo: FolhaDePontoRepository, auditoria: AuditoriaPort) {
-    super(sessao, repo, auditoria, "rh.empregado.cadastrar");
+  constructor(sessao: SessaoPort, repositorio: FolhaDePontoRepository, auditoria: AuditoriaPort) {
+    super(sessao, repositorio, auditoria, "rh.empregado.cadastrar");
   }
 
   async execute(input: CadastrarEmpregadoInput): Promise<Result<void, AppError>> {
@@ -96,8 +96,8 @@ export class CadastrarEmpregado extends EscreverPonto implements CadastrarEmpreg
 }
 
 export class CorrigirEmpregado extends EscreverPonto implements CorrigirEmpregadoPort {
-  constructor(sessao: SessaoPort, repo: FolhaDePontoRepository, auditoria: AuditoriaPort) {
-    super(sessao, repo, auditoria, "rh.empregado.corrigir");
+  constructor(sessao: SessaoPort, repositorio: FolhaDePontoRepository, auditoria: AuditoriaPort) {
+    super(sessao, repositorio, auditoria, "rh.empregado.corrigir");
   }
 
   async execute(input: CorrigirEmpregadoInput): Promise<Result<void, AppError>> {
@@ -117,8 +117,8 @@ export class CorrigirEmpregado extends EscreverPonto implements CorrigirEmpregad
 }
 
 export class DefinirEmpregadoAtivo extends EscreverPonto implements DefinirEmpregadoAtivoPort {
-  constructor(sessao: SessaoPort, repo: FolhaDePontoRepository, auditoria: AuditoriaPort) {
-    super(sessao, repo, auditoria, "rh.empregado.inativar");
+  constructor(sessao: SessaoPort, repositorio: FolhaDePontoRepository, auditoria: AuditoriaPort) {
+    super(sessao, repositorio, auditoria, "rh.empregado.inativar");
   }
 
   async execute(input: DefinirEmpregadoAtivoInput): Promise<Result<void, AppError>> {
@@ -131,11 +131,11 @@ export class DefinirEmpregadoAtivo extends EscreverPonto implements DefinirEmpre
 export class DefinirSemMovimento extends EscreverPonto implements DefinirSemMovimentoPort {
   constructor(
     sessao: SessaoPort,
-    repo: FolhaDePontoRepository,
+    repositorio: FolhaDePontoRepository,
     auditoria: AuditoriaPort,
     private readonly relogio: RelogioPort,
   ) {
-    super(sessao, repo, auditoria, "rh.ponto.sem-movimento");
+    super(sessao, repositorio, auditoria, "rh.ponto.sem-movimento");
   }
 
   async execute(input: DefinirSemMovimentoInput): Promise<Result<void, AppError>> {
@@ -158,8 +158,8 @@ export class DefinirPadraoComissionados
   extends EscreverPonto
   implements DefinirPadraoComissionadosPort
 {
-  constructor(sessao: SessaoPort, repo: FolhaDePontoRepository, auditoria: AuditoriaPort) {
-    super(sessao, repo, auditoria, "rh.ponto.padrao-comissionados");
+  constructor(sessao: SessaoPort, repositorio: FolhaDePontoRepository, auditoria: AuditoriaPort) {
+    super(sessao, repositorio, auditoria, "rh.ponto.padrao-comissionados");
   }
 
   async execute(input: DefinirPadraoComissionadosInput): Promise<Result<void, AppError>> {

@@ -56,14 +56,14 @@ const JANELAS_NOTURNAS: readonly [number, number][] = [
   [22 * 60, 29 * 60],
 ];
 
-export function hm(texto: string): number {
-  const [h, m] = texto.split(":").map(Number);
-  return h * 60 + m;
+export function horaParaMinutos(texto: string): number {
+  const [horas, minutos] = texto.split(":").map(Number);
+  return horas * 60 + minutos;
 }
 
 export function diaDaSemana(data: string): number {
-  const [a, m, d] = data.split("-").map(Number);
-  return new Date(Date.UTC(a, m - 1, d)).getUTCDay();
+  const [ano, mes, diaDoMes] = data.split("-").map(Number);
+  return new Date(Date.UTC(ano, mes - 1, diaDoMes)).getUTCDay();
 }
 
 function intervalo({ entrada, saida }: Par): [number, number] {
@@ -71,16 +71,16 @@ function intervalo({ entrada, saida }: Par): [number, number] {
 }
 
 function duracao(par: Par): number {
-  const [e, s] = intervalo(par);
-  return s - e;
+  const [inicio, fim] = intervalo(par);
+  return fim - inicio;
 }
 
 function minutosNoturnos(pares: Par[]): number {
   let real = 0;
   for (const par of pares) {
-    const [e, s] = intervalo(par);
-    for (const [ini, fim] of JANELAS_NOTURNAS)
-      real += Math.max(0, Math.min(s, fim) - Math.max(e, ini));
+    const [inicio, fim] = intervalo(par);
+    for (const [inicioDaJanela, fimDaJanela] of JANELAS_NOTURNAS)
+      real += Math.max(0, Math.min(fim, fimDaJanela) - Math.max(inicio, inicioDaJanela));
   }
   return Math.round((real * 8) / 7);
 }
@@ -110,8 +110,8 @@ const ZERO: Totalizacao = {
 // Percentual da hora extra do dia e se é data especial (feriado, domingo ou data fixa da convenção): data
 // especial não vai para o banco nem conta no limite diário. Sábado e dia útil vão para os dois.
 function faixaDoDia(dia: DiaDoCartao, semana: number, regras: RegrasDeCalculo) {
-  const [, mes, d] = dia.data.split("-");
-  const fixa = regras.datasEspeciais.find((e) => e.data === `${d}/${mes}`);
+  const [, mes, diaDoMes] = dia.data.split("-");
+  const fixa = regras.datasEspeciais.find((e) => e.data === `${diaDoMes}/${mes}`);
   if (fixa) return { percentual: fixa.percentual, especial: true };
   if (dia.feriado) return { percentual: regras.extraFeriadoPct, especial: true };
   if (semana === 0) return { percentual: regras.extraDomingoPct, especial: true };
@@ -132,42 +132,53 @@ export function totalizarDia(
 ): Totalizacao {
   const semana = diaDaSemana(dia.data);
   const { percentual, especial } = faixaDoDia(dia, semana, regras);
-  const t: Totalizacao = { ...ZERO };
   const pagas = new Map<number, number>();
   let extrasDoDia = 0;
   let extrasLimitadas = 0;
+  let bancoDeHorasMin = 0;
 
   const somarExtra = (min: number) => {
     if (min <= 0) return;
     extrasDoDia += min;
     if (!especial) extrasLimitadas += min;
-    if (!especial && regras.bancoDeHoras) t.bancoDeHorasMin += min;
-    else pagas.set(percentual, (pagas.get(percentual) ?? 0) + min);
+    if (!especial && regras.bancoDeHoras) {
+      bancoDeHorasMin += min;
+      return;
+    }
+    pagas.set(percentual, (pagas.get(percentual) ?? 0) + min);
   };
 
-  apurarDia(dia, jornada, regras, t, somarExtra, semana);
-
-  t.extras = faixasOrdenadas(pagas);
-  t.acimaDoLimiteMin = Math.max(0, extrasLimitadas - regras.limiteExtrasDiaMin);
-  t.diasComLanche = extrasDoDia > 0 ? 1 : 0;
+  const apurado = apurarDia({ dia, jornada, regras, semana }, somarExtra);
   const trabalhou = dia.extra !== null || dia.batidas.length > 0;
-  t.sabadosTrabalhados = semana === 6 && !dia.feriado && trabalhou ? 1 : 0;
-  return t;
+  return {
+    ...apurado,
+    bancoDeHorasMin,
+    extras: faixasOrdenadas(pagas),
+    acimaDoLimiteMin: Math.max(0, extrasLimitadas - regras.limiteExtrasDiaMin),
+    diasComLanche: extrasDoDia > 0 ? 1 : 0,
+    sabadosTrabalhados: semana === 6 && !dia.feriado && trabalhou ? 1 : 0,
+  };
 }
 
+type ContextoDoDia = {
+  dia: DiaDoCartao;
+  jornada: Jornada;
+  regras: RegrasDeCalculo;
+  semana: number;
+};
+
+// Apura o dia e devolve só o que ele sabe: as horas extras vão pelo `somarExtra`, e o resto
+// (banco, faixas, limite, lanche, sábado) é montado por `totalizarDia`.
 function apurarDia(
-  dia: DiaDoCartao,
-  jornada: Jornada,
-  regras: RegrasDeCalculo,
-  t: Totalizacao,
+  { dia, jornada, regras, semana }: ContextoDoDia,
   somarExtra: (min: number) => void,
-  semana: number,
-): void {
+): Totalizacao {
+  const apurado: Totalizacao = { ...ZERO };
   const carga = jornada[semana];
 
-  if (dia.extra) t.noturnoMin += minutosNoturnos([dia.extra]);
+  if (dia.extra) apurado.noturnoMin += minutosNoturnos([dia.extra]);
   // Feriado trabalhado só na coluna Extra (feriado e folga só têm a Extra liberada na tela) também conta.
-  if (dia.extra && dia.feriado) t.feriadosTrabalhados = 1;
+  if (dia.extra && dia.feriado) apurado.feriadosTrabalhados = 1;
   somarExtra(dia.extra ? duracao(dia.extra) : 0);
 
   const trabalhado = dia.batidas.reduce((soma, p) => soma + duracao(p), 0);
@@ -175,47 +186,53 @@ function apurarDia(
   if (semana === 0 && regras.trabalhoAosDomingos && !dia.feriado) {
     if (trabalhado > 0) {
       somarExtra(trabalhado);
-      t.noturnoMin += minutosNoturnos(dia.batidas);
+      apurado.noturnoMin += minutosNoturnos(dia.batidas);
     }
-    return;
+    return apurado;
   }
 
   // Dia sem carga: só a coluna Extra conta.
-  if (carga === 0 && !dia.feriado) return;
+  if (carga === 0 && !dia.feriado) return apurado;
 
   if (dia.feriado) {
     // Feriado: sem falta; o que se trabalha é hora extra.
     if (trabalhado > 0) {
       somarExtra(trabalhado);
-      t.feriadosTrabalhados = 1;
-      t.noturnoMin += minutosNoturnos(dia.batidas);
+      apurado.feriadosTrabalhados = 1;
+      apurado.noturnoMin += minutosNoturnos(dia.batidas);
     }
-    return;
+    return apurado;
   }
 
   if (dia.batidas.length === 0) {
     if (dia.abono) {
-      t.abonoDias = 1;
-      t.abonoMin = carga;
-    } else {
-      t.faltas = 1;
+      apurado.abonoDias = 1;
+      apurado.abonoMin = carga;
+      return apurado;
     }
-    return;
+    apurado.faltas = 1;
+    return apurado;
   }
 
-  t.noturnoMin += minutosNoturnos(dia.batidas);
+  apurado.noturnoMin += minutosNoturnos(dia.batidas);
   const tolerancia = Math.min(TOLERANCIA_POR_MARCACAO * dia.batidas.length * 2, TOLERANCIA_POR_DIA);
   const diferenca = trabalhado - carga;
   if (Math.abs(diferenca) <= tolerancia) {
-    t.normaisMin = carga;
-  } else if (diferenca > 0) {
-    t.normaisMin = carga;
-    somarExtra(diferenca);
-  } else {
-    t.normaisMin = trabalhado;
-    if (dia.abono) t.abonoMin = -diferenca;
-    else t.atrasoMin = -diferenca;
+    apurado.normaisMin = carga;
+    return apurado;
   }
+  if (diferenca > 0) {
+    apurado.normaisMin = carga;
+    somarExtra(diferenca);
+    return apurado;
+  }
+  apurado.normaisMin = trabalhado;
+  if (dia.abono) {
+    apurado.abonoMin = -diferenca;
+    return apurado;
+  }
+  apurado.atrasoMin = -diferenca;
+  return apurado;
 }
 
 // `regrasDoDia` devolve as regras da data: a convenção vigente pode mudar no meio do período.
@@ -227,11 +244,11 @@ export function totalizar(
   const soma: Totalizacao = { ...ZERO };
   const pagas = new Map<number, number>();
   for (const dia of dias) {
-    const t = totalizarDia(dia, jornada, regrasDoDia(dia.data));
-    for (const { percentual, minutos } of t.extras)
+    const doDia = totalizarDia(dia, jornada, regrasDoDia(dia.data));
+    for (const { percentual, minutos } of doDia.extras)
       pagas.set(percentual, (pagas.get(percentual) ?? 0) + minutos);
     for (const campo of Object.keys(soma) as (keyof Totalizacao)[]) {
-      if (campo !== "extras") soma[campo] += t[campo];
+      if (campo !== "extras") soma[campo] += doDia[campo];
     }
   }
   soma.extras = faixasOrdenadas(pagas);

@@ -4,7 +4,7 @@ import {
   type RegrasDeCalculo,
 } from "@/modules/rh/domain/services/regras-de-calculo.service";
 import {
-  hm,
+  horaParaMinutos,
   totalizar,
   totalizarDia,
   type DiaDoCartao,
@@ -22,7 +22,7 @@ const faixa = (t: { extras: { percentual: number; minutos: number }[] }, pct: nu
 function dia(data: string, p: Partial<DiaDoCartao> = {}): DiaDoCartao {
   return { data, batidas: [], extra: null, abono: false, feriado: false, ...p };
 }
-const par = (e: string, s: string) => ({ entrada: hm(e), saida: hm(s) });
+const par = (e: string, s: string) => ({ entrada: horaParaMinutos(e), saida: horaParaMinutos(s) });
 const completo = [par("08:00", "12:00"), par("13:00", "17:45")]; // 8h45
 
 describe("totalizarDia: dia útil", () => {
@@ -117,7 +117,7 @@ describe("totalizarDia: sábado, domingo e feriado", () => {
 
   it("feriado trabalhado só na coluna Extra também conta um feriado trabalhado", () => {
     const t = totalizarDia(
-      dia("2026-11-02", { feriado: true, extra: { entrada: hm("08:00"), saida: hm("12:00") } }),
+      dia("2026-11-02", { feriado: true, extra: { entrada: horaParaMinutos("08:00"), saida: horaParaMinutos("12:00") } }),
       J,
     );
     expect(t).toMatchObject({ feriadosTrabalhados: 1, faltas: 0 });
@@ -319,8 +319,8 @@ describe("totalizar: convenção da época", () => {
   });
 });
 
-describe("hm", () => {
+describe("horaParaMinutos", () => {
   it("converte HH:MM em minutos", () => {
-    expect(hm("08:30")).toBe(510);
+    expect(horaParaMinutos("08:30")).toBe(510);
   });
 });

@@ -38,14 +38,23 @@ export function regrasDeCalculo(
 ): RegrasDeCalculo {
   const regras: RegrasDeCalculo = { ...LEGISLACAO, ...interruptores, datasEspeciais: [] };
   for (const regra of convencao?.aplicadas ?? []) {
-    if (regra.chave === "extra_sabado") regras.extraSabadoPct = regra.valor;
-    else if (regra.chave === "limite_extras_dia") regras.limiteExtrasDiaMin = regra.valor;
-    else if (regra.chave === "datas_especiais") {
-      for (const d of regra.valor) {
-        const percentual = comissionado ? (d.percentualComissionado ?? d.percentual) : d.percentual;
-        if (d.data === null) regras.extraFeriadoPct = percentual;
-        else regras.datasEspeciais.push({ data: d.data, percentual });
+    if (regra.chave === "extra_sabado") {
+      regras.extraSabadoPct = regra.valor;
+      continue;
+    }
+    if (regra.chave === "limite_extras_dia") {
+      regras.limiteExtrasDiaMin = regra.valor;
+      continue;
+    }
+    if (regra.chave !== "datas_especiais") continue;
+    for (const dataEspecial of regra.valor) {
+      const { data, percentual: padrao, percentualComissionado } = dataEspecial;
+      const percentual = comissionado ? (percentualComissionado ?? padrao) : padrao;
+      if (data === null) {
+        regras.extraFeriadoPct = percentual;
+        continue;
       }
+      regras.datasEspeciais.push({ data, percentual });
     }
   }
   return regras;

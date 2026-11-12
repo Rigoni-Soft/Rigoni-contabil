@@ -18,11 +18,11 @@ import { err, type Result } from "@/shared/kernel/result";
 export class IniciarCartaoDoPonto extends EscreverPonto implements IniciarCartaoDoPontoPort {
   constructor(
     sessao: SessaoPort,
-    repo: FolhaDePontoRepository,
+    repositorio: FolhaDePontoRepository,
     auditoria: AuditoriaPort,
     private readonly relogio: RelogioPort,
   ) {
-    super(sessao, repo, auditoria, "rh.ponto.iniciar-cartao");
+    super(sessao, repositorio, auditoria, "rh.ponto.iniciar-cartao");
   }
 
   async execute(input: IniciarCartaoDoPontoInput): Promise<Result<void, AppError>> {

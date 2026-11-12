@@ -4,7 +4,7 @@ import type { ConvencaoRepository } from "@/modules/rh/application/ports/out/con
 import type { FolhaDePontoRepository } from "@/modules/rh/application/ports/out/folha-de-ponto.repository";
 import type { AtorSessaoDto } from "@/modules/rh/application/ports/out/sessao.provider";
 import { ObterFolhaDePonto } from "@/modules/rh/application/use-cases/obter-folha-de-ponto.use-case";
-import { hm } from "@/modules/rh/domain/services/totalizacao.service";
+import { horaParaMinutos } from "@/modules/rh/domain/services/totalizacao.service";
 import { ok } from "@/shared/kernel/result";
 
 const FUNC: AtorSessaoDto = { id: "func", papel: "funcionario", setor: "rh" };
@@ -113,8 +113,8 @@ describe("ObterFolhaDePonto", () => {
             {
               data: "2026-11-16",
               batidas: [
-                { entrada: hm("08:00"), saida: hm("12:00") },
-                { entrada: hm("13:00"), saida: hm("17:45") },
+                { entrada: horaParaMinutos("08:00"), saida: horaParaMinutos("12:00") },
+                { entrada: horaParaMinutos("13:00"), saida: horaParaMinutos("17:45") },
               ],
               extra: null,
               abono: false,
@@ -159,7 +159,7 @@ describe("ObterFolhaDePonto", () => {
         ok([
           {
             data: "2026-11-21",
-            batidas: [{ entrada: hm("08:00"), saida: hm("13:00") }],
+            batidas: [{ entrada: horaParaMinutos("08:00"), saida: horaParaMinutos("13:00") }],
             extra: null,
             abono: false,
           },
