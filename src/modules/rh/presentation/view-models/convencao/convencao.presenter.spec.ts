@@ -2,7 +2,6 @@ import type { ConvencaoDto } from "@/modules/rh/application/dtos/convencao.dto";
 import type { RegrasDaConvencao } from "@/shared/kernel/regras-da-convencao";
 
 import {
-  campoDoServidor,
   convencaoEscolhida,
   duracao,
   empregadosDosAjustes,
@@ -219,15 +218,14 @@ describe("lerEnvioDoFormulario", () => {
   });
 
   it.each([
-    ["sem arquivo", undefined, "Escolha o PDF da convenção.", "arquivo"],
+    ["sem arquivo", undefined, "Escolha o PDF da convenção."],
     [
       "arquivo que não é PDF",
       new File(["x"], "cct.docx", { type: "application/msword" }),
       "Envie a convenção em PDF.",
-      "arquivo",
     ],
-  ])("recusa %s apontando o campo", (_nome, arquivo, erro, campo) => {
-    expect(lerEnvioDoFormulario("c1", arquivo)).toEqual({ ok: false, erro, campo });
+  ])("recusa %s", (_nome, arquivo, erro) => {
+    expect(lerEnvioDoFormulario("c1", arquivo)).toEqual({ ok: false, erro });
   });
 
   it("recusa PDF acima de 4 MB", () => {
@@ -238,13 +236,6 @@ describe("lerEnvioDoFormulario", () => {
     expect(lerEnvioDoFormulario("c1", grande)).toEqual({
       ok: false,
       erro: "O PDF passa de 4 MB.",
-      campo: "arquivo",
     });
-  });
-
-  it("campoDoServidor devolve o primeiro campo do formulário que o servidor recusou", () => {
-    expect(campoDoServidor({ clienteId: ["x"], arquivo: ["y"] })).toBe("arquivo");
-    expect(campoDoServidor({ clienteId: ["x"] })).toBeUndefined();
-    expect(campoDoServidor()).toBeUndefined();
   });
 });
