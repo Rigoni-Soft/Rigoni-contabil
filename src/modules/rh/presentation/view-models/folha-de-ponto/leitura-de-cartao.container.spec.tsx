@@ -45,7 +45,7 @@ describe("LeituraDeCartaoContainer", () => {
     });
     expect(
       await screen.findByText(
-        "Erick (cadastrado no quadro): 3 dias lidos, 1 falta. Confira o cartão.",
+        "Erick (cadastrado no quadro): 3 dias lidos, 1 falta anotada. Confira o cartão.",
       ),
     ).toBeInTheDocument();
   });

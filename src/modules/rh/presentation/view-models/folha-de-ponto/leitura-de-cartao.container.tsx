@@ -15,7 +15,8 @@ type Props = { clienteId: string; competencia: string };
 
 export function resumoDaLeitura(c: CartaoLidoDto): string {
   const partes = [`${c.dias} ${c.dias === 1 ? "dia lido" : "dias lidos"}`];
-  if (c.faltas > 0) partes.push(`${c.faltas} ${c.faltas === 1 ? "falta" : "faltas"}`);
+  if (c.faltas > 0)
+    partes.push(`${c.faltas} ${c.faltas === 1 ? "falta anotada" : "faltas anotadas"}`);
   if (c.abonos > 0) partes.push(`${c.abonos} ${c.abonos === 1 ? "abono" : "abonos"}`);
   const novo = c.cadastrado ? " (cadastrado no quadro)" : "";
   return `${c.nome}${novo}: ${partes.join(", ")}. Confira o cartão.`;

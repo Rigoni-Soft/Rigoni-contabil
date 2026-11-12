@@ -22,7 +22,7 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 // Limite do corpo de uma Server Action na Vercel (ADR 0007).
-export const MAXIMO_DA_FOTO_BYTES = 4 * 1024 * 1024;
+const MAXIMO_DA_FOTO_BYTES = 4 * 1024 * 1024;
 const MANUAL = "Não foi possível ler o cartão. Digite os horários à mão.";
 
 function ehImagem({ bytes, tipo }: LerCartaoDePontoInput["imagem"]): boolean {
