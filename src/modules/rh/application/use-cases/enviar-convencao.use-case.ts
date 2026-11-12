@@ -5,7 +5,10 @@ import type {
 import type { ArmazenamentoDeConvencaoPort } from "@/modules/rh/application/ports/out/armazenamento-de-convencao.provider";
 import type { AuditoriaPort } from "@/modules/rh/application/ports/out/auditoria.provider";
 import type { ConvencaoRepository } from "@/modules/rh/application/ports/out/convencao.repository";
-import type { ExtratorDeRegrasPort } from "@/modules/rh/application/ports/out/extrator-de-regras.provider";
+import type {
+  ExtracaoDeRegras,
+  ExtratorDeRegrasPort,
+} from "@/modules/rh/application/ports/out/extrator-de-regras.provider";
 import type { FolhaDePontoRepository } from "@/modules/rh/application/ports/out/folha-de-ponto.repository";
 import type { RegistroDeErrosPort } from "@/modules/rh/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
@@ -82,7 +85,6 @@ export class EnviarConvencao implements EnviarConvencaoPort {
       );
     }
 
-    // Sindicato e vigência vêm do documento, não de quem envia.
     const identificacao = identificar(extracao);
     if (!identificacao.ok) {
       await this.removerOrfao(caminho);
@@ -128,7 +130,7 @@ function validarArquivo(arquivo: EnviarConvencaoInput["arquivo"]): Result<void, 
 }
 
 function identificar(
-  extracao: Extract<Awaited<ReturnType<ExtratorDeRegrasPort["extrair"]>>, { lido: true }>,
+  extracao: Extract<ExtracaoDeRegras, { lido: true }>,
 ): Result<{ sindicato: string; vigenciaInicio: string; vigenciaFim: string }, ValidationError> {
   const sindicato = validarSindicato(extracao.sindicato);
   const { vigenciaInicio, vigenciaFim } = extracao;

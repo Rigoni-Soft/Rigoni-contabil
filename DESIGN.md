@@ -949,10 +949,9 @@ arquivo e a data do envio em `nota`. A de vigência mais recente vem primeiro; a
 guardadas e cada uma abre as suas regras (`?convencao=`). Sem convenção, o texto convida a enviar (quem
 pode) ou diz quem envia (quem só lê).
 
-**`EnvioDeConvencao` (organismo):** formulário "Enviar ou renovar a convenção": Sindicato, início e fim da
-vigência (`type="date"`) em `CampoDeTexto` na malha `1>2>4` (Sindicato em 2 colunas) com a `NotaDeObrigatorio`, e o `CampoDeArquivo` (PDF de até 4 MB, dito antes
-de escolher). Enquanto lê, o botão fica desabilitado e diz "Lendo a convenção…" (a extração roda uma vez,
-no envio); o erro aponta o campo (`aria-invalid` e `aria-describedby` ligados ao `AvisoDeStatus`; o do PDF vai no próprio `CampoDeArquivo`) e o formulário só é limpo no sucesso. Quem só lê não
+**`EnvioDeConvencao` (organismo):** formulário "Enviar ou renovar a convenção" com um campo só, o `CampoDeArquivo` (PDF de até 4 MB, dito
+antes de escolher): o sindicato e a vigência saem do PDF, na leitura, e não se digitam (sem `NotaDeObrigatorio`). Enquanto lê, o botão fica desabilitado e diz "Lendo a convenção…" (a extração roda uma vez,
+no envio); todo erro vai no próprio `CampoDeArquivo` (`aria-invalid` e `aria-describedby`) e leva o foco a ele, o formulário fica `aria-busy` e só é limpo no sucesso. Quem só lê não
 o recebe.
 
 **`RegrasAplicadas` (organismo):** a tela de leitura das regras: uma `Tabela` com um parâmetro por linha
