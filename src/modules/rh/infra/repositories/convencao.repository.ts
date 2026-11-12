@@ -34,7 +34,7 @@ export class SupabaseConvencaoRepository implements ConvencaoRepository {
       .eq("cliente_id", clienteId)
       .order("vigencia_inicio", { ascending: false })
       .order("criado_em", { ascending: false });
-    if (error) return this.falhaDeLeitura(error);
+    if (error) return falhaDeLeitura(this.leitura, error);
     const linhas = lerLinhas(this.leitura, z.array(convencaoRowSchema), data);
     if (!linhas.ok) return linhas;
     return ok(
@@ -78,9 +78,5 @@ export class SupabaseConvencaoRepository implements ConvencaoRepository {
       mensagem: "Não foi possível carregar as convenções.",
       erros: this.erros,
     };
-  }
-
-  private falhaDeLeitura(error: { message: string }): Result<never, AppError> {
-    return falhaDeLeitura(this.leitura, error);
   }
 }

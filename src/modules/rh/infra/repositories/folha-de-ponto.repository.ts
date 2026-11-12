@@ -62,10 +62,10 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
         .eq("setor", SETOR_RH)
         .maybeSingle(),
     ]);
-    if (cliente.error) return this.falhaDeLeitura(cliente.error);
-    if (responsavel.error) return this.falhaDeLeitura(responsavel.error);
-    const lido = this.ler(clienteBasicoRowSchema.nullable(), cliente.data);
-    const dono = this.ler(responsavelRowSchema.nullable(), responsavel.data);
+    if (cliente.error) return falhaDeLeitura(this.leitura, cliente.error);
+    if (responsavel.error) return falhaDeLeitura(this.leitura, responsavel.error);
+    const lido = lerLinhas(this.leitura, clienteBasicoRowSchema.nullable(), cliente.data);
+    const dono = lerLinhas(this.leitura, responsavelRowSchema.nullable(), responsavel.data);
     if (!lido.ok) return lido;
     if (!dono.ok) return dono;
     if (!lido.value) return ok(null);
@@ -78,8 +78,8 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
       .select("cliente_id")
       .eq("id", empregadoId)
       .maybeSingle();
-    if (error) return this.falhaDeLeitura(error);
-    const lido = this.ler(empregadoClienteRowSchema.nullable(), data);
+    if (error) return falhaDeLeitura(this.leitura, error);
+    const lido = lerLinhas(this.leitura, empregadoClienteRowSchema.nullable(), data);
     return lido.ok ? ok(lido.value?.cliente_id ?? null) : lido;
   }
 
@@ -88,8 +88,8 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
       .from("rh_empregados")
       .select("id, nome, jornada, comissionado, ativo")
       .eq("cliente_id", clienteId);
-    if (error) return this.falhaDeLeitura(error);
-    const lidos = this.ler(z.array(empregadoRowSchema), data);
+    if (error) return falhaDeLeitura(this.leitura, error);
+    const lidos = lerLinhas(this.leitura, z.array(empregadoRowSchema), data);
     return lidos.ok ? ok(lidos.value.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))) : lidos;
   }
 
@@ -103,8 +103,8 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
       .select("empregado_id, rh_empregados!inner(cliente_id)")
       .eq("competencia", competencia)
       .eq("rh_empregados.cliente_id", clienteId);
-    if (error) return this.falhaDeLeitura(error);
-    const lidos = this.ler(z.array(empregadoIdRowSchema), data);
+    if (error) return falhaDeLeitura(this.leitura, error);
+    const lidos = lerLinhas(this.leitura, z.array(empregadoIdRowSchema), data);
     return lidos.ok ? ok(lidos.value.map((l) => l.empregado_id)) : lidos;
   }
 
@@ -118,7 +118,7 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
       .eq("empregado_id", empregadoId)
       .eq("competencia", competencia)
       .maybeSingle();
-    if (error) return this.falhaDeLeitura(error);
+    if (error) return falhaDeLeitura(this.leitura, error);
     return ok(!!data);
   }
 
@@ -138,8 +138,8 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
       .select("comissionados")
       .eq("cliente_id", clienteId)
       .maybeSingle();
-    if (error) return this.falhaDeLeitura(error);
-    const lido = this.ler(padraoRowSchema.nullable(), data);
+    if (error) return falhaDeLeitura(this.leitura, error);
+    const lido = lerLinhas(this.leitura, padraoRowSchema.nullable(), data);
     return lido.ok ? ok(lido.value?.comissionados ?? false) : lido;
   }
 
@@ -213,8 +213,8 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
       .gte("data", de)
       .lte("data", ate)
       .order("data");
-    if (error) return this.falhaDeLeitura(error);
-    return this.ler(z.array(diaDoPontoRowSchema), data);
+    if (error) return falhaDeLeitura(this.leitura, error);
+    return lerLinhas(this.leitura, z.array(diaDoPontoRowSchema), data);
   }
 
   async salvarDia(
@@ -247,8 +247,8 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
       .select("data")
       .gte("data", de)
       .lte("data", ate);
-    if (error) return this.falhaDeLeitura(error);
-    const lidos = this.ler(z.array(feriadoRowSchema), data);
+    if (error) return falhaDeLeitura(this.leitura, error);
+    const lidos = lerLinhas(this.leitura, z.array(feriadoRowSchema), data);
     return lidos.ok ? ok(lidos.value.map((f) => f.data)) : lidos;
   }
 
@@ -260,8 +260,8 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
       .select("banco_de_horas, trabalho_aos_domingos")
       .eq("cliente_id", clienteId)
       .maybeSingle();
-    if (error) return this.falhaDeLeitura(error);
-    const lido = this.ler(interruptoresRowSchema.nullable(), data);
+    if (error) return falhaDeLeitura(this.leitura, error);
+    const lido = lerLinhas(this.leitura, interruptoresRowSchema.nullable(), data);
     if (!lido.ok) return lido;
     return ok({
       bancoDeHoras: lido.value?.banco_de_horas ?? false,
@@ -291,8 +291,8 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
       .from("rh_empregados")
       .select("id, convencao_sindicato")
       .eq("cliente_id", clienteId);
-    if (error) return this.falhaDeLeitura(error);
-    const lidos = this.ler(z.array(empregadoConvencaoRowSchema), data);
+    if (error) return falhaDeLeitura(this.leitura, error);
+    const lidos = lerLinhas(this.leitura, z.array(empregadoConvencaoRowSchema), data);
     return lidos.ok
       ? ok(lidos.value.map((e) => ({ empregadoId: e.id, sindicato: e.convencao_sindicato })))
       : lidos;
@@ -345,13 +345,5 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
       mensagem: FALHA_LER,
       erros: this.erros,
     };
-  }
-
-  private ler<S extends z.ZodType>(schema: S, data: unknown): Result<z.output<S>, AppError> {
-    return lerLinhas(this.leitura, schema, data);
-  }
-
-  private falhaDeLeitura(error: { message: string }): Result<never, AppError> {
-    return falhaDeLeitura(this.leitura, error);
   }
 }

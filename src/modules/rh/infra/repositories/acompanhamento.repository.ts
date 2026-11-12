@@ -18,9 +18,9 @@ import {
   marcacaoRowSchema,
   naoAplicaRowSchema,
   responsavelDoClienteRowSchema,
-  responsavelIdRowSchema,
   servicoRowSchema,
 } from "@/modules/rh/infra/dtos/acompanhamento-row.dto";
+import { responsavelRowSchema } from "@/modules/rh/infra/dtos/folha-de-ponto-row.dto";
 import {
   falhaDeLeitura,
   lerLinhas,
@@ -69,8 +69,8 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
       .select("id, nome, sistema, ativo_desde, desativado_em")
       .lte("ativo_desde", competencia)
       .order("ordem");
-    if (error) return this.falhaDeLeitura(error);
-    const lidos = this.ler(z.array(servicoRowSchema), data);
+    if (error) return falhaDeLeitura(this.leitura, error);
+    const lidos = lerLinhas(this.leitura, z.array(servicoRowSchema), data);
     if (!lidos.ok) return lidos;
 
     // Desativar vale do mês da desativação em diante; os meses anteriores seguem com o serviço.
@@ -193,10 +193,14 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
         .eq("setor", SETOR_RH)
         .maybeSingle(),
     ]);
-    if (cliente.error) return this.falhaDeLeitura(cliente.error);
-    if (responsavel.error) return this.falhaDeLeitura(responsavel.error);
-    const lido = this.ler(clienteDoAcompanhamentoBasicoRowSchema.nullable(), cliente.data);
-    const dono = this.ler(responsavelIdRowSchema.nullable(), responsavel.data);
+    if (cliente.error) return falhaDeLeitura(this.leitura, cliente.error);
+    if (responsavel.error) return falhaDeLeitura(this.leitura, responsavel.error);
+    const lido = lerLinhas(
+      this.leitura,
+      clienteDoAcompanhamentoBasicoRowSchema.nullable(),
+      cliente.data,
+    );
+    const dono = lerLinhas(this.leitura, responsavelRowSchema.nullable(), responsavel.data);
     if (!lido.ok) return lido;
     if (!dono.ok) return dono;
     if (!lido.value) return ok(null);
@@ -313,13 +317,5 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
       mensagem: "Não foi possível carregar o acompanhamento.",
       erros: this.erros,
     };
-  }
-
-  private ler<S extends z.ZodType>(schema: S, data: unknown): Result<z.output<S>, AppError> {
-    return lerLinhas(this.leitura, schema, data);
-  }
-
-  private falhaDeLeitura(error: { message: string }): Result<never, AppError> {
-    return falhaDeLeitura(this.leitura, error);
   }
 }

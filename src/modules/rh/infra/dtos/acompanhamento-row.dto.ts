@@ -38,4 +38,3 @@ export const servicoRowSchema = z.object({
 });
 
 export const clienteDoAcompanhamentoBasicoRowSchema = z.object({ cnpj: z.string() });
-export const responsavelIdRowSchema = z.object({ responsavel_id: z.guid() });
