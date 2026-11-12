@@ -14,13 +14,18 @@ const QUINZENAS = [
 type Props = {
   rotuloMes: string;
   arquivo?: File;
+  atestado?: File;
   pendente: boolean;
   erro?: string;
   // O erro é da foto escolhida (falta ou tamanho): vai no próprio campo; senão é da leitura.
   erroNoCampo?: boolean;
+  // O erro é do atestado escolhido (falta ou tamanho).
+  erroNoAtestado?: boolean;
   // O que a leitura fez, em uma frase (empregado, dias, faltas, abonos).
   resultado?: string;
   onArquivo: (arquivo?: File) => void;
+  onAtestado: (arquivo?: File) => void;
+  onLerAtestado: () => void;
   onLer: (campos: FormData) => void;
 };
 
@@ -29,11 +34,15 @@ type Props = {
 export function LeituraDeCartao({
   rotuloMes,
   arquivo,
+  atestado,
   pendente,
   erro,
   erroNoCampo,
+  erroNoAtestado,
   resultado,
   onArquivo,
+  onAtestado,
+  onLerAtestado,
   onLer,
 }: Props) {
   return (
@@ -74,10 +83,31 @@ export function LeituraDeCartao({
           onChange={onArquivo}
           erro={erroNoCampo ? erro : undefined}
         />
-        {erro && !erroNoCampo && <AvisoDeStatus tipo="erro" legivel texto={erro} />}
+        <CampoDeArquivo
+          id="leitura-atestado"
+          name="atestado"
+          rotulo="Atestado ou declaração de comparecimento (opcional, JPEG ou PNG)"
+          accept="image/jpeg,image/png"
+          dica="Abona os dias do empregado achado pelo nome. A foto e o CID não são guardados."
+          file={atestado}
+          onChange={onAtestado}
+          erro={erroNoAtestado ? erro : undefined}
+        />
+        {erro && !erroNoCampo && !erroNoAtestado && (
+          <AvisoDeStatus tipo="erro" legivel texto={erro} />
+        )}
         {resultado && <AvisoDeStatus tipo="sucesso" legivel texto={resultado} />}
         <Button type="submit" aria-disabled={pendente} className="self-start">
           {pendente ? "Lendo o cartão…" : "Ler cartão"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          aria-disabled={pendente}
+          className="self-start"
+          onClick={onLerAtestado}
+        >
+          Ler atestado
         </Button>
       </Pilha>
     </Caixa>

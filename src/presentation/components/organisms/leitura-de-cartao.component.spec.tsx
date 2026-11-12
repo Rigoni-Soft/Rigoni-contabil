@@ -8,6 +8,8 @@ const base = {
   pendente: false,
   onArquivo: jest.fn(),
   onLer: jest.fn(),
+  onAtestado: jest.fn(),
+  onLerAtestado: jest.fn(),
 };
 
 describe("LeituraDeCartao", () => {
@@ -44,5 +46,15 @@ describe("LeituraDeCartao", () => {
 
     rerender(<LeituraDeCartao {...base} resultado="Erick: 3 dias lidos." />);
     expect(screen.getByRole("status")).toHaveTextContent("Erick: 3 dias lidos.");
+  });
+
+  it("oferece o atestado opcional e chama a leitura dele pelo botão próprio", async () => {
+    const onLerAtestado = jest.fn();
+    render(<LeituraDeCartao {...base} onLerAtestado={onLerAtestado} />);
+
+    expect(screen.getByLabelText(/Atestado ou declaração de comparecimento/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ler atestado" }));
+
+    expect(onLerAtestado).toHaveBeenCalled();
   });
 });

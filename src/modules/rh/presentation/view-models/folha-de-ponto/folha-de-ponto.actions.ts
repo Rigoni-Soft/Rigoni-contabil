@@ -7,9 +7,11 @@ import {
   makeDefinirPadraoComissionados,
   makeDefinirSemMovimento,
   makeIniciarCartaoDoPonto,
+  makeLerAtestadoDePonto,
   makeLerCartaoDePonto,
   makeSalvarDiaDoPonto,
 } from "@/main/rh.factory";
+import type { AtestadoLidoDto } from "@/modules/rh/application/ports/in/ler-atestado-de-ponto.provider";
 import type { CartaoLidoDto } from "@/modules/rh/application/ports/in/ler-cartao-de-ponto.provider";
 import { dadosInvalidos } from "@/modules/rh/presentation/view-models/dados-invalidos.presenter";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
@@ -20,6 +22,7 @@ import {
   corrigirEmpregadoSchema,
   empregadoAtivoSchema,
   iniciarCartaoSchema,
+  lerAtestadoSchema,
   lerCartaoSchema,
   padraoComissionadosSchema,
   salvarDiaSchema,
@@ -88,6 +91,31 @@ export async function lerCartaoDePontoAction(
     await ler.execute({
       ...dados,
       quinzena: dados.quinzena as 1 | 2,
+      imagem: {
+        bytes: new Uint8Array(await imagem.arrayBuffer()),
+        tipo: imagem.type as "image/jpeg" | "image/png",
+      },
+    }),
+  );
+}
+
+// Como a do cartão: a foto do atestado só passa pelo leitor; nada dela é guardado.
+export async function lerAtestadoDePontoAction(
+  formData: FormData,
+): Promise<ActionResult<AtestadoLidoDto>> {
+  const parsed = lerAtestadoSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    const foto = parsed.error.issues.find((i) => i.path[0] === "imagem");
+    return foto
+      ? { ok: false, error: { code: "VALIDATION_ERROR", message: foto.message } }
+      : dadosInvalidos(parsed.error);
+  }
+  const { imagem, ...dados } = parsed.data;
+  return toActionResult(
+    await (
+      await makeLerAtestadoDePonto()
+    ).execute({
+      ...dados,
       imagem: {
         bytes: new Uint8Array(await imagem.arrayBuffer()),
         tipo: imagem.type as "image/jpeg" | "image/png",

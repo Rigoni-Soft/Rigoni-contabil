@@ -30,6 +30,7 @@ import type {
   RenomearServicoAcompanhamentoPort,
 } from "@/modules/rh/application/ports/in/gerir-servico-acompanhamento.provider";
 import type { IniciarCartaoDoPontoPort } from "@/modules/rh/application/ports/in/iniciar-cartao-do-ponto.provider";
+import type { LerAtestadoDePontoPort } from "@/modules/rh/application/ports/in/ler-atestado-de-ponto.provider";
 import type { LerCartaoDePontoPort } from "@/modules/rh/application/ports/in/ler-cartao-de-ponto.provider";
 import type {
   DefinirServicoAplicavelPort,
@@ -40,7 +41,10 @@ import type { ObterAcompanhamentoMensalPort } from "@/modules/rh/application/por
 import type { ObterConvencoesDoClientePort } from "@/modules/rh/application/ports/in/obter-convencoes-do-cliente.provider";
 import type { ObterFolhaDePontoPort } from "@/modules/rh/application/ports/in/obter-folha-de-ponto.provider";
 import type { SalvarDiaDoPontoPort } from "@/modules/rh/application/ports/in/salvar-dia-do-ponto.provider";
-import type { LeitorDeCartaoPort } from "@/modules/rh/application/ports/out/leitor-de-cartao.provider";
+import type {
+  LeitorDeAtestadoPort,
+  LeitorDeCartaoPort,
+} from "@/modules/rh/application/ports/out/leitor-de-cartao.provider";
 import type { AtorSessaoDto, SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
 import {
   DefinirConvencaoDoEmpregado,
@@ -60,6 +64,7 @@ import {
   RenomearServicoAcompanhamento,
 } from "@/modules/rh/application/use-cases/gerir-servico-acompanhamento.use-case";
 import { IniciarCartaoDoPonto } from "@/modules/rh/application/use-cases/iniciar-cartao-do-ponto.use-case";
+import { LerAtestadoDePonto } from "@/modules/rh/application/use-cases/ler-atestado-de-ponto.use-case";
 import { LerCartaoDePonto } from "@/modules/rh/application/use-cases/ler-cartao-de-ponto.use-case";
 import {
   DefinirServicoAplicavel,
@@ -207,7 +212,7 @@ export async function makeSalvarDiaDoPonto(): Promise<SalvarDiaDoPontoPort> {
   return new SalvarDiaDoPonto(sessao, repositorio, auditoria, new RelogioSistemaGateway());
 }
 
-function leitorDoCartao(): LeitorDeCartaoPort {
+function leitorDoCartao(): LeitorDeCartaoPort & LeitorDeAtestadoPort {
   switch (LEITURA_CARTAO_MODO) {
     case "falso":
       return new LeitorDeCartaoFalsoGateway();
@@ -217,6 +222,18 @@ function leitorDoCartao(): LeitorDeCartaoPort {
     default:
       return new LeitorDeCartaoIndisponivelGateway();
   }
+}
+
+export async function makeLerAtestadoDePonto(): Promise<LerAtestadoDePontoPort> {
+  const { sessao, repositorio, auditoria } = await montarFolha();
+  return new LerAtestadoDePonto(
+    sessao,
+    repositorio,
+    auditoria,
+    new RelogioSistemaGateway(),
+    leitorDoCartao(),
+    errosRh,
+  );
 }
 
 export async function makeLerCartaoDePonto(): Promise<LerCartaoDePontoPort> {
