@@ -162,8 +162,19 @@ describe("LerCartaoDePonto", () => {
 
   it.each([
     ["mês futuro", { competencia: "2027-01" }],
-    ["arquivo que não é imagem", { imagem: { bytes: new Uint8Array([1, 2, 3]), tipo: "image/jpeg" as const } }],
-    ["imagem grande demais", { imagem: { bytes: new Uint8Array(4 * 1024 * 1024 + 1).fill(0xff), tipo: "image/jpeg" as const } }],
+    [
+      "arquivo que não é imagem",
+      { imagem: { bytes: new Uint8Array([1, 2, 3]), tipo: "image/jpeg" as const } },
+    ],
+    [
+      "imagem grande demais",
+      {
+        imagem: {
+          bytes: new Uint8Array(4 * 1024 * 1024 + 1).fill(0xff),
+          tipo: "image/jpeg" as const,
+        },
+      },
+    ],
   ])("recusa %s sem chamar o leitor", async (_, troca) => {
     const ocr = { ler: jest.fn(async () => lida(BOA, "ocr")) };
     const { caso } = montar({ leitores: [ocr] });

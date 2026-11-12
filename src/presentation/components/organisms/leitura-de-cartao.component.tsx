@@ -3,9 +3,13 @@ import { Caixa, Grade, Pilha } from "@/presentation/components/atoms/caixa.compo
 import { NotaDeObrigatorio } from "@/presentation/components/atoms/nota-de-obrigatorio.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoDeArquivo } from "@/presentation/components/molecules/campo-de-arquivo.component";
-import { CampoSelect } from "@/presentation/components/molecules/campo-select.component";
+import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
 import { Button } from "@/presentation/components/ui/button";
 
+const QUINZENAS = [
+  { valor: "1", rotulo: "1ª quinzena (dias 1 a 15)" },
+  { valor: "2", rotulo: "2ª quinzena (dia 16 ao fim)" },
+] as const;
 const ID_DO_ERRO = "erro-leitura-de-cartao";
 
 type Props = {
@@ -54,10 +58,13 @@ export function LeituraDeCartao({
           leitura falhar, digite à mão.
         </Texto>
         <Grade colunas="1>2>4" espaco={4}>
-          <CampoSelect id="leitura-quinzena" rotulo="Quinzena" name="quinzena" defaultValue="1">
-            <option value="1">1ª quinzena (dias 1 a 15)</option>
-            <option value="2">2ª quinzena (dia 16 ao fim)</option>
-          </CampoSelect>
+          <CampoDeOpcoes
+            id="leitura-quinzena"
+            rotulo="Quinzena"
+            name="quinzena"
+            defaultValue="1"
+            opcoes={QUINZENAS}
+          />
         </Grade>
         <CampoDeArquivo
           id="leitura-foto"

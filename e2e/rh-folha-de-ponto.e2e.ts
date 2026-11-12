@@ -109,6 +109,29 @@ test.describe("Folha de ponto do RH", () => {
     await expect(page.getByRole("button", { name: /^Abonar / }).first()).toBeVisible();
   });
 
+  // Leitor falso (LEITURA_CARTAO_MODO padrão): a foto não é olhada e a leitura é sempre a do "Erick Falso".
+  test("Funcionário sobe a foto do cartão e o empregado nasce no quadro com o cartão lido @smoke", async ({
+    page,
+  }) => {
+    const { mes } = primeiraSegunda();
+    await login(page, "funcionario.rh@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL("/rh");
+    await page.goto(`/rh/folha-de-ponto/${clienteId}?mes=${mes}`);
+
+    await page.getByLabel("Foto do cartão (JPEG ou PNG)").setInputFiles({
+      name: "ponto-erick-quin-1.jpeg",
+      mimeType: "image/jpeg",
+      buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00]),
+    });
+    await page.getByRole("button", { name: "Ler cartão" }).click();
+
+    await expect(
+      page.getByText(/Erick Falso \(cadastrado no quadro\): 4 dias lidos/),
+    ).toBeVisible();
+    await page.getByRole("link", { name: "Cartão de ponto de Erick Falso" }).click();
+    await expect(page.getByRole("heading", { name: "Erick Falso", exact: true })).toBeVisible();
+  });
+
   test("Líder do RH lê o cartão sem poder alterá-lo", async ({ page }) => {
     const { mes, rotulo } = primeiraSegunda();
     const empregado = await admin

@@ -1,5 +1,3 @@
-import path from "node:path";
-
 import { createWorker } from "tesseract.js";
 
 import type {
@@ -15,8 +13,10 @@ import { lerTextoDoCartao } from "@/modules/rh/infra/mappers/texto-do-cartao.map
 export class LeitorDeCartaoOcrGateway implements LeitorDeCartaoPort {
   async ler(imagem: ImagemDoCartao): Promise<LeituraBruta> {
     const worker = await createWorker("por", 1, {
-      langPath: path.join(process.cwd(), "assets", "tessdata"),
+      langPath: `${process.cwd()}/assets/tessdata`,
       gzip: false,
+      // O modelo já está no deploy: nada de cópia em cache (o disco da função é só leitura).
+      cacheMethod: "none",
     });
     try {
       // Modo 6: um bloco uniforme de texto, o que melhor segue as linhas da tabela do cartão.

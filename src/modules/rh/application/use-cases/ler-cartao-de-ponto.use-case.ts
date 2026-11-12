@@ -13,8 +13,8 @@ import { EscreverPonto } from "@/modules/rh/application/use-cases/gerir-quadro-d
 import {
   acharEmpregadoPeloNome,
   deduzirJornada,
-  type LeituraValida,
   validarLeitura,
+  type LeituraValida,
 } from "@/modules/rh/domain/services/leitura-do-cartao.service";
 import { Competencia } from "@/modules/rh/domain/value-objects/competencia.vo";
 import type { AppError } from "@/shared/errors/app.error";

@@ -1,8 +1,8 @@
 import {
   acharEmpregadoPeloNome,
   deduzirJornada,
-  type LeituraDoCartao,
   validarLeitura,
+  type LeituraDoCartao,
 } from "@/modules/rh/domain/services/leitura-do-cartao.service";
 
 const h = (hh: number, mm = 0) => hh * 60 + mm;
@@ -33,7 +33,11 @@ describe("validarLeitura", () => {
     const r = validarLeitura(
       {
         nome: "Erick",
-        dias: [dia(1), dia(2, { batidas: [], faltou: true }), dia(3, { batidas: [], atestado: true })],
+        dias: [
+          dia(1),
+          dia(2, { batidas: [], faltou: true }),
+          dia(3, { batidas: [], atestado: true }),
+        ],
       },
       alvo,
     );
