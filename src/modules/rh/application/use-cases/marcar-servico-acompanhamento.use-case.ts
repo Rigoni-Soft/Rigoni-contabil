@@ -13,7 +13,7 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ValidationError } from "@/shared/errors/validation.error";
-import { podeMarcarAcompanhamentoRh } from "@/shared/kernel/papeis";
+import { ehResponsavelRhDoCliente } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 // Só o Funcionário do RH que é Responsável do Cliente grava (marcar e "se aplica"); o Líder e o Admin
@@ -37,8 +37,7 @@ abstract class EscreverAcompanhamento {
 
     const cliente = await this.repositorio.buscarCliente(clienteId);
     if (!cliente.ok) return cliente;
-    const responsavel = cliente.value?.responsavelId;
-    if (!podeMarcarAcompanhamentoRh(ator.papel, ator.setor) || responsavel !== ator.id) {
+    if (!ehResponsavelRhDoCliente(ator, cliente.value?.responsavelId)) {
       await this.auditoria.registrar({
         ator: ator.id,
         setor: ator.setor,

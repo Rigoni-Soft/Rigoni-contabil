@@ -119,6 +119,14 @@ export function podeMarcarAcompanhamentoRh(papel: string, setor: string): boolea
   return papel === "funcionario" && setor === SETOR_RH;
 }
 
+// Quem escreve no Cliente: o Funcionário do RH que é o Responsável do RH daquele Cliente (a RLS repete a regra).
+export function ehResponsavelRhDoCliente(
+  ator: { id: string; papel: string; setor: string },
+  responsavelId: string | null | undefined,
+): boolean {
+  return podeMarcarAcompanhamentoRh(ator.papel, ator.setor) && responsavelId === ator.id;
+}
+
 export function podeGerirServicosRh(papel: string, setor: string): boolean {
   return papel === "lider_setor" && setor === SETOR_RH;
 }

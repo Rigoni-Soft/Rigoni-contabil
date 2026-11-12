@@ -28,7 +28,7 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ValidationError } from "@/shared/errors/validation.error";
-import { podeMarcarAcompanhamentoRh, podeVerAcompanhamentoRh } from "@/shared/kernel/papeis";
+import { ehResponsavelRhDoCliente, podeVerAcompanhamentoRh } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 // A Folha de ponto de um Cliente: o quadro, o cartão do mês do empregado escolhido e a Totalização
@@ -102,9 +102,7 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
       competencia: competencia.valor,
       padraoComissionados: padrao.value,
       empregados: quadro,
-      podeEditar:
-        podeMarcarAcompanhamentoRh(ator.papel, ator.setor) &&
-        cliente.value.responsavelId === ator.id,
+      podeEditar: ehResponsavelRhDoCliente(ator, cliente.value.responsavelId),
     };
     return ok({ base, empregados: quadro });
   }

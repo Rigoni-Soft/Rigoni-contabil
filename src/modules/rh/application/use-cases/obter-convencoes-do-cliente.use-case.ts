@@ -10,8 +10,8 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import {
+  ehResponsavelRhDoCliente,
   podeGerirConvencaoRh,
-  podeMarcarAcompanhamentoRh,
   podeVerAcompanhamentoRh,
 } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
@@ -62,9 +62,7 @@ export class ObterConvencoesDoCliente implements ObterConvencoesDoClientePort {
           convencaoSindicato: sindicatoDe.get(e.id) ?? null,
         })),
       podeEnviar: podeGerirConvencaoRh(ator.papel, ator.setor),
-      podeEditar:
-        podeMarcarAcompanhamentoRh(ator.papel, ator.setor) &&
-        cliente.value.responsavelId === ator.id,
+      podeEditar: ehResponsavelRhDoCliente(ator, cliente.value.responsavelId),
     });
   }
 }
