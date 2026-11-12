@@ -1,5 +1,7 @@
 "use server";
 
+import type { z } from "zod";
+
 import {
   makeCadastrarEmpregado,
   makeCorrigirEmpregado,
@@ -75,26 +77,34 @@ export async function iniciarCartaoDoPontoAction(input: unknown): Promise<Action
 
 // A foto chega como File no FormData; o caso de uso recebe só os bytes (a porta não conhece a web) e a
 // imagem não é guardada em lugar nenhum.
+async function bytesDaImagem(imagem: File) {
+  return {
+    bytes: new Uint8Array(await imagem.arrayBuffer()),
+    tipo: imagem.type as "image/jpeg" | "image/png",
+  };
+}
+
+// Erro da foto vira mensagem do próprio campo; o resto é dado inválido.
+function recusaDaLeitura(erro: z.ZodError): ActionResult<never> {
+  const foto = erro.issues.find((i) => i.path[0] === "imagem");
+  return foto
+    ? { ok: false, error: { code: "VALIDATION_ERROR", message: foto.message } }
+    : dadosInvalidos(erro);
+}
+
 export async function lerCartaoDePontoAction(
   formData: FormData,
 ): Promise<ActionResult<CartaoLidoDto>> {
   const parsed = lerCartaoSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) {
-    const foto = parsed.error.issues.find((i) => i.path[0] === "imagem");
-    return foto
-      ? { ok: false, error: { code: "VALIDATION_ERROR", message: foto.message } }
-      : dadosInvalidos(parsed.error);
-  }
+  if (!parsed.success) return recusaDaLeitura(parsed.error);
   const { imagem, ...dados } = parsed.data;
-  const ler = await makeLerCartaoDePonto();
   return toActionResult(
-    await ler.execute({
+    await (
+      await makeLerCartaoDePonto()
+    ).execute({
       ...dados,
       quinzena: dados.quinzena as 1 | 2,
-      imagem: {
-        bytes: new Uint8Array(await imagem.arrayBuffer()),
-        tipo: imagem.type as "image/jpeg" | "image/png",
-      },
+      imagem: await bytesDaImagem(imagem),
     }),
   );
 }
@@ -104,22 +114,11 @@ export async function lerAtestadoDePontoAction(
   formData: FormData,
 ): Promise<ActionResult<AtestadoLidoDto>> {
   const parsed = lerAtestadoSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) {
-    const foto = parsed.error.issues.find((i) => i.path[0] === "imagem");
-    return foto
-      ? { ok: false, error: { code: "VALIDATION_ERROR", message: foto.message } }
-      : dadosInvalidos(parsed.error);
-  }
+  if (!parsed.success) return recusaDaLeitura(parsed.error);
   const { imagem, ...dados } = parsed.data;
   return toActionResult(
     await (
       await makeLerAtestadoDePonto()
-    ).execute({
-      ...dados,
-      imagem: {
-        bytes: new Uint8Array(await imagem.arrayBuffer()),
-        tipo: imagem.type as "image/jpeg" | "image/png",
-      },
-    }),
+    ).execute({ ...dados, imagem: await bytesDaImagem(imagem) }),
   );
 }

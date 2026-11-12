@@ -41,6 +41,7 @@ const { LeitorDeCartaoVisaoGateway } =
 const { validarLeitura } = await import("@/modules/rh/domain/services/leitura-do-cartao.service");
 // Esforço opcional (EFORCO=medium) injetado no corpo; o status HTTP de falha vai para o motivo.
 let ultimoStatus = "";
+let corpoDoErroJaMostrado = false;
 const http = async (url, init) => {
   const corpo = JSON.parse(init.body);
   if (process.env.ESFORCO) corpo.output_config = { effort: process.env.ESFORCO };
@@ -48,8 +49,8 @@ const http = async (url, init) => {
   if (/sonnet/.test(corpo.model)) corpo.tool_choice = { type: "auto" };
   const r = await fetch(url, { ...init, body: JSON.stringify(corpo) });
   ultimoStatus = r.ok ? "" : `http ${r.status}`;
-  if (!r.ok && !globalThis.__e) {
-    globalThis.__e = 1;
+  if (!r.ok && !corpoDoErroJaMostrado) {
+    corpoDoErroJaMostrado = true;
     console.error("# erro:", (await r.clone().text()).slice(0, 300));
   }
   return r;

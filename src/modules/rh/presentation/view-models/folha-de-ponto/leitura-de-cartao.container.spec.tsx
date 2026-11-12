@@ -89,7 +89,7 @@ describe("LeituraDeCartaoContainer", () => {
         .mockResolvedValue({ ok: true, data: { nome: "Roberto", tipo: "atestado", abonados: 2 } });
       render(<LeituraDeCartaoContainer clienteId="c1" competencia="2026-09" />);
       const user = userEvent.setup({ applyAccept: false });
-      await user.upload(screen.getByLabelText(/Atestado ou declaração/), ATESTADO);
+      await user.upload(screen.getByLabelText(/^Atestado/), ATESTADO);
 
       await user.click(screen.getByRole("button", { name: "Ler atestado" }));
 
@@ -119,13 +119,24 @@ describe("LeituraDeCartaoContainer", () => {
       });
       render(<LeituraDeCartaoContainer clienteId="c1" competencia="2026-09" />);
       const user = userEvent.setup({ applyAccept: false });
-      await user.upload(screen.getByLabelText(/Atestado ou declaração/), ATESTADO);
+      await user.upload(screen.getByLabelText(/^Atestado/), ATESTADO);
 
       await user.click(screen.getByRole("button", { name: "Ler atestado" }));
 
       expect(await screen.findByText("Abone os dias à mão.")).toBeInTheDocument();
       expect(screen.getByText("atestado-medico-2.jpeg")).toBeInTheDocument();
       expect(refresh).not.toHaveBeenCalled();
+    });
+
+    it("o erro do atestado e o do cartão nunca aparecem juntos", async () => {
+      render(<LeituraDeCartaoContainer clienteId="c1" competencia="2026-09" />);
+      await userEvent.click(screen.getByRole("button", { name: "Ler atestado" }));
+      expect(await screen.findByText(/Escolha a foto do atestado/)).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole("button", { name: "Ler cartão" }));
+
+      expect(await screen.findByText(/Escolha a foto do cartão/)).toBeInTheDocument();
+      expect(screen.queryByText(/Escolha a foto do atestado/)).not.toBeInTheDocument();
     });
   });
 });

@@ -15,6 +15,8 @@ import { LIMITE_DA_FOTO, MENSAGEM_FOTO_GRANDE, MENSAGEM_SEM_FOTO } from "./folha
 const MENSAGEM_SEM_ATESTADO = "Escolha a foto do atestado (JPEG ou PNG).";
 
 type Props = { clienteId: string; competencia: string };
+// Qual campo mostra o erro (a foto ou o atestado escolhido); sem campo, o erro é da leitura.
+type Falha = { mensagem: string; campo?: "foto" | "atestado" };
 
 export function resumoDaLeitura(c: CartaoLidoDto): string {
   const partes = [`${c.dias} ${c.dias === 1 ? "dia lido" : "dias lidos"}`];
@@ -31,55 +33,52 @@ export function resumoDoAtestado(a: AtestadoLidoDto): string {
     : `${a.nome}: nenhum dia abonado (a declaração só abona o horário de um dia com batida). Abone à mão se precisar.`;
 }
 
-// Sobe a foto de uma quinzena e recarrega a tela com o empregado e o cartão. Só o sucesso limpa a foto; a
-// falha da leitura preserva a escolha e manda digitar à mão.
+// Mensagem de uma foto que não serve (tipo ou tamanho), ou undefined se serve.
+function recusaDaFoto(foto: File | undefined, semFoto: string): string | undefined {
+  if (!foto || (foto.type !== "image/jpeg" && foto.type !== "image/png")) return semFoto;
+  return foto.size > LIMITE_DA_FOTO ? MENSAGEM_FOTO_GRANDE : undefined;
+}
+
+// Sobe a foto de uma quinzena (e, à parte, um atestado) e recarrega a tela com o empregado e o cartão. Só o
+// sucesso limpa a foto; a falha da leitura preserva a escolha e manda digitar ou abonar à mão.
 export function LeituraDeCartaoContainer({ clienteId, competencia }: Props) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
+  const [lendo, setLendo] = useState<"cartao" | "atestado">();
   const [arquivo, setArquivo] = useState<File>();
   const [atestado, setAtestado] = useState<File>();
-  const [erroNoAtestado, setErroNoAtestado] = useState(false);
-  const [erro, setErro] = useState<string>();
-  const [erroNoCampo, setErroNoCampo] = useState(false);
+  const [falha, setFalha] = useState<Falha>();
   const [resultado, setResultado] = useState<string>();
 
-  const falhaDoCampo = (mensagem: string) => {
-    setErroNoCampo(true);
-    setErro(mensagem);
+  // O erro de uma foto escolhida leva o foco ao próprio campo (o botão clicado não some, mas o erro está lá).
+  const recusar = (mensagem: string, campo: Falha["campo"]) => {
+    setFalha({ mensagem, campo });
+    document.getElementById(campo === "atestado" ? "leitura-atestado" : "leitura-foto")?.focus();
   };
 
-  const lerAtestado = () => {
-    if (pendente) return;
-    setResultado(undefined);
-    const invalido =
-      !atestado || (atestado.type !== "image/jpeg" && atestado.type !== "image/png")
-        ? MENSAGEM_SEM_ATESTADO
-        : atestado.size > LIMITE_DA_FOTO
-          ? MENSAGEM_FOTO_GRANDE
-          : undefined;
-    if (invalido || !atestado) {
-      setErroNoCampo(false);
-      setErroNoAtestado(true);
-      return setErro(invalido);
-    }
-    setErro(undefined);
-    setErroNoAtestado(false);
-    const formData = new FormData();
-    formData.set("clienteId", clienteId);
-    formData.set("imagem", atestado);
+  const enviar = (qual: "cartao" | "atestado", formData: FormData) => {
+    setFalha(undefined);
+    setLendo(qual);
     iniciar(async () => {
       try {
-        const r = await lerAtestadoDePontoAction(formData);
-        if (!r.ok) {
-          setErroNoAtestado(false);
-          return setErro(r.error.message);
+        const r =
+          qual === "cartao"
+            ? await lerCartaoDePontoAction(formData)
+            : await lerAtestadoDePontoAction(formData);
+        if (!r.ok) return setFalha({ mensagem: r.error.message });
+        if (qual === "cartao") {
+          setArquivo(undefined);
+          setResultado(resumoDaLeitura(r.data as CartaoLidoDto));
+        } else {
+          setAtestado(undefined);
+          setResultado(resumoDoAtestado(r.data as AtestadoLidoDto));
         }
-        setAtestado(undefined);
-        setResultado(resumoDoAtestado(r.data));
         router.refresh();
       } catch (e) {
-        console.error("Falha ao ler o atestado", e);
-        setErro(mensagemDaFalha(e));
+        console.error("Falha ao ler a foto", e);
+        setFalha({ mensagem: mensagemDaFalha(e) });
+      } finally {
+        setLendo(undefined);
       }
     });
   };
@@ -90,51 +89,42 @@ export function LeituraDeCartaoContainer({ clienteId, competencia }: Props) {
       arquivo={arquivo}
       atestado={atestado}
       pendente={pendente}
-      erro={erro}
-      erroNoCampo={erroNoCampo}
-      erroNoAtestado={erroNoAtestado}
-      onAtestado={(a) => {
-        setAtestado(a);
-        setErro(undefined);
-        setErroNoAtestado(false);
-        setResultado(undefined);
-      }}
-      onLerAtestado={lerAtestado}
+      lendoAtestado={lendo === "atestado"}
+      erro={falha?.mensagem}
+      erroNoCampo={falha?.campo === "foto"}
+      erroNoAtestado={falha?.campo === "atestado"}
       resultado={resultado}
       onArquivo={(a) => {
         setArquivo(a);
-        setErro(undefined);
+        setFalha(undefined);
         setResultado(undefined);
+      }}
+      onAtestado={(a) => {
+        setAtestado(a);
+        setFalha(undefined);
+        setResultado(undefined);
+      }}
+      onLerAtestado={() => {
+        if (pendente) return;
+        setResultado(undefined);
+        const recusa = recusaDaFoto(atestado, MENSAGEM_SEM_ATESTADO);
+        if (recusa || !atestado) return recusar(recusa ?? MENSAGEM_SEM_ATESTADO, "atestado");
+        const formData = new FormData();
+        formData.set("clienteId", clienteId);
+        formData.set("imagem", atestado);
+        enviar("atestado", formData);
       }}
       onLer={(campos) => {
         if (pendente) return;
         setResultado(undefined);
-        if (!arquivo || (arquivo.type !== "image/jpeg" && arquivo.type !== "image/png")) {
-          return falhaDoCampo(MENSAGEM_SEM_FOTO);
-        }
-        if (arquivo.size > LIMITE_DA_FOTO) return falhaDoCampo(MENSAGEM_FOTO_GRANDE);
-        setErro(undefined);
-        setErroNoCampo(false);
+        const recusa = recusaDaFoto(arquivo, MENSAGEM_SEM_FOTO);
+        if (recusa || !arquivo) return recusar(recusa ?? MENSAGEM_SEM_FOTO, "foto");
         const formData = new FormData();
         formData.set("clienteId", clienteId);
         formData.set("competencia", competencia);
         formData.set("quinzena", String(campos.get("quinzena") ?? "1"));
         formData.set("imagem", arquivo);
-        iniciar(async () => {
-          try {
-            const r = await lerCartaoDePontoAction(formData);
-            if (!r.ok) {
-              setErroNoCampo(false);
-              return setErro(r.error.message);
-            }
-            setArquivo(undefined);
-            setResultado(resumoDaLeitura(r.data));
-            router.refresh();
-          } catch (e) {
-            console.error("Falha ao ler a foto do cartão", e);
-            setErro(mensagemDaFalha(e));
-          }
-        });
+        enviar("cartao", formData);
       }}
     />
   );

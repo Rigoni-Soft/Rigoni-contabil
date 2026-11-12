@@ -8,6 +8,7 @@ import type {
   LeituraBruta,
 } from "@/modules/rh/application/ports/out/leitor-de-cartao.provider";
 import { horaParaMinutos } from "@/modules/rh/domain/services/totalizacao.service";
+import { FORMATO_DATA_ISO } from "@/shared/kernel/data-iso";
 
 // Leitor da foto do cartão: visão de um modelo de linguagem. A foto com dado
 // pessoal sai do servidor (ADR 0011: retenção zero e contrato sem treino no provedor); a resposta é JSON de

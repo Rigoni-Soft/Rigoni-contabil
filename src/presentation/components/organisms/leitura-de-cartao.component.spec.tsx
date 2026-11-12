@@ -52,7 +52,7 @@ describe("LeituraDeCartao", () => {
     const onLerAtestado = jest.fn();
     render(<LeituraDeCartao {...base} onLerAtestado={onLerAtestado} />);
 
-    expect(screen.getByLabelText(/Atestado ou declaração de comparecimento/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Atestado/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Ler atestado" }));
 
     expect(onLerAtestado).toHaveBeenCalled();
