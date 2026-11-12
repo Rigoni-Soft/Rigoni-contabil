@@ -7,12 +7,14 @@ import type { AuditoriaPort } from "@/modules/rh/application/ports/out/auditoria
 import type { ConvencaoRepository } from "@/modules/rh/application/ports/out/convencao.repository";
 import type { ExtratorDeRegrasPort } from "@/modules/rh/application/ports/out/extrator-de-regras.provider";
 import type { FolhaDePontoRepository } from "@/modules/rh/application/ports/out/folha-de-ponto.repository";
+import type { RegistroDeErrosPort } from "@/modules/rh/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
 import { validarRegrasDaConvencao } from "@/modules/rh/domain/services/validar-regras-da-convencao.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ValidationError } from "@/shared/errors/validation.error";
+import { dataIsoValida } from "@/shared/kernel/data-iso";
 import { podeGerirConvencaoRh } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
@@ -34,6 +36,7 @@ export class EnviarConvencao implements EnviarConvencaoPort {
     private readonly armazenamento: ArmazenamentoDeConvencaoPort,
     private readonly extrator: ExtratorDeRegrasPort,
     private readonly auditoria: AuditoriaPort,
+    private readonly erros: RegistroDeErrosPort,
   ) {}
 
   async execute(input: EnviarConvencaoInput): Promise<Result<void, AppError>> {
@@ -63,7 +66,7 @@ export class EnviarConvencao implements EnviarConvencaoPort {
 
     const extracao = await this.extrator.extrair(input.arquivo.bytes);
     if (!extracao.lido) {
-      await this.armazenamento.remover(caminho);
+      await this.removerOrfao(caminho);
       return err(
         new ValidationError("Não foi possível ler a convenção. Confira o PDF e tente de novo."),
       );
@@ -77,10 +80,16 @@ export class EnviarConvencao implements EnviarConvencaoPort {
       regras: validarRegrasDaConvencao(extracao.candidatas),
     });
     if (!gravada.ok) {
-      await this.armazenamento.remover(caminho);
+      await this.removerOrfao(caminho);
       return gravada;
     }
     return ok(undefined);
+  }
+
+  // O PDF solto não tem convenção: se a remoção falha, fica órfão no bucket e vira registro para o suporte.
+  private async removerOrfao(caminho: string): Promise<void> {
+    const removido = await this.armazenamento.remover(caminho);
+    if (!removido.ok) this.erros.registrar("rh.convencao.arquivo_orfao", caminho, removido.error.message);
   }
 }
 
@@ -95,7 +104,7 @@ function validar(
       }),
     );
   }
-  if (!dataValida(input.vigenciaInicio) || !dataValida(input.vigenciaFim)) {
+  if (!dataIsoValida(input.vigenciaInicio) || !dataIsoValida(input.vigenciaFim)) {
     return err(
       new ValidationError("Informe a vigência com início e fim.", {
         vigenciaInicio: ["Data inválida"],
@@ -122,10 +131,3 @@ function ehPdf(bytes: Uint8Array): boolean {
   return ASSINATURA_PDF.every((b, i) => bytes[i] === b);
 }
 
-// "AAAA-MM-DD" que existe no calendário.
-function dataValida(data: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return false;
-  const [a, m, d] = data.split("-").map(Number);
-  const real = new Date(Date.UTC(a, m - 1, d));
-  return real.getUTCFullYear() === a && real.getUTCMonth() === m - 1 && real.getUTCDate() === d;
-}

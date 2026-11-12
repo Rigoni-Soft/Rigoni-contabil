@@ -3,6 +3,7 @@ import type { AuditoriaPort } from "@/modules/rh/application/ports/out/auditoria
 import type { ConvencaoRepository } from "@/modules/rh/application/ports/out/convencao.repository";
 import type { ExtratorDeRegrasPort } from "@/modules/rh/application/ports/out/extrator-de-regras.provider";
 import type { FolhaDePontoRepository } from "@/modules/rh/application/ports/out/folha-de-ponto.repository";
+import type { RegistroDeErrosPort } from "@/modules/rh/application/ports/out/registro-de-erros.provider";
 import type { AtorSessaoDto } from "@/modules/rh/application/ports/out/sessao.provider";
 import { EnviarConvencao } from "@/modules/rh/application/use-cases/enviar-convencao.use-case";
 import { PersistenciaError } from "@/shared/errors/persistencia.error";
@@ -47,6 +48,7 @@ function montar(ator: AtorSessaoDto | null = LIDER) {
     }),
   };
   const auditoria: jest.Mocked<AuditoriaPort> = { registrar: jest.fn() };
+  const erros: jest.Mocked<RegistroDeErrosPort> = { registrar: jest.fn() };
   const caso = new EnviarConvencao(
     { usuarioAtual: jest.fn().mockResolvedValue(ator) },
     folha,
@@ -54,8 +56,9 @@ function montar(ator: AtorSessaoDto | null = LIDER) {
     armazenamento,
     extrator,
     auditoria,
+    erros,
   );
-  return { caso, folha, convencoes, armazenamento, extrator, auditoria };
+  return { caso, folha, convencoes, armazenamento, extrator, auditoria, erros };
 }
 
 describe("EnviarConvencao", () => {
@@ -167,6 +170,20 @@ describe("EnviarConvencao", () => {
 
     expect(r.ok).toBe(false);
     expect(armazenamento.remover).toHaveBeenCalledWith(armazenamento.enviar.mock.calls[0][0]);
+  });
+
+  it("registra o PDF órfão quando nem a remoção dá certo", async () => {
+    const { caso, convencoes, armazenamento, erros } = montar();
+    convencoes.inserir.mockResolvedValue(err(new PersistenciaError("falhou")));
+    armazenamento.remover.mockResolvedValue(err(new PersistenciaError("bucket fora")));
+
+    await caso.execute(ENTRADA);
+
+    expect(erros.registrar).toHaveBeenCalledWith(
+      "rh.convencao.arquivo_orfao",
+      armazenamento.enviar.mock.calls[0][0],
+      "bucket fora",
+    );
   });
 
   it("não segue adiante quando o armazenamento falha", async () => {

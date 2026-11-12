@@ -217,6 +217,7 @@ export async function makeEnviarConvencao(): Promise<EnviarConvencaoPort> {
       ? new ExtratorDeRegrasFalsoGateway()
       : new ExtratorDeRegrasIndisponivelGateway(),
     auditoriaBestEffort(errosRh),
+    errosRh,
   );
 }
 
