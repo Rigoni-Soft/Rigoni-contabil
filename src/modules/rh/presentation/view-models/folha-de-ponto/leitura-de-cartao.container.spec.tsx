@@ -16,7 +16,6 @@ const LIDO = {
   empregadoId: "e1",
   nome: "Erick",
   cadastrado: true,
-  origem: "ocr",
   dias: 3,
   faltas: 1,
   abonos: 0,

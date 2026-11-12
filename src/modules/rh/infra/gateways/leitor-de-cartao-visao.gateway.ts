@@ -6,7 +6,7 @@ import type {
   LeituraBruta,
 } from "@/modules/rh/application/ports/out/leitor-de-cartao.provider";
 
-// Segundo leitor da cascata: visão de um modelo de linguagem, só quando o OCR local não leu. A foto com dado
+// Leitor da foto do cartão: visão de um modelo de linguagem. A foto com dado
 // pessoal sai do servidor (ADR 0011: retenção zero e contrato sem treino no provedor); a resposta é JSON de
 // uma ferramenta com esquema, validado aqui e de novo pelo domínio. Nunca lança: erro de rede, status ou
 // formato vira `{ lido: false }`.
@@ -131,7 +131,6 @@ export class LeitorDeCartaoVisaoGateway implements LeitorDeCartaoPort {
       if (!lida.success) return { lido: false };
       return {
         lido: true,
-        origem: "visao",
         leitura: {
           nome: lida.data.nome,
           dias: lida.data.dias.map((d) => ({

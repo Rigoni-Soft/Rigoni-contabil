@@ -22,7 +22,6 @@ export class LeitorDeCartaoFalsoGateway implements LeitorDeCartaoPort {
     });
     return {
       lido: true,
-      origem: "falso",
       leitura: {
         nome: "Erick Falso",
         dias: [

@@ -42,7 +42,7 @@ Aqui cada ticket já é uma fatia vertical (banco, regra de negócio, tela e tes
 ## Etapa 5: Leitura de imagem
 
 - [x] **PR 5.1: Leitura de foto do cartão de ponto** (depende da PR 4.1; base da etapa)
-  - [x] #222 (ambas): OCR local primeiro e visão da API só se ele falhar (porta neutra), cadastro pelo nome, falta e abono por anotação, ADR 0011
+  - [x] #222 (ambas): visão da API atrás da porta neutra, cadastro pelo nome, falta e abono por anotação, ADR 0011
 - [ ] **PR 5.2: Atestados abonam os dias** (depende da PR 5.1)
   - [ ] #223 (ambas): atestado e declaração de comparecimento, sem guardar CID nem imagem
 

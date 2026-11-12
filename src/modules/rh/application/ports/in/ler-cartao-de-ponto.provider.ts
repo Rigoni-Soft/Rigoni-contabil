@@ -16,8 +16,6 @@ export type CartaoLidoDto = {
   nome: string;
   // O empregado não estava no Quadro e foi cadastrado pelo nome do cartão.
   cadastrado: boolean;
-  // Quem leu: o OCR local ou a visão (o custo vem do segundo).
-  origem: string;
   dias: number;
   faltas: number;
   abonos: number;

@@ -74,7 +74,6 @@ import { ConsoleRegistroDeErrosGateway as ConsoleRh } from "@/modules/rh/infra/g
 import { ExtratorDeRegrasFalsoGateway } from "@/modules/rh/infra/gateways/extrator-de-regras-falso.gateway";
 import { ExtratorDeRegrasIndisponivelGateway } from "@/modules/rh/infra/gateways/extrator-de-regras-indisponivel.gateway";
 import { LeitorDeCartaoFalsoGateway } from "@/modules/rh/infra/gateways/leitor-de-cartao-falso.gateway";
-import { LeitorDeCartaoOcrGateway } from "@/modules/rh/infra/gateways/leitor-de-cartao-ocr.gateway";
 import { LeitorDeCartaoVisaoGateway } from "@/modules/rh/infra/gateways/leitor-de-cartao-visao.gateway";
 import { RelogioSistemaGateway } from "@/modules/rh/infra/gateways/relogio-sistema.gateway";
 import { SupabaseArmazenamentoDeConvencaoGateway } from "@/modules/rh/infra/gateways/supabase-armazenamento-de-convencao.gateway";
@@ -207,21 +206,16 @@ export async function makeSalvarDiaDoPonto(): Promise<SalvarDiaDoPontoPort> {
   return new SalvarDiaDoPonto(sessao, repositorio, auditoria, new RelogioSistemaGateway());
 }
 
-// A cascata de leitores da foto do cartão, do mais barato ao mais caro; vazia = digitação manual.
-function leitoresDoCartao(): LeitorDeCartaoPort[] {
+// Sem leitor (null) = toda foto cai na digitação manual.
+function leitorDoCartao(): LeitorDeCartaoPort | null {
   switch (LEITURA_CARTAO_MODO) {
     case "falso":
-      return [new LeitorDeCartaoFalsoGateway()];
-    case "ocr":
-      return [new LeitorDeCartaoOcrGateway()];
-    case "ocr_visao":
+      return new LeitorDeCartaoFalsoGateway();
+    case "visao":
       // O env já exige a chave neste modo.
-      return [
-        new LeitorDeCartaoOcrGateway(),
-        new LeitorDeCartaoVisaoGateway(ANTHROPIC_API_KEY ?? "", LEITURA_CARTAO_MODELO),
-      ];
+      return new LeitorDeCartaoVisaoGateway(ANTHROPIC_API_KEY ?? "", LEITURA_CARTAO_MODELO);
     default:
-      return [];
+      return null;
   }
 }
 
@@ -232,7 +226,7 @@ export async function makeLerCartaoDePonto(): Promise<LerCartaoDePontoPort> {
     repositorio,
     auditoria,
     new RelogioSistemaGateway(),
-    leitoresDoCartao(),
+    leitorDoCartao(),
     errosRh,
   );
 }

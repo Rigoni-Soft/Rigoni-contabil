@@ -5,8 +5,7 @@ import type { LeituraDoCartao } from "@/modules/rh/domain/services/leitura-do-ca
 
 export type ImagemDoCartao = { bytes: Uint8Array; tipo: "image/jpeg" | "image/png" };
 
-export type LeituraBruta =
-  { lido: true; leitura: LeituraDoCartao; origem: string } | { lido: false };
+export type LeituraBruta = { lido: true; leitura: LeituraDoCartao } | { lido: false };
 
 export interface LeitorDeCartaoPort {
   ler(imagem: ImagemDoCartao): Promise<LeituraBruta>;

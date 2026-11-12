@@ -32,18 +32,18 @@ function ehImagem({ bytes, tipo }: LerCartaoDePontoInput["imagem"]): boolean {
     : bytes[0] === 0xff && bytes[1] === 0xd8;
 }
 
-// Lê a foto do cartão de uma quinzena: os leitores são tentados na ordem (OCR local primeiro, visão da API
-// só se o OCR não leu ou a leitura reprovou na validação do domínio); nenhum serviu = digitação manual, sem
-// gravar nada. Quem não está no Quadro é cadastrado pelo nome do cartão, com a Jornada do padrão das
-// batidas; o empregado já cadastrado mantém a sua. Dia em branco não apaga o que já foi digitado. A imagem
-// só passa por aqui: não é guardada.
+// Lê a foto do cartão de uma quinzena pelo leitor (visão atrás da porta neutra) e valida a leitura no
+// domínio; leitor ausente, falha ou leitura reprovada = digitação manual, sem gravar nada. Quem não está no
+// Quadro é cadastrado pelo nome do cartão, com a Jornada deduzida do padrão das batidas; o empregado já
+// cadastrado mantém a sua. Dia em branco não apaga o que já foi digitado. A imagem só passa por aqui: não é
+// guardada.
 export class LerCartaoDePonto extends EscreverPonto implements LerCartaoDePontoPort {
   constructor(
     sessao: SessaoPort,
     repositorio: FolhaDePontoRepository,
     auditoria: AuditoriaPort,
     private readonly relogio: RelogioPort,
-    private readonly leitores: LeitorDeCartaoPort[],
+    private readonly leitor: LeitorDeCartaoPort | null,
     private readonly erros: RegistroDeErrosPort,
   ) {
     super(sessao, repositorio, auditoria, "rh.ponto.ler-cartao");
@@ -61,10 +61,10 @@ export class LerCartaoDePonto extends EscreverPonto implements LerCartaoDePontoP
     const autorizado = await this.autorizar(input.clienteId);
     if (!autorizado.ok) return autorizado;
 
-    const lido = await this.lerComFallback(input, competencia.value.valor);
-    if (!lido) return err(new ValidationError(MANUAL));
+    const valida = await this.ler(input, competencia.value.valor);
+    if (!valida) return err(new ValidationError(MANUAL));
 
-    const empregado = await this.empregadoDoCartao(input.clienteId, lido.valida);
+    const empregado = await this.empregadoDoCartao(input.clienteId, valida);
     if (!empregado.ok) return empregado;
 
     const iniciado = await this.repositorio.iniciarCartao(
@@ -72,39 +72,37 @@ export class LerCartaoDePonto extends EscreverPonto implements LerCartaoDePontoP
       competencia.value.primeiroDia,
     );
     if (!iniciado.ok) return iniciado;
-    for (const dia of lido.valida.dias) {
+    for (const dia of valida.dias) {
       const salvo = await this.repositorio.salvarDia(empregado.value.id, dia);
       if (!salvo.ok) return salvo;
     }
     return ok({
       empregadoId: empregado.value.id,
-      nome: lido.valida.nome,
+      nome: valida.nome,
       cadastrado: empregado.value.cadastrado,
-      origem: lido.origem,
-      dias: lido.valida.dias.length,
-      faltas: lido.valida.faltas.length,
-      abonos: lido.valida.dias.filter((d) => d.abono).length,
+      dias: valida.dias.length,
+      faltas: valida.faltas.length,
+      abonos: valida.dias.filter((d) => d.abono).length,
     });
   }
 
-  private async lerComFallback(
+  private async ler(
     input: LerCartaoDePontoInput,
     competencia: string,
-  ): Promise<{ valida: LeituraValida; origem: string } | null> {
-    for (const leitor of this.leitores) {
-      let bruta: Awaited<ReturnType<LeitorDeCartaoPort["ler"]>>;
-      try {
-        bruta = await leitor.ler(input.imagem);
-      } catch (e) {
-        this.erros.registrar("rh.cartao.leitor_falhou", String(e));
-        continue;
-      }
-      if (!bruta.lido) continue;
-      const valida = validarLeitura(bruta.leitura, { competencia, quinzena: input.quinzena });
-      if (valida.ok) return { valida: valida.value, origem: bruta.origem };
-      // Só o motivo: a leitura tem nome e horários de uma pessoa.
-      this.erros.registrar("rh.cartao.leitura_reprovada", bruta.origem, valida.error.message);
+  ): Promise<LeituraValida | null> {
+    if (!this.leitor) return null;
+    let bruta: Awaited<ReturnType<LeitorDeCartaoPort["ler"]>>;
+    try {
+      bruta = await this.leitor.ler(input.imagem);
+    } catch (e) {
+      this.erros.registrar("rh.cartao.leitor_falhou", String(e));
+      return null;
     }
+    if (!bruta.lido) return null;
+    const valida = validarLeitura(bruta.leitura, { competencia, quinzena: input.quinzena });
+    if (valida.ok) return valida.value;
+    // Só o motivo: a leitura tem nome e horários de uma pessoa.
+    this.erros.registrar("rh.cartao.leitura_reprovada", valida.error.message);
     return null;
   }
 

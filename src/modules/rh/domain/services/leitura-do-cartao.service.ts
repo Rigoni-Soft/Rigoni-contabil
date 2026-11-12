@@ -1,5 +1,5 @@
-// A leitura da foto do Cartão de ponto (OCR ou visão) chega aqui ainda não confiável: o domínio a valida e
-// só o que passa vira dado. Leitura reprovada = o leitor seguinte tenta; todos reprovados = digitação manual.
+// A leitura da foto do Cartão de ponto (visão) chega aqui ainda não confiável: o domínio a valida e
+// só o que passa vira dado. Leitura reprovada = digitação manual.
 import type { Jornada, Par } from "@/modules/rh/domain/services/totalizacao.service";
 import { validarPares } from "@/modules/rh/domain/services/validar-ponto.service";
 import { ValidationError } from "@/shared/errors/validation.error";
@@ -30,8 +30,8 @@ function ultimoDiaDoMes(competencia: string): number {
   return new Date(Date.UTC(ano, mes, 0)).getUTCDate();
 }
 
-// Os horários do dia, na ordem do cartão (manhã, tarde, extra), crescem: o OCR que troca um dígito quase
-// sempre quebra isso. ponytail: turno que vira a noite reprova e cai na digitação; aceitar a virada quando houver cartão assim.
+// Os horários do dia, na ordem do cartão (manhã, tarde, extra), crescem: o modelo que troca um dígito
+// quase sempre quebra isso. ponytail: turno que vira a noite reprova e cai na digitação; aceitar a virada quando houver cartão assim.
 function emOrdem(batidas: Par[], extra: Par | null): boolean {
   const marcas = [...batidas, ...(extra ? [extra] : [])].flatMap((p) => [p.entrada, p.saida]);
   return marcas.every((m, i) => i === 0 || m > marcas[i - 1]);

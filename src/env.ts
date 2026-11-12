@@ -91,9 +91,8 @@ const resultado = z
     // "indisponivel" (recusa o envio até haver o provedor real; é o valor da Produção hoje).
     EXTRACAO_CONVENCAO_MODO: z.enum(["falso", "indisponivel"]).default("falso"),
     // Leitor da foto do Cartão de ponto (docs/deploy/leitura-de-cartao.md): falso (determinístico, padrão em
-    // dev/CI/Preview), "indisponivel" (digitação manual), "ocr" (só o OCR local) ou "ocr_visao" (OCR local
-    // e, se ele não ler, a visão da API; exige ANTHROPIC_API_KEY).
-    LEITURA_CARTAO_MODO: z.enum(["falso", "indisponivel", "ocr", "ocr_visao"]).default("falso"),
+    // dev/CI/Preview), "indisponivel" (digitação manual) ou "visao" (visão da API; exige ANTHROPIC_API_KEY).
+    LEITURA_CARTAO_MODO: z.enum(["falso", "indisponivel", "visao"]).default("falso"),
     ANTHROPIC_API_KEY: z.string().min(1).optional(),
     LEITURA_CARTAO_MODELO: z.string().min(1).default("claude-haiku-5-5"),
     // WhatsApp do financeiro do escritório (só dígitos, com DDI), destino das guias de parcelamento
@@ -117,8 +116,8 @@ const resultado = z
     message: "MENSAGERIA_MODO=real exige WHATSAPP_TOKEN e WHATSAPP_PHONE_NUMBER_ID.",
     path: ["WHATSAPP_TOKEN"],
   })
-  .refine((v) => v.LEITURA_CARTAO_MODO !== "ocr_visao" || v.ANTHROPIC_API_KEY, {
-    message: "LEITURA_CARTAO_MODO=ocr_visao exige ANTHROPIC_API_KEY.",
+  .refine((v) => v.LEITURA_CARTAO_MODO !== "visao" || v.ANTHROPIC_API_KEY, {
+    message: "LEITURA_CARTAO_MODO=visao exige ANTHROPIC_API_KEY.",
     path: ["ANTHROPIC_API_KEY"],
   })
   .refine(

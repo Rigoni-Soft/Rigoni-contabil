@@ -25,15 +25,12 @@ const dia = (n: number) => ({
   faltou: false,
 });
 const BOA: LeituraDoCartao = { nome: "Erick", dias: [dia(2), dia(3)] };
-const lida = (leitura: LeituraDoCartao, origem: string): LeituraBruta => ({
-  lido: true,
-  leitura,
-  origem,
-});
+const lida = (leitura: LeituraDoCartao): LeituraBruta => ({ lido: true, leitura });
 
 function montar(opcoes: {
   ator?: AtorSessaoDto | null;
-  leitores: LeitorDeCartaoPort[];
+  // null = sem leitor configurado.
+  leitor: LeitorDeCartaoPort | null;
   quadro?: { id: string; nome: string; ativo: boolean }[];
 }) {
   let quadro = opcoes.quadro ?? [];
@@ -57,7 +54,7 @@ function montar(opcoes: {
     repositorio,
     auditoria,
     { agora: () => AGORA },
-    opcoes.leitores,
+    opcoes.leitor,
     erros,
   );
   return { caso, repositorio, auditoria, erros };
@@ -66,51 +63,53 @@ function montar(opcoes: {
 const entrada = { clienteId: "c1", competencia: "2026-11", quinzena: 1 as const, imagem: JPEG };
 
 describe("LerCartaoDePonto", () => {
-  it("o OCR leu e a validação passou: a visão nem é chamada", async () => {
-    const ocr = { ler: jest.fn(async () => lida(BOA, "ocr")) };
-    const visao = { ler: jest.fn(async () => lida(BOA, "visao")) };
+  it("o leitor leu e a validação passou: grava o cartão no empregado do quadro", async () => {
+    const leitor = { ler: jest.fn(async () => lida(BOA)) };
     const { caso, repositorio } = montar({
-      leitores: [ocr, visao],
+      leitor,
       quadro: [{ id: "e1", nome: "Erick Santos", ativo: true }],
     });
 
     const r = await caso.execute(entrada);
 
-    expect(r.ok && r.value).toMatchObject({ empregadoId: "e1", origem: "ocr", dias: 2 });
-    expect(visao.ler).not.toHaveBeenCalled();
+    expect(r.ok && r.value).toMatchObject({ empregadoId: "e1", cadastrado: false, dias: 2 });
     expect(repositorio.iniciarCartao).toHaveBeenCalledWith("e1", "2026-11-01");
     expect(repositorio.salvarDia).toHaveBeenCalledTimes(2);
     expect(repositorio.cadastrarEmpregado).not.toHaveBeenCalled();
   });
 
-  it("OCR que não leu, ou que reprovou na validação, cai na visão", async () => {
-    const naoLeu = { ler: jest.fn(async () => ({ lido: false as const })) };
-    const lixo = { ler: jest.fn(async () => lida({ nome: "NTE", dias: [dia(40)] }, "ocr")) };
-    const visao = { ler: jest.fn(async () => lida(BOA, "visao")) };
+  it("leitura reprovada na validação cai na digitação, sem gravar, e registra só o motivo", async () => {
+    const leitor = { ler: jest.fn(async () => lida({ nome: "NTE", dias: [dia(40)] })) };
+    const { caso, repositorio, erros } = montar({ leitor });
 
-    for (const ocr of [naoLeu, lixo]) {
-      const { caso } = montar({ leitores: [ocr, visao] });
-      const r = await caso.execute(entrada);
-      expect(r.ok && r.value.origem).toBe("visao");
-    }
+    const r = await caso.execute(entrada);
+
+    expect(!r.ok && r.error.message).toMatch(/à mão/);
+    expect(repositorio.salvarDia).not.toHaveBeenCalled();
+    expect(erros.registrar).toHaveBeenCalledWith("rh.cartao.leitura_reprovada", expect.any(String));
   });
 
-  it("leitor que lança é só um leitor que falhou", async () => {
-    const quebra = {
+  it("leitor que lança é digitação manual", async () => {
+    const leitor = {
       ler: jest.fn(async () => {
         throw new Error("rede");
       }),
     };
-    const visao = { ler: jest.fn(async () => lida(BOA, "visao")) };
-    const { caso, erros } = montar({ leitores: [quebra, visao] });
+    const { caso, erros } = montar({ leitor });
 
-    expect((await caso.execute(entrada)).ok).toBe(true);
+    expect((await caso.execute(entrada)).ok).toBe(false);
     expect(erros.registrar).toHaveBeenCalledWith("rh.cartao.leitor_falhou", expect.any(String));
   });
 
-  it("ninguém leu: digitação manual, nada gravado", async () => {
+  it("sem leitor configurado: digitação manual", async () => {
+    const { caso } = montar({ leitor: null });
+
+    expect((await caso.execute(entrada)).ok).toBe(false);
+  });
+
+  it("leitor não leu: digitação manual, nada gravado", async () => {
     const { caso, repositorio } = montar({
-      leitores: [{ ler: async () => ({ lido: false }) }],
+      leitor: { ler: async () => ({ lido: false }) },
     });
 
     const r = await caso.execute(entrada);
@@ -122,7 +121,7 @@ describe("LerCartaoDePonto", () => {
 
   it("empregado que não está no Quadro é cadastrado, com a Jornada do padrão das batidas", async () => {
     const { caso, repositorio } = montar({
-      leitores: [{ ler: async () => lida(BOA, "ocr") }],
+      leitor: { ler: async () => lida(BOA) },
     });
 
     const r = await caso.execute(entrada);
@@ -138,7 +137,7 @@ describe("LerCartaoDePonto", () => {
 
   it("nome que casa com mais de um empregado não é adivinhado", async () => {
     const { caso, repositorio } = montar({
-      leitores: [{ ler: async () => lida(BOA, "ocr") }],
+      leitor: { ler: async () => lida(BOA) },
       quadro: [
         { id: "e1", nome: "Erick Santos", ativo: true },
         { id: "e2", nome: "Erick Lima", ativo: true },
@@ -150,8 +149,8 @@ describe("LerCartaoDePonto", () => {
   });
 
   it("só o Responsável do RH grava; o Líder é recusado antes de ler (a imagem nem sai)", async () => {
-    const ocr = { ler: jest.fn(async () => lida(BOA, "ocr")) };
-    const { caso, auditoria } = montar({ ator: LIDER, leitores: [ocr] });
+    const ocr = { ler: jest.fn(async () => lida(BOA)) };
+    const { caso, auditoria } = montar({ ator: LIDER, leitor: ocr });
 
     expect((await caso.execute(entrada)).ok).toBe(false);
     expect(ocr.ler).not.toHaveBeenCalled();
@@ -176,8 +175,8 @@ describe("LerCartaoDePonto", () => {
       },
     ],
   ])("recusa %s sem chamar o leitor", async (_, troca) => {
-    const ocr = { ler: jest.fn(async () => lida(BOA, "ocr")) };
-    const { caso } = montar({ leitores: [ocr] });
+    const ocr = { ler: jest.fn(async () => lida(BOA)) };
+    const { caso } = montar({ leitor: ocr });
 
     expect((await caso.execute({ ...entrada, ...troca })).ok).toBe(false);
     expect(ocr.ler).not.toHaveBeenCalled();

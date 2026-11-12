@@ -22,7 +22,7 @@ describe("LeitorDeCartaoVisaoGateway", () => {
       }),
     );
     const r = await gw.ler(img);
-    expect(r).toMatchObject({ lido: true, origem: "visao" });
+    expect(r.lido).toBe(true);
     expect(r.lido && r.leitura.dias[0].batidas).toEqual([{ entrada: 510, saida: 750 }]);
     expect(r.lido && r.leitura.dias[1].atestado).toBe(true);
   });
