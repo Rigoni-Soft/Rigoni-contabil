@@ -112,15 +112,17 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
             .range(de, ate),
         ),
         // Contagem do Holerite (cadastrados, sem movimento e cartões feitos); a RLS recorta por Cliente.
-        this.supabase.rpc("rh_cartoes_do_mes", { p_competencia: competencia }).then((r) => {
-          if (r.error) throw new Error(r.error.message);
-          return (r.data ?? []) as {
-            cliente_id: string;
-            cadastrados: number;
-            sem_movimento: number;
-            cartoes: number;
-          }[];
-        }),
+        lerTudo<{
+          cliente_id: string;
+          cadastrados: number;
+          sem_movimento: number;
+          cartoes: number;
+        }>((de, ate) =>
+          this.supabase
+            .rpc("rh_cartoes_do_mes", { p_competencia: competencia })
+            .order("cliente_id")
+            .range(de, ate),
+        ),
       ]);
 
       const porCliente = (linhas: { cliente_id: string; servico_id: string }[]) => {
