@@ -34,7 +34,10 @@ export abstract class EscreverPonto {
     private readonly acao: string,
   ) {}
 
-  protected async autorizar(clienteId: string): Promise<Result<AtorSessaoDto, AppError>> {
+  protected async autorizar(
+    clienteId: string,
+    acao: string = this.acao,
+  ): Promise<Result<AtorSessaoDto, AppError>> {
     const ator = await this.sessao.usuarioAtual();
     if (!ator) return err(new ForbiddenError("Sessão inválida. Entre novamente."));
 
@@ -47,7 +50,7 @@ export abstract class EscreverPonto {
       await this.auditoria.registrar({
         ator: ator.id,
         setor: ator.setor,
-        acao: this.acao,
+        acao,
         alvo: cliente.value?.cnpj ?? clienteId,
         resultado: "falha",
       });
@@ -57,11 +60,14 @@ export abstract class EscreverPonto {
   }
 
   // Empregado fora da vista do ator = inexistente.
-  protected async autorizarPorEmpregado(empregadoId: string): Promise<Result<void, AppError>> {
+  protected async autorizarPorEmpregado(
+    empregadoId: string,
+    acao: string = this.acao,
+  ): Promise<Result<void, AppError>> {
     const cliente = await this.repositorio.buscarClienteDoEmpregado(empregadoId);
     if (!cliente.ok) return cliente;
     if (!cliente.value) return err(new NotFoundError("Empregado não encontrado."));
-    const ator = await this.autorizar(cliente.value);
+    const ator = await this.autorizar(cliente.value, acao);
     return ator.ok ? ok(undefined) : ator;
   }
 }
@@ -122,7 +128,9 @@ export class DefinirEmpregadoAtivo extends EscreverPonto implements DefinirEmpre
   }
 
   async execute(input: DefinirEmpregadoAtivoInput): Promise<Result<void, AppError>> {
-    const autorizado = await this.autorizarPorEmpregado(input.empregadoId);
+    // A recusa leva a mesma ação que o gatilho do banco grava no sucesso.
+    const acao = input.ativo ? "rh.empregado.reativar" : "rh.empregado.inativar";
+    const autorizado = await this.autorizarPorEmpregado(input.empregadoId, acao);
     if (!autorizado.ok) return autorizado;
     return this.repositorio.definirAtivo(input.empregadoId, input.ativo);
   }

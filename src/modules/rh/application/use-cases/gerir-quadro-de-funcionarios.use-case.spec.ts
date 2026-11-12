@@ -124,6 +124,16 @@ describe("quadro de funcionários e cartão: quem escreve", () => {
     expect(certo.repositorio.definirAtivo).toHaveBeenCalledWith("e1", false);
   });
 
+  it("a recusa de reativar e a de inativar são auditadas com a ação de cada uma", async () => {
+    const t = montar(OUTRO);
+    await t.ativo.execute({ empregadoId: "e1", ativo: true });
+    await t.ativo.execute({ empregadoId: "e1", ativo: false });
+    const acoes = (t.auditoria.registrar.mock.calls as unknown as [{ acao: string }][]).map(
+      ([e]) => e.acao,
+    );
+    expect(acoes).toEqual(["rh.empregado.reativar", "rh.empregado.inativar"]);
+  });
+
   it("sem movimento: mês futuro é recusado; mês corrente grava no dia 1", async () => {
     const t = montar(FUNC);
     expect(
