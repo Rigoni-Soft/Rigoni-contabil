@@ -5,6 +5,82 @@
 -- aponta a sua pelo sindicato, e sem ponteiro vale a única do Cliente. Sobe o Líder do RH ou o Admin;
 -- leem o Admin, o Líder do RH e o Responsável do RH do Cliente. As policies do bucket estão na migration seguinte.
 
+-- Espelha o esquema fechado de src/shared/kernel/regras-da-convencao.ts: a Data API (Admin ou Líder do RH) não
+-- grava regra fora dele. Confere forma, chave, citação e tipo do valor; o piso da lei e o número no trecho
+-- citado ficam só no validador do domínio, que o banco não reproduz.
+CREATE FUNCTION public.rh_regras_da_convencao_validas(regras jsonb) RETURNS boolean
+    LANGUAGE plpgsql IMMUTABLE
+    SET search_path TO 'public'
+    AS $$
+declare
+  item jsonb;
+  elemento jsonb;
+  chave text;
+  valor jsonb;
+begin
+  if not coalesce(
+    jsonb_typeof(regras) = 'object'
+    and jsonb_typeof(regras -> 'versao') = 'number'
+    and jsonb_typeof(regras -> 'aplicadas') = 'array'
+    and jsonb_typeof(regras -> 'rejeitadas') = 'array', false) then
+    return false;
+  end if;
+
+  for item in select * from jsonb_array_elements(regras -> 'rejeitadas') loop
+    if not coalesce(
+      jsonb_typeof(item) = 'object'
+      and jsonb_typeof(item -> 'chave') = 'string'
+      and item ->> 'motivo' in ('chave_desconhecida', 'sem_citacao', 'valor_invalido', 'fora_do_trecho',
+                                'abaixo_da_legislacao', 'duplicada'), false) then
+      return false;
+    end if;
+  end loop;
+
+  for item in select * from jsonb_array_elements(regras -> 'aplicadas') loop
+    if not coalesce(
+      jsonb_typeof(item) = 'object'
+      and jsonb_typeof(item -> 'chave') = 'string'
+      and jsonb_typeof(item -> 'clausula') = 'string'
+      and char_length(btrim(item ->> 'clausula')) between 1 and 120
+      and jsonb_typeof(item -> 'trecho') = 'string'
+      and char_length(btrim(item ->> 'trecho')) between 1 and 2000, false) then
+      return false;
+    end if;
+    chave := item ->> 'chave';
+    valor := item -> 'valor';
+    if chave in ('jornada_semanal', 'jornada_diaria', 'limite_extras_dia', 'intervalo_minimo',
+                 'intervalo_maximo', 'extra_sabado') then
+      if jsonb_typeof(valor) is distinct from 'number' or (valor #>> '{}')::numeric <= 0 then
+        return false;
+      end if;
+    elsif chave in ('datas_especiais', 'excecoes_de_feriado') then
+      if jsonb_typeof(valor) is distinct from 'array' or jsonb_array_length(valor) = 0 then
+        return false;
+      end if;
+      for elemento in select * from jsonb_array_elements(valor) loop
+        if not coalesce(
+          jsonb_typeof(elemento) = 'object'
+          and jsonb_typeof(elemento -> 'descricao') = 'string'
+          and btrim(elemento ->> 'descricao') <> '', false) then
+          return false;
+        end if;
+        if chave = 'datas_especiais' and not coalesce(
+          jsonb_typeof(elemento -> 'percentual') = 'number'
+          and (elemento ->> 'percentual')::numeric between 0.000001 and 300, false) then
+          return false;
+        end if;
+      end loop;
+    else
+      return false;
+    end if;
+  end loop;
+  return true;
+end;
+$$;
+
+REVOKE ALL ON FUNCTION public.rh_regras_da_convencao_validas(jsonb) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.rh_regras_da_convencao_validas(jsonb) TO authenticated, service_role;
+
 CREATE TABLE public.rh_convencoes (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     cliente_id uuid NOT NULL REFERENCES public.clientes(id) ON DELETE CASCADE,
@@ -23,15 +99,7 @@ CREATE TABLE public.rh_convencoes (
     CONSTRAINT rh_convencoes_arquivo_caminho_check CHECK (arquivo_caminho LIKE cliente_id::text || '/%'),
     CONSTRAINT rh_convencoes_arquivo_caminho_unico UNIQUE (arquivo_caminho),
     CONSTRAINT rh_convencoes_arquivo_nome_check CHECK (char_length(btrim(arquivo_nome)) BETWEEN 1 AND 255),
-    -- coalesce: chave ausente dá NULL, e NULL passaria no CHECK.
-    CONSTRAINT rh_convencoes_regras_check CHECK (
-        coalesce(
-            jsonb_typeof(regras) = 'object'
-            AND jsonb_typeof(regras -> 'versao') = 'number'
-            AND jsonb_typeof(regras -> 'aplicadas') = 'array'
-            AND jsonb_typeof(regras -> 'rejeitadas') = 'array',
-            false)
-    )
+    CONSTRAINT rh_convencoes_regras_check CHECK (public.rh_regras_da_convencao_validas(regras))
 );
 CREATE INDEX rh_convencoes_cliente_idx ON public.rh_convencoes (cliente_id, vigencia_inicio DESC);
 
@@ -127,8 +195,9 @@ CREATE FUNCTION public.proteger_convencao_do_empregado_rh() RETURNS trigger
     SET search_path TO 'public'
     AS $$
 begin
+  -- No INSERT não há linha antiga: qualquer sindicato informado precisa existir.
   if new.convencao_sindicato is not null
-     and new.convencao_sindicato is distinct from old.convencao_sindicato
+     and (tg_op = 'INSERT' or new.convencao_sindicato is distinct from old.convencao_sindicato)
      and not exists (
        select 1 from public.rh_convencoes
        where cliente_id = new.cliente_id and sindicato = new.convencao_sindicato) then
@@ -137,7 +206,7 @@ begin
   return new;
 end;
 $$;
-CREATE TRIGGER rh_empregados_convencao_proteger BEFORE UPDATE ON public.rh_empregados
+CREATE TRIGGER rh_empregados_convencao_proteger BEFORE INSERT OR UPDATE ON public.rh_empregados
     FOR EACH ROW EXECUTE FUNCTION public.proteger_convencao_do_empregado_rh();
 
 -- Bucket privado; as policies de storage.objects vêm na migration seguinte.

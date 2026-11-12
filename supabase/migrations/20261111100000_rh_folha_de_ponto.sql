@@ -82,7 +82,7 @@ $$;
 REVOKE ALL ON FUNCTION public.cliente_do_empregado_rh(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.cliente_do_empregado_rh(uuid) TO authenticated, service_role;
 
--- Regras de dado que a RLS não expressa: o empregado não troca de Cliente; cartão só de empregado ativo.
+-- Regras de dado que a RLS não expressa: o empregado não troca de Cliente; o dia de ponto não troca de data nem de empregado; cartão só de empregado ativo.
 CREATE FUNCTION public.proteger_ponto_rh() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
@@ -95,7 +95,7 @@ begin
     return new;
   end if;
   if tg_table_name = 'rh_ponto_dias' and tg_op = 'UPDATE' then
-    if new.data <> old.data then
+    if new.data <> old.data or new.empregado_id <> old.empregado_id then
       raise exception 'rh_ponto_dia_imutavel';
     end if;
   end if;

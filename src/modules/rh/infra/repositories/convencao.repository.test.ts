@@ -181,6 +181,42 @@ describe("Convenção coletiva do RH (integração)", () => {
     expect(!invertida.ok && invertida.error.code).toBe("VALIDATION_ERROR");
   });
 
+  it("o banco recusa regra fora do esquema fechado, mesmo com a forma certa (P2-9, PR #234)", async () => {
+    const { supabase } = await comoLiderRH();
+    const inserir = (regras: unknown) =>
+      supabase.from("rh_convencoes").insert({
+        cliente_id: clienteA,
+        sindicato: "X",
+        vigencia_inicio: "2026-05-01",
+        vigencia_fim: "2027-04-30",
+        arquivo_caminho: `${clienteA}/${crypto.randomUUID()}.pdf`,
+        arquivo_nome: "x.pdf",
+        regras,
+      });
+    const aplicada = (extra: object) => ({
+      versao: 1,
+      rejeitadas: [],
+      aplicadas: [{ chave: "extra_sabado", valor: 60, clausula: "12ª", trecho: "60%", ...extra }],
+    });
+
+    const chaveInventada = await inserir(aplicada({ chave: "salario_minimo" }));
+    const valorTexto = await inserir(aplicada({ valor: "60" }));
+    const valorNegativo = await inserir(aplicada({ valor: -1 }));
+    const semCitacao = await inserir(aplicada({ clausula: " " }));
+    const listaVazia = await inserir(aplicada({ chave: "datas_especiais", valor: [] }));
+    const motivoInventado = await inserir({
+      versao: 1,
+      aplicadas: [],
+      rejeitadas: [{ chave: "x", motivo: "porque_sim" }],
+    });
+    const valida = await inserir(aplicada({}));
+
+    for (const r of [chaveInventada, valorTexto, valorNegativo, semCitacao, listaVazia])
+      expect(r.error?.code).toBe("23514");
+    expect(motivoInventado.error?.code).toBe("23514");
+    expect(valida.error).toBeNull();
+  });
+
   it("o arquivo mora na pasta do Cliente, não se repete e autoria e data não se forjam", async () => {
     const { supabase, convencoes } = await comoLiderRH();
     const base = nova("Comércio", "2026-05-01", "2027-04-30");
@@ -290,6 +326,23 @@ describe("Interruptores e ponteiro do empregado (integração)", () => {
     expect(existente.ok).toBe(true);
     expect(ponteiros.ok && ponteiros.value).toEqual([{ empregadoId: id, sindicato: "Comércio" }]);
     expect(limpou.ok).toBe(true);
+  });
+
+  it("o INSERT do empregado também só aponta para sindicato que o Cliente tem (P2-2, PR #234)", async () => {
+    const { supabase } = await comoFuncionarioRH();
+    const cadastro = (convencaoSindicato: string | null) =>
+      supabase.from("rh_empregados").insert({
+        cliente_id: clienteA,
+        nome: "Caio",
+        jornada: JORNADA,
+        convencao_sindicato: convencaoSindicato,
+      });
+
+    const inexistente = await cadastro("Sindicato Fantasma");
+    const nulo = await cadastro(null);
+
+    expect(inexistente.error?.message).toContain("rh_convencao_inexistente");
+    expect(nulo.error).toBeNull();
   });
 
   it("quem não é o Responsável não muda o ponteiro", async () => {

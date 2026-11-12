@@ -167,6 +167,27 @@ describe("Folha de ponto do RH (integração)", () => {
     expect(await auditorias("rh.ponto.limpar", `${CNPJ_A} Bia 2026-11-17`)).toHaveLength(1);
   });
 
+  it("o dia de ponto não troca de empregado nem de data pela Data API (P2-3, PR #234)", async () => {
+    const { repo, supabase } = await comoFuncionarioRH();
+    const ana = await novoEmpregado("Ana");
+    const bia = await novoEmpregado("Bia");
+    await repo.salvarDia(ana, { data: "2026-11-16", batidas: [PAR], extra: null, abono: false });
+
+    const trocaEmpregado = await supabase
+      .from("rh_ponto_dias")
+      .update({ empregado_id: bia })
+      .eq("empregado_id", ana);
+    const trocaData = await supabase
+      .from("rh_ponto_dias")
+      .update({ data: "2026-11-17" })
+      .eq("empregado_id", ana);
+    const doBia = await repo.listarDias(bia, "2026-11-01", "2026-11-30");
+
+    expect(trocaEmpregado.error?.message).toContain("rh_ponto_dia_imutavel");
+    expect(trocaData.error?.message).toContain("rh_ponto_dia_imutavel");
+    expect(doBia.ok && doBia.value).toEqual([]);
+  });
+
   it("o banco recusa horário fora do dia e lista com mais de 4 pares", async () => {
     const id = await novoEmpregado("Caio");
     const fora = await servico.from("rh_ponto_dias").insert({
