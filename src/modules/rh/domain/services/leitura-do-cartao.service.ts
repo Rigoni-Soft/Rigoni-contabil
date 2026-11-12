@@ -30,6 +30,12 @@ export type LeituraValida = { nome: string; dias: DiaDaLeitura[]; faltas: string
 const NOME = /^[\p{L}][\p{L} .'-]*$/u;
 const MAXIMO_DO_DIA_MIN = 16 * 60;
 
+// Nome do empregado como lido (cartão ou atestado): espaços normalizados; null se ilegível.
+export function nomeLegivel(lido: string | null): string | null {
+  const nome = lido?.trim().replace(/\s+/g, " ") ?? "";
+  return nome.length < 2 || nome.length > TEXTO_CURTO_MAXIMO || !NOME.test(nome) ? null : nome;
+}
+
 // Os horários do dia, na ordem do cartão (manhã, tarde, extra), crescem: o modelo que troca um dígito
 // quase sempre quebra isso. ponytail: turno que vira a noite reprova e cai na digitação; aceitar a virada quando houver cartão assim.
 function emOrdem(batidas: Par[], extra: Par | null): boolean {
@@ -50,10 +56,8 @@ export function validarLeitura(
   const mes = Competencia.criar(alvo.competencia);
   if (!mes.ok) return recusa("Competência inválida.");
 
-  const nome = leitura.nome?.trim().replace(/\s+/g, " ") ?? "";
-  if (nome.length < 2 || nome.length > TEXTO_CURTO_MAXIMO || !NOME.test(nome)) {
-    return recusa("Nome do empregado ilegível.");
-  }
+  const nome = nomeLegivel(leitura.nome);
+  if (!nome) return recusa("Nome do empregado ilegível.");
 
   const ultimo = mes.value.dias.length;
   const [de, ate] = alvo.quinzena === 1 ? [1, 15] : [16, ultimo];
