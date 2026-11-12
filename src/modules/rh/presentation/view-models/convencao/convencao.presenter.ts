@@ -174,28 +174,17 @@ export function empregadosDosAjustes(dto: ConvencoesDoClienteDto): EmpregadoDosA
   }));
 }
 
-const CAMPOS_DO_ENVIO: readonly string[] = [
-  "sindicato",
-  "vigenciaInicio",
-  "vigenciaFim",
-  "arquivo",
-];
-
 // O primeiro campo que o servidor recusou, se for um do formulário.
 export function campoDoServidor(fields?: Record<string, string[]>): CampoDoEnvio | undefined {
-  return Object.keys(fields ?? {}).find((c): c is CampoDoEnvio => CAMPOS_DO_ENVIO.includes(c));
+  return fields?.arquivo ? "arquivo" : undefined;
 }
 
 export type EnvioLido =
   { ok: true; formData: FormData } | { ok: false; erro: string; campo: CampoDoEnvio };
 
-// Confere no navegador o que dá para conferir (PDF escolhido, tamanho, vigência) e monta o FormData da
+// Confere no navegador o que dá para conferir (PDF escolhido, tamanho) e monta o FormData da
 // Server Action; o servidor repete a conferência.
-export function lerEnvioDoFormulario(
-  clienteId: string,
-  campos: FormData,
-  arquivo: File | undefined,
-): EnvioLido {
+export function lerEnvioDoFormulario(clienteId: string, arquivo: File | undefined): EnvioLido {
   if (!arquivo) return { ok: false, erro: "Escolha o PDF da convenção.", campo: "arquivo" };
   const ehPdf = arquivo.type === "application/pdf" || arquivo.name.toLowerCase().endsWith(".pdf");
   if (!ehPdf) return { ok: false, erro: "Envie a convenção em PDF.", campo: "arquivo" };
@@ -204,16 +193,8 @@ export function lerEnvioDoFormulario(
   if (arquivo.name.trim().length > NOME_DO_ARQUIVO_MAXIMO)
     return { ok: false, erro: MENSAGEM_NOME_LONGO, campo: "arquivo" };
 
-  const inicio = String(campos.get("vigenciaInicio") ?? "");
-  const fim = String(campos.get("vigenciaFim") ?? "");
-  if (fim < inicio)
-    return { ok: false, erro: "A vigência termina antes de começar.", campo: "vigenciaFim" };
-
   const formData = new FormData();
   formData.set("clienteId", clienteId);
-  formData.set("sindicato", String(campos.get("sindicato") ?? ""));
-  formData.set("vigenciaInicio", inicio);
-  formData.set("vigenciaFim", fim);
   formData.set("arquivo", arquivo);
   return { ok: true, formData };
 }

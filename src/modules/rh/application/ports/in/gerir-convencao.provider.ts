@@ -4,10 +4,7 @@ import type { Result } from "@/shared/kernel/result";
 
 export type EnviarConvencaoInput = {
   clienteId: string;
-  sindicato: string;
-  // "AAAA-MM-DD".
-  vigenciaInicio: string;
-  vigenciaFim: string;
+  // Sindicato e vigência saem do PDF, na extração.
   arquivo: { nome: string; bytes: Uint8Array };
 };
 export type DefinirInterruptoresDoClienteInput = InterruptoresDoClienteDto & { clienteId: string };
