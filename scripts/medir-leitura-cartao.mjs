@@ -39,10 +39,28 @@ if (!pasta) {
 const { LeitorDeCartaoVisaoGateway } =
   await import("@/modules/rh/infra/gateways/leitor-de-cartao-visao.gateway");
 const { validarLeitura } = await import("@/modules/rh/domain/services/leitura-do-cartao.service");
+// Esforço opcional (EFORCO=medium) injetado no corpo; o status HTTP de falha vai para o motivo.
+let ultimoStatus = "";
+const http = async (url, init) => {
+  const corpo = JSON.parse(init.body);
+  if (process.env.ESFORCO) corpo.output_config = { effort: process.env.ESFORCO };
+  // Sonnet 5.5 recusa tool_choice forçado: o texto da instrução já pede só a ferramenta.
+  if (/sonnet/.test(corpo.model)) corpo.tool_choice = { type: "auto" };
+  const r = await fetch(url, { ...init, body: JSON.stringify(corpo) });
+  ultimoStatus = r.ok ? "" : `http ${r.status}`;
+  if (!r.ok && !globalThis.__e) {
+    globalThis.__e = 1;
+    console.error("# erro:", (await r.clone().text()).slice(0, 300));
+  }
+  return r;
+};
 const leitor = new LeitorDeCartaoVisaoGateway(
   chave,
   process.env.LEITURA_CARTAO_MODELO || "claude-haiku-5-5",
+  http,
 );
+const hm = (m) =>
+  `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 
 const linhas = [
   [
@@ -64,10 +82,19 @@ for (const f of fotos) {
   const tipo = /\.png$/i.test(f) ? "image/png" : "image/jpeg";
   const bruta = await leitor.ler({ bytes: readFileSync(join(pasta, f)), tipo });
   if (!bruta.lido) {
-    linhas.push([f, "não", "", "api/formato", "", "", "", "", "", ""]);
+    linhas.push([f, "não", "", ultimoStatus || "formato/rede", "", "", "", "", "", ""]);
     continue;
   }
   const d = bruta.leitura.dias;
+  if (process.env.DETALHE && new RegExp(process.env.DETALHE).test(f)) {
+    console.log(`# ${f}`);
+    for (const x of d) {
+      const b = x.batidas.map((q) => `${hm(q.entrada)}-${hm(q.saida)}`).join(" ");
+      console.log(
+        `#  ${x.dia}: ${b}${x.extra ? " extra " + hm(x.extra.entrada) + "-" + hm(x.extra.saida) : ""}${x.atestado ? " ATESTADO" : ""}${x.faltou ? " FALTOU" : ""}`,
+      );
+    }
+  }
   const v = validarLeitura(bruta.leitura, { competencia, quinzena });
   linhas.push([
     f,

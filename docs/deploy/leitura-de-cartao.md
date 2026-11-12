@@ -54,6 +54,14 @@ arquivos trocados, a "quin-1" traz os dias 16 a 31 e a "quin-2" os dias 1 a 15, 
 e Roberto quin-1 (erro de API nessa rodada; na rodada com setembro tinha sido lido). O acerto dos horários contra a
 foto não foi conferido: o script mede validação, não verdade.
 
+Segunda medição (12/11/2026), `claude-sonnet-5-5` com esforço `medium` (`LEITURA_CARTAO_MODELO=claude-sonnet-5-5 ESFORCO=medium yarn medir:leitura <pasta> 2026-08`):
+**14 de 17 validaram**, as mesmas 2 do Matheus (arquivos trocados) mais Luan quin-2 ("horários fora de ordem no dia 26"). Conferência
+manual contra a foto de 2 cartões (Erick e Laura, 1ª quinzena, 26 dias de batidas): todos os horários lidos batem com a
+imagem, inclusive os carimbos desbotados; as únicas dúvidas foram o dia 3 do Erick (08:36 lido, manuscrito ambíguo) e o
+dia 7 do Erick, em que a tarde está cortada na foto e o modelo omitiu o par, como pedido.
+**Atenção:** o Sonnet 5.5 recusa `tool_choice` forçado (HTTP 400 "type tool and any are not supported for this model"); o
+gateway de produção só funciona com ele se passar a `auto`. O script já faz isso; o gateway ainda não.
+
 Registro (12/11/2026): um OCR local (tesseract.js, modelo `por`) foi testado antes como primeiro leitor e
 descartado: 0 das 18 fotos passou na validação (13 com nome ilegível, 5 sem leitura), por causa da letra à mão e
 do carimbo desbotado.
