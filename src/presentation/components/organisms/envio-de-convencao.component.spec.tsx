@@ -41,18 +41,20 @@ describe("EnvioDeConvencao", () => {
   });
 
   it("erro do arquivo aparece no próprio campo do PDF", () => {
-    render(
-      <EnvioDeConvencao {...base} erro="Escolha o PDF da convenção." campoComErro="arquivo" />,
-    );
+    render(<EnvioDeConvencao {...base} erro="Escolha o PDF da convenção." />);
 
     expect(screen.getByText("Escolha o PDF da convenção.")).toBeInTheDocument();
     expect(screen.getByLabelText("Convenção (PDF)")).toBeInvalid();
   });
 
-  it("enquanto lê, desabilita o botão e diz o que acontece; o erro aparece em alerta", () => {
+  it("enquanto lê, desabilita o botão, marca o formulário ocupado e o erro aparece no campo", () => {
     render(<EnvioDeConvencao {...base} pendente erro="Não foi possível ler a convenção." />);
 
     expect(screen.getByRole("button", { name: "Lendo a convenção…" })).toBeDisabled();
+    expect(screen.getByRole("form", { name: "Enviar convenção" })).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
     expect(screen.getByText("Não foi possível ler a convenção.")).toBeInTheDocument();
   });
 });
