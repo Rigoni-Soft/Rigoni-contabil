@@ -13,5 +13,8 @@ export type AtestadoBruto = { lido: true; atestado: AtestadoLido } | { lido: fal
 
 export interface LeitorDeCartaoPort {
   ler(imagem: ImagemDoCartao): Promise<LeituraBruta>;
+}
+
+export interface LeitorDeAtestadoPort {
   lerAtestado(imagem: ImagemDoCartao): Promise<AtestadoBruto>;
 }

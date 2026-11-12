@@ -5,7 +5,10 @@ import type {
 } from "@/modules/rh/application/ports/in/ler-cartao-de-ponto.provider";
 import type { AuditoriaPort } from "@/modules/rh/application/ports/out/auditoria.provider";
 import type { FolhaDePontoRepository } from "@/modules/rh/application/ports/out/folha-de-ponto.repository";
-import type { LeitorDeCartaoPort } from "@/modules/rh/application/ports/out/leitor-de-cartao.provider";
+import type {
+  ImagemDoCartao,
+  LeitorDeCartaoPort,
+} from "@/modules/rh/application/ports/out/leitor-de-cartao.provider";
 import type { RegistroDeErrosPort } from "@/modules/rh/application/ports/out/registro-de-erros.provider";
 import type { RelogioPort } from "@/modules/rh/application/ports/out/relogio.provider";
 import type { SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
@@ -23,9 +26,9 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 // Limite do corpo de uma Server Action na Vercel (ADR 0007).
 const MAXIMO_DA_FOTO_BYTES = 4 * 1024 * 1024;
-const MANUAL = "Não foi possível ler o cartão. Digite os horários à mão.";
+export const MANUAL = "Não foi possível ler o cartão. Digite os horários à mão.";
 
-function ehImagem({ bytes, tipo }: LerCartaoDePontoInput["imagem"]): boolean {
+export function ehImagem({ bytes, tipo }: ImagemDoCartao): boolean {
   if (bytes.length === 0 || bytes.length > MAXIMO_DA_FOTO_BYTES) return false;
   return tipo === "image/png"
     ? bytes[0] === 0x89 && bytes[1] === 0x50

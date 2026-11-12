@@ -3,6 +3,7 @@ import { z } from "zod";
 import type {
   AtestadoBruto,
   ImagemDoCartao,
+  LeitorDeAtestadoPort,
   LeitorDeCartaoPort,
   LeituraBruta,
 } from "@/modules/rh/application/ports/out/leitor-de-cartao.provider";
@@ -134,7 +135,7 @@ const paraPar = (p: z.infer<typeof par>) => ({
   saida: horaParaMinutos(p.saida),
 });
 
-export class LeitorDeCartaoVisaoGateway implements LeitorDeCartaoPort {
+export class LeitorDeCartaoVisaoGateway implements LeitorDeCartaoPort, LeitorDeAtestadoPort {
   constructor(
     private readonly chave: string,
     private readonly modelo: string,

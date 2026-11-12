@@ -1,5 +1,6 @@
 import type {
   AtestadoBruto,
+  LeitorDeAtestadoPort,
   LeitorDeCartaoPort,
   LeituraBruta,
 } from "@/modules/rh/application/ports/out/leitor-de-cartao.provider";
@@ -9,7 +10,7 @@ const h = (hh: number, mm = 0) => hh * 60 + mm;
 // Leitor de dev, CI e Preview: não olha a foto e devolve sempre o mesmo cartão (Erick Falso, 1ª quinzena:
 // dois dias úteis, uma falta anotada, um atestado e uma hora extra). Em Produção gravaria um empregado
 // inventado: lá o modo é "indisponivel" ou o real.
-export class LeitorDeCartaoFalsoGateway implements LeitorDeCartaoPort {
+export class LeitorDeCartaoFalsoGateway implements LeitorDeCartaoPort, LeitorDeAtestadoPort {
   async ler(): Promise<LeituraBruta> {
     const dia = (n: number) => ({
       dia: n,
