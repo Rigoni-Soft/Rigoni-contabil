@@ -1,5 +1,7 @@
 import type {
   DiaDaFolhaDto,
+  DiaDoPontoDto,
+  EmpregadoDaFolhaDto,
   FolhaDePontoDto,
 } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
 import type {
@@ -9,10 +11,11 @@ import type {
 import type { ConvencaoRepository } from "@/modules/rh/application/ports/out/convencao.repository";
 import type { FolhaDePontoRepository } from "@/modules/rh/application/ports/out/folha-de-ponto.repository";
 import type { RelogioPort } from "@/modules/rh/application/ports/out/relogio.provider";
-import type { SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
+import type { AtorSessaoDto, SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
 import {
   convencaoDaEpoca,
   regrasDeCalculo,
+  type RegrasDeCalculo,
 } from "@/modules/rh/domain/services/regras-de-calculo.service";
 import {
   diaDaSemana,
@@ -55,14 +58,37 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
       return err(new ValidationError("Não há cartão de um mês que ainda não começou."));
     }
 
-    const cliente = await this.repositorio.buscarCliente(input.clienteId);
+    const quadro = await this.carregarQuadro(input.clienteId, ator, competencia.value);
+    if (!quadro.ok) return quadro;
+    const { base, empregados } = quadro.value;
+
+    // Sem empregado pedido o quadro abre no formulário "Novo empregado": nada é escolhido por padrão.
+    if (!input.empregadoId) return ok({ ...base, selecionado: null });
+    const escolhido = empregados.find((e) => e.id === input.empregadoId);
+    if (!escolhido) return err(new NotFoundError("Empregado não encontrado."));
+
+    const selecionado = await this.carregarCartao(input.clienteId, escolhido, competencia.value);
+    return selecionado.ok ? ok({ ...base, selecionado: selecionado.value }) : selecionado;
+  }
+
+  private async carregarQuadro(
+    clienteId: string,
+    ator: AtorSessaoDto,
+    competencia: Competencia,
+  ): Promise<
+    Result<
+      { base: Omit<FolhaDePontoDto, "selecionado">; empregados: EmpregadoDaFolhaDto[] },
+      AppError
+    >
+  > {
+    const cliente = await this.repositorio.buscarCliente(clienteId);
     if (!cliente.ok) return cliente;
     if (!cliente.value) return err(new NotFoundError("Cliente não encontrado."));
 
     const [empregados, semMovimento, padrao] = await Promise.all([
-      this.repositorio.listarEmpregados(input.clienteId),
-      this.repositorio.listarSemMovimento(input.clienteId, competencia.value.primeiroDia),
-      this.repositorio.buscarPadraoComissionados(input.clienteId),
+      this.repositorio.listarEmpregados(clienteId),
+      this.repositorio.listarSemMovimento(clienteId, competencia.primeiroDia),
+      this.repositorio.buscarPadraoComissionados(clienteId),
     ]);
     if (!empregados.ok) return empregados;
     if (!semMovimento.ok) return semMovimento;
@@ -71,29 +97,31 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
     const sem = new Set(semMovimento.value);
     const quadro = empregados.value.map((e) => ({ ...e, semMovimento: sem.has(e.id) }));
     const base = {
-      clienteId: input.clienteId,
+      clienteId,
       empresa: cliente.value.empresa,
-      competencia: competencia.value.valor,
+      competencia: competencia.valor,
       padraoComissionados: padrao.value,
       empregados: quadro,
       podeEditar:
         podeMarcarAcompanhamentoRh(ator.papel, ator.setor) &&
         cliente.value.responsavelId === ator.id,
     };
+    return ok({ base, empregados: quadro });
+  }
 
-    // Sem empregado pedido o quadro abre no formulário "Novo empregado": nada é escolhido por padrão.
-    if (!input.empregadoId) return ok({ ...base, selecionado: null });
-    const escolhido = quadro.find((e) => e.id === input.empregadoId);
-    if (!escolhido) return err(new NotFoundError("Empregado não encontrado."));
-
-    const datas = competencia.value.dias;
+  private async carregarCartao(
+    clienteId: string,
+    escolhido: EmpregadoDaFolhaDto,
+    competencia: Competencia,
+  ): Promise<Result<NonNullable<FolhaDePontoDto["selecionado"]>, AppError>> {
+    const datas = competencia.dias;
     const [lancados, feriados, historico, interruptores, ponteiros, iniciado] = await Promise.all([
       this.repositorio.listarDias(escolhido.id, datas[0], datas[datas.length - 1]),
       this.repositorio.listarFeriados(datas[0], datas[datas.length - 1]),
-      this.convencoes.listar(input.clienteId),
-      this.repositorio.buscarInterruptores(input.clienteId),
-      this.repositorio.listarConvencaoDosEmpregados(input.clienteId),
-      this.repositorio.cartaoIniciado(escolhido.id, competencia.value.primeiroDia),
+      this.convencoes.listar(clienteId),
+      this.repositorio.buscarInterruptores(clienteId),
+      this.repositorio.listarConvencaoDosEmpregados(clienteId),
+      this.repositorio.cartaoIniciado(escolhido.id, competencia.primeiroDia),
     ]);
     if (!lancados.ok) return lancados;
     if (!feriados.ok) return feriados;
@@ -121,35 +149,40 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
     const semConvencao = datas.some(
       (data) => !convencaoDe.get(data) && (lancadoEm.get(data) || feriadoEm.has(data)),
     );
-    const dias: DiaDaFolhaDto[] = datas.map((data) => {
-      const dia = lancadoEm.get(data);
-      const semana = diaDaSemana(data);
-      const doCartao = {
-        data,
-        batidas: dia?.batidas ?? [],
-        extra: dia?.extra ?? null,
-        abono: dia?.abono ?? false,
-        feriado: feriadoEm.has(data),
-      };
-      const jornada = escolhido.jornada;
-      return {
-        ...doCartao,
-        diaDaSemana: semana,
-        cargaMin: escolhido.jornada[semana],
-        trabalhadoMin: minutosTrabalhados(doCartao),
-        apuracao: totalizarDia(doCartao, jornada, regrasDoDia(data)),
-      };
-    });
+    const dias = datas.map((data) =>
+      montarDia(data, escolhido, lancadoEm.get(data), feriadoEm.has(data), regrasDoDia(data)),
+    );
 
     return ok({
-      ...base,
-      selecionado: {
-        empregado: escolhido,
-        dias,
-        totalizacao: totalizar(dias, escolhido.jornada, regrasDoDia),
-        iniciado: iniciado.value,
-        semConvencao,
-      },
+      empregado: escolhido,
+      dias,
+      totalizacao: totalizar(dias, escolhido.jornada, regrasDoDia),
+      iniciado: iniciado.value,
+      semConvencao,
     });
   }
+}
+
+function montarDia(
+  data: string,
+  empregado: EmpregadoDaFolhaDto,
+  lancado: DiaDoPontoDto | undefined,
+  feriado: boolean,
+  regras: RegrasDeCalculo,
+): DiaDaFolhaDto {
+  const semana = diaDaSemana(data);
+  const doCartao = {
+    data,
+    batidas: lancado?.batidas ?? [],
+    extra: lancado?.extra ?? null,
+    abono: lancado?.abono ?? false,
+    feriado,
+  };
+  return {
+    ...doCartao,
+    diaDaSemana: semana,
+    cargaMin: empregado.jornada[semana],
+    trabalhadoMin: minutosTrabalhados(doCartao),
+    apuracao: totalizarDia(doCartao, empregado.jornada, regras),
+  };
 }

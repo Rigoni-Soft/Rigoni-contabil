@@ -173,66 +173,75 @@ function apurarDia(
   { dia, jornada, regras, semana }: ContextoDoDia,
   somarExtra: (min: number) => void,
 ): Totalizacao {
-  const apurado: Totalizacao = { ...ZERO };
   const carga = jornada[semana];
-
-  if (dia.extra) apurado.noturnoMin += minutosNoturnos([dia.extra]);
-  // Feriado trabalhado só na coluna Extra (feriado e folga só têm a Extra liberada na tela) também conta.
-  if (dia.extra && dia.feriado) apurado.feriadosTrabalhados = 1;
+  const base: Totalizacao = {
+    ...ZERO,
+    noturnoMin: dia.extra ? minutosNoturnos([dia.extra]) : 0,
+    // Feriado trabalhado só na coluna Extra (feriado e folga só têm a Extra liberada na tela) também conta.
+    feriadosTrabalhados: dia.extra && dia.feriado ? 1 : 0,
+  };
   somarExtra(dia.extra ? duracao(dia.extra) : 0);
 
   const trabalhado = dia.batidas.reduce((soma, p) => soma + duracao(p), 0);
   // Interruptor do Cliente: o domingo trabalhado é todo hora extra, tenha ou não Jornada.
   if (semana === 0 && regras.trabalhoAosDomingos && !dia.feriado) {
-    if (trabalhado > 0) {
-      somarExtra(trabalhado);
-      apurado.noturnoMin += minutosNoturnos(dia.batidas);
-    }
-    return apurado;
+    return apurarDomingoTrabalhado(base, dia, trabalhado, somarExtra);
   }
-
   // Dia sem carga: só a coluna Extra conta.
-  if (carga === 0 && !dia.feriado) return apurado;
+  if (carga === 0 && !dia.feriado) return base;
+  if (dia.feriado) return apurarFeriado(base, dia, trabalhado, somarExtra);
+  if (dia.batidas.length === 0) return apurarSemBatida(base, dia.abono, carga);
+  return apurarComBatidas(base, dia, trabalhado, carga, somarExtra);
+}
 
-  if (dia.feriado) {
-    // Feriado: sem falta; o que se trabalha é hora extra.
-    if (trabalhado > 0) {
-      somarExtra(trabalhado);
-      apurado.feriadosTrabalhados = 1;
-      apurado.noturnoMin += minutosNoturnos(dia.batidas);
-    }
-    return apurado;
-  }
+function apurarDomingoTrabalhado(
+  base: Totalizacao,
+  dia: DiaDoCartao,
+  trabalhado: number,
+  somarExtra: (min: number) => void,
+): Totalizacao {
+  if (trabalhado <= 0) return base;
+  somarExtra(trabalhado);
+  return { ...base, noturnoMin: base.noturnoMin + minutosNoturnos(dia.batidas) };
+}
 
-  if (dia.batidas.length === 0) {
-    if (dia.abono) {
-      apurado.abonoDias = 1;
-      apurado.abonoMin = carga;
-      return apurado;
-    }
-    apurado.faltas = 1;
-    return apurado;
-  }
+// Feriado: sem falta; o que se trabalha é hora extra.
+function apurarFeriado(
+  base: Totalizacao,
+  dia: DiaDoCartao,
+  trabalhado: number,
+  somarExtra: (min: number) => void,
+): Totalizacao {
+  if (trabalhado <= 0) return base;
+  somarExtra(trabalhado);
+  return {
+    ...base,
+    feriadosTrabalhados: 1,
+    noturnoMin: base.noturnoMin + minutosNoturnos(dia.batidas),
+  };
+}
 
-  apurado.noturnoMin += minutosNoturnos(dia.batidas);
+function apurarSemBatida(base: Totalizacao, abono: boolean, carga: number): Totalizacao {
+  return abono ? { ...base, abonoDias: 1, abonoMin: carga } : { ...base, faltas: 1 };
+}
+
+function apurarComBatidas(
+  semNoturno: Totalizacao,
+  dia: DiaDoCartao,
+  trabalhado: number,
+  carga: number,
+  somarExtra: (min: number) => void,
+): Totalizacao {
+  const base = { ...semNoturno, noturnoMin: semNoturno.noturnoMin + minutosNoturnos(dia.batidas) };
   const tolerancia = Math.min(TOLERANCIA_POR_MARCACAO * dia.batidas.length * 2, TOLERANCIA_POR_DIA);
   const diferenca = trabalhado - carga;
-  if (Math.abs(diferenca) <= tolerancia) {
-    apurado.normaisMin = carga;
-    return apurado;
-  }
+  if (Math.abs(diferenca) <= tolerancia) return { ...base, normaisMin: carga };
   if (diferenca > 0) {
-    apurado.normaisMin = carga;
     somarExtra(diferenca);
-    return apurado;
+    return { ...base, normaisMin: carga };
   }
-  apurado.normaisMin = trabalhado;
-  if (dia.abono) {
-    apurado.abonoMin = -diferenca;
-    return apurado;
-  }
-  apurado.atrasoMin = -diferenca;
-  return apurado;
+  const atrasado = { ...base, normaisMin: trabalhado };
+  return dia.abono ? { ...atrasado, abonoMin: -diferenca } : { ...atrasado, atrasoMin: -diferenca };
 }
 
 // `regrasDoDia` devolve as regras da data: a convenção vigente pode mudar no meio do período.
