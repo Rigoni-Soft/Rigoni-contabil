@@ -44,10 +44,15 @@ do provedor; não há limite no sistema.
 
 ## Medição nos cartões de exemplo
 
-Os cartões ficam fora do repositório (`Downloads`: 18 fotos `ponto-*-quin-*.jpeg` encontradas, das 19 citadas na
-issue, mais 3 `atestado-medico-*`). **O acerto da visão ainda não foi medido**: falta a `ANTHROPIC_API_KEY` no
-ambiente de desenvolvimento. Para medir, ligue `visao` num ambiente de teste, suba os cartões e confira os
-horários lidos contra a foto; reporte aqui.
+Os cartões ficam fora do repositório (`Downloads`: 17 fotos `ponto-*-quin-*.jpeg` das 19 citadas na issue, mais 3
+`atestado-medico-*`). Para medir: `yarn medir:leitura <pasta> [AAAA-MM]` (chama a API de verdade e lê a chave do
+`.env.local`); ele roda o leitor e o validador reais e imprime um CSV com o que cada foto leu.
+
+Medição de 12/11/2026 com `claude-haiku-5-5`, competência 2026-08 (as fotos são de agosto; com setembro, que tem
+30 dias, 10 de 17 reprovavam por "dia 31"): **14 de 17 validaram**. As 3 restantes: Matheus (as duas fotos têm os
+arquivos trocados, a "quin-1" traz os dias 16 a 31 e a "quin-2" os dias 1 a 15, então o validador recusou com razão)
+e Roberto quin-1 (erro de API nessa rodada; na rodada com setembro tinha sido lido). O acerto dos horários contra a
+foto não foi conferido: o script mede validação, não verdade.
 
 Registro (12/11/2026): um OCR local (tesseract.js, modelo `por`) foi testado antes como primeiro leitor e
 descartado: 0 das 18 fotos passou na validação (13 com nome ilegível, 5 sem leitura), por causa da letra à mão e
