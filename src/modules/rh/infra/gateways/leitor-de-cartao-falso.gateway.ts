@@ -1,4 +1,5 @@
 import type {
+  AtestadoBruto,
   LeitorDeCartaoPort,
   LeituraBruta,
 } from "@/modules/rh/application/ports/out/leitor-de-cartao.provider";
@@ -32,6 +33,14 @@ export class LeitorDeCartaoFalsoGateway implements LeitorDeCartaoPort {
           { ...dia(7), extra: { entrada: h(18, 30), saida: h(20) } },
         ],
       },
+    };
+  }
+
+  // Declaração de comparecimento do Erick Falso no dia 1 de setembro de 2026.
+  async lerAtestado(): Promise<AtestadoBruto> {
+    return {
+      lido: true,
+      atestado: { nome: "Erick Falso", tipo: "declaracao", de: "2026-09-01", ate: null },
     };
   }
 }

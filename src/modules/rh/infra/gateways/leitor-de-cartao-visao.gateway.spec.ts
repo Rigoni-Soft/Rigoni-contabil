@@ -48,4 +48,43 @@ describe("LeitorDeCartaoVisaoGateway", () => {
     expect(JSON.parse(init.body as string).model).toBe("modelo-x");
     expect(init.body).toContain("/9g=");
   });
+
+  describe("lerAtestado", () => {
+    it("devolve nome, tipo e datas, sem nenhum outro campo do documento", async () => {
+      const gw = new LeitorDeCartaoVisaoGateway(
+        "k",
+        "m",
+        resposta({
+          nome: "Roberto Carlos",
+          tipo: "atestado",
+          de: "2026-08-23",
+          ate: "2026-08-24",
+          cid: "M791",
+        }),
+      );
+      expect(await gw.lerAtestado(img)).toEqual({
+        lido: true,
+        atestado: { nome: "Roberto Carlos", tipo: "atestado", de: "2026-08-23", ate: "2026-08-24" },
+      });
+    });
+
+    it("declaração sem data final vem com ate null", async () => {
+      const gw = new LeitorDeCartaoVisaoGateway(
+        "k",
+        "m",
+        resposta({ nome: "Laura", tipo: "declaracao", de: "2026-08-27", ate: null }),
+      );
+      const r = await gw.lerAtestado(img);
+      expect(r.lido && r.atestado.ate).toBeNull();
+    });
+
+    it.each([
+      ["formato fora do esquema", resposta({ nome: "x", tipo: "receita", de: null, ate: null })],
+      ["status de erro", resposta({}, false)],
+    ])("não lança: %s vira lido=false", async (_, http) => {
+      expect(await new LeitorDeCartaoVisaoGateway("k", "m", http).lerAtestado(img)).toEqual({
+        lido: false,
+      });
+    });
+  });
 });
