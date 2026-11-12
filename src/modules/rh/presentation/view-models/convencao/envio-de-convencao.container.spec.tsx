@@ -13,12 +13,6 @@ const PDF = new File(["%PDF-1.7"], "cct-2026.pdf", { type: "application/pdf" });
 
 async function preencher(arquivo: File | null = PDF) {
   const user = userEvent.setup({ applyAccept: false });
-  const formulario = screen.getByRole("form", { name: "Enviar convenção" });
-  await user.type(formulario.querySelector("input[name=sindicato]")!, "Comércio");
-  const inicio = formulario.querySelector("input[name=vigenciaInicio]") as HTMLInputElement;
-  const fim = formulario.querySelector("input[name=vigenciaFim]") as HTMLInputElement;
-  await user.type(inicio, "2026-05-01");
-  await user.type(fim, "2027-04-30");
   if (arquivo) await user.upload(screen.getByLabelText("Convenção (PDF)"), arquivo);
   return user;
 }
@@ -29,7 +23,7 @@ describe("EnvioDeConvencaoContainer", () => {
     jest.mocked(enviarConvencaoAction).mockResolvedValue({ ok: true, data: undefined });
   });
 
-  it("envia o PDF com o Cliente, o sindicato e a vigência, e recarrega a tela", async () => {
+  it("envia só o PDF com o Cliente e recarrega a tela", async () => {
     render(<EnvioDeConvencaoContainer clienteId="c1" />);
     const user = await preencher();
 
@@ -39,9 +33,6 @@ describe("EnvioDeConvencaoContainer", () => {
     const enviado = jest.mocked(enviarConvencaoAction).mock.calls[0][0];
     expect(Object.fromEntries(enviado)).toEqual({
       clienteId: "c1",
-      sindicato: "Comércio",
-      vigenciaInicio: "2026-05-01",
-      vigenciaFim: "2027-04-30",
       arquivo: expect.any(File),
     });
     expect((enviado.get("arquivo") as File).name).toBe("cct-2026.pdf");
@@ -57,7 +48,7 @@ describe("EnvioDeConvencaoContainer", () => {
     expect(enviarConvencaoAction).not.toHaveBeenCalled();
   });
 
-  it("mostra a recusa do servidor e preserva o que foi digitado", async () => {
+  it("mostra a recusa do servidor e preserva o PDF escolhido", async () => {
     jest.mocked(enviarConvencaoAction).mockResolvedValue({
       ok: false,
       error: { code: "VALIDATION_ERROR", message: "Não foi possível ler a convenção." },
@@ -69,6 +60,6 @@ describe("EnvioDeConvencaoContainer", () => {
 
     expect(await screen.findByText("Não foi possível ler a convenção.")).toBeInTheDocument();
     expect(refresh).not.toHaveBeenCalled();
-    expect(screen.getByRole("textbox", { name: "Sindicato" })).toHaveValue("Comércio");
+    expect(screen.getByText("cct-2026.pdf")).toBeInTheDocument();
   });
 });

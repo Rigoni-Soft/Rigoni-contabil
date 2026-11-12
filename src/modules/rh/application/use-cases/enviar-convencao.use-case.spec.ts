@@ -15,9 +15,6 @@ const PDF = Uint8Array.from(Buffer.from("%PDF-1.7 convenção"));
 
 const ENTRADA = {
   clienteId: CLIENTE,
-  sindicato: " Comércio varejista de Cascavel ",
-  vigenciaInicio: "2026-05-01",
-  vigenciaFim: "2027-04-30",
   arquivo: { nome: "cct-2026.pdf", bytes: PDF },
 };
 
@@ -36,6 +33,9 @@ function montar(ator: AtorSessaoDto | null = LIDER) {
   const extrator: jest.Mocked<ExtratorDeRegrasPort> = {
     extrair: jest.fn().mockResolvedValue({
       lido: true,
+      sindicato: " Comércio varejista de Cascavel ",
+      vigenciaInicio: "2026-05-01",
+      vigenciaFim: "2027-04-30",
       candidatas: [
         {
           chave: "extra_sabado",
@@ -130,9 +130,6 @@ describe("EnviarConvencao", () => {
   });
 
   it.each([
-    ["sindicato vazio", { sindicato: "  " }],
-    ["vigência invertida", { vigenciaInicio: "2027-05-01", vigenciaFim: "2027-04-30" }],
-    ["data inexistente", { vigenciaInicio: "2026-02-31" }],
     [
       "arquivo que não é PDF",
       { arquivo: { nome: "a.pdf", bytes: Uint8Array.from(Buffer.from("MZ")) } },
@@ -153,6 +150,24 @@ describe("EnviarConvencao", () => {
 
     expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
     expect(armazenamento.enviar).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["sem sindicato", { sindicato: "  " }],
+    ["vigência invertida", { vigenciaInicio: "2027-05-01", vigenciaFim: "2027-04-30" }],
+    ["data inexistente", { vigenciaInicio: "2026-02-31" }],
+  ])("tira o PDF do armazenamento e não grava quando a extração vem %s", async (_nome, troca) => {
+    const { caso, extrator, armazenamento, convencoes } = montar();
+    const lida = await extrator.extrair(PDF);
+    extrator.extrair.mockResolvedValue({ ...lida, ...troca } as typeof lida);
+
+    const r = await caso.execute(ENTRADA);
+
+    expect(!r.ok && r.error.message).toBe(
+      "Não foi possível identificar o sindicato e a vigência no PDF.",
+    );
+    expect(armazenamento.remover).toHaveBeenCalledWith(armazenamento.enviar.mock.calls[0][0]);
+    expect(convencoes.inserir).not.toHaveBeenCalled();
   });
 
   it("tira o PDF do armazenamento e não grava quando a extração falha", async () => {

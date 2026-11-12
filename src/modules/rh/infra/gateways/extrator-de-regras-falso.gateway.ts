@@ -7,11 +7,25 @@ import type {
 // sempre os parâmetros da convenção de exemplo (comércio varejista), com um candidato que o domínio recusa
 // (intervalo máximo de 150 sem o número no trecho). O marcador `[extrator:falha]` no texto do PDF simula a
 // leitura que não deu certo.
+// Lê "Sindicato: X" e "Vigência: dd/mm/aaaa a dd/mm/aaaa" do texto do PDF; sem eles, devolve a convenção de
+// exemplo (o falso não lê PDF comprimido).
+function identificacao(texto: string) {
+  const sindicato = /Sindicato:\s*([^\r\n)]+)/.exec(texto)?.[1]?.trim();
+  const v = /Vig[eê]ncia:\s*(\d{2})\/(\d{2})\/(\d{4})\s*a\s*(\d{2})\/(\d{2})\/(\d{4})/.exec(texto);
+  return {
+    sindicato: sindicato || "Comércio",
+    vigenciaInicio: v ? `${v[3]}-${v[2]}-${v[1]}` : "2026-05-01",
+    vigenciaFim: v ? `${v[6]}-${v[5]}-${v[4]}` : "2027-04-30",
+  };
+}
+
 export class ExtratorDeRegrasFalsoGateway implements ExtratorDeRegrasPort {
   async extrair(pdf: Uint8Array): Promise<ExtracaoDeRegras> {
-    if (Buffer.from(pdf).toString("latin1").includes("[extrator:falha]")) return { lido: false };
+    const texto = Buffer.from(pdf).toString("utf8");
+    if (texto.includes("[extrator:falha]")) return { lido: false };
     return {
       lido: true,
+      ...identificacao(texto),
       candidatas: [
         {
           chave: "jornada_semanal",

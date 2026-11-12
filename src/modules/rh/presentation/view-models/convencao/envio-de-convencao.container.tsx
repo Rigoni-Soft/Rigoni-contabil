@@ -36,8 +36,8 @@ export function EnvioDeConvencaoContainer({ clienteId }: Props) {
         setErro(undefined);
         setCampoComErro(undefined);
       }}
-      onEnviar={(campos) => {
-        const lido = lerEnvioDoFormulario(clienteId, campos, arquivo);
+      onEnviar={() => {
+        const lido = lerEnvioDoFormulario(clienteId, arquivo);
         if (!lido.ok) {
           setCampoComErro(lido.campo);
           return setErro(lido.erro);

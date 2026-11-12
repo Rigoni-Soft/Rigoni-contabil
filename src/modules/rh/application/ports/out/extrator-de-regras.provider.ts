@@ -3,7 +3,16 @@
 // convenção é pública e pode ir a serviço externo. Nunca rejeita: falha vira `{ lido: false }`.
 import type { RegraCandidata } from "@/modules/rh/domain/services/validar-regras-da-convencao.service";
 
-export type ExtracaoDeRegras = { lido: true; candidatas: RegraCandidata[] } | { lido: false };
+// O sindicato e a vigência (AAAA-MM-DD) identificam a convenção e saem do próprio PDF; sem eles, não leu.
+export type ExtracaoDeRegras =
+  | {
+      lido: true;
+      sindicato: string;
+      vigenciaInicio: string;
+      vigenciaFim: string;
+      candidatas: RegraCandidata[];
+    }
+  | { lido: false };
 
 export interface ExtratorDeRegrasPort {
   extrair(pdf: Uint8Array): Promise<ExtracaoDeRegras>;
