@@ -404,6 +404,18 @@ describe("Armazenamento da convenção (integração)", () => {
     await servico.storage.from("convencoes-coletivas").remove([dados.arquivoCaminho]);
   });
 
+  it("o Líder não sobe PDF fora da pasta do Cliente (nome que não é <cliente>/<id>.pdf)", async () => {
+    const { supabase } = await comoLiderRH();
+    const gateway = new SupabaseArmazenamentoDeConvencaoGateway(supabase);
+    const pdf = Uint8Array.from(Buffer.from("%PDF-1.7 teste"));
+
+    const solto = await gateway.enviar(`${crypto.randomUUID()}.pdf`, pdf);
+    const aninhado = await gateway.enviar(`x/${clienteA}/${crypto.randomUUID()}.pdf`, pdf);
+    const semUuid = await gateway.enviar(`${clienteA}/qualquer.pdf`, pdf);
+
+    expect([solto.ok, aninhado.ok, semUuid.ok]).toEqual([false, false, false]);
+  });
+
   it("recusa o que não é PDF no bucket", async () => {
     const r = await servico.storage
       .from("convencoes-coletivas")
