@@ -23,8 +23,8 @@ export function AjustesDoClienteNaConvencaoContainer({ dados }: Props) {
     iniciar(async () => {
       setErro(undefined);
       try {
-        const r = await acao();
-        if (!r.ok) return setErro(r.error.message);
+        const resultado = await acao();
+        if (!resultado.ok) return setErro(resultado.error.message);
         router.refresh();
       } catch (e) {
         console.error("Falha ao gravar os ajustes do cliente", e);

@@ -58,8 +58,8 @@ export function QuadroDeFuncionariosContainer({ folha }: Props) {
       setErroDoNovo(undefined);
       setResultado(undefined);
       try {
-        const r = await acao();
-        if (!r.ok) return falhar(r.error.message);
+        const resposta = await acao();
+        if (!resposta.ok) return falhar(resposta.error.message);
         // Só o sucesso limpa o formulário do novo empregado: a recusa preserva o que foi digitado.
         if (cadastro) setChaveDoNovo((c) => c + 1);
         // Desligar e readmitir já gravam: o Editar fecha e a tela volta ao formulário "Novo empregado".

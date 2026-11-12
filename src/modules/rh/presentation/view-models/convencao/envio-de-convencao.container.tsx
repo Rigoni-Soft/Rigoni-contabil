@@ -46,10 +46,10 @@ export function EnvioDeConvencaoContainer({ clienteId }: Props) {
         setCampoComErro(undefined);
         iniciar(async () => {
           try {
-            const r = await enviarConvencaoAction(lido.formData);
-            if (!r.ok) {
-              setCampoComErro(campoDoServidor(r.error.fields));
-              return setErro(r.error.message);
+            const resultado = await enviarConvencaoAction(lido.formData);
+            if (!resultado.ok) {
+              setCampoComErro(campoDoServidor(resultado.error.fields));
+              return setErro(resultado.error.message);
             }
             setArquivo(undefined);
             setChave((c) => c + 1);

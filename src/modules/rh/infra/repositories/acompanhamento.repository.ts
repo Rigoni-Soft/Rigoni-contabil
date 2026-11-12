@@ -155,8 +155,8 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
           .filter((c) => incluirSemResponsavel || responsavelDe.has(c.id))
           .sort((a, b) => a.empresa.localeCompare(b.empresa, "pt-BR"))
           .map((c) => {
-            const r = responsavelDe.get(c.id);
-            const h = cartoesDe.get(c.id);
+            const responsavel = responsavelDe.get(c.id);
+            const cartoesDoCliente = cartoesDe.get(c.id);
             return {
               clienteId: c.id,
               empresa: c.empresa,
@@ -164,13 +164,16 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
               naoAplica: [...new Set(naoAplicaDe.get(c.id) ?? [])],
               naoAplicaSempre: naoAplicaSempreDe.get(c.id) ?? [],
               concluidos: concluidosDe.get(c.id) ?? [],
-              responsavel: r
-                ? { id: r.responsavel_id, nome: r.responsavel?.nome ?? "Sem nome" }
+              responsavel: responsavel
+                ? {
+                    id: responsavel.responsavel_id,
+                    nome: responsavel.responsavel?.nome ?? "Sem nome",
+                  }
                 : null,
               holerite: {
-                cadastrados: h?.cadastrados ?? 0,
-                semMovimento: h?.sem_movimento ?? 0,
-                cartoes: h?.cartoes ?? 0,
+                cadastrados: cartoesDoCliente?.cadastrados ?? 0,
+                semMovimento: cartoesDoCliente?.sem_movimento ?? 0,
+                cartoes: cartoesDoCliente?.cartoes ?? 0,
               },
             };
           }),

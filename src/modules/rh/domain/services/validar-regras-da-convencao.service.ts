@@ -133,10 +133,10 @@ function tempoNoTrecho(minutos: number, trecho: string): boolean {
 }
 
 function dataValida(data: string): boolean {
-  const m = /^(\d{2})\/(\d{2})$/.exec(data);
-  if (!m) return false;
+  const partes = /^(\d{2})\/(\d{2})$/.exec(data);
+  if (!partes) return false;
   // 2024 é bissexto: 29/02 existe como data fixa de calendário.
-  return dataIsoValida(`2024-${m[2]}-${m[1]}`);
+  return dataIsoValida(`2024-${partes[2]}-${partes[1]}`);
 }
 
 function dataNoTrecho(data: string, trecho: string): boolean {
@@ -158,15 +158,16 @@ function datasEspeciais(valor: unknown): DataEspecial[] | null {
   if (!Array.isArray(valor) || valor.length === 0) return null;
   const datas: DataEspecial[] = [];
   for (const item of valor) {
-    const o = objeto(item);
-    if (!o || typeof o.descricao !== "string" || o.descricao.trim() === "") return null;
-    const percentual = o.percentual;
+    const campos = objeto(item);
+    if (!campos || typeof campos.descricao !== "string" || campos.descricao.trim() === "")
+      return null;
+    const percentual = campos.percentual;
     if (typeof percentual !== "number" || !Number.isFinite(percentual) || percentual <= 0)
       return null;
     if (percentual > MAXIMO_PERCENTUAL) return null;
-    const data = o.data ?? null;
+    const data = campos.data ?? null;
     if (data !== null && (typeof data !== "string" || !dataValida(data))) return null;
-    const comissionado = o.percentualComissionado;
+    const comissionado = campos.percentualComissionado;
     if (
       comissionado !== undefined &&
       (typeof comissionado !== "number" ||
@@ -177,7 +178,7 @@ function datasEspeciais(valor: unknown): DataEspecial[] | null {
       return null;
     // O percentual do comissionado fica fora do piso: é o que a convenção paga em troca da comissão.
     datas.push({
-      descricao: o.descricao.trim(),
+      descricao: campos.descricao.trim(),
       data,
       percentual,
       ...(comissionado === undefined ? {} : { percentualComissionado: comissionado }),
@@ -190,9 +191,10 @@ function excecoesDeFeriado(valor: unknown): ExcecaoDeFeriado[] | null {
   if (!Array.isArray(valor) || valor.length === 0) return null;
   const excecoes: ExcecaoDeFeriado[] = [];
   for (const item of valor) {
-    const o = objeto(item);
-    if (!o || typeof o.descricao !== "string" || o.descricao.trim() === "") return null;
-    excecoes.push({ descricao: o.descricao.trim() });
+    const campos = objeto(item);
+    if (!campos || typeof campos.descricao !== "string" || campos.descricao.trim() === "")
+      return null;
+    excecoes.push({ descricao: campos.descricao.trim() });
   }
   return excecoes;
 }

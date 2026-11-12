@@ -64,8 +64,8 @@ export function CartaoDePontoContainer({ folha }: Props) {
     acao: () => Promise<ActionResult<unknown>>,
   ): Promise<string | undefined> => {
     try {
-      const r = await acao();
-      return r.ok ? undefined : r.error.message;
+      const resultado = await acao();
+      return resultado.ok ? undefined : resultado.error.message;
     } catch (e) {
       console.error(falha, e);
       return mensagemDaFalha(e);

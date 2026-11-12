@@ -46,7 +46,7 @@ export function AcompanhamentoDoClienteContainer({
     para: EstadoDoServico,
   ): Promise<ActionResult<void>> => {
     for (const passo of passosDaTroca(de, para)) {
-      const r =
+      const resultado =
         passo.tipo === "marcar"
           ? await marcarServicoAction({ clienteId, servicoId, competencia, concluido: passo.valor })
           : await definirServicoAplicavelAction({
@@ -55,7 +55,7 @@ export function AcompanhamentoDoClienteContainer({
               competencia,
               escopo: passo.escopo,
             });
-      if (!r.ok) return r;
+      if (!resultado.ok) return resultado;
     }
     return { ok: true, data: undefined };
   };
@@ -71,8 +71,8 @@ export function AcompanhamentoDoClienteContainer({
           setErro(undefined);
           escolher({ servicoId, para });
           try {
-            const r = await trocar(servicoId, de, para);
-            if (!r.ok) setErro(r.error.message);
+            const resultado = await trocar(servicoId, de, para);
+            if (!resultado.ok) setErro(resultado.error.message);
           } catch (erro) {
             console.error("Falha ao marcar o serviço do acompanhamento", erro);
             setErro(mensagemDaFalha(erro));

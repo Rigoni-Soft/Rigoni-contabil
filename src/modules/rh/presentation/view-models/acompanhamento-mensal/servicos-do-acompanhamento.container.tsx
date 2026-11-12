@@ -29,8 +29,8 @@ export function ServicosDoAcompanhamentoContainer({ servicos }: Props) {
     iniciar(async () => {
       setErro(undefined);
       try {
-        const r = await acao();
-        if (!r.ok) return setErro(r.error.message);
+        const resultado = await acao();
+        if (!resultado.ok) return setErro(resultado.error.message);
         aoDarCerto();
         router.refresh();
       } catch (erro) {
