@@ -181,7 +181,7 @@ describe("Convenção coletiva do RH (integração)", () => {
     expect(!invertida.ok && invertida.error.code).toBe("VALIDATION_ERROR");
   });
 
-  it("o banco recusa regra fora do esquema fechado, mesmo com a forma certa (P2-9, PR #234)", async () => {
+  it("o banco recusa regra fora do esquema fechado, mesmo com a forma certa (#219)", async () => {
     const { supabase } = await comoLiderRH();
     const inserir = (regras: unknown) =>
       supabase.from("rh_convencoes").insert({
@@ -328,7 +328,7 @@ describe("Interruptores e ponteiro do empregado (integração)", () => {
     expect(limpou.ok).toBe(true);
   });
 
-  it("o INSERT do empregado também só aponta para sindicato que o Cliente tem (P2-2, PR #234)", async () => {
+  it("o INSERT do empregado também só aponta para sindicato que o Cliente tem (#219)", async () => {
     const { supabase } = await comoFuncionarioRH();
     const cadastro = (convencaoSindicato: string | null) =>
       supabase.from("rh_empregados").insert({

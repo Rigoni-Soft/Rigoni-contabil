@@ -167,7 +167,7 @@ describe("Folha de ponto do RH (integração)", () => {
     expect(await auditorias("rh.ponto.limpar", `${CNPJ_A} Bia 2026-11-17`)).toHaveLength(1);
   });
 
-  it("o dia de ponto não troca de empregado nem de data pela Data API (P2-3, PR #234)", async () => {
+  it("o dia de ponto não troca de empregado nem de data pela Data API (#218)", async () => {
     const { repo, supabase } = await comoFuncionarioRH();
     const ana = await novoEmpregado("Ana");
     const bia = await novoEmpregado("Bia");
