@@ -38,7 +38,7 @@ function montar(ator: AtorSessaoDto | null, padrao = false) {
     ativo: new DefinirEmpregadoAtivo(sessao, repositorio, auditoria),
     semMovimento: new DefinirSemMovimento(sessao, repositorio, auditoria, relogio),
     padrao: new DefinirPadraoComissionados(sessao, repositorio, auditoria),
-    salvarDia: new SalvarDiaDoPonto(sessao, repositorio, auditoria),
+    salvarDia: new SalvarDiaDoPonto(sessao, repositorio, auditoria, relogio),
   };
 }
 
@@ -169,6 +169,13 @@ describe("SalvarDiaDoPonto", () => {
       extra: null,
       abono: false,
     });
+  });
+
+  it("recusa dia de mês futuro, sem gravar; o dia do mês corrente passa", async () => {
+    const t = montar(FUNC);
+    expect((await t.salvarDia.execute({ ...dia, data: "2026-12-01" })).ok).toBe(false);
+    expect(t.repositorio.salvarDia).not.toHaveBeenCalled();
+    expect((await t.salvarDia.execute({ ...dia, data: "2026-11-30" })).ok).toBe(true);
   });
 
   it("recusa data inválida, mais de 4 pares, horário fora do dia e par de 24 horas", async () => {

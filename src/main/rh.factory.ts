@@ -193,7 +193,7 @@ export async function makeIniciarCartaoDoPonto(): Promise<IniciarCartaoDoPontoPo
 
 export async function makeSalvarDiaDoPonto(): Promise<SalvarDiaDoPontoPort> {
   const { sessao, repositorio, auditoria } = await montarFolha();
-  return new SalvarDiaDoPonto(sessao, repositorio, auditoria);
+  return new SalvarDiaDoPonto(sessao, repositorio, auditoria, new RelogioSistemaGateway());
 }
 
 export async function makeObterConvencoesDoCliente(): Promise<ObterConvencoesDoClientePort> {
