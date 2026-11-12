@@ -38,3 +38,18 @@ export const salvarDiaSchema = z.object({
   extra: par.nullable(),
   abono: z.boolean(),
 });
+
+// O corpo de uma Server Action na Vercel não passa de 4,5 MB (ADR 0007): a foto entra até 4 MB.
+export const LIMITE_DA_FOTO = 4 * 1024 * 1024;
+export const MENSAGEM_FOTO_GRANDE = "A foto passa de 4 MB.";
+export const MENSAGEM_SEM_FOTO = "Escolha a foto do cartão (JPEG ou PNG).";
+export const lerCartaoSchema = z.object({
+  clienteId: id,
+  competencia,
+  quinzena: z.enum(["1", "2"]).transform(Number),
+  imagem: z
+    .instanceof(File)
+    .refine((f) => f.size > 0, MENSAGEM_SEM_FOTO)
+    .refine((f) => f.type === "image/jpeg" || f.type === "image/png", MENSAGEM_SEM_FOTO)
+    .refine((f) => f.size <= LIMITE_DA_FOTO, MENSAGEM_FOTO_GRANDE),
+});

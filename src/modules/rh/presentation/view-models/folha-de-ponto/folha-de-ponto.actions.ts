@@ -7,8 +7,10 @@ import {
   makeDefinirPadraoComissionados,
   makeDefinirSemMovimento,
   makeIniciarCartaoDoPonto,
+  makeLerCartaoDePonto,
   makeSalvarDiaDoPonto,
 } from "@/main/rh.factory";
+import type { CartaoLidoDto } from "@/modules/rh/application/ports/in/ler-cartao-de-ponto.provider";
 import { dadosInvalidos } from "@/modules/rh/presentation/view-models/dados-invalidos.presenter";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
 import { toActionResult } from "@/shared/kernel/to-action-result";
@@ -18,6 +20,7 @@ import {
   corrigirEmpregadoSchema,
   empregadoAtivoSchema,
   iniciarCartaoSchema,
+  lerCartaoSchema,
   padraoComissionadosSchema,
   salvarDiaSchema,
   semMovimentoSchema,
@@ -65,4 +68,30 @@ export async function iniciarCartaoDoPontoAction(input: unknown): Promise<Action
   const parsed = iniciarCartaoSchema.safeParse(input);
   if (!parsed.success) return dadosInvalidos(parsed.error);
   return toActionResult(await (await makeIniciarCartaoDoPonto()).execute(parsed.data));
+}
+
+// A foto chega como File no FormData; o caso de uso recebe só os bytes (a porta não conhece a web) e a
+// imagem não é guardada em lugar nenhum.
+export async function lerCartaoDePontoAction(
+  formData: FormData,
+): Promise<ActionResult<CartaoLidoDto>> {
+  const parsed = lerCartaoSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    const foto = parsed.error.issues.find((i) => i.path[0] === "imagem");
+    return foto
+      ? { ok: false, error: { code: "VALIDATION_ERROR", message: foto.message } }
+      : dadosInvalidos(parsed.error);
+  }
+  const { imagem, ...dados } = parsed.data;
+  const ler = await makeLerCartaoDePonto();
+  return toActionResult(
+    await ler.execute({
+      ...dados,
+      quinzena: dados.quinzena as 1 | 2,
+      imagem: {
+        bytes: new Uint8Array(await imagem.arrayBuffer()),
+        tipo: imagem.type as "image/jpeg" | "image/png",
+      },
+    }),
+  );
 }
