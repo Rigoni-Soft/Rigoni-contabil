@@ -11,6 +11,9 @@ const FUNCIONARIO_RH_ID = "dddddddd-dddd-dddd-dddd-dddddddddddd";
 const SINDICATO = "Comércio E2E";
 let clienteId = "";
 let cnpj = "";
+// Cliente que já nasce com uma convenção: os testes 2 e 3 não dependem do 1 (o CI roda o @smoke à parte, com reset).
+let semeadoId = "";
+let cnpjSemeado = "";
 
 const pdf = (nome: string) => ({
   name: nome,
@@ -30,17 +33,46 @@ test.describe("Convenção coletiva do RH", () => {
       .from("cliente_responsaveis")
       .insert({ cliente_id: clienteId, setor: "rh", responsavel_id: FUNCIONARIO_RH_ID });
     if (resp.error) throw resp.error;
+
+    semeadoId = crypto.randomUUID();
+    cnpjSemeado = cnpjUnico();
+    const semeado = await admin.from("clientes").insert({
+      id: semeadoId,
+      empresa: `${EMPRESA} Semeada`,
+      cnpj: cnpjSemeado,
+      regime: "lucro_presumido",
+    });
+    if (semeado.error) throw semeado.error;
+    const vinculo = await admin
+      .from("cliente_responsaveis")
+      .insert({ cliente_id: semeadoId, setor: "rh", responsavel_id: FUNCIONARIO_RH_ID });
+    if (vinculo.error) throw vinculo.error;
+    const convencao = await admin.from("rh_convencoes").insert({
+      cliente_id: semeadoId,
+      sindicato: SINDICATO,
+      vigencia_inicio: "2026-05-01",
+      vigencia_fim: "2027-04-30",
+      arquivo_caminho: `${semeadoId}/cct-2026.pdf`,
+      arquivo_nome: "cct-2026.pdf",
+      regras: { versao: 1, aplicadas: [], rejeitadas: [] },
+    });
+    if (convencao.error) throw convencao.error;
   });
 
   test.afterAll(async () => {
-    const arquivos = await admin.storage.from("convencoes-coletivas").list(clienteId);
-    if (arquivos.data?.length) {
-      await admin.storage
-        .from("convencoes-coletivas")
-        .remove(arquivos.data.map((a) => `${clienteId}/${a.name}`));
+    for (const [id, cnpjDoCliente] of [
+      [clienteId, cnpj],
+      [semeadoId, cnpjSemeado],
+    ]) {
+      const arquivos = await admin.storage.from("convencoes-coletivas").list(id);
+      if (arquivos.data?.length) {
+        await admin.storage
+          .from("convencoes-coletivas")
+          .remove(arquivos.data.map((a) => `${id}/${a.name}`));
+      }
+      await admin.from("clientes").delete().eq("id", id);
+      await admin.from("registros_auditoria").delete().like("alvo", `${cnpjDoCliente}%`);
     }
-    await admin.from("clientes").delete().eq("id", clienteId);
-    await admin.from("registros_auditoria").delete().like("alvo", `${cnpj}%`);
   });
 
   test("Líder sobe a convenção e vê as Regras aplicadas, com o que ficou não aplicada @smoke", async ({
@@ -86,7 +118,7 @@ test.describe("Convenção coletiva do RH", () => {
   }) => {
     await login(page, "lider.rh@rigonicontabil.local", "lider123");
     await expect(page).toHaveURL("/rh");
-    await page.goto(`/rh/folha-de-ponto/${clienteId}/convencao`);
+    await page.goto(`/rh/folha-de-ponto/${semeadoId}/convencao`);
 
     const form = page.getByRole("form", { name: "Enviar convenção" });
     await form.getByLabel("Sindicato").fill(SINDICATO);
@@ -99,7 +131,7 @@ test.describe("Convenção coletiva do RH", () => {
     });
     await form.getByRole("button", { name: "Enviar convenção" }).click();
     await expect(page.getByText("Não foi possível ler a convenção.")).toBeVisible();
-    const aposFalha = await admin.from("rh_convencoes").select("id").eq("cliente_id", clienteId);
+    const aposFalha = await admin.from("rh_convencoes").select("id").eq("cliente_id", semeadoId);
     expect(aposFalha.data).toHaveLength(1);
 
     await page.locator("#convencao-arquivo").setInputFiles(pdf("cct-2027.pdf"));
@@ -118,7 +150,7 @@ test.describe("Convenção coletiva do RH", () => {
   }) => {
     await login(page, "funcionario.rh@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/rh");
-    await page.goto(`/rh/folha-de-ponto/${clienteId}/convencao`);
+    await page.goto(`/rh/folha-de-ponto/${semeadoId}/convencao`);
 
     await expect(page.getByRole("heading", { name: "Regras aplicadas" })).toBeVisible();
     await expect(page.getByRole("form", { name: "Enviar convenção" })).toHaveCount(0);
@@ -134,7 +166,7 @@ test.describe("Convenção coletiva do RH", () => {
       .from("registros_auditoria")
       .select("acao")
       .eq("acao", "rh.cliente.interruptores")
-      .like("alvo", `${cnpj} banco=sim domingos=nao`);
+      .like("alvo", `${cnpjSemeado} banco=sim domingos=nao`);
     expect(audit.data).toHaveLength(1);
   });
 });
