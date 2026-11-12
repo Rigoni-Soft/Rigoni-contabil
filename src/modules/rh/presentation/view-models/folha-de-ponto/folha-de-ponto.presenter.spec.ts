@@ -9,6 +9,7 @@ import {
   lerEmpregadoDoFormulario,
   linhasDoCartao,
   minutosParaHm,
+  navegacaoDaFolha,
   navegacaoDoCartao,
   quadroDoEmpregado,
 } from "@/modules/rh/presentation/view-models/folha-de-ponto/folha-de-ponto.presenter";
@@ -251,7 +252,13 @@ describe("linhasDoCartao", () => {
     );
     expect(comecado.situacao).toBe("normal");
     expect(falta).toMatchObject({ situacao: "falta", nota: "Falta", tom: "alerta" });
-    expect(abonado).toMatchObject({ situacao: "abonado", nota: "Abonado", tom: undefined });
+    expect(abonado).toMatchObject({ situacao: "abonado", nota: "Abonado", tom: "info" });
+    // Abono gravado num dia sem carga (domingo) não vira "Abonado": o dia segue folga.
+    const [folgaComAbono] = linhasDoCartao(
+      [{ ...base, data: "2026-11-22", diaDaSemana: 0, cargaMin: 0, abono: true, apuracao: ZERO }],
+      false,
+    );
+    expect(folgaComAbono).toMatchObject({ situacao: "folga", nota: "Folga", tom: "atencao" });
     expect(folga.situacao).toBe("folga");
 
     // Mês novo: nenhum dado salvo, o dia útil vazio não é falta, é "em branco" e neutro.
@@ -325,6 +332,13 @@ describe("quadro e navegação", () => {
     expect(nav.mesAnteriorHref).toContain("mes=2020-10");
     expect(nav.proximoMesHref).toContain("mes=2020-12");
     expect(navegacaoDoCartao({ ...FOLHA, competencia: "2099-01" }).proximoMesHref).toBeUndefined();
+  });
+
+  it("a Folha navega entre meses mantendo o Cliente, sem o empregado escolhido", () => {
+    const nav = navegacaoDaFolha(FOLHA);
+    expect(nav.anteriorHref).toBe("/rh/folha-de-ponto/c1?mes=2020-10");
+    expect(nav.proximoHref).toBe("/rh/folha-de-ponto/c1?mes=2020-12");
+    expect(navegacaoDaFolha({ ...FOLHA, competencia: "2099-01" }).proximoHref).toBeUndefined();
   });
 
   it("hrefDoCartao leva ao cartão do empregado com o mês", () => {

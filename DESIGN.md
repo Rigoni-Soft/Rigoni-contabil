@@ -559,9 +559,9 @@ importa na leitura da foto do cartão, não na exibição. Dia sem jornada marca
   "Cartão de ponto de <nome>" no cartão era redundante.
 - **Tom da linha pelo estado do dia** (mistura suave com `card`, opaca para a primeira coluna fixa; o estado
   também vem em texto sob a data, a cor nunca vai sozinha): **falta** = `destructive` (vermelho sutil, nota
-  "Falta"); **hora extra** = `info` (azul, nota "Hora extra"); **folga ou feriado** = `warning` (amarelo, nota
+  "Falta"); **abono** = `info` (azul sutil, nota "Abonado", só em dia de trabalho: abono gravado num domingo ou feriado não pinta a linha, o dia segue folga); **hora extra** = `info` (azul, nota "Hora extra"); **folga ou feriado** = `warning` (amarelo, nota
   "Folga" ou "Feriado"; feriado com hora extra fica azul, "Feriado · hora extra"); dia normal sem tom. Precedência:
-  falta, hora extra, folga/feriado.
+  falta, abono/hora extra, folga/feriado.
 - **Situação do dia** (decide o que a linha deixa digitar e o botão que mostra; calculada no presenter):
   - **Cartão novo** (nunca salvo: sem a marca de "cartão iniciado" e sem nenhum dia com dado; mês ou empregado novo): todas as linhas abrem já **editáveis**, sem um
     lápis por dia, e o dia útil vazio fica **em branco** (neutro, sem "Falta", sem Abonar). O "Salvar" da tabela
@@ -571,7 +571,7 @@ importa na leitura da foto do cartão, não na exibição. Dia sem jornada marca
     neutras; os dias úteis vazios só contam como falta depois que o cartão é começado.
   - **Falta** (dia útil vazio de um cartão já começado): horários **desabilitados** (evita lançar por engano),
     botões lápis (única forma deliberada de lançar um horário) e "Abonar" (`warning`, um clique grava só o Abono).
-  - **Abonado** (abono sem batida): horários desabilitados; o botão é "Desfazer abono", que volta a falta. Não há
+  - **Abonado** (abono sem batida, em dia de trabalho): horários desabilitados; o botão é "Desfazer abono", que volta a falta. Não há
     coluna nem caixa "Abono": o abono é o botão. Abono de dia com batida (atraso abonado) segue gravado ao salvar.
   - **Folga ou feriado** (sem jornada): como toda hora trabalhada nesses dias é hora extra, só as colunas
     **Extra entrada/saída** ficam habilitadas (Entrada e Saída, desabilitadas), salvo se já houver batida salva.
@@ -903,6 +903,8 @@ escolhido, na malha `1>2>4` (Nome em 2 colunas, a marca "comissionado" nas outra
 padrão; "Sem movimento no mês" e "Inativar empregado" ao fim. O escolhido leva `aria-current`. O erro do cadastro aparece abaixo do formulário "Novo empregado",
 ligado ao campo Nome, e o formulário só é limpo no sucesso. Em leitura (Líder, Admin ou outro
 Responsável) só a lista e os dados aparecem, sem formulário nem botão de escrita.
+
+A tela do quadro abre com a `NavegacaoDeMes` em destaque (a mesma do cartão: Mês anterior, o mês, Próximo mês; sem próximo no mês corrente), logo acima do formulário de leitura: o mês de referência da leitura é o que se vê, e trocá-lo não exige mexer na URL.
 
 **`LeituraDeCartao` (organismo):** formulário "Ler foto do cartão de ponto", num `CartaoDaTela` acima do
 `QuadroDeFuncionarios` (só o Responsável do RH o recebe): `NotaDeObrigatorio`, o texto de apoio (a foto vira o

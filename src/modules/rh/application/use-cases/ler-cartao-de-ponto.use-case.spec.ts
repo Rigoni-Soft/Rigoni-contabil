@@ -32,7 +32,9 @@ function montar(opcoes: {
   leitor: LeitorDeCartaoPort;
   quadro?: { id: string; nome: string; ativo: boolean }[];
 }) {
-  let quadro = opcoes.quadro ?? [];
+  // Segunda a sexta 8h45, sábado 4h, domingo folga.
+  const JORNADA = [0, 525, 525, 525, 525, 525, 240];
+  let quadro = (opcoes.quadro ?? []).map((e) => ({ jornada: JORNADA, ...e }));
   const repositorio = {
     buscarCliente: jest.fn(async () =>
       ok({ cnpj: "11444777000161", empresa: "Teste Ltda", responsavelId: "func" }),
@@ -40,7 +42,7 @@ function montar(opcoes: {
     listarEmpregados: jest.fn(async () => ok(quadro)),
     buscarPadraoComissionados: jest.fn(async () => ok(false)),
     cadastrarEmpregado: jest.fn(async (_c: string, d: { nome: string }) => {
-      quadro = [...quadro, { id: "novo", nome: d.nome, ativo: true }];
+      quadro = [...quadro, { id: "novo", nome: d.nome, ativo: true, jornada: JORNADA }];
       return ok(undefined);
     }),
     iniciarCartao: jest.fn(async () => ok(undefined)),
@@ -75,6 +77,32 @@ describe("LerCartaoDePonto", () => {
     expect(repositorio.iniciarCartao).toHaveBeenCalledWith("e1", "2026-11-01");
     expect(repositorio.salvarDia).toHaveBeenCalledTimes(2);
     expect(repositorio.cadastrarEmpregado).not.toHaveBeenCalled();
+  });
+
+  it("anotação de atestado em dia sem carga (domingo) não grava o abono", async () => {
+    // 2026-11-01 é domingo; o dia 2 é segunda.
+    const leitor = {
+      ler: jest.fn(async () =>
+        lida({
+          nome: "Erick",
+          dias: [
+            { ...dia(1), batidas: [], atestado: true },
+            { ...dia(2), atestado: false },
+            { ...dia(3), batidas: [], atestado: true },
+          ],
+        }),
+      ),
+    };
+    const { caso, repositorio } = montar({
+      leitor,
+      quadro: [{ id: "e1", nome: "Erick Santos", ativo: true }],
+    });
+
+    const r = await caso.execute(entrada);
+
+    const datas = repositorio.salvarDia.mock.calls.map(([, d]) => d.data);
+    expect(datas).toEqual(["2026-11-02", "2026-11-03"]);
+    expect(r.ok && r.value.abonos).toBe(1);
   });
 
   it("leitura reprovada na validação cai na digitação, sem gravar, e registra só o motivo", async () => {

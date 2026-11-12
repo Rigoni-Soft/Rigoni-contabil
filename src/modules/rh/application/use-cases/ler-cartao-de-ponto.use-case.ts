@@ -19,6 +19,7 @@ import {
   validarLeitura,
   type LeituraValida,
 } from "@/modules/rh/domain/services/leitura-do-cartao.service";
+import { diaDaSemana, type Jornada } from "@/modules/rh/domain/services/totalizacao.service";
 import { Competencia } from "@/modules/rh/domain/value-objects/competencia.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { ValidationError } from "@/shared/errors/validation.error";
@@ -70,12 +71,22 @@ export class LerCartaoDePonto extends EscreverPonto implements LerCartaoDePontoP
     const empregado = await this.empregadoDoCartao(input.clienteId, valida);
     if (!empregado.ok) return empregado;
 
+    // Anotação "atestado" num dia sem carga (domingo, folga) não vira Abono: só o dia de trabalho se abona.
+    const dias = valida.dias.filter(
+      (d) =>
+        !(
+          d.abono &&
+          d.batidas.length === 0 &&
+          !d.extra &&
+          empregado.value.jornada[diaDaSemana(d.data)] === 0
+        ),
+    );
     const iniciado = await this.repositorio.iniciarCartao(
       empregado.value.id,
       competencia.value.primeiroDia,
     );
     if (!iniciado.ok) return iniciado;
-    for (const dia of valida.dias) {
+    for (const dia of dias) {
       const salvo = await this.repositorio.salvarDia(empregado.value.id, dia);
       if (!salvo.ok) return salvo;
     }
@@ -83,9 +94,9 @@ export class LerCartaoDePonto extends EscreverPonto implements LerCartaoDePontoP
       empregadoId: empregado.value.id,
       nome: valida.nome,
       cadastrado: empregado.value.cadastrado,
-      dias: valida.dias.length,
+      dias: dias.length,
       faltas: valida.faltas.length,
-      abonos: valida.dias.filter((d) => d.abono).length,
+      abonos: dias.filter((d) => d.abono).length,
     });
   }
 
@@ -111,21 +122,25 @@ export class LerCartaoDePonto extends EscreverPonto implements LerCartaoDePontoP
   private async empregadoDoCartao(
     clienteId: string,
     valida: LeituraValida,
-  ): Promise<Result<{ id: string; cadastrado: boolean }, AppError>> {
+  ): Promise<Result<{ id: string; cadastrado: boolean; jornada: Jornada }, AppError>> {
     const quadro = await this.repositorio.listarEmpregados(clienteId);
     if (!quadro.ok) return quadro;
     const ativos = quadro.value.filter((e) => e.ativo);
     const achado = acharEmpregadoPeloNome(valida.nome, ativos);
-    if (achado.tipo === "um") return ok({ id: achado.id, cadastrado: false });
+    if (achado.tipo === "um") {
+      const existente = ativos.find((e) => e.id === achado.id);
+      if (existente) return ok({ id: achado.id, cadastrado: false, jornada: existente.jornada });
+    }
     if (achado.tipo === "varios") {
       return err(new ValidationError("Mais de um empregado com esse nome. Digite à mão."));
     }
 
+    const jornada = deduzirJornada(valida.dias);
     const padrao = await this.repositorio.buscarPadraoComissionados(clienteId);
     if (!padrao.ok) return padrao;
     const criado = await this.repositorio.cadastrarEmpregado(clienteId, {
       nome: valida.nome,
-      jornada: [...deduzirJornada(valida.dias)],
+      jornada: [...jornada],
       comissionado: padrao.value,
     });
     if (!criado.ok) return criado;
@@ -136,7 +151,7 @@ export class LerCartaoDePonto extends EscreverPonto implements LerCartaoDePontoP
       depois.value.filter((e) => e.ativo),
     );
     return novo.tipo === "um"
-      ? ok({ id: novo.id, cadastrado: true })
+      ? ok({ id: novo.id, cadastrado: true, jornada })
       : err(new ValidationError(MANUAL));
   }
 }
