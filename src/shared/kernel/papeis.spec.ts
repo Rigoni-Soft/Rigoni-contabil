@@ -1,5 +1,7 @@
 import {
+  ehResponsavelRhDoCliente,
   podeEditarCadastroRh,
+  podeGerirConvencaoRh,
   podeGerirParcelamento,
   podeOperarParcelamento,
   podeVerComparativoDoSetor,
@@ -86,5 +88,29 @@ describe("veCarteiraInteira", () => {
     ["papel_novo", false],
   ])("%s vê a carteira inteira: %s", (papel, esperado) => {
     expect(veCarteiraInteira(papel)).toBe(esperado);
+  });
+});
+
+describe("podeGerirConvencaoRh", () => {
+  it.each([
+    ["admin", "sn", true],
+    ["lider_setor", "rh", true],
+    ["lider_setor", "sn", false],
+    ["funcionario", "rh", false],
+  ])("%s do setor %s: %s", (papel, setor, esperado) => {
+    expect(podeGerirConvencaoRh(papel, setor)).toBe(esperado);
+  });
+});
+
+describe("ehResponsavelRhDoCliente", () => {
+  it.each([
+    ["funcionario", "rh", "u1", true],
+    ["funcionario", "rh", "u2", false],
+    ["funcionario", "rh", null, false],
+    ["funcionario", "sn", "u1", false],
+    ["lider_setor", "rh", "u1", false],
+    ["admin", "rh", "u1", false],
+  ])("%s do setor %s, Responsável %s: %s", (papel, setor, responsavelId, esperado) => {
+    expect(ehResponsavelRhDoCliente({ id: "u1", papel, setor }, responsavelId)).toBe(esperado);
   });
 });

@@ -20,3 +20,5 @@ Para cada issue, leia o texto (`gh issue view <n>`) e o diff dos arquivos de UI 
 7. Modo `homolog`: o que **não** está ligado no ambiente (jobs, envio real, Serpro), conforme `docs/deploy/` e o `.env.example`, e o que é visível ao usuário final em linguagem simples (benefício, não implementação).
 
 Formato: seções numeradas como acima, por issue, em tópicos curtos; arquivo e linha de cada fato. No máximo 150 linhas. Dúvida que o código não resolve: liste em "Não confirmado" em vez de supor.
+
+Para cada campo de formulário, traga `maxLength`, `min`, `max`, `required`, `type` e a máscara do campo **como o navegador os aplica** (um `maxLength` corta o valor colado antes do envio, então o erro de "passou do limite" só existe se o schema do servidor for alcançável por outro caminho). O roteiro não pode pedir um valor inválido que o campo não deixa digitar.

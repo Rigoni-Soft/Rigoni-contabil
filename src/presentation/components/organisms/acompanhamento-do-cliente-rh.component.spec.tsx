@@ -65,4 +65,23 @@ describe("AcompanhamentoDoClienteRh", () => {
     expect(screen.getByText("Este cliente não está na sua vista do RH.")).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("Não foi possível salvar.");
   });
+
+  it("mostra os empregados cadastrados x cartões feitos do Holerite", () => {
+    render(
+      <AcompanhamentoDoClienteRh
+        {...PROPS}
+        servicos={PROPS.servicos.map((s) =>
+          s.servicoId === "holerite"
+            ? { ...s, detalhe: "2 empregados cadastrados · 1 de 2 cartões feitos no mês" }
+            : s,
+        )}
+      />,
+    );
+
+    const detalhe = screen.getByText("2 empregados cadastrados · 1 de 2 cartões feitos no mês");
+    expect(detalhe).toBeInTheDocument();
+    expect(screen.getByLabelText("Holerite")).toHaveAccessibleDescription(
+      expect.stringContaining("1 de 2 cartões feitos"),
+    );
+  });
 });

@@ -23,18 +23,21 @@ const MENSAL: AcompanhamentoMensalDto = {
       clienteId: "a",
       empresa: "A",
       cnpj: "1",
+      holerite: { cadastrados: 2, semMovimento: 0, cartoes: 1, exigidos: 2 },
       celulas: [celula("fgts", true, true), celula("holerite", true, false)],
     },
     {
       clienteId: "b",
       empresa: "B",
       cnpj: "2",
+      holerite: { cadastrados: 0, semMovimento: 0, cartoes: 0, exigidos: 0 },
       celulas: [celula("fgts", true, false), celula("holerite", false, false)],
     },
     {
       clienteId: "c",
       empresa: "C",
       cnpj: "3",
+      holerite: { cadastrados: 3, semMovimento: 1, cartoes: 2, exigidos: 2 },
       celulas: [celula("fgts", true, true), celula("holerite", true, true)],
     },
   ],
@@ -53,6 +56,10 @@ describe("cardsDoAcompanhamento", () => {
       ["servicos_concluidos", "Tudo concluído", 1, ["c"]],
     ]);
     expect(cards.every((c) => c.total === 3)).toBe(true);
+    // Total do setor: 3 cartões feitos de 4 exigidos (2 + 0 + 2).
+    expect(cards.find((c) => c.id === "servico_holerite")?.descricao).toBe(
+      "Clientes que ainda não concluíram Holerite em novembro de 2026. Cartões feitos no setor: 3 de 4.",
+    );
     expect(grupo).toEqual({
       titulo: "Acompanhamento de novembro de 2026",
       cardIds: ["servico_fgts", "servico_holerite", "servicos_concluidos"],

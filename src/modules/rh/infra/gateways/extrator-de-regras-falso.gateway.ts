@@ -1,0 +1,59 @@
+import type {
+  ExtracaoDeRegras,
+  ExtratorDeRegrasPort,
+} from "@/modules/rh/application/ports/out/extrator-de-regras.provider";
+
+// Adapter falso e determinístico (padrão em dev, CI e Preview; nenhum teste chama modelo de linguagem). Devolve
+// sempre os parâmetros da convenção de exemplo (comércio varejista), com um candidato que o domínio recusa
+// (intervalo máximo de 150 sem o número no trecho). O marcador `[extrator:falha]` no texto do PDF simula a
+// leitura que não deu certo.
+export class ExtratorDeRegrasFalsoGateway implements ExtratorDeRegrasPort {
+  async extrair(pdf: Uint8Array): Promise<ExtracaoDeRegras> {
+    if (Buffer.from(pdf).toString("latin1").includes("[extrator:falha]")) return { lido: false };
+    return {
+      lido: true,
+      candidatas: [
+        {
+          chave: "jornada_semanal",
+          valor: 2640,
+          clausula: "Cláusula 8ª",
+          trecho: "A jornada normal de trabalho será de 44 horas semanais.",
+        },
+        {
+          chave: "jornada_diaria",
+          valor: 480,
+          clausula: "Cláusula 8ª, § 1º",
+          trecho: "A jornada diária não excederá 8 horas, de segunda a sábado.",
+        },
+        {
+          chave: "limite_extras_dia",
+          valor: 120,
+          clausula: "Cláusula 11ª",
+          trecho: "É permitida a prorrogação da jornada em até 2 horas por dia.",
+        },
+        {
+          chave: "extra_sabado",
+          valor: 60,
+          clausula: "Cláusula 12ª",
+          trecho: "As horas extras trabalhadas aos sábados serão pagas com adicional de 60%.",
+        },
+        {
+          chave: "datas_especiais",
+          valor: [
+            { descricao: "Natal", data: "25/12", percentual: 150, percentualComissionado: 100 },
+            { descricao: "Confraternização universal", data: "01/01", percentual: 150 },
+          ],
+          clausula: "Cláusula 14ª",
+          trecho:
+            "O trabalho em 25/12 e 01/01 será remunerado com adicional de 150%, e de 100% para o comissionado em 25/12.",
+        },
+        {
+          chave: "intervalo_maximo",
+          valor: 150,
+          clausula: "Cláusula 9ª",
+          trecho: "O intervalo para refeição poderá ser ampliado por acordo.",
+        },
+      ],
+    };
+  }
+}

@@ -1,6 +1,7 @@
 import {
   linksDoMes,
   passosDaTroca,
+  resumoDoHolerite,
   rotuloDaCompetencia,
   servicosDoCliente,
 } from "./acompanhamento-mensal.presenter";
@@ -25,6 +26,7 @@ describe("acompanhamento-mensal.presenter", () => {
           clienteId: "c1",
           empresa: "Alfa",
           cnpj: "1",
+          holerite: { cadastrados: 3, semMovimento: 1, cartoes: 1, exigidos: 2 },
           celulas: [
             { servicoId: "a", aplica: true, sempre: false, concluido: true },
             { servicoId: "b", aplica: false, sempre: false, concluido: false },
@@ -44,7 +46,14 @@ describe("acompanhamento-mensal.presenter", () => {
       ["Holerite", "pendente", "O Holerite é preenchido pelo sistema."],
     ]);
     expect(servicosDoCliente(dto, "c1").aviso).toBeUndefined();
+    expect(servicosDoCliente(dto, "c1").servicos.map((s) => s.detalhe)).toEqual([
+      undefined,
+      undefined,
+      undefined,
+      "3 empregados cadastrados, 1 sem movimento · 1 de 2 cartões feitos no mês",
+    ]);
     const { servicos, aviso } = servicosDoCliente(dto, "outro");
+    expect(servicos.every((s) => s.detalhe === undefined)).toBe(true);
     expect(aviso).toMatch(/não está na sua vista/);
     expect(servicos.map((s) => [s.nome, s.estado, s.bloqueio])).toEqual([
       ["FGTS", "pendente", aviso],
@@ -52,6 +61,15 @@ describe("acompanhamento-mensal.presenter", () => {
       ["NUTRI", "pendente", aviso],
       ["Holerite", "pendente", "O Holerite é preenchido pelo sistema."],
     ]);
+  });
+
+  it("resume o Holerite do cliente com e sem empregados", () => {
+    expect(resumoDoHolerite({ cadastrados: 1, semMovimento: 0, cartoes: 0, exigidos: 1 })).toBe(
+      "1 empregado cadastrado · 0 de 1 cartão feito no mês",
+    );
+    expect(resumoDoHolerite({ cadastrados: 0, semMovimento: 0, cartoes: 0, exigidos: 0 })).toBe(
+      "Sem empregados cadastrados: não há Holerite a cumprir.",
+    );
   });
 
   it("troca o estado da célula na ordem que nunca deixa concluído um serviço que não se aplica", () => {

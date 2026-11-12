@@ -99,6 +99,7 @@ afterAll(async () => {
 });
 
 afterEach(async () => {
+  await servico.from("rh_empregados").delete().in("cliente_id", [clienteA, clienteB]);
   await servico.from("rh_acompanhamento_marcacoes").delete().in("cliente_id", [clienteA, clienteB]);
   await servico.from("rh_cliente_servico_aplica").delete().in("cliente_id", [clienteA, clienteB]);
 });
@@ -416,6 +417,56 @@ describe("Acompanhamento mensal do RH (integração)", () => {
 
     expect(marcado.ok && marcado.value.find((c) => c.cnpj === CNPJ_A)?.concluidos).toEqual([id]);
     expect(depois.ok).toBe(false);
+  });
+
+  it("conta empregados e cartões do mês: cartão salvo é qualquer dia no mês (incompleto conta); sem movimento sai da conta", async () => {
+    const jornada = [0, 480, 480, 480, 480, 480, 0];
+    const { data: empregados, error } = await servico
+      .from("rh_empregados")
+      .insert(
+        ["Ana", "Bia", "Caio", "Dani"].map((nome) => ({
+          cliente_id: clienteA,
+          nome: `${PREFIXO}${nome}`,
+          jornada,
+          ativo: nome !== "Dani",
+        })),
+      )
+      .select("id, nome");
+    if (error) throw error;
+    const id = (nome: string) => empregados!.find((e) => e.nome.endsWith(nome))!.id;
+    const dia = (n: number) => `${MES.slice(0, 7)}-${String(n).padStart(2, "0")}`;
+    const batida = [{ entrada: 480, saida: 1020 }];
+    const dias = [
+      // Ana: dois dias, em dias diferentes do mês. Bia: nenhum. Dani (inativa): dois dias, mas não conta.
+      ...[3, 20].map((n) => ({ empregado_id: id("Ana"), data: dia(n), batidas: batida })),
+    ];
+    expect((await servico.from("rh_ponto_dias").insert(dias)).error).toBeNull();
+    const { repo } = await comoFuncionarioRH();
+
+    const contagem = async () =>
+      doClienteA(await repo.listarClientes(MES, FUNCIONARIO_RH_ID))?.holerite;
+    expect(await contagem()).toEqual({ cadastrados: 3, semMovimento: 0, cartoes: 1 });
+
+    // Caio sem movimento sai da conta; um dia salvo na Bia (cartão incompleto) já fecha o mês.
+    await servico
+      .from("rh_empregado_sem_movimento")
+      .insert({ empregado_id: id("Caio"), competencia: MES });
+    expect(await contagem()).toEqual({ cadastrados: 3, semMovimento: 1, cartoes: 1 });
+    await servico
+      .from("rh_ponto_dias")
+      .insert({ empregado_id: id("Bia"), data: dia(3), batidas: batida });
+    expect(await contagem()).toEqual({ cadastrados: 3, semMovimento: 1, cartoes: 2 });
+
+    // Apagar o único dia da Bia reabre o cartão dela.
+    await servico.from("rh_ponto_dias").delete().eq("empregado_id", id("Bia")).eq("data", dia(3));
+    expect(await contagem()).toEqual({ cadastrados: 3, semMovimento: 1, cartoes: 1 });
+
+    // Outro mês não herda os cartões, e quem não é o Responsável não enxerga os empregados do cliente.
+    const outroMes = mesVizinho(MES.slice(0, 7), -1) + "-01";
+    const anterior = doClienteA(await repo.listarClientes(outroMes, FUNCIONARIO_RH_ID));
+    expect(anterior?.holerite).toEqual({ cadastrados: 3, semMovimento: 0, cartoes: 0 });
+    const colega = await (await comoFuncionario2RH()).repo.listarClientes(MES, null);
+    expect(dosTestes(colega).map((c) => c.cnpj)).toEqual([CNPJ_B]);
   });
 
   it("anon não lê nada das tabelas do acompanhamento", async () => {

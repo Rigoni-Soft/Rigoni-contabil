@@ -11,10 +11,18 @@ type LinhaDeClienteProps = {
   // nome acessível do link continua sendo só empresa e CNPJ, e a lista interna mantém a navegação.
   // O anel de foco do link fica por dentro da linha (não invade os detalhes nem é cortado).
   detalhes?: React.ReactNode;
+  // Texto de ação à direita da linha ("Ver cadastro →" quando a lista leva ao cadastro).
+  acao?: string;
 };
 
 // Cliente em lista: leva ao cadastro operacional dele.
-export function LinhaDeCliente({ href, empresa, cnpj, detalhes }: LinhaDeClienteProps) {
+export function LinhaDeCliente({
+  href,
+  empresa,
+  cnpj,
+  detalhes,
+  acao = "Ver cadastro →",
+}: LinhaDeClienteProps) {
   return (
     <Caixa>
       <Linha
@@ -32,7 +40,7 @@ export function LinhaDeCliente({ href, empresa, cnpj, detalhes }: LinhaDeCliente
           <Texto variante="apoio">{cnpj}</Texto>
         </Caixa>
         <Texto como="span" variante="apoio" className="shrink-0">
-          Ver cadastro →
+          {acao}
         </Texto>
       </Linha>
       {detalhes && <Caixa className="px-4 pt-1 pb-3">{detalhes}</Caixa>}

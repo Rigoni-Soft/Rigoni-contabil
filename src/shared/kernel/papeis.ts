@@ -119,11 +119,25 @@ export function podeMarcarAcompanhamentoRh(papel: string, setor: string): boolea
   return papel === "funcionario" && setor === SETOR_RH;
 }
 
+// Quem escreve no Cliente: o Funcionário do RH que é o Responsável do RH daquele Cliente (a RLS repete a regra).
+export function ehResponsavelRhDoCliente(
+  ator: { id: string; papel: string; setor: string },
+  responsavelId: string | null | undefined,
+): boolean {
+  return podeMarcarAcompanhamentoRh(ator.papel, ator.setor) && responsavelId === ator.id;
+}
+
 export function podeGerirServicosRh(papel: string, setor: string): boolean {
   return papel === "lider_setor" && setor === SETOR_RH;
 }
 
 // Gráfico de acompanhamento dos funcionários do RH: só o Líder do RH e o Admin; o Funcionário vê só a tabela.
 export function podeVerAcompanhamentoDosFuncionariosRh(papel: string, setor: string): boolean {
+  return papel === "admin" || (papel === "lider_setor" && setor === SETOR_RH);
+}
+
+// Convenção coletiva do Cliente (RH): sobe, renova e vê o histórico só o Líder do RH e o Admin; o Responsável do RH
+// do Cliente lê as regras aplicadas (a RLS recorta por Cliente).
+export function podeGerirConvencaoRh(papel: string, setor: string): boolean {
   return papel === "admin" || (papel === "lider_setor" && setor === SETOR_RH);
 }

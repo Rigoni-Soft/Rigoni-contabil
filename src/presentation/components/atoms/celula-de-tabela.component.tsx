@@ -1,6 +1,8 @@
 import { cn } from "@/presentation/lib/utils";
 
 type CelulaDeTabelaProps = {
+  // Célula de campo ou valor curto: menos respiro vertical. O horizontal é da tabela (`grade` o reduz).
+  compacta?: boolean;
   // Data/hora e números ficam em uma linha só e alinhados à direita (tabular-nums).
   numerica?: boolean;
   // Primeira coluna: fica à vista na rolagem horizontal e nomeia a linha (<th scope="row">).
@@ -8,14 +10,20 @@ type CelulaDeTabelaProps = {
   children: React.ReactNode;
 };
 
-export function CelulaDeTabela({ numerica = false, fixa = false, children }: CelulaDeTabelaProps) {
+export function CelulaDeTabela({
+  numerica = false,
+  fixa = false,
+  compacta = false,
+  children,
+}: CelulaDeTabelaProps) {
   const Elemento = fixa ? "th" : "td";
   return (
     <Elemento
       scope={fixa ? "row" : undefined}
       className={cn(
-        "px-3 py-2",
-        fixa && "sticky left-0 border-r border-border bg-card text-left font-normal",
+        "px-3",
+        compacta ? "py-1" : "py-2",
+        fixa && "sticky left-0 border-r border-border bg-inherit text-left font-normal",
         numerica && "text-right whitespace-nowrap text-muted-foreground tabular-nums",
       )}
     >
@@ -27,8 +35,13 @@ export function CelulaDeTabela({ numerica = false, fixa = false, children }: Cel
 export function CabecalhoDeColuna({
   fixa = false,
   numerica = false,
+  centro = false,
+  colSpan,
   children,
 }: {
+  centro?: boolean;
+  // Cabeçalho de grupo: cobre várias colunas (linha `agrupamento` da Tabela).
+  colSpan?: number;
   fixa?: boolean;
   // O cabeçalho acompanha o alinhamento à direita das células numéricas.
   numerica?: boolean;
@@ -36,9 +49,11 @@ export function CabecalhoDeColuna({
 }) {
   return (
     <th
-      scope="col"
+      scope={colSpan ? "colgroup" : "col"}
+      colSpan={colSpan}
       className={cn(
         "px-3 py-2 font-medium",
+        centro && "text-center",
         fixa && "sticky left-0 border-r border-border bg-muted",
         numerica && "text-right",
       )}
@@ -53,9 +68,15 @@ export function Tabela({
   colunas,
   legenda,
   semMoldura = false,
+  grade = false,
+  agrupamento,
   children,
 }: {
   colunas: React.ReactNode;
+  // Estilo planilha: divisória em toda célula e respiro menor (cabe mais coluna sem rolar).
+  grade?: boolean;
+  // Linha de cabeçalhos de grupo acima das colunas (CabecalhoDeColuna com `colSpan`).
+  agrupamento?: React.ReactNode;
   // Nome da tabela para leitor de tela.
   legenda?: string;
   // Dentro de um cartão, que já tem a moldura.
@@ -71,9 +92,16 @@ export function Tabela({
         !semMoldura && "rounded-lg border border-border",
       )}
     >
-      <table className="w-full text-left text-sm">
+      <table
+        className={cn(
+          "w-full text-left text-sm",
+          grade &&
+            "border-collapse [&_td]:border [&_td]:border-border [&_td]:px-1.5 [&_th]:border [&_th]:border-border [&_th]:px-1.5",
+        )}
+      >
         {legenda && <caption className="sr-only">{legenda}</caption>}
         <thead className="border-b border-border bg-muted text-muted-foreground">
+          {agrupamento && <tr>{agrupamento}</tr>}
           <tr>{colunas}</tr>
         </thead>
         <tbody>{children}</tbody>
@@ -82,6 +110,24 @@ export function Tabela({
   );
 }
 
-export function LinhaDeTabela({ children }: { children: React.ReactNode }) {
-  return <tr className="border-b border-border last:border-0">{children}</tr>;
+// Tom de fundo da linha (estado do dia, na planilha do cartão): tinta suave misturada ao cartão, opaca para a
+// primeira coluna fixa não deixar o texto passar por baixo na rolagem.
+const TOM = {
+  alerta: "bg-[color-mix(in_oklab,var(--destructive)_9%,var(--card))]",
+  atencao: "bg-[color-mix(in_oklab,var(--warning)_16%,var(--card))]",
+  info: "bg-[color-mix(in_oklab,var(--info)_11%,var(--card))]",
+} as const;
+
+export function LinhaDeTabela({
+  tom,
+  children,
+}: {
+  tom?: keyof typeof TOM;
+  children: React.ReactNode;
+}) {
+  return (
+    <tr className={cn("border-b border-border bg-card last:border-0", tom && TOM[tom])}>
+      {children}
+    </tr>
+  );
 }

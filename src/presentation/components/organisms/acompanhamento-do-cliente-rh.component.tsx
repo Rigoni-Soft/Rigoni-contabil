@@ -14,6 +14,8 @@ export type Servico = {
   nome: string;
   estado: EstadoDoServico;
   bloqueio?: string;
+  // Texto de apoio do serviço (ex.: cartões feitos do Holerite), ligado ao seletor.
+  detalhe?: string;
 };
 
 const APAGADO = "border-dashed bg-muted text-muted-foreground";
@@ -48,7 +50,11 @@ export function AcompanhamentoDoClienteRh({ servicos, aviso, pendente, erro, onT
               value={s.estado}
               className={cn(CLASSE_DO_ESTADO[s.estado], pendente && "cursor-wait opacity-70")}
               disabled={!!s.bloqueio || s.estado === "nunca_aplica"}
-              aria-describedby={s.bloqueio ? `bloqueio-${s.servicoId}` : undefined}
+              aria-describedby={
+                [s.bloqueio && `bloqueio-${s.servicoId}`, s.detalhe && `detalhe-${s.servicoId}`]
+                  .filter(Boolean)
+                  .join(" ") || undefined
+              }
               aria-busy={pendente}
               onChange={(e) =>
                 !pendente && onTrocar(s.servicoId, s.estado, e.target.value as EstadoDoServico)
@@ -71,6 +77,11 @@ export function AcompanhamentoDoClienteRh({ servicos, aviso, pendente, erro, onT
               >
                 Reativar
               </Button>
+            )}
+            {s.detalhe && (
+              <Texto variante="apoio" id={`detalhe-${s.servicoId}`}>
+                {s.detalhe}
+              </Texto>
             )}
             {s.bloqueio && (
               <Texto como="span" variante="somenteLeitor" id={`bloqueio-${s.servicoId}`}>

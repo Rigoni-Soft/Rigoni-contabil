@@ -10,7 +10,11 @@ const relogio = { agora: () => AGORA };
 const FGTS = { id: "s-fgts", nome: "FGTS", sistema: false };
 const HOLERITE = { id: "s-hol", nome: "Holerite", sistema: true };
 
-function montar(papel: string, setor = "rh") {
+function montar(
+  papel: string,
+  setor = "rh",
+  holerite = { cadastrados: 1, semMovimento: 0, cartoes: 0 },
+) {
   const chamadas: { competencia: string; responsavelId: string | null }[] = [];
   const sessao: SessaoPort = { usuarioAtual: async () => ({ id: "u1", papel, setor }) };
   const repositorio = {
@@ -25,6 +29,7 @@ function montar(papel: string, setor = "rh") {
           naoAplica: ["s-fgts"],
           naoAplicaSempre: ["s-fgts"],
           concluidos: [],
+          holerite,
         },
         {
           clienteId: "c2",
@@ -33,6 +38,7 @@ function montar(papel: string, setor = "rh") {
           naoAplica: [],
           naoAplicaSempre: [],
           concluidos: ["s-fgts"],
+          holerite,
         },
       ]);
     },
@@ -52,6 +58,49 @@ describe("ObterAcompanhamentoMensal", () => {
       { servicoId: "s-fgts", aplica: true, sempre: false, concluido: true },
       { servicoId: "s-hol", aplica: true, sempre: false, concluido: false },
     ]);
+  });
+
+  it("o Holerite conclui com os cartões do mês, dispensa o cliente sem empregados e reabre", async () => {
+    const celulaDoHolerite = async (holerite: {
+      cadastrados: number;
+      semMovimento: number;
+      cartoes: number;
+    }) => {
+      const r = await montar("lider_setor", "rh", holerite).caso.execute({});
+      return r.ok ? r.value.linhas[1].celulas[1] : undefined;
+    };
+
+    expect(await celulaDoHolerite({ cadastrados: 2, semMovimento: 0, cartoes: 2 })).toMatchObject({
+      aplica: true,
+      concluido: true,
+    });
+    expect(await celulaDoHolerite({ cadastrados: 2, semMovimento: 1, cartoes: 1 })).toMatchObject({
+      aplica: true,
+      concluido: true,
+    });
+    expect(await celulaDoHolerite({ cadastrados: 0, semMovimento: 0, cartoes: 0 })).toMatchObject({
+      aplica: false,
+      concluido: false,
+    });
+    expect(await celulaDoHolerite({ cadastrados: 2, semMovimento: 0, cartoes: 1 })).toMatchObject({
+      aplica: true,
+      concluido: false,
+    });
+  });
+
+  it("devolve a contagem de empregados e cartões de cada cliente", async () => {
+    const r = await montar("lider_setor", "rh", {
+      cadastrados: 3,
+      semMovimento: 1,
+      cartoes: 2,
+    }).caso.execute({});
+
+    expect(r.ok && r.value.linhas[0].holerite).toEqual({
+      cadastrados: 3,
+      semMovimento: 1,
+      cartoes: 2,
+      exigidos: 2,
+    });
   });
 
   it("serviço que não se aplica ao cliente vem marcado como tal", async () => {

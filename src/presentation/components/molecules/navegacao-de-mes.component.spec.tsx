@@ -40,4 +40,10 @@ describe("NavegacaoDeMes", () => {
       "bg-muted/50",
     );
   });
+
+  it("o mês anterior fica rente à esquerda, simétrico ao próximo rente à direita", () => {
+    render(<NavegacaoDeMes rotuloMes="novembro de 2026" anteriorHref="/a" proximoHref="/p" />);
+
+    expect(screen.getByRole("link", { name: /Mês anterior/ })).toHaveClass("justify-self-start");
+  });
 });

@@ -1,3 +1,5 @@
+import type { ContagemDoHolerite } from "@/modules/rh/domain/services/holerite.service";
+
 // Onde vale o "se aplica": "aplica" (volta ao padrão), "mes" (não se aplica só na competência) ou "sempre"
 // (nunca se aplica a este Cliente, em todos os meses).
 export type EscopoDoAplica = "aplica" | "mes" | "sempre";
@@ -28,7 +30,12 @@ export type ClienteAcompanhamentoDto = {
   concluidos: string[];
   // Responsável do RH; null = cliente sem Responsável.
   responsavel: { id: string; nome: string } | null;
+  // Empregados e cartões do mês: delas sai o Holerite (`naoAplica` e `concluidos` já o refletem).
+  holerite: ContagemDoHolerite;
 };
+
+// A contagem do Holerite do Cliente no mês, com os cartões que o mês exige (ativos menos "sem movimento").
+export type HoleriteDaLinhaDto = ContagemDoHolerite & { exigidos: number };
 
 export type LinhaAcompanhamentoDto = {
   clienteId: string;
@@ -36,6 +43,7 @@ export type LinhaAcompanhamentoDto = {
   cnpj: string;
   // Uma célula por serviço, na ordem das colunas.
   celulas: CelulaAcompanhamentoDto[];
+  holerite: HoleriteDaLinhaDto;
 };
 
 export type AcompanhamentoMensalDto = {

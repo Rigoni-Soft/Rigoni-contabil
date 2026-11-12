@@ -164,3 +164,6 @@ graphify-out
 # Estado local do gate de qualidade
 .claude/state/
 .agents/state/
+
+# Rascunhos de SQL do Studio do Supabase local (do usuário; nunca entram em commit)
+supabase/snippets/

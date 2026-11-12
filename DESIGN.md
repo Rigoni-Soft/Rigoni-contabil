@@ -34,6 +34,8 @@ com a preferência de SO do visitante.
 | `secondary`, `muted`, `accent` | tons de papel/verde desaturados | idem | hierarquia secundária, hover |
 | `destructive` / `destructive-foreground` | `#e0968c` / `#2a0f0c` | `#7a2b2b` / `#f4f1e8` | erro/atenção — sempre com ícone, nunca só cor; também estado "falha" em listas/feeds |
 | `success` / `success-foreground` | `#d9bd7c` / `#2a1f0c` | `#96742f` / `#2a1f0c` | selo dourado "em dia" — reservado especificamente para as telas de status do Simples Nacional (#35–#37); não usar para resultado sucesso/falha genérico (isso é `primary`/`destructive`, ver Componentes → Indicadores de estado). Só em traço/ícone: no claro tem 3,8:1 sobre `background`, abaixo dos 4,5:1 de texto |
+| `warning` / `warning-foreground` | `#e6c35c` / `#2a1f0c` | `#d4a62a` / `#2a1f0c` | amarelo de atenção (tela do Cartão de ponto): botão "Limpar" e o tom de fundo de folga e feriado. Não é o dourado `success` do selo "em dia" do Simples Nacional. Texto escuro sobre o amarelo (≥7:1) nos dois temas |
+| `info` | `#8fb4d9` | `#2b5b8a` | azul informativo: só como tom de fundo suave (mistura de 11% com `card`), p.ex. a linha com hora extra no Cartão de ponto; sem `info-foreground`: o texto da linha segue a cor padrão (`foreground` sobre o fundo tingido: 9,4:1 no escuro, 13,0:1 no claro) |
 | `border` / `ring` | `#47453e` | tons de contorno derivados do verde | bordas decorativas, foco |
 | `input` | `#7a7765` | `#857d66` | contorno de campo, select, textarea, botão outline e painel de emoji: ≥3:1 sobre `background` e `card` nos dois temas (WCAG 1.4.11) |
 | `overlay` | `#0f0e0c` a 70% | `#16231f` a 55% | véu atrás de diálogos nativos (`popover`: imagem ampliada, prévia de documento; `<dialog>` modal: sino de avisos) — tinta de cada tema, não preto puro; só escurece o fundo, não carrega texto |
@@ -509,6 +511,86 @@ uma prop opcional `onCancelar`: quando informada (uso inline), "Cancelar"
 vira `Button` que fecha o painel e volta pro campo de busca; sem ela (uso
 em `/clientes/[id]`), continua `<Link href="/">`.
 
+### Tela de lista + formulário (quadro de funcionários do RH)
+
+Regra do dono do produto, a aplicar sem que seja pedida em toda tela que lista itens e os cadastra/edita
+na mesma tela (Quadro de funcionários da Folha de ponto é o primeiro consumidor):
+
+- **Cartão e topo.** Um cartão (`MOLDURA_DO_CARTAO`). Dentro, de cima para baixo: a `NotaDeObrigatorio`
+  (sempre a primeira coisa, acima até do título), o título da seção (com o botão "Novo …" à direita, no
+  molde do "Adicionar contato" do Cadastro: `ghost`, ícone `Plus`), o aviso de erro, os ajustes que valem
+  para o conjunto todo (ex.: "os empregados deste cliente são comissionados"), a lista, e por último o
+  formulário.
+- **Lista.** `ListaComDivisores`, o mesmo desenho da lista de clientes dos cards do dashboard
+  (`ListaDeClientes`): nome em destaque à esquerda (quebra dentro da moldura, nunca vaza), selos de estado
+  em texto de apoio abaixo do nome, ações à direita. O item escolhido fica com fundo `bg-accent/50`.
+- **Hierarquia de cor nas ações da linha.** Ação principal da linha (levar a outra tela, ex.: "Cartão de
+  ponto") = botão cheio na cor primária, texto sem seta (já é botão). Ação secundária (editar) = botão de
+  ícone só com contorno (`outline`, `icon`, lápis `Pencil`) com `aria-label` "Editar <nome>" ("Ver <nome>"
+  em leitura). Os dois nunca com a mesma aparência: ícone e texto lado a lado pareciam um só rótulo.
+- **Um formulário por vez.** O formulário de **novo** item é o padrão da tela. Editar um item o
+  **substitui** (os dois nunca aparecem juntos): bloco com "Editar" centralizado numa linha e o nome do item
+  abaixo. O botão "Novo …" do título só aparece durante a edição.
+- **Rodapé do formulário de edição**, lado a lado: "Salvar" (primário), a ação de atenção do item
+  (`destructive`, vermelho: ex. "Desligar da empresa"; o inverso, "Readmitir", em `default`) e
+  "Cancelar" (`outline`, neutro), que descarta a edição e volta ao formulário de novo item limpo. Aqui o
+  vermelho marca a ação de atenção sobre o item, não o Cancelar (exceção ao trio Salvar/Limpar/Cancelar
+  acima, que vale para edição de um registro inteiro).
+- **O formulário só pede o que o usuário decide.** Dado derivado por regra (ex.: a Jornada, que sai da
+  convenção e da legislação) não vira campo.
+- **Conteúdo de outra natureza vai para tela própria.** O Cartão de ponto de um empregado não se empilha
+  sob o quadro: abre por um botão da linha, numa tela com "Voltar" ao quadro.
+
+### Cartão de ponto: tabela no desenho da planilha
+
+O Cartão de ponto de um empregado (`/rh/folha-de-ponto/[cliente]/cartao/[empregado]`) copia a planilha do
+escritório (`PLANILHA CARTAO PONTO`, aba do funcionário): tabela com divisória em toda célula (`Tabela` com
+`grade`), cabeçalho de dois níveis (`agrupamento`: "Batidas", "Horas extras / Atrasos / Adicional noturno", "Horas extras por faixa"). **Sem linha Totais** no rodapé: a "Totalização do mês" abaixo da tabela já traz os mesmos números.
+Colunas, na ordem da planilha: Data (fixa), Dia semana, Entrada, Saída, Entrada, Saída, Extra entrada, Extra saída, H. Diária,
+Atrasos, Horas Extras, Adicional noturno (por extenso: a sigla A.N. não era clara), 1ª Faixa, 2ª Faixa e a coluna do botão Salvar, sem título visível (o botão já diz a função; o cabeçalho tem só texto para leitor de tela). Entrada, Saída e Extra são campos do dia (o Abono não é coluna: é o botão do dia de falta); o resto é calculado (nunca digitado). Acima da tabela: Empresa e Período (o mês). A carga horária por dia da semana
+não se exibe (não tem uso na tela). A tela mostra o **mês de trabalho inteiro**, de 28 a 31 dias, numa só tabela; a quinzena só
+importa na leitura da foto do cartão, não na exibição. Dia sem jornada marca "Folga" sob a data; dia com carga e sem batida, "Falta".
+
+- **Largura `ampla`:** a tabela de 16 colunas precisa caber inteira, sem rolagem horizontal; esta tela usa
+  `largura="ampla"` (`w-full max-w-screen-2xl`, a janela toda com teto em monitor muito largo), a `Tabela`
+  com `grade` tem respiro de 6 px por lado nas células e os campos de hora são estreitos (`w-[4.5rem]`, sem o
+  ícone do relógio do navegador). Em janela menor que ~1200 px a própria `Tabela` ainda rola, com a Data à vista.
+- **Título do cartão = só o nome do empregado.** A tela já se chama "Cartão de ponto" (cabeçalho); repetir
+  "Cartão de ponto de <nome>" no cartão era redundante.
+- **Tom da linha pelo estado do dia** (mistura suave com `card`, opaca para a primeira coluna fixa; o estado
+  também vem em texto sob a data, a cor nunca vai sozinha): **falta** = `destructive` (vermelho sutil, nota
+  "Falta"); **hora extra** = `info` (azul, nota "Hora extra"); **folga ou feriado** = `warning` (amarelo, nota
+  "Folga" ou "Feriado"; feriado com hora extra fica azul, "Feriado · hora extra"); dia normal sem tom. Precedência:
+  falta, hora extra, folga/feriado.
+- **Situação do dia** (decide o que a linha deixa digitar e o botão que mostra; calculada no presenter):
+  - **Cartão novo** (nunca salvo: sem a marca de "cartão iniciado" e sem nenhum dia com dado; mês ou empregado novo): todas as linhas abrem já **editáveis**, sem um
+    lápis por dia, e o dia útil vazio fica **em branco** (neutro, sem "Falta", sem Abonar). O "Salvar" da tabela
+    grava só os dias digitados e **inicia o cartão** (marca `rh_cartoes_iniciados`, mesmo sem nenhum horário): a
+    partir daí os dias úteis vazios viram falta, com o cartão já começado.
+  - **Faltas na Totalização:** num cartão novo (sem dados) a Totalização mostra 0 faltas, coerente com as linhas
+    neutras; os dias úteis vazios só contam como falta depois que o cartão é começado.
+  - **Falta** (dia útil vazio de um cartão já começado): horários **desabilitados** (evita lançar por engano),
+    botões lápis (única forma deliberada de lançar um horário) e "Abonar" (`warning`, um clique grava só o Abono).
+  - **Abonado** (abono sem batida): horários desabilitados; o botão é "Desfazer abono", que volta a falta. Não há
+    coluna nem caixa "Abono": o abono é o botão. Abono de dia com batida (atraso abonado) segue gravado ao salvar.
+  - **Folga ou feriado** (sem jornada): como toda hora trabalhada nesses dias é hora extra, só as colunas
+    **Extra entrada/saída** ficam habilitadas (Entrada e Saída, desabilitadas), salvo se já houver batida salva.
+- **Ação por linha e ações da tabela.** Cada linha tem só um botão de ícone (lápis); abrir várias linhas ao
+  mesmo tempo é permitido. Entre a tabela e a Totalização fica a barra de ações, alinhada ao **fim da linha** (à direita), na hierarquia de
+  cor **verde / amarelo / vermelho**: **Salvar** (`default`, o verde da marca; grava todas as
+  linhas abertas, fica na tela e põe a Totalização em destaque, `border-primary` + fundo), **Limpar**
+  (`warning`, amarelo; esvazia os campos das linhas abertas, fica na tela; só vale ao salvar) e **Cancelar**
+  (`destructive`, vermelho; descarta e volta à
+  lista de empregados da empresa). Salvar e Limpar só ficam ativos com ao menos uma linha aberta. Sem
+  permissão de edição não há lápis nem barra.
+- **Foco do teclado depois da ação.** Toda ação que faz o botão clicado sumir devolve o foco a um alvo estável da
+  mesma linha (`autoFocus` no botão que passa a existir): o lápis abre a edição no primeiro campo habilitado;
+  salvar, cancelar, abonar e desfazer abono levam o foco ao lápis (ou ao "Desfazer abono"). "Salvar" e "Limpar" da
+  tabela sem linha aberta usam `aria-disabled`, não `disabled`, para continuarem focáveis; "Limpar" não mexe no
+  foco. Vale para qualquer tela em que a ação troque os botões da linha.
+- **Um formulário por dia, fora da célula:** o `<form>` do dia fica na última célula e os campos das outras o
+  alcançam pelo atributo `form`; `new FormData(form)` já os traz.
+
 ### Autopreenchimento a partir de API pública
 
 **CNPJ → Empresa/Regime via BrasilAPI (#33):** ao perder o foco de um campo que serve de chave pra uma consulta
@@ -807,8 +889,67 @@ Desativar pede confirmação na própria linha (`ConfirmacaoEmLinha`: a pergunta
 e "Cancelar" com o foco, o gesto seguro); o erro da ação vem em `AvisoDeStatus`. O Holerite, do
 sistema, não tem ação.
 
+**Folha de ponto do RH (`/rh/folha-de-ponto/[clienteId]`):** abre pela lista dos clientes do RH
+(`ListaDeClientes` com a ação "Abrir folha →") e empilha o `QuadroDeFuncionarios` e o `CartaoDePonto`,
+na largura `cadastro` e sem a barra de Setores, como a edição do cadastro operacional: cada bloco é
+um cartão com a moldura guilhochê (`rc-guilloche-frame rounded-lg border border-border bg-card p-5
+shadow-sm`) e os campos seguem o formulário (rótulo visível por campo, `CampoDeTexto`, malha `1>2>4`).
+
+**`QuadroDeFuncionarios` (organismo):** os empregados do Cliente como botões de link (o escolhido em
+`default`, os demais em `outline`), com selos de texto ao lado ("comissionado", "inativo", "sem movimento
+no mês"); o padrão de comissionados do Cliente; o formulário "Novo empregado" e o "Corrigir" do
+escolhido, na malha `1>2>4` (Nome em 2 colunas, a marca "comissionado" nas outras 2 e uma Jornada
+`type="time"` por dia, de domingo a sábado), com a `NotaDeObrigatorio` no cartão e o botão em tamanho
+padrão; "Sem movimento no mês" e "Inativar empregado" ao fim. O escolhido leva `aria-current`. O erro do cadastro aparece abaixo do formulário "Novo empregado",
+ligado ao campo Nome, e o formulário só é limpo no sucesso. Em leitura (Líder, Admin ou outro
+Responsável) só a lista e os dados aparecem, sem formulário nem botão de escrita.
+
+**`CartaoDePonto` (organismo):** o cartão de um empregado no mês inteiro, de cima para baixo: título, Empresa e
+Período, `NavegacaoDeMes` com `destaque`, um aviso de apoio quando só se lê, a tabela (um dia por linha,
+`LinhaDoCartaoDePonto`), a barra de ações da tabela (Salvar, Limpar, Cancelar) e a `TotalizacaoDoPonto`. Ver
+"Cartão de ponto: tabela no desenho da planilha" abaixo.
+
+**`LinhaDoCartaoDePonto` (molécula):** um dia do cartão como linha da `Tabela`. Fora da edição os horários ficam
+`readOnly` e a ação da linha é um só botão de ícone, o lápis ("Editar seg 16/11"). Em edição os campos destravam
+e as ações viram dois botões de ícone: ✓ Salvar ("Salvar seg 16/11") e ✕ Cancelar ("Cancelar edição de seg
+16/11"), que descarta o digitado e devolve a linha ao estado de antes, com o lápis de volta.
+
+**`TotalizacaoDoPonto` (molécula):** a Totalização como lista de definição numa grade `2>4`: rótulo em
+`apoio` e valor em `subtitulo` (horas como "8h45", dias como "1 dia"). Só mostra, nunca recebe digitação.
+
+**Convenção coletiva do RH (`/rh/folha-de-ponto/[clienteId]/convencao`):** abre pelo link "Convenção
+coletiva →" no topo da Folha de ponto e empilha, na largura `cadastro` e sem a barra de Setores (como a
+Folha de ponto), o `HistoricoDeConvencoes`, o `EnvioDeConvencao` (só Líder do RH e Admin), as
+`RegrasAplicadas` da convenção escolhida e os `AjustesDoClienteNaConvencao`, cada um num `CartaoDaTela`
+(molécula: a `Pilha` com a moldura guilhochê, para a page só passar o conteúdo), como os blocos da edição do
+cadastro operacional.
+
+**`HistoricoDeConvencoes` (organismo):** as convenções do Cliente como botões de link ("Sindicato ·
+vigência"; a que está em tela em `default` e com `aria-current`, as demais em `outline`), com o nome do
+arquivo e a data do envio em `nota`. A de vigência mais recente vem primeiro; as anteriores seguem
+guardadas e cada uma abre as suas regras (`?convencao=`). Sem convenção, o texto convida a enviar (quem
+pode) ou diz quem envia (quem só lê).
+
+**`EnvioDeConvencao` (organismo):** formulário "Enviar ou renovar a convenção": Sindicato, início e fim da
+vigência (`type="date"`) em `CampoDeTexto` na malha `1>2>4` (Sindicato em 2 colunas) com a `NotaDeObrigatorio`, e o `CampoDeArquivo` (PDF de até 4 MB, dito antes
+de escolher). Enquanto lê, o botão fica desabilitado e diz "Lendo a convenção…" (a extração roda uma vez,
+no envio); o erro aponta o campo (`aria-invalid` e `aria-describedby` ligados ao `AvisoDeStatus`; o do PDF vai no próprio `CampoDeArquivo`) e o formulário só é limpo no sucesso. Quem só lê não
+o recebe.
+
+**`RegrasAplicadas` (organismo):** a tela de leitura das regras: uma `Tabela` com um parâmetro por linha
+(o rótulo fixo à esquerda) e as colunas "Na convenção", "Na legislação", "Diferença" e "Cláusula" (a
+cláusula e o trecho citado entre aspas, em `nota`). O que a convenção não trouxe, ou o domínio recusou,
+fica "Não aplicada" em `apoio`, com "vale a legislação" na diferença e, se o modelo chegou a propô-lo, o
+motivo da recusa ("Recusada: …"). Nunca recebe digitação: não há aprovação manual.
+
+**`AjustesDoClienteNaConvencao` (organismo):** os interruptores do Cliente (`CaixaDeMarcacao` "Banco de
+horas", desligado por padrão, e "Trabalho aos domingos") e, só havendo mais de uma convenção, um
+`CampoSelect` por empregado ativo com o sindicato que ele segue ("Sem escolha (a única do cliente)" é o
+vazio). Cada mudança grava na hora, com "Salvando…" em `nota` (`role="status"`) enquanto grava e alvos de marcação de 44 px. Quem não é o Responsável do RH do Cliente vê tudo desabilitado e a
+nota "Só o Responsável do RH deste cliente altera estes ajustes".
+
 **`ListaDeClientes` (molécula):** a lista de drill-down: `ListaComDivisores` com `LinhaDeCliente`
-(empresa em destaque, CNPJ mascarado, "Ver cadastro →") e `detalhes` opcional por Cliente (ex.:
+(empresa em destaque, CNPJ mascarado, "Ver cadastro →" ou a `acao` da tela, como "Abrir folha →") e `detalhes` opcional por Cliente (ex.:
 "3 meses", os selos de Parcelamento do SN). Cada linha usa `content-visibility: auto`, para as listas
 de centenas de Clientes. É a única lista de empresas do sistema: as do SN e do RH
 (`ResumoSetorLista`), as de um Serviço que falta e as do detalhe do Funcionário a usam; não montar a

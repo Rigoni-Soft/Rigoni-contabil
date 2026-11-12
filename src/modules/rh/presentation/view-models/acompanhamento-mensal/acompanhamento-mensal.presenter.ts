@@ -2,6 +2,7 @@ import type { EstadoDoServico } from "@/presentation/components/organisms/acompa
 import type {
   AcompanhamentoMensalDto,
   EscopoDoAplica,
+  HoleriteDaLinhaDto,
 } from "@/modules/rh/application/dtos/acompanhamento.dto";
 import { mesVizinho } from "@/shared/kernel/mes-atual";
 
@@ -20,6 +21,17 @@ const estadoDoServico = (c: {
   if (!c.aplica) return c.sempre ? "nunca_aplica" : "nao_aplica";
   return c.concluido ? "concluido" : "pendente";
 };
+
+const plural = (n: number, singular: string, plural: string) =>
+  `${n} ${n === 1 ? singular : plural}`;
+
+// "Cadastrados x cartões feitos" do cliente, o que falta para o Holerite. Sem empregados, não há Holerite.
+export function resumoDoHolerite(h: HoleriteDaLinhaDto): string {
+  if (h.cadastrados === 0) return "Sem empregados cadastrados: não há Holerite a cumprir.";
+  const { exigidos } = h;
+  const semMovimento = h.semMovimento > 0 ? `, ${h.semMovimento} sem movimento` : "";
+  return `${plural(h.cadastrados, "empregado cadastrado", "empregados cadastrados")}${semMovimento} · ${h.cartoes} de ${plural(exigidos, "cartão", "cartões")} ${exigidos === 1 ? "feito" : "feitos"} no mês`;
+}
 
 // Os links de mês do painel do Cliente: o próximo some no mês corrente. Preserva `voltarPara`.
 export function linksDoMes(
@@ -80,6 +92,8 @@ export function servicosDoCliente(dto: AcompanhamentoMensalDto, clienteId: strin
     nome: dto.servicos.find((s) => s.id === c.servicoId)?.nome ?? "",
     estado: estadoDoServico(c),
     bloqueio: bloqueioDe(c.servicoId),
+    // O Holerite mostra empregados cadastrados x cartões feitos, na própria linha dele.
+    detalhe: linha && sistema.has(c.servicoId) ? resumoDoHolerite(linha.holerite) : undefined,
   }));
   return { servicos, aviso: linha ? undefined : AVISO_SEM_VISTA };
 }

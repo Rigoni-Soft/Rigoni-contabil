@@ -25,19 +25,19 @@ Aqui cada ticket já é uma fatia vertical (banco, regra de negócio, tela e tes
 
 - [x] **PR 3.1: Parcelamento na aba do RH** (depende da PR 1.1; em paralelo às demais)
   - [x] #216 (ambas): fluxo do SN no RH, cards e comparativos, cada setor vê só o seu
-- [ ] **PR 3.2: Alertas e jobs de Parcelamento por Setor** (só backend; depende da PR 3.1)
+- [x] **PR 3.2: Alertas e jobs de Parcelamento por Setor** (só backend; depende da PR 3.1)
   - [x] #217 (backend): alerta ao setor dono, chave por Cliente, tipo e Setor, URA e job com a união
 
 ## Etapa 4: Folha de ponto
 
-- [ ] **PR 4.1: Folha de ponto manual com Totalização pela legislação** (depende da PR 1.1; base da etapa)
-  - [ ] #218 (ambas): quadro de funcionários, cartão digitado, faltas e abonos, Totalização pela CLT
-- [ ] **PR 4.2: Convenção coletiva armazenada e aplicada** (depende da PR 1.1; em paralelo à 4.1)
-  - [ ] #219 (ambas): upload, histórico, vínculo por cliente, extração de regras, "Regras aplicadas"
-- [ ] **PR 4.3: Totalização com as regras da convenção** (só backend; depende das PRs 4.1 e 4.2)
-  - [ ] #220 (backend): o motor usa os parâmetros da convenção e reproduz a planilha modelo
-- [ ] **PR 4.4: Holerite derivado dos cartões** (depende das PRs 2.1 e 4.1)
-  - [ ] #221 (ambas): Holerite conclui sozinho, "sem movimento no mês", cadastrados x cartões feitos
+- [x] **PR 4.1: Folha de ponto manual com Totalização pela legislação** (depende da PR 1.1; base da etapa)
+  - [x] #218 (ambas): quadro de funcionários, cartão digitado, faltas e abonos, Totalização pela CLT
+- [x] **PR 4.2: Convenção coletiva armazenada e aplicada** (depende da PR 1.1; em paralelo à 4.1)
+  - [x] #219 (ambas): upload, histórico, vínculo por cliente, extração de regras, "Regras aplicadas"
+- [x] **PR 4.3: Totalização com as regras da convenção** (só backend; depende das PRs 4.1 e 4.2)
+  - [x] #220 (backend): o motor usa os parâmetros da convenção e reproduz a planilha modelo
+- [x] **PR 4.4: Holerite derivado dos cartões** (depende das PRs 2.1 e 4.1)
+  - [x] #221 (ambas): Holerite conclui sozinho, "sem movimento no mês", cadastrados x cartões feitos
 
 ## Etapa 5: Leitura de imagem
 

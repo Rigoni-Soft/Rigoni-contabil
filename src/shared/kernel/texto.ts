@@ -1,3 +1,9 @@
+// Tamanho máximo de texto curto de cadastro: nome do empregado, sindicato, cláusula.
+export const TEXTO_CURTO_MAXIMO = 120;
+
+// Nome do PDF da convenção: o limite do CHECK de rh_convencoes.arquivo_nome.
+export const NOME_DO_ARQUIVO_MAXIMO = 255;
+
 // Caracteres como o WhatsApp conta: por ponto de código, não por unidade UTF-16 (um emoji vale 1).
 export function contarCaracteres(texto: string): number {
   return [...texto].length;

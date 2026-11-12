@@ -1,4 +1,5 @@
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
 
 import type {
   ClienteAcompanhamentoDto,
@@ -10,6 +11,21 @@ import type {
   ClienteDoAcompanhamentoDto,
 } from "@/modules/rh/application/ports/out/acompanhamento.repository";
 import type { RegistroDeErrosPort } from "@/modules/rh/application/ports/out/registro-de-erros.provider";
+import {
+  cartoesDoMesRowSchema,
+  clienteDoAcompanhamentoBasicoRowSchema,
+  clienteDoAcompanhamentoRowSchema,
+  marcacaoRowSchema,
+  naoAplicaRowSchema,
+  responsavelDoClienteRowSchema,
+  servicoRowSchema,
+} from "@/modules/rh/infra/dtos/acompanhamento-row.dto";
+import { responsavelRowSchema } from "@/modules/rh/infra/dtos/folha-de-ponto-row.dto";
+import {
+  falhaDeLeitura,
+  lerLinhas,
+  type FalhaDeLeitura,
+} from "@/modules/rh/infra/mappers/falha-de-leitura.mapper";
 import type { AppError } from "@/shared/errors/app.error";
 import { ConflictError } from "@/shared/errors/conflict.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
@@ -25,12 +41,16 @@ const FALHA_GRAVAR = "Não foi possível salvar. Tente novamente.";
 type Pagina = PromiseLike<{ data: unknown[] | null; error: PostgrestError | null }>;
 
 // O PostgREST corta a resposta em 1000 linhas: lê página a página até acabar.
-async function lerTudo<T>(pagina: (de: number, ate: number) => Pagina): Promise<T[]> {
-  const linhas: T[] = [];
+async function lerTudo<S extends z.ZodType>(
+  schema: S,
+  pagina: (de: number, ate: number) => Pagina,
+): Promise<z.output<S>[]> {
+  const linhas: z.output<S>[] = [];
   for (let de = 0; ; de += TAMANHO_PAGINA) {
     const { data, error } = await pagina(de, de + TAMANHO_PAGINA - 1);
     if (error) throw new Error(error.message);
-    linhas.push(...((data ?? []) as T[]));
+    // Falha alto se o banco divergir do Row DTO: o chamador já registra e devolve PersistenciaError.
+    linhas.push(...z.array(schema).parse(data ?? []));
     if ((data?.length ?? 0) < TAMANHO_PAGINA) return linhas;
   }
 }
@@ -49,12 +69,14 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
       .select("id, nome, sistema, ativo_desde, desativado_em")
       .lte("ativo_desde", competencia)
       .order("ordem");
-    if (error) return this.falhaDeLeitura(error);
+    if (error) return falhaDeLeitura(this.leitura, error);
+    const lidos = lerLinhas(this.leitura, z.array(servicoRowSchema), data);
+    if (!lidos.ok) return lidos;
 
     // Desativar vale do mês da desativação em diante; os meses anteriores seguem com o serviço.
     const mes = competencia.slice(0, 7);
     return ok(
-      data
+      lidos.value
         .filter((s) => s.desativado_em === null || mes < mesAtual(new Date(s.desativado_em)))
         .map((s) => ({ id: s.id, nome: s.nome, sistema: s.sistema })),
     );
@@ -66,11 +88,7 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
     incluirSemResponsavel = false,
   ): Promise<Result<ClienteAcompanhamentoDto[], AppError>> {
     try {
-      const responsaveis = await lerTudo<{
-        cliente_id: string;
-        responsavel_id: string;
-        responsavel: { nome: string } | null;
-      }>((de, ate) => {
+      const responsaveis = await lerTudo(responsavelDoClienteRowSchema, (de, ate) => {
         const consulta = this.supabase
           .from("cliente_responsaveis")
           .select("cliente_id, responsavel_id, responsavel:perfis!responsavel_id(nome)")
@@ -82,8 +100,8 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
       if (responsaveis.length === 0 && !incluirSemResponsavel) return ok([]);
 
       // A view `clientes_basico` só devolve o que o ator enxerga; o RH não lê o cadastro do SN.
-      const [clientes, naoAplica, marcacoes] = await Promise.all([
-        lerTudo<{ id: string; empresa: string; cnpj: string }>((de, ate) =>
+      const [clientes, naoAplica, marcacoes, cartoes] = await Promise.all([
+        lerTudo(clienteDoAcompanhamentoRowSchema, (de, ate) =>
           this.supabase
             .from("clientes_basico")
             .select("id, empresa, cnpj")
@@ -91,7 +109,7 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
             .range(de, ate),
         ),
         // "Não se aplica" vale no mês pedido (renova-se todo mês) ou sempre (competência nula).
-        lerTudo<{ cliente_id: string; servico_id: string; competencia: string | null }>((de, ate) =>
+        lerTudo(naoAplicaRowSchema, (de, ate) =>
           this.supabase
             .from("rh_cliente_servico_aplica")
             .select("cliente_id, servico_id, competencia")
@@ -102,13 +120,20 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
             .order("competencia", { nullsFirst: true })
             .range(de, ate),
         ),
-        lerTudo<{ cliente_id: string; servico_id: string }>((de, ate) =>
+        lerTudo(marcacaoRowSchema, (de, ate) =>
           this.supabase
             .from("rh_acompanhamento_marcacoes")
             .select("cliente_id, servico_id")
             .eq("competencia", competencia)
             .order("cliente_id")
             .order("servico_id")
+            .range(de, ate),
+        ),
+        // Contagem do Holerite (cadastrados, sem movimento e cartões feitos); a RLS recorta por Cliente.
+        lerTudo(cartoesDoMesRowSchema, (de, ate) =>
+          this.supabase
+            .rpc("rh_cartoes_do_mes", { p_competencia: competencia })
+            .order("cliente_id")
             .range(de, ate),
         ),
       ]);
@@ -123,13 +148,15 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
       const naoAplicaSempreDe = porCliente(naoAplica.filter((l) => l.competencia === null));
       const concluidosDe = porCliente(marcacoes);
       const responsavelDe = new Map(responsaveis.map((r) => [r.cliente_id, r]));
+      const cartoesDe = new Map(cartoes.map((c) => [c.cliente_id, c]));
 
       return ok(
         clientes
           .filter((c) => incluirSemResponsavel || responsavelDe.has(c.id))
           .sort((a, b) => a.empresa.localeCompare(b.empresa, "pt-BR"))
           .map((c) => {
-            const r = responsavelDe.get(c.id);
+            const responsavel = responsavelDe.get(c.id);
+            const cartoesDoCliente = cartoesDe.get(c.id);
             return {
               clienteId: c.id,
               empresa: c.empresa,
@@ -137,9 +164,17 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
               naoAplica: [...new Set(naoAplicaDe.get(c.id) ?? [])],
               naoAplicaSempre: naoAplicaSempreDe.get(c.id) ?? [],
               concluidos: concluidosDe.get(c.id) ?? [],
-              responsavel: r
-                ? { id: r.responsavel_id, nome: r.responsavel?.nome ?? "Sem nome" }
+              responsavel: responsavel
+                ? {
+                    id: responsavel.responsavel_id,
+                    nome: responsavel.responsavel?.nome ?? "Sem nome",
+                  }
                 : null,
+              holerite: {
+                cadastrados: cartoesDoCliente?.cadastrados ?? 0,
+                semMovimento: cartoesDoCliente?.sem_movimento ?? 0,
+                cartoes: cartoesDoCliente?.cartoes ?? 0,
+              },
             };
           }),
       );
@@ -161,10 +196,18 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
         .eq("setor", SETOR_RH)
         .maybeSingle(),
     ]);
-    if (cliente.error) return this.falhaDeLeitura(cliente.error);
-    if (responsavel.error) return this.falhaDeLeitura(responsavel.error);
-    if (!cliente.data) return ok(null);
-    return ok({ cnpj: cliente.data.cnpj, responsavelId: responsavel.data?.responsavel_id ?? null });
+    if (cliente.error) return falhaDeLeitura(this.leitura, cliente.error);
+    if (responsavel.error) return falhaDeLeitura(this.leitura, responsavel.error);
+    const lido = lerLinhas(
+      this.leitura,
+      clienteDoAcompanhamentoBasicoRowSchema.nullable(),
+      cliente.data,
+    );
+    const dono = lerLinhas(this.leitura, responsavelRowSchema.nullable(), responsavel.data);
+    if (!lido.ok) return lido;
+    if (!dono.ok) return dono;
+    if (!lido.value) return ok(null);
+    return ok({ cnpj: lido.value.cnpj, responsavelId: dono.value?.responsavel_id ?? null });
   }
 
   async criarServico(nome: string): Promise<Result<void, AppError>> {
@@ -271,8 +314,11 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
     return err(new PersistenciaError(FALHA_GRAVAR));
   }
 
-  private falhaDeLeitura(error: PostgrestError): Result<never, AppError> {
-    this.erros.registrar("Falha ao ler o acompanhamento do RH:", error.message);
-    return err(new PersistenciaError("Não foi possível carregar o acompanhamento."));
+  private get leitura(): FalhaDeLeitura {
+    return {
+      registro: "Falha ao ler o acompanhamento do RH:",
+      mensagem: "Não foi possível carregar o acompanhamento.",
+      erros: this.erros,
+    };
   }
 }

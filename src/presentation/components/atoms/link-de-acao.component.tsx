@@ -1,14 +1,20 @@
 import Link from "next/link";
+import type { VariantProps } from "class-variance-authority";
 
 import { buttonVariants } from "@/presentation/components/ui/button";
 import { cn } from "@/presentation/lib/utils";
 
 type LinkDeAcaoProps = {
   href: string;
-  variant?: "default" | "destructive" | "outline" | "ghost";
+  variant?: VariantProps<typeof buttonVariants>["variant"];
+  size?: VariantProps<typeof buttonVariants>["size"];
   className?: string;
   // Destino fora do app (ex.: link assinado): abre em nova aba, sem `opener`.
   externo?: boolean;
+  // O link da seleção em tela (empregado escolhido): além da variante, o leitor de tela ouve "atual".
+  atual?: boolean;
+  // Nome acessível quando o texto visível sozinho é ambíguo (ex.: vários "Cartão de ponto →" numa lista).
+  "aria-label"?: string;
   children: React.ReactNode;
 };
 
@@ -16,14 +22,19 @@ type LinkDeAcaoProps = {
 export function LinkDeAcao({
   href,
   variant = "outline",
+  size,
   className,
   externo,
+  atual,
+  "aria-label": rotulo,
   children,
 }: LinkDeAcaoProps) {
   return (
     <Link
       href={href}
-      className={cn(buttonVariants({ variant }), className)}
+      aria-label={rotulo}
+      aria-current={atual ? "true" : undefined}
+      className={cn(buttonVariants({ variant, size }), className)}
       {...(externo && { target: "_blank", rel: "noopener noreferrer" })}
     >
       {children}

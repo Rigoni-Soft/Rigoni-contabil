@@ -51,6 +51,60 @@ test.describe("Acompanhamento mensal do RH", () => {
     expect(data).toHaveLength(1);
   });
 
+  test("Holerite se conclui sozinho com o cartão salvo e reabre ao faltar um @smoke", async ({
+    page,
+  }) => {
+    await login(page, "funcionario.rh@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL("/rh");
+    const holerite = page.getByLabel("Holerite", { exact: true });
+
+    // Sem empregados: não há Holerite a cumprir.
+    await page.goto(`/clientes/${clienteId}`);
+    await expect(holerite).toHaveValue("nao_aplica");
+    await expect(
+      page.getByText("Sem empregados cadastrados: não há Holerite a cumprir."),
+    ).toBeVisible();
+
+    // Um empregado sem nenhum dia salvo: pendente; um dia salvo (mesmo com o mês incompleto) o conclui.
+    const mes = new Date().toISOString().slice(0, 7);
+    const empregado = await admin
+      .from("rh_empregados")
+      .insert({
+        cliente_id: clienteId,
+        nome: "Ana Holerite",
+        jornada: [0, 480, 480, 480, 480, 480, 0],
+      })
+      .select("id")
+      .single();
+    if (empregado.error) throw empregado.error;
+    const batidas = [{ entrada: 480, saida: 1020 }];
+    const dia = (n: number) => `${mes}-${String(n).padStart(2, "0")}`;
+
+    await page.goto(`/clientes/${clienteId}`);
+    await expect(holerite).toHaveValue("pendente");
+    await expect(
+      page.getByText("1 empregado cadastrado · 0 de 1 cartão feito no mês"),
+    ).toBeVisible();
+    await expect(holerite).toBeDisabled();
+
+    await admin
+      .from("rh_ponto_dias")
+      .insert({ empregado_id: empregado.data.id, data: dia(3), batidas });
+    await page.reload();
+    await expect(holerite).toHaveValue("concluido");
+    await expect(
+      page.getByText("1 empregado cadastrado · 1 de 1 cartão feito no mês"),
+    ).toBeVisible();
+
+    // "Sem movimento no mês" tira o empregado da conta: sem cartão exigido, o Holerite deixa de valer.
+    await admin.from("rh_ponto_dias").delete().eq("empregado_id", empregado.data.id);
+    await admin
+      .from("rh_empregado_sem_movimento")
+      .insert({ empregado_id: empregado.data.id, competencia: `${mes}-01` });
+    await page.reload();
+    await expect(holerite).toHaveValue("nao_aplica");
+  });
+
   test("Funcionário dispensa um serviço e ele deixa de contar como pendente (sai do card), com auditoria", async ({
     page,
   }) => {

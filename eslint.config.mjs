@@ -33,6 +33,8 @@ export default defineConfig([
     "out/**",
     "build/**",
     "coverage/**",
+    "test-results/**",
+    "playwright-report/**",
     "next-env.d.ts",
     ".claude/**",
     ".agents/**",
@@ -96,4 +98,15 @@ export default defineConfig([
     },
   },
   prettier,
+  {
+    // Depois do `prettier`, que desliga o max-len: ele não reflowa comentário, só este limite pega
+    // (aviso: 19 comentários antigos passam de 120; vira erro depois de reformatá-los).
+    files: ["src/**/*.{ts,tsx}"],
+    rules: {
+      "max-len": [
+        "warn",
+        { code: 100000, comments: 120, ignoreUrls: true, ignorePattern: "eslint-disable" },
+      ],
+    },
+  },
 ]);
