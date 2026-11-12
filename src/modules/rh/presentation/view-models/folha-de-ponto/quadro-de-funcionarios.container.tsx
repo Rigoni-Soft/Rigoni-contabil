@@ -65,8 +65,9 @@ export function QuadroDeFuncionariosContainer({ folha }: Props) {
         // Desligar e readmitir já gravam: o Editar fecha e a tela volta ao formulário "Novo empregado".
         if (fecharEdicao) {
           setResultado(fecharEdicao.resultado);
-          router.push(hrefDaFolha(folha.clienteId, { mes: folha.competencia }));
-        } else router.refresh();
+          return router.push(hrefDaFolha(folha.clienteId, { mes: folha.competencia }));
+        }
+        router.refresh();
       } catch (e) {
         console.error("Falha ao gravar o quadro de funcionários", e);
         falhar(mensagemDaFalha(e));
