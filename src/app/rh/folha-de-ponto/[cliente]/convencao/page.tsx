@@ -1,10 +1,9 @@
 import { redirect } from "next/navigation";
 
-import { Pilha } from "@/presentation/components/atoms/caixa.component";
+import { CartaoDaTela } from "@/presentation/components/molecules/cartao-da-tela.component";
 import { HistoricoDeConvencoes } from "@/presentation/components/organisms/historico-de-convencoes.component";
 import { RegrasAplicadas } from "@/presentation/components/organisms/regras-aplicadas.component";
 import { AcompanhamentoMensalPage } from "@/presentation/components/pages/acompanhamento-mensal.page";
-import { MOLDURA_DO_CARTAO } from "@/presentation/lib/moldura-do-cartao";
 import { exigirSessao } from "@/presentation/view-models/shell/shell.server";
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import { AjustesDoClienteNaConvencaoContainer } from "@/modules/rh/presentation/view-models/convencao/ajustes-do-cliente-na-convencao.container";
@@ -47,28 +46,28 @@ export default async function Page({ params, searchParams }: Props) {
       conteudo={
         dados.ok && (
           <>
-            <Pilha espaco={6} className={MOLDURA_DO_CARTAO}>
+            <CartaoDaTela>
               <HistoricoDeConvencoes
                 itens={historicoDeConvencoes(dados.value.convencoes, escolhida?.id, rota)}
                 podeEnviar={dados.value.podeEnviar}
               />
-            </Pilha>
+            </CartaoDaTela>
             {dados.value.podeEnviar && (
-              <Pilha espaco={6} className={MOLDURA_DO_CARTAO}>
+              <CartaoDaTela>
                 <EnvioDeConvencaoContainer clienteId={clienteId} />
-              </Pilha>
+              </CartaoDaTela>
             )}
             {escolhida && (
-              <Pilha espaco={6} className={MOLDURA_DO_CARTAO}>
+              <CartaoDaTela>
                 <RegrasAplicadas
                   titulo={tituloDaConvencao(escolhida)}
                   linhas={linhasDeRegras(escolhida)}
                 />
-              </Pilha>
+              </CartaoDaTela>
             )}
-            <Pilha espaco={6} className={MOLDURA_DO_CARTAO}>
+            <CartaoDaTela>
               <AjustesDoClienteNaConvencaoContainer dados={dados.value} />
-            </Pilha>
+            </CartaoDaTela>
           </>
         )
       }
