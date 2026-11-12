@@ -14,6 +14,7 @@ reduziria custo e só somaria uma dependência e um modelo de 2 MB no deploy. A 
 
 - A leitura é feita por um modelo de visão atrás da porta neutra `LeitorDeCartaoPort` (ADR 0004): devolve JSON
   por esquema (nome, dias, batidas, coluna Extra, anotação "faltou" ou "atestado"), ainda não confiável.
+- A foto do **atestado ou declaração de comparecimento** (#223) segue o mesmo caminho (`lerAtestado`, mesma porta e mesmo modo): é dado de saúde, então o leitor pede só nome, tipo e datas, manda ignorar diagnóstico e CID, e o esquema descarta qualquer outro campo; nada além do Abono é guardado.
 - Quem decide se a leitura serve é o **domínio** (`validarLeitura`): nome legível, dias dentro da quinzena e sem
   repetição, horários válidos e em ordem crescente, no máximo 16 h por dia, ao menos um horário lido. Leitura
   reprovada, falha do serviço ou ausência de leitor = digitação manual, sem bloquear.

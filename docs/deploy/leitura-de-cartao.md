@@ -35,6 +35,12 @@ Para ligar: contrato do provedor com **retenção zero e sem treino** nos dados 
   de semana vazio é ignorado, salvo Extra); dia com "atestado" ganha Abono; dia em branco não apaga o que já foi
   digitado.
 
+## Atestado e declaração de comparecimento
+
+"Ler atestado" (mesma tela, campo opcional) usa o mesmo leitor, as mesmas variáveis e o mesmo modo: `falso` devolve uma
+declaração do "Erick Falso" em 01/09/2026. A foto (JPEG ou PNG, até 4 MB) só passa pelo leitor; guarda-se apenas o Abono
+(`rh_ponto_dias.abono`), nunca nome, datas, CID, documento ou imagem. Custo e volume: uma chamada por atestado, como a do cartão.
+
 ## Custo e volume
 
 Toda foto lida custa. Uma foto de ~190 KB gasta na ordem de 1.500 a 2.500 tokens de entrada e algumas centenas de

@@ -43,8 +43,8 @@ Aqui cada ticket já é uma fatia vertical (banco, regra de negócio, tela e tes
 
 - [x] **PR 5.1: Leitura de foto do cartão de ponto** (depende da PR 4.1; base da etapa)
   - [x] #222 (ambas): visão da API atrás da porta neutra, cadastro pelo nome, falta e abono por anotação, ADR 0011
-- [ ] **PR 5.2: Atestados abonam os dias** (depende da PR 5.1)
-  - [ ] #223 (ambas): atestado e declaração de comparecimento, sem guardar CID nem imagem
+- [x] **PR 5.2: Atestados abonam os dias** (depende da PR 5.1)
+  - [x] #223 (ambas): atestado e declaração de comparecimento, sem guardar CID nem imagem
 
 ## Etapa 6: Entrega
 
