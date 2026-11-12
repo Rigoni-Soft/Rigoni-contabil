@@ -3,6 +3,7 @@
 
 # E2E
 - O Playwright reaproveita o dev server em `localhost:8800`. Com `PORT=8800` no `.env.local` o `yarn dev` aberto serve o e2e; em outra porta o Playwright tenta subir um segundo `next dev` no mesmo diretório e falha.
+- Os e2e de leitura (foto do cartão, atestado, convenção) esperam os leitores falsos: o `.env.local` do dev server reaproveitado leva `LEITURA_CARTAO_MODO=falso` e `EXTRACAO_CONVENCAO_MODO=falso`. Com `visao`, o leitor real recusa a foto falsa e o teste falha.
 
 # Edição de arquivos
 - O working tree está em LF na maior parte, mas alguns arquivos ficam em CRLF (`git ls-files --eol`, coluna `w/crlf`): edite com `Edit` ou `Write`; script de `replace` (node, sed) em arquivo CRLF não casa e falha em silêncio, então normalize `\r\n` para `\n` antes. O aviso "LF will be replaced by CRLF" do Git é esperado.
