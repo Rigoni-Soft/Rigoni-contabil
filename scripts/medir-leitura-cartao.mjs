@@ -111,6 +111,25 @@ for (const f of fotos) {
   ]);
 }
 
+// Atestados e declarações (atestado-*.jpg|png): imprime tipo e datas lidos e se o domínio valida. O nome
+// só aparece com NOMES=1 (dado pessoal); CID e documento nunca são pedidos ao leitor.
+const { validarAtestado } = await import("@/modules/rh/domain/services/atestado.service");
+const atestados = readdirSync(pasta).filter((f) => /^atestado.*.(jpe?g|png)$/i.test(f));
+for (const f of atestados) {
+  const tipo = /.png$/i.test(f) ? "image/png" : "image/jpeg";
+  const r = await leitor.lerAtestado({ bytes: readFileSync(join(pasta, f)), tipo });
+  if (!r.lido) {
+    console.log(`# ${f}: não leu (${ultimoStatus || "formato/rede"})`);
+    continue;
+  }
+  const { nome, tipo: t, de, ate } = r.atestado;
+  const v = validarAtestado(r.atestado);
+  const quem = process.env.NOMES ? ` nome=${nome}` : ` nome=${nome ? "lido" : "ilegível"}`;
+  console.log(
+    `# ${f}: ${t} de=${de} ate=${ate}${quem} validou=${v.ok ? "sim" : "não: " + v.error.message}`,
+  );
+}
+
 const csv = linhas.map((l) => l.join(";")).join("\n");
 console.log(csv);
 const ok = linhas.slice(1).filter((l) => l[2] === "sim").length;
