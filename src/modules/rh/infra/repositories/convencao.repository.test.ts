@@ -171,7 +171,7 @@ describe("Convenção coletiva do RH (integração)", () => {
       sindicato: "X",
       vigencia_inicio: "2026-05-01",
       vigencia_fim: "2027-04-30",
-      arquivo_caminho: "x.pdf",
+      arquivo_caminho: `${clienteA}/${crypto.randomUUID()}.pdf`,
       arquivo_nome: "x.pdf",
       regras: { versao: 1 },
     });
@@ -179,6 +179,34 @@ describe("Convenção coletiva do RH (integração)", () => {
 
     expect(semForma.error?.code).toBe("23514");
     expect(!invertida.ok && invertida.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("o arquivo mora na pasta do Cliente, não se repete e autoria e data não se forjam", async () => {
+    const { supabase, convencoes } = await comoLiderRH();
+    const base = nova("Comércio", "2026-05-01", "2027-04-30");
+    const linha = (arquivoCaminho: string, extra = {}) => ({
+      cliente_id: clienteA,
+      sindicato: base.sindicato,
+      vigencia_inicio: base.vigenciaInicio,
+      vigencia_fim: base.vigenciaFim,
+      arquivo_caminho: arquivoCaminho,
+      arquivo_nome: base.arquivoNome,
+      regras: base.regras,
+      ...extra,
+    });
+
+    const deOutroCliente = await supabase
+      .from("rh_convencoes")
+      .insert(linha(`${clienteB}/${crypto.randomUUID()}.pdf`));
+    await convencoes.inserir(base);
+    const repetido = await supabase.from("rh_convencoes").insert(linha(base.arquivoCaminho));
+    const autoriaForjada = await supabase
+      .from("rh_convencoes")
+      .insert(linha(`${clienteA}/${crypto.randomUUID()}.pdf`, { criado_por: crypto.randomUUID() }));
+
+    expect(deOutroCliente.error?.code).toBe("23514");
+    expect(repetido.error?.code).toBe("23505");
+    expect(autoriaForjada.error?.code).toBe("42501");
   });
 
   it("a convenção nunca é alterada nem apagada pelo usuário", async () => {

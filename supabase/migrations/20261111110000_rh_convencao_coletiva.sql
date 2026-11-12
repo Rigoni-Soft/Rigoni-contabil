@@ -19,6 +19,9 @@ CREATE TABLE public.rh_convencoes (
     CONSTRAINT rh_convencoes_pkey PRIMARY KEY (id),
     CONSTRAINT rh_convencoes_sindicato_check CHECK (char_length(btrim(sindicato)) BETWEEN 1 AND 120),
     CONSTRAINT rh_convencoes_vigencia_check CHECK (vigencia_fim >= vigencia_inicio),
+    -- O arquivo mora na pasta do próprio Cliente e não se compartilha: a policy do bucket libera a leitura por ele.
+    CONSTRAINT rh_convencoes_arquivo_caminho_check CHECK (arquivo_caminho LIKE cliente_id::text || '/%'),
+    CONSTRAINT rh_convencoes_arquivo_caminho_unico UNIQUE (arquivo_caminho),
     CONSTRAINT rh_convencoes_arquivo_nome_check CHECK (char_length(btrim(arquivo_nome)) BETWEEN 1 AND 255),
     -- coalesce: chave ausente dá NULL, e NULL passaria no CHECK.
     CONSTRAINT rh_convencoes_regras_check CHECK (
@@ -111,7 +114,10 @@ CREATE POLICY rh_interruptores_update ON public.rh_cliente_interruptores FOR UPD
 
 -- Grants explícitos: o anon não recebe nada; a convenção não se altera nem se apaga.
 REVOKE ALL ON TABLE public.rh_convencoes, public.rh_cliente_interruptores FROM PUBLIC, anon, authenticated;
-GRANT SELECT, INSERT ON TABLE public.rh_convencoes TO authenticated;
+-- INSERT só nas colunas que o app envia: id, criado_em e criado_por vêm do DEFAULT (autoria e ordem não se forjam).
+GRANT SELECT ON TABLE public.rh_convencoes TO authenticated;
+GRANT INSERT (cliente_id, sindicato, vigencia_inicio, vigencia_fim, arquivo_caminho, arquivo_nome, regras)
+    ON TABLE public.rh_convencoes TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON TABLE public.rh_cliente_interruptores TO authenticated;
 GRANT ALL ON TABLE public.rh_convencoes, public.rh_cliente_interruptores TO service_role;
 
