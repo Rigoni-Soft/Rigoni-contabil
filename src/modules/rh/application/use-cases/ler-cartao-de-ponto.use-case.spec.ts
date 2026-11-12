@@ -142,11 +142,11 @@ describe("LerCartaoDePonto", () => {
   });
 
   it("só o Responsável do RH grava; o Líder é recusado antes de ler (a imagem nem sai)", async () => {
-    const ocr = { ler: jest.fn(async () => lida(BOA)) };
-    const { caso, auditoria } = montar({ ator: LIDER, leitor: ocr });
+    const leitor = { ler: jest.fn(async () => lida(BOA)) };
+    const { caso, auditoria } = montar({ ator: LIDER, leitor });
 
     expect((await caso.execute(entrada)).ok).toBe(false);
-    expect(ocr.ler).not.toHaveBeenCalled();
+    expect(leitor.ler).not.toHaveBeenCalled();
     expect(auditoria.registrar).toHaveBeenCalledWith(
       expect.objectContaining({ acao: "rh.ponto.ler-cartao", resultado: "falha" }),
     );
@@ -168,10 +168,10 @@ describe("LerCartaoDePonto", () => {
       },
     ],
   ])("recusa %s sem chamar o leitor", async (_, troca) => {
-    const ocr = { ler: jest.fn(async () => lida(BOA)) };
-    const { caso } = montar({ leitor: ocr });
+    const leitor = { ler: jest.fn(async () => lida(BOA)) };
+    const { caso } = montar({ leitor });
 
     expect((await caso.execute({ ...entrada, ...troca })).ok).toBe(false);
-    expect(ocr.ler).not.toHaveBeenCalled();
+    expect(leitor.ler).not.toHaveBeenCalled();
   });
 });
