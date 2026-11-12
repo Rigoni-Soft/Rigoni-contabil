@@ -25,6 +25,11 @@ import {
   padraoRowSchema,
   responsavelRowSchema,
 } from "@/modules/rh/infra/dtos/folha-de-ponto-row.dto";
+import {
+  falhaDeLeitura,
+  lerLinhas,
+  type FalhaDeLeitura,
+} from "@/modules/rh/infra/mappers/falha-de-leitura.mapper";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { PersistenciaError } from "@/shared/errors/persistencia.error";
@@ -334,15 +339,19 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
     return err(new PersistenciaError(FALHA_GRAVAR));
   }
 
+  private get leitura(): FalhaDeLeitura {
+    return {
+      registro: "Falha ao ler a Folha de ponto do RH:",
+      mensagem: FALHA_LER,
+      erros: this.erros,
+    };
+  }
+
   private ler<S extends z.ZodType>(schema: S, data: unknown): Result<z.output<S>, AppError> {
-    const lido = schema.safeParse(data);
-    return lido.success
-      ? ok(lido.data)
-      : this.falhaDeLeitura({ message: z.prettifyError(lido.error) });
+    return lerLinhas(this.leitura, schema, data);
   }
 
   private falhaDeLeitura(error: { message: string }): Result<never, AppError> {
-    this.erros.registrar("Falha ao ler a Folha de ponto do RH:", error.message);
-    return err(new PersistenciaError(FALHA_LER));
+    return falhaDeLeitura(this.leitura, error);
   }
 }

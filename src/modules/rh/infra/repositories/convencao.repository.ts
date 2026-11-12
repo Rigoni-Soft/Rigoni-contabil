@@ -8,10 +8,16 @@ import type {
 } from "@/modules/rh/application/ports/out/convencao.repository";
 import type { RegistroDeErrosPort } from "@/modules/rh/application/ports/out/registro-de-erros.provider";
 import { convencaoRowSchema } from "@/modules/rh/infra/dtos/convencao-row.dto";
+import {
+  falhaDeLeitura,
+  lerLinhas,
+  type FalhaDeLeitura,
+} from "@/modules/rh/infra/mappers/falha-de-leitura.mapper";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { PersistenciaError } from "@/shared/errors/persistencia.error";
 import { ValidationError } from "@/shared/errors/validation.error";
+import { hojeIso } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 // O banco (RLS) é a última barreira: só o Líder do RH e o Admin inserem (42501 para os demais).
@@ -29,16 +35,17 @@ export class SupabaseConvencaoRepository implements ConvencaoRepository {
       .order("vigencia_inicio", { ascending: false })
       .order("criado_em", { ascending: false });
     if (error) return this.falhaDeLeitura(error);
-    const linhas = z.array(convencaoRowSchema).safeParse(data);
-    if (!linhas.success) return this.falhaDeLeitura({ message: z.prettifyError(linhas.error) });
+    const linhas = lerLinhas(this.leitura, z.array(convencaoRowSchema), data);
+    if (!linhas.ok) return linhas;
     return ok(
-      linhas.data.map((l) => ({
+      // O instante vira o dia de São Paulo, não o de UTC (21h-24h já é o dia seguinte lá).
+      linhas.value.map((l) => ({
         id: l.id,
         sindicato: l.sindicato,
         vigenciaInicio: l.vigencia_inicio,
         vigenciaFim: l.vigencia_fim,
         arquivoNome: l.arquivo_nome,
-        enviadaEm: l.criado_em.slice(0, 10),
+        enviadaEm: hojeIso(new Date(l.criado_em)),
         regras: l.regras,
       })),
     );
@@ -65,8 +72,15 @@ export class SupabaseConvencaoRepository implements ConvencaoRepository {
     return err(new PersistenciaError("Não foi possível salvar a convenção. Tente novamente."));
   }
 
+  private get leitura(): FalhaDeLeitura {
+    return {
+      registro: "Falha ao ler as convenções do RH:",
+      mensagem: "Não foi possível carregar as convenções.",
+      erros: this.erros,
+    };
+  }
+
   private falhaDeLeitura(error: { message: string }): Result<never, AppError> {
-    this.erros.registrar("Falha ao ler as convenções do RH:", error.message);
-    return err(new PersistenciaError("Não foi possível carregar as convenções."));
+    return falhaDeLeitura(this.leitura, error);
   }
 }
