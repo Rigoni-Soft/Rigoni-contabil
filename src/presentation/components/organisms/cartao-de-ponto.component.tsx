@@ -123,7 +123,12 @@ export function CartaoDePonto({
         grade
         agrupamento={
           <>
-            <CabecalhoDeColuna colSpan={8} centro>
+            <CabecalhoDeColuna colSpan={2}>
+              <Texto como="span" variante="somenteLeitor">
+                Identificação do dia
+              </Texto>
+            </CabecalhoDeColuna>
+            <CabecalhoDeColuna colSpan={6} centro>
               Batidas
             </CabecalhoDeColuna>
             <CabecalhoDeColuna colSpan={4} centro>
@@ -131,6 +136,11 @@ export function CartaoDePonto({
             </CabecalhoDeColuna>
             <CabecalhoDeColuna colSpan={2} centro>
               Horas extras por faixa
+            </CabecalhoDeColuna>
+            <CabecalhoDeColuna colSpan={1}>
+              <Texto como="span" variante="somenteLeitor">
+                Ação
+              </Texto>
             </CabecalhoDeColuna>
           </>
         }
