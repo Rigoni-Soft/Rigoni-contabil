@@ -70,7 +70,6 @@ export function Tabela({
   semMoldura = false,
   grade = false,
   agrupamento,
-  rodape,
   children,
 }: {
   colunas: React.ReactNode;
@@ -78,8 +77,6 @@ export function Tabela({
   grade?: boolean;
   // Linha de cabeçalhos de grupo acima das colunas (CabecalhoDeColuna com `colSpan`).
   agrupamento?: React.ReactNode;
-  // Linha(s) de totais, depois do corpo (células de `LinhaDeTabela`).
-  rodape?: React.ReactNode;
   // Nome da tabela para leitor de tela.
   legenda?: string;
   // Dentro de um cartão, que já tem a moldura.
@@ -108,7 +105,6 @@ export function Tabela({
           <tr>{colunas}</tr>
         </thead>
         <tbody>{children}</tbody>
-        {rodape && <tfoot className="border-t border-border bg-muted font-medium">{rodape}</tfoot>}
       </table>
     </div>
   );
