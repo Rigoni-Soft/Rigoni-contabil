@@ -920,8 +920,9 @@ e as ações viram dois botões de ícone: ✓ Salvar ("Salvar seg 16/11") e ✕
 **Convenção coletiva do RH (`/rh/folha-de-ponto/[clienteId]/convencao`):** abre pelo link "Convenção
 coletiva →" no topo da Folha de ponto e empilha, na largura `cadastro` e sem a barra de Setores (como a
 Folha de ponto), o `HistoricoDeConvencoes`, o `EnvioDeConvencao` (só Líder do RH e Admin), as
-`RegrasAplicadas` da convenção escolhida e os `AjustesDoClienteNaConvencao`, cada um num cartão com a
-moldura guilhochê, como os blocos da edição do cadastro operacional.
+`RegrasAplicadas` da convenção escolhida e os `AjustesDoClienteNaConvencao`, cada um num `CartaoDaTela`
+(molécula: a `Pilha` com a moldura guilhochê, para a page só passar o conteúdo), como os blocos da edição do
+cadastro operacional.
 
 **`HistoricoDeConvencoes` (organismo):** as convenções do Cliente como botões de link ("Sindicato ·
 vigência"; a que está em tela em `default` e com `aria-current`, as demais em `outline`), com o nome do
