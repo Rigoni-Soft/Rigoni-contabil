@@ -84,8 +84,10 @@ const semBatida = (dia: DiaDoPontoDto) => dia.batidas.length === 0 && dia.extra 
 // folga (sem jornada ou feriado: só a coluna Extra), em branco (dia útil vazio de um cartão ainda sem nenhum
 // dado: neutro e já editável) e normal.
 function situacaoDoDia(dia: DiaDaFolhaDto, cartaoVazio: boolean): LinhaDoCartao["situacao"] {
-  if (dia.abono && semBatida(dia)) return "abonado";
-  if (dia.feriado || dia.cargaMin === 0) return "folga";
+  // Abono sem batida só vale em dia de trabalho: gravado num domingo ou feriado, o dia segue folga.
+  const diaDeTrabalho = !dia.feriado && dia.cargaMin > 0;
+  if (dia.abono && semBatida(dia) && diaDeTrabalho) return "abonado";
+  if (!diaDeTrabalho) return "folga";
   if (dia.apuracao.faltas > 0) return cartaoVazio ? "branco" : "falta";
   return "normal";
 }
@@ -99,10 +101,11 @@ function notaDoDia(dia: DiaDaFolhaDto, situacao: LinhaDoCartao["situacao"]): str
   return base;
 }
 
-// O tom da linha: falta em vermelho suave, hora extra em azul, folga ou feriado em amarelo, dia normal sem tom.
+// O tom da linha: falta em vermelho suave, abono e hora extra em azul suave, folga ou feriado em amarelo,
+// dia normal sem tom.
 function tomDoDia(dia: DiaDaFolhaDto, situacao: LinhaDoCartao["situacao"]): LinhaDoCartao["tom"] {
   if (situacao === "falta") return "alerta";
-  if (teveExtra(dia)) return "info";
+  if (situacao === "abonado" || teveExtra(dia)) return "info";
   return situacao === "folga" ? "atencao" : undefined;
 }
 
@@ -216,6 +219,16 @@ export function navegacaoDoCartao(folha: FolhaDePontoDto) {
   return {
     mesAnteriorHref: href(mesVizinho(folha.competencia, -1)),
     proximoMesHref:
+      folha.competencia < mesAtual() ? href(mesVizinho(folha.competencia, 1)) : undefined,
+  };
+}
+
+// Mês, anterior e próximo da tela do quadro (o empregado escolhido sai: o mês muda a folha toda).
+export function navegacaoDaFolha(folha: FolhaDePontoDto) {
+  const href = (mes: string) => hrefDaFolha(folha.clienteId, { mes });
+  return {
+    anteriorHref: href(mesVizinho(folha.competencia, -1)),
+    proximoHref:
       folha.competencia < mesAtual() ? href(mesVizinho(folha.competencia, 1)) : undefined,
   };
 }

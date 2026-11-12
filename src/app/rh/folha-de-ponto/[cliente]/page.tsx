@@ -1,10 +1,15 @@
 import { redirect } from "next/navigation";
 
 import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
+import { CartaoDaTela } from "@/presentation/components/molecules/cartao-da-tela.component";
+import { NavegacaoDeMes } from "@/presentation/components/molecules/navegacao-de-mes.component";
 import { AcompanhamentoMensalPage } from "@/presentation/components/pages/acompanhamento-mensal.page";
 import { exigirSessao } from "@/presentation/view-models/shell/shell.server";
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
+import { rotuloDaCompetencia } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.presenter";
+import { navegacaoDaFolha } from "@/modules/rh/presentation/view-models/folha-de-ponto/folha-de-ponto.presenter";
 import { carregarFolhaDePonto } from "@/modules/rh/presentation/view-models/folha-de-ponto/folha-de-ponto.server";
+import { LeituraDeCartaoContainer } from "@/modules/rh/presentation/view-models/folha-de-ponto/leitura-de-cartao.container";
 import { QuadroDeFuncionariosContainer } from "@/modules/rh/presentation/view-models/folha-de-ponto/quadro-de-funcionarios.container";
 import { podeVerAcompanhamentoRh } from "@/shared/kernel/papeis";
 import { ROTA_RH_FOLHA_DE_PONTO } from "@/shared/kernel/setores";
@@ -44,6 +49,19 @@ export default async function Page({ params, searchParams }: Props) {
             >
               Convenção coletiva →
             </LinkDeAcao>
+            <NavegacaoDeMes
+              rotuloMes={rotuloDaCompetencia(folha.value.competencia)}
+              {...navegacaoDaFolha(folha.value)}
+              destaque
+            />
+            {folha.value.podeEditar && (
+              <CartaoDaTela>
+                <LeituraDeCartaoContainer
+                  clienteId={folha.value.clienteId}
+                  competencia={folha.value.competencia}
+                />
+              </CartaoDaTela>
+            )}
             <QuadroDeFuncionariosContainer folha={folha.value} />
           </>
         )

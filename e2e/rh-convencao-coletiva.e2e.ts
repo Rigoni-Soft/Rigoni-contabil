@@ -15,10 +15,14 @@ let cnpj = "";
 let semeadoId = "";
 let cnpjSemeado = "";
 
-const pdf = (nome: string) => ({
+// O sindicato e a vigência saem do texto do PDF (o extrator falso lê estas duas linhas).
+const pdf = (nome: string, vigencia = "01/05/2026 a 30/04/2027") => ({
   name: nome,
   mimeType: "application/pdf",
-  buffer: Buffer.from(`%PDF-1.7 ${nome}`),
+  buffer: Buffer.from(`%PDF-1.7
+Sindicato: ${SINDICATO}
+Vigência: ${vigencia}
+`),
 });
 
 test.describe("Convenção coletiva do RH", () => {
@@ -84,9 +88,7 @@ test.describe("Convenção coletiva do RH", () => {
     await expect(page.getByText("Nenhuma convenção enviada para este cliente.")).toBeVisible();
 
     const form = page.getByRole("form", { name: "Enviar convenção" });
-    await form.getByLabel("Sindicato").fill(SINDICATO);
-    await form.getByLabel("Início da vigência").fill("2026-05-01");
-    await form.getByLabel("Fim da vigência").fill("2027-04-30");
+    await expect(form.getByLabel("Sindicato")).toHaveCount(0);
     await page.locator("#convencao-arquivo").setInputFiles(pdf("cct-2026.pdf"));
     await form.getByRole("button", { name: "Enviar convenção" }).click();
 
@@ -121,9 +123,6 @@ test.describe("Convenção coletiva do RH", () => {
     await page.goto(`/rh/folha-de-ponto/${semeadoId}/convencao`);
 
     const form = page.getByRole("form", { name: "Enviar convenção" });
-    await form.getByLabel("Sindicato").fill(SINDICATO);
-    await form.getByLabel("Início da vigência").fill("2027-05-01");
-    await form.getByLabel("Fim da vigência").fill("2028-04-30");
     await page.locator("#convencao-arquivo").setInputFiles({
       name: "cct-ilegivel.pdf",
       mimeType: "application/pdf",
@@ -134,7 +133,9 @@ test.describe("Convenção coletiva do RH", () => {
     const aposFalha = await admin.from("rh_convencoes").select("id").eq("cliente_id", semeadoId);
     expect(aposFalha.data).toHaveLength(1);
 
-    await page.locator("#convencao-arquivo").setInputFiles(pdf("cct-2027.pdf"));
+    await page
+      .locator("#convencao-arquivo")
+      .setInputFiles(pdf("cct-2027.pdf", "01/05/2027 a 30/04/2028"));
     await form.getByRole("button", { name: "Enviar convenção" }).click();
 
     const historico = page.getByRole("region", { name: "Histórico de convenções" });

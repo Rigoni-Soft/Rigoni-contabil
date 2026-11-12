@@ -21,6 +21,8 @@ import { MOLDURA_DO_CARTAO } from "@/presentation/lib/moldura-do-cartao";
 
 type Props = {
   empregado: string;
+  // O botão "Ler atestado" (com a modal dele), à esquerda do Salvar; só vem quando o cartão é editável.
+  acaoDeAtestado?: React.ReactNode;
   empresa: string;
   rotuloMes: string;
   mesAnteriorHref: string;
@@ -63,6 +65,7 @@ type Props = {
 // O Cartão de ponto de um empregado no mês inteiro (28 a 31 dias), com a Totalização logo abaixo (a que vai para o PDF).
 export function CartaoDePonto({
   empregado,
+  acaoDeAtestado,
   empresa,
   rotuloMes,
   mesAnteriorHref,
@@ -190,6 +193,7 @@ export function CartaoDePonto({
       {editavel && (
         <Pilha espaco={2}>
           <Linha espaco={3} quebra alinhar="centro" justificar="fim">
+            {acaoDeAtestado}
             {/* Salva as linhas abertas e fica na tela, com a Totalização em destaque. */}
             <Button
               type="button"

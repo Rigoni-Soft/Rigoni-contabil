@@ -559,9 +559,9 @@ importa na leitura da foto do cartão, não na exibição. Dia sem jornada marca
   "Cartão de ponto de <nome>" no cartão era redundante.
 - **Tom da linha pelo estado do dia** (mistura suave com `card`, opaca para a primeira coluna fixa; o estado
   também vem em texto sob a data, a cor nunca vai sozinha): **falta** = `destructive` (vermelho sutil, nota
-  "Falta"); **hora extra** = `info` (azul, nota "Hora extra"); **folga ou feriado** = `warning` (amarelo, nota
+  "Falta"); **abono** = `info` (azul sutil, nota "Abonado", só em dia de trabalho: abono gravado num domingo ou feriado não pinta a linha, o dia segue folga); **hora extra** = `info` (azul, nota "Hora extra"); **folga ou feriado** = `warning` (amarelo, nota
   "Folga" ou "Feriado"; feriado com hora extra fica azul, "Feriado · hora extra"); dia normal sem tom. Precedência:
-  falta, hora extra, folga/feriado.
+  falta, abono/hora extra, folga/feriado.
 - **Situação do dia** (decide o que a linha deixa digitar e o botão que mostra; calculada no presenter):
   - **Cartão novo** (nunca salvo: sem a marca de "cartão iniciado" e sem nenhum dia com dado; mês ou empregado novo): todas as linhas abrem já **editáveis**, sem um
     lápis por dia, e o dia útil vazio fica **em branco** (neutro, sem "Falta", sem Abonar). O "Salvar" da tabela
@@ -571,7 +571,7 @@ importa na leitura da foto do cartão, não na exibição. Dia sem jornada marca
     neutras; os dias úteis vazios só contam como falta depois que o cartão é começado.
   - **Falta** (dia útil vazio de um cartão já começado): horários **desabilitados** (evita lançar por engano),
     botões lápis (única forma deliberada de lançar um horário) e "Abonar" (`warning`, um clique grava só o Abono).
-  - **Abonado** (abono sem batida): horários desabilitados; o botão é "Desfazer abono", que volta a falta. Não há
+  - **Abonado** (abono sem batida, em dia de trabalho): horários desabilitados; o botão é "Desfazer abono", que volta a falta. Não há
     coluna nem caixa "Abono": o abono é o botão. Abono de dia com batida (atraso abonado) segue gravado ao salvar.
   - **Folga ou feriado** (sem jornada): como toda hora trabalhada nesses dias é hora extra, só as colunas
     **Extra entrada/saída** ficam habilitadas (Entrada e Saída, desabilitadas), salvo se já houver batida salva.
@@ -904,6 +904,25 @@ padrão; "Sem movimento no mês" e "Inativar empregado" ao fim. O escolhido leva
 ligado ao campo Nome, e o formulário só é limpo no sucesso. Em leitura (Líder, Admin ou outro
 Responsável) só a lista e os dados aparecem, sem formulário nem botão de escrita.
 
+A tela do quadro abre com a `NavegacaoDeMes` em destaque (a mesma do cartão: Mês anterior, o mês, Próximo mês; sem próximo no mês corrente), logo acima do formulário de leitura: o mês de referência da leitura é o que se vê, e trocá-lo não exige mexer na URL.
+
+**`LeituraDeCartao` (organismo):** formulário "Ler foto do cartão de ponto", num `CartaoDaTela` acima do
+`QuadroDeFuncionarios` (só o Responsável do RH o recebe): `NotaDeObrigatorio`, o texto de apoio (a foto vira o
+cartão da quinzena, não é guardada, confira depois), o `CampoDeOpcoes` "Quinzena" na malha `1>2>4` e o
+`CampoDeArquivo` (JPEG ou PNG de até 4 MB, dito antes de escolher). O botão "Ler cartão" usa `aria-disabled` enquanto
+lê ("Lendo o cartão…") e o foco não sai dele; o erro da foto (falta ou mais de 4 MB) vai no próprio `CampoDeArquivo` (`aria-invalid` e `FieldError`) e a falha
+da leitura mostra o `AvisoDeStatus` de erro mandando digitar à mão, preservando a foto escolhida; o sucesso mostra o resumo ("Erick (cadastrado no quadro): 3 dias lidos, 1 falta anotada.
+Confira o cartão.") em `AvisoDeStatus` de sucesso e limpa a foto sem remontar o formulário (o foco fica no botão). Sem tela de confirmação.
+
+**`LeituraDeAtestado` (organismo):** o botão de contorno "Ler atestado" no rodapé do `CartaoDePonto` (à esquerda do
+"Salvar", só quando o cartão é editável) que abre um `<dialog>` modal (`SUPERFICIE_DE_PAINEL`, `w-[min(92vw,32rem)]`, o Container
+o abre com `showModal`, foco preso, Esc e véu fecham). A modal tem o título "Ler atestado ou declaração", o botão fechar (X), o
+texto de apoio (de quem são os dias, o que cada documento abona, que o nome precisa ser o do empregado, que foto e CID não
+são guardados), um `CampoDeArquivo` (JPEG ou PNG de até 4 MB) e os botões "Abonar pelo atestado" (`aria-disabled` e "Lendo o
+atestado…" enquanto lê) e "Cancelar". Sucesso fecha a modal, recarrega a planilha e mostra o resumo ("1 dia abonado pelo
+atestado. Confira o cartão.") no rodapé do cartão; erro (foto, nome que não confere, nada a abonar, leitura que falhou) mantém a
+modal aberta com o motivo (no campo, se for da foto; senão em `AvisoDeStatus` de erro) e a planilha fica como estava.
+
 **`CartaoDePonto` (organismo):** o cartão de um empregado no mês inteiro, de cima para baixo: título, Empresa e
 Período, `NavegacaoDeMes` com `destaque`, um aviso de apoio quando só se lê, a tabela (um dia por linha,
 `LinhaDoCartaoDePonto`), a barra de ações da tabela (Salvar, Limpar, Cancelar) e a `TotalizacaoDoPonto`. Ver
@@ -930,10 +949,9 @@ arquivo e a data do envio em `nota`. A de vigência mais recente vem primeiro; a
 guardadas e cada uma abre as suas regras (`?convencao=`). Sem convenção, o texto convida a enviar (quem
 pode) ou diz quem envia (quem só lê).
 
-**`EnvioDeConvencao` (organismo):** formulário "Enviar ou renovar a convenção": Sindicato, início e fim da
-vigência (`type="date"`) em `CampoDeTexto` na malha `1>2>4` (Sindicato em 2 colunas) com a `NotaDeObrigatorio`, e o `CampoDeArquivo` (PDF de até 4 MB, dito antes
-de escolher). Enquanto lê, o botão fica desabilitado e diz "Lendo a convenção…" (a extração roda uma vez,
-no envio); o erro aponta o campo (`aria-invalid` e `aria-describedby` ligados ao `AvisoDeStatus`; o do PDF vai no próprio `CampoDeArquivo`) e o formulário só é limpo no sucesso. Quem só lê não
+**`EnvioDeConvencao` (organismo):** formulário "Enviar ou renovar a convenção" com um campo só, o `CampoDeArquivo` (PDF de até 4 MB, dito
+antes de escolher): o sindicato e a vigência saem do PDF, na leitura, e não se digitam (sem `NotaDeObrigatorio`). Enquanto lê, o botão fica desabilitado e diz "Lendo a convenção…" (a extração roda uma vez,
+no envio); todo erro vai no próprio `CampoDeArquivo` (`aria-invalid` e `aria-describedby`) e leva o foco a ele, o formulário fica `aria-busy` e só é limpo no sucesso. Quem só lê não
 o recebe.
 
 **`RegrasAplicadas` (organismo):** a tela de leitura das regras: uma `Tabela` com um parâmetro por linha

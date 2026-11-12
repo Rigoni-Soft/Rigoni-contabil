@@ -2,7 +2,12 @@ import { ConsoleRegistroDeErrosGateway as ConsoleUsuarios } from "@/modules/usua
 
 import "server-only";
 
-import { EXTRACAO_CONVENCAO_MODO } from "@/env";
+import {
+  ANTHROPIC_API_KEY,
+  EXTRACAO_CONVENCAO_MODO,
+  LEITURA_CARTAO_MODELO,
+  LEITURA_CARTAO_MODO,
+} from "@/env";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { auditoriaBestEffort } from "@/main/auditoria.factory";
@@ -25,6 +30,8 @@ import type {
   RenomearServicoAcompanhamentoPort,
 } from "@/modules/rh/application/ports/in/gerir-servico-acompanhamento.provider";
 import type { IniciarCartaoDoPontoPort } from "@/modules/rh/application/ports/in/iniciar-cartao-do-ponto.provider";
+import type { LerAtestadoDePontoPort } from "@/modules/rh/application/ports/in/ler-atestado-de-ponto.provider";
+import type { LerCartaoDePontoPort } from "@/modules/rh/application/ports/in/ler-cartao-de-ponto.provider";
 import type {
   DefinirServicoAplicavelPort,
   MarcarServicoAcompanhamentoPort,
@@ -34,6 +41,10 @@ import type { ObterAcompanhamentoMensalPort } from "@/modules/rh/application/por
 import type { ObterConvencoesDoClientePort } from "@/modules/rh/application/ports/in/obter-convencoes-do-cliente.provider";
 import type { ObterFolhaDePontoPort } from "@/modules/rh/application/ports/in/obter-folha-de-ponto.provider";
 import type { SalvarDiaDoPontoPort } from "@/modules/rh/application/ports/in/salvar-dia-do-ponto.provider";
+import type {
+  LeitorDeAtestadoPort,
+  LeitorDeCartaoPort,
+} from "@/modules/rh/application/ports/out/leitor-de-cartao.provider";
 import type { AtorSessaoDto, SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
 import {
   DefinirConvencaoDoEmpregado,
@@ -53,6 +64,8 @@ import {
   RenomearServicoAcompanhamento,
 } from "@/modules/rh/application/use-cases/gerir-servico-acompanhamento.use-case";
 import { IniciarCartaoDoPonto } from "@/modules/rh/application/use-cases/iniciar-cartao-do-ponto.use-case";
+import { LerAtestadoDePonto } from "@/modules/rh/application/use-cases/ler-atestado-de-ponto.use-case";
+import { LerCartaoDePonto } from "@/modules/rh/application/use-cases/ler-cartao-de-ponto.use-case";
 import {
   DefinirServicoAplicavel,
   MarcarServicoAcompanhamento,
@@ -65,6 +78,9 @@ import { SalvarDiaDoPonto } from "@/modules/rh/application/use-cases/salvar-dia-
 import { ConsoleRegistroDeErrosGateway as ConsoleRh } from "@/modules/rh/infra/gateways/console-registro-de-erros.gateway";
 import { ExtratorDeRegrasFalsoGateway } from "@/modules/rh/infra/gateways/extrator-de-regras-falso.gateway";
 import { ExtratorDeRegrasIndisponivelGateway } from "@/modules/rh/infra/gateways/extrator-de-regras-indisponivel.gateway";
+import { LeitorDeCartaoFalsoGateway } from "@/modules/rh/infra/gateways/leitor-de-cartao-falso.gateway";
+import { LeitorDeCartaoIndisponivelGateway } from "@/modules/rh/infra/gateways/leitor-de-cartao-indisponivel.gateway";
+import { LeitorDeCartaoVisaoGateway } from "@/modules/rh/infra/gateways/leitor-de-cartao-visao.gateway";
 import { RelogioSistemaGateway } from "@/modules/rh/infra/gateways/relogio-sistema.gateway";
 import { SupabaseArmazenamentoDeConvencaoGateway } from "@/modules/rh/infra/gateways/supabase-armazenamento-de-convencao.gateway";
 import { SupabaseAcompanhamentoRepository } from "@/modules/rh/infra/repositories/acompanhamento.repository";
@@ -194,6 +210,42 @@ export async function makeIniciarCartaoDoPonto(): Promise<IniciarCartaoDoPontoPo
 export async function makeSalvarDiaDoPonto(): Promise<SalvarDiaDoPontoPort> {
   const { sessao, repositorio, auditoria } = await montarFolha();
   return new SalvarDiaDoPonto(sessao, repositorio, auditoria, new RelogioSistemaGateway());
+}
+
+function leitorDoCartao(): LeitorDeCartaoPort & LeitorDeAtestadoPort {
+  switch (LEITURA_CARTAO_MODO) {
+    case "falso":
+      return new LeitorDeCartaoFalsoGateway();
+    case "visao":
+      // O env já exige a chave neste modo.
+      return new LeitorDeCartaoVisaoGateway(ANTHROPIC_API_KEY ?? "", LEITURA_CARTAO_MODELO);
+    default:
+      return new LeitorDeCartaoIndisponivelGateway();
+  }
+}
+
+export async function makeLerAtestadoDePonto(): Promise<LerAtestadoDePontoPort> {
+  const { sessao, repositorio, auditoria } = await montarFolha();
+  return new LerAtestadoDePonto(
+    sessao,
+    repositorio,
+    auditoria,
+    new RelogioSistemaGateway(),
+    leitorDoCartao(),
+    errosRh,
+  );
+}
+
+export async function makeLerCartaoDePonto(): Promise<LerCartaoDePontoPort> {
+  const { sessao, repositorio, auditoria } = await montarFolha();
+  return new LerCartaoDePonto(
+    sessao,
+    repositorio,
+    auditoria,
+    new RelogioSistemaGateway(),
+    leitorDoCartao(),
+    errosRh,
+  );
 }
 
 export async function makeObterConvencoesDoCliente(): Promise<ObterConvencoesDoClientePort> {

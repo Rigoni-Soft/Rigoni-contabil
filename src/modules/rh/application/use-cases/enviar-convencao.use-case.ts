@@ -5,7 +5,10 @@ import type {
 import type { ArmazenamentoDeConvencaoPort } from "@/modules/rh/application/ports/out/armazenamento-de-convencao.provider";
 import type { AuditoriaPort } from "@/modules/rh/application/ports/out/auditoria.provider";
 import type { ConvencaoRepository } from "@/modules/rh/application/ports/out/convencao.repository";
-import type { ExtratorDeRegrasPort } from "@/modules/rh/application/ports/out/extrator-de-regras.provider";
+import type {
+  ExtracaoDeRegras,
+  ExtratorDeRegrasPort,
+} from "@/modules/rh/application/ports/out/extrator-de-regras.provider";
 import type { FolhaDePontoRepository } from "@/modules/rh/application/ports/out/folha-de-ponto.repository";
 import type { RegistroDeErrosPort } from "@/modules/rh/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
@@ -59,32 +62,34 @@ export class EnviarConvencao implements EnviarConvencaoPort {
       return err(new ForbiddenError("Só o Líder do RH e o Admin enviam a convenção."));
     }
 
-    const dados = validar(input);
-    if (!dados.ok) return dados;
+    const arquivo = validarArquivo(input.arquivo);
+    if (!arquivo.ok) return arquivo;
 
-    const caminho = `${input.clienteId}/${crypto.randomUUID()}.pdf`;
-    const guardado = await this.armazenamento.enviar(caminho, input.arquivo.bytes);
-    if (!guardado.ok) return guardado;
-
-    // O extrator real chama um modelo de linguagem (rede, tempo esgotado): se lançar, o PDF não fica órfão.
-    let extracao: Awaited<ReturnType<ExtratorDeRegrasPort["extrair"]>>;
+    // Extrai antes de guardar: o PDF de uma convenção recusada nunca chega ao armazenamento. O extrator real
+    // chama um modelo de linguagem (rede, tempo esgotado) e pode lançar.
+    let extracao: ExtracaoDeRegras;
     try {
       extracao = await this.extrator.extrair(input.arquivo.bytes);
     } catch (e) {
-      await this.removerOrfao(caminho);
-      this.erros.registrar("rh.convencao.extracao_falhou", caminho, String(e));
+      this.erros.registrar("rh.convencao.extracao_falhou", input.clienteId, String(e));
       return err(new PersistenciaError("Não foi possível ler a convenção. Tente novamente."));
     }
     if (!extracao.lido) {
-      await this.removerOrfao(caminho);
       return err(
         new ValidationError("Não foi possível ler a convenção. Confira o PDF e tente de novo."),
       );
     }
 
+    const identificacao = identificar(extracao);
+    if (!identificacao.ok) return identificacao;
+
+    const caminho = `${input.clienteId}/${crypto.randomUUID()}.pdf`;
+    const guardado = await this.armazenamento.enviar(caminho, input.arquivo.bytes);
+    if (!guardado.ok) return guardado;
+
     const gravada = await this.convencoes.inserir({
       clienteId: input.clienteId,
-      ...dados.value,
+      ...identificacao.value,
       arquivoCaminho: caminho,
       arquivoNome: input.arquivo.nome.trim(),
       regras: validarRegrasDaConvencao(extracao.candidatas),
@@ -104,26 +109,8 @@ export class EnviarConvencao implements EnviarConvencaoPort {
   }
 }
 
-function validar(
-  input: EnviarConvencaoInput,
-): Result<{ sindicato: string; vigenciaInicio: string; vigenciaFim: string }, ValidationError> {
-  const sindicato = validarSindicato(input.sindicato);
-  if (!sindicato.ok) return sindicato;
-  if (!dataIsoValida(input.vigenciaInicio) || !dataIsoValida(input.vigenciaFim)) {
-    return err(
-      new ValidationError("Informe a vigência com início e fim.", {
-        vigenciaInicio: ["Data inválida"],
-      }),
-    );
-  }
-  if (input.vigenciaFim < input.vigenciaInicio) {
-    return err(
-      new ValidationError("A vigência termina antes de começar.", {
-        vigenciaFim: ["Fim antes do início"],
-      }),
-    );
-  }
-  const { bytes, nome } = input.arquivo;
+function validarArquivo(arquivo: EnviarConvencaoInput["arquivo"]): Result<void, ValidationError> {
+  const { bytes, nome } = arquivo;
   if (
     nome.trim() === "" ||
     nome.trim().length > NOME_DO_ARQUIVO_MAXIMO ||
@@ -135,11 +122,25 @@ function validar(
       new ValidationError("Envie a convenção em PDF de até 10 MB.", { arquivo: ["PDF inválido"] }),
     );
   }
-  return ok({
-    sindicato: sindicato.value,
-    vigenciaInicio: input.vigenciaInicio,
-    vigenciaFim: input.vigenciaFim,
-  });
+  return ok(undefined);
+}
+
+function identificar(
+  extracao: Extract<ExtracaoDeRegras, { lido: true }>,
+): Result<{ sindicato: string; vigenciaInicio: string; vigenciaFim: string }, ValidationError> {
+  const sindicato = validarSindicato(extracao.sindicato);
+  const { vigenciaInicio, vigenciaFim } = extracao;
+  if (
+    !sindicato.ok ||
+    !dataIsoValida(vigenciaInicio) ||
+    !dataIsoValida(vigenciaFim) ||
+    vigenciaFim < vigenciaInicio
+  ) {
+    return err(
+      new ValidationError("Não foi possível identificar o sindicato e a vigência no PDF."),
+    );
+  }
+  return ok({ sindicato: sindicato.value, vigenciaInicio, vigenciaFim });
 }
 
 function ehPdf(bytes: Uint8Array): boolean {

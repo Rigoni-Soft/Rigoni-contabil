@@ -24,6 +24,7 @@ import {
   navegacaoDoCartao,
   temDados,
 } from "./folha-de-ponto.presenter";
+import { LeituraDeAtestadoContainer } from "./leitura-de-atestado.container";
 
 type Props = { folha: FolhaDePontoDto };
 
@@ -172,8 +173,28 @@ export function CartaoDePontoContainer({ folha }: Props) {
       router.refresh();
     });
 
+  // Atestado abonou: as linhas fechadas recomeçam dos valores salvos (o abono aparece) e o resumo fica no rodapé; as
+  // linhas abertas mantêm o que o usuário está digitando.
+  const aposAtestado = (resumo: string) => {
+    limparAvisos();
+    recomecar(selecionado.dias.map((d) => d.data).filter((d) => !emEdicao.includes(d)));
+    setAvisoGeral({ tipo: "sucesso", texto: resumo });
+    router.refresh();
+  };
+
+  const editavel = folha.podeEditar && selecionado.empregado.ativo;
+
   return (
     <CartaoDePonto
+      acaoDeAtestado={
+        editavel ? (
+          <LeituraDeAtestadoContainer
+            empregadoId={selecionado.empregado.id}
+            nomeDoEmpregado={selecionado.empregado.nome}
+            aoAbonar={aposAtestado}
+          />
+        ) : undefined
+      }
       empregado={selecionado.empregado.nome}
       empresa={folha.empresa}
       rotuloMes={rotuloDaCompetencia(folha.competencia)}
@@ -187,7 +208,7 @@ export function CartaoDePontoContainer({ folha }: Props) {
       // Empregado desligado não recebe cartão: o aviso "o Responsável o salva" não faz sentido para ele.
       cartaoNovo={cartaoNovo && selecionado.empregado.ativo}
       avisoDaTotalizacao={selecionado.semConvencao ? AVISO_SEM_CONVENCAO : undefined}
-      editavel={folha.podeEditar && selecionado.empregado.ativo}
+      editavel={editavel}
       pendente={pendente}
       aviso={aviso}
       avisoGeral={avisoGeral}
