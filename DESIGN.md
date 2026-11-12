@@ -34,8 +34,8 @@ com a preferência de SO do visitante.
 | `secondary`, `muted`, `accent` | tons de papel/verde desaturados | idem | hierarquia secundária, hover |
 | `destructive` / `destructive-foreground` | `#e0968c` / `#2a0f0c` | `#7a2b2b` / `#f4f1e8` | erro/atenção — sempre com ícone, nunca só cor; também estado "falha" em listas/feeds |
 | `success` / `success-foreground` | `#d9bd7c` / `#2a1f0c` | `#96742f` / `#2a1f0c` | selo dourado "em dia" — reservado especificamente para as telas de status do Simples Nacional (#35–#37); não usar para resultado sucesso/falha genérico (isso é `primary`/`destructive`, ver Componentes → Indicadores de estado). Só em traço/ícone: no claro tem 3,8:1 sobre `background`, abaixo dos 4,5:1 de texto |
-| `warning` / `warning-foreground` | `#e6c35c` / `#2a1f0c` | `#d4a62a` / `#2a1f0c` | amarelo de atenção (11/11/2026, tela do Cartão de ponto): botão "Limpar" e o tom de fundo de folga e feriado. Não é o dourado `success` do selo "em dia" do Simples Nacional. Texto escuro sobre o amarelo (≥7:1) nos dois temas |
-| `info` | `#8fb4d9` | `#2b5b8a` | azul informativo (11/11/2026): só como tom de fundo suave (mistura de 11% com `card`), p.ex. a linha com hora extra no Cartão de ponto; sem texto sobre ele |
+| `warning` / `warning-foreground` | `#e6c35c` / `#2a1f0c` | `#d4a62a` / `#2a1f0c` | amarelo de atenção (tela do Cartão de ponto): botão "Limpar" e o tom de fundo de folga e feriado. Não é o dourado `success` do selo "em dia" do Simples Nacional. Texto escuro sobre o amarelo (≥7:1) nos dois temas |
+| `info` | `#8fb4d9` | `#2b5b8a` | azul informativo: só como tom de fundo suave (mistura de 11% com `card`), p.ex. a linha com hora extra no Cartão de ponto; sem `info-foreground`: o texto da linha segue a cor padrão (`foreground` sobre o fundo tingido: 9,4:1 no escuro, 13,0:1 no claro) |
 | `border` / `ring` | `#47453e` | tons de contorno derivados do verde | bordas decorativas, foco |
 | `input` | `#7a7765` | `#857d66` | contorno de campo, select, textarea, botão outline e painel de emoji: ≥3:1 sobre `background` e `card` nos dois temas (WCAG 1.4.11) |
 | `overlay` | `#0f0e0c` a 70% | `#16231f` a 55% | véu atrás de diálogos nativos (`popover`: imagem ampliada, prévia de documento; `<dialog>` modal: sino de avisos) — tinta de cada tema, não preto puro; só escurece o fundo, não carrega texto |
@@ -511,7 +511,7 @@ uma prop opcional `onCancelar`: quando informada (uso inline), "Cancelar"
 vira `Button` que fecha o painel e volta pro campo de busca; sem ela (uso
 em `/clientes/[id]`), continua `<Link href="/">`.
 
-### Tela de lista + formulário (quadro de funcionários do RH, 11/11/2026)
+### Tela de lista + formulário (quadro de funcionários do RH)
 
 Regra do dono do produto, a aplicar sem que seja pedida em toda tela que lista itens e os cadastra/edita
 na mesma tela (Quadro de funcionários da Folha de ponto é o primeiro consumidor):
@@ -541,7 +541,7 @@ na mesma tela (Quadro de funcionários da Folha de ponto é o primeiro consumido
 - **Conteúdo de outra natureza vai para tela própria.** O Cartão de ponto de um empregado não se empilha
   sob o quadro: abre por um botão da linha, numa tela com "Voltar" ao quadro.
 
-### Cartão de ponto: tabela no desenho da planilha (11/11/2026)
+### Cartão de ponto: tabela no desenho da planilha
 
 O Cartão de ponto de um empregado (`/rh/folha-de-ponto/[cliente]/cartao/[empregado]`) copia a planilha do
 escritório (`PLANILHA CARTAO PONTO`, aba do funcionário): tabela com divisória em toda célula (`Tabela` com
