@@ -6,6 +6,7 @@ import type {
   ConvencaoDto,
   ConvencoesDoClienteDto,
 } from "@/modules/rh/application/dtos/convencao.dto";
+import { formatarDataIso } from "@/shared/kernel/data-iso";
 import {
   CHAVES_DE_REGRA,
   CHAVES_NO_CALCULO,
@@ -16,8 +17,9 @@ import {
   type MotivoDeRejeicao,
   type RegraAplicada,
 } from "@/shared/kernel/regras-da-convencao";
+import { NOME_DO_ARQUIVO_MAXIMO } from "@/shared/kernel/texto";
 
-import { LIMITE_DO_PDF } from "./convencao.schema";
+import { LIMITE_DO_PDF, MENSAGEM_NOME_LONGO, MENSAGEM_PDF_GRANDE } from "./convencao.schema";
 
 const MOTIVOS: Record<MotivoDeRejeicao, string> = {
   chave_desconhecida: "Parâmetro fora do esquema",
@@ -31,7 +33,6 @@ const MOTIVOS: Record<MotivoDeRejeicao, string> = {
 const IGUAL = "igual à legislação";
 
 const numero = (n: number) => String(n).replace(".", ",");
-const dataBr = (iso: string) => iso.split("-").reverse().join("/");
 
 // 480 vira "8h", 440 "7h20", 30 "30 min".
 export function duracao(minutos: number): string {
@@ -136,7 +137,8 @@ export function convencaoEscolhida(
   return convencoes.find((c) => c.id === id) ?? convencoes[0];
 }
 
-const vigenciaDe = (c: ConvencaoDto) => `${dataBr(c.vigenciaInicio)} a ${dataBr(c.vigenciaFim)}`;
+const vigenciaDe = (c: ConvencaoDto) =>
+  `${formatarDataIso(c.vigenciaInicio)} a ${formatarDataIso(c.vigenciaFim)}`;
 
 // "Comércio · 01/05/2026 a 30/04/2027".
 export const tituloDaConvencao = (c: ConvencaoDto) => `${c.sindicato} · ${vigenciaDe(c)}`;
@@ -151,7 +153,7 @@ export function historicoDeConvencoes(
     sindicato: c.sindicato,
     vigencia: vigenciaDe(c),
     arquivoNome: c.arquivoNome,
-    enviadaEm: dataBr(c.enviadaEm),
+    enviadaEm: formatarDataIso(c.enviadaEm),
     href: `${rota}?convencao=${encodeURIComponent(c.id)}`,
     selecionada: c.id === escolhidaId,
   }));
@@ -198,7 +200,9 @@ export function lerEnvioDoFormulario(
   const ehPdf = arquivo.type === "application/pdf" || arquivo.name.toLowerCase().endsWith(".pdf");
   if (!ehPdf) return { ok: false, erro: "Envie a convenção em PDF.", campo: "arquivo" };
   if (arquivo.size > LIMITE_DO_PDF)
-    return { ok: false, erro: "O PDF passa de 4 MB.", campo: "arquivo" };
+    return { ok: false, erro: MENSAGEM_PDF_GRANDE, campo: "arquivo" };
+  if (arquivo.name.trim().length > NOME_DO_ARQUIVO_MAXIMO)
+    return { ok: false, erro: MENSAGEM_NOME_LONGO, campo: "arquivo" };
 
   const inicio = String(campos.get("vigenciaInicio") ?? "");
   const fim = String(campos.get("vigenciaFim") ?? "");

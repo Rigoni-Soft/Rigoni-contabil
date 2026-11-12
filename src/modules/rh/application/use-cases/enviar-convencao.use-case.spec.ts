@@ -137,6 +137,10 @@ describe("EnviarConvencao", () => {
       "arquivo que não é PDF",
       { arquivo: { nome: "a.pdf", bytes: Uint8Array.from(Buffer.from("MZ")) } },
     ],
+    [
+      "nome do arquivo com mais de 255 caracteres",
+      { arquivo: { nome: "a".repeat(256), bytes: PDF } },
+    ],
     ["arquivo vazio", { arquivo: { nome: "a.pdf", bytes: new Uint8Array() } }],
     [
       "arquivo acima de 10 MB",

@@ -8,10 +8,9 @@ import type { AuditoriaPort } from "@/modules/rh/application/ports/out/auditoria
 import type { FolhaDePontoRepository } from "@/modules/rh/application/ports/out/folha-de-ponto.repository";
 import type { SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
 import { EscreverPonto } from "@/modules/rh/application/use-cases/gerir-quadro-de-funcionarios.use-case";
+import { validarSindicato } from "@/modules/rh/domain/services/validar-ponto.service";
 import type { AppError } from "@/shared/errors/app.error";
-import { ValidationError } from "@/shared/errors/validation.error";
-import { err, type Result } from "@/shared/kernel/result";
-import { TEXTO_CURTO_MAXIMO } from "@/shared/kernel/texto";
+import { ok, type Result } from "@/shared/kernel/result";
 
 // Interruptores do Cliente e ponteiro do empregado para a convenção: como o resto da Folha de ponto, só o
 // Responsável do RH do Cliente grava (o banco repete a regra e audita o sucesso).
@@ -42,10 +41,9 @@ export class DefinirConvencaoDoEmpregado
   }
 
   async execute(input: DefinirConvencaoDoEmpregadoInput): Promise<Result<void, AppError>> {
-    const sindicato = input.sindicato === null ? null : input.sindicato.trim();
-    if (sindicato !== null && (sindicato === "" || sindicato.length > TEXTO_CURTO_MAXIMO)) {
-      return err(new ValidationError("Sindicato inválido.", { sindicato: ["Sindicato inválido"] }));
-    }
+    const lido = input.sindicato === null ? ok(null) : validarSindicato(input.sindicato);
+    if (!lido.ok) return lido;
+    const sindicato = lido.value;
     const autorizado = await this.autorizarPorEmpregado(input.empregadoId);
     if (!autorizado.ok) return autorizado;
     return this.repositorio.definirConvencaoDoEmpregado(input.empregadoId, sindicato);

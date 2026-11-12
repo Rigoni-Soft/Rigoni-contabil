@@ -15,6 +15,18 @@ export function validarNome(nome: string): Result<string, ValidationError> {
   return ok(limpo);
 }
 
+export function validarSindicato(sindicato: string): Result<string, ValidationError> {
+  const limpo = sindicato.trim();
+  if (limpo.length === 0 || limpo.length > TEXTO_CURTO_MAXIMO) {
+    return err(
+      new ValidationError(`O sindicato tem de 1 a ${TEXTO_CURTO_MAXIMO} caracteres.`, {
+        sindicato: ["Sindicato inválido"],
+      }),
+    );
+  }
+  return ok(limpo);
+}
+
 export function validarJornada(jornada: readonly number[]): Result<Jornada, ValidationError> {
   const valida =
     jornada.length === 7 && jornada.every((m) => Number.isInteger(m) && m >= 0 && m <= 1440);

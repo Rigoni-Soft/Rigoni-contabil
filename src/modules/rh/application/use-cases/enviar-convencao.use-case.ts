@@ -9,6 +9,7 @@ import type { ExtratorDeRegrasPort } from "@/modules/rh/application/ports/out/ex
 import type { FolhaDePontoRepository } from "@/modules/rh/application/ports/out/folha-de-ponto.repository";
 import type { RegistroDeErrosPort } from "@/modules/rh/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
+import { validarSindicato } from "@/modules/rh/domain/services/validar-ponto.service";
 import { validarRegrasDaConvencao } from "@/modules/rh/domain/services/validar-regras-da-convencao.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
@@ -17,7 +18,7 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { dataIsoValida } from "@/shared/kernel/data-iso";
 import { podeGerirConvencaoRh } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
-import { TEXTO_CURTO_MAXIMO } from "@/shared/kernel/texto";
+import { NOME_DO_ARQUIVO_MAXIMO } from "@/shared/kernel/texto";
 
 const ACAO = "rh.convencao.enviar";
 // O limite do bucket: o servidor barra antes de gastar armazenamento e extração.
@@ -97,14 +98,8 @@ export class EnviarConvencao implements EnviarConvencaoPort {
 function validar(
   input: EnviarConvencaoInput,
 ): Result<{ sindicato: string; vigenciaInicio: string; vigenciaFim: string }, ValidationError> {
-  const sindicato = input.sindicato.trim();
-  if (sindicato === "" || sindicato.length > TEXTO_CURTO_MAXIMO) {
-    return err(
-      new ValidationError(`O sindicato tem de 1 a ${TEXTO_CURTO_MAXIMO} caracteres.`, {
-        sindicato: ["Sindicato inválido"],
-      }),
-    );
-  }
+  const sindicato = validarSindicato(input.sindicato);
+  if (!sindicato.ok) return sindicato;
   if (!dataIsoValida(input.vigenciaInicio) || !dataIsoValida(input.vigenciaFim)) {
     return err(
       new ValidationError("Informe a vigência com início e fim.", {
@@ -120,12 +115,22 @@ function validar(
     );
   }
   const { bytes, nome } = input.arquivo;
-  if (nome.trim() === "" || bytes.length === 0 || bytes.length > MAXIMO_BYTES || !ehPdf(bytes)) {
+  if (
+    nome.trim() === "" ||
+    nome.trim().length > NOME_DO_ARQUIVO_MAXIMO ||
+    bytes.length === 0 ||
+    bytes.length > MAXIMO_BYTES ||
+    !ehPdf(bytes)
+  ) {
     return err(
       new ValidationError("Envie a convenção em PDF de até 10 MB.", { arquivo: ["PDF inválido"] }),
     );
   }
-  return ok({ sindicato, vigenciaInicio: input.vigenciaInicio, vigenciaFim: input.vigenciaFim });
+  return ok({
+    sindicato: sindicato.value,
+    vigenciaInicio: input.vigenciaInicio,
+    vigenciaFim: input.vigenciaFim,
+  });
 }
 
 function ehPdf(bytes: Uint8Array): boolean {
