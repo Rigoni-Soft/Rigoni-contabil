@@ -7,6 +7,9 @@
 // inteiro virar extra é o interruptor "trabalho aos domingos" do Cliente.
 // Não usados aqui: jornada e intervalos da convenção (a Jornada é do empregado), exceções de feriado (sem data
 // para casar) e a data móvel da convenção sem a marca de feriado no cartão.
+// Data fixa da convenção (ex.: 25/12) só decide o percentual da hora extra. Quem dispensa a carga e a falta e
+// conta o feriado trabalhado é a marca de feriado do cartão, a única fonte: uma data especial da convenção
+// nem sempre é feriado, e dispensar a falta por ela mudaria o pagamento sem o Responsável ter marcado o dia.
 
 import {
   LEGISLACAO,
