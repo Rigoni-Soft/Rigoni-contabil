@@ -24,7 +24,7 @@ export type DiaLido = {
 export type LeituraDoCartao = { nome: string | null; dias: DiaLido[] };
 export type Quinzena = 1 | 2;
 
-export type DiaDaLeitura = { data: string; batidas: Par[]; extra: Par | null; abono: boolean };
+type DiaDaLeitura = { data: string; batidas: Par[]; extra: Par | null; abono: boolean };
 export type LeituraValida = { nome: string; dias: DiaDaLeitura[]; faltas: string[] };
 
 const NOME = /^[\p{L}][\p{L} .'-]*$/u;
@@ -110,7 +110,7 @@ export function deduzirJornada(dias: DiaDaLeitura[]): Jornada {
   return porDia.map(mediana) as unknown as Jornada;
 }
 
-export type AcharEmpregado = { tipo: "um"; id: string } | { tipo: "nenhum" } | { tipo: "varios" };
+type AcharEmpregado = { tipo: "um"; id: string } | { tipo: "nenhum" } | { tipo: "varios" };
 
 const palavras = (nome: string) =>
   nome

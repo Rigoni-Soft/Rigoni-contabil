@@ -13,7 +13,7 @@ import { LIMITE_DA_FOTO, MENSAGEM_FOTO_GRANDE, MENSAGEM_SEM_FOTO } from "./folha
 
 type Props = { clienteId: string; competencia: string };
 
-export function resumoDaLeitura(c: CartaoLidoDto): string {
+function resumoDaLeitura(c: CartaoLidoDto): string {
   const partes = [`${c.dias} ${c.dias === 1 ? "dia lido" : "dias lidos"}`];
   if (c.faltas > 0)
     partes.push(`${c.faltas} ${c.faltas === 1 ? "falta anotada" : "faltas anotadas"}`);

@@ -71,6 +71,7 @@ export function LeituraDeAtestado({
         <Caixa
           como="form"
           aria-labelledby={`${painelId}-titulo`}
+          aria-busy={pendente}
           className="min-h-0 flex-1 overflow-auto p-4"
           onSubmit={(e) => {
             e.preventDefault();

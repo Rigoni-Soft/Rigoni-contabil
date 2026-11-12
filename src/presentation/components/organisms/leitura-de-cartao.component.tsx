@@ -40,6 +40,7 @@ export function LeituraDeCartao({
     <Caixa
       como="form"
       aria-label="Ler foto do cartão"
+      aria-busy={pendente}
       onSubmit={(e) => {
         e.preventDefault();
         onLer(new FormData(e.currentTarget));
