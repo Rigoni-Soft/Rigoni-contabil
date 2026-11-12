@@ -16,8 +16,9 @@ import { mesAtual, mesVizinho } from "@/shared/kernel/mes-atual";
 import { ROTA_RH_FOLHA_DE_PONTO } from "@/shared/kernel/setores";
 
 const SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
-// Jornada gravada nos empregados novos (a tela não a pede): o padrão do comércio, 8h45 de segunda a sexta e 4h no sábado, em minutos.
-// ponytail: valor fixo até a Totalização deduzir a jornada da convenção/legislação (ticket a abrir).
+// Jornada gravada nos empregados novos (a tela não a pede): o padrão do comércio, 8h45 de segunda a sexta e
+// 4h no sábado, em minutos.
+// ponytail: valor fixo até a Totalização deduzir a jornada da convenção/legislação (#235).
 export const JORNADA_PADRAO = [0, 525, 525, 525, 525, 525, 240];
 
 export function minutosParaHm(minutos: number): string {
