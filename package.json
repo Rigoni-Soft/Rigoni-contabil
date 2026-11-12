@@ -12,6 +12,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check:deps": "depcruise src --config .dependency-cruiser.cjs",
+    "medir:leitura": "node --env-file-if-exists=.env.local --experimental-transform-types --disable-warning=ExperimentalWarning scripts/medir-leitura-cartao.mjs",
     "check:naming": "node scripts/check-naming.mjs",
     "check:refs": "node scripts/check-refs-ticket.mjs",
     "check:specs": "node scripts/check-specs-views.mjs",
