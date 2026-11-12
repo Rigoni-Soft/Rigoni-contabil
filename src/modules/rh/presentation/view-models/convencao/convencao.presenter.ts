@@ -8,6 +8,7 @@ import type {
 } from "@/modules/rh/application/dtos/convencao.dto";
 import {
   CHAVES_DE_REGRA,
+  CHAVES_NO_CALCULO,
   REFERENCIA_DA_LEGISLACAO,
   type ChaveDeRegra,
   type DataEspecial,
@@ -96,7 +97,11 @@ function descreverRegra(regra: RegraAplicada): { valor: string; diferenca: strin
 export function linhasDeRegras(convencao: ConvencaoDto): LinhaDeRegra[] {
   const { aplicadas, rejeitadas } = convencao.regras;
   return CHAVES_DE_REGRA.map((chave) => {
-    const base = { chave, rotulo: REFERENCIA_DA_LEGISLACAO[chave].rotulo };
+    const base = {
+      chave,
+      rotulo: REFERENCIA_DA_LEGISLACAO[chave].rotulo,
+      noCalculo: CHAVES_NO_CALCULO.includes(chave),
+    };
     const regra = aplicadas.find((r) => r.chave === chave);
     if (regra) {
       return {

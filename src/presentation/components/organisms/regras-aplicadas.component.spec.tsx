@@ -6,6 +6,7 @@ const APLICADA: LinhaDeRegra = {
   chave: "extra_sabado",
   rotulo: "Hora extra de sábado",
   aplicada: true,
+  noCalculo: true,
   valor: "60%",
   legislacao: "50%",
   diferenca: "+10 pontos",
@@ -17,6 +18,7 @@ const NAO_APLICADA: LinhaDeRegra = {
   chave: "intervalo_maximo",
   rotulo: "Intervalo máximo",
   aplicada: false,
+  noCalculo: false,
   valor: "Não aplicada",
   legislacao: "2h",
   diferenca: "vale a legislação",
@@ -25,7 +27,20 @@ const NAO_APLICADA: LinhaDeRegra = {
   motivo: "O número não aparece no trecho citado",
 };
 
+const FORA_DO_CALCULO: LinhaDeRegra = {
+  ...APLICADA,
+  chave: "jornada_diaria",
+  rotulo: "Jornada diária",
+  noCalculo: false,
+};
+
 describe("RegrasAplicadas", () => {
+  it("avisa que a regra extraída que o motor não usa não entra no cálculo", () => {
+    render(<RegrasAplicadas titulo="Comércio" linhas={[APLICADA, FORA_DO_CALCULO]} />);
+
+    expect(screen.getAllByText("Não entra no cálculo da Totalização")).toHaveLength(1);
+  });
+
   it("mostra valor, legislação, diferença e a cláusula com o trecho citado", () => {
     render(<RegrasAplicadas titulo="Comércio · 01/05/2026 a 30/04/2027" linhas={[APLICADA]} />);
 

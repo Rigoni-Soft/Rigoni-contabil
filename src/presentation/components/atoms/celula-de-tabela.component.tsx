@@ -1,7 +1,7 @@
 import { cn } from "@/presentation/lib/utils";
 
 type CelulaDeTabelaProps = {
-  // Célula de campo ou valor curto: menos respiro, para caber numa tabela de muitas colunas.
+  // Célula de campo ou valor curto: menos respiro vertical. O horizontal é da tabela (`grade` o reduz).
   compacta?: boolean;
   // Data/hora e números ficam em uma linha só e alinhados à direita (tabular-nums).
   numerica?: boolean;
@@ -21,7 +21,8 @@ export function CelulaDeTabela({
     <Elemento
       scope={fixa ? "row" : undefined}
       className={cn(
-        compacta ? "px-1.5 py-1" : "px-3 py-2",
+        "px-3",
+        compacta ? "py-1" : "py-2",
         fixa && "sticky left-0 border-r border-border bg-inherit text-left font-normal",
         numerica && "text-right whitespace-nowrap text-muted-foreground tabular-nums",
       )}

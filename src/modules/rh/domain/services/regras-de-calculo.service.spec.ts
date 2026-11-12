@@ -3,7 +3,12 @@ import {
   LEGISLACAO,
   regrasDeCalculo,
 } from "@/modules/rh/domain/services/regras-de-calculo.service";
-import type { RegrasDaConvencao } from "@/shared/kernel/regras-da-convencao";
+import {
+  CHAVES_DE_REGRA,
+  CHAVES_NO_CALCULO,
+  type RegraAplicada,
+  type RegrasDaConvencao,
+} from "@/shared/kernel/regras-da-convencao";
 
 const vazia: RegrasDaConvencao = { versao: 1, aplicadas: [], rejeitadas: [] };
 const conv = (sindicato: string, vigenciaInicio: string, vigenciaFim: string) => ({
@@ -13,6 +18,38 @@ const conv = (sindicato: string, vigenciaInicio: string, vigenciaFim: string) =>
   regras: vazia,
 });
 const SEM = { bancoDeHoras: false, trabalhoAosDomingos: false };
+
+// Um valor por chave, diferente da legislação; só as de CHAVES_NO_CALCULO podem mudar o resultado.
+const AMOSTRA: Record<(typeof CHAVES_DE_REGRA)[number], RegraAplicada> = {
+  jornada_semanal: { chave: "jornada_semanal", valor: 2400, clausula: "1ª", trecho: "40h" },
+  jornada_diaria: { chave: "jornada_diaria", valor: 420, clausula: "1ª", trecho: "7h" },
+  limite_extras_dia: { chave: "limite_extras_dia", valor: 60, clausula: "1ª", trecho: "1h" },
+  intervalo_minimo: { chave: "intervalo_minimo", valor: 30, clausula: "1ª", trecho: "30" },
+  intervalo_maximo: { chave: "intervalo_maximo", valor: 180, clausula: "1ª", trecho: "3h" },
+  extra_sabado: { chave: "extra_sabado", valor: 60, clausula: "1ª", trecho: "60%" },
+  datas_especiais: {
+    chave: "datas_especiais",
+    valor: [{ descricao: "Natal", data: "25/12", percentual: 150 }],
+    clausula: "1ª",
+    trecho: "25/12 150%",
+  },
+  excecoes_de_feriado: {
+    chave: "excecoes_de_feriado",
+    valor: [{ descricao: "Carnaval" }],
+    clausula: "1ª",
+    trecho: "Carnaval",
+  },
+};
+
+describe("CHAVES_NO_CALCULO", () => {
+  it.each(CHAVES_DE_REGRA)("%s muda o cálculo só se estiver na lista", (chave) => {
+    const regras: RegrasDaConvencao = { versao: 1, aplicadas: [AMOSTRA[chave]], rejeitadas: [] };
+
+    const muda = JSON.stringify(regrasDeCalculo(regras, SEM, false)) !== JSON.stringify(LEGISLACAO);
+
+    expect(muda).toBe(CHAVES_NO_CALCULO.includes(chave));
+  });
+});
 
 describe("regrasDeCalculo", () => {
   it("sem convenção vale a legislação, com os interruptores do Cliente", () => {

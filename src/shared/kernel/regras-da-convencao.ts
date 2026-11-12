@@ -18,6 +18,15 @@ export const CHAVES_DE_REGRA = [
   "excecoes_de_feriado",
 ] as const;
 
+// As chaves que mudam o cálculo da Totalização (regras-de-calculo.service). As outras são extraídas e mostradas,
+// mas o motor não as usa: jornada e intervalos vêm do empregado e das batidas, e a exceção de feriado não tem data
+// para casar. Um teste do serviço trava esta lista contra o que `regrasDeCalculo` realmente lê.
+export const CHAVES_NO_CALCULO: readonly ChaveDeRegra[] = [
+  "extra_sabado",
+  "limite_extras_dia",
+  "datas_especiais",
+];
+
 export type ChaveNumerica = (typeof CHAVES_NUMERICAS)[number];
 export type ChaveDeRegra = (typeof CHAVES_DE_REGRA)[number];
 

@@ -11,6 +11,8 @@ export type LinhaDeRegra = {
   chave: string;
   rotulo: string;
   aplicada: boolean;
+  // Entra no cálculo da Totalização; a regra extraída que não entra aparece com a nota.
+  noCalculo: boolean;
   valor: string;
   legislacao: string;
   diferenca: string;
@@ -54,6 +56,9 @@ export function RegrasAplicadas({ titulo, linhas }: Props) {
               <Texto como="span" variante={l.aplicada ? "destaque" : "apoio"}>
                 {l.valor}
               </Texto>
+              {l.aplicada && !l.noCalculo && (
+                <Texto variante="nota">Não entra no cálculo da Totalização</Texto>
+              )}
               {l.motivo && <Texto variante="nota">Recusada: {l.motivo}</Texto>}
             </CelulaDeTabela>
             <CelulaDeTabela>{l.legislacao}</CelulaDeTabela>

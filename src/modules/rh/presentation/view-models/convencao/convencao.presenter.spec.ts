@@ -88,6 +88,14 @@ describe("linhasDeRegras", () => {
     ]);
   });
 
+  it("marca quais parâmetros entram no cálculo da Totalização", () => {
+    expect(linhas.filter((l) => l.noCalculo).map((l) => l.chave)).toEqual([
+      "limite_extras_dia",
+      "extra_sabado",
+      "datas_especiais",
+    ]);
+  });
+
   it("mostra a cláusula, o valor e a diferença para a legislação do tempo", () => {
     expect(de("jornada_diaria")).toMatchObject({
       aplicada: true,
