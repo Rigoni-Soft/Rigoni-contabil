@@ -65,31 +65,27 @@ export class EnviarConvencao implements EnviarConvencaoPort {
     const arquivo = validarArquivo(input.arquivo);
     if (!arquivo.ok) return arquivo;
 
-    const caminho = `${input.clienteId}/${crypto.randomUUID()}.pdf`;
-    const guardado = await this.armazenamento.enviar(caminho, input.arquivo.bytes);
-    if (!guardado.ok) return guardado;
-
-    // O extrator real chama um modelo de linguagem (rede, tempo esgotado): se lançar, o PDF não fica órfão.
+    // Extrai antes de guardar: o PDF de uma convenção recusada nunca chega ao armazenamento. O extrator real
+    // chama um modelo de linguagem (rede, tempo esgotado) e pode lançar.
     let extracao: ExtracaoDeRegras;
     try {
       extracao = await this.extrator.extrair(input.arquivo.bytes);
     } catch (e) {
-      await this.removerOrfao(caminho);
-      this.erros.registrar("rh.convencao.extracao_falhou", caminho, String(e));
+      this.erros.registrar("rh.convencao.extracao_falhou", input.clienteId, String(e));
       return err(new PersistenciaError("Não foi possível ler a convenção. Tente novamente."));
     }
     if (!extracao.lido) {
-      await this.removerOrfao(caminho);
       return err(
         new ValidationError("Não foi possível ler a convenção. Confira o PDF e tente de novo."),
       );
     }
 
     const identificacao = identificar(extracao);
-    if (!identificacao.ok) {
-      await this.removerOrfao(caminho);
-      return identificacao;
-    }
+    if (!identificacao.ok) return identificacao;
+
+    const caminho = `${input.clienteId}/${crypto.randomUUID()}.pdf`;
+    const guardado = await this.armazenamento.enviar(caminho, input.arquivo.bytes);
+    if (!guardado.ok) return guardado;
 
     const gravada = await this.convencoes.inserir({
       clienteId: input.clienteId,
