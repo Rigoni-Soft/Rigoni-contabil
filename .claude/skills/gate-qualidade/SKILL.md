@@ -27,7 +27,7 @@ Argumento: `$ARGUMENTS` = base do diff. Sem base: `gh pr view --json baseRefName
 
 **2. `ponytail-review`** — código morto, abstração desnecessária, dependência redundante. Saída: zero apontamentos. `delete` de algo ainda não usado mas possivelmente de ticket planejado: pergunte.
 
-**3. `code-review-spec`** — roda direto aqui (ele já dispara os revisores Standards e Spec em paralelo; os padrões são `docs/arquitetura.md` e `docs/testes.md`). Descarte do relatório o que já está no ledger. Corrija, registre e rode de novo. Saída: zero apontamentos novos.
+**3. `code-review-spec`** — roda direto aqui (ele já dispara os revisores Standards e Spec em paralelo; os padrões são `docs/arquitetura.md` e `docs/testes.md`). Descarte do relatório o que já está no ledger. No eixo Spec, confira cada campo que a tela pede: só entra campo para o que a issue manda o usuário informar; o que a issue diz que o sistema extrai ou deriva (de um PDF, de outro cadastro) nunca é campo (o formulário da convenção da #219 pedia sindicato e vigência e passou por toda a revisão). Corrija, registre e rode de novo. Saída: zero apontamentos novos.
 
 **4. `retro`** — retrospectiva do processo e dos guardrails (lint, checks, docs, skills). Apresente os candidatos; aplique os que o usuário aprovar, registre e rode de novo. Saída: nenhuma pendência estrutural nova.
 

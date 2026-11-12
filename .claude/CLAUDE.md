@@ -7,6 +7,7 @@
 # Edição de arquivos
 - O working tree está em LF (`autocrlf` converte no commit): edite com `Edit` ou `Write`; o aviso "LF will be replaced by CRLF" do Git é esperado.
 - Crie arquivo com `Write`: heredoc (`<<'EOF'`) com texto em português quebra o `Bash`.
+- Trecho com `\` (regex, `\n`) entra por `Edit` ou `Write`: `node -e` inline engole a barra invertida e grava o código quebrado. Não há `python` na máquina.
 
 # graphify
 - **graphify** (`.claude/skills/graphify/SKILL.md`) - any input to knowledge graph. Trigger: `/graphify`
