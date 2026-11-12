@@ -5,7 +5,6 @@ import { LeituraDeCartao } from "./leitura-de-cartao.component";
 
 const base = {
   rotuloMes: "09/2026",
-  chave: 0,
   pendente: false,
   onArquivo: jest.fn(),
   onLer: jest.fn(),
@@ -37,6 +36,7 @@ describe("LeituraDeCartao", () => {
   it("mostra o erro (alerta) e o resultado (status)", () => {
     const { rerender } = render(<LeituraDeCartao {...base} erro="Digite à mão." />);
     expect(screen.getByRole("alert")).toHaveTextContent("Digite à mão.");
+    expect(screen.getByLabelText(/Foto do cartão/)).toHaveAccessibleDescription(/Digite à mão/);
 
     rerender(<LeituraDeCartao {...base} resultado="Erick: 3 dias lidos." />);
     expect(screen.getByRole("status")).toHaveTextContent("Erick: 3 dias lidos.");

@@ -33,7 +33,7 @@ function ehImagem({ bytes, tipo }: LerCartaoDePontoInput["imagem"]): boolean {
 }
 
 // Lê a foto do cartão de uma quinzena pelo leitor (visão atrás da porta neutra) e valida a leitura no
-// domínio; leitor ausente, falha ou leitura reprovada = digitação manual, sem gravar nada. Quem não está no
+// domínio; falha ou leitura reprovada = digitação manual, sem gravar nada. Quem não está no
 // Quadro é cadastrado pelo nome do cartão, com a Jornada deduzida do padrão das batidas; o empregado já
 // cadastrado mantém a sua. Dia em branco não apaga o que já foi digitado. A imagem só passa por aqui: não é
 // guardada.
@@ -43,7 +43,7 @@ export class LerCartaoDePonto extends EscreverPonto implements LerCartaoDePontoP
     repositorio: FolhaDePontoRepository,
     auditoria: AuditoriaPort,
     private readonly relogio: RelogioPort,
-    private readonly leitor: LeitorDeCartaoPort | null,
+    private readonly leitor: LeitorDeCartaoPort,
     private readonly erros: RegistroDeErrosPort,
   ) {
     super(sessao, repositorio, auditoria, "rh.ponto.ler-cartao");
@@ -90,7 +90,6 @@ export class LerCartaoDePonto extends EscreverPonto implements LerCartaoDePontoP
     input: LerCartaoDePontoInput,
     competencia: string,
   ): Promise<LeituraValida | null> {
-    if (!this.leitor) return null;
     let bruta: Awaited<ReturnType<LeitorDeCartaoPort["ler"]>>;
     try {
       bruta = await this.leitor.ler(input.imagem);

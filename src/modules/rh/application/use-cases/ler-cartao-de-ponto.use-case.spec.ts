@@ -29,8 +29,7 @@ const lida = (leitura: LeituraDoCartao): LeituraBruta => ({ lido: true, leitura 
 
 function montar(opcoes: {
   ator?: AtorSessaoDto | null;
-  // null = sem leitor configurado.
-  leitor: LeitorDeCartaoPort | null;
+  leitor: LeitorDeCartaoPort;
   quadro?: { id: string; nome: string; ativo: boolean }[];
 }) {
   let quadro = opcoes.quadro ?? [];
@@ -99,12 +98,6 @@ describe("LerCartaoDePonto", () => {
 
     expect((await caso.execute(entrada)).ok).toBe(false);
     expect(erros.registrar).toHaveBeenCalledWith("rh.cartao.leitor_falhou", expect.any(String));
-  });
-
-  it("sem leitor configurado: digitação manual", async () => {
-    const { caso } = montar({ leitor: null });
-
-    expect((await caso.execute(entrada)).ok).toBe(false);
   });
 
   it("leitor não leu: digitação manual, nada gravado", async () => {

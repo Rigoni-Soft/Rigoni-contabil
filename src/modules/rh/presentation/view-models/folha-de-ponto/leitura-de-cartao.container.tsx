@@ -29,13 +29,11 @@ export function LeituraDeCartaoContainer({ clienteId, competencia }: Props) {
   const [arquivo, setArquivo] = useState<File>();
   const [erro, setErro] = useState<string>();
   const [resultado, setResultado] = useState<string>();
-  const [chave, setChave] = useState(0);
 
   return (
     <LeituraDeCartao
       rotuloMes={rotuloDaCompetencia(competencia)}
       arquivo={arquivo}
-      chave={chave}
       pendente={pendente}
       erro={erro}
       resultado={resultado}
@@ -62,7 +60,6 @@ export function LeituraDeCartaoContainer({ clienteId, competencia }: Props) {
             const r = await lerCartaoDePontoAction(formData);
             if (!r.ok) return setErro(r.error.message);
             setArquivo(undefined);
-            setChave((c) => c + 1);
             setResultado(resumoDaLeitura(r.data));
             router.refresh();
           } catch (e) {

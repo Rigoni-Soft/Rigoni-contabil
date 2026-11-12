@@ -1,7 +1,12 @@
 // A leitura da foto do Cartão de ponto (visão) chega aqui ainda não confiável: o domínio a valida e
 // só o que passa vira dado. Leitura reprovada = digitação manual.
-import type { Jornada, Par } from "@/modules/rh/domain/services/totalizacao.service";
+import {
+  diaDaSemana,
+  type Jornada,
+  type Par,
+} from "@/modules/rh/domain/services/totalizacao.service";
 import { validarPares } from "@/modules/rh/domain/services/validar-ponto.service";
+import { Competencia } from "@/modules/rh/domain/value-objects/competencia.vo";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import { TEXTO_CURTO_MAXIMO } from "@/shared/kernel/texto";
@@ -25,11 +30,6 @@ export type LeituraValida = { nome: string; dias: DiaDaLeitura[]; faltas: string
 const NOME = /^[\p{L}][\p{L} .'-]*$/u;
 const MAXIMO_DO_DIA_MIN = 16 * 60;
 
-function ultimoDiaDoMes(competencia: string): number {
-  const [ano, mes] = competencia.split("-").map(Number);
-  return new Date(Date.UTC(ano, mes, 0)).getUTCDate();
-}
-
 // Os horários do dia, na ordem do cartão (manhã, tarde, extra), crescem: o modelo que troca um dígito
 // quase sempre quebra isso. ponytail: turno que vira a noite reprova e cai na digitação; aceitar a virada quando houver cartão assim.
 function emOrdem(batidas: Par[], extra: Par | null): boolean {
@@ -47,12 +47,15 @@ export function validarLeitura(
 ): Result<LeituraValida, ValidationError> {
   const recusa = (motivo: string) => err(new ValidationError(motivo, { leitura: [motivo] }));
 
+  const mes = Competencia.criar(alvo.competencia);
+  if (!mes.ok) return recusa("Competência inválida.");
+
   const nome = leitura.nome?.trim().replace(/\s+/g, " ") ?? "";
   if (nome.length < 2 || nome.length > TEXTO_CURTO_MAXIMO || !NOME.test(nome)) {
     return recusa("Nome do empregado ilegível.");
   }
 
-  const ultimo = ultimoDiaDoMes(alvo.competencia);
+  const ultimo = mes.value.dias.length;
   const [de, ate] = alvo.quinzena === 1 ? [1, 15] : [16, ultimo];
   const vistos = new Set<number>();
   const dias: DiaDaLeitura[] = [];
@@ -92,8 +95,7 @@ export function deduzirJornada(dias: DiaDaLeitura[]): Jornada {
   for (const d of dias) {
     const min = trabalhado(d.batidas);
     if (min <= 0) continue;
-    const [ano, mes, dia] = d.data.split("-").map(Number);
-    porDia[new Date(Date.UTC(ano, mes - 1, dia)).getUTCDay()].push(min);
+    porDia[diaDaSemana(d.data)].push(min);
   }
   const mediana = (v: number[]) => {
     if (v.length === 0) return 0;

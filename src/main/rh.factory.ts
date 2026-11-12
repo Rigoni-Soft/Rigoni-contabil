@@ -74,6 +74,7 @@ import { ConsoleRegistroDeErrosGateway as ConsoleRh } from "@/modules/rh/infra/g
 import { ExtratorDeRegrasFalsoGateway } from "@/modules/rh/infra/gateways/extrator-de-regras-falso.gateway";
 import { ExtratorDeRegrasIndisponivelGateway } from "@/modules/rh/infra/gateways/extrator-de-regras-indisponivel.gateway";
 import { LeitorDeCartaoFalsoGateway } from "@/modules/rh/infra/gateways/leitor-de-cartao-falso.gateway";
+import { LeitorDeCartaoIndisponivelGateway } from "@/modules/rh/infra/gateways/leitor-de-cartao-indisponivel.gateway";
 import { LeitorDeCartaoVisaoGateway } from "@/modules/rh/infra/gateways/leitor-de-cartao-visao.gateway";
 import { RelogioSistemaGateway } from "@/modules/rh/infra/gateways/relogio-sistema.gateway";
 import { SupabaseArmazenamentoDeConvencaoGateway } from "@/modules/rh/infra/gateways/supabase-armazenamento-de-convencao.gateway";
@@ -206,8 +207,7 @@ export async function makeSalvarDiaDoPonto(): Promise<SalvarDiaDoPontoPort> {
   return new SalvarDiaDoPonto(sessao, repositorio, auditoria, new RelogioSistemaGateway());
 }
 
-// Sem leitor (null) = toda foto cai na digitação manual.
-function leitorDoCartao(): LeitorDeCartaoPort | null {
+function leitorDoCartao(): LeitorDeCartaoPort {
   switch (LEITURA_CARTAO_MODO) {
     case "falso":
       return new LeitorDeCartaoFalsoGateway();
@@ -215,7 +215,7 @@ function leitorDoCartao(): LeitorDeCartaoPort | null {
       // O env já exige a chave neste modo.
       return new LeitorDeCartaoVisaoGateway(ANTHROPIC_API_KEY ?? "", LEITURA_CARTAO_MODELO);
     default:
-      return null;
+      return new LeitorDeCartaoIndisponivelGateway();
   }
 }
 

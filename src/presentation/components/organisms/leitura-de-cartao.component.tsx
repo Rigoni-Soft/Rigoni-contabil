@@ -15,8 +15,6 @@ const ID_DO_ERRO = "erro-leitura-de-cartao";
 type Props = {
   rotuloMes: string;
   arquivo?: File;
-  // Muda quando a leitura dá certo: o formulário é remontado e a foto escolhida some.
-  chave: number;
   pendente: boolean;
   erro?: string;
   // O que a leitura fez, em uma frase (empregado, dias, faltas, abonos).
@@ -30,7 +28,6 @@ type Props = {
 export function LeituraDeCartao({
   rotuloMes,
   arquivo,
-  chave,
   pendente,
   erro,
   resultado,
@@ -40,7 +37,6 @@ export function LeituraDeCartao({
   return (
     <Caixa
       como="form"
-      key={chave}
       aria-label="Ler foto do cartão"
       onSubmit={(e) => {
         e.preventDefault();
@@ -74,6 +70,7 @@ export function LeituraDeCartao({
           dica="JPEG ou PNG de até 4 MB"
           file={arquivo}
           onChange={onArquivo}
+          aria-describedby={erro ? ID_DO_ERRO : undefined}
         />
         {erro && (
           <Caixa id={ID_DO_ERRO}>

@@ -5,6 +5,7 @@ import type {
   LeitorDeCartaoPort,
   LeituraBruta,
 } from "@/modules/rh/application/ports/out/leitor-de-cartao.provider";
+import { horaParaMinutos } from "@/modules/rh/domain/services/totalizacao.service";
 
 // Leitor da foto do cartão: visão de um modelo de linguagem. A foto com dado
 // pessoal sai do servidor (ADR 0011: retenção zero e contrato sem treino no provedor); a resposta é JSON de
@@ -79,11 +80,10 @@ const INSTRUCAO =
   "a coluna EXTRA e anotações como 'faltou' ou 'atestado'. Não invente: horário ilegível fica de fora. " +
   "Responda só pela ferramenta registrar_cartao.";
 
-const paraPar = (p: z.infer<typeof par>) => {
-  const [h, m] = p.entrada.split(":").map(Number);
-  const [hs, ms] = p.saida.split(":").map(Number);
-  return { entrada: h * 60 + m, saida: hs * 60 + ms };
-};
+const paraPar = (p: z.infer<typeof par>) => ({
+  entrada: horaParaMinutos(p.entrada),
+  saida: horaParaMinutos(p.saida),
+});
 
 export class LeitorDeCartaoVisaoGateway implements LeitorDeCartaoPort {
   constructor(
