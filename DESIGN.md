@@ -908,8 +908,8 @@ Responsável) só a lista e os dados aparecem, sem formulário nem botão de esc
 `QuadroDeFuncionarios` (só o Responsável do RH o recebe): `NotaDeObrigatorio`, o texto de apoio (a foto vira o
 cartão da quinzena, não é guardada, confira depois), o `CampoDeOpcoes` "Quinzena" na malha `1>2>4` e o
 `CampoDeArquivo` (JPEG ou PNG de até 4 MB, dito antes de escolher). O botão "Ler cartão" usa `aria-disabled` enquanto
-lê ("Lendo o cartão…") e o foco não sai dele; a falha mostra o `AvisoDeStatus` de erro mandando digitar à mão e
-preserva a foto escolhida; o sucesso mostra o resumo ("Erick (cadastrado no quadro): 3 dias lidos, 1 falta.
+lê ("Lendo o cartão…") e o foco não sai dele; o erro da foto (falta ou mais de 4 MB) vai no próprio `CampoDeArquivo` (`aria-invalid` e `FieldError`) e a falha
+da leitura mostra o `AvisoDeStatus` de erro mandando digitar à mão, preservando a foto escolhida; o sucesso mostra o resumo ("Erick (cadastrado no quadro): 3 dias lidos, 1 falta.
 Confira o cartão.") em `AvisoDeStatus` de sucesso e limpa a foto sem remontar o formulário (o foco fica no botão). Sem tela de confirmação.
 
 **`CartaoDePonto` (organismo):** o cartão de um empregado no mês inteiro, de cima para baixo: título, Empresa e

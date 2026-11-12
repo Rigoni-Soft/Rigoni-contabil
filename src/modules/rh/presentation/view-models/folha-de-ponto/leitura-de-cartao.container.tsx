@@ -28,7 +28,13 @@ export function LeituraDeCartaoContainer({ clienteId, competencia }: Props) {
   const [pendente, iniciar] = useTransition();
   const [arquivo, setArquivo] = useState<File>();
   const [erro, setErro] = useState<string>();
+  const [erroNoCampo, setErroNoCampo] = useState(false);
   const [resultado, setResultado] = useState<string>();
+
+  const falhaDoCampo = (mensagem: string) => {
+    setErroNoCampo(true);
+    setErro(mensagem);
+  };
 
   return (
     <LeituraDeCartao
@@ -36,6 +42,7 @@ export function LeituraDeCartaoContainer({ clienteId, competencia }: Props) {
       arquivo={arquivo}
       pendente={pendente}
       erro={erro}
+      erroNoCampo={erroNoCampo}
       resultado={resultado}
       onArquivo={(a) => {
         setArquivo(a);
@@ -46,10 +53,11 @@ export function LeituraDeCartaoContainer({ clienteId, competencia }: Props) {
         if (pendente) return;
         setResultado(undefined);
         if (!arquivo || (arquivo.type !== "image/jpeg" && arquivo.type !== "image/png")) {
-          return setErro(MENSAGEM_SEM_FOTO);
+          return falhaDoCampo(MENSAGEM_SEM_FOTO);
         }
-        if (arquivo.size > LIMITE_DA_FOTO) return setErro(MENSAGEM_FOTO_GRANDE);
+        if (arquivo.size > LIMITE_DA_FOTO) return falhaDoCampo(MENSAGEM_FOTO_GRANDE);
         setErro(undefined);
+        setErroNoCampo(false);
         const formData = new FormData();
         formData.set("clienteId", clienteId);
         formData.set("competencia", competencia);
@@ -58,7 +66,10 @@ export function LeituraDeCartaoContainer({ clienteId, competencia }: Props) {
         iniciar(async () => {
           try {
             const r = await lerCartaoDePontoAction(formData);
-            if (!r.ok) return setErro(r.error.message);
+            if (!r.ok) {
+              setErroNoCampo(false);
+              return setErro(r.error.message);
+            }
             setArquivo(undefined);
             setResultado(resumoDaLeitura(r.data));
             router.refresh();

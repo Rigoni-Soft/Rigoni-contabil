@@ -10,13 +10,14 @@ const QUINZENAS = [
   { valor: "1", rotulo: "1ª quinzena (dias 1 a 15)" },
   { valor: "2", rotulo: "2ª quinzena (dia 16 ao fim)" },
 ] as const;
-const ID_DO_ERRO = "erro-leitura-de-cartao";
 
 type Props = {
   rotuloMes: string;
   arquivo?: File;
   pendente: boolean;
   erro?: string;
+  // O erro é da foto escolhida (falta ou tamanho): vai no próprio campo; senão é da leitura.
+  erroNoCampo?: boolean;
   // O que a leitura fez, em uma frase (empregado, dias, faltas, abonos).
   resultado?: string;
   onArquivo: (arquivo?: File) => void;
@@ -30,6 +31,7 @@ export function LeituraDeCartao({
   arquivo,
   pendente,
   erro,
+  erroNoCampo,
   resultado,
   onArquivo,
   onLer,
@@ -70,13 +72,9 @@ export function LeituraDeCartao({
           dica="JPEG ou PNG de até 4 MB"
           file={arquivo}
           onChange={onArquivo}
-          aria-describedby={erro ? ID_DO_ERRO : undefined}
+          erro={erroNoCampo ? erro : undefined}
         />
-        {erro && (
-          <Caixa id={ID_DO_ERRO}>
-            <AvisoDeStatus tipo="erro" legivel texto={erro} />
-          </Caixa>
-        )}
+        {erro && !erroNoCampo && <AvisoDeStatus tipo="erro" legivel texto={erro} />}
         {resultado && <AvisoDeStatus tipo="sucesso" legivel texto={resultado} />}
         <Button type="submit" aria-disabled={pendente} className="self-start">
           {pendente ? "Lendo o cartão…" : "Ler cartão"}

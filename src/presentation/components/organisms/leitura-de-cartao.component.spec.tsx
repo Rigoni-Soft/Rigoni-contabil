@@ -36,7 +36,11 @@ describe("LeituraDeCartao", () => {
   it("mostra o erro (alerta) e o resultado (status)", () => {
     const { rerender } = render(<LeituraDeCartao {...base} erro="Digite à mão." />);
     expect(screen.getByRole("alert")).toHaveTextContent("Digite à mão.");
-    expect(screen.getByLabelText(/Foto do cartão/)).toHaveAccessibleDescription(/Digite à mão/);
+
+    rerender(<LeituraDeCartao {...base} erro="Escolha a foto." erroNoCampo />);
+    const foto = screen.getByLabelText(/Foto do cartão/);
+    expect(foto).toBeInvalid();
+    expect(foto).toHaveAccessibleDescription(/Escolha a foto/);
 
     rerender(<LeituraDeCartao {...base} resultado="Erick: 3 dias lidos." />);
     expect(screen.getByRole("status")).toHaveTextContent("Erick: 3 dias lidos.");
