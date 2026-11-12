@@ -70,7 +70,7 @@ export class EnviarConvencao implements EnviarConvencaoPort {
     if (!guardado.ok) return guardado;
 
     // O extrator real chama um modelo de linguagem (rede, tempo esgotado): se lançar, o PDF não fica órfão.
-    let extracao: Awaited<ReturnType<ExtratorDeRegrasPort["extrair"]>>;
+    let extracao: ExtracaoDeRegras;
     try {
       extracao = await this.extrator.extrair(input.arquivo.bytes);
     } catch (e) {
