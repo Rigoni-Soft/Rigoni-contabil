@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { CHAVES_NUMERICAS } from "@/shared/kernel/regras-da-convencao";
+import { CHAVES_NUMERICAS, MOTIVOS_DE_REJEICAO } from "@/shared/kernel/regras-da-convencao";
 
 // Linha de `rh_convencoes` e o jsonb `regras` (esquema fechado de kernel/regras-da-convencao). O banco já
 // confere a forma no CHECK; aqui o formato vira tipo, e uma linha fora do esquema falha alto.
@@ -36,14 +36,7 @@ const regras = z.object({
   rejeitadas: z.array(
     z.object({
       chave: z.string(),
-      motivo: z.enum([
-        "chave_desconhecida",
-        "sem_citacao",
-        "valor_invalido",
-        "fora_do_trecho",
-        "abaixo_da_legislacao",
-        "duplicada",
-      ]),
+      motivo: z.enum(MOTIVOS_DE_REJEICAO),
     }),
   ),
 });

@@ -47,13 +47,15 @@ export type RegraAplicada =
   | (Citacao & { chave: "datas_especiais"; valor: DataEspecial[] })
   | (Citacao & { chave: "excecoes_de_feriado"; valor: ExcecaoDeFeriado[] });
 
-export type MotivoDeRejeicao =
-  | "chave_desconhecida"
-  | "sem_citacao"
-  | "valor_invalido"
-  | "fora_do_trecho"
-  | "abaixo_da_legislacao"
-  | "duplicada";
+export const MOTIVOS_DE_REJEICAO = [
+  "chave_desconhecida",
+  "sem_citacao",
+  "valor_invalido",
+  "fora_do_trecho",
+  "abaixo_da_legislacao",
+  "duplicada",
+] as const;
+export type MotivoDeRejeicao = (typeof MOTIVOS_DE_REJEICAO)[number];
 
 export type RegraRejeitada = { chave: string; motivo: MotivoDeRejeicao };
 
