@@ -5,6 +5,7 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoDeArquivo } from "@/presentation/components/molecules/campo-de-arquivo.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { Button } from "@/presentation/components/ui/button";
+import { TEXTO_CURTO_MAXIMO } from "@/shared/kernel/texto";
 
 export type CampoDoEnvio = "sindicato" | "vigenciaInicio" | "vigenciaFim" | "arquivo";
 
@@ -61,7 +62,7 @@ export function EnvioDeConvencao({
             name="sindicato"
             obrigatorio
             required
-            maxLength={120}
+            maxLength={TEXTO_CURTO_MAXIMO}
             className="gap-1 sm:col-span-2"
             {...ligacao("sindicato")}
           />

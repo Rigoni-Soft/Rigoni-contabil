@@ -11,8 +11,7 @@ import { EscreverPonto } from "@/modules/rh/application/use-cases/gerir-quadro-d
 import type { AppError } from "@/shared/errors/app.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, type Result } from "@/shared/kernel/result";
-
-const MAXIMO_SINDICATO = 120;
+import { TEXTO_CURTO_MAXIMO } from "@/shared/kernel/texto";
 
 // Interruptores do Cliente e ponteiro do empregado para a convenção: como o resto da Folha de ponto, só o
 // Responsável do RH do Cliente grava (o banco repete a regra e audita o sucesso).
@@ -44,7 +43,7 @@ export class DefinirConvencaoDoEmpregado
 
   async execute(input: DefinirConvencaoDoEmpregadoInput): Promise<Result<void, AppError>> {
     const sindicato = input.sindicato === null ? null : input.sindicato.trim();
-    if (sindicato !== null && (sindicato === "" || sindicato.length > MAXIMO_SINDICATO)) {
+    if (sindicato !== null && (sindicato === "" || sindicato.length > TEXTO_CURTO_MAXIMO)) {
       return err(new ValidationError("Sindicato inválido.", { sindicato: ["Sindicato inválido"] }));
     }
     const autorizado = await this.autorizarPorEmpregado(input.empregadoId);

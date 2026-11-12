@@ -1,3 +1,6 @@
+// Tamanho máximo de texto curto de cadastro: nome do empregado, sindicato, cláusula.
+export const TEXTO_CURTO_MAXIMO = 120;
+
 // Caracteres como o WhatsApp conta: por ponto de código, não por unidade UTF-16 (um emoji vale 1).
 export function contarCaracteres(texto: string): number {
   return [...texto].length;

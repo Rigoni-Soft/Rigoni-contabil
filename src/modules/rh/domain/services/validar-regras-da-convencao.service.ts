@@ -12,6 +12,7 @@ import {
   type RegraRejeitada,
   type RegrasDaConvencao,
 } from "@/shared/kernel/regras-da-convencao";
+import { TEXTO_CURTO_MAXIMO } from "@/shared/kernel/texto";
 
 // O que o modelo de linguagem devolve: tudo não confiável até passar por aqui.
 export type RegraCandidata = {
@@ -21,7 +22,6 @@ export type RegraCandidata = {
   trecho: string;
 };
 
-const MAXIMO_CLAUSULA = 120;
 const MAXIMO_TRECHO = 2000;
 const MAXIMO_PERCENTUAL = 300;
 const MINUTOS_NA_SEMANA = 7 * 1440;
@@ -54,7 +54,7 @@ function avaliar(candidata: RegraCandidata): MotivoDeRejeicao | RegraAplicada {
   if (
     clausulaLimpa === "" ||
     trechoLimpo === "" ||
-    clausulaLimpa.length > MAXIMO_CLAUSULA ||
+    clausulaLimpa.length > TEXTO_CURTO_MAXIMO ||
     trechoLimpo.length > MAXIMO_TRECHO
   ) {
     return "sem_citacao";

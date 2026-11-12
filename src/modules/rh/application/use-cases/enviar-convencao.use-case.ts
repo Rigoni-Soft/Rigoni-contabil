@@ -17,11 +17,11 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { dataIsoValida } from "@/shared/kernel/data-iso";
 import { podeGerirConvencaoRh } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
+import { TEXTO_CURTO_MAXIMO } from "@/shared/kernel/texto";
 
 const ACAO = "rh.convencao.enviar";
 // O limite do bucket: o servidor barra antes de gastar armazenamento e extração.
 const MAXIMO_BYTES = 10 * 1024 * 1024;
-const MAXIMO_SINDICATO = 120;
 const ASSINATURA_PDF = [0x25, 0x50, 0x44, 0x46, 0x2d]; // "%PDF-"
 
 // Sobe a convenção do Cliente: guarda o PDF, extrai uma vez as regras (modelo atrás da porta neutra),
@@ -98,9 +98,9 @@ function validar(
   input: EnviarConvencaoInput,
 ): Result<{ sindicato: string; vigenciaInicio: string; vigenciaFim: string }, ValidationError> {
   const sindicato = input.sindicato.trim();
-  if (sindicato === "" || sindicato.length > MAXIMO_SINDICATO) {
+  if (sindicato === "" || sindicato.length > TEXTO_CURTO_MAXIMO) {
     return err(
-      new ValidationError(`O sindicato tem de 1 a ${MAXIMO_SINDICATO} caracteres.`, {
+      new ValidationError(`O sindicato tem de 1 a ${TEXTO_CURTO_MAXIMO} caracteres.`, {
         sindicato: ["Sindicato inválido"],
       }),
     );

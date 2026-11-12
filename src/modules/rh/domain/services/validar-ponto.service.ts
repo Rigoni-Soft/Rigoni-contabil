@@ -1,14 +1,13 @@
 import type { Jornada, Par } from "@/modules/rh/domain/services/totalizacao.service";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
-
-const MAXIMO_NOME = 120;
+import { TEXTO_CURTO_MAXIMO } from "@/shared/kernel/texto";
 
 export function validarNome(nome: string): Result<string, ValidationError> {
   const limpo = nome.trim();
-  if (limpo.length === 0 || limpo.length > MAXIMO_NOME) {
+  if (limpo.length === 0 || limpo.length > TEXTO_CURTO_MAXIMO) {
     return err(
-      new ValidationError(`O nome do empregado tem de 1 a ${MAXIMO_NOME} caracteres.`, {
+      new ValidationError(`O nome do empregado tem de 1 a ${TEXTO_CURTO_MAXIMO} caracteres.`, {
         nome: ["Nome inválido"],
       }),
     );

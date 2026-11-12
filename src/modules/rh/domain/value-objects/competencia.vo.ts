@@ -1,15 +1,14 @@
 import { ValidationError } from "@/shared/errors/validation.error";
+import { FORMATO_COMPETENCIA } from "@/shared/kernel/data-iso";
 import { mesAtual, mesVizinho } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
-
-const FORMATO = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 // Mês de trabalho do acompanhamento, "AAAA-MM", no fuso do escritório.
 export class Competencia {
   private constructor(private readonly props: { valor: string }) {}
 
   static criar(entrada: string): Result<Competencia, ValidationError> {
-    if (!FORMATO.test(entrada)) {
+    if (!FORMATO_COMPETENCIA.test(entrada)) {
       return err(new ValidationError("Competência inválida. Use o formato AAAA-MM."));
     }
     return ok(new Competencia({ valor: entrada }));

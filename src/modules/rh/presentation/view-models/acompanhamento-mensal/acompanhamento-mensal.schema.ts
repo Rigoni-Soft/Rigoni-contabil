@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { FORMATO_COMPETENCIA } from "@/shared/kernel/data-iso";
+
 // guid, não uuid: ids do seed não são v4 válidos (ver atribuir-responsavel.actions).
 const id = z.guid();
 
@@ -8,7 +10,7 @@ export const servicoSchema = z.object({ servicoId: id });
 export const marcarSchema = z.object({
   clienteId: id,
   servicoId: id,
-  competencia: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
+  competencia: z.string().regex(FORMATO_COMPETENCIA),
   concluido: z.boolean(),
 });
 export const aplicaSchema = z.object({

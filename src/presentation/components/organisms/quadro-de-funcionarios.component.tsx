@@ -11,6 +11,7 @@ import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto
 import { Button } from "@/presentation/components/ui/button";
 import { MOLDURA_DO_CARTAO } from "@/presentation/lib/moldura-do-cartao";
 import { cn } from "@/presentation/lib/utils";
+import { TEXTO_CURTO_MAXIMO } from "@/shared/kernel/texto";
 
 export type EmpregadoDoQuadro = {
   id: string;
@@ -84,7 +85,7 @@ function CamposDoEmpregado({
         defaultValue={nome}
         obrigatorio
         required
-        maxLength={120}
+        maxLength={TEXTO_CURTO_MAXIMO}
         className="gap-1 sm:col-span-2"
         aria-describedby={erro ? `erro-do-${prefixo}-empregado` : undefined}
         aria-invalid={!!erro}
