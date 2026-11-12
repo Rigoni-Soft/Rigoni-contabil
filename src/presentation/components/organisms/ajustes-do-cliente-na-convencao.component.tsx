@@ -1,6 +1,6 @@
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcacao.component";
-import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Grade, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoSelect } from "@/presentation/components/molecules/campo-select.component";
@@ -69,7 +69,7 @@ export function AjustesDoClienteNaConvencao({
           <Texto como="h3" variante="rotuloDeSecao">
             Convenção de cada empregado
           </Texto>
-          <Caixa className="grid gap-3 sm:grid-cols-2">
+          <Grade colunas="1>2" espaco={3}>
             {empregados.map((e) => (
               <CampoSelect
                 key={e.id}
@@ -87,7 +87,7 @@ export function AjustesDoClienteNaConvencao({
                 ))}
               </CampoSelect>
             ))}
-          </Caixa>
+          </Grade>
         </Pilha>
       )}
     </Pilha>

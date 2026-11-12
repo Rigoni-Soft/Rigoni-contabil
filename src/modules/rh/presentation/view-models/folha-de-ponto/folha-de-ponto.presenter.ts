@@ -13,6 +13,7 @@ import type {
   TotalizacaoDto,
 } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
 import { mesAtual, mesVizinho } from "@/shared/kernel/mes-atual";
+import { ROTA_RH_FOLHA_DE_PONTO } from "@/shared/kernel/setores";
 
 const SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 // Jornada gravada nos empregados novos (a tela não a pede): o padrão do comércio, 8h45 de segunda a sexta e 4h no sábado, em minutos.
@@ -69,7 +70,7 @@ export function itensDaTotalizacao(
   ];
 }
 
-const hm = (par: ParDto | undefined, campo: keyof ParDto) => (par ? minutosParaHm(par[campo]) : "");
+const horaDoPar = (par: ParDto | undefined, campo: keyof ParDto) => (par ? minutosParaHm(par[campo]) : "");
 
 const teveExtra = (dia: DiaDaFolhaDto) => extrasDoDia(dia.apuracao) > 0;
 export const temDados = (dia: Pick<DiaDoPontoDto, "batidas" | "extra" | "abono">) =>
@@ -122,12 +123,12 @@ export function linhasDoCartao(dias: DiaDaFolhaDto[], iniciado: boolean): LinhaD
     return {
       data: dia.data,
       rotulo: `${SEMANA[dia.diaDaSemana]} ${d}/${mes}`,
-      entrada1: hm(dia.batidas[0], "entrada"),
-      saida1: hm(dia.batidas[0], "saida"),
-      entrada2: hm(dia.batidas[1], "entrada"),
-      saida2: hm(dia.batidas[1], "saida"),
-      extraEntrada: hm(dia.extra ?? undefined, "entrada"),
-      extraSaida: hm(dia.extra ?? undefined, "saida"),
+      entrada1: horaDoPar(dia.batidas[0], "entrada"),
+      saida1: horaDoPar(dia.batidas[0], "saida"),
+      entrada2: horaDoPar(dia.batidas[1], "entrada"),
+      saida2: horaDoPar(dia.batidas[1], "saida"),
+      extraEntrada: horaDoPar(dia.extra ?? undefined, "entrada"),
+      extraSaida: horaDoPar(dia.extra ?? undefined, "saida"),
       abono: dia.abono,
       nota: notaDoDia(dia, situacao),
       tom: tomDoDia(dia, situacao),
@@ -155,7 +156,7 @@ function busca(parametros: Record<string, string | number | undefined>): string 
 }
 
 export function hrefDaFolha(clienteId: string, { mes, empregado }: Pedido): string {
-  return `/rh/folha-de-ponto/${encodeURIComponent(clienteId)}${busca({ mes, empregado })}`;
+  return `${ROTA_RH_FOLHA_DE_PONTO}/${encodeURIComponent(clienteId)}${busca({ mes, empregado })}`;
 }
 
 // O Cartão de ponto de um empregado tem tela própria: o quadro cadastra, o cartão digita.
@@ -164,7 +165,7 @@ export function hrefDoCartao(
   empregadoId: string,
   { mes }: Pick<Pedido, "mes">,
 ): string {
-  return `/rh/folha-de-ponto/${encodeURIComponent(clienteId)}/cartao/${encodeURIComponent(empregadoId)}${busca({ mes })}`;
+  return `${ROTA_RH_FOLHA_DE_PONTO}/${encodeURIComponent(clienteId)}/cartao/${encodeURIComponent(empregadoId)}${busca({ mes })}`;
 }
 
 function selos(e: EmpregadoDaFolhaDto): string[] {

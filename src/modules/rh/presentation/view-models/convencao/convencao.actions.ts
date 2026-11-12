@@ -1,7 +1,5 @@
 "use server";
 
-import { z } from "zod";
-
 import {
   makeDefinirConvencaoDoEmpregado,
   makeDefinirInterruptoresDoCliente,
@@ -9,23 +7,13 @@ import {
 } from "@/main/rh.factory";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
 import { toActionResult } from "@/shared/kernel/to-action-result";
+import { dadosInvalidos } from "@/modules/rh/presentation/view-models/dados-invalidos.presenter";
 
 import {
   convencaoDoEmpregadoSchema,
   enviarConvencaoSchema,
   interruptoresSchema,
 } from "./convencao.schema";
-
-function invalido(erro: z.ZodError): ActionResult<void> {
-  return {
-    ok: false,
-    error: {
-      code: "VALIDATION_ERROR",
-      message: "Dados inválidos.",
-      fields: z.flattenError(erro).fieldErrors as Record<string, string[]>,
-    },
-  };
-}
 
 // O PDF chega como File no FormData; o caso de uso recebe só os bytes (a porta não conhece a web).
 export async function enviarConvencaoAction(formData: FormData): Promise<ActionResult<void>> {
@@ -34,7 +22,7 @@ export async function enviarConvencaoAction(formData: FormData): Promise<ActionR
     const arquivo = parsed.error.issues.find((i) => i.path[0] === "arquivo");
     return arquivo
       ? { ok: false, error: { code: "VALIDATION_ERROR", message: arquivo.message } }
-      : invalido(parsed.error);
+      : dadosInvalidos(parsed.error);
   }
   const { arquivo, ...dados } = parsed.data;
   const enviar = await makeEnviarConvencao();
@@ -48,7 +36,7 @@ export async function enviarConvencaoAction(formData: FormData): Promise<ActionR
 
 export async function definirInterruptoresAction(input: unknown): Promise<ActionResult<void>> {
   const parsed = interruptoresSchema.safeParse(input);
-  if (!parsed.success) return invalido(parsed.error);
+  if (!parsed.success) return dadosInvalidos(parsed.error);
   return toActionResult(await (await makeDefinirInterruptoresDoCliente()).execute(parsed.data));
 }
 
@@ -56,6 +44,6 @@ export async function definirConvencaoDoEmpregadoAction(
   input: unknown,
 ): Promise<ActionResult<void>> {
   const parsed = convencaoDoEmpregadoSchema.safeParse(input);
-  if (!parsed.success) return invalido(parsed.error);
+  if (!parsed.success) return dadosInvalidos(parsed.error);
   return toActionResult(await (await makeDefinirConvencaoDoEmpregado()).execute(parsed.data));
 }
