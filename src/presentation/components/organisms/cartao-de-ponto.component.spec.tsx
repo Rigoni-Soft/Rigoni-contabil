@@ -70,6 +70,15 @@ describe("CartaoDePonto", () => {
     expect(screen.queryByRole("columnheader", { name: "Abono" })).not.toBeInTheDocument();
   });
 
+  it("os grupos do cabeçalho cobrem exatamente as colunas", () => {
+    const { container } = render(<CartaoDePonto {...PROPS} />);
+
+    const [grupos, colunas] = Array.from(container.querySelectorAll("thead tr"));
+    const coberto = Array.from(grupos.querySelectorAll("th")).reduce((s, th) => s + th.colSpan, 0);
+
+    expect(coberto).toBe(colunas.querySelectorAll("th").length);
+  });
+
   it("em leitura avisa que só o Responsável digita", () => {
     render(<CartaoDePonto {...PROPS} editavel={false} />);
 
