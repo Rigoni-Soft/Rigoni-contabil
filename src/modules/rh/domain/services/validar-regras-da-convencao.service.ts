@@ -1,3 +1,4 @@
+import { dataIsoValida } from "@/shared/kernel/data-iso";
 import {
   CHAVES_DE_REGRA,
   CHAVES_NUMERICAS,
@@ -134,11 +135,8 @@ function tempoNoTrecho(minutos: number, trecho: string): boolean {
 function dataValida(data: string): boolean {
   const m = /^(\d{2})\/(\d{2})$/.exec(data);
   if (!m) return false;
-  const dia = Number(m[1]);
-  const mes = Number(m[2]);
   // 2024 é bissexto: 29/02 existe como data fixa de calendário.
-  const real = new Date(Date.UTC(2024, mes - 1, dia));
-  return real.getUTCMonth() === mes - 1 && real.getUTCDate() === dia;
+  return dataIsoValida(`2024-${m[2]}-${m[1]}`);
 }
 
 function dataNoTrecho(data: string, trecho: string): boolean {
