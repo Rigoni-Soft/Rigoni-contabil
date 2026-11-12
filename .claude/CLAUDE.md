@@ -8,6 +8,9 @@
 - O working tree está em LF (`autocrlf` converte no commit): edite com `Edit` ou `Write`; o aviso "LF will be replaced by CRLF" do Git é esperado.
 - Crie arquivo com `Write`: heredoc (`<<'EOF'`) com texto em português quebra o `Bash`.
 
+# Testes
+- Nunca rode `npx jest` puro: ele sobe os projetos unit e integration juntos e as suítes de integração (`*.test.ts`) disputam o mesmo banco local, o que gera falha que some ao rodar isolada. Use `yarn test` (unit) e `yarn test:int` (integração, em série); `yarn test:all` roda os dois.
+
 # graphify
 - **graphify** (`.claude/skills/graphify/SKILL.md`) - any input to knowledge graph. Trigger: `/graphify`
 When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.

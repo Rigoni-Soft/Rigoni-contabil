@@ -25,6 +25,8 @@ Argumentos: `$ARGUMENTS` → 1º token = issue alvo (`#123` ou `123`); 2º (opci
 
 Antes de codar, confira cada critério de aceite da issue: a fonte que ele cita (planilha, PDF, tabela) existe em `docs/` ou no repositório, e todo percentual ou valor dele passa nos validadores do kernel (`src/shared/kernel`). Fonte ausente ou valor recusado por regra escrita → pergunte ao usuário antes de implementar; quem decide é a convenção ou a legislação, não o agente.
 
+Critério que depende de um leitor externo (OCR, visão, extração de PDF) com amostras reais citadas na issue (ex.: "os 19 cartões de exemplo"): **antes de construir**, rode o leitor em 2 ou 3 amostras (script solto no scratchpad, sem commit) e reporte o que ele leu. Se o desenho (leitor, ordem de uma cascata, custo esperado) não se sustenta nas amostras, pare e volte ao usuário antes de implementar; foi o que faltou na #222, em que a cascata OCR→API foi construída inteira e só medida depois (0 de 18 fotos), e a spec original voltou.
+
 Chame a Skill `implement` com a issue (ela lê o ticket, usa `tdd` nos pontos acordados, roda typecheck e testes e comita). Se build, teste ou runtime falharem e a causa não for óbvia, chame `diagnosing-bugs` antes de insistir.
 
 Commits em Conventional Commits, atômicos, na branch do ticket. Adicione só os arquivos que a estação tocou (`git add <caminhos>`): `git add -A` leva junto a alteração solta do usuário em arquivo rastreado.
