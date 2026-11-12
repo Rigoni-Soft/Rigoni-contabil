@@ -27,8 +27,8 @@ export function minutosParaHm(minutos: number): string {
 
 // "HH:MM" → minutos; vazio ou fora do formato = null.
 export function hmParaMinutos(texto: string): number | null {
-  const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(texto);
-  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+  const horario = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(texto);
+  return horario ? Number(horario[1]) * 60 + Number(horario[2]) : null;
 }
 
 // 525 → "8h45"; 0 → "0h00".
@@ -151,9 +151,10 @@ type Pedido = { mes?: string; empregado?: string };
 
 // "?mes=…&empregado=…" só com o que foi pedido.
 function busca(parametros: Record<string, string | number | undefined>): string {
-  const q = new URLSearchParams();
-  for (const [chave, valor] of Object.entries(parametros)) if (valor) q.set(chave, String(valor));
-  const texto = q.toString();
+  const consulta = new URLSearchParams();
+  for (const [chave, valor] of Object.entries(parametros))
+    if (valor) consulta.set(chave, String(valor));
+  const texto = consulta.toString();
   return texto ? `?${texto}` : "";
 }
 
@@ -197,14 +198,14 @@ export function quadroDoEmpregado(folha: FolhaDePontoDto): EmpregadoDoQuadro[] {
 
 // O empregado escolhido pode ser inativo (ativo falso): o quadro o lista e deixa reativar.
 export function empregadoEmEdicao(folha: FolhaDePontoDto): EmpregadoEmEdicao | undefined {
-  const e = folha.selecionado?.empregado;
+  const empregado = folha.selecionado?.empregado;
   return (
-    e && {
-      id: e.id,
-      nome: e.nome,
-      comissionado: e.comissionado,
-      ativo: e.ativo,
-      semMovimento: e.semMovimento,
+    empregado && {
+      id: empregado.id,
+      nome: empregado.nome,
+      comissionado: empregado.comissionado,
+      ativo: empregado.ativo,
+      semMovimento: empregado.semMovimento,
     }
   );
 }
@@ -228,12 +229,14 @@ export type DiaLido =
 
 // Entrada e saída vêm juntas: um par pela metade é erro do formulário, não um horário perdido.
 function par(c: Campos, entrada: string, saida: string): ParDto | null | "incompleto" {
-  const e = texto(c, entrada);
-  const s = texto(c, saida);
-  if (!e && !s) return null;
-  const [em, sm] = [hmParaMinutos(e), hmParaMinutos(s)];
-  if (em === null || sm === null || em === sm) return "incompleto";
-  return { entrada: em, saida: sm };
+  const horaDeEntrada = texto(c, entrada);
+  const horaDeSaida = texto(c, saida);
+  if (!horaDeEntrada && !horaDeSaida) return null;
+  const entradaEmMinutos = hmParaMinutos(horaDeEntrada);
+  const saidaEmMinutos = hmParaMinutos(horaDeSaida);
+  if (entradaEmMinutos === null || saidaEmMinutos === null || entradaEmMinutos === saidaEmMinutos)
+    return "incompleto";
+  return { entrada: entradaEmMinutos, saida: saidaEmMinutos };
 }
 
 export function lerDiaDoFormulario(c: Campos): DiaLido {

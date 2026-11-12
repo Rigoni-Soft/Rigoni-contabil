@@ -36,10 +36,10 @@ const numero = (n: number) => String(n).replace(".", ",");
 
 // 480 vira "8h", 440 "7h20", 30 "30 min".
 export function duracao(minutos: number): string {
-  const h = Math.floor(minutos / 60);
-  const m = minutos % 60;
-  if (h === 0) return `${m} min`;
-  return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, "0")}`;
+  const horas = Math.floor(minutos / 60);
+  const resto = minutos % 60;
+  if (horas === 0) return `${resto} min`;
+  return resto === 0 ? `${horas}h` : `${horas}h${String(resto).padStart(2, "0")}`;
 }
 
 function textoDaLegislacao(chave: ChaveDeRegra): string {
