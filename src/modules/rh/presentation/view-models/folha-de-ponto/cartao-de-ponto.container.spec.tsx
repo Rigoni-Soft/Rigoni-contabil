@@ -31,7 +31,7 @@ const ZERO = {
 const ANA = {
   id: "e1",
   nome: "Ana",
-  jornada: [0, 525, 525, 525, 525, 525, 240],
+  jornada: [0, 525, 525, 525, 525, 525, 240] as const,
   comissionado: false,
   ativo: true,
   semMovimento: false,

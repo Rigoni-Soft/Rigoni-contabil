@@ -26,7 +26,7 @@ export function validarJornada(jornada: readonly number[]): Result<Jornada, Vali
       }),
     );
   }
-  return ok(jornada as unknown as Jornada);
+  return ok(jornada as Jornada);
 }
 
 function parValido({ entrada, saida }: Par): boolean {

@@ -19,7 +19,6 @@ import {
   minutosTrabalhados,
   totalizar,
   totalizarDia,
-  type Jornada,
 } from "@/modules/rh/domain/services/totalizacao.service";
 import { Competencia } from "@/modules/rh/domain/value-objects/competencia.vo";
 import type { AppError } from "@/shared/errors/app.error";
@@ -132,7 +131,7 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
         abono: dia?.abono ?? false,
         feriado: feriadoEm.has(data),
       };
-      const jornada = escolhido.jornada as unknown as Jornada;
+      const jornada = escolhido.jornada;
       return {
         ...doCartao,
         diaDaSemana: semana,
@@ -147,7 +146,7 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
       selecionado: {
         empregado: escolhido,
         dias,
-        totalizacao: totalizar(dias, escolhido.jornada as unknown as Jornada, regrasDoDia),
+        totalizacao: totalizar(dias, escolhido.jornada, regrasDoDia),
         iniciado: iniciado.value,
         semConvencao,
       },

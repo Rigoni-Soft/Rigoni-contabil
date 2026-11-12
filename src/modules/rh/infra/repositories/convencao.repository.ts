@@ -1,4 +1,5 @@
-import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
 
 import type { ConvencaoDto } from "@/modules/rh/application/dtos/convencao.dto";
 import type {
@@ -6,22 +7,12 @@ import type {
   NovaConvencao,
 } from "@/modules/rh/application/ports/out/convencao.repository";
 import type { RegistroDeErrosPort } from "@/modules/rh/application/ports/out/registro-de-erros.provider";
+import { convencaoRowSchema } from "@/modules/rh/infra/dtos/convencao-row.dto";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { PersistenciaError } from "@/shared/errors/persistencia.error";
 import { ValidationError } from "@/shared/errors/validation.error";
-import type { RegrasDaConvencao } from "@/shared/kernel/regras-da-convencao";
 import { err, ok, type Result } from "@/shared/kernel/result";
-
-type Linha = {
-  id: string;
-  sindicato: string;
-  vigencia_inicio: string;
-  vigencia_fim: string;
-  arquivo_nome: string;
-  criado_em: string;
-  regras: RegrasDaConvencao;
-};
 
 // O banco (RLS) é a última barreira: só o Líder do RH e o Admin inserem (42501 para os demais).
 export class SupabaseConvencaoRepository implements ConvencaoRepository {
@@ -38,8 +29,10 @@ export class SupabaseConvencaoRepository implements ConvencaoRepository {
       .order("vigencia_inicio", { ascending: false })
       .order("criado_em", { ascending: false });
     if (error) return this.falhaDeLeitura(error);
+    const linhas = z.array(convencaoRowSchema).safeParse(data);
+    if (!linhas.success) return this.falhaDeLeitura({ message: z.prettifyError(linhas.error) });
     return ok(
-      (data as Linha[]).map((l) => ({
+      linhas.data.map((l) => ({
         id: l.id,
         sindicato: l.sindicato,
         vigenciaInicio: l.vigencia_inicio,
@@ -72,7 +65,7 @@ export class SupabaseConvencaoRepository implements ConvencaoRepository {
     return err(new PersistenciaError("Não foi possível salvar a convenção. Tente novamente."));
   }
 
-  private falhaDeLeitura(error: PostgrestError): Result<never, AppError> {
+  private falhaDeLeitura(error: { message: string }): Result<never, AppError> {
     this.erros.registrar("Falha ao ler as convenções do RH:", error.message);
     return err(new PersistenciaError("Não foi possível carregar as convenções."));
   }

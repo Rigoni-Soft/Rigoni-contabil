@@ -1,4 +1,5 @@
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
 
 import type { InterruptoresDoClienteDto } from "@/modules/rh/application/dtos/convencao.dto";
 import type {
@@ -12,6 +13,18 @@ import type {
   FolhaDePontoRepository,
 } from "@/modules/rh/application/ports/out/folha-de-ponto.repository";
 import type { RegistroDeErrosPort } from "@/modules/rh/application/ports/out/registro-de-erros.provider";
+import {
+  clienteBasicoRowSchema,
+  diaDoPontoRowSchema,
+  empregadoClienteRowSchema,
+  empregadoConvencaoRowSchema,
+  empregadoIdRowSchema,
+  empregadoRowSchema,
+  feriadoRowSchema,
+  interruptoresRowSchema,
+  padraoRowSchema,
+  responsavelRowSchema,
+} from "@/modules/rh/infra/dtos/folha-de-ponto-row.dto";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { PersistenciaError } from "@/shared/errors/persistencia.error";
@@ -21,13 +34,6 @@ import { SETOR_RH } from "@/shared/kernel/setores";
 
 const FALHA_GRAVAR = "Não foi possível salvar. Tente novamente.";
 const FALHA_LER = "Não foi possível carregar a Folha de ponto.";
-
-type LinhaDoDia = {
-  data: string;
-  batidas: ParDto[];
-  extra: ParDto | null;
-  abono: boolean;
-};
 
 // O banco (RLS + gatilhos) é a última barreira: quem não é o Responsável do RH do Cliente recebe 42501 (ou
 // nenhuma linha afetada); as regras de dado levantam exceções nomeadas.
@@ -53,12 +59,12 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
     ]);
     if (cliente.error) return this.falhaDeLeitura(cliente.error);
     if (responsavel.error) return this.falhaDeLeitura(responsavel.error);
-    if (!cliente.data) return ok(null);
-    return ok({
-      cnpj: cliente.data.cnpj,
-      empresa: cliente.data.empresa,
-      responsavelId: responsavel.data?.responsavel_id ?? null,
-    });
+    const lido = this.ler(clienteBasicoRowSchema.nullable(), cliente.data);
+    const dono = this.ler(responsavelRowSchema.nullable(), responsavel.data);
+    if (!lido.ok) return lido;
+    if (!dono.ok) return dono;
+    if (!lido.value) return ok(null);
+    return ok({ ...lido.value, responsavelId: dono.value?.responsavel_id ?? null });
   }
 
   async buscarClienteDoEmpregado(empregadoId: string): Promise<Result<string | null, AppError>> {
@@ -68,7 +74,8 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
       .eq("id", empregadoId)
       .maybeSingle();
     if (error) return this.falhaDeLeitura(error);
-    return ok(data?.cliente_id ?? null);
+    const lido = this.ler(empregadoClienteRowSchema.nullable(), data);
+    return lido.ok ? ok(lido.value?.cliente_id ?? null) : lido;
   }
 
   async listarEmpregados(clienteId: string): Promise<Result<EmpregadoDto[], AppError>> {
@@ -77,17 +84,8 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
       .select("id, nome, jornada, comissionado, ativo")
       .eq("cliente_id", clienteId);
     if (error) return this.falhaDeLeitura(error);
-    return ok(
-      data
-        .map((e) => ({
-          id: e.id as string,
-          nome: e.nome as string,
-          jornada: e.jornada as number[],
-          comissionado: e.comissionado as boolean,
-          ativo: e.ativo as boolean,
-        }))
-        .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
-    );
+    const lidos = this.ler(z.array(empregadoRowSchema), data);
+    return lidos.ok ? ok(lidos.value.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))) : lidos;
   }
 
   async listarSemMovimento(
@@ -101,7 +99,8 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
       .eq("competencia", competencia)
       .eq("rh_empregados.cliente_id", clienteId);
     if (error) return this.falhaDeLeitura(error);
-    return ok(data.map((l) => l.empregado_id as string));
+    const lidos = this.ler(z.array(empregadoIdRowSchema), data);
+    return lidos.ok ? ok(lidos.value.map((l) => l.empregado_id)) : lidos;
   }
 
   async cartaoIniciado(
@@ -135,7 +134,8 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
       .eq("cliente_id", clienteId)
       .maybeSingle();
     if (error) return this.falhaDeLeitura(error);
-    return ok(data?.comissionados ?? false);
+    const lido = this.ler(padraoRowSchema.nullable(), data);
+    return lido.ok ? ok(lido.value?.comissionados ?? false) : lido;
   }
 
   async definirPadraoComissionados(
@@ -209,7 +209,7 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
       .lte("data", ate)
       .order("data");
     if (error) return this.falhaDeLeitura(error);
-    return ok((data as LinhaDoDia[]).map((d) => ({ ...d })));
+    return this.ler(z.array(diaDoPontoRowSchema), data);
   }
 
   async salvarDia(
@@ -243,7 +243,8 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
       .gte("data", de)
       .lte("data", ate);
     if (error) return this.falhaDeLeitura(error);
-    return ok(data.map((f) => f.data as string));
+    const lidos = this.ler(z.array(feriadoRowSchema), data);
+    return lidos.ok ? ok(lidos.value.map((f) => f.data)) : lidos;
   }
 
   async buscarInterruptores(
@@ -255,9 +256,11 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
       .eq("cliente_id", clienteId)
       .maybeSingle();
     if (error) return this.falhaDeLeitura(error);
+    const lido = this.ler(interruptoresRowSchema.nullable(), data);
+    if (!lido.ok) return lido;
     return ok({
-      bancoDeHoras: data?.banco_de_horas ?? false,
-      trabalhoAosDomingos: data?.trabalho_aos_domingos ?? false,
+      bancoDeHoras: lido.value?.banco_de_horas ?? false,
+      trabalhoAosDomingos: lido.value?.trabalho_aos_domingos ?? false,
     });
   }
 
@@ -284,12 +287,10 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
       .select("id, convencao_sindicato")
       .eq("cliente_id", clienteId);
     if (error) return this.falhaDeLeitura(error);
-    return ok(
-      data.map((e) => ({
-        empregadoId: e.id as string,
-        sindicato: (e.convencao_sindicato as string | null) ?? null,
-      })),
-    );
+    const lidos = this.ler(z.array(empregadoConvencaoRowSchema), data);
+    return lidos.ok
+      ? ok(lidos.value.map((e) => ({ empregadoId: e.id, sindicato: e.convencao_sindicato })))
+      : lidos;
   }
 
   async definirConvencaoDoEmpregado(
@@ -333,7 +334,14 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
     return err(new PersistenciaError(FALHA_GRAVAR));
   }
 
-  private falhaDeLeitura(error: PostgrestError): Result<never, AppError> {
+  private ler<S extends z.ZodType>(schema: S, data: unknown): Result<z.output<S>, AppError> {
+    const lido = schema.safeParse(data);
+    return lido.success
+      ? ok(lido.data)
+      : this.falhaDeLeitura({ message: z.prettifyError(lido.error) });
+  }
+
+  private falhaDeLeitura(error: { message: string }): Result<never, AppError> {
     this.erros.registrar("Falha ao ler a Folha de ponto do RH:", error.message);
     return err(new PersistenciaError(FALHA_LER));
   }

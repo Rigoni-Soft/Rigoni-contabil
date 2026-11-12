@@ -28,7 +28,7 @@ jest.mock("./folha-de-ponto.actions", () => ({
 const ANA = {
   id: "e1",
   nome: "Ana",
-  jornada: [0, 525, 525, 525, 525, 525, 240],
+  jornada: [0, 525, 525, 525, 525, 525, 240] as const,
   comissionado: false,
   ativo: true,
   semMovimento: false,
@@ -77,7 +77,7 @@ describe("QuadroDeFuncionariosContainer", () => {
     expect(cadastrarEmpregadoAction).toHaveBeenCalledWith({
       clienteId: "c1",
       nome: "Caio",
-      jornada: [0, 525, 525, 525, 525, 525, 240],
+      jornada: [0, 525, 525, 525, 525, 525, 240] as const,
       comissionado: false,
     });
   });

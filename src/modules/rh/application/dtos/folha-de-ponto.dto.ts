@@ -1,4 +1,4 @@
-import type { Totalizacao } from "@/modules/rh/domain/services/totalizacao.service";
+import type { Jornada, Totalizacao } from "@/modules/rh/domain/services/totalizacao.service";
 
 export type TotalizacaoDto = Totalizacao;
 
@@ -9,7 +9,7 @@ export type EmpregadoDto = {
   id: string;
   nome: string;
   // Carga em minutos por dia da semana, de domingo a sábado.
-  jornada: number[];
+  jornada: Jornada;
   comissionado: boolean;
   ativo: boolean;
 };
