@@ -65,25 +65,35 @@ export function validarLeitura(
   const dias: DiaDaLeitura[] = [];
   const faltas: string[] = [];
 
-  for (const d of leitura.dias) {
-    if (!Number.isInteger(d.dia) || d.dia < de || d.dia > ate || vistos.has(d.dia)) {
-      return recusa(`Dia ${d.dia} fora da quinzena ou repetido.`);
+  for (const diaLido of leitura.dias) {
+    if (
+      !Number.isInteger(diaLido.dia) ||
+      diaLido.dia < de ||
+      diaLido.dia > ate ||
+      vistos.has(diaLido.dia)
+    ) {
+      return recusa(`Dia ${diaLido.dia} fora da quinzena ou repetido.`);
     }
-    vistos.add(d.dia);
-    const batidas = validarPares(d.batidas, 4);
-    const extra = validarPares(d.extra ? [d.extra] : [], 1);
-    if (!batidas.ok || !extra.ok) return recusa(`Horário inválido no dia ${d.dia}.`);
+    vistos.add(diaLido.dia);
+    const batidas = validarPares(diaLido.batidas, 4);
+    const extra = validarPares(diaLido.extra ? [diaLido.extra] : [], 1);
+    if (!batidas.ok || !extra.ok) return recusa(`Horário inválido no dia ${diaLido.dia}.`);
     if (!emOrdem(batidas.value, extra.value[0] ?? null)) {
-      return recusa(`Horários fora de ordem no dia ${d.dia}.`);
+      return recusa(`Horários fora de ordem no dia ${diaLido.dia}.`);
     }
     if (trabalhado(batidas.value) > MAXIMO_DO_DIA_MIN) {
-      return recusa(`Mais de 16 horas no dia ${d.dia}.`);
+      return recusa(`Mais de 16 horas no dia ${diaLido.dia}.`);
     }
-    const data = `${alvo.competencia}-${String(d.dia).padStart(2, "0")}`;
-    if (d.faltou && batidas.value.length === 0) faltas.push(data);
+    const data = `${alvo.competencia}-${String(diaLido.dia).padStart(2, "0")}`;
+    if (diaLido.faltou && batidas.value.length === 0) faltas.push(data);
     // Linha em branco não vira dia: não apaga o que já está digitado.
-    if (batidas.value.length === 0 && !extra.value[0] && !d.atestado) continue;
-    dias.push({ data, batidas: batidas.value, extra: extra.value[0] ?? null, abono: d.atestado });
+    if (batidas.value.length === 0 && !extra.value[0] && !diaLido.atestado) continue;
+    dias.push({
+      data,
+      batidas: batidas.value,
+      extra: extra.value[0] ?? null,
+      abono: diaLido.atestado,
+    });
   }
 
   // Cartão sem nenhuma batida lida é leitura que não leu nada.
@@ -96,16 +106,16 @@ export function validarLeitura(
 // amostras por dia da semana; o Funcionário corrige a Jornada no quadro se o padrão errar.
 export function deduzirJornada(dias: DiaDaLeitura[]): Jornada {
   const porDia: number[][] = [[], [], [], [], [], [], []];
-  for (const d of dias) {
-    const min = trabalhado(d.batidas);
+  for (const dia of dias) {
+    const min = trabalhado(dia.batidas);
     if (min <= 0) continue;
-    porDia[diaDaSemana(d.data)].push(min);
+    porDia[diaDaSemana(dia.data)].push(min);
   }
-  const mediana = (v: number[]) => {
-    if (v.length === 0) return 0;
-    const o = [...v].sort((a, b) => a - b);
-    const m = o[Math.floor(o.length / 2)];
-    return Math.round(m / 5) * 5;
+  const mediana = (valores: number[]) => {
+    if (valores.length === 0) return 0;
+    const ordenados = [...valores].sort((a, b) => a - b);
+    const meio = ordenados[Math.floor(ordenados.length / 2)];
+    return Math.round(meio / 5) * 5;
   };
   return porDia.map(mediana) as unknown as Jornada;
 }

@@ -18,9 +18,9 @@ type Props = {
   aoAbonar: (resumo: string) => void;
 };
 
-export function resumoDoAtestado(a: AtestadoLidoDto): string {
-  const dias = `${a.abonados} ${a.abonados === 1 ? "dia abonado" : "dias abonados"}`;
-  return `${dias} ${a.tipo === "atestado" ? "pelo atestado" : "pela declaração de comparecimento"}. Confira o cartão.`;
+function resumoDoAtestado(atestado: AtestadoLidoDto): string {
+  const dias = `${atestado.abonados} ${atestado.abonados === 1 ? "dia abonado" : "dias abonados"}`;
+  return `${dias} ${atestado.tipo === "atestado" ? "pelo atestado" : "pela declaração de comparecimento"}. Confira o cartão.`;
 }
 
 // Mensagem da foto escolhida que não serve (falta, tipo ou tamanho), ou undefined se serve.
@@ -57,8 +57,8 @@ export function LeituraDeAtestadoContainer({ empregadoId, nomeDoEmpregado, aoAbo
         if (aberto && !aberto.open) aberto.showModal();
       }}
       aoFechar={() => modal()?.close()}
-      onArquivo={(a) => {
-        setArquivo(a);
+      onArquivo={(escolhido) => {
+        setArquivo(escolhido);
         setErro(undefined);
       }}
       onLer={() => {
@@ -77,18 +77,18 @@ export function LeituraDeAtestadoContainer({ empregadoId, nomeDoEmpregado, aoAbo
         formData.set("imagem", arquivo);
         iniciar(async () => {
           try {
-            const r = await lerAtestadoDePontoAction(formData);
-            if (!r.ok) {
+            const resposta = await lerAtestadoDePontoAction(formData);
+            if (!resposta.ok) {
               setErroNoCampo(false);
-              return setErro(r.error.message);
+              return setErro(resposta.error.message);
             }
             setArquivo(undefined);
             modal()?.close();
-            aoAbonar(resumoDoAtestado(r.data));
-          } catch (e) {
-            console.error("Falha ao ler o atestado", e);
+            aoAbonar(resumoDoAtestado(resposta.data));
+          } catch (falha) {
+            console.error("Falha ao ler o atestado", falha);
             setErroNoCampo(false);
-            setErro(mensagemDaFalha(e));
+            setErro(mensagemDaFalha(falha));
           }
         });
       }}

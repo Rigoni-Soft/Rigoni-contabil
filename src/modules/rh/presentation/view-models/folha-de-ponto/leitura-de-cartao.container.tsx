@@ -13,13 +13,14 @@ import { LIMITE_DA_FOTO, MENSAGEM_FOTO_GRANDE, MENSAGEM_SEM_FOTO } from "./folha
 
 type Props = { clienteId: string; competencia: string };
 
-function resumoDaLeitura(c: CartaoLidoDto): string {
-  const partes = [`${c.dias} ${c.dias === 1 ? "dia lido" : "dias lidos"}`];
-  if (c.faltas > 0)
-    partes.push(`${c.faltas} ${c.faltas === 1 ? "falta anotada" : "faltas anotadas"}`);
-  if (c.abonos > 0) partes.push(`${c.abonos} ${c.abonos === 1 ? "abono" : "abonos"}`);
-  const novo = c.cadastrado ? " (cadastrado no quadro)" : "";
-  return `${c.nome}${novo}: ${partes.join(", ")}. Confira o cartão.`;
+function resumoDaLeitura(cartao: CartaoLidoDto): string {
+  const partes = [`${cartao.dias} ${cartao.dias === 1 ? "dia lido" : "dias lidos"}`];
+  if (cartao.faltas > 0)
+    partes.push(`${cartao.faltas} ${cartao.faltas === 1 ? "falta anotada" : "faltas anotadas"}`);
+  if (cartao.abonos > 0)
+    partes.push(`${cartao.abonos} ${cartao.abonos === 1 ? "abono" : "abonos"}`);
+  const novo = cartao.cadastrado ? " (cadastrado no quadro)" : "";
+  return `${cartao.nome}${novo}: ${partes.join(", ")}. Confira o cartão.`;
 }
 
 // Sobe a foto de uma quinzena e recarrega a tela com o empregado e o cartão. Só o sucesso limpa a foto; a
@@ -66,17 +67,17 @@ export function LeituraDeCartaoContainer({ clienteId, competencia }: Props) {
         formData.set("imagem", arquivo);
         iniciar(async () => {
           try {
-            const r = await lerCartaoDePontoAction(formData);
-            if (!r.ok) {
+            const resposta = await lerCartaoDePontoAction(formData);
+            if (!resposta.ok) {
               setErroNoCampo(false);
-              return setErro(r.error.message);
+              return setErro(resposta.error.message);
             }
             setArquivo(undefined);
-            setResultado(resumoDaLeitura(r.data));
+            setResultado(resumoDaLeitura(resposta.data));
             router.refresh();
-          } catch (e) {
-            console.error("Falha ao ler a foto do cartão", e);
-            setErro(mensagemDaFalha(e));
+          } catch (falha) {
+            console.error("Falha ao ler a foto do cartão", falha);
+            setErro(mensagemDaFalha(falha));
           }
         });
       }}

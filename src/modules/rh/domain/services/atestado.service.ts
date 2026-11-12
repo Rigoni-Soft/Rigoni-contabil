@@ -41,13 +41,15 @@ export function validarAtestado(lido: AtestadoLido): Result<AtestadoValido, Vali
 // horário, então só o dia que tem batida (o abono cobre a diferença da carga); dia vazio é falta e o RH
 // confere. `comBatida` = datas do cartão que já têm batida.
 export function abonosDoAtestado(
-  a: AtestadoValido,
+  atestado: AtestadoValido,
   jornada: Jornada,
   comBatida: ReadonlySet<string>,
 ): string[] {
   const datas: string[] = [];
-  for (let d = a.de; d <= a.ate; d = maisUmDia(d)) datas.push(d);
-  return datas.filter((d) =>
-    a.tipo === "declaracao" ? comBatida.has(d) : jornada[diaDaSemana(d)] > 0 && !comBatida.has(d),
+  for (let data = atestado.de; data <= atestado.ate; data = maisUmDia(data)) datas.push(data);
+  return datas.filter((data) =>
+    atestado.tipo === "declaracao"
+      ? comBatida.has(data)
+      : jornada[diaDaSemana(data)] > 0 && !comBatida.has(data),
   );
 }

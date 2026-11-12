@@ -154,4 +154,42 @@ test.describe("Folha de ponto do RH", () => {
     await expect(page.getByRole("button", { name: `Editar ${rotulo}` })).toHaveCount(0);
     await expect(page.getByRole("button", { name: `Salvar ${rotulo}` })).toHaveCount(0);
   });
+
+  // Leitor falso: a foto do atestado não é olhada e a leitura é sempre a declaração de comparecimento do
+  // "Erick Falso" em 01/09/2026 (ter), que abona só o horário de um dia que já tem batida.
+  test("Funcionário lê a declaração e o dia com batida fica abonado @smoke", async ({ page }) => {
+    const empregado = await admin
+      .from("rh_empregados")
+      .insert({
+        cliente_id: clienteId,
+        nome: "Erick Falso",
+        jornada: [0, 525, 525, 525, 525, 525, 240],
+      })
+      .select("id")
+      .single();
+    if (empregado.error) throw empregado.error;
+    const dia = await admin.from("rh_ponto_dias").insert({
+      empregado_id: empregado.data.id,
+      data: "2026-09-01",
+      batidas: [{ entrada: 480, saida: 720 }],
+    });
+    if (dia.error) throw dia.error;
+
+    await login(page, "funcionario.rh@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL("/rh");
+    await page.goto(`/rh/folha-de-ponto/${clienteId}/cartao/${empregado.data.id}?mes=2026-09`);
+
+    await page.getByRole("button", { name: "Ler atestado", exact: true }).click();
+    await page.getByLabel("Foto do atestado (JPEG ou PNG)").setInputFiles({
+      name: "declaracao-erick.jpeg",
+      mimeType: "image/jpeg",
+      buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00]),
+    });
+    await page.getByRole("button", { name: "Abonar pelo atestado" }).click();
+
+    await expect(
+      page.getByText("1 dia abonado pela declaração de comparecimento. Confira o cartão."),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Desfazer abono de ter 01/09" })).toBeVisible();
+  });
 });

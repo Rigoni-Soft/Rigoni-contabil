@@ -13,12 +13,12 @@ const LIDER: AtorSessaoDto = { id: "lider", papel: "lider_setor", setor: "rh" };
 const AGORA = new Date("2026-11-20T15:00:00Z");
 const JPEG = { bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xe0]), tipo: "image/jpeg" as const };
 
-const h = (hh: number, mm = 0) => hh * 60 + mm;
+const emMinutos = (horas: number, minutos = 0) => horas * 60 + minutos;
 const dia = (n: number) => ({
   dia: n,
   batidas: [
-    { entrada: h(8), saida: h(12) },
-    { entrada: h(13), saida: h(17) },
+    { entrada: emMinutos(8), saida: emMinutos(12) },
+    { entrada: emMinutos(13), saida: emMinutos(17) },
   ],
   extra: null,
   atestado: false,

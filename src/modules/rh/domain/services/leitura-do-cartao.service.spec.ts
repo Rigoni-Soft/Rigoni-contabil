@@ -5,12 +5,12 @@ import {
   type LeituraDoCartao,
 } from "@/modules/rh/domain/services/leitura-do-cartao.service";
 
-const h = (hh: number, mm = 0) => hh * 60 + mm;
+const emMinutos = (horas: number, minutos = 0) => horas * 60 + minutos;
 const dia = (n: number, extra: Partial<LeituraDoCartao["dias"][number]> = {}) => ({
   dia: n,
   batidas: [
-    { entrada: h(8, 30), saida: h(12) },
-    { entrada: h(13, 30), saida: h(18) },
+    { entrada: emMinutos(8, 30), saida: emMinutos(12) },
+    { entrada: emMinutos(13, 30), saida: emMinutos(18) },
   ],
   extra: null,
   atestado: false,
@@ -52,7 +52,10 @@ describe("validarLeitura", () => {
     ["dia repetido", { nome: "Erick", dias: [dia(1), dia(1)] }],
     [
       "horário fora de ordem",
-      { nome: "Erick", dias: [dia(1, { batidas: [{ entrada: h(13), saida: h(9) }] })] },
+      {
+        nome: "Erick",
+        dias: [dia(1, { batidas: [{ entrada: emMinutos(13), saida: emMinutos(9) }] })],
+      },
     ],
     [
       "minuto inválido (par fora do dia)",
@@ -74,8 +77,18 @@ describe("deduzirJornada", () => {
   it("usa a mediana do trabalhado por dia da semana; sem batida = zero", () => {
     // 2026-09-01 é terça; 2026-09-02, quarta.
     const jornada = deduzirJornada([
-      { data: "2026-09-01", batidas: [{ entrada: h(8), saida: h(12) }], extra: null, abono: false },
-      { data: "2026-09-02", batidas: [{ entrada: h(8), saida: h(17) }], extra: null, abono: false },
+      {
+        data: "2026-09-01",
+        batidas: [{ entrada: emMinutos(8), saida: emMinutos(12) }],
+        extra: null,
+        abono: false,
+      },
+      {
+        data: "2026-09-02",
+        batidas: [{ entrada: emMinutos(8), saida: emMinutos(17) }],
+        extra: null,
+        abono: false,
+      },
     ]);
     expect(jornada).toEqual([0, 0, 240, 540, 0, 0, 0]);
   });
