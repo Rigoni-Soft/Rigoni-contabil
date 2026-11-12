@@ -31,10 +31,7 @@ const resposta = z.object({
   ),
 });
 
-const dataIso = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .nullable();
+const dataIso = z.string().regex(FORMATO_DATA_ISO).nullable();
 // Só estes campos: o z.object descarta o resto (CID, documento, diagnóstico).
 const respostaAtestado = z.object({
   nome: z.string().nullable(),
