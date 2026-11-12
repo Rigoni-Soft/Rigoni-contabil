@@ -106,26 +106,31 @@ describe("convencao.actions (integração)", () => {
       expect(interruptoresMock).toHaveBeenCalledWith(input);
     });
 
-    it.each([[{ clienteId: ID, bancoDeHoras: true }], [{ clienteId: "x", bancoDeHoras: true, trabalhoAosDomingos: true }], [undefined]])(
-      "%p: VALIDATION_ERROR, sem chamar o caso de uso",
-      async (input) => {
-        expect(await definirInterruptoresAction(input)).toMatchObject({
-          ok: false,
-          error: { code: "VALIDATION_ERROR" },
-        });
-        expect(interruptoresMock).not.toHaveBeenCalled();
-      },
-    );
+    it.each([
+      [{ clienteId: ID, bancoDeHoras: true }],
+      [{ clienteId: "x", bancoDeHoras: true, trabalhoAosDomingos: true }],
+      [undefined],
+    ])("%p: VALIDATION_ERROR, sem chamar o caso de uso", async (input) => {
+      expect(await definirInterruptoresAction(input)).toMatchObject({
+        ok: false,
+        error: { code: "VALIDATION_ERROR" },
+      });
+      expect(interruptoresMock).not.toHaveBeenCalled();
+    });
   });
 
   describe("definirConvencaoDoEmpregadoAction", () => {
     it("aceita sindicato ou nulo e entrega ao caso de uso", async () => {
-      expect((await definirConvencaoDoEmpregadoAction({ empregadoId: ID, sindicato: null })).ok).toBe(true);
+      expect(
+        (await definirConvencaoDoEmpregadoAction({ empregadoId: ID, sindicato: null })).ok,
+      ).toBe(true);
       expect(convencaoDoEmpregadoMock).toHaveBeenCalledWith({ empregadoId: ID, sindicato: null });
     });
 
     it("sindicato vazio: VALIDATION_ERROR, sem chamar o caso de uso", async () => {
-      expect(await definirConvencaoDoEmpregadoAction({ empregadoId: ID, sindicato: "" })).toMatchObject({
+      expect(
+        await definirConvencaoDoEmpregadoAction({ empregadoId: ID, sindicato: "" }),
+      ).toMatchObject({
         ok: false,
         error: { code: "VALIDATION_ERROR" },
       });

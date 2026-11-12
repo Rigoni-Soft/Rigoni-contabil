@@ -9,13 +9,14 @@ describe("validarNome", () => {
     expect(validarNome("  Ana Souza ")).toEqual({ ok: true, value: "Ana Souza" });
   });
 
-  it.each([["vazio", ""], ["só espaços", "   "], ["acima de 120", "x".repeat(121)]])(
-    "recusa nome %s",
-    (_caso, nome) => {
-      const r = validarNome(nome);
-      expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
-    },
-  );
+  it.each([
+    ["vazio", ""],
+    ["só espaços", "   "],
+    ["acima de 120", "x".repeat(121)],
+  ])("recusa nome %s", (_caso, nome) => {
+    const r = validarNome(nome);
+    expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
+  });
 
   it("aceita o limite de 120", () => {
     expect(validarNome("x".repeat(120)).ok).toBe(true);

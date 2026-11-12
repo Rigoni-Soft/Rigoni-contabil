@@ -70,7 +70,8 @@ export function itensDaTotalizacao(
   ];
 }
 
-const horaDoPar = (par: ParDto | undefined, campo: keyof ParDto) => (par ? minutosParaHm(par[campo]) : "");
+const horaDoPar = (par: ParDto | undefined, campo: keyof ParDto) =>
+  par ? minutosParaHm(par[campo]) : "";
 
 const teveExtra = (dia: DiaDaFolhaDto) => extrasDoDia(dia.apuracao) > 0;
 export const temDados = (dia: Pick<DiaDoPontoDto, "batidas" | "extra" | "abono">) =>

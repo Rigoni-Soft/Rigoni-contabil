@@ -89,7 +89,8 @@ export class EnviarConvencao implements EnviarConvencaoPort {
   // O PDF solto não tem convenção: se a remoção falha, fica órfão no bucket e vira registro para o suporte.
   private async removerOrfao(caminho: string): Promise<void> {
     const removido = await this.armazenamento.remover(caminho);
-    if (!removido.ok) this.erros.registrar("rh.convencao.arquivo_orfao", caminho, removido.error.message);
+    if (!removido.ok)
+      this.erros.registrar("rh.convencao.arquivo_orfao", caminho, removido.error.message);
   }
 }
 
@@ -130,4 +131,3 @@ function validar(
 function ehPdf(bytes: Uint8Array): boolean {
   return ASSINATURA_PDF.every((b, i) => bytes[i] === b);
 }
-

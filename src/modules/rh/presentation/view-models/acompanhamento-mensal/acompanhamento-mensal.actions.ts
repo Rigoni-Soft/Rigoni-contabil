@@ -7,9 +7,9 @@ import {
   makeMarcarServicoAcompanhamento,
   makeRenomearServicoAcompanhamento,
 } from "@/main/rh.factory";
+import { dadosInvalidos } from "@/modules/rh/presentation/view-models/dados-invalidos.presenter";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
 import { toActionResult } from "@/shared/kernel/to-action-result";
-import { dadosInvalidos } from "@/modules/rh/presentation/view-models/dados-invalidos.presenter";
 
 import {
   aplicaSchema,

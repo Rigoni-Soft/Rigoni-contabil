@@ -46,7 +46,12 @@ describe("folha-de-ponto.actions (integração)", () => {
   });
 
   it.each([
-    ["cadastrar", cadastrarEmpregadoAction, "cadastrar", { clienteId: ID, nome: "Ana", jornada: JORNADA }],
+    [
+      "cadastrar",
+      cadastrarEmpregadoAction,
+      "cadastrar",
+      { clienteId: ID, nome: "Ana", jornada: JORNADA },
+    ],
     [
       "corrigir",
       corrigirEmpregadoAction,
@@ -80,11 +85,27 @@ describe("folha-de-ponto.actions (integração)", () => {
   });
 
   it.each([
-    ["cadastrar sem nome", cadastrarEmpregadoAction, { clienteId: ID, nome: " ", jornada: JORNADA }],
-    ["cadastrar com jornada de 6 dias", cadastrarEmpregadoAction, { clienteId: ID, nome: "Ana", jornada: [0, 1, 2, 3, 4, 5] }],
-    ["corrigir com id inválido", corrigirEmpregadoAction, { empregadoId: "x", nome: "Ana", jornada: JORNADA, comissionado: true }],
+    [
+      "cadastrar sem nome",
+      cadastrarEmpregadoAction,
+      { clienteId: ID, nome: " ", jornada: JORNADA },
+    ],
+    [
+      "cadastrar com jornada de 6 dias",
+      cadastrarEmpregadoAction,
+      { clienteId: ID, nome: "Ana", jornada: [0, 1, 2, 3, 4, 5] },
+    ],
+    [
+      "corrigir com id inválido",
+      corrigirEmpregadoAction,
+      { empregadoId: "x", nome: "Ana", jornada: JORNADA, comissionado: true },
+    ],
     ["ativo sem corpo", definirEmpregadoAtivoAction, undefined],
-    ["sem movimento com mês inválido", definirSemMovimentoAction, { empregadoId: ID, competencia: "2026-13", sem: true }],
+    [
+      "sem movimento com mês inválido",
+      definirSemMovimentoAction,
+      { empregadoId: ID, competencia: "2026-13", sem: true },
+    ],
     ["padrão sem booleano", definirPadraoComissionadosAction, { clienteId: ID }],
     ["iniciar sem competência", iniciarCartaoDoPontoAction, { empregadoId: ID }],
     [
@@ -98,7 +119,11 @@ describe("folha-de-ponto.actions (integração)", () => {
         abono: false,
       },
     ],
-    ["salvar dia com data fora do formato", salvarDiaDoPontoAction, { empregadoId: ID, data: "03/11/2026", batidas: [], extra: null, abono: false }],
+    [
+      "salvar dia com data fora do formato",
+      salvarDiaDoPontoAction,
+      { empregadoId: ID, data: "03/11/2026", batidas: [], extra: null, abono: false },
+    ],
   ])("%s: VALIDATION_ERROR, sem chamar o caso de uso", async (_nome, action, input) => {
     expect(await action(input)).toMatchObject({ ok: false, error: { code: "VALIDATION_ERROR" } });
     for (const caso of Object.values(casos)) expect(caso).not.toHaveBeenCalled();
