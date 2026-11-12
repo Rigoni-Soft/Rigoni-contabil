@@ -165,6 +165,7 @@ describe("SalvarDiaDoPonto", () => {
     const t = montar(FUNC);
     const par = { entrada: 480, saida: 720 };
     expect((await t.salvarDia.execute({ ...dia, data: "2026-02-30x" })).ok).toBe(false);
+    expect((await t.salvarDia.execute({ ...dia, data: "2026-02-31" })).ok).toBe(false);
     expect((await t.salvarDia.execute({ ...dia, batidas: Array(5).fill(par) })).ok).toBe(false);
     expect(
       (await t.salvarDia.execute({ ...dia, batidas: [{ entrada: 480, saida: 1440 }] })).ok,

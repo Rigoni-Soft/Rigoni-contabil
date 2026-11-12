@@ -9,18 +9,17 @@ import { EscreverPonto } from "@/modules/rh/application/use-cases/gerir-quadro-d
 import { validarPares } from "@/modules/rh/domain/services/validar-ponto.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ValidationError } from "@/shared/errors/validation.error";
+import { dataIsoValida } from "@/shared/kernel/data-iso";
 import { err, type Result } from "@/shared/kernel/result";
-
-const DATA = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
 // Um dia do Cartão de ponto: até 4 pares de batida, a coluna Extra e a sinalização de Abono.
 export class SalvarDiaDoPonto extends EscreverPonto implements SalvarDiaDoPontoPort {
-  constructor(sessao: SessaoPort, repo: FolhaDePontoRepository, auditoria: AuditoriaPort) {
-    super(sessao, repo, auditoria, "rh.ponto.salvar");
+  constructor(sessao: SessaoPort, repositorio: FolhaDePontoRepository, auditoria: AuditoriaPort) {
+    super(sessao, repositorio, auditoria, "rh.ponto.salvar");
   }
 
   async execute(input: SalvarDiaDoPontoInput): Promise<Result<void, AppError>> {
-    if (!DATA.test(input.data) || Number.isNaN(Date.parse(input.data))) {
+    if (!dataIsoValida(input.data)) {
       return err(new ValidationError("Data inválida.", { data: ["Data inválida"] }));
     }
     const batidas = validarPares(input.batidas, 4);
