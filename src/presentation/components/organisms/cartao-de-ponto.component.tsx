@@ -50,6 +50,10 @@ type Props = {
   onCancelarDia: (data: string) => void;
   onSalvarTabela: () => void;
   onLimparTabela: () => void;
+  // "Baixar PDF": o PDF individual do mês, para a assinatura física; quem lê o cartão também baixa.
+  onBaixarPdf: () => void;
+  baixandoPdf: boolean;
+  avisoDoPdf?: AvisoDoDia;
   totalizacao: ItemDaTotalizacao[];
   // Quando a Totalização usou a legislação por falta de convenção vigente.
   avisoDaTotalizacao?: string;
@@ -85,6 +89,9 @@ export function CartaoDePonto({
   onCancelarDia,
   onSalvarTabela,
   onLimparTabela,
+  onBaixarPdf,
+  baixandoPdf,
+  avisoDoPdf,
   totalizacao,
   avisoDaTotalizacao,
   editavel,
@@ -234,6 +241,22 @@ export function CartaoDePonto({
         itens={totalizacao}
         destaque={totalizacaoDestacada}
       />
+      <Pilha espaco={2}>
+        <Linha espaco={3} quebra alinhar="centro" justificar="fim">
+          <Texto variante="apoio">O PDF traz o que está salvo, com a Totalização do mês.</Texto>
+          {/* O botão fica na tela depois do clique: aria-disabled mantém o foco nele durante a geração. */}
+          <Button
+            type="button"
+            variant="outline"
+            aria-disabled={baixandoPdf}
+            onClick={baixandoPdf ? undefined : onBaixarPdf}
+            className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+          >
+            {baixandoPdf ? "Gerando PDF…" : "Baixar PDF"}
+          </Button>
+        </Linha>
+        {avisoDoPdf && <AvisoDeStatus tipo={avisoDoPdf.tipo} legivel texto={avisoDoPdf.texto} />}
+      </Pilha>
     </Pilha>
   );
 }

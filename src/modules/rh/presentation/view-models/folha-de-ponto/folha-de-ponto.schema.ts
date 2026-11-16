@@ -69,3 +69,4 @@ export const lerCartaoSchema = z.object({
   imagem: fotoDoCartaoSchema,
 });
 export const lerAtestadoSchema = z.object({ empregadoId: id, imagem: fotoDoAtestadoSchema });
+export const baixarPdfDoCartaoSchema = z.object({ clienteId: id, empregadoId: id, competencia });
