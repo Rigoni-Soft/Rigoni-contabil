@@ -16,16 +16,18 @@ const SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 const AVISO_SEM_CONVENCAO_NO_PDF =
   "Sem convenção coletiva vigente em parte do mês: esses dias foram totalizados pela legislação.";
 
+const doisDigitos = (n: number) => String(n).padStart(2, "0");
 const horario = (minutos: number) =>
-  `${String(Math.floor(minutos / 60)).padStart(2, "0")}:${String(minutos % 60).padStart(2, "0")}`;
+  `${doisDigitos(Math.floor(minutos / 60))}:${doisDigitos(minutos % 60)}`;
 const duracaoEmHorasEMinutos = (minutos: number) =>
-  `${Math.floor(minutos / 60)}h${String(minutos % 60).padStart(2, "0")}`;
+  `${Math.floor(minutos / 60)}h${doisDigitos(minutos % 60)}`;
 const quantidadeDeDias = (quantidade: number) =>
   `${quantidade} ${quantidade === 1 ? "dia" : "dias"}`;
 const horarioDoPar = (par: ParDto | undefined, campo: keyof ParDto) =>
   par ? horario(par[campo]) : "";
 
-const temDados = (dia: DiaDaFolhaDto) => dia.batidas.length > 0 || dia.extra !== null || dia.abono;
+const temApontamento = (dia: DiaDaFolhaDto) =>
+  dia.batidas.length > 0 || dia.extra !== null || dia.abono;
 
 // Não há PDF para assinar de empregado desligado, sem movimento no mês (férias, afastamento) ou sem nenhum
 // apontamento (batida, Extra ou Abono) no mês: devolve o porquê, ou undefined quando o PDF cabe.
@@ -34,7 +36,8 @@ export function motivoSemPdf(cartao: Cartao): string | undefined {
   if (cartao.empregado.semMovimento) {
     return "Empregado sem movimento no mês (férias ou afastamento): não há cartão para assinar.";
   }
-  if (!cartao.dias.some(temDados)) return "Sem apontamentos no mês: não há cartão para assinar.";
+  if (!cartao.dias.some(temApontamento))
+    return "Sem apontamentos no mês: não há cartão para assinar.";
   return undefined;
 }
 

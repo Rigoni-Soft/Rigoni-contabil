@@ -114,17 +114,24 @@ export class PdfLibGeradorDoCartaoGateway implements GeradorDePdfDoCartaoPort {
 
 // Desenha com a origem no canto superior esquerdo (o pdf-lib mede de baixo para cima).
 class Pincel {
+  // Os caracteres que cada fonte codifica, calculados uma vez (o texto é desenhado centenas de vezes por PDF).
+  private readonly aceitosNormal: Set<number>;
+  private readonly aceitosNegrito: Set<number>;
+
   constructor(
     private readonly pagina: PDFPage,
     private readonly normal: PDFFont,
     private readonly negrito: PDFFont,
-  ) {}
+  ) {
+    this.aceitosNormal = new Set(normal.getCharacterSet());
+    this.aceitosNegrito = new Set(negrito.getCharacterSet());
+  }
 
   // A Helvetica padrão só codifica WinAnsi: o que ela não tem vira "?" (nome com emoji ou outro alfabeto não derruba
   // o PDF) e o texto que passa da largura útil é cortado com reticências.
   texto(texto: string, x: number, baseline: number, tamanho: number, negrito = false) {
     const fonte = negrito ? this.negrito : this.normal;
-    const aceitos = new Set(fonte.getCharacterSet());
+    const aceitos = negrito ? this.aceitosNegrito : this.aceitosNormal;
     let limpo = Array.from(texto, (c) => (aceitos.has(c.codePointAt(0)!) ? c : "?")).join("");
     const maximo = MARGEM + UTIL - x;
     while (limpo.length > 1 && fonte.widthOfTextAtSize(limpo, tamanho) > maximo) {

@@ -248,7 +248,7 @@ export function CartaoDePonto({
         // Desligado, sem movimento no mês ou sem apontamento: não há cartão para assinar, então nenhum botão.
         <Texto variante="apoio">{motivoSemPdf}</Texto>
       ) : (
-        <Pilha espaco={2} aria-busy={baixandoPdf}>
+        <Pilha espaco={2}>
           <Linha espaco={3} quebra alinhar="centro" justificar="fim">
             <Texto id="apoio-do-pdf" variante="apoio">
               O PDF traz o que está salvo, com a Totalização do mês.
