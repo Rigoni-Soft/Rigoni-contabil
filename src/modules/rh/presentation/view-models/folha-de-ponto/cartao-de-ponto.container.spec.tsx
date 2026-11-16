@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { baixarArquivoBase64 } from "@/presentation/lib/baixar-arquivo-base64";
 import type { FolhaDePontoDto } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
 
+import { diaDaFolha } from "../../../../../../test-support/dia-da-folha";
 import { CartaoDePontoContainer } from "./cartao-de-ponto.container";
 import {
   baixarPdfDoCartaoAction,
@@ -55,34 +56,7 @@ const FOLHA_VAZIA: FolhaDePontoDto = {
   podeEditar: true,
   selecionado: {
     empregado: ANA,
-    dias: [
-      {
-        data: "2026-11-16",
-        diaDaSemana: 1,
-        feriado: false,
-        cargaMin: 525,
-        diaDeTrabalho: true,
-        temApontamento: false,
-        trabalhadoMin: 0,
-        apuracao: {
-          normaisMin: 0,
-          extras: [],
-          bancoDeHorasMin: 0,
-          acimaDoLimiteMin: 0,
-          noturnoMin: 0,
-          atrasoMin: 0,
-          faltas: 1,
-          abonoDias: 0,
-          abonoMin: 0,
-          feriadosTrabalhados: 0,
-          sabadosTrabalhados: 0,
-          diasComLanche: 0,
-        },
-        batidas: [],
-        extra: null,
-        abono: false,
-      },
-    ],
+    dias: [diaDaFolha({ apuracao: { ...ZERO, faltas: 1 } })],
     totalizacao: {
       normaisMin: 0,
       extras: [],
@@ -112,46 +86,15 @@ const FOLHA: FolhaDePontoDto = {
   selecionado: {
     empregado: ANA,
     dias: [
-      {
-        data: "2026-11-16",
-        diaDaSemana: 1,
-        feriado: false,
-        cargaMin: 525,
-        diaDeTrabalho: true,
-        temApontamento: false,
-        trabalhadoMin: 0,
-        apuracao: {
-          normaisMin: 0,
-          extras: [],
-          bancoDeHorasMin: 0,
-          acimaDoLimiteMin: 0,
-          noturnoMin: 0,
-          atrasoMin: 0,
-          faltas: 1,
-          abonoDias: 0,
-          abonoMin: 0,
-          feriadosTrabalhados: 0,
-          sabadosTrabalhados: 0,
-          diasComLanche: 0,
-        },
-        batidas: [],
-        extra: null,
-        abono: false,
-      },
+      diaDaFolha({ apuracao: { ...ZERO, faltas: 1 } }),
       // Outro dia já lançado: o cartão foi começado e o dia 16, vazio, é falta.
-      {
+      diaDaFolha({
         data: "2026-11-17",
         diaDaSemana: 2,
-        feriado: false,
-        cargaMin: 525,
-        diaDeTrabalho: true,
-        temApontamento: true,
         trabalhadoMin: 525,
         apuracao: { ...ZERO, normaisMin: 525 },
         batidas: [{ entrada: 480, saida: 1005 }],
-        extra: null,
-        abono: false,
-      },
+      }),
     ],
     totalizacao: {
       normaisMin: 0,

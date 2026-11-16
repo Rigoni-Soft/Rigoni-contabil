@@ -4,6 +4,8 @@ import type {
 } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
 import { documentoDoCartao } from "@/modules/rh/application/mappers/documento-do-cartao.mapper";
 
+import { diaDaFolha } from "../../../../../test-support/dia-da-folha";
+
 type Cartao = NonNullable<FolhaDePontoDto["selecionado"]>;
 
 const ZERO = {
@@ -21,20 +23,8 @@ const ZERO = {
   diasComLanche: 0,
 };
 
-const dia = (data: string, semana: number, extras: Partial<DiaDaFolhaDto> = {}): DiaDaFolhaDto => ({
-  data,
-  batidas: [],
-  extra: null,
-  abono: false,
-  feriado: false,
-  temApontamento: !!extras.batidas?.length || !!extras.extra || !!extras.abono,
-  diaDaSemana: semana,
-  cargaMin: 525,
-  diaDeTrabalho: true,
-  trabalhadoMin: 0,
-  apuracao: ZERO,
-  ...extras,
-});
+const dia = (data: string, semana: number, extras: Partial<DiaDaFolhaDto> = {}) =>
+  diaDaFolha({ data, diaDaSemana: semana, ...extras });
 
 function folha(cartao: Partial<Cartao>, dias: DiaDaFolhaDto[]): [FolhaDePontoDto, Cartao] {
   const selecionado: Cartao = {
