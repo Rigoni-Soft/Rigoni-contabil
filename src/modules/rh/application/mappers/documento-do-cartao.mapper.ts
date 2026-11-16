@@ -27,16 +27,26 @@ const horarioDoPar = (par: ParDto | undefined, campo: keyof ParDto) =>
 
 const temDados = (dia: DiaDaFolhaDto) => dia.batidas.length > 0 || dia.extra !== null || dia.abono;
 
-// Cartão ainda não iniciado e sem nenhum dado: os dias úteis vazios ainda não são falta (como na tela).
-function situacaoDoDia(dia: DiaDaFolhaDto, cartaoVazio: boolean): SituacaoDoDiaNoDocumento {
+// Não há PDF para assinar de empregado desligado, sem movimento no mês (férias, afastamento) ou sem nenhum
+// apontamento (batida, Extra ou Abono) no mês: devolve o porquê, ou undefined quando o PDF cabe.
+export function motivoSemPdf(cartao: Cartao): string | undefined {
+  if (!cartao.empregado.ativo) return "Empregado desligado: não há cartão para assinar.";
+  if (cartao.empregado.semMovimento) {
+    return "Empregado sem movimento no mês (férias ou afastamento): não há cartão para assinar.";
+  }
+  if (!cartao.dias.some(temDados)) return "Sem apontamentos no mês: não há cartão para assinar.";
+  return undefined;
+}
+
+function situacaoDoDia(dia: DiaDaFolhaDto): SituacaoDoDiaNoDocumento {
   const semBatida = dia.batidas.length === 0 && dia.extra === null;
   if (dia.abono && semBatida && dia.diaDeTrabalho) return "Abono";
-  if (dia.diaDeTrabalho && dia.apuracao.faltas > 0 && !cartaoVazio) return "Falta";
+  if (dia.diaDeTrabalho && dia.apuracao.faltas > 0) return "Falta";
   if (dia.feriado) return "Feriado";
   return dia.cargaMin === 0 ? "Folga" : "";
 }
 
-function linhaDoDia(dia: DiaDaFolhaDto, cartaoVazio: boolean): LinhaDoDocumentoDto {
+function linhaDoDia(dia: DiaDaFolhaDto): LinhaDoDocumentoDto {
   const [, mes, diaDoMes] = dia.data.split("-");
   return {
     data: `${diaDoMes}/${mes}`,
@@ -49,11 +59,11 @@ function linhaDoDia(dia: DiaDaFolhaDto, cartaoVazio: boolean): LinhaDoDocumentoD
     ],
     extra: dia.extra ? `${horario(dia.extra.entrada)}-${horario(dia.extra.saida)}` : "",
     horasDiarias: duracaoEmHorasEMinutos(dia.trabalhadoMin),
-    situacao: situacaoDoDia(dia, cartaoVazio),
+    situacao: situacaoDoDia(dia),
   };
 }
 
-function itensDaTotalizacao(cartao: Cartao, cartaoVazio: boolean): ItemDoDocumentoDto[] {
+function itensDaTotalizacao(cartao: Cartao): ItemDoDocumentoDto[] {
   const totalizacao = cartao.totalizacao;
   const trabalhado = cartao.dias.reduce((soma, dia) => soma + dia.trabalhadoMin, 0);
   const extras = totalizacao.extras.length
@@ -79,7 +89,7 @@ function itensDaTotalizacao(cartao: Cartao, cartaoVazio: boolean): ItemDoDocumen
       : []),
     { rotulo: "Adicional noturno", valor: duracaoEmHorasEMinutos(totalizacao.noturnoMin) },
     { rotulo: "Atrasos", valor: duracaoEmHorasEMinutos(totalizacao.atrasoMin) },
-    { rotulo: "Faltas", valor: quantidadeDeDias(cartaoVazio ? 0 : totalizacao.faltas) },
+    { rotulo: "Faltas", valor: quantidadeDeDias(totalizacao.faltas) },
     {
       rotulo: "Abonos",
       valor: `${quantidadeDeDias(totalizacao.abonoDias)} · ${duracaoEmHorasEMinutos(totalizacao.abonoMin)}`,
@@ -91,14 +101,13 @@ function itensDaTotalizacao(cartao: Cartao, cartaoVazio: boolean): ItemDoDocumen
 }
 
 export function documentoDoCartao(folha: FolhaDePontoDto, cartao: Cartao): DocumentoDoCartaoDto {
-  const cartaoVazio = !cartao.iniciado && !cartao.dias.some(temDados);
   const [ano, mes] = folha.competencia.split("-");
   return {
     empresa: folha.empresa,
     empregado: cartao.empregado.nome,
     periodo: `${mes}/${ano}`,
-    linhas: cartao.dias.map((dia) => linhaDoDia(dia, cartaoVazio)),
-    totalizacao: itensDaTotalizacao(cartao, cartaoVazio),
+    linhas: cartao.dias.map(linhaDoDia),
+    totalizacao: itensDaTotalizacao(cartao),
     avisoDaTotalizacao: cartao.semConvencao ? AVISO_SEM_CONVENCAO_NO_PDF : undefined,
   };
 }

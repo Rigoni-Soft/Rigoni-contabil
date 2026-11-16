@@ -1,5 +1,8 @@
 import type { PdfDoCartaoDto } from "@/modules/rh/application/dtos/documento-do-cartao.dto";
-import { documentoDoCartao } from "@/modules/rh/application/mappers/documento-do-cartao.mapper";
+import {
+  documentoDoCartao,
+  motivoSemPdf,
+} from "@/modules/rh/application/mappers/documento-do-cartao.mapper";
 import type {
   BaixarPdfDoCartaoInput,
   BaixarPdfDoCartaoPort,
@@ -14,14 +17,16 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { GeracaoDeDocumentoError } from "@/shared/errors/geracao-de-documento.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
+import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 const ACAO = "rh.ponto.baixar-pdf";
 
 // O PDF individual do Cartão de ponto de um empregado num mês: horários, Totalização em destaque e as linhas de
 // assinatura do responsável e do empregado do Cliente. Quem lê a Folha de ponto (Admin, Líder e o Responsável do
-// RH do Cliente) baixa; a leitura e o recorte da vista são do ObterFolhaDePonto. A geração é no servidor e cada
-// download é auditado (a recusa e a falha também).
+// RH do Cliente) baixa; a leitura e o recorte da vista são do ObterFolhaDePonto. Empregado desligado, sem movimento
+// no mês ou sem apontamento não tem PDF (motivoSemPdf). A geração é no servidor e cada download é auditado (a
+// recusa e a falha também).
 export class BaixarPdfDoCartao implements BaixarPdfDoCartaoPort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -58,6 +63,11 @@ export class BaixarPdfDoCartao implements BaixarPdfDoCartaoPort {
       return err(new NotFoundError("Empregado não encontrado."));
     }
     const nome = cartao.empregado.nome;
+    const motivo = motivoSemPdf(cartao);
+    if (motivo) {
+      await auditar("falha", nome);
+      return err(new ValidationError(motivo));
+    }
 
     let bytes: Uint8Array;
     try {

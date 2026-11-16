@@ -61,6 +61,15 @@ describe("CartaoDePonto", () => {
     expect(onBaixarPdf).toHaveBeenCalledTimes(1);
   });
 
+  it("sem PDF a assinar (desligado, sem movimento ou sem apontamento) o botão dá lugar ao motivo", () => {
+    render(
+      <CartaoDePonto {...PROPS} motivoSemPdf="Empregado desligado: não há cartão para assinar." />,
+    );
+
+    expect(screen.queryByRole("button", { name: "Baixar PDF" })).not.toBeInTheDocument();
+    expect(screen.getByText(/Empregado desligado: não há cartão para assinar/)).toBeInTheDocument();
+  });
+
   it("enquanto gera o PDF o botão fica inativo mas focável, e o resultado aparece", async () => {
     const onBaixarPdf = jest.fn();
     const { rerender } = render(<CartaoDePonto {...PROPS} baixandoPdf onBaixarPdf={onBaixarPdf} />);

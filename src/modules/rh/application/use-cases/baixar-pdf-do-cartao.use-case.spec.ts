@@ -161,22 +161,38 @@ describe("BaixarPdfDoCartao", () => {
     expect(documento.avisoDaTotalizacao).toContain("legislação");
   });
 
-  it("cartão novo (nunca salvo e sem dado) não mostra falta nem conta falta na Totalização", async () => {
-    const novo = {
-      ...FOLHA,
-      selecionado: {
-        ...FOLHA.selecionado!,
-        iniciado: false,
-        dias: [dia("2026-11-04", 3, { apuracao: ZERO })],
-      },
-    };
-    const { caso, gerador } = montar({ folha: ok(novo) });
+  it.each([
+    [
+      "sem nenhum apontamento no mês (mesmo com o cartão iniciado)",
+      { dias: [dia("2026-11-04", 3, { apuracao: ZERO })] },
+      "Sem apontamentos no mês",
+    ],
+    [
+      "empregado desligado",
+      { empregado: { ...FOLHA.selecionado!.empregado, ativo: false } },
+      "Empregado desligado",
+    ],
+    [
+      "empregado sem movimento no mês (férias)",
+      { empregado: { ...FOLHA.selecionado!.empregado, semMovimento: true } },
+      "sem movimento no mês",
+    ],
+  ])("%s: não gera o PDF e audita a recusa", async (_nome, troca, mensagem) => {
+    const { caso, gerador, auditoria } = montar({
+      folha: ok({ ...FOLHA, selecionado: { ...FOLHA.selecionado!, ...troca } }),
+    });
 
-    await caso.execute(ENTRADA);
+    const r = await caso.execute(ENTRADA);
 
-    const documento = (gerador.gerar as jest.Mock).mock.calls[0][0];
-    expect(documento.linhas[0].situacao).toBe("");
-    expect(documento.totalizacao).toContainEqual({ rotulo: "Faltas", valor: "0 dias" });
+    expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
+    expect(!r.ok && r.error.message).toContain(mensagem);
+    expect(gerador.gerar).not.toHaveBeenCalled();
+    expect(auditoria.registrar).toHaveBeenCalledWith(
+      expect.objectContaining({ acao: "rh.ponto.baixar-pdf", resultado: "falha" }),
+    );
+    expect(auditoria.registrar).not.toHaveBeenCalledWith(
+      expect.objectContaining({ resultado: "sucesso" }),
+    );
   });
 
   it("sem sessão recusa e nada é gerado nem auditado", async () => {

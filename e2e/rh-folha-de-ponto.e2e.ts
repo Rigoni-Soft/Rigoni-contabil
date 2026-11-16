@@ -20,6 +20,18 @@ function primeiraSegunda() {
   return { mes, rotulo: `seg ${dd}/${String(m).padStart(2, "0")}` };
 }
 
+// Uma batida no dia 2 do mês: o cartão passa a ter apontamento (sem ele não há PDF para assinar).
+async function lancarBatida(empregadoId: string, mes: string) {
+  const lancou = await admin.from("rh_ponto_dias").insert({
+    empregado_id: empregadoId,
+    data: `${mes}-02`,
+    batidas: [{ entrada: 480, saida: 720 }],
+    extra: null,
+    abono: false,
+  });
+  if (lancou.error) throw lancou.error;
+}
+
 test.describe("Folha de ponto do RH", () => {
   test.beforeAll(async () => {
     clienteId = crypto.randomUUID();
@@ -167,6 +179,7 @@ test.describe("Folha de ponto do RH", () => {
       .select("id")
       .single();
     if (empregado.error) throw empregado.error;
+    await lancarBatida(empregado.data.id, mes);
 
     await login(page, "funcionario.rh@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/rh");
@@ -203,6 +216,7 @@ test.describe("Folha de ponto do RH", () => {
       .select("id")
       .single();
     if (empregado.error) throw empregado.error;
+    await lancarBatida(empregado.data.id, mes);
 
     await login(page, "lider.rh@rigonicontabil.local", "lider123");
     await expect(page).toHaveURL("/rh");
@@ -212,6 +226,56 @@ test.describe("Folha de ponto do RH", () => {
     await page.getByRole("button", { name: "Baixar PDF" }).click();
 
     expect((await download).suggestedFilename()).toBe(`cartao-de-ponto-edu-e2e-${mes}.pdf`);
+  });
+
+  test("Cartão sem apontamento, de desligado ou de empregado sem movimento não tem PDF", async ({
+    page,
+  }) => {
+    const { mes } = primeiraSegunda();
+    const jornada = [0, 525, 525, 525, 525, 525, 240];
+    // Com batida lançada; o banco só aceita dia de empregado ativo, então o desligamento vem depois.
+    const novo = async (nome: string, desligar = false) => {
+      const criado = await admin
+        .from("rh_empregados")
+        .insert({ cliente_id: clienteId, nome, jornada })
+        .select("id")
+        .single();
+      if (criado.error) throw criado.error;
+      await lancarBatida(criado.data.id, mes);
+      if (desligar) {
+        const saiu = await admin
+          .from("rh_empregados")
+          .update({ ativo: false })
+          .eq("id", criado.data.id);
+        if (saiu.error) throw saiu.error;
+      }
+      return criado.data.id as string;
+    };
+    const semApontamento = await admin
+      .from("rh_empregados")
+      .insert({ cliente_id: clienteId, nome: "Fabi E2E", jornada })
+      .select("id")
+      .single();
+    if (semApontamento.error) throw semApontamento.error;
+    const desligado = await novo("Gil E2E", true);
+    const emFerias = await novo("Hana E2E");
+    const marca = await admin
+      .from("rh_empregado_sem_movimento")
+      .insert({ empregado_id: emFerias, competencia: `${mes}-01` });
+    if (marca.error) throw marca.error;
+
+    await login(page, "funcionario.rh@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL("/rh");
+    const casos = [
+      [semApontamento.data.id, "Sem apontamentos no mês"],
+      [desligado, "Empregado desligado"],
+      [emFerias, "Empregado sem movimento no mês"],
+    ];
+    for (const [id, motivo] of casos) {
+      await page.goto(`/rh/folha-de-ponto/${clienteId}/cartao/${id}?mes=${mes}`);
+      await expect(page.getByText(motivo)).toBeVisible();
+      await expect(page.getByRole("button", { name: "Baixar PDF" })).toHaveCount(0);
+    }
   });
 
   // Leitor falso: a foto do atestado não é olhada e a leitura é sempre a declaração de comparecimento do
