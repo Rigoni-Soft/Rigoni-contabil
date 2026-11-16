@@ -914,12 +914,17 @@ lê ("Lendo o cartão…") e o foco não sai dele; o erro da foto (falta ou mais
 da leitura mostra o `AvisoDeStatus` de erro mandando digitar à mão, preservando a foto escolhida; o sucesso mostra o resumo ("Erick (cadastrado no quadro): 3 dias lidos, 1 falta anotada.
 Confira o cartão.") em `AvisoDeStatus` de sucesso e limpa a foto sem remontar o formulário (o foco fica no botão). Sem tela de confirmação.
 
+**`PainelModal` (molécula):** a casca dos painéis modais: um `<dialog>` (`SUPERFICIE_DE_PAINEL`, `w-[min(92vw,32rem)]`,
+`max-h-[80dvh]`, `closedby="any"`: o Container o abre com `showModal`, foco preso, Esc e clique no véu fecham) com uma
+linha de cabeçalho (título `subtitulo` em `h2` que nomeia o diálogo, e o botão fechar "X" fantasma, redondo, com nome
+acessível pedido) e o corpo como filhos, que trazem o próprio espaçamento e rolagem. Use em qualquer painel que abra sobre
+a tela (hoje o sino de avisos e a leitura de atestado); não use para confirmação curta, que é `ConfirmacaoEmLinha`.
+
 **`LeituraDeAtestado` (organismo):** o botão de contorno "Ler atestado" no rodapé do `CartaoDePonto` (à esquerda do
-"Salvar", só quando o cartão é editável) que abre um `<dialog>` modal (`SUPERFICIE_DE_PAINEL`, `w-[min(92vw,32rem)]`, o Container
-o abre com `showModal`, foco preso, Esc e véu fecham). A modal tem o título "Ler atestado ou declaração", o botão fechar (X), o
-texto de apoio (de quem são os dias, o que cada documento abona, que o nome precisa ser o do empregado, que foto e CID não
-são guardados), um `CampoDeArquivo` (JPEG ou PNG de até 4 MB) e os botões "Abonar pelo atestado" (`aria-disabled` e "Lendo o
-atestado…" enquanto lê) e "Cancelar". Sucesso fecha a modal, recarrega a planilha e mostra o resumo ("1 dia abonado pelo
+"Salvar", só quando o cartão é editável) que abre um `PainelModal` com o título "Ler atestado ou declaração". O corpo tem o
+texto de apoio (de quem são os dias, o que cada documento abona, que o nome precisa ser o do empregado e o cartão do mês
+estar iniciado, que foto e CID não são guardados), um `CampoDeArquivo` (JPEG ou PNG de até 4 MB) e os botões "Abonar pelo
+atestado" (`aria-disabled` e "Lendo o atestado…" enquanto lê) e "Cancelar" (`destructive`, como no trio de formulário). Sucesso fecha a modal, recarrega a planilha e mostra o resumo ("1 dia abonado pelo
 atestado. Confira o cartão.") no rodapé do cartão; erro (foto, nome que não confere, nada a abonar, leitura que falhou) mantém a
 modal aberta com o motivo (no campo, se for da foto; senão em `AvisoDeStatus` de erro) e a planilha fica como estava.
 
