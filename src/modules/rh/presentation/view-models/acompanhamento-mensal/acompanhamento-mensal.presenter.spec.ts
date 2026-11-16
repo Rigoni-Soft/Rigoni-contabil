@@ -28,11 +28,12 @@ describe("acompanhamento-mensal.presenter", () => {
           cnpj: "1",
           holerite: { cadastrados: 3, semMovimento: 1, cartoes: 1, exigidos: 2 },
           celulas: [
-            { servicoId: "a", aplica: true, sempre: false, concluido: true },
-            { servicoId: "b", aplica: false, sempre: false, concluido: false },
-            { servicoId: "c", aplica: true, sempre: false, concluido: false },
-            { servicoId: "h", aplica: true, sempre: false, concluido: false },
+            { servicoId: "a", aplica: true, sempre: false, concluido: true, pendente: false },
+            { servicoId: "b", aplica: false, sempre: false, concluido: false, pendente: false },
+            { servicoId: "c", aplica: true, sempre: false, concluido: false, pendente: true },
+            { servicoId: "h", aplica: true, sempre: false, concluido: false, pendente: true },
           ],
+          ponto: false,
         },
       ],
     };

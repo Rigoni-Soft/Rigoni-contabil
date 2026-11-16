@@ -23,7 +23,7 @@ const doCliente = ({ clienteId, empresa, cnpj }: AcompanhamentoMensalDto["linhas
 });
 
 const faltando = (l: AcompanhamentoMensalDto["linhas"][number]) =>
-  l.celulas.filter((c) => c.aplica && !c.concluido).map((c) => c.servicoId);
+  l.celulas.filter((c) => c.pendente).map((c) => c.servicoId);
 
 // Um card por serviço com os clientes que ainda faltam nele (aplica e não concluído), mais "Tudo
 // concluído": quem não tem serviço faltando. É o que antes era a tabela; marcar fica no painel do cliente.
@@ -52,7 +52,7 @@ export function cardsDoAcompanhamento(dto: AcompanhamentoMensalDto) {
       total,
     };
   });
-  const completos = dto.linhas.filter((l) => faltando(l).length === 0).map(doCliente);
+  const completos = dto.linhas.filter((l) => l.ponto).map(doCliente);
   cards.push({
     id: "servicos_concluidos",
     titulo: "Tudo concluído",
@@ -68,7 +68,7 @@ export function cardsDoAcompanhamento(dto: AcompanhamentoMensalDto) {
 
 // O donut do acompanhamento: quantos clientes fecharam o mês e quantos ainda têm serviço faltando.
 export function fatiasDoAcompanhamento(dto: AcompanhamentoMensalDto) {
-  const completos = dto.linhas.filter((l) => faltando(l).length === 0).length;
+  const completos = dto.linhas.filter((l) => l.ponto).length;
   return [
     { id: "concluido", rotulo: "Tudo concluído", cor: "em_dia", quantidade: completos },
     {

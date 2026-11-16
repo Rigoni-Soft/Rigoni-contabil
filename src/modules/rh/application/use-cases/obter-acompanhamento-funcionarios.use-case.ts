@@ -5,6 +5,7 @@ import type {
   FuncionarioAcompanhamentoDto,
   ServicoAcompanhamentoDto,
 } from "@/modules/rh/application/dtos/acompanhamento.dto";
+import { comSituacao } from "@/modules/rh/application/mappers/situacao-do-cliente.mapper";
 import type {
   ObterAcompanhamentoFuncionariosInput,
   ObterAcompanhamentoFuncionariosPort,
@@ -12,7 +13,6 @@ import type {
 import type { AcompanhamentoRepository } from "@/modules/rh/application/ports/out/acompanhamento.repository";
 import type { RelogioPort } from "@/modules/rh/application/ports/out/relogio.provider";
 import type { SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
-import { comHolerite } from "@/modules/rh/domain/services/holerite.service";
 import { Competencia } from "@/modules/rh/domain/value-objects/competencia.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
@@ -29,32 +29,26 @@ type Mes = {
   clientes: ClienteAcompanhamentoDto[];
 };
 
-// Serviços que ainda faltam no cliente: os que se aplicam e não estão concluídos (o Holerite entra).
-function faltantes(cliente: ClienteAcompanhamentoDto, servicos: ServicoAcompanhamentoDto[]) {
-  const naoAplica = new Set(cliente.naoAplica);
-  const concluidos = new Set(cliente.concluidos);
-  return servicos.filter((s) => !naoAplica.has(s.id) && !concluidos.has(s.id));
-}
-
-const pendentesDe = (cliente: ClienteAcompanhamentoDto, servicos: ServicoAcompanhamentoDto[]) =>
-  new Set(faltantes(cliente, servicos).map((s) => s.id));
+// Serviços que ainda faltam no cliente, pela situação dos Serviços do módulo de domínio (o Holerite entra).
+const pendentesDe = (cliente: ClienteAcompanhamentoDto) =>
+  new Set(cliente.situacao.servicos.filter((s) => s.pendente).map((s) => s.servicoId));
 
 // Pontos: clientes sem nenhum serviço faltando.
-const pontosDe = (clientes: ClienteAcompanhamentoDto[], servicos: ServicoAcompanhamentoDto[]) =>
-  clientes.filter((c) => pendentesDe(c, servicos).size === 0).length;
+const pontosDe = (clientes: ClienteAcompanhamentoDto[]) =>
+  clientes.filter((c) => c.situacao.ponto).length;
 
 function resumir(
   funcionario: { id: string; nome: string },
   clientes: ClienteAcompanhamentoDto[],
   servicos: ServicoAcompanhamentoDto[],
 ): FuncionarioAcompanhamentoDto {
-  const pendentes = clientes.map((c) => pendentesDe(c, servicos));
+  const pendentes = clientes.map(pendentesDe);
   const empresasQueFaltam = (servicoId: string) =>
     clientes.filter((_, i) => pendentes[i].has(servicoId)).map((c) => c.empresa);
   return {
     ...funcionario,
     atribuidos: clientes.length,
-    pontos: pontosDe(clientes, servicos),
+    pontos: pontosDe(clientes),
     faltam: servicos.map((s) => {
       const empresas = empresasQueFaltam(s.id);
       return { servicoId: s.id, nome: s.nome, clientes: empresas.length, empresas };
@@ -105,7 +99,7 @@ export class ObterAcompanhamentoFuncionarios implements ObterAcompanhamentoFunci
         return ok({
           competencia: mes,
           servicos: servicos.value,
-          clientes: comHolerite(clientes.value, servicos.value),
+          clientes: comSituacao(clientes.value, servicos.value),
         });
       }),
     );
@@ -163,7 +157,7 @@ function detalharFuncionario(
       servicoId: s.id,
       nome: s.nome,
       clientes: clientesAtuais
-        .filter((c) => pendentesDe(c, atual.servicos).has(s.id))
+        .filter((c) => pendentesDe(c).has(s.id))
         .map((c) => ({ clienteId: c.clienteId, empresa: c.empresa, cnpj: c.cnpj })),
     }))
     .filter((p) => p.clientes.length > 0);
@@ -172,7 +166,7 @@ function detalharFuncionario(
     const clientes = doFuncionario(mes);
     return {
       competencia: mes.competencia,
-      pontos: pontosDe(clientes, mes.servicos),
+      pontos: pontosDe(clientes),
       atribuidos: clientes.length,
     };
   });
@@ -182,7 +176,7 @@ function detalharFuncionario(
     (mes) =>
       new Set(
         doFuncionario(mes)
-          .filter((x) => pendentesDe(x, mes.servicos).size > 0)
+          .filter((x) => !x.situacao.ponto)
           .map((x) => x.clienteId),
       ),
   );

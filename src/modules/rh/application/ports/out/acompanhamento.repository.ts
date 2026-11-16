@@ -3,10 +3,16 @@ import type {
   EscopoDoAplica,
   ServicoAcompanhamentoDto,
 } from "@/modules/rh/application/dtos/acompanhamento.dto";
+import type { FatosDoCliente } from "@/modules/rh/domain/services/situacao-dos-servicos.service";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
 export type ClienteDoAcompanhamentoDto = { cnpj: string; responsavelId: string | null };
+
+// O que o adapter leu do Cliente no mês: os arrays de Serviços dispensados e concluídos são detalhe daqui; quem
+// decide a situação dos Serviços é o módulo de domínio (`situacaoDosServicos`).
+export type ClienteLidoDto = FatosDoCliente &
+  Pick<ClienteAcompanhamentoDto, "clienteId" | "empresa" | "cnpj" | "responsavel">;
 
 // `competencia` é sempre o primeiro dia do mês ("AAAA-MM-01").
 export interface AcompanhamentoRepository {
@@ -18,7 +24,7 @@ export interface AcompanhamentoRepository {
     responsavelId: string | null,
     // O Líder e o Admin também veem os clientes sem Responsável.
     incluirSemResponsavel?: boolean,
-  ): Promise<Result<ClienteAcompanhamentoDto[], AppError>>;
+  ): Promise<Result<ClienteLidoDto[], AppError>>;
   // null = cliente inexistente ou fora da vista do ator.
   buscarCliente(clienteId: string): Promise<Result<ClienteDoAcompanhamentoDto | null, AppError>>;
   criarServico(nome: string): Promise<Result<void, AppError>>;

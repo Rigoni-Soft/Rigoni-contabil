@@ -1,5 +1,7 @@
-import type { ClienteAcompanhamentoDto } from "@/modules/rh/application/dtos/acompanhamento.dto";
-import type { AcompanhamentoRepository } from "@/modules/rh/application/ports/out/acompanhamento.repository";
+import type {
+  AcompanhamentoRepository,
+  ClienteLidoDto,
+} from "@/modules/rh/application/ports/out/acompanhamento.repository";
 import type { SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
 import { ok } from "@/shared/kernel/result";
 
@@ -18,7 +20,7 @@ function cliente(
   responsavel: { id: string; nome: string } | null,
   concluidos: string[],
   naoAplica: string[] = [],
-): ClienteAcompanhamentoDto {
+): ClienteLidoDto {
   return {
     clienteId: id,
     empresa: `Empresa ${id}`,
@@ -34,7 +36,7 @@ function cliente(
 
 // Novembro: Ana fecha c1 e deixa c2 sem nada; Bia tem c3 só sem o Holerite; c4 não tem Responsável.
 // Outubro: Ana fechou os dois clientes.
-const POR_MES: Record<string, ClienteAcompanhamentoDto[]> = {
+const POR_MES: Record<string, ClienteLidoDto[]> = {
   "2026-11-01": [
     cliente("c1", ANA, ["s-fgts", "s-hol"]),
     cliente("c2", ANA, []),

@@ -1,4 +1,5 @@
 import type { AcompanhamentoMensalDto } from "@/modules/rh/application/dtos/acompanhamento.dto";
+import { comSituacao } from "@/modules/rh/application/mappers/situacao-do-cliente.mapper";
 import type {
   ObterAcompanhamentoMensalInput,
   ObterAcompanhamentoMensalPort,
@@ -6,7 +7,7 @@ import type {
 import type { AcompanhamentoRepository } from "@/modules/rh/application/ports/out/acompanhamento.repository";
 import type { RelogioPort } from "@/modules/rh/application/ports/out/relogio.provider";
 import type { SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
-import { cartoesExigidos, comHolerite } from "@/modules/rh/domain/services/holerite.service";
+import { cartoesExigidos } from "@/modules/rh/domain/services/holerite.service";
 import { Competencia } from "@/modules/rh/domain/value-objects/competencia.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
@@ -51,23 +52,21 @@ export class ObterAcompanhamentoMensal implements ObterAcompanhamentoMensalPort 
     return ok({
       competencia: competencia.value.valor,
       servicos: servicos.value,
-      linhas: comHolerite(clientes.value, servicos.value).map((cliente) => {
-        const naoAplica = new Set(cliente.naoAplica);
-        const sempre = new Set(cliente.naoAplicaSempre);
-        const concluidos = new Set(cliente.concluidos);
-        return {
-          clienteId: cliente.clienteId,
-          empresa: cliente.empresa,
-          cnpj: cliente.cnpj,
-          holerite: { ...cliente.holerite, exigidos: cartoesExigidos(cliente.holerite) },
-          celulas: servicos.value.map((servico) => ({
-            servicoId: servico.id,
-            aplica: !naoAplica.has(servico.id),
-            sempre: sempre.has(servico.id),
-            concluido: concluidos.has(servico.id),
-          })),
-        };
-      }),
+      linhas: comSituacao(clientes.value, servicos.value).map((cliente) => ({
+        clienteId: cliente.clienteId,
+        empresa: cliente.empresa,
+        cnpj: cliente.cnpj,
+        holerite: { ...cliente.holerite, exigidos: cartoesExigidos(cliente.holerite) },
+        celulas: cliente.situacao.servicos.map((s) => ({
+          servicoId: s.servicoId,
+          aplica: s.aplicavel,
+          sempre: s.sempre,
+          concluido: s.concluido,
+          pendente: s.pendente,
+          motivoDoPendente: s.motivoDoPendente,
+        })),
+        ponto: cliente.situacao.ponto,
+      })),
       podeMarcar: podeMarcarAcompanhamentoRh(ator.papel, ator.setor),
     });
   }

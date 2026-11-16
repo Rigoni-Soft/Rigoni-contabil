@@ -55,8 +55,15 @@ describe("ObterAcompanhamentoMensal", () => {
     expect(r.ok && r.value.competencia).toBe("2026-11");
     expect(chamadas[0].competencia).toBe("2026-11-01");
     expect(r.ok && r.value.linhas[1].celulas).toEqual([
-      { servicoId: "s-fgts", aplica: true, sempre: false, concluido: true },
-      { servicoId: "s-hol", aplica: true, sempre: false, concluido: false },
+      { servicoId: "s-fgts", aplica: true, sempre: false, concluido: true, pendente: false },
+      {
+        servicoId: "s-hol",
+        aplica: true,
+        sempre: false,
+        concluido: false,
+        pendente: true,
+        motivoDoPendente: "cartoes_faltando",
+      },
     ]);
   });
 
@@ -113,6 +120,7 @@ describe("ObterAcompanhamentoMensal", () => {
       aplica: false,
       sempre: true,
       concluido: false,
+      pendente: false,
     });
   });
 

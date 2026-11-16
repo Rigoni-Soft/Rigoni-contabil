@@ -1,4 +1,8 @@
 import type { ContagemDoHolerite } from "@/modules/rh/domain/services/holerite.service";
+import type {
+  MotivoDoPendente,
+  SituacaoDosServicos,
+} from "@/modules/rh/domain/services/situacao-dos-servicos.service";
 
 // Onde vale o "se aplica": "aplica" (volta ao padrão), "mes" (não se aplica só na competência) ou "sempre"
 // (nunca se aplica a este Cliente, em todos os meses).
@@ -17,21 +21,21 @@ export type CelulaAcompanhamentoDto = {
   // Só com `aplica` falso: não se aplica a este Cliente em mês nenhum (e não só neste mês).
   sempre: boolean;
   concluido: boolean;
+  // Aplica e não está concluído (regra do módulo de situação dos Serviços), com o porquê.
+  pendente: boolean;
+  motivoDoPendente?: MotivoDoPendente;
 };
 
 export type ClienteAcompanhamentoDto = {
   clienteId: string;
   empresa: string;
   cnpj: string;
-  // Serviços "não se aplica" (no mês ou sempre) e concluídos no mês, por id.
-  naoAplica: string[];
-  // Dentre os `naoAplica`, os que nunca se aplicam a este Cliente (valem em todos os meses).
-  naoAplicaSempre: string[];
-  concluidos: string[];
   // Responsável do RH; null = cliente sem Responsável.
   responsavel: { id: string; nome: string } | null;
-  // Empregados e cartões do mês: delas sai o Holerite (`naoAplica` e `concluidos` já o refletem).
+  // Empregados e cartões do mês (a contagem de que sai o Holerite).
   holerite: ContagemDoHolerite;
+  // A situação dos Serviços do mês, já decidida pelo módulo de domínio.
+  situacao: SituacaoDosServicos;
 };
 
 // A contagem do Holerite do Cliente no mês, com os cartões que o mês exige (ativos menos "sem movimento").
@@ -44,6 +48,8 @@ export type LinhaAcompanhamentoDto = {
   // Uma célula por serviço, na ordem das colunas.
   celulas: CelulaAcompanhamentoDto[];
   holerite: HoleriteDaLinhaDto;
+  // Nenhum Serviço aplicável faltando: o Cliente rende ponto ao Responsável.
+  ponto: boolean;
 };
 
 export type AcompanhamentoMensalDto = {

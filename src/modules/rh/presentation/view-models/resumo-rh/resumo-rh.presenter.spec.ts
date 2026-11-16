@@ -11,6 +11,7 @@ const celula = (servicoId: string, aplica: boolean, concluido: boolean) => ({
   aplica,
   sempre: false,
   concluido,
+  pendente: aplica && !concluido,
 });
 const MENSAL: AcompanhamentoMensalDto = {
   competencia: "2026-11",
@@ -25,6 +26,7 @@ const MENSAL: AcompanhamentoMensalDto = {
       cnpj: "1",
       holerite: { cadastrados: 2, semMovimento: 0, cartoes: 1, exigidos: 2 },
       celulas: [celula("fgts", true, true), celula("holerite", true, false)],
+      ponto: false,
     },
     {
       clienteId: "b",
@@ -32,6 +34,7 @@ const MENSAL: AcompanhamentoMensalDto = {
       cnpj: "2",
       holerite: { cadastrados: 0, semMovimento: 0, cartoes: 0, exigidos: 0 },
       celulas: [celula("fgts", true, false), celula("holerite", false, false)],
+      ponto: false,
     },
     {
       clienteId: "c",
@@ -39,6 +42,7 @@ const MENSAL: AcompanhamentoMensalDto = {
       cnpj: "3",
       holerite: { cadastrados: 3, semMovimento: 1, cartoes: 2, exigidos: 2 },
       celulas: [celula("fgts", true, true), celula("holerite", true, true)],
+      ponto: true,
     },
   ],
   podeMarcar: true,

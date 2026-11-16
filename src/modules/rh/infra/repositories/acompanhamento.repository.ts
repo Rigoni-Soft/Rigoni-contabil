@@ -2,13 +2,13 @@ import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import type {
-  ClienteAcompanhamentoDto,
   EscopoDoAplica,
   ServicoAcompanhamentoDto,
 } from "@/modules/rh/application/dtos/acompanhamento.dto";
 import type {
   AcompanhamentoRepository,
   ClienteDoAcompanhamentoDto,
+  ClienteLidoDto,
 } from "@/modules/rh/application/ports/out/acompanhamento.repository";
 import type { RegistroDeErrosPort } from "@/modules/rh/application/ports/out/registro-de-erros.provider";
 import {
@@ -86,7 +86,7 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
     competencia: string,
     responsavelId: string | null,
     incluirSemResponsavel = false,
-  ): Promise<Result<ClienteAcompanhamentoDto[], AppError>> {
+  ): Promise<Result<ClienteLidoDto[], AppError>> {
     try {
       const responsaveis = await lerTudo(responsavelDoClienteRowSchema, (de, ate) => {
         const consulta = this.supabase
