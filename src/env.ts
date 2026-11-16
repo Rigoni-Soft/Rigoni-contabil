@@ -164,6 +164,16 @@ const resultado = z
     message: "MENSAGERIA_MODO=real exige WHATSAPP_TOKEN e WHATSAPP_PHONE_NUMBER_ID.",
     path: ["WHATSAPP_TOKEN"],
   })
+  // Os leitores falsos gravam dado inventado (empregado, dias, regras da convenção) num Cliente de verdade: em
+  // Production a variável tem de ser escolhida (indisponivel ou o real), nunca herdar o padrão "falso".
+  .refine((v) => process.env.VERCEL_ENV !== "production" || v.LEITURA_CARTAO_MODO !== "falso", {
+    message: "Production da Vercel não pode usar LEITURA_CARTAO_MODO=falso.",
+    path: ["LEITURA_CARTAO_MODO"],
+  })
+  .refine((v) => process.env.VERCEL_ENV !== "production" || v.EXTRACAO_CONVENCAO_MODO !== "falso", {
+    message: "Production da Vercel não pode usar EXTRACAO_CONVENCAO_MODO=falso.",
+    path: ["EXTRACAO_CONVENCAO_MODO"],
+  })
   .refine((v) => process.env.VERCEL_ENV !== "production" || !v.E2E_ADAPTER_SECRET, {
     message: "Production da Vercel não pode definir E2E_ADAPTER_SECRET.",
     path: ["E2E_ADAPTER_SECRET"],

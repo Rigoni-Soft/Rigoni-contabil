@@ -1,0 +1,47 @@
+// As guardas de Production do env.ts: o módulo valida ao ser importado, então cada caso o carrega do zero.
+const BASE = {
+  NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon",
+  SUPABASE_SERVICE_ROLE_KEY: "service",
+};
+
+const ORIGINAL = { ...process.env };
+
+async function carregarEnv(variaveis: Record<string, string>) {
+  jest.resetModules();
+  process.env = { ...ORIGINAL, ...BASE, ...variaveis };
+  await import("@/env");
+}
+
+afterEach(() => {
+  process.env = { ...ORIGINAL };
+});
+
+describe("env: leitores falsos em Production da Vercel", () => {
+  it("recusa LEITURA_CARTAO_MODO=falso, inclusive o padrão herdado", async () => {
+    await expect(
+      carregarEnv({ VERCEL_ENV: "production", EXTRACAO_CONVENCAO_MODO: "indisponivel" }),
+    ).rejects.toThrow(/LEITURA_CARTAO_MODO=falso/);
+  });
+
+  it("recusa EXTRACAO_CONVENCAO_MODO=falso, inclusive o padrão herdado", async () => {
+    await expect(
+      carregarEnv({ VERCEL_ENV: "production", LEITURA_CARTAO_MODO: "indisponivel" }),
+    ).rejects.toThrow(/EXTRACAO_CONVENCAO_MODO=falso/);
+  });
+
+  it("aceita os dois em indisponivel", async () => {
+    await expect(
+      carregarEnv({
+        VERCEL_ENV: "production",
+        LEITURA_CARTAO_MODO: "indisponivel",
+        EXTRACAO_CONVENCAO_MODO: "indisponivel",
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("deixa o falso valer fora de Production (dev, CI e Preview)", async () => {
+    await expect(carregarEnv({ VERCEL_ENV: "preview" })).resolves.toBeUndefined();
+    await expect(carregarEnv({})).resolves.toBeUndefined();
+  });
+});
