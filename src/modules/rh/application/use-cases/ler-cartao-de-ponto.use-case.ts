@@ -69,11 +69,12 @@ export class LerCartaoDePonto extends LerDeFoto implements LerCartaoDePontoPort 
     if (!feriados.ok) return feriados;
     const existentes = await this.repositorio.listarDias(empregado.value.id, primeira, ultima);
     if (!existentes.ok) return existentes;
+    const datasComDado = new Set(existentes.value.filter(diaTemDados).map((d) => d.data));
     const { gravar, mantidos } = diasAGravar(
       valida.dias,
       empregado.value.jornada,
       new Set(feriados.value),
-      new Set(existentes.value.filter(diaTemDados).map((d) => d.data)),
+      datasComDado,
     );
 
     const gravado = await this.repositorio.gravarCartao(
@@ -88,7 +89,8 @@ export class LerCartaoDePonto extends LerDeFoto implements LerCartaoDePontoPort 
       cadastrado: empregado.value.cadastrado,
       dias: gravar.length,
       mantidos,
-      faltas: valida.faltas.length,
+      // Falta em dia que o RH já preencheu é mantida e não conta: o resumo só fala do que a leitura anotou.
+      faltas: valida.faltas.filter((data) => !datasComDado.has(data)).length,
       abonos: gravar.filter((d) => d.abono).length,
     });
   }

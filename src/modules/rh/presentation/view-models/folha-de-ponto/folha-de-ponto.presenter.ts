@@ -63,7 +63,11 @@ export function resumoDoAtestado(atestado: AtestadoLidoDto): string {
   const abonados = `${atestado.abonados} ${atestado.abonados === 1 ? "dia abonado" : "dias abonados"}`;
   const origem =
     atestado.tipo === "atestado" ? "pelo atestado" : "pela declaração de comparecimento";
-  return `${abonados} ${origem}. Confira o cartão.`;
+  const semCartao =
+    atestado.semCartao > 0
+      ? ` ${atestado.semCartao} ${atestado.semCartao === 1 ? "dia" : "dias"} em mês sem cartão iniciado ficou sem abono: inicie o cartão e leia o atestado de novo.`
+      : "";
+  return `${abonados} ${origem}.${semCartao} Confira o cartão.`;
 }
 
 export const AVISO_SEM_CONVENCAO =

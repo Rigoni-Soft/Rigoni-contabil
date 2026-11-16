@@ -35,6 +35,7 @@ function repo(over: Partial<FolhaDePontoRepository> = {}): FolhaDePontoRepositor
     listarDias: async () => ok([]),
     salvarDia: async () => ok(undefined),
     gravarCartao: async () => ok(undefined),
+    abonarDias: async () => ok(undefined),
     listarFeriados: async () => ok([]),
     buscarInterruptores: async () => ok({ bancoDeHoras: false, trabalhoAosDomingos: false }),
     definirInterruptores: async () => ok(undefined),

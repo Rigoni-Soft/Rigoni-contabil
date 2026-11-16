@@ -10,6 +10,8 @@ export type AtestadoLidoDto = {
   tipo: TipoDeAtestado;
   // Dias que ganharam Abono (sempre 1 ou mais: sem nada a abonar, o resultado é erro com o motivo).
   abonados: number;
+  // Dias que o atestado cobriria mas caíram em mês sem cartão iniciado, e por isso ficaram sem Abono.
+  semCartao: number;
 };
 
 export interface LerAtestadoDePontoPort {

@@ -6,7 +6,8 @@ import type {
 import type { AtorSessaoDto } from "@/modules/rh/application/ports/out/sessao.provider";
 import { LerAtestadoDePonto } from "@/modules/rh/application/use-cases/ler-atestado-de-ponto.use-case";
 import type { AtestadoLido } from "@/modules/rh/domain/services/atestado.service";
-import { ok } from "@/shared/kernel/result";
+import { ValidationError } from "@/shared/errors/validation.error";
+import { err, ok } from "@/shared/kernel/result";
 
 const FUNC: AtorSessaoDto = { id: "func", papel: "funcionario", setor: "rh" };
 const AGORA = new Date("2026-11-20T15:00:00Z");
@@ -55,7 +56,7 @@ function montar(opcoes: {
     cartaoIniciado: jest.fn(async (_empregado: string, competencia: string) =>
       ok(opcoes.iniciados ? opcoes.iniciados.includes(competencia) : true),
     ),
-    salvarDia: jest.fn(async () => ok(undefined)),
+    abonarDias: jest.fn(async () => ok(undefined)),
   } as unknown as jest.Mocked<FolhaDePontoRepository>;
   const auditoria = { registrar: jest.fn(async () => undefined) };
   const erros = { registrar: jest.fn() };
@@ -78,14 +79,53 @@ describe("LerAtestadoDePonto", () => {
 
     const r = await caso.execute(entrada);
 
-    expect(r.ok && r.value).toEqual({ tipo: "atestado", abonados: 1 });
-    expect(repositorio.salvarDia).toHaveBeenCalledTimes(1);
-    expect(repositorio.salvarDia).toHaveBeenCalledWith("e1", {
-      data: "2026-08-24",
-      batidas: [],
-      extra: null,
-      abono: true,
+    expect(r.ok && r.value).toEqual({ tipo: "atestado", abonados: 1, semCartao: 0 });
+    expect(repositorio.abonarDias).toHaveBeenCalledTimes(1);
+    expect(repositorio.abonarDias).toHaveBeenCalledWith("e1", ["2026-08-24"]);
+  });
+
+  it("grava todos os abonos numa chamada só; se ela falha, devolve o erro (nada fica pela metade)", async () => {
+    // 24/08 segunda a 28/08 sexta: cinco dias de trabalho.
+    const { caso, repositorio } = montar({
+      leitor: { lerAtestado: async () => lido({ de: "2026-08-24", ate: "2026-08-28" }) },
     });
+    repositorio.abonarDias.mockResolvedValueOnce(err(new ValidationError("falhou no dia 26")));
+
+    const r = await caso.execute(entrada);
+
+    expect(!r.ok && r.error.message).toBe("falhou no dia 26");
+    expect(repositorio.abonarDias).toHaveBeenCalledTimes(1);
+    expect(repositorio.abonarDias).toHaveBeenCalledWith("e1", [
+      "2026-08-24",
+      "2026-08-25",
+      "2026-08-26",
+      "2026-08-27",
+      "2026-08-28",
+    ]);
+  });
+
+  it("dia que já está abonado não entra na gravação nem na contagem", async () => {
+    const { caso, repositorio } = montar({
+      leitor: { lerAtestado: async () => lido({ de: "2026-08-24", ate: "2026-08-25" }) },
+      dias: [{ data: "2026-08-24", batidas: [], extra: null, abono: true }],
+    });
+
+    const r = await caso.execute(entrada);
+
+    expect(r.ok && r.value.abonados).toBe(1);
+    expect(repositorio.abonarDias).toHaveBeenCalledWith("e1", ["2026-08-25"]);
+  });
+
+  it("atestado só sobre dias já abonados é erro com o motivo, sem gravar", async () => {
+    const { caso, repositorio } = montar({
+      leitor: { lerAtestado: async () => lido() },
+      dias: [{ data: "2026-08-24", batidas: [], extra: null, abono: true }],
+    });
+
+    const r = await caso.execute(entrada);
+
+    expect(!r.ok && r.error.message).toMatch(/já está abonado/);
+    expect(repositorio.abonarDias).not.toHaveBeenCalled();
   });
 
   it("declaração abona só o horário: o dia com batida mantém as batidas e ganha o Abono", async () => {
@@ -99,7 +139,8 @@ describe("LerAtestadoDePonto", () => {
     const r = await caso.execute(entrada);
 
     expect(r.ok && r.value.abonados).toBe(1);
-    expect(repositorio.salvarDia).toHaveBeenCalledWith("e1", { ...DIA_COM_BATIDA, abono: true });
+    // As batidas do dia não viajam: a função do banco só seta o Abono.
+    expect(repositorio.abonarDias).toHaveBeenCalledWith("e1", [DIA_COM_BATIDA.data]);
   });
 
   it("nada a abonar (declaração em dia sem batida) é erro com o motivo, sem gravar", async () => {
@@ -110,7 +151,7 @@ describe("LerAtestadoDePonto", () => {
     const r = await caso.execute(entrada);
 
     expect(!r.ok && r.error.message).toMatch(/nenhum dia/i);
-    expect(repositorio.salvarDia).not.toHaveBeenCalled();
+    expect(repositorio.abonarDias).not.toHaveBeenCalled();
   });
 
   it("só abona com o cartão do empregado iniciado: sem ele recusa, sem criar linha em mês nunca aberto", async () => {
@@ -122,10 +163,10 @@ describe("LerAtestadoDePonto", () => {
     const r = await caso.execute(entrada);
 
     expect(!r.ok && r.error.message).toMatch(/cartão do empregado ainda não foi iniciado/);
-    expect(repositorio.salvarDia).not.toHaveBeenCalled();
+    expect(repositorio.abonarDias).not.toHaveBeenCalled();
   });
 
-  it("período que vira o mês abona só no mês com cartão iniciado", async () => {
+  it("período que vira o mês abona só no mês com cartão iniciado e conta o dia que ficou sem abono", async () => {
     // 30/08 domingo, 31/08 segunda, 01/09 terça; só o cartão de agosto está iniciado.
     const { caso, repositorio } = montar({
       leitor: { lerAtestado: async () => lido({ de: "2026-08-30", ate: "2026-09-01" }) },
@@ -134,8 +175,8 @@ describe("LerAtestadoDePonto", () => {
 
     const r = await caso.execute(entrada);
 
-    expect(r.ok && r.value.abonados).toBe(1);
-    expect(repositorio.salvarDia.mock.calls.map(([, d]) => d.data)).toEqual(["2026-08-31"]);
+    expect(r.ok && r.value).toMatchObject({ abonados: 1, semCartao: 1 });
+    expect(repositorio.abonarDias).toHaveBeenCalledWith("e1", ["2026-08-31"]);
   });
 
   it("atestado em feriado com carga não abona o dia (a mesma regra da tela)", async () => {
@@ -148,7 +189,7 @@ describe("LerAtestadoDePonto", () => {
     const r = await caso.execute(entrada);
 
     expect(!r.ok && r.error.message).toMatch(/nenhum dia/i);
-    expect(repositorio.salvarDia).not.toHaveBeenCalled();
+    expect(repositorio.abonarDias).not.toHaveBeenCalled();
   });
 
   it("nome do atestado que não confere com o empregado do cartão: não abona", async () => {
@@ -159,7 +200,7 @@ describe("LerAtestadoDePonto", () => {
     const r = await caso.execute(entrada);
 
     expect(!r.ok && r.error.message).toMatch(/não confere/);
-    expect(repositorio.salvarDia).not.toHaveBeenCalled();
+    expect(repositorio.abonarDias).not.toHaveBeenCalled();
   });
 
   it("empregado desligado não recebe abono", async () => {
@@ -169,7 +210,7 @@ describe("LerAtestadoDePonto", () => {
     });
 
     expect((await caso.execute(entrada)).ok).toBe(false);
-    expect(repositorio.salvarDia).not.toHaveBeenCalled();
+    expect(repositorio.abonarDias).not.toHaveBeenCalled();
   });
 
   it("leitura que não leu ou reprovou na validação cai no abono manual, sem gravar", async () => {
@@ -181,7 +222,7 @@ describe("LerAtestadoDePonto", () => {
       const { caso, repositorio } = montar({ leitor: { lerAtestado: async () => leitura } });
       const r = await caso.execute(entrada);
       expect(!r.ok && r.error.message).toMatch(/à mão/);
-      expect(repositorio.salvarDia).not.toHaveBeenCalled();
+      expect(repositorio.abonarDias).not.toHaveBeenCalled();
     }
   });
 
@@ -195,7 +236,8 @@ describe("LerAtestadoDePonto", () => {
     });
 
     expect((await caso.execute(entrada)).ok).toBe(false);
-    expect(erros.registrar).toHaveBeenCalledWith("rh.atestado.leitor_falhou", expect.any(String));
+    // Só o nome do erro: a mensagem ("rede") pode ecoar texto do leitor.
+    expect(erros.registrar).toHaveBeenCalledWith("rh.atestado.leitor_falhou", "Error");
   });
 
   it("recusa foto que não é imagem e quem não é o Responsável do RH, sem chamar o leitor", async () => {

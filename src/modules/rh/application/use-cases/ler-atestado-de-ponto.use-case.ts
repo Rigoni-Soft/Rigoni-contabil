@@ -86,32 +86,30 @@ export class LerAtestadoDePonto extends LerDeFoto implements LerAtestadoDePontoP
     if (!dias.ok) return dias;
     const feriados = await this.repositorio.listarFeriados(atestado.de, atestado.ate);
     if (!feriados.ok) return feriados;
-    const porData = new Map(dias.value.map((d) => [d.data, d]));
     const comBatida = new Set(dias.value.filter((d) => d.batidas.length > 0).map((d) => d.data));
-    const abonos = abonosDoAtestado(
+    const jaAbonados = new Set(dias.value.filter((d) => d.abono).map((d) => d.data));
+    const doAtestado = abonosDoAtestado(
       atestado,
       empregado.jornada,
       comBatida,
       new Set(feriados.value),
-    ).filter((data) => abertos.has(data.slice(0, 7)));
+    );
+    // Mês sem cartão iniciado não ganha linha (o atestado é deste cartão): o resumo avisa quantos dias ficaram de fora.
+    const abonos = doAtestado.filter(
+      (data) => abertos.has(data.slice(0, 7)) && !jaAbonados.has(data),
+    );
+    const semCartao = doAtestado.filter((data) => !abertos.has(data.slice(0, 7))).length;
     if (abonos.length === 0) {
       return err(
         new ValidationError(
-          "Nenhum dia foi abonado: a declaração só abona o horário de um dia que já tem batida, e o atestado só os dias de trabalho sem batida, em mês com o cartão iniciado. Abone à mão, se precisar.",
+          "Nenhum dia foi abonado: a declaração só abona o horário de um dia que já tem batida, e o atestado só os dias de trabalho sem batida, em mês com o cartão iniciado, e o dia que já está abonado não conta. Abone à mão, se precisar.",
         ),
       );
     }
-    for (const data of abonos) {
-      const atual = porData.get(data);
-      const salvo = await this.repositorio.salvarDia(empregado.id, {
-        data,
-        batidas: atual?.batidas ?? [],
-        extra: atual?.extra ?? null,
-        abono: true,
-      });
-      if (!salvo.ok) return salvo;
-    }
-    return ok({ tipo: atestado.tipo, abonados: abonos.length });
+    // Uma transação só: falha no meio não deixa parte dos dias abonados. Batidas e Extra do dia ficam como estão.
+    const salvo = await this.repositorio.abonarDias(empregado.id, abonos);
+    if (!salvo.ok) return salvo;
+    return ok({ tipo: atestado.tipo, abonados: abonos.length, semCartao });
   }
 
   // null = leitor falhou, não leu ou a validação reprovou (inclusive mês que ainda não começou).

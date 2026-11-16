@@ -32,7 +32,7 @@ describe("LeituraDeAtestadoContainer", () => {
   it("o botão abre a modal; sucesso envia o empregado e a foto, fecha a modal e avisa o cartão", async () => {
     jest
       .mocked(lerAtestadoDePontoAction)
-      .mockResolvedValue({ ok: true, data: { tipo: "atestado", abonados: 2 } });
+      .mockResolvedValue({ ok: true, data: { tipo: "atestado", abonados: 2, semCartao: 0 } });
     const aoAbonar = montar();
     const user = userEvent.setup({ applyAccept: false });
     expect(modal()).not.toHaveAttribute("open");

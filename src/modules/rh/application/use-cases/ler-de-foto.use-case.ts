@@ -22,7 +22,8 @@ export abstract class LerDeFoto extends EscreverPonto {
     try {
       return await leitura();
     } catch (falha) {
-      this.erros.registrar(evento, String(falha));
+      // Só o nome do erro: a mensagem pode ecoar texto da resposta do leitor, e a foto tem dado pessoal.
+      this.erros.registrar(evento, falha instanceof Error ? falha.name : "desconhecida");
       return null;
     }
   }

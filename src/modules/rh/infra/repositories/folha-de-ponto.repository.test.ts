@@ -339,6 +339,73 @@ describe("Folha de ponto do RH (integração)", () => {
     ]);
   });
 
+  it("gravarCartao: dia que o RH preencheu depois da leitura não é sobrescrito nem apagado", async () => {
+    const { repo } = await comoFuncionarioRH();
+    const id = await novoEmpregado("Paulo");
+    const digitado = { data: "2026-11-02", batidas: [PAR], extra: null, abono: false };
+    await repo.salvarDia(id, digitado);
+
+    // A leitura listou o dia como vazio, o RH digitou na janela, e a gravação chega depois.
+    const gravou = await repo.gravarCartao(id, "2026-11-01", [
+      { data: "2026-11-02", batidas: [], extra: null, abono: true },
+      { data: "2026-11-03", batidas: [PAR], extra: null, abono: false },
+      { data: "2026-11-04", batidas: [], extra: null, abono: false },
+    ]);
+
+    expect(gravou.ok).toBe(true);
+    const lidos = await repo.listarDias(id, "2026-11-01", "2026-11-30");
+    expect(lidos.ok && lidos.value).toEqual([
+      digitado,
+      { data: "2026-11-03", batidas: [PAR], extra: null, abono: false },
+    ]);
+  });
+
+  it("abonarDias: abona em lote, preserva batida e Extra, e não inicia o cartão", async () => {
+    const { repo } = await comoFuncionarioRH();
+    const id = await novoEmpregado("Quirino");
+    await repo.salvarDia(id, { data: "2026-11-03", batidas: [PAR], extra: null, abono: false });
+
+    const abonou = await repo.abonarDias(id, ["2026-11-02", "2026-11-03"]);
+    const repetiu = await repo.abonarDias(id, ["2026-11-02"]);
+
+    expect([abonou.ok, repetiu.ok]).toEqual([true, true]);
+    const lidos = await repo.listarDias(id, "2026-11-01", "2026-11-30");
+    expect(lidos.ok && lidos.value).toEqual([
+      { data: "2026-11-02", batidas: [], extra: null, abono: true },
+      { data: "2026-11-03", batidas: [PAR], extra: null, abono: true },
+    ]);
+    const iniciado = await repo.cartaoIniciado(id, "2026-11-01");
+    expect(iniciado.ok && iniciado.value).toBe(false);
+  });
+
+  it("abonarDias: a data inválida desfaz o lote inteiro", async () => {
+    const { repo } = await comoFuncionarioRH();
+    const id = await novoEmpregado("Renato");
+
+    const falhou = await repo.abonarDias(id, ["2026-11-02", "2026-13-45"]);
+
+    expect(falhou.ok).toBe(false);
+    const lidos = await repo.listarDias(id, "2026-11-01", "2026-11-30");
+    expect(lidos.ok && lidos.value).toEqual([]);
+  });
+
+  it("abonarDias: o Líder e o empregado inativo são recusados sem deixar nada", async () => {
+    const id = await novoEmpregado("Sonia");
+    const { repo: lider } = await comoLiderRH();
+    expect((await lider.abonarDias(id, ["2026-11-02"])).ok).toBe(false);
+
+    const inativo = await novoEmpregado("Tiago");
+    await servico.from("rh_empregados").update({ ativo: false }).eq("id", inativo);
+    const { repo: dono } = await comoFuncionarioRH();
+    expect((await dono.abonarDias(inativo, ["2026-11-02"])).ok).toBe(false);
+
+    const { data } = await servico
+      .from("rh_ponto_dias")
+      .select("data")
+      .in("empregado_id", [id, inativo]);
+    expect(data).toEqual([]);
+  });
+
   it("sem movimento no mês: marca, lê e desmarca", async () => {
     const { repo } = await comoFuncionarioRH();
     const id = await novoEmpregado("Edu");

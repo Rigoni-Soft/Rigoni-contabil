@@ -409,11 +409,20 @@ describe("resumoDaLeitura", () => {
 
 describe("resumoDoAtestado", () => {
   it("atestado e declaração de comparecimento, no singular e no plural", () => {
-    expect(resumoDoAtestado({ tipo: "atestado", abonados: 1 })).toBe(
+    expect(resumoDoAtestado({ tipo: "atestado", abonados: 1, semCartao: 0 })).toBe(
       "1 dia abonado pelo atestado. Confira o cartão.",
     );
-    expect(resumoDoAtestado({ tipo: "declaracao", abonados: 2 })).toBe(
+    expect(resumoDoAtestado({ tipo: "declaracao", abonados: 2, semCartao: 0 })).toBe(
       "2 dias abonados pela declaração de comparecimento. Confira o cartão.",
+    );
+  });
+
+  it("avisa quantos dias ficaram sem abono por falta de cartão iniciado", () => {
+    expect(resumoDoAtestado({ tipo: "atestado", abonados: 1, semCartao: 1 })).toBe(
+      "1 dia abonado pelo atestado. 1 dia em mês sem cartão iniciado ficou sem abono: inicie o cartão e leia o atestado de novo. Confira o cartão.",
+    );
+    expect(resumoDoAtestado({ tipo: "atestado", abonados: 2, semCartao: 3 })).toContain(
+      "3 dias em mês sem cartão iniciado ficou sem abono",
     );
   });
 });

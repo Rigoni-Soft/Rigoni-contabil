@@ -132,6 +132,31 @@ describe("LerCartaoDePonto", () => {
     ]);
   });
 
+  it("falta lida em dia que o RH já preencheu é mantida e não entra na contagem do resumo", async () => {
+    // Dia 2 lido como falta (já abonado pelo RH); dia 3 lido como falta e ainda vazio.
+    const leitor = {
+      ler: jest.fn(async () =>
+        lida({
+          nome: "Erick",
+          dias: [
+            { ...dia(2), batidas: [], faltou: true },
+            { ...dia(3), batidas: [], faltou: true },
+            dia(4),
+          ],
+        }),
+      ),
+    };
+    const { caso } = montar({
+      leitor,
+      quadro: [{ id: "e1", nome: "Erick Santos", ativo: true }],
+      dias: [{ data: "2026-11-02", batidas: [], extra: null, abono: true }],
+    });
+
+    const r = await caso.execute(entrada);
+
+    expect(r.ok && r.value.faltas).toBe(1);
+  });
+
   it("falha da gravação atômica devolve o erro e não conta dia nenhum como gravado", async () => {
     const leitor = { ler: jest.fn(async () => lida(BOA)) };
     const { caso, repositorio } = montar({
@@ -211,7 +236,8 @@ describe("LerCartaoDePonto", () => {
     const { caso, erros } = montar({ leitor });
 
     expect((await caso.execute(entrada)).ok).toBe(false);
-    expect(erros.registrar).toHaveBeenCalledWith("rh.cartao.leitor_falhou", expect.any(String));
+    // Só o nome do erro: a mensagem ("rede") pode ecoar texto do leitor.
+    expect(erros.registrar).toHaveBeenCalledWith("rh.cartao.leitor_falhou", "Error");
   });
 
   it("leitor não leu: digitação manual, nada gravado", async () => {

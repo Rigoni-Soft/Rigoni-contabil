@@ -256,6 +256,16 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
     return this.resultado(error);
   }
 
+  // Uma chamada, uma transação: a função SQL marca Abono em cada data (batidas e Extra do dia ficam) e o erro de
+  // qualquer uma desfaz tudo. Não mexe na marca de cartão iniciado.
+  async abonarDias(empregadoId: string, datas: string[]): Promise<Result<void, AppError>> {
+    const { error } = await this.supabase.rpc("rh_abonar_dias", {
+      p_empregado_id: empregadoId,
+      p_datas: datas,
+    });
+    return this.resultado(error);
+  }
+
   async listarFeriados(de: string, ate: string): Promise<Result<string[], AppError>> {
     const { data, error } = await this.supabase
       .from("feriados")

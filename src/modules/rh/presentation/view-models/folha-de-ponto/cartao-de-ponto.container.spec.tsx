@@ -493,7 +493,7 @@ describe("CartaoDePontoContainer", () => {
     it("sucesso atualiza a planilha (recarrega) e mostra o resumo no rodapé do cartão", async () => {
       jest
         .mocked(lerAtestadoDePontoAction)
-        .mockResolvedValue({ ok: true, data: { tipo: "atestado", abonados: 1 } });
+        .mockResolvedValue({ ok: true, data: { tipo: "atestado", abonados: 1, semCartao: 0 } });
       render(<CartaoDePontoContainer folha={FOLHA_VAZIA} />);
       const user = userEvent.setup({ applyAccept: false });
       await abrirModal(user);
