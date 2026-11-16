@@ -3,8 +3,9 @@
 // leitor não a guarda. Nunca rejeita: falha vira `{ lido: false }`.
 import type { AtestadoLido } from "@/modules/rh/domain/services/atestado.service";
 import type { LeituraDoCartao } from "@/modules/rh/domain/services/leitura-do-cartao.service";
+import type { FotoDoPonto } from "@/shared/kernel/foto-do-ponto";
 
-export type ImagemDoCartao = { bytes: Uint8Array; tipo: "image/jpeg" | "image/png" };
+export type ImagemDoCartao = FotoDoPonto;
 
 export type LeituraBruta = { lido: true; leitura: LeituraDoCartao } | { lido: false };
 

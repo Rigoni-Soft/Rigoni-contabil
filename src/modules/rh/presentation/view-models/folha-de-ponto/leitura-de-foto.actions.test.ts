@@ -3,10 +3,15 @@
  * substituído por uma composição com casos de uso falsos (testes.md, seção 3), sem tocar Supabase.
  */
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { LIMITE_DA_FOTO_BYTES } from "@/shared/kernel/foto-do-ponto";
 import { err, ok } from "@/shared/kernel/result";
 
 import { lerAtestadoDePontoAction, lerCartaoDePontoAction } from "./folha-de-ponto.actions";
-import { LIMITE_DA_FOTO, MENSAGEM_FOTO_GRANDE, MENSAGEM_SEM_FOTO } from "./folha-de-ponto.schema";
+import {
+  MENSAGEM_FOTO_GRANDE,
+  MENSAGEM_SEM_ATESTADO,
+  MENSAGEM_SEM_FOTO,
+} from "./folha-de-ponto.schema";
 
 const ID = "11111111-1111-4111-8111-111111111111";
 
@@ -56,15 +61,15 @@ describe("leitura-de-foto.actions (integração)", () => {
   });
 
   it.each([
-    ["cartão", lerCartaoDePontoAction, cartao, "cartao"],
-    ["atestado", lerAtestadoDePontoAction, atestado, "atestado"],
+    ["cartão", lerCartaoDePontoAction, cartao, "cartao", MENSAGEM_SEM_FOTO],
+    ["atestado", lerAtestadoDePontoAction, atestado, "atestado", MENSAGEM_SEM_ATESTADO],
   ] as const)(
     "%s: foto vazia, de outro tipo ou acima de 4 MB recusa com a mensagem da foto, sem chamar o caso de uso",
-    async (_nome, action, montar, caso) => {
+    async (_nome, action, montar, caso, semFoto) => {
       const recusas = [
-        [foto("image/jpeg", ""), MENSAGEM_SEM_FOTO],
-        [foto("application/pdf"), MENSAGEM_SEM_FOTO],
-        [foto("image/jpeg", "x".repeat(LIMITE_DA_FOTO + 1)), MENSAGEM_FOTO_GRANDE],
+        [foto("image/jpeg", ""), semFoto],
+        [foto("application/pdf"), semFoto],
+        [foto("image/jpeg", "x".repeat(LIMITE_DA_FOTO_BYTES + 1)), MENSAGEM_FOTO_GRANDE],
       ] as const;
 
       for (const [imagem, mensagem] of recusas) {

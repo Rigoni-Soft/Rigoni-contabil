@@ -17,6 +17,7 @@ import type { AtestadoLidoDto } from "@/modules/rh/application/ports/in/ler-ates
 import type { CartaoLidoDto } from "@/modules/rh/application/ports/in/ler-cartao-de-ponto.provider";
 import { dadosInvalidos } from "@/modules/rh/presentation/view-models/dados-invalidos.presenter";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
+import { tipoDaFoto, type FotoDoPonto, type TipoDeFoto } from "@/shared/kernel/foto-do-ponto";
 import { toActionResult } from "@/shared/kernel/to-action-result";
 
 import {
@@ -76,12 +77,11 @@ export async function iniciarCartaoDoPontoAction(input: unknown): Promise<Action
 }
 
 // A foto chega como File no FormData; o caso de uso recebe só os bytes (a porta não conhece a web) e a
-// imagem não é guardada em lugar nenhum.
-async function bytesDaImagem(imagem: File) {
-  return {
-    bytes: new Uint8Array(await imagem.arrayBuffer()),
-    tipo: imagem.type as "image/jpeg" | "image/png",
-  };
+// imagem não é guardada em lugar nenhum. O tipo sai da assinatura do arquivo, não do `File.type` do navegador;
+// arquivo que não é JPEG nem PNG segue com o tipo declarado e o caso de uso o recusa.
+async function bytesDaImagem(imagem: File): Promise<FotoDoPonto> {
+  const bytes = new Uint8Array(await imagem.arrayBuffer());
+  return { bytes, tipo: tipoDaFoto(bytes) ?? (imagem.type as TipoDeFoto) };
 }
 
 // Erro da foto vira mensagem do próprio campo; o resto é dado inválido.
@@ -99,13 +99,7 @@ export async function lerCartaoDePontoAction(
   if (!parsed.success) return recusaDaLeitura(parsed.error);
   const { imagem, ...dados } = parsed.data;
   return toActionResult(
-    await (
-      await makeLerCartaoDePonto()
-    ).execute({
-      ...dados,
-      quinzena: dados.quinzena as 1 | 2,
-      imagem: await bytesDaImagem(imagem),
-    }),
+    await (await makeLerCartaoDePonto()).execute({ ...dados, imagem: await bytesDaImagem(imagem) }),
   );
 }
 

@@ -81,6 +81,35 @@ describe("LeituraDeAtestadoContainer", () => {
     expect(lerAtestadoDePontoAction).not.toHaveBeenCalled();
   });
 
+  it("o aviso de foto faltando não vaza para a abertura seguinte da modal", async () => {
+    montar();
+    await userEvent.click(screen.getByRole("button", { name: "Ler atestado" }));
+    await userEvent.click(screen.getByRole("button", { name: "Abonar pelo atestado" }));
+    expect(
+      await screen.findByText("Escolha a foto do atestado (JPEG ou PNG)."),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    await userEvent.click(screen.getByRole("button", { name: "Ler atestado" }));
+
+    expect(screen.queryByText("Escolha a foto do atestado (JPEG ou PNG).")).not.toBeInTheDocument();
+  });
+
+  it("foto que passa de 4 MB é recusada no campo, sem enviar", async () => {
+    montar();
+    const user = userEvent.setup({ applyAccept: false });
+    await user.click(screen.getByRole("button", { name: "Ler atestado" }));
+    const grande = new File([new Uint8Array(4 * 1024 * 1024 + 1)], "grande.jpeg", {
+      type: "image/jpeg",
+    });
+    await user.upload(screen.getByLabelText("Foto do atestado (JPEG ou PNG)"), grande);
+
+    await user.click(screen.getByRole("button", { name: "Abonar pelo atestado" }));
+
+    expect(await screen.findByText("A foto passa de 4 MB.")).toBeInTheDocument();
+    expect(lerAtestadoDePontoAction).not.toHaveBeenCalled();
+  });
+
   it("Cancelar fecha a modal sem enviar", async () => {
     montar();
     await userEvent.click(screen.getByRole("button", { name: "Ler atestado" }));

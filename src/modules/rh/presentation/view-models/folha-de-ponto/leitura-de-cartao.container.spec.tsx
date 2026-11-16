@@ -19,6 +19,7 @@ const LIDO = {
   dias: 3,
   faltas: 1,
   abonos: 0,
+  mantidos: 0,
 };
 
 describe("LeituraDeCartaoContainer", () => {
