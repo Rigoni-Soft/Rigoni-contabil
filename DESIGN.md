@@ -583,6 +583,14 @@ importa na leitura da foto do cartão, não na exibição. Dia sem jornada marca
   (`destructive`, vermelho; descarta e volta à
   lista de empregados da empresa). Salvar e Limpar só ficam ativos com ao menos uma linha aberta. Sem
   permissão de edição não há lápis nem barra.
+- **Baixar PDF.** Abaixo da "Totalização do mês" fica uma linha alinhada ao fim com o apoio "O PDF traz o que
+  está salvo, com a Totalização do mês." e o botão **Baixar PDF** (`outline`, ação secundária): é do Funcionário
+  do RH (Responsável do Cliente), e aparece também para o Líder e o Admin, que só leem o cartão. Durante a geração o rótulo vira "Gerando PDF…" e o botão fica em
+  `aria-disabled` (não some, o foco não se perde); o resultado ("PDF gerado. Confira o arquivo baixado." ou o erro)
+  vem num `AvisoDeStatus` logo abaixo. O PDF é gerado no servidor, A4 retrato, uma página por empregado e mês:
+  identificação, uma linha por dia, a Totalização num bloco de fundo e borda de destaque e, no pé, as duas linhas
+  de assinatura (responsável da empresa e empregado). Empregado desligado, sem movimento no mês ou cartão sem
+  nenhum apontamento não tem PDF a assinar: no lugar do botão fica só o motivo, em texto de apoio.
 - **Foco do teclado depois da ação.** Toda ação que faz o botão clicado sumir devolve o foco a um alvo estável da
   mesma linha (`autoFocus` no botão que passa a existir): o lápis abre a edição no primeiro campo habilitado;
   salvar, cancelar, abonar e desfazer abono levam o foco ao lápis (ou ao "Desfazer abono"). "Salvar" e "Limpar" da

@@ -1,10 +1,12 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import { baixarArquivoBase64 } from "@/presentation/lib/baixar-arquivo-base64";
 import type { FolhaDePontoDto } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
 
 import { CartaoDePontoContainer } from "./cartao-de-ponto.container";
 import {
+  baixarPdfDoCartaoAction,
   iniciarCartaoDoPontoAction,
   lerAtestadoDePontoAction,
   salvarDiaDoPontoAction,
@@ -13,7 +15,9 @@ import {
 const refresh = jest.fn();
 
 jest.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+jest.mock("@/presentation/lib/baixar-arquivo-base64", () => ({ baixarArquivoBase64: jest.fn() }));
 jest.mock("./folha-de-ponto.actions", () => ({
+  baixarPdfDoCartaoAction: jest.fn(),
   salvarDiaDoPontoAction: jest.fn(),
   iniciarCartaoDoPontoAction: jest.fn(),
   lerAtestadoDePontoAction: jest.fn(),
@@ -235,6 +239,42 @@ describe("CartaoDePontoContainer", () => {
     await u.click(screen.getByRole("button", { name: "Salvar seg 16/11" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Sem permissão.");
+  });
+
+  it("Baixar PDF entrega o arquivo e avisa que foi gerado", async () => {
+    jest.mocked(baixarPdfDoCartaoAction).mockResolvedValue({
+      ok: true,
+      data: { nomeDoArquivo: "cartao-de-ponto-ana-2026-11.pdf", base64: "JVBERg==" },
+    });
+    render(<CartaoDePontoContainer folha={FOLHA} />);
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Baixar PDF" }));
+
+    expect(await screen.findByText(/PDF gerado/)).toBeInTheDocument();
+    expect(baixarPdfDoCartaoAction).toHaveBeenCalledWith({
+      clienteId: "c1",
+      empregadoId: "e1",
+      competencia: "2026-11",
+    });
+    expect(baixarArquivoBase64).toHaveBeenCalledWith(
+      "cartao-de-ponto-ana-2026-11.pdf",
+      "JVBERg==",
+      "application/pdf",
+    );
+  });
+
+  it("Baixar PDF com erro do servidor mostra o motivo e não entrega arquivo", async () => {
+    jest.mocked(baixarArquivoBase64).mockClear();
+    jest.mocked(baixarPdfDoCartaoAction).mockResolvedValue({
+      ok: false,
+      error: { code: "forbidden", message: "Sem permissão." },
+    } as never);
+    render(<CartaoDePontoContainer folha={FOLHA} />);
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Baixar PDF" }));
+
+    expect(await screen.findByText("Sem permissão.")).toBeInTheDocument();
+    expect(baixarArquivoBase64).not.toHaveBeenCalled();
   });
 
   it("rede fora (TypeError) mostra a falta de conexão", async () => {

@@ -55,5 +55,7 @@ export type FolhaDePontoDto = {
     iniciado: boolean;
     // Algum dia do mês sem convenção vigente: a Totalização desses dias é pela legislação.
     semConvencao: boolean;
+    // Por que não há PDF para assinar (desligado, sem movimento, sem apontamento); ausente quando o PDF cabe.
+    motivoSemPdf?: string;
   } | null;
 };

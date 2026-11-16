@@ -3,6 +3,7 @@
 import type { z } from "zod";
 
 import {
+  makeBaixarPdfDoCartao,
   makeCadastrarEmpregado,
   makeCorrigirEmpregado,
   makeDefinirEmpregadoAtivo,
@@ -21,6 +22,7 @@ import { tipoDaFoto, type FotoDoPonto, type TipoDeFoto } from "@/shared/kernel/f
 import { toActionResult } from "@/shared/kernel/to-action-result";
 
 import {
+  baixarPdfDoCartaoSchema,
   cadastrarEmpregadoSchema,
   corrigirEmpregadoSchema,
   empregadoAtivoSchema,
@@ -68,6 +70,20 @@ export async function salvarDiaDoPontoAction(input: unknown): Promise<ActionResu
   const parsed = salvarDiaSchema.safeParse(input);
   if (!parsed.success) return dadosInvalidos(parsed.error);
   return toActionResult(await (await makeSalvarDiaDoPonto()).execute(parsed.data));
+}
+
+type PdfDoCartaoBaixado = { nomeDoArquivo: string; base64: string };
+
+// O PDF é gerado no servidor; os bytes seguem em base64 para o navegador montar o arquivo e baixá-lo.
+export async function baixarPdfDoCartaoAction(
+  input: unknown,
+): Promise<ActionResult<PdfDoCartaoBaixado>> {
+  const parsed = baixarPdfDoCartaoSchema.safeParse(input);
+  if (!parsed.success) return dadosInvalidos(parsed.error);
+  const resultado = await (await makeBaixarPdfDoCartao()).execute(parsed.data);
+  if (!resultado.ok) return toActionResult(resultado);
+  const { nomeDoArquivo, bytes } = resultado.value;
+  return { ok: true, data: { nomeDoArquivo, base64: Buffer.from(bytes).toString("base64") } };
 }
 
 export async function iniciarCartaoDoPontoAction(input: unknown): Promise<ActionResult<void>> {

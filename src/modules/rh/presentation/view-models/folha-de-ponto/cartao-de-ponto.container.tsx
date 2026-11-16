@@ -8,12 +8,17 @@ import {
   type AvisoDoDia,
 } from "@/presentation/components/molecules/linha-do-cartao-de-ponto.component";
 import { CartaoDePonto } from "@/presentation/components/organisms/cartao-de-ponto.component";
+import { baixarArquivoBase64 } from "@/presentation/lib/baixar-arquivo-base64";
 import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
 import type { FolhaDePontoDto } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
 import { rotuloDaCompetencia } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.presenter";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
 
-import { iniciarCartaoDoPontoAction, salvarDiaDoPontoAction } from "./folha-de-ponto.actions";
+import {
+  baixarPdfDoCartaoAction,
+  iniciarCartaoDoPontoAction,
+  salvarDiaDoPontoAction,
+} from "./folha-de-ponto.actions";
 import {
   AVISO_SEM_CONVENCAO,
   cartaoSemDados,
@@ -34,6 +39,8 @@ type Props = { folha: FolhaDePontoDto };
 export function CartaoDePontoContainer({ folha }: Props) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
+  const [baixandoPdf, iniciarPdf] = useTransition();
+  const [avisoDoPdf, setAvisoDoPdf] = useState<AvisoDoDia>();
   const [aviso, setAviso] = useState<AvisoDoDia & { data: string }>();
   const [avisoGeral, setAvisoGeral] = useState<AvisoDoDia>();
   // Cartão sem nenhum dado (mês ou empregado novo): abre com todas as linhas já editáveis, sem um lápis por dia.
@@ -76,6 +83,8 @@ export function CartaoDePontoContainer({ folha }: Props) {
   const limparAvisos = () => {
     setAviso(undefined);
     setAvisoGeral(undefined);
+    // O PDF baixado já não reflete o cartão depois de uma nova ação: o aviso dele sai também.
+    setAvisoDoPdf(undefined);
   };
 
   // Grava um dia; devolve o texto do erro, ou undefined se deu certo.
@@ -182,6 +191,32 @@ export function CartaoDePontoContainer({ folha }: Props) {
     router.refresh();
   };
 
+  // O PDF é gerado no servidor com o que está salvo; o download é auditado lá.
+  const baixarPdf = () =>
+    iniciarPdf(async () => {
+      setAvisoDoPdf(undefined);
+      const erro = await tentar("Falha ao baixar o PDF do cartão de ponto", async () => {
+        const resultado = await baixarPdfDoCartaoAction({
+          clienteId: folha.clienteId,
+          empregadoId: selecionado.empregado.id,
+          competencia: folha.competencia,
+        });
+        if (resultado.ok) {
+          baixarArquivoBase64(
+            resultado.data.nomeDoArquivo,
+            resultado.data.base64,
+            "application/pdf",
+          );
+        }
+        return resultado;
+      });
+      setAvisoDoPdf(
+        erro
+          ? { tipo: "erro", texto: erro }
+          : { tipo: "sucesso", texto: "PDF gerado. Confira o arquivo baixado." },
+      );
+    });
+
   const editavel = folha.podeEditar && selecionado.empregado.ativo;
 
   return (
@@ -235,6 +270,10 @@ export function CartaoDePontoContainer({ folha }: Props) {
       onDesfazerAbonoDia={(data) => marcarAbono(data, false)}
       onSalvarDia={salvarDia}
       onSalvarTabela={salvarTabela}
+      onBaixarPdf={baixarPdf}
+      baixandoPdf={baixandoPdf}
+      avisoDoPdf={avisoDoPdf}
+      motivoSemPdf={selecionado.motivoSemPdf}
       onLimparTabela={() => {
         setDestacada(false);
         setAvisoGeral(undefined);

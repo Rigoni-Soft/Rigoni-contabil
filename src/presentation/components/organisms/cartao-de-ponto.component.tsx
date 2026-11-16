@@ -50,6 +50,12 @@ type Props = {
   onCancelarDia: (data: string) => void;
   onSalvarTabela: () => void;
   onLimparTabela: () => void;
+  // "Baixar PDF": o PDF individual do mês, para a assinatura física; quem lê o cartão também baixa.
+  onBaixarPdf: () => void;
+  baixandoPdf: boolean;
+  avisoDoPdf?: AvisoDoDia;
+  // Por que não há PDF (empregado desligado, sem movimento no mês ou sem apontamento): troca o botão pelo texto.
+  motivoSemPdf?: string;
   totalizacao: ItemDaTotalizacao[];
   // Quando a Totalização usou a legislação por falta de convenção vigente.
   avisoDaTotalizacao?: string;
@@ -85,6 +91,10 @@ export function CartaoDePonto({
   onCancelarDia,
   onSalvarTabela,
   onLimparTabela,
+  onBaixarPdf,
+  baixandoPdf,
+  avisoDoPdf,
+  motivoSemPdf,
   totalizacao,
   avisoDaTotalizacao,
   editavel,
@@ -234,6 +244,30 @@ export function CartaoDePonto({
         itens={totalizacao}
         destaque={totalizacaoDestacada}
       />
+      {motivoSemPdf ? (
+        // Desligado, sem movimento no mês ou sem apontamento: não há cartão para assinar, então nenhum botão.
+        <Texto variante="apoio">{motivoSemPdf}</Texto>
+      ) : (
+        <Pilha espaco={2}>
+          <Linha espaco={3} quebra alinhar="centro" justificar="fim">
+            <Texto id="apoio-do-pdf" variante="apoio">
+              O PDF traz o que está salvo, com a Totalização do mês.
+            </Texto>
+            {/* O botão fica na tela depois do clique: aria-disabled mantém o foco nele durante a geração. */}
+            <Button
+              type="button"
+              variant="outline"
+              aria-disabled={baixandoPdf || undefined}
+              aria-describedby="apoio-do-pdf"
+              onClick={baixandoPdf ? undefined : onBaixarPdf}
+              className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-transparent pointer-coarse:min-h-11"
+            >
+              {baixandoPdf ? "Gerando PDF…" : "Baixar PDF"}
+            </Button>
+          </Linha>
+          {avisoDoPdf && <AvisoDeStatus tipo={avisoDoPdf.tipo} legivel texto={avisoDoPdf.texto} />}
+        </Pilha>
+      )}
     </Pilha>
   );
 }
