@@ -169,7 +169,7 @@ src/
 ├─ shared/                       TypeScript puro, sem framework e sem biblioteca
 │  ├─ kernel/    result.ts · preconditions.ts · id.types.ts (Brand, Id) · setores.ts (SETORES,
 │  │             fonte única do organograma — domain e Views importam daqui, seção 3.4)
-│  ├─ errors/    app.error.ts · domain.error.ts · validation.error.ts · forbidden.error.ts · not-found.error.ts · estado-inconsistente.error.ts · servico-externo.error.ts
+│  ├─ errors/    app.error.ts · domain.error.ts · validation.error.ts · forbidden.error.ts · not-found.error.ts · estado-inconsistente.error.ts · servico-externo.error.ts · geracao-de-documento.error.ts
 │  └─ dtos/      action-result.dto.ts · error.dto.ts · paginated.dto.ts
 ├─ modules/
 │  └─ <modulo>/

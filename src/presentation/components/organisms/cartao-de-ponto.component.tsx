@@ -260,7 +260,7 @@ export function CartaoDePonto({
               aria-disabled={baixandoPdf || undefined}
               aria-describedby="apoio-do-pdf"
               onClick={baixandoPdf ? undefined : onBaixarPdf}
-              className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-transparent"
+              className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-transparent pointer-coarse:min-h-11"
             >
               {baixandoPdf ? "Gerando PDF…" : "Baixar PDF"}
             </Button>
