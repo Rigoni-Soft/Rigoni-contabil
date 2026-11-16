@@ -155,6 +155,65 @@ test.describe("Folha de ponto do RH", () => {
     await expect(page.getByRole("button", { name: `Salvar ${rotulo}` })).toHaveCount(0);
   });
 
+  test("Funcionário baixa o PDF do cartão e o download fica auditado @smoke", async ({ page }) => {
+    const { mes } = primeiraSegunda();
+    const empregado = await admin
+      .from("rh_empregados")
+      .insert({
+        cliente_id: clienteId,
+        nome: "Dani E2E",
+        jornada: [0, 525, 525, 525, 525, 525, 240],
+      })
+      .select("id")
+      .single();
+    if (empregado.error) throw empregado.error;
+
+    await login(page, "funcionario.rh@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL("/rh");
+    await page.goto(`/rh/folha-de-ponto/${clienteId}/cartao/${empregado.data.id}?mes=${mes}`);
+    await expect(page.getByRole("heading", { name: "Dani E2E", exact: true })).toBeVisible();
+
+    const download = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Baixar PDF" }).click();
+    const arquivo = await download;
+
+    expect(arquivo.suggestedFilename()).toBe(`cartao-de-ponto-dani-e2e-${mes}.pdf`);
+    const caminho = await arquivo.path();
+    const bytes = (await import("node:fs")).readFileSync(caminho);
+    expect(bytes.subarray(0, 5).toString()).toBe("%PDF-");
+    await expect(page.getByText("PDF gerado. Confira o arquivo baixado.")).toBeVisible();
+
+    const baixou = await admin
+      .from("registros_auditoria")
+      .select("acao, resultado")
+      .eq("acao", "rh.ponto.baixar-pdf")
+      .like("alvo", `${cnpj} Dani E2E %`);
+    expect(baixou.data).toEqual([{ acao: "rh.ponto.baixar-pdf", resultado: "sucesso" }]);
+  });
+
+  test("Líder do RH também baixa o PDF do cartão", async ({ page }) => {
+    const { mes } = primeiraSegunda();
+    const empregado = await admin
+      .from("rh_empregados")
+      .insert({
+        cliente_id: clienteId,
+        nome: "Edu E2E",
+        jornada: [0, 525, 525, 525, 525, 525, 240],
+      })
+      .select("id")
+      .single();
+    if (empregado.error) throw empregado.error;
+
+    await login(page, "lider.rh@rigonicontabil.local", "lider123");
+    await expect(page).toHaveURL("/rh");
+    await page.goto(`/rh/folha-de-ponto/${clienteId}/cartao/${empregado.data.id}?mes=${mes}`);
+
+    const download = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Baixar PDF" }).click();
+
+    expect((await download).suggestedFilename()).toBe(`cartao-de-ponto-edu-e2e-${mes}.pdf`);
+  });
+
   // Leitor falso: a foto do atestado não é olhada e a leitura é sempre a declaração de comparecimento do
   // "Erick Falso" em 01/09/2026 (ter), que abona só o horário de um dia que já tem batida.
   test("Funcionário lê a declaração e o dia com batida fica abonado @smoke", async ({ page }) => {

@@ -49,7 +49,7 @@ Aqui cada ticket já é uma fatia vertical (banco, regra de negócio, tela e tes
 ## Etapa 6: Entrega
 
 - [ ] **PR 6.1: PDF do cartão para assinatura** (por último; depende da PR 4.1, e idealmente da 4.3)
-  - [ ] #224 (ambas): PDF individual com totalização em destaque e linhas de assinatura
+  - [x] #224 (ambas): PDF individual com totalização em destaque e linhas de assinatura
 
 ---
 
