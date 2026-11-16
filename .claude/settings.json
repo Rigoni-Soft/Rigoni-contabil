@@ -22,6 +22,16 @@
         ]
       },
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/recusar-heredoc-acentuado.mjs",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "Bash|PowerShell",
         "hooks": [
           {
@@ -34,6 +44,6 @@
     ]
   },
   "enabledPlugins": {
-    "mattpocock-skills@claude-plugins-official": false
+    "mattpocock-skills@claude-plugins-official": true
   }
 }

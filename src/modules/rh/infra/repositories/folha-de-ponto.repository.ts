@@ -241,6 +241,31 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
     return this.resultado(error);
   }
 
+  // Uma chamada, uma transação: a função SQL marca o cartão e grava os dias, e o erro de qualquer dia desfaz
+  // tudo. Roda como o ator (security invoker): RLS e gatilhos valem como no `salvarDia`.
+  async gravarCartao(
+    empregadoId: string,
+    competencia: string,
+    dias: { data: string; batidas: ParDto[]; extra: ParDto | null; abono: boolean }[],
+  ): Promise<Result<void, AppError>> {
+    const { error } = await this.supabase.rpc("rh_gravar_cartao", {
+      p_empregado_id: empregadoId,
+      p_competencia: competencia,
+      p_dias: dias,
+    });
+    return this.resultado(error);
+  }
+
+  // Uma chamada, uma transação: a função SQL marca Abono em cada data (batidas e Extra do dia ficam) e o erro de
+  // qualquer uma desfaz tudo. Não mexe na marca de cartão iniciado.
+  async abonarDias(empregadoId: string, datas: string[]): Promise<Result<void, AppError>> {
+    const { error } = await this.supabase.rpc("rh_abonar_dias", {
+      p_empregado_id: empregadoId,
+      p_datas: datas,
+    });
+    return this.resultado(error);
+  }
+
   async listarFeriados(de: string, ate: string): Promise<Result<string[], AppError>> {
     const { data, error } = await this.supabase
       .from("feriados")

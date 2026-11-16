@@ -12,6 +12,8 @@ import type {
   ParDto,
   TotalizacaoDto,
 } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
+import type { AtestadoLidoDto } from "@/modules/rh/application/ports/in/ler-atestado-de-ponto.provider";
+import type { CartaoLidoDto } from "@/modules/rh/application/ports/in/ler-cartao-de-ponto.provider";
 import { mesAtual, mesVizinho } from "@/shared/kernel/mes-atual";
 import { ROTA_RH_FOLHA_DE_PONTO } from "@/shared/kernel/setores";
 
@@ -37,6 +39,36 @@ function duracao(minutos: number): string {
 }
 
 const dias = (n: number) => `${n} ${n === 1 ? "dia" : "dias"}`;
+
+// O que a leitura da foto do cartão fez, em uma frase para o aviso de sucesso.
+export function resumoDaLeitura(cartao: CartaoLidoDto): string {
+  const partes = [`${cartao.dias} ${cartao.dias === 1 ? "dia lido" : "dias lidos"}`];
+  if (cartao.mantidos > 0) {
+    partes.push(
+      `${cartao.mantidos} ${cartao.mantidos === 1 ? "dia já preenchido mantido" : "dias já preenchidos mantidos"}`,
+    );
+  }
+  if (cartao.faltas > 0) {
+    partes.push(`${cartao.faltas} ${cartao.faltas === 1 ? "falta anotada" : "faltas anotadas"}`);
+  }
+  if (cartao.abonos > 0) {
+    partes.push(`${cartao.abonos} ${cartao.abonos === 1 ? "abono" : "abonos"}`);
+  }
+  const novo = cartao.cadastrado ? " (cadastrado no quadro)" : "";
+  return `${cartao.nome}${novo}: ${partes.join(", ")}. Confira o cartão.`;
+}
+
+// O que a leitura do atestado ou da declaração de comparecimento abonou.
+export function resumoDoAtestado(atestado: AtestadoLidoDto): string {
+  const abonados = `${atestado.abonados} ${atestado.abonados === 1 ? "dia abonado" : "dias abonados"}`;
+  const origem =
+    atestado.tipo === "atestado" ? "pelo atestado" : "pela declaração de comparecimento";
+  const semCartao =
+    atestado.semCartao > 0
+      ? ` ${atestado.semCartao} ${atestado.semCartao === 1 ? "dia" : "dias"} em mês sem cartão iniciado ficou sem abono: inicie o cartão e leia o atestado de novo.`
+      : "";
+  return `${abonados} ${origem}.${semCartao} Confira o cartão.`;
+}
 
 export const AVISO_SEM_CONVENCAO =
   "Sem convenção coletiva vigente em parte do mês: esses dias foram totalizados pela legislação.";
@@ -84,8 +116,10 @@ const semBatida = (dia: DiaDoPontoDto) => dia.batidas.length === 0 && dia.extra 
 // folga (sem jornada ou feriado: só a coluna Extra), em branco (dia útil vazio de um cartão ainda sem nenhum
 // dado: neutro e já editável) e normal.
 function situacaoDoDia(dia: DiaDaFolhaDto, cartaoVazio: boolean): LinhaDoCartao["situacao"] {
-  if (dia.abono && semBatida(dia)) return "abonado";
-  if (dia.feriado || dia.cargaMin === 0) return "folga";
+  // Abono sem batida só vale em dia de trabalho: gravado num domingo ou feriado, o dia segue folga.
+  const { diaDeTrabalho } = dia;
+  if (dia.abono && semBatida(dia) && diaDeTrabalho) return "abonado";
+  if (!diaDeTrabalho) return "folga";
   if (dia.apuracao.faltas > 0) return cartaoVazio ? "branco" : "falta";
   return "normal";
 }
@@ -99,10 +133,11 @@ function notaDoDia(dia: DiaDaFolhaDto, situacao: LinhaDoCartao["situacao"]): str
   return base;
 }
 
-// O tom da linha: falta em vermelho suave, hora extra em azul, folga ou feriado em amarelo, dia normal sem tom.
+// O tom da linha: falta em vermelho suave, abono e hora extra em azul suave, folga ou feriado em amarelo,
+// dia normal sem tom.
 function tomDoDia(dia: DiaDaFolhaDto, situacao: LinhaDoCartao["situacao"]): LinhaDoCartao["tom"] {
   if (situacao === "falta") return "alerta";
-  if (teveExtra(dia)) return "info";
+  if (situacao === "abonado" || teveExtra(dia)) return "info";
   return situacao === "folga" ? "atencao" : undefined;
 }
 
@@ -216,6 +251,16 @@ export function navegacaoDoCartao(folha: FolhaDePontoDto) {
   return {
     mesAnteriorHref: href(mesVizinho(folha.competencia, -1)),
     proximoMesHref:
+      folha.competencia < mesAtual() ? href(mesVizinho(folha.competencia, 1)) : undefined,
+  };
+}
+
+// Mês, anterior e próximo da tela do quadro (o empregado escolhido sai: o mês muda a folha toda).
+export function navegacaoDaFolha(folha: FolhaDePontoDto) {
+  const href = (mes: string) => hrefDaFolha(folha.clienteId, { mes });
+  return {
+    anteriorHref: href(mesVizinho(folha.competencia, -1)),
+    proximoHref:
       folha.competencia < mesAtual() ? href(mesVizinho(folha.competencia, 1)) : undefined,
   };
 }

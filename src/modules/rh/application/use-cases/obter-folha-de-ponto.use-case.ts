@@ -19,6 +19,7 @@ import {
 } from "@/modules/rh/domain/services/regras-de-calculo.service";
 import {
   diaDaSemana,
+  ehDiaDeTrabalho,
   minutosTrabalhados,
   totalizar,
   totalizarDia,
@@ -180,6 +181,7 @@ function montarDia(
     ...doCartao,
     diaDaSemana: semana,
     cargaMin: empregado.jornada[semana],
+    diaDeTrabalho: ehDiaDeTrabalho(empregado.jornada[semana], feriado),
     trabalhadoMin: minutosTrabalhados(doCartao),
     apuracao: totalizarDia(doCartao, empregado.jornada, regras),
   };

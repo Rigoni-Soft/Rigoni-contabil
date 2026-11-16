@@ -90,6 +90,11 @@ const resultado = z
     // Extrator das regras da Convenção coletiva: falso (determinístico, padrão em dev/CI/Preview) ou
     // "indisponivel" (recusa o envio até haver o provedor real; é o valor da Produção hoje).
     EXTRACAO_CONVENCAO_MODO: z.enum(["falso", "indisponivel"]).default("falso"),
+    // Leitor da foto do Cartão de ponto (docs/deploy/leitura-de-cartao.md): falso (determinístico, padrão em
+    // dev/CI/Preview), "indisponivel" (digitação manual) ou "visao" (visão da API; exige ANTHROPIC_API_KEY).
+    LEITURA_CARTAO_MODO: z.enum(["falso", "indisponivel", "visao"]).default("falso"),
+    ANTHROPIC_API_KEY: z.string().min(1).optional(),
+    LEITURA_CARTAO_MODELO: z.string().min(1).default("claude-haiku-5-5"),
     // WhatsApp do financeiro do escritório (só dígitos, com DDI), destino das guias de parcelamento
     // interno. Ausente ou inválido não derruba o app: o job não envia o interno, ele segue
     // pendente e abre o alerta `financeiro_ausente`.
@@ -110,6 +115,10 @@ const resultado = z
   .refine((v) => v.MENSAGERIA_MODO !== "real" || (v.WHATSAPP_TOKEN && v.WHATSAPP_PHONE_NUMBER_ID), {
     message: "MENSAGERIA_MODO=real exige WHATSAPP_TOKEN e WHATSAPP_PHONE_NUMBER_ID.",
     path: ["WHATSAPP_TOKEN"],
+  })
+  .refine((v) => v.LEITURA_CARTAO_MODO !== "visao" || v.ANTHROPIC_API_KEY, {
+    message: "LEITURA_CARTAO_MODO=visao exige ANTHROPIC_API_KEY.",
+    path: ["ANTHROPIC_API_KEY"],
   })
   .refine(
     (v) =>
@@ -155,6 +164,16 @@ const resultado = z
     message: "MENSAGERIA_MODO=real exige WHATSAPP_TOKEN e WHATSAPP_PHONE_NUMBER_ID.",
     path: ["WHATSAPP_TOKEN"],
   })
+  // Os leitores falsos gravam dado inventado (empregado, dias, regras da convenção) num Cliente de verdade: em
+  // Production a variável tem de ser escolhida (indisponivel ou o real), nunca herdar o padrão "falso".
+  .refine((v) => process.env.VERCEL_ENV !== "production" || v.LEITURA_CARTAO_MODO !== "falso", {
+    message: "Production da Vercel não pode usar LEITURA_CARTAO_MODO=falso.",
+    path: ["LEITURA_CARTAO_MODO"],
+  })
+  .refine((v) => process.env.VERCEL_ENV !== "production" || v.EXTRACAO_CONVENCAO_MODO !== "falso", {
+    message: "Production da Vercel não pode usar EXTRACAO_CONVENCAO_MODO=falso.",
+    path: ["EXTRACAO_CONVENCAO_MODO"],
+  })
   .refine((v) => process.env.VERCEL_ENV !== "production" || !v.E2E_ADAPTER_SECRET, {
     message: "Production da Vercel não pode definir E2E_ADAPTER_SECRET.",
     path: ["E2E_ADAPTER_SECRET"],
@@ -197,6 +216,9 @@ const resultado = z
     EMAIL_REMETENTE: process.env.EMAIL_REMETENTE || undefined,
     LEITURA_PDF_MODO: process.env.LEITURA_PDF_MODO || undefined,
     EXTRACAO_CONVENCAO_MODO: process.env.EXTRACAO_CONVENCAO_MODO || undefined,
+    LEITURA_CARTAO_MODO: process.env.LEITURA_CARTAO_MODO || undefined,
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || undefined,
+    LEITURA_CARTAO_MODELO: process.env.LEITURA_CARTAO_MODELO || undefined,
     FINANCEIRO_TELEFONE: process.env.FINANCEIRO_TELEFONE || undefined,
   });
 
@@ -242,5 +264,8 @@ export const {
   EMAIL_REMETENTE,
   LEITURA_PDF_MODO,
   EXTRACAO_CONVENCAO_MODO,
+  LEITURA_CARTAO_MODO,
+  ANTHROPIC_API_KEY,
+  LEITURA_CARTAO_MODELO,
   FINANCEIRO_TELEFONE,
 } = resultado.data;

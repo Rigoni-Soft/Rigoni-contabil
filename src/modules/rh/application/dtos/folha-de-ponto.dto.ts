@@ -27,6 +27,8 @@ export type DiaDaFolhaDto = DiaDoPontoDto & {
   feriado: boolean;
   // Carga do dia pela Jornada do empregado.
   cargaMin: number;
+  // Tem carga e não é feriado: só nele o Abono sem batida vale (a regra é do domínio, a mesma da leitura).
+  diaDeTrabalho: boolean;
   // H. Diária: o que foi batido no dia.
   trabalhadoMin: number;
   // O cálculo do dia (atrasos, extras por faixa, adicional noturno, falta, abono), pela convenção da data.

@@ -9,8 +9,11 @@ import {
   lerEmpregadoDoFormulario,
   linhasDoCartao,
   minutosParaHm,
+  navegacaoDaFolha,
   navegacaoDoCartao,
   quadroDoEmpregado,
+  resumoDaLeitura,
+  resumoDoAtestado,
 } from "@/modules/rh/presentation/view-models/folha-de-ponto/folha-de-ponto.presenter";
 
 const campos = (valores: Record<string, string>) => ({
@@ -106,6 +109,7 @@ describe("linhasDoCartao", () => {
       extra: null,
       abono: false,
       cargaMin: 525,
+      diaDeTrabalho: true,
       feriado: false,
       trabalhadoMin: 0,
       apuracao: ZERO,
@@ -118,9 +122,10 @@ describe("linhasDoCartao", () => {
           data: "2026-11-22",
           diaDaSemana: 0,
           cargaMin: 0,
+          diaDeTrabalho: false,
           extra: { entrada: 480, saida: 600 },
         },
-        { ...base, data: "2026-11-20", diaDaSemana: 5, feriado: true },
+        { ...base, data: "2026-11-20", diaDaSemana: 5, feriado: true, diaDeTrabalho: false },
       ],
       false,
     );
@@ -145,6 +150,7 @@ describe("linhasDoCartao", () => {
           extra: null,
           abono: false,
           cargaMin: 525,
+          diaDeTrabalho: true,
           feriado: false,
           trabalhadoMin: 600,
           apuracao: {
@@ -161,6 +167,7 @@ describe("linhasDoCartao", () => {
           extra: null,
           abono: false,
           cargaMin: 525,
+          diaDeTrabalho: true,
           feriado: false,
           trabalhadoMin: 0,
           apuracao: { ...ZERO, faltas: 1 },
@@ -189,6 +196,7 @@ describe("linhasDoCartao", () => {
       extra: null,
       abono: false,
       cargaMin: 525,
+      diaDeTrabalho: true,
       feriado: false,
       trabalhadoMin: 0,
       apuracao: ZERO,
@@ -196,13 +204,14 @@ describe("linhasDoCartao", () => {
     const [normal, folga, feriado, feriadoTrabalhado] = linhasDoCartao(
       [
         { ...base, data: "2026-11-17", diaDaSemana: 2, apuracao: { ...ZERO, normaisMin: 525 } },
-        { ...base, data: "2026-11-22", diaDaSemana: 0, cargaMin: 0 },
-        { ...base, data: "2026-11-20", diaDaSemana: 5, feriado: true },
+        { ...base, data: "2026-11-22", diaDaSemana: 0, cargaMin: 0, diaDeTrabalho: false },
+        { ...base, data: "2026-11-20", diaDaSemana: 5, feriado: true, diaDeTrabalho: false },
         {
           ...base,
           data: "2026-11-20",
           diaDaSemana: 5,
           feriado: true,
+          diaDeTrabalho: false,
           apuracao: { ...ZERO, extras: [{ percentual: 100, minutos: 240 }] },
         },
       ],
@@ -229,6 +238,7 @@ describe("linhasDoCartao", () => {
       extra: null,
       abono: false,
       cargaMin: 525,
+      diaDeTrabalho: true,
       feriado: false,
       trabalhadoMin: 0,
       apuracao: { ...ZERO, faltas: 1 },
@@ -245,13 +255,36 @@ describe("linhasDoCartao", () => {
           abono: true,
           apuracao: { ...ZERO, abonoDias: 1 },
         },
-        { ...base, data: "2026-11-22", diaDaSemana: 0, cargaMin: 0, apuracao: ZERO },
+        {
+          ...base,
+          data: "2026-11-22",
+          diaDaSemana: 0,
+          cargaMin: 0,
+          diaDeTrabalho: false,
+          apuracao: ZERO,
+        },
       ],
       false,
     );
     expect(comecado.situacao).toBe("normal");
     expect(falta).toMatchObject({ situacao: "falta", nota: "Falta", tom: "alerta" });
-    expect(abonado).toMatchObject({ situacao: "abonado", nota: "Abonado", tom: undefined });
+    expect(abonado).toMatchObject({ situacao: "abonado", nota: "Abonado", tom: "info" });
+    // Abono gravado num dia sem carga (domingo) não vira "Abonado": o dia segue folga.
+    const [folgaComAbono] = linhasDoCartao(
+      [
+        {
+          ...base,
+          data: "2026-11-22",
+          diaDaSemana: 0,
+          cargaMin: 0,
+          diaDeTrabalho: false,
+          abono: true,
+          apuracao: ZERO,
+        },
+      ],
+      false,
+    );
+    expect(folgaComAbono).toMatchObject({ situacao: "folga", nota: "Folga", tom: "atencao" });
     expect(folga.situacao).toBe("folga");
 
     // Mês novo: nenhum dado salvo, o dia útil vazio não é falta, é "em branco" e neutro.
@@ -327,6 +360,13 @@ describe("quadro e navegação", () => {
     expect(navegacaoDoCartao({ ...FOLHA, competencia: "2099-01" }).proximoMesHref).toBeUndefined();
   });
 
+  it("a Folha navega entre meses mantendo o Cliente, sem o empregado escolhido", () => {
+    const nav = navegacaoDaFolha(FOLHA);
+    expect(nav.anteriorHref).toBe("/rh/folha-de-ponto/c1?mes=2020-10");
+    expect(nav.proximoHref).toBe("/rh/folha-de-ponto/c1?mes=2020-12");
+    expect(navegacaoDaFolha({ ...FOLHA, competencia: "2099-01" }).proximoHref).toBeUndefined();
+  });
+
   it("hrefDoCartao leva ao cartão do empregado com o mês", () => {
     expect(hrefDoCartao("c 1", "e1", { mes: "2026-11" })).toBe(
       "/rh/folha-de-ponto/c%201/cartao/e1?mes=2026-11",
@@ -336,5 +376,53 @@ describe("quadro e navegação", () => {
 
   it("hrefDaFolha omite o que não foi pedido", () => {
     expect(hrefDaFolha("c 1", {})).toBe("/rh/folha-de-ponto/c%201");
+  });
+});
+
+describe("resumoDaLeitura", () => {
+  const base = {
+    empregadoId: "e1",
+    nome: "Erick",
+    cadastrado: false,
+    dias: 2,
+    mantidos: 0,
+    faltas: 0,
+    abonos: 0,
+  };
+
+  it("diz só o que aconteceu: dias lidos no singular e no plural", () => {
+    expect(resumoDaLeitura({ ...base, dias: 1 })).toBe("Erick: 1 dia lido. Confira o cartão.");
+    expect(resumoDaLeitura(base)).toBe("Erick: 2 dias lidos. Confira o cartão.");
+  });
+
+  it("conta os dias que já tinham dado e ficaram como estavam", () => {
+    expect(resumoDaLeitura({ ...base, mantidos: 1 })).toContain("1 dia já preenchido mantido");
+    expect(resumoDaLeitura({ ...base, mantidos: 3 })).toContain("3 dias já preenchidos mantidos");
+  });
+
+  it("junta faltas, abonos e o cadastro novo", () => {
+    expect(resumoDaLeitura({ ...base, cadastrado: true, faltas: 2, abonos: 1 })).toBe(
+      "Erick (cadastrado no quadro): 2 dias lidos, 2 faltas anotadas, 1 abono. Confira o cartão.",
+    );
+  });
+});
+
+describe("resumoDoAtestado", () => {
+  it("atestado e declaração de comparecimento, no singular e no plural", () => {
+    expect(resumoDoAtestado({ tipo: "atestado", abonados: 1, semCartao: 0 })).toBe(
+      "1 dia abonado pelo atestado. Confira o cartão.",
+    );
+    expect(resumoDoAtestado({ tipo: "declaracao", abonados: 2, semCartao: 0 })).toBe(
+      "2 dias abonados pela declaração de comparecimento. Confira o cartão.",
+    );
+  });
+
+  it("avisa quantos dias ficaram sem abono por falta de cartão iniciado", () => {
+    expect(resumoDoAtestado({ tipo: "atestado", abonados: 1, semCartao: 1 })).toBe(
+      "1 dia abonado pelo atestado. 1 dia em mês sem cartão iniciado ficou sem abono: inicie o cartão e leia o atestado de novo. Confira o cartão.",
+    );
+    expect(resumoDoAtestado({ tipo: "atestado", abonados: 2, semCartao: 3 })).toContain(
+      "3 dias em mês sem cartão iniciado ficou sem abono",
+    );
   });
 });

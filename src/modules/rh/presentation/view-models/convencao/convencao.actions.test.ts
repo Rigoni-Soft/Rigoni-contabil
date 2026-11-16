@@ -28,9 +28,6 @@ function formulario(troca: Record<string, string | File> = {}): FormData {
   const dados = new FormData();
   const campos: Record<string, string | File> = {
     clienteId: ID,
-    sindicato: " Comércio ",
-    vigenciaInicio: "2026-05-01",
-    vigenciaFim: "2027-04-30",
     arquivo: new File(["%PDF-1.7"], "cct.pdf", { type: "application/pdf" }),
     ...troca,
   };
@@ -50,12 +47,7 @@ describe("convencao.actions (integração)", () => {
       expect(await enviarConvencaoAction(formulario())).toEqual({ ok: true, data: undefined });
 
       const entrada = enviarMock.mock.calls[0][0];
-      expect(entrada).toMatchObject({
-        clienteId: ID,
-        sindicato: "Comércio",
-        vigenciaInicio: "2026-05-01",
-        vigenciaFim: "2027-04-30",
-      });
+      expect(entrada).toMatchObject({ clienteId: ID });
       expect(entrada.arquivo.nome).toBe("cct.pdf");
       expect(Buffer.from(entrada.arquivo.bytes).toString()).toBe("%PDF-1.7");
     });
@@ -76,14 +68,6 @@ describe("convencao.actions (integração)", () => {
       expect(await enviarConvencaoAction(formulario({ arquivo: grande }))).toMatchObject({
         ok: false,
         error: { code: "VALIDATION_ERROR", message: "O PDF passa de 4 MB." },
-      });
-      expect(enviarMock).not.toHaveBeenCalled();
-    });
-
-    it("sindicato vazio: VALIDATION_ERROR com o campo apontado", async () => {
-      expect(await enviarConvencaoAction(formulario({ sindicato: "  " }))).toMatchObject({
-        ok: false,
-        error: { code: "VALIDATION_ERROR", fields: { sindicato: expect.any(Array) } },
       });
       expect(enviarMock).not.toHaveBeenCalled();
     });

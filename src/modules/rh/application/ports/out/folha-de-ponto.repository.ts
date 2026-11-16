@@ -43,6 +43,15 @@ export interface FolhaDePontoRepository {
     empregadoId: string,
     dia: { data: string; batidas: ParDto[]; extra: ParDto | null; abono: boolean },
   ): Promise<Result<void, AppError>>;
+  // Marca o cartão do mês como iniciado e grava os dias numa transação só: ou entra tudo ou nada. Só preenche: o
+  // dia que já tem linha não é tocado, e o dia vazio não grava nem apaga. `competencia` é o primeiro dia do mês.
+  gravarCartao(
+    empregadoId: string,
+    competencia: string,
+    dias: { data: string; batidas: ParDto[]; extra: ParDto | null; abono: boolean }[],
+  ): Promise<Result<void, AppError>>;
+  // Marca Abono nas datas numa transação só, preservando batidas e Extra do dia; não inicia cartão.
+  abonarDias(empregadoId: string, datas: string[]): Promise<Result<void, AppError>>;
   listarFeriados(de: string, ate: string): Promise<Result<string[], AppError>>;
   buscarInterruptores(clienteId: string): Promise<Result<InterruptoresDoClienteDto, AppError>>;
   definirInterruptores(

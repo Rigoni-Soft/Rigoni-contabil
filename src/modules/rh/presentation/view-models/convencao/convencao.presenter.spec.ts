@@ -2,7 +2,6 @@ import type { ConvencaoDto } from "@/modules/rh/application/dtos/convencao.dto";
 import type { RegrasDaConvencao } from "@/shared/kernel/regras-da-convencao";
 
 import {
-  campoDoServidor,
   convencaoEscolhida,
   duracao,
   empregadosDosAjustes,
@@ -208,44 +207,25 @@ describe("sindicatosDoCliente e empregadosDosAjustes", () => {
 
 describe("lerEnvioDoFormulario", () => {
   const pdf = new File(["%PDF-1.7"], "cct.pdf", { type: "application/pdf" });
-  const campos = (inicio = "2026-05-01", fim = "2027-04-30") => {
-    const f = new FormData();
-    f.set("sindicato", "Comércio");
-    f.set("vigenciaInicio", inicio);
-    f.set("vigenciaFim", fim);
-    return f;
-  };
 
   it("monta o FormData da Server Action com o Cliente e o PDF", () => {
-    const r = lerEnvioDoFormulario("c1", campos(), pdf);
+    const r = lerEnvioDoFormulario("c1", pdf);
 
     expect(r.ok && Object.fromEntries(r.formData)).toEqual({
       clienteId: "c1",
-      sindicato: "Comércio",
-      vigenciaInicio: "2026-05-01",
-      vigenciaFim: "2027-04-30",
       arquivo: expect.any(File),
     });
   });
 
   it.each([
-    ["sem arquivo", campos(), undefined, "Escolha o PDF da convenção.", "arquivo"],
+    ["sem arquivo", undefined, "Escolha o PDF da convenção."],
     [
       "arquivo que não é PDF",
-      campos(),
       new File(["x"], "cct.docx", { type: "application/msword" }),
       "Envie a convenção em PDF.",
-      "arquivo",
     ],
-    [
-      "vigência invertida",
-      campos("2027-05-01", "2027-04-30"),
-      pdf,
-      "A vigência termina antes de começar.",
-      "vigenciaFim",
-    ],
-  ])("recusa %s apontando o campo", (_nome, c, arquivo, erro, campo) => {
-    expect(lerEnvioDoFormulario("c1", c, arquivo)).toEqual({ ok: false, erro, campo });
+  ])("recusa %s", (_nome, arquivo, erro) => {
+    expect(lerEnvioDoFormulario("c1", arquivo)).toEqual({ ok: false, erro });
   });
 
   it("recusa PDF acima de 4 MB", () => {
@@ -253,16 +233,9 @@ describe("lerEnvioDoFormulario", () => {
       type: "application/pdf",
     });
 
-    expect(lerEnvioDoFormulario("c1", campos(), grande)).toEqual({
+    expect(lerEnvioDoFormulario("c1", grande)).toEqual({
       ok: false,
       erro: "O PDF passa de 4 MB.",
-      campo: "arquivo",
     });
-  });
-
-  it("campoDoServidor devolve o primeiro campo do formulário que o servidor recusou", () => {
-    expect(campoDoServidor({ clienteId: ["x"], vigenciaFim: ["y"] })).toBe("vigenciaFim");
-    expect(campoDoServidor({ clienteId: ["x"] })).toBeUndefined();
-    expect(campoDoServidor()).toBeUndefined();
   });
 });
