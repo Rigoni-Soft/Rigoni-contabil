@@ -161,34 +161,23 @@ describe("BaixarPdfDoCartao", () => {
     expect(documento.avisoDaTotalizacao).toContain("legislação");
   });
 
-  it.each([
-    [
-      "sem nenhum apontamento no mês (mesmo com o cartão iniciado)",
-      { dias: [dia("2026-11-04", 3, { apuracao: ZERO })] },
-      "Sem apontamentos no mês",
-    ],
-    [
-      "empregado desligado",
-      { empregado: { ...FOLHA.selecionado!.empregado, ativo: false } },
-      "Empregado desligado",
-    ],
-    [
-      "empregado sem movimento no mês (férias)",
-      { empregado: { ...FOLHA.selecionado!.empregado, semMovimento: true } },
-      "sem movimento no mês",
-    ],
-  ])("%s: não gera o PDF e audita a recusa", async (_nome, troca, mensagem) => {
+  it("cartão com motivoSemPdf (desligado, sem movimento, sem apontamento): não gera o PDF e audita a recusa", async () => {
+    const motivo = "Empregado desligado: não há cartão para assinar.";
     const { caso, gerador, auditoria } = montar({
-      folha: ok({ ...FOLHA, selecionado: { ...FOLHA.selecionado!, ...troca } }),
+      folha: ok({ ...FOLHA, selecionado: { ...FOLHA.selecionado!, motivoSemPdf: motivo } }),
     });
 
     const r = await caso.execute(ENTRADA);
 
     expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
-    expect(!r.ok && r.error.message).toContain(mensagem);
+    expect(!r.ok && r.error.message).toBe(motivo);
     expect(gerador.gerar).not.toHaveBeenCalled();
     expect(auditoria.registrar).toHaveBeenCalledWith(
-      expect.objectContaining({ acao: "rh.ponto.baixar-pdf", resultado: "falha" }),
+      expect.objectContaining({
+        acao: "rh.ponto.baixar-pdf",
+        alvo: "11444777000161 Maria da Conceição 2026-11",
+        resultado: "falha",
+      }),
     );
     expect(auditoria.registrar).not.toHaveBeenCalledWith(
       expect.objectContaining({ resultado: "sucesso" }),

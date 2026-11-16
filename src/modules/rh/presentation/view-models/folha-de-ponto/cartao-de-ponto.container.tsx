@@ -11,7 +11,6 @@ import { CartaoDePonto } from "@/presentation/components/organisms/cartao-de-pon
 import { baixarArquivoBase64 } from "@/presentation/lib/baixar-arquivo-base64";
 import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
 import type { FolhaDePontoDto } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
-import { motivoSemPdf } from "@/modules/rh/application/mappers/documento-do-cartao.mapper";
 import { rotuloDaCompetencia } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.presenter";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
 
@@ -274,7 +273,7 @@ export function CartaoDePontoContainer({ folha }: Props) {
       onBaixarPdf={baixarPdf}
       baixandoPdf={baixandoPdf}
       avisoDoPdf={avisoDoPdf}
-      motivoSemPdf={motivoSemPdf(selecionado)}
+      motivoSemPdf={selecionado.motivoSemPdf}
       onLimparTabela={() => {
         setDestacada(false);
         setAvisoGeral(undefined);

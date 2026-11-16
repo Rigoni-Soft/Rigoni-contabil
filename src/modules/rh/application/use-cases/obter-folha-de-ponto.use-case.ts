@@ -4,6 +4,7 @@ import type {
   EmpregadoDaFolhaDto,
   FolhaDePontoDto,
 } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
+import { motivoSemPdf } from "@/modules/rh/application/mappers/documento-do-cartao.mapper";
 import type {
   ObterFolhaDePontoInput,
   ObterFolhaDePontoPort,
@@ -152,13 +153,14 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
       montarDia(data, escolhido, lancadoEm.get(data), feriadoEm.has(data), regrasDoDia(data)),
     );
 
-    return ok({
+    const cartao = {
       empregado: escolhido,
       dias,
       totalizacao: totalizar(dias, escolhido.jornada, regrasDoDia),
       iniciado: iniciado.value,
       semConvencao,
-    });
+    };
+    return ok({ ...cartao, motivoSemPdf: motivoSemPdf(cartao) });
   }
 }
 

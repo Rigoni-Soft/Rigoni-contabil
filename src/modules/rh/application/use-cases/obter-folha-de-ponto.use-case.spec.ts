@@ -154,6 +154,36 @@ describe("ObterFolhaDePonto", () => {
     expect(iniciado.ok && iniciado.value.selecionado?.iniciado).toBe(true);
   });
 
+  describe("motivo de não haver PDF do cartão", () => {
+    const pedir = (over: Partial<FolhaDePontoRepository>, empregadoId = "e1") =>
+      obter(FUNC, repo({ listarSemMovimento: async () => ok([]), ...over })).execute({
+        clienteId: "c1",
+        empregadoId,
+      });
+    const batida = {
+      data: "2026-11-04",
+      batidas: [{ entrada: horaParaMinutos("08:00"), saida: horaParaMinutos("17:00") }],
+      extra: null,
+      abono: false,
+    };
+
+    it.each([
+      ["empregado sem movimento (férias)", { listarSemMovimento: async () => ok(["e1"]) }, "e1"],
+      ["empregado desligado", {}, "e2"],
+      ["mês sem nenhum apontamento", {}, "e1"],
+    ] as const)("%s: a leitura traz o motivo", async (_nome, over, empregadoId) => {
+      const r = await pedir(over, empregadoId);
+
+      expect(r.ok && r.value.selecionado?.motivoSemPdf).toEqual(expect.any(String));
+    });
+
+    it("com apontamento no mês não há motivo: o PDF cabe", async () => {
+      const r = await pedir({ listarDias: async () => ok([batida]) });
+
+      expect(r.ok && r.value.selecionado?.motivoSemPdf).toBeUndefined();
+    });
+  });
+
   it("empregado pedido que não é do Cliente não existe", async () => {
     const r = await obter(FUNC).execute({ clienteId: "c1", empregadoId: "outro" });
     expect(r.ok).toBe(false);
