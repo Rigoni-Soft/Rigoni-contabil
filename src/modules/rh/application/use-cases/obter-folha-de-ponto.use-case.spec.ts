@@ -3,6 +3,7 @@ import type { EmpregadoDto } from "@/modules/rh/application/dtos/folha-de-ponto.
 import type { ConvencaoRepository } from "@/modules/rh/application/ports/out/convencao.repository";
 import type { FolhaDePontoRepository } from "@/modules/rh/application/ports/out/folha-de-ponto.repository";
 import type { AtorSessaoDto } from "@/modules/rh/application/ports/out/sessao.provider";
+import { ApuradorDeCartoes } from "@/modules/rh/application/services/apurador-de-cartoes.service";
 import { ObterFolhaDePonto } from "@/modules/rh/application/use-cases/obter-folha-de-ponto.use-case";
 import { horaParaMinutos } from "@/modules/rh/domain/services/totalizacao.service";
 import { ok } from "@/shared/kernel/result";
@@ -69,7 +70,12 @@ const convencoes = (lista: ConvencaoDto[] = []): ConvencaoRepository => ({
 // 20/11/2026: mês corrente.
 const relogio = { agora: () => new Date("2026-11-20T15:00:00Z") };
 const obter = (ator: AtorSessaoDto | null, r = repo(), c = convencoes()) =>
-  new ObterFolhaDePonto({ usuarioAtual: async () => ator }, r, c, relogio);
+  new ObterFolhaDePonto(
+    { usuarioAtual: async () => ator },
+    r,
+    new ApuradorDeCartoes(r, c),
+    relogio,
+  );
 
 describe("ObterFolhaDePonto", () => {
   it("barra quem não é do RH nem Admin", async () => {
