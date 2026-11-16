@@ -14,19 +14,32 @@ type Props = {
   // Nome acessível do X de fechar.
   rotuloDoFechar: string;
   aoFechar: () => void;
+  // Trabalho em andamento (ex.: leitura de foto): a modal não fecha por Esc, véu nem X, para o resultado ou o erro
+  // não cair numa modal fechada. Quem usa também ignora o `aoFechar` nesse estado.
+  bloqueado?: boolean;
   // O corpo (já com o próprio espaçamento e rolagem) abaixo do cabeçalho.
   children: ReactNode;
 };
 
 // A casca dos painéis modais (sino de avisos, leitura de atestado): <dialog> com título, X de fechar e clique
-// no véu fechando (nativo: sem suporte, Esc e o X seguem valendo).
-export function PainelModal({ painelId, titulo, rotuloDoFechar, aoFechar, children }: Props) {
+// no véu fechando (nativo: sem suporte, Esc e o X seguem valendo). `bloqueado` segura os três.
+export function PainelModal({
+  painelId,
+  titulo,
+  rotuloDoFechar,
+  aoFechar,
+  bloqueado = false,
+  children,
+}: Props) {
   return (
     <Caixa
       como="dialog"
       id={painelId}
       aria-labelledby={`${painelId}-titulo`}
-      closedby="any"
+      closedby={bloqueado ? "none" : "any"}
+      onCancel={(e) => {
+        if (bloqueado) e.preventDefault();
+      }}
       className={cn(
         SUPERFICIE_DE_PAINEL,
         "max-h-[80dvh] w-[min(92vw,32rem)] flex-col overflow-hidden p-0 open:flex",
@@ -41,6 +54,7 @@ export function PainelModal({ painelId, titulo, rotuloDoFechar, aoFechar, childr
           variant="ghost"
           size="icon"
           onClick={aoFechar}
+          aria-disabled={bloqueado || undefined}
           aria-label={rotuloDoFechar}
           className="shrink-0 rounded-full"
         >

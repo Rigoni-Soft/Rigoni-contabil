@@ -74,7 +74,10 @@ export function LeituraDeAtestadoContainer({ empregadoId, nomeDoEmpregado, aoAbo
         const aberto = modal();
         if (aberto && !aberto.open) aberto.showModal();
       }}
-      aoFechar={() => modal()?.close()}
+      // Durante a leitura a modal fica: o resultado ou o erro chega nela, não numa modal fechada.
+      aoFechar={() => {
+        if (!pendente) modal()?.close();
+      }}
       onArquivo={(escolhido) => {
         setArquivo(escolhido);
         setErro(undefined);

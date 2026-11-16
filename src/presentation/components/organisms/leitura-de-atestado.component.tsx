@@ -45,6 +45,7 @@ export function LeituraDeAtestado({
         titulo="Ler atestado ou declaração"
         rotuloDoFechar="Fechar a leitura do atestado"
         aoFechar={aoFechar}
+        bloqueado={pendente}
       >
         <Caixa
           como="form"
@@ -78,7 +79,12 @@ export function LeituraDeAtestado({
               <Button type="submit" aria-disabled={pendente}>
                 {pendente ? "Lendo o atestado…" : "Abonar pelo atestado"}
               </Button>
-              <Button type="button" variant="destructive" onClick={aoFechar}>
+              <Button
+                type="button"
+                variant="destructive"
+                aria-disabled={pendente}
+                onClick={aoFechar}
+              >
                 Cancelar
               </Button>
             </Linha>
