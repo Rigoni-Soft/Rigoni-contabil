@@ -12,6 +12,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { auditoriaBestEffort } from "@/main/auditoria.factory";
 import { createSupabaseServer } from "@/main/supabase-server.factory";
+import type { BaixarPdfDoCartaoPort } from "@/modules/rh/application/ports/in/baixar-pdf-do-cartao.provider";
 import type {
   DefinirConvencaoDoEmpregadoPort,
   DefinirInterruptoresDoClientePort,
@@ -46,6 +47,7 @@ import type {
   LeitorDeCartaoPort,
 } from "@/modules/rh/application/ports/out/leitor-de-cartao.provider";
 import type { AtorSessaoDto, SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
+import { BaixarPdfDoCartao } from "@/modules/rh/application/use-cases/baixar-pdf-do-cartao.use-case";
 import {
   DefinirConvencaoDoEmpregado,
   DefinirInterruptoresDoCliente,
@@ -81,6 +83,7 @@ import { ExtratorDeRegrasIndisponivelGateway } from "@/modules/rh/infra/gateways
 import { LeitorDeCartaoFalsoGateway } from "@/modules/rh/infra/gateways/leitor-de-cartao-falso.gateway";
 import { LeitorDeCartaoIndisponivelGateway } from "@/modules/rh/infra/gateways/leitor-de-cartao-indisponivel.gateway";
 import { LeitorDeCartaoVisaoGateway } from "@/modules/rh/infra/gateways/leitor-de-cartao-visao.gateway";
+import { PdfLibGeradorDoCartaoGateway } from "@/modules/rh/infra/gateways/pdf-lib-gerador-do-cartao.gateway";
 import { RelogioSistemaGateway } from "@/modules/rh/infra/gateways/relogio-sistema.gateway";
 import { SupabaseArmazenamentoDeConvencaoGateway } from "@/modules/rh/infra/gateways/supabase-armazenamento-de-convencao.gateway";
 import { SupabaseAcompanhamentoRepository } from "@/modules/rh/infra/repositories/acompanhamento.repository";
@@ -174,6 +177,18 @@ export async function makeObterFolhaDePonto(): Promise<ObterFolhaDePontoPort> {
     new SupabaseFolhaDePontoRepository(supabase, errosRh),
     new SupabaseConvencaoRepository(supabase, errosRh),
     new RelogioSistemaGateway(),
+  );
+}
+
+export async function makeBaixarPdfDoCartao(): Promise<BaixarPdfDoCartaoPort> {
+  const { sessao, repositorio, auditoria } = await montarFolha();
+  return new BaixarPdfDoCartao(
+    sessao,
+    await makeObterFolhaDePonto(),
+    repositorio,
+    new PdfLibGeradorDoCartaoGateway(),
+    auditoria,
+    errosRh,
   );
 }
 
