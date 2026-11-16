@@ -32,9 +32,12 @@ Para ligar: contrato do provedor com **retenção zero e sem treino** nos dados 
   viram "não leu" para o operador, mas ficam no registro de erros (`rh.leitor.provedor_recusou`, só o status;
   `rh.leitor.falha_de_rede`, só o nome do erro, como `TimeoutError`): nunca o corpo, a imagem ou o que o modelo leu.
   A instrução diz ao modelo que o texto da imagem é dado, nunca ordem.
-- A rota da Folha de ponto (`/rh/folha-de-ponto/[cliente]`, onde rodam as Server Actions de leitura) exporta
-  `maxDuration = 60`: acima dos 45 s do leitor, para a plataforma não matar a função antes de a tela cair na
-  digitação manual. Em plano cujo teto seja menor que 60 s, reduza os dois juntos.
+- As duas rotas onde rodam as Server Actions de leitura exportam `maxDuration = 60`: a do quadro
+  (`/rh/folha-de-ponto/[cliente]`, foto do cartão) e a do cartão do empregado
+  (`/rh/folha-de-ponto/[cliente]/cartao/[empregado]`, foto do atestado). É acima dos 45 s do leitor, para a
+  plataforma não matar a função antes de a tela cair na digitação manual. Uma Server Action herda o limite da rota
+  que a chamou: leitura nova, em rota nova, leva o export também. Em plano cujo teto seja menor que 60 s, reduza
+  os dois valores e o tempo do leitor juntos.
 - O arquivo é conferido pela assinatura (JPEG `ff d8 ff`, PNG de 8 bytes) e pelo tipo que o conteúdo mostra, não
   pelo `File.type` do navegador; o limite é 4 MB (ADR 0007).
 - O **domínio valida** (`validarLeitura`): reprovou = digitação manual.
