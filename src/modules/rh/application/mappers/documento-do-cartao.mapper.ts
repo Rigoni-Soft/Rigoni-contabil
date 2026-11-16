@@ -1,13 +1,13 @@
 import type {
-  DiaDaFolhaDto,
-  FolhaDePontoDto,
-  ParDto,
-} from "@/modules/rh/application/dtos/folha-de-ponto.dto";
-import type {
   DocumentoDoCartaoDto,
   ItemDoDocumentoDto,
   LinhaDoDocumentoDto,
 } from "@/modules/rh/application/dtos/documento-do-cartao.dto";
+import type {
+  DiaDaFolhaDto,
+  FolhaDePontoDto,
+  ParDto,
+} from "@/modules/rh/application/dtos/folha-de-ponto.dto";
 
 type Cartao = NonNullable<FolhaDePontoDto["selecionado"]>;
 
