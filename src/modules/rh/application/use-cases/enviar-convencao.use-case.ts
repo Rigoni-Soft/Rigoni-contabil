@@ -130,14 +130,17 @@ function identificar(
 ): Result<{ sindicato: string; vigenciaInicio: string; vigenciaFim: string }, ValidationError> {
   const sindicato = validarSindicato(extracao.sindicato);
   const { vigenciaInicio, vigenciaFim } = extracao;
+  // Duas mensagens: quem envia precisa saber o que o leitor não achou no PDF.
+  if (!sindicato.ok) {
+    return err(new ValidationError("Não foi possível identificar o sindicato no PDF."));
+  }
   if (
-    !sindicato.ok ||
     !dataIsoValida(vigenciaInicio) ||
     !dataIsoValida(vigenciaFim) ||
     vigenciaFim < vigenciaInicio
   ) {
     return err(
-      new ValidationError("Não foi possível identificar o sindicato e a vigência no PDF."),
+      new ValidationError("Não foi possível identificar a vigência (início e fim) no PDF."),
     );
   }
   return ok({ sindicato: sindicato.value, vigenciaInicio, vigenciaFim });

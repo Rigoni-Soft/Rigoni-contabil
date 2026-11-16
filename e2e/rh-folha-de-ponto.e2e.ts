@@ -174,6 +174,11 @@ test.describe("Folha de ponto do RH", () => {
       batidas: [{ entrada: 480, saida: 720 }],
     });
     if (dia.error) throw dia.error;
+    // O atestado só abona em cartão iniciado (o do mês em que o RH já está lançando).
+    const iniciado = await admin
+      .from("rh_cartoes_iniciados")
+      .insert({ empregado_id: empregado.data.id, competencia: "2026-09-01" });
+    if (iniciado.error) throw iniciado.error;
 
     await login(page, "funcionario.rh@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/rh");

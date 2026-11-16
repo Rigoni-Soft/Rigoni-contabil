@@ -153,19 +153,25 @@ describe("EnviarConvencao", () => {
   });
 
   it.each([
-    ["sem sindicato", { sindicato: "  " }],
-    ["vigência invertida", { vigenciaInicio: "2027-05-01", vigenciaFim: "2027-04-30" }],
-    ["data inexistente", { vigenciaInicio: "2026-02-31" }],
-  ])("não guarda o PDF nem grava quando a extração vem %s", async (_nome, troca) => {
+    ["sem sindicato", { sindicato: "  " }, "Não foi possível identificar o sindicato no PDF."],
+    [
+      "vigência invertida",
+      { vigenciaInicio: "2027-05-01", vigenciaFim: "2027-04-30" },
+      "Não foi possível identificar a vigência (início e fim) no PDF.",
+    ],
+    [
+      "data inexistente",
+      { vigenciaInicio: "2026-02-31" },
+      "Não foi possível identificar a vigência (início e fim) no PDF.",
+    ],
+  ])("não guarda o PDF nem grava quando a extração vem %s", async (_nome, troca, mensagem) => {
     const { caso, extrator, armazenamento, convencoes } = montar();
     const lida = await extrator.extrair(PDF);
     extrator.extrair.mockResolvedValue({ ...lida, ...troca } as typeof lida);
 
     const r = await caso.execute(ENTRADA);
 
-    expect(!r.ok && r.error.message).toBe(
-      "Não foi possível identificar o sindicato e a vigência no PDF.",
-    );
+    expect(!r.ok && r.error.message).toBe(mensagem);
     expect(armazenamento.enviar).not.toHaveBeenCalled();
     expect(convencoes.inserir).not.toHaveBeenCalled();
   });
