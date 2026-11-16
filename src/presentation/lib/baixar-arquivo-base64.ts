@@ -8,5 +8,6 @@ export function baixarArquivoBase64(nome: string, base64: string, tipo: string):
   document.body.appendChild(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(url);
+  // Adiada: revogar na mesma volta do click() faz alguns navegadores cancelarem o download.
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
