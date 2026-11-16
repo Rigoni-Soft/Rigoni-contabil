@@ -64,12 +64,10 @@ export class ApuradorDeCartoes {
 
         const sindicato =
           ponteiros.value.find((p) => p.empregadoId === empregado.id)?.sindicato ?? null;
-        const convencaoDe = new Map(
-          datas.map((data) => [data, convencaoDaEpoca(historico.value, sindicato, data)]),
-        );
+        const convencaoEm = (data: string) => convencaoDaEpoca(historico.value, sindicato, data);
         const regrasDoDia = (data: string) =>
           regrasDeCalculo(
-            convencaoDe.get(data)?.regras ?? null,
+            convencaoEm(data)?.regras ?? null,
             interruptores.value,
             empregado.comissionado,
           );
@@ -77,7 +75,7 @@ export class ApuradorDeCartoes {
 
         // Só avisa quando um dia com lançamento ficou sem convenção: dia vazio não muda com ela.
         const semConvencao = datas.some(
-          (data) => !convencaoDe.get(data) && (lancadoEm.get(data) || feriadoEm.has(data)),
+          (data) => !convencaoEm(data) && (lancadoEm.get(data) || feriadoEm.has(data)),
         );
         const dias = datas.map((data) =>
           montarDia(data, empregado, lancadoEm.get(data), feriadoEm.has(data), regrasDoDia(data)),
@@ -92,9 +90,12 @@ export class ApuradorDeCartoes {
         return ok({ ...cartao, motivoSemPdf: motivoSemPdf(cartao) });
       }),
     );
-    const falha = cartoes.find((c) => !c.ok);
-    if (falha && !falha.ok) return falha;
-    return ok(cartoes.flatMap((c) => (c.ok ? [c.value] : [])));
+    const valores: CartaoApurado[] = [];
+    for (const cartao of cartoes) {
+      if (!cartao.ok) return cartao;
+      valores.push(cartao.value);
+    }
+    return ok(valores);
   }
 }
 
