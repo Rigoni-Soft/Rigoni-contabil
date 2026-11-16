@@ -36,6 +36,9 @@ function montar(opcoes: {
   ativo?: boolean;
   nome?: string;
   dias?: unknown[];
+  feriados?: string[];
+  // Competências ("AAAA-MM-01") com cartão iniciado; omitido = todas.
+  iniciados?: string[];
   ator?: AtorSessaoDto | null;
 }) {
   const quadro = [
@@ -48,6 +51,10 @@ function montar(opcoes: {
     ),
     listarEmpregados: jest.fn(async () => ok(quadro)),
     listarDias: jest.fn(async () => ok(opcoes.dias ?? [])),
+    listarFeriados: jest.fn(async () => ok(opcoes.feriados ?? [])),
+    cartaoIniciado: jest.fn(async (_empregado: string, competencia: string) =>
+      ok(opcoes.iniciados ? opcoes.iniciados.includes(competencia) : true),
+    ),
     salvarDia: jest.fn(async () => ok(undefined)),
   } as unknown as jest.Mocked<FolhaDePontoRepository>;
   const auditoria = { registrar: jest.fn(async () => undefined) };
@@ -98,6 +105,44 @@ describe("LerAtestadoDePonto", () => {
   it("nada a abonar (declaração em dia sem batida) é erro com o motivo, sem gravar", async () => {
     const { caso, repositorio } = montar({
       leitor: { lerAtestado: async () => lido({ tipo: "declaracao", de: "2026-08-27" }) },
+    });
+
+    const r = await caso.execute(entrada);
+
+    expect(!r.ok && r.error.message).toMatch(/nenhum dia/i);
+    expect(repositorio.salvarDia).not.toHaveBeenCalled();
+  });
+
+  it("só abona com o cartão do empregado iniciado: sem ele recusa, sem criar linha em mês nunca aberto", async () => {
+    const { caso, repositorio } = montar({
+      leitor: { lerAtestado: async () => lido() },
+      iniciados: [],
+    });
+
+    const r = await caso.execute(entrada);
+
+    expect(!r.ok && r.error.message).toMatch(/cartão do empregado ainda não foi iniciado/);
+    expect(repositorio.salvarDia).not.toHaveBeenCalled();
+  });
+
+  it("período que vira o mês abona só no mês com cartão iniciado", async () => {
+    // 30/08 domingo, 31/08 segunda, 01/09 terça; só o cartão de agosto está iniciado.
+    const { caso, repositorio } = montar({
+      leitor: { lerAtestado: async () => lido({ de: "2026-08-30", ate: "2026-09-01" }) },
+      iniciados: ["2026-08-01"],
+    });
+
+    const r = await caso.execute(entrada);
+
+    expect(r.ok && r.value.abonados).toBe(1);
+    expect(repositorio.salvarDia.mock.calls.map(([, d]) => d.data)).toEqual(["2026-08-31"]);
+  });
+
+  it("atestado em feriado com carga não abona o dia (a mesma regra da tela)", async () => {
+    // 24/08 segunda é feriado: sobra nada a abonar do período 23-24.
+    const { caso, repositorio } = montar({
+      leitor: { lerAtestado: async () => lido() },
+      feriados: ["2026-08-24"],
     });
 
     const r = await caso.execute(entrada);
@@ -161,6 +206,11 @@ describe("LerAtestadoDePonto", () => {
       imagem: { bytes: new Uint8Array([1, 2]), tipo: "image/png" },
     });
     expect(naoImagem.ok).toBe(false);
+    const tipoMentido = await sem.caso.execute({
+      ...entrada,
+      imagem: { bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xe0]), tipo: "image/png" },
+    });
+    expect(tipoMentido.ok).toBe(false);
 
     const alheio = montar({ leitor: { lerAtestado }, ator: { ...FUNC, id: "outro" } });
     expect((await alheio.caso.execute(entrada)).ok).toBe(false);

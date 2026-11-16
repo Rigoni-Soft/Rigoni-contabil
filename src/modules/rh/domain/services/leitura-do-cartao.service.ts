@@ -2,6 +2,7 @@
 // só o que passa vira dado. Leitura reprovada = digitação manual.
 import {
   diaDaSemana,
+  ehDiaDeTrabalho,
   type Jornada,
   type Par,
 } from "@/modules/rh/domain/services/totalizacao.service";
@@ -24,8 +25,29 @@ export type DiaLido = {
 export type LeituraDoCartao = { nome: string | null; dias: DiaLido[] };
 export type Quinzena = 1 | 2;
 
-type DiaDaLeitura = { data: string; batidas: Par[]; extra: Par | null; abono: boolean };
+export type DiaDaLeitura = { data: string; batidas: Par[]; extra: Par | null; abono: boolean };
 export type LeituraValida = { nome: string; dias: DiaDaLeitura[]; faltas: string[] };
+
+// Dos dias lidos, os que a leitura pode gravar. Ler o cartão só preenche: o dia que já tem batida, extra ou
+// abono (digitado pelo RH ou vindo de um atestado) fica como está e é contado em `mantidos`. A anotação
+// "atestado" num dia sem batida só vira Abono em dia de trabalho (com carga e fora de feriado).
+export function diasAGravar(
+  lidos: DiaDaLeitura[],
+  jornada: Jornada,
+  feriados: ReadonlySet<string>,
+  datasComDado: ReadonlySet<string>,
+): { gravar: DiaDaLeitura[]; mantidos: number } {
+  const gravar: DiaDaLeitura[] = [];
+  let mantidos = 0;
+  for (const dia of lidos) {
+    const soAbono = dia.abono && dia.batidas.length === 0 && !dia.extra;
+    if (soAbono && !ehDiaDeTrabalho(jornada[diaDaSemana(dia.data)], feriados.has(dia.data)))
+      continue;
+    if (datasComDado.has(dia.data)) mantidos += 1;
+    else gravar.push(dia);
+  }
+  return { gravar, mantidos };
+}
 
 const NOME = /^[\p{L}][\p{L} .'-]*$/u;
 const MAXIMO_DO_DIA_MIN = 16 * 60;

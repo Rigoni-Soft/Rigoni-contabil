@@ -1,3 +1,4 @@
+import type { DiaDoPontoDto } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
 import type { FolhaDePontoRepository } from "@/modules/rh/application/ports/out/folha-de-ponto.repository";
 import type {
   LeitorDeCartaoPort,
@@ -6,7 +7,8 @@ import type {
 import type { AtorSessaoDto } from "@/modules/rh/application/ports/out/sessao.provider";
 import { LerCartaoDePonto } from "@/modules/rh/application/use-cases/ler-cartao-de-ponto.use-case";
 import type { LeituraDoCartao } from "@/modules/rh/domain/services/leitura-do-cartao.service";
-import { ok } from "@/shared/kernel/result";
+import { ValidationError } from "@/shared/errors/validation.error";
+import { err, ok } from "@/shared/kernel/result";
 
 const FUNC: AtorSessaoDto = { id: "func", papel: "funcionario", setor: "rh" };
 const LIDER: AtorSessaoDto = { id: "lider", papel: "lider_setor", setor: "rh" };
@@ -31,6 +33,8 @@ function montar(opcoes: {
   ator?: AtorSessaoDto | null;
   leitor: LeitorDeCartaoPort;
   quadro?: { id: string; nome: string; ativo: boolean }[];
+  feriados?: string[];
+  dias?: DiaDoPontoDto[];
 }) {
   // Segunda a sexta 8h45, sábado 4h, domingo folga.
   const JORNADA = [0, 525, 525, 525, 525, 525, 240];
@@ -45,8 +49,9 @@ function montar(opcoes: {
       quadro = [...quadro, { id: "novo", nome: d.nome, ativo: true, jornada: JORNADA }];
       return ok(undefined);
     }),
-    iniciarCartao: jest.fn(async () => ok(undefined)),
-    salvarDia: jest.fn(async () => ok(undefined)),
+    listarFeriados: jest.fn(async () => ok(opcoes.feriados ?? [])),
+    listarDias: jest.fn(async () => ok(opcoes.dias ?? [])),
+    gravarCartao: jest.fn(async () => ok(undefined)),
   } as unknown as jest.Mocked<FolhaDePontoRepository>;
   const auditoria = { registrar: jest.fn(async () => undefined) };
   const erros = { registrar: jest.fn() };
@@ -73,10 +78,71 @@ describe("LerCartaoDePonto", () => {
 
     const r = await caso.execute(entrada);
 
-    expect(r.ok && r.value).toMatchObject({ empregadoId: "e1", cadastrado: false, dias: 2 });
-    expect(repositorio.iniciarCartao).toHaveBeenCalledWith("e1", "2026-11-01");
-    expect(repositorio.salvarDia).toHaveBeenCalledTimes(2);
+    expect(r.ok && r.value).toMatchObject({
+      empregadoId: "e1",
+      cadastrado: false,
+      dias: 2,
+      mantidos: 0,
+    });
+    // Marca o cartão e grava os dois dias numa chamada só (a transação é do repositório).
+    expect(repositorio.gravarCartao).toHaveBeenCalledTimes(1);
+    expect(repositorio.gravarCartao).toHaveBeenCalledWith("e1", "2026-11-01", [
+      expect.objectContaining({ data: "2026-11-02" }),
+      expect.objectContaining({ data: "2026-11-03" }),
+    ]);
     expect(repositorio.cadastrarEmpregado).not.toHaveBeenCalled();
+  });
+
+  it("ler o cartão depois de um atestado ou de um abono à mão não apaga o abono nem troca a batida digitada", async () => {
+    const leitor = { ler: jest.fn(async () => lida(BOA)) };
+    const { caso, repositorio } = montar({
+      leitor,
+      quadro: [{ id: "e1", nome: "Erick Santos", ativo: true }],
+      dias: [
+        // Dia 2: abonado pelo atestado, sem batida. Dia 3: batida digitada pelo RH.
+        { data: "2026-11-02", batidas: [], extra: null, abono: true },
+        {
+          data: "2026-11-03",
+          batidas: [{ entrada: emMinutos(9), saida: emMinutos(18) }],
+          extra: null,
+          abono: false,
+        },
+      ],
+    });
+
+    const r = await caso.execute(entrada);
+
+    expect(r.ok && r.value).toMatchObject({ dias: 0, mantidos: 2 });
+    expect(repositorio.gravarCartao).toHaveBeenCalledWith("e1", "2026-11-01", []);
+  });
+
+  it("o dia lido que o cartão ainda não tem é preenchido, e o que já tem fica", async () => {
+    const leitor = { ler: jest.fn(async () => lida(BOA)) };
+    const { caso, repositorio } = montar({
+      leitor,
+      quadro: [{ id: "e1", nome: "Erick Santos", ativo: true }],
+      dias: [{ data: "2026-11-02", batidas: [], extra: null, abono: true }],
+    });
+
+    const r = await caso.execute(entrada);
+
+    expect(r.ok && r.value).toMatchObject({ dias: 1, mantidos: 1 });
+    expect(repositorio.gravarCartao).toHaveBeenCalledWith("e1", "2026-11-01", [
+      expect.objectContaining({ data: "2026-11-03" }),
+    ]);
+  });
+
+  it("falha da gravação atômica devolve o erro e não conta dia nenhum como gravado", async () => {
+    const leitor = { ler: jest.fn(async () => lida(BOA)) };
+    const { caso, repositorio } = montar({
+      leitor,
+      quadro: [{ id: "e1", nome: "Erick Santos", ativo: true }],
+    });
+    repositorio.gravarCartao.mockResolvedValueOnce(err(new ValidationError("falhou no dia 3")));
+
+    const r = await caso.execute(entrada);
+
+    expect(!r.ok && r.error.message).toBe("falhou no dia 3");
   });
 
   it("anotação de atestado em dia sem carga (domingo) não grava o abono", async () => {
@@ -100,9 +166,29 @@ describe("LerCartaoDePonto", () => {
 
     const r = await caso.execute(entrada);
 
-    const datas = repositorio.salvarDia.mock.calls.map(([, d]) => d.data);
+    const datas = repositorio.gravarCartao.mock.calls[0][2].map((d) => d.data);
     expect(datas).toEqual(["2026-11-02", "2026-11-03"]);
     expect(r.ok && r.value.abonos).toBe(1);
+  });
+
+  it("anotação de atestado em feriado com carga também não vira abono: a regra é a mesma da tela", async () => {
+    // 2026-11-02 é segunda (carga 8h45) e está marcada como feriado.
+    const leitor = {
+      ler: jest.fn(async () =>
+        lida({ nome: "Erick", dias: [{ ...dia(2), batidas: [], atestado: true }, dia(3)] }),
+      ),
+    };
+    const { caso, repositorio } = montar({
+      leitor,
+      quadro: [{ id: "e1", nome: "Erick Santos", ativo: true }],
+      feriados: ["2026-11-02"],
+    });
+
+    const r = await caso.execute(entrada);
+
+    const datas = repositorio.gravarCartao.mock.calls[0][2].map((d) => d.data);
+    expect(datas).toEqual(["2026-11-03"]);
+    expect(r.ok && r.value.abonos).toBe(0);
   });
 
   it("leitura reprovada na validação cai na digitação, sem gravar, e registra só o motivo", async () => {
@@ -112,7 +198,7 @@ describe("LerCartaoDePonto", () => {
     const r = await caso.execute(entrada);
 
     expect(!r.ok && r.error.message).toMatch(/à mão/);
-    expect(repositorio.salvarDia).not.toHaveBeenCalled();
+    expect(repositorio.gravarCartao).not.toHaveBeenCalled();
     expect(erros.registrar).toHaveBeenCalledWith("rh.cartao.leitura_reprovada", expect.any(String));
   });
 
@@ -136,8 +222,7 @@ describe("LerCartaoDePonto", () => {
     const r = await caso.execute(entrada);
 
     expect(!r.ok && r.error.message).toMatch(/à mão/);
-    expect(repositorio.iniciarCartao).not.toHaveBeenCalled();
-    expect(repositorio.salvarDia).not.toHaveBeenCalled();
+    expect(repositorio.gravarCartao).not.toHaveBeenCalled();
   });
 
   it("empregado que não está no Quadro é cadastrado, com a Jornada do padrão das batidas", async () => {
@@ -166,7 +251,7 @@ describe("LerCartaoDePonto", () => {
     });
 
     expect((await caso.execute(entrada)).ok).toBe(false);
-    expect(repositorio.salvarDia).not.toHaveBeenCalled();
+    expect(repositorio.gravarCartao).not.toHaveBeenCalled();
   });
 
   it("só o Responsável do RH grava; o Líder é recusado antes de ler (a imagem nem sai)", async () => {
@@ -185,6 +270,14 @@ describe("LerCartaoDePonto", () => {
     [
       "arquivo que não é imagem",
       { imagem: { bytes: new Uint8Array([1, 2, 3]), tipo: "image/jpeg" as const } },
+    ],
+    [
+      "arquivo que só começa como JPEG (2 bytes não bastam)",
+      { imagem: { bytes: new Uint8Array([0xff, 0xd8, 0x00]), tipo: "image/jpeg" as const } },
+    ],
+    [
+      "JPEG declarado como PNG",
+      { imagem: { bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xe0]), tipo: "image/png" as const } },
     ],
     [
       "imagem grande demais",

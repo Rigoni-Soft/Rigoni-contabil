@@ -257,6 +257,88 @@ describe("Folha de ponto do RH (integração)", () => {
     expect((await dono.iniciarCartao(inativo, "2026-11-01")).ok).toBe(false);
   });
 
+  it("gravarCartao: marca o cartão e grava os dias numa chamada só, com auditoria, e é idempotente", async () => {
+    const { repo } = await comoFuncionarioRH();
+    const id = await novoEmpregado("Kelly");
+    const dias = [
+      { data: "2026-11-02", batidas: [PAR], extra: null, abono: false },
+      { data: "2026-11-03", batidas: [], extra: null, abono: true },
+    ];
+
+    const gravou = await repo.gravarCartao(id, "2026-11-01", dias);
+    const repetiu = await repo.gravarCartao(id, "2026-11-01", dias);
+
+    expect([gravou.ok, repetiu.ok]).toEqual([true, true]);
+    const iniciado = await repo.cartaoIniciado(id, "2026-11-01");
+    expect(iniciado.ok && iniciado.value).toBe(true);
+    const lidos = await repo.listarDias(id, "2026-11-01", "2026-11-30");
+    expect(lidos.ok && lidos.value).toEqual(dias);
+    expect(await auditorias("rh.ponto.iniciar-cartao", `${CNPJ_A} Kelly 2026-11`)).toHaveLength(1);
+  });
+
+  it("gravarCartao: o dia que o banco recusa desfaz a quinzena inteira, sem cartão parcial nem marca", async () => {
+    const { repo } = await comoFuncionarioRH();
+    const id = await novoEmpregado("Lucas");
+
+    const falhou = await repo.gravarCartao(id, "2026-11-01", [
+      { data: "2026-11-02", batidas: [PAR], extra: null, abono: false },
+      // Saída fora do dia: o CHECK recusa e a transação volta atrás.
+      { data: "2026-11-03", batidas: [{ entrada: 480, saida: 2000 }], extra: null, abono: false },
+    ]);
+
+    expect(falhou.ok).toBe(false);
+    const lidos = await repo.listarDias(id, "2026-11-01", "2026-11-30");
+    expect(lidos.ok && lidos.value).toEqual([]);
+    const iniciado = await repo.cartaoIniciado(id, "2026-11-01");
+    expect(iniciado.ok && iniciado.value).toBe(false);
+  });
+
+  it("gravarCartao: só o Responsável grava; o Líder e o empregado inativo são recusados sem deixar nada", async () => {
+    const id = await novoEmpregado("Marta");
+    const dias = [{ data: "2026-11-02", batidas: [PAR], extra: null, abono: false }];
+    const { repo: lider } = await comoLiderRH();
+
+    expect((await lider.gravarCartao(id, "2026-11-01", dias)).ok).toBe(false);
+
+    const inativo = await novoEmpregado("Nilo");
+    await servico.from("rh_empregados").update({ ativo: false }).eq("id", inativo);
+    const { repo: dono } = await comoFuncionarioRH();
+    expect((await dono.gravarCartao(inativo, "2026-11-01", dias)).ok).toBe(false);
+
+    const { data } = await servico
+      .from("rh_ponto_dias")
+      .select("data")
+      .in("empregado_id", [id, inativo]);
+    expect(data).toEqual([]);
+  });
+
+  it("ler o cartão depois do atestado: o abono do atestado sobrevive ao preenchimento", async () => {
+    const { repo } = await comoFuncionarioRH();
+    const id = await novoEmpregado("Olga");
+    await repo.gravarCartao(id, "2026-11-01", [
+      { data: "2026-11-02", batidas: [], extra: null, abono: true },
+    ]);
+
+    // O que a leitura faz: lista o que existe e grava só os dias que ainda não têm dado.
+    const existentes = await repo.listarDias(id, "2026-11-02", "2026-11-03");
+    const comDado = new Set(existentes.ok ? existentes.value.map((d) => d.data) : []);
+    const lidos = [
+      { data: "2026-11-02", batidas: [PAR], extra: null, abono: false },
+      { data: "2026-11-03", batidas: [PAR], extra: null, abono: false },
+    ];
+    await repo.gravarCartao(
+      id,
+      "2026-11-01",
+      lidos.filter((d) => !comDado.has(d.data)),
+    );
+
+    const depois = await repo.listarDias(id, "2026-11-01", "2026-11-30");
+    expect(depois.ok && depois.value).toEqual([
+      { data: "2026-11-02", batidas: [], extra: null, abono: true },
+      { data: "2026-11-03", batidas: [PAR], extra: null, abono: false },
+    ]);
+  });
+
   it("sem movimento no mês: marca, lê e desmarca", async () => {
     const { repo } = await comoFuncionarioRH();
     const id = await novoEmpregado("Edu");

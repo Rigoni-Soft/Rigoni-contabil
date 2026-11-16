@@ -1,6 +1,7 @@
 import {
   acharEmpregadoPeloNome,
   deduzirJornada,
+  diasAGravar,
   validarLeitura,
   type LeituraDoCartao,
 } from "@/modules/rh/domain/services/leitura-do-cartao.service";
@@ -91,6 +92,39 @@ describe("deduzirJornada", () => {
       },
     ]);
     expect(jornada).toEqual([0, 0, 240, 540, 0, 0, 0]);
+  });
+});
+
+describe("diasAGravar", () => {
+  // Segunda a sexta 8h45, sábado 4h, domingo folga. 2026-09-01 terça, 09-05 sábado, 09-06 domingo.
+  const jornada = [0, 525, 525, 525, 525, 525, 240] as const;
+  const batida = [{ entrada: emMinutos(8), saida: emMinutos(12) }];
+  const comBatida = (data: string) => ({ data, batidas: batida, extra: null, abono: false });
+  const soAbono = (data: string) => ({ data, batidas: [], extra: null, abono: true });
+  const nenhum = new Set<string>();
+
+  it("grava os dias lidos em dia vazio", () => {
+    const lidos = [comBatida("2026-09-01"), soAbono("2026-09-02")];
+    expect(diasAGravar(lidos, jornada, nenhum, nenhum)).toEqual({ gravar: lidos, mantidos: 0 });
+  });
+
+  it("não toca no dia que já tem dado (batida digitada ou abono do atestado) e o conta como mantido", () => {
+    const lidos = [comBatida("2026-09-01"), soAbono("2026-09-02"), comBatida("2026-09-03")];
+    const { gravar, mantidos } = diasAGravar(
+      lidos,
+      jornada,
+      nenhum,
+      new Set(["2026-09-01", "2026-09-02"]),
+    );
+    expect(gravar.map((d) => d.data)).toEqual(["2026-09-03"]);
+    expect(mantidos).toBe(2);
+  });
+
+  it("anotação de atestado sem batida em domingo ou feriado não vira abono, mas batida nesses dias grava", () => {
+    const lidos = [soAbono("2026-09-06"), soAbono("2026-09-07"), comBatida("2026-09-07")];
+    const feriados = new Set(["2026-09-07"]);
+    const { gravar } = diasAGravar(lidos, jornada, feriados, nenhum);
+    expect(gravar).toEqual([comBatida("2026-09-07")]);
   });
 });
 

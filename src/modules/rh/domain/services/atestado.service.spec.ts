@@ -1,4 +1,8 @@
-import { abonosDoAtestado, validarAtestado } from "@/modules/rh/domain/services/atestado.service";
+import {
+  abonosDoAtestado,
+  competenciasDoAtestado,
+  validarAtestado,
+} from "@/modules/rh/domain/services/atestado.service";
 import type { Jornada } from "@/modules/rh/domain/services/totalizacao.service";
 
 // Segunda a sexta 8h45, sábado 4h, domingo folga.
@@ -51,7 +55,7 @@ describe("abonosDoAtestado", () => {
 
   it("atestado abona os dias de trabalho vazios cobertos; fim de semana sem carga fica de fora", () => {
     // 21/08 sex, 22 sáb, 23 dom, 24 seg, 25 ter.
-    expect(abonosDoAtestado(atestado, jornada, new Set())).toEqual([
+    expect(abonosDoAtestado(atestado, jornada, new Set(), new Set())).toEqual([
       "2026-08-21",
       "2026-08-22",
       "2026-08-24",
@@ -60,10 +64,9 @@ describe("abonosDoAtestado", () => {
   });
 
   it("atestado não mexe no dia que já tem batida", () => {
-    expect(abonosDoAtestado(atestado, jornada, new Set(["2026-08-21", "2026-08-24"]))).toEqual([
-      "2026-08-22",
-      "2026-08-25",
-    ]);
+    expect(
+      abonosDoAtestado(atestado, jornada, new Set(["2026-08-21", "2026-08-24"]), new Set()),
+    ).toEqual(["2026-08-22", "2026-08-25"]);
   });
 
   it("declaração de comparecimento abona só o horário: o dia com batida, nunca o dia vazio", () => {
@@ -73,7 +76,35 @@ describe("abonosDoAtestado", () => {
       de: "2026-08-27",
       ate: "2026-08-27",
     };
-    expect(abonosDoAtestado(declaracao, jornada, new Set(["2026-08-27"]))).toEqual(["2026-08-27"]);
-    expect(abonosDoAtestado(declaracao, jornada, new Set())).toEqual([]);
+    expect(abonosDoAtestado(declaracao, jornada, new Set(["2026-08-27"]), new Set())).toEqual([
+      "2026-08-27",
+    ]);
+    expect(abonosDoAtestado(declaracao, jornada, new Set(), new Set())).toEqual([]);
+  });
+
+  it("atestado não abona feriado com carga: o dia segue folga, como na tela", () => {
+    // 21/08 sex é feriado; os outros dias de trabalho do período continuam abonados.
+    expect(abonosDoAtestado(atestado, jornada, new Set(), new Set(["2026-08-21"]))).toEqual([
+      "2026-08-22",
+      "2026-08-24",
+      "2026-08-25",
+    ]);
+  });
+});
+
+describe("competenciasDoAtestado", () => {
+  const base = { nome: "Roberto", tipo: "atestado" as const };
+
+  it("um mês só: uma competência, no primeiro dia do mês", () => {
+    expect(competenciasDoAtestado({ ...base, de: "2026-08-23", ate: "2026-08-24" })).toEqual([
+      "2026-08-01",
+    ]);
+  });
+
+  it("período que vira o mês: as duas competências", () => {
+    expect(competenciasDoAtestado({ ...base, de: "2026-08-30", ate: "2026-09-02" })).toEqual([
+      "2026-08-01",
+      "2026-09-01",
+    ]);
   });
 });
