@@ -20,9 +20,11 @@ Substituir o atendimento manual por WhatsApp (sem fila, sem histórico estrutura
 
 ## RH (decisões confirmadas, issue #212)
 
-- O RH acompanha por mês, por cliente, serviços definidos pelo Líder do RH; o Holerite é derivado dos cartões de ponto dos empregados do cliente. O Funcionário ganha um ponto por cliente totalmente concluído; o gráfico por funcionário é só do Líder e do Admin.
+- O RH acompanha por mês, por cliente, serviços definidos pelo Líder do RH; o Holerite é derivado dos cartões de ponto dos empregados do cliente e do Total pago do mês. O Funcionário ganha um ponto por cliente totalmente concluído; o gráfico por funcionário é só do Líder e do Admin.
+- O **Total pago** é o valor em reais que a empresa cliente pagou pela folha do mês (inclui pró-labore de sócio administrador e semelhantes), informado pelo Funcionário do RH Responsável e nunca conferido com nenhuma soma; zero só pelo registro "sem folha neste mês". Vale para todo cliente, tenha ou não empregados: sem ele o Holerite não conclui, o cliente não dá ponto e o alerta de falta vai ao Responsável e ao Líder do RH, nunca ao Simples Nacional. Aparece só na tela e no banco, nunca no PDF (issue #245).
+- O RH baixa um PDF-resumo da folha do cliente por mês (uma linha por empregado, colunas da Totalização, total geral), gerado na hora e nunca guardado; é o primeiro valor em dinheiro do módulo, e os valores por empregado (bruto, descontos, líquido) seguem fora.
 - A folha de ponto usa a convenção coletiva do sindicato do cliente (PDF anual, histórico guardado), lê fotos de cartões e atestados e entrega um PDF individual com a totalização em destaque para assinatura física.
-- Dado pessoal de empregado de cliente: só nome, jornada, batidas, marca de comissionado e abono; imagens, CID e documentos nunca são guardados.
+- Dado pessoal de empregado de cliente: só nome, jornada, batidas, marca de comissionado e abono; imagens, CID e documentos nunca são guardados. O PDF-resumo leva só o nome e as totalizações, sem CNPJ, CPF, salário ou Total pago.
 
 ## Positioning
 
