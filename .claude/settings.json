@@ -44,6 +44,6 @@
     ]
   },
   "enabledPlugins": {
-    "mattpocock-skills@claude-plugins-official": false
+    "mattpocock-skills@claude-plugins-official": true
   }
 }
