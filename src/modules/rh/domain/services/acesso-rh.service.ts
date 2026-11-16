@@ -52,7 +52,7 @@ function podeNaFinalidade(pedido: PedidoDeAcesso, ator: AtorDoRh): boolean {
   switch (pedido.finalidade) {
     case "leitura":
       return pedido.alcance === "lideranca"
-        ? podeVerAcompanhamentoDosFuncionariosRh(ator.papel, ator.setor)
+        ? ehLiderOuAdmin(ator)
         : podeVerAcompanhamentoRh(ator.papel, ator.setor);
     case "edicao":
     case "download":
@@ -73,15 +73,13 @@ export function decidirAcesso(pedido: PedidoDeAcesso): Result<AcessoConcedido, A
   }
   if (!podeNaFinalidade(pedido, ator)) return err(new ForbiddenError(mensagens.semAcesso));
 
-  const competencia = pedido.competencia
-    ? Competencia.criar(pedido.competencia)
-    : ok(Competencia.atual(pedido.agora));
+  const atual = Competencia.atual(pedido.agora);
+  const competencia = pedido.competencia ? Competencia.criar(pedido.competencia) : ok(atual);
   if (!competencia.ok) return competencia;
   if (competencia.value.ehFutura(pedido.agora)) {
     return err(new ValidationError(mensagens.mesFuturo));
   }
-  const corrente = Competencia.atual(pedido.agora).valor;
-  if (pedido.finalidade === "edicao" && competencia.value.valor !== corrente) {
+  if (pedido.finalidade === "edicao" && competencia.value.valor !== atual.valor) {
     return err(
       new ValidationError("Aqui só se edita o mês corrente; o mês passado é a edição retroativa."),
     );
