@@ -47,14 +47,14 @@ export function LeituraDeCartao({
       }}
     >
       <Pilha espaco="formulario">
-        <NotaDeObrigatorio />
         <Texto como="h2" variante="subtitulo">
           Ler foto do cartão de ponto
         </Texto>
+        <NotaDeObrigatorio />
         <Texto variante="apoio">
-          A foto vira o cartão da quinzena de {rotuloMes}: o empregado que não está no quadro é
-          cadastrado pelo nome do cartão. A foto não é guardada. Confira os horários depois; se a
-          leitura falhar, digite à mão.
+          A foto preenche o cartão da quinzena de {rotuloMes}: o empregado que não está no quadro é
+          cadastrado pelo nome do cartão, e o dia que já tem horário ou abono não é alterado. A foto
+          não é guardada. Confira os horários depois; se a leitura falhar, digite à mão.
         </Texto>
         <Grade colunas="1>2>4" espaco={4}>
           <CampoDeOpcoes

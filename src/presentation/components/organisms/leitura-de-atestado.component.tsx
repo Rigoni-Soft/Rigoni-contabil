@@ -1,12 +1,9 @@
-import { X } from "lucide-react";
-
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoDeArquivo } from "@/presentation/components/molecules/campo-de-arquivo.component";
+import { PainelModal } from "@/presentation/components/molecules/painel-modal.component";
 import { Button } from "@/presentation/components/ui/button";
-import { SUPERFICIE_DE_PAINEL } from "@/presentation/lib/superficie-de-painel";
-import { cn } from "@/presentation/lib/utils";
 
 type Props = {
   // Id do modal (e base dos ids internos); único na página.
@@ -43,31 +40,12 @@ export function LeituraDeAtestado({
       <Button type="button" variant="outline" onClick={aoAbrir}>
         Ler atestado
       </Button>
-      <Caixa
-        como="dialog"
-        id={painelId}
-        aria-labelledby={`${painelId}-titulo`}
-        closedby="any"
-        className={cn(
-          SUPERFICIE_DE_PAINEL,
-          "max-h-[80dvh] w-[min(92vw,32rem)] flex-col overflow-hidden p-0 open:flex",
-        )}
+      <PainelModal
+        painelId={painelId}
+        titulo="Ler atestado ou declaração"
+        rotuloDoFechar="Fechar a leitura do atestado"
+        aoFechar={aoFechar}
       >
-        <Linha alinhar="centro" justificar="entre" className="border-b border-border px-4 py-1">
-          <Texto variante="subtitulo" como="h2" id={`${painelId}-titulo`}>
-            Ler atestado ou declaração
-          </Texto>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={aoFechar}
-            aria-label="Fechar a leitura do atestado"
-            className="shrink-0 rounded-full"
-          >
-            <X className="size-5" aria-hidden="true" />
-          </Button>
-        </Linha>
         <Caixa
           como="form"
           aria-labelledby={`${painelId}-titulo`}
@@ -82,7 +60,8 @@ export function LeituraDeAtestado({
             <Texto variante="apoio">
               A foto abona os dias de {nomeDoEmpregado}: o atestado, os dias de trabalho do período
               sem batida; a declaração de comparecimento, só o horário de um dia que já tem batida.
-              O nome no documento precisa ser o dele. A foto e o CID não são guardados.
+              O nome no documento precisa ser o dele e o cartão do mês precisa estar iniciado. A
+              foto e o CID não são guardados.
             </Texto>
             <CampoDeArquivo
               id={`${painelId}-foto`}
@@ -99,13 +78,13 @@ export function LeituraDeAtestado({
               <Button type="submit" aria-disabled={pendente}>
                 {pendente ? "Lendo o atestado…" : "Abonar pelo atestado"}
               </Button>
-              <Button type="button" variant="outline" onClick={aoFechar}>
+              <Button type="button" variant="destructive" onClick={aoFechar}>
                 Cancelar
               </Button>
             </Linha>
           </Pilha>
         </Caixa>
-      </Caixa>
+      </PainelModal>
     </>
   );
 }
