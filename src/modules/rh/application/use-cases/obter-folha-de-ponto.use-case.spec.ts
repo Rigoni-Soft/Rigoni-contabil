@@ -24,6 +24,7 @@ function repo(over: Partial<FolhaDePontoRepository> = {}): FolhaDePontoRepositor
   return {
     buscarCliente: async () => ok({ cnpj: "1", empresa: "Teste Ltda", responsavelId: "func" }),
     buscarClienteDoEmpregado: async () => ok("c1"),
+    buscarEmpregado: async (_c, id) => ok([BIA, ANA].find((e) => e.id === id) ?? null),
     listarEmpregados: async () => ok([BIA, ANA]),
     listarSemMovimento: async () => ok(["e1"]),
     buscarPadraoComissionados: async () => ok(true),

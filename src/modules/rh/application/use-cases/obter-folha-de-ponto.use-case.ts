@@ -1,10 +1,7 @@
 import type {
-  DiaDaFolhaDto,
-  DiaDoPontoDto,
   EmpregadoDaFolhaDto,
   FolhaDePontoDto,
 } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
-import { motivoSemPdf } from "@/modules/rh/application/mappers/documento-do-cartao.mapper";
 import type {
   ObterFolhaDePontoInput,
   ObterFolhaDePontoPort,
@@ -13,19 +10,8 @@ import type { ConvencaoRepository } from "@/modules/rh/application/ports/out/con
 import type { FolhaDePontoRepository } from "@/modules/rh/application/ports/out/folha-de-ponto.repository";
 import type { RelogioPort } from "@/modules/rh/application/ports/out/relogio.provider";
 import type { AtorSessaoDto, SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
+import { ApuradorDeCartoes } from "@/modules/rh/application/services/apurador-de-cartoes.service";
 import { decidirAcesso } from "@/modules/rh/domain/services/acesso-rh.service";
-import {
-  convencaoDaEpoca,
-  regrasDeCalculo,
-  type RegrasDeCalculo,
-} from "@/modules/rh/domain/services/regras-de-calculo.service";
-import {
-  diaDaSemana,
-  ehDiaDeTrabalho,
-  minutosTrabalhados,
-  totalizar,
-  totalizarDia,
-} from "@/modules/rh/domain/services/totalizacao.service";
 import type { Competencia } from "@/modules/rh/domain/value-objects/competencia.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
@@ -37,12 +23,16 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 // RH leem; o Funcionário, só os Clientes de que é Responsável (a RLS repete o recorte: cliente fora da vista
 // do ator some).
 export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
+  private readonly apurador: ApuradorDeCartoes;
+
   constructor(
     private readonly sessao: SessaoPort,
     private readonly repositorio: FolhaDePontoRepository,
-    private readonly convencoes: ConvencaoRepository,
+    convencoes: ConvencaoRepository,
     private readonly relogio: RelogioPort,
-  ) {}
+  ) {
+    this.apurador = new ApuradorDeCartoes(repositorio, convencoes);
+  }
 
   async execute(input: ObterFolhaDePontoInput): Promise<Result<FolhaDePontoDto, AppError>> {
     const acesso = decidirAcesso({
@@ -67,8 +57,8 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
     const escolhido = empregados.find((e) => e.id === input.empregadoId);
     if (!escolhido) return err(new NotFoundError("Empregado não encontrado."));
 
-    const selecionado = await this.carregarCartao(input.clienteId, escolhido, competencia);
-    return selecionado.ok ? ok({ ...base, selecionado: selecionado.value }) : selecionado;
+    const cartoes = await this.apurador.apurar(input.clienteId, [escolhido], competencia);
+    return cartoes.ok ? ok({ ...base, selecionado: cartoes.value[0] }) : cartoes;
   }
 
   private async carregarQuadro(
@@ -106,83 +96,4 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
     };
     return ok({ base, empregados: quadro });
   }
-
-  private async carregarCartao(
-    clienteId: string,
-    escolhido: EmpregadoDaFolhaDto,
-    competencia: Competencia,
-  ): Promise<Result<NonNullable<FolhaDePontoDto["selecionado"]>, AppError>> {
-    const datas = competencia.dias;
-    const [lancados, feriados, historico, interruptores, ponteiros, iniciado] = await Promise.all([
-      this.repositorio.listarDias(escolhido.id, datas[0], datas[datas.length - 1]),
-      this.repositorio.listarFeriados(datas[0], datas[datas.length - 1]),
-      this.convencoes.listar(clienteId),
-      this.repositorio.buscarInterruptores(clienteId),
-      this.repositorio.listarConvencaoDosEmpregados(clienteId),
-      this.repositorio.cartaoIniciado(escolhido.id, competencia.primeiroDia),
-    ]);
-    if (!lancados.ok) return lancados;
-    if (!feriados.ok) return feriados;
-    if (!historico.ok) return historico;
-    if (!interruptores.ok) return interruptores;
-    if (!ponteiros.ok) return ponteiros;
-    if (!iniciado.ok) return iniciado;
-
-    const sindicato =
-      ponteiros.value.find((p) => p.empregadoId === escolhido.id)?.sindicato ?? null;
-    const convencaoDe = new Map(
-      datas.map((data) => [data, convencaoDaEpoca(historico.value, sindicato, data)]),
-    );
-    const regrasDoDia = (data: string) =>
-      regrasDeCalculo(
-        convencaoDe.get(data)?.regras ?? null,
-        interruptores.value,
-        escolhido.comissionado,
-      );
-
-    const lancadoEm = new Map(lancados.value.map((d) => [d.data, d]));
-    const feriadoEm = new Set(feriados.value);
-
-    // Só avisa quando um dia com lançamento ficou sem convenção: dia vazio não muda com ela.
-    const semConvencao = datas.some(
-      (data) => !convencaoDe.get(data) && (lancadoEm.get(data) || feriadoEm.has(data)),
-    );
-    const dias = datas.map((data) =>
-      montarDia(data, escolhido, lancadoEm.get(data), feriadoEm.has(data), regrasDoDia(data)),
-    );
-
-    const cartao = {
-      empregado: escolhido,
-      dias,
-      totalizacao: totalizar(dias, escolhido.jornada, regrasDoDia),
-      iniciado: iniciado.value,
-      semConvencao,
-    };
-    return ok({ ...cartao, motivoSemPdf: motivoSemPdf(cartao) });
-  }
-}
-
-function montarDia(
-  data: string,
-  empregado: EmpregadoDaFolhaDto,
-  lancado: DiaDoPontoDto | undefined,
-  feriado: boolean,
-  regras: RegrasDeCalculo,
-): DiaDaFolhaDto {
-  const semana = diaDaSemana(data);
-  const doCartao = {
-    data,
-    batidas: lancado?.batidas ?? [],
-    extra: lancado?.extra ?? null,
-    abono: lancado?.abono ?? false,
-    feriado,
-  };
-  return {
-    ...doCartao,
-    diaDaSemana: semana,
-    cargaMin: empregado.jornada[semana],
-    diaDeTrabalho: ehDiaDeTrabalho(empregado.jornada[semana], feriado),
-    trabalhadoMin: minutosTrabalhados(doCartao),
-    apuracao: totalizarDia(doCartao, empregado.jornada, regras),
-  };
 }

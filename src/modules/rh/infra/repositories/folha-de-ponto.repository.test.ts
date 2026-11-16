@@ -483,6 +483,21 @@ describe("Folha de ponto do RH (integração)", () => {
     }
   });
 
+  it("busca um empregado do Cliente; outro Cliente, id inexistente e fora da vista dão null", async () => {
+    await novoEmpregado("Hugo");
+    const { repo } = await comoLiderRH();
+    const lista = await repo.listarEmpregados(clienteA);
+    const id = lista.ok ? lista.value[0].id : "";
+
+    const achado = await repo.buscarEmpregado(clienteA, id);
+    const outroCliente = await repo.buscarEmpregado("00000000-0000-4000-8000-000000000000", id);
+    const foraDaVista = await (await comoFuncionarioSN()).repo.buscarEmpregado(clienteA, id);
+
+    expect(achado.ok && achado.value?.nome).toBe("Hugo");
+    expect(outroCliente.ok && outroCliente.value).toBeNull();
+    expect(foraDaVista.ok && foraDaVista.value).toBeNull();
+  });
+
   it("o RH lê os feriados; o SN não", async () => {
     await servico.from("feriados").upsert({ data: "2026-11-20", descricao: "Teste218" });
     try {
