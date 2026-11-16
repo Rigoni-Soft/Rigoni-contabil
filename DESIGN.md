@@ -584,8 +584,8 @@ importa na leitura da foto do cartão, não na exibição. Dia sem jornada marca
   lista de empregados da empresa). Salvar e Limpar só ficam ativos com ao menos uma linha aberta. Sem
   permissão de edição não há lápis nem barra.
 - **Baixar PDF.** Abaixo da "Totalização do mês" fica uma linha alinhada ao fim com o apoio "O PDF traz o que
-  está salvo, com a Totalização do mês." e o botão **Baixar PDF** (`outline`, ação secundária): aparece também
-  para quem só lê o cartão (Líder, Admin). Durante a geração o rótulo vira "Gerando PDF…" e o botão fica em
+  está salvo, com a Totalização do mês." e o botão **Baixar PDF** (`outline`, ação secundária): é do Funcionário
+  do RH (Responsável do Cliente), e aparece também para o Líder e o Admin, que só leem o cartão. Durante a geração o rótulo vira "Gerando PDF…" e o botão fica em
   `aria-disabled` (não some, o foco não se perde); o resultado ("PDF gerado. Confira o arquivo baixado." ou o erro)
   vem num `AvisoDeStatus` logo abaixo. O PDF é gerado no servidor, A4 retrato, uma página por empregado e mês:
   identificação, uma linha por dia, a Totalização num bloco de fundo e borda de destaque e, no pé, as duas linhas
