@@ -72,7 +72,7 @@ export async function salvarDiaDoPontoAction(input: unknown): Promise<ActionResu
   return toActionResult(await (await makeSalvarDiaDoPonto()).execute(parsed.data));
 }
 
-export type PdfDoCartaoBaixado = { nomeDoArquivo: string; base64: string };
+type PdfDoCartaoBaixado = { nomeDoArquivo: string; base64: string };
 
 // O PDF é gerado no servidor; os bytes seguem em base64 para o navegador montar o arquivo e baixá-lo.
 export async function baixarPdfDoCartaoAction(

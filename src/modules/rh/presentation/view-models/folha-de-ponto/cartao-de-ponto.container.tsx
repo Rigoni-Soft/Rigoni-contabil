@@ -83,6 +83,8 @@ export function CartaoDePontoContainer({ folha }: Props) {
   const limparAvisos = () => {
     setAviso(undefined);
     setAvisoGeral(undefined);
+    // O PDF baixado já não reflete o cartão depois de uma nova ação: o aviso dele sai também.
+    setAvisoDoPdf(undefined);
   };
 
   // Grava um dia; devolve o texto do erro, ou undefined se deu certo.

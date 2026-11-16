@@ -37,10 +37,9 @@ export class PdfLibGeradorDoCartaoGateway implements GeradorDePdfDoCartaoPort {
     const pagina = pdf.addPage([LARGURA, ALTURA]);
     const pincel = new Pincel(pagina, normal, negrito);
 
-    let topo = MARGEM;
-    topo = this.identificacao(pincel, documento, topo);
-    topo = this.tabela(pincel, documento, topo);
-    topo = this.totalizacao(pincel, documento, topo);
+    const aposIdentificacao = this.identificacao(pincel, documento, MARGEM);
+    const aposTabela = this.tabela(pincel, documento, aposIdentificacao);
+    this.totalizacao(pincel, documento, aposTabela);
     this.assinaturas(pincel, documento);
     return pdf.save();
   }

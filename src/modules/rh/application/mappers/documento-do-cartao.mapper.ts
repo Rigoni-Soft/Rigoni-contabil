@@ -12,7 +12,7 @@ import type {
 type Cartao = NonNullable<FolhaDePontoDto["selecionado"]>;
 
 const SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
-export const AVISO_SEM_CONVENCAO_NO_PDF =
+const AVISO_SEM_CONVENCAO_NO_PDF =
   "Sem convenção coletiva vigente em parte do mês: esses dias foram totalizados pela legislação.";
 
 const hm = (minutos: number) =>

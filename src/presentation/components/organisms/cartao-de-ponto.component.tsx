@@ -241,16 +241,19 @@ export function CartaoDePonto({
         itens={totalizacao}
         destaque={totalizacaoDestacada}
       />
-      <Pilha espaco={2}>
+      <Pilha espaco={2} aria-busy={baixandoPdf}>
         <Linha espaco={3} quebra alinhar="centro" justificar="fim">
-          <Texto variante="apoio">O PDF traz o que está salvo, com a Totalização do mês.</Texto>
+          <Texto id="apoio-do-pdf" variante="apoio">
+            O PDF traz o que está salvo, com a Totalização do mês.
+          </Texto>
           {/* O botão fica na tela depois do clique: aria-disabled mantém o foco nele durante a geração. */}
           <Button
             type="button"
             variant="outline"
-            aria-disabled={baixandoPdf}
+            aria-disabled={baixandoPdf || undefined}
+            aria-describedby="apoio-do-pdf"
             onClick={baixandoPdf ? undefined : onBaixarPdf}
-            className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+            className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-transparent"
           >
             {baixandoPdf ? "Gerando PDF…" : "Baixar PDF"}
           </Button>
