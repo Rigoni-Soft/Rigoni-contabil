@@ -181,13 +181,22 @@ export async function makeObterFolhaDePonto(): Promise<ObterFolhaDePontoPort> {
 }
 
 export async function makeBaixarPdfDoCartao(): Promise<BaixarPdfDoCartaoPort> {
-  const { sessao, repositorio, auditoria } = await montarFolha();
+  const supabase = await createSupabaseServer();
+  const sessao = sessaoViaUsuarios(supabase);
+  const repositorio = new SupabaseFolhaDePontoRepository(supabase, errosRh);
+  // Um cliente Supabase só: a leitura da Folha e o restante do caso de uso dividem sessão e repositório.
+  const folha = new ObterFolhaDePonto(
+    sessao,
+    repositorio,
+    new SupabaseConvencaoRepository(supabase, errosRh),
+    new RelogioSistemaGateway(),
+  );
   return new BaixarPdfDoCartao(
     sessao,
-    await makeObterFolhaDePonto(),
+    folha,
     repositorio,
     new PdfLibGeradorDoCartaoGateway(),
-    auditoria,
+    auditoriaBestEffort(errosRh),
     errosRh,
   );
 }

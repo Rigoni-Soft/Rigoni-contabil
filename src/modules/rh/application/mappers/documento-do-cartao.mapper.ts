@@ -69,29 +69,24 @@ function linhaDoDia(dia: DiaDaFolhaDto): LinhaDoDocumentoDto {
 function itensDaTotalizacao(cartao: Cartao): ItemDoDocumentoDto[] {
   const totalizacao = cartao.totalizacao;
   const trabalhado = cartao.dias.reduce((soma, dia) => soma + dia.trabalhadoMin, 0);
-  const extras = totalizacao.extras.length
-    ? totalizacao.extras.map((faixa) => ({
-        rotulo: `Extras ${faixa.percentual}%`,
-        valor: duracaoEmHorasEMinutos(faixa.minutos),
-      }))
-    : [{ rotulo: "Horas extras", valor: duracaoEmHorasEMinutos(0) }];
-  return [
-    { rotulo: "Horas trabalhadas", valor: duracaoEmHorasEMinutos(trabalhado) },
-    { rotulo: "Horas normais", valor: duracaoEmHorasEMinutos(totalizacao.normaisMin) },
+  const extras: [string, number][] = totalizacao.extras.length
+    ? totalizacao.extras.map((faixa) => [`Extras ${faixa.percentual}%`, faixa.minutos])
+    : [["Horas extras", 0]];
+  // Banco de horas e extras acima do limite só aparecem quando há minutos.
+  const opcionais: [string, number][] = [
+    ["Banco de horas", totalizacao.bancoDeHorasMin],
+    ["Extras acima do limite diário", totalizacao.acimaDoLimiteMin],
+  ];
+  const duracoes: [string, number][] = [
+    ["Horas trabalhadas", trabalhado],
+    ["Horas normais", totalizacao.normaisMin],
     ...extras,
-    ...(totalizacao.bancoDeHorasMin > 0
-      ? [{ rotulo: "Banco de horas", valor: duracaoEmHorasEMinutos(totalizacao.bancoDeHorasMin) }]
-      : []),
-    ...(totalizacao.acimaDoLimiteMin > 0
-      ? [
-          {
-            rotulo: "Extras acima do limite diário",
-            valor: duracaoEmHorasEMinutos(totalizacao.acimaDoLimiteMin),
-          },
-        ]
-      : []),
-    { rotulo: "Adicional noturno", valor: duracaoEmHorasEMinutos(totalizacao.noturnoMin) },
-    { rotulo: "Atrasos", valor: duracaoEmHorasEMinutos(totalizacao.atrasoMin) },
+    ...opcionais.filter(([, minutos]) => minutos > 0),
+    ["Adicional noturno", totalizacao.noturnoMin],
+    ["Atrasos", totalizacao.atrasoMin],
+  ];
+  return [
+    ...duracoes.map(([rotulo, minutos]) => ({ rotulo, valor: duracaoEmHorasEMinutos(minutos) })),
     { rotulo: "Faltas", valor: quantidadeDeDias(totalizacao.faltas) },
     {
       rotulo: "Abonos",

@@ -79,14 +79,16 @@ const FOLHA: FolhaDePontoDto = {
 function montar(opcoes: {
   ator?: AtorSessaoDto | null;
   folha?: unknown;
-  falhaDoGerador?: boolean;
+  // true: o gerador lança um Error; texto: lança esse valor, que não é Error.
+  falhaDoGerador?: boolean | string;
 }) {
   const folha = {
     execute: jest.fn(async () => opcoes.folha ?? ok(FOLHA)),
   };
   const gerador: GeradorDePdfDoCartaoPort = {
     gerar: jest.fn(async () => {
-      if (opcoes.falhaDoGerador) throw new Error("boom");
+      if (opcoes.falhaDoGerador === true) throw new Error("boom");
+      if (opcoes.falhaDoGerador) throw opcoes.falhaDoGerador;
       return new Uint8Array([37, 80, 68, 70]);
     }),
   };
@@ -221,5 +223,13 @@ describe("BaixarPdfDoCartao", () => {
     expect(auditoria.registrar).not.toHaveBeenCalledWith(
       expect.objectContaining({ resultado: "sucesso" }),
     );
+  });
+
+  it("falha do gerador que não é Error registra o valor lançado como causa", async () => {
+    const { caso, erros } = montar({ falhaDoGerador: "sem fonte" });
+
+    await caso.execute(ENTRADA);
+
+    expect(erros.registrar).toHaveBeenCalledWith(expect.any(String), "sem fonte");
   });
 });

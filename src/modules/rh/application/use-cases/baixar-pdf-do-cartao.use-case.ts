@@ -67,7 +67,10 @@ export class BaixarPdfDoCartao implements BaixarPdfDoCartaoPort {
     try {
       bytes = await this.gerador.gerar(documentoDoCartao(lida.value, cartao));
     } catch (e) {
-      this.erros.registrar("Falha ao gerar o PDF do cartão de ponto:", (e as Error).message);
+      this.erros.registrar(
+        "Falha ao gerar o PDF do cartão de ponto:",
+        e instanceof Error ? e.message : String(e),
+      );
       return recusar(
         new GeracaoDeDocumentoError("Não foi possível gerar o PDF do cartão. Tente de novo."),
         nome,
