@@ -16,6 +16,7 @@ import type { AtestadoLidoDto } from "@/modules/rh/application/ports/in/ler-ates
 import type { CartaoLidoDto } from "@/modules/rh/application/ports/in/ler-cartao-de-ponto.provider";
 import { mesAtual, mesVizinho } from "@/shared/kernel/mes-atual";
 import { ROTA_RH_FOLHA_DE_PONTO } from "@/shared/kernel/setores";
+import { diaTemApontamento } from "@/shared/kernel/situacao-do-cartao";
 
 const SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 // Jornada gravada nos empregados novos (a tela não a pede): o padrão do comércio, 8h45 de segunda a sexta e
@@ -107,8 +108,6 @@ const horaDoPar = (par: ParDto | undefined, campo: keyof ParDto) =>
   par ? minutosParaHm(par[campo]) : "";
 
 const teveExtra = (dia: DiaDaFolhaDto) => extrasDoDia(dia.apuracao) > 0;
-export const temDados = (dia: Pick<DiaDoPontoDto, "batidas" | "extra" | "abono">) =>
-  dia.batidas.length > 0 || dia.extra !== null || dia.abono;
 const semBatida = (dia: DiaDoPontoDto) => dia.batidas.length === 0 && dia.extra === null;
 
 // A situação do dia, que decide o que a linha deixa digitar e qual botão ela mostra:
@@ -150,7 +149,7 @@ const extrasDoDia = (a: TotalizacaoDto) =>
 
 // Cartão novo (mês ou empregado novo; a tela abre com as linhas já editáveis): nunca salvo (sem a marca de iniciado) e sem nenhum dado.
 export const cartaoSemDados = (dias: DiaDoPontoDto[], iniciado: boolean) =>
-  !iniciado && !dias.some(temDados);
+  !iniciado && !dias.some(diaTemApontamento);
 
 export function linhasDoCartao(dias: DiaDaFolhaDto[], iniciado: boolean): LinhaDoCartao[] {
   const vazio = cartaoSemDados(dias, iniciado);

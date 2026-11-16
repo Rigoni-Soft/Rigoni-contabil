@@ -9,6 +9,7 @@ import type {
   FolhaDePontoDto,
   ParDto,
 } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
+import { cartaoFeito, situacaoDoCartao } from "@/shared/kernel/situacao-do-cartao";
 
 type Cartao = NonNullable<FolhaDePontoDto["selecionado"]>;
 
@@ -26,18 +27,20 @@ const quantidadeDeDias = (quantidade: number) =>
 const horarioDoPar = (par: ParDto | undefined, campo: keyof ParDto) =>
   par ? horario(par[campo]) : "";
 
-const temApontamento = (dia: DiaDaFolhaDto) =>
-  dia.batidas.length > 0 || dia.extra !== null || dia.abono;
-
 // Não há PDF para assinar de empregado desligado, sem movimento no mês (férias, afastamento) ou sem nenhum
 // apontamento (batida, Extra ou Abono) no mês: devolve o porquê, ou undefined quando o PDF cabe.
 export function motivoSemPdf(cartao: Cartao): string | undefined {
-  if (!cartao.empregado.ativo) return "Empregado desligado: não há cartão para assinar.";
-  if (cartao.empregado.semMovimento) {
+  const situacao = situacaoDoCartao({
+    ativo: cartao.empregado.ativo,
+    semMovimento: cartao.empregado.semMovimento,
+    iniciado: cartao.iniciado,
+    dias: cartao.dias,
+  });
+  if (situacao === "desligado") return "Empregado desligado: não há cartão para assinar.";
+  if (situacao === "sem_movimento") {
     return "Empregado sem movimento no mês (férias ou afastamento): não há cartão para assinar.";
   }
-  if (!cartao.dias.some(temApontamento))
-    return "Sem apontamentos no mês: não há cartão para assinar.";
+  if (!cartaoFeito(situacao)) return "Sem apontamentos no mês: não há cartão para assinar.";
   return undefined;
 }
 

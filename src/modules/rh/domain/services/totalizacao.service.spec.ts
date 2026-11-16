@@ -4,7 +4,6 @@ import {
   type RegrasDeCalculo,
 } from "@/modules/rh/domain/services/regras-de-calculo.service";
 import {
-  diaTemDados,
   ehDiaDeTrabalho,
   horaParaMinutos,
   totalizar,
@@ -335,16 +334,6 @@ describe("ehDiaDeTrabalho", () => {
     expect(ehDiaDeTrabalho(0, false)).toBe(false);
     expect(ehDiaDeTrabalho(525, true)).toBe(false);
     expect(ehDiaDeTrabalho(0, true)).toBe(false);
-  });
-});
-
-describe("diaTemDados", () => {
-  const vazio = { batidas: [], extra: null, abono: false };
-  it("batida, extra ou abono contam; o dia em branco não", () => {
-    expect(diaTemDados(vazio)).toBe(false);
-    expect(diaTemDados({ ...vazio, batidas: [{ entrada: 480, saida: 720 }] })).toBe(true);
-    expect(diaTemDados({ ...vazio, extra: { entrada: 1080, saida: 1140 } })).toBe(true);
-    expect(diaTemDados({ ...vazio, abono: true })).toBe(true);
   });
 });
 

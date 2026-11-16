@@ -17,12 +17,13 @@ import {
   validarLeitura,
   type LeituraValida,
 } from "@/modules/rh/domain/services/leitura-do-cartao.service";
-import { diaTemDados, type Jornada } from "@/modules/rh/domain/services/totalizacao.service";
+import type { Jornada } from "@/modules/rh/domain/services/totalizacao.service";
 import { Competencia } from "@/modules/rh/domain/value-objects/competencia.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { ehFotoValida } from "@/shared/kernel/foto-do-ponto";
 import { err, ok, type Result } from "@/shared/kernel/result";
+import { diaTemApontamento } from "@/shared/kernel/situacao-do-cartao";
 
 const MANUAL = "Não foi possível ler o cartão. Digite os horários à mão.";
 
@@ -69,7 +70,7 @@ export class LerCartaoDePonto extends LerDeFoto implements LerCartaoDePontoPort 
     if (!feriados.ok) return feriados;
     const existentes = await this.repositorio.listarDias(empregado.value.id, primeira, ultima);
     if (!existentes.ok) return existentes;
-    const datasComDado = new Set(existentes.value.filter(diaTemDados).map((d) => d.data));
+    const datasComDado = new Set(existentes.value.filter(diaTemApontamento).map((d) => d.data));
     const { gravar, mantidos } = diasAGravar(
       valida.dias,
       empregado.value.jornada,

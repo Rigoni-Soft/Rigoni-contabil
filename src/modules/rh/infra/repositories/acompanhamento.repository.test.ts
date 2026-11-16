@@ -452,12 +452,28 @@ describe("Acompanhamento mensal do RH (integração)", () => {
       .from("rh_empregado_sem_movimento")
       .insert({ empregado_id: id("Caio"), competencia: MES });
     expect(await contagem()).toEqual({ cadastrados: 3, semMovimento: 1, cartoes: 1 });
+
+    // Dia salvo sem apontamento (sem batida, Extra nem Abono) não faz o cartão feito (regra única de "cartão feito").
+    expect(
+      (await servico.from("rh_ponto_dias").insert({ empregado_id: id("Bia"), data: dia(5) })).error,
+    ).toBeNull();
+    expect(await contagem()).toEqual({ cadastrados: 3, semMovimento: 1, cartoes: 1 });
+
+    // Um dia com apontamento fecha o mês (cartão incompleto conta).
     await servico
       .from("rh_ponto_dias")
       .insert({ empregado_id: id("Bia"), data: dia(3), batidas: batida });
     expect(await contagem()).toEqual({ cadastrados: 3, semMovimento: 1, cartoes: 2 });
 
-    // Apagar o único dia da Bia reabre o cartão dela.
+    // Só abono também é apontamento: troca a batida da Bia por abono e o cartão segue feito.
+    await servico
+      .from("rh_ponto_dias")
+      .update({ batidas: [], abono: true })
+      .eq("empregado_id", id("Bia"))
+      .eq("data", dia(3));
+    expect(await contagem()).toEqual({ cadastrados: 3, semMovimento: 1, cartoes: 2 });
+
+    // Apagar o dia com apontamento reabre o cartão dela (sobra só o dia vazio).
     await servico.from("rh_ponto_dias").delete().eq("empregado_id", id("Bia")).eq("data", dia(3));
     expect(await contagem()).toEqual({ cadastrados: 3, semMovimento: 1, cartoes: 1 });
 
