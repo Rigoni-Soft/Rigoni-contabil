@@ -105,6 +105,7 @@ describe("itensDaTotalizacao", () => {
 describe("linhasDoCartao", () => {
   it("rotula o dia e marca feriado e dia sem jornada", () => {
     const base = {
+      temApontamento: false,
       batidas: [],
       extra: null,
       abono: false,
@@ -116,7 +117,13 @@ describe("linhasDoCartao", () => {
     };
     const [seg, dom, fer] = linhasDoCartao(
       [
-        { ...base, data: "2026-11-16", diaDaSemana: 1, batidas: [{ entrada: 480, saida: 720 }] },
+        {
+          ...base,
+          data: "2026-11-16",
+          diaDaSemana: 1,
+          batidas: [{ entrada: 480, saida: 720 }],
+          temApontamento: true,
+        },
         {
           ...base,
           data: "2026-11-22",
@@ -124,6 +131,7 @@ describe("linhasDoCartao", () => {
           cargaMin: 0,
           diaDeTrabalho: false,
           extra: { entrada: 480, saida: 600 },
+          temApontamento: true,
         },
         { ...base, data: "2026-11-20", diaDaSemana: 5, feriado: true, diaDeTrabalho: false },
       ],
@@ -147,6 +155,7 @@ describe("linhasDoCartao", () => {
           data: "2026-11-16",
           diaDaSemana: 1,
           batidas: [{ entrada: 480, saida: 1080 }],
+          temApontamento: true,
           extra: null,
           abono: false,
           cargaMin: 525,
@@ -166,6 +175,7 @@ describe("linhasDoCartao", () => {
           batidas: [],
           extra: null,
           abono: false,
+          temApontamento: false,
           cargaMin: 525,
           diaDeTrabalho: true,
           feriado: false,
@@ -192,6 +202,7 @@ describe("linhasDoCartao", () => {
 
   it("o tom e a nota do dia: falta, hora extra, folga e feriado; dia normal sem tom", () => {
     const base = {
+      temApontamento: false,
       batidas: [],
       extra: null,
       abono: false,
@@ -234,6 +245,7 @@ describe("linhasDoCartao", () => {
 
   it("situação do dia: abonado, folga, falta e em branco (cartão sem dados)", () => {
     const base = {
+      temApontamento: false,
       batidas: [],
       extra: null,
       abono: false,
@@ -243,7 +255,12 @@ describe("linhasDoCartao", () => {
       trabalhadoMin: 0,
       apuracao: { ...ZERO, faltas: 1 },
     };
-    const trabalhado = { ...base, batidas: [{ entrada: 480, saida: 1005 }], apuracao: ZERO };
+    const trabalhado = {
+      ...base,
+      batidas: [{ entrada: 480, saida: 1005 }],
+      temApontamento: true,
+      apuracao: ZERO,
+    };
     const [comecado, falta, abonado, folga] = linhasDoCartao(
       [
         { ...trabalhado, data: "2026-11-16", diaDaSemana: 1 },
@@ -253,6 +270,7 @@ describe("linhasDoCartao", () => {
           data: "2026-11-18",
           diaDaSemana: 3,
           abono: true,
+          temApontamento: true,
           apuracao: { ...ZERO, abonoDias: 1 },
         },
         {
@@ -279,6 +297,7 @@ describe("linhasDoCartao", () => {
           cargaMin: 0,
           diaDeTrabalho: false,
           abono: true,
+          temApontamento: true,
           apuracao: ZERO,
         },
       ],
@@ -290,12 +309,12 @@ describe("linhasDoCartao", () => {
     // Mês novo: nenhum dado salvo, o dia útil vazio não é falta, é "em branco" e neutro.
     const [branco] = linhasDoCartao([{ ...base, data: "2026-11-17", diaDaSemana: 2 }], false);
     expect(branco).toMatchObject({ situacao: "branco", nota: undefined, tom: undefined });
-    expect(cartaoSemDados([{ ...base, data: "2026-11-17" }], false)).toBe(true);
+    expect(cartaoSemDados([{ temApontamento: false }], false)).toBe(true);
     // Cartão salvo uma vez, mesmo sem nenhum horário: deixou de ser novo e o dia útil vazio é falta.
-    expect(cartaoSemDados([{ ...base, data: "2026-11-17" }], true)).toBe(false);
+    expect(cartaoSemDados([{ temApontamento: false }], true)).toBe(false);
     const [salvoVazio] = linhasDoCartao([{ ...base, data: "2026-11-17", diaDaSemana: 2 }], true);
     expect(salvoVazio).toMatchObject({ situacao: "falta", nota: "Falta", tom: "alerta" });
-    expect(cartaoSemDados([{ ...base, data: "2026-11-17", abono: true }], false)).toBe(false);
+    expect(cartaoSemDados([{ temApontamento: true }], false)).toBe(false);
   });
 });
 
@@ -316,6 +335,7 @@ describe("lerDiaDoFormulario", () => {
       batidas: [{ entrada: 480, saida: 720 }],
       extra: { entrada: 1080, saida: 1140 },
       abono: true,
+      emBranco: false,
     });
   });
 
@@ -325,6 +345,7 @@ describe("lerDiaDoFormulario", () => {
       batidas: [],
       extra: null,
       abono: false,
+      emBranco: true,
     });
   });
 

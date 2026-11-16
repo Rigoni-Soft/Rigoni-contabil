@@ -9,7 +9,10 @@ import type {
   FolhaDePontoDto,
   ParDto,
 } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
-import { cartaoFeito, situacaoDoCartao } from "@/shared/kernel/situacao-do-cartao";
+import {
+  cartaoFeito,
+  situacaoDoCartao,
+} from "@/modules/rh/domain/services/situacao-do-cartao.service";
 
 type Cartao = NonNullable<FolhaDePontoDto["selecionado"]>;
 

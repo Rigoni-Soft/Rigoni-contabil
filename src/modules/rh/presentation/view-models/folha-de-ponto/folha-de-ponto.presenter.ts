@@ -16,7 +16,6 @@ import type { AtestadoLidoDto } from "@/modules/rh/application/ports/in/ler-ates
 import type { CartaoLidoDto } from "@/modules/rh/application/ports/in/ler-cartao-de-ponto.provider";
 import { mesAtual, mesVizinho } from "@/shared/kernel/mes-atual";
 import { ROTA_RH_FOLHA_DE_PONTO } from "@/shared/kernel/setores";
-import { diaTemApontamento } from "@/shared/kernel/situacao-do-cartao";
 
 const SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 // Jornada gravada nos empregados novos (a tela não a pede): o padrão do comércio, 8h45 de segunda a sexta e
@@ -148,8 +147,8 @@ const extrasDoDia = (a: TotalizacaoDto) =>
   a.extras.reduce((soma, e) => soma + e.minutos, 0) + a.bancoDeHorasMin;
 
 // Cartão novo (mês ou empregado novo; a tela abre com as linhas já editáveis): nunca salvo (sem a marca de iniciado) e sem nenhum dado.
-export const cartaoSemDados = (dias: DiaDoPontoDto[], iniciado: boolean) =>
-  !iniciado && !dias.some(diaTemApontamento);
+export const cartaoSemDados = (dias: { temApontamento: boolean }[], iniciado: boolean) =>
+  !iniciado && !dias.some((dia) => dia.temApontamento);
 
 export function linhasDoCartao(dias: DiaDaFolhaDto[], iniciado: boolean): LinhaDoCartao[] {
   const vazio = cartaoSemDados(dias, iniciado);
@@ -268,7 +267,8 @@ type Campos = { get(nome: string): FormDataEntryValue | null };
 const texto = (c: Campos, nome: string) => String(c.get(nome) ?? "").trim();
 
 export type DiaLido =
-  | { ok: true; batidas: ParDto[]; extra: ParDto | null; abono: boolean }
+  // `emBranco`: nada digitado na linha (só olha os campos; a regra de apontamento é do domínio).
+  | { ok: true; batidas: ParDto[]; extra: ParDto | null; abono: boolean; emBranco: boolean }
   | { ok: false; erro: string };
 
 // Entrada e saída vêm juntas: um par pela metade é erro do formulário, não um horário perdido.
@@ -289,11 +289,14 @@ export function lerDiaDoFormulario(c: Campos): DiaLido {
   if ([...pares, extra].includes("incompleto")) {
     return { ok: false, erro: "Preencha entrada e saída (horários diferentes) de cada par." };
   }
+  const batidas = pares.filter((p): p is ParDto => p !== null && p !== "incompleto");
+  const abono = c.get("abono") !== null;
   return {
     ok: true,
-    batidas: pares.filter((p): p is ParDto => p !== null && p !== "incompleto"),
+    batidas,
     extra: extra === "incompleto" ? null : extra,
-    abono: c.get("abono") !== null,
+    abono,
+    emBranco: batidas.length === 0 && (extra === null || extra === "incompleto") && !abono,
   };
 }
 

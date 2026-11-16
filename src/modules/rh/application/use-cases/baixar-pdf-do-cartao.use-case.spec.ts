@@ -33,6 +33,7 @@ function dia(data: string, semana: number, extras: Partial<DiaDaFolhaDto> = {}):
     extra: null,
     abono: false,
     feriado: false,
+    temApontamento: !!extras.batidas?.length || !!extras.extra || !!extras.abono,
     diaDaSemana: semana,
     cargaMin: JORNADA[semana],
     diaDeTrabalho: JORNADA[semana] > 0,

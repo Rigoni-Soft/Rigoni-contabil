@@ -2,7 +2,7 @@ import {
   cartaoFeito,
   diaTemApontamento,
   situacaoDoCartao,
-} from "@/shared/kernel/situacao-do-cartao";
+} from "@/modules/rh/domain/services/situacao-do-cartao.service";
 
 const vazio = { batidas: [], extra: null, abono: false };
 const comBatida = { ...vazio, batidas: [{ entrada: 480, saida: 720 }] };

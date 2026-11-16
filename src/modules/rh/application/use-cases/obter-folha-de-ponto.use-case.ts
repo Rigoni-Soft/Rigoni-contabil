@@ -18,6 +18,7 @@ import {
   regrasDeCalculo,
   type RegrasDeCalculo,
 } from "@/modules/rh/domain/services/regras-de-calculo.service";
+import { diaTemApontamento } from "@/modules/rh/domain/services/situacao-do-cartao.service";
 import {
   diaDaSemana,
   ehDiaDeTrabalho,
@@ -184,6 +185,7 @@ function montarDia(
     diaDaSemana: semana,
     cargaMin: empregado.jornada[semana],
     diaDeTrabalho: ehDiaDeTrabalho(empregado.jornada[semana], feriado),
+    temApontamento: diaTemApontamento(doCartao),
     trabalhadoMin: minutosTrabalhados(doCartao),
     apuracao: totalizarDia(doCartao, empregado.jornada, regras),
   };

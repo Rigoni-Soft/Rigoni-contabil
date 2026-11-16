@@ -13,7 +13,6 @@ import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
 import type { FolhaDePontoDto } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
 import { rotuloDaCompetencia } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.presenter";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
-import { diaTemApontamento } from "@/shared/kernel/situacao-do-cartao";
 
 import {
   baixarPdfDoCartaoAction,
@@ -153,7 +152,7 @@ export function CartaoDePontoContainer({ folha }: Props) {
         // Linha que já era vazia e segue vazia não tem o que gravar (cartão novo: só os dias digitados vão).
         const antes = selecionado.dias.find((d) => d.data === data);
         const depois = lerDiaDoFormulario(campos);
-        if (antes && !diaTemApontamento(antes) && depois.ok && !diaTemApontamento(depois)) continue;
+        if (antes && !antes.temApontamento && depois.ok && depois.emBranco) continue;
         const erro = await gravar(data, campos);
         if (erro) return setAviso({ data, tipo: "erro", texto: erro });
       }

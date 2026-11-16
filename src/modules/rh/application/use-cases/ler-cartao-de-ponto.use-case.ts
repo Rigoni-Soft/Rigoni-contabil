@@ -17,13 +17,13 @@ import {
   validarLeitura,
   type LeituraValida,
 } from "@/modules/rh/domain/services/leitura-do-cartao.service";
+import { diaTemApontamento } from "@/modules/rh/domain/services/situacao-do-cartao.service";
 import type { Jornada } from "@/modules/rh/domain/services/totalizacao.service";
 import { Competencia } from "@/modules/rh/domain/value-objects/competencia.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { ehFotoValida } from "@/shared/kernel/foto-do-ponto";
 import { err, ok, type Result } from "@/shared/kernel/result";
-import { diaTemApontamento } from "@/shared/kernel/situacao-do-cartao";
 
 const MANUAL = "Não foi possível ler o cartão. Digite os horários à mão.";
 
