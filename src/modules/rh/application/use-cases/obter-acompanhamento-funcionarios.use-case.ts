@@ -13,12 +13,9 @@ import type {
 import type { AcompanhamentoRepository } from "@/modules/rh/application/ports/out/acompanhamento.repository";
 import type { RelogioPort } from "@/modules/rh/application/ports/out/relogio.provider";
 import type { SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
-import { Competencia } from "@/modules/rh/domain/value-objects/competencia.vo";
+import { decidirAcesso } from "@/modules/rh/domain/services/acesso-rh.service";
 import type { AppError } from "@/shared/errors/app.error";
-import { ForbiddenError } from "@/shared/errors/forbidden.error";
-import { ValidationError } from "@/shared/errors/validation.error";
-import { podeVerAcompanhamentoDosFuncionariosRh } from "@/shared/kernel/papeis";
-import { err, ok, type Result } from "@/shared/kernel/result";
+import { ok, type Result } from "@/shared/kernel/result";
 
 // Meses da evolução, contando o consultado.
 const MESES_DA_EVOLUCAO = 6;
@@ -68,25 +65,25 @@ export class ObterAcompanhamentoFuncionarios implements ObterAcompanhamentoFunci
   async execute(
     input: ObterAcompanhamentoFuncionariosInput,
   ): Promise<Result<AcompanhamentoFuncionariosDto, AppError>> {
-    const ator = await this.sessao.usuarioAtual();
-    if (!ator || !podeVerAcompanhamentoDosFuncionariosRh(ator.papel, ator.setor)) {
-      return err(new ForbiddenError("Sem acesso ao acompanhamento dos funcionários."));
-    }
-
-    const agora = this.relogio.agora();
-    const competencia = input.competencia
-      ? Competencia.criar(input.competencia)
-      : ok(Competencia.atual(agora));
-    if (!competencia.ok) return competencia;
-    if (competencia.value.ehFutura(agora)) {
-      return err(new ValidationError("Não há acompanhamento de um mês que ainda não começou."));
-    }
+    const acesso = decidirAcesso({
+      finalidade: "leitura",
+      alcance: "lideranca",
+      ator: await this.sessao.usuarioAtual(),
+      agora: this.relogio.agora(),
+      competencia: input.competencia,
+      mensagens: {
+        semAcesso: "Sem acesso ao acompanhamento dos funcionários.",
+        mesFuturo: "Não há acompanhamento de um mês que ainda não começou.",
+      },
+    });
+    if (!acesso.ok) return acesso;
+    const competencia = acesso.value.competencia;
 
     // ponytail: 2 leituras por mês da janela, só para a evolução do detalhe; a lista lê só o mês atual.
     // Materializar por mês se pesar.
     const janelaDeMeses = input.funcionarioId
-      ? competencia.value.ultimosMeses(MESES_DA_EVOLUCAO)
-      : [competencia.value.valor];
+      ? competencia.ultimosMeses(MESES_DA_EVOLUCAO)
+      : [competencia.valor];
     const meses = await Promise.all(
       janelaDeMeses.map(async (mes, i, todos): Promise<Result<Mes, AppError>> => {
         const dia = `${mes}-01`;
@@ -128,7 +125,7 @@ export class ObterAcompanhamentoFuncionarios implements ObterAcompanhamentoFunci
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
     return ok({
-      competencia: competencia.value.valor,
+      competencia: competencia.valor,
       funcionarios,
       semResponsavel: atual.clientes
         .filter((c) => !c.responsavel)

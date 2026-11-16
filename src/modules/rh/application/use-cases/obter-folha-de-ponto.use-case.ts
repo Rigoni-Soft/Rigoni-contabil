@@ -13,6 +13,7 @@ import type { ConvencaoRepository } from "@/modules/rh/application/ports/out/con
 import type { FolhaDePontoRepository } from "@/modules/rh/application/ports/out/folha-de-ponto.repository";
 import type { RelogioPort } from "@/modules/rh/application/ports/out/relogio.provider";
 import type { AtorSessaoDto, SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
+import { decidirAcesso } from "@/modules/rh/domain/services/acesso-rh.service";
 import {
   convencaoDaEpoca,
   regrasDeCalculo,
@@ -26,12 +27,10 @@ import {
   totalizar,
   totalizarDia,
 } from "@/modules/rh/domain/services/totalizacao.service";
-import { Competencia } from "@/modules/rh/domain/value-objects/competencia.vo";
+import type { Competencia } from "@/modules/rh/domain/value-objects/competencia.vo";
 import type { AppError } from "@/shared/errors/app.error";
-import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
-import { ValidationError } from "@/shared/errors/validation.error";
-import { ehResponsavelRhDoCliente, podeVerAcompanhamentoRh } from "@/shared/kernel/papeis";
+import { ehResponsavelRhDoCliente } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 // A Folha de ponto de um Cliente: o quadro, o cartão do mês do empregado escolhido e a Totalização
@@ -47,21 +46,20 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
   ) {}
 
   async execute(input: ObterFolhaDePontoInput): Promise<Result<FolhaDePontoDto, AppError>> {
-    const ator = await this.sessao.usuarioAtual();
-    if (!ator || !podeVerAcompanhamentoRh(ator.papel, ator.setor)) {
-      return err(new ForbiddenError("Sem acesso à Folha de ponto do RH."));
-    }
+    const acesso = decidirAcesso({
+      finalidade: "leitura",
+      ator: await this.sessao.usuarioAtual(),
+      agora: this.relogio.agora(),
+      competencia: input.competencia,
+      mensagens: {
+        semAcesso: "Sem acesso à Folha de ponto do RH.",
+        mesFuturo: "Não há cartão de um mês que ainda não começou.",
+      },
+    });
+    if (!acesso.ok) return acesso;
+    const { ator, competencia } = acesso.value;
 
-    const agora = this.relogio.agora();
-    const competencia = input.competencia
-      ? Competencia.criar(input.competencia)
-      : ok(Competencia.atual(agora));
-    if (!competencia.ok) return competencia;
-    if (competencia.value.ehFutura(agora)) {
-      return err(new ValidationError("Não há cartão de um mês que ainda não começou."));
-    }
-
-    const quadro = await this.carregarQuadro(input.clienteId, ator, competencia.value);
+    const quadro = await this.carregarQuadro(input.clienteId, ator, competencia);
     if (!quadro.ok) return quadro;
     const { base, empregados } = quadro.value;
 
@@ -70,7 +68,7 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
     const escolhido = empregados.find((e) => e.id === input.empregadoId);
     if (!escolhido) return err(new NotFoundError("Empregado não encontrado."));
 
-    const selecionado = await this.carregarCartao(input.clienteId, escolhido, competencia.value);
+    const selecionado = await this.carregarCartao(input.clienteId, escolhido, competencia);
     return selecionado.ok ? ok({ ...base, selecionado: selecionado.value }) : selecionado;
   }
 
