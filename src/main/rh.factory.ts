@@ -218,34 +218,35 @@ function leitorDoCartao(): LeitorDeCartaoPort & LeitorDeAtestadoPort {
       return new LeitorDeCartaoFalsoGateway();
     case "visao":
       // O env já exige a chave neste modo.
-      return new LeitorDeCartaoVisaoGateway(ANTHROPIC_API_KEY ?? "", LEITURA_CARTAO_MODELO);
+      return new LeitorDeCartaoVisaoGateway(
+        ANTHROPIC_API_KEY ?? "",
+        LEITURA_CARTAO_MODELO,
+        errosRh,
+      );
     default:
       return new LeitorDeCartaoIndisponivelGateway();
   }
 }
 
-export async function makeLerAtestadoDePonto(): Promise<LerAtestadoDePontoPort> {
+// O cartão e o atestado leem pelo mesmo leitor e recebem as mesmas peças.
+async function montarLeitura() {
   const { sessao, repositorio, auditoria } = await montarFolha();
-  return new LerAtestadoDePonto(
+  return [
     sessao,
     repositorio,
     auditoria,
     new RelogioSistemaGateway(),
     leitorDoCartao(),
     errosRh,
-  );
+  ] as const;
+}
+
+export async function makeLerAtestadoDePonto(): Promise<LerAtestadoDePontoPort> {
+  return new LerAtestadoDePonto(...(await montarLeitura()));
 }
 
 export async function makeLerCartaoDePonto(): Promise<LerCartaoDePontoPort> {
-  const { sessao, repositorio, auditoria } = await montarFolha();
-  return new LerCartaoDePonto(
-    sessao,
-    repositorio,
-    auditoria,
-    new RelogioSistemaGateway(),
-    leitorDoCartao(),
-    errosRh,
-  );
+  return new LerCartaoDePonto(...(await montarLeitura()));
 }
 
 export async function makeObterConvencoesDoCliente(): Promise<ObterConvencoesDoClientePort> {
