@@ -39,6 +39,7 @@ import { SETOR_RH } from "@/shared/kernel/setores";
 
 const FALHA_GRAVAR = "Não foi possível salvar. Tente novamente.";
 const FALHA_LER = "Não foi possível carregar a Folha de ponto.";
+const COLUNAS_DO_EMPREGADO = "id, nome, jornada, comissionado, ativo";
 
 // O banco (RLS + gatilhos) é a última barreira: quem não é o Responsável do RH do Cliente recebe 42501 (ou
 // nenhuma linha afetada); as regras de dado levantam exceções nomeadas.
@@ -89,7 +90,7 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
   ): Promise<Result<EmpregadoDto | null, AppError>> {
     const { data, error } = await this.supabase
       .from("rh_empregados")
-      .select("id, nome, jornada, comissionado, ativo")
+      .select(COLUNAS_DO_EMPREGADO)
       .eq("cliente_id", clienteId)
       .eq("id", empregadoId)
       .maybeSingle();
@@ -102,7 +103,7 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
   async listarEmpregados(clienteId: string): Promise<Result<EmpregadoDto[], AppError>> {
     const { data, error } = await this.supabase
       .from("rh_empregados")
-      .select("id, nome, jornada, comissionado, ativo")
+      .select(COLUNAS_DO_EMPREGADO)
       .eq("cliente_id", clienteId);
     if (error) return falhaDeLeitura(this.leitura, error);
     const lidos = lerLinhas(this.leitura, z.array(empregadoRowSchema), data);

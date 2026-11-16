@@ -173,10 +173,11 @@ async function montarFolha() {
 
 export async function makeObterFolhaDePonto(): Promise<ObterFolhaDePontoPort> {
   const supabase = await createSupabaseServer();
+  const repositorio = new SupabaseFolhaDePontoRepository(supabase, errosRh);
   return new ObterFolhaDePonto(
     sessaoViaUsuarios(supabase),
-    new SupabaseFolhaDePontoRepository(supabase, errosRh),
-    new SupabaseConvencaoRepository(supabase, errosRh),
+    repositorio,
+    new ApuradorDeCartoes(repositorio, new SupabaseConvencaoRepository(supabase, errosRh)),
     new RelogioSistemaGateway(),
   );
 }

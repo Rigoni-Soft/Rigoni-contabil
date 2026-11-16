@@ -6,11 +6,10 @@ import type {
   ObterFolhaDePontoInput,
   ObterFolhaDePontoPort,
 } from "@/modules/rh/application/ports/in/obter-folha-de-ponto.provider";
-import type { ConvencaoRepository } from "@/modules/rh/application/ports/out/convencao.repository";
 import type { FolhaDePontoRepository } from "@/modules/rh/application/ports/out/folha-de-ponto.repository";
 import type { RelogioPort } from "@/modules/rh/application/ports/out/relogio.provider";
 import type { AtorSessaoDto, SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
-import { ApuradorDeCartoes } from "@/modules/rh/application/services/apurador-de-cartoes.service";
+import type { ApuradorDeCartoes } from "@/modules/rh/application/services/apurador-de-cartoes.service";
 import { decidirAcesso } from "@/modules/rh/domain/services/acesso-rh.service";
 import type { Competencia } from "@/modules/rh/domain/value-objects/competencia.vo";
 import type { AppError } from "@/shared/errors/app.error";
@@ -23,16 +22,12 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 // RH leem; o Funcionário, só os Clientes de que é Responsável (a RLS repete o recorte: cliente fora da vista
 // do ator some).
 export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
-  private readonly apurador: ApuradorDeCartoes;
-
   constructor(
     private readonly sessao: SessaoPort,
     private readonly repositorio: FolhaDePontoRepository,
-    convencoes: ConvencaoRepository,
+    private readonly apurador: Pick<ApuradorDeCartoes, "apurar">,
     private readonly relogio: RelogioPort,
-  ) {
-    this.apurador = new ApuradorDeCartoes(repositorio, convencoes);
-  }
+  ) {}
 
   async execute(input: ObterFolhaDePontoInput): Promise<Result<FolhaDePontoDto, AppError>> {
     const acesso = decidirAcesso({
