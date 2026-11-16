@@ -16,10 +16,10 @@ export function rotuloDaCompetencia(competencia: string): string {
 const estadoDoServico = (c: {
   aplica: boolean;
   sempre: boolean;
-  concluido: boolean;
+  pendente: boolean;
 }): EstadoDoServico => {
   if (!c.aplica) return c.sempre ? "nunca_aplica" : "nao_aplica";
-  return c.concluido ? "concluido" : "pendente";
+  return c.pendente ? "pendente" : "concluido";
 };
 
 const plural = (n: number, singular: string, plural: string) =>
@@ -86,7 +86,7 @@ export function servicosDoCliente(dto: AcompanhamentoMensalDto, clienteId: strin
           : "Só o Funcionário Responsável pelo cliente altera.";
   const celulas =
     linha?.celulas ??
-    dto.servicos.map((s) => ({ servicoId: s.id, aplica: true, sempre: false, concluido: false }));
+    dto.servicos.map((s) => ({ servicoId: s.id, aplica: true, sempre: false, pendente: true }));
   const servicos = celulas.map((c) => ({
     servicoId: c.servicoId,
     nome: dto.servicos.find((s) => s.id === c.servicoId)?.nome ?? "",
