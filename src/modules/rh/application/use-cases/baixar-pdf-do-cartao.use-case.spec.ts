@@ -5,8 +5,7 @@ import type {
 import type { GeradorDePdfDoCartaoPort } from "@/modules/rh/application/ports/out/gerador-de-pdf-do-cartao.provider";
 import type { AtorSessaoDto } from "@/modules/rh/application/ports/out/sessao.provider";
 import { BaixarPdfDoCartao } from "@/modules/rh/application/use-cases/baixar-pdf-do-cartao.use-case";
-import { ForbiddenError } from "@/shared/errors/forbidden.error";
-import { err, ok } from "@/shared/kernel/result";
+import { ok } from "@/shared/kernel/result";
 
 const FUNC: AtorSessaoDto = { id: "func", papel: "funcionario", setor: "rh" };
 const ENTRADA = { clienteId: "c1", empregadoId: "e1", competencia: "2026-11" };
