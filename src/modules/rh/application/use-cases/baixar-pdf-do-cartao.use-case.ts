@@ -4,12 +4,14 @@ import type {
   BaixarPdfDoCartaoInput,
   BaixarPdfDoCartaoPort,
 } from "@/modules/rh/application/ports/in/baixar-pdf-do-cartao.provider";
-import type { ObterFolhaDePontoPort } from "@/modules/rh/application/ports/in/obter-folha-de-ponto.provider";
 import type { AuditoriaPort } from "@/modules/rh/application/ports/out/auditoria.provider";
 import type { FolhaDePontoRepository } from "@/modules/rh/application/ports/out/folha-de-ponto.repository";
 import type { GeradorDePdfDoCartaoPort } from "@/modules/rh/application/ports/out/gerador-de-pdf-do-cartao.provider";
 import type { RegistroDeErrosPort } from "@/modules/rh/application/ports/out/registro-de-erros.provider";
+import type { RelogioPort } from "@/modules/rh/application/ports/out/relogio.provider";
 import type { SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
+import type { ApuradorDeCartoes } from "@/modules/rh/application/services/apurador-de-cartoes.service";
+import { decidirAcesso } from "@/modules/rh/domain/services/acesso-rh.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { GeracaoDeDocumentoError } from "@/shared/errors/geracao-de-documento.error";
@@ -21,14 +23,15 @@ const ACAO = "rh.ponto.baixar-pdf";
 
 // O PDF individual do Cartão de ponto de um empregado num mês: horários, Totalização em destaque e as linhas de
 // assinatura do responsável e do empregado do Cliente. Quem lê a Folha de ponto (Admin, Líder e o Responsável do
-// RH do Cliente) baixa; a leitura e o recorte da vista são do ObterFolhaDePonto. Empregado desligado, sem movimento
-// no mês ou sem apontamento não tem PDF (o motivoSemPdf que a leitura da Folha já calculou). A geração é no
+// RH do Cliente) baixa, com o mesmo acesso e recorte da leitura da Folha. Empregado desligado, sem movimento
+// no mês ou sem apontamento não tem PDF (o motivoSemPdf do cartão apurado). A geração é no
 // servidor e cada download é auditado (a recusa e a falha também).
 export class BaixarPdfDoCartao implements BaixarPdfDoCartaoPort {
   constructor(
     private readonly sessao: SessaoPort,
-    private readonly folha: ObterFolhaDePontoPort,
     private readonly repositorio: FolhaDePontoRepository,
+    private readonly apurador: Pick<ApuradorDeCartoes, "apurar">,
+    private readonly relogio: RelogioPort,
     private readonly gerador: GeradorDePdfDoCartaoPort,
     private readonly auditoria: AuditoriaPort,
     private readonly erros: RegistroDeErrosPort,
@@ -56,16 +59,50 @@ export class BaixarPdfDoCartao implements BaixarPdfDoCartaoPort {
       return err(erro);
     };
 
-    const lida = await this.folha.execute(input);
-    if (!lida.ok) return recusar(lida.error);
-    const cartao = lida.value.selecionado;
-    if (!cartao) return recusar(new NotFoundError("Empregado não encontrado."));
+    const acesso = decidirAcesso({
+      finalidade: "leitura",
+      ator,
+      agora: this.relogio.agora(),
+      competencia: input.competencia,
+      mensagens: {
+        semAcesso: "Sem acesso à Folha de ponto do RH.",
+        mesFuturo: "Não há cartão de um mês que ainda não começou.",
+      },
+    });
+    if (!acesso.ok) return recusar(acesso.error);
+    if (!cliente.ok) return recusar(cliente.error);
+    if (!cliente.value) return recusar(new NotFoundError("Cliente não encontrado."));
+
+    // Só o empregado pedido: o PDF não carrega o Quadro inteiro do Cliente.
+    const [empregado, semMovimento] = await Promise.all([
+      this.repositorio.buscarEmpregado(input.clienteId, input.empregadoId),
+      this.repositorio.listarSemMovimento(input.clienteId, acesso.value.competencia.primeiroDia),
+    ]);
+    if (!empregado.ok) return recusar(empregado.error);
+    if (!semMovimento.ok) return recusar(semMovimento.error);
+    if (!empregado.value) return recusar(new NotFoundError("Empregado não encontrado."));
+    const escolhido = {
+      ...empregado.value,
+      semMovimento: semMovimento.value.includes(empregado.value.id),
+    };
+    const apurados = await this.apurador.apurar(
+      input.clienteId,
+      [escolhido],
+      acesso.value.competencia,
+    );
+    if (!apurados.ok) return recusar(apurados.error);
+    const cartao = apurados.value[0];
     const nome = cartao.empregado.nome;
     if (cartao.motivoSemPdf) return recusar(new ValidationError(cartao.motivoSemPdf), nome);
 
     let bytes: Uint8Array;
     try {
-      bytes = await this.gerador.gerar(documentoDoCartao(lida.value, cartao));
+      bytes = await this.gerador.gerar(
+        documentoDoCartao(
+          { empresa: cliente.value.empresa, competencia: acesso.value.competencia.valor },
+          cartao,
+        ),
+      );
     } catch (e) {
       this.erros.registrar(
         "Falha ao gerar o PDF do cartão de ponto:",

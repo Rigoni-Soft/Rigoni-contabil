@@ -47,6 +47,7 @@ import type {
   LeitorDeCartaoPort,
 } from "@/modules/rh/application/ports/out/leitor-de-cartao.provider";
 import type { AtorSessaoDto, SessaoPort } from "@/modules/rh/application/ports/out/sessao.provider";
+import { ApuradorDeCartoes } from "@/modules/rh/application/services/apurador-de-cartoes.service";
 import { BaixarPdfDoCartao } from "@/modules/rh/application/use-cases/baixar-pdf-do-cartao.use-case";
 import {
   DefinirConvencaoDoEmpregado,
@@ -184,17 +185,11 @@ export async function makeBaixarPdfDoCartao(): Promise<BaixarPdfDoCartaoPort> {
   const supabase = await createSupabaseServer();
   const sessao = sessaoViaUsuarios(supabase);
   const repositorio = new SupabaseFolhaDePontoRepository(supabase, errosRh);
-  // Um cliente Supabase só: a leitura da Folha e o restante do caso de uso dividem sessão e repositório.
-  const folha = new ObterFolhaDePonto(
-    sessao,
-    repositorio,
-    new SupabaseConvencaoRepository(supabase, errosRh),
-    new RelogioSistemaGateway(),
-  );
   return new BaixarPdfDoCartao(
     sessao,
-    folha,
     repositorio,
+    new ApuradorDeCartoes(repositorio, new SupabaseConvencaoRepository(supabase, errosRh)),
+    new RelogioSistemaGateway(),
     new PdfLibGeradorDoCartaoGateway(),
     auditoriaBestEffort(errosRh),
     errosRh,

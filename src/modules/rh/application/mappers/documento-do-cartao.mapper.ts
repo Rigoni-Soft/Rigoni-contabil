@@ -104,7 +104,10 @@ function itensDaTotalizacao(cartao: Cartao): ItemDoDocumentoDto[] {
   ];
 }
 
-export function documentoDoCartao(folha: FolhaDePontoDto, cartao: Cartao): DocumentoDoCartaoDto {
+export function documentoDoCartao(
+  folha: Pick<FolhaDePontoDto, "empresa" | "competencia">,
+  cartao: Cartao,
+): DocumentoDoCartaoDto {
   const [ano, mes] = folha.competencia.split("-");
   return {
     empresa: folha.empresa,

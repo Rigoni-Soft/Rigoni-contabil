@@ -83,6 +83,22 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
     return lido.ok ? ok(lido.value?.cliente_id ?? null) : lido;
   }
 
+  async buscarEmpregado(
+    clienteId: string,
+    empregadoId: string,
+  ): Promise<Result<EmpregadoDto | null, AppError>> {
+    const { data, error } = await this.supabase
+      .from("rh_empregados")
+      .select("id, nome, jornada, comissionado, ativo")
+      .eq("cliente_id", clienteId)
+      .eq("id", empregadoId)
+      .maybeSingle();
+    if (error) return falhaDeLeitura(this.leitura, error);
+    if (!data) return ok(null);
+    const lido = lerLinhas(this.leitura, z.array(empregadoRowSchema), [data]);
+    return lido.ok ? ok(lido.value[0]) : lido;
+  }
+
   async listarEmpregados(clienteId: string): Promise<Result<EmpregadoDto[], AppError>> {
     const { data, error } = await this.supabase
       .from("rh_empregados")

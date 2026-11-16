@@ -16,6 +16,11 @@ export interface FolhaDePontoRepository {
   buscarCliente(clienteId: string): Promise<Result<ClienteDoPontoDto | null, AppError>>;
   // null = empregado inexistente ou fora da vista do ator.
   buscarClienteDoEmpregado(empregadoId: string): Promise<Result<string | null, AppError>>;
+  // null = empregado inexistente, de outro Cliente ou fora da vista do ator.
+  buscarEmpregado(
+    clienteId: string,
+    empregadoId: string,
+  ): Promise<Result<EmpregadoDto | null, AppError>>;
   listarEmpregados(clienteId: string): Promise<Result<EmpregadoDto[], AppError>>;
   // Ids dos empregados do Cliente sem movimento no mês.
   listarSemMovimento(clienteId: string, competencia: string): Promise<Result<string[], AppError>>;

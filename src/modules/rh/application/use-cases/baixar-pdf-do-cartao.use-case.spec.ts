@@ -43,6 +43,14 @@ function dia(data: string, semana: number, extras: Partial<DiaDaFolhaDto> = {}):
   };
 }
 
+const EMPREGADO = {
+  id: "e1",
+  nome: "Maria da Conceição",
+  jornada: JORNADA,
+  comissionado: false,
+  ativo: true,
+};
+
 const FOLHA: FolhaDePontoDto = {
   clienteId: "c1",
   empresa: "Padaria Teste Ltda",
@@ -79,12 +87,15 @@ const FOLHA: FolhaDePontoDto = {
 
 function montar(opcoes: {
   ator?: AtorSessaoDto | null;
-  folha?: unknown;
+  apurado?: unknown;
+  // null: empregado fora da vista do ator.
+  empregado?: typeof EMPREGADO | null;
   // true: o gerador lança um Error; texto: lança esse valor, que não é Error.
   falhaDoGerador?: boolean | string;
 }) {
-  const folha = {
-    execute: jest.fn(async () => opcoes.folha ?? ok(FOLHA)),
+  // Quando a leitura falha ou o cartão vem sem empregado, o apurador falso devolve o resultado combinado.
+  const apurador = {
+    apurar: jest.fn(async () => opcoes.apurado ?? ok([FOLHA.selecionado!])),
   };
   const gerador: GeradorDePdfDoCartaoPort = {
     gerar: jest.fn(async () => {
@@ -97,18 +108,23 @@ function montar(opcoes: {
   const erros = { registrar: jest.fn() };
   const repositorio = {
     buscarCliente: jest.fn(async () =>
-      ok({ cnpj: "11444777000161", empresa: "Padaria", responsavelId: "func" }),
+      ok({ cnpj: "11444777000161", empresa: "Padaria Teste Ltda", responsavelId: "func" }),
     ),
+    buscarEmpregado: jest.fn(async () =>
+      ok(opcoes.empregado === undefined ? EMPREGADO : opcoes.empregado),
+    ),
+    listarSemMovimento: jest.fn(async () => ok([])),
   } as never;
   const caso = new BaixarPdfDoCartao(
     { usuarioAtual: async () => (opcoes.ator === undefined ? FUNC : opcoes.ator) },
-    folha as never,
     repositorio,
+    apurador as never,
+    { agora: () => new Date("2026-11-20T15:00:00Z") },
     gerador,
     auditoria,
     erros,
   );
-  return { caso, folha, gerador, auditoria, erros };
+  return { caso, apurador, repositorio, gerador, auditoria, erros };
 }
 
 describe("BaixarPdfDoCartao", () => {
@@ -167,7 +183,7 @@ describe("BaixarPdfDoCartao", () => {
   it("cartão com motivoSemPdf (desligado, sem movimento, sem apontamento): não gera o PDF e audita a recusa", async () => {
     const motivo = "Empregado desligado: não há cartão para assinar.";
     const { caso, gerador, auditoria } = montar({
-      folha: ok({ ...FOLHA, selecionado: { ...FOLHA.selecionado!, motivoSemPdf: motivo } }),
+      apurado: ok([{ ...FOLHA.selecionado!, motivoSemPdf: motivo }]),
     });
 
     const r = await caso.execute(ENTRADA);
@@ -197,9 +213,9 @@ describe("BaixarPdfDoCartao", () => {
     expect(auditoria.registrar).not.toHaveBeenCalled();
   });
 
-  it("quem não vê a Folha de ponto é recusado e a tentativa é auditada como falha", async () => {
+  it("quem não lê a Folha de ponto é recusado e a tentativa é auditada como falha", async () => {
     const { caso, gerador, auditoria } = montar({
-      folha: err(new ForbiddenError("Sem acesso à Folha de ponto do RH.")),
+      ator: { id: "sn", papel: "funcionario", setor: "simples_nacional" },
     });
 
     const r = await caso.execute(ENTRADA);
@@ -209,6 +225,42 @@ describe("BaixarPdfDoCartao", () => {
     expect(auditoria.registrar).toHaveBeenCalledWith(
       expect.objectContaining({ acao: "rh.ponto.baixar-pdf", resultado: "falha" }),
     );
+  });
+
+  it("lê só o empregado pedido, sem o Quadro do Cliente", async () => {
+    const { caso, apurador, repositorio } = montar({});
+
+    await caso.execute(ENTRADA);
+
+    expect(apurador.apurar).toHaveBeenCalledWith(
+      "c1",
+      [expect.objectContaining({ id: "e1", semMovimento: false })],
+      expect.objectContaining({ valor: "2026-11" }),
+    );
+    expect(
+      (repositorio as unknown as { buscarEmpregado: jest.Mock }).buscarEmpregado,
+    ).toHaveBeenCalledWith("c1", "e1");
+  });
+
+  it("empregado fora da vista ou de outro Cliente: não encontrado, nada gerado, falha auditada", async () => {
+    const { caso, gerador, auditoria } = montar({ empregado: null });
+
+    const r = await caso.execute(ENTRADA);
+
+    expect(!r.ok && r.error.code).toBe("NOT_FOUND");
+    expect(gerador.gerar).not.toHaveBeenCalled();
+    expect(auditoria.registrar).toHaveBeenCalledWith(
+      expect.objectContaining({ resultado: "falha" }),
+    );
+  });
+
+  it("mês futuro é recusado", async () => {
+    const { caso, gerador } = montar({});
+
+    const r = await caso.execute({ ...ENTRADA, competencia: "2026-12" });
+
+    expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
+    expect(gerador.gerar).not.toHaveBeenCalled();
   });
 
   it("falha do gerador vira erro de geração, é registrada e auditada como falha", async () => {
