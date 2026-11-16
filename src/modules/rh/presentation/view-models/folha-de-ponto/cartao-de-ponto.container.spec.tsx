@@ -57,6 +57,7 @@ const FOLHA_VAZIA: FolhaDePontoDto = {
         diaDaSemana: 1,
         feriado: false,
         cargaMin: 525,
+        diaDeTrabalho: true,
         trabalhadoMin: 0,
         apuracao: {
           normaisMin: 0,
@@ -111,6 +112,7 @@ const FOLHA: FolhaDePontoDto = {
         diaDaSemana: 1,
         feriado: false,
         cargaMin: 525,
+        diaDeTrabalho: true,
         trabalhadoMin: 0,
         apuracao: {
           normaisMin: 0,
@@ -136,6 +138,7 @@ const FOLHA: FolhaDePontoDto = {
         diaDaSemana: 2,
         feriado: false,
         cargaMin: 525,
+        diaDeTrabalho: true,
         trabalhadoMin: 525,
         apuracao: { ...ZERO, normaisMin: 525 },
         batidas: [{ entrada: 480, saida: 1005 }],

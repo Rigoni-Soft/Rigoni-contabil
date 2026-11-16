@@ -4,6 +4,8 @@ import {
   type RegrasDeCalculo,
 } from "@/modules/rh/domain/services/regras-de-calculo.service";
 import {
+  diaTemDados,
+  ehDiaDeTrabalho,
   horaParaMinutos,
   totalizar,
   totalizarDia,
@@ -324,6 +326,25 @@ describe("totalizar: convenção da época", () => {
       { percentual: 50, minutos: 60 },
       { percentual: 60, minutos: 60 },
     ]);
+  });
+});
+
+describe("ehDiaDeTrabalho", () => {
+  it("só o dia com carga e fora de feriado é de trabalho", () => {
+    expect(ehDiaDeTrabalho(525, false)).toBe(true);
+    expect(ehDiaDeTrabalho(0, false)).toBe(false);
+    expect(ehDiaDeTrabalho(525, true)).toBe(false);
+    expect(ehDiaDeTrabalho(0, true)).toBe(false);
+  });
+});
+
+describe("diaTemDados", () => {
+  const vazio = { batidas: [], extra: null, abono: false };
+  it("batida, extra ou abono contam; o dia em branco não", () => {
+    expect(diaTemDados(vazio)).toBe(false);
+    expect(diaTemDados({ ...vazio, batidas: [{ entrada: 480, saida: 720 }] })).toBe(true);
+    expect(diaTemDados({ ...vazio, extra: { entrada: 1080, saida: 1140 } })).toBe(true);
+    expect(diaTemDados({ ...vazio, abono: true })).toBe(true);
   });
 });
 

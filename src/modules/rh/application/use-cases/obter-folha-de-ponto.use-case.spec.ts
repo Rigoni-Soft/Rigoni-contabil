@@ -34,6 +34,7 @@ function repo(over: Partial<FolhaDePontoRepository> = {}): FolhaDePontoRepositor
     definirSemMovimento: async () => ok(undefined),
     listarDias: async () => ok([]),
     salvarDia: async () => ok(undefined),
+    gravarCartao: async () => ok(undefined),
     listarFeriados: async () => ok([]),
     buscarInterruptores: async () => ok({ bancoDeHoras: false, trabalhoAosDomingos: false }),
     definirInterruptores: async () => ok(undefined),
@@ -125,6 +126,20 @@ describe("ObterFolhaDePonto", () => {
     if (!r.ok) throw r.error;
     // Mês inteiro: 25 dias de seg a sáb; o 16 foi cumprido e o 20 é feriado, sobram 23 faltas; domingos são ignorados.
     expect(r.value.selecionado?.totalizacao).toMatchObject({ normaisMin: 525, faltas: 23 });
+  });
+
+  it("marca o dia de trabalho com a regra do domínio: feriado com carga, domingo e dia normal", async () => {
+    const r = await obter(FUNC, repo({ listarFeriados: async () => ok(["2026-11-20"]) })).execute({
+      clienteId: "c1",
+      empregadoId: "e1",
+      competencia: "2026-11",
+    });
+    if (!r.ok) throw r.error;
+    const dia = (data: string) => r.value.selecionado?.dias.find((d) => d.data === data);
+    // 16/11 segunda (carga 8h45), 20/11 sexta (feriado, mesma carga), 22/11 domingo (sem carga).
+    expect(dia("2026-11-16")?.diaDeTrabalho).toBe(true);
+    expect(dia("2026-11-20")).toMatchObject({ cargaMin: 525, feriado: true, diaDeTrabalho: false });
+    expect(dia("2026-11-22")?.diaDeTrabalho).toBe(false);
   });
 
   it("diz se o cartão do mês já foi iniciado (salvo, mesmo sem horário)", async () => {

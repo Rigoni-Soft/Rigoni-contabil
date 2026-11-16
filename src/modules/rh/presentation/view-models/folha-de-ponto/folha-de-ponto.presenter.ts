@@ -12,6 +12,8 @@ import type {
   ParDto,
   TotalizacaoDto,
 } from "@/modules/rh/application/dtos/folha-de-ponto.dto";
+import type { AtestadoLidoDto } from "@/modules/rh/application/ports/in/ler-atestado-de-ponto.provider";
+import type { CartaoLidoDto } from "@/modules/rh/application/ports/in/ler-cartao-de-ponto.provider";
 import { mesAtual, mesVizinho } from "@/shared/kernel/mes-atual";
 import { ROTA_RH_FOLHA_DE_PONTO } from "@/shared/kernel/setores";
 
@@ -37,6 +39,32 @@ function duracao(minutos: number): string {
 }
 
 const dias = (n: number) => `${n} ${n === 1 ? "dia" : "dias"}`;
+
+// O que a leitura da foto do cartão fez, em uma frase para o aviso de sucesso.
+export function resumoDaLeitura(cartao: CartaoLidoDto): string {
+  const partes = [`${cartao.dias} ${cartao.dias === 1 ? "dia lido" : "dias lidos"}`];
+  if (cartao.mantidos > 0) {
+    partes.push(
+      `${cartao.mantidos} ${cartao.mantidos === 1 ? "dia já preenchido mantido" : "dias já preenchidos mantidos"}`,
+    );
+  }
+  if (cartao.faltas > 0) {
+    partes.push(`${cartao.faltas} ${cartao.faltas === 1 ? "falta anotada" : "faltas anotadas"}`);
+  }
+  if (cartao.abonos > 0) {
+    partes.push(`${cartao.abonos} ${cartao.abonos === 1 ? "abono" : "abonos"}`);
+  }
+  const novo = cartao.cadastrado ? " (cadastrado no quadro)" : "";
+  return `${cartao.nome}${novo}: ${partes.join(", ")}. Confira o cartão.`;
+}
+
+// O que a leitura do atestado ou da declaração de comparecimento abonou.
+export function resumoDoAtestado(atestado: AtestadoLidoDto): string {
+  const abonados = `${atestado.abonados} ${atestado.abonados === 1 ? "dia abonado" : "dias abonados"}`;
+  const origem =
+    atestado.tipo === "atestado" ? "pelo atestado" : "pela declaração de comparecimento";
+  return `${abonados} ${origem}. Confira o cartão.`;
+}
 
 export const AVISO_SEM_CONVENCAO =
   "Sem convenção coletiva vigente em parte do mês: esses dias foram totalizados pela legislação.";
@@ -85,7 +113,7 @@ const semBatida = (dia: DiaDoPontoDto) => dia.batidas.length === 0 && dia.extra 
 // dado: neutro e já editável) e normal.
 function situacaoDoDia(dia: DiaDaFolhaDto, cartaoVazio: boolean): LinhaDoCartao["situacao"] {
   // Abono sem batida só vale em dia de trabalho: gravado num domingo ou feriado, o dia segue folga.
-  const diaDeTrabalho = !dia.feriado && dia.cargaMin > 0;
+  const { diaDeTrabalho } = dia;
   if (dia.abono && semBatida(dia) && diaDeTrabalho) return "abonado";
   if (!diaDeTrabalho) return "folga";
   if (dia.apuracao.faltas > 0) return cartaoVazio ? "branco" : "falta";

@@ -69,6 +69,17 @@ export function diaDaSemana(data: string): number {
   return new Date(Date.UTC(ano, mes - 1, diaDoMes)).getUTCDay();
 }
 
+// Dia de trabalho: tem carga na jornada e não é feriado. Só nele o Abono sem batida vale; em domingo, folga ou
+// feriado o dia segue folga. Regra única do servidor (leitura de cartão e de atestado) e da tela.
+export function ehDiaDeTrabalho(cargaMin: number, feriado: boolean): boolean {
+  return !feriado && cargaMin > 0;
+}
+
+// O dia tem algo gravado: batida, extra ou abono.
+export function diaTemDados(dia: Pick<DiaDoCartao, "batidas" | "extra" | "abono">): boolean {
+  return dia.batidas.length > 0 || dia.extra !== null || dia.abono;
+}
+
 function intervalo({ entrada, saida }: Par): [number, number] {
   return [entrada, saida <= entrada ? saida + 1440 : saida];
 }
