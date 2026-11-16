@@ -53,7 +53,10 @@ export class BaixarPdfDoCartao implements BaixarPdfDoCartaoPort {
       return lida;
     }
     const cartao = lida.value.selecionado;
-    if (!cartao) return err(new NotFoundError("Empregado não encontrado."));
+    if (!cartao) {
+      await auditar("falha");
+      return err(new NotFoundError("Empregado não encontrado."));
+    }
     const nome = cartao.empregado.nome;
 
     let bytes: Uint8Array;

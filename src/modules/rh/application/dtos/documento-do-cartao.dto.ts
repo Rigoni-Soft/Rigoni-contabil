@@ -1,4 +1,6 @@
 // O que o PDF do Cartão de ponto traz, já em texto: o gerador só desenha, não calcula nada.
+export type SituacaoDoDiaNoDocumento = "Abono" | "Falta" | "Feriado" | "Folga" | "";
+
 export type LinhaDoDocumentoDto = {
   // "dd/mm".
   data: string;
@@ -9,8 +11,7 @@ export type LinhaDoDocumentoDto = {
   extra: string;
   // H. Diária, como "8h45".
   horasDiarias: string;
-  // "Abono", "Falta", "Feriado", "Folga" ou "".
-  situacao: string;
+  situacao: SituacaoDoDiaNoDocumento;
 };
 
 export type ItemDoDocumentoDto = { rotulo: string; valor: string };

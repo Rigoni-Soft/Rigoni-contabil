@@ -9,6 +9,7 @@ const ALTURA = 841.89;
 const MARGEM = 36;
 const UTIL = LARGURA - 2 * MARGEM;
 const ALTURA_DA_LINHA = 13;
+const ALTURA_DA_IDENTIFICACAO = 74;
 const PRETO = rgb(0.1, 0.1, 0.1);
 const CINZA = rgb(0.9, 0.9, 0.9);
 const DESTAQUE = rgb(0.86, 0.92, 1);
@@ -37,32 +38,31 @@ export class PdfLibGeradorDoCartaoGateway implements GeradorDePdfDoCartaoPort {
     const pagina = pdf.addPage([LARGURA, ALTURA]);
     const pincel = new Pincel(pagina, normal, negrito);
 
-    const aposIdentificacao = this.identificacao(pincel, documento, MARGEM);
-    const aposTabela = this.tabela(pincel, documento, aposIdentificacao);
+    this.identificacao(pincel, documento);
+    const aposTabela = this.tabela(pincel, documento, MARGEM + ALTURA_DA_IDENTIFICACAO);
     this.totalizacao(pincel, documento, aposTabela);
     this.assinaturas(pincel, documento);
     return pdf.save();
   }
 
-  private identificacao(p: Pincel, d: DocumentoDoCartaoDto, topo: number): number {
-    p.texto("Cartão de ponto", MARGEM, topo + 14, 16, true);
-    p.texto(`Empresa: ${d.empresa}`, MARGEM, topo + 32, 10);
-    p.texto(`Empregado: ${d.empregado}`, MARGEM, topo + 46, 10, true);
-    p.texto(`Período: ${d.periodo}`, MARGEM, topo + 60, 10);
-    return topo + 74;
+  private identificacao(pincel: Pincel, documento: DocumentoDoCartaoDto) {
+    pincel.texto("Cartão de ponto", MARGEM, MARGEM + 14, 16, true);
+    pincel.texto(`Empresa: ${documento.empresa}`, MARGEM, MARGEM + 32, 10);
+    pincel.texto(`Empregado: ${documento.empregado}`, MARGEM, MARGEM + 46, 10, true);
+    pincel.texto(`Período: ${documento.periodo}`, MARGEM, MARGEM + 60, 10);
   }
 
-  private tabela(p: Pincel, d: DocumentoDoCartaoDto, topo: number): number {
-    p.retangulo(MARGEM, topo, UTIL, ALTURA_DA_LINHA + 3, CINZA);
+  private tabela(pincel: Pincel, documento: DocumentoDoCartaoDto, topo: number): number {
+    pincel.retangulo(MARGEM, topo, UTIL, ALTURA_DA_LINHA + 3, CINZA);
     this.linha(
-      p,
+      pincel,
       topo + 11,
-      COLUNAS.map((c) => c.titulo),
+      COLUNAS.map((coluna) => coluna.titulo),
       true,
     );
     let y = topo + ALTURA_DA_LINHA + 3;
-    for (const dia of d.linhas) {
-      this.linha(p, y + 10, [
+    for (const dia of documento.linhas) {
+      this.linha(pincel, y + 10, [
         dia.data,
         dia.diaDaSemana,
         ...dia.batidas,
@@ -71,47 +71,44 @@ export class PdfLibGeradorDoCartaoGateway implements GeradorDePdfDoCartaoPort {
         dia.situacao,
       ]);
       y += ALTURA_DA_LINHA;
-      p.traco(MARGEM, y, MARGEM + UTIL, y, 0.3);
+      pincel.traco(MARGEM, y, MARGEM + UTIL, y, 0.3);
     }
     return y + 14;
   }
 
-  private linha(p: Pincel, baseline: number, celulas: string[], negrito = false) {
+  private linha(pincel: Pincel, baseline: number, celulas: string[], negrito = false) {
     let x = MARGEM;
     COLUNAS.forEach((coluna, i) => {
-      p.texto(celulas[i] ?? "", x + 2, baseline, 7.5, negrito);
+      pincel.texto(celulas[i] ?? "", x + 2, baseline, 7.5, negrito);
       x += coluna.largura;
     });
   }
 
   // O bloco que a pessoa confere antes de assinar: fundo azul claro, borda e valores em negrito.
-  private totalizacao(p: Pincel, d: DocumentoDoCartaoDto, topo: number): number {
-    const linhas = Math.ceil(d.totalizacao.length / 2);
+  private totalizacao(pincel: Pincel, documento: DocumentoDoCartaoDto, topo: number) {
+    const linhas = Math.ceil(documento.totalizacao.length / 2);
     const alturaDoBloco = 24 + linhas * 16;
-    p.retangulo(MARGEM, topo, UTIL, alturaDoBloco, DESTAQUE, true);
-    p.texto(`Totalização do mês (${d.periodo})`, MARGEM + 8, topo + 15, 11, true);
-    d.totalizacao.forEach((item, i) => {
+    pincel.retangulo(MARGEM, topo, UTIL, alturaDoBloco, DESTAQUE, true);
+    pincel.texto(`Totalização do mês (${documento.periodo})`, MARGEM + 8, topo + 15, 11, true);
+    documento.totalizacao.forEach((item, i) => {
       const coluna = i % 2;
       const x = MARGEM + 8 + coluna * (UTIL / 2);
       const y = topo + 32 + Math.floor(i / 2) * 16;
-      p.texto(`${item.rotulo}:`, x, y, 9);
-      p.texto(item.valor, x + 140, y, 10, true);
+      pincel.texto(`${item.rotulo}:`, x, y, 9);
+      pincel.texto(item.valor, x + 140, y, 10, true);
     });
-    let fim = topo + alturaDoBloco;
-    if (d.avisoDaTotalizacao) {
-      p.texto(d.avisoDaTotalizacao, MARGEM, fim + 11, 7.5);
-      fim += 14;
+    if (documento.avisoDaTotalizacao) {
+      pincel.texto(documento.avisoDaTotalizacao, MARGEM, topo + alturaDoBloco + 11, 7.5);
     }
-    return fim;
   }
 
-  private assinaturas(p: Pincel, d: DocumentoDoCartaoDto) {
+  private assinaturas(pincel: Pincel, documento: DocumentoDoCartaoDto) {
     const y = ALTURA - 60;
     const largura = (UTIL - 40) / 2;
-    p.traco(MARGEM, y, MARGEM + largura, y, 0.8);
-    p.traco(MARGEM + largura + 40, y, MARGEM + UTIL, y, 0.8);
-    p.texto("Responsável da empresa (cliente)", MARGEM, y + 12, 8);
-    p.texto(`Empregado: ${d.empregado}`, MARGEM + largura + 40, y + 12, 8);
+    pincel.traco(MARGEM, y, MARGEM + largura, y, 0.8);
+    pincel.traco(MARGEM + largura + 40, y, MARGEM + UTIL, y, 0.8);
+    pincel.texto("Responsável da empresa (cliente)", MARGEM, y + 12, 8);
+    pincel.texto(`Empregado: ${documento.empregado}`, MARGEM + largura + 40, y + 12, 8);
   }
 }
 
@@ -123,9 +120,17 @@ class Pincel {
     private readonly negrito: PDFFont,
   ) {}
 
+  // A Helvetica padrão só codifica WinAnsi: o que ela não tem vira "?" (nome com emoji ou outro alfabeto não derruba
+  // o PDF) e o texto que passa da largura útil é cortado com reticências.
   texto(texto: string, x: number, baseline: number, tamanho: number, negrito = false) {
     const fonte = negrito ? this.negrito : this.normal;
-    this.pagina.drawText(texto, {
+    const aceitos = new Set(fonte.getCharacterSet());
+    let limpo = Array.from(texto, (c) => (aceitos.has(c.codePointAt(0)!) ? c : "?")).join("");
+    const maximo = MARGEM + UTIL - x;
+    while (limpo.length > 1 && fonte.widthOfTextAtSize(limpo, tamanho) > maximo) {
+      limpo = `${limpo.slice(0, -2)}…`;
+    }
+    this.pagina.drawText(limpo, {
       x,
       y: ALTURA - baseline,
       size: tamanho,

@@ -92,6 +92,29 @@ describe("PdfLibGeradorDoCartaoGateway", () => {
     expect(texto).toContain("Empregado: Maria da Conceição");
   });
 
+  it("nome com caractere fora do WinAnsi não derruba o PDF: o que a fonte não tem vira ?", async () => {
+    const pdf = await new PdfLibGeradorDoCartaoGateway().gerar({
+      ...DOCUMENTO,
+      empregado: "Zoë 😀 李",
+    });
+
+    const texto = await textoDo(pdf);
+    expect(texto).toContain("Empregado: Zoë ? ?");
+  });
+
+  it("nome longo é cortado com reticências para não passar da margem", async () => {
+    const longo = "Maria ".repeat(40).trim();
+
+    const texto = await textoDo(
+      await new PdfLibGeradorDoCartaoGateway().gerar({ ...DOCUMENTO, empresa: longo }),
+    );
+
+    const linha = texto.split("\n").find((t) => t.startsWith("Empresa: "));
+    // As reticências são 0x85 em WinAnsi (o helper de teste lê os bytes como latin1).
+    expect(linha).toMatch(/\u0085$/);
+    expect(linha!.length).toBeLessThan(longo.length);
+  });
+
   it("um mês de 31 dias segue numa página só, com a Totalização e as assinaturas", async () => {
     const linhas = Array.from({ length: 31 }, (_, i) => ({
       ...DOCUMENTO.linhas[0],
