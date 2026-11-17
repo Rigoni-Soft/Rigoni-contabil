@@ -7,13 +7,20 @@ import { SinoAvisosContainer } from "@/modules/clientes/presentation/view-models
 export function CabecalhoDoShellContainer({
   sessao,
 }: {
-  sessao: { id: string; nome: string; papel: string; setor: string };
+  sessao: {
+    id: string;
+    nome: string;
+    papel: string;
+    setor: string;
+    precisaTrocarSenha?: boolean;
+  };
 }) {
   return (
     <ShellHeader
       nome={sessao.nome}
       papel={sessao.papel}
       setor={sessao.setor}
+      comAvatar={!sessao.precisaTrocarSenha}
       sair={<LogoutButtonContainer />}
       avisos={<SinoAvisosContainer usuarioId={sessao.id} />}
     />

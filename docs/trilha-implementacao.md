@@ -11,13 +11,13 @@ As duas trilhas não dependem uma da outra e podem andar em paralelo.
 ### Etapa A1: Base
 
 - [ ] **PR A1: Escopo do usuário e bucket de avatares** (base da trilha; sem dependência)
-  - [ ] #284 (ambas): módulo de escopo do usuário: rótulo, home e logo por Papel e Setor
+  - [x] #284 (ambas): módulo de escopo do usuário: rótulo, home e logo por Papel e Setor
   - [ ] #285 (backend): migration do bucket `avatares` e da coluna `avatar_atualizado_em`
 
 ### Etapa A2: Avatar no cabeçalho
 
 - [ ] **PR A2: Avatar vira link para a home e mostra a logo** (depende do #284, na PR A1)
-  - [ ] #286 (frontend): avatar do cabeçalho vira link para a home em todas as telas (bloqueado por #284)
+  - [x] #286 (frontend): avatar do cabeçalho vira link para a home em todas as telas (bloqueado por #284)
   - [ ] #287 (frontend): avatar mostra a logo do Setor ou a do escritório (bloqueado por #286)
 
 ### Etapa A3: Foto personalizada

@@ -246,4 +246,30 @@ describe("ShellHeader", () => {
       expect(screen.queryByRole("link", { name: /Cadastrar/ })).not.toBeInTheDocument();
     });
   });
+
+  describe("avatar", () => {
+    const props = {
+      nome: "Jéssica",
+      papel: "funcionario",
+      setor: "simples_nacional",
+      avisos: null,
+      sair: <button>Sair</button>,
+    };
+
+    it("é um link para o início, com nome acessível e title, visível em toda largura e sem abrir menu", () => {
+      render(<ShellHeader {...props} />);
+
+      const avatar = screen.getByRole("link", { name: "Ir para o início" });
+      expect(avatar).toHaveAttribute("href", "/");
+      expect(avatar).toHaveAttribute("title", "Ir para o início");
+      expect(avatar.className).not.toMatch(/(^|\s)(max-sm:)?hidden(\s|$)/);
+      expect(avatar).not.toHaveAttribute("popovertarget");
+    });
+
+    it("com a troca de senha pendente o cabeçalho sai sem avatar", () => {
+      render(<ShellHeader {...props} comAvatar={false} />);
+
+      expect(screen.queryByRole("link", { name: "Ir para o início" })).not.toBeInTheDocument();
+    });
+  });
 });

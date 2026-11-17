@@ -14,6 +14,8 @@ type ShellHeaderProps = {
   nome: string;
   papel: string;
   setor: string;
+  // Falso na troca obrigatória de senha: o cabeçalho sai sem avatar.
+  comAvatar?: boolean;
   // Sino de Avisos de cadastro: é um Container (módulo clientes), que a View não importa.
   avisos: React.ReactNode;
   sair: React.ReactNode;
@@ -39,7 +41,14 @@ const ITEM = "max-sm:w-full max-sm:justify-start max-sm:gap-2 max-sm:px-4";
 // O rótulo aparece no menu (celular) e, como antes, só de `lg` para cima na linha.
 const ROTULO = "max-sm:inline";
 
-export function ShellHeader({ nome, papel, setor, avisos, sair }: ShellHeaderProps) {
+export function ShellHeader({
+  nome,
+  papel,
+  setor,
+  comAvatar = true,
+  avisos,
+  sair,
+}: ShellHeaderProps) {
   const escopo = escopoDoUsuario({ papel, setor }).descricao;
   const inicial = nome.charAt(0).toUpperCase();
   const rotuloCadastrar = CADASTRAR_LABEL[papel];
@@ -55,13 +64,20 @@ export function ShellHeader({ nome, papel, setor, avisos, sair }: ShellHeaderPro
       className="flex-nowrap items-center justify-between gap-y-2 border-b border-border bg-card px-4 py-3 sm:flex-wrap sm:px-6 lg:flex-nowrap lg:gap-4"
     >
       <Linha alinhar="centro" espaco={3} className="min-w-0 flex-1 basis-40">
-        <Caixa
-          como="span"
-          aria-hidden="true"
-          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground"
-        >
-          {inicial}
-        </Caixa>
+        {/* Único caminho de volta à home de qualquer tela: "/" resolve a home do Papel. Não abre
+          menu (Meu perfil e Sair ficam nas ações). Sem avatar na troca obrigatória de senha. */}
+        {comAvatar && (
+          <Link
+            href="/"
+            aria-label="Ir para o início"
+            title="Ir para o início"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground transition-opacity outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background pointer-coarse:size-11"
+          >
+            <Caixa como="span" aria-hidden="true">
+              {inicial}
+            </Caixa>
+          </Link>
+        )}
         <Caixa className="min-w-0">
           <Texto variante="destaque" className="truncate" title={nome}>
             {nome}
