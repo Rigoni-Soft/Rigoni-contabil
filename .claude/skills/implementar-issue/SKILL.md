@@ -9,13 +9,14 @@ Argumentos: `$ARGUMENTS` → 1º token = issue alvo (`#123` ou `123`); 2º (opci
 
 ## 1. Resolver a base
 
+- Issue alvo fechada ou com rótulo `wayfinder:*` (mapa de decisão, sem critérios de aceite próprios) → pergunte antes de criar a branch: o trabalho costuma estar numa issue irmã (a "Resolução" do mapa vira ticket, como a #265 virou a #286). `#A, #B` sem base clara também pede confirmação do que cada número é.
 - Sem base → `develop`.
 - Base é nome de branch existente (`git rev-parse --verify <base>`) → essa branch.
 - Base é nº de issue → a branch dela: `git branch --list "*<n>*"` e `gh pr list --search "<n>" --state all --json headRefName,number`; se houver mais de uma candidata ou nenhuma, pergunte. Nunca chute.
 
 ## 2. Preparar a branch
 
-1. `git status --porcelain`: alteração em arquivo **rastreado** → pare e avise (untracked como `supabase/snippets/` pode ficar). `M` com `git diff` vazio é só fim de linha (CRLF x LF): `git add <arquivo>` normaliza e o status limpa.
+1. `git status --porcelain`: alteração em arquivo **rastreado** que o ticket vai tocar → pare e avise. Alteração solta do usuário em arquivo fora do diff do ticket (rascunhos de `CONTEXT.md`/`PRODUCT.md`, ADRs novos) e untracked como `supabase/snippets/` podem ficar: avise no relatório e nunca os adicione ao commit. `M` com `git diff` vazio é só fim de linha (CRLF x LF): `git add <arquivo>` normaliza e o status limpa.
 2. Sem base explícita, `git fetch origin develop` e parta de `origin/develop` se a local estiver atrás (`git merge --ff-only`); nunca force.
 3. `gh issue view <issue> --json title,labels` e monte `feature/<slug-do-título>` (kebab-case, sem acento, ≤ 6 palavras; `fix/` se for bug). Branch já existe → pare e pergunte.
    Antes disso, procure trabalho já feito na issue: `git log --all --oneline --grep "#<n>"` e a linha dela em `docs/trilha-implementacao.md`. Achou commits ou a trilha marcada como feita → pare, mostre a branch e sugira `/gate-qualidade` em vez de reimplementar.
@@ -45,7 +46,7 @@ Quando o usuário corrigir o **desenho** depois da implementação, atualize na 
 
 ## 4. Fechar a estação
 
-Rode `yarn tsc --noEmit`, `yarn lint`, `yarn test`, `yarn check:naming`, `yarn check:refs`, `yarn check:deps` e `npx prettier --check` nos arquivos do diff (arquivo novo sem sufixo de papel, `#NN` em comentário e import entre camadas proibido, como presenter importando `domain`, reprovam no CI). **Critério de saída: código implementado e commitado na branch, com type-safety, testes e checks verdes.**
+Rode `yarn tsc --noEmit`, `yarn lint`, `yarn test`, `yarn check:naming`, `yarn check:refs`, `yarn check:specs`, `yarn check:design-doc <base>`, `yarn check:deps`, `yarn check:guard-senha` e `npx prettier --check` nos arquivos do diff (arquivo novo sem sufixo de papel, `#NN` em comentário, import entre camadas proibido, como presenter importando `domain`, e Container que ganhou spec ainda no `scripts/specs-sem-teste.baseline.txt` reprovam no CI). Depois de editar um `className`, rode `prettier --write` no arquivo e confira a linha: um `Edit` já colou duas classes numa só (`hover:bg-primary/90focus-visible:ring-2`) e tirou o anel de foco sem erro algum. **Critério de saída: código implementado e commitado na branch, com type-safety, testes e checks verdes.**
 
 Reporte: branch, base, commits e o próximo passo: `/gate-qualidade [base]`. **Nunca `git push`, nem abrir PR, sem ordem explícita do usuário** (um hook também pede confirmação). **Nunca `git stash`** (nem `-u`: há arquivos soltos do usuário no repositório, como `supabase/snippets/`); para comparar um teste com a base, use `git show` ou `git worktree`.
 
