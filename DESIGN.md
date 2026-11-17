@@ -205,7 +205,7 @@ sem precisar de classe.
   abaixo de `lg` a identidade e as ações quebram em duas linhas quando não cabem lado a lado, e
   dividem a linha quando cabem — Funcionário e Líder em tablet, #168; o Admin segue empilhado; o
   reflow a 320 px é preservado). **Abaixo de `sm` (celular, #168) o cabeçalho é uma barra de uma
-  linha (~70 px): inicial e nome truncados, o sino sempre à vista e o botão `Menu` (`popoverTarget`).
+  linha (~70 px): logo e nome truncados, o sino sempre à vista e o botão `Menu` (`popoverTarget`).
   As ações viram um menu — o mesmo painel com `popover="auto"` (Esc e clique fora fecham, o foco
   volta ao botão; o estado vai em `aria-expanded`, espelhando o evento `toggle`; sem fallback para
   navegador sem popover, como nos demais popovers do projeto), que de `sm` para cima perde a posição de camada e a moldura e volta a ser a linha
