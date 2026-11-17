@@ -2,7 +2,7 @@ import { ROTA_POR_SETOR, SETOR_LABEL } from "./setores";
 
 // Logo do escritório (arquivo estático em `public/logos/`, provisório até a logo real): a de quem
 // não tem Setor (Admin) e a de todo Setor, enquanto nenhum tiver logo própria. A tabela por Setor
-// entra com a primeira logo de Setor (#287), não antes.
+// entra com a primeira logo de Setor, não antes.
 export const LOGO_DO_ESCRITORIO = "/logos/escritorio.svg";
 
 export type EscopoDoUsuario = {
