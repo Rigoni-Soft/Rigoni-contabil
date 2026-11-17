@@ -9,7 +9,8 @@ test.describe("Avatar leva ao início", () => {
     await login(page, "admin@rigonicontabil.local", "admin123");
     await expect(page).toHaveURL("/");
 
-    await page.goto("/rh");
+    await page.getByRole("link", { name: "RH", exact: true }).click();
+    await expect(page).toHaveURL("/rh");
     await page.getByRole("link", { name: "Ir para o início" }).click();
 
     await expect(page).toHaveURL("/");
