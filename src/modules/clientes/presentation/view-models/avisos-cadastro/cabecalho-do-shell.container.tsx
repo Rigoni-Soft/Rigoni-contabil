@@ -12,7 +12,7 @@ export function CabecalhoDoShellContainer({
     nome: string;
     papel: string;
     setor: string;
-    precisaTrocarSenha?: boolean;
+    precisaTrocarSenha: boolean;
   };
 }) {
   return (
