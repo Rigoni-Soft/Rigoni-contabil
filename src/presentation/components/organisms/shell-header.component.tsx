@@ -71,7 +71,7 @@ export function ShellHeader({
             href="/"
             aria-label="Ir para o início"
             title="Ir para o início"
-            className="size-9 shrink-0 overflow-hidden rounded-full outline-hidden transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:opacity-80 pointer-coarse:size-11"
+            className="size-9 shrink-0 overflow-hidden rounded-full border border-input outline-hidden transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:opacity-80 pointer-coarse:size-11"
           >
             <LogoRedonda src={logo} />
           </Link>

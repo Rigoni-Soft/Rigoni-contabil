@@ -235,7 +235,7 @@ sem precisar de classe.
   escondia o Setor do usuário no celular. De `sm` pra cima volta o
   `truncate`. **Avatar-link (#265):** o avatar fica visível em todas as larguras e é um link para
   `/` (que resolve a home do Papel), com `aria-label` e `title` "Ir para o início", foco visível,
-  hover e pressionado só na opacidade da imagem (`hover:opacity-90`, `active:opacity-80`) e o mesmo alvo de toque das ações (`size-9`, `size-11` em toque). Não abre
+  borda `border-input` (3:1 nos dois temas: a logo é preta e sumiria no `bg-card` escuro), hover e pressionado só na opacidade da imagem (`hover:opacity-90`, `active:opacity-80`) e o mesmo alvo de toque das ações (`size-9`, `size-11` em toque). Não abre
   menu; com a troca obrigatória de senha pendente o cabeçalho sai sem avatar. **Logo (#287):** o
   avatar é a logo redonda (átomo `LogoRedonda`, `<img>` simples, `alt=""` porque o link já tem `aria-label`, sem inicial
   de reserva): a do Setor (Simples Nacional, Contábil) ou a do escritório, que é a do Admin e a de todo
