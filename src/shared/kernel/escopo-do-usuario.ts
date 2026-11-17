@@ -1,10 +1,9 @@
 import { ROTA_POR_SETOR, SETOR_LABEL } from "./setores";
 
-// Logo do escritório (arquivo estático em `public/logos/`): a de quem não tem Setor (Admin) e a
-// reserva de todo Setor sem logo própria.
+// Logo do escritório (arquivo estático em `public/logos/`, provisório até a logo real): a de quem
+// não tem Setor (Admin) e a de todo Setor, enquanto nenhum tiver logo própria. A tabela por Setor
+// entra com a primeira logo de Setor (#287), não antes.
 export const LOGO_DO_ESCRITORIO = "/logos/escritorio.svg";
-// Logo por Setor, quando houver. Setor fora da tabela cai na do escritório.
-const LOGO_POR_SETOR: Record<string, string> = {};
 
 export type EscopoDoUsuario = {
   // "Todos os setores" ou o rótulo do Setor (Meu perfil).
@@ -37,6 +36,6 @@ export function escopoDoUsuario({
     rotulo,
     descricao: `Setor: ${rotulo}`,
     home: ROTA_POR_SETOR[setor] ?? "/",
-    logo: LOGO_POR_SETOR[setor] ?? LOGO_DO_ESCRITORIO,
+    logo: LOGO_DO_ESCRITORIO,
   };
 }
