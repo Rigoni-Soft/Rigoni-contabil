@@ -264,9 +264,15 @@ describe("ShellHeader", () => {
       expect(avatar).toHaveAttribute("title", "Ir para o início");
       expect(avatar.className).not.toMatch(/(^|\s)(max-sm:)?hidden(\s|$)/);
       expect(avatar).not.toHaveAttribute("popovertarget");
-      // Sem `outline` próprio, o anel de foco é o único indicador (WCAG 2.4.7).
+      // `outline-hidden` mantém um outline transparente que aparece em forced-colors; o anel de foco
+      // é o indicador nas demais cores (WCAG 2.4.7).
+      expect(avatar.classList).toContain("outline-hidden");
       expect(avatar.classList).toContain("focus-visible:ring-2");
       expect(avatar.classList).toContain("hover:bg-primary/90");
+      expect(avatar.classList).toContain("active:bg-primary/80");
+      // Mesmo alvo de toque das demais ações: 36 px no ponteiro fino, 44 px no toque.
+      expect(avatar.classList).toContain("size-9");
+      expect(avatar.classList).toContain("pointer-coarse:size-11");
     });
 
     it("com a troca de senha pendente o cabeçalho sai sem avatar", () => {
