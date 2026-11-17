@@ -24,6 +24,22 @@ Substituir o atendimento manual por WhatsApp (sem fila, sem histórico estrutura
 - A folha de ponto usa a convenção coletiva do sindicato do cliente (PDF anual, histórico guardado), lê fotos de cartões e atestados e entrega um PDF individual com a totalização em destaque para assinatura física.
 - Dado pessoal de empregado de cliente: só nome, jornada, batidas, marca de comissionado e abono; imagens, CID e documentos nunca são guardados.
 
+## Navegação e Avatar (decisões confirmadas, issue #270)
+
+- O avatar do cabeçalho é o único caminho de volta à home em todas as telas autenticadas: leva a `/`, que cada Papel resolve (dashboard do Setor para Simples Nacional e RH; busca geral para o Admin e para os Setores sem tela). Não abre menu; Meu perfil e Sair seguem no menu de ações. Sem avatar na troca obrigatória de senha.
+- Avatar: foto enviada em Meu perfil, senão logo do Setor, senão logo do escritório (arquivos estáticos em `public/logos/`); o Admin vê sempre a do escritório; sem inicial de reserva.
+- A foto do Funcionário é dado pessoal guardado de propósito (ADR 0012): só o dono a vê, é removível a qualquer momento e apagada ao desativar o usuário; nunca versionada.
+- Entrega em duas fatias antes do corte de 04/12/2026: Fatia 1 (avatar-link e logos, sem banco) obrigatória; Fatia 2 (upload de foto) tudo ou nada.
+
+## Contatos por cliente e envio por setor (decisões confirmadas, spec #283)
+
+- O Contato do Cliente tem nome, WhatsApp e e-mail (nome obrigatório, ao menos um dos dois canais), pertence a um único Cliente e a um ou mais Setores; não existe "Contato padrão". "URA" é só rótulo em todo Contato. O Setor que cadastra é o dono e só ele (e o Admin) edita nome, WhatsApp e e-mail; os outros Setores escolhem o Contato e definem só o seu canal e tipo de envio.
+- Cada Setor define, por Cliente, os seus Destinos de envio (Contato, tipo de envio, canal); os envios automáticos do SN e do RH leem esses Destinos. Sem Destino válido o job avisa, uma vez, o Líder e o Responsável do Setor (sino) e abre o alerta do Setor.
+- No "editar cadastro", o campo de contatos de cada Setor é uma tabela de Destinos com um select de contato já cadastrado (nome e e-mail se preenchem) e um botão "Novo contato" à direita do select; protótipo vencedor: variação A (ticket #282).
+- A Recepção cadastra o Contato do número não encontrado pela URA, no atendimento, depois de confirmar o Cliente; só cria Contato URA.
+- Entra inteira neste deploy (sem corte por prazo); as quatro entregas vão juntas a produção, e o SN precisa cadastrar os Destinos antes da primeira rodada do job depois do deploy.
+- Dado pessoal: nome, WhatsApp e e-mail de Contato são dados pessoais; só dados fictícios em specs, issues, testes e exemplos.
+
 ## Positioning
 
 Ferramenta interna proprietária, não um produto de mercado. O que a diferencia da situação atual (planilha + atendimento manual) é: atendimento com fila e transferência rastreável entre 10 setores, RBAC real (Admin/Líder de setor/Funcionário), trilha de auditoria completa de ações e conversas, e integração automática com o Serpro (Integra Contador) e a API oficial do WhatsApp Business.
@@ -41,7 +57,7 @@ Ferramenta interna proprietária, não um produto de mercado. O que a diferencia
 - Quatro módulos de domínio: `usuarios` (RBAC/autenticação), `clientes` (cadastro básico por Admin + Cadastro operacional automático pra Regime Simples Nacional/MEI, editado pelo Funcionário do Simples Nacional — DAS, parcelamento, contrato social), `atendimento` (URA, espera do Setor dirigida ao Responsável do Cliente ou ao Líder — comum só na Recepção —, supervisão de Líder/Admin, transferência, aba Atendimento), `auditoria` (registro + consulta).
 - O contrato social e as alterações contratuais só são abertos, somente leitura, pelo Admin, pelo Líder do Setor Simples Nacional e pelo Funcionário Responsável do Cliente no Simples Nacional (cartão no formulário de editar, #140: a alteração de maior nº, ou o contrato social, já aparece com data e o botão "Abrir em nova aba", que abre o arquivo no primeiro clique, sem diálogo; a mais recente, sem escolher outra, ou, quando se chega por um aviso de nova alteração, a alteração daquele aviso, com o botão em foco e destacado, #144); outros Setores e Funcionários não Responsáveis não os veem — o cadastro de outros setores é só leitura. Só o Admin anexa uma nova alteração a um Cliente existente (botão "Anexar alteração" ao lado de "Abrir em nova aba", em `/clientes/[id]`, com nº, data e arquivo de até 4 MB, #141; sem seção de lista abaixo do formulário); o Admin que escolhe um Cliente na busca vai direto a essa tela própria.
 - Os Avisos de cadastro (novo Cliente, nova alteração) vão só aos Setores (Líder do Setor Simples Nacional e Responsável do Cliente), por um sino no cabeçalho com contador e modal (#142, #143); o Admin não recebe aviso nem vê o sino.
-- Terminologia do domínio fixada em `CONTEXT.md` (Setor, Papel, Atendente, URA, Cliente, Regime, Contato, Atendimento, Mensagem, Espera, Transferência, Atividade do mês) — qualquer trabalho futuro deve usar esses termos, sem sinônimos novos.
+- Terminologia do domínio fixada em `CONTEXT.md` (Setor, Papel, Atendente, URA, Cliente, Regime, Contato, Destino de envio, Tipo de envio, Atendimento, Mensagem, Espera, Transferência, Atividade do mês) — qualquer trabalho futuro deve usar esses termos, sem sinônimos novos.
 - Spec funcional completa e os 27 tickets de implementação vivem no issue tracker do GitHub (`Rigoni-Soft/Rigoni-contabil`, issue #24 e filhos #28–#54), não neste arquivo.
 - Requisitos não-funcionais dimensionados para o porte real do escritório: ~50 usuários simultâneos, ~20 rps (pico ~50), 95% de disponibilidade.
 

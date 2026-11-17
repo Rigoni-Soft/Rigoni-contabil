@@ -15,7 +15,11 @@ O nível de acesso de um usuário logado: Admin, Líder de setor ou Funcionário
 _Avoid_: Role, perfil (como sinônimo de Papel — "perfil" é a tela abaixo).
 
 **Perfil**:
-A tela "Meu perfil" (`/perfil`), acessível a qualquer usuário logado, exceto enquanto a troca obrigatória de Senha provisória estiver pendente (que bloqueia qualquer tela): mostra a própria conta (nome, e-mail, Papel, Setor) e permite trocar a própria senha por escolha. Não confundir com Papel nem com a troca obrigatória de Senha provisória (`/trocar-senha`).
+A tela "Meu perfil" (`/perfil`), acessível a qualquer usuário logado, exceto enquanto a troca obrigatória de Senha provisória estiver pendente (que bloqueia qualquer tela): mostra a própria conta (nome, e-mail, Papel, Setor) e permite trocar a própria senha por escolha e personalizar o **Avatar**. Não confundir com Papel nem com a troca obrigatória de Senha provisória (`/trocar-senha`).
+
+**Avatar**:
+A imagem redonda do usuário no cabeçalho, que também é o único caminho de volta à home (leva a `/`, que cada Papel resolve: o dashboard do Setor, ou a busca geral do Admin e dos Setores sem tela). Sem a troca obrigatória de Senha provisória pendente (ali o cabeçalho sai sem avatar). A imagem vem da primeira fonte que existir: a foto que o Funcionário enviou em Meu perfil (guardada, só ele a vê, removível a qualquer momento e apagada ao desativá-lo — `docs/adr/0012`), a logo do Setor ou a logo do escritório (arquivos estáticos em `public/logos/`). O Admin vê sempre a logo do escritório; Setor sem logo cai na do escritório, e não há inicial de reserva. Não confundir com o Perfil (a tela).
+_Avoid_: Foto de perfil, ícone do usuário.
 
 **Senha provisória**:
 A senha gerada automaticamente quando Admin/Líder cadastra uma conta. Expira em 48h se não trocada; a troca é obrigatória no primeiro login, bloqueando qualquer tela até acontecer. Não elimina o risco de quem autenticar primeiro com ela definir a senha definitiva da conta — ver `docs/adr/0002`.
@@ -55,8 +59,15 @@ O Funcionário atribuído pelo Líder a um Cliente (#65). Um Cliente tem no máx
 _Avoid_: Dono, atendente do cliente (Atendente é outro conceito — quem conduz um Atendimento).
 
 **Contato**:
-Um vínculo nome + número de WhatsApp a um Cliente. Um Cliente tem um Contato marcado como padrão e pode ter outros Contatos adicionais.
-_Avoid_: Cliente (um Contato não é o Cliente, é quem fala em nome dele).
+Quem fala em nome de um Cliente: nome (obrigatório), WhatsApp e e-mail (opcionais, ao menos um). Pertence a um único Cliente e a um ou mais Setores; todo Contato é também "URA", um rótulo só estético que evita Setor vazio (a URA não é destino de envio nem Setor de usuário). O **Setor dono** é o que o cadastrou (o do Admin e o da Recepção entram com setor URA): só ele (Líder e Responsável do Cliente) e o Admin editam nome, WhatsApp e e-mail; os outros Setores o escolhem e definem, só para o seu Setor, o canal e o tipo de envio. O mesmo WhatsApp ou e-mail não vira dois Contatos no mesmo Cliente; entre Clientes pode, e a URA trata o número em mais de um Cliente como ambíguo (Recepção). Não existe "Contato padrão". Excluir é do dono e é recusado enquanto outro Setor o usa como Destino de envio (#283).
+_Avoid_: Cliente (um Contato não é o Cliente, é quem fala em nome dele), Contato padrão.
+
+**Destino de envio**:
+O que um Setor define, por Cliente, para os seus documentos e avisos automáticos: Contato, Tipo de envio e canal (WhatsApp, e-mail ou ambos). O canal é do Destino, não do Contato. O padrão é um Destino "todos os envios do Setor"; havendo Destino para um tipo, ele vale para aquele tipo. O canal fica gravado explícito (com um canal só no Contato, esse; com os dois, o responsável escolhe, sem padrão); "ambos" tenta cada canal sem que um bloqueie o outro. Sem Destino válido (Setor sem Destino ou canal removido do Contato), o job abre o alerta `contato_ausente` e avisa, uma vez, o Líder e o Responsável do Setor no sino (#283).
+_Avoid_: Contato padrão, forma de envio do Cliente.
+
+**Tipo de envio**:
+A categoria do documento ou aviso a que um Destino de envio vale, vinda de um catálogo fixo por Setor (SN: lembrete de documento, DAS, guia de parcelamento; RH: guia de parcelamento; mais "avisos" e "todos os envios do Setor"). Entram no catálogo só os envios que o sistema faz.
 
 **DAS**:
 Documento de Arrecadação do Simples Nacional — a guia de imposto mensal do Cliente, obtida via integração Serpro.
@@ -94,7 +105,7 @@ Documento que altera o contrato social do Cliente, anexado pelo Admin com a data
 
 **Atendimento**:
 A sessão completa de contato entre um Contato e o escritório, do início ao encerramento — pode passar por vários Atendentes e Setores via Transferência. Contém muitas Mensagens. **Começa quando o contato é encaminhado a um humano** (um Setor ou a espera): a conversa com a URA antes disso (saudação, "já é cliente?", CNPJ, menu) não é guardada como Mensagem; quem recebe o Atendimento vê o resumo e o CNPJ informado na URA (#46), não os balões (decisão do usuário, 2026-10-08).
-O Atendimento que a URA abre na recepção traz o motivo (resumo) e, se o número informou, o CNPJ: o CNPJ de um Cliente liga o Atendimento a ele; CNPJ que não existe no sistema é um provável cliente novo. Nenhum Contato é salvo.
+O Atendimento que a URA abre na recepção traz o motivo (resumo) e, se o número informou, o CNPJ: o CNPJ de um Cliente liga o Atendimento a ele; CNPJ que não existe no sistema é um provável cliente novo. Nenhum Contato é salvo automaticamente: a Recepção pode cadastrá-lo (setor URA) depois de confirmar o Cliente (#283).
 _Avoid_: Conversa, ticket, chamado.
 
 **Mensagem**:
@@ -113,7 +124,7 @@ A ação de mover um Atendimento de um Atendente/Setor para outro. O dono transf
 A regra de destino é do sistema: o Atendimento fica dirigido ao Responsável do Cliente ou, sem Responsável, ao Líder do Setor de destino. Vale em todo Setor de destino, menos a Recepção (espera sempre comum); o Simples Nacional ainda só recebe Cliente do Simples Nacional ou MEI. A URA aplica a mesma regra ao encaminhar o cliente ao Setor pedido. Sem Responsável e sem Líder ativo no Setor, o Atendimento fica sem destinatário (só Líder e Admin o leem). Responsável inativo (usuário desativado, #58) não conta: o Atendimento vai ao Líder.
 
 **Aba Atendimento** (antigo Painel do Funcionário e Dock de Atendimentos):
-A tela `/atendimento`, ao lado do Dashboard em todo Setor (#162), com duas abas sobrepostas: "Em espera" (os cards da espera do Setor, do mais antigo ao mais novo, assumidos por clique; o primeiro clique vence e o outro recebe "já assumido") e "Em atendimento" (os Atendimentos do usuário). O chat abre no centro, sem rota própria, com Serviços do cliente, Transferência e Encerrar; o Admin escolhe o Setor. Em tela estreita lista e chat alternam. O card da espera mostra o Contato, a empresa, o resumo do pedido, de onde veio quando foi transferido ("Transferido de Financeiro por Fulano") e o tempo de espera. Um contador de pendentes (a espera do Setor mais os Atendimentos com o cliente aguardando) aparece no menu e na aba (#163); o card com o cliente aguardando é destacado, e a tela toca o aviso sonoro quando surge Atendimento na espera ou o cliente escreve de novo (polling de 15 s). Líder do Setor e Admin, na aba "Em atendimento", leem também os Atendimentos da equipe, e na "Em espera" a espera dirigida, só em leitura: não assumem, respondem nem transferem (#165). O polling de 15 s e o aviso sonoro seguem em toda tela autenticada (um observador sem interface no layout); o contador fica no menu. Não há rota própria para a conversa nem Dock: a aba é o único lugar em que o Funcionário conduz um Atendimento (#168). Na conversa, quem pode abri-la é o dono, o Líder do Setor onde ela está ou o Admin; só o dono responde, envia e transfere, enquanto Líder e Admin ficam em **leitura de supervisão** (veem a conversa, inclusive de outros e da espera dirigida, e podem encerrar). O balão do cliente mostra o nome do Contato cujo número bate com o do Atendimento (o Contato padrão desempata) e o CNPJ da empresa — ou "CNPJ não definido" quando o número não foi identificado ou é cliente novo; o balão do atendente mostra nome e Setor de quem escreveu.
+A tela `/atendimento`, ao lado do Dashboard em todo Setor (#162), com duas abas sobrepostas: "Em espera" (os cards da espera do Setor, do mais antigo ao mais novo, assumidos por clique; o primeiro clique vence e o outro recebe "já assumido") e "Em atendimento" (os Atendimentos do usuário). O chat abre no centro, sem rota própria, com Serviços do cliente, Transferência e Encerrar; o Admin escolhe o Setor. Em tela estreita lista e chat alternam. O card da espera mostra o Contato, a empresa, o resumo do pedido, de onde veio quando foi transferido ("Transferido de Financeiro por Fulano") e o tempo de espera. Um contador de pendentes (a espera do Setor mais os Atendimentos com o cliente aguardando) aparece no menu e na aba (#163); o card com o cliente aguardando é destacado, e a tela toca o aviso sonoro quando surge Atendimento na espera ou o cliente escreve de novo (polling de 15 s). Líder do Setor e Admin, na aba "Em atendimento", leem também os Atendimentos da equipe, e na "Em espera" a espera dirigida, só em leitura: não assumem, respondem nem transferem (#165). O polling de 15 s e o aviso sonoro seguem em toda tela autenticada (um observador sem interface no layout); o contador fica no menu. Não há rota própria para a conversa nem Dock: a aba é o único lugar em que o Funcionário conduz um Atendimento (#168). Na conversa, quem pode abri-la é o dono, o Líder do Setor onde ela está ou o Admin; só o dono responde, envia e transfere, enquanto Líder e Admin ficam em **leitura de supervisão** (veem a conversa, inclusive de outros e da espera dirigida, e podem encerrar). O balão do cliente mostra o nome do Contato cujo número bate com o do Atendimento (o número é único no Cliente) e o CNPJ da empresa — ou "CNPJ não definido" quando o número não foi identificado ou é cliente novo; o balão do atendente mostra nome e Setor de quem escreveu.
 _Avoid_: Fila de espera (como tela), Chat do funcionário, Painel do Funcionário, Dock.
 
 **Serviços do cliente**:
@@ -122,7 +133,7 @@ Os mesmos serviços do menu da URA (contrato social, alterações contratuais, g
 ### Jobs e alertas
 
 **Lembrete de documento**:
-Mensagem que o sistema envia nos dias 01, 05, 10 e 15 ao Contato padrão dos Clientes com documento obrigatório negativo, pedindo os documentos fiscais do mês (#52). Fora da janela de 24h usa o template aprovado; dentro, o formato próprio do sistema.
+Mensagem que o sistema envia nos dias 01, 05, 10 e 15 aos Destinos de envio do SN dos Clientes com documento obrigatório negativo, pedindo os documentos fiscais do mês (#52). Fora da janela de 24h usa o template aprovado; dentro, o formato próprio do sistema.
 _Avoid_: Cobrança.
 
 **Envio automático de DAS**:
