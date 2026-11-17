@@ -235,7 +235,7 @@ sem precisar de classe.
   escondia o Setor do usuário no celular. De `sm` pra cima volta o
   `truncate`. **Avatar-link (#265):** o avatar fica visível em todas as larguras e é um link para
   `/` (que resolve a home do Papel), com `aria-label` e `title` "Ir para o início", foco visível,
-  hover em opacidade e o mesmo alvo de toque das ações (`size-9`, `size-11` em toque). Não abre
+  hover só no fundo (`bg-primary/90`, a inicial não esmaece) e o mesmo alvo de toque das ações (`size-9`, `size-11` em toque). Não abre
   menu; com a troca obrigatória de senha pendente o cabeçalho sai sem avatar. A inicial é
   provisória até a logo (#287). O Setor é sempre o rótulo legível (`SETOR_LABEL`, em
   `shared/kernel/setores.ts`), nunca o slug.

@@ -264,6 +264,9 @@ describe("ShellHeader", () => {
       expect(avatar).toHaveAttribute("title", "Ir para o início");
       expect(avatar.className).not.toMatch(/(^|\s)(max-sm:)?hidden(\s|$)/);
       expect(avatar).not.toHaveAttribute("popovertarget");
+      // Sem `outline` próprio, o anel de foco é o único indicador (WCAG 2.4.7).
+      expect(avatar.classList).toContain("focus-visible:ring-2");
+      expect(avatar.classList).toContain("hover:bg-primary/90");
     });
 
     it("com a troca de senha pendente o cabeçalho sai sem avatar", () => {

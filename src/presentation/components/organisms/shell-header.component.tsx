@@ -71,11 +71,9 @@ export function ShellHeader({
             href="/"
             aria-label="Ir para o início"
             title="Ir para o início"
-            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground transition-opacity outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background pointer-coarse:size-11"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground transition-colors outline-none hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background pointer-coarse:size-11"
           >
-            <Caixa como="span" aria-hidden="true">
-              {inicial}
-            </Caixa>
+            {inicial}
           </Link>
         )}
         <Caixa className="min-w-0">
