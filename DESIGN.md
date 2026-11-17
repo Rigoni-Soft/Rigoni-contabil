@@ -235,9 +235,12 @@ sem precisar de classe.
   escondia o Setor do usuário no celular. De `sm` pra cima volta o
   `truncate`. **Avatar-link (#265):** o avatar fica visível em todas as larguras e é um link para
   `/` (que resolve a home do Papel), com `aria-label` e `title` "Ir para o início", foco visível,
-  hover só no fundo (`bg-primary/90`, a inicial não esmaece), `active:bg-primary/80` (contraste da inicial ≥ 4,5:1 em claro e escuro nos três estados) e o mesmo alvo de toque das ações (`size-9`, `size-11` em toque). Não abre
-  menu; com a troca obrigatória de senha pendente o cabeçalho sai sem avatar. A inicial é
-  provisória até a logo (#287). O Setor é sempre o rótulo legível (`SETOR_LABEL`, em
+  hover e pressionado só na opacidade da imagem (`hover:opacity-90`, `active:opacity-80`) e o mesmo alvo de toque das ações (`size-9`, `size-11` em toque). Não abre
+  menu; com a troca obrigatória de senha pendente o cabeçalho sai sem avatar. **Logo (#287):** o
+  avatar é a logo redonda (átomo `LogoRedonda`, `<img>` simples, `alt=""` porque o link já tem `aria-label`, sem inicial
+  de reserva): a do Setor (Simples Nacional, Contábil) ou a do escritório, que é a do Admin e a de todo
+  Setor sem logo (mapa `LOGO_POR_SETOR` em `shared/kernel/escopo-do-usuario.ts`; arquivos
+  `logo-<nome>.jpeg` 256×256 em `public/logos/`). O Setor é sempre o rótulo legível (`SETOR_LABEL`, em
   `shared/kernel/setores.ts`), nunca o slug.
 
   **Extensão (#72):** o link "Feriados" (ícone `CalendarOff`,
