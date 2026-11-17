@@ -12,7 +12,7 @@ As duas trilhas não dependem uma da outra e podem andar em paralelo.
 
 - [ ] **PR A1: Escopo do usuário e bucket de avatares** (base da trilha; sem dependência)
   - [x] #284 (ambas): módulo de escopo do usuário: rótulo, home e logo por Papel e Setor
-  - [ ] #285 (backend): migration do bucket `avatares` e da coluna `avatar_atualizado_em`
+  - [x] #285 (backend): migration do bucket `avatares` e da coluna `avatar_atualizado_em`
 
 ### Etapa A2: Avatar no cabeçalho
 
