@@ -231,10 +231,13 @@ sem precisar de classe.
   documentados em #32.
 
   **Identidade do usuário no header (#56):** abaixo de `sm` o nome e o escopo
-  (`Papel · Setor: <rótulo>`) quebram linha em vez de truncar, e o avatar da
-  inicial (decorativo, `aria-hidden`) some para liberar largura — truncar
-  escondia o Setor do usuário no celular. De `sm` pra cima voltam o avatar e o
-  `truncate`. O Setor é sempre o rótulo legível (`SETOR_LABEL`, em
+  (`Papel · Setor: <rótulo>`) quebram linha em vez de truncar — truncar
+  escondia o Setor do usuário no celular. De `sm` pra cima volta o
+  `truncate`. **Avatar-link (#265):** o avatar fica visível em todas as larguras e é um link para
+  `/` (que resolve a home do Papel), com `aria-label` e `title` "Ir para o início", foco visível,
+  hover só no fundo (`bg-primary/90`, a inicial não esmaece), `active:bg-primary/80` (contraste da inicial ≥ 4,5:1 em claro e escuro nos três estados) e o mesmo alvo de toque das ações (`size-9`, `size-11` em toque). Não abre
+  menu; com a troca obrigatória de senha pendente o cabeçalho sai sem avatar. A inicial é
+  provisória até a logo (#287). O Setor é sempre o rótulo legível (`SETOR_LABEL`, em
   `shared/kernel/setores.ts`), nunca o slug.
 
   **Extensão (#72):** o link "Feriados" (ícone `CalendarOff`,

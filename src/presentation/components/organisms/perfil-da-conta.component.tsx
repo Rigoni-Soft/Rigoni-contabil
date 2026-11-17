@@ -2,8 +2,8 @@ import { Fragment } from "react";
 
 import { Caixa, Grade } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
+import { escopoDoUsuario } from "@/shared/kernel/escopo-do-usuario";
 import { PAPEL_LABEL } from "@/shared/kernel/papeis";
-import { SETOR_LABEL } from "@/shared/kernel/setores";
 
 type PerfilDaContaProps = {
   nome: string;
@@ -19,10 +19,7 @@ export function PerfilDaConta({ nome, email, papel, setor, formulario }: PerfilD
     { rotulo: "Nome", valor: nome },
     { rotulo: "E-mail", valor: email },
     { rotulo: "Papel", valor: PAPEL_LABEL[papel] ?? papel },
-    {
-      rotulo: "Setor",
-      valor: papel === "admin" ? "Todos os setores" : (SETOR_LABEL[setor] ?? setor),
-    },
+    { rotulo: "Setor", valor: escopoDoUsuario({ papel, setor }).rotulo },
   ];
 
   return (

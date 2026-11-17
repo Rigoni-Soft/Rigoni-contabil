@@ -1,4 +1,3 @@
-src/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container.tsx
 src/presentation/components/molecules/acoes-do-formulario.component.tsx
 src/presentation/components/molecules/anexo-da-mensagem.component.tsx
 src/presentation/components/molecules/aviso-de-leitura.component.tsx
