@@ -7,8 +7,8 @@ import { BotaoDoMenu } from "@/presentation/components/ui/botao-do-menu";
 import { buttonVariants } from "@/presentation/components/ui/button";
 import { ThemeToggle } from "@/presentation/components/ui/theme-toggle";
 import { cn } from "@/presentation/lib/utils";
+import { escopoDoUsuario } from "@/shared/kernel/escopo-do-usuario";
 import { PAPEL_LABEL } from "@/shared/kernel/papeis";
-import { SETOR_LABEL } from "@/shared/kernel/setores";
 
 type ShellHeaderProps = {
   nome: string;
@@ -40,8 +40,7 @@ const ITEM = "max-sm:w-full max-sm:justify-start max-sm:gap-2 max-sm:px-4";
 const ROTULO = "max-sm:inline";
 
 export function ShellHeader({ nome, papel, setor, avisos, sair }: ShellHeaderProps) {
-  const escopo =
-    papel === "admin" ? "acesso a todos os setores" : `Setor: ${SETOR_LABEL[setor] ?? setor}`;
+  const escopo = escopoDoUsuario({ papel, setor }).descricao;
   const inicial = nome.charAt(0).toUpperCase();
   const rotuloCadastrar = CADASTRAR_LABEL[papel];
   const item = cn(buttonVariants({ variant: "ghost" }), ITEM);
