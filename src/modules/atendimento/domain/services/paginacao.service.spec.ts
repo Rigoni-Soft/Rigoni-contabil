@@ -1,4 +1,4 @@
-import { paginar } from "./paginacao.service";
+import { linhasNumeradas, paginar } from "./paginacao.service";
 
 describe("paginar", () => {
   const sete = ["a", "b", "c", "d", "e", "f", "g"];
@@ -25,6 +25,13 @@ describe("paginar", () => {
     expect(paginar(sete, 1, 5).escolher("3")).toBe("c");
     expect(paginar(sete, 2, 5).escolher("1")).toBe("f");
     expect(paginar(sete, 2, 5).escolher("3")).toBeUndefined();
+  });
+
+  it("numera a página recomeçando em 1 e avisa do mais só havendo próxima", () => {
+    expect(linhasNumeradas(paginar(sete, 1, 5), (x) => x.toUpperCase())).toBe(
+      "1 - A\n2 - B\n3 - C\n4 - D\n5 - E\nDigite *mais* para ver as próximas.",
+    );
+    expect(linhasNumeradas(paginar(sete, 2, 5), (x) => x.toUpperCase())).toBe("1 - F\n2 - G");
   });
 
   it.each(["0", "01", "007", "-1", "1.5", "um", ""])("%p não escolhe item", (texto) => {

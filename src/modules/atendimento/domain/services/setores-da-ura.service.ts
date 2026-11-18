@@ -1,4 +1,4 @@
-import { paginar } from "@/modules/atendimento/domain/services/paginacao.service";
+import { linhasNumeradas, paginar } from "@/modules/atendimento/domain/services/paginacao.service";
 import { setoresDoCliente } from "@/modules/atendimento/domain/services/transferencia.service";
 import { SETOR_LABEL, SETOR_RECEPCAO, type SetorSlug } from "@/shared/kernel/setores";
 
@@ -13,11 +13,10 @@ export function setoresDaUra(regimeDoCliente: string | null): SetorSlug[] {
 
 // A numeração recomeça em 1 a cada página, como na lista de alterações.
 export function listaDeSetores(setores: SetorSlug[], pagina: number): string {
-  const { total, pagina: atual, itens, temMais } = paginar(setores, pagina, SETORES_POR_PAGINA);
-  const linhas = itens.map((setor, i) => `${i + 1} - ${SETOR_LABEL[setor]}`).join("\n");
-  const mais = temMais ? "\nDigite *mais* para ver as próximas." : "";
+  const exibida = paginar(setores, pagina, SETORES_POR_PAGINA);
+  const linhas = linhasNumeradas(exibida, (setor) => SETOR_LABEL[setor]);
   return (
-    `Com qual setor você quer falar? (página ${atual} de ${total})\n${linhas}${mais}\n` +
+    `Com qual setor você quer falar? (página ${exibida.pagina} de ${exibida.total})\n${linhas}\n` +
     "Digite *0* se não souber o setor, para falar com a recepção.\nDigite *menu* para voltar."
   );
 }

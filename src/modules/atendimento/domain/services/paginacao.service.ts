@@ -10,6 +10,13 @@ export type Pagina<T> = {
   escolher: (texto: string) => T | undefined;
 };
 
+// As linhas numeradas de uma página ("1 - …", recomeçando em 1) e, havendo próxima, o aviso do "mais":
+// o miolo do texto de toda lista da URA; cada lista põe cabeçalho e rodapé.
+export function linhasNumeradas<T>(pagina: Pagina<T>, rotulo: (item: T) => string): string {
+  const linhas = pagina.itens.map((item, i) => `${i + 1} - ${rotulo(item)}`).join("\n");
+  return pagina.temMais ? `${linhas}\nDigite *mais* para ver as próximas.` : linhas;
+}
+
 // `pagina` fora do intervalo (lista que encolheu desde que foi exibida) vira a mais próxima válida.
 export function paginar<T>(itens: T[], pagina: number, porPagina: number): Pagina<T> {
   const total = Math.max(1, Math.ceil(itens.length / porPagina));

@@ -42,7 +42,7 @@ import {
   avisoDeFechado,
   estaAbertoEm,
 } from "@/modules/atendimento/domain/services/expediente.service";
-import { paginar } from "@/modules/atendimento/domain/services/paginacao.service";
+import { linhasNumeradas, paginar } from "@/modules/atendimento/domain/services/paginacao.service";
 import {
   listaDeSetores,
   SETORES_POR_PAGINA,
@@ -177,10 +177,9 @@ function impressaoDaLista(alteracoes: DocumentoContratual[]): string {
 }
 
 function listaDaPagina(alteracoes: DocumentoContratual[], numero: number): string {
-  const { total, pagina, itens, temMais } = paginar(alteracoes, numero, ALTERACOES_POR_PAGINA);
-  const linhas = itens.map((a, i) => `${i + 1} - ${descreverDocumento(a)}`).join("\n");
-  const mais = temMais ? "\nDigite *mais* para ver as próximas." : "";
-  return `Qual alteração você deseja? (página ${pagina} de ${total})\n${linhas}${mais}\nDigite *menu* para voltar.`;
+  const exibida = paginar(alteracoes, numero, ALTERACOES_POR_PAGINA);
+  const linhas = linhasNumeradas(exibida, descreverDocumento);
+  return `Qual alteração você deseja? (página ${exibida.pagina} de ${exibida.total})\n${linhas}\nDigite *menu* para voltar.`;
 }
 
 // Passos do menu de documentos ficam numa sessão que guarda só a posição (etapa/modo/página):
