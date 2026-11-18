@@ -1,11 +1,5 @@
-import { atendidoPeloSimplesNacional } from "@/modules/atendimento/domain/services/transferencia.service";
-import {
-  SETOR_LABEL,
-  SETOR_RECEPCAO,
-  SETOR_SN,
-  SETORES,
-  type SetorSlug,
-} from "@/shared/kernel/setores";
+import { setoresDoCliente } from "@/modules/atendimento/domain/services/transferencia.service";
+import { SETOR_LABEL, SETOR_RECEPCAO, type SetorSlug } from "@/shared/kernel/setores";
 
 const SETORES_POR_PAGINA = 5;
 
@@ -13,11 +7,7 @@ const SETORES_POR_PAGINA = 5;
 // quem não sabe o setor (opção 0) ou escreve que quer falar com uma pessoa. O Simples Nacional só
 // aparece para Cliente do Simples Nacional ou MEI (a mesma trava da Transferência).
 export function setoresDaUra(regimeDoCliente: string | null): SetorSlug[] {
-  const simplesNacionalPermitido =
-    regimeDoCliente !== null && atendidoPeloSimplesNacional(regimeDoCliente);
-  return SETORES.filter(
-    (setor) => setor !== SETOR_RECEPCAO && (setor !== SETOR_SN || simplesNacionalPermitido),
-  );
+  return setoresDoCliente(regimeDoCliente).filter((setor) => setor !== SETOR_RECEPCAO);
 }
 
 export function totalDePaginasDeSetores(setores: SetorSlug[]): number {
