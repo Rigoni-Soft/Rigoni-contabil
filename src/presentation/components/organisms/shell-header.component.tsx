@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Building2, CalendarOff, CircleUser, UserPlus, Users } from "lucide-react";
 
 import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
-import { LogoRedonda } from "@/presentation/components/atoms/logo-redonda.component";
+import { Miniatura } from "@/presentation/components/atoms/miniatura.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { BotaoDoMenu } from "@/presentation/components/ui/botao-do-menu";
 import { buttonVariants } from "@/presentation/components/ui/button";
@@ -73,7 +73,7 @@ export function ShellHeader({
             title="Ir para o início"
             className="size-9 shrink-0 overflow-hidden rounded-full border border-input outline-hidden transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:opacity-80 pointer-coarse:size-11"
           >
-            <LogoRedonda src={logo} />
+            <Miniatura src={logo} className="size-full rounded-none" />
           </Link>
         )}
         <Caixa className="min-w-0">
