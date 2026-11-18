@@ -205,7 +205,7 @@ sem precisar de classe.
   abaixo de `lg` a identidade e as ações quebram em duas linhas quando não cabem lado a lado, e
   dividem a linha quando cabem — Funcionário e Líder em tablet, #168; o Admin segue empilhado; o
   reflow a 320 px é preservado). **Abaixo de `sm` (celular, #168) o cabeçalho é uma barra de uma
-  linha (~70 px): inicial e nome truncados, o sino sempre à vista e o botão `Menu` (`popoverTarget`).
+  linha (~70 px): logo e nome truncados, o sino sempre à vista e o botão `Menu` (`popoverTarget`).
   As ações viram um menu — o mesmo painel com `popover="auto"` (Esc e clique fora fecham, o foco
   volta ao botão; o estado vai em `aria-expanded`, espelhando o evento `toggle`; sem fallback para
   navegador sem popover, como nos demais popovers do projeto), que de `sm` para cima perde a posição de camada e a moldura e volta a ser a linha
@@ -235,10 +235,15 @@ sem precisar de classe.
   escondia o Setor do usuário no celular. De `sm` pra cima volta o
   `truncate`. **Avatar-link (#265):** o avatar fica visível em todas as larguras e é um link para
   `/` (que resolve a home do Papel), com `aria-label` e `title` "Ir para o início", foco visível,
-  hover só no fundo (`bg-primary/90`, a inicial não esmaece), `active:bg-primary/80` (contraste da inicial ≥ 4,5:1 em claro e escuro nos três estados) e o mesmo alvo de toque das ações (`size-9`, `size-11` em toque). Não abre
-  menu; com a troca obrigatória de senha pendente o cabeçalho sai sem avatar. A inicial é
-  provisória até a logo (#287). O Setor é sempre o rótulo legível (`SETOR_LABEL`, em
-  `shared/kernel/setores.ts`), nunca o slug.
+  borda `border-input` (3:1 nos dois temas: a logo é preta e sumiria no `bg-card` escuro), hover e pressionado só na opacidade da imagem (`hover:opacity-90`, `active:opacity-80`) e o mesmo alvo de toque das ações (`size-9`, `size-11` em toque). Não abre
+  menu; com a troca obrigatória de senha pendente o cabeçalho sai sem avatar. **Logo (#287):** o
+  avatar é a logo redonda (`Miniatura`, `alt=""` porque o link já tem `aria-label`, sem inicial de reserva):
+  a do Setor ou a do escritório, que é a do Admin e a de todo Setor sem logo (arquivos em `public/logos/`,
+  mapa em `shared/kernel/escopo-do-usuario.ts`). O Setor é sempre o rótulo legível, nunca o slug.
+
+  **Voltar em Meu perfil:** o "Voltar" da tela leva à tela de onde o usuário veio (`router.back()`) quando o
+  referrer é do próprio sistema; chegando por favorito ou link externo, ou sem histórico, segue o link para
+  `/`. Ctrl/Cmd/Shift/Alt-clique e botão do meio abrem o link normalmente (nova aba).
 
   **Extensão (#72):** o link "Feriados" (ícone `CalendarOff`,
   só Admin, rota `/admin/feriados`) segue o mesmo padrão. A tela reutiliza

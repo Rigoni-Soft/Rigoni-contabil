@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Building2, CalendarOff, CircleUser, UserPlus, Users } from "lucide-react";
 
 import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
+import { Miniatura } from "@/presentation/components/atoms/miniatura.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { BotaoDoMenu } from "@/presentation/components/ui/botao-do-menu";
 import { buttonVariants } from "@/presentation/components/ui/button";
@@ -49,8 +50,7 @@ export function ShellHeader({
   avisos,
   sair,
 }: ShellHeaderProps) {
-  const escopo = escopoDoUsuario({ papel, setor }).descricao;
-  const inicial = nome.charAt(0).toUpperCase();
+  const { descricao: escopo, logo } = escopoDoUsuario({ papel, setor });
   const rotuloCadastrar = CADASTRAR_LABEL[papel];
   const item = cn(buttonVariants({ variant: "ghost" }), ITEM);
 
@@ -71,9 +71,9 @@ export function ShellHeader({
             href="/"
             aria-label="Ir para o início"
             title="Ir para o início"
-            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground outline-hidden transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:bg-primary/80 pointer-coarse:size-11"
+            className="size-9 shrink-0 overflow-hidden rounded-full border border-input outline-hidden transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:opacity-80 pointer-coarse:size-11"
           >
-            {inicial}
+            <Miniatura src={logo} className="size-full rounded-none" />
           </Link>
         )}
         <Caixa className="min-w-0">

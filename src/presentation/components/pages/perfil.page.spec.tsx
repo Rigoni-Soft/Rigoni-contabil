@@ -7,6 +7,7 @@ describe("PerfilPage", () => {
     render(
       <PerfilPage
         header={<header>Cabeçalho</header>}
+        voltar={<button type="button">Voltar</button>}
         nome="Jéssica Souza"
         email="jessica@rigonicontabil.local"
         papel="lider_setor"
@@ -27,6 +28,7 @@ describe("PerfilPage", () => {
     render(
       <PerfilPage
         header={<header>Cabeçalho</header>}
+        voltar={<button type="button">Voltar</button>}
         nome="Cledson"
         email="admin@rigonicontabil.local"
         papel="admin"
@@ -37,5 +39,21 @@ describe("PerfilPage", () => {
 
     expect(screen.getByText("Todos os setores")).toBeInTheDocument();
     expect(screen.queryByText("Administrativo")).not.toBeInTheDocument();
+  });
+
+  it("mostra o Voltar recebido por slot", () => {
+    render(
+      <PerfilPage
+        header={<header>Cabeçalho</header>}
+        voltar={<button type="button">Voltar</button>}
+        nome="Cledson"
+        email="admin@rigonicontabil.local"
+        papel="admin"
+        setor="administrativo"
+        formulario={<form aria-label="Trocar senha" />}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Voltar" })).toBeInTheDocument();
   });
 });

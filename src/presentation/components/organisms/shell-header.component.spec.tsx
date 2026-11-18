@@ -45,6 +45,26 @@ describe("ShellHeader", () => {
     expect(screen.getByText(/Funcionário/)).toBeInTheDocument();
   });
 
+  it("o avatar mostra a logo do Setor com logo e a do escritório para o Admin e Setor sem logo", () => {
+    const props = { nome: "N", avisos: <button>Avisos</button>, sair: <button>Sair</button> };
+    const logoDoAvatar = () =>
+      screen
+        .getByRole("link", { name: "Ir para o início" })
+        .querySelector("img")
+        ?.getAttribute("src");
+    const { rerender } = render(<ShellHeader {...props} papel="funcionario" setor="contabil" />);
+    expect(logoDoAvatar()).toBe("/logos/logo-contabil.jpeg");
+
+    rerender(<ShellHeader {...props} papel="lider_setor" setor="simples_nacional" />);
+    expect(logoDoAvatar()).toBe("/logos/logo-simples-nacional.jpeg");
+
+    rerender(<ShellHeader {...props} papel="admin" setor="contabil" />);
+    expect(logoDoAvatar()).toBe("/logos/logo-rigoni.jpeg");
+
+    rerender(<ShellHeader {...props} papel="funcionario" setor="recepcao" />);
+    expect(logoDoAvatar()).toBe("/logos/logo-rigoni.jpeg");
+  });
+
   it("renderiza o slot de sair recebido por prop", () => {
     render(
       <ShellHeader
@@ -268,8 +288,8 @@ describe("ShellHeader", () => {
       // é o indicador nas demais cores (WCAG 2.4.7).
       expect(avatar.classList).toContain("outline-hidden");
       expect(avatar.classList).toContain("focus-visible:ring-2");
-      expect(avatar.classList).toContain("hover:bg-primary/90");
-      expect(avatar.classList).toContain("active:bg-primary/80");
+      expect(avatar.classList).toContain("hover:opacity-90");
+      expect(avatar.classList).toContain("active:opacity-80");
       // Mesmo alvo de toque das demais ações: 36 px no ponteiro fino, 44 px no toque.
       expect(avatar.classList).toContain("size-9");
       expect(avatar.classList).toContain("pointer-coarse:size-11");
