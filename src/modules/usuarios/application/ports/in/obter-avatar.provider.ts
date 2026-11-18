@@ -1,0 +1,7 @@
+import type { AppError } from "@/shared/errors/app.error";
+import type { Result } from "@/shared/kernel/result";
+
+export interface ObterAvatarPort {
+  // A foto do próprio usuário da sessão; NOT_FOUND quando não há.
+  execute(): Promise<Result<Uint8Array, AppError>>;
+}

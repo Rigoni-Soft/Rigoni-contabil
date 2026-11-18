@@ -17,6 +17,8 @@ export type UsuarioProps = {
   desativadoEm: Date | null;
   // Quando o Auth confirmou o ban da conta desativada; null + desativadoEm = bloqueio pendente.
   banidoEm: Date | null;
+  // Quando a foto do avatar foi gravada (ADR 0012); null = sem foto.
+  avatarAtualizadoEm: Date | null;
 };
 
 export class Usuario {
@@ -65,6 +67,19 @@ export class Usuario {
   // Desativada no banco (RLS já nega), mas o ban no Auth ainda não foi confirmado.
   bloqueioPendente(): boolean {
     return this.estaDesativado() && this.props.banidoEm === null;
+  }
+
+  get avatarAtualizadoEm(): Date | null {
+    return this.props.avatarAtualizadoEm;
+  }
+
+  temAvatar(): boolean {
+    return this.props.avatarAtualizadoEm !== null;
+  }
+
+  // Só o Funcionário personaliza o avatar (ADR 0012); Líder e Admin ficam com a logo.
+  podePersonalizarAvatar(): boolean {
+    return this.props.papel.valor === "funcionario";
   }
 
   senhaProvisoriaVencida(agora: Date): boolean {

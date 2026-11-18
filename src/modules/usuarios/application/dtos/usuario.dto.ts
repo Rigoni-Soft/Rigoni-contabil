@@ -7,4 +7,6 @@ export type UsuarioDto = {
   precisaTrocarSenha: boolean;
   // Desativado no banco, ban no Auth pendente: o Admin reprocessa.
   bloqueioPendente: boolean;
+  // ISO da última gravação da foto do avatar; null = sem foto (o cabeçalho usa como `?v=` do cache).
+  avatarAtualizadoEm: string | null;
 };

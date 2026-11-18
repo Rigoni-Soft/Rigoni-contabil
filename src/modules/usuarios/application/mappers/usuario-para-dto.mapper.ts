@@ -10,5 +10,6 @@ export function usuarioParaDto(usuario: Usuario): UsuarioDto {
     setor: usuario.setor.slug,
     precisaTrocarSenha: usuario.precisaTrocarSenha(),
     bloqueioPendente: usuario.bloqueioPendente(),
+    avatarAtualizadoEm: usuario.avatarAtualizadoEm?.toISOString() ?? null,
   };
 }
