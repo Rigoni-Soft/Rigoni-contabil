@@ -13,7 +13,7 @@ ALTER TABLE public.perfis ADD COLUMN avatar_atualizado_em timestamp with time zo
 
 -- Os grants de `perfis` são os da tabela (já explícitos no baseline: authenticated sem policy de UPDATE,
 -- anon nada, service_role tudo); a coluna nova herda a leitura do dono pela policy de SELECT. O critério
--- "grants explícitos na coluna" da #285 é atendido por essa herança mais o gatilho abaixo: REVOKE de coluna
+-- "grants explícitos na coluna" é atendido por essa herança mais o gatilho abaixo: REVOKE de coluna
 -- não tem efeito enquanto o grant de tabela existe, e a escrita de sessão é travada pelo gatilho.
 -- "Só o sistema grava" é travado no banco (ADR 0008): qualquer sessão com usuário, Admin inclusive, que
 -- tente gravar a coluna (INSERT com valor, ou UPDATE que a mude) recebe erro 23514. Sem sessão
