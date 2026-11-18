@@ -5,9 +5,14 @@
  */
 import { createClient } from "@supabase/supabase-js";
 
+import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
+import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
+import { ObterAvatar } from "@/modules/usuarios/application/use-cases/obter-avatar.use-case";
 import type { UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
+import { ok } from "@/shared/kernel/result";
 
 import { exigirSupabaseLocal } from "../../../../../test-support/exigir-supabase-local";
+import { usuario } from "../../../../../test-support/montar-avatar";
 import { SupabaseAvatarArmazenamentoGateway } from "./supabase-avatar-armazenamento.gateway";
 import { SupabaseAvatarMarcaGateway } from "./supabase-avatar-marca.gateway";
 
@@ -67,6 +72,33 @@ describe("avatar (integração)", () => {
     expect((await gateway.apagar(id)).ok).toBe(true);
     const depois = await gateway.ler(id);
     expect(depois.ok && depois.value).toBeNull();
+  });
+
+  it("a sessão de cada usuário recebe só a própria foto (ObterAvatar com o Storage real)", async () => {
+    const idA = await criarUsuario();
+    const idB = await criarUsuario();
+    const armazenamento = new SupabaseAvatarArmazenamentoGateway(servico);
+    await armazenamento.gravar(idA, new Uint8Array([1, 1, 1]));
+    await armazenamento.gravar(idB, new Uint8Array([2, 2]));
+    const perfis = [
+      usuario(idA, "funcionario", { avatar: "2026-11-18T10:00:00Z" }),
+      usuario(idB, "funcionario", { avatar: "2026-11-18T10:00:00Z" }),
+    ];
+    const usuarios = {
+      buscarPorId: async (id: UsuarioId) => ok(perfis.find((p) => p.id === id) ?? null),
+    } as unknown as UsuarioRepository;
+    const obterComo = (atorId: string) =>
+      new ObterAvatar(
+        { usuarioAtualId: async () => atorId } as unknown as SessaoPort,
+        usuarios,
+        armazenamento,
+      ).execute();
+
+    const comoA = await obterComo(idA);
+    const comoB = await obterComo(idB);
+
+    expect(comoA.ok && [...comoA.value]).toEqual([1, 1, 1]);
+    expect(comoB.ok && [...comoB.value]).toEqual([2, 2]);
   });
 
   it("grava e zera a marca da foto no perfil", async () => {
