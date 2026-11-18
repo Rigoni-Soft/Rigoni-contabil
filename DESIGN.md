@@ -100,11 +100,11 @@ em monitores largos):
 - **Login e troca de senha**: ficam de fora da regra — `max-w-sm`/`max-w-md`,
   conteúdo único centralizado, por serem telas de entrada/bloqueio, não de
   trabalho. Decisão explícita do usuário: nunca ocupam a tela toda.
-- **Perfil** (`/perfil`, #56): `max-w-md`, como login/troca de senha; dados da conta em `<dl>` (rótulo
-  `muted-foreground` / valor `font-medium`), seguidos da seção "Trocar
+- **Perfil** (`/perfil`, #56): `max-w-md`, como login/troca de senha; a foto do avatar abre a tela, seguida dos dados da conta em `<dl>` (rótulo
+  `muted-foreground` / valor `font-medium`) e da seção "Trocar
   senha" separada por `border-t`. Sem cartão: são dois blocos de leitura e
   formulário, não superfícies elevadas. **Foto do avatar (#288):** todo usuário, de qualquer Papel (o Admin inclusive), vê a seção "Sua foto"
-  (`AvatarDaConta`, entre os dados e a troca de senha, também com `border-t`): prévia redonda de `size-20`
+  (`AvatarDaConta`, no topo, acima dos dados; o `border-t` fica no `<dl>`, que o separa da foto): prévia redonda de `size-20`
   (`Miniatura`), o texto de transparência sempre à vista ("Sua foto fica guardada no sistema e só você a vê.
   Remova quando quiser.", sem checkbox), a dica "JPEG, PNG ou WebP, até 5 MB." e o aviso de formato ou tamanho
   como `AvisoDeStatus` de erro. Sem foto: "Escolher foto" (`BotaoDeArquivo`); com foto: "Trocar foto" e "Remover foto"
