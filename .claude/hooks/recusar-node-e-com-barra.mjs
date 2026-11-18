@@ -11,8 +11,10 @@ process.stdin.on("end", () => {
     return;
   }
   // Código inline de verdade: a flag seguida de aspas (o texto "node -e" numa mensagem não conta).
+  // Flags curtas combinadas valem (`-pe`, `-ep`) e a aspa pode vir como `$'…'` (ANSI-C do bash).
+  // Pega: node -e "…" · node -pe '…' · node -ep "…" · node --eval="…" · node -e $'…'
   const inline =
-    /(?:^|[\s;&|(])node\s+(?:--?[\w-]+(?:=\S+)?\s+)*(?:(?:-e|-p|--eval|--print)\s+|(?:--eval|--print)=)["']/;
+    /(?:^|[\s;&|(])node\s+(?:--?[\w-]+(?:=\S+)?\s+)*(?:(?:-[a-z]*[ep][a-z]*|--eval|--print)\s+\$?|(?:--eval|--print)=\$?)["']/;
   if (!inline.test(comando) || !comando.includes("\\")) return;
   console.log(
     JSON.stringify({
