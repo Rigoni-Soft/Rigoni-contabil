@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
+    "ci:local": "yarn lint && yarn check:naming && yarn check:refs && yarn check:specs && yarn check:design-doc develop && yarn check:deps && yarn check:guard-senha && yarn next typegen && yarn tsc --noEmit && yarn format:check && yarn test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check:deps": "depcruise src --config .dependency-cruiser.cjs",
