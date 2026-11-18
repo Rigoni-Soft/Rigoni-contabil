@@ -8,6 +8,7 @@ import { BotaoDoMenu } from "@/presentation/components/ui/botao-do-menu";
 import { buttonVariants } from "@/presentation/components/ui/button";
 import { ThemeToggle } from "@/presentation/components/ui/theme-toggle";
 import { cn } from "@/presentation/lib/utils";
+import { srcDoAvatar } from "@/shared/kernel/avatar";
 import { escopoDoUsuario } from "@/shared/kernel/escopo-do-usuario";
 import { PAPEL_LABEL } from "@/shared/kernel/papeis";
 
@@ -17,6 +18,8 @@ type ShellHeaderProps = {
   setor: string;
   // Falso na troca obrigatória de senha: o cabeçalho sai sem avatar.
   comAvatar?: boolean;
+  // ISO da gravação da foto do usuário (qualquer Papel); null/ausente = logo (ADR 0012).
+  avatarAtualizadoEm?: string | null;
   // Sino de Avisos de cadastro: é um Container (módulo clientes), que a View não importa.
   avisos: React.ReactNode;
   sair: React.ReactNode;
@@ -47,6 +50,7 @@ export function ShellHeader({
   papel,
   setor,
   comAvatar = true,
+  avatarAtualizadoEm = null,
   avisos,
   sair,
 }: ShellHeaderProps) {
@@ -73,7 +77,10 @@ export function ShellHeader({
             title="Ir para o início"
             className="size-9 shrink-0 overflow-hidden rounded-full border border-input outline-hidden transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:opacity-80 pointer-coarse:size-11"
           >
-            <Miniatura src={logo} className="size-full rounded-none" />
+            <Miniatura
+              src={srcDoAvatar({ avatarAtualizadoEm, logo })}
+              className="size-full rounded-none"
+            />
           </Link>
         )}
         <Caixa className="min-w-0">

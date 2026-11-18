@@ -18,6 +18,8 @@
     "check:specs": "node scripts/check-specs-views.mjs",
     "check:design-doc": "node scripts/check-design-doc.mjs",
     "check:guard-senha": "node scripts/check-troca-senha-guard.mjs",
+    "check:rotas": "node scripts/check-rotas.mjs",
+    "check:actions": "node scripts/check-actions.mjs",
     "seed:teste-zap": "node --env-file=.env.local scripts/seed-teste-zap.mjs",
     "new:module": "node scripts/new-module.mjs",
     "mock:api": "node mock-api/server.mjs",

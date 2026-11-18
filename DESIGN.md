@@ -100,10 +100,17 @@ em monitores largos):
 - **Login e troca de senha**: ficam de fora da regra — `max-w-sm`/`max-w-md`,
   conteúdo único centralizado, por serem telas de entrada/bloqueio, não de
   trabalho. Decisão explícita do usuário: nunca ocupam a tela toda.
-- **Perfil** (`/perfil`, #56): `max-w-md`, como login/troca de senha; dados da conta em `<dl>` (rótulo
-  `muted-foreground` / valor `font-medium`), seguidos da seção "Trocar
+- **Perfil** (`/perfil`, #56): `max-w-md`, como login/troca de senha; a foto do avatar abre a tela, seguida dos dados da conta em `<dl>` (rótulo
+  `muted-foreground` / valor `font-medium`) e da seção "Trocar
   senha" separada por `border-t`. Sem cartão: são dois blocos de leitura e
-  formulário, não superfícies elevadas.
+  formulário, não superfícies elevadas. **Foto do avatar (#288):** todo usuário, de qualquer Papel (o Admin inclusive), vê a seção "Sua foto"
+  (`AvatarDaConta`, no topo, acima dos dados; o `border-t` fica no `<dl>`, que o separa da foto): prévia redonda de `size-20`
+  (`Miniatura`), o texto de transparência sempre à vista ("Sua foto fica guardada no sistema e só você a vê.
+  Remova quando quiser.", sem checkbox), a dica "JPEG, PNG ou WebP, até 5 MB." e o aviso de formato ou tamanho
+  como `AvisoDeStatus` de erro. Sem foto: "Escolher foto" (`BotaoDeArquivo`); com foto: "Trocar foto" e "Remover foto"
+  (contorno, só aparece com foto, apaga na hora). Escolher uma foto mostra a prévia recortada com "Salvar foto"
+  (foco automático) e "Cancelar" no lugar do seletor; em andamento os botões usam `aria-disabled`. Salvar,
+  cancelar e remover devolvem o foco ao "Escolher foto"/"Trocar foto", nunca ao `<body>`.
 - **Formulário de cadastro/edição** (cadastro de Cliente, de Líder/Funcionário,
   Feriados e edição do cadastro operacional `/clientes/[id]`): largura `cadastro`,
   `w-full max-w-4xl` (56 rem). **Decisão de 21/10/2026, revisa a de `w-[80%]`**: em monitor
@@ -239,7 +246,9 @@ sem precisar de classe.
   menu; com a troca obrigatória de senha pendente o cabeçalho sai sem avatar. **Logo (#287):** o
   avatar é a logo redonda (`Miniatura`, `alt=""` porque o link já tem `aria-label`, sem inicial de reserva):
   a do Setor ou a do escritório, que é a do Admin e a de todo Setor sem logo (arquivos em `public/logos/`,
-  mapa em `shared/kernel/escopo-do-usuario.ts`). O Setor é sempre o rótulo legível, nunca o slug.
+  mapa em `shared/kernel/escopo-do-usuario.ts`). O Setor é sempre o rótulo legível, nunca o slug. **Foto (#288):**
+  quem enviou foto (qualquer Papel, o Admin inclusive) vê nela, no mesmo círculo, no lugar da logo (`/api/avatar?v=<atualizadoEm>`, rota
+  autenticada; `shared/kernel/avatar.ts`); ao remover, volta à logo.
 
   **Voltar em Meu perfil:** o "Voltar" da tela leva à tela de onde o usuário veio (`router.back()`) quando o
   referrer é do próprio sistema; chegando por favorito ou link externo, ou sem histórico, segue o link para

@@ -9,6 +9,8 @@ type AvisoDeStatusProps = {
   // padrão; o ícone desce 2 px para ficar na primeira linha de 20 px.
   legivel?: boolean;
   className?: string;
+  // Para o campo apontar para o aviso (aria-describedby).
+  id?: string;
 };
 
 // Erro é anunciado como alerta; sucesso e atenção, como status. Ícone + texto + cor, nunca só cor
@@ -21,10 +23,11 @@ const POR_TIPO = {
   atencao: { Icone: Clock, cor: "text-foreground", role: "status" },
 } as const;
 
-export function AvisoDeStatus({ tipo, texto, legivel, className }: AvisoDeStatusProps) {
+export function AvisoDeStatus({ tipo, texto, legivel, className, id }: AvisoDeStatusProps) {
   const { Icone, cor, role } = POR_TIPO[tipo];
   return (
     <p
+      id={id}
       role={role}
       className={cn("flex items-start gap-1.5", legivel ? "text-sm" : "text-xs", cor, className)}
     >

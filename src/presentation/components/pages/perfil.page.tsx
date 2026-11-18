@@ -5,6 +5,7 @@ import { TelaDeTrabalhoTemplate } from "@/presentation/components/templates/tela
 type PerfilPageProps = {
   header: React.ReactNode;
   voltar: React.ReactNode;
+  avatar?: React.ReactNode;
   formulario: React.ReactNode;
   nome: string;
   email: string;
@@ -15,6 +16,7 @@ type PerfilPageProps = {
 export function PerfilPage({
   header,
   voltar,
+  avatar,
   formulario,
   nome,
   email,
@@ -32,6 +34,7 @@ export function PerfilPage({
           email={email}
           papel={papel}
           setor={setor}
+          avatar={avatar}
           formulario={formulario}
         />
       }

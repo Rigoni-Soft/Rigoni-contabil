@@ -24,6 +24,23 @@ describe("PerfilPage", () => {
     expect(screen.getByRole("form", { name: "Trocar senha" })).toBeInTheDocument();
   });
 
+  it("mostra o slot do avatar entre os dados e a troca de senha, quando recebido", () => {
+    render(
+      <PerfilPage
+        header={<header>Cabeçalho</header>}
+        voltar={<button type="button">Voltar</button>}
+        nome="Jéssica"
+        email="jessica@rigonicontabil.local"
+        papel="funcionario"
+        setor="contabil"
+        avatar={<section aria-label="Foto" />}
+        formulario={<form aria-label="Trocar senha" />}
+      />,
+    );
+
+    expect(screen.getByRole("region", { name: "Foto" })).toBeInTheDocument();
+  });
+
   it("Admin vê 'Todos os setores' em vez do Setor interno", () => {
     render(
       <PerfilPage

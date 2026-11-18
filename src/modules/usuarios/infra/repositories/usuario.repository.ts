@@ -51,15 +51,16 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
     return this.paraUsuarios(data);
   }
 
-  async listarComBloqueioPendente(): Promise<Result<Usuario[], AppError>> {
+  async listarComDesativacaoPendente(): Promise<Result<Usuario[], AppError>> {
     const { data, error } = await this.supabase
       .from("perfis")
       .select("*")
       .not("desativado_em", "is", null)
-      .is("banido_em", null)
+      // Pendente: o ban não foi confirmado ou a foto do avatar ainda está gravada.
+      .or("banido_em.is.null,avatar_atualizado_em.not.is.null")
       .order("nome");
     if (error) {
-      this.erros.registrar(`Falha ao listar bloqueios pendentes: ${error.message}`);
+      this.erros.registrar(`Falha ao listar desativações pendentes: ${error.message}`);
       return err(new PersistenciaError("Falha ao listar usuários."));
     }
     return this.paraUsuarios(data);

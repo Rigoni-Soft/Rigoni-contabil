@@ -1,4 +1,6 @@
 import type { AuthAdminPort } from "@/modules/usuarios/application/ports/out/auth-admin.provider";
+import type { AvatarArmazenamentoPort } from "@/modules/usuarios/application/ports/out/avatar-armazenamento.provider";
+import type { AvatarMarcaPort } from "@/modules/usuarios/application/ports/out/avatar-marca.provider";
 import type { DesativacaoPort } from "@/modules/usuarios/application/ports/out/desativacao.provider";
 import type { RegistroDeErrosPort } from "@/modules/usuarios/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
@@ -15,13 +17,20 @@ class FalhaTecnica extends AppError {
   readonly code = "PERSISTENCIA_ERROR";
 }
 
-function usuario(id: string, papel: string): Usuario {
+function usuario(
+  id: string,
+  papel: string,
+  extras: { avatar?: string; desativadoEm?: string; banidoEm?: string } = {},
+): Usuario {
   const resultado = Usuario.builder()
     .comId(id)
     .comNome(`Nome ${id}`)
     .comEmail(`${id}@rigonicontabil.local`)
     .comPapel(papel)
     .comSetor("simples_nacional")
+    .comAvatarAtualizadoEm(extras.avatar ?? null)
+    .comDesativadoEm(extras.desativadoEm ?? null)
+    .comBanidoEm(extras.banidoEm ?? null)
     .build();
   if (!resultado.ok) throw new Error("setup inválido");
   return resultado.value;
@@ -35,6 +44,8 @@ function montar(opcoes: { atorId?: string | null; perfis?: Usuario[] } = {}) {
     banir?: AppError;
     bloquear?: AppError;
     buscar?: AppError;
+    apagarFoto?: AppError;
+    zerarFoto?: AppError;
   } = {};
 
   const sessao = {
@@ -61,8 +72,29 @@ function montar(opcoes: { atorId?: string | null; perfis?: Usuario[] } = {}) {
     },
   } as unknown as AuthAdminPort;
 
+  const armazenamento = {
+    apagar: async (id: string) => {
+      chamadas.push(`apagar-foto:${id}`);
+      return falhas.apagarFoto ? err(falhas.apagarFoto) : ok(undefined);
+    },
+  } as unknown as AvatarArmazenamentoPort;
+  const marca: AvatarMarcaPort = {
+    definir: async (id, em) => {
+      chamadas.push(`zerar-foto:${id}:${em === null ? "null" : "data"}`);
+      return falhas.zerarFoto ? err(falhas.zerarFoto) : ok(undefined);
+    },
+  };
+
   return {
-    casoDeUso: new DesativarUsuario(sessao, usuarios, desativacao, authAdmin, erros),
+    casoDeUso: new DesativarUsuario(
+      sessao,
+      usuarios,
+      desativacao,
+      authAdmin,
+      armazenamento,
+      marca,
+      erros,
+    ),
     chamadas,
     falhas,
   };
@@ -75,7 +107,12 @@ describe("DesativarUsuario", () => {
     const resultado = await casoDeUso.execute({ usuarioId: "func-1" });
 
     expect(resultado.ok).toBe(true);
-    expect(chamadas).toEqual(["desativar:func-1:admin-1", "banir:func-1", "bloquear:func-1"]);
+    expect(chamadas).toEqual([
+      "desativar:func-1:admin-1",
+      "banir:func-1",
+      "bloquear:func-1",
+      "apagar-foto:func-1",
+    ]);
   });
 
   it("Admin desativa Líder de setor", async () => {
@@ -195,5 +232,116 @@ describe("DesativarUsuario", () => {
     await casoDeUso.execute({ usuarioId: "func-1" });
 
     expect(chamadas.filter((c) => c === "banir:func-1")).toHaveLength(2);
+  });
+
+  describe("foto do avatar (ADR 0012)", () => {
+    const comFoto = () => [
+      usuario("admin-1", "admin"),
+      usuario("func-1", "funcionario", { avatar: "2026-11-01T10:00:00Z" }),
+    ];
+
+    it("com foto, apaga o objeto e zera a coluna depois do banimento", async () => {
+      const { casoDeUso, chamadas } = montar({ perfis: comFoto() });
+
+      const resultado = await casoDeUso.execute({ usuarioId: "func-1" });
+
+      expect(resultado.ok).toBe(true);
+      expect(chamadas).toEqual([
+        "desativar:func-1:admin-1",
+        "banir:func-1",
+        "bloquear:func-1",
+        "apagar-foto:func-1",
+        "zerar-foto:func-1:null",
+      ]);
+    });
+
+    it("sem foto na coluna, apaga o objeto (pode haver um órfão) mas não toca na coluna", async () => {
+      const { casoDeUso, chamadas } = montar();
+
+      await casoDeUso.execute({ usuarioId: "func-1" });
+
+      expect(chamadas).toContain("apagar-foto:func-1");
+      expect(chamadas.some((c) => c.startsWith("zerar-foto"))).toBe(false);
+    });
+
+    it("se apagar falha, a coluna continua preenchida e a conta fica com conclusão pendente", async () => {
+      const { casoDeUso, chamadas, falhas } = montar({ perfis: comFoto() });
+      falhas.apagarFoto = new FalhaTecnica("storage fora");
+
+      const resultado = await casoDeUso.execute({ usuarioId: "func-1" });
+
+      expect(resultado.ok).toBe(false);
+      if (!resultado.ok) {
+        expect(resultado.error.code).toBe("INCONSISTENT_STATE");
+        expect(resultado.error.message).toMatch(/a foto não foi apagada/);
+        expect(resultado.error.message).toMatch(/conclusão pendente/);
+      }
+      expect(chamadas).not.toContain("zerar-foto:func-1:null");
+      // o banimento já tinha sido concluído
+      expect(chamadas).toContain("bloquear:func-1");
+    });
+
+    it("se zerar a coluna falha, também fica pendente", async () => {
+      const { casoDeUso, falhas } = montar({ perfis: comFoto() });
+      falhas.zerarFoto = new FalhaTecnica("banco fora");
+
+      const resultado = await casoDeUso.execute({ usuarioId: "func-1" });
+
+      expect(resultado.ok).toBe(false);
+      if (!resultado.ok) expect(resultado.error.code).toBe("INCONSISTENT_STATE");
+    });
+
+    it("a falha do ban não impede apagar a foto, e a mensagem cita as duas pendências", async () => {
+      const { casoDeUso, chamadas, falhas } = montar({ perfis: comFoto() });
+      falhas.banir = new FalhaTecnica("auth fora");
+      falhas.apagarFoto = new FalhaTecnica("storage fora");
+
+      const resultado = await casoDeUso.execute({ usuarioId: "func-1" });
+
+      expect(chamadas).toContain("apagar-foto:func-1");
+      expect(resultado.ok).toBe(false);
+      if (!resultado.ok) {
+        expect(resultado.error.message).toMatch(
+          /o bloqueio da conta falhou e a foto não foi apagada/,
+        );
+      }
+    });
+
+    it("repetir com o ban já confirmado refaz só a foto", async () => {
+      const { casoDeUso, chamadas } = montar({
+        perfis: [
+          usuario("admin-1", "admin"),
+          usuario("func-1", "funcionario", {
+            avatar: "2026-11-01T10:00:00Z",
+            desativadoEm: "2026-11-10T10:00:00Z",
+            banidoEm: "2026-11-10T10:00:01Z",
+          }),
+        ],
+      });
+
+      const resultado = await casoDeUso.execute({ usuarioId: "func-1" });
+
+      expect(resultado.ok).toBe(true);
+      expect(chamadas).toEqual([
+        "desativar:func-1:admin-1",
+        "apagar-foto:func-1",
+        "zerar-foto:func-1:null",
+      ]);
+    });
+
+    it("repetir com tudo concluído reafirma a desativação e reapaga a foto (idempotente), sem banir nem zerar a coluna", async () => {
+      const { casoDeUso, chamadas } = montar({
+        perfis: [
+          usuario("admin-1", "admin"),
+          usuario("func-1", "funcionario", {
+            desativadoEm: "2026-11-10T10:00:00Z",
+            banidoEm: "2026-11-10T10:00:01Z",
+          }),
+        ],
+      });
+
+      expect((await casoDeUso.execute({ usuarioId: "func-1" })).ok).toBe(true);
+      expect(chamadas).toEqual(["desativar:func-1:admin-1", "apagar-foto:func-1"]);
+    });
   });
 });

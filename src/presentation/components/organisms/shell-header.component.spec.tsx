@@ -65,6 +65,29 @@ describe("ShellHeader", () => {
     expect(logoDoAvatar()).toBe("/logos/logo-rigoni.jpeg");
   });
 
+  it("com foto, o avatar aponta para a rota autenticada versionada; sem foto, volta à logo", () => {
+    const props = { nome: "N", avisos: <button>Avisos</button>, sair: <button>Sair</button> };
+    const srcDoAvatar = () =>
+      screen
+        .getByRole("link", { name: "Ir para o início" })
+        .querySelector("img")
+        ?.getAttribute("src");
+    const { rerender } = render(
+      <ShellHeader
+        {...props}
+        papel="funcionario"
+        setor="contabil"
+        avatarAtualizadoEm="2026-11-18T10:00:00.000Z"
+      />,
+    );
+    expect(srcDoAvatar()).toBe("/api/avatar?v=2026-11-18T10%3A00%3A00.000Z");
+
+    rerender(
+      <ShellHeader {...props} papel="funcionario" setor="contabil" avatarAtualizadoEm={null} />,
+    );
+    expect(srcDoAvatar()).toBe("/logos/logo-contabil.jpeg");
+  });
+
   it("renderiza o slot de sair recebido por prop", () => {
     render(
       <ShellHeader

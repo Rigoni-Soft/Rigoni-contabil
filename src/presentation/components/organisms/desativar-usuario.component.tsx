@@ -7,7 +7,7 @@ import { Button } from "@/presentation/components/ui/button";
 type DesativarUsuarioProps = {
   nome: string;
   // Conta já desativada cujo bloqueio no Auth falhou: um clique repete, sem confirmação.
-  bloqueioPendente?: boolean;
+  desativacaoPendente?: boolean;
   confirmando: boolean;
   pendente: boolean;
   erro?: string;
@@ -18,7 +18,7 @@ type DesativarUsuarioProps = {
 
 export function DesativarUsuario({
   nome,
-  bloqueioPendente = false,
+  desativacaoPendente = false,
   confirmando,
   pendente,
   erro,
@@ -28,16 +28,16 @@ export function DesativarUsuario({
 }: DesativarUsuarioProps) {
   return (
     <Caixa className="flex shrink-0 flex-col items-end gap-1">
-      {bloqueioPendente ? (
+      {desativacaoPendente ? (
         <Button
           type="button"
           variant="outline"
           size="sm"
           disabled={pendente}
-          aria-label={`Concluir bloqueio de ${nome}`}
+          aria-label={`Concluir desativação de ${nome}`}
           onClick={aoConfirmar}
         >
-          Concluir bloqueio
+          Concluir desativação
         </Button>
       ) : confirmando ? (
         <Linha espaco={2}>

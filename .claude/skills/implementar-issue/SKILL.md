@@ -40,13 +40,15 @@ Ação em linha que faz o botão clicado sumir (lápis que vira salvar/cancelar,
 
 Tela que lista itens e os cadastra/edita na própria tela segue a seção "Tela de lista + formulário" do `DESIGN.md` (nota de obrigatório no topo, lista com divisores, ação principal cheia e editar em ícone de contorno, editar substitui o formulário novo, rodapé Salvar / ação de atenção em vermelho / Cancelar, conteúdo de outra natureza em tela própria), sem esperar o pedido.
 
+Antes de criar `route.ts`, Server Action ou arquivo com sufixo de papel novo, leia a seção correspondente do `docs/arquitetura.md` (sufixos §0.2; rotas e Server Actions §3.13): `route.ts` só nas exceções listadas ali, e toda action valida a entrada com Zod (`*.schema.ts`).
+
 Antes de criar um componente de UI, liste `src/presentation/components/{ui,atoms,molecules,organisms}` e leia no `DESIGN.md` a seção da tela; o componente novo só nasce quando nenhum existente serve, e entra no `DESIGN.md` no mesmo commit (`yarn check:design-doc <base>` reprova o que faltar).
 
 Quando o usuário corrigir o **desenho** depois da implementação, atualize na mesma rodada `CONTEXT.md`, `docs/trilha-implementacao.md` e os e2e que citam a tela antiga, antes de reportar; o gate e o roteiro de teste leem esses arquivos.
 
 ## 4. Fechar a estação
 
-Rode `yarn tsc --noEmit`, `yarn lint`, `yarn test`, `yarn check:naming`, `yarn check:refs`, `yarn check:specs`, `yarn check:design-doc <base>`, `yarn check:deps`, `yarn check:guard-senha` e `npx prettier --check` nos arquivos do diff (arquivo novo sem sufixo de papel, `#NN` em comentário, import entre camadas proibido, como presenter importando `domain`, e Container que ganhou spec ainda no `scripts/specs-sem-teste.baseline.txt` reprovam no CI). Depois de editar um `className`, rode `prettier --write` no arquivo e confira a linha: um `Edit` já colou duas classes numa só (`hover:bg-primary/90focus-visible:ring-2`) e tirou o anel de foco sem erro algum. **Critério de saída: código implementado e commitado na branch, com type-safety, testes e checks verdes.**
+Rode `yarn tsc --noEmit`, `yarn lint`, `yarn test`, `yarn check:naming`, `yarn check:refs`, `yarn check:specs`, `yarn check:design-doc <base>`, `yarn check:deps`, `yarn check:guard-senha`, `yarn check:rotas`, `yarn check:actions` e `npx prettier --check` nos arquivos do diff (arquivo novo sem sufixo de papel, `#NN` em comentário, import entre camadas proibido, como presenter importando `domain`, e Container que ganhou spec ainda no `scripts/specs-sem-teste.baseline.txt` reprovam no CI). Depois de editar um `className`, rode `prettier --write` no arquivo e confira a linha: um `Edit` já colou duas classes numa só (`hover:bg-primary/90focus-visible:ring-2`) e tirou o anel de foco sem erro algum. **Critério de saída: código implementado e commitado na branch, com type-safety, testes e checks verdes.**
 
 Reporte: branch, base, commits e o próximo passo: `/gate-qualidade [base]`. **Nunca `git push`, nem abrir PR, sem ordem explícita do usuário** (um hook também pede confirmação). **Nunca `git stash`** (nem `-u`: há arquivos soltos do usuário no repositório, como `supabase/snippets/`); para comparar um teste com a base, use `git show` ou `git worktree`.
 

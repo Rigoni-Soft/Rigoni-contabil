@@ -24,13 +24,13 @@ export default async function Page() {
           acoes={(u) =>
             u.papel === "admin" ? null : (
               <GrupoDeAcoes>
-                {!u.bloqueioPendente && (
+                {!u.desativacaoPendente && (
                   <AlterarPapelContainer usuarioId={u.id} nome={u.nome} papel={u.papel} />
                 )}
                 <DesativarUsuarioContainer
                   usuarioId={u.id}
                   nome={u.nome}
-                  bloqueioPendente={u.bloqueioPendente}
+                  desativacaoPendente={u.desativacaoPendente}
                 />
               </GrupoDeAcoes>
             )

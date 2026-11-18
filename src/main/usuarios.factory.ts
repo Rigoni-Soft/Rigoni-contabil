@@ -8,24 +8,32 @@ import { createSupabaseServer } from "@/main/supabase-server.factory";
 import type { AlterarPapelUsuarioPort } from "@/modules/usuarios/application/ports/in/alterar-papel-usuario.provider";
 import type { CriarUsuarioPort } from "@/modules/usuarios/application/ports/in/criar-usuario.provider";
 import type { DesativarUsuarioPort } from "@/modules/usuarios/application/ports/in/desativar-usuario.provider";
+import type { EnviarAvatarPort } from "@/modules/usuarios/application/ports/in/enviar-avatar.provider";
 import type { ListarSetoresPort } from "@/modules/usuarios/application/ports/in/listar-setores.provider";
 import type { ListarUsuariosPort } from "@/modules/usuarios/application/ports/in/listar-usuarios.provider";
 import type { LoginPort } from "@/modules/usuarios/application/ports/in/login.provider";
 import type { LogoutPort } from "@/modules/usuarios/application/ports/in/logout.provider";
+import type { ObterAvatarPort } from "@/modules/usuarios/application/ports/in/obter-avatar.provider";
 import type { ObterSessaoPort } from "@/modules/usuarios/application/ports/in/obter-sessao.provider";
+import type { RemoverAvatarPort } from "@/modules/usuarios/application/ports/in/remover-avatar.provider";
 import type { TrocarSenhaPort } from "@/modules/usuarios/application/ports/in/trocar-senha.provider";
 import type { AuditoriaPort } from "@/modules/usuarios/application/ports/out/auditoria.provider";
 import { AlterarPapelUsuario } from "@/modules/usuarios/application/use-cases/alterar-papel-usuario.use-case";
 import { CriarUsuario } from "@/modules/usuarios/application/use-cases/criar-usuario.use-case";
 import { DesativarUsuario } from "@/modules/usuarios/application/use-cases/desativar-usuario.use-case";
+import { EnviarAvatar } from "@/modules/usuarios/application/use-cases/enviar-avatar.use-case";
 import { ListarSetores } from "@/modules/usuarios/application/use-cases/listar-setores.use-case";
 import { ListarUsuarios } from "@/modules/usuarios/application/use-cases/listar-usuarios.use-case";
 import { Login } from "@/modules/usuarios/application/use-cases/login.use-case";
 import { Logout } from "@/modules/usuarios/application/use-cases/logout.use-case";
+import { ObterAvatar } from "@/modules/usuarios/application/use-cases/obter-avatar.use-case";
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
+import { RemoverAvatar } from "@/modules/usuarios/application/use-cases/remover-avatar.use-case";
 import { TrocarSenha } from "@/modules/usuarios/application/use-cases/trocar-senha.use-case";
 import { SupabaseAlteracaoPapelGateway } from "@/modules/usuarios/infra/gateways/supabase-alteracao-papel.gateway";
 import { SupabaseAuthAdminGateway } from "@/modules/usuarios/infra/gateways/supabase-auth-admin.gateway";
+import { SupabaseAvatarArmazenamentoGateway } from "@/modules/usuarios/infra/gateways/supabase-avatar-armazenamento.gateway";
+import { SupabaseAvatarMarcaGateway } from "@/modules/usuarios/infra/gateways/supabase-avatar-marca.gateway";
 import { SupabaseDesativacaoGateway } from "@/modules/usuarios/infra/gateways/supabase-desativacao.gateway";
 import { SupabaseFinalizarTrocaSenhaGateway } from "@/modules/usuarios/infra/gateways/supabase-finalizar-troca-senha.gateway";
 import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabase-sessao.gateway";
@@ -117,6 +125,8 @@ export async function makeDesativarUsuario(): Promise<DesativarUsuarioPort> {
     new SupabaseUsuarioRepository(supabase),
     new SupabaseDesativacaoGateway(supabaseAdmin),
     new SupabaseAuthAdminGateway(supabaseAdmin),
+    new SupabaseAvatarArmazenamentoGateway(supabaseAdmin),
+    new SupabaseAvatarMarcaGateway(supabaseAdmin),
     errosUsuarios,
   );
 }
@@ -127,5 +137,40 @@ export async function makeAlterarPapelUsuario(): Promise<AlterarPapelUsuarioPort
     new SupabaseSessaoGateway(supabase),
     new SupabaseUsuarioRepository(supabase),
     new SupabaseAlteracaoPapelGateway(createSupabaseAdmin()),
+  );
+}
+
+export async function makeEnviarAvatar(): Promise<EnviarAvatarPort> {
+  const supabase = await createSupabaseServer();
+  const supabaseAdmin = createSupabaseAdmin();
+  return new EnviarAvatar(
+    new SupabaseSessaoGateway(supabase),
+    new SupabaseUsuarioRepository(supabase),
+    new SupabaseAvatarArmazenamentoGateway(supabaseAdmin),
+    new SupabaseAvatarMarcaGateway(supabaseAdmin),
+    auditoriaViaModuloAuditoria(),
+    errosUsuarios,
+  );
+}
+
+export async function makeRemoverAvatar(): Promise<RemoverAvatarPort> {
+  const supabase = await createSupabaseServer();
+  const supabaseAdmin = createSupabaseAdmin();
+  return new RemoverAvatar(
+    new SupabaseSessaoGateway(supabase),
+    new SupabaseUsuarioRepository(supabase),
+    new SupabaseAvatarArmazenamentoGateway(supabaseAdmin),
+    new SupabaseAvatarMarcaGateway(supabaseAdmin),
+    auditoriaViaModuloAuditoria(),
+    errosUsuarios,
+  );
+}
+
+export async function makeObterAvatar(): Promise<ObterAvatarPort> {
+  const supabase = await createSupabaseServer();
+  return new ObterAvatar(
+    new SupabaseSessaoGateway(supabase),
+    new SupabaseUsuarioRepository(supabase),
+    new SupabaseAvatarArmazenamentoGateway(createSupabaseAdmin()),
   );
 }
