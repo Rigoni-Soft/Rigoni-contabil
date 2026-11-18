@@ -43,7 +43,7 @@ type Valores = EditarCadastroOperacionalFormValues;
 // com o valor neutro e nunca são enviados.
 const valoresIniciaisDe = (dados: CadastroRhClienteDto, readOnly: boolean): Valores => ({
   formaEnvio: "whatsapp",
-  contatos: dados.contatos.length || readOnly ? dados.contatos : [contatoNovo(true)],
+  contatos: dados.contatos.length || readOnly ? dados.contatos : [contatoNovo()],
   documentoObrigatorio: null,
   dasStatus: null,
   dataEnvioDas: null,
@@ -172,7 +172,7 @@ export function EditarCadastroRhContainer({
       sucesso={sucesso}
       oculto={!hidratado}
       contatos={fields}
-      onAdicionarContato={() => append(contatoNovo(fields.length === 0))}
+      onAdicionarContato={() => append(contatoNovo())}
       onRemoverContato={remove}
       parcelamentos={parcelamentos.parcelamentos}
       parcelamentoCampos={parcelamentos.parcelamentoCampos}

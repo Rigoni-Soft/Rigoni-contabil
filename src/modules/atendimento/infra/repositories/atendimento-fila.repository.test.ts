@@ -99,7 +99,6 @@ beforeAll(async () => {
     cliente_id: clienteId,
     nome: "Seu Fila",
     telefone: "(61) 95557-0001",
-    padrao: true,
   });
   if (contato.error) throw contato.error;
 });

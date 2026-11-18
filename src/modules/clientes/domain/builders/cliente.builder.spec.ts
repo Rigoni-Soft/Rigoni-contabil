@@ -190,7 +190,7 @@ describe("ClienteBuilder", () => {
       .comContratoSocialCaminho(null)
       .comAlteracoesContratuais([])
       .comFormaEnvio("email")
-      .comContatos([{ nome: "Maria", telefone: "11999990000", padrao: true }])
+      .comContatos([{ nome: "Maria", telefone: "11999990000", email: "" }])
       .comDocumentoObrigatorio("positivo")
       .comDasStatus("pronto")
       .comDataEnvioDas(new Date("2026-09-10"))
@@ -209,7 +209,7 @@ describe("ClienteBuilder", () => {
     }
   });
 
-  it("rejeita 2 contatos marcados como padrão ao mesmo tempo", () => {
+  it("aceita vários contatos: não há mais contato padrão", () => {
     const resultado = Cliente.builder()
       .comId("11111111-1111-1111-1111-111111111111")
       .comEmpresa("Padaria Pão Quente Ltda")
@@ -218,16 +218,16 @@ describe("ClienteBuilder", () => {
       .comContratoSocialCaminho(null)
       .comAlteracoesContratuais([])
       .comContatos([
-        { nome: "Maria", telefone: "11999990000", padrao: true },
-        { nome: "João", telefone: "11988880000", padrao: true },
+        { nome: "Maria", telefone: "11999990000", email: "" },
+        { nome: "João", telefone: "11988880000", email: "" },
       ])
       .build();
 
-    expect(resultado.ok).toBe(false);
-    if (!resultado.ok) expect(resultado.error.fields?.contatos).toBeDefined();
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) expect(resultado.value.contatos).toHaveLength(2);
   });
 
-  it("rejeita contatos sem nenhum marcado como padrão, quando há ao menos um contato", () => {
+  it("rejeita contato sem WhatsApp nem e-mail", () => {
     const resultado = Cliente.builder()
       .comId("11111111-1111-1111-1111-111111111111")
       .comEmpresa("Padaria Pão Quente Ltda")
@@ -235,7 +235,7 @@ describe("ClienteBuilder", () => {
       .comRegime("simples_nacional")
       .comContratoSocialCaminho(null)
       .comAlteracoesContratuais([])
-      .comContatos([{ nome: "Maria", telefone: "11999990000", padrao: false }])
+      .comContatos([{ nome: "Maria", telefone: "", email: "" }])
       .build();
 
     expect(resultado.ok).toBe(false);
@@ -252,7 +252,7 @@ describe("ClienteBuilder", () => {
         contratoSocialCaminho: null,
         alteracoesContratuais: [],
         formaEnvio: "email",
-        contatos: [{ nome: "Maria", telefone: "11999990000", padrao: true }],
+        contatos: [{ nome: "Maria", telefone: "11999990000", email: "" }],
         documentoObrigatorio: "positivo",
         dasStatus: "pronto",
         dataEnvioDas: "2026-09-10",

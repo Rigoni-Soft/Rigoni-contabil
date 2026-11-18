@@ -80,7 +80,6 @@ async function criarCliente(telefoneCadastrado: string): Promise<Fixture> {
       cliente_id: fixture.id,
       nome: "Ângela",
       telefone: telefoneCadastrado,
-      padrao: true,
     }),
   );
   return fixture;

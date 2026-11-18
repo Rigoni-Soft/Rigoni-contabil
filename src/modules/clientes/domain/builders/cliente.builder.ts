@@ -6,7 +6,7 @@ import type {
 import { AlteracaoContratual } from "@/modules/clientes/domain/value-objects/alteracao-contratual.vo";
 import { AtividadeMensal } from "@/modules/clientes/domain/value-objects/atividade-mensal.vo";
 import { Cnpj } from "@/modules/clientes/domain/value-objects/cnpj.vo";
-import { Contato } from "@/modules/clientes/domain/value-objects/contato.vo";
+import { Contato, type ContatoProps } from "@/modules/clientes/domain/value-objects/contato.vo";
 import { DasStatus } from "@/modules/clientes/domain/value-objects/das-status.vo";
 import { DocumentoObrigatorioStatus } from "@/modules/clientes/domain/value-objects/documento-obrigatorio-status.vo";
 import { Email } from "@/modules/clientes/domain/value-objects/email.vo";
@@ -20,7 +20,7 @@ export type AlteracaoContratualRestaurar = {
   data: string;
   arquivoCaminho: string;
 };
-export type ContatoRestaurar = { id?: string; nome: string; telefone: string; padrao: boolean };
+export type ContatoRestaurar = ContatoProps;
 export type AtividadeMensalRestaurar = {
   anoMes: string;
   industria: boolean;
@@ -258,17 +258,6 @@ export class ClienteBuilder {
       this.camposInvalidos.cnpj = ["obrigatório"];
     if (this.regime === undefined && !this.camposInvalidos.regime)
       this.camposInvalidos.regime = ["obrigatório"];
-
-    // Invariante do agregado: se há contatos, exatamente 1 é padrão —
-    // checado aqui (não em comContatos) pelo mesmo motivo do resto do build():
-    // é uma regra sobre o conjunto final, não sobre um item isolado.
-    if (
-      !this.camposInvalidos.contatos &&
-      this.contatos.length > 0 &&
-      this.contatos.filter((c) => c.padrao).length !== 1
-    ) {
-      this.camposInvalidos.contatos = ["Deve haver exatamente um contato marcado como padrão"];
-    }
 
     if (Object.keys(this.camposInvalidos).length > 0) {
       return err(new ValidationError("Dados de cliente inválidos", { ...this.camposInvalidos }));

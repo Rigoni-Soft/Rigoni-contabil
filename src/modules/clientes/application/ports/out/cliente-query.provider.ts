@@ -1,4 +1,5 @@
 import type { ParcelamentoSalvo } from "@/modules/clientes/application/ports/out/cliente-parcelamento.repository";
+import type { ContatoProps } from "@/modules/clientes/domain/value-objects/contato.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
@@ -16,7 +17,7 @@ export type CadastroOperacionalClienteDto = {
   cnpj: string;
   regime: string;
   formaEnvio: string;
-  contatos: { id?: string; nome: string; telefone: string; padrao: boolean }[];
+  contatos: ContatoProps[];
   documentoObrigatorio: string | null;
   dasStatus: string | null;
   dataEnvioDas: string | null;
@@ -32,7 +33,7 @@ export type CadastroOperacionalClienteDto = {
 // O cadastro do Cliente no RH: empresa e CNPJ, os contatos (de todos os Setores) e as observações gerais do RH.
 // Não traz o Regime nem nada do cadastro operacional do SN.
 export type CadastroRhClienteDto = SugestaoClienteDto & {
-  contatos: { id: string; nome: string; telefone: string; padrao: boolean }[];
+  contatos: ContatoProps[];
   observacoes: string;
   // Os Parcelamentos do RH (os do SN não aparecem aqui).
   parcelamentos: ParcelamentoDto[];

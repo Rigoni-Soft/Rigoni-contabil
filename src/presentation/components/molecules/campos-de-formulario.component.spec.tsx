@@ -129,7 +129,7 @@ describe("linhas de lista do formulário", () => {
         indice={1}
         nome={{}}
         telefone={{}}
-        padrao={{}}
+        email={{}}
         erroTelefone="Telefone inválido."
         onRemover={aoRemover}
       />,

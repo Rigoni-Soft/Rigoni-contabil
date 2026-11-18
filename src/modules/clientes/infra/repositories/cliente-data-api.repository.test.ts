@@ -109,7 +109,7 @@ const paramsEdicao = (clienteId: string) => ({
   p_das_status: "pronto",
   p_data_envio_das: null,
   p_observacoes_gerais: "teste",
-  p_contatos: [{ id: crypto.randomUUID(), nome: "Maria", telefone: "11999990000", padrao: true }],
+  p_contatos: [{ id: crypto.randomUUID(), nome: "Maria", telefone: "11999990000", email: "" }],
   p_ano_mes: primeiroDiaDoMesAtual(),
   p_industria: false,
   p_comercio: true,
@@ -295,7 +295,7 @@ describe("Auditoria atômica da edição", () => {
 
     const { error } = await supabase.rpc("editar_cadastro_operacional_cliente", {
       ...paramsEdicao(cliente.id),
-      p_contatos: [{ nome: null, telefone: "1", padrao: true }],
+      p_contatos: [{ nome: null, telefone: "1", email: "" }],
     });
 
     expect(error).not.toBeNull();
@@ -414,7 +414,7 @@ describe("Data API — revalidação (view, auditoria e gatilhos)", () => {
       cliente_id: cliente.id,
       nome: "Direto",
       telefone: "11988887777",
-      padrao: true,
+      dono_setor: "simples_nacional",
     });
     expect(inserirContato.error).toBeNull();
     expect(await eventos(cnpj)).toBe(3);
@@ -532,12 +532,14 @@ describe("Data API — revalidação (view, auditoria e gatilhos)", () => {
       expect(automatico.data).toHaveLength(aplica ? 1 : 0);
 
       const funcionario = await comoFuncionarioSN();
-      const contatoDireto = (contatoId: string) => ({
+      // O telefone muda a cada contato (o número é único no Cliente); o dono é o Setor de quem insere
+      // (o Admin não tem Setor dono).
+      const contatoDireto = (contatoId: string, donoSetor: string | null = "simples_nacional") => ({
         id: contatoId,
         cliente_id: id,
         nome: "Contato Direto",
-        telefone: "61999990000",
-        padrao: false,
+        telefone: `6199${contatoId.replace(/\D/g, "").padEnd(7, "0").slice(0, 7)}`,
+        dono_setor: donoSetor,
       });
       const existente = crypto.randomUUID();
       const semente = await serviceRole().from("cliente_contatos").insert(contatoDireto(existente));
@@ -547,10 +549,13 @@ describe("Data API — revalidação (view, auditoria e gatilhos)", () => {
 
       if (aplica) {
         // Contato direto (INSERT/DELETE) continua permitido a Admin e Funcionário SN, com auditoria.
-        for (const supabase of [admin, funcionario]) {
+        for (const [supabase, dono] of [
+          [admin, null],
+          [funcionario, "simples_nacional"],
+        ] as const) {
           const novo = crypto.randomUUID();
           expect(
-            (await supabase.from("cliente_contatos").insert(contatoDireto(novo))).error,
+            (await supabase.from("cliente_contatos").insert(contatoDireto(novo, dono))).error,
           ).toBeNull();
           expect(
             (await supabase.from("cliente_contatos").delete().eq("id", novo)).error,
@@ -567,15 +572,13 @@ describe("Data API — revalidação (view, auditoria e gatilhos)", () => {
       const rpc = await funcionario.rpc("editar_cadastro_operacional_cliente", paramsEdicao(id));
       expect(rpc.error?.message).toMatch(/não se aplica/);
 
-      // Contato também é Cadastro operacional SN: INSERT e DELETE diretos são negados
-      for (const supabase of [admin, funcionario]) {
-        const insercao = await supabase
-          .from("cliente_contatos")
-          .insert(contatoDireto(crypto.randomUUID()));
-        expect(insercao.error?.message).toMatch(/não se aplica/);
-        // Sem erro ou com erro conforme a RLS do Setor enxergue a linha: o que vale é nada ser removido.
-        await supabase.from("cliente_contatos").delete().eq("id", existente);
-      }
+      // O Contato vale para qualquer Regime, mas quem não é Responsável do Cliente no Setor não grava:
+      // o Funcionário SN (sem ser Responsável) não insere nem remove.
+      const insercao = await funcionario
+        .from("cliente_contatos")
+        .insert(contatoDireto(crypto.randomUUID()));
+      expect(insercao.error).not.toBeNull();
+      await funcionario.from("cliente_contatos").delete().eq("id", existente);
       expect((await contatosDoCliente()).map((c) => c.id)).toEqual([existente]);
 
       // DML direto de Admin e de Funcionário SN também não cria o cadastro

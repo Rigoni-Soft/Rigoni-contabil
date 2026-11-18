@@ -6,6 +6,10 @@ import type { Cliente } from "@/modules/clientes/domain/entities/cliente.entity"
 import type { AlteracaoContratual } from "@/modules/clientes/domain/value-objects/alteracao-contratual.vo";
 import { ConsoleRegistroDeErrosGateway } from "@/modules/clientes/infra/gateways/console-registro-de-erros.gateway";
 import { clienteDoRow, type ClienteRow } from "@/modules/clientes/infra/mappers/cliente.mapper";
+import {
+  contatoParaSalvar,
+  EMBED_CONTATOS,
+} from "@/modules/clientes/infra/mappers/contato-row.mapper";
 import { AppError } from "@/shared/errors/app.error";
 import { ResultadoIncertoError } from "@/shared/errors/resultado-incerto.error";
 import { ValidationError } from "@/shared/errors/validation.error";
@@ -19,7 +23,7 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 const SELECT_CLIENTE_BASICO = `
   *,
   cliente_cadastro_operacional_sn(*),
-  cliente_contatos(*),
+  ${EMBED_CONTATOS},
   cliente_atividades_mensais(*)
 `;
 
@@ -161,12 +165,7 @@ export class SupabaseClienteRepository implements ClienteRepository {
         ? cliente.dataEnvioDas.toISOString().slice(0, 10)
         : null,
       p_observacoes_gerais: cliente.observacoesGerais,
-      p_contatos: cliente.contatos.map((contato) => ({
-        id: contato.id ?? crypto.randomUUID(),
-        nome: contato.nome,
-        telefone: contato.telefone,
-        padrao: contato.padrao,
-      })),
+      p_contatos: cliente.contatos.map(contatoParaSalvar),
       p_ano_mes: anoMes,
       p_industria: cliente.atividadeMesAtual?.industria ?? false,
       p_comercio: cliente.atividadeMesAtual?.comercio ?? false,

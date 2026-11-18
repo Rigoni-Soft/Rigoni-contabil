@@ -33,13 +33,12 @@ beforeAll(async () => {
   });
   if (cliente.error) throw cliente.error;
   const contatos = await admin.from("cliente_contatos").insert([
-    { id: crypto.randomUUID(), cliente_id: clienteId, nome: "Bia", telefone: PADRAO, padrao: true },
+    { id: crypto.randomUUID(), cliente_id: clienteId, nome: "Bia", telefone: PADRAO, email: "" },
     {
       id: crypto.randomUUID(),
       cliente_id: clienteId,
       nome: "Caio",
       telefone: OUTRO,
-      padrao: false,
     },
   ]);
   if (contatos.error) throw contatos.error;
@@ -56,7 +55,6 @@ beforeAll(async () => {
       cliente_id: id,
       nome: `Contato ${empresa}`,
       telefone: COMPARTILHADO,
-      padrao: true,
     });
     if (contato.error) throw contato.error;
   }

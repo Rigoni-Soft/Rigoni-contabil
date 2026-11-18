@@ -81,7 +81,7 @@ function comCadastroOperacional(
     .comContratoSocialCaminho(clienteBase.contratoSocialCaminho)
     .comAlteracoesContratuais([])
     .comFormaEnvio("email")
-    .comContatos([{ nome: "Maria", telefone: "11999990000", padrao: true }])
+    .comContatos([{ nome: "Maria", telefone: "11999990000", email: "" }])
     .comDocumentoObrigatorio("positivo")
     .comDasStatus(das.status as "pronto")
     .comDataEnvioDas(das.data ? new Date(das.data) : null)
@@ -151,7 +151,7 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
       .select("*")
       .eq("cliente_id", clienteBase.id);
     expect(contatos).toHaveLength(1);
-    expect(contatos?.[0].padrao).toBe(true);
+    expect(contatos?.[0].dono_setor).toBe("simples_nacional");
   });
 
   it("Funcionário de outro Setor NÃO pode editar o cadastro operacional (RLS)", async () => {

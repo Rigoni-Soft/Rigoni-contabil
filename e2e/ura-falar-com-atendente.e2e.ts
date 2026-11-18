@@ -78,7 +78,6 @@ test.describe("URA: falar com atendente lista os Setores", () => {
       cliente_id: CLIENTE,
       nome: "Dona Ura",
       telefone: "(61) 95557-3091",
-      padrao: true,
     });
     if (contato.error) throw contato.error;
   });

@@ -44,7 +44,7 @@ const dados: CadastroOperacionalClienteDto = {
   cnpj: "11444777000161",
   regime: "simples_nacional",
   formaEnvio: "whatsapp",
-  contatos: [{ id: "c1", nome: "Maria", telefone: "11999990000", padrao: true }],
+  contatos: [{ id: "c1", nome: "Maria", telefone: "11999990000", email: "" }],
   documentoObrigatorio: "positivo",
   dasStatus: "pronto",
   dataEnvioDas: null,
@@ -524,7 +524,7 @@ describe("EditarCadastroOperacionalContainer", () => {
     await usuario.type(screen.getByLabelText(/^nome/i), "Maria");
     await usuario.click(screen.getByRole("button", { name: /salvar/i }));
 
-    expect(await screen.findByText("obrigatório")).toBeInTheDocument();
+    expect(await screen.findByText("Informe o WhatsApp ou o e-mail")).toBeInTheDocument();
     expect(executeMock).not.toHaveBeenCalled();
   });
 

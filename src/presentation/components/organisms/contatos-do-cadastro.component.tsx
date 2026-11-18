@@ -58,9 +58,10 @@ export function ContatosDoCadastro({
                 onBlur,
                 onChange: (evento) => onChange(formatarTelefone(evento.target.value)),
               }}
-              padrao={register(`contatos.${indice}.padrao`)}
+              email={register(`contatos.${indice}.email`)}
               erroNome={errors.contatos?.[indice]?.nome?.message}
               erroTelefone={errors.contatos?.[indice]?.telefone?.message}
+              erroEmail={errors.contatos?.[indice]?.email?.message}
               onRemover={readOnly ? undefined : () => onRemover(indice)}
             />
           )}

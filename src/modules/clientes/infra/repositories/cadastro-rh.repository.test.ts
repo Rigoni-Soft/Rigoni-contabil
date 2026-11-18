@@ -33,7 +33,7 @@ const comoFuncionario2RH = () => entrar("funcionario2.rh@rigonicontabil.local", 
 const comoFuncionarioSN = () => entrar("funcionario.sn@rigonicontabil.local", "func123");
 
 let clienteId: string;
-const CONTATOS = [{ nome: "Maria", telefone: "11999990000", padrao: true }];
+const CONTATOS = [{ nome: "Maria", telefone: "11999990000", email: "" }];
 
 const salvar = (supabase: SupabaseClient, observacoes = "Folha no 5º dia útil.") =>
   new SupabaseCadastroRhRepository(supabase).atualizar(clienteId, observacoes, CONTATOS);
@@ -69,7 +69,7 @@ describe("Cadastro do Cliente no RH (integração)", () => {
     expect(lido.ok && lido.value).toMatchObject({
       empresa: "RH Cadastro Ltda",
       observacoes: "Folha no 5º dia útil.",
-      contatos: [{ nome: "Maria", telefone: "11999990000", padrao: true }],
+      contatos: [{ nome: "Maria", telefone: "11999990000", email: "" }],
     });
   });
 
@@ -77,7 +77,7 @@ describe("Cadastro do Cliente no RH (integração)", () => {
     const lider = await comoLiderRH();
 
     const gravado = await new SupabaseCadastroRhRepository(lider).atualizar(clienteId, "Nova.", [
-      { nome: "João", telefone: "11888880000", padrao: true },
+      { nome: "João", telefone: "11888880000", email: "" },
     ]);
     const lido = await new SupabaseClienteQueryGateway(lider).buscarCadastroRh(clienteId);
 
@@ -122,19 +122,19 @@ describe("Cadastro do Cliente no RH (integração)", () => {
     expect(lido.ok && lido.value?.contatos.map((c) => c.nome)).toEqual(["Maria"]);
   });
 
-  it("a liberação do Regime vale só dentro da função: a escrita direta de contatos num Cliente fora do SN segue barrada", async () => {
+  it("o Contato vale para qualquer Regime, mas a escrita direta respeita o dono: o SN não grava no Cliente que não é dele", async () => {
     await salvar(await comoFuncionarioRH());
-    const admin = await entrar("admin@rigonicontabil.local", "admin123");
+    const sn = await comoFuncionarioSN();
 
-    const direto = await admin.from("cliente_contatos").insert({
+    const direto = await sn.from("cliente_contatos").insert({
       id: crypto.randomUUID(),
       cliente_id: clienteId,
       nome: "Direto",
       telefone: "11777770000",
-      padrao: false,
+      dono_setor: "simples_nacional",
     });
 
-    expect(direto.error?.message).toMatch(/não se aplica/);
+    expect(direto.error).not.toBeNull();
   });
 
   it("observações do Setor só são escritas pela função: a escrita direta pela API é negada", async () => {
@@ -155,7 +155,7 @@ describe("Cadastro do Cliente no RH (integração)", () => {
   it("recusa na função observações acima de 2000 caracteres e mais de 50 contatos", async () => {
     const rh = await comoFuncionarioRH();
     const repo = new SupabaseCadastroRhRepository(rh);
-    const contato = (i: number) => ({ nome: `C${i}`, telefone: "11999990000", padrao: i === 0 });
+    const contato = (i: number) => ({ nome: `C${i}`, telefone: "11999990000", email: "" });
 
     const longa = await repo.atualizar(clienteId, "x".repeat(2001), undefined);
     const muitos = await repo.atualizar(

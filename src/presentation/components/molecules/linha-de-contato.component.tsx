@@ -1,6 +1,5 @@
 import { Trash2 } from "lucide-react";
 
-import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcacao.component";
 import { Linha } from "@/presentation/components/atoms/caixa.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { Button } from "@/presentation/components/ui/button";
@@ -10,23 +9,25 @@ type LinhaDeContatoProps = {
   // Props dos inputs (o `register`/Controller do formulário, já resolvidos por quem monta).
   nome: React.ComponentProps<"input">;
   telefone: React.ComponentProps<"input">;
-  padrao: React.ComponentProps<"input">;
+  email: React.ComponentProps<"input">;
   erroNome?: string;
   erroTelefone?: string;
+  erroEmail?: string;
   // Sem callback (visualização): não há o que remover, o botão nem aparece.
   onRemover?: () => void;
   // Visualização: nada é obrigatório (não há o que preencher), então sem asterisco.
   somenteLeitura?: boolean;
 };
 
-// Um Contato do Cliente: nome, telefone, "Padrão" e a ação de remover. A numeração é 1-based.
+// Um Contato do Cliente: nome, telefone, e-mail (ao menos um dos dois canais) e a ação de remover. A numeração é 1-based.
 export function LinhaDeContato({
   indice,
   nome,
   telefone,
-  padrao,
+  email,
   erroNome,
   erroTelefone,
+  erroEmail,
   onRemover,
   somenteLeitura,
 }: LinhaDeContatoProps) {
@@ -50,12 +51,18 @@ export function LinhaDeContato({
       <CampoDeTexto
         id={`contatos.${indice}.telefone`}
         rotulo="Telefone"
-        obrigatorio={!somenteLeitura}
         erro={erroTelefone}
         className="min-w-[10rem] flex-1 gap-1"
         {...telefone}
       />
-      <CaixaDeMarcacao rotulo="Padrão" className="pb-2" {...padrao} />
+      <CampoDeTexto
+        id={`contatos.${indice}.email`}
+        rotulo="E-mail"
+        type="email"
+        erro={erroEmail}
+        className="min-w-[10rem] flex-1 gap-1"
+        {...email}
+      />
       {onRemover && (
         <Button
           type="button"

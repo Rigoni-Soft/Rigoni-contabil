@@ -26,7 +26,6 @@ async function abrir(telefone: string, nome: string, texto: string) {
     cliente_id: cliente,
     nome,
     telefone: `(61) ${telefone.slice(2, 7)}-${telefone.slice(7)}`,
-    padrao: true,
   });
   if (contato.error) throw contato.error;
   const aberto = await admin.rpc("abrir_atendimento", {

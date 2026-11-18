@@ -6,12 +6,22 @@ import { FORMAS_ENVIO } from "@/shared/kernel/forma-envio";
 import { SETORES } from "@/shared/kernel/setores";
 
 // O contato do Cliente: o mesmo no cadastro do SN e no do RH.
-export const contatoSchema = z.object({
-  id: z.string().optional(),
-  nome: z.string().min(1, "obrigatório"),
-  telefone: z.string().min(1, "obrigatório"),
-  padrao: z.boolean(),
-});
+export const contatoSchema = z
+  .object({
+    id: z.string().optional(),
+    nome: z.string().trim().min(1, "obrigatório"),
+    telefone: z.string(),
+    email: z
+      .string()
+      .refine(
+        (valor) => !valor.trim() || z.email().safeParse(valor.trim()).success,
+        "e-mail inválido",
+      ),
+  })
+  .refine((contato) => contato.telefone.trim() || contato.email.trim(), {
+    message: "Informe o WhatsApp ou o e-mail",
+    path: ["telefone"],
+  });
 
 export const editarCadastroOperacionalSchema = z.object({
   clienteId: z.string().uuid(),

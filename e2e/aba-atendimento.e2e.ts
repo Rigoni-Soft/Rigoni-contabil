@@ -25,7 +25,6 @@ test.describe("Aba Atendimento: Em espera / Em atendimento (#162)", () => {
       cliente_id: CLIENTE,
       nome: "Dona Aba",
       telefone: "(61) 95557-4001",
-      padrao: true,
     });
     if (contato.error) throw contato.error;
     // Pela mesma RPC que a URA chama: o Atendimento nasce na espera do Setor, sem dono.

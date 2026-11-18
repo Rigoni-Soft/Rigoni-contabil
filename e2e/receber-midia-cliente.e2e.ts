@@ -50,7 +50,6 @@ test.describe("Mídia recebida do cliente (#81)", () => {
       cliente_id: CLIENTE,
       nome: "Seu Midia",
       telefone: "(61) 95557-2081",
-      padrao: true,
     });
     if (contato.error) throw contato.error;
     const atendimento = await admin

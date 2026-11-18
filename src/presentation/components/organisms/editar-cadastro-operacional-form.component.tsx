@@ -29,7 +29,7 @@ export type { LeituraDaLinha, ParcelamentoLinha };
 // por import; o Container (dentro do módulo) garante a compatibilidade.
 export type EditarCadastroOperacionalFormValues = {
   formaEnvio: FormaEnvioValor;
-  contatos: { id?: string; nome: string; telefone: string; padrao: boolean }[];
+  contatos: { id?: string; nome: string; telefone: string; email: string }[];
   documentoObrigatorio: DocumentoObrigatorioStatusValor | null;
   dasStatus: DasStatusValor | null;
   dataEnvioDas: string | null;

@@ -27,7 +27,6 @@ async function cliente(nome: string, telefone: string, responsavel: string): Pro
     cliente_id: id,
     nome,
     telefone: `(61) ${telefone.slice(2, 7)}-${telefone.slice(7)}`,
-    padrao: true,
   });
   if (contato.error) throw contato.error;
   const atribuido = await admin

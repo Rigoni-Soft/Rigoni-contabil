@@ -78,7 +78,7 @@ export function EditarCadastroOperacionalContainer({
         formaEnvio:
           (dados.formaEnvio as EditarCadastroOperacionalFormValues["formaEnvio"]) ?? "whatsapp",
         // Seção sem registros abre com uma linha em branco (descartada se ninguém a tocar).
-        contatos: dados.contatos.length || readOnly ? dados.contatos : [contatoNovo(true)],
+        contatos: dados.contatos.length || readOnly ? dados.contatos : [contatoNovo()],
         documentoObrigatorio:
           dados.documentoObrigatorio as EditarCadastroOperacionalFormValues["documentoObrigatorio"],
         dasStatus: dados.dasStatus as EditarCadastroOperacionalFormValues["dasStatus"],
@@ -209,7 +209,7 @@ export function EditarCadastroOperacionalContainer({
       sucesso={sucesso}
       oculto={!hidratado}
       contatos={fields}
-      onAdicionarContato={() => append(contatoNovo(fields.length === 0))}
+      onAdicionarContato={() => append(contatoNovo())}
       onRemoverContato={remove}
       parcelamentoCampos={parcelamentos.parcelamentoCampos}
       parcelamentos={parcelamentos.parcelamentos}

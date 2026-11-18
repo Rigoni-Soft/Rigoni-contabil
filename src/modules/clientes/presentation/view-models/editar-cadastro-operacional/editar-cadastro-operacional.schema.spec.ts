@@ -9,7 +9,7 @@ function payloadValido() {
   return {
     clienteId: CLIENTE_ID,
     formaEnvio: "whatsapp",
-    contatos: [{ nome: "Maria", telefone: "11999998888", padrao: true }],
+    contatos: [{ nome: "Maria", telefone: "11999998888", email: "" }],
     documentoObrigatorio: "positivo",
     dasStatus: "pronto",
     dataEnvioDas: "2026-02-01",
@@ -46,7 +46,7 @@ describe("editarCadastroOperacionalSchema", () => {
   it("rejeita um contato com nome vazio", () => {
     const resultado = editarCadastroOperacionalSchema.safeParse({
       ...payloadValido(),
-      contatos: [{ nome: "", telefone: "11999998888", padrao: true }],
+      contatos: [{ nome: "", telefone: "11999998888", email: "" }],
     });
 
     expect(resultado.success).toBe(false);
@@ -55,7 +55,7 @@ describe("editarCadastroOperacionalSchema", () => {
   it("rejeita um contato com telefone vazio", () => {
     const resultado = editarCadastroOperacionalSchema.safeParse({
       ...payloadValido(),
-      contatos: [{ nome: "Maria", telefone: "", padrao: true }],
+      contatos: [{ nome: "Maria", telefone: "", email: "" }],
     });
 
     expect(resultado.success).toBe(false);

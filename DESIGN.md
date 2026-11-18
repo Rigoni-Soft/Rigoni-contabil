@@ -192,7 +192,7 @@ Checkboxes/radios nativos (`src/app/globals.css`): `accent-color:
 var(--primary)` global — sem isso, o navegador pinta o azul padrão do SO,
 brigando com o verde-cheque do resto do produto. Primeiro uso real em
 `editar-cadastro-operacional-form.component.tsx` (#34: "Tem parcelamento",
-"Atividade do mês", "Padrão" de cada Contato); a regra é global porque
+"Atividade do mês"); a regra é global porque
 `accent-color` é herdado por elemento nativo, não por componente — qualquer
 `<input type="checkbox">`/`type="radio"` futuro herda o token automaticamente,
 sem precisar de classe.
