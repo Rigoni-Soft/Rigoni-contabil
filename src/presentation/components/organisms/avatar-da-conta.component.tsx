@@ -10,14 +10,11 @@ import { Button } from "@/presentation/components/ui/button";
 const ID_DA_DICA = "avatar-dica";
 const ID_DO_ERRO = "avatar-erro";
 
-// O que está em andamento: o rótulo do botão correspondente mostra o progresso e os demais ficam inativos.
 export type AcaoDoAvatar = "preparando" | "salvando" | "removendo";
 
 type AvatarDaContaProps = {
-  // A imagem de hoje: a foto guardada ou a logo.
   srcAtual: string;
   temFoto: boolean;
-  // Foto escolhida, já recortada, ainda não salva.
   previaSrc?: string;
   acao?: AcaoDoAvatar;
   erro?: string;
@@ -29,7 +26,7 @@ type AvatarDaContaProps = {
   aoRemover: () => void;
 };
 
-const INATIVO = "aria-disabled:opacity-50";
+const CLASSE_DO_BOTAO_INATIVO = "aria-disabled:opacity-50";
 
 function RotuloDeAcao({
   emCurso,
@@ -85,7 +82,7 @@ export function AvatarDaConta({
                 type="button"
                 size="sm"
                 autoFocus
-                className={INATIVO}
+                className={CLASSE_DO_BOTAO_INATIVO}
                 aria-disabled={pendente || undefined}
                 onClick={pendente ? undefined : aoSalvar}
               >
@@ -99,7 +96,7 @@ export function AvatarDaConta({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className={INATIVO}
+                className={CLASSE_DO_BOTAO_INATIVO}
                 aria-disabled={pendente || undefined}
                 onClick={pendente ? undefined : aoCancelar}
               >
@@ -123,7 +120,7 @@ export function AvatarDaConta({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className={INATIVO}
+                  className={CLASSE_DO_BOTAO_INATIVO}
                   aria-disabled={pendente || undefined}
                   onClick={pendente ? undefined : aoRemover}
                 >
@@ -141,6 +138,14 @@ export function AvatarDaConta({
           </Texto>
         </Pilha>
       </Linha>
+      {previaSrc && !erro && (
+        <AvisoDeStatus
+          tipo="sucesso"
+          legivel
+          texto="Foto pronta. Salve para trocar."
+          className="mt-3"
+        />
+      )}
       {erro && <AvisoDeStatus id={ID_DO_ERRO} tipo="erro" legivel texto={erro} className="mt-3" />}
     </Caixa>
   );

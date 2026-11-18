@@ -74,6 +74,18 @@ describe("AvatarDaConta", () => {
     expect(aoCancelar).toHaveBeenCalled();
   });
 
+  it("com prévia, anuncia que a foto está pronta para salvar", () => {
+    montar({ previaSrc: "blob:previa" });
+
+    expect(screen.getByRole("status")).toHaveTextContent("Foto pronta. Salve para trocar.");
+  });
+
+  it("sem prévia, não anuncia foto pronta", () => {
+    montar();
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
   it("em andamento, os botões ficam focáveis com aria-disabled e não disparam a ação", async () => {
     const { aoSalvar } = montar({ previaSrc: "blob:previa", acao: "salvando" });
 
