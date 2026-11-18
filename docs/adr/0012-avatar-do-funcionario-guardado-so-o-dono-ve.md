@@ -21,6 +21,9 @@ a logo do setor e, sem ela, a do escritório (arquivos estáticos em `public/log
   usuário, com `Cache-Control: private`.
 - **O que entra**: JPEG, PNG ou WebP até 5 MB escolhidos pelo usuário; o navegador recorta o centro, reduz
   para WebP 256×256 (o EXIF some) e o servidor confere os bytes e recusa mais de 256 KB. Sem GIF nem SVG.
+- **Compensação do envio**: se a coluna falha depois de o objeto ser gravado, o objeto é apagado só quando o
+  usuário não tinha foto antes (senão ficaria órfão). Com foto anterior o objeto novo já a substituiu e a coluna
+  ainda aponta para ele: apagar deixaria a coluna apontando para o nada, então o objeto fica e o envio se repete.
 - **Remoção**: botão "Remover foto" em Meu perfil, imediato, sem prazo de retenção. A desativação do usuário
   também apaga a foto. Em qualquer remoção o objeto é apagado antes de a coluna ser zerada; se o apagar
   falhar, a coluna continua preenchida e a operação se repete. Na desativação o banimento da conta e o apagar da foto rodam sempre, e a falha de um não impede o outro (a foto é dado pessoal e não espera um ban que falhou); repetir a ação refaz só o que falta. A desativação com a foto ainda gravada conta
