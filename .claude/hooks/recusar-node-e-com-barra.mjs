@@ -11,7 +11,8 @@ process.stdin.on("end", () => {
     return;
   }
   // Código inline de verdade: a flag seguida de aspas (o texto "node -e" numa mensagem não conta).
-  const inline = /(?:^|[\s;&|(])node\s+(?:-\w+\s+)*(?:-e|-p|--eval|--print)\s+["']/;
+  const inline =
+    /(?:^|[\s;&|(])node\s+(?:--?[\w-]+(?:=\S+)?\s+)*(?:(?:-e|-p|--eval|--print)\s+|(?:--eval|--print)=)["']/;
   if (!inline.test(comando) || !comando.includes("\\")) return;
   console.log(
     JSON.stringify({
