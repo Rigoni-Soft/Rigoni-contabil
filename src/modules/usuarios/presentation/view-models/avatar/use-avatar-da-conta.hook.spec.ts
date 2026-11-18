@@ -38,6 +38,25 @@ describe("useAvatarDaConta", () => {
     expect(result.current.previaSrc).toBeUndefined();
   });
 
+  it("com uma ação em curso, outra escolha é ignorada", async () => {
+    let terminar: (blob: Blob) => void = () => {};
+    recortarMock.mockReturnValueOnce(new Promise<Blob>((resolver) => (terminar = resolver)));
+    const { result } = renderHook(() => useAvatarDaConta());
+
+    let primeira: Promise<void> = Promise.resolve();
+    act(() => {
+      primeira = result.current.aoEscolher(foto());
+    });
+    await act(() => result.current.aoEscolher(foto()));
+    await act(async () => {
+      terminar(new Blob(["webp"], { type: "image/webp" }));
+      await primeira;
+    });
+
+    expect(recortarMock).toHaveBeenCalledTimes(1);
+    expect(result.current.previaSrc).toBe("blob:previa");
+  });
+
   it("acima de 5 MB avisa e não recorta", async () => {
     const { result } = renderHook(() => useAvatarDaConta());
 

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { AvatarDaConta } from "./avatar-da-conta.component";
@@ -95,17 +95,12 @@ describe("AvatarDaConta", () => {
     expect(aoRemover).not.toHaveBeenCalled();
   });
 
-  it("ao preparar a foto escolhida, o seletor diz 'Preparando…' e não aceita outro arquivo", async () => {
-    const { aoEscolher } = montar({ acao: "preparando" });
+  it("ao preparar a foto escolhida, o seletor diz 'Preparando…' e fica com aria-disabled", () => {
+    montar({ acao: "preparando" });
     const campo = screen.getByLabelText("Preparando a foto");
 
     expect(screen.getByText("Preparando…")).toBeInTheDocument();
     expect(campo).toHaveAttribute("aria-disabled", "true");
-    fireEvent.change(campo, {
-      target: { files: [new File(["x"], "foto.png", { type: "image/png" })] },
-    });
-
-    expect(aoEscolher).not.toHaveBeenCalled();
   });
 
   it("o erro e a dica ficam ligados ao campo (aria-describedby e aria-invalid)", () => {

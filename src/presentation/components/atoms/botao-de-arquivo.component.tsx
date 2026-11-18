@@ -49,13 +49,11 @@ export function BotaoDeArquivo({
         aria-describedby={descritoPor}
         aria-invalid={invalido || undefined}
         className="sr-only"
-        // `aria-disabled` não impede o seletor por teclado: com ação em curso o clique não abre nada.
-        onClick={ocupado ? (evento) => evento.preventDefault() : undefined}
         onChange={(evento) => {
           const arquivo = evento.target.files?.[0];
           // Esvazia para que escolher o mesmo arquivo de novo (depois de uma recusa) dispare onChange.
           evento.target.value = "";
-          if (arquivo && !ocupado) onEscolher(arquivo);
+          if (arquivo) onEscolher(arquivo);
         }}
       />
     </label>

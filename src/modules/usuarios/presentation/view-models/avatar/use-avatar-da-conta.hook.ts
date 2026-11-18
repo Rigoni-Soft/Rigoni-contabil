@@ -33,6 +33,8 @@ export function useAvatarDaConta() {
   }, [previa]);
 
   const aoEscolher = async (arquivo: File) => {
+    // `aria-disabled` não impede o seletor por teclado: com ação em curso a escolha é ignorada.
+    if (acao) return;
     setErro(undefined);
     const aviso = avisoDaFoto(arquivo);
     if (aviso) {
