@@ -4,6 +4,7 @@
  * (service role) escreve nos dois. Requer `npx supabase start` local com migrations e seed aplicados.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { Client } from "pg";
 
 import { exigirSupabaseLocal } from "../../../../../test-support/exigir-supabase-local";
 
@@ -148,25 +149,60 @@ describe("perfis.avatar_atualizado_em", () => {
       .select("avatar_atualizado_em")
       .eq("id", FUNCIONARIO_SN_ID)
       .single();
-    await cliente
+    // `perfis` não tem policy de UPDATE para `authenticated`: o RLS filtra a linha (0 afetadas, sem erro) e o
+    // gatilho nem dispara. O ramo UPDATE do gatilho é provado no teste de SQL direto mais abaixo.
+    const escrita = await cliente
       .from("perfis")
       .update({ avatar_atualizado_em: new Date().toISOString() })
-      .eq("id", FUNCIONARIO_SN_ID);
+      .eq("id", FUNCIONARIO_SN_ID)
+      .select("id");
 
     expect(leitura.error).toBeNull();
     expect(leitura.data?.avatar_atualizado_em).toBeNull();
+    expect(escrita.data).toEqual([]);
     expect(await avatarDe(FUNCIONARIO_SN_ID)).toBeNull();
   });
 
   it("nem o Admin altera a coluna de outro usuário", async () => {
     const admin = await sessao("admin@rigonicontabil.local", "admin123");
 
-    await admin
+    const escrita = await admin
       .from("perfis")
       .update({ avatar_atualizado_em: new Date().toISOString() })
-      .eq("id", FUNCIONARIO_SN_ID);
+      .eq("id", FUNCIONARIO_SN_ID)
+      .select("id");
 
+    expect(escrita.data).toEqual([]);
     expect(await avatarDe(FUNCIONARIO_SN_ID)).toBeNull();
+  });
+
+  // O RLS corta o UPDATE de sessão antes do gatilho; aqui a linha chega a ele (conexão do dono da tabela,
+  // que não sofre RLS) com o JWT de um usuário, para provar a defesa em profundidade do ramo UPDATE.
+  it("o gatilho recusa o UPDATE da coluna com sessão de usuário e deixa passar sem sessão", async () => {
+    const c = new Client({ connectionString: DATABASE_URL });
+    await c.connect();
+    try {
+      await c.query("begin");
+      await c.query("select set_config('request.jwt.claims', $1, true)", [
+        JSON.stringify({ sub: ADMIN_ID, role: "authenticated" }),
+      ]);
+      await expect(
+        c.query("update public.perfis set avatar_atualizado_em = now() where id = $1", [
+          FUNCIONARIO_SN_ID,
+        ]),
+      ).rejects.toMatchObject({ code: "23514" });
+      await c.query("rollback");
+
+      await c.query("begin");
+      const semSessao = await c.query(
+        "update public.perfis set avatar_atualizado_em = now() where id = $1",
+        [FUNCIONARIO_SN_ID],
+      );
+      expect(semSessao.rowCount).toBe(1);
+      await c.query("rollback");
+    } finally {
+      await c.end();
+    }
   });
 
   it("nem o Admin cria um perfil já com a coluna preenchida", async () => {
