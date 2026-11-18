@@ -237,11 +237,13 @@ sem precisar de classe.
   `/` (que resolve a home do Papel), com `aria-label` e `title` "Ir para o início", foco visível,
   borda `border-input` (3:1 nos dois temas: a logo é preta e sumiria no `bg-card` escuro), hover e pressionado só na opacidade da imagem (`hover:opacity-90`, `active:opacity-80`) e o mesmo alvo de toque das ações (`size-9`, `size-11` em toque). Não abre
   menu; com a troca obrigatória de senha pendente o cabeçalho sai sem avatar. **Logo (#287):** o
-  avatar é a logo redonda (átomo `LogoRedonda`, `<img>` simples, `alt=""` porque o link já tem `aria-label`, sem inicial
-  de reserva): a do Setor (Simples Nacional, Contábil) ou a do escritório, que é a do Admin e a de todo
-  Setor sem logo (mapa `LOGO_POR_SETOR` em `shared/kernel/escopo-do-usuario.ts`; arquivos
-  `logo-<nome>.jpeg` 256×256 em `public/logos/`). O Setor é sempre o rótulo legível (`SETOR_LABEL`, em
-  `shared/kernel/setores.ts`), nunca o slug.
+  avatar é a logo redonda (`Miniatura`, `alt=""` porque o link já tem `aria-label`, sem inicial de reserva):
+  a do Setor ou a do escritório, que é a do Admin e a de todo Setor sem logo (arquivos em `public/logos/`,
+  mapa em `shared/kernel/escopo-do-usuario.ts`). O Setor é sempre o rótulo legível, nunca o slug.
+
+  **Voltar em Meu perfil:** o "Voltar" da tela leva à tela de onde o usuário veio (`router.back()`) quando o
+  referrer é do próprio sistema; chegando por favorito ou link externo, ou sem histórico, segue o link para
+  `/`. Ctrl/Cmd/Shift/Alt-clique e botão do meio abrem o link normalmente (nova aba).
 
   **Extensão (#72):** o link "Feriados" (ícone `CalendarOff`,
   só Admin, rota `/admin/feriados`) segue o mesmo padrão. A tela reutiliza
