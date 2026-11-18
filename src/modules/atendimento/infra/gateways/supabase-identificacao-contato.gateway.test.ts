@@ -98,6 +98,44 @@ describe("SupabaseIdentificacaoContatoGateway", () => {
     expect(await gateway.cnpjCadastrado("00000000000191")).toEqual({ ok: true, value: false });
   });
 
+  it("regimeDoCliente devolve o regime do Cliente e null para quem não existe", async () => {
+    expect(await gateway.regimeDoCliente(clienteId)).toEqual({
+      ok: true,
+      value: "simples_nacional",
+    });
+    expect(await gateway.regimeDoCliente(crypto.randomUUID())).toEqual({ ok: true, value: null });
+  });
+
+  it("falha na consulta do regime vira erro, não 'sem Cliente'", async () => {
+    const consulta = {
+      select: () => consulta,
+      eq: () => consulta,
+      maybeSingle: async () => ({ data: null, error: { message: "boom" } }),
+    };
+    const fake = { from: () => consulta } as unknown as SupabaseClient;
+
+    const resultado = await new SupabaseIdentificacaoContatoGateway(fake).regimeDoCliente(
+      clienteId,
+    );
+
+    expect(resultado.ok).toBe(false);
+  });
+
+  it("regime fora da lista vira erro, não string solta", async () => {
+    const consulta = {
+      select: () => consulta,
+      eq: () => consulta,
+      maybeSingle: async () => ({ data: { regime: "inventado" }, error: null }),
+    };
+    const fake = { from: () => consulta } as unknown as SupabaseClient;
+
+    const resultado = await new SupabaseIdentificacaoContatoGateway(fake).regimeDoCliente(
+      clienteId,
+    );
+
+    expect(resultado.ok).toBe(false);
+  });
+
   it("falha na consulta do CNPJ vira erro, não 'não cadastrado'", async () => {
     const consulta = {
       select: () => consulta,

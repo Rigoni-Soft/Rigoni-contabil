@@ -51,7 +51,7 @@ export class SupabaseSessaoAtendimentoGateway implements SessaoAtendimentoPort {
       chave: this.chave(telefone),
       etapa: sessao.etapa,
       modo: sessao.etapa === "alteracao" ? sessao.modo : null,
-      pagina: sessao.etapa === "alteracao" ? sessao.pagina : null,
+      pagina: sessao.etapa === "alteracao" || sessao.etapa === "setor" ? sessao.pagina : null,
       lista: sessao.etapa === "alteracao" ? sessao.lista : null,
       invalidos: invalidosDe(sessao),
       atualizado_em: new Date().toISOString(),

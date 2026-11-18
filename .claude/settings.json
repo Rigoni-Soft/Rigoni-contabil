@@ -28,6 +28,11 @@
             "type": "command",
             "command": "node .claude/hooks/recusar-heredoc-acentuado.mjs",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/recusar-node-e-com-barra.mjs",
+            "timeout": 10
           }
         ]
       },

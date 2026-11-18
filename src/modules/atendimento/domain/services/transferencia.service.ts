@@ -1,5 +1,5 @@
 import type { Papel } from "@/shared/kernel/papeis";
-import { SETORES, type SetorSlug } from "@/shared/kernel/setores";
+import { SETOR_SN, SETORES, type SetorSlug } from "@/shared/kernel/setores";
 
 type Ator = { id: string; papel: Papel; setor: SetorSlug };
 type AtendimentoDoSetor = { setor: SetorSlug; funcionarioId: string | null };
@@ -24,12 +24,16 @@ export function atendidoPeloSimplesNacional(regime: string): boolean {
   return regime === "simples_nacional" || regime === "mei";
 }
 
-// Para onde o Atendimento pode ir: qualquer Setor menos o atual; o Simples Nacional só para
-// Cliente do Simples Nacional/MEI (a mesma trava que a Transferência faz no backend).
-export function setoresDeDestino(origem: SetorSlug, regimeDoCliente: string | null): SetorSlug[] {
+// Os Setores que atendem o Cliente: todos, e o Simples Nacional só para Cliente do Simples
+// Nacional/MEI. A regra única da Transferência e da lista da URA.
+export function setoresDoCliente(regimeDoCliente: string | null): SetorSlug[] {
   const simplesNacionalPermitido =
     regimeDoCliente !== null && atendidoPeloSimplesNacional(regimeDoCliente);
-  return SETORES.filter(
-    (setor) => setor !== origem && (setor !== "simples_nacional" || simplesNacionalPermitido),
-  );
+  return SETORES.filter((setor) => setor !== SETOR_SN || simplesNacionalPermitido);
+}
+
+// Para onde o Atendimento pode ir: qualquer Setor do Cliente menos o atual (a mesma trava que a
+// Transferência faz no backend).
+export function setoresDeDestino(origem: SetorSlug, regimeDoCliente: string | null): SetorSlug[] {
+  return setoresDoCliente(regimeDoCliente).filter((setor) => setor !== origem);
 }

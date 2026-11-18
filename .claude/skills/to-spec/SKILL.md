@@ -39,6 +39,8 @@ A LONG, numbered list of user stories. Each user story should be in the format o
 
 This list of user stories should be extremely extensive and cover all aspects of the feature.
 
+When the feature has a menu or a branching flow (an IVR, a wizard), write one story per option saying where the user lands, error paths included. A story that only lists the options leaves the destination to whoever implements it.
+
 ## Implementation Decisions
 
 A list of implementation decisions that were made. This can include:

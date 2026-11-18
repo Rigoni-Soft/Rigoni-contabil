@@ -8,7 +8,9 @@ import type { Result } from "@/shared/kernel/result";
 export type SessaoAtendimento =
   | { etapa: EtapaIdentificacao; invalidos: number }
   | { etapa: "tipo_documento" }
-  | { etapa: "alteracao"; modo: "alteracoes" | "ambos"; pagina: number; lista: string };
+  | { etapa: "alteracao"; modo: "alteracoes" | "ambos"; pagina: number; lista: string }
+  // Lista de setores da URA ("falar com atendente"): só a página e quantas respostas inválidas seguidas.
+  | { etapa: "setor"; pagina: number; invalidos: number };
 
 export interface SessaoAtendimentoPort {
   // `telefone` só com dígitos, sem DDI. Sessão expirada conta como inexistente (null).
