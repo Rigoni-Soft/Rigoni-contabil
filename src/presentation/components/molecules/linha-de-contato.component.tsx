@@ -51,6 +51,8 @@ export function LinhaDeContato({
       <CampoDeTexto
         id={`contatos.${indice}.telefone`}
         rotulo="Telefone"
+        inputMode="tel"
+        ajuda={somenteLeitura ? undefined : "Ao menos um: WhatsApp ou e-mail"}
         erro={erroTelefone}
         className="min-w-[10rem] flex-1 gap-1"
         {...telefone}
@@ -59,6 +61,10 @@ export function LinhaDeContato({
         id={`contatos.${indice}.email`}
         rotulo="E-mail"
         type="email"
+        inputMode="email"
+        // A falta dos dois canais é erro da linha: o E-mail também fica inválido e aponta a mensagem.
+        aria-invalid={erroTelefone ? true : undefined}
+        aria-describedby={erroTelefone ? `contatos.${indice}.telefone-mensagem` : undefined}
         erro={erroEmail}
         className="min-w-[10rem] flex-1 gap-1"
         {...email}
