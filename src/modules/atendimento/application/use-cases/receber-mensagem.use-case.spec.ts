@@ -1097,6 +1097,32 @@ describe("ReceberMensagem — opção falar com atendente: lista de setores", ()
     expect(enviadas[0].texto).toContain("Digite *0* se não souber o setor");
   });
 
+  it.each(["Quero falar com atendente", "preciso de ajuda", "falar com uma pessoa"])(
+    "texto pedindo uma pessoa no menu ('%s') vai direto à recepção, sem lista de setores",
+    async (frase) => {
+      const { caso, abertos, enviadas, sessoes } = montar();
+
+      await dizerAna(caso, frase);
+
+      expect(abertos).toHaveLength(1);
+      expect(abertos[0]).toMatchObject({ clienteId: "cliente-1", setor: "recepcao" });
+      expect(abertos[0].mensagens[0]).toEqual({ autor: "contato", texto: frase });
+      expect(abertos[0].resumo).toContain("pediu um atendente por texto no menu");
+      expect(enviadas[0].texto).toMatch(/^Sem problema! .*recepção/);
+      expect(enviadas.some((e) => e.texto.includes("Com qual setor"))).toBe(false);
+      expect(sessoes.size).toBe(0);
+    },
+  );
+
+  it("conversa comum no menu ('oi', 'bom dia') segue só reenviando o menu", async () => {
+    const { caso, abertos, enviadas } = montar();
+
+    await dizerAna(caso, "bom dia");
+
+    expect(abertos).toHaveLength(0);
+    expect(enviadas[0].texto).toContain("Olá, Ana");
+  });
+
   it("a opção de atendente é a última do menu enviado", async () => {
     const { caso, enviadas } = montar();
     await dizerAna(caso, "oi");

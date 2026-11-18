@@ -107,6 +107,8 @@ const RESUMO_NAO_ESCOLHEU_SETOR =
   "Cliente pediu um atendente e não escolheu um setor na lista da URA (não soube qual, não quis escolher ou pediu uma pessoa).";
 const RESUMO_SETOR_INVALIDO =
   "Cliente pediu um atendente: respostas inválidas seguidas na lista de setores.";
+const RESUMO_PEDIU_ATENDENTE_NO_MENU =
+  "Cliente pediu um atendente por texto no menu da URA, sem escolher um setor.";
 const ROTULO_NAO_SEI_O_SETOR = "Não sei o setor";
 const AVISO_RECEPCAO_SEM_SETOR = `Sem problema! ${ENCAMINHANDO_PARA_RECEPCAO}`;
 const RESUMO_NUMERO_AMBIGUO =
@@ -387,6 +389,13 @@ export class ReceberMensagem implements ReceberMensagemPort {
       return salva.ok ? this.enviar(telefone, PERGUNTA_TIPO) : salva;
     }
     if (texto === String(OPCAO_ATENDENTE)) return this.abrirListaDeSetores(conversa);
+    // Pedir uma pessoa por texto, em vez de digitar a opção, também é saída de erro: vai à recepção.
+    if (pedeAtendente(texto)) {
+      return this.encaminhar(origemDe(conversa, conversa.texto), {
+        resumo: RESUMO_PEDIU_ATENDENTE_NO_MENU,
+        aviso: AVISO_RECEPCAO_SEM_SETOR,
+      });
+    }
     const guia = GUIAS_DO_MENU.get(texto);
     if (guia === "das") return this.entregarPelaUra(conversa, guia, this.dasNaUra);
     if (guia === "parcelamento")
