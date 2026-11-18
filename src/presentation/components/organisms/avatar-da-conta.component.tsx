@@ -48,11 +48,7 @@ export function AvatarDaConta({
   const rotuloDoEscolher = temFoto ? "Trocar foto" : "Escolher foto";
   const inativo = "aria-disabled:opacity-50";
   return (
-    <Caixa
-      como="section"
-      aria-labelledby="avatar-titulo"
-      className="mb-8 border-t border-border pt-8"
-    >
+    <Caixa como="section" aria-labelledby="avatar-titulo" className="mb-8">
       <Texto variante="subtitulo" como="h2" id="avatar-titulo" className="mb-2">
         Sua foto
       </Texto>

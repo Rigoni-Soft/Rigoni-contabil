@@ -33,7 +33,12 @@ export function PerfilDaConta({
 
   return (
     <>
-      <Grade colunas="rotuloValor" como="dl" className="mb-8 gap-x-4 gap-y-2 text-sm">
+      {avatar}
+      <Grade
+        colunas="rotuloValor"
+        como="dl"
+        className="mb-8 gap-x-4 gap-y-2 border-t border-border pt-8 text-sm"
+      >
         {dados.map(({ rotulo, valor }) => (
           <Fragment key={rotulo}>
             <Caixa como="dt" className="text-muted-foreground">
@@ -45,7 +50,6 @@ export function PerfilDaConta({
           </Fragment>
         ))}
       </Grade>
-      {avatar}
       <Caixa
         como="section"
         aria-labelledby="trocar-senha-titulo"
