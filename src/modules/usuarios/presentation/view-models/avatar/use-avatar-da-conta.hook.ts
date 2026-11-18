@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import type { AcaoDoAvatar } from "@/presentation/components/organisms/avatar-da-conta.component";
+import { recortarQuadrado } from "@/presentation/lib/recortar-quadrado";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
 
 import { enviarAvatarAction, removerAvatarAction } from "./avatar.actions";
-import { avisoDaFoto } from "./avatar.presenter";
-import { recortarParaAvatar } from "./recortar-avatar.upload";
+import { avisoDaFoto, LADO_DO_AVATAR, type AcaoDoAvatar } from "./avatar.presenter";
 
 export const ID_DO_ESCOLHER_FOTO = "avatar-escolher-foto";
 
@@ -42,7 +41,7 @@ export function useAvatarDaConta() {
     }
     setAcao("preparando");
     try {
-      const blob = await recortarParaAvatar(arquivo);
+      const blob = await recortarQuadrado(arquivo, LADO_DO_AVATAR);
       setPrevia({ blob, url: URL.createObjectURL(blob) });
     } catch {
       setErro("Não foi possível ler essa imagem. Escolha outra.");

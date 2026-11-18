@@ -23,7 +23,7 @@ a logo do setor e, sem ela, a do escritório (arquivos estáticos em `public/log
   para WebP 256×256 (o EXIF some) e o servidor confere os bytes e recusa mais de 256 KB. Sem GIF nem SVG.
 - **Remoção**: botão "Remover foto" em Meu perfil, imediato, sem prazo de retenção. A desativação do usuário
   também apaga a foto. Em qualquer remoção o objeto é apagado antes de a coluna ser zerada; se o apagar
-  falhar, a coluna continua preenchida e a operação se repete. A desativação com a foto ainda gravada conta
+  falhar, a coluna continua preenchida e a operação se repete. Na desativação o banimento da conta e o apagar da foto rodam sempre, e a falha de um não impede o outro (a foto é dado pessoal e não espera um ban que falhou); repetir a ação refaz só o que falta. A desativação com a foto ainda gravada conta
   como desativação pendente, visível ao Admin, que repete a ação (idempotente).
 - **Auditoria**: enviar e remover viram Registro de auditoria (`perfil.avatar.enviar`, `perfil.avatar.remover`),
   com ator e resultado, nunca com a imagem.

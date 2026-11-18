@@ -13,8 +13,8 @@ jest.mock("./avatar.actions", () => ({
 }));
 
 const recortarMock = jest.fn();
-jest.mock("./recortar-avatar.upload", () => ({
-  recortarParaAvatar: (arquivo: File) => recortarMock(arquivo),
+jest.mock("@/presentation/lib/recortar-quadrado", () => ({
+  recortarQuadrado: (arquivo: File, lado: number) => recortarMock(arquivo, lado),
 }));
 
 const foto = (type = "image/png", tamanho = 10) =>

@@ -18,7 +18,7 @@ type ShellHeaderProps = {
   setor: string;
   // Falso na troca obrigatória de senha: o cabeçalho sai sem avatar.
   comAvatar?: boolean;
-  // ISO da gravação da foto do Funcionário; null/ausente = logo (ADR 0012).
+  // ISO da gravação da foto do usuário (qualquer Papel); null/ausente = logo (ADR 0012).
   avatarAtualizadoEm?: string | null;
   // Sino de Avisos de cadastro: é um Container (módulo clientes), que a View não importa.
   avisos: React.ReactNode;

@@ -14,3 +14,6 @@ export function avisoDaFoto(arquivo: { type: string; size: number }): string | u
   }
   return undefined;
 }
+
+// O que a tela do avatar está fazendo (o rótulo do botão correspondente mostra o progresso).
+export type AcaoDoAvatar = "preparando" | "salvando" | "removendo";
