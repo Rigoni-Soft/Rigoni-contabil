@@ -97,7 +97,13 @@ export function AvatarDaConta({
                 rotulo={
                   acao === "preparando" ? "Preparando…" : temFoto ? "Trocar foto" : "Escolher foto"
                 }
-                rotuloAcessivel={temFoto ? "Trocar foto" : "Escolher foto"}
+                rotuloAcessivel={
+                  acao === "preparando"
+                    ? "Preparando a foto"
+                    : temFoto
+                      ? "Trocar foto"
+                      : "Escolher foto"
+                }
                 aceitar={aceitar}
                 ocupado={pendente}
                 descritoPor={erro ? `${ID_DA_DICA} ${ID_DO_ERRO}` : ID_DA_DICA}

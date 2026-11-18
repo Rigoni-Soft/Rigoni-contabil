@@ -97,7 +97,7 @@ describe("AvatarDaConta", () => {
 
   it("ao preparar a foto escolhida, o seletor diz 'Preparando…' e não aceita outro arquivo", async () => {
     const { aoEscolher } = montar({ acao: "preparando" });
-    const campo = screen.getByLabelText("Escolher foto");
+    const campo = screen.getByLabelText("Preparando a foto");
 
     expect(screen.getByText("Preparando…")).toBeInTheDocument();
     expect(campo).toHaveAttribute("aria-disabled", "true");
