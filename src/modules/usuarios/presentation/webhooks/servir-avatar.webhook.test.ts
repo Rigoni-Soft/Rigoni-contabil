@@ -25,7 +25,16 @@ describe("GET /api/avatar (integração)", () => {
     expect(resposta.status).toBe(200);
     expect(resposta.headers.get("Content-Type")).toBe("image/webp");
     expect(resposta.headers.get("Cache-Control")).toMatch(/^private/);
+    expect(resposta.headers.get("X-Content-Type-Options")).toBe("nosniff");
     expect([...new Uint8Array(await resposta.arrayBuffer())]).toEqual([1, 2, 3]);
+  });
+
+  it("não repassa id nem parâmetro ao caso de uso: só a sessão decide de quem é a foto", async () => {
+    executeMock.mockResolvedValue(ok(new Uint8Array([1])));
+
+    await GET();
+
+    expect(executeMock).toHaveBeenCalledWith();
   });
 
   it("sem foto responde 404, sem cache", async () => {

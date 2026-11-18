@@ -20,6 +20,10 @@ export async function GET(): Promise<Response> {
   }
 
   return new Response(Buffer.from(resultado.value), {
-    headers: { "Content-Type": "image/webp", "Cache-Control": "private, max-age=3600" },
+    headers: {
+      "Content-Type": "image/webp",
+      "Cache-Control": "private, max-age=3600",
+      "X-Content-Type-Options": "nosniff",
+    },
   });
 }
