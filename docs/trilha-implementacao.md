@@ -32,11 +32,11 @@ As quatro entregas da spec (Dados, Cadastro, Envios e aviso, Recepção) vão **
 
 ### Etapa B1: Dados
 
-- [ ] **PR B1: Contato com Setores e dono, URA lendo a tabela nova** (base da trilha; sem dependência)
-  - [ ] #290 (ambas): contato com e-mail, Setores, dono e id estável (sem bloqueio)
-  - [ ] #291 (ambas): URA, fila e balão leem a tabela nova de contatos (bloqueado por #290)
-- [ ] **PR B2: Destinos de envio e resolução no banco** (depende do #290, na PR B1)
-  - [ ] #292 (backend): destinos de envio, catálogo de tipos e resolução no banco (bloqueado por #290)
+- [x] **PR B1: Contato com Setores e dono, URA lendo a tabela nova** (base da trilha; sem dependência)
+  - [x] #290 (ambas): contato com e-mail, Setores, dono e id estável (sem bloqueio)
+  - [x] #291 (ambas): URA, fila e balão leem a tabela nova de contatos (bloqueado por #290)
+- [x] **PR B2: Destinos de envio e resolução no banco** (depende do #290, na PR B1)
+  - [x] #292 (backend): destinos de envio, catálogo de tipos e resolução no banco (bloqueado por #290)
 
 ### Etapa B2: Cadastro
 
