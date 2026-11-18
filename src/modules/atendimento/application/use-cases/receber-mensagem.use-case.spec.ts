@@ -1097,7 +1097,19 @@ describe("ReceberMensagem — opção falar com atendente: lista de setores", ()
     expect(enviadas[0].texto).toContain("Digite *0* se não souber o setor");
   });
 
-  it.each(["Quero falar com atendente", "preciso de ajuda", "falar com uma pessoa"])(
+  it.each(["ajuda", "tenho uma dúvida", "suporte"])(
+    "texto de dúvida de uso no menu ('%s') reexibe o menu, sem ir à recepção",
+    async (frase) => {
+      const { caso, abertos, enviadas } = montar();
+
+      await dizerAna(caso, frase);
+
+      expect(abertos).toHaveLength(0);
+      expect(enviadas[0].texto).toContain("Como podemos ajudar?");
+    },
+  );
+
+  it.each(["Quero falar com atendente", "falar com uma pessoa"])(
     "texto pedindo uma pessoa no menu ('%s') vai direto à recepção, sem lista de setores",
     async (frase) => {
       const { caso, abertos, enviadas, sessoes } = montar();
@@ -1220,7 +1232,7 @@ describe("ReceberMensagem — opção falar com atendente: lista de setores", ()
     expect(sessoes.size).toBe(0);
   });
 
-  it.each(["Quero falar com uma pessoa", "atendente", "preciso de ajuda", "recepção"])(
+  it.each(["Quero falar com uma pessoa", "atendente", "recepção"])(
     "texto pedindo uma pessoa ('%s') vai à recepção, com o texto original como Mensagem",
     async (frase) => {
       const { caso, abertos } = montar();
@@ -1250,6 +1262,16 @@ describe("ReceberMensagem — opção falar com atendente: lista de setores", ()
     expect(abertos).toHaveLength(1);
     expect(abertos[0].setor).toBe("recepcao");
     expect(abertos[0].resumo).toContain("respostas inválidas seguidas na lista de setores");
+  });
+
+  it("'ajuda' na lista é resposta inválida, não saída para a recepção", async () => {
+    const { caso, abertos, sessoes } = montar();
+    await pedir(caso);
+
+    await dizerAna(caso, "preciso de ajuda");
+
+    expect(abertos).toHaveLength(0);
+    expect(sessoes.get(CHAVE)).toEqual({ etapa: "setor", pagina: 1, invalidos: 1 });
   });
 
   it("'mais' na última página é resposta inválida", async () => {

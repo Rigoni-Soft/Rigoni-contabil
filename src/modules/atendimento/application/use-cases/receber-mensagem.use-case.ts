@@ -91,13 +91,17 @@ const AVISO_RECEPCAO_CNPJ_NAO_ENCONTRADO = `${SEM_CNPJ} ${ENCAMINHANDO_PARA_RECE
 // Palavras que, num número não reconhecido, pedem uma pessoa em vez de seguir o fluxo.
 const PEDIDO_DE_ATENDENTE =
   /\b(atendente|humano|recepcao|recepcionista|suporte|ajuda|funcionario|duvida|(falar|conversar) com (alguem|uma pessoa|gente|o contador|a contadora))\b/;
+// No menu e na lista de Setores só vale o pedido explícito de uma pessoa: "ajuda" e "dúvida" são
+// dúvida de uso do menu, não pedido de atendente.
+const PEDIDO_DE_PESSOA =
+  /\b(atendente|humano|recepcao|recepcionista|funcionario|(falar|conversar) com (alguem|uma pessoa|gente|o contador|a contadora))\b/;
 // "atenção" e "atencao" valem o mesmo para quem digita no celular.
 function tirarAcentos(texto: string): string {
   return texto.normalize("NFD").replace(/\p{M}/gu, "");
 }
 
-function pedeAtendente(texto: string): boolean {
-  return PEDIDO_DE_ATENDENTE.test(tirarAcentos(texto));
+function pedeUmaPessoa(texto: string): boolean {
+  return PEDIDO_DE_PESSOA.test(tirarAcentos(texto));
 }
 
 const AVISO_RECEPCAO_SEM_CADASTRO = `Não encontramos você entre os contatos cadastrados. ${ENCAMINHANDO_PARA_RECEPCAO}`;
@@ -289,7 +293,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
     const etapa = texto === "menu" ? null : sessao?.etapa;
     const semAcento = tirarAcentos(texto);
 
-    if (texto !== "menu" && pedeAtendente(texto)) {
+    if (texto !== "menu" && PEDIDO_DE_ATENDENTE.test(semAcento)) {
       return this.encaminhar(origem, { resumo: RESUMO_PEDIU_ATENDENTE });
     }
     if (etapa === "ja_cliente") {
@@ -388,9 +392,14 @@ export class ReceberMensagem implements ReceberMensagemPort {
       const salva = await this.sessoes.salvar(chave, { etapa: "tipo_documento" });
       return salva.ok ? this.enviar(telefone, PERGUNTA_TIPO) : salva;
     }
-    if (texto === String(OPCAO_ATENDENTE)) return this.abrirListaDeSetores(conversa);
+    // "Falar com atendente": o cliente escolhe o setor numa lista paginada (ver `escolherSetor`).
+    if (texto === String(OPCAO_ATENDENTE)) {
+      const setores = await this.setoresDoContato(contato);
+      if (!setores.ok) return setores;
+      return this.mostrarSetores(conversa, setores.value, { pagina: 1, invalidos: 0 });
+    }
     // Pedir uma pessoa por texto, em vez de digitar a opção, também é saída de erro: vai à recepção.
-    if (pedeAtendente(texto)) {
+    if (pedeUmaPessoa(texto)) {
       return this.encaminhar(origemDe(conversa, conversa.texto), {
         resumo: RESUMO_PEDIU_ATENDENTE_NO_MENU,
         aviso: AVISO_RECEPCAO_SEM_SETOR,
@@ -406,14 +415,6 @@ export class ReceberMensagem implements ReceberMensagemPort {
       telefone,
       `Olá, ${contato.nome} (${contato.empresa})! Como podemos ajudar?\n${menu}`,
     );
-  }
-
-  // "Falar com atendente": o cliente escolhe o setor numa lista paginada. A recepção é a saída de
-  // quem não sabe o setor, não quer escolher ou pede uma pessoa (ver `escolherSetor`).
-  private async abrirListaDeSetores(conversa: Conversa): Promise<Result<void, AppError>> {
-    const setores = await this.setoresDoContato(conversa.contato);
-    if (!setores.ok) return setores;
-    return this.mostrarSetores(conversa, setores.value, { pagina: 1, invalidos: 0 });
   }
 
   private async setoresDoContato(
@@ -434,12 +435,14 @@ export class ReceberMensagem implements ReceberMensagemPort {
 
   // Número da página = setor; "mais" = próxima página; "0" ou um pedido por uma pessoa = recepção;
   // qualquer outra coisa é resposta inválida, e ao passar do limite vai à recepção (sem prender o cliente).
+  // A lista é refeita a cada resposta a partir do regime atual: se ele mudar entre mostrar a lista e
+  // a resposta, o número pode apontar para outro Setor. Janela rara, aceita como a do ADR 0012.
   private async escolherSetor(
     conversa: Conversa,
     sessao: Extract<SessaoAtendimento, { etapa: "setor" }>,
     texto: string,
   ): Promise<Result<void, AppError>> {
-    if (texto === "0" || pedeAtendente(texto)) {
+    if (texto === "0" || pedeUmaPessoa(texto)) {
       const rotulo = texto === "0" ? ROTULO_NAO_SEI_O_SETOR : conversa.texto;
       return this.encaminhar(origemDe(conversa, rotulo), {
         resumo: RESUMO_NAO_ESCOLHEU_SETOR,
@@ -459,7 +462,16 @@ export class ReceberMensagem implements ReceberMensagemPort {
     const escolhido = /^\d+$/.test(texto)
       ? setoresDaPagina(setores, pagina)[Number(texto) - 1]
       : undefined;
-    if (escolhido) return this.encaminharAoSetor(conversa, escolhido);
+    if (escolhido) {
+      // A Mensagem registrada é o nome do setor, não o dígito: o Funcionário lê o pedido do contato
+      // em vez de um "3" solto.
+      const nome = SETOR_LABEL[escolhido];
+      return this.encaminhar(origemDe(conversa, nome), {
+        setor: escolhido,
+        resumo: `Cliente pediu o setor ${nome} pelo menu da URA.`,
+        aviso: `Certo! Vamos te encaminhar para o setor ${nome}, que já vai te atender. Aguarde um instante, por favor.`,
+      });
+    }
 
     const invalidos = sessao.invalidos + 1;
     if (invalidos >= MAX_INVALIDOS) {
@@ -469,17 +481,6 @@ export class ReceberMensagem implements ReceberMensagemPort {
       });
     }
     return this.mostrarSetores(conversa, setores, { pagina, invalidos });
-  }
-
-  // A Mensagem registrada é o nome do setor, não o dígito: o Funcionário lê o pedido do contato em
-  // vez de um "3" solto.
-  private encaminharAoSetor(conversa: Conversa, setor: SetorSlug): Promise<Result<void, AppError>> {
-    const nome = SETOR_LABEL[setor];
-    return this.encaminhar(origemDe(conversa, nome), {
-      setor,
-      resumo: `Cliente pediu o setor ${nome} pelo menu da URA.`,
-      aviso: `Certo! Vamos te encaminhar para o setor ${nome}, que já vai te atender. Aguarde um instante, por favor.`,
-    });
   }
 
   // O provedor fiscal é falha esperada por Cliente (sem autorização, fora do ar): o contato é
