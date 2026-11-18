@@ -91,6 +91,15 @@ const AVISO_RECEPCAO_CNPJ_NAO_ENCONTRADO = `${SEM_CNPJ} ${ENCAMINHANDO_PARA_RECE
 // Palavras que, num número não reconhecido, pedem uma pessoa em vez de seguir o fluxo.
 const PEDIDO_DE_ATENDENTE =
   /\b(atendente|humano|recepcao|recepcionista|suporte|ajuda|funcionario|duvida|(falar|conversar) com (alguem|uma pessoa|gente|o contador|a contadora))\b/;
+// "atenção" e "atencao" valem o mesmo para quem digita no celular.
+function tirarAcentos(texto: string): string {
+  return texto.normalize("NFD").replace(/\p{M}/gu, "");
+}
+
+function pedeAtendente(texto: string): boolean {
+  return PEDIDO_DE_ATENDENTE.test(tirarAcentos(texto));
+}
+
 const AVISO_RECEPCAO_SEM_CADASTRO = `Não encontramos você entre os contatos cadastrados. ${ENCAMINHANDO_PARA_RECEPCAO}`;
 
 // O que a recepção lê ao assumir (`atendimentos.resumo_ura`): a origem é sempre a URA.
@@ -276,9 +285,9 @@ export class ReceberMensagem implements ReceberMensagemPort {
   ): Promise<Result<void, AppError>> {
     const origem: Origem = { telefone, chave, idExterno, textoDoContato, clienteId: null };
     const etapa = texto === "menu" ? null : sessao?.etapa;
-    const semAcento = texto.normalize("NFD").replace(/\p{M}/gu, "");
+    const semAcento = tirarAcentos(texto);
 
-    if (texto !== "menu" && PEDIDO_DE_ATENDENTE.test(semAcento)) {
+    if (texto !== "menu" && pedeAtendente(texto)) {
       return this.encaminhar(origem, { resumo: RESUMO_PEDIU_ATENDENTE });
     }
     if (etapa === "ja_cliente") {
@@ -421,8 +430,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
     sessao: Extract<SessaoAtendimento, { etapa: "setor" }>,
     texto: string,
   ): Promise<Result<void, AppError>> {
-    const semAcento = texto.normalize("NFD").replace(/\p{M}/gu, "");
-    if (texto === "0" || PEDIDO_DE_ATENDENTE.test(semAcento)) {
+    if (texto === "0" || pedeAtendente(texto)) {
       const rotulo = texto === "0" ? ROTULO_NAO_SEI_O_SETOR : conversa.texto;
       return this.encaminhar(origemDe(conversa, rotulo), {
         resumo: RESUMO_NAO_ESCOLHEU_SETOR,

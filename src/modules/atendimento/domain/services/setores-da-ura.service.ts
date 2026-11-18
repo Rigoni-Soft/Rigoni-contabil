@@ -7,7 +7,7 @@ import {
   type SetorSlug,
 } from "@/shared/kernel/setores";
 
-export const SETORES_POR_PAGINA = 5;
+const SETORES_POR_PAGINA = 5;
 
 // Os setores que o cliente escolhe na URA ao pedir um atendente. A Recepção fica de fora: é a saída de
 // quem não sabe o setor (opção 0) ou escreve que quer falar com uma pessoa. O Simples Nacional só
