@@ -14,6 +14,7 @@ const SERVICE_ROLE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
 const CNPJ = "11444777009861";
+const CNPJ_CASCATA = "11444777009862";
 const FUNCIONARIO_RH_ID = "dddddddd-dddd-dddd-dddd-dddddddddddd";
 const FUNCIONARIO_SN_ID = "22222222-2222-2222-2222-222222222222";
 
@@ -74,7 +75,7 @@ const limpar = async () => {
 };
 
 beforeAll(async () => {
-  await removerClientesDeTeste([CNPJ]);
+  await removerClientesDeTeste([CNPJ, CNPJ_CASCATA]);
   clienteId = crypto.randomUUID();
   const cliente = await servico
     .from("clientes")
@@ -99,7 +100,7 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
-  await removerClientesDeTeste([CNPJ]);
+  await removerClientesDeTeste([CNPJ, CNPJ_CASCATA]);
 });
 
 describe("Destinos de envio (integração)", () => {
@@ -306,7 +307,7 @@ describe("Destinos de envio (integração)", () => {
 
   it("apagar o Cliente leva os Contatos e Destinos junto, sem recusa", async () => {
     const outro = crypto.randomUUID();
-    const cnpj = "11444777009862";
+    const cnpj = CNPJ_CASCATA;
     await removerClientesDeTeste([cnpj]);
     await servico
       .from("clientes")

@@ -72,6 +72,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await page.getByLabel("Forma de envio").selectOption("email");
     await page.getByLabel("Nome").fill("Maria Contato");
     await page.getByLabel("Telefone").fill("11999998888");
+    await page.getByLabel("E-mail", { exact: true }).fill("maria.contato@exemplo.com");
     await page.getByLabel("Documento recebido").selectOption("positivo");
     // "Enviado" e a data de envio são só do sistema.
     await expect(
@@ -95,6 +96,9 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await expect(page.getByLabel("Forma de envio")).toHaveValue("email");
     await expect(page.getByLabel("Nome")).toHaveValue("Maria Contato");
     await expect(page.getByLabel("Telefone")).toHaveValue("(11) 99999-8888");
+    await expect(page.getByLabel("E-mail", { exact: true })).toHaveValue(
+      "maria.contato@exemplo.com",
+    );
     await expect(page.getByLabel("Documento recebido")).toHaveValue("positivo");
     await expect(page.getByLabel("DAS", { exact: true })).toHaveValue("pronto");
     await expect(page.getByRole("checkbox", { name: "Comércio" })).toBeChecked();
