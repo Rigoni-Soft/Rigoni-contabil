@@ -56,12 +56,27 @@ test.describe("Foto do avatar em Meu perfil", () => {
     await expect(page.getByRole("button", { name: "Salvar foto" })).toHaveCount(0);
   });
 
-  test("o Admin não vê o envio de foto", async ({ page }) => {
+  test("o Admin também envia e remove a própria foto, e sem foto volta à logo do escritório", async ({
+    page,
+  }) => {
     await login(page, "admin@rigonicontabil.local", "admin123");
     await expect(page).toHaveURL("/");
     await page.goto("/perfil");
 
-    await expect(page.getByRole("heading", { name: "Trocar senha" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Sua foto" })).toHaveCount(0);
+    const avatar = page.getByRole("link", { name: "Ir para o início" }).locator("img");
+    await expect(avatar).toHaveAttribute("src", /logo-rigoni/);
+
+    await page
+      .getByLabel("Escolher foto")
+      .setInputFiles({ name: "foto.png", mimeType: "image/png", buffer: PNG_1X1 });
+    await page.getByRole("button", { name: "Salvar foto" }).click();
+
+    await expect(page.getByRole("button", { name: "Remover foto" })).toBeVisible();
+    await expect(avatar).toHaveAttribute("src", /\/api\/avatar\?v=/);
+
+    await page.getByRole("button", { name: "Remover foto" }).click();
+
+    await expect(page.getByRole("button", { name: "Remover foto" })).toHaveCount(0);
+    await expect(avatar).toHaveAttribute("src", /logo-rigoni/);
   });
 });

@@ -12,7 +12,6 @@ import { exigirUsuarioAtivo } from "@/modules/usuarios/application/use-cases/exi
 import { ImagemAvatar } from "@/modules/usuarios/domain/value-objects/imagem-avatar.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
-import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 export class EnviarAvatar implements EnviarAvatarPort {
@@ -31,9 +30,6 @@ export class EnviarAvatar implements EnviarAvatarPort {
     const ator = await exigirUsuarioAtivo(this.sessao, this.usuarios);
     if (!ator.ok) return ator;
     const usuario = ator.value;
-    if (!usuario.podePersonalizarAvatar()) {
-      return err(new ForbiddenError("Só o Funcionário personaliza o avatar."));
-    }
 
     const imagem = ImagemAvatar.criar(bytes);
     if (!imagem.ok) return imagem;

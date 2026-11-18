@@ -4,7 +4,7 @@
 
 ## Contexto
 
-O Funcionário pode personalizar o avatar em Meu perfil (mapa #263). Diferente da foto do Cartão de ponto
+Todo usuário, de qualquer Papel (o Admin inclusive), pode personalizar o próprio avatar em Meu perfil (mapa #263). Diferente da foto do Cartão de ponto
 (ADR 0011, que nunca é guardada), a imagem do avatar é dado pessoal que o sistema **guarda**, vinculado ao
 Funcionário, para voltar a aparecer em todo acesso. O Supabase Auth não tem armazenamento de avatar (só o
 campo livre `user_metadata.avatar_url`), então o arquivo vai para o Storage. Sem imagem enviada, o avatar é
@@ -12,7 +12,7 @@ a logo do setor e, sem ela, a do escritório (arquivos estáticos em `public/log
 
 ## Decisão
 
-- **Alcance mínimo**: só o próprio Funcionário vê o avatar enviado (cabeçalho dele e Meu perfil). Nenhuma
+- **Alcance mínimo**: só o próprio dono vê o avatar enviado (cabeçalho dele e Meu perfil). Nenhuma
   tela mostra a imagem de outro usuário, nem Líder, nem Admin. Mostrar o de outros é decisão e frente nova.
 - **Onde fica**: bucket privado `avatares`, um objeto por usuário (`{usuario_id}`), sobrescrito, sem histórico,
   limite de 256 KB e só `image/webp`. A escrita é só do servidor (service role), depois da autorização, sem

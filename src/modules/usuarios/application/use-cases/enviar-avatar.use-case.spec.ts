@@ -29,6 +29,16 @@ describe("EnviarAvatar", () => {
     expect(chamadas).toEqual(["gravar:func-1:64", "definir:func-1:data"]);
   });
 
+  it.each([
+    ["Líder", "lider-1", "lider_setor"],
+    ["Admin", "admin-1", "admin"],
+  ])("%s também personaliza a própria foto", async (_nome, id, papel) => {
+    const { enviar, chamadas } = montar({ atorId: id, perfis: [usuario(id, papel)] });
+
+    expect((await enviar.execute({ bytes: webp() })).ok).toBe(true);
+    expect(chamadas).toEqual([`gravar:${id}:64`, `definir:${id}:data`]);
+  });
+
   it("recusa o que não é WebP, sem tocar em nada", async () => {
     const { enviar, chamadas } = montar();
 
@@ -51,8 +61,6 @@ describe("EnviarAvatar", () => {
 
   it.each([
     ["sem sessão", { atorId: null }],
-    ["Líder", { atorId: "lider-1", perfis: [usuario("lider-1", "lider_setor")] }],
-    ["Admin", { atorId: "admin-1", perfis: [usuario("admin-1", "admin")] }],
     [
       "desativado",
       {

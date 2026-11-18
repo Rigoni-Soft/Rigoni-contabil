@@ -155,6 +155,5 @@ describe("UsuarioBuilder", () => {
       .build();
 
     expect(resultado.ok && resultado.value.temAvatar()).toBe(esperado);
-    expect(resultado.ok && resultado.value.podePersonalizarAvatar()).toBe(true);
   });
 });

@@ -18,13 +18,11 @@ export default async function Page() {
       header={<CabecalhoDoShellContainer sessao={sessao} />}
       voltar={<VoltarAoHistoricoContainer />}
       avatar={
-        sessao.podePersonalizarAvatar && (
-          <AvatarDaContaContainer
-            papel={sessao.papel}
-            setor={sessao.setor}
-            avatarAtualizadoEm={sessao.avatarAtualizadoEm}
-          />
-        )
+        <AvatarDaContaContainer
+          papel={sessao.papel}
+          setor={sessao.setor}
+          avatarAtualizadoEm={sessao.avatarAtualizadoEm}
+        />
       }
       formulario={<TrocarSenhaContainer />}
     />

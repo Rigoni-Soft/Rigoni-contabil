@@ -83,11 +83,6 @@ export class Usuario {
     return this.props.avatarAtualizadoEm !== null;
   }
 
-  // Só o Funcionário personaliza o avatar (ADR 0012); Líder e Admin ficam com a logo.
-  podePersonalizarAvatar(): boolean {
-    return this.props.papel.valor === "funcionario";
-  }
-
   senhaProvisoriaVencida(agora: Date): boolean {
     return this.precisaTrocarSenha() && agora > this.props.senhaProvisoriaExpiraEm;
   }

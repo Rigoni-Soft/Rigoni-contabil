@@ -23,7 +23,7 @@ type AvatarDaContaProps = {
   aoRemover: () => void;
 };
 
-// Meu perfil: o Funcionário envia, troca e remove a foto do avatar. O texto de transparência fica
+// Meu perfil: cada usuário, de qualquer Papel, envia, troca e remove a foto do avatar. O texto de transparência fica
 // sempre à vista (ADR 0012), sem checkbox de consentimento.
 export function AvatarDaConta({
   srcAtual,
