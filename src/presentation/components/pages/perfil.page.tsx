@@ -16,7 +16,7 @@ export function PerfilPage({ header, formulario, nome, email, papel, setor }: Pe
     <TelaDeTrabalhoTemplate
       header={header}
       largura="conta"
-      cabecalho={<CabecalhoDeTela titulo="Meu perfil" />}
+      cabecalho={<CabecalhoDeTela titulo="Meu perfil" voltarAoHistorico />}
       conteudo={
         <PerfilDaConta
           nome={nome}
