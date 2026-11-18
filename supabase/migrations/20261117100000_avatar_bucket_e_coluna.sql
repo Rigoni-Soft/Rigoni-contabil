@@ -6,12 +6,15 @@
 -- ausência de policy nega leitura e escrita a qualquer sessão de usuário. A foto sai só pela rota do servidor.
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('avatares', 'avatares', false, 262144, '{image/webp}')
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE
+    SET public = false, file_size_limit = EXCLUDED.file_size_limit, allowed_mime_types = EXCLUDED.allowed_mime_types;
 
 ALTER TABLE public.perfis ADD COLUMN avatar_atualizado_em timestamp with time zone;
 
 -- Os grants de `perfis` são os da tabela (já explícitos no baseline: authenticated sem policy de UPDATE,
--- anon nada, service_role tudo); a coluna nova herda a leitura do dono pela policy de SELECT.
+-- anon nada, service_role tudo); a coluna nova herda a leitura do dono pela policy de SELECT. O critério
+-- "grants explícitos na coluna" da #285 é atendido por essa herança mais o gatilho abaixo: REVOKE de coluna
+-- não tem efeito enquanto o grant de tabela existe, e a escrita de sessão é travada pelo gatilho.
 -- "Só o sistema grava" é travado no banco (ADR 0008): qualquer sessão com usuário, Admin inclusive, que
 -- tente gravar a coluna (INSERT com valor, ou UPDATE que a mude) recebe erro 23514. Sem sessão
 -- (`auth.uid()` nulo: service_role do servidor, seed, migration) a escrita passa.
