@@ -36,6 +36,8 @@ jobs:
         if: github.event_name == 'pull_request'
       - run: yarn check:deps
       - run: yarn check:guard-senha
+      - run: yarn check:rotas
+      - run: yarn check:actions
 
       - name: Gera os tipos ambient do Next.js (LayoutProps etc.) antes do typecheck
         run: yarn next typegen
