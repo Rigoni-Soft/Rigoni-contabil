@@ -3,6 +3,7 @@ import { Controller, type Control, type FieldErrors, type UseFormRegister } from
 
 import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { LinhaDeContato } from "@/presentation/components/molecules/linha-de-contato.component";
 import { Button } from "@/presentation/components/ui/button";
 import { Label } from "@/presentation/components/ui/label";
@@ -41,6 +42,9 @@ export function ContatosDoCadastro({
           </Button>
         )}
       </Linha>
+      {!readOnly && (
+        <Texto variante="nota">Em cada contato, informe ao menos o WhatsApp ou o e-mail.</Texto>
+      )}
       {contatos.map((campo, indice) => (
         <Controller
           key={campo.id}

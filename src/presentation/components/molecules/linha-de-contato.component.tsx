@@ -52,7 +52,6 @@ export function LinhaDeContato({
         id={`contatos.${indice}.telefone`}
         rotulo="Telefone"
         inputMode="tel"
-        ajuda={somenteLeitura ? undefined : "Ao menos um: WhatsApp ou e-mail"}
         erro={erroTelefone}
         className="min-w-[10rem] flex-1 gap-1"
         {...telefone}
