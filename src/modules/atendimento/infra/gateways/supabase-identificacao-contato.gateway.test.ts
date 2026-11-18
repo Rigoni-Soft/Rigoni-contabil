@@ -65,7 +65,7 @@ afterAll(async () => {
 });
 
 describe("SupabaseIdentificacaoContatoGateway", () => {
-  it("identifica o contato padrão pelos dígitos do telefone", async () => {
+  it("identifica o contato pelos dígitos do telefone", async () => {
     const r = await gateway.identificar("61991112233");
     expect(r).toEqual({
       ok: true,
@@ -73,7 +73,7 @@ describe("SupabaseIdentificacaoContatoGateway", () => {
     });
   });
 
-  it("identifica outro contato (não padrão) do mesmo Cliente", async () => {
+  it("identifica qualquer contato do Cliente, de qualquer Setor dono", async () => {
     const r = await gateway.identificar("6132224455");
     expect(r).toEqual({
       ok: true,

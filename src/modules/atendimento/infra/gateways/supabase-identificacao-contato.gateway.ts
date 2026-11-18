@@ -21,7 +21,7 @@ export class SupabaseIdentificacaoContatoGateway implements IdentificacaoContato
       p_telefone: telefone,
     });
     if (error) return err(new ServicoExternoError("Falha ao identificar o contato."));
-    // Ordenadas por padrão e antiguidade: vários Contatos do mesmo Cliente não são ambiguidade.
+    // O banco devolve uma linha por Cliente; mais de uma é número ambíguo.
     const linhas = (data as { cliente_id: string; nome: string; empresa: string }[] | null) ?? [];
     if (new Set(linhas.map((l) => l.cliente_id)).size > 1) return ok("ambiguo");
     const linha = linhas[0];
