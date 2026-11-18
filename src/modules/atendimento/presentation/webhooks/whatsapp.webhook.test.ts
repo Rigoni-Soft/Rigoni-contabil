@@ -173,6 +173,7 @@ beforeEach(() => {
   identificacao = {
     identificar: async () => ok({ clienteId: "c1", nome: "Ana", empresa: "Padaria" }),
     cnpjCadastrado: async () => ok(true),
+    regimeDoCliente: async () => ok("simples_nacional"),
   };
   jest.spyOn(console, "info").mockImplementation(() => undefined);
 });
@@ -210,7 +211,11 @@ describe("POST /api/webhooks/whatsapp (notificação)", () => {
   });
 
   it("número desconhecido: CNPJ não encontrado ganha nova tentativa e, errando de novo, vai à recepção", async () => {
-    identificacao = { identificar: async () => ok(null), cnpjCadastrado: async () => ok(false) };
+    identificacao = {
+      identificar: async () => ok(null),
+      cnpjCadastrado: async () => ok(false),
+      regimeDoCliente: async () => ok(null),
+    };
     for (const t of ["oi", "sim", "11.222.333/0001-81", "11.222.333/0001-81"]) {
       expect((await enviar(notificacao([texto(t)]))).status).toBe(200);
     }
@@ -228,11 +233,19 @@ describe("POST /api/webhooks/whatsapp (notificação)", () => {
     ]);
   });
 
-  it("opção 5 do menu (falar com atendente) encaminha o contato reconhecido à recepção", async () => {
-    const r = await enviar(notificacao([texto("5")]));
+  it("opção 5 do menu (falar com atendente) mostra a lista de setores, e o número escolhido encaminha ao setor", async () => {
+    const r = await enviar(notificacao([texto("5"), texto("2")]));
     expect(r.status).toBe(200);
-    expect(envio.enviadas).toHaveLength(2);
-    expect(envio.enviadas[0].texto).toContain("recepção");
+    expect(envio.enviadas).toHaveLength(3);
+    expect(envio.enviadas[0].texto).toContain("Com qual setor você quer falar?");
+    expect(envio.enviadas[1].texto).toContain("setor Tributário");
+  });
+
+  it("na lista de setores, '0' encaminha o contato reconhecido à recepção", async () => {
+    const r = await enviar(notificacao([texto("5"), texto("0")]));
+    expect(r.status).toBe(200);
+    expect(envio.enviadas).toHaveLength(3);
+    expect(envio.enviadas[1].texto).toContain("recepção");
   });
 
   it("opção 1 do menu pergunta o tipo e, ao escolher contrato, entrega o documento", async () => {
@@ -293,6 +306,7 @@ describe("POST /api/webhooks/whatsapp (notificação)", () => {
     identificacao = {
       identificar: async () => err(new ServicoExternoError("banco")),
       cnpjCadastrado: async () => err(new ServicoExternoError("banco")),
+      regimeDoCliente: async () => err(new ServicoExternoError("banco")),
     };
     expect((await enviar(notificacao([texto("oi")]))).status).toBe(502);
   });

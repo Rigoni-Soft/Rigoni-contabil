@@ -17,4 +17,6 @@ export interface IdentificacaoContatoPort {
   ): Promise<Result<ContatoIdentificado | ContatoAmbiguo | null, AppError>>;
   // O CNPJ (já normalizado, ver `normalizarCnpj`) pertence a algum Cliente cadastrado?
   cnpjCadastrado(cnpj: string): Promise<Result<boolean, AppError>>;
+  // O regime do Cliente (decide se o Simples Nacional entra na lista de setores da URA); null = sem Cliente.
+  regimeDoCliente(clienteId: string): Promise<Result<string | null, AppError>>;
 }

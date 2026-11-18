@@ -28,6 +28,16 @@ export class SupabaseIdentificacaoContatoGateway implements IdentificacaoContato
     return ok({ clienteId: linha.cliente_id, nome: linha.nome, empresa: linha.empresa });
   }
 
+  async regimeDoCliente(clienteId: string): Promise<Result<string | null, AppError>> {
+    const { data, error } = await this.supabaseAdmin
+      .from("clientes")
+      .select("regime")
+      .eq("id", clienteId)
+      .maybeSingle();
+    if (error) return err(new ServicoExternoError("Falha ao consultar o regime do Cliente."));
+    return ok((data?.regime as string | undefined) ?? null);
+  }
+
   // Só existência: não há linha de Cliente a mapear, então não passa por Row DTO.
   async cnpjCadastrado(cnpj: string): Promise<Result<boolean, AppError>> {
     const { data, error } = await this.supabaseAdmin
