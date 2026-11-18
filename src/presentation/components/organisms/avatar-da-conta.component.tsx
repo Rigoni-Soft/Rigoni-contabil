@@ -45,6 +45,7 @@ export function AvatarDaConta({
   aoRemover,
 }: AvatarDaContaProps) {
   const pendente = acao !== undefined;
+  const rotuloDoEscolher = temFoto ? "Trocar foto" : "Escolher foto";
   const inativo = "aria-disabled:opacity-50";
   return (
     <Caixa
@@ -94,16 +95,8 @@ export function AvatarDaConta({
             <Linha espaco={2} quebra alinhar="centro">
               <BotaoDeArquivo
                 id={idDoEscolher}
-                rotulo={
-                  acao === "preparando" ? "Preparando…" : temFoto ? "Trocar foto" : "Escolher foto"
-                }
-                rotuloAcessivel={
-                  acao === "preparando"
-                    ? "Preparando a foto"
-                    : temFoto
-                      ? "Trocar foto"
-                      : "Escolher foto"
-                }
+                rotulo={acao === "preparando" ? "Preparando…" : rotuloDoEscolher}
+                rotuloAcessivel={acao === "preparando" ? "Preparando a foto" : rotuloDoEscolher}
                 aceitar={aceitar}
                 ocupado={pendente}
                 descritoPor={erro ? `${ID_DA_DICA} ${ID_DO_ERRO}` : ID_DA_DICA}

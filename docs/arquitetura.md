@@ -118,7 +118,7 @@ Fora dessas exceções, prefira sempre `kebab-case`.
 
 Premissas:
 
-1. **Sem API Routes.** Não existe `route.ts` em `src/app`, exceto webhooks de terceiros em `src/app/api/webhooks/**` jobs agendados em `src/app/api/jobs/**` e a leitura autenticada da foto do avatar em `src/app/api/avatar/route.ts` (seção 3.13; ADR 0012). Toda comunicação cliente→servidor é Server Action; a carga inicial vem de Server Components. **[lint]**
+1. **Sem API Routes.** Não existe `route.ts` em `src/app`, exceto webhooks de terceiros em `src/app/api/webhooks/**`, jobs agendados em `src/app/api/jobs/**` e a leitura autenticada da foto do avatar em `src/app/api/avatar/route.ts` (seção 3.13; ADR 0012). Toda comunicação cliente→servidor é Server Action; a carga inicial vem de Server Components. **[lint]**
 2. **Monólito modular por domínio.** Um deploy, módulos isolados entre si.
 3. **Clean Architecture clássica** dentro de cada módulo: `domain`, `application`, `infra`, `presentation`, mais `shared` e `main` globais.
 4. **Server Components são o padrão absoluto.** Cliente só onde é exigido (seção 4.6).
@@ -429,7 +429,7 @@ Regras:
 3. O handler `*.webhook.ts` lê o corpo cru, extrai a assinatura, chama uma porta IN pelo `main` e converte o resultado em status HTTP. Sem regra de negócio.
 4. **O que puder passar pela `infra` passa.** A verificação de assinatura e a idempotência (guardar o id do evento já processado) acontecem dentro do caso de uso, por portas OUT (`AutenticacaoWebhookPort`, `EventoProcessadoRepository`) implementadas na `infra`. Quando a assinatura cobre o corpo cru no formato do provedor e o caso de uso de recepção tem contrato neutro (sem jargão do provedor), a verificação fica num caso de uso próprio (`AutenticarWebhook`, porta IN com um método por prova: assinatura e token de handshake), chamado pelo handler antes de qualquer efeito; o handler nunca obtém a porta OUT direto do `main`.
 5. Resposta: 2xx quando processou ou já tinha visto o evento; 4xx para assinatura inválida; 5xx para falha transitória (o provedor tenta de novo).
-6. O middleware/proxy de sessão exclui `/api/webhooks/**`. Em `/api/jobs/**` ele só renova sessão (não redireciona), o que é inofensivo.
+6. O middleware/proxy de sessão exclui `/api/webhooks/**`. Em `/api/jobs/**` ele só renova sessão (não redireciona), o que é inofensivo. Em `/api/avatar` ele também renova a sessão, e é o que se quer: o caso de uso lê o cookie para saber de quem é a foto.
 
 ### 3.14 Regras de segurança impostas pela arquitetura
 

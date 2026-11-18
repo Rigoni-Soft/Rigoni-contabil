@@ -15,5 +15,6 @@ export function avisoDaFoto(arquivo: { type: string; size: number }): string | u
   return undefined;
 }
 
-// O que a tela do avatar está fazendo (o rótulo do botão correspondente mostra o progresso).
-export type AcaoDoAvatar = "preparando" | "salvando" | "removendo";
+// O que a tela do avatar está fazendo (o rótulo do botão correspondente mostra o progresso): o tipo
+// mora na View e o presenter o reexporta, para o hook ter uma fonte só.
+export type { AcaoDoAvatar } from "@/presentation/components/organisms/avatar-da-conta.component";
