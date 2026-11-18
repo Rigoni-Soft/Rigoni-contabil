@@ -5,6 +5,7 @@ import type {
   ContatoIdentificado,
   IdentificacaoContatoPort,
 } from "@/modules/atendimento/application/ports/out/identificacao-contato.provider";
+import { clienteRegimeRowSchema } from "@/modules/atendimento/infra/dtos/cliente-regime-row.dto";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
@@ -35,7 +36,12 @@ export class SupabaseIdentificacaoContatoGateway implements IdentificacaoContato
       .eq("id", clienteId)
       .maybeSingle();
     if (error) return err(new ServicoExternoError("Falha ao consultar o regime do Cliente."));
-    return ok((data?.regime as string | undefined) ?? null);
+    if (!data) return ok(null);
+    const linha = clienteRegimeRowSchema.safeParse(data);
+    if (!linha.success) {
+      return err(new ServicoExternoError("Regime do Cliente em formato inválido."));
+    }
+    return ok(linha.data.regime);
   }
 
   // Só existência: não há linha de Cliente a mapear, então não passa por Row DTO.
