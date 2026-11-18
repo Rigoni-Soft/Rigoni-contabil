@@ -22,9 +22,9 @@ As duas trilhas não dependem uma da outra e podem andar em paralelo.
 
 ### Etapa A3: Foto personalizada
 
-- [ ] **PR A3: Foto do avatar em Meu perfil** (depende dos #285 e #287, nas PRs A1 e A2)
-  - [ ] #288 (ambas): enviar, trocar e remover a foto do avatar (bloqueado por #285 e #287)
-  - [ ] #289 (ambas): desativar usuário apaga a foto e a pendência vira derivada (bloqueado por #288)
+- [x] **PR A3: Foto do avatar em Meu perfil** (depende dos #285 e #287, nas PRs A1 e A2)
+  - [x] #288 (ambas): enviar, trocar e remover a foto do avatar (bloqueado por #285 e #287)
+  - [x] #289 (ambas): desativar usuário apaga a foto e a pendência vira derivada (bloqueado por #288)
 
 ## Trilha B: Contatos por Cliente e envio por Setor (spec #283)
 
