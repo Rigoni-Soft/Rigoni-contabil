@@ -29,6 +29,25 @@ type AvatarDaContaProps = {
   aoRemover: () => void;
 };
 
+const INATIVO = "aria-disabled:opacity-50";
+
+function RotuloDeAcao({
+  emCurso,
+  texto,
+  andamento,
+}: {
+  emCurso: boolean;
+  texto: string;
+  andamento: string;
+}) {
+  return (
+    <>
+      {emCurso && <Loader2 className="motion-safe:animate-spin" aria-hidden="true" />}
+      {emCurso ? andamento : texto}
+    </>
+  );
+}
+
 // Meu perfil: cada usuário, de qualquer Papel, envia, troca e remove a foto do avatar. O texto de transparência fica
 // sempre à vista (ADR 0012), sem checkbox de consentimento.
 export function AvatarDaConta({
@@ -46,7 +65,6 @@ export function AvatarDaConta({
 }: AvatarDaContaProps) {
   const pendente = acao !== undefined;
   const rotuloDoEscolher = temFoto ? "Trocar foto" : "Escolher foto";
-  const inativo = "aria-disabled:opacity-50";
   return (
     <Caixa como="section" aria-labelledby="avatar-titulo" className="mb-8">
       <Texto variante="subtitulo" como="h2" id="avatar-titulo" className="mb-2">
@@ -67,20 +85,21 @@ export function AvatarDaConta({
                 type="button"
                 size="sm"
                 autoFocus
-                className={inativo}
+                className={INATIVO}
                 aria-disabled={pendente || undefined}
                 onClick={pendente ? undefined : aoSalvar}
               >
-                {acao === "salvando" && (
-                  <Loader2 className="motion-safe:animate-spin" aria-hidden="true" />
-                )}
-                {acao === "salvando" ? "Salvando…" : "Salvar foto"}
+                <RotuloDeAcao
+                  emCurso={acao === "salvando"}
+                  texto="Salvar foto"
+                  andamento="Salvando…"
+                />
               </Button>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className={inativo}
+                className={INATIVO}
                 aria-disabled={pendente || undefined}
                 onClick={pendente ? undefined : aoCancelar}
               >
@@ -104,14 +123,15 @@ export function AvatarDaConta({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className={inativo}
+                  className={INATIVO}
                   aria-disabled={pendente || undefined}
                   onClick={pendente ? undefined : aoRemover}
                 >
-                  {acao === "removendo" && (
-                    <Loader2 className="motion-safe:animate-spin" aria-hidden="true" />
-                  )}
-                  {acao === "removendo" ? "Removendo…" : "Remover foto"}
+                  <RotuloDeAcao
+                    emCurso={acao === "removendo"}
+                    texto="Remover foto"
+                    andamento="Removendo…"
+                  />
                 </Button>
               )}
             </Linha>
