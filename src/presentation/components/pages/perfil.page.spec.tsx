@@ -1,15 +1,13 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 
 import { PerfilPage } from "./perfil.page";
-
-const back = jest.fn();
-jest.mock("next/navigation", () => ({ useRouter: () => ({ back }) }));
 
 describe("PerfilPage", () => {
   it("mostra nome, e-mail, papel e Setor do usuário e o formulário de troca de senha", () => {
     render(
       <PerfilPage
         header={<header>Cabeçalho</header>}
+        voltar={<button type="button">Voltar</button>}
         nome="Jéssica Souza"
         email="jessica@rigonicontabil.local"
         papel="lider_setor"
@@ -30,6 +28,7 @@ describe("PerfilPage", () => {
     render(
       <PerfilPage
         header={<header>Cabeçalho</header>}
+        voltar={<button type="button">Voltar</button>}
         nome="Cledson"
         email="admin@rigonicontabil.local"
         papel="admin"
@@ -42,10 +41,11 @@ describe("PerfilPage", () => {
     expect(screen.queryByText("Administrativo")).not.toBeInTheDocument();
   });
 
-  it("Voltar leva à tela anterior do histórico", () => {
+  it("mostra o Voltar recebido por slot", () => {
     render(
       <PerfilPage
         header={<header>Cabeçalho</header>}
+        voltar={<button type="button">Voltar</button>}
         nome="Cledson"
         email="admin@rigonicontabil.local"
         papel="admin"
@@ -53,11 +53,7 @@ describe("PerfilPage", () => {
         formulario={<form aria-label="Trocar senha" />}
       />,
     );
-    window.history.pushState({}, "", "/a");
-    window.history.pushState({}, "", "/perfil");
 
-    fireEvent.click(screen.getByRole("link", { name: "Voltar" }));
-
-    expect(back).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Voltar" })).toBeInTheDocument();
   });
 });
