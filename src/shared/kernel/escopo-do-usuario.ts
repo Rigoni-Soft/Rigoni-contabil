@@ -5,6 +5,8 @@ import { ROTA_POR_SETOR, SETOR_LABEL } from "./setores";
 // confere que cada arquivo existe e que nenhum sobra fora dele.
 export const LOGO_DO_ESCRITORIO = "/logos/logo-rigoni.jpeg";
 
+// Tipagem solta (`string`) como em ROTA_POR_SETOR/SETOR_LABEL: o Setor chega da sessão como texto do enum
+// do banco, e o que não está no mapa cai na logo do escritório.
 export const LOGO_POR_SETOR: Record<string, string> = {
   simples_nacional: "/logos/logo-simples-nacional.jpeg",
   contabil: "/logos/logo-contabil.jpeg",
@@ -41,6 +43,6 @@ export function escopoDoUsuario({
     rotulo,
     descricao: `Setor: ${rotulo}`,
     home: ROTA_POR_SETOR[setor] ?? "/",
-    logo: LOGO_POR_SETOR[setor] ?? LOGO_DO_ESCRITORIO,
+    logo: Object.hasOwn(LOGO_POR_SETOR, setor) ? LOGO_POR_SETOR[setor] : LOGO_DO_ESCRITORIO,
   };
 }

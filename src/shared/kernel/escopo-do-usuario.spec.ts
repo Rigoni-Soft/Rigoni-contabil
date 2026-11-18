@@ -22,6 +22,12 @@ describe("logos", () => {
 });
 
 describe("escopoDoUsuario", () => {
+  it("Setor com nome de propriedade de objeto ('constructor') cai na logo do escritório", () => {
+    expect(escopoDoUsuario({ papel: "funcionario", setor: "constructor" }).logo).toBe(
+      LOGO_DO_ESCRITORIO,
+    );
+  });
+
   it("Admin não tem Setor: vê todos os setores, volta a '/' e usa a logo do escritório, qualquer que seja o Setor da sessão", () => {
     for (const setor of ["administrativo", "rh", "simples_nacional"]) {
       expect(escopoDoUsuario({ papel: "admin", setor })).toEqual({
