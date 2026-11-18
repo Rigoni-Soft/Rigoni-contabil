@@ -29,7 +29,10 @@ describe("UsuariosLista", () => {
 
   it("avisa quando a conta está desativada com o bloqueio ainda pendente", () => {
     render(
-      <UsuariosLista usuarios={[{ ...usuarios[0], desativacaoPendente: true }]} acoes={() => null} />,
+      <UsuariosLista
+        usuarios={[{ ...usuarios[0], desativacaoPendente: true }]}
+        acoes={() => null}
+      />,
     );
 
     expect(screen.getByText(/conclusão pendente/)).toBeInTheDocument();
