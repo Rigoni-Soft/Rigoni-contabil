@@ -63,7 +63,7 @@ export function LinhaDeContato({
         type="email"
         inputMode="email"
         // A falta dos dois canais é erro da linha: o E-mail também fica inválido e aponta a mensagem.
-        aria-invalid={erroTelefone ? true : undefined}
+        aria-invalid={erroTelefone || erroEmail ? true : undefined}
         aria-describedby={erroTelefone ? `contatos.${indice}.telefone-mensagem` : undefined}
         erro={erroEmail}
         className="min-w-[10rem] flex-1 gap-1"
