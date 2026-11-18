@@ -16,7 +16,7 @@ As duas trilhas não dependem uma da outra e podem andar em paralelo.
 
 ### Etapa A2: Avatar no cabeçalho
 
-- [ ] **PR A2: Avatar vira link para a home e mostra a logo** (depende do #284, na PR A1)
+- [x] **PR A2: Avatar vira link para a home e mostra a logo** (depende do #284, na PR A1)
   - [x] #286 (frontend): avatar do cabeçalho vira link para a home em todas as telas (bloqueado por #284)
   - [x] #287 (frontend): avatar mostra a logo do Setor ou a do escritório (bloqueado por #286)
 
