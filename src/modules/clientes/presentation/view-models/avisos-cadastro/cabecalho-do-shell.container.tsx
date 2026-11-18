@@ -13,6 +13,7 @@ export function CabecalhoDoShellContainer({
     papel: string;
     setor: string;
     precisaTrocarSenha: boolean;
+    avatarAtualizadoEm?: string | null;
   };
 }) {
   return (
@@ -21,6 +22,7 @@ export function CabecalhoDoShellContainer({
       papel={sessao.papel}
       setor={sessao.setor}
       comAvatar={!sessao.precisaTrocarSenha}
+      avatarAtualizadoEm={sessao.avatarAtualizadoEm}
       sair={<LogoutButtonContainer />}
       avisos={<SinoAvisosContainer usuarioId={sessao.id} />}
     />

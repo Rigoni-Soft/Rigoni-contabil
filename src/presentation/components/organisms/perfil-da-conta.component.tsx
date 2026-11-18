@@ -10,11 +10,20 @@ type PerfilDaContaProps = {
   email: string;
   papel: string;
   setor: string;
+  // Envio da foto do avatar (slot: é um Container); só o Funcionário o recebe.
+  avatar?: React.ReactNode;
   // Formulário de troca de senha (slot: é um Container).
   formulario: React.ReactNode;
 };
 
-export function PerfilDaConta({ nome, email, papel, setor, formulario }: PerfilDaContaProps) {
+export function PerfilDaConta({
+  nome,
+  email,
+  papel,
+  setor,
+  avatar,
+  formulario,
+}: PerfilDaContaProps) {
   const dados = [
     { rotulo: "Nome", valor: nome },
     { rotulo: "E-mail", valor: email },
@@ -36,6 +45,7 @@ export function PerfilDaConta({ nome, email, papel, setor, formulario }: PerfilD
           </Fragment>
         ))}
       </Grade>
+      {avatar}
       <Caixa
         como="section"
         aria-labelledby="trocar-senha-titulo"

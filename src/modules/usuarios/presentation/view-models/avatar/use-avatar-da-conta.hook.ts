@@ -1,0 +1,103 @@
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+
+import type { ActionResult } from "@/shared/dtos/action-result.dto";
+
+import { enviarAvatarAction, removerAvatarAction } from "./avatar.actions";
+import { avisoDaFoto } from "./avatar.presenter";
+import { recortarParaAvatar } from "./recortar-avatar.upload";
+
+export const ID_DO_ESCOLHER_FOTO = "avatar-escolher-foto";
+
+type Previa = { blob: Blob; url: string };
+
+export function useAvatarDaConta() {
+  const router = useRouter();
+  const [previa, setPrevia] = useState<Previa | undefined>();
+  const [pendente, setPendente] = useState(false);
+  const [erro, setErro] = useState<string | undefined>();
+  const devolverFoco = useRef(false);
+
+  // Salvar, cancelar e remover fazem o botão clicado sumir: o foco vai ao "Escolher foto", que existe
+  // nos dois estados, e nunca cai no <body> (DESIGN.md, "Foco do teclado depois da ação").
+  useEffect(() => {
+    if (!devolverFoco.current) return;
+    devolverFoco.current = false;
+    document.getElementById(ID_DO_ESCOLHER_FOTO)?.focus();
+  });
+
+  useEffect(() => {
+    return () => {
+      if (previa) URL.revokeObjectURL(previa.url);
+    };
+  }, [previa]);
+
+  const aoEscolher = async (arquivo: File) => {
+    setErro(undefined);
+    const aviso = avisoDaFoto(arquivo);
+    if (aviso) {
+      setErro(aviso);
+      return;
+    }
+    setPendente(true);
+    try {
+      const blob = await recortarParaAvatar(arquivo);
+      setPrevia({ blob, url: URL.createObjectURL(blob) });
+    } catch {
+      setErro("Não foi possível ler essa imagem. Escolha outra.");
+    } finally {
+      setPendente(false);
+    }
+  };
+
+  const executar = async (acao: () => Promise<ActionResult<unknown>>, falha: string) => {
+    setPendente(true);
+    setErro(undefined);
+    try {
+      const resultado = await acao();
+      if (!resultado.ok) {
+        setErro(resultado.error.message);
+        return;
+      }
+      setPrevia(undefined);
+      devolverFoco.current = true;
+      router.refresh();
+    } catch {
+      setErro(falha);
+    } finally {
+      setPendente(false);
+    }
+  };
+
+  const aoSalvar = () => {
+    if (!previa) return;
+    const formData = new FormData();
+    formData.set("foto", previa.blob, "avatar.webp");
+    return executar(
+      () => enviarAvatarAction(formData),
+      "Não foi possível salvar a foto agora. Tente novamente.",
+    );
+  };
+
+  const aoRemover = () =>
+    executar(
+      () => removerAvatarAction(),
+      "Não foi possível remover a foto agora. Tente novamente.",
+    );
+
+  const aoCancelar = () => {
+    setPrevia(undefined);
+    setErro(undefined);
+    devolverFoco.current = true;
+  };
+
+  return {
+    previaSrc: previa?.url,
+    pendente,
+    erro,
+    aoEscolher,
+    aoSalvar,
+    aoCancelar,
+    aoRemover,
+  };
+}

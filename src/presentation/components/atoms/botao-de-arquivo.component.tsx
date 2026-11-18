@@ -2,6 +2,8 @@ import { buttonVariants } from "@/presentation/components/ui/button";
 import { cn } from "@/presentation/lib/utils";
 
 type BotaoDeArquivoProps = {
+  // Id do input: o foco volta a ele quando o botão da ação some (DESIGN.md, "Foco do teclado depois da ação").
+  id?: string;
   // Texto visível do botão.
   rotulo: string;
   // O que o leitor de tela ouve (o campo precisa dizer de qual item se trata).
@@ -17,6 +19,7 @@ type BotaoDeArquivoProps = {
 // Botão discreto que abre o seletor de arquivos: o <label> carrega a aparência do botão e o input
 // fica sr-only (mesmo padrão do BotaoDeAnexo e do FileInput), então há um só controle focável.
 export function BotaoDeArquivo({
+  id,
   rotulo,
   rotuloAcessivel,
   aceitar,
@@ -33,6 +36,7 @@ export function BotaoDeArquivo({
     >
       <span aria-hidden="true">{rotulo}</span>
       <input
+        id={id}
         type="file"
         accept={aceitar}
         aria-disabled={ocupado || undefined}

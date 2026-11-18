@@ -11,5 +11,6 @@ export function usuarioParaDto(usuario: Usuario): UsuarioDto {
     precisaTrocarSenha: usuario.precisaTrocarSenha(),
     bloqueioPendente: usuario.bloqueioPendente(),
     avatarAtualizadoEm: usuario.avatarAtualizadoEm?.toISOString() ?? null,
+    podePersonalizarAvatar: usuario.podePersonalizarAvatar(),
   };
 }
